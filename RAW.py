@@ -1621,11 +1621,15 @@ class PlotPanel(wx.Panel):
         
         for eachsubplot in plots:
             if eachsubplot.lines:
-                maxi = 0
-                mini = 0
-                maxq = 0
-                minq = 0
+                
+                each = eachsubplot.lines[0]
+                
+                maxq = max(each.get_xdata())
+                maxi = max(each.get_ydata())
             
+                minq = min(each.get_xdata())
+                mini = min(each.get_ydata())
+                        
                 for each in eachsubplot.lines:
                     xmax = max(each.get_xdata())
                     ymax = max(each.get_ydata())
@@ -1641,7 +1645,7 @@ class PlotPanel(wx.Panel):
                         maxi = ymax
                     if ymin < minq:
                         mini = ymin
-        
+
                 eachsubplot.set_ylim(mini, maxi)
                 eachsubplot.set_xlim(minq, maxq)
                 
@@ -2294,12 +2298,12 @@ class InfoPanel(wx.Panel):
         
         infoSizer = wx.BoxSizer()
         
-        self.infoTextBox = wx.TextCtrl(self, -1, 'Welcome to BioXTAS RAW!\n--------------------------------\n\n', size = (-1, 150), style = wx.TE_MULTILINE)
+        self.infoTextBox = wx.TextCtrl(self, -1, 'Welcome to BioXTAS RAW!\n--------------------------------\n\n', style = wx.TE_MULTILINE)
         
         self.infoTextBox.SetBackgroundColour('BLACK')
         self.infoTextBox.SetForegroundColour('YELLOW')
         
-        infoSizer.Add(self.infoTextBox, 1)
+        infoSizer.Add(self.infoTextBox, 1, wx.EXPAND)
         
         self.SetSizer(infoSizer)
         
@@ -3641,10 +3645,7 @@ class ManipFilePanel(wx.Panel):
         else:
             manipulationPage.DeselectAllExceptOne(self)
             self.ToggleSelect()
-            
-        
-            
-            
+
         
     def OnRightMouseClick(self, evt):
         manipulationPage = wx.FindWindowByName('ManipulationPage')
@@ -4001,7 +4002,6 @@ class ManipulationPage(wx.Panel):
                 if each != item:
                     each.Selected = True
                     each.ToggleSelect()
-                    
         else:
             
             for each in self.allManipulationItems:
@@ -4076,18 +4076,23 @@ class MainFrame(wx.Frame):
     def __init__(self, title, frame_id):
         wx.Frame.__init__(self, None, frame_id, title, name = 'MainFrame')
         
+        splitter1 = wx.SplitterWindow(self, -1)
+        splitter2 = wx.SplitterWindow(splitter1, -1)
+        
+        
         self.RAWWorkDir = os.getcwd()
         
-        self.main_panel = wx.Panel(self, -1)
+        #self.main_panel = wx.Panel(self, -1)
         
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
         
         self.statusbar = self.CreateStatusBar()
         self.statusbar.SetFieldsCount(3)
         self.statusbar.SetStatusWidths([-3, -2, -1])
+        self.statusbar.SetStatusText('Mode: OFFLINE', 2)
         
         #self.InitToolBar()
-        self.statusbar.SetStatusText('Mode: OFFLINE', 2)
+        
         self.OnlineControl = OnlineController(self)
         
         self.CreateMenuBar()
@@ -4096,20 +4101,22 @@ class MainFrame(wx.Frame):
         self.SetMinSize((800,600))
         
         # ************** The button panel *********************
-        self.button_panel = wx.Panel(self.main_panel,-1)
-        self.status_panel = wx.Panel(self.main_panel,-1)
-        self.plot_panel = wx.Panel(self.main_panel,-1)
         
-        self.control_panelsizer = wx.BoxSizer(wx.VERTICAL)
-        self.control_panelsizer.Add(self.status_panel, 0, wx.EXPAND)
-        self.control_panelsizer.Add(self.button_panel, 1, wx.EXPAND)
+        self.button_panel = wx.Panel(splitter1,-1)
+        #self.status_panel = wx.Panel(self.main_panel,-1)
+        self.plot_panel = wx.Panel(splitter1,-1)
+        
+        #self.control_panelsizer = wx.BoxSizer(wx.VERTICAL)
+        #self.control_panelsizer.Add(self.status_panel, 0, wx.EXPAND)
+        #self.control_panelsizer.Add(self.button_panel, 1, wx.EXPAND)
         
         # /* CREATE TOP STATUS PANEL */
-        self.infoPan = InfoPanel(self.status_panel)
-        statusSizer = wx.BoxSizer(wx.VERTICAL)
+       # self.infoPan = InfoPanel(splitter2)
+        
+       # statusSizer = wx.BoxSizer(wx.VERTICAL)
     
-        statusSizer.Add((5,5), 0)
-        statusSizer.Add(self.infoPan, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 2)
+       # statusSizer.Add((5,5), 0)
+       # statusSizer.Add(self.infoPan, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 2)
         #statusSizer.Add(StatusPan, 1, wx.EXPAND)
         
         # /* CREATE PLOT NOTEBOOK */
@@ -4128,8 +4135,11 @@ class MainFrame(wx.Frame):
         plotNBsizer = wx.BoxSizer(wx.VERTICAL)
         plotNBsizer.Add(self.plotNB, 1, wx.EXPAND | wx.TOP, 5)
 
+        self.plot_panel.SetSizer(plotNBsizer)
+
+        nbsplitter = wx.SplitterWindow(self.button_panel, -1)
         # /* CREATE CONTROL NOTEBOOK */
-        nb = wx.Notebook(self.button_panel)
+        nb = wx.Notebook(nbsplitter)
         page1 = PlotPage(nb)
         #page2 = OptionsPage(nb, -1)
         page3 = AutoAnalysisGUI.AutoAnalysisPage(nb, expParams)
@@ -4140,19 +4150,40 @@ class MainFrame(wx.Frame):
         #nb.AddPage(page2, "2D Options")
         nb.AddPage(page3, "BIFT")
 
+        self.infoPan = InfoPanel(nbsplitter)
+                
+        nbsplitter.SplitHorizontally(self.infoPan, nb, 150)
+        nbsplitter.SetMinimumPaneSize(20)
+        
         nbsizer = wx.BoxSizer(wx.VERTICAL)
-        nbsizer.Add(nb, 1, wx.EXPAND | wx.LEFT, 2)
+        nbsizer.Add((5,5), 0, wx.EXPAND)
+        #nbsizer.Add(self.infoPan, 0, wx.EXPAND)
+        #nbsizer.Add(nb, 1, wx.EXPAND | wx.LEFT, 2)
+        nbsizer.Add(nbsplitter, 1, wx.EXPAND | wx.LEFT, 2)
         
-        self.plot_panel.SetSizer(plotNBsizer)
         
-        # Insert the two main panels
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.control_panelsizer, 1 , wx.EXPAND)
-        sizer.Add(self.plot_panel, 3, wx.EXPAND)
+        # Insert the two main panels  
+        #sizer = wx.BoxSizer(wx.HORIZONTAL)
+        #sizer.Add(self.control_panelsizer, 1 , wx.EXPAND)
+        #sizer.Add(self.button_panel, 1 , wx.EXPAND)
+        #sizer.Add(self.plot_panel, 3, wx.EXPAND)
 
-        self.main_panel.SetSizer(sizer)
+        #self.main_panel.SetSizer(sizer)
+        
         self.button_panel.SetSizer(nbsizer)
-        self.status_panel.SetSizer(statusSizer)
+        
+        #self.status_panel.SetSizer(statusSizer)
+        #splitter1.SplitHorizontally(splitter2, self.infoPan)
+       # tstpanel = wx.Panel(splitter2, -1)
+        
+        #finsizer = wx.BoxSizer()
+                
+        splitter1.SplitVertically(self.button_panel, self.plot_panel, 270)
+        splitter1.SetMinimumPaneSize(50)
+
+        #finsizer.Add(splitter2, 1)
+        #self.SetSizer(finsizer)
+        
         
     def SetStatusText(self, text, slot = 0):
         
