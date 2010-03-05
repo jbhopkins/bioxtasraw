@@ -4627,7 +4627,7 @@ class MySplashScreen(wx.SplashScreen):
         self.Hide()
     
         frame = MainFrame('BioXTAS RAW 0.99.7b', -1)
-        icon = wx.Icon(name='raw.ico', type = wx.BITMAP_TYPE_ICO)
+        icon = wx.Icon(name= os.path.join("ressources","raw.ico"), type = wx.BITMAP_TYPE_ICO)
         frame.SetIcon(icon)
         app.SetTopWindow(frame)
   #      self.TopWindow.CenterOnScreen()
