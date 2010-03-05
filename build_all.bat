@@ -1,0 +1,1 @@
+python setup_pylab.py py2exe
