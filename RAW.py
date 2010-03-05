@@ -15,37 +15,33 @@
 #
 #******************************************************************************
 from __future__ import division
-import sys, os, cPickle, threading#, gc, time
+import sys, os, cPickle, threading, re, math#, gc, time
 import matplotlib
 matplotlib.rc('image', origin='lower')           # This turns the image upside down!!
-
-import masking
-
-# needs to be importet for cPickle to load mask files
-#... Strange... 
-from masking import CircleMask, RectangleMask, PolygonMask
+                                                #  but x and y will start from zero in the lower left corner 
 
 from pylab import setp
-#import matplotlib.cm as cm
-#from matplotlib.widgets import Cursor
+
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg #,Toolbar 
 from matplotlib.backends.backend_wx import NavigationToolbar2Wx
 from matplotlib.figure import Figure
-#import matplotlib.numerix as numerix
-#import matplotlib.numerix.mlab as mlab
-#from matplotlib.mlab import meshgrid
+
 from matplotlib.font_manager import FontProperties
-#from matplotlib.widgets import Slider, Button
 import matplotlib.cbook as cbook
 
-import fileIO, re, math
 from numpy import power, zeros, shape, transpose
+
 import wx.lib.scrolledpanel as scrolled
-#import wx
 import wx.animate
 import wx.html
 from wx.lib.wordwrap import wordwrap
 
+#Needs to be imported for cPickle to load mask files
+#... Strange... :
+from masking import CircleMask, RectangleMask, PolygonMask
+
+import fileIO
+import masking
 import cartToPol
 import AutoAnalysisGUI
 import advancedOptionsGUI
@@ -141,6 +137,7 @@ expParams = {
              'ScaleCurve'            : False
              }
 
+#File extensions that are ignored when in OnlineMode
 generalParams = {'OnlineExcludedFileTypes' : ['.rad', '.hdr', '.dat', '.cts']}
 
 plotParams = {'LegendLocation' : (1,0)}
@@ -590,7 +587,6 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         self.parent = parent
 
         self.parent = parent
-        self._MTB_FITAXIS = wx.NewId()
         
         self._MTB_LOGLIN = wx.NewId()
         self._MTB_LOGLOG = wx.NewId()
@@ -626,7 +622,6 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         showtop_icon = wx.Bitmap(showtopIconFilename, wx.BITMAP_TYPE_PNG)
         showbottom_icon = wx.Bitmap(showbottomIconFilename, wx.BITMAP_TYPE_PNG)
 
-        #self.AddSimpleTool(self._MTB_FITAXIS, fitaxis_icon)
         self.AddSeparator()
         self.AddCheckTool(self._MTB_LOGLIN, loglin_icon)
         self.AddCheckTool(self._MTB_LOGLOG, loglog_icon)
@@ -638,7 +633,6 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         self.AddCheckTool(self._MTB_SHOWTOP, showtop_icon)
         self.AddCheckTool(self._MTB_SHOWBOTTOM, showbottom_icon)
         
-        #self.Bind(wx.EVT_TOOL, self.fitaxis, id = self._MTB_FITAXIS)
         self.Bind(wx.EVT_TOOL, self.loglin, id = self._MTB_LOGLIN)
         self.Bind(wx.EVT_TOOL, self.loglog, id = self._MTB_LOGLOG)
         self.Bind(wx.EVT_TOOL, self.linlin, id = self._MTB_LINLIN)
@@ -672,10 +666,7 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         self.parent.fitAxis()
         
         self.parent.canvas.draw()
-        
-    def fitaxis(self, evt):
-        self.parent._fitAxis()
-        
+             
     def showboth(self, evt):
         self.ToggleTool(self._MTB_SHOWTOP, False)
         self.ToggleTool(self._MTB_SHOWBOTTOM, False)
@@ -1561,7 +1552,6 @@ class PlotPanel(wx.Panel):
         
         self.plottedExps.append(ExpObj)        # Insert the plot into plotted experiments list
     
-        #if self.plotparams['axesscale'] != 'loglog':
         self.fitAxis()
     
     def _PlotArrayOnSelectedAxesScale(self, array, axes = None, forceScale = None):
@@ -1624,36 +1614,37 @@ class PlotPanel(wx.Panel):
                 a.set_xlabel('q (pixels)')
         else:
             a.set_xlabel(xlabel)
-            
-    def _fitAxis(self):
-        
-        scale = self.plotparams['axesscale']
-        
-        if scale == 'linlin' or scale == 'loglin':
-            self.subplot1.axis('tight')
-            self.subplot2.axis('tight')
-            self.canvas.draw()
-    
+                
     def fitAxis(self):
         
-        mini = self.plottedExps[0].i.min()
-        maxi = self.plottedExps[0].i.max()
+        plots = [self.subplot1, self.subplot2]
         
-        minq = self.plottedExps[0].q.min()
-        maxq = self.plottedExps[0].q.min()
+        for eachsubplot in plots:
+            if eachsubplot.lines:
+                maxi = 0
+                mini = 0
+                maxq = 0
+                minq = 0
+            
+                for each in eachsubplot.lines:
+                    xmax = max(each.get_xdata())
+                    ymax = max(each.get_ydata())
+            
+                    xmin = min(each.get_xdata())
+                    ymin = min(each.get_ydata())
+                            
+                    if xmax > maxi:
+                        maxq = xmax
+                    if xmin < mini:
+                        minq = xmin
+                    if ymax > maxq:
+                        maxi = ymax
+                    if ymin < minq:
+                        mini = ymin
         
-        for each in self.plottedExps:
-            if each.i.max() > maxi:
-                maxi = each.i.max()
-            if each.i.min() < mini:
-                mini = each.i.min()
-            if each.q.min() < minq:
-                minq = each.q.min()
-            if each.q.max() > maxq:
-                maxq = each.q.max()
-        
-        self.subplot1.set_ylim(mini, maxi)
-        self.subplot1.set_xlim(minq, maxq)
+                eachsubplot.set_ylim(mini, maxi)
+                eachsubplot.set_xlim(minq, maxq)
+                
         self.canvas.draw()
     
     def _insertLegend(self, selected_sample_file = None, axes = None):
@@ -2294,43 +2285,7 @@ class DirCtrlPanel_2(wx.Panel):
         self.FileList = self.GetListOfFiles()
         self.UpdateFileListBox(self.FileList)
         self.FilterFileListAndUpdateListBox()
-             
-        
-#***************************************************************************       
-#
-#class DirCrtlPanel(wx.GenericDirCtrl):
-#    
-#    def __init__(self, parent, id):
-#        
-#        wx.GenericDirCtrl.__init__(self, parent, id, style = wx.DIRCTRL_SHOW_FILTERS,
-#                                   filter="All files (*.*)|*.*|TIFF files (*.tiff)|*.tiff|TIF files (*.tif)|*.tif|RAD files (*.rad)|*.rad|DAT files (*.dat)|*.dat")
-#
-#        self.bgFilename = None
-#    
-#    def GetSelectedFile(self):
-#        self.selected_file = self.GetPath()
-#        return self.selected_file
-#    
-#    def OnSetBackgroundFile(self, evt):
-#        bgFilenameTxt = wx.FindWindowById(BGFILENAME_ID)
-#        self.bgFilename = self.GetSelectedFile()            # Saves the filename with full path
-#        noPathfilename = os.path.split(self.bgFilename)[1]
-#        bgFilenameTxt.SetLabel(noPathfilename)
-#    
-#    def GetBackgroundPath(self):
-#        return self.bgFilename
-#    
-#    def OnSaveRad(self, evt):
-#        
-#        plottedExps = wx.FindWindowById(PLOTPANEL_ID).plottedExps
-#
-#        if plottedExps:
-#            for each in plottedExps:
-#                
-#                filename = cartToPol.saveMeasurement(each)
-#                wx.FindWindowById(MAINFRAME_ID).SetStatusText(filename + ' Saved!')
-#                
-                
+                            
 class InfoPanel(wx.Panel):
     
     def __init__(self, parent):
@@ -2932,9 +2887,6 @@ class PlotPage(wx.Panel):
         BgFilename = wx.StaticText(self, BGFILENAME_ID, 'None')
         BgFilename.SetMinSize((230,20))
         
-        #bgLabelSizer = wx.FlexGridSizer( cols = 1, rows = 1, vgap = 3)
-                
-        #bgLabelSizer.Add(BgFileLabel, 1, wx.EXPAND)
         bgLabelSizer.Add(BgFilename, 1, wx.EXPAND)
         
         return bgLabelSizer
@@ -4008,10 +3960,11 @@ class ManipulationPage(wx.Panel):
         
         self.Freeze()
         
+        axesThatNeedsUpdatedLegend = []
+        
         for each in self.GetSelectedItems():
             
             plotpanel = each.ExpObj.plotPanel
-          #  plotpanel.DeleteSingleLine(each.ExpObj.getLine(), axes = each.ExpObj.axes)
             
             each.ExpObj.line.remove()
             each.ExpObj.errLine[0][0].remove()
@@ -4020,13 +3973,19 @@ class ManipulationPage(wx.Panel):
             
             i = plotpanel.plottedExps.index(each.ExpObj)
             plotpanel.plottedExps.pop(i)
-            plotpanel._insertLegend(axes = each.ExpObj.axes)
-            plotpanel.canvas.draw()
+            
+            if not each.ExpObj.axes in axesThatNeedsUpdatedLegend:
+                axesThatNeedsUpdatedLegend.append(each.ExpObj.axes)
             
             idx = self.allManipulationItems.index(each)
             self.allManipulationItems[idx].Destroy()
             self.allManipulationItems.pop(idx)
+        
+        for eachaxes in axesThatNeedsUpdatedLegend:
+            plotpanel._insertLegend(axes = eachaxes)
             
+        plotpanel.canvas.draw()
+        
         self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Refresh()    
@@ -4355,112 +4314,6 @@ class MainFrame(wx.Frame):
         
         return file
         
-#    def _UpdateToExpParams(self):
-#        
-#        for eachKey in self.expParamsInGUI:
-#            
-#            id = self.expParamsInGUI.get(eachKey)[0]
-#            type = self.expParamsInGUI.get(eachKey)[1]
-#            value = wx.FindWindowById(id).GetValue()
-#            
-#            if type == 'bool':
-#                expParams[eachKey] = value
-#            
-#            if type == 'value':
-#                
-#                valtype = self.expParamsInGUI.get(eachKey)[2]
-#                
-#                if valtype == 'int':
-#                    expParams[eachKey] = int(value)
-#                else:
-#                    expParams[eachKey] = float(value)
-    
-#    def _UpdateFromExpParams(self):
-#        
-#        for eachKey in self.expParamsInGUI:
-#            
-#            id = self.expParamsInGUI.get(eachKey)[0]
-#            type = self.expParamsInGUI.get(eachKey)[1]
-#            value = expParams.get(eachKey)
-#            
-#            if type == 'bool':
-#                chkbox = wx.FindWindowById(id)
-#                
-#                if value:
-#                    chkbox.SetValue(True)
-#                elif not(value):
-#                    chkbox.SetValue(False)
-#                    
-#            if type == 'value':
-#                ctrl = wx.FindWindowById(id)
-#                ctrl.SetValue(str(value))
-    
-                
-                # Set the spin buttons to the value in expparams
-#                for each in self.expsettings_spin:
-#                    
-#                    param_id = each[1][0]
-#                    spin_id = each[1][1]
-                    
-                    #if id == param_id:
-                        #spinbutton = wx.FindWindowById(spin_id)
-                        #spinbutton.SetValue(int(value))
-       
-#    def _UpdateFromExtExpParams(self, newExpParams):
-#        
-#         global expParams
-#         
-#         for key in newExpParams.iterkeys():
-#             expParams[key] = newExpParams[key]
-#        
-#         for eachKey in self.expParamsInGUI:
-#            
-#            id = self.expParamsInGUI.get(eachKey)[0]
-#            type = self.expParamsInGUI.get(eachKey)[1]
-#            value = newExpParams.get(eachKey)
-#            
-#            if value != None:
-#                if type == 'bool':
-#                    chkbox = wx.FindWindowById(id)
-#                
-#                    if value:
-#                        chkbox.SetValue(True)
-#                    elif not(value):
-#                        chkbox.SetValue(False)
-#                        
-#                    expParams[eachKey] = value
-#                    
-#                if type == 'value':
-#                    ctrl = wx.FindWindowById(id)
-#                    ctrl.SetValue(str(value))
-#                    
-#                    expParams[eachKey] = value
-#                
-#                # Set the spin buttons to the value in expparams
-#                    for each in self.expsettings_spin:
-#                        param_id = each[1][0]
-#                        spin_id = each[1][1]
-#        
-        
-#           
-#    def _GetMaskFile(self, Text):
-#        #filedlg = wx.FileDialog(self, Text, '', '', '*.msk', wx.OPEN)
-#        
-#        filters = 'Mask files (*.msk)|*.msk|All files (*.*)|*.*'
-#        filedlg = wx.FileDialog( None, style = wx.OPEN, wildcard = filters)
-#        
-#        if filedlg.ShowModal() == wx.ID_OK:
-#            mask_filename = filedlg.GetFilename()
-#            mask_dir = filedlg.GetDirectory()
-#            mask_fullpath = filedlg.GetPath()
-#            filedlg.Destroy()
-#            
-#            return (mask_filename, mask_dir, mask_fullpath)
-#        else:
-#            filedlg.Destroy()
-#            return (None, None, None)
-
-        
     def ReplaceExpParams(self, newExpParams):
         
         global expParams
@@ -4528,8 +4381,6 @@ class MainFrame(wx.Frame):
         # Show the wx.AboutBox
         wx.AboutBox(info)
         
-     
-
     
     def OnHelp(self, event):
 #        frm = MyHtmlFrame(None, "BioXTAS RAW - Help -", )
