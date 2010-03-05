@@ -4079,10 +4079,7 @@ class MainFrame(wx.Frame):
         splitter1 = wx.SplitterWindow(self, -1)
         splitter2 = wx.SplitterWindow(splitter1, -1)
         
-        
         self.RAWWorkDir = os.getcwd()
-        
-        #self.main_panel = wx.Panel(self, -1)
         
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
         
@@ -4103,21 +4100,7 @@ class MainFrame(wx.Frame):
         # ************** The button panel *********************
         
         self.button_panel = wx.Panel(splitter1,-1)
-        #self.status_panel = wx.Panel(self.main_panel,-1)
         self.plot_panel = wx.Panel(splitter1,-1)
-        
-        #self.control_panelsizer = wx.BoxSizer(wx.VERTICAL)
-        #self.control_panelsizer.Add(self.status_panel, 0, wx.EXPAND)
-        #self.control_panelsizer.Add(self.button_panel, 1, wx.EXPAND)
-        
-        # /* CREATE TOP STATUS PANEL */
-       # self.infoPan = InfoPanel(splitter2)
-        
-       # statusSizer = wx.BoxSizer(wx.VERTICAL)
-    
-       # statusSizer.Add((5,5), 0)
-       # statusSizer.Add(self.infoPan, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 2)
-        #statusSizer.Add(StatusPan, 1, wx.EXPAND)
         
         # /* CREATE PLOT NOTEBOOK */
         self.plotNB = wx.Notebook(self.plot_panel)
@@ -4138,6 +4121,7 @@ class MainFrame(wx.Frame):
         self.plot_panel.SetSizer(plotNBsizer)
 
         nbsplitter = wx.SplitterWindow(self.button_panel, -1)
+        
         # /* CREATE CONTROL NOTEBOOK */
         nb = wx.Notebook(nbsplitter)
         page1 = PlotPage(nb)
@@ -4157,33 +4141,12 @@ class MainFrame(wx.Frame):
         
         nbsizer = wx.BoxSizer(wx.VERTICAL)
         nbsizer.Add((5,5), 0, wx.EXPAND)
-        #nbsizer.Add(self.infoPan, 0, wx.EXPAND)
-        #nbsizer.Add(nb, 1, wx.EXPAND | wx.LEFT, 2)
         nbsizer.Add(nbsplitter, 1, wx.EXPAND | wx.LEFT, 2)
         
-        
-        # Insert the two main panels  
-        #sizer = wx.BoxSizer(wx.HORIZONTAL)
-        #sizer.Add(self.control_panelsizer, 1 , wx.EXPAND)
-        #sizer.Add(self.button_panel, 1 , wx.EXPAND)
-        #sizer.Add(self.plot_panel, 3, wx.EXPAND)
-
-        #self.main_panel.SetSizer(sizer)
-        
         self.button_panel.SetSizer(nbsizer)
-        
-        #self.status_panel.SetSizer(statusSizer)
-        #splitter1.SplitHorizontally(splitter2, self.infoPan)
-       # tstpanel = wx.Panel(splitter2, -1)
-        
-        #finsizer = wx.BoxSizer()
                 
         splitter1.SplitVertically(self.button_panel, self.plot_panel, 270)
         splitter1.SetMinimumPaneSize(50)
-
-        #finsizer.Add(splitter2, 1)
-        #self.SetSizer(finsizer)
-        
         
     def SetStatusText(self, text, slot = 0):
         
@@ -4214,7 +4177,6 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnAboutDlg, id = 9)
         self.Bind(wx.EVT_MENU, self.OnHelp, id = 8)
         
-        
         self.Bind(wx.EVT_MENU, self.OnOnlineMenu, id = 3)
         self.Bind(wx.EVT_MENU, self.OnOnlineMenu, id = 4)
         
@@ -4223,7 +4185,6 @@ class MainFrame(wx.Frame):
         menubar.Append(MenuOptions, '&Options')
         menubar.Append(MenuOnline, 'O&nline Mode')
         menubar.Append(MenuHelp, '&Help')
-        
         
         self.SetMenuBar(menubar)
     
