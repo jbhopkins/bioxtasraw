@@ -707,13 +707,7 @@ class MyCustomToolbar(NavigationToolbar2Wx):
                 
         self.parent.plotparams['axesscale'] = 'loglog'
         self.parent.UpdatePlotAxesScaling()
-        
-#        self.parent.subplot1.relim()
-#        self.parent.subplot1.autoscale_view()
-#        self.parent.subplot2.relim()
-#        self.parent.subplot2.autoscale_view()
-#        
-        
+                
         self.parent.canvas.draw()
 
     def loglin(self,evt):
@@ -1234,12 +1228,6 @@ class PlotPanel(wx.Panel):
                 a.set_yscale('log')
         
         self.fitAxis()         
-#                self.subplot2.set_visible(False)
-#                
-#                #ax2.set_visible(False)
-#                self.subplot1.change_geometry(1,1,1)
-#                self.canvas.draw()
-                
 
         self.canvas.draw()
          
