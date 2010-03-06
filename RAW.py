@@ -248,8 +248,6 @@ class PlotWorkerThread(threading.Thread):
             selectedFiles = dirCtrlPanel.GetSelectedFile()
         
             for eachSelectedFile in selectedFiles:
-            
-                #self._pgthread.SetStatus('Loading file..')
                 try:
                     ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)
                 except:
@@ -265,9 +263,6 @@ class PlotWorkerThread(threading.Thread):
                         if self._setBackground == True:
                             expParams['BackgroundFile'] = ExpObj
                             wx.CallAfter(dirCtrlPanel.SetBackgroundFile,eachSelectedFile)
-            
-                            #plotpanel._PlotOnSelectedAxesScale( ExpObj, axes = self._parent.subplot1)
-                            #plotpanel._setLabels(ExpObj, axes = self._parent.subplot1)
                     
                         if ExpObj.type == 'bift':
                             biftplotpanel.PlotLoadedBift(ExpObj)
@@ -275,13 +270,7 @@ class PlotWorkerThread(threading.Thread):
                             wx.CallAfter(plotpanel._PlotOnSelectedAxesScale, ExpObj, axes = self._parent.subplot1)   
                             wx.CallAfter(plotpanel._setLabels, ExpObj, axes = self._parent.subplot1)
         
-                    #Update figure:
-                    #plotpanel.canvas.draw()
-                    #wx.CallAfter(plotpanel.canvas.draw)
-                        
-                    #self._pgthread.SetStatus('Displaying Raw Image')
-        
-                    # For some unknown F*ing reason showing the image can make the program hang!
+                        # For some unknown F*ing reason showing the image can make the program hang!
                         if FullImage and len(selectedFiles) == 1:
                             rawplot = wx.FindWindowByName('RawPlotPanel')
                             wx.CallAfter(rawplot.showImage, FullImage, ExpObj)
@@ -305,14 +294,9 @@ class PlotWorkerThread(threading.Thread):
                 else:
                     wx.CallAfter(wx.MessageBox, 'Filename: ' + eachSelectedFile + '\nDoes not contain any recognisable data.\n\nIf you are trying to load an image,\nset the correct image format in Options.', 'Load Failed!', wx.OK | wx.ICON_ERROR)
         
-            #self._pgthread.SetStatus('Inserting Legend')
-        
             wx.CallAfter(plotpanel._insertLegend, axes = self._parent.subplot1)
             
             plotQueue.task_done()
-            #self._pgthread.SetStatus('Done')
-        
-            #self._pgthread.stop()
         
 class BgSubPlotWorkerThread(threading.Thread):
     
@@ -4069,7 +4053,6 @@ class ManipulationPage(wx.Panel):
         
         self.Thaw()
         
-                
 class MainFrame(wx.Frame):
     
     def __init__(self, title, frame_id):
@@ -4128,7 +4111,7 @@ class MainFrame(wx.Frame):
         page3 = AutoAnalysisGUI.AutoAnalysisPage(nb, expParams)
         page4 = ManipulationPage(nb)
         
-        nb.AddPage(page1, "Plot")
+        nb.AddPage(page1, "Files")
         nb.AddPage(page4, "Manipulation")
         #nb.AddPage(page2, "2D Options")
         nb.AddPage(page3, "BIFT")
@@ -4147,7 +4130,7 @@ class MainFrame(wx.Frame):
         splitter1.SplitVertically(self.button_panel, self.plot_panel, 270)
         splitter1.SetMinimumPaneSize(50)
         
-        
+        #Load workdir from rawcfg.dat:
         self.LoadCfg()
     
     def LoadCfg(self):

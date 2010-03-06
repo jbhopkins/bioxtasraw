@@ -52,7 +52,7 @@ class MaskingPanelToolbar(NavigationToolbar2Wx):
         self._MTB_AGBECENT  = wx.NewId()
         self._MTB_HDRINFO   = wx.NewId()
         self._MTB_IMGSET    = wx.NewId()
-        self._MTB_EQUAL     = wx.NewId()
+        #self._MTB_EQUAL     = wx.NewId()
         
         self.allToolButtons = [self._MTB_CIRCLE, 
                                self._MTB_RECTANGLE,
@@ -62,8 +62,8 @@ class MaskingPanelToolbar(NavigationToolbar2Wx):
                                self._MTB_CLEAR,
                                self._MTB_AGBECENT,
                                self._MTB_HDRINFO,
-                               self._MTB_IMGSET,
-                               self._MTB_EQUAL]
+                               self._MTB_IMGSET]
+         #                      self._MTB_EQUAL]
         
         NavigationToolbar2Wx.__init__(self, canvas)
         
@@ -83,7 +83,7 @@ class MaskingPanelToolbar(NavigationToolbar2Wx):
         agbeCentIcon  = wx.Bitmap(os.path.join(workdir, "ressources", "agbe2.png"), wx.BITMAP_TYPE_PNG)
         hdrInfoIcon   = wx.Bitmap(os.path.join(workdir, "ressources", "hdr.png"), wx.BITMAP_TYPE_PNG)
         ImgSetIcon    = wx.Bitmap(os.path.join(workdir, "ressources", "hdr.png"), wx.BITMAP_TYPE_PNG)
-        EqualIcon     = wx.Bitmap(os.path.join(workdir, "ressources", "hdr.png"), wx.BITMAP_TYPE_PNG)
+        #EqualIcon     = wx.Bitmap(os.path.join(workdir, "ressources", "hdr.png"), wx.BITMAP_TYPE_PNG)
 
         self.AddSeparator()
         self.AddCheckTool(self._MTB_CIRCLE, circleIcon)
@@ -97,7 +97,7 @@ class MaskingPanelToolbar(NavigationToolbar2Wx):
         self.AddSeparator()
         self.AddSimpleTool(self._MTB_HDRINFO, hdrInfoIcon)
         self.AddSimpleTool(self._MTB_IMGSET, ImgSetIcon)
-        self.AddSimpleTool(self._MTB_EQUAL, EqualIcon)
+        #self.AddSimpleTool(self._MTB_EQUAL, EqualIcon)
         
         self.Bind(wx.EVT_TOOL, self.circleTool, id = self._MTB_CIRCLE)
         self.Bind(wx.EVT_TOOL, self.rectangleTool, id = self._MTB_RECTANGLE)
@@ -108,7 +108,7 @@ class MaskingPanelToolbar(NavigationToolbar2Wx):
         self.Bind(wx.EVT_TOOL, self.agbeCent, id = self._MTB_AGBECENT)
         self.Bind(wx.EVT_TOOL, self.hdrInfo, id = self._MTB_HDRINFO)
         self.Bind(wx.EVT_TOOL, self.ImgSet, id = self._MTB_IMGSET)
-        self.Bind(wx.EVT_TOOL, self.equalInfo, id = self._MTB_EQUAL)
+        #self.Bind(wx.EVT_TOOL, self.equalInfo, id = self._MTB_EQUAL)
         
         self.Realize()
     
@@ -2076,12 +2076,13 @@ class ImageSettingsDialog(wx.Dialog):
         self.okButton.Bind(wx.EVT_BUTTON, self.OnOk)
         
         finalSizer = wx.BoxSizer(wx.VERTICAL)
-        finalSizer.Add(sizer, 0, wx.EXPAND)
-        finalSizer.Add(scalesizer,0, wx.EXPAND)
-        finalSizer.Add(colormapsizer,0, wx.EXPAND)
+        finalSizer.Add(sizer, 0, wx.EXPAND, wx.TOP | wx.LEFT | wx.RIGHT, 5)
+        finalSizer.Add(scalesizer,0, wx.EXPAND, wx.LEFT | wx.RIGHT, 5)
+        finalSizer.Add(colormapsizer,0, wx.EXPAND, wx.LEFT | wx.RIGHT, 5)
         finalSizer.Add(self.okButton, 0, wx.CENTER | wx.TOP, 3)
         
         self.SetSizer(finalSizer)
+        self.Fit()
         
     def OnOk(self, event):
         

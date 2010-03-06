@@ -786,13 +786,13 @@ class ImageFormatOptionsPage(wx.Panel):
         
         box = wx.StaticBox(self, -1, 'Normalization')
         normBoxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        normBoxSizer.Add(normalizationSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
+        normBoxSizer.Add(normalizationSizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
         
         
         panelsizer = wx.BoxSizer(wx.VERTICAL)
         panelsizer.Add(chkboxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
         panelsizer.Add(staticBoxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
-        panelsizer.Add(normBoxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        panelsizer.Add(normBoxSizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
         
         self.SetSizer(panelsizer)
 
@@ -873,12 +873,12 @@ class ImageFormatOptionsPage(wx.Panel):
         for txt, id in self.treatmentdata:
             chkBox = wx.CheckBox(self, id, txt)
             chkBox.Bind(wx.EVT_CHECKBOX, self.OnChkBox)
-            treatmentSizer.Add(chkBox, 0, wx.EXPAND)
+            treatmentSizer.Add(chkBox, 1, wx.EXPAND)
         
         #staticBoxSizer.Add(treatmentSizer, 0, wx.BOTTOM | wx.LEFT, 5)
         
         noOfRows = int(len(self.treatmentdataTxtCtrl))
-        hSizer = wx.FlexGridSizer(cols = 2, rows = noOfRows, vgap = 3, hgap = 3)
+        hSizer = wx.FlexGridSizer(cols = 2, rows = noOfRows, vgap = 1, hgap = 3)
         
         for each in self.treatmentdataTxtCtrl:
             
@@ -892,10 +892,10 @@ class ImageFormatOptionsPage(wx.Panel):
                 chkBox = wx.CheckBox(self, id2, eachLabel)
                 chkBox.Bind(wx.EVT_CHECKBOX, self.OnChkBox)
     
-                hSizer.Add(chkBox, 1)
-                hSizer.Add(ctrl, 1)
+                hSizer.Add(chkBox, 1, wx.EXPAND)
+                hSizer.Add(ctrl, 1, wx.EXPAND)
             
-        treatmentSizer.Add(hSizer, 0, wx.EXPAND)
+        treatmentSizer.Add(hSizer, 0)
         
         
         #panelsizer.Add(staticBoxSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.RIGHT, 10)

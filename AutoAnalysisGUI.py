@@ -390,8 +390,8 @@ class AutoAnalysisPage(wx.Panel):
         
     def _OnOptions(self, evt):
         
-        optionsPage = wx.FindWindowByName('OptionsPage')
-        optionsPage.ShowOptionsDialog(3)    # Index 1 = BIFT page
+        mainframe = wx.FindWindowByName('MainFrame')
+        mainframe.ShowOptionsDialog(3)    # Index 1 = BIFT page
     
     def _OnDoBift(self, evt):
                 
