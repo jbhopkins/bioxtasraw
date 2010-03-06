@@ -716,10 +716,10 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         self.parent.plotparams['axesscale'] = 'loglin'
         self.parent.UpdatePlotAxesScaling()
         
-        self.parent.subplot1.relim()
-        self.parent.subplot1.autoscale_view()
-        self.parent.subplot2.relim()
-        self.parent.subplot2.autoscale_view()
+#        self.parent.subplot1.relim()
+#        self.parent.subplot1.autoscale_view()
+#        self.parent.subplot2.relim()
+#        self.parent.subplot2.autoscale_view()
         self.parent.canvas.draw()
 
     def linlin(self,evt):
@@ -1609,15 +1609,18 @@ class PlotPanel(wx.Panel):
                     xmin = min(each.get_xdata())
                     ymin = min(each.get_ydata())
                             
-                    if xmax > maxi:
+                    if xmax > maxq:
                         maxq = xmax
-                    if xmin < mini:
+                    if xmin < minq:
                         minq = xmin
-                    if ymax > maxq:
+                    if ymax > maxi:
                         maxi = ymax
-                    if ymin < minq:
+                    if ymin < mini:
                         mini = ymin
-
+                
+                print mini, maxi
+                print minq, maxq
+                
                 eachsubplot.set_ylim(mini, maxi)
                 eachsubplot.set_xlim(minq, maxq)
                 
