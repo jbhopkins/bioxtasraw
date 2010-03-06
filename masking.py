@@ -112,10 +112,10 @@ class MaskingPanelToolbar(NavigationToolbar2Wx):
         
         self.Realize()
     
-    def equalInfo(self, event):
-        
-        self.parent.equilibrate()
-    
+#    def equalInfo(self, event):
+#        
+#        self.parent.equilibrate()
+#    
     def ImgSet(self, event):
         
         self.parent.showImageSetDialog()
