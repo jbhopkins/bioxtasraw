@@ -53,7 +53,8 @@ class OverviewPanel(wx.Panel):
     
         self.SetSizer(sizer)
         self.Fit()
-        self.SetColor()
+        color = parent.GetThemeBackgroundColour()
+        self.SetColor(color)
         
 #        tst = range(0,100)
 #        tst2 = range(0,100)

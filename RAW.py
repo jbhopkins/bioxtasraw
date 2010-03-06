@@ -1893,14 +1893,13 @@ class DirCtrlPanel_2(wx.Panel):
         
         self.bgFilename = None
         self.selected_file = None
-        self.path = None
+        self.path = '/'
         
         self.FileList = []
         self.InitFileList()
         
     def InitFileList(self):
         
-            self.path = '/'
             self.FileList = os.listdir(self.path)
     
             FilesOnlyList = []
@@ -4148,6 +4147,22 @@ class MainFrame(wx.Frame):
         splitter1.SplitVertically(self.button_panel, self.plot_panel, 270)
         splitter1.SetMinimumPaneSize(50)
         
+        
+        self.LoadCfg()
+    
+    def LoadCfg(self):
+        
+        try:
+            file = 'rawcfg.dat'
+            FileObj = open(file, 'r')
+            savedInfo = cPickle.load(FileObj)
+            FileObj.close()
+            dirctrl = wx.FindWindowByName('DirCtrlPanel')
+            dirctrl.path = savedInfo['workdir']
+            dirctrl.InitFileList()
+        except:
+            pass
+        
     def SetStatusText(self, text, slot = 0):
         
         self.statusbar.SetStatusText(text, slot)
@@ -4399,6 +4414,22 @@ class MainFrame(wx.Frame):
         
     def OnCloseWindow(self, event):
         self.Destroy()
+        
+        #Save current dir
+        file = 'rawcfg.dat'
+        
+        try:
+            FileObj = open(file, 'w')
+        
+            path = wx.FindWindowByName('DirCtrlPanel').path
+            saveInfo = {'workdir' : path}
+        
+            cPickle.dump(saveInfo, FileObj)
+            FileObj.close()
+        except:
+            pass
+        
+        
         os._exit(1)        ## Brutally kills running threads!
     
     def InitToolBar(self):
