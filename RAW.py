@@ -1594,32 +1594,36 @@ class PlotPanel(wx.Panel):
         for eachsubplot in plots:
             if eachsubplot.lines:
                 
-                each = eachsubplot.lines[0]
-                
-                maxq = max(each.get_xdata())
-                maxi = max(each.get_ydata())
+                maxq = None
+                maxi = None
             
-                minq = min(each.get_xdata())
-                mini = min(each.get_ydata())
+                minq = None
+                mini = None
                         
                 for each in eachsubplot.lines:
-                    xmax = max(each.get_xdata())
-                    ymax = max(each.get_ydata())
+                    if each._label != '_nolegend_':
+                        
+                        if maxq == None:
+                            maxq = max(each.get_xdata())
+                            maxi = max(each.get_ydata())
             
-                    xmin = min(each.get_xdata())
-                    ymin = min(each.get_ydata())
+                            minq = min(each.get_xdata())
+                            mini = min(each.get_ydata())            
+                        
+                        xmax = max(each.get_xdata())
+                        ymax = max(each.get_ydata())
+            
+                        xmin = min(each.get_xdata())
+                        ymin = min(each.get_ydata())
                             
-                    if xmax > maxq:
-                        maxq = xmax
-                    if xmin < minq:
-                        minq = xmin
-                    if ymax > maxi:
-                        maxi = ymax
-                    if ymin < mini:
-                        mini = ymin
-                
-                print mini, maxi
-                print minq, maxq
+                        if xmax > maxq:
+                            maxq = xmax
+                        if xmin < minq:
+                            minq = xmin
+                        if ymax > maxi:
+                            maxi = ymax
+                        if ymin < mini:
+                            mini = ymin
                 
                 eachsubplot.set_ylim(mini, maxi)
                 eachsubplot.set_xlim(minq, maxq)

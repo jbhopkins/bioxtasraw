@@ -76,7 +76,7 @@ class OverviewPanel(wx.Panel):
     def _plotGuinier(self, i, q):
         
         guinier_q = np.power(q,2)
-        
+        guinier_q[np.where(guinier_q<=0)]=1
         self.subplots['Guinier'].semilogy(guinier_q, i)
         
         self.canvas.draw()
