@@ -179,6 +179,8 @@ def SYSDEV(Pr, r, I, q):
     
     N = len(I)
     
+    print N, N_s
+    
     SYS = N_s / (N/2.)
      
     return SYS
@@ -244,12 +246,14 @@ def DISCRP():
 
 def CalcProbability(DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN):
     ''' WARNING TAKING OUT DISCRP BY SETTING W = 0 '''
-                        # DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN
+    
+    # (   B  ,  W ,   C ,  A )
+    #Values taken from "Determination of the regularization parameter
+    #in indirect-transformmethods using perceptual criteria, Svergun (1992)"
+         
     WCA_Parameters = [(DISCRP, 0.0, 0.3, 0.7), (OSCILL, 3.0, 0.6, 1.1), (STABIL, .0, 0.12, 0.0),
                       (SYSDEV, 3.0, 0.12, 1.0), (POSITV, 1.0, 0.12, 1.0), (VALCEN, 1.0, 0.12, 0.95)]
-                    #   B,   W,    C,   A
-                    #Values taken from "Determination of the regularization parameter
-                    #in indirect-transformmethods using perceptual criteria, Svergun (1992)"     
+                    
     Prob = []
     Weights = []
     
@@ -262,8 +266,7 @@ def CalcProbability(DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN):
     
     return TOTAL
 
-
-def searchfunc(alpha, r, I_alpha, q, dmax, N):
+def costFunc(alpha, r, I_alpha, q, dmax, N):
     
     PrC = calcPr(alpha, I_alpha, q, 0, dmax, N)
     
@@ -274,13 +277,13 @@ def searchfunc(alpha, r, I_alpha, q, dmax, N):
                             POSITV(Pr),
                             VALCEN(Pr,r))
             
-    return -TOTAL
+    return -TOTAL #negative since we want to maximize TOTAL 
 
 def searchAlpha(r, I_alpha, q, dmax, N):
     
-    alpha = 60
+    alphaGuess = 60
     
-    Pr = optimize.fmin_powell(searchfunc, alpha, (r, I_alpha, q, dmax, N))
+    Pr = optimize.fmin_powell(costFunc, alphaGuess, (r, I_alpha, q, dmax, N))
     
     return Pr
     
@@ -292,30 +295,27 @@ if __name__ == '__main__':
     #normdist = np.sin(2*pi*.5*bins)                       #A
     #normdist = np.sin(2*pi*6*bins) * np.sin(2*pi*.5*bins) #D
            
-#    print 'Valcen: ', str(round(VALCEN(Pr, r),2))
-#    print 'Oscill: ', str(round(OSCILL(Pr, r),2))
-#    print 'Positv: ', str(round(POSITV(Pr),2))
-
 #    tst = sphereFormFactor(q, 30)
 
     #Simulate P(r) for a sphere:
     Pr, r = distDistribution_Sphere(50, 1, 60)
+#    print 'Valcen: ', str(round(VALCEN(Pr, r),2))
+#    print 'Oscill: ', str(round(OSCILL(Pr, r),2))
+#    print 'Positv: ', str(round(POSITV(Pr),2))
     
     q = np.linspace(0.005, 0.35, 250)
     
-    #Transform simulated 
+    #Transform simulated p(r)
     K = createTransformMatrix(q, r)
     I_alpha = np.dot( Pr, np.transpose(K) )
         
-    alpha = 1000
-    dmax = 60
-    
-    dAlpha = 2*alpha
-    
+    dmax = 60    
     N = 50
     
     alpha = searchAlpha(r, I_alpha, q, dmax, N)
-    print 'ALPHA: ', str(alpha)
+    dAlpha = 2*alpha
+    
+    print 'Optimal Alpha: ', str(alpha)
     PrC = calcPr(alpha, I_alpha, q, 0, dmax, N)
     I_PrC = np.dot( PrC, np.transpose(K) )
     
