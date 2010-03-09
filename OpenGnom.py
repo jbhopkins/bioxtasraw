@@ -47,11 +47,6 @@ def calcPr(alpha, I, q, dmin, dmax, N):
        
     return Pr
 
-def searchAlpha(alpha, I, q, sigma, dmin, dmax, N):
-    
-    pass
-    
-    
 
 def lossFunc(Pr, r, I, q, sigma, K, alpha):
     
@@ -268,7 +263,7 @@ def CalcProbability(DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN):
     return TOTAL
 
 
-def searchfunc(alpha, PrC, r, I_alpha, q, dmax, N):
+def searchfunc(alpha, r, I_alpha, q, dmax, N):
     
     PrC = calcPr(alpha, I_alpha, q, 0, dmax, N)
     
@@ -278,14 +273,16 @@ def searchfunc(alpha, PrC, r, I_alpha, q, dmax, N):
                             SYSDEV(Pr, r, I_alpha, q),
                             POSITV(Pr),
                             VALCEN(Pr,r))
-                    
-    return TOTAL
+            
+    return -TOTAL
 
-def searchAlpha( ):
+def searchAlpha(r, I_alpha, q, dmax, N):
     
-    pass
+    alpha = 60
     
+    Pr = optimize.fmin_powell(searchfunc, alpha, (r, I_alpha, q, dmax, N))
     
+    return Pr
     
 if __name__ == '__main__':
     
@@ -294,28 +291,31 @@ if __name__ == '__main__':
     #normdist = np.sin(2*pi*1.5*bins)                      #E
     #normdist = np.sin(2*pi*.5*bins)                       #A
     #normdist = np.sin(2*pi*6*bins) * np.sin(2*pi*.5*bins) #D
-        
-    Pr, r = distDistribution_Sphere(50, 1, 60)
-    
+           
 #    print 'Valcen: ', str(round(VALCEN(Pr, r),2))
 #    print 'Oscill: ', str(round(OSCILL(Pr, r),2))
 #    print 'Positv: ', str(round(POSITV(Pr),2))
+
+#    tst = sphereFormFactor(q, 30)
+
+    #Simulate P(r) for a sphere:
+    Pr, r = distDistribution_Sphere(50, 1, 60)
     
     q = np.linspace(0.005, 0.35, 250)
     
+    #Transform simulated 
     K = createTransformMatrix(q, r)
     I_alpha = np.dot( Pr, np.transpose(K) )
-    
-    tst = sphereFormFactor(q, 30)
-    
-    sigma = 0.01
-    
-    alpha = 100
-    
+        
+    alpha = 1000
     dmax = 60
     
     dAlpha = 2*alpha
+    
     N = 50
+    
+    alpha = searchAlpha(r, I_alpha, q, dmax, N)
+    print 'ALPHA: ', str(alpha)
     PrC = calcPr(alpha, I_alpha, q, 0, dmax, N)
     I_PrC = np.dot( PrC, np.transpose(K) )
     
@@ -327,7 +327,6 @@ if __name__ == '__main__':
     print 'Sysdev: ', str(round(SYSDEV(PrC, r, I_alpha, q),2))
     print 'Stabil: ', str(round(STABIL(PrC, r, I_alpha, q, alpha, dAlpha, 0, dmax, N)))
     
-    
     pl.figure()
     pl.subplot(211)
     pl.plot(r, PrC, 'red')
@@ -335,7 +334,6 @@ if __name__ == '__main__':
     pl.subplot(212)
     pl.loglog(q, I_PrC, 'red')
     pl.loglog(q, I_alpha)
-    
     
 #    pl.figure()
 #    pl.subplot(311)
