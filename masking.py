@@ -1045,7 +1045,16 @@ class MaskingPanel(wx.Panel):
         
         x, r = self.calcCenterCoords()  # x = (x_c,y_c)
         
-        cir = Circle( x, radius = r, alpha = 0.2) 
+        cir = Circle( x, radius = r, alpha = 0.1) 
+        a.add_patch(cir)
+        
+        cir = Circle( x, radius = 2*r, alpha = 1, fill = False) 
+        a.add_patch(cir)
+        
+        cir = Circle( x, radius = 3*r, alpha = 1, fill = False) 
+        a.add_patch(cir)
+        
+        cir = Circle( x, radius = 4*r, alpha = 1, fill = False) 
         a.add_patch(cir)
         
         cir = Circle( x, radius = 3, alpha = 1, facecolor = 'red', edgecolor = 'red')
@@ -1292,14 +1301,13 @@ class MaskingPanel(wx.Panel):
             #self.showCreateMaskDialog()
         
             file = self._CreateFileDialog(wx.SAVE)
-        
-            if file[-3:] != 'msk':
-                file = file + '.msk'
-                
-        
+             
             self.plotParameters['finalMask'] = []
         
             if file:
+                if file[-3:] != 'msk':
+                    file = file + '.msk'
+                    
                 FileObj = open(file, 'w')
                 cPickle.dump(self.plotParameters, FileObj)
                 FileObj.close()
