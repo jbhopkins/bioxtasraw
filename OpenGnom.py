@@ -12,6 +12,7 @@ import pylab as pl
 from pylab import sin, cos
 from LinearAlgebra import inverse
 
+
 def diff(Pr, r):
     
     dPr = []
@@ -22,20 +23,24 @@ def diff(Pr, r):
         
     return dPr
 
-def constraint(Pr, r):
-        
-    Omega = sqrt(sum(power(diff(Pr, r),2)))
-    
-    return Omega
+#def constraint(Pr, r):
+#        
+#    Omega = sqrt(sum(power(diff(Pr, r),2)))
+#    
+#    return Omega
+#
+#def chiSquared(Pr, r, I, q, sigma, K):
+#    
+#    I_alpha = np.dot( Pr, np.transpose(K))
+#    
+#    N = len(q)
+#    chiSquare = sqrt( (1/(N-1)) * sum( power(I - I_alpha,2)/power(sigma,2) ) )
+#    
+#    return chiSquare     
 
-def chiSquared(Pr, r, I, q, sigma, K):
-    
-    I_alpha = np.dot( Pr, np.transpose(K))
-    
-    N = len(q)
-    chiSquare = sqrt( (1/(N-1)) * sum( power(I - I_alpha,2)/power(sigma,2) ) )
-    
-    return chiSquare     
+#def lossFunc(Pr, r, I, q, sigma, K, alpha):
+#    
+#    return chiSquared(Pr, r, I, q, sigma, K) + alpha*constraint(Pr,r)
 
 def calcPr(alpha, I, q, dmin, dmax, N):
     
@@ -46,11 +51,6 @@ def calcPr(alpha, I, q, dmin, dmax, N):
     Pr = np.dot(linalg.inv((alpha * np.eye(N)) + np.dot(np.transpose(K),K)) , np.dot(np.transpose(K), I))
        
     return Pr
-
-
-def lossFunc(Pr, r, I, q, sigma, K, alpha):
-    
-    return chiSquared(Pr, r, I, q, sigma, K) + alpha*constraint(Pr,r)
 
 def normalDistribution(mu, sigma, N, x_min =0, x_max=1):
     
@@ -63,7 +63,7 @@ def normalDistribution(mu, sigma, N, x_min =0, x_max=1):
     return normdist, bins
 
 def createTransformMatrix(q, r):
-    ''' Creates the Transformation Matrix T   I_m = sum( T[i,j] * p[j] + e )'''
+    ''' Creates the Transformation Matrix T   I_m = sum( T[i,j] * p[j] + e ) i.e. the Fourier transform '''
     
     #Reserve memory
     T = np.zeros((len(q), len(r)))
@@ -179,8 +179,6 @@ def SYSDEV(Pr, r, I, q):
     
     N = len(I)
     
-    print N, N_s
-    
     SYS = N_s / (N/2.)
      
     return SYS
@@ -251,7 +249,7 @@ def CalcProbability(DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN):
     #Values taken from "Determination of the regularization parameter
     #in indirect-transformmethods using perceptual criteria, Svergun (1992)"
          
-    WCA_Parameters = [(DISCRP, 0.0, 0.3, 0.7), (OSCILL, 3.0, 0.6, 1.1), (STABIL, .0, 0.12, 0.0),
+    WCA_Parameters = [(DISCRP, 0.0, 0.3, 0.7), (OSCILL, 3.0, 0.6, 1.1), (STABIL, 3.0, 0.12, 0.0),
                       (SYSDEV, 3.0, 0.12, 1.0), (POSITV, 1.0, 0.12, 1.0), (VALCEN, 1.0, 0.12, 0.95)]
                     
     Prob = []
@@ -270,6 +268,8 @@ def costFunc(alpha, r, I_alpha, q, dmax, N):
     
     PrC = calcPr(alpha, I_alpha, q, 0, dmax, N)
     
+    PrC[0] = 0
+    
     TOTAL = CalcProbability(DISCRP(),
                             OSCILL(PrC, r),
                             STABIL(PrC, r, I_alpha, q, alpha, 2*alpha, 0, dmax, N),
@@ -279,11 +279,15 @@ def costFunc(alpha, r, I_alpha, q, dmax, N):
             
     return -TOTAL #negative since we want to maximize TOTAL 
 
-def searchAlpha(r, I_alpha, q, dmax, N):
+def searchAlpha(r, I_alpha, q, dmax, N, K):
+    
+    alphaGuess = sum(np.power(norm(K),2)) / norm(I_alpha)
+    
+    print 'GUESS : ',alphaGuess
     
     alphaGuess = 60
     
-    Pr = optimize.fmin_powell(costFunc, alphaGuess, (r, I_alpha, q, dmax, N))
+    Pr = optimize.fmin(costFunc, alphaGuess, (r, I_alpha, q, dmax, N))
     
     return Pr
     
@@ -308,15 +312,20 @@ if __name__ == '__main__':
     #Transform simulated p(r)
     K = createTransformMatrix(q, r)
     I_alpha = np.dot( Pr, np.transpose(K) )
-        
+    
+    #Add Noise:
+    for c in range(0,len(I_alpha)):
+        I_alpha[c] = I_alpha[c] + (np.random.rand()*0.1)
+
     dmax = 60    
     N = 50
     
-    alpha = searchAlpha(r, I_alpha, q, dmax, N)
+    alpha = searchAlpha(r, I_alpha, q, dmax, N, K)
     dAlpha = 2*alpha
     
     print 'Optimal Alpha: ', str(alpha)
     PrC = calcPr(alpha, I_alpha, q, 0, dmax, N)
+
     I_PrC = np.dot( PrC, np.transpose(K) )
     
     print 'TOTAL : ', str(CalcProbability(DISCRP(), OSCILL(PrC,r), STABIL(PrC, r, I_alpha, q, alpha, dAlpha, 0, dmax, N), SYSDEV(PrC, r, I_alpha, q), POSITV(PrC), VALCEN(PrC,r)))

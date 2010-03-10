@@ -594,9 +594,15 @@ class CalibrationOptionsPage(wx.Panel):
         
         if chkboxID == self.expParamsInGUI['CalibrateMan'][0]:
             calibChkBox = wx.FindWindowById(self.expParamsInGUI['CalibrateMan'][0])
-            wavelength  = self.expParams['WaveLength']
-            pixelsize   = self.expParams['DetectorPixelSize']            
-            smpDist     = self.expParams['SampleDistance']
+            
+            try:
+                wavelength  = float(wx.FindWindowById(self.expParamsInGUI['WaveLength'][0]).GetValue().replace(',','.'))
+                pixelsize   = float(wx.FindWindowById(self.expParamsInGUI['DetectorPixelSize'][0]).GetValue().replace(',','.'))          
+                smpDist     = float(wx.FindWindowById(self.expParamsInGUI['SampleDistance'][0]).GetValue().replace(',','.'))
+            except:
+                wavelength = 0
+                pixelsize = 0
+                smpDist = 0
         
             if wavelength != 0 and pixelsize != 0 and smpDist !=0:
                 pass
@@ -1249,9 +1255,9 @@ class OptionsDialog(wx.Dialog):
             elif type == 'int' or type == 'float':
                 
                 if type == 'int':
-                    self.expParams[eachKey] = int(value)
+                    self.expParams[eachKey] = int(value.replace(',','.'))
                 else:
-                    self.expParams[eachKey] = float(value)    
+                    self.expParams[eachKey] = float(value.replace(',','.'))
     
     def _UpdateFromExpParams(self):
         
@@ -1461,7 +1467,7 @@ class FloatSpinCtrl(wx.Panel):
         self.ScalerButton.SetFocus()    # Just to remove focus from the bgscaler to throw kill_focus event and update
         
         val = self.Scale.GetValue()
-        newval = float(val) + (1/self.ScaleDivider)
+        newval = float(val.replace(',','.')) + (1/self.ScaleDivider)
         self.Scale.SetValue(str(newval))
         
         if newval != self.oldValue:            
@@ -1473,7 +1479,7 @@ class FloatSpinCtrl(wx.Panel):
         self.ScalerButton.SetFocus()    # Just to remove focus from the bgscaler to throw kill_focus event and update
         
         val = self.Scale.GetValue()
-        newval = float(val) - (1/self.ScaleDivider)
+        newval = float(val.replace(',','.')) - (1/self.ScaleDivider)
         self.Scale.SetValue(str(newval))  
         
         if newval != self.oldValue:
@@ -1541,10 +1547,10 @@ class IntSpinCtrl(wx.Panel):
         val = self.Scale.GetValue()
                 
         if self.max != None:
-            if float(val) > self.max:
+            if float(val.replace(',','.')) > self.max:
                 self.Scale.SetValue(str(self.max))
         if self.min != None:
-            if float(val) < self.min:
+            if float(val.replace(',','.')) < self.min:
                 self.Scale.SetValue(str(self.min))
         
         if val != self.oldValue:
@@ -1653,13 +1659,13 @@ class ListSpinCtrl(wx.Panel):
         
         val = self.Scale.GetValue()
         
-        if float(val) >= self.scrollList[self.maxIdx]:
+        if float(val.replace(',','.')) >= self.scrollList[self.maxIdx]:
             self.idx = self.maxIdx
             self.Scale.SetValue(str(self.scrollList[self.idx]))
             self.CastFloatSpinEvent()
             return
         
-        if float(val) <= self.scrollList[self.minIdx]:
+        if float(val.replace(',','.')) <= self.scrollList[self.minIdx]:
             self.idx = self.minIdx
             self.Scale.SetValue(str(self.scrollList[self.idx]))
             self.CastFloatSpinEvent()
@@ -1669,7 +1675,7 @@ class ListSpinCtrl(wx.Panel):
         currentidx = 0
         changed = False
         for i in range(0,len(self.scrollList)):
-            chk = abs(self.scrollList[i]-float(val))
+            chk = abs(self.scrollList[i]-float(val.replace(',','.')))
             
             if chk < currentmin:
                 currentmin = chk
