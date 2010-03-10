@@ -39,6 +39,7 @@ from wx.lib.wordwrap import wordwrap
 #Needs to be imported for cPickle to load mask files
 #... Strange... :
 from masking import CircleMask, RectangleMask, PolygonMask
+# comment
 
 import fileIO
 import masking
