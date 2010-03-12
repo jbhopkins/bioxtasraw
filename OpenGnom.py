@@ -12,6 +12,47 @@ import pylab as pl
 from pylab import sin, cos
 from LinearAlgebra import inverse
 
+import fileIO
+
+def shiftLeft(a,shift):
+    ''' makes a left circular shift of array '''
+    sh = np.shape(a)
+    array_length = sh[0] * sh[1]
+    
+    b = a.reshape(1, array_length)
+    
+    res = np.zeros(array_length)
+    
+    start_idx = shift
+    
+    # SLOW! lets make it in C!
+    for i in range(0,array_length):
+        
+        if i < (array_length - shift):
+            res[i] = b[0, shift + i]
+        else:
+            res[i] = b[0, array_length-1 - i - shift ]
+    
+    return res.reshape(sh)
+
+def shiftRight(a, shift):
+    ''' makes a right circular shift of array '''
+    
+    sh = np.shape(a)
+    array_length = sh[0] * sh[1]
+    
+    b = a.reshape(1,array_length)
+    
+    res = np.zeros(array_length)
+    
+    start_idx = shift
+
+    # SLOW! lets make it in C!
+    for i in range(0,array_length):
+        
+        res[i] = b[0, i - shift]
+    
+    return res.reshape(sh)           
 
 def diff(Pr, r):
     
@@ -23,33 +64,66 @@ def diff(Pr, r):
         
     return dPr
 
-#def constraint(Pr, r):
-#        
-#    Omega = sqrt(sum(power(diff(Pr, r),2)))
-#    
-#    return Omega
-#
-#def chiSquared(Pr, r, I, q, sigma, K):
-#    
-#    I_alpha = np.dot( Pr, np.transpose(K))
-#    
-#    N = len(q)
-#    chiSquare = sqrt( (1/(N-1)) * sum( power(I - I_alpha,2)/power(sigma,2) ) )
-#    
-#    return chiSquare     
+def constraint(Pr, r):
+        
+    Omega = sqrt(sum(power(diff(Pr, r),2)))
+    
+    return Omega
 
-#def lossFunc(Pr, r, I, q, sigma, K, alpha):
-#    
-#    return chiSquared(Pr, r, I, q, sigma, K) + alpha*constraint(Pr,r)
+def chiSquared(Pr, r, I, q, sigma, K):
+    
+    I_alpha = np.dot( Pr, np.transpose(K))
+    
+    chiSquare = sqrt( sum( power(I - I_alpha,2)/power(sigma,2) ) )
+  
+    return chiSquare     
 
-def calcPr(alpha, I, q, dmin, dmax, N):
+def lossFunc(Pr, r, I, q, sigma, K, alpha):
+    
+    return chiSquared(Pr, r, I, q, sigma, K) + alpha*constraint(Pr,r)
+
+def calcPr(alpha, I, q, sigma, dmin, dmax, N):
+    
+    forceInitZero = False
     
     r = np.linspace(dmin, dmax, N)
     
     K = createTransformMatrix(q, r)
+    #T = np.eye(N) #Identity matrix
     
-    Pr = np.dot(linalg.inv((alpha * np.eye(N)) + np.dot(np.transpose(K),K)) , np.dot(np.transpose(K), I))
-       
+    #Solving it explicit:
+    #Pr = np.dot(linalg.inv((alpha * T) + np.dot(np.transpose(K),K)) , np.dot(np.transpose(K), I))
+    
+    ########################################
+    # Regularization matrix T 
+    ########################################
+    eyeMat = np.eye(N)
+    mat1 = shiftLeft(eyeMat,1)
+    mat2 = shiftRight(eyeMat, 1)
+    
+    mat2[0,0] = 0                 #Remove the 1 in the wrong place (in the corner)
+    sh = np.shape(mat1)
+    mat1[sh[0]-1, sh[1]-1] = 0    #Remove the 1 in the wrong place (in the corner)
+
+    T = (mat1 + mat2) * -0.5 + np.eye(np.shape(mat1)[0])
+    ########################################
+    
+    #Solving by least squares:
+    a = np.vstack((K, alpha*T))  
+    b = np.hstack((I, np.zeros(np.shape(T)[0])))
+    
+    if forceInitZero:
+        a = a[:,1:]
+        
+    Pr, residues, rank, singularVals = linalg.lstsq(a,b)
+    
+    if forceInitZero:
+        Pr = np.insert(Pr, [0],0)
+    
+    #Solving by a search algorithm:
+    #Pr_init, r = distDistribution_Sphere(N, 1, dmax)
+    #Pr = optimize.fmin_powell(lossFunc, Pr_init, (r,I,q, sigma, K, alpha))
+    
     return Pr
 
 def normalDistribution(mu, sigma, N, x_min =0, x_max=1):
@@ -119,7 +193,7 @@ def distDistribution_Sphere(N, scale_factor, dmax):
     R = dmax/2.
     r = np.linspace(0, dmax, N)                  # the r-axis in P(r)
        
-    P = (3/(4*pi))*(power(r,2)/power(R,2)) * (2-(3/2.)*(r/R)+(power(r,3)/(8*power(R,3))))
+    P = (3/(4*pi))*(power(r,2)/power(R,2)) * (2-(3/2.)*(r/R)+(power(r,3)/(8*power(R,3)))) * scale_factor
     
     return P, r
 
@@ -183,11 +257,11 @@ def SYSDEV(Pr, r, I, q):
      
     return SYS
 
-def STABIL(Pr, r, I, q, alpha, dAlpha, dmin, dmax, N):
+def STABIL(Pr, r, I, q, sigma, alpha, dAlpha, dmin, dmax, N):
     ''' According to the point-of-inflection and quasi-optimality methods (Glatter)
     a value of STABIL << 1 can be expected in the vicinity of the correct solution '''
         
-    Pr_dAlpha = calcPr(alpha, I, q, dmin, dmax, N)
+    Pr_dAlpha = calcPr(alpha, I, q, sigma, dmin, dmax, N)
     
     STA = (norm( Pr-Pr_dAlpha ) /norm(Pr)) / (dAlpha/alpha)
     
@@ -264,34 +338,61 @@ def CalcProbability(DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN):
     
     return TOTAL
 
-def costFunc(alpha, r, I_alpha, q, dmax, N):
+def costFunc(alpha, r, I_alpha, q, sigma, dmax, N):
     
-    PrC = calcPr(alpha, I_alpha, q, 0, dmax, N)
-    
-    PrC[0] = 0
+    PrC = calcPr(alpha, I_alpha, q, sigma, 0, dmax, N)
     
     TOTAL = CalcProbability(DISCRP(),
                             OSCILL(PrC, r),
-                            STABIL(PrC, r, I_alpha, q, alpha, 2*alpha, 0, dmax, N),
-                            SYSDEV(Pr, r, I_alpha, q),
-                            POSITV(Pr),
-                            VALCEN(Pr,r))
+                            STABIL(PrC, r, I_alpha, q, sigma, alpha, 2*alpha, 0, dmax, N),
+                            SYSDEV(PrC, r, I_alpha, q),
+                            POSITV(PrC),
+                            VALCEN(PrC,r))
             
-    return -TOTAL #negative since we want to maximize TOTAL 
+    return -TOTAL #negative since we want to maximize TOTAL
 
-def searchAlpha(r, I_alpha, q, dmax, N, K):
+
+def goldenSectionSearch(F, a, c, b, absolutePrecision):
+
+    if abs(a-b) < absolutePrecision:
+        return (a+b)/2
     
-    alphaGuess = sum(np.power(norm(K),2)) / norm(I_alpha)
+    #Create a new possible center, in the area between c and b, pushed against c
+    d = c + resphi*(b-c)
+    
+    if F(d) > F(c):
+    
+        return goldenSectionSearch(F, c, d, b, absolutePrecision)
+    return goldenSectionSearch(F, d, c, a, absolutePrecision)
+ 
+
+def searchAlpha(r, I_alpha, q, sigma, dmax, N, K):
+    
+    #alphaGuess = sum(np.power(norm(K),2)) / norm(I_alpha)
+    
+    alphatotal = []
+    alphavals = np.linspace(0.01,60,100)
+    for i in alphavals:
+        alphatotal.append(costFunc(i, r, I_alpha, q, sigma, dmax, N ))
+        
+    alphaGuess = alphavals[ alphatotal.index(min(alphatotal) ) ] 
     
     print 'GUESS : ',alphaGuess
     
-    alphaGuess = 60
-    
-    Pr = optimize.fmin(costFunc, alphaGuess, (r, I_alpha, q, dmax, N))
+    pl.plot(alphatotal)
+    pl.show()
+        
+    Pr = optimize.fmin(costFunc, alphaGuess, (r, I_alpha, q, sigma, dmax, N))
     
     return Pr
     
 if __name__ == '__main__':
+    
+    ExpObj, FullImage = fileIO.loadFile('/home/specuser/lyzexp.dat')
+    
+    I_alpha = ExpObj.i
+    q = ExpObj.q
+    sigma = ExpObj.errorbars
     
     #FIGURES IN THE ARTCILE:
     #normdist = (np.cos(2*pi*1*bins)+1)/2                  #F
@@ -301,45 +402,50 @@ if __name__ == '__main__':
            
 #    tst = sphereFormFactor(q, 30)
 
-    #Simulate P(r) for a sphere:
-    Pr, r = distDistribution_Sphere(50, 1, 60)
-#    print 'Valcen: ', str(round(VALCEN(Pr, r),2))
-#    print 'Oscill: ', str(round(OSCILL(Pr, r),2))
-#    print 'Positv: ', str(round(POSITV(Pr),2))
+########################################################
+# Simulated Sphere
+########################################################
+#    #Simulate P(r) for a sphere:
+#    Pr, r = distDistribution_Sphere(50, 100, 60)    
+#    q = np.linspace(0.005, 0.35, 250)
+#    
+#    #Transform simulated p(r)
+#    K = createTransformMatrix(q, r)
+#    I_alpha = np.dot( Pr, np.transpose(K) )
+#    
+#    #Add Noise:
+#    sigma =  0.5 * np.random.randn(np.size(I_alpha))
+#    I_alpha = I_alpha + sigma
+#########################################################
     
-    q = np.linspace(0.005, 0.35, 250)
-    
-    #Transform simulated p(r)
-    K = createTransformMatrix(q, r)
-    I_alpha = np.dot( Pr, np.transpose(K) )
-    
-    #Add Noise:
-    for c in range(0,len(I_alpha)):
-        I_alpha[c] = I_alpha[c] + (np.random.rand()*0.1)
-
-    dmax = 60    
+    dmax = 40
     N = 50
+
+    r = np.linspace(0, dmax, N)
+    K = createTransformMatrix(q, r)
     
-    alpha = searchAlpha(r, I_alpha, q, dmax, N, K)
+    alpha = searchAlpha(r, I_alpha, q, sigma, dmax, N, K)
     dAlpha = 2*alpha
     
     print 'Optimal Alpha: ', str(alpha)
-    PrC = calcPr(alpha, I_alpha, q, 0, dmax, N)
+    PrC = calcPr(alpha, I_alpha, q, sigma, 0, dmax, N)
+
+   # PrC = np.insert(PrC,[0],0)
 
     I_PrC = np.dot( PrC, np.transpose(K) )
     
-    print 'TOTAL : ', str(CalcProbability(DISCRP(), OSCILL(PrC,r), STABIL(PrC, r, I_alpha, q, alpha, dAlpha, 0, dmax, N), SYSDEV(PrC, r, I_alpha, q), POSITV(PrC), VALCEN(PrC,r)))
+    print 'TOTAL : ', str(CalcProbability(DISCRP(), OSCILL(PrC,r), STABIL(PrC, r, I_alpha, q, sigma, alpha, dAlpha, 0, dmax, N), SYSDEV(PrC, r, I_alpha, q), POSITV(PrC), VALCEN(PrC,r)))
     
     print 'Valcen: ', str(round(VALCEN(PrC, r),2))
     print 'Oscill: ', str(round(OSCILL(PrC, r),2))
     print 'Positv: ', str(round(POSITV(PrC),2))
     print 'Sysdev: ', str(round(SYSDEV(PrC, r, I_alpha, q),2))
-    print 'Stabil: ', str(round(STABIL(PrC, r, I_alpha, q, alpha, dAlpha, 0, dmax, N)))
-    
+    print 'Stabil: ', str(round(STABIL(PrC, r, I_alpha, q, sigma, alpha, dAlpha, 0, dmax, N)))
+        
     pl.figure()
     pl.subplot(211)
     pl.plot(r, PrC, 'red')
-    pl.plot(r, Pr)
+    #pl.plot(r, Pr)
     pl.subplot(212)
     pl.loglog(q, I_PrC, 'red')
     pl.loglog(q, I_alpha)
