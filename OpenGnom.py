@@ -49,7 +49,6 @@ def shiftRight(a, shift):
 
     # SLOW! lets make it in C!
     for i in range(0,array_length):
-        
         res[i] = b[0, i - shift]
     
     return res.reshape(sh)           
@@ -64,38 +63,40 @@ def diff(Pr, r):
         
     return dPr
 
-def constraint(Pr, r):
-        
-    Omega = sqrt(sum(power(diff(Pr, r),2)))
-    
-    return Omega
+#def constraint(Pr, r):
+#        
+#    Omega = sqrt(sum(power(diff(Pr, r),2)))
+#    
+#    return Omega
+#
+#def chiSquared(Pr, r, I, q, sigma, K):
+#    
+#    I_alpha = np.dot( Pr, np.transpose(K))
+#    
+#    chiSquare = sqrt( sum( power(I - I_alpha,2)/power(sigma,2) ) )
+#  
+#    return chiSquare     
+#
+#def lossFunc(Pr, r, I, q, sigma, K, alpha):
+#    
+#    return chiSquared(Pr, r, I, q, sigma, K) + alpha*constraint(Pr,r)
 
-def chiSquared(Pr, r, I, q, sigma, K):
-    
-    I_alpha = np.dot( Pr, np.transpose(K))
-    
-    chiSquare = sqrt( sum( power(I - I_alpha,2)/power(sigma,2) ) )
-  
-    return chiSquare     
-
-def lossFunc(Pr, r, I, q, sigma, K, alpha):
-    
-    return chiSquared(Pr, r, I, q, sigma, K) + alpha*constraint(Pr,r)
-
-def calcPr(alpha, I, q, sigma, dmin, dmax, N):
-    
-    forceInitZero = False
+def calcPr(alpha, I, q, sigma, dmin, dmax, N, forceInitZero = True):
+    ''' Calculates the Pr function for a specified alpha, dmin and dmax '''
     
     r = np.linspace(dmin, dmax, N)
-    
-    K = createTransformMatrix(q, r)
-    #T = np.eye(N) #Identity matrix
-    
+    K = createTransformMatrix(q, r)   #Fourier transformation matrix
+        
     #Solving it explicit:
+    #T = np.eye(N)   # Identity matrix (NB not the derivative)
     #Pr = np.dot(linalg.inv((alpha * T) + np.dot(np.transpose(K),K)) , np.dot(np.transpose(K), I))
     
     ########################################
-    # Regularization matrix T 
+    # Regularization matrix T
+    # -------------------------------------- 
+    # Derivative matrix consists of ones in
+    # the diagonal with -1/2 adjacent
+    # to the diagonal and zero otherwise
     ########################################
     eyeMat = np.eye(N)
     mat1 = shiftLeft(eyeMat,1)
@@ -113,16 +114,12 @@ def calcPr(alpha, I, q, sigma, dmin, dmax, N):
     b = np.hstack((I, np.zeros(np.shape(T)[0])))
     
     if forceInitZero:
-        a = a[:,1:]
+        a = a[:,1:] #strip first column of a
         
     Pr, residues, rank, singularVals = linalg.lstsq(a,b)
     
     if forceInitZero:
-        Pr = np.insert(Pr, [0],0)
-    
-    #Solving by a search algorithm:
-    #Pr_init, r = distDistribution_Sphere(N, 1, dmax)
-    #Pr = optimize.fmin_powell(lossFunc, Pr_init, (r,I,q, sigma, K, alpha))
+        Pr = np.insert(Pr, [0],0) #insert fixed zero 
     
     return Pr
 
@@ -216,11 +213,9 @@ def OSCILL(Pr, r):
     For sphere OSCILL = 1.1. OSCILL ~= 2 corresponds to a smooth bimodal
     or an oscillating monomodal '''
     
-    #dPr = np.diff(Pr, 1, 0)
     dPr = []
     dr = r[1]
     
-    #print dr
     for i in range(0,len(Pr)-1):
         dPr.append((Pr[i+1]-Pr[i])/dr)
       
@@ -316,29 +311,45 @@ def DISCRP():
     
     return 1.0
 
-def CalcProbability(DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN):
+def CalcProbability(DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN, WCA_Parameters = None):
     ''' WARNING TAKING OUT DISCRP BY SETTING W = 0 '''
     
     # (   B  ,  W ,   C ,  A )
     #Values taken from "Determination of the regularization parameter
     #in indirect-transformmethods using perceptual criteria, Svergun (1992)"
-         
-    WCA_Parameters = [(DISCRP, 0.0, 0.3, 0.7), (OSCILL, 3.0, 0.6, 1.1), (STABIL, 3.0, 0.12, 0.0),
-                      (SYSDEV, 3.0, 0.12, 1.0), (POSITV, 1.0, 0.12, 1.0), (VALCEN, 1.0, 0.12, 0.95)]
-                    
+    
     Prob = []
     Weights = []
     
-    for B, W, C, A in WCA_Parameters:
-                
-        Prob.append(exp(-power((A-B)/C,2)))
-        Weights.append(W)
+    if WCA_Parameters == None:
+        WCA_Parameters = [(DISCRP, 0.0, 0.3, 0.7), (OSCILL, 3.0, 0.6, 1.1), (STABIL, 3.0, 0.12, 0.0),
+                          (SYSDEV, 3.0, 0.12, 1.0), (POSITV, 1.0, 0.12, 1.0), (VALCEN, 1.0, 0.12, 0.95)]
+        
+        for B, W, C, A in WCA_Parameters:    
+            Prob.append(exp(-power((A-B)/C,2)))
+            Weights.append(W)
+        
+    else:
+        #Ugly hack to easier fit into RAW
+        
+        WCA_Param = []
+        
+        lst = [DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN]
+        
+        for i in range(0,len(WCA_Parameters)):
+            W = WCA_Parameters[i][0]
+            C = WCA_Parameters[i][1]
+            A = WCA_Parameters[i][2]
+            B = lst[i]
+            
+            Prob.append(exp(-power((A-B)/C,2)))
+            Weights.append(W)
     
     TOTAL = sum( np.array(Weights)*np.array(Prob) )/sum(Weights)
     
     return TOTAL
 
-def costFunc(alpha, r, I_alpha, q, sigma, dmax, N):
+def costFunc(alpha, r, I_alpha, q, sigma, dmax, N, WCA_Params = None):
     
     PrC = calcPr(alpha, I_alpha, q, sigma, 0, dmax, N)
     
@@ -347,45 +358,100 @@ def costFunc(alpha, r, I_alpha, q, sigma, dmax, N):
                             STABIL(PrC, r, I_alpha, q, sigma, alpha, 2*alpha, 0, dmax, N),
                             SYSDEV(PrC, r, I_alpha, q),
                             POSITV(PrC),
-                            VALCEN(PrC,r))
+                            VALCEN(PrC,r), WCA_Params)
             
     return -TOTAL #negative since we want to maximize TOTAL
 
 
-def goldenSectionSearch(F, a, c, b, absolutePrecision):
+#def goldenSectionSearch(F, a, c, b, absolutePrecision):
+#
+#    if abs(a-b) < absolutePrecision:
+#        return (a+b)/2
+#    
+#    #Create a new possible center, in the area between c and b, pushed against c
+#    d = c + resphi*(b-c)
+#    
+#    if F(d) > F(c):
+#    
+#        return goldenSectionSearch(F, c, d, b, absolutePrecision)
+#    return goldenSectionSearch(F, d, c, a, absolutePrecision)
+# 
 
-    if abs(a-b) < absolutePrecision:
-        return (a+b)/2
-    
-    #Create a new possible center, in the area between c and b, pushed against c
-    d = c + resphi*(b-c)
-    
-    if F(d) > F(c):
-    
-        return goldenSectionSearch(F, c, d, b, absolutePrecision)
-    return goldenSectionSearch(F, d, c, a, absolutePrecision)
- 
-
-def searchAlpha(r, I_alpha, q, sigma, dmax, N, K):
+def searchAlpha(r, I_alpha, q, sigma, dmax, N, alphamin = 0.01, alphamax = 60, alphapoints = 100, WCA_Params = None):
     
     #alphaGuess = sum(np.power(norm(K),2)) / norm(I_alpha)
     
+    #Determine TOTAL for different alpha values to determine a good starting point
     alphatotal = []
-    alphavals = np.linspace(0.01,60,100)
+    alphavals = np.linspace(alphamin, alphamax, alphapoints)
+    
     for i in alphavals:
-        alphatotal.append(costFunc(i, r, I_alpha, q, sigma, dmax, N ))
+        alphatotal.append(costFunc(i, r, I_alpha, q, sigma, dmax, N, WCA_Params ))
         
-    alphaGuess = alphavals[ alphatotal.index(min(alphatotal) ) ] 
+    alphaGuess = alphavals[ alphatotal.index(min(alphatotal)) ] 
     
     print 'GUESS : ',alphaGuess
     
-    pl.plot(alphatotal)
-    pl.show()
+#    pl.plot(alphavals, alphatotal)
+#    pl.xlabel('alpha')
+#    pl.ylabel('negative TOTAL')
+#    pl.show()
         
-    Pr = optimize.fmin(costFunc, alphaGuess, (r, I_alpha, q, sigma, dmax, N))
+    alpha = optimize.fmin(costFunc, alphaGuess, (r, I_alpha, q, sigma, dmax, N, WCA_Params))
     
-    return Pr
+    return alpha
+
+def getGnomPr(I, q, sigma, N, dmax, dmin = 0, alphamin = 0.01, alphamax = 60, alphapoints = 100, WCA_Params = None):
+    ''' Returns the optimal Pr function according to the GNOM algorithm '''
     
+    r = np.linspace(dmin, dmax, N)
+    
+    #Find optimal alpha:
+    alpha = searchAlpha(r, I, q, sigma, dmax, N, alphamin, alphamax, alphapoints, WCA_Params)
+    
+    K = createTransformMatrix(q, r)
+    
+    Pr = calcPr(alpha, I, q, sigma, dmin, dmax, N)
+    I_Pr = np.dot( Pr, np.transpose(K) )
+    
+    TOTAL = -costFunc(alpha[0], r, I, q, sigma, dmax, N, WCA_Params)
+    
+    I0, Rg = calcRgI0(Pr, r)
+    
+    ChiSq = sum(np.power(np.array(I)-np.array(I_Pr),2) / np.power(sigma,2))
+    
+    info = {'dmax_points' : 0,
+                'alpha_points' : 0,
+                'all_posteriors' : 0,
+                'alpha' : alpha[0],
+                'dmax' : dmax,
+                'orig_i' : I,
+                'orig_q' : q,
+                'orig_err': sigma,
+                'I0' : I0,
+                'ChiSquared' : ChiSq,
+                'gnomTOTAL' : TOTAL,
+                'Rg' : Rg}
+    
+    return Pr, r, I_Pr, info
+    
+def calcRgI0(Pr, r):
+    
+    dr = r[1]
+    
+    area = 0
+    area2= 0
+    for x in range(1, len(Pr)):                       
+        area = area + dr * ((Pr[x-1]+Pr[x])/2)                   # Trapez integration
+        area2 = area2 + dr * ((Pr[x-1]+Pr[x])/2) * pow(r[x], 2)  # For Rg^2 calc
+        
+    RgSq = area2 / (2 * area)
+    Rg = sqrt(abs(RgSq))
+    
+    I0 = area
+    
+    return I0, Rg
+
 if __name__ == '__main__':
     
     ExpObj, FullImage = fileIO.loadFile('/home/specuser/lyzexp.dat')
@@ -424,18 +490,14 @@ if __name__ == '__main__':
     r = np.linspace(0, dmax, N)
     K = createTransformMatrix(q, r)
     
-    alpha = searchAlpha(r, I_alpha, q, sigma, dmax, N, K)
+    alpha = searchAlpha(r, I_alpha, q, sigma, dmax, N)
     dAlpha = 2*alpha
     
     print 'Optimal Alpha: ', str(alpha)
     PrC = calcPr(alpha, I_alpha, q, sigma, 0, dmax, N)
-
-   # PrC = np.insert(PrC,[0],0)
-
     I_PrC = np.dot( PrC, np.transpose(K) )
     
     print 'TOTAL : ', str(CalcProbability(DISCRP(), OSCILL(PrC,r), STABIL(PrC, r, I_alpha, q, sigma, alpha, dAlpha, 0, dmax, N), SYSDEV(PrC, r, I_alpha, q), POSITV(PrC), VALCEN(PrC,r)))
-    
     print 'Valcen: ', str(round(VALCEN(PrC, r),2))
     print 'Oscill: ', str(round(OSCILL(PrC, r),2))
     print 'Positv: ', str(round(POSITV(PrC),2))

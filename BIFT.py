@@ -286,8 +286,6 @@ def C_seeksol(I_exp, m, q, sigma, alpha, dmax, T):
     #Chi Squared:
     c = sum( array(difftst) )
     
-    
-    
     post = calcPosterior( alpha, dmax, s, c, B )
     
     return P, post, c

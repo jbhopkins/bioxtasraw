@@ -21,11 +21,13 @@ from __future__ import division
 import os #sys, time, os, gc
 #import matplotlib
 import wx
-import fileIO
+import fileIO, cartToPol
 import BIFT
 import threading
 import RAW
+import OpenGnom
 from math import *
+from numpy import transpose, ones
 
 biftparams  = {'maxDmax' : 400,
                'minDmax' : 50,
@@ -90,6 +92,7 @@ class BiftInfoPanel(wx.Panel):
                 labelbox = wx.StaticText(self, -1, label)
                 ctrl = RAW.FloatSpinCtrl(self, id)
                 ctrl.Bind(RAW.EVT_MY_SPIN, self._onSpinChange)
+                ctrl.Bind(wx.EVT_KILL_FOCUS, self.onKillFocus)
                 sizer.Add(labelbox, 0)
                 sizer.Add(ctrl, 0, wx.ALIGN_CENTER)
             
@@ -130,6 +133,9 @@ class BiftInfoPanel(wx.Panel):
             elif type == 'ctrl':
                 ctrl = wx.FindWindowById(id)
                 ctrl.SetValue('1.00')
+                
+    def onKillFocus(self, evt):
+        print 'HELLO!'
     
     def getDmaxAlpha(self):
         
@@ -216,6 +222,7 @@ class BiftCalculationThread(threading.Thread):
     
     def run(self):
         
+        algo = self._parent.expParams['IFTAlgoChoice']
         #self._pgthread.run()
         #self._pgthread.SetStatus('Calculating P(r) ...')
         
@@ -223,57 +230,102 @@ class BiftCalculationThread(threading.Thread):
             for eachExp in self.selectedFile:
 
                 ExpObj = eachExp  #self.selectedFile
-        
-                BiftObj = BIFT.doBift(ExpObj,
-                                       self._parent.expParams['PrPoints'],
-                                       self._parent.expParams['maxAlpha'],
-                                       self._parent.expParams['minAlpha'],
-                                       self._parent.expParams['AlphaPoints'],
-                                       self._parent.expParams['maxDmax'],
-                                       self._parent.expParams['minDmax'],
-                                       self._parent.expParams['DmaxPoints'])
+                
+                if algo == 'BIFT':
+                    IFTObj = self.getBIFT(ExpObj)
+                elif algo == 'GNOM':
+                    ctrl = wx.FindWindowById(self._parent.paramsInGui['Dmax'][0])
+                    dmax = float(ctrl.GetValue())
+                    IFTObj = self.getGNOM(ExpObj, dmax)
         
                 biftPlotPanel = wx.FindWindowByName('BIFTPlotPanel')
 
-                BiftObj.isBifted = True
+                IFTObj.isBifted = True
         
-                wx.CallAfter(biftPlotPanel.PlotBIFTExperimentObject,BiftObj)
+                wx.CallAfter(biftPlotPanel.PlotBIFTExperimentObject,IFTObj)
         
                 infoPanel = wx.FindWindowByName('InfoPanel')
-                wx.CallAfter(infoPanel.WriteText, 'BIFT : ' + BiftObj.param['filename'] + '\n')
-                wx.CallAfter(infoPanel.WriteText, 'Dmax : ' + str(BiftObj.allData['dmax']) + '\nAlpha : ' + str(BiftObj.allData['alpha']) + '\nI0 : ' + str(BiftObj.allData['I0']) + '\nRg : ' + str(BiftObj.allData['Rg']) + '\nChi^2 : ' + str(BiftObj.allData['ChiSquared']) + '\n\n')
+                wx.CallAfter(infoPanel.WriteText, 'IFT : ' + IFTObj.param['filename'] + '\n')
+                wx.CallAfter(infoPanel.WriteText,'Dmax : ' + str(IFTObj.allData['dmax']) + '\nAlpha : ' + str(IFTObj.allData['alpha']) + '\nI0 : ' + str(IFTObj.allData['I0']) + '\nRg : ' + str(IFTObj.allData['Rg']) + '\nChi^2 : ' + str(IFTObj.allData['ChiSquared']) + '\n')
         
+                if algo == 'GNOM':
+                    wx.CallAfter(infoPanel.WriteText, 'TOTAL : ' + str(IFTObj.allData['gnomTOTAL']) + '\n\n' )
+                else:
+                    wx.CallAfter(infoPanel.WriteText, '\n')
+                    
                 biftPage = wx.FindWindowByName('AutoAnalysisPage')
-                wx.CallAfter(biftPage.addBiftObjToList, ExpObj, BiftObj)
+                wx.CallAfter(biftPage.addBiftObjToList, ExpObj, IFTObj)
         
         else:
             
                 ExpObj = self.selectedFile
         
-                BiftObj = BIFT.doBift(self.selectedFile,
-                                       self._parent.expParams['PrPoints'],
-                                       self._parent.expParams['maxAlpha'],
-                                       self._parent.expParams['minAlpha'],
-                                       self._parent.expParams['AlphaPoints'],
-                                       self._parent.expParams['maxDmax'],
-                                       self._parent.expParams['minDmax'],
-                                       self._parent.expParams['DmaxPoints'])
+                if algo == 'BIFT':
+                    IFTObj = self.getBIFT(ExpObj)
+                elif algo == 'GNOM':
+                    ctrl = wx.FindWindowById(self._parent.paramsInGui['Dmax'][0])
+                    dmax = float(ctrl.GetValue())
+                    IFTObj = self.getGNOM(ExpObj, dmax)
         
                 biftPlotPanel = wx.FindWindowByName('BIFTPlotPanel')
 
-                BiftObj.isBifted = True
+                IFTObj.isBifted = True
         
-                wx.CallAfter(biftPlotPanel.PlotBIFTExperimentObject, BiftObj)
+                wx.CallAfter(biftPlotPanel.PlotBIFTExperimentObject, IFTObj)
         
                 infoPanel = wx.FindWindowByName('InfoPanel')
-                wx.CallAfter(infoPanel.WriteText,'BIFT : ' + BiftObj.param['filename'] + '\n')
-                wx.CallAfter(infoPanel.WriteText,'Dmax : ' + str(BiftObj.allData['dmax']) + '\nAlpha : ' + str(BiftObj.allData['alpha']) + '\nI0 : ' + str(BiftObj.allData['I0']) + '\nRg : ' + str(BiftObj.allData['Rg']) + '\nChi^2 : ' + str(BiftObj.allData['ChiSquared']) + '\n\n')
+                wx.CallAfter(infoPanel.WriteText,'IFT : ' + IFTObj.param['filename'] + '\n')
+                wx.CallAfter(infoPanel.WriteText,'Dmax : ' + str(IFTObj.allData['dmax']) + '\nAlpha : ' + str(IFTObj.allData['alpha']) + '\nI0 : ' + str(IFTObj.allData['I0']) + '\nRg : ' + str(IFTObj.allData['Rg']) + '\nChi^2 : ' + str(IFTObj.allData['ChiSquared']) + '\n')
+        
+                if algo == 'GNOM':
+                    wx.CallAfter(infoPanel.WriteText, 'TOTAL : ' + str(IFTObj.allData['gnomTOTAL']) + '\n\n' )
+                else:
+                    wx.CallAfter(infoPanel.WriteText, '\n')
         
                 biftPage = wx.FindWindowByName('AutoAnalysisPage')
-                wx.CallAfter(biftPage.addBiftObjToList, ExpObj, BiftObj)
+                wx.CallAfter(biftPage.addBiftObjToList, ExpObj, IFTObj)
         
         #self._pgthread.SetStatus('Done')
         #self._pgthread.stop()
+        
+        
+    def getBIFT(self, ExpObj):
+            
+        BiftObj = BIFT.doBift(ExpObj,
+                                  self._parent.expParams['PrPoints'],
+                                  self._parent.expParams['maxAlpha'],
+                                  self._parent.expParams['minAlpha'],
+                                  self._parent.expParams['AlphaPoints'],
+                                  self._parent.expParams['maxDmax'],
+                                  self._parent.expParams['minDmax'],
+                                  self._parent.expParams['DmaxPoints'])
+            
+        return BiftObj
+        
+    def getGNOM(self, ExpObj, dmax):
+            
+        I = ExpObj.i
+        q = ExpObj.q
+        sigma = ExpObj.errorbars
+                        
+        WCA_Params = [[self._parent.expParams['DISCRPweight'], 0.3, 0.7],
+                      [self._parent.expParams['OSCILLweight'], 0.6, 1.1],
+                      [self._parent.expParams['STABILweight'], 0.12, 0.0],
+                      [self._parent.expParams['SYSDEVweight'], 0.12, 1.0],
+                      [self._parent.expParams['POSITVweight'], 0.12, 1.0],
+                      [self._parent.expParams['VALCENweight'], 0.12, 0.95]]
+            
+        Pr, r, Fit, info = OpenGnom.getGnomPr(I, q, sigma,
+                                               self._parent.expParams['gnomPrPoints'],
+                                               dmax, 0,
+                                               self._parent.expParams['gnomMinAlpha'],
+                                               self._parent.expParams['gnomMaxAlpha'],
+                                               self._parent.expParams['gnomAlphaPoints'],
+                                               WCA_Params)
+            
+        IFTObj = cartToPol.BIFTMeasurement(transpose(Pr), r, ones((len(transpose(Pr)),1)), ExpObj.param, Fit, info)
+            
+        return IFTObj
 
 class AutoAnalysisPage(wx.Panel):
     def __init__(self, parent, expParams):
@@ -281,13 +333,16 @@ class AutoAnalysisPage(wx.Panel):
         
         self.expParams = expParams
         
+        self.iftAlgoLabels = self.expParams['IFTAlgoList']
+        
         self.paramsInGui={'Filename' : (wx.NewId(), 'filename'),
                           'I(0)' : (wx.NewId(), 'info'),
                           'Rg'   : (wx.NewId(), 'info'),
                           'Dmax' : (wx.NewId(), 'ctrl'),
                           'Alpha': (wx.NewId(), 'ctrl'),
                           'Qmin' : (wx.NewId(), 'listctrl'),
-                          'Qmax' : (wx.NewId(), 'listctrl')}
+                          'Qmax' : (wx.NewId(), 'listctrl'),
+                          'AlgoChoice' : (wx.NewId(), 'listctrl')}
         
         self.buttons = (("BIFT", self._OnDoBift),
                         ("Load", self._OnLoadFile),
@@ -306,7 +361,10 @@ class AutoAnalysisPage(wx.Panel):
         self.infoBox = BiftInfoPanel(self)
         self.infoBox.Enable(False)
         
-        panelsizer.Add(self.infoBox, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, 10)
+        self.algoList = self.createAlgoList()
+        
+        panelsizer.Add(self.algoList, 0, wx.EXPAND | wx.TOP | wx.BOTTOM |  wx.LEFT | wx.RIGHT, 10)
+        panelsizer.Add(self.infoBox, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER, 10)
         panelsizer.Add(self.filelist, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
         
         self.createButtons(panelsizer)
@@ -316,6 +374,29 @@ class AutoAnalysisPage(wx.Panel):
         self.SetSizer(panelsizer)
         
  #      self.filelist.Insert('Test.dat', 0)
+ 
+    def createAlgoList(self):
+        
+        #sizer = wx.FlexGridSizer(rows = 1, cols = 2, hgap = 5)
+        sizer = wx.BoxSizer()
+        
+        id = self.paramsInGui['AlgoChoice'][0]
+        
+        self.combobox = wx.ComboBox(self, id, choices = self.iftAlgoLabels, style=wx.CB_READONLY, size = (100, 21))
+        self.combobox.Bind(wx.EVT_COMBOBOX, self._onAlgoSelect)
+        self.combobox.SetStringSelection(self.expParams['IFTAlgoChoice'])
+
+        txt = wx.StaticText(self, -1, 'Algorithm :')
+        
+        sizer.Add((2,2), wx.EXPAND)
+        sizer.Add(txt, 0, wx.EXPAND | wx.RIGHT | wx.TOP, 3)
+        sizer.Add(self.combobox, 0, wx.EXPAND)
+        sizer.Add((2,2), wx.EXPAND)
+        
+        return sizer
+    
+    def _onAlgoSelect(self, evt):
+        self.expParams['IFTAlgoChoice'] = self.combobox.GetStringSelection()
  
     def _OnListBoxEvent(self, evt):
         Data = evt.GetClientData()
@@ -340,8 +421,6 @@ class AutoAnalysisPage(wx.Panel):
                     self.infoBox.Enable(False)
                     self.infoBox.clear()
                     
-                    
- 
     def _OnClearList(self, evt):
         self.filelist.Clear()
         self.infoBox.clear()
@@ -405,7 +484,7 @@ class AutoAnalysisPage(wx.Panel):
         for each in expList:
             each.setQrange(each.idx)
         
-        calculationThread = BiftCalculationThread(self, expList) 
+        calculationThread = BiftCalculationThread(self, expList)
         calculationThread.start()
     
     def addBiftObjToList(self, ExpObj, BiftObj):
@@ -515,8 +594,8 @@ class AutoAnalysisPage(wx.Panel):
                 sizer.Add(label, 1, wx.EXPAND)
                 sizer.Add(ctrl,0)
                 
-                panelsizer.Add(sizer, 0.1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
-        
+                panelsizer.Add(sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
+           
     def createMaxMinOptions(self, panelsizer):
         
         topsizer = wx.BoxSizer()

@@ -19,7 +19,7 @@
 
 import wx, masking
 import fileIO, cartToPol
-from numpy import power
+from numpy import power, ceil
 #from os import path
 
 class PatternRadioBox(wx.Panel):
@@ -704,7 +704,7 @@ class SaveDirectoriesPage(wx.Panel):
                     textCtrl = wx.FindWindowById(param[0]) 
                     textCtrl.SetValue('')
         
-class BiftOptionsPage(wx.Panel):
+class IFTOptionsPage(wx.Panel):
     
     def __init__(self, parent):
         
@@ -717,33 +717,78 @@ class BiftOptionsPage(wx.Panel):
                                 ("Dmax Search Points: ", expParamsInGUI['DmaxPoints'][0]),
                                 ("Alpha Upper Bound:",   expParamsInGUI['maxAlpha'][0]),
                                 ("Alpha Lower Bound:",   expParamsInGUI['minAlpha'][0]),
-                                ("Alpha Search Ponts:",  expParamsInGUI['AlphaPoints'][0]),
+                                ("Alpha Search Points:", expParamsInGUI['AlphaPoints'][0]),
                                 ("P(r) Points:",         expParamsInGUI['PrPoints'][0]))
+                                
+        self.gnomOptionsData = (("Alpha Upper Bound:",   expParamsInGUI['gnomMaxAlpha'][0]),
+                                ("Alpha Lower Bound:",   expParamsInGUI['gnomMinAlpha'][0]),
+                                ("Alpha Search Points:", expParamsInGUI['gnomAlphaPoints'][0]),
+                                ("P(r) Points:",         expParamsInGUI['gnomPrPoints'][0]),
+                                ("OSCILL weight:",       expParamsInGUI['OSCILLweight'][0]),
+                                ("VALCEN weight:",       expParamsInGUI['VALCENweight'][0]),
+                                ("POSITV weight:",       expParamsInGUI['POSITVweight'][0]),
+                                ("SYSDEV weight:",       expParamsInGUI['SYSDEVweight'][0]),
+                                ("STABIL weight:",       expParamsInGUI['STABILweight'][0]),
+                                ("DISCRP weight:",       expParamsInGUI['DISCRPweight'][0]))
         
-        
+        self.gnomChkBoxData = (("Force P(r=0) to zero:", expParamsInGUI['gnomFixInitZero'][0]), [])
+                
         biftOptionsSizer = self.createBiftOptions()
+        
+        gnomOptionsSizer = self.createGnomOptions()
         
         box = wx.StaticBox(self, -1, 'BIFT Grid-Search Parameters')
         chkboxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        
         chkboxSizer.Add(biftOptionsSizer, 1, wx.EXPAND | wx.ALL, 5)
         
-        topSizer = wx.BoxSizer()
-        topSizer.Add(chkboxSizer, 1, wx.EXPAND | wx.ALL, 5)
+        box2 = wx.StaticBox(self, -1, 'GNOM Parameters')
+        chkboxSizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
+        chkboxSizer2.Add(gnomOptionsSizer, 1, wx.EXPAND | wx.ALL, 5)
+        
+        topSizer = wx.BoxSizer(wx.VERTICAL)
+        topSizer.Add(chkboxSizer, 0, wx.EXPAND | wx.ALL, 5)
+        topSizer.Add(chkboxSizer2, 1, wx.EXPAND | wx.ALL, 5)
         
         self.SetSizer(topSizer)
         
+    def createGnomOptions(self):
+        
+        noOfRows = ceil(int(len(self.gnomOptionsData)) + int(len(self.gnomChkBoxData)))/2.
+        gridSizer = wx.FlexGridSizer(cols = 4, rows = noOfRows, vgap = 5, hgap = 5)
+    
+        for each in self.gnomOptionsData:
+            label = each[0]
+            id = each[1]
+            
+            labeltxt = wx.StaticText(self, -1, label)
+            ctrl = wx.TextCtrl(self, id, '0', size = (60, 21), style = wx.TE_RIGHT)
+            
+            gridSizer.Add(labeltxt, 1, wx.CENTER)
+            gridSizer.Add(ctrl, 1)
+        
+        for each in self.gnomChkBoxData:
+            if each != []:
+                label = each[0]
+                id = each[1]
+            
+                chkbox = wx.CheckBox(self, id)
+                labeltxt = wx.StaticText(self, -1, label)
+                gridSizer.Add(labeltxt, 1, wx.TOP, 3)
+                gridSizer.Add(chkbox, 1)
+            
+        return gridSizer    
+        
     def createBiftOptions(self):
         
-        noOfRows = int(len(self.biftOptionsData))
-        gridSizer = wx.FlexGridSizer(cols = 2, rows = noOfRows, vgap = 5)
+        noOfRows = ceil(int(len(self.biftOptionsData))/2.0)
+        gridSizer = wx.FlexGridSizer(cols = 4, rows = noOfRows, vgap = 5, hgap = 5)
     
         for each in self.biftOptionsData:
             label = each[0]
             id = each[1]
             
-            labeltxt = wx.StaticText(self, -1, label)
-            ctrl = wx.TextCtrl(self, id, '0', size = (65, 21), style = wx.TE_RIGHT)
+            labeltxt = wx.StaticText(self, -1, str(label))
+            ctrl = wx.TextCtrl(self, id, '0', size = (60, 21), style = wx.TE_RIGHT)
             
             gridSizer.Add(labeltxt, 1)
             gridSizer.Add(ctrl, 1)
@@ -1030,6 +1075,20 @@ class OptionsDialog(wx.Dialog):
                                'AlphaPoints' : (wx.NewId(), 'int'),
                                'PrPoints'    : (wx.NewId(), 'int'),
                                
+                                #GNOM PARAMETERS:
+                               'gnomMaxAlpha'    : (wx.NewId(), 'float'),
+                               'gnomMinAlpha'    : (wx.NewId(), 'float'),
+                               'gnomPrPoints'    : (wx.NewId(), 'int'),
+                               'gnomFixInitZero' : (wx.NewId(), 'bool'),
+                               'gnomAlphaPoints' : (wx.NewId(), 'int'),
+                               
+                               'OSCILLweight'    : (wx.NewId(), 'float'),
+                               'VALCENweight'    : (wx.NewId(), 'float'),
+                               'POSITVweight'    : (wx.NewId(), 'float'),
+                               'SYSDEVweight'    : (wx.NewId(), 'float'),
+                               'STABILweight'    : (wx.NewId(), 'float'),
+                               'DISCRPweight'    : (wx.NewId(), 'float'),
+                               
                                #ARTIFACT REMOVAL:
                                'ZingerRemoval'        : (wx.NewId(), 'bool'),
                                'ZingerRemoveSTD'      : (wx.NewId(), 'int'),
@@ -1071,7 +1130,7 @@ class OptionsDialog(wx.Dialog):
         optionsNB = wx.Notebook(self)
 
         self.page1 = GeneralOptionsPage(optionsNB)
-        self.page2 = BiftOptionsPage(optionsNB)
+        self.page2 = IFTOptionsPage(optionsNB)
         self.page3 = CalibrationOptionsPage(optionsNB)
         self.page4 = MaskingOptions(optionsNB)
         self.page5 = ImageFormatOptionsPage(optionsNB)
@@ -1081,7 +1140,7 @@ class OptionsDialog(wx.Dialog):
         optionsNB.AddPage(self.page1, "General")
         optionsNB.AddPage(self.page3, "Calibration")
         optionsNB.AddPage(self.page4, "Masking")
-        optionsNB.AddPage(self.page2, "BIFT")
+        optionsNB.AddPage(self.page2, "IFT")
         optionsNB.AddPage(self.page5, "2D reduction")
         #optionsNB.AddPage(self.page6, "Directories")
         

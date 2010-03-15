@@ -113,6 +113,24 @@ expParams = {
              'AlphaPoints' : 16,
              'PrPoints'    : 50,
              
+             #DEFAULT GNOM PARAMETERS
+             'gnomMaxAlpha'    : 60,
+             'gnomMinAlpha'    : 0.01,
+             'gnomAlphaPoints' : 100,
+             'gnomPrPoints'    : 50,
+             'gnomFixInitZero' : True,
+             
+             'OSCILLweight'    : 3.0,
+             'VALCENweight'    : 1.0,
+             'POSITVweight'    : 1.0,
+             'SYSDEVweight'    : 3.0,
+             'STABILweight'    : 3.0,
+             'DISCRPweight'    : 1.0,
+             
+             #DEFAULT IFT PARAMETERS:
+             'IFTAlgoList'        : ['BIFT', 'GNOM'],
+             'IFTAlgoChoice'      : 'BIFT',
+             
              #ARTIFACT REMOVAL:
              'ZingerRemoval'     : False,
              'ZingerRemoveSTD'   : 4,
@@ -4089,7 +4107,7 @@ class MainFrame(wx.Frame):
         plotpage4 = overview.OverviewPanel(self.plotNB, -1, 'OverviewPanel')
 
         self.plotNB.AddPage(plotpage1, "Reduced Plot")
-        self.plotNB.AddPage(plotpage3, "BIFT Plot")
+        self.plotNB.AddPage(plotpage3, "IFT Plot")
         self.plotNB.AddPage(plotpage2, "RAW Image")
         self.plotNB.AddPage(plotpage4, "Overview")
         
@@ -4110,7 +4128,7 @@ class MainFrame(wx.Frame):
         nb.AddPage(page1, "Files")
         nb.AddPage(page4, "Manipulation")
         #nb.AddPage(page2, "2D Options")
-        nb.AddPage(page3, "BIFT")
+        nb.AddPage(page3, "IFT")
 
         self.infoPan = InfoPanel(nbsplitter)
                 
