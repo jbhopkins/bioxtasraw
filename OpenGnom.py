@@ -460,7 +460,7 @@ if __name__ == '__main__':
     q = ExpObj.q
     sigma = ExpObj.errorbars
     
-    #FIGURES IN THE ARTCILE:
+    #FIGURES SIMILAR TO THOSE IN THE ARTCILE:
     #normdist = (np.cos(2*pi*1*bins)+1)/2                  #F
     #normdist = np.sin(2*pi*1.5*bins)                      #E
     #normdist = np.sin(2*pi*.5*bins)                       #A

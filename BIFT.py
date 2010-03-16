@@ -61,8 +61,6 @@ def C_seeksol(I_exp, m, q, sigma, alpha, dmax, T):
     
     Bmat = B-Bdiag
     
-
-
     
     # ************  convert before C++  *************************
     Psumi = zeros((1,N))                   ## all should be arrays!         NB matrix and array dont mix in weave C!!!!
@@ -305,6 +303,53 @@ def GetEvidence(alpha, dmax, Ep, N):
     Pout, evd, c  = C_seeksol(Ep.i, P, Ep.q, Ep.errorbars, alpha, dmax, T)
         
     return -evd, c, Pout
+
+
+
+
+def leastSqSolve(I, q, sigma, alpha, dmax, dmin=0, forceInitZero = False):
+    
+    ''' Calculates the Pr function for a specified alpha, dmin and dmax '''
+    
+    r = np.linspace(dmin, dmax, N)
+    K = createTransMatrix(q, r)   #Fourier transformation matrix
+        
+    #Solving it explicit:
+    #T = np.eye(N)   # Identity matrix (NB not the derivative)
+    #Pr = np.dot(linalg.inv((alpha * T) + np.dot(np.transpose(K),K)) , np.dot(np.transpose(K), I))
+    
+    ########################################
+    # Regularization matrix T
+    # -------------------------------------- 
+    # Derivative matrix consists of ones in
+    # the diagonal with -1/2 adjacent
+    # to the diagonal and zero otherwise
+    ########################################
+    eyeMat = np.eye(N)
+    mat1 = shiftLeft(eyeMat,1)
+    mat2 = shiftRight(eyeMat, 1)
+    
+    mat2[0,0] = 0                 #Remove the 1 in the wrong place (in the corner)
+    sh = np.shape(mat1)
+    mat1[sh[0]-1, sh[1]-1] = 0    #Remove the 1 in the wrong place (in the corner)
+
+    T = (mat1 + mat2) * -0.5 + np.eye(np.shape(mat1)[0])
+    ########################################
+    
+    #Solving by least squares:
+    a = np.vstack((K, alpha*T))  
+    b = np.hstack((I, np.zeros(np.shape(T)[0])))
+    
+    if forceInitZero:
+        a = a[:,1:] #strip first column of a
+        
+    Pr, residues, rank, singularVals = linalg.lstsq(a,b)
+    
+    if forceInitZero:
+        Pr = np.insert(Pr, [0],0) #insert fixed zero 
+    
+    return Pr
+
 
 def SingleSolve(alpha, dmax, Ep, N):
     ''' Fit to data with forced Dmax and Alpha values '''
