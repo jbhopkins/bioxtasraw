@@ -10,7 +10,7 @@ from scipy.weave import converters
 from numpy import pi, sqrt, power, exp, linalg
 import pylab as pl
 from pylab import sin, cos
-from LinearAlgebra import inverse
+#from LinearAlgebra import inverse
 
 import fileIO
 
