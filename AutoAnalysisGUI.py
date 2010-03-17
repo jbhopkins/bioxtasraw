@@ -344,7 +344,7 @@ class AutoAnalysisPage(wx.Panel):
                           'Qmax' : (wx.NewId(), 'listctrl'),
                           'AlgoChoice' : (wx.NewId(), 'listctrl')}
         
-        self.buttons = (("BIFT", self._OnDoBift),
+        self.buttons = (("IFT", self._OnDoBift),
                         ("Load", self._OnLoadFile),
                         ("Options", self._OnOptions),
                         ("Clear Plot", self._OnClearAll),

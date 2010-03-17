@@ -29,7 +29,7 @@ from matplotlib.figure import Figure
 from matplotlib.font_manager import FontProperties
 import matplotlib.cbook as cbook
 
-from numpy import power, zeros, shape, transpose
+from numpy import power, zeros, shape, transpose, array
 
 import wx.lib.scrolledpanel as scrolled
 import wx.animate
@@ -1395,6 +1395,8 @@ class PlotPanel(wx.Panel):
         #self._insertLegend(os.path.split(ExpObj.param['filename'])[1], self.subplot2)
         self._setLabels(ExpObj, 'Fit', 'q (1/A)', 'I', self.subplot2)
         
+        
+        self.fitAxis()
         #Update figure:
         self.canvas.draw()
      
@@ -3801,7 +3803,7 @@ class ManipulationPage(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent, name = 'ManipulationPage')
         
-        self.buttonData = ( ('BIFT', self.OnBift),
+        self.buttonData = ( ('IFT', self.OnBift),
                             ('Average', self.OnAverage),
                             ('Delete', self.OnDelete),
                             ('Save', self.OnSave),
