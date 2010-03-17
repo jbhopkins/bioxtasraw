@@ -314,14 +314,16 @@ class BiftCalculationThread(threading.Thread):
                       [self._parent.expParams['SYSDEVweight'], 0.12, 1.0],
                       [self._parent.expParams['POSITVweight'], 0.12, 1.0],
                       [self._parent.expParams['VALCENweight'], 0.12, 0.95]]
-            
+        
+        forceInitZero = self._parent.expParams['gnomFixInitZero']
+        
         Pr, r, Fit, info = OpenGnom.getGnomPr(I, q, sigma,
                                                self._parent.expParams['gnomPrPoints'],
                                                dmax, 0,
                                                self._parent.expParams['gnomMinAlpha'],
                                                self._parent.expParams['gnomMaxAlpha'],
                                                self._parent.expParams['gnomAlphaPoints'],
-                                               WCA_Params)
+                                               WCA_Params, forceInitZero)
             
         IFTObj = cartToPol.BIFTMeasurement(transpose(Pr), r, ones((len(transpose(Pr)),1)), ExpObj.param, Fit, info)
             
@@ -451,10 +453,24 @@ class AutoAnalysisPage(wx.Panel):
         #print SelectedExpObj.type
         SelectedExpObj.setQrange(SelectedExpObj.idx)
         
-        N = self.expParams['PrPoints']
         
+        algo = self.expParams['IFTAlgoChoice']
         
-        ExpObj = BIFT.SingleSolve(alpha, dmax, SelectedExpObj, N)
+        if algo == 'BIFT':
+            N = self.expParams['PrPoints']
+            ExpObj = BIFT.SingleSolve(alpha, dmax, SelectedExpObj, N)
+        elif algo == 'GNOM':
+            WCA_Param  = [[self.expParams['DISCRPweight'], 0.3, 0.7],
+                          [self.expParams['OSCILLweight'], 0.6, 1.1],
+                          [self.expParams['STABILweight'], 0.12, 0.0],
+                          [self.expParams['SYSDEVweight'], 0.12, 1.0],
+                          [self.expParams['POSITVweight'], 0.12, 1.0],
+                          [self.expParams['VALCENweight'], 0.12, 0.95]]
+            
+            forceInitZero = self.expParams['gnomFixInitZero']
+            N = self.expParams['gnomPrPoints']
+            Pr, r, Fit, info = OpenGnom.singleSolveInRAW(alpha, dmax, SelectedExpObj, N, 0, forceInitZero, WCA_Param)
+            ExpObj = cartToPol.BIFTMeasurement(transpose(Pr), r, ones((len(transpose(Pr)),1)), SelectedExpObj.param, Fit, info)
         
         ExpObj.isBifted = True
         

@@ -203,6 +203,7 @@ def sphereFormFactor(q, r, scale = 1, radius = 60, contrast = 1e-6, bkg = 0):
     return F
 
 def norm(pr):
+    ''' Calculates the norm of the incomming vector '''
 
     norm = sqrt( sum(power(pr,2)) )
     
@@ -252,11 +253,11 @@ def SYSDEV(Pr, r, I, q):
      
     return SYS
 
-def STABIL(Pr, r, I, q, sigma, alpha, dAlpha, dmin, dmax, N):
+def STABIL(Pr, r, I, q, sigma, alpha, dAlpha, dmin, dmax, N, forceInitZero = True):
     ''' According to the point-of-inflection and quasi-optimality methods (Glatter)
     a value of STABIL << 1 can be expected in the vicinity of the correct solution '''
         
-    Pr_dAlpha = calcPr(alpha, I, q, sigma, dmin, dmax, N)
+    Pr_dAlpha = calcPr(alpha, I, q, sigma, dmin, dmax, N, forceInitZero)
     
     STA = (norm( Pr-Pr_dAlpha ) /norm(Pr)) / (dAlpha/alpha)
     
@@ -331,7 +332,6 @@ def CalcProbability(DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN, WCA_Paramete
         
     else:
         #Ugly hack to easier fit into RAW
-        
         WCA_Param = []
         
         lst = [DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN]
@@ -349,9 +349,9 @@ def CalcProbability(DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN, WCA_Paramete
     
     return TOTAL
 
-def costFunc(alpha, r, I_alpha, q, sigma, dmax, N, WCA_Params = None):
+def costFunc(alpha, r, I_alpha, q, sigma, dmax, N, WCA_Params = None, forceInitZero = True):
     
-    PrC = calcPr(alpha, I_alpha, q, sigma, 0, dmax, N)
+    PrC = calcPr(alpha, I_alpha, q, sigma, 0, dmax, N, forceInitZero)
     
     TOTAL = CalcProbability(DISCRP(),
                             OSCILL(PrC, r),
@@ -377,7 +377,7 @@ def costFunc(alpha, r, I_alpha, q, sigma, dmax, N, WCA_Params = None):
 #    return goldenSectionSearch(F, d, c, a, absolutePrecision)
 # 
 
-def searchAlpha(r, I_alpha, q, sigma, dmax, N, alphamin = 0.01, alphamax = 60, alphapoints = 100, WCA_Params = None):
+def searchAlpha(r, I_alpha, q, sigma, dmax, N, alphamin = 0.01, alphamax = 60, alphapoints = 100, WCA_Params = None, forceInitZero = True):
     
     #alphaGuess = sum(np.power(norm(K),2)) / norm(I_alpha)
     
@@ -401,20 +401,20 @@ def searchAlpha(r, I_alpha, q, sigma, dmax, N, alphamin = 0.01, alphamax = 60, a
     
     return alpha
 
-def getGnomPr(I, q, sigma, N, dmax, dmin = 0, alphamin = 0.01, alphamax = 60, alphapoints = 100, WCA_Params = None):
+def getGnomPr(I, q, sigma, N, dmax, dmin = 0, alphamin = 0.01, alphamax = 60, alphapoints = 100, WCA_Params = None, forceInitZero = True):
     ''' Returns the optimal Pr function according to the GNOM algorithm '''
     
     r = np.linspace(dmin, dmax, N)
     
     #Find optimal alpha:
-    alpha = searchAlpha(r, I, q, sigma, dmax, N, alphamin, alphamax, alphapoints, WCA_Params)
+    alpha = searchAlpha(r, I, q, sigma, dmax, N, alphamin, alphamax, alphapoints, WCA_Params, forceInitZero)
     
     K = createTransformMatrix(q, r)
     
-    Pr = calcPr(alpha, I, q, sigma, dmin, dmax, N)
+    Pr = calcPr(alpha, I, q, sigma, dmin, dmax, N, forceInitZero)
     I_Pr = np.dot( Pr, np.transpose(K) )
     
-    TOTAL = -costFunc(alpha[0], r, I, q, sigma, dmax, N, WCA_Params)
+    TOTAL = -costFunc(alpha[0], r, I, q, sigma, dmax, N, WCA_Params, forceInitZero)
     
     I0, Rg = calcRgI0(Pr, r)
     
@@ -424,6 +424,42 @@ def getGnomPr(I, q, sigma, N, dmax, dmin = 0, alphamin = 0.01, alphamax = 60, al
                 'alpha_points' : 0,
                 'all_posteriors' : 0,
                 'alpha' : alpha[0],
+                'dmax' : dmax,
+                'orig_i' : I,
+                'orig_q' : q,
+                'orig_err': sigma,
+                'I0' : I0,
+                'ChiSquared' : ChiSq,
+                'gnomTOTAL' : TOTAL,
+                'Rg' : Rg}
+    
+    return Pr, r, I_Pr, info
+
+def singleSolveInRAW(alpha, dmax, SelectedExpObj, N, dmin = 0, forceInitZero = True, WCA_Params = None):
+    ''' Solves optimal Pr for a given dmax and alpha.. this routine also calculates info needed by RAW ''' 
+    
+    I = SelectedExpObj.i
+    q = SelectedExpObj.q
+    sigma = SelectedExpObj.errorbars
+    
+    Pr = calcPr(alpha, I, q, sigma, dmin, dmax, N, forceInitZero)
+    r = np.linspace(dmin, dmax, N)
+    
+    K = createTransformMatrix(q, r)
+    
+    Pr = calcPr(alpha, I, q, sigma, dmin, dmax, N)
+    I_Pr = np.dot( Pr, np.transpose(K) )
+    
+    TOTAL = -costFunc(alpha, r, I, q, sigma, dmax, N, WCA_Params)
+    
+    I0, Rg = calcRgI0(Pr, r)
+    
+    ChiSq = sum(np.power(np.array(I)-np.array(I_Pr),2) / np.power(sigma,2))
+    
+    info = {'dmax_points' : 0,
+                'alpha_points' : 0,
+                'all_posteriors' : 0,
+                'alpha' : alpha,
                 'dmax' : dmax,
                 'orig_i' : I,
                 'orig_q' : q,
