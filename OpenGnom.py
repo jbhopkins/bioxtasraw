@@ -402,7 +402,7 @@ def searchAlpha(r, I_alpha, q, sigma, dmax, N, alphamin = 0.01, alphamax = 60, a
     return alpha
 
 def getGnomPr(I, q, sigma, N, dmax, dmin = 0, alphamin = 0.01, alphamax = 60, alphapoints = 100, WCA_Params = None, forceInitZero = True):
-    ''' Returns the optimal Pr function according to the GNOM algorithm '''
+    ''' Returns the optimal Pr function according to the GNOM algorithm (GNOM calulates alpha) '''
     
     r = np.linspace(dmin, dmax, N)
     
@@ -420,9 +420,11 @@ def getGnomPr(I, q, sigma, N, dmax, dmin = 0, alphamin = 0.01, alphamax = 60, al
     
     ChiSq = sum(np.power(np.array(I)-np.array(I_Pr),2) / np.power(sigma,2))
     
+    allcrit = getAllCriteriaResults(Pr, r, I, q, sigma, alpha, dmin, dmax, N, forceInitZero)
+    
     info = {'dmax_points' : 0,
                 'alpha_points' : 0,
-                'all_posteriors' : 0,
+                'all_posteriors' : allcrit,
                 'alpha' : alpha[0],
                 'dmax' : dmax,
                 'orig_i' : I,
@@ -456,9 +458,11 @@ def singleSolveInRAW(alpha, dmax, SelectedExpObj, N, dmin = 0, forceInitZero = T
     
     ChiSq = sum(np.power(np.array(I)-np.array(I_Pr),2) / np.power(sigma,2))
     
+    allcrit = getAllCriteriaResults(Pr, r, I, q, sigma, alpha, dmin, dmax, N, forceInitZero)
+    
     info = {'dmax_points' : 0,
                 'alpha_points' : 0,
-                'all_posteriors' : 0,
+                'all_posteriors' : allcrit,
                 'alpha' : alpha,
                 'dmax' : dmax,
                 'orig_i' : I,
@@ -470,6 +474,24 @@ def singleSolveInRAW(alpha, dmax, SelectedExpObj, N, dmin = 0, forceInitZero = T
                 'Rg' : Rg}
     
     return Pr, r, I_Pr, info
+
+def getAllCriteriaResults(Pr, r, I, q, sigma, alpha, dmin, dmax, N, forceInitZero):
+    
+    val = round(VALCEN(Pr, r),2)
+    osc = round(OSCILL(Pr, r),2)
+    pos = round(POSITV(Pr),2)
+    sysd = round(SYSDEV(Pr, r, I, q),2)
+    sta = round(STABIL(Pr, r, I, q, sigma, alpha, 2*alpha, 0, dmax, N, forceInitZero))
+    dsc = DISCRP()
+    
+    allcrit = [('VALCEN', val),
+               ('OSCILL', osc),
+               ('POSITV' ,pos),
+               ('SYSDEV', sysd),
+               ('STABIL', sta),
+               ('DISCRP', dsc)]
+    
+    return allcrit
     
 def calcRgI0(Pr, r):
     

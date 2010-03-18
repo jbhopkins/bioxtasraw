@@ -1676,11 +1676,15 @@ class PlotPanel(wx.Panel):
         if len(legendnames) > 0:
             
             if a == self.subplot1 and self.subplot1LegendPos != None:            
-                a.legend(legendlines, legendnames, prop = FontProperties(size = 10), borderpad = 0.2, loc = self.subplot1LegendPos[0])
+                leg = a.legend(legendlines, legendnames, prop = FontProperties(size = 10), borderpad = 0.2, loc = self.subplot1LegendPos[0], fancybox = True, shadow=True)
+                leg.get_frame().set_alpha(0.5)
+
             elif a == self.subplot2 and self.subplot2LegendPos != None:
-                a.legend(legendlines, legendnames, prop = FontProperties(size = 10), borderpad = 0.2, loc = self.subplot2LegendPos[0])                                    
+                leg = a.legend(legendlines, legendnames, prop = FontProperties(size = 10), borderpad = 0.2, loc = self.subplot2LegendPos[0], fancybox = True, shadow=True)
+                leg.get_frame().set_alpha(0.5)                                    
             else:
-                a.legend(legendlines, legendnames, prop = FontProperties(size = 10), borderpad = 0.2, loc = 1)
+                leg = a.legend(legendlines, legendnames, prop = FontProperties(size = 10), borderpad = 0.2, loc = 1, fancybox = True, shadow=True)
+                leg.get_frame().set_alpha(0.5)
                     
         else:
             a.legend_ = None
@@ -4158,6 +4162,7 @@ class MainFrame(wx.Frame):
             FileObj.close()
             dirctrl = wx.FindWindowByName('DirCtrlPanel')
             dirctrl.path = savedInfo['workdir']
+            self.ChangeParameter('ImageFormat', savedInfo['ImageFormat'])
             dirctrl.InitFileList()
         except:
             pass
@@ -4171,19 +4176,20 @@ class MainFrame(wx.Frame):
         MenuFile = wx.Menu()
         MenuFile.Append(2, 'E&xit')
         self.Bind(wx.EVT_MENU, self.OnFileMenu, id = 2)
-        
+        40
         MenuOptions = wx.Menu()
         MenuOptions.Append(5, '&Advanced options...')
         MenuOptions.AppendSeparator()
         MenuOptions.Append(6, '&Load Settings')
         MenuOptions.Append(7, '&Save Settings')
+        MenuOptions.AppendSeparator()
+        MenuOptions.Append(10, '&Centering...')
         self.Bind(wx.EVT_MENU, self.OnOptionsMenu, id = 5)
         self.Bind(wx.EVT_MENU, self.OnLoadMenu, id = 6)
         self.Bind(wx.EVT_MENU, self.OnSaveMenu, id = 7)
         MenuOnline = wx.Menu()
         MenuOnline.Append(3, '&Go Online')
-        MenuOnline.Append(4, 'Go &Offline')
-        
+        MenuOnline.Append(4, 'Go &Offline')    
         MenuHelp = wx.Menu()
         MenuHelp.Append(8, '&Help!')
         MenuHelp.AppendSeparator()
@@ -4421,7 +4427,8 @@ class MainFrame(wx.Frame):
             FileObj = open(file, 'w')
         
             path = wx.FindWindowByName('DirCtrlPanel').path
-            saveInfo = {'workdir' : path}
+            saveInfo = {'workdir' : path,
+                        'ImageFormat' : self.GetParameter('ImageFormat')}
         
             cPickle.dump(saveInfo, FileObj)
             FileObj.close()

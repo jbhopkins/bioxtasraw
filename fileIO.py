@@ -36,7 +36,7 @@ def loadImage(filename):
     ''' Load TIFF image '''
     
     im = Image.open(filename)
-    newArr = fromstring(im.tostring(), int16)
+    newArr = fromstring(im.tostring(), uint16)
     newArr = reshape(newArr, im.size) 
     dim = shape(newArr)
     

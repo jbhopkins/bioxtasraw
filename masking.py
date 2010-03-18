@@ -27,6 +27,7 @@ from matplotlib.backend_bases import NavigationToolbar2
 from matplotlib.patches import Circle, Rectangle, Polygon
 from matplotlib.figure import Figure
 from matplotlib.widgets import Cursor#, Slider, Button
+from matplotlib.text import Text
 
 import cPickle, threading, os
 from scipy import io, optimize
@@ -298,7 +299,7 @@ class MaskingPanel(wx.Panel):
                                'imageDimentions' : (),
                                'UpperClim'       : None,
                                'LowerClim'       : None,
-                               'ImgScale'        : 'logarithmic',
+                               'ImgScale'        : 'linear',
                                'ColorMap'        : matplotlib.cm.jet,
                                'ClimLocked'      : False,
                                'Tst'             : 1,
@@ -670,7 +671,7 @@ class MaskingPanel(wx.Panel):
                 z = 0
             
             if self.GetName() != 'test':
-                wx.FindWindowByName('MainFrame').SetStatusText('Pos: (' +  str(noBorderX) + ', ' + str(noBorderY) + ')' + '  Pixel value: ' + str(z), 1)
+                wx.FindWindowByName('MainFrame').SetStatusText('Pos: (' +  str(round(noBorderX,1)) + ', ' + str(round(noBorderY,1)) + ')' + '  Pixel value: ' + str(z), 1)
             else:
                 wx.FindWindowByName('TestFrame').SetStatusText('Pos: (' +  str(int(noBorderX)) + ', ' + str(int(noBorderY)) + ')' + '  Pixel value: ' + str(z), 0)
 
@@ -1045,21 +1046,27 @@ class MaskingPanel(wx.Panel):
         
         x, r = self.calcCenterCoords()  # x = (x_c,y_c)
         
-        cir = Circle( x, radius = r, alpha = 0.1) 
+        cir = Circle( x, radius = r, alpha = 1, fill = False, linestyle = 'dashed', linewidth = 1.5, edgecolor = 'red') 
         a.add_patch(cir)
+        txt1 = a.text(x[0]-10, x[1]-r-10, 'q = 0.1076', size = 'large')
         
-        cir = Circle( x, radius = 2*r, alpha = 1, fill = False) 
+        cir = Circle( x, radius = 2*r, alpha = 1, fill = False, linestyle = 'dashed', linewidth = 1.5, edgecolor = 'red') 
         a.add_patch(cir)
+        txt2 = a.text(x[0]-10, x[1]-2*r-10, 'q = 0.2152', size = 'large')
         
-        cir = Circle( x, radius = 3*r, alpha = 1, fill = False) 
+        cir = Circle( x, radius = 3*r, alpha = 1, fill = False, linestyle = 'dashed', edgecolor = 'red') 
         a.add_patch(cir)
+        txt3 = a.text(x[0]-10, x[1]-3*r-10, 'q = 0.3229', size = 'large')
         
-        cir = Circle( x, radius = 4*r, alpha = 1, fill = False) 
+        cir = Circle( x, radius = 4*r, alpha = 1, fill = False, linestyle = 'dashed', edgecolor = 'red') 
         a.add_patch(cir)
+        txt4 = a.text(x[0]-10, x[1]-4*r-10, 'q = 0.4305', size = 'large')
         
         cir = Circle( x, radius = 3, alpha = 1, facecolor = 'red', edgecolor = 'red')
         a.add_patch(cir)
         
+        #txt = Text(x[0], x[1]-r, text='TEST')
+    
         self.canvas.draw()
         
         border = int(self.plotParameters['imageBorder'] / 2)
@@ -1142,7 +1149,11 @@ class MaskingPanel(wx.Panel):
              self.clearPatches()
              self.plotStoredMasks()
     
-    
+        a.texts.remove(txt1)
+        a.texts.remove(txt2)
+        a.texts.remove(txt3)
+        a.texts.remove(txt4)
+        
     def checkHeaderForParameters(self):
         
         wavelength = None
@@ -1386,8 +1397,12 @@ class MaskingPanel(wx.Panel):
       
         points, xpoints, ypoints = bresenhamLinePoints(x_c, y_c, x1, y1)
         
+        #try:
         line = self.img[ypoints, xpoints]
-    
+        #except IndexError:
+        #    wx.MessageBox("Could not find a good fit, please try again.", 'Info')
+            
+                
         cutlen = int(len(line)/2)
         line2 = line[cutlen:]
         
@@ -2052,7 +2067,7 @@ class ImageSettingsDialog(wx.Dialog):
         
         sizer = wx.BoxSizer(wx.VERTICAL)
   
-        if parent.plotParameters['UpperClim'] and parent.plotParameters['LowerClim']:
+        if not parent.plotParameters['UpperClim'] == None and not parent.plotParameters['LowerClim'] == None:
             self.maxval = parent.plotParameters['UpperClim']
             self.minval = parent.plotParameters['LowerClim']
         else:
@@ -2065,8 +2080,8 @@ class ImageSettingsDialog(wx.Dialog):
                            ################### ctrl, slider #############
                            ('Upper limit:', wx.NewId(), wx.NewId(), 'UpperClim'),
                            ('Lower limit:', wx.NewId(), wx.NewId(), 'LowerClim'),
-                           ('Brightness:', wx.NewId(), wx.NewId(), 'Brightness'),
-                           ('Contrast:', wx.NewId(), wx.NewId(), 'Contrast'),)
+                           ('Brightness:', wx.NewId(), wx.NewId(), 'Brightness'))
+                           #('Contrast:', wx.NewId(), wx.NewId(), 'Contrast'),)
         
         self.scaleinfo = (('Linear', wx.NewId(), 'ImgScale'), 
                           ('Logarithmic', wx.NewId(), 'ImgScale'))
@@ -2548,7 +2563,7 @@ class MaskingTestFrame(wx.Frame):
              'ScaleCurve'            : False
              }
                
-        ExpObj, FullImage = fileIO.loadFile('AgBeh_1_001.img', expParams)
+        ExpObj, FullImage = fileIO.loadFile('/home/specuser/g1hutch/richard/', expParams)
         print "Done!"
         
         maskingFigurePanel.showImage(FullImage, ExpObj)

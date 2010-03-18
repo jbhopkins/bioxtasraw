@@ -249,7 +249,13 @@ class BiftCalculationThread(threading.Thread):
                 wx.CallAfter(infoPanel.WriteText,'Dmax : ' + str(IFTObj.allData['dmax']) + '\nAlpha : ' + str(IFTObj.allData['alpha']) + '\nI0 : ' + str(IFTObj.allData['I0']) + '\nRg : ' + str(IFTObj.allData['Rg']) + '\nChi^2 : ' + str(IFTObj.allData['ChiSquared']) + '\n')
         
                 if algo == 'GNOM':
-                    wx.CallAfter(infoPanel.WriteText, 'TOTAL : ' + str(IFTObj.allData['gnomTOTAL']) + '\n\n' )
+                    wx.CallAfter(infoPanel.WriteText, 'TOTAL : ' + str(IFTObj.allData['gnomTOTAL']) + '\n' )
+                    
+                    for each in IFTObj.allData['all_posteriors']:
+                        wx.CallAfter(infoPanel.WriteText, each[0] + ' : ' + str(each[1]) + '\n' )
+                    
+                    wx.CallAfter(infoPanel.WriteText, '\n\n')
+                    
                 else:
                     wx.CallAfter(infoPanel.WriteText, '\n')
                     
@@ -278,7 +284,12 @@ class BiftCalculationThread(threading.Thread):
                 wx.CallAfter(infoPanel.WriteText,'Dmax : ' + str(IFTObj.allData['dmax']) + '\nAlpha : ' + str(IFTObj.allData['alpha']) + '\nI0 : ' + str(IFTObj.allData['I0']) + '\nRg : ' + str(IFTObj.allData['Rg']) + '\nChi^2 : ' + str(IFTObj.allData['ChiSquared']) + '\n')
         
                 if algo == 'GNOM':
-                    wx.CallAfter(infoPanel.WriteText, 'TOTAL : ' + str(IFTObj.allData['gnomTOTAL']) + '\n\n' )
+                    wx.CallAfter(infoPanel.WriteText, 'TOTAL : ' + str(IFTObj.allData['gnomTOTAL']) + '\n' )
+                    
+                    for each in IFTObj.allData['all_posteriors']:
+                        wx.CallAfter(infoPanel.WriteText, each[0] + ' : ' + str(each[1]) + '\n' )
+                    
+                    wx.CallAfter(infoPanel.WriteText, '\n')
                 else:
                     wx.CallAfter(infoPanel.WriteText, '\n')
         
@@ -384,7 +395,7 @@ class AutoAnalysisPage(wx.Panel):
         
         id = self.paramsInGui['AlgoChoice'][0]
         
-        self.combobox = wx.ComboBox(self, id, choices = self.iftAlgoLabels, style=wx.CB_READONLY, size = (100, 21))
+        self.combobox = wx.ComboBox(self, id, choices = self.iftAlgoLabels, style=wx.CB_READONLY, size = (100, 25))
         self.combobox.Bind(wx.EVT_COMBOBOX, self._onAlgoSelect)
         self.combobox.SetStringSelection(self.expParams['IFTAlgoChoice'])
 

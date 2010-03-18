@@ -23,10 +23,6 @@ from scipy import weave
 from scipy.weave import converters
 from scipy.linalg import inv, det, eig
 from numpy import *
-#import saxsmodel
-#import autoanalysis
-#import random
-#import matplotlib.axes3d as p3
 
 import cartToPol
 import time#, random
