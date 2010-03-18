@@ -505,7 +505,7 @@ def loadRadFile(filename):
 
 
 # WORK IN PROGRESS:
-def saveMeasurement(Exp):
+def saveMeasurement(Exp, NoChange = False):
     ''' Saves a Measurement Object to a .rad file.
         Returns the filename of the saved file '''
     
@@ -514,12 +514,15 @@ def saveMeasurement(Exp):
     no_path_filename = path.split(filenameWithoutExtension(Exp))[1]    
     filePath = path.split(full_path_filename)[0]
     
-    if Exp.isBgSubbed:        
-        filename = filePath + "\\" + "BSUB_" + no_path_filename + ".rad"
-    elif Exp.isBifted:
-        filename = filePath + "\\" + "BIFT_" + no_path_filename + ".rad"
+    if NoChange == False:
+        if Exp.isBgSubbed:        
+            filename = filePath + "\\" + "BSUB_" + no_path_filename + ".rad"
+        elif Exp.isBifted:
+            filename = filePath + "\\" + "BIFT_" + no_path_filename + ".rad"
+        else:
+            filename = filePath + "\\" + no_path_filename + ".rad"
     else:
-        filename = filePath + "\\" + no_path_filename + ".rad"    
+        filename = full_path_filename
     
     # Insert new filename
     #Exp.param['filename'] = path.split(filename)[1]

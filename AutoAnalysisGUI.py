@@ -180,8 +180,9 @@ class BiftInfoPanel(wx.Panel):
             
             self.Enable(True)
             fileId = wx.FindWindowById(self.parent.paramsInGui['Filename'][0])
-            fileId.SetLabel(ExpObj.param['filename'])
-            
+            filename = os.path.split(ExpObj.param['filename'])[1]
+            fileId.SetLabel(filename)
+
             I0 = ExpObj.allData['I0']
             dmax = ExpObj.allData['dmax']
             Rg = ExpObj.allData['Rg']
@@ -412,7 +413,10 @@ class AutoAnalysisPage(wx.Panel):
         self.expParams['IFTAlgoChoice'] = self.combobox.GetStringSelection()
  
     def _OnListBoxEvent(self, evt):
-        Data = evt.GetClientData()
+        
+        #Hm.. evt.GetClientData() seems to be broken
+        num = self.filelist.GetSelections()
+        Data = self.filelist.GetClientData(num[0])
         self.infoBox.updateInfo(Data)
     
     def _OnListBoxKeyEvent(self, evt):
@@ -516,8 +520,10 @@ class AutoAnalysisPage(wx.Panel):
     
     def addBiftObjToList(self, ExpObj, BiftObj):
          
+         print 'HELLO'
          for idx in range(0, self.filelist.GetCount()):
              E = self.filelist.GetClientData(idx)
+             print E
              
              if ExpObj == E[0]:
                  self.filelist.SetClientData(idx, [ExpObj, BiftObj])
@@ -556,12 +562,14 @@ class AutoAnalysisPage(wx.Panel):
             
             noPathfilename = os.path.split(selected_file)[1]
             ExpObj.param['filename'] = noPathfilename
-            self.filelist.Insert(noPathfilename, 0, [ExpObj])
-            
+                        
+            self.filelist.Insert(noPathfilename, 0,  [ExpObj])
+                        
             self.filelist.DeselectAll()    
             self.filelist.SetSelection(0)
             self.infoBox.updateInfo([ExpObj])
             
+            print self.filelist.GetSelections()
 #            if ExpObj.type == 'bift':
 #                self.infoBox.Enable(True)
 #            else:

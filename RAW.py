@@ -1677,14 +1677,14 @@ class PlotPanel(wx.Panel):
             
             if a == self.subplot1 and self.subplot1LegendPos != None:            
                 leg = a.legend(legendlines, legendnames, prop = FontProperties(size = 10), borderpad = 0.2, loc = self.subplot1LegendPos[0], fancybox = True, shadow=True)
-                leg.get_frame().set_alpha(0.5)
+                leg.get_frame().set_alpha(0.3)
 
             elif a == self.subplot2 and self.subplot2LegendPos != None:
                 leg = a.legend(legendlines, legendnames, prop = FontProperties(size = 10), borderpad = 0.2, loc = self.subplot2LegendPos[0], fancybox = True, shadow=True)
-                leg.get_frame().set_alpha(0.5)                                    
+                leg.get_frame().set_alpha(0.3)                                    
             else:
                 leg = a.legend(legendlines, legendnames, prop = FontProperties(size = 10), borderpad = 0.2, loc = 1, fancybox = True, shadow=True)
-                leg.get_frame().set_alpha(0.5)
+                leg.get_frame().set_alpha(0.3)
                     
         else:
             a.legend_ = None
@@ -2203,6 +2203,28 @@ class DirCtrlPanel_2(wx.Panel):
             
             self.GetListOfFiles()
             self.FilterFileListAndUpdateListBox()
+            
+    def SaveSingleRadFileAs(self, ExpObj):
+        
+        fullPathFilename = ExpObj.param['filename']
+        radFilename = fileIO.filenameWithoutExtension(ExpObj) + '.rad'
+        
+        if ExpObj.isBifted == True:
+                radFilename = 'BIFT_' + radFilename
+        elif ExpObj.isBgSubbed == True:
+                radFilename = 'BSUB_' + radFilename
+        
+        dialog = wx.FileDialog( None, style = wx.FD_SAVE | wx.OVERWRITE_PROMPT)  
+        dialog.SetFilename(radFilename)
+            
+        if dialog.ShowModal() == wx.ID_OK:
+            file = dialog.GetPath()
+            ExpObj.param['filename'] = file
+                
+            fileIO.saveMeasurement(ExpObj, NoChange = True) 
+            # Destroy the dialog
+            
+        dialog.Destroy()
         
     def SaveSingleRadFile(self, ExpObj):
         
@@ -2222,9 +2244,6 @@ class DirCtrlPanel_2(wx.Panel):
                 radFilename = 'BIFT_' + radFilename
             elif ExpObj.isBgSubbed == True:
                 radFilename = 'BSUB_' + radFilename
-
-                #print each.isBgSubbed
-                #print radFilename
                 
             full_path_filename = ExpObj.param['filename']
             filePath = os.path.split(full_path_filename)[0]
@@ -2232,21 +2251,36 @@ class DirCtrlPanel_2(wx.Panel):
             checkFilename = os.path.join(filePath, radFilename)
                 
             fileExists = os.path.isfile(checkFilename)
+            
+            
+            dialog = wx.FileDialog( None, style = wx.FD_SAVE | wx.OVERWRITE_PROMPT)  
+            dialog.SetFilename(radFilename)
+            
+            if dialog.ShowModal() == wx.ID_OK:
+                file = dialog.GetPath()
+                ExpObj.param['filename'] = file
                 
-            if fileExists and overwriteAll is False:
+                fileIO.saveMeasurement(ExpObj, NoChange = True) 
+            # Destroy the dialog
+            dialog.Destroy()
 
-                if skipAllExisting == False:
-                    fileExistDialog = FileExistsDialog(radFilename, ExpObj)
-                    answer = fileExistDialog.ShowModal()
-                    
-                    if answer == OVERWRITE_ALL:
-                        overwriteAll = True
-                    if answer == SKIP_ALL_EXISITING:
-                        skipAllExisting = True
-                    
-            else:
-                filename = fileIO.saveMeasurement(ExpObj)    
-                wx.FindWindowByName('MainFrame').SetStatusText(filename + ' Saved!')
+            
+            
+            
+#            if fileExists and overwriteAll is False:
+#
+#                if skipAllExisting == False:
+#                    fileExistDialog = FileExistsDialog(radFilename, ExpObj)
+#                    answer = fileExistDialog.ShowModal()
+#                    
+#                    if answer == OVERWRITE_ALL:
+#                        overwriteAll = True
+#                    if answer == SKIP_ALL_EXISITING:
+#                        skipAllExisting = True
+#                    
+#            else:
+#                filename = fileIO.saveMeasurement(ExpObj)    
+#                wx.FindWindowByName('MainFrame').SetStatusText(filename + ' Saved!')
     
             self.GetListOfFiles()
             self.FilterFileListAndUpdateListBox()
@@ -4196,7 +4230,7 @@ class MainFrame(wx.Frame):
         MenuHelp.Append(9, 'About')
         self.Bind(wx.EVT_MENU, self.OnAboutDlg, id = 9)
         self.Bind(wx.EVT_MENU, self.OnHelp, id = 8)
-        
+        self.Bind(wx.EVT_MENU, self.OnCentering, id = 10)
         self.Bind(wx.EVT_MENU, self.OnOnlineMenu, id = 3)
         self.Bind(wx.EVT_MENU, self.OnOnlineMenu, id = 4)
         
@@ -4207,6 +4241,10 @@ class MainFrame(wx.Frame):
         menubar.Append(MenuHelp, '&Help')
         
         self.SetMenuBar(menubar)
+    
+    def OnCentering(self, evt):
+        
+        wx.MessageBox('Comming soon!', 'Info')
     
     def ShowOptionsDialog(self, focusIdx = None):
         
