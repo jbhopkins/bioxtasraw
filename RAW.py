@@ -597,6 +597,12 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         self._MTB_LEGEND = wx.NewId()
         self._MTB_SHOWBOTH = wx.NewId()
         self._MTB_SHOWTOP = wx.NewId()
+        
+#        self.parent.subplot1.relim()
+#        self.parent.subplot1.autoscale_view()
+#        self.parent.subplot2.relim()
+#        self.parent.subplot2.autoscale_view()
+        self.parent.canvas.draw()
         self._MTB_SHOWBOTTOM = wx.NewId()
         
         NavigationToolbar2Wx.__init__(self, canvas)
@@ -623,6 +629,12 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         showboth_icon = wx.Bitmap(showbothIconFilename, wx.BITMAP_TYPE_PNG)
         showtop_icon = wx.Bitmap(showtopIconFilename, wx.BITMAP_TYPE_PNG)
         showbottom_icon = wx.Bitmap(showbottomIconFilename, wx.BITMAP_TYPE_PNG)
+        
+#        self.parent.subplot1.relim()
+#        self.parent.subplot1.autoscale_view()
+#        self.parent.subplot2.relim()
+#        self.parent.subplot2.autoscale_view()
+        #self.parent.canvas.draw()ilename, wx.BITMAP_TYPE_PNG)
 
         self.AddSeparator()
         self.AddCheckTool(self._MTB_LOGLIN, loglin_icon)
@@ -652,13 +664,13 @@ class MyCustomToolbar(NavigationToolbar2Wx):
     
     #Overriding the default home button commands:
     
-    def pan(self, *args):
-        self.ToggleTool(self._NTB2_ZOOM, False)
-        NavigationToolbar2.pan(self, *args)
-    
-    def zoom(self, *args):
-        self.ToggleTool(self._NTB2_PAN, False)
-        NavigationToolbar2.zoom(self, *args)
+#    def pan(self, *args):
+#        self.ToggleTool(self._NTB2_ZOOM, False)
+#        NavigationToolbar2.pan(self, *args)
+#    
+#    def zoom(self, *args):
+#        self.ToggleTool(self._NTB2_PAN, False)
+#        NavigationToolbar2.zoom(self, *args)
     
     def home(self, *args):
 #        'restore the original view'
@@ -1052,7 +1064,10 @@ class PlotPanel(wx.Panel):
         self.plottedExps = []
         self.selectedLine = None
         
-        self.plotparams = {'axesscale' : 'linlin',
+        self.plotparams = {'axesscale1': 'linlin',
+                           'axesscale2': 'linlin',
+                           'plot1type:' : 'normal',
+                           'plot2type:' : 'kratky',
                            'errorbars_on': False}
         
         self.legendPicked = False
@@ -1061,15 +1076,18 @@ class PlotPanel(wx.Panel):
         
         self.canvas.callbacks.connect('pick_event', self.OnPick)
         self.canvas.callbacks.connect('key_press_event', self.OnKeyPress)
-        self.canvas.callbacks.connect('button_press_event', self.OnMouseButton)
+        #self.canvas.callbacks.connect('button_press_event', self.OnMouseButton)
         self.canvas.callbacks.connect('motion_notify_event', self.onMotionEvent)
-        
-        #self.setCursor(self.subplot1, 'on')
-        #self.setCursor(self.subplot2, 'on')
-        
-        
+                
         self.MenuItemIds = {'Kratky' : wx.NewId(),
                             'Guinier': wx.NewId()}
+        
+        subplotLabels = { 'subtracted'  : ('Subtracted', 'q', 'I(q)'),
+                          'PDDF'        : ('PDDF', 'r', 'p(r)'),
+                          'kratky'      : ('Kratky', 'q', 'I(q)q^2'),
+                          'guinier'     : ('Guinier', 'q^2', 'ln(I(q)')}
+        
+        self._setLabels(axes = self.subplot1)
         
         
     def onMotionEvent(self, event):
@@ -1284,17 +1302,27 @@ class PlotPanel(wx.Panel):
             axes = [self.fig.gca()]
             
         for a in axes:
-            if self.plotparams.get('axesscale') == 'linlin':
+            
+            if a == self.subplot1:
+                c = 1
+            elif a == self.subplot2:
+                c = 2
+            
+            if self.plotparams.get('axesscale' + str(c)) == 'linlin':
                 a.set_xscale('linear')
                 a.set_yscale('linear')
                     
-            if self.plotparams.get('axesscale') == 'loglin':
+            if self.plotparams.get('axesscale'+ str(c)) == 'loglin':
                 a.set_xscale('linear')
                 a.set_yscale('log')
     
-            if self.plotparams.get('axesscale') == 'loglog':
+            if self.plotparams.get('axesscale'+ str(c)) == 'loglog':
                 a.set_xscale('log')
                 a.set_yscale('log')
+                
+            if self.plotparams.get('axesscale'+ str(c)) == 'linlog':
+                a.set_xscale('log')
+                a.set_yscale('linear')
         
         self.fitAxis()         
 
@@ -1569,7 +1597,19 @@ class PlotPanel(wx.Panel):
             a = axes
         
         #plot with errorbars
-        line, ec, el = a.errorbar(ExpObj.q, ExpObj.i, ExpObj.errorbars, picker = 3)
+        
+        if a == self.subplot1:
+            type = self.plotparams.get('plot1type')
+        elif a == self.subplot2:
+            type = self.plotparams.get('plot2type')
+            
+        if type == 'normal' or type == 'subtracted':
+            line, ec, el = a.errorbar(ExpObj.q, ExpObj.i, ExpObj.errorbars, picker = 3)
+        elif type == 'kratky':
+            line, ec, el = a.errorbar(ExpObj.q, ExpObj.i*np.power(ExpObj.q,2), ExpObj.errorbars, picker = 3)
+        elif type == 'guinier':
+            line, ec, el = a.errorbar(np.power(ExpObj.q,2), ExpObj.i, ExpObj.errorbars, picker = 3)
+           
         
         mainframe = wx.FindWindowByName('MainFrame')
         
@@ -1625,7 +1665,7 @@ class PlotPanel(wx.Panel):
         #ExpObj.isPlotted = True
         #self.plottedExps.append(ExpObj)        # Insert the plot into plotted experiments array
     
-    def _setLabels(self, ExpObj, title = None, xlabel = None, ylabel = None, axes = None):
+    def _setLabels(self, ExpObj = None, title = None, xlabel = None, ylabel = None, axes = None):
         
         if axes == None:
             a = self.fig.gca()
@@ -1634,17 +1674,30 @@ class PlotPanel(wx.Panel):
         
         # Set TITLE 
         if title == None:
-            if ExpObj.isNormalized:
-                a.set_title('Intensity plot (Normalized)')
+            if ExpObj:
+                if ExpObj.isNormalized:
+                    a.set_title('Intensity plot (Normalized)')
+                else:
+                    if self.name == 'BIFTPlotPanel':
+                        a.set_title('IFT plot')
+                    else:
+                        a.set_title('Main plot')
             else:
-                a.set_title('Main plot')
+                    if self.name == 'BIFTPlotPanel':
+                        a.set_title('IFT plot')
+                    else:
+                        a.set_title('Main plot')
+
         else:
             a.set_title(title)
         
         # Set Y-LABEL
         if ylabel == None:
-            if ExpObj.isNormalized:
-                a.set_ylabel('I(q)')
+            if ExpObj:
+                if ExpObj.isNormalized:
+                    a.set_ylabel('I(q)')
+                else:
+                    a.set_ylabel("I(q)")
             else:
                 a.set_ylabel("I(q)")
         else:
@@ -1652,10 +1705,13 @@ class PlotPanel(wx.Panel):
         
         # Set X-LABEL
         if xlabel == None:
-            if ExpObj.isCalibrated:
-                a.set_xlabel('q (1/A)')
+            if ExpObj:
+                if ExpObj.isCalibrated:
+                    a.set_xlabel('q (1/A)')
+                else:
+                    a.set_xlabel('q (pixels)')
             else:
-                a.set_xlabel('q (pixels)')
+                a.set_xlabel('q (1/A)')
         else:
             a.set_xlabel(xlabel)
                 
@@ -4302,6 +4358,14 @@ class MainFrame(wx.Frame):
                         'plot2guinier'      : wx.NewId(),
                         'plot2kratky'       : wx.NewId(),
                         'plot2subtracted'   : wx.NewId(),
+                        'plot1sclinlin'       : wx.NewId(),
+                        'plot1scloglog'       : wx.NewId(),
+                        'plot1scloglin'       : wx.NewId(),
+                        'plot1sclinlog'       : wx.NewId(),
+                        'plot2sclinlin'       : wx.NewId(),
+                        'plot2scloglog'       : wx.NewId(),
+                        'plot2scloglin'       : wx.NewId(),
+                        'plot2sclinlog'       : wx.NewId(),
                         'help'              : wx.NewId(),
                         'about'             : wx.NewId()}
         self.CreateMenuBar()
@@ -4328,6 +4392,7 @@ class MainFrame(wx.Frame):
         
         MenuFile = wx.Menu()
         MenuFile.Append(self.MenuIDs['exit'], 'E&xit')
+        
         self.Bind(wx.EVT_MENU, self.OnFileMenu, id = self.MenuIDs['exit'])
         
         MenuOptions = wx.Menu()
@@ -4337,6 +4402,7 @@ class MainFrame(wx.Frame):
         MenuOptions.Append(self.MenuIDs['saveSettings'], '&Save Settings')
         MenuOptions.AppendSeparator()
         MenuOptions.Append(self.MenuIDs['centering'], '&Centering...')
+        
         self.Bind(wx.EVT_MENU, self.OnOptionsMenu, id = self.MenuIDs['advancedOptions'])
         self.Bind(wx.EVT_MENU, self.OnLoadMenu, id = self.MenuIDs['loadSettings'])
         self.Bind(wx.EVT_MENU, self.OnSaveMenu, id = self.MenuIDs['saveSettings'])
@@ -4345,38 +4411,61 @@ class MainFrame(wx.Frame):
         MenuOnline = wx.Menu()
         MenuOnline.Append(self.MenuIDs['goOnline'], '&Go Online')
         MenuOnline.Append(self.MenuIDs['goOffline'], 'Go &Offline')    
+        
         self.Bind(wx.EVT_MENU, self.OnOnlineMenu, id = self.MenuIDs['goOnline'])
         self.Bind(wx.EVT_MENU, self.OnOnlineMenu, id = self.MenuIDs['goOffline'])
         
         MenuView = wx.Menu()
         MenuViewPlot1SubMenu = wx.Menu()
-        MenuViewPlot1SubMenu.AppendRadioItem(1, 'Normal')
-        MenuViewPlot1SubMenu.AppendRadioItem(1, 'Guinier')
-        MenuViewPlot1SubMenu.AppendRadioItem(1, 'Kratky')
-        MenuViewPlot1SubMenu.AppendRadioItem(3, 'Subtracted')
+        MenuViewPlot1SubMenu.AppendRadioItem(self.MenuIDs['plot1normal'], 'Normal')
+        MenuViewPlot1SubMenu.AppendRadioItem(self.MenuIDs['plot1guinier'], 'Guinier')
+        MenuViewPlot1SubMenu.AppendRadioItem(self.MenuIDs['plot1kratky'], 'Kratky')
+        MenuViewPlot1SubMenu.AppendRadioItem(self.MenuIDs['plot1subtracted'], 'Subtracted')
         
         MenuViewPlot2SubMenu = wx.Menu()
-        MenuViewPlot2SubMenu.AppendRadioItem(1, 'Guinier')
-        MenuViewPlot2SubMenu.AppendRadioItem(1, 'Kratky')
-        MenuViewPlot2SubMenu.AppendRadioItem(3, 'Subtracted')
+        MenuViewPlot2SubMenu.AppendRadioItem(self.MenuIDs['plot1guinier'], 'Guinier')
+        MenuViewPlot2SubMenu.AppendRadioItem(self.MenuIDs['plot2kratky'], 'Kratky')
+        MenuViewPlot2SubMenu.AppendRadioItem(self.MenuIDs['plot2subtracted'], 'Subtracted')
+        
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1normal'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1guinier'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1kratky'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1guinier'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1subtracted'])
+        
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2normal'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2guinier'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2kratky'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2guinier'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2subtracted'])
         
         MenuViewPlot1ScaleSubMenu = wx.Menu()
-        MenuViewPlot1ScaleSubMenu.AppendRadioItem(1, 'Lin-Lin')
-        MenuViewPlot1ScaleSubMenu.AppendRadioItem(1, 'Log-Lin')
-        MenuViewPlot1ScaleSubMenu.AppendRadioItem(1, 'Log-Log')
-        MenuViewPlot1ScaleSubMenu.AppendRadioItem(1, 'Lin-Log')
+        MenuViewPlot1ScaleSubMenu.AppendRadioItem(self.MenuIDs['plot1sclinlin'], 'Lin-Lin')
+        MenuViewPlot1ScaleSubMenu.AppendRadioItem(self.MenuIDs['plot1scloglin'], 'Log-Lin')
+        MenuViewPlot1ScaleSubMenu.AppendRadioItem(self.MenuIDs['plot1scloglog'], 'Log-Log')
+        MenuViewPlot1ScaleSubMenu.AppendRadioItem(self.MenuIDs['plot1sclinlog'], 'Lin-Log')
         
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1sclinlin'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1scloglin'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1scloglog'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1sclinlog'])
+            
         MenuViewPlot2ScaleSubMenu = wx.Menu()
-        MenuViewPlot2ScaleSubMenu.AppendRadioItem(1, 'Lin-Lin')
-        MenuViewPlot2ScaleSubMenu.AppendRadioItem(1, 'Log-Lin')
-        MenuViewPlot2ScaleSubMenu.AppendRadioItem(1, 'Log-Log')
-        MenuViewPlot2ScaleSubMenu.AppendRadioItem(1, 'Lin-Log')
+        MenuViewPlot2ScaleSubMenu.AppendRadioItem(self.MenuIDs['plot2sclinlin'], 'Lin-Lin')
+        MenuViewPlot2ScaleSubMenu.AppendRadioItem(self.MenuIDs['plot2scloglin'], 'Log-Lin')
+        MenuViewPlot2ScaleSubMenu.AppendRadioItem(self.MenuIDs['plot2scloglog'], 'Log-Log')
+        MenuViewPlot2ScaleSubMenu.AppendRadioItem(self.MenuIDs['plot2sclinlog'], 'Lin-Log')
         
-        MenuView.AppendSubMenu(MenuViewPlot1SubMenu, 'Plot 1')
-        MenuView.AppendSubMenu(MenuViewPlot2SubMenu, 'Plot 2')
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2sclinlin'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2scloglin'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2scloglog'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2sclinlog'])
+        
+        MenuView.AppendSubMenu(MenuViewPlot1SubMenu, '1D Plot (top) Type')
+        MenuView.AppendSubMenu(MenuViewPlot2SubMenu, '1D Plot (bottom) Type')
         MenuView.AppendSeparator()
-        MenuView.AppendSubMenu(MenuViewPlot1ScaleSubMenu, 'Plot 1 Scale')
-        MenuView.AppendSubMenu(MenuViewPlot2ScaleSubMenu, 'Plot 2 Scale')
+        MenuView.AppendSubMenu(MenuViewPlot1ScaleSubMenu, '1D Plot (top) Scale')
+        MenuView.AppendSubMenu(MenuViewPlot2ScaleSubMenu, '1D Plot (bottom) Scale')
         
         
         MenuHelp = wx.Menu()
@@ -4537,6 +4626,27 @@ class MainFrame(wx.Frame):
     
     def GetTreatments(self):
         return getTreatmentParameters()
+
+    def OnViewMenu(self, evt):
+        
+        val = evt.GetId()
+        
+        key = [k for k, v in self.MenuIDs.iteritems() if v == val][0]
+        
+        print key
+        print key[0:7]
+        print key[-6:]
+        
+        plotpanel = wx.FindWindowByName('PlotPanel')
+        
+        if key[0:7] == 'plot2sc':
+            plotpanel.plotparams['axesscale2'] = key[-6:]
+            plotpanel.UpdatePlotAxesScaling()
+         
+        elif key[0:7] == 'plot1sc':
+            plotpanel.plotparams['axesscale1'] = key[-6:]
+            plotpanel.UpdatePlotAxesScaling()
+
     
     def OnOptionsMenu(self, event):
         
