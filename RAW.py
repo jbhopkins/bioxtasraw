@@ -4230,8 +4230,6 @@ class MainFrame(wx.Frame):
         
         self.OnlineControl = OnlineController(self)
         
-        self.CreateMenuBar()
-        
         # *************** Set minimum frame size ***************
         self.SetMinSize((800,600))
         
@@ -4289,6 +4287,25 @@ class MainFrame(wx.Frame):
         #Load workdir from rawcfg.dat:
         self.LoadCfg()
         
+        self.MenuIDs = {'exit'              : wx.NewId(),
+                        'advancedOptions'   : wx.NewId(),
+                        'loadSettings'      : wx.NewId(),
+                        'saveSettings'      : wx.NewId(),
+                        'centering'         : wx.NewId(),
+                        'goOnline'          : wx.NewId(),
+                        'goOffline'         : wx.NewId(),
+                        'plot1normal'       : wx.NewId(),
+                        'plot1guinier'      : wx.NewId(),
+                        'plot1kratky'       : wx.NewId(),
+                        'plot1subtracted'   : wx.NewId(),
+                        'plot2normal'       : wx.NewId(),
+                        'plot2guinier'      : wx.NewId(),
+                        'plot2kratky'       : wx.NewId(),
+                        'plot2subtracted'   : wx.NewId(),
+                        'help'              : wx.NewId(),
+                        'about'             : wx.NewId()}
+        self.CreateMenuBar()
+        
     def LoadCfg(self):
         
         try:
@@ -4310,35 +4327,69 @@ class MainFrame(wx.Frame):
     def CreateMenuBar(self):
         
         MenuFile = wx.Menu()
-        MenuFile.Append(2, 'E&xit')
-        self.Bind(wx.EVT_MENU, self.OnFileMenu, id = 2)
-        40
-        MenuOptions = wx.Menu()
-        MenuOptions.Append(5, '&Advanced options...')
-        MenuOptions.AppendSeparator()
-        MenuOptions.Append(6, '&Load Settings')
-        MenuOptions.Append(7, '&Save Settings')
-        MenuOptions.AppendSeparator()
-        MenuOptions.Append(10, '&Centering...')
-        self.Bind(wx.EVT_MENU, self.OnOptionsMenu, id = 5)
-        self.Bind(wx.EVT_MENU, self.OnLoadMenu, id = 6)
-        self.Bind(wx.EVT_MENU, self.OnSaveMenu, id = 7)
-        MenuOnline = wx.Menu()
-        MenuOnline.Append(3, '&Go Online')
-        MenuOnline.Append(4, 'Go &Offline')    
-        MenuHelp = wx.Menu()
-        MenuHelp.Append(8, '&Help!')
-        MenuHelp.AppendSeparator()
-        MenuHelp.Append(9, 'About')
-        self.Bind(wx.EVT_MENU, self.OnAboutDlg, id = 9)
-        self.Bind(wx.EVT_MENU, self.OnHelp, id = 8)
-        self.Bind(wx.EVT_MENU, self.OnCentering, id = 10)
-        self.Bind(wx.EVT_MENU, self.OnOnlineMenu, id = 3)
-        self.Bind(wx.EVT_MENU, self.OnOnlineMenu, id = 4)
+        MenuFile.Append(self.MenuIDs['exit'], 'E&xit')
+        self.Bind(wx.EVT_MENU, self.OnFileMenu, id = self.MenuIDs['exit'])
         
+        MenuOptions = wx.Menu()
+        MenuOptions.Append(self.MenuIDs['advancedOptions'], '&Advanced options...')
+        MenuOptions.AppendSeparator()
+        MenuOptions.Append(self.MenuIDs['loadSettings'], '&Load Settings')
+        MenuOptions.Append(self.MenuIDs['saveSettings'], '&Save Settings')
+        MenuOptions.AppendSeparator()
+        MenuOptions.Append(self.MenuIDs['centering'], '&Centering...')
+        self.Bind(wx.EVT_MENU, self.OnOptionsMenu, id = self.MenuIDs['advancedOptions'])
+        self.Bind(wx.EVT_MENU, self.OnLoadMenu, id = self.MenuIDs['loadSettings'])
+        self.Bind(wx.EVT_MENU, self.OnSaveMenu, id = self.MenuIDs['saveSettings'])
+        self.Bind(wx.EVT_MENU, self.OnCentering, id = self.MenuIDs['centering'])
+        
+        MenuOnline = wx.Menu()
+        MenuOnline.Append(self.MenuIDs['goOnline'], '&Go Online')
+        MenuOnline.Append(self.MenuIDs['goOffline'], 'Go &Offline')    
+        self.Bind(wx.EVT_MENU, self.OnOnlineMenu, id = self.MenuIDs['goOnline'])
+        self.Bind(wx.EVT_MENU, self.OnOnlineMenu, id = self.MenuIDs['goOffline'])
+        
+        MenuView = wx.Menu()
+        MenuViewPlot1SubMenu = wx.Menu()
+        MenuViewPlot1SubMenu.AppendRadioItem(1, 'Normal')
+        MenuViewPlot1SubMenu.AppendRadioItem(1, 'Guinier')
+        MenuViewPlot1SubMenu.AppendRadioItem(1, 'Kratky')
+        MenuViewPlot1SubMenu.AppendRadioItem(3, 'Subtracted')
+        
+        MenuViewPlot2SubMenu = wx.Menu()
+        MenuViewPlot2SubMenu.AppendRadioItem(1, 'Guinier')
+        MenuViewPlot2SubMenu.AppendRadioItem(1, 'Kratky')
+        MenuViewPlot2SubMenu.AppendRadioItem(3, 'Subtracted')
+        
+        MenuViewPlot1ScaleSubMenu = wx.Menu()
+        MenuViewPlot1ScaleSubMenu.AppendRadioItem(1, 'Lin-Lin')
+        MenuViewPlot1ScaleSubMenu.AppendRadioItem(1, 'Log-Lin')
+        MenuViewPlot1ScaleSubMenu.AppendRadioItem(1, 'Log-Log')
+        MenuViewPlot1ScaleSubMenu.AppendRadioItem(1, 'Lin-Log')
+        
+        MenuViewPlot2ScaleSubMenu = wx.Menu()
+        MenuViewPlot2ScaleSubMenu.AppendRadioItem(1, 'Lin-Lin')
+        MenuViewPlot2ScaleSubMenu.AppendRadioItem(1, 'Log-Lin')
+        MenuViewPlot2ScaleSubMenu.AppendRadioItem(1, 'Log-Log')
+        MenuViewPlot2ScaleSubMenu.AppendRadioItem(1, 'Lin-Log')
+        
+        MenuView.AppendSubMenu(MenuViewPlot1SubMenu, 'Plot 1')
+        MenuView.AppendSubMenu(MenuViewPlot2SubMenu, 'Plot 2')
+        MenuView.AppendSeparator()
+        MenuView.AppendSubMenu(MenuViewPlot1ScaleSubMenu, 'Plot 1 Scale')
+        MenuView.AppendSubMenu(MenuViewPlot2ScaleSubMenu, 'Plot 2 Scale')
+        
+        
+        MenuHelp = wx.Menu()
+        MenuHelp.Append(self.MenuIDs['help'], '&Help!')
+        MenuHelp.AppendSeparator()
+        MenuHelp.Append(self.MenuIDs['about'], 'About')
+        self.Bind(wx.EVT_MENU, self.OnAboutDlg, id = self.MenuIDs['about'])
+        self.Bind(wx.EVT_MENU, self.OnHelp, id = self.MenuIDs['help'])
+          
         menubar = wx.MenuBar()
         menubar.Append(MenuFile, '&File')
         menubar.Append(MenuOptions, '&Options')
+        menubar.Append(MenuView, '&View')
         menubar.Append(MenuOnline, 'O&nline Mode')
         menubar.Append(MenuHelp, '&Help')
         
@@ -4489,12 +4540,12 @@ class MainFrame(wx.Frame):
     
     def OnOptionsMenu(self, event):
         
-        if event.GetId() == 5:
+        if event.GetId() == self.MenuIDs['advancedOptions']:
             self.ShowOptionsDialog()
     
     def OnFileMenu(self, event):
         
-        if event.GetId() == 2:
+        if event.GetId() == self.MenuIDs['exit']:
             self.OnCloseWindow(0)
             
     def OnLoadMenu(self, event):
@@ -4550,7 +4601,7 @@ class MainFrame(wx.Frame):
         
         id = event.GetId()
         
-        if id == 3:
+        if id == self.MenuIDs['goOnline']:
             state = 'Online'
         else:
             state = 'Offline'
