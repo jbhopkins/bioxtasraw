@@ -1066,8 +1066,8 @@ class PlotPanel(wx.Panel):
         
         self.plotparams = {'axesscale1': 'linlin',
                            'axesscale2': 'linlin',
-                           'plot1type:' : 'normal',
-                           'plot2type:' : 'kratky',
+                           'plot1type' : 'normal',
+                           'plot2type' : 'kratky',
                            'errorbars_on': False}
         
         self.legendPicked = False
@@ -1600,15 +1600,16 @@ class PlotPanel(wx.Panel):
         
         if a == self.subplot1:
             type = self.plotparams.get('plot1type')
-        elif a == self.subplot2:
+        elif a == self.subplot2:  
             type = self.plotparams.get('plot2type')
+          
             
         if type == 'normal' or type == 'subtracted':
             line, ec, el = a.errorbar(ExpObj.q, ExpObj.i, ExpObj.errorbars, picker = 3)
         elif type == 'kratky':
-            line, ec, el = a.errorbar(ExpObj.q, ExpObj.i*np.power(ExpObj.q,2), ExpObj.errorbars, picker = 3)
+            line, ec, el = a.errorbar(ExpObj.q, ExpObj.i*power(ExpObj.q,2), ExpObj.errorbars, picker = 3)
         elif type == 'guinier':
-            line, ec, el = a.errorbar(np.power(ExpObj.q,2), ExpObj.i, ExpObj.errorbars, picker = 3)
+            line, ec, el = a.errorbar(power(ExpObj.q,2), ExpObj.i, ExpObj.errorbars, picker = 3)
            
         
         mainframe = wx.FindWindowByName('MainFrame')
