@@ -804,7 +804,7 @@ class ImageFormatOptionsPage(wx.Panel):
         wx.Panel.__init__(self, parent)
         self.expParamsInGUI = wx.FindWindowByName('OptionsDialog').expParamsInGUI
         
-        self.formatChoiceList = ['Quantum 210, CHESS', 'MarCCD 165, MaxLab', 'Medoptics, CHESS', 'FLICAM, CHESS']
+        self.formatChoiceList = ['Quantum 210, CHESS', 'Quantum 1, CHESS', 'MarCCD 165, MaxLab', 'Medoptics, CHESS', 'FLICAM, CHESS']
 
         self.expsettingsdata = (("X center:", self.expParamsInGUI['Xcenter'][0]),
                                 ("Y center:", self.expParamsInGUI['Ycenter'][0]))

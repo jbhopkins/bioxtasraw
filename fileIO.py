@@ -73,6 +73,29 @@ def loadMarccd165File(filename, expParams):
 
 #---- ##### Quantum210 Images ##### 
 
+def loadQuantum1Image(filename):
+    
+    f = open(filename, 'rb')
+    
+    f.seek(512) # Jump over header
+
+    Img = fromfile(f, dtype=np.uint16)
+    
+    #Img = io.fread(f, 16777216, 'H', 'H', 0)
+    
+    f.close()
+    
+    xydim = int(sqrt(shape(Img))[0])  #assuming square image
+    
+    Img = Img.reshape((xydim,xydim))
+    
+    SubImg = Img
+    
+    dim = shape(SubImg)
+
+    return SubImg, dim
+    
+
 def loadQuantum210Image(filename):
     
     f = open(filename, 'rb')
@@ -90,7 +113,7 @@ def loadQuantum210Image(filename):
     Img = Img.reshape((xydim,xydim))
     
     SubImg = getSecondQuadrant(Img)
-
+    
     dim = shape(SubImg)
 
     return SubImg, dim
@@ -170,6 +193,34 @@ def parseCTSfile(filename):
     f.close()
     
     return closedShutterCount, mon1, mon2, exposureTime
+
+def loadQuantum1File(filename, expParams):
+    
+    if expParams != None:
+        mask, rdmask, q_range, pixelcal, x_center, y_center, binsize = _getExperimentParameters(expParams)
+    
+    img, dim = loadQuantum1Image(filename)
+    
+    hdr = readHeader(filename, fileformat = 'quantum1')
+    
+    closedShutterCount, mon1, mon2, exposureTime = parseCTSfile(filename) 
+    
+    print closedShutterCount, mon1, mon2, exposureTime
+    
+    print dim
+    
+    ExpObj, FullImage = cartToPol.loadM(img, dim, mask, rdmask, q_range, hdr, x_center, y_center, pixelcal = None, binsize = binsize)
+    ExpObj.param['filename'] = filename
+    
+    if mon1:
+        background = closedShutterCount * exposureTime
+        
+        ExpObj.param['before'] = mon2 - background
+        ExpObj.param['after'] = mon2 - background
+        ExpObj.param['ic'] = mon1 - background
+        ExpObj.param['exposure_time'] = exposureTime
+
+    return ExpObj, FullImage
     
 def loadQuantum210File(filename, expParams):
     
@@ -222,7 +273,7 @@ def readHeader(filename, fileformat):
     
     hdr = None
     
-    if fileformat == 'quantum210':
+    if fileformat == 'quantum210' or fileformat == 'quantum1':
         hdr = parseQuantumFileHeader(filename)
         
     elif fileformat == 'marccd165':
@@ -261,12 +312,12 @@ def loadFile(filename, expParams = None):
         
         if file_type == 'rad':
             ExpObj = loadRadFile(filename)
-            ExpObj.param['filename'] = filename
+            ExpObj.param['filename'] = filename    
             
-            if not ExpObj.i:
+            if not ExpObj.i != []:
                 ExpObj = loadPrimusDatFile(filename)
                 ExpObj.param['filename'] = filename
-                            
+            
         elif file_type == 'soleil_rad':
             ExpObj = loadSoleilRadFile(filename)
             ExpObj.param['filename'] = filename
@@ -290,6 +341,9 @@ def loadFile(filename, expParams = None):
         elif expParams['ImageFormat'] == 'Quantum 210, CHESS':
             ExpObj, FullImage = loadQuantum210File(filename, expParams)
         
+        elif expParams['ImageFormat'] == 'Quantum 1, CHESS':
+            ExpObj, FullImage = loadQuantum1File(filename, expParams)
+        
         elif expParams['ImageFormat'] == 'MarCCD 165, MaxLab':
             ExpObj, FullImage = loadMarccd165File(filename, expParams)
             
@@ -299,6 +353,9 @@ def loadFile(filename, expParams = None):
         elif expParams['ImageFormat'] == 'FLICAM, CHESS':
             ExpObj, FullImage = loadTiffFile(filename, expParams)
 
+
+        print ExpObj
+        
         return ExpObj, FullImage
         
         

@@ -40,7 +40,7 @@ from wx.lib.wordwrap import wordwrap
 #... Strange... :
 from masking import CircleMask, RectangleMask, PolygonMask
 # comment
-
+import copy
 import fileIO
 import masking
 import cartToPol
@@ -267,13 +267,12 @@ class PlotWorkerThread(threading.Thread):
             selectedFiles = dirCtrlPanel.GetSelectedFile()
         
             for eachSelectedFile in selectedFiles:
-                try:
-                    ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)
-                except:
-                    ExpObj = None 
+                
+                ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)
+ 
                                                 
                 checkedTreatments = getTreatmentParameters()
-            
+                
                 if ExpObj != None:
                     if ExpObj.i != []:
                     
@@ -652,6 +651,14 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         self.ToggleTool(self._MTB_SHOWBOTH, True)
     
     #Overriding the default home button commands:
+    
+    def pan(self, *args):
+        self.ToggleTool(self._NTB2_ZOOM, False)
+        NavigationToolbar2.pan(self, *args)
+    
+    def zoom(self, *args):
+        self.ToggleTool(self._NTB2_PAN, False)
+        NavigationToolbar2.zoom(self, *args)
     
     def home(self, *args):
 #        'restore the original view'
@@ -1052,13 +1059,18 @@ class PlotPanel(wx.Panel):
         self.pickLocation = (0,0)
         self.legendPosition = (0.5,0.5)
         
-        self.canvas.mpl_connect('pick_event', self.OnPick)
-        self.canvas.mpl_connect('key_press_event', self.OnKeyPress)
-        #self.canvas.mpl_connect('button_press_event', self.OnMouseButton)
-        self.canvas.mpl_connect('motion_notify_event', self.onMotionEvent)
+        self.canvas.callbacks.connect('pick_event', self.OnPick)
+        self.canvas.callbacks.connect('key_press_event', self.OnKeyPress)
+        self.canvas.callbacks.connect('button_press_event', self.OnMouseButton)
+        self.canvas.callbacks.connect('motion_notify_event', self.onMotionEvent)
         
         #self.setCursor(self.subplot1, 'on')
         #self.setCursor(self.subplot2, 'on')
+        
+        
+        self.MenuItemIds = {'Kratky' : wx.NewId(),
+                            'Guinier': wx.NewId()}
+        
         
     def onMotionEvent(self, event):
         
@@ -1076,7 +1088,45 @@ class PlotPanel(wx.Panel):
 #            self.cursor = Cursor(a, useblit = True, color='red')
     
     def OnMouseButton(self, evt):
-        print 'yep!'
+
+        print evt.button
+        if evt.button == 3:
+            self.ShowPopupMenu()
+            
+    def ShowPopupMenu(self):
+
+        menu = wx.Menu()
+        
+        plot1SubMenu = wx.Menu()
+        plot1SubMenu.AppendRadioItem(self.MenuItemIds['Guinier'], 'Guinier')
+        plot1SubMenu.AppendRadioItem(self.MenuItemIds['Kratky'], 'Kratky')
+        plot1SubMenu.AppendRadioItem(3, 'Subtracted')
+        
+        plot2SubMenu = wx.Menu()
+        plot2SubMenu.AppendRadioItem(3, 'Normal')
+        plot2SubMenu.AppendRadioItem(self.MenuItemIds['Guinier'], 'Guinier')
+        plot2SubMenu.AppendRadioItem(self.MenuItemIds['Kratky'], 'Kratky')
+        plot2SubMenu.AppendRadioItem(3, 'Subtracted')
+            
+        menu.AppendSubMenu(plot1SubMenu, 'Plot 1')
+        menu.AppendSubMenu(plot2SubMenu, 'Plot 2')
+        
+        menu.Append(6, 'Average selected item(s)' )
+        menu.AppendSeparator()
+        menu.Append(5, 'Remove selected item(s)' )
+        menu.Append(3, 'Indirect Fourier Transform')
+        menu.AppendSeparator()
+        menu.Append(8, 'Move curve to top plot')
+        menu.Append(9, 'Move curve to bottom plot')
+        menu.AppendSeparator()
+        menu.Append(7, 'Save selected file(s)')
+        
+        self.Bind(wx.EVT_MENU, self._OnPopupMenuChoice) 
+        
+        self.PopupMenu(menu)
+        
+    def _OnPopupMenuChoice(self, evt):
+        print evt.GetId()
     
     def InitLabels(self):
         
@@ -1341,9 +1391,9 @@ class PlotPanel(wx.Panel):
         
         #progressBar.run()
         
-    def PlotExperimentObject(self, ExpObj, name = None, axes = None):
+    def PlotExperimentObject(self, ExpObj, name = None, axes = None, addToPlottedExps = True):
         
-        self._PlotOnSelectedAxesScale(ExpObj, axes = axes)
+        self._PlotOnSelectedAxesScale(ExpObj, axes, addToPlottedExps)
         #self._setLabels(ExpObj, axes = plotaxes)
         
         if name != None:
@@ -1354,8 +1404,9 @@ class PlotPanel(wx.Panel):
         #Update figure:
         self.canvas.draw()
         
-        manipulationPage = wx.FindWindowByName('ManipulationPage')
-        manipulationPage.AddItem(ExpObj)
+        if addToPlottedExps:
+            manipulationPage = wx.FindWindowByName('ManipulationPage')
+            manipulationPage.AddItem(ExpObj)
         
     def PlotBIFTExperimentObject(self, ExpObj, name = None):
         
@@ -1510,7 +1561,7 @@ class PlotPanel(wx.Panel):
         self.fitplot = ExpObj        # Insert the plot into plotted experiments list
     
     
-    def _PlotOnSelectedAxesScale(self, ExpObj, axes = None):
+    def _PlotOnSelectedAxesScale(self, ExpObj, axes = None, addToPlottedExps = True):
     
         if axes == None:
             a = self.fig.gca()
@@ -1542,8 +1593,8 @@ class PlotPanel(wx.Panel):
         #self.toolbar._views = cbook.Stack()
         #self.toolbar._positions = cbook.Stack()
         #self.toolbar._update_view()
-        
-        self.plottedExps.append(ExpObj)        # Insert the plot into plotted experiments list
+        if addToPlottedExps:
+            self.plottedExps.append(ExpObj)        # Insert the plot into plotted experiments list
     
         self.fitAxis()
     
@@ -1586,7 +1637,7 @@ class PlotPanel(wx.Panel):
             if ExpObj.isNormalized:
                 a.set_title('Intensity plot (Normalized)')
             else:
-                a.set_title('Raw plot')
+                a.set_title('Main plot')
         else:
             a.set_title(title)
         
@@ -3725,6 +3776,9 @@ class ManipFilePanel(wx.Panel):
         menu.Append(5, 'Remove selected item(s)' )
         menu.Append(3, 'Indirect Fourier Transform')
         menu.AppendSeparator()
+        menu.Append(8, 'Move curve to top plot')
+        menu.Append(9, 'Move curve to bottom plot')
+        menu.AppendSeparator()
         menu.Append(7, 'Save selected file(s)')
         
         self.Bind(wx.EVT_MENU, self._OnPopupMenuChoice) 
@@ -3736,15 +3790,18 @@ class ManipFilePanel(wx.Panel):
         global expParams
         
         if evt.GetId() == 1:
+            #Set background
             dirCtrlPanel = wx.FindWindowByName('DirCtrlPanel')
             dirCtrlPanel.SetBackgroundFile(self.ExpObj.param['filename'])
             expParams['BackgroundFile'] = self.ExpObj
             
         if evt.GetId() == 3:
+            #IFT
             analysisPage = wx.FindWindowByName('AutoAnalysisPage')
             analysisPage.runBiftOnExperimentObject(self.ExpObj, expParams)
         
         if evt.GetId() == 4:
+            #Subtract and plot
             plotpanel = wx.FindWindowByName('PlotPanel')
             ManipulationPage = wx.FindWindowByName('ManipulationPage')
             
@@ -3752,6 +3809,7 @@ class ManipFilePanel(wx.Panel):
             plotpanel.SubtractAndPlot(selectedExpObjsList)
         
         if evt.GetId() == 5:
+            #Delete
             self.RemoveSelf()
         
         if evt.GetId() == 6:
@@ -3777,6 +3835,25 @@ class ManipFilePanel(wx.Panel):
             for each in selectedExpObjsList:
                 dirctrlpanel.SaveSingleRadFile(each)
                 print "check1"
+                
+        if evt.GetId() == 8:
+            
+            ManipulationPage = wx.FindWindowByName('ManipulationPage')
+            plotpanel = wx.FindWindowByName('PlotPanel')
+            
+            selectedExpObjsList = ManipulationPage.GetSelectedExpObjs()
+            
+            ManipulationPage.MovePlots(selectedExpObjsList, plotpanel.subplot1)
+            
+                
+        if evt.GetId() == 9:
+            ManipulationPage = wx.FindWindowByName('ManipulationPage')
+            plotpanel = wx.FindWindowByName('PlotPanel')
+            
+            selectedExpObjsList = ManipulationPage.GetSelectedExpObjs()
+            
+            ManipulationPage.MovePlots(selectedExpObjsList, plotpanel.subplot2)
+             
             
     def RemoveSelf(self):
         manipulationPage = wx.FindWindowByName('ManipulationPage')
@@ -3993,7 +4070,32 @@ class ManipulationPage(wx.Panel):
                 self.selectedItemList.append(each)
             
         return self.selectedItemList
+    
+    def MovePlots(self, ExpObjList, toAxes):
         
+        axesThatNeedsUpdatedLegend = []
+        
+        for each in ExpObjList:
+            if each.axes != toAxes:
+                plotpanel = each.plotPanel
+      
+                each.line.remove()
+                each.errLine[0][0].remove()
+                each.errLine[0][1].remove()
+                each.errLine[1][0].remove()
+                
+                if not each.axes in axesThatNeedsUpdatedLegend:
+                    axesThatNeedsUpdatedLegend.append(each.axes)
+                
+                plotpanel.PlotExperimentObject(each, axes = toAxes, addToPlottedExps = False)
+                
+        for eachaxes in axesThatNeedsUpdatedLegend:
+            plotpanel._insertLegend(axes = eachaxes)                
+        
+        if axesThatNeedsUpdatedLegend:
+            plotpanel.canvas.draw()
+
+                
     def RemoveSelectedItems(self):
         
         self.Freeze()
@@ -4146,9 +4248,9 @@ class MainFrame(wx.Frame):
         plotpage3 = PlotPanel(self.plotNB, wx.NewId(), 'BIFTPlotPanel', 2)
         plotpage4 = overview.OverviewPanel(self.plotNB, -1, 'OverviewPanel')
 
-        self.plotNB.AddPage(plotpage1, "Reduced Plot")
+        self.plotNB.AddPage(plotpage1, "1D Plot")
         self.plotNB.AddPage(plotpage3, "IFT Plot")
-        self.plotNB.AddPage(plotpage2, "RAW Image")
+        self.plotNB.AddPage(plotpage2, "2D Image")
         self.plotNB.AddPage(plotpage4, "Overview")
         
         plotNBsizer = wx.BoxSizer(wx.VERTICAL)
@@ -4186,7 +4288,7 @@ class MainFrame(wx.Frame):
         
         #Load workdir from rawcfg.dat:
         self.LoadCfg()
-    
+        
     def LoadCfg(self):
         
         try:
