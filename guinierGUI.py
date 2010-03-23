@@ -68,13 +68,13 @@ class GuinierPlotPanel(wx.Panel):
         
         guinier_q = np.power(q,2)
         guinier_q[np.where(guinier_q<=0)]=1
-        self.subplots['Guinier'].semilogy(guinier_q, i, 'o')
+        self.subplots['Guinier'].semilogy(guinier_q, i, '.')
         
         self.canvas.draw()
         
     def _plotData(self, i, q):
         
-        self.subplots['Data'].plot(q, i, 'go')
+        self.subplots['Data'].plot(q, i, 'g.')
         self.canvas.draw()
         
     def plotExpObj(self, ExpObj):
@@ -125,7 +125,7 @@ class GuinierControlPanel(wx.Panel):
         sizer.Add(wx.StaticText(self,-1,'q_min'),1)
         sizer.Add(wx.StaticText(self,-1,'n_min'),1)
         sizer.Add(wx.StaticText(self,-1,'q_max'),1)
-        sizer.Add(wx.StaticText(self,-1,'n_min'),1)
+        sizer.Add(wx.StaticText(self,-1,'n_max'),1)
         
         self.startSpin = wx.SpinCtrl(self, self.spinctrlIDs['qstart'], size = (60,-1))
         self.endSpin = wx.SpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1))
