@@ -590,9 +590,9 @@ class MyCustomToolbar(NavigationToolbar2Wx):
 
         self.parent = parent
         
-        self._MTB_LOGLIN = wx.NewId()
-        self._MTB_LOGLOG = wx.NewId()
-        self._MTB_LINLIN = wx.NewId()
+        #self._MTB_LOGLIN = wx.NewId()
+        #self._MTB_LOGLOG = wx.NewId()
+        #self._MTB_LINLIN = wx.NewId()
         self._MTB_ERRBARS = wx.NewId()
         self._MTB_LEGEND = wx.NewId()
         self._MTB_SHOWBOTH = wx.NewId()
@@ -610,20 +610,20 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         mainframe = wx.FindWindowByName('MainFrame')
         workdir = mainframe.RAWWorkDir
 
-        fitaxisIconFilename = os.path.join(workdir, "ressources","loglin.png")
-        loglinIconFilename = os.path.join(workdir, "ressources", "loglin.png")
-        loglogIconFilename = os.path.join(workdir, "ressources", "loglog.png")
-        linlinIconFilename = os.path.join(workdir, "ressources", "linlin.png")
+        #fitaxisIconFilename = os.path.join(workdir, "ressources","loglin.png")
+        #loglinIconFilename = os.path.join(workdir, "ressources", "loglin.png")
+        #loglogIconFilename = os.path.join(workdir, "ressources", "loglog.png")
+        #linlinIconFilename = os.path.join(workdir, "ressources", "linlin.png")
         errbarsIconFilename = os.path.join(workdir, "ressources" ,"errbars.png")
         legendIconFilename = os.path.join(workdir, "ressources", "legend.png")
         showbothIconFilename = os.path.join(workdir, "ressources", "showboth.png")
         showtopIconFilename = os.path.join(workdir, "ressources", "showtop.png")
         showbottomIconFilename = os.path.join(workdir, "ressources", "showbottom.png")
         
-        fitaxis_icon = wx.Bitmap(fitaxisIconFilename, wx.BITMAP_TYPE_PNG)
-        loglin_icon = wx.Bitmap(loglinIconFilename, wx.BITMAP_TYPE_PNG)
-        loglog_icon = wx.Bitmap(loglogIconFilename, wx.BITMAP_TYPE_PNG)
-        linlin_icon = wx.Bitmap(linlinIconFilename, wx.BITMAP_TYPE_PNG)
+        #fitaxis_icon = wx.Bitmap(fitaxisIconFilename, wx.BITMAP_TYPE_PNG)
+        #loglin_icon = wx.Bitmap(loglinIconFilename, wx.BITMAP_TYPE_PNG)
+        #loglog_icon = wx.Bitmap(loglogIconFilename, wx.BITMAP_TYPE_PNG)
+        #linlin_icon = wx.Bitmap(linlinIconFilename, wx.BITMAP_TYPE_PNG)
         errbars_icon = wx.Bitmap(errbarsIconFilename, wx.BITMAP_TYPE_PNG)
         legend_icon = wx.Bitmap(legendIconFilename, wx.BITMAP_TYPE_PNG)
         showboth_icon = wx.Bitmap(showbothIconFilename, wx.BITMAP_TYPE_PNG)
@@ -636,20 +636,21 @@ class MyCustomToolbar(NavigationToolbar2Wx):
 #        self.parent.subplot2.autoscale_view()
         #self.parent.canvas.draw()ilename, wx.BITMAP_TYPE_PNG)
 
+#        self.AddSeparator()
+#        self.AddCheckTool(self._MTB_LOGLIN, loglin_icon)
+#        self.AddCheckTool(self._MTB_LOGLOG, loglog_icon)
+#        self.AddCheckTool(self._MTB_LINLIN, linlin_icon)
         self.AddSeparator()
-        self.AddCheckTool(self._MTB_LOGLIN, loglin_icon)
-        self.AddCheckTool(self._MTB_LOGLOG, loglog_icon)
-        self.AddCheckTool(self._MTB_LINLIN, linlin_icon)
         self.AddCheckTool(self._MTB_ERRBARS, errbars_icon)
-        self.AddSeparator()
         self.AddSimpleTool(self._MTB_LEGEND, legend_icon)
+        self.AddSeparator()
         self.AddCheckTool(self._MTB_SHOWBOTH, showboth_icon)
         self.AddCheckTool(self._MTB_SHOWTOP, showtop_icon)
         self.AddCheckTool(self._MTB_SHOWBOTTOM, showbottom_icon)
         
-        self.Bind(wx.EVT_TOOL, self.loglin, id = self._MTB_LOGLIN)
-        self.Bind(wx.EVT_TOOL, self.loglog, id = self._MTB_LOGLOG)
-        self.Bind(wx.EVT_TOOL, self.linlin, id = self._MTB_LINLIN)
+#        self.Bind(wx.EVT_TOOL, self.loglin, id = self._MTB_LOGLIN)
+#        self.Bind(wx.EVT_TOOL, self.loglog, id = self._MTB_LOGLOG)
+#        self.Bind(wx.EVT_TOOL, self.linlin, id = self._MTB_LINLIN)
         self.Bind(wx.EVT_TOOL, self.errbars, id = self._MTB_ERRBARS)
         self.Bind(wx.EVT_TOOL, self.legend, id = self._MTB_LEGEND)
         self.Bind(wx.EVT_TOOL, self.showboth, id = self._MTB_SHOWBOTH)
@@ -740,31 +741,31 @@ class MyCustomToolbar(NavigationToolbar2Wx):
             self.ErrorbarIsOn = False
             self.parent.HideErrorbars()
             
-    def loglog(self,evt):
-        self.ToggleTool(self._MTB_LOGLOG, False)
-                
-        self.parent.plotparams['axesscale'] = 'loglog'
-        self.parent.UpdatePlotAxesScaling()
-                
-        self.parent.canvas.draw()
-
-    def loglin(self,evt):
-        self.ToggleTool(self._MTB_LOGLIN, False)
-        
-        self.parent.plotparams['axesscale'] = 'loglin'
-        self.parent.UpdatePlotAxesScaling()
-        
-#        self.parent.subplot1.relim()
-#        self.parent.subplot1.autoscale_view()
-#        self.parent.subplot2.relim()
-#        self.parent.subplot2.autoscale_view()
-        self.parent.canvas.draw()
-
-    def linlin(self,evt):
-        self.ToggleTool(self._MTB_LINLIN, False)
-        
-        self.parent.plotparams['axesscale'] = 'linlin'
-        self.parent.UpdatePlotAxesScaling()
+#    def loglog(self,evt):
+#        self.ToggleTool(self._MTB_LOGLOG, False)
+#                
+#        self.parent.plotparams['axesscale'] = 'loglog'
+#        self.parent.UpdatePlotAxesScaling()
+#                
+#        self.parent.canvas.draw()
+#
+#    def loglin(self,evt):
+#        self.ToggleTool(self._MTB_LOGLIN, False)
+#        
+#        self.parent.plotparams['axesscale'] = 'loglin'
+#        self.parent.UpdatePlotAxesScaling()
+#        
+##        self.parent.subplot1.relim()
+##        self.parent.subplot1.autoscale_view()
+##        self.parent.subplot2.relim()
+##        self.parent.subplot2.autoscale_view()
+#        self.parent.canvas.draw()
+#
+#    def linlin(self,evt):
+#        self.ToggleTool(self._MTB_LINLIN, False)
+#        
+#        self.parent.plotparams['axesscale'] = 'linlin'
+#        self.parent.UpdatePlotAxesScaling()
 
 
         
@@ -1033,7 +1034,9 @@ class PlotPanel(wx.Panel):
         else:
             self.subplot1 = self.fig.add_subplot(211)
             self.subplot2 = self.fig.add_subplot(212)
-            
+        
+        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
+        
         self.subplot1LegendPos = None
         self.subplot2LegendPos = None
         self.autoLegendPos = True
@@ -1067,7 +1070,7 @@ class PlotPanel(wx.Panel):
         self.plotparams = {'axesscale1': 'linlin',
                            'axesscale2': 'linlin',
                            'plot1type' : 'normal',
-                           'plot2type' : 'kratky',
+                           'plot2type' : 'subtracted',
                            'errorbars_on': False}
         
         self.legendPicked = False
@@ -1087,8 +1090,9 @@ class PlotPanel(wx.Panel):
                           'kratky'      : ('Kratky', 'q', 'I(q)q^2'),
                           'guinier'     : ('Guinier', 'q^2', 'ln(I(q)')}
         
-        self._setLabels(axes = self.subplot1)
         
+        self._setLabels(axes = self.subplot1)
+        self._setLabels(axes = self.subplot2)
         
     def onMotionEvent(self, event):
         
@@ -1610,8 +1614,9 @@ class PlotPanel(wx.Panel):
             line, ec, el = a.errorbar(ExpObj.q, ExpObj.i*power(ExpObj.q,2), ExpObj.errorbars, picker = 3)
         elif type == 'guinier':
             line, ec, el = a.errorbar(power(ExpObj.q,2), ExpObj.i, ExpObj.errorbars, picker = 3)
+        elif type == 'porod':
+            line, ec, el = a.errorbar(ExpObj.q, power(ExpObj.q,4)*ExpObj.i, ExpObj.errorbars, picker = 3)
            
-        
         mainframe = wx.FindWindowByName('MainFrame')
         
         if self.name == 'BIFTPlotPanel':
@@ -1675,46 +1680,51 @@ class PlotPanel(wx.Panel):
         
         # Set TITLE 
         if title == None:
-            if ExpObj:
-                if ExpObj.isNormalized:
-                    a.set_title('Intensity plot (Normalized)')
-                else:
-                    if self.name == 'BIFTPlotPanel':
-                        a.set_title('IFT plot')
-                    else:
-                        a.set_title('Main plot')
+              
+            if self.name == 'BIFTPlotPanel':
+                a.set_title('IFT plot')
             else:
-                    if self.name == 'BIFTPlotPanel':
-                        a.set_title('IFT plot')
-                    else:
+                    
+                if a == self.subplot1:
+                    if self.plotparams['plot1type'] == 'normal':
                         a.set_title('Main plot')
-
+                        a.set_ylabel('I(q)')
+                        a.set_xlabel('q [1/A]')
+                        
+                    elif self.plotparams['plot1type'] == 'kratky':
+                        a.set_title('Kratky plot')
+                        a.set_ylabel('I(q)q^2')
+                        a.set_xlabel('q [1/A]')
+                        
+                    elif self.plotparams['plot1type'] == 'guinier':
+                        a.set_title('Guinier plot')
+                        a.set_ylabel('I(q)')
+                        a.set_xlabel('q^2 [1/A^2]')
+                    
+                    elif self.plotparams['plot1type'] == 'porod':
+                        a.set_title('Porod plot')
+                        a.set_ylabel('I(q)q^4')
+                        a.set_xlabel('q [1/A]')
+                            
+                elif a == self.subplot2:
+                    if self.plotparams['plot2type'] == 'subtracted':
+                        a.set_title('Subtracted plot')
+                        a.set_ylabel('I(q)')
+                        a.set_xlabel('q [1/A]')
+                    elif self.plotparams['plot2type'] == 'kratky':
+                        a.set_title('Kratky plot')
+                        a.set_ylabel('I(q)q^2')
+                        a.set_xlabel('q [1/A]')
+                    elif self.plotparams['plot2type'] == 'guinier':
+                        a.set_title('Guinier plot')
+                        a.set_ylabel('I(q)')
+                        a.set_xlabel('q^2 [1/A^2]')
+                    elif self.plotparams['plot2type'] == 'porod':
+                        a.set_title('Porod plot')
+                        a.set_ylabel('I(q)q^4')
+                        a.set_xlabel('q [1/A]')
         else:
             a.set_title(title)
-        
-        # Set Y-LABEL
-        if ylabel == None:
-            if ExpObj:
-                if ExpObj.isNormalized:
-                    a.set_ylabel('I(q)')
-                else:
-                    a.set_ylabel("I(q)")
-            else:
-                a.set_ylabel("I(q)")
-        else:
-            a.set_ylabel(ylabel)
-        
-        # Set X-LABEL
-        if xlabel == None:
-            if ExpObj:
-                if ExpObj.isCalibrated:
-                    a.set_xlabel('q (1/A)')
-                else:
-                    a.set_xlabel('q (pixels)')
-            else:
-                a.set_xlabel('q (1/A)')
-        else:
-            a.set_xlabel(xlabel)
                 
     def fitAxis(self):
         
@@ -1798,6 +1808,88 @@ class PlotPanel(wx.Panel):
             a.legend_ = None
         
         self.canvas.draw()
+        
+    def UpdatePlotsAfterTypeChange(self, axes):
+        
+        plotsInAxes = []
+        
+        for each in self.plottedExps:
+            if each.axes == axes:
+                plotsInAxes.append(each)
+        
+        for each in plotsInAxes:
+            
+            if axes == self.subplot1:
+                
+                if self.plotparams['plot1type'] == 'kratky':
+                    each.line.set_ydata(each.i * power(each.q,2))
+                    each.line.set_xdata(each.q)
+                elif self.plotparams['plot1type'] == 'guinier':
+                    each.line.set_ydata(each.i)
+                    each.line.set_xdata(power(each.q,2))
+                elif self.plotparams['plot1type'] == 'porod':
+                    each.line.set_ydata(power(each.q,4)*each.i)
+                    each.line.set_xdata(each.q)
+                elif self.plotparams['plot1type'] == 'normal' or self.plotparams['plot1type'] == 'subtracted':
+                    each.line.set_ydata(each.i)
+                    each.line.set_xdata(each.q)
+                                
+                #each.line.pchanged()
+          
+            elif axes == self.subplot2:
+                
+                if self.plotparams['plot2type'] == 'kratky':
+                    each.line.set_ydata(each.i * power(each.q,2))
+                    each.line.set_xdata(each.q) 
+                elif self.plotparams['plot2type'] == 'guinier':
+                    each.line.set_ydata(each.i)
+                    each.line.set_xdata(power(each.q,2))
+                elif self.plotparams['plot2type'] == 'porod':
+                    each.line.set_ydata(power(each.q,4)*each.i)
+                    each.line.set_xdata(each.q)
+                elif self.plotparams['plot2type'] == 'normal' or self.plotparams['plot2type'] == 'subtracted':
+                    each.line.set_ydata(each.i)
+                    each.line.set_xdata(each.q)
+        
+        self._setLabels(axes = self.subplot1)
+        self._setLabels(axes = self.subplot2)
+            
+        self.fitAxis()
+        
+        self.canvas.draw()
+        
+    def UpdateSinglePlot(self, ExpObj):
+        
+        if ExpObj.plotPanel.GetName() == 'PlotPanel':
+            if ExpObj.axes == self.subplot1:
+                if self.plotparams['plot1type'] == 'kratky':
+                    ExpObj.line.set_ydata(ExpObj.i * power(ExpObj.q,2))
+                    ExpObj.line.set_xdata(ExpObj.q)
+                elif self.plotparams['plot1type'] == 'guinier':
+                    ExpObj.line.set_ydata(ExpObj.i)
+                    ExpObj.line.set_xdata(power(ExpObj.q,2))
+                elif self.plotparams['plot1type'] == 'porod':
+                    ExpObj.line.set_ydata(power(ExpObj.q,4)*ExpObj.i)
+                    ExpObj.line.set_xdata(ExpObj.q)
+                elif self.plotparams['plot1type'] == 'normal' or self.plotparams['plot1type'] == 'subtracted':
+                    ExpObj.line.set_ydata(ExpObj.i)
+                    ExpObj.line.set_xdata(ExpObj.q)
+            
+            elif ExpObj.axes == self.subplot2:
+                if self.plotparams['plot2type'] == 'kratky':
+                    ExpObj.line.set_ydata(ExpObj.i * power(ExpObj.q,2))
+                    ExpObj.line.set_xdata(ExpObj.q) 
+                elif self.plotparams['plot2type'] == 'guinier':
+                    ExpObj.line.set_ydata(ExpObj.i)
+                    ExpObj.line.set_xdata(power(ExpObj.q,2))
+                elif self.plotparams['plot2type'] == 'porod':
+                    ExpObj.line.set_ydata(power(ExpObj.q,4)*ExpObj.i)
+                    ExpObj.line.set_xdata(ExpObj.q)
+                elif self.plotparams['plot2type'] == 'normal' or self.plotparams['plot2type'] == 'subtracted':
+                    ExpObj.line.set_ydata(ExpObj.i)
+                    ExpObj.line.set_xdata(ExpObj.q)
+            
+            self.canvas.draw()
         
     def PlotLoadedBift(self, BiftObj):
         
@@ -3734,8 +3826,10 @@ class ManipFilePanel(wx.Panel):
                 elif eachName == 'offset':
                     self.ExpObj.offset(value)
         
-        self.ExpObj.line.set_data(self.ExpObj.q, self.ExpObj.i)
+        self.ExpObj.plotPanel.UpdateSinglePlot(self.ExpObj)
         self.ExpObj.plotPanel.canvas.draw()
+        
+        
                 
     def OnQrangeSpinCtrlChange(self, evt):
         
@@ -3751,7 +3845,7 @@ class ManipFilePanel(wx.Panel):
         if qmin < qmax:        
             self.ExpObj.setQrange((qmin-1, qmax))  
         
-            self.ExpObj.line.set_data(self.ExpObj.q, self.ExpObj.i)
+            self.ExpObj.plotPanel.UpdateSinglePlot(self.ExpObj)
             self.ExpObj.plotPanel.canvas.draw()
         
     def OnLeftMouseClick(self, evt):
@@ -4301,12 +4395,12 @@ class MainFrame(wx.Frame):
         plotpage1 = PlotPanel(self.plotNB, -1, 'PlotPanel', 2) 
         plotpage2 = masking.MaskingPanel(self.plotNB, -1, 'RawPlotPanel', wxEmbedded = True)
         plotpage3 = PlotPanel(self.plotNB, wx.NewId(), 'BIFTPlotPanel', 2)
-        plotpage4 = overview.OverviewPanel(self.plotNB, -1, 'OverviewPanel')
+        #plotpage4 = overview.OverviewPanel(self.plotNB, -1, 'OverviewPanel')
 
         self.plotNB.AddPage(plotpage1, "1D Plot")
         self.plotNB.AddPage(plotpage3, "IFT Plot")
         self.plotNB.AddPage(plotpage2, "2D Image")
-        self.plotNB.AddPage(plotpage4, "Overview")
+        #self.plotNB.AddPage(plotpage4, "Overview")
         
         plotNBsizer = wx.BoxSizer(wx.VERTICAL)
         plotNBsizer.Add(self.plotNB, 1, wx.EXPAND | wx.TOP, 5)
@@ -4351,14 +4445,16 @@ class MainFrame(wx.Frame):
                         'centering'         : wx.NewId(),
                         'goOnline'          : wx.NewId(),
                         'goOffline'         : wx.NewId(),
-                        'plot1normal'       : wx.NewId(),
-                        'plot1guinier'      : wx.NewId(),
-                        'plot1kratky'       : wx.NewId(),
-                        'plot1subtracted'   : wx.NewId(),
-                        'plot2normal'       : wx.NewId(),
-                        'plot2guinier'      : wx.NewId(),
-                        'plot2kratky'       : wx.NewId(),
-                        'plot2subtracted'   : wx.NewId(),
+                        'plot1tynormal'       : wx.NewId(),
+                        'plot1tyguinier'      : wx.NewId(),
+                        'plot1tykratky'       : wx.NewId(),
+                        'plot1typorod'        : wx.NewId(),
+                        'plot1tysubtracted'   : wx.NewId(),
+                        'plot2tynormal'       : wx.NewId(),
+                        'plot2tyguinier'      : wx.NewId(),
+                        'plot2tykratky'       : wx.NewId(),
+                        'plot2tysubtracted'   : wx.NewId(),
+                        'plot2typorod'        : wx.NewId(),
                         'plot1sclinlin'       : wx.NewId(),
                         'plot1scloglog'       : wx.NewId(),
                         'plot1scloglin'       : wx.NewId(),
@@ -4368,7 +4464,9 @@ class MainFrame(wx.Frame):
                         'plot2scloglin'       : wx.NewId(),
                         'plot2sclinlog'       : wx.NewId(),
                         'help'              : wx.NewId(),
-                        'about'             : wx.NewId()}
+                        'about'             : wx.NewId(),
+                        'guinierfit'        : wx.NewId()}
+        
         self.CreateMenuBar()
         
     def LoadCfg(self):
@@ -4401,44 +4499,50 @@ class MainFrame(wx.Frame):
         MenuOptions.AppendSeparator()
         MenuOptions.Append(self.MenuIDs['loadSettings'], '&Load Settings')
         MenuOptions.Append(self.MenuIDs['saveSettings'], '&Save Settings')
-        MenuOptions.AppendSeparator()
-        MenuOptions.Append(self.MenuIDs['centering'], '&Centering...')
         
         self.Bind(wx.EVT_MENU, self.OnOptionsMenu, id = self.MenuIDs['advancedOptions'])
         self.Bind(wx.EVT_MENU, self.OnLoadMenu, id = self.MenuIDs['loadSettings'])
         self.Bind(wx.EVT_MENU, self.OnSaveMenu, id = self.MenuIDs['saveSettings'])
-        self.Bind(wx.EVT_MENU, self.OnCentering, id = self.MenuIDs['centering'])
-        
+       
+         
         MenuOnline = wx.Menu()
         MenuOnline.Append(self.MenuIDs['goOnline'], '&Go Online')
-        MenuOnline.Append(self.MenuIDs['goOffline'], 'Go &Offline')    
+        MenuOnline.Append(self.MenuIDs['goOffline'], 'Go &Offline')
         
+        MenuFunction = wx.Menu()
+        MenuFunction.Append(self.MenuIDs['guinierfit'], '&Guinier fit...')
+        MenuFunction.Append(self.MenuIDs['centering'], '&Centering...')
+        MenuFunction.AppendSeparator()
+        MenuFunction.AppendSubMenu(MenuOnline, 'Online Mode')
+        
+        self.Bind(wx.EVT_MENU, self.OnFunctionMenu, id = self.MenuIDs['centering'])
+        self.Bind(wx.EVT_MENU, self.OnFunctionMenu, id = self.MenuIDs['guinierfit'])
         self.Bind(wx.EVT_MENU, self.OnOnlineMenu, id = self.MenuIDs['goOnline'])
         self.Bind(wx.EVT_MENU, self.OnOnlineMenu, id = self.MenuIDs['goOffline'])
         
         MenuView = wx.Menu()
-        MenuViewPlot1SubMenu = wx.Menu()
-        MenuViewPlot1SubMenu.AppendRadioItem(self.MenuIDs['plot1normal'], 'Normal')
-        MenuViewPlot1SubMenu.AppendRadioItem(self.MenuIDs['plot1guinier'], 'Guinier')
-        MenuViewPlot1SubMenu.AppendRadioItem(self.MenuIDs['plot1kratky'], 'Kratky')
-        MenuViewPlot1SubMenu.AppendRadioItem(self.MenuIDs['plot1subtracted'], 'Subtracted')
+        self.MenuViewPlot1SubMenu = wx.Menu()
+        self.MenuViewPlot1SubMenu.AppendRadioItem(self.MenuIDs['plot1tynormal'], 'Normal')
+        self.MenuViewPlot1SubMenu.AppendRadioItem(self.MenuIDs['plot1tyguinier'], 'Guinier')
+        self.MenuViewPlot1SubMenu.AppendRadioItem(self.MenuIDs['plot1tykratky'], 'Kratky')
+        self.MenuViewPlot1SubMenu.AppendRadioItem(self.MenuIDs['plot1typorod'], 'Porod')
         
-        MenuViewPlot2SubMenu = wx.Menu()
-        MenuViewPlot2SubMenu.AppendRadioItem(self.MenuIDs['plot1guinier'], 'Guinier')
-        MenuViewPlot2SubMenu.AppendRadioItem(self.MenuIDs['plot2kratky'], 'Kratky')
-        MenuViewPlot2SubMenu.AppendRadioItem(self.MenuIDs['plot2subtracted'], 'Subtracted')
+        self.MenuViewPlot2SubMenu = wx.Menu()
+        self.MenuViewPlot2SubMenu.AppendRadioItem(self.MenuIDs['plot2tysubtracted'], 'Subtracted')
+        self.MenuViewPlot2SubMenu.AppendRadioItem(self.MenuIDs['plot2tyguinier'], 'Guinier')
+        self.MenuViewPlot2SubMenu.AppendRadioItem(self.MenuIDs['plot2tykratky'], 'Kratky')
+        self.MenuViewPlot2SubMenu.AppendRadioItem(self.MenuIDs['plot2typorod'], 'Porod')
         
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1normal'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1guinier'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1kratky'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1guinier'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1subtracted'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1tynormal'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1tyguinier'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1tykratky'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1typorod'])
         
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2normal'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2guinier'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2kratky'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2guinier'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2subtracted'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2tynormal'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2tyguinier'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2tykratky'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2typorod'])
+        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2tysubtracted'])
         
         MenuViewPlot1ScaleSubMenu = wx.Menu()
         MenuViewPlot1ScaleSubMenu.AppendRadioItem(self.MenuIDs['plot1sclinlin'], 'Lin-Lin')
@@ -4462,8 +4566,8 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2scloglog'])
         self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2sclinlog'])
         
-        MenuView.AppendSubMenu(MenuViewPlot1SubMenu, '1D Plot (top) Type')
-        MenuView.AppendSubMenu(MenuViewPlot2SubMenu, '1D Plot (bottom) Type')
+        MenuView.AppendSubMenu(self.MenuViewPlot1SubMenu, '1D Plot (top) Type')
+        MenuView.AppendSubMenu(self.MenuViewPlot2SubMenu, '1D Plot (bottom) Type')
         MenuView.AppendSeparator()
         MenuView.AppendSubMenu(MenuViewPlot1ScaleSubMenu, '1D Plot (top) Scale')
         MenuView.AppendSubMenu(MenuViewPlot2ScaleSubMenu, '1D Plot (bottom) Scale')
@@ -4480,7 +4584,7 @@ class MainFrame(wx.Frame):
         menubar.Append(MenuFile, '&File')
         menubar.Append(MenuOptions, '&Options')
         menubar.Append(MenuView, '&View')
-        menubar.Append(MenuOnline, 'O&nline Mode')
+        menubar.Append(MenuFunction, 'F&unction')
         menubar.Append(MenuHelp, '&Help')
         
         self.SetMenuBar(menubar)
@@ -4628,15 +4732,14 @@ class MainFrame(wx.Frame):
     def GetTreatments(self):
         return getTreatmentParameters()
 
+    def OnFunctionMenu(self, evt):
+        pass
+
     def OnViewMenu(self, evt):
         
         val = evt.GetId()
         
         key = [k for k, v in self.MenuIDs.iteritems() if v == val][0]
-        
-        print key
-        print key[0:7]
-        print key[-6:]
         
         plotpanel = wx.FindWindowByName('PlotPanel')
         
@@ -4647,6 +4750,35 @@ class MainFrame(wx.Frame):
         elif key[0:7] == 'plot1sc':
             plotpanel.plotparams['axesscale1'] = key[-6:]
             plotpanel.UpdatePlotAxesScaling()
+            
+        elif key[0:7] == 'plot1ty':
+            plotpanel.plotparams['plot1type'] = key[7:]
+            plotpanel.UpdatePlotsAfterTypeChange(plotpanel.subplot1)
+            
+            if key[7:] == 'guinier':
+                plotpanel.plotparams['axesscale1'] = 'loglin'
+                plotpanel.UpdatePlotAxesScaling()
+                self.MenuBar.FindItemById(self.MenuIDs['plot1scloglin']).Check(True)
+            
+            elif key[7:] == 'kratky' or key[7:] == 'porod':
+                plotpanel.plotparams['axesscale1'] = 'linlin'
+                plotpanel.UpdatePlotAxesScaling()
+                self.MenuBar.FindItemById(self.MenuIDs['plot1sclinlin']).Check(True)
+            
+    
+        elif key[0:7] == 'plot2ty':
+            plotpanel.plotparams['plot2type'] = key[7:]
+            plotpanel.UpdatePlotsAfterTypeChange(plotpanel.subplot2)
+            
+            if key[7:] == 'guinier':
+                plotpanel.plotparams['axesscale2'] = 'loglin'
+                plotpanel.UpdatePlotAxesScaling()
+                self.MenuBar.FindItemById(self.MenuIDs['plot2scloglin']).Check(True)
+                
+            elif key[7:] == 'kratky' or key[7:] == 'porod':
+                plotpanel.plotparams['axesscale2'] = 'linlin'
+                plotpanel.UpdatePlotAxesScaling()
+                self.MenuBar.FindItemById(self.MenuIDs['plot2sclinlin']).Check(True)
 
     
     def OnOptionsMenu(self, event):
