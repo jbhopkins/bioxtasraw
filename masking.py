@@ -784,7 +784,7 @@ class MaskingPanel(wx.Panel):
         xPoints, yPoints = zip(*circlePoints)
         
         if usePatch:
-             cir = Circle( (points[0][0], points[0][1]), radius = radiusC, alpha = 0.5, picker = True) 
+             cir = Circle( (points[0][0], points[0][1]), radius = radiusC, alpha = 0.5, picker = True ) 
              a.add_patch(cir)
              
              cir.id = id              # Im creating a new parameter called Id to distingush them!
