@@ -11,7 +11,7 @@
 #    GNU General Public License for more details.
 #
 #    You should have received a copy of the GNU General Public License
-#    along with BioXTAS RAW.  If not, see <http://www.gnu.org/licenses/>.
+#    along with BioXTAS RAW.  If not, see <http://www.gnu.org/licenses200/>.
 #
 #******************************************************************************
 from __future__ import division
@@ -555,8 +555,8 @@ class MyProgressDialog(wx.Dialog):
         wx.Dialog.__init__(self, None, -1, size = (300,120))
         
         mainframe = wx.FindWindowByName('MainFrame')
-        
-        ag_fname = mainframe.RAWWorkDir + "\\ressources\\Bob2.gif"
+        os.path.join(a)
+        ag_fname = os.path.join(mainframe.RAWWorkDir, 'ressources', 'Bob2.gif')
         ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
 
         waitLabel = wx.StaticText(self, -1, 'Please Wait!')

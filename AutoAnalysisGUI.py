@@ -219,7 +219,7 @@ class BiftCalculationThread(threading.Thread):
         
         self._parent = parent
         self.selectedFile = selectedFile
-        self._pgthread = RAW.MyProgressBar(self._parent)
+        #self._pgthread = RAW.MyProgressBar(self._parent)
     
     def run(self):
         
