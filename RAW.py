@@ -48,6 +48,9 @@ import AutoAnalysisGUI
 import advancedOptionsGUI
 import Queue
 import overview
+import guinierGUI
+
+
 global MAINFRAME_ID
 
 BGFILENAME_ID = wx.NewId()
@@ -4733,7 +4736,20 @@ class MainFrame(wx.Frame):
         return getTreatmentParameters()
 
     def OnFunctionMenu(self, evt):
-        pass
+        
+        id = evt.GetId()
+        
+        if id == self.MenuIDs['guinierfit']:
+            
+            
+            manippage = wx.FindWindowByName('ManipulationPage')
+            ExpObj = manippage.GetSelectedExpObjs()[0]
+            
+            dialog = guinierGUI.GuinierFitDialog(self, ExpObj)
+            dialog.ShowModal()
+            
+            dialog.Destroy()
+            
 
     def OnViewMenu(self, evt):
         

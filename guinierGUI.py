@@ -32,10 +32,7 @@ class GuinierPlotPanel(wx.Panel):
         
         self.fig = Figure((5,4), 75)
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
-        
-        self.toolbar = NavigationToolbar2Wx(self.canvas)
-        self.toolbar.Realize()
-        
+                
         self.canvas.mpl_connect('motion_notify_event', self.onMotionEvent)
 #        self.canvas.mpl_connect('button_press_event', self.onMouseButtonPressEvent)
         self.canvas.mpl_connect('button_release_event', self.onMouseReleaseEvent)
@@ -43,19 +40,23 @@ class GuinierPlotPanel(wx.Panel):
 #        self.canvas.mpl_connect('key_press_event', self.onKeyPressEvent)
         
         #self.toolbar = MaskingPanelToolbar(self, self.canvas)
-        subplotLabels = [('Data', 'q', 'I(q)'), ('Guinier', 'q^2', 'ln(I(q)')]
+        subplotLabels = [('Data', 'q^2', 'ln(I(q))'), ('Guinier', 'q^2', 'ln(I(q)'), ('Error', 'q', 'I(q)')]
+        
+        self.fig.subplots_adjust(hspace = 0.45)
         
         self.subplots = {}
-        NoOfSubplots = 2
-
-        for i in range(0,NoOfSubplots):
-            subplot = self.fig.add_subplot(2,1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
+        
+        for i in range(0, len(subplotLabels)):
+            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
             subplot.set_xlabel(subplotLabels[i][1])
             subplot.set_ylabel(subplotLabels[i][2])
             self.subplots[subplotLabels[i][0]] = subplot 
         
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
+        
+        self.toolbar = NavigationToolbar2Wx(self.canvas)
+        self.toolbar.Realize()
         sizer.Add(self.toolbar, 0, wx.GROW)
 
     
@@ -70,14 +71,11 @@ class GuinierPlotPanel(wx.Panel):
         self.ltopRect1 = None
         self.ltopRect2 = None
         
+        self.lfitbottom = None
+        self.lfittop = None
         self.limits = None
-        #color = parent.GetThemeBackgroundColour()
-        #self.SetColor(color)
         
-#        tst = range(0,100)
-#        tst2 = range(0,100)
-#        self._plotGuinier(tst, tst2)
-#        self._plotData(tst, tst2)
+        self.SetColor()
 
     def onMotionEvent(self, evt):
         
@@ -162,7 +160,7 @@ class GuinierPlotPanel(wx.Panel):
         
         self.canvas.draw()
         
-    def plotExpObj(self, ExpObj):
+    def plotExpObj(self, ExpObj):        
         self._plotGuinier(ExpObj.i, ExpObj.q)
         self._plotData(ExpObj.i, ExpObj.q)
         
@@ -183,8 +181,8 @@ class GuinierPlotPanel(wx.Panel):
         
         if self.ltop:
             self.ltop.remove()
-            self.ltopRect1.remove()
-            self.ltopRect2.remove()
+#            self.ltopRect1.remove()
+#            self.ltopRect2.remove()
             
         x,y = a.transLimits.transform((x,y))
                 
@@ -192,17 +190,17 @@ class GuinierPlotPanel(wx.Panel):
         #a.axvspan(x[30]-0.01*x[30], x[30]+0.01*x[30], facecolor='r', alpha=0.5, picker = True)
 
         self.ltop = matplotlib.lines.Line2D([x,x], [y-0.1,y+0.1], transform=a.transAxes, linewidth = 2,
-                                             color = 'r', picker = True, alpha = 0.8, label = 'top')
-        
-        self.ltopRect1 = Rectangle((x-0.0125, y+0.1), 0.025, 0.05, transform=a.transAxes, label = 'top', picker = True)
-        self.ltopRect1.set_facecolor('red')
-        self.ltopRect2 = Rectangle((x-0.0125, y-0.1), 0.025, 0.05, transform=a.transAxes, label = 'top', picker = True)
-        self.ltopRect2.set_facecolor('red')
+                                             color = 'r', picker = 6, alpha = 0.8, label = 'top')
+#        
+#        self.ltopRect1 = Rectangle((x-0.0125, y+0.1), 0.025, 0.05, transform=a.transAxes, label = 'top', picker = True)
+#        self.ltopRect1.set_facecolor('red')
+#        self.ltopRect2 = Rectangle((x-0.0125, y-0.1), 0.025, 0.05, transform=a.transAxes, label = 'top', picker = True)
+#        self.ltopRect2.set_facecolor('red')
         
         a.add_artist(self.ltop)
-        a.add_patch(self.ltopRect1)
-        a.add_patch(self.ltopRect2)
-        
+#        a.add_patch(self.ltopRect1)
+#        a.add_patch(self.ltopRect2)
+#        
         self.canvas.draw()
 
     def drawBottomLimit(self, x, y): 
@@ -211,29 +209,66 @@ class GuinierPlotPanel(wx.Panel):
         
         if self.lbottom:
             self.lbottom.remove()
-            self.lbottomRect1.remove()
-            self.lbottomRect2.remove()
-            
+#            self.lbottomRect1.remove()
+#            self.lbottomRect2.remove()
+#            
         x,y = a.transLimits.transform((x,y))
 
         #cir = Circle( (0.5, 0.5), 0.25, alpha = 0.5, picker = True, transform=a.transAxes)
         #a.axvspan(x[30]-0.01*x[30], x[30]+0.01*x[30], facecolor='r', alpha=0.5, picker = True)
 
         self.lbottom = matplotlib.lines.Line2D([x,x], [y-0.1,y+0.1], transform=a.transAxes, linewidth = 2,
-                                                color = 'r', picker = True, alpha = 0.8, label = 'bottom')
+                                                color = 'r', picker = 6, alpha = 0.8, label = 'bottom')
         
-        self.lbottomRect1 = Rectangle((x-0.0125, y+0.1), 0.025, 0.05, transform=a.transAxes, label = 'bottom', picker = True)
-        self.lbottomRect1.set_facecolor('red')
-        self.lbottomRect2 = Rectangle((x-0.0125, y-0.1), 0.025, 0.05, transform=a.transAxes, label = 'bottom', picker = True)
-        self.lbottomRect2.set_facecolor('red')
+#        self.lbottomRect1 = Rectangle((x-0.0125, y+0.1), 0.025, 0.05, transform=a.transAxes, label = 'bottom', picker = True)
+#        self.lbottomRect1.set_facecolor('red')
+#        self.lbottomRect2 = Rectangle((x-0.0125, y-0.1), 0.025, 0.05, transform=a.transAxes, label = 'bottom', picker = True)
+#        self.lbottomRect2.set_facecolor('red')
         
         a.add_artist(self.lbottom)
-        a.add_patch(self.lbottomRect1)
-        a.add_patch(self.lbottomRect2)
-        
+#        a.add_patch(self.lbottomRect1)
+#        a.add_patch(self.lbottomRect2)
+#        
         self.canvas.draw()
         
+    def drawFitLimits(self, xall, yall):
         
+        a = self.subplots['Guinier']
+        
+        if self.lfitbottom:
+            self.lfitbottom.remove()
+            self.lfittop.remove()
+
+        x,y = a.transLimits.transform((xall[1],yall[1]))
+
+        self.lfitbottom = matplotlib.lines.Line2D([x,x], [y-0.2,y+0.2], transform=a.transAxes, linewidth = 1,
+                                                color = 'r', picker = True, alpha = 1, label = 'bottom')
+        
+        x,y = a.transLimits.transform((xall[0],yall[0]))
+
+        self.lfittop = matplotlib.lines.Line2D([x,x], [y-0.2,y+0.2], transform=a.transAxes, linewidth = 1,
+                                                color = 'r', picker = True, alpha = 0.8, label = 'top')
+        
+        
+        a.add_artist(self.lfitbottom)
+        a.add_artist(self.lfittop)
+        
+        self.canvas.draw()
+    
+    def drawError(self, x, error):
+        
+        a = self.subplots['Error']
+        
+        for each in a.get_lines():
+            each.remove()
+        
+        a.plot(x, error, 'b')
+        a.set_xlim((x[0], x[-1]))
+        a.set_ylim((error.min(), error.max()))
+#        a.set_ylim(-1, 1)
+    
+        
+    
     def drawFit(self):
     
         #fitfunc = lambda p, x: p[0] + p[1] * x
@@ -255,27 +290,54 @@ class GuinierPlotPanel(wx.Panel):
 
         yr = polyval([ar , br], x)
         
+        error = y-yr
+        
         a = self.subplots['Guinier']
         
-        #print br, ar
-        
         self.I0 = br
+        self.Rg = np.sqrt(-3*ar)
         
-        self.Rg = np.sqrt(-ar) * 3
+        newInfo = {'I0' : np.exp(self.I0),
+                   'Rg' : self.Rg,
+                   'qRg': self.Rg * np.sqrt(x[-1])}
+                                              
+        controlPanel = wx.FindWindowByName('GuinierControlPanel')
+        controlPanel.updateInfo(newInfo)
         
-        print 'qRg: ', self.Rg * np.sqrt(x[-1])
-        
-        print 'I0: ', np.exp(self.I0)
-        print 'Rg: ', self.Rg
+        #print 'qRg: ', self.Rg * np.sqrt(x[-1])
+        #print 'I0: ', np.exp(self.I0)
+        #print 'Rg: ', self.Rg
         
         xg = [0, x[0]]
         yg = [self.I0, yr[0]]
         
+        try:
+            pre = len(self.q[0:tlim])
+            post = len(self.q[blim:])
+
+            if pre >= 5 and post >=5:
+                xp = np.power(self.q[tlim-5:blim+5],2)
+                yp = np.log(self.i[tlim-5:blim+5])
+            else:
+                xp = np.power(self.q[tlim-pre:blim+5],2)
+                yp = np.log(self.i[tlim-pre:blim+5])
+    
+                
+                
+        except:
+            xp = x
+            yp = y
+        
         a.plot(xg, yg, 'r--')
         a.plot(x, yr, 'r')
-        a.plot(x, y, 'b.')
-        a.set_xlim((0, x[-1]))
-        a.set_ylim((y.min(), self.I0))
+        a.plot(xp, yp, 'b.')
+        a.set_xlim((0, xp[-1]))
+        a.set_ylim(np.min([yr.min(), yp.min()]), np.max([y.max(), self.I0]))
+        
+        self.drawFitLimits([x[0], x[-1]],
+                            [yr[0], yr[-1]])
+        
+        self.drawError(x, error)
         
         self.canvas.draw()
     
@@ -289,7 +351,6 @@ class GuinierPlotPanel(wx.Panel):
         self.fig.set_edgecolor(col)
         self.canvas.SetBackgroundColour(wx.Colour(*rgbtuple))
 
-
     def setLimits(self, limits):
         self.limits = limits
         
@@ -298,25 +359,58 @@ class GuinierControlPanel(wx.Panel):
     def __init__(self, parent, panel_id, name):
 
         wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM)
-         
-         
+          
         self.spinctrlIDs = {'qstart' : wx.NewId(),
                             'qend'   : wx.NewId()}
         
         self.staticTxtIDs = {'qstart' : wx.NewId(),
                             'qend'   : wx.NewId()}
-         
+        
+        self.infodata = {'I0' : ('I0 :', wx.NewId()),
+                         'Rg' : ('Rg :', wx.NewId()),
+                         'qRg': ('qRg :', wx.NewId())}
+ 
         controlSizer = self.createControls()
+        infoSizer = self.createInfoBox()
+        
+        bsizer = wx.BoxSizer(wx.VERTICAL)
+        
+        button = wx.Button(self, -1, 'Close')
+        button.Bind(wx.EVT_BUTTON, self.onCloseButton)
+        
+        bsizer.Add(infoSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 5)
+        bsizer.Add(controlSizer, 0, wx.EXPAND)
+        bsizer.Add(button, 0, wx.EXPAND | wx.LEFT | wx.TOP, 5)
          
-        self.SetSizer(controlSizer)
+        self.SetSizer(bsizer)
         
         self.ExpObj = None
+        
+    def onCloseButton(self, evt):
+        
+        diag = wx.FindWindowByName('GuinierDialog')
+        diag.OnClose()
+        
         
     def setCurrentExpObj(self, ExpObj):
         
         self.ExpObj = ExpObj
         self.onSpinCtrl(self.startSpin)
- 
+        
+    def createInfoBox(self):
+        
+        sizer = wx.FlexGridSizer(rows = len(self.infodata), cols = 2)
+        
+        for key in self.infodata.iterkeys():
+            
+            txt = wx.StaticText(self, -1, self.infodata[key][0])
+            ctrl = wx.TextCtrl(self, self.infodata[key][1], '0')
+            
+            sizer.Add(txt, 0)
+            sizer.Add(ctrl,0)
+             
+        return sizer
+        
     def createControls(self):
         
         sizer = wx.FlexGridSizer(rows = 1, cols = 4)
@@ -347,14 +441,7 @@ class GuinierControlPanel(wx.Panel):
         sizer.Add(self.qendTxt, 1, wx.EXPAND)
         sizer.Add(self.endSpin, 1, wx.EXPAND)
         
-        bsizer = wx.BoxSizer(wx.VERTICAL)
-        
-        button = wx.Button(self, -1, 'Close')
-        
-        bsizer.Add(sizer, 0, wx.EXPAND)
-        bsizer.Add(button, 0, wx.EXPAND | wx.LEFT | wx.TOP, 5)
-        
-        return bsizer
+        return sizer
     
     def onEnterInQlimits(self, evt):
         
@@ -449,9 +536,17 @@ class GuinierControlPanel(wx.Panel):
         
         i2 = int(spinend.GetValue())
         
-        plotpanel.drawBottomLimit(x[i2],y[i2])
+        plotpanel.drawBottomLimit(x[i2],y[i2])        
         plotpanel.setLimits([i,i2])
         plotpanel.updateGuinierPlot()
+        
+    def updateInfo(self, newInfo):
+        
+        for eachkey in newInfo.iterkeys():
+            ctrl = wx.FindWindowById(self.infodata[eachkey][1])
+            ctrl.SetValue(str(round(newInfo[eachkey],4)))
+             
+        
         
     def updateLimits(self, top = None, bottom = None):
   
@@ -475,6 +570,29 @@ class GuinierControlPanel(wx.Panel):
         spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
         
         return [int(spinstart.GetValue()), int(spinend.GetValue())]
+    
+
+class GuinierFitDialog(wx.Dialog):
+
+    def __init__(self, parent, ExpObj):
+        wx.Dialog.__init__(self, parent, -1, 'Guinier Fit', name = 'GuinierDialog', size = (800,600))
+    
+        splitter1 = wx.SplitterWindow(self, -1)
+     
+        controlPanel = GuinierControlPanel(splitter1, -1, 'GuinierControlPanel')
+        plotPanel = GuinierPlotPanel(splitter1, -1, 'GuinierPlotPanel')
+  
+        splitter1.SplitVertically(controlPanel, plotPanel, 270)
+        splitter1.SetMinimumPaneSize(50)
+    
+        plotPanel.plotExpObj(ExpObj)
+        controlPanel.setSpinLimits(ExpObj)
+        controlPanel.setCurrentExpObj(ExpObj)
+
+    def OnClose(self):
+        
+        self.Destroy()
+        
                          
 class GuinierTestFrame(wx.Frame):
     
