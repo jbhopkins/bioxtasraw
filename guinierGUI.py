@@ -533,6 +533,7 @@ class GuinierControlPanel(wx.Panel):
         
         plotpanel.drawBottomLimit(x[i2],y[i2])        
         plotpanel.setLimits([i,i2])
+        
         plotpanel.updateGuinierPlot()
         
     def updateInfo(self, newInfo):
