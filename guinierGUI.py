@@ -40,9 +40,9 @@ class GuinierPlotPanel(wx.Panel):
 #        self.canvas.mpl_connect('key_press_event', self.onKeyPressEvent)
         
         #self.toolbar = MaskingPanelToolbar(self, self.canvas)
-        subplotLabels = [('Data', 'q^2', 'ln(I(q))'), ('Guinier', 'q^2', 'ln(I(q)'), ('Error', 'q', 'I(q)')]
+        subplotLabels = [('Guinier', 'q^2', 'ln(I(q)'), ('Error', 'q', 'I(q)')]
         
-        self.fig.subplots_adjust(hspace = 0.45)
+        self.fig.subplots_adjust(hspace = 0.26)
         
         self.subplots = {}
         
@@ -85,9 +85,8 @@ class GuinierPlotPanel(wx.Panel):
             if a != None:
                 findClosest=lambda a,l:min(l,key=lambda x:abs(x-a))
             
-                
-                lx = self.subplots['Data'].get_lines()[0].get_xdata()
-                ly = self.subplots['Data'].get_lines()[0].get_ydata()
+                lx = np.power(self.q,2)
+                ly = self.i
             
                 closest = findClosest(a,lx)
             
@@ -153,14 +152,14 @@ class GuinierPlotPanel(wx.Panel):
         
         self.canvas.draw()
         
-    def _plotData(self, i, q):
-        
-        self.subplots['Data'].plot(np.power(q,2), np.log(i), 'g.')
-        self.canvas.draw()
-        
+#    def _plotData(self, i, q):
+#        
+#        self.subplots['Data'].plot(np.power(q,2), np.log(i), 'g.')
+#        self.canvas.draw()
+#        
     def plotExpObj(self, ExpObj):        
         self._plotGuinier(ExpObj.i, ExpObj.q)
-        self._plotData(ExpObj.i, ExpObj.q)
+        #self._plotData(ExpObj.i, ExpObj.q)
         
         #controlPanel = wx.FindWindowByName('GuinierControlPanel')
         #self.limits = controlPanel.getLimits() 
@@ -175,58 +174,46 @@ class GuinierPlotPanel(wx.Panel):
     
     def drawTopLimit(self, x, y):
         
-        a = self.subplots['Data']
+        a = self.subplots['Guinier']
         
         if self.ltop:
             self.ltop.remove()
-#            self.ltopRect1.remove()
-#            self.ltopRect2.remove()
-            
+        
+        #x = np.power(x,2)
+
+        y = np.log(y)
+        
+        if np.isnan(y) or np.isinf(y):
+            y = 0
+        
         x,y = a.transLimits.transform((x,y))
                 
-        #cir = Circle( (0.5, 0.5), 0.25, alpha = 0.5, picker = True, transform=a.transAxes)
-        #a.axvspan(x[30]-0.01*x[30], x[30]+0.01*x[30], facecolor='r', alpha=0.5, picker = True)
+        self.ltop = matplotlib.lines.Line2D([x,x], [y-0.2,y+0.2], transform=a.transAxes, linewidth = 1,
+                                             color = 'r', picker = 6, alpha = 1, label = 'top')
 
-        self.ltop = matplotlib.lines.Line2D([x,x], [y-0.1,y+0.1], transform=a.transAxes, linewidth = 2,
-                                             color = 'r', picker = 6, alpha = 0.8, label = 'top')
-#        
-#        self.ltopRect1 = Rectangle((x-0.0125, y+0.1), 0.025, 0.05, transform=a.transAxes, label = 'top', picker = True)
-#        self.ltopRect1.set_facecolor('red')
-#        self.ltopRect2 = Rectangle((x-0.0125, y-0.1), 0.025, 0.05, transform=a.transAxes, label = 'top', picker = True)
-#        self.ltopRect2.set_facecolor('red')
-        
         a.add_artist(self.ltop)
-#        a.add_patch(self.ltopRect1)
-#        a.add_patch(self.ltopRect2)
-#        
+
         self.canvas.draw()
 
     def drawBottomLimit(self, x, y): 
         
-        a = self.subplots['Data']
+        a = self.subplots['Guinier']
         
         if self.lbottom:
             self.lbottom.remove()
-#            self.lbottomRect1.remove()
-#            self.lbottomRect2.remove()
-#            
+                      
+        y = np.log(y)
+        
+        if np.isnan(y) or np.isinf(y):
+            y = 0
+         
         x,y = a.transLimits.transform((x,y))
 
-        #cir = Circle( (0.5, 0.5), 0.25, alpha = 0.5, picker = True, transform=a.transAxes)
-        #a.axvspan(x[30]-0.01*x[30], x[30]+0.01*x[30], facecolor='r', alpha=0.5, picker = True)
-
-        self.lbottom = matplotlib.lines.Line2D([x,x], [y-0.1,y+0.1], transform=a.transAxes, linewidth = 2,
-                                                color = 'r', picker = 6, alpha = 0.8, label = 'bottom')
-        
-#        self.lbottomRect1 = Rectangle((x-0.0125, y+0.1), 0.025, 0.05, transform=a.transAxes, label = 'bottom', picker = True)
-#        self.lbottomRect1.set_facecolor('red')
-#        self.lbottomRect2 = Rectangle((x-0.0125, y-0.1), 0.025, 0.05, transform=a.transAxes, label = 'bottom', picker = True)
-#        self.lbottomRect2.set_facecolor('red')
+        self.lbottom = matplotlib.lines.Line2D([x,x], [y-0.1,y+0.1], transform=a.transAxes, linewidth = 1,
+                                                color = 'r', picker = 6, alpha = 1, label = 'bottom')
         
         a.add_artist(self.lbottom)
-#        a.add_patch(self.lbottomRect1)
-#        a.add_patch(self.lbottomRect2)
-#        
+
         self.canvas.draw()
         
     def drawFitLimits(self, xall, yall):
@@ -240,12 +227,12 @@ class GuinierPlotPanel(wx.Panel):
         x,y = a.transLimits.transform((xall[1],yall[1]))
 
         self.lfitbottom = matplotlib.lines.Line2D([x,x], [y-0.2,y+0.2], transform=a.transAxes, linewidth = 1,
-                                                color = 'r', picker = True, alpha = 1, label = 'bottom')
+                                                color = 'r', picker = 6, alpha = 1, label = 'bottom')
         
         x,y = a.transLimits.transform((xall[0],yall[0]))
 
         self.lfittop = matplotlib.lines.Line2D([x,x], [y-0.2,y+0.2], transform=a.transAxes, linewidth = 1,
-                                                color = 'r', picker = True, alpha = 0.8, label = 'top')
+                                                color = 'r', picker = 6, alpha = 1, label = 'top')
         
         
         a.add_artist(self.lfitbottom)
@@ -325,21 +312,25 @@ class GuinierPlotPanel(wx.Panel):
             else:
                 xp = np.power(self.q[tlim-pre:blim],2)
                 yp = np.log(self.i[tlim-pre:blim])
-    
-                
-                
         except:
             xp = x
             yp = y
         
+        xfull = np.power(self.q,2)
+        yfull = np.log(self.i)
+        
+        xf = xfull[np.where(np.isnan(yfull)==False)]
+        yf = yfull[np.where(np.isnan(yfull)==False)]
+        
         a.plot(xg, yg, 'r--')
         a.plot(x, yr, 'r')
-        a.plot(xp, yp, 'b.')
-        a.set_xlim((0, xp[-1]))
-        a.set_ylim(np.min([yr.min(), yp.min()]), np.max([y.max(), self.I0]))
+        a.plot(xf,yf, 'b.')
         
-        self.drawFitLimits([x[0], x[-1]],
-                            [yr[0], yr[-1]])
+        #a.set_xlim((0, xp[-1]))
+        #a.set_ylim(np.min([yr.min(), yp.min()]), np.max([y.max(), self.I0]))
+        
+        #self.drawFitLimits([x[0], x[-1]],
+        #                    [yr[0], yr[-1]])
         
         self.drawError(x, error)
         
@@ -524,15 +515,15 @@ class GuinierControlPanel(wx.Panel):
         
     def updatePlot(self):
         plotpanel = wx.FindWindowByName('GuinierPlotPanel')
-        a = plotpanel.subplots['Data']
+        a = plotpanel.subplots['Guinier']
         
         spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
         spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
         
         i = int(spinstart.GetValue())
         
-        x = a.get_lines()[0].get_xdata()
-        y = a.get_lines()[0].get_ydata()
+        x = self.ExpObj.q
+        y = self.ExpObj.i
         
         plotpanel.drawTopLimit(x[i],y[i])
         
@@ -697,7 +688,8 @@ class GuinierTestFrame(wx.Frame):
              'ScaleCurve'            : False
              }
     
-        ExpObj, ImgDummy = fileIO.loadFile('/home/specuser/Downloads/BSUB_MVMi7_5_FULL_001_c_plot.rad')
+        #ExpObj, ImgDummy = fileIO.loadFile('/home/specuser/Downloads/BSUB_MVMi7_5_FULL_001_c_plot.rad')
+        ExpObj, ImgDummy = fileIO.loadFile('lyzexp.dat')
         
         plotPanel.plotExpObj(ExpObj)
         controlPanel.setSpinLimits(ExpObj)
