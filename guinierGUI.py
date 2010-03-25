@@ -16,7 +16,7 @@ from matplotlib.widgets import Cursor#, Slider, Button
 from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Circle, Rectangle, Polygon
 import numpy as np
-import wx
+import wx, math
 import fileIO
 from scipy import linspace, polyval, polyfit, sqrt, stats, randn
 
@@ -153,11 +153,9 @@ class GuinierPlotPanel(wx.Panel):
         
         self.canvas.draw()
         
-        
     def _plotData(self, i, q):
         
         self.subplots['Data'].plot(np.power(q,2), np.log(i), 'g.')
-        
         self.canvas.draw()
         
     def plotExpObj(self, ExpObj):        
@@ -286,6 +284,12 @@ class GuinierPlotPanel(wx.Panel):
         x = np.power(self.q[tlim:blim],2)
         y = np.log(self.i[tlim:blim])
         
+        x = x[np.where(np.isnan(y)==False)]
+        y = y[np.where(np.isnan(y)==False)]
+        
+        x = x[np.where(np.isinf(y)==False)]
+        y = y[np.where(np.isinf(y)==False)]
+               
         (ar,br) = polyfit(x,y, 1)
 
         yr = polyval([ar , br], x)
@@ -319,8 +323,8 @@ class GuinierPlotPanel(wx.Panel):
                 xp = np.power(self.q[tlim-5:blim+5],2)
                 yp = np.log(self.i[tlim-5:blim+5])
             else:
-                xp = np.power(self.q[tlim-pre:blim+5],2)
-                yp = np.log(self.i[tlim-pre:blim+5])
+                xp = np.power(self.q[tlim-pre:blim],2)
+                yp = np.log(self.i[tlim-pre:blim])
     
                 
                 
@@ -693,7 +697,7 @@ class GuinierTestFrame(wx.Frame):
              'ScaleCurve'            : False
              }
     
-        ExpObj, ImgDummy = fileIO.loadFile('lyzexp.dat')
+        ExpObj, ImgDummy = fileIO.loadFile('/home/specuser/Downloads/BSUB_MVMi7_5_FULL_001_c_plot.rad')
         
         plotPanel.plotExpObj(ExpObj)
         controlPanel.setSpinLimits(ExpObj)

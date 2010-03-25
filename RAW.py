@@ -1505,8 +1505,8 @@ class PlotPanel(wx.Panel):
                     dialog.Update(1)
             
                     self._PlotOnSelectedAxesScale(ExpObjSubbed, self.subplot2)
-                    overviewpanel = wx.FindWindowByName('OverviewPanel')
-                    overviewpanel.plotExpObj(ExpObjSubbed)
+                    #overviewpanel = wx.FindWindowByName('OverviewPanel')
+                    #overviewpanel.plotExpObj(ExpObjSubbed)
                 
                     dialog.Update(3)
             
