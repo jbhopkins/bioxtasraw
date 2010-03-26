@@ -102,13 +102,15 @@ class GuinierPlotPanel(wx.Panel):
                 controlPanel = wx.FindWindowByName('GuinierControlPanel')
             
                 if self.pickedArtist.get_label() == 'top':
-                    self.drawTopLimit(lx[idx], ly[idx])
                     controlPanel.updateLimits(top = idx)
+                    self.drawTopLimit(lx[idx], ly[idx])
+                    self.drawBottomLimit(lx[self.bottomlimit], ly[self.bottomlimit])
                     self.toplimit = idx
                     self.updateFigureLimits()
             
                 elif self.pickedArtist.get_label() == 'bottom': 
                     self.drawBottomLimit(lx[idx], ly[idx])
+                    self.drawTopLimit(lx[self.toplimit], ly[self.toplimit])
                     controlPanel.updateLimits(bottom = idx)
                     self.bottomlimit = idx
                     self.updateFigureLimits()
@@ -126,6 +128,10 @@ class GuinierPlotPanel(wx.Panel):
            
             lims = a.get_xlim()
             #self.updateGuinierPlot()
+            #if self.fitline:
+            #    self.fitline.remove()
+            
+            self.drawFit()
             a.set_xlim(lims)
 
     def onPick(self, evt):
@@ -159,6 +165,8 @@ class GuinierPlotPanel(wx.Panel):
         self.bottomlimit = botlim
         
         a.set_xlim((x[toplim], x[botlim]))
+        
+        self.canvas.draw()
             
 #            try:
 #                pre = len(self.q[0:tlim])
@@ -205,8 +213,8 @@ class GuinierPlotPanel(wx.Panel):
         
         if self.interpline:
             self.interpline.remove()
-        if self.fitline:
-            self.fitline.remove()
+            
+   
         
         #self.subplots['Guinier'].plot(guinier_q[tlim:blim], np.log(i)[tlim:blim], '.')
         self.drawFit()
@@ -312,11 +320,11 @@ class GuinierPlotPanel(wx.Panel):
             each.remove()
         
         a.plot(x, error, 'b')
+        
+        
         a.set_xlim((x[0], x[-1]))
         a.set_ylim((error.min(), error.max()))
 #        a.set_ylim(-1, 1)
-    
-        
     
     def drawFit(self):
     
@@ -332,8 +340,8 @@ class GuinierPlotPanel(wx.Panel):
         #x = self.subplots['Guinier'].get_lines()[0].get_xdata()
         #y = self.subplots['Guinier'].get_lines()[0].get_ydata()
         
-        x = np.power(self.q[tlim:blim],2)
-        y = np.log(self.i[tlim:blim])
+        x = np.power(self.q[tlim:blim+1],2)
+        y = np.log(self.i[tlim:blim+1])
         
         x = x[np.where(np.isnan(y)==False)]
         y = y[np.where(np.isnan(y)==False)]
@@ -377,9 +385,11 @@ class GuinierPlotPanel(wx.Panel):
         
         #self.updateFigureLimits()
         
-        #self.fitline = matplotlib.lines.Line2D(x, yr, linewidth = 1,
-                                       #      color = 'r', alpha = 1)
-        #a.add_artist(self.fitline)
+        if self.fitline != None:
+            self.fitline.remove()
+        
+        self.fitline = matplotlib.lines.Line2D(x, yr, linewidth = 1, color = 'r', alpha = 1)
+        a.add_artist(self.fitline)
         
         #a.plot(xf,yf, 'b.')
         
@@ -391,7 +401,7 @@ class GuinierPlotPanel(wx.Panel):
         
         self.drawError(x, error)
         
-        self.canvas.draw()
+        self.canvas.draw_idle()
     
     def SetColor(self, rgbtuple = None):
         """ Set figure and canvas colours to be the same """
@@ -405,6 +415,9 @@ class GuinierPlotPanel(wx.Panel):
 
     def setLimits(self, limits):
         self.limits = limits
+        
+        self.bottomlimit = limits[1]
+        self.toplimit = limits[0]
         
 class GuinierControlPanel(wx.Panel):
     
@@ -568,6 +581,8 @@ class GuinierControlPanel(wx.Panel):
         i = spin.GetValue()
         txt.SetValue(str(round(self.ExpObj.q[int(i)],4)))
         
+        plotpanel = wx.FindWindowByName('GuinierPlotPanel')
+        
         self.updatePlot()
         
     def updatePlot(self):
@@ -592,6 +607,12 @@ class GuinierControlPanel(wx.Panel):
         plotpanel.setLimits([i,i2])
         
         plotpanel.updateGuinierPlot()
+        
+        #self.updatePlot()
+        plotpanel.updateFigureLimits()
+        
+        plotpanel.drawBottomLimit(x[i2],y[i2])
+        plotpanel.drawTopLimit(x[i],y[i])
         
     def updateInfo(self, newInfo):
         
