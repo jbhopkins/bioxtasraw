@@ -80,6 +80,7 @@ class GuinierPlotPanel(wx.Panel):
         self.figlim = None
         self.interpline = None
         self.fitline = None
+        
         self.SetColor()
 
     def onMotionEvent(self, evt):
@@ -313,7 +314,7 @@ class GuinierPlotPanel(wx.Panel):
         self.canvas.draw()
     
     def drawError(self, x, error):
-        
+                
         a = self.subplots['Error']
         
         for each in a.get_lines():
@@ -321,10 +322,12 @@ class GuinierPlotPanel(wx.Panel):
         
         a.plot(x, error, 'b')
         
+        zeroline = np.zeros((1,len(x)))
+    
+        a.plot(x, zeroline[0], 'r')
         
         a.set_xlim((x[0], x[-1]))
         a.set_ylim((error.min(), error.max()))
-#        a.set_ylim(-1, 1)
     
     def drawFit(self):
     
@@ -355,14 +358,30 @@ class GuinierPlotPanel(wx.Panel):
         
         error = y-yr
         
+        SS_tot = np.sum(np.power(y-np.mean(y),2))
+        SS_err = np.sum(np.power(error,2))
+        rsq = 1 - SS_err / SS_tot
+        
         a = self.subplots['Guinier']
         
         self.I0 = br
         self.Rg = np.sqrt(-3*ar)
+        if np.isnan(self.Rg):
+            self.Rg = 0
+        
+        N = len(error)
+        stde = SS_err / (N-2)
+        std_slope = stde * np.sqrt( (1/N) +  (np.power(np.mean(x),2)/np.sum(np.power(x-np.mean(x),2))))
+        std_interc = stde * np.sqrt(  1 / np.sum(np.power(x-np.mean(x),2)))
         
         newInfo = {'I0' : np.exp(self.I0),
                    'Rg' : self.Rg,
-                   'qRg': self.Rg * np.sqrt(x[-1])}
+                   'qRg': self.Rg * np.sqrt(x[-1]),
+                   'rsq': rsq}
+        
+        print stde
+        print std_slope
+        print std_interc
                                               
         controlPanel = wx.FindWindowByName('GuinierControlPanel')
         controlPanel.updateInfo(newInfo)
@@ -387,18 +406,17 @@ class GuinierPlotPanel(wx.Panel):
         
         if self.fitline != None:
             self.fitline.remove()
+
         
         self.fitline = matplotlib.lines.Line2D(x, yr, linewidth = 1, color = 'r', alpha = 1)
         a.add_artist(self.fitline)
         
-        #a.plot(xf,yf, 'b.')
-        
+        self.interpline = matplotlib.lines.Line2D(xg, yg, linewidth = 1, color = 'g', linestyle = '--', alpha = 1)
+        a.add_artist(self.interpline)
+               
         #a.set_xlim((0, xp[-1]))
         #a.set_ylim(np.min([yr.min(), yp.min()]), np.max([y.max(), self.I0]))
-        
-        #self.drawFitLimits([x[0], x[-1]],
-        #                    [yr[0], yr[-1]])
-        
+                
         self.drawError(x, error)
         
         self.canvas.draw_idle()
@@ -433,7 +451,8 @@ class GuinierControlPanel(wx.Panel):
         
         self.infodata = {'I0' : ('I0 :', wx.NewId()),
                          'Rg' : ('Rg :', wx.NewId()),
-                         'qRg': ('qRg :', wx.NewId())}
+                         'qRg': ('qRg :', wx.NewId()),
+                         'rsq': ('r^2 (fit) :', wx.NewId())}
  
         controlSizer = self.createControls()
         infoSizer = self.createInfoBox()
@@ -763,8 +782,8 @@ class GuinierTestFrame(wx.Frame):
              'ScaleCurve'            : False
              }
     
-        #ExpObj, ImgDummy = fileIO.loadFile('/home/specuser/Downloads/BSUB_MVMi7_5_FULL_001_c_plot.rad')
-        ExpObj, ImgDummy = fileIO.loadFile('lyzexp.dat')
+        ExpObj, ImgDummy = fileIO.loadFile('/home/specuser/Downloads/BSUB_MVMi7_5_FULL_001_c_plot.rad')
+        #ExpObj, ImgDummy = fileIO.loadFile('lyzexp.dat')
         
         plotPanel.plotExpObj(ExpObj)
         controlPanel.setSpinLimits(ExpObj)
