@@ -407,7 +407,6 @@ class GuinierPlotPanel(wx.Panel):
         if self.fitline != None:
             self.fitline.remove()
 
-        
         self.fitline = matplotlib.lines.Line2D(x, yr, linewidth = 1, color = 'r', alpha = 1)
         a.add_artist(self.fitline)
         

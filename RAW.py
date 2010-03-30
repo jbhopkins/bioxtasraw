@@ -601,6 +601,9 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         self._MTB_SHOWBOTH = wx.NewId()
         self._MTB_SHOWTOP = wx.NewId()
         
+        self._MTB_CLR1 = wx.NewId()
+        self._MTB_CLR2 = wx.NewId()
+        
 #        self.parent.subplot1.relim()
 #        self.parent.subplot1.autoscale_view()
 #        self.parent.subplot2.relim()
@@ -617,6 +620,8 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         #loglinIconFilename = os.path.join(workdir, "ressources", "loglin.png")
         #loglogIconFilename = os.path.join(workdir, "ressources", "loglog.png")
         #linlinIconFilename = os.path.join(workdir, "ressources", "linlin.png")
+        clear1IconFilename = os.path.join(workdir, "ressources" ,"clear1white.png")
+        clear2IconFilename = os.path.join(workdir, "ressources" ,"clear2white.png")
         errbarsIconFilename = os.path.join(workdir, "ressources" ,"errbars.png")
         legendIconFilename = os.path.join(workdir, "ressources", "legend.png")
         showbothIconFilename = os.path.join(workdir, "ressources", "showboth.png")
@@ -627,6 +632,9 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         #loglin_icon = wx.Bitmap(loglinIconFilename, wx.BITMAP_TYPE_PNG)
         #loglog_icon = wx.Bitmap(loglogIconFilename, wx.BITMAP_TYPE_PNG)
         #linlin_icon = wx.Bitmap(linlinIconFilename, wx.BITMAP_TYPE_PNG)
+        
+        clear1_icon = wx.Bitmap(clear1IconFilename, wx.BITMAP_TYPE_PNG)
+        clear2_icon = wx.Bitmap(clear2IconFilename, wx.BITMAP_TYPE_PNG)
         errbars_icon = wx.Bitmap(errbarsIconFilename, wx.BITMAP_TYPE_PNG)
         legend_icon = wx.Bitmap(legendIconFilename, wx.BITMAP_TYPE_PNG)
         showboth_icon = wx.Bitmap(showbothIconFilename, wx.BITMAP_TYPE_PNG)
@@ -644,21 +652,27 @@ class MyCustomToolbar(NavigationToolbar2Wx):
 #        self.AddCheckTool(self._MTB_LOGLOG, loglog_icon)
 #        self.AddCheckTool(self._MTB_LINLIN, linlin_icon)
         self.AddSeparator()
-        self.AddCheckTool(self._MTB_ERRBARS, errbars_icon)
-        self.AddSimpleTool(self._MTB_LEGEND, legend_icon)
+        self.AddCheckTool(self._MTB_ERRBARS, errbars_icon, shortHelp='Show Errorbars')
+        self.AddSimpleTool(self._MTB_LEGEND, legend_icon, 'Adjust Legend')
         self.AddSeparator()
-        self.AddCheckTool(self._MTB_SHOWBOTH, showboth_icon)
-        self.AddCheckTool(self._MTB_SHOWTOP, showtop_icon)
-        self.AddCheckTool(self._MTB_SHOWBOTTOM, showbottom_icon)
+        self.AddCheckTool(self._MTB_SHOWBOTH, showboth_icon, shortHelp='Show Both Plots')
+        self.AddCheckTool(self._MTB_SHOWTOP, showtop_icon,  shortHelp='Show Top Plot')
+        self.AddCheckTool(self._MTB_SHOWBOTTOM, showbottom_icon, shortHelp='Show Bottom Plot')
+        self.AddSeparator()
+        self.AddSimpleTool(self._MTB_CLR1, clear1_icon, 'Clear Top Plot')
+        self.AddSimpleTool(self._MTB_CLR2, clear2_icon, 'Clear Bottom Plot')
         
 #        self.Bind(wx.EVT_TOOL, self.loglin, id = self._MTB_LOGLIN)
 #        self.Bind(wx.EVT_TOOL, self.loglog, id = self._MTB_LOGLOG)
 #        self.Bind(wx.EVT_TOOL, self.linlin, id = self._MTB_LINLIN)
+        self.Bind(wx.EVT_TOOL, self.clear1, id = self._MTB_CLR1)
+        self.Bind(wx.EVT_TOOL, self.clear2, id = self._MTB_CLR2)
         self.Bind(wx.EVT_TOOL, self.errbars, id = self._MTB_ERRBARS)
         self.Bind(wx.EVT_TOOL, self.legend, id = self._MTB_LEGEND)
         self.Bind(wx.EVT_TOOL, self.showboth, id = self._MTB_SHOWBOTH)
         self.Bind(wx.EVT_TOOL, self.showtop, id = self._MTB_SHOWTOP)
         self.Bind(wx.EVT_TOOL, self.showbottom, id = self._MTB_SHOWBOTTOM)
+        
         
         self.Realize()
         
@@ -732,6 +746,13 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         plots = (self.parent.subplot1, self.parent.subplot2)
         dialog = LegendDialog(self.parent, plots, canvas)
         dialog.ShowModal()
+        
+    def clear1(self, evt):
+        self.parent.ClearSubplot(self.parent.subplot1)
+    def clear2(self, evt):
+        
+        print 'CHECK!'
+        self.parent.ClearSubplot(self.parent.subplot2)
     
     def errbars(self, evt):
         
@@ -1942,8 +1963,27 @@ class PlotPanel(wx.Panel):
         print x
         
         self.canvas.draw()
+    
+    def ClearSubplot(self, subplot):
         
+        expsToBeRemoved = []
         
+        for i in range(0, len(self.plottedExps)):
+            if self.plottedExps[i].axes == subplot:
+                expsToBeRemoved.append(self.plottedExps[i])
+        
+        for each in expsToBeRemoved:
+            self.plottedExps.remove(each)
+
+        manipulationPage = wx.FindWindowByName('ManipulationPage')
+        manipulationPage.ClearList(expsToBeRemoved)
+        
+        subplot.cla()
+        
+        self._setLabels(axes = subplot)
+        self.canvas.draw_idle()
+        
+            
     def OnClear(self, event, clearManipItems = None):
         
         a = self.fig.gca()
@@ -1977,8 +2017,6 @@ class PlotPanel(wx.Panel):
         
         #Clear statusbar:
         wx.FindWindowByName('MainFrame').SetStatusText('')
-        
-        
         
     def onEraseBackground(self, evt):
         # this is supposed to prevent redraw flicker on some X servers...
@@ -2089,7 +2127,13 @@ class DirCtrlPanel_2(wx.Panel):
         
         wx.Panel.__init__(self, parent, id, name = 'DirCtrlPanel')
         
-        self.fileExtensionList = ['All files (*.*)', 'No Extension files (*.)', 'TIFF files (*.tiff)', 'TIF files (*.tif)', 'RAD Files (*.rad)', 'DAT files (*.dat)']
+        self.fileExtensionList = ['All files (*.*)',
+                                  'No Extension files (*.)',
+                                  'TIFF files (*.tiff)',
+                                  'TIF files (*.tif)',
+                                  'RAD Files (*.rad)',
+                                  'DAT files (*.dat)',
+                                  'TXT files (*.txt)']
         
         DirCtrlPanel_Sizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -2517,7 +2561,10 @@ class DirCtrlPanel_2(wx.Panel):
         
         self.fileListBox.Clear()
         
-        FileList.sort()
+        for each in range(0, len(FileList)):
+            FileList[each] = str(FileList[each])
+         
+        FileList.sort(key = str.lower)
         
         for each in FileList:
             self.fileListBox.Append(each)
@@ -3102,7 +3149,7 @@ class PlotPage(wx.Panel):
         
         self.buttonData = (("Average", DirPanel.OnAverage),
                            ("Plot", plotpanel.onPlotButton),
-                           ("Clear Plot", plotpanel.OnClear),
+                          # ("Clear Plot", plotpanel.OnClear),
                            ("Set Bg", DirPanel.OnSetBackgroundFile),
                            ("Save Data", DirPanel.OnSaveRad),
                            ("Sub'n'Plot", plotpanel.OnSubnPlot))
@@ -3738,6 +3785,8 @@ class ManipFilePanel(wx.Panel):
         
         self.ExpObj = ExpObj
         filename = os.path.split(ExpObj.param['filename'])[1]
+        
+        self.ExpObj.itempanel = self
 
         if ExpObj.isBifted == True:
             filename = 'BIFT_' + filename
@@ -3780,22 +3829,29 @@ class ManipFilePanel(wx.Panel):
         self.SelectedForPlot.SetValue(True)
         self.SelectedForPlot.Bind(wx.EVT_CHECKBOX, self.OnChkBox)
 
+        self.bglabel = wx.StaticText(self,-1, '    ')
+        self.bglabel.Bind(wx.EVT_LEFT_DOWN, self.OnLeftMouseClick)
+        self.bglabel.Bind(wx.EVT_RIGHT_DOWN, self.OnRightMouseClick)
+        self.bglabel.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)
+        
+
         panelsizer = wx.BoxSizer()
         panelsizer.Add(self.SelectedForPlot, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 3)
         panelsizer.Add(filenameLabel, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.RIGHT, 3)
+        panelsizer.Add(self.bglabel, 0, wx.TOP | wx.RIGHT, 2)
         
-        topsizer = wx.BoxSizer(wx.VERTICAL)
-        topsizer.Add(panelsizer, 1, wx.EXPAND)
+        self.topsizer = wx.BoxSizer(wx.VERTICAL)
+        self.topsizer.Add(panelsizer, 1, wx.EXPAND)
         
         controlSizer = wx.FlexGridSizer(cols = 4, rows = 2, vgap = 3, hgap = 7)
         
         self.CreateSimpleSpinCtrls(controlSizer)
         self.CreateFloatSpinCtrls(controlSizer)
         
-        topsizer.Add((5,5),0)
-        topsizer.Add(controlSizer, 0, wx.EXPAND | wx.LEFT | wx.BOTTOM, 3)
+        self.topsizer.Add((5,5),0)
+        self.topsizer.Add(controlSizer, 0, wx.EXPAND | wx.LEFT | wx.BOTTOM, 3)
         
-        self.SetSizer(topsizer)
+        self.SetSizer(self.topsizer)
        
         self.Selected = False     
     
@@ -3916,6 +3972,12 @@ class ManipFilePanel(wx.Panel):
         ManipulationPage = wx.FindWindowByName('ManipulationPage')
         selectedExpObjs = ManipulationPage.GetSelectedExpObjs()
         
+        iftmenu = wx.Menu()
+        iftmenu.Append(10, 'Run BIFT')
+        iftmenu.Append(11, 'Run GNOM using current Dmax')
+        iftmenu.AppendSeparator()
+        iftmenu.Append(12, 'Add to IFT list')
+        
         if len(selectedExpObjs) <= 1:
             menu.Append(1, 'Set as Background file')
             #menu.AppendSeparator()
@@ -3928,7 +3990,7 @@ class ManipFilePanel(wx.Panel):
             
         menu.AppendSeparator()
         menu.Append(5, 'Remove selected item(s)' )
-        menu.Append(3, 'Indirect Fourier Transform')
+        menu.AppendMenu(3, 'Indirect Fourier Transform', iftmenu)
         menu.AppendSeparator()
         menu.Append(8, 'Move curve to top plot')
         menu.Append(9, 'Move curve to bottom plot')
@@ -3943,11 +4005,23 @@ class ManipFilePanel(wx.Panel):
         
         global expParams
         
+        ManipulationPage = wx.FindWindowByName('ManipulationPage')
+        
         if evt.GetId() == 1:
             #Set background
             dirCtrlPanel = wx.FindWindowByName('DirCtrlPanel')
             dirCtrlPanel.SetBackgroundFile(self.ExpObj.param['filename'])
+            
+            if expParams['BackgroundFile'] != None:
+                expParams['BackgroundFile'].itempanel.bglabel.SetLabel('')
+            
             expParams['BackgroundFile'] = self.ExpObj
+
+            self.bglabel.SetLabel('BG')
+            
+            self.topsizer.Layout()
+            self.SetVirtualSize(self.GetBestVirtualSize())
+            self.Refresh()    
             
         if evt.GetId() == 3:
             #IFT
@@ -4007,11 +4081,25 @@ class ManipFilePanel(wx.Panel):
             selectedExpObjsList = ManipulationPage.GetSelectedExpObjs()
             
             ManipulationPage.MovePlots(selectedExpObjsList, plotpanel.subplot2)
+            
+        if evt.GetId() == 11:
+            analysisPage = wx.FindWindowByName('AutoAnalysisPage')
+            analysisPage.runBiftOnExperimentObject(self.ExpObj, expParams)
+            
+        if evt.GetId() == 12:
+            autoanalysis = wx.FindWindowByName('AutoAnalysisPage')
+            
+            for ExpObj in ManipulationPage.GetSelectedExpObjs(): 
+                autoanalysis.addExpObjToList(ExpObj)
+            
+            wx.CallAfter(wx.MessageBox, 'Finished adding file(s) to the IFT list', 'Finished')
              
             
     def RemoveSelf(self):
         manipulationPage = wx.FindWindowByName('ManipulationPage')
-        manipulationPage.RemoveSelectedItems()
+        
+        #Has to be callafter under Linux.. or it'll crash
+        wx.CallAfter(manipulationPage.RemoveSelectedItems)
     
     def CreateFloatSpinCtrls(self, controlSizer):
         
@@ -4400,7 +4488,7 @@ class MainFrame(wx.Frame):
         plotpage3 = PlotPanel(self.plotNB, wx.NewId(), 'BIFTPlotPanel', 2)
         #plotpage4 = overview.OverviewPanel(self.plotNB, -1, 'OverviewPanel')
 
-        self.plotNB.AddPage(plotpage1, "1D Plot")
+        self.plotNB.AddPage(plotpage1, "1D Plots")
         self.plotNB.AddPage(plotpage3, "IFT Plot")
         self.plotNB.AddPage(plotpage2, "2D Image")
         #self.plotNB.AddPage(plotpage4, "Overview")

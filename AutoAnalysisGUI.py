@@ -50,7 +50,7 @@ class BiftInfoPanel(wx.Panel):
                               ('I(0) :', parent.paramsInGui['I(0)']),
                               ('Rg :',   parent.paramsInGui['Rg']),
                               ('Dmax :', parent.paramsInGui['Dmax']),
-                              ('Alpha (log):',parent.paramsInGui['Alpha']),
+                              ('Alpha :',parent.paramsInGui['Alpha']),
                               ('Qmin :', parent.paramsInGui['Qmin']),
                               ('Qmax :', parent.paramsInGui['Qmax']))
                           
@@ -159,7 +159,7 @@ class BiftInfoPanel(wx.Panel):
             self.Enable(True)
             self.clear()
             fileId = wx.FindWindowById(self.parent.paramsInGui['Filename'][0])
-            fileId.SetLabel(ExpObj.param['filename'])
+            fileId.SetLabel(os.path.split(ExpObj.param['filename'])[1])
             
             I = wx.FindWindowById(self.parent.paramsInGui['I(0)'][0])
             I.Enable(False)
@@ -359,10 +359,10 @@ class AutoAnalysisPage(wx.Panel):
                           'AlgoChoice' : (wx.NewId(), 'listctrl')}
         
         self.buttons = (("IFT", self._OnDoBift),
-                        ("Load", self._OnLoadFile),
-                        ("Options", self._OnOptions),
-                        ("Clear Plot", self._OnClearAll),
                         ("Solve", self._OnManual),
+                        ("Options", self._OnOptions),
+                        ("Load", self._OnLoadFile),
+                        ("Save", self._OnSave),
                         ("Clear List", self._OnClearList))
         
         # /* INSERT WIDGETS */ 
@@ -400,9 +400,9 @@ class AutoAnalysisPage(wx.Panel):
         self.combobox.Bind(wx.EVT_COMBOBOX, self._onAlgoSelect)
         self.combobox.SetStringSelection(self.expParams['IFTAlgoChoice'])
 
-        txt = wx.StaticText(self, -1, 'Algorithm :')
+        txt = wx.StaticText(self, -1, 'Current Algorithm :')
         
-        sizer.Add((2,2), wx.EXPAND)
+        sizer.Add((2,2),0, wx.EXPAND)
         sizer.Add(txt, 0, wx.EXPAND | wx.RIGHT | wx.TOP, 3)
         sizer.Add(self.combobox, 0, wx.EXPAND)
         sizer.Add((2,2), wx.EXPAND)
@@ -416,8 +416,10 @@ class AutoAnalysisPage(wx.Panel):
         
         #Hm.. evt.GetClientData() seems to be broken
         num = self.filelist.GetSelections()
-        Data = self.filelist.GetClientData(num[0])
-        self.infoBox.updateInfo(Data)
+        
+        if len(num) != 0:
+            Data = self.filelist.GetClientData(num[0])
+            self.infoBox.updateInfo(Data)
     
     def _OnListBoxKeyEvent(self, evt):
         
@@ -439,9 +441,15 @@ class AutoAnalysisPage(wx.Panel):
                     self.infoBox.clear()
                     
     def _OnClearList(self, evt):
-        self.filelist.Clear()
-        self.infoBox.clear()
-        self.infoBox.Enable(False)
+        
+        dial = wx.MessageDialog(None, 'Are you sure you want to clear the list?', 'Question', 
+            wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        answer = dial.ShowModal()
+        
+        if answer == wx.ID_YES:
+            self.filelist.Clear()
+            self.infoBox.clear()
+            self.infoBox.Enable(False)
         
     def _OnManual(self, evt):
         ''' Solve button '''
@@ -498,8 +506,10 @@ class AutoAnalysisPage(wx.Panel):
         plotpage = wx.FindWindowByName('BIFTPlotPanel')
         plotpage.OnClear(0)
         
-    def _OnOptions(self, evt):
+    def _OnSave(self, evt):
+        pass
         
+    def _OnOptions(self, evt):
         mainframe = wx.FindWindowByName('MainFrame')
         mainframe.ShowOptionsDialog(3)    # Index 1 = BIFT page
     
@@ -517,20 +527,36 @@ class AutoAnalysisPage(wx.Panel):
         
         calculationThread = BiftCalculationThread(self, expList)
         calculationThread.start()
+        
+    def addExpObjToList(self, ExpObj):
+        
+        
+        noPathfilename = os.path.split(ExpObj.param['filename'])[1]
+        
+        for idx in range(0, self.filelist.GetCount()):
+             E = self.filelist.GetClientData(idx)
+             
+             if ExpObj == E[0]:
+                 wx.CallAfter(wx.MessageBox, 'File: ' + noPathfilename + ' already exists in the IFT list.', 'File exists')
+                 return
+         
+        self.filelist.Insert(noPathfilename, 0,  [ExpObj])                
+        self.filelist.DeselectAll()    
+        self.filelist.SetSelection(0)
+        self.infoBox.updateInfo([ExpObj])
     
     def addBiftObjToList(self, ExpObj, BiftObj):
          
-         print 'HELLO'
          for idx in range(0, self.filelist.GetCount()):
              E = self.filelist.GetClientData(idx)
-             print E
              
              if ExpObj == E[0]:
                  self.filelist.SetClientData(idx, [ExpObj, BiftObj])
                  self.infoBox.updateInfo([ExpObj, BiftObj])
                  return
-                  
-         self.filelist.Insert(BiftObj.param['filename'], 0, [ExpObj, BiftObj])
+         
+         filename = os.path.split(BiftObj.param['filename'])[1]
+         self.filelist.Insert(filename, 0, [ExpObj, BiftObj])
          self.filelist.DeselectAll()
          self.filelist.SetSelection(0)
          self.infoBox.updateInfo([ExpObj, BiftObj])
@@ -569,7 +595,6 @@ class AutoAnalysisPage(wx.Panel):
             self.filelist.SetSelection(0)
             self.infoBox.updateInfo([ExpObj])
             
-            print self.filelist.GetSelections()
 #            if ExpObj.type == 'bift':
 #                self.infoBox.Enable(True)
 #            else:

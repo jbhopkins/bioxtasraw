@@ -583,8 +583,11 @@ class CalibrationOptionsPage(wx.Panel):
         
         if chkboxID == self.expParamsInGUI['Calibrate'][0]:
             calibChkBox = wx.FindWindowById(self.expParamsInGUI['Calibrate'][0])
-            wavelength  = self.expParams['WaveLength']
-            pixelsize   = self.expParams['DetectorPixelSize']
+#            wavelength  = self.expParams['WaveLength']
+#            pixelsize   = self.expParams['DetectorPixelSize']
+            
+            wavelength = float(wx.FindWindowById(self.expParamsInGUI['WaveLength'][0]).GetValue().replace(',','.'))
+            pixelsize   = float(wx.FindWindowById(self.expParamsInGUI['DetectorPixelSize'][0]).GetValue().replace(',','.'))          
             
             if wavelength != 0 and pixelsize != 0:
                 pass
@@ -1401,7 +1404,6 @@ class OptionsDialog(wx.Dialog):
         if autobgsubChkbox.GetValue() == True and patternTxtCtrl.GetValue() == '':
             wx.MessageBox('You need to specify a background filename pattern\n to do automatic background subtraction', 'Warning!', wx.OK | wx.ICON_EXCLAMATION)
             return True
-        
         else:
             return False
         

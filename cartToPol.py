@@ -941,6 +941,8 @@ class Measurement:
         self.axes = None
         self.canvas = None
         self.plotPanel = None
+        
+        self.itempanel = None
     
     def getFileType(self):
         return self.filetype
