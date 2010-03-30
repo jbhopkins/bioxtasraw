@@ -3990,6 +3990,7 @@ class ManipFilePanel(wx.Panel):
             
         menu.AppendSeparator()
         menu.Append(5, 'Remove selected item(s)' )
+        menu.Append(10, 'Guinier fit...')
         menu.AppendMenu(3, 'Indirect Fourier Transform', iftmenu)
         menu.AppendSeparator()
         menu.Append(8, 'Move curve to top plot')
@@ -4082,6 +4083,14 @@ class ManipFilePanel(wx.Panel):
             
             ManipulationPage.MovePlots(selectedExpObjsList, plotpanel.subplot2)
             
+        if evt.GetId() == 10:
+            Mainframe = wx.FindWindowByName('MainFrame')
+            ManipulationPage = wx.FindWindowByName('ManipulationPage')
+            selectedExpObjsList = ManipulationPage.GetSelectedExpObjs()
+            
+            ExpObj = selectedExpObjsList[0]
+            Mainframe.ShowGuinierFitFrame(ExpObj)
+            
         if evt.GetId() == 11:
             analysisPage = wx.FindWindowByName('AutoAnalysisPage')
             analysisPage.runBiftOnExperimentObject(self.ExpObj, expParams)
@@ -4093,7 +4102,18 @@ class ManipFilePanel(wx.Panel):
                 autoanalysis.addExpObjToList(ExpObj)
             
             wx.CallAfter(wx.MessageBox, 'Finished adding file(s) to the IFT list', 'Finished')
-             
+            
+        if evt.GetId() == 11:
+            analysisPage = wx.FindWindowByName('AutoAnalysisPage')
+            analysisPage.runBiftOnExperimentObject(self.ExpObj, expParams)
+            
+        if evt.GetId() == 12:
+            autoanalysis = wx.FindWindowByName('AutoAnalysisPage')
+            
+            for ExpObj in ManipulationPage.GetSelectedExpObjs(): 
+                autoanalysis.addExpObjToList(ExpObj)
+            
+            wx.CallAfter(wx.MessageBox, 'Finished adding file(s) to the IFT list', 'Finished')
             
     def RemoveSelf(self):
         manipulationPage = wx.FindWindowByName('ManipulationPage')
@@ -4560,6 +4580,8 @@ class MainFrame(wx.Frame):
         
         self.CreateMenuBar()
         
+        self.guinierframe = None
+        
     def LoadCfg(self):
         
         try:
@@ -4822,21 +4844,32 @@ class MainFrame(wx.Frame):
     
     def GetTreatments(self):
         return getTreatmentParameters()
-
+    
+    def ShowGuinierFitFrame(self, ExpObj):
+        
+        if not self.guinierframe:
+            self.guinierframe = guinierGUI.GuinierTestFrame(self, 'Guinier Fit', ExpObj)
+            self.guinierframe.SetIcon(self.GetIcon())
+            self.guinierframe.Show(True)
+        else:
+            self.guinierframe.SetFocus()
+            self.guinierframe.Raise()
+            self.guinierframe.RequestUserAttention()
+        
     def OnFunctionMenu(self, evt):
         
         id = evt.GetId()
         
         if id == self.MenuIDs['guinierfit']:
             
-            
             manippage = wx.FindWindowByName('ManipulationPage')
             ExpObj = manippage.GetSelectedExpObjs()[0]
             
-            dialog = guinierGUI.GuinierFitDialog(self, ExpObj)
-            dialog.ShowModal()
+            self.ShowGuinierFitFrame(ExpObj)
             
-            dialog.Destroy()
+            #dialog = guinierGUI.GuinierFitDialog(self, ExpObj)
+            #dialog.ShowModal()  
+            #dialog.Destroy()
             
 
     def OnViewMenu(self, evt):
