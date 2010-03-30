@@ -374,15 +374,16 @@ class GuinierPlotPanel(wx.Panel):
         std_slope = stde * np.sqrt( (1/N) +  (np.power(np.mean(x),2)/np.sum(np.power(x-np.mean(x),2))))
         std_interc = stde * np.sqrt(  1 / np.sum(np.power(x-np.mean(x),2)))
         
-        newInfo = {'I0' : np.exp(self.I0),
-                   'Rg' : self.Rg,
+        if np.isnan(std_slope):
+            std_slope = -1
+        if np.isnan(std_interc):
+            std_interc = -1
+        
+        newInfo = {'I0' : (np.exp(self.I0), std_interc),
+                   'Rg' : (self.Rg, std_slope),
                    'qRg': self.Rg * np.sqrt(x[-1]),
                    'rsq': rsq}
-        
-        print stde
-        print std_slope
-        print std_interc
-                                              
+                                                      
         controlPanel = wx.FindWindowByName('GuinierControlPanel')
         controlPanel.updateInfo(newInfo)
         
@@ -440,7 +441,7 @@ class GuinierControlPanel(wx.Panel):
     
     def __init__(self, parent, panel_id, name):
 
-        wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM)
+        wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
           
         self.spinctrlIDs = {'qstart' : wx.NewId(),
                             'qend'   : wx.NewId()}
@@ -448,10 +449,11 @@ class GuinierControlPanel(wx.Panel):
         self.staticTxtIDs = {'qstart' : wx.NewId(),
                             'qend'   : wx.NewId()}
         
-        self.infodata = {'I0' : ('I0 :', wx.NewId()),
-                         'Rg' : ('Rg :', wx.NewId()),
+        self.infodata = {'I0' : ('I0 :', wx.NewId(), wx.NewId()),
+                         'Rg' : ('Rg :', wx.NewId(), wx.NewId()),
                          'qRg': ('qRg :', wx.NewId()),
                          'rsq': ('r^2 (fit) :', wx.NewId())}
+        
  
         controlSizer = self.createControls()
         infoSizer = self.createInfoBox()
@@ -461,9 +463,18 @@ class GuinierControlPanel(wx.Panel):
         button = wx.Button(self, -1, 'Close')
         button.Bind(wx.EVT_BUTTON, self.onCloseButton)
         
-        bsizer.Add(infoSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 5)
-        bsizer.Add(controlSizer, 0, wx.EXPAND)
-        bsizer.Add(button, 0, wx.EXPAND | wx.LEFT | wx.TOP, 5)
+        
+        box = wx.StaticBox(self, -1, 'Parameters')
+        boxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        boxSizer.Add(infoSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 5)
+        
+        box2 = wx.StaticBox(self, -1, 'Control')
+        boxSizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
+        boxSizer2.Add(controlSizer, 0, wx.EXPAND)
+        
+        bsizer.Add(boxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
+        bsizer.Add(boxSizer2, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
+        bsizer.Add(button, 0, wx.EXPAND | wx.LEFT | wx.RIGHT| wx.TOP, 5)
          
         self.SetSizer(bsizer)
         
@@ -471,7 +482,7 @@ class GuinierControlPanel(wx.Panel):
         
     def onCloseButton(self, evt):
         
-        diag = wx.FindWindowByName('GuinierDialog')
+        diag = wx.FindWindowByName('GuinierFrame')
         diag.OnClose()
         
         
@@ -486,11 +497,25 @@ class GuinierControlPanel(wx.Panel):
         
         for key in self.infodata.iterkeys():
             
-            txt = wx.StaticText(self, -1, self.infodata[key][0])
-            ctrl = wx.TextCtrl(self, self.infodata[key][1], '0')
-            
-            sizer.Add(txt, 0)
-            sizer.Add(ctrl,0)
+            if len(self.infodata[key]) == 2:
+                txt = wx.StaticText(self, -1, self.infodata[key][0])
+                ctrl = wx.TextCtrl(self, self.infodata[key][1], '0')
+                sizer.Add(txt, 0)
+                sizer.Add(ctrl,0)
+            else:
+                txt = wx.StaticText(self, -1, self.infodata[key][0])
+                ctrl1 = wx.TextCtrl(self, self.infodata[key][1], '0')      
+                ctrl2 = wx.TextCtrl(self, self.infodata[key][2], '0', size = (60,21))
+                txtpm = wx.StaticText(self, -1, u"\u00B1")
+                
+                
+                bsizer = wx.BoxSizer()
+                bsizer.Add(ctrl1,0,wx.EXPAND)
+                bsizer.Add(txtpm,0, wx.LEFT | wx.TOP, 3)
+                bsizer.Add(ctrl2,0,wx.EXPAND | wx.LEFT, 3)
+                
+                sizer.Add(txt,0)
+                sizer.Add(bsizer,0)
              
         return sizer
         
@@ -635,8 +660,16 @@ class GuinierControlPanel(wx.Panel):
     def updateInfo(self, newInfo):
         
         for eachkey in newInfo.iterkeys():
-            ctrl = wx.FindWindowById(self.infodata[eachkey][1])
-            ctrl.SetValue(str(round(newInfo[eachkey],5)))
+            
+            if len(self.infodata[eachkey]) == 2: 
+                ctrl = wx.FindWindowById(self.infodata[eachkey][1])
+                ctrl.SetValue(str(round(newInfo[eachkey],5)))
+            else:
+                ctrl = wx.FindWindowById(self.infodata[eachkey][1])
+                ctrl.SetValue(str(round(newInfo[eachkey][0],5)))
+                
+                ctrlerr = wx.FindWindowById(self.infodata[eachkey][2])
+                ctrlerr.SetValue(str(round(newInfo[eachkey][1],5)))
              
     def updateLimits(self, top = None, bottom = None):
   
@@ -684,8 +717,12 @@ class GuinierFitDialog(wx.Dialog):
                          
 class GuinierTestFrame(wx.Frame):
     
-    def __init__(self, title, frame_id):
-        wx.Frame.__init__(self, None, frame_id, title, name = 'TestFrame')
+    def __init__(self, parent, title, ExpObj):
+        
+        try:
+            wx.Frame.__init__(self, parent, -1, title, name = 'GuinierFrame', size = (800,600))
+        except:
+            wx.Frame.__init__(self, None, -1, title, name = 'GuinierFrame', size = (800,600))
         
         splitter1 = wx.SplitterWindow(self, -1)
                 
@@ -698,111 +735,35 @@ class GuinierTestFrame(wx.Frame):
         self.statusbar = self.CreateStatusBar()
         self.statusbar.SetFieldsCount(1)
         #self.statusbar.SetStatusWidths([-3, -2])
-                
-        expParams = {
-             'NormalizeConst'    : 1.0,
-             'NormalizeConstChk' : False,
-             'NormalizeM2'       : False,
-             'NormalizeTime'     : False,
-             'NormalizeM1'       : False, 
-             'NormalizeAbs'      : False,
-             'NormalizeTrans'    : False,
-             'Calibrate'         : False,         # Calibrate AgBe
-             'CalibrateMan'      : False,        # Calibrate manual (wavelength / distance)
-             'AutoBgSubtract'    : False,
-             'AutoBIFT'          : False,
-             
-             #CENTER / BINNING
-             'Binsize'    : 2,
-             'Xcenter'    : 556.0,
-             'Ycenter'    : 544.0,
-             'QrangeLow'  : 25,
-             'QrangeHigh' : 9999,
-             'PixelCalX'  : 200,
-             'PixelCalY'  : 200,
-             
-             #MASKING
-             'SampleFile'              : None,
-             'BackgroundFile'          : None,
-             'BeamStopMask'            : None,
-             'BeamStopMaskFilename'    : None,
-             'BeamStopMaskParams'      : None,
-             'ReadOutNoiseMask'        : None,
-             'ReadOutNoiseMaskFilename': None,
-             'ReadOutNoiseMaskParams'  : None,
-             'WaterFile'               : None,
-             'EmptyFile'               : None,
-             'FlatFieldFile'           : None,
-             
-             #Q-CALIBRATION
-             'WaveLength'          : 0.0,
-             'SampleDistance'      : 0.0,
-             'SampleThickness'     : 0.0,
-             'BgPatternType'       : 'contain',
-             'BgPatternValue'      : '',
-             'ReferenceQ'          : 0.0,
-             'ReferenceDistPixel'  : 0,
-             'ReferenceDistMm'     : 0.0,
-             'DetectorPixelSize'   : 0.0,
-             'SmpDetectOffsetDist' : 0.0,
-             'WaterAvgMinPoint'    : 30,
-             'WaterAvgMaxPoint'    : 500,
-             
-             #DEFAULT BIFT PARAMETERS
-             'maxDmax'     : 400.0,
-             'minDmax'     : 10.0,
-             'DmaxPoints'  : 10,
-             'maxAlpha'    : 1e10,
-             'minAlpha'    : 150.0,
-             'AlphaPoints' : 16,
-             'PrPoints'    : 50,
-             
-             #ARTIFACT REMOVAL:
-             'ZingerRemoval'     : False,
-             'ZingerRemoveSTD'   : 4,
-             'ZingerRemoveWinLen': 10,
-             'ZingerRemoveIdx'   : 10,
-             
-             'ZingerRemovalAvgStd'  : 8,
-             'ZingerRemovalAvg'     : False,
-             
-             #SAVE DIRECTORIES
-             'ReducedFilePath'      : ' ',
-             'AutoSaveOnImageFiles' : False,
-             'AutoSaveOnAvgFiles'   : False,
-             
-             #IMAGE FORMATS
-             #See advancedOptionsGUI ['Quantum 210, CHESS', 'MarCCD 165, MaxLab', 'Medoptics, CHESS', 'FLICAM, CHESS']
-             'ImageFormat'          : 'Quantum 210, CHESS',
-                 
-             'CurveOffsetVal'        : 0.0,
-             'OffsetCurve'           : False,
-             'CurveScaleVal'         : 1.0,
-             'ScaleCurve'            : False
-             }
-    
-        ExpObj, ImgDummy = fileIO.loadFile('/home/specuser/Downloads/BSUB_MVMi7_5_FULL_001_c_plot.rad')
-        #ExpObj, ImgDummy = fileIO.loadFile('lyzexp.dat')
-        
+
         plotPanel.plotExpObj(ExpObj)
         controlPanel.setSpinLimits(ExpObj)
         controlPanel.setCurrentExpObj(ExpObj)
-  
+        
+        self.CenterOnScreen()
     
     def SetStatusText(self, text, slot = 0):
         
         self.statusbar.SetStatusText(text, slot)
-
+        
+    def OnClose(self):
+        
+        self.Destroy()
+        
 class OverviewTestApp(wx.App):
     
     def OnInit(self):
         
-        frame = GuinierTestFrame('Guinier Fit', -1)
+        #ExpObj, ImgDummy = fileIO.loadFile('/home/specuser/Downloads/BSUB_MVMi7_5_FULL_001_c_plot.rad')
+        
+        ExpObj, ImgDummy = fileIO.loadFile('lyzexp.dat')
+        
+        
+        frame = GuinierTestFrame(self, 'Guinier Fit', ExpObj)
         self.SetTopWindow(frame)
         frame.SetSize((800,600))
         frame.CenterOnScreen()
         frame.Show(True)
-        
         return True
         
 if __name__ == "__main__":
