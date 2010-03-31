@@ -559,6 +559,9 @@ def averageMeasurements(ExpList, expParams):
         AvgExpObj.i_raw = AvgExpObj.i.copy()
         AvgExpObj.errorbars_raw = AvgExpObj.errorbars.copy()
         
+        path_file = os.path.split(AvgExpObj.param['filename'])
+        AvgExpObj.param['filename'] = os.path.join(path_file[0], 'AVG_' + path_file[1])
+        
         return AvgExpObj
     
     else:
@@ -571,25 +574,14 @@ def averageMeasurements(ExpList, expParams):
             E_all = vstack((E_all, ExpList[i].errorbars))
         
         avg = mean(I_all, 0)
-        
-        #err = mean(E_all, 0)
-        
+                
         err = sqrt(sum(power(E_all,2),0))/ len(E_all)
         
         CopyExpObj = ExpList[0]
         AvgExpObj = RadFileMeasurement(avg, CopyExpObj.q.copy(), err, CopyExpObj.param.copy())
     
-#        AvgExpObj.i = AvgExpObj.i / noOfFiles
-#        AvgExpObj.errorbars = AvgExpObj.errorbars / noOfFiles
-#    
-#        print 'size = ', str(len(AvgExpObj.i))    
-#        print 'size2 = ', str(len(ExpList[idx].i))
-#        
-#        AvgExpObj.i = AvgExpObj.i + ((1/noOfFiles) * ExpList[idx].i)
-#        AvgExpObj.errorbars = AvgExpObj.errorbars + ((1/noOfFiles) * ExpList[idx].errorbars)
-#    
-#        AvgExpObj.i_raw = AvgExpObj.i.copy()
-#        AvgExpObj.errorbars_raw = AvgExpObj.errorbars.copy()
+        path_file = os.path.split(AvgExpObj.param['filename'])
+        AvgExpObj.param['filename'] = os.path.join(path_file[0], 'AVG_' + path_file[1])
     
         return AvgExpObj
 

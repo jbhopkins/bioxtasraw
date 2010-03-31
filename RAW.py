@@ -4089,9 +4089,6 @@ class ManipFilePanel(wx.Panel):
             #check boundaries, Average and plot 
             selectedExpObjsList = ManipulationPage.GetSelectedExpObjs()
             AvgExpObj = cartToPol.averageMeasurements(selectedExpObjsList, expParams)
-            path_file = os.path.split(AvgExpObj.param['filename'])
-            AvgExpObj.param['filename'] = path_file[0] + 'AVG_' + path_file[1]
-            
             plotpanel.PlotExperimentObject(AvgExpObj, axes = plotpanel.subplot1)
             
         if evt.GetId() == 7:

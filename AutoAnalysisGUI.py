@@ -311,14 +311,21 @@ class BiftCalculationThread(threading.Thread):
                                   self._parent.expParams['maxDmax'],
                                   self._parent.expParams['minDmax'],
                                   self._parent.expParams['DmaxPoints'])
+        
+        fullFilename = BiftObj.param['filename']
+        
+        path = os.path.split(fullFilename)[0]
+        filename = os.path.split(fullFilename)[1]
+        
+        BiftObj.param['filename'] = os.path.join(path, 'IFT_' + filename)     
             
         return BiftObj
         
     def getGNOM(self, ExpObj, dmax):
             
-        I = ExpObj.i
-        q = ExpObj.q
-        sigma = ExpObj.errorbars
+        I = ExpObj.i.copy()
+        q = ExpObj.q.copy()
+        sigma = ExpObj.errorbars.copy()
                         
         WCA_Params = [[self._parent.expParams['DISCRPweight'], 0.3, 0.7],
                       [self._parent.expParams['OSCILLweight'], 0.6, 1.1],
@@ -337,7 +344,14 @@ class BiftCalculationThread(threading.Thread):
                                                self._parent.expParams['gnomAlphaPoints'],
                                                WCA_Params, forceInitZero)
             
-        IFTObj = cartToPol.BIFTMeasurement(transpose(Pr), r, ones((len(transpose(Pr)),1)), ExpObj.param, Fit, info)
+        IFTObj = cartToPol.BIFTMeasurement(transpose(Pr), r, ones((len(transpose(Pr)),1)), ExpObj.param.copy(), Fit, info)
+        
+        fullFilename = IFTObj.param['filename']
+        
+        path = os.path.split(fullFilename)[0]
+        filename = os.path.split(fullFilename)[1]
+        
+        IFTObj.param['filename'] = os.path.join(path, 'IFT_' + filename)     
             
         return IFTObj
 
