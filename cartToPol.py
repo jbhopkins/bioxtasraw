@@ -821,7 +821,7 @@ def subtractMeasurement(ExpObjSample, ExpObjBackgrnd):
     q = ExpObjSample.q
         
     errorbars = sqrt( power(ExpObjSample.errorbars,2) + power(ExpObjBackgrnd.errorbars,2) )
-    param = ExpObjSample.param
+    param = ExpObjSample.param.copy()
         
     # Set subtracted flag
     SubtractedExpObj = RadFileMeasurement(i, q, errorbars, param)

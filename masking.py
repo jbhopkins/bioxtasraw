@@ -1368,6 +1368,10 @@ class MaskingPanel(wx.Panel):
                     
                 if options:
                     options.LoadBeamStopMask(file)
+                    
+    def clearFigure(self):
+        self.fig.gca().set_visible(False)
+        self.canvas.draw()
             
     def onClear(self):
         

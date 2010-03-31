@@ -25,7 +25,7 @@ class GuinierPlotPanel(wx.Panel):
     
     def __init__(self, parent, panel_id, name, wxEmbedded = False):
         
-        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM)
+        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
         
         self.i = None
         self.q = None

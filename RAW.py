@@ -359,6 +359,7 @@ class BgSubPlotWorkerThread(threading.Thread):
                 ###################### Sample File Label Update: ###############
                 #sampleFilenameTxt = wx.FindWindowById(SAMPLEFILENAME_ID)
                 noPathSampleFilename = os.path.split(eachSelectedFile)[1]
+                fullPathSample = os.path.split(eachSelectedFile)[0]
                 #sampleFilenameTxt.SetLabel(noPathSampleFilename) 
                 ################################################################
                 noPathBackgrndFilename = os.path.split(bgfilename)[1]
@@ -368,7 +369,11 @@ class BgSubPlotWorkerThread(threading.Thread):
                 if len(ExpObjSample.i) == len(ExpObjBackgrnd.i):
 #                    ExpObjSample = ExpObjSample.subtract(ExpObjBackgrnd)
                     ExpObjSample = cartToPol.subtractMeasurement(ExpObjSample, ExpObjBackgrnd)
-            
+                    
+                    
+                    ExpObjSample.param['filename'] = os.path.join(fullPathSample, 'BSUB_' + noPathSampleFilename)
+                    
+                    
                     wx.CallAfter(plotpanel._PlotOnSelectedAxesScale, ExpObjSample, axes = self._parent.subplot2)
                     wx.CallAfter(plotpanel._setLabels, ExpObjSample, title = 'Background Subtracted Data', axes = self._parent.subplot2)
                     wx.CallAfter(plotpanel._insertLegend, eachSelectedFile, axes = self._parent.subplot2)
@@ -1517,11 +1522,14 @@ class PlotPanel(wx.Panel):
             dialog = wx.ProgressDialog('Subtracting..', 'Subtracting Background', 7, self, wx.PD_APP_MODAL | wx.PD_AUTO_HIDE)
             
             for eachExpObjSample in ExpObjList:
+                fullpath = os.path.split(eachExpObjSample.param['filename'])[0]
                 noPathSampleFilename = os.path.split(eachExpObjSample.param['filename'])[1]
                 
                 if len(eachExpObjSample.i) == len(ExpObjBackgrnd.i):
                     
                     ExpObjSubbed = cartToPol.subtractMeasurement(eachExpObjSample, ExpObjBackgrnd)
+                    
+                    ExpObjSubbed.param['filename'] = os.path.join(fullpath, 'BSUB_' + noPathSampleFilename) 
                     
                     dialog.Update(1)
             
@@ -1706,7 +1714,15 @@ class PlotPanel(wx.Panel):
         if title == None:
               
             if self.name == 'BIFTPlotPanel':
-                a.set_title('IFT plot')
+                
+                if a == self.subplot1:
+                    a.set_title('Indirect Fourier Transform')
+                    a.set_ylabel('P(r)')
+                    a.set_xlabel('r [A]')
+                elif a == self.subplot2:
+                    a.set_title('Fit')
+                    a.set_ylabel('I(q)')
+                    a.set_xlabel('q [1/A]')
             else:
                     
                 if a == self.subplot1:
@@ -1984,7 +2000,17 @@ class PlotPanel(wx.Panel):
         self.canvas.draw_idle()
         
             
-    def OnClear(self, event, clearManipItems = None):
+    def OnClearAll(self, event, clearManipItems = None):
+        
+        global expParams
+        
+        if self.name == 'PlotPanel':
+            dial = wx.MessageDialog(None, 'Are you sure you want to clear everything?', 'Question', 
+                                    wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+            answer = dial.ShowModal()
+        
+            if answer == wx.ID_NO:
+                return
         
         a = self.fig.gca()
         
@@ -2010,13 +2036,26 @@ class PlotPanel(wx.Panel):
         
         self.plotparams['axesscale'] = 'linlin'
         
-        self.InitLabels()
+        self._setLabels(axes = self.subplot1)
+        self._setLabels(axes = self.subplot2)
         
         #Update canvas:
         self.canvas.draw()
         
         #Clear statusbar:
         wx.FindWindowByName('MainFrame').SetStatusText('')
+        
+        if self.name == 'PlotPanel':
+            biftpanel = wx.FindWindowByName('BIFTPlotPanel')
+            biftpanel.OnClearAll(0)
+            
+            autoanalysis = wx.FindWindowByName('AutoAnalysisPage')
+            autoanalysis.ClearList()
+            
+            maskpanel = wx.FindWindowByName('RawPlotPanel')
+            maskpanel.clearFigure()
+        
+        expParams['BackgroundFile'] = None
         
     def onEraseBackground(self, evt):
         # this is supposed to prevent redraw flicker on some X servers...
@@ -2451,27 +2490,27 @@ class DirCtrlPanel_2(wx.Panel):
             self.GetListOfFiles()
             self.FilterFileListAndUpdateListBox()
             
-    def SaveSingleRadFileAs(self, ExpObj):
-        
-        fullPathFilename = ExpObj.param['filename']
-        radFilename = fileIO.filenameWithoutExtension(ExpObj) + '.rad'
-        
-        if ExpObj.isBifted == True:
-                radFilename = 'BIFT_' + radFilename
-        elif ExpObj.isBgSubbed == True:
-                radFilename = 'BSUB_' + radFilename
-        
-        dialog = wx.FileDialog( None, style = wx.FD_SAVE | wx.OVERWRITE_PROMPT)  
-        dialog.SetFilename(radFilename)
-            
-        if dialog.ShowModal() == wx.ID_OK:
-            file = dialog.GetPath()
-            ExpObj.param['filename'] = file
-                
-            fileIO.saveMeasurement(ExpObj, NoChange = True) 
-            # Destroy the dialog
-            
-        dialog.Destroy()
+#    def SaveSingleRadFileAs(self, ExpObj):
+#        
+#        fullPathFilename = ExpObj.param['filename']
+#        radFilename = fileIO.filenameWithoutExtension(ExpObj) + '.rad'
+#        
+##        if ExpObj.isBifted == True:
+##                radFilename = 'BIFT_' + radFilename
+##        elif ExpObj.isBgSubbed == True:
+##                radFilename = 'BSUB_' + radFilename
+#        
+#        dialog = wx.FileDialog( None, style = wx.FD_SAVE | wx.OVERWRITE_PROMPT)  
+#        dialog.SetFilename(radFilename)
+#            
+#        if dialog.ShowModal() == wx.ID_OK:
+#            file = dialog.GetPath()
+#            ExpObj.param['filename'] = file
+#                
+#            fileIO.saveMeasurement(ExpObj, NoChange = True) 
+#            # Destroy the dialog
+#            
+#        dialog.Destroy()
         
     def SaveSingleRadFile(self, ExpObj):
         
@@ -2486,11 +2525,11 @@ class DirCtrlPanel_2(wx.Panel):
             fullPathFilename = ExpObj.param['filename']
                 
             radFilename = fileIO.filenameWithoutExtension(ExpObj) + '.rad'
-
-            if ExpObj.isBifted == True:
-                radFilename = 'BIFT_' + radFilename
-            elif ExpObj.isBgSubbed == True:
-                radFilename = 'BSUB_' + radFilename
+#
+#            if ExpObj.isBifted == True:
+#                radFilename = 'BIFT_' + radFilename
+#            elif ExpObj.isBgSubbed == True:
+#                radFilename = 'BSUB_' + radFilename
                 
             full_path_filename = ExpObj.param['filename']
             filePath = os.path.split(full_path_filename)[0]
@@ -2511,9 +2550,6 @@ class DirCtrlPanel_2(wx.Panel):
             # Destroy the dialog
             dialog.Destroy()
 
-            
-            
-            
 #            if fileExists and overwriteAll is False:
 #
 #                if skipAllExisting == False:
@@ -3149,7 +3185,7 @@ class PlotPage(wx.Panel):
         
         self.buttonData = (("Average", DirPanel.OnAverage),
                            ("Plot", plotpanel.onPlotButton),
-                          # ("Clear Plot", plotpanel.OnClear),
+                           ("Clear All", plotpanel.OnClearAll),
                            ("Set Bg", DirPanel.OnSetBackgroundFile),
                            ("Save Data", DirPanel.OnSaveRad),
                            ("Sub'n'Plot", plotpanel.OnSubnPlot))
@@ -3788,10 +3824,10 @@ class ManipFilePanel(wx.Panel):
         
         self.ExpObj.itempanel = self
 
-        if ExpObj.isBifted == True:
-            filename = 'BIFT_' + filename
-        elif ExpObj.isBgSubbed == True:
-            filename = 'BSUB_' + filename
+#        if ExpObj.isBifted == True:
+#            filename = 'BIFT_' + filename
+#        elif ExpObj.isBgSubbed == True:
+#            filename = 'BSUB_' + filename
 
         #font = wx.Font(12, wx.DEFAULT, wx.NORMAL, wx.NORMAL)
         #self.statusLabel.SetFont(font)  
@@ -3990,7 +4026,8 @@ class ManipFilePanel(wx.Panel):
             
         menu.AppendSeparator()
         menu.Append(5, 'Remove selected item(s)' )
-        menu.Append(10, 'Guinier fit...')
+        menu.AppendSeparator()
+        menu.Append(13, 'Guinier fit...')
         menu.AppendMenu(3, 'Indirect Fourier Transform', iftmenu)
         menu.AppendSeparator()
         menu.Append(8, 'Move curve to top plot')
@@ -4001,39 +4038,45 @@ class ManipFilePanel(wx.Panel):
         self.Bind(wx.EVT_MENU, self._OnPopupMenuChoice) 
         
         self.PopupMenu(menu)
-    
-    def _OnPopupMenuChoice(self, evt):
+        
+    def setAsBackground(self):
         
         global expParams
         
+        dirCtrlPanel = wx.FindWindowByName('DirCtrlPanel')
+        dirCtrlPanel.SetBackgroundFile(self.ExpObj.param['filename'])
+            
+        if expParams['BackgroundFile'] != None:
+            try:
+                expParams['BackgroundFile'].itempanel.bglabel.SetLabel('')
+            except:
+                pass
+            
+        expParams['BackgroundFile'] = self.ExpObj
+
+        self.bglabel.SetLabel('BG')
+            
+        self.topsizer.Layout()
+        self.SetVirtualSize(self.GetBestVirtualSize())
+        self.Refresh()    
+    
+    def _OnPopupMenuChoice(self, evt):
+                
         ManipulationPage = wx.FindWindowByName('ManipulationPage')
+        analysisPage = wx.FindWindowByName('AutoAnalysisPage')
+        plotpanel = wx.FindWindowByName('PlotPanel')
+        dirctrlpanel = wx.FindWindowByName('DirCtrlPanel')
         
         if evt.GetId() == 1:
             #Set background
-            dirCtrlPanel = wx.FindWindowByName('DirCtrlPanel')
-            dirCtrlPanel.SetBackgroundFile(self.ExpObj.param['filename'])
-            
-            if expParams['BackgroundFile'] != None:
-                expParams['BackgroundFile'].itempanel.bglabel.SetLabel('')
-            
-            expParams['BackgroundFile'] = self.ExpObj
-
-            self.bglabel.SetLabel('BG')
-            
-            self.topsizer.Layout()
-            self.SetVirtualSize(self.GetBestVirtualSize())
-            self.Refresh()    
+            self.setAsBackground()
             
         if evt.GetId() == 3:
             #IFT
-            analysisPage = wx.FindWindowByName('AutoAnalysisPage')
             analysisPage.runBiftOnExperimentObject(self.ExpObj, expParams)
         
         if evt.GetId() == 4:
             #Subtract and plot
-            plotpanel = wx.FindWindowByName('PlotPanel')
-            ManipulationPage = wx.FindWindowByName('ManipulationPage')
-            
             selectedExpObjsList = ManipulationPage.GetSelectedExpObjs()
             plotpanel.SubtractAndPlot(selectedExpObjsList)
         
@@ -4043,59 +4086,45 @@ class ManipFilePanel(wx.Panel):
         
         if evt.GetId() == 6:
             #check boundaries, Average and plot 
-            ManipulationPage = wx.FindWindowByName('ManipulationPage')
             selectedExpObjsList = ManipulationPage.GetSelectedExpObjs()
-            
             AvgExpObj = cartToPol.averageMeasurements(selectedExpObjsList, expParams)
-            
             path_file = os.path.split(AvgExpObj.param['filename'])
-                
             AvgExpObj.param['filename'] = path_file[0] + 'AVG_' + path_file[1]
-                
-            plotpanel = wx.FindWindowByName('PlotPanel')
+            
             plotpanel.PlotExperimentObject(AvgExpObj, axes = plotpanel.subplot1)
             
         if evt.GetId() == 7:
-            dirctrlpanel = wx.FindWindowByName('DirCtrlPanel')
-            ManipulationPage = wx.FindWindowByName('ManipulationPage')
-            
+            #Save file
             selectedExpObjsList = ManipulationPage.GetSelectedExpObjs()
             
             for each in selectedExpObjsList:
                 dirctrlpanel.SaveSingleRadFile(each)
-                print "check1"
                 
         if evt.GetId() == 8:
-            
-            ManipulationPage = wx.FindWindowByName('ManipulationPage')
-            plotpanel = wx.FindWindowByName('PlotPanel')
-            
+            #Move to top plot
             selectedExpObjsList = ManipulationPage.GetSelectedExpObjs()
-            
             ManipulationPage.MovePlots(selectedExpObjsList, plotpanel.subplot1)
-            
                 
         if evt.GetId() == 9:
-            ManipulationPage = wx.FindWindowByName('ManipulationPage')
-            plotpanel = wx.FindWindowByName('PlotPanel')
-            
+            #Move to bottom plot
             selectedExpObjsList = ManipulationPage.GetSelectedExpObjs()
-            
             ManipulationPage.MovePlots(selectedExpObjsList, plotpanel.subplot2)
             
-        if evt.GetId() == 10:
+        if evt.GetId() == 13:
+            #Guinier fit
             Mainframe = wx.FindWindowByName('MainFrame')
-            ManipulationPage = wx.FindWindowByName('ManipulationPage')
             selectedExpObjsList = ManipulationPage.GetSelectedExpObjs()
             
             ExpObj = selectedExpObjsList[0]
             Mainframe.ShowGuinierFitFrame(ExpObj)
             
-        if evt.GetId() == 11:
+        if evt.GetId() == 10:
+            #BIFT
             analysisPage = wx.FindWindowByName('AutoAnalysisPage')
             analysisPage.runBiftOnExperimentObject(self.ExpObj, expParams)
             
         if evt.GetId() == 12:
+            #Add to IFT List
             autoanalysis = wx.FindWindowByName('AutoAnalysisPage')
             
             for ExpObj in ManipulationPage.GetSelectedExpObjs(): 
@@ -4104,16 +4133,8 @@ class ManipFilePanel(wx.Panel):
             wx.CallAfter(wx.MessageBox, 'Finished adding file(s) to the IFT list', 'Finished')
             
         if evt.GetId() == 11:
-            analysisPage = wx.FindWindowByName('AutoAnalysisPage')
+            #GNOM
             analysisPage.runBiftOnExperimentObject(self.ExpObj, expParams)
-            
-        if evt.GetId() == 12:
-            autoanalysis = wx.FindWindowByName('AutoAnalysisPage')
-            
-            for ExpObj in ManipulationPage.GetSelectedExpObjs(): 
-                autoanalysis.addExpObjToList(ExpObj)
-            
-            wx.CallAfter(wx.MessageBox, 'Finished adding file(s) to the IFT list', 'Finished')
             
     def RemoveSelf(self):
         manipulationPage = wx.FindWindowByName('ManipulationPage')
@@ -4359,13 +4380,14 @@ class ManipulationPage(wx.Panel):
 
                 
     def RemoveSelectedItems(self):
+        global expParams
         
         self.Freeze()
         
         axesThatNeedsUpdatedLegend = []
         
         for each in self.GetSelectedItems():
-            
+                     
             plotpanel = each.ExpObj.plotPanel
             
             each.ExpObj.line.remove()

@@ -447,9 +447,12 @@ class AutoAnalysisPage(wx.Panel):
         answer = dial.ShowModal()
         
         if answer == wx.ID_YES:
-            self.filelist.Clear()
-            self.infoBox.clear()
-            self.infoBox.Enable(False)
+            self.ClearList()
+            
+    def ClearList(self):
+        self.filelist.Clear()
+        self.infoBox.clear()
+        self.infoBox.Enable(False)
         
     def _OnManual(self, evt):
         ''' Solve button '''
