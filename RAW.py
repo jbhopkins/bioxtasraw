@@ -4048,6 +4048,7 @@ class ManipFilePanel(wx.Panel):
             
         if expParams['BackgroundFile'] != None:
             try:
+                # Exception is thrown if expParams[backgroundgile] holds a deleted ExpObj
                 expParams['BackgroundFile'].itempanel.bglabel.SetLabel('')
             except:
                 pass
@@ -4316,9 +4317,7 @@ class ManipulationPage(wx.Panel):
         if ExpList == [] or ExpList == None:
             return
         
-        dirCtrlPanel = wx.FindWindowByName('DirCtrlPanel')
-        dirCtrlPanel.SetBackgroundFile(ExpList[0].param['filename'])
-        expParams['BackgroundFile'] = ExpList[0]
+        ExpList[0].itempanel.setAsBackground()
         
     def OnSubBg(self, evt):
         plotpanel = wx.FindWindowByName('PlotPanel')            
