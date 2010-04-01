@@ -1,1 +1,1 @@
-python setup_pylab.py py2exe
+python setup_exefile.py py2exe
