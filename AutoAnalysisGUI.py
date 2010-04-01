@@ -154,7 +154,7 @@ class BiftInfoPanel(wx.Panel):
         else:
             ExpObj = Data[1]
   
-        if ExpObj.type == 'rad':
+        if ExpObj.type == 'rad' or ExpObj.type == 'image':
             self.currentExpObj = ExpObj
             self.Enable(True)
             self.clear()

@@ -4126,7 +4126,7 @@ class ManipFilePanel(wx.Panel):
             #Add to IFT List
             autoanalysis = wx.FindWindowByName('AutoAnalysisPage')
             
-            for ExpObj in ManipulationPage.GetSelectedExpObjs(): 
+            for ExpObj in ManipulationPage.GetSelectedExpObjs():
                 autoanalysis.addExpObjToList(ExpObj)
             
             wx.CallAfter(wx.MessageBox, 'Finished adding file(s) to the IFT list', 'Finished')
