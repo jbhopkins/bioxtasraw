@@ -30,15 +30,19 @@ from scipy import io
 from scipy.weave import converters
 import MARCCD_headerReader 
 import cartToPol
+import cProfile
 
 
 def loadImage(filename):
     ''' Load TIFF image '''
     
-    im = Image.open(filename)
-    newArr = fromstring(im.tostring(), uint16)
-    newArr = reshape(newArr, im.size) 
-    dim = shape(newArr)
+    try:
+        im = Image.open(filename)
+        newArr = fromstring(im.tostring(), uint16)
+        newArr = reshape(newArr, im.size) 
+        dim = shape(newArr)
+    except IOError:
+        return None, None
     
     return newArr, dim
 
@@ -238,6 +242,8 @@ def loadQuantum210File(filename, expParams):
     print dim
     
     ExpObj, FullImage = cartToPol.loadM(img, dim, mask, rdmask, q_range, hdr, x_center, y_center, pixelcal = None, binsize = binsize)
+    
+    #cProfile.runctx("ExpObj, FullImage = cartToPol.loadM(img, dim, mask, rdmask, q_range, hdr, x_center, y_center, pixelcal = None, binsize = binsize)", globals(), locals())
     ExpObj.param['filename'] = filename
     
     if mon1:

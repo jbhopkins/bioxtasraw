@@ -33,8 +33,9 @@ from scipy import io
 from scipy.weave import converters
 import fileIO
 import masking
+import cProfile
 
-#import ravg_ext
+import ravg_ext
 
 from scipy.weave import ext_tools
 
@@ -155,6 +156,7 @@ def radialAverage(in_image, dim, x_c, y_c, mask = None, readoutNoise_mask = None
         q_range :      q_range specifying [low_q high_q]
       
     '''
+    in_image = np.float64(in_image)
     
     xlen = dim[0]
     ylen = dim[1]
@@ -162,186 +164,78 @@ def radialAverage(in_image, dim, x_c, y_c, mask = None, readoutNoise_mask = None
     x_c = float(x_c)
     y_c = float(y_c)
     
-    maxPointsPrQ = len(masking.bresenhamCirclePoints(round(xlen / 2)))
-    #print 'MaxPoints : ', maxPointsPrQ
-    
+    #maxPointsPrQ = len(masking.bresenhamCirclePoints(round(xlen / 2)))
+  
     # If no mask is given, the mask is pure ones
     if mask == None:
         mask = ones((xlen,ylen))
         
     if readoutNoise_mask == None:
         readoutNoiseFound = 0
-        readoutNoise_mask = zeros((xlen,ylen))
+        readoutNoise_mask = zeros((xlen,ylen), dtype = np.float64)
     else:
         readoutNoiseFound = 1
     
-    readoutN = zeros((1,2))
+    readoutN = zeros((1,4), dtype = np.float64)
     
     # Find the maximum distance to the edge in the image:
     maxlen = int(max(xlen - x_c, ylen - y_c, xlen - (xlen - x_c), ylen - (ylen - y_c)))
-    print 'Max Q (pixels): ', str(maxlen)
     
     # we set the "q_limits" (in pixels) so that it does radial avg on entire image (maximum qrange possible).
     q_range = (0, maxlen)           
 
-    savedPixels = ones((maxlen, maxPointsPrQ)) * -1
-    savedPixelsRN = ones((maxlen, maxPointsPrQ)) * -1
-    
     ##############################################
     # Reserving memory for radial averaged output:
     ##############################################
-    hist = zeros(q_range[1])        
-    hist_count = zeros(q_range[1])  # -----" --------- for number of pixels in a circle at a certain q
+    hist = zeros(q_range[1], dtype = np.float64)        
+    hist_count = zeros((3,q_range[1]), dtype = np.float64)  # -----" --------- for number of pixels in a circle at a certain q
        
     low_q = q_range[0]
     high_q = q_range[1]
     
-    zinger_threshold = 60000        # Too Hardcoded!
-    
-    all_pixels_used_for_qval = ones(())
-    
-    # /*  FOR TESTING   */
-    #res = zeros((xlen,ylen))       # Reserving memory for radial distance matrix    (pretty image)
-    res = zeros((1,1))
-    #res2 = zeros((xlen,ylen))      # Reserving memory for radial distance matrix
-    
-    #print x_c, y_c
-    #x_c = int(x_c)
-    #y_c = int(y_c)
-    #ravg_ext.ravg(readoutNoiseFound, readoutN, readoutNoise_mask, zinger_threshold, xlen,ylen,x_c,y_c,res, hist, low_q, high_q, in_image, hist_count, mask, savedPixels, savedPixelsRN)
-#     ********************** C++ CODE *******************************
-#    mod = ext_tools.ext_module('ravg_ext')
-        
-    code = """
-    
-    double rel_x, rel_y, r;
-    int x, y;
-    int idx;
-    
-    for( x = 0; x < xlen; x++)
-           for( y = 0; y < ylen; y++)
-           {
-                rel_x = x-x_c;
-                rel_y = y_c-y;
-           
-                r = std::sqrt((rel_y*rel_y) + (rel_x*rel_x));
-                //res(x,y) = r;
-    
-                if( int(r) < high_q-1 && int(r) > low_q && mask(x,y) == 1 && in_image(x,y) < zinger_threshold && in_image(x,y) > 0)
-                {
-                    /* res2(x,y) = int(r); */                           /*  A test image, gives the included range image */
-                    hist(int(r)) = hist(int(r)) + in_image(x,y);        /* Integration of pixel values */
-                    idx = hist_count(int(r));
-                    savedPixels(int(r),idx) = in_image(x,y);
-                    hist_count(int(r)) = hist_count(int(r)) + 1;        /* Number of pixels in a bin */      
-                
-                }
-                
-                if ( readoutNoiseFound == 1 && int(r) < high_q-1 && int(r) > low_q && readoutNoise_mask(x,y) == 0 && in_image(x,y) < zinger_threshold)
-                {
-                    readoutN(0,0) = readoutN(0,0) + 1;
-                    readoutN(0,1) = readoutN(0,1)     + in_image(x,y);
-                    savedPixelsRN(int(r), idx) = in_image(x,y);
-                }
+    zinger_threshold = 60000        #Too Hardcoded!
             
-            }
-            
-    """
-#   
-    weave.inline(code,['readoutNoiseFound', 'readoutN', 'readoutNoise_mask', 'zinger_threshold', 'xlen','ylen','x_c','y_c','res', 'hist', 'low_q', 'high_q', 'in_image', 'hist_count', 'mask', 'savedPixels', 'savedPixelsRN'], type_converters = converters.blitz, compiler = "gcc")
-#    
-#    ravg = ext_tools.ext_function('ravg', code, ['readoutNoiseFound', 'readoutN', 'readoutNoise_mask', 'zinger_threshold', 'xlen','ylen','x_c','y_c','res', 'hist', 'low_q', 'high_q', 'in_image', 'hist_count', 'mask', 'savedPixels', 'savedPixelsRN'], type_converters = converters.blitz)   
-#    mod.add_function(ravg)
-#    mod.compile(compiler = 'gcc')
-    # ***************************************************************
+    print 'Doing  radial average...',
+    ravg_ext.ravg(readoutNoiseFound,
+                   readoutN,
+                   readoutNoise_mask,
+                   xlen, ylen,
+                   x_c, y_c,
+                   hist,
+                   low_q, high_q,
+                   in_image,
+                   hist_count,
+                   mask)
+    print 'done'
     
-    # Find the average for each q, and calc Errorbars:
-    errorbars = zeros(len(hist))
-    iq = zeros((len(hist)))
-
-    allPixelsUsed = []
-    readoutNoisePixels = []
-    for q_col in range(0, maxlen):
-        line = savedPixels[q_col, find(savedPixels[q_col,:] != -1)]
-        allPixelsUsed.append(line)
-        
-        line2 = savedPixelsRN[q_col, find(savedPixelsRN[q_col,:] != -1)]
-        readoutNoisePixels.extend(line2)
+    hist_cnt = hist_count[2,:]    #contains x-mean
+    hist_count = hist_count[0,:]  #contains N 
     
-    #Using count statistics:
-    for idx in range(0, len(iq)):
-        if hist[idx] > 0:
-            iq[idx] = hist[idx] / hist_count[idx]     
-            errorbars[idx] = std(allPixelsUsed[idx]) / sqrt(len(allPixelsUsed[idx])) #sqrt(hist[idx]) / hist_count[idx] # assuming Poisson distributed data
-            
-            #if idx < 35:
-            #    print 'CHECK!'
-            #    print 'IDX: ', idx
-            #    print allPixelsUsed[idx]
-            #    print 'errbar : ', errorbars[idx]
+    std_i = sqrt(hist_cnt/hist_count)
     
-    iq[0] = in_image[x_c, y_c]
-    iq[len(iq) - 1] = iq[len(iq) - 2]
+    std_i[np.where(np.isnan(std_i))] = 0
+    
+    iq = hist / hist_count
+    iq[0] = in_image[x_c, y_c]  # the center is not included in the radial average, so it is set manually her
+    
+    errorbars = std_i / sqrt(hist_count)
     
     if readoutNoiseFound:
-        #readoutNoise = readoutN[0,1] / readoutN[0,0]
-        #readoutNoiseErrbar = sqrt(readoutN[0,1]) / readoutN[0,0]      # assuming Poisson distributed data
+        #Average readoutNoise
+        readoutNoise = readoutN[0,1] /  readoutN[0,0]
+        readoutNoise[np.where(np.isnan(readoutNoise))] = 0
         
-#        print 'sum1: ', readoutN[0,1]
-#        print 'len1: ', readoutN[0,0]
-#        print 'avg1: ', readoutNoise
-#        print 'err1: ', readoutNoiseErrbar
-#        print ''
-              
-#        print 'sum: ', sum(readoutNoisePixels)
-#        print 'len: ', len(readoutNoisePixels)
-#        print 'avg: ', sum(readoutNoisePixels) / len(readoutNoisePixels)
-#        print 'err: ', (std(readoutNoisePixels) / sqrt(len(readoutNoisePixels)))
+        #Standard deviation
+        std_n = sqrt(readoutN[0,4] / readoutN[0,0])
+        errorbarNoise = std_n / sqrt(readoutN[0,0]) 
         
-        readoutNoise = sum(readoutNoisePixels) / len(readoutNoisePixels)
-        readoutNoiseErrbar = std(readoutNoisePixels) / sqrt(len(readoutNoisePixels))
-        
-    else:
-        readoutNoise = 0
-        readoutNoiseErrbar = 0
-        
-    #Subtract readout noise and adjust errorbars accordingly
-    iq = iq - readoutNoise
-    errorbars = sqrt(power(errorbars, 2) + power(readoutNoiseErrbar, 2))
-        
+        #Readoutnoise average subtraction
+        iq = iq - readoutNoise
+        errorbars = sqrt(power(errorbars, 2) + power(errorbarNoise, 2))
+    
+    res = None #used for testing
+    
     return [iq, res, errorbars]
-
-#def calcErrorbars(hist, hist_count, allPixelsUsed):
-#    ''' hist = summed up values of all pixels at certain q
-#        hist_cound = number of pixels involved in the sum
-#        
-#     allPixelsUsed[q_pixel, :] = list of all pixels used for that q in pixels value '''
-#        
-#    errorbars = []
-#        
-#    #Using count statistics:
-#    for idx in range(0, len(iq)):
-#        if hist[idx] > 0:
-#            iq[idx] = hist[idx] / hist_count[idx]     
-#            errorbars[idx] = sqrt(hist[idx]) / hist_count[idx]        # assuming Poisson distributed data
-#    
-#    #For detectors where 1 photon is != 1 count:
-#    
-#    
-#    
-#    return errorbars
-
-#def logPlotPrep(x):
-#    ''' Prepare plot for logarithmic plot (remove zero values that otherwise would give -inf) 
-#        NB not working yet!!! -- still need to test on background subtraction etc!
-#    '''
-#    
-#    for i in range(0, len(x)): 
-#        if x[i] == 0:
-#            x[i] = 0.1
-#
-#    return x
-
 
 def checkMaskSize(mask, dim):
     
@@ -354,38 +248,6 @@ def checkMaskSize(mask, dim):
         mask_db = str(masksize)
         
         raise Exception('mask: ' + mask_db + ' file: ' + file_db)
-
-#def loadImage(img_filename):
-#    
-#    im = Image.open(img_filename)
-#    newArr = fromstring(im.tostring(), int16)
-#    newArr = reshape(newArr, im.size) 
-#    dim = shape(newArr)
-#    
-#    return newArr, dim
-
-
-#def loadHeader(headerTypeString):
-#    
-#    header = None
-#    
-#    if headerTypeString == 'I711Maxlab':
-#        # Assuming MarCCD header:
-#        try:
-#            header = readHeader(img_filename)    # from MARCCD_headerReader.py
-#        except Exception, msg:
-#            print msg
-#            raise Exception('Error reading headerfile: ' + str(msg))
-#        
-#        #x_center = header['beam_x']     # This is not safe.. the center is entered manually at Maxlab
-#        #y_center = header['beam_y']     # There should be an override.. and a way to change the center in the header
-#    
-#    elif headerTypeString == 'swingSoleil':
-#        pass
-#        # Not implemented yet
-#    
-#    return header    
-    
 
 def loadM(newArr, dim, mask = None, readout_noise_mask = None, q_range = None, hdr = None, x_center = None, y_center = None, pixelcal = None, binsize = None):
     ''' 
@@ -428,13 +290,16 @@ def loadM(newArr, dim, mask = None, readout_noise_mask = None, q_range = None, h
 #        Mar_hdr = None
 
     try:
-        [I_raw, res, Errorbars_raw] = radialAverage(newArr, dim, y_center, x_center, mask, readout_noise_mask)        # NOTE an error in radialAveraged requires x_cen and y_cen to be switched
+        [I_raw, res, Errorbars_raw] = radialAverage(newArr, dim, y_center, x_center, mask, readout_noise_mask)
+        #cProfile.runctx("[I_raw, res, Errorbars_raw] = radialAverage(newArr, dim, y_center, x_center, mask, readout_noise_mask)", globals(), locals())        # NOTE an error in radialAveraged requires x_cen and y_cen to be switched
                                                                                                                      # the error is caused by scipy using (Y,X) instead of (X,Y)   
     except IndexError, msg:
         
         print 'Center coordinates too large: ' + str(msg)
     
         wx.CallAfter(wx.MessageBox, "The center coordinates are too large, using image center instead.", "Center coordinates does not fit image", wx.OK | wx.ICON_ERROR)
+        
+        
         [I_raw, res, Errorbars_raw] = radialAverage(newArr, dim, dim[0]/2, dim[1]/2, mask, readout_noise_mask)        # NOTE an error in radialAveraged requires x_cen and y_cen to be switched
 
 

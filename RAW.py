@@ -49,6 +49,7 @@ import advancedOptionsGUI
 import Queue
 import overview
 import guinierGUI
+import cProfile
 
 
 global MAINFRAME_ID
@@ -271,8 +272,8 @@ class PlotWorkerThread(threading.Thread):
         
             for eachSelectedFile in selectedFiles:
                 
+#                cProfile.runctx("ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)", globals(), locals())
                 ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)
- 
                                                 
                 checkedTreatments = getTreatmentParameters()
                 
