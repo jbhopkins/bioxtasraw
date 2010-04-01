@@ -27,7 +27,7 @@ from numpy import *
 import cartToPol
 import time#, random
 #import bift_ext
-#import transmatrix_ext
+import transmatrix_ext
 
 
 def C_seeksol(I_exp, m, q, sigma, alpha, dmax, T):
@@ -743,41 +743,9 @@ def createTransMatrix(q, r):
     
     # Leaving out 4 * pi * dr! That means the solution will include these three factors!
     c = 1 # 4 * pi * dr   
-   #================================================
-   #                C++ CODE
-   #================================================
- #   transmatrix_ext.trans_matrix(qlen, rlen, T, r, q, c)
-    
-#    mod = ext_tools.ext_module('transmatrix_ext')
-#   
-    code = """
-    
-    float chk, qr;
-    int i, j;
-    
-    for( i = 0; i < qlen; i++)
-           for( j = 0; j < rlen; j++)
-           {
-                 
-                 qr = q(i) * r(j);
-                 chk = float(c) * sin(qr) / qr ;
-
-                  if(chk != chk) {
-                      T(i,j) = 1;
-                  }
-                  else {
-                      T(i,j) = chk; 
-                  }
-                      
-           }
-           
-    """   
-    weave.inline(code,['qlen', 'rlen', 'T', 'r', 'q', 'c'], type_converters = converters.blitz, compiler = "gcc")    
-
-#    transext = ext_tools.ext_function('trans_matrix', code, ['qlen', 'rlen', 'T', 'r', 'q', 'c'], type_converters = converters.blitz)   
-#    mod.add_function(transext)
-#    mod.compile(compiler = 'gcc')
-            
+  
+    transmatrix_ext.trans_matrix(qlen, rlen, T, r, q, c)
+                
     return T
 
 def makePriorDistDistribution(E, N, dmax, T, type = 'sphere', q = None):
