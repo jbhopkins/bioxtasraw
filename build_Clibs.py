@@ -40,8 +40,7 @@ def build_bift():
     bkk = np.sum(Bdiag, 0)                                  # k col-vektor
     
     Bmat = B-Bdiag
-    
-    
+     
     # ************  convert before C++  *************************
     Psumi = np.zeros((1,N))                   ## all should be arrays!         NB matrix and array dont mix in weave C!!!!
     sum_dia = np.array(sum_dia, dtype = np.float64)
@@ -331,8 +330,6 @@ def build_transmatrix():
    
     if success:
         print '\n\n****** transmatrix_ext module compiled succesfully! *********'
-
-
    
 def build_radavg():
 
