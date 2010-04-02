@@ -17,7 +17,7 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Circle, Rectangle, Polygon
 import numpy as np
 import wx, math
-import fileIO
+import fileIO, sys
 from scipy import linspace, polyval, polyfit, sqrt, stats, randn
 
 
@@ -463,6 +463,12 @@ class GuinierControlPanel(wx.Panel):
         button = wx.Button(self, -1, 'Close')
         button.Bind(wx.EVT_BUTTON, self.onCloseButton)
         
+        savebutton = wx.Button(self, -1, 'Save info')
+        savebutton.Bind(wx.EVT_BUTTON, self.onSaveInfo)
+        
+        buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttonSizer.Add(button, 1, wx.EXPAND)
+        buttonSizer.Add(savebutton, 1, wx.EXPAND)
         
         box = wx.StaticBox(self, -1, 'Parameters')
         boxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
@@ -474,11 +480,18 @@ class GuinierControlPanel(wx.Panel):
         
         bsizer.Add(boxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
         bsizer.Add(boxSizer2, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
-        bsizer.Add(button, 0, wx.EXPAND | wx.LEFT | wx.RIGHT| wx.TOP, 5)
+        bsizer.Add(buttonSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT| wx.TOP, 5)
          
         self.SetSizer(bsizer)
         
         self.ExpObj = None
+        
+    def onSaveInfo(self, evt):
+        
+        wx.MessageBox('The parameters has now been saved into the file header', 'Info')
+        
+        
+        
         
     def onCloseButton(self, evt):
         
@@ -692,7 +705,26 @@ class GuinierControlPanel(wx.Panel):
         
         return [int(spinstart.GetValue()), int(spinend.GetValue())]
     
-
+    def getInfo(self):
+        
+        guinierData = {}
+        
+        for eachKey in self.infodata.iterkeys():
+            
+            if len(self.infodata[eachKey]) == 2:
+                ctrl = wx.FindWindowById(self.infodata[eachKey][1])
+                val = ctrl.GetValue()
+                guinierData[eachKey] = val
+            else:
+                ctrl1 = wx.FindWindowById(self.infodata[eachKey][1])
+                ctrl2 = wx.FindWindowById(self.infodata[eachKey][2])
+                val1 = ctrl1.GetValue()
+                val2 = ctrl2.GetValue()
+                
+                guinierData[eachKey] = (val1, val2) 
+                
+        return guinierData
+        
 class GuinierFitDialog(wx.Dialog):
 
     def __init__(self, parent, ExpObj):
@@ -752,11 +784,14 @@ class GuinierTestFrame(wx.Frame):
         
 class OverviewTestApp(wx.App):
     
-    def OnInit(self):
+    def OnInit(self, filename = None):
         
         #ExpObj, ImgDummy = fileIO.loadFile('/home/specuser/Downloads/BSUB_MVMi7_5_FULL_001_c_plot.rad')
         
-        ExpObj, ImgDummy = fileIO.loadFile('lyzexp.dat')
+        if filename:
+            ExpObj, ImgDummy = fileIO.loadFile(filename)
+        else:
+            ExpObj, ImgDummy = fileIO.loadFile('lyzexp.dat')
         
         
         frame = GuinierTestFrame(self, 'Guinier Fit', ExpObj)
@@ -767,5 +802,14 @@ class OverviewTestApp(wx.App):
         return True
         
 if __name__ == "__main__":
-    app = OverviewTestApp(0)   #MyApp(redirect = True)
+    
+    #This GUI can be run from a commandline: python guinierGUI.py <filename>
+    args = sys.argv
+    
+    if len(args) > 1:
+        filename = args[1]
+    else:
+        filename = None
+    
+    app = OverviewTestApp(0, filename)   #MyApp(redirect = True)
     app.MainLoop()

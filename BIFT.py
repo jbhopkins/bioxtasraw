@@ -26,7 +26,7 @@ from numpy import *
 
 import cartToPol
 import time#, random
-#import bift_ext
+import bift_ext
 import transmatrix_ext
 
 
@@ -88,182 +88,182 @@ def C_seeksol(I_exp, m, q, sigma, alpha, dmax, T):
     
     alpha = float(alpha)              # Important! otherwise C code will crash
     
-#    s = bift_ext.bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold)
+    s = bift_ext.bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold)
     
     # ********************** C++ CODE *******************************
 
 #    mod = ext_tools.ext_module('bift_ext')
     
-    code = """
-    #include <iostream.h>
-    #include <math.h>
-  
-    py::object sout;
-    
-    // Initiate Variables
-    int ite = 0;
-  
-    double s = 0,
-          wgrads = 0,
-          wgradc = 0,
-          gradci = 0,
-          gradsi = 0;
-
-    while( ite < maxit && omega > omegamin && fabs(1-dotsp) > dotsptol || (ite < minit) )
-    {
-            if (ite != 0)
-            {
-                /* Calculating smoothness constraint vector m */
-            
-                for(int k = 1; k < N-1; k++)
-                {
-                     m(0, k) =  ((P(0,k-1) + P(0,k+1)) / 2.0);
-                }
-                
-                m(0,0) =  P(0,1) / 2.0;
-                m(0,N-1) =  P(0,N-2) /2.0;
-                
-   
-                /* This calculates the Matrix Psumi */
-                
-                for(int j = 0; j < N; j++)
-                    for(int k = 0; k < N; k++)
-                        Psumi(0,j) = Psumi(0,j) + P(0,k) * Bmat(k,j);
-    
-               // cout << "    " << Psumi(0,50);
-    
-               /* Now calculating dP, and updating P */
-        
-                for(int k = 0; k < N; k++)
-                {        
-                    dP(0,k) = ( m(0,k) * alpha + sum_dia(0,k) - Psumi(0,k) ) / (bkk(0,k) + alpha);      /* ATTENTION! remember C division!, if its all int's then it will be a int result! .. maybe cast it to float()? */
-                    
-                    Psumi(0,k) = 0;    // Reset values in Psumi for next iteration..otherwise Psumi = Psumi + blah will be wrong!
-        
-                    Pold(0,k) = P(0,k);
-         
-                    P(0,k) = (1-omega) * P(0,k) + omega * dP(0,k);
-                    
-                    /* Pin first and last point to zero! */
-    
-                    //P(0,0) = 0.0;
-                    //P(0,N-1) = 0.0;
-                }    
-      
-                //cout << "    " << m(0,50);
-                //cout << "    " << P(0,50);
-                //cout << "    " << dP(0,50);
-                //cout << " | ";
-        
-            } // end if ite != 0
-        
-      
- 
-       ite = ite + 1;
-    
-       /* Calculating Dotsp */
-      
-       dotsp = 0;
-       wgrads = 0;
-       wgradc = 0;
-       s = 0;
-       for(int k = 0; k < N; k++)
-       {
-             s = s - pow( P(0,k) - m(0,k) , 2);                        // sum(-power((P-m),2))
-             
-             gradsi = -2*( P(0,k) - m(0,k) );                            // gradsi = (-2*(P-m))
-             wgrads = wgrads + pow(gradsi, 2);
-       
-             gradci = 0;
-             for(int j = 0; j < N; j++)
-             {
-                 gradci = gradci + 2*( P(0,j) * B(j,k) );     
-             }
-             gradci = gradci - 2*sum_dia(0,k);
-            
-             wgradc = wgradc + pow(gradci , 2);
-             dotsp = dotsp + (gradci * gradsi);
-       }
-      
-//      cout << dotsp;
-//      cout << "    " << wgrads;
-//      cout << "    " << wgradc;
-//      cout << "    " << s;
-//      cout << " | ";
-  
-  
-       /* internal loop to reduce search step (omega) when it's too large */
-         
-       while( dotsp < 0 && double(alpha) < double(bkkmax) && ite > 1 && omega > omegamin)
-       {
-                omega = omega / omegareduction;
-                
-                /* Updating P */
-                 
-                for(int k = 0; k < N; k++)
-                {
-                    P(0,k) = (1-omega) * Pold(0,k) + omega * dP(0,k);
-                }
-                
-                /* Calculating Dotsp */
-                
-                dotsp = 0;
-                wgrads = 0;
-                wgradc = 0;
-                s = 0;
-                for(int k = 0; k < N; k++)
-                {
-                    s = s - pow( P(0,k)-m(0,k) , 2);                        // sum(-power((P-m),2))     
-                    gradsi = -2*(P(0,k)-m(0,k));                            // gradsi = (-2*(P-m))
-                    wgrads = wgrads + pow(gradsi, 2);
-            
-                    gradci = 0;
-                    for(int j = 0; j < N; j++)
-                    {
-                        gradci = gradci + 2*( P(0,j) * B(j,k));     
-                    }
-                    gradci = gradci - 2*sum_dia(0,k);
-                      
-                    wgradc = wgradc + pow(gradci , 2);
-                    dotsp = dotsp + (gradci * gradsi);
-                }    
-                
-       } // end inner whileloop
-     
-        
-       if(wgrads == 0 || wgradc == 0)
-       {
-            dotsp = 1;
-       }
-       else
-       {
-            wgrads = std::sqrt(wgrads);
-            wgradc = std::sqrt(wgradc);
-            dotsp = dotsp / (wgrads * wgradc);
-       }
-     
-          
-    } // end Outer while loop
-    
-    
-    // cout << "ite C: " << ite;
-    // cout << "alpha: " << double(alpha);
-    // cout << "omega: " << omega;
-    //cout << ",   m: " << m(0,20);
-    //cout << ",   dotsp C: " << dotsp;
-    //cout << ",   dP:" << dP(0,20);
-    //cout << "cnt:" << cnt;
-    //cout << ",   wgrads C: " << wgrads;
-    //cout << ",   wgradc C: " << wgradc;
-    
-    
-    //tst(0,1) = wgradc;
-    sout = s;
-    return_val = sout;
-    """
-
-    s = weave.inline(code,['dotsp', 'dotsptol', 'maxit', 'minit', 'bkkmax', 'omega', 'omegamin', 'omegareduction', 'B', 'N', 'm', 'P', 'Psumi', 'Bmat', 'alpha', 'sum_dia', 'bkk', 'dP', 'Pold'], type_converters = converters.blitz, compiler = "gcc")
-    # ***************************************************************
+#    code = """
+#    #include <iostream.h>
+#    #include <math.h>
+#  
+#    py::object sout;
+#    
+#    // Initiate Variables
+#    int ite = 0;
+#  
+#    double s = 0,
+#          wgrads = 0,
+#          wgradc = 0,
+#          gradci = 0,
+#          gradsi = 0;
+#
+#    while( ite < maxit && omega > omegamin && fabs(1-dotsp) > dotsptol || (ite < minit) )
+#    {
+#            if (ite != 0)
+#            {
+#                /* Calculating smoothness constraint vector m */
+#            
+#                for(int k = 1; k < N-1; k++)
+#                {
+#                     m(0, k) =  ((P(0,k-1) + P(0,k+1)) / 2.0);
+#                }
+#                
+#                m(0,0) =  P(0,1) / 2.0;
+#                m(0,N-1) =  P(0,N-2) /2.0;
+#                
+#   
+#                /* This calculates the Matrix Psumi */
+#                
+#                for(int j = 0; j < N; j++)
+#                    for(int k = 0; k < N; k++)
+#                        Psumi(0,j) = Psumi(0,j) + P(0,k) * Bmat(k,j);
+#    
+#               // cout << "    " << Psumi(0,50);
+#    
+#               /* Now calculating dP, and updating P */
+#        
+#                for(int k = 0; k < N; k++)
+#                {        
+#                    dP(0,k) = ( m(0,k) * alpha + sum_dia(0,k) - Psumi(0,k) ) / (bkk(0,k) + alpha);      /* ATTENTION! remember C division!, if its all int's then it will be a int result! .. maybe cast it to float()? */
+#                    
+#                    Psumi(0,k) = 0;    // Reset values in Psumi for next iteration..otherwise Psumi = Psumi + blah will be wrong!
+#        
+#                    Pold(0,k) = P(0,k);
+#         
+#                    P(0,k) = (1-omega) * P(0,k) + omega * dP(0,k);
+#                    
+#                    /* Pin first and last point to zero! */
+#    
+#                    //P(0,0) = 0.0;
+#                    //P(0,N-1) = 0.0;
+#                }    
+#      
+#                //cout << "    " << m(0,50);
+#                //cout << "    " << P(0,50);
+#                //cout << "    " << dP(0,50);
+#                //cout << " | ";
+#        
+#            } // end if ite != 0
+#        
+#      
+# 
+#       ite = ite + 1;
+#    
+#       /* Calculating Dotsp */
+#      
+#       dotsp = 0;
+#       wgrads = 0;
+#       wgradc = 0;
+#       s = 0;
+#       for(int k = 0; k < N; k++)
+#       {
+#             s = s - pow( P(0,k) - m(0,k) , 2);                        // sum(-power((P-m),2))
+#             
+#             gradsi = -2*( P(0,k) - m(0,k) );                            // gradsi = (-2*(P-m))
+#             wgrads = wgrads + pow(gradsi, 2);
+#       
+#             gradci = 0;
+#             for(int j = 0; j < N; j++)
+#             {
+#                 gradci = gradci + 2*( P(0,j) * B(j,k) );     
+#             }
+#             gradci = gradci - 2*sum_dia(0,k);
+#            
+#             wgradc = wgradc + pow(gradci , 2);
+#             dotsp = dotsp + (gradci * gradsi);
+#       }
+#      
+#//      cout << dotsp;
+#//      cout << "    " << wgrads;
+#//      cout << "    " << wgradc;
+#//      cout << "    " << s;
+#//      cout << " | ";
+#  
+#  
+#       /* internal loop to reduce search step (omega) when it's too large */
+#         
+#       while( dotsp < 0 && double(alpha) < double(bkkmax) && ite > 1 && omega > omegamin)
+#       {
+#                omega = omega / omegareduction;
+#                
+#                /* Updating P */
+#                 
+#                for(int k = 0; k < N; k++)
+#                {
+#                    P(0,k) = (1-omega) * Pold(0,k) + omega * dP(0,k);
+#                }
+#                
+#                /* Calculating Dotsp */
+#                
+#                dotsp = 0;
+#                wgrads = 0;
+#                wgradc = 0;
+#                s = 0;
+#                for(int k = 0; k < N; k++)
+#                {
+#                    s = s - pow( P(0,k)-m(0,k) , 2);                        // sum(-power((P-m),2))     
+#                    gradsi = -2*(P(0,k)-m(0,k));                            // gradsi = (-2*(P-m))
+#                    wgrads = wgrads + pow(gradsi, 2);
+#            
+#                    gradci = 0;
+#                    for(int j = 0; j < N; j++)
+#                    {
+#                        gradci = gradci + 2*( P(0,j) * B(j,k));     
+#                    }
+#                    gradci = gradci - 2*sum_dia(0,k);
+#                      
+#                    wgradc = wgradc + pow(gradci , 2);
+#                    dotsp = dotsp + (gradci * gradsi);
+#                }    
+#                
+#       } // end inner whileloop
+#     
+#        
+#       if(wgrads == 0 || wgradc == 0)
+#       {
+#            dotsp = 1;
+#       }
+#       else
+#       {
+#            wgrads = std::sqrt(wgrads);
+#            wgradc = std::sqrt(wgradc);
+#            dotsp = dotsp / (wgrads * wgradc);
+#       }
+#     
+#          
+#    } // end Outer while loop
+#    
+#    
+#    // cout << "ite C: " << ite;
+#    // cout << "alpha: " << double(alpha);
+#    // cout << "omega: " << omega;
+#    //cout << ",   m: " << m(0,20);
+#    //cout << ",   dotsp C: " << dotsp;
+#    //cout << ",   dP:" << dP(0,20);
+#    //cout << "cnt:" << cnt;
+#    //cout << ",   wgrads C: " << wgrads;
+#    //cout << ",   wgradc C: " << wgradc;
+#    
+#    
+#    //tst(0,1) = wgradc;
+#    sout = s;
+#    return_val = sout;
+#    """
+#
+#    s = weave.inline(code,['dotsp', 'dotsptol', 'maxit', 'minit', 'bkkmax', 'omega', 'omegamin', 'omegareduction', 'B', 'N', 'm', 'P', 'Psumi', 'Bmat', 'alpha', 'sum_dia', 'bkk', 'dP', 'Pold'], type_converters = converters.blitz, compiler = "gcc")
+#    # ***************************************************************
     
     #biftext = ext_tools.ext_function('bift', code, ['dotsp', 'dotsptol', 'maxit', 'minit', 'bkkmax', 'omega', 'omegamin', 'omegareduction', 'B', 'N', 'm', 'P', 'Psumi', 'Bmat', 'alpha', 'sum_dia', 'bkk', 'dP', 'Pold'], type_converters = converters.blitz)   
     #mod.add_function(biftext)

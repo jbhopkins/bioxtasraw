@@ -20,30 +20,30 @@ def build_bift():
     
     N = max(np.shape(m))
 
-    m = matrix(m)         #m is the prior distribution
+    m = np.matrix(m)         #m is the prior distribution
    
     P = m.copy()          #multiply(m, 1.0005) # first guess is set equal to priror distribution
     
     m2 = m.copy()
     
-    I_exp = matrix(I_exp)
+    I_exp = np.matrix(I_exp)
         
-    sigma_sq = matrix(sigma)            # std to variance
+    sigma_sq = np.matrix(sigma)            # std to variance
     
     # Calculate factors for the gradient:
-    sum_dia = matrix(sum( multiply(T, transpose(I_exp) / transpose(sigma_sq)) , 0))    # works!  makes sum( (d_i * a_ik) / s^2_i) over i, giver f_k vektor 
+    sum_dia = np.matrix(np.sum( np.multiply(T, np.transpose(I_exp) / np.transpose(sigma_sq)) , 0))    # works!  makes sum( (d_i * a_ik) / s^2_i) over i, giver f_k vektor 
     
-    B = dot(transpose(T),( T / transpose(sigma_sq)))     # this one was a bitch!  this is b_kj 
+    B = np.dot(np.transpose(T),( T / np.transpose(sigma_sq)))     # this one was a bitch!  this is b_kj 
    
-    Bdiag = matrix(multiply(B,eye(len(B))))              # The diagonal of B
+    Bdiag = np.matrix(np.multiply(B,np.eye(len(B))))              # The diagonal of B
     
-    bkk = sum(Bdiag, 0)                                  # k col-vektor
+    bkk = np.sum(Bdiag, 0)                                  # k col-vektor
     
     Bmat = B-Bdiag
     
     
     # ************  convert before C++  *************************
-    Psumi = zeros((1,N))                   ## all should be arrays!         NB matrix and array dont mix in weave C!!!!
+    Psumi = np.zeros((1,N))                   ## all should be arrays!         NB matrix and array dont mix in weave C!!!!
     sum_dia = np.array(sum_dia, dtype = np.float64)
     bkk = np.array(bkk, dtype = np.float64)
     dP = np.array(np.zeros((1,N)), dtype = np.float64)
@@ -53,7 +53,7 @@ def build_bift():
     
     #m = array(m, 'float64')            # important! otherwise C will only make an Int array, and kill floats!
     
-    Pold = array(zeros((1,N)), dtype = np.float64)
+    Pold = np.array(np.zeros((1,N)), dtype = np.float64)
     
     I_exp = np.array(I_exp,dtype = np.float64)
     Bmat = np.array(Bmat, dtype = np.float64)
@@ -68,7 +68,7 @@ def build_bift():
     
     bkkmax = bkk.max() * 10
     
-    P = array(P,'float64')            # important! otherwise C will only make an Int array, and kill floats!
+    P = np.array(P, dtype = np.float64)            # important! otherwise C will only make an Int array, and kill floats!
     
     dotsp = 0.0
     
@@ -436,8 +436,10 @@ def build_radavg():
 
 if __name__ == "__main__":
     
-    build_radavg()
-    build_transmatrix()
+    #build_radavg()
+    #build_transmatrix()
+    
+    build_bift()
 
     
     
