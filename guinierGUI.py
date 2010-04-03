@@ -545,6 +545,8 @@ class GuinierControlPanel(wx.Panel):
         
         self.startSpin = wx.SpinCtrl(self, self.spinctrlIDs['qstart'], size = (60,-1))
         self.endSpin = wx.SpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1))
+        self.startSpin.SetValue(0)
+        self.endSpin.SetValue(0)
         
         self.startSpin.Bind(wx.EVT_SPINCTRL, self.onSpinCtrl)
         self.endSpin.Bind(wx.EVT_SPINCTRL, self.onSpinCtrl)
