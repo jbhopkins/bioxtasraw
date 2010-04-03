@@ -317,7 +317,12 @@ class BiftCalculationThread(threading.Thread):
         path = os.path.split(fullFilename)[0]
         filename = os.path.split(fullFilename)[1]
         
-        BiftObj.param['filename'] = os.path.join(path, 'IFT_' + filename)     
+        try:
+            if filename[0:4] != 'IFT_':
+                BiftObj.param['filename'] = os.path.join(path, 'IFT_' + filename)   
+        except IndexError:
+            BiftObj.param['filename'] = os.path.join(path, 'IFT_' + filename)
+              
             
         return BiftObj
         
@@ -351,7 +356,11 @@ class BiftCalculationThread(threading.Thread):
         path = os.path.split(fullFilename)[0]
         filename = os.path.split(fullFilename)[1]
         
-        IFTObj.param['filename'] = os.path.join(path, 'IFT_' + filename)     
+        try:
+            if filename[0:4] != 'IFT_':
+                IFTObj.param['filename'] = os.path.join(path, 'IFT_' + filename)
+        except IndexError:
+            IFTObj.param['filename'] = os.path.join(path, 'IFT_' + filename)
             
         return IFTObj
 

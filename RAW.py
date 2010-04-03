@@ -4120,20 +4120,21 @@ class ManipFilePanel(wx.Panel):
         if evt.GetId() == 10:
             #BIFT
             analysisPage = wx.FindWindowByName('AutoAnalysisPage')
-            analysisPage.runBiftOnExperimentObject(self.ExpObj, expParams)
+            analysisPage.runBiftOnExperimentObject(self.ExpObj.copy(), expParams)
             
         if evt.GetId() == 12:
             #Add to IFT List
             autoanalysis = wx.FindWindowByName('AutoAnalysisPage')
             
             for ExpObj in ManipulationPage.GetSelectedExpObjs():
-                autoanalysis.addExpObjToList(ExpObj)
+                ExpObjIFT = ExpObj.copy()
+                autoanalysis.addExpObjToList(ExpObjIFT)
             
             wx.CallAfter(wx.MessageBox, 'Finished adding file(s) to the IFT list', 'Finished')
             
         if evt.GetId() == 11:
             #GNOM
-            analysisPage.runBiftOnExperimentObject(self.ExpObj, expParams)
+            analysisPage.runBiftOnExperimentObject(self.ExpObj.copy(), expParams)
             
     def RemoveSelf(self):
         manipulationPage = wx.FindWindowByName('ManipulationPage')

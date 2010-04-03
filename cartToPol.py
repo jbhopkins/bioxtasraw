@@ -33,7 +33,7 @@ from scipy import io
 from scipy.weave import converters
 import fileIO
 import masking
-import cProfile
+import cProfile, copy
 
 import ravg_ext
 
@@ -799,6 +799,23 @@ class Measurement:
         self.canvas = None
         self.plotPanel = None
         
+        self.itempanel = None
+        
+    def copy(self):
+        
+        NewExpObj = copy.copy(self)
+        
+        NewExpObj.cleanPlotVars()
+        NewExpObj.param = copy.copy(self.param)
+        
+        return NewExpObj
+        
+    def cleanPlotVars(self):
+        
+        self.line = None
+        self.axes = None
+        self.canvas = None
+        self.plotPanel = None
         self.itempanel = None
     
     def getFileType(self):
