@@ -433,8 +433,8 @@ def build_radavg():
 
 if __name__ == "__main__":
     
-    #build_radavg()
-    #build_transmatrix()
+    build_radavg()
+    build_transmatrix()
     
     build_bift()
 

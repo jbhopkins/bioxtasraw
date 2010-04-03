@@ -1,37 +1,5 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-15 -*-
-##---------------------------------------------------------------------------------------------------
-__version__ = 0.3
-__author__  = "Laurent Dufrechou"
-__email__   = "laurent.dufrechou@gmail.com"
-__license__ = "BSD"
-##---------------------------------------------------------------------------------------------------
-
-manifest = """
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<assembly xmlns="urn:schemas-microsoft-com:asm.v1"
-manifestVersion="1.0">
-<assemblyIdentity
-    version="0.64.1.0"
-    processorArchitecture="x86"
-    name="Controls"
-    type="win32"
-/>
-<description>myProgram</description>
-<dependency>
-    <dependentAssembly>
-        <assemblyIdentity
-            type="win32"
-            name="Microsoft.Windows.Common-Controls"
-            version="6.0.0.0"
-            processorArchitecture="X86"
-            publicKeyToken="6595b64144ccf1df"
-            language="*"
-        />
-    </dependentAssembly>
-</dependency>
-</assembly>
-"""
 
 import os
 import sys
@@ -49,6 +17,7 @@ def rmdir_recursive(dir, keep=[]):
     for name in os.listdir(dir):
         if name not in keep:
             full_name = os.path.join(dir, name)
+            
             # on Windows, if we don't have write permission we can't remove
             # the file/directory either, so turn that on
             if not os.access(full_name, os.W_OK):
@@ -148,7 +117,7 @@ data_files.append(('', ['RAW.chm']))
 # for console program use 'console = [{"script" : "scriptname.py"}]
 # windows = 
 setup(name='BioXTAS RAW',
-      version='0.91',
+      version='0.98',
       author='Soren S. Nielsen',
       console=[{'script' : "RAW.py",
                 'icon_resources':[(1,'ressources\\raw.ico')],

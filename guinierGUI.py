@@ -463,7 +463,7 @@ class GuinierControlPanel(wx.Panel):
         button = wx.Button(self, -1, 'Close')
         button.Bind(wx.EVT_BUTTON, self.onCloseButton)
         
-        savebutton = wx.Button(self, -1, 'Save info')
+        savebutton = wx.Button(self, -1, 'Save Parameters')
         savebutton.Bind(wx.EVT_BUTTON, self.onSaveInfo)
         
         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -489,8 +489,6 @@ class GuinierControlPanel(wx.Panel):
     def onSaveInfo(self, evt):
         
         wx.MessageBox('The parameters has now been saved into the file header', 'Info')
-        
-        
         
         
     def onCloseButton(self, evt):
