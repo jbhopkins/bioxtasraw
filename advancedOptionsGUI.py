@@ -17,11 +17,12 @@
 #******************************************************************************
 
 
-import wx, masking
-import fileIO, cartToPol
+import wx, masking, fileIO, cartToPol
 from numpy import power, ceil
 #from os import path
 
+
+#----- **** Individual Pages ****
 class PatternRadioBox(wx.Panel):
     
     def __init__(self, parent, type_id, value_id):
@@ -990,8 +991,14 @@ class ImageFormatOptionsPage(wx.Panel):
                 calibChkBox.SetValue(False)
                 wx.MessageBox('Please enter a valid Wavelength, Detector Pixelsize and Sample-Detector\n' +
                               'distance in advanced options/calibration.', 'Attention!', wx.OK | wx.ICON_EXCLAMATION)
-        
+
+
+                
+
+        return
+#------ ****** Main Dialog ******
 class OptionsDialog(wx.Dialog):
+
     
     def __init__(self, parent, expParams, focusIndex = None):
       
@@ -1400,132 +1407,7 @@ class OptionsDialog(wx.Dialog):
         return P
     
     
-class OptionsTestFrame(wx.Frame):
-    ''' Only for testing '''
-    
-    def __init__(self, title, frame_id):
-        wx.Frame.__init__(self, None, frame_id, title)
-        
-        testExpParams = {
-             'NormalizeConst'    : 1.0,
-             'NormalizeConstChk' : False,
-             'NormalizeM2'       : False,
-             'NormalizeTime'     : False,
-             'NormalizeM1'       : False, 
-             'NormalizeAbs'      : False,
-             'NormalizeTrans'    : False,
-             'Calibrate'         : False,        # Calibrate AgBe
-             'CalibrateMan'      : False,        # Calibrate manual (wavelength / distance)
-             'AutoBgSubtract'    : False,
-             'AutoBIFT'          : False,
-             
-             #CENTER / BINNING
-             'Binsize'    : 2,
-             'Xcenter'    : 556.0,
-             'Ycenter'    : 544.0,
-             'QrangeLow'  : 25,
-             'QrangeHigh' : 9999,
-             'PixelCalX'  : 200,
-             'PixelCalY'  : 200,
-             
-             #MASKING
-             'SampleFile'              : None,
-             'BackgroundFile'          : None,
-             'BeamStopMask'            : None,
-             'BeamStopMaskFilename'    : None,
-             'BeamStopMaskParams'      : None,
-             'ReadOutNoiseMask'        : None,
-             'ReadOutNoiseMaskFilename': None,
-             'ReadOutNoiseMaskParams'  : None,
-             'WaterFile'               : None,
-             'EmptyFile'               : None,
-             'FlatFieldFile'           : None,
-             
-             #Q-CALIBRATION
-             'WaveLength'          : 0.0,
-             'SampleDistance'      : 0.0,
-             'SampleThickness'     : 0.0,
-             'BgPatternType'       : 'contain',
-             'BgPatternValue'      : '',
-             'ReferenceQ'          : 0.0,
-             'ReferenceDistPixel'  : 0,
-             'ReferenceDistMm'     : 0.0,
-             'DetectorPixelSize'   : 0.0,
-             'SmpDetectOffsetDist' : 0.0,
-             'WaterAvgMinPoint'    : 30,
-             'WaterAvgMaxPoint'    : 500,
-             
-             #DEFAULT BIFT PARAMETERS
-             'maxDmax'     : 400.0,
-             'minDmax'     : 10.0,
-             'DmaxPoints'  : 10,
-             'maxAlpha'    : 1e10,
-             'minAlpha'    : 150.0,
-             'AlphaPoints' : 16,
-             'PrPoints'    : 50,
-             
-             #DEFAULT GNOM PARAMETERS
-             'gnomMaxAlpha'    : 60,
-             'gnomMinAlpha'    : 0.01,
-             'gnomAlphaPoints' : 100,
-             'gnomPrPoints'    : 50,
-             'gnomFixInitZero' : True,
-             
-             'OSCILLweight'    : 3.0,
-             'VALCENweight'    : 1.0,
-             'POSITVweight'    : 1.0,
-             'SYSDEVweight'    : 3.0,
-             'STABILweight'    : 3.0,
-             'DISCRPweight'    : 1.0,
-             
-             #DEFAULT IFT PARAMETERS:
-             'IFTAlgoList'        : ['BIFT', 'GNOM'],
-             'IFTAlgoChoice'      : 'BIFT',
-             
-             #ARTIFACT REMOVAL:
-             'ZingerRemoval'     : False,
-             'ZingerRemoveSTD'   : 4,
-             'ZingerRemoveWinLen': 10,
-             'ZingerRemoveIdx'   : 10,
-             
-             'ZingerRemovalAvgStd'  : 8,
-             'ZingerRemovalAvg'     : False,
-             
-             #SAVE DIRECTORIES
-             'ReducedFilePath'      : ' ',
-             'AutoSaveOnImageFiles' : False,
-             'AutoSaveOnAvgFiles'   : False,
-             
-             #IMAGE FORMATS
-             #See advancedOptionsGUI ['Quantum 210, CHESS', 'MarCCD 165, MaxLab', 'Medoptics, CHESS', 'FLICAM, CHESS']
-             'ImageFormat'          : 'Quantum 210, CHESS',
-                 
-                 
-             'CurveOffsetVal'        : 0.0,
-             'OffsetCurve'           : False,
-             'CurveScaleVal'         : 1.0,
-             'ScaleCurve'            : False
-             }
-        
-        dialog = OptionsDialog(self, testExpParams)
-        dialog.ShowModal()
-        
-        self.Destroy()
-    
-class MaskingTestApp(wx.App):
-    
-    def OnInit(self):
-        
-        frame = OptionsTestFrame('Mask Creator', -1)
-        self.SetTopWindow(frame)
-        frame.SetSize((1024,768))
-        frame.CenterOnScreen()
-        frame.Show(True)
-        
-        return True
-    
-    
-#------------- *** My Custom SpinCtrl's ****
+#---- **** Custom SpinCtrl's ****
 
 class FloatSpinEvent(wx.PyCommandEvent):
     
@@ -1890,14 +1772,134 @@ class ListSpinCtrl(wx.Panel):
         self.minIdx = 0
         self.Scale.SetValue(str(self.scrollList[self.idx]))
         
+#---- ****** FOR TESTING ******
+    
+    
+class OptionsTestFrame(wx.Frame):
+    ''' Only for testing '''
+    
+    def __init__(self, title, frame_id):
+        wx.Frame.__init__(self, None, frame_id, title)
         
+        testExpParams = {
+             'NormalizeConst'    : 1.0,
+             'NormalizeConstChk' : False,
+             'NormalizeM2'       : False,
+             'NormalizeTime'     : False,
+             'NormalizeM1'       : False, 
+             'NormalizeAbs'      : False,
+             'NormalizeTrans'    : False,
+             'Calibrate'         : False,        # Calibrate AgBe
+             'CalibrateMan'      : False,        # Calibrate manual (wavelength / distance)
+             'AutoBgSubtract'    : False,
+             'AutoBIFT'          : False,
+             
+             #CENTER / BINNING
+             'Binsize'    : 2,
+             'Xcenter'    : 556.0,
+             'Ycenter'    : 544.0,
+             'QrangeLow'  : 25,
+             'QrangeHigh' : 9999,
+             'PixelCalX'  : 200,
+             'PixelCalY'  : 200,
+             
+             #MASKING
+             'SampleFile'              : None,
+             'BackgroundFile'          : None,
+             'BeamStopMask'            : None,
+             'BeamStopMaskFilename'    : None,
+             'BeamStopMaskParams'      : None,
+             'ReadOutNoiseMask'        : None,
+             'ReadOutNoiseMaskFilename': None,
+             'ReadOutNoiseMaskParams'  : None,
+             'WaterFile'               : None,
+             'EmptyFile'               : None,
+             'FlatFieldFile'           : None,
+             
+             #Q-CALIBRATION
+             'WaveLength'          : 0.0,
+             'SampleDistance'      : 0.0,
+             'SampleThickness'     : 0.0,
+             'BgPatternType'       : 'contain',
+             'BgPatternValue'      : '',
+             'ReferenceQ'          : 0.0,
+             'ReferenceDistPixel'  : 0,
+             'ReferenceDistMm'     : 0.0,
+             'DetectorPixelSize'   : 0.0,
+             'SmpDetectOffsetDist' : 0.0,
+             'WaterAvgMinPoint'    : 30,
+             'WaterAvgMaxPoint'    : 500,
+             
+             #DEFAULT BIFT PARAMETERS
+             'maxDmax'     : 400.0,
+             'minDmax'     : 10.0,
+             'DmaxPoints'  : 10,
+             'maxAlpha'    : 1e10,
+             'minAlpha'    : 150.0,
+             'AlphaPoints' : 16,
+             'PrPoints'    : 50,
+             
+             #DEFAULT GNOM PARAMETERS
+             'gnomMaxAlpha'    : 60,
+             'gnomMinAlpha'    : 0.01,
+             'gnomAlphaPoints' : 100,
+             'gnomPrPoints'    : 50,
+             'gnomFixInitZero' : True,
+             
+             'OSCILLweight'    : 3.0,
+             'VALCENweight'    : 1.0,
+             'POSITVweight'    : 1.0,
+             'SYSDEVweight'    : 3.0,
+             'STABILweight'    : 3.0,
+             'DISCRPweight'    : 1.0,
+             
+             #DEFAULT IFT PARAMETERS:
+             'IFTAlgoList'        : ['BIFT', 'GNOM'],
+             'IFTAlgoChoice'      : 'BIFT',
+             
+             #ARTIFACT REMOVAL:
+             'ZingerRemoval'     : False,
+             'ZingerRemoveSTD'   : 4,
+             'ZingerRemoveWinLen': 10,
+             'ZingerRemoveIdx'   : 10,
+             
+             'ZingerRemovalAvgStd'  : 8,
+             'ZingerRemovalAvg'     : False,
+             
+             #SAVE DIRECTORIES
+             'ReducedFilePath'      : ' ',
+             'AutoSaveOnImageFiles' : False,
+             'AutoSaveOnAvgFiles'   : False,
+             
+             #IMAGE FORMATS
+             #See advancedOptionsGUI ['Quantum 210, CHESS', 'MarCCD 165, MaxLab', 'Medoptics, CHESS', 'FLICAM, CHESS']
+             'ImageFormat'          : 'Quantum 210, CHESS',
+                 
+                 
+             'CurveOffsetVal'        : 0.0,
+             'OffsetCurve'           : False,
+             'CurveScaleVal'         : 1.0,
+             'ScaleCurve'            : False
+             }
         
-#---- Mask loading
-
-
+        dialog = OptionsDialog(self, testExpParams)
+        dialog.ShowModal()
         
+        self.Destroy()
+    
+class OptionsTestApp(wx.App):
+    
+    def OnInit(self):
+        
+        frame = OptionsTestFrame('Options test', -1)
+        self.SetTopWindow(frame)
+        frame.SetSize((1024,768))
+        frame.CenterOnScreen()
+        frame.Show(True)
+        
+        return True
     
         
 if __name__ == "__main__":
-    app = MaskingTestApp(0)   #MyApp(redirect = True)
+    app = OptionsTestApp(0)   #MyApp(redirect = True)
     app.MainLoop()

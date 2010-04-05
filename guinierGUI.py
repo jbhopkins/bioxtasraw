@@ -722,6 +722,8 @@ class GuinierControlPanel(wx.Panel):
                 guinierData[eachKey] = (val1, val2) 
                 
         return guinierData
+    
+#---- **** Main Dialog ****
         
 class GuinierFitDialog(wx.Dialog):
 
@@ -744,7 +746,7 @@ class GuinierFitDialog(wx.Dialog):
         
         self.Destroy()
         
-                         
+#---- **** FOR TESTING ****      
 class GuinierTestFrame(wx.Frame):
     
     def __init__(self, parent, title, ExpObj):
@@ -780,7 +782,7 @@ class GuinierTestFrame(wx.Frame):
         
         self.Destroy()
         
-class OverviewTestApp(wx.App):
+class GuinierTestApp(wx.App):
     
     def OnInit(self, filename = None):
         
@@ -809,5 +811,5 @@ if __name__ == "__main__":
     else:
         filename = None
     
-    app = OverviewTestApp(0, filename)   #MyApp(redirect = True)
+    app = GuinierTestApp(0, filename)   #MyApp(redirect = True)
     app.MainLoop()

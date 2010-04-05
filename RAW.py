@@ -2804,8 +2804,10 @@ class OnlineController:
         else:
             self.onlineTimer.Start(3000)
             self.isOnline = True
+        
+        return
 
-#------------- *** My Custom SpinCtrl's ****
+#----- **** Custom SpinCtrl's ****
 
 class FloatSpinEvent(wx.PyCommandEvent):
     
