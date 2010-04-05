@@ -42,6 +42,7 @@ class PatternRadioBox(wx.Panel):
     
     def createAutoBgSubtractOptions(self):
         
+        box = wx.StaticBox(self, -1, 'Background Filename Pattern')
         radioSizer = wx.BoxSizer(wx.VERTICAL)
         
         for eachLabel, id, name in self.radioButtons:
@@ -60,7 +61,6 @@ class PatternRadioBox(wx.Panel):
         autoSubOptionsSizer.Add(radioSizer, 0, wx.CENTER)
         autoSubOptionsSizer.Add(text, 0, wx.CENTER | wx.LEFT, 5)
         
-        box = wx.StaticBox(self, -1, 'Background Filename Pattern')
         boxsizer = wx.StaticBoxSizer(box)
         boxsizer.Add(autoSubOptionsSizer, 1, wx.ALL, 5)
         
@@ -130,9 +130,10 @@ class MaskingOptions(wx.Panel):
         self.filesData = (("Beamstop Mask:"     , self.expParamsInGUI['BeamStopMaskFilename'][0], wx.NewId(), wx.NewId(), "Set..", "C", self.onSetFile, self.onClrFile),
                           ("Readout Noise Mask:", self.expParamsInGUI['ReadOutNoiseMaskFilename'][0], wx.NewId(), wx.NewId(), "Set..", "C", self.onSetFile, self.onClrFile))
 
-        fileSizer = self.createFileSettings()
+        
 
         box = wx.StaticBox(self, -1, 'Mask Files')
+        fileSizer = self.createFileSettings()
         chkboxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         chkboxSizer.Add(fileSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
         
@@ -404,11 +405,9 @@ class CalibrationOptionsPage(wx.Panel):
                               ("Calibrate Q-range (Distance)", self.expParamsInGUI['CalibrateMan'][0]))
 
 
-                                    
+        box = wx.StaticBox(self, -1, 'Absolute Scaling')                            
         fileSizer = self.createFileSettings()
         normConstSizer = self.createNormConstants()
-        
-        box = wx.StaticBox(self, -1, 'Absolute Scaling')
         chkboxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         chkboxSizer.Add(fileSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
         chkboxSizer.Add(normConstSizer, 0, wx.EXPAND | wx.ALL, 5)
@@ -448,8 +447,10 @@ class CalibrationOptionsPage(wx.Panel):
     
     def createCalibConstants(self):       
         
+        box = wx.StaticBox(self, -1, 'Calibration Parameters')
         noOfRows = int(len(self.calibConstantsData))
         calibSizer = wx.FlexGridSizer(cols = 3, rows = noOfRows, vgap = 3)
+        
         
         for eachText, id, unitTxt in self.calibConstantsData:
             
@@ -461,11 +462,9 @@ class CalibrationOptionsPage(wx.Panel):
             calibSizer.Add(ctrl, 1, wx.EXPAND | wx.ALIGN_RIGHT | wx.LEFT | wx.RIGHT, 5)
             calibSizer.Add(unitlabel, 1, wx.EXPAND | wx.TOP, 2)
         
-        
-        box = wx.StaticBox(self, -1, 'Calibration Parameters')
         chkboxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        
         chkboxSizer.Add(calibSizer, 1, wx.EXPAND | wx.ALIGN_CENTER | wx.ALL, 5)
+        
         return chkboxSizer
                         
     def createFileSettings(self):
@@ -736,15 +735,17 @@ class IFTOptionsPage(wx.Panel):
         
         self.gnomChkBoxData = (("Force P(r=0) to zero:", expParamsInGUI['gnomFixInitZero'][0]), [])
                 
-        biftOptionsSizer = self.createBiftOptions()
         
-        gnomOptionsSizer = self.createGnomOptions()
+        
+        
         
         box = wx.StaticBox(self, -1, 'BIFT Grid-Search Parameters')
+        biftOptionsSizer = self.createBiftOptions()
         chkboxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         chkboxSizer.Add(biftOptionsSizer, 1, wx.EXPAND | wx.ALL, 5)
         
         box2 = wx.StaticBox(self, -1, 'GNOM Parameters')
+        gnomOptionsSizer = self.createGnomOptions()
         chkboxSizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
         chkboxSizer2.Add(gnomOptionsSizer, 1, wx.EXPAND | wx.ALL, 5)
         
@@ -824,24 +825,22 @@ class ImageFormatOptionsPage(wx.Panel):
         self.treatmentdataTxtCtrl = (("Offset by Constant:", self.expParamsInGUI['CurveOffsetVal'][0], self.expParamsInGUI['OffsetCurve'][0]),
                                      ("Scale by Constant:", self.expParamsInGUI['CurveScaleVal'][0], self.expParamsInGUI['ScaleCurve'][0]))
 
-        fileSizer = self.createFormatsComboBox()
+        
 
         box = wx.StaticBox(self, -1, 'Image Format')
+        fileSizer = self.createFormatsComboBox()
         chkboxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         chkboxSizer.Add(fileSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
         
-        reductionSizer = self.Create2DReductionParameters()
-        
         box = wx.StaticBox(self, -1, '2D Reduction Parameters')
+        reductionSizer = self.Create2DReductionParameters()
         staticBoxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         staticBoxSizer.Add(reductionSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
         
-        normalizationSizer = self.CreateTreatmentData()
-        
         box = wx.StaticBox(self, -1, 'Normalization')
+        normalizationSizer = self.CreateTreatmentData()
         normBoxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         normBoxSizer.Add(normalizationSizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
-        
         
         panelsizer = wx.BoxSizer(wx.VERTICAL)
         panelsizer.Add(chkboxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
@@ -1162,6 +1161,7 @@ class OptionsDialog(wx.Dialog):
             optionsNB.SetSelection(focusIndex)
         
         self.Fit()
+        self.CenterOnScreen()
             
     def getValueFromExpParams(self, key):
         return self.expParams[key]

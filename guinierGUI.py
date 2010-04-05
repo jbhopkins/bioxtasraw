@@ -436,7 +436,7 @@ class GuinierPlotPanel(wx.Panel):
         
         self.bottomlimit = limits[1]
         self.toplimit = limits[0]
-        
+             
 class GuinierControlPanel(wx.Panel):
     
     def __init__(self, parent, panel_id, name):
@@ -454,12 +454,6 @@ class GuinierControlPanel(wx.Panel):
                          'qRg': ('qRg :', wx.NewId()),
                          'rsq': ('r^2 (fit) :', wx.NewId())}
         
- 
-        controlSizer = self.createControls()
-        infoSizer = self.createInfoBox()
-        
-        bsizer = wx.BoxSizer(wx.VERTICAL)
-        
         button = wx.Button(self, -1, 'Close')
         button.Bind(wx.EVT_BUTTON, self.onCloseButton)
         
@@ -471,13 +465,16 @@ class GuinierControlPanel(wx.Panel):
         buttonSizer.Add(savebutton, 1, wx.EXPAND)
         
         box = wx.StaticBox(self, -1, 'Parameters')
+        infoSizer = self.createInfoBox()
         boxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         boxSizer.Add(infoSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 5)
         
         box2 = wx.StaticBox(self, -1, 'Control')
+        controlSizer = self.createControls()
         boxSizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
         boxSizer2.Add(controlSizer, 0, wx.EXPAND)
         
+        bsizer = wx.BoxSizer(wx.VERTICAL)
         bsizer.Add(boxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
         bsizer.Add(boxSizer2, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
         bsizer.Add(buttonSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT| wx.TOP, 5)
@@ -543,8 +540,8 @@ class GuinierControlPanel(wx.Panel):
         sizer.Add(wx.StaticText(self,-1,'q_max'),1)
         sizer.Add(wx.StaticText(self,-1,'n_max'),1)
         
-        self.startSpin = wx.SpinCtrl(self, self.spinctrlIDs['qstart'], size = (60,-1))
-        self.endSpin = wx.SpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1))
+        self.startSpin = wx.SpinCtrl(self, self.spinctrlIDs['qstart'], size = (50,-1))
+        self.endSpin = wx.SpinCtrl(self, self.spinctrlIDs['qend'], size = (50,-1))
         self.startSpin.SetValue(0)
         self.endSpin.SetValue(0)
         
@@ -557,14 +554,15 @@ class GuinierControlPanel(wx.Panel):
         self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
         self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
         
-        sizer.Add(self.qstartTxt, 1, wx.EXPAND | wx.LEFT, 5)
-        sizer.Add(self.startSpin, 1, wx.EXPAND)
-        sizer.Add(self.qendTxt, 1, wx.EXPAND)
-        sizer.Add(self.endSpin, 1, wx.EXPAND)
+        sizer.Add(self.qstartTxt, 0, wx.EXPAND | wx.LEFT, 5)
+        sizer.Add(self.startSpin, 0, wx.EXPAND)
+        sizer.Add(self.qendTxt, 0, wx.EXPAND)
+        sizer.Add(self.endSpin, 0, wx.EXPAND)
         
         return sizer
     
     def onEnterInQlimits(self, evt):
+        print 'hello'
         
         id = evt.GetId()
         
