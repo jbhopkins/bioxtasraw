@@ -1115,7 +1115,7 @@ class OptionsDialog(wx.Dialog):
 
         nbsizer = wx.BoxSizer(wx.VERTICAL)
         nbsizer.Add(optionsNB, 1, wx.EXPAND)
-        nbsizer.Add(buttonSizer, 0, wx.EXPAND | wx.BOTTOM, 3)
+        nbsizer.Add(buttonSizer, 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 5)
         
         self.SetSizer(nbsizer)
         
@@ -1510,6 +1510,7 @@ class OptionsTestFrame(wx.Frame):
         dialog = OptionsDialog(self, testExpParams)
         dialog.ShowModal()
         
+        self.Destroy()
     
 class MaskingTestApp(wx.App):
     

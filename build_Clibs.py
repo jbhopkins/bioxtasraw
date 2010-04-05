@@ -7,6 +7,8 @@ import os
 
 def build_bift():
     
+    print 'Compiling bift_ext...'
+    
     #(I_exp, m, q, sigma, alpha, dmax, T)
   
     I_exp = [1.0,2.0,3.0,4.0]
@@ -272,6 +274,8 @@ def build_bift():
     
 def build_transmatrix():
     
+    print 'Compiling transmatrix_ext...'
+    
     q = [1.0, 2.0, 3.0, 4.0, 6.0]
     i = [0.1, 23.3, 21.3, 45.0, 23.0]
     r = [1.0,2.0,3.0,4.0,5.0,6.0]
@@ -332,6 +336,8 @@ def build_transmatrix():
         print '\n\n****** transmatrix_ext module compiled succesfully! *********'
    
 def build_radavg():
+    
+    print 'Compiling ravg_ext...'
 
     mod = ext_tools.ext_module('ravg_ext')
     
