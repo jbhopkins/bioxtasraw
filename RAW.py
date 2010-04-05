@@ -2269,6 +2269,9 @@ class CustomListCtrl(wx.ListCtrl):
             j += 1
         
     def GetSelectedFilenames(self):
+         
+        if self.GetSelectedItemCount() == 0:
+             return []
         
         selected = []
         selIdx = self.GetFirstSelected()
@@ -2558,8 +2561,11 @@ class DirCtrlPanel_2(wx.Panel):
             self.FilterFileListAndUpdateListBox()
     
     def _OnDoubleClick(self, evt):
-                
-        fullfilename = self.fileListBox.GetSelectedFilenames()[0]
+        
+        if self.fileListBox.GetSelectedFilenames() != []:
+            fullfilename = self.fileListBox.GetSelectedFilenames()[0]
+        else:
+            return
         
         if fullfilename == '..':
             self.path = os.path.split(self.path)[0]  
