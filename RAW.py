@@ -16,7 +16,7 @@
 #******************************************************************************
 from __future__ import division
 import sys, os, cPickle, threading, re, math#, gc, time
-import matplotlib
+import matplotlib, time
 matplotlib.rc('image', origin='lower')           # This turns the image upside down!!
                                                 #  but x and y will start from zero in the lower left corner 
 
@@ -2158,6 +2158,152 @@ class FileExistsDialog(wx.Dialog):
            wx.FindWindowByName('MainFrame').SetStatusText(filename + ' Saved!')
            self.EndModal(answer)
                     
+class CustomListCtrl(wx.ListCtrl):
+
+    def __init__(self, parent, id):
+        wx.ListCtrl.__init__(self, parent, id, style = wx.LC_REPORT)
+        
+        self.dir = '.'
+        self.files = []
+        
+        images = ['Up.png', 'Folder.png', 'document.png']
+        
+        self.InsertColumn(0, 'Name')
+        self.InsertColumn(1, 'Ext')
+        self.InsertColumn(2, 'Size', wx.LIST_FORMAT_RIGHT)
+        self.InsertColumn(3, 'Modified')
+
+        self.SetColumnWidth(0, 160)
+        self.SetColumnWidth(1, 40)
+        self.SetColumnWidth(2, 70)
+        self.SetColumnWidth(3, 150)
+        
+        self.il = wx.ImageList(16, 16)
+        
+        mainframe = wx.FindWindowByName('MainFrame')
+        
+        for each in images:
+            self.il.Add(wx.Bitmap(os.path.join(mainframe.RAWWorkDir, 'ressources',each)))
+            
+        self.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
+        
+        self.ReadFileList()
+        self.RefreshFileList()
+        
+    def ReadFileList(self):
+        try:
+            self.files = os.listdir(self.dir)
+        except OSError, msg:
+            print msg
+    
+    def RefreshFileList(self):
+        
+        self.DeleteAllItems()
+        
+        dirs = []
+        for each in self.files:
+            if os.path.isdir(os.path.join(self.dir, each)):
+                dirs.append(each)
+        
+        for each in dirs:
+            self.files.remove(each)
+        
+        for i in range(0, len(self.files)):
+            self.files[i] = str(self.files[i])
+            
+        self.files.sort(key = str.lower)
+        
+        for i in range(0, len(dirs)):
+            dirs[i] = str(dirs[i])
+        
+        dirs.sort(key = str.lower)
+    
+        
+        
+        if len(self.dir) > 1:
+            self.InsertStringItem(0, '..')
+            self.SetItemImage(0,0)
+            j = 1
+        else:
+            j = 0
+        
+        for i in dirs:
+            (name, ext) = os.path.splitext(i)
+            ex = ext[1:]
+            size = os.path.getsize(os.path.join(self.dir, i))
+            sec = os.path.getmtime(os.path.join(self.dir, i))
+            
+            self.InsertStringItem(j, name)
+            self.SetStringItem(j, 1, ex)
+            self.SetStringItem(j, 2, '')
+            self.SetStringItem(j, 3, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)))
+
+            if os.path.isdir(os.path.join(self.dir,i)):
+                self.SetItemImage(j, 1)
+            
+            if not (j % 2) == 0:
+                self.SetItemBackgroundColour(j, '#e6f1f5')
+            j += 1
+                
+        for i in self.files:
+            (name, ext) = os.path.splitext(i)
+            ex = ext[1:]
+            size = os.path.getsize(os.path.join(self.dir, i))
+            sec = os.path.getmtime(os.path.join(self.dir, i))
+            
+            self.InsertStringItem(j, name)
+            self.SetStringItem(j, 1, ex)
+            self.SetStringItem(j, 2, str(round(size/1000,1)) + ' KB')
+            self.SetStringItem(j, 3, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)))
+
+            
+            if os.path.isdir(os.path.join(self.dir,i)):
+                self.SetItemImage(j, 1)
+            else:
+                self.SetItemImage(j, 2)
+            #self.SetStringItem(j, 2, str(size) + ' B')
+            #self.SetStringItem(j, 3, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)))
+
+            if not (j % 2) == 0:
+                self.SetItemBackgroundColour(j, '#e6f1f5')
+            j += 1
+        
+    def GetSelectedFilenames(self):
+        
+        selected = []
+        selIdx = self.GetFirstSelected()
+        
+        filename = self.GetItemText(selIdx)
+        ext_item = self.GetItem(selIdx,1).GetText()
+        
+        if ext_item:
+            fullfilename = filename + '.' + ext_item
+        else:
+            fullfilename = filename
+        
+        selected.append(fullfilename)
+        
+        for i in range(1, self.GetSelectedItemCount()):
+            newSelIdx = self.GetNextSelected(selIdx)
+            selIdx = newSelIdx
+            
+            filename = self.GetItemText(selIdx)
+            ext_item = self.GetItem(selIdx,1).GetText()
+        
+            if ext_item:
+                fullfilename = filename + '.' + ext_item
+            else:
+                fullfilename = filename
+            
+            selected.append(fullfilename)
+    
+        return selected
+    
+    def SetDir(self, dir):
+        self.dir = dir
+        
+        self.ReadFileList()
+        self.RefreshFileList()
                     
 class DirCtrlPanel_2(wx.Panel):
 
@@ -2184,10 +2330,17 @@ class DirCtrlPanel_2(wx.Panel):
         
         self.bgFilename = None
         self.selected_file = None
-        self.path = '/'
+        self.path = '.'
         
         self.FileList = []
-        self.InitFileList()
+        #self.InitFileList()
+        print self.path
+        
+    def SetPath(self, dir):
+        
+        self.path = dir
+        self.fileListBox.SetDir(dir)
+        self.UpdateDirLabel(self.path)
         
     def InitFileList(self):
         
@@ -2247,8 +2400,9 @@ class DirCtrlPanel_2(wx.Panel):
                  if self.FileList[i].endswith(extension):
                      filterdFileList.append(self.FileList[i])
 
-             self.UpdateFileListBox(filterdFileList)            
-        
+             self.UpdateFileListBox(filterdFileList)
+             
+                       
     def CreateDirCtrl(self, DirCtrlPanel_Sizer):
         # create list box
         
@@ -2269,7 +2423,9 @@ class DirCtrlPanel_2(wx.Panel):
         Dirlabelsizer.Add(self.DirLabel, 1, wx.EXPAND | wx.RIGHT, 2)
         Dirlabelsizer.Add(self.DirButton,0)
         
-        self.fileListBox = wx.ListBox(self, -1, style = wx.LB_EXTENDED)
+        #self.fileListBox = wx.ListBox(self, -1, style = wx.LB_EXTENDED)
+        self.fileListBox = CustomListCtrl(self, -1)
+        
         self.fileListBox.Bind(wx.EVT_KEY_DOWN, self._OnUpdateKey)
         self.fileListBox.Bind(wx.EVT_LEFT_DCLICK, self._OnDoubleClick)
         self.fileListBox.Bind(wx.EVT_LISTBOX, self._OnLeftClick)
@@ -2289,6 +2445,9 @@ class DirCtrlPanel_2(wx.Panel):
             if os.path.isdir(pathtxt):
                 self.path = pathtxt
                 FileList = self.GetListOfFiles()
+                
+                print self.path
+                
                 self.UpdateFileListBox(FileList)
             else:
                 self.DirLabel.SetValue(str(self.path))
@@ -2399,17 +2558,27 @@ class DirCtrlPanel_2(wx.Panel):
             self.FilterFileListAndUpdateListBox()
     
     def _OnDoubleClick(self, evt):
+                
+        fullfilename = self.fileListBox.GetSelectedFilenames()[0]
         
-        selectedId = self.fileListBox.GetSelections()
-        filename = self.fileListBox.GetString(selectedId[0])
-        self.selected_file = os.path.join(self.path, filename)
-    
-        wx.FindWindowByName('PlotPanel').onPlotButton(0)
+        if fullfilename == '..':
+            self.path = os.path.split(self.path)[0]  
+            self.fileListBox.SetDir(self.path)
+            self.UpdateDirLabel(self.path)
+            
+        elif os.path.isdir(os.path.join(self.path, fullfilename)):
+            self.path = os.path.join(self.path, fullfilename)
+            self.fileListBox.SetDir(self.path)
+            self.UpdateDirLabel(self.path)
+        
+        else:
+            wx.FindWindowByName('PlotPanel').onPlotButton(0)
     
     def GetSelectedFile(self):
         ''' Returns a list of files with full path '''
         
         #print self.selectedFiles
+        self.selectedFiles = self.fileListBox.GetSelectedFilenames()
         
         for each in range(0, len(self.selectedFiles)):
             self.selectedFiles[each] = os.path.join(self.path, self.selectedFiles[each])
@@ -2575,44 +2744,44 @@ class DirCtrlPanel_2(wx.Panel):
             
         if dirdlg.ShowModal() == wx.ID_OK:               
             self.path = dirdlg.GetPath()
-            self.GetListOfFiles()
-            self.UpdateDirLabel(self.path)
-            self.UpdateFileListBox(self.FileList)
-            self.FilterFileListAndUpdateListBox()       
             
+            self.fileListBox.SetDir(self.path)
+            self.UpdateDirLabel(self.path)
+  
     def UpdateDirLabel(self, path):
         self.DirLabel.SetValue(path)
         
-    def GetListOfFiles(self):
-        self.FileList = os.listdir(self.path)
+#    def GetListOfFiles(self):
+#        self.FileList = os.listdir(self.path)
+#        
+#        FilesOnlyList = []    
+#        for filename in self.FileList:
+#            if os.path.isfile(os.path.join(self.path, filename)):
+#                FilesOnlyList.append(filename)
+#        self.FileList = FilesOnlyList
+#        
+#        return self.FileList
         
-        FilesOnlyList = []    
-        for filename in self.FileList:
-            if os.path.isfile(os.path.join(self.path, filename)):
-                FilesOnlyList.append(filename)
-        self.FileList = FilesOnlyList
-        
-        return self.FileList
-        
-    def UpdateFileListBox(self, FileList):
-        
-        self.fileListBox.Clear()
-        
-        for each in range(0, len(FileList)):
-            FileList[each] = str(FileList[each])
-         
-        FileList.sort(key = str.lower)
-        
-        for each in FileList:
-            self.fileListBox.Append(each)
+#    def UpdateFileListBox(self, FileList):
+#        
+#        self.fileListBox.Clear()
+#        
+#        for each in range(0, len(FileList)):
+#            FileList[each] = str(FileList[each])
+#         
+#        FileList.sort(key = str.lower)
+#        
+#        for each in FileList:
+#            self.fileListBox.Append(each)
                           
     def UpdateFileListBox_Online(self):
         
-        self.fileListBox.Clear()
+        #self.fileListBox.Clear()
+        self.fileListBox.RefreshFileList()
         
-        self.FileList = self.GetListOfFiles()
-        self.UpdateFileListBox(self.FileList)
-        self.FilterFileListAndUpdateListBox()
+#        self.FileList = self.GetListOfFiles()
+#        self.UpdateFileListBox(self.FileList)
+#        self.FilterFileListAndUpdateListBox()
                             
 class InfoPanel(wx.Panel):
     
@@ -4611,118 +4780,104 @@ class MainFrame(wx.Frame):
             FileObj = open(file, 'r')
             savedInfo = cPickle.load(FileObj)
             FileObj.close()
+            
             dirctrl = wx.FindWindowByName('DirCtrlPanel')
-            dirctrl.path = savedInfo['workdir']
+            dirctrl.SetPath(savedInfo['workdir'])
+            
             self.ChangeParameter('ImageFormat', savedInfo['ImageFormat'])
-            dirctrl.InitFileList()
         except:
             pass
         
     def SetStatusText(self, text, slot = 0):
         
         self.statusbar.SetStatusText(text, slot)
+        
+    def _CreateSingleMenuBarItem(self, info):
+        
+        menu = wx.Menu()
+        
+        for each in info:
+            
+            type = each[3]
+            bindFunc = each[2]
+            menuid = each[1]
+            label = each[0]
+            
+            if type == 'normal':
+                menu.Append(menuid, label)
+                self.Bind(wx.EVT_MENU, bindFunc, id = menuid)
+            
+            elif type == 'check':
+                menu.AppendCheckItem(menuid, label)
+                self.Bind(wx.EVT_MENU, bindFunc, id = menuid)
+                
+            elif type == 'radio':
+                menu.AppendRadioItem(menuid, label)
+                self.Bind(wx.EVT_MENU, bindFunc, id = menuid)
+                
+            elif type == 'submenu':
+                submenu = self._CreateSingleMenuBarItem(bindFunc)
+                menu.AppendSubMenu(submenu, label)
+            
+            elif type == 'separator':
+                menu.AppendSeparator()
+                
+        return menu
 
     def CreateMenuBar(self):
         
-        MenuFile = wx.Menu()
-        MenuFile.Append(self.MenuIDs['exit'], 'E&xit')
+        submenus = {'viewPlot1Sub' : [('Normal',  self.MenuIDs['plot1tynormal'], self.OnViewMenu, 'radio'),
+                                      ('Guinier', self.MenuIDs['plot1tyguinier'],self.OnViewMenu, 'radio'),
+                                      ('Kratky',  self.MenuIDs['plot1tykratky'], self.OnViewMenu, 'radio'),                            
+                                      ('Porod',   self.MenuIDs['plot1typorod'],  self.OnViewMenu, 'radio')],
         
-        self.Bind(wx.EVT_MENU, self.OnFileMenu, id = self.MenuIDs['exit'])
+                    'viewPlot2Sub' : [('Subtracted',  self.MenuIDs['plot2tysubtracted'], self.OnViewMenu, 'radio'),
+                                      ('Guinier', self.MenuIDs['plot2tyguinier'],self.OnViewMenu, 'radio'),
+                                      ('Kratky',  self.MenuIDs['plot2tykratky'], self.OnViewMenu, 'radio'),
+                                      ('Porod',   self.MenuIDs['plot2typorod'],  self.OnViewMenu, 'radio')],
+                    
+                    'viewPlot1Scale':[('Lin-Lin', self.MenuIDs['plot1sclinlin'], self.OnViewMenu, 'radio'),
+                                      ('Log-Lin', self.MenuIDs['plot1scloglin'], self.OnViewMenu, 'radio'),
+                                      ('Log-Log', self.MenuIDs['plot1scloglog'], self.OnViewMenu, 'radio'),
+                                      ('Lin-Log', self.MenuIDs['plot1sclinlog'], self.OnViewMenu, 'radio')],
+                                      
+                    'viewPlot2Scale':[('Lin-Lin', self.MenuIDs['plot2sclinlin'], self.OnViewMenu, 'radio'),
+                                      ('Log-Lin', self.MenuIDs['plot2scloglin'], self.OnViewMenu, 'radio'),
+                                      ('Log-Log', self.MenuIDs['plot2scloglog'], self.OnViewMenu, 'radio'),
+                                      ('Lin-Log', self.MenuIDs['plot2sclinlog'], self.OnViewMenu, 'radio')]}         
+                                    
         
-        MenuOptions = wx.Menu()
-        MenuOptions.Append(self.MenuIDs['advancedOptions'], '&Advanced options...')
-        MenuOptions.AppendSeparator()
-        MenuOptions.Append(self.MenuIDs['loadSettings'], '&Load Settings')
-        MenuOptions.Append(self.MenuIDs['saveSettings'], '&Save Settings')
-        
-        self.Bind(wx.EVT_MENU, self.OnOptionsMenu, id = self.MenuIDs['advancedOptions'])
-        self.Bind(wx.EVT_MENU, self.OnLoadMenu, id = self.MenuIDs['loadSettings'])
-        self.Bind(wx.EVT_MENU, self.OnSaveMenu, id = self.MenuIDs['saveSettings'])
-       
-         
-        MenuOnline = wx.Menu()
-        MenuOnline.Append(self.MenuIDs['goOnline'], '&Go Online')
-        MenuOnline.Append(self.MenuIDs['goOffline'], 'Go &Offline')
-        
-        MenuFunction = wx.Menu()
-        MenuFunction.Append(self.MenuIDs['guinierfit'], '&Guinier fit...')
-        MenuFunction.Append(self.MenuIDs['centering'], '&Centering...')
-        MenuFunction.AppendSeparator()
-        MenuFunction.AppendSubMenu(MenuOnline, 'Online Mode')
-        
-        self.Bind(wx.EVT_MENU, self.OnFunctionMenu, id = self.MenuIDs['centering'])
-        self.Bind(wx.EVT_MENU, self.OnFunctionMenu, id = self.MenuIDs['guinierfit'])
-        self.Bind(wx.EVT_MENU, self.OnOnlineMenu, id = self.MenuIDs['goOnline'])
-        self.Bind(wx.EVT_MENU, self.OnOnlineMenu, id = self.MenuIDs['goOffline'])
-        
-        MenuView = wx.Menu()
-        self.MenuViewPlot1SubMenu = wx.Menu()
-        self.MenuViewPlot1SubMenu.AppendRadioItem(self.MenuIDs['plot1tynormal'], 'Normal')
-        self.MenuViewPlot1SubMenu.AppendRadioItem(self.MenuIDs['plot1tyguinier'], 'Guinier')
-        self.MenuViewPlot1SubMenu.AppendRadioItem(self.MenuIDs['plot1tykratky'], 'Kratky')
-        self.MenuViewPlot1SubMenu.AppendRadioItem(self.MenuIDs['plot1typorod'], 'Porod')
-        
-        self.MenuViewPlot2SubMenu = wx.Menu()
-        self.MenuViewPlot2SubMenu.AppendRadioItem(self.MenuIDs['plot2tysubtracted'], 'Subtracted')
-        self.MenuViewPlot2SubMenu.AppendRadioItem(self.MenuIDs['plot2tyguinier'], 'Guinier')
-        self.MenuViewPlot2SubMenu.AppendRadioItem(self.MenuIDs['plot2tykratky'], 'Kratky')
-        self.MenuViewPlot2SubMenu.AppendRadioItem(self.MenuIDs['plot2typorod'], 'Porod')
-        
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1tynormal'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1tyguinier'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1tykratky'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1typorod'])
-        
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2tynormal'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2tyguinier'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2tykratky'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2typorod'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2tysubtracted'])
-        
-        MenuViewPlot1ScaleSubMenu = wx.Menu()
-        MenuViewPlot1ScaleSubMenu.AppendRadioItem(self.MenuIDs['plot1sclinlin'], 'Lin-Lin')
-        MenuViewPlot1ScaleSubMenu.AppendRadioItem(self.MenuIDs['plot1scloglin'], 'Log-Lin')
-        MenuViewPlot1ScaleSubMenu.AppendRadioItem(self.MenuIDs['plot1scloglog'], 'Log-Log')
-        MenuViewPlot1ScaleSubMenu.AppendRadioItem(self.MenuIDs['plot1sclinlog'], 'Lin-Log')
-        
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1sclinlin'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1scloglin'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1scloglog'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot1sclinlog'])
-            
-        MenuViewPlot2ScaleSubMenu = wx.Menu()
-        MenuViewPlot2ScaleSubMenu.AppendRadioItem(self.MenuIDs['plot2sclinlin'], 'Lin-Lin')
-        MenuViewPlot2ScaleSubMenu.AppendRadioItem(self.MenuIDs['plot2scloglin'], 'Log-Lin')
-        MenuViewPlot2ScaleSubMenu.AppendRadioItem(self.MenuIDs['plot2scloglog'], 'Log-Log')
-        MenuViewPlot2ScaleSubMenu.AppendRadioItem(self.MenuIDs['plot2sclinlog'], 'Lin-Log')
-        
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2sclinlin'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2scloglin'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2scloglog'])
-        self.Bind(wx.EVT_MENU, self.OnViewMenu, id = self.MenuIDs['plot2sclinlog'])
-        
-        MenuView.AppendSubMenu(self.MenuViewPlot1SubMenu, '1D Plot (top) Type')
-        MenuView.AppendSubMenu(self.MenuViewPlot2SubMenu, '1D Plot (bottom) Type')
-        MenuView.AppendSeparator()
-        MenuView.AppendSubMenu(MenuViewPlot1ScaleSubMenu, '1D Plot (top) Scale')
-        MenuView.AppendSubMenu(MenuViewPlot2ScaleSubMenu, '1D Plot (bottom) Scale')
+        menus = [('&File',    [('E&xit', self.MenuIDs['exit'], self.OnFileMenu, 'normal')]),
+                 
+                 ('&Options', [('&Advanced Options...', self.MenuIDs['advancedOptions'], self.OnOptionsMenu, 'normal'),
+                              (None, None, None, 'separator'),
+                              ('&Load Settings', self.MenuIDs['loadSettings'], self.OnLoadMenu, 'normal'),
+                              ('&Save Settings', self.MenuIDs['saveSettings'], self.OnSaveMenu, 'normal')]),
+                              
+                 ('&View',    [('&1D Plot (top) Type', None, submenus['viewPlot1Sub'], 'submenu'),
+                              ('1D &Plot (bottom) Type', None, submenus['viewPlot2Sub'], 'submenu'),
+                              (None, None, None, 'separator'),
+                              ('1D P&lot (top) Scale', None, submenus['viewPlot1Scale'], 'submenu'),
+                              ('1D Pl&ot (bottom) Scale', None, submenus['viewPlot2Scale'], 'submenu')]),
+                              
+                 ('&Tools',   [('&Guinier fit...', self.MenuIDs['guinierfit'], self.OnToolsMenu, 'normal'),
+                              ('&Centering...', self.MenuIDs['centering'], self.OnToolsMenu, 'normal')]),
+                              
+                 ('&Help',    [('&Help!', self.MenuIDs['help'], self.OnHelp, 'normal'),
+                               (None, None, None, 'separator'),
+                               ('&About', self.MenuIDs['about'], self.OnAboutDlg, 'normal')])]
         
         
-        MenuHelp = wx.Menu()
-        MenuHelp.Append(self.MenuIDs['help'], '&Help!')
-        MenuHelp.AppendSeparator()
-        MenuHelp.Append(self.MenuIDs['about'], 'About')
-        self.Bind(wx.EVT_MENU, self.OnAboutDlg, id = self.MenuIDs['about'])
-        self.Bind(wx.EVT_MENU, self.OnHelp, id = self.MenuIDs['help'])
-          
+        
         menubar = wx.MenuBar()
-        menubar.Append(MenuFile, '&File')
-        menubar.Append(MenuOptions, '&Options')
-        menubar.Append(MenuView, '&View')
-        menubar.Append(MenuFunction, 'F&unction')
-        menubar.Append(MenuHelp, '&Help')
         
+        for each in menus:
+         
+            menuitem = self._CreateSingleMenuBarItem(each[1])
+            menubar.Append(menuitem, each[0])    
+            
         self.SetMenuBar(menubar)
+        
     
     def OnCentering(self, evt):
         
@@ -4878,7 +5033,7 @@ class MainFrame(wx.Frame):
             self.guinierframe.Raise()
             self.guinierframe.RequestUserAttention()
         
-    def OnFunctionMenu(self, evt):
+    def OnToolsMenu(self, evt):
         
         id = evt.GetId()
         
