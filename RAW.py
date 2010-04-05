@@ -2447,11 +2447,8 @@ class DirCtrlPanel_2(wx.Panel):
         if pathtxt != self.path:
             if os.path.isdir(pathtxt):
                 self.path = pathtxt
-                FileList = self.GetListOfFiles()
                 
-                print self.path
-                
-                self.UpdateFileListBox(FileList)
+                self.fileListBox.SetDir(self.path)
             else:
                 self.DirLabel.SetValue(str(self.path))
 
