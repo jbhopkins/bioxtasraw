@@ -2218,8 +2218,6 @@ class CustomListCtrl(wx.ListCtrl):
         
         dirs.sort(key = str.lower)
     
-        
-        
         if len(self.dir) > 1:
             self.InsertStringItem(0, '..')
             self.SetItemImage(0,0)
@@ -2345,21 +2343,21 @@ class DirCtrlPanel_2(wx.Panel):
         self.fileListBox.SetDir(dir)
         self.UpdateDirLabel(self.path)
         
-    def InitFileList(self):
-        
-            self.FileList = os.listdir(self.path)
-    
-            FilesOnlyList = []
-            
-            for filename in self.FileList:
-                if os.path.isfile(os.path.join(self.path, filename)):
-                    FilesOnlyList.append(filename)
-        
-            self.FileList = FilesOnlyList
-    
-            self.UpdateDirLabel(self.path)
-            self.UpdateFileListBox(self.FileList)
-            self.FilterFileListAndUpdateListBox()
+#    def InitFileList(self):
+#        
+#            self.FileList = os.listdir(self.path)
+#    
+#            FilesOnlyList = []
+#            
+#            for filename in self.FileList:
+#                if os.path.isfile(os.path.join(self.path, filename)):
+#                    FilesOnlyList.append(filename)
+#        
+#            self.FileList = FilesOnlyList
+#    
+#            self.UpdateDirLabel(self.path)
+#            self.UpdateFileListBox(self.FileList)
+#            self.FilterFileListAndUpdateListBox()
         
     def CreateExtentionBox(self, DirCtrlPanel_Sizer):
         
@@ -2431,8 +2429,10 @@ class DirCtrlPanel_2(wx.Panel):
         
         self.fileListBox.Bind(wx.EVT_KEY_DOWN, self._OnUpdateKey)
         self.fileListBox.Bind(wx.EVT_LEFT_DCLICK, self._OnDoubleClick)
-        self.fileListBox.Bind(wx.EVT_LISTBOX, self._OnLeftClick)
-        self.fileListBox.Bind(wx.EVT_RIGHT_DOWN, self._OnRightClick)
+        
+        
+        self.fileListBox.Bind(wx.EVT_LIST_ITEM_SELECTED, self._OnLeftClick)
+        self.fileListBox.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self._OnRightClick)
         
         DirCtrlPanel_Sizer.Add(Dirlabelsizer, 0, wx.EXPAND | wx.BOTTOM, 2)
         DirCtrlPanel_Sizer.Add(self.fileListBox, 1, wx.EXPAND)
@@ -2542,14 +2542,7 @@ class DirCtrlPanel_2(wx.Panel):
 
     def _OnLeftClick(self, evt):
         ''' When you leftclick an element in the list '''
-#        state = wx.GetMouseState()
-#        
-#        if state.ShiftDown():
-#            print 'SHIFT!'
-
-        self.selectedFiles = []
-        for eachFileIdx in self.fileListBox.GetSelections():
-            self.selectedFiles.append(self.fileListBox.GetString(eachFileIdx))
+        pass
         
     def _OnUpdateKey(self, evt):
         
@@ -5041,11 +5034,14 @@ class MainFrame(wx.Frame):
         id = evt.GetId()
         
         if id == self.MenuIDs['guinierfit']:
-            
+                        
             manippage = wx.FindWindowByName('ManipulationPage')
-            ExpObj = manippage.GetSelectedExpObjs()[0]
             
-            self.ShowGuinierFitFrame(ExpObj)
+            if len(manippage.GetSelectedExpObjs()) > 0:
+                ExpObj = manippage.GetSelectedExpObjs()[0]
+                self.ShowGuinierFitFrame(ExpObj)
+            else:
+                wx.MessageBox("Please select a plot from the plot list on the manupulation page.", "No plot selected")
             
             #dialog = guinierGUI.GuinierFitDialog(self, ExpObj)
             #dialog.ShowModal()  

@@ -83,7 +83,7 @@ class MaskingPanelToolbar(NavigationToolbar2Wx):
         loadMaskIcon  = wx.Bitmap(os.path.join(workdir, "ressources", "load.png"), wx.BITMAP_TYPE_PNG)
         agbeCentIcon  = wx.Bitmap(os.path.join(workdir, "ressources", "agbe2.png"), wx.BITMAP_TYPE_PNG)
         hdrInfoIcon   = wx.Bitmap(os.path.join(workdir, "ressources", "hdr.png"), wx.BITMAP_TYPE_PNG)
-        ImgSetIcon    = wx.Bitmap(os.path.join(workdir, "ressources", "hdr.png"), wx.BITMAP_TYPE_PNG)
+        ImgSetIcon    = wx.Bitmap(os.path.join(workdir, "ressources", "imgctrl.png"), wx.BITMAP_TYPE_PNG)
         #EqualIcon     = wx.Bitmap(os.path.join(workdir, "ressources", "hdr.png"), wx.BITMAP_TYPE_PNG)
 
         self.AddSeparator()
