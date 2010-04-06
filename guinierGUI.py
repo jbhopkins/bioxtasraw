@@ -421,6 +421,15 @@ class GuinierPlotPanel(wx.Panel):
         
         self.bottomlimit = limits[1]
         self.toplimit = limits[0]
+        
+        
+class testSpinCtrl(wx.SpinCtrl):
+
+    def __init__(self, parent, id, *args, **kwargs):
+        
+        wx.SpinCtrl.__init__(self, parent, id, **kwargs)
+        
+        print self.Children
              
 class GuinierControlPanel(wx.Panel):
     
@@ -471,6 +480,8 @@ class GuinierControlPanel(wx.Panel):
         self.SetSizer(bsizer)
         
         self.setFilename(os.path.basename(ExpObj.param['filename']))
+        
+        print self.startSpin.GetChildren()
         
     def setFilename(self, filename):
         self.filenameTxtCtrl.SetValue(str(filename))
@@ -546,17 +557,18 @@ class GuinierControlPanel(wx.Panel):
         
     
         self.startSpin = wx.SpinCtrl(self, self.spinctrlIDs['qstart'], size = (60,-1))
-        # For getting Mac to process ENTER events:
-        self.startSpin.GetChildren()[0].SetWindowStyle(wx.PROCESS_ENTER)
-        self.startSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterOnSpinCtrl)
-        self.startSpin.GetChildren()[0].SetId(self.spinctrlIDs['qstart'])                              
-                                                         
         self.endSpin = wx.SpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1))
-        # For getting Mac to process ENTER events:
-        self.endSpin.GetChildren()[0].SetWindowStyle(wx.PROCESS_ENTER)
-        self.endSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterOnSpinCtrl)
-        self.endSpin.GetChildren()[0].SetId(self.spinctrlIDs['qend'])    
         
+        if sys.platform == 'darwin':
+        # For getting Mac to process ENTER events:
+            self.startSpin.GetChildren()[0].SetWindowStyle(wx.PROCESS_ENTER)
+            self.startSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterOnSpinCtrl)
+            self.startSpin.GetChildren()[0].SetId(self.spinctrlIDs['qstart'])                              
+                                                         
+            self.endSpin.GetChildren()[0].SetWindowStyle(wx.PROCESS_ENTER)
+            self.endSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterOnSpinCtrl)
+            self.endSpin.GetChildren()[0].SetId(self.spinctrlIDs['qend'])    
+#        
         
         self.startSpin.SetValue(0)
         self.endSpin.SetValue(0)
