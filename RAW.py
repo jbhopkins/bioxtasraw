@@ -1929,6 +1929,7 @@ class PlotPanel(wx.Panel):
         manipulationPage.ClearList(expsToBeRemoved)
         
         subplot.cla()
+        self.UpdatePlotAxesScaling()
         
         self._setLabels(axes = subplot)
         self.canvas.draw_idle()
@@ -2020,8 +2021,9 @@ class PlotPanel(wx.Panel):
         
         if self.noOfPlots == 2:
             
-            self.subplot1.cla()
-            self.subplot2.cla()
+            #also sets correct axes scale:
+            self.ClearSubplot(self.subplot1)
+            self.ClearSubplot(self.subplot2)
             
             #Reset stacks in toolbar mem
             self.toolbar._views = cbook.Stack()
