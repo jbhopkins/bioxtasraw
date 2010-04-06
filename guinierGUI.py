@@ -560,7 +560,7 @@ class GuinierControlPanel(wx.Panel):
         self.endSpin = wx.SpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1))
         
         if sys.platform == 'darwin':
-        # For getting Mac to process ENTER events:
+             # For getting Mac to process ENTER events:
             self.startSpin.GetChildren()[0].SetWindowStyle(wx.PROCESS_ENTER)
             self.startSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterOnSpinCtrl)
             self.startSpin.GetChildren()[0].SetId(self.spinctrlIDs['qstart'])                              
@@ -576,8 +576,8 @@ class GuinierControlPanel(wx.Panel):
         self.startSpin.Bind(wx.EVT_SPINCTRL, self.onSpinCtrl)
         self.endSpin.Bind(wx.EVT_SPINCTRL, self.onSpinCtrl)
         
-        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (50, 10), style = wx.PROCESS_ENTER)
-        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (50, 10), style = wx.PROCESS_ENTER)
+        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (50, -1), style = wx.PROCESS_ENTER)
+        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (50, -1), style = wx.PROCESS_ENTER)
         
         self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
         self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
