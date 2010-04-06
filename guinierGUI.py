@@ -19,6 +19,7 @@ import numpy as np
 import wx, math
 import fileIO, sys
 from scipy import linspace, polyval, polyfit, sqrt, stats, randn
+import RAW
 
 
 class GuinierPlotPanel(wx.Panel):
@@ -168,22 +169,7 @@ class GuinierPlotPanel(wx.Panel):
         a.set_xlim((x[toplim], x[botlim]))
         
         self.canvas.draw()
-            
-#            try:
-#                pre = len(self.q[0:tlim])
-#                post = len(self.q[blim:])
-#
-#            if pre >= 5 and post >=5:
-#                xp = np.power(self.q[tlim-5:blim+5],2)
-#                yp = np.log(self.i[tlim-5:blim+5])
-#            else:
-#                xp = np.power(self.q[tlim-pre:blim],2)
-#                yp = np.log(self.i[tlim-pre:blim])
-#        except:
-#            xp = x
-#            yp = y
-            
-        
+               
     def _plotGuinier(self, i, q):
         
         self.i = i
@@ -215,8 +201,7 @@ class GuinierPlotPanel(wx.Panel):
         if self.interpline:
             self.interpline.remove()
             
-   
-        
+     
         #self.subplots['Guinier'].plot(guinier_q[tlim:blim], np.log(i)[tlim:blim], '.')
         self.drawFit()
 #        self.updateFigureLimits()
@@ -439,7 +424,9 @@ class GuinierPlotPanel(wx.Panel):
              
 class GuinierControlPanel(wx.Panel):
     
-    def __init__(self, parent, panel_id, name):
+    def __init__(self, parent, panel_id, name, ExpObj):
+        
+        self.ExpObj = ExpObj
 
         wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
           
@@ -484,9 +471,7 @@ class GuinierControlPanel(wx.Panel):
         self.ExpObj = None
         
     def onSaveInfo(self, evt):
-        
-        wx.MessageBox('The parameters has now been saved into the file header', 'Info')
-        
+        wx.MessageBox('The parameters has now been saved into the file header', 'Parameters Saved')
         
     def onCloseButton(self, evt):
         
@@ -516,7 +501,6 @@ class GuinierControlPanel(wx.Panel):
                 ctrl2 = wx.TextCtrl(self, self.infodata[key][2], '0', size = (60,21))
                 txtpm = wx.StaticText(self, -1, u"\u00B1")
                 
-                
                 bsizer = wx.BoxSizer()
                 bsizer.Add(ctrl1,0,wx.EXPAND)
                 bsizer.Add(txtpm,0, wx.LEFT | wx.TOP, 3)
@@ -540,8 +524,15 @@ class GuinierControlPanel(wx.Panel):
         sizer.Add(wx.StaticText(self,-1,'q_max'),1)
         sizer.Add(wx.StaticText(self,-1,'n_max'),1)
         
-        self.startSpin = wx.SpinCtrl(self, self.spinctrlIDs['qstart'], size = (50,-1))
-        self.endSpin = wx.SpinCtrl(self, self.spinctrlIDs['qend'], size = (50,-1))
+    
+        self.startSpin = wx.SpinCtrl(self, self.spinctrlIDs['qstart'], size = (60,-1))
+        
+        #id = self.startSpin.GetChildren()[0].GetId()
+        #self.startSpin.GetChildren()[0] = wx.TextCtrl(self.startSpin, -1, style = wx.PROCESS_ENTER)
+        #self.startSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)                                      
+                                                         
+        
+        self.endSpin = wx.SpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1))
         self.startSpin.SetValue(0)
         self.endSpin.SetValue(0)
         
@@ -554,10 +545,10 @@ class GuinierControlPanel(wx.Panel):
         self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
         self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
         
-        sizer.Add(self.qstartTxt, 0, wx.EXPAND | wx.LEFT, 5)
-        sizer.Add(self.startSpin, 0, wx.EXPAND)
-        sizer.Add(self.qendTxt, 0, wx.EXPAND)
-        sizer.Add(self.endSpin, 0, wx.EXPAND)
+        sizer.Add(self.qstartTxt, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 3)
+        sizer.Add(self.startSpin, 0, wx.EXPAND | wx.RIGHT, 3)
+        sizer.Add(self.qendTxt, 0, wx.EXPAND | wx.RIGHT, 3)
+        sizer.Add(self.endSpin, 0, wx.EXPAND | wx.RIGHT, 5)
         
         return sizer
     
@@ -758,7 +749,7 @@ class GuinierTestFrame(wx.Frame):
         
         splitter1 = wx.SplitterWindow(self, -1)
                 
-        controlPanel = GuinierControlPanel(splitter1, -1, 'GuinierControlPanel')
+        controlPanel = GuinierControlPanel(splitter1, -1, 'GuinierControlPanel', ExpObj)
         plotPanel = GuinierPlotPanel(splitter1, -1, 'GuinierPlotPanel')
   
         splitter1.SplitVertically(controlPanel, plotPanel, 270)
@@ -792,7 +783,6 @@ class GuinierTestApp(wx.App):
             ExpObj, ImgDummy = fileIO.loadFile(filename)
         else:
             ExpObj, ImgDummy = fileIO.loadFile('lyzexp.dat')
-        
         
         frame = GuinierTestFrame(self, 'Guinier Fit', ExpObj)
         self.SetTopWindow(frame)
