@@ -2170,7 +2170,7 @@ class CustomListCtrl(wx.ListCtrl):
         self.SetColumnWidth(0, 160)
         self.SetColumnWidth(1, 40)
         self.SetColumnWidth(2, 70)
-        self.SetColumnWidth(3, 150)
+        self.SetColumnWidth(3, 115)
         
         self.il = wx.ImageList(16, 16)
         
@@ -2987,7 +2987,7 @@ EVT_MY_SPIN = wx.PyEventBinder(myEVT_MY_SPIN, 1)
 
 class FloatSpinCtrl(wx.Panel):
     
-    def __init__(self, parent, id, initValue = None, button_style = wx.SP_VERTICAL, **kwargs):
+    def __init__(self, parent, id, initValue = None, button_style = wx.SP_VERTICAL, TextLength = 40, **kwargs):
         
         wx.Panel.__init__(self, parent, id, **kwargs)
         
@@ -3003,7 +3003,7 @@ class FloatSpinCtrl(wx.Panel):
         self.ScalerButton.Bind(wx.EVT_SPIN_DOWN, self.OnSpinDownScale)
         self.ScalerButton.SetRange(-99999, 99999) #Needed for proper function of button on Linux
                 
-        self.Scale = wx.TextCtrl(self, -1, initValue, size = (40,22), style = wx.TE_PROCESS_ENTER)
+        self.Scale = wx.TextCtrl(self, -1, initValue, size = (TextLength,22), style = wx.TE_PROCESS_ENTER)
         self.Scale.Bind(wx.EVT_KILL_FOCUS, self.OnScaleChange)
         self.Scale.Bind(wx.EVT_TEXT_ENTER, self.OnScaleChange)
         
@@ -3077,7 +3077,7 @@ class FloatSpinCtrl(wx.Panel):
     
 class IntSpinCtrl(wx.Panel):
     
-    def __init__(self, parent, id, min = None, max = None, **kwargs):
+    def __init__(self, parent, id, min = None, max = None, TextLength = 40, **kwargs):
         
         wx.Panel.__init__(self, parent, id, **kwargs)
         
@@ -3097,7 +3097,7 @@ class IntSpinCtrl(wx.Panel):
         #self.ScalerButton.SetMin(-9999)
         #self.ScalerButton.SetMax(99999)
         
-        self.Scale = wx.TextCtrl(self, -1, str(min), size = (40,22), style = wx.TE_PROCESS_ENTER)
+        self.Scale = wx.TextCtrl(self, -1, str(min), size = (TextLength,22), style = wx.TE_PROCESS_ENTER)
         self.Scale.Bind(wx.EVT_KILL_FOCUS, self.OnScaleChange)
         self.Scale.Bind(wx.EVT_TEXT_ENTER, self.OnScaleChange)
         
@@ -3194,7 +3194,7 @@ class IntSpinCtrl(wx.Panel):
 
 class ListSpinCtrl(wx.Panel):
     
-    def __init__(self, parent, id, scrollList, minIdx = None, maxIdx = None, **kwargs):
+    def __init__(self, parent, id, scrollList, minIdx = None, maxIdx = None, TextLength = 40, **kwargs):
         
         wx.Panel.__init__(self, parent, id, **kwargs)
         
@@ -3204,7 +3204,7 @@ class ListSpinCtrl(wx.Panel):
         self.ScalerButton.Bind(wx.EVT_SPIN_UP, self.OnSpinUpScale)
         self.ScalerButton.Bind(wx.EVT_SPIN_DOWN, self.OnSpinDownScale)
         
-        self.Scale = wx.TextCtrl(self, -1, str(scrollList[0]), size = (40,22), style = wx.TE_PROCESS_ENTER)
+        self.Scale = wx.TextCtrl(self, -1, str(scrollList[0]), size = (TextLength,22), style = wx.TE_PROCESS_ENTER)
         self.Scale.Bind(wx.EVT_KILL_FOCUS, self.OnScaleChange)
         self.Scale.Bind(wx.EVT_TEXT_ENTER, self.OnScaleChange)
         
@@ -3399,585 +3399,6 @@ class PlotPage(wx.Panel):
         return buttonSizer    
             
 
-#class OptionsPage(wx.Panel):
-#    def __init__(self, parent, id):
-#        wx.Panel.__init__(self, parent, id, name = 'OptionsPage')
-#        
-#        self.expParamsInGUI = {'NormalizeConst'    : (wx.NewId(), 'value', 'float'),
-#                               'NormalizeConstChk' : (wx.NewId(), 'bool'),
-#                               'NormalizeM2'  : (wx.NewId(), 'bool'),
-#                               'NormalizeM1'  : (wx.NewId(), 'bool'),
-#                               
-#                               'NormalizeTime': (wx.NewId(), 'bool'),
-#                               'NormalizeTrans':(wx.NewId(), 'bool')}
-#                               
-#                               
-##                               'NormalizeAbs' : (wx.NewId(), 'bool'),
-##                               'Calibrate'    : (wx.NewId(), 'bool'),
-##                               'CalibrateMan' : (wx.NewId(), 'bool')}
-##                               'Binsize'      : (wx.NewId(), 'value', 'int'),
-##
-##                               'Xcenter'      : (wx.NewId(), 'value', 'float'),
-##                               'Ycenter'      : (wx.NewId(), 'value', 'float'),
-##
-##                               'QrangeLow'    : (wx.NewId(), 'value', 'int'),
-##                               'QrangeHigh'   : (wx.NewId(), 'value', 'int'),
-##                  
-##                               'PixelCalX'    : (wx.NewId(), 'value', 'int')}
-#             
-#        self.maskIds = { 'BeamStopMask' : wx.NewId(),
-#                         'ReadoutMask'  : wx.NewId()}
-#                
-#        #self.maskdata = (("Beamstop Mask:", self.maskIds['BeamStopMask'], "Set..", self.OnSetMask),
-#        #                 ("Readout Mask:", self.maskIds['ReadoutMask'], "Set..", self.OnSetReadoutMask))
-#
-##        self.expsettingsdata = (("X center:", self.expParamsInGUI['Xcenter'][0]),
-##                                ("Y center:", self.expParamsInGUI['Ycenter'][0]),
-##                                ("AgBe Calib. Pixels:", self.expParamsInGUI['PixelCalX'][0]))
-##                            
-##        
-##        self.expsettings_spin = (("Binning Size:", (self.expParamsInGUI['Binsize'][0], wx.NewId())),
-##                                 ("Q-Low (pixels):", (self.expParamsInGUI['QrangeLow'][0], wx.NewId())),
-##                                 ("Q-High (pixels):", (self.expParamsInGUI['QrangeHigh'][0], wx.NewId())))
-#        
-#        self.treatmentdata = (("Normalize by Monitor 2", self.expParamsInGUI['NormalizeM2'][0], 'normM2'),
-#                              ("Normalize by Monitor 1", self.expParamsInGUI['NormalizeM1'][0], 'normM1'),
-#                              ("Normalize by M2/M1 Factor", self.expParamsInGUI['NormalizeTrans'][0], 'normTrans'),
-#                              ("Normalize by Exposure Time", self.expParamsInGUI['NormalizeTime'][0], 'normExposure'))
-#                    #          ("Absolute Scale Calibration", self.expParamsInGUI['NormalizeAbs'][0], 'normAbs'),
-#                    #          ("Calibrate Q-range (AgBe)", self.expParamsInGUI['Calibrate'][0], 'calibQrange'),
-#                    #          ("Calibrate Q-range (Distance)", self.expParamsInGUI['CalibrateMan'][0], 'calibQmanual'))
-#        
-#        
-#        self.buttondata = (("Load", self.OnLoadSettings),
-#                           ("Save", self.OnSaveSettings),
-#                           ("Advanced..", self.OnAdvancedButton))
-#        
-#        self.NO_OF_BUTTONS_IN_EACH_ROW = 3
-#
-#        panelsizer = wx.BoxSizer(wx.VERTICAL)
-#        #self.CreateMaskSettings(panelsizer)
-#        
-#        #panelsizer.Add(wx.StaticLine(self,-1),0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 10)
-#        
-#        self.CreateTreatmentData(panelsizer)
-#                
-#        #self.CreateExpSettings(panelsizer)
-#    
-#        self.CreateButtons(panelsizer)
-#        
-#        self.SetSizer(panelsizer)
-#        
-#        self._UpdateFromExpParams()
-#        
-#        self.selectedTreatments = [1,2,'hello']
-#        
-#        self.maskLoadingThread = None
-#        
-#    def CreateNormByConstant(self):
-#        
-#        id = self.expParamsInGUI['NormalizeConst'][0]
-#        chkid = self.expParamsInGUI['NormalizeConstChk'][0]
-#        
-#        sizer = wx.BoxSizer(wx.HORIZONTAL)
-#    
-#        chkBox = wx.CheckBox(self, chkid, 'Normalize by Constant :')
-#        chkBox.Bind(wx.EVT_CHECKBOX, self.OnChkBox)
-#        
-#        ctrl = FloatSpinCtrl(self, id)
-#        ctrl.Bind(EVT_MY_SPIN, self.OnTxtCtrlChange)
-#        
-#        sizer.Add(chkBox, 1, wx.EXPAND)
-#        sizer.Add(ctrl, 0)
-#        
-#        return sizer
-#        
-#        
-#    def OnAdvancedButton(self, event):
-#        
-#        self.ShowOptionsDialog()
-#        
-#    def GetParameter(self, parameter):
-#        global expParams
-#        return expParams[parameter]
-#    
-#    def ChangeParameter(self, parameter, value):
-#        global expParams
-#        expParams[parameter] = value
-#        self._UpdateFromExpParams()
-#    
-#    def ReplaceExpParams(self, newExpParams):
-#        
-#        global expParams
-#        expParams = newExpParams
-#        
-#    def OnChkBox(self, event):
-#        
-#        chkboxID = event.GetId()
-#        
-#        self._CorrectConflictingSettings(chkboxID)
-#        self._UpdateToExpParams()
-#        
-#    def _CorrectConflictingSettings(self, chkboxID):
-#    
-#        norm1ID = self.expParamsInGUI['NormalizeM1'][0]
-#        norm2ID = self.expParamsInGUI['NormalizeM2'][0]
-#        norm3ID = self.expParamsInGUI['NormalizeTime'][0]
-#        norm4ID = self.expParamsInGUI['NormalizeTrans'][0]
-#        
-#        normM1box = wx.FindWindowById(norm1ID)
-#        normM2box = wx.FindWindowById(norm2ID)
-#        normTimebox = wx.FindWindowById(norm3ID)
-#        normTransbox = wx.FindWindowById(norm4ID)
-#        
-#        if chkboxID == self.expParamsInGUI['CalibrateMan'][0]:
-#            calibChkBox = wx.FindWindowById(self.expParamsInGUI['Calibrate'][0])
-#            calibChkBox.SetValue(False)
-#        elif chkboxID == self.expParamsInGUI['Calibrate'][0]:
-#            calibChkBox = wx.FindWindowById(self.expParamsInGUI['CalibrateMan'][0])
-#            calibChkBox.SetValue(False)
-#            
-#        #################################################
-#        #### IF Absolute Calibration Checkbox is pressed:
-#        #################################################
-#        
-#        if chkboxID == self.expParamsInGUI['NormalizeAbs'][0]:
-#            absChkBox = wx.FindWindowById(self.expParamsInGUI['NormalizeAbs'][0])
-#            
-#            if absChkBox.GetValue() == True:
-#            
-#                if expParams['WaterFile'] == None or expParams['EmptyFile'] == None:
-#                    absChkBox.SetValue(False)
-#                    wx.MessageBox('Please enter an Empty cell sample file and a Water sample file under advanced options.', 'Attention!', wx.OK | wx.ICON_EXCLAMATION)
-#                else:
-#                    pass
-#                    #normM1box.SetValue(False)
-#                    #normM2box.SetValue(False)
-#                    #normTimebox.SetValue(False)
-#                    #normTransbox.SetValue(False)
-#                    
-#                    #normTransbox.Enable(False)
-#                    #normTimebox.Enable(False)
-#                    
-#            else:
-#                normTransbox.Enable(True)
-#                normTimebox.Enable(True)
-#                
-#        #################################################
-#        #### IF AgBe Calibration Checkbox is pressed:
-#        #################################################
-#                
-#        if chkboxID == self.expParamsInGUI['Calibrate'][0]:
-#            calibChkBox = wx.FindWindowById(self.expParamsInGUI['Calibrate'][0])
-#            wavelength  = expParams['WaveLength']
-#            pixelsize   = expParams['DetectorPixelSize']
-#            
-#            if wavelength != 0 and pixelsize != 0:
-#                pass
-#            else:
-#                calibChkBox.SetValue(False)
-#                wx.MessageBox('Please enter a valid Wavelength and Detector Pixelsize in advanced options.', 'Attention!', wx.OK | wx.ICON_EXCLAMATION)                
-#        
-#        if chkboxID == self.expParamsInGUI['CalibrateMan'][0]:
-#            calibChkBox = wx.FindWindowById(self.expParamsInGUI['CalibrateMan'][0])
-#            wavelength  = expParams['WaveLength']
-#            pixelsize   = expParams['DetectorPixelSize']            
-#            smpDist     = expParams['SampleDistance']
-#        
-#            if wavelength != 0 and pixelsize != 0 and smpDist !=0:
-#                pass
-#            else:
-#                calibChkBox.SetValue(False)
-#                wx.MessageBox('Please enter a valid Wavelength, Detector Pixelsize and Sample-Detector\n' +
-#                              'distance in advanced options/calibration.', 'Attention!', wx.OK | wx.ICON_EXCLAMATION)                    
-#            
-#    def CreateButtons(self, panelsizer):
-#        
-#        noOfButtons = len(self.buttondata)
-#        noOfRows = int(math.ceil(noOfButtons / self.NO_OF_BUTTONS_IN_EACH_ROW))
-#        
-#        buttonSizer = wx.GridSizer( cols = self.NO_OF_BUTTONS_IN_EACH_ROW, rows = noOfRows)
-#        
-#        for name, bindfunc in self.buttondata:
-#            button = wx.Button(self, -1, name)
-#            button.Bind(wx.EVT_BUTTON, bindfunc, button, button.GetId())
-#            buttonSizer.Add(button, 1, wx.ALIGN_CENTER | wx.EXPAND)
-#                        
-#        panelsizer.Add(buttonSizer, 0, wx.LEFT | wx.RIGHT | wx.EXPAND | wx.ALIGN_CENTER, 10)
-#        
-#    def CreateTreatmentData(self, panelsizer):
-#        
-#        box = wx.StaticBox(self, -1, 'Normalization / Calibration')
-#        staticBoxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-#        staticBoxSizer.Add((5,5), 0)
-#        
-#        staticBoxSizer.Add(self.CreateNormByConstant(), 0, wx.LEFT | wx.EXPAND, 5)
-#        staticBoxSizer.Add((5,5),0)
-#        
-#        treatmentSizer = wx.BoxSizer(wx.VERTICAL)
-#        
-#        for each, id, name in self.treatmentdata:
-#            chkBox = wx.CheckBox(self, id, each)
-#            chkBox.Bind(wx.EVT_CHECKBOX, self.OnChkBox)
-#            treatmentSizer.Add(chkBox, 0, wx.BOTTOM, 10)
-#        
-#        staticBoxSizer.Add(treatmentSizer, 0, wx.BOTTOM | wx.LEFT, 5)
-#        
-#        panelsizer.Add(staticBoxSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.RIGHT, 10)
-#        
-#    def CreateMaskSettings(self, panelsizer):
-#        
-#        noOfRows = int(len(self.maskdata))
-#        hSizer = wx.FlexGridSizer(cols = 3, rows = noOfRows, vgap = 3, hgap = 3)
-#        
-#        for labtxt, labl_ID, buttxt, bindfunc in self.maskdata:
-#            
-#            button = wx.Button(self, -1, buttxt, size = (45,22))
-#            wx.EVT_BUTTON(button, button.GetId(), bindfunc)
-#            label = wx.StaticText(self, -1, labtxt)
-#            
-#            filenameLabel = wx.TextCtrl(self, labl_ID, "None")
-#            filenameLabel.SetEditable(False)
-#        
-#            hSizer.Add(label, 1, wx.ALIGN_CENTER_VERTICAL)
-#            hSizer.Add(filenameLabel, 1, wx.EXPAND)
-#            hSizer.Add(button, 1)
-#            
-#        hSizer.AddGrowableCol(1)
-#        panelsizer.Add(hSizer, 0.1, wx.EXPAND | wx.LEFT | wx.TOP | wx.RIGHT, 10)
-#    
-#    def CreateExpSettings(self, panelsizer):       
-#        
-#        box = wx.StaticBox(self, -1, '2D Reduction Parameters')
-#        staticBoxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-#        staticBoxSizer.Add((5,5), 0)
-#        
-#        for eachText, id in self.expsettingsdata:
-#            txt = wx.StaticText(self, -1, eachText)
-#            
-#            if id == self.expParamsInGUI['Xcenter'][0] or id == self.expParamsInGUI['Ycenter'][0]:
-#                ctrl = FloatSpinCtrl(self, id)
-#            else:    
-#                ctrl = IntSpinCtrl(self, id, min = 0)
-#                
-#            ctrl.Bind(EVT_MY_SPIN, self.OnTxtCtrlChange)
-#            
-#            sizer = wx.BoxSizer(wx.HORIZONTAL)
-#            sizer.Add(txt, 1, wx.EXPAND)
-#            sizer.Add(ctrl, 0)
-#            
-#            staticBoxSizer.Add(sizer, 1, wx.EXPAND | wx.BOTTOM | wx.LEFT, 5)
-#            
-#        for eachEntry in self.expsettings_spin:
-#            
-#            label = wx.StaticText(self, -1, eachEntry[0])
-#            
-#            spinSizer = wx.BoxSizer(wx.HORIZONTAL)
-#            spinSizer.Add(label, 1, wx.EXPAND)
-#            
-#            for eachSpinCtrl in eachEntry[1:]:
-#                txtctrl_id = eachSpinCtrl[0]
-#                spin_id = eachSpinCtrl[1]
-#                      
-#                txtCtrl = IntSpinCtrl(self, txtctrl_id)
-#                txtCtrl.Bind(EVT_MY_SPIN, self.OnTxtCtrlChange)
-#                
-#                spinSizer.Add(txtCtrl, 0)
-#        
-#            staticBoxSizer.Add(spinSizer, 1, wx.EXPAND | wx.BOTTOM | wx.LEFT, 5)   
-#        
-#        panelsizer.Add(staticBoxSizer, 0.1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 10)
-#        
-#    def OnTxtCtrlChange(self, evt):
-#        
-#        self._UpdateToExpParams()
-#            
-##    def OnSetMask(self, evt):
-##        
-##        mask_filename, mask_dir, mask_fullpath = self._GetMaskFile("Please choose the Beamstop mask file.")
-##        
-##        if mask_filename != None:
-##            self.LoadBeamStopMask(mask_fullpath)
-##            
-##        return mask_filename
-#            
-##    def LoadBeamStopMask(self, mask_fullpath):
-##        
-##        global expParams
-##        
-##        #mask_filename = os.path.split(mask_fullpath)[1]
-##        
-##        if mask_fullpath:
-##            #filename_label = wx.FindWindowById(self.maskIds['BeamStopMask'])
-##            #filename_label.SetLabel(mask_filename)
-##            
-##            #progressThread = MyProgressBar(self)
-##            #progressThread = None
-##            
-##            if self.maskLoadingThread == None:
-##                self.maskLoadingThread = LoadMaskThread(self)
-##                self.maskLoadingThread.start()
-##                loadMaskQueue.put([mask_fullpath, 'beamstop', expParams, 'param'])
-##            else:
-##                loadMaskQueue.put([mask_fullpath, 'beamstop', expParams, 'param'])
-##            
-##            #progressThread.run()
-##            
-##    def LoadReadoutNoiseMask(self, mask_fullpath):
-##        
-##        global expParams
-##        
-##        #mask_filename = os.path.split(mask_fullpath)[1]
-##        
-##        if mask_fullpath:
-##            
-##            #filename_label = wx.FindWindowById(self.maskIds['ReadoutMask'])
-##            #filename_label.SetLabel(mask_filename)
-##                       
-##            #progressThread = MyProgressBar(self)
-##            #progressThread= None
-##            
-##            if self.maskLoadingThread == None:
-##                self.maskLoadingThread = LoadMaskThread(self)
-##                self.maskLoadingThread.start()
-##                loadMaskQueue.put([mask_fullpath, 'readout', expParams, 'param'])
-##            else:
-##                loadMaskQueue.put([mask_fullpath, 'readout', expParams, 'param'])
-##            
-##        
-##            #progressThread.run()
-#            
-#    def OnSetReadoutMask(self, evt):
-#        (mask_filename, mask_dir, mask_fullpath) = self._GetMaskFile("Please choose the Readout mask file.")
-#        
-#        if mask_filename != None:
-#            self.LoadReadoutNoiseMask(mask_fullpath)
-#            
-#        return mask_filename
-#            
-#    def OnLoadSettings(self, evt):
-#        
-#        #global expParams
-#        
-#        file = self._CreateFileDialog(wx.OPEN)
-#        
-#        if file:
-#            
-#            try:
-#                FileObj = open(file, 'r')
-#            except:
-#                print >> sys.stderr, 'Error opening file!'
-#            
-#            try:
-#                newExpParams = cPickle.load(FileObj)
-#            except:
-#                print >> sys.stderr, 'That was not a valid config file!.. dumbass..'
-#                
-#            FileObj.close()
-#                        
-#            self._UpdateFromExtExpParams(newExpParams)
-#            self.UpdateMasks(newExpParams)
-#
-#    def UpdateMasks(self, newExpParams):
-#        global expParams
-#        
-#        if newExpParams.has_key('BeamStopMaskParams'):    # To make it backwards compatible with older cfg files..
-#            
-#            expParams['BeamStopMaskParams'] = newExpParams['BeamStopMaskParams']
-#            expParams['BeamStopMaskFilename'] = newExpParams['BeamStopMaskFilename']
-#            
-#            expParams['ReadOutNoiseMaskParams'] = newExpParams['ReadOutNoiseMaskParams']
-#            expParams['ReadOutNoiseMaskFilename'] = newExpParams['ReadOutNoiseMaskFilename']
-#                       
-#            progressThread = MyProgressBar(self)
-#        
-#            workerThread = LoadMaskThread(self, progressThread, None, 'beamstop', expParams)
-#            workerThread.start()
-#            progressThread.run()
-#
-#            #filename_label = wx.FindWindowById(self.maskIds['BeamStopMask'])
-#            #filename_label.SetLabel(str(expParams['BeamStopMaskFilename']))
-#
-#            #filename_label = wx.FindWindowById(self.maskIds['ReadoutMask'])
-#            #filename_label.SetLabel(str(expParams['ReadOutNoiseMaskFilename']))
-#                    
-#        else:
-#                expParams['BeamStopMask'] = None
-#                expParams['BeamStopMaskFilename'] = None
-#                expParams['BeamStopMaskParams'] = None
-#                expParams['ReadOutNoiseMask'] = None
-#                expParams['ReadOutNoiseMaskFilename'] = None
-#                expParams['ReadOutNoiseMaskParams'] = None
-#                
-#                filename_label = wx.FindWindowById(self.maskIds['BeamStopMask'])
-#                filename_label.SetLabel('None')
-#                
-#                filename_label = wx.FindWindowById(self.maskIds['ReadoutMask'])
-#                filename_label.SetLabel('None')
-#                
-#    def UpdateSettings(self):
-#        self._UpdateFromExpParams()
-#    
-#    def OnSaveSettings(self, evt):
-#        ############################ KILLS BEAMSTOP MASK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#        global expParams
-#        
-#        self._UpdateToExpParams()
-#        
-#        expParamsToSave = expParams
-#    
-#        file = self._CreateFileDialog(wx.SAVE)
-#        
-#        beamback = None
-#        readback = None
-#        
-#        if file:
-#            
-#            if expParamsToSave['BeamStopMask'] != None:
-#                beamback = expParamsToSave['BeamStopMask'].__copy__()
-#            if expParamsToSave['ReadOutNoiseMask'] != None:
-#                readback = expParamsToSave['ReadOutNoiseMask'].__copy__()
-#        
-#            expParamsToSave['BackgroundFile'] = None
-#            expParamsToSave['BeamStopMask'] = None
-#            expParamsToSave['ReadOutNoiseMask'] = None
-#            
-#            FileObj = open(file, 'w')
-#            cPickle.dump(expParamsToSave, FileObj)
-#            FileObj.close()
-#            
-#            expParamsToSave['BeamStopMask'] = beamback
-#            expParamsToSave['ReadOutNoiseMask'] = readback
-#        
-#    def getCheckedDataTreatments(self):            
-#        return getTreatmentParameters()
-#    
-#    def _CreateFileDialog(self, mode):
-#        
-#        file = None
-#        
-#        if mode == wx.OPEN:
-#            filters = 'Config files (*.cfg)|*.cfg|All files (*.*)|*.*'
-#            dialog = wx.FileDialog( None, style = mode, wildcard = filters)
-#        if mode == wx.SAVE:
-#            filters = 'Config files (*.cfg)|*.cfg'
-#            dialog = wx.FileDialog( None, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters)        
-#        
-#        # Show the dialog and get user input
-#        if dialog.ShowModal() == wx.ID_OK:
-#            file = dialog.GetPath()
-#            
-#        # Destroy the dialog
-#        dialog.Destroy()
-#        
-#        return file
-#        
-#    def _UpdateToExpParams(self):
-#        
-#        for eachKey in self.expParamsInGUI:
-#            
-#            id = self.expParamsInGUI.get(eachKey)[0]
-#            type = self.expParamsInGUI.get(eachKey)[1]
-#            value = wx.FindWindowById(id).GetValue()
-#            
-#            if type == 'bool':
-#                expParams[eachKey] = value
-#            
-#            if type == 'value':
-#                
-#                valtype = self.expParamsInGUI.get(eachKey)[2]
-#                
-#                if valtype == 'int':
-#                    expParams[eachKey] = int(value)
-#                else:
-#                    expParams[eachKey] = float(value)
-#    
-#    def _UpdateFromExpParams(self):
-#        
-#        for eachKey in self.expParamsInGUI:
-#            
-#            id = self.expParamsInGUI.get(eachKey)[0]
-#            type = self.expParamsInGUI.get(eachKey)[1]
-#            value = expParams.get(eachKey)
-#            
-#            if type == 'bool':
-#                chkbox = wx.FindWindowById(id)
-#                
-#                if value:
-#                    chkbox.SetValue(True)
-#                elif not(value):
-#                    chkbox.SetValue(False)
-#                    
-#            if type == 'value':
-#                ctrl = wx.FindWindowById(id)
-#                ctrl.SetValue(str(value))
-#                
-#                # Set the spin buttons to the value in expparams
-##                for each in self.expsettings_spin:
-##                    
-##                    param_id = each[1][0]
-##                    spin_id = each[1][1]
-#                    
-#                    #if id == param_id:
-#                        #spinbutton = wx.FindWindowById(spin_id)
-#                        #spinbutton.SetValue(int(value))
-#       
-#    def _UpdateFromExtExpParams(self, newExpParams):
-#        
-#         global expParams
-#         
-#         for key in newExpParams.iterkeys():
-#             expParams[key] = newExpParams[key]
-#        
-#         for eachKey in self.expParamsInGUI:
-#            
-#            id = self.expParamsInGUI.get(eachKey)[0]
-#            type = self.expParamsInGUI.get(eachKey)[1]
-#            value = newExpParams.get(eachKey)
-#            
-#            if value != None:
-#                if type == 'bool':
-#                    chkbox = wx.FindWindowById(id)
-#                
-#                    if value:
-#                        chkbox.SetValue(True)
-#                    elif not(value):
-#                        chkbox.SetValue(False)
-#                        
-#                    expParams[eachKey] = value
-#                    
-#                if type == 'value':
-#                    ctrl = wx.FindWindowById(id)
-#                    ctrl.SetValue(str(value))
-#                    
-#                    expParams[eachKey] = value
-#                
-#                # Set the spin buttons to the value in expparams
-#                    for each in self.expsettings_spin:
-#                        param_id = each[1][0]
-#                        spin_id = each[1][1]
-#        
-#        
-#           
-#    def _GetMaskFile(self, Text):
-#        
-#        
-#        #filedlg = wx.FileDialog(self, Text, '', '', '*.msk', wx.OPEN)
-#        
-#        filters = 'Mask files (*.msk)|*.msk|All files (*.*)|*.*'
-#        filedlg = wx.FileDialog( None, style = wx.OPEN, wildcard = filters)
-#        
-#        if filedlg.ShowModal() == wx.ID_OK:
-#            mask_filename = filedlg.GetFilename()
-#            mask_dir = filedlg.GetDirectory()
-#            mask_fullpath = filedlg.GetPath()
-#            filedlg.Destroy()
-#            
-#            return (mask_filename, mask_dir, mask_fullpath)
-#        else:
-#            filedlg.Destroy()
-#            return (None, None, None)
-
 class BIFTPlotPanel(PlotPanel):
     
     def __init__(self, parent, panel_id, name, noOfPlots =1):
@@ -3990,11 +3411,6 @@ class ManipFilePanel(wx.Panel):
         filename = os.path.split(ExpObj.param['filename'])[1]
         
         self.ExpObj.itempanel = self
-
-#        if ExpObj.isBifted == True:
-#            filename = 'BIFT_' + filename
-#        elif ExpObj.isBgSubbed == True:
-#            filename = 'BSUB_' + filename
 
         #font = wx.Font(12, wx.DEFAULT, wx.NORMAL, wx.NORMAL)
         #self.statusLabel.SetFont(font)  
@@ -4089,10 +3505,6 @@ class ManipFilePanel(wx.Panel):
                     self.ExpObj.offset(value)
         
         self.ExpObj.plotPanel.updatePlotAfterScaling(self.ExpObj)
-        #self.ExpObj.plotPanel.UpdateSinglePlot(self.ExpObj)
-        #self.ExpObj.plotPanel.canvas.draw()
-        
-        
                 
     def OnQrangeSpinCtrlChange(self, evt):
         
@@ -4732,7 +4144,7 @@ class MainFrame(wx.Frame):
         
         self.button_panel.SetSizer(nbsizer)
                 
-        splitter1.SplitVertically(self.button_panel, self.plot_panel, 270)
+        splitter1.SplitVertically(self.button_panel, self.plot_panel, 420)
         splitter1.SetMinimumPaneSize(50)
         
         #Load workdir from rawcfg.dat:

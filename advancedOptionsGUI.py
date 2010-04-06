@@ -838,9 +838,9 @@ class ImageFormatOptionsPage(wx.Panel):
             txt = wx.StaticText(self, -1, eachText)
             
             if id == self.expParamsInGUI['Xcenter'][0] or id == self.expParamsInGUI['Ycenter'][0]:
-                ctrl = FloatSpinCtrl(self, id)
+                ctrl = FloatSpinCtrl(self, id, TextLength = 50)
             else:    
-                ctrl = IntSpinCtrl(self, id, min = 0)
+                ctrl = IntSpinCtrl(self, id, min = 0, TextLength = 50)
                 
             ctrl.Bind(EVT_MY_SPIN, self.OnTxtCtrlChange)
             
@@ -861,7 +861,7 @@ class ImageFormatOptionsPage(wx.Panel):
                 txtctrl_id = eachSpinCtrl[0]
                 spin_id = eachSpinCtrl[1]
                       
-                txtCtrl = IntSpinCtrl(self, txtctrl_id)
+                txtCtrl = IntSpinCtrl(self, txtctrl_id,TextLength = 50)
                 txtCtrl.Bind(EVT_MY_SPIN, self.OnTxtCtrlChange)
                 
                 spinSizer.Add(txtCtrl, 0)
@@ -1428,7 +1428,7 @@ EVT_MY_SPIN = wx.PyEventBinder(myEVT_MY_SPIN, 1)
 
 class FloatSpinCtrl(wx.Panel):
     
-    def __init__(self, parent, id, initValue = None, button_style = wx.SP_VERTICAL, **kwargs):
+    def __init__(self, parent, id, initValue = None, button_style = wx.SP_VERTICAL, TextLength = 40, **kwargs):
         
         wx.Panel.__init__(self, parent, id, **kwargs)
         
@@ -1444,7 +1444,7 @@ class FloatSpinCtrl(wx.Panel):
         self.ScalerButton.Bind(wx.EVT_SPIN_DOWN, self.OnSpinDownScale)
         self.ScalerButton.SetRange(-99999, 99999) #Needed for proper function of button on Linux
                 
-        self.Scale = wx.TextCtrl(self, -1, initValue, size = (40,22), style = wx.TE_PROCESS_ENTER)
+        self.Scale = wx.TextCtrl(self, -1, initValue, size = (TextLength,22), style = wx.TE_PROCESS_ENTER)
         self.Scale.Bind(wx.EVT_KILL_FOCUS, self.OnScaleChange)
         self.Scale.Bind(wx.EVT_TEXT_ENTER, self.OnScaleChange)
         
@@ -1514,11 +1514,9 @@ class FloatSpinCtrl(wx.Panel):
     def SetValue(self, value):
         self.Scale.SetValue(value)
         
-    
-    
 class IntSpinCtrl(wx.Panel):
     
-    def __init__(self, parent, id, min = None, max = None, **kwargs):
+    def __init__(self, parent, id, min = None, max = None, TextLength = 40, **kwargs):
         
         wx.Panel.__init__(self, parent, id, **kwargs)
         
@@ -1538,7 +1536,7 @@ class IntSpinCtrl(wx.Panel):
         #self.ScalerButton.SetMin(-9999)
         #self.ScalerButton.SetMax(99999)
         
-        self.Scale = wx.TextCtrl(self, -1, str(min), size = (40,22), style = wx.TE_PROCESS_ENTER)
+        self.Scale = wx.TextCtrl(self, -1, str(min), size = (TextLength,22), style = wx.TE_PROCESS_ENTER)
         self.Scale.Bind(wx.EVT_KILL_FOCUS, self.OnScaleChange)
         self.Scale.Bind(wx.EVT_TEXT_ENTER, self.OnScaleChange)
         

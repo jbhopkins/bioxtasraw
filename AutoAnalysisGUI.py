@@ -90,7 +90,7 @@ class BiftInfoPanel(wx.Panel):
             
             elif type == 'ctrl':
                 labelbox = wx.StaticText(self, -1, label)
-                ctrl = RAW.FloatSpinCtrl(self, id)
+                ctrl = RAW.FloatSpinCtrl(self, id, TextLength = 50)
                 ctrl.Bind(RAW.EVT_MY_SPIN, self._onSpinChange)
                 ctrl.Bind(wx.EVT_KILL_FOCUS, self.onKillFocus)
                 sizer.Add(labelbox, 0)
@@ -98,7 +98,7 @@ class BiftInfoPanel(wx.Panel):
             
             elif type == 'listctrl':
                 labelbox = wx.StaticText(self, -1, label)
-                ctrl = RAW.ListSpinCtrl(self, id, [1.0])
+                ctrl = RAW.ListSpinCtrl(self, id, [1.0], TextLength = 50)
                 ctrl.Bind(RAW.EVT_MY_SPIN, self._onSpinChange)
                 sizer.Add(labelbox, 0)
                 sizer.Add(ctrl, 0, wx.ALIGN_CENTER)
@@ -463,7 +463,7 @@ class AutoAnalysisPage(wx.Panel):
                     
     def _OnClearList(self, evt):
         
-        dial = wx.MessageDialog(None, 'Are you sure you want to clear the list?', 'Question', 
+        dial = wx.MessageDialog(None, 'Are you sure you want to clear the IFT list?', 'Question', 
             wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
         answer = dial.ShowModal()
         
