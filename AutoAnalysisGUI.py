@@ -400,13 +400,11 @@ class AutoAnalysisPage(wx.Panel):
         
         self.algoList = self.createAlgoList()
         
-        panelsizer.Add(self.algoList, 0, wx.EXPAND | wx.TOP | wx.BOTTOM |  wx.LEFT | wx.RIGHT, 10)
+        panelsizer.Add(self.algoList, 0, wx.TOP | wx.BOTTOM |  wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER, 10)
         panelsizer.Add(self.infoBox, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER, 10)
         panelsizer.Add(self.filelist, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
         
         self.createButtons(panelsizer)
-        
-        #panelsizer.Add((5,5),0)
         
         self.SetSizer(panelsizer)
         
@@ -420,7 +418,7 @@ class AutoAnalysisPage(wx.Panel):
         id = self.paramsInGui['AlgoChoice'][0]
         
         self.combobox = wx.ComboBox(self, id, choices = self.iftAlgoLabels, style=wx.CB_READONLY, size = (100, 25))
-        self.combobox.Bind(wx.EVT_COMBOBOX, self._onAlgoSelect)
+        self.combobox.Bind(wx.EVT_COMBOBOX, self._OnAlgoSelect)
         self.combobox.SetStringSelection(self.expParams['IFTAlgoChoice'])
 
         txt = wx.StaticText(self, -1, 'Current Algorithm :')
@@ -432,7 +430,7 @@ class AutoAnalysisPage(wx.Panel):
         
         return sizer
     
-    def _onAlgoSelect(self, evt):
+    def _OnAlgoSelect(self, evt):
         self.expParams['IFTAlgoChoice'] = self.combobox.GetStringSelection()
  
     def _OnListBoxEvent(self, evt):
@@ -620,11 +618,6 @@ class AutoAnalysisPage(wx.Panel):
             self.filelist.DeselectAll()    
             self.filelist.SetSelection(0)
             self.infoBox.updateInfo([ExpObj])
-            
-#            if ExpObj.type == 'bift':
-#                self.infoBox.Enable(True)
-#            else:
-#                self.infoBox.Enable(False)
  
     def _CreateFileDialog(self, mode):
         
@@ -664,69 +657,69 @@ class AutoAnalysisPage(wx.Panel):
           
         panelsizer.Add(sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.TOP | wx.ALIGN_CENTRE | wx.EXPAND, 10)
         
-    def createBiftOptions(self, panelsizer):
-        
-        for each in self.biftoptions:
-            if each:
-                labeltxt = each[0]
-                id = each[1]
-                param_value = biftparams.get(each[2])
-                
-                sizer = wx.BoxSizer()
-
-                label = wx.StaticText(self, -1, labeltxt)
-                ctrl = wx.TextCtrl(self, id, str(param_value), style = wx.TE_PROCESS_ENTER, size = (45,22))
-
-                sizer.Add(label, 1, wx.EXPAND)
-                sizer.Add(ctrl,0)
-                
-                panelsizer.Add(sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
-           
-    def createMaxMinOptions(self, panelsizer):
-        
-        topsizer = wx.BoxSizer()
-        
-        topsizer.Add((9,10),1, wx.EXPAND)
-        topsizer.Add(wx.StaticText(self,-1,'Min',size = (45,15)),0)
-        topsizer.Add(wx.StaticText(self,-1,'  Max',size = (45,15)),0)
-        topsizer.Add(wx.StaticText(self,-1,'   Points',size = (45,15)),0)
-                     
-        panelsizer.Add(topsizer, 0.1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
-        
-        first = True
-        for each in self.biftmaxminoptions:
-            
-            sizer = wx.BoxSizer()
-            
-            labeltxt = each[0]
-            
-            min_id = each[1][1]
-            max_id = each[1][0]
-            points_id = each[1][2]
-            
-            max_param_value = biftparams.get(each[2][0])
-            min_param_value = biftparams.get(each[2][1])
-            points_param_value = biftparams.get(each[2][2])
-                        
-            label = wx.StaticText(self, -1, labeltxt)
-            minCtrl = wx.TextCtrl(self, min_id, str(min_param_value), style = wx.TE_PROCESS_ENTER, size = (45,22))
-            maxCtrl = wx.TextCtrl(self, max_id, str(max_param_value), style = wx.TE_PROCESS_ENTER, size = (45,22))        
-            pointsCtrl = wx.TextCtrl(self, points_id, str(points_param_value), style = wx.TE_PROCESS_ENTER, size = (45,22))        
-        
-           # self.sampleScale.Bind(wx.EVT_KILL_FOCUS, self.OnSampleScaleChange)
-           # self.sampleScale.Bind(wx.EVT_TEXT_ENTER, self.OnSampleScaleChange)
-        
-            sizer.Add(label, 1, wx.EXPAND)
-            sizer.Add(minCtrl,0, wx.RIGHT, 10)
-            sizer.Add(maxCtrl,0, wx.RIGHT, 10)
-            sizer.Add(pointsCtrl,0)
-
-            if not(first):
-                panelsizer.Add(sizer, 0.1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
-            else:
-                panelsizer.Add(sizer, 0.1, wx.EXPAND | wx.LEFT | wx.RIGHT, 10)
-                first = False
-        
+#    def createBiftOptions(self, panelsizer):
+#        
+#        for each in self.biftoptions:
+#            if each:
+#                labeltxt = each[0]
+#                id = each[1]
+#                param_value = biftparams.get(each[2])
+#                
+#                sizer = wx.BoxSizer()
+#
+#                label = wx.StaticText(self, -1, labeltxt)
+#                ctrl = wx.TextCtrl(self, id, str(param_value), style = wx.TE_PROCESS_ENTER, size = (45,22))
+#
+#                sizer.Add(label, 1, wx.EXPAND)
+#                sizer.Add(ctrl,0)
+#                
+#                panelsizer.Add(sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
+#           
+#    def createMaxMinOptions(self, panelsizer):
+#        
+#        topsizer = wx.BoxSizer()
+#        
+#        topsizer.Add((9,10),1, wx.EXPAND)
+#        topsizer.Add(wx.StaticText(self,-1,'Min',size = (45,15)),0)
+#        topsizer.Add(wx.StaticText(self,-1,'  Max',size = (45,15)),0)
+#        topsizer.Add(wx.StaticText(self,-1,'   Points',size = (45,15)),0)
+#                     
+#        panelsizer.Add(topsizer, 0.1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
+#        
+#        first = True
+#        for each in self.biftmaxminoptions:
+#            
+#            sizer = wx.BoxSizer()
+#            
+#            labeltxt = each[0]
+#            
+#            min_id = each[1][1]
+#            max_id = each[1][0]
+#            points_id = each[1][2]
+#            
+#            max_param_value = biftparams.get(each[2][0])
+#            min_param_value = biftparams.get(each[2][1])
+#            points_param_value = biftparams.get(each[2][2])
+#                        
+#            label = wx.StaticText(self, -1, labeltxt)
+#            minCtrl = wx.TextCtrl(self, min_id, str(min_param_value), style = wx.TE_PROCESS_ENTER, size = (45,22))
+#            maxCtrl = wx.TextCtrl(self, max_id, str(max_param_value), style = wx.TE_PROCESS_ENTER, size = (45,22))        
+#            pointsCtrl = wx.TextCtrl(self, points_id, str(points_param_value), style = wx.TE_PROCESS_ENTER, size = (45,22))        
+#        
+#           # self.sampleScale.Bind(wx.EVT_KILL_FOCUS, self.OnSampleScaleChange)
+#           # self.sampleScale.Bind(wx.EVT_TEXT_ENTER, self.OnSampleScaleChange)
+#        
+#            sizer.Add(label, 1, wx.EXPAND)
+#            sizer.Add(minCtrl,0, wx.RIGHT, 10)
+#            sizer.Add(maxCtrl,0, wx.RIGHT, 10)
+#            sizer.Add(pointsCtrl,0)
+#
+#            if not(first):
+#                panelsizer.Add(sizer, 0.1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
+#            else:
+#                panelsizer.Add(sizer, 0.1, wx.EXPAND | wx.LEFT | wx.RIGHT, 10)
+#                first = False
+#        
         
         
         
