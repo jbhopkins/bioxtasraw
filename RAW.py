@@ -1044,7 +1044,8 @@ class LegendDialog(wx.Dialog):
             self.chosenLegend.draw(d)
             self.canvas.draw()
         
-#---- *** Plot Panels *** 
+#---- *** Plot Panels ***
+
 class PlotPanel(wx.Panel):
     
     def __init__(self, parent, panel_id, name, noOfPlots = 1):
@@ -1130,15 +1131,6 @@ class PlotPanel(wx.Panel):
             x, y = event.xdata, event.ydata
             wx.FindWindowByName('MainFrame').SetStatusText('x = ' +  str(x) + ', y = ' + str(y), 1) 
             
-#    def setCursor(self, a, state):
-#                
-#        if state == 'off':
-#            if self.cursor:
-#                self.cursor.clear(0)
-#            
-#        elif state == 'on':
-#            self.cursor = Cursor(a, useblit = True, color='red')
-    
     def OnMouseButton(self, evt):
 
         print evt.button
@@ -1308,21 +1300,20 @@ class PlotPanel(wx.Panel):
     def DeselectLine(self, line):
         
         line.set_linewidth(1)
-        
         self.canvas.draw()
                 
-    def _ClearFigure(self, axes = None):
-        
-        if axes == None:
-            a = self.fig.gca()
-        else:
-            a = axes
-        
-        a.clear()
-        a.set_xscale('linear')       # Reset to default values
-        a.set_yscale('linear')
-        a.set_xlim(0,1.0)
-        a.set_ylim(0,1.0)
+#    def _ClearFigure(self, axes = None):
+#        
+#        if axes == None:
+#            a = self.fig.gca()
+#        else:
+#            a = axes
+#        
+#        a.clear()
+#        a.set_xscale('linear')       # Reset to default values
+#        a.set_yscale('linear')
+#        a.set_xlim(0,1.0)
+#        a.set_ylim(0,1.0)
         
     def UpdatePlotAxesScaling(self):
         
@@ -1411,7 +1402,7 @@ class PlotPanel(wx.Panel):
     def updatePlotAfterScaling(self, ExpObj):
         
         ExpObj.line.set_data(ExpObj.q, ExpObj.i)
-        
+              
         self.canvas.draw()
             
     def _removeLine(self, idx = -1):
@@ -1494,7 +1485,7 @@ class PlotPanel(wx.Panel):
         evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, ExpObj)
         wx.PostEvent(manipulationPage, evt)
         
-        self._ClearFigure(self.subplot2)
+        self.subplot2.cla()
         
         q = ExpObj.allData['orig_q']
         i = ExpObj.allData['orig_i']
@@ -1554,28 +1545,6 @@ class PlotPanel(wx.Panel):
         
             #self._setLabels(ExpObjSample)           
             self._insertLegend(axes = self.subplot2)
-        
-    def OnSubnPlot(self, evt):
-                
-        dirCtrlPanel = wx.FindWindowByName('DirCtrlPanel')
-        selectedFiles = dirCtrlPanel.GetSelectedFile()
-        bgfilename = dirCtrlPanel.GetBackgroundPath()
-        
-        progressThread = None
-        
-        if bgfilename != None:
-            #progressThread = MyProgressBar(self)
-            progressThread = None
-            
-            if self.bgPlotWorkerThread == None:
-                self.bgPlotWorkerThread = BgSubPlotWorkerThread(self, progressThread)
-                self.bgPlotWorkerThread.setDaemon(True)
-                self.bgPlotWorkerThread.start()
-                bgSubPlotQueue.put([selectedFiles, bgfilename])
-            else:
-                bgSubPlotQueue.put([selectedFiles, bgfilename])
-        
-            #progressThread.run()
         
     def ShowErrorbars(self):
         
@@ -1929,8 +1898,8 @@ class PlotPanel(wx.Panel):
                 elif self.plotparams['plot2type'] == 'normal' or self.plotparams['plot2type'] == 'subtracted':
                     ExpObj.line.set_ydata(ExpObj.i)
                     ExpObj.line.set_xdata(ExpObj.q)
-            
-            self.canvas.draw()
+                    
+        self.canvas.draw()
         
     def PlotLoadedBift(self, BiftObj):
         
@@ -1944,6 +1913,27 @@ class PlotPanel(wx.Panel):
         biftPage = wx.FindWindowByName('AutoAnalysisPage')
         biftPage.addBiftObjToList(ExpObj, BiftObj)
     
+ 
+    def ClearSubplot(self, subplot):
+        
+        expsToBeRemoved = []
+        
+        for i in range(0, len(self.plottedExps)):
+            if self.plottedExps[i].axes == subplot:
+                expsToBeRemoved.append(self.plottedExps[i])
+        
+        for each in expsToBeRemoved:
+            self.plottedExps.remove(each)
+
+        manipulationPage = wx.FindWindowByName('ManipulationPage')
+        manipulationPage.ClearList(expsToBeRemoved)
+        
+        subplot.cla()
+        
+        self._setLabels(axes = subplot)
+        self.canvas.draw_idle()
+    
+        
     def OnUndo(self, evt):
         ''' This removes the last plotted line, and fixes legend and line color issues of new plots '''
            
@@ -1981,24 +1971,27 @@ class PlotPanel(wx.Panel):
         
         self.canvas.draw()
     
-    def ClearSubplot(self, subplot):
+    def OnSubnPlot(self, evt):
+                
+        dirCtrlPanel = wx.FindWindowByName('DirCtrlPanel')
+        selectedFiles = dirCtrlPanel.GetSelectedFile()
+        bgfilename = dirCtrlPanel.GetBackgroundPath()
         
-        expsToBeRemoved = []
+        progressThread = None
         
-        for i in range(0, len(self.plottedExps)):
-            if self.plottedExps[i].axes == subplot:
-                expsToBeRemoved.append(self.plottedExps[i])
+        if bgfilename != None:
+            #progressThread = MyProgressBar(self)
+            progressThread = None
+            
+            if self.bgPlotWorkerThread == None:
+                self.bgPlotWorkerThread = BgSubPlotWorkerThread(self, progressThread)
+                self.bgPlotWorkerThread.setDaemon(True)
+                self.bgPlotWorkerThread.start()
+                bgSubPlotQueue.put([selectedFiles, bgfilename])
+            else:
+                bgSubPlotQueue.put([selectedFiles, bgfilename])
         
-        for each in expsToBeRemoved:
-            self.plottedExps.remove(each)
-
-        manipulationPage = wx.FindWindowByName('ManipulationPage')
-        manipulationPage.ClearList(expsToBeRemoved)
-        
-        subplot.cla()
-        
-        self._setLabels(axes = subplot)
-        self.canvas.draw_idle()
+            #progressThread.run()
         
             
     def OnClearAll(self, event, clearManipItems = None):
@@ -2026,14 +2019,15 @@ class PlotPanel(wx.Panel):
         self.fitplot = []
         
         if self.noOfPlots == 2:
-            self._ClearFigure(self.subplot1)
-            self._ClearFigure(self.subplot2)
+            
+            self.subplot1.cla()
+            self.subplot2.cla()
             
             #Reset stacks in toolbar mem
             self.toolbar._views = cbook.Stack()
             self.toolbar._positions = cbook.Stack()
         else:
-            self._ClearFigure()
+            self.subplot1.cla()
         
         self.plotparams['axesscale'] = 'linlin'
         
@@ -3984,6 +3978,11 @@ class PlotPage(wx.Panel):
 #            filedlg.Destroy()
 #            return (None, None, None)
 
+class BIFTPlotPanel(PlotPanel):
+    
+    def __init__(self, parent, panel_id, name, noOfPlots =1):
+        pass
+
 class ManipFilePanel(wx.Panel):
     def __init__(self, parent, ExpObj):
         
@@ -4089,8 +4088,9 @@ class ManipFilePanel(wx.Panel):
                 elif eachName == 'offset':
                     self.ExpObj.offset(value)
         
-        self.ExpObj.plotPanel.UpdateSinglePlot(self.ExpObj)
-        self.ExpObj.plotPanel.canvas.draw()
+        self.ExpObj.plotPanel.updatePlotAfterScaling(self.ExpObj)
+        #self.ExpObj.plotPanel.UpdateSinglePlot(self.ExpObj)
+        #self.ExpObj.plotPanel.canvas.draw()
         
         
                 
@@ -4108,8 +4108,10 @@ class ManipFilePanel(wx.Panel):
         if qmin < qmax:        
             self.ExpObj.setQrange((qmin-1, qmax))  
         
-            self.ExpObj.plotPanel.UpdateSinglePlot(self.ExpObj)
-            self.ExpObj.plotPanel.canvas.draw()
+            #self.ExpObj.plotPanel.UpdateSinglePlot(self.ExpObj)
+            self.ExpObj.plotPanel.updatePlotAfterScaling(self.ExpObj)
+            
+            #self.ExpObj.plotPanel.canvas.draw()
         
     def OnLeftMouseClick(self, evt):
         ctrlIsDown = evt.ControlDown()

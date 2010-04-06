@@ -39,112 +39,6 @@ import ravg_ext
 
 from scipy.weave import ext_tools
 
-#def filterImage(filter, img, dim):
-#    
-#    xlen = dim[0]
-#    ylen = dim[1]
-#    
-#    newImg = zeros((xlen, ylen))
-#    
-#    filt_size = 4
-#       
-#    if filt_size == 4:
-#        for y in range(0, ylen-1):
-#            print y
-#            for x in range(0, xlen-1):
-#                newImg[y,x] = int(img[y,x] * filter[0,0] + img[y, x+1] * filter[0,1]+ img[y+1,x+1] * filter[1,1]+ img[y+1, x] * filter[1,0])
-#   
-#    print 'done!'
-#    if filt_size == 2:
-#        
-#        if filt_dir == 'h':
-#            pass
-#        
-#        if filt_dir == 'v':
-#            pass
-#        
-#    return newImg
-
-#def createFilter(x_c, y_c):
-#    
-#    filter = zeros((3,3))
-#    
-#    x = x_c % 1
-#    y = y_c % 1
-#    
-#    l_edge = x - 0.5
-#    r_edge = x + 0.5
-#    
-#    t_edge = y + 0.5
-#    b_edge = y - 0.5
-#    
-#    print l_edge
-#    print r_edge
-#    print t_edge
-#    print b_edge
-#    
-#    dir = None
-#    
-##    if l_edge < 0.0 and t_edge < 1.0:
-##        filter[1,0] = abs(l_edge * t_edge)
-#    
-#    if l_edge < 0.0 and t_edge > 1.0:
-#        filter[0,0] = abs(l_edge * (t_edge-1))
-#    
-#    if l_edge < 0.0 and b_edge < 0.0:
-#        filter[2,0] = abs(l_edge * b_edge)
-#        print "ping!"
-#    
-#    if l_edge < 0.0 and b_edge > 0.0:
-#        filter[1,0] = abs( l_edge * (1-(t_edge-1)) )
-#        
-#    if l_edge > 0.0 and t_edge > 1.0:
-#        filter[0,1] = (t_edge-1)  * (1-(r_edge-1))
-#
-#    if r_edge < 1.0 and b_edge < 0.0:
-#        filter[1,0] = abs(l_edge * t_edge)
-#        
-#    if r_edge  < 1.0 and b_edge > 0.0:
-#        filter[0,1] = abs(r_edge * b_edge)
-#        
-#    if r_edge  < 1.0 and b_edge < 0.0:
-#        filter[2,1] = abs(r_edge * b_edge)
-#        
-#    if r_edge > 1.0 and b_edge < 0.0:
-#        filter[2,1] = abs( b_edge * (1-(r_edge-1)))
-#    
-#    if r_edge > 1.0 and b_edge < 0.0:
-#        filter[2,2] = abs((r_edge-1) * b_edge)
-#    
-#    if r_edge > 1.0 and b_edge > 0.0:
-#        filter[1,2] = abs((r_edge-1) * (1-(t_edge-1)) )
-#    
-#    if r_edge > 1.0 and b_edge < 0.0:
-#        filter[1,2] = abs((r_edge-1) * t_edge)
-#        
-#    if r_edge > 1.0 and t_edge > 1.0:
-#        filter[0,2] = abs((r_edge-1) * (t_edge-1))
-#        
-#    if r_edge == 1 and t_edge > 1:
-#        filter[0,1] = t_edge -1
-#        dir = 'v'
-#        
-#    if r_edge == 1 and t_edge < 1:
-#        filter[2,1] = abs(b_edge)
-#        dir = 'v'
-#        
-#    if t_edge == 1 and r_edge > 1:
-#        filter[1,2] = abs(r_edge - 1)
-#        dir = 'h'
-#    
-#    if t_edge == 1 and r_edge < 1:
-#        filter[1,0] = abs(l_edge)
-#        dir = 'h'
-#  
-#    filter[1,1] = 1.0 - sum(filter)
-#    
-#    return filter, dir
-
 
 def radialAverage(in_image, dim, x_c, y_c, mask = None, readoutNoise_mask = None):
     ''' Radial averaging. and calculation of readout noise from a readout noise mask.
@@ -255,12 +149,6 @@ def loadM(newArr, dim, mask = None, readout_noise_mask = None, q_range = None, h
         and returns a measurement object
     '''
     
-    # load sample image
-    #newArr, dim = loadImage(img_filename)
-    
-    # newArr[1085, 1162:1262] = 200            # X and Y is switched!!??   its (Y,X) in SCIPY!! WTF!
-    
-    # Load matlab mask (if one is given)
     if mask != None:
         try:
             checkMaskSize(mask, dim)
@@ -275,20 +163,6 @@ def loadM(newArr, dim, mask = None, readout_noise_mask = None, q_range = None, h
             print msg
             raise Exception('Readout-noise mask is wrong size, ' + str(msg) + '\n\nPlease change the mask settings to make this plot')
     
-    # If marccd = true (MarCCD camera used) we should get the center coords from the marccd header file
-    # the marccd coords can be wrong though!!! 
-#    if marccdHeader == True:
-#        try:
-#            Mar_hdr = readHeader(img_filename)
-#        except Exception, msg:
-#            print msg
-#            raise Exception('Error reading headerfile: ' + str(msg))
-        
-        #x_center = Mar_hdr['beam_x']                # This is not safe.. the center is entered manually at Maxlab
-        #y_center = Mar_hdr['beam_y']                # There should be an override.. and a way to change the center in the header
-#    else:
-#        Mar_hdr = None
-
     try:
         [I_raw, res, Errorbars_raw] = radialAverage(newArr, dim, y_center, x_center, mask, readout_noise_mask)
         #cProfile.runctx("[I_raw, res, Errorbars_raw] = radialAverage(newArr, dim, y_center, x_center, mask, readout_noise_mask)", globals(), locals())        # NOTE an error in radialAveraged requires x_cen and y_cen to be switched
@@ -301,7 +175,6 @@ def loadM(newArr, dim, mask = None, readout_noise_mask = None, q_range = None, h
         
         
         [I_raw, res, Errorbars_raw] = radialAverage(newArr, dim, dim[0]/2, dim[1]/2, mask, readout_noise_mask)        # NOTE an error in radialAveraged requires x_cen and y_cen to be switched
-
 
     # Insert it all into a measurement object
     q = linspace(0,len(I_raw), len(I_raw))
@@ -848,7 +721,7 @@ class Measurement:
         return SubtractedExpObj
     
     def scale(self, scaleval):
-        
+                
         if scaleval != 1.0:
             self.i = self.i_raw * float(scaleval)
             self.errorbars = self.errorbars_raw * abs(float(scaleval))

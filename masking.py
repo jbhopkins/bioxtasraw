@@ -99,7 +99,6 @@ class MaskingPanelToolbar(NavigationToolbar2Wx):
         self.AddSimpleTool(self._MTB_HDRINFO, hdrInfoIcon, 'Show Header Information')
         self.AddSimpleTool(self._MTB_IMGSET, ImgSetIcon, 'Image Display Settings')
         #self.AddSimpleTool(self._MTB_EQUAL, EqualIcon)
-        
         self.Bind(wx.EVT_TOOL, self.circleTool, id = self._MTB_CIRCLE)
         self.Bind(wx.EVT_TOOL, self.rectangleTool, id = self._MTB_RECTANGLE)
         self.Bind(wx.EVT_TOOL, self.polygonTool, id = self._MTB_POLYGON)
@@ -110,6 +109,9 @@ class MaskingPanelToolbar(NavigationToolbar2Wx):
         self.Bind(wx.EVT_TOOL, self.hdrInfo, id = self._MTB_HDRINFO)
         self.Bind(wx.EVT_TOOL, self.ImgSet, id = self._MTB_IMGSET)
         #self.Bind(wx.EVT_TOOL, self.equalInfo, id = self._MTB_EQUAL)
+        
+        self.RemoveTool(self._NTB2_BACK)
+        self.RemoveTool(self._NTB2_FORWARD)
         
         self.Realize()
     
@@ -304,7 +306,9 @@ class MaskingPanel(wx.Panel):
                                'ClimLocked'      : False,
                                'Tst'             : 1,
                                'Brightness'      : 100,
-                               'Contrast'        : 100}
+                               'Contrast'        : 100,
+                               'maxImgval'       : None,
+                               'minImgVal'       : None}
         
         self.img = []
         self.imgobj = None
@@ -630,6 +634,10 @@ class MaskingPanel(wx.Panel):
         
         self.plotStoredMasks()
         
+        
+        self.plotParameters['maxImgVal'] = self.img.max()
+        self.plotParameters['minImgVal'] = self.img.min()
+        
         if self.plotParameters['ClimLocked'] == False:
             clim = self.imgobj.get_clim()
             self.plotParameters['UpperClim'] = clim[1] 
@@ -648,9 +656,10 @@ class MaskingPanel(wx.Panel):
         
     def showImageSetDialog(self):
         
-        diag = ImageSettingsDialog(self, self.ExpObj, self.imgobj)
-        diag.ShowModal()
-        diag.Destroy()
+        if self.imgobj != None:
+            diag = ImageSettingsDialog(self, self.ExpObj, self.imgobj)
+            diag.ShowModal()
+            diag.Destroy()
         
     def onMotionEvent(self, event):
         if event.inaxes:
@@ -2072,20 +2081,18 @@ class ImageSettingsDialog(wx.Dialog):
         sizer = wx.BoxSizer(wx.VERTICAL)
   
         if not parent.plotParameters['UpperClim'] == None and not parent.plotParameters['LowerClim'] == None:
-            self.maxval = parent.plotParameters['UpperClim']
-            self.minval = parent.plotParameters['LowerClim']
+            self.maxval = parent.plotParameters['maxImgVal']
+            self.minval = parent.plotParameters['minImgVal']
         else:
             self.maxval = 100
             self.minval = 0
         
-        self.sliderinfo = (#('Brightness:', wx.NewId(), wx.NewId(), 'Brightness'),
-                           #('Contrast:', wx.NewId(), wx.NewId(), 'Contrast'),
-                           
-                           ################### ctrl, slider #############
+        self.sliderinfo = (                           
+                           ################### ctrl,     slider #############
                            ('Upper limit:', wx.NewId(), wx.NewId(), 'UpperClim'),
                            ('Lower limit:', wx.NewId(), wx.NewId(), 'LowerClim'),
                            ('Brightness:', wx.NewId(), wx.NewId(), 'Brightness'))
-                           #('Contrast:', wx.NewId(), wx.NewId(), 'Contrast'),)
+                          
         
         self.scaleinfo = (('Linear', wx.NewId(), 'ImgScale'), 
                           ('Logarithmic', wx.NewId(), 'ImgScale'))
