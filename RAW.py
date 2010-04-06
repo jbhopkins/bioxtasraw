@@ -3782,7 +3782,7 @@ class ManipulationPage(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent, name = 'ManipulationPage')
         
-        self.buttonData = ( ('IFT', self.OnBift),
+        self.buttonData = ( ('BIFT', self.OnBift),
                             ('Average', self.OnAverage),
                             ('Delete', self.OnDelete),
                             ('Save', self.OnSave),

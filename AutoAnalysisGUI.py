@@ -23,7 +23,7 @@ import os #sys, time, os, gc
 import wx
 import fileIO, cartToPol
 import BIFT
-import threading
+import threading, Queue
 import RAW
 import OpenGnom
 from math import *
@@ -37,6 +37,7 @@ biftparams  = {'maxDmax' : 400,
                'AlphaPoints' : 20,
                'PrPoints' : 50 }
 
+IFTQueue = Queue.Queue(0)
 
 class BiftInfoPanel(wx.Panel):
     
@@ -382,7 +383,7 @@ class AutoAnalysisPage(wx.Panel):
                           'AlgoChoice' : (wx.NewId(), 'listctrl')}
         
         self.buttons = (("IFT", self._OnDoBift),
-                        ("Solve", self._OnManual),
+                        ("Solve", self._OnSolve),
                         ("Options", self._OnOptions),
                         ("Load", self._OnLoadFile),
                         ("Save", self._OnSave),
@@ -440,6 +441,7 @@ class AutoAnalysisPage(wx.Panel):
         
         if len(num) != 0:
             Data = self.filelist.GetClientData(num[0])
+            
             self.infoBox.updateInfo(Data)
     
     def _OnListBoxKeyEvent(self, evt):
@@ -475,7 +477,7 @@ class AutoAnalysisPage(wx.Panel):
         self.infoBox.clear()
         self.infoBox.Enable(False)
         
-    def _OnManual(self, evt):
+    def _OnSolve(self, evt):
         ''' Solve button '''
         
         selectedFile = self.filelist.GetSelections()
@@ -500,7 +502,6 @@ class AutoAnalysisPage(wx.Panel):
         #print SelectedExpObj.type
         SelectedExpObj.setQrange(SelectedExpObj.idx)
         
-        
         algo = self.expParams['IFTAlgoChoice']
         
         if algo == 'BIFT':
@@ -516,13 +517,16 @@ class AutoAnalysisPage(wx.Panel):
             
             forceInitZero = self.expParams['gnomFixInitZero']
             N = self.expParams['gnomPrPoints']
+            
             Pr, r, Fit, info = OpenGnom.singleSolveInRAW(alpha, dmax, SelectedExpObj, N, 0, forceInitZero, WCA_Param)
-            ExpObj = cartToPol.BIFTMeasurement(transpose(Pr), r, ones((len(transpose(Pr)),1)), SelectedExpObj.param, Fit, info)
+            ExpObj = cartToPol.BIFTMeasurement(transpose(Pr), r, ones((len(transpose(Pr)),1)), SelectedExpObj.param.copy(), Fit, info)
         
         ExpObj.isBifted = True
         
         biftPlotPanel = wx.FindWindowByName('BIFTPlotPanel')
         biftPlotPanel.PlotBIFTExperimentObject(ExpObj)
+                
+        self.filelist.SetClientData(selectedFile, [SelectedExpObj, ExpObj])
         
         self.infoBox.updateInfo([SelectedExpObj, ExpObj])
   
