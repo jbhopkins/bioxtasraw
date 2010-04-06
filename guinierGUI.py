@@ -546,13 +546,18 @@ class GuinierControlPanel(wx.Panel):
         
     
         self.startSpin = wx.SpinCtrl(self, self.spinctrlIDs['qstart'], size = (60,-1))
-        
-        #id = self.startSpin.GetChildren()[0].GetId()
-        #self.startSpin.GetChildren()[0] = wx.TextCtrl(self.startSpin, -1, style = wx.PROCESS_ENTER)
-        #self.startSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)                                      
+        # For getting Mac to process ENTER events:
+        self.startSpin.GetChildren()[0].SetWindowStyle(wx.PROCESS_ENTER)
+        self.startSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterOnSpinCtrl)
+        self.startSpin.GetChildren()[0].SetId(self.spinctrlIDs['qstart'])                              
                                                          
-        
         self.endSpin = wx.SpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1))
+        # For getting Mac to process ENTER events:
+        self.endSpin.GetChildren()[0].SetWindowStyle(wx.PROCESS_ENTER)
+        self.endSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterOnSpinCtrl)
+        self.endSpin.GetChildren()[0].SetId(self.spinctrlIDs['qend'])    
+        
+        
         self.startSpin.SetValue(0)
         self.endSpin.SetValue(0)
         
@@ -632,6 +637,15 @@ class GuinierControlPanel(wx.Panel):
         txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
         txt.SetValue(str(round(ExpObj.q[0],4)))
         
+    def onEnterOnSpinCtrl(self, evt):
+        ''' Little workaround to make enter key in spinctrl work on Mac too '''
+        spin = evt.GetEventObject()
+        
+        self.startSpin.SetFocus()
+        self.endSpin.SetFocus()
+        
+        spin.SetFocus()
+        
     def onSpinCtrl(self, evt):
         
         id = evt.GetId()
@@ -644,11 +658,10 @@ class GuinierControlPanel(wx.Panel):
             txt = wx.FindWindowById(self.staticTxtIDs['qend'])
             
         i = spin.GetValue()
+        
         txt.SetValue(str(round(self.ExpObj.q[int(i)],4)))
-        
-        plotpanel = wx.FindWindowByName('GuinierPlotPanel')
-        
         self.updatePlot()
+        
         
     def updatePlot(self):
         plotpanel = wx.FindWindowByName('GuinierPlotPanel')
@@ -823,3 +836,5 @@ if __name__ == "__main__":
     
     app = GuinierTestApp(0, filename)   #MyApp(redirect = True)
     app.MainLoop()
+
+
