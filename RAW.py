@@ -4299,7 +4299,7 @@ class ManipFilePanel(wx.Panel):
                 ExpObjIFT = ExpObj.copy()
                 autoanalysis.addExpObjToList(ExpObjIFT)
             
-            wx.CallAfter(wx.MessageBox, 'Finished adding file(s) to the IFT list', 'Finished')
+            wx.CallAfter(wx.MessageBox, 'File(s) have been added to the IFT list', 'Files Added')
             
         if evt.GetId() == 11:
             #GNOM

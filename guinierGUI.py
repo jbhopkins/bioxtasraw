@@ -17,7 +17,7 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Circle, Rectangle, Polygon
 import numpy as np
 import wx, math
-import fileIO, sys
+import fileIO, sys, os
 from scipy import linspace, polyval, polyfit, sqrt, stats, randn
 import RAW
 
@@ -441,6 +441,7 @@ class GuinierControlPanel(wx.Panel):
                          'qRg': ('qRg :', wx.NewId()),
                          'rsq': ('r^2 (fit) :', wx.NewId())}
         
+
         button = wx.Button(self, -1, 'Close')
         button.Bind(wx.EVT_BUTTON, self.onCloseButton)
         
@@ -462,13 +463,32 @@ class GuinierControlPanel(wx.Panel):
         boxSizer2.Add(controlSizer, 0, wx.EXPAND)
         
         bsizer = wx.BoxSizer(wx.VERTICAL)
-        bsizer.Add(boxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
+        bsizer.Add(self.createFileInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
+        bsizer.Add(boxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
         bsizer.Add(boxSizer2, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
         bsizer.Add(buttonSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT| wx.TOP, 5)
          
         self.SetSizer(bsizer)
         
-        self.ExpObj = None
+        self.setFilename(os.path.basename(ExpObj.param['filename']))
+        
+    def setFilename(self, filename):
+        self.filenameTxtCtrl.SetValue(str(filename))
+        
+    def createFileInfo(self):
+        
+        box = wx.StaticBox(self, -1, 'Filename')
+        boxsizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
+        
+        txt = wx.StaticText(self, -1, 'Filename :')
+        self.filenameTxtCtrl = wx.TextCtrl(self, -1, '', style = wx.TE_READONLY)
+        
+        boxsizer.Add((5,5),0)
+        boxsizer.Add(txt,0,wx.EXPAND | wx.TOP , 4)
+        boxsizer.Add(self.filenameTxtCtrl, 1, wx.EXPAND)
+        
+        return boxsizer
+        
         
     def onSaveInfo(self, evt):
         wx.MessageBox('The parameters has now been saved into the file header', 'Parameters Saved')
