@@ -535,7 +535,24 @@ class AutoAnalysisPage(wx.Panel):
         plotpage.OnClear(0)
         
     def _OnSave(self, evt):
-        pass
+        
+        selections = self.filelist.GetSelections()
+        
+        if len(selections)>0:
+            data = self.filelist.GetClientData(selections[0])
+            print data
+            if len(data)>1:
+                
+                IftObj = data[1]
+                
+                file = self._CreateFileDialog(wx.SAVE, filename = IftObj.getFilename())
+                
+                if file:
+                    IftObj.param['filename'] = file
+                    fileIO.saveMeasurement(IftObj, NoChange = True) 
+            else:
+                wx.MessageBox("An IFT has not been made on this file", "No IFT data found")
+            
         
     def _OnOptions(self, evt):
         mainframe = wx.FindWindowByName('MainFrame')
@@ -623,16 +640,19 @@ class AutoAnalysisPage(wx.Panel):
             self.filelist.SetSelection(0)
             self.infoBox.updateInfo([ExpObj])
  
-    def _CreateFileDialog(self, mode):
+    def _CreateFileDialog(self, mode, filename = None):
         
         file = None
         
         if mode == wx.OPEN:
-            filters = 'Rad files (*.rad)|*.rad|Dat files (*.dat)|*.dat|Txt files (*.txt)|*.txt|All files (*.*)|*.*'
+            filters = 'All files (*.*)|*.*|Rad files (*.rad)|*.rad|Dat files (*.dat)|*.dat|Txt files (*.txt)|*.txt'
             dialog = wx.FileDialog( None, style = mode, wildcard = filters)
         if mode == wx.SAVE:
-            filters = 'Rad files (*.cfg)|*.cfg'
-            dialog = wx.FileDialog( None, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters)        
+            #filters = 'Rad files (*.*)|*.*'
+            dialog = wx.FileDialog( None, style = mode | wx.OVERWRITE_PROMPT)
+            
+            if filename:
+                dialog.SetFilename(filename)
         
         # Show the dialog and get user input
         if dialog.ShowModal() == wx.ID_OK:

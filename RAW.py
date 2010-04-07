@@ -2687,11 +2687,6 @@ class DirCtrlPanel_2(wx.Panel):
             fullPathFilename = ExpObj.param['filename']
                 
             radFilename = fileIO.filenameWithoutExtension(ExpObj) + '.rad'
-#
-#            if ExpObj.isBifted == True:
-#                radFilename = 'BIFT_' + radFilename
-#            elif ExpObj.isBgSubbed == True:
-#                radFilename = 'BSUB_' + radFilename
                 
             full_path_filename = ExpObj.param['filename']
             filePath = os.path.split(full_path_filename)[0]
@@ -2699,7 +2694,6 @@ class DirCtrlPanel_2(wx.Panel):
             checkFilename = os.path.join(filePath, radFilename)
                 
             fileExists = os.path.isfile(checkFilename)
-            
             
             dialog = wx.FileDialog( None, style = wx.FD_SAVE | wx.OVERWRITE_PROMPT)  
             dialog.SetFilename(radFilename)
@@ -2709,23 +2703,9 @@ class DirCtrlPanel_2(wx.Panel):
                 ExpObj.param['filename'] = file
                 
                 fileIO.saveMeasurement(ExpObj, NoChange = True) 
+                
             # Destroy the dialog
             dialog.Destroy()
-
-#            if fileExists and overwriteAll is False:
-#
-#                if skipAllExisting == False:
-#                    fileExistDialog = FileExistsDialog(radFilename, ExpObj)
-#                    answer = fileExistDialog.ShowModal()
-#                    
-#                    if answer == OVERWRITE_ALL:
-#                        overwriteAll = True
-#                    if answer == SKIP_ALL_EXISITING:
-#                        skipAllExisting = True
-#                    
-#            else:
-#                filename = fileIO.saveMeasurement(ExpObj)    
-#                wx.FindWindowByName('MainFrame').SetStatusText(filename + ' Saved!')
     
             self.GetListOfFiles()
             self.FilterFileListAndUpdateListBox()
@@ -4007,7 +3987,7 @@ class ManipulationPage(wx.Panel):
                 self.selectedItemList.append(each)
             
         return self.selectedItemList
-    
+        
     def MovePlots(self, ExpObjList, toAxes):
         
         axesThatNeedsUpdatedLegend = []

@@ -740,7 +740,9 @@ class Measurement:
 
         self.setQrange(self.q_range)
         
-   
+    def getFilename(self):
+        return os.path.split(self.param['filename'])[1]
+        
     def setQrange(self, q_range):
         ''' q_min and q_max are in PIXELS! '''
         
