@@ -3135,9 +3135,9 @@ class IntSpinCtrl(wx.Panel):
             if float(val) < self.min:
                 self.Scale.SetValue(str(self.min))
         
-        if val != self.oldValue:
-            self.oldValue = val
-            self.CastFloatSpinEvent()
+        #if val != self.oldValue:
+        self.oldValue = val
+        self.CastFloatSpinEvent()
 
     def OnSpinUpScale(self, event):
         #self.ScalerButton.SetValue(80)
@@ -3155,10 +3155,9 @@ class IntSpinCtrl(wx.Panel):
                 self.Scale.SetValue(str(newval))
         else:        
             self.Scale.SetValue(str(newval))
-        
-        if newval != self.oldValue:            
-            self.oldValue = newval
-            self.CastFloatSpinEvent()
+                    
+        self.oldValue = newval
+        wx.CallAfter(self.CastFloatSpinEvent)
         
     def OnSpinDownScale(self, event):
         #self.ScalerButton.SetValue(80)
@@ -3176,9 +3175,8 @@ class IntSpinCtrl(wx.Panel):
         else:
             self.Scale.SetValue(str(newval))  
         
-        if newval != self.oldValue:
-            self.oldValue = newval
-            self.CastFloatSpinEvent()
+        self.oldValue = newval
+        wx.CallAfter(self.CastFloatSpinEvent)
         
     def GetValue(self): 
         value = self.Scale.GetValue()
@@ -3522,9 +3520,7 @@ class ManipFilePanel(wx.Panel):
         self.UpdateControlsAndPlot(evt.GetId())
     
     def UpdateControlsAndPlot(self, evtID):
-        
-        print 'hello'
-        
+                
         qminID = self.spinControls[0][1]
         qmaxID = self.spinControls[1][1]
         
@@ -3536,25 +3532,26 @@ class ManipFilePanel(wx.Panel):
         
         qmin = int(qminCtrl.GetValue())
         qmax = int(qmaxCtrl.GetValue())
-        
-        if qmin < qmax:        
-            self.ExpObj.setQrange((qmin-1, qmax))  
-        else:
-            
-            if evtID == self.spinControls[0][1] or evtID == self.spinControls[0][2]:
+                    
+        if evtID == self.spinControls[0][1] or evtID == self.spinControls[0][2]:    
+            if qmin >= qmax:
                 qmin = qmax-1
                 qminCtrl.SetValue(qmin)
-                self.ExpObj.setQrange((qmin-1, qmax))
-            else:
+                
+            self.ExpObj.setQrange((qmin-1, qmax))
+        else:
+            if qmax <= qmin:
                 qmax = qmin + 1
                 qmaxCtrl.SetValue(qmax)
-                self.ExpObj.setQrange((qmin-1, qmax))
-            
-        
-        self.ExpObj.plotPanel.updatePlotAfterScaling(self.ExpObj)
+                
+            self.ExpObj.setQrange((qmin-1, qmax))
         
         qmintxt.SetValue(str(round(self.ExpObj.q_raw[qmin-1],4)))
-        qmaxtxt.SetValue(str(round(self.ExpObj.q_raw[qmax-1],4)))
+        qmaxtxt.SetValue(str(round(self.ExpObj.q_raw[qmax-1],4)))    
+        
+        qmaxCtrl.SetValue(qmax)
+        
+        wx.CallAfter(self.ExpObj.plotPanel.updatePlotAfterScaling,self.ExpObj)
         
     def OnLeftMouseClick(self, evt):
         ctrlIsDown = evt.ControlDown()
