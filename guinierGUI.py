@@ -819,7 +819,7 @@ class GuinierTestFrame(wx.Frame):
         controlPanel = GuinierControlPanel(splitter1, -1, 'GuinierControlPanel', ExpObj)
         plotPanel = GuinierPlotPanel(splitter1, -1, 'GuinierPlotPanel')
   
-        splitter1.SplitVertically(controlPanel, plotPanel, 270)
+        splitter1.SplitVertically(controlPanel, plotPanel, 290)
         splitter1.SetMinimumPaneSize(50)
         
         self.statusbar = self.CreateStatusBar()
