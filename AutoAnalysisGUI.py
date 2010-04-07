@@ -91,7 +91,7 @@ class BiftInfoPanel(wx.Panel):
             
             elif type == 'ctrl':
                 labelbox = wx.StaticText(self, -1, label)
-                ctrl = RAW.FloatSpinCtrl(self, id, TextLength = 50)
+                ctrl = RAW.FloatSpinCtrl(self, id, TextLength = 60)
                 ctrl.Bind(RAW.EVT_MY_SPIN, self._onSpinChange)
                 ctrl.Bind(wx.EVT_KILL_FOCUS, self.onKillFocus)
                 sizer.Add(labelbox, 0)
@@ -99,7 +99,7 @@ class BiftInfoPanel(wx.Panel):
             
             elif type == 'listctrl':
                 labelbox = wx.StaticText(self, -1, label)
-                ctrl = RAW.ListSpinCtrl(self, id, [1.0], TextLength = 50)
+                ctrl = RAW.ListSpinCtrl(self, id, [1.0], TextLength = 60)
                 ctrl.Bind(RAW.EVT_MY_SPIN, self._onSpinChange)
                 sizer.Add(labelbox, 0)
                 sizer.Add(ctrl, 0, wx.ALIGN_CENTER)

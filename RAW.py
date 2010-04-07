@@ -29,7 +29,7 @@ from matplotlib.figure import Figure
 from matplotlib.font_manager import FontProperties
 import matplotlib.cbook as cbook
 
-from numpy import power, zeros, shape, transpose, array
+from numpy import power, zeros, shape, transpose, array, where
 
 import wx.lib.scrolledpanel as scrolled
 import wx.animate
@@ -3493,6 +3493,15 @@ class ManipFilePanel(wx.Panel):
             plotpanel = wx.FindWindowByName('PlotPanel')
             plotpanel.togglePlot(self.ExpObj)
         
+        for each in self.GetChildren():
+            if each.GetId() != evt.GetId():
+                
+                if not evt.GetEventObject().IsChecked():
+                    each.Enable(False)
+                else:
+                    each.Enable(True)
+            
+        
     def OnFloatSpinCtrlChange(self, evt):
         
         id = evt.GetId()
@@ -3510,6 +3519,9 @@ class ManipFilePanel(wx.Panel):
         self.ExpObj.plotPanel.updatePlotAfterScaling(self.ExpObj)
                 
     def OnQrangeSpinCtrlChange(self, evt):
+        self.UpdateControlsAndPlot()
+    
+    def UpdateControlsAndPlot(self):
         
         qminID = self.spinControls[0][1]
         qmaxID = self.spinControls[1][1]
@@ -3523,13 +3535,12 @@ class ManipFilePanel(wx.Panel):
         qmin = int(qminCtrl.GetValue())
         qmax = int(qmaxCtrl.GetValue())
         
-        qmintxt.SetValue(str(self.ExpObj.q_raw[qmin-1]))
-        qmaxtxt.SetValue(str(self.ExpObj.q_raw[qmax-1]))
+        qmintxt.SetValue(str(round(self.ExpObj.q_raw[qmin-1],4)))
+        qmaxtxt.SetValue(str(round(self.ExpObj.q_raw[qmax-1],4)))
 
         if qmin < qmax:        
             self.ExpObj.setQrange((qmin-1, qmax))  
             self.ExpObj.plotPanel.updatePlotAfterScaling(self.ExpObj)
-            
         
     def OnLeftMouseClick(self, evt):
         ctrlIsDown = evt.ControlDown()
@@ -3577,6 +3588,48 @@ class ManipFilePanel(wx.Panel):
             manipulationPage.DeselectAllExceptOne(self)
                     
         self.ShowPopupMenu()
+        
+    def OnEnterInQrange(self, evt):
+        
+        id = evt.GetId()
+        
+        lx = self.ExpObj.q_raw
+        
+        findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
+        
+        txtctrl = wx.FindWindowById(id)
+        
+        try:
+            val = float(txtctrl.GetValue())
+        except ValueError:
+            if id == self.spinControls[0][2]:
+                spinctrl = wx.FindWindowById(self.spinControls[0][1])
+                idx = int(spinctrl.GetValue())
+                txtctrl.SetValue(str(round(self.ExpObj.q[idx],4)))
+                return
+            
+            if id == self.spinControls[1][2]:
+                spinctrl = wx.FindWindowById(self.spinControls[1][1])
+                idx = int(spinctrl.GetValue())
+                txtctrl.SetValue(str(round(self.ExpObj.q[idx],4)))
+                return
+        
+        if id == self.spinControls[0][2]:
+                spinctrl = wx.FindWindowById(self.spinControls[0][1])
+        elif id == self.spinControls[1][2]:
+                spinctrl = wx.FindWindowById(self.spinControls[1][1])
+        
+        closest = findClosest(val,lx)
+        print closest
+        
+        idx = where(lx == closest)[0][0]+1 #These spincontrols starts from 1 and not from 0
+        
+        print idx
+            
+        spinctrl.SetValue(idx)
+       
+        #Updates txtctrls and plot:
+        self.UpdateControlsAndPlot()
 
     def ToggleSelect(self):
         
@@ -3779,7 +3832,8 @@ class ManipFilePanel(wx.Panel):
                 SpinControl.SetValue(init)  
                 SpinControl.Bind(EVT_MY_SPIN, self.OnQrangeSpinCtrlChange)
                 
-                qCtrl = wx.TextCtrl(self, qtxtId, '', size = (50,22))
+                qCtrl = wx.TextCtrl(self, qtxtId, '', size = (50,22), style = wx.PROCESS_ENTER)
+                qCtrl.Bind(wx.EVT_TEXT_ENTER, self.OnEnterInQrange)
                 
                 spinSizer = wx.BoxSizer()
                 spinSizer.Add(qCtrl, 0, wx.RIGHT, 3)

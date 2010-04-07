@@ -838,9 +838,9 @@ class ImageFormatOptionsPage(wx.Panel):
             txt = wx.StaticText(self, -1, eachText)
             
             if id == self.expParamsInGUI['Xcenter'][0] or id == self.expParamsInGUI['Ycenter'][0]:
-                ctrl = FloatSpinCtrl(self, id, TextLength = 50)
+                ctrl = FloatSpinCtrl(self, id, TextLength = 60)
             else:    
-                ctrl = IntSpinCtrl(self, id, min = 0, TextLength = 50)
+                ctrl = IntSpinCtrl(self, id, min = 0, TextLength = 60)
                 
             ctrl.Bind(EVT_MY_SPIN, self.OnTxtCtrlChange)
             
@@ -861,7 +861,7 @@ class ImageFormatOptionsPage(wx.Panel):
                 txtctrl_id = eachSpinCtrl[0]
                 spin_id = eachSpinCtrl[1]
                       
-                txtCtrl = IntSpinCtrl(self, txtctrl_id,TextLength = 50)
+                txtCtrl = IntSpinCtrl(self, txtctrl_id,TextLength = 60)
                 txtCtrl.Bind(EVT_MY_SPIN, self.OnTxtCtrlChange)
                 
                 spinSizer.Add(txtCtrl, 0)
