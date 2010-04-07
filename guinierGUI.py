@@ -570,11 +570,13 @@ class GuinierControlPanel(wx.Panel):
         self.startSpin.Bind(wx.EVT_SPINCTRL, self.onSpinCtrl)
         self.endSpin.Bind(wx.EVT_SPINCTRL, self.onSpinCtrl)
         
-        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (50, -1), style = wx.PROCESS_ENTER)
-        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (50, -1), style = wx.PROCESS_ENTER)
+        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (55, -1), style = wx.PROCESS_ENTER)
+        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (55, -1), style = wx.PROCESS_ENTER)
         
         self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
         self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
+        #self.qstartTxt.Bind(wx.EVT_KILL_FOCUS, self.onEnterInQlimits)
+        #self.qendTxt.Bind(wx.EVT_KILL_FOCUS, self.onEnterInQlimits)
         
         sizer.Add(self.qstartTxt, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 3)
         sizer.Add(self.startSpin, 0, wx.EXPAND | wx.RIGHT, 3)
@@ -594,6 +596,7 @@ class GuinierControlPanel(wx.Panel):
 
         txtctrl = wx.FindWindowById(id)
         
+        #### If User inputs garbage: ####
         try:
             val = float(txtctrl.GetValue())
         except ValueError:
@@ -610,27 +613,36 @@ class GuinierControlPanel(wx.Panel):
                 idx = int(spinctrl.GetValue())
                 txt.SetValue(str(round(self.ExpObj.q[idx],5)))
                 return
-            
-        plotpanel = wx.FindWindowByName('GuinierPlotPanel')
+        #################################
             
         closest = findClosest(val,lx)
             
-        idx = np.where(lx == closest)[0][0]
+        i = np.where(lx == closest)[0][0]
+        
+        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'])
+        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'])
         
         if id == self.staticTxtIDs['qstart']:
-            spinctrl = wx.FindWindowById(self.spinctrlIDs['qstart'])
-            txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
-            plotpanel.drawTopLimit(lx[idx],ly[idx])
-
-        elif id == self.staticTxtIDs['qend']:
-            spinctrl = wx.FindWindowById(self.spinctrlIDs['qend'])
-            txt = wx.FindWindowById(self.staticTxtIDs['qend'])
-            plotpanel.drawBottomLimit(lx[idx],ly[idx])
             
-        spinctrl.SetValue(idx)
-        txt.SetValue(str(round(self.ExpObj.q[idx],4)))
+            max = endSpin.GetValue()
+            
+            if i > max-3:
+                i = max - 3
+            
+            startSpin.SetValue(i)
+            
+        elif id == self.staticTxtIDs['qend']:
+            minq = startSpin.GetValue()
+            
+            
+            if i < minq+3:
+                i = minq + 3
+            
+            endSpin.SetValue(i)
+                
+        txtctrl.SetValue(str(round(self.ExpObj.q[int(i)],5)))
         
-        self.updatePlot()
+        wx.CallAfter(self.updatePlot)
         
     def setSpinLimits(self, ExpObj):
         self.startSpin.SetRange(0, len(ExpObj.q)-1)
@@ -656,16 +668,33 @@ class GuinierControlPanel(wx.Panel):
         id = evt.GetId()
         
         spin = wx.FindWindowById(id)
-         
-        if id == self.spinctrlIDs['qstart']:
-            txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
-        elif id == self.spinctrlIDs['qend']:
-            txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+             
+        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'])
+        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'])
             
         i = spin.GetValue()
         
-        txt.SetValue(str(round(self.ExpObj.q[int(i)],4)))
-        self.updatePlot()
+        #Make sure the boundaries don't cross:
+        if id == self.spinctrlIDs['qstart']:
+            max = endSpin.GetValue()
+            txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+            
+            if i > max-3:
+                i = max - 3
+                spin.SetValue(i)
+            
+        elif id == self.spinctrlIDs['qend']:
+            min = startSpin.GetValue()
+            txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+            
+            if i < min+3:
+                i = min + 3
+                spin.SetValue(i)
+                
+        txt.SetValue(str(round(self.ExpObj.q[int(i)],5)))
+        
+        #Important, since it's a slow function to update (could do it in a timer instead) otherwise this spin event might loop!
+        wx.CallAfter(self.updatePlot)
         
         
     def updatePlot(self):

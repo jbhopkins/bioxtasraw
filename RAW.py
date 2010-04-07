@@ -3475,7 +3475,7 @@ class ManipFilePanel(wx.Panel):
        
         self.Selected = False
         
-        self.OnQrangeSpinCtrlChange(0)     
+        self.UpdateControlsAndPlot(None)   
     
     def OnKeyPress(self, evt):
         
@@ -3519,9 +3519,11 @@ class ManipFilePanel(wx.Panel):
         self.ExpObj.plotPanel.updatePlotAfterScaling(self.ExpObj)
                 
     def OnQrangeSpinCtrlChange(self, evt):
-        self.UpdateControlsAndPlot()
+        self.UpdateControlsAndPlot(evt.GetId())
     
-    def UpdateControlsAndPlot(self):
+    def UpdateControlsAndPlot(self, evtID):
+        
+        print 'hello'
         
         qminID = self.spinControls[0][1]
         qmaxID = self.spinControls[1][1]
@@ -3535,12 +3537,24 @@ class ManipFilePanel(wx.Panel):
         qmin = int(qminCtrl.GetValue())
         qmax = int(qmaxCtrl.GetValue())
         
-        qmintxt.SetValue(str(round(self.ExpObj.q_raw[qmin-1],4)))
-        qmaxtxt.SetValue(str(round(self.ExpObj.q_raw[qmax-1],4)))
-
         if qmin < qmax:        
             self.ExpObj.setQrange((qmin-1, qmax))  
-            self.ExpObj.plotPanel.updatePlotAfterScaling(self.ExpObj)
+        else:
+            
+            if evtID == self.spinControls[0][1] or evtID == self.spinControls[0][2]:
+                qmin = qmax-1
+                qminCtrl.SetValue(qmin)
+                self.ExpObj.setQrange((qmin-1, qmax))
+            else:
+                qmax = qmin + 1
+                qmaxCtrl.SetValue(qmax)
+                self.ExpObj.setQrange((qmin-1, qmax))
+            
+        
+        self.ExpObj.plotPanel.updatePlotAfterScaling(self.ExpObj)
+        
+        qmintxt.SetValue(str(round(self.ExpObj.q_raw[qmin-1],4)))
+        qmaxtxt.SetValue(str(round(self.ExpObj.q_raw[qmax-1],4)))
         
     def OnLeftMouseClick(self, evt):
         ctrlIsDown = evt.ControlDown()
@@ -3629,7 +3643,7 @@ class ManipFilePanel(wx.Panel):
         spinctrl.SetValue(idx)
        
         #Updates txtctrls and plot:
-        self.UpdateControlsAndPlot()
+        self.UpdateControlsAndPlot(evt.GetId())
 
     def ToggleSelect(self):
         
