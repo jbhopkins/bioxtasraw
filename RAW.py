@@ -3427,8 +3427,8 @@ class ManipFilePanel(wx.Panel):
                                        #Label, TextCtrl_ID, SPIN_ID
         self.qmax = len(ExpObj.i_raw)
                              
-        self.spinControls = (("nBegin:", wx.NewId(), (1, self.qmax-1), 'nlow'),        
-                             ("nEnd:", wx.NewId(), (2, self.qmax), 'nhigh'))
+        self.spinControls = (("q Min:", wx.NewId(), wx.NewId(), (1, self.qmax-1), 'nlow'),        
+                             ("q Max:", wx.NewId(), wx.NewId(), (2, self.qmax), 'nhigh'))
         
         self.floatSpinControls = (("Scale:", wx.NewId(), 'scale', str(ExpObj.scaleval), self.OnFloatSpinCtrlChange),
                                   ("Offset:", wx.NewId(), 'offset', str(ExpObj.offsetval), self.OnFloatSpinCtrlChange))
@@ -3455,7 +3455,6 @@ class ManipFilePanel(wx.Panel):
         self.bglabel.Bind(wx.EVT_RIGHT_DOWN, self.OnRightMouseClick)
         self.bglabel.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)
         
-
         panelsizer = wx.BoxSizer()
         panelsizer.Add(self.SelectedForPlot, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 3)
         panelsizer.Add(filenameLabel, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.RIGHT, 3)
@@ -3474,7 +3473,9 @@ class ManipFilePanel(wx.Panel):
         
         self.SetSizer(self.topsizer)
        
-        self.Selected = False     
+        self.Selected = False
+        
+        self.OnQrangeSpinCtrlChange(0)     
     
     def OnKeyPress(self, evt):
         
@@ -3513,19 +3514,22 @@ class ManipFilePanel(wx.Panel):
         qminID = self.spinControls[0][1]
         qmaxID = self.spinControls[1][1]
         
+        qmintxt = wx.FindWindowById(self.spinControls[0][2])
+        qmaxtxt = wx.FindWindowById(self.spinControls[1][2])
+        
         qminCtrl = wx.FindWindowById(qminID)
         qmaxCtrl = wx.FindWindowById(qmaxID)
         
         qmin = int(qminCtrl.GetValue())
         qmax = int(qmaxCtrl.GetValue())
+        
+        qmintxt.SetValue(str(self.ExpObj.q_raw[qmin-1]))
+        qmaxtxt.SetValue(str(self.ExpObj.q_raw[qmax-1]))
 
         if qmin < qmax:        
             self.ExpObj.setQrange((qmin-1, qmax))  
-        
-            #self.ExpObj.plotPanel.UpdateSinglePlot(self.ExpObj)
             self.ExpObj.plotPanel.updatePlotAfterScaling(self.ExpObj)
             
-            #self.ExpObj.plotPanel.canvas.draw()
         
     def OnLeftMouseClick(self, evt):
         ctrlIsDown = evt.ControlDown()
@@ -3736,10 +3740,10 @@ class ManipFilePanel(wx.Panel):
             label.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)
             
             
-            spinCtrl = FloatSpinCtrl(self, id, initValue)
+            spinCtrl = FloatSpinCtrl(self, id, initValue, TextLength = 93)
             spinCtrl.Bind(EVT_MY_SPIN, bindfunc)
             
-            controlSizer.Add(label, 1)
+            controlSizer.Add(label, 1, wx.TOP, 3)
             controlSizer.Add(spinCtrl, 1)
         
     def CreateSimpleSpinCtrls(self, controlSizer):
@@ -3747,8 +3751,9 @@ class ManipFilePanel(wx.Panel):
         for eachSpinCtrl in self.spinControls:
                 spin_id = eachSpinCtrl[1]
                 spinLabelText = eachSpinCtrl[0]
-                spinRange = eachSpinCtrl[2]
-                spinName = eachSpinCtrl[3]
+                qtxtId = eachSpinCtrl[2]
+                spinRange = eachSpinCtrl[3]
+                spinName = eachSpinCtrl[4]
                 
                 spinMin = spinRange[0]
                 spinMax = spinRange[1]
@@ -3774,10 +3779,13 @@ class ManipFilePanel(wx.Panel):
                 SpinControl.SetValue(init)  
                 SpinControl.Bind(EVT_MY_SPIN, self.OnQrangeSpinCtrlChange)
                 
+                qCtrl = wx.TextCtrl(self, qtxtId, '', size = (50,22))
+                
                 spinSizer = wx.BoxSizer()
+                spinSizer.Add(qCtrl, 0, wx.RIGHT, 3)
                 spinSizer.Add(SpinControl, 0)
                 
-                controlSizer.Add(SpinLabel, 1)        
+                controlSizer.Add(SpinLabel, 1, wx.TOP, 3)        
                 controlSizer.Add(spinSizer, 1)                    
         
 class ManipulationPage(wx.Panel):
@@ -4146,7 +4154,7 @@ class MainFrame(wx.Frame):
         
         self.button_panel.SetSizer(nbsizer)
                 
-        splitter1.SplitVertically(self.button_panel, self.plot_panel, 420)
+        splitter1.SplitVertically(self.button_panel, self.plot_panel, 380)
         splitter1.SetMinimumPaneSize(50)
         
         #Load workdir from rawcfg.dat:
