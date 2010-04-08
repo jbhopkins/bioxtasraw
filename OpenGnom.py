@@ -106,8 +106,10 @@ def calcPr(alpha, I, q, sigma, dmin, dmax, N, forceInitZero = True):
     sh = np.shape(mat1)
     mat1[sh[0]-1, sh[1]-1] = 0    #Remove the 1 in the wrong place (in the corner)
 
-    T = (mat1 + mat2) * -0.5 + np.eye(np.shape(mat1)[0])
+    #T = (mat1 + mat2) * -0.5 + np.eye(np.shape(mat1)[0])
     ########################################
+    
+    T = mat2 * 0.5 -0.5*np.eye(np.shape(mat2)[0])
     
     #Solving by least squares:
     a = np.vstack((K, alpha*T))  
@@ -512,7 +514,7 @@ def calcRgI0(Pr, r):
 
 if __name__ == '__main__':
     
-    ExpObj, FullImage = fileIO.loadFile('/home/specuser/lyzexp.dat')
+    ExpObj, FullImage = fileIO.loadFile('lyzexp.dat')
     
     I_alpha = ExpObj.i
     q = ExpObj.q
@@ -542,7 +544,7 @@ if __name__ == '__main__':
 #    I_alpha = I_alpha + sigma
 #########################################################
     
-    dmax = 40
+    dmax = 45
     N = 50
 
     r = np.linspace(0, dmax, N)
