@@ -544,7 +544,7 @@ if __name__ == '__main__':
 #    I_alpha = I_alpha + sigma
 #########################################################
     
-    dmax = 45
+    dmax = 50
     N = 50
 
     r = np.linspace(0, dmax, N)
@@ -556,6 +556,8 @@ if __name__ == '__main__':
     print 'Optimal Alpha: ', str(alpha)
     PrC = calcPr(alpha, I_alpha, q, sigma, 0, dmax, N)
     I_PrC = np.dot( PrC, np.transpose(K) )
+    
+    print calcRgI0(PrC, r)
     
     print 'TOTAL : ', str(CalcProbability(DISCRP(), OSCILL(PrC,r), STABIL(PrC, r, I_alpha, q, sigma, alpha, dAlpha, 0, dmax, N), SYSDEV(PrC, r, I_alpha, q), POSITV(PrC), VALCEN(PrC,r)))
     print 'Valcen: ', str(round(VALCEN(PrC, r),2))
