@@ -121,20 +121,7 @@ def loadQuantum210Image(filename):
     dim = shape(SubImg)
 
     return SubImg, dim
-
-#def normalizeQuadrants(img):
-        
-                           #Y, X
-#    firstQuad = avg(Img[60:80, 3040])
-    
-#    secondQuad = avg(img[60:80, 3070])
-    
-#    thirdQuad = avg(Img[])
-#    fourthQuad = avg(Img[])
-    
-    
-
-
+  
 def getSecondQuadrant(Img):
     
     return Img[0:2048,2048:4096]
@@ -323,13 +310,18 @@ def loadFile(filename, expParams = None):
             if not ExpObj.i != []:
                 ExpObj = loadPrimusDatFile(filename)
                 ExpObj.param['filename'] = filename
-            
+                            
         elif file_type == 'soleil_rad':
             ExpObj = loadSoleilRadFile(filename)
             ExpObj.param['filename'] = filename
         elif file_type == 'primus':
             ExpObj = loadPrimusDatFile(filename)
             ExpObj.param['filename'] = filename
+            
+            if not ExpObj.i != []:
+                    ExpObj = load2ColFile(filename)
+                    ExpObj.param['filename'] = filename
+            
         elif file_type == 'bift':
             ExpObj = loadBiftFile(filename)
             ExpObj.param['filename'] = filename
@@ -566,6 +558,35 @@ def loadRadFile(filename):
    
     return cartToPol.RadFileMeasurement(i, q, err, d)
 
+def load2ColFile(filename):
+    ''' Loads a two column file (q I) separated by whitespaces '''
+    
+    iq_pattern = re.compile('\s*\d*[.]\d*\s+-?\d*[.]\d*.*\n')
+    
+    i = []
+    q = []
+    err = []
+    d = {}
+ 
+    f = open(filename)
+    
+    try:
+        for line in f:
+            iq_match = iq_pattern.match(line)
+
+            if iq_match:
+                found = iq_match.group().split()
+                q.append(float(found[0]))
+                i.append(float(found[1]))
+#
+    finally:
+        f.close()
+    
+    i = array(i)
+    q = array(q)
+    err = sqrt(abs(i))
+   
+    return cartToPol.RadFileMeasurement(i, q, err, d)
 
 # WORK IN PROGRESS:
 def saveMeasurement(Exp, NoChange = False):

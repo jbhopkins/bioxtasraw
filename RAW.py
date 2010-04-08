@@ -16,7 +16,7 @@
 #******************************************************************************
 from __future__ import division
 import sys, os, cPickle, threading, re, math#, gc, time
-import matplotlib, time
+import matplotlib, time, subprocess
 matplotlib.rc('image', origin='lower')           # This turns the image upside down!!
                                                 #  but x and y will start from zero in the lower left corner 
 
@@ -273,6 +273,7 @@ class PlotWorkerThread(threading.Thread):
             for eachSelectedFile in selectedFiles:
                 
 #                cProfile.runctx("ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)", globals(), locals())
+                
                 ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)
                                                 
                 checkedTreatments = getTreatmentParameters()
@@ -2461,11 +2462,14 @@ class DirCtrlPanel_2(wx.Panel):
                 menu.AppendSeparator()
                 menu.Append(2, 'Set as Empty cell file')
                 menu.Append(3, 'Set as Water sample file')
+                menu.AppendSeparator()
+                menu.Append(7, 'Open in External Viewer')
             
             elif len(files) > 1:
                 #menu.AppendSeparator()
                 menu.Append(4, 'Average Selected Files')
                 menu.Append(6, 'Substract Bg. and Plot')
+                
             
             menu.AppendSeparator()
             menu.Append(5, 'Plot file(s)')
@@ -2515,6 +2519,15 @@ class DirCtrlPanel_2(wx.Panel):
         if evt.GetId() == 5:
             plotpanel = wx.FindWindowByName('PlotPanel')
             plotpanel.onPlotButton(0)
+            
+        if evt.GetId() == 7:
+            filename = self.GetSelectedFile()[0]
+            
+            platform = sys.platform
+            
+            if platform.find('linux') != -1: 
+                pid = subprocess.Popen(['gedit', filename]).pid
+                
    
     def OnAverage(self, evt = None):
         filenames = self.GetSelectedFile()
@@ -3179,10 +3192,12 @@ class ListSpinCtrl(wx.Panel):
         wx.Panel.__init__(self, parent, id, **kwargs)
         
         self.scrollList = scrollList
+        
         self.ScalerButton = wx.SpinButton(self, -1, size = (20,22), style = wx.SP_VERTICAL)
         self.ScalerButton.Bind(wx.EVT_SET_FOCUS, self.OnScaleChange)
         self.ScalerButton.Bind(wx.EVT_SPIN_UP, self.OnSpinUpScale)
         self.ScalerButton.Bind(wx.EVT_SPIN_DOWN, self.OnSpinDownScale)
+        self.ScalerButton.SetRange(-99999, 99999)
         
         self.Scale = wx.TextCtrl(self, -1, str(scrollList[0]), size = (TextLength,22), style = wx.TE_PROCESS_ENTER)
         self.Scale.Bind(wx.EVT_KILL_FOCUS, self.OnScaleChange)
@@ -3217,6 +3232,8 @@ class ListSpinCtrl(wx.Panel):
     
     def OnScaleChange(self, event):
         
+        self.ScalerButton.SetValue(0)
+        
         val = self.Scale.GetValue()
         
         if float(val) >= self.scrollList[self.maxIdx]:
@@ -3248,18 +3265,8 @@ class ListSpinCtrl(wx.Panel):
         
         self.CastFloatSpinEvent()
                 
-#        if self.max != None:
-#            if float(val) > self.max:
-#                self.Scale.SetValue(str(self.max))
-#        if self.min != None:
-#            if float(val) < self.min:
-#                self.Scale.SetValue(str(self.min))
-#        
-#        if val != self.oldValue:
-#            self.oldValue = val
-
     def OnSpinUpScale(self, event):
-
+        
         self.ScalerButton.SetFocus()    # Just to remove focus from the bgscaler to throw kill_focus event and update
         
         val = self.Scale.GetValue()

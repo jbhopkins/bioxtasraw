@@ -1101,8 +1101,8 @@ class MaskingPanel(wx.Panel):
              y_c = x[1] - border
                             
              if options:
-                   options.ChangeParameter('Xcenter', x[0]-border)
-                   options.ChangeParameter('Ycenter', x[1]-border)
+                   options.ChangeParameter('Xcenter', round(x[0]-border,2))
+                   options.ChangeParameter('Ycenter', round(x[1]-border,2))
                    options.ChangeParameter('PixelCalX', int(round(r)))
                    options.ChangeParameter('PixelCalY', int(round(r)))
                    
