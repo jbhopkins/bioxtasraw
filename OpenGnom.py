@@ -106,22 +106,27 @@ def calcPr(alpha, I, q, sigma, dmin, dmax, N, forceInitZero = True):
     sh = np.shape(mat1)
     mat1[sh[0]-1, sh[1]-1] = 0    #Remove the 1 in the wrong place (in the corner)
 
-    #T = (mat1 + mat2) * -0.5 + np.eye(np.shape(mat1)[0])
+    T = (mat1 + mat2) * -0.5 + np.eye(np.shape(mat1)[0])
     ########################################
     
-    T = mat2 * 0.5 -0.5*np.eye(np.shape(mat2)[0])
+    #T = mat2 * 0.5 -0.5*np.eye(np.shape(mat2)[0])
     
     #Solving by least squares:
     a = np.vstack((K, alpha*T))  
     b = np.hstack((I, np.zeros(np.shape(T)[0])))
     
     if forceInitZero:
-        a = a[:,1:] #strip first column of a
+        a = a[:,1:-1] #strip first and last column of a
+        
         
     Pr, residues, rank, singularVals = linalg.lstsq(a,b)
     
     if forceInitZero:
-        Pr = np.insert(Pr, [0],0) #insert fixed zero 
+        Pr = np.insert(Pr, [0],0) #insert fixed zero
+        Pr = np.insert(Pr, [-1],0) #insert fixed zero
+
+    dr = r[1]
+    #Pr = Pr / 4 * pi * dr
     
     return Pr
 
@@ -151,7 +156,7 @@ def createTransformMatrix(q, r):
     dr = r[1]
     
     # Leaving out 4 * pi * dr! That means the solution will include these three factors!
-    c = 1 # 4 * pi * dr   
+    c = 1 #4 * pi * dr   
     #================================================
     #                C++ CODE
     #================================================
@@ -235,11 +240,13 @@ def SYSDEV(Pr, r, I, q):
     
     K = createTransformMatrix(q, r)
     
-    I_alpha = np.dot( Pr, np.transpose(K))
+    dr = r[2]-r[1]
+    I_Pr = np.dot( Pr, np.transpose(K)) #* 4 * pi * dr
     
-    deltaI = I - I_alpha
+    deltaI = I - I_Pr
     
     N_s = 0
+    
     for c in range(0, len(deltaI)-1):
         if np.sign(deltaI[c]) != np.sign(deltaI[c+1]):
             
@@ -251,6 +258,8 @@ def SYSDEV(Pr, r, I, q):
     
     N = len(I)
     
+   # print N_s
+    
     SYS = N_s / (N/2.)
      
     return SYS
@@ -259,9 +268,11 @@ def STABIL(Pr, r, I, q, sigma, alpha, dAlpha, dmin, dmax, N, forceInitZero = Tru
     ''' According to the point-of-inflection and quasi-optimality methods (Glatter)
     a value of STABIL << 1 can be expected in the vicinity of the correct solution '''
         
-    Pr_dAlpha = calcPr(alpha, I, q, sigma, dmin, dmax, N, forceInitZero)
+    Pr_dAlpha = calcPr(2*alpha, I, q, sigma, dmin, dmax, N, forceInitZero)
     
-    STA = (norm( Pr-Pr_dAlpha ) /norm(Pr)) / (dAlpha/alpha)
+    #Pr_dAlpha = Pr_dAlpha / (4 * pi * r[1])
+    
+    STA = (norm( Pr-Pr_dAlpha ) /norm(Pr)) # / (dAlpha/alpha)
     
     return STA
     
@@ -308,11 +319,16 @@ def VALCEN(Pr, r):
         
     VAL = maxPr_star / norm(Pr)
 
+
     return VAL
 
-def DISCRP():
+def DISCRP(I, I_Pr, sigma, Chi):
     
-    return 1.0
+    dis = sqrt(sum(np.power((np.array(I)-np.array(I_Pr)),2)/np.power(sigma,2))-Chi)
+    
+    print dis
+    
+    return dis
 
 def CalcProbability(DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN, WCA_Parameters = None):
     ''' WARNING TAKING OUT DISCRP BY SETTING W = 0 '''
@@ -351,14 +367,35 @@ def CalcProbability(DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN, WCA_Paramete
     
     return TOTAL
 
-def costFunc(alpha, r, I_alpha, q, sigma, dmax, N, WCA_Params = None, forceInitZero = True):
+def costFuncChiSquared(alpha, r, I, q, sigma, dmax, N, ChiSq, WCA_Params = None, forceInitZero = True):
     
-    PrC = calcPr(alpha, I_alpha, q, sigma, 0, dmax, N, forceInitZero)
+    alpha = np.exp(alpha)
     
-    TOTAL = CalcProbability(DISCRP(),
+    Pr = calcPr(alpha, I, q, sigma, 0, dmax, N, forceInitZero)
+    
+    K = createTransformMatrix(q, r)
+    I_Pr = np.dot(Pr, np.transpose(K))
+    
+    ChiSquared = np.sum(np.power(I - I_Pr,2) / np.power(sigma,2))
+    
+    print ChiSquared
+    
+    return ChiSquared
+    
+
+def costFunc(alpha, r, I, q, sigma, dmax, N, ChiSq, WCA_Params = None, forceInitZero = True):
+    
+    alpha = np.exp(alpha)
+    
+    PrC = calcPr(alpha, I, q, sigma, 0, dmax, N, forceInitZero)
+    
+    K = createTransformMatrix(q, r)
+    I_Pr = np.dot( PrC, np.transpose(K) )# * 4 * pi * r[1]
+    
+    TOTAL = CalcProbability(DISCRP(I, I_Pr, sigma, ChiSq),
                             OSCILL(PrC, r),
-                            STABIL(PrC, r, I_alpha, q, sigma, alpha, 2*alpha, 0, dmax, N),
-                            SYSDEV(PrC, r, I_alpha, q),
+                            STABIL(PrC, r, I, q, sigma, alpha, 2*alpha, 0, dmax, N),
+                            SYSDEV(PrC, r, I, q),
                             POSITV(PrC),
                             VALCEN(PrC,r), WCA_Params)
             
@@ -379,7 +416,7 @@ def costFunc(alpha, r, I_alpha, q, sigma, dmax, N, WCA_Params = None, forceInitZ
 #    return goldenSectionSearch(F, d, c, a, absolutePrecision)
 # 
 
-def searchAlpha(r, I_alpha, q, sigma, dmax, N, alphamin = 0.01, alphamax = 60, alphapoints = 100, WCA_Params = None, forceInitZero = True):
+def searchAlpha(r, I_alpha, q, sigma, dmax, N, ChiSq, alphamin = 0.0001, alphamax = 100, alphapoints = 100, WCA_Params = None, forceInitZero = True, costFunction = costFunc):
     
     #alphaGuess = sum(np.power(norm(K),2)) / norm(I_alpha)
     
@@ -387,19 +424,21 @@ def searchAlpha(r, I_alpha, q, sigma, dmax, N, alphamin = 0.01, alphamax = 60, a
     alphatotal = []
     alphavals = np.linspace(alphamin, alphamax, alphapoints)
     
-    for i in alphavals:
-        alphatotal.append(costFunc(i, r, I_alpha, q, sigma, dmax, N, WCA_Params ))
+    for alpha in alphavals:
+        alphatotal.append(costFunction(np.log(alpha), r, I_alpha, q, sigma, dmax, N, ChiSq, WCA_Params ))
         
     alphaGuess = alphavals[ alphatotal.index(min(alphatotal)) ] 
     
     print 'GUESS : ',alphaGuess
     
-#    pl.plot(alphavals, alphatotal)
-#    pl.xlabel('alpha')
-#    pl.ylabel('negative TOTAL')
-#    pl.show()
-        
-    alpha = optimize.fmin(costFunc, alphaGuess, (r, I_alpha, q, sigma, dmax, N, WCA_Params))
+    fig = pl.figure(1)
+    pl.plot(np.log(alphavals), -1*np.array(alphatotal), '.')
+    pl.xlabel('log(alpha)')
+    pl.ylabel('TOTAL')
+    
+    pl.show()
+    
+    alpha = optimize.fmin(costFunction, np.log(alphaGuess), (r, I_alpha, q, sigma, dmax, N, ChiSq, WCA_Params))
     
     return alpha
 
@@ -477,14 +516,18 @@ def singleSolveInRAW(alpha, dmax, SelectedExpObj, N, dmin = 0, forceInitZero = T
     
     return Pr, r, I_Pr, info
 
-def getAllCriteriaResults(Pr, r, I, q, sigma, alpha, dmin, dmax, N, forceInitZero):
+def getAllCriteriaResults(Pr, r, I, q, sigma, alpha, dmin, dmax, N, ChiSq, forceInitZero):
     
-    val = round(VALCEN(Pr, r),2)
-    osc = round(OSCILL(Pr, r),2)
-    pos = round(POSITV(Pr),2)
-    sysd = round(SYSDEV(Pr, r, I, q),2)
-    sta = round(STABIL(Pr, r, I, q, sigma, alpha, 2*alpha, 0, dmax, N, forceInitZero))
-    dsc = DISCRP()
+    val = round(VALCEN(Pr, r),4)
+    osc = round(OSCILL(Pr, r),4)
+    pos = round(POSITV(Pr),4)
+    sysd = round(SYSDEV(Pr, r, I, q),4)
+    sta = round(STABIL(Pr, r, I, q, sigma, alpha, 2*alpha, 0, dmax, N, forceInitZero),4)
+    
+    K = createTransformMatrix(q, r)
+    I_Pr = np.dot( Pr, np.transpose(K * 4 * pi * r[1]) )
+    
+    dsc = round(DISCRP(I, I_Pr, sigma, ChiSq),2)
     
     allcrit = [('VALCEN', val),
                ('OSCILL', osc),
@@ -512,20 +555,161 @@ def calcRgI0(Pr, r):
     
     return I0, Rg
 
-if __name__ == '__main__':
+
+def loadGnomFit(filename):
+    import re
+    
+    iq_pattern = re.compile('\s*\d*[.]\d*[+E-]*\d+\s+-?\d*[.]\d*[+E-]*\d+\s+-?\d*[.]\d*[+E-]*\d+\s+-?\d*[.]\d*[+E-]*\d+\s+?\d*[.]\d*[+E-]*\d+\r?\n')
+    
+    f = open(filename)
+    
+    S = []
+    J_EXP = []
+    ERROR = []
+    J_REG = []
+    I_REG = []
+        
+    try:
+        for line in f:
+            iq_match = iq_pattern.match(line)
+            
+            if iq_match:
+                found = iq_match.group().split()
+                
+                S.append(float(found[0]))
+                J_EXP.append(float(found[1]))
+                ERROR.append(float(found[2]))
+                J_REG.append(float(found[3]))
+                I_REG.append(float(found[4]))
+                        
+    finally:
+        f.close()
+        
+    return S, J_EXP, ERROR, J_REG, I_REG
+
+
+def testGnomPr():
+    
+    #Load Pr fit
+    #S, J_EXP, ERROR, J_REG, I_REG = loadGnomFit('/home/specuser/GnomFitLyzExp.txt')
+    S, J_EXP, ERROR, J_REG, I_REG = loadGnomFit('/home/specuser/diff.txt.txt')
+    
+    #Load Pr function
+    ExpObj, FullImage = fileIO.loadFile('/home/specuser/diffpr.txt.txt')
+    #ExpObj, FullImage = fileIO.loadFile('/home/specuser/GnomLyzExp.txt')
+    
+    Pr = ExpObj.i
+    r = ExpObj.q
+    Pr_sigma = ExpObj.errorbars
+    
+    dr = r[2]-r[1]
+
+    ## Load DATA
+    #ExpObj, FullImage = fileIO.loadFile('lyzexp.dat')
+    #I = ExpObj.i
+    #q = ExpObj.q
+    #I_sigma = ExpObj.errorbars
+    
+    I = J_EXP
+    q = S
+    I_sigma = ERROR
+    
+    
+#   PrSph, r_sph = distDistribution_Sphere(len(r), 1, 45)
+#    pl.figure()
+#    pl.plot(r_sph, PrSph)
+#    pl.show()
+
+    crit = getAllCriteriaResults(Pr, r, I, q, ERROR, 0.601, 0, 45, len(r), forceInitZero = True)
+    
+    for each in crit:
+        print each[0] + ' :' + str(each[1])
+    
+    K = createTransformMatrix(q, r)
+    I_Pr = np.dot( Pr, np.transpose(K) ) * (4 * pi * dr)
+    
+    
+    pl.figure()
+    pl.plot(r, Pr)
+    
+    pl.figure()
+    pl.semilogy(I)
+    pl.semilogy(I_Pr,'r')
+    pl.semilogy(J_REG, 'g')
+    pl.show()
+    
+
+def testChiSquaredSearch():
     
     ExpObj, FullImage = fileIO.loadFile('lyzexp.dat')
+    #ExpObj, FullImage = fileIO.loadFile('diff.dat')
     
-    I_alpha = ExpObj.i
+    I = ExpObj.i
     q = ExpObj.q
     sigma = ExpObj.errorbars
     
+    dmax = 45
+    N = 50
+
+    r = np.linspace(0, dmax, N)
+    K = createTransformMatrix(q, r)
+    
+    alpha = searchAlpha(r, I, q, sigma, dmax, N, costFunction = costFuncChiSquared) 
+    alpha = np.exp(alpha)
+    
+    print 'Optimal Alpha : ', alpha
+    
+    Pr = calcPr(alpha, I, q, sigma, 0, dmax, N, forceInitZero = True)
+    
+    pl.plot(r, Pr)
+    
+    pl.show()
+    
+def FindOptimalChiSquared(I, q, sigma, dmax, N):
+    
+    r = np.linspace(0, dmax, N)
+    K = createTransformMatrix(q, r)
+    
+    alpha = searchAlpha(r, I, q, sigma, dmax, N, 0, costFunction = costFuncChiSquared) 
+    alpha = np.exp(alpha)
+    
+    Pr = calcPr(alpha, I, q, sigma, 0, dmax, N, forceInitZero = True)
+    
+    I_Pr = np.dot(Pr, np.transpose(K))
+    
+    ChiSq = np.sum(np.power(I-I_Pr,2)/np.power(sigma,2))
+    
+    print 'Optimal Alpha : ', alpha
+    print 'Optimal ChiSq : ', ChiSq
+    
+    return ChiSq
+    
+    
+if __name__ == '__main__':
+    
+    ####### CAREFUL!!! ####################################
+    #SYSDEV HAS THE 4 * pi *dr on it to test the GNOM data! and Check STABILL TOO!
+    ######################################################## 
+    
+    #testGnomPr()
+    #testChiSquaredSearch()
+
+    #ExpObj, FullImage = fileIO.loadFile('lyzexp.dat')
+    #ExpObj, FullImage = fileIO.loadFile('diff.dat')
+    
+    q, I, sigma, J_REG, I_REG = loadGnomFit('/home/specuser/diff.txt.txt')
+    
+#    I = ExpObj.i
+#    q = ExpObj.q
+#    sigma = ExpObj.errorbars
+    
+################################################################
+        
     #FIGURES SIMILAR TO THOSE IN THE ARTCILE:
     #normdist = (np.cos(2*pi*1*bins)+1)/2                  #F
     #normdist = np.sin(2*pi*1.5*bins)                      #E
     #normdist = np.sin(2*pi*.5*bins)                       #A
-    #normdist = np.sin(2*pi*6*bins) * np.sin(2*pi*.5*bins) #D
-           
+    #normdist = np.sin(2*pi*6*bins) * np.sin(2*pi*.5*bins) #D       
 #    tst = sphereFormFactor(q, 30)
 
 ########################################################
@@ -544,27 +728,40 @@ if __name__ == '__main__':
 #    I_alpha = I_alpha + sigma
 #########################################################
     
-    dmax = 50
+    dmax = 40
     N = 50
 
     r = np.linspace(0, dmax, N)
     K = createTransformMatrix(q, r)
     
-    alpha = searchAlpha(r, I_alpha, q, sigma, dmax, N)
+    ChiSq = FindOptimalChiSquared(I, q, sigma, dmax, N)
+        
+    alpha = searchAlpha(r, I, q, sigma, dmax, N, ChiSq, costFunction = costFunc)
     dAlpha = 2*alpha
     
-    print 'Optimal Alpha: ', str(alpha)
-    PrC = calcPr(alpha, I_alpha, q, sigma, 0, dmax, N)
-    I_PrC = np.dot( PrC, np.transpose(K) )
+    alpha = np.exp(alpha)
     
+    print 'Optimal Alpha: ', str(alpha)
+    PrC = calcPr(alpha, I, q, sigma, 0, dmax, N)
+    dr = r[2]-r[1]
+    
+    PrC = PrC 
+    
+    I_PrC = np.dot( PrC, np.transpose(K) ) 
+    
+    chi = np.sum(np.power(I-I_PrC,2)/np.power(sigma,2))
+    
+    print 'ChiSq: ', ChiSq 
+    print 'ChiSq_Gnom : ', chi
     print calcRgI0(PrC, r)
     
-    print 'TOTAL : ', str(CalcProbability(DISCRP(), OSCILL(PrC,r), STABIL(PrC, r, I_alpha, q, sigma, alpha, dAlpha, 0, dmax, N), SYSDEV(PrC, r, I_alpha, q), POSITV(PrC), VALCEN(PrC,r)))
-    print 'Valcen: ', str(round(VALCEN(PrC, r),2))
-    print 'Oscill: ', str(round(OSCILL(PrC, r),2))
-    print 'Positv: ', str(round(POSITV(PrC),2))
-    print 'Sysdev: ', str(round(SYSDEV(PrC, r, I_alpha, q),2))
-    print 'Stabil: ', str(round(STABIL(PrC, r, I_alpha, q, sigma, alpha, dAlpha, 0, dmax, N)))
+    print 'TOTAL : ', str(CalcProbability(DISCRP(I, I_PrC, sigma, ChiSq), OSCILL(PrC,r), STABIL(PrC, r, I, q, sigma, alpha, dAlpha, 0, dmax, N), SYSDEV(PrC, r, I, q), POSITV(PrC), VALCEN(PrC,r)))
+    
+    #Print Criteria:
+    crit = getAllCriteriaResults(PrC, r, I, q, sigma, alpha, 0, dmax, len(r), ChiSq, forceInitZero = True)
+    
+    for each in crit:
+        print each[0] + ' :' + str(each[1])
         
     pl.figure()
     pl.subplot(211)
@@ -572,18 +769,6 @@ if __name__ == '__main__':
     #pl.plot(r, Pr)
     pl.subplot(212)
     pl.loglog(q, I_PrC, 'red')
-    pl.loglog(q, I_alpha)
-    
-#    pl.figure()
-#    pl.subplot(311)
-#    pl.loglog(q, I_alpha)
-#    pl.subplot(312)
-#    pl.plot(r, Pr)
-#    pl.subplot(313)
-#    pl.loglog(q, tst)
-    
+    pl.loglog(q, I)
+       
     pl.show()
-    
-    
-    
-    
