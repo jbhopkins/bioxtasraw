@@ -167,7 +167,17 @@ class GuinierPlotPanel(wx.Panel):
         
         a.set_xlim((0, x[botlim]))
         
-        #a.set_ylim(self.maxmin)
+        #findInterp = lambda x: x.get_label() == 'interpline'
+        
+#        interpline = a.findobj(findInterp)[0]
+#        
+#        interpData = interpline.get_ydata()
+#        
+#        maxy = max([max(interpData), y[toplim]])
+#       
+        oldylim = a.get_ylim()
+        
+        a.set_ylim((y[botlim], oldylim[1]))
         
         self.canvas.draw()
                
@@ -387,10 +397,10 @@ class GuinierPlotPanel(wx.Panel):
         if self.fitline != None:
             self.fitline.remove()
 
-        self.fitline = matplotlib.lines.Line2D(x, yr, linewidth = 1, color = 'r', alpha = 1)
+        self.fitline = matplotlib.lines.Line2D(x, yr, linewidth = 1, color = 'r', alpha = 1, label = 'fitline')
         a.add_artist(self.fitline)
         
-        self.interpline = matplotlib.lines.Line2D(xg, yg, linewidth = 1, color = 'g', linestyle = '--', alpha = 1)
+        self.interpline = matplotlib.lines.Line2D(xg, yg, linewidth = 1, color = 'g', linestyle = '--', alpha = 1, label = 'interpline')
         a.add_artist(self.interpline)              
         
         self.maxmin = (np.min([yr.min(), y.min()]), np.max([y.max(), self.I0]))
