@@ -145,7 +145,7 @@ expParams = {
              'ZingerRemovalAvg'     : False,
              
              #SAVE DIRECTORIES
-             'ReducedFilePath'      : ' ',
+             'ProcessedFilePath'      : None,
              'AutoSaveOnImageFiles' : False,
              'AutoSaveOnAvgFiles'   : False,
              

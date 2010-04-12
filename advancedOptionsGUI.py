@@ -92,8 +92,8 @@ class MaskingOptions(wx.Panel):
         wx.Panel.__init__(self, parent)
         self.expParamsInGUI = wx.FindWindowByName('OptionsDialog').expParamsInGUI
         
-        self.filesData = (("Beamstop Mask:"     , self.expParamsInGUI['BeamStopMaskFilename'][0], wx.NewId(), wx.NewId(), "Set..", "C", self.onSetFile, self.onClrFile),
-                          ("Readout Noise Mask:", self.expParamsInGUI['ReadOutNoiseMaskFilename'][0], wx.NewId(), wx.NewId(), "Set..", "C", self.onSetFile, self.onClrFile))
+        self.filesData = (("Beamstop Mask:"     , self.expParamsInGUI['BeamStopMaskFilename'][0], wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile),
+                          ("Readout Noise Mask:", self.expParamsInGUI['ReadOutNoiseMaskFilename'][0], wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile))
 
         
 
@@ -116,7 +116,7 @@ class MaskingOptions(wx.Panel):
             
             setButton = wx.Button(self, setButton_ID, setButtonTxt, size = (45,22))
             setButton.Bind(wx.EVT_BUTTON, setBindFunc)
-            clrButton = wx.Button(self, clrButton_ID, clrButtonTxt, size = (25,22))
+            clrButton = wx.Button(self, clrButton_ID, clrButtonTxt, size = (45,22))
             clrButton.Bind(wx.EVT_BUTTON, clrBindFunc)
     
             label = wx.StaticText(self, -1, labtxt)
@@ -349,8 +349,8 @@ class CalibrationOptionsPage(wx.Panel):
         self.expParams = optDiag.expParams
         
                           #          label,     textCtrlId,            buttonId, clrbuttonId,  ButtonText, BindFunction
-        self.filesData = (("Empty cell:"   , self.expParamsInGUI['EmptyFile'][0]    , wx.NewId(), wx.NewId(), "Set..", "C", self.onSetFile, self.onClrFile),
-                          ("Water sample:" , self.expParamsInGUI['WaterFile'][0]    , wx.NewId(), wx.NewId(), "Set..", "C", self.onSetFile, self.onClrFile))
+        self.filesData = (("Empty cell:"   , self.expParamsInGUI['EmptyFile'][0]    , wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile),
+                          ("Water sample:" , self.expParamsInGUI['WaterFile'][0]    , wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile))
                           #("Flat Field:"   , expParamsInGUI['FlatFieldFile'][0], wx.NewId(), wx.NewId(), "Set..", "C", self.onSetFile, self.onClrFile))
         
         self.normConstantsData = ( ("WaterAvgMinPoint:", self.expParamsInGUI['WaterAvgMinPoint'][0] ),
@@ -441,7 +441,7 @@ class CalibrationOptionsPage(wx.Panel):
             
             setButton = wx.Button(self, setButton_ID, setButtonTxt, size = (45,22))
             setButton.Bind(wx.EVT_BUTTON, setBindFunc)
-            clrButton = wx.Button(self, clrButton_ID, clrButtonTxt, size = (25,22))
+            clrButton = wx.Button(self, clrButton_ID, clrButtonTxt, size = (45,22))
             clrButton.Bind(wx.EVT_BUTTON, clrBindFunc)
     
             label = wx.StaticText(self, -1, labtxt)
@@ -586,7 +586,7 @@ class SaveDirectoriesPage(wx.Panel):
         
         expParamsInGUI = wx.FindWindowByName('OptionsDialog').expParamsInGUI
                                                                                #Set button id , clr button id
-        self.directoryData = (('Reduced files:', expParamsInGUI['ReducedFilePath'], wx.NewId(), wx.NewId()),
+        self.directoryData = (('Processed files:', expParamsInGUI['ProcessedFilePath'], wx.NewId(), wx.NewId()),
                               (None, None, None, None))
         
         self.autoSaveData = (('Save Processed Image Files Automatically', expParamsInGUI['AutoSaveOnImageFiles'][0]),
@@ -629,7 +629,7 @@ class SaveDirectoriesPage(wx.Panel):
             
                 setButton = wx.Button(self, setButton_ID, 'Set..', size = (45,22))
                 setButton.Bind(wx.EVT_BUTTON, self.onSetFile)
-                clrButton = wx.Button(self, clrButton_ID, 'C', size = (25,22))
+                clrButton = wx.Button(self, clrButton_ID, 'Clear', size = (45,22))
                 clrButton.Bind(wx.EVT_BUTTON, self.onClrFile)
     
                 label = wx.StaticText(self, -1, labtxt)
@@ -669,7 +669,7 @@ class SaveDirectoriesPage(wx.Panel):
         for labtxt, param, setButton_ID, clrButton_ID in self.directoryData:
                 if clrButton_ID == ID:
                     textCtrl = wx.FindWindowById(param[0]) 
-                    textCtrl.SetValue('')
+                    textCtrl.SetValue('None')
         
 class IFTOptionsPage(wx.Panel):
     
@@ -1071,9 +1071,9 @@ class OptionsDialog(wx.Dialog):
                                'ZingerRemovalAvg'     : (wx.NewId(), 'bool'),
                                
                                #SAVE DIRECTORIES
-                             #  'ReducedFilePath'      : (wx.NewId(), 'text'),
-                             #  'AutoSaveOnImageFiles' : (wx.NewId(), 'bool'),
-                             #  'AutoSaveOnAvgFiles'   : (wx.NewId(), 'bool'),
+                               'ProcessedFilePath'      : (wx.NewId(), 'text'),
+                               'AutoSaveOnImageFiles'   : (wx.NewId(), 'bool'),
+                               'AutoSaveOnAvgFiles'     : (wx.NewId(), 'bool'),
                                
                                #MASKING
                                'BeamStopMaskFilename' :   (wx.NewId(), 'maskFilename'),
@@ -1107,7 +1107,7 @@ class OptionsDialog(wx.Dialog):
         self.page3 = CalibrationOptionsPage(optionsNB)
         self.page4 = MaskingOptions(optionsNB)
         self.page5 = ImageFormatOptionsPage(optionsNB)
-        #self.page6 = SaveDirectoriesPage(optionsNB)
+        self.page6 = SaveDirectoriesPage(optionsNB)
 
         
         optionsNB.AddPage(self.page1, "General")
@@ -1115,7 +1115,7 @@ class OptionsDialog(wx.Dialog):
         optionsNB.AddPage(self.page4, "Masking")
         optionsNB.AddPage(self.page2, "IFT")
         optionsNB.AddPage(self.page5, "2D reduction")
-        #optionsNB.AddPage(self.page6, "Directories")
+        optionsNB.AddPage(self.page6, "Directories")
         
 
         buttonSizer = self.createButtons()

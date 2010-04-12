@@ -169,8 +169,10 @@ class GuinierPlotPanel(wx.Panel):
         a.set_xlim((0, x[botlim]))
             
         oldylim = a.get_ylim()
-        a.set_ylim((y[botlim], oldylim[1]))
-        
+
+        if not np.isnan(y[botlim]) and not np.isinf(y[botlim]):
+            a.set_ylim((y[botlim], oldylim[1]))
+ 
         self.canvas.draw()
                
     def _plotGuinier(self, i, q):
@@ -831,7 +833,8 @@ class GuinierTestApp(wx.App):
         if filename:
             ExpObj, ImgDummy = fileIO.loadFile(filename)
         else:
-            ExpObj, ImgDummy = fileIO.loadFile('lyzexp.dat')
+            #ExpObj, ImgDummy = fileIO.loadFile('lyzexp.dat')
+            ExpObj, ImgDummy = fileIO.loadFile('diff.dat')
         
         frame = GuinierTestFrame(self, 'Guinier Fit', ExpObj)
         self.SetTopWindow(frame)

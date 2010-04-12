@@ -333,23 +333,26 @@ class BiftCalculationThread(threading.Thread):
         q = ExpObj.q.copy()
         sigma = ExpObj.errorbars.copy()
                         
-        WCA_Params = [[self._parent.expParams['DISCRPweight'], 0.3, 0.7],
+        WCA_Param = [[self._parent.expParams['DISCRPweight'], 0.3, 0.7],
                       [self._parent.expParams['OSCILLweight'], 0.6, 1.1],
                       [self._parent.expParams['STABILweight'], 0.12, 0.0],
                       [self._parent.expParams['SYSDEVweight'], 0.12, 1.0],
                       [self._parent.expParams['POSITVweight'], 0.12, 1.0],
                       [self._parent.expParams['VALCENweight'], 0.12, 0.95]]
         
-        forceInitZero = self._parent.expParams['gnomFixInitZero']
+        forceZero = self._parent.expParams['gnomFixInitZero']
         
         Pr, r, Fit, info = OpenGnom.getGnomPr(I, q, sigma,
                                                self._parent.expParams['gnomPrPoints'],
                                                dmax, 0,
-                                               self._parent.expParams['gnomMinAlpha'],
-                                               self._parent.expParams['gnomMaxAlpha'],
-                                               self._parent.expParams['gnomAlphaPoints'],
-                                               WCA_Params, forceInitZero)
-            
+                                               alphamin = self._parent.expParams['gnomMinAlpha'],
+                                               alphamax = self._parent.expParams['gnomMaxAlpha'],
+                                               alphapoints = self._parent.expParams['gnomAlphaPoints'],
+                                               WCA_Params = WCA_Param, forceInitZero = forceZero)
+        
+        
+       #searchAlpha(r, I_alpha, q, sigma, dmax, N, ChiSq = 0, alphamin = 0.0001, alphamax = 100, alphapoints = 100, WCA_Params = None, forceInitZero = True, costFunction = costFunc):
+        
         IFTObj = cartToPol.BIFTMeasurement(transpose(Pr), r, ones((len(transpose(Pr)),1)), ExpObj.param.copy(), Fit, info)
         
         fullFilename = IFTObj.param['filename']

@@ -63,24 +63,6 @@ def diff(Pr, r):
         
     return dPr
 
-#def constraint(Pr, r):
-#        
-#    Omega = sqrt(sum(power(diff(Pr, r),2)))
-#    
-#    return Omega
-#
-#def chiSquared(Pr, r, I, q, sigma, K):
-#    
-#    I_alpha = np.dot( Pr, np.transpose(K))
-#    
-#    chiSquare = sqrt( sum( power(I - I_alpha,2)/power(sigma,2) ) )
-#  
-#    return chiSquare     
-#
-#def lossFunc(Pr, r, I, q, sigma, K, alpha):
-#    
-#    return chiSquared(Pr, r, I, q, sigma, K) + alpha*constraint(Pr,r)
-
 def calcPr(alpha, I, q, sigma, dmin, dmax, N, forceInitZero = True):
     ''' Calculates the Pr function for a specified alpha, dmin and dmax '''
     
@@ -106,10 +88,13 @@ def calcPr(alpha, I, q, sigma, dmin, dmax, N, forceInitZero = True):
     sh = np.shape(mat1)
     mat1[sh[0]-1, sh[1]-1] = 0    #Remove the 1 in the wrong place (in the corner)
 
-    T = (mat1 + mat2) * -0.5 + np.eye(np.shape(mat1)[0])
-    ########################################
+    T = (mat1 + mat2) * -0.5 + np.eye(np.shape(mat1)[0])   # f(x) -f(x-1)/2 -f(x+1)/2 = f(x) - (f(x-1) + f(x+1))/2
     
-    #T = mat2 * 0.5 -0.5*np.eye(np.shape(mat2)[0])
+    #T = mat2 * 0.5 -0.5 * np.eye(np.shape(mat2)[0])        # f(x) + f(x-1)/2 - f(x+1)/2
+    
+    #T = mat2 -np.eye(np.shape(mat2)[0])                    # f(x+1)-f(x)
+    
+    #T = ((mat1*(-.5)) + (mat2*.5))                          # f(x+1)/2-f(x-1)/2 
     
     #Solving by least squares:
     a = np.vstack((K, alpha*T))  
@@ -326,9 +311,9 @@ def DISCRP(I, I_Pr, sigma, Chi):
     
     dis = sqrt(sum(np.power((np.array(I)-np.array(I_Pr)),2)/np.power(sigma,2))-Chi)
     
-    print dis
+    #return dis
     
-    return dis
+    return 1
 
 def CalcProbability(DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN, WCA_Parameters = None):
     ''' WARNING TAKING OUT DISCRP BY SETTING W = 0 '''
@@ -377,13 +362,11 @@ def costFuncChiSquared(alpha, r, I, q, sigma, dmax, N, ChiSq, WCA_Params = None,
     I_Pr = np.dot(Pr, np.transpose(K))
     
     ChiSquared = np.sum(np.power(I - I_Pr,2) / np.power(sigma,2))
-    
-    print ChiSquared
-    
+
     return ChiSquared
     
 
-def costFunc(alpha, r, I, q, sigma, dmax, N, ChiSq, WCA_Params = None, forceInitZero = True):
+def costFunc(alpha, r, I, q, sigma, dmax, N, ChiSq = 0, WCA_Params = None, forceInitZero = True):
     
     alpha = np.exp(alpha)
     
@@ -416,33 +399,42 @@ def costFunc(alpha, r, I, q, sigma, dmax, N, ChiSq, WCA_Params = None, forceInit
 #    return goldenSectionSearch(F, d, c, a, absolutePrecision)
 # 
 
-def searchAlpha(r, I_alpha, q, sigma, dmax, N, ChiSq, alphamin = 0.0001, alphamax = 100, alphapoints = 100, WCA_Params = None, forceInitZero = True, costFunction = costFunc):
+def searchAlpha(r, I_alpha, q, sigma, dmax, N, 
+                alphamin = 0.0001,
+                alphamax = 100,
+                alphapoints = 100,
+                WCA_Params = None,
+                forceInitZero = True,
+                costFunction = costFunc,
+                ChiSq = 0,
+                TestPlot = False):
     
     #alphaGuess = sum(np.power(norm(K),2)) / norm(I_alpha)
     
     #Determine TOTAL for different alpha values to determine a good starting point
     alphatotal = []
+    
     alphavals = np.linspace(alphamin, alphamax, alphapoints)
     
     for alpha in alphavals:
         alphatotal.append(costFunction(np.log(alpha), r, I_alpha, q, sigma, dmax, N, ChiSq, WCA_Params ))
         
     alphaGuess = alphavals[ alphatotal.index(min(alphatotal)) ] 
-    
-    print 'GUESS : ',alphaGuess
-    
-    fig = pl.figure(1)
-    pl.plot(np.log(alphavals), -1*np.array(alphatotal), '.')
-    pl.xlabel('log(alpha)')
-    pl.ylabel('TOTAL')
-    
-    pl.show()
+
+    if TestPlot == True:
+        print 'GUESS : ',alphaGuess
+                
+        fig = pl.figure(1)
+        pl.plot(np.log(alphavals), -1*np.array(alphatotal), '.')
+        pl.xlabel('log(alpha)')
+        pl.ylabel('TOTAL')
+        pl.show()
     
     alpha = optimize.fmin(costFunction, np.log(alphaGuess), (r, I_alpha, q, sigma, dmax, N, ChiSq, WCA_Params))
     
     return alpha
 
-def getGnomPr(I, q, sigma, N, dmax, dmin = 0, alphamin = 0.01, alphamax = 60, alphapoints = 100, WCA_Params = None, forceInitZero = True):
+def getGnomPr(I, q, sigma, N, dmax, dmin = 0, alphamin = 0.01, alphamax = 60, alphapoints = 100, WCA_Params = None, forceInitZero = True, ChiSq = 0):
     ''' Returns the optimal Pr function according to the GNOM algorithm (GNOM calulates alpha) '''
     
     r = np.linspace(dmin, dmax, N)
@@ -455,13 +447,13 @@ def getGnomPr(I, q, sigma, N, dmax, dmin = 0, alphamin = 0.01, alphamax = 60, al
     Pr = calcPr(alpha, I, q, sigma, dmin, dmax, N, forceInitZero)
     I_Pr = np.dot( Pr, np.transpose(K) )
     
-    TOTAL = -costFunc(alpha[0], r, I, q, sigma, dmax, N, WCA_Params, forceInitZero)
+    TOTAL = -costFunc(alpha[0], r, I, q, sigma, dmax, N, WCA_Params = WCA_Params, forceInitZero = forceInitZero)
     
     I0, Rg = calcRgI0(Pr, r)
     
     ChiSq = sum(np.power(np.array(I)-np.array(I_Pr),2) / np.power(sigma,2))
     
-    allcrit = getAllCriteriaResults(Pr, r, I, q, sigma, alpha, dmin, dmax, N, forceInitZero)
+    allcrit = getAllCriteriaResults(Pr, r, I, q, sigma, alpha, dmin, dmax, N, forceInitZero = forceInitZero)
     
     info = {'dmax_points' : 0,
                 'alpha_points' : 0,
@@ -473,7 +465,7 @@ def getGnomPr(I, q, sigma, N, dmax, dmin = 0, alphamin = 0.01, alphamax = 60, al
                 'orig_err': sigma,
                 'I0' : I0,
                 'ChiSquared' : ChiSq,
-                'gnomTOTAL' : TOTAL,
+                'gnomTOTAL' : round(TOTAL,4),
                 'Rg' : Rg}
     
     return Pr, r, I_Pr, info
@@ -516,7 +508,7 @@ def singleSolveInRAW(alpha, dmax, SelectedExpObj, N, dmin = 0, forceInitZero = T
     
     return Pr, r, I_Pr, info
 
-def getAllCriteriaResults(Pr, r, I, q, sigma, alpha, dmin, dmax, N, ChiSq, forceInitZero):
+def getAllCriteriaResults(Pr, r, I, q, sigma, alpha, dmin, dmax, N, ChiSq = 0, forceInitZero = False):
     
     val = round(VALCEN(Pr, r),4)
     osc = round(OSCILL(Pr, r),4)
@@ -555,6 +547,23 @@ def calcRgI0(Pr, r):
     
     return I0, Rg
 
+def FindOptimalChiSquared(I, q, sigma, dmax, N):
+    
+    r = np.linspace(0, dmax, N)
+    K = createTransformMatrix(q, r)
+    
+    alpha = searchAlpha(r, I, q, sigma, dmax, N, 0, costFunction = costFuncChiSquared) 
+    alpha = np.exp(alpha)
+    
+    Pr = calcPr(alpha, I, q, sigma, 0, dmax, N, forceInitZero = True)
+    I_Pr = np.dot(Pr, np.transpose(K))
+    
+    ChiSq = np.sum(np.power(I-I_Pr,2)/np.power(sigma,2))
+    
+    print 'Optimal Alpha : ', alpha
+    print 'Optimal ChiSq : ', ChiSq
+    
+    return ChiSq
 
 def loadGnomFit(filename):
     import re
@@ -587,6 +596,7 @@ def loadGnomFit(filename):
         
     return S, J_EXP, ERROR, J_REG, I_REG
 
+#---- *** TEST FUNCTIONS ***
 
 def Test_GnomPr():
     
@@ -628,7 +638,6 @@ def Test_GnomPr():
     pl.semilogy(I_Pr,'r')
     pl.semilogy(J_REG, 'g')
     pl.show()
-    
 
 def Test_ChiSquaredSearch():
     
@@ -656,30 +665,19 @@ def Test_ChiSquaredSearch():
     
     pl.show()
     
-def FindOptimalChiSquared(I, q, sigma, dmax, N):
-    
-    r = np.linspace(0, dmax, N)
-    K = createTransformMatrix(q, r)
-    
-    alpha = searchAlpha(r, I, q, sigma, dmax, N, 0, costFunction = costFuncChiSquared) 
-    alpha = np.exp(alpha)
-    
-    Pr = calcPr(alpha, I, q, sigma, 0, dmax, N, forceInitZero = True)
-    I_Pr = np.dot(Pr, np.transpose(K))
-    
-    ChiSq = np.sum(np.power(I-I_Pr,2)/np.power(sigma,2))
-    
-    print 'Optimal Alpha : ', alpha
-    print 'Optimal ChiSq : ', ChiSq
-    
-    return ChiSq
-
 def Test_RunGnomOnFile(filename, dmax, N):
     
+    ExpObj, Img = fileIO.loadFile(filename)
+    
+    q = ExpObj.q
+    I = ExpObj.i
+    sigma = ExpObj.errorbars
+    
     r = np.linspace(0, dmax, N)
     K = createTransformMatrix(q, r)
     
-    ChiSq = FindOptimalChiSquared(I, q, sigma, dmax, N)
+    #ChiSq = FindOptimalChiSquared(I, q, sigma, dmax, N)
+    ChiSq = 1
         
     alpha = searchAlpha(r, I, q, sigma, dmax, N, ChiSq, costFunction = costFunc)
     dAlpha = 2*alpha
@@ -763,7 +761,7 @@ if __name__ == '__main__':
     #testGnomPr()
     #testChiSquaredSearch()
 
-    Test_RunGnomOnFile('lyzexp.dat', dmax = 45, N=50)
+    #Test_RunGnomOnFile('lyzexp.dat', dmax = 45, N=50)
     Test_RunGnomOnFile('diff.dat', dmax = 45, N=50)
         
     
