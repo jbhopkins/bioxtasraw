@@ -588,9 +588,8 @@ def loadGnomFit(filename):
     return S, J_EXP, ERROR, J_REG, I_REG
 
 
-def testGnomPr():
+def Test_GnomPr():
     
-    #Load Pr fit
     #S, J_EXP, ERROR, J_REG, I_REG = loadGnomFit('/home/specuser/GnomFitLyzExp.txt')
     S, J_EXP, ERROR, J_REG, I_REG = loadGnomFit('/home/specuser/diff.txt.txt')
     
@@ -603,18 +602,11 @@ def testGnomPr():
     Pr_sigma = ExpObj.errorbars
     
     dr = r[2]-r[1]
-
-    ## Load DATA
-    #ExpObj, FullImage = fileIO.loadFile('lyzexp.dat')
-    #I = ExpObj.i
-    #q = ExpObj.q
-    #I_sigma = ExpObj.errorbars
-    
+   
     I = J_EXP
     q = S
     I_sigma = ERROR
-    
-    
+        
 #   PrSph, r_sph = distDistribution_Sphere(len(r), 1, 45)
 #    pl.figure()
 #    pl.plot(r_sph, PrSph)
@@ -628,7 +620,6 @@ def testGnomPr():
     K = createTransformMatrix(q, r)
     I_Pr = np.dot( Pr, np.transpose(K) ) * (4 * pi * dr)
     
-    
     pl.figure()
     pl.plot(r, Pr)
     
@@ -639,7 +630,7 @@ def testGnomPr():
     pl.show()
     
 
-def testChiSquaredSearch():
+def Test_ChiSquaredSearch():
     
     ExpObj, FullImage = fileIO.loadFile('lyzexp.dat')
     #ExpObj, FullImage = fileIO.loadFile('diff.dat')
@@ -674,7 +665,6 @@ def FindOptimalChiSquared(I, q, sigma, dmax, N):
     alpha = np.exp(alpha)
     
     Pr = calcPr(alpha, I, q, sigma, 0, dmax, N, forceInitZero = True)
-    
     I_Pr = np.dot(Pr, np.transpose(K))
     
     ChiSq = np.sum(np.power(I-I_Pr,2)/np.power(sigma,2))
@@ -683,26 +673,53 @@ def FindOptimalChiSquared(I, q, sigma, dmax, N):
     print 'Optimal ChiSq : ', ChiSq
     
     return ChiSq
-    
-    
-if __name__ == '__main__':
-    
-    ####### CAREFUL!!! ####################################
-    #SYSDEV HAS THE 4 * pi *dr on it to test the GNOM data! and Check STABILL TOO!
-    ######################################################## 
-    
-    #testGnomPr()
-    #testChiSquaredSearch()
 
-    #ExpObj, FullImage = fileIO.loadFile('lyzexp.dat')
-    #ExpObj, FullImage = fileIO.loadFile('diff.dat')
+def Test_RunGnomOnFile(filename, dmax, N):
     
-    q, I, sigma, J_REG, I_REG = loadGnomFit('/home/specuser/diff.txt.txt')
+    r = np.linspace(0, dmax, N)
+    K = createTransformMatrix(q, r)
     
-#    I = ExpObj.i
-#    q = ExpObj.q
-#    sigma = ExpObj.errorbars
+    ChiSq = FindOptimalChiSquared(I, q, sigma, dmax, N)
+        
+    alpha = searchAlpha(r, I, q, sigma, dmax, N, ChiSq, costFunction = costFunc)
+    dAlpha = 2*alpha
     
+    alpha = np.exp(alpha)
+    
+    print 'Optimal Alpha: ', str(alpha)
+    
+    Pr = calcPr(alpha, I, q, sigma, 0, dmax, N)
+    dr = r[2]-r[1]
+    
+    Pr = Pr / (4 *np.pi*dr)
+    
+    I_Pr = np.dot( Pr, np.transpose(K) * (4*np.pi*dr) ) 
+    
+    chi = np.sum(np.power(I-I_Pr,2)/np.power(sigma,2))
+    
+    print 'ChiSq: ', ChiSq 
+    print 'ChiSq_Gnom : ', chi
+    print calcRgI0(Pr, r)
+    
+    print 'TOTAL : ', str(CalcProbability(DISCRP(I, I_Pr, sigma, ChiSq), OSCILL(Pr,r), STABIL(Pr, r, I, q, sigma, alpha, dAlpha, 0, dmax, N), SYSDEV(Pr, r, I, q), POSITV(Pr), VALCEN(Pr,r)))
+    
+    #Print Criteria:
+    crit = getAllCriteriaResults(Pr, r, I, q, sigma, alpha, 0, dmax, len(r), ChiSq, forceInitZero = True)
+    
+    for each in crit:
+        print each[0] + ' :' + str(each[1])
+        
+    pl.figure()
+    pl.subplot(211)
+    pl.plot(r, Pr, 'red')
+    pl.subplot(212)
+    pl.loglog(q, I_Pr, 'red')
+    pl.loglog(q, I)
+    pl.show()
+
+def Test_GnomOnFiguresInArticle():
+    pass
+
 ################################################################
         
     #FIGURES SIMILAR TO THOSE IN THE ARTCILE:
@@ -716,7 +733,10 @@ if __name__ == '__main__':
 # Simulated Sphere
 ########################################################
 #    #Simulate P(r) for a sphere:
-#    Pr, r = distDistribution_Sphere(50, 100, 60)    
+     #N = 50
+     #scale = 1
+     #dmax = 45
+#    Pr, r = distDistribution_Sphere(N, scale, dmax)    
 #    q = np.linspace(0.005, 0.35, 250)
 #    
 #    #Transform simulated p(r)
@@ -727,48 +747,29 @@ if __name__ == '__main__':
 #    sigma =  0.5 * np.random.randn(np.size(I_alpha))
 #    I_alpha = I_alpha + sigma
 #########################################################
-    
-    dmax = 40
-    N = 50
 
-    r = np.linspace(0, dmax, N)
-    K = createTransformMatrix(q, r)
-    
-    ChiSq = FindOptimalChiSquared(I, q, sigma, dmax, N)
-        
-    alpha = searchAlpha(r, I, q, sigma, dmax, N, ChiSq, costFunction = costFunc)
-    dAlpha = 2*alpha
-    
-    alpha = np.exp(alpha)
-    
-    print 'Optimal Alpha: ', str(alpha)
-    PrC = calcPr(alpha, I, q, sigma, 0, dmax, N)
-    dr = r[2]-r[1]
-    
-    PrC = PrC 
-    
-    I_PrC = np.dot( PrC, np.transpose(K) ) 
-    
-    chi = np.sum(np.power(I-I_PrC,2)/np.power(sigma,2))
-    
-    print 'ChiSq: ', ChiSq 
-    print 'ChiSq_Gnom : ', chi
-    print calcRgI0(PrC, r)
-    
-    print 'TOTAL : ', str(CalcProbability(DISCRP(I, I_PrC, sigma, ChiSq), OSCILL(PrC,r), STABIL(PrC, r, I, q, sigma, alpha, dAlpha, 0, dmax, N), SYSDEV(PrC, r, I, q), POSITV(PrC), VALCEN(PrC,r)))
-    
-    #Print Criteria:
-    crit = getAllCriteriaResults(PrC, r, I, q, sigma, alpha, 0, dmax, len(r), ChiSq, forceInitZero = True)
+    ChiSq = 0 # The ChiSquared part of the Discrepancy Criteria
+    crit = getAllCriteriaResults(Pr, r, I, q, sigma, alpha, 0, dmax, len(r), ChiSq, forceInitZero = True)
     
     for each in crit:
         print each[0] + ' :' + str(each[1])
+
+if __name__ == '__main__':
+    
+    ####### CAREFUL!!! ####################################
+    #SYSDEV HAS THE 4 * pi *dr on it to test the GNOM data! and Check STABILL TOO!
+    ######################################################## 
+    
+    #testGnomPr()
+    #testChiSquaredSearch()
+
+    Test_RunGnomOnFile('lyzexp.dat', dmax = 45, N=50)
+    Test_RunGnomOnFile('diff.dat', dmax = 45, N=50)
         
-    pl.figure()
-    pl.subplot(211)
-    pl.plot(r, PrC, 'red')
-    #pl.plot(r, Pr)
-    pl.subplot(212)
-    pl.loglog(q, I_PrC, 'red')
-    pl.loglog(q, I)
-       
-    pl.show()
+    
+    #q, I, sigma, J_REG, I_REG = loadGnomFit('/home/specuser/diff.txt.txt')
+    
+    
+    
+    
+    

@@ -147,7 +147,8 @@ class GuinierPlotPanel(wx.Panel):
         a = self.subplots['Guinier']
             
         x = np.power(self.q,2)
-         
+        y = np.log(self.i)
+        
         dist = len(self.q[0:self.toplimit])
         dist2 = len(self.q[self.bottomlimit:])-1
         
@@ -166,7 +167,9 @@ class GuinierPlotPanel(wx.Panel):
         self.toplimit = toplim
         self.bottomlimit = botlim
         
-        a.set_xlim((x[toplim], x[botlim]))
+        a.set_xlim((0, x[botlim]))
+        
+        #a.set_ylim(self.maxmin)
         
         self.canvas.draw()
                
@@ -179,7 +182,6 @@ class GuinierPlotPanel(wx.Panel):
         
         self.setLimits(controlPanel.getLimits())
         
-        
         x = np.power(self.q,2)
         y = np.log(self.i)
         
@@ -188,6 +190,8 @@ class GuinierPlotPanel(wx.Panel):
         
         x = x[np.where(np.isinf(y)==False)]
         y = y[np.where(np.isinf(y)==False)]
+        
+        self.maxmin = (min(y), max(y))
         
         self.subplots['Guinier'].plot(x, y, 'b.')
         
@@ -341,23 +345,30 @@ class GuinierPlotPanel(wx.Panel):
 
         yr = polyval([ar , br], x)
         
+        
         error = y-yr
         
         SS_tot = np.sum(np.power(y-np.mean(y),2))
         SS_err = np.sum(np.power(error,2))
         rsq = 1 - SS_err / SS_tot
-        
+         
         a = self.subplots['Guinier']
+        
+        #################### CALC Rg #########################
         
         self.I0 = br
         self.Rg = np.sqrt(-3*ar)
         if np.isnan(self.Rg):
             self.Rg = 0
         
+        ######## CALCULATE ERROR ON PARAMETERS ###############
+        
         N = len(error)
         stde = SS_err / (N-2)
         std_slope = stde * np.sqrt( (1/N) +  (np.power(np.mean(x),2)/np.sum(np.power(x-np.mean(x),2))))
         std_interc = stde * np.sqrt(  1 / np.sum(np.power(x-np.mean(x),2)))
+        
+        ######################################################
         
         if np.isnan(std_slope):
             std_slope = -1
@@ -371,11 +382,7 @@ class GuinierPlotPanel(wx.Panel):
                                                       
         controlPanel = wx.FindWindowByName('GuinierControlPanel')
         controlPanel.updateInfo(newInfo)
-        
-        #print 'qRg: ', self.Rg * np.sqrt(x[-1])
-        #print 'I0: ', np.exp(self.I0)
-        #print 'Rg: ', self.Rg
-        
+                
         xg = [0, x[0]]
         yg = [self.I0, yr[0]]
         
@@ -385,10 +392,6 @@ class GuinierPlotPanel(wx.Panel):
         xf = xfull[np.where(np.isnan(yfull)==False)]
         yf = yfull[np.where(np.isnan(yfull)==False)]
         
-        #self.interpline = a.plot(xg, yg, 'r--')
-        #self.fitline = a.plot(x, yr, 'r')
-        
-        #self.updateFigureLimits()
         
         if self.fitline != None:
             self.fitline.remove()
@@ -397,10 +400,9 @@ class GuinierPlotPanel(wx.Panel):
         a.add_artist(self.fitline)
         
         self.interpline = matplotlib.lines.Line2D(xg, yg, linewidth = 1, color = 'g', linestyle = '--', alpha = 1)
-        a.add_artist(self.interpline)
-               
-        #a.set_xlim((0, xp[-1]))
-        #a.set_ylim(np.min([yr.min(), yp.min()]), np.max([y.max(), self.I0]))
+        a.add_artist(self.interpline)              
+        
+        self.maxmin = (np.min([yr.min(), y.min()]), np.max([y.max(), self.I0]))
                 
         self.drawError(x, error)
         
