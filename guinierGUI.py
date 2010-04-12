@@ -71,12 +71,13 @@ class GuinierPlotPanel(wx.Panel):
         self.lfittop = None
         self.limits = None
         
-        
         #Figure Limits
         self.bottomlimit = None
         self.toplimit = None
         
-        self.figlim = None
+        #self.figlim = None
+        
+        #Interpolation to I(0) line and linear fitting line
         self.interpline = None
         self.fitline = None
         
@@ -160,23 +161,14 @@ class GuinierPlotPanel(wx.Panel):
         else:
             botlim = self.bottomlimit+dist2
              
-        self.figlim = (x[toplim], x[botlim])
+        #self.figlim = (x[toplim], x[botlim])
         
         self.toplimit = toplim
         self.bottomlimit = botlim
         
         a.set_xlim((0, x[botlim]))
-        
-        #findInterp = lambda x: x.get_label() == 'interpline'
-        
-#        interpline = a.findobj(findInterp)[0]
-#        
-#        interpData = interpline.get_ydata()
-#        
-#        maxy = max([max(interpData), y[toplim]])
-#       
+            
         oldylim = a.get_ylim()
-        
         a.set_ylim((y[botlim], oldylim[1]))
         
         self.canvas.draw()
@@ -217,12 +209,7 @@ class GuinierPlotPanel(wx.Panel):
         self.drawFit()
 #        self.updateFigureLimits()
         self.canvas.draw()
-        
-#    def _plotData(self, i, q):
-#        
-#        self.subplots['Data'].plot(np.power(q,2), np.log(i), 'g.')
-#        self.canvas.draw()
-#        
+             
     def plotExpObj(self, ExpObj):        
         self._plotGuinier(ExpObj.i, ExpObj.q)
         
