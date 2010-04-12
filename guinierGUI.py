@@ -66,15 +66,13 @@ class GuinierPlotPanel(wx.Panel):
         self.ltop = None
         self.lbottom = None
         self.pickedArtist = None
-        self.lbottomRect1 = None
-        self.lbottomRect2 = None
-        self.ltopRect1 = None
-        self.ltopRect2 = None
         
         self.lfitbottom = None
         self.lfittop = None
         self.limits = None
         
+        
+        #Figure Limits
         self.bottomlimit = None
         self.toplimit = None
         
@@ -205,7 +203,6 @@ class GuinierPlotPanel(wx.Panel):
         if self.interpline:
             self.interpline.remove()
             
-     
         #self.subplots['Guinier'].plot(guinier_q[tlim:blim], np.log(i)[tlim:blim], '.')
         self.drawFit()
 #        self.updateFigureLimits()
@@ -228,7 +225,6 @@ class GuinierPlotPanel(wx.Panel):
         self.bottomlimit = len(ExpObj.q)-1
         
         #self.drawFit()
-        
         #self.drawLimits()
     
     def drawLimits(self, x,y):
@@ -254,7 +250,6 @@ class GuinierPlotPanel(wx.Panel):
                                              color = 'r', picker = 6, alpha = 1, label = 'top', linestyle = '--')
 
         a.add_artist(self.ltop)
-
         self.canvas.draw()
 
     def drawBottomLimit(self, x, y): 
@@ -275,7 +270,6 @@ class GuinierPlotPanel(wx.Panel):
                                                 color = 'r', picker = 6, alpha = 1, label = 'bottom', linestyle = '--')
         
         a.add_artist(self.lbottom)
-
         self.canvas.draw()
         
     def drawFitLimits(self, xall, yall):
@@ -295,7 +289,6 @@ class GuinierPlotPanel(wx.Panel):
 
         self.lfittop = matplotlib.lines.Line2D([x,x], [y-0.2,y+0.2], transform=a.transAxes, linewidth = 1,
                                                 color = 'r', picker = 6, alpha = 1, label = 'top')
-        
         
         a.add_artist(self.lfitbottom)
         a.add_artist(self.lfittop)
@@ -345,7 +338,6 @@ class GuinierPlotPanel(wx.Panel):
 
         yr = polyval([ar , br], x)
         
-        
         error = y-yr
         
         SS_tot = np.sum(np.power(y-np.mean(y),2))
@@ -392,7 +384,6 @@ class GuinierPlotPanel(wx.Panel):
         xf = xfull[np.where(np.isnan(yfull)==False)]
         yf = yfull[np.where(np.isnan(yfull)==False)]
         
-        
         if self.fitline != None:
             self.fitline.remove()
 
@@ -422,15 +413,7 @@ class GuinierPlotPanel(wx.Panel):
         self.limits = limits
         
         self.bottomlimit = limits[1]
-        self.toplimit = limits[0]
-        
-        
-class testSpinCtrl(wx.SpinCtrl):
-
-    def __init__(self, parent, id, *args, **kwargs):
-        
-        wx.SpinCtrl.__init__(self, parent, id, **kwargs)
-        
+        self.toplimit = limits[0]       
              
 class GuinierControlPanel(wx.Panel):
     
