@@ -1,8 +1,8 @@
 '''
 Created on Mar 8, 2010
-
 @author: specuser
 '''
+
 import numpy as np
 from scipy import optimize
 from scipy import weave
@@ -14,7 +14,7 @@ from pylab import sin, cos
 
 import fileIO
 
-def shiftLeft(a,shift):
+def shiftLeft(a, shift):
     ''' makes a left circular shift of array '''
     sh = np.shape(a)
     array_length = sh[0] * sh[1]
@@ -26,12 +26,12 @@ def shiftLeft(a,shift):
     start_idx = shift
     
     # SLOW! lets make it in C!
-    for i in range(0,array_length):
+    for i in range(0, array_length):
         
         if i < (array_length - shift):
             res[i] = b[0, shift + i]
         else:
-            res[i] = b[0, array_length-1 - i - shift ]
+            res[i] = b[0, array_length - 1 - i - shift ]
     
     return res.reshape(sh)
 
@@ -41,14 +41,14 @@ def shiftRight(a, shift):
     sh = np.shape(a)
     array_length = sh[0] * sh[1]
     
-    b = a.reshape(1,array_length)
+    b = a.reshape(1, array_length)
     
     res = np.zeros(array_length)
     
     start_idx = shift
 
     # SLOW! lets make it in C!
-    for i in range(0,array_length):
+    for i in range(0, array_length):
         res[i] = b[0, i - shift]
     
     return res.reshape(sh)           
@@ -58,70 +58,89 @@ def diff(Pr, r):
     dPr = []
     dr = r[1]
     
-    for i in range(0,len(Pr)-1):
-        dPr.append((Pr[i+1]-Pr[i])/dr)
+    for i in range(0, len(Pr) - 1):
+        dPr.append((Pr[i + 1] - Pr[i]) / dr)
         
     return dPr
 
-def calcPr(alpha, I, q, sigma, dmin, dmax, N, forceInitZero = True):
+
+def createStabilityMatrix(r):
+    
+    N = len(r)
+    
+    ########################################
+    # Regularization matrix T
+    ########################################
+    
+    eyeMat = np.eye(N)
+    mat1 = shiftLeft(eyeMat, 1)
+    mat2 = shiftRight(eyeMat, 1)
+    
+    mat2[0, 0] = 0                 #Remove the 1 in the wrong place (in the corner)
+    sh = np.shape(mat1)
+    mat1[sh[0] - 1, sh[1] - 1] = 0    #Remove the 1 in the wrong place (in the corner)
+
+    dr = r[1]
+    
+    #from pedersen, svergun article:
+    T = (mat1 + mat2) * -1 + 2 * np.eye(np.shape(mat1)[0])    # f(x) -f(x-1)/2 -f(x+1)/2 = f(x) - (f(x-1) + f(x+1))/2
+    T[0, 0] = 1
+    T[-1, -1] = 1 
+    
+    #T = (mat1 + mat2) * -1 + 3*np.eye(np.shape(mat1)[0])          # sum( f(x)^2 + (f(x)-f(x-1))^2 ) 
+    
+    #T = (mat1 + mat2) * -0.5 + np.eye(np.shape(mat1)[0])          # f(x) -f(x-1)/2 -f(x+1)/2 = f(x) - (f(x-1) + f(x+1))/2
+    
+    #T = mat2 * 0.5 - 0.5 * np.eye(np.shape(mat2)[0])              
+    
+    #T = mat1 * -(1/dr) + (np.eye(np.shape(mat2)[0])*(1+(1/dr)))   # f(x) + f(x)/dr - f(x-1)/dr
+    
+    #T = -mat1 + (np.eye(np.shape(mat2)[0]))                       # f(x) + f(x)/dr - f(x-1)/dr
+    
+    #T = ((mat1*(-.5)) + (mat2*.5))                                # f(x+1)/2-f(x-1)/2  
+    
+    return T
+
+def calcPr(alpha, I, q, sigma, dmin, dmax, N, forceEndsZero=True, K = None, T = None):
     ''' Calculates the Pr function for a specified alpha, dmin and dmax '''
     
     r = np.linspace(dmin, dmax, N)
-    K = createTransformMatrix(q, r)   #Fourier transformation matrix
+    
+    if K == None:
+        K = createTransformMatrix(q, r)   # Fourier transformation matrix
+    if T == None:
+        T = createStabilityMatrix(r)      # Tikhonov regularization matrix 
+    
+    #Solving by least squares:
+    a = np.vstack((K, alpha * T))  
+    b = np.hstack((I, np.zeros(np.shape(T)[0])))
+    
+    if forceEndsZero:
+        a = a[:, 1:-1] # strip first and last column of a
         
+    Pr, residues, rank, singularVals = linalg.lstsq(a, b)
+    
+    if forceEndsZero:
+        Pr = np.insert(Pr, [0], 0) #insert fixed zero
+        Pr = np.insert(Pr, [-1], 0) #insert fixed zero
+
+    dr = r[1]
+
+    #Pr = Pr / 4 * pi * dr
+    
     #Solving it explicit:
     #T = np.eye(N)   # Identity matrix (NB not the derivative)
     #Pr = np.dot(linalg.inv((alpha * T) + np.dot(np.transpose(K),K)) , np.dot(np.transpose(K), I))
     
-    ########################################
-    # Regularization matrix T
-    # -------------------------------------- 
-    # Derivative matrix consists of ones in
-    # the diagonal with -1/2 adjacent
-    # to the diagonal and zero otherwise
-    ########################################
-    eyeMat = np.eye(N)
-    mat1 = shiftLeft(eyeMat,1)
-    mat2 = shiftRight(eyeMat, 1)
-    
-    mat2[0,0] = 0                 #Remove the 1 in the wrong place (in the corner)
-    sh = np.shape(mat1)
-    mat1[sh[0]-1, sh[1]-1] = 0    #Remove the 1 in the wrong place (in the corner)
-
-    T = (mat1 + mat2) * -0.5 + np.eye(np.shape(mat1)[0])   # f(x) -f(x-1)/2 -f(x+1)/2 = f(x) - (f(x-1) + f(x+1))/2
-    
-    #T = mat2 * 0.5 -0.5 * np.eye(np.shape(mat2)[0])        # f(x) + f(x-1)/2 - f(x+1)/2
-    
-    #T = mat2 -np.eye(np.shape(mat2)[0])                    # f(x+1)-f(x)
-    
-    #T = ((mat1*(-.5)) + (mat2*.5))                          # f(x+1)/2-f(x-1)/2 
-    
-    #Solving by least squares:
-    a = np.vstack((K, alpha*T))  
-    b = np.hstack((I, np.zeros(np.shape(T)[0])))
-    
-    if forceInitZero:
-        a = a[:,1:-1] #strip first and last column of a
-        
-        
-    Pr, residues, rank, singularVals = linalg.lstsq(a,b)
-    
-    if forceInitZero:
-        Pr = np.insert(Pr, [0],0) #insert fixed zero
-        Pr = np.insert(Pr, [-1],0) #insert fixed zero
-
-    dr = r[1]
-    #Pr = Pr / 4 * pi * dr
-    
     return Pr
 
-def normalDistribution(mu, sigma, N, x_min =0, x_max=1):
+def normalDistribution(mu, sigma, N, x_min=0, x_max=1):
     
     mu = 5
     sigma = 1.5
-    bins = np.linspace(x_min,x_max,N)
+    bins = np.linspace(x_min, x_max, N)
     
-    normdist = 1/(sigma * np.sqrt(2 * np.pi)) * np.exp( - (bins - mu)**2 / (2 * sigma**2) )
+    normdist = 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(-(bins - mu) ** 2 / (2 * sigma ** 2))
     
     return normdist, bins
 
@@ -167,7 +186,7 @@ def createTransformMatrix(q, r):
            }
            
     """   
-    weave.inline(code,['qlen', 'rlen', 'T', 'r', 'q', 'c'], type_converters = converters.blitz, compiler = "gcc")    
+    weave.inline(code, ['qlen', 'rlen', 'T', 'r', 'q', 'c'], type_converters=converters.blitz, compiler="gcc")    
             
     return T
 
@@ -179,25 +198,27 @@ def distDistribution_Sphere(N, scale_factor, dmax):
         
         "Neutrons X-rays and light scattering methods applied to soft condensed matter.", Page 84 
     '''
-    R = dmax/2.
+    R = dmax / 2.
     r = np.linspace(0, dmax, N)                  # the r-axis in P(r)
        
-    P = (3/(4*pi))*(power(r,2)/power(R,2)) * (2-(3/2.)*(r/R)+(power(r,3)/(8*power(R,3)))) * scale_factor
+    P = (3 / (4 * pi)) * (power(r, 2) / power(R, 2)) * (2 - (3 / 2.) * (r / R) + (power(r, 3) / (8 * power(R, 3)))) * scale_factor
     
     return P, r
 
-def sphereFormFactor(q, r, scale = 1, radius = 60, contrast = 1e-6, bkg = 0):
+def sphereFormFactor(q, r = 60, scale=1, contrast=1e-6, bkg=0):
     
     V = 1
     
-    F = scale / V * power( ( 3*V*contrast*(sin(q*r)-q*r*cos(q*r)) )/ power(q*r,3), 2)
+    F = scale / V * power((3 * V * contrast * (sin(q * r) - q * r * cos(q * r))) / power(q * r, 3), 2)
+    
+    F = F + bkg
     
     return F
 
 def norm(pr):
     ''' Calculates the norm of the incomming vector '''
 
-    norm = sqrt( sum(power(pr,2)) )
+    norm = sqrt(sum(power(pr, 2)))
     
     return norm
     
@@ -209,13 +230,13 @@ def OSCILL(Pr, r):
     dPr = []
     dr = r[1]
     
-    for i in range(0,len(Pr)-1):
-        dPr.append((Pr[i+1]-Pr[i])/dr)
+    for i in range(0, len(Pr) - 1):
+        dPr.append((Pr[i + 1] - Pr[i]) / dr)
       
     D_min = r[0]
     D_max = r[-1]
     
-    OSC = (norm(dPr) / norm(Pr)) / (pi/(D_max-D_min))
+    OSC = (norm(dPr) / norm(Pr)) / (pi / (D_max - D_min))
         
     return OSC
 
@@ -225,39 +246,39 @@ def SYSDEV(Pr, r, I, q):
     
     K = createTransformMatrix(q, r)
     
-    dr = r[2]-r[1]
-    I_Pr = np.dot( Pr, np.transpose(K)) #* 4 * pi * dr
+    dr = r[2] - r[1]
+    I_Pr = np.dot(Pr, np.transpose(K)) #* 4 * pi * dr
     
     deltaI = I - I_Pr
     
     N_s = 0
     
-    for c in range(0, len(deltaI)-1):
-        if np.sign(deltaI[c]) != np.sign(deltaI[c+1]):
+    for c in range(0, len(deltaI) - 1):
+        if np.sign(deltaI[c]) != np.sign(deltaI[c + 1]):
             
-            bothPos1 = np.sign(deltaI[c]) == 0 and np.sign(deltaI[c+1]) == 1
-            bothPos2 = np.sign(deltaI[c]) == 1 and np.sign(deltaI[c+1]) == 0
+            bothPos1 = np.sign(deltaI[c]) == 0 and np.sign(deltaI[c + 1]) == 1
+            bothPos2 = np.sign(deltaI[c]) == 1 and np.sign(deltaI[c + 1]) == 0
              
             if not (bothPos1 and bothPos2):
                 N_s = N_s + 1
     
     N = len(I)
     
-   # print N_s
+    #print 'SysDev_Ns : ',N_s
     
-    SYS = N_s / (N/2.)
+    SYS = N_s / np.floor(((N - 1) / 2.))
      
     return SYS
 
-def STABIL(Pr, r, I, q, sigma, alpha, dAlpha, dmin, dmax, N, forceInitZero = True):
+def STABIL(Pr, r, I, q, sigma, alpha, dmin, dmax, N, forceEndsZero=True):
     ''' According to the point-of-inflection and quasi-optimality methods (Glatter)
     a value of STABIL << 1 can be expected in the vicinity of the correct solution '''
         
-    Pr_dAlpha = calcPr(2*alpha, I, q, sigma, dmin, dmax, N, forceInitZero)
+    Pr_dAlpha = calcPr(2 * alpha, I, q, sigma, dmin, dmax, N, forceEndsZero)
     
     #Pr_dAlpha = Pr_dAlpha / (4 * pi * r[1])
     
-    STA = (norm( Pr-Pr_dAlpha ) /norm(Pr)) # / (dAlpha/alpha)
+    STA = (norm(Pr - Pr_dAlpha) / norm(Pr)) # / (dAlpha/alpha)
     
     return STA
     
@@ -267,7 +288,7 @@ def POSITV(Pr):
     
     Pr_plus = Pr.copy()
     
-    Pr_plus[np.where(Pr_plus<0)] = 0
+    Pr_plus[np.where(Pr_plus < 0)] = 0
     
     POS = norm(Pr_plus) / norm(Pr)
     
@@ -284,10 +305,10 @@ def VALCEN(Pr, r):
     
     dD = D_max - D_min
     
-    low_limit = D_min + (dD/4.) 
-    high_limit = D_max - (dD/4.)
+    low_limit = D_min + (dD / 4.) 
+    high_limit = D_max - (dD / 4.)
     
-    for c in range(0,len(r)):
+    for c in range(0, len(r)):
         
         if r[c] > low_limit and r[c] < high_limit:
             pass
@@ -295,10 +316,10 @@ def VALCEN(Pr, r):
             Pr_star[c] = 0
             
     Pr_star_neg = Pr_star.copy()
-    Pr_star_neg[np.where(Pr_star_neg>0)] = 0
+    Pr_star_neg[np.where(Pr_star_neg > 0)] = 0
     
     Pr_star_pos = Pr_star.copy()
-    Pr_star_pos[np.where(Pr_star_pos<0)] = 0
+    Pr_star_pos[np.where(Pr_star_pos < 0)] = 0
         
     maxPr_star = max([norm(Pr_star_neg), norm(Pr_star_pos)])
         
@@ -308,14 +329,16 @@ def VALCEN(Pr, r):
     return VAL
 
 def DISCRP(I, I_Pr, sigma, Chi):
-    
-    dis = sqrt(sum(np.power((np.array(I)-np.array(I_Pr)),2)/np.power(sigma,2))-Chi)
-    
-    #return dis
-    
-    return 1
+        
+    N = len(I)
 
-def CalcProbability(DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN, WCA_Parameters = None):
+    Idif = sum( ((I - I_Pr) / sigma)**2) / (N-1) 
+    
+    dis = sqrt(Idif - Chi)
+    
+    return dis
+
+def CalcProbability(DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN, WCA_Parameters=None):
     ''' WARNING TAKING OUT DISCRP BY SETTING W = 0 '''
     
     # (   B  ,  W ,   C ,  A )
@@ -330,7 +353,7 @@ def CalcProbability(DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN, WCA_Paramete
                           (SYSDEV, 3.0, 0.12, 1.0), (POSITV, 1.0, 0.12, 1.0), (VALCEN, 1.0, 0.12, 0.95)]
         
         for B, W, C, A in WCA_Parameters:    
-            Prob.append(exp(-power((A-B)/C,2)))
+            Prob.append(exp(-power((A - B) / C, 2)))
             Weights.append(W)
         
     else:
@@ -339,50 +362,54 @@ def CalcProbability(DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN, WCA_Paramete
         
         lst = [DISCRP, OSCILL, STABIL, SYSDEV, POSITV, VALCEN]
         
-        for i in range(0,len(WCA_Parameters)):
+        for i in range(0, len(WCA_Parameters)):
             W = WCA_Parameters[i][0]
             C = WCA_Parameters[i][1]
             A = WCA_Parameters[i][2]
             B = lst[i]
             
-            Prob.append(exp(-power((A-B)/C,2)))
+            Prob.append(exp(-power((A - B) / C, 2)))
             Weights.append(W)
     
-    TOTAL = sum( np.array(Weights)*np.array(Prob) )/sum(Weights)
+    TOTAL = sum(np.array(Weights) * np.array(Prob)) / sum(Weights)
     
     return TOTAL
 
-def costFuncChiSquared(alpha, r, I, q, sigma, dmax, N, ChiSq, WCA_Params = None, forceInitZero = True):
+def costFuncChiSquared(alpha, r, I, q, sigma, dmax, N, ChiSq, WCA_Params=None, forceEndsZero=True):
     
     alpha = np.exp(alpha)
     
-    Pr = calcPr(alpha, I, q, sigma, 0, dmax, N, forceInitZero)
+    Pr = calcPr(alpha, I, q, sigma, 0, dmax, N, forceEndsZero)
     
     K = createTransformMatrix(q, r)
     I_Pr = np.dot(Pr, np.transpose(K))
-    
-    ChiSquared = np.sum(np.power(I - I_Pr,2) / np.power(sigma,2))
+       
+    ChiSquared = sum(((I-I_Pr)/sigma)**2)
 
     return ChiSquared
     
 
-def costFunc(alpha, r, I, q, sigma, dmax, N, ChiSq = 0, WCA_Params = None, forceInitZero = True):
+def costFunc(alpha, r, I, q, sigma, dmax, N, ChiSq=0, WCA_Params=None, forceEndsZero=True, K = None, T = None):
     
     alpha = np.exp(alpha)
     
-    PrC = calcPr(alpha, I, q, sigma, 0, dmax, N, forceInitZero)
+    if K == None:
+        K = createTransformMatrix(q, r)
+    if T == None:
+        T = createStabilityMatrix(r)
     
-    K = createTransformMatrix(q, r)
-    I_Pr = np.dot( PrC, np.transpose(K) )# * 4 * pi * r[1]
+    Pr = calcPr(alpha, I, q, sigma, 0, dmax, N, forceEndsZero, K, T)
+    
+    I_Pr = np.dot(K, Pr)# * 4 * pi * r[1]
     
     TOTAL = CalcProbability(DISCRP(I, I_Pr, sigma, ChiSq),
-                            OSCILL(PrC, r),
-                            STABIL(PrC, r, I, q, sigma, alpha, 2*alpha, 0, dmax, N),
-                            SYSDEV(PrC, r, I, q),
-                            POSITV(PrC),
-                            VALCEN(PrC,r), WCA_Params)
+                            OSCILL(Pr, r),
+                            STABIL(Pr, r, I, q, sigma, alpha, 0, dmax, N),
+                            SYSDEV(Pr, r, I, q),
+                            POSITV(Pr),
+                            VALCEN(Pr, r), WCA_Params)
             
-    return -TOTAL #negative since we want to maximize TOTAL
+    return -TOTAL      #negative since we want to maximize TOTAL
 
 
 #def goldenSectionSearch(F, a, c, b, absolutePrecision):
@@ -399,61 +426,68 @@ def costFunc(alpha, r, I, q, sigma, dmax, N, ChiSq = 0, WCA_Params = None, force
 #    return goldenSectionSearch(F, d, c, a, absolutePrecision)
 # 
 
-def searchAlpha(r, I_alpha, q, sigma, dmax, N, 
-                alphamin = 0.0001,
-                alphamax = 100,
-                alphapoints = 100,
-                WCA_Params = None,
-                forceInitZero = True,
-                costFunction = costFunc,
-                ChiSq = 0,
-                TestPlot = False):
+def searchAlpha(r, I_alpha, q, sigma, dmax, N,
+                alphamin=10e-8,
+                alphamax=1000,
+                alphapoints=100,
+                WCA_Params=None,
+                forceEndsZero=True,
+                costFunction=costFunc,
+                ChiSq=0,
+                PlotSearch=False):
     
     #alphaGuess = sum(np.power(norm(K),2)) / norm(I_alpha)
     
     #Determine TOTAL for different alpha values to determine a good starting point
     alphatotal = []
     
-    alphavals = np.linspace(alphamin, alphamax, alphapoints)
+    alphavals = np.linspace(-5, 15, 100)
+    alphavals = np.exp(alphavals)
+    
+    K = createTransformMatrix(q, r)
+    T = createStabilityMatrix(r)
     
     for alpha in alphavals:
-        alphatotal.append(costFunction(np.log(alpha), r, I_alpha, q, sigma, dmax, N, ChiSq, WCA_Params ))
+        alphatotal.append(costFunction(np.log(alpha), r, I_alpha, q, sigma, dmax, N, ChiSq, WCA_Params, forceEndsZero, K, T))
         
     alphaGuess = alphavals[ alphatotal.index(min(alphatotal)) ] 
 
-    if TestPlot == True:
-        print 'GUESS : ',alphaGuess
+    #print np.log(alphavals)
+    if PlotSearch == True:
+        print 'GUESS : ', alphaGuess, np.log(alphaGuess)
                 
         fig = pl.figure(1)
-        pl.plot(np.log(alphavals), -1*np.array(alphatotal), '.')
+        pl.plot(np.log(alphavals), -1 * np.array(alphatotal), '.')
+        
+        
         pl.xlabel('log(alpha)')
         pl.ylabel('TOTAL')
         pl.show()
     
-    alpha = optimize.fmin(costFunction, np.log(alphaGuess), (r, I_alpha, q, sigma, dmax, N, ChiSq, WCA_Params))
+    alpha = optimize.fmin(costFunction, np.log(alphaGuess), (r, I_alpha, q, sigma, dmax, N, ChiSq, WCA_Params, forceEndsZero, K, T))
     
     return alpha
 
-def getGnomPr(I, q, sigma, N, dmax, dmin = 0, alphamin = 0.01, alphamax = 60, alphapoints = 100, WCA_Params = None, forceInitZero = True, ChiSq = 0):
+def getGnomPr(I, q, sigma, N, dmax, dmin=0, alphamin=0.01, alphamax=60, alphapoints=100, WCA_Params=None, forceEndsZero=True, ChiSq=0):
     ''' Returns the optimal Pr function according to the GNOM algorithm (GNOM calulates alpha) '''
     
     r = np.linspace(dmin, dmax, N)
     
     #Find optimal alpha:
-    alpha = searchAlpha(r, I, q, sigma, dmax, N, alphamin, alphamax, alphapoints, WCA_Params, forceInitZero)
+    alpha = searchAlpha(r, I, q, sigma, dmax, N, alphamin, alphamax, alphapoints, WCA_Params, forceEndsZero)
     
     K = createTransformMatrix(q, r)
     
-    Pr = calcPr(alpha, I, q, sigma, dmin, dmax, N, forceInitZero)
-    I_Pr = np.dot( Pr, np.transpose(K) )
+    Pr = calcPr(alpha, I, q, sigma, dmin, dmax, N, forceEndsZero)
+    I_Pr = np.dot(Pr, np.transpose(K))
     
-    TOTAL = -costFunc(alpha[0], r, I, q, sigma, dmax, N, WCA_Params = WCA_Params, forceInitZero = forceInitZero)
+    TOTAL = -costFunc(alpha[0], r, I, q, sigma, dmax, N, WCA_Params=WCA_Params, forceEndsZero=forceEndsZero)
     
     I0, Rg = calcRgI0(Pr, r)
     
-    ChiSq = sum(np.power(np.array(I)-np.array(I_Pr),2) / np.power(sigma,2))
+    ChiSq = sum(np.power(np.array(I) - np.array(I_Pr), 2) / np.power(sigma, 2))
     
-    allcrit = getAllCriteriaResults(Pr, r, I, q, sigma, alpha, dmin, dmax, N, forceInitZero = forceInitZero)
+    allcrit = getAllCriteriaResults(Pr, r, I, q, sigma, alpha, dmin, dmax, N, forceEndsZero=forceEndsZero)
     
     info = {'dmax_points' : 0,
                 'alpha_points' : 0,
@@ -465,33 +499,33 @@ def getGnomPr(I, q, sigma, N, dmax, dmin = 0, alphamin = 0.01, alphamax = 60, al
                 'orig_err': sigma,
                 'I0' : I0,
                 'ChiSquared' : ChiSq,
-                'gnomTOTAL' : round(TOTAL,4),
+                'gnomTOTAL' : round(TOTAL, 4),
                 'Rg' : Rg}
     
     return Pr, r, I_Pr, info
 
-def singleSolveInRAW(alpha, dmax, SelectedExpObj, N, dmin = 0, forceInitZero = True, WCA_Params = None):
+def singleSolveInRAW(alpha, dmax, SelectedExpObj, N, dmin=0, forceEndsZero=True, WCA_Params=None):
     ''' Solves optimal Pr for a given dmax and alpha.. this routine also calculates info needed by RAW ''' 
     
     I = SelectedExpObj.i
     q = SelectedExpObj.q
     sigma = SelectedExpObj.errorbars
     
-    Pr = calcPr(alpha, I, q, sigma, dmin, dmax, N, forceInitZero)
+    Pr = calcPr(alpha, I, q, sigma, dmin, dmax, N, forceEndsZero)
     r = np.linspace(dmin, dmax, N)
     
     K = createTransformMatrix(q, r)
     
     Pr = calcPr(alpha, I, q, sigma, dmin, dmax, N)
-    I_Pr = np.dot( Pr, np.transpose(K) )
+    I_Pr = np.dot(Pr, np.transpose(K))
     
     TOTAL = -costFunc(alpha, r, I, q, sigma, dmax, N, WCA_Params)
     
     I0, Rg = calcRgI0(Pr, r)
     
-    ChiSq = sum(np.power(np.array(I)-np.array(I_Pr),2) / np.power(sigma,2))
+    ChiSq = sum(np.power(np.array(I) - np.array(I_Pr), 2) / np.power(sigma, 2))
     
-    allcrit = getAllCriteriaResults(Pr, r, I, q, sigma, alpha, dmin, dmax, N, forceInitZero)
+    allcrit = getAllCriteriaResults(Pr, r, I, q, sigma, alpha, dmin, dmax, N, forceEndsZero)
     
     info = {'dmax_points' : 0,
                 'alpha_points' : 0,
@@ -508,22 +542,22 @@ def singleSolveInRAW(alpha, dmax, SelectedExpObj, N, dmin = 0, forceInitZero = T
     
     return Pr, r, I_Pr, info
 
-def getAllCriteriaResults(Pr, r, I, q, sigma, alpha, dmin, dmax, N, ChiSq = 0, forceInitZero = False):
+def getAllCriteriaResults(Pr, r, I, q, sigma, alpha, dmin, dmax, N, ChiSq=0, forceEndsZero=False):
     
-    val = round(VALCEN(Pr, r),4)
-    osc = round(OSCILL(Pr, r),4)
-    pos = round(POSITV(Pr),4)
-    sysd = round(SYSDEV(Pr, r, I, q),4)
-    sta = round(STABIL(Pr, r, I, q, sigma, alpha, 2*alpha, 0, dmax, N, forceInitZero),4)
+    val = round(VALCEN(Pr, r), 4)
+    osc = round(OSCILL(Pr, r), 4)
+    pos = round(POSITV(Pr), 4)
+    sysd = round(SYSDEV(Pr, r, I, q), 4)
+    sta = round(STABIL(Pr, r, I, q, sigma, alpha, 0, dmax, N, forceEndsZero), 4)
     
     K = createTransformMatrix(q, r)
-    I_Pr = np.dot( Pr, np.transpose(K * 4 * pi * r[1]) )
+    I_Pr = np.dot(Pr, np.transpose(K))
     
-    dsc = round(DISCRP(I, I_Pr, sigma, ChiSq),2)
+    dsc = round(DISCRP(I, I_Pr, sigma, ChiSq), 3)
     
     allcrit = [('VALCEN', val),
                ('OSCILL', osc),
-               ('POSITV' ,pos),
+               ('POSITV' , pos),
                ('SYSDEV', sysd),
                ('STABIL', sta),
                ('DISCRP', dsc)]
@@ -535,10 +569,10 @@ def calcRgI0(Pr, r):
     dr = r[1]
     
     area = 0
-    area2= 0
+    area2 = 0
     for x in range(1, len(Pr)):                       
-        area = area + dr * ((Pr[x-1]+Pr[x])/2)                   # Trapez integration
-        area2 = area2 + dr * ((Pr[x-1]+Pr[x])/2) * pow(r[x], 2)  # For Rg^2 calc
+        area = area + dr * ((Pr[x - 1] + Pr[x]) / 2)                   # Trapez integration
+        area2 = area2 + dr * ((Pr[x - 1] + Pr[x]) / 2) * pow(r[x], 2)  # For Rg^2 calc
         
     RgSq = area2 / (2 * area)
     Rg = sqrt(abs(RgSq))
@@ -552,17 +586,19 @@ def FindOptimalChiSquared(I, q, sigma, dmax, N):
     r = np.linspace(0, dmax, N)
     K = createTransformMatrix(q, r)
     
-    alpha = searchAlpha(r, I, q, sigma, dmax, N, 0, costFunction = costFuncChiSquared) 
-    alpha = np.exp(alpha)
+    Pr, residues, rank, singularVals = linalg.lstsq(K, I)
     
-    Pr = calcPr(alpha, I, q, sigma, 0, dmax, N, forceInitZero = True)
-    I_Pr = np.dot(Pr, np.transpose(K))
+    I_Pr = np.dot(K, Pr)
     
-    ChiSq = np.sum(np.power(I-I_Pr,2)/np.power(sigma,2))
-    
-    print 'Optimal Alpha : ', alpha
-    print 'Optimal ChiSq : ', ChiSq
-    
+    ChiSq = np.sum( ((I_Pr-I) / sigma)**2  )
+    print 'CHIII : ', ChiSq
+#    pl.figure()
+#    pl.semilogy(I_Pr)
+#    pl.semilogy(I, 'r')
+#    pl.figure()
+#    pl.plot(r, Pr)
+#    pl.show()
+#    
     return ChiSq
 
 def loadGnomFit(filename):
@@ -596,48 +632,162 @@ def loadGnomFit(filename):
         
     return S, J_EXP, ERROR, J_REG, I_REG
 
+
+
+def loadGnomOutFile(filename):
+    
+    qfull = []
+    qshort = []
+    Jexp = []
+    Jerr = []
+    Jreg = []
+    Ireg = []
+
+    R = []
+    P = []
+    Perr = []
+
+    fname = filename
+
+    print "reading ", fname
+    
+    fline = open(fname).readlines()
+
+    i = 0
+    
+    while (i < len(fline)):
+        if (fline[i].find('The measure of inconsistency AN1 equals to') > -1): 
+            tmp = fline[i].split()
+            AN1 = float(tmp[7])
+            print "AN1 = ", AN1
+            break 
+        i = i + 1
+
+
+    while (i < len(fline)):
+        if (fline[i].find('S          J EXP       ERROR       J REG       I REG') > -1): break 
+        i = i + 1
+
+    print "found data profile section at ", i
+
+    i = i + 2
+
+    # extract experimental and fitted profiles
+    
+    while (i < len(fline)):
+
+         tmp = fline[i].split()
+
+         if (len(tmp) == 2):
+            qfull.append(float(tmp[0]))
+            Ireg.append(float(tmp[1]))
+            
+         elif (len(tmp) == 5):
+            qfull.append(float(tmp[0]))
+            qshort.append(float(tmp[0]))
+            Jexp.append(float(tmp[1]))
+            Jerr.append(float(tmp[2]))
+            Jreg.append(float(tmp[3]))
+            Ireg.append(float(tmp[4]))
+         else: 
+            break
+
+         i = i + 1
+     
+    # now search for P(r)
+
+    i = i + 6
+
+    while (i < len(fline)):
+
+         tmp = fline[i].split()
+         
+         if (len(tmp) == 3):
+             R.append(float(tmp[0]))
+             P.append(float(tmp[1]))
+             Perr.append(float(tmp[2]))
+         else: 
+             break
+
+         i = i + 1
+         
+    qshort = np.array(qshort)
+    Jexp = np.array(Jexp)
+    Jerr = np.array(Jerr)
+    Jreg = np.array(Jreg)
+    Ireg = np.array(Ireg)
+    R = np.array(R)
+    P = np.array(P)
+    Perr = np.array(Perr)
+              
+    return qshort, Jexp, Jerr, Jreg, Ireg, R, P, Perr, AN1
+
 #---- *** TEST FUNCTIONS ***
 
-def Test_GnomPr():
+def Test_GnomPr(filename):
     
-    #S, J_EXP, ERROR, J_REG, I_REG = loadGnomFit('/home/specuser/GnomFitLyzExp.txt')
-    S, J_EXP, ERROR, J_REG, I_REG = loadGnomFit('/home/specuser/diff.txt.txt')
-    
-    #Load Pr function
-    ExpObj, FullImage = fileIO.loadFile('/home/specuser/diffpr.txt.txt')
-    #ExpObj, FullImage = fileIO.loadFile('/home/specuser/GnomLyzExp.txt')
-    
-    Pr = ExpObj.i
-    r = ExpObj.q
-    Pr_sigma = ExpObj.errorbars
-    
-    dr = r[2]-r[1]
-   
-    I = J_EXP
-    q = S
-    I_sigma = ERROR
-        
-#   PrSph, r_sph = distDistribution_Sphere(len(r), 1, 45)
-#    pl.figure()
-#    pl.plot(r_sph, PrSph)
-#    pl.show()
+    S, J_EXP, J_ERR, J_REG, I_REG, r, Pr, Pr_sigma, AN1 = loadGnomOutFile(filename)
 
-    crit = getAllCriteriaResults(Pr, r, I, q, ERROR, 0.601, 0, 45, len(r), forceInitZero = True)
+    dr = r[2] - r[1]
+        
+    crit = getAllCriteriaResults(Pr, r, J_EXP, S, J_ERR, 1.14, 0, 45, len(r), forceEndsZero=True)
     
     for each in crit:
         print each[0] + ' :' + str(each[1])
     
-    K = createTransformMatrix(q, r)
-    I_Pr = np.dot( Pr, np.transpose(K) ) * (4 * pi * dr)
+    K = createTransformMatrix(S, r)
+    I_Pr = np.dot(K, Pr) * (4 * pi * dr)
+
+    Idif2 = ((np.array(J_EXP) - np.array(J_REG)) / J_ERR) ** 2
+    disc = np.sqrt((Idif2.sum() / (len(J_EXP) - 1)) - AN1** 2)
     
+    print 'N : ', len(J_EXP)
+    
+    print '\nGnomChiSq     :', Idif2.sum()
+    print 'GnomChiSqDivN :', Idif2.sum() / (len(J_EXP)-1)
+    print 'GnomAN1       :', AN1
+        
+    J_EXP2, S2, J_ERR2 = binCurve(J_EXP, S, J_ERR, 1)
+       
+    print 'N2 : ', len(J_EXP2)
+    ChiSq = FindOptimalChiSquared(J_EXP2, S2, J_ERR2, dmax=45, N=100)
+    AN2 = ChiSq / (len(J_EXP2)-1)
+    
+    #DISCRP2 = DISCRP(J_EXP2, J_REG, J_ERR2, AN2)
+    print 'RawAN1        :', AN2
+    
+    print 'GnomDISCRP    :', disc
+    #print 'RawDISCRP     :', DISCRP2
+      
     pl.figure()
     pl.plot(r, Pr)
     
     pl.figure()
-    pl.semilogy(I)
-    pl.semilogy(I_Pr,'r')
-    pl.semilogy(J_REG, 'g')
+    pl.semilogy(S2, J_EXP2)
+    pl.semilogy(S, I_Pr, 'r')
+    pl.semilogy(S, J_REG, 'g')
     pl.show()
+#    
+def binCurve(I, q, err, binsize):
+        
+    noOfBins = int(np.floor(len(I) / binsize))
+    
+    new_i = np.zeros(noOfBins)
+    new_q = np.zeros(noOfBins)
+    new_err = np.zeros(noOfBins)
+    
+    for eachbin in range(0, noOfBins):
+        start_idx = eachbin * binsize
+        end_idx = (eachbin * binsize) + binsize
+        tst = range(start_idx, end_idx)
+            
+        new_i[eachbin] = sum(I[start_idx:end_idx]) / binsize
+        new_q[eachbin] = sum(q[start_idx:end_idx]) / binsize
+        
+        new_err[eachbin] = sqrt(sum(err[start_idx:end_idx]**2))
+    
+    return new_i, new_q, new_err
+        
 
 def Test_ChiSquaredSearch():
     
@@ -654,65 +804,92 @@ def Test_ChiSquaredSearch():
     r = np.linspace(0, dmax, N)
     K = createTransformMatrix(q, r)
     
-    alpha = searchAlpha(r, I, q, sigma, dmax, N, costFunction = costFuncChiSquared) 
+    alpha = searchAlpha(r, I, q, sigma, dmax, N, costFunction=costFuncChiSquared) 
     alpha = np.exp(alpha)
     
     print 'Optimal Alpha : ', alpha
     
-    Pr = calcPr(alpha, I, q, sigma, 0, dmax, N, forceInitZero = True)
+    Pr = calcPr(alpha, I, q, sigma, 0, dmax, N, forceEndsZero=True)
     
     pl.plot(r, Pr)
     
     pl.show()
     
-def Test_RunGnomOnFile(filename, dmax, N):
-    
-    ExpObj, Img = fileIO.loadFile(filename)
-    
-    q = ExpObj.q
-    I = ExpObj.i
-    sigma = ExpObj.errorbars
+def Test_RunGnomOnFile(filename, dmax, N, alpha = None, AN1 = None, PlotSearch = False, forceEndsZero = False, filetype = None):
+        
+    if filetype == 'GnomOut':
+        q, I, sigma, J_REG, I_REG, r, Pr, Pr_sigma, AN1Gnom = loadGnomOutFile(filename)
+    else:
+        ExpObj, Img = fileIO.loadFile(filename)
+        q = ExpObj.q
+        I = ExpObj.i
+        sigma = ExpObj.errorbars
     
     r = np.linspace(0, dmax, N)
-    K = createTransformMatrix(q, r)
     
-    #ChiSq = FindOptimalChiSquared(I, q, sigma, dmax, N)
-    ChiSq = 1
+    print len(q)
+    print len(r)
+    
+    
+    I = sphereFormFactor(q, r = 22.5)
+    
+    err = 0.05 * I
+    sigma = np.abs(np.random.rand(len(I))) * err
+    
+    I = I - np.random.rand(len(I)) * (0.05*I)
+    
         
-    alpha = searchAlpha(r, I, q, sigma, dmax, N, ChiSq, costFunction = costFunc)
-    dAlpha = 2*alpha
+    print 'Number of points : ', len(I)
+
+    ######### Calculate Chi squared without stabilisation #######
+    if AN1 == None:
+        ChiSq = FindOptimalChiSquared(I, q, sigma, dmax, N)
+        AN1 = ChiSq / (len(I)-1)
+    else:
+        ChiSq = 1
+
     
-    alpha = np.exp(alpha)
+    K = createTransformMatrix(q, r)        
+    ########## Calculate optimal Alpha ###########
+    if alpha == None:
+        alpha = searchAlpha(r, I, q, sigma, dmax, N, ChiSq, costFunction=costFunc, PlotSearch = PlotSearch, forceEndsZero=forceEndsZero)
+        alpha = np.exp(alpha)
+        
+    print '\nOptimal Alpha: ', str(alpha)
     
-    print 'Optimal Alpha: ', str(alpha)
+    ########## Get Pr function for optimal alpha #########
+    Pr = calcPr(alpha, I, q, sigma, 0, dmax, N, forceEndsZero=forceEndsZero)
+    dr = r[2] - r[1]
     
-    Pr = calcPr(alpha, I, q, sigma, 0, dmax, N)
-    dr = r[2]-r[1]
-    
-    Pr = Pr / (4 *np.pi*dr)
-    
-    I_Pr = np.dot( Pr, np.transpose(K) * (4*np.pi*dr) ) 
-    
-    chi = np.sum(np.power(I-I_Pr,2)/np.power(sigma,2))
-    
-    print 'ChiSq: ', ChiSq 
-    print 'ChiSq_Gnom : ', chi
-    print calcRgI0(Pr, r)
-    
-    print 'TOTAL : ', str(CalcProbability(DISCRP(I, I_Pr, sigma, ChiSq), OSCILL(Pr,r), STABIL(Pr, r, I, q, sigma, alpha, dAlpha, 0, dmax, N), SYSDEV(Pr, r, I, q), POSITV(Pr), VALCEN(Pr,r)))
-    
-    #Print Criteria:
-    crit = getAllCriteriaResults(Pr, r, I, q, sigma, alpha, 0, dmax, len(r), ChiSq, forceInitZero = True)
+    crit = getAllCriteriaResults(Pr, r, I, q, sigma, alpha, 0, dmax, len(r), AN1, forceEndsZero=forceEndsZero)
     
     for each in crit:
-        print each[0] + ' :' + str(each[1])
+        print each[0] + ' :', each[1]
+    
+    I_Pr = np.dot(Pr, np.transpose(K))
+    
+    print 'TOTAL  :', str(CalcProbability(DISCRP(I, I_Pr, sigma, AN1), OSCILL(Pr, r), STABIL(Pr, r, I, q, sigma, alpha, 0, dmax, N), SYSDEV(Pr, r, I, q), POSITV(Pr), VALCEN(Pr, r)))
         
+    Pr = Pr / (4 * np.pi * dr)
+    I_Pr = np.dot(Pr, np.transpose(K) * (4 * np.pi * dr)) 
+    chi = sum( ((I - I_Pr)/sigma)**2)
+    
+    I0, Rg = calcRgI0(Pr, r)
+    
+    print '\nRg   :', Rg
+    print 'I0     :', I0
+    print 'AN1    : ', ChiSq / (len(I)-1) 
+    print 'ChiSqFit : ', chi
+    print 'ChiSqFitDivN : ', chi / (len(I)-1)
+    
+    #Print Criteria:
     pl.figure()
-    pl.subplot(211)
-    pl.plot(r, Pr, 'red')
-    pl.subplot(212)
-    pl.loglog(q, I_Pr, 'red')
-    pl.loglog(q, I)
+    #pl.subplot(211)
+    pl.plot(r, Pr, 'o-r')
+    #pl.subplot(212)
+    pl.figure()
+    pl.semilogy(q, I_Pr, 'red')
+    pl.semilogy(q, I, '.')
     pl.show()
 
 def Test_GnomOnFiguresInArticle():
@@ -747,7 +924,7 @@ def Test_GnomOnFiguresInArticle():
 #########################################################
 
     ChiSq = 0 # The ChiSquared part of the Discrepancy Criteria
-    crit = getAllCriteriaResults(Pr, r, I, q, sigma, alpha, 0, dmax, len(r), ChiSq, forceInitZero = True)
+    crit = getAllCriteriaResults(Pr, r, I, q, sigma, alpha, 0, dmax, len(r), ChiSq, forceEndsZero=True)
     
     for each in crit:
         print each[0] + ' :' + str(each[1])
@@ -755,14 +932,17 @@ def Test_GnomOnFiguresInArticle():
 if __name__ == '__main__':
     
     ####### CAREFUL!!! ####################################
-    #SYSDEV HAS THE 4 * pi *dr on it to test the GNOM data! and Check STABILL TOO!
-    ######################################################## 
+    #SYSDEV HAS THE 4 * pi *dr on it to test the GNOM data! and Check STABILL too before running Test_GnomPr
+    #######################################################
     
-    #testGnomPr()
+    #Test_GnomPr('/home/specuser/lyzgnom.out')
+    #Test_GnomPr('/home/specuser/diffgnom.out')
     #testChiSquaredSearch()
 
-    #Test_RunGnomOnFile('lyzexp.dat', dmax = 45, N=50)
-    Test_RunGnomOnFile('diff.dat', dmax = 45, N=50)
+    #Test_RunGnomOnFile('lyzexp.dat', dmax = 45, N=100, PlotSearch = True, forceEndsZero = False)
+    Test_RunGnomOnFile('/home/specuser/diffgnom.out', dmax = 45, N=100, PlotSearch = True, forceEndsZero = True, filetype = 'GnomOut')
+    
+     
         
     
     #q, I, sigma, J_REG, I_REG = loadGnomFit('/home/specuser/diff.txt.txt')
