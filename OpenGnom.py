@@ -262,19 +262,15 @@ def SYSDEV(Pr, r, I, q):
     deltaI = I - I_Pr
     
     N_s = 0
-    
-    for c in range(0, len(deltaI) - 1):
-        if np.sign(deltaI[c]) != np.sign(deltaI[c + 1]):
-            
-            bothPos1 = np.sign(deltaI[c]) == 0 and np.sign(deltaI[c + 1]) == 1
-            bothPos2 = np.sign(deltaI[c]) == 1 and np.sign(deltaI[c + 1]) == 0
-             
-            if not (bothPos1 and bothPos2):
-                N_s = N_s + 1
+                
+    for k in range(0, len(deltaI) - 1):
+        prod = deltaI[k] * deltaI[k+1]
+        if (prod < 0):
+            N_s = N_s + 1
     
     N = len(I)
     
-    #print 'SysDev_Ns : ',N_s
+    print 'SysDev_Ns : ',N_s
     
     SYS = N_s / np.floor(((N - 1) / 2.))
      
@@ -801,7 +797,14 @@ def Test_GnomPr(filename):
     
     K = createTransformMatrix(S, r) * (4 * pi * dr)
     I_Pr = np.dot(K, Pr) 
-
+    
+    
+    
+    tst1 = np.sum(J_EXP**2)
+    tst2 = np.sum(K**2)
+    print 'Max Alpha: ', tst2 / np.sqrt(tst1)
+    
+    
     Idif2 = ((np.array(J_EXP) - np.array(J_REG)) / J_ERR) ** 2
     disc = np.sqrt((Idif2.sum() / (len(J_EXP) - 1)) - AN1**2)
     
@@ -815,7 +818,7 @@ def Test_GnomPr(filename):
     J_EXP2, S2, J_ERR2 = binCurve(J_EXP, S, J_ERR, 1)
        
     print 'N2 : ', len(J_EXP2)
-    ChiSq = FindOptimalChiSquared(J_EXP2, S2, J_ERR2, dmax=45, N=101)
+    ChiSq = FindOptimalChiSquared(J_EXP2, S2, J_ERR2, dmax=45, N=len(Pr))
     AN2 = ChiSq / (len(J_EXP2)-1)
     
     DISCRP2 = DISCRP(J_EXP2, J_REG, J_ERR2, AN2)
