@@ -437,6 +437,65 @@ def build_radavg():
         print '\n\n****** ravg_ext module compiled succesfully! *********'
 
 
+def build_HouseholderTransform():
+    
+    
+    
+    pass
+    
+
+def build_TridiagonalSolve(): 
+    ''' See http://en.wikipedia.org/wiki/Tridiagonal_matrix_algorithm '''
+
+    #/* Fills solution into x. Warning: will modify c and d! */
+    #TridiagonalSolve (const double *a, const double *b, double *c, double *d, double *x, unsigned int n)
+    
+    print 'Compiling tridiagsolve_ext...'
+    
+    mod = ext_tools.ext_module('tridiagsolve_ext')
+    
+    c = np.ones(9, dtype = np.float64)
+    b = np.ones(10, dtype = np.float64)*5
+    a = np.ones(9, dtype = np.float64)
+    
+    d = np.ones(5, dtype = np.float64)
+    x = np.ones(5, dtype = np.float64)
+    n = 5
+    
+    
+    code = """
+    
+    /* Modify the coefficients. */
+    c[0] /= b[0];    /* Division by zero risk. */
+    d[0] /= b[0];    /* Division by zero would imply a singular matrix. */
+    for (int i = 1; i < n; i++){
+        double id = 1 / (b[i] - c[i-1] * a[i]);  /* Division by zero risk. */
+        c[i] *= id;                              /* Last value calculated is redundant. */
+        d[i] = (d[i] - d[i-1] * a[i]) * id;
+    }
+ 
+    /* Now back substitute. */
+    x[n - 1] = d[n - 1];
+    for (int i = n - 2; i >= 0; i--)
+        x[i] = d[i] - c[i] * x[i + 1];
+
+    """
+    
+    ravg = ext_tools.ext_function('tridiagsolve',
+                                  code,
+                                  ['a','b', 'c', 'd', 'x', 'n'], 
+                                  type_converters = converters.blitz)
+
+    kw, file = mod.build_kw_and_file('.', {})
+    
+    success = build_tools.build_extension(file, temp_dir = './temp/',
+                                              compiler_name = 'gcc',
+                                              verbose = 0, **kw)
+   
+    if success:
+        print '\n\n****** tridiagsolve_ext module compiled succesfully! *********'
+
+
 if __name__ == "__main__":
     
     build_radavg()
@@ -444,7 +503,7 @@ if __name__ == "__main__":
     
     build_bift()
 
-    
+    build_TridiagonalSolve()
     
     
     

@@ -87,15 +87,15 @@ def createStabilityMatrix(r):
     dr = r[1]
     
     #from pedersen, svergun article:
-    #T = (mat1 + mat2) * -1 + 2 * np.eye(np.shape(mat1)[0])    # f(x) -f(x-1)/2 -f(x+1)/2 = f(x) - (f(x-1) + f(x+1))/2
-    #T[0, 0] = 1
-    #T[-1, -1] = 1
+    T = (mat1 + mat2) * -1 + 2 * np.eye(np.shape(mat1)[0])    # f(x) -f(x-1)/2 -f(x+1)/2 = f(x) - (f(x-1) + f(x+1))/2
+    T[0, 0] = 1
+    T[-1, -1] = 1
     
     #T = (mat1 + mat2) * -1 + 3*np.eye(np.shape(mat1)[0])          # sum( f(x)^2 + (f(x)-f(x-1))^2 ) 
     
-    #T = (mat1 + mat2) * -0.5 + np.eye(np.shape(mat1)[0])          # f(x) -f(x-1)/2 -f(x+1)/2 = f(x) - (f(x-1) + f(x+1))/2
+    #T = (mat1 + mat2) * -1 + np.eye(np.shape(mat1)[0])          # f(x) -f(x-1)/2 -f(x+1)/2 = f(x) - (f(x-1) + f(x+1))/2
      
-    #T = mat2 * 0.5 - 0.5 * np.eye(np.shape(mat2)[0])              
+    #T = mat2 * -1 + 2 * np.eye(np.shape(mat2)[0])              
     
     #T = mat1 * -(1/dr) + (np.eye(np.shape(mat2)[0])*(1+(1/dr)))   # f(x) + f(x)/dr - f(x-1)/dr
     
@@ -105,7 +105,7 @@ def createStabilityMatrix(r):
     
     
     
-    T = np.eye(N) * 1
+    #T = np.eye(N) * 1
     #T[0, 1] = -0.5
     #T[-1, -2] = -0.5 
     
@@ -129,18 +129,28 @@ def calcPr(alpha, I, q, sigma, dmin, dmax, N, forceEndsZero=True, K = None, T = 
         a = a[:, 1:-1] # strip first and last column of a
         
     Pr, residues, rank, singularVals = linalg.lstsq(a, b)
-    
-    if forceEndsZero:
-        Pr = np.insert(Pr, [0], 0) #insert fixed zero
-        Pr = np.insert(Pr, [-1], 0) #insert fixed zero
 
     dr = r[1]
 
-    #Pr = Pr / 4 * pi * dr
+    ## Using Singular Value Decomposition:
+#    u,s,v = linalg.svd(a)
+#    u = np.mat(u).H
+#    v = np.mat(v).H
+#    S = np.zeros_like(a.T)
+#    for n in range(len(s)): S[n,n] = 1. / s[n]
+#    pseudoInv = np.dot(v, np.dot(S,u))
+#    Pr = np.dot(pseudoInv, b)
     
+    ## Using the pinv function instead of SVD
+#    Pr = np.dot(linalg.pinv(a), b)
+        
     #Solving it explicit:
     #T = np.eye(N)   # Identity matrix (NB not the derivative)
-    #Pr = np.dot(linalg.inv((alpha * T) + np.dot(np.transpose(K),K)) , np.dot(np.transpose(K), I))
+    #Pr = np.dot(linalg.inv((alpha * T) + np.dot(K.T,K)) , np.dot(K.T, I))
+
+    if forceEndsZero:
+        Pr = np.insert(Pr, [0], 0)  #insert fixed zero
+        Pr = np.insert(Pr, [-1], 0) #insert fixed zero
     
     return Pr
 
@@ -169,7 +179,7 @@ def createTransformMatrix(q, r):
     #Stepsize in r
     dr = r[1]
     
-    # Leaving out 4 * pi * dr! That means the solution will include these three factors!
+    # Leaving out 4 * pi * dr! 
     c = 1 #4 * pi * dr   
     #================================================
     #                C++ CODE
@@ -340,9 +350,6 @@ def DISCRP(I, I_Pr, sigma, Chi):
 
     Idif = sum( ((I - I_Pr) / sigma)**2) / (N-1) 
     
-    print Idif
-    print Chi
-    
     dis = sqrt(Idif - Chi)
     #print dis
     
@@ -394,7 +401,7 @@ def costFuncChiSquared(alpha, r, I, q, sigma, dmax, N, ChiSq, WCA_Params=None, f
     if K==None:
         K = createTransformMatrix(q, r)
 
-    I_Pr = np.dot(Pr, np.transpose(K))
+    I_Pr = np.dot(K, Pr)
        
     ChiSquared = sum( ((I-I_Pr)/sigma)**2 )
 
@@ -417,7 +424,7 @@ def costFunc(alpha, r, I, q, sigma, dmax, N, ChiSq=0, WCA_Params=None, forceEnds
     
     TOTAL = CalcProbability(DISCRP(I, I_Pr, sigma, ChiSq),
                             OSCILL(Pr, r),
-                            STABIL(Pr, r, I, q, sigma, alpha, 0, dmax, N),
+                            STABIL(Pr, r, I, q, sigma, alpha, 0, dmax, N, forceEndsZero = forceEndsZero),
                             SYSDEV(Pr, r, I, q),
                             POSITV(Pr),
                             VALCEN(Pr, r), WCA_Params)
@@ -454,7 +461,7 @@ def searchAlpha(r, I_alpha, q, sigma, dmax, N,
     #Determine TOTAL for different alpha values to determine a good starting point
     alphatotal = []
     
-    alphavals = np.linspace(-5, 15, 100)
+    alphavals = np.linspace(-20, 15, 100)
     alphavals = np.exp(alphavals)
     
     K = createTransformMatrix(q, r) * 4 * pi * r[1]
@@ -645,15 +652,15 @@ def FindOptimalChiSquared(I, q, sigma, dmax, N):
     
     I_Pr = np.dot(K, Pr)
     
-    ChiSq = np.sum((I_Pr-I)**2 )
+    ChiSq = np.sum(((I_Pr-I)/sigma)**2 )
     
     print 'CHIII : ', ChiSq
     
     pl.figure()
     pl.semilogy(I_Pr)
     pl.semilogy(I, 'r')
-#    pl.figure()
-#    pl.plot(r, Pr)
+    pl.figure()
+    pl.plot(r, Pr)
     pl.show()
 
     return ChiSq
@@ -714,15 +721,44 @@ def loadGnomOutFile(filename):
     fline = open(fname).readlines()
 
     i = 0
+    crit = {}
     
     while (i < len(fline)):
         if (fline[i].find('The measure of inconsistency AN1 equals to') > -1): 
             tmp = fline[i].split()
-            AN1 = float(tmp[7])
-            print "AN1 = ", AN1
+            crit['AN1'] = float(tmp[7])
+            #print "AN1 = ", AN1
             break 
         i = i + 1
-
+        
+    
+    while(i < len(fline)):
+        if(fline[i].find('Parameter    DISCRP    OSCILL    STABIL    SYSDEV    POSITV    VALCEN') > -1):
+           names = fline[i].split()
+           i = i + 4
+           values = fline[i].split()
+           
+           for c in range(1, len(names)):
+               crit[names[c]] = float(values[c])
+           break
+        i = i + 1
+        
+    while(i < len(fline)):
+        if(fline[i].find('Current ALPHA') > -1):
+           alphastring = fline[i].split()
+           crit['ALPHA'] = float(alphastring[3])
+           crit['RG'] = float(alphastring[6])
+           crit['I0'] = float(alphastring[9])
+           break
+        i = i + 1
+        
+    while(i < len(fline)):
+        if(fline[i].find('Total') > -1):
+           totalstr = fline[i].split()
+           crit['TOTAL'] = float(totalstr[3])
+           break
+        i = i + 1
+    
 
     while (i < len(fline)):
         if (fline[i].find('S          J EXP       ERROR       J REG       I REG') > -1): break 
@@ -780,58 +816,64 @@ def loadGnomOutFile(filename):
     P = np.array(P)
     Perr = np.array(Perr)
               
-    return qshort, Jexp, Jerr, Jreg, Ireg, R, P, Perr, AN1
+    return qshort, Jexp, Jerr, Jreg, Ireg, R, P, Perr, crit
 
 #---- *** TEST FUNCTIONS ***
 
 def Test_GnomPr(filename):
     
-    S, J_EXP, J_ERR, J_REG, I_REG, r, Pr, Pr_sigma, AN1 = loadGnomOutFile(filename)
+    S, J_EXP, J_ERR, J_REG, I_REG, r, Pr, Pr_sigma, gnomcrit = loadGnomOutFile(filename)
 
-    dr = r[2] - r[1]
-        
-    crit = getAllCriteriaResults(Pr, r, J_EXP, S, J_ERR, 1.14, 0, 45, len(r), forceEndsZero=True)
+    print 'Gnom Alpha :', gnomcrit['ALPHA']
+    crit = getAllCriteriaResults(Pr, r, J_EXP, S, J_ERR, gnomcrit['ALPHA'], 0, r[-1], len(r), forceEndsZero=False)
+
+    print 'N (I) : ', len(J_EXP)
+    print 'M (Pr) : ', len(Pr)
     
+    #J_EXP2, S2, J_ERR2 = binCurve(J_EXP, S, J_ERR, 1)
+
+    ChiSq = FindOptimalChiSquared(J_EXP, S, J_ERR, dmax=r[-1], N=len(Pr))
+    AN2 = ChiSq / (len(J_EXP)-1)
+    crit.append(('AN1', AN2))
+    
+    DISCRP_RAW = DISCRP(J_EXP, J_REG, J_ERR, AN2)
+    
+    for i in range(0,len(crit)):
+        if crit[i][0] == 'DISCRP':crit[i] = ('DISCRP', DISCRP_RAW)
+    
+    total = CalcProbability(crit[5][1], crit[1][1], crit[4][1], crit[3][1], crit[2][1], crit[0][1])
+    crit.append(('TOTAL', total))
+    
+    print ' '*9 + 'RAW' + ' '*5 + 'GNOM' + ' '*4 + 'DIFF'
+    print '-'*30
     for each in crit:
-        print each[0] + ' :' + str(each[1])
+        print each[0] + ' '*(6-len(each[0])) + ' :' + '%.4f'% each[1] + '  ' + '%.4f'% gnomcrit[each[0]] + '  ' + '%.2f'% abs(((1-(each[1]/gnomcrit[each[0]]))*100)) + '%'
+    print '-'*30
     
+    AN1 = gnomcrit['AN1']
+    Idif2 = ((np.array(J_EXP) - np.array(J_REG)) / J_ERR) ** 2
+    disc = np.sqrt((Idif2.sum() / (len(J_EXP) - 1)) - AN1**2)
+    
+    print 'Discrp using gnom AN1: ' + '%.4f'%disc + '  %.4f'% gnomcrit['DISCRP'] + '  %.2f'%abs((1-(disc/gnomcrit['DISCRP']))*100) + '%'
+    
+    dr = r[1]
     K = createTransformMatrix(S, r) * (4 * pi * dr)
-    I_Pr = np.dot(K, Pr) 
-    
-    
+    I_Pr = np.dot(K, Pr)
     
     tst1 = np.sum(J_EXP**2)
     tst2 = np.sum(K**2)
     print 'Max Alpha: ', tst2 / np.sqrt(tst1)
     
-    
-    Idif2 = ((np.array(J_EXP) - np.array(J_REG)) / J_ERR) ** 2
-    disc = np.sqrt((Idif2.sum() / (len(J_EXP) - 1)) - AN1**2)
-    
-    print 'N : ', len(J_EXP)
-    print 'Pr_M : ', len(Pr)
-    
-    print '\nGnomChiSq     :', Idif2.sum()
-    print 'GnomChiSqDivN :', Idif2.sum() / (len(J_EXP)-1)
-    print 'GnomAN1       :', AN1
-        
-    J_EXP2, S2, J_ERR2 = binCurve(J_EXP, S, J_ERR, 1)
-       
-    print 'N2 : ', len(J_EXP2)
-    ChiSq = FindOptimalChiSquared(J_EXP2, S2, J_ERR2, dmax=45, N=len(Pr))
-    AN2 = ChiSq / (len(J_EXP2)-1)
-    
-    DISCRP2 = DISCRP(J_EXP2, J_REG, J_ERR2, AN2)
-    print 'RawAN1        :', AN2
-    print 'GnomDISCRP    :', disc
-    print 'RawDISCRP     :', DISCRP2
+    print 'AN solution: ', Idif2.sum() / (len(J_EXP)-1)  
       
     pl.figure()
     pl.plot(r, Pr)
+    pl.title(filename)
     pl.figure()
-    pl.semilogy(S2, J_EXP2)
+    pl.semilogy(S, J_EXP)
     pl.semilogy(S, I_Pr, 'r')
     pl.semilogy(S, J_REG, 'g')
+    pl.title(filename)
     pl.show()
 #    
 def binCurve(I, q, err, binsize):
@@ -894,11 +936,13 @@ def Test_RunGnomOnFile(filename,
     if filetype == 'GnomOut':
         q, I, sigma, J_REG, I_REG, r, Pr, Pr_sigma, AN1Gnom = loadGnomOutFile(filename)
         N = len(Pr)
+        I = I + 0.1
+        
     else:
         ExpObj, Img = fileIO.loadFile(filename)
-        q = ExpObj.q[14:]
-        I = ExpObj.i[14:]
-        sigma = ExpObj.errorbars[14:]
+        q = ExpObj.q
+        I = ExpObj.i
+        sigma = ExpObj.errorbars
         r = np.linspace(0, dmax, N)
         
 #    I = sphereFormFactor(q, r = 22.5)
@@ -939,7 +983,7 @@ def Test_RunGnomOnFile(filename,
     
     I_Pr = np.dot(K, Pr)
     
-    Total = CalcProbability(DISCRP(I, I_Pr, sigma, AN1), OSCILL(Pr, r), STABIL(Pr, r, I, q, sigma, alpha, 0, dmax, N), SYSDEV(Pr, r, I, q), POSITV(Pr), VALCEN(Pr, r))
+    Total = CalcProbability(DISCRP(I, I_Pr, sigma, AN1), OSCILL(Pr, r), STABIL(Pr, r, I, q, sigma, alpha, 0, dmax, N, forceEndsZero = forceEndsZero), SYSDEV(Pr, r, I, q), POSITV(Pr), VALCEN(Pr, r))
     print 'TOTAL  :', Total
          
     chi = sum( ((I - I_Pr)/sigma)**2 )
@@ -1008,21 +1052,28 @@ if __name__ == '__main__':
     #SYSDEV HAS THE 4 * pi *dr on it to test the GNOM data! and Check STABILL too before running Test_GnomPr
     #######################################################
     
-    Test_GnomPr('/home/specuser/lyzgnom.out')
-    #Test_GnomPr('/home/specuser/diffgnom.out')
-    
-    #Test_GnomPr('/home/specuser/virgnom.out')
+#    Test_GnomPr('/home/specuser/lyzgnom.out')
+#    Test_GnomPr('/home/specuser/lyzgnomNotForced.out')
+    Test_GnomPr('/home/specuser/diffgnom.out')
+#    Test_GnomPr('/home/specuser/diffgnomNotForced.out')
+#    
+#    Test_GnomPr('/home/specuser/virgnom.out')
+#    Test_GnomPr('/home/specuser/virgnomForced.out')
     
     #testChiSquaredSearch()
 
     #Test_RunGnomOnFile('lyzexp.dat', dmax = 45, N=100, PlotSearch = True, forceEndsZero = False)
-    #r, Pr, I_Pr, I, Total = Test_RunGnomOnFile('/home/specuser/diffgnom.out', dmax = 45, N=100, PlotSearch = True, forceEndsZero = False, filetype = 'GnomOut')
-    
- #   r, Pr, I_Pr, I, Total = Test_RunGnomOnFile('/home/specuser/virgnom.out', dmax = 280, N=100, PlotSearch = False, forceEndsZero = False, filetype = 'GnomOut')
+    #r, Pr, I_Pr, I, Total = Test_RunGnomOnFile('/home/specuser/diffgnom.out', dmax = 45, N=101, PlotSearch = True, forceEndsZero = False, filetype = 'GnomOut')
+#    r, Pr, I_Pr, I, Total = Test_RunGnomOnFile('/home/specuser/virgnom.out', dmax = 280, N=250, PlotSearch = True, forceEndsZero = False, filetype = 'GnomOut')
+
+
+
+
+############## Loop over different Dmax values ###############
+
 #    Iplotted = False
 #    prleg = []
 #    fitleg = []
-#    
 #    dmaxrange = range(270,310)
 #    
 #    save = []
@@ -1051,8 +1102,6 @@ if __name__ == '__main__':
 #    pl.show()
         
     #q, I, sigma, J_REG, I_REG = loadGnomFit('/home/specuser/diff.txt.txt')
-    
-    
     
     
     
