@@ -42,7 +42,7 @@ def fouriermatrix(q,r):
         for j in range(0,len(r)):
     
             qr = q[i] * r[j]
-            A[i,j] = np.sin(qr)
+            A[i,j] = np.sin(qr) 
     
     return A
 
