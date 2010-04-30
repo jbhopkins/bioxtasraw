@@ -35,7 +35,8 @@ def C_seeksol(I_exp, m, q, sigma, alpha, dmax, T):
  #   beg = time.time()  
     
     N = max(shape(m))
-
+    N = int(N)
+    
     m = matrix(m)                #m is the prior distribution
    
     P = m.copy()                        #multiply(m, 1.0005) # first guess is set equal to priror distribution

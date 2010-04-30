@@ -401,9 +401,12 @@ file_handler x__file_handler = file_handler();
         x__file_handler.py_to_file(py_obj,name)
 
 
-               PyObject* file_to_py(FILE* file, char* name, char* mode)
+               PyObject* file_to_py(FILE* file, const char* name,
+                                    const char* mode)
                {
-                   return (PyObject*) PyFile_FromFile(file, name, mode, fclose);
+                   return (PyObject*) PyFile_FromFile(file,
+                     const_cast<char*>(name),
+                     const_cast<char*>(mode), fclose);
                }
                
 class instance_handler
@@ -658,13 +661,13 @@ static PyObject* ravg(PyObject*self, PyObject* args, PyObject* kywds)
     py::object return_val;
     int exception_occured = 0;
     PyObject *py_local_dict = NULL;
-    static char *kwlist[] = {"readoutNoiseFound","readoutN","readoutNoise_mask","xlen","ylen","x_c","y_c","hist","low_q","high_q","in_image","hist_count","mask","local_dict", NULL};
+    static const char *kwlist[] = {"readoutNoiseFound","readoutN","readoutNoise_mask","xlen","ylen","x_c","y_c","hist","low_q","high_q","in_image","hist_count","mask","local_dict", NULL};
     PyObject *py_readoutNoiseFound, *py_readoutN, *py_readoutNoise_mask, *py_xlen, *py_ylen, *py_x_c, *py_y_c, *py_hist, *py_low_q, *py_high_q, *py_in_image, *py_hist_count, *py_mask;
     int readoutNoiseFound_used, readoutN_used, readoutNoise_mask_used, xlen_used, ylen_used, x_c_used, y_c_used, hist_used, low_q_used, high_q_used, in_image_used, hist_count_used, mask_used;
     py_readoutNoiseFound = py_readoutN = py_readoutNoise_mask = py_xlen = py_ylen = py_x_c = py_y_c = py_hist = py_low_q = py_high_q = py_in_image = py_hist_count = py_mask = NULL;
     readoutNoiseFound_used= readoutN_used= readoutNoise_mask_used= xlen_used= ylen_used= x_c_used= y_c_used= hist_used= low_q_used= high_q_used= in_image_used= hist_count_used= mask_used = 0;
     
-    if(!PyArg_ParseTupleAndKeywords(args,kywds,"OOOOOOOOOOOOO|O:ravg",kwlist,&py_readoutNoiseFound, &py_readoutN, &py_readoutNoise_mask, &py_xlen, &py_ylen, &py_x_c, &py_y_c, &py_hist, &py_low_q, &py_high_q, &py_in_image, &py_hist_count, &py_mask, &py_local_dict))
+    if(!PyArg_ParseTupleAndKeywords(args,kywds,"OOOOOOOOOOOOO|O:ravg",const_cast<char**>(kwlist),&py_readoutNoiseFound, &py_readoutN, &py_readoutNoise_mask, &py_xlen, &py_ylen, &py_x_c, &py_y_c, &py_hist, &py_low_q, &py_high_q, &py_in_image, &py_hist_count, &py_mask, &py_local_dict))
        return NULL;
     try                              
     {                                

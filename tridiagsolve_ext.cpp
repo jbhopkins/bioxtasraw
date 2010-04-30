@@ -400,9 +400,12 @@ file_handler x__file_handler = file_handler();
         x__file_handler.py_to_file(py_obj,name)
 
 
-               PyObject* file_to_py(FILE* file, char* name, char* mode)
+               PyObject* file_to_py(FILE* file, const char* name,
+                                    const char* mode)
                {
-                   return (PyObject*) PyFile_FromFile(file, name, mode, fclose);
+                   return (PyObject*) PyFile_FromFile(file,
+                     const_cast<char*>(name),
+                     const_cast<char*>(mode), fclose);
                }
                
 class instance_handler

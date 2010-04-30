@@ -47,7 +47,6 @@ import cartToPol
 import AutoAnalysisGUI
 import advancedOptionsGUI
 import Queue
-import overview
 import guinierGUI
 import cProfile
 

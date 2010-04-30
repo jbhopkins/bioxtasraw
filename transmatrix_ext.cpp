@@ -401,9 +401,12 @@ file_handler x__file_handler = file_handler();
         x__file_handler.py_to_file(py_obj,name)
 
 
-               PyObject* file_to_py(FILE* file, char* name, char* mode)
+               PyObject* file_to_py(FILE* file, const char* name,
+                                    const char* mode)
                {
-                   return (PyObject*) PyFile_FromFile(file, name, mode, fclose);
+                   return (PyObject*) PyFile_FromFile(file,
+                     const_cast<char*>(name),
+                     const_cast<char*>(mode), fclose);
                }
                
 class instance_handler
@@ -658,13 +661,13 @@ static PyObject* trans_matrix(PyObject*self, PyObject* args, PyObject* kywds)
     py::object return_val;
     int exception_occured = 0;
     PyObject *py_local_dict = NULL;
-    static char *kwlist[] = {"qlen","rlen","T","r","q","c","local_dict", NULL};
+    static const char *kwlist[] = {"qlen","rlen","T","r","q","c","local_dict", NULL};
     PyObject *py_qlen, *py_rlen, *py_T, *py_r, *py_q, *py_c;
     int qlen_used, rlen_used, T_used, r_used, q_used, c_used;
     py_qlen = py_rlen = py_T = py_r = py_q = py_c = NULL;
     qlen_used= rlen_used= T_used= r_used= q_used= c_used = 0;
     
-    if(!PyArg_ParseTupleAndKeywords(args,kywds,"OOOOOO|O:trans_matrix",kwlist,&py_qlen, &py_rlen, &py_T, &py_r, &py_q, &py_c, &py_local_dict))
+    if(!PyArg_ParseTupleAndKeywords(args,kywds,"OOOOOO|O:trans_matrix",const_cast<char**>(kwlist),&py_qlen, &py_rlen, &py_T, &py_r, &py_q, &py_c, &py_local_dict))
        return NULL;
     try                              
     {                                

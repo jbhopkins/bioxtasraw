@@ -55,6 +55,9 @@ def radialAverage(in_image, dim, x_c, y_c, mask = None, readoutNoise_mask = None
     xlen = dim[0]
     ylen = dim[1]
     
+    xlen = np.int(xlen)
+    ylen = np.int(ylen)
+    
     x_c = float(x_c)
     y_c = float(y_c)
     

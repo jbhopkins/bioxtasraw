@@ -656,12 +656,12 @@ def FindOptimalChiSquared(I, q, sigma, dmax, N):
     
     print 'CHIII : ', ChiSq
     
-    pl.figure()
-    pl.semilogy(I_Pr)
-    pl.semilogy(I, 'r')
-    pl.figure()
-    pl.plot(r, Pr)
-    pl.show()
+#    pl.figure()
+#    pl.semilogy(I_Pr)
+#    pl.semilogy(I, 'r')
+#    pl.figure()
+#    pl.plot(r, Pr)
+#    pl.show()
 
     return ChiSq
 
@@ -1054,17 +1054,18 @@ if __name__ == '__main__':
     
 #    Test_GnomPr('/home/specuser/lyzgnom.out')
 #    Test_GnomPr('/home/specuser/lyzgnomNotForced.out')
-    #Test_GnomPr('/home/specuser/diffgnom.out')
+    print 'Hello!'
+#    Test_GnomPr('diffgnom.out')
 #    Test_GnomPr('/home/specuser/diffgnomNotForced.out')
 #    
-#    Test_GnomPr('/home/specuser/virgnom.out')
+    Test_GnomPr('virgnom.out')
 #    Test_GnomPr('/home/specuser/virgnomForced.out')
     
     #testChiSquaredSearch()
 
     #Test_RunGnomOnFile('lyzexp.dat', dmax = 45, N=100, PlotSearch = True, forceEndsZero = False)
     #r, Pr, I_Pr, I, Total = Test_RunGnomOnFile('/home/specuser/diffgnom.out', dmax = 45, N=101, PlotSearch = True, forceEndsZero = False, filetype = 'GnomOut')
-    r, Pr, I_Pr, I, Total = Test_RunGnomOnFile('/home/specuser/virgnom.out', dmax = 280, N=100, PlotSearch = True, forceEndsZero = False, filetype = 'GnomOut')
+#    r, Pr, I_Pr, I, Total = Test_RunGnomOnFile('/home/specuser/virgnom.out', dmax = 280, N=100, PlotSearch = True, forceEndsZero = False, filetype = 'GnomOut')
 
 
 

@@ -21,6 +21,7 @@ def build_bift():
     m = [1,2,3,4]
     
     N = max(np.shape(m))
+    N = np.int(N)
 
     m = np.matrix(m)         #m is the prior distribution
    
@@ -86,6 +87,7 @@ def build_bift():
     //#include <math.h>
   
     py::object sout;
+
     
     // Initiate Variables
     int ite = 0;
@@ -101,7 +103,7 @@ def build_bift():
             if (ite != 0)
             {
                 /* Calculating smoothness constraint vector m */
-            
+                
                 for(int k = 1; k < N-1; k++)
                 {
                      m(0, k) =  ((P(0,k-1) + P(0,k+1)) / 2.0);
