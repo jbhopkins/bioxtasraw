@@ -197,7 +197,7 @@ def createTransformMatrix(q, r):
                  chk = float(c) * sin(qr) / qr ;
 
                   if(chk != chk) {
-                      T(i,j) = 1;
+                      T(i,j) = 0;
                   }
                   else {
                       T(i,j) = chk; 
@@ -1054,7 +1054,7 @@ if __name__ == '__main__':
     
 #    Test_GnomPr('/home/specuser/lyzgnom.out')
 #    Test_GnomPr('/home/specuser/lyzgnomNotForced.out')
-    Test_GnomPr('/home/specuser/diffgnom.out')
+    #Test_GnomPr('/home/specuser/diffgnom.out')
 #    Test_GnomPr('/home/specuser/diffgnomNotForced.out')
 #    
 #    Test_GnomPr('/home/specuser/virgnom.out')
@@ -1064,7 +1064,7 @@ if __name__ == '__main__':
 
     #Test_RunGnomOnFile('lyzexp.dat', dmax = 45, N=100, PlotSearch = True, forceEndsZero = False)
     #r, Pr, I_Pr, I, Total = Test_RunGnomOnFile('/home/specuser/diffgnom.out', dmax = 45, N=101, PlotSearch = True, forceEndsZero = False, filetype = 'GnomOut')
-#    r, Pr, I_Pr, I, Total = Test_RunGnomOnFile('/home/specuser/virgnom.out', dmax = 280, N=250, PlotSearch = True, forceEndsZero = False, filetype = 'GnomOut')
+    r, Pr, I_Pr, I, Total = Test_RunGnomOnFile('/home/specuser/virgnom.out', dmax = 280, N=100, PlotSearch = True, forceEndsZero = False, filetype = 'GnomOut')
 
 
 

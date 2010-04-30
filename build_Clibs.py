@@ -334,6 +334,66 @@ def build_transmatrix():
    
     if success:
         print '\n\n****** transmatrix_ext module compiled succesfully! *********'
+        
+def build_sinfouriermatrix():
+    
+    print 'Compiling fouriermatrix_ext...'
+    
+    q = [1.0, 2.0, 3.0, 4.0, 6.0]
+    i = [0.1, 23.3, 21.3, 45.0, 23.0]
+    r = [1.0,2.0,3.0,4.0,5.0,6.0]
+    
+    mod = ext_tools.ext_module('sinefouriermatrix_ext')
+    
+    T = np.zeros((len(q), len(r)), dtype = np.float64)
+    
+    qlen = len(q)
+    rlen = len(r)
+    
+    q = np.array(q)
+    r = np.array(r)
+
+    dr = r[1]
+   
+    code = """
+    
+    float chk, qr;
+    int i, j;
+    
+    for( i = 0; i < qlen; i++)
+           for( j = 0; j < rlen; j++)
+           {
+                 
+                 qr = q(i) * r(j);
+                 chk = sin(qr) ;
+
+                  if(chk != chk) {
+                      T(i,j) = 1;
+                  }
+                  else {
+                      T(i,j) = chk; 
+                  }
+                      
+           }
+           
+    """   
+#    weave.inline(code,['qlen', 'rlen', 'T', 'r', 'q', 'c'], type_converters = converters.blitz, compiler = "gcc")    
+
+    transext = ext_tools.ext_function('trans_matrix',
+                                      code,
+                                      ['qlen', 'rlen',
+                                       'T', 'r', 'q'],
+                                       type_converters = converters.blitz)   
+    mod.add_function(transext)
+
+    kw, file = mod.build_kw_and_file('.', {})
+    
+    success = build_tools.build_extension(file, temp_dir = './temp/',
+                                              compiler_name = 'gcc',
+                                              verbose = 0, **kw)
+   
+    if success:
+        print '\n\n****** fouriermatrix_ext module compiled succesfully! *********'
    
 def build_radavg():
     
@@ -505,7 +565,7 @@ if __name__ == "__main__":
 
     build_TridiagonalSolve()
     
-    
+    build_sinfouriermatrix()
     
     
     
