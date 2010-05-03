@@ -2088,8 +2088,7 @@ class FileExistsDialog(wx.Dialog):
         skipButton = wx.Button(self, 3, 'Skip', size = (100,25))
         overwriteAllButton = wx.Button(self, 4, 'Overwrite All', size = (100,25))
         skipAllButton = wx.Button(self, 5, 'Skip All', size = (100,25))
-        
-        
+         
         renameButton.Bind(wx.EVT_BUTTON, self.onButton)
         overwriteButton.Bind(wx.EVT_BUTTON, self.onButton)
         skipButton.Bind(wx.EVT_BUTTON, self.onButton)
@@ -2162,6 +2161,9 @@ class CustomListCtrl(wx.ListCtrl):
         self.dir = '.'
         self.files = []
         
+        self.filteredFilesList = []
+        self.dirsList = []
+        
         images = ['Up.png', 'Folder.png', 'document.png']
         
         self.InsertColumn(0, 'Name')
@@ -2191,28 +2193,58 @@ class CustomListCtrl(wx.ListCtrl):
             self.files = os.listdir(self.dir)
         except OSError, msg:
             print msg
+            
+    def GetFilteredFileList(self):
+        
+        selIdx = self.GetParent().dropdown.GetCurrentSelection()
+        sel = self.GetParent().fileExtensionList[selIdx]
+        
+        extIdx = sel.find('*.')
+        
+        extension = sel[extIdx+1:-1]
+        
+        if extension == '.':
+            extension = ''
+        
+        if extension != '.*':
+            filteredFiles = []
+            for each in self.files:
+                name, ext = os.path.splitext(each)
+                
+                if ext.lower() == extension:
+                    filteredFiles.append(name+ext)
+        else:
+            filteredFiles = self.files
+    
+        # Filelist doesnt take Unicode! convert to normal strings:
+        for i in range(0, len(filteredFiles)):
+            filteredFiles[i] = str(filteredFiles[i])
+            
+        filteredFiles.sort(key = str.lower)
+        
+        return filteredFiles
     
     def RefreshFileList(self):
         
         self.DeleteAllItems()
         
-        dirs = []
+        self.dirsList = []
+        
+        ### Take out the directories and sort them:
         for each in self.files:
             if os.path.isdir(os.path.join(self.dir, each)):
-                dirs.append(each)
+                self.dirsList.append(each)
         
-        for each in dirs:
+        for i in range(0, len(self.dirsList)):
+            self.dirsList[i] = str(self.dirsList[i])
+        
+        self.dirsList.sort(key = str.lower)
+        
+        ## Remove directories fromt the file list:
+        for each in self.dirsList:
             self.files.remove(each)
         
-        for i in range(0, len(self.files)):
-            self.files[i] = str(self.files[i])
-            
-        self.files.sort(key = str.lower)
-        
-        for i in range(0, len(dirs)):
-            dirs[i] = str(dirs[i])
-        
-        dirs.sort(key = str.lower)
+        filteredFiles = self.GetFilteredFileList()        
     
         if len(self.dir) > 1:
             self.InsertStringItem(0, '..')
@@ -2221,7 +2253,7 @@ class CustomListCtrl(wx.ListCtrl):
         else:
             j = 0
         
-        for i in dirs:
+        for i in self.dirsList:
             (name, ext) = os.path.splitext(i)
             ex = ext[1:]
             size = os.path.getsize(os.path.join(self.dir, i))
@@ -2239,7 +2271,7 @@ class CustomListCtrl(wx.ListCtrl):
                 self.SetItemBackgroundColour(j, '#e6f1f5')
             j += 1
                 
-        for i in self.files:
+        for i in filteredFiles:
             (name, ext) = os.path.splitext(i)
             ex = ext[1:]
             size = os.path.getsize(os.path.join(self.dir, i))
@@ -2320,8 +2352,11 @@ class DirCtrlPanel_2(wx.Panel):
         
         DirCtrlPanel_Sizer = wx.BoxSizer(wx.VERTICAL)
         
+        self.extChoice = self.CreateExtentionBox(DirCtrlPanel_Sizer)       #File extention filter
+        
         self.CreateDirCtrl(DirCtrlPanel_Sizer)            #Listbox containing filenames
-        self.CreateExtentionBox(DirCtrlPanel_Sizer)       #File extention filter
+        
+        DirCtrlPanel_Sizer.Add(self.extChoice, 0, wx.EXPAND | wx.TOP, 2)
         
         self.SetSizer(DirCtrlPanel_Sizer, wx.EXPAND)
         
@@ -2338,66 +2373,23 @@ class DirCtrlPanel_2(wx.Panel):
         self.path = dir
         self.fileListBox.SetDir(dir)
         self.UpdateDirLabel(self.path)
-        
-#    def InitFileList(self):
-#        
-#            self.FileList = os.listdir(self.path)
-#    
-#            FilesOnlyList = []
-#            
-#            for filename in self.FileList:
-#                if os.path.isfile(os.path.join(self.path, filename)):
-#                    FilesOnlyList.append(filename)
-#        
-#            self.FileList = FilesOnlyList
-#    
-#            self.UpdateDirLabel(self.path)
-#            self.UpdateFileListBox(self.FileList)
-#            self.FilterFileListAndUpdateListBox()
-        
+                
     def CreateExtentionBox(self, DirCtrlPanel_Sizer):
         
-        self.dropdown = wx.Choice(self)
-        DirCtrlPanel_Sizer.Add(self.dropdown, 0, wx.EXPAND | wx.TOP, 2)
-        
+        self.dropdown = wx.Choice(self)        
         self.dropdown.AppendItems(strings = self.fileExtensionList)
         self.dropdown.Select(n=0)
         self.dropdown.Bind(wx.EVT_CHOICE, self.OnChoice)
-        #wx.EVT_CHOICE(self, dropdown.GetId(), self.OnChoice)
+        
+        return self.dropdown
     
     def OnChoice(self, event):
          self.FilterFileListAndUpdateListBox()
          
     def FilterFileListAndUpdateListBox(self):    
         
-         choice = self.dropdown.GetStringSelection()
-         pattern = re.compile('[.][*a-zA-Z0-9_]*[)]')
-         extension = pattern.search(choice).group()[:-1]
-         
-         if extension == '.*':
-             self.UpdateFileListBox(self.FileList)
-             
-         elif extension == '.':
-
-             filteredFileList = []
-             
-             for each in self.FileList:
-                 if len(each) > 4:
-                     if each[-5:].find('.') == -1:
-                         filteredFileList.append(each)
-                 else:
-                     filteredFileList.append(each)
-             
-             self.UpdateFileListBox(filteredFileList)
-             
-         else:
-             filterdFileList = []
-             
-             for i in range(0,len(self.FileList)):
-                 if self.FileList[i].endswith(extension):
-                     filterdFileList.append(self.FileList[i])
-
-             self.UpdateFileListBox(filterdFileList)
+         self.fileListBox.ReadFileList()
+         self.fileListBox.RefreshFileList()
              
                        
     def CreateDirCtrl(self, DirCtrlPanel_Sizer):
@@ -2555,8 +2547,8 @@ class DirCtrlPanel_2(wx.Panel):
     def _OnUpdateKey(self, evt):
         
         if evt.GetKeyCode() == 344:        # 344 = F5
-            self.GetListOfFiles()
-            self.FilterFileListAndUpdateListBox()
+            self.fileListBox.ReadFileList()
+            self.fileListBox.RefreshFileList()
     
     def _OnDoubleClick(self, evt):
         

@@ -472,11 +472,11 @@ class GuinierControlPanel(wx.Panel):
         box = wx.StaticBox(self, -1, 'Filename')
         boxsizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
         
-        txt = wx.StaticText(self, -1, 'Filename :')
+        #txt = wx.StaticText(self, -1, 'Filename :')
         self.filenameTxtCtrl = wx.TextCtrl(self, -1, '', style = wx.TE_READONLY)
         
-        boxsizer.Add((5,5),0)
-        boxsizer.Add(txt,0,wx.EXPAND | wx.TOP , 4)
+        #boxsizer.Add((5,5),0)
+        #boxsizer.Add(txt,0,wx.EXPAND | wx.TOP , 4)
         boxsizer.Add(self.filenameTxtCtrl, 1, wx.EXPAND)
         
         return boxsizer

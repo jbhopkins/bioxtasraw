@@ -236,6 +236,8 @@ class MaskingPanel(wx.Panel):
         
         wx.Panel.__init__(self, parent, panel_id, name = name)
 
+        self.wxEmbedded = wxEmbedded
+
         self.fig = Figure((5,4), 75)
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         
@@ -252,7 +254,7 @@ class MaskingPanel(wx.Panel):
         sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
         sizer.Add(self.toolbar, 0, wx.GROW)
         
-        if wxEmbedded == True:
+        if self.wxEmbedded == True:
             color = parent.GetThemeBackgroundColour()
             self.SetColor(color)
         
@@ -924,16 +926,63 @@ class MaskingPanel(wx.Panel):
                 self.firstMousePos = None
 
             self.patchToggleSelection()
+        
+        
+        #Right button:
+        if event.button == 3:
+            tool = self.plotParameters['currentTool']
+            storedMasks = self.plotParameters['storedMasks']
+            mainframe = wx.FindWindowByName('MainFrame')
+
+            if tool == 'agbecent':
+                    if len(self.agbeSelectedPoints) > 2:
+                        self.endAgBeCalibration()
+                    else:        
+                        answer = wx.MessageBox('You need atleast 3 points to calculate the center!', 'Not enough points!', wx.OK | wx.CANCEL)
+                        
+                        if answer == wx.CANCEL:
+                            self.agbeSelectedPoints = []
+                            self.plotStoredMasks()
+                            self.toolbar.untoggleAllToolButtons()
+                            return
+                    
+                    self.toolbar.untoggleAllToolButtons()
+                    
+            if tool == 'polygon':
+                
+                    if self.plottingInProgress == True:
+                        self.plottingInProgress = False
+                
+                    if len(self.chosenPointsX) > 2:
+                        points = []
+                        for i in range(0, len(self.chosenPointsX)):
+                            points.append( (self.chosenPointsX[i], self.chosenPointsY[i]) )
+                   
+                        storedMasks.append( PolygonMask(points, self.createNewMaskNumber(), self.imgDim) )
+                    
+                    self.stopMaskCreation()
+                    self.toolbar.untoggleAllToolButtons()
+                
+            ######################################################
+            if tool == 'circle' or tool == 'rectangle':
+                
+                    if len(self.chosenPointsX) > 1:
+                        storedMasks.append( (self.chosenPointsX, self.chosenPointsY) )
+                        self.plottingInProgress = False
+            
+                    self.stopMaskCreation()
+                
+                    self.toolbar.untoggleAllToolButtons()
             
     def onMouseButtonPressEvent(self, event):
         
         xd, yd = event.xdata, event.ydata
         
         if event.button == 1:    # 1 = Left button
-            self.onLeftMouseButton(xd, yd, event)
+            wx.CallAfter(self.onLeftMouseButton, xd, yd, event)
                   
         if event.button == 3:    # 3 = Right button
-            self.onRightMouseButton(xd, yd)
+            wx.CallAfter(self.onRightMouseButton, xd, yd)
             
     def onLeftMouseButton(self, xd, yd, event):
         
@@ -995,59 +1044,11 @@ class MaskingPanel(wx.Panel):
                     self.canvas.draw()
     
     def onRightMouseButton(self, xd, yd):
-        
-        tool = self.plotParameters['currentTool']
-        storedMasks = self.plotParameters['storedMasks']
-        mainframe = wx.FindWindowByName('MainFrame')
-        
-        if tool:
-                
-            if tool == 'polygon':
-                
-                    if self.plottingInProgress == True:
-                        self.plottingInProgress = False
-                
-                    if len(self.chosenPointsX) > 2:
-                        #self.chosenPointsX.append(self.chosenPointsX[0])
-                        #self.chosenPointsY.append(self.chosenPointsY[0])
-                    
-                        points = []
-                        for i in range(0, len(self.chosenPointsX)):
-                            points.append( (self.chosenPointsX[i], self.chosenPointsY[i]) )
-                   
-                        storedMasks.append( PolygonMask(points, self.createNewMaskNumber(), self.imgDim) )
-                    
-                    self.stopMaskCreation()
-                
-            ######################################################
-            if tool == 'circle' or tool == 'rectangle':
-                
-                    if len(self.chosenPointsX) > 1:
-                        storedMasks.append( (self.chosenPointsX, self.chosenPointsY) )
-                        self.plottingInProgress = False
-            
-                    self.stopMaskCreation()
-                
-            if tool == 'agbecent':
-                    if len(self.agbeSelectedPoints) > 2:
-                        self.endAgBeCalibration()
-                    else:
-                        mainframe.plotNB.SetSelection(1)    # Fixing a focus bug under Linux in Matplotlib! Very strange!
-                        mainframe.plotNB.SetSelection(2)
-                        
-                        answer = wx.MessageBox('You need atleast 3 points to calculate the center!', 'Not enough points!', wx.OK | wx.CANCEL)
-                        
-                        if answer == wx.CANCEL:
-                            self.agbeSelectedPoints = []
-                            self.plotStoredMasks()
-                            mainframe.plotNB.SetSelection(1)# Fixing a focus bug under Linux in Matplotlib! Very strange!
-                            mainframe.plotNB.SetSelection(2)
-                        else:
-                            mainframe.plotNB.SetSelection(1)# Fixing a focus bug under Linux in Matplotlib! Very strange!
-                            mainframe.plotNB.SetSelection(2)
-                            return
-                    
-            self.toolbar.untoggleAllToolButtons()
+        #Everything moved to onMouseReleaseEvent due to an event bug
+        #in Matplotlib (or wxPython) with messagedialogs after clicking on the canvas
+
+        pass
+    
     
     def endAgBeCalibration(self):
         
@@ -1080,15 +1081,10 @@ class MaskingPanel(wx.Panel):
         
         border = int(self.plotParameters['imageBorder'] / 2)
         mainframe = wx.FindWindowByName('MainFrame')
-        mainframe.plotNB.SetSelection(1)    # Fixing a focus bug under Linux in Matplotlib! Very strange!
-        mainframe.plotNB.SetSelection(2)
         
         answer = wx.MessageBox('The center found was: x = ' + str(round(x[0]-border,2)) + ', y = ' + str(round(x[1]-border,2)) +
                                '\n\nDoes the calculated center look ok?', 'Is Everything Good?', wx.YES_NO | wx.ICON_QUESTION)
-        
-        mainframe.plotNB.SetSelection(1)    # Fixing a focus bug under Linux in Matplotlib! Very strange!
-        mainframe.plotNB.SetSelection(2)
-                        
+                            
         if answer == wx.YES:
              options = wx.FindWindowByName('MainFrame')
                             
@@ -1108,10 +1104,7 @@ class MaskingPanel(wx.Panel):
                    
                    options.ChangeParameter('ReferenceQ', 0.1076)
                    options.ChangeParameter('ReferenceDistPixel', int(round(r)))
-                   
-                   #if self.detectorPixelSize:
-                   #    options.ChangeParameter('DetectorPixelSize', self.detectorPixelSize)
-                   
+
                    wavelength, pixelsize = self.checkHeaderForParameters()
                    
                    print wavelength, pixelsize
@@ -1137,19 +1130,12 @@ class MaskingPanel(wx.Panel):
                                                                            options.GetParameter('WaveLength'),
                                                                            options.GetParameter('DetectorPixelSize') / 1000)
                        options.ChangeParameter('SampleDistance', SD_Distance)
-                
-                   mainframe.plotNB.SetSelection(1)    # Fixing a focus bug under Linux in Matplotlib! Very strange!
-                   mainframe.plotNB.SetSelection(2)                                   
+                                                        
                    wx.MessageBox('Center and AgBe Q calibration parameters has been saved!', 'Parameters Saved', wx.OK)
-                   mainframe.plotNB.SetSelection(1)    # Fixing a focus bug under Linux in Matplotlib! Very strange!
-                   mainframe.plotNB.SetSelection(2)
                    
+                 
              else: 
-                   mainframe.plotNB.SetSelection(1)    # Fixing a focus bug under Linux in Matplotlib! Very strange!
-                   mainframe.plotNB.SetSelection(2)
-                   wx.MessageBox('Option parameters not found (Debug mode?)', 'Parameters Not Saved', wx.OK)
-                   mainframe.plotNB.SetSelection(1)    # Fixing a focus bug under Linux in Matplotlib! Very strange!
-                   mainframe.plotNB.SetSelection(2)
+                  wx.MessageBox('Option parameters not found (Debug mode?)', 'Parameters Not Saved', wx.OK)
                         
              self.clearPatches()
              self.plotStoredMasks()
@@ -1192,11 +1178,6 @@ class MaskingPanel(wx.Panel):
         self.guideLinePlotted = False
         
         mainframe = wx.FindWindowByName('MainFrame')
-        
-        if mainframe != None:
-            mainframe.plotNB.SetSelection(1)    # Fixing a focus bug under Linux in Matplotlib! Very strange!
-            mainframe.plotNB.SetSelection(2)
-        
                 
     def plotStoredMasks(self):
         
@@ -1486,11 +1467,18 @@ class MaskingPanel(wx.Panel):
         
         B = matrix(B)                     # Convert to numpy matrix
         d = matrix(d)
+        #d = array(d)
         
         B = B.reshape((numOfPoints, 3))   # Convert 1D vector to matrix
+        
         d = d.reshape((numOfPoints, 1))
         
         Y = linalg.inv(B.T*B) * B.T * d   # Solve linear system of equations
+        
+        #print B.shape
+        #print d.shape
+        #Y, residues, rank, singularVals = linalg.lstsq(B, d)
+        #print Y
         
         x_c = Y[0] / 2                    # Get x and r from transformation variables
         y_c = Y[1] / 2
@@ -1526,12 +1514,8 @@ class MaskingPanel(wx.Panel):
             mainframe = wx.FindWindowByName('MainFrame')
       
         if finetune_success == False:
-            mainframe.plotNB.SetSelection(1)    # Fixing a focus bug under Linux in Matplotlib! Very strange!
-            mainframe.plotNB.SetSelection(2)
             wx.MessageBox('Remember to set the points "outside" the AgBe ring, a circle will then be fitted to the first found ring behind them.', 'Center search failed', wx.OK | wx.ICON_ERROR)
-            mainframe.plotNB.SetSelection(1)    # Fixing a focus bug under Linux in Matplotlib! Very strange!
-            mainframe.plotNB.SetSelection(2)
-        
+           
         self.agbeSelectedPoints = []
         
         return ( (x_c, y_c), r )
@@ -2574,7 +2558,7 @@ class MaskingTestFrame(wx.Frame):
              'ScaleCurve'            : False
              }
                
-        ExpObj, FullImage = fileIO.loadFile('/home/specuser/g1hutch/richard/', expParams)
+        ExpObj, FullImage = fileIO.loadFile('/home/specuser/AgBeh_1_001.img', expParams)
         print "Done!"
         
         maskingFigurePanel.showImage(FullImage, ExpObj)

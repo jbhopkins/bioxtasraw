@@ -197,7 +197,7 @@ def createTransformMatrix(q, r):
                  chk = float(c) * sin(qr) / qr ;
 
                   if(chk != chk) {
-                      T(i,j) = 0;
+                      T(i,j) = 0.5;
                   }
                   else {
                       T(i,j) = chk; 
@@ -844,11 +844,15 @@ def Test_GnomPr(filename):
     total = CalcProbability(crit[5][1], crit[1][1], crit[4][1], crit[3][1], crit[2][1], crit[0][1])
     crit.append(('TOTAL', total))
     
+    ################ PLOT TABLE ###########################
+    
     print ' '*9 + 'RAW' + ' '*5 + 'GNOM' + ' '*4 + 'DIFF'
     print '-'*30
     for each in crit:
         print each[0] + ' '*(6-len(each[0])) + ' :' + '%.4f'% each[1] + '  ' + '%.4f'% gnomcrit[each[0]] + '  ' + '%.2f'% abs(((1-(each[1]/gnomcrit[each[0]]))*100)) + '%'
     print '-'*30
+    
+    #######################################################
     
     AN1 = gnomcrit['AN1']
     Idif2 = ((np.array(J_EXP) - np.array(J_REG)) / J_ERR) ** 2
@@ -1052,20 +1056,20 @@ if __name__ == '__main__':
     #SYSDEV HAS THE 4 * pi *dr on it to test the GNOM data! and Check STABILL too before running Test_GnomPr
     #######################################################
     
-#    Test_GnomPr('/home/specuser/lyzgnom.out')
-#    Test_GnomPr('/home/specuser/lyzgnomNotForced.out')
+    #Test_GnomPr('/home/specuser/lyzgnom.out')
+    Test_GnomPr('/home/specuser/lyzgnomNotForced.out')
     print 'Hello!'
 #    Test_GnomPr('diffgnom.out')
 #    Test_GnomPr('/home/specuser/diffgnomNotForced.out')
 #    
-    Test_GnomPr('virgnom.out')
+#    Test_GnomPr('virgnom.out')
 #    Test_GnomPr('/home/specuser/virgnomForced.out')
     
     #testChiSquaredSearch()
 
     #Test_RunGnomOnFile('lyzexp.dat', dmax = 45, N=100, PlotSearch = True, forceEndsZero = False)
     #r, Pr, I_Pr, I, Total = Test_RunGnomOnFile('/home/specuser/diffgnom.out', dmax = 45, N=101, PlotSearch = True, forceEndsZero = False, filetype = 'GnomOut')
-#    r, Pr, I_Pr, I, Total = Test_RunGnomOnFile('/home/specuser/virgnom.out', dmax = 280, N=100, PlotSearch = True, forceEndsZero = False, filetype = 'GnomOut')
+    #r, Pr, I_Pr, I, Total = Test_RunGnomOnFile('/home/specuser/virgnom.out', dmax = 280, N=100, alpha = 1, PlotSearch = False, forceEndsZero = False, filetype = 'GnomOut')
 
 
 
