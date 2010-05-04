@@ -653,129 +653,70 @@ static blitz::Array<T,N> py_to_blitz(PyArrayObject* arr_obj,const char* name)
 }
 
 
-static PyObject* ravg(PyObject*self, PyObject* args, PyObject* kywds)
+static PyObject* trans_matrix(PyObject*self, PyObject* args, PyObject* kywds)
 {
     py::object return_val;
     int exception_occured = 0;
     PyObject *py_local_dict = NULL;
-    static char *kwlist[] = {"readoutNoiseFound","readoutN","readoutNoise_mask","xlen","ylen","x_c","y_c","hist","low_q","high_q","in_image","hist_count","mask","local_dict", NULL};
-    PyObject *py_readoutNoiseFound, *py_readoutN, *py_readoutNoise_mask, *py_xlen, *py_ylen, *py_x_c, *py_y_c, *py_hist, *py_low_q, *py_high_q, *py_in_image, *py_hist_count, *py_mask;
-    int readoutNoiseFound_used, readoutN_used, readoutNoise_mask_used, xlen_used, ylen_used, x_c_used, y_c_used, hist_used, low_q_used, high_q_used, in_image_used, hist_count_used, mask_used;
-    py_readoutNoiseFound = py_readoutN = py_readoutNoise_mask = py_xlen = py_ylen = py_x_c = py_y_c = py_hist = py_low_q = py_high_q = py_in_image = py_hist_count = py_mask = NULL;
-    readoutNoiseFound_used= readoutN_used= readoutNoise_mask_used= xlen_used= ylen_used= x_c_used= y_c_used= hist_used= low_q_used= high_q_used= in_image_used= hist_count_used= mask_used = 0;
+    static char *kwlist[] = {"qlen","rlen","T","r","q","local_dict", NULL};
+    PyObject *py_qlen, *py_rlen, *py_T, *py_r, *py_q;
+    int qlen_used, rlen_used, T_used, r_used, q_used;
+    py_qlen = py_rlen = py_T = py_r = py_q = NULL;
+    qlen_used= rlen_used= T_used= r_used= q_used = 0;
     
-    if(!PyArg_ParseTupleAndKeywords(args,kywds,"OOOOOOOOOOOOO|O:ravg",kwlist,&py_readoutNoiseFound, &py_readoutN, &py_readoutNoise_mask, &py_xlen, &py_ylen, &py_x_c, &py_y_c, &py_hist, &py_low_q, &py_high_q, &py_in_image, &py_hist_count, &py_mask, &py_local_dict))
+    if(!PyArg_ParseTupleAndKeywords(args,kywds,"OOOOO|O:trans_matrix",kwlist,&py_qlen, &py_rlen, &py_T, &py_r, &py_q, &py_local_dict))
        return NULL;
     try                              
     {                                
-        py_readoutNoiseFound = py_readoutNoiseFound;
-        int readoutNoiseFound = convert_to_int(py_readoutNoiseFound,"readoutNoiseFound");
-        readoutNoiseFound_used = 1;
-        py_readoutN = py_readoutN;
-        PyArrayObject* readoutN_array = convert_to_numpy(py_readoutN,"readoutN");
-        conversion_numpy_check_type(readoutN_array,PyArray_DOUBLE,"readoutN");
-        conversion_numpy_check_size(readoutN_array,2,"readoutN");
-        blitz::Array<double,2> readoutN = convert_to_blitz<double,2>(readoutN_array,"readoutN");
-        blitz::TinyVector<int,2> NreadoutN = readoutN.shape();
-        readoutN_used = 1;
-        py_readoutNoise_mask = py_readoutNoise_mask;
-        PyArrayObject* readoutNoise_mask_array = convert_to_numpy(py_readoutNoise_mask,"readoutNoise_mask");
-        conversion_numpy_check_type(readoutNoise_mask_array,PyArray_DOUBLE,"readoutNoise_mask");
-        conversion_numpy_check_size(readoutNoise_mask_array,2,"readoutNoise_mask");
-        blitz::Array<double,2> readoutNoise_mask = convert_to_blitz<double,2>(readoutNoise_mask_array,"readoutNoise_mask");
-        blitz::TinyVector<int,2> NreadoutNoise_mask = readoutNoise_mask.shape();
-        readoutNoise_mask_used = 1;
-        py_xlen = py_xlen;
-        int xlen = convert_to_int(py_xlen,"xlen");
-        xlen_used = 1;
-        py_ylen = py_ylen;
-        int ylen = convert_to_int(py_ylen,"ylen");
-        ylen_used = 1;
-        py_x_c = py_x_c;
-        double x_c = convert_to_float(py_x_c,"x_c");
-        x_c_used = 1;
-        py_y_c = py_y_c;
-        double y_c = convert_to_float(py_y_c,"y_c");
-        y_c_used = 1;
-        py_hist = py_hist;
-        PyArrayObject* hist_array = convert_to_numpy(py_hist,"hist");
-        conversion_numpy_check_type(hist_array,PyArray_DOUBLE,"hist");
-        conversion_numpy_check_size(hist_array,1,"hist");
-        blitz::Array<double,1> hist = convert_to_blitz<double,1>(hist_array,"hist");
-        blitz::TinyVector<int,1> Nhist = hist.shape();
-        hist_used = 1;
-        py_low_q = py_low_q;
-        int low_q = convert_to_int(py_low_q,"low_q");
-        low_q_used = 1;
-        py_high_q = py_high_q;
-        int high_q = convert_to_int(py_high_q,"high_q");
-        high_q_used = 1;
-        py_in_image = py_in_image;
-        PyArrayObject* in_image_array = convert_to_numpy(py_in_image,"in_image");
-        conversion_numpy_check_type(in_image_array,PyArray_DOUBLE,"in_image");
-        conversion_numpy_check_size(in_image_array,2,"in_image");
-        blitz::Array<double,2> in_image = convert_to_blitz<double,2>(in_image_array,"in_image");
-        blitz::TinyVector<int,2> Nin_image = in_image.shape();
-        in_image_used = 1;
-        py_hist_count = py_hist_count;
-        PyArrayObject* hist_count_array = convert_to_numpy(py_hist_count,"hist_count");
-        conversion_numpy_check_type(hist_count_array,PyArray_DOUBLE,"hist_count");
-        conversion_numpy_check_size(hist_count_array,2,"hist_count");
-        blitz::Array<double,2> hist_count = convert_to_blitz<double,2>(hist_count_array,"hist_count");
-        blitz::TinyVector<int,2> Nhist_count = hist_count.shape();
-        hist_count_used = 1;
-        py_mask = py_mask;
-        PyArrayObject* mask_array = convert_to_numpy(py_mask,"mask");
-        conversion_numpy_check_type(mask_array,PyArray_DOUBLE,"mask");
-        conversion_numpy_check_size(mask_array,2,"mask");
-        blitz::Array<double,2> mask = convert_to_blitz<double,2>(mask_array,"mask");
-        blitz::TinyVector<int,2> Nmask = mask.shape();
-        mask_used = 1;
+        py_qlen = py_qlen;
+        int qlen = convert_to_int(py_qlen,"qlen");
+        qlen_used = 1;
+        py_rlen = py_rlen;
+        int rlen = convert_to_int(py_rlen,"rlen");
+        rlen_used = 1;
+        py_T = py_T;
+        PyArrayObject* T_array = convert_to_numpy(py_T,"T");
+        conversion_numpy_check_type(T_array,PyArray_DOUBLE,"T");
+        conversion_numpy_check_size(T_array,2,"T");
+        blitz::Array<double,2> T = convert_to_blitz<double,2>(T_array,"T");
+        blitz::TinyVector<int,2> NT = T.shape();
+        T_used = 1;
+        py_r = py_r;
+        PyArrayObject* r_array = convert_to_numpy(py_r,"r");
+        conversion_numpy_check_type(r_array,PyArray_DOUBLE,"r");
+        conversion_numpy_check_size(r_array,1,"r");
+        blitz::Array<double,1> r = convert_to_blitz<double,1>(r_array,"r");
+        blitz::TinyVector<int,1> Nr = r.shape();
+        r_used = 1;
+        py_q = py_q;
+        PyArrayObject* q_array = convert_to_numpy(py_q,"q");
+        conversion_numpy_check_type(q_array,PyArray_DOUBLE,"q");
+        conversion_numpy_check_size(q_array,1,"q");
+        blitz::Array<double,1> q = convert_to_blitz<double,1>(q_array,"q");
+        blitz::TinyVector<int,1> Nq = q.shape();
+        q_used = 1;
         /*<function call here>*/     
         
             
-            double rel_x, rel_y, r, delta, deltaN;
-            int x, y;
-            //int idx;
-             
-            for( x = 0; x < xlen; x++)
-                   for( y = 0; y < ylen; y++)
+            float chk, qr;
+            int i, j;
+            
+            for( i = 0; i < qlen; i++)
+                   for( j = 0; j < rlen; j++)
                    {
-                        rel_x = x-x_c;
-                        rel_y = y_c-y;
+                         
+                         qr = q(i) * r(j);
+                         chk = sin(qr) ;
+        
+                          if(chk != chk) {
+                              T(i,j) = 1;
+                          }
+                          else {
+                              T(i,j) = chk; 
+                          }
+                              
+                   }
                    
-                        r = int(std::sqrt((rel_y*rel_y) + (rel_x*rel_x)));
-                        
-                        //res(x,y) = r;
-            
-                        if( r < high_q && r > low_q && mask(x,y) == 1 && in_image(x,y) > 0)
-                        {
-                            /* res2(x,y) = r; */               /*  A test image, gives the included range image */
-                            
-                            hist(r) = hist(r) + in_image(x,y);                   /* Integration of pixel values */
-                            
-                            hist_count(0, int(r)) = hist_count(0, int(r)) + 1;     /* Number of pixels in a bin */
-                            
-                            delta = in_image(x,y) - hist_count(1, int(r));         /* Calculation of variance */
-                            hist_count(1, int(r)) = hist_count(1, int(r)) + (delta / hist_count(0, int(r)));              
-                            hist_count(2, int(r)) = hist_count(2, int(r)) + (delta * (in_image(x,y)-hist_count(1, int(r))));   
-                        
-                        }
-                        
-                        if ( readoutNoiseFound == 1 && r < high_q-1 && r > low_q && readoutNoise_mask(x,y) == 0)
-                        {
-                            
-                            readoutN(0,0) = readoutN(0,0) + 1;
-                            readoutN(0,1) = readoutN(0,1) + in_image(x,y);
-                            
-                            deltaN = in_image(x,y) - readoutN(0,2);
-                            readoutN(0,2) = readoutN(0,2) + (deltaN / readoutN(0,0));
-                            readoutN(0,3) = readoutN(0,3) + (deltaN * (in_image(x,y)-readoutN(0,2)));        
-                            
-                        }
-                    
-                    }
-            
         if(py_local_dict)                                  
         {                                                  
             py::dict local_dict = py::dict(py_local_dict); 
@@ -788,29 +729,17 @@ static PyObject* ravg(PyObject*self, PyObject* args, PyObject* kywds)
         exception_occured = 1;       
     }                                
     /*cleanup code*/                     
-    if(readoutN_used)
+    if(T_used)
     {
-        Py_XDECREF(py_readoutN);
+        Py_XDECREF(py_T);
     }
-    if(readoutNoise_mask_used)
+    if(r_used)
     {
-        Py_XDECREF(py_readoutNoise_mask);
+        Py_XDECREF(py_r);
     }
-    if(hist_used)
+    if(q_used)
     {
-        Py_XDECREF(py_hist);
-    }
-    if(in_image_used)
-    {
-        Py_XDECREF(py_in_image);
-    }
-    if(hist_count_used)
-    {
-        Py_XDECREF(py_hist_count);
-    }
-    if(mask_used)
-    {
-        Py_XDECREF(py_mask);
+        Py_XDECREF(py_q);
     }
     if(!(PyObject*)return_val && !exception_occured)
     {
@@ -824,17 +753,17 @@ static PyObject* ravg(PyObject*self, PyObject* args, PyObject* kywds)
 
 static PyMethodDef compiled_methods[] = 
 {
-    {"ravg",(PyCFunction)ravg , METH_VARARGS|METH_KEYWORDS},
+    {"trans_matrix",(PyCFunction)trans_matrix , METH_VARARGS|METH_KEYWORDS},
     {NULL,      NULL}        /* Sentinel */
 };
 
-PyMODINIT_FUNC initravg_ext(void)
+PyMODINIT_FUNC initsinefouriermatrix_ext(void)
 {
     
     Py_Initialize();
     import_array();
     PyImport_ImportModule("numpy");
-    (void) Py_InitModule("ravg_ext", compiled_methods);
+    (void) Py_InitModule("sinefouriermatrix_ext", compiled_methods);
 }
 
 #ifdef __CPLUSCPLUS__

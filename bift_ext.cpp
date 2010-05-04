@@ -401,12 +401,9 @@ file_handler x__file_handler = file_handler();
         x__file_handler.py_to_file(py_obj,name)
 
 
-               PyObject* file_to_py(FILE* file, const char* name,
-                                    const char* mode)
+               PyObject* file_to_py(FILE* file, char* name, char* mode)
                {
-                   return (PyObject*) PyFile_FromFile(file,
-                     const_cast<char*>(name),
-                     const_cast<char*>(mode), fclose);
+                   return (PyObject*) PyFile_FromFile(file, name, mode, fclose);
                }
                
 class instance_handler
@@ -661,13 +658,13 @@ static PyObject* bift(PyObject*self, PyObject* args, PyObject* kywds)
     py::object return_val;
     int exception_occured = 0;
     PyObject *py_local_dict = NULL;
-    static const char *kwlist[] = {"dotsp","dotsptol","maxit","minit","bkkmax","omega","omegamin","omegareduction","B","N","m","P","Psumi","Bmat","alpha","sum_dia","bkk","dP","Pold","local_dict", NULL};
+    static char *kwlist[] = {"dotsp","dotsptol","maxit","minit","bkkmax","omega","omegamin","omegareduction","B","N","m","P","Psumi","Bmat","alpha","sum_dia","bkk","dP","Pold","local_dict", NULL};
     PyObject *py_dotsp, *py_dotsptol, *py_maxit, *py_minit, *py_bkkmax, *py_omega, *py_omegamin, *py_omegareduction, *py_B, *py_N, *py_m, *py_P, *py_Psumi, *py_Bmat, *py_alpha, *py_sum_dia, *py_bkk, *py_dP, *py_Pold;
     int dotsp_used, dotsptol_used, maxit_used, minit_used, bkkmax_used, omega_used, omegamin_used, omegareduction_used, B_used, N_used, m_used, P_used, Psumi_used, Bmat_used, alpha_used, sum_dia_used, bkk_used, dP_used, Pold_used;
     py_dotsp = py_dotsptol = py_maxit = py_minit = py_bkkmax = py_omega = py_omegamin = py_omegareduction = py_B = py_N = py_m = py_P = py_Psumi = py_Bmat = py_alpha = py_sum_dia = py_bkk = py_dP = py_Pold = NULL;
     dotsp_used= dotsptol_used= maxit_used= minit_used= bkkmax_used= omega_used= omegamin_used= omegareduction_used= B_used= N_used= m_used= P_used= Psumi_used= Bmat_used= alpha_used= sum_dia_used= bkk_used= dP_used= Pold_used = 0;
     
-    if(!PyArg_ParseTupleAndKeywords(args,kywds,"OOOOOOOOOOOOOOOOOOO|O:bift",const_cast<char**>(kwlist),&py_dotsp, &py_dotsptol, &py_maxit, &py_minit, &py_bkkmax, &py_omega, &py_omegamin, &py_omegareduction, &py_B, &py_N, &py_m, &py_P, &py_Psumi, &py_Bmat, &py_alpha, &py_sum_dia, &py_bkk, &py_dP, &py_Pold, &py_local_dict))
+    if(!PyArg_ParseTupleAndKeywords(args,kywds,"OOOOOOOOOOOOOOOOOOO|O:bift",kwlist,&py_dotsp, &py_dotsptol, &py_maxit, &py_minit, &py_bkkmax, &py_omega, &py_omegamin, &py_omegareduction, &py_B, &py_N, &py_m, &py_P, &py_Psumi, &py_Bmat, &py_alpha, &py_sum_dia, &py_bkk, &py_dP, &py_Pold, &py_local_dict))
        return NULL;
     try                              
     {                                
