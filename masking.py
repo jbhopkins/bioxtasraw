@@ -315,6 +315,8 @@ class MaskingPanel(wx.Panel):
         self.img = []
         self.imgobj = None
         self.imgcopy = []
+        
+        self.AgBeCenterAndRadius = None
     
         self.fig.gca().set_visible(False)
         self.ExpObj = None
@@ -659,8 +661,7 @@ class MaskingPanel(wx.Panel):
     def showImageSetDialog(self):
         
         if self.imgobj != None:
-            #diag = ImageSettingsDialog(self, self.ExpObj, self.imgobj)
-            diag = ImageCenteringDialog(self)
+            diag = ImageSettingsDialog(self, self.ExpObj, self.imgobj)
             diag.ShowModal()
             diag.Destroy()
         
@@ -682,10 +683,10 @@ class MaskingPanel(wx.Panel):
             except (IndexError, TypeError):
                 z = 0
             
-            if self.GetName() != 'test':
-                wx.FindWindowByName('MainFrame').SetStatusText('Pos: (' +  str(round(noBorderX,1)) + ', ' + str(round(noBorderY,1)) + ')' + '  Pixel value: ' + str(z), 1)
-            else:
-                wx.FindWindowByName('TestFrame').SetStatusText('Pos: (' +  str(int(noBorderX)) + ', ' + str(int(noBorderY)) + ')' + '  Pixel value: ' + str(z), 0)
+#            if self.GetName() != 'test':
+#                wx.FindWindowByName('MainFrame').SetStatusText('Pos: (' +  str(round(noBorderX,1)) + ', ' + str(round(noBorderY,1)) + ')' + '  Pixel value: ' + str(z), 1)
+#            else:
+#                wx.FindWindowByName('TestFrame').SetStatusText('Pos: (' +  str(int(noBorderX)) + ', ' + str(int(noBorderY)) + ')' + '  Pixel value: ' + str(z), 0)
 
             ##################################################################          
             # Plot guideline:
@@ -1050,7 +1051,7 @@ class MaskingPanel(wx.Panel):
 
         pass
             
-    def plotAgBeRings(self, x, r):
+    def drawAgBeRings(self, x, r):
         
         a = self.fig.gca()
         
@@ -1081,15 +1082,22 @@ class MaskingPanel(wx.Panel):
         
         x, r = self.calcCenterCoords()  # x = (x_c,y_c)
         
-        self.plotAgBeRings(x, r)
+        self.drawAgBeRings(x, r)
         
         border = int(self.plotParameters['imageBorder'] / 2)
         mainframe = wx.FindWindowByName('MainFrame')
         
-        answer = wx.MessageBox('The center found was: x = ' + str(round(x[0]-border,2)) + ', y = ' + str(round(x[1]-border,2)) +
-                               '\n\nDoes the calculated center look ok?', 'Is Everything Good?', wx.YES_NO | wx.ICON_QUESTION)
+        #answer = wx.MessageBox('The center found was: x = ' + str(round(x[0]-border,2)) + ', y = ' + str(round(x[1]-border,2)) +
+        #                       '\n\nDoes the calculated center look ok?', 'Is Everything Good?', wx.YES_NO | wx.ICON_QUESTION)
+        
+        diag = ImageCenteringDialog(self, x[0],x[1],r)
+        answer = diag.ShowModal()
+        diag.Destroy()
+        
+        
+        x, r = self.AgBeCenterAndRadius        
                             
-        if answer == wx.YES:
+        if answer == wx.ID_OK:
              options = wx.FindWindowByName('MainFrame')
                             
              border = int(self.plotParameters['imageBorder'] / 2)
@@ -1119,7 +1127,7 @@ class MaskingPanel(wx.Panel):
                        
                        answer = wx.MessageBox('RAW found the following wavelength and pixelsize in the image header:\n\n' +
                                               'Wavelength : ' + str(wavelength) + ' A' + '\nPixel size : ' + str(pixelsize) + ' um' +
-                                              '\n\nCorresponding to a sample-detector distance of ' + str(SD_Distance) + ' mm.' +
+                                              '\n\nCorresponding to a sample-detector distance of ' + str(round(SD_Distance,2)) + ' mm.' +
                                               '\n\nDo you want to use these values for the calibration?', 'Use header values?', wx.YES_NO | wx.ICON_QUESTION)
                        
                        if answer == wx.YES:
@@ -1394,9 +1402,10 @@ class MaskingPanel(wx.Panel):
       
         points, xpoints, ypoints = bresenhamLinePoints(x_c, y_c, x1, y1)
         
-        #try:
-        line = self.img[ypoints, xpoints]
-        #except IndexError:
+        try:
+            line = self.img[ypoints, xpoints]
+        except IndexError:
+            return False
         #    wx.MessageBox("Could not find a good fit, please try again.", 'Info')
             
                 
@@ -1499,6 +1508,10 @@ class MaskingPanel(wx.Panel):
                 y = each[1]
 
                 optimPoint = self.finetuneAgbePoints(int(x_c), int(y_c), int(x), int(y), r)
+                
+                if optimPoint == wx.ID_ABORT:
+                    finetune_success = False
+                    break
                 
                 if optimPoint == False:
                     optimPoint = (x,y)
@@ -2061,57 +2074,86 @@ class ImageCenteringDialog(wx.Dialog):
         self.x = x
         self.y = y
         self.r = r
-
-        sizer = self.createSpinControls(self)
         
-        buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.maskingPanel = wx.FindWindowByName('RawPlotPanel')
         
-        okbutton = wx.Button(self, -1, 'Ok')
-        cancelbutton = wx.Button(self, -1, 'Cancel')
-        okbutton.Bind(wx.EVT_BUTTON, self.OnOK)
-        cancelbutton.Bind(wx.EVT_BUTTON, self.OnCancel)
+        finalsizer = wx.BoxSizer(wx.VERTICAL)
         
-        buttonsizer.Add(okbutton, 0)
-        buttonsizer.Add(cancelbutton,0)
+        controlsizer = self.createSpinControls(self)
         
-        sizer.Add(buttonsizer, 0)
+        buttonsizer = self.createButtons()
+                
+        finalsizer.Add(controlsizer,0)
+        finalsizer.Add(buttonsizer, 0)
         
-        self.SetSizer(sizer)
+        self.SetSizer(finalsizer)
         
-    def OnOK(self, evt):
-        pass
+    def createButtons(self):
+        
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        ok = wx.Button(self, wx.ID_OK, 'OK')
+        cancel = wx.Button(self, wx.ID_CANCEL, 'Cancel')
     
-    def OnCancel(self, evt):
-        print 'CHECK!!'
+        ok.Bind(wx.EVT_BUTTON, self.onOkCancel)
+        cancel.Bind(wx.EVT_BUTTON, self.onOkCancel)
+        
+        sizer.Add(ok,0)
+        sizer.Add(cancel,0)
+        
+        return sizer
+    
+    def onOkCancel(self, evt):
+        
+        id = evt.GetId()
+        
+        self.maskingPanel.AgBeCenterAndRadius = [(self.x, self.y), self.r]
+        
+        self.EndModal(id)
         
     def createSpinControls(self, bgPanel):
         
-        sizer = wx.BoxSizer(wx.VERTICAL)
+        xmax = self.maskingPanel.img.shape[1]
+        ymax = self.maskingPanel.img.shape[0]
+    
+        sizer = wx.FlexGridSizer(rows = 3, cols = 2)
         
         self.xspin = wx.SpinCtrl(bgPanel, -1)
+        self.xspin.SetRange(0,xmax)
         self.xspin.SetValue(self.x)
+        
         self.yspin = wx.SpinCtrl(bgPanel, -1)
+        self.yspin.SetRange(0,ymax)
         self.yspin.SetValue(self.y)
         self.rspin = wx.SpinCtrl(bgPanel, -1)
+        self.rspin.SetRange(1, max([xmax, ymax]))
         self.rspin.SetValue(self.r)
         
         self.xspin.Bind(wx.EVT_SPINCTRL, self.OnXYRSpin)
         self.yspin.Bind(wx.EVT_SPINCTRL, self.OnXYRSpin)
         self.rspin.Bind(wx.EVT_SPINCTRL, self.OnXYRSpin)
         
-        sizer.Add(self.xspin,0)
-        sizer.Add(self.yspin,0)
-        sizer.Add(self.rspin,0)
+        sizer.Add(wx.StaticText(self,-1,'X'),1)
+        sizer.Add(self.xspin,1)
+        sizer.Add(wx.StaticText(self,-1,'Y'),1)
+        sizer.Add(self.yspin,1)
+        sizer.Add(wx.StaticText(self,-1,'R'),1)
+        sizer.Add(self.rspin,1)
         
         return sizer
     
     def OnXYRSpin(self, event):
         
-        x = self.xspin.GetValue()
-        y = self.yspin.GetValue()
-        r = self.rspin.GetValue()
+        self.x = self.xspin.GetValue()
+        self.y = self.yspin.GetValue()
+        self.r = self.rspin.GetValue()
         
-        print x,y,r
+        xy = (self.x,self.y)
+        wx.CallAfter(self.maskingPanel.clearPatches)
+        wx.CallAfter(self.maskingPanel.drawAgBeRings, xy, self.r)
+        
+        
+        
 class ImageSettingsDialog(wx.Dialog):
 
     def __init__(self, parent, ExpObj, ImgObj):
@@ -2525,7 +2567,7 @@ class MaskingTestFrame(wx.Frame):
         self.backgroundPanel = wx.Panel(self, -1)
         sizer = wx.BoxSizer()
         
-        maskingFigurePanel = MaskingPanel(self.backgroundPanel, -1, 'test')
+        maskingFigurePanel = MaskingPanel(self.backgroundPanel, -1, 'RawPlotPanel')
         
         sizer.Add(maskingFigurePanel, 1, wx.GROW)
   
@@ -2620,7 +2662,7 @@ class MaskingTestFrame(wx.Frame):
              'ScaleCurve'            : False
              }
                
-        ExpObj, FullImage = fileIO.loadFile('C:\workspace\RAW\src\AgBeh_1_001.img', expParams)
+        ExpObj, FullImage = fileIO.loadFile('/home/specuser/AgBeh_1_001.img', expParams)
         print "Done!"
         
         maskingFigurePanel.showImage(FullImage, ExpObj)
