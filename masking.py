@@ -659,7 +659,8 @@ class MaskingPanel(wx.Panel):
     def showImageSetDialog(self):
         
         if self.imgobj != None:
-            diag = ImageSettingsDialog(self, self.ExpObj, self.imgobj)
+            #diag = ImageSettingsDialog(self, self.ExpObj, self.imgobj)
+            diag = ImageCenteringDialog(self)
             diag.ShowModal()
             diag.Destroy()
         
@@ -1048,13 +1049,10 @@ class MaskingPanel(wx.Panel):
         #in Matplotlib (or wxPython) with messagedialogs after clicking on the canvas
 
         pass
-    
-    
-    def endAgBeCalibration(self):
+            
+    def plotAgBeRings(self, x, r):
         
         a = self.fig.gca()
-        
-        x, r = self.calcCenterCoords()  # x = (x_c,y_c)
         
         cir = Circle( x, radius = r, alpha = 1, fill = False, linestyle = 'dashed', linewidth = 1.5, edgecolor = 'red') 
         a.add_patch(cir)
@@ -1075,9 +1073,15 @@ class MaskingPanel(wx.Panel):
         cir = Circle( x, radius = 3, alpha = 1, facecolor = 'red', edgecolor = 'red')
         a.add_patch(cir)
         
-        #txt = Text(x[0], x[1]-r, text='TEST')
-    
         self.canvas.draw()
+        
+    def endAgBeCalibration(self):
+        
+        a = self.fig.gca()
+        
+        x, r = self.calcCenterCoords()  # x = (x_c,y_c)
+        
+        self.plotAgBeRings(x, r)
         
         border = int(self.plotParameters['imageBorder'] / 2)
         mainframe = wx.FindWindowByName('MainFrame')
@@ -1143,11 +1147,8 @@ class MaskingPanel(wx.Panel):
         else:
              self.clearPatches()
              self.plotStoredMasks()
-    
-        a.texts.remove(txt1)
-        a.texts.remove(txt2)
-        a.texts.remove(txt3)
-        a.texts.remove(txt4)
+
+        self.canvas.draw()
         
     def checkHeaderForParameters(self):
         
@@ -1383,7 +1384,9 @@ class MaskingPanel(wx.Panel):
             del(a.lines[:])     # delete plotted masks
         if a.patches:
             del(a.patches[:])
-            
+        if a.texts:
+            del(a.texts[:])
+        
         self.canvas.draw()
         
     def finetuneAgbePoints(self, x_c, y_c, x1, y1, r):
@@ -2049,7 +2052,66 @@ def LoadReadoutNoiseMask(mask_fullpath):
 
 #---- #### MASK LOADING ####
 
+class ImageCenteringDialog(wx.Dialog):
 
+    def __init__(self, parent, x, y, r):
+        
+        wx.Dialog.__init__(self, parent, -1, title = 'Centering Settings')
+
+        self.x = x
+        self.y = y
+        self.r = r
+
+        sizer = self.createSpinControls(self)
+        
+        buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        okbutton = wx.Button(self, -1, 'Ok')
+        cancelbutton = wx.Button(self, -1, 'Cancel')
+        okbutton.Bind(wx.EVT_BUTTON, self.OnOK)
+        cancelbutton.Bind(wx.EVT_BUTTON, self.OnCancel)
+        
+        buttonsizer.Add(okbutton, 0)
+        buttonsizer.Add(cancelbutton,0)
+        
+        sizer.Add(buttonsizer, 0)
+        
+        self.SetSizer(sizer)
+        
+    def OnOK(self, evt):
+        pass
+    
+    def OnCancel(self, evt):
+        print 'CHECK!!'
+        
+    def createSpinControls(self, bgPanel):
+        
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        self.xspin = wx.SpinCtrl(bgPanel, -1)
+        self.xspin.SetValue(self.x)
+        self.yspin = wx.SpinCtrl(bgPanel, -1)
+        self.yspin.SetValue(self.y)
+        self.rspin = wx.SpinCtrl(bgPanel, -1)
+        self.rspin.SetValue(self.r)
+        
+        self.xspin.Bind(wx.EVT_SPINCTRL, self.OnXYRSpin)
+        self.yspin.Bind(wx.EVT_SPINCTRL, self.OnXYRSpin)
+        self.rspin.Bind(wx.EVT_SPINCTRL, self.OnXYRSpin)
+        
+        sizer.Add(self.xspin,0)
+        sizer.Add(self.yspin,0)
+        sizer.Add(self.rspin,0)
+        
+        return sizer
+    
+    def OnXYRSpin(self, event):
+        
+        x = self.xspin.GetValue()
+        y = self.yspin.GetValue()
+        r = self.rspin.GetValue()
+        
+        print x,y,r
 class ImageSettingsDialog(wx.Dialog):
 
     def __init__(self, parent, ExpObj, ImgObj):
@@ -2558,7 +2620,7 @@ class MaskingTestFrame(wx.Frame):
              'ScaleCurve'            : False
              }
                
-        ExpObj, FullImage = fileIO.loadFile('/home/specuser/AgBeh_1_001.img', expParams)
+        ExpObj, FullImage = fileIO.loadFile('C:\workspace\RAW\src\AgBeh_1_001.img', expParams)
         print "Done!"
         
         maskingFigurePanel.showImage(FullImage, ExpObj)
