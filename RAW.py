@@ -1932,7 +1932,7 @@ class PlotPanel(wx.Panel):
         self.UpdatePlotAxesScaling()
         
         self._setLabels(axes = subplot)
-        self.canvas.draw_idle()
+        self.canvas.draw()
     
         
     def OnUndo(self, evt):
@@ -1993,16 +1993,16 @@ class PlotPanel(wx.Panel):
                 bgSubPlotQueue.put([selectedFiles, bgfilename])
         
             #progressThread.run()
-        
-            
+   
     def OnClearAll(self, event, clearManipItems = None):
         
         global expParams
         
         if self.name == 'PlotPanel':
-            dial = wx.MessageDialog(None, 'Are you sure you want to clear everything?', 'Question', 
+            dial = wx.MessageDialog(self, 'Are you sure you want to clear everything?', 'Question', 
                                     wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
             answer = dial.ShowModal()
+            dial.Destroy()
         
             if answer == wx.ID_NO:
                 return
@@ -2030,7 +2030,7 @@ class PlotPanel(wx.Panel):
             self.toolbar._positions = cbook.Stack()
         else:
             self.subplot1.cla()
-        
+
         self.plotparams['axesscale'] = 'linlin'
         
         self._setLabels(axes = self.subplot1)
@@ -2041,7 +2041,7 @@ class PlotPanel(wx.Panel):
         
         #Clear statusbar:
         wx.FindWindowByName('MainFrame').SetStatusText('')
-        
+
         if self.name == 'PlotPanel':
             biftpanel = wx.FindWindowByName('BIFTPlotPanel')
             biftpanel.OnClearAll(0)
@@ -2052,7 +2052,7 @@ class PlotPanel(wx.Panel):
             maskpanel = wx.FindWindowByName('RawPlotPanel')
             maskpanel.clearFigure()
         
-        expParams['BackgroundFile'] = None
+        expParams['BackgroundFile'] = None 
         
     def onEraseBackground(self, evt):
         # this is supposed to prevent redraw flicker on some X servers...
