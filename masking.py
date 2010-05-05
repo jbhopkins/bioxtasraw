@@ -635,6 +635,7 @@ class MaskingPanel(wx.Panel):
         
         imgaxis = [0, imgXdim, 0, imgYdim]
         a.axis('image')
+        #a.axis('tight')
         
         self.plotStoredMasks()
         
@@ -684,9 +685,9 @@ class MaskingPanel(wx.Panel):
                 z = 0
             
 #            if self.GetName() != 'test':
-#                wx.FindWindowByName('MainFrame').SetStatusText('Pos: (' +  str(round(noBorderX,1)) + ', ' + str(round(noBorderY,1)) + ')' + '  Pixel value: ' + str(z), 1)
+            wx.FindWindowByName('MainFrame').SetStatusText('Pos: (' +  str(round(noBorderX,1)) + ', ' + str(round(noBorderY,1)) + ')' + '  Pixel value: ' + str(z), 1)
 #            else:
-#                wx.FindWindowByName('TestFrame').SetStatusText('Pos: (' +  str(int(noBorderX)) + ', ' + str(int(noBorderY)) + ')' + '  Pixel value: ' + str(z), 0)
+#            wx.FindWindowByName('TestFrame').SetStatusText('Pos: (' +  str(int(noBorderX)) + ', ' + str(int(noBorderY)) + ')' + '  Pixel value: ' + str(z), 0)
 
             ##################################################################          
             # Plot guideline:
@@ -1358,15 +1359,10 @@ class MaskingPanel(wx.Panel):
                 answer = wx.MessageBox('Do you want set this mask as the current "Readout noise" mask?', 'Use as readout noise mask?', wx.YES_NO | wx.ICON_QUESTION)
                 
                 if answer == wx.YES:
-                    options = wx.FindWindowByName('OptionsPage')
+                    LoadReadoutNoiseMask(file)
                         
-                    if options:
-                        options.LoadReadoutNoiseMask(file)
             else:
-                options = wx.FindWindowByName('OptionsPage')
-                    
-                if options:
-                    options.LoadBeamStopMask(file)
+                LoadBeamStopMask(file)
                     
     def clearFigure(self):
         self.fig.gca().set_visible(False)
@@ -1593,17 +1589,29 @@ def createMaskFromRAWFormat(maskPlotParameters):
     imageDimentions = maskPlotParameters['imageDimentions']
     storedMasks = maskPlotParameters['storedMasks']
     
+    maskingpanel = wx.FindWindowByName('RawPlotPanel')
+    
+    wx.SetCursor(wx.StockCursor(wx.CURSOR_WAIT))
+    
     mask = ones(imageDimentions)
+    
+    maxy = mask.shape[0]
+    maxx = mask.shape[1]
     
     for each in storedMasks:
         fillPoints = each.getFillPoints()
                 
         for eachp in fillPoints:
-            mask[eachp] = 0
-
+            
+            if eachp[0] < maxy and eachp[1] < maxy:  
+                mask[eachp] = 0
+                #maskingpanel.img[eachp] = 0
+                
+    #maskingpanel.canvas.draw()
     # Raw masks are created with a border to make edgemasking easier, this will remove the border:
     finalMask = mask[ border/2 : imageDimentions[1] - border/2, border/2 : imageDimentions[0] - border/2]
-    
+
+    wx.SetCursor(wx.StockCursor(wx.CURSOR_DEFAULT))
     
     return finalMask
 

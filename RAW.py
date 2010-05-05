@@ -1110,12 +1110,11 @@ class PlotPanel(wx.Panel):
         
         self.canvas.callbacks.connect('pick_event', self.OnPick)
         self.canvas.callbacks.connect('key_press_event', self.OnKeyPress)
-        #self.canvas.callbacks.connect('button_press_event', self.OnMouseButton)
-        self.canvas.callbacks.connect('motion_notify_event', self.onMotionEvent)
-                
-        self.MenuItemIds = {'Kratky' : wx.NewId(),
-                            'Guinier': wx.NewId()}
+        self.canvas.callbacks.connect('button_release_event', self.OnMouseButton)
         
+        
+        self.canvas.callbacks.connect('motion_notify_event', self.onMotionEvent)
+                        
         subplotLabels = { 'subtracted'  : ('Subtracted', 'q', 'I(q)'),
                           'PDDF'        : ('PDDF', 'r', 'p(r)'),
                           'kratky'      : ('Kratky', 'q', 'I(q)q^2'),
@@ -1133,53 +1132,80 @@ class PlotPanel(wx.Panel):
             
     def OnMouseButton(self, evt):
 
-        print evt.button
         if evt.button == 3:
-            self.ShowPopupMenu()
+            if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
+                self.ShowPopupMenu()
             
     def ShowPopupMenu(self):
-
+        
+        mainframe = wx.FindWindowByName('MainFrame')
+    
+        MenuIDs = mainframe.MenuIDs
+       
         menu = wx.Menu()
         
         plot1SubMenu = wx.Menu()
-        plot1SubMenu.AppendRadioItem(self.MenuItemIds['Guinier'], 'Guinier')
-        plot1SubMenu.AppendRadioItem(self.MenuItemIds['Kratky'], 'Kratky')
-        plot1SubMenu.AppendRadioItem(3, 'Subtracted')
+        it1 = plot1SubMenu.AppendRadioItem(MenuIDs['plot1sclinlin'], 'Lin-lin')
+        it2 = plot1SubMenu.AppendRadioItem(MenuIDs['plot1scloglin'], 'Log-Lin')
+        it3 = plot1SubMenu.AppendRadioItem(MenuIDs['plot1scloglog'], 'Log-Log')
+        it4 = plot1SubMenu.AppendRadioItem(MenuIDs['plot1sclinlog'], 'Lin-Log')
+        
+        if self.plotparams['axesscale1'] == 'loglog':
+            it3.Check(True)
+        elif self.plotparams['axesscale1'] == 'linlog':
+            it4.Check(True)
+        elif self.plotparams['axesscale1'] == 'loglin':
+            it2.Check(True)
+        elif self.plotparams['axesscale1'] == 'linlin':
+            it1.Check(True)
         
         plot2SubMenu = wx.Menu()
-        plot2SubMenu.AppendRadioItem(3, 'Normal')
-        plot2SubMenu.AppendRadioItem(self.MenuItemIds['Guinier'], 'Guinier')
-        plot2SubMenu.AppendRadioItem(self.MenuItemIds['Kratky'], 'Kratky')
-        plot2SubMenu.AppendRadioItem(3, 'Subtracted')
+        it5 = plot2SubMenu.AppendRadioItem(MenuIDs['plot2sclinlin'], 'Lin-lin')
+        it6 = plot2SubMenu.AppendRadioItem(MenuIDs['plot2scloglin'], 'Log-Lin')
+        it7 = plot2SubMenu.AppendRadioItem(MenuIDs['plot2scloglog'], 'Log-Log')
+        it8 = plot2SubMenu.AppendRadioItem(MenuIDs['plot2sclinlog'], 'Lin-Log')
+        
+        if self.plotparams['axesscale2'] == 'loglog':
+            it7.Check(True)
+        elif self.plotparams['axesscale2'] == 'linlog':
+            it8.Check(True)
+        elif self.plotparams['axesscale2'] == 'loglin':
+            it6.Check(True)
+        elif self.plotparams['axesscale2'] == 'linlin':
+            it5.Check(True)
             
         menu.AppendSubMenu(plot1SubMenu, 'Plot 1')
         menu.AppendSubMenu(plot2SubMenu, 'Plot 2')
-        
-        menu.Append(6, 'Average selected item(s)' )
-        menu.AppendSeparator()
-        menu.Append(5, 'Remove selected item(s)' )
-        menu.Append(3, 'Indirect Fourier Transform')
-        menu.AppendSeparator()
-        menu.Append(8, 'Move curve to top plot')
-        menu.Append(9, 'Move curve to bottom plot')
-        menu.AppendSeparator()
-        menu.Append(7, 'Save selected file(s)')
-        
+          
         self.Bind(wx.EVT_MENU, self._OnPopupMenuChoice) 
         
         self.PopupMenu(menu)
         
     def _OnPopupMenuChoice(self, evt):
-        print evt.GetId()
+        mainframe = wx.FindWindowByName('MainFrame')
+        MenuIDs = mainframe.MenuIDs
+        id = evt.GetId()
+        
+        for key in MenuIDs.iterkeys():
+            if MenuIDs[key] == id:
+                if key[4] == '1':
+                    self.plotparams['axesscale1'] = key[7:]
+                else:
+                    self.plotparams['axesscale2'] = key[7:]
+        
+        mainframe.SetViewMenuScale(id)
+        
+        self.UpdatePlotAxesScaling()
+        
     
     def InitLabels(self):
         
-        if self.GetName() == 'BIFTPlotPanel':
-            self._setLabels(None, title = 'Indirect Fourier Transform', xlabel = 'r [A]', ylabel = 'p(r)', axes = self.subplot1)
-            self._setLabels(None, title = 'Fit', xlabel = 'q [1/A]', ylabel = 'I(q)', axes = self.subplot2)
-        elif self.GetName() == 'PlotPanel':
-            self._setLabels(None, title = 'Plot', xlabel = 'q [1/A]', ylabel = 'I(q)', axes = self.subplot1)
-            self._setLabels(None, title = 'Subtracted', xlabel = 'q [1/A]', ylabel = 'I(q)', axes = self.subplot2)
+#        if self.GetName() == 'BIFTPlotPanel':
+#            self._setLabels(None, title = 'Indirect Fourier Transform', xlabel = 'r [A]', ylabel = 'p(r)', axes = self.subplot1)
+#            self._setLabels(None, title = 'Fit', xlabel = 'q [1/A]', ylabel = 'I(q)', axes = self.subplot2)
+#        elif self.GetName() == 'PlotPanel':
+        self._setLabels(None, title = 'Plot', xlabel = 'q [1/A]', ylabel = 'I(q)', axes = self.subplot1)
+        self._setLabels(None, title = 'Subtracted', xlabel = 'q [1/A]', ylabel = 'I(q)', axes = self.subplot2)
     
     def DeleteLinePlot(self, axes = None):
         
@@ -1317,14 +1343,7 @@ class PlotPanel(wx.Panel):
         
     def UpdatePlotAxesScaling(self):
         
-        if self.noOfPlots == 2:
-            
-            if self.GetName() == 'BIFTPlotPanel':
-                axes = [self.subplot2]
-            else:
-                axes = [self.subplot1, self.subplot2]
-        else:
-            axes = [self.fig.gca()]
+        axes = [self.subplot1, self.subplot2]
             
         for a in axes:
             
@@ -1393,9 +1412,7 @@ class PlotPanel(wx.Panel):
             ExpObj.isPlotted = True
 
         self._insertLegend(axes = self.subplot1)
-        
-        if self.GetName() != 'BIFTPlotPanel':
-            self._insertLegend(axes = self.subplot2)
+        self._insertLegend(axes = self.subplot2)
         
         self.canvas.draw()       
     
@@ -1552,9 +1569,9 @@ class PlotPanel(wx.Panel):
             setp(each.errLine[0], visible=True)
             setp(each.errLine[1], visible=True)
         
-        if self.fitplot != None and self.name == 'BIFTPlotPanel':
-            setp(self.fitplot.errLine[0], visible=True)
-            setp(self.fitplot.errLine[1], visible=True)
+#        if self.fitplot != None and self.name == 'BIFTPlotPanel':
+#            setp(self.fitplot.errLine[0], visible=True)
+#            setp(self.fitplot.errLine[1], visible=True)
             
         self.canvas.draw()
 
@@ -1565,9 +1582,9 @@ class PlotPanel(wx.Panel):
             setp(each.errLine[1], visible=False)
         
         
-        if self.fitplot != None and self.name == 'BIFTPlotPanel':
-            setp(self.fitplot.errLine[0], visible=False)
-            setp(self.fitplot.errLine[1], visible=False)
+#        if self.fitplot != None and self.name == 'BIFTPlotPanel':
+#            setp(self.fitplot.errLine[0], visible=False)
+#            setp(self.fitplot.errLine[1], visible=False)
             
         self.canvas.draw()
         
@@ -1595,6 +1612,10 @@ class PlotPanel(wx.Panel):
         self.fitplot = ExpObj        # Insert the plot into plotted experiments list
     
     
+    def SwitchToNoteBookPage(self):
+        mainframe = wx.FindWindowByName('MainFrame')
+        mainframe.plotNB.SetSelection(0)
+    
     def _PlotOnSelectedAxesScale(self, ExpObj, axes = None, addToPlottedExps = True):
     
         if axes == None:
@@ -1603,7 +1624,6 @@ class PlotPanel(wx.Panel):
             a = axes
         
         #plot with errorbars
-        
         if a == self.subplot1:
             type = self.plotparams.get('plot1type')
         elif a == self.subplot2:  
@@ -1618,13 +1638,8 @@ class PlotPanel(wx.Panel):
             line, ec, el = a.errorbar(power(ExpObj.q,2), ExpObj.i, ExpObj.errorbars, picker = 3)
         elif type == 'porod':
             line, ec, el = a.errorbar(ExpObj.q, power(ExpObj.q,4)*ExpObj.i, ExpObj.errorbars, picker = 3)
-           
-        mainframe = wx.FindWindowByName('MainFrame')
         
-        if self.name == 'BIFTPlotPanel':
-            mainframe.plotNB.SetSelection(1)
-        else:
-            mainframe.plotNB.SetSelection(0)
+        self.SwitchToNoteBookPage()
         
         #Hide errorbars:
         if self.plotparams['errorbars_on'] == False:
@@ -1668,10 +1683,6 @@ class PlotPanel(wx.Panel):
             a.loglog(x, y, picker = 3)
         
         self.fitAxis()
-            
-        #ExpObj.line = line[0]
-        #ExpObj.isPlotted = True
-        #self.plottedExps.append(ExpObj)        # Insert the plot into plotted experiments array
     
     def _setLabels(self, ExpObj = None, title = None, xlabel = None, ylabel = None, axes = None):
         
@@ -1682,57 +1693,45 @@ class PlotPanel(wx.Panel):
         
         # Set TITLE 
         if title == None:
-              
-            if self.name == 'BIFTPlotPanel':
-                
-                if a == self.subplot1:
-                    a.set_title('Indirect Fourier Transform')
-                    a.set_ylabel('P(r)')
-                    a.set_xlabel('r [A]')
-                elif a == self.subplot2:
-                    a.set_title('Fit')
+            
+            if a == self.subplot1:
+                if self.plotparams['plot1type'] == 'normal':
+                    a.set_title('Main plot')
                     a.set_ylabel('I(q)')
                     a.set_xlabel('q [1/A]')
-            else:
-                    
-                if a == self.subplot1:
-                    if self.plotparams['plot1type'] == 'normal':
-                        a.set_title('Main plot')
-                        a.set_ylabel('I(q)')
-                        a.set_xlabel('q [1/A]')
                         
-                    elif self.plotparams['plot1type'] == 'kratky':
-                        a.set_title('Kratky plot')
-                        a.set_ylabel('I(q)q^2')
-                        a.set_xlabel('q [1/A]')
+                elif self.plotparams['plot1type'] == 'kratky':
+                    a.set_title('Kratky plot')
+                    a.set_ylabel('I(q)q^2')
+                    a.set_xlabel('q [1/A]')
                         
-                    elif self.plotparams['plot1type'] == 'guinier':
-                        a.set_title('Guinier plot')
-                        a.set_ylabel('I(q)')
-                        a.set_xlabel('q^2 [1/A^2]')
+                elif self.plotparams['plot1type'] == 'guinier':
+                    a.set_title('Guinier plot')
+                    a.set_ylabel('I(q)')
+                    a.set_xlabel('q^2 [1/A^2]')
                     
-                    elif self.plotparams['plot1type'] == 'porod':
-                        a.set_title('Porod plot')
-                        a.set_ylabel('I(q)q^4')
-                        a.set_xlabel('q [1/A]')
+                elif self.plotparams['plot1type'] == 'porod':
+                    a.set_title('Porod plot')
+                    a.set_ylabel('I(q)q^4')
+                    a.set_xlabel('q [1/A]')
                             
-                elif a == self.subplot2:
-                    if self.plotparams['plot2type'] == 'subtracted':
-                        a.set_title('Subtracted plot')
-                        a.set_ylabel('I(q)')
-                        a.set_xlabel('q [1/A]')
-                    elif self.plotparams['plot2type'] == 'kratky':
-                        a.set_title('Kratky plot')
-                        a.set_ylabel('I(q)q^2')
-                        a.set_xlabel('q [1/A]')
-                    elif self.plotparams['plot2type'] == 'guinier':
-                        a.set_title('Guinier plot')
-                        a.set_ylabel('I(q)')
-                        a.set_xlabel('q^2 [1/A^2]')
-                    elif self.plotparams['plot2type'] == 'porod':
-                        a.set_title('Porod plot')
-                        a.set_ylabel('I(q)q^4')
-                        a.set_xlabel('q [1/A]')
+            elif a == self.subplot2:
+                if self.plotparams['plot2type'] == 'subtracted':
+                    a.set_title('Subtracted plot')
+                    a.set_ylabel('I(q)')
+                    a.set_xlabel('q [1/A]')
+                elif self.plotparams['plot2type'] == 'kratky':
+                    a.set_title('Kratky plot')
+                    a.set_ylabel('I(q)q^2')
+                    a.set_xlabel('q [1/A]')
+                elif self.plotparams['plot2type'] == 'guinier':
+                    a.set_title('Guinier plot')
+                    a.set_ylabel('I(q)')
+                    a.set_xlabel('q^2 [1/A^2]')
+                elif self.plotparams['plot2type'] == 'porod':
+                    a.set_title('Porod plot')
+                    a.set_ylabel('I(q)q^4')
+                    a.set_xlabel('q [1/A]')
         else:
             a.set_title(title)
                 
@@ -1757,14 +1756,14 @@ class PlotPanel(wx.Panel):
                             maxi = max(each.get_ydata())
             
                             minq = min(each.get_xdata())
-                            mini = min(each.get_ydata())            
-                        
+                            mini = min(each.get_ydata())
+                                
                         xmax = max(each.get_xdata())
                         ymax = max(each.get_ydata())
             
                         xmin = min(each.get_xdata())
                         ymin = min(each.get_ydata())
-                            
+                   
                         if xmax > maxq:
                             maxq = xmax
                         if xmin < minq:
@@ -1773,7 +1772,7 @@ class PlotPanel(wx.Panel):
                             maxi = ymax
                         if ymin < mini:
                             mini = ymin
-                
+                            
                 eachsubplot.set_ylim(mini, maxi)
                 eachsubplot.set_xlim(minq, maxq)
                 
@@ -1901,17 +1900,17 @@ class PlotPanel(wx.Panel):
                     
         self.canvas.draw()
         
-    def PlotLoadedBift(self, BiftObj):
-        
-        i = BiftObj.allData['orig_i']
-        q = BiftObj.allData['orig_q']
-        err = BiftObj.allData['orig_err']
-        
-        ExpObj = cartToPol.RadFileMeasurement(array(i), array(q), array(err), BiftObj.param)
-        
-        self.PlotBIFTExperimentObject(BiftObj)
-        biftPage = wx.FindWindowByName('AutoAnalysisPage')
-        biftPage.addBiftObjToList(ExpObj, BiftObj)
+#    def PlotLoadedBift(self, BiftObj):
+#        
+#        i = BiftObj.allData['orig_i']
+#        q = BiftObj.allData['orig_q']
+#        err = BiftObj.allData['orig_err']
+#        
+#        ExpObj = cartToPol.RadFileMeasurement(array(i), array(q), array(err), BiftObj.param)
+#        
+#        self.PlotBIFTExperimentObject(BiftObj)
+#        biftPage = wx.FindWindowByName('AutoAnalysisPage')
+#        biftPage.addBiftObjToList(ExpObj, BiftObj)
     
  
     def ClearSubplot(self, subplot):
@@ -2067,6 +2066,123 @@ class PlotPanel(wx.Panel):
 #
 # Connect indirect fourier to GUI... 
 #
+
+
+class IftPanel(PlotPanel):
+    
+    def __init__(self, parent, panel_id, name, noOfPlots = 1):
+        
+        PlotPanel.__init__(self, parent, panel_id, name, noOfPlots = noOfPlots)
+ 
+ 
+    def InitLabels(self):
+        self._setLabels(None, title = 'Indirect Fourier Transform', xlabel = 'r [A]', ylabel = 'p(r)', axes = self.subplot1)
+        self._setLabels(None, title = 'Fit', xlabel = 'q [1/A]', ylabel = 'I(q)', axes = self.subplot2)
+        
+    def PlotExperimentObject(self, ExpObj, name = None):
+        
+        # Until we get errorbars on!
+        ExpObj.errorbars = zeros((len(ExpObj.q)))
+        
+        print 'Q',shape(ExpObj.q)
+        print 'I',shape(transpose(ExpObj.i)[0])
+        print 'E',shape(ExpObj.errorbars)
+        
+        if shape(ExpObj.i) == (50,1):
+            ExpObj.i = transpose(ExpObj.i)[0]
+        
+        self._PlotOnSelectedAxesScale(ExpObj, self.subplot1)
+        self._setLabels(ExpObj, 'Indirect Fourier Transform', 'r (A)', 'P(r)', self.subplot1)
+        
+        if name != None:
+            self._insertLegend('IFT', self.subplot1)
+        else:
+            self._insertLegend(os.path.split(ExpObj.param['filename'])[1], self.subplot1)    # filename without path
+        
+        manipulationPage = wx.FindWindowByName('ManipulationPage')
+        evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, ExpObj)
+        wx.PostEvent(manipulationPage, evt)
+        
+        self.subplot2.cla()
+        
+        q = ExpObj.allData['orig_q']
+        i = ExpObj.allData['orig_i']
+        err = ExpObj.allData['orig_err']
+        
+        FitExp = cartToPol.RadFileMeasurement(i, q, err, None)
+        
+        self._PlotArrayOnSelectedAxesScale([q, ExpObj.fit], self.subplot2, True)
+        self._PlotOnSelectedAxesDontSave(FitExp, self.subplot2, True)
+        
+        #self._insertLegend(os.path.split(ExpObj.param['filename'])[1], self.subplot2)
+        self._setLabels(ExpObj, 'Fit', 'q (1/A)', 'I', self.subplot2)
+        
+        
+        self.fitAxis()
+        #Update figure:
+        self.canvas.draw()
+        
+    def ShowErrorbars(self):
+        
+        for each in self.plottedExps:
+            setp(each.errLine[0], visible=True)
+            setp(each.errLine[1], visible=True)
+        
+        if self.fitplot != None:
+            setp(self.fitplot.errLine[0], visible=True)
+            setp(self.fitplot.errLine[1], visible=True)
+            
+        self.canvas.draw()
+        
+    def HideErrorbars(self):
+        
+        for each in self.plottedExps:
+            setp(each.errLine[0], visible=False)
+            setp(each.errLine[1], visible=False)
+        
+        if self.fitplot != None:
+            setp(self.fitplot.errLine[0], visible=False)
+            setp(self.fitplot.errLine[1], visible=False)
+            
+        self.canvas.draw()
+        
+    def SwitchToNoteBookPage(self):
+        mainframe = wx.FindWindowByName('MainFrame')
+        mainframe.plotNB.SetSelection(1)
+        
+    def _setLabels(self, ExpObj = None, title = None, xlabel = None, ylabel = None, axes = None):
+        
+        if axes == None:
+            a = self.fig.gca()
+        else:
+            a = axes
+        
+        # Set TITLE 
+        if title == None:
+        
+            if a == self.subplot1:
+                a.set_title('Indirect Fourier Transform')
+                a.set_ylabel('P(r)')
+                a.set_xlabel('r [A]')
+            elif a == self.subplot2:
+                a.set_title('Fit')
+                a.set_ylabel('I(q)')
+                a.set_xlabel('q [1/A]')
+            
+        else:
+            a.set_title(title)
+        
+    def PlotLoadedBift(self, BiftObj):
+        
+        i = BiftObj.allData['orig_i']
+        q = BiftObj.allData['orig_q']
+        err = BiftObj.allData['orig_err']
+        
+        ExpObj = cartToPol.RadFileMeasurement(array(i), array(q), array(err), BiftObj.param)
+        
+        self.PlotBIFTExperimentObject(BiftObj)
+        biftPage = wx.FindWindowByName('AutoAnalysisPage')
+        biftPage.addBiftObjToList(ExpObj, BiftObj)
 
 class FileExistsDialog(wx.Dialog):
     
@@ -2820,24 +2936,13 @@ class OnlineController:
             
     def UpdateOnlineStatus(self, status):
         
-        #onlineled = wx.FindWindowById(ONLINELED_ID)
-        #onlinebutton = wx.FindWindowById(ONLINEBUTTON_ID)
-        
         if status == 'Online':
-#            size = onlineled.GetSize()
-#            onlineled.SetLabel('Online')
-#            onlineled.SetSize(size)
-#            onlineled.SetBackgroundColour((0,255,0))
-#            onlinebutton.SetLabel('Go Offline')
+
             self.parent.SetStatusText('Mode: ONLINE', 2)
             self.OnOnline('Online')
             
         elif status == 'Offline':
-#            size = onlineled.GetSize()
-#            onlineled.SetLabel('Offline')
-#            onlineled.SetSize(size)
-#            onlineled.SetBackgroundColour((0,100,0))
-#            onlinebutton.SetLabel('Go Online..')
+
             self.parent.SetStatusText('Mode: OFFLINE', 2)
             self.OnOnline('Offline')
             
@@ -2859,7 +2964,11 @@ class OnlineController:
         infopanel = wx.FindWindowByName('InfoPanel')
         DirList = os.listdir(self.seekDir)
         
+        print self.Old_DirList
+        
         if DirList != self.Old_DirList:
+            
+            print "CHANGED!"
             for idx in range(0, len(DirList)):
 
                 try:
@@ -3377,11 +3486,6 @@ class PlotPage(wx.Panel):
                 
         return buttonSizer    
             
-
-class BIFTPlotPanel(PlotPanel):
-    
-    def __init__(self, parent, panel_id, name, noOfPlots =1):
-        pass
 
 class ManipFilePanel(wx.Panel):
     def __init__(self, parent, ExpObj):
@@ -4160,7 +4264,10 @@ class MainFrame(wx.Frame):
         
         plotpage1 = PlotPanel(self.plotNB, -1, 'PlotPanel', 2) 
         plotpage2 = masking.MaskingPanel(self.plotNB, -1, 'RawPlotPanel', wxEmbedded = True)
-        plotpage3 = PlotPanel(self.plotNB, wx.NewId(), 'BIFTPlotPanel', 2)
+        #plotpage3 = PlotPanel(self.plotNB, wx.NewId(), 'BIFTPlotPanel', 2)
+        
+        plotpage3 = IftPanel(self.plotNB, wx.NewId(), 'BIFTPlotPanel', 2)
+        
         #plotpage4 = overview.OverviewPanel(self.plotNB, -1, 'OverviewPanel')
 
         self.plotNB.AddPage(plotpage1, "1D Plots")
@@ -4256,6 +4363,9 @@ class MainFrame(wx.Frame):
         
         self.statusbar.SetStatusText(text, slot)
         
+    def SetViewMenuScale(self, id):
+        self.MenuBar.FindItemById(id).Check(True)
+        
     def _CreateSingleMenuBarItem(self, info):
         
         menu = wx.Menu()
@@ -4308,7 +4418,10 @@ class MainFrame(wx.Frame):
                     'viewPlot2Scale':[('Lin-Lin', self.MenuIDs['plot2sclinlin'], self.OnViewMenu, 'radio'),
                                       ('Log-Lin', self.MenuIDs['plot2scloglin'], self.OnViewMenu, 'radio'),
                                       ('Log-Log', self.MenuIDs['plot2scloglog'], self.OnViewMenu, 'radio'),
-                                      ('Lin-Log', self.MenuIDs['plot2sclinlog'], self.OnViewMenu, 'radio')]}         
+                                      ('Lin-Log', self.MenuIDs['plot2sclinlog'], self.OnViewMenu, 'radio')],
+                    
+                    'onlinemenu':    [('Offline', self.MenuIDs['goOffline'], self.OnOnlineMenu, 'radio'),
+                                      ('Online', self.MenuIDs['goOnline'], self.OnOnlineMenu, 'radio')]}         
                                     
         
         menus = [('&File',    [('E&xit', self.MenuIDs['exit'], self.OnFileMenu, 'normal')]),
@@ -4316,7 +4429,9 @@ class MainFrame(wx.Frame):
                  ('&Options', [('&Advanced Options...', self.MenuIDs['advancedOptions'], self.OnOptionsMenu, 'normal'),
                               (None, None, None, 'separator'),
                               ('&Load Settings', self.MenuIDs['loadSettings'], self.OnLoadMenu, 'normal'),
-                              ('&Save Settings', self.MenuIDs['saveSettings'], self.OnSaveMenu, 'normal')]),
+                              ('&Save Settings', self.MenuIDs['saveSettings'], self.OnSaveMenu, 'normal'),
+                              (None, None, None, 'separator'),
+                              ('&Online mode', None, submenus['onlinemenu'], 'submenu')]),
                               
                  ('&View',    [('&1D Plot (top) Type', None, submenus['viewPlot1Sub'], 'submenu'),
                               ('1D &Plot (bottom) Type', None, submenus['viewPlot2Sub'], 'submenu'),
@@ -4330,8 +4445,6 @@ class MainFrame(wx.Frame):
                  ('&Help',    [('&Help!', self.MenuIDs['help'], self.OnHelp, 'normal'),
                                (None, None, None, 'separator'),
                                ('&About', self.MenuIDs['about'], self.OnAboutDlg, 'normal')])]
-        
-        
         
         menubar = wx.MenuBar()
         
@@ -4423,6 +4536,9 @@ class MainFrame(wx.Frame):
         
         beamback = None
         readback = None
+        
+        if os.path.splitext(file)[1] != '.cfg':
+            file = file + '.cfg'
         
         if file:
             

@@ -90,7 +90,7 @@ def radialAverage(in_image, dim, x_c, y_c, mask = None, readoutNoise_mask = None
     low_q = q_range[0]
     high_q = q_range[1]
     
-    zinger_threshold = 60000        #Too Hardcoded!
+    zinger_threshold = 70000        #Too Hardcoded!
             
     print 'Doing  radial average...',
     ravg_ext.ravg(readoutNoiseFound,
@@ -131,6 +131,8 @@ def radialAverage(in_image, dim, x_c, y_c, mask = None, readoutNoise_mask = None
         errorbars = sqrt(power(errorbars, 2) + power(errorbarNoise, 2))
     
     res = None #used for testing
+    
+    iq[where(isnan(iq))] = 0
     
     return [iq, res, errorbars]
 

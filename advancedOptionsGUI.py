@@ -158,7 +158,6 @@ class MaskingOptions(wx.Panel):
             if id == setButton_ID:
             
                 if labl_ID == self.expParamsInGUI['BeamStopMaskFilename'][0]:
-                    #optionspage = wx.FindWindowByName('OptionsPage')
                     filename = self.OnSetMask(None)
             
                     if filename != None:
@@ -166,7 +165,6 @@ class MaskingOptions(wx.Panel):
                         filenameLabel.SetValue(filename)
                 
                 if labl_ID == self.expParamsInGUI['ReadOutNoiseMaskFilename'][0]:
-              #      optionspage = wx.FindWindowByName('OptionsPage')
                     filename = self.OnSetReadoutMask(None)
             
                     if filename != None:
