@@ -2348,7 +2348,8 @@ class DirCtrlPanel_2(wx.Panel):
                                   'TIF files (*.tif)',
                                   'RAD Files (*.rad)',
                                   'DAT files (*.dat)',
-                                  'TXT files (*.txt)']
+                                  'TXT files (*.txt)',
+                                  'IMG files (*.img)']
         
         DirCtrlPanel_Sizer = wx.BoxSizer(wx.VERTICAL)
         
