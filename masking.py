@@ -321,6 +321,7 @@ class MaskingPanel(wx.Panel):
         self.fig.gca().set_visible(False)
         self.ExpObj = None
         self.imgZeros = None
+        self.RightClickOnPatch = False
 
         
     def getMaskWithId(self, id):
@@ -347,12 +348,13 @@ class MaskingPanel(wx.Panel):
             
     def ShowPopupMenu(self):
        
+        print 'hello!'
         menu = wx.Menu()
         
-        i1 = menu.AppendRadioItem(1, 'Positive (exclude)')
-        i2 = menu.AppendRadioItem(2, 'Negative (include)')
+        i1 = menu.AppendRadioItem(1, 'Normal Mask')
+        i2 = menu.AppendRadioItem(2, 'Inverted Mask')
         
-        if self.selectedPatch.negativeMask == True:
+        if self.selectedPatch.mask.negativeMask == True:
             i2.Check(True)
         
         self.Bind(wx.EVT_MENU, self._OnPopupMenuChoice) 
@@ -361,12 +363,12 @@ class MaskingPanel(wx.Panel):
         
     def _OnPopupMenuChoice(self, evt):
         id = evt.GetId()
-        
-        print self.selectedPatch
+
         if id == 2:
-            self.selectedPatch.negativeMask = True
+            self.selectedPatch.mask.SetAsNegativeMask()     
         else:
-            self.selectedPatch.negativeMask = False
+            self.selectedPatch.mask.SetAsPositiveMask()           
+                   
                 
     def onPick(self, event):
         
@@ -376,17 +378,40 @@ class MaskingPanel(wx.Panel):
         
         print mouseevent.button
         
+        if mouseevent.button == 'down':
+            if isinstance(artist, Circle):
+                oldrad = artist.get_radius()
+                newrad = oldrad-(oldrad*0.01)
+                artist.set_radius(newrad)
+                artist.mask.radius = newrad
+        
+                self.canvas.draw()
+        
+        if mouseevent.button == 'up':
+            if isinstance(artist, Circle):
+                oldrad = artist.get_radius()
+                
+                newrad = oldrad+(oldrad*0.01)
+                artist.set_radius(newrad)
+                artist.mask.radius = newrad
+                
+                self.canvas.draw()
+                
+        
         if mouseevent.button == 3:
             
             if event.artist.selected == 0:
-                self.toggleSelect = artist
-                 
+                
+                self.toggleSelect = artist 
                 event.artist.selected = 1
+                
                 self.selectedPatch = artist
+                
+                self.RightClickOnPatch = True
             
                 self.patchToggleSelection()
-            
-            self.ShowPopupMenu()
+            else:
+                self.RightClickOnPatch = True
         
         if mouseevent.button == 1:
             if not self.plotParameters['currentTool']:  #No tool is selected
@@ -827,7 +852,7 @@ class MaskingPanel(wx.Panel):
                             
         self.canvas.draw()
         
-    def drawCircle(self, points, id):
+    def drawCircle(self, points, id, mask):
         
         a = self.fig.gca()
         
@@ -839,14 +864,14 @@ class MaskingPanel(wx.Panel):
         
         if usePatch:
              cir = Circle( (points[0][0], points[0][1]), radius = radiusC, alpha = 0.5, picker = True )
-             cir.negativeMask = False 
+             
              a.add_patch(cir)
              
              cir.id = id              # Im creating a new parameter called Id to distingush them!
+             cir.mask = mask
              cir.selected = 0
              self.plottedPatches.append(cir)
              
-             #a.plot(xPoints, yPoints, 'r.')
         else:
             radiusC = abs(points[1][0] - points[0][0])
             circlePoints = bresenhamCirclePoints(radiusC, points[0][0], points[0][1])
@@ -854,7 +879,7 @@ class MaskingPanel(wx.Panel):
             a.plot(xPoints, yPoints, 'r.')
         
         
-    def drawRectangle(self, points, id):
+    def drawRectangle(self, points, id, mask):
         
         a = self.fig.gca()
         
@@ -870,6 +895,7 @@ class MaskingPanel(wx.Panel):
             width = xEnd - xStart
             height = yEnd - yStart
             rect = Rectangle( (xStart, yStart), width, height, alpha = 0.5, picker = True )
+            rect.mask = mask
             a.add_patch(rect)
             
             rect.id = id
@@ -881,7 +907,7 @@ class MaskingPanel(wx.Panel):
             
             a.plot(xPoints, yPoints, 'r')
         
-    def drawPolygon(self, points, id):
+    def drawPolygon(self, points, id, mask):
         
         a = self.fig.gca()
         
@@ -889,6 +915,7 @@ class MaskingPanel(wx.Panel):
         
         if usePatch:
             poly = Polygon( points, alpha = 0.5, picker = True )
+            poly.mask = mask
             a.add_patch(poly)
             
             poly.id = id
@@ -911,17 +938,17 @@ class MaskingPanel(wx.Panel):
         if self.toggleSelect != None:
 
             if self.toggleSelect.selected == 1:
-                
-                if self.toggleSelect.negativeMask == False:
-                    self.toggleSelect.set_facecolor('yellow')
-                else:
-                    self.toggleSelect.set_facecolor('red')
+                self.toggleSelect.set_facecolor('yellow')
                     
                 id = self.toggleSelect.id
                 #Paint the other masks blue
                 for each in self.plottedPatches:
                     if id != each.id:
-                        each.set_facecolor('blue')
+                        
+                        if each.mask.negativeMask == False:
+                            each.set_facecolor('blue')    
+                        else:
+                            each.set_facecolor('green')
                         each.selected = 0
                     
                 self.toggleSelect = None
@@ -932,7 +959,10 @@ class MaskingPanel(wx.Panel):
                         
         else:
             for each in self.plottedPatches:
-                each.set_facecolor('blue')
+                if each.mask.negativeMask == False:
+                    each.set_facecolor('blue')    
+                else:
+                    each.set_facecolor('green')
                 each.selected = 0
             
             self.selectedPatch = None
@@ -1019,6 +1049,17 @@ class MaskingPanel(wx.Panel):
                     self.stopMaskCreation()
                 
                     self.toolbar.untoggleAllToolButtons()
+                    
+            else:
+                
+                print 'Release :', self.RightClickOnPatch
+                 
+                if self.RightClickOnPatch == True:
+                    
+                    self.RightClickOnPatch = False
+                    self.ShowPopupMenu()
+                    
+                
             
     def onMouseButtonPressEvent(self, event):
         
@@ -1249,13 +1290,13 @@ class MaskingPanel(wx.Panel):
             each.maskID = id
             
             if each.type == 'circle':
-                self.drawCircle(each.getPoints(), id)#each.maskID)
+                self.drawCircle(each.getPoints(), id, each)#each.maskID)
                 
             elif each.type == 'rectangle':
-                self.drawRectangle(each.getPoints(), id)#each.maskID)
+                self.drawRectangle(each.getPoints(), id, each)#each.maskID)
                 
             elif each.type == 'polygon':
-                self.drawPolygon(each.getPoints(), id)#each.maskID)
+                self.drawPolygon(each.getPoints(), id, each)#each.maskID)
                 
             else:
                 print "Huh??? this should not happen!"
@@ -1673,7 +1714,13 @@ class CircleMask:
         self.radius = abs(points[1][0] - points[0][0])
         self.startPoint = points[0]
         self.borderPixels = []
-        self.filledPixels = []
+        self.filledPixels = []    
+    
+    def SetAsNegativeMask(self):
+        self.negativeMask = True
+        
+    def SetAsPositiveMask(self):
+        self.negativeMask = False
         
     def getPoints(self):
         return self.points
@@ -1713,6 +1760,7 @@ class RectangleMask:
         
         self.maskID = id
         
+        self.negativeMask = False
         self.imgDim = imgDim
         self.type = 'rectangle'
         self.points = points
@@ -1720,6 +1768,12 @@ class RectangleMask:
         self.endPoint = points[1]
         self.filledPixels = []
         self.patch = []
+    
+    def SetAsNegativeMask(self):
+        self.negativeMask = True
+        
+    def SetAsPositiveMask(self):
+        self.negativeMask = False
     
     def getPoints(self):
         return self.points
@@ -1774,6 +1828,7 @@ class PolygonMask:
     
     def __init__(self, points, id, imageDim):
         
+        self.negativeMask = False
         self.xDim = imageDim[0]
         self.yDim = imageDim[1]
         self.maskID = id
@@ -1783,6 +1838,12 @@ class PolygonMask:
         self.filledPixels = []
         
     #    self.patch = Polygon( points, alpha = 0.5, picker = True )
+    
+    def SetAsNegativeMask(self):
+        self.negativeMask = True
+        
+    def SetAsPositiveMask(self):
+        self.negativeMask = False
         
     def getPoints(self):
         return self.points
@@ -2716,7 +2777,7 @@ class MaskingTestFrame(wx.Frame):
              'ScaleCurve'            : False
              }
                
-        ExpObj, FullImage = fileIO.loadFile('C:\workspace\RAW\src\AgBeh_1_001.img', expParams)
+        ExpObj, FullImage = fileIO.loadFile('/home/specuser/AgBeh_1_001.img', expParams)
         print "Done!"
         
         maskingFigurePanel.showImage(FullImage, ExpObj)
