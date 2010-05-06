@@ -344,23 +344,63 @@ class MaskingPanel(wx.Panel):
         if answer == wx.CANCEL:
             self.toolbar.untoggleAllToolButtons()
             self.plotStoredMasks()
+            
+    def ShowPopupMenu(self):
+       
+        menu = wx.Menu()
         
+        i1 = menu.AppendRadioItem(1, 'Positive (exclude)')
+        i2 = menu.AppendRadioItem(2, 'Negative (include)')
+        
+        if self.selectedPatch.negativeMask == True:
+            i2.Check(True)
+        
+        self.Bind(wx.EVT_MENU, self._OnPopupMenuChoice) 
+        
+        self.PopupMenu(menu)
+        
+    def _OnPopupMenuChoice(self, evt):
+        id = evt.GetId()
+        
+        print self.selectedPatch
+        if id == 2:
+            self.selectedPatch.negativeMask = True
+        else:
+            self.selectedPatch.negativeMask = False
+                
     def onPick(self, event):
         
         artist = event.artist
         
-        if not self.plotParameters['currentTool']:  #No tool is selected
+        mouseevent = event.mouseevent
+        
+        print mouseevent.button
+        
+        if mouseevent.button == 3:
             
             if event.artist.selected == 0:
                 self.toggleSelect = artist
                  
                 event.artist.selected = 1
                 self.selectedPatch = artist
+            
+                self.patchToggleSelection()
+            
+            self.ShowPopupMenu()
+        
+        if mouseevent.button == 1:
+            if not self.plotParameters['currentTool']:  #No tool is selected
+            
+                if event.artist.selected == 0:
+                    self.toggleSelect = artist
+                 
+                    event.artist.selected = 1
+                    self.selectedPatch = artist
 
-            else:
-                self.selectedPatch = artist
-                self.toggleSelect = artist
-                self.movementInProgress = True
+                else:
+                    self.selectedPatch = artist
+                    self.toggleSelect = artist
+                    self.movementInProgress = True
 
     def onKeyPressEvent(self, event):
         
@@ -798,7 +838,8 @@ class MaskingPanel(wx.Panel):
         xPoints, yPoints = zip(*circlePoints)
         
         if usePatch:
-             cir = Circle( (points[0][0], points[0][1]), radius = radiusC, alpha = 0.5, picker = True ) 
+             cir = Circle( (points[0][0], points[0][1]), radius = radiusC, alpha = 0.5, picker = True )
+             cir.negativeMask = False 
              a.add_patch(cir)
              
              cir.id = id              # Im creating a new parameter called Id to distingush them!
@@ -871,7 +912,10 @@ class MaskingPanel(wx.Panel):
 
             if self.toggleSelect.selected == 1:
                 
-                self.toggleSelect.set_facecolor('yellow')
+                if self.toggleSelect.negativeMask == False:
+                    self.toggleSelect.set_facecolor('yellow')
+                else:
+                    self.toggleSelect.set_facecolor('red')
                     
                 id = self.toggleSelect.id
                 #Paint the other masks blue
@@ -930,7 +974,6 @@ class MaskingPanel(wx.Panel):
 
             self.patchToggleSelection()
         
-        
         #Right button:
         if event.button == 3:
             tool = self.plotParameters['currentTool']
@@ -951,7 +994,7 @@ class MaskingPanel(wx.Panel):
                     
                     self.toolbar.untoggleAllToolButtons()
                     
-            if tool == 'polygon':
+            elif tool == 'polygon':
                 
                     if self.plottingInProgress == True:
                         self.plottingInProgress = False
@@ -967,7 +1010,7 @@ class MaskingPanel(wx.Panel):
                     self.toolbar.untoggleAllToolButtons()
                 
             ######################################################
-            if tool == 'circle' or tool == 'rectangle':
+            elif tool == 'circle' or tool == 'rectangle':
                 
                     if len(self.chosenPointsX) > 1:
                         storedMasks.append( (self.chosenPointsX, self.chosenPointsY) )
@@ -1620,8 +1663,9 @@ def createMaskFromRAWFormat(maskPlotParameters):
 ##########################################################################
 
 class CircleMask:
-    def __init__(self, points, id, imgDim):
+    def __init__(self, points, id, imgDim, negative = False):
         
+        self.negativeMask = negative
         self.imgDim = imgDim            # need image Dimentions to get the correct fill points
         self.maskID = id
         self.type = 'circle'
@@ -2570,7 +2614,9 @@ class MaskCreationThread(threading.Thread):
 class MaskingTestFrame(wx.Frame):
     
     def __init__(self, title, frame_id):
-        wx.Frame.__init__(self, None, frame_id, title, name = 'TestFrame')
+        wx.Frame.__init__(self, None, frame_id, title, name = 'MainFrame')
+        
+        self.RAWWorkDir = '.'
         
         self.backgroundPanel = wx.Panel(self, -1)
         sizer = wx.BoxSizer()
@@ -2582,9 +2628,9 @@ class MaskingTestFrame(wx.Frame):
         self.backgroundPanel.SetSizer(sizer)
         
         self.statusbar = self.CreateStatusBar()
-        self.statusbar.SetFieldsCount(1)
+        self.statusbar.SetFieldsCount(3)
         #self.statusbar.SetStatusWidths([-3, -2])
-        
+        self.SetStatusBar(self.statusbar)
         print "Loading Test Image 19_InsulinA_300sec..."
         
         expParams = {
@@ -2670,7 +2716,7 @@ class MaskingTestFrame(wx.Frame):
              'ScaleCurve'            : False
              }
                
-        ExpObj, FullImage = fileIO.loadFile('/home/specuser/AgBeh_1_001.img', expParams)
+        ExpObj, FullImage = fileIO.loadFile('C:\workspace\RAW\src\AgBeh_1_001.img', expParams)
         print "Done!"
         
         maskingFigurePanel.showImage(FullImage, ExpObj)
