@@ -376,28 +376,25 @@ class MaskingPanel(wx.Panel):
         
         mouseevent = event.mouseevent
         
-        print mouseevent.button
+        #print mouseevent.button
         
         if mouseevent.button == 'down':
             if isinstance(artist, Circle):
-                oldrad = artist.get_radius()
-                newrad = oldrad-(oldrad*0.01)
+                artist.mask.shrink(2)
+                
+                newrad = artist.mask.getRadius()
                 artist.set_radius(newrad)
-                artist.mask.radius = newrad
-        
                 self.canvas.draw()
-        
+            
         if mouseevent.button == 'up':
             if isinstance(artist, Circle):
-                oldrad = artist.get_radius()
                 
-                newrad = oldrad+(oldrad*0.01)
+                artist.mask.grow(2)    
+                newrad = artist.mask.getRadius()
+                
                 artist.set_radius(newrad)
-                artist.mask.radius = newrad
-                
                 self.canvas.draw()
-                
-        
+                   
         if mouseevent.button == 3:
             
             if event.artist.selected == 0:
@@ -1722,8 +1719,49 @@ class CircleMask:
     def SetAsPositiveMask(self):
         self.negativeMask = False
         
+    def grow(self, pixels):
+        
+        xy_c, xy_r = self.points
+        
+        x_c = xy_c[0]
+        y_c = xy_c[1]
+                
+        x_r = xy_r[0]
+        y_r = xy_r[1]
+                
+        if x_r > x_c:
+            x_r = x_r + pixels
+        else:
+            x_r = x_r - pixels
+                    
+        self.setPoints([(x_c,y_c), (x_r,y_r)])
+        
+    def shrink(self, pixels):
+        
+        xy_c, xy_r = self.points
+        
+        x_c = xy_c[0]
+        y_c = xy_c[1]
+                
+        x_r = xy_r[0]
+        y_r = xy_r[1]
+                
+        if x_r > x_c:
+            x_r = x_r - pixels
+        else:
+            x_r = x_r + pixels
+                    
+        self.setPoints([(x_c,y_c), (x_r,y_r)])
+        
     def getPoints(self):
         return self.points
+    
+    def getRadius(self):
+        return self.radius
+    
+    def setPoints(self, points):
+        self.points = points
+        self.radius = abs(points[1][0] - points[0][0]) 
     
     def getFillPoints(self):
         ''' Really Clumsy! Can be optimized alot! triplicates the points in the middle!'''
@@ -1768,6 +1806,35 @@ class RectangleMask:
         self.endPoint = points[1]
         self.filledPixels = []
         self.patch = []
+    
+    def grow(self, pixels):
+        
+        xy1, xy2 = self.points
+        
+        x1 = xy1[0]
+        x2 = xy2[0]
+        
+        y1 = xy1[1]
+        y2 = xy2[1]
+
+        if x1 > x2:
+            x1 = x1 + pixels
+            x2 = x2 - pixels
+        else:
+            x1 = x1 - pixels
+            x2 = x2 + pixels
+        
+        if y1 > y2:
+            y1 = y1 - pixels
+            y2 = y2 + pixels
+        else:
+            y1 = y1 + pixels
+            y2 = y2 - pixels
+    
+        self.points = [(x1,y1), (x2,y2)]
+        
+    def shrink(self):
+        pass
     
     def SetAsNegativeMask(self):
         self.negativeMask = True
