@@ -169,6 +169,10 @@ bgSubPlotQueue = Queue.Queue(0)
 autoBgSubQueue = Queue.Queue(0)
 #loadMaskQueue = Queue.Queue(0)
 
+PlotReadyEvent = wx.NewEventType()
+EVT_PLOT_READY = wx.PyEventBinder(PlotReadyEvent, 1)
+
+
 def getGeneralParameters():
     return generalParams
 
@@ -261,17 +265,20 @@ class PlotWorkerThread(threading.Thread):
         while True:
             
             selectedFiles = plotQueue.get() # Blocks until a new item is available in the queue
-        
+                    
             dirCtrlPanel = wx.FindWindowByName('DirCtrlPanel')
             plotpanel = wx.FindWindowByName('PlotPanel')
             biftplotpanel = wx.FindWindowByName('BIFTPlotPanel')
             mainframe_window = wx.FindWindowByName('MainFrame')
         
-            selectedFiles = dirCtrlPanel.GetSelectedFile()
+            #wx.PostEvent(mainframe_window.GetEventHandler(), PlotReadyEvent)
+        
         
             for eachSelectedFile in selectedFiles:
                 
 #                cProfile.runctx("ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)", globals(), locals())
+                
+                
                 
                 ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)
                                                 
@@ -1112,6 +1119,8 @@ class PlotPanel(wx.Panel):
         self.canvas.callbacks.connect('key_press_event', self.OnKeyPress)
         self.canvas.callbacks.connect('button_release_event', self.OnMouseButton)
         
+        self.Bind(EVT_PLOT_READY, self.OnReadyPlot)
+        
         
         self.canvas.callbacks.connect('motion_notify_event', self.onMotionEvent)
                         
@@ -1123,6 +1132,10 @@ class PlotPanel(wx.Panel):
         
         self._setLabels(axes = self.subplot1)
         self._setLabels(axes = self.subplot2)
+        
+    def OnReadyPlot(self, evt):
+        
+        print 'PLOT IS READY!'
         
     def onMotionEvent(self, event):
         
@@ -1434,13 +1447,12 @@ class PlotPanel(wx.Panel):
         
         #progressBar = MyProgressBar(self)
         progressBar = None
-        
+                
         dirCtrlPanel = wx.FindWindowByName('DirCtrlPanel')
             
         selectedFiles = dirCtrlPanel.GetSelectedFile()
                 
         if evt == 'onlineBackground':
-            
             if self.plotWorkerThread == None:
                 self.plotWorkerThread = PlotWorkerThread(self, progressBar, setBackground = True)
                 self.plotWorkerThread.setDaemon(True)
@@ -2923,6 +2935,7 @@ class OnlineController:
         
         #onlineled = wx.FindWindowById(ONLINELED_ID)
         dirdlg = wx.DirDialog(self.parent, "Please select directory to survey:", '')
+        mainframe = wx.FindWindowByName('MainFrame')
         
         if state == 'Online':
             
@@ -2931,8 +2944,11 @@ class OnlineController:
                 self.Old_DirList = os.listdir(path)
                 self.seekDir = path
                 self.UpdateOnlineStatus('Online')
+                wx.CallAfter(mainframe.infoPan.WriteText,'Online mode enabled on:\n' + str(path) + '\n')    
+                
         else:
             self.UpdateOnlineStatus('Offline')
+            wx.CallAfter(mainframe.infoPan.WriteText,'Online mode disabled\n')
             
     def UpdateOnlineStatus(self, status):
         
@@ -2976,7 +2992,7 @@ class OnlineController:
                 
                 except ValueError:
                     
-                    self.UpdateFileList()
+                    #self.UpdateFileList()
                     self.Old_DirList.append(DirList[idx])
                                     
                     print DirList[idx]
@@ -2991,7 +3007,9 @@ class OnlineController:
         plotPanel = wx.FindWindowByName('PlotPanel')
         dirCtrlPanel = wx.FindWindowByName('DirCtrlPanel')
 
-        self.SetPath(filepath)    #Plot thread gets the filepath from there
+        print filepath
+
+        #self.SetPath(filepath)    #Plot thread gets the filepath from there
         
         autoSubtractEnabled = expParams['AutoBgSubtract']
         
@@ -3000,9 +3018,7 @@ class OnlineController:
             
             if filenameIsBackground:
                 plotPanel.onPlotButton('onlineBackground') 
-                
             else:
-                
                 if self.autoBgSubThread == None:
                     self.autoBgSubThread = AutoBgSubWorkerThread(self)
                     self.autoBgSubThread.start()
@@ -3011,7 +3027,8 @@ class OnlineController:
                     autoBgSubQueue.put([filepath])
             
         else:
-           plotPanel.onPlotButton(0) 
+           plotQueue.put([filepath])
+           #plotPanel.onPlotButton(0) 
             
     def CheckIfFilenameIsBackground(self, filepath):
         
@@ -3062,7 +3079,7 @@ class OnlineController:
         
         return
 
-#----- **** Custom SpinCtrl's ****
+#----- **** Custom Events ****
 
 class FloatSpinEvent(wx.PyCommandEvent):
     
@@ -3080,6 +3097,8 @@ class FloatSpinEvent(wx.PyCommandEvent):
         
 myEVT_MY_SPIN = wx.NewEventType()
 EVT_MY_SPIN = wx.PyEventBinder(myEVT_MY_SPIN, 1)
+
+#----- **** Custom SpinCtrls ****
 
 class FloatSpinCtrl(wx.Panel):
     
