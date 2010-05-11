@@ -648,6 +648,7 @@ class MaskingPanel(wx.Panel):
         border = self.plotParameters['imageBorder']
 
         z = zeros( ( imgXdim + border, imgYdim + border) )
+        
         z[ border/2 : imgYdim + border/2, border/2 : imgXdim + border/2] = self.img
         self.img = z
         
@@ -849,7 +850,7 @@ class MaskingPanel(wx.Panel):
                             
         self.canvas.draw()
         
-    def drawCircle(self, points, id, mask):
+    def drawCircle(self, points, id, mask, color):
         
         a = self.fig.gca()
         
@@ -860,7 +861,7 @@ class MaskingPanel(wx.Panel):
         xPoints, yPoints = zip(*circlePoints)
         
         if usePatch:
-             cir = Circle( (points[0][0], points[0][1]), radius = radiusC, alpha = 0.5, picker = True )
+             cir = Circle( (points[0][0], points[0][1]), color = color, radius = radiusC, alpha = 0.5, picker = True )
              
              a.add_patch(cir)
              
@@ -876,7 +877,7 @@ class MaskingPanel(wx.Panel):
             a.plot(xPoints, yPoints, 'r.')
         
         
-    def drawRectangle(self, points, id, mask):
+    def drawRectangle(self, points, id, mask, color):
         
         a = self.fig.gca()
         
@@ -891,7 +892,7 @@ class MaskingPanel(wx.Panel):
         if usePatch:
             width = xEnd - xStart
             height = yEnd - yStart
-            rect = Rectangle( (xStart, yStart), width, height, alpha = 0.5, picker = True )
+            rect = Rectangle( (xStart, yStart), width, height, color = color, alpha = 0.5, picker = True )
             rect.mask = mask
             a.add_patch(rect)
             
@@ -904,14 +905,14 @@ class MaskingPanel(wx.Panel):
             
             a.plot(xPoints, yPoints, 'r')
         
-    def drawPolygon(self, points, id, mask):
+    def drawPolygon(self, points, id, mask, color):
         
         a = self.fig.gca()
         
         usePatch = self.plotParameters['usePatches']
         
         if usePatch:
-            poly = Polygon( points, alpha = 0.5, picker = True )
+            poly = Polygon( points, alpha = 0.5, picker = True , color = color)
             poly.mask = mask
             a.add_patch(poly)
             
@@ -938,14 +939,16 @@ class MaskingPanel(wx.Panel):
                 self.toggleSelect.set_facecolor('yellow')
                     
                 id = self.toggleSelect.id
-                #Paint the other masks blue
+                
                 for each in self.plottedPatches:
                     if id != each.id:
                         
                         if each.mask.negativeMask == False:
-                            each.set_facecolor('blue')    
+                            each.set_facecolor('red')
+                            each.set_edgecolor('red')      
                         else:
                             each.set_facecolor('green')
+                            each.set_edgecolor('green')
                         each.selected = 0
                     
                 self.toggleSelect = None
@@ -957,9 +960,11 @@ class MaskingPanel(wx.Panel):
         else:
             for each in self.plottedPatches:
                 if each.mask.negativeMask == False:
-                    each.set_facecolor('blue')    
+                    each.set_facecolor('red') 
+                    each.set_edgecolor('red')   
                 else:
                     each.set_facecolor('green')
+                    each.set_edgecolor('green')
                 each.selected = 0
             
             self.selectedPatch = None
@@ -1286,14 +1291,19 @@ class MaskingPanel(wx.Panel):
             id = wx.NewId()
             each.maskID = id
             
+            if each.negativeMask == True:
+                col = 'green'
+            else:
+                col = 'red'
+            
             if each.type == 'circle':
-                self.drawCircle(each.getPoints(), id, each)#each.maskID)
+                self.drawCircle(each.getPoints(), id, each, color = col)
                 
             elif each.type == 'rectangle':
-                self.drawRectangle(each.getPoints(), id, each)#each.maskID)
+                self.drawRectangle(each.getPoints(), id, each, color = col)
                 
             elif each.type == 'polygon':
-                self.drawPolygon(each.getPoints(), id, each)#each.maskID)
+                self.drawPolygon(each.getPoints(), id, each, color = col)
                 
             else:
                 print "Huh??? this should not happen!"
@@ -1672,27 +1682,51 @@ def createMaskFromRAWFormat(maskPlotParameters):
     
     maskingpanel = wx.FindWindowByName('RawPlotPanel')
     
+    #wx.SetCursor(wx.StockCursor(wx.CURSOR_ARROWWAIT))
     wx.SetCursor(wx.StockCursor(wx.CURSOR_WAIT))
     
-    mask = ones(imageDimentions)
+    negmasks = []
+    posmasks = []
+    neg = False
     
+    for each in storedMasks:
+        if each.negativeMask == True:
+            neg = True  
+            negmasks.append(each)
+        else:
+            posmasks.append(each)
+        
+    if neg:
+        for each in posmasks:
+            negmasks.append(each) 
+            
+        storedMasks = negmasks
+        mask = zeros(imageDimentions)
+    else:
+        mask = ones(imageDimentions)
+        
     maxy = mask.shape[0]
     maxx = mask.shape[1]
     
     for each in storedMasks:
         fillPoints = each.getFillPoints()
+        
+        if each.negativeMask == True:
+            for eachp in fillPoints:
+                if eachp[0] < maxy and eachp[1] < maxy:  
+                    mask[eachp] = 1
+        else:
+            for eachp in fillPoints:
+                if eachp[0] < maxy and eachp[1] < maxy:  
+                    mask[eachp] = 0
                 
-        for eachp in fillPoints:
-            
-            if eachp[0] < maxy and eachp[1] < maxy:  
-                mask[eachp] = 0
-                #maskingpanel.img[eachp] = 0
-                
-    #maskingpanel.canvas.draw()
     # Raw masks are created with a border to make edgemasking easier, this will remove the border:
     finalMask = mask[ border/2 : imageDimentions[1] - border/2, border/2 : imageDimentions[0] - border/2]
 
     wx.SetCursor(wx.StockCursor(wx.CURSOR_DEFAULT))
+    
+    # Show mask:
+    #maskingpanel.showImage([finalMask, finalMask.shape], maskingpanel.ExpObj)
     
     return finalMask
 
@@ -2844,7 +2878,8 @@ class MaskingTestFrame(wx.Frame):
              'ScaleCurve'            : False
              }
                
-        ExpObj, FullImage = fileIO.loadFile('/home/specuser/AgBeh_1_001.img', expParams)
+        #ExpObj, FullImage = fileIO.loadFile('/home/specuser/AgBeh_1_001.img', expParams)
+        ExpObj, FullImage = fileIO.loadFile('C:\workspace\RAW\src\McData\AgBeh_1_001.img', expParams)
         print "Done!"
         
         maskingFigurePanel.showImage(FullImage, ExpObj)
