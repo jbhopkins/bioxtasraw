@@ -91,7 +91,10 @@ def loadQuantum1Image(filename):
     
     xydim = int(sqrt(shape(Img))[0])  #assuming square image
     
-    Img = Img.reshape((xydim,xydim))
+    try:
+        Img = Img.reshape((xydim,xydim))
+    except:
+        return loadQuantum1Image(filename)
     
     SubImg = Img
     
@@ -114,7 +117,11 @@ def loadQuantum210Image(filename):
     
     xydim = int(sqrt(shape(Img))[0])  #assuming square image
     
-    Img = Img.reshape((xydim,xydim))
+    try:
+        Img = Img.reshape((xydim,xydim))
+    except:
+        return loadQuantum210Image(filename)
+        
     
     SubImg = getSecondQuadrant(Img)
     

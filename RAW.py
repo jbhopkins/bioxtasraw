@@ -29,7 +29,7 @@ from matplotlib.figure import Figure
 from matplotlib.font_manager import FontProperties
 import matplotlib.cbook as cbook
 
-from numpy import power, zeros, shape, transpose, array, where
+from numpy import power, zeros, shape, transpose, array, where, isnan, isinf
 
 import wx.lib.scrolledpanel as scrolled
 import wx.animate
@@ -264,21 +264,22 @@ class PlotWorkerThread(threading.Thread):
         
         while True:
             
-            selectedFiles = plotQueue.get() # Blocks until a new item is available in the queue
-                    
+            selectedFiles = plotQueue.get()    # Blocks until a new item is available in the queue
+            
+            if len(selectedFiles) == 2:
+                self._setBackground = selectedFiles[1]
+                selectedFiles = selectedFiles[0] 
+                
             dirCtrlPanel = wx.FindWindowByName('DirCtrlPanel')
             plotpanel = wx.FindWindowByName('PlotPanel')
             biftplotpanel = wx.FindWindowByName('BIFTPlotPanel')
             mainframe_window = wx.FindWindowByName('MainFrame')
         
             #wx.PostEvent(mainframe_window.GetEventHandler(), PlotReadyEvent)
-        
-        
+          
             for eachSelectedFile in selectedFiles:
                 
 #                cProfile.runctx("ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)", globals(), locals())
-                
-                
                 
                 ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)
                                                 
@@ -291,7 +292,7 @@ class PlotWorkerThread(threading.Thread):
             
                         if self._setBackground == True:
                             expParams['BackgroundFile'] = ExpObj
-                            wx.CallAfter(dirCtrlPanel.SetBackgroundFile,eachSelectedFile)
+                            wx.CallAfter(dirCtrlPanel.SetBackgroundFile, eachSelectedFile)
                     
                         if ExpObj.type == 'bift':
                             biftplotpanel.PlotLoadedBift(ExpObj)
@@ -344,10 +345,7 @@ class BgSubPlotWorkerThread(threading.Thread):
         while True:
             
             selectedFiles, bgfilename = bgSubPlotQueue.get()
-
-            #selectedFiles = wx.FindWindowByName('DirCtrlPanel').GetSelectedFile()
-            #bgfilename = wx.FindWindowByName('DirCtrlPanel').GetBackgroundPath()
-        
+    
             ExpObjBackgrnd, FullImage = fileIO.loadFile(bgfilename, expParams)
         
             checkedTreatments = getTreatmentParameters()
@@ -355,8 +353,7 @@ class BgSubPlotWorkerThread(threading.Thread):
         
             for eachSelectedFile in selectedFiles:
             
-                wx.CallAfter(mainframe.SetStatusText, 'Loading file..')    
-                #self._pgthread.SetStatus('Loading file..')
+                wx.CallAfter(mainframe.SetStatusText, 'Loading file..')
             
                 ExpObjSample, FullImage = fileIO.loadFile(eachSelectedFile, expParams)
             
@@ -385,11 +382,7 @@ class BgSubPlotWorkerThread(threading.Thread):
                     wx.CallAfter(plotpanel._PlotOnSelectedAxesScale, ExpObjSample, axes = self._parent.subplot2)
                     wx.CallAfter(plotpanel._setLabels, ExpObjSample, title = 'Background Subtracted Data', axes = self._parent.subplot2)
                     wx.CallAfter(plotpanel._insertLegend, eachSelectedFile, axes = self._parent.subplot2)
-                
-                    #plotpanel._PlotOnSelectedAxesScale(ExpObjSample, axes = self._parent.subplot2)
-                    #plotpanel._setLabels(ExpObjSample, title = 'Background Subtracted Data', axes = self._parent.subplot2)
-                    #plotpanel._insertLegend(eachSelectedFile, axes = self._parent.subplot2)
-        
+                  
                     #Update figure:
                     wx.CallAfter(plotpanel.canvas.draw)
                 
@@ -403,21 +396,15 @@ class BgSubPlotWorkerThread(threading.Thread):
                     wx.MessageBox(noPathSampleFilename + ' and ' + noPathBackgrndFilename + '\ndoes not have the same q-range!', 'Subtraction Failed!', wx.OK | wx.ICON_ERROR)
             
             bgSubPlotQueue.task_done()
-        #Close progress dialog
-        #self._pgthread.stop()
-        
+      
 class AutoBgSubWorkerThread(threading.Thread):
     
-    def __init__(self, parent, listOfFilePaths):
+    def __init__(self, parent):
         
         threading.Thread.__init__(self)
         
         self._parent = parent
-        #self._pgthread = pgthread
-        self._listOfFilePaths = listOfFilePaths
-        
-        #self._pgthread = MyProgressBar(self._parent)
-        
+        self._listOfFilePaths = None
         self._plotOriginal = True
         
         global expParams
@@ -425,7 +412,6 @@ class AutoBgSubWorkerThread(threading.Thread):
         
     def run(self):
         
-        #self._pgthread.run()
         while True:
         
             self._listOfFilePaths = autoBgSubQueue.get()
@@ -434,52 +420,51 @@ class AutoBgSubWorkerThread(threading.Thread):
             plotpanel = wx.FindWindowByName('PlotPanel')
             ExpObjBackgrnd = expParams['BackgroundFile']
             mainframe = wx.FindWindowByName('MainFrame')
-        
-            if plotpanel.noOfPlots != 2:
-                plotpanel.subplot2 = plotpanel.subplot1
-            
+         
             if ExpObjBackgrnd != None:
             
                 for eachFile in self._listOfFilePaths:
-        
-                    #self._pgthread.SetStatus('Loading file..')
                 
                     ExpObjSample, FullImage = fileIO.loadFile(eachFile, expParams)
                     checkedTreatments = getTreatmentParameters()
                     cartToPol.applyDataManipulations(ExpObjSample, expParams, checkedTreatments)
             
-                    ExpObjSample.param['filename'] = eachFile
-                
-                #self._pgthread.SetStatus('Subtracting and Plotting')
-                
+                    ExpObjSample.param['filename'] = eachFile                    
+                        
                     if self._plotOriginal:
                         if len(ExpObjSample.i > 1):
-                        
-                            wx.CallAfter(plotpanel._PlotOnSelectedAxesScale, ExpObjSample, plotpanel.subplot1)
+                            
+                            ExpObjSamp = ExpObjSample.copy()
+                            
+                            wx.CallAfter(plotpanel._PlotOnSelectedAxesScale, ExpObjSamp, plotpanel.subplot1)
                             wx.CallAfter(plotpanel._insertLegend, eachFile, axes = plotpanel.subplot1)
                         
-                            evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, ExpObjSample)
+                            evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, ExpObjSamp)
                             wx.PostEvent(manipulationPage, evt)
                 
                     #Check if they are of equal length before subtracting
                     if len(ExpObjSample.i) == len(ExpObjBackgrnd.i):
                     
-                        ExpObjSample = ExpObjSample.subtract(ExpObjBackgrnd)
-                        wx.CallAfter(plotpanel._PlotOnSelectedAxesScale, ExpObjSample, plotpanel.subplot2)
-                        wx.CallAfter(plotpanel._setLabels, ExpObjSample)
-                        wx.CallAfter(plotpanel._insertLegend, eachFile, axes = plotpanel.subplot2)
-                    
-                        #Add plot to manipulation list
-                        evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, ExpObjSample)
-                        wx.PostEvent(manipulationPage, evt)
+                        wx.CallAfter(plotpanel.SubtractAndPlot, [ExpObjSample])
+                        
+#                        ExpObjSample = ExpObjSample.subtract(ExpObjBackgrnd)
+#                                                
+#                        wx.CallAfter(plotpanel._PlotOnSelectedAxesScale, ExpObjSample, axes = plotpanel.subplot2)
+#                        wx.CallAfter(plotpanel._setLabels, ExpObjSample)
+#                        wx.CallAfter(plotpanel._insertLegend, eachFile, axes = plotpanel.subplot2)
+#                    
+#                        #Add plot to manipulation list
+#                        evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, ExpObjSample)
+#                        wx.PostEvent(manipulationPage, evt)
         
                         #Update status bar
                         wx.CallAfter(mainframe.SetStatusText, 'Loading: ' + eachFile + '...Done!')    
                     
+                    
                         if expParams['AutoBIFT'] == True:
-                            #self._pgthread.stop()
-                            biftThread = AutoAnalysisGUI.BiftCalculationThread(self, ExpObjSample)
-                            biftThread.start()
+                            print >> sys.stderr, 'AUTOBIFT THROUGH AutoBgSubThread NOT IMPLEMENTED'
+                            #biftThread = AutoAnalysisGUI.BiftCalculationThread(self, ExpObjSample)
+                            #biftThread.start()
             
                     else:
                         noPathSampleFilename = os.path.split(eachFile)[1]
@@ -487,62 +472,11 @@ class AutoBgSubWorkerThread(threading.Thread):
                     
                         wx.CallAfter(wx.MessageBox, noPathSampleFilename + ' and ' + noPathBackgrndFilename + '\ndoes not have the same q-range!', 'Subtraction Failed!', wx.OK | wx.ICON_ERROR)
 
-                #self._pgthread.SetStatus('Done')
-       
             else:
                 wx.CallAfter(wx.MessageBox, 'No background loaded!', 'Subtraction Failed!', wx.OK | wx.ICON_ERROR)
        
             autoBgSubQueue.task_done()
-        #Close progress dialog
-        
-        #self._pgthread.stop()
-
-#class LoadMaskThread(threading.Thread):
-#    
-#    def __init__(self, parent):
-#        
-#        threading.Thread.__init__(self)
-#        
-#        #self._masktype = masktype
-#        #self._mask_fullpath = mask_fullpath
-#        self._parent = parent
-#        #self._pgthread = pgthread
-#        #self._maskInExpParams = maskInExpParams
-#        #self.expParams = expParams
-#        #self.type = type
-#        
-#    def run(self):
-#        
-#        while True:
-#        
-#            self._mask_fullpath, self._masktype, self.expParams, self.type = loadMaskQueue.get()
-#        
-#            mainframe = wx.FindWindowByName('MainFrame')
-#        
-#            #self._pgthread.SetStatus('Loading Mask...')
-#            wx.CallAfter(mainframe.SetStatusText, 'Loading mask...')    
-#        
-#            if self.type == None:
-#                if self.expParams['BeamStopMaskParams'] != None:
-#                    self.expParams['BeamStopMask'] = masking.createMaskFromRAWFormat(self.expParams['BeamStopMaskParams'])
-#            
-#                if expParams['ReadOutNoiseMaskParams'] != None:
-#                    self.expParams['ReadOutNoiseMask'] = masking.createMaskFromRAWFormat(self.expParams['ReadOutNoiseMaskParams'])
-#            else:
-#                if self._masktype == 'readout':
-#                    expParams['ReadOutNoiseMask'], expParams['ReadOutNoiseMaskParams'] = masking.loadMask(self._mask_fullpath)
-#                    expParams['ReadOutNoiseMaskFilename'] = os.path.split(self._mask_fullpath)[1]
-#                elif self._masktype == 'beamstop':
-#                    expParams['BeamStopMask'], expParams['BeamStopMaskParams'] = masking.loadMask(self._mask_fullpath)
-#                    expParams['BeamStopMaskFilename'] = os.path.split(self._mask_fullpath)[1]    
-#        
-#            wx.CallAfter(mainframe.SetStatusText, 'Loading mask... Done!')
-#            
-#            loadMaskQueue.task_done()    
-#        
-#        #self._pgthread.SetStatus('Done')
-#        #self._pgthread.stop()
-        
+   
 #---- *** My Progressbar ***               
 
 class MyProgressBar:
@@ -1340,19 +1274,6 @@ class PlotPanel(wx.Panel):
         
         line.set_linewidth(1)
         self.canvas.draw()
-                
-#    def _ClearFigure(self, axes = None):
-#        
-#        if axes == None:
-#            a = self.fig.gca()
-#        else:
-#            a = axes
-#        
-#        a.clear()
-#        a.set_xscale('linear')       # Reset to default values
-#        a.set_yscale('linear')
-#        a.set_xlim(0,1.0)
-#        a.set_ylim(0,1.0)
         
     def UpdatePlotAxesScaling(self):
         
@@ -1432,6 +1353,8 @@ class PlotPanel(wx.Panel):
     def updatePlotAfterScaling(self, ExpObj):
         
         ExpObj.line.set_data(ExpObj.q, ExpObj.i)
+        
+        print ExpObj.q.size, ExpObj.i.size
               
         self.canvas.draw()
             
@@ -2516,11 +2439,9 @@ class DirCtrlPanel_2(wx.Panel):
          self.FilterFileListAndUpdateListBox()
          
     def FilterFileListAndUpdateListBox(self):    
-        
          self.fileListBox.ReadFileList()
          self.fileListBox.RefreshFileList()
              
-                       
     def CreateDirCtrl(self, DirCtrlPanel_Sizer):
         # create list box
         
@@ -2678,7 +2599,7 @@ class DirCtrlPanel_2(wx.Panel):
         if evt.GetKeyCode() == 344:        # 344 = F5
             self.fileListBox.ReadFileList()
             self.fileListBox.RefreshFileList()
-    
+            
     def _OnDoubleClick(self, evt):
         
         if self.fileListBox.GetSelectedFilenames() != []:
@@ -2928,9 +2849,6 @@ class OnlineController:
         self.seekDir = []
         self.bgFilename = None
         
-        self.autoBgSubThread = None
-    
-        
     def OnOnlineButton(self, state):
         
         #onlineled = wx.FindWindowById(ONLINELED_ID)
@@ -2975,16 +2893,14 @@ class OnlineController:
     def OnOnlineTimer(self, evt):
         ''' This function checks for new files and processes them as they come in '''
 
-        print "Shields up, checker online!"
+        print "Checker online!"
         
         infopanel = wx.FindWindowByName('InfoPanel')
+        dirctrl = wx.FindWindowByName('DirCtrlPanel')
         DirList = os.listdir(self.seekDir)
-        
-        print self.Old_DirList
-        
+                
         if DirList != self.Old_DirList:
-            
-            print "CHANGED!"
+
             for idx in range(0, len(DirList)):
 
                 try:
@@ -2992,10 +2908,9 @@ class OnlineController:
                 
                 except ValueError:
                     
-                    #self.UpdateFileList()
                     self.Old_DirList.append(DirList[idx])
+                    dirctrl.FilterFileListAndUpdateListBox()
                                     
-                    print DirList[idx]
                     infopanel.WriteText('Incomming file:\n' + str(DirList[idx] + '\n\n') )
                     filepath = os.path.join(self.seekDir, str(DirList[idx]))
 
@@ -3008,8 +2923,6 @@ class OnlineController:
         dirCtrlPanel = wx.FindWindowByName('DirCtrlPanel')
 
         print filepath
-
-        #self.SetPath(filepath)    #Plot thread gets the filepath from there
         
         autoSubtractEnabled = expParams['AutoBgSubtract']
         
@@ -3017,18 +2930,12 @@ class OnlineController:
             filenameIsBackground = self.CheckIfFilenameIsBackground(filepath)
             
             if filenameIsBackground:
-                plotPanel.onPlotButton('onlineBackground') 
+                plotQueue.put(([filepath],True))
             else:
-                if self.autoBgSubThread == None:
-                    self.autoBgSubThread = AutoBgSubWorkerThread(self)
-                    self.autoBgSubThread.start()
-                    autoBgSubQueue.put([filepath])
-                else:
-                    autoBgSubQueue.put([filepath])
-            
+
+                autoBgSubQueue.put([filepath])
         else:
            plotQueue.put([filepath])
-           #plotPanel.onPlotButton(0) 
             
     def CheckIfFilenameIsBackground(self, filepath):
         
@@ -3038,6 +2945,7 @@ class OnlineController:
         bgPattern = expParams['BgPatternValue']
         
         if bgPatternType == 'contain':
+            print 'HELLO!'
             result = filename.find(bgPattern)
             
             print "result:", str(result)
@@ -4282,6 +4190,17 @@ class MainFrame(wx.Frame):
         self.plotNB = wx.Notebook(self.plot_panel)
         
         plotpage1 = PlotPanel(self.plotNB, -1, 'PlotPanel', 2) 
+        
+        # Start Plot Threads:
+        plotpage1.plotWorkerThread = PlotWorkerThread(plotpage1, None)
+        plotpage1.plotWorkerThread.setDaemon(True)
+        plotpage1.plotWorkerThread.start()
+        
+        self.autoBgSubThread = AutoBgSubWorkerThread(self)
+        self.autoBgSubThread.setDaemon(True)
+        self.autoBgSubThread.start()
+        
+        
         plotpage2 = masking.MaskingPanel(self.plotNB, -1, 'RawPlotPanel', wxEmbedded = True)
         #plotpage3 = PlotPanel(self.plotNB, wx.NewId(), 'BIFTPlotPanel', 2)
         
