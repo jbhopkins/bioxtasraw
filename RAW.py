@@ -446,16 +446,6 @@ class AutoBgSubWorkerThread(threading.Thread):
                     if len(ExpObjSample.i) == len(ExpObjBackgrnd.i):
                     
                         wx.CallAfter(plotpanel.SubtractAndPlot, [ExpObjSample])
-                        
-#                        ExpObjSample = ExpObjSample.subtract(ExpObjBackgrnd)
-#                                                
-#                        wx.CallAfter(plotpanel._PlotOnSelectedAxesScale, ExpObjSample, axes = plotpanel.subplot2)
-#                        wx.CallAfter(plotpanel._setLabels, ExpObjSample)
-#                        wx.CallAfter(plotpanel._insertLegend, eachFile, axes = plotpanel.subplot2)
-#                    
-#                        #Add plot to manipulation list
-#                        evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, ExpObjSample)
-#                        wx.PostEvent(manipulationPage, evt)
         
                         #Update status bar
                         wx.CallAfter(mainframe.SetStatusText, 'Loading: ' + eachFile + '...Done!')    
