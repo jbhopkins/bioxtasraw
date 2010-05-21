@@ -1751,12 +1751,15 @@ class PlotPanel(wx.Panel):
             else:
                 leg = a.legend(legendlines, legendnames, prop = FontProperties(size = 10), borderpad = 0.2, loc = 1, fancybox = True, shadow=True)
                 leg.get_frame().set_alpha(0.3)
-                    
+            
         else:
             a.legend_ = None
         
         self.canvas.draw()
-        
+    
+    def ontest(self):
+        print 'hello!'
+           
     def UpdatePlotsAfterTypeChange(self, axes):
         
         plotsInAxes = []
@@ -2769,7 +2772,6 @@ class DirCtrlPanel_2(wx.Panel):
             self.FilterFileListAndUpdateListBox()
     
     def _OnSetDirButton(self, evt):
-        #onlineled = wx.FindWindowById(ONLINELED_ID)
         dirdlg = wx.DirDialog(self, "Please select directory:", '')
             
         if dirdlg.ShowModal() == wx.ID_OK:               
@@ -2780,38 +2782,11 @@ class DirCtrlPanel_2(wx.Panel):
   
     def UpdateDirLabel(self, path):
         self.DirLabel.SetValue(path)
-        
-#    def GetListOfFiles(self):
-#        self.FileList = os.listdir(self.path)
-#        
-#        FilesOnlyList = []    
-#        for filename in self.FileList:
-#            if os.path.isfile(os.path.join(self.path, filename)):
-#                FilesOnlyList.append(filename)
-#        self.FileList = FilesOnlyList
-#        
-#        return self.FileList
-        
-#    def UpdateFileListBox(self, FileList):
-#        
-#        self.fileListBox.Clear()
-#        
-#        for each in range(0, len(FileList)):
-#            FileList[each] = str(FileList[each])
-#         
-#        FileList.sort(key = str.lower)
-#        
-#        for each in FileList:
-#            self.fileListBox.Append(each)
-                          
+                                  
     def UpdateFileListBox_Online(self):
-        
-        #self.fileListBox.Clear()
+        self.fileListBox.ReadFileList()
         self.fileListBox.RefreshFileList()
-        
-#        self.FileList = self.GetListOfFiles()
-#        self.UpdateFileListBox(self.FileList)
-#        self.FilterFileListAndUpdateListBox()
+
                             
 class InfoPanel(wx.Panel):
     
@@ -2915,7 +2890,7 @@ class OnlineController:
                     self.Old_DirList.append(DirList[idx])
                     dirctrl.FilterFileListAndUpdateListBox()
                                     
-                    infopanel.WriteText('Incomming file:\n' + str(DirList[idx] + '\n\n') )
+                    infopanel.WriteText('Incomming file:\n' + str(DirList[idx] + '\n\n'))
                     filepath = os.path.join(self.seekDir, str(DirList[idx]))
 
                     if not(self._FileTypeIsExcluded(filepath)):
@@ -4160,6 +4135,23 @@ class ManipulationPage(wx.Panel):
         
         self.Thaw()
         
+        
+class MyStatusBar(wx.StatusBar):
+    
+    def __init__(self, parent):
+        wx.StatusBar.__init__(self, parent)
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+    def OnPaint(self,event):
+        dc = wx.PaintDC(self)
+        self.Draw(dc)
+    def Draw(self,dc):
+        dc.BeginDrawing()
+        dc.SetBackground( wx.Brush("White") )
+        dc.Clear()
+        dc.SetPen(wx.Pen('BLACK'))
+        dc.DrawText(self.GetStatusText(),0,0)
+        dc.EndDrawing()
+        
 class MainFrame(wx.Frame):
     
     def __init__(self, title, frame_id):
@@ -4172,10 +4164,15 @@ class MainFrame(wx.Frame):
         
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
         
+        #self.statusbar = MyStatusBar(self)
+        #self.SetStatusBar(self.statusbar)
+        
         self.statusbar = self.CreateStatusBar()
         self.statusbar.SetFieldsCount(3)
         self.statusbar.SetStatusWidths([-3, -2, -1])
         self.statusbar.SetStatusText('Mode: OFFLINE', 2)
+        
+        
         
         #self.InitToolBar()
         
