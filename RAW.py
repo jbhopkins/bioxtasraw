@@ -259,6 +259,7 @@ class PlotWorkerThread(threading.Thread):
         self._parent = parent
         self._pgthread = pgthread
         self._setBackground = setBackground
+        self.savepath = None
 
     def run(self):
         
@@ -266,9 +267,19 @@ class PlotWorkerThread(threading.Thread):
             
             selectedFiles = plotQueue.get()    # Blocks until a new item is available in the queue
             
-            if len(selectedFiles) == 2:
+            #Another nasty hack for setting the background:
+            if len(selectedFiles) == 3 and selectedFiles[1] == True:
                 self._setBackground = selectedFiles[1]
-                selectedFiles = selectedFiles[0] 
+                selectedFiles = selectedFiles[0]
+            
+            print selectedFiles
+            
+            if len(selectedFiles) == 3 and selectedFiles[2] == True:
+                selectedFiles = selectedFiles[0]
+                if expParams['AutoSaveOnImageFiles'] == True:
+                    self.savepath = expParams['ProcessedFilePath']
+                else:
+                    self.savepath = None
                 
             dirCtrlPanel = wx.FindWindowByName('DirCtrlPanel')
             plotpanel = wx.FindWindowByName('PlotPanel')
@@ -289,7 +300,16 @@ class PlotWorkerThread(threading.Thread):
                     if ExpObj.i != []:
                     
                         cartToPol.applyDataManipulations(ExpObj, expParams, checkedTreatments)    # Only does something for images
-            
+                        
+                        if self.savepath:
+                            filename = os.path.split(ExpObj.param['filename'])[1]
+                            fullsavePath = os.path.join(self.savepath, filename)
+                            ExpObj.param['filename'] = fullsavePath
+                            fileIO.saveMeasurement(ExpObj)
+                            print fullsavePath +'...SAVED'
+                            self.savepath = None
+                            wx.CallAfter(dirCtrlPanel.FilterFileListAndUpdateListBox)
+                                                            
                         if self._setBackground == True:
                             expParams['BackgroundFile'] = ExpObj
                             wx.CallAfter(dirCtrlPanel.SetBackgroundFile, eachSelectedFile)
@@ -300,11 +320,10 @@ class PlotWorkerThread(threading.Thread):
                             wx.CallAfter(plotpanel._PlotOnSelectedAxesScale, ExpObj, axes = self._parent.subplot1)   
                             wx.CallAfter(plotpanel._setLabels, ExpObj, axes = self._parent.subplot1)
         
-                        # For some unknown F*ing reason showing the image can make the program hang!
+                        # For some unknown reason showing the image can make the program hang!
                         if FullImage and len(selectedFiles) == 1:
                             rawplot = wx.FindWindowByName('RawPlotPanel')
                             wx.CallAfter(rawplot.showImage, FullImage, ExpObj)
-                            #rawplot.showImage( FullImage, ExpObj)
                         
                         if ExpObj.type != 'bift':
                             manipulationPage = wx.FindWindowByName('ManipulationPage')
@@ -313,11 +332,11 @@ class PlotWorkerThread(threading.Thread):
         
                         wx.CallAfter(mainframe_window.SetStatusText,'Loading: ' + eachSelectedFile + '...Done!')    
                     
-                        autoSave = expParams['AutoSaveOnImageFiles']
-                    
-                        if ExpObj.getFileType() == 'image' and autoSave:
-                            dirctrlpanel = wx.FindWindowByName('DirCtrlPanel')                        
-                            wx.CallAfter(dirctrlpanel.SaveSingleRadFile, ExpObj)
+#                        autoSave = expParams['AutoSaveOnImageFiles']
+#                    
+#                        if ExpObj.getFileType() == 'image' and autoSave:
+#                            dirctrlpanel = wx.FindWindowByName('DirCtrlPanel')                        
+#                            wx.CallAfter(dirctrlpanel.SaveSingleRadFile, ExpObj)
 
                     else:
                         wx.CallAfter(wx.MessageBox, 'Filename: ' + eachSelectedFile + '\nDoes not contain any recognisable data.\n\nIf you are trying to load an image,\nset the correct image format in Options.', 'Load Failed!', wx.OK | wx.ICON_ERROR)
@@ -449,7 +468,6 @@ class AutoBgSubWorkerThread(threading.Thread):
         
                         #Update status bar
                         wx.CallAfter(mainframe.SetStatusText, 'Loading: ' + eachFile + '...Done!')    
-                    
                     
                         if expParams['AutoBIFT'] == True:
                             print >> sys.stderr, 'AUTOBIFT THROUGH AutoBgSubThread NOT IMPLEMENTED'
@@ -687,8 +705,6 @@ class MyCustomToolbar(NavigationToolbar2Wx):
     def clear1(self, evt):
         self.parent.ClearSubplot(self.parent.subplot1)
     def clear2(self, evt):
-        
-        print 'CHECK!'
         self.parent.ClearSubplot(self.parent.subplot2)
     
     def errbars(self, evt):
@@ -1343,8 +1359,6 @@ class PlotPanel(wx.Panel):
     def updatePlotAfterScaling(self, ExpObj):
         
         ExpObj.line.set_data(ExpObj.q, ExpObj.i)
-        
-        print ExpObj.q.size, ExpObj.i.size
               
         self.canvas.draw()
             
@@ -2920,12 +2934,12 @@ class OnlineController:
             filenameIsBackground = self.CheckIfFilenameIsBackground(filepath)
             
             if filenameIsBackground:
-                plotQueue.put(([filepath],True))
+                plotQueue.put(([filepath],True, True))
             else:
 
                 autoBgSubQueue.put([filepath])
         else:
-           plotQueue.put([filepath])
+           plotQueue.put(([filepath], False, True))
             
     def CheckIfFilenameIsBackground(self, filepath):
         
@@ -2935,7 +2949,6 @@ class OnlineController:
         bgPattern = expParams['BgPatternValue']
         
         if bgPatternType == 'contain':
-            print 'HELLO!'
             result = filename.find(bgPattern)
             
             print "result:", str(result)

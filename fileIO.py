@@ -24,6 +24,7 @@ import time
 import Image
 import TiffImagePlugin            # Is needed for py2exe!
 from os import path
+import os
 from numpy import *
 from scipy import weave
 from scipy import io
@@ -607,11 +608,11 @@ def saveMeasurement(Exp, NoChange = False):
     
     if NoChange == False:
         if Exp.isBgSubbed:        
-            filename = filePath + "\\" + "BSUB_" + no_path_filename + ".rad"
+            filename = os.path.join(filePath, "BSUB_" + no_path_filename + ".rad")
         elif Exp.isBifted:
-            filename = filePath + "\\" + "BIFT_" + no_path_filename + ".rad"
+            filename = os.path.join(filePath, "BIFT_" + no_path_filename + ".rad")
         else:
-            filename = filePath + "\\" + no_path_filename + ".rad"
+            filename = os.path.join(filePath, no_path_filename + ".rad")
     else:
         filename = full_path_filename
     

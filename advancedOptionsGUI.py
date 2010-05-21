@@ -587,7 +587,7 @@ class SaveDirectoriesPage(wx.Panel):
         self.directoryData = (('Processed files:', expParamsInGUI['ProcessedFilePath'], wx.NewId(), wx.NewId()),
                               (None, None, None, None))
         
-        self.autoSaveData = (('Save Processed Image Files Automatically', expParamsInGUI['AutoSaveOnImageFiles'][0]),
+        self.autoSaveData = (('Save Processed Image Files Automatically (Online mode)', expParamsInGUI['AutoSaveOnImageFiles'][0]),
                              ('Save Averaged Data Files Automatically', expParamsInGUI['AutoSaveOnAvgFiles'][0]))
         
         dirSizer = self.createDirectoryOptions()

@@ -1060,6 +1060,7 @@ class MaskingPanel(wx.Panel):
                     
                     self.RightClickOnPatch = False
                     self.ShowPopupMenu()
+       
                     
                 
             
