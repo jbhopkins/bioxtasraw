@@ -2407,13 +2407,13 @@ class ImageSettingsDialog(wx.Dialog):
         self.scaleinfo = (('Linear', wx.NewId(), 'ImgScale'), 
                           ('Logarithmic', wx.NewId(), 'ImgScale'))
         
+        box = wx.StaticBox(self, -1, 'Image parameters')
+        sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        
         slidersizer = self.createSettingsWindow()
         scalesizer = self.createScaleSelector()
         colormapsizer = self.createColormapSelector()
         
-        
-        box = wx.StaticBox(self, -1, 'Image parameters')
-        sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         sizer.Add(slidersizer, 1, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
         
         self.okButton = wx.Button(self, -1, 'OK')
@@ -2427,10 +2427,11 @@ class ImageSettingsDialog(wx.Dialog):
         
         self.SetSizer(finalSizer)
         self.Fit()
+        self.CenterOnScreen()
         
     def OnOk(self, event):
         
-        self.Destroy()
+        self.EndModal(1)
         
     def createColormapSelector(self):
         
@@ -2543,7 +2544,6 @@ class ImageSettingsDialog(wx.Dialog):
         
         finalSizer = wx.BoxSizer(wx.VERTICAL)
         
-        
         for each in self.sliderinfo:
                 
             label = wx.StaticText(self, -1, each[0])
@@ -2569,9 +2569,7 @@ class ImageSettingsDialog(wx.Dialog):
                 slider.SetValue(float(self.parent.plotParameters[each[3]]))
             
             hslider = wx.BoxSizer(wx.HORIZONTAL)
-            
-            
-            
+               
             hslider.Add(label, 0, wx.EXPAND | wx.TOP, 3)
             hslider.Add(val, 0, wx.EXPAND)
             hslider.Add(slider, 1, wx.EXPAND)
