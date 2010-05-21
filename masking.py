@@ -668,10 +668,8 @@ class MaskingPanel(wx.Panel):
             cursor = Cursor(a, useblit=True, color='red', linewidth=1 )
             self.cursorIsOff = False
      
-     
         print "Preparing image for log..."
         # Save zero positions to avoid -inf at 0.0 after log!
-        
         
         print "displaying image..."
         extent = (0, imgXdim, 0, imgYdim)
@@ -702,12 +700,12 @@ class MaskingPanel(wx.Panel):
         
         self.plotStoredMasks()
         
-        
         self.plotParameters['maxImgVal'] = self.img.max()
         self.plotParameters['minImgVal'] = self.img.min()
         
         if self.plotParameters['ClimLocked'] == False:
             clim = self.imgobj.get_clim()
+
             self.plotParameters['UpperClim'] = clim[1] 
             self.plotParameters['LowerClim'] = clim[0]
         else:
@@ -2285,7 +2283,7 @@ class ImageCenteringDialog(wx.Dialog):
     def __init__(self, parent, x, y, r):
         
         wx.Dialog.__init__(self, parent, -1, title = 'Centering Settings')
-
+        self.parent = parent
         self.x = x
         self.y = y
         self.r = r
@@ -2298,10 +2296,12 @@ class ImageCenteringDialog(wx.Dialog):
         
         buttonsizer = self.createButtons()
                 
-        finalsizer.Add(controlsizer,0)
-        finalsizer.Add(buttonsizer, 0)
+        finalsizer.Add(controlsizer, 1, wx.ALIGN_CENTER | wx.TOP, 10)
+        finalsizer.Add(buttonsizer, 0,  wx.ALIGN_CENTER | wx.ALL,10)
         
         self.SetSizer(finalsizer)
+        
+        self.Fit()
         
     def createButtons(self):
         
@@ -2309,14 +2309,20 @@ class ImageCenteringDialog(wx.Dialog):
         
         ok = wx.Button(self, wx.ID_OK, 'OK')
         cancel = wx.Button(self, wx.ID_CANCEL, 'Cancel')
+        contrast = wx.Button(self, -1, 'Contrast')
     
         ok.Bind(wx.EVT_BUTTON, self.onOkCancel)
         cancel.Bind(wx.EVT_BUTTON, self.onOkCancel)
+        contrast.Bind(wx.EVT_BUTTON, self.onContrast)
         
         sizer.Add(ok,0)
         sizer.Add(cancel,0)
+        sizer.Add(contrast,0)
         
         return sizer
+    
+    def onContrast(self, evt):
+        self.parent.showImageSetDialog()
     
     def onOkCancel(self, evt):
         
@@ -2366,6 +2372,7 @@ class ImageCenteringDialog(wx.Dialog):
         xy = (self.x,self.y)
         wx.CallAfter(self.maskingPanel.clearPatches)
         wx.CallAfter(self.maskingPanel.drawAgBeRings, xy, self.r)
+        event.Skip()
         
         
         
