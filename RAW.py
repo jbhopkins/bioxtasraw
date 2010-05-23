@@ -70,6 +70,8 @@ expParams = {
              'CalibrateMan'      : False,        # Calibrate manual (wavelength / distance)
              'AutoBgSubtract'    : False,
              'AutoBIFT'          : False,
+             'AutoAverage'       : False,
+             
              
              #CENTER / BINNING
              'Binsize'    : 2,
@@ -4172,8 +4174,6 @@ class MainFrame(wx.Frame):
         self.statusbar.SetStatusWidths([-3, -2, -1])
         self.statusbar.SetStatusText('Mode: OFFLINE', 2)
         
-        
-        
         #self.InitToolBar()
         
         self.OnlineControl = OnlineController(self)
@@ -4182,13 +4182,11 @@ class MainFrame(wx.Frame):
         self.SetMinSize((800,600))
         
         # ************** The button panel *********************
-        
         self.button_panel = wx.Panel(splitter1,-1)
         self.plot_panel = wx.Panel(splitter1,-1)
         
         # /* CREATE PLOT NOTEBOOK */
         self.plotNB = wx.Notebook(self.plot_panel)
-        
         plotpage1 = PlotPanel(self.plotNB, -1, 'PlotPanel', 2) 
         
         # Start Plot Threads:
@@ -4199,13 +4197,11 @@ class MainFrame(wx.Frame):
         self.autoBgSubThread = AutoBgSubWorkerThread(self)
         self.autoBgSubThread.setDaemon(True)
         self.autoBgSubThread.start()
-        
-        
+    
         plotpage2 = masking.MaskingPanel(self.plotNB, -1, 'RawPlotPanel', wxEmbedded = True)
         #plotpage3 = PlotPanel(self.plotNB, wx.NewId(), 'BIFTPlotPanel', 2)
         
         plotpage3 = IftPanel(self.plotNB, wx.NewId(), 'BIFTPlotPanel', 2)
-        
         #plotpage4 = overview.OverviewPanel(self.plotNB, -1, 'OverviewPanel')
 
         self.plotNB.AddPage(plotpage1, "1D Plots")
