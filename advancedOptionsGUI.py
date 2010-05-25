@@ -240,6 +240,8 @@ class AutomationPage(wx.Panel):
         
         chkbox = wx.CheckBox(self, self.expParamsInGui['AutoAvg'][0], 'Automated Averaging')
         
+        chkbox2 = wx.CheckBox(self, self.expParamsInGui['AutoAvgRemovePlots'][0], 'Remove Plotted Frames')
+        
         box12 = wx.BoxSizer(wx.HORIZONTAL)
         
         self.reglabel = wx.StaticText(self, -1, 'Regular Expression:')
@@ -282,6 +284,7 @@ class AutomationPage(wx.Panel):
         box34.Add(testbutton, 0,wx.TOP, 10)
         
         inbox.Add(chkbox,0, wx.LEFT|wx.TOP|wx.BOTTOM, 5)
+        inbox.Add(chkbox2,0, wx.LEFT, 28)
         inbox.Add(box12,0, wx.TOP, 5)
         inbox.Add(box34,0, wx.TOP | wx.BOTTOM, 5)
         
@@ -827,8 +830,10 @@ class SaveDirectoriesPage(wx.Panel):
         
         for label, id in self.autoSaveData:
             chkbox = wx.CheckBox(self, id, label)
-            chkboxSizer.Add(chkbox, 1, wx.EXPAND | wx.ALL, 5)
+            chkboxSizer.Add((1,5), 0)
+            chkboxSizer.Add(chkbox, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
         
+        chkboxSizer.Add((1,5), 0)
         return chkboxSizer
         
     def createDirectoryOptions(self):
@@ -1250,12 +1255,14 @@ class OptionsDialog(wx.Dialog):
                                'WaterAvgMaxPoint' : (wx.NewId(), 'int'),
                                
                                #AUTOMATION
-                               'AutoAvg'      : (wx.NewId(), 'bool'),
-                               'AutoAvgRegExp'    : (wx.NewId(), 'text'),
-                               'AutoAvgNoOfFrames': (wx.NewId(), 'int'),
-                               'AutoBgSubtract'   : (wx.NewId(), 'bool'),
-                               'AutoBgSubRegExp'  : (wx.NewId(), 'text'),
-                               'AutoBIFT'         : (wx.NewId(), 'bool'),
+                               
+                               'AutoAvgRemovePlots': (wx.NewId(), 'bool'),
+                               'AutoAvg'           : (wx.NewId(), 'bool'),
+                               'AutoAvgRegExp'     : (wx.NewId(), 'text'),
+                               'AutoAvgNoOfFrames' : (wx.NewId(), 'int'),
+                               'AutoBgSubtract'    : (wx.NewId(), 'bool'),
+                               'AutoBgSubRegExp'   : (wx.NewId(), 'text'),
+                               'AutoBIFT'          : (wx.NewId(), 'bool'),
                                #'BgPatternType'    : (wx.NewId(), 'text'),
                                #'BgPatternValue'   : (wx.NewId(), 'text'),
                                                           

@@ -71,6 +71,7 @@ expParams = {
              'AutoBgSubtract'    : False,
              'AutoBIFT'          : False,
              'AutoAvg'           : False,
+             'AutoAvgRemovePlots': False,
              
              'AutoAvgRegExp'     : '',
              'AutoAvgNoOfFrames' : 1,
