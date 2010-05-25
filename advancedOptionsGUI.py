@@ -17,7 +17,7 @@
 #******************************************************************************
 
 
-import wx, masking, fileIO, cartToPol
+import wx, masking, fileIO, cartToPol, re
 from numpy import power, ceil
 #from os import path
 
@@ -213,6 +213,225 @@ class MaskingOptions(wx.Panel):
                     filenameLabel = wx.FindWindowById(labl_ID)
                     filenameLabel.SetValue('None')
 
+
+class AutomationPage(wx.Panel):
+    
+    def __init__(self, parent):
+        
+        wx.Panel.__init__(self, parent)
+        
+        self.expParamsInGui = wx.FindWindowByName('OptionsDialog').expParamsInGUI
+        
+        self.autoavgsizer = self.createAutoAverageSettings()
+        self.autobgsubsizer = self.createAutoBgSubSettings()
+        self.autobiftsizer = self.createAutoBIFTSettings()
+        
+        panelsizer = wx.BoxSizer(wx.VERTICAL)
+        panelsizer.Add(self.autoavgsizer, 0, wx.ALL | wx.EXPAND, 5)
+        panelsizer.Add(self.autobgsubsizer,0, wx.EXPAND | wx.BOTTOM | wx.LEFT | wx.RIGHT, 5)
+        panelsizer.Add(self.autobiftsizer,0, wx.EXPAND | wx.BOTTOM | wx.LEFT | wx.RIGHT, 5)
+        self.SetSizer(panelsizer)
+        
+    def createAutoAverageSettings(self):
+       
+        topbox = wx.StaticBox(self, -1, 'Averaging') 
+        
+        inbox = wx.StaticBoxSizer(topbox, wx.VERTICAL)
+        
+        chkbox = wx.CheckBox(self, self.expParamsInGui['AutoAvg'][0], 'Automated Averaging')
+        
+        box12 = wx.BoxSizer(wx.HORIZONTAL)
+        
+        self.reglabel = wx.StaticText(self, -1, 'Regular Expression:')
+        self.regctrl = wx.TextCtrl(self, self.expParamsInGui['AutoAvgRegExp'][0], size = (150,-1))
+       
+        box1 = wx.BoxSizer(wx.VERTICAL)
+        box1.Add(self.reglabel,0)
+        box1.Add(self.regctrl,0)
+        
+        self.numofframesLabel = wx.StaticText(self, -1, 'No. of Frames:')
+        self.numofframesCtrl = wx.TextCtrl(self, self.expParamsInGui['AutoAvgNoOfFrames'][0], '1', style = wx.TE_CENTER)
+        box2 = wx.BoxSizer(wx.VERTICAL)
+        box2.Add(self.numofframesLabel,0)
+        box2.Add(self.numofframesCtrl,0)
+        
+        box12.Add((28,1),0)
+        box12.Add(box1, 0, wx.RIGHT, 10)
+        box12.Add(box2,0)
+        
+        box34 = wx.BoxSizer(wx.HORIZONTAL)
+        
+        testfilenameLabel = wx.StaticText(self, -1, 'Test Filename:')
+        self.testfilenameCtrl = wx.TextCtrl(self, -1, size = (150,-1))
+        box3 = wx.BoxSizer(wx.VERTICAL)
+        box3.Add(testfilenameLabel,0)
+        box3.Add(self.testfilenameCtrl,0)
+        
+        testframenum = wx.StaticText(self, -1, 'Test Frame #:')
+        self.testframectrl = wx.TextCtrl(self, -1, style = wx.TE_CENTER)
+        testbutton = wx.Button(self, -1 , 'Test')
+        testbutton.Bind(wx.EVT_BUTTON, self.OnAutoAvgTest)
+        
+        box4 = wx.BoxSizer(wx.VERTICAL)
+        box4.Add(testframenum,0)
+        box4.Add(self.testframectrl,0)
+        
+        box34.Add((28,1),0)
+        box34.Add(box3,0, wx.RIGHT, 10)
+        box34.Add(box4,0, wx.RIGHT,10)
+        box34.Add(testbutton, 0,wx.TOP, 10)
+        
+        inbox.Add(chkbox,0, wx.LEFT|wx.TOP|wx.BOTTOM, 5)
+        inbox.Add(box12,0, wx.TOP, 5)
+        inbox.Add(box34,0, wx.TOP | wx.BOTTOM, 5)
+        
+        return inbox
+    
+    def createAutoBIFTSettings(self):
+        
+        topbox = wx.StaticBox(self, -1, 'Indirect Fourier Transform')
+        
+        inbox = wx.StaticBoxSizer(topbox, wx.VERTICAL)
+        
+        chkbox = wx.CheckBox(self, self.expParamsInGui['AutoBIFT'][0], 'Automated Bayesian Indirect Fourier Transform (BIFT)')
+        
+        inbox.Add(chkbox,0, wx.ALL, 5)
+        
+        return inbox
+    
+    def createAutoBgSubSettings(self):
+       
+        topbox = wx.StaticBox(self, -1, 'Background Subtraction') 
+        
+        inbox = wx.StaticBoxSizer(topbox, wx.VERTICAL)
+        
+        chkbox = wx.CheckBox(self, self.expParamsInGui['AutoBgSubtract'][0], 'Automated Background Subtraction')
+        
+        box12 = wx.BoxSizer(wx.HORIZONTAL)
+        
+        self.autobgreglabel = wx.StaticText(self, -1, 'Regular Expression:')
+        self.autobgregctrl = wx.TextCtrl(self, self.expParamsInGui['AutoBgSubRegExp'][0], size = (150,-1))
+       
+        box1 = wx.BoxSizer(wx.VERTICAL)
+        box1.Add(self.autobgreglabel,0)
+        box1.Add(self.autobgregctrl,0)
+        
+        box12.Add((28,1),0)
+        box12.Add(box1, 0, wx.RIGHT, 10)
+        
+        box34 = wx.BoxSizer(wx.HORIZONTAL)
+        
+        testfilenameLabel = wx.StaticText(self, -1, 'Test Filename:')
+        self.autobgtestfilenameCtrl = wx.TextCtrl(self, -1, size = (150,-1))
+        box3 = wx.BoxSizer(wx.VERTICAL)
+        box3.Add(testfilenameLabel,0)
+        box3.Add(self.autobgtestfilenameCtrl,0)
+        
+        testframenum = wx.StaticText(self, -1, 'Match Test:')
+        self.autobgtestframectrl = wx.TextCtrl(self, -1, style = wx.TE_CENTER)
+        testbutton = wx.Button(self, -1 , 'Test')
+        testbutton.Bind(wx.EVT_BUTTON, self.OnAutoBgTest)
+        
+        box4 = wx.BoxSizer(wx.VERTICAL)
+        box4.Add(testframenum,0)
+        box4.Add(self.autobgtestframectrl,0)
+        
+        box34.Add((28,1),0)
+        box34.Add(box3,0, wx.RIGHT, 10)
+        box34.Add(box4,0, wx.RIGHT,10)
+        box34.Add(testbutton, 0,wx.TOP, 10)
+        
+        inbox.Add(chkbox,0, wx.LEFT|wx.TOP|wx.BOTTOM, 5)
+        inbox.Add(box12,0, wx.TOP, 5)
+        inbox.Add(box34,0, wx.TOP | wx.BOTTOM, 5)
+        
+        return inbox
+    
+    def OnAutoBgTest(self, event):
+        regexp = self.autobgregctrl.GetValue()
+        filename = self.autobgtestfilenameCtrl.GetValue()
+        
+        
+        match = TestAutoBgSubRegExpression(filename, regexp)
+        
+        self.autobgtestframectrl.SetValue(str(match))
+    
+    def OnAutoAvgTest(self, event):
+        
+        regexp = self.regctrl.GetValue()
+        filename = self.testfilenameCtrl.GetValue()
+        
+        
+        match = TestAutoAvgRegExpression(filename, regexp)
+        
+        self.testframectrl.SetValue(str(match))
+        
+    def createChkBoxSettings(self):
+        
+        box = wx.StaticBox(self, -1, 'Automation')
+        chkboxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        chkboxgridSizer = wx.GridSizer(rows = len(self.chkboxData), cols = 1)
+            
+        for eachLabel, id in self.chkboxData:
+            
+            if eachLabel != None:
+                chkBox = wx.CheckBox(self, id, eachLabel)
+                chkBox.Bind(wx.EVT_CHECKBOX, self.onChkBox)
+                chkboxgridSizer.Add(chkBox, 1, wx.EXPAND)
+        
+        
+        chkboxSizer.Add(chkboxgridSizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
+            
+        return chkboxSizer
+
+
+def TestAutoAvgRegExpression(filename, regexp):
+    
+    try:
+        pattern = re.compile(regexp)
+    except:
+        return 'No Match'
+    
+    m = pattern.findall(filename)
+    
+    if len(m) > 0:
+        found = ''
+        for each in m:
+            found = found + each
+
+            print m
+    else:
+        found = 'No Match'
+        return found
+        
+    non_decimal = re.compile(r'[^\d.]+')
+    match = non_decimal.sub('', found)
+    
+    
+    if match == '':
+        return 'No Match'
+    return match
+    
+def TestAutoBgSubRegExpression(filename, regexp):
+    
+    try:
+        pattern = re.compile(regexp)
+    except:
+        return 'No Match'
+    
+    m = pattern.match(filename)
+    
+    if m:
+        found = m.group()
+        
+        if found == filename:
+            return 'Match'
+        else:
+            print found
+            return 'No Match'
+    else:
+        found = 'No Match'
+        return found
         
 class GeneralOptionsPage(wx.Panel):
     
@@ -223,7 +442,7 @@ class GeneralOptionsPage(wx.Panel):
         expParamsInGUI = wx.FindWindowByName('OptionsDialog').expParamsInGUI
         
         self.chkboxData = ( ("Automatic Background Subtraction", expParamsInGUI['AutoBgSubtract'][0]),
-                            ("Automatic BIFT",                   expParamsInGUI['AutoBIFT'][0]) )
+                            ("Automatic BIFT",                   expParamsInGUI['AutoBIFT'][0]))
 
         self.artifactRemovalData = ( ('Zinger Removal by Smoothing', expParamsInGUI['ZingerRemoval']),
                                      ('Std:',            expParamsInGUI['ZingerRemoveSTD']),
@@ -231,7 +450,7 @@ class GeneralOptionsPage(wx.Panel):
                                      ('Start Index:',    expParamsInGUI['ZingerRemoveIdx']))
         
         self.artifactRemovalData2 = ( ('Zinger Removal when Averageing', expParamsInGUI['ZingerRemovalAvg']),
-                                      ('Sensitivty (lower is more):', expParamsInGUI['ZingerRemovalAvgStd']) )
+                                      ('Sensitivty (lower is more):', expParamsInGUI['ZingerRemovalAvgStd']))
         
         chkboxSizer = self.createChkBoxSettings()
         
@@ -1032,10 +1251,14 @@ class OptionsDialog(wx.Dialog):
                                'WaterAvgMaxPoint' : (wx.NewId(), 'int'),
                                
                                #AUTOMATION
-                               'AutoBgSubtract'  : (wx.NewId(), 'bool'),
-                               'AutoBIFT'        : (wx.NewId(), 'bool'),
-                               'BgPatternType'   : (wx.NewId(), 'text'),
-                               'BgPatternValue'  : (wx.NewId(), 'text'),
+                               'AutoAvg'          : (wx.NewId(), 'bool'),
+                               'AutoAvgRegExp'    : (wx.NewId(), 'text'),
+                               'AutoAvgNoOfFrames': (wx.NewId(), 'int'),
+                               'AutoBgSubtract'   : (wx.NewId(), 'bool'),
+                               'AutoBgSubRegExp'  : (wx.NewId(), 'text'),
+                               'AutoBIFT'         : (wx.NewId(), 'bool'),
+                               'BgPatternType'    : (wx.NewId(), 'text'),
+                               'BgPatternValue'   : (wx.NewId(), 'text'),
                                                           
                                #BIFT PARAMETERS:
                                'maxDmax'     : (wx.NewId(), 'float'),
@@ -1106,6 +1329,7 @@ class OptionsDialog(wx.Dialog):
         self.page4 = MaskingOptions(optionsNB)
         self.page5 = ImageFormatOptionsPage(optionsNB)
         self.page6 = SaveDirectoriesPage(optionsNB)
+        self.page7 = AutomationPage(optionsNB)
 
         
         optionsNB.AddPage(self.page1, "General")
@@ -1114,6 +1338,7 @@ class OptionsDialog(wx.Dialog):
         optionsNB.AddPage(self.page2, "IFT")
         optionsNB.AddPage(self.page5, "2D reduction")
         optionsNB.AddPage(self.page6, "Directories")
+        optionsNB.AddPage(self.page7, "Automation")
         
 
         buttonSizer = self.createButtons()

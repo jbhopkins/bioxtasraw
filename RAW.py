@@ -72,6 +72,10 @@ expParams = {
              'AutoBIFT'          : False,
              'AutoAverage'       : False,
              
+             'AutoAvgRegExp'     : '',
+             'AutoAvgNoOfFrames' : 1,
+             'AutoBgSubRegExp'   : '',
+             
              
              #CENTER / BINNING
              'Binsize'    : 2,
