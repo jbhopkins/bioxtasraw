@@ -452,18 +452,18 @@ class GeneralOptionsPage(wx.Panel):
         self.artifactRemovalData2 = ( ('Zinger Removal when Averageing', expParamsInGUI['ZingerRemovalAvg']),
                                       ('Sensitivty (lower is more):', expParamsInGUI['ZingerRemovalAvgStd']))
         
-        chkboxSizer = self.createChkBoxSettings()
+        #chkboxSizer = self.createChkBoxSettings()
         
         artifactSizer = self.createArtifactRemoveSettings()
         artifactSizer2 = self.createArtifactRemoveOnAvg()
         
-        self.autoSubOptionsPanel = PatternRadioBox(self, expParamsInGUI['BgPatternType'][0], expParamsInGUI['BgPatternValue'][0])
+        #self.autoSubOptionsPanel = PatternRadioBox(self, expParamsInGUI['BgPatternType'][0], expParamsInGUI['BgPatternValue'][0])
         
         panelsizer = wx.BoxSizer(wx.VERTICAL)
         panelsizer.Add(artifactSizer, 0, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT,5)
         panelsizer.Add(artifactSizer2, 0, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT, 5)
-        panelsizer.Add(chkboxSizer, 1, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT | wx.BOTTOM ,5)        
-        panelsizer.Add(self.autoSubOptionsPanel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM ,5)
+        #panelsizer.Add(chkboxSizer, 1, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT | wx.BOTTOM ,5)        
+        #panelsizer.Add(self.autoSubOptionsPanel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM ,5)
         #panelsizer.Add(wx.StaticLine(self,-1), 0, wx.EXPAND)
         #panelsizer.Add(constantsSizer, 1, wx.EXPAND | wx.TOP, 10)
         
@@ -804,7 +804,7 @@ class SaveDirectoriesPage(wx.Panel):
         expParamsInGUI = wx.FindWindowByName('OptionsDialog').expParamsInGUI
                                                                                #Set button id , clr button id
         self.directoryData = (('Processed files:', expParamsInGUI['ProcessedFilePath'], wx.NewId(), wx.NewId()),
-                              (None, None, None, None))
+                              ('Averaged files:', expParamsInGUI['AveragedFilePath'], wx.NewId(), wx.NewId()))
         
         self.autoSaveData = (('Save Processed Image Files Automatically (Online mode)', expParamsInGUI['AutoSaveOnImageFiles'][0]),
                              ('Save Averaged Data Files Automatically', expParamsInGUI['AutoSaveOnAvgFiles'][0]))
@@ -1210,7 +1210,6 @@ class ImageFormatOptionsPage(wx.Panel):
                               'distance in advanced options/calibration.', 'Attention!', wx.OK | wx.ICON_EXCLAMATION)
 
 
-                
 
         return
 #------ ****** Main Dialog ******
@@ -1219,7 +1218,7 @@ class OptionsDialog(wx.Dialog):
     
     def __init__(self, parent, expParams, focusIndex = None):
       
-        wx.Dialog.__init__(self, parent, -1, 'Advanced Options', size=(400,450), name = 'OptionsDialog')
+        wx.Dialog.__init__(self, parent, -1, 'Advanced Options', size=(500,450), name = 'OptionsDialog')
 
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -1251,14 +1250,14 @@ class OptionsDialog(wx.Dialog):
                                'WaterAvgMaxPoint' : (wx.NewId(), 'int'),
                                
                                #AUTOMATION
-                               'AutoAvg'          : (wx.NewId(), 'bool'),
+                               'AutoAvg'      : (wx.NewId(), 'bool'),
                                'AutoAvgRegExp'    : (wx.NewId(), 'text'),
                                'AutoAvgNoOfFrames': (wx.NewId(), 'int'),
                                'AutoBgSubtract'   : (wx.NewId(), 'bool'),
                                'AutoBgSubRegExp'  : (wx.NewId(), 'text'),
                                'AutoBIFT'         : (wx.NewId(), 'bool'),
-                               'BgPatternType'    : (wx.NewId(), 'text'),
-                               'BgPatternValue'   : (wx.NewId(), 'text'),
+                               #'BgPatternType'    : (wx.NewId(), 'text'),
+                               #'BgPatternValue'   : (wx.NewId(), 'text'),
                                                           
                                #BIFT PARAMETERS:
                                'maxDmax'     : (wx.NewId(), 'float'),
@@ -1293,6 +1292,7 @@ class OptionsDialog(wx.Dialog):
                                
                                #SAVE DIRECTORIES
                                'ProcessedFilePath'      : (wx.NewId(), 'text'),
+                               'AveragedFilePath'       : (wx.NewId(), 'text'),
                                'AutoSaveOnImageFiles'   : (wx.NewId(), 'bool'),
                                'AutoSaveOnAvgFiles'     : (wx.NewId(), 'bool'),
                                
@@ -1339,7 +1339,6 @@ class OptionsDialog(wx.Dialog):
         optionsNB.AddPage(self.page5, "2D reduction")
         optionsNB.AddPage(self.page6, "Directories")
         optionsNB.AddPage(self.page7, "Automation")
-        
 
         buttonSizer = self.createButtons()
 
@@ -1354,7 +1353,7 @@ class OptionsDialog(wx.Dialog):
         if focusIndex != None:
             optionsNB.SetSelection(focusIndex)
         
-        self.Fit()
+       # self.Fit()
         self.CenterOnScreen()
             
     def getValueFromExpParams(self, key):
@@ -1593,11 +1592,19 @@ class OptionsDialog(wx.Dialog):
     def SeekInvaildEntries(self):
         
         autobgsubChkbox = wx.FindWindowById(self.expParamsInGUI['AutoBgSubtract'][0])
-        patternTxtCtrl = wx.FindWindowById(self.expParamsInGUI['BgPatternValue'][0])
+        patternTxtCtrl = wx.FindWindowById(self.expParamsInGUI['AutoBgSubRegExp'][0])
+        
+        autoavgChkbox = wx.FindWindowById(self.expParamsInGUI['AutoAvg'][0])
+        autoavgTxtCtrl = wx.FindWindowById(self.expParamsInGUI['AutoAvgRegExp'][0])
+        
         
         if autobgsubChkbox.GetValue() == True and patternTxtCtrl.GetValue() == '':
-            wx.MessageBox('You need to specify a background filename pattern\n to do automatic background subtraction', 'Warning!', wx.OK | wx.ICON_EXCLAMATION)
+            wx.MessageBox('You need to specify a background filename regular expression\n to do automatic background subtraction', 'Warning!', wx.OK | wx.ICON_EXCLAMATION)
             return True
+        elif autoavgChkbox.GetValue() == True and autoavgTxtCtrl.GetValue() == '':
+            wx.MessageBox('You need to specify an averaging filename regular expression pattern\n to do automatic averaging', 'Warning!', wx.OK | wx.ICON_EXCLAMATION)
+            return True
+        
         else:
             return False
         

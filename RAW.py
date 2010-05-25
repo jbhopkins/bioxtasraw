@@ -70,7 +70,7 @@ expParams = {
              'CalibrateMan'      : False,        # Calibrate manual (wavelength / distance)
              'AutoBgSubtract'    : False,
              'AutoBIFT'          : False,
-             'AutoAverage'       : False,
+             'AutoAvg'           : False,
              
              'AutoAvgRegExp'     : '',
              'AutoAvgNoOfFrames' : 1,
@@ -103,8 +103,8 @@ expParams = {
              'WaveLength'          : 0.0,
              'SampleDistance'      : 0.0,
              'SampleThickness'     : 0.0,
-             'BgPatternType'       : 'contain',
-             'BgPatternValue'      : '',
+             #'BgPatternType'       : 'contain',
+             #'BgPatternValue'      : '',
              'ReferenceQ'          : 0.0,
              'ReferenceDistPixel'  : 0,
              'ReferenceDistMm'     : 0.0,
@@ -150,9 +150,11 @@ expParams = {
              'ZingerRemovalAvg'     : False,
              
              #SAVE DIRECTORIES
-             'ProcessedFilePath'      : None,
+             'ProcessedFilePath'    : None,
+             'AveragedFilePath'     : None,
              'AutoSaveOnImageFiles' : False,
              'AutoSaveOnAvgFiles'   : False,
+             
              
              #IMAGE FORMATS
              #See advancedOptionsGUI ['Quantum 210, CHESS', 'MarCCD 165, MaxLab', 'Medoptics, CHESS', 'FLICAM, CHESS']
@@ -277,6 +279,8 @@ class PlotWorkerThread(threading.Thread):
             if len(selectedFiles) == 3 and selectedFiles[1] == True:
                 self._setBackground = selectedFiles[1]
                 selectedFiles = selectedFiles[0]
+            else:
+                self._setBackground = None
             
             print selectedFiles
             
@@ -2926,26 +2930,40 @@ class OnlineController:
         
         filename = os.path.split(filepath)[1]
         
-        bgPatternType = expParams['BgPatternType']
-        bgPattern = expParams['BgPatternValue']
+        #bgPatternType = expParams['AutBgPatternType']
+        #bgPattern = expParams['BgPatternValue']
         
-        if bgPatternType == 'contain':
-            result = filename.find(bgPattern)
-            
-            print "result:", str(result)
-            
-            if result < 0:
-                return False
-            else:
-                return True
-            
-        elif bgPatternType == 'start':
-            
-            return filename.startswith(bgPattern)   # A python string function
-            
-        elif bgPatternType == 'end':
-            
-            return filename.endswith(bgPattern)    # A python string function
+        regexp = expParams['AutoBgSubRegExp']
+        
+        try:
+            pattern = re.compile(regexp)
+        except:
+            return False
+    
+        m = pattern.match(filename)
+    
+        if m:
+            return True
+        else:
+            return False
+        
+#        if bgPatternType == 'contain':
+#            result = filename.find(bgPattern)
+#            
+#            print "result:", str(result)
+#            
+#            if result < 0:
+#                return False
+#            else:
+#                return True
+#            
+#        elif bgPatternType == 'start':
+#            
+#            return filename.startswith(bgPattern)   # A python string function
+#            
+#        elif bgPatternType == 'end':
+#            
+#            return filename.endswith(bgPattern)    # A python string function
     
     def _FileTypeIsExcluded(self, filename):
         
