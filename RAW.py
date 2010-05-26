@@ -69,11 +69,13 @@ expParams = {
              'Calibrate'         : False,        # Calibrate AgBe
              'CalibrateMan'      : False,        # Calibrate manual (wavelength / distance)
              'AutoBgSubtract'    : False,
+             
              'AutoBIFT'          : False,
              'AutoAvg'           : False,
              'AutoAvgRemovePlots': False,
              
              'AutoAvgRegExp'     : '',
+             'AutoAvgNameRegExp' : '',
              'AutoAvgNoOfFrames' : 1,
              'AutoBgSubRegExp'   : '',
              
@@ -153,8 +155,11 @@ expParams = {
              #SAVE DIRECTORIES
              'ProcessedFilePath'    : None,
              'AveragedFilePath'     : None,
+             'SubtractedFilePath'   : None,
              'AutoSaveOnImageFiles' : False,
-             'AutoSaveOnAvgFiles'   : False,
+             'AutoSaveOnAvgFiles'   : False,    
+             'AutoSaveOnSub'        : False,
+             
              
              
              #IMAGE FORMATS
@@ -275,23 +280,26 @@ class PlotWorkerThread(threading.Thread):
         while True:
             
             selectedFiles = plotQueue.get()    # Blocks until a new item is available in the queue
-            
+                    
             #Another nasty hack for setting the background:
             if len(selectedFiles) == 3 and selectedFiles[1] == True:
                 self._setBackground = selectedFiles[1]
                 selectedFiles = selectedFiles[0]
             else:
-                self._setBackground = None
+                self._setBackground = False
             
             print selectedFiles
             
             if len(selectedFiles) == 3 and selectedFiles[2] == True:
                 selectedFiles = selectedFiles[0]
-                if expParams['AutoSaveOnImageFiles'] == True:
-                    self.savepath = expParams['ProcessedFilePath']
-                else:
-                    self.savepath = None
                 
+    
+            if expParams['AutoSaveOnImageFiles'] == True and FromOnlineMode:
+                self.savepath = expParams['ProcessedFilePath']
+            else:
+                self.savepath = None
+ 
+ 
             dirCtrlPanel = wx.FindWindowByName('DirCtrlPanel')
             plotpanel = wx.FindWindowByName('PlotPanel')
             biftplotpanel = wx.FindWindowByName('BIFTPlotPanel')
@@ -301,8 +309,7 @@ class PlotWorkerThread(threading.Thread):
           
             for eachSelectedFile in selectedFiles:
                 
-#                cProfile.runctx("ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)", globals(), locals())
-                
+#               cProfile.runctx("ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)", globals(), locals())           
                 ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)
                                                 
                 checkedTreatments = getTreatmentParameters()
@@ -311,26 +318,36 @@ class PlotWorkerThread(threading.Thread):
                     if ExpObj.i != []:
                     
                         cartToPol.applyDataManipulations(ExpObj, expParams, checkedTreatments)    # Only does something for images
+                                             
+                        if expParams['AutoBgSubtract'] and FromOnlineMode:
+                            self._setBackground = self.CheckIfFilenameIsBackground(eachSelectedFile)
                         
+                        # should also check for online mode:
+                        AvgExpObj = None  
+                        if expParams['AutoAvg'] and FromOnlineMode:
+                            AvgExpObj = self.processAutoAveraging(ExpObj, eachSelectedFile)
+                            
+                            if self._setBackground == True and AvgExpObj != None:
+                                expParams['BackgroundFile'] = AvgExpObj
+                                wx.CallAfter(dirCtrlPanel.SetBackgroundFile, AvgExpObj.param['filename'])
+                                
+                            if AvgExpObj == None:
+                                print 'ERROR in autoaverage'
+                        else:
+                            
+                            if self._setBackground == True:
+                                expParams['BackgroundFile'] = ExpObj
+                                wx.CallAfter(dirCtrlPanel.SetBackgroundFile, eachSelectedFile)
+                                                              
                         if self.savepath:
-                            filename = os.path.split(ExpObj.param['filename'])[1]
-                            fullsavePath = os.path.join(self.savepath, filename)
-                            ExpObj.param['filename'] = fullsavePath
-                            fileIO.saveMeasurement(ExpObj)
-                            print fullsavePath +'...SAVED'
-                            self.savepath = None
-                            wx.CallAfter(dirCtrlPanel.FilterFileListAndUpdateListBox)
-                                                            
-                        if self._setBackground == True:
-                            expParams['BackgroundFile'] = ExpObj
-                            wx.CallAfter(dirCtrlPanel.SetBackgroundFile, eachSelectedFile)
-                    
+                            self.saveMeasurement(ExpObj, self.savepath)
+       
                         if ExpObj.type == 'bift':
                             biftplotpanel.PlotLoadedBift(ExpObj)
                         else:    
                             wx.CallAfter(plotpanel._PlotOnSelectedAxesScale, ExpObj, axes = self._parent.subplot1)   
                             wx.CallAfter(plotpanel._setLabels, ExpObj, axes = self._parent.subplot1)
-        
+            
                         # For some unknown reason showing the image can make the program hang!
                         if FullImage and len(selectedFiles) == 1:
                             rawplot = wx.FindWindowByName('RawPlotPanel')
@@ -340,15 +357,25 @@ class PlotWorkerThread(threading.Thread):
                             manipulationPage = wx.FindWindowByName('ManipulationPage')
                             evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, ExpObj)
                             wx.PostEvent(manipulationPage, evt)
+                            
+                            
+                        if expParams['AutoAvg'] and AvgExpObj != Nonne and FromOnlineMode:    
+                            wx.CallAfter(plotpanel._PlotOnSelectedAxesScale, AvgExpObj, axes = self._parent.subplot1)   
+                            wx.CallAfter(plotpanel._setLabels, AvgExpObj, axes = self._parent.subplot1)
+                            
+                            manipulationPage = wx.FindWindowByName('ManipulationPage')
+                            evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, AvgExpObj)
+                            wx.PostEvent(manipulationPage, evt)
+                            
+                            if expParams['AutoBgSubtract'] and FromOnlineMode and self._setBackground == False:
+                                autoBgSubQueue.put([eachSelectedFile])
+                        
+                        elif expParams['AutoBgSubtract'] and not expParams['AutoAvg'] and self._setBackground == False and FromOnlineMode:
+                            autoBgSubQueue.put([eachSelectedFile])
+  
         
                         wx.CallAfter(mainframe_window.SetStatusText,'Loading: ' + eachSelectedFile + '...Done!')    
                     
-#                        autoSave = expParams['AutoSaveOnImageFiles']
-#                    
-#                        if ExpObj.getFileType() == 'image' and autoSave:
-#                            dirctrlpanel = wx.FindWindowByName('DirCtrlPanel')                        
-#                            wx.CallAfter(dirctrlpanel.SaveSingleRadFile, ExpObj)
-
                     else:
                         wx.CallAfter(wx.MessageBox, 'Filename: ' + eachSelectedFile + '\nDoes not contain any recognisable data.\n\nIf you are trying to load an image,\nset the correct image format in Options.', 'Load Failed!', wx.OK | wx.ICON_ERROR)
                 else:
@@ -357,6 +384,116 @@ class PlotWorkerThread(threading.Thread):
             wx.CallAfter(plotpanel._insertLegend, axes = self._parent.subplot1)
             
             plotQueue.task_done()
+            
+            
+    def processAutoAveraging(self,ExpObj, eachSelectedFile):
+        
+        AvgExpObj = None
+        if self.FilenameMatchesCurrentAvgName(eachSelectedFile):    
+            self.avgList.append(ExpObj)
+        else:
+            self.avgList = []
+            name, frame = self.ExtractFilenameAndFrameNumber(eachSelectedFile,  expParams['AutoAvgRegExp'], expParams['AutoAvgNameRegExp'])
+                                
+            if name and frame:
+                self.currentAutoAvgName = name
+                self.avgList.append(ExpObj)
+            else:
+                self.currentAutoAvgName = None
+                            
+        print 'FilesInList : ', len(self.avgList)
+        
+        if len(self.avgList) == expParams['AutoAvgNoOfFrames']:
+            AvgExpObj = self.averageFilesInAvgList()
+            self.avgList = []  
+            if expParams['AutoSaveOnAvgFiles']:
+                self.saveMeasurement(AvgExpObj, expParams['AveragedFilePath'])
+                
+        return AvgExpObj
+            
+    def averageFilesInAvgList(self):
+            
+        AvgExpObj = cartToPol.averageMeasurements(self.avgList, expParams)
+        
+        if AvgExpObj == None:
+            return None
+        
+        path_file = os.path.split(AvgExpObj.param['filename'])          
+        AvgExpObj.param['filename'] = path_file[0] + 'AVG_' + path_file[1]
+        
+        return AvgExpObj
+    
+    def saveMeasurement(self, ExpObj, savepath): 
+        filename = os.path.split(ExpObj.param['filename'])[1]
+        fullsavePath = os.path.join(savepath, filename)
+        ExpObj.param['filename'] = fullsavePath
+        fileIO.saveMeasurement(ExpObj)
+        print fullsavePath +'...SAVED'
+        self.savepath = None
+        wx.CallAfter(dirCtrlPanel.FilterFileListAndUpdateListBox)
+        
+    def ExtractFilenameAndFrameNumber(filepath, frameregexp, nameregexp):
+        
+        filename = os.path.split(filepath)[1]
+    
+        frame = False
+        name = False
+    
+        # EXTRACT FRAME NUMBER
+        try:
+            pattern = re.compile(frameregexp)
+            m = pattern.findall(filename)
+        
+            if len(m) > 0:
+                found = ''
+                for each in m:
+                    found = found + each
+                    print m
+        
+                non_decimal = re.compile(r'[^\d.]+')
+                frame = non_decimal.sub('', found)
+    
+                if frame == '':
+                    frame = False
+        except:
+            pass
+
+        # EXTRACT FILENAME
+        try:
+            namepattern = re.compile(nameregexp) 
+            n = namepattern.findall(filename)
+   
+            if len(n) > 0:
+                found = ''
+                for each in n:
+                    found = found + each
+                    print n
+        
+                if found != '':
+                    name = found
+                else:
+                    name = False
+        except:
+            pass
+        
+        return name, frame
+     
+    def FilenameMatchesCurrentAvgName(self, filepath):
+        
+        frameNumberRegExp = expParams['AutoAvgRegExp']
+        nameRegExp = expParams['AutoAvgNameRegExp']
+        
+        name, frame = self.ExtractFilenameAndFrameNumber(filepath, frameNumberRegExp, nameRegExp)
+        
+        if name and frame:
+            if self.currentAutoAvgName == name:
+                return True
+            else:
+                self.currentAutoAvgName = name
+                return False 
+        else:
+            return False
+    
         
 class BgSubPlotWorkerThread(threading.Thread):
     
@@ -454,7 +591,7 @@ class AutoBgSubWorkerThread(threading.Thread):
             if ExpObjBackgrnd != None:
             
                 for eachFile in self._listOfFilePaths:
-                
+                    
                     ExpObjSample, FullImage = fileIO.loadFile(eachFile, expParams)
                     checkedTreatments = getTreatmentParameters()
                     cartToPol.applyDataManipulations(ExpObjSample, expParams, checkedTreatments)
@@ -2823,7 +2960,8 @@ class InfoPanel(wx.Panel):
     def Clear(self):
         
         self.infoTextBox.Clear()
-         
+        
+                 
 class OnlineController:                                   
     def __init__(self, parent):
         
@@ -2906,7 +3044,7 @@ class OnlineController:
 
                     if not(self._FileTypeIsExcluded(filepath)):
                         self.ProcessIncommingFile(filepath)
-                        
+    
     def ProcessIncommingFile(self, filepath):
         
         plotPanel = wx.FindWindowByName('PlotPanel')
@@ -2915,17 +3053,17 @@ class OnlineController:
         print filepath
         
         autoSubtractEnabled = expParams['AutoBgSubtract']
-        
+           
         if autoSubtractEnabled:
             filenameIsBackground = self.CheckIfFilenameIsBackground(filepath)
             
             if filenameIsBackground:
                 plotQueue.put(([filepath],True, True))
             else:
-
                 autoBgSubQueue.put([filepath])
         else:
            plotQueue.put(([filepath], False, True))
+           
             
     def CheckIfFilenameIsBackground(self, filepath):
         

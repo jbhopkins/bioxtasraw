@@ -244,12 +244,19 @@ class AutomationPage(wx.Panel):
         
         box12 = wx.BoxSizer(wx.HORIZONTAL)
         
-        self.reglabel = wx.StaticText(self, -1, 'Regular Expression:')
+        self.reglabel = wx.StaticText(self, -1, 'Regular Expression (frame):')
         self.regctrl = wx.TextCtrl(self, self.expParamsInGui['AutoAvgRegExp'][0], size = (150,-1))
        
         box1 = wx.BoxSizer(wx.VERTICAL)
         box1.Add(self.reglabel,0)
         box1.Add(self.regctrl,0)
+        
+        self.reglabelname = wx.StaticText(self, -1, 'Regular Expression (name):')
+        self.regctrlname = wx.TextCtrl(self, self.expParamsInGui['AutoAvgNameRegExp'][0], size = (150,-1))
+       
+        box5 = wx.BoxSizer(wx.VERTICAL)
+        box5.Add(self.reglabelname,0)
+        box5.Add(self.regctrlname,0)
         
         self.numofframesLabel = wx.StaticText(self, -1, 'No. of Frames:')
         self.numofframesCtrl = wx.TextCtrl(self, self.expParamsInGui['AutoAvgNoOfFrames'][0], '1', style = wx.TE_CENTER)
@@ -259,6 +266,7 @@ class AutomationPage(wx.Panel):
         
         box12.Add((28,1),0)
         box12.Add(box1, 0, wx.RIGHT, 10)
+        box12.Add(box5,0, wx.RIGHT, 10)
         box12.Add(box2,0)
         
         box34 = wx.BoxSizer(wx.HORIZONTAL)
@@ -269,7 +277,13 @@ class AutomationPage(wx.Panel):
         box3.Add(testfilenameLabel,0)
         box3.Add(self.testfilenameCtrl,0)
         
-        testframenum = wx.StaticText(self, -1, 'Test Frame #:')
+        testfilenameLabelex = wx.StaticText(self, -1, 'Extracted Filename:')
+        self.testfilenameCtrlex = wx.TextCtrl(self, -1, size = (150,-1), style = wx.TE_CENTER)
+        box6 = wx.BoxSizer(wx.VERTICAL)
+        box6.Add(testfilenameLabelex,0)
+        box6.Add(self.testfilenameCtrlex,0)
+        
+        testframenum = wx.StaticText(self, -1, 'Frame #:')
         self.testframectrl = wx.TextCtrl(self, -1, style = wx.TE_CENTER)
         testbutton = wx.Button(self, -1 , 'Test')
         testbutton.Bind(wx.EVT_BUTTON, self.OnAutoAvgTest)
@@ -279,14 +293,17 @@ class AutomationPage(wx.Panel):
         box4.Add(self.testframectrl,0)
         
         box34.Add((28,1),0)
-        box34.Add(box3,0, wx.RIGHT, 10)
-        box34.Add(box4,0, wx.RIGHT,10)
-        box34.Add(testbutton, 0,wx.TOP, 10)
-        
+        box34.Add(box3,0, wx.RIGHT, 12)
+        box34.Add(box6,0, wx.RIGHT, 12)
+        box34.Add(box4,0)
+
         inbox.Add(chkbox,0, wx.LEFT|wx.TOP|wx.BOTTOM, 5)
         inbox.Add(chkbox2,0, wx.LEFT, 28)
         inbox.Add(box12,0, wx.TOP, 5)
         inbox.Add(box34,0, wx.TOP | wx.BOTTOM, 5)
+        inbox.Add((1,2),0)
+        inbox.Add(testbutton, 0, wx.LEFT, 28)
+        inbox.Add((1,5),0)
         
         return inbox
     
@@ -362,12 +379,13 @@ class AutomationPage(wx.Panel):
     def OnAutoAvgTest(self, event):
         
         regexp = self.regctrl.GetValue()
+        nameregexp = self.regctrlname.GetValue()
         filename = self.testfilenameCtrl.GetValue()
         
+        name, frame = ExtractFilenameAndFrameNumber(filename, regexp, nameregexp)
         
-        match = TestAutoAvgRegExpression(filename, regexp)
-        
-        self.testframectrl.SetValue(str(match))
+        self.testframectrl.SetValue(str(frame))
+        self.testfilenameCtrlex.SetValue(str(name))
         
     def createChkBoxSettings(self):
         
@@ -388,32 +406,53 @@ class AutomationPage(wx.Panel):
         return chkboxSizer
 
 
-def TestAutoAvgRegExpression(filename, regexp):
+def ExtractFilenameAndFrameNumber(filename, frameregexp, nameregexp):
     
+    frame = 'No Match'
+    name = 'No Match'
+    
+    # EXTRACT FRAME NUMBER
     try:
-        pattern = re.compile(regexp)
-    except:
-        return 'No Match'
-    
-    m = pattern.findall(filename)
-    
-    if len(m) > 0:
-        found = ''
-        for each in m:
-            found = found + each
-
-            print m
-    else:
-        found = 'No Match'
-        return found
+        pattern = re.compile(frameregexp)
+        m = pattern.findall(filename)
         
-    non_decimal = re.compile(r'[^\d.]+')
-    match = non_decimal.sub('', found)
+        if len(m) > 0:
+            found = ''
+            for each in m:
+                found = found + each
+                print m
+        
+            non_decimal = re.compile(r'[^\d.]+')
+            frame = non_decimal.sub('', found)
     
-    
-    if match == '':
-        return 'No Match'
-    return match
+            if frame == '':
+                frame = 'No Match'
+    except:
+        pass
+
+    # EXTRACT FILENAME
+    try:
+        namepattern = re.compile(nameregexp)
+        
+        n = namepattern.findall(filename)
+        
+        print n
+        
+        if len(n) > 0:
+            found = ''
+            for each in n:
+                found = found + each
+                print n
+        
+            if found != '':
+                name = found
+            else:
+                name = 'No Match'
+        
+    except:
+        pass
+        
+    return name, frame
     
 def TestAutoBgSubRegExpression(filename, regexp):
     
@@ -806,11 +845,14 @@ class SaveDirectoriesPage(wx.Panel):
         
         expParamsInGUI = wx.FindWindowByName('OptionsDialog').expParamsInGUI
                                                                                #Set button id , clr button id
+                                                                               
         self.directoryData = (('Processed files:', expParamsInGUI['ProcessedFilePath'], wx.NewId(), wx.NewId()),
-                              ('Averaged files:', expParamsInGUI['AveragedFilePath'], wx.NewId(), wx.NewId()))
+                              ('Averaged files:', expParamsInGUI['AveragedFilePath'], wx.NewId(), wx.NewId()),
+                              ('Subtracted files:',expParamsInGUI['SubtractedFilePath'], wx.NewId(), wx.NewId()))
         
         self.autoSaveData = (('Save Processed Image Files Automatically (Online mode)', expParamsInGUI['AutoSaveOnImageFiles'][0]),
-                             ('Save Averaged Data Files Automatically', expParamsInGUI['AutoSaveOnAvgFiles'][0]))
+                             ('Save Averaged Data Files Automatically', expParamsInGUI['AutoSaveOnAvgFiles'][0]),
+                             ('Save Subtracted Data Files Automatically', expParamsInGUI['AutoSaveOnSub'][0]))
         
         dirSizer = self.createDirectoryOptions()
         
@@ -1223,7 +1265,7 @@ class OptionsDialog(wx.Dialog):
     
     def __init__(self, parent, expParams, focusIndex = None):
       
-        wx.Dialog.__init__(self, parent, -1, 'Advanced Options', size=(500,450), name = 'OptionsDialog')
+        wx.Dialog.__init__(self, parent, -1, 'Advanced Options', size=(500,480), name = 'OptionsDialog')
 
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -1259,6 +1301,7 @@ class OptionsDialog(wx.Dialog):
                                'AutoAvgRemovePlots': (wx.NewId(), 'bool'),
                                'AutoAvg'           : (wx.NewId(), 'bool'),
                                'AutoAvgRegExp'     : (wx.NewId(), 'text'),
+                               'AutoAvgNameRegExp' : (wx.NewId(), 'text'),
                                'AutoAvgNoOfFrames' : (wx.NewId(), 'int'),
                                'AutoBgSubtract'    : (wx.NewId(), 'bool'),
                                'AutoBgSubRegExp'   : (wx.NewId(), 'text'),
@@ -1300,9 +1343,11 @@ class OptionsDialog(wx.Dialog):
                                #SAVE DIRECTORIES
                                'ProcessedFilePath'      : (wx.NewId(), 'text'),
                                'AveragedFilePath'       : (wx.NewId(), 'text'),
+                               'SubtractedFilePath'     : (wx.NewId(), 'text'),
                                'AutoSaveOnImageFiles'   : (wx.NewId(), 'bool'),
                                'AutoSaveOnAvgFiles'     : (wx.NewId(), 'bool'),
-                               
+                               'AutoSaveOnSub'          : (wx.NewId(), 'bool'),
+                          
                                #MASKING
                                'BeamStopMaskFilename' :   (wx.NewId(), 'maskFilename'),
                                'ReadOutNoiseMaskFilename':(wx.NewId(), 'maskFilename'),
