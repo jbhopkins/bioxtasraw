@@ -125,7 +125,7 @@ def radialAverage(in_image, dim, x_c, y_c, mask = None, readoutNoise_mask = None
         
 
         #Estimated Standard deviation   - equal to the std of pixels in the area / sqrt(N) 
-        std_n = sqrt(readoutN[0,3] / readoutN[0,0])
+        std_n = sqrt(readoutN[0,3] / readoutN[0,0])    # sqrt((X-MEAN)/N)
         errorbarNoise = std_n / sqrt(readoutN[0,0])
         
         print 'Readout Noise Err: ', errorbarNoise 

@@ -1694,8 +1694,6 @@ class PlotPanel(wx.Panel):
                     dialog.Update(1)
             
                     self._PlotOnSelectedAxesScale(ExpObjSubbed, self.subplot2)
-                    #overviewpanel = wx.FindWindowByName('OverviewPanel')
-                    #overviewpanel.plotExpObj(ExpObjSubbed)
                 
                     dialog.Update(3)
             
@@ -1706,6 +1704,15 @@ class PlotPanel(wx.Panel):
                     manipulationPage.AddItem(ExpObjSubbed)
         
                     dialog.Update(7)
+                    
+                    #Arrhh.. this should not be here.. SubtractAndPlot should be cleaned up
+                    if expParams['AutoSaveOnSub']:
+                        savepath = expParams['SubtractedFilePath']
+                        filename = os.path.split(ExpObjSubbed.param['filename'])[1]
+                        fullsavePath = os.path.join(savepath, filename)
+                        ExpObjSubbed.param['filename'] = fullsavePath
+                        fileIO.saveMeasurement(ExpObjSubbed, NoChange = True)
+                        print fullsavePath +'...SAVED'
             
                 else:
                     wx.MessageBox(noPathSampleFilename + ' and ' + noPathBackgrndFilename + '\ndoes not have the same q-range!', 'Subtraction Failed!', wx.OK | wx.ICON_ERROR)

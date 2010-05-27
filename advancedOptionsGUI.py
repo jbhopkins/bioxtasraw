@@ -1091,7 +1091,7 @@ class ImageFormatOptionsPage(wx.Panel):
         txtctrl = wx. TextCtrl(self, self.expParamsInGUI['OnlineFilterExt'][0], '')
         
         box.Add(chkbox,0)
-        box.Add(txtctrl,0)
+        box.Add(txtctrl,0, wx.LEFT, 25)
         
         return box
         
