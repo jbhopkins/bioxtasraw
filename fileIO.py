@@ -204,9 +204,8 @@ def loadQuantum1File(filename, expParams):
     
     closedShutterCount, mon1, mon2, exposureTime = parseCTSfile(filename) 
     
-    print closedShutterCount, mon1, mon2, exposureTime
-    
-    print dim
+    #print closedShutterCount, mon1, mon2, exposureTime
+    #print dim
     
     ExpObj, FullImage = cartToPol.loadM(img, dim, mask, rdmask, q_range, hdr, x_center, y_center, pixelcal = None, binsize = binsize)
     ExpObj.param['filename'] = filename
@@ -232,9 +231,9 @@ def loadQuantum210File(filename, expParams):
     
     closedShutterCount, mon1, mon2, exposureTime = parseCTSfile(filename) 
     
-    print closedShutterCount, mon1, mon2, exposureTime
+    #print closedShutterCount, mon1, mon2, exposureTime
     
-    print dim
+    #print dim
     
     ExpObj, FullImage = cartToPol.loadM(img, dim, mask, rdmask, q_range, hdr, x_center, y_center, pixelcal = None, binsize = binsize)
     
@@ -306,7 +305,7 @@ def loadFile(filename, expParams = None):
             print >> sys.stderr, str(msg)
             file_type = None
     
-        print file_type
+        print 'File Type : ', file_type
         FullImage = None
         
         ############### ASCII Files #####################
@@ -360,7 +359,7 @@ def loadFile(filename, expParams = None):
             ExpObj, FullImage = loadTiffFile(filename, expParams)
 
 
-        print ExpObj
+        #print ExpObj
         
         return ExpObj, FullImage
         

@@ -1675,6 +1675,8 @@ def loadMask(filename, varname = 'mask'):
 
 def createMaskFromRAWFormat(maskPlotParameters):
     
+    print 'Creating mask...',
+    
     border = maskPlotParameters['imageBorder']
     imageDimentions = maskPlotParameters['imageDimentions']
     storedMasks = maskPlotParameters['storedMasks']
@@ -1726,6 +1728,8 @@ def createMaskFromRAWFormat(maskPlotParameters):
     
     # Show mask:
     #maskingpanel.showImage([finalMask, finalMask.shape], maskingpanel.ExpObj)
+    
+    print 'done'
     
     return finalMask
 
@@ -2266,7 +2270,7 @@ def LoadReadoutNoiseMask(mask_fullpath):
             #progressThread= None
             
         if maskLoadingThread == None:
-            maskLoadingThread = LoadMaskThread(self)
+            maskLoadingThread = LoadMaskThread()
             maskLoadingThread.start()
             loadMaskQueue.put([mask_fullpath, 'readout', expParams, 'param'])
         else:

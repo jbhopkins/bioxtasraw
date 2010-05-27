@@ -79,6 +79,9 @@ expParams = {
              'AutoAvgNoOfFrames' : 1,
              'AutoBgSubRegExp'   : '',
              
+             'UseOnlineFilter' : False,
+             'OnlineFilterExt' : '',
+             
              
              #CENTER / BINNING
              'Binsize'    : 2,
@@ -3111,23 +3114,19 @@ class OnlineController:
     
     def ProcessIncommingFile(self, filepath):
         
-        #plotPanel = wx.FindWindowByName('PlotPanel')
-        #dirCtrlPanel = wx.FindWindowByName('DirCtrlPanel')
-
         print filepath
         
-        #autoSubtractEnabled = expParams['AutoBgSubtract']
-           
-        #if autoSubtractEnabled:
-        #    filenameIsBackground = self.CheckIfFilenameIsBackground(filepath)
-            
-        #    if filenameIsBackground:
-        #        plotQueue.put(([filepath],True, True))
-        #    else:
-        #        autoBgSubQueue.put([filepath])
-        #else:
-        plotQueue.put(([filepath], True))
-           
+        filename = os.path.split(filepath)[1]
+        
+        name, extension = os.path.splitext(filename)
+        print extension
+        if expParams['UseOnlineFilter']:
+            if extension == '.' + expParams['OnlineFilterExt'] or extension == expParams['OnlineFilterExt']:
+                plotQueue.put(([filepath], True))
+            else:
+                print 'Extension doesnt match'
+        else:
+            plotQueue.put(([filepath], True))
             
     def CheckIfFilenameIsBackground(self, filepath):
         

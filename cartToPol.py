@@ -115,16 +115,20 @@ def radialAverage(in_image, dim, x_c, y_c, mask = None, readoutNoise_mask = None
     iq = hist / hist_count
     iq[0] = in_image[x_c, y_c]  # the center is not included in the radial average, so it is set manually her
     
+    #Estimated Standard deviation   - equal to the std of pixels in the area / sqrt(N)
     errorbars = std_i / sqrt(hist_count)
     
     if readoutNoiseFound:
         #Average readoutNoise
-        readoutNoise = readoutN[0,1] /  readoutN[0,0]
-        readoutNoise[np.where(np.isnan(readoutNoise))] = 0
+        readoutNoise = readoutN[0,1] /  readoutN[0,0]   ## sum(img(x,y)) / N
+        print 'Readout Noise: ', readoutNoise
         
-        #Standard deviation
-        std_n = sqrt(readoutN[0,4] / readoutN[0,0])
-        errorbarNoise = std_n / sqrt(readoutN[0,0]) 
+
+        #Estimated Standard deviation   - equal to the std of pixels in the area / sqrt(N) 
+        std_n = sqrt(readoutN[0,3] / readoutN[0,0])
+        errorbarNoise = std_n / sqrt(readoutN[0,0])
+        
+        print 'Readout Noise Err: ', errorbarNoise 
         
         #Readoutnoise average subtraction
         iq = iq - readoutNoise

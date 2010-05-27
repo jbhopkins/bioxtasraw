@@ -278,13 +278,13 @@ class AutomationPage(wx.Panel):
         box3.Add(self.testfilenameCtrl,0)
         
         testfilenameLabelex = wx.StaticText(self, -1, 'Extracted Filename:')
-        self.testfilenameCtrlex = wx.TextCtrl(self, -1, size = (150,-1), style = wx.TE_CENTER)
+        self.testfilenameCtrlex = wx.TextCtrl(self, -1, size = (150,-1), style = wx.TE_CENTER | wx.TE_READONLY)
         box6 = wx.BoxSizer(wx.VERTICAL)
         box6.Add(testfilenameLabelex,0)
         box6.Add(self.testfilenameCtrlex,0)
         
         testframenum = wx.StaticText(self, -1, 'Frame #:')
-        self.testframectrl = wx.TextCtrl(self, -1, style = wx.TE_CENTER)
+        self.testframectrl = wx.TextCtrl(self, -1, style = wx.TE_CENTER | wx.TE_READONLY)
         testbutton = wx.Button(self, -1 , 'Test')
         testbutton.Bind(wx.EVT_BUTTON, self.OnAutoAvgTest)
         
@@ -310,12 +310,12 @@ class AutomationPage(wx.Panel):
     def createAutoBIFTSettings(self):
         
         topbox = wx.StaticBox(self, -1, 'Indirect Fourier Transform')
-        
         inbox = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-        
         chkbox = wx.CheckBox(self, self.expParamsInGui['AutoBIFT'][0], 'Automated Bayesian Indirect Fourier Transform (BIFT)')
-        
         inbox.Add(chkbox,0, wx.ALL, 5)
+        
+        chkbox.Enable(False)
+        topbox.Enable(False)
         
         return inbox
     
@@ -348,7 +348,7 @@ class AutomationPage(wx.Panel):
         box3.Add(self.autobgtestfilenameCtrl,0)
         
         testframenum = wx.StaticText(self, -1, 'Match Test:')
-        self.autobgtestframectrl = wx.TextCtrl(self, -1, style = wx.TE_CENTER)
+        self.autobgtestframectrl = wx.TextCtrl(self, -1, style = wx.TE_CENTER | wx.TE_READONLY)
         testbutton = wx.Button(self, -1 , 'Test')
         testbutton.Bind(wx.EVT_BUTTON, self.OnAutoBgTest)
         
@@ -1050,7 +1050,7 @@ class ImageFormatOptionsPage(wx.Panel):
         self.treatmentdataTxtCtrl = (("Offset by Constant:", self.expParamsInGUI['CurveOffsetVal'][0], self.expParamsInGUI['OffsetCurve'][0]),
                                      ("Scale by Constant:", self.expParamsInGUI['CurveScaleVal'][0], self.expParamsInGUI['ScaleCurve'][0]))
 
-        box = wx.StaticBox(self, -1, 'Filtering')
+        box = wx.StaticBox(self, -1, 'Online-mode Filtering')
         fSizer = self.createFilterParameters()
         filterSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         filterSizer.Add(fSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
@@ -1070,23 +1070,30 @@ class ImageFormatOptionsPage(wx.Panel):
         normBoxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         normBoxSizer.Add(normalizationSizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
         
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        hbox.Add(normBoxSizer, 1, wx.RIGHT | wx.EXPAND, 5)
+        hbox.Add(filterSizer,1, wx.EXPAND)
+        
         panelsizer = wx.BoxSizer(wx.VERTICAL)
         panelsizer.Add(chkboxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
         panelsizer.Add(staticBoxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
-        panelsizer.Add(normBoxSizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
+        #panelsizer.Add(normBoxSizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
+        panelsizer.Add(hbox, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
         
         self.SetSizer(panelsizer)
         
     
     def createFilterParameters(self):
         
-
-        chkbox = wx.CheckBox(self, -1, 'Process only:')
+        box = wx.BoxSizer(wx.VERTICAL)
+    
+        chkbox = wx.CheckBox(self, self.expParamsInGUI['UseOnlineFilter'][0], 'Process only extension:')
+        txtctrl = wx. TextCtrl(self, self.expParamsInGUI['OnlineFilterExt'][0], '')
         
-        txtctrl = wx. TextCtrl(self, -1, '')
+        box.Add(chkbox,0)
+        box.Add(txtctrl,0)
         
-        
-        
+        return box
         
     def createFormatsComboBox(self):
         
@@ -1377,7 +1384,11 @@ class OptionsDialog(wx.Dialog):
                                'CurveOffsetVal': (wx.NewId(), 'float'),
                                'OffsetCurve'   : (wx.NewId(), 'bool'),
                                'CurveScaleVal' : (wx.NewId(), 'float'),
-                               'ScaleCurve'    : (wx.NewId(), 'bool')
+                               'ScaleCurve'    : (wx.NewId(), 'bool'),
+                               
+                               'UseOnlineFilter': (wx.NewId(), 'bool'),
+                               'OnlineFilterExt': (wx.NewId(), 'text')
+                               
                                
                                }
         
