@@ -420,7 +420,6 @@ def ExtractFilenameAndFrameNumber(filename, frameregexp, nameregexp):
             found = ''
             for each in m:
                 found = found + each
-                print m
         
             non_decimal = re.compile(r'[^\d.]+')
             frame = non_decimal.sub('', found)
@@ -435,14 +434,11 @@ def ExtractFilenameAndFrameNumber(filename, frameregexp, nameregexp):
         namepattern = re.compile(nameregexp)
         
         n = namepattern.findall(filename)
-        
-        print n
-        
+
         if len(n) > 0:
             found = ''
             for each in n:
                 found = found + each
-                print n
         
             if found != '':
                 name = found
@@ -1054,7 +1050,10 @@ class ImageFormatOptionsPage(wx.Panel):
         self.treatmentdataTxtCtrl = (("Offset by Constant:", self.expParamsInGUI['CurveOffsetVal'][0], self.expParamsInGUI['OffsetCurve'][0]),
                                      ("Scale by Constant:", self.expParamsInGUI['CurveScaleVal'][0], self.expParamsInGUI['ScaleCurve'][0]))
 
-        
+        box = wx.StaticBox(self, -1, 'Filtering')
+        fSizer = self.createFilterParameters()
+        filterSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        filterSizer.Add(fSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
 
         box = wx.StaticBox(self, -1, 'Image Format')
         fileSizer = self.createFormatsComboBox()
@@ -1077,7 +1076,18 @@ class ImageFormatOptionsPage(wx.Panel):
         panelsizer.Add(normBoxSizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
         
         self.SetSizer(panelsizer)
+        
+    
+    def createFilterParameters(self):
+        
 
+        chkbox = wx.CheckBox(self, -1, 'Process only:')
+        
+        txtctrl = wx. TextCtrl(self, -1, '')
+        
+        
+        
+        
     def createFormatsComboBox(self):
         
         sizer = wx.BoxSizer()
