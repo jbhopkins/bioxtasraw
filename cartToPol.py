@@ -350,34 +350,34 @@ def applyDataManipulations(ExpObj, expParams, checkedTreatments):
                 for each in checkedTreatments:
                     
                     if each == 'ScaleCurve':
-                        #try:
-                        ExpObj.scale((expParams['CurveScaleVal']))
-                        #except Exception as msg:
-                        #    wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + '. Scale by constant: ' + str(expParams['CurveScaleVal']) + ' failed!', 'Scale by constant failed!', wx.OK | wx.ICON_ERROR)
+                        try:
+                            ExpObj.scale((expParams['CurveScaleVal']))
+                        except Exception as msg:
+                            wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + '. Scale by constant: ' + str(expParams['CurveScaleVal']) + ' failed!', 'Scale by constant failed!', wx.OK | wx.ICON_ERROR)
                     
                     if each == 'OffsetCurve':
-                        #try:
-                        ExpObj.offset((expParams['CurveOffsetVal']))
-                        #except Exception as msg:
-                        #    wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + '. Offset by constant: ' + str(expParams['CurveOffsetVal']) + ' failed!', 'Offset by constant failed!', wx.OK | wx.ICON_ERROR)
+                        try:
+                            ExpObj.offset((expParams['CurveOffsetVal']))
+                        except Exception as msg:
+                            wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + '. Offset by constant: ' + str(expParams['CurveOffsetVal']) + ' failed!', 'Offset by constant failed!', wx.OK | wx.ICON_ERROR)
                 
                     if each == 'NormalizeM2':
-                        #try:
-                        ExpObj.normalizeM2()
-                        #except Exception as msg:
-                        #    wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + ' will not be normalized by M2.', 'Normalization by M2 Failed!', wx.OK | wx.ICON_ERROR)
+                        try:
+                            ExpObj.normalizeM2()
+                        except Exception as msg:
+                            wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + ' will not be normalized by M2.', 'Normalization by M2 Failed!', wx.OK | wx.ICON_ERROR)
                             
                     elif each == 'NormalizeM1':
-                        #try:
-                        ExpObj.normalizeM1()
-                        #except Exception as msg:
-                        #    wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + ' will not be normalized by M1.', 'Normalization by M1 Failed!', wx.OK | wx.ICON_ERROR)
+                        try:
+                            ExpObj.normalizeM1()
+                        except Exception as msg:
+                            wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + ' will not be normalized by M1.', 'Normalization by M1 Failed!', wx.OK | wx.ICON_ERROR)
                             
                     elif each == 'NormalizeTime':
-                        #try:
-                        ExpObj.normalizeByTime()
-                        #except Exception as msg:
-                        #    wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + ' will not be normalized by exposure time.', 'Normalization by exposure time Failed!', wx.OK | wx.ICON_ERROR)
+                        try:
+                            ExpObj.normalizeByTime()
+                        except Exception as msg:
+                            wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + ' will not be normalized by exposure time.', 'Normalization by exposure time Failed!', wx.OK | wx.ICON_ERROR)
                             
                     elif each == 'Calibrate':
                         agbeCalibration(ExpObj, expParams)
@@ -389,10 +389,10 @@ def applyDataManipulations(ExpObj, expParams, checkedTreatments):
                         normalizeAbsoluteScale(ExpObj, expParams)
 
                     elif each == 'NormalizeTrans':
-                        #try:
-                        ExpObj.normalizeByTransmission()
-                        #except Exception as msg:
-                        #    wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + ' will not be normalized by transmission.', 'Normalization by Transmission Failed!', wx.OK | wx.ICON_ERROR)
+                        try:
+                            ExpObj.normalizeByTransmission()
+                        except Exception as msg:
+                            wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + ' will not be normalized by transmission.', 'Normalization by Transmission Failed!', wx.OK | wx.ICON_ERROR)
                     
             binsize = expParams['Binsize']
             ExpObj.setBinning(binsize)
@@ -429,8 +429,8 @@ def normalizeAbsoluteScale(ExpObj, expParams):
     ExpObj.multiplyByConstant(absScaleConstant)
                         
     infoPanel = wx.FindWindowByName('InfoPanel')
-    infoPanel.WriteText("Average water value: " + str(avgWater) + '\n\n')
-    infoPanel.WriteText("Average water value: " + str(avgWater) + '\n\n')
+    wx.CallAfter(infoPanel.WriteText, "Average water value: " + str(avgWater) + '\n\n')
+    wx.CallAfter(infoPanel.WriteText, "Average water value: " + str(avgWater) + '\n\n')
 
 #--- *** CALIBRATION ***
 def agbeCalibration(ExpObj, expParams):
@@ -804,7 +804,7 @@ class ImageMeasurement(Measurement):
             
             # Write to status window
             infoPanel = wx.FindWindowByName('InfoPanel')
-            infoPanel.WriteText('Normfactor M1: ' + str(normFact) + '\n\n')
+            wx.CallAfter(infoPanel.WriteText, 'Normfactor M1: ' + str(normFact) + '\n\n')
             
             print 'M1: ' + str(normFact)
             
@@ -832,10 +832,10 @@ class ImageMeasurement(Measurement):
             
             # Write to status window
             infoPanel = wx.FindWindowByName('InfoPanel')
-            infoPanel.WriteText(str(os.path.split(self.param['filename'])[1])+ ':\n')
-            infoPanel.WriteText('Before: ' + str(self.param['before']) + '\n')
-            infoPanel.WriteText('After: ' + str(self.param['after']) + '\n')
-            infoPanel.WriteText('Normfactor M2: ' + str(normFact) + '\n\n')
+            wx.CallAfter(infoPanel.WriteText, str(os.path.split(self.param['filename'])[1])+ ':\n')
+            wx.CallAfter(infoPanel.WriteText, 'Before: ' + str(self.param['before']) + '\n')
+            wx.CallAfter(infoPanel.WriteText, 'After: ' + str(self.param['after']) + '\n')
+            wx.CallAfter(infoPanel.WriteText, 'Normfactor M2: ' + str(normFact) + '\n\n')
             
             print 'M2: ' + str(normFact)
             
@@ -1119,8 +1119,8 @@ class RadFileMeasurement(Measurement):
         normFact = M2fact / M1fact
         
         infoPanel = wx.FindWindowByName('InfoPanel')
-        infoPanel.WriteText(str(os.path.split(self.param['filename'])[1])+ ':\n')
-        infoPanel.WriteText('Transmission: ' + str(normFact) + '\n')
+        wx.CallAfter(infoPanel.WriteText, str(os.path.split(self.param['filename'])[1])+ ':\n')
+        wx.CallAfter(infoPanel.WriteText, 'Transmission: ' + str(normFact) + '\n')
         
         if normFact > 0.0001:
                 self.i = self.i / normFact
