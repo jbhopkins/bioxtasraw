@@ -179,11 +179,11 @@ def loadM(newArr, dim, mask = None, readout_noise_mask = None, q_range = None, h
     except IndexError, msg:
         
         print 'Center coordinates too large: ' + str(msg)
-    
-        wx.CallAfter(wx.MessageBox, "The center coordinates are too large, using image center instead.", "Center coordinates does not fit image", wx.OK | wx.ICON_ERROR)
-        
         
         [I_raw, res, Errorbars_raw] = radialAverage(newArr, dim, dim[0]/2, dim[1]/2, mask, readout_noise_mask)        # NOTE an error in radialAveraged requires x_cen and y_cen to be switched
+        wx.CallAfter(wx.MessageBox, "The center coordinates are too large, used image center instead.", "Center coordinates does not fit image", wx.OK | wx.ICON_ERROR)
+        
+        
 
     # Insert it all into a measurement object
     q = linspace(0,len(I_raw), len(I_raw))
@@ -350,34 +350,34 @@ def applyDataManipulations(ExpObj, expParams, checkedTreatments):
                 for each in checkedTreatments:
                     
                     if each == 'ScaleCurve':
-                        try:
-                            ExpObj.scale((expParams['CurveScaleVal']))
-                        except Exception, msg:
-                            wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + '. Scale by constant: ' + str(expParams['CurveScaleVal']) + ' failed!', 'Scale by constant failed!', wx.OK | wx.ICON_ERROR)
+                        #try:
+                        ExpObj.scale((expParams['CurveScaleVal']))
+                        #except Exception as msg:
+                        #    wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + '. Scale by constant: ' + str(expParams['CurveScaleVal']) + ' failed!', 'Scale by constant failed!', wx.OK | wx.ICON_ERROR)
                     
                     if each == 'OffsetCurve':
-                        try:
-                            ExpObj.offset((expParams['CurveOffsetVal']))
-                        except Exception, msg:
-                            wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + '. Offset by constant: ' + str(expParams['CurveOffsetVal']) + ' failed!', 'Offset by constant failed!', wx.OK | wx.ICON_ERROR)
+                        #try:
+                        ExpObj.offset((expParams['CurveOffsetVal']))
+                        #except Exception as msg:
+                        #    wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + '. Offset by constant: ' + str(expParams['CurveOffsetVal']) + ' failed!', 'Offset by constant failed!', wx.OK | wx.ICON_ERROR)
                 
                     if each == 'NormalizeM2':
-                        try:
-                            ExpObj.normalizeM2()
-                        except Exception, msg:
-                            wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + ' will not be normalized by M2.', 'Normalization by M2 Failed!', wx.OK | wx.ICON_ERROR)
+                        #try:
+                        ExpObj.normalizeM2()
+                        #except Exception as msg:
+                        #    wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + ' will not be normalized by M2.', 'Normalization by M2 Failed!', wx.OK | wx.ICON_ERROR)
                             
                     elif each == 'NormalizeM1':
-                        try:
-                            ExpObj.normalizeM1()
-                        except Exception, msg:
-                            wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + ' will not be normalized by M1.', 'Normalization by M1 Failed!', wx.OK | wx.ICON_ERROR)
+                        #try:
+                        ExpObj.normalizeM1()
+                        #except Exception as msg:
+                        #    wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + ' will not be normalized by M1.', 'Normalization by M1 Failed!', wx.OK | wx.ICON_ERROR)
                             
                     elif each == 'NormalizeTime':
-                        try:
-                            ExpObj.normalizeByTime()
-                        except Exception, msg:
-                            wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + ' will not be normalized by exposure time.', 'Normalization by exposure time Failed!', wx.OK | wx.ICON_ERROR)
+                        #try:
+                        ExpObj.normalizeByTime()
+                        #except Exception as msg:
+                        #    wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + ' will not be normalized by exposure time.', 'Normalization by exposure time Failed!', wx.OK | wx.ICON_ERROR)
                             
                     elif each == 'Calibrate':
                         agbeCalibration(ExpObj, expParams)
@@ -389,10 +389,10 @@ def applyDataManipulations(ExpObj, expParams, checkedTreatments):
                         normalizeAbsoluteScale(ExpObj, expParams)
 
                     elif each == 'NormalizeTrans':
-                        try:
-                            ExpObj.normalizeByTransmission()
-                        except Exception, msg:
-                            wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + ' will not be normalized by transmission.', 'Normalization by Transmission Failed!', wx.OK | wx.ICON_ERROR)
+                        #try:
+                        ExpObj.normalizeByTransmission()
+                        #except Exception as msg:
+                        #    wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + ' will not be normalized by transmission.', 'Normalization by Transmission Failed!', wx.OK | wx.ICON_ERROR)
                     
             binsize = expParams['Binsize']
             ExpObj.setBinning(binsize)

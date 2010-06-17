@@ -311,8 +311,14 @@ class PlotWorkerThread(threading.Thread):
           
             for eachSelectedFile in selectedFiles:
                 
-#               cProfile.runctx("ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)", globals(), locals())           
-                ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)
+#               cProfile.runctx("ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)", globals(), locals())     
+                try:      
+                    ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)
+                except IndexError:
+                    #wx.CallAfter(wx.MessageBox(eachSelectedFile + ' does not match the current image format.\n\nSee advanced options to change the current image format', 'Wrong image format')
+                    print 'Wrong image format (plotWorkerThread)'
+                    ExpObj = None
+                    FullImage = None
                                                 
                 checkedTreatments = getTreatmentParameters()
                 
@@ -324,7 +330,6 @@ class PlotWorkerThread(threading.Thread):
                         if expParams['AutoBgSubtract'] and FromOnlineMode:
                             self._setBackground = self.CheckIfFilenameIsBackground(eachSelectedFile)
                         
-
                         AvgExpObj = None  
                         if expParams['AutoAvg'] and FromOnlineMode:
                             AvgExpObj = self.processAutoAveraging(ExpObj, eachSelectedFile)
@@ -2987,7 +2992,7 @@ class DirCtrlPanel_2(wx.Panel):
             # Destroy the dialog
             dialog.Destroy()
     
-            self.GetListOfFiles()
+            #self.GetListOfFiles()
             self.FilterFileListAndUpdateListBox()
     
     def _OnSetDirButton(self, evt):

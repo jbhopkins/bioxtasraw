@@ -2217,11 +2217,22 @@ class LoadMaskThread(threading.Thread):
                     self.expParams['ReadOutNoiseMask'] = createMaskFromRAWFormat(self.expParams['ReadOutNoiseMaskParams'])
             else:
                 if self._masktype == 'readout':
-                    self.expParams['ReadOutNoiseMask'], self.expParams['ReadOutNoiseMaskParams'] = loadMask(self._mask_fullpath)
-                    self.expParams['ReadOutNoiseMaskFilename'] = os.path.split(self._mask_fullpath)[1]
+                    try:
+                        self.expParams['ReadOutNoiseMask'], self.expParams['ReadOutNoiseMaskParams'] = loadMask(self._mask_fullpath)
+                        self.expParams['ReadOutNoiseMaskFilename'] = os.path.split(self._mask_fullpath)[1]
+                    except IOError:
+                        wx.CallAfter(wx.MessageBox,'Mask file ' + self._mask_fullpath + ' was not found.', 'Mask file not found')
+                        self.expParams['ReadOutNoiseMaskFilename'] = ''
+                        self.expParams['ReadOutNoiseMask'] = None
+                
                 elif self._masktype == 'beamstop':
-                    self.expParams['BeamStopMask'], self.expParams['BeamStopMaskParams'] = loadMask(self._mask_fullpath)
-                    self.expParams['BeamStopMaskFilename'] = os.path.split(self._mask_fullpath)[1]    
+                    try:
+                        self.expParams['BeamStopMask'], self.expParams['BeamStopMaskParams'] = loadMask(self._mask_fullpath)
+                        self.expParams['BeamStopMaskFilename'] = os.path.split(self._mask_fullpath)[1]
+                    except IOError:
+                        wx.CallAfter(wx.MessageBox,'Mask file ' + self._mask_fullpath + ' was not found.', 'Mask file not found')
+                        self.expParams['BeamStopMaskFilename'] = ''
+                        self.expParams['BeamStopMask'] = None  
         
             wx.CallAfter(mainframe.SetStatusText, 'Loading mask... Done!')
             
