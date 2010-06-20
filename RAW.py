@@ -4212,6 +4212,7 @@ class ManipulationPage(wx.Panel):
     def OnNewItem(self, evt):
         
         ExpObj = evt.GetValue()
+        print ExpObj.param['filename']
         self.AddItem(ExpObj)
     
     def GetSelectedExpObjs(self):

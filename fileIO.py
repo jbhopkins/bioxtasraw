@@ -261,7 +261,7 @@ def loadTiffFile(filename, expParams):
 
     hdr = {}
     img, dim = loadImage(filename)
-                
+    
     ExpObj, FullImage = cartToPol.loadM(img, dim, mask, rdmask, q_range, hdr, x_center, y_center, pixelcal = None, binsize = binsize)
     ExpObj.param['filename'] = filename
     
@@ -822,6 +822,8 @@ def checkFileType(filename):
     
     if filename[-4:] == '.img' or filename[-6:] == '.imx_0' or filename[-6:] == '.dkx_0' or filename[-6:] == '.dkx_1':
         return 'quantum210'
+    if filename[-4:] == '.png':
+        return 'tiff'
     
     if type_tst == 'II':
         return 'tiff'
@@ -840,7 +842,13 @@ def checkFileType(filename):
 
 if __name__ == "__main__":
     
-    print checkFileType('lise_192.dat')
-    M = loadFile('lise_192.dat')
-    print M[0].q
+    #print checkFileType('lise_192.dat')
+    #M = loadFile('lise_192.dat')
+    #print M[0].q
+    
+   Fullimg, dim = loadImage('testimg2-8.png')
+   
+   print dim
+   
+    
     

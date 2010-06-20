@@ -1426,7 +1426,7 @@ class OptionsDialog(wx.Dialog):
         if focusIndex != None:
             optionsNB.SetSelection(focusIndex)
         
-       # self.Fit()
+        self.Fit()
         self.CenterOnScreen()
             
     def getValueFromExpParams(self, key):
