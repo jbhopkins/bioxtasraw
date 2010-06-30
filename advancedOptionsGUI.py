@@ -1090,8 +1090,11 @@ class ImageFormatOptionsPage(wx.Panel):
         chkbox = wx.CheckBox(self, self.expParamsInGUI['UseOnlineFilter'][0], 'Process only extension:')
         txtctrl = wx. TextCtrl(self, self.expParamsInGUI['OnlineFilterExt'][0], '')
         
+        txtctrl2 = wx. TextCtrl(self, self.expParamsInGUI['CountNormalize'][0], '')
+        
         box.Add(chkbox,0)
         box.Add(txtctrl,0, wx.LEFT, 25)
+        box.Add(txtctrl2, 0)
         
         return box
         
@@ -1304,6 +1307,8 @@ class OptionsDialog(wx.Dialog):
                                
                                'NormalizeTime': (wx.NewId(), 'bool'),
                                'NormalizeTrans':(wx.NewId(), 'bool'),
+                               
+                               'CountNormalize': (wx.NewId(), 'float'),
                                                               
                                #CALIBRATION
                                'NormalizeAbs' : (wx.NewId(), 'bool'),

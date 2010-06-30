@@ -69,6 +69,7 @@ expParams = {
              'Calibrate'         : False,        # Calibrate AgBe
              'CalibrateMan'      : False,        # Calibrate manual (wavelength / distance)
              'AutoBgSubtract'    : False,
+             'CountNormalize'    : 1.0,
              
              'AutoBIFT'          : False,
              'AutoAvg'           : False,

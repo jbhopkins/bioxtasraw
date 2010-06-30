@@ -193,6 +193,49 @@ def parseCTSfile(filename):
     
     return closedShutterCount, mon1, mon2, exposureTime
 
+def parseG1CountFile(filename):
+    
+    #try:
+        file = open(filename,'r')
+    
+        allLines = []
+        for eachLine in file:
+            allLines.append(eachLine)
+    
+        file.close()
+    
+        lastExposure = allLines[-22:]
+        
+        #for each in lastExposure:
+        #    print each
+    
+        Time, Epoch, Seconds, I0, I2, ready, hep, s7, I1, gdoor = lastExposure[-1].split()
+
+        return Time, Epoch, Seconds, I0, I2, ready, hep, s7, I1, gdoor
+    
+    #except:
+    #    print 'Error loading G1 Countfile.'
+    #    return None, None, None, None, None, None, None, None, None, None
+
+def loadG1FLICAMFile(filename, expParams):
+    
+    ExpObj, FullImage = loadTiffFile(filename, expParams)
+    
+    dir, file = os.path.split(filename)
+    
+    countFile = file.split('_')[0]
+    countFilename = os.path.join(dir, countFile)
+    
+    Time, Epoch, Seconds, I0, I2, ready, hep, s7, I1, gdoor = parseG1CountFile(countFilename)
+    
+    if Time != None:
+        ExpObj.param['before'] = int(I0)
+        ExpObj.param['after'] = int(I2)
+        ExpObj.param['ic'] = int(I1)
+        ExpObj.param['exposure_time'] = int(Seconds)
+        
+    return ExpObj, FullImage
+
 def loadQuantum1File(filename, expParams):
     
     if expParams != None:
@@ -356,7 +399,7 @@ def loadFile(filename, expParams = None):
             ExpObj, FullImage = loadTiffFile(filename, expParams)
             
         elif expParams['ImageFormat'] == 'FLICAM, CHESS':
-            ExpObj, FullImage = loadTiffFile(filename, expParams)
+            ExpObj, FullImage = loadG1FLICAMFile(filename, expParams)
 
 
         #print ExpObj

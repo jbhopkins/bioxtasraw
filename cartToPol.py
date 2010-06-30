@@ -363,13 +363,13 @@ def applyDataManipulations(ExpObj, expParams, checkedTreatments):
                 
                     if each == 'NormalizeM2':
                         try:
-                            ExpObj.normalizeM2()
+                            ExpObj.normalizeM2(expParams)
                         except Exception as msg:
                             wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + ' will not be normalized by M2.', 'Normalization by M2 Failed!', wx.OK | wx.ICON_ERROR)
                             
                     elif each == 'NormalizeM1':
                         try:
-                            ExpObj.normalizeM1()
+                            ExpObj.normalizeM1(expParams)
                         except Exception as msg:
                             wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + ' will not be normalized by M1.', 'Normalization by M1 Failed!', wx.OK | wx.ICON_ERROR)
                             
@@ -390,7 +390,7 @@ def applyDataManipulations(ExpObj, expParams, checkedTreatments):
 
                     elif each == 'NormalizeTrans':
                         try:
-                            ExpObj.normalizeByTransmission()
+                            ExpObj.normalizeByTransmission(expParams)
                         except Exception as msg:
                             wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + ' will not be normalized by transmission.', 'Normalization by Transmission Failed!', wx.OK | wx.ICON_ERROR)
                     
@@ -793,12 +793,13 @@ class ImageMeasurement(Measurement):
         else:
             self.q_range = (0, len(self.i_raw)-1)
                     
-    def normalizeM1(self):
+    def normalizeM1(self, expParams):
         
         if self.param:
             
             try:
                 normFact = self.param['ic']
+                normFact = normFact / expParams['CountNormalize']
             except KeyError:
                 raise Exception('Error normalizing, IC diode measurement not found')
             
@@ -819,14 +820,16 @@ class ImageMeasurement(Measurement):
                 self.isNormalized = True
                 return normFact
             else:
+                print 'Error normalizing, IC diode measurement is below threshold (0.0001) or corrupt'
                 raise Exception('Error normalizing, IC diode measurement is below threshold (0.0001) or corrupt')
             
-    def normalizeM2(self):
+    def normalizeM2(self, expParams):
         
         if self.param:
             
             try:
                 normFact = (self.param['before'] + self.param['after']) / 2
+                normFact = normFact / expParams['CountNormalize']
             except KeyError:
                 raise Exception('Error normalizing, "before" and/or "after" measurement not found')
             
@@ -851,20 +854,23 @@ class ImageMeasurement(Measurement):
                 return normFact
             
             else:
+                print 'Error normalizing, norm factor (before+after)/2\n is below threshold (0.0001) or diode measurements are corrupt'
                 raise Exception('Error normalizing, norm factor (before+after)/2\n is below threshold (0.0001) or diode measurements are corrupt')
         
         else:
             return False
         
-    def normalizeByTransmission(self):
+    def normalizeByTransmission(self, expParams):
         
         try:
                 M2fact = (self.param['before'] + self.param['after']) / 2
+                M2fact = M2fact / expParams['CountNormalize']
         except KeyError:
                 raise Exception('Error normalizing, "before" and/or "after" measurement not found')
             
         try:
                 M1fact = self.param['ic']
+                M1fact = M1fact / expParams['CountNormalize']
         except KeyError:
                 raise Exception('Error normalizing, IC diode measurement not found')
             
@@ -884,7 +890,8 @@ class ImageMeasurement(Measurement):
                 self.isNormalized = True
                 return normFact
         else:
-                raise Exception('Error normalizing, transmission norm factor is below threshold (0.0001) or diode measurements are corrupt')
+            'Error normalizing, transmission norm factor is below threshold (0.0001) or diode measurements are corrupt'
+            raise Exception('Error normalizing, transmission norm factor is below threshold (0.0001) or diode measurements are corrupt')
         
         
     def normalizeByTime(self):
@@ -907,8 +914,10 @@ class ImageMeasurement(Measurement):
                 
                 self.isNormalized = True
             else:
+                print 'Error normalizing, exposure time is 0 or corrupt!'
                 raise Exception('Error normalizing, exposure time is 0 or corrupt!')
         else:
+            print 'Header parameters not found'
             raise Exception('Header parameters not found')
     
     def multiplyByConstant(self, constant):
@@ -1093,7 +1102,7 @@ class RadFileMeasurement(Measurement):
         self.isCalibrated = True
         self.type = 'rad'
         
-    def normalizeM2(self):
+    def normalizeM2(self, expParams):
         
         if self.param:
             fact = (self.param['before'] + self.param['after']) / 2
