@@ -229,9 +229,9 @@ def loadG1FLICAMFile(filename, expParams):
     Time, Epoch, Seconds, I0, I2, ready, hep, s7, I1, gdoor = parseG1CountFile(countFilename)
     
     if Time != None:
-        ExpObj.param['before'] = int(I0)
-        ExpObj.param['after'] = int(I2)
-        ExpObj.param['ic'] = int(I1)
+        ExpObj.param['before'] = int(I1)
+        ExpObj.param['after'] = int(I1)
+        ExpObj.param['ic'] = int(gdoor)
         ExpObj.param['exposure_time'] = int(Seconds)
         
     return ExpObj, FullImage
