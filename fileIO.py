@@ -223,16 +223,19 @@ def loadG1FLICAMFile(filename, expParams):
     
     dir, file = os.path.split(filename)
     
-    countFile = file.split('_')[0]
+    countFile = file.split('_')[0] + '_' + file.split('_')[1]
     countFilename = os.path.join(dir, countFile)
     
-    Time, Epoch, Seconds, I0, I2, ready, hep, s7, I1, gdoor = parseG1CountFile(countFilename)
+    try:
+        Time, Epoch, Seconds, I0, I2, ready, hep, s7, I1, gdoor = parseG1CountFile(countFilename)
     
-    if Time != None:
-        ExpObj.param['before'] = int(I1)
-        ExpObj.param['after'] = int(I1)
-        ExpObj.param['ic'] = int(gdoor)
-        ExpObj.param['exposure_time'] = int(Seconds)
+        if Time != None:
+            ExpObj.param['before'] = int(I1)
+            ExpObj.param['after'] = int(I1)
+            ExpObj.param['ic'] = int(gdoor)
+            ExpObj.param['exposure_time'] = float(Seconds)
+    except IOError:
+        pass
         
     return ExpObj, FullImage
 
