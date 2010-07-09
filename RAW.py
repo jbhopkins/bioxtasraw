@@ -315,7 +315,7 @@ class PlotWorkerThread(threading.Thread):
 #               cProfile.runctx("ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)", globals(), locals())     
                 try:      
                     ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)
-                except IndexError:
+                except IndexError, RuntimeError:
                     #wx.CallAfter(wx.MessageBox(eachSelectedFile + ' does not match the current image format.\n\nSee advanced options to change the current image format', 'Wrong image format')
                     #WARNING - ValueERROR happen on flicam file when no counter file is found!
                     

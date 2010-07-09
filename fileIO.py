@@ -116,7 +116,9 @@ def loadQuantum210Image(filename):
     
     f.close()
     
+
     xydim = int(sqrt(shape(Img))[0])  #assuming square image
+    
     
     try:
         Img = Img.reshape((xydim,xydim))
@@ -273,6 +275,7 @@ def loadQuantum210File(filename, expParams):
         mask, rdmask, q_range, pixelcal, x_center, y_center, binsize = _getExperimentParameters(expParams)
     
     img, dim = loadQuantum210Image(filename)
+
     
     hdr = readHeader(filename, fileformat = 'quantum210')
     
