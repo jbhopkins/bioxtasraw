@@ -209,7 +209,8 @@ def parseG1CountFile(filename):
         #for each in lastExposure:
         #    print each
     
-        Time, Epoch, Seconds, I0, I2, ready, hep, s7, I1, gdoor = lastExposure[-1].split()
+        Time, Epoch, Seconds, I0, I2, ready, hep, s7, I1, gdoor = lastExposure[-1].split()  
+    
 
         return Time, Epoch, Seconds, I0, I2, ready, hep, s7, I1, gdoor
     
@@ -234,7 +235,7 @@ def loadG1FLICAMFile(filename, expParams):
             ExpObj.param['after'] = int(I1)
             ExpObj.param['ic'] = int(gdoor)
             ExpObj.param['exposure_time'] = float(Seconds)
-    except IOError:
+    except (IOError, ValueError):
         pass
         
     return ExpObj, FullImage
@@ -307,6 +308,9 @@ def loadTiffFile(filename, expParams):
 
     hdr = {}
     img, dim = loadImage(filename)
+    
+    if dim == None or img == None:
+        raise IndexError
     
     ExpObj, FullImage = cartToPol.loadM(img, dim, mask, rdmask, q_range, hdr, x_center, y_center, pixelcal = None, binsize = binsize)
     ExpObj.param['filename'] = filename
