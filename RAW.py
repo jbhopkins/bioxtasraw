@@ -315,7 +315,7 @@ class PlotWorkerThread(threading.Thread):
 #               cProfile.runctx("ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)", globals(), locals())     
                 try:      
                     ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)
-                except IndexError, RuntimeError:
+                except (IndexError, RuntimeError):
                     #wx.CallAfter(wx.MessageBox(eachSelectedFile + ' does not match the current image format.\n\nSee advanced options to change the current image format', 'Wrong image format')
                     #WARNING - ValueERROR happen on flicam file when no counter file is found!
                     
@@ -3747,6 +3747,7 @@ class ManipFilePanel(wx.Panel):
                 
     def OnQrangeSpinCtrlChange(self, evt):
         self.UpdateControlsAndPlot(evt.GetId())
+        self.UpdatePlot()
     
     def UpdateControlsAndPlot(self, evtID):
                 
@@ -3780,6 +3781,7 @@ class ManipFilePanel(wx.Panel):
         
         qmaxCtrl.SetValue(qmax)
         
+    def UpdatePlot(self):
         wx.CallAfter(self.ExpObj.plotPanel.updatePlotAfterScaling,self.ExpObj)
         
     def OnLeftMouseClick(self, evt):
@@ -4176,11 +4178,7 @@ class ManipulationPage(wx.Panel):
         
         if AvgExpObj == None:
             return
-        
-        path_file = os.path.split(AvgExpObj.param['filename'])
-                
-        AvgExpObj.param['filename'] = path_file[0] + 'AVG_' + path_file[1]
-                
+      
         plotpanel = wx.FindWindowByName('PlotPanel')
         plotpanel.PlotExperimentObject(AvgExpObj, axes = plotpanel.subplot1)
             
