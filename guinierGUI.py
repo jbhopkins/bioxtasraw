@@ -539,13 +539,13 @@ class GuinierControlPanel(wx.Panel):
         self.startSpin = wx.SpinCtrl(self, self.spinctrlIDs['qstart'], size = (60,-1))
         self.endSpin = wx.SpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1))
         
-        if sys.platform == 'darwin':
-             # For getting Mac to process ENTER events:
-            self.startSpin.GetChildren()[0].SetWindowStyle(wx.PROCESS_ENTER)
-            self.startSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterOnSpinCtrl)                           
-                                                         
-            self.endSpin.GetChildren()[0].SetWindowStyle(wx.PROCESS_ENTER)
-            self.endSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterOnSpinCtrl) 
+#        if sys.platform == 'darwin':
+#             # For getting Mac to process ENTER events:
+#            self.startSpin.GetChildren()[0].SetWindowStyle(wx.PROCESS_ENTER)
+#            self.startSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterOnSpinCtrl)                           
+#                                                         
+#            self.endSpin.GetChildren()[0].SetWindowStyle(wx.PROCESS_ENTER)
+#            self.endSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterOnSpinCtrl) 
 #        
         
         self.startSpin.SetValue(0)
