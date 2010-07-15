@@ -510,13 +510,13 @@ class GuinierControlPanel(wx.Panel):
             else:
                 txt = wx.StaticText(self, -1, self.infodata[key][0])
                 ctrl1 = wx.TextCtrl(self, self.infodata[key][1], '0')      
-                ctrl2 = wx.TextCtrl(self, self.infodata[key][2], '0', size = (60,21))
-                txtpm = wx.StaticText(self, -1, u"\u00B1")
+                #ctrl2 = wx.TextCtrl(self, self.infodata[key][2], '0', size = (60,21))
+                #txtpm = wx.StaticText(self, -1, u"\u00B1")
                 
                 bsizer = wx.BoxSizer()
                 bsizer.Add(ctrl1,0,wx.EXPAND)
-                bsizer.Add(txtpm,0, wx.LEFT | wx.TOP, 3)
-                bsizer.Add(ctrl2,0,wx.EXPAND | wx.LEFT, 3)
+                #bsizer.Add(txtpm,0, wx.LEFT | wx.TOP, 3)
+                #bsizer.Add(ctrl2,0,wx.EXPAND | wx.LEFT, 3)
                 
                 sizer.Add(txt,0)
                 sizer.Add(bsizer,0)
@@ -721,8 +721,8 @@ class GuinierControlPanel(wx.Panel):
                 ctrl = wx.FindWindowById(self.infodata[eachkey][1])
                 ctrl.SetValue(str(round(newInfo[eachkey][0],5)))
                 
-                ctrlerr = wx.FindWindowById(self.infodata[eachkey][2])
-                ctrlerr.SetValue(str(round(newInfo[eachkey][1],5)))
+                #ctrlerr = wx.FindWindowById(self.infodata[eachkey][2])
+                #ctrlerr.SetValue(str(round(newInfo[eachkey][1],5)))
              
     def updateLimits(self, top = None, bottom = None):
   

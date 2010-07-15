@@ -17,6 +17,7 @@
 from __future__ import division
 import sys, os, cPickle, threading, re, math#, gc, time
 import matplotlib, time, subprocess
+from pygame.tests.test_utils.unittest import TestCase
 matplotlib.rc('image', origin='lower')           # This turns the image upside down!!
                                                 #  but x and y will start from zero in the lower left corner 
 
@@ -24,6 +25,7 @@ from pylab import setp
 
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg #,Toolbar 
 from matplotlib.backends.backend_wx import NavigationToolbar2Wx
+from matplotlib.backend_bases import cursors
 from matplotlib.figure import Figure
 
 from matplotlib.font_manager import FontProperties
@@ -798,19 +800,19 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         NavigationToolbar2Wx.__init__(self, canvas)
         
         mainframe = wx.FindWindowByName('MainFrame')
-        workdir = mainframe.RAWWorkDir
+        self.workdir = mainframe.RAWWorkDir
 
         #fitaxisIconFilename = os.path.join(workdir, "ressources","loglin.png")
         #loglinIconFilename = os.path.join(workdir, "ressources", "loglin.png")
         #loglogIconFilename = os.path.join(workdir, "ressources", "loglog.png")
         #linlinIconFilename = os.path.join(workdir, "ressources", "linlin.png")
-        clear1IconFilename = os.path.join(workdir, "ressources" ,"clear1white.png")
-        clear2IconFilename = os.path.join(workdir, "ressources" ,"clear2white.png")
-        errbarsIconFilename = os.path.join(workdir, "ressources" ,"errbars.png")
-        legendIconFilename = os.path.join(workdir, "ressources", "legend.png")
-        showbothIconFilename = os.path.join(workdir, "ressources", "showboth.png")
-        showtopIconFilename = os.path.join(workdir, "ressources", "showtop.png")
-        showbottomIconFilename = os.path.join(workdir, "ressources", "showbottom.png")
+        clear1IconFilename = os.path.join(self.workdir, "ressources" ,"clear1white.png")
+        clear2IconFilename = os.path.join(self.workdir, "ressources" ,"clear2white.png")
+        errbarsIconFilename = os.path.join(self.workdir, "ressources" ,"errbars.png")
+        legendIconFilename = os.path.join(self.workdir, "ressources", "legend.png")
+        showbothIconFilename = os.path.join(self.workdir, "ressources", "showboth.png")
+        showtopIconFilename = os.path.join(self.workdir, "ressources", "showtop.png")
+        showbottomIconFilename = os.path.join(self.workdir, "ressources", "showbottom.png")
         
         #fitaxis_icon = wx.Bitmap(fitaxisIconFilename, wx.BITMAP_TYPE_PNG)
         #loglin_icon = wx.Bitmap(loglinIconFilename, wx.BITMAP_TYPE_PNG)
@@ -869,11 +871,51 @@ class MyCustomToolbar(NavigationToolbar2Wx):
 #    def pan(self, *args):
 #        self.ToggleTool(self._NTB2_ZOOM, False)
 #        NavigationToolbar2.pan(self, *args)
-#    
+
+#    def mouse_move(self, event):
+#        #print 'mouse_move', event.button
+#
+#        if not event.inaxes or not self._active:
+#            if self._lastCursor != cursors.POINTER:
+#                self.set_cursor(cursors.POINTER)
+#                self._lastCursor = cursors.POINTER
+#        else:
+#            if self._active=='ZOOM':
+#                if self._lastCursor != cursors.SELECT_REGION:
+#                    self.set_cursor(cursors.SELECT_REGION)
+#                    self._lastCursor = cursors.SELECT_REGION
+#                if self._xypress:
+#                    x, y = event.x, event.y
+#                    lastx, lasty, a, ind, lim, trans = self._xypress[0]
+#                    self.draw_rubberband(event, x, y, lastx, lasty)
+#            elif (self._active=='PAN' and
+#                  self._lastCursor != cursors.MOVE):
+#                self.set_cursor(cursors.MOVE)
+#
+#                self._lastCursor = cursors.MOVE
+#
+#        if event.inaxes and event.inaxes.get_navigate():
+#
+#            try: s = event.inaxes.format_coord(event.xdata, event.ydata)
+#            except ValueError: pass
+#            except OverflowError: pass
+#            else:
+#                if len(self.mode):
+#                    self.set_message('%s, %s' % (self.mode, s))
+#                else:
+#                    self.set_message(s)
+#        else: self.set_message(self.mode)
+##    
 #    def zoom(self, *args):
-#        self.ToggleTool(self._NTB2_PAN, False)
-#        NavigationToolbar2.zoom(self, *args)
-    
+#        #self.ToggleTool(self._NTB2_PAN, False)
+#        
+#        NavigationToolbar2Wx.zoom(self, *args)
+#        
+#        if self._active == 'ZOOM':
+#            self.set_cursor(os.path.join(self.workdir, "ressources" ,"zoom-in.cur"), Stock = False)
+#        else:
+#            self.set_cursor(2)
+#    
     def home(self, *args):
 #        'restore the original view'
 #        self._views.home()
@@ -935,6 +977,20 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         self.parent.ClearSubplot(self.parent.subplot1)
     def clear2(self, evt):
         self.parent.ClearSubplot(self.parent.subplot2)
+    
+    def set_cursor(self, cursor):
+        
+        cursord = {
+                   cursors.MOVE : wx.Cursor(os.path.join(self.workdir, "ressources" ,"SmoothMove.cur"), wx.BITMAP_TYPE_CUR),
+                   cursors.HAND : wx.Cursor(os.path.join(self.workdir, "ressources" ,"SmoothMove.cur"), wx.BITMAP_TYPE_CUR),
+                   cursors.POINTER : wx.StockCursor(wx.CURSOR_ARROW),
+                   cursors.SELECT_REGION : wx.Cursor(os.path.join(self.workdir, "ressources" ,"zoom-in.cur"), wx.BITMAP_TYPE_CUR),            #wx.CURSOR_CROSS,
+                   }
+        
+
+        cursor = cursord[cursor]
+        self.parent.canvas.SetCursor( cursor )
+       
     
     def errbars(self, evt):
         
