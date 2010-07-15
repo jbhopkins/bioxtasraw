@@ -367,8 +367,11 @@ class PlotWorkerThread(threading.Thread):
                         
                         if ExpObj.type != 'bift':
                             manipulationPage = wx.FindWindowByName('ManipulationPage')
-                            evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, ExpObj)
-                            wx.PostEvent(manipulationPage, evt)
+                            
+                            wx.CallAfter(manipulationPage.AddItem, ExpObj)
+                            
+                            #evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, ExpObj)
+                            #wx.PostEvent(manipulationPage, evt)
                             
                         
                         #If autoaverage is on and an averaged data has been created:
@@ -377,8 +380,12 @@ class PlotWorkerThread(threading.Thread):
                             wx.CallAfter(plotpanel._setLabels, AvgExpObj, axes = self._parent.subplot1)
                             
                             manipulationPage = wx.FindWindowByName('ManipulationPage')
-                            evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, AvgExpObj)
-                            wx.PostEvent(manipulationPage, evt)
+                            #evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, AvgExpObj)
+                            
+                            #wx.PostEvent(manipulationPage, evt)
+                            
+                            wx.CallAfter(manipulationPage.AddItem, AvgExpObj)
+                            
                             
                             if expParams['AutoBgSubtract'] and FromOnlineMode and self._setBackground == False:
                                 self.subtractAndPlot(AvgExpObj)
@@ -612,8 +619,9 @@ class BgSubPlotWorkerThread(threading.Thread):
                     wx.CallAfter(plotpanel.canvas.draw)
                 
                     manipulationPage = wx.FindWindowByName('ManipulationPage')
-                    evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, ExpObjSample)
-                    wx.PostEvent(manipulationPage, evt)
+                    #evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, ExpObjSample)
+                    #wx.PostEvent(manipulationPage, evt)
+                    wx.CallAfter(manipulationPage.AddItem, ExpObjSample)
         
                     wx.CallAfter(mainframe.SetStatusText, 'Loading: ' + eachSelectedFile + '...Done!')    
             
@@ -678,8 +686,9 @@ class AutoBgSubWorkerThread(threading.Thread):
                             wx.CallAfter(plotpanel._PlotOnSelectedAxesScale, ExpObjSamp, plotpanel.subplot1)
                             wx.CallAfter(plotpanel._insertLegend, eachFile, axes = plotpanel.subplot1)
                         
-                            evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, ExpObjSamp)
-                            wx.PostEvent(manipulationPage, evt)
+                            #evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, ExpObjSamp)
+                            #wx.PostEvent(manipulationPage, evt)
+                            wx.CallAfter(manipulationPage.AddItem, ExpObjSamp)
                 
                     #Check if they are of equal length before subtracting
                     if len(ExpObjSample.i) == len(ExpObjBackgrnd.i):
@@ -1578,8 +1587,26 @@ class PlotPanel(wx.Panel):
     
     def updatePlotAfterScaling(self, ExpObj):
         
-        ExpObj.line.set_data(ExpObj.q, ExpObj.i)
+        a = ExpObj.axes
+        
+        if a == self.subplot1:
+            type = self.plotparams.get('plot1type')
+        elif a == self.subplot2:  
+            type = self.plotparams.get('plot2type')
               
+        if type == 'normal' or type == 'subtracted':
+            #line, ec, el = a.errorbar(ExpObj.q, ExpObj.i, ExpObj.errorbars, picker = 3)
+            ExpObj.line.set_data(ExpObj.q, ExpObj.i)
+        elif type == 'kratky':
+            #line, ec, el = a.errorbar(ExpObj.q, ExpObj.i*power(ExpObj.q,2), ExpObj.errorbars, picker = 3)
+            ExpObj.line.set_data(ExpObj.q, ExpObj.i*power(ExpObj.q,2))
+        elif type == 'guinier':
+            #line, ec, el = a.errorbar(power(ExpObj.q,2), ExpObj.i, ExpObj.errorbars, picker = 3)
+            ExpObj.line.set_data(power(ExpObj.q,2), ExpObj.i)
+        elif type == 'porod':
+            #line, ec, el = a.errorbar(ExpObj.q, power(ExpObj.q,4)*ExpObj.i, ExpObj.errorbars, picker = 3)
+            ExpObj.line.set_data(ExpObj.q, power(ExpObj.q,4)*ExpObj.i)
+        
         self.canvas.draw()
             
     def _removeLine(self, idx = -1):
@@ -1658,8 +1685,9 @@ class PlotPanel(wx.Panel):
             self._insertLegend(os.path.split(ExpObj.param['filename'])[1], self.subplot1)    # filename without path
         
         manipulationPage = wx.FindWindowByName('ManipulationPage')
-        evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, ExpObj)
-        wx.PostEvent(manipulationPage, evt)
+        #evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, ExpObj)
+        #wx.PostEvent(manipulationPage, evt)
+        wx.CallAfter(manipulationPage.AddItem, ExpObj)
         
         self.subplot2.cla()
         
@@ -2269,8 +2297,9 @@ class IftPanel(PlotPanel):
             self._insertLegend(os.path.split(ExpObj.param['filename'])[1], self.subplot1)    # filename without path
         
         manipulationPage = wx.FindWindowByName('ManipulationPage')
-        evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, ExpObj)
-        wx.PostEvent(manipulationPage, evt)
+        #evt = ManipItemEvent(myEVT_MANIP_ITEM, -1, ExpObj)
+        #wx.PostEvent(manipulationPage, evt)
+        wx.CallAfter(manipulationPage.AddItem, ExpObj)
         
         self.subplot2.cla()
         
@@ -2806,22 +2835,26 @@ class DirCtrlPanel_2(wx.Panel):
    
     def OnAverage(self, evt = None):
         filenames = self.GetSelectedFile()
+        
+        checkedTreatments = getTreatmentParameters()
             
         if len(filenames) > 1:
            ExpList = []
-            
+        
            for eachFilename in filenames:
-               ExpObj, FullImage = fileIO.loadFile(eachFilename, expParams)
-               ExpList.append(ExpObj)
+               try:
+                   ExpObj, FullImage = fileIO.loadFile(eachFilename, expParams) 
+                   cartToPol.applyDataManipulations(ExpObj, expParams, checkedTreatments) 
+                   ExpList.append(ExpObj)
+               except IndexError:
+                    wx.CallAfter(wx.MessageBox, 'Filename: ' + eachFilename + '\nDoes not contain any recognisable data.\n\nIf you are trying to load an image,\nset the correct image format in Options.', 'Load Failed!', wx.OK | wx.ICON_ERROR)
+                    return
+               
                 
            AvgExpObj = cartToPol.averageMeasurements(ExpList, expParams)
              
            plotpanel = wx.FindWindowByName('PlotPanel')
                
-           path_file = os.path.split(AvgExpObj.param['filename'])
-               
-           AvgExpObj.param['filename'] = path_file[0] + 'AVG_' + path_file[1]
-              
            plotpanel.PlotExperimentObject(AvgExpObj, axes = plotpanel.subplot1)
 
     def _OnLeftClick(self, evt):
@@ -3744,6 +3777,8 @@ class ManipFilePanel(wx.Panel):
                     self.ExpObj.offset(value)
         
         self.ExpObj.plotPanel.updatePlotAfterScaling(self.ExpObj)
+
+        evt.Skip()
                 
     def OnQrangeSpinCtrlChange(self, evt):
         self.UpdateControlsAndPlot(evt.GetId())
@@ -4213,7 +4248,6 @@ class ManipulationPage(wx.Panel):
     def OnNewItem(self, evt):
         
         ExpObj = evt.GetValue()
-        print ExpObj.param['filename']
         self.AddItem(ExpObj)
     
     def GetSelectedExpObjs(self):

@@ -42,7 +42,7 @@ def loadImage(filename):
         newArr = fromstring(im.tostring(), uint16)
         newArr = reshape(newArr, im.size) 
         dim = shape(newArr)
-    except IOError:
+    except (IOError, ValueError):
         return None, None
     
     return newArr, dim
@@ -304,7 +304,7 @@ def loadQuantum210File(filename, expParams):
 
 def loadTiffFile(filename, expParams):
     
-    print "Loading an image..."
+    print "Loading an image " + filename + ' ...'
             
     if expParams != None:
         mask, rdmask, q_range, pixelcal, x_center, y_center, binsize = _getExperimentParameters(expParams)
