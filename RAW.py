@@ -17,7 +17,6 @@
 from __future__ import division
 import sys, os, cPickle, threading, re, math#, gc, time
 import matplotlib, time, subprocess
-from pygame.tests.test_utils.unittest import TestCase
 matplotlib.rc('image', origin='lower')           # This turns the image upside down!!
                                                 #  but x and y will start from zero in the lower left corner 
 
@@ -779,9 +778,6 @@ class MyCustomToolbar(NavigationToolbar2Wx):
 
         self.parent = parent
         
-        #self._MTB_LOGLIN = wx.NewId()
-        #self._MTB_LOGLOG = wx.NewId()
-        #self._MTB_LINLIN = wx.NewId()
         self._MTB_ERRBARS = wx.NewId()
         self._MTB_LEGEND = wx.NewId()
         self._MTB_SHOWBOTH = wx.NewId()
@@ -790,10 +786,6 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         self._MTB_CLR1 = wx.NewId()
         self._MTB_CLR2 = wx.NewId()
         
-#        self.parent.subplot1.relim()
-#        self.parent.subplot1.autoscale_view()
-#        self.parent.subplot2.relim()
-#        self.parent.subplot2.autoscale_view()
         self.parent.canvas.draw()
         self._MTB_SHOWBOTTOM = wx.NewId()
         
@@ -802,10 +794,6 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         mainframe = wx.FindWindowByName('MainFrame')
         self.workdir = mainframe.RAWWorkDir
 
-        #fitaxisIconFilename = os.path.join(workdir, "ressources","loglin.png")
-        #loglinIconFilename = os.path.join(workdir, "ressources", "loglin.png")
-        #loglogIconFilename = os.path.join(workdir, "ressources", "loglog.png")
-        #linlinIconFilename = os.path.join(workdir, "ressources", "linlin.png")
         clear1IconFilename = os.path.join(self.workdir, "ressources" ,"clear1white.png")
         clear2IconFilename = os.path.join(self.workdir, "ressources" ,"clear2white.png")
         errbarsIconFilename = os.path.join(self.workdir, "ressources" ,"errbars.png")
@@ -813,11 +801,6 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         showbothIconFilename = os.path.join(self.workdir, "ressources", "showboth.png")
         showtopIconFilename = os.path.join(self.workdir, "ressources", "showtop.png")
         showbottomIconFilename = os.path.join(self.workdir, "ressources", "showbottom.png")
-        
-        #fitaxis_icon = wx.Bitmap(fitaxisIconFilename, wx.BITMAP_TYPE_PNG)
-        #loglin_icon = wx.Bitmap(loglinIconFilename, wx.BITMAP_TYPE_PNG)
-        #loglog_icon = wx.Bitmap(loglogIconFilename, wx.BITMAP_TYPE_PNG)
-        #linlin_icon = wx.Bitmap(linlinIconFilename, wx.BITMAP_TYPE_PNG)
         
         clear1_icon = wx.Bitmap(clear1IconFilename, wx.BITMAP_TYPE_PNG)
         clear2_icon = wx.Bitmap(clear2IconFilename, wx.BITMAP_TYPE_PNG)
@@ -827,16 +810,6 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         showtop_icon = wx.Bitmap(showtopIconFilename, wx.BITMAP_TYPE_PNG)
         showbottom_icon = wx.Bitmap(showbottomIconFilename, wx.BITMAP_TYPE_PNG)
         
-#        self.parent.subplot1.relim()
-#        self.parent.subplot1.autoscale_view()
-#        self.parent.subplot2.relim()
-#        self.parent.subplot2.autoscale_view()
-        #self.parent.canvas.draw()ilename, wx.BITMAP_TYPE_PNG)
-
-#        self.AddSeparator()
-#        self.AddCheckTool(self._MTB_LOGLIN, loglin_icon)
-#        self.AddCheckTool(self._MTB_LOGLOG, loglog_icon)
-#        self.AddCheckTool(self._MTB_LINLIN, linlin_icon)
         self.AddSeparator()
         self.AddCheckTool(self._MTB_ERRBARS, errbars_icon, shortHelp='Show Errorbars')
         self.AddSimpleTool(self._MTB_LEGEND, legend_icon, 'Adjust Legend')
@@ -848,9 +821,6 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         self.AddSimpleTool(self._MTB_CLR1, clear1_icon, 'Clear Top Plot')
         self.AddSimpleTool(self._MTB_CLR2, clear2_icon, 'Clear Bottom Plot')
         
-#        self.Bind(wx.EVT_TOOL, self.loglin, id = self._MTB_LOGLIN)
-#        self.Bind(wx.EVT_TOOL, self.loglog, id = self._MTB_LOGLOG)
-#        self.Bind(wx.EVT_TOOL, self.linlin, id = self._MTB_LINLIN)
         self.Bind(wx.EVT_TOOL, self.clear1, id = self._MTB_CLR1)
         self.Bind(wx.EVT_TOOL, self.clear2, id = self._MTB_CLR2)
         self.Bind(wx.EVT_TOOL, self.errbars, id = self._MTB_ERRBARS)
@@ -858,8 +828,7 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         self.Bind(wx.EVT_TOOL, self.showboth, id = self._MTB_SHOWBOTH)
         self.Bind(wx.EVT_TOOL, self.showtop, id = self._MTB_SHOWTOP)
         self.Bind(wx.EVT_TOOL, self.showbottom, id = self._MTB_SHOWBOTTOM)
-        
-        
+         
         self.Realize()
         
         self.ErrorbarIsOn = False
@@ -868,54 +837,12 @@ class MyCustomToolbar(NavigationToolbar2Wx):
     
     #Overriding the default home button commands:
     
-#    def pan(self, *args):
-#        self.ToggleTool(self._NTB2_ZOOM, False)
-#        NavigationToolbar2.pan(self, *args)
 
-#    def mouse_move(self, event):
-#        #print 'mouse_move', event.button
-#
-#        if not event.inaxes or not self._active:
-#            if self._lastCursor != cursors.POINTER:
-#                self.set_cursor(cursors.POINTER)
-#                self._lastCursor = cursors.POINTER
-#        else:
-#            if self._active=='ZOOM':
-#                if self._lastCursor != cursors.SELECT_REGION:
-#                    self.set_cursor(cursors.SELECT_REGION)
-#                    self._lastCursor = cursors.SELECT_REGION
-#                if self._xypress:
-#                    x, y = event.x, event.y
-#                    lastx, lasty, a, ind, lim, trans = self._xypress[0]
-#                    self.draw_rubberband(event, x, y, lastx, lasty)
-#            elif (self._active=='PAN' and
-#                  self._lastCursor != cursors.MOVE):
-#                self.set_cursor(cursors.MOVE)
-#
-#                self._lastCursor = cursors.MOVE
-#
-#        if event.inaxes and event.inaxes.get_navigate():
-#
-#            try: s = event.inaxes.format_coord(event.xdata, event.ydata)
-#            except ValueError: pass
-#            except OverflowError: pass
-#            else:
-#                if len(self.mode):
-#                    self.set_message('%s, %s' % (self.mode, s))
-#                else:
-#                    self.set_message(s)
-#        else: self.set_message(self.mode)
-##    
 #    def zoom(self, *args):
 #        #self.ToggleTool(self._NTB2_PAN, False)
 #        
 #        NavigationToolbar2Wx.zoom(self, *args)
 #        
-#        if self._active == 'ZOOM':
-#            self.set_cursor(os.path.join(self.workdir, "ressources" ,"zoom-in.cur"), Stock = False)
-#        else:
-#            self.set_cursor(2)
-#    
     def home(self, *args):
 #        'restore the original view'
 #        self._views.home()
@@ -979,6 +906,7 @@ class MyCustomToolbar(NavigationToolbar2Wx):
         self.parent.ClearSubplot(self.parent.subplot2)
     
     def set_cursor(self, cursor):
+        ''' overriding this method from parent '''
         
         cursord = {
                    cursors.MOVE : wx.Cursor(os.path.join(self.workdir, "ressources" ,"SmoothMove.cur"), wx.BITMAP_TYPE_CUR),
@@ -987,11 +915,9 @@ class MyCustomToolbar(NavigationToolbar2Wx):
                    cursors.SELECT_REGION : wx.Cursor(os.path.join(self.workdir, "ressources" ,"zoom-in.cur"), wx.BITMAP_TYPE_CUR),            #wx.CURSOR_CROSS,
                    }
         
-
         cursor = cursord[cursor]
         self.parent.canvas.SetCursor( cursor )
        
-    
     def errbars(self, evt):
         
         if not(self.ErrorbarIsOn):
