@@ -3889,6 +3889,7 @@ class ManipFilePanel(wx.Panel):
        
         #Updates txtctrls and plot:
         self.UpdateControlsAndPlot(evt.GetId())
+        self.UpdatePlot()
 
     def ToggleSelect(self):
         

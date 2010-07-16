@@ -1,13 +1,14 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-15 -*-
-
 import os
 import sys
-sys.stdout = open('screen.txt','w',0)
-sys.stderr = open('errors.txt','w',0)
+#sys.stdout = open('screen.txt','w',0)
+#sys.stderr = open('errors.txt','w',0)
+#
+#sys.path.insert(0, "../Filters")
+#sys.path.insert(0, "../SysFiles")
 
-sys.path.insert(0, "../Filters")
-sys.path.insert(0, "../SysFiles")
+print 'tryint to setup'
 
 def rmdir_recursive(dir, keep=[]):
     """Remove a directory, and all its contents if it is not already empty."""
@@ -39,10 +40,11 @@ try:
 except:
     print >>sys.__stdout__,'./dist: nothing to remove.'
     print './dist: nothing to remove.'
-             
+
 # setup.py
 
 # Used successfully in Python2.5 with matplotlib 0.91.2 and PyQt4 (and Qt 4.3.3) 
+print 'tryint to setup'
 from distutils.core import setup
 import py2exe
 
@@ -54,14 +56,16 @@ opts = {
     'py2exe': { "compressed": 1,
                 "optimize": 1,
                 #"ascii": 1,
-                "bundle_files": 1,
+              #  "bundle_files": 1,
                 'packages' : ["matplotlib.backends.backend_wxagg",
+                              "matplotlib.backends.backend_tkagg",
+                              "scipy.io.matlab.streams",
                               "matplotlib.numerix.fft",
                               "matplotlib.numerix.linear_algebra",
                               "matplotlib.numerix.random_array",
                               "matplotlib.numerix.ma"
                               ],
-                'excludes': ['_tkinter'
+                'excludes': [#'_tkinter'
                 #             '_gtkagg', '_tkagg', '_agg2', '_cairo', '_cocoaagg',
                 #             '_fltkagg', '_gtk', '_gtkcairo','_backend_gdk',
                 #             '_gobject','_gtkagg','_tkinter','glade','pango',
@@ -69,6 +73,7 @@ opts = {
                              ],
                 'dll_excludes': ['tk84.dll',
                                  'tcl84.dll',
+                                 'msvcp90.dll',
                 #                 'libgdk_pixbuf-2.0-0.dll',
                 #                 'libgdk-win32-2.0-0.dll',
                 #                 'libgobject-2.0-0.dll',
@@ -90,7 +95,9 @@ opts = {
 # Save matplotlib-data to mpl-data ( It is located in the matplotlib\mpl-data 
 # folder and the compiled programs will look for it in \mpl-data
 import matplotlib
+
 data_files = matplotlib.get_py2exe_datafiles()
+
 data_files.append(('ressources', ['ressources\\raw.png']))
 data_files.append(('ressources', ['ressources\\linlin.png']))
 data_files.append(('ressources', ['ressources\\loglin.png']))
@@ -110,8 +117,18 @@ data_files.append(('ressources', ['ressources\\showboth.png']))
 data_files.append(('ressources', ['ressources\\showtop.png']))
 data_files.append(('ressources', ['ressources\\showbottom.png']))
 data_files.append(('ressources', ['ressources\\legend.png']))
-data_files.append(('', ['raw.ico']))
-data_files.append(('', ['RAW.chm']))
+data_files.append(('ressources', ['ressources\\raw.ico']))
+data_files.append(('ressources', ['ressources\\RAW.chm']))
+data_files.append(('ressources', ['ressources\\clear2white.png']))
+data_files.append(('ressources', ['ressources\\clear1white.png']))
+data_files.append(('ressources', ['ressources\\zoom-in.cur']))
+data_files.append(('ressources', ['ressources\\SmoothMove.cur']))
+data_files.append(('ressources', ['ressources\\imgctrl.png']))
+data_files.append(('ressources', ['ressources\\hdr.png']))
+data_files.append(('ressources', ['ressources\\Up.png']))
+data_files.append(('ressources', ['ressources\\Folder.png']))
+data_files.append(('ressources', ['ressources\\document.png']))
+
 
 
 # for console program use 'console = [{"script" : "scriptname.py"}]
@@ -121,7 +138,7 @@ setup(name='BioXTAS RAW',
       author='Soren S. Nielsen',
       console=[{'script' : "RAW.py",
                 'icon_resources':[(1,'ressources\\raw.ico')],
-                'other_resources':[(24, 1, manifest)],
+               # 'other_resources':[(24, 1, manifest)],
                }],
       options = opts,
       zipfile = None,
