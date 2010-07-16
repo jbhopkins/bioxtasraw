@@ -165,8 +165,6 @@ expParams = {
              'AutoSaveOnAvgFiles'   : False,    
              'AutoSaveOnSub'        : False,
              
-             
-             
              #IMAGE FORMATS
              #See advancedOptionsGUI ['Quantum 210, CHESS', 'MarCCD 165, MaxLab', 'Medoptics, CHESS', 'FLICAM, CHESS']
              'ImageFormat'          : 'Quantum 210, CHESS',
@@ -316,7 +314,7 @@ class PlotWorkerThread(threading.Thread):
 #               cProfile.runctx("ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)", globals(), locals())     
                 try:      
                     ExpObj, FullImage = fileIO.loadFile(eachSelectedFile, expParams)
-                except (IndexError, RuntimeError):
+                except (IndexError, ValueError, RuntimeError):
                     #wx.CallAfter(wx.MessageBox(eachSelectedFile + ' does not match the current image format.\n\nSee advanced options to change the current image format', 'Wrong image format')
                     #WARNING - ValueERROR happen on flicam file when no counter file is found!
                     
@@ -1260,6 +1258,7 @@ class PlotPanel(wx.Panel):
                            'axesscale2': 'linlin',
                            'plot1type' : 'normal',
                            'plot2type' : 'subtracted',
+                           'plot1state' : 'linlin',
                            'errorbars_on': False}
         
         self.legendPicked = False
@@ -1296,11 +1295,18 @@ class PlotPanel(wx.Panel):
             
     def OnMouseButton(self, evt):
 
+        x_size,y_size = self.canvas.get_width_height()
+        half_y = y_size / 2
+        
+        selected_plot = 1
+        if evt.y <= half_y:
+            selected_plot = 2
+            
         if evt.button == 3:
             if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                self.ShowPopupMenu()
+                self.ShowPopupMenu(selected_plot)
             
-    def ShowPopupMenu(self):
+    def ShowPopupMenu(self, selected_plot):
         
         mainframe = wx.FindWindowByName('MainFrame')
     
@@ -1313,6 +1319,12 @@ class PlotPanel(wx.Panel):
         it2 = plot1SubMenu.AppendRadioItem(MenuIDs['plot1scloglin'], 'Log-Lin')
         it3 = plot1SubMenu.AppendRadioItem(MenuIDs['plot1scloglog'], 'Log-Log')
         it4 = plot1SubMenu.AppendRadioItem(MenuIDs['plot1sclinlog'], 'Lin-Log')
+        it9 = plot1SubMenu.AppendSeparator()
+        it10 = plot1SubMenu.AppendRadioItem(MenuIDs['plot1tyguinier'], 'Guinier')
+        it11 = plot1SubMenu.AppendRadioItem(MenuIDs['plot1tykratky'], 'Kratky')
+        it12 = plot1SubMenu.AppendRadioItem(MenuIDs['plot1typorod'], 'Porod')
+        
+       
         
         if self.plotparams['axesscale1'] == 'loglog':
             it3.Check(True)
@@ -1322,12 +1334,22 @@ class PlotPanel(wx.Panel):
             it2.Check(True)
         elif self.plotparams['axesscale1'] == 'linlin':
             it1.Check(True)
-        
+        elif self.plotparams['plot1type'] == 'guinier':
+            it10.Check(True)
+        elif self.plotparams['plot1type'] == 'kratky':
+            it11.Check(True)
+        elif self.plotparams['plot1type'] == 'porod':
+            it12.Check(True)
+            
         plot2SubMenu = wx.Menu()
         it5 = plot2SubMenu.AppendRadioItem(MenuIDs['plot2sclinlin'], 'Lin-lin')
         it6 = plot2SubMenu.AppendRadioItem(MenuIDs['plot2scloglin'], 'Log-Lin')
         it7 = plot2SubMenu.AppendRadioItem(MenuIDs['plot2scloglog'], 'Log-Log')
         it8 = plot2SubMenu.AppendRadioItem(MenuIDs['plot2sclinlog'], 'Lin-Log')
+        it9 = plot2SubMenu.AppendSeparator()
+        it13 = plot2SubMenu.AppendRadioItem(MenuIDs['plot2tyguinier'], 'Guinier')
+        it14 = plot2SubMenu.AppendRadioItem(MenuIDs['plot2tykratky'], 'Kratky')
+        it15 = plot2SubMenu.AppendRadioItem(MenuIDs['plot2typorod'], 'Porod')
         
         if self.plotparams['axesscale2'] == 'loglog':
             it7.Check(True)
@@ -1337,9 +1359,11 @@ class PlotPanel(wx.Panel):
             it6.Check(True)
         elif self.plotparams['axesscale2'] == 'linlin':
             it5.Check(True)
-            
-        menu.AppendSubMenu(plot1SubMenu, 'Plot 1')
-        menu.AppendSubMenu(plot2SubMenu, 'Plot 2')
+        
+        if selected_plot == 1:
+            menu.AppendSubMenu(plot1SubMenu, 'Axes')
+        else:
+            menu.AppendSubMenu(plot2SubMenu, 'Axes')
           
         self.Bind(wx.EVT_MENU, self._OnPopupMenuChoice) 
         
@@ -1448,6 +1472,12 @@ class PlotPanel(wx.Panel):
             self.DeleteLinePlot()
     
     def OnPick(self, evt):
+        
+        mouseevent = evt.mouseevent
+        
+        #Disable selecting using right mouse button:
+        if mouseevent.button == 3:
+            return
         
         try:
             if evt.artist.type == 'legend':
