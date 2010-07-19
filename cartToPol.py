@@ -28,16 +28,16 @@ from math import pi, asin, tan, atan
 import Image, os
 import scipy, wx
 from numpy import *
-from scipy import weave
+#from scipy import weave
 from scipy import io
-from scipy.weave import converters
+#from scipy.weave import converters
 import fileIO
 import masking
 import cProfile, copy
 
 import ravg_ext
 
-from scipy.weave import ext_tools
+#from scipy.weave import ext_tools
 
 
 def radialAverage(in_image, dim, x_c, y_c, mask = None, readoutNoise_mask = None):

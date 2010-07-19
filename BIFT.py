@@ -19,8 +19,8 @@
 from __future__ import division
 from scipy import *
 from scipy import optimize
-from scipy import weave
-from scipy.weave import converters
+#from scipy import weave
+#from scipy.weave import converters
 from scipy.linalg import inv, det, eig
 from numpy import *
 

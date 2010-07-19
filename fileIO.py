@@ -26,9 +26,9 @@ import TiffImagePlugin            # Is needed for py2exe!
 from os import path
 import os
 from numpy import *
-from scipy import weave
+#from scipy import weave
 from scipy import io
-from scipy.weave import converters
+#from scipy.weave import converters
 import MARCCD_headerReader 
 import cartToPol
 import cProfile

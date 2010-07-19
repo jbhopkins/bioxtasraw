@@ -9,8 +9,8 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 import numpy as np
 from scipy import optimize
-from scipy import weave
-from scipy.weave import converters
+#from scipy import weave
+#from scipy.weave import converters
 from numpy import pi, sqrt, power, exp, linalg
 import pylab as pl
 from pylab import sin, cos
@@ -206,7 +206,7 @@ def createTransformMatrix(q, r):
            }
            
     """   
-    weave.inline(code, ['qlen', 'rlen', 'T', 'r', 'q', 'c'], type_converters=converters.blitz, compiler="gcc")    
+    #weave.inline(code, ['qlen', 'rlen', 'T', 'r', 'q', 'c'], type_converters=converters.blitz, compiler="gcc")    
             
     return T
 
