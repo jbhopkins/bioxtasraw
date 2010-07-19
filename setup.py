@@ -5,17 +5,104 @@ Usage:
     python setup.py py2app
 """
 
-from setuptools import setup
+import sys
 
-APP = ['RAW.py']
-DATA_FILES = []
-OPTIONS = {'argv_emulation': True,
-           'packages' : ['numpy', 'scipy'],
-           'resources' : './ressources'}
+if sys.platform == 'darwin':
+    from setuptools import setup
+    
+    APP = ['RAW.py']
+    DATA_FILES = []
+    OPTIONS = {'argv_emulation': True,
+               'packages' : ['numpy', 'scipy'],
+               'resources' : './ressources'}
 
-setup(
-    app=APP,
-    data_files=DATA_FILES,
-    options={'py2app': OPTIONS},
-    setup_requires=['py2app'],
-)
+    setup(
+          app=APP,
+          data_files=DATA_FILES,
+          options={'py2app': OPTIONS},
+          setup_requires=['py2app'],
+          )
+    
+elif sys.platform == 'win32':
+    from distutils.core import setup
+    import py2exe            
+
+    opts = {
+    'py2exe': { "compressed": 1,
+                "optimize": 1,
+              #  "ascii": 1,
+              #  "bundle_files": 1,
+                'packages' : ["matplotlib.backends.backend_wxagg",
+                              "matplotlib.backends.backend_tkagg",
+                              "scipy.io.matlab.streams",
+                              "matplotlib.numerix.fft",
+                              "matplotlib.numerix.linear_algebra",
+                              "matplotlib.numerix.random_array",
+                              "matplotlib.numerix.ma"
+                              ],
+                'excludes': [#'_tkinter'
+                #             '_gtkagg', '_tkagg', '_agg2', '_cairo', '_cocoaagg',
+                #             '_fltkagg', '_gtk', '_gtkcairo','_backend_gdk',
+                #             '_gobject','_gtkagg','_tkinter','glade','pango',
+                #             'QtCore','QtGui'
+                             ],
+                'dll_excludes': ['tk84.dll',
+                                 'tcl84.dll',
+                                 'msvcp90.dll',
+                                  ]
+              }
+       }
+
+# Save matplotlib-data to mpl-data ( It is located in the matplotlib\mpl-data 
+# folder and the compiled programs will look for it in \mpl-data
+    import matplotlib
+
+    data_files = matplotlib.get_py2exe_datafiles()
+
+    data_files.append(('ressources', ['ressources\\raw.png']))
+    data_files.append(('ressources', ['ressources\\linlin.png']))
+    data_files.append(('ressources', ['ressources\\loglin.png']))
+    data_files.append(('ressources', ['ressources\\loglog.png']))
+    data_files.append(('ressources', ['ressources\\load.png']))
+    data_files.append(('ressources', ['ressources\\clear.png']))
+    data_files.append(('ressources', ['ressources\\savemask.png']))
+    data_files.append(('ressources', ['ressources\\rect.png']))
+    data_files.append(('ressources', ['ressources\\poly.png']))
+    data_files.append(('ressources', ['ressources\\circle.png']))
+    data_files.append(('ressources', ['ressources\\errbars.png']))
+    data_files.append(('ressources', ['ressources\\Bob2.gif']))
+    data_files.append(('ressources', ['ressources\\logo_atom.gif']))
+    data_files.append(('ressources', ['ressources\\wi0009-16.png']))
+    data_files.append(('ressources', ['ressources\\agbe2.png']))
+    data_files.append(('ressources', ['ressources\\showboth.png']))
+    data_files.append(('ressources', ['ressources\\showtop.png']))
+    data_files.append(('ressources', ['ressources\\showbottom.png']))
+    data_files.append(('ressources', ['ressources\\legend.png']))
+    data_files.append(('ressources', ['ressources\\raw.ico']))
+    data_files.append(('ressources', ['ressources\\RAW.chm']))
+    data_files.append(('ressources', ['ressources\\clear2white.png']))
+    data_files.append(('ressources', ['ressources\\clear1white.png']))
+    data_files.append(('ressources', ['ressources\\zoom-in.cur']))
+    data_files.append(('ressources', ['ressources\\SmoothMove.cur']))
+    data_files.append(('ressources', ['ressources\\imgctrl.png']))
+    data_files.append(('ressources', ['ressources\\hdr.png']))
+    data_files.append(('ressources', ['ressources\\Up.png']))
+    data_files.append(('ressources', ['ressources\\Folder.png']))
+    data_files.append(('ressources', ['ressources\\document.png']))
+
+# for console program use 'console = [{"script" : "scriptname.py"}]
+# windows = 
+    setup(name='BioXTAS RAW',
+          version='0.98',
+          author='Soren S. Nielsen',
+          console=[{'script' : "RAW.py",
+                    'icon_resources':[(1,'ressources\\raw.ico')],
+               # 'other_resources':[(24, 1, manifest)],
+               }],
+          options = opts,
+          zipfile = None,
+          data_files = data_files)
+    
+    
+    
+    
