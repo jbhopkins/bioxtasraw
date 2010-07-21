@@ -4930,15 +4930,18 @@ class MainFrame(wx.Frame):
         
         if key[0:7] == 'plot2sc':
             plotpanel.plotparams['axesscale2'] = key[-6:]
+            plotpanel.plotparams['plot2type'] = 'subtracted'
             plotpanel.UpdatePlotAxesScaling()
+            plotpanel.UpdatePlotsAfterTypeChange(plotpanel.subplot2)
          
         elif key[0:7] == 'plot1sc':
             plotpanel.plotparams['axesscale1'] = key[-6:]
+            plotpanel.plotparams['plot1type'] = 'normal'
             plotpanel.UpdatePlotAxesScaling()
+            plotpanel.UpdatePlotsAfterTypeChange(plotpanel.subplot1)
             
         elif key[0:7] == 'plot1ty':
             plotpanel.plotparams['plot1type'] = key[7:]
-            plotpanel.UpdatePlotsAfterTypeChange(plotpanel.subplot1)
             
             if key[7:] == 'guinier':
                 plotpanel.plotparams['axesscale1'] = 'loglin'
@@ -4949,11 +4952,13 @@ class MainFrame(wx.Frame):
                 plotpanel.plotparams['axesscale1'] = 'linlin'
                 plotpanel.UpdatePlotAxesScaling()
                 #self.MenuBar.FindItemById(self.MenuIDs['plot1sclinlin']).Check(True)
+                
+            plotpanel.UpdatePlotsAfterTypeChange(plotpanel.subplot1)
             
     
         elif key[0:7] == 'plot2ty':
             plotpanel.plotparams['plot2type'] = key[7:]
-            plotpanel.UpdatePlotsAfterTypeChange(plotpanel.subplot2)
+            
             
             if key[7:] == 'guinier':
                 plotpanel.plotparams['axesscale2'] = 'loglin'
@@ -4964,6 +4969,8 @@ class MainFrame(wx.Frame):
                 plotpanel.plotparams['axesscale2'] = 'linlin'
                 plotpanel.UpdatePlotAxesScaling()
                 #self.MenuBar.FindItemById(self.MenuIDs['plot2sclinlin']).Check(True)
+            
+            plotpanel.UpdatePlotsAfterTypeChange(plotpanel.subplot2)
 
     
     def OnOptionsMenu(self, event):
