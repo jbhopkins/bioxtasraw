@@ -1248,11 +1248,11 @@ class myPlotScaleMenu(wx.Menu):
         mainframe = wx.FindWindowByName('MainFrame')
         MenuIDs = mainframe.MenuIDs
         
-        it1 = self.AppendRadioItem(MenuIDs['plot' + self._plot_number + 'sclinlin'], 'Lin-lin')
+        it1 = self.AppendRadioItem(MenuIDs['plot' + self._plot_number + 'sclinlin'], 'Lin-Lin')
         it2 = self.AppendRadioItem(MenuIDs['plot' + self._plot_number + 'scloglin'], 'Log-Lin')
         it3 = self.AppendRadioItem(MenuIDs['plot' + self._plot_number + 'scloglog'], 'Log-Log')
         it4 = self.AppendRadioItem(MenuIDs['plot' + self._plot_number + 'sclinlog'], 'Lin-Log')
-        it9 = self.AppendSeparator()
+        #it9 = self.AppendSeparator()
         it10 = self.AppendRadioItem(MenuIDs['plot' + self._plot_number + 'tyguinier'], 'Guinier')
         it11 = self.AppendRadioItem(MenuIDs['plot' + self._plot_number + 'tykratky'], 'Kratky')
         it12 = self.AppendRadioItem(MenuIDs['plot' + self._plot_number + 'typorod'], 'Porod')
