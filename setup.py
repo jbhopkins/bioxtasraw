@@ -25,13 +25,13 @@ if sys.platform == 'darwin':
     
 elif sys.platform == 'win32':
     from distutils.core import setup
-    import py2exe            
+    import py2exe, os            
 
     opts = {
     'py2exe': { "compressed": 1,
                 "optimize": 1,
               #  "ascii": 1,
-              #  "bundle_files": 1,
+                "bundle_files": 3,
                 'packages' : ["matplotlib.backends.backend_wxagg",
                               "matplotlib.backends.backend_tkagg",
                               "scipy.io.matlab.streams",
@@ -53,45 +53,22 @@ elif sys.platform == 'win32':
               }
        }
 
-# Save matplotlib-data to mpl-data ( It is located in the matplotlib\mpl-data 
-# folder and the compiled programs will look for it in \mpl-data
+    # Save matplotlib-data to mpl-data ( It is located in the matplotlib\mpl-data 
+    # folder and the compiled programs will look for it in \mpl-data
     import matplotlib
 
     data_files = matplotlib.get_py2exe_datafiles()
 
-    data_files.append(('ressources', ['ressources\\raw.png']))
-    data_files.append(('ressources', ['ressources\\linlin.png']))
-    data_files.append(('ressources', ['ressources\\loglin.png']))
-    data_files.append(('ressources', ['ressources\\loglog.png']))
-    data_files.append(('ressources', ['ressources\\load.png']))
-    data_files.append(('ressources', ['ressources\\clear.png']))
-    data_files.append(('ressources', ['ressources\\savemask.png']))
-    data_files.append(('ressources', ['ressources\\rect.png']))
-    data_files.append(('ressources', ['ressources\\poly.png']))
-    data_files.append(('ressources', ['ressources\\circle.png']))
-    data_files.append(('ressources', ['ressources\\errbars.png']))
-    data_files.append(('ressources', ['ressources\\Bob2.gif']))
-    data_files.append(('ressources', ['ressources\\logo_atom.gif']))
-    data_files.append(('ressources', ['ressources\\wi0009-16.png']))
-    data_files.append(('ressources', ['ressources\\agbe2.png']))
-    data_files.append(('ressources', ['ressources\\showboth.png']))
-    data_files.append(('ressources', ['ressources\\showtop.png']))
-    data_files.append(('ressources', ['ressources\\showbottom.png']))
-    data_files.append(('ressources', ['ressources\\legend.png']))
-    data_files.append(('ressources', ['ressources\\raw.ico']))
-    data_files.append(('ressources', ['ressources\\RAW.chm']))
-    data_files.append(('ressources', ['ressources\\clear2white.png']))
-    data_files.append(('ressources', ['ressources\\clear1white.png']))
-    data_files.append(('ressources', ['ressources\\zoom-in.cur']))
-    data_files.append(('ressources', ['ressources\\SmoothMove.cur']))
-    data_files.append(('ressources', ['ressources\\imgctrl.png']))
-    data_files.append(('ressources', ['ressources\\hdr.png']))
-    data_files.append(('ressources', ['ressources\\Up.png']))
-    data_files.append(('ressources', ['ressources\\Folder.png']))
-    data_files.append(('ressources', ['ressources\\document.png']))
+    ## Add all files in the resources folder:
+    currentDir = os.getcwd()
+    resourcesDir = os.path.join(currentDir, 'ressources')
 
-# for console program use 'console = [{"script" : "scriptname.py"}]
-# windows = 
+    for each_file in os.listdir(resourcesDir):
+        if os.path.isfile(os.path.join(resourcesDir, each_file)):
+            data_files.append(('ressources', [os.path.join('ressources', each_file)]))
+            
+    # for console program use 'console = [{"script" : "scriptname.py"}]
+    # windows = 
     setup(name='BioXTAS RAW',
           version='0.98',
           author='Soren S. Nielsen',
