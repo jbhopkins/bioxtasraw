@@ -1724,7 +1724,7 @@ def createMaskFromRAWFormat(maskPlotParameters):
     # Raw masks are created with a border to make edgemasking easier, this will remove the border:
     finalMask = mask[ border/2 : imageDimentions[1] - border/2, border/2 : imageDimentions[0] - border/2]
 
-    wx.SetCursor(wx.StockCursor(wx.CURSOR_DEFAULT))
+    wx.SetCursor(wx.StockCursor(wx.CURSOR_ARROW))
     
     # Show mask:
     #maskingpanel.showImage([finalMask, finalMask.shape], maskingpanel.ExpObj)
