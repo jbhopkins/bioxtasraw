@@ -317,10 +317,10 @@ class PlotWorkerThread(threading.Thread):
                 except (IndexError, ValueError, RuntimeError):
                     #wx.CallAfter(wx.MessageBox(eachSelectedFile + ' does not match the current image format.\n\nSee advanced options to change the current image format', 'Wrong image format')
                     #WARNING - ValueERROR happen on flicam file when no counter file is found!
-                    
                     print 'Wrong image format (plotWorkerThread)'
                     ExpObj = None
                     FullImage = None
+                    
                                                 
                 checkedTreatments = getTreatmentParameters()
                 
@@ -400,9 +400,9 @@ class PlotWorkerThread(threading.Thread):
                         wx.CallAfter(mainframe_window.SetStatusText,'Loading: ' + eachSelectedFile + '...Done!')    
                     
                     else:
-                        wx.CallAfter(wx.MessageBox, 'Filename: ' + eachSelectedFile + '\nDoes not contain any recognisable data.\n\nIf you are trying to load an image,\nset the correct image format in Options.', 'Load Failed!', wx.OK | wx.ICON_ERROR)
+                        wx.CallAfter(wx.MessageBox, 'Filename: ' + eachSelectedFile + '\nDoes not contain any recognisable data.\n\nIf you are trying to load an image,\nset the correct image format in Options.\n** Also check that your mask fits the image **', 'Load Failed!', wx.OK | wx.ICON_ERROR)
                 else:
-                    wx.CallAfter(wx.MessageBox, 'Filename: ' + eachSelectedFile + '\nDoes not contain any recognisable data.\n\nIf you are trying to load an image,\nset the correct image format in Options.', 'Load Failed!', wx.OK | wx.ICON_ERROR)
+                    wx.CallAfter(wx.MessageBox, 'Filename: ' + eachSelectedFile + '\nDoes not contain any recognisable data.\n\nIf you are trying to load an image,\nset the correct image format in Options.\n\n** Also check that your mask fits the image **', 'Load Failed!', wx.OK | wx.ICON_ERROR)
         
             wx.CallAfter(plotpanel._insertLegend, axes = self._parent.subplot1)
             
@@ -837,9 +837,15 @@ class MyCustomToolbar(NavigationToolbar2Wx):
     
 
 #    def zoom(self, *args):
-#        #self.ToggleTool(self._NTB2_PAN, False)
-#        
+        #self.ToggleTool(self._NTB2_PAN, False)
+        
+#        if self.GetToolEnabled(self._NTB2_PAN):
+#            self.set_cursor(4)
+#        else:
+        
 #        NavigationToolbar2Wx.zoom(self, *args)
+        
+        
 #        
     def home(self, *args):
 #        'restore the original view'
