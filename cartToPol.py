@@ -163,14 +163,16 @@ def loadM(newArr, dim, mask = None, readout_noise_mask = None, q_range = None, h
             checkMaskSize(mask, dim)
         except Exception, msg:
             print msg
-            raise Exception('Beamstop mask is wrong size, ' + str(msg) + '\n\nPlease change the mask settings to make this plot')
+            #raise Exception('Beamstop mask is wrong size, ' + str(msg) + '\n\nPlease change the mask settings to make this plot')
+            raise IndexError
 
     if readout_noise_mask != None:
         try: 
             checkMaskSize(readout_noise_mask, dim)
         except Exception, msg:
             print msg
-            raise Exception('Readout-noise mask is wrong size, ' + str(msg) + '\n\nPlease change the mask settings to make this plot')
+            raise IndexError
+            #raise Exception('Readout-noise mask is wrong size, ' + str(msg) + '\n\nPlease change the mask settings to make this plot')
     
     try:
         [I_raw, res, Errorbars_raw] = radialAverage(newArr, dim, y_center, x_center, mask, readout_noise_mask)
