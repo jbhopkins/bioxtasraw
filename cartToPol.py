@@ -731,21 +731,40 @@ class Measurement:
         
         return SubtractedExpObj
     
-    def scale(self, scaleval):
-                
-        if scaleval != 1.0:
-            self.i = self.i_raw * float(scaleval)
-            self.errorbars = self.errorbars_raw * abs(float(scaleval))
-            self.scaleval = float(scaleval)
+#    def scale(self, scaleval):
+#                
+#        if scaleval != 1.0:
+#            self.i = self.i_raw * float(scaleval)
+#            self.errorbars = self.errorbars_raw * abs(float(scaleval))
+#            self.scaleval = float(scaleval)
+#            
+#            self.setQrange(self.q_range)
+#            
             
-            self.setQrange(self.q_range)
+    def scale(self, scaleval):
+            
+        if scaleval != 1.0:
+            
+            if self.offsetval != 0.0:
+                self.i = (self.i_raw + self.offsetval) * float(scaleval) 
+            else:
+                self.i = self.i_raw * float(scaleval)
+                
+            self.errorbars = self.errorbars_raw * abs(float(scaleval))
+            
+            self.scaleval = float(scaleval)
+    
+            # Setting correct Qscale:
+            q_min, q_max = self.q_range
+            self.i = self.i[q_min:q_max]        # truncate I curve to q_min, q_max
+            self.errorbars = self.errorbars_raw[q_min:q_max]
             
     def offset(self, offsetValue):
             
-        if self.scaleval != 1.0:
-            self.i = (self.i_raw + float(offsetValue)) * float(self.scaleval) 
-        else:
-            self.i = self.i_raw + float(offsetValue)
+        #if self.scaleval != 1.0:
+        self.i = (self.i_raw + float(offsetValue)) * float(self.scaleval) 
+        #else:
+        #    self.i = self.i_raw + float(offsetValue)
             
         self.offsetval = float(offsetValue)
 
