@@ -359,7 +359,7 @@ def applyDataManipulations(ExpObj, expParams, checkedTreatments):
                     
                     if each == 'OffsetCurve':
                         try:
-                            ExpObj.offset((expParams['CurveOffsetVal']))
+                            ExpObj.offsetRaw((expParams['CurveOffsetVal']))
                         except Exception as msg:
                             wx.CallAfter(wx.MessageBox,str(msg) + '\n\n' + filename + '. Offset by constant: ' + str(expParams['CurveOffsetVal']) + ' failed!', 'Offset by constant failed!', wx.OK | wx.ICON_ERROR)
                 
@@ -743,13 +743,20 @@ class Measurement:
     def offset(self, offsetValue):
             
         if self.scaleval != 1.0:
-            self.i = self.i_raw * float(self.scaleval) + float(offsetValue)
+            self.i = (self.i_raw + float(offsetValue)) * float(self.scaleval) 
         else:
             self.i = self.i_raw + float(offsetValue)
             
         self.offsetval = float(offsetValue)
 
         self.setQrange(self.q_range)
+        
+        self.scale(self.scaleval)
+        
+    def offsetRaw(self, offsetValue):
+        
+        self.i_raw = self.i_raw + offsetValue
+        self.offset(0)
         
     def getFilename(self):
         return os.path.split(self.param['filename'])[1]
@@ -1032,7 +1039,7 @@ class ImageMeasurement(Measurement):
         if scaleval != 1.0:
             
             if self.offsetval != 0.0:
-                self.i = self.i_raw * float(scaleval) + self.offsetval
+                self.i = (self.i_raw + self.offsetval) * float(scaleval) 
             else:
                 self.i = self.i_raw * float(scaleval)
                 
