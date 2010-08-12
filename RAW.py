@@ -4800,7 +4800,7 @@ class MainFrame(wx.Frame):
         global expParams
         
         if newExpParams.has_key('BeamStopMaskParams'):    # To make it backwards compatible with older cfg files..
-            
+                    
             expParams['BeamStopMaskParams'] = newExpParams['BeamStopMaskParams']
             expParams['BeamStopMaskFilename'] = newExpParams['BeamStopMaskFilename']
             
@@ -4808,9 +4808,10 @@ class MainFrame(wx.Frame):
             expParams['ReadOutNoiseMaskFilename'] = newExpParams['ReadOutNoiseMaskFilename']
             
             if expParams['BeamStopMaskFilename']:
-                masking.LoadBeamStopMask(expParams['BeamStopMaskFilename']) # Load beamstop mask uses BeamStopMaskParams to generate mask and only tried to load the file if no params are found
+                masking.LoadBeamStopMask(expParams['BeamStopMaskFilename'], cfgload = True) # Load beamstop mask uses BeamStopMaskParams to generate mask and only tried to load the file if no params are found
+                
             elif expParams['ReadOutNoiseMaskFilename']:      
-                masking.LoadBeamStopMask(expParams['ReadOutNoiseMaskFilename'])
+                masking.LoadBeamStopMask(expParams['ReadOutNoiseMaskFilename'], cfgload = True)
                 
         else:
                 expParams['BeamStopMask'] = None

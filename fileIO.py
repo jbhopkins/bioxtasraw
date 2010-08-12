@@ -559,7 +559,7 @@ def loadBiftFile(filename):
 def loadRadFile(filename):
     ''' This only works for our own rad format i think '''
     
-    iq_pattern = re.compile('\s*\d*[.]\d*[+E-]*\d+\s+-?\d*[.]\d*[+E-]*\d+\s+\d*[.]\d*[+E-]*\d+\s+\d*[.]\d*[+E-]*\d+\s*\n')
+    iq_pattern = re.compile('\s*\d*[.]\d*[+Ee-]*\d+\s+-?\d*[.]\d*[+Ee-]*\d+\s+\d*[.]\d*[+Ee-]*\d+\s+\d*[.]\d*[+Ee-]*\d+\s*\n')
     param_pattern = re.compile('[a-zA-Z0-9_]*\s*[:]\s+.*')
 
     i = []
@@ -869,6 +869,8 @@ def checkFileType(filename):
         
     f.close()
     
+    
+    print type_tst
     # Test if file is a TIFF file (first two bytes are "II")
     
     print filename[-6:]

@@ -2209,6 +2209,8 @@ class LoadMaskThread(threading.Thread):
             #self._pgthread.SetStatus('Loading Mask...')
             wx.CallAfter(mainframe.SetStatusText, 'Loading mask...')    
         
+            print self.type
+        
             if self.type == None:
                 if self.expParams['BeamStopMaskParams'] != None:
                     self.expParams['BeamStopMask'] = createMaskFromRAWFormat(self.expParams['BeamStopMaskParams'])
@@ -2241,9 +2243,10 @@ class LoadMaskThread(threading.Thread):
         #self._pgthread.SetStatus('Done')
         #self._pgthread.stop() 
     
-def LoadBeamStopMask(mask_fullpath):
+def LoadBeamStopMask(mask_fullpath, cfgload = False):
     
     global maskLoadingThread
+    
     #global expParams
     expParams = wx.FindWindowByName('MainFrame').GetAllParameters()
         #mask_filename = os.path.split(mask_fullpath)[1]
@@ -2255,12 +2258,17 @@ def LoadBeamStopMask(mask_fullpath):
             #progressThread = MyProgressBar(self)
             #progressThread = None
             
+        if cfgload:
+            option = None
+        else:
+            option = 'param'
+            
         if maskLoadingThread == None:
             maskLoadingThread = LoadMaskThread()
             maskLoadingThread.start()
-            loadMaskQueue.put([mask_fullpath, 'beamstop', expParams, 'param'])
+            loadMaskQueue.put([mask_fullpath, 'beamstop', expParams, option])
         else:
-            loadMaskQueue.put([mask_fullpath, 'beamstop', expParams, 'param'])
+            loadMaskQueue.put([mask_fullpath, 'beamstop', expParams, option])
             
             #progressThread.run()
             
