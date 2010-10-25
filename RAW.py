@@ -4996,7 +4996,7 @@ class MainFrame(wx.Frame):
     def OnAboutDlg(self, event):
         info = wx.AboutDialogInfo()
         info.Name = "BioXTAS RAW"
-        info.Version = "0.99.7 Beta"
+        info.Version = "0.99.7.1 Beta"
         info.Copyright = "Copyright(C) 2009 BioXTAS"
         info.Description = wordwrap(
             "BioXTAS RAW is a software package primarily for SAXS "
@@ -5139,7 +5139,7 @@ class MySplashScreen(wx.SplashScreen):
     def OnExit(self, evt):
         self.Hide()
     
-        frame = MainFrame('BioXTAS RAW 0.99.7b', -1)
+        frame = MainFrame('BioXTAS RAW 0.99.7.1b', -1)
         icon = wx.Icon(name= os.path.join("ressources","raw.ico"), type = wx.BITMAP_TYPE_ICO)
         frame.SetIcon(icon)
         app.SetTopWindow(frame)

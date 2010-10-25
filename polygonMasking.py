@@ -34,12 +34,15 @@ import numpy as np
 import sys
 #from scipy.weave import ext_tools
 #from scipy.weave import converters
-#import polygonmask_ext
+import polygonmask_ext
 
 try:
     import scipy.weave as weave
    
     def npnpoly(verts,points):
+ #       print verts.shape
+ #       print points.shape
+        
         verts = verts.astype(np.float64)
         points = points.astype(np.float64)
 
@@ -99,13 +102,13 @@ try:
     out(n) = c;
         }
         """
-        weave.inline(code, ['xp','yp','x','y','out'], type_converters=weave.converters.blitz)
+        #weave.inline(code, ['xp','yp','x','y','out'], type_converters=weave.converters.blitz)
         
-#        polymsk = ext_tools.ext_function('polymsk', code, ['xp','yp','x','y','out'], type_converters = converters.blitz)   
-#        mod.add_function(polymsk)
-#        mod.compile(compiler = 'gcc')
+        #polymsk = ext_tools.ext_function('polymsk', code, ['xp','yp','x','y','out'], type_converters = converters.blitz)   
+        #mod.add_function(polymsk)
+        #mod.compile(compiler = 'gcc')
         
-  #      polygonmask_ext.polymsk(xp, yp, x, y, out)
+        polygonmask_ext.polymsk(xp, yp, x, y, out)
         
         return out
 except:
