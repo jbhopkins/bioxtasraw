@@ -3,7 +3,11 @@ from scipy.weave import converters
 import numpy as np
 from scipy import weave
 from scipy.weave import build_tools
-import os
+import os, shutil
+
+workdir = os.getcwd()
+
+temp_dir = os.path.join(workdir, 'temp')
 
 def build_bift():
     
@@ -267,7 +271,7 @@ def build_bift():
     
     kw, file = mod.build_kw_and_file('.', {})
     
-    success = build_tools.build_extension(file, temp_dir = './temp/',
+    success = build_tools.build_extension(file, temp_dir = temp_dir,
                                               compiler_name = 'gcc',
                                               verbose = 0, **kw)
    
@@ -330,7 +334,7 @@ def build_transmatrix():
 
     kw, file = mod.build_kw_and_file('.', {})
     
-    success = build_tools.build_extension(file, temp_dir = './temp/',
+    success = build_tools.build_extension(file, temp_dir = temp_dir,
                                               compiler_name = 'gcc',
                                               verbose = 0, **kw)
    
@@ -390,7 +394,7 @@ def build_sinfouriermatrix():
 
     kw, file = mod.build_kw_and_file('.', {})
     
-    success = build_tools.build_extension(file, temp_dir = './temp/',
+    success = build_tools.build_extension(file, temp_dir = temp_dir,
                                               compiler_name = 'gcc',
                                               verbose = 0, **kw)
    
@@ -491,7 +495,7 @@ def build_radavg():
     
     kw, file = mod.build_kw_and_file('.', {})
     
-    success = build_tools.build_extension(file, temp_dir = './temp/',
+    success = build_tools.build_extension(file, temp_dir = temp_dir,
                                               compiler_name = 'gcc',
                                               verbose = 0, **kw)
    
@@ -502,10 +506,8 @@ def build_radavg():
 def build_HouseholderTransform():
     pass
     
-
-def build_Polygonmask():
+def build_polygonmask():
     
-    pass
     verts = np.array([[549.,1096.],[144.,51.],[989.,38.],[549.,1096.]]) 
     points = np.array([[0, 0],[0, 1],[0, 2]])    
 
@@ -578,14 +580,12 @@ def build_Polygonmask():
     mod.add_function(polymsk)
     
     kw, file = mod.build_kw_and_file('.', {})
-    success = build_tools.build_extension(file, temp_dir = './temp/',
+    success = build_tools.build_extension(file, temp_dir = temp_dir,
                                               compiler_name = 'gcc',
                                               verbose = 0, **kw)
 
     if success:
         print '\n\n****** polymask_ext module compiled succesfully! *********'        
-        #mod.compile(compiler = 'gcc')
- #       polygonmask_ext.polymsk(xp, yp, x, y, out)
 
 def build_TridiagonalSolve(): 
     ''' See http://en.wikipedia.org/wiki/Tridiagonal_matrix_algorithm '''
@@ -631,7 +631,7 @@ def build_TridiagonalSolve():
 
     kw, file = mod.build_kw_and_file('.', {})
     
-    success = build_tools.build_extension(file, temp_dir = './temp/',
+    success = build_tools.build_extension(file, temp_dir = temp_dir,
                                               compiler_name = 'gcc',
                                               verbose = 0, **kw)
    
@@ -639,16 +639,38 @@ def build_TridiagonalSolve():
         print '\n\n****** tridiagsolve_ext module compiled succesfully! *********'
 
 
-if __name__ == "__main__":
+def buildAll():
+    
+    try:
+        workdir = os.getcwd()
+        os.mkdir(os.path.join(workdir, 'temp'))
+    except:
+        pass
     
     build_radavg()
     build_transmatrix()
-    
     build_bift()
-    build_Polygonmask()
     build_TridiagonalSolve()
-    
     build_sinfouriermatrix()
+    build_polygonmask()
+    
+    print ''
+    print '*********** Cleaning Up *****************'
+    
+    ## Clean up:
+    shutil.rmtree('./temp/')
+    os.remove('./bift_ext.cpp')
+    os.remove('./ravg_ext.cpp')
+    os.remove('./sinefouriermatrix_ext.cpp')
+    os.remove('./transmatrix_ext.cpp')
+    os.remove('./tridiagsolve_ext.cpp')
+    os.remove('./polygonmask_ext.cpp')
+    
+    print ''
+    print '*********** ALL DONE!!! *****************'
     
     
+if __name__ == "__main__":
+    
+    buildAll()
     

@@ -16,7 +16,6 @@
 #
 #******************************************************************************
 
-
 import matplotlib
 matplotlib.use('WXAgg')
 matplotlib.rc('image', origin = 'lower')        # turn image upside down.. x,y, starting from lower left
@@ -30,7 +29,7 @@ from matplotlib.widgets import Cursor#, Slider, Button
 from matplotlib.text import Text
 
 import cPickle, threading, os
-from scipy import io, optimize
+from scipy import optimize
 import wx, fileIO
 import cartToPol
 from numpy import *

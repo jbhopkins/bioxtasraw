@@ -27,7 +27,7 @@ from os import path
 import os
 from numpy import *
 #from scipy import weave
-from scipy import io
+#from scipy import io
 #from scipy.weave import converters
 import MARCCD_headerReader 
 import cartToPol

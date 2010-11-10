@@ -15,10 +15,10 @@
 #
 #******************************************************************************
 from __future__ import division
-import sys, os, cPickle, threading, re, math#, gc, time
+import sys, os, cPickle, threading, re, math     #, gc, time
 import matplotlib, time, subprocess
 matplotlib.rc('image', origin='lower')           # This turns the image upside down!!
-                                                #  but x and y will start from zero in the lower left corner 
+                                                 #  but x and y will start from zero in the lower left corner 
 
 from pylab import setp
 
