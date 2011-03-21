@@ -1344,7 +1344,8 @@ def buildAll():
     print ''
     print '*********** ALL DONE!!! *****************'
     
-    sys.exit()
+    #sys.exit()
+    return
     
 if __name__ == "__main__":
     buildAll()

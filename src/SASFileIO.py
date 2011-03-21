@@ -131,7 +131,8 @@ def loadPilatusImage(filename):
     information in the header '''
     
     img, img_hdr = load32BitTiffImage(filename)
-    
+    img = np.fliplr(img)
+
 #    try:
 #        img_hdr = SASMarHeaderReader.readHeader(filename)
 #    except:
