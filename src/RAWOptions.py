@@ -1831,7 +1831,11 @@ class PagePanel(wx.Panel):
         
     def updatePage(self, panel_id, option_label):
         
-        new_panel = wx.FindWindowById(panel_id)
+        try:
+            new_panel = wx.FindWindowById(panel_id)
+        except TypeError:
+            print 'TypeError in updatePage(), possibly Hide root bug in wxpython'
+            return
         
         if new_panel != None:
             self.current_page.Hide()
