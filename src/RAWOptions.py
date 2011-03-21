@@ -1745,7 +1745,7 @@ class ConfigTree(CT.CustomTreeCtrl):
         if sys.platform == 'darwin':
             CT.CustomTreeCtrl.__init__(self, parent, *args, style = wx.TR_HAS_BUTTONS | CT.TR_HIDE_ROOT | CT.TR_NO_LINES, **kwargs)
         else: 
-            CT.CustomTreeCtrl.__init__(self, parent, *args, agwStyle = wx.TR_HAS_BUTTONS | CT.TR_HIDE_ROOT | CT.TR_NO_LINES, **kwargs)
+            CT.CustomTreeCtrl.__init__(self, parent, *args, style = wx.TR_HAS_BUTTONS | CT.TR_HIDE_ROOT | CT.TR_NO_LINES, **kwargs)
         
         self.parent = parent
         
