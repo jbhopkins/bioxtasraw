@@ -18,7 +18,7 @@ from matplotlib.patches import Circle, Rectangle, Polygon
 import numpy as np
 import wx, math
 import sys, os
-from scipy import linspace, polyval, polyfit, sqrt, stats, randn
+from scipy import linspace, polyval, polyfit, sqrt, randn
 import RAW, RAWSettings, RAWCustomCtrl
 
 class GuinierPlotPanel(wx.Panel):
