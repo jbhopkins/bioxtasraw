@@ -32,7 +32,10 @@ from matplotlib.widgets import Cursor
 import SASImage
 
 
-RAWWorkDir = sys.path[0].strip('RAW.exe')
+RAWWorkDir = sys.path[0]
+
+if os.path.split(sys.path[0])[1] in ['RAW.exe', 'raw.exe']:
+    RAWWorkDir = os.path.split(sys.path[0])[0]
 
 class ImagePanelToolbar(NavigationToolbar2Wx):
     ''' The toolbar under the image in the image panel '''

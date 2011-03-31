@@ -6,8 +6,14 @@ Created on Jul 11, 2010
 
 import SASImage, SASM, SASIft, SASExceptions
 import numpy as np
-import os, sys, re, cPickle, Image
+import os, sys, re, cPickle
 import SASMarHeaderReader
+
+#Need to hack PIL to make it work with py2exe/cx_freeze:
+import Image
+import TiffImagePlugin
+Image._initialized=2
+
 
 def createSASMFromImage(img_array, parameters = {}, x_c = None, y_c = None, mask = None,
                         readout_noise_mask = None, dezingering = 0, dezing_sensitivity = 4):

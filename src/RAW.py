@@ -42,7 +42,11 @@ mainworker_cmd_queue = Queue.Queue()
 thread_wait_event = threading.Event()
 question_return_queue = Queue.Queue()
 
-RAWWorkDir = sys.path[0].strip('RAW.exe')
+RAWWorkDir = sys.path[0]
+
+if os.path.split(sys.path[0])[1] in ['RAW.exe', 'raw.exe']:
+    RAWWorkDir = os.path.split(sys.path[0])[0]
+    
 
 class MainFrame(wx.Frame):
     
@@ -3622,6 +3626,8 @@ class CenteringPanel(wx.Panel):
         
         self.auto_start_button = wx.Button(self, -1, 'Start')
         self.auto_start_button.Bind(wx.EVT_BUTTON, self._onAutoCenterStartButton)
+        
+        self.auto_start_button.Enable(False)
         
         sizer.Add(method_sizer,0, wx.RIGHT, 10)
         sizer.Add((1,1), 1, wx.EXPAND)

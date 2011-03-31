@@ -5,7 +5,7 @@ Created on Jul 7, 2010
 '''
 
 import numpy as np
-from scipy import optimize
+#from scipy import optimize
 import SASExceptions, SASParser, wx, copy
 # If C extensions have not been built, build them:
 try:
