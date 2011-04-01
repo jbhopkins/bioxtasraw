@@ -1185,6 +1185,8 @@ class MainWorkerThread(threading.Thread):
             sasm_dict['item_font_color'] = sasm.item_panel.getFontColour()
             sasm_dict['item_selected_for_plot'] = sasm.item_panel.getSelectedForPlot()
             
+            sasm_dict['parameters_analysis'] = sasm_dict['parameters']['analysis']  #pickle wont save this unless its raised up
+    
             if sasm.axes == sasm.plot_panel.subplot1:
                 sasm_dict['plot_axes'] = 1
             else:
@@ -1215,6 +1217,8 @@ class MainWorkerThread(threading.Thread):
                                     sasm_data['bin_size'])
             
             new_sasm.setQrange(sasm_data['selected_qrange'])
+                        
+            new_sasm.setParameter('analysis', sasm_data['parameters_analysis'])
             
             new_sasm._update()
 
@@ -2490,8 +2494,11 @@ class ManipItemPanel(wx.Panel):
         self.parent = parent
         self.sasm = sasm
         self.sasm.itempanel = self
+        
         self.manipulation_panel = wx.FindWindowByName('ManipulationPanel')
         self.plot_panel = wx.FindWindowByName('PlotPanel')
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        
         self._selected_as_bg = False
         self._selected_for_plot = True
         self._controls_visible = True
@@ -2591,16 +2598,26 @@ class ManipItemPanel(wx.Panel):
         
         self._initStartPosition()
         self._updateQTextCtrl()
+        
+        if self.sasm.getParameter('analysis').has_key('guinier'):
+            self.updateInfoTip(self.sasm.getParameter('analysis'))
+            
+        controls_not_shown = self.main_frame.raw_settings.get('ManipItemCollapsed')
+        if controls_not_shown:
+            self.showControls(not controls_not_shown)
+        
     
     def updateInfoTip(self, analysis_dict):
         
         guinier = analysis_dict['guinier']
         
-        rg = guinier['Rg']
-        i_zero = guinier['I0']
+        if guinier.has_key('Rg') and guinier.has_key('I0'):
+            rg = guinier['Rg']
+            i_zero = guinier['I0']
         
-        self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nRg: ' + str(rg) + '\nI(0): ' + str(i_zero))
-        
+            self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nRg: ' + str(rg) + '\nI(0): ' + str(i_zero))
+        else:
+            print 'Error! No guinier info found'
                 
     def enableStar(self, state):
         if state == True:

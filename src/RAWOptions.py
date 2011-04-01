@@ -1115,7 +1115,45 @@ class ReductionNormalizationPanel(wx.Panel):
             else:
                 self.norm_list.add(op, expr)
         
+
+
+class GeneralOptionsPanel(wx.Panel):
     
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+        
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        
+        self.raw_settings = raw_settings
+        
+        self.update_keys = ['ManipItemCollapsed']
+        
+        self.chkboxdata = [('Hide controls on manipulation items for new plots', raw_settings.getId('ManipItemCollapsed'))]
+        
+        options_sizer = self.createGeneralOptionsData()
+        
+        final_sizer = wx.BoxSizer(wx.VERTICAL)
+        final_sizer.Add(options_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.SetSizer(final_sizer)    
+    
+    
+    def createGeneralOptionsData(self):
+        
+        box = wx.StaticBox(self, -1, 'General Options')
+        staticBoxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        
+        treatmentSizer = wx.BoxSizer(wx.VERTICAL)
+        for each, id in self.chkboxdata:
+            chkBox = wx.CheckBox(self, id, each)
+            chkBox.Bind(wx.EVT_CHECKBOX, self.onChkBox)
+            treatmentSizer.Add(chkBox, 0)
+        
+        staticBoxSizer.Add(treatmentSizer, 0, wx.BOTTOM | wx.LEFT, 5)
+        
+        return staticBoxSizer
+    
+    def onChkBox(self, event):
+        pass
     
      
 class ReductionOptionsPanel(wx.Panel):
@@ -1720,13 +1758,14 @@ def TestAutoBgSubRegExpression(filename, regexp):
 # widgets and insert it into all_options below.
 #################################################################
 
-all_options = [ [ (1,0,0), wx.NewId(), '2D Reduction', ReductionOptionsPanel],
-                [ (1,1,0), wx.NewId(), 'Image/Header Format', ReductionImgHdrFormatPanel],
-                [ (1,2,0), wx.NewId(), 'Calibration', CalibrationOptionsPanel],  
+all_options = [ [ (1,0,0), wx.NewId(), 'General Settings', GeneralOptionsPanel],
+                [ (2,0,0), wx.NewId(), '2D Reduction', ReductionOptionsPanel],
+                [ (2,1,0), wx.NewId(), 'Image/Header Format', ReductionImgHdrFormatPanel],
+                [ (2,2,0), wx.NewId(), 'Calibration', CalibrationOptionsPanel],  
                 #[ (1,3,0), wx.NewId(), 'Masking', MaskingOptionsPanel],
-                [ (1,4,1), wx.NewId(), 'Normalization', ReductionNormalizationPanel] ,
-                [ (1,4,2), wx.NewId(), 'Absolute Scale', ReductionNormalizationAbsScPanel],
-                [ (2,0,0), wx.NewId(), 'Artifact Removal', ArtifactOptionsPanel]]
+                [ (2,4,1), wx.NewId(), 'Normalization', ReductionNormalizationPanel] ,
+                [ (2,4,2), wx.NewId(), 'Absolute Scale', ReductionNormalizationAbsScPanel],
+                [ (3,0,0), wx.NewId(), 'Artifact Removal', ArtifactOptionsPanel]]
 #                [ (3,0,0), wx.NewId(), 'IFT', IftOptionsPanel],
     #            [ (4,0,0), wx.NewId(), "Save Directories", SaveDirectoriesPanel],
     #            [ (5,0,0), wx.NewId(), 'Online Mode', ReductionOptionsPanel],

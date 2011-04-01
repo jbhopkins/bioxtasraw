@@ -147,6 +147,9 @@ class SASM:
     def getQrange(self):
         return self._selected_q_range
     
+    def setAllParameters(self, new_parameters):
+        self._parameters = new_parameters        
+    
     def getAllParameters(self):
         return self._parameters
     
