@@ -546,7 +546,7 @@ class MainFrame(wx.Frame):
     def _onAboutDlg(self, event):
         info = wx.AboutDialogInfo()
         info.Name = "RAW"
-        info.Version = "0.99.8.1 Beta"
+        info.Version = "0.99.8.2 Beta"
         info.Copyright = "Copyright(C) 2009 RAW"
         info.Description = "RAW is a software package primarily for SAXS 2D data reduction and 1D data analysis.\nIt provides an easy GUI for handling multiple files fast, and a\ngood alternative to commercial or protected software packages for finding\nthe Pair Distance Distribution Function"
         info.WebSite = ("http://bioxtasraw.sourceforge.net/", "The RAW Project Homepage")
@@ -1290,7 +1290,7 @@ class InfoPanel(wx.Panel):
         
         infoSizer = wx.BoxSizer()
         
-        self.infoTextBox = wx.TextCtrl(self, -1, 'Welcome to RAW 0.99.8.1b!\n--------------------------------\n\n', style = wx.TE_MULTILINE)
+        self.infoTextBox = wx.TextCtrl(self, -1, 'Welcome to RAW 0.99.8.2b!\n--------------------------------\n\n', style = wx.TE_MULTILINE)
         
         self.infoTextBox.SetBackgroundColour('WHITE')
         self.infoTextBox.SetForegroundColour('BLACK')
@@ -4535,7 +4535,7 @@ class MySplashScreen(wx.SplashScreen):
     def OnExit(self, evt):
         self.Hide()
             
-        frame = MainFrame('RAW 0.99.8.1b', -1)
+        frame = MainFrame('RAW 0.99.8.2b', -1)
         icon = wx.Icon(name= os.path.join(RAWWorkDir, "resources","raw.ico"), type = wx.BITMAP_TYPE_ICO)
         frame.SetIcon(icon)
         app.SetTopWindow(frame)
