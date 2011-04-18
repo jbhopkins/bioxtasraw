@@ -1217,8 +1217,11 @@ class MainWorkerThread(threading.Thread):
                                     sasm_data['bin_size'])
             
             new_sasm.setQrange(sasm_data['selected_qrange'])
-                        
-            new_sasm.setParameter('analysis', sasm_data['parameters_analysis'])
+            
+            try:
+                new_sasm.setParameter('analysis', sasm_data['parameters_analysis'])
+            except KeyError:
+                pass
             
             new_sasm._update()
 

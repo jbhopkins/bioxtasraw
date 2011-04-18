@@ -44,8 +44,10 @@ def createSASMFromImage(img_array, parameters = {}, x_c = None, y_c = None, mask
 
         #wx.CallAfter(wx.MessageBox, "The center coordinates are too large for this image, used image center instead.",
         # "Center coordinates does not fit image", wx.OK | wx.ICON_ERROR)
-        
-    sasm = SASM.SASM(i_raw, q_raw, err_raw, parameters)
+    
+    err_raw_non_nan = np.nan_to_num(err_raw)
+    
+    sasm = SASM.SASM(i_raw, q_raw, err_raw_non_nan, parameters)
     
     return sasm
 
