@@ -710,14 +710,16 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
     
     diag1 = int(np.sqrt((xlen-x_cin)**2 + y_cin**2))
     diag2 = int(np.sqrt((x_cin**2 + y_cin**2)))
-    diag3 = int(np.sqrt((xlen**2 + (ylen-y_cin)**2)))
+    diag3 = int(np.sqrt((x_cin**2 + (ylen-y_cin)**2)))
     diag4 = int(np.sqrt((xlen-x_cin)**2 + (ylen-y_cin)**2))
     
     maxlen = int(max(diag1, diag2, diag3, diag4, maxlen1))
 
+    #print diag1, diag2, diag3, diag4, maxlen1
+
     # we set the "q_limits" (in pixels) so that it does radial avg on entire image (maximum qrange possible).
     q_range = (0, maxlen)
-    
+     
     ##############################################
     # Reserving memory for radial averaged output:
     ##############################################

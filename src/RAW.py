@@ -150,7 +150,7 @@ class MainFrame(wx.Frame):
         self._mgr.GetPane(self.info_panel).FloatingSize((300,200))
         self._mgr.GetPane(self.control_notebook).dock_proportion = 350000
         
-        self._mgr.GetPane(self.info_panel).dock_proportion = 110000
+        self._mgr.GetPane(self.info_panel).dock_proportion = 115000
         
         self._mgr.Update()
         
@@ -1244,7 +1244,13 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
     def _backupWorkspace(self, data):
-        pass
+        all_items = data[0]
+        
+        backupfile = os.path.join(RAWWorkDir, '_wrkBackup')
+        
+        data_out = [all_items, backupfile]
+        
+        self._saveWorkspace(data_out)
     
     def _backupSettings(self, data):
         pass 
@@ -2629,21 +2635,41 @@ class ManipItemPanel(wx.Panel):
             self.showControls(not controls_not_shown)
         
     
-    def updateInfoTip(self, analysis_dict):
+    def updateInfoTip(self, analysis_dict, fromGuinierDialog = False):
         
-        guinier = analysis_dict['guinier']
+        
+        if analysis_dict.has_key('guinier'):
+            guinier = analysis_dict['guinier']
+        else:
+            guinier = {}
+        
+        string0 = 'Show Extended Info\n--------------------------------'
+        string1 = ''
+        string2 = ''
+        string3 = ''
         
         if guinier.has_key('Rg') and guinier.has_key('I0'):
             rg = guinier['Rg']
             i_zero = guinier['I0']
         
-            self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nRg: ' + str(rg) + '\nI(0): ' + str(i_zero))
-            
-            
-            self.info_panel.updateInfoFromItem(self)
-            
+            string1 = '\nRg: ' + str(rg) + '\nI(0): ' + str(i_zero)
         else:
-            print 'Error! No guinier info found'
+            string1 = '\nRg: N/A' + '\nI(0): N/A'
+            
+        if self.sasm.getAllParameters().has_key('Conc'):
+            string2 = '\nConc: ' + str(self.sasm.getParameter('Conc'))   
+        
+        if self.sasm.getAllParameters().has_key('Notes'):
+            if self.sasm.getParameter('Notes') != '':
+                string3 = '\nNote: ' + str(self.sasm.getParameter('Notes'))  
+        
+        string = string0+string1+string2+string3
+        
+        if string != '':    
+            self.info_icon.SetToolTipString(string)
+                  
+        if fromGuinierDialog:
+            self.info_panel.updateInfoFromItem(self)
                 
     def enableStar(self, state):
         if state == True:
@@ -4087,19 +4113,24 @@ class InformationPanel(wx.Panel):
         
         self.analysis_data = [('Rg:', 'Rg', wx.NewId()),
                               ('I0:', 'I0', wx.NewId()),
-                              ('MW:', 'MW', wx.NewId()),
-                              ('Conc:', 'Conc', wx.NewId())]
+                              ('MW:', 'MW', wx.NewId())]
+        
+        self.conc_data = ('Conc:', 'Conc', wx.NewId())
         
         self.analysis_info_sizer = self._createAnalysisInfoSizer()
         
         infoSizer.Add(self.analysis_info_sizer, 0, wx.ALL | wx.EXPAND, 5)
 
-        header_note_box = wx.StaticBox(self, -1, 'Header data / Notes')
-        header_note_boxsizer = wx.StaticBoxSizer(header_note_box, orient = wx.VERTICAL)
+        #header_note_box = wx.StaticBox(self, -1, 'Header data / Notes')
+        #header_note_boxsizer = wx.StaticBoxSizer(header_note_box, orient = wx.VERTICAL)
         
+        header_note_boxsizer = wx.BoxSizer(wx.VERTICAL)
+        
+        header_note_boxsizer.Add(wx.StaticText(self,-1,'Description / Notes:'), 0)
         header_note_boxsizer.Add(self._createNoteSizer(), 0, wx.ALL | wx.EXPAND, 5)
-        header_note_boxsizer.Add(self._createHeaderBrowserSizer(), 0, wx.ALL | wx.EXPAND, 5)
-        
+        header_note_boxsizer.Add(wx.StaticText(self,-1,'Header browser:'), 0)
+        self.header_browser_sizer = self._createHeaderBrowserSizer()
+        header_note_boxsizer.Add(self.header_browser_sizer, 0, wx.ALL | wx.EXPAND, 5)
         
         infoSizer.Add(header_note_boxsizer, 1, wx.EXPAND | wx.ALL, 5)
  
@@ -4109,6 +4140,15 @@ class InformationPanel(wx.Panel):
         self.selectedItem = None
         self.sasm = None
         
+        self._disableAllControls()
+    def _disableAllControls(self):
+        for each in self.GetChildren():
+            each.Enable(False)
+
+    def _enableAllControls(self):
+        for each in self.GetChildren():
+            each.Enable(True)
+        
     def _createHeaderBrowserSizer(self):
         
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -4117,7 +4157,6 @@ class InformationPanel(wx.Panel):
         self.header_txt = wx.TextCtrl(self, -1, '')
         
         self.header_choice.Bind(wx.EVT_CHOICE, self._onHeaderBrowserChoice)
-        
         
         sizer.Add(self.header_choice, .5, wx.EXPAND | wx.RIGHT, 5)
         sizer.Add(self.header_txt, 1, wx.EXPAND)
@@ -4139,29 +4178,41 @@ class InformationPanel(wx.Panel):
         for each in self.analysis_data:
             label = each[0]
             id = each[2]
-            value = 'N\A'
+            value = 'N/A'
             
             label_txt = wx.StaticText(self, -1, label)
-        
             value_txt = wx.TextCtrl(self, id, value, size = (60, -1))
             
             siz = wx.BoxSizer()
             siz.Add(label_txt, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
-            siz.Add(value_txt, 0)
+            siz.Add(value_txt, 1, wx.EXPAND)
             
-            analysis_sizer.Add(siz, 0, wx.RIGHT, 10)
+            analysis_sizer.Add(siz, 1, wx.RIGHT | wx.EXPAND, 10)
+            
+        ## add conc ctrl:
+        label_txt = wx.StaticText(self, -1, self.conc_data[0])
+        self.conc_txt = wx.TextCtrl(self, self.conc_data[2], 'N/A', size = (60, -1))
+        self.conc_txt.Bind(wx.EVT_KILL_FOCUS, self._onNoteTextKillFocus)
+        siz = wx.BoxSizer()
+        siz.Add(label_txt, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
+        siz.Add(self.conc_txt, 1, wx.EXPAND)    
+        analysis_sizer.Add(siz, 1, wx.RIGHT | wx.EXPAND, 10)
             
         sizer.Add(name_sizer, 0, wx.EXPAND | wx.BOTTOM, 5)
-        sizer.Add(analysis_sizer, 0, wx.EXPAND)
+        sizer.Add(analysis_sizer, 1, wx.EXPAND | wx.RIGHT, 5)
         
         return sizer
     
     def _createNoteSizer(self):
         sizer = wx.BoxSizer()
                 
-        self.noteTextBox = wx.TextCtrl(self, -1, '', style = wx.TE_MULTILINE)
+        self.noteTextBox = wx.TextCtrl(self, -1, '')
         self.noteTextBox.SetBackgroundColour('WHITE')
         self.noteTextBox.SetForegroundColour('BLACK')
+        
+        #length, height = self.noteTextBox.GetTextExtent('TEST')
+        #self.noteTextBox.SetMaxSize((-1,30))
+        #self.noteTextBox.SetSize((-1, 2*height))
         
         self.noteTextBox.Bind(wx.EVT_KILL_FOCUS, self._onNoteTextKillFocus)
         
@@ -4179,14 +4230,28 @@ class InformationPanel(wx.Panel):
             pass
     
         try:
-            conc = wx.FindWindowByName('ConcTextCtrl').GetValue()
-            float(conc)
-            self.sasm.setParameter('Conc', float(conc))
+            conc = self.conc_txt.GetValue().replace(',','.')
+            if self.sasm != None and conc != 'N/A':
+            
+                float(conc)
+                self.sasm.setParameter('Conc', float(conc))
+        
+            
         except Exception, e:
             print e
             print 'info error, Conc'
     
+    
+        if self.sasm != None and self.selectedItem != None:
+            try:
+                self.selectedItem.updateInfoTip(self.sasm.getParameter('analysis'))
+            except Exception, e:
+                pass
+        
     def _onHeaderBrowserChoice(self, event):
+        
+        if self.sasm == None:
+            return
         
         key = self.header_choice.GetStringSelection()
         
@@ -4209,15 +4274,24 @@ class InformationPanel(wx.Panel):
     
     def clearInfo(self):
         
+        self._disableAllControls()
+        
+        if self.sasm != None and self.selectedItem != None:
+            try:
+                self.selectedItem.updateInfoTip(self.sasm.getParameter('analysis'))
+            except Exception, e:
+                pass
+        
         try:
             note_txt = self.noteTextBox.GetValue()
             self.sasm.setParameter('Notes', note_txt)
         
-            conc = wx.FindWindowByName('ConcTextCtrl').GetValue()
+            conc = self.conc_txt.GetValue().replace(',','.')
             
             try:
-                float(conc)
-                self.sasm.setParameter('Conc', float(conc))
+                if conc != 'N/A' and conc != 'N\A' and self.sasm != None:
+                    float(conc)
+                    self.sasm.setParameter('Conc', float(conc))
             except Exception, e:
                 print e
                 print 'info error, Conc'
@@ -4231,11 +4305,12 @@ class InformationPanel(wx.Panel):
             id = each[2]
             
             label = wx.FindWindowById(id)
-            label.SetLabel('N/A')
+            label.SetValue('N/A')
             
         self.header_txt.SetValue('')
         self.header_choice.SetItems([''])
         self.noteTextBox.SetValue('')
+        self.conc_txt.SetValue('N/A')
         
         self.sasm = None
         self.selectedItem = None
@@ -4244,6 +4319,8 @@ class InformationPanel(wx.Panel):
         self.Refresh()   
 
     def updateInfoFromItem(self, item):
+        self.clearInfo()
+        
         self.sasm = item.getSASM()
         self.selectedItem = item
         
@@ -4268,7 +4345,8 @@ class InformationPanel(wx.Panel):
                         txt.SetValue(str(guinier[key]))       
                         
         if self.sasm.getAllParameters().has_key('Conc'):
-            conc_ctrl = wx.FindWindowByName('ConcTextCtrl')
+            
+            conc_ctrl = self.conc_txt
             conc_ctrl.SetValue(str(self.sasm.getParameter('Conc')))
         
         if self.sasm.getAllParameters().has_key('imageHeader'):
@@ -4291,6 +4369,9 @@ class InformationPanel(wx.Panel):
             self.noteTextBox.SetValue(self.sasm.getParameter('Notes'))
         
         self.analysis_info_sizer.Layout()
+        self.header_browser_sizer.Layout()
+        
+        self._enableAllControls()
         self.Refresh()   
     
     def WriteText(self, text):
