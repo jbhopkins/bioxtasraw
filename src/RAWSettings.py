@@ -181,7 +181,12 @@ class RawGuiSettings:
                             'CurveOffsetVal'       : [0.0,   wx.NewId(), 'float'],
                             'OffsetCurve'          : [False, wx.NewId(), 'bool'],
                             'CurveScaleVal'        : [1.0,   wx.NewId(), 'float'],
-                            'ScaleCurve'           : [False, wx.NewId(), 'bool']
+                            'ScaleCurve'           : [False, wx.NewId(), 'bool'],
+                            
+                            
+                            #GUI Settings:
+                            
+                            'ManipItemCollapsed'  : [False, wx.NewId(), 'bool'] 
                             }
     
     def get(self, key):

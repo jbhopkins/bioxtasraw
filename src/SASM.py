@@ -147,6 +147,9 @@ class SASM:
     def getQrange(self):
         return self._selected_q_range
     
+    def setAllParameters(self, new_parameters):
+        self._parameters = new_parameters        
+    
     def getAllParameters(self):
         return self._parameters
     
@@ -447,24 +450,36 @@ def superimpose(sasm_star, sasm_list):
     i_star = sasm_star.i
     err_star = sasm_star.err
     
+    q_star_qrange_min, q_star_qrange_max = sasm_star.getQrange()
+    
     for each_sasm in sasm_list:
     
         each_q = each_sasm.getBinnedQ()
         each_i = each_sasm.getBinnedI()
         each_err = each_sasm.getBinnedErr()
+        
+        each_q_qrange_min, each_q_qrange_max = each_sasm.getQrange()
     
         # resample standard curve on the data q vector
-        min_q_star, min_q_each = q_star[0], each_q[0]
-        max_q_star, max_q_each = q_star[-1], each_q[-1]
+        min_q_star, min_q_each = q_star[q_star_qrange_min], each_q[each_q_qrange_min]
+        max_q_star, max_q_each = q_star[q_star_qrange_max-1], each_q[each_q_qrange_max-1]
         
         min_q = min([min_q_star, min_q_each])
         max_q = min([max_q_star, max_q_each])
         
         min_q_idx = np.where(q_star >= min_q_each)[0][0]
         max_q_idx = np.where(q_star <= max_q_each)[0][-1]
+        
+        print min_q, max_q
+        print min_q_idx, max_q_idx
+        print each_q_qrange_min, each_q_qrange_max
                                                                                          
-        I_resamp = np.interp(q_star[min_q_idx:max_q_idx+1], each_q, each_i)
+        I_resamp = np.interp(q_star[min_q_idx:max_q_idx+1], 
+                             each_q[each_q_qrange_min:each_q_qrange_max-1],
+                             each_i[each_q_qrange_min:each_q_qrange_max-1])
 
+        #print I_resamp
+        
         I_buf = np.ones(max_q_idx - min_q_idx + 1)
         
         g2 = np.dot(I_buf, I_buf)
@@ -477,17 +492,11 @@ def superimpose(sasm_star, sasm_list):
 
         determ = g2*s2 - gs*sg
     
-        alf = (fg*s2-fs*sg)/determ
-        bet = (g2*fs-gs*fg)/determ
+        alf = (fg*s2-fs*sg) / determ
+        bet = (g2*fs-gs*fg) / determ
         
         offset = -alf
         scale = 1.0/bet
-        
+                
         each_sasm.scale(scale)        
         each_sasm.offset(offset)
-        
-        
-        
-        
-    
-    
