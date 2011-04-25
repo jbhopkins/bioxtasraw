@@ -46,7 +46,9 @@ RAWWorkDir = sys.path[0]
 
 if os.path.split(sys.path[0])[1] in ['RAW.exe', 'raw.exe']:
     RAWWorkDir = os.path.split(sys.path[0])[0]
-    
+
+global workspace_saved
+workspace_saved = True
 
 class MainFrame(wx.Frame):
     
@@ -150,12 +152,11 @@ class MainFrame(wx.Frame):
         self._mgr.GetPane(self.info_panel).FloatingSize((300,200))
         self._mgr.GetPane(self.control_notebook).dock_proportion = 350000
         
-        self._mgr.GetPane(self.info_panel).dock_proportion = 115000
+        self._mgr.GetPane(self.info_panel).dock_proportion = 120000
         
         self._mgr.Update()
         
         self._mgr.GetPane(self.control_notebook).MinSize((200,300))
-
 
         #Load workdir from rawcfg.dat:
         self._loadCfg()
@@ -520,6 +521,10 @@ class MainFrame(wx.Frame):
             mainworker_cmd_queue.put(['load_workspace', [file]])
     
     def _onSaveWorkspaceMenu(self, evt):
+        self.saveWorkspace()
+        
+    def saveWorkspace(self):
+        
         manip_panel = wx.FindWindowByName('ManipulationPanel')
         
         all_items = manip_panel.getItems()
@@ -531,8 +536,8 @@ class MainFrame(wx.Frame):
                 file = file + '.wsp'
         
             mainworker_cmd_queue.put(['save_workspace', [all_items, file]])
-        
-        
+    
+    
     def showOptionsDialog(self, focusIdx = None):
         
         if focusIdx != None:
@@ -1201,6 +1206,8 @@ class MainWorkerThread(threading.Thread):
         
         SASFileIO.saveWorkspace(save_dict, save_path)
         
+        global workspace_saved
+        workspace_saved = True
         
     def _loadWorkspace(self, data):
         
@@ -1246,7 +1253,7 @@ class MainWorkerThread(threading.Thread):
     def _backupWorkspace(self, data):
         all_items = data[0]
         
-        backupfile = os.path.join(RAWWorkDir, '_wrkBackup')
+        backupfile = os.path.join(RAWWorkDir, '_wspBackup.wsp')
         
         data_out = [all_items, backupfile]
         
@@ -1423,17 +1430,26 @@ class FilePanel(wx.Panel):
     
     def _onClearAllButton(self, event):
         
-        dial = wx.MessageDialog(self, 'Are you sure you want to clear everything?', 'Question', 
+        global workspace_saved
+
+        if workspace_saved == False:
+            dial = SaveDialog(self, -1, 'Workspace not saved', 'The workspace has been modified, do you want to save your changes?')
+        else: 
+            dial = wx.MessageDialog(self, 'Are you sure you want to clear everything?', 'Are you sure?', 
                                     wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        
         answer = dial.ShowModal()
         dial.Destroy()
         
-        if answer == wx.ID_NO:
-                return
-        
-        self.plot_panel.clearAllPlots()
-        self.image_panel.clearFigure()
-        self.manipulation_panel.clearList()
+        if answer == wx.ID_CANCEL or answer == wx.ID_NO:
+            return
+        if answer == wx.ID_SAVE:
+            self.main_frame.saveWorkspace()
+            
+        else:
+            self.plot_panel.clearAllPlots()
+            self.image_panel.clearFigure()
+            self.manipulation_panel.clearList()
     
     def _onReduceButton(self, event):
         
@@ -4250,10 +4266,10 @@ class InformationPanel(wx.Panel):
         
     def _onHeaderBrowserChoice(self, event):
         
-        if self.sasm == None:
-            return
-        
         key = self.header_choice.GetStringSelection()
+        
+        if self.sasm == None or key == 'No header info':
+            return
         
         self.header_choice_key = key
         
@@ -4364,7 +4380,11 @@ class InformationPanel(wx.Panel):
             except Exception, e:
                 print e
                 print 'InfoPanel error'
-                
+        
+        else:
+            self.header_choice.SetItems(['No header info'])
+            self.header_choice.Select(0)
+        
         if self.sasm.getParameter('Notes') != None:
             self.noteTextBox.SetValue(self.sasm.getParameter('Notes'))
         
@@ -4385,6 +4405,35 @@ class InformationPanel(wx.Panel):
 
 #----- **** Dialogs ****
 
+class SaveDialog(wx.Dialog):
+    def __init__(self, parent, id, title, text):
+        wx.Dialog.__init__(self, parent, id, title)
+
+        sizer =  wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(wx.StaticText(self, -1, text), 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
+        
+        button_sizer = wx.BoxSizer()
+      
+        button_sizer.Add(wx.Button(self, wx.ID_SAVE, 'Save'), 0, wx.RIGHT, 5)
+        button_sizer.Add(wx.Button(self, wx.ID_DELETE, 'Discard'), 0, wx.RIGHT, 5)
+        button_sizer.Add(wx.Button(self, wx.ID_CANCEL, 'Cancel'), 0)
+        sizer.Add(button_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
+        
+        self.Bind(wx.EVT_BUTTON, self._onCancel, id=wx.ID_CANCEL)
+        self.Bind(wx.EVT_BUTTON, self._onDiscard, id=wx.ID_DELETE)
+        self.Bind(wx.EVT_BUTTON, self._onSave, id=wx.ID_SAVE)
+
+        self.SetSizer(sizer)
+        self.Fit()
+        
+    def _onCancel(self, event):
+        self.EndModal(wx.ID_CANCEL)
+    
+    def _onDiscard(self, event):
+        self.EndModal(wx.ID_DELETE)
+    
+    def _onSave(self, event):
+        self.EndModal(wx.ID_SAVE)
 
 class TestDialog(wx.Dialog):
     
