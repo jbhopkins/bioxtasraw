@@ -2913,6 +2913,8 @@ class ManipItemPanel(wx.Panel):
         if not self.sasm.getAllParameters().has_key('load_path'):
             img.Enable(False)
         menu.Append(20, 'Show data...')
+        menu.Append(21, 'Show header...')
+        
         menu.AppendSeparator()
         menu.Append(8, 'Move to top plot')
         menu.Append(9, 'Move to bottom plot')
@@ -3040,6 +3042,13 @@ class ManipItemPanel(wx.Panel):
             dlg.Destroy()
             
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
+            
+        if evt.GetId() == 21:
+            dlg = HdrDataDialog(self, self.sasm)
+            dlg.ShowModal()
+            dlg.Destroy()
+            
+            #wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
     
     def _saveAnalysisInfo(self):
         selected_items = self.manipulation_panel.getSelectedItems()
@@ -4153,8 +4162,11 @@ class InformationPanel(wx.Panel):
         self.SetSizer(infoSizer)
         
         self.header_choice_key = None
+        self.header_choice_hdr = None
         self.selectedItem = None
         self.sasm = None
+        self.num_of_file_hdr_keys = 0
+        self.num_of_imghdr_keys = 0
         
         self._disableAllControls()
     def _disableAllControls(self):
@@ -4267,22 +4279,26 @@ class InformationPanel(wx.Panel):
     def _onHeaderBrowserChoice(self, event):
         
         key = self.header_choice.GetStringSelection()
+        sel_idx = self.header_choice.GetSelection()
         
         if self.sasm == None or key == 'No header info':
             return
         
         self.header_choice_key = key
         
+        if sel_idx < (self.num_of_file_hdr_keys):
+            self.header_choice_hdr = 'counters'
+        else:
+            self.header_choice_hdr = 'imageHeader'
+        
         img_hdr = self.sasm.getParameter('imageHeader')
+        file_hdr = self.sasm.getParameter('counters')
         
-        if img_hdr == None:
-            return
-        
-        if img_hdr.has_key(key):
+        if self.header_choice_hdr == 'imageHeader' and img_hdr.has_key(key):
             self.header_txt.SetValue(str(img_hdr[key]))
+        if self.header_choice_hdr == 'counters' and file_hdr.has_key(key):
+            self.header_txt.SetValue(str(file_hdr[key]))
             
-        sel_idx = self.header_choice.GetSelection()
-        
         if sel_idx != wx.NOT_FOUND:
             self.selectedItem.info_settings['hdr_choice'] = sel_idx
         else:
@@ -4327,6 +4343,8 @@ class InformationPanel(wx.Panel):
         self.header_choice.SetItems([''])
         self.noteTextBox.SetValue('')
         self.conc_txt.SetValue('N/A')
+        self.num_of_file_hdr_keys = 0
+        self.num_of_imghdr_keys = 0
         
         self.sasm = None
         self.selectedItem = None
@@ -4361,23 +4379,46 @@ class InformationPanel(wx.Panel):
                         txt.SetValue(str(guinier[key]))       
                         
         if self.sasm.getAllParameters().has_key('Conc'):
-            
             conc_ctrl = self.conc_txt
             conc_ctrl.SetValue(str(self.sasm.getParameter('Conc')))
         
+        all_choices = []
+        file_hdr = {}
+        img_hdr = {}
+        if self.sasm.getAllParameters().has_key('counters'):
+            file_hdr = self.sasm.getParameter('counters')            
+            all_filehdr_keys = file_hdr.keys()
+            all_choices.extend(all_filehdr_keys)
+            self.num_of_file_hdr_keys = len(all_filehdr_keys)
+        
         if self.sasm.getAllParameters().has_key('imageHeader'):
-            
             img_hdr = self.sasm.getParameter('imageHeader')
-            all_keys = img_hdr.keys()
-            self.header_choice.SetItems(all_keys)
-             
+            all_imghdr_keys = img_hdr.keys()
+            all_choices.extend(all_imghdr_keys)
+            self.num_of_imghdr_keys = len(all_imghdr_keys)
+            
+            
+        if len(all_choices) > 0:    
+            self.header_choice.SetItems(all_choices)
+            
             try:
-                if self.header_choice_key != None and img_hdr.has_key(self.header_choice_key):
-                    self.header_choice.SetSelection(all_keys.index(self.header_choice_key))
+                if self.header_choice_key != None:
+                    if self.header_choice_hdr == 'imageHeader' and img_hdr.has_key(self.header_choice_key):
+                        idx = all_imghdr_keys.index(self.header_choice_key)
+                        idx = idx + self.num_of_file_hdr_keys
+                        self.header_choice.SetSelection(idx)
+                        
+                    elif self.header_choice_hdr == 'counters' and file_hdr.has_key(self.header_choice_key):
+                        idx = all_filehdr_keys.index(self.header_choice_key)
+                        self.header_choice.SetSelection(idx)
+                    else:
+                        self.header_choice.SetSelection(item.info_settings['hdr_choice'])
                 else:
                     self.header_choice.SetSelection(item.info_settings['hdr_choice'])
+                    
                 self._onHeaderBrowserChoice(None)
             except Exception, e:
+                self.header_choice.SetSelection(0)
                 print e
                 print 'InfoPanel error'
         
@@ -4394,13 +4435,9 @@ class InformationPanel(wx.Panel):
         self._enableAllControls()
         self.Refresh()   
     
-    def WriteText(self, text):
-        
+    def WriteText(self, text):    
         self.infoTextBox.AppendText(text)
         
-    def Clear(self):
-        
-        self.infoTextBox.Clear()
 
 
 #----- **** Dialogs ****
@@ -4450,7 +4487,145 @@ class TestDialog(wx.Dialog):
         self.sizer.Add(self.panel,0, wx.ALL, 10)
         self.SetSizer(self.sizer)
         self.Fit()
+    
+class HdrDataDialog(wx.Dialog):
+    
+    def __init__(self, parent, sasm = None, *args, **kwargs):
         
+        wx.Dialog.__init__(self, parent, -1, 'Header Data Display', *args, **kwargs)
+        
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.grid_changed = False
+        self.sasm = sasm
+        
+        #For testing
+        if self.sasm == None:
+            data_len = 100
+            filename_label = wx.StaticText(self, -1, 'Filename :')
+        else:
+            data_len = len(sasm.getBinnedI())
+            filename_label = wx.StaticText(self, -1, 'Filename : ' + sasm.getParameter('filename'))
+        
+        self.data_grid = gridlib.Grid(self)
+        self.data_grid.SetDefaultCellAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE) 
+        
+        data_len = self._getNumOfHeaderValues()
+                
+        self.data_grid.CreateGrid(data_len, 2)
+        self.data_grid.SetColLabelValue(0, 'Key')
+        self.data_grid.SetColLabelValue(1, 'Value')
+        self.data_grid.SetMinSize((400,400))
+        
+        self.sizer.Add(filename_label, 0, wx.TOP | wx.LEFT, 10)
+        self.sizer.Add(self.data_grid, 1, wx.ALL, 10)
+        self.sizer.Add(self._CreateButtonSizer(wx.OK | wx.CANCEL), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
+        
+        self.Bind(wx.EVT_BUTTON, self._onOk, id=wx.ID_OK)
+        self.Bind(wx.EVT_BUTTON, self._onCancel, id=wx.ID_CANCEL)
+        self.Bind(gridlib.EVT_GRID_CELL_CHANGE, self._onChange)
+        self.Bind(gridlib.EVT_GRID_EDITOR_SHOWN, self._onEditCell)
+        
+        self.SetSizer(self.sizer)
+        
+        if self.sasm != None:
+            self._insertData()
+        
+        self.data_grid.AutoSizeColumns()
+        self.Fit()
+        
+        self.CenterOnParent()
+    
+    def _onEditCell(self, event):
+        col = self.data_grid.GridCursorCol
+        row = self.data_grid.GridCursorRow
+        
+        self.saved_value = self.data_grid.GetCellValue(row, col)
+        
+        event.Skip()
+    
+    def _onChange(self, event):
+        
+        try:
+            col = self.data_grid.GridCursorCol
+            row = self.data_grid.GridCursorRow
+        
+            value = self.data_grid.GetCellValue(row, col)
+            float(value)
+            self.grid_changed = True
+        except ValueError:
+            wx.MessageBox('Illegal value entered', 'Invalid Entry', style=ICON_ERROR)
+            self.data_grid.SetCellValue(row, col, self.saved_value)
+            
+    def _getNumOfHeaderValues(self):
+        
+        all_keys = []
+        
+        if self.sasm.getAllParameters().has_key('counters'):
+            file_hdr = self.sasm.getParameter('counters')
+            keys = file_hdr.keys()
+            all_keys.extend(keys)
+            
+        if self.sasm.getAllParameters().has_key('imageHeader'):
+            img_hdr = self.sasm.getParameter('imageHeader')
+            keys = img_hdr.keys()    
+            all_keys.extend(keys)
+            
+        return len(all_keys)
+        
+    def _insertData(self):
+          
+        imghdr_data_len = 0
+        filehdr_data_len = 0
+
+        if self.sasm.getAllParameters().has_key('counters'):
+            file_hdr = self.sasm.getParameter('counters')
+            keys = file_hdr.keys()
+        
+            if len(keys) > 0:
+                filehdr_data_len = len(keys)
+                
+                for i in range(0, filehdr_data_len):
+                    self.data_grid.SetCellValue(i, 0, str(keys[i]))
+                    self.data_grid.SetCellValue(i, 1, str(file_hdr[keys[i]]))        
+        
+        if self.sasm.getAllParameters().has_key('imageHeader'):
+            img_hdr = self.sasm.getParameter('imageHeader')
+            keys = img_hdr.keys()
+        
+            if len(keys) > 0:
+                imghdr_data_len = len(keys)
+                
+                for i in range(filehdr_data_len, filehdr_data_len + imghdr_data_len):
+                    self.data_grid.SetCellValue(i, 0, str(keys[i-filehdr_data_len]))
+                    self.data_grid.SetCellValue(i, 1, str(img_hdr[keys[i-filehdr_data_len]]))
+
+    
+    def _writeData(self):
+        data_len = len(self.sasm.getBinnedI())
+        
+        new_I = []
+        new_Q = []
+        new_Err = []
+        
+        for i in range(0, data_len):
+            new_Q.append(float(self.data_grid.GetCellValue(i, 0)))
+            new_I.append(float(self.data_grid.GetCellValue(i, 1)))
+            new_Err.append(float(self.data_grid.GetCellValue(i, 2)))   
+            
+        self.sasm.setBinnedI(numpy.array(new_I))
+        self.sasm.setBinnedQ(numpy.array(new_Q))
+        self.sasm.setBinnedErr(numpy.array(new_Err))
+        
+        self.sasm._update()
+        
+    def _onOk(self, event):
+#        if self.grid_changed:
+#            self._writeData()
+            
+        self.EndModal(wx.ID_OK)
+    def _onCancel(self, event):
+        self.EndModal(wx.ID_CANCEL) 
         
 class DataDialog(wx.Dialog):
     
