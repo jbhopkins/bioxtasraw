@@ -789,6 +789,11 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
         iq, errorbars = getIntensityFromQmatrix(qmatrix)
         iq[np.where(np.isnan(iq))] = 0
         
+    #Trim trailing zeros
+    iq = np.trim_zeros(iq, 'b')
+    q = q[0:len(iq)] 
+    errorbars = errorbars[0:len(iq)]
+        
     return [iq, q, errorbars, qmatrix]
 
 

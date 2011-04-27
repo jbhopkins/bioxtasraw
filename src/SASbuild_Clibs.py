@@ -400,6 +400,10 @@ def build_sinfouriermatrix():
    
     if success:
         print '\n\n****** fouriermatrix_ext module compiled succesfully! *********'
+        
+        
+def build_calcmaxq(): 
+    pass
    
 def build_radavg():
     

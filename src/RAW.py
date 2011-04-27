@@ -1483,7 +1483,7 @@ class FilePanel(wx.Panel):
         
         #RAWSettings.loadSettings(self.main_frame.raw_settings, 'testdat.dat')
         
-        dlg = TestDialog(self)
+        dlg = SaveAnalysisInfoDialog(self)
         dlg.ShowModal()
 
 class CustomListCtrl(wx.ListCtrl):
@@ -3030,7 +3030,11 @@ class ManipItemPanel(wx.Panel):
                 
         if evt.GetId() == 18:
             #Save Analysis Info
-            self._saveAnalysisInfo()
+            #self._saveAnalysisInfo()
+            
+            dlg = SaveAnalysisInfoDialog(self, self.manipulation_panel.getSelectedItems())
+            dlg.ShowModal()
+            dlg.Destroy()
             
         if evt.GetId() == 19:
             #Show Image
@@ -4439,7 +4443,184 @@ class InformationPanel(wx.Panel):
         self.infoTextBox.AppendText(text)
         
 
+class SaveAnalysisInfoPanel(wx.Panel):
+    
+    def __init__(self, parent, item_list = None):
+        wx.Panel.__init__(self, parent, name = 'SaveAnalysisInfoPanel')
+        
+        self.SetMinSize((600,400))
+        
+        self.variable_data = {}
+        
+        self.item_list = item_list
+        sizer = wx.BoxSizer()
+        
+        self.include_listctrl = SaveAnalysisListCtrl(self, -1, style = wx.LC_REPORT | wx.LC_NO_HEADER)
+        self.variable_listctrl = SaveAnalysisListCtrl(self, -1, style = wx.LC_REPORT | wx.LC_NO_HEADER)
+        
+        include_sizer = wx.BoxSizer(wx.VERTICAL)
+        include_sizer.Add(wx.StaticText(self, -1, 'Include list:'), 0)
+        include_sizer.Add(self.include_listctrl, 1, wx.EXPAND)
+        
+        variable_sizer = wx.BoxSizer(wx.VERTICAL)
+        variable_sizer.Add(wx.StaticText(self, -1, 'Variable list:'), 0)
+        variable_sizer.Add(self.variable_listctrl, 1, wx.EXPAND)
+        
+        self.include_button = wx.Button(self, -1, '->')
+        self.exclude_button = wx.Button(self, -1, '<-')
+        
+        self.include_button.Bind(wx.EVT_BUTTON, self._onIncludeButton)
+        self.exclude_button.Bind(wx.EVT_BUTTON, self._onExcludeButton)
+        
+        self.button_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.button_sizer.Add(self.include_button, 0)
+        self.button_sizer.Add(self.exclude_button, 0)
+        
+        sizer.Add(variable_sizer, 1, wx.EXPAND | wx.ALL, 10)
+        sizer.Add(self.button_sizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        sizer.Add(include_sizer, 1, wx.EXPAND | wx.ALL, 10)
+        
+        self.SetSizer(sizer)
+        
+        self.variable_listctrl.InsertColumn(0, 'name')
+        width, height = self.variable_listctrl.GetSize()
+        
+        self.variable_listctrl.SetColumnWidth(0, 300)
+        
+        self._addGeneralVariables()
+        self._addGuinierVariables()
+        self._addFileHdrVariables()
+        self._addImageHdrVariables()
+    
+        
+    def _onIncludeButton(self, event):
+        selected_items = self.variable_listctrl.getSelectedItems()
+        
+        all_items = []
+        
+        for each_item in selected_items:
+            data = self.variable_data[each_item]
+            txt = self.variable_listctrl.GetItem(each_item).GetText()
+            all_items.append(data)
+  
+            idx = self.include_listctrl.GetItemCount()
+            self.include_listctrl.InsertStringItem(idx, txt)
+        
+    def _onExcludeButton(self, event):
+        print 'Exclude!'
+       
+    def _getAllImageHdrKeys(self):
+        all_imghdr_keys = []
+        
+        all_keys = []
+        for each_item in self.item_list:
+            each_sasm = each_item.getSASM()
+            
+            if each_sasm.getAllParameters().has_key('imageHeader'):
+               img_hdr = each_sasm.getParameter('imageHeader')
+               keys = img_hdr.keys()
+               all_keys.extend(keys)
+               
+        all_imghdr_keys.extend(set(all_keys))
+        
+        return all_imghdr_keys
+            
+    def _getAllFileHdrKeys(self):
+        all_filehdr_keys = []
+        
+        all_keys = []
+        for each_item in self.item_list:
+            each_sasm = each_item.getSASM()
+            
+            if each_sasm.getAllParameters().has_key('counters'):
+               img_hdr = each_sasm.getParameter('counters')
+               keys = img_hdr.keys()
+               all_keys.extend(keys)
+               
+        all_filehdr_keys.extend(set(all_keys))
+        
+        return all_filehdr_keys
+    
+    def _getAllGuinierKeys(self):
+        all_guinier_keys = []
+        
+        all_keys = []
+        for each_item in self.item_list:
+            each_sasm = each_item.getSASM()
+            
+            if each_sasm.getParameter('analysis').has_key('guinier'):
+               analysis = each_sasm.getParameter('analysis')
+               guinier = analysis['guinier']
+               keys = guinier.keys()
+               all_keys.extend(keys)
+               
+        all_guinier_keys.extend(set(all_keys))
+        
+        return all_guinier_keys
+        
+    
+    def _addGeneralVariables(self):
+        general_data = [('General', None), ('Concentration', 'Conc'), ('Description / Notes', 'Notes')]
+        
+        idx = 0
+        for each in general_data: 
+            self.variable_listctrl.InsertStringItem(idx, each[0])
+            self.variable_data[idx] = ['general' , each[1]]
+            
+            idx = idx + 1
+            
+        self.variable_listctrl.SetItemBackgroundColour(0, 'GRAY')
+    
+    def _addGuinierVariables(self):
+        keys = self._getAllGuinierKeys()
+        
+        if len(keys) == 0:
+            return
+        
+        idx = self.variable_listctrl.GetItemCount()
+                
+        self.variable_listctrl.InsertStringItem(idx, 'Guinier Analysis')
+        self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
+        idx = idx + 1
+        for each in keys: 
+            self.variable_listctrl.InsertStringItem(idx, each)
+            self.variable_data[idx] = ['guinier', each]         
+            idx = idx + 1
 
+    
+    def _addFileHdrVariables(self):
+        keys = self._getAllFileHdrKeys()
+        
+        if len(keys) == 0:
+            return
+        
+        idx = self.variable_listctrl.GetItemCount()
+        
+        self.variable_listctrl.InsertStringItem(idx, 'Header File')
+        self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
+        idx = idx + 1
+        for each in keys: 
+            self.variable_listctrl.InsertStringItem(idx, each)
+            self.variable_data[idx] = ['filehdr', each]                   
+            idx = idx + 1
+    
+    def _addImageHdrVariables(self):
+        keys = self._getAllImageHdrKeys()
+        
+        if len(keys) == 0:
+            return
+        
+        idx = self.variable_listctrl.GetItemCount()
+        
+        self.variable_listctrl.InsertStringItem(idx, 'Image Header')
+        self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
+        idx = idx + 1
+        for each in keys: 
+            self.variable_listctrl.InsertStringItem(idx, each)
+            self.variable_data[idx] = ['imagehdr', each]        
+            idx = idx + 1
+
+        
 #----- **** Dialogs ****
 
 class SaveDialog(wx.Dialog):
@@ -4471,6 +4652,106 @@ class SaveDialog(wx.Dialog):
     
     def _onSave(self, event):
         self.EndModal(wx.ID_SAVE)
+        
+class SaveAnalysisListCtrl(wx.ListCtrl):
+    
+    def __init__(self, parent, id, *args, **kwargs):
+        
+        wx.ListCtrl.__init__(self, parent, id, *args, **kwargs)
+        self.populateList()
+        
+    def populateList(self):
+        self.InsertColumn(0, 'Name')
+        self.SetColumnWidth(0, 300)
+        
+    def add(self, expr):
+        no_of_items = self.GetItemCount()
+        self.SetStringItem(no_of_items, 0, expr)
+        
+    def moveItemUp(self, idx):
+        if idx > 0:
+            data = self.getItemData(idx)
+            self.DeleteItem(idx)
+            self.InsertStringItem(idx-1, data[0])
+            self.SetStringItem(idx-1, 1, data[1])
+            self.Select(idx-1, True)
+            
+    def moveItemDown(self, idx):
+        if idx < self.GetItemCount()-1:
+            data = self.getItemData(idx)
+            self.DeleteItem(idx)
+            self.InsertStringItem(idx+1, data[0])
+            self.SetStringItem(idx+1, 1, data[1])
+            self.Select(idx+1, True)
+        
+    def getItemData(self, idx):
+        data1 = self.GetItemText(idx)
+        item = self.GetItem(idx, 1)
+        data2 = item.GetText()
+        
+        return [data1, data2]
+        
+    def getSelectedItems(self):
+        """    Gets the selected items for the list control.
+          Selection is returned as a list of selected indices,
+          low to high.
+        """
+        selection = []
+        index = self.GetFirstSelected()
+        
+        if index == -1:
+            return []
+        
+        selection.append(index)
+        
+        while len(selection) != self.GetSelectedItemCount():
+            index = self.GetNextSelected(index)
+            selection.append(index)
+
+        return selection
+    
+    def getAllItems(self):
+        ''' returns a list with all items and operator '''
+        all_items = []
+        for i in range(0, self.GetItemCount()):
+             all_items.append(self.getItemData(i))
+        
+        return all_items
+    
+    def GetValue(self):
+        ''' Creating a function to mimic other normal control widgets,
+        this makes it easier to update and save settings for this
+        control.'''
+        
+        return self.getAllItems()
+    
+    def SetValue(self, value_list):
+        
+        if value_list == None:
+            return
+        
+        for each in value_list:
+            op = each[0]
+            expr = each[1]    
+            self.add(op, expr)
+
+class SaveAnalysisInfoDialog(wx.Dialog):
+    
+    def __init__(self, parent, item_list = None, *args, **kwargs):
+        
+        wx.Dialog.__init__(self, parent, -1, 'Select variables to include in the comma separated file.', *args, **kwargs)
+            
+        self.panel = SaveAnalysisInfoPanel(self, item_list = item_list)
+        
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        self.sizer.Add(self.panel,0, wx.ALL, 10)
+        buttonsizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
+        self.sizer.Add(buttonsizer,0, wx.BOTTOM | wx.RIGHT | wx.LEFT | wx.ALIGN_RIGHT, 10)
+        
+        self.SetSizer(self.sizer)
+        self.Fit()
+
 
 class TestDialog(wx.Dialog):
     
@@ -4487,7 +4768,7 @@ class TestDialog(wx.Dialog):
         self.sizer.Add(self.panel,0, wx.ALL, 10)
         self.SetSizer(self.sizer)
         self.Fit()
-    
+   
 class HdrDataDialog(wx.Dialog):
     
     def __init__(self, parent, sasm = None, *args, **kwargs):
