@@ -791,6 +791,8 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
         
     #Trim trailing zeros
     iq = np.trim_zeros(iq, 'b')
+    iq = iq[:-5]        #Last points are usually garbage they're very few pixels
+                        #Cutting the last 5 points here. 
     q = q[0:len(iq)] 
     errorbars = errorbars[0:len(iq)]
         
