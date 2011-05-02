@@ -1155,10 +1155,33 @@ class MainWorkerThread(threading.Thread):
     def _saveSASM(self, sasm, filetype = 'rad'):
         pass
     
+#    def _saveAnalysisInfo(self, data):
+#        
+#        all_items = data[0]
+#        save_path = data[1]
+#        
+#        selected_sasms = []
+#        
+#        check_filename, ext = os.path.splitext(save_path)
+#        save_path = check_filename + '.csv'
+#        
+#        for each_item in all_items:
+#            sasm = each_item.getSASM()
+#            selected_sasms.append(sasm)
+#            
+#            analysis_dict = sasm.getParameter('analysis')
+#            
+#            if analysis_dict.keys() == []:
+#                wx.CallAfter(wx.MessageBox, 'No analysis information was found for file: ' + sasm.getParameter('filename') + '\n\nSave was aborted.', 'Analysis information not found', style = wx.ICON_EXCLAMATION)
+#                return
+#        
+#        result = SASFileIO.saveAnalysisCsvFile(selected_sasms, save_path)
+        
     def _saveAnalysisInfo(self, data):
         
         all_items = data[0]
-        save_path = data[1]
+        include_data = data[1]
+        save_path = data[2]
         
         selected_sasms = []
         
@@ -1169,15 +1192,13 @@ class MainWorkerThread(threading.Thread):
             sasm = each_item.getSASM()
             selected_sasms.append(sasm)
             
-            analysis_dict = sasm.getParameter('analysis')
-            
-            if analysis_dict.keys() == []:
-                wx.CallAfter(wx.MessageBox, 'No analysis information was found for file: ' + sasm.getParameter('filename') + '\n\nSave was aborted.', 'Analysis information not found', style = wx.ICON_EXCLAMATION)
-                return
+#            if analysis_dict.keys() == []:
+#                wx.CallAfter(wx.MessageBox, 'No analysis information was found for file: ' + sasm.getParameter('filename') + '\n\nSave was aborted.', 'Analysis information not found', style = wx.ICON_EXCLAMATION)
+#                return
         
-        result = SASFileIO.saveAnalysisCsvFile(selected_sasms, save_path)
+        result = SASFileIO.saveAnalysisCsvFile(selected_sasms, include_data, save_path)
         
-    
+        
     def _saveWorkspace(self, data):
         
         all_items = data[0]
@@ -1450,6 +1471,9 @@ class FilePanel(wx.Panel):
             self.plot_panel.clearAllPlots()
             self.image_panel.clearFigure()
             self.manipulation_panel.clearList()
+        
+        info_panel = wx.FindWindowByName('InformationPanel')
+        info_panel.clearInfo()
     
     def _onReduceButton(self, event):
         
@@ -1470,7 +1494,6 @@ class FilePanel(wx.Panel):
         mainworker_cmd_queue.put(['quick_reduce', [save_path, load_path, selected_files, '.rad']])
         
         
-    
     def _onShowImageButton(self, event):
         
         if len(self.dir_panel.file_list_box.getSelectedFilenames()) > 0:
@@ -2920,7 +2943,7 @@ class ManipItemPanel(wx.Panel):
         menu.Append(9, 'Move to bottom plot')
         menu.AppendSeparator()
         menu.Append(17, 'Set legend label...')
-        menu.Append(18, 'Save analysis info')
+        menu.Append(18, 'Save analysis info...')
         menu.AppendSeparator()
         menu.Append(7, 'Save selected file(s)')
         
@@ -3032,7 +3055,7 @@ class ManipItemPanel(wx.Panel):
             #Save Analysis Info
             #self._saveAnalysisInfo()
             
-            dlg = SaveAnalysisInfoDialog(self, self.manipulation_panel.getSelectedItems())
+            dlg = SaveAnalysisInfoDialog(self, self.main_frame.raw_settings, self.manipulation_panel.getSelectedItems())
             dlg.ShowModal()
             dlg.Destroy()
             
@@ -4445,7 +4468,7 @@ class InformationPanel(wx.Panel):
 
 class SaveAnalysisInfoPanel(wx.Panel):
     
-    def __init__(self, parent, item_list = None):
+    def __init__(self, parent, item_list = None, include_data = None):
         wx.Panel.__init__(self, parent, name = 'SaveAnalysisInfoPanel')
         
         self.SetMinSize((600,400))
@@ -4453,6 +4476,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         self.variable_data = {}
         
         self.item_list = item_list
+        self.included_data = {}
         sizer = wx.BoxSizer()
         
         self.include_listctrl = SaveAnalysisListCtrl(self, -1, style = wx.LC_REPORT | wx.LC_NO_HEADER)
@@ -4492,6 +4516,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         self._addFileHdrVariables()
         self._addImageHdrVariables()
     
+        self._updateIncludeList(include_data)
         
     def _onIncludeButton(self, event):
         selected_items = self.variable_listctrl.getSelectedItems()
@@ -4499,16 +4524,43 @@ class SaveAnalysisInfoPanel(wx.Panel):
         all_items = []
         
         for each_item in selected_items:
-            data = self.variable_data[each_item]
+            data = copy.copy(self.variable_data[each_item])
+            
+            if data[1] == None:
+                continue
+            
             txt = self.variable_listctrl.GetItem(each_item).GetText()
             all_items.append(data)
   
             idx = self.include_listctrl.GetItemCount()
             self.include_listctrl.InsertStringItem(idx, txt)
+                
+            self.included_data[idx] = data   
         
     def _onExcludeButton(self, event):
-        print 'Exclude!'
-       
+        selected_items = self.include_listctrl.getSelectedItems()
+        
+        if len(selected_items) > 0:
+            each = selected_items[0]
+        else:
+            return
+        
+        self.include_listctrl.DeleteItem(each)
+        del self.included_data[each]
+        
+        self._updateIncludedData()
+            
+    def _updateIncludedData(self):
+        
+        idx = 0
+        new_dict = {}
+        for each in sorted(self.included_data.keys()):
+            
+            new_dict[idx] = self.included_data[each]
+            idx = idx+1
+            
+        self.included_data = new_dict
+               
     def _getAllImageHdrKeys(self):
         all_imghdr_keys = []
         
@@ -4565,7 +4617,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         idx = 0
         for each in general_data: 
             self.variable_listctrl.InsertStringItem(idx, each[0])
-            self.variable_data[idx] = ['general' , each[1]]
+            self.variable_data[idx] = ['general' , each[1], each[0]]
             
             idx = idx + 1
             
@@ -4580,11 +4632,13 @@ class SaveAnalysisInfoPanel(wx.Panel):
         idx = self.variable_listctrl.GetItemCount()
                 
         self.variable_listctrl.InsertStringItem(idx, 'Guinier Analysis')
+        self.variable_data[idx] = ['guinier', None]
+        
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
         for each in keys: 
             self.variable_listctrl.InsertStringItem(idx, each)
-            self.variable_data[idx] = ['guinier', each]         
+            self.variable_data[idx] = ['guinier', each, each]         
             idx = idx + 1
 
     
@@ -4597,11 +4651,12 @@ class SaveAnalysisInfoPanel(wx.Panel):
         idx = self.variable_listctrl.GetItemCount()
         
         self.variable_listctrl.InsertStringItem(idx, 'Header File')
+        self.variable_data[idx] = ['Header File', None]
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
         for each in keys: 
             self.variable_listctrl.InsertStringItem(idx, each)
-            self.variable_data[idx] = ['filehdr', each]                   
+            self.variable_data[idx] = ['counters', each, each]                   
             idx = idx + 1
     
     def _addImageHdrVariables(self):
@@ -4613,12 +4668,27 @@ class SaveAnalysisInfoPanel(wx.Panel):
         idx = self.variable_listctrl.GetItemCount()
         
         self.variable_listctrl.InsertStringItem(idx, 'Image Header')
+        self.variable_data[idx] = ['Image Header', None]
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
         for each in keys: 
             self.variable_listctrl.InsertStringItem(idx, each)
-            self.variable_data[idx] = ['imagehdr', each]        
+            self.variable_data[idx] = ['imageHeader', each, each]        
             idx = idx + 1
+            
+    def getIncludeData(self):
+        return self.included_data
+    
+    def _updateIncludeList(self, include_data):
+        
+        if include_data == None:
+            return
+        
+        for each in sorted(include_data.keys()):
+            idx = self.include_listctrl.GetItemCount()
+            self.include_listctrl.InsertStringItem(idx, include_data[each][2])
+                
+            self.included_data[idx] = include_data[each]
 
         
 #----- **** Dialogs ****
@@ -4737,11 +4807,16 @@ class SaveAnalysisListCtrl(wx.ListCtrl):
 
 class SaveAnalysisInfoDialog(wx.Dialog):
     
-    def __init__(self, parent, item_list = None, *args, **kwargs):
+    def __init__(self, parent, raw_settings, item_list = None, *args, **kwargs):
         
         wx.Dialog.__init__(self, parent, -1, 'Select variables to include in the comma separated file.', *args, **kwargs)
-            
-        self.panel = SaveAnalysisInfoPanel(self, item_list = item_list)
+        
+        self.raw_settings = raw_settings
+        
+        include_data = self.raw_settings.get('csvIncludeData')
+        
+        self.item_list = item_list    
+        self.panel = SaveAnalysisInfoPanel(self, item_list = item_list, include_data = include_data)
         
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -4749,9 +4824,42 @@ class SaveAnalysisInfoDialog(wx.Dialog):
         buttonsizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
         self.sizer.Add(buttonsizer,0, wx.BOTTOM | wx.RIGHT | wx.LEFT | wx.ALIGN_RIGHT, 10)
         
+        self.Bind(wx.EVT_BUTTON, self._onOk, id = wx.ID_OK)
+        
         self.SetSizer(self.sizer)
         self.Fit()
-
+        
+    def _onOk(self, event):
+        include_data = self.panel.getIncludeData()
+        
+        if len(include_data) > 0:
+            
+            save_path = self._showSaveDialog()
+            if save_path == None:
+                return
+            
+            data = [self.item_list, include_data, save_path]
+            mainworker_cmd_queue.put(['save_analysis_info', data])
+            #make the workerthread make a csv file.
+        
+        self.raw_settings.set('csvIncludeData', include_data)
+        self.EndModal(wx.ID_OK)
+        
+    
+    def _showSaveDialog(self):
+            
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        save_path = dirctrl_panel.getDirLabel()
+        
+        filters = 'Comma Separated Files (*.csv)|*.csv'
+            
+        dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path) 
+            
+        if dialog.ShowModal() == wx.ID_OK:               
+            save_path = dialog.GetPath()
+            return save_path
+        else:
+             return None
 
 class TestDialog(wx.Dialog):
     
@@ -5379,7 +5487,7 @@ class MySplashScreen(wx.SplashScreen):
     def OnExit(self, evt):
         self.Hide()
             
-        frame = MainFrame('RAW 0.99.8.2b', -1)
+        frame = MainFrame('RAW 0.99.8.3b', -1)
         icon = wx.Icon(name= os.path.join(RAWWorkDir, "resources","raw.ico"), type = wx.BITMAP_TYPE_ICO)
         frame.SetIcon(icon)
         app.SetTopWindow(frame)
