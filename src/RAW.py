@@ -46,7 +46,9 @@ RAWWorkDir = sys.path[0]
 
 if os.path.split(sys.path[0])[1] in ['RAW.exe', 'raw.exe']:
     RAWWorkDir = os.path.split(sys.path[0])[0]
-    
+
+global workspace_saved
+workspace_saved = True
 
 class MainFrame(wx.Frame):
     
@@ -122,7 +124,7 @@ class MainFrame(wx.Frame):
         self.control_notebook.AddPage(page2, "Manipulation", False)
         #self.control_notebook.AddPage(page3, "IFT")
         
-        self.info_panel = InfoPanel(self)
+        self.info_panel = InformationPanel(self)
         self.centering_panel = CenteringPanel(self, -1)
         self.masking_panel = MaskingPanel(self, -1)
 
@@ -150,7 +152,11 @@ class MainFrame(wx.Frame):
         self._mgr.GetPane(self.info_panel).FloatingSize((300,200))
         self._mgr.GetPane(self.control_notebook).dock_proportion = 350000
         
+        self._mgr.GetPane(self.info_panel).dock_proportion = 120000
+        
         self._mgr.Update()
+        
+        self._mgr.GetPane(self.control_notebook).MinSize((200,300))
 
         #Load workdir from rawcfg.dat:
         self._loadCfg()
@@ -515,6 +521,10 @@ class MainFrame(wx.Frame):
             mainworker_cmd_queue.put(['load_workspace', [file]])
     
     def _onSaveWorkspaceMenu(self, evt):
+        self.saveWorkspace()
+        
+    def saveWorkspace(self):
+        
         manip_panel = wx.FindWindowByName('ManipulationPanel')
         
         all_items = manip_panel.getItems()
@@ -526,8 +536,8 @@ class MainFrame(wx.Frame):
                 file = file + '.wsp'
         
             mainworker_cmd_queue.put(['save_workspace', [all_items, file]])
-        
-        
+    
+    
     def showOptionsDialog(self, focusIdx = None):
         
         if focusIdx != None:
@@ -1145,10 +1155,33 @@ class MainWorkerThread(threading.Thread):
     def _saveSASM(self, sasm, filetype = 'rad'):
         pass
     
+#    def _saveAnalysisInfo(self, data):
+#        
+#        all_items = data[0]
+#        save_path = data[1]
+#        
+#        selected_sasms = []
+#        
+#        check_filename, ext = os.path.splitext(save_path)
+#        save_path = check_filename + '.csv'
+#        
+#        for each_item in all_items:
+#            sasm = each_item.getSASM()
+#            selected_sasms.append(sasm)
+#            
+#            analysis_dict = sasm.getParameter('analysis')
+#            
+#            if analysis_dict.keys() == []:
+#                wx.CallAfter(wx.MessageBox, 'No analysis information was found for file: ' + sasm.getParameter('filename') + '\n\nSave was aborted.', 'Analysis information not found', style = wx.ICON_EXCLAMATION)
+#                return
+#        
+#        result = SASFileIO.saveAnalysisCsvFile(selected_sasms, save_path)
+        
     def _saveAnalysisInfo(self, data):
         
         all_items = data[0]
-        save_path = data[1]
+        include_data = data[1]
+        save_path = data[2]
         
         selected_sasms = []
         
@@ -1159,15 +1192,13 @@ class MainWorkerThread(threading.Thread):
             sasm = each_item.getSASM()
             selected_sasms.append(sasm)
             
-            analysis_dict = sasm.getParameter('analysis')
-            
-            if analysis_dict.keys() == []:
-                wx.CallAfter(wx.MessageBox, 'No analysis information was found for file: ' + sasm.getParameter('filename') + '\n\nSave was aborted.', 'Analysis information not found', style = wx.ICON_EXCLAMATION)
-                return
+#            if analysis_dict.keys() == []:
+#                wx.CallAfter(wx.MessageBox, 'No analysis information was found for file: ' + sasm.getParameter('filename') + '\n\nSave was aborted.', 'Analysis information not found', style = wx.ICON_EXCLAMATION)
+#                return
         
-        result = SASFileIO.saveAnalysisCsvFile(selected_sasms, save_path)
+        result = SASFileIO.saveAnalysisCsvFile(selected_sasms, include_data, save_path)
         
-    
+        
     def _saveWorkspace(self, data):
         
         all_items = data[0]
@@ -1195,6 +1226,9 @@ class MainWorkerThread(threading.Thread):
             save_dict[idx] = sasm_dict
         
         SASFileIO.saveWorkspace(save_dict, save_path)
+        
+        global workspace_saved
+        workspace_saved = True
         
     def _loadWorkspace(self, data):
         
@@ -1236,6 +1270,18 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.plot_panel.updateLegend, 2)
         wx.CallAfter(self.plot_panel.fitAxis)
         wx.CallAfter(self.main_frame.closeBusyDialog)
+
+    def _backupWorkspace(self, data):
+        all_items = data[0]
+        
+        backupfile = os.path.join(RAWWorkDir, '_wspBackup.wsp')
+        
+        data_out = [all_items, backupfile]
+        
+        self._saveWorkspace(data_out)
+    
+    def _backupSettings(self, data):
+        pass 
 
     def _saveItems(self, data):
         
@@ -1373,7 +1419,8 @@ class FilePanel(wx.Panel):
             
             #################################################3
             if button_txt == '' or button_txt == 'Average':
-                button.Enable(False)
+                #button.Enable(False)
+                pass
                 
         return button_sizer    
         
@@ -1404,17 +1451,29 @@ class FilePanel(wx.Panel):
     
     def _onClearAllButton(self, event):
         
-        dial = wx.MessageDialog(self, 'Are you sure you want to clear everything?', 'Question', 
+        global workspace_saved
+
+        if workspace_saved == False:
+            dial = SaveDialog(self, -1, 'Workspace not saved', 'The workspace has been modified, do you want to save your changes?')
+        else: 
+            dial = wx.MessageDialog(self, 'Are you sure you want to clear everything?', 'Are you sure?', 
                                     wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        
         answer = dial.ShowModal()
         dial.Destroy()
         
-        if answer == wx.ID_NO:
-                return
+        if answer == wx.ID_CANCEL or answer == wx.ID_NO:
+            return
+        if answer == wx.ID_SAVE:
+            self.main_frame.saveWorkspace()
+            
+        else:
+            self.plot_panel.clearAllPlots()
+            self.image_panel.clearFigure()
+            self.manipulation_panel.clearList()
         
-        self.plot_panel.clearAllPlots()
-        self.image_panel.clearFigure()
-        self.manipulation_panel.clearList()
+        info_panel = wx.FindWindowByName('InformationPanel')
+        info_panel.clearInfo()
     
     def _onReduceButton(self, event):
         
@@ -1435,7 +1494,6 @@ class FilePanel(wx.Panel):
         mainworker_cmd_queue.put(['quick_reduce', [save_path, load_path, selected_files, '.rad']])
         
         
-    
     def _onShowImageButton(self, event):
         
         if len(self.dir_panel.file_list_box.getSelectedFilenames()) > 0:
@@ -1448,7 +1506,7 @@ class FilePanel(wx.Panel):
         
         #RAWSettings.loadSettings(self.main_frame.raw_settings, 'testdat.dat')
         
-        dlg = DataDialog(self)
+        dlg = SaveAnalysisInfoDialog(self)
         dlg.ShowModal()
 
 class CustomListCtrl(wx.ListCtrl):
@@ -2255,6 +2313,9 @@ class ManipulationPanel(wx.Panel):
         
         self.Freeze()
         
+        info_panel = wx.FindWindowByName('InformationPanel')
+        info_panel.clearInfo()
+        
         axes_that_needs_updated_legend = []
          
         for each in self.getSelectedItems():
@@ -2502,6 +2563,9 @@ class ManipItemPanel(wx.Panel):
         self.plot_panel = wx.FindWindowByName('PlotPanel')
         self.main_frame = wx.FindWindowByName('MainFrame')
         
+        self.info_panel = wx.FindWindowByName('InformationPanel')
+        self.info_settings = {'hdr_choice' : 0}
+        
         self._selected_as_bg = False
         self._selected_for_plot = True
         self._controls_visible = True
@@ -2610,17 +2674,41 @@ class ManipItemPanel(wx.Panel):
             self.showControls(not controls_not_shown)
         
     
-    def updateInfoTip(self, analysis_dict):
+    def updateInfoTip(self, analysis_dict, fromGuinierDialog = False):
         
-        guinier = analysis_dict['guinier']
+        
+        if analysis_dict.has_key('guinier'):
+            guinier = analysis_dict['guinier']
+        else:
+            guinier = {}
+        
+        string0 = 'Show Extended Info\n--------------------------------'
+        string1 = ''
+        string2 = ''
+        string3 = ''
         
         if guinier.has_key('Rg') and guinier.has_key('I0'):
             rg = guinier['Rg']
             i_zero = guinier['I0']
         
-            self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nRg: ' + str(rg) + '\nI(0): ' + str(i_zero))
+            string1 = '\nRg: ' + str(rg) + '\nI(0): ' + str(i_zero)
         else:
-            print 'Error! No guinier info found'
+            string1 = '\nRg: N/A' + '\nI(0): N/A'
+            
+        if self.sasm.getAllParameters().has_key('Conc'):
+            string2 = '\nConc: ' + str(self.sasm.getParameter('Conc'))   
+        
+        if self.sasm.getAllParameters().has_key('Notes'):
+            if self.sasm.getParameter('Notes') != '':
+                string3 = '\nNote: ' + str(self.sasm.getParameter('Notes'))  
+        
+        string = string0+string1+string2+string3
+        
+        if string != '':    
+            self.info_icon.SetToolTipString(string)
+                  
+        if fromGuinierDialog:
+            self.info_panel.updateInfoFromItem(self)
                 
     def enableStar(self, state):
         if state == True:
@@ -2676,10 +2764,12 @@ class ManipItemPanel(wx.Panel):
         if self._selected:
             self._selected = False
             self.SetBackgroundColour(wx.Color(250,250,250))
+            self.info_panel.clearInfo()
         else:
             self._selected = True
             self.SetBackgroundColour(wx.Color(200,200,200))
             self.SetFocusIgnoringChildren()
+            self.info_panel.updateInfoFromItem(self)
         
         self.Refresh()
         
@@ -2845,13 +2935,15 @@ class ManipItemPanel(wx.Panel):
         
         if not self.sasm.getAllParameters().has_key('load_path'):
             img.Enable(False)
-        menu.Append(20, 'Show data')
+        menu.Append(20, 'Show data...')
+        menu.Append(21, 'Show header...')
+        
         menu.AppendSeparator()
         menu.Append(8, 'Move to top plot')
         menu.Append(9, 'Move to bottom plot')
         menu.AppendSeparator()
         menu.Append(17, 'Set legend label...')
-        menu.Append(18, 'Save analysis info')
+        menu.Append(18, 'Save analysis info...')
         menu.AppendSeparator()
         menu.Append(7, 'Save selected file(s)')
         
@@ -2961,7 +3053,11 @@ class ManipItemPanel(wx.Panel):
                 
         if evt.GetId() == 18:
             #Save Analysis Info
-            self._saveAnalysisInfo()
+            #self._saveAnalysisInfo()
+            
+            dlg = SaveAnalysisInfoDialog(self, self.main_frame.raw_settings, self.manipulation_panel.getSelectedItems())
+            dlg.ShowModal()
+            dlg.Destroy()
             
         if evt.GetId() == 19:
             #Show Image
@@ -2973,6 +3069,13 @@ class ManipItemPanel(wx.Panel):
             dlg.Destroy()
             
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
+            
+        if evt.GetId() == 21:
+            dlg = HdrDataDialog(self, self.sasm)
+            dlg.ShowModal()
+            dlg.Destroy()
+            
+            #wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
     
     def _saveAnalysisInfo(self):
         selected_items = self.manipulation_panel.getSelectedItems()
@@ -4048,9 +4151,715 @@ class CenteringPanel(wx.Panel):
         self.updateCenterTextCtrls()
         self._updatePlots()
         
+
+
+#----- **** InformationPanel ****
+
+class InformationPanel(wx.Panel):
     
+    def __init__(self, parent):
+        
+        wx.Panel.__init__(self, parent, name = 'InformationPanel')
+        
+        infoSizer = wx.BoxSizer(wx.VERTICAL)
+        
+        self.analysis_data = [('Rg:', 'Rg', wx.NewId()),
+                              ('I0:', 'I0', wx.NewId()),
+                              ('MW:', 'MW', wx.NewId())]
+        
+        self.conc_data = ('Conc:', 'Conc', wx.NewId())
+        
+        self.analysis_info_sizer = self._createAnalysisInfoSizer()
+        
+        infoSizer.Add(self.analysis_info_sizer, 0, wx.ALL | wx.EXPAND, 5)
+
+        #header_note_box = wx.StaticBox(self, -1, 'Header data / Notes')
+        #header_note_boxsizer = wx.StaticBoxSizer(header_note_box, orient = wx.VERTICAL)
+        
+        header_note_boxsizer = wx.BoxSizer(wx.VERTICAL)
+        
+        header_note_boxsizer.Add(wx.StaticText(self,-1,'Description / Notes:'), 0)
+        header_note_boxsizer.Add(self._createNoteSizer(), 0, wx.ALL | wx.EXPAND, 5)
+        header_note_boxsizer.Add(wx.StaticText(self,-1,'Header browser:'), 0)
+        self.header_browser_sizer = self._createHeaderBrowserSizer()
+        header_note_boxsizer.Add(self.header_browser_sizer, 0, wx.ALL | wx.EXPAND, 5)
+        
+        infoSizer.Add(header_note_boxsizer, 1, wx.EXPAND | wx.ALL, 5)
+ 
+        self.SetSizer(infoSizer)
+        
+        self.header_choice_key = None
+        self.header_choice_hdr = None
+        self.selectedItem = None
+        self.sasm = None
+        self.num_of_file_hdr_keys = 0
+        self.num_of_imghdr_keys = 0
+        
+        self._disableAllControls()
+    def _disableAllControls(self):
+        for each in self.GetChildren():
+            each.Enable(False)
+
+    def _enableAllControls(self):
+        for each in self.GetChildren():
+            each.Enable(True)
+        
+    def _createHeaderBrowserSizer(self):
+        
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        self.header_choice = wx.Choice(self, -1)
+        self.header_txt = wx.TextCtrl(self, -1, '')
+        
+        self.header_choice.Bind(wx.EVT_CHOICE, self._onHeaderBrowserChoice)
+        
+        sizer.Add(self.header_choice, .5, wx.EXPAND | wx.RIGHT, 5)
+        sizer.Add(self.header_txt, 1, wx.EXPAND)
+        
+        return sizer
+    
+    def _createAnalysisInfoSizer(self):
+        
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        name_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.name_label = wx.StaticText(self, -1, 'Name:')
+        self.name_txt = wx.StaticText(self, -1, 'None')
+    
+        name_sizer.Add(self.name_label, 0, wx.RIGHT, 10)
+        name_sizer.Add(self.name_txt, 1, wx.EXPAND)
+        
+        analysis_sizer = wx.BoxSizer()
+        for each in self.analysis_data:
+            label = each[0]
+            id = each[2]
+            value = 'N/A'
+            
+            label_txt = wx.StaticText(self, -1, label)
+            value_txt = wx.TextCtrl(self, id, value, size = (60, -1))
+            
+            siz = wx.BoxSizer()
+            siz.Add(label_txt, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
+            siz.Add(value_txt, 1, wx.EXPAND)
+            
+            analysis_sizer.Add(siz, 1, wx.RIGHT | wx.EXPAND, 10)
+            
+        ## add conc ctrl:
+        label_txt = wx.StaticText(self, -1, self.conc_data[0])
+        self.conc_txt = wx.TextCtrl(self, self.conc_data[2], 'N/A', size = (60, -1))
+        self.conc_txt.Bind(wx.EVT_KILL_FOCUS, self._onNoteTextKillFocus)
+        siz = wx.BoxSizer()
+        siz.Add(label_txt, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
+        siz.Add(self.conc_txt, 1, wx.EXPAND)    
+        analysis_sizer.Add(siz, 1, wx.RIGHT | wx.EXPAND, 10)
+            
+        sizer.Add(name_sizer, 0, wx.EXPAND | wx.BOTTOM, 5)
+        sizer.Add(analysis_sizer, 1, wx.EXPAND | wx.RIGHT, 5)
+        
+        return sizer
+    
+    def _createNoteSizer(self):
+        sizer = wx.BoxSizer()
+                
+        self.noteTextBox = wx.TextCtrl(self, -1, '')
+        self.noteTextBox.SetBackgroundColour('WHITE')
+        self.noteTextBox.SetForegroundColour('BLACK')
+        
+        #length, height = self.noteTextBox.GetTextExtent('TEST')
+        #self.noteTextBox.SetMaxSize((-1,30))
+        #self.noteTextBox.SetSize((-1, 2*height))
+        
+        self.noteTextBox.Bind(wx.EVT_KILL_FOCUS, self._onNoteTextKillFocus)
+        
+        sizer.Add(self.noteTextBox, 1, wx.EXPAND)
+        
+        return sizer
+    
+    def _onNoteTextKillFocus(self, event):
+        
+        note_txt = self.noteTextBox.GetValue()
+        
+        try:        
+            self.sasm.setParameter('Notes', note_txt)
+        except AttributeError:
+            pass
+    
+        try:
+            conc = self.conc_txt.GetValue().replace(',','.')
+            if self.sasm != None and conc != 'N/A':
+            
+                float(conc)
+                self.sasm.setParameter('Conc', float(conc))
+        
+            
+        except Exception, e:
+            print e
+            print 'info error, Conc'
+    
+    
+        if self.sasm != None and self.selectedItem != None:
+            try:
+                self.selectedItem.updateInfoTip(self.sasm.getParameter('analysis'))
+            except Exception, e:
+                pass
+        
+    def _onHeaderBrowserChoice(self, event):
+        
+        key = self.header_choice.GetStringSelection()
+        sel_idx = self.header_choice.GetSelection()
+        
+        if self.sasm == None or key == 'No header info':
+            return
+        
+        self.header_choice_key = key
+        
+        if sel_idx < (self.num_of_file_hdr_keys):
+            self.header_choice_hdr = 'counters'
+        else:
+            self.header_choice_hdr = 'imageHeader'
+        
+        img_hdr = self.sasm.getParameter('imageHeader')
+        file_hdr = self.sasm.getParameter('counters')
+        
+        if self.header_choice_hdr == 'imageHeader' and img_hdr.has_key(key):
+            self.header_txt.SetValue(str(img_hdr[key]))
+        if self.header_choice_hdr == 'counters' and file_hdr.has_key(key):
+            self.header_txt.SetValue(str(file_hdr[key]))
+            
+        if sel_idx != wx.NOT_FOUND:
+            self.selectedItem.info_settings['hdr_choice'] = sel_idx
+        else:
+            self.selectedItem.info_settings['hdr_choice'] = 0
+    
+    def clearInfo(self):
+        
+        self._disableAllControls()
+        
+        if self.sasm != None and self.selectedItem != None:
+            try:
+                self.selectedItem.updateInfoTip(self.sasm.getParameter('analysis'))
+            except Exception, e:
+                pass
+        
+        try:
+            note_txt = self.noteTextBox.GetValue()
+            self.sasm.setParameter('Notes', note_txt)
+        
+            conc = self.conc_txt.GetValue().replace(',','.')
+            
+            try:
+                if conc != 'N/A' and conc != 'N\A' and self.sasm != None:
+                    float(conc)
+                    self.sasm.setParameter('Conc', float(conc))
+            except Exception, e:
+                print e
+                print 'info error, Conc'
+            
+        except AttributeError:
+            pass
+        
+        self.name_txt.SetLabel('')
+        
+        for each in self.analysis_data:
+            id = each[2]
+            
+            label = wx.FindWindowById(id)
+            label.SetValue('N/A')
+            
+        self.header_txt.SetValue('')
+        self.header_choice.SetItems([''])
+        self.noteTextBox.SetValue('')
+        self.conc_txt.SetValue('N/A')
+        self.num_of_file_hdr_keys = 0
+        self.num_of_imghdr_keys = 0
+        
+        self.sasm = None
+        self.selectedItem = None
+        
+        self.analysis_info_sizer.Layout()
+        self.Refresh()   
+
+    def updateInfoFromItem(self, item):
+        self.clearInfo()
+        
+        self.sasm = item.getSASM()
+        self.selectedItem = item
+        
+        filename = self.sasm.getParameter('filename')
+        self.name_txt.SetLabel(str(filename))
+        
+        if self.sasm.getParameter('analysis').has_key('guinier'):
+            analysis_dict = self.sasm.getParameter('analysis')
+            guinier = analysis_dict['guinier']
+        
+            if guinier.has_key('Rg') and guinier.has_key('I0'):
+                rg = guinier['Rg']
+                i_zero = guinier['I0']
+        
+                for each in self.analysis_data:
+                    key = each[1]
+                    id = each[2]
+                    
+                    txt = wx.FindWindowById(id)
+                    
+                    if guinier.has_key(key):
+                        txt.SetValue(str(guinier[key]))       
+                        
+        if self.sasm.getAllParameters().has_key('Conc'):
+            conc_ctrl = self.conc_txt
+            conc_ctrl.SetValue(str(self.sasm.getParameter('Conc')))
+        
+        all_choices = []
+        file_hdr = {}
+        img_hdr = {}
+        if self.sasm.getAllParameters().has_key('counters'):
+            file_hdr = self.sasm.getParameter('counters')            
+            all_filehdr_keys = file_hdr.keys()
+            all_choices.extend(all_filehdr_keys)
+            self.num_of_file_hdr_keys = len(all_filehdr_keys)
+        
+        if self.sasm.getAllParameters().has_key('imageHeader'):
+            img_hdr = self.sasm.getParameter('imageHeader')
+            all_imghdr_keys = img_hdr.keys()
+            all_choices.extend(all_imghdr_keys)
+            self.num_of_imghdr_keys = len(all_imghdr_keys)
+            
+            
+        if len(all_choices) > 0:    
+            self.header_choice.SetItems(all_choices)
+            
+            try:
+                if self.header_choice_key != None:
+                    if self.header_choice_hdr == 'imageHeader' and img_hdr.has_key(self.header_choice_key):
+                        idx = all_imghdr_keys.index(self.header_choice_key)
+                        idx = idx + self.num_of_file_hdr_keys
+                        self.header_choice.SetSelection(idx)
+                        
+                    elif self.header_choice_hdr == 'counters' and file_hdr.has_key(self.header_choice_key):
+                        idx = all_filehdr_keys.index(self.header_choice_key)
+                        self.header_choice.SetSelection(idx)
+                    else:
+                        self.header_choice.SetSelection(item.info_settings['hdr_choice'])
+                else:
+                    self.header_choice.SetSelection(item.info_settings['hdr_choice'])
+                    
+                self._onHeaderBrowserChoice(None)
+            except Exception, e:
+                self.header_choice.SetSelection(0)
+                print e
+                print 'InfoPanel error'
+        
+        else:
+            self.header_choice.SetItems(['No header info'])
+            self.header_choice.Select(0)
+        
+        if self.sasm.getParameter('Notes') != None:
+            self.noteTextBox.SetValue(self.sasm.getParameter('Notes'))
+        
+        self.analysis_info_sizer.Layout()
+        self.header_browser_sizer.Layout()
+        
+        self._enableAllControls()
+        self.Refresh()   
+    
+    def WriteText(self, text):    
+        self.infoTextBox.AppendText(text)
+        
+
+class SaveAnalysisInfoPanel(wx.Panel):
+    
+    def __init__(self, parent, item_list = None, include_data = None):
+        wx.Panel.__init__(self, parent, name = 'SaveAnalysisInfoPanel')
+        
+        self.SetMinSize((600,400))
+        
+        self.variable_data = {}
+        
+        self.item_list = item_list
+        self.included_data = {}
+        sizer = wx.BoxSizer()
+        
+        self.include_listctrl = SaveAnalysisListCtrl(self, -1, style = wx.LC_REPORT | wx.LC_NO_HEADER)
+        self.variable_listctrl = SaveAnalysisListCtrl(self, -1, style = wx.LC_REPORT | wx.LC_NO_HEADER)
+        
+        include_sizer = wx.BoxSizer(wx.VERTICAL)
+        include_sizer.Add(wx.StaticText(self, -1, 'Include list:'), 0)
+        include_sizer.Add(self.include_listctrl, 1, wx.EXPAND)
+        
+        variable_sizer = wx.BoxSizer(wx.VERTICAL)
+        variable_sizer.Add(wx.StaticText(self, -1, 'Variable list:'), 0)
+        variable_sizer.Add(self.variable_listctrl, 1, wx.EXPAND)
+        
+        self.include_button = wx.Button(self, -1, '->')
+        self.exclude_button = wx.Button(self, -1, '<-')
+        
+        self.include_button.Bind(wx.EVT_BUTTON, self._onIncludeButton)
+        self.exclude_button.Bind(wx.EVT_BUTTON, self._onExcludeButton)
+        
+        self.button_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.button_sizer.Add(self.include_button, 0)
+        self.button_sizer.Add(self.exclude_button, 0)
+        
+        sizer.Add(variable_sizer, 1, wx.EXPAND | wx.ALL, 10)
+        sizer.Add(self.button_sizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        sizer.Add(include_sizer, 1, wx.EXPAND | wx.ALL, 10)
+        
+        self.SetSizer(sizer)
+        
+        self.variable_listctrl.InsertColumn(0, 'name')
+        width, height = self.variable_listctrl.GetSize()
+        
+        self.variable_listctrl.SetColumnWidth(0, 300)
+        
+        self._addGeneralVariables()
+        self._addGuinierVariables()
+        self._addFileHdrVariables()
+        self._addImageHdrVariables()
+    
+        self._updateIncludeList(include_data)
+        
+    def _onIncludeButton(self, event):
+        selected_items = self.variable_listctrl.getSelectedItems()
+        
+        all_items = []
+        
+        for each_item in selected_items:
+            data = copy.copy(self.variable_data[each_item])
+            
+            if data[1] == None:
+                continue
+            
+            txt = self.variable_listctrl.GetItem(each_item).GetText()
+            all_items.append(data)
+  
+            idx = self.include_listctrl.GetItemCount()
+            self.include_listctrl.InsertStringItem(idx, txt)
+                
+            self.included_data[idx] = data   
+        
+    def _onExcludeButton(self, event):
+        selected_items = self.include_listctrl.getSelectedItems()
+        
+        if len(selected_items) > 0:
+            each = selected_items[0]
+        else:
+            return
+        
+        self.include_listctrl.DeleteItem(each)
+        del self.included_data[each]
+        
+        self._updateIncludedData()
+            
+    def _updateIncludedData(self):
+        
+        idx = 0
+        new_dict = {}
+        for each in sorted(self.included_data.keys()):
+            
+            new_dict[idx] = self.included_data[each]
+            idx = idx+1
+            
+        self.included_data = new_dict
+               
+    def _getAllImageHdrKeys(self):
+        all_imghdr_keys = []
+        
+        all_keys = []
+        for each_item in self.item_list:
+            each_sasm = each_item.getSASM()
+            
+            if each_sasm.getAllParameters().has_key('imageHeader'):
+               img_hdr = each_sasm.getParameter('imageHeader')
+               keys = img_hdr.keys()
+               all_keys.extend(keys)
+               
+        all_imghdr_keys.extend(set(all_keys))
+        
+        return all_imghdr_keys
+            
+    def _getAllFileHdrKeys(self):
+        all_filehdr_keys = []
+        
+        all_keys = []
+        for each_item in self.item_list:
+            each_sasm = each_item.getSASM()
+            
+            if each_sasm.getAllParameters().has_key('counters'):
+               img_hdr = each_sasm.getParameter('counters')
+               keys = img_hdr.keys()
+               all_keys.extend(keys)
+               
+        all_filehdr_keys.extend(set(all_keys))
+        
+        return all_filehdr_keys
+    
+    def _getAllGuinierKeys(self):
+        all_guinier_keys = []
+        
+        all_keys = []
+        for each_item in self.item_list:
+            each_sasm = each_item.getSASM()
+            
+            if each_sasm.getParameter('analysis').has_key('guinier'):
+               analysis = each_sasm.getParameter('analysis')
+               guinier = analysis['guinier']
+               keys = guinier.keys()
+               all_keys.extend(keys)
+               
+        all_guinier_keys.extend(set(all_keys))
+        
+        return all_guinier_keys
+        
+    
+    def _addGeneralVariables(self):
+        general_data = [('General', None), ('Concentration', 'Conc'), ('Description / Notes', 'Notes')]
+        
+        idx = 0
+        for each in general_data: 
+            self.variable_listctrl.InsertStringItem(idx, each[0])
+            self.variable_data[idx] = ['general' , each[1], each[0]]
+            
+            idx = idx + 1
+            
+        self.variable_listctrl.SetItemBackgroundColour(0, 'GRAY')
+    
+    def _addGuinierVariables(self):
+        keys = self._getAllGuinierKeys()
+        
+        if len(keys) == 0:
+            return
+        
+        idx = self.variable_listctrl.GetItemCount()
+                
+        self.variable_listctrl.InsertStringItem(idx, 'Guinier Analysis')
+        self.variable_data[idx] = ['guinier', None]
+        
+        self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
+        idx = idx + 1
+        for each in keys: 
+            self.variable_listctrl.InsertStringItem(idx, each)
+            self.variable_data[idx] = ['guinier', each, each]         
+            idx = idx + 1
+
+    
+    def _addFileHdrVariables(self):
+        keys = self._getAllFileHdrKeys()
+        
+        if len(keys) == 0:
+            return
+        
+        idx = self.variable_listctrl.GetItemCount()
+        
+        self.variable_listctrl.InsertStringItem(idx, 'Header File')
+        self.variable_data[idx] = ['Header File', None]
+        self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
+        idx = idx + 1
+        for each in keys: 
+            self.variable_listctrl.InsertStringItem(idx, each)
+            self.variable_data[idx] = ['counters', each, each]                   
+            idx = idx + 1
+    
+    def _addImageHdrVariables(self):
+        keys = self._getAllImageHdrKeys()
+        
+        if len(keys) == 0:
+            return
+        
+        idx = self.variable_listctrl.GetItemCount()
+        
+        self.variable_listctrl.InsertStringItem(idx, 'Image Header')
+        self.variable_data[idx] = ['Image Header', None]
+        self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
+        idx = idx + 1
+        for each in keys: 
+            self.variable_listctrl.InsertStringItem(idx, each)
+            self.variable_data[idx] = ['imageHeader', each, each]        
+            idx = idx + 1
+            
+    def getIncludeData(self):
+        return self.included_data
+    
+    def _updateIncludeList(self, include_data):
+        
+        if include_data == None:
+            return
+        
+        for each in sorted(include_data.keys()):
+            idx = self.include_listctrl.GetItemCount()
+            self.include_listctrl.InsertStringItem(idx, include_data[each][2])
+                
+            self.included_data[idx] = include_data[each]
+
+        
 #----- **** Dialogs ****
 
+class SaveDialog(wx.Dialog):
+    def __init__(self, parent, id, title, text):
+        wx.Dialog.__init__(self, parent, id, title)
+
+        sizer =  wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(wx.StaticText(self, -1, text), 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
+        
+        button_sizer = wx.BoxSizer()
+      
+        button_sizer.Add(wx.Button(self, wx.ID_SAVE, 'Save'), 0, wx.RIGHT, 5)
+        button_sizer.Add(wx.Button(self, wx.ID_DELETE, 'Discard'), 0, wx.RIGHT, 5)
+        button_sizer.Add(wx.Button(self, wx.ID_CANCEL, 'Cancel'), 0)
+        sizer.Add(button_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
+        
+        self.Bind(wx.EVT_BUTTON, self._onCancel, id=wx.ID_CANCEL)
+        self.Bind(wx.EVT_BUTTON, self._onDiscard, id=wx.ID_DELETE)
+        self.Bind(wx.EVT_BUTTON, self._onSave, id=wx.ID_SAVE)
+
+        self.SetSizer(sizer)
+        self.Fit()
+        
+    def _onCancel(self, event):
+        self.EndModal(wx.ID_CANCEL)
+    
+    def _onDiscard(self, event):
+        self.EndModal(wx.ID_DELETE)
+    
+    def _onSave(self, event):
+        self.EndModal(wx.ID_SAVE)
+        
+class SaveAnalysisListCtrl(wx.ListCtrl):
+    
+    def __init__(self, parent, id, *args, **kwargs):
+        
+        wx.ListCtrl.__init__(self, parent, id, *args, **kwargs)
+        self.populateList()
+        
+    def populateList(self):
+        self.InsertColumn(0, 'Name')
+        self.SetColumnWidth(0, 300)
+        
+    def add(self, expr):
+        no_of_items = self.GetItemCount()
+        self.SetStringItem(no_of_items, 0, expr)
+        
+    def moveItemUp(self, idx):
+        if idx > 0:
+            data = self.getItemData(idx)
+            self.DeleteItem(idx)
+            self.InsertStringItem(idx-1, data[0])
+            self.SetStringItem(idx-1, 1, data[1])
+            self.Select(idx-1, True)
+            
+    def moveItemDown(self, idx):
+        if idx < self.GetItemCount()-1:
+            data = self.getItemData(idx)
+            self.DeleteItem(idx)
+            self.InsertStringItem(idx+1, data[0])
+            self.SetStringItem(idx+1, 1, data[1])
+            self.Select(idx+1, True)
+        
+    def getItemData(self, idx):
+        data1 = self.GetItemText(idx)
+        item = self.GetItem(idx, 1)
+        data2 = item.GetText()
+        
+        return [data1, data2]
+        
+    def getSelectedItems(self):
+        """    Gets the selected items for the list control.
+          Selection is returned as a list of selected indices,
+          low to high.
+        """
+        selection = []
+        index = self.GetFirstSelected()
+        
+        if index == -1:
+            return []
+        
+        selection.append(index)
+        
+        while len(selection) != self.GetSelectedItemCount():
+            index = self.GetNextSelected(index)
+            selection.append(index)
+
+        return selection
+    
+    def getAllItems(self):
+        ''' returns a list with all items and operator '''
+        all_items = []
+        for i in range(0, self.GetItemCount()):
+             all_items.append(self.getItemData(i))
+        
+        return all_items
+    
+    def GetValue(self):
+        ''' Creating a function to mimic other normal control widgets,
+        this makes it easier to update and save settings for this
+        control.'''
+        
+        return self.getAllItems()
+    
+    def SetValue(self, value_list):
+        
+        if value_list == None:
+            return
+        
+        for each in value_list:
+            op = each[0]
+            expr = each[1]    
+            self.add(op, expr)
+
+class SaveAnalysisInfoDialog(wx.Dialog):
+    
+    def __init__(self, parent, raw_settings, item_list = None, *args, **kwargs):
+        
+        wx.Dialog.__init__(self, parent, -1, 'Select variables to include in the comma separated file.', *args, **kwargs)
+        
+        self.raw_settings = raw_settings
+        
+        include_data = self.raw_settings.get('csvIncludeData')
+        
+        self.item_list = item_list    
+        self.panel = SaveAnalysisInfoPanel(self, item_list = item_list, include_data = include_data)
+        
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        self.sizer.Add(self.panel,0, wx.ALL, 10)
+        buttonsizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
+        self.sizer.Add(buttonsizer,0, wx.BOTTOM | wx.RIGHT | wx.LEFT | wx.ALIGN_RIGHT, 10)
+        
+        self.Bind(wx.EVT_BUTTON, self._onOk, id = wx.ID_OK)
+        
+        self.SetSizer(self.sizer)
+        self.Fit()
+        
+    def _onOk(self, event):
+        include_data = self.panel.getIncludeData()
+        
+        if len(include_data) > 0:
+            
+            save_path = self._showSaveDialog()
+            if save_path == None:
+                return
+            
+            data = [self.item_list, include_data, save_path]
+            mainworker_cmd_queue.put(['save_analysis_info', data])
+            #make the workerthread make a csv file.
+        
+        self.raw_settings.set('csvIncludeData', include_data)
+        self.EndModal(wx.ID_OK)
+        
+    
+    def _showSaveDialog(self):
+            
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        save_path = dirctrl_panel.getDirLabel()
+        
+        filters = 'Comma Separated Files (*.csv)|*.csv'
+            
+        dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path) 
+            
+        if dialog.ShowModal() == wx.ID_OK:               
+            save_path = dialog.GetPath()
+            return save_path
+        else:
+             return None
 
 class TestDialog(wx.Dialog):
     
@@ -4058,14 +4867,154 @@ class TestDialog(wx.Dialog):
         
         wx.Dialog.__init__(self, parent, *args, **kwargs)
         
-        self.panel = CenteringPanel(self, -1)
+        #self.panel = CenteringPanel(self, -1)
+    
+        self.panel = InformationPanel(self)
         
         self.sizer = wx.BoxSizer()
         
         self.sizer.Add(self.panel,0, wx.ALL, 10)
         self.SetSizer(self.sizer)
         self.Fit()
+   
+class HdrDataDialog(wx.Dialog):
+    
+    def __init__(self, parent, sasm = None, *args, **kwargs):
         
+        wx.Dialog.__init__(self, parent, -1, 'Header Data Display', *args, **kwargs)
+        
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.grid_changed = False
+        self.sasm = sasm
+        
+        #For testing
+        if self.sasm == None:
+            data_len = 100
+            filename_label = wx.StaticText(self, -1, 'Filename :')
+        else:
+            data_len = len(sasm.getBinnedI())
+            filename_label = wx.StaticText(self, -1, 'Filename : ' + sasm.getParameter('filename'))
+        
+        self.data_grid = gridlib.Grid(self)
+        self.data_grid.SetDefaultCellAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE) 
+        
+        data_len = self._getNumOfHeaderValues()
+                
+        self.data_grid.CreateGrid(data_len, 2)
+        self.data_grid.SetColLabelValue(0, 'Key')
+        self.data_grid.SetColLabelValue(1, 'Value')
+        self.data_grid.SetMinSize((400,400))
+        
+        self.sizer.Add(filename_label, 0, wx.TOP | wx.LEFT, 10)
+        self.sizer.Add(self.data_grid, 1, wx.ALL, 10)
+        self.sizer.Add(self._CreateButtonSizer(wx.OK | wx.CANCEL), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
+        
+        self.Bind(wx.EVT_BUTTON, self._onOk, id=wx.ID_OK)
+        self.Bind(wx.EVT_BUTTON, self._onCancel, id=wx.ID_CANCEL)
+        self.Bind(gridlib.EVT_GRID_CELL_CHANGE, self._onChange)
+        self.Bind(gridlib.EVT_GRID_EDITOR_SHOWN, self._onEditCell)
+        
+        self.SetSizer(self.sizer)
+        
+        if self.sasm != None:
+            self._insertData()
+        
+        self.data_grid.AutoSizeColumns()
+        self.Fit()
+        
+        self.CenterOnParent()
+    
+    def _onEditCell(self, event):
+        col = self.data_grid.GridCursorCol
+        row = self.data_grid.GridCursorRow
+        
+        self.saved_value = self.data_grid.GetCellValue(row, col)
+        
+        event.Skip()
+    
+    def _onChange(self, event):
+        
+        try:
+            col = self.data_grid.GridCursorCol
+            row = self.data_grid.GridCursorRow
+        
+            value = self.data_grid.GetCellValue(row, col)
+            float(value)
+            self.grid_changed = True
+        except ValueError:
+            wx.MessageBox('Illegal value entered', 'Invalid Entry', style=ICON_ERROR)
+            self.data_grid.SetCellValue(row, col, self.saved_value)
+            
+    def _getNumOfHeaderValues(self):
+        
+        all_keys = []
+        
+        if self.sasm.getAllParameters().has_key('counters'):
+            file_hdr = self.sasm.getParameter('counters')
+            keys = file_hdr.keys()
+            all_keys.extend(keys)
+            
+        if self.sasm.getAllParameters().has_key('imageHeader'):
+            img_hdr = self.sasm.getParameter('imageHeader')
+            keys = img_hdr.keys()    
+            all_keys.extend(keys)
+            
+        return len(all_keys)
+        
+    def _insertData(self):
+          
+        imghdr_data_len = 0
+        filehdr_data_len = 0
+
+        if self.sasm.getAllParameters().has_key('counters'):
+            file_hdr = self.sasm.getParameter('counters')
+            keys = file_hdr.keys()
+        
+            if len(keys) > 0:
+                filehdr_data_len = len(keys)
+                
+                for i in range(0, filehdr_data_len):
+                    self.data_grid.SetCellValue(i, 0, str(keys[i]))
+                    self.data_grid.SetCellValue(i, 1, str(file_hdr[keys[i]]))        
+        
+        if self.sasm.getAllParameters().has_key('imageHeader'):
+            img_hdr = self.sasm.getParameter('imageHeader')
+            keys = img_hdr.keys()
+        
+            if len(keys) > 0:
+                imghdr_data_len = len(keys)
+                
+                for i in range(filehdr_data_len, filehdr_data_len + imghdr_data_len):
+                    self.data_grid.SetCellValue(i, 0, str(keys[i-filehdr_data_len]))
+                    self.data_grid.SetCellValue(i, 1, str(img_hdr[keys[i-filehdr_data_len]]))
+
+    
+    def _writeData(self):
+        data_len = len(self.sasm.getBinnedI())
+        
+        new_I = []
+        new_Q = []
+        new_Err = []
+        
+        for i in range(0, data_len):
+            new_Q.append(float(self.data_grid.GetCellValue(i, 0)))
+            new_I.append(float(self.data_grid.GetCellValue(i, 1)))
+            new_Err.append(float(self.data_grid.GetCellValue(i, 2)))   
+            
+        self.sasm.setBinnedI(numpy.array(new_I))
+        self.sasm.setBinnedQ(numpy.array(new_Q))
+        self.sasm.setBinnedErr(numpy.array(new_Err))
+        
+        self.sasm._update()
+        
+    def _onOk(self, event):
+#        if self.grid_changed:
+#            self._writeData()
+            
+        self.EndModal(wx.ID_OK)
+    def _onCancel(self, event):
+        self.EndModal(wx.ID_CANCEL) 
         
 class DataDialog(wx.Dialog):
     
@@ -4538,7 +5487,7 @@ class MySplashScreen(wx.SplashScreen):
     def OnExit(self, evt):
         self.Hide()
             
-        frame = MainFrame('RAW 0.99.8.2b', -1)
+        frame = MainFrame('RAW 0.99.8.3b', -1)
         icon = wx.Icon(name= os.path.join(RAWWorkDir, "resources","raw.ico"), type = wx.BITMAP_TYPE_ICO)
         frame.SetIcon(icon)
         app.SetTopWindow(frame)

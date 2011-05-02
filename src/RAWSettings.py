@@ -185,7 +185,7 @@ class RawGuiSettings:
                             
                             
                             #GUI Settings:
-                            
+                            'csvIncludeData'      : [None],
                             'ManipItemCollapsed'  : [False, wx.NewId(), 'bool'] 
                             }
     
@@ -231,7 +231,7 @@ def saveSettings(raw_settings, savepath):
     param_dict = raw_settings.getAllParams() 
     keys = param_dict.keys()
     
-    exclude_keys = ['ImageFormatList', 'ImageHdrFormatList', 'BackgroundSASM', 'CurrentCfg']
+    exclude_keys = ['ImageFormatList', 'ImageHdrFormatList', 'BackgroundSASM', 'CurrentCfg', 'csvIncludeData']
     
     save_dict = {}
     

@@ -184,6 +184,7 @@ class GuinierPlotPanel(wx.Panel):
         controlPanel = wx.FindWindowByName('GuinierControlPanel')
         wx.CallAfter(controlPanel.updateInfo, newInfo)
         
+        
         xg = [0, x_fit[0]]
         yg = [I0, y_fit[0]]
         
@@ -649,6 +650,7 @@ class GuinierControlPanel(wx.Panel):
         self.ExpObj = ExpObj
         
         self.manip_item = manip_item
+        self.info_panel = wx.FindWindowByName('InformationPanel')
 
         wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
           
@@ -770,7 +772,7 @@ class GuinierControlPanel(wx.Panel):
         analysis_dict['guinier'] = info_dict
         
         if self.manip_item != None:
-            wx.CallAfter(self.manip_item.updateInfoTip, analysis_dict)
+            wx.CallAfter(self.manip_item.updateInfoTip, analysis_dict, fromGuinierDialog = True)
         
         #wx.MessageBox('The parameters have now been stored in memory', 'Parameters Saved')
         

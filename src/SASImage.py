@@ -5,7 +5,7 @@ Created on Jul 7, 2010
 '''
 
 import numpy as np
-#from scipy import optimize
+from scipy import optimize
 import SASExceptions, SASParser, wx, copy
 # If C extensions have not been built, build them:
 try:
@@ -710,14 +710,16 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
     
     diag1 = int(np.sqrt((xlen-x_cin)**2 + y_cin**2))
     diag2 = int(np.sqrt((x_cin**2 + y_cin**2)))
-    diag3 = int(np.sqrt((xlen**2 + (ylen-y_cin)**2)))
+    diag3 = int(np.sqrt((x_cin**2 + (ylen-y_cin)**2)))
     diag4 = int(np.sqrt((xlen-x_cin)**2 + (ylen-y_cin)**2))
     
     maxlen = int(max(diag1, diag2, diag3, diag4, maxlen1))
 
+    #print diag1, diag2, diag3, diag4, maxlen1
+
     # we set the "q_limits" (in pixels) so that it does radial avg on entire image (maximum qrange possible).
     q_range = (0, maxlen)
-    
+     
     ##############################################
     # Reserving memory for radial averaged output:
     ##############################################
@@ -786,6 +788,13 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
     if dezingering == 1:
         iq, errorbars = getIntensityFromQmatrix(qmatrix)
         iq[np.where(np.isnan(iq))] = 0
+        
+    #Trim trailing zeros
+    iq = np.trim_zeros(iq, 'b')
+    iq = iq[:-5]        #Last points are usually garbage they're very few pixels
+                        #Cutting the last 5 points here. 
+    q = q[0:len(iq)] 
+    errorbars = errorbars[0:len(iq)]
         
     return [iq, q, errorbars, qmatrix]
 

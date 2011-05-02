@@ -257,8 +257,8 @@ class PlotPanel(wx.Panel):
                                     'subplot1_legend_pos' : None,
                                     'subplot2_legend_pos' : None,
                                     'legend_position'     : (0.5,0.5),
-                                    'legend_visible_1' : False,
-                                    'legend_visible_2' : False,
+                                    'legend_visible_1' : True,
+                                    'legend_visible_2' : True,
                                     'legend_fontsize'  : 10}
          
                         

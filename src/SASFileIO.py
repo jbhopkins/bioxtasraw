@@ -284,6 +284,8 @@ def parseCHESSF2CTSfile(filename):
     
     timeMonitorPattern = re.compile('\d*-second\s[a-z]*\s[()A-Z,]*\s\d*\s\d*')
     closedShutterCountPattern = re.compile('closed\s\d*')
+    datePattern = re.compile('#D\s.*\n')
+    
     
     #try:
     f = open(filename[:-3] + 'cts')
@@ -296,7 +298,8 @@ def parseCHESSF2CTSfile(filename):
     for line in f:
         timeMonitor_match = timeMonitorPattern.search(line)
         closedShutterCount_match = closedShutterCountPattern.search(line)
-            
+        date_match = datePattern.search(line)
+        
         if timeMonitor_match:           
             exposure_time = int(timeMonitor_match.group().split('-')[0])
             mon1 = int(timeMonitor_match.group().split(' ')[3])
@@ -304,6 +307,12 @@ def parseCHESSF2CTSfile(filename):
                  
         if closedShutterCount_match:
             closed_shutter_count = int(closedShutterCount_match.group().split(' ')[1])
+            
+        if date_match:
+            try:
+                date = date_match.group()[3:-1]
+            except Exception:
+                date = 'Error loading date'
             
     f.close()
     
@@ -313,7 +322,8 @@ def parseCHESSF2CTSfile(filename):
                 'mon1': mon1,
                 'mon2': mon2,
                 'bgcount' : background,
-                'exposureTime': exposure_time}
+                'exposureTime': exposure_time,
+                'date': date}
     
     return counters
 
@@ -910,43 +920,84 @@ def saveMeasurement(sasm, save_path, filetype = 'rad'):
     writeRadFile(sasm, os.path.join(save_path, filename + '.rad'))
 
 
-def saveAnalysisCsvFile(sasm_list, save_path):
+def saveAnalysisCsvFile(sasm_list, include_data, save_path):
     
     file = open(save_path, 'w')
-    
-    first_line = True
     
     if len(sasm_list) == 0:
         return None
     
+    #Write the first line in the csv: 
+    file.write('RAW ANALYSIS DATA\n')
+    file.write('Filename')
+    
+    
+    all_included_keys = sorted(include_data.keys())
+    
+    for each_data in all_included_keys:
+        var = include_data[each_data][0]
+        key = include_data[each_data][1]
+            
+        line = ',' + str(key)
+        file.write(line)
+    
+    file.write('\n')
+        
     for each_sasm in sasm_list:
         
-        analysis_dict = each_sasm.getParameter('analysis')
-
-        if analysis_dict.has_key('guinier'):
-            guinier_dict = analysis_dict['guinier']
-            gin_keys = sorted(guinier_dict.iterkeys())
+        parameters = each_sasm.getAllParameters()
+        
+        file.write(each_sasm.getParameter('filename'))
+        
+        for each_data in all_included_keys:
+            var = include_data[each_data][0]
+            key = include_data[each_data][1]
             
-            if first_line:
-                file.write('GUINIER ANALYSIS\n')
-                file.write('Filename')
-                
-                for each_key in gin_keys:
-                    line = ',' + str(each_key)
-                    file.write(line)
-                
-                file.write('\n')
-                first_line = False
+            file.write(',')
             
-            file.write(each_sasm.getParameter('filename'))
+            if var == 'general':
+                if parameters.has_key(key):
+                    file.write('"' + str(each_sasm.getParameter(key)) + '"')
             
-            gin_keys = sorted(guinier_dict.iterkeys())
+            elif var == 'imageHeader':
+                if parameters.has_key('imageHeader'):
+                    img_hdr = each_sasm.getParameter('imageHeader')
+                    if img_hdr.has_key(key):
+                        file.write(str(img_hdr[key]))
+                    else:
+                        file.write(' ')
+                else:
+                        file.write(' ')
             
-            for each_key in gin_keys:
-                line = ',' + str(guinier_dict[each_key])
-                file.write(line)
-                
-            file.write('\n')
+            elif var == 'counters':
+                if parameters.has_key('counters'):
+                    file_hdr = each_sasm.getParameter('counters')
+                    if file_hdr.has_key(key):
+                        file.write(str(file_hdr[key]))
+                    else:
+                        file.write(' ')
+                else:
+                    file.write(' ')
+                    
+                    
+            elif var == 'guinier':
+                if parameters.has_key('analysis'):
+                    analysis_dict = each_sasm.getParameter('analysis')
+                    
+                    if analysis_dict.has_key('guinier'):
+                        guinier = analysis_dict['guinier']
+                    
+                        if guinier.has_key(key):
+                            file.write(str(guinier[key]))
+                        else:
+                            file.write(' ')
+                    else:
+                        file.write(' ')
+                else:
+                    file.write(' ')
+            
+            
+        file.write('\n')   
             
     file.close()
     
