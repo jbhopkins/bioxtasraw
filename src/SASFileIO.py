@@ -7,7 +7,7 @@ Created on Jul 11, 2010
 import SASImage, SASM, SASIft, SASExceptions
 import numpy as np
 import os, sys, re, cPickle
-import SASMarHeaderReader
+import SASMarHeaderReader, packc_ext
 
 #Need to hack PIL to make it work with py2exe/cx_freeze:
 import Image
@@ -150,8 +150,28 @@ def loadPilatusImage(filename):
     
     return img, img_hdr
 
-def loadMar345Image(filename):
-    pass
+def loadMar345Image(filename):  
+   
+    dim = getMar345ImgDim(filename)
+    SizeOfImage = dim[0]    
+    img_ = np.zeros((SizeOfImage*SizeOfImage), dtype= np.int16)
+    
+    filename_ = filename.encode('utf8')
+
+    img = packc_ext.packc(filename_,SizeOfImage,img_)
+    img = img_.astype(np.uint16) #transform 2byte array to uint16 array
+    img_ = np.reshape(img,(SizeOfImage, SizeOfImage))
+    img = np.flipud(img_)
+    
+    #transform image array to matrix and mirror it.      
+    del img_ # kill img_ and tempimg to free memory
+    
+    try: 
+        img_hdr = parseMar345FileHeader(filename)
+    except:
+        pass
+    
+    return img, img_hdr
 
 def getMar345ImgDim(filename):
     
@@ -184,7 +204,7 @@ def parseMar345FileHeader(filename):
     
     mar_file = open(filename, 'r')
     
-    mar_file.readline() #move past first line
+    mar_file.seek(128)
     
     hdr = {}
     
@@ -192,12 +212,13 @@ def parseMar345FileHeader(filename):
     
     split_hdr = []
     
+    
     while 'END OF HEADER' not in line:
         line = mar_file.readline().strip('/n')
         
         if len(line.split()) > 1:
             split_hdr.append(line.split())
-
+        
     mar_file.close()
     
     for each_line in split_hdr:
@@ -242,7 +263,6 @@ def parseMar345FileHeader(filename):
             hdr[each_line[0] + '_' + each_line[7]] = each_line[8]
             
     return hdr
-
     
 def parseQuantumFileHeader(filename):
     ''' parses the header in a Quantum detector image '''
@@ -394,11 +414,54 @@ def parseMAXLABI77HeaderFile(filename):
     filepath, ext = os.path.splitext(filename)
     hdr_file = filepath + '.hdr'
     
-    #SASMarHeaderReader.ParseDatasetComments(img_hdr)
+    file = open(hdr_file,'r')
+    
+    all_lines = file.readlines()
     
     counters = {}
     
+    for each_line in all_lines:
+    
+        split_lines = each_line.split()
+        key = split_lines[0]
+        
+        if key == 'Start:':
+            counters['date'] = " ".join(split_lines[1:6])
+            counters['end_time'] = split_lines[-1]
+        elif key == 'Sample:':
+            counters['sample'] = split_lines[1]
+            counters['code'] = split_lines[-1]
+        elif key == 'MAXII':
+            counters['current_begin'] = split_lines[4]
+            counters['current_end'] = split_lines[6]
+            counters['current_mean'] = split_lines[-1]
+        elif key == 'SampleTemperature:':
+            counters['temp_begin'] = split_lines[2]
+            counters['temp_end'] = split_lines[2]
+            counters['temp_mean'] = split_lines[6]
+        elif key == 'SampleDiode:':
+            counters['SmpDiode_begin'] = split_lines[2]
+            counters['SmpDiode_end'] = split_lines[2]
+            counters['SmpDiode_mean'] = split_lines[6]
+        elif key == 'BeamstopDiode:':
+            counters['BmStpDiode_avg'] = split_lines[2]
+        elif key == 'IonChamber:':
+            counters['IonDiode_avg'] = split_lines[2]
+        elif key == 'Tube':
+            counters['vacuum'] = split_lines[-1]
+        elif key == 'ExposureTime:':
+            counters['exposureTime'] = split_lines[1]
+        elif key == 'MarCCD':
+            counters['diameter'] = split_lines[4]
+            counters['binning'] = split_lines[-1]
+        elif key == 'BeamCenterX:':
+            counters['xCenter'] = split_lines[1]
+            counters['yCenter'] = split_lines[3]
+            
+
     return counters
+        
+   
 
 #################################################################
 #--- ** Header and Image formats **
@@ -411,9 +474,10 @@ all_header_types = {'None'         : None,
                     'F2, CHESS'    : parseCHESSF2CTSfile, 
                     'G1, CHESS'    : parseCHESSG1CountFile,
                     'I711, MaxLab' : parseMAXLABI77HeaderFile}
-
+   
 all_image_types = {'Quantum'       : loadQuantumImage,
                    'MarCCD 165'    : loadMarCCD165Image,
+                   'Mar345'        : loadMar345Image, 
                    'Medoptics'     : loadTiffImage,
                    'FLICAM'        : loadTiffImage,
                    'Pilatus'       : loadPilatusImage,
@@ -443,8 +507,8 @@ def loadHeader(filename, header_type):
         except IOError as io:
             error_type = io[0]
             raise SASExceptions.HeaderLoadError(str(io).replace("u'",''))
-        except:
-            raise SASExceptions.HeaderLoadError('Header file for : ' + str(filename) + ' could not be read or contains incorrectly formatted data. ')
+        #except:
+        #    raise SASExceptions.HeaderLoadError('Header file for : ' + str(filename) + ' could not be read or contains incorrectly formatted data. ')
     else:
         return {}
     
@@ -1200,6 +1264,8 @@ def checkFileType(filename):
         return 'bift'
     elif ext == '.dat':
         return 'primus'
+    elif ext == '.mar1200' or ext == '.mar2400' or ext == '.mar3600':
+        return 'image'
     else:
         return 'rad'
         

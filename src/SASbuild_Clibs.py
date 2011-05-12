@@ -1073,7 +1073,7 @@ def build_packc():
         
     SizeOfImage = np.int(1200)
     
-    img = np.zeros((1200), dtype = np.int16) #1200*1200 eller 2400*2400
+    img = np.zeros((SizeOfImage), dtype = np.int16) #1200*1200 eller 2400*2400
     
     #img = np.recarray((SizeOfImage * SizeOfImage), dtype = 'h') #this should be made in c!!!
     
