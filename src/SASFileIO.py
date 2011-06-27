@@ -550,7 +550,10 @@ def loadFile(filename, raw_settings, no_processing = False):
             print 'SASFileIO.loadFile : ' + str(msg)
             raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
         
-        sasm = SASImage.calibrateAndNormalize(sasm, img, raw_settings)
+        try:
+            sasm = SASImage.calibrateAndNormalize(sasm, img, raw_settings)
+        except ValueError, msg:
+            print msg
         
         sasm.setParameter('normalizations', raw_settings.get('NormalizationList'))
         sasm.setParameter('config_file', raw_settings.get('CurrentCfg'))
@@ -972,7 +975,7 @@ def loadBiftFile(filename):
 #####################################
 
 # WORK IN PROGRESS:
-def saveMeasurement(sasm, save_path, filetype = 'rad'):
+def saveMeasurement(sasm, save_path, filetype = '.dat'):
     ''' Saves a Measurement Object to a .rad file.
         Returns the filename of the saved file '''
     
@@ -981,7 +984,7 @@ def saveMeasurement(sasm, save_path, filetype = 'rad'):
     #if sasm.type == 'bift':
      #writeBiftFile(sasm, os.path.join(save_path, filename + '.rad'))
     #else:
-    writeRadFile(sasm, os.path.join(save_path, filename + '.rad'))
+    writeRadFile(sasm, os.path.join(save_path, filename + filetype))
 
 
 def saveAnalysisCsvFile(sasm_list, include_data, save_path):
@@ -1123,13 +1126,13 @@ def writeRadFile(m, filename):
 
             tmpline = tmpline.strip()
         
-            line = each + ' : ' + tmpline + '\n'
+            line = each + ': ' + tmpline + '\n'
             
         elif type(d[each]) == type({}):
             line = printDict(d, each)
             
         else:
-            line = each + ' : ' + str(d[each]) + '\n'
+            line = each + ': ' + str(d[each]) + '\n'
 
         if each != 'fileHeader':
             f2.write(line)
@@ -1148,7 +1151,7 @@ def printDict(d, each):
         if type(d[each][every_key]) == type({}):
             tmpline = tmpline + ' ' + printDict(d[each], every_key)
         else:
-            tmpline = tmpline + '   ' + str(every_key) + ' : ' + str(d[each][every_key]) + '\n'
+            tmpline = tmpline + '   ' + str(every_key) + ': ' + str(d[each][every_key]) + '\n'
             
     tmpline = tmpline + '}\n'
     

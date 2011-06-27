@@ -499,7 +499,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         self.image_choice.SetSelection(0)
         
         hdrfmt_id = self.raw_settings.getId('ImageHdrFormat')
-        self.choice2_text = wx.StaticText(self, -1, 'Header format:')
+        self.choice2_text = wx.StaticText(self, -1, 'Header file format:')
         self.header_choice = wx.Choice(self, hdrfmt_id, choices = self.hdr_format_list)
         self.header_choice.SetSelection(0)
          

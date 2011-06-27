@@ -289,11 +289,21 @@ def calibrateAndNormalize(sasm, img, raw_settings):
             #    raise SASExceptions.NormalizationError('Error normalizing in calibrateAndNormalize: ' + str(msg))
         
             if op == '/':
-                sasm.scaleBinnedIntensity(1/val)
+                
+               if val == 0:
+                   raise ValueError('Divide by Zero when normalizing') 
+                
+               sasm.scaleBinnedIntensity(1/val)
+                
             elif op == '+':
                 sasm.offsetBinnedIntensity(val)
             elif op == '*':
+                
+                if val == 0:
+                   raise ValueError('Multiply by Zero when normalizing')
+                
                 sasm.scaleBinnedIntensity(val)
+                
             elif op == '-':
                 sasm.offsetBinnedIntensity(-val)
     

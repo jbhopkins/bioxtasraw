@@ -14,5 +14,5 @@
 #O9     dslx      dslh   reffoil    mostab  
 
 At Sun Jun 06 12:48:35 2010: counts per second with shutter closed 232,
-                integrated counts for 5-second exposure (MON,DET) 187614 333686
+                integrated counts for 0-second exposure (MON,DET) 187614 333686
  

@@ -262,15 +262,13 @@ class PlotPanel(wx.Panel):
                                     'legend_fontsize'  : 10}
          
                         
-        subplotLabels = { 'subtracted'  : ('Subtracted', 'q', 'I(q)'),
-                          'PDDF'        : ('PDDF', 'r', 'p(r)'),
-                          'kratky'      : ('Kratky', 'q', 'I(q)q^2'),
-                          'guinier'     : ('Guinier', 'q^2', 'ln(I(q)'),
-                          'main'        : ('Main Plot', 'q', 'I(q)')}
+        self.subplot_labels = { 'subtracted'  : ('Subtracted', 'q [1/A]', 'I(q)'),
+                                'kratky'      : ('Kratky', 'q [1/A]', 'I(q)q^2'),
+                                'guinier'     : ('Guinier', 'q^2 [1/A^2]', 'ln(I(q)'),
+                                'porod'       : ('Porod', 'q [1/A]', 'I(q)q^4'),
+                                'normal'      : ('Main Plot', 'q [1/A]', 'I(q)')}
         
-        
-        
-        
+            
         self._setLabels(axes = self.subplot1)
         self._setLabels(axes = self.subplot2)
         
@@ -760,42 +758,42 @@ class PlotPanel(wx.Panel):
             
             if a == self.subplot1:
                 if self.plotparams['plot1type'] == 'normal':
-                    a.set_title('Main plot')
-                    a.set_ylabel('I(q)')
-                    a.set_xlabel('q [1/A]')
+                    a.set_title(self.subplot_labels['normal'][0])
+                    a.set_ylabel(self.subplot_labels['normal'][2])
+                    a.set_xlabel(self.subplot_labels['normal'][1])
                         
                 elif self.plotparams['plot1type'] == 'kratky':
-                    a.set_title('Kratky plot')
-                    a.set_ylabel('I(q)q^2')
-                    a.set_xlabel('q [1/A]')
+                    a.set_title(self.subplot_labels['kratky'][0])
+                    a.set_ylabel(self.subplot_labels['kratky'][2])
+                    a.set_xlabel(self.subplot_labels['kratky'][1])
                         
                 elif self.plotparams['plot1type'] == 'guinier':
-                    a.set_title('Guinier plot')
-                    a.set_ylabel('I(q)')
-                    a.set_xlabel('q^2 [1/A^2]')
+                    a.set_title(self.subplot_labels['guinier'][0])
+                    a.set_ylabel(self.subplot_labels['guinier'][2])
+                    a.set_xlabel(self.subplot_labels['guinier'][1])
                     
                 elif self.plotparams['plot1type'] == 'porod':
-                    a.set_title('Porod plot')
-                    a.set_ylabel('I(q)q^4')
-                    a.set_xlabel('q [1/A]')
+                    a.set_title(self.subplot_labels['porod'][0])
+                    a.set_ylabel(self.subplot_labels['porod'][2])
+                    a.set_xlabel(self.subplot_labels['porod'][1])
                             
             elif a == self.subplot2:
                 if self.plotparams['plot2type'] == 'subtracted':
-                    a.set_title('Subtracted plot')
-                    a.set_ylabel('I(q)')
-                    a.set_xlabel('q [1/A]')
+                    a.set_title(self.subplot_labels['subtracted'][0])
+                    a.set_ylabel(self.subplot_labels['subtracted'][2])
+                    a.set_xlabel(self.subplot_labels['subtracted'][1])
                 elif self.plotparams['plot2type'] == 'kratky':
-                    a.set_title('Kratky plot')
-                    a.set_ylabel('I(q)q^2')
-                    a.set_xlabel('q [1/A]')
+                    a.set_title(self.subplot_labels['kratky'][0])
+                    a.set_ylabel(self.subplot_labels['kratky'][2])
+                    a.set_xlabel(self.subplot_labels['kratky'][1])
                 elif self.plotparams['plot2type'] == 'guinier':
-                    a.set_title('Guinier plot')
-                    a.set_ylabel('I(q)')
-                    a.set_xlabel('q^2 [1/A^2]')
+                    a.set_title(self.subplot_labels['guinier'][0])
+                    a.set_ylabel(self.subplot_labels['guinier'][2])
+                    a.set_xlabel(self.subplot_labels['guinier'][1])
                 elif self.plotparams['plot2type'] == 'porod':
-                    a.set_title('Porod plot')
-                    a.set_ylabel('I(q)q^4')
-                    a.set_xlabel('q [1/A]')
+                    a.set_title(self.subplot_labels['porod'][0])
+                    a.set_ylabel(self.subplot_labels['porod'][2])
+                    a.set_xlabel(self.subplot_labels['porod'][1])
         else:
             a.set_title(title)
     
@@ -856,8 +854,34 @@ class PlotPanel(wx.Panel):
         
         
         
+class IftPlotPanel(PlotPanel):
     
-    
-    
+    def __init__(self, parent, id, name, *args, **kwargs):
         
-    
+        PlotPanel.__init__(self, parent, id, name,*args, **kwargs)
+
+           
+        self.plotparams = {'axesscale1'          : 'linlin',
+                            'axesscale2'          : 'linlin',
+                            'plot1type'           : 'normal',
+                            'plot2type'           : 'subtracted',
+                            'plot1state'          : 'linlin',
+                            'errorbars_on'        : False,
+                            'autoLegendPos'       : True,
+                            'subplot1_legend_pos' : None,
+                            'subplot2_legend_pos' : None,
+                            'legend_position'     : (0.5,0.5),
+                            'legend_visible_1' : True,
+                            'legend_visible_2' : True,
+                            'legend_fontsize'  : 10}
+         
+                        
+        self.subplot_labels = { 'subtracted'  : ('Fit', 'q [1/A]', 'I(q)'),
+                                'kratky'      : ('Kratky', 'q [1/A]', 'I(q)q^2'),
+                                'porod'       : ('Porod', 'q [1/A]', 'I(q)q^4'),
+                                'guinier'     : ('Guinier', 'q^2 [1/A^2]', 'ln(I(q)'),
+                                'normal'        : ('Pair Distance Distribution Function', 'r [nm]', 'P(r)')}
+        
+        self._setLabels(axes = self.subplot1)
+        self._setLabels(axes = self.subplot2)
+   

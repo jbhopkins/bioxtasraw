@@ -5,6 +5,7 @@ Created on Jul 5, 2010
 '''
 
 import numpy as np
+import scipy.interpolate as interp
 import os
 import SASCalib, SASExceptions
 from math import pi, sin
@@ -500,3 +501,83 @@ def superimpose(sasm_star, sasm_list):
                 
         each_sasm.scale(scale)        
         each_sasm.offset(offset)
+        
+def merge(sasm_star, sasm_list):
+    
+    """ Merge one or more sasms by averaging and possibly interpolating
+    points if all values are not on the same q scale """
+    
+    #Sort sasms according to lowest q value:    
+    sasm_list.extend([sasm_star])
+    sasm_list = sorted(sasm_list, key=lambda each: each.q[each.getQrange()[0]])
+    
+    s1 = sasm_list[0]
+    s2 = sasm_list[1]
+    
+    print s1.q
+    print s2.q
+    
+    #find overlapping s2 points    
+    highest_q = s1.q[s1.getQrange()[1]-1] 
+    min, max = s2.getQrange()
+    overlapping_q2 = s2.q[min:max][np.where(s2.q[min:max] <= highest_q)]
+    
+    #find overlapping s1 points    
+    lowest_s2_q = s2.q[s2.getQrange()[0]]
+    min, max = s1.getQrange()
+    overlapping_q1 = s1.q[min:max][np.where(s1.q[min:max] >= lowest_s2_q)]
+    
+    
+    if overlapping_q2[0] < overlapping_q1[0]:
+        idx, = np.where(s1.q == overlapping_q1[0])
+        np.insert(overlapping_q1, [0], s1.q[idx-1])
+        #add the point before overlapping_q1[0] to overlapping_q1
+    
+    #get indexes for overlapping_q2 and q1
+    q2_indexs = []
+    q1_indexs = []
+    
+    for each in overlapping_q2:
+        idx, = np.where(s2.q == each)
+        q2_indexs.append(idx[0])
+    
+    for each in overlapping_q1:
+        idx, = np.where(s1.q == each)
+        q1_indexs.append(idx[0])
+    
+
+    print q1_indexs
+    print s1.q[q1_indexs]
+    print s1.i[q1_indexs]
+    
+    coeff = interp.interp1d(s1.q[q1_indexs], s1.i[q1_indexs])
+
+    print coeff
+
+    print s2.q[q2_indexs]
+
+    intp_I = coeff(s2.q[q2_indexs])
+    
+    #averaged_I = (intp_I + sq2.I[q2_index])/2
+    
+    
+    
+    #average intensities in overlapping area if any
+#    print overlapping_q1
+#    
+#    for each in overlapping_q1:
+#        
+#        print np.where(each == s2.q)
+#    
+    #append the rest to the former.
+    
+        
+        
+        
+        
+        
+    
+    
+    
+    
+    

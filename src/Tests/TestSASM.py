@@ -280,44 +280,76 @@ class Test_determineOutlierMaxMin(unittest.TestCase):
         pass
 
 
-class Test_superimpose(unittest.TestCase):  
+#class Test_superimpose(unittest.TestCase):  
+#    
+#    def setUp(self):
+#        self.i = np.array([0.0,1.0,3.0,2.0,0.0,6.0])
+#        self.q = np.array([0.0,1.0,2.0,3.0,4.0,5.0])
+#        self.err = np.array([0.0,1.5,1.5,2.0,1.5,2.0])
+#        
+#        self.parameters = {}
+#        
+#        self.sasm = SASM.SASM(self.i, self.q, self.err, self.parameters)
+#    
+#    def tearDown(self):
+#        pass
+#        
+#    def test_superimpose_offset(self):
+#        offset_sasm = copy.copy(self.sasm)
+#        offset_sasm.i = offset_sasm.i + 5.0
+#        
+#        SASM.superimpose(self.sasm, [offset_sasm])
+#
+#        self.assertEqual(offset_sasm.getOffset(), 5.0)
+#
+#    def test_superimpose_scale(self):
+#        offset_sasm = copy.copy(self.sasm)
+#        offset_sasm.i = offset_sasm.i * 1.5
+#        
+#        SASM.superimpose(self.sasm, [offset_sasm])
+#
+#        self.assertEqual(offset_sasm.getScale(), 1.5)        
+#
+#    def test_superimpose_scale_and_offset(self):
+#        offset_sasm = copy.copy(self.sasm)
+#        offset_sasm.i = offset_sasm.i * 1.5 + 3.0
+#        
+#        SASM.superimpose(self.sasm, [offset_sasm])
+#
+#        self.assertEqual(offset_sasm.getScale(), 1.5)   
+#        self.assertEqual(offset_sasm.getOffset(), 3.0)
+
+
+class Test_merge(unittest.TestCase):  
     
     def setUp(self):
         self.i = np.array([0.0,1.0,3.0,2.0,0.0,6.0])
         self.q = np.array([0.0,1.0,2.0,3.0,4.0,5.0])
         self.err = np.array([0.0,1.5,1.5,2.0,1.5,2.0])
         
+        
+        self.i2 = np.array([1.0,1.0,3.0,2.0,0.0,6.0, 3.0, 5.0, 2.0, 1.0])
+        self.q2 = np.array([0.0,1.0,2.0,3.0,3.5,5.0, 6.2, 7.3, 8.4, 9.5])
+        self.err2 = np.array([0.0,1.5,1.5,2.0,1.5,2.0,1.5,2.0,1.5,2.0])
+        
         self.parameters = {}
+        self.parameters2 = {}
         
         self.sasm = SASM.SASM(self.i, self.q, self.err, self.parameters)
-    
+        self.sasm2 = SASM.SASM(self.i2, self.q2, self.err2, self.parameters2)
+        
+        self.sasm2.setQrange((4,10))
+        
     def tearDown(self):
         pass
         
-    def test_superimpose_offset(self):
-        offset_sasm = copy.copy(self.sasm)
-        offset_sasm.i = offset_sasm.i + 5.0
+    def test_merge_sort(self):
         
-        SASM.superimpose(self.sasm, [offset_sasm])
+        SASM.merge(self.sasm, [self.sasm2])
 
-        self.assertEqual(offset_sasm.getOffset(), 5.0)
-
-    def test_superimpose_scale(self):
-        offset_sasm = copy.copy(self.sasm)
-        offset_sasm.i = offset_sasm.i * 1.5
         
-        SASM.superimpose(self.sasm, [offset_sasm])
 
-        self.assertEqual(offset_sasm.getScale(), 1.5)        
 
-    def test_superimpose_scale_and_offset(self):
-        offset_sasm = copy.copy(self.sasm)
-        offset_sasm.i = offset_sasm.i * 1.5 + 3.0
-        
-        SASM.superimpose(self.sasm, [offset_sasm])
-
-        self.assertEqual(offset_sasm.getScale(), 1.5)   
-        self.assertEqual(offset_sasm.getOffset(), 3.0)
 
 
 def main():

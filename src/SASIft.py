@@ -6,7 +6,6 @@ Created on Jul 11, 2010
 
 class IFTM:
     
-    def __init__(self):
-        
+    def __init__(self):  
         pass
     
