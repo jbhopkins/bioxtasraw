@@ -501,7 +501,8 @@ def superimpose(sasm_star, sasm_list):
                 
         each_sasm.scale(scale)        
         each_sasm.offset(offset)
-        
+
+
 def merge(sasm_star, sasm_list):
     
     """ Merge one or more sasms by averaging and possibly interpolating
@@ -514,9 +515,6 @@ def merge(sasm_star, sasm_list):
     s1 = sasm_list[0]
     s2 = sasm_list[1]
     
-    print s1.q
-    print s2.q
-    
     #find overlapping s2 points    
     highest_q = s1.q[s1.getQrange()[1]-1] 
     min, max = s2.getQrange()
@@ -527,57 +525,74 @@ def merge(sasm_star, sasm_list):
     min, max = s1.getQrange()
     overlapping_q1 = s1.q[min:max][np.where(s1.q[min:max] >= lowest_s2_q)]
     
+    tmp_s2i = s2.i.copy()
+    tmp_s2q = s2.q.copy()
+    tmp_s2err = s2.err.copy()
     
-    if overlapping_q2[0] < overlapping_q1[0]:
-        idx, = np.where(s1.q == overlapping_q1[0])
-        np.insert(overlapping_q1, [0], s1.q[idx-1])
-        #add the point before overlapping_q1[0] to overlapping_q1
+    if len(overlapping_q1) == 1 and len(overlapping_q2) == 1: #One point overlap
+        q1idx = s1.getQrange()[1]
+        q2idx = s2.getQrange()[0]
+        
+        avg_i = (s1.i[q1idx] + s2.i[q2idx])/2.0
+        
+        tmp_s2i[q2idx] = avg_i
+         
+        minq, maxq = s1.getQrange()
+        q1_indexs = [maxq-1, minq]
     
-    #get indexes for overlapping_q2 and q1
-    q2_indexs = []
-    q1_indexs = []
-    
-    for each in overlapping_q2:
-        idx, = np.where(s2.q == each)
-        q2_indexs.append(idx[0])
-    
-    for each in overlapping_q1:
-        idx, = np.where(s1.q == each)
-        q1_indexs.append(idx[0])
-    
+    elif len(overlapping_q1) == 0 and len(overlapping_q2) == 0: #No overlap
+        minq, maxq = s1.getQrange()
+        q1_indexs = [maxq, minq]
 
-    print q1_indexs
-    print s1.q[q1_indexs]
-    print s1.i[q1_indexs]
+    else:   #More than 1 point overlap 
     
-    coeff = interp.interp1d(s1.q[q1_indexs], s1.i[q1_indexs])
+        added_index = False
+        if overlapping_q2[0] < overlapping_q1[0]:
+            #add the point before overlapping_q1[0] to overlapping_q1
+            idx, = np.where(s1.q == overlapping_q1[0])
+            overlapping_q1 = np.insert(overlapping_q1, 0, s1.q[idx-1][0])
+            added_index = True
+        
+        #get indexes for overlapping_q2 and q1
+        q2_indexs = []
+        q1_indexs = []
+    
+        for each in overlapping_q2:
+            idx, = np.where(s2.q == each)
+            q2_indexs.append(idx[0])
+    
+        for each in overlapping_q1:
+            idx, = np.where(s1.q == each)
+            q1_indexs.append(idx[0])
+        
+        #interpolate overlapping s2 onto s1
+        f = interp.interp1d(s1.q[q1_indexs], s1.i[q1_indexs])
+        intp_I = f(s2.q[q2_indexs])
+        averaged_I = (intp_I + s2.i[q2_indexs])/2.0
+    
+        if added_index:
+            q1_indexs = np.delete(q1_indexs, 0)
+    
+        tmp_s2i[q2_indexs] = averaged_I
+    
+    
+    #Merge the two parts
+    #cut away the overlapping part on s1 and append s2 to it
+    min, max = s1.getQrange()
+    newi = s1.i[min:q1_indexs[0]]
+    newq = s1.q[min:q1_indexs[0]]
+    newerr = s1.err[min:q1_indexs[0]]
+    
+    min, max = s2.getQrange()
+    newi = np.append(newi, tmp_s2i[min:max])
+    newq = np.append(newq, tmp_s2q[min:max])
+    newerr = np.append(newerr, tmp_s2err[min:max])
+            
+    #create a new SASM object with the merged parts. 
+    parameters = {}
+    newSASM = SASM(newi, newq, newerr, parameters)
+    
+    return newSASM
 
-    print coeff
-
-    print s2.q[q2_indexs]
-
-    intp_I = coeff(s2.q[q2_indexs])
-    
-    #averaged_I = (intp_I + sq2.I[q2_index])/2
-    
-    
-    
-    #average intensities in overlapping area if any
-#    print overlapping_q1
-#    
-#    for each in overlapping_q1:
-#        
-#        print np.where(each == s2.q)
-#    
-    #append the rest to the former.
-    
-        
-        
-        
-        
-        
-    
-    
-    
-    
-    
+def rebin(sasm):
+    pass
