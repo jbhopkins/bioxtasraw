@@ -940,12 +940,18 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(wx.MessageBox, 'Please select the items you want to average.\n\nYou can select multiple items by holding down the CTRL or SHIFT key.' , 'No items selected')
         if type == 'subtract': 
             wx.CallAfter(wx.MessageBox, 'Please select the items you want the marked (star) item subtracted from.'+
-                              '\nUse CTRL or SHIFT to select multiple items.', 'No items selected')                
+                              '\nUse CTRL or SHIFT to select multiple items.', 'No items selected')
+        if type == 'superimpose':
+            wx.CallAfter(wx.MessageBox, 'Please select the items you want to superimpose.\n\nYou can select multiple items by holding down the CTRL or SHIFT key.' , 'No items selected')            
            
     def _showPleaseMarkItemError(self, type):
         
         if type == 'subtract':
             wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you are using for subtraction', 'No item marked')
+        if type == 'merge':
+            wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you are using as the main curve for merging', 'No item marked')
+        if type == 'superimpose':
+            wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you want to superimpose to.', 'No item marked')
             
     def _showQvectorsNotEqualWarning(self, sasm, sub_sasm):
         
@@ -1064,6 +1070,17 @@ class MainWorkerThread(threading.Thread):
         star_item = data[0]
         selected_items = data[1]
         
+        if star_item == None:
+            self._showPleaseMarkItemError('superimpose')
+            return 
+        
+        if star_item in selected_items:
+            selected_items.remove(star_item)
+         
+        if len(selected_items) == 0:
+            self._showPleaseSelectItemsError('superimpose')
+            return
+        
         selected_sasms = []
         for each_item in selected_items:
             selected_sasms.append(each_item.getSASM())
@@ -1167,6 +1184,10 @@ class MainWorkerThread(threading.Thread):
             idx = selected_items.index(marked_item)
             selected_items.pop(idx)
         
+        if marked_item == None:
+            self._showPleaseMarkItemError('merge')
+            return 
+        
         marked_sasm = marked_item.getSASM()    
         sasm_list = []
         for each_item in selected_items:
@@ -1174,16 +1195,14 @@ class MainWorkerThread(threading.Thread):
         
         merged_sasm = SASM.merge(marked_sasm, sasm_list)
         
-        
         filename = marked_sasm.getParameter('filename')
-        merged_sasm.setParameter('filename', filename)
+        merged_sasm.setParameter('filename', 'M_' + filename)
         
         self._sendSASMToPlot(merged_sasm, axes_num = 1)
         
         wx.CallAfter(self.plot_panel.updateLegend, 1)
         #wx.CallAfter(self.main_frame.closeBusyDialog)
-        
-        
+               
     def _saveSASM(self, sasm, filetype = 'dat'):
         pass
     

@@ -34,6 +34,7 @@ class SASM:
         
         # Make an entry for analysis parameters i.e. Rg, I(0) etc:
         self._parameters['analysis'] = {}
+        self._parameters['history'] = {}
         
         #Binned intensity variables
         self._i_binned = self._i_raw.copy()
@@ -197,8 +198,7 @@ class SASM:
         ''' Sets the bin size of the I_q plot 
         
             end_idx will be lowered to fit the bin_size
-            if needed.
-                 
+            if needed.              
         '''
         
         self._bin_size = bin_size
@@ -515,6 +515,9 @@ def merge(sasm_star, sasm_list):
     s1 = sasm_list[0]
     s2 = sasm_list[1]
     
+    sasm_list.pop(0)
+    sasm_list.pop(0)
+    
     #find overlapping s2 points    
     highest_q = s1.q[s1.getQrange()[1]-1] 
     min, max = s2.getQrange()
@@ -590,9 +593,14 @@ def merge(sasm_star, sasm_list):
             
     #create a new SASM object with the merged parts. 
     parameters = {}
+    
+    
     newSASM = SASM(newi, newq, newerr, parameters)
     
-    return newSASM
+    if len(sasm_list) == 0:
+        return newSASM
+    else:
+        return merge(newSASM, sasm_list)
 
 def rebin(sasm):
     pass
