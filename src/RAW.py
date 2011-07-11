@@ -680,7 +680,9 @@ class MainWorkerThread(threading.Thread):
                                     'load_workspace'        : self._loadWorkspace,
                                     'superimpose_items'     : self._superimposeItems,
                                     'save_analysis_info'    : self._saveAnalysisInfo,
-                                    'merge_items'           : self._mergeItems} 
+                                    'merge_items'           : self._mergeItems,
+                                    'rebin_items'           : self._rebinItems}
+         
         
     def run(self):
         
@@ -1174,7 +1176,14 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.plot_panel.updateLegend, 1)
         wx.CallAfter(self.main_frame.closeBusyDialog)
         
+    
+    def _rebinItems(self, data):
         
+        selected_items = data[0]
+        rebin_factor = data[1]
+        
+        
+    
     def _mergeItems(self, data):
         
         marked_item = data[0]
@@ -2977,6 +2986,7 @@ class ManipItemPanel(wx.Panel):
         submenu = menu.Append(4, 'Subtract')
         avgmenu = menu.Append(6, 'Average' )
         mermenu = menu.Append(22, 'Merge')
+        rebmenu = menu.Append(23, 'Rebin')
         menu.Append(14, 'Rename')
             
         menu.AppendSeparator()
@@ -3137,6 +3147,15 @@ class ManipItemPanel(wx.Panel):
             selected_items = self.manipulation_panel.getSelectedItems()
             marked_item = self.manipulation_panel.getBackgroundItem()
             mainworker_cmd_queue.put(['merge_items', [marked_item, selected_items]])
+            
+        if evt.GetId() == 23:
+            
+            dlg = RebinDialog(self)
+            dlg.ShowModal()
+            
+            selected_items = self.manipulation_panel.getSelectedItems()
+            #mainworker_cmd_queue.put(['rebin_items', selected_items])
+            
     
     def _saveAnalysisInfo(self):
         selected_items = self.manipulation_panel.getSelectedItems()
@@ -7041,6 +7060,29 @@ class LegendLabelChangeDialog(wx.Dialog):
         
     def getLegendLabel(self):
         return self._legend_label
+
+class RebinDialog(wx.Dialog):
+    
+    def __init__(self, parent, *args, **kwargs):
+        
+        wx.Dialog.__init__(self, parent, -1, *args, **kwargs)
+        
+        top_sizer = wx.BoxSizer()
+        
+        choices = ['2','3','4','5','6','7','8','9','10']
+        text = wx.StaticText(self, -1, 'Select bin reduction factor :')
+        choice = wx.Choice(self, -1, choices = choices)
+        
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        sizer.Add(text, 1)
+        sizer.Add(choice, 0)
+        
+        top_sizer.Add(sizer, 1, wx.ALL, 10)
+        
+        self.SetSizer(top_sizer)
+        self.Fit()
+     
 
 class LinePropertyDialog(wx.Dialog):
     
