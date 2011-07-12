@@ -1182,6 +1182,19 @@ class MainWorkerThread(threading.Thread):
         selected_items = data[0]
         rebin_factor = data[1]
         
+        for each in selected_items:
+            sasm = each.getSASM()
+        
+            rebin_sasm = SASM.rebin(sasm, rebin_factor)
+               
+            filename = rebin_sasm.getParameter('filename')
+            rebin_sasm.setParameter('filename', 'R_' + filename)
+        
+            self._sendSASMToPlot(rebin_sasm, axes_num = 1)
+        
+            wx.CallAfter(self.plot_panel.updateLegend, 1)
+        
+        
         
     
     def _mergeItems(self, data):
@@ -3149,12 +3162,14 @@ class ManipItemPanel(wx.Panel):
             mainworker_cmd_queue.put(['merge_items', [marked_item, selected_items]])
             
         if evt.GetId() == 23:
+            selected_items = self.manipulation_panel.getSelectedItems()
             
             dlg = RebinDialog(self)
-            dlg.ShowModal()
+            ret = dlg.ShowModal()
+            dlg.Destroy()
             
-            selected_items = self.manipulation_panel.getSelectedItems()
-            #mainworker_cmd_queue.put(['rebin_items', selected_items])
+            if ret != wx.ID_CANCEL:
+                mainworker_cmd_queue.put(['rebin_items', [selected_items, ret]])
             
     
     def _saveAnalysisInfo(self):
@@ -7067,22 +7082,30 @@ class RebinDialog(wx.Dialog):
         
         wx.Dialog.__init__(self, parent, -1, *args, **kwargs)
         
-        top_sizer = wx.BoxSizer()
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
         
         choices = ['2','3','4','5','6','7','8','9','10']
         text = wx.StaticText(self, -1, 'Select bin reduction factor :')
-        choice = wx.Choice(self, -1, choices = choices)
-        
+        self.choice = wx.Choice(self, -1, choices = choices)
+        self.choice.Select(0)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         
+        buttonsizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
+        self.Bind( wx.EVT_BUTTON, self._onOkClicked, id=wx.ID_OK )
+        
         sizer.Add(text, 1)
-        sizer.Add(choice, 0)
+        sizer.Add(self.choice, 0)
         
         top_sizer.Add(sizer, 1, wx.ALL, 10)
+        top_sizer.Add(buttonsizer, 1, wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL)
         
         self.SetSizer(top_sizer)
         self.Fit()
      
+
+    def _onOkClicked(self, event):
+        ret = int(self.choice.GetStringSelection())
+        self.EndModal(ret)
 
 class LinePropertyDialog(wx.Dialog):
     

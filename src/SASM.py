@@ -6,7 +6,7 @@ Created on Jul 5, 2010
 
 import numpy as np
 import scipy.interpolate as interp
-import os
+import os, copy
 import SASCalib, SASExceptions
 from math import pi, sin
 
@@ -602,5 +602,59 @@ def merge(sasm_star, sasm_list):
     else:
         return merge(newSASM, sasm_list)
 
-def rebin(sasm):
-    pass
+def rebin(sasm, rebin_factor):
+    ''' Sets the bin size of the I_q plot 
+        end_idx will be lowered to fit the bin_size
+        if needed.              
+    '''
+        
+    #sasm._bin_size = bin_size
+
+    len_iq = len(sasm._i_binned)
+        
+    no_of_bins = int(np.floor(len_iq / rebin_factor))
+    
+    end_idx = no_of_bins * rebin_factor
+   
+    start_idx = 0
+    i_roi = sasm._i_binned[start_idx:end_idx]
+    q_roi = sasm._q_binned[start_idx:end_idx]
+    err_roi = sasm._err_binned[start_idx:end_idx]
+   
+    new_i = np.zeros(no_of_bins)
+    new_q = np.zeros(no_of_bins)
+    new_err = np.zeros(no_of_bins)
+    
+    for eachbin in range(0, no_of_bins):
+        first_idx = eachbin * rebin_factor
+        last_idx = (eachbin * rebin_factor) + rebin_factor
+         
+        new_i[eachbin] = sum(i_roi[first_idx:last_idx]) / rebin_factor
+        new_q[eachbin] = sum(q_roi[first_idx:last_idx]) / rebin_factor
+        new_err[eachbin] = np.sqrt(sum(np.power(err_roi[first_idx:last_idx],2))) / np.sqrt(rebin_factor)
+        
+#    if end_idx == -1 or end_idx == len(sasm._i_raw):
+#        sasm._i_binned = np.append(sasm._i_raw[0:start_idx], new_i)
+#        sasm._q_binned = np.append(sasm._q_raw[0:start_idx], new_q)
+#        sasm._err_binned = np.append(sasm._err_raw[0:start_idx], new_err)
+#    else:
+#        sasm._i_binned = np.append(np.append(sasm._i_raw[0:start_idx], new_i), sasm._i_raw[end_idx:]) 
+#        sasm._q_binned = np.append(np.append(sasm._q_raw[0:start_idx], new_q), sasm._q_raw[end_idx:])
+#        sasm._err_binned = np.append(np.append(sasm._err_raw[0:start_idx], new_err), sasm._err_raw[end_idx:])
+        
+    #sasm._update()
+    #sasm._selected_q_range = (0, len(sasm._i_binned))
+    parameters = copy.deepcopy(sasm.getAllParameters())
+    
+    newSASM = SASM(new_i, new_q, new_err, parameters)
+    
+    return newSASM
+    
+    
+    
+    
+    
+    
+    
+    
+    
