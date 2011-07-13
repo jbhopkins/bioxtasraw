@@ -76,7 +76,75 @@ class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
         except:
             print 'Log fail! Switch to Lin-Lin plot in the menu'
 
+class LegendOptionsDialog(wx.Dialog):
+    def __init__(self, parent, plotparams, selected_plot, *args, **kwargs):
+        
+        wx.Dialog.__init__(self, parent, -1, 'Legend Options' , *args, **kwargs)
+        
+        self.plotparams = plotparams
+        self.selected_plot = selected_plot
+        
+        choices = ['5','6','7','8','9','10','11','12','13','14','15','16',
+                   '17', '18','19', '20', '21', '22', '23', '24', '25',
+                   '26', '27', '28', '29', '30']
+         
+        self.font_size_choice = wx.Choice(self, -1, choices = choices)
+        
+        old_font_size = plotparams['legend_fontsize' +  str(selected_plot)]
+        old_alpha_val = plotparams['legend_alpha' +  str(selected_plot)]
+        
+        self.font_size_choice.Select(choices.index(str(old_font_size)))
+        
+        self.border_chkbox = wx.CheckBox(self, -1, 'Border')
+        font_size_text = wx.StaticText(self, -1, 'Font size : ')
+        alpha_text = wx.StaticText(self, -1, 'Transparency (0.0 - 1.0) : ')
+        
+        self.alpha_val = RAWCustomCtrl.FloatSpinCtrl(self, -1, str(old_alpha_val), never_negative = True)
+        
+        alpha_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        alpha_sizer.Add(alpha_text, 0, wx.ALIGN_CENTER_VERTICAL)
+        alpha_sizer.Add(self.alpha_val, 0)
+        
+        
+        borderchk = plotparams['legend_border' +  str(selected_plot)]
+        
+        self.border_chkbox.SetValue(borderchk)
+       
+        fontsizer = wx.BoxSizer()
+        fontsizer.Add(font_size_text, 0, wx.ALIGN_CENTER_VERTICAL)
+        fontsizer.Add(self.font_size_choice, 0)
+        
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(fontsizer, 0)
+        sizer.Add(alpha_sizer, 0, wx.TOP, 10)
+        
+        sizer.Add(self.border_chkbox, 0, wx.TOP | wx.BOTTOM, 10)
+        buttons = self.CreateButtonSizer(wx.OK | wx.CANCEL)
+        
+        self.Bind(wx.EVT_BUTTON, self._onOk, id = wx.ID_OK)
+        
+        sizer.Add(buttons, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+        
+        top_sizer = wx.BoxSizer()
+        
+        top_sizer.Add(sizer,1, wx.ALL, 10)
+        
+        self.SetSizer(top_sizer)
+        self.Fit()
+        self.CenterOnParent()
+    
+    def _onOk(self, event):        
+        self.plotparams['legend_border' +  str(self.selected_plot)] = self.border_chkbox.GetValue()
+        
+        fontsize = int(self.font_size_choice.GetStringSelection())
+        self.plotparams['legend_fontsize' +  str(self.selected_plot)] = int(fontsize)
 
+        alpha = self.alpha_val.GetValue()
+        self.plotparams['legend_alpha' +  str(self.selected_plot)] = float(alpha)
+        
+
+        self.EndModal(wx.OK)
+        
 class CustomPlotToolbar(NavigationToolbar2Wx):
     def __init__(self, parent, canvas):
 
@@ -257,9 +325,14 @@ class PlotPanel(wx.Panel):
                                     'subplot1_legend_pos' : None,
                                     'subplot2_legend_pos' : None,
                                     'legend_position'     : (0.5,0.5),
-                                    'legend_visible_1' : True,
-                                    'legend_visible_2' : True,
-                                    'legend_fontsize'  : 10}
+                                    'legend_visible_1'    : True,
+                                    'legend_visible_2'    : True,
+                                    'legend_fontsize1'    : 10,
+                                    'legend_border1'      : True,
+                                    'legend_fontsize2'    : 10,
+                                    'legend_border2'      : True,
+                                    'legend_alpha1'       : 0.7,
+                                    'legend_alpha2'       : 0.7}
          
                         
         self.subplot_labels = { 'subtracted'  : ('Subtracted', 'q [1/A]', 'I(q)'),
@@ -509,20 +582,31 @@ class PlotPanel(wx.Panel):
         sep = menu.AppendSeparator()
         legend_item = menu.AppendCheckItem(wx.NewId(), 'Show Legend')
         
+        legend_options = menu.Append(wx.NewId(), 'Legend Options...')
+        
         if self.plotparams['legend_visible'+ '_' + str(selected_plot)]:
             legend_item.Check()
-              
+            
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
-        
         self.Bind(wx.EVT_MENU, self._onToggleLegend, legend_item)
-             
+        self.Bind(wx.EVT_MENU, self._onLegendOptions, legend_options)    
+            
+        
         self.PopupMenu(menu)
+        
+    def _onLegendOptions(self, evt):
+        dlg = LegendOptionsDialog(self, self.plotparams, self.selected_plot)
+        dlg.ShowModal()
+        dlg.Destroy()
+        
+        self.updateLegend(self.selected_plot)
+        
         
     def _onPopupMenuChoice(self, evt):
         mainframe = wx.FindWindowByName('MainFrame')
         MenuIDs = mainframe.getMenuIds()
         id = evt.GetId()
-        
+
         for key in MenuIDs.iterkeys():
             if MenuIDs[key] == id:
 
@@ -831,8 +915,24 @@ class PlotPanel(wx.Panel):
             if not legend_lines:
                 return
             
-            leg = a.legend(legend_lines, legend_labels, prop = FontProperties(size = self.plotparams['legend_fontsize']), fancybox = True)
-            leg.get_frame().set_alpha(0.7)
+            if axes == self.subplot1:
+                fontsize = self.plotparams['legend_fontsize1']
+                enable_border = self.plotparams['legend_border1']
+                alpha = self.plotparams['legend_alpha1']
+            else:
+                fontsize = self.plotparams['legend_fontsize2']
+                enable_border =  self.plotparams['legend_border2']
+                alpha = self.plotparams['legend_alpha2']
+            
+            leg = a.legend(legend_lines, legend_labels, prop = FontProperties(size = fontsize), fancybox = True)
+            leg.get_frame().set_alpha(alpha)
+            
+            if not enable_border:
+                #leg.draw_frame(False)
+                leg.get_frame().set_linewidth(0)
+            else:
+                leg.get_frame().set_linewidth(1)
+                
             try:
                 leg.draggable()
             except AttributeError:

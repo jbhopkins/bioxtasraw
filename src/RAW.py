@@ -7076,6 +7076,10 @@ class LegendLabelChangeDialog(wx.Dialog):
     def getLegendLabel(self):
         return self._legend_label
 
+
+
+        
+
 class RebinDialog(wx.Dialog):
     
     def __init__(self, parent, *args, **kwargs):
@@ -7101,7 +7105,7 @@ class RebinDialog(wx.Dialog):
         
         self.SetSizer(top_sizer)
         self.Fit()
-     
+        self.CenterOnParent()
 
     def _onOkClicked(self, event):
         ret = int(self.choice.GetStringSelection())
