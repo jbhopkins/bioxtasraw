@@ -657,7 +657,7 @@ class PlotPanel(wx.Panel):
 
         sep = menu.AppendSeparator()
         legend_item = menu.AppendCheckItem(wx.NewId(), 'Show Legend')
-        
+        sep = menu.AppendSeparator()
         legend_options = menu.Append(wx.NewId(), 'Legend Options...')
         plot_options = menu.Append(wx.NewId(), 'Plot Options...')
         
