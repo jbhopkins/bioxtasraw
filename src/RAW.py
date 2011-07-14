@@ -7077,14 +7077,11 @@ class LegendLabelChangeDialog(wx.Dialog):
         return self._legend_label
 
 
-
-        
-
 class RebinDialog(wx.Dialog):
     
     def __init__(self, parent, *args, **kwargs):
         
-        wx.Dialog.__init__(self, parent, -1, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, 'Rebinning', *args, **kwargs)
         
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         

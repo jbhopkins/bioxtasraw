@@ -145,6 +145,74 @@ class LegendOptionsDialog(wx.Dialog):
 
         self.EndModal(wx.OK)
         
+class PlotOptionsDialog(wx.Dialog):
+    def __init__(self, parent, plotparams, selected_plot, *args, **kwargs):
+        
+        wx.Dialog.__init__(self, parent, -1, 'Plot Options' , *args, **kwargs)
+        
+        self.plotparams = plotparams
+        self.selected_plot = selected_plot
+        self.parent = parent
+                
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        title_txt = wx.StaticText(self, -1, 'Title :')
+        xlabel_txt = wx.StaticText(self, -1, 'x-axis label :')
+        ylabel_txt = wx.StaticText(self, -1, 'y-axis label :')
+        
+        
+        self.current_type = self.plotparams['plot' + str(self.selected_plot) + 'type']
+        old_title, old_xlabel, old_ylabel = parent.subplot_labels[self.current_type]
+        
+        self.title = wx.TextCtrl(self, -1, old_title)
+        self.xlabel = wx.TextCtrl(self, -1, old_xlabel)
+        self.ylabel = wx.TextCtrl(self, -1, old_ylabel)
+        
+        label_sizer = wx.FlexGridSizer(3, 2, hgap = 3)
+        
+        label_sizer.Add(title_txt, 1)
+        label_sizer.Add(self.title, 1)
+        label_sizer.Add(xlabel_txt, 1)
+        label_sizer.Add(self.xlabel, 1)
+        label_sizer.Add(ylabel_txt, 1)
+        label_sizer.Add(self.ylabel, 1)
+    
+        sizer.Add(label_sizer, 0)
+    
+        default_button = wx.Button(self, -1, 'Use Default')
+        default_button.Bind(wx.EVT_BUTTON, self._onDefaultButton)
+    
+        buttons = self.CreateButtonSizer(wx.OK | wx.CANCEL)
+        
+        self.Bind(wx.EVT_BUTTON, self._onOk, id = wx.ID_OK)
+        sizer.Add(default_button, 1, wx.GROW | wx.TOP, 5)
+        sizer.Add(buttons, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+        
+        top_sizer = wx.BoxSizer()
+        
+        top_sizer.Add(sizer,1, wx.ALL, 10)
+        
+        self.SetSizer(top_sizer)
+        self.Fit()
+        self.CenterOnParent()
+        
+    def _onDefaultButton(self, evt):
+        old_title, old_xlabel, old_ylabel = self.parent.default_subplot_labels[self.current_type]
+        
+        self.title.SetValue(old_title)
+        self.xlabel.SetValue(old_xlabel)
+        self.ylabel.SetValue(old_ylabel)
+    
+    def _onOk(self, event):        
+        
+        title = self.title.GetValue()
+        xlabel = self.xlabel.GetValue()
+        ylabel = self.ylabel.GetValue()
+        
+        self.parent.subplot_labels[self.current_type] = [title, xlabel, ylabel]
+
+        self.EndModal(wx.OK)
+        
 class CustomPlotToolbar(NavigationToolbar2Wx):
     def __init__(self, parent, canvas):
 
@@ -332,14 +400,22 @@ class PlotPanel(wx.Panel):
                                     'legend_fontsize2'    : 10,
                                     'legend_border2'      : True,
                                     'legend_alpha1'       : 0.7,
-                                    'legend_alpha2'       : 0.7}
-         
+                                    'legend_alpha2'       : 0.7,
+                                    'plot_custom_labels1' : False,
+                                    'plot_custom_labels2' : False}
+                                    
                         
-        self.subplot_labels = { 'subtracted'  : ('Subtracted', 'q [1/A]', 'I(q)'),
-                                'kratky'      : ('Kratky', 'q [1/A]', 'I(q)q^2'),
-                                'guinier'     : ('Guinier', 'q^2 [1/A^2]', 'ln(I(q)'),
-                                'porod'       : ('Porod', 'q [1/A]', 'I(q)q^4'),
-                                'normal'      : ('Main Plot', 'q [1/A]', 'I(q)')}
+        self.subplot_labels = { 'subtracted'  : ['Subtracted', 'q [1/A]', 'I(q)'],
+                                'kratky'      : ['Kratky', 'q [1/A]', 'I(q)q^2'],
+                                'guinier'     : ['Guinier', 'q^2 [1/A^2]', 'ln(I(q)'],
+                                'porod'       : ['Porod', 'q [1/A]', 'I(q)q^4'],
+                                'normal'      : ['Main Plot', 'q [1/A]', 'I(q)']}
+        
+        self.default_subplot_labels = { 'subtracted'  : ['Subtracted', 'q [1/A]', 'I(q)'],
+                                        'kratky'      : ['Kratky', 'q [1/A]', 'I(q)q^2'],
+                                        'guinier'     : ['Guinier', 'q^2 [1/A^2]', 'ln(I(q)'],
+                                        'porod'       : ['Porod', 'q [1/A]', 'I(q)q^4'],
+                                        'normal'      : ['Main Plot', 'q [1/A]', 'I(q)']}
         
             
         self._setLabels(axes = self.subplot1)
@@ -583,24 +659,37 @@ class PlotPanel(wx.Panel):
         legend_item = menu.AppendCheckItem(wx.NewId(), 'Show Legend')
         
         legend_options = menu.Append(wx.NewId(), 'Legend Options...')
+        plot_options = menu.Append(wx.NewId(), 'Plot Options...')
         
         if self.plotparams['legend_visible'+ '_' + str(selected_plot)]:
             legend_item.Check()
             
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
         self.Bind(wx.EVT_MENU, self._onToggleLegend, legend_item)
-        self.Bind(wx.EVT_MENU, self._onLegendOptions, legend_options)    
+        self.Bind(wx.EVT_MENU, self._onLegendOptions, legend_options)
+        self.Bind(wx.EVT_MENU, self._onPlotOptions, plot_options)    
             
         
         self.PopupMenu(menu)
+    
+    def _onPlotOptions(self, evt):
+        dlg = PlotOptionsDialog(self, self.plotparams, self.selected_plot)
+        dlg.ShowModal()
+        dlg.Destroy()
         
+        if self.selected_plot == 1:
+            axes = self.subplot1
+        else:
+            axes = self.subplot2
+        
+        self.updatePlotType(axes)
+    
     def _onLegendOptions(self, evt):
         dlg = LegendOptionsDialog(self, self.plotparams, self.selected_plot)
         dlg.ShowModal()
         dlg.Destroy()
         
         self.updateLegend(self.selected_plot)
-        
         
     def _onPopupMenuChoice(self, evt):
         mainframe = wx.FindWindowByName('MainFrame')
@@ -977,6 +1066,12 @@ class IftPlotPanel(PlotPanel):
          
                         
         self.subplot_labels = { 'subtracted'  : ('Fit', 'q [1/A]', 'I(q)'),
+                                'kratky'      : ('Kratky', 'q [1/A]', 'I(q)q^2'),
+                                'porod'       : ('Porod', 'q [1/A]', 'I(q)q^4'),
+                                'guinier'     : ('Guinier', 'q^2 [1/A^2]', 'ln(I(q)'),
+                                'normal'        : ('Pair Distance Distribution Function', 'r [nm]', 'P(r)')}
+        
+        self.default_subplot_labels = { 'subtracted'  : ('Fit', 'q [1/A]', 'I(q)'),
                                 'kratky'      : ('Kratky', 'q [1/A]', 'I(q)q^2'),
                                 'porod'       : ('Porod', 'q [1/A]', 'I(q)q^4'),
                                 'guinier'     : ('Guinier', 'q^2 [1/A^2]', 'ln(I(q)'),
