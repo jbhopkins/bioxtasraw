@@ -10,6 +10,7 @@ import os, copy
 import SASCalib, SASExceptions
 from math import pi, sin
 
+
 class SASM:
     '''
         Small Angle Scattering Measurement (SASM) Object.

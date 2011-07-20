@@ -31,7 +31,7 @@ import wx.grid as gridlib
 from numpy import ceil
 
 import wx.aui as aui
-import RAWPlot, RAWImage, RAWOptions, RAWSettings, RAWCustomCtrl, RAWAnalysis
+import RAWPlot, RAWImage, RAWOptions, RAWSettings, RAWCustomCtrl, RAWAnalysis, BIFT
 import SASFileIO, SASM, SASExceptions, SASImage
 import matplotlib.colors as mplcol
 import wx.lib.colourchooser as colorchooser
@@ -664,6 +664,11 @@ class MainWorkerThread(threading.Thread):
         self.image_panel = wx.FindWindowByName('ImagePanel')
         self.main_frame = wx.FindWindowByName('MainFrame')
         
+        
+        self.ift_plot_panel = wx.FindWindowByName('IFTPlotPanel')
+        
+        self.ift_item_panel = wx.FindWindowByName('IFTPanel')
+        
         self._commands = {'plot' : self._loadAndPlot,
                                     'show_image'            : self._loadAndShowImage,
                                     'subtract_filenames'    : self._subtractFilenames,
@@ -681,7 +686,8 @@ class MainWorkerThread(threading.Thread):
                                     'superimpose_items'     : self._superimposeItems,
                                     'save_analysis_info'    : self._saveAnalysisInfo,
                                     'merge_items'           : self._mergeItems,
-                                    'rebin_items'           : self._rebinItems}
+                                    'rebin_items'           : self._rebinItems,
+                                    'ift'                   : self._runIft}
          
         
     def run(self):
@@ -702,6 +708,15 @@ class MainWorkerThread(threading.Thread):
     def _cleanUpAfterAbort(self):
         pass
     
+    def _sendSASMToIFTPlot(self, sasm, axes_num = 1, item_colour = 'black', line_color = None, no_update = False):
+        wx.CallAfter(self.ift_plot_panel.plotSASM, sasm, axes_num, color = line_color)
+        
+        if no_update == False:
+            wx.CallAfter(self.ift_plot_panel.fitAxis)
+                    
+        wx.CallAfter(self.ift_item_panel.addItem, sasm, item_colour)
+                
+        
     def _sendSASMToPlot(self, sasm, axes_num = 1, item_colour = 'black', line_color = None, no_update = False):
         wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num, color = line_color)
         
@@ -740,6 +755,28 @@ class MainWorkerThread(threading.Thread):
 
         wx.CallAfter(self.main_frame.closeBusyDialog) 
         question_return_queue.put(abs_scale_constant)
+        
+        
+    def _runIft(self, data):
+        algo = data[0]
+        selected_items = data[1]
+        
+        sasm = selected_items[0].getSASM()
+        
+        old_filename = sasm.getParameter('filename')
+        
+        ift_sasm = BIFT.doBift(sasm, 50,  1e10, 10.0, 16, 200, 10, 20)
+        
+        new_filename = 'B_' + old_filename
+        
+        ift_sasm.setParameter('filename', new_filename)
+        
+        self._sendSASMToIFTPlot(ift_sasm)
+        #doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
+        
+        wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 1)
+        
+        
          
     def _saveMaskFile(self, data):
         
@@ -892,7 +929,7 @@ class MainWorkerThread(threading.Thread):
         bogus_sasm= SASM.SASM([0,1], [0,1], [0,1], parameters)
         
         self._sendImageToDisplay(img, bogus_sasm)
-        wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 1)
+        wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 2)
         file_list = wx.FindWindowByName('FileListCtrl')
         wx.CallAfter(file_list.SetFocus)
         wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -4110,8 +4147,8 @@ class IFTItemPanel(wx.Panel):
         self.main_frame = wx.FindWindowByName('MainFrame')
         self.ift_panel = wx.FindWindowByName('IFTPanel')
         self.iftctrl_panel = wx.FindWindowByName('IFTControlPanel')
-        
         self.info_panel = wx.FindWindowByName('InformationPanel')
+        
         self.info_settings = {'hdr_choice' : 0}
         
         self._selected_as_bg = False
@@ -4133,8 +4170,8 @@ class IFTItemPanel(wx.Panel):
                                        
         self.qmax = len(self.sasm.q)
                              
-        self.spin_controls = (("q Min:", wx.NewId(), wx.NewId(), (1, self.qmax-1), 'nlow'),        
-                             ("q Max:", wx.NewId(), wx.NewId(), (2, self.qmax), 'nhigh'))
+        self.spin_controls = (("r Min:", wx.NewId(), wx.NewId(), (1, self.qmax-1), 'nlow'),        
+                             ("r Max:", wx.NewId(), wx.NewId(), (2, self.qmax), 'nhigh'))
         
         self.float_spin_controls = (
                                    # ("Conc:", wx.NewId(), 'conc', '1.0', self._onScaleOffsetChange),
@@ -4957,15 +4994,19 @@ class IFTControlPanel(wx.Panel):
                 
             elif type == 'algo':
                 labelbox = wx.StaticText(self, -1, label)
-                ctrl = wx.Choice(self, id, size = (80,20), choices = ['BIFT', 'GNOM', 'Manual'])
-                ctrl.Select(0)
+                self.algo_choice = wx.Choice(self, id, size = (80,20), choices = ['BIFT', 'GNOM', 'Manual'])
+                self.algo_choice.Select(0)
+                
                 #ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onSpinChange)
+                
                 button = wx.Button(self, -1, 'Run')
                 button2 = wx.Button(self, -1, 'Settings')
                 
-                
+                button2.Bind(wx.EVT_BUTTON, self._onSettingsButton)
+                button.Bind(wx.EVT_BUTTON, self._onRunButton)
+                   
                 sizer.Add(labelbox, 0, wx.ALIGN_CENTER_VERTICAL)
-                sizer.Add(ctrl, 0, wx.ALIGN_CENTER)
+                sizer.Add(self.algo_choice, 0, wx.ALIGN_CENTER)
                 sizer.Add(button, 0, wx.ALIGN_CENTER)
                 sizer.Add(button2, 0, wx.ALIGN_CENTER)
             
@@ -4978,14 +5019,14 @@ class IFTControlPanel(wx.Panel):
             
             elif type == 'ctrl':
                 labelbox = wx.StaticText(self, -1, label)
-                ctrl = RAWCustomCtrl.FloatSpinCtrl(self, id)
+                ctrl = RAWCustomCtrl.FloatSpinCtrl(self, id, TextLength = 60)
                 ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onSpinChange)
                 sizer.Add(labelbox, 0, wx.ALIGN_CENTER)
                 sizer.Add(ctrl, 0, wx.ALIGN_CENTER)
                 
             elif type == 'intctrl':
                 labelbox = wx.StaticText(self, -1, label)
-                ctrl = RAWCustomCtrl.IntSpinCtrl(self, id, 1)
+                ctrl = RAWCustomCtrl.IntSpinCtrl(self, id, 1, TextLength = 60)
                 ctrl.SetValue(80)
                 ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onSpinChange)
                 sizer.Add(labelbox, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -4998,8 +5039,24 @@ class IFTControlPanel(wx.Panel):
                 sizer.Add(labelbox, 0)
                 sizer.Add(ctrl, 0, wx.ALIGN_CENTER)
                 
-        return sizer    
+        return sizer   
     
+    def _onSettingsButton(self, evt):
+        pass
+    
+    
+    
+    def _onRunButton(self, evt):    
+        selected_algo = self.algo_choice.GetStringSelection()
+        
+        selected_items = self.ift_panel.getSelectedItems()
+        
+        if len(selected_items) > 0:
+            mainworker_cmd_queue.put(['ift', [selected_algo, selected_items]])
+        
+        
+        
+        
     def _onSpinChange(self, evt):
         
         if evt.GetId() == self.parent.paramsInGui['Qmin'][0]:

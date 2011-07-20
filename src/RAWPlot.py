@@ -1049,21 +1049,6 @@ class IftPlotPanel(PlotPanel):
         
         PlotPanel.__init__(self, parent, id, name,*args, **kwargs)
 
-           
-        self.plotparams = {'axesscale1'          : 'linlin',
-                            'axesscale2'          : 'linlin',
-                            'plot1type'           : 'normal',
-                            'plot2type'           : 'subtracted',
-                            'plot1state'          : 'linlin',
-                            'errorbars_on'        : False,
-                            'autoLegendPos'       : True,
-                            'subplot1_legend_pos' : None,
-                            'subplot2_legend_pos' : None,
-                            'legend_position'     : (0.5,0.5),
-                            'legend_visible_1' : True,
-                            'legend_visible_2' : True,
-                            'legend_fontsize'  : 10}
-         
                         
         self.subplot_labels = { 'subtracted'  : ('Fit', 'q [1/A]', 'I(q)'),
                                 'kratky'      : ('Kratky', 'q [1/A]', 'I(q)q^2'),

@@ -28,10 +28,9 @@ from numpy import *
 #import random
 #import matplotlib.axes3d as p3
 
-import cartToPol
 import time#, random
-#import bift_ext
-#import transmatrix_ext
+import bift_ext, transmatrix_ext, SASM
+
 
 
 def C_seeksol(I_exp, m, q, sigma, alpha, dmax, T):
@@ -94,182 +93,182 @@ def C_seeksol(I_exp, m, q, sigma, alpha, dmax, T):
     
     alpha = float(alpha)              # Important! otherwise C code will crash
     
-#    s = bift_ext.bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold)
+    s = bift_ext.bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold)
     
     # ********************** C++ CODE *******************************
 
 #    mod = ext_tools.ext_module('bift_ext')
-    
-    code = """
-    #include <iostream.h>
-    #include <math.h>
-  
-    py::object sout;
-    
-    // Initiate Variables
-    int ite = 0;
-  
-    double s = 0,
-          wgrads = 0,
-          wgradc = 0,
-          gradci = 0,
-          gradsi = 0;
-
-    while( ite < maxit && omega > omegamin && fabs(1-dotsp) > dotsptol || (ite < minit) )
-    {
-            if (ite != 0)
-            {
-                /* Calculating smoothness constraint vector m */
-            
-                for(int k = 1; k < N-1; k++)
-                {
-                     m(0, k) =  ((P(0,k-1) + P(0,k+1)) / 2.0);
-                }
-                
-                m(0,0) =  P(0,1) / 2.0;
-                m(0,N-1) =  P(0,N-2) /2.0;
-                
-   
-                /* This calculates the Matrix Psumi */
-                
-                for(int j = 0; j < N; j++)
-                    for(int k = 0; k < N; k++)
-                        Psumi(0,j) = Psumi(0,j) + P(0,k) * Bmat(k,j);
-    
-               // cout << "    " << Psumi(0,50);
-    
-               /* Now calculating dP, and updating P */
-        
-                for(int k = 0; k < N; k++)
-                {        
-                    dP(0,k) = ( m(0,k) * alpha + sum_dia(0,k) - Psumi(0,k) ) / (bkk(0,k) + alpha);      /* ATTENTION! remember C division!, if its all int's then it will be a int result! .. maybe cast it to float()? */
-                    
-                    Psumi(0,k) = 0;    // Reset values in Psumi for next iteration..otherwise Psumi = Psumi + blah will be wrong!
-        
-                    Pold(0,k) = P(0,k);
-         
-                    P(0,k) = (1-omega) * P(0,k) + omega * dP(0,k);
-                    
-                    /* Pin first and last point to zero! */
-    
-                    //P(0,0) = 0.0;
-                    //P(0,N-1) = 0.0;
-                }    
-      
-                //cout << "    " << m(0,50);
-                //cout << "    " << P(0,50);
-                //cout << "    " << dP(0,50);
-                //cout << " | ";
-        
-            } // end if ite != 0
-        
-      
- 
-       ite = ite + 1;
-    
-       /* Calculating Dotsp */
-      
-       dotsp = 0;
-       wgrads = 0;
-       wgradc = 0;
-       s = 0;
-       for(int k = 0; k < N; k++)
-       {
-             s = s - pow( P(0,k) - m(0,k) , 2);                        // sum(-power((P-m),2))
-             
-             gradsi = -2*( P(0,k) - m(0,k) );                            // gradsi = (-2*(P-m))
-             wgrads = wgrads + pow(gradsi, 2);
-       
-             gradci = 0;
-             for(int j = 0; j < N; j++)
-             {
-                 gradci = gradci + 2*( P(0,j) * B(j,k) );     
-             }
-             gradci = gradci - 2*sum_dia(0,k);
-            
-             wgradc = wgradc + pow(gradci , 2);
-             dotsp = dotsp + (gradci * gradsi);
-       }
-      
-//      cout << dotsp;
-//      cout << "    " << wgrads;
-//      cout << "    " << wgradc;
-//      cout << "    " << s;
-//      cout << " | ";
-  
-  
-       /* internal loop to reduce search step (omega) when it's too large */
-         
-       while( dotsp < 0 && double(alpha) < double(bkkmax) && ite > 1 && omega > omegamin)
-       {
-                omega = omega / omegareduction;
-                
-                /* Updating P */
-                 
-                for(int k = 0; k < N; k++)
-                {
-                    P(0,k) = (1-omega) * Pold(0,k) + omega * dP(0,k);
-                }
-                
-                /* Calculating Dotsp */
-                
-                dotsp = 0;
-                wgrads = 0;
-                wgradc = 0;
-                s = 0;
-                for(int k = 0; k < N; k++)
-                {
-                    s = s - pow( P(0,k)-m(0,k) , 2);                        // sum(-power((P-m),2))     
-                    gradsi = -2*(P(0,k)-m(0,k));                            // gradsi = (-2*(P-m))
-                    wgrads = wgrads + pow(gradsi, 2);
-            
-                    gradci = 0;
-                    for(int j = 0; j < N; j++)
-                    {
-                        gradci = gradci + 2*( P(0,j) * B(j,k));     
-                    }
-                    gradci = gradci - 2*sum_dia(0,k);
-                      
-                    wgradc = wgradc + pow(gradci , 2);
-                    dotsp = dotsp + (gradci * gradsi);
-                }    
-                
-       } // end inner whileloop
-     
-        
-       if(wgrads == 0 || wgradc == 0)
-       {
-            dotsp = 1;
-       }
-       else
-       {
-            wgrads = std::sqrt(wgrads);
-            wgradc = std::sqrt(wgradc);
-            dotsp = dotsp / (wgrads * wgradc);
-       }
-     
-          
-    } // end Outer while loop
-    
-    
-    // cout << "ite C: " << ite;
-    // cout << "alpha: " << double(alpha);
-    // cout << "omega: " << omega;
-    //cout << ",   m: " << m(0,20);
-    //cout << ",   dotsp C: " << dotsp;
-    //cout << ",   dP:" << dP(0,20);
-    //cout << "cnt:" << cnt;
-    //cout << ",   wgrads C: " << wgrads;
-    //cout << ",   wgradc C: " << wgradc;
-    
-    
-    //tst(0,1) = wgradc;
-    sout = s;
-    return_val = sout;
-    """
-
-    s = weave.inline(code,['dotsp', 'dotsptol', 'maxit', 'minit', 'bkkmax', 'omega', 'omegamin', 'omegareduction', 'B', 'N', 'm', 'P', 'Psumi', 'Bmat', 'alpha', 'sum_dia', 'bkk', 'dP', 'Pold'], type_converters = converters.blitz, compiler = "gcc")
-    # ***************************************************************
+#    
+#    code = """
+#    #include <iostream.h>
+#    #include <math.h>
+#  
+#    py::object sout;
+#    
+#    // Initiate Variables
+#    int ite = 0;
+#  
+#    double s = 0,
+#          wgrads = 0,
+#          wgradc = 0,
+#          gradci = 0,
+#          gradsi = 0;
+#
+#    while( ite < maxit && omega > omegamin && fabs(1-dotsp) > dotsptol || (ite < minit) )
+#    {
+#            if (ite != 0)
+#            {
+#                /* Calculating smoothness constraint vector m */
+#            
+#                for(int k = 1; k < N-1; k++)
+#                {
+#                     m(0, k) =  ((P(0,k-1) + P(0,k+1)) / 2.0);
+#                }
+#                
+#                m(0,0) =  P(0,1) / 2.0;
+#                m(0,N-1) =  P(0,N-2) /2.0;
+#                
+#   
+#                /* This calculates the Matrix Psumi */
+#                
+#                for(int j = 0; j < N; j++)
+#                    for(int k = 0; k < N; k++)
+#                        Psumi(0,j) = Psumi(0,j) + P(0,k) * Bmat(k,j);
+#    
+#               // cout << "    " << Psumi(0,50);
+#    
+#               /* Now calculating dP, and updating P */
+#        
+#                for(int k = 0; k < N; k++)
+#                {        
+#                    dP(0,k) = ( m(0,k) * alpha + sum_dia(0,k) - Psumi(0,k) ) / (bkk(0,k) + alpha);      /* ATTENTION! remember C division!, if its all int's then it will be a int result! .. maybe cast it to float()? */
+#                    
+#                    Psumi(0,k) = 0;    // Reset values in Psumi for next iteration..otherwise Psumi = Psumi + blah will be wrong!
+#        
+#                    Pold(0,k) = P(0,k);
+#         
+#                    P(0,k) = (1-omega) * P(0,k) + omega * dP(0,k);
+#                    
+#                    /* Pin first and last point to zero! */
+#    
+#                    //P(0,0) = 0.0;
+#                    //P(0,N-1) = 0.0;
+#                }    
+#      
+#                //cout << "    " << m(0,50);
+#                //cout << "    " << P(0,50);
+#                //cout << "    " << dP(0,50);
+#                //cout << " | ";
+#        
+#            } // end if ite != 0
+#        
+#      
+# 
+#       ite = ite + 1;
+#    
+#       /* Calculating Dotsp */
+#      
+#       dotsp = 0;
+#       wgrads = 0;
+#       wgradc = 0;
+#       s = 0;
+#       for(int k = 0; k < N; k++)
+#       {
+#             s = s - pow( P(0,k) - m(0,k) , 2);                        // sum(-power((P-m),2))
+#             
+#             gradsi = -2*( P(0,k) - m(0,k) );                            // gradsi = (-2*(P-m))
+#             wgrads = wgrads + pow(gradsi, 2);
+#       
+#             gradci = 0;
+#             for(int j = 0; j < N; j++)
+#             {
+#                 gradci = gradci + 2*( P(0,j) * B(j,k) );     
+#             }
+#             gradci = gradci - 2*sum_dia(0,k);
+#            
+#             wgradc = wgradc + pow(gradci , 2);
+#             dotsp = dotsp + (gradci * gradsi);
+#       }
+#      
+#//      cout << dotsp;
+#//      cout << "    " << wgrads;
+#//      cout << "    " << wgradc;
+#//      cout << "    " << s;
+#//      cout << " | ";
+#  
+#  
+#       /* internal loop to reduce search step (omega) when it's too large */
+#         
+#       while( dotsp < 0 && double(alpha) < double(bkkmax) && ite > 1 && omega > omegamin)
+#       {
+#                omega = omega / omegareduction;
+#                
+#                /* Updating P */
+#                 
+#                for(int k = 0; k < N; k++)
+#                {
+#                    P(0,k) = (1-omega) * Pold(0,k) + omega * dP(0,k);
+#                }
+#                
+#                /* Calculating Dotsp */
+#                
+#                dotsp = 0;
+#                wgrads = 0;
+#                wgradc = 0;
+#                s = 0;
+#                for(int k = 0; k < N; k++)
+#                {
+#                    s = s - pow( P(0,k)-m(0,k) , 2);                        // sum(-power((P-m),2))     
+#                    gradsi = -2*(P(0,k)-m(0,k));                            // gradsi = (-2*(P-m))
+#                    wgrads = wgrads + pow(gradsi, 2);
+#            
+#                    gradci = 0;
+#                    for(int j = 0; j < N; j++)
+#                    {
+#                        gradci = gradci + 2*( P(0,j) * B(j,k));     
+#                    }
+#                    gradci = gradci - 2*sum_dia(0,k);
+#                      
+#                    wgradc = wgradc + pow(gradci , 2);
+#                    dotsp = dotsp + (gradci * gradsi);
+#                }    
+#                
+#       } // end inner whileloop
+#     
+#        
+#       if(wgrads == 0 || wgradc == 0)
+#       {
+#            dotsp = 1;
+#       }
+#       else
+#       {
+#            wgrads = std::sqrt(wgrads);
+#            wgradc = std::sqrt(wgradc);
+#            dotsp = dotsp / (wgrads * wgradc);
+#       }
+#     
+#          
+#    } // end Outer while loop
+#    
+#    
+#    // cout << "ite C: " << ite;
+#    // cout << "alpha: " << double(alpha);
+#    // cout << "omega: " << omega;
+#    //cout << ",   m: " << m(0,20);
+#    //cout << ",   dotsp C: " << dotsp;
+#    //cout << ",   dP:" << dP(0,20);
+#    //cout << "cnt:" << cnt;
+#    //cout << ",   wgrads C: " << wgrads;
+#    //cout << ",   wgradc C: " << wgradc;
+#    
+#    
+#    //tst(0,1) = wgradc;
+#    sout = s;
+#    return_val = sout;
+#    """
+#
+#    s = weave.inline(code,['dotsp', 'dotsptol', 'maxit', 'minit', 'bkkmax', 'omega', 'omegamin', 'omegareduction', 'B', 'N', 'm', 'P', 'Psumi', 'Bmat', 'alpha', 'sum_dia', 'bkk', 'dP', 'Pold'], type_converters = converters.blitz, compiler = "gcc")
+#    # ***************************************************************
     
     #biftext = ext_tools.ext_function('bift', code, ['dotsp', 'dotsptol', 'maxit', 'minit', 'bkkmax', 'omega', 'omegamin', 'omegareduction', 'B', 'N', 'm', 'P', 'Psumi', 'Bmat', 'alpha', 'sum_dia', 'bkk', 'dP', 'Pold'], type_converters = converters.blitz)   
     #mod.add_function(biftext)
@@ -304,7 +303,7 @@ def GetEvidence(alpha, dmax, Ep, N):
     print 'Alpha : ' ,alpha
     print 'Dmax  : ' , dmax
     
-    Pout, evd, c  = C_seeksol(Ep.i, P, Ep.q, Ep.errorbars, alpha, dmax, T)
+    Pout, evd, c  = C_seeksol(Ep.i, P, Ep.q, Ep.err, alpha, dmax, T)
         
     return -evd, c, Pout
 
@@ -318,7 +317,7 @@ def SingleSolve(alpha, dmax, Ep, N):
     T = createTransMatrix(Ep.q, r)
     P = makePriorDistDistribution(Ep, N, dmaxfin, T, 'sphere', Ep.q)
     
-    Pr, post, c = C_seeksol(Ep.i, P, Ep.q, Ep.errorbars, alphafin, dmaxfin, T)
+    Pr, post, c = C_seeksol(Ep.i, P, Ep.q, Ep.err, alphafin, dmaxfin, T)
 
     # Reconstructed Fit line
     Fit = dot(Pr, transpose(T))
@@ -379,13 +378,14 @@ def SingleSolve(alpha, dmax, Ep, N):
                 'dmax' : dmaxfin,
                 'orig_i' : Ep.i,
                 'orig_q' : Ep.q,
-                'orig_err': Ep.errorbars,
+                'orig_err': Ep.err,
                 'I0' : I0,
                 'ChiSquared' : c,
                 'Rg' : Rg,
                 'post':post}
         
-    ExpObj = cartToPol.BIFTMeasurement(transpose(Pr), r, ones((len(transpose(Pr)),1)), Ep.param, Fit, plotinfo)
+    #ExpObj = cartToPol.BIFTMeasurement(transpose(Pr), r, ones((len(transpose(Pr)),1)), Ep.param, Fit, plotinfo)
+    ExpObj= None
 
     return ExpObj
     
@@ -403,7 +403,7 @@ def fineGetEvidence(data, Ep, N):
     print alpha
     print dmax
     
-    Pout, evd, c  = C_seeksol(Ep.i, P, Ep.q, Ep.errorbars, alpha, dmax, T)
+    Pout, evd, c  = C_seeksol(Ep.i, P, Ep.q, Ep.err, alpha, dmax, T)
         
     return -evd
 
@@ -496,7 +496,7 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
     T = createTransMatrix(Ep.q, r)
     P = makePriorDistDistribution(Ep, N, dmaxfin, T, 'sphere', Ep.q)
     
-    Pr, post, c = C_seeksol(Ep.i, P, Ep.q, Ep.errorbars, alphafin, dmaxfin, T)
+    Pr, post, c = C_seeksol(Ep.i, P, Ep.q, Ep.err, alphafin, dmaxfin, T)
 
     # Reconstructed Fit line
     Fit = dot(Pr, transpose(T))
@@ -549,22 +549,26 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
     Pr = transpose(Pr)
     
     # Save all information from the search
-    plotinfo = {'dmax_points' : dmax_points,
+    bift_info = {'dmax_points' : dmax_points,
                 'alpha_points' : alpha_points,
                 'all_posteriors' : all_posteriors,
                 'alpha' : alphafin,
                 'dmax' : dmaxfin,
                 'orig_i' : Ep.i,
                 'orig_q' : Ep.q,
-                'orig_err': Ep.errorbars,
+                'orig_err': Ep.err,
                 'I0' : I0,
                 'ChiSquared' : c,
-                'Rg' : Rg}
+                'Rg' : Rg,
+                'fit' : Fit}
     
-    ExpObj = cartToPol.BIFTMeasurement(transpose(Pr), r, ones((len(transpose(Pr)),1)), Ep.param, Fit, plotinfo)
-
+    ift_sasm = SASM.SASM(transpose(Pr), r, ones(len(transpose(Pr))), bift_info) 
+    
     #return Out, Pout, r, Ep.i, plotinfo
-    return ExpObj
+    return ift_sasm
+
+    
+
 
 def pinnedFineSearch(Ep, N, alpha, dmax):
     
@@ -743,10 +747,10 @@ def createTransMatrix(q, r):
 
 def makePriorDistDistribution(E, N, dmax, T, type = 'sphere', q = None):
 
-    if isinstance(E, cartToPol.Measurement):
-        scale_factor = E.i[0]
-    else:
-        scale_factor = E.i[0]
+#    if isinstance(E, cartToPol.Measurement):
+#        scale_factor = E.i[0]
+#    else:
+    scale_factor = E.i[0]
     
     priorTypes = {'sphere' : distDistribution_Sphere}
     
@@ -860,7 +864,7 @@ class test:
     def __init__(self, q, I, err):
         self.q = q
         self.i = I
-        self.errorbars = err
+        self.err = err
         self.param = {}
     
     
