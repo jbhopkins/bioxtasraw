@@ -713,9 +713,10 @@ class MainWorkerThread(threading.Thread):
         
         if no_update == False:
             wx.CallAfter(self.ift_plot_panel.fitAxis)
-                    
+        
+        wx.CallAfter(self.ift_plot_panel.updateLegend, 1)
         wx.CallAfter(self.ift_item_panel.addItem, sasm, item_colour)
-                
+        
         
     def _sendSASMToPlot(self, sasm, axes_num = 1, item_colour = 'black', line_color = None, no_update = False):
         wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num, color = line_color)
@@ -765,18 +766,38 @@ class MainWorkerThread(threading.Thread):
         
         old_filename = sasm.getParameter('filename')
         
-        ift_sasm = BIFT.doBift(sasm, 50,  1e10, 10.0, 16, 200, 10, 20)
+        #pop up status dialog
+        
+        try:
+            ift_sasm = BIFT.doBift(sasm, 50, 1e10, 10.0, 16, 200, 10, 20)
+            
+        except UnboundLocalError, e:
+            wx.MessageBox('BIFT Search Failed...', 'Solution Search Failure')
+            print 'doBift error: ',
+            print e
+            
+            statusdlg = wx.FindWindowByName('BIFTStatusDlg')
+            if statusdlg != None:
+                wx.CallAfter(statusdlg.OnClose, 1)    
+            return
+        
+        if ift_sasm == None:
+            statusdlg = wx.FindWindowByName('BIFTStatusDlg')
+            if statusdlg != None:
+                wx.CallAfter(statusdlg.OnClose, 1)
+            return
+        
+        statusdlg = wx.FindWindowByName('BIFTStatusDlg')
+        
+        if statusdlg != None:
+            wx.CallAfter(statusdlg.OnClose, 1)
         
         new_filename = 'B_' + old_filename
-        
         ift_sasm.setParameter('filename', new_filename)
-        
         self._sendSASMToIFTPlot(ift_sasm)
+        
         #doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
-        
-        wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 1)
-        
-        
+        wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 1)        
          
     def _saveMaskFile(self, data):
         
@@ -3584,8 +3605,8 @@ class IFTPanel(wx.Panel):
         sasm.item_panel = newItem
         
         
-        self.iftplot_panel.plotSASM(sasm, 2)
-        self.iftplot_panel.canvas.draw()
+        #self.iftplot_panel.plotSASM(sasm, 2)
+        #self.iftplot_panel.canvas.draw()
         
         self.deselectAllExceptOne(newItem)
         newItem.toggleSelect()
@@ -4028,8 +4049,11 @@ class IFTPanel(wx.Panel):
         if selected_file:
        
             sasm, img = SASFileIO.loadFile(selected_file, self.raw_settings)
-                        
-            self.addItem(sasm)
+            
+            try:        
+                self.addItem(sasm)
+            except Exception:
+                print 'WARNING!! Error in _OnLoadFile!!'
             
  
     def _CreateFileDialog(self, mode):
@@ -4148,6 +4172,7 @@ class IFTItemPanel(wx.Panel):
         self.ift_panel = wx.FindWindowByName('IFTPanel')
         self.iftctrl_panel = wx.FindWindowByName('IFTControlPanel')
         self.info_panel = wx.FindWindowByName('InformationPanel')
+        self.ift_plot_panel = wx.FindWindowByName('IFTPlotPanel')
         
         self.info_settings = {'hdr_choice' : 0}
         
@@ -4258,7 +4283,7 @@ class IFTItemPanel(wx.Panel):
         controls_not_shown = True
         if controls_not_shown:
             self.showControls(not controls_not_shown)
-        
+               
     
     def updateInfoTip(self, analysis_dict, fromGuinierDialog = False):
         
@@ -4426,7 +4451,7 @@ class IFTItemPanel(wx.Panel):
         
         if self._legend_label == '':
             self.sasm.line.set_label(filename)
-        self.plot_panel.updateLegend(self.sasm.axes)
+        self.ift_plot_panel.updateLegend(self.sasm.axes)
         self.SelectedForPlot.SetLabel(str(filename))
         self.SelectedForPlot.Refresh()
         self.topsizer.Layout()
@@ -5019,14 +5044,14 @@ class IFTControlPanel(wx.Panel):
             
             elif type == 'ctrl':
                 labelbox = wx.StaticText(self, -1, label)
-                ctrl = RAWCustomCtrl.FloatSpinCtrl(self, id, TextLength = 60)
+                ctrl = RAWCustomCtrl.FloatSpinCtrl(self, id, TextLength = 80)
                 ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onSpinChange)
                 sizer.Add(labelbox, 0, wx.ALIGN_CENTER)
                 sizer.Add(ctrl, 0, wx.ALIGN_CENTER)
                 
             elif type == 'intctrl':
                 labelbox = wx.StaticText(self, -1, label)
-                ctrl = RAWCustomCtrl.IntSpinCtrl(self, id, 1, TextLength = 60)
+                ctrl = RAWCustomCtrl.IntSpinCtrl(self, id, 1, TextLength = 80)
                 ctrl.SetValue(80)
                 ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onSpinChange)
                 sizer.Add(labelbox, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -5053,9 +5078,17 @@ class IFTControlPanel(wx.Panel):
         
         if len(selected_items) > 0:
             mainworker_cmd_queue.put(['ift', [selected_algo, selected_items]])
+            
+            dlg = IFTSearchStatusDialog(self, -1)    
+            dlg.ShowModal()
+            dlg.Destroy()
         
         
         
+        
+        
+    def onUpdateTimer(self, evt):
+        print 'TIMER!'
         
     def _onSpinChange(self, evt):
         
@@ -5105,10 +5138,29 @@ class IFTControlPanel(wx.Panel):
             sasm = items[0].getSASM()
             filename = sasm.getParameter('filename')
             self.filename_label.SetLabel(str(filename))
+            
+            D = wx.FindWindowById(self.parent.paramsInGui['Dmax'][0])
+            if sasm.getAllParameters().has_key('dmax'):
+                D.SetValue(str(sasm.getParameter('dmax')))
+            else:
+                D.SetValue('N/A')
+                
+                
+            A = wx.FindWindowById(self.parent.paramsInGui['Alpha'][0])
+            if sasm.getAllParameters().has_key('alpha'):
+                A.SetValue(str(sasm.getParameter('alpha')))
+            else:
+                A.SetValue('N/A')
+            
+            
         elif len(items) > 1:
             self.filename_label.SetLabel('Multiple Selections')
         else:
             self.clearInfo()
+        
+        
+        
+        
         
     def clearInfo(self):
         self.filename_label.SetLabel('')
@@ -6463,6 +6515,102 @@ class SaveAnalysisInfoPanel(wx.Panel):
 
         
 #----- **** Dialogs ****
+
+class IFTSearchStatusDialog(wx.Dialog):
+     def __init__(self, parent, id):
+        wx.Dialog.__init__(self, parent, id, 'BIFT Search', name = 'BIFTStatusDlg', size = (250,200))
+        
+        self.widget_data = [
+          ('evidence', 'Evidence :', wx.NewId()),
+          ('chi', 'Chi :', wx.NewId()),
+          ('alpha', 'Alpha :', wx.NewId()),
+          ('dmax', 'Dmax :', wx.NewId()),
+          ('cur_point', 'Current search point :', wx.NewId()),
+          ('tot_points', 'Total search points :', wx.NewId())]
+         
+        button = wx.Button(self, -1, 'Cancel')
+        button.Bind(wx.EVT_BUTTON, self._onCancel)
+        
+        self.status_text = wx.StaticText(self, -1, 'Performing grid search')
+        
+        self.count = 0
+        self.timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.onStatusTimer, self.timer)
+        self.timer.Start(250)
+        
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        sizer = self.createDataWidgets()
+        
+        top_sizer.Add(sizer, 0, wx.ALL, 10)
+        top_sizer.Add(self.status_text, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
+        top_sizer.Add(button, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
+        
+        self.SetSizer(top_sizer)
+     
+     def _onCancel(self, evt):
+         BIFT.cancel_bift = True
+         self.timer.Stop()
+     
+     def createDataWidgets(self):
+         
+         sizer = wx.FlexGridSizer(cols = 2, rows = len(self.widget_data), vgap = 3, hgap = 5)
+         
+         for each in self.widget_data:
+             label = each[1]
+             id = each[2]
+             
+             sizer.Add(wx.StaticText(self, -1, label), 1)
+             sizer.Add(wx.StaticText(self, id, ''), 1)
+             
+         return sizer
+         
+     def updateData(self, status_data, fine_tune = False):
+         for each in self.widget_data:
+             key = each[0]
+             id = each[2]
+             txt = wx.FindWindowById(id)
+            
+             txt.SetLabel(str(status_data[key]))
+             
+         if fine_tune:
+             self.status_text.SetLabel('Finetuning solution')
+             
+     def onStatusTimer(self, evt):
+         self.count = self.count + 1
+         
+         if self.count == 5:
+             self.count = 0
+             
+         label = self.status_text.GetLabel()
+         label = label.strip('.')
+         
+         self.status_text.SetLabel(label + (self.count * '.'))
+        
+         
+     def onUpdateTimer(self, evt):
+
+        try:
+            status_data = self.search_status_queue.get()
+        except Queue.Empty:
+            status_data = None
+            
+        
+        if status_data == 'END':
+            self.timer.Stop()
+            return
+        
+        if status_data != None:
+            self.updateData(status_data)
+        
+     def OnClose(self, evt):
+         self.timer.Stop()
+         self.EndModal(wx.ID_OK)
+        
+        
+        
+        
+    
 
 class SaveDialog(wx.Dialog):
     def __init__(self, parent, id, title, text):

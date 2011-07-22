@@ -23,14 +23,223 @@ from scipy import weave
 from scipy.weave import converters
 from scipy.linalg import inv, det, eig
 from numpy import *
+import numpy
 #import saxsmodel
 #import autoanalysis
 #import random
 #import matplotlib.axes3d as p3
 
-import time#, random
+import time, Queue, wx#, random
 import bift_ext, transmatrix_ext, SASM
 
+cancel_bift = False
+
+#################################################################################
+################# Taken from numpy to add cancel function #######################
+#################################################################################
+def wrap_function(function, args):
+    ncalls = [0]
+    def function_wrapper(x):
+        ncalls[0] += 1
+        return function(x, *args)
+    return ncalls, function_wrapper
+
+def fmin(func, x0, args=(), xtol=1e-4, ftol=1e-4, maxiter=None, maxfun=None,
+         full_output=0, disp=1, retall=0, callback=None):
+    """
+    Minimize a function using the downhill simplex algorithm.
+
+    Parameters
+    ----------
+    func : callable func(x,*args)
+        The objective function to be minimized.
+    x0 : ndarray
+        Initial guess.
+    args : tuple
+        Extra arguments passed to func, i.e. ``f(x,*args)``.
+    callback : callable
+        Called after each iteration, as callback(xk), where xk is the
+        current parameter vector.
+
+    Returns
+    -------
+    xopt : ndarray
+        Parameter that minimizes function.
+    fopt : float
+        Value of function at minimum: ``fopt = func(xopt)``.
+    iter : int
+        Number of iterations performed.
+    funcalls : int
+        Number of function calls made.
+    warnflag : int
+        1 : Maximum number of function evaluations made.
+        2 : Maximum number of iterations reached.
+    allvecs : list
+        Solution at each iteration.
+
+    Other parameters
+    ----------------
+    xtol : float
+        Relative error in xopt acceptable for convergence.
+    ftol : number
+        Relative error in func(xopt) acceptable for convergence.
+    maxiter : int
+        Maximum number of iterations to perform.
+    maxfun : number
+        Maximum number of function evaluations to make.
+    full_output : bool
+        Set to True if fopt and warnflag outputs are desired.
+    disp : bool
+        Set to True to print convergence messages.
+    retall : bool
+        Set to True to return list of solutions at each iteration.
+
+    Notes
+    -----
+    Uses a Nelder-Mead simplex algorithm to find the minimum of function of
+    one or more variables.
+
+    """
+    global cancel_bift
+    
+    fcalls, func = wrap_function(func, args)
+    x0 = asfarray(x0).flatten()
+    N = len(x0)
+    rank = len(x0.shape)
+    if not -1 < rank < 2:
+        raise ValueError("Initial guess must be a scalar or rank-1 sequence.")
+    if maxiter is None:
+        maxiter = N * 200
+    if maxfun is None:
+        maxfun = N * 200
+
+    rho = 1; chi = 2; psi = 0.5; sigma = 0.5;
+    one2np1 = range(1,N+1)
+
+    if rank == 0:
+        sim = numpy.zeros((N+1,), dtype=x0.dtype)
+    else:
+        sim = numpy.zeros((N+1,N), dtype=x0.dtype)
+    fsim = numpy.zeros((N+1,), float)
+    sim[0] = x0
+    if retall:
+        allvecs = [sim[0]]
+    fsim[0] = func(x0)
+    nonzdelt = 0.05
+    zdelt = 0.00025
+    for k in range(0,N):
+        y = numpy.array(x0,copy=True)
+        if y[k] != 0:
+            y[k] = (1+nonzdelt)*y[k]
+        else:
+            y[k] = zdelt
+
+        sim[k+1] = y
+        f = func(y)
+        fsim[k+1] = f
+
+    ind = numpy.argsort(fsim)
+    fsim = numpy.take(fsim,ind,0)
+    # sort so sim[0,:] has the lowest function value
+    sim = numpy.take(sim,ind,0)
+
+    iterations = 1
+
+    while (fcalls[0] < maxfun and iterations < maxiter):
+        
+        if cancel_bift:
+            return
+        
+        if (max(numpy.ravel(abs(sim[1:]-sim[0]))) <= xtol \
+            and max(abs(fsim[0]-fsim[1:])) <= ftol):
+            break
+
+        xbar = numpy.add.reduce(sim[:-1],0) / N
+        xr = (1+rho)*xbar - rho*sim[-1]
+        fxr = func(xr)
+        doshrink = 0
+
+        if fxr < fsim[0]:
+            xe = (1+rho*chi)*xbar - rho*chi*sim[-1]
+            fxe = func(xe)
+
+            if fxe < fxr:
+                sim[-1] = xe
+                fsim[-1] = fxe
+            else:
+                sim[-1] = xr
+                fsim[-1] = fxr
+        else: # fsim[0] <= fxr
+            if fxr < fsim[-2]:
+                sim[-1] = xr
+                fsim[-1] = fxr
+            else: # fxr >= fsim[-2]
+                # Perform contraction
+                if fxr < fsim[-1]:
+                    xc = (1+psi*rho)*xbar - psi*rho*sim[-1]
+                    fxc = func(xc)
+
+                    if fxc <= fxr:
+                        sim[-1] = xc
+                        fsim[-1] = fxc
+                    else:
+                        doshrink=1
+                else:
+                    # Perform an inside contraction
+                    xcc = (1-psi)*xbar + psi*sim[-1]
+                    fxcc = func(xcc)
+
+                    if fxcc < fsim[-1]:
+                        sim[-1] = xcc
+                        fsim[-1] = fxcc
+                    else:
+                        doshrink = 1
+
+                if doshrink:
+                    for j in one2np1:
+                        sim[j] = sim[0] + sigma*(sim[j] - sim[0])
+                        fsim[j] = func(sim[j])
+
+        ind = numpy.argsort(fsim)
+        sim = numpy.take(sim,ind,0)
+        fsim = numpy.take(fsim,ind,0)
+        if callback is not None:
+            callback(sim[0])
+        iterations += 1
+        if retall:
+            allvecs.append(sim[0])
+            
+    x = sim[0]
+    fval = min(fsim)
+    warnflag = 0
+
+    if fcalls[0] >= maxfun:
+        warnflag = 1
+        if disp:
+            print "Warning: Maximum number of function evaluations has "\
+                  "been exceeded."
+    elif iterations >= maxiter:
+        warnflag = 2
+        if disp:
+            print "Warning: Maximum number of iterations has been exceeded"
+    else:
+        if disp:
+            print "Optimization terminated successfully."
+            print "         Current function value: %f" % fval
+            print "         Iterations: %d" % iterations
+            print "         Function evaluations: %d" % fcalls[0]
+
+
+    if full_output:
+        retlist = x, fval, iterations, fcalls[0], warnflag
+        if retall:
+            retlist += (allvecs,)
+    else:
+        retlist = x
+        if retall:
+            retlist = (x, allvecs)
+
+    return retlist
 
 
 def C_seeksol(I_exp, m, q, sigma, alpha, dmax, T):
@@ -385,7 +594,7 @@ def SingleSolve(alpha, dmax, Ep, N):
                 'post':post}
         
     #ExpObj = cartToPol.BIFTMeasurement(transpose(Pr), r, ones((len(transpose(Pr)),1)), Ep.param, Fit, plotinfo)
-    ExpObj= None
+    #ExpObj= None
 
     return ExpObj
     
@@ -400,8 +609,24 @@ def fineGetEvidence(data, Ep, N):
     r = linspace(0, dmax, N)
     T = createTransMatrix(Ep.q, r)
     P = makePriorDistDistribution(Ep, N, dmax, T, 'sphere', Ep.q)
+    
     print alpha
     print dmax
+    
+    ########################################################################
+    # THIS IS A BIG NO NO!.. need to change it later. 
+    ########################################################################
+    bift_status = {'alpha'    : alpha,
+                   'evidence' : '',
+                   'chi'      : '',
+                   'dmax'     : dmax,
+                   'cur_point': '',
+                   'tot_points': ''}
+        
+    statusdlg = wx.FindWindowByName('BIFTStatusDlg')
+    if statusdlg != None:
+        wx.CallAfter(statusdlg.updateData, bift_status)
+    #########################################################################
     
     Pout, evd, c  = C_seeksol(Ep.i, P, Ep.q, Ep.err, alpha, dmax, T)
         
@@ -419,11 +644,12 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
         AlphaUbound = Upper bound of Alpha
         AlphaLbound = Lower bound of Alpha
     '''
+    
+    global cancel_bift
+    
     Ep = Exp
     
-
     # NB!!! ALPHA MUST BE DECIMAL NUMBER OTHERWISE C CODE WILL CRASH!!!!!!!
-    
     # alpha/dmax points to cycle though:
     
     alphamin = log(alphamin)
@@ -431,8 +657,8 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
     
     alpha_points = linspace(alphamin, alphamax, alphaN)          # alpha points are log(alpha) for better search
     dmax_points = linspace(minDmax, maxDmax, dmaxN)
-    #dmax_points = array(range(minDmax, maxDmax, dmaxN))
     
+    #dmax_points = array(range(minDmax, maxDmax, dmaxN))
     # Set inital error to infinity:
     finalpost = 1e20            
     bestc = 1e22
@@ -442,11 +668,18 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
     # Cycle though dmax/alpha points and find best posterior / evidence
     all_posteriors = zeros((len(dmax_points), len(alpha_points)))
     dmax_idx = 0
-       
+    
+    total_points = len(dmax_points) * len(alpha_points)
+    current_point = 0
+    
     for each_dmax in dmax_points:
         
         alpha_idx = 0
-        for each_alpha in alpha_points:      
+        for each_alpha in alpha_points:
+            
+            if cancel_bift:
+                cancel_bift = False
+                return None
                     
             post, c, result = GetEvidence(each_alpha, each_dmax, Ep, N)
             
@@ -459,6 +692,21 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
             print "C = ", str(c)
             print "Dmax =", each_dmax
     
+            bift_status = {'alpha'    : exp(each_alpha),
+                           'evidence' : post,
+                           'chi'      : c,
+                           'dmax'     : each_dmax,
+                           'cur_point': current_point,
+                           'tot_points': total_points}
+           
+            ########################################################################
+            # THIS IS A BIG NO NO!.. need to change it later. 
+            ########################################################################
+            statusdlg = wx.FindWindowByName('BIFTStatusDlg')
+            if statusdlg != None:
+                wx.CallAfter(statusdlg.updateData, bift_status)
+            ########################################################################
+            
             if post < finalpost:
                 finalpost = post
                 
@@ -473,6 +721,8 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
            
             all_posteriors[dmax_idx, alpha_idx] = post  
             alpha_idx = alpha_idx + 1
+            
+            current_point+= 1
         
         dmax_idx = dmax_idx + 1
     
@@ -485,8 +735,24 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
     dt = end - beg
     print 'Search took %9.6f Seconds' % dt 
     
+    
+    bift_status = {'alpha'    : exp(alphafin) ,
+                   'evidence' : post,
+                   'chi'      : c,
+                   'dmax'     : dmaxfin,
+                   'cur_point': current_point,
+                   'tot_points': total_points}
+    
+    wx.CallAfter(statusdlg.updateData, bift_status, True)
+    
     print "Making fine search..."
-    alphafin, dmaxfin = fineSearch(Ep, N, log(alphafin), dmaxfin)
+    src_result = fineSearch(Ep, N, log(alphafin), dmaxfin)
+    
+    if src_result != None:
+        alphafin, dmaxfin = src_result
+    else:
+        cancel_bift = False
+        return None
 
     ###########################################
     # Pr = P(r) function, Fit = Fitted curve
@@ -565,6 +831,8 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
     ift_sasm = SASM.SASM(transpose(Pr), r, ones(len(transpose(Pr))), bift_info) 
     
     #return Out, Pout, r, Ep.i, plotinfo
+    
+    cancel_bift = False
     return ift_sasm
 
     
@@ -585,7 +853,11 @@ def fineSearch(Ep, N, alpha, dmax):
     
     arg = (Ep, N)
     
-    opt = optimize.fmin(fineGetEvidence, [alpha, dmax], args = arg)
+    #opt = optimize.fmin(fineGetEvidence, [alpha, dmax], args = arg)
+    opt = fmin(fineGetEvidence, [alpha, dmax], args = arg)
+    
+    if opt == None:
+        return
     
     print "Optimum found: "
     print exp(opt[0]), opt[1]
