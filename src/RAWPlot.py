@@ -1082,6 +1082,31 @@ class IftPlotPanel(PlotPanel):
         self._setLabels(axes = self.subplot1)
         self._setLabels(axes = self.subplot2)
         
+    
+    def plotFit(self, sasm, color = None, legend_label_in = None, *args, **kwargs):
+        self.clearPlot(2)
+        
+        
+        if legend_label_in == None:
+            legend_label = sasm.getParameter('filename')
+        else:
+            legend_label = legend_label_in
+        
+        a = self.subplot2
+        i = sasm.getParameter('orig_i')
+        q = sasm.getParameter('orig_q')
+        fit = sasm.getParameter('fit')[0]
+        
+        line, ec, el = a.errorbar(q, i, picker = 3, label = legend_label, **kwargs)
+        line.set_color('blue')
+        
+        new_label = legend_label + ' (FIT)'
+        line, ec, el = a.errorbar(q, fit, picker = 3, label = new_label, **kwargs)
+        line.set_color('red')
+        
+        self.plotparams['axesscale2'] = 'loglin',
+        self.updatePlotAxes()
+        
         
     def plotSASM(self, sasm, axes_no = 1, color = None, legend_label_in = None, *args, **kwargs):
         
@@ -1133,22 +1158,7 @@ class IftPlotPanel(PlotPanel):
         
         
         #Plot fit:
-        self.clearPlot(2)
-        
-        a = self.subplot2
-        i = sasm.getParameter('orig_i')
-        q = sasm.getParameter('orig_q')
-        fit = sasm.getParameter('fit')[0]
-        
-        line, ec, el = a.errorbar(q, i, picker = 3, label = legend_label, **kwargs)
-        line.set_color('blue')
-        
-        new_label = legend_label + ' (FIT)'
-        line, ec, el = a.errorbar(q, fit, picker = 3, label = new_label, **kwargs)
-        line.set_color('red')
-        
-        self.plotparams['axesscale2'] = 'loglin',
-        self.updatePlotAxes()
+        self.plotFit(sasm, color = color, legend_label_in = legend_label_in)
         
         
         
