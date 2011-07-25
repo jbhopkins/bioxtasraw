@@ -519,10 +519,12 @@ def GetEvidence(alpha, dmax, Ep, N):
 def SingleSolve(alpha, dmax, Ep, N):
     ''' Fit to data with forced Dmax and Alpha values '''
     
-    alphafin = alpha
-    dmaxfin = dmax
+    alphafin = float(alpha)
+    dmaxfin = float(dmax)
     
-    r = linspace(0, dmaxfin, N)
+    print dmaxfin, N
+    
+    r = linspace(0, dmaxfin, int(N))
     T = createTransMatrix(Ep.q, r)
     P = makePriorDistDistribution(Ep, N, dmaxfin, T, 'sphere', Ep.q)
     
@@ -583,7 +585,7 @@ def SingleSolve(alpha, dmax, Ep, N):
     #alphafin = exp(alphafin)
     
     # Save all information from the search
-    plotinfo = {'alpha' : alphafin,
+    bift_info = {'alpha' : alphafin,
                 'dmax' : dmaxfin,
                 'orig_i' : Ep.i,
                 'orig_q' : Ep.q,
@@ -591,12 +593,14 @@ def SingleSolve(alpha, dmax, Ep, N):
                 'I0' : I0,
                 'ChiSquared' : c,
                 'Rg' : Rg,
-                'post':post}
+                'post': post,
+                'fit' : Fit}
         
     #ExpObj = cartToPol.BIFTMeasurement(transpose(Pr), r, ones((len(transpose(Pr)),1)), Ep.param, Fit, plotinfo)
-    #ExpObj= None
 
-    return ExpObj
+    ift_sasm = SASM.IftSASM(transpose(Pr), r, ones(len(transpose(Pr))), bift_info) 
+    
+    return ift_sasm
     
 
 def fineGetEvidence(data, Ep, N):
@@ -621,7 +625,8 @@ def fineGetEvidence(data, Ep, N):
                    'chi'      : '',
                    'dmax'     : dmax,
                    'cur_point': '',
-                   'tot_points': ''}
+                   'tot_points': '',
+                   'filename' : Ep.getParameter('filename')}
         
     statusdlg = wx.FindWindowByName('BIFTStatusDlg')
     if statusdlg != None:
@@ -697,7 +702,8 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
                            'chi'      : c,
                            'dmax'     : each_dmax,
                            'cur_point': current_point,
-                           'tot_points': total_points}
+                           'tot_points': total_points,
+                           'filename' : Exp.getParameter('filename')}
            
             ########################################################################
             # THIS IS A BIG NO NO!.. need to change it later. 
@@ -741,7 +747,8 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
                    'chi'      : c,
                    'dmax'     : dmaxfin,
                    'cur_point': current_point,
-                   'tot_points': total_points}
+                   'tot_points': total_points,
+                   'filename' : Exp.getParameter('filename')}
     
     wx.CallAfter(statusdlg.updateData, bift_status, True)
     
@@ -828,7 +835,7 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
                 'Rg' : Rg,
                 'fit' : Fit}
     
-    ift_sasm = SASM.SASM(transpose(Pr), r, ones(len(transpose(Pr))), bift_info) 
+    ift_sasm = SASM.IftSASM(transpose(Pr), r, ones(len(transpose(Pr))), bift_info) 
     
     #return Out, Pout, r, Ep.i, plotinfo
     

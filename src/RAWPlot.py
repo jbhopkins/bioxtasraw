@@ -905,6 +905,20 @@ class PlotPanel(wx.Panel):
                 sasm.line.set_data(q, numpy.power(q,4)*i)
         
         self.canvas.draw()
+    
+    
+    def clearPlot(self, plot_num):
+        
+        if plot_num == 1:
+            self.subplot1.cla()
+            self._setLabels(axes = self.subplot1)
+        elif plot_num == 2:
+            self.subplot2.cla()
+            self._setLabels(axes = self.subplot2)
+    
+        self.updatePlotAxes()
+    
+        self.canvas.draw()
         
     def clearAllPlots(self):
 
@@ -1054,7 +1068,7 @@ class IftPlotPanel(PlotPanel):
                                 'kratky'      : ('Kratky', 'q [1/A]', 'I(q)q^2'),
                                 'porod'       : ('Porod', 'q [1/A]', 'I(q)q^4'),
                                 'guinier'     : ('Guinier', 'q^2 [1/A^2]', 'ln(I(q)'),
-                                'normal'        : ('Pair Distance Distribution Function', 'r [nm]', 'P(r)')}
+                                'normal'      : ('Pair Distance Distribution Function', 'r [nm]', 'P(r)')}
         
         self.default_subplot_labels = { 'subtracted'  : ('Fit', 'q [1/A]', 'I(q)'),
                                 'kratky'      : ('Kratky', 'q [1/A]', 'I(q)q^2'),
@@ -1062,6 +1076,82 @@ class IftPlotPanel(PlotPanel):
                                 'guinier'     : ('Guinier', 'q^2 [1/A^2]', 'ln(I(q)'),
                                 'normal'        : ('Pair Distance Distribution Function', 'r [nm]', 'P(r)')}
         
+        
+       
+   
         self._setLabels(axes = self.subplot1)
         self._setLabels(axes = self.subplot2)
-   
+        
+        
+    def plotSASM(self, sasm, axes_no = 1, color = None, legend_label_in = None, *args, **kwargs):
+        
+        if axes_no == 1:
+            a = self.subplot1
+        elif axes_no == 2:
+            a = self.subplot2
+        else:
+            a = axes_no
+        
+        #plot with errorbars
+        if a == self.subplot1:
+            type = self.plotparams.get('plot1type')
+        elif a == self.subplot2:  
+            type = self.plotparams.get('plot2type')
+        
+        q_min, q_max = sasm.getQrange()
+        
+        if legend_label_in == None:
+            legend_label = sasm.getParameter('filename')
+        else:
+            legend_label = legend_label_in
+        
+        if type == 'normal' or type == 'subtracted':
+            line, ec, el = a.errorbar(sasm.q[q_min:q_max], sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label, **kwargs)
+        elif type == 'kratky':
+            line, ec, el = a.errorbar(sasm.q[q_min:q_max], sasm.i[q_min:q_max] * numpy.power(sasm.q,2), sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
+        elif type == 'guinier':
+            line, ec, el = a.errorbar(numpy.power(sasm.q[q_min:q_max],2), sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
+        elif type == 'porod':
+            line, ec, el = a.errorbar(sasm.q[q_min:q_max], numpy.power(sasm.q[q_min:q_max],4)*sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
+        
+        #Hide errorbars:
+        if self.plotparams['errorbars_on'] == False:
+            setp(ec, visible=False)
+            setp(el, visible=False)
+            
+        if color != None:
+            line.set_color(color)
+            
+        sasm.line = line
+        sasm.err_line = (ec, el)
+        sasm.axes = a
+        sasm.canvas = self.canvas
+        sasm.plot_panel = self
+        sasm.is_plotted = True
+                
+        self.plotted_sasms.append(sasm)        # Insert the plot into plotted experiments list
+        
+        
+        #Plot fit:
+        self.clearPlot(2)
+        
+        a = self.subplot2
+        i = sasm.getParameter('orig_i')
+        q = sasm.getParameter('orig_q')
+        fit = sasm.getParameter('fit')[0]
+        
+        line, ec, el = a.errorbar(q, i, picker = 3, label = legend_label, **kwargs)
+        line.set_color('blue')
+        
+        new_label = legend_label + ' (FIT)'
+        line, ec, el = a.errorbar(q, fit, picker = 3, label = new_label, **kwargs)
+        line.set_color('red')
+        
+        self.plotparams['axesscale2'] = 'loglin',
+        self.updatePlotAxes()
+        
+        
+        
+        
+        
+    

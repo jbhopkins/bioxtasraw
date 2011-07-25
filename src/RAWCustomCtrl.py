@@ -945,7 +945,11 @@ class IntSpinCtrl(wx.Panel):
         
     def GetValue(self): 
         value = self.Scale.GetValue()
-        return int(value)
+        
+        try:
+            return int(value)
+        except ValueError:
+            return value
     
     def SetValue(self, value):
         self.Scale.SetValue(str(value))

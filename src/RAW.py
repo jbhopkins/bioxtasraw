@@ -51,6 +51,9 @@ if os.path.split(sys.path[0])[1] in ['RAW.exe', 'raw.exe']:
 global workspace_saved
 workspace_saved = True
 
+global cancel_ift
+cancel_ift = False
+
 class MainFrame(wx.Frame):
     
     def __init__(self, title, frame_id):
@@ -709,13 +712,18 @@ class MainWorkerThread(threading.Thread):
         pass
     
     def _sendSASMToIFTPlot(self, sasm, axes_num = 1, item_colour = 'black', line_color = None, no_update = False):
+        
         wx.CallAfter(self.ift_plot_panel.plotSASM, sasm, axes_num, color = line_color)
         
         if no_update == False:
             wx.CallAfter(self.ift_plot_panel.fitAxis)
         
         wx.CallAfter(self.ift_plot_panel.updateLegend, 1)
-        wx.CallAfter(self.ift_item_panel.addItem, sasm, item_colour)
+        wx.CallAfter(self.ift_plot_panel.updateLegend, 2)
+        
+        ift_parameters = sasm.getAllParameters()
+        
+        wx.CallAfter(self.ift_item_panel.addItem, sasm, item_colour, ift_parameters)
         
         
     def _sendSASMToPlot(self, sasm, axes_num = 1, item_colour = 'black', line_color = None, no_update = False):
@@ -756,48 +764,86 @@ class MainWorkerThread(threading.Thread):
 
         wx.CallAfter(self.main_frame.closeBusyDialog) 
         question_return_queue.put(abs_scale_constant)
+    
+    
+    def _runBIFT(self, sasm, parameters):
+        args = parameters
+        ift_sasm = BIFT.doBift(sasm, *args)
+        return ift_sasm
+    
+    def _runManualIft(self, sasm, parameters):
+        dmax = parameters['dmax']
+        alpha = parameters['alpha']
         
-        
+        ift_sasm = BIFT.SingleSolve(alpha, dmax, sasm, 50)
+        return ift_sasm
+    
+    def _runGnomIft(self, data):
+        pass
+    
     def _runIft(self, data):
         algo = data[0]
         selected_items = data[1]
+        ift_parameters = data[2]
+        global cancel_ift
         
-        sasm = selected_items[0].getSASM()
-        
-        old_filename = sasm.getParameter('filename')
-        
-        #pop up status dialog
-        
-        try:
-            ift_sasm = BIFT.doBift(sasm, 50, 1e10, 10.0, 16, 200, 10, 20)
+        for each_item in selected_items:
             
-        except UnboundLocalError, e:
-            wx.MessageBox('BIFT Search Failed...', 'Solution Search Failure')
-            print 'doBift error: ',
-            print e
+            if cancel_ift:
+                cancel_ift = False
+                print 'got cancel'
+                break
+                
+            sasm = each_item.getSASM()
+            old_filename = sasm.getParameter('filename')
+        
+            if algo == 'BIFT':
+                try:
+                    parameters = (50, 1e10, 10.0, 16, 200, 10, 20)
+                    ift_sasm = self._runBIFT(sasm, parameters)
+                
+                    print 'got ift'
+                    if ift_sasm == None:
+                        print 'it was none!'
+                        continue
+                        
+                        #statusdlg = wx.FindWindowByName('BIFTStatusDlg')
+                        
+                        #if statusdlg != None:
+                        #    wx.CallAfter(statusdlg.OnClose, 1)
+                        #    return
+                
+                except UnboundLocalError, e:
+                    wx.MessageBox('BIFT Search Failed...', 'Solution Search Failure')
+                    print 'doBift error: ', e
             
-            statusdlg = wx.FindWindowByName('BIFTStatusDlg')
-            if statusdlg != None:
-                wx.CallAfter(statusdlg.OnClose, 1)    
-            return
+                    statusdlg = wx.FindWindowByName('BIFTStatusDlg')
+                    if statusdlg != None:
+                        wx.CallAfter(statusdlg.OnClose, 1)    
+                    return
+            
+            if algo == 'Manual':
+                ift_sasm = self._runManualIft(sasm, ift_parameters)
         
-        if ift_sasm == None:
-            statusdlg = wx.FindWindowByName('BIFTStatusDlg')
-            if statusdlg != None:
-                wx.CallAfter(statusdlg.OnClose, 1)
-            return
         
+            new_filename = 'B_' + old_filename
+            ift_sasm.setParameter('filename', new_filename)
+            self._sendSASMToIFTPlot(ift_sasm, item_colour = 'magenta')
+        
+            each_item.setCurrentIFTParameters(ift_sasm.getAllParameters())
+        
+            #doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
+            wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 1)
+        
+        
+        
+        
+        print 'trying to close'
         statusdlg = wx.FindWindowByName('BIFTStatusDlg')
-        
         if statusdlg != None:
             wx.CallAfter(statusdlg.OnClose, 1)
         
-        new_filename = 'B_' + old_filename
-        ift_sasm.setParameter('filename', new_filename)
-        self._sendSASMToIFTPlot(ift_sasm)
-        
-        #doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
-        wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 1)        
+                
          
     def _saveMaskFile(self, data):
         
@@ -3587,9 +3633,9 @@ class IFTPanel(wx.Panel):
         return sizer
     
     
-    def addItem(self, sasm, item_colour = 'black'):
+    def addItem(self, sasm, item_colour = 'black', ift_parameters = {}):
         
-        newItem = IFTItemPanel(self.underpanel, sasm, font_colour = item_colour)
+        newItem = IFTItemPanel(self.underpanel, sasm, font_colour = item_colour, ift_parameters = ift_parameters)
         self.Freeze()
         self.underpanel_sizer.Add(newItem, 0, wx.GROW)
         self.underpanel_sizer.Layout()
@@ -3709,7 +3755,8 @@ class IFTPanel(wx.Panel):
                     
     def removeSelectedItems(self):
        
-        if len(self.getSelectedItems()) == 0: return
+        if len(self.getSelectedItems()) == 0:
+            return
         
         self.Freeze()
         
@@ -3719,35 +3766,36 @@ class IFTPanel(wx.Panel):
         axes_that_needs_updated_legend = []
          
         for each in self.getSelectedItems():
-                     
-            plot_panel = each.sasm.plot_panel
             
-            each.sasm.line.remove()
-            each.sasm.err_line[0][0].remove()
-            each.sasm.err_line[0][1].remove()
-            each.sasm.err_line[1][0].remove()
+            if each.sasm.line != None:      
+                plot_panel = each.sasm.plot_panel
             
-            i = plot_panel.plotted_sasms.index(each.sasm)
-            plot_panel.plotted_sasms.pop(i)
+                each.sasm.line.remove()
+                each.sasm.err_line[0][0].remove()
+                each.sasm.err_line[0][1].remove()
+                each.sasm.err_line[1][0].remove()
             
-            if not each.sasm.axes in axes_that_needs_updated_legend:
-                axes_that_needs_updated_legend.append(each.sasm.axes)
+                i = plot_panel.plotted_sasms.index(each.sasm)
+                plot_panel.plotted_sasms.pop(i)
             
+                if not each.sasm.axes in axes_that_needs_updated_legend:
+                    axes_that_needs_updated_legend.append(each.sasm.axes)
+                    
+                for eachaxes in axes_that_needs_updated_legend:
+                    if eachaxes == plot_panel.subplot1:
+                        wx.CallAfter(plot_panel.updateLegend, 1)
+                    else:
+                        wx.CallAfter(plot_panel.updateLegend, 2)
+                    
+                wx.CallAfter(plot_panel.canvas.draw)
+                    
             if each == self._star_marked_item:
                 self._star_marked_item = None
             
             idx = self.all_manipulation_items.index(each)
             self.all_manipulation_items[idx].Destroy()
             self.all_manipulation_items.pop(idx)
-        
-        for eachaxes in axes_that_needs_updated_legend:
-            if eachaxes == plot_panel.subplot1:
-                wx.CallAfter(plot_panel.updateLegend, 1)
-            else:
-                wx.CallAfter(plot_panel.updateLegend, 2)
-            
-        wx.CallAfter(plot_panel.canvas.draw)
-        
+
         self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Refresh()    
@@ -4158,13 +4206,14 @@ class IFTPanel(wx.Panel):
                 first = False
 
 class IFTItemPanel(wx.Panel):
-    def __init__(self, parent, sasm, font_colour = 'BLACK', legend_label = ''):
+    def __init__(self, parent, sasm, font_colour = 'BLACK', legend_label = '', ift_parameters = {}):
         
         wx.Panel.__init__(self, parent, style = wx.BORDER_RAISED)
         
         self.parent = parent
         self.sasm = sasm
         self.sasm.itempanel = self
+        self.ift_parameters = ift_parameters
         
         self.manipulation_panel = wx.FindWindowByName('IFTPanel')
         self.plot_panel = wx.FindWindowByName('PlotPanel')
@@ -4320,7 +4369,14 @@ class IFTItemPanel(wx.Panel):
                   
         if fromGuinierDialog:
             self.info_panel.updateInfoFromItem(self)
-                
+            
+            
+    def setCurrentIFTParameters(self, ift_parameters):
+        self.ift_parameters = ift_parameters
+        
+    def getIftParameters(self):
+        return self.ift_parameters
+    
     def enableStar(self, state):
         if state == True:
             self.bg_star.SetBitmap(self.star_png)
@@ -5051,8 +5107,8 @@ class IFTControlPanel(wx.Panel):
                 
             elif type == 'intctrl':
                 labelbox = wx.StaticText(self, -1, label)
-                ctrl = RAWCustomCtrl.IntSpinCtrl(self, id, 1, TextLength = 80)
-                ctrl.SetValue(80)
+                ctrl = RAWCustomCtrl.FloatSpinCtrl(self, id, TextLength = 80)
+                ctrl.SetValue('80')
                 ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onSpinChange)
                 sizer.Add(labelbox, 0, wx.ALIGN_CENTER_VERTICAL)
                 sizer.Add(ctrl, 0, wx.ALIGN_CENTER)
@@ -5070,21 +5126,28 @@ class IFTControlPanel(wx.Panel):
         pass
     
     
-    
     def _onRunButton(self, evt):    
         selected_algo = self.algo_choice.GetStringSelection()
-        
         selected_items = self.ift_panel.getSelectedItems()
         
+        
+        dmax_ctrl = wx.FindWindowById(self.controlData[1][1][0])
+        alpha_ctrl = wx.FindWindowById(self.controlData[2][1][0])
+        
+        dmax = dmax_ctrl.GetValue()
+        alpha = alpha_ctrl.GetValue()
+        
+        data = {'dmax' : dmax, 
+                'alpha': alpha}
+        
+        
+        
         if len(selected_items) > 0:
-            mainworker_cmd_queue.put(['ift', [selected_algo, selected_items]])
+            mainworker_cmd_queue.put(['ift', [selected_algo, selected_items, data]])
             
             dlg = IFTSearchStatusDialog(self, -1)    
             dlg.ShowModal()
             dlg.Destroy()
-        
-        
-        
         
         
     def onUpdateTimer(self, evt):
@@ -5140,15 +5203,15 @@ class IFTControlPanel(wx.Panel):
             self.filename_label.SetLabel(str(filename))
             
             D = wx.FindWindowById(self.parent.paramsInGui['Dmax'][0])
-            if sasm.getAllParameters().has_key('dmax'):
-                D.SetValue(str(sasm.getParameter('dmax')))
+            if items[0].getIftParameters().has_key('dmax'):
+                D.SetValue(str(items[0].getIftParameters()['dmax']))
             else:
                 D.SetValue('N/A')
                 
                 
             A = wx.FindWindowById(self.parent.paramsInGui['Alpha'][0])
-            if sasm.getAllParameters().has_key('alpha'):
-                A.SetValue(str(sasm.getParameter('alpha')))
+            if items[0].getIftParameters().has_key('alpha'):
+                A.SetValue(str(items[0].getIftParameters()['alpha']))
             else:
                 A.SetValue('N/A')
             
@@ -6518,9 +6581,10 @@ class SaveAnalysisInfoPanel(wx.Panel):
 
 class IFTSearchStatusDialog(wx.Dialog):
      def __init__(self, parent, id):
-        wx.Dialog.__init__(self, parent, id, 'BIFT Search', name = 'BIFTStatusDlg', size = (250,200))
+        wx.Dialog.__init__(self, parent, id, 'BIFT Search', name = 'BIFTStatusDlg', size = (280,230))
         
         self.widget_data = [
+          ('filename', 'Processing data :', wx.NewId()),
           ('evidence', 'Evidence :', wx.NewId()),
           ('chi', 'Chi :', wx.NewId()),
           ('alpha', 'Alpha :', wx.NewId()),
@@ -6528,8 +6592,15 @@ class IFTSearchStatusDialog(wx.Dialog):
           ('cur_point', 'Current search point :', wx.NewId()),
           ('tot_points', 'Total search points :', wx.NewId())]
          
+         
+        skip_button = wx.Button(self, -1, 'Skip')
         button = wx.Button(self, -1, 'Cancel')
         button.Bind(wx.EVT_BUTTON, self._onCancel)
+        skip_button.Bind(wx.EVT_BUTTON, self._onSkip)
+        
+        button_sizer = wx.BoxSizer()
+        button_sizer.Add(button, 0)
+        button_sizer.Add(skip_button, 0, wx.LEFT, 10)
         
         self.status_text = wx.StaticText(self, -1, 'Performing grid search')
         
@@ -6544,13 +6615,20 @@ class IFTSearchStatusDialog(wx.Dialog):
         
         top_sizer.Add(sizer, 0, wx.ALL, 10)
         top_sizer.Add(self.status_text, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
-        top_sizer.Add(button, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
+        top_sizer.Add(button_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
         
         self.SetSizer(top_sizer)
      
      def _onCancel(self, evt):
          BIFT.cancel_bift = True
+         
+         global cancel_ift
+         cancel_ift = True
+         
          self.timer.Stop()
+         
+     def _onSkip(self, evt):
+         BIFT.cancel_bift = True
      
      def createDataWidgets(self):
          

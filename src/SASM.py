@@ -10,7 +10,6 @@ import os, copy
 import SASCalib, SASExceptions
 from math import pi, sin
 
-
 class SASM:
     '''
         Small Angle Scattering Measurement (SASM) Object.
@@ -303,6 +302,15 @@ class SASM:
         
         return all_data
             
+
+class IftSASM(SASM):
+    
+    def __init__(self, i, q, err, parameters):
+        SASM.__init__(self, i, q, err, parameters)
+        
+        
+    
+    
                 
 def subtract(sasm1, sasm2):
     ''' Subtract one SASM object from another and propagate errors '''
