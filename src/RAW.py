@@ -825,7 +825,8 @@ class MainWorkerThread(threading.Thread):
             if algo == 'Manual':
                 ift_sasm = self._runManualIft(sasm, ift_parameters)
         
-        
+            ift_sasm.setParameter('orig_sasm', sasm.copy())
+            
             new_filename = 'B_' + old_filename
             ift_sasm.setParameter('filename', new_filename)
             self._sendSASMToIFTPlot(ift_sasm, item_colour = 'magenta')
@@ -3586,7 +3587,7 @@ class IFTPanel(wx.Panel):
         self.infoBox = IFTControlPanel(self)
         #self.infoBox.Enable(False)
         
-        self.panelsizer.Add(self.infoBox, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, 10)
+        self.panelsizer.Add(self.infoBox, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER, 10)
         self.panelsizer.Add(toolbarsizer, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.EXPAND, 5)        
         self.panelsizer.Add(self.underpanel, 1, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT, 3)
         
@@ -4507,7 +4508,7 @@ class IFTItemPanel(wx.Panel):
         
         if self._legend_label == '':
             self.sasm.line.set_label(filename)
-        self.ift_plot_panel.updateLegend(self.sasm.axes)
+        self.ift_plot_panel.updateLegend(1)
         self.SelectedForPlot.SetLabel(str(filename))
         self.SelectedForPlot.Refresh()
         self.topsizer.Layout()
@@ -4832,6 +4833,14 @@ class IFTItemPanel(wx.Panel):
             manipulation_panel.deselectAllExceptOne(self)
             self.toggleSelect()
             
+            if self._selected:
+                
+                if self._legend_label == '':
+                    wx.CallAfter(self.ift_plot_panel.plotFit, self.sasm)
+                else:
+                    wx.CallAfter(self.ift_plot_panel.plotFit, self.sasm, legend_label_in = self._legend_label)
+                wx.CallAfter(self.ift_plot_panel.updateLegend, 2)
+            
         evt.Skip()
               
     def _onStarButton(self, event):
@@ -4892,12 +4901,16 @@ class IFTItemPanel(wx.Panel):
         
         if self._legend_label == '' or self._legend_label == None:
             self.sasm.line.set_label(self.sasm.getParameter('filename'))
+            self.sasm.fitline.set_label(self.sasm.getParameter('filename'))
+      
             self.legend_label_text.SetLabel('')
         else:
             self.sasm.line.set_label(str(self._legend_label))
+            self.sasm.fitline.set_label(str(self._legend_label) + ' (FIT)')
             self.legend_label_text.SetLabel('[' + str(self._legend_label) + ']')
             
-        wx.CallAfter(self.sasm.plot_panel.updateLegend, self.sasm.axes)
+        wx.CallAfter(self.sasm.plot_panel.updateLegend, 1)
+        wx.CallAfter(self.sasm.plot_panel.updateLegend, 2)
         
     
     def _onQrangeChange(self, event):
@@ -4939,7 +4952,7 @@ class IFTItemPanel(wx.Panel):
         self.GetParent().Layout()            
         self.GetParent().Refresh()
         
-        wx.CallAfter(self.plot_panel.updateLegend, self.sasm.axes)
+        wx.CallAfter(self.ift_plot_panel.updateLegend, self.sasm.axes)
         wx.CallAfter(self.sasm.plot_panel.canvas.draw)
         
         self.sasm.plot_panel.fitAxis([self.sasm.axes])

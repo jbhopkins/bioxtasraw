@@ -989,13 +989,13 @@ class PlotPanel(wx.Panel):
         
         if plotnum == 1:
             axes = self.subplot1
-        elif plotnum == 2:
+        if plotnum == 2:
             axes = self.subplot2
-        elif plotnum == self.subplot1:
+        if plotnum == self.subplot1:
             plotnum = 1
-        elif plotnum == self.subplot2:
+        if plotnum == self.subplot2:
             plotnum = 2
-            
+              
         if self.plotparams['legend_visible' + '_' + str(plotnum)]:
             leg = axes.legend_ = None
             self._insertLegend(axes)
@@ -1085,14 +1085,25 @@ class IftPlotPanel(PlotPanel):
     
     def plotFit(self, sasm, color = None, legend_label_in = None, *args, **kwargs):
         self.clearPlot(2)
-        
-        
-        if legend_label_in == None:
-            legend_label = sasm.getParameter('filename')
-        else:
-            legend_label = legend_label_in
-        
         a = self.subplot2
+        
+        #If no IFT info is present, just plot the intensity curve
+        if not sasm.getAllParameters().has_key('orig_sasm'):
+            line, ec, el = a.errorbar(sasm.q, sasm.i, picker = 3, label = sasm.getParameter('filename'), **kwargs)
+            line.set_color('blue')
+            self.fitAxis()
+            return
+        
+        
+        orig_sasm = sasm.getParameter('orig_sasm')
+        legend_label = orig_sasm.getParameter('filename')
+ 
+        if legend_label_in == None:
+            new_label = sasm.getParameter('filename') + ' (FIT)'
+        else:
+            new_label = legend_label_in + ' (FIT)'
+            
+        
         i = sasm.getParameter('orig_i')
         q = sasm.getParameter('orig_q')
         fit = sasm.getParameter('fit')[0]
@@ -1100,13 +1111,14 @@ class IftPlotPanel(PlotPanel):
         line, ec, el = a.errorbar(q, i, picker = 3, label = legend_label, **kwargs)
         line.set_color('blue')
         
-        new_label = legend_label + ' (FIT)'
+        sasm.origline = line
+        
         line, ec, el = a.errorbar(q, fit, picker = 3, label = new_label, **kwargs)
         line.set_color('red')
         
-        self.plotparams['axesscale2'] = 'loglin',
-        self.updatePlotAxes()
+        sasm.fitline = line
         
+        self.fitAxis()
         
     def plotSASM(self, sasm, axes_no = 1, color = None, legend_label_in = None, *args, **kwargs):
         

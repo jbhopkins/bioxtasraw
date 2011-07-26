@@ -301,7 +301,14 @@ class SASM:
         all_data['parameters'] = self._parameters
         
         return all_data
-            
+    
+    def copy(self):
+        ''' return a copy of the object ''' 
+        
+        return SASM(copy.copy(self.i), copy.copy(self.q), copy.copy(self.err), copy.copy(self._parameters))
+        
+        
+        
 
 class IftSASM(SASM):
     
