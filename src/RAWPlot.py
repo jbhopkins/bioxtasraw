@@ -1091,6 +1091,14 @@ class IftPlotPanel(PlotPanel):
         if not sasm.getAllParameters().has_key('orig_sasm'):
             line, ec, el = a.errorbar(sasm.q, sasm.i, picker = 3, label = sasm.getParameter('filename'), **kwargs)
             line.set_color('blue')
+            
+            sasm.line = line
+            sasm.err_line = (ec, el)
+            sasm.axes = a
+            sasm.canvas = self.canvas
+            sasm.plot_panel = self
+            sasm.is_plotted = True
+            
             self.fitAxis()
             return
         

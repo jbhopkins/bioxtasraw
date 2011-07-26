@@ -814,7 +814,7 @@ class MainWorkerThread(threading.Thread):
                         #    return
                 
                 except UnboundLocalError, e:
-                    wx.MessageBox('BIFT Search Failed...', 'Solution Search Failure')
+                    wx.CallAfter(wx.MessageBox, 'BIFT Search Failed...', 'Solution Search Failure')
                     print 'doBift error: ', e
             
                     statusdlg = wx.FindWindowByName('BIFTStatusDlg')
@@ -3111,6 +3111,7 @@ class ManipItemPanel(wx.Panel):
         menu.Append(5, 'Remove' )
         menu.AppendSeparator()
         menu.Append(13, 'Guinier fit...')
+        menu.Append(24, 'Add to IFT list')
         #menu.AppendMenu(3, 'Indirect Fourier Transform', iftmenu)
         menu.AppendMenu(wx.NewId(), 'Convert q-scale', convertq_menu)
         
@@ -3275,6 +3276,15 @@ class ManipItemPanel(wx.Panel):
             
             if ret != wx.ID_CANCEL:
                 mainworker_cmd_queue.put(['rebin_items', [selected_items, ret]])
+        
+        if evt.GetId() == 24: #add to IFT
+            
+            selected_items = self.manipulation_panel.getSelectedItems()
+            
+            ift_panel = wx.FindWindowByName('IFTPanel')
+            
+            for each_item in selected_items:
+                ift_panel.addItem(each_item.getSASM().copy())
             
     
     def _saveAnalysisInfo(self):
@@ -3301,7 +3311,7 @@ class ManipItemPanel(wx.Panel):
     def _onKeyPress(self, evt):
         
         key = evt.GetKeyCode()
-   
+        
         if key == wx.WXK_DELETE and self._selected == True:
             self.removeSelf()
             
@@ -3560,12 +3570,13 @@ class IFTPanel(wx.Panel):
                           'Qmin' : (wx.NewId(), 'listctrl'),
                           'Qmax' : (wx.NewId(), 'listctrl')}
         
-        self.buttons = (("BIFT", self._OnDoBift),
-                        ("Load", self._OnLoadFile),
-                        ("Options", self._OnOptions),
-                        ("Clear Plot", self._OnClearAll),
-                        ("Solve", self._OnManual),
-                        ("Clear List", self._OnClearList))
+        self.buttons = (#("BIFT", self._OnDoBift),
+                        ("Load", self._onLoadFile),
+                        #("Options", self._OnOptions),
+                        #("Clear Plot", self._OnClearAll),
+                        ("Save", self._onSaveFile),
+                        #("Solve", self._OnManual),
+                        ("Clear List", self._onClearList))
         
         # /* INSERT WIDGETS */ 
         
@@ -3651,13 +3662,13 @@ class IFTPanel(wx.Panel):
         
         sasm.item_panel = newItem
         
-        
-        #self.iftplot_panel.plotSASM(sasm, 2)
-        #self.iftplot_panel.canvas.draw()
-        
         self.deselectAllExceptOne(newItem)
         newItem.toggleSelect()
-        newItem._updateColourIndicator()
+        
+        try:
+            newItem._updateColourIndicator()
+        except AttributeError:
+            pass
         
     def setItemAsBackground(self, item):
         
@@ -3771,13 +3782,24 @@ class IFTPanel(wx.Panel):
             if each.sasm.line != None:      
                 plot_panel = each.sasm.plot_panel
             
-                each.sasm.line.remove()
-                each.sasm.err_line[0][0].remove()
-                each.sasm.err_line[0][1].remove()
-                each.sasm.err_line[1][0].remove()
-            
-                i = plot_panel.plotted_sasms.index(each.sasm)
-                plot_panel.plotted_sasms.pop(i)
+                
+                try:
+                    each.sasm.line.remove()
+                    
+                    if each.sasm.origline != None:
+                        each.sasm.origline.remove()
+                    
+                    if each.sasm.fitline != None:
+                        each.sasm.fitline.remove()
+                    
+                    each.sasm.err_line[0][0].remove()
+                    each.sasm.err_line[0][1].remove()
+                    each.sasm.err_line[1][0].remove()
+                
+                    i = plot_panel.plotted_sasms.index(each.sasm)
+                    plot_panel.plotted_sasms.pop(i)
+                except (IndexError, ValueError):
+                    pass
             
                 if not each.sasm.axes in axes_that_needs_updated_legend:
                     axes_that_needs_updated_legend.append(each.sasm.axes)
@@ -3788,8 +3810,10 @@ class IFTPanel(wx.Panel):
                     else:
                         wx.CallAfter(plot_panel.updateLegend, 2)
                     
+
+                
                 wx.CallAfter(plot_panel.canvas.draw)
-                    
+                
             if each == self._star_marked_item:
                 self._star_marked_item = None
             
@@ -3993,7 +4017,7 @@ class IFTPanel(wx.Panel):
 ##################################################################################### 
 
  
-    def _OnClearList(self, evt):
+    def _onClearList(self, evt):
         self.filelist.Clear()
         self.infoBox.clear()
         self.infoBox.Enable(False)
@@ -4091,7 +4115,10 @@ class IFTPanel(wx.Panel):
         
             biftparams[eachParam] = int(value)
     
-    def _OnLoadFile(self, evt):   
+    def _onSaveFile(self, evt):
+        pass
+    
+    def _onLoadFile(self, evt):   
         
         selected_file = self._CreateFileDialog(wx.OPEN)
         
@@ -4771,7 +4798,7 @@ class IFTItemPanel(wx.Panel):
     def _onKeyPress(self, evt):
         
         key = evt.GetKeyCode()
-   
+
         if key == wx.WXK_DELETE and self._selected == True:
             self.removeSelf()
             
@@ -4840,7 +4867,7 @@ class IFTItemPanel(wx.Panel):
                 else:
                     wx.CallAfter(self.ift_plot_panel.plotFit, self.sasm, legend_label_in = self._legend_label)
                 wx.CallAfter(self.ift_plot_panel.updateLegend, 2)
-            
+        
         evt.Skip()
               
     def _onStarButton(self, event):
@@ -5088,7 +5115,7 @@ class IFTControlPanel(wx.Panel):
                 
             elif type == 'algo':
                 labelbox = wx.StaticText(self, -1, label)
-                self.algo_choice = wx.Choice(self, id, size = (80,20), choices = ['BIFT', 'GNOM', 'Manual'])
+                self.algo_choice = wx.Choice(self, id, size = (80,-1), choices = ['BIFT', 'GNOM', 'Manual'])
                 self.algo_choice.Select(0)
                 
                 #ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onSpinChange)
@@ -5227,6 +5254,11 @@ class IFTControlPanel(wx.Panel):
                 A.SetValue(str(items[0].getIftParameters()['alpha']))
             else:
                 A.SetValue('N/A')
+            
+            
+            info_panel = wx.FindWindowByName('InformationPanel')
+            
+            
             
             
         elif len(items) > 1:

@@ -56,6 +56,8 @@ class SASM:
         self.item_panel = None
         self.plot_panel = None
         self.line = None
+        self.origline = None
+        self.fitline = None
         self.err_line = None
         self.axes = None
         self.is_plotted = False

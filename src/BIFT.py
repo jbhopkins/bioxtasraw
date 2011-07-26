@@ -505,14 +505,16 @@ def GetEvidence(alpha, dmax, Ep, N):
     
     alpha = exp(alpha)    # alpha is log(alpha)!!! to improve search
     
+    min, max = Ep.getQrange()
+    
     r = linspace(0, dmax, N)
-    T = createTransMatrix(Ep.q, r)
-    P = makePriorDistDistribution(Ep, N, dmax, T, 'sphere', Ep.q)
+    T = createTransMatrix(Ep.q[min:max], r)
+    P = makePriorDistDistribution(Ep, N, dmax, T, 'sphere', Ep.q[min:max])
     
     print 'Alpha : ' ,alpha
     print 'Dmax  : ' , dmax
     
-    Pout, evd, c  = C_seeksol(Ep.i, P, Ep.q, Ep.err, alpha, dmax, T)
+    Pout, evd, c  = C_seeksol(Ep.i[min:max], P, Ep.q[min:max], Ep.err[min:max], alpha, dmax, T)
         
     return -evd, c, Pout
 
@@ -521,14 +523,15 @@ def SingleSolve(alpha, dmax, Ep, N):
     
     alphafin = float(alpha)
     dmaxfin = float(dmax)
+    min, max = Ep.getQrange()
     
     print dmaxfin, N
     
     r = linspace(0, dmaxfin, int(N))
-    T = createTransMatrix(Ep.q, r)
-    P = makePriorDistDistribution(Ep, N, dmaxfin, T, 'sphere', Ep.q)
+    T = createTransMatrix(Ep.q[min:max], r)
+    P = makePriorDistDistribution(Ep, N, dmaxfin, T, 'sphere', Ep.q[min:max])
     
-    Pr, post, c = C_seeksol(Ep.i, P, Ep.q, Ep.err, alphafin, dmaxfin, T)
+    Pr, post, c = C_seeksol(Ep.i[min:max], P, Ep.q[min:max], Ep.err[min:max], alphafin, dmaxfin, T)
 
     # Reconstructed Fit line
     Fit = dot(Pr, transpose(T))
@@ -587,9 +590,9 @@ def SingleSolve(alpha, dmax, Ep, N):
     # Save all information from the search
     bift_info = {'alpha' : alphafin,
                 'dmax' : dmaxfin,
-                'orig_i' : Ep.i,
-                'orig_q' : Ep.q,
-                'orig_err': Ep.err,
+                'orig_i' : Ep.i[min:max],
+                'orig_q' : Ep.q[min:max],
+                'orig_err': Ep.err[min:max],
                 'I0' : I0,
                 'ChiSquared' : c,
                 'Rg' : Rg,
@@ -608,11 +611,14 @@ def fineGetEvidence(data, Ep, N):
     alpha = data[0]
     dmax = data[1]
     
+    min, max = Ep.getQrange()
+    
+    
     alpha = exp(alpha)
     
     r = linspace(0, dmax, N)
-    T = createTransMatrix(Ep.q, r)
-    P = makePriorDistDistribution(Ep, N, dmax, T, 'sphere', Ep.q)
+    T = createTransMatrix(Ep.q[min:max], r)
+    P = makePriorDistDistribution(Ep, N, dmax, T, 'sphere', Ep.q[min:max])
     
     print alpha
     print dmax
@@ -633,7 +639,7 @@ def fineGetEvidence(data, Ep, N):
         wx.CallAfter(statusdlg.updateData, bift_status)
     #########################################################################
     
-    Pout, evd, c  = C_seeksol(Ep.i, P, Ep.q, Ep.err, alpha, dmax, T)
+    Pout, evd, c  = C_seeksol(Ep.i[min:max], P, Ep.q[min:max], Ep.err[min:max], alpha, dmax, T)
         
     return -evd
 
@@ -654,6 +660,7 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
     
     Ep = Exp
     
+    min, max = Exp.getQrange()
     # NB!!! ALPHA MUST BE DECIMAL NUMBER OTHERWISE C CODE WILL CRASH!!!!!!!
     # alpha/dmax points to cycle though:
     
@@ -766,10 +773,10 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
     ###########################################
 
     r = linspace(0, dmaxfin, N)
-    T = createTransMatrix(Ep.q, r)
-    P = makePriorDistDistribution(Ep, N, dmaxfin, T, 'sphere', Ep.q)
+    T = createTransMatrix(Ep.q[min:max], r)
+    P = makePriorDistDistribution(Ep, N, dmaxfin, T, 'sphere', Ep.q[min:max])
     
-    Pr, post, c = C_seeksol(Ep.i, P, Ep.q, Ep.err, alphafin, dmaxfin, T)
+    Pr, post, c = C_seeksol(Ep.i[min:max], P, Ep.q[min:max], Ep.err[min:max], alphafin, dmaxfin, T)
 
     # Reconstructed Fit line
     Fit = dot(Pr, transpose(T))
@@ -827,9 +834,9 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
                 'all_posteriors' : all_posteriors,
                 'alpha' : alphafin,
                 'dmax' : dmaxfin,
-                'orig_i' : Ep.i,
-                'orig_q' : Ep.q,
-                'orig_err': Ep.err,
+                'orig_i' : Ep.i[min:max],
+                'orig_q' : Ep.q[min:max],
+                'orig_err': Ep.err[min:max],
                 'I0' : I0,
                 'ChiSquared' : c,
                 'Rg' : Rg,
