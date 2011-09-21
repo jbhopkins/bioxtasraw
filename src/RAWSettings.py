@@ -177,6 +177,9 @@ class RawGuiSettings:
                             'PostProcessing'       : [None],
                             
                             'CurrentCfg'         : [None],
+                            'CompatibleFormats'  : ['.rad', '.tiff', '.tif', '.img', '.csv', '.dat', '.txt'],
+                            
+                            
                              
                             'CurveOffsetVal'       : [0.0,   wx.NewId(), 'float'],
                             'OffsetCurve'          : [False, wx.NewId(), 'bool'],

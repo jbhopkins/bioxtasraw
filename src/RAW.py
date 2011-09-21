@@ -11,7 +11,6 @@ Created on Sep 31, 2010
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
 #    (at your option) any later version.
-
 #    RAW is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -173,7 +172,9 @@ class MainFrame(wx.Frame):
         self.main_worker_thread.setDaemon(True)
         self.main_worker_thread.start()
         
-            
+    
+    def getRawSettings(self):
+        return self.raw_settings
 
     def test(self):
         self._mgr.GetPane(self.info_panel).Show(False)
@@ -465,16 +466,22 @@ class MainFrame(wx.Frame):
 
     def _onOnlineMenu(self, event):
         
-        wx.MessageBox('Feature still under construction', 'Feature not available')
+        id = event.GetId()
+#        
+        if id == self.MenuIDs['goOnline']:
+            is_online = self.OnlineControl.goOnline()
+            
+            if is_online:
+                self.setStatus('Mode: ONLINE', 2)
+            else:
+                menubar = self.GetMenuBar()
+                item = menubar.FindItemById(self.MenuIDs['goOffline'])
+                item.Check(True)
+                
+        else:
+            self.setStatus('Mode: OFFLINE', 2)
+            self.OnlineControl.goOffline()
         
-#        id = event.GetId()
-#        
-#        if id == self.MenuIDs['goOnline']:
-#            state = 'Online'
-#        else:
-#            state = 'Offline'
-#        
-#        self.OnlineControl.OnOnlineButton(state)
         
     def _onOptionsMenu(self, event):
         
@@ -556,6 +563,10 @@ class MainFrame(wx.Frame):
     def getMenuIds(self):
         return self.MenuIDs
     
+    def setStatus(self, statustxt, idx):
+        
+        self.statusbar.SetStatusText(statustxt,idx)
+    
     def setViewMenuScale(self, id):
         self.MenuBar.FindItemById(id).Check(True)
     
@@ -617,6 +628,8 @@ class OnlineController:
         
         self.parent = parent
         
+        self.main_frame = parent
+        
         # Setup the online file checker timer
         self.online_timer = wx.Timer()
         
@@ -626,13 +639,42 @@ class OnlineController:
         self.is_online = False
         self.seek_dir = []
         self.bg_filename = None
+    
+    def selectSearchDir(self):
+        self.dirctrl = wx.FindWindowByName('DirCtrlPanel')
+        
+        path = None
+        
+        if self.seek_dir == []:
+            self.seek_dir = str(self.dirctrl.getDirLabel())
+        
+        dirdlg = wx.DirDialog(self.parent, "Please select search directory:")
+        # self.seek_dir
+        if dirdlg.ShowModal() == wx.ID_OK:               
+            path = dirdlg.GetPath()
+            self.seek_dir = path 
+            
+        return path    
+    
+    def goOnline(self):
+        
+        path = self.selectSearchDir()
+        
+        if path != None:
+            self.old_dir_list = os.listdir(path)
+            self.online_timer.Start(1000)
+            return True
+        
+        return False
+        
+    def goOffline(self):
+        self.online_timer.Stop()
    
     def onOnlineTimer(self, evt):
         ''' This function checks for new files and processes them as they come in '''
         
-        info_panel = wx.FindWindowByName('InfoPanel')
-        dirctrl = wx.FindWindowByName('DirCtrlPanel')
-        dir_list = os.listdir(self.seekDir)
+        self.file_list_ctrl = wx.FindWindowByName('FileListCtrl')
+        dir_list = os.listdir(self.seek_dir)
                 
         if dir_list != self.old_dir_list:
 
@@ -643,13 +685,38 @@ class OnlineController:
                 except ValueError:
                     
                     self.old_dir_list.append(dir_list[idx])
-                    dirctrl.filterFileListAndUpdateListBox()
+                    self.file_list_ctrl.updateFileList()
                                     
-                    info_panel.writeText('Incomming file:\n' + str(dir_list[idx] + '\n\n'))
+                    #info_panel.writeText('Incomming file:\n' + str(dir_list[idx] + '\n\n'))
+                    
+                    process_str = 'Processing incomming file: ' + str(dir_list[idx]) 
+                    
+                    print process_str + '\n'
+                    
+                    self.main_frame.setStatus(process_str, 0)
+                    
                     filepath = os.path.join(self.seek_dir, str(dir_list[idx]))
 
-                    if not(self._fileTypeIsExcluded(filepath)):
-                        self.processIncommingFile(filepath)
+
+
+                    if self._fileTypeIsCompatible(filepath):
+                        mainworker_cmd_queue.put(['plot', [filepath]])
+                    
+    def _fileTypeIsCompatible(self, path):
+        
+        root, ext = os.path.splitext(path)
+        
+        print ext
+        compatible_formats = self.main_frame.getRawSettings().get('CompatibleFormats')
+        
+        print compatible_formats
+        
+        if str(ext) in compatible_formats:
+            
+            print 'TRUE!'
+        else:
+            return False
+        
 
 
 class MainWorkerThread(threading.Thread):

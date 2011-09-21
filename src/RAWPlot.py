@@ -1,10 +1,13 @@
-import wx, os, sys, matplotlib, math, numpy, RAWCustomCtrl
+import wx, os, sys, math, numpy, RAWCustomCtrl
+import matplotlib
+matplotlib.rcParams['backend'] = 'WxAgg'
+
 from matplotlib.backends.backend_wx import NavigationToolbar2Wx
 from matplotlib.backends.backend_wx import FigureCanvasBase
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.backend_bases import cursors
 from matplotlib.font_manager import FontProperties
-from pylab import setp
+#from pylab import setp
 
 
 RAWWorkDir = sys.path[0]
@@ -612,8 +615,9 @@ class PlotPanel(wx.Panel):
         
         #Hide errorbars:
         if self.plotparams['errorbars_on'] == False:
-            setp(ec, visible=False)
-            setp(el, visible=False)
+            ec[0].set_visible(False)
+            ec[1].set_visible(False)
+            el[0].set_visible(False)
             
         if color != None:
             line.set_color(color)
@@ -633,8 +637,15 @@ class PlotPanel(wx.Panel):
         for each in self.plotted_sasms:
             
             if each.line.get_visible():
-                setp(each.err_line[0], visible=state)
-                setp(each.err_line[1], visible=state)
+                
+                for each_line in each.err_line[0]:
+                    each_line.set_visible(state)
+                    
+                for each_line in each.err_line[1]:
+                    each_line.set_visible(state)
+                    
+                #setp(each.err_line[0], visible=state)
+                #setp(each.err_line[1], visible=state)
             
         self.canvas.draw()
                         
