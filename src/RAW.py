@@ -2603,6 +2603,7 @@ class ManipulationPanel(wx.Panel):
         for each in self.all_manipulation_items:
             each.showControls(False)
         
+        self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Layout()            
         self.underpanel.Refresh()
         
@@ -2612,13 +2613,15 @@ class ManipulationPanel(wx.Panel):
     def _expandAllItems(self):
         for each in self.all_manipulation_items:
             each.showControls(True)
-            
+        
+        self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Layout()            
         self.underpanel.Refresh()
         
         self.Layout()            
         self.Refresh()
-    
+        
+
     def removeItem(self, item):
         
         self.all_manipulation_items.remove(item)
@@ -3255,12 +3258,13 @@ class ManipItemPanel(wx.Panel):
         self._controls_visible = not self._controls_visible
         self.showControls(self._controls_visible)
         
+        self.manipulation_panel.underpanel.SetVirtualSize(self.manipulation_panel.underpanel.GetBestVirtualSize())
         self.GetParent().Layout()            
         self.GetParent().Refresh()
         
         self.GetParent().GetParent().Layout()            
         self.GetParent().GetParent().Refresh()
-            
+                        
     def _onTargetButton(self, event):
         self.enableLocatorLine()
         
