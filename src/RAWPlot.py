@@ -8,9 +8,6 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.backend_bases import cursors
 from matplotlib.font_manager import FontProperties
 
-#from pylab import setp
-
-
 RAWWorkDir = sys.path[0]
 
 if os.path.split(sys.path[0])[1] in ['RAW.exe', 'raw.exe']:
@@ -583,7 +580,7 @@ class PlotPanel(wx.Panel):
         if axesThatNeedsUpdatedLegend:
             plotpanel.canvas.draw()
 
-    def plotSASM(self, sasm, axes_no = 1, color = None, legend_label_in = None, *args, **kwargs):
+    def plotSASM(self, sasm, axes_no = 1, color = None, legend_label_in = None, line_data = None, *args, **kwargs):
         
         if axes_no == 1:
             a = self.subplot1
@@ -637,6 +634,13 @@ class PlotPanel(wx.Panel):
                 
         self.plotted_sasms.append(sasm)        # Insert the plot into plotted experiments list
     
+        if line_data != None:
+            line.set_linewidth(line_data['line_width'])
+            line.set_linestyle(line_data['line_style'])
+            line.set_color(line_data['line_color'])
+            line.set_marker(line_data['line_marker'])
+            line.set_visible(line_data['line_visible'])
+        
         
     def showErrorbars(self, state):
         

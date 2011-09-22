@@ -172,6 +172,38 @@ class MainFrame(wx.Frame):
         self.main_worker_thread.setDaemon(True)
         self.main_worker_thread.start()
         
+        
+        if len(sys.argv) > 1:
+            arg = sys.argv[1]
+            file, ext = os.path.splitext(arg)
+            
+            if ext == '.wsp':
+                if os.path.exists(arg):
+                     mainworker_cmd_queue.put(['load_workspace', [arg]])  
+    
+        else:
+            self._seekPreviousCfg()
+            dirctrl = wx.FindWindowByName('DirCtrlPanel')
+            dirctrl._useSavedPathIfExisits()
+        
+        
+    def _seekPreviousCfg(self):
+        
+        file = os.path.join(RAWWorkDir, 'backup.cfg')
+        
+        if os.path.exists(file):
+            retcode = wx.MessageBox('Load last saved configuration?', '',
+                                    style=wx.YES_NO|wx.ICON_QUESTION)
+            
+            if retcode == wx.YES:
+                success = RAWSettings.loadSettings(self.raw_settings, file)
+            
+                if success:
+                    self.raw_settings.set('CurrentCfg', file)
+                else:
+                    wx.MessageBox('Load failed, config file might be corrupted.',
+                                  'Load failed', style = wx.ICON_EXCLAMATION)
+    
     
     def getRawSettings(self):
         return self.raw_settings
@@ -270,37 +302,44 @@ class MainFrame(wx.Frame):
         #    self.guinierframe.Raise()
         #    self.guinierframe.RequestUserAttention()
     
-    def _onSaveSettings(self, evt):
-        ############################ KILLS BEAMSTOP MASK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        global expParams
-        
-        expParamsToSave = expParams
-    
-        file = self._createFileDialog(wx.SAVE)
-        
-        beamback = None
-        readback = None
-        
-        if os.path.splitext(file)[1] != '.cfg':
-            file = file + '.cfg'
-        
-        if file:
-            
-            if expParamsToSave['BeamStopMask'] != None:
-                beamback = expParamsToSave['BeamStopMask'].__copy__()
-            if expParamsToSave['ReadOutNoiseMask'] != None:
-                readback = expParamsToSave['ReadOutNoiseMask'].__copy__()
-        
-            expParamsToSave['BackgroundFile'] = None
-            expParamsToSave['BeamStopMask'] = None
-            expParamsToSave['ReadOutNoiseMask'] = None
-            
-            FileObj = open(file, 'w')
-            cPickle.dump(expParamsToSave, FileObj)
-            FileObj.close()
-            
-            expParamsToSave['BeamStopMask'] = beamback
-            expParamsToSave['ReadOutNoiseMask'] = readback    
+#    def _onSaveSettings(self, evt):
+#        ############################ KILLS BEAMSTOP MASK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#        global expParams
+#        
+#        expParamsToSave = expParams
+#    
+#        file = self._createFileDialog(wx.SAVE)
+#        
+#        beamback = None
+#        readback = None
+#        
+#        if os.path.splitext(file)[1] != '.cfg':
+#            file = file + '.cfg'
+#        
+#        if file:
+#            
+#            if expParamsToSave['BeamStopMask'] != None:
+#                beamback = expParamsToSave['BeamStopMask'].__copy__()
+#            if expParamsToSave['ReadOutNoiseMask'] != None:
+#                readback = expParamsToSave['ReadOutNoiseMask'].__copy__()
+#        
+#            expParamsToSave['BackgroundFile'] = None
+#            expParamsToSave['BeamStopMask'] = None
+#            expParamsToSave['ReadOutNoiseMask'] = None
+#            
+#            FileObj = open(file, 'w')
+#            cPickle.dump(expParamsToSave, FileObj)
+#            FileObj.close()
+#            
+#            backup_file = os.path.join(RAWWorkDir, 'backup.cfg')
+#            
+#            print backup_file
+#            FileObj = open(backup_file, 'w')
+#            cPickle.dump(expParamsToSave, FileObj)
+#            FileObj.close()
+#
+#            expParamsToSave['BeamStopMask'] = beamback
+#            expParamsToSave['ReadOutNoiseMask'] = readback    
             
     def _createSingleMenuBarItem(self, info):
         
@@ -1457,10 +1496,15 @@ class MainWorkerThread(threading.Thread):
             sasm_dict = sasm.extractAll()
         
             sasm_dict['line_color'] = sasm.line.get_color()
+            sasm_dict['line_width'] = sasm.line.get_linewidth()
+            sasm_dict['line_style'] = sasm.line.get_linestyle()
+            sasm_dict['line_marker'] = sasm.line.get_marker()
+            sasm_dict['line_visible'] = sasm.line.get_visible()
+            
             sasm_dict['item_controls_visible'] = sasm.item_panel.getControlsVisible()
             sasm_dict['item_font_color'] = sasm.item_panel.getFontColour()
             sasm_dict['item_selected_for_plot'] = sasm.item_panel.getSelectedForPlot()
-            
+
             sasm_dict['parameters_analysis'] = sasm_dict['parameters']['analysis']  #pickle wont save this unless its raised up
     
             if sasm.axes == sasm.plot_panel.subplot1:
@@ -1504,12 +1548,27 @@ class MainWorkerThread(threading.Thread):
             
             new_sasm._update()
 
+            #### THIS HAS TO BE UPDATED TO ACCOUNT FOR LINESTYLES AND VISIBILITY
+
+            try:
+                line_data = {'line_color' : sasm_data['line_color'],
+                             'line_width' : sasm_data['line_width'],
+                             'line_style' : sasm_data['line_style'],
+                             'line_marker': sasm_data['line_marker'], 
+                             'line_visible' :sasm_data['line_visible']}
+            except KeyError:
+                line_data = None    #Backwards compatibility
+                sasm_data['line_visible'] = True
+
             wx.CallAfter(self.plot_panel.plotSASM, new_sasm,
-                          sasm_data['plot_axes'],
-                          color = sasm_data['line_color'])
-                            
+                          sasm_data['plot_axes'], color = sasm_data['line_color'],
+                          line_data = line_data)
+
             wx.CallAfter(self.manipulation_panel.addItem, new_sasm,
-                          item_colour = sasm_data['item_font_color'])
+                          item_colour = sasm_data['item_font_color'],
+                          item_visible = sasm_data['line_visible'])
+            
+            
             
         wx.CallAfter(self.plot_panel.updateLegend, 1)
         wx.CallAfter(self.plot_panel.updateLegend, 2)
@@ -1789,10 +1848,10 @@ class CustomListCtrl(wx.ListCtrl):
         
         self.il = wx.ImageList(16, 16)
         
-        mainframe = wx.FindWindowByName('MainFrame')
+        self.mainframe = wx.FindWindowByName('MainFrame')
         
         for each in images:
-            self.il.Add(wx.Bitmap(os.path.join(mainframe.RAWWorkDir, 'resources',each)))
+            self.il.Add(wx.Bitmap(os.path.join(self.mainframe.RAWWorkDir, 'resources',each)))
             
         self.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
         
@@ -1964,6 +2023,9 @@ class CustomListCtrl(wx.ListCtrl):
     def updateFileList(self):
         self.readFileList()
         self.refreshFileList()
+        
+        raw_settings = self.mainframe.getRawSettings()
+        raw_settings.set('CurrentFilePath', self.path)  
         
     def setDir(self, dir):
         self.path = dir
@@ -2205,8 +2267,34 @@ class CustomListCtrl(wx.ListCtrl):
             self.updateFileList()
             
         else:
+            
             full_dir_filename = os.path.join(self.path, fullfilename)
-            mainworker_cmd_queue.put(('plot', [full_dir_filename]))
+            
+            file, ext = os.path.splitext(full_dir_filename)
+            
+            if ext == '.wsp':
+                ret = wx.MessageBox('Are you sure you want to load this workspace?',
+                              'Load workspace?', style = wx.YES_NO | wx.ICON_QUESTION)
+                
+                if ret == wx.YES:
+                    mainworker_cmd_queue.put(['load_workspace', [full_dir_filename]])
+                    
+            elif ext == '.cfg':
+                ret = wx.MessageBox('Are you sure you want to load this config file?',
+                              'Load new configuration?', style = wx.YES_NO | wx.ICON_QUESTION)
+                
+                if ret == wx.YES:
+                    raw_settings = self.mainframe.getRawSettings()
+                    success = RAWSettings.loadSettings(raw_settings, full_dir_filename)
+            
+                    if success:
+                        raw_settings.set('CurrentCfg', full_dir_filename)
+                    else:
+                        wx.MessageBox('Load failed, config file might be corrupted',
+                              'Load failed', style = wx.YES_NO | wx.ICON_EXCLAMATION)
+                
+            else:    
+                mainworker_cmd_queue.put(('plot', [full_dir_filename]))
             
     def openFileInExternalViewer(self):
 
@@ -2231,6 +2319,9 @@ class DirCtrlPanel(wx.Panel):
         wx.Panel.__init__(self, parent, name = 'DirCtrlPanel')
         self.parent = parent
         
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        self.raw_settings = self.main_frame.getRawSettings()
+        
         self.file_extension_list = ['All files (*.*)',
                                     'No Extension files (*.)',
                                     'TIFF files (*.tiff)',
@@ -2254,6 +2345,16 @@ class DirCtrlPanel(wx.Panel):
         self._old_path = '.'
         
         self.file_list = []
+        
+    def _useSavedPathIfExisits(self):
+        if self.raw_settings.getAllParams().has_key('CurrentFilePath'):
+            
+            path = self.raw_settings.get('CurrentFilePath')
+            
+        if path != None and os.path.exists(path):
+            self.setDirLabel(path)
+            self.file_list_box.setDir(path)
+            print 'Switched to saved path: ' + str(path)
         
 
     def _createDirCtrl(self, dirctrlpanel_sizer):
@@ -2312,7 +2413,7 @@ class DirCtrlPanel(wx.Panel):
         
     def _onEnterOrFocusShiftInDirLabel(self, event):
         pathtxt = self.getDirLabel()
-        
+            
         if pathtxt != self.file_list_box.getDir():
             if os.path.isdir(pathtxt):               
                 self._old_path = pathtxt
@@ -2323,7 +2424,7 @@ class DirCtrlPanel(wx.Panel):
     def _onSetDirButton(self, event):
         pathtxt = self.getDirLabel()
         dirdlg = wx.DirDialog(self, "Please select directory:", str(pathtxt))
-            
+        
         if dirdlg.ShowModal() == wx.ID_OK:               
             path = dirdlg.GetPath()
             self.file_list_box.setDir(path)
@@ -2439,9 +2540,10 @@ class ManipulationPanel(wx.Panel):
         
         return sizer
     
-    def addItem(self, sasm, item_colour = 'black'):
+    def addItem(self, sasm, item_colour = 'black', item_visible = True):
         
-        newItem = ManipItemPanel(self.underpanel, sasm, font_colour = item_colour)
+        newItem = ManipItemPanel(self.underpanel, sasm, font_colour = item_colour,
+                                 item_visible = item_visible)
         self.Freeze()
         self.underpanel_sizer.Add(newItem, 0, wx.GROW)
         self.underpanel_sizer.Layout()
@@ -2796,7 +2898,7 @@ class ManipulationPanel(wx.Panel):
         
 
 class ManipItemPanel(wx.Panel):
-    def __init__(self, parent, sasm, font_colour = 'BLACK', legend_label = ''):
+    def __init__(self, parent, sasm, font_colour = 'BLACK', legend_label = '', item_visible = True):
         
         wx.Panel.__init__(self, parent, style = wx.BORDER_RAISED)
         
@@ -2812,7 +2914,7 @@ class ManipItemPanel(wx.Panel):
         self.info_settings = {'hdr_choice' : 0}
         
         self._selected_as_bg = False
-        self._selected_for_plot = True
+        self._selected_for_plot = item_visible
         self._controls_visible = True
         self._selected = False
         self._legend_label = legend_label
@@ -2915,8 +3017,15 @@ class ManipItemPanel(wx.Panel):
             self.updateInfoTip(self.sasm.getParameter('analysis'))
             
         controls_not_shown = self.main_frame.raw_settings.get('ManipItemCollapsed')
+        
+        if not self._selected_for_plot:
+            controls_not_shown = True
+        
         if controls_not_shown:
             self.showControls(not controls_not_shown)
+        
+        self.updateShowItemCheckBox()
+        
         
     
     def updateInfoTip(self, analysis_dict, fromGuinierDialog = False):
@@ -3077,7 +3186,13 @@ class ManipItemPanel(wx.Panel):
         self.SelectedForPlot.SetValue(self._selected_for_plot)
         self.sasm.line.set_visible(self._selected_for_plot)
         self.sasm.line.set_picker(self._selected_for_plot)      #Line can't be selected when it's hidden
+    
+    def updateShowItemCheckBox(self):
+        #self.showControls(self._controls_visible)
+        self.SelectedForPlot.SetValue(self._selected_for_plot)
+        self.sasm.line.set_picker(self._selected_for_plot)
         
+    
     def updateFilenameLabel(self):
         filename = self.sasm.getParameter('filename')
         

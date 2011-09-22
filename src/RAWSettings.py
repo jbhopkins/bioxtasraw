@@ -3,7 +3,7 @@ Created on Jul 16, 2010
 
 @author: Soren Nielsen
 '''
-import wx, cPickle, copy
+import wx, cPickle, copy, os, sys
 import SASFileIO
 
 class RawGuiSettings:
@@ -189,7 +189,9 @@ class RawGuiSettings:
                             
                             #GUI Settings:
                             'csvIncludeData'      : [None],
-                            'ManipItemCollapsed'  : [False, wx.NewId(), 'bool'] 
+                            'ManipItemCollapsed'  : [False, wx.NewId(), 'bool'] ,
+                            'CurrentFilePath'     : [None]
+                            
                             }
     
     def get(self, key):
@@ -254,6 +256,17 @@ def saveSettings(raw_settings, savepath):
     file_obj = open(savepath, 'w')
     cPickle.dump(save_dict, file_obj)
     file_obj.close()
+    
+    ## Make a backup of the config file in case of crash:
+    RAWWorkDir = sys.path[0]
+    if os.path.split(sys.path[0])[1] in ['RAW.exe', 'raw.exe']:
+        RAWWorkDir = os.path.split(sys.path[0])[0]
+        
+    backup_file = os.path.join(RAWWorkDir, 'backup.cfg')
+            
+    FileObj = open(backup_file, 'w')
+    cPickle.dump(save_dict, FileObj)
+    FileObj.close()
     
     for key in masks.keys():
         masks[key][0] = oldMasks[key] 

@@ -1001,7 +1001,6 @@ def saveAnalysisCsvFile(sasm_list, include_data, save_path):
     file.write(str(date) + '\n')
     file.write('Filename')
     
-    
     all_included_keys = sorted(include_data.keys())
     
     for each_data in all_included_keys:
