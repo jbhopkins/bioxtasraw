@@ -7,6 +7,7 @@ from matplotlib.backends.backend_wx import FigureCanvasBase
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.backend_bases import cursors
 from matplotlib.font_manager import FontProperties
+
 #from pylab import setp
 
 
@@ -615,9 +616,14 @@ class PlotPanel(wx.Panel):
         
         #Hide errorbars:
         if self.plotparams['errorbars_on'] == False:
-            ec[0].set_visible(False)
-            ec[1].set_visible(False)
-            el[0].set_visible(False)
+            #ec[0].set_visible(False)
+            #ec[1].set_visible(False)
+            #el[0].set_visible(False)
+            
+            for each in ec:
+                each.set_visible(False)    
+            for each in el:
+                each.set_visible(False)
             
         if color != None:
             line.set_color(color)
@@ -637,13 +643,18 @@ class PlotPanel(wx.Panel):
         for each in self.plotted_sasms:
             
             if each.line.get_visible():
+                for each_err_line in each.err_line[0]:
+                    each_err_line.set_visible(state)    
+                for each_err_line in each.err_line[1]:
+                    each_err_line.set_visible(state)
+ 
                 
-                for each_line in each.err_line[0]:
-                    each_line.set_visible(state)
-                    
-                for each_line in each.err_line[1]:
-                    each_line.set_visible(state)
-                    
+#                for each_line in each.err_line[0]:
+#                    each_line.set_visible(state)
+#                    
+#                for each_line in each.err_line[1]:
+#                    each_line.set_visible(state)
+#                    
                 #setp(each.err_line[0], visible=state)
                 #setp(each.err_line[1], visible=state)
             

@@ -6,7 +6,7 @@ Created on Jul 11, 2010
 
 import SASImage, SASM, SASIft, SASExceptions
 import numpy as np
-import os, sys, re, cPickle
+import os, sys, re, cPickle, time
 import SASMarHeaderReader, packc_ext
 
 #Need to hack PIL to make it work with py2exe/cx_freeze:
@@ -994,8 +994,11 @@ def saveAnalysisCsvFile(sasm_list, include_data, save_path):
     if len(sasm_list) == 0:
         return None
     
+    date = time.ctime()
+    
     #Write the first line in the csv: 
     file.write('RAW ANALYSIS DATA\n')
+    file.write(str(date) + '\n')
     file.write('Filename')
     
     
@@ -1025,6 +1028,11 @@ def saveAnalysisCsvFile(sasm_list, include_data, save_path):
             if var == 'general':
                 if parameters.has_key(key):
                     file.write('"' + str(each_sasm.getParameter(key)) + '"')
+                elif key == 'scale':
+                    file.write('"' + str(each_sasm.getScale()) + '"')
+                elif key == 'offset':
+                    file.write('"' + str(each_sasm.getOffset()) + '"')
+                
             
             elif var == 'imageHeader':
                 if parameters.has_key('imageHeader'):

@@ -6610,7 +6610,8 @@ class SaveAnalysisInfoPanel(wx.Panel):
         
     
     def _addGeneralVariables(self):
-        general_data = [('General', None), ('Concentration', 'Conc'), ('Description / Notes', 'Notes')]
+        general_data = [('General', None), ('Concentration', 'Conc'), ('Description / Notes', 'Notes'),
+                        ('Scale', 'scale'), ('Offset', 'offset')]
         
         idx = 0
         for each in general_data: 
