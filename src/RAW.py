@@ -622,23 +622,25 @@ class MainFrame(wx.Frame):
         
         # Show the wx.AboutBox
         wx.AboutBox(info)
+    
+    def saveBackupData(self):
         
-    def _onCloseWindow(self, event):
-        self.Destroy()
-        
-        file = 'rawcfg.dat'
+        file = 'backup.ini'
         
         try:
             file_obj = open(file, 'w')
         
-            path = wx.FindWindowByName('DirCtrlPanel').path
-            saveInfo = {'workdir' : path,
-                        'ImageFormat' : self.GetParameter('ImageFormat')}
+            path = wx.FindWindowByName('FileListCtrl').path
+            save_info = {'workdir' : path}
         
-            cPickle.dump(saveInfo, FileObj)
-            FileObj.close()
-        except:
-            pass
+            cPickle.dump(save_info, file_obj)
+            file_obj.close()
+        except Exception, e:
+            print e
+    
+    def _onCloseWindow(self, event):
+        self.saveBackupData()
+        self.Destroy()
         
     def _createFileDialog(self, mode, name = 'Config files', ext = '*.cfg'):
         
@@ -2024,8 +2026,22 @@ class CustomListCtrl(wx.ListCtrl):
         self.readFileList()
         self.refreshFileList()
         
-        raw_settings = self.mainframe.getRawSettings()
-        raw_settings.set('CurrentFilePath', self.path)  
+        #raw_settings = self.mainframe.getRawSettings()
+        #raw_settings.set('CurrentFilePath', self.path)
+    
+    def _savePathToDisk(self):
+        
+        save_path = os.path.join(RAWWorkDir, 'backup.ini')
+        
+        data = {'path' : self.path}
+        
+        print self.path
+                
+        file_obj = open(save_path, 'w')
+        cPickle.dump(data, file_obj)
+        file_obj.close()
+        #except Exception, e:
+        #    print e
         
     def setDir(self, dir):
         self.path = dir
@@ -2347,10 +2363,23 @@ class DirCtrlPanel(wx.Panel):
         self.file_list = []
         
     def _useSavedPathIfExisits(self):
-        if self.raw_settings.getAllParams().has_key('CurrentFilePath'):
-            
-            path = self.raw_settings.get('CurrentFilePath')
-            
+        #if self.raw_settings.getAllParams().has_key('CurrentFilePath'):    
+        #    path = self.raw_settings.get('CurrentFilePath')
+        
+        path = None
+
+        load_path = os.path.join(RAWWorkDir, 'backup.ini')
+
+        try:
+            file_obj = open(load_path, 'r')
+            data = cPickle.load(file_obj)
+            file_obj.close()
+
+            path = data['workdir']
+        except Exception, e:
+            print e
+            path = None
+                    
         if path != None and os.path.exists(path):
             self.setDirLabel(path)
             self.file_list_box.setDir(path)
