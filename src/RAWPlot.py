@@ -274,7 +274,7 @@ class CustomPlotToolbar(NavigationToolbar2Wx):
         self.ToggleTool(self._MTB_SHOWBOTH, True)
     
     def home(self, *args, **kwargs):
-        self.parent.fitAxis()
+        self.parent.fitAxis(forced = True)
         self.parent.canvas.draw()
              
     def showboth(self, evt):
@@ -403,7 +403,8 @@ class PlotPanel(wx.Panel):
                                     'legend_alpha1'       : 0.7,
                                     'legend_alpha2'       : 0.7,
                                     'plot_custom_labels1' : False,
-                                    'plot_custom_labels2' : False}
+                                    'plot_custom_labels2' : False,
+                                    'auto_fitaxes'        : True}
                                     
                         
         self.subplot_labels = { 'subtracted'  : ['Subtracted', 'q [1/A]', 'I(q)'],
@@ -443,7 +444,10 @@ class PlotPanel(wx.Panel):
     def getParameter(self, param):
         return self.plotparams[param]
             
-    def fitAxis(self, axes = None):
+    def fitAxis(self, axes = None, forced = False):
+        
+        if self.plotparams['auto_fitaxes'] == False and forced == False:
+            return
         
         if axes:
             plots = axes
@@ -683,6 +687,7 @@ class PlotPanel(wx.Panel):
 
         sep = menu.AppendSeparator()
         legend_item = menu.AppendCheckItem(wx.NewId(), 'Show Legend')
+        autofitaxes_item = menu.AppendCheckItem(wx.NewId(), 'Auto axes limits')
         sep = menu.AppendSeparator()
         legend_options = menu.Append(wx.NewId(), 'Legend Options...')
         plot_options = menu.Append(wx.NewId(), 'Plot Options...')
@@ -690,10 +695,15 @@ class PlotPanel(wx.Panel):
         if self.plotparams['legend_visible'+ '_' + str(selected_plot)]:
             legend_item.Check()
             
+        if self.plotparams['auto_fitaxes']:
+            autofitaxes_item.Check()
+            
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
         self.Bind(wx.EVT_MENU, self._onToggleLegend, legend_item)
+        self.Bind(wx.EVT_MENU, self._onAutofitaxesMenuChoice)
+        
         self.Bind(wx.EVT_MENU, self._onLegendOptions, legend_options)
-        self.Bind(wx.EVT_MENU, self._onPlotOptions, plot_options)    
+        self.Bind(wx.EVT_MENU, self._onPlotOptions, plot_options) 
             
         
         self.PopupMenu(menu)
@@ -770,7 +780,10 @@ class PlotPanel(wx.Panel):
         #Update plot settings in menu bar:                        
         mainframe.setViewMenuScale(id)
         #evt.Skip()
-                
+    
+    def _onAutofitaxesMenuChoice(self, evt):
+        self.plotparams['auto_fitaxes'] = not self.plotparams['auto_fitaxes']
+    
     def _onToggleLegend(self, event):
         plotnum = self.selected_plot
         
@@ -1187,8 +1200,11 @@ class IftPlotPanel(PlotPanel):
         
         #Hide errorbars:
         if self.plotparams['errorbars_on'] == False:
-            setp(ec, visible=False)
-            setp(el, visible=False)
+            for each in ec:
+                each.set_visible(False)
+                
+            for each in el:
+                each.set_visible(False)
             
         if color != None:
             line.set_color(color)

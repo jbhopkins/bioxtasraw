@@ -173,37 +173,7 @@ class MainFrame(wx.Frame):
         self.main_worker_thread.start()
         
         
-        if len(sys.argv) > 1:
-            arg = sys.argv[1]
-            file, ext = os.path.splitext(arg)
-            
-            if ext == '.wsp':
-                if os.path.exists(arg):
-                     mainworker_cmd_queue.put(['load_workspace', [arg]])  
-    
-        else:
-            self._seekPreviousCfg()
-            dirctrl = wx.FindWindowByName('DirCtrlPanel')
-            dirctrl._useSavedPathIfExisits()
         
-        
-    def _seekPreviousCfg(self):
-        
-        file = os.path.join(RAWWorkDir, 'backup.cfg')
-        
-        if os.path.exists(file):
-            retcode = wx.MessageBox('Load last saved configuration?', '',
-                                    style=wx.YES_NO|wx.ICON_QUESTION)
-            
-            if retcode == wx.YES:
-                success = RAWSettings.loadSettings(self.raw_settings, file)
-            
-                if success:
-                    self.raw_settings.set('CurrentCfg', file)
-                else:
-                    wx.MessageBox('Load failed, config file might be corrupted.',
-                                  'Load failed', style = wx.ICON_EXCLAMATION)
-    
     
     def getRawSettings(self):
         return self.raw_settings
@@ -7782,7 +7752,9 @@ class MySplashScreen(wx.SplashScreen):
     def OnExit(self, evt):
         self.Hide()
             
-        frame = MainFrame('RAW 0.99.8.4b', -1)
+        frame = MainFrame('RAW 0.99.8.4.1b', -1)
+        
+        self.raw_settings = frame.getRawSettings()
         icon = wx.Icon(name= os.path.join(RAWWorkDir, "resources","raw.ico"), type = wx.BITMAP_TYPE_ICO)
         frame.SetIcon(icon)
         app.SetTopWindow(frame)
@@ -7790,9 +7762,42 @@ class MySplashScreen(wx.SplashScreen):
         frame.SetSize((1024,768))
         frame.CenterOnScreen()
         frame.Show(True)
+        
+        if len(sys.argv) > 1:
+            arg = sys.argv[1]
+            file, ext = os.path.splitext(arg)
+            
+            if ext == '.wsp':
+                if os.path.exists(arg):
+                     mainworker_cmd_queue.put(['load_workspace', [arg]])  
+    
+        else:
+            self._seekPreviousCfg()
+            dirctrl = wx.FindWindowByName('DirCtrlPanel')
+            dirctrl._useSavedPathIfExisits()
+       
+        evt.Skip() 
+        
+    def _seekPreviousCfg(self):
+        
+        file = os.path.join(RAWWorkDir, 'backup.cfg')
+        
+        if os.path.exists(file):
+            retcode = wx.MessageBox('Load last saved configuration?', '',
+                                    style=wx.YES_NO|wx.ICON_QUESTION)
+            
+            if retcode == wx.YES:
+                success = RAWSettings.loadSettings(self.raw_settings, file)
+            
+                if success:
+                    self.raw_settings.set('CurrentCfg', file)
+                else:
+                    wx.MessageBox('Load failed, config file might be corrupted.',
+                                  'Load failed', style = wx.ICON_EXCLAMATION)
+    
 
         # The program will freeze without this line.
-        evt.Skip()
+       
        
 if __name__ == '__main__':
     app = MyApp(0)   #MyApp(redirect = True)

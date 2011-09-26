@@ -141,12 +141,11 @@ def loadPilatusImage(filename):
     img, img_hdr = load32BitTiffImage(filename)
     img = np.fliplr(img)
 
-#    try:
-#        img_hdr = SASMarHeaderReader.readHeader(filename)
-#    except:
-#        pass
-    
-    img_hdr = {}
+    try:
+        img_hdr = parsePilatusHeader(filename)
+    except:
+        img_hdr = {}
+        pass
     
     return img, img_hdr
 
@@ -199,6 +198,39 @@ def getMar345ImgDim(filename):
 ##########################################
 #--- ## Parse Counter Files and Headers ##
 ##########################################
+
+def parsePilatusHeader(filename):
+    
+    param_pattern = re.compile('\d*[:]\d*[:]\d*\D\d*[:]\d*[:]\d*')
+    
+    try:
+        f = open(filename, 'r')
+    
+        hdr = {}
+    except:
+        print 'Reading Quantum header failed'
+        return {}
+    
+    lineNum = 0
+    
+    for line in f:               
+        date_found = param_pattern.search(line)
+        
+        if date_found:    
+            hdr['Exposure_date'] = date_found.group()
+            f.seek(580)
+        
+        try:
+            if line.find('#') == 0:
+                if line.split()[1] == 'Exposure_time':
+                    hdr['Exposure_time'] = float(line.split()[2])
+        except:
+            print '** error reading the exposure time **'
+               
+    f.close()
+ 
+    return hdr
+    
 
 def parseMar345FileHeader(filename):
     
@@ -357,7 +389,7 @@ def parseCHESSG1CountFile(filename):
     countFile = underscores[0]
     
     filenumber = int(underscores[-2])
-        
+      
     if len(underscores)>3:
         for each in underscores[1:-2]:
             countFile += '_' + each
@@ -1104,22 +1136,7 @@ def writeRadFile(m, filename):
     
     f2 = open(filename, 'w')
     
-    f2.write('   Exposure Time (sec): 1\n')
-    f2.write('       Q             I                   Error\n')
-    f2.write('    %d\n' % len(m.i))
-        
-    fit = np.zeros(np.size(m.q))
-
-    q_min, q_max = m.getQrange()
-    
-    #print q_min, q_max, len(m.q), len(m.i), len(m.err)
-    
-    for idx in range(q_min, q_max):
-        line = ('   %.8E  %.8E  %.8E\n') % ( m.q[idx], m.i[idx], m.err[idx])
-        f2.write(line)
-
-    f2.write('\n\n')
-    
+    f2.write('### HEADER:\n\n')
     
     sortedKeys = d.keys()
     sortedKeys.sort()
@@ -1144,6 +1161,22 @@ def writeRadFile(m, filename):
         if each != 'fileHeader':
             f2.write(line)
     
+    f2.write('\n\n')
+    
+    f2.write('### DATA:\n\n')
+    f2.write('       Q             I                   Error\n')
+    f2.write('    %d\n' % len(m.i))
+        
+    fit = np.zeros(np.size(m.q))
+
+    q_min, q_max = m.getQrange()
+    
+    #print q_min, q_max, len(m.q), len(m.i), len(m.err)
+    
+    for idx in range(q_min, q_max):
+        line = ('   %.8E  %.8E  %.8E\n') % ( m.q[idx], m.i[idx], m.err[idx])
+        f2.write(line)
+     
     f2.close()
 
 def printDict(d, each):
