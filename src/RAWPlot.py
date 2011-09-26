@@ -700,7 +700,7 @@ class PlotPanel(wx.Panel):
             
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
         self.Bind(wx.EVT_MENU, self._onToggleLegend, legend_item)
-        self.Bind(wx.EVT_MENU, self._onAutofitaxesMenuChoice)
+        self.Bind(wx.EVT_MENU, self._onAutofitaxesMenuChoice, autofitaxes_item)
         
         self.Bind(wx.EVT_MENU, self._onLegendOptions, legend_options)
         self.Bind(wx.EVT_MENU, self._onPlotOptions, plot_options) 
