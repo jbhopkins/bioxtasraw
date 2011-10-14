@@ -220,6 +220,8 @@ class CustomPlotToolbar(NavigationToolbar2Wx):
         self.fig_axes = parent.fig.gca()
         self.parent = parent
         
+        self.saved_artists = None
+        
         self._MTB_ERRBARS = wx.NewId()
         self._MTB_LEGEND = wx.NewId()
         self._MTB_SHOWBOTH = wx.NewId()
@@ -281,7 +283,7 @@ class CustomPlotToolbar(NavigationToolbar2Wx):
         self.ToggleTool(self._MTB_SHOWTOP, False)
         self.ToggleTool(self._MTB_SHOWBOTTOM, False)
         self.ToggleTool(self._MTB_SHOWBOTH, True)
-        
+      
         self.parent.subplot1.set_visible(True)
         self.parent.subplot2.set_visible(True)
         
@@ -297,8 +299,12 @@ class CustomPlotToolbar(NavigationToolbar2Wx):
         
         self.parent.subplot1.set_visible(True)
         self.parent.subplot2.set_visible(False)
-        
+    
         self.parent.subplot1.change_geometry(1,1,1)
+        
+        self.parent.subplot1.set_zorder(2)
+        self.parent.subplot2.set_zorder(1)
+            
         self.parent._plot_shown = 1
         self.parent.canvas.draw()
 
@@ -309,6 +315,9 @@ class CustomPlotToolbar(NavigationToolbar2Wx):
         
         self.parent.subplot1.set_visible(False)
         self.parent.subplot2.set_visible(True)
+        
+        self.parent.subplot1.set_zorder(1)
+        self.parent.subplot2.set_zorder(2)
         
         self.parent.subplot2.change_geometry(1,1,1)
         self.parent._plot_shown = 2
@@ -404,7 +413,8 @@ class PlotPanel(wx.Panel):
                                     'legend_alpha2'       : 0.7,
                                     'plot_custom_labels1' : False,
                                     'plot_custom_labels2' : False,
-                                    'auto_fitaxes'        : True}
+                                    'auto_fitaxes1'        : True,
+                                    'auto_fitaxes2'        : True}
                                     
                         
         self.subplot_labels = { 'subtracted'  : ['Subtracted', 'q [1/A]', 'I(q)'],
@@ -446,9 +456,6 @@ class PlotPanel(wx.Panel):
             
     def fitAxis(self, axes = None, forced = False):
         
-        if self.plotparams['auto_fitaxes'] == False and forced == False:
-            return
-        
         if axes:
             plots = axes
         else:
@@ -462,6 +469,15 @@ class PlotPanel(wx.Panel):
             
                 minq = None
                 mini = None
+                
+                if eachsubplot == self.subplot1:
+                    plotnum = '1'
+                else:
+                    plotnum = '2'
+                
+                if self.plotparams['auto_fitaxes' + plotnum] == False and forced == False:
+                    print 'hello'
+                    return
                         
                 for each in eachsubplot.lines:
                     if each._label != '_nolegend_' and each.get_visible() == True:
@@ -695,7 +711,7 @@ class PlotPanel(wx.Panel):
         if self.plotparams['legend_visible'+ '_' + str(selected_plot)]:
             legend_item.Check()
             
-        if self.plotparams['auto_fitaxes']:
+        if self.plotparams['auto_fitaxes' + str(selected_plot)]:
             autofitaxes_item.Check()
             
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
@@ -782,7 +798,9 @@ class PlotPanel(wx.Panel):
         #evt.Skip()
     
     def _onAutofitaxesMenuChoice(self, evt):
-        self.plotparams['auto_fitaxes'] = not self.plotparams['auto_fitaxes']
+        plotnum = self.selected_plot
+        
+        self.plotparams['auto_fitaxes' + str(plotnum)] = not self.plotparams['auto_fitaxes' + str(plotnum)]
     
     def _onToggleLegend(self, event):
         plotnum = self.selected_plot

@@ -388,7 +388,7 @@ def parseCHESSG1CountFile(filename):
     
     countFile = underscores[0]
     
-    filenumber = int(underscores[-2])
+    filenumber = int(underscores[-2].strip('scan'))
       
     if len(underscores)>3:
         for each in underscores[1:-2]:
