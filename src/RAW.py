@@ -53,6 +53,46 @@ workspace_saved = True
 global cancel_ift
 cancel_ift = False
 
+
+class MyAuiNotebook(aui.AuiNotebook):
+
+    def __init__(self, *args, **kwargs):
+        #kwargs['style'] = kwargs.get('style', aui.AUI_NB_DEFAULT_STYLE) 
+        super(MyAuiNotebook, self).__init__(*args, **kwargs)
+        #self.Bind(aui.EVT_AUINOTEBOOK_PAGE_CLOSE, self.onClosePage)
+	self.Bind(aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.onPageChange)
+
+	#self.SetWindowStyle(self.GetWindowStyle() & ~aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
+
+    def onPageChange(self, event):
+	event.Skip()
+	idx = self.GetSelection()
+	style = self.GetWindowStyle()	
+	print self.GetPageText(idx)
+
+	if idx != 2:	
+        	self.SetWindowStyle(style & ~aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
+		self.Refresh()
+	else:
+        	self.SetWindowStyle(style | aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
+		self.Refresh()
+
+#	self.ToggleWindowStyle(aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
+
+    def onClosePage(self, event):
+        event.Skip()
+        #if self.GetPageCount() <= 2:
+        #    # Prevent last tab from being closed
+        #    self.ToggleWindowStyle(aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
+
+    def AddPage(self, *args, **kwargs):
+        super(MyAuiNotebook, self).AddPage(*args, **kwargs)
+        ## Allow closing tabs when we have more than one tab:
+        #if self.GetPageCount() > 1:
+        #    self.SetWindowStyle(self.GetWindowStyleFlag() | \
+        #        aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
+
+
 class MainFrame(wx.Frame):
     
     def __init__(self, title, frame_id):
@@ -111,6 +151,9 @@ class MainFrame(wx.Frame):
         self._mgr.SetManagedWindow(self)
         
         self.plot_notebook = aui.AuiNotebook(self, style = aui.AUI_NB_TAB_MOVE | aui.AUI_NB_TAB_SPLIT | aui.AUI_NB_SCROLL_BUTTONS)
+	#self.plot_notebook = MyAuiNotebook(self, style = aui.AUI_NB_TAB_MOVE | aui.AUI_NB_TAB_SPLIT | aui.AUI_NB_SCROLL_BUTTONS)
+
+
         plot_panel = RAWPlot.PlotPanel(self.plot_notebook, -1, 'PlotPanel')
         img_panel = RAWImage.ImagePanel(self.plot_notebook, -1, 'ImagePanel')
         iftplot_panel = RAWPlot.IftPlotPanel(self.plot_notebook, -1, 'IFTPlotPanel')
@@ -163,6 +206,8 @@ class MainFrame(wx.Frame):
         
         self._mgr.GetPane(self.control_notebook).MinSize((200,300))
 
+	print self.getRawSettings().getAllParams()['CompatibleFormats']
+
         #Load workdir from rawcfg.dat:
         self._loadCfg()
         self._createMenuBar()        
@@ -171,8 +216,6 @@ class MainFrame(wx.Frame):
         self.main_worker_thread = MainWorkerThread(self, self.raw_settings)
         self.main_worker_thread.setDaemon(True)
         self.main_worker_thread.start()
-        
-        
         
     
     def getRawSettings(self):
@@ -658,9 +701,9 @@ class OnlineController:
         
         if self.seek_dir == []:
             self.seek_dir = str(self.dirctrl.getDirLabel())
-        
-        dirdlg = wx.DirDialog(self.parent, "Please select search directory:")
-        # self.seek_dir
+
+        dirdlg = wx.DirDialog(self.parent, "Please select search directory:", str(self.seek_dir))
+
         if dirdlg.ShowModal() == wx.ID_OK:               
             path = dirdlg.GetPath()
             self.seek_dir = path 
@@ -708,23 +751,29 @@ class OnlineController:
                     
                     filepath = os.path.join(self.seek_dir, str(dir_list[idx]))
 
-
-
                     if self._fileTypeIsCompatible(filepath):
                         mainworker_cmd_queue.put(['plot', [filepath]])
+
                     
     def _fileTypeIsCompatible(self, path):
         
         root, ext = os.path.splitext(path)
         
         print ext
+
         compatible_formats = self.main_frame.getRawSettings().get('CompatibleFormats')
         
         print compatible_formats
+
+	print self.main_frame.getRawSettings().getAllParams()['CompatibleFormats']
+
+
+	print 'FILE TEST!'
         
         if str(ext) in compatible_formats:
             
             print 'TRUE!'
+	    return True
         else:
             return False
         
@@ -1782,8 +1831,10 @@ class FilePanel(wx.Panel):
         
         #RAWSettings.loadSettings(self.main_frame.raw_settings, 'testdat.dat')
         
-        dlg = SaveAnalysisInfoDialog(self)
-        dlg.ShowModal()
+        #dlg = SaveAnalysisInfoDialog(self)
+        #dlg.ShowModal()
+
+	pass
 
 class CustomListCtrl(wx.ListCtrl):
 

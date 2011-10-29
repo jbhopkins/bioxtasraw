@@ -177,7 +177,7 @@ class RawGuiSettings:
                             'PostProcessing'       : [None],
                             
                             'CurrentCfg'         : [None],
-                            'CompatibleFormats'  : ['.rad', '.tiff', '.tif', '.img', '.csv', '.dat', '.txt'],
+                            'CompatibleFormats'  : [['.rad', '.tiff', '.tif', '.img', '.csv', '.dat', '.txt'], None],
                             
                             
                              
@@ -236,7 +236,7 @@ def saveSettings(raw_settings, savepath):
     param_dict = raw_settings.getAllParams() 
     keys = param_dict.keys()
     
-    exclude_keys = ['ImageFormatList', 'ImageHdrFormatList', 'BackgroundSASM', 'CurrentCfg', 'csvIncludeData']
+    exclude_keys = ['ImageFormatList', 'ImageHdrFormatList', 'BackgroundSASM', 'CurrentCfg', 'csvIncludeData', 'CompatibleFormats']
     
     save_dict = {}
     

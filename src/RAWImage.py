@@ -433,8 +433,8 @@ class ImagePanel(wx.Panel):
                 
             try:
                 mainframe = wx.FindWindowByName('MainFrame')
-                mainframe.statusbar.SetStatusText('(x,y) = (' + str(mouseX) + ', ' + str(mouseY) + ')', 1)
-                mainframe.statusbar.SetStatusText('I = ' + str(z), 2)
+                mainframe.statusbar.SetStatusText('(x,y) = (' + str(mouseX) + ', ' + str(mouseY) + ')' + '   I = ' + str(z), 1)
+                #mainframe.statusbar.SetStatusText('I = ' + str(z), 2)
             except:
                 pass
                 

@@ -548,7 +548,7 @@ class PlotPanel(wx.Panel):
         pass
     
     def _onMouseMotionEvent(self, event):
-        
+  
         if event.inaxes:
             x, y = event.xdata, event.ydata
             wx.FindWindowByName('MainFrame').SetStatusText('x = ' +  str(round(x,5)) + ', y = ' + str(round(y,5)), 1) 
@@ -621,7 +621,7 @@ class PlotPanel(wx.Panel):
             legend_label = sasm.getParameter('filename')
         else:
             legend_label = legend_label_in
-        
+
         if type == 'normal' or type == 'subtracted':
             line, ec, el = a.errorbar(sasm.q[q_min:q_max], sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label, **kwargs)
         elif type == 'kratky':
@@ -630,7 +630,9 @@ class PlotPanel(wx.Panel):
             line, ec, el = a.errorbar(numpy.power(sasm.q[q_min:q_max],2), sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
         elif type == 'porod':
             line, ec, el = a.errorbar(sasm.q[q_min:q_max], numpy.power(sasm.q[q_min:q_max],4)*sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
-        
+	
+	line.set_label(legend_label)        
+
         #Hide errorbars:
         if self.plotparams['errorbars_on'] == False:
             #ec[0].set_visible(False)
