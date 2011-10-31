@@ -390,7 +390,11 @@ def parseCHESSG1CountFile(filename):
     
     filenumber = int(underscores[-2].strip('scan'))
     
-    frame_number = int(underscores[-1].split('.')[0])
+    try:
+        frame_number = int(underscores[-1].split('.')[0])
+    except Exception:
+        frame_number = 0
+        
       
     if len(underscores)>3:
         for each in underscores[1:-2]:
