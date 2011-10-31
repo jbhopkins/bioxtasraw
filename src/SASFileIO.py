@@ -24,13 +24,13 @@ def createSASMFromImage(img_array, parameters = {}, x_c = None, y_c = None, mask
     
     if mask != None:
         if mask.shape != img_array.shape:
-            raise Exception('Beamstop mask is wrong size.\n\nPlease' +
-                            ' change the mask settings to make this plot')
+            raise SASExceptions.MaskSizeError('Beamstop mask is the wrong size. Please' +
+                            ' create a new mask or remove the old to make this plot')
 
     if readout_noise_mask != None:
         if readout_noise_mask.shape != img_array.shape: 
-            raise Exception('Readout-noise mask is wrong size.\n\nPlease' +
-                            ' change the mask settings to make this plot')
+            raise SASExceptions.MaskSizeError('Readout-noise mask is the wrong size. Please' +
+                            ' create a new mask or remove the old to make this plot')
     
     try:
         [i_raw, q_raw, err_raw, qmatrix] = SASImage.radialAverage(img_array, x_c, y_c, mask, readout_noise_mask, dezingering, dezing_sensitivity)   
@@ -389,6 +389,8 @@ def parseCHESSG1CountFile(filename):
     countFile = underscores[0]
     
     filenumber = int(underscores[-2].strip('scan'))
+    
+    frame_number = int(underscores[-1].split('.')[0])
       
     if len(underscores)>3:
         for each in underscores[1:-2]:
@@ -428,7 +430,7 @@ def parseCHESSG1CountFile(filename):
     try:
         if start_idx and label_idx:
             labels = allLines[label_idx].split()
-            vals = allLines[label_idx+1].split()
+            vals = allLines[label_idx+1+frame_number].split()
             
         for idx in range(0,len(vals)):    
             counters[labels[idx+1]] = vals[idx]

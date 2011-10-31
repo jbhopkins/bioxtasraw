@@ -54,43 +54,44 @@ global cancel_ift
 cancel_ift = False
 
 
-class MyAuiNotebook(aui.AuiNotebook):
-
-    def __init__(self, *args, **kwargs):
-        #kwargs['style'] = kwargs.get('style', aui.AUI_NB_DEFAULT_STYLE) 
-        super(MyAuiNotebook, self).__init__(*args, **kwargs)
-        #self.Bind(aui.EVT_AUINOTEBOOK_PAGE_CLOSE, self.onClosePage)
-	self.Bind(aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.onPageChange)
-
-	#self.SetWindowStyle(self.GetWindowStyle() & ~aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
-
-    def onPageChange(self, event):
-	event.Skip()
-	idx = self.GetSelection()
-	style = self.GetWindowStyle()	
-	print self.GetPageText(idx)
-
-	if idx != 2:	
-        	self.SetWindowStyle(style & ~aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
-		self.Refresh()
-	else:
-        	self.SetWindowStyle(style | aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
-		self.Refresh()
-
-#	self.ToggleWindowStyle(aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
-
-    def onClosePage(self, event):
-        event.Skip()
-        #if self.GetPageCount() <= 2:
-        #    # Prevent last tab from being closed
-        #    self.ToggleWindowStyle(aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
-
-    def AddPage(self, *args, **kwargs):
-        super(MyAuiNotebook, self).AddPage(*args, **kwargs)
-        ## Allow closing tabs when we have more than one tab:
-        #if self.GetPageCount() > 1:
-        #    self.SetWindowStyle(self.GetWindowStyleFlag() | \
-        #        aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
+#class MyAuiNotebook(aui.AuiNotebook):
+#    ### TESTING CLOSE BUTTONS ON TABS ###
+#
+#    def __init__(self, *args, **kwargs):
+#        #kwargs['style'] = kwargs.get('style', aui.AUI_NB_DEFAULT_STYLE) 
+#       super(MyAuiNotebook, self).__init__(*args, **kwargs)
+#        #self.Bind(aui.EVT_AUINOTEBOOK_PAGE_CLOSE, self.onClosePage)
+#	   self.Bind(aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.onPageChange)
+#
+#	#self.SetWindowStyle(self.GetWindowStyle() & ~aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
+#
+#    def onPageChange(self, event):
+#	   event.Skip()
+#	   idx = self.GetSelection()
+#	   style = self.GetWindowStyle()	
+#	   print self.GetPageText(idx)
+#
+#	if idx != 2:	
+#        	self.SetWindowStyle(style & ~aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
+#		self.Refresh()
+#	else:
+#        	self.SetWindowStyle(style | aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
+#		self.Refresh()
+#
+##	self.ToggleWindowStyle(aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
+#
+#    def onClosePage(self, event):
+#        event.Skip()
+#        #if self.GetPageCount() <= 2:
+#        #    # Prevent last tab from being closed
+#        #    self.ToggleWindowStyle(aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
+#
+#    def AddPage(self, *args, **kwargs):
+#        super(MyAuiNotebook, self).AddPage(*args, **kwargs)
+#        ## Allow closing tabs when we have more than one tab:
+#        #if self.GetPageCount() > 1:
+#        #    self.SetWindowStyle(self.GetWindowStyleFlag() | \
+#        #        aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
 
 
 class MainFrame(wx.Frame):
@@ -206,7 +207,7 @@ class MainFrame(wx.Frame):
         
         self._mgr.GetPane(self.control_notebook).MinSize((200,300))
 
-	print self.getRawSettings().getAllParams()['CompatibleFormats']
+	#print self.getRawSettings().getAllParams()['CompatibleFormats']
 
         #Load workdir from rawcfg.dat:
         self._loadCfg()
@@ -756,24 +757,16 @@ class OnlineController:
 
                     
     def _fileTypeIsCompatible(self, path):
-        
         root, ext = os.path.splitext(path)
-        
-        print ext
-
+        #print ext
         compatible_formats = self.main_frame.getRawSettings().get('CompatibleFormats')
+        #print compatible_formats
+	    #print self.main_frame.getRawSettings().getAllParams()['CompatibleFormats']
+        print 'FILE TEST!'
         
-        print compatible_formats
-
-	print self.main_frame.getRawSettings().getAllParams()['CompatibleFormats']
-
-
-	print 'FILE TEST!'
-        
-        if str(ext) in compatible_formats:
-            
+        if str(ext) in compatible_formats: 
             print 'TRUE!'
-	    return True
+            return True
         else:
             return False
         
@@ -1084,6 +1077,10 @@ class MainWorkerThread(threading.Thread):
             return
         except SASExceptions.HeaderLoadError, msg:
             wx.CallAfter(wx.MessageBox, str(msg), 'Error Loading Headerfile', style = wx.ICON_ERROR)
+            wx.CallAfter(self.main_frame.closeBusyDialog)
+            return
+        except SASExceptions.MaskSizeError, msg:
+            wx.CallAfter(wx.MessageBox, str(msg), 'Saved mask does not fit loaded image', style = wx.ICON_ERROR)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
             
