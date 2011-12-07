@@ -923,8 +923,18 @@ class MainWorkerThread(threading.Thread):
             old_filename = sasm.getParameter('filename')
         
             if algo == 'BIFT':
-                try:
-                    parameters = (50, 1e10, 10.0, 16, 200, 10, 20)
+                try:     
+                    #parameters = (50, 1e10, 10.0, 16, 200, 10, 20)
+                    parameters = (self._raw_settings.get('PrPoints'),
+                                  self._raw_settings.get('maxAlpha'),
+                                  self._raw_settings.get('minAlpha'),
+                                  self._raw_settings.get('AlphaPoints'),
+                                  self._raw_settings.get('maxDmax'),
+                                  self._raw_settings.get('minDmax'),
+                                  self._raw_settings.get('DmaxPoints'))
+                    
+                    
+                    print parameters
                     ift_sasm = self._runBIFT(sasm, parameters)
                 
                     print 'got ift'
@@ -948,7 +958,19 @@ class MainWorkerThread(threading.Thread):
                     return
             
             if algo == 'Manual':
-                ift_sasm = self._runManualIft(sasm, ift_parameters)
+                
+                try:
+                    ift_sasm = self._runManualIft(sasm, ift_parameters)
+                except ValueError, e:
+                    wx.CallAfter(wx.MessageBox, 'BIFT Search Failed...', 'Solution Search Failure')
+                    print 'doBift error: ', e
+            
+                    statusdlg = wx.FindWindowByName('BIFTStatusDlg')
+                    if statusdlg != None:
+                        wx.CallAfter(statusdlg.OnClose, 1)    
+                    return
+                
+                
         
             ift_sasm.setParameter('orig_sasm', sasm.copy())
             
@@ -3814,7 +3836,7 @@ class IFTPanel(wx.Panel):
                         #("Clear Plot", self._OnClearAll),
                         ("Save", self._onSaveButton),
                         #("Solve", self._OnManual),
-                        ("Clear List", self._onClearList))
+                        ("Clear Plots", self._onClearList))
         
         # /* INSERT WIDGETS */ 
         
@@ -4251,14 +4273,32 @@ class IFTPanel(wx.Panel):
             return
         
         mainworker_cmd_queue.put(['save_items', [save_path, selected_items]])
+            
+        
     
 ##################################################################################### 
 
  
     def _onClearList(self, evt):
-        self.filelist.Clear()
-        self.infoBox.clear()
-        self.infoBox.Enable(False)
+        self.Freeze()
+        
+        rest_of_items = []
+        for each in self.all_manipulation_items:
+            
+            try:
+                each.Destroy()
+            except ValueError:
+                rest_of_items.append(each)
+                
+        self.all_manipulation_items = rest_of_items
+        self.underpanel_sizer.Layout()
+        self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
+        
+        self._star_marked_item = None
+        
+        self.Thaw()
+        
+        self.iftplot_panel.clearAllPlots()
         
     def _OnManual(self, evt):
         ''' Solve button '''
@@ -4354,7 +4394,7 @@ class IFTPanel(wx.Panel):
             biftparams[eachParam] = int(value)
     
     def _onLoadFile(self, evt):   
-        
+         
         selected_file = self._CreateFileDialog(wx.OPEN)
         
         if selected_file:
@@ -4371,12 +4411,15 @@ class IFTPanel(wx.Panel):
         
         file = None
         
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        load_path = dirctrl_panel.getDirLabel()
+        
         if mode == wx.OPEN:
             filters = 'Rad files (*.rad)|*.rad|Dat files (*.dat)|*.dat|Txt files (*.txt)|*.txt|All files (*.*)|*.*'
-            dialog = wx.FileDialog( None, style = mode, wildcard = filters)
+            dialog = wx.FileDialog( None, 'Select a file', load_path, style = mode, wildcard = filters)
         if mode == wx.SAVE:
             filters = 'Rad files (*.cfg)|*.cfg'
-            dialog = wx.FileDialog( None, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters)        
+            dialog = wx.FileDialog( None, 'Name file and location', load_path, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters)        
         
         # Show the dialog and get user input
         if dialog.ShowModal() == wx.ID_OK:
@@ -5347,10 +5390,17 @@ class IFTControlPanel(wx.Panel):
                 sizer.Add(chkbox, 0, wx.ALIGN_CENTER)
                
                 self.dzero_chkbox.SetValue(True)
+                self.dmax_chkbox.SetValue(True)
+                
+                ###################################
+                self.dzero_chkbox.Enable(False)     #Not ready yet
+                self.dmax_chkbox.Enable(False)
+                chkbox.Enable(False)
+                ###################################
                 
             elif type == 'algo':
                 labelbox = wx.StaticText(self, -1, label)
-                self.algo_choice = wx.Choice(self, id, size = (80,-1), choices = ['BIFT', 'GNOM', 'Manual'])
+                self.algo_choice = wx.Choice(self, id, size = (80,-1), choices = ['BIFT', 'Manual'])
                 self.algo_choice.Select(0)
                 
                 #ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onSpinChange)
@@ -5398,7 +5448,9 @@ class IFTControlPanel(wx.Panel):
         return sizer   
     
     def _onSettingsButton(self, evt):
-        pass
+        mainframe = wx.FindWindowByName('MainFrame')
+        
+        mainframe.showOptionsDialog(6)
     
     
     def _onRunButton(self, evt):    

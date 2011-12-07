@@ -1397,6 +1397,12 @@ class IftOptionsPanel(wx.Panel):
         wx.Panel.__init__(self, parent, id, *args, **kwargs)
         
         self.raw_settings = raw_settings
+        
+        self.update_keys = ['maxDmax','minDmax','DmaxPoints','maxAlpha','minAlpha',
+                            'AlphaPoints','PrPoints', 'gnomMaxAlpha','gnomMinAlpha',
+                            'gnomAlphaPoints','gnomPrPoints','OSCILLweight','VALCENweight',
+                            'POSITVweight','SYSDEVweight','STABILweight','DISCRPweight',
+                            'gnomFixInitZero' ]
  
         self.bift_options_data = (("Dmax Upper Bound: ",   raw_settings.getId('maxDmax')),
                                 ("Dmax Lower Bound: ",   raw_settings.getId('minDmax')),
@@ -1765,9 +1771,9 @@ all_options = [ [ (1,0,0), wx.NewId(), 'General Settings', GeneralOptionsPanel],
                 #[ (1,3,0), wx.NewId(), 'Masking', MaskingOptionsPanel],
                 [ (2,4,1), wx.NewId(), 'Normalization', ReductionNormalizationPanel] ,
                 [ (2,4,2), wx.NewId(), 'Absolute Scale', ReductionNormalizationAbsScPanel],
-                [ (3,0,0), wx.NewId(), 'Artifact Removal', ArtifactOptionsPanel]]
-#                [ (3,0,0), wx.NewId(), 'IFT', IftOptionsPanel],
-    #            [ (4,0,0), wx.NewId(), "Save Directories", SaveDirectoriesPanel],
+                [ (3,0,0), wx.NewId(), 'Artifact Removal', ArtifactOptionsPanel],
+                [ (4,0,0), wx.NewId(), 'IFT', IftOptionsPanel],
+                [ (5,0,0), wx.NewId(), "Save Directories", SaveDirectoriesPanel]]
     #            [ (5,0,0), wx.NewId(), 'Online Mode', ReductionOptionsPanel],
     #            [ (5,1,0), wx.NewId(), "Automation", AutomationOptionsPanel] ]
                 
@@ -1913,6 +1919,10 @@ class OptionsTreebook(wx.Panel):
         sizer = wx.BoxSizer()
         sizer.Add(splitter, 1, wx.EXPAND)
         self.SetSizer(sizer)
+        
+    def selectItem(self, item):
+        
+        self.tree.SelectItem(item, True)
         
     def getAllUpdateKeys(self):
         

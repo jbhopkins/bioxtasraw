@@ -148,6 +148,7 @@ def fmin(func, x0, args=(), xtol=1e-4, ftol=1e-4, maxiter=None, maxfun=None,
     while (fcalls[0] < maxfun and iterations < maxiter):
         
         if cancel_bift:
+            cancel_bift = False
             return
         
         if (max(numpy.ravel(abs(sim[1:]-sim[0]))) <= xtol \
