@@ -905,6 +905,7 @@ class MainWorkerThread(threading.Thread):
         algo = data[0]
         selected_items = data[1]
         ift_parameters = data[2]
+        
         global cancel_ift
         
         for each_item in selected_items:
@@ -915,6 +916,10 @@ class MainWorkerThread(threading.Thread):
                 break
                 
             sasm = each_item.getSASM()
+            
+            if sasm.getParameter('orig_sasm') != None:
+                sasm = sasm.getParameter('orig_sasm')
+            
             old_filename = sasm.getParameter('filename')
         
             if algo == 'BIFT':
@@ -3807,7 +3812,7 @@ class IFTPanel(wx.Panel):
                         ("Load", self._onLoadFile),
                         #("Options", self._OnOptions),
                         #("Clear Plot", self._OnClearAll),
-                        ("Save", self._onSaveFile),
+                        ("Save", self._onSaveButton),
                         #("Solve", self._OnManual),
                         ("Clear List", self._onClearList))
         
@@ -4347,9 +4352,6 @@ class IFTPanel(wx.Panel):
             value = textctrl.GetValue()
         
             biftparams[eachParam] = int(value)
-    
-    def _onSaveFile(self, evt):
-        pass
     
     def _onLoadFile(self, evt):   
         
@@ -5403,7 +5405,6 @@ class IFTControlPanel(wx.Panel):
         selected_algo = self.algo_choice.GetStringSelection()
         selected_items = self.ift_panel.getSelectedItems()
         
-        
         dmax_ctrl = wx.FindWindowById(self.controlData[1][1][0])
         alpha_ctrl = wx.FindWindowById(self.controlData[2][1][0])
         
@@ -5412,9 +5413,7 @@ class IFTControlPanel(wx.Panel):
         
         data = {'dmax' : dmax, 
                 'alpha': alpha}
-        
-        
-        
+                
         if len(selected_items) > 0:
             mainworker_cmd_queue.put(['ift', [selected_algo, selected_items, data]])
             

@@ -683,7 +683,7 @@ def loadImageFile(filename, raw_settings):
 def loadPrimusDatFile(filename):
     ''' Loads a Primus .dat format file '''
     
-    iq_pattern = re.compile('\s*\d*[.]\d*[+E-]*\d+\s+-?\d*[.]\d*[+E-]*\d+\s+\d*[.]\d*[+E-]*\d+\s*')
+    iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*')
 
     i = []
     q = []
@@ -724,7 +724,7 @@ def loadRadFile(filename):
     ''' NOTE : THIS IS THE OLD RAD FORMAT..  '''
     ''' Loads a .rad file into a SASM object and attaches the filename and header into the parameters  '''
     
-    iq_pattern = re.compile('\s*\d*[.]\d*[+E-]*\d+\s+-?\d*[.]\d*[+E-]*\d+\s+\d*[.]\d*[+E-]*\d+\s+-?\d*[.]\d*[+E-]*\d+\s*\n')
+    iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*\n')
     param_pattern = re.compile('[a-zA-Z0-9_]*\s*[:]\s+.*')
 
     i = []
@@ -793,7 +793,7 @@ def loadNewRadFile(filename):
     ''' NOTE : This is a load function for the new rad format '''
     ''' Loads a .rad file into a SASM object and attaches the filename and header into the parameters  '''
 
-    iq_pattern = re.compile('\s*\d*[.]\d*[+E-]*\d+\s+-?\d*[.]\d*[+E-]*\d+\s+-?\d*[.]\d*[+E-]*\d+\s*\n')
+    iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*\n')
     param_pattern = re.compile('[a-zA-Z0-9_]*\s*[:]\s+.*')
 
     i = []
@@ -917,12 +917,12 @@ def load2ColFile(filename):
 
 def loadBiftFile(filename):
     
-    iq_pattern = re.compile('\s*\d*[.]\d*[+E-]*\d+\s+[+-]*\d*[.]\d*[+E-]*\d+\s+\d*[.]\d*[+E-]*\d+\s*\n')
+    iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+[+-]*\d*[.]\d*[+Ee-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*\n')
     param_pattern = re.compile('[a-zA-Z0-9_]*\s*[:]\s+.*')
     
     bift_param_pattern = re.compile('\s\s\s[a-zA-Z0-9_]*\s*[:]\s+.*')
     
-    iq_orig_pattern = re.compile('\s*\d*[.]\d*[+E-]*\d+\s+-?\d*[.]\d*[+E-]*\d+\s+\d*[.]\d*[+E-]*\d+\s+\d*[.]\d*[+E-]*\d+\s*\n')
+    iq_orig_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*\n')
 
     i = []
     q = []
