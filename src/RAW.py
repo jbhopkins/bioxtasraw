@@ -4415,10 +4415,10 @@ class IFTPanel(wx.Panel):
         load_path = dirctrl_panel.getDirLabel()
         
         if mode == wx.OPEN:
-            filters = 'Rad files (*.rad)|*.rad|Dat files (*.dat)|*.dat|Txt files (*.txt)|*.txt|All files (*.*)|*.*'
+            filters = 'All files (*.*)|*.*|Rad files (*.rad)|*.rad|Dat files (*.dat)|*.dat|Txt files (*.txt)|*.txt'
             dialog = wx.FileDialog( None, 'Select a file', load_path, style = mode, wildcard = filters)
         if mode == wx.SAVE:
-            filters = 'Rad files (*.cfg)|*.cfg'
+            filters = 'Dat files (*.dat)|*.dat'
             dialog = wx.FileDialog( None, 'Name file and location', load_path, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters)        
         
         # Show the dialog and get user input
@@ -4901,7 +4901,7 @@ class IFTItemPanel(wx.Panel):
         menu.AppendSeparator()
         menu.Append(5, 'Remove' )
         menu.AppendSeparator()
-        menu.Append(13, 'Guinier fit...')
+        #menu.Append(13, 'Guinier fit...')
         #menu.AppendMenu(3, 'Indirect Fourier Transform', iftmenu)
         menu.AppendMenu(wx.NewId(), 'Convert q-scale', convertq_menu)
         
