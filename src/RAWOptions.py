@@ -1920,9 +1920,6 @@ class OptionsTreebook(wx.Panel):
         sizer.Add(splitter, 1, wx.EXPAND)
         self.SetSizer(sizer)
         
-    def selectItem(self, item):
-        
-        self.tree.SelectItem(item, True)
         
     def getAllUpdateKeys(self):
         
@@ -1974,6 +1971,17 @@ class OptionsDialog(wx.Dialog):
         
         self.CenterOnParent()
         self.initSettings()
+        
+        item = self.treebook.tree.GetFirstVisibleItem()
+        self.treebook.tree.SelectItem(item)
+        
+        #What a F!ed way to select an item.. is this really the only way?
+        if focusIndex != None:
+            for i in range(0,self.treebook.tree.GetCount()-1):
+                item = self.treebook.tree.GetNext(item)
+                if focusIndex == self.treebook.tree.GetItemText(item):
+                    self.treebook.tree.SelectItem(item)
+            
     
     def createButtonPanel(self):
         

@@ -5450,7 +5450,7 @@ class IFTControlPanel(wx.Panel):
     def _onSettingsButton(self, evt):
         mainframe = wx.FindWindowByName('MainFrame')
         
-        mainframe.showOptionsDialog(6)
+        mainframe.showOptionsDialog('IFT')
     
     
     def _onRunButton(self, evt):    
