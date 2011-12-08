@@ -190,7 +190,10 @@ class RawGuiSettings:
                             #GUI Settings:
                             'csvIncludeData'      : [None],
                             'ManipItemCollapsed'  : [False, wx.NewId(), 'bool'] ,
-                            'CurrentFilePath'     : [None]
+                            'CurrentFilePath'     : [None],
+                            
+                            
+                            'DatHeaderOnTop'      : [True, wx.NewId(), 'bool']
                             
                             }
     

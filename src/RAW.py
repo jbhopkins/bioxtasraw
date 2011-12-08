@@ -1307,7 +1307,7 @@ class MainWorkerThread(threading.Thread):
                             final_save_path = save_path
                         
                         if img != None:
-                            SASFileIO.saveMeasurement(sasm, final_save_path)
+                            SASFileIO.saveMeasurement(sasm, final_save_path, self._raw_settings)
                             processed_files += 1
                         else:
                             self._showDataFormatError(os.path.split(each_filename)[1], include_ascii = False)
@@ -1319,7 +1319,7 @@ class MainWorkerThread(threading.Thread):
                     sasm, img = SASFileIO.loadFile(full_load_path, self._raw_settings)
                     
                     if img != None:
-                        SASFileIO.saveMeasurement(sasm, save_path)
+                        SASFileIO.saveMeasurement(sasm, save_path, self._raw_settings)
                         processed_files += 1
                     else:
                         self._showDataFormatError(os.path.split(each_filename)[1], include_ascii = False)
@@ -1672,7 +1672,7 @@ class MainWorkerThread(threading.Thread):
                         wx.CallAfter(sasm.item_panel.updateFilenameLabel)
                         
                     if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT: 
-                        SASFileIO.saveMeasurement(sasm, filepath)
+                        SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings)
                     
                     if result[0] == wx.ID_YESTOALL:
                         overwrite_all = True
@@ -1681,7 +1681,7 @@ class MainWorkerThread(threading.Thread):
                         no_to_all = True
                 
             else:
-                SASFileIO.saveMeasurement(sasm, filepath)
+                SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings)
             
 
 #--- ** Info Panel **

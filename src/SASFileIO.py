@@ -1091,7 +1091,7 @@ def loadBiftFile(filename):
 #####################################
 
 # WORK IN PROGRESS:
-def saveMeasurement(sasm, save_path, filetype = '.dat'):
+def saveMeasurement(sasm, save_path, raw_settings, filetype = '.dat'):
     ''' Saves a Measurement Object to a .rad file.
         Returns the filename of the saved file '''
     
@@ -1100,7 +1100,10 @@ def saveMeasurement(sasm, save_path, filetype = '.dat'):
     #if sasm.type == 'bift':
      #writeBiftFile(sasm, os.path.join(save_path, filename + '.rad'))
     #else:
-    writeRadFile(sasm, os.path.join(save_path, filename + filetype))
+    
+    header_on_top = raw_settings.get('DatHeaderOnTop')
+    
+    writeRadFile(sasm, os.path.join(save_path, filename + filetype), header_on_top)
 
 
 def saveAnalysisCsvFile(sasm_list, include_data, save_path):
@@ -1213,13 +1216,8 @@ def writeCommaSeparatedAnalysisInfo():
     ''' Coming soon '''
     pass
 
-def writeRadFile(m, filename):
-    ''' Writes an ASCII file from a measurement object, using the RAD format '''
-    
-    d = m.getAllParameters()
-    
-    f2 = open(filename, 'w')
-    
+
+def writeHeader(d, f2):
     f2.write('### HEADER:\n\n')
     
     sortedKeys = d.keys()
@@ -1247,6 +1245,17 @@ def writeRadFile(m, filename):
     
     f2.write('\n\n')
     
+
+def writeRadFile(m, filename, header_on_top = True):
+    ''' Writes an ASCII file from a measurement object, using the RAD format '''
+    
+    d = m.getAllParameters()
+    
+    f2 = open(filename, 'w')
+    
+    if header_on_top == True:
+        writeHeader(d, f2)
+    
     f2.write('### DATA:\n\n')
     f2.write('       Q             I                   Error\n')
     f2.write('    %d\n' % len(m.i))
@@ -1260,6 +1269,10 @@ def writeRadFile(m, filename):
     for idx in range(q_min, q_max):
         line = ('   %.8E  %.8E  %.8E\n') % ( m.q[idx], m.i[idx], m.err[idx])
         f2.write(line)
+        
+    if header_on_top == False:
+        f2.write('\n')
+        writeHeader(d, f2)
      
     f2.close()
 

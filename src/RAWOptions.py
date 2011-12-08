@@ -1125,9 +1125,10 @@ class GeneralOptionsPanel(wx.Panel):
         
         self.raw_settings = raw_settings
         
-        self.update_keys = ['ManipItemCollapsed']
+        self.update_keys = ['ManipItemCollapsed', 'DatHeaderOnTop']
         
-        self.chkboxdata = [('Hide controls on manipulation items for new plots', raw_settings.getId('ManipItemCollapsed'))]
+        self.chkboxdata = [('Hide controls on manipulation items for new plots', raw_settings.getId('ManipItemCollapsed')),
+                           ('Write header on top of dat files', raw_settings.getId('DatHeaderOnTop'))]
         
         options_sizer = self.createGeneralOptionsData()
         
@@ -1146,7 +1147,7 @@ class GeneralOptionsPanel(wx.Panel):
         for each, id in self.chkboxdata:
             chkBox = wx.CheckBox(self, id, each)
             chkBox.Bind(wx.EVT_CHECKBOX, self.onChkBox)
-            treatmentSizer.Add(chkBox, 0)
+            treatmentSizer.Add(chkBox, 0, wx.TOP, 5)
         
         staticBoxSizer.Add(treatmentSizer, 0, wx.BOTTOM | wx.LEFT, 5)
         
