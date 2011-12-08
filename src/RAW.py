@@ -847,13 +847,19 @@ class MainWorkerThread(threading.Thread):
         
         
     def _sendSASMToPlot(self, sasm, axes_num = 1, item_colour = 'black', line_color = None, no_update = False):
-        wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num, color = line_color)
         
+        if type(sasm) == list:
+            length = len(sasm)
+        
+            for i in range(0, length):
+                wx.CallAfter(self.plot_panel.plotSASM, sasm[i], axes_num, color = line_color)
+                wx.CallAfter(self.manipulation_panel.addItem, sasm[i], item_colour)
+        else:
+            wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num, color = line_color)        
+            wx.CallAfter(self.manipulation_panel.addItem, sasm, item_colour)
+            
         if no_update == False:
             wx.CallAfter(self.plot_panel.fitAxis)
-                    
-        wx.CallAfter(self.manipulation_panel.addItem, sasm, item_colour)
-                
         
     def _sendImageToDisplay(self, img, sasm):
         wx.CallAfter(self.image_panel.showImage, img, sasm)
@@ -2390,7 +2396,8 @@ class DirCtrlPanel(wx.Panel):
                                     'RAD Files (*.rad)',
                                     'DAT files (*.dat)',
                                     'TXT files (*.txt)',
-                                    'IMG files (*.img)']
+                                    'IMG files (*.img)',
+                                    'FIT files (*.fit)']
         
         dirctrlpanel_sizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -4855,10 +4862,10 @@ class IFTItemPanel(wx.Panel):
         dialog.Destroy()
         self._updateColourIndicator()
         
-        if self.sasm.axes == self.plot_panel.subplot1:
-            wx.CallAfter(self.plot_panel.updateLegend, 1)
+        if self.sasm.axes == self.ift_plot_panel.subplot1:
+            wx.CallAfter(self.ift_plot_panel.updateLegend, 1)
         else:
-            wx.CallAfter(self.plot_panel.updateLegend, 2)
+            wx.CallAfter(self.ift_plot_panel.updateLegend, 2)
             
         self.sasm.plot_panel.canvas.draw()
         
@@ -5144,6 +5151,7 @@ class IFTItemPanel(wx.Panel):
                     wx.CallAfter(self.ift_plot_panel.plotFit, self.sasm)
                 else:
                     wx.CallAfter(self.ift_plot_panel.plotFit, self.sasm, legend_label_in = self._legend_label)
+                
                 wx.CallAfter(self.ift_plot_panel.updateLegend, 2)
         
         evt.Skip()

@@ -605,7 +605,7 @@ def loadFile(filename, raw_settings, no_processing = False):
     if file_type == 'image' and no_processing == False:
             SASM.postProcessImageSasm(sasm, raw_settings)
         
-    if sasm == None or len(sasm.i) == 0:
+    if type(sasm) != list and (sasm == None or len(sasm.i) == 0):
         raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
          
     return sasm, img
@@ -617,7 +617,8 @@ def loadAsciiFile(filename, file_type):
                      'primus'     : loadPrimusDatFile,
                      'bift'       : loadBiftFile,
                      '2col'       : load2ColFile,
-                     'int'        : loadIntFile}
+                     'int'        : loadIntFile,
+                     'fit'        : loadFitFile}
     
     if file_type == None:
         return None
@@ -628,7 +629,7 @@ def loadAsciiFile(filename, file_type):
         sasm = ascii_formats[file_type](filename)
     
     if sasm != None:
-        if len(sasm.i) == 0:
+        if type(sasm) != list and len(sasm.i) == 0:
             sasm = None
             
     if file_type == 'rad' and sasm == None:
@@ -641,7 +642,7 @@ def loadAsciiFile(filename, file_type):
     if file_type == 'primus' and sasm == None:
         sasm = ascii_formats['2col'](filename)
    
-    if sasm != None:
+    if sasm != None and type(sasm) != list:
         sasm.setParameter('filename', os.path.split(filename)[1])
      
     return sasm
@@ -679,6 +680,56 @@ def loadImageFile(filename, raw_settings):
     sasm = createSASMFromImage(img, parameters, x_c, y_c, bs_mask, dc_mask, dezingering, dezing_sensitivity)
 
     return sasm, img
+
+def loadFitFile(filename):
+
+    iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*')
+    
+    i = []
+    q = []
+    err = []
+    fit = []
+
+    f = open(filename)
+    
+    firstLine = f.readline()
+    
+    fileHeader = {'comment':firstLine}
+    parameters = {'filename' : os.path.split(filename)[1],
+                  'fileHeader' : fileHeader}
+    
+    path_noext, ext = os.path.splitext(filename)
+
+    fit_parameters = {'filename'  : os.path.split(path_noext)[1] + '_FIT',
+                      'fileHeader' : {}}
+    
+    try:
+        for line in f:
+
+            iq_match = iq_pattern.match(line)
+
+            if iq_match:
+                #print line
+                found = iq_match.group().split()
+                q.append(float(found[0]))
+                i.append(float(found[1]))
+                err.append(float(found[2]))
+                fit.append(float(found[3]))
+
+    finally:
+        f.close()
+
+    i = np.array(i)
+    q = np.array(q)
+    err = np.array(err)
+    fit = np.array(fit)
+   
+    fit_sasm = SASM.SASM(fit, np.copy(q), np.copy(err), fit_parameters)
+   
+    sasm = SASM.SASM(i, q, err, parameters)
+   
+    return [sasm, fit_sasm]
+    
 
 def loadPrimusDatFile(filename):
     ''' Loads a Primus .dat format file '''
@@ -1305,6 +1356,8 @@ def checkFileType(filename):
 
     if type_tst == 'II':   # Test if file is a TIFF file (first two bytes are "II")
         return 'image'
+    elif ext == '.fit':
+        return 'fit'
     elif ext == '.int':
         return 'int'
     elif ext == '.img' or ext == '.imx_0' or ext == '.dkx_0' or ext == '.dkx_1' or ext == '.png':
