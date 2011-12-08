@@ -685,16 +685,27 @@ def loadFitFile(filename):
 
     iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*')
     
+    three_col_fit = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*')
+    
     i = []
     q = []
     err = []
     fit = []
 
+    has_three_columns = False
+
     f = open(filename)
     
     firstLine = f.readline()
     
-    fileHeader = {'comment':firstLine}
+    three_col_match = three_col_fit.match(firstLine)
+    if three_col_match:
+        has_three_columns = True
+        fileHeader = {}
+    
+    else:
+        fileHeader = {'comment':firstLine}
+    
     parameters = {'filename' : os.path.split(filename)[1],
                   'fileHeader' : fileHeader}
     
@@ -704,17 +715,33 @@ def loadFitFile(filename):
                       'fileHeader' : {}}
     
     try:
-        for line in f:
+        
+        if has_three_columns:
+            for line in f:
 
-            iq_match = iq_pattern.match(line)
+                iq_match = three_col_fit.match(line)
 
-            if iq_match:
-                #print line
-                found = iq_match.group().split()
-                q.append(float(found[0]))
-                i.append(float(found[1]))
-                err.append(float(found[2]))
-                fit.append(float(found[3]))
+                if iq_match:
+                    #print line
+                    found = iq_match.group().split()
+                    q.append(float(found[0]))
+                    i.append(float(found[1]))
+                    fit.append(float(found[2]))
+            
+            err = np.ones(len(i))
+        
+        else:
+            for line in f:
+
+                iq_match = iq_pattern.match(line)
+
+                if iq_match:
+                    #print line
+                    found = iq_match.group().split()
+                    q.append(float(found[0]))
+                    i.append(float(found[1]))
+                    err.append(float(found[2]))
+                    fit.append(float(found[3]))
 
     finally:
         f.close()
