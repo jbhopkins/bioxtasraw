@@ -1256,22 +1256,24 @@ def writeRadFile(m, filename, header_on_top = True):
     if header_on_top == True:
         writeHeader(d, f2)
     
+    q_min, q_max = m.getQrange()
+
     f2.write('### DATA:\n\n')
     f2.write('       Q             I                   Error\n')
-    f2.write('    %d\n' % len(m.i))
+    f2.write('    %d\n' % len(m.i[q_min:q_max]))
         
     fit = np.zeros(np.size(m.q))
 
-    q_min, q_max = m.getQrange()
     
     #print q_min, q_max, len(m.q), len(m.i), len(m.err)
     
     for idx in range(q_min, q_max):
         line = ('   %.8E  %.8E  %.8E\n') % ( m.q[idx], m.i[idx], m.err[idx])
         f2.write(line)
-        
+    
+    f2.write('\n')
     if header_on_top == False:
-        f2.write('\n')
+	f2.write('\n')
         writeHeader(d, f2)
      
     f2.close()
