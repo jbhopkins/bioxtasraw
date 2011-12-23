@@ -611,14 +611,61 @@ def merge(sasm_star, sasm_list):
             
     #create a new SASM object with the merged parts. 
     parameters = {}
-    
-    
     newSASM = SASM(newi, newq, newerr, parameters)
     
     if len(sasm_list) == 0:
         return newSASM
     else:
         return merge(newSASM, sasm_list)
+
+def interpolateToFit(sasm_star, sasm_list):
+    s1 = sasm_star
+    s2 = sasm_list[0]
+      
+    #find overlapping s2 points    
+    min_q1, max_q1 = s1.getQrange()
+    min_q2, max_q2 = s2.getQrange()
+    
+    lowest_q1, highest_q1 = s1.q[s1.getQrange()[0]], s1.q[s1.getQrange()[1]-1] 
+    
+    #fuck hvor besvaerligt!
+    overlapping_q2_top = s2.q[min_q2:max_q2][np.where( (s2.q[min_q2:max_q2] <= highest_q1))]    
+    overlapping_q2 = overlapping_q2_top[np.where(overlapping_q2_top >= lowest_q1)]
+    
+    if overlapping_q2[0] != s2.q[0]:
+        idx = np.where(s2.q == overlapping_q2[0])
+        overlapping_q2 = np.insert(overlapping_q2, 0, s2.q[idx[0]-1])
+  
+    if overlapping_q2[-1] != s2.q[-1]:
+        idx = np.where(s2.q == overlapping_q2[-1])
+        overlapping_q2 = np.append(overlapping_q2, s2.q[idx[0]+1])  
+  
+    overlapping_q1_top = s1.q[min_q1:max_q1][np.where( (s1.q[min_q1:max_q1] <= overlapping_q2[-1]))]
+    overlapping_q1 = overlapping_q1_top[np.where(overlapping_q1_top >= overlapping_q2[0])]
+    
+    q2_indexs = []
+    q1_indexs = []
+    for each in overlapping_q2:
+        idx, = np.where(s2.q == each)
+        q2_indexs.append(idx[0])
+    
+    for each in overlapping_q1:
+        idx, = np.where(s1.q == each)
+        q1_indexs.append(idx[0])
+
+    #interpolate find the I's that fits the q vector of s1:
+    f = interp.interp1d(s2.q[q2_indexs], s2.i[q2_indexs])
+    
+    intp_i_s2 = f(s1.q[q1_indexs])
+    intp_q_s2 = s1.q[q1_indexs].copy()   
+    newerr = s1.err[q1_indexs].copy()
+    
+    parameters = {}
+    
+    newSASM = SASM(intp_i_s2, intp_q_s2, newerr, parameters)
+    
+    return newSASM
+    
 
 def rebin(sasm, rebin_factor):
     ''' Sets the bin size of the I_q plot 

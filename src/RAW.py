@@ -810,7 +810,8 @@ class MainWorkerThread(threading.Thread):
                                     'save_analysis_info'    : self._saveAnalysisInfo,
                                     'merge_items'           : self._mergeItems,
                                     'rebin_items'           : self._rebinItems,
-                                    'ift'                   : self._runIft}
+                                    'ift'                   : self._runIft,
+				    'interpolate_items'     : self._interpolateItems}
          
         
     def run(self):
@@ -1486,7 +1487,36 @@ class MainWorkerThread(threading.Thread):
         
         wx.CallAfter(self.plot_panel.updateLegend, 1)
         #wx.CallAfter(self.main_frame.closeBusyDialog)
-               
+    
+    def _interpolateItems(self, data):
+        
+        marked_item = data[0]
+        selected_items = data[1]
+        
+        if marked_item in selected_items:
+            idx = selected_items.index(marked_item)
+            selected_items.pop(idx)
+        
+        if marked_item == None:
+            self._showPleaseMarkItemError('merge')
+            return 
+        
+        marked_sasm = marked_item.getSASM()    
+        sasm_list = []
+	
+        for each_item in selected_items:
+            sasm_list.append(each_item.getSASM())
+        
+        interpolate_sasm = SASM.interpolateToFit(marked_sasm, sasm_list)
+        
+        filename = sasm_list[0].getParameter('filename')
+        interpolate_sasm.setParameter('filename', 'I_' + filename)
+        
+        self._sendSASMToPlot(interpolate_sasm, axes_num = 1)
+        
+        wx.CallAfter(self.plot_panel.updateLegend, 1)
+                   
+    
     def _saveSASM(self, sasm, filetype = 'dat'):
         pass
     
@@ -3372,6 +3402,7 @@ class ManipItemPanel(wx.Panel):
         avgmenu = menu.Append(6, 'Average' )
         mermenu = menu.Append(22, 'Merge')
         rebmenu = menu.Append(23, 'Rebin')
+        intmenu = menu.Append(25, 'Interpolate to fit')
         menu.Append(14, 'Rename')
             
         menu.AppendSeparator()
@@ -3410,9 +3441,9 @@ class ManipItemPanel(wx.Panel):
     
     def _onPopupMenuChoice(self, evt):
             
-        if evt.GetId() == 3:
-            #IFT
-            analysisPage.runBiftOnExperimentObject(self.ExpObj, expParams)
+#        if evt.GetId() == 3:
+#            #IFT
+#            analysisPage.runBiftOnExperimentObject(self.ExpObj, expParams)
         
         if evt.GetId() == 4:
             #Subtract
@@ -3552,6 +3583,11 @@ class ManipItemPanel(wx.Panel):
             
             for each_item in selected_items:
                 ift_panel.addItem(each_item.getSASM().copy())
+        
+        if evt.GetId() == 25:
+            selected_items = self.manipulation_panel.getSelectedItems()
+            marked_item = self.manipulation_panel.getBackgroundItem()
+            mainworker_cmd_queue.put(['interpolate_items', [marked_item, selected_items]])
             
     
     def _saveAnalysisInfo(self):

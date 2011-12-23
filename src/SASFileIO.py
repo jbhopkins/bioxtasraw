@@ -575,6 +575,7 @@ def loadFile(filename, raw_settings, no_processing = False):
     '''
     try:
         file_type = checkFileType(filename)
+        print file_type
     except IOError:
         raise
     except Exception, msg:
