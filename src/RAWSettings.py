@@ -193,7 +193,7 @@ class RawGuiSettings:
                             'CurrentFilePath'     : [None],
                             
                             
-                            'DatHeaderOnTop'      : [True, wx.NewId(), 'bool']
+                            'DatHeaderOnTop'      : [False, wx.NewId(), 'bool']
                             
                             }
     
