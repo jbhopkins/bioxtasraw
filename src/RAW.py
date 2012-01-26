@@ -3627,7 +3627,7 @@ class ManipItemPanel(wx.Panel):
         
         key = evt.GetKeyCode()
         
-        if key == wx.WXK_DELETE and self._selected == True:
+        if ((key == wx.WXK_DELETE) or (key == wx.WXK_BACK and evt.CmdDown())) and self._selected == True:
             self.removeSelf()
             
         if key == wx.WXK_UP:
@@ -5132,7 +5132,7 @@ class IFTItemPanel(wx.Panel):
         
         key = evt.GetKeyCode()
 
-        if key == wx.WXK_DELETE and self._selected == True:
+        if ((key == wx.WXK_DELETE) or (key == wx.WXK_BACK and evt.CmdDown())) and self._selected == True:
             self.removeSelf()
             
         if key == wx.WXK_UP:

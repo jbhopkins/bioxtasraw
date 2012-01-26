@@ -619,7 +619,8 @@ def loadAsciiFile(filename, file_type):
                      'bift'       : loadBiftFile,
                      '2col'       : load2ColFile,
                      'int'        : loadIntFile,
-                     'fit'        : loadFitFile}
+                     'fit'        : loadFitFile,
+                     'ift'        : loadIftFile}
     
     if file_type == None:
         return None
@@ -684,8 +685,78 @@ def loadImageFile(filename, raw_settings):
 
 
 def loadIftFile(filename):
-    pass
+    iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*')
+    three_col_fit = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*$')
+    
+    i = []
+    q = []
+    err = []
+    fit = []
 
+    has_three_columns = False
+
+    f = open(filename)
+    
+    #firstLine = f.readline()
+    
+    #three_col_match = three_col_fit.match(firstLine)
+    #if three_col_match:
+    #    has_three_columns = True
+    #    fileHeader = {}
+    
+    #else:
+    #    fileHeader = {'comment':firstLine}
+    
+    parameters = {'filename' : os.path.split(filename)[1],
+                  'fileHeader' : {}}
+    
+    path_noext, ext = os.path.splitext(filename)
+
+    #fit_parameters = {'filename'  : os.path.split(path_noext)[1] + '_FIT',
+    #                  'fileHeader' : {}}
+    
+    try:
+        
+        for line in f:
+
+            threecol_match = three_col_fit.match(line)
+
+            if threecol_match:
+                #print line
+                found = threecol_match.group().split()
+                
+                print found
+                q.append(float(found[0]))
+                i.append(float(found[1]))
+                err.append(float(found[2]))
+            
+#            iq_match = iq_pattern.match(line)
+#
+#            if iq_match:
+#                #print line
+#                found = iq_match.group().split()
+#                q.append(float(found[0]))
+#                i.append(float(found[1]))
+#                err.append(float(found[2]))
+#                fit.append(float(found[3]))
+                
+        err = np.ones(len(i))
+
+    finally:
+        f.close()
+
+    i = np.array(i)
+    q = np.array(q)
+    err = np.array(err)
+    #fit = np.array(fit)
+   
+    #fit_sasm = SASM.SASM(fit, np.copy(q), np.copy(err), fit_parameters)
+   
+    sasm = SASM.SASM(i, q, err, parameters)
+   
+    return [sasm]#, fit_sasm]
+    
+    
 def loadFitFile(filename):
 
     iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*')
@@ -760,7 +831,8 @@ def loadFitFile(filename):
     sasm = SASM.SASM(i, q, err, parameters)
    
     return [sasm, fit_sasm]
-    
+
+
 
 def loadPrimusDatFile(filename):
     ''' Loads a Primus .dat format file '''
@@ -1435,7 +1507,7 @@ def checkFileType(filename):
     elif ext == '.mar1200' or ext == '.mar2400' or ext == '.mar3600':
         return 'image'
     elif ext == '.ift':
-        return 'fit'
+        return 'ift'
     else:
         return 'rad'
         
