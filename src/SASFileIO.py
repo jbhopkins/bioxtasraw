@@ -682,10 +682,13 @@ def loadImageFile(filename, raw_settings):
 
     return sasm, img
 
+
+def loadIftFile(filename):
+    pass
+
 def loadFitFile(filename):
 
     iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*')
-    
     three_col_fit = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*')
     
     i = []
@@ -1098,13 +1101,12 @@ def saveMeasurement(sasm, save_path, raw_settings, filetype = '.dat'):
     
     filename, ext = os.path.splitext(sasm.getParameter('filename'))
     
-    #if sasm.type == 'bift':
-     #writeBiftFile(sasm, os.path.join(save_path, filename + '.rad'))
-    #else:
-    
     header_on_top = raw_settings.get('DatHeaderOnTop')
     
-    writeRadFile(sasm, os.path.join(save_path, filename + filetype), header_on_top)
+    if filetype == '.ift':
+        writeBiftFile(sasm, os.path.join(save_path, filename + filetype))
+    else:
+        writeRadFile(sasm, os.path.join(save_path, filename + filetype), header_on_top)
 
 
 def saveAnalysisCsvFile(sasm_list, include_data, save_path):
@@ -1218,7 +1220,7 @@ def writeCommaSeparatedAnalysisInfo():
     pass
 
 
-def writeHeader(d, f2):
+def writeHeader(d, f2, ignore_list = []):
     f2.write('### HEADER:\n\n')
     
     sortedKeys = d.keys()
@@ -1226,6 +1228,9 @@ def writeHeader(d, f2):
     
     for each in sortedKeys:#d.iterkeys():
     
+        if each in ignore_list:
+            continue
+        
         if type(d[each]) == type([]):
             tmpline = ''
             for every in d[each]:
@@ -1300,80 +1305,98 @@ def printDict(d, each):
 def writeBiftFile(m, filename = None):
     ''' Writes an ASCII file from a measurement object, using the RAD format '''
     
-    d = m.param
-    
+    d = m.getAllParameters()
     f2 = open(filename, 'w')
+    no_path_filename = m.getParameter('filename')
     
-    no_path_filename = os.path.split(filename)    
-    
-    if m.type != 'bift':
-        print "ERROR! trying to write a bift file and its not a bift file!"
-    else:
-        f2.write('BIFT\n')
-        f2.write('Filename: ' + no_path_filename + '\n\n' )
-        f2.write('       R                P(R)             Error\n')
+    f2.write('BIFT\n')
+    f2.write('Filename: ' + no_path_filename + '\n\n' )
+    f2.write('       R                P(R)             Error\n')
     
     for idx in range(0,len(m.i)):
-        line = ('   %.8E  %.8E  %.8E\n') %( m.q[idx], m.i[idx], m.errorbars[idx])
+        line = ('   %.8E  %.8E  %.8E\n') %( m.q[idx], m.i[idx], m.err[idx])
+        f2.write(line)
+    
+    f2.write('\n\n')
+     
+     
+    bift_info = m.getParameter('bift_info')
+    
+    orig_q = m.getParameter('orig_q')
+    orig_i = m.getParameter('orig_i')
+    orig_err = m.getParameter('orig_err')
+    fit = m.getParameter('fit')[0]
+     
+    f2.write('       Q                I(q)            Error           Fit\n')
+    for idx in range(0,len(orig_q)):
+        line = ('   %.8E  %.8E  %.8E  %.8E\n') %( orig_q[idx], orig_i[idx], orig_err[idx], fit[idx])
         f2.write(line)
     
     f2.write('\n')
-     
-     
-    ###########################################################
-    # Write IFT parameters:
-    ###########################################################
-    savedParams = ['dmax', 'alpha', 'I0', 'Rg', 'ChiSquared']
     
-    for each in savedParams:
-        
-        val = float(m.allData[each])
-
-        strval = str(val)
-        
-        line = '   ' + each + ' : ' + strval + '\n'
-        f2.write(line)
-    
-
-    f2.write('\n')
-    line = ('***********************************************************************')
-    f2.write(line)
-    f2.write('\n\n')
-    f2.write('         Q                I              Error              Fit\n')
-
-    orig_data = m.allData
-    fit = m.fit[0]
-    orig_q = orig_data['orig_q']
-    orig_I = orig_data['orig_i']
-    orig_err = orig_data['orig_err']
-    
-    for idx in range(0,len(orig_I)):
-        line = ('   %.8E  %.8E  %.8E  %.8E\n') %( orig_q[idx], orig_I[idx], orig_err[idx], float(fit[idx]) )
-        f2.write(line)
-    
-    
-    f2.write('\n\n')
-    
-    
-    sortedKeys = d.keys()
-    sortedKeys.sort()
-    
-    for each in sortedKeys:#d.iterkeys():
-    
-        if type(d[each]) == type([]):
-            tmpline = ''
-            for every in d[each]:
-                tmpline = tmpline + str(every) + ' '
-
-            tmpline = tmpline.strip()
-        
-            line = each + ' : ' + tmpline + '\n'
-        else:
-            line = each + ' : ' + str(d[each]) + '\n'
-
-        f2.write(line)
+    ignore_list = ['all_posteriors', 'alpha_points', 'fit', 'orig_i', 'orig_q',
+                   'orig_err', 'dmax_points', 'orig_sasm']
+    writeHeader(d, f2, ignore_list)
     
     f2.close()
+    
+    
+    
+     
+#    ###########################################################
+#    # Write IFT parameters:
+#    ###########################################################
+#    savedParams = ['dmax', 'alpha', 'I0', 'Rg', 'ChiSquared']
+#    
+#    for each in savedParams:
+#        
+#        val = float(m.allData[each])
+#
+#        strval = str(val)
+#        
+#        line = '   ' + each + ' : ' + strval + '\n'
+#        f2.write(line)
+#    
+#
+#    f2.write('\n')
+#    line = ('***********************************************************************')
+#    f2.write(line)
+#    f2.write('\n\n')
+#    f2.write('         Q                I              Error              Fit\n')
+#
+#    orig_data = m.allData
+#    fit = m.fit[0]
+#    orig_q = orig_data['orig_q']
+#    orig_I = orig_data['orig_i']
+#    orig_err = orig_data['orig_err']
+#    
+#    for idx in range(0,len(orig_I)):
+#        line = ('   %.8E  %.8E  %.8E  %.8E\n') %( orig_q[idx], orig_I[idx], orig_err[idx], float(fit[idx]) )
+#        f2.write(line)
+#    
+#    
+#    f2.write('\n\n')
+#    
+#    
+#    sortedKeys = d.keys()
+#    sortedKeys.sort()
+#    
+#    for each in sortedKeys:#d.iterkeys():
+#    
+#        if type(d[each]) == type([]):
+#            tmpline = ''
+#            for every in d[each]:
+#                tmpline = tmpline + str(every) + ' '
+#
+#            tmpline = tmpline.strip()
+#        
+#            line = each + ' : ' + tmpline + '\n'
+#        else:
+#            line = each + ' : ' + str(d[each]) + '\n'
+#
+#        f2.write(line)
+#    
+#    f2.close()
 
 def checkFileType(filename):
     ''' Tries to find out what file type it is and reports it back '''
@@ -1405,12 +1428,14 @@ def checkFileType(filename):
         return 'int'
     elif ext == '.img' or ext == '.imx_0' or ext == '.dkx_0' or ext == '.dkx_1' or ext == '.png':
         return 'image'
-    elif type_tst == 'BI':
-        return 'bift'
+    #elif type_tst == 'BI':
+    #    return 'bift'
     elif ext == '.dat':
         return 'primus'
     elif ext == '.mar1200' or ext == '.mar2400' or ext == '.mar3600':
         return 'image'
+    elif ext == '.ift':
+        return 'fit'
     else:
         return 'rad'
         

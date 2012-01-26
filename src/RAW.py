@@ -798,6 +798,7 @@ class MainWorkerThread(threading.Thread):
                                     'subtract_items'        : self._subtractItems,
                                     'average_items'         : self._averageItems,
                                     'save_items'            : self._saveItems,
+                                    'save_iftitems'         : self._saveIftItems,
                                     'quick_reduce'          : self._quickReduce,
                                     'load_mask'             : self._loadMaskFile,
                                     'save_mask'             : self._saveMaskFile,
@@ -981,7 +982,9 @@ class MainWorkerThread(threading.Thread):
         
             ift_sasm.setParameter('orig_sasm', sasm.copy())
             
-            new_filename = 'B_' + old_filename
+            old_filename, ext = os.path.splitext(old_filename)
+            
+            new_filename = 'B_' + old_filename + '.ift'
             ift_sasm.setParameter('filename', new_filename)
             self._sendSASMToIFTPlot(ift_sasm, item_colour = 'magenta')
         
@@ -1668,7 +1671,10 @@ class MainWorkerThread(threading.Thread):
     def _backupSettings(self, data):
         pass 
 
-    def _saveItems(self, data):
+    def _saveIftItems(self, data):
+        self._saveItems(data, iftmode=True)
+        
+    def _saveItems(self, data, iftmode = False):
         
         save_path = data[0]
         item_list = data[1]
@@ -1681,7 +1687,13 @@ class MainWorkerThread(threading.Thread):
             filename = sasm.getParameter('filename')
             
             check_filename, ext = os.path.splitext(filename)
-            check_filename = check_filename + '.dat'
+            
+            if iftmode:
+                newext = '.ift'
+            else:
+                newext = '.dat'
+                
+            check_filename = check_filename + newext
             
             filepath = os.path.join(save_path, check_filename)
             file_exists = os.path.isfile(filepath)
@@ -1702,7 +1714,7 @@ class MainWorkerThread(threading.Thread):
                         wx.CallAfter(sasm.item_panel.updateFilenameLabel)
                         
                     if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT: 
-                        SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings)
+                        SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
                     
                     if result[0] == wx.ID_YESTOALL:
                         overwrite_all = True
@@ -1711,7 +1723,7 @@ class MainWorkerThread(threading.Thread):
                         no_to_all = True
                 
             else:
-                SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings)
+                SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
             
 
 #--- ** Info Panel **
@@ -4315,7 +4327,7 @@ class IFTPanel(wx.Panel):
         else:
             return
         
-        mainworker_cmd_queue.put(['save_items', [save_path, selected_items]])
+        mainworker_cmd_queue.put(['save_iftitems', [save_path, selected_items]])
             
         
     
@@ -5422,8 +5434,8 @@ class IFTControlPanel(wx.Panel):
                 
             elif type == 'forcezero':
                 labelbox = wx.StaticText(self, -1, label)
-                self.dzero_chkbox = wx.CheckBox(self, -1, 'D0')
-                self.dmax_chkbox = wx.CheckBox(self, -1, 'Dmax')
+                self.dzero_chkbox = wx.CheckBox(self, -1, 'r(0)')
+                self.dmax_chkbox = wx.CheckBox(self, -1, 'r(Dmax)')
                 chkbox = wx.CheckBox(self, -1, 'Continous')
                 box = wx.BoxSizer() 
                 sizer.Add(labelbox, 0,  wx.ALIGN_CENTER_VERTICAL)

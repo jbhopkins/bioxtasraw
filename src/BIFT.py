@@ -838,7 +838,7 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
                 'orig_i' : Ep.i[min:max],
                 'orig_q' : Ep.q[min:max],
                 'orig_err': Ep.err[min:max],
-                'I0' : I0,
+                'I0' : I0[0],
                 'ChiSquared' : c,
                 'Rg' : Rg,
                 'fit' : Fit}
