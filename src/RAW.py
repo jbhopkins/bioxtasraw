@@ -812,7 +812,8 @@ class MainWorkerThread(threading.Thread):
                                     'merge_items'           : self._mergeItems,
                                     'rebin_items'           : self._rebinItems,
                                     'ift'                   : self._runIft,
-				    'interpolate_items'     : self._interpolateItems}
+				                    'interpolate_items'     : self._interpolateItems,
+                                    'plot_iftfit'           : self._plotIftFit}
          
         
     def run(self):
@@ -1268,6 +1269,26 @@ class MainWorkerThread(threading.Thread):
     def _subtractFilenames(self):
         pass
     
+    def _plotIftFit(self, data):
+             
+        selected_items = data[0]
+        
+        selected_sasms = []
+        for each_item in selected_items:
+            selected_sasms.append(each_item.getSASM())
+           
+        for each in selected_sasms:
+            
+            param = each.getAllParameters()
+            
+            if each.getAllParameters().has_key('orig_sasm'):
+                self._sendSASMToPlot(each.getParameter('orig_sasm').copy())
+            if each.getAllParameters().has_key('fit_sasm'):
+                self._sendSASMToPlot(each.getParameter('fit_sasm').copy())
+        
+    
+        wx.CallAfter(self.plot_panel.updateLegend, 1)
+
     def _quickReduce(self, data):
         
         save_path = data[0]
@@ -3422,6 +3443,10 @@ class ManipItemPanel(wx.Panel):
         menu.AppendSeparator()
         menu.Append(13, 'Guinier fit...')
         menu.Append(24, 'Add to IFT list')
+        
+        if self.sasm.getAllParameters().has_key('orig_sasm'):
+            menu.Append(26, 'Plot fit')
+            
         #menu.AppendMenu(3, 'Indirect Fourier Transform', iftmenu)
         menu.AppendMenu(wx.NewId(), 'Convert q-scale', convertq_menu)
         
@@ -3600,6 +3625,10 @@ class ManipItemPanel(wx.Panel):
             selected_items = self.manipulation_panel.getSelectedItems()
             marked_item = self.manipulation_panel.getBackgroundItem()
             mainworker_cmd_queue.put(['interpolate_items', [marked_item, selected_items]])
+            
+        if evt.GetId() == 26:
+           selected_items = self.manipulation_panel.getSelectedItems()
+           mainworker_cmd_queue.put(['plot_iftfit', [selected_items]])
             
     
     def _saveAnalysisInfo(self):

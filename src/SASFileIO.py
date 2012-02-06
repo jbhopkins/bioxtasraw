@@ -685,35 +685,19 @@ def loadImageFile(filename, raw_settings):
 
 
 def loadIftFile(filename):
-    iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*')
+    iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*$')
     three_col_fit = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*$')
     
-    i = []
-    q = []
+    p = []
+    r = []
     err = []
-    fit = []
-
-    has_three_columns = False
 
     f = open(filename)
-    
-    #firstLine = f.readline()
-    
-    #three_col_match = three_col_fit.match(firstLine)
-    #if three_col_match:
-    #    has_three_columns = True
-    #    fileHeader = {}
-    
-    #else:
-    #    fileHeader = {'comment':firstLine}
-    
+        
     parameters = {'filename' : os.path.split(filename)[1],
                   'fileHeader' : {}}
     
     path_noext, ext = os.path.splitext(filename)
-
-    #fit_parameters = {'filename'  : os.path.split(path_noext)[1] + '_FIT',
-    #                  'fileHeader' : {}}
     
     try:
         
@@ -724,37 +708,75 @@ def loadIftFile(filename):
             if threecol_match:
                 #print line
                 found = threecol_match.group().split()
-                
-                print found
-                q.append(float(found[0]))
-                i.append(float(found[1]))
+
+                r.append(float(found[0]))
+                p.append(float(found[1]))
                 err.append(float(found[2]))
             
-#            iq_match = iq_pattern.match(line)
-#
-#            if iq_match:
-#                #print line
-#                found = iq_match.group().split()
-#                q.append(float(found[0]))
-#                i.append(float(found[1]))
-#                err.append(float(found[2]))
-#                fit.append(float(found[3]))
-                
-        err = np.ones(len(i))
+        err = np.ones(len(p))
 
     finally:
         f.close()
 
-    i = np.array(i)
-    q = np.array(q)
+    p = np.array(p)
+    r = np.array(r)
     err = np.array(err)
-    #fit = np.array(fit)
+    
+    sasm = SASM.SASM(p, r, err, parameters)
    
-    #fit_sasm = SASM.SASM(fit, np.copy(q), np.copy(err), fit_parameters)
-   
-    sasm = SASM.SASM(i, q, err, parameters)
-   
-    return [sasm]#, fit_sasm]
+    ######################### LOAD FIT ###########################
+    i = []
+    q = []
+    err = []
+    fit = []
+
+    sasm_orig = None
+    sasm_fit = None
+
+    f = open(filename)
+    
+    parameters_orig = {'filename' : os.path.split(filename)[1] + '_ORIG',
+                      'fileHeader' : {}}
+    
+    parameters_fit = {'filename' : os.path.split(filename)[1] + '_FIT',
+                      'fileHeader' : {}}
+    
+    path_noext, ext = os.path.splitext(filename)
+    
+    try:  
+        for line in f:
+
+            fourcol_match = iq_pattern.match(line)
+
+            if fourcol_match:
+                #print line
+                found = fourcol_match.group().split()
+
+                q.append(float(found[0]))
+                i.append(float(found[1]))
+                err.append(float(found[2]))
+                fit.append(float(found[3]))
+                
+        
+        i = np.array(i)
+        q = np.array(q)
+        err = np.array(err)
+        fit = np.array(fit)
+    
+        orig_sasm = SASM.SASM(i, q, err, parameters_orig)
+        fit_sasm = SASM.SASM(fit, q, err, parameters_fit)
+    
+        parameters['orig_sasm'] = orig_sasm
+        parameters['fit_sasm'] = fit_sasm
+    except Exception, e:
+        print 'No fit data found, or error loading fit data'
+        print e
+
+    finally:
+        f.close()
+
+    
+    return [sasm]
     
     
 def loadFitFile(filename):
@@ -1298,6 +1320,9 @@ def writeHeader(d, f2, ignore_list = []):
     sortedKeys = d.keys()
     sortedKeys.sort()
     
+    ignore_list.append('fit_sasm')
+    ignore_list.append('orig_sasm')
+    
     for each in sortedKeys:#d.iterkeys():
     
         if each in ignore_list:
@@ -1407,7 +1432,8 @@ def writeBiftFile(m, filename = None):
     f2.write('\n')
     
     ignore_list = ['all_posteriors', 'alpha_points', 'fit', 'orig_i', 'orig_q',
-                   'orig_err', 'dmax_points', 'orig_sasm']
+                   'orig_err', 'dmax_points', 'orig_sasm', 'fit_sasm']
+    
     writeHeader(d, f2, ignore_list)
     
     f2.close()
