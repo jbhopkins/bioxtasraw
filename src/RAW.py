@@ -26,6 +26,7 @@ import wx, os, subprocess, time, math, threading, Queue, numpy, cPickle, copy, s
 import platform, fnmatch, shutil
 import wx.lib.scrolledpanel as scrolled
 import wx.lib.wordwrap as wordwrap
+import wx.lib.mixins.listctrl as listmix
 import wx.grid as gridlib
 from numpy import ceil
 
@@ -607,7 +608,7 @@ class MainFrame(wx.Frame):
     def showOptionsDialog(self, focusIdx = None):
         
         if focusIdx != None:
-            dialog =RAWOptions.OptionsDialog(self, self.raw_settings, focusIndex = focusIdx)
+            dialog = RAWOptions.OptionsDialog(self, self.raw_settings, focusIndex = focusIdx)
         else:
             dialog = RAWOptions.OptionsDialog(self, self.raw_settings)
         
@@ -626,7 +627,7 @@ class MainFrame(wx.Frame):
     def _onAboutDlg(self, event):
         info = wx.AboutDialogInfo()
         info.Name = "RAW"
-        info.Version = "0.99.8.4 Beta"
+        info.Version = "0.99.9 Beta"
         info.Copyright = "Copyright(C) 2009 RAW"
         info.Description = "RAW is a software package primarily for SAXS 2D data reduction and 1D data analysis.\nIt provides an easy GUI for handling multiple files fast, and a\ngood alternative to commercial or protected software packages for finding\nthe Pair Distance Distribution Function\n\nPlease cite:\nBioXTAS RAW, a software program for high-throughput automated small-angle\nX-ray scattering data reduction and preliminary analysis, J. Appl. Cryst. (2009). 42, 959-964"
 
@@ -1920,6 +1921,8 @@ class FilePanel(wx.Panel):
             mainworker_cmd_queue.put(['show_image', path])
         
     def _onSubtractButton(self, event):
+        dirpanel = wx.FindWindowByName('DirCtrlPanel')
+        print dirpanel.itemDataMap
         #wx.CallAfter(self.main_frame.showCenteringPane)
         
         #RAWSettings.loadSettings(self.main_frame.raw_settings, 'testdat.dat')
@@ -1927,7 +1930,6 @@ class FilePanel(wx.Panel):
         #dlg = SaveAnalysisInfoDialog(self)
         #dlg.ShowModal()
 
-	pass
 
 class CustomListCtrl(wx.ListCtrl):
 
@@ -1940,6 +1942,10 @@ class CustomListCtrl(wx.ListCtrl):
         
         self.filteredFilesList = []
         self.dirsList = []
+        self.file_list_dict = {}
+        self.folder_list_dict = {}
+        self.sort_column = 0
+        self.reverse_sort = False
         
         self.dirctrl_panel = parent 
         
@@ -1956,7 +1962,6 @@ class CustomListCtrl(wx.ListCtrl):
         self.InsertColumn(2, 'Modified')
         self.InsertColumn(3, 'Size', wx.LIST_FORMAT_RIGHT)
         
-
         self.SetColumnWidth(0, 160)
         self.SetColumnWidth(1, 40)
         self.SetColumnWidth(2, 125)
@@ -1974,10 +1979,18 @@ class CustomListCtrl(wx.ListCtrl):
         self.Bind(wx.EVT_LEFT_DCLICK, self._onDoubleLeftMouseClickOrEnterKey)
         self.Bind(wx.EVT_KEY_DOWN, self._onKeyPressEvent)
         self.Bind(wx.EVT_RIGHT_UP, self._onRightMouseClick)
+        self.Bind(wx.EVT_LIST_COL_CLICK, self.onColClick)
+    
+    def onColClick(self, event):
         
-        self.parent.setDirLabel(self.path)
+        if event.GetColumn() == self.sort_column:
+            self.reverse_sort = not self.reverse_sort
+        else:
+            self.reverse_sort = False
+        
+        self.sort_column = event.GetColumn()
         self.updateFileList()
-        
+ 
     def readFileList(self):
         try:
             self.files = os.listdir(self.path)
@@ -2023,11 +2036,17 @@ class CustomListCtrl(wx.ListCtrl):
         
         return filteredFiles
     
+    def getListDict(self):
+        return self.list_dict
+    
     def refreshFileList(self):
         
         self.DeleteAllItems()
         
         self.dirsList = []
+        
+        self.file_list_dict = {}
+        self.folder_list_dict = {}
         
         ### Take out the directories and sort them:
         for each in self.files:
@@ -2062,19 +2081,13 @@ class CustomListCtrl(wx.ListCtrl):
             except WindowsError:
                 size = 1
                 sec = 1
-            
-            self.InsertStringItem(j, name)
-            self.SetStringItem(j, 1, ex)
-            self.SetStringItem(j, 3, '')
-            self.SetStringItem(j, 2, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)))
 
-            if os.path.isdir(os.path.join(self.path,i)):
-                self.SetItemImage(j, 1)
+            self.folder_list_dict[j] = (name, ex, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)), '')
             
-            if not (j % 2) == 0:
-                self.SetItemBackgroundColour(j, '#e6f1f5')
             j += 1
-                
+        
+        end_of_folders_idx = j    
+            
         for i in filteredFiles:
             (name, ext) = os.path.splitext(i)
             ex = ext[1:]
@@ -2084,24 +2097,64 @@ class CustomListCtrl(wx.ListCtrl):
             except WindowsError, e:
                 size = 0
                 sec = 1
+
+            self.file_list_dict[j] = (name, ex, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)), size)
+            
+            j += 1
+    
+        self.insertSortedFilesIntoList(end_of_folders_idx)
+    
+    def insertSortedFilesIntoList(self, end_of_folders_idx):
+        j = 1
+        col = self.sort_column
+        
+        ###### Insert folders:
+        sorted_folder_list = sorted(self.folder_list_dict.items(), lambda x,y:cmp(x[1][col],y[1][col]), reverse = self.reverse_sort)
+   
+        for each in sorted_folder_list:
+            name = each[1][0]
+            ex = each[1][1]
+            modtime = each[1][2]
+            size = each[1][3]
+        
+            self.InsertStringItem(j, name)
+            self.SetStringItem(j, 1, ex)
+            self.SetStringItem(j, 2, modtime)
+            self.SetStringItem(j, 3, '')
+            
+            if os.path.isdir(os.path.join(self.path, name)):
+                self.SetItemImage(j, 1)
+            
+            if not (j % 2) == 0:
+                self.SetItemBackgroundColour(j, '#e6f1f5')
+                
+            j += 1
+        
+        ##### Insert files:
+        sorted_list = sorted(self.file_list_dict.items(), lambda x,y:cmp(x[1][col],y[1][col]), reverse = self.reverse_sort)
+        
+        for each in sorted_list:
+            name = each[1][0]
+            ex = each[1][1]
+            modtime = each[1][2]
+            size = each[1][3]
             
             self.InsertStringItem(j, name)
             self.SetStringItem(j, 1, ex)
+            self.SetStringItem(j, 2, modtime)
             self.SetStringItem(j, 3, str(round(size/1000,1)) + ' KB')
-            self.SetStringItem(j, 2, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)))
-
             
-            if os.path.isdir(os.path.join(self.path,i)):
+            if os.path.isdir(os.path.join(self.path, each[1][0])):
                 self.SetItemImage(j, 1)
             else:
                 self.SetItemImage(j, 2)
-            #self.SetStringItem(j, 2, str(size) + ' B')
-            #self.SetStringItem(j, 3, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)))
 
             if not (j % 2) == 0:
                 self.SetItemBackgroundColour(j, '#e6f1f5')
+        
             j += 1
         
+    
     def getSelectedFilenames(self):
          
         if self.GetSelectedItemCount() == 0:
@@ -2139,9 +2192,6 @@ class CustomListCtrl(wx.ListCtrl):
     def updateFileList(self):
         self.readFileList()
         self.refreshFileList()
-        
-        #raw_settings = self.mainframe.getRawSettings()
-        #raw_settings.set('CurrentFilePath', self.path)
     
     def _savePathToDisk(self):
         
@@ -2477,6 +2527,7 @@ class DirCtrlPanel(wx.Panel):
         
         self.file_list = []
         
+    
     def _useSavedPathIfExisits(self):
         #if self.raw_settings.getAllParams().has_key('CurrentFilePath'):    
         #    path = self.raw_settings.get('CurrentFilePath')
@@ -3428,16 +3479,14 @@ class ManipItemPanel(wx.Panel):
 #        iftmenu.Append(12, 'Add to IFT list')
         
         convertq_menu = wx.Menu()
-        convertq_menu.Append(15, '>> 10')
-        convertq_menu.Append(16, '<< 10^-1')
+        convertq_menu.Append(15, 'q * 10')
+        convertq_menu.Append(16, 'q / 10')
         
         submenu = menu.Append(4, 'Subtract')
         avgmenu = menu.Append(6, 'Average' )
         mermenu = menu.Append(22, 'Merge')
         rebmenu = menu.Append(23, 'Rebin')
-        intmenu = menu.Append(25, 'Interpolate to fit')
-        menu.Append(14, 'Rename')
-            
+        intmenu = menu.Append(25, 'Interpolate')
         menu.AppendSeparator()
         menu.Append(5, 'Remove' )
         menu.AppendSeparator()
@@ -3462,9 +3511,10 @@ class ManipItemPanel(wx.Panel):
         menu.Append(8, 'Move to top plot')
         menu.Append(9, 'Move to bottom plot')
         menu.AppendSeparator()
+        menu.Append(14, 'Rename')
         menu.Append(17, 'Set legend label...')
-        menu.Append(18, 'Save analysis info...')
         menu.AppendSeparator()
+        menu.Append(18, 'Save analysis info...')
         menu.Append(7, 'Save selected file(s)')
         
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)        
@@ -4620,6 +4670,7 @@ class IFTItemPanel(wx.Panel):
         self._controls_visible = True
         self._selected = False
         self._legend_label = legend_label
+        self._lock_on = False
         
         self._font_colour = font_colour
         
@@ -4679,9 +4730,20 @@ class IFTItemPanel(wx.Panel):
         self.target_icon.Bind(wx.EVT_LEFT_DOWN, self._onTargetButton)
         self.target_icon.SetToolTipString('Locate Line')
 
-        self.info_icon = wx.StaticBitmap(self, -1, self.info_png)
-        self.info_icon.Bind(wx.EVT_LEFT_DOWN, self._onInfoButton)
-        self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nRg: N/A\nI(0): N/A')
+        #self.info_icon = wx.StaticBitmap(self, -1, self.info_png)
+        #self.info_icon.Bind(wx.EVT_LEFT_DOWN, self._onInfoButton)
+        #self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nRg: N/A\nI(0): N/A')
+        
+        
+        if self.ift_parameters == {}:
+            self.lock_icon = wx.StaticBitmap(self, -1, self.lock_open_grayed_png)
+        else:    
+            self.lock_icon = wx.StaticBitmap(self, -1, self.lock_open_png)
+    
+        self.lock_icon.Bind(wx.EVT_LEFT_DOWN, self._onLockButton)
+        self.lock_icon.SetToolTipString('Lock Fit Plot')
+        
+        
         
         self.locator_on = False
         self.locator_old_width = 1
@@ -4691,7 +4753,7 @@ class IFTItemPanel(wx.Panel):
         panelsizer.Add(self.legend_label_text, 0, wx.LEFT | wx.TOP, 3)
         panelsizer.Add((1,1), 1, wx.EXPAND)
         panelsizer.Add(self.expand_collapse, 0, wx.RIGHT | wx.TOP, 5)
-        panelsizer.Add(self.info_icon, 0, wx.RIGHT | wx.TOP, 5)
+        panelsizer.Add(self.lock_icon, 0, wx.RIGHT | wx.TOP, 5)
         panelsizer.Add(self.target_icon, 0, wx.RIGHT | wx.TOP, 4)
         panelsizer.Add(self.colour_indicator, 0, wx.RIGHT | wx.TOP, 5)
         panelsizer.Add(self.bg_star, 0, wx.LEFT | wx.RIGHT | wx.TOP, 3)
@@ -4915,8 +4977,11 @@ class IFTItemPanel(wx.Panel):
         self.target_png = wx.Image(os.path.join(RAWWorkDir, 'resources', 'target.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         self.target_on_png = wx.Image(os.path.join(RAWWorkDir, 'resources', 'target_orange.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
 
-        self.info_png = wx.Image(os.path.join(RAWWorkDir, 'resources', 'info_16_2.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-
+        #self.info_png = wx.Image(os.path.join(RAWWorkDir, 'resources', 'info_16_2.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        self.lock_open_png = wx.Image(os.path.join(RAWWorkDir, 'resources', 'stock_lock_open.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        self.lock_closed_png = wx.Image(os.path.join(RAWWorkDir, 'resources', 'stock_lock_closed.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        self.lock_open_grayed_png = wx.Image(os.path.join(RAWWorkDir, 'resources', 'stock_lock_open_grayed.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        
     def _initStartPosition(self):
         
         qmin_ctrl = wx.FindWindowById(self.spin_controls[0][1])
@@ -4961,6 +5026,17 @@ class IFTItemPanel(wx.Panel):
         
     def _onInfoButton(self, event):
         pass
+    
+    def _onLockButton(self, event):
+        if self.ift_parameters == {}:
+            return
+        
+        self._lock_on = not self._lock_on
+        
+        if self._lock_on:
+            self.lock_icon.SetBitmap(self.lock_closed_png)
+        else:
+            self.lock_icon.SetBitmap(self.lock_open_png)
             
     def _showPopupMenu(self):
 
@@ -4986,7 +5062,7 @@ class IFTItemPanel(wx.Panel):
         menu.Append(5, 'Remove' )
         menu.AppendSeparator()
         #menu.Append(13, 'Guinier fit...')
-        #menu.AppendMenu(3, 'Indirect Fourier Transform', iftmenu)
+        
         menu.AppendMenu(wx.NewId(), 'Convert q-scale', convertq_menu)
         
         menu.AppendSeparator()
@@ -5016,10 +5092,6 @@ class IFTItemPanel(wx.Panel):
             mainworker_cmd_queue.put(['show_image', path])
     
     def _onPopupMenuChoice(self, evt):
-            
-        if evt.GetId() == 3:
-            #IFT
-            analysisPage.runBiftOnExperimentObject(self.ExpObj, expParams)
         
         if evt.GetId() == 4:
             #Subtract
@@ -7800,6 +7872,7 @@ class RebinDialog(wx.Dialog):
         
         self.SetSizer(top_sizer)
         self.Fit()
+        
         self.CenterOnParent()
 
     def _onOkClicked(self, event):
@@ -7936,7 +8009,7 @@ class MySplashScreen(wx.SplashScreen):
     def OnExit(self, evt):
         self.Hide()
             
-        frame = MainFrame('RAW 0.99.8.4.2b', -1)
+        frame = MainFrame('RAW 0.99.9b', -1)
         
         self.raw_settings = frame.getRawSettings()
         icon = wx.Icon(name= os.path.join(RAWWorkDir, "resources","raw.ico"), type = wx.BITMAP_TYPE_ICO)
