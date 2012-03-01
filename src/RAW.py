@@ -135,7 +135,7 @@ class MainFrame(wx.Frame):
         self.guinierframe = None
         self.raw_settings = RAWSettings.RawGuiSettings()
         
-        self.RAWWorkDir = sys.path[0].strip('RAW.exe')
+        self.RAWWorkDir = RAWWorkDir
           
         self.OnlineControl = OnlineController(self)
          
