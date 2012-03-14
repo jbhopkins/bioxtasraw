@@ -6577,15 +6577,13 @@ class InformationPanel(wx.Panel):
         
         self.font_size1 = 11
         self.font_size2 = 12
+            
+        if platform.system() == 'Windows':
+            self.font_size1 = 8
+            self.font_size2 = 10
         
         self.used_font1 = wx.Font(self.font_size1, wx.SWISS, wx.NORMAL, wx.NORMAL)
         self.used_font2 = wx.Font(self.font_size2, wx.SWISS, wx.NORMAL, wx.NORMAL)
-        self.used_font1.SetPixelSize((13,13))
-        self.used_font2.SetPixelSize((15,15))
-            
-        #if platform.system() == 'Windows':
-        #    self.font_size1 = 8
-        #    self.font_size2 = 10
         
         wx.Panel.__init__(self, parent, name = 'InformationPanel')
         
