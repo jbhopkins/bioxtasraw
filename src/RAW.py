@@ -627,7 +627,7 @@ class MainFrame(wx.Frame):
     def _onAboutDlg(self, event):
         info = wx.AboutDialogInfo()
         info.Name = "RAW"
-        info.Version = "0.99.9 Beta"
+        info.Version = "0.99.10 Beta"
         info.Copyright = "Copyright(C) 2009 RAW"
         info.Description = "RAW is a software package primarily for SAXS 2D data reduction and 1D data analysis.\nIt provides an easy GUI for handling multiple files fast, and a\ngood alternative to commercial or protected software packages for finding\nthe Pair Distance Distribution Function\n\nPlease cite:\nBioXTAS RAW, a software program for high-throughput automated small-angle\nX-ray scattering data reduction and preliminary analysis, J. Appl. Cryst. (2009). 42, 959-964"
 
@@ -850,17 +850,17 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.ift_item_panel.addItem, sasm, item_colour, ift_parameters)
         
         
-    def _sendSASMToPlot(self, sasm, axes_num = 1, item_colour = 'black', line_color = None, no_update = False):
+    def _sendSASMToPlot(self, sasm, axes_num = 1, item_colour = 'black', line_color = None, no_update = False, notsaved = False):
         
         if type(sasm) == list:
             length = len(sasm)
         
             for i in range(0, length):
                 wx.CallAfter(self.plot_panel.plotSASM, sasm[i], axes_num, color = line_color)
-                wx.CallAfter(self.manipulation_panel.addItem, sasm[i], item_colour)
+                wx.CallAfter(self.manipulation_panel.addItem, sasm[i], item_colour, notsaved = notsaved)
         else:
             wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num, color = line_color)        
-            wx.CallAfter(self.manipulation_panel.addItem, sasm, item_colour)
+            wx.CallAfter(self.manipulation_panel.addItem, sasm, item_colour, notsaved = notsaved)
             
         if no_update == False:
             wx.CallAfter(self.plot_panel.fitAxis)
@@ -1222,6 +1222,8 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you are using as the main curve for merging', 'No item marked')
         if type == 'superimpose':
             wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you want to superimpose to.', 'No item marked')
+        if type == 'interpolate':
+            wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you are using as the main curve for interpolation', 'No item marked')
             
     def _showQvectorsNotEqualWarning(self, sasm, sub_sasm):
         
@@ -1391,6 +1393,9 @@ class MainWorkerThread(threading.Thread):
         marked_item = data[0]
         selected_items = data[1]
         
+        if marked_item in selected_items:
+            selected_items.remove(marked_item)
+        
         if marked_item == None:
             self._showPleaseMarkItemError('subtract')
             wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -1418,15 +1423,13 @@ class MainWorkerThread(threading.Thread):
                 elif result == wx.ID_CANCEL:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                     return
-                
             try:
                 if result == wx.ID_YES or result == wx.ID_YESTOALL:
                     subtracted_sasm = SASM.subtract(sasm, sub_sasm)
                     
-                    filename = subtracted_sasm.getParameter('filename')
-                    subtracted_sasm.setParameter('filename', 'S_' + filename)
+                    self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
                     
-                    self._sendSASMToPlot(subtracted_sasm, axes_num = 2, item_colour = 'red')
+                    self._sendSASMToPlot(subtracted_sasm, axes_num = 2, item_colour = 'red', notsaved = True)
             except SASExceptions.DataNotCompatible, msg:
                self._showSubtractionError(sasm, sub_sasm)
                wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -1456,10 +1459,9 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
         
-        filename = avg_sasm.getParameter('filename')
-        avg_sasm.setParameter('filename', 'A_' + filename)
+        self._insertSasmFilenamePrefix(avg_sasm, 'A_')
         
-        self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'green')
+        self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'green', notsaved = True)
         
         wx.CallAfter(self.plot_panel.updateLegend, 1)
         wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -1474,16 +1476,16 @@ class MainWorkerThread(threading.Thread):
             sasm = each.getSASM()
         
             rebin_sasm = SASM.rebin(sasm, rebin_factor)
-               
-            filename = rebin_sasm.getParameter('filename')
-            rebin_sasm.setParameter('filename', 'R_' + filename)
-        
-            self._sendSASMToPlot(rebin_sasm, axes_num = 1)
+            self._insertSasmFilenamePrefix(rebin_sasm, 'R_')
+            
+            self._sendSASMToPlot(rebin_sasm, axes_num = 1, notsaved = True)
         
             wx.CallAfter(self.plot_panel.updateLegend, 1)
         
-        
-        
+    def _insertSasmFilenamePrefix(self, sasm, prefix = '', extension = ''):
+        filename = sasm.getParameter('filename')
+        new_filename, ext = os.path.splitext(filename)
+        sasm.setParameter('filename', prefix + new_filename + extension)
     
     def _mergeItems(self, data):
         
@@ -1506,9 +1508,10 @@ class MainWorkerThread(threading.Thread):
         merged_sasm = SASM.merge(marked_sasm, sasm_list)
         
         filename = marked_sasm.getParameter('filename')
-        merged_sasm.setParameter('filename', 'M_' + filename)
+        merged_sasm.setParameter('filename', filename)
+        self._insertSasmFilenamePrefix(merged_sasm, 'M_')
         
-        self._sendSASMToPlot(merged_sasm, axes_num = 1)
+        self._sendSASMToPlot(merged_sasm, axes_num = 1, notsaved = True)
         
         wx.CallAfter(self.plot_panel.updateLegend, 1)
         #wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -1523,7 +1526,7 @@ class MainWorkerThread(threading.Thread):
             selected_items.pop(idx)
         
         if marked_item == None:
-            self._showPleaseMarkItemError('merge')
+            self._showPleaseMarkItemError('interpolate')
             return 
         
         marked_sasm = marked_item.getSASM()    
@@ -1534,39 +1537,19 @@ class MainWorkerThread(threading.Thread):
         
         interpolate_sasm = SASM.interpolateToFit(marked_sasm, sasm_list)
         
-        filename = sasm_list[0].getParameter('filename')
-        interpolate_sasm.setParameter('filename', 'I_' + filename)
+        filename = marked_sasm.getParameter('filename')
+        interpolate_sasm.setParameter('filename', filename)
         
-        self._sendSASMToPlot(interpolate_sasm, axes_num = 1)
+        self._insertSasmFilenamePrefix(interpolate_sasm, 'I_')
+        
+        self._sendSASMToPlot(interpolate_sasm, axes_num = 1, notsaved = True)
         
         wx.CallAfter(self.plot_panel.updateLegend, 1)
                    
     
     def _saveSASM(self, sasm, filetype = 'dat'):
         pass
-    
-#    def _saveAnalysisInfo(self, data):
-#        
-#        all_items = data[0]
-#        save_path = data[1]
-#        
-#        selected_sasms = []
-#        
-#        check_filename, ext = os.path.splitext(save_path)
-#        save_path = check_filename + '.csv'
-#        
-#        for each_item in all_items:
-#            sasm = each_item.getSASM()
-#            selected_sasms.append(sasm)
-#            
-#            analysis_dict = sasm.getParameter('analysis')
-#            
-#            if analysis_dict.keys() == []:
-#                wx.CallAfter(wx.MessageBox, 'No analysis information was found for file: ' + sasm.getParameter('filename') + '\n\nSave was aborted.', 'Analysis information not found', style = wx.ICON_EXCLAMATION)
-#                return
-#        
-#        result = SASFileIO.saveAnalysisCsvFile(selected_sasms, save_path)
-        
+
     def _saveAnalysisInfo(self, data):
         
         all_items = data[0]
@@ -1733,10 +1716,13 @@ class MainWorkerThread(threading.Thread):
                         filepath = result[1][0]
                         filepath, new_filename = os.path.split(filepath)
                         sasm.setParameter('filename', new_filename)
-                        wx.CallAfter(sasm.item_panel.updateFilenameLabel)
                         
-                    if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT: 
+                    if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
                         SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+                        filename, ext = os.path.splitext(sasm.getParameter('filename'))
+                        sasm.setParameter('filename', filename + newext)
+                        wx.CallAfter(sasm.item_panel.updateFilenameLabel)
+                        wx.CallAfter(item.unmarkAsModified)
                     
                     if result[0] == wx.ID_YESTOALL:
                         overwrite_all = True
@@ -1746,7 +1732,10 @@ class MainWorkerThread(threading.Thread):
                 
             else:
                 SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
-            
+                filename, ext = os.path.splitext(sasm.getParameter('filename'))
+                sasm.setParameter('filename', filename + newext)
+                wx.CallAfter(sasm.item_panel.updateFilenameLabel)
+                wx.CallAfter(item.unmarkAsModified)
 
 #--- ** Info Panel **
 
@@ -1887,9 +1876,21 @@ class FilePanel(wx.Panel):
             self.main_frame.saveWorkspace()
             
         else:
-            self.plot_panel.clearAllPlots()
-            self.image_panel.clearFigure()
-            self.manipulation_panel.clearList()
+            answer2 = wx.ID_YES
+            
+            for each in self.manipulation_panel.modified_items:
+                print each.sasm.getParameter('filename')
+            
+            if self.manipulation_panel.modified_items != []:
+                dial2 = wx.MessageDialog(self, 'You have unsaved changes in your manipulation data. Do you want to discard these changes?', 'Discard changes?', 
+                                         wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+                answer2 = dial2.ShowModal()
+                dial2.Destroy()
+            
+            if answer2 == wx.ID_YES:
+                self.plot_panel.clearAllPlots()
+                self.image_panel.clearFigure()
+                self.manipulation_panel.clearList()
         
         info_panel = wx.FindWindowByName('InformationPanel')
         info_panel.clearInfo()
@@ -1921,8 +1922,10 @@ class FilePanel(wx.Panel):
             mainworker_cmd_queue.put(['show_image', path])
         
     def _onSubtractButton(self, event):
-        dirpanel = wx.FindWindowByName('DirCtrlPanel')
-        print dirpanel.itemDataMap
+        
+        pass
+        #dirpanel = wx.FindWindowByName('DirCtrlPanel')
+        #print dirpanel.itemDataMap
         #wx.CallAfter(self.main_frame.showCenteringPane)
         
         #RAWSettings.loadSettings(self.main_frame.raw_settings, 'testdat.dat')
@@ -2666,6 +2669,8 @@ class ManipulationPanel(wx.Panel):
         self.all_manipulation_items = []
         self.selected_item_list = []
         
+        self.modified_items = []
+        
         self.underpanel_sizer = wx.BoxSizer(wx.VERTICAL)    
         self.underpanel.SetSizer(self.underpanel_sizer)
         
@@ -2735,7 +2740,7 @@ class ManipulationPanel(wx.Panel):
         
         return sizer
     
-    def addItem(self, sasm, item_colour = 'black', item_visible = True):
+    def addItem(self, sasm, item_colour = 'black', item_visible = True, notsaved = False):
         
         newItem = ManipItemPanel(self.underpanel, sasm, font_colour = item_colour,
                                  item_visible = item_visible)
@@ -2753,6 +2758,9 @@ class ManipulationPanel(wx.Panel):
         
         
         sasm.item_panel = newItem
+        
+        if notsaved:
+            newItem.markAsModified()
         
     def setItemAsBackground(self, item):
         
@@ -2787,6 +2795,7 @@ class ManipulationPanel(wx.Panel):
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         
         self._star_marked_item = None
+        self.modified_items = []
         
         self.Thaw()
         
@@ -2864,7 +2873,12 @@ class ManipulationPanel(wx.Panel):
         axes_that_needs_updated_legend = []
          
         for each in self.getSelectedItems():
-                     
+            
+            try:
+                self.modified_items.remove(each)
+            except:
+                pass
+            
             plot_panel = each.sasm.plot_panel
             
             each.sasm.line.remove()
@@ -2884,13 +2898,14 @@ class ManipulationPanel(wx.Panel):
             idx = self.all_manipulation_items.index(each)
             self.all_manipulation_items[idx].Destroy()
             self.all_manipulation_items.pop(idx)
+            
         
         for eachaxes in axes_that_needs_updated_legend:
             if eachaxes == plot_panel.subplot1:
                 wx.CallAfter(plot_panel.updateLegend, 1)
             else:
                 wx.CallAfter(plot_panel.updateLegend, 2)
-            
+        
         wx.CallAfter(plot_panel.canvas.draw)
         
         self.underpanel_sizer.Layout()
@@ -3389,8 +3404,34 @@ class ManipItemPanel(wx.Panel):
         #self.showControls(self._controls_visible)
         self.SelectedForPlot.SetValue(self._selected_for_plot)
         self.sasm.line.set_picker(self._selected_for_plot)
-        
     
+    def markAsModified(self):
+        parent = self.GetParent()
+        
+        filename = self.sasm.getParameter('filename')
+        self.SelectedForPlot.SetLabel('* ' + str(filename))
+        self.SelectedForPlot.Refresh()
+        self.topsizer.Layout()
+        parent.Layout()            
+        parent.Refresh()
+        
+        if self not in self.manipulation_panel.modified_items:
+            self.manipulation_panel.modified_items.append(self)
+    
+    def unmarkAsModified(self):
+        parent = self.GetParent()
+        
+        filename = self.sasm.getParameter('filename')
+        self.SelectedForPlot.SetLabel(str(filename))
+        self.SelectedForPlot.Refresh()
+        self.topsizer.Layout()
+        parent.Layout()            
+        parent.Refresh()
+        try:
+            self.manipulation_panel.modified_items.remove(self)
+        except:
+            pass
+        
     def updateFilenameLabel(self):
         filename = self.sasm.getParameter('filename')
         
@@ -3598,6 +3639,7 @@ class ManipItemPanel(wx.Panel):
             if filename:
                 self.sasm.setParameter('filename', filename)
                 self.updateFilenameLabel()
+                self.markAsModified()
         
         if evt.GetId() == 15:
             #A to s
@@ -3799,7 +3841,8 @@ class ManipItemPanel(wx.Panel):
                     self.sasm.offset(value)
         
         wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
-
+        
+        self.markAsModified()
         event.Skip()
         
     def _updateQTextCtrl(self):
@@ -3838,6 +3881,7 @@ class ManipItemPanel(wx.Panel):
     def _onQrangeChange(self, event):
         self._updateQTextCtrl()
         wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
+        self.markAsModified()
         
     def _onEnterInQrangeTextCtrl(self, evt):
         
@@ -6550,9 +6594,15 @@ class InformationPanel(wx.Panel):
         
         header_note_boxsizer = wx.BoxSizer(wx.VERTICAL)
         
-        header_note_boxsizer.Add(wx.StaticText(self,-1,'Description / Notes:'), 0)
+        note_txt = wx.StaticText(self,-1,'Description / Notes:')
+        note_txt.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
+        
+        hdrbrow_txt = wx.StaticText(self,-1,'Header browser:')
+        hdrbrow_txt.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
+        
+        header_note_boxsizer.Add(note_txt, 0)
         header_note_boxsizer.Add(self._createNoteSizer(), 0, wx.ALL | wx.EXPAND, 5)
-        header_note_boxsizer.Add(wx.StaticText(self,-1,'Header browser:'), 0)
+        header_note_boxsizer.Add(hdrbrow_txt, 0)
         self.header_browser_sizer = self._createHeaderBrowserSizer()
         header_note_boxsizer.Add(self.header_browser_sizer, 0, wx.ALL | wx.EXPAND, 5)
         
@@ -6581,8 +6631,9 @@ class InformationPanel(wx.Panel):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         
         self.header_choice = wx.Choice(self, -1)
-        self.header_txt = wx.TextCtrl(self, -1, '')
-        
+        self.header_txt = wx.TextCtrl(self, -1, '', style = wx.TE_CENTRE)
+        self.header_choice.SetFont(wx.Font(11, wx.SWISS, wx.NORMAL, wx.NORMAL))
+        self.header_txt.SetFont(wx.Font(11, wx.SWISS, wx.NORMAL, wx.NORMAL))
         self.header_choice.Bind(wx.EVT_CHOICE, self._onHeaderBrowserChoice)
         
         sizer.Add(self.header_choice, .5, wx.EXPAND | wx.RIGHT, 5)
@@ -6597,7 +6648,11 @@ class InformationPanel(wx.Panel):
         name_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.name_label = wx.StaticText(self, -1, 'Name:')
         self.name_txt = wx.StaticText(self, -1, 'None')
-    
+        
+        self.name_label.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
+        self.name_txt.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
+        
+        
         name_sizer.Add(self.name_label, 0, wx.RIGHT, 10)
         name_sizer.Add(self.name_txt, 1, wx.EXPAND)
         
@@ -6609,6 +6664,9 @@ class InformationPanel(wx.Panel):
             
             label_txt = wx.StaticText(self, -1, label)
             value_txt = wx.TextCtrl(self, id, value, size = (60, -1))
+            label_txt.SetFont(wx.Font(11, wx.SWISS, wx.NORMAL, wx.BOLD))
+            value_txt.SetFont(wx.Font(11, wx.SWISS, wx.NORMAL, wx.BOLD))
+            value_txt.SetSize((60,-1))
             
             siz = wx.BoxSizer()
             siz.Add(label_txt, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
@@ -6618,14 +6676,18 @@ class InformationPanel(wx.Panel):
             
         ## add conc ctrl:
         label_txt = wx.StaticText(self, -1, self.conc_data[0])
+        label_txt.SetFont(wx.Font(11, wx.SWISS, wx.NORMAL, wx.BOLD))
+        
         self.conc_txt = wx.TextCtrl(self, self.conc_data[2], 'N/A', size = (60, -1))
         self.conc_txt.Bind(wx.EVT_KILL_FOCUS, self._onNoteTextKillFocus)
+        self.conc_txt.SetFont(wx.Font(11, wx.SWISS, wx.NORMAL, wx.BOLD))
+        
         siz = wx.BoxSizer()
         siz.Add(label_txt, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
         siz.Add(self.conc_txt, 1, wx.EXPAND)    
         analysis_sizer.Add(siz, 1, wx.RIGHT | wx.EXPAND, 10)
             
-        sizer.Add(name_sizer, 0, wx.EXPAND | wx.BOTTOM, 5)
+        sizer.Add(name_sizer, 0, wx.EXPAND | wx.BOTTOM, 10)
         sizer.Add(analysis_sizer, 1, wx.EXPAND | wx.RIGHT, 5)
         
         return sizer
@@ -8009,7 +8071,7 @@ class MySplashScreen(wx.SplashScreen):
     def OnExit(self, evt):
         self.Hide()
             
-        frame = MainFrame('RAW 0.99.9b', -1)
+        frame = MainFrame('RAW 0.99.10b', -1)
         
         self.raw_settings = frame.getRawSettings()
         icon = wx.Icon(name= os.path.join(RAWWorkDir, "resources","raw.ico"), type = wx.BITMAP_TYPE_ICO)

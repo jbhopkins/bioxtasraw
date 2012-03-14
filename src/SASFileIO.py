@@ -649,6 +649,45 @@ def loadAsciiFile(filename, file_type):
      
     return sasm
 
+def getCenterCoordsFromHeader(raw_settings, img_hdr, hdrfile_info):
+    
+    bind_dict = raw_settings.get('HeaderBindList')
+    
+    x_c, y_c = None, None
+    
+    if bind_dict['Beam X Center'][1] != None:
+            if bind_dict['Beam X Center'][1][1] == 'imghdr': hdr = img_hdr
+            else: hdr = hdrfile_info
+                
+            key = bind_dict['Beam X Center'][1][0]
+            
+            if hdr.has_key(key):
+                try:
+                    x_c = float(img_hdr[key])
+                except ValueError:
+                    sys.stderr.write('\n** Beam X Center value ' + str(key) + ': ' + str(hdr[key]) + ' could not be converted to a float! **\n')
+                    raise ValueError
+            else:
+                sys.stderr.write('\n** Beam X Center value ' + str(key) + 'was not found in header! **\n')
+    
+    if bind_dict['Beam Y Center'][1] != None:
+            if bind_dict['Beam Y Center'][1][1] == 'imghdr': hdr = img_hdr
+            else: hdr = hdrfile_info
+                
+            key = bind_dict['Beam Y Center'][1][0]
+            
+            if hdr.has_key(key):
+                try:
+                    y_c = float(img_hdr[key])
+                except ValueError:
+                    sys.stderr.write('\n** Beam Y Center value ' + str(key) + ': ' + str(hdr[key]) + ' could not be converted to a float! **\n')
+                    raise ValueError
+            else:
+                sys.stderr.write('\n** Beam Y Center value ' + str(key) + 'was not found in header! **\n')
+    
+    return x_c, y_c
+    
+
 def loadImageFile(filename, raw_settings):
     
     img_fmt = raw_settings.get('ImageFormat')
@@ -662,9 +701,19 @@ def loadImageFile(filename, raw_settings):
                   'counters'    : hdrfile_info,
                   'filename'    : os.path.split(filename)[1],
                   'load_path'   : filename}
-        
+    
     x_c = raw_settings.get('Xcenter')
     y_c = raw_settings.get('Ycenter')
+    
+    ## Read center coordinates from header?
+    if raw_settings.get('UseHeaderForCalib'):
+        try:
+            x_ch, y_ch = getCenterCoordsFromHeader(raw_settings, img_hdr, hdrfile_info)
+        
+            if x_ch != None: x_c = x_ch
+            if y_ch != None: y_c = y_ch
+        except ValueError:
+            pass
     
     masks = raw_settings.get('Masks')
     bs_mask = masks['BeamStopMask'][0]

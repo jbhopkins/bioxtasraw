@@ -3,13 +3,13 @@ Created on Aug 2, 2010
 
 @author: specuser
 '''
-import wx, re, sys, os, time, math, Queue
+import wx, re, sys, os, time, math, Queue, copy
 import wx.lib.agw.customtreectrl as CT
 #import wx.lib.agw.floatspin as FS
 import RAWSettings, RAWCustomCtrl
 from numpy import power, ceil
 
-import SASFileIO, SASParser
+import SASFileIO, SASParser, SASExceptions
 
 
 #--- ** TREE BOOK PANELS **
@@ -412,6 +412,7 @@ class HeaderListCtrl(wx.ListCtrl):
         self.InsertColumn(0, 'Name', width = 150)
         self.InsertColumn(1, 'Value', width = 150)
         self.InsertColumn(2, 'Binding', width = 150)
+        self.InsertColumn(3, 'Modifier', width = 150)
         
     def getColumnText(self, index, col):
         item = self.GetItem(index, col)
@@ -437,11 +438,12 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         
         wx.Panel.__init__(self, parent, id, *args, **kwargs)
         
-        self.update_keys = ['ImageFormat', 'ImageHdrFormat']
+        self.update_keys = ['ImageFormat', 'ImageHdrFormat', 'UseHeaderForCalib']
         self.changes = {}
         
         self.raw_settings = raw_settings
         self.currentItem = None
+        self.imghdr_start_idx = 0
         
         self.hdr_format_list = raw_settings.get('ImageHdrFormatList').keys()
         self.hdr_format_list.remove('None')
@@ -458,9 +460,12 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         self.list_sizer = self.createListCtrl()
         self.ctrl_sizer = self.createBindControls()
         self.button_sizer = self.createLoadAndClearButtons()
-        
+        modifier_add_button = wx.Button(self, -1, 'Add')
+        modifier_add_button.Bind(wx.EVT_BUTTON, self.onModifierAddButton
+                                 )
         hsizer = wx.BoxSizer()
         hsizer.Add(self.ctrl_sizer, 0, wx.ALL, 5)
+        hsizer.Add(modifier_add_button, 0, wx.LEFT | wx.BOTTOM | wx.ALIGN_BOTTOM, 5)
         hsizer.Add((1,1),1,wx.EXPAND)
         hsizer.Add(self.button_sizer, 0, wx.ALIGN_TOP | wx.ALIGN_RIGHT)
                 
@@ -472,10 +477,12 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         
         self.SetSizer(final_sizer)
         
-        self.enableAllBindCtrls(False)
+        self.enableAllBindCtrls(raw_settings.get('UseHeaderForCalib'))
         
         imghdr = raw_settings.get('ImageHdrList')
         filehdr = raw_settings.get('FileHdrList')
+        
+        self.bind_list = copy.deepcopy(raw_settings.get('HeaderBindList'))
         
         self._updateList(imghdr, filehdr)
         
@@ -534,8 +541,6 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         
         sizer = wx.BoxSizer(wx.VERTICAL)
         
-        #self.lc = wx.ListCtrl(self, -1, style=wx.LC_REPORT)
-        
         self.lc = HeaderListCtrl(self, style = wx.LC_REPORT)
         self.lc.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onListSelection)
         
@@ -555,21 +560,49 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         name_text = wx.StaticText(self, -1, 'Name:')
         value_text = wx.StaticText(self, -1, 'Value:')
         bind_text = wx.StaticText(self, -1, 'Binding:')
+        mod_text = wx.StaticText(self, -1, 'Modifier:')
         
         self.bind_ctrl = wx.Choice(self, -1, choices = self.bind_choice_list)                   
         self.bind_ctrl.Bind(wx.EVT_CHOICE, self.onBindChoice)
         self.bind_name_ctrl = wx.TextCtrl(self, -1, size = self.bind_ctrl.GetSize())
         self.bind_value_ctrl = wx.TextCtrl(self, -1, size = self.bind_ctrl.GetSize())
-        
+        self.bind_mod_ctrl = wx.TextCtrl(self, -1, size = self.bind_ctrl.GetSize())
+                
         sizer.Add(name_text, 1, wx.ALIGN_CENTER)
         sizer.Add(self.bind_name_ctrl, 1)
         sizer.Add(value_text, 1, wx.ALIGN_CENTER)
         sizer.Add(self.bind_value_ctrl, 1)
         sizer.Add(bind_text,1, wx.ALIGN_CENTER)
         sizer.Add(self.bind_ctrl,1)
+        sizer.Add(mod_text,1, wx.ALIGN_CENTER)
+        sizer.Add(self.bind_mod_ctrl,1)
         
         return sizer
     
+    def onModifierAddButton(self, event):
+        txt = self.bind_mod_ctrl.GetValue()
+        
+        try:
+            bindstr = self.bind_ctrl.GetStringSelection()
+            
+            if bindstr == 'No binding':
+                wx.MessageBox('Please select a binding first.', 'Select binding first')
+                return
+            
+            success = self.calcModifier()
+            if not success:
+                return
+            
+            self.lc.setColumnText(self.currentItem, 3, txt)
+                
+            if self.bind_list.has_key(bindstr):
+                self.bind_list[bindstr][2] = txt
+                self.changes['HeaderBindList'] = self.bind_list             #Updates raw_settings on OK
+        except:
+            pass
+            
+        event.Skip()
+        
     def onUseHeaderChkbox(self, event):
         chkbox = event.GetEventObject()
         self.enableAllBindCtrls(chkbox.GetValue())
@@ -580,10 +613,53 @@ class ReductionImgHdrFormatPanel(wx.Panel):
             self.bind_ctrl.Select(0)
             return
         
+        
+        bindstr = self.bind_ctrl.GetStringSelection() 
+                
+        old_bind = self.lc.getColumnText(self.currentItem, 2)
+        old_mod = self.lc.getColumnText(self.currentItem, 3)
+        
+        if bindstr == old_bind:
+            return
+        
+        #Remove the bind if its already there
+        num_items = self.lc.GetItemCount()
+        for i in range(0, num_items):
+            if self.lc.getColumnText(i, 2) == bindstr:
+                self.lc.setColumnText(i, 2, '')
+                self.lc.setColumnText(i, 3, '')
+        
+        # If the selected binding is No Binding
         if self.bind_ctrl.GetSelection() == 0:
             self.lc.setColumnText(self.currentItem, 2, '')
-        else:
+            self.lc.setColumnText(self.currentItem, 3, '')  
+        else:    
             self.lc.setColumnText(self.currentItem, 2, self.bind_ctrl.GetStringSelection())
+            
+        if old_bind != '':
+                self.bind_list[old_bind][1] = None
+                self.bind_list[old_bind][2] = ''
+                self.changes['HeaderBindList'] = self.bind_list
+      
+        #Store new bind in bind_list
+        header_key = self.lc.getColumnText(self.currentItem, 0)
+        
+        if self.currentItem > self.imghdr_start_idx:
+            selected_header = 'imghdr'
+        else:
+            selected_header = 'filehdr'
+       
+        if bindstr != 'No binding':            
+            #Set new bind
+            self.bind_list[bindstr][1] = [header_key, selected_header]
+            
+            modtxt = self.bind_mod_ctrl.GetValue()
+            self.bind_list[bindstr][2] = modtxt
+            
+            self.changes['HeaderBindList'] = self.bind_list             #Updates raw_settings on OK
+        
+            
+        
         
         self.lc.Update()
     
@@ -598,9 +674,11 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         name = self.lc.getColumnText(self.currentItem, 0)
         value = self.lc.getColumnText(self.currentItem, 1)
         binding = self.lc.getColumnText(self.currentItem, 2)
+        mod = self.lc.getColumnText(self.currentItem, 3)
         
         self.bind_name_ctrl.SetValue(name)
         self.bind_value_ctrl.SetValue(value)
+        self.bind_mod_ctrl.SetValue(mod)
         
         if binding == '':
             self.bind_ctrl.SetSelection(0)
@@ -611,6 +689,9 @@ class ReductionImgHdrFormatPanel(wx.Panel):
     def _updateList(self, imghdr, filehdr):
         
         self.lc.clear()
+        
+        self.file_hdr_list_dict = {}
+        self.img_hdr_list_dict = {}
         
         if filehdr != None:
             
@@ -624,10 +705,14 @@ class ReductionImgHdrFormatPanel(wx.Panel):
                 num_items = self.lc.GetItemCount()
                 self.lc.InsertStringItem(num_items, key)
                 self.lc.SetStringItem(num_items, 1, str(filehdr[key]))
-            
+                self.file_hdr_list_dict[key] = num_items
+                
+                
             self.lc.SetColumnWidth(0, wx.LIST_AUTOSIZE)
             self.lc.SetColumnWidth(1, 170)
             self.lc.SetColumnWidth(2, 150)
+        
+        self.imghdr_start_idx = self.lc.GetItemCount()
         
         if imghdr != None:
             num_items = self.lc.GetItemCount()
@@ -641,10 +726,25 @@ class ReductionImgHdrFormatPanel(wx.Panel):
                 num_items = self.lc.GetItemCount()
                 self.lc.InsertStringItem(num_items, key)
                 self.lc.SetStringItem(num_items, 1, str(imghdr[key]))
+                self.img_hdr_list_dict[key] = num_items
             
             self.lc.SetColumnWidth(0, wx.LIST_AUTOSIZE)
             self.lc.SetColumnWidth(1, 170)
             self.lc.SetColumnWidth(2, 150)
+
+
+        for each in self.bind_list.keys():
+            data = self.bind_list[each][1]
+            mod = self.bind_list[each][2]
+
+            if data != None:
+                if data[1] == 'imghdr': hdr = self.img_hdr_list_dict
+                else: hdr = self.file_hdr_list_dict
+                
+                if data[0] in hdr:
+                    self.lc.SetStringItem(hdr[data[0]], 2, str(each))
+                    self.lc.SetStringItem(hdr[data[0]], 3, str(mod))                 
+            
 
         self.lc.Update()
             
@@ -663,6 +763,15 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         
         try:
             imghdr, filehdr = SASFileIO.loadAllHeaders(filename, image_format, hdr_format)
+        except SASExceptions.WrongImageFormat:
+            wx.MessageBox('The selected file is not of the selected format.', 'Wrong image format', wx.OK | wx.ICON_INFORMATION)
+            return
+        except ValueError:
+            wx.MessageBox('Error loading the header file.', 'Wrong header format', wx.OK | wx.ICON_INFORMATION)
+            return
+        except SASExceptions.HeaderLoadError, e:
+            wx.MessageBox('Error loading the header file:\n' + str(e), 'Wrong header format', wx.OK | wx.ICON_INFORMATION)
+            return
         except:
             wx.MessageBox('Please pick the image file and not the header file itself.', 'Pick the image file', wx.OK | wx.ICON_INFORMATION)
             raise
@@ -670,11 +779,22 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         self.changes['ImageHdrList'] = imghdr
         self.changes['FileHdrList'] = filehdr
         
+        self.onClearBindingsButton(None)
+        
         self._updateList(imghdr, filehdr)        
+    
+    def clearBindings(self):
+        
+        for each in self.bind_list.keys():
+            self.bind_list[each][1] = None
+        
+        self.changes['HeaderBindList'] = self.bind_list
     
     def onClearBindingsButton(self, event):
         self.lc.clearColumn(3)
         self.bind_ctrl.SetSelection(0)
+        
+        self.clearBindings()
     
     def onClearAllButton(self, event):
         self.lc.clear()
@@ -684,7 +804,47 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         
         self.changes['ImageHdrList'] = None
         self.changes['FileHdrList'] = None
+        
+        self.clearBindings()
     
+    def calcModifier(self):
+        expr = self.bind_mod_ctrl.GetValue()
+        value = self.bind_value_ctrl.GetValue()
+        expr = value + expr
+        res = self.calcExpression(expr)
+        
+        if res != None:
+            wx.MessageBox(expr + ' = ' + str(res), 'Expression check:' , style = wx.ICON_INFORMATION)
+            return True
+        else:
+            return False
+        
+        
+    def calcExpression(self, expr):
+        
+        if expr != '':        
+            self.mathparser = SASParser.PyMathParser()
+            self.mathparser.addDefaultFunctions()
+            self.mathparser.addDefaultVariables()
+            
+            if self.changes.has_key('ImageHdrList'):
+                self.mathparser.addSpecialVariables(self.changes['ImageHdrList'])
+            
+            if self.changes.has_key('FileHdrList'):
+                self.mathparser.addSpecialVariables(self.changes['FileHdrList'])
+                  
+            self.mathparser.expression = expr
+
+            try:
+                val = self.mathparser.evaluate()
+                return val
+            except Exception, msg:
+                wx.MessageBox(str(msg), 'Error')
+                return None
+        else:
+            return None
+        
+        
     def updateEnable(self):
         self.enableAllBindCtrls(self.chkbox.GetValue())
         
@@ -1774,9 +1934,9 @@ all_options = [ [ (1,0,0), wx.NewId(), 'General Settings', GeneralOptionsPanel],
                 [ (2,4,2), wx.NewId(), 'Absolute Scale', ReductionNormalizationAbsScPanel],
                 [ (3,0,0), wx.NewId(), 'Artifact Removal', ArtifactOptionsPanel],
                 [ (4,0,0), wx.NewId(), 'IFT', IftOptionsPanel],
-                [ (5,0,0), wx.NewId(), "Save Directories", SaveDirectoriesPanel]]
+                [ (5,0,0), wx.NewId(), "Save Directories", SaveDirectoriesPanel],
     #            [ (5,0,0), wx.NewId(), 'Online Mode', ReductionOptionsPanel],
-    #            [ (5,1,0), wx.NewId(), "Automation", AutomationOptionsPanel] ]
+                [ (6,0,0), wx.NewId(), "Automation", AutomationOptionsPanel] ]
                 
 #--- ** TREE BOOK **
 class ConfigTree(CT.CustomTreeCtrl):
@@ -1967,7 +2127,7 @@ class OptionsDialog(wx.Dialog):
         sizer.Add(self.createButtonPanel(), 0, wx.ALIGN_RIGHT | wx.ALL, 5)
         
         self.SetSizer(sizer)
-        self.SetMinSize((750,500))
+        self.SetMinSize((750,600))
         self.Fit()
         
         self.CenterOnParent()

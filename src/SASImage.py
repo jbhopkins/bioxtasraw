@@ -253,6 +253,49 @@ def calcExpression(expr, img_hdr, file_hdr):
         else:
             return None
 
+
+def getCalibDataFromHeader(raw_settings, sasm, sd_distance, pixel_size, wavelength):
+
+    bind_list = raw_settings.get('HeaderBindList')
+    
+    img_hdr = sasm.getParameter('imageHeader')
+    file_hdr = sasm.getParameter('counters')
+    
+    if bind_list['Sample Detector Distance'][1] != None:
+        data = bind_list['Sample Detector Distance'][1]
+        hdr_choice = data[1]
+        key = data[0]
+        if hdr_choice == 'imghdr': hdr = img_hdr
+        else: hdr = file_hdr
+        
+        if key in hdr:
+            try: sd_distance = float(hdr[key])
+            except ValueError: sys.stderr.write('\n** Sample Detector Distance value ' + str(key) + ': ' + str(hdr[key]) + ' could not be converted to a float! **\n')
+            
+    if bind_list['Wavelength'][1] != None:
+        data = bind_list['Wavelength'][1]
+        hdr_choice = data[1]
+        key = data[0]
+        if hdr_choice == 'imghdr': hdr = img_hdr
+        else: hdr = file_hdr
+        
+        if key in hdr:
+            try: wavelength = float(hdr[key])
+            except ValueError: sys.stderr.write('\n** Wavelength value ' + str(key) + ': ' + str(hdr[key]) + ' could not be converted to a float! **\n')
+    
+    if bind_list['Detector Pixel Size'][1] != None:
+        data = bind_list['Detector Pixel Size'][1]
+        hdr_choice = data[1]
+        key = data[0]
+        if hdr_choice == 'imghdr': hdr = img_hdr
+        else: hdr = file_hdr
+        
+        if key in hdr:
+            try: pixel_size = float(hdr[key])
+            except ValueError: sys.stderr.write('\n** Detector Pixel Size value ' + str(key) + ': ' + str(hdr[key]) + ' could not be converted to a float! **\n')
+
+    return sd_distance, pixel_size, wavelength
+
 def calibrateAndNormalize(sasm, img, raw_settings):
     
     # Calibrate Q
@@ -263,13 +306,15 @@ def calibrateAndNormalize(sasm, img, raw_settings):
     calibrate_check = raw_settings.get('CalibrateMan')
     enable_normalization = raw_settings.get('EnableNormalization')
     
+    if raw_settings.get('UseHeaderForCalib'):
+        sd_distance, pixel_size, wavelength = getCalibDataFromHeader(raw_settings, sasm, sd_distance, pixel_size, wavelength)
+        
     sasm.setBinning(bin_size)
     
     if calibrate_check:
         sasm.calibrateQ(sd_distance, pixel_size / 1000, wavelength)
     
     normlist = raw_settings.get('NormalizationList')
-    
     img_hdr = sasm.getParameter('imageHeader')
     file_hdr = sasm.getParameter('counters')
     

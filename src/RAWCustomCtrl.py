@@ -928,7 +928,7 @@ class IntSpinCtrl(wx.Panel):
         if self.ScalerButton.GetValue() > 90000:
             self.ScalerButton.SetValue(0) 
         
-        print self.min, self.max, val, self.ScalerButton.GetMax(), self.ScalerButton.GetValue()
+        #print self.min, self.max, val, self.ScalerButton.GetMax(), self.ScalerButton.GetValue()
         
         if self.max != None:
             if newval > self.max:

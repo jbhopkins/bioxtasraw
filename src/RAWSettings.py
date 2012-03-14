@@ -159,11 +159,11 @@ class RawGuiSettings:
                             'UseHeaderForCalib'    : [False, wx.NewId(), 'bool'],
                             
                             # Header bind list with [(Description : parameter key, header_key)] 
-                            'HeaderBindList'       : [{'Beam X Center'            : ['Xcenter',           None],
-                                                       'Beam Y Center'            : ['Ycenter',           None],
-                                                       'Sample Detector Distance' : ['SampleDistance',    None],
-                                                       'Wavelength'               : ['WaveLength',        None],
-                                                       'Detector Pixel Size'      : ['DetectorPixelSize', None]}],
+                            'HeaderBindList'       : [{'Beam X Center'            : ['Xcenter',           None, ''],
+                                                       'Beam Y Center'            : ['Ycenter',           None, ''],
+                                                       'Sample Detector Distance' : ['SampleDistance',    None, ''],
+                                                       'Wavelength'               : ['WaveLength',        None, ''],
+                                                       'Detector Pixel Size'      : ['DetectorPixelSize', None, '']}],
                                                        
                             'NormalizationList'    : [None, wx.NewId(), 'text'],
                             'EnableNormalization'  : [True, wx.NewId(), 'bool'],
