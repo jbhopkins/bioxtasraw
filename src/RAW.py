@@ -6577,10 +6577,15 @@ class InformationPanel(wx.Panel):
         
         self.font_size1 = 11
         self.font_size2 = 12
+        
+        self.used_font1 = wx.Font(self.font_size1, wx.SWISS, wx.NORMAL, wx.NORMAL)
+        self.used_font2 = wx.Font(self.font_size2, wx.SWISS, wx.NORMAL, wx.NORMAL)
+        self.used_font1.SetPixelSize((13,13))
+        self.used_font2.SetPixelSize((15,15))
             
-        if platform.system() == 'Windows':
-            self.font_size1 = 8
-            self.font_size2 = 10
+        #if platform.system() == 'Windows':
+        #    self.font_size1 = 8
+        #    self.font_size2 = 10
         
         wx.Panel.__init__(self, parent, name = 'InformationPanel')
         
@@ -6595,6 +6600,7 @@ class InformationPanel(wx.Panel):
         self.analysis_info_sizer = self._createAnalysisInfoSizer()
         
         infoSizer.Add(self.analysis_info_sizer, 0, wx.ALL | wx.EXPAND, 5)
+    
 
         #header_note_box = wx.StaticBox(self, -1, 'Header data / Notes')
         #header_note_boxsizer = wx.StaticBoxSizer(header_note_box, orient = wx.VERTICAL)
@@ -6602,10 +6608,10 @@ class InformationPanel(wx.Panel):
         header_note_boxsizer = wx.BoxSizer(wx.VERTICAL)
         
         note_txt = wx.StaticText(self,-1,'Description / Notes:')
-        note_txt.SetFont(wx.Font(self.font_size2, wx.SWISS, wx.NORMAL, wx.NORMAL))
+        note_txt.SetFont(self.used_font2)
         
         hdrbrow_txt = wx.StaticText(self,-1,'Header browser:')
-        hdrbrow_txt.SetFont(wx.Font(self.font_size2, wx.SWISS, wx.NORMAL, wx.NORMAL))
+        hdrbrow_txt.SetFont(self.used_font2)
         
         header_note_boxsizer.Add(note_txt, 0)
         header_note_boxsizer.Add(self._createNoteSizer(), 0, wx.ALL | wx.EXPAND, 5)
@@ -6639,8 +6645,8 @@ class InformationPanel(wx.Panel):
         
         self.header_choice = wx.Choice(self, -1)
         self.header_txt = wx.TextCtrl(self, -1, '', style = wx.TE_CENTRE)
-        self.header_choice.SetFont(wx.Font(self.font_size1, wx.SWISS, wx.NORMAL, wx.NORMAL))
-        self.header_txt.SetFont(wx.Font(self.font_size1, wx.SWISS, wx.NORMAL, wx.NORMAL))
+        self.header_choice.SetFont(self.used_font1)
+        self.header_txt.SetFont(self.used_font1)
         self.header_choice.Bind(wx.EVT_CHOICE, self._onHeaderBrowserChoice)
         
         sizer.Add(self.header_choice, .5, wx.EXPAND | wx.RIGHT, 5)
@@ -6656,8 +6662,8 @@ class InformationPanel(wx.Panel):
         self.name_label = wx.StaticText(self, -1, 'Name:')
         self.name_txt = wx.StaticText(self, -1, 'None')
         
-        self.name_label.SetFont(wx.Font(self.font_size2, wx.SWISS, wx.NORMAL, wx.NORMAL))
-        self.name_txt.SetFont(wx.Font(self.font_size2, wx.SWISS, wx.NORMAL, wx.NORMAL))
+        self.name_label.SetFont(self.used_font2)
+        self.name_txt.SetFont(self.used_font2)
         
         
         name_sizer.Add(self.name_label, 0, wx.RIGHT, 10)
@@ -6671,8 +6677,8 @@ class InformationPanel(wx.Panel):
             
             label_txt = wx.StaticText(self, -1, label)
             value_txt = wx.TextCtrl(self, id, value, size = (60, -1))
-            label_txt.SetFont(wx.Font(self.font_size1, wx.SWISS, wx.NORMAL, wx.BOLD))
-            value_txt.SetFont(wx.Font(self.font_size1, wx.SWISS, wx.NORMAL, wx.BOLD))
+            label_txt.SetFont(self.used_font1)
+            value_txt.SetFont(self.used_font1)
             value_txt.SetSize((60,-1))
             
             siz = wx.BoxSizer()
@@ -6683,11 +6689,11 @@ class InformationPanel(wx.Panel):
             
         ## add conc ctrl:
         label_txt = wx.StaticText(self, -1, self.conc_data[0])
-        label_txt.SetFont(wx.Font(self.font_size1, wx.SWISS, wx.NORMAL, wx.BOLD))
+        label_txt.SetFont(self.used_font1)
         
         self.conc_txt = wx.TextCtrl(self, self.conc_data[2], 'N/A', size = (60, -1))
         self.conc_txt.Bind(wx.EVT_KILL_FOCUS, self._onNoteTextKillFocus)
-        self.conc_txt.SetFont(wx.Font(self.font_size1, wx.SWISS, wx.NORMAL, wx.BOLD))
+        self.conc_txt.SetFont(self.used_font1)
         
         siz = wx.BoxSizer()
         siz.Add(label_txt, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
