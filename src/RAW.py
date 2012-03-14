@@ -23,7 +23,7 @@ Created on Sep 31, 2010
 '''
 
 import wx, os, subprocess, time, math, threading, Queue, numpy, cPickle, copy, sys
-import platform, fnmatch, shutil
+import platform, fnmatch, shutil, platform
 import wx.lib.scrolledpanel as scrolled
 import wx.lib.wordwrap as wordwrap
 import wx.lib.mixins.listctrl as listmix
@@ -6575,6 +6575,13 @@ class InformationPanel(wx.Panel):
     
     def __init__(self, parent):
         
+        self.font_size1 = 11
+        self.font_size2 = 12
+            
+        if platform.system() == 'Windows':
+            self.font_size1 = 8
+            self.font_size2 = 10
+        
         wx.Panel.__init__(self, parent, name = 'InformationPanel')
         
         infoSizer = wx.BoxSizer(wx.VERTICAL)
@@ -6595,10 +6602,10 @@ class InformationPanel(wx.Panel):
         header_note_boxsizer = wx.BoxSizer(wx.VERTICAL)
         
         note_txt = wx.StaticText(self,-1,'Description / Notes:')
-        note_txt.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
+        note_txt.SetFont(wx.Font(self.font_size2, wx.SWISS, wx.NORMAL, wx.NORMAL))
         
         hdrbrow_txt = wx.StaticText(self,-1,'Header browser:')
-        hdrbrow_txt.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
+        hdrbrow_txt.SetFont(wx.Font(self.font_size2, wx.SWISS, wx.NORMAL, wx.NORMAL))
         
         header_note_boxsizer.Add(note_txt, 0)
         header_note_boxsizer.Add(self._createNoteSizer(), 0, wx.ALL | wx.EXPAND, 5)
@@ -6632,8 +6639,8 @@ class InformationPanel(wx.Panel):
         
         self.header_choice = wx.Choice(self, -1)
         self.header_txt = wx.TextCtrl(self, -1, '', style = wx.TE_CENTRE)
-        self.header_choice.SetFont(wx.Font(11, wx.SWISS, wx.NORMAL, wx.NORMAL))
-        self.header_txt.SetFont(wx.Font(11, wx.SWISS, wx.NORMAL, wx.NORMAL))
+        self.header_choice.SetFont(wx.Font(self.font_size1, wx.SWISS, wx.NORMAL, wx.NORMAL))
+        self.header_txt.SetFont(wx.Font(self.font_size1, wx.SWISS, wx.NORMAL, wx.NORMAL))
         self.header_choice.Bind(wx.EVT_CHOICE, self._onHeaderBrowserChoice)
         
         sizer.Add(self.header_choice, .5, wx.EXPAND | wx.RIGHT, 5)
@@ -6649,8 +6656,8 @@ class InformationPanel(wx.Panel):
         self.name_label = wx.StaticText(self, -1, 'Name:')
         self.name_txt = wx.StaticText(self, -1, 'None')
         
-        self.name_label.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
-        self.name_txt.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
+        self.name_label.SetFont(wx.Font(self.font_size2, wx.SWISS, wx.NORMAL, wx.NORMAL))
+        self.name_txt.SetFont(wx.Font(self.font_size2, wx.SWISS, wx.NORMAL, wx.NORMAL))
         
         
         name_sizer.Add(self.name_label, 0, wx.RIGHT, 10)
@@ -6664,8 +6671,8 @@ class InformationPanel(wx.Panel):
             
             label_txt = wx.StaticText(self, -1, label)
             value_txt = wx.TextCtrl(self, id, value, size = (60, -1))
-            label_txt.SetFont(wx.Font(11, wx.SWISS, wx.NORMAL, wx.BOLD))
-            value_txt.SetFont(wx.Font(11, wx.SWISS, wx.NORMAL, wx.BOLD))
+            label_txt.SetFont(wx.Font(self.font_size1, wx.SWISS, wx.NORMAL, wx.BOLD))
+            value_txt.SetFont(wx.Font(self.font_size1, wx.SWISS, wx.NORMAL, wx.BOLD))
             value_txt.SetSize((60,-1))
             
             siz = wx.BoxSizer()
@@ -6676,11 +6683,11 @@ class InformationPanel(wx.Panel):
             
         ## add conc ctrl:
         label_txt = wx.StaticText(self, -1, self.conc_data[0])
-        label_txt.SetFont(wx.Font(11, wx.SWISS, wx.NORMAL, wx.BOLD))
+        label_txt.SetFont(wx.Font(self.font_size1, wx.SWISS, wx.NORMAL, wx.BOLD))
         
         self.conc_txt = wx.TextCtrl(self, self.conc_data[2], 'N/A', size = (60, -1))
         self.conc_txt.Bind(wx.EVT_KILL_FOCUS, self._onNoteTextKillFocus)
-        self.conc_txt.SetFont(wx.Font(11, wx.SWISS, wx.NORMAL, wx.BOLD))
+        self.conc_txt.SetFont(wx.Font(self.font_size1, wx.SWISS, wx.NORMAL, wx.BOLD))
         
         siz = wx.BoxSizer()
         siz.Add(label_txt, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
