@@ -8054,6 +8054,63 @@ class LinePropertyDialog(wx.Dialog):
         
 #--- ** Startup app **
 
+
+class WelcomeDialog(wx.Dialog):
+    def __init__(self, parent, *args, **kwargs):
+        
+        wx.Dialog.__init__(self,parent, -1, *args, **kwargs)
+        
+        self.ok_button = wx.Button(self, -1, 'OK')       
+        self.ok_button.Bind(wx.EVT_BUTTON, self._onOKButton)
+        
+        button_sizer = wx.BoxSizer()
+        button_sizer.Add(self.ok_button,0, wx.RIGHT, 5) 
+        
+        raw_bitmap = wx.Bitmap(os.path.join(RAWWorkDir, "resources", "raw.ico"))
+        rawimg = wx.StaticBitmap(self, -1, raw_bitmap)
+        
+        headline = wx.StaticText(self, -1, 'Welcome to RAW 0.99.10b!')
+        
+        text1 = 'Developers/Contributors:'
+        text2 = '\nSoren S. Nielsen'
+        text3 = 'Richard E. Gillilan'
+        text4 = 'Jesper Nygaard'
+        
+        text5 = '\nHelp this software become better by reporting bugs to: sskn@life.ku.dk'
+        
+        text6 = '\nIf you use this software for your SAXS data processing please cite:\n'
+        text7 = '"BioXTAS RAW, a software program for high-throughput automated small-angle\nX-ray scattering data reduction and preliminary analysis", J. Appl. Cryst. (2009). 42, 959-964'
+
+
+        all_text = [text1, text2, text3, text4, text5, text6]
+        
+        final_sizer = wx.BoxSizer(wx.VERTICAL)
+        final_sizer.Add(rawimg, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL, 10)
+        final_sizer.Add(headline, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 15)
+        
+        for each in all_text:
+            txt = wx.StaticText(self, -1, each)
+            final_sizer.Add(txt, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
+        label = wx.StaticText(self, -1, text7)
+        
+        final_sizer.Add(label, 0, wx.ALL, 15)
+        final_sizer.Add(button_sizer, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
+        
+        self.SetSizer(final_sizer)
+        self.Fit()
+        self.CenterOnParent()
+    
+    def _onOKButton(self, event):
+        self.EndModal(wx.ID_OK)
+        
+    def _onCancelButton(self, event):
+        self.EndModal(wx.ID_CANCEL)
+        
+    def getFilename(self):
+        return self._filename
+
+
 class MyApp(wx.App):
     
     def OnInit(self):     
@@ -8105,6 +8162,9 @@ class MySplashScreen(wx.SplashScreen):
             self._seekPreviousCfg()
             dirctrl = wx.FindWindowByName('DirCtrlPanel')
             dirctrl._useSavedPathIfExisits()
+       
+        dlg = WelcomeDialog(frame)
+        dlg.ShowModal()
        
         evt.Skip() 
         
