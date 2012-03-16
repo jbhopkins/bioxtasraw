@@ -2127,7 +2127,7 @@ class OptionsDialog(wx.Dialog):
         sizer.Add(self.createButtonPanel(), 0, wx.ALIGN_RIGHT | wx.ALL, 5)
         
         self.SetSizer(sizer)
-        self.SetMinSize((750,600))
+        self.SetMinSize((800,600))
         self.Fit()
         
         self.CenterOnParent()
