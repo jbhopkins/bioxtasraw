@@ -163,7 +163,8 @@ class RawGuiSettings:
                                                        'Beam Y Center'            : ['Ycenter',           None, ''],
                                                        'Sample Detector Distance' : ['SampleDistance',    None, ''],
                                                        'Wavelength'               : ['WaveLength',        None, ''],
-                                                       'Detector Pixel Size'      : ['DetectorPixelSize', None, '']}],
+                                                       'Detector Pixel Size'      : ['DetectorPixelSize', None, ''],
+                                                       'Number of Frames'         : ['NumberOfFrames',    None, '']}],
                                                        
                             'NormalizationList'    : [None, wx.NewId(), 'text'],
                             'EnableNormalization'  : [True, wx.NewId(), 'bool'],
