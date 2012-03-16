@@ -216,6 +216,17 @@ class RawGuiSettings:
     def getAllParams(self):
         return self._params
     
+    
+    
+def fixBackwardsCompatibility(raw_settings):
+    
+    #Backwards compatibility for BindList:
+    bind_list = raw_settings.get('HeaderBindList')
+    for each_key in bind_list.keys():
+        if len(bind_list[each_key]) == 2:
+            bind_list[each_key] = [bind_list[each_key][0], bind_list[each_key][1], '']
+        
+    
 def loadSettings(raw_settings, loadpath):
     
     file_obj = open(loadpath, 'r')
@@ -233,6 +244,8 @@ def loadSettings(raw_settings, loadpath):
     
     main_frame = wx.FindWindowByName('MainFrame')
     main_frame.queueTaskInWorkerThread('recreate_all_masks', None)
+    
+    fixBackwardsCompatibility(raw_settings)
     
     return True
 

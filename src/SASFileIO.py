@@ -199,6 +199,12 @@ def getMar345ImgDim(filename):
 #--- ## Parse Counter Files and Headers ##
 ##########################################
 
+
+def parseCSVHeaderFile(filename):
+    counters = {}
+    
+    return counters
+
 def parsePilatusHeader(filename):
     
     param_pattern = re.compile('\d*[:]\d*[:]\d*\D\d*[:]\d*[:]\d*')
@@ -509,6 +515,7 @@ def parseMAXLABI77HeaderFile(filename):
 #################################################################
 
 all_header_types = {'None'         : None,
+ #                   'CSV'          : parseCSVHeaderFile,
                     'F2, CHESS'    : parseCHESSF2CTSfile, 
                     'G1, CHESS'    : parseCHESSG1CountFile,
                     'I711, MaxLab' : parseMAXLABI77HeaderFile}
