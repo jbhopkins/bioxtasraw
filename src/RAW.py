@@ -6578,7 +6578,7 @@ class InformationPanel(wx.Panel):
         self.font_size1 = 11
         self.font_size2 = 12
             
-        if platform.system() == 'Windows':
+        if platform.system() == 'Windows' or platform.system() == 'Linux':
             self.font_size1 = 8
             self.font_size2 = 10
         
