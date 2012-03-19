@@ -119,7 +119,8 @@ class GuinierPlotPanel(wx.Panel):
         
         newInfo = {'I0' : (np.exp(I0), std_interc),
                    'Rg' : (Rg, std_slope),
-                   'qRg': Rg * np.sqrt(x[-1]),
+                   'qRg_max': Rg * np.sqrt(x[-1]),
+                   'qRg_min' : Rg * np.sqrt(x[0]),
                    'rsq': rsq}
         
         return x, y_fit, br, error, newInfo
@@ -662,7 +663,8 @@ class GuinierControlPanel(wx.Panel):
         
         self.infodata = {'I0' : ('I0 :', wx.NewId(), wx.NewId()),
                          'Rg' : ('Rg :', wx.NewId(), wx.NewId()),
-                         'qRg': ('qRg :', wx.NewId()),
+                         'qRg_max': ('qRg_max :', wx.NewId()),
+                         'qRg_min': ('qRg :', wx.NewId()),
                          'rsq': ('r^2 (fit) :', wx.NewId()),
                          'weight': ('MM :', wx.NewId())}
         
@@ -680,7 +682,10 @@ class GuinierControlPanel(wx.Panel):
         box = wx.StaticBox(self, -1, 'Parameters')
         infoSizer = self.createInfoBox()
         boxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        boxSizer.Add(infoSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 5)
+        boxSizer.Add(infoSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP ,5)
+        qrgsizer = self.createQRgInfo()
+        boxSizer.Add(qrgsizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 5)
+        
         
         box2 = wx.StaticBox(self, -1, 'Control')
         controlSizer = self.createControls()
@@ -789,12 +794,30 @@ class GuinierControlPanel(wx.Panel):
         
         self.ExpObj = ExpObj
         #self.onSpinCtrl(self.startSpin)
+    
+    def createQRgInfo(self):
         
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        txt = wx.StaticText(self, -1, self.infodata['qRg_min'][0])
+        ctrl1 = wx.TextCtrl(self, self.infodata['qRg_min'][1], '0')
+        ctrl2 = wx.TextCtrl(self, self.infodata['qRg_max'][1], '0')
+                
+        sizer.Add(txt, 0, wx.RIGHT, 7)
+        sizer.Add(ctrl1,0, wx.RIGHT, 5)
+        sizer.Add(ctrl2,0)
+        
+        return sizer
+    
     def createInfoBox(self):
         
         sizer = wx.FlexGridSizer(rows = len(self.infodata), cols = 2)
         
         for key in self.infodata.iterkeys():
+            
+            
+            if key == 'qRg_min' or key == 'qRg_max':
+                continue
             
             if len(self.infodata[key]) == 2:
                 txt = wx.StaticText(self, -1, self.infodata[key][0])

@@ -406,17 +406,21 @@ class PlotPanel(wx.Panel):
                                     'legend_visible_1'    : True,
                                     'legend_visible_2'    : True,
                                     'legend_fontsize1'    : 10,
-                                    'legend_border1'      : True,
+                                    'legend_border1'      : False,
                                     'legend_fontsize2'    : 10,
-                                    'legend_border2'      : True,
+                                    'legend_border2'      : False,
                                     'legend_alpha1'       : 0.7,
                                     'legend_alpha2'       : 0.7,
                                     'plot_custom_labels1' : False,
                                     'plot_custom_labels2' : False,
                                     'auto_fitaxes1'        : True,
-                                    'auto_fitaxes2'        : True}
+                                    'auto_fitaxes2'        : True,
+                                    'framestyle1'          : 'XY',
+                                    'framestyle2'          : 'XY'}
                                     
-                        
+        
+        self.frame_styles = ['Full', 'XY', 'X', 'Y', 'None']
+        
         self.subplot_labels = { 'subtracted'  : ['Subtracted', 'q [1/A]', 'I(q)'],
                                 'kratky'      : ['Kratky', 'q [1/A]', 'I(q)q^2'],
                                 'guinier'     : ['Guinier', 'q^2 [1/A^2]', 'ln(I(q)'],
@@ -432,6 +436,13 @@ class PlotPanel(wx.Panel):
             
         self._setLabels(axes = self.subplot1)
         self._setLabels(axes = self.subplot2)
+        
+        try:
+            self.updateFrameStyle(axes = self.subplot1)
+            self.updateFrameStyle(axes = self.subplot2)
+        except Exception, e:
+            print 'Possibly too old matplotlib version: ' + str(e)
+            pass
         
         self.canvas.callbacks.connect('pick_event', self._onPickEvent)
         self.canvas.callbacks.connect('key_press_event', self._onKeyPressEvent)
@@ -453,6 +464,39 @@ class PlotPanel(wx.Panel):
         
     def getParameter(self, param):
         return self.plotparams[param]
+    
+    def updateFrameStyle(self, axes):
+        if axes == self.subplot1:
+            plotnum = '1'
+        else:
+            plotnum = '2'
+        
+        style = self.plotparams['framestyle' + plotnum]
+        
+        self.setFrameStyle(axes, style)
+    
+    def setFrameStyle(self, axes, style):
+        
+        if axes == self.subplot1:
+            plotnum = '1'
+        else:
+            plotnum = '2'
+        
+        if style == 'Full':
+            axes.set_frame_on(True)
+        elif style == 'None':
+            axes.set_frame_on(False)
+            
+        elif style == 'XY':
+            for loc, spine in axes.spines.iteritems():
+                if loc in ['right','top']:
+                    spine.set_color('none') # don't draw spine
+            
+            axes.xaxis.set_ticks_position('bottom')
+            axes.yaxis.set_ticks_position('left')
+            
+        self.plotparams['framestyle' + plotnum] == style
+        
             
     def fitAxis(self, axes = None, forced = False):
         
@@ -608,7 +652,8 @@ class PlotPanel(wx.Panel):
             a = self.subplot2
         else:
             a = axes_no
-        
+            
+      
         #plot with errorbars
         if a == self.subplot1:
             type = self.plotparams.get('plot1type')
