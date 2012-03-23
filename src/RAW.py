@@ -8153,7 +8153,7 @@ class LinePropertyDialog(wx.Dialog):
         self.err_linestyle_list.Select(self.linestyle_list_choices.index(str(self._old_errlinestyle)))
         self.err_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
         
-        self.err_colour = wx.Panel(self, -1, name = 'ErrColour')
+        self.err_colour = wx.Panel(self, -1, name = 'ErrColour', style = wx.RAISED_BORDER)
         self.err_colour.SetBackgroundColour(self._errcolour)
         self.err_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
       
@@ -8212,12 +8212,12 @@ class LinePropertyDialog(wx.Dialog):
         self.mar_size.SetValue(str(self._old_marsize))
         #self.mar_size.Bind(wx.EVT_SPINCTRL, self.updateLine)
         
-        self.mar_fillcolour = wx.Panel(self, -1, name = 'MarFillColour')
+        self.mar_fillcolour = wx.Panel(self, -1, name = 'MarFillColour', style = wx.RAISED_BORDER)
         self.mar_fillcolour.SetBackgroundColour(self._marcolour)
         self.mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
         self.mar_fillcolour.Enable(not self.hollow_marker)
         
-        self.mar_linecolour = wx.Panel(self, -1, name = 'MarLineColour')
+        self.mar_linecolour = wx.Panel(self, -1, name = 'MarLineColour', style = wx.RAISED_BORDER)
         self.mar_linecolour.SetBackgroundColour(self._marlinecolour)
         self.mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
         
@@ -8281,7 +8281,7 @@ class LinePropertyDialog(wx.Dialog):
         self.linestyle_list.Select(self.linestyle_list_choices.index(str(self._linestyle)))
         self.linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
         
-        self.line_colour = wx.Panel(self, -1, name = 'LineColour')
+        self.line_colour = wx.Panel(self, -1, name = 'LineColour', style = wx.RAISED_BORDER)
         self.line_colour.SetBackgroundColour(self._linecolour)
         self.line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
               
