@@ -160,7 +160,6 @@ class PlotOptionsDialog(wx.Dialog):
                              'xlabel' : {},
                              'ylabel' : {}}
         
-        
         font_list_with_path = matplotlib.font_manager.findSystemFonts()
         
         self.font_list = []

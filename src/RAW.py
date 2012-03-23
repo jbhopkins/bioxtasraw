@@ -8109,9 +8109,9 @@ class LinePropertyDialog(wx.Dialog):
         buttonsizer = self._createButtons()
         
         linesettings_sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap = 5, hgap = 10)
-        linesettings_sizer.Add(self._createLineControls(), 0)
-        linesettings_sizer.Add(self._createErrorBarsControls(), 0)
-        linesettings_sizer.Add(self._createLineMarkerControls(), 0)
+        linesettings_sizer.Add(self._createLineControls(), 1, wx.EXPAND)
+        linesettings_sizer.Add(self._createErrorBarsControls(), 1, wx.EXPAND)
+        linesettings_sizer.Add(self._createLineMarkerControls(), 1, wx.EXPAND)
         
         top_sizer.Add(self._createLegendLabelControls(), 0, wx.ALL | wx.EXPAND, 10)
         top_sizer.Add(linesettings_sizer, 0, wx.ALL | wx.EXPAND, 10)
@@ -8165,7 +8165,7 @@ class LinePropertyDialog(wx.Dialog):
         sizer.Add(err_colour_label, 0)
         sizer.Add(self.err_colour, 0, wx.EXPAND)
       
-        box.Add(sizer, 0)
+        box.Add(sizer, 0, wx.ALL, 5)
         
         return box
     
@@ -8242,7 +8242,7 @@ class LinePropertyDialog(wx.Dialog):
         sizer.Add(self.mar_hollow, 0, wx.EXPAND)
         
       
-        box.Add(sizer, 0)
+        box.Add(sizer, 0, wx.ALL, 5)
         
         return box
     
@@ -8294,7 +8294,7 @@ class LinePropertyDialog(wx.Dialog):
         sizer.Add(linecolour_label, 0)
         sizer.Add(self.line_colour, 0, wx.EXPAND)
   
-        box.Add(sizer, 0)
+        box.Add(sizer, 0, wx.ALL, 5)
         
         return box
 
