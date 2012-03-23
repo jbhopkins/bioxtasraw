@@ -8193,7 +8193,7 @@ class LinePropertyDialog(wx.Dialog):
             color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
         
             colour_panel.SetBackgroundColour(color)
-                          
+            colour_panel.Refresh()
     
     def _createLineMarkerControls(self):
         topbox = wx.StaticBox(self, -1, 'Data Point Marker') 
@@ -8231,18 +8231,18 @@ class LinePropertyDialog(wx.Dialog):
       
         sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
         sizer.Add(mar_linemarker_label, 0)
-        sizer.Add(self.mar_linemarker_list, 1, wx.EXPAND)
+        sizer.Add(self.mar_linemarker_list, 0, wx.EXPAND)
         sizer.Add(mar_size_label, 0, wx.ALIGN_CENTER_VERTICAL)
-        sizer.Add(self.mar_size, 1, wx.EXPAND)
+        sizer.Add(self.mar_size, 0, wx.EXPAND)
         sizer.Add(mar_linecolour_label, 0)
-        sizer.Add(self.mar_linecolour, 1, wx.EXPAND)
+        sizer.Add(self.mar_linecolour, 0, wx.EXPAND)
         sizer.Add(self.mar_fillcolour_label, 0)
-        sizer.Add(self.mar_fillcolour, 1, wx.EXPAND)
+        sizer.Add(self.mar_fillcolour, 0, wx.EXPAND)
         sizer.Add(mar_hollow_label, 0)
         sizer.Add(self.mar_hollow, 0, wx.EXPAND)
         
       
-        box.Add(sizer, 0, wx.EXPAND | wx.ALL, 5)
+        box.Add(sizer, 0, wx.ALL, 5)
         
         return box
     
