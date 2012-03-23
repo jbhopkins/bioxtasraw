@@ -25,7 +25,6 @@ class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
         y = self.figure.bbox.height - evt.GetY()
         evt.Skip()
         
-    
         try:
             FigureCanvasBase.motion_notify_event(self, x, y, guiEvent=evt)
         except:
@@ -147,56 +146,178 @@ class LegendOptionsDialog(wx.Dialog):
         self.EndModal(wx.OK)
         
 class PlotOptionsDialog(wx.Dialog):
-    def __init__(self, parent, plotparams, selected_plot, *args, **kwargs):
+    def __init__(self, parent, plotparams, axes, *args, **kwargs):
         
         wx.Dialog.__init__(self, parent, -1, 'Plot Options' , *args, **kwargs)
         
+        self.axes = axes
         self.plotparams = plotparams
-        self.selected_plot = selected_plot
         self.parent = parent
                 
         sizer = wx.BoxSizer(wx.VERTICAL)
         
-        title_txt = wx.StaticText(self, -1, 'Title :')
-        xlabel_txt = wx.StaticText(self, -1, 'x-axis label :')
-        ylabel_txt = wx.StaticText(self, -1, 'y-axis label :')
+        self._old_settings = {'title' : {},
+                             'xlabel' : {},
+                             'ylabel' : {}}
         
         
-        self.current_type = self.plotparams['plot' + str(self.selected_plot) + 'type']
-        old_title, old_xlabel, old_ylabel = parent.subplot_labels[self.current_type]
+        font_list_with_path = matplotlib.font_manager.findSystemFonts()
         
-        self.title = wx.TextCtrl(self, -1, old_title)
-        self.xlabel = wx.TextCtrl(self, -1, old_xlabel)
-        self.ylabel = wx.TextCtrl(self, -1, old_ylabel)
+        self.font_list = []
+        for each in font_list_with_path:
+            dir, file = os.path.split(each)
+            self.font_list.append(file)
         
-        label_sizer = wx.FlexGridSizer(3, 2, hgap = 3)
+        self.title = self.axes.title
+        self.xlabel = self.axes.xaxis.get_label()
+        self.ylabel = self.axes.yaxis.get_label()
         
-        label_sizer.Add(title_txt, 1)
-        label_sizer.Add(self.title, 1)
-        label_sizer.Add(xlabel_txt, 1)
-        label_sizer.Add(self.xlabel, 1)
-        label_sizer.Add(ylabel_txt, 1)
-        label_sizer.Add(self.ylabel, 1)
+        sizer.Add(self._createLabelSettings(), 0)
     
-        sizer.Add(label_sizer, 0)
-    
-        default_button = wx.Button(self, -1, 'Use Default')
-        default_button.Bind(wx.EVT_BUTTON, self._onDefaultButton)
+        #default_button = wx.Button(self, -1, 'Use Default')
+        #default_button.Bind(wx.EVT_BUTTON, self._onDefaultButton)
     
         buttons = self.CreateButtonSizer(wx.OK | wx.CANCEL)
-        
         self.Bind(wx.EVT_BUTTON, self._onOk, id = wx.ID_OK)
-        sizer.Add(default_button, 1, wx.GROW | wx.TOP, 5)
+        self.Bind(wx.EVT_BUTTON, self._onCancel, id=wx.ID_CANCEL)
+        
+        #sizer.Add(default_button, 1, wx.GROW | wx.TOP, 5)
         sizer.Add(buttons, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
         
         top_sizer = wx.BoxSizer()
-        
         top_sizer.Add(sizer,1, wx.ALL, 10)
         
         self.SetSizer(top_sizer)
         self.Fit()
         self.CenterOnParent()
+    
+    def _updateLabels(self, event):
+        label_params = ['text', 'size', 'weight', 'style']
+        obj = event.GetEventObject()
         
+        if obj.GetName() == 'title':
+            label = self.title
+            ids = self.labels[0][2]
+        elif obj.GetName() == 'xlabel':
+            label = self.xlabel
+            ids = self.labels[1][2]
+        elif obj.GetName() == 'ylabel':
+            label = self.ylabel
+            ids = self.labels[2][2]
+        
+        for key in label_params:
+            
+            ctrl = wx.FindWindowById(ids[key])
+            val = ctrl.GetValue()
+            
+            if key == 'weight':
+                if val: value = 'bold'
+                else: value = 'normal'
+                label.set_weight(value)
+            elif key == 'style':
+                if val: value = 'italic'
+                else: value = 'normal'
+                label.set_style(value)
+            elif key == 'size':
+                label.set_size(val)
+            elif key == 'text':
+                label.set_text(val)
+        
+        try:
+            self.parent.canvas.draw()
+        except matplotlib.pyparsing.ParseFatalException, e:
+            pass
+        
+        event.Skip()
+    
+    def _createLabelSettings(self):
+        
+        self.labels = [('Title:', 'title', {'text'  : wx.NewId(),
+                                       'size'  : wx.NewId(),
+                                       'weight': wx.NewId(),
+                                       'style' : wx.NewId()}),
+                  
+                  ('x-axis label:', 'xlabel',{'text'  : wx.NewId(),
+                                              'size'  : wx.NewId(),
+                                              'weight': wx.NewId(),
+                                              'style' : wx.NewId()}),
+                  
+                  ('y-axis label:', 'ylabel',{'text'  : wx.NewId(),
+                                              'size'  : wx.NewId(),
+                                              'weight': wx.NewId(),
+                                              'style' : wx.NewId()})]
+        
+        
+        box = wx.StaticBox(self, -1, 'Labels')
+        box_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        
+        sizer = wx.FlexGridSizer(cols = 6, rows = 4, vgap = 5, hgap = 5)
+        
+        sizer.Add((5,5),0)
+        sizer.Add((5,5),0)
+        sizer.Add(wx.StaticText(self, -1, 'Font'),1)
+        sizer.Add(wx.StaticText(self, -1, 'Size'),1)
+        sizer.Add(wx.StaticText(self, -1, 'Bold'),1)
+        sizer.Add(wx.StaticText(self, -1, 'Italic'),1)
+        
+        for each_label, each_name, id in self.labels:
+            if each_name == 'title': label = self.title
+            elif each_name == 'xlabel': label = self.xlabel
+            elif each_name == 'ylabel': label = self.ylabel
+    
+            txt = wx.StaticText(self, -1, each_label)
+            txt_ctrl = wx.TextCtrl(self, id['text'], label.get_text(), name = each_name)
+            font_ctrl = wx.Choice(self, -1, name = each_name)
+            font_size = wx.SpinCtrl(self, id['size'], str(label.get_size()), name = each_name)
+            font_size.SetValue(int(label.get_size()))
+             
+            bold = wx.CheckBox(self, id['weight'], name = each_name)
+            italic = wx.CheckBox(self, id['style'], name = each_name)
+            
+            bold.Bind(wx.EVT_CHECKBOX, self._updateLabels)
+            italic.Bind(wx.EVT_CHECKBOX, self._updateLabels)
+            txt_ctrl.Bind(wx.EVT_KEY_UP, self._updateLabels)
+            font_size.Bind(wx.EVT_SPINCTRL, self._updateLabels)
+            
+            if label.get_weight() == 'bold':
+                bold.SetValue(True)
+            if label.get_style() == 'italic':
+                italic.SetValue(True)
+            
+            self._old_settings[each_name]['text'] = label.get_text()
+            self._old_settings[each_name]['weight'] = label.get_weight()
+            self._old_settings[each_name]['size'] = label.get_size()
+            self._old_settings[each_name]['style'] = label.get_style()
+            
+            
+            sizer.Add(txt, 0)
+            sizer.Add(txt_ctrl, 0)
+            sizer.Add(font_ctrl, 0)
+            sizer.Add(font_size, 0)
+            sizer.Add(bold, 0)
+            sizer.Add(italic, 0)
+        
+        box_sizer.Add(sizer, 1, wx.ALL, 5)
+        return box_sizer
+    
+    def _restoreOldSettings(self):
+        
+        for each in self._old_settings.keys():
+            for each_key in self._old_settings[each].keys():
+                if each == 'title':
+                    expr = 'self.title.set_' + each_key + '("' + str(self._old_settings[each][each_key]) + '")'
+                    exec expr
+                elif each == 'xlabel':
+                    expr = 'self.xlabel.set_' + each_key + '("' + str(self._old_settings[each][each_key]) + '")'
+                    exec expr
+                elif each == 'ylabel':
+                    expr = 'self.ylabel.set_' + each_key + '("' + str(self._old_settings[each][each_key]) + '")'
+                    exec expr
+                    
+                    
+        self.parent.canvas.draw()
+                
+    
     def _onDefaultButton(self, evt):
         old_title, old_xlabel, old_ylabel = self.parent.default_subplot_labels[self.current_type]
         
@@ -204,15 +325,20 @@ class PlotOptionsDialog(wx.Dialog):
         self.xlabel.SetValue(old_xlabel)
         self.ylabel.SetValue(old_ylabel)
     
-    def _onOk(self, event):        
+    def _onOk(self, event):
         
-        title = self.title.GetValue()
-        xlabel = self.xlabel.GetValue()
-        ylabel = self.ylabel.GetValue()
-        
-        self.parent.subplot_labels[self.current_type] = [title, xlabel, ylabel]
+        if self.axes == self.parent.subplot1:
+            type = self.parent.plotparams['plot1type']
+        else:
+            type = self.parent.plotparams['plot2type']
+             
+        self.parent.subplot_labels[type] = [self.title.get_text(), self.xlabel.get_text(), self.ylabel.get_text()]
 
-        self.EndModal(wx.OK)
+        self.EndModal(wx.ID_OK)
+        
+    def _onCancel(self, event):
+        self._restoreOldSettings()
+        self.EndModal(wx.ID_CANCEL)
         
 class CustomPlotToolbar(NavigationToolbar2Wx):
     def __init__(self, parent, canvas):
@@ -416,7 +542,18 @@ class PlotPanel(wx.Panel):
                                     'auto_fitaxes1'        : True,
                                     'auto_fitaxes2'        : True,
                                     'framestyle1'          : 'XY',
-                                    'framestyle2'          : 'XY'}
+                                    'framestyle2'          : 'XY',
+                                    
+                                    'title_fontsize1'       : 16,
+                                    'xlabel_fontsize1'      : 12,
+                                    'ylabel_fontsize1'      : 12,
+                                    
+                                    'title_fontsize2'       : 16,
+                                    'xlabel_fontsize2'      : 12,
+                                    'ylabel_fontsize2'      : 12
+                                    
+                                    
+                                    }
                                     
         
         self.frame_styles = ['Full', 'XY', 'X', 'Y', 'None']
@@ -772,16 +909,18 @@ class PlotPanel(wx.Panel):
         self.PopupMenu(menu)
     
     def _onPlotOptions(self, evt):
-        dlg = PlotOptionsDialog(self, self.plotparams, self.selected_plot)
-        dlg.ShowModal()
-        dlg.Destroy()
-        
         if self.selected_plot == 1:
             axes = self.subplot1
         else:
             axes = self.subplot2
         
-        self.updatePlotType(axes)
+        dlg = PlotOptionsDialog(self, self.plotparams, axes)
+        dlg.ShowModal()
+        dlg.Destroy()
+        
+        
+        
+        #self.updatePlotType(axes)
     
     def _onLegendOptions(self, evt):
         dlg = LegendOptionsDialog(self, self.plotparams, self.selected_plot)
@@ -1044,49 +1183,21 @@ class PlotPanel(wx.Panel):
         else:
             a = axes
         
-        # Set TITLE 
+        # Set labels
         if title == None:
-            
             if a == self.subplot1:
-                if self.plotparams['plot1type'] == 'normal':
-                    a.set_title(self.subplot_labels['normal'][0])
-                    a.set_ylabel(self.subplot_labels['normal'][2])
-                    a.set_xlabel(self.subplot_labels['normal'][1])
-                        
-                elif self.plotparams['plot1type'] == 'kratky':
-                    a.set_title(self.subplot_labels['kratky'][0])
-                    a.set_ylabel(self.subplot_labels['kratky'][2])
-                    a.set_xlabel(self.subplot_labels['kratky'][1])
-                        
-                elif self.plotparams['plot1type'] == 'guinier':
-                    a.set_title(self.subplot_labels['guinier'][0])
-                    a.set_ylabel(self.subplot_labels['guinier'][2])
-                    a.set_xlabel(self.subplot_labels['guinier'][1])
-                    
-                elif self.plotparams['plot1type'] == 'porod':
-                    a.set_title(self.subplot_labels['porod'][0])
-                    a.set_ylabel(self.subplot_labels['porod'][2])
-                    a.set_xlabel(self.subplot_labels['porod'][1])
-                            
+                plottype = self.plotparams['plot1type']
+                a.title.set_text(self.subplot_labels[plottype][0])
+                a.yaxis.get_label().set_text(self.subplot_labels[plottype][2])
+                a.xaxis.get_label().set_text(self.subplot_labels[plottype][1])
+                           
             elif a == self.subplot2:
-                if self.plotparams['plot2type'] == 'subtracted':
-                    a.set_title(self.subplot_labels['subtracted'][0])
-                    a.set_ylabel(self.subplot_labels['subtracted'][2])
-                    a.set_xlabel(self.subplot_labels['subtracted'][1])
-                elif self.plotparams['plot2type'] == 'kratky':
-                    a.set_title(self.subplot_labels['kratky'][0])
-                    a.set_ylabel(self.subplot_labels['kratky'][2])
-                    a.set_xlabel(self.subplot_labels['kratky'][1])
-                elif self.plotparams['plot2type'] == 'guinier':
-                    a.set_title(self.subplot_labels['guinier'][0])
-                    a.set_ylabel(self.subplot_labels['guinier'][2])
-                    a.set_xlabel(self.subplot_labels['guinier'][1])
-                elif self.plotparams['plot2type'] == 'porod':
-                    a.set_title(self.subplot_labels['porod'][0])
-                    a.set_ylabel(self.subplot_labels['porod'][2])
-                    a.set_xlabel(self.subplot_labels['porod'][1])
+                plottype = self.plotparams['plot2type']
+                a.title.set_text(self.subplot_labels[plottype][0])
+                a.yaxis.get_label().set_text(self.subplot_labels[plottype][2])
+                a.xaxis.get_label().set_text(self.subplot_labels[plottype][1])          
         else:
-            a.set_title(title)
+            a.title.set_text(title)
     
     def updateLegend(self, plotnum):
         axes = plotnum

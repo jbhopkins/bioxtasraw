@@ -3468,7 +3468,7 @@ class ManipItemPanel(wx.Panel):
         
     def _updateColourIndicator(self):
         conv = mplcol.ColorConverter()
-        color = conv.to_rgb(self.sasm.line.get_mfc())
+        color = conv.to_rgb(self.sasm.line.get_color())
         color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
         
         self.colour_indicator.updateColour(color)
@@ -3476,10 +3476,17 @@ class ManipItemPanel(wx.Panel):
     def _onLinePropertyButton(self, event):
         
         try:
-            dialog = LinePropertyDialog(self, self.sasm.line)
-            dialog.ShowModal()
-            dialog.Destroy()
+            legend_label = self.getLegendLabel()
+            dialog = LinePropertyDialog(self, self.sasm, legend_label)
+            answer = dialog.ShowModal()
+            new_legend_label = dialog.getLegendLabel()
             self._updateColourIndicator()
+            dialog.Destroy()
+            
+            if answer == wx.ID_OK:
+                self._legend_label = new_legend_label
+                self._updateLegendLabel()
+                
         except TypeError:
             return
            
@@ -3553,7 +3560,7 @@ class ManipItemPanel(wx.Panel):
         menu.Append(9, 'Move to bottom plot')
         menu.AppendSeparator()
         menu.Append(14, 'Rename')
-        menu.Append(17, 'Set legend label...')
+        #menu.Append(17, 'Set legend label...')
         menu.AppendSeparator()
         menu.Append(18, 'Save analysis info...')
         menu.Append(7, 'Save selected file(s)')
@@ -3653,15 +3660,15 @@ class ManipItemPanel(wx.Panel):
             self._updateQTextCtrl()
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
         
-        if evt.GetId() == 17:
-            dlg = LegendLabelChangeDialog(self, self._legend_label)
-            answer = dlg.ShowModal()
-            legend_label = dlg.getLegendLabel()
-            dlg.Destroy()
-            
-            if answer == wx.ID_OK:
-                self._legend_label = legend_label
-                self._updateLegendLabel()
+#        if evt.GetId() == 17:
+#            dlg = LegendLabelChangeDialog(self, self._legend_label)
+#            answer = dlg.ShowModal()
+#            legend_label = dlg.getLegendLabel()
+#            dlg.Destroy()
+#            
+#            if answer == wx.ID_OK:
+#                self._legend_label = legend_label
+#                self._updateLegendLabel()
                 
         if evt.GetId() == 18:
             #Save Analysis Info
@@ -7952,75 +7959,345 @@ class RebinDialog(wx.Dialog):
         ret = int(self.choice.GetStringSelection())
         self.EndModal(ret)
 
+
+class ColourChangeDialog(wx.Dialog):
+    
+    def __init__(self, parent, sasm, linename, *args, **kwargs):
+        
+        wx.Dialog.__init__(self, parent, -1, 'Pick a Colour', *args, **kwargs)
+        
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        self.linename = linename
+        self.sasm = sasm
+        
+        old_color = self.getOldColour()
+        
+        if old_color == "None": #Transparant marker
+            old_color = self.sasm.line.get_color()
+        
+        conv = mplcol.ColorConverter()
+        color = conv.to_rgb(old_color)
+        self._old_linecolour = color
+        color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
+        self._linecolour = color
+        
+        buttonsizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
+        self.Bind( wx.EVT_BUTTON, self._onOkClicked, id=wx.ID_OK )
+        
+        self.colourchoice = colorchooser.PyColourChooser(self, -1)
+        self.colourchoice.SetValue(self._linecolour)
+        self.colourchoice.palette.Bind(wx.EVT_LEFT_UP, self.updateLine)
+        
+        for each in self.colourchoice.colour_boxs:
+            each.GetColourBox().Bind(wx.EVT_LEFT_UP, self.updateLine)
+        
+        sizer.Add(self.colourchoice, 1)
+        
+        top_sizer.Add(sizer, 0, wx.ALL, 10)
+        top_sizer.Add(buttonsizer, 0, wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL, 10)
+        
+        self.SetSizer(top_sizer)
+        self.Fit()
+        
+        self.CenterOnParent()
+        
+    def getOldColour(self):
+        
+        if self.linename == 'MarLineColour':
+            return self.sasm.line.get_markeredgecolor()
+        elif self.linename == 'MarFillColour':
+            return self.sasm.line.get_markerfacecolor()
+        elif self.linename == 'LineColour':
+            return self.sasm.line.get_color()
+        elif self.linename == 'ErrColour':
+            return self.sasm.line.get_color()
+            
+    def updateLine(self, event):
+        colour =  self.colourchoice.GetValue().Get(False)
+        colour =  (colour[0]/255.0, colour[1]/255.0, colour[2]/255.0)
+        
+        if self.linename == 'MarFillColour':
+            self.sasm.line.set_markerfacecolor(colour)
+        elif self.linename == 'MarLineColour':
+            self.sasm.line.set_markeredgecolor(colour)
+        elif self.linename == 'LineColour':
+            self.sasm.line.set_color(colour)
+        elif self.linename == 'ErrColour':
+            
+            for each in self.sasm.err_line:
+                for line in each:
+                    line.set_color(colour)
+        
+        
+        self.sasm.plot_panel.canvas.draw()
+        
+        event.Skip()
+
+    def _onOkClicked(self, event):
+        self.EndModal(wx.ID_OK)
+        
+    def _onCancel(self, event):
+        pass
+
 class LinePropertyDialog(wx.Dialog):
     
-    def __init__(self, parent, line, *args, **kwargs):
+    def __init__(self, parent, sasm, legend_label, *args, **kwargs):
         
-        if line == None:
+        if sasm.line == None:
             wx.MessageBox('Unable to change line properties.\nNo plot has been made for this item.', 'No plot')
             return
             
         
-        wx.Dialog.__init__(self, parent, -1, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, "Line Properties", *args, **kwargs)
+        
+        self.sasm = sasm
+        self.line = sasm.line
+        self.legend_label = legend_label
         
         self.linewidth_combo_choices = ['1.0', '2.0', '3.0', '4.0', '5.0']
         self.linestyle_list_choices = ['None', '-', '--', '-.', ':']
         self.linemarker_list_choices = ['None', '+', '*', ',','.','1','2','3','4','<', '>', 'D', 'H', '^','_','d','h','o','p','s','v','x','|']
         
-        self.line = line
-        
-        self._linestyle = line.get_linestyle()
-        self._linemarker = line.get_marker()
-        self._linewidth = line.get_linewidth()
+        self._linestyle = self.line.get_linestyle()
+        self._linemarker = self.line.get_marker()
+        self._linewidth = self.line.get_linewidth()
         
         conv = mplcol.ColorConverter()
         color = conv.to_rgb(self.line.get_color())
+        self._old_linecolour = color
         color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
         self._linecolour = color
+        
+        
+        mfc = self.line.get_markerfacecolor()
+        if mfc != "None":
+            color = conv.to_rgb(self.line.get_markerfacecolor())
+            self._marcolour = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
+            self.hollow_marker = False
+        else:
+            color = conv.to_rgb(self.line.get_markeredgecolor())
+            self._marcolour =  wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
+            self.hollow_marker = True
+        
+        color = conv.to_rgb(self.line.get_markeredgecolor())
+        self._marlinecolour = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
+        
+        color = conv.to_rgb(self.sasm.err_line[0][0].get_color())
+        self._errcolour = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
+        
+        self._old_linestyle = self.line.get_linestyle()
+        self._old_linemarker = self.line.get_marker()
+        self._old_linewidth = self.line.get_linewidth()
+        self._old_marcolour = self.line.get_markerfacecolor()
+        self._old_marlinecolour = self.line.get_markeredgecolor()
+        self._old_marsize = self.line.get_markersize()
+        self._old_errcolour = self.sasm.err_line[0][0].get_color()
+        self._old_errlinewidth = self.sasm.err_line[0][0].get_linewidth()
+
+        errstyle = self.sasm.err_line[1][0].get_linestyle()
+        strange_errlinestyles = {(None, None) : '-',
+                                (0,(6.0, 6.0))    : '--',
+                                (0,(3.0, 5.0, 1.0, 5.0)) : '-.',
+                                (0,(1.0, 3.0)) : ':'}
+        
+        self._old_errlinestyle = strange_errlinestyles[errstyle[0]]
            
         top_sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer = self._createControls()
+
         buttonsizer = self._createButtons()
-        top_sizer.Add(sizer, 0, wx.ALL, 10)
+        
+        linesettings_sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap = 5, hgap = 10)
+        linesettings_sizer.Add(self._createLineControls(), 0)
+        linesettings_sizer.Add(self._createErrorBarsControls(), 0)
+        linesettings_sizer.Add(self._createLineMarkerControls(), 0)
+        
+        top_sizer.Add(self._createLegendLabelControls(), 0, wx.ALL | wx.EXPAND, 10)
+        top_sizer.Add(linesettings_sizer, 0, wx.ALL | wx.EXPAND, 10)
+        
         top_sizer.Add(wx.StaticLine(self, -1), wx.EXPAND |wx.TOP | wx.BOTTOM, 3)
         top_sizer.Add(buttonsizer, 0, wx.CENTER | wx.BOTTOM, 10)
         
         self.SetSizer(top_sizer)
         self.Fit()
         self.CenterOnParent()
-
-    def _createControls(self):
+    
+    
+    def _createLegendLabelControls(self):
+        topbox = wx.StaticBox(self, -1, 'Legend Label') 
+        box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
         
-        linewidth_label = wx.StaticText(self, -1, 'Linewidth :')
-        linestyle_label = wx.StaticText(self, -1, 'Linestyle :')
-        linemarker_label = wx.StaticText(self, -1, 'Linemarker :')
-        linecolour_label = wx.StaticText(self, -1, 'Linecolour :')
+        self.legend_label_text = wx.TextCtrl(self, -1, self.legend_label)
         
-        self.linewidth_combo = wx.ComboBox(self, -1, choices = self.linewidth_combo_choices)
-        self.linewidth_combo.SetValue(str(self._linewidth))
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.legend_label_text, 1, wx.EXPAND)
+        
+        box.Add(sizer, 0, wx.EXPAND | wx.ALL, 5)
+        return box
+    
+    def _createErrorBarsControls(self):
+        topbox = wx.StaticBox(self, -1, 'Error Bars') 
+        box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
+        
+        err_linewidth_label = wx.StaticText(self, -1, 'Width :')
+        err_linestyle_label = wx.StaticText(self, -1, 'Style :')
+        err_colour_label = wx.StaticText(self, -1, 'Line Colour :')
+        
+        self.err_linewidth = wx.SpinCtrl(self, -1, '1')
+        self.err_linewidth.SetRange(1, 99)
+        self.err_linewidth.SetValue(self._old_errlinewidth)
+        self.err_linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
+        
+        self.err_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
+        self.err_linestyle_list.Select(self.linestyle_list_choices.index(str(self._old_errlinestyle)))
+        self.err_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
+        
+        self.err_colour = wx.Panel(self, -1, name = 'ErrColour')
+        self.err_colour.SetBackgroundColour(self._errcolour)
+        self.err_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
+      
+        sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
+        sizer.Add(err_linestyle_label, 0)
+        sizer.Add(self.err_linestyle_list, 0, wx.EXPAND)
+        sizer.Add(err_linewidth_label, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.err_linewidth, 0, wx.EXPAND)
+        sizer.Add(err_colour_label, 0)
+        sizer.Add(self.err_colour, 0, wx.EXPAND)
+      
+        box.Add(sizer, 0)
+        
+        return box
+    
+    def _onColourPress(self, event):
+        
+        colour_panel = event.GetEventObject()
+        
+        dlg = ColourChangeDialog(self, self.sasm, colour_panel.GetName())
+        dlg.ShowModal()
+        dlg.Destroy()
+        
+        if colour_panel.GetName() == 'LineColour':
+            color = self.line.get_color()
+        elif colour_panel.GetName() == 'ErrColour':
+            color = self.sasm.err_line[0][0].get_color()
+        elif colour_panel.GetName() == 'MarLineColour':
+            color = self.line.get_markeredgecolor()
+        elif colour_panel.GetName() == 'MarFillColour':
+            color = self.line.get_markerfacecolor()
+        
+        conv = mplcol.ColorConverter()
+        
+        if color != "None": #Not transparent
+            color = conv.to_rgb(color)
+            color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
+        
+            colour_panel.SetBackgroundColour(color)
+                          
+    
+    def _createLineMarkerControls(self):
+        topbox = wx.StaticBox(self, -1, 'Data Point Marker') 
+        box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
+        
+        mar_size_label = wx.StaticText(self, -1, 'Size :')
+        self.mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour :')
+        self.mar_fillcolour_label.Enable(not self.hollow_marker)
+        mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
+        mar_linemarker_label = wx.StaticText(self, -1, 'Marker :')
+        mar_hollow_label = wx.StaticText(self, -1, 'Hollow :')
+        
+        #self.mar_size = wx.SpinCtrl(self, -1, '1')
+        self.mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+        self.mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
+        self.mar_size.SetValue(str(self._old_marsize))
+        #self.mar_size.Bind(wx.EVT_SPINCTRL, self.updateLine)
+        
+        self.mar_fillcolour = wx.Panel(self, -1, name = 'MarFillColour')
+        self.mar_fillcolour.SetBackgroundColour(self._marcolour)
+        self.mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
+        self.mar_fillcolour.Enable(not self.hollow_marker)
+        
+        self.mar_linecolour = wx.Panel(self, -1, name = 'MarLineColour')
+        self.mar_linecolour.SetBackgroundColour(self._marlinecolour)
+        self.mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
+        
+        self.mar_linemarker_list = wx.Choice(self, -1, choices = self.linemarker_list_choices)
+        self.mar_linemarker_list.Select(self.linemarker_list_choices.index(str(self._linemarker)))
+        self.mar_linemarker_list.Bind(wx.EVT_CHOICE, self.updateLine)
+        
+        self.mar_hollow = wx.CheckBox(self, -1)
+        self.mar_hollow.SetValue(self.hollow_marker)
+        self.mar_hollow.Bind(wx.EVT_CHECKBOX, self._onHollowCheckBox)
+      
+        sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
+        sizer.Add(mar_linemarker_label, 0)
+        sizer.Add(self.mar_linemarker_list, 0, wx.EXPAND)
+        sizer.Add(mar_size_label, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.mar_size, 0, wx.EXPAND)
+        sizer.Add(mar_linecolour_label, 0)
+        sizer.Add(self.mar_linecolour, 0, wx.EXPAND)
+        sizer.Add(self.mar_fillcolour_label, 0)
+        sizer.Add(self.mar_fillcolour, 0, wx.EXPAND)
+        sizer.Add(mar_hollow_label, 0)
+        sizer.Add(self.mar_hollow, 0, wx.EXPAND)
+        
+      
+        box.Add(sizer, 0)
+        
+        return box
+    
+    def _onHollowCheckBox(self, event):
+        
+        chkbox = event.GetEventObject()
+        
+        if chkbox.GetValue() == True:
+            self.line.set_markerfacecolor("None")
+            self.sasm.plot_panel.canvas.draw()
+            self.mar_fillcolour.Enable(False)
+            self.mar_fillcolour_label.Enable(False)
+        else:
+            self.mar_fillcolour.Enable(True)
+            self.mar_fillcolour_label.Enable(True)
+            colour =  self.mar_fillcolour.GetBackgroundColour()
+            colour =  (colour[0]/255.0, colour[1]/255.0, colour[2]/255.0)
+            self.line.set_markerfacecolor(colour)
+            self.sasm.plot_panel.canvas.draw()
+    
+    def _createLineControls(self):
+        
+        topbox = wx.StaticBox(self, -1, 'Line') 
+        box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
+        
+        linewidth_label = wx.StaticText(self, -1, 'Width :')
+        linestyle_label = wx.StaticText(self, -1, 'Style :')
+        linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
+        
+        self.linewidth = wx.SpinCtrl(self, -1, '1')
+        self.linewidth.SetRange(1,99)
+        self.linewidth.SetValue(self._old_linewidth)
+        self.linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
         
         self.linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
         self.linestyle_list.Select(self.linestyle_list_choices.index(str(self._linestyle)))
+        self.linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
         
-        self.linemarker_list = wx.Choice(self, -1, choices = self.linemarker_list_choices)
-        self.linemarker_list.Select(self.linemarker_list_choices.index(str(self._linemarker)))
+        self.line_colour = wx.Panel(self, -1, name = 'LineColour')
+        self.line_colour.SetBackgroundColour(self._linecolour)
+        self.line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
+              
+        sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
         
-        self.colourchoice = colorchooser.PyColourChooser(self, -1)
-        self.colourchoice.SetValue(self._linecolour)
-               
-        sizer = wx.FlexGridSizer(cols = 2, rows = 4, vgap = 3, hgap = 3)
-        
-        sizer.Add(linewidth_label, 0)
-        sizer.Add(self.linewidth_combo, 0, wx.EXPAND)
         sizer.Add(linestyle_label, 0)
         sizer.Add(self.linestyle_list, 0, wx.EXPAND)
-        sizer.Add(linemarker_label, 0)
-        sizer.Add(self.linemarker_list, 0, wx.EXPAND)
+        sizer.Add(linewidth_label, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.linewidth, 0, wx.EXPAND)
         sizer.Add(linecolour_label, 0)
-        sizer.Add(self.colourchoice, 0)
+        sizer.Add(self.line_colour, 0, wx.EXPAND)
+  
+        box.Add(sizer, 0)
         
-        return sizer 
-    
+        return box
+
     def _createButtons(self):
         sizer = wx.BoxSizer()
         
@@ -8034,23 +8311,76 @@ class LinePropertyDialog(wx.Dialog):
         sizer.Add(ok_button, 0)
         
         return sizer
+    
+    def getLegendLabel(self):
+        return self.legend_label_text.GetValue()
+    
+    def updateErrorLines(self, data):
         
-    def _onCancelButton(self, event):
-        self.EndModal(wx.CANCEL)
-
-    def _onOkButton(self, event):
-        marker =  self.linemarker_list.GetStringSelection()
-        width =  self.linewidth_combo.GetValue()
+        for each in self.sasm.err_line:
+            for line in each:
+                func, param = data
+                getattr(line, func)(param)
+                
+        
+    def updateLine(self, event):
+        marker =  self.mar_linemarker_list.GetStringSelection()
+        width =  self.linewidth.GetValue()
         style =  self.linestyle_list.GetStringSelection()
-        colour =  self.colourchoice.GetValue().Get(False)
-        colour =  (colour[0]/255.0, colour[1]/255.0, colour[2]/255.0)
-
+        
+        mar_size = self.mar_size.GetValue()
+        err_linewidth = self.err_linewidth.GetValue()
+        err_linestyle = self.err_linestyle_list.GetStringSelection()
+        
         self.line.set_marker(marker)
+        
+        colour =  self.mar_linecolour.GetBackgroundColour()
+        colour =  (colour[0]/255.0, colour[1]/255.0, colour[2]/255.0)
+        
+        self.updateErrorLines(['set_linewidth', err_linewidth])
+        
+        each = self.sasm.err_line[1]
+        if err_linestyle != "None":
+            for line in each:
+                line.set_linestyle(err_linestyle)
+        
+        self.line.set_markeredgecolor(colour)
         self.line.set_linewidth(float(width))
         self.line.set_linestyle(style)    
-        self.line.set_color(colour)
+        #self.line.set_color(colour)
+        self.line.set_markersize(float(mar_size))
+        
+        self.sasm.plot_panel.canvas.draw()
+        
+        if event != None:
+            event.Skip()
+        
+    def _onCancelButton(self, event):
+        self.line.set_linewidth(self._old_linewidth)
+        self.line.set_linestyle(self._old_linestyle)
+        self.line.set_color(self._old_linecolour)
+        
+        self.line.set_marker(self._old_linemarker)
+        self.line.set_markeredgecolor(self._old_marlinecolour)
+        self.line.set_markerfacecolor(self._old_marcolour)
+        self.line.set_markersize(self._old_marsize)
+        
+        #Stupid errorbars:
+        line1, line2 = self.sasm.err_line
+        for each in line2:
+            each.set_linestyle(self._old_errlinestyle)
+            each.set_linewidth(self._old_errlinewidth)
+            each.set_color(self._old_errcolour)   
+        for each in line1:
+            each.set_linewidth(self._old_errlinewidth)
+            each.set_color(self._old_errcolour)
+        
+        self.EndModal(wx.ID_CANCEL)
+
+    def _onOkButton(self, event):
+        self.updateLine(None)
       
-        self.EndModal(wx.OK)
+        self.EndModal(wx.ID_OK)
         
 #--- ** Startup app **
 
