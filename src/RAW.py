@@ -6613,10 +6613,10 @@ class InformationPanel(wx.Panel):
         header_note_boxsizer = wx.BoxSizer(wx.VERTICAL)
         
         note_txt = wx.StaticText(self,-1,'Description / Notes:')
-        note_txt.SetFont(self.used_font2)
+        note_txt.SetFont(self.used_font1)
         
         hdrbrow_txt = wx.StaticText(self,-1,'Header browser:')
-        hdrbrow_txt.SetFont(self.used_font2)
+        hdrbrow_txt.SetFont(self.used_font1)
         
         header_note_boxsizer.Add(note_txt, 0)
         header_note_boxsizer.Add(self._createNoteSizer(), 0, wx.ALL | wx.EXPAND, 5)
@@ -6667,8 +6667,8 @@ class InformationPanel(wx.Panel):
         self.name_label = wx.StaticText(self, -1, 'Name:')
         self.name_txt = wx.StaticText(self, -1, 'None')
         
-        self.name_label.SetFont(self.used_font2)
-        self.name_txt.SetFont(self.used_font2)
+        self.name_label.SetFont(self.used_font1)
+        self.name_txt.SetFont(self.used_font1)
         
         
         name_sizer.Add(self.name_label, 0, wx.RIGHT, 10)

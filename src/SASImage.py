@@ -280,7 +280,8 @@ def getBindListDataFromHeader(raw_settings, img_hdr, file_hdr, keys):
                 try:
                     # Calculate value with modifier 
                     if bind_list[each_key][2] != '':
-                        expr = str(val) + bind_list[each_key][2]
+                        expr = bind_list[each_key][2]
+
                         val = calcExpression(expr, img_hdr, file_hdr)
                         result.append(val)
                     else:

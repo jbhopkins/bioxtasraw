@@ -461,11 +461,14 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         self.ctrl_sizer = self.createBindControls()
         self.button_sizer = self.createLoadAndClearButtons()
         modifier_add_button = wx.Button(self, -1, 'Add')
-        modifier_add_button.Bind(wx.EVT_BUTTON, self.onModifierAddButton
-                                 )
+        modifier_add_button.Bind(wx.EVT_BUTTON, self.onModifierAddButton)
+        modifier_remove_button = wx.Button(self, -1, 'Remove')
+        modifier_remove_button.Bind(wx.EVT_BUTTON, self.onModifierRemoveButton)
+        
         hsizer = wx.BoxSizer()
         hsizer.Add(self.ctrl_sizer, 0, wx.ALL, 5)
         hsizer.Add(modifier_add_button, 0, wx.LEFT | wx.BOTTOM | wx.ALIGN_BOTTOM, 5)
+        hsizer.Add(modifier_remove_button, 0, wx.LEFT | wx.BOTTOM | wx.ALIGN_BOTTOM, 5)
         hsizer.Add((1,1),1,wx.EXPAND)
         hsizer.Add(self.button_sizer, 0, wx.ALIGN_TOP | wx.ALIGN_RIGHT)
                 
@@ -485,6 +488,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         self.bind_list = copy.deepcopy(raw_settings.get('HeaderBindList'))
         
         self._updateList(imghdr, filehdr)
+    
         
     def enableAllBindCtrls(self, state):
         
@@ -578,6 +582,16 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         sizer.Add(self.bind_mod_ctrl,1)
         
         return sizer
+    
+    def onModifierRemoveButton(self, event):
+        self.bind_mod_ctrl.SetValue('')
+        self.lc.setColumnText(self.currentItem, 3, '')
+        
+        bindstr = self.bind_ctrl.GetStringSelection()
+        
+        if self.bind_list.has_key(bindstr):
+                self.bind_list[bindstr][2] = ''
+                self.changes['HeaderBindList'] = self.bind_list
     
     def onModifierAddButton(self, event):
         txt = self.bind_mod_ctrl.GetValue()
@@ -808,9 +822,10 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         self.clearBindings()
     
     def calcModifier(self):
+        
         expr = self.bind_mod_ctrl.GetValue()
         value = self.bind_value_ctrl.GetValue()
-        expr = value + expr
+        #expr = value + expr
         res = self.calcExpression(expr)
         
         if res != None:

@@ -195,34 +195,18 @@ def getMar345ImgDim(filename):
     
     return dim
 
-
-
-def _getExperimentParameters(expParams):
-        
-        q_range = (expParams['QrangeLow'], expParams['QrangeHigh'])
-        pixelcal = [expParams['PixelCalX'], expParams['PixelCalY']]
-        x_center, y_center = expParams['Xcenter'], expParams['Ycenter']
-        binsize = expParams['Binsize']
-        mask = expParams['BeamStopMask']      
-        rdmask = expParams['ReadOutNoiseMask'] 
-        
-        return mask, rdmask, q_range, pixelcal, x_center, y_center, binsize
-
 def loadSAXSLAB300Image(filename):
-    
-    #if expParams != None:
-    #    mask, rdmask, q_range, pixelcal, x_center, y_center, binsize = _getExperimentParameters(expParams)
-    #img, dim, tag = loadImageSAXSLAB300(filename, fromOnline)
     
     try:
         im1 = Image.open(filename)
         #im2 = im1.convert('I;16').transpose(Image.ROTATE_90);
         #im1a = im1.transpose(Image.ROTATE_90)
-        #im2 = im1.transpose(Image.FLIP_TOP_BOTTOM)
-        newArr = np.fromstring(im1.tostring(), np.int32)
+        im2 = im1.transpose(Image.FLIP_LEFT_RIGHT)
+        newArr = np.fromstring(im2.tostring(), np.int32)
+        
         # reduce negative vals
         newArr = np.where(newArr >= 0, newArr, 0)
-        newArr = np.reshape(newArr, (im1.size[1],im1.size[0])) 
+        newArr = np.reshape(newArr, (im2.size[1],im2.size[0])) 
         try:
           tag = im1.tag
         except AttributeError:
@@ -230,87 +214,17 @@ def loadSAXSLAB300Image(filename):
         dim = np.shape(newArr)
         
     except (IOError, ValueError):
-        return None, None, None
+        return None, None
     
     try:
       tag_with_data = tag[1334]
     except (TypeError, KeyError):
+        print "Wrong file format. Missing TIFF tag number"
         raise
-    
-#      msg = "Wrong file format. Missing TIFF tag number %d." \
-#        % conf.NEW_TAG
- #     if fromOnline:
- #       print msg
- #     else:
- #       wx.CallAfter(wx.MessageBox, msg , \
- #       'Cannot load file!', wx.OK | wx.ICON_ERROR)
- #     raise(WrongFileFormat)
 
     img = newArr
     img_hdr = parseSAXSLAB300Header(tag_with_data)
-    
-    
-
-    #d['nslow'] = 487 
-    #d['nfast'] = 619
-
-#    if (expParams['LoadXCenter']):
-#      try:
-#        x_center = hdr['beam_x']
-#        expParams['Xcenter'] = x_center
-#      except KeyError:
-#        pass
-#    if (expParams['LoadYCenter']):
-#      try:
-#        y_center = hdr['beam_y']
-#        expParams['Ycenter'] = y_center
-#      except KeyError:
-#        pass
-#    if (expParams['LoadSampleDistance']):
-#      try:
-#        expParams['SampleDistance'] = hdr['detector_dist']
-#      except KeyError:
-#        print "Missing SampleDistance"
-#        pass
-#    if (expParams['LoadWaveLength']):
-#      try:
-#        expParams['WaveLength'] = hdr['wavelength']
-#      except KeyError:
-#        print "Missing WaveLength"
-#        pass
-#    if (expParams['LoadDetectorPixelSize']):
-#      try:
-#        expParams['DetectorPixelSize'] = hdr['pixelsize_x']
-#      except KeyError:
-#        print "Missing DetectorPixelSize"
-#        pass
-#    if (expParams['LoadPixelCalX']):
-#      try:
-#        expParams['PixelCalX'] = hdr['kcal']
-#      except KeyError:
-#        print "Missing kcal"
-#        pass
-#    if (expParams['LoadCalibrate']):
-#      try:
-#        print "CALIBTYPE",
-#        print hdr['calibrationtype']
-#        if hdr['calibrationtype'] != "geom":
-#          expParams['Calibrate'] = True
-#      except KeyError:
-#        print "Missing calibrationtype"
-#        pass
-#    if (expParams['LoadCalibrateMan']):
-#      try:
-#        if hdr['calibrationtype'] == "geom":
-#          expParams['CalibrateMan'] = True
-#      except KeyError:
-#        print "Missing calibrationtype"
-#        pass
-
-#    ExpObj, FullImage = cartToPol.loadM(img, dim, mask, rdmask, q_range, hdr, x_center, y_center, pixelcal = None, binsize = binsize, fromOnline = fromOnline)
-    
-#    ExpObj.param['filename'] = filename
-    
+       
     return img, img_hdr
 
 ##########################################
