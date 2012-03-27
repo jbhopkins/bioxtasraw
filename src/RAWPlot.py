@@ -162,9 +162,22 @@ class PlotOptionsDialog(wx.Dialog):
         self._old_xlimit = self.axes.xaxis.get_data_interval()
         self._old_ylimit = self.axes.yaxis.get_data_interval()
         
+        
+        #If people are still running old matplotlib:
+        try:
+            frame_on = self.legend.get_frame_on()
+        except Exception, e:
+            w = self.legend.get_linewidth()
+            if w == 0:
+                frame_on = True
+            else:
+                frame_on = False
+        
+        
+        
         self._old_legend_settings = {'size'   : self.legend.get_texts()[0].get_size(),
                                      'alpha'  : self.legend.get_frame().get_alpha(),
-                                     'border' : self.legend.get_frame_on(),
+                                     'border' : frame_on,
                                      'shadow' : None}
         
         self._old_settings = {'title' : {},
