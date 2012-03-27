@@ -1072,6 +1072,8 @@ class HdrInfoDialog(wx.Dialog):
         
         self.SetSizer(final_sizer)
         
+        self.CenterOnParent()
+        
     def createHdrInfoWindow(self):
         
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -1079,7 +1081,7 @@ class HdrInfoDialog(wx.Dialog):
         self.text = wx.TextCtrl(self, -1, style = wx.TE_MULTILINE)
         
         self.text.AppendText('#############################################\n')
-        self.text.AppendText('                                                 Header information\n')
+        self.text.AppendText('                                 Header information\n')
         self.text.AppendText('#############################################\n\n')
         
         
@@ -1088,7 +1090,16 @@ class HdrInfoDialog(wx.Dialog):
             keys = param.iterkeys()
         
             for each in keys:
-                self.text.AppendText(str(each) + ' : ' + str(param[each])+'\n')
+                
+                if each == 'imageHeader':
+                    imghdr = param[each]
+                    imghdr_keys = sorted(imghdr.keys())
+                    self.text.AppendText(str(each) + ' : \n')
+                    for eachkey in imghdr_keys:
+                        self.text.AppendText(str(eachkey) + ' : ' + str(imghdr[eachkey])+'\n')
+                    
+                else:
+                    self.text.AppendText(str(each) + ' : ' + str(param[each])+'\n')
         
         sizer.Add(self.text, 1, wx.EXPAND)
         

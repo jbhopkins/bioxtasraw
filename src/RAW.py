@@ -8106,7 +8106,9 @@ class LinePropertyDialog(wx.Dialog):
            
         top_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        buttonsizer = self._createButtons()
+        buttonsizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
+        self.Bind( wx.EVT_BUTTON, self._onOkButton, id=wx.ID_OK )
+        self.Bind( wx.EVT_BUTTON, self._onCancelButton, id=wx.ID_CANCEL )
         
         linesettings_sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap = 5, hgap = 10)
         linesettings_sizer.Add(self._createLineControls(), 1, wx.EXPAND)
@@ -8297,20 +8299,6 @@ class LinePropertyDialog(wx.Dialog):
         box.Add(sizer, 0, wx.ALL, 5)
         
         return box
-
-    def _createButtons(self):
-        sizer = wx.BoxSizer()
-        
-        ok_button = wx.Button(self, -1, 'OK')
-        cancel_button = wx.Button(self, -1, 'Cancel')
-        
-        ok_button.Bind(wx.EVT_BUTTON, self._onOkButton)
-        cancel_button.Bind(wx.EVT_BUTTON, self._onCancelButton)
-        
-        sizer.Add(cancel_button, 0, wx.RIGHT, 10)
-        sizer.Add(ok_button, 0)
-        
-        return sizer
     
     def getLegendLabel(self):
         return self.legend_label_text.GetValue()

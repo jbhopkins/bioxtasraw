@@ -156,9 +156,21 @@ class PlotOptionsDialog(wx.Dialog):
                 
         sizer = wx.BoxSizer(wx.VERTICAL)
         
+      
+        self.legend = axes.get_legend()
+        
+        self._old_xlimit = self.axes.xaxis.get_data_interval()
+        self._old_ylimit = self.axes.yaxis.get_data_interval()
+        
+        self._old_legend_settings = {'size'   : self.legend.get_texts()[0].get_size(),
+                                     'alpha'  : self.legend.get_frame().get_alpha(),
+                                     'border' : self.legend.get_frame_on(),
+                                     'shadow' : None}
+        
         self._old_settings = {'title' : {},
                              'xlabel' : {},
-                             'ylabel' : {}}
+                             'ylabel' : {},
+                             'legtit' : {}}
         
         font_list_with_path = matplotlib.font_manager.findSystemFonts()
         
@@ -171,16 +183,17 @@ class PlotOptionsDialog(wx.Dialog):
         self.xlabel = self.axes.xaxis.get_label()
         self.ylabel = self.axes.yaxis.get_label()
         
+        legax_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        legax_sizer.Add(self._createLegendSettings(), 0, wx.EXPAND)
+        legax_sizer.Add(self._createAxesSettings(), 0, wx.LEFT | wx.EXPAND, 10)
+        
         sizer.Add(self._createLabelSettings(), 0)
-    
-        #default_button = wx.Button(self, -1, 'Use Default')
-        #default_button.Bind(wx.EVT_BUTTON, self._onDefaultButton)
+        sizer.Add(legax_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
     
         buttons = self.CreateButtonSizer(wx.OK | wx.CANCEL)
         self.Bind(wx.EVT_BUTTON, self._onOk, id = wx.ID_OK)
         self.Bind(wx.EVT_BUTTON, self._onCancel, id=wx.ID_CANCEL)
         
-        #sizer.Add(default_button, 1, wx.GROW | wx.TOP, 5)
         sizer.Add(buttons, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
         
         top_sizer = wx.BoxSizer()
@@ -203,7 +216,10 @@ class PlotOptionsDialog(wx.Dialog):
         elif obj.GetName() == 'ylabel':
             label = self.ylabel
             ids = self.labels[2][2]
-        
+        elif obj.GetName() == 'legtit':
+            label = self.legend.get_title()
+            ids = self.labels[3][2]
+            
         for key in label_params:
             
             ctrl = wx.FindWindowById(ids[key])
@@ -222,10 +238,166 @@ class PlotOptionsDialog(wx.Dialog):
             elif key == 'text':
                 label.set_text(val)
         
+        if obj.GetName() == 'legtit':
+            self.legend.set_title(label.get_text())
+        
         try:
             self.parent.canvas.draw()
         except matplotlib.pyparsing.ParseFatalException, e:
-            pass
+            print e
+        
+        event.Skip()
+        
+        
+    def _createAxesSettings(self):
+        box = wx.StaticBox(self, -1, 'Axes')
+        topbox = wx.StaticBoxSizer(box, wx.VERTICAL)
+        sizer = wx.FlexGridSizer(rows = 6, cols = 2, hgap = 5, vgap = 3)
+        
+        self.axes_autolimits = wx.CheckBox(self, -1)
+        self.axes_autolimits.Bind(wx.EVT_CHECKBOX, self._updateAxesSettings)
+        
+        val = self.parent.plotparams['auto_fitaxes' + str(self.parent.selected_plot)]
+        self.axes_autolimits.SetValue(val)
+        
+        
+        sizer.Add(wx.StaticText(self, -1, 'Auto limits:'), 0, wx.ALIGN_CENTRE_VERTICAL)
+        sizer.Add(self.axes_autolimits, 0)
+        
+        self.axes_fixed_limits_data = [('xmin', wx.NewId(), self._old_xlimit[0]),
+                                       ('xmax', wx.NewId(), self._old_xlimit[1]),
+                                       ('ymin', wx.NewId(), self._old_ylimit[0]),
+                                       ('ymax', wx.NewId(), self._old_ylimit[1])]
+        
+        limit_sizer = wx.FlexGridSizer(rows = 2, cols = 2, hgap = 5, vgap = 3)
+        for i in range(0, len(self.axes_fixed_limits_data)-2):
+            id = self.axes_fixed_limits_data[i][1]
+            limit_sizer.Add(wx.TextCtrl(self, id, str(self.axes_fixed_limits_data[i][2]), size = (80, -1)), 0)
+                  
+        limit_sizer2 = wx.FlexGridSizer(rows = 1, cols = 2, hgap = 5, vgap = 3)
+        for i in range(2, len(self.axes_fixed_limits_data)):
+            id = self.axes_fixed_limits_data[i][1]
+            limit_sizer2.Add(wx.TextCtrl(self, id, str(self.axes_fixed_limits_data[i][2]), size = (80, -1)), 0)
+                  
+        
+        maxmin_sizer = wx.BoxSizer()
+        maxmin_sizer.Add(wx.StaticText(self, -1, 'min'), 1, wx.EXPAND | wx.ALIGN_CENTRE_HORIZONTAL)
+        maxmin_sizer.Add(wx.StaticText(self, -1, 'max'), 1, wx.EXPAND | wx.LEFT, 5)
+        
+        sizer.Add((5,5))
+        sizer.Add(maxmin_sizer, 0, wx.EXPAND)
+        sizer.Add(wx.StaticText(self, -1, 'x-limits'), 0)
+        sizer.Add(limit_sizer, 0)
+        sizer.Add(wx.StaticText(self, -1, 'y-limits'), 0)
+        sizer.Add(limit_sizer2, 0)
+        
+        border_sizer = wx.FlexGridSizer(rows = 2, cols = 2, hgap = 5, vgap = 3)
+        
+        self.axes_borders = [('Left', wx.NewId()), ('Right', wx.NewId()), ('Top', wx.NewId()), ('Bottom', wx.NewId())]
+        
+        for each, id in self.axes_borders:
+            border_sizer.Add(wx.CheckBox(self, id, each), 0, wx.RIGHT, 5)
+        
+        sizer.Add(wx.StaticText(self, -1, 'Borders:'), 0)
+        sizer.Add(border_sizer, 0, wx.TOP, 5)
+        
+        topbox.Add(sizer, 0, wx.ALL | wx.EXPAND, 5)
+        
+        self._enableLimitsCtrls(not self.parent.plotparams['auto_fitaxes' + str(self.parent.selected_plot)])
+        
+        return topbox
+    
+    def _enableLimitsCtrls(self, state):
+        
+        for each, id, lim in self.axes_fixed_limits_data:
+            ctrl = wx.FindWindowById(id)
+            ctrl.Enable(state)
+            ctrl.Refresh()
+    
+    def _updateAxesSettings(self, event):
+        
+        autolimits = self.axes_autolimits.GetValue()
+        
+        if autolimits:
+            self._enableLimitsCtrls(False)
+        else:
+            self._enableLimitsCtrls(True)
+            
+        self.parent.plotparams['auto_fitaxes' + str(self.parent.selected_plot)] = autolimits
+    
+    
+    def _createLegendSettings(self):
+        
+        box = wx.StaticBox(self, -1, 'Legend')
+        topbox = wx.StaticBoxSizer(box, wx.VERTICAL)
+        
+        sizer = wx.FlexGridSizer(rows = 6, cols = 2, hgap = 5, vgap = 3)
+        
+        self.font_size = wx.SpinCtrl(self, -1, str(self.legend.get_texts()[0].get_size()))
+        self.font_size.SetValue(int(self.legend.get_texts()[0].get_size()))
+        self.font_size.Bind(wx.EVT_SPINCTRL, self._updateLegendSettings)
+        
+        self.border_chkbox = wx.CheckBox(self, -1)
+        self.border_chkbox.Bind(wx.EVT_CHECKBOX, self._updateLegendSettings)
+        if self.legend.get_frame().get_linewidth() == 1: boxon = True
+        else: boxon = False
+        
+        self.border_chkbox.SetValue(boxon)
+        
+        self.shadow_chkbox =  wx.CheckBox(self, -1)
+        self.shadow_chkbox.Bind(wx.EVT_CHECKBOX, self._updateLegendSettings)
+        self.shadow_chkbox.SetValue(self.legend.shadow)
+        
+        self.legend_enable = wx.CheckBox(self, -1)
+        self.legend_enable.Bind(wx.EVT_CHECKBOX, self._updateLegendSettings)
+        self.legend_enable.SetValue(self.legend.get_visible())
+    
+        alpha_text = wx.StaticText(self, -1, 'Transparency % : ')
+        self.alpha = wx.SpinCtrl(self, -1, str(abs(self.legend.get_frame().get_alpha()-100)))
+        self.alpha.SetValue(int(abs(self.legend.get_frame().get_alpha()*100-100)))
+        self.alpha.Bind(wx.EVT_SPINCTRL, self._updateLegendSettings)
+        
+        sizer.Add(wx.StaticText(self, -1, 'Visible'), 0)
+        sizer.Add(self.legend_enable, 0, wx.BOTTOM,2 )
+        sizer.Add(wx.StaticText(self, -1, 'Font size:'), 0, wx.ALIGN_CENTRE_VERTICAL)
+        sizer.Add(self.font_size, 0)
+        sizer.Add(alpha_text, 0, wx.ALIGN_CENTRE_VERTICAL)
+        sizer.Add(self.alpha, 0)
+        sizer.Add(wx.StaticText(self, -1, 'Border'), 0)
+        sizer.Add(self.border_chkbox, 0)
+        sizer.Add(wx.StaticText(self, -1, 'Shadow'), 0)
+        sizer.Add(self.shadow_chkbox, 0)
+        
+        
+        
+        topbox.Add(sizer, 0, wx.ALL, 5)
+        return topbox
+    
+    def _updateLegendSettings(self, event):
+        
+        size = self.font_size.GetValue()
+        
+        for each in self.legend.get_texts():
+            each.set_size(size)
+        
+        border = self.border_chkbox.GetValue()
+        
+        if border:
+            #self.legend.set_frame_on(border)
+            self.legend.get_frame().set_linewidth(1)
+        else:
+            self.legend.get_frame().set_linewidth(0)
+        
+        alphaval = float(abs(100-self.alpha.GetValue()) / 100.0)
+        
+        self.legend.get_frame().set_alpha(alphaval)
+        leg_visible = self.legend_enable.GetValue()
+        
+        self.legend.set_visible(leg_visible)
+        
+        self.legend.shadow = self.shadow_chkbox.GetValue()
+        
+        self.parent.canvas.draw()
         
         event.Skip()
     
@@ -242,6 +414,11 @@ class PlotOptionsDialog(wx.Dialog):
                                               'style' : wx.NewId()}),
                   
                   ('y-axis label:', 'ylabel',{'text'  : wx.NewId(),
+                                              'size'  : wx.NewId(),
+                                              'weight': wx.NewId(),
+                                              'style' : wx.NewId()}),
+                       
+                  ('Legend title:', 'legtit',{'text'  : wx.NewId(),
                                               'size'  : wx.NewId(),
                                               'weight': wx.NewId(),
                                               'style' : wx.NewId()})]
@@ -263,9 +440,15 @@ class PlotOptionsDialog(wx.Dialog):
             if each_name == 'title': label = self.title
             elif each_name == 'xlabel': label = self.xlabel
             elif each_name == 'ylabel': label = self.ylabel
+            elif each_name == 'legtit': label = self.legend.get_title()
     
             txt = wx.StaticText(self, -1, each_label)
-            txt_ctrl = wx.TextCtrl(self, id['text'], label.get_text(), name = each_name)
+            
+            labtxt = label.get_text()
+            if each_name == 'legtit':
+                 if labtxt == 'None': labtxt = ''
+            
+            txt_ctrl = wx.TextCtrl(self, id['text'], labtxt, name = each_name)
             font_ctrl = wx.Choice(self, -1, name = each_name)
             font_size = wx.SpinCtrl(self, id['size'], str(label.get_size()), name = each_name)
             font_size.SetValue(int(label.get_size()))
@@ -544,12 +727,12 @@ class PlotPanel(wx.Panel):
                                     'framestyle2'          : 'XY',
                                     
                                     'title_fontsize1'       : 16,
-                                    'xlabel_fontsize1'      : 12,
-                                    'ylabel_fontsize1'      : 12,
+                                    'xlabel_fontsize1'      : 15,
+                                    'ylabel_fontsize1'      : 15,
                                     
                                     'title_fontsize2'       : 16,
-                                    'xlabel_fontsize2'      : 12,
-                                    'ylabel_fontsize2'      : 12
+                                    'xlabel_fontsize2'      : 15,
+                                    'ylabel_fontsize2'      : 15
                                     
                                     
                                     }
@@ -557,11 +740,11 @@ class PlotPanel(wx.Panel):
         
         self.frame_styles = ['Full', 'XY', 'X', 'Y', 'None']
         
-        self.subplot_labels = { 'subtracted'  : ['Subtracted', 'q [1/A]', 'I(q)'],
-                                'kratky'      : ['Kratky', 'q [1/A]', 'I(q)q^2'],
-                                'guinier'     : ['Guinier', 'q^2 [1/A^2]', 'ln(I(q)'],
-                                'porod'       : ['Porod', 'q [1/A]', 'I(q)q^4'],
-                                'normal'      : ['Main Plot', 'q [1/A]', 'I(q)']}
+        self.subplot_labels = { 'subtracted'  : ['Subtracted', '$q$', '$I(q)$'],
+                                'kratky'      : ['Kratky', '$q$', '$I(q)q^{2}$'],
+                                'guinier'     : ['Guinier', '$q^{2}$', '$ln(I(q))$'],
+                                'porod'       : ['Porod', '$q$', '$I(q)q^{4}$'],
+                                'normal'      : ['Main Plot', '$q$', '$I(q)$']}
         
         self.default_subplot_labels = { 'subtracted'  : ['Subtracted', 'q [1/A]', 'I(q)'],
                                         'kratky'      : ['Kratky', 'q [1/A]', 'I(q)q^2'],
@@ -885,23 +1068,23 @@ class PlotPanel(wx.Panel):
             menu.AppendSubMenu(plot2SubMenu, 'Axes')
 
         sep = menu.AppendSeparator()
-        legend_item = menu.AppendCheckItem(wx.NewId(), 'Show Legend')
-        autofitaxes_item = menu.AppendCheckItem(wx.NewId(), 'Auto axes limits')
-        sep = menu.AppendSeparator()
-        legend_options = menu.Append(wx.NewId(), 'Legend Options...')
+        #legend_item = menu.AppendCheckItem(wx.NewId(), 'Show Legend')
+        #autofitaxes_item = menu.AppendCheckItem(wx.NewId(), 'Auto axes limits')
+        #sep = menu.AppendSeparator()
+        #legend_options = menu.Append(wx.NewId(), 'Legend Options...')
         plot_options = menu.Append(wx.NewId(), 'Plot Options...')
         
-        if self.plotparams['legend_visible'+ '_' + str(selected_plot)]:
-            legend_item.Check()
+       # if self.plotparams['legend_visible'+ '_' + str(selected_plot)]:
+       #     legend_item.Check()
             
-        if self.plotparams['auto_fitaxes' + str(selected_plot)]:
-            autofitaxes_item.Check()
+        #if self.plotparams['auto_fitaxes' + str(selected_plot)]:
+        #    autofitaxes_item.Check()
             
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
-        self.Bind(wx.EVT_MENU, self._onToggleLegend, legend_item)
-        self.Bind(wx.EVT_MENU, self._onAutofitaxesMenuChoice, autofitaxes_item)
+        #self.Bind(wx.EVT_MENU, self._onToggleLegend, legend_item)
+        #self.Bind(wx.EVT_MENU, self._onAutofitaxesMenuChoice, autofitaxes_item)
         
-        self.Bind(wx.EVT_MENU, self._onLegendOptions, legend_options)
+        #self.Bind(wx.EVT_MENU, self._onLegendOptions, legend_options)
         self.Bind(wx.EVT_MENU, self._onPlotOptions, plot_options) 
             
         
@@ -999,9 +1182,11 @@ class PlotPanel(wx.Panel):
             a = self.subplot2
         
         if self.plotparams['legend_visible' + '_' + str(plotnum)]:
-            self._insertLegend(a)
+            #self._insertLegend(a)
+            a.get_legend().set_visible(True)
         else:
-            a.legend_ = None
+            a.get_legend().set_visible(False)
+            #a.legend_ = None
             
             self.canvas.draw()
 
@@ -1188,13 +1373,17 @@ class PlotPanel(wx.Panel):
                 plottype = self.plotparams['plot1type']
                 a.title.set_text(self.subplot_labels[plottype][0])
                 a.yaxis.get_label().set_text(self.subplot_labels[plottype][2])
+                a.yaxis.get_label().set_size(self.plotparams['ylabel_fontsize2'])
                 a.xaxis.get_label().set_text(self.subplot_labels[plottype][1])
+                a.xaxis.get_label().set_size(self.plotparams['xlabel_fontsize2'])
                            
             elif a == self.subplot2:
                 plottype = self.plotparams['plot2type']
                 a.title.set_text(self.subplot_labels[plottype][0])
                 a.yaxis.get_label().set_text(self.subplot_labels[plottype][2])
-                a.xaxis.get_label().set_text(self.subplot_labels[plottype][1])          
+                a.yaxis.get_label().set_size(self.plotparams['ylabel_fontsize2'])
+                a.xaxis.get_label().set_text(self.subplot_labels[plottype][1])
+                a.xaxis.get_label().set_size(self.plotparams['xlabel_fontsize2'])         
         else:
             a.title.set_text(title)
     
@@ -1278,17 +1467,17 @@ class IftPlotPanel(PlotPanel):
         PlotPanel.__init__(self, parent, id, name,*args, **kwargs)
 
                         
-        self.subplot_labels = { 'subtracted'  : ('Fit', 'q [1/A]', 'I(q)'),
+        self.subplot_labels = { 'subtracted'  : ('Fit', '$q$', '$I(q)$'),
                                 'kratky'      : ('Kratky', 'q [1/A]', 'I(q)q^2'),
                                 'porod'       : ('Porod', 'q [1/A]', 'I(q)q^4'),
                                 'guinier'     : ('Guinier', 'q^2 [1/A^2]', 'ln(I(q)'),
-                                'normal'      : ('Pair Distance Distribution Function', 'r [nm]', 'P(r)')}
+                                'normal'      : ('Pair Distance Distribution Function', '$r$', '$P(r)$')}
         
-        self.default_subplot_labels = { 'subtracted'  : ('Fit', 'q [1/A]', 'I(q)'),
+        self.default_subplot_labels = { 'subtracted'  : ('Fit', '$q$', '$I(q)$'),
                                 'kratky'      : ('Kratky', 'q [1/A]', 'I(q)q^2'),
                                 'porod'       : ('Porod', 'q [1/A]', 'I(q)q^4'),
                                 'guinier'     : ('Guinier', 'q^2 [1/A^2]', 'ln(I(q)'),
-                                'normal'        : ('Pair Distance Distribution Function', 'r [nm]', 'P(r)')}
+                                'normal'        : ('Pair Distance Distribution Function', '$r$', '$P(r)$')}
         
         
        

@@ -195,15 +195,207 @@ def getMar345ImgDim(filename):
     
     return dim
 
+
+
+def _getExperimentParameters(expParams):
+        
+        q_range = (expParams['QrangeLow'], expParams['QrangeHigh'])
+        pixelcal = [expParams['PixelCalX'], expParams['PixelCalY']]
+        x_center, y_center = expParams['Xcenter'], expParams['Ycenter']
+        binsize = expParams['Binsize']
+        mask = expParams['BeamStopMask']      
+        rdmask = expParams['ReadOutNoiseMask'] 
+        
+        return mask, rdmask, q_range, pixelcal, x_center, y_center, binsize
+
+def loadSAXSLAB300Image(filename):
+    
+    #if expParams != None:
+    #    mask, rdmask, q_range, pixelcal, x_center, y_center, binsize = _getExperimentParameters(expParams)
+    #img, dim, tag = loadImageSAXSLAB300(filename, fromOnline)
+    
+    try:
+        im1 = Image.open(filename)
+        #im2 = im1.convert('I;16').transpose(Image.ROTATE_90);
+        #im1a = im1.transpose(Image.ROTATE_90)
+        #im2 = im1.transpose(Image.FLIP_TOP_BOTTOM)
+        newArr = np.fromstring(im1.tostring(), np.int32)
+        # reduce negative vals
+        newArr = np.where(newArr >= 0, newArr, 0)
+        newArr = np.reshape(newArr, (im1.size[1],im1.size[0])) 
+        try:
+          tag = im1.tag
+        except AttributeError:
+          tag = None
+        dim = np.shape(newArr)
+        
+    except (IOError, ValueError):
+        return None, None, None
+    
+    try:
+      tag_with_data = tag[1334]
+    except (TypeError, KeyError):
+        raise
+    
+#      msg = "Wrong file format. Missing TIFF tag number %d." \
+#        % conf.NEW_TAG
+ #     if fromOnline:
+ #       print msg
+ #     else:
+ #       wx.CallAfter(wx.MessageBox, msg , \
+ #       'Cannot load file!', wx.OK | wx.ICON_ERROR)
+ #     raise(WrongFileFormat)
+
+    img = newArr
+    img_hdr = parseSAXSLAB300Header(tag_with_data)
+    
+    
+
+    #d['nslow'] = 487 
+    #d['nfast'] = 619
+
+#    if (expParams['LoadXCenter']):
+#      try:
+#        x_center = hdr['beam_x']
+#        expParams['Xcenter'] = x_center
+#      except KeyError:
+#        pass
+#    if (expParams['LoadYCenter']):
+#      try:
+#        y_center = hdr['beam_y']
+#        expParams['Ycenter'] = y_center
+#      except KeyError:
+#        pass
+#    if (expParams['LoadSampleDistance']):
+#      try:
+#        expParams['SampleDistance'] = hdr['detector_dist']
+#      except KeyError:
+#        print "Missing SampleDistance"
+#        pass
+#    if (expParams['LoadWaveLength']):
+#      try:
+#        expParams['WaveLength'] = hdr['wavelength']
+#      except KeyError:
+#        print "Missing WaveLength"
+#        pass
+#    if (expParams['LoadDetectorPixelSize']):
+#      try:
+#        expParams['DetectorPixelSize'] = hdr['pixelsize_x']
+#      except KeyError:
+#        print "Missing DetectorPixelSize"
+#        pass
+#    if (expParams['LoadPixelCalX']):
+#      try:
+#        expParams['PixelCalX'] = hdr['kcal']
+#      except KeyError:
+#        print "Missing kcal"
+#        pass
+#    if (expParams['LoadCalibrate']):
+#      try:
+#        print "CALIBTYPE",
+#        print hdr['calibrationtype']
+#        if hdr['calibrationtype'] != "geom":
+#          expParams['Calibrate'] = True
+#      except KeyError:
+#        print "Missing calibrationtype"
+#        pass
+#    if (expParams['LoadCalibrateMan']):
+#      try:
+#        if hdr['calibrationtype'] == "geom":
+#          expParams['CalibrateMan'] = True
+#      except KeyError:
+#        print "Missing calibrationtype"
+#        pass
+
+#    ExpObj, FullImage = cartToPol.loadM(img, dim, mask, rdmask, q_range, hdr, x_center, y_center, pixelcal = None, binsize = binsize, fromOnline = fromOnline)
+    
+#    ExpObj.param['filename'] = filename
+    
+    return img, img_hdr
+
 ##########################################
 #--- ## Parse Counter Files and Headers ##
 ##########################################
 
+import pdb
+from xml.dom import minidom
 
 def parseCSVHeaderFile(filename):
     counters = {}
     
     return counters
+
+
+def parseSAXSLAB300Header(tag_with_data):
+    ''' Read the header information from a TIFF file tag '''
+    
+    #d = odict()
+    d = {}
+    DOMTree = minidom.parseString(tag_with_data)
+    params = DOMTree.getElementsByTagName('param')
+    for p in params:
+      try:
+        d[p.attributes['name'].value] = p.childNodes[0].data
+      except IndexError:
+        pass
+    
+    tr={} # dictionary for transaltion :)
+    tr['det_exposure_time'] = 'exposure_time'
+    tr['livetime'] = 'integration_time' 
+    tr['det_count_cutoff'] = 'saturated_value'
+    tr['Img.Description'] = 'file_comments'
+    tr['data_p10'] = 'p10'
+    tr['data_p90'] = 'p90'
+    tr['data_min'] = 'min'
+    tr['data_max'] = 'max'
+    tr['data_mean'] = 'mean'
+    tr['start_timestamp'] = 'aquire_timestamp'
+    tr['Meas.Description'] = 'dataset_comments'
+
+    # make parameters name substitution
+    for i in tr:
+      try:
+        val = d[i]
+        #del(d[i])
+        d[tr[i]] = val
+      except KeyError:
+        pass
+
+    try:
+      d['IC'] = d['saxsconf_Izero']
+    except KeyError: pass
+    try:
+      d['BEFORE'] = d['saxsconf_Izero']
+    except KeyError: pass
+    try:
+      d['AFTER'] = d['saxsconf_Izero']
+    except KeyError: pass
+
+    try:
+      if d['det_flat_field'] != '(nil)':
+          d['flatfield_applied'] = 1
+      else:
+          d['flatfield_applied'] = 0
+    except KeyError: pass
+    d['photons_per_100adu'] = 100
+
+    try:
+      (d['beam_x'],d['beam_y']) = d['beamcenter_actual'].split()
+    except KeyError: pass
+    try:
+      (d['pixelsize_x'],d['pixelsize_y']) = d['det_pixel_size'].split() 
+      #unit conversions
+      d['pixelsize_x'] = float(d['pixelsize_x']) * 1e6;
+      d['pixelsize_y'] = float(d['pixelsize_y']) * 1e6;
+    except KeyError: pass
+
+    # conversion all possible values to numbers
+    for i in d.keys():
+      try:
+        d[i] = float(d[i])
+      except ValueError: pass
+    
+    return d
 
 def parsePilatusHeader(filename):
     
@@ -526,6 +718,7 @@ all_image_types = {'Quantum'       : loadQuantumImage,
                    'Medoptics'     : loadTiffImage,
                    'FLICAM'        : loadTiffImage,
                    'Pilatus'       : loadPilatusImage,
+                   'SAXSLab300'    : loadSAXSLAB300Image,
                    '16 bit TIF'    : loadTiffImage,
                    '32 bit TIF'    : load32BitTiffImage}
 
