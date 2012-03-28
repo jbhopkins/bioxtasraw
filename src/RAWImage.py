@@ -54,6 +54,9 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
         self._MTB_AGBECENT  = wx.NewId()
         self._MTB_HDRINFO   = wx.NewId()
         self._MTB_IMGSET    = wx.NewId()
+        self._MTB_PREVIMG   = wx.NewId()
+        self._MTB_NEXTIMG   = wx.NewId()
+        
         
         self.allToolButtons = [self._MTB_CIRCLE, 
                                self._MTB_RECTANGLE,
@@ -63,7 +66,9 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
                                self._MTB_CLEAR,
                  #              self._MTB_AGBECENT,
                                self._MTB_HDRINFO,
-                               self._MTB_IMGSET]
+                               self._MTB_IMGSET,
+                               self._MTB_PREVIMG,
+                               self._MTB_NEXTIMG]
         
         NavigationToolbar2Wx.__init__(self, canvas)
          
@@ -78,19 +83,24 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
         #agbeCentIcon  = wx.Bitmap(os.path.join(workdir, "resources", "agbe2.png"), wx.BITMAP_TYPE_PNG)
         hdrInfoIcon   = wx.Bitmap(os.path.join(workdir, "resources", "hdr.png"), wx.BITMAP_TYPE_PNG)
         ImgSetIcon    = wx.Bitmap(os.path.join(workdir, "resources", "imgctrl.png"), wx.BITMAP_TYPE_PNG)
-    
+        #prevImgIcon   = wx.Bitmap(os.path.join(workdir, "resources", "imgctrl.png"), wx.BITMAP_TYPE_PNG)
+        #nextImgIcon   = wx.Bitmap(os.path.join(workdir, "resources", "imgctrl.png"), wx.BITMAP_TYPE_PNG)
+        
+        prevImgIcon = wx.ArtProvider_GetBitmap(wx.ART_GO_BACK,wx.ART_TOOLBAR,(32,32))
+        nextImgIcon = wx.ArtProvider_GetBitmap(wx.ART_GO_FORWARD,wx.ART_TOOLBAR,(32,32))
+        
+        
         self.AddSeparator()
-#        self.AddCheckTool(self._MTB_CIRCLE, circleIcon, shortHelp = 'Create Circle Mask')
-#        self.AddCheckTool(self._MTB_RECTANGLE, rectangleIcon, shortHelp = 'Create Rectangle Mask')
-#        self.AddCheckTool(self._MTB_POLYGON, polygonIcon, shortHelp = 'Create Polygon Mask')
-#        self.AddSeparator()
-#        self.AddSimpleTool(self._MTB_SAVEMASK, saveMaskIcon, 'Save Mask')
-#        self.AddSimpleTool(self._MTB_LOADMASK, loadMaskIcon, 'Load Mask')
+
         self.AddSimpleTool(self._MTB_CLEAR, clearIcon, 'Clear Mask')
-        #self.AddCheckTool(self._MTB_AGBECENT, agbeCentIcon, shortHelp ='Calibrate using AgBe')
-#        self.AddSeparator()
         self.AddSimpleTool(self._MTB_HDRINFO, hdrInfoIcon, 'Show Header Information')
         self.AddSimpleTool(self._MTB_IMGSET, ImgSetIcon, 'Image Display Settings')
+        
+        self.AddSeparator()
+        
+        self.AddSimpleTool(self._MTB_PREVIMG, prevImgIcon, 'Previous Image')
+        self.AddSimpleTool(self._MTB_NEXTIMG, nextImgIcon, 'Next Image')
+        
     
         self.Bind(wx.EVT_TOOL, self.onCircleTool, id = self._MTB_CIRCLE)
         self.Bind(wx.EVT_TOOL, self.onRectangleTool, id = self._MTB_RECTANGLE)
@@ -98,10 +108,13 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
         self.Bind(wx.EVT_TOOL, self.onSaveMaskButton, id = self._MTB_SAVEMASK)
         self.Bind(wx.EVT_TOOL, self.onLoadMaskButton, id = self._MTB_LOADMASK)
         self.Bind(wx.EVT_TOOL, self.onClearButton, id = self._MTB_CLEAR)
-        #self.Bind(wx.EVT_TOOL, self.agbeCent, id = self._MTB_AGBECENT)
         self.Bind(wx.EVT_TOOL, self.onHeaderInfoButton, id = self._MTB_HDRINFO)
         self.Bind(wx.EVT_TOOL, self.onImageSettingsButton, id = self._MTB_IMGSET)
-    
+        
+        self.Bind(wx.EVT_TOOL, self.onPreviousImgButton, id = self._MTB_PREVIMG)
+        self.Bind(wx.EVT_TOOL, self.onNextImgButton, id = self._MTB_NEXTIMG)
+        
+        
         self.RemoveTool(self._NTB2_BACK)
         self.RemoveTool(self._NTB2_FORWARD)
         
@@ -115,6 +128,18 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
     
     def untoggleTool(self):
         self.untoggleAllToolButtons()
+        
+    def onPreviousImgButton(self, event):
+        mainframe = wx.FindWindowByName('MainFrame')
+        current_file = self.parent.current_sasm.getParameter('filename')
+        mainworker_cmd_queue = mainframe.getWorkerThreadQueue()
+        mainworker_cmd_queue.put(['show_nextprev_img', [current_file, -1]])
+        
+    def onNextImgButton(self, event):
+        mainframe = wx.FindWindowByName('MainFrame')
+        current_file = self.parent.current_sasm.getParameter('filename')
+        mainworker_cmd_queue = mainframe.getWorkerThreadQueue()
+        mainworker_cmd_queue.put(['show_nextprev_img', [current_file, 1]])
     
     def onImageSettingsButton(self, event):
         self.parent.showImageSetDialog()
@@ -319,7 +344,7 @@ class ImagePanel(wx.Panel):
             self.toolbar._deactivatePanZoom()
         
     def getTool(self):
-        return self.current_tool
+        return self.current_tool        
     
     def untoggleAllToolButtons(self):
         self.masking_panel = wx.FindWindowByName('MaskingPanel')

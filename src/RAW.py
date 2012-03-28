@@ -776,6 +776,7 @@ class MainWorkerThread(threading.Thread):
         self.plot_panel = wx.FindWindowByName('PlotPanel')
         self.image_panel = wx.FindWindowByName('ImagePanel')
         self.main_frame = wx.FindWindowByName('MainFrame')
+        self.dir_panel = wx.FindWindowByName('DirCtrlPanel')
         
         
         self.ift_plot_panel = wx.FindWindowByName('IFTPlotPanel')
@@ -783,6 +784,8 @@ class MainWorkerThread(threading.Thread):
         self.ift_item_panel = wx.FindWindowByName('IFTPanel')
         
         self._commands = {'plot' : self._loadAndPlot,
+                          
+                                    'show_nextprev_img'     : self._loadAndShowNextImage,
                                     'show_image'            : self._loadAndShowImage,
                                     'subtract_filenames'    : self._subtractFilenames,
                                     'subtract_items'        : self._subtractItems,
@@ -1122,7 +1125,59 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.plot_panel.updateLegend, 1)
         wx.CallAfter(self.plot_panel.fitAxis)
         wx.CallAfter(self.main_frame.closeBusyDialog)
+    
+    
+    def _loadAndShowNextImage(self, data):
+    
+        current_file = data[0]
+        direction = data[1]
         
+        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while loading image...')
+       
+        img_fmt = self._raw_settings.get('ImageFormat')
+        
+        path = self.dir_panel.file_list_box.path
+        dir = os.listdir(path)
+        idx = dir.index(current_file)
+        
+
+        while True:
+            idx = idx + direction
+            
+            if idx < 0: break
+            if idx >= len(dir): break
+            
+            next_file = dir[idx]
+            next_file_path = os.path.join(path, next_file)
+            
+            try:
+                img = None
+                if self._fileTypeIsCompatible(next_file_path):
+                    img, imghdr = SASFileIO.loadImage(next_file_path, img_fmt)
+                    
+                if img != None:
+                    parameters = {'filename' : os.path.split(next_file_path)[1],
+                                  'imageHeader' : imghdr}
+        
+                    bogus_sasm = SASM.SASM([0,1], [0,1], [0,1], parameters)
+        
+                    self._sendImageToDisplay(img, bogus_sasm)
+                    break
+            except Exception, e:
+                pass
+            
+        wx.CallAfter(self.main_frame.closeBusyDialog)
+        
+    def _fileTypeIsCompatible(self, path):
+        root, ext = os.path.splitext(path)
+
+        compatible_formats = self.main_frame.getRawSettings().get('CompatibleFormats')
+        
+        if str(ext) in compatible_formats: 
+            return True
+        else:
+            return False
+     
     def _loadAndShowImage(self, filename):
         
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while loading image...')
@@ -1146,7 +1201,7 @@ class MainWorkerThread(threading.Thread):
         parameters = {'filename' : os.path.split(filename)[1],
                       'imageHeader' : imghdr}
         
-        bogus_sasm= SASM.SASM([0,1], [0,1], [0,1], parameters)
+        bogus_sasm = SASM.SASM([0,1], [0,1], [0,1], parameters)
         
         self._sendImageToDisplay(img, bogus_sasm)
         wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 2)
@@ -1820,7 +1875,18 @@ class FilePanel(wx.Panel):
                 pass
                 
         return button_sizer    
+    
+    
+    def _fileTypeIsCompatible(self, path):
+        root, ext = os.path.splitext(path)
+
+        compatible_formats = self.main_frame.getRawSettings().get('CompatibleFormats')
         
+        if str(ext) in compatible_formats: 
+            return True
+        else:
+            return False
+    
     def _onViewButton(self, event):
         
         filelist = wx.FindWindowByName('FileListCtrl')
@@ -2127,9 +2193,6 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         for each in self.files:
             if os.path.isdir(os.path.join(self.path, each)):
                 self.dirsList.append(str(each))
-        
-        #for i in range(0, len(self.dirsList)):
-        #    self.dirsList[i] = str(self.dirsList[i])
         
         self.dirsList.sort(key = str.lower)
         
