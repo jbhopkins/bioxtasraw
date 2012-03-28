@@ -769,12 +769,7 @@ class PlotPanel(wx.Panel):
         self._setLabels(axes = self.subplot1)
         self._setLabels(axes = self.subplot2)
         
-        try:
-            self.updateFrameStyle(axes = self.subplot1)
-            self.updateFrameStyle(axes = self.subplot2)
-        except Exception, e:
-            print 'Possibly too old matplotlib version: ' + str(e)
-            pass
+        self._updateFrameStylesForAllPlots()
         
         self.canvas.callbacks.connect('pick_event', self._onPickEvent)
         self.canvas.callbacks.connect('key_press_event', self._onKeyPressEvent)
@@ -785,6 +780,7 @@ class PlotPanel(wx.Panel):
         self.fig = matplotlib.figure.Figure((5,4), 75)        
         self.subplot1 = self.fig.add_subplot(211)
         self.subplot2 = self.fig.add_subplot(212)
+        
         self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
         self.fig.set_facecolor('white')
               
@@ -797,6 +793,14 @@ class PlotPanel(wx.Panel):
     def getParameter(self, param):
         return self.plotparams[param]
     
+    
+    def _updateFrameStylesForAllPlots(self):
+        try:
+            self.updateFrameStyle(axes = self.subplot1)
+            self.updateFrameStyle(axes = self.subplot2)
+        except Exception, e:
+            print 'Possibly too old matplotlib version: ' + str(e)
+            pass
     def updateFrameStyle(self, axes):
         if axes == self.subplot1:
             plotnum = '1'
@@ -1008,7 +1012,7 @@ class PlotPanel(wx.Panel):
         elif type == 'porod':
             line, ec, el = a.errorbar(sasm.q[q_min:q_max], numpy.power(sasm.q[q_min:q_max],4)*sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
 	
-	line.set_label(legend_label)        
+        line.set_label(legend_label)        
 
         #Hide errorbars:
         if self.plotparams['errorbars_on'] == False:
@@ -1368,6 +1372,9 @@ class PlotPanel(wx.Panel):
         self.plotted_sasms = []
         
         self.updatePlotAxes()
+        
+        self._updateFrameStylesForAllPlots()
+        
         self._setLabels(axes = self.subplot1)
         self._setLabels(axes = self.subplot2)
 

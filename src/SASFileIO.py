@@ -199,9 +199,10 @@ def loadSAXSLAB300Image(filename):
     
     try:
         im1 = Image.open(filename)
-        #im2 = im1.convert('I;16').transpose(Image.ROTATE_90);
-        #im1a = im1.transpose(Image.ROTATE_90)
-        im2 = im1.transpose(Image.FLIP_LEFT_RIGHT)
+        im1a = im1.transpose(Image.FLIP_LEFT_RIGHT)
+        im1b = im1a.transpose(Image.ROTATE_90)
+        im2 = im1b.transpose(Image.FLIP_TOP_BOTTOM)
+        
         newArr = np.fromstring(im2.tostring(), np.int32)
         
         # reduce negative vals

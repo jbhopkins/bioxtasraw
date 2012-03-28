@@ -484,7 +484,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         
         imghdr = raw_settings.get('ImageHdrList')
         filehdr = raw_settings.get('FileHdrList')
-        
+                
         self.bind_list = copy.deepcopy(raw_settings.get('HeaderBindList'))
         
         self._updateList(imghdr, filehdr)
@@ -758,9 +758,11 @@ class ReductionImgHdrFormatPanel(wx.Panel):
                 if data[0] in hdr:
                     self.lc.SetStringItem(hdr[data[0]], 2, str(each))
                     self.lc.SetStringItem(hdr[data[0]], 3, str(mod))                 
-            
 
         self.lc.Update()
+        
+        self.changes['ImageHdrList'] = imghdr
+        self.changes['FileHdrList'] = filehdr
             
     def onLoadButton(self, event):
         ''' 
@@ -789,9 +791,6 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         except:
             wx.MessageBox('Please pick the image file and not the header file itself.', 'Pick the image file', wx.OK | wx.ICON_INFORMATION)
             raise
-        
-        self.changes['ImageHdrList'] = imghdr
-        self.changes['FileHdrList'] = filehdr
         
         self.onClearBindingsButton(None)
         
@@ -842,11 +841,8 @@ class ReductionImgHdrFormatPanel(wx.Panel):
             self.mathparser.addDefaultFunctions()
             self.mathparser.addDefaultVariables()
             
-            if self.changes.has_key('ImageHdrList'):
-                self.mathparser.addSpecialVariables(self.changes['ImageHdrList'])
-            
-            if self.changes.has_key('FileHdrList'):
-                self.mathparser.addSpecialVariables(self.changes['FileHdrList'])
+            self.mathparser.addSpecialVariables(self.changes['ImageHdrList'])
+            self.mathparser.addSpecialVariables(self.changes['FileHdrList'])
                   
             self.mathparser.expression = expr
 
