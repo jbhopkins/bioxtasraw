@@ -8468,6 +8468,9 @@ class MySplashScreen(wx.SplashScreen):
         frame.CenterOnScreen()
         frame.Show(True)
         
+        dlg = WelcomeDialog(frame)
+        dlg.ShowModal()
+        
         if len(sys.argv) > 1:
             arg = sys.argv[1]
             file, ext = os.path.splitext(arg)
@@ -8480,9 +8483,6 @@ class MySplashScreen(wx.SplashScreen):
             self._seekPreviousCfg()
             dirctrl = wx.FindWindowByName('DirCtrlPanel')
             dirctrl._useSavedPathIfExisits()
-       
-        dlg = WelcomeDialog(frame)
-        dlg.ShowModal()
        
         evt.Skip() 
         

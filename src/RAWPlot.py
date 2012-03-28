@@ -200,7 +200,7 @@ class PlotOptionsDialog(wx.Dialog):
         legax_sizer.Add(self._createLegendSettings(), 0, wx.EXPAND)
         legax_sizer.Add(self._createAxesSettings(), 0, wx.LEFT | wx.EXPAND, 10)
         
-        sizer.Add(self._createLabelSettings(), 0)
+        sizer.Add(self._createLabelSettings(), 0, wx.EXPAND)
         sizer.Add(legax_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
     
         buttons = self.CreateButtonSizer(wx.OK | wx.CANCEL)
