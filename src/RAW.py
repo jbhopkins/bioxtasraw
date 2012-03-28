@@ -718,7 +718,7 @@ class OnlineController:
         
         if path != None:
             self.old_dir_list = os.listdir(path)
-            self.online_timer.Start(1000)
+            self.online_timer.Start(2000)
             return True
         
         return False
@@ -731,38 +731,27 @@ class OnlineController:
         
         self.file_list_ctrl = wx.FindWindowByName('FileListCtrl')
         dir_list = os.listdir(self.seek_dir)
-                
-        if dir_list != self.old_dir_list:
+            
+        diff_list = list(set(dir_list) - set(self.old_dir_list))
 
-            for idx in range(0, len(dir_list)):
+        if diff_list != []:
+            for each_newfile in diff_list:
+                process_str = 'Processing incomming file: ' + str(each_newfile) 
+                self.main_frame.setStatus(process_str, 0)
 
-                try:
-                    chk = self.old_dir_list.index(dir_list[idx])
-                except ValueError:
-                    
-                    self.old_dir_list.append(dir_list[idx])
-                    self.file_list_ctrl.updateFileList()
-                                    
-                    #info_panel.writeText('Incomming file:\n' + str(dir_list[idx] + '\n\n'))
-                    
-                    process_str = 'Processing incomming file: ' + str(dir_list[idx]) 
-                    
-                    print process_str + '\n'
-                    
-                    self.main_frame.setStatus(process_str, 0)
-                    
-                    filepath = os.path.join(self.seek_dir, str(dir_list[idx]))
+                filepath = os.path.join(self.seek_dir, str(each_newfile))
 
-                    if self._fileTypeIsCompatible(filepath):
-                        mainworker_cmd_queue.put(['plot', [filepath]])
+                if self._fileTypeIsCompatible(filepath):
+                    ainworker_cmd_queue.put(['plot', [filepath]])
 
+            self.old_dir_list.extend(diff_list)
                     
     def _fileTypeIsCompatible(self, path):
         root, ext = os.path.splitext(path)
         #print ext
         compatible_formats = self.main_frame.getRawSettings().get('CompatibleFormats')
         #print compatible_formats
-	    #print self.main_frame.getRawSettings().getAllParams()['CompatibleFormats']
+        #print self.main_frame.getRawSettings().getAllParams()['CompatibleFormats']
         print 'FILE TEST!'
         
         if str(ext) in compatible_formats: 
@@ -1934,65 +1923,148 @@ class FilePanel(wx.Panel):
         #dlg.ShowModal()
 
 
-class CustomListCtrl(wx.ListCtrl):
+class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.ColumnSorterMixin):
 
     def __init__(self, parent, id):
-        wx.ListCtrl.__init__(self, parent, id, style = wx.LC_REPORT, name = 'FileListCtrl')
+        wx.ListCtrl.__init__(self, parent, id, style = wx.LC_REPORT |wx.LC_VIRTUAL, name = 'FileListCtrl')
         
         self.path = os.getcwd()
         self.files = []
         self.parent = parent
-        
+        self.mainframe = wx.FindWindowByName('MainFrame')        
+        self.file_panel = wx.FindWindowByName('FilePanel')
+        self.dirctrl_panel = parent 
+
         self.filteredFilesList = []
         self.dirsList = []
         self.file_list_dict = {}
         self.folder_list_dict = {}
-        self.sort_column = 0
-        self.reverse_sort = False
-        
-        self.dirctrl_panel = parent 
         
         self.copylist = []
         self.cut_selected = False
         self.copy_selected = False
         
-        self.file_panel = wx.FindWindowByName('FilePanel')
-        
-        images = ['Up.png', 'Folder.png', 'document.png']
-        
         self.InsertColumn(0, 'Name')
         self.InsertColumn(1, 'Ext')
         self.InsertColumn(2, 'Modified')
-        self.InsertColumn(3, 'Size', wx.LIST_FORMAT_RIGHT)
-        
+        self.InsertColumn(3, 'Size', wx.LIST_FORMAT_RIGHT)    
         self.SetColumnWidth(0, 160)
         self.SetColumnWidth(1, 40)
         self.SetColumnWidth(2, 125)
         self.SetColumnWidth(3, 70)
-        
-        self.il = wx.ImageList(16, 16)
-        
-        self.mainframe = wx.FindWindowByName('MainFrame')
-        
-        for each in images:
-            self.il.Add(wx.Bitmap(os.path.join(self.mainframe.RAWWorkDir, 'resources',each)))
-            
+
+        self.attr1 = wx.ListItemAttr()
+        self.attr1.SetBackgroundColour('#e6f1f5')
+        self.attr2 = wx.ListItemAttr()
+        self.attr2.SetBackgroundColour("White")
+
+        ### Prepare list images:
+        self.il = wx.ImageList(16, 16)        
+
+        a={"sm_up":"GO_UP","sm_dn":"GO_DOWN","w_idx":"WARNING","e_idx":"ERROR","i_idx":"QUESTION"}
+        for k,v in a.items():
+            s="self.%s= self.il.Add(wx.ArtProvider_GetBitmap(wx.ART_%s,wx.ART_TOOLBAR,(16,16)))" % (k,v)
+            exec(s)
+
+        self.documentimg = self.il.Add(wx.Bitmap(os.path.join(self.mainframe.RAWWorkDir, 'resources', 'document.png')))
+        self.folderimg = self.il.Add(wx.Bitmap(os.path.join(self.mainframe.RAWWorkDir, 'resources', 'Folder.png')))
+        self.upimg = self.il.Add(wx.Bitmap(os.path.join(self.mainframe.RAWWorkDir, 'resources', 'Up.png')))            
         self.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
+    
+        #Init the list:
+        self.itemDataMap = {}
+        self.itemIndexMap = {}.keys()
+        self.SetItemCount(len({}))
+
+        listmix.ListCtrlAutoWidthMixin.__init__(self)
+        listmix.ColumnSorterMixin.__init__(self, 4)
+    
+        #Default sorting order:
+        self.SortListItems(0, 1)
         
         self.Bind(wx.EVT_LEFT_DCLICK, self._onDoubleLeftMouseClickOrEnterKey)
         self.Bind(wx.EVT_KEY_DOWN, self._onKeyPressEvent)
         self.Bind(wx.EVT_RIGHT_UP, self._onRightMouseClick)
         self.Bind(wx.EVT_LIST_COL_CLICK, self.onColClick)
-    
+
+        #---------------------------------------------------
+        # These methods are callbacks for implementing the
+        # "virtualness" of the list...
+        
+        
+#    def GetSecondarySortValues(self, col, key1, key2):
+#
+#        def ss(key):
+#            return self.itemDataMap[key][3]
+#        
+#        return (ss(key1), ss(key2))
+
+    def OnGetItemText(self, item, col):
+        index=self.itemIndexMap[item]
+        s = self.itemDataMap[index][col]
+        return s
+
+    def OnGetItemImage(self, item):
+        index=self.itemIndexMap[item]
+        itemtype = self.itemDataMap[index][4]
+
+        if itemtype == 'file':
+            return self.documentimg
+        elif itemtype == 'up':
+            return self.upimg
+        elif itemtype == 'dir':
+            return self.folderimg
+        else:    
+            return -1
+
+    def OnGetItemAttr(self, item):
+        index=self.itemIndexMap[item]
+
+        if (item % 2) == 0:
+           return self.attr1
+        elif (item % 2) == 1:
+           return self.attr2
+        else:
+           return None
+
+    def GetSortImages(self):
+        return (self.sm_dn, self.sm_up)
+
+    #---------------------------------------------------
+    # Matt C, 2006/02/22
+    # Here's a better SortItems() method --
+    # the ColumnSorterMixin.__ColumnSorter() method already handles the ascending/descending,
+    # and it knows to sort on another column if the chosen columns have the same value.
+
+    def SortItems(self,sorter=cmp):
+        items = list(self.itemDataMap.keys())
+        items.sort(sorter)
+        self.itemIndexMap = items
+        
+        # redraw the list
+        self.Refresh()
+
+    # Used by the ColumnSorterMixin, see wx/lib/mixins/listctrl.py
+    def GetListCtrl(self):
+        return self
+
+    # Used by the ColumnSorterMixin, see wx/lib/mixins/listctrl.py
+#    def GetSortImages(self):
+#        return (self.sm_dn, self.sm_up)
+
     def onColClick(self, event):
         
-        if event.GetColumn() == self.sort_column:
-            self.reverse_sort = not self.reverse_sort
-        else:
-            self.reverse_sort = False
+#        if event.GetColumn() == self.sort_column:
+#            self.reverse_sort = not self.reverse_sort
+#        else:
+#            self.reverse_sort = False
         
-        self.sort_column = event.GetColumn()
-        self.updateFileList()
+#        self.sort_column = event.GetColumn()
+
+#    self.updateSorting()
+
+        event.Skip()
+        #self.updateFileList()
  
     def readFileList(self):
         try:
@@ -2054,10 +2126,10 @@ class CustomListCtrl(wx.ListCtrl):
         ### Take out the directories and sort them:
         for each in self.files:
             if os.path.isdir(os.path.join(self.path, each)):
-                self.dirsList.append(each)
+                self.dirsList.append(str(each))
         
-        for i in range(0, len(self.dirsList)):
-            self.dirsList[i] = str(self.dirsList[i])
+        #for i in range(0, len(self.dirsList)):
+        #    self.dirsList[i] = str(self.dirsList[i])
         
         self.dirsList.sort(key = str.lower)
         
@@ -2085,7 +2157,7 @@ class CustomListCtrl(wx.ListCtrl):
                 size = 1
                 sec = 1
 
-            self.folder_list_dict[j] = (name, ex, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)), '')
+            self.file_list_dict[j] = (name, ex, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)), '', 'dir')
             
             j += 1
         
@@ -2101,63 +2173,22 @@ class CustomListCtrl(wx.ListCtrl):
                 size = 0
                 sec = 1
 
-            self.file_list_dict[j] = (name, ex, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)), size)
+            self.file_list_dict[j] = (name, ex, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)), str(round(size/1000,1)) + ' KB', 'file')
             
             j += 1
     
         self.insertSortedFilesIntoList(end_of_folders_idx)
     
     def insertSortedFilesIntoList(self, end_of_folders_idx):
-        j = 1
-        col = self.sort_column
-        
-        ###### Insert folders:
-        sorted_folder_list = sorted(self.folder_list_dict.items(), lambda x,y:cmp(x[1][col],y[1][col]), reverse = self.reverse_sort)
-   
-        for each in sorted_folder_list:
-            name = each[1][0]
-            ex = each[1][1]
-            modtime = each[1][2]
-            size = each[1][3]
-        
-            self.InsertStringItem(j, name)
-            self.SetStringItem(j, 1, ex)
-            self.SetStringItem(j, 2, modtime)
-            self.SetStringItem(j, 3, '')
-            
-            if os.path.isdir(os.path.join(self.path, name)):
-                self.SetItemImage(j, 1)
-            
-            if not (j % 2) == 0:
-                self.SetItemBackgroundColour(j, '#e6f1f5')
-                
-            j += 1
-        
-        ##### Insert files:
-        sorted_list = sorted(self.file_list_dict.items(), lambda x,y:cmp(x[1][col],y[1][col]), reverse = self.reverse_sort)
-        
-        for each in sorted_list:
-            name = each[1][0]
-            ex = each[1][1]
-            modtime = each[1][2]
-            size = each[1][3]
-            
-            self.InsertStringItem(j, name)
-            self.SetStringItem(j, 1, ex)
-            self.SetStringItem(j, 2, modtime)
-            self.SetStringItem(j, 3, str(round(size/1000,1)) + ' KB')
-            
-            if os.path.isdir(os.path.join(self.path, each[1][0])):
-                self.SetItemImage(j, 1)
-            else:
-                self.SetItemImage(j, 2)
 
-            if not (j % 2) == 0:
-                self.SetItemBackgroundColour(j, '#e6f1f5')
-        
-            j += 1
-        
+        self.file_list_dict[0] = ('..', '', '', '', 'up')
+        self.itemDataMap = self.file_list_dict
+        self.itemIndexMap = self.file_list_dict.keys()
+        self.SetItemCount(len(self.file_list_dict))
     
+        self.OnSortOrderChanged()
+    
+
     def getSelectedFilenames(self):
          
         if self.GetSelectedItemCount() == 0:
@@ -2195,6 +2226,10 @@ class CustomListCtrl(wx.ListCtrl):
     def updateFileList(self):
         self.readFileList()
         self.refreshFileList()
+        self.itemDataMap = self.file_list_dict
+        self.itemIndexMap = self.file_list_dict.keys()
+        
+        self.OnSortOrderChanged()
     
     def _savePathToDisk(self):
         

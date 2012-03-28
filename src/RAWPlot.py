@@ -164,21 +164,25 @@ class PlotOptionsDialog(wx.Dialog):
         
         
         #If people are still running old matplotlib:
-        try:
-            frame_on = self.legend.get_frame_on()
-        except Exception, e:
-            w = self.legend.get_linewidth()
+        if self.legend == None:
+            self._old_legend_settings = {'size'   :0,
+                                         'alpha'  : 0,
+                                         'border' : False,
+                                         'shadow' : False}
+        else:
+            try:
+                frame_on = self.legend.get_frame_on()
+            except Exception, e:
+                w = self.legend.get_linewidth()
             if w == 0:
                 frame_on = True
             else:
                 frame_on = False
-        
-        
-        
-        self._old_legend_settings = {'size'   : self.legend.get_texts()[0].get_size(),
-                                     'alpha'  : self.legend.get_frame().get_alpha(),
-                                     'border' : frame_on,
-                                     'shadow' : None}
+            
+            self._old_legend_settings = {'size'   : self.legend.get_texts()[0].get_size(),
+                                         'alpha'  : self.legend.get_frame().get_alpha(),
+                                         'border' : frame_on,
+                                         'shadow' : self.legend.shadow}
         
         self._old_settings = {'title' : {},
                              'xlabel' : {},
@@ -188,6 +192,7 @@ class PlotOptionsDialog(wx.Dialog):
         font_list_with_path = matplotlib.font_manager.findSystemFonts()
         
         self.font_list = []
+        
         for each in font_list_with_path:
             dir, file = os.path.split(each)
             self.font_list.append(file)
@@ -346,28 +351,28 @@ class PlotOptionsDialog(wx.Dialog):
         
         sizer = wx.FlexGridSizer(rows = 6, cols = 2, hgap = 5, vgap = 3)
         
-        self.font_size = wx.SpinCtrl(self, -1, str(self.legend.get_texts()[0].get_size()))
-        self.font_size.SetValue(int(self.legend.get_texts()[0].get_size()))
+        self.font_size = wx.SpinCtrl(self, -1, str(self._old_legend_settings['size']))
+        self.font_size.SetValue(int(self._old_legend_settings['size']))
         self.font_size.Bind(wx.EVT_SPINCTRL, self._updateLegendSettings)
         
         self.border_chkbox = wx.CheckBox(self, -1)
         self.border_chkbox.Bind(wx.EVT_CHECKBOX, self._updateLegendSettings)
-        if self.legend.get_frame().get_linewidth() == 1: boxon = True
+        if self._old_legend_settings['border']: boxon = True
         else: boxon = False
         
         self.border_chkbox.SetValue(boxon)
         
         self.shadow_chkbox =  wx.CheckBox(self, -1)
         self.shadow_chkbox.Bind(wx.EVT_CHECKBOX, self._updateLegendSettings)
-        self.shadow_chkbox.SetValue(self.legend.shadow)
+        self.shadow_chkbox.SetValue(self._old_legend_settings['shadow'])
         
         self.legend_enable = wx.CheckBox(self, -1)
         self.legend_enable.Bind(wx.EVT_CHECKBOX, self._updateLegendSettings)
         self.legend_enable.SetValue(self.legend.get_visible())
     
         alpha_text = wx.StaticText(self, -1, 'Transparency % : ')
-        self.alpha = wx.SpinCtrl(self, -1, str(abs(self.legend.get_frame().get_alpha()-100)))
-        self.alpha.SetValue(int(abs(self.legend.get_frame().get_alpha()*100-100)))
+        self.alpha = wx.SpinCtrl(self, -1, str(abs(self._old_legend_settings['alpha']-100)))
+        self.alpha.SetValue(int(abs(self._old_legend_settings['alpha']*100-100)))
         self.alpha.Bind(wx.EVT_SPINCTRL, self._updateLegendSettings)
         
         sizer.Add(wx.StaticText(self, -1, 'Visible'), 0)
