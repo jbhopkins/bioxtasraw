@@ -746,8 +746,6 @@ class OnlineController:
             
         diff_list = list(set(dir_list_dict.items()) - set(self.old_dir_list_dict.items()))
         
-        
-
         if diff_list != []:
             for each in diff_list:
                 each_newfile = each[0]
