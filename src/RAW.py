@@ -691,7 +691,7 @@ class OnlineController:
         
         self.online_timer.Bind(wx.EVT_TIMER, self.onOnlineTimer)
 
-        self.old_dir_list = []
+        self.old_dir_list_dict = {}
         self.is_online = False
         self.seek_dir = []
         self.bg_filename = None
@@ -717,7 +717,14 @@ class OnlineController:
         path = self.selectSearchDir()
         
         if path != None:
-            self.old_dir_list = os.listdir(path)
+            dir_list = os.listdir(path)
+            
+            dir_list_dict = {}
+            for each_file in dir_list:
+                dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)))
+            
+            self.old_dir_list_dict = dir_list_dict
+            
             self.online_timer.Start(2000)
             return True
         
@@ -731,21 +738,41 @@ class OnlineController:
         
         self.file_list_ctrl = wx.FindWindowByName('FileListCtrl')
         dir_list = os.listdir(self.seek_dir)
+        
+        dir_list_dict = {}
+        
+        for each_file in dir_list:
+            dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)))
             
-        diff_list = list(set(dir_list) - set(self.old_dir_list))
+        diff_list = list(set(dir_list_dict.items()) - set(self.old_dir_list_dict.items()))
+        
+        
 
         if diff_list != []:
-            for each_newfile in diff_list:
+            for each in diff_list:
+                each_newfile = each[0]
+                
+                print 'Changed: ' + str(each_newfile)
                 process_str = 'Processing incomming file: ' + str(each_newfile) 
                 self.main_frame.setStatus(process_str, 0)
 
                 filepath = os.path.join(self.seek_dir, str(each_newfile))
 
                 if self._fileTypeIsCompatible(filepath):
-                    ainworker_cmd_queue.put(['plot', [filepath]])
-
-            self.old_dir_list.extend(diff_list)
                     
+                    if each_newfile in self.old_dir_list_dict:
+                        #ONLY UPDATE IMAGE
+                        mainworker_cmd_queue.put(['online_mode_update_data', [filepath]])
+                    else:
+                        mainworker_cmd_queue.put(['plot', [filepath]])
+                        #UPDATE PLOT
+
+            self.old_dir_list_dict.update(diff_list)
+        
+        
+        
+            
+            
     def _fileTypeIsCompatible(self, path):
         root, ext = os.path.splitext(path)
         #print ext
@@ -784,7 +811,7 @@ class MainWorkerThread(threading.Thread):
         self.ift_item_panel = wx.FindWindowByName('IFTPanel')
         
         self._commands = {'plot' : self._loadAndPlot,
-                          
+                                    'online_mode_update_data' : self._onlineModeUpdate,
                                     'show_nextprev_img'     : self._loadAndShowNextImage,
                                     'show_image'            : self._loadAndShowImage,
                                     'subtract_filenames'    : self._subtractFilenames,
@@ -826,6 +853,33 @@ class MainWorkerThread(threading.Thread):
         
     def _cleanUpAfterAbort(self):
         pass
+    
+    
+    def _onlineModeUpdate(self, data):
+        
+        filename = data[0] 
+    
+        img_fmt = self._raw_settings.get('ImageFormat')
+        
+        try:
+            if not os.path.isfile(filename):
+                raise SASExceptions.WrongImageFormat('not a valid file!')
+            
+            img, imghdr = SASFileIO.loadImage(filename, img_fmt)
+            
+            if img == None:
+                raise SASExceptions.WrongImageFormat('not a valid file!')
+                
+        except SASExceptions.WrongImageFormat, msg:
+            return
+        
+        parameters = {'filename' : os.path.split(filename)[1],
+                      'imageHeader' : imghdr}
+        
+        bogus_sasm = SASM.SASM([0,1], [0,1], [0,1], parameters)
+        
+        self._sendImageToDisplay(img, bogus_sasm)
+        
     
     def _sendSASMToIFTPlot(self, sasm, axes_num = 1, item_colour = 'black', line_color = None, no_update = False):
         
@@ -1137,8 +1191,12 @@ class MainWorkerThread(threading.Thread):
         img_fmt = self._raw_settings.get('ImageFormat')
         
         path = self.dir_panel.file_list_box.path
-        dir = os.listdir(path)
-        idx = dir.index(current_file)
+        dir = sorted(os.listdir(path))
+        
+        if current_file == None:
+            idx = 0
+        else:
+            idx = dir.index(current_file)
         
 
         while True:

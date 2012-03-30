@@ -131,13 +131,21 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
         
     def onPreviousImgButton(self, event):
         mainframe = wx.FindWindowByName('MainFrame')
-        current_file = self.parent.current_sasm.getParameter('filename')
+        try:
+            current_file = self.parent.current_sasm.getParameter('filename')
+        except AttributeError:
+            current_file = None
         mainworker_cmd_queue = mainframe.getWorkerThreadQueue()
         mainworker_cmd_queue.put(['show_nextprev_img', [current_file, -1]])
         
     def onNextImgButton(self, event):
+        
         mainframe = wx.FindWindowByName('MainFrame')
-        current_file = self.parent.current_sasm.getParameter('filename')
+        try:
+            current_file = self.parent.current_sasm.getParameter('filename')
+        except AttributeError:
+            current_file = None
+        
         mainworker_cmd_queue = mainframe.getWorkerThreadQueue()
         mainworker_cmd_queue.put(['show_nextprev_img', [current_file, 1]])
     
