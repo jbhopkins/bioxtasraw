@@ -1145,7 +1145,64 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
                 wx.MessageBox('Normalization constant contains illegal characters', 'Invalid input')
                 chkbox.SetValue(False)
             
+
+class MolecularWeightPanel(wx.Panel):
+    
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
         
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        
+        self.raw_settings = raw_settings
+        
+        self.update_keys = ['MWStandardMW',
+                            'MWStandardI0',
+                            'MWStandardConc']
+    
+                                
+        self.MWData = ( ("MW [kDa]:", raw_settings.getId('MWStandardMW')) ,
+                        ("I(0):", raw_settings.getId('MWStandardI0')),
+                        ("Conc. [mg/ml]:", raw_settings.getId('MWStandardConc')))
+                    
+        box = wx.StaticBox(self, -1, 'Molecular Weight Estimation Using a Standard')
+                
+        mw_sizer = self.createMWSettings()
+   
+        mwbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        mwbox_sizer.Add(mw_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        
+        final_sizer = wx.BoxSizer(wx.VERTICAL)
+        final_sizer.Add(mwbox_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.SetSizer(final_sizer)
+    
+    def createMWSettings(self):
+        
+        hSizer = wx.FlexGridSizer(cols = 6, rows = 1, vgap = 3, hgap = 5)
+        
+#        mwchoices = ['BSA', 'Lysozyme', 'Glucose Isomerse']
+#        std_choice = wx.Choice(self, -1, choices = mwchoices)
+#        
+#        sizer = wx.BoxSizer(wx.VERTICAL)
+#        txt = wx.StaticText(self, -1, 'Standard:')
+#            
+#        sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
+#        sizer.Add(std_choice, 0)
+#            
+#        hSizer.Add(sizer, 0)
+        
+        for txt, id in self.MWData:
+            sizer = wx.BoxSizer(wx.VERTICAL)
+            ctrl = wx.TextCtrl(self, id, '')
+            txt = wx.StaticText(self, -1, txt)
+            
+            sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
+            sizer.Add(ctrl, 0)
+            
+            hSizer.Add(sizer, 0)
+            
+        return hSizer
+    
+       
 class ReductionNormalizationPanel(wx.Panel):
     
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
@@ -1943,11 +2000,12 @@ all_options = [ [ (1,0,0), wx.NewId(), 'General Settings', GeneralOptionsPanel],
                 #[ (1,3,0), wx.NewId(), 'Masking', MaskingOptionsPanel],
                 [ (2,4,1), wx.NewId(), 'Normalization', ReductionNormalizationPanel] ,
                 [ (2,4,2), wx.NewId(), 'Absolute Scale', ReductionNormalizationAbsScPanel],
-                [ (3,0,0), wx.NewId(), 'Artifact Removal', ArtifactOptionsPanel],
-                [ (4,0,0), wx.NewId(), 'IFT', IftOptionsPanel],
-                [ (5,0,0), wx.NewId(), "Save Directories", SaveDirectoriesPanel],
+                [ (3,0,0), wx.NewId(), 'Molecular Weight', MolecularWeightPanel],
+                [ (4,0,0), wx.NewId(), 'Artifact Removal', ArtifactOptionsPanel],
+                [ (5,0,0), wx.NewId(), 'IFT', IftOptionsPanel],
+                [ (6,0,0), wx.NewId(), "Save Directories", SaveDirectoriesPanel],
     #            [ (5,0,0), wx.NewId(), 'Online Mode', ReductionOptionsPanel],
-                [ (6,0,0), wx.NewId(), "Automation", AutomationOptionsPanel] ]
+                [ (7,0,0), wx.NewId(), "Automation", AutomationOptionsPanel] ]
                 
 #--- ** TREE BOOK **
 class ConfigTree(CT.CustomTreeCtrl):

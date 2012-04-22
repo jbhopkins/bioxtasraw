@@ -169,6 +169,10 @@ class RawGuiSettings:
                             'NormalizationList'    : [None, wx.NewId(), 'text'],
                             'EnableNormalization'  : [True, wx.NewId(), 'bool'],
                             
+                            'MWStandardMW'         : [0, wx.NewId(), 'float'],
+                            'MWStandardI0'         : [0, wx.NewId(), 'float'],
+                            'MWStandardConc'       : [1, wx.NewId(), 'float'],
+                            
                             #List of available processing commands:
                             'PreProcessingList'    : [None],
                             'PostProcessingList'   : [None],

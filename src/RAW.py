@@ -750,7 +750,6 @@ class OnlineController:
             for each in diff_list:
                 each_newfile = each[0]
                 
-                print 'Changed: ' + str(each_newfile)
                 process_str = 'Processing incomming file: ' + str(each_newfile) 
                 self.main_frame.setStatus(process_str, 0)
 
@@ -761,28 +760,26 @@ class OnlineController:
                     if each_newfile in self.old_dir_list_dict:
                         #ONLY UPDATE IMAGE
                         mainworker_cmd_queue.put(['online_mode_update_data', [filepath]])
+                        print 'Changed: ' + str(each_newfile)
                     else:
+                        print process_str
                         mainworker_cmd_queue.put(['plot', [filepath]])
                         #UPDATE PLOT
 
             self.old_dir_list_dict.update(diff_list)
         
         
-        
-            
-            
     def _fileTypeIsCompatible(self, path):
         root, ext = os.path.splitext(path)
         #print ext
         compatible_formats = self.main_frame.getRawSettings().get('CompatibleFormats')
         #print compatible_formats
         #print self.main_frame.getRawSettings().getAllParams()['CompatibleFormats']
-        print 'FILE TEST!'
         
         if str(ext) in compatible_formats: 
-            print 'TRUE!'
             return True
         else:
+            print 'Not compatible file format.'
             return False
         
 
@@ -831,7 +828,8 @@ class MainWorkerThread(threading.Thread):
                                     'rebin_items'           : self._rebinItems,
                                     'ift'                   : self._runIft,
 				                    'interpolate_items'     : self._interpolateItems,
-                                    'plot_iftfit'           : self._plotIftFit}
+                                    'plot_iftfit'           : self._plotIftFit,
+                                    'normalize_conc'        : self._normalizeByConc}
          
         
     def run(self):
@@ -868,8 +866,9 @@ class MainWorkerThread(threading.Thread):
             if img == None:
                 raise SASExceptions.WrongImageFormat('not a valid file!')
                 
-        except SASExceptions.WrongImageFormat, msg:
-            return
+        except Exception, e:
+            print  'File load failed: ' + str(e)
+            return 
         
         parameters = {'filename' : os.path.split(filename)[1],
                       'imageHeader' : imghdr}
@@ -1529,6 +1528,12 @@ class MainWorkerThread(threading.Thread):
                     
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
                     
+                    #Insert into history of new file.
+                    
+                    scale2 = sub_sasm.getScale()
+                    offset2 = sub_sasm.getOffset()
+                    name2 = sub_sasm.getParameter('filename')
+                    
                     self._sendSASMToPlot(subtracted_sasm, axes_num = 2, item_colour = 'red', notsaved = True)
             except SASExceptions.DataNotCompatible, msg:
                self._showSubtractionError(sasm, sub_sasm)
@@ -1778,7 +1783,29 @@ class MainWorkerThread(threading.Thread):
 
     def _saveIftItems(self, data):
         self._saveItems(data, iftmode=True)
+    
+    def _normalizeByConc(self, data):
+        selected_items = data[0]
+
+        for each in selected_items:
+            sasm = each.getSASM()
         
+            if sasm.getAllParameters().has_key('Conc'):
+                conc = sasm.getParameter('Conc')
+                
+                try:
+                    conc = float(conc)
+                    
+                    scale = 1/conc
+                    sasm.scaleRelative(scale)
+                    wx.CallAfter(each.updateControlsFromSASM)
+                    
+                except ValueError:
+                    continue
+                
+                
+                
+    
     def _saveItems(self, data, iftmode = False):
         
         save_path = data[0]
@@ -2667,7 +2694,9 @@ class DirCtrlPanel(wx.Panel):
                                     'DAT files (*.dat)',
                                     'TXT files (*.txt)',
                                     'IMG files (*.img)',
-                                    'FIT files (*.fit)']
+                                    'FIT files (*.fit)',
+                                    'WSP files (*.wsp)',
+                                    'CFG files (*.cfg)']
         
         dirctrlpanel_sizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -3277,6 +3306,8 @@ class ManipItemPanel(wx.Panel):
         self.plot_panel = wx.FindWindowByName('PlotPanel')
         self.main_frame = wx.FindWindowByName('MainFrame')
         
+        self.raw_settings = self.main_frame.raw_settings
+        
         self.info_panel = wx.FindWindowByName('InformationPanel')
         self.info_settings = {'hdr_choice' : 0}
         
@@ -3394,7 +3425,6 @@ class ManipItemPanel(wx.Panel):
         self.updateShowItemCheckBox()
         
         
-    
     def updateInfoTip(self, analysis_dict, fromGuinierDialog = False):
         
         
@@ -3417,8 +3447,8 @@ class ManipItemPanel(wx.Panel):
             string1 = '\nRg: N/A' + '\nI(0): N/A'
             
         if self.sasm.getAllParameters().has_key('Conc'):
-            string2 = '\nConc: ' + str(self.sasm.getParameter('Conc'))   
-        
+            string2 = '\nConc: ' + str(self.sasm.getParameter('Conc'))
+                    
         if self.sasm.getAllParameters().has_key('Notes'):
             if self.sasm.getParameter('Notes') != '':
                 string3 = '\nNote: ' + str(self.sasm.getParameter('Notes'))  
@@ -3427,8 +3457,8 @@ class ManipItemPanel(wx.Panel):
         
         if string != '':    
             self.info_icon.SetToolTipString(string)
-                  
-        if fromGuinierDialog:
+                
+        if fromGuinierDialog:     
             self.info_panel.updateInfoFromItem(self)
                 
     def enableStar(self, state):
@@ -3598,6 +3628,45 @@ class ManipItemPanel(wx.Panel):
         self.GetParent().Layout()            
         self.GetParent().Refresh()
     
+    
+    def useAsMWStandard(self):
+        
+        if self.sasm.getAllParameters().has_key('Conc'):
+            conc = self.sasm.getParameter('Conc')
+            
+            if float(conc) > 0:
+                if self.sasm.getParameter('analysis').has_key('guinier'):
+                    analysis = self.sasm.getParameter('analysis')
+                    guinier = analysis['guinier']
+                        
+                    if guinier.has_key('I0'):
+                        i0 = guinier['I0']
+                            
+                        if float(i0)>0:
+                            MW = wx.GetTextFromUser('Please enter the molecular weight of the standard in units of [kDa].')
+                                
+                            try:
+                                MW = float(MW)
+                            except Exception:
+                                wx.MessageBox('Invalid input!', 'ERROR', wx.OK | wx.ICON_EXCLAMATION)
+                                return
+                                
+                            self.raw_settings.set('MWStandardMW', float(MW))
+                            self.raw_settings.set('MWStandardI0', float(i0))
+                            self.raw_settings.set('MWStandardConc', float(conc))
+                                
+                            wx.MessageBox('New standard parameters has been saved.', 'Saved', wx.OK | wx.ICON_INFORMATION)
+                                
+                    else:
+                        wx.MessageBox('Please perform a Guinier analysis to obtain I0', 'I0 not found', wx.OK | wx.ICON_EXCLAMATION)
+                else:
+                    wx.MessageBox('Please perform a Guinier analysis to obtain I0', 'I0 not found', wx.OK | wx.ICON_EXCLAMATION)
+            else:
+                wx.MessageBox('Please enter the concentration in the information panel.', 'Concentration not found', wx.OK | wx.ICON_EXCLAMATION)
+        else:
+            wx.MessageBox('Please enter the concentration in the information panel.', 'Concentration not found', wx.OK | wx.ICON_EXCLAMATION)  #  except Exception, e:
+
+                
     def _initializeIcons(self):
         
         self.gray_png = wx.Image(os.path.join(RAWWorkDir, 'resources', 'Star-icon_notenabled.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
@@ -3689,6 +3758,10 @@ class ManipItemPanel(wx.Panel):
         mermenu = menu.Append(22, 'Merge')
         rebmenu = menu.Append(23, 'Rebin')
         intmenu = menu.Append(25, 'Interpolate')
+        menu.AppendSeparator()
+        menu.Append(27, 'Use as MW standard')
+        menu.Append(28, 'Normalize by conc')
+        
         menu.AppendSeparator()
         menu.Append(5, 'Remove' )
         menu.AppendSeparator()
@@ -3882,6 +3955,13 @@ class ManipItemPanel(wx.Panel):
         if evt.GetId() == 26:
            selected_items = self.manipulation_panel.getSelectedItems()
            mainworker_cmd_queue.put(['plot_iftfit', [selected_items]])
+           
+        if evt.GetId() == 27:
+           self.useAsMWStandard()
+           
+        if evt.GetId() == 28:
+           selected_items = self.manipulation_panel.getSelectedItems()
+           mainworker_cmd_queue.put(['normalize_conc', [selected_items]])
             
     
     def _saveAnalysisInfo(self):
@@ -3928,6 +4008,8 @@ class ManipItemPanel(wx.Panel):
             
             
     def _onRightMouseButton(self, evt):
+        self.SetFocusIgnoringChildren()
+        
         if not self._selected:
             self.toggleSelect()
             self.manipulation_panel.deselectAllExceptOne(self)
@@ -6989,6 +7071,17 @@ class InformationPanel(wx.Panel):
         self.clearInfo()
         
         self.sasm = item.getSASM()
+                
+        ## THE FACT THAT THIS HAS TO BE DONE IS SO>!@ STRANGE!! 
+        if self.sasm.getParameter('analysis').has_key('guinier'):
+            analysis_dict = self.sasm.getParameter('analysis')
+            guinier = analysis_dict['guinier']
+            try:
+                self.sasm.setParameter('Conc', guinier['Conc'])
+            except KeyError:
+                pass
+        ########################################################
+                
         self.selectedItem = item
         
         filename = self.sasm.getParameter('filename')
@@ -7012,8 +7105,12 @@ class InformationPanel(wx.Panel):
                         txt.SetValue(str(guinier[key]))       
                         
         if self.sasm.getAllParameters().has_key('Conc'):
-            conc_ctrl = self.conc_txt
+            conc_ctrl = wx.FindWindowById(self.conc_data[2])
             conc_ctrl.SetValue(str(self.sasm.getParameter('Conc')))
+            
+        if self.sasm.getAllParameters().has_key('MW'):
+            mw_ctrl = wx.FindWindowById(self.analysis_data[2][2])
+            mw_ctrl.SetValue(str(self.sasm.getParameter('MW')))
         
         all_choices = []
         file_hdr = {}

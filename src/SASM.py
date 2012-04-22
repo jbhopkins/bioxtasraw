@@ -83,6 +83,10 @@ class SASM:
     def getLine(self):
         return self.line
     
+    def scaleRelative(self, relscale):
+        self._scale_factor = abs(self._scale_factor * relscale)
+        self._update()
+    
     def scale(self, scale_factor):
         ''' Scale intensity by a factor from the raw intensity, also scales errorbars appropiately '''
         

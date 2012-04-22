@@ -6,6 +6,7 @@ from matplotlib.backends.backend_wx import NavigationToolbar2Wx
 from matplotlib.backends.backend_wx import FigureCanvasBase
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.backend_bases import cursors
+from matplotlib.widgets import Cursor
 from matplotlib.font_manager import FontProperties
 
 RAWWorkDir = sys.path[0]
@@ -174,10 +175,11 @@ class PlotOptionsDialog(wx.Dialog):
                 frame_on = self.legend.get_frame_on()
             except Exception, e:
                 w = self.legend.get_linewidth()
-            if w == 0:
-                frame_on = True
-            else:
-                frame_on = False
+                
+                if w == 0:
+                    frame_on = True
+                else:
+                    frame_on = False
             
             self._old_legend_settings = {'size'   : self.legend.get_texts()[0].get_size(),
                                          'alpha'  : self.legend.get_frame().get_alpha(),
@@ -780,6 +782,9 @@ class PlotPanel(wx.Panel):
         self.canvas.callbacks.connect('key_press_event', self._onKeyPressEvent)
         self.canvas.callbacks.connect('motion_notify_event', self._onMouseMotionEvent)
         self.canvas.callbacks.connect('button_release_event', self._onMouseButtonReleaseEvent)
+        
+        self._canvas_cursor = Cursor(self.subplot1, useblit=True, color='red', linewidth=1, linestyle ='--' )
+        self._canvas_cursor.horizOn = False
     
     def _initFigure(self):
         self.fig = matplotlib.figure.Figure((5,4), 75)        
@@ -936,8 +941,8 @@ class PlotPanel(wx.Panel):
   
         if event.inaxes:
             x, y = event.xdata, event.ydata
-            wx.FindWindowByName('MainFrame').SetStatusText('x = ' +  str(round(x,5)) + ', y = ' + str(round(y,5)), 1) 
-    
+            wx.FindWindowByName('MainFrame').SetStatusText('q = ' +  str(round(x,5)) + ', I = ' + str(round(y,5)), 1) 
+                
     def _onMouseButtonReleaseEvent(self, event):
         ''' Find out where the mouse button was released
         and show a pop up menu to change the settings
@@ -1612,7 +1617,11 @@ class IftPlotPanel(PlotPanel):
         self.plotFit(sasm, color = color, legend_label_in = legend_label_in)
         
         
-        
+    def _onMouseMotionEvent(self, event):
+  
+        if event.inaxes:
+            x, y = event.xdata, event.ydata
+            wx.FindWindowByName('MainFrame').SetStatusText('r = ' +  str(round(x,5)) + ', P(r) = ' + str(round(y,5)), 1) 
         
         
     
