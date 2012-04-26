@@ -2286,9 +2286,9 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         filteredFiles = self.getFilteredFileList()  
         
         if len(self.path) > 1:
-            self.InsertStringItem(0, '..')
-            self.SetItemImage(0,0)
-            j = 1
+            #self.InsertStringItem(0, '..')
+            #self.SetItemImage(0,0)
+            j = 0
         else:
             j = 0
         
