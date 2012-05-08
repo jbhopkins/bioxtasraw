@@ -478,7 +478,7 @@ def build_radavg():
                 
                 //res(x,y) = r;
                 
-                if( r < high_q && r > low_q && mask(x,y) == 1 && in_image(x,y) > 0)
+                if( r < high_q && r > low_q && mask(x,y) == 1) // && in_image(x,y) > 0)
                 {
                     q_idx = int(r);
                     

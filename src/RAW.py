@@ -7503,11 +7503,6 @@ class IFTSearchStatusDialog(wx.Dialog):
          self.timer.Stop()
          self.EndModal(wx.ID_OK)
         
-        
-        
-        
-    
-
 class SaveDialog(wx.Dialog):
     def __init__(self, parent, id, title, text):
         wx.Dialog.__init__(self, parent, id, title)
