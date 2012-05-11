@@ -563,7 +563,7 @@ def parseCHESSG1CountFile(filename):
 def parseMAXLABI77HeaderFile(filename):
     
     filepath, ext = os.path.splitext(filename)
-    hdr_file = filepath + '.hdr'
+    hdr_file = filename + '.hdr'
     
     file = open(hdr_file,'r')
     
