@@ -274,7 +274,7 @@ def saveSettings(raw_settings, savepath):
         oldMasks[key] = copy.deepcopy(masks[key][0]) 
         masks[key][0] = None
 
-    file_obj = open(savepath, 'w')
+    file_obj = open(savepath, 'wb')
     cPickle.dump(save_dict, file_obj)
     file_obj.close()
     
@@ -285,7 +285,7 @@ def saveSettings(raw_settings, savepath):
         
     backup_file = os.path.join(RAWWorkDir, 'backup.cfg')
             
-    FileObj = open(backup_file, 'w')
+    FileObj = open(backup_file, 'wb')
     cPickle.dump(save_dict, FileObj)
     FileObj.close()
     

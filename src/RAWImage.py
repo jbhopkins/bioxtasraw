@@ -981,6 +981,10 @@ class ImagePanel(wx.Panel):
         a.add_patch(cir)
         txt4 = a.text(x[0]-10, x[1]-4*r-10, 'q = 0.4305', size = 'large', color = 'yellow')
         
+        cir = matplotlib.patches.Circle( x, radius = 5*r, alpha = 1, fill = False, linestyle = 'dashed', edgecolor = 'red') 
+        a.add_patch(cir)
+        txt4 = a.text(x[0]-10, x[1]-5*r-10, 'q = 0.538', size = 'large', color = 'yellow')
+        
         cir = matplotlib.patches.Circle( x, radius = 3, alpha = 1, facecolor = 'red', edgecolor = 'red')
         a.add_patch(cir)
         

@@ -700,7 +700,7 @@ def loadFile(filename, raw_settings, no_processing = False):
     if file_type == 'image':
         try:
             sasm, img = loadImageFile(filename, raw_settings)
-        except AttributeError, msg:
+        except (ValueError, AttributeError), msg:
             print 'SASFileIO.loadFile : ' + str(msg)
             raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
         

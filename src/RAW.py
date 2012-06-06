@@ -632,7 +632,7 @@ class MainFrame(wx.Frame):
         info.Description = "RAW is a software package primarily for SAXS 2D data reduction and 1D data analysis.\nIt provides an easy GUI for handling multiple files fast, and a\ngood alternative to commercial or protected software packages for finding\nthe Pair Distance Distribution Function\n\nPlease cite:\nBioXTAS RAW, a software program for high-throughput automated small-angle\nX-ray scattering data reduction and preliminary analysis, J. Appl. Cryst. (2009). 42, 959-964"
 
         info.WebSite = ("http://bioxtasraw.sourceforge.net/", "The RAW Project Homepage")
-        info.Developers = [u"Soren S. Nielsen", u"Richard E. Gillilan", u"Jesper Nygaard"]
+        info.Developers = [u"Soren S. Nielsen", u"Richard E. Gillilan", u"Jesper Nygaard", u"Kurt Andersen"]
         info.License = "This program is free software: you can redistribute it and/or modify it under the terms of the\nGNU General Public License as published by the Free Software Foundation, either version 3\n of the License, or (at your option) any later version.\n\nThis program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;\nwithout even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\nSee the GNU General Public License for more details.\n\nYou should have received a copy of the GNU General Public License along with this program.\nIf not, see http://www.gnu.org/licenses/"
         
         # Show the wx.AboutBox
@@ -1874,7 +1874,7 @@ class InfoPanel(wx.Panel):
         
         infoSizer = wx.BoxSizer()
         
-        self.infoTextBox = wx.TextCtrl(self, -1, 'Welcome to RAW 0.99.8.4b!\n--------------------------------\n\n', style = wx.TE_MULTILINE)
+        self.infoTextBox = wx.TextCtrl(self, -1, 'Welcome to RAW 0.99.11b!\n--------------------------------\n\n', style = wx.TE_MULTILINE)
         
         self.infoTextBox.SetBackgroundColour('WHITE')
         self.infoTextBox.SetForegroundColour('BLACK')
@@ -2649,8 +2649,13 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
                 
                 if ret == wx.YES:
                     raw_settings = self.mainframe.getRawSettings()
-                    success = RAWSettings.loadSettings(raw_settings, full_dir_filename)
-            
+                    
+                    try:
+                        success = RAWSettings.loadSettings(raw_settings, full_dir_filename)
+                    except IOError, e:
+                        wx.MessageBox(str(e), 'Error loading file', style = wx.OK | wx.ICON_EXCLAMATION)
+                    
+                    
                     if success:
                         raw_settings.set('CurrentCfg', full_dir_filename)
                     else:
@@ -8633,20 +8638,21 @@ class WelcomeDialog(wx.Dialog):
         raw_bitmap = wx.Bitmap(os.path.join(RAWWorkDir, "resources", "raw.ico"))
         rawimg = wx.StaticBitmap(self, -1, raw_bitmap)
         
-        headline = wx.StaticText(self, -1, 'Welcome to RAW 0.99.10b!')
+        headline = wx.StaticText(self, -1, 'Welcome to RAW 0.99.11b!')
         
         text1 = 'Developers/Contributors:'
         text2 = '\nSoren S. Nielsen'
         text3 = 'Richard E. Gillilan'
         text4 = 'Jesper Nygaard'
+        text5 = 'Kurt Andersen'
         
-        text5 = '\nHelp this software become better by reporting bugs to: sskn@life.ku.dk'
+        text6 = '\nHelp this software become better by reporting bugs to: sskn@life.ku.dk'
         
-        text6 = '\nIf you use this software for your SAXS data processing please cite:\n'
-        text7 = '"BioXTAS RAW, a software program for high-throughput automated small-angle\nX-ray scattering data reduction and preliminary analysis", J. Appl. Cryst. (2009). 42, 959-964'
+        text7 = '\nIf you use this software for your SAXS data processing please cite:\n'
+        text8 = '"BioXTAS RAW, a software program for high-throughput automated small-angle\nX-ray scattering data reduction and preliminary analysis", J. Appl. Cryst. (2009). 42, 959-964'
 
 
-        all_text = [text1, text2, text3, text4, text5, text6]
+        all_text = [text1, text2, text3, text4, text5, text6, text7, text8]
         
         final_sizer = wx.BoxSizer(wx.VERTICAL)
         final_sizer.Add(rawimg, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL, 10)
@@ -8703,7 +8709,7 @@ class MySplashScreen(wx.SplashScreen):
     def OnExit(self, evt):
         self.Hide()
             
-        frame = MainFrame('RAW 0.99.10b', -1)
+        frame = MainFrame('RAW 0.99.11b', -1)
         
         self.raw_settings = frame.getRawSettings()
         icon = wx.Icon(name= os.path.join(RAWWorkDir, "resources","raw.ico"), type = wx.BITMAP_TYPE_ICO)

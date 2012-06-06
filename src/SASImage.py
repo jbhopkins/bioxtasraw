@@ -824,7 +824,9 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
     std_i[np.where(np.isnan(std_i))] = 0
     
     iq = hist / hist_count
-    iq[0] = in_image[x_c, y_c]  #the center is not included in the radial average, so it is set manually her
+    
+    if x_c > 0 and x_c < xlen and y_c > 0 and y_c < ylen:
+        iq[0] = in_image[x_c, y_c]  #the center is not included in the radial average, so it is set manually her
     
     #Estimated Standard deviation   - equal to the std of pixels in the area / sqrt(N)
     errorbars = std_i / np.sqrt(hist_count)
