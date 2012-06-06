@@ -8648,8 +8648,8 @@ class WelcomeDialog(wx.Dialog):
         
         text6 = '\nHelp this software become better by reporting bugs to: sskn@life.ku.dk'
         
-        text7 = '\nIf you use this software for your SAXS data processing please cite:\n'
-        text8 = '"BioXTAS RAW, a software program for high-throughput automated small-angle\nX-ray scattering data reduction and preliminary analysis", J. Appl. Cryst. (2009). 42, 959-964'
+        text7 = '\nIf you use this software for your SAXS data processing please cite:\n\n'
+        text8 = '"BioXTAS RAW, a software program for high-throughput automated small-angle\nX-ray scattering data reduction and preliminary analysis", J. Appl. Cryst. (2009). 42, 959-964\n\n'
 
 
         all_text = [text1, text2, text3, text4, text5, text6, text7, text8]
@@ -8660,11 +8660,11 @@ class WelcomeDialog(wx.Dialog):
         
         for each in all_text:
             txt = wx.StaticText(self, -1, each)
-            final_sizer.Add(txt, 0, wx.ALIGN_CENTER_HORIZONTAL)
+            final_sizer.Add(txt, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.LEFT | wx.RIGHT, 15)
 
-        label = wx.StaticText(self, -1, text7)
+        #label = wx.StaticText(self, -1, ' ')
         
-        final_sizer.Add(label, 0, wx.ALL, 15)
+        #final_sizer.Add(label, 0, wx.ALL, 15)
         final_sizer.Add(button_sizer, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
         
         self.SetSizer(final_sizer)
