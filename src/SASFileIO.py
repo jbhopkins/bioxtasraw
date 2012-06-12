@@ -560,6 +560,27 @@ def parseCHESSG1CountFile(filename):
     
     return counters
 
+def parseMAXLABI911HeaderFile(filename):
+    
+    filepath, ext = os.path.splitext(filename)
+    hdr_file = filename + '.hdr'
+    
+    file = open(hdr_file,'r')
+    
+    all_lines = file.readlines()
+    
+    counters = {}
+    
+    for each_line in all_lines:
+    
+        split_lines = each_line.split()
+        key = split_lines[0]
+        
+        counters[key] = split_lines[-1]
+        
+    return counters
+
+
 def parseMAXLABI77HeaderFile(filename):
     
     filepath, ext = os.path.splitext(filename)
@@ -625,7 +646,8 @@ all_header_types = {'None'         : None,
  #                   'CSV'          : parseCSVHeaderFile,
                     'F2, CHESS'    : parseCHESSF2CTSfile, 
                     'G1, CHESS'    : parseCHESSG1CountFile,
-                    'I711, MaxLab' : parseMAXLABI77HeaderFile}
+                    'I711, MaxLab' : parseMAXLABI77HeaderFile,
+                    'I911-4 Maxlab': parseMAXLABI911HeaderFile}
    
 all_image_types = {'Quantum'       : loadQuantumImage,
                    'MarCCD 165'    : loadMarCCD165Image,
