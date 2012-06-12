@@ -573,7 +573,7 @@ def parseMAXLABI911HeaderFile(filename):
     
     for each_line in all_lines:
     
-        split_lines = each_line.split()
+        split_lines = each_line.split('=')
         key = split_lines[0]
         
         counters[key] = split_lines[-1]
