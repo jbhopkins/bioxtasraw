@@ -28,6 +28,7 @@ import wx.lib.scrolledpanel as scrolled
 import wx.lib.wordwrap as wordwrap
 import wx.lib.mixins.listctrl as listmix
 import wx.grid as gridlib
+from wx.lib.embeddedimage import PyEmbeddedImage
 from numpy import ceil
 
 import wx.aui as aui
@@ -131,6 +132,8 @@ class MainFrame(wx.Frame):
                         'guinierfit'          : wx.NewId(),
                         'saveWorkspace'       : wx.NewId(),
                         'loadWorkspace'       : wx.NewId()}
+        
+        self.tbIcon = RawTaskbarIcon(self)
         
         self.guinierframe = None
         self.raw_settings = RAWSettings.RawGuiSettings()
@@ -655,6 +658,8 @@ class MainFrame(wx.Frame):
     
     def _onCloseWindow(self, event):
         self.saveBackupData()
+        self.tbIcon.RemoveIcon()
+        self.tbIcon.Destroy()
         self.Destroy()
         
     def _createFileDialog(self, mode, name = 'Config files', ext = '*.cfg'):
@@ -8757,7 +8762,80 @@ class MySplashScreen(wx.SplashScreen):
     
 
         # The program will freeze without this line.
-       
+
+
+raw_icon_embed = PyEmbeddedImage(
+    "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABHNCSVQICAgIfAhkiAAAArBJ"
+    "REFUWIXllE1I1GEQhx91TXM/8m+6LmpportZGpZEZQRGhR5SJIhUKIKogxoSSrfo0qWjh7SD"
+    "XdLoiy7pQQopKvMjzW+W3fVbM/1b7bbqWq7udthldQ9GBPYGzm2YeWee+THvBHClw41AUxi0"
+    "oSL7o9iuUogFEK+AUrQC0SFiAf4DBQTvQKRgBQLcbrfQQxQosjmAn/69nR1smRzz+RopYsMa"
+    "z+ti0OsN/gBDdbXsHugEwKXTYt2g5jscViaiEqH63uoOfJ6ZYb6xft1HK+EShrwzALx5+piI"
+    "mUm/uDtlH/KCg3jbF37YbbgzswhVq3EZ+wmyeUZJunCJaVlGWVIAQPv5slUFxkdHSKl/4Cv4"
+    "ye4kVhPsT+EFiGx4QuC07BdyfXiPuuQ6S8/uE++wYpycYOueNGLW1LQcOUZAy1uUXj85I92j"
+    "QG9nB1NVlcRPjHial1SgVYYx2NxMSnMTAMu5+YRk5zJ8+5Zfnr27C93LRgBUlXdYXF5mpbwM"
+    "KWwV3nj0hK+ODya/gLziUo8Co22thMpWrA4nUlgw9u4uYpub0DmcWAG7QU9idi4D1VVEm8y+"
+    "3XDV1KBaU3SorpYD5dcwSVFgnQVgXooitbCI4fFhNCYzADMHD7P35CnAewde5J5G5X2gPneW"
+    "tKsVjE2OYrx5A43JTFBaKly8zNSjhwDEFBSyM2EXS85FAHqeN7BisQAQlJxMWGwcc69fAaDN"
+    "ziEzO4dpWablbhUAqYVF6PUGABRmswmXVsKulVjURKDKzAIgPi6BnoxDDPYPkNTXj7r9Heqs"
+    "4wBIksTcd5tv8gS9Hjk2zuerdTrw5iokib6Pnp+lSd/viW8L9+X+9hL2dnYw2ta6XvivLa+4"
+    "9M8A/oUJP8XCARSD8k+xAF8XlsUCCFfgm2gFLLObXQHhO7Dpf8EvdmkJYH9ZylgAAAAASUVO"
+    "RK5CYII=")
+
+class RawTaskbarIcon(wx.TaskBarIcon):
+    TBMENU_RESTORE = wx.NewId()
+    TBMENU_CLOSE   = wx.NewId()
+    TBMENU_CHANGE  = wx.NewId()
+    TBMENU_REMOVE  = wx.NewId()
+ 
+    #----------------------------------------------------------------------
+    def __init__(self, frame):
+        wx.TaskBarIcon.__init__(self)
+        self.frame = frame
+ 
+        # Set the image
+        self.tbIcon = raw_icon_embed.GetIcon()
+ 
+        self.SetIcon(self.tbIcon, "Test")
+ 
+        # bind some events
+        self.Bind(wx.EVT_MENU, self.OnTaskBarClose, id=self.TBMENU_CLOSE)
+        self.Bind(wx.EVT_TASKBAR_LEFT_DOWN, self.OnTaskBarLeftClick)
+ 
+    #----------------------------------------------------------------------
+    def CreatePopupMenu(self, evt=None):
+        """
+        This method is called by the base class when it needs to popup
+        the menu for the default EVT_RIGHT_DOWN event.  Just create
+        the menu how you want it and return it from this function,
+        the base class takes care of the rest.
+        """
+        menu = wx.Menu()
+        menu.Append(self.TBMENU_RESTORE, "Open Program")
+        menu.Append(self.TBMENU_CHANGE, "Show all the Items")
+        menu.AppendSeparator()
+        menu.Append(self.TBMENU_CLOSE,   "Exit Program")
+        return menu
+ 
+    #----------------------------------------------------------------------
+    def OnTaskBarActivate(self, evt):
+        """"""
+        pass
+ 
+    #----------------------------------------------------------------------
+    def OnTaskBarClose(self, evt):
+        """
+        Destroy the taskbar icon and frame from the taskbar icon itself
+        """
+        self.frame.Close()
+ 
+    #----------------------------------------------------------------------
+    def OnTaskBarLeftClick(self, evt):
+        """
+        Create the right-click menu
+        """
+        menu = self.tbIcon.CreatePopupMenu()
+        self.PopupMenu(menu)
+        menu.Destroy()
        
 if __name__ == '__main__':
     app = MyApp(0)   #MyApp(redirect = True)
