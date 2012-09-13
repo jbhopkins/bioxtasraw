@@ -152,7 +152,13 @@ def loadPilatusImage(filename):
 def loadMar345Image(filename):  
    
     dim = getMar345ImgDim(filename)
-    SizeOfImage = dim[0]    
+    
+    try:
+        SizeOfImage = dim[0]
+    except TypeError:
+        raise SASExceptions.WrongImageFormat("Could not get the dimensions out of the image..")    
+    
+    
     img_ = np.zeros((SizeOfImage*SizeOfImage), dtype= np.int16)
     
     filename_ = filename.encode('utf8')
