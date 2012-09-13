@@ -1655,7 +1655,7 @@ class FigureSavePanel(wx.Panel):
         self.tight_border = wx.CheckBox(self, -1, 'Cut border padding')
         self.tight_border.SetValue(False)    
         
-        sizer.Add(self.tight_border, 0, wx.TOP, 10)
+        sizer.Add(self.tight_border, 0, wx.ALL, 5)
         
         
         self.updateSettings()
