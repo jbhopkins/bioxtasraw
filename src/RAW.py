@@ -2284,7 +2284,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         
         self.dirsList.sort(key = str.lower)
         
-        ## Remove directories fromt the file list:
+        ## Remove directories fromt the file list:   
         for each in self.dirsList:
             self.files.remove(each)
         
@@ -2293,9 +2293,9 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         if len(self.path) > 1:
             #self.InsertStringItem(0, '..')
             #self.SetItemImage(0,0)
-            j = 0
+            j = 1
         else:
-            j = 0
+            j = 1
         
         for i in self.dirsList:
             (name, ext) = os.path.splitext(i)
@@ -2309,7 +2309,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
                 sec = 1
 
             self.file_list_dict[j] = (name, ex, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)), '', 'dir')
-            
+                      
             j += 1
         
         end_of_folders_idx = j    
