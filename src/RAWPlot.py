@@ -1878,6 +1878,8 @@ class FigureSaveDialog(wx.Dialog):
             
             basename, ext = os.path.splitext(filename)
             
+            filename = os.path.join(dirname, filename)
+            
             if par['cut']:
                 self.figure.savefig(filename, dpi = par['dpi'], bbox_inches='tight', format = par['fmt'])
             else:
