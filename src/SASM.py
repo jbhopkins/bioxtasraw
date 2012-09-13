@@ -314,16 +314,11 @@ class SASM:
         return SASM(copy.copy(self.i), copy.copy(self.q), copy.copy(self.err), copy.copy(self._parameters))
         
         
-        
-
 class IftSASM(SASM):
     
     def __init__(self, i, q, err, parameters):
         SASM.__init__(self, i, q, err, parameters)
         
-        
-    
-    
                 
 def subtract(sasm1, sasm2):
     ''' Subtract one SASM object from another and propagate errors '''
@@ -372,7 +367,9 @@ def average(sasm_list):
         avg_filelist.append(sasm_list[idx].getParameter('filename'))
     
     avg_i = np.mean(all_i, 0)
+    
     avg_err = np.sqrt( np.sum( np.power(all_err,2), 0 ) ) / np.sqrt(len(all_err))
+    
     avg_q = first_sasm.q.copy()[first_q_min:first_q_max]
     avg_parameters = sasm_list[0].getAllParameters().copy()
     

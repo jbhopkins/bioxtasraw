@@ -1466,7 +1466,6 @@ class ImageSettingsDialog(wx.Dialog):
                 slider.SetMin(minval)
                 slider.SetMax(maxval)
             
-            
             slider.SetValue(float(self.parent.plot_parameters[each[3]]))
     
     def onLockValues(self, event):

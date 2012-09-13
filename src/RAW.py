@@ -1091,7 +1091,7 @@ class MainWorkerThread(threading.Thread):
                     i = i + 1
                         
                 plot_param = self.image_panel.getPlotParameters()
-                plot_param['storedMasks'] = masks
+                plot_param['storedMasks'].extend(masks)
                 self.image_panel.setPlotParameters(plot_param)
 
                 #Plot mask on load:                

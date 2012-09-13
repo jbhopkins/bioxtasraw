@@ -8,6 +8,7 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.backend_bases import cursors
 from matplotlib.widgets import Cursor
 from matplotlib.font_manager import FontProperties
+import RAWCustomCtrl
 
 RAWWorkDir = sys.path[0]
 
@@ -370,7 +371,11 @@ class PlotOptionsDialog(wx.Dialog):
         
         self.legend_enable = wx.CheckBox(self, -1)
         self.legend_enable.Bind(wx.EVT_CHECKBOX, self._updateLegendSettings)
-        self.legend_enable.SetValue(self.legend.get_visible())
+        
+        try:
+            self.legend_enable.SetValue(self.legend.get_visible())
+        except AttributeError, e:
+            pass
     
         alpha_text = wx.StaticText(self, -1, 'Transparency % : ')
         self.alpha = wx.SpinCtrl(self, -1, str(abs(self._old_legend_settings['alpha']-100)))
@@ -606,6 +611,11 @@ class CustomPlotToolbar(NavigationToolbar2Wx):
     def home(self, *args, **kwargs):
         self.parent.fitAxis(forced = True)
         self.parent.canvas.draw()
+           
+    def save(self,  *args, **kwargs):
+        dia = FigureSaveDialog(self.parent, self.parent.fig, self.parent.save_parameters)
+        dia.ShowModal()
+        dia.Destroy()
              
     def showboth(self, evt):
         self.ToggleTool(self._MTB_SHOWTOP, False)
@@ -772,7 +782,9 @@ class PlotPanel(wx.Panel):
                                         'porod'       : ['Porod', 'q [1/A]', 'I(q)q^4'],
                                         'normal'      : ['Main Plot', 'q [1/A]', 'I(q)']}
         
-            
+        self.save_parameters ={'dpi' : 100,
+                               'format' : 'png'}
+        
         self._setLabels(axes = self.subplot1)
         self._setLabels(axes = self.subplot2)
         
@@ -1624,4 +1636,258 @@ class IftPlotPanel(PlotPanel):
             wx.FindWindowByName('MainFrame').SetStatusText('r = ' +  str(round(x,5)) + ', P(r) = ' + str(round(y,5)), 1) 
         
         
+class FigureSavePanel(wx.Panel):
+    #def __init__(self, parent, plotparams, axes, *args, **kwargs):
+    def __init__(self, parent,figure, save_parameters, *args, **kwargs):
+        wx.Panel.__init__(self, parent, *args, **kwargs)
+        
+        self.figure = figure  
+        self.old_unit = 'inches'     
+        self.save_parameters = save_parameters
+        
+        box = wx.StaticBox(self, -1, 'Settings')
+        sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+                
+        imgsize_sizer = self.createImageSizeSettings()
+        
+        sizer.Add(imgsize_sizer, 0)
+        
+        self.tight_border = wx.CheckBox(self, -1, 'Cut border padding')
+        self.tight_border.SetValue(False)    
+        
+        sizer.Add(self.tight_border, 0, wx.TOP, 10)
+        
+        
+        self.updateSettings()
+        
+        self.SetSizer(sizer)
+        self.Fit()
+        self.CenterOnParent()
+        
+    def updatePixels(self):
+        dpi = wx.FindWindowByName('Dpi')
+        width = wx.FindWindowByName('Width')
+        height = wx.FindWindowByName('Height')
+         
+        self.xypixels.SetValue('')
+        
+    def updateSettings(self):
+        dpi = wx.FindWindowByName('Dpi')
+        width = wx.FindWindowByName('Width')
+        height = wx.FindWindowByName('Height')
+        
+        #dpi_val = self.figure.get_dpi()
+        dpi_val = self.save_parameters['dpi']
+        
+        size = self.figure.get_size_inches()
+        
+        width.SetValue(str(size[0]))
+        height.SetValue(str(size[1]))
+        
+        dpi.SetValue(str(dpi_val))
     
+    def createImageSizeSettings(self):
+        #sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        grid_sizer = wx.FlexGridSizer(cols = 3, rows = 4, vgap = 5, hgap = 5)
+        
+        format_list = ['png', 'eps', 'ps', 'pdf', 'tif', 'jpg', 'raw', 'svg']
+        
+        self.format_label= wx.StaticText(self, -1, 'Format:')
+        self.format_choice = wx.Choice(self, -1, choices = format_list)
+        self.format_choice.Select(format_list.index(self.save_parameters['format']))
+        
+        grid_sizer.Add(self.format_label, 0)
+        grid_sizer.Add(self.format_choice, 0)
+        grid_sizer.Add((1,1) ,0)
+            
+        data = ['Dpi', 'Width', 'Height']
+        unit_list = ['inches', 'milimeters', 'pixels']
+                    
+        for each in data:
+            label = wx.StaticText(self, -1, each + ' :')
+            
+            if each == 'Dpi':
+                ctrl = RAWCustomCtrl.IntSpinCtrl(self, -1, name = each, TextLength = 60)
+            else:
+                ctrl = RAWCustomCtrl.FloatSpinCtrl(self, -1, name = each, TextLength = 60)
+            
+            grid_sizer.Add(label, 0, wx.RIGHT | wx.ALIGN_CENTRE_VERTICAL, 5)
+            grid_sizer.Add(ctrl, 0, wx.ALIGN_CENTRE_VERTICAL)
+                
+            if each == 'Height':
+                self.unit_choice = wx.Choice(self, -1, choices = unit_list)
+                self.unit_choice.Bind(wx.EVT_CHOICE, self.onUnitChoice)
+                grid_sizer.Add(self.unit_choice, 0, wx.ALIGN_CENTRE_VERTICAL)
+            else:
+                grid_sizer.Add((1,1), 0)
+            
+            #sizer.Add(grid_sizer, 0)
+            
+        #self.xypixels_label = wx.StaticText(self, -1, '')
+    
+        #sizer.Add(self.xypixels_label, 0, wx.TOP | wx.ALIGN_CENTRE_HORIZONTAL, 5)
+        
+        
+        return grid_sizer
+    
+    def onUnitChoice(self, event):
+        
+        width = wx.FindWindowByName('Width')
+        height = wx.FindWindowByName('Height')
+        dpi = wx.FindWindowByName('Dpi')
+        
+        height_val = float(height.GetValue())
+        width_val = float(width.GetValue())
+        dpi_val = int(dpi.GetValue())
+        
+        new_unit = self.unit_choice.GetStringSelection()
+        
+        new_height = height_val
+        new_width = width_val
+        
+        if self.old_unit == 'inches':
+            if new_unit == 'milimeters':
+                new_height = round(height_val / 0.0393700787, 2)
+                new_width = round(width_val / 0.0393700787, 2)
+            
+            elif new_unit == 'pixels':
+                new_height = round(height_val * dpi_val,0)
+                new_width = round(width_val * dpi_val, 0)
+                     
+        elif self.old_unit == 'milimeters':
+             if new_unit == 'inches':
+                new_height = round(height_val * 0.0393700787, 3)
+                new_width = round(width_val * 0.0393700787, 3)
+            
+             elif new_unit == 'pixels':
+                new_height = round((height_val * 0.0393700787) * dpi_val,0)
+                new_width = round((width_val * 0.0393700787) * dpi_val, 0)
+        
+        elif self.old_unit == 'pixels':
+            if new_unit == 'inches':
+                new_height = round(height_val / float(dpi_val), 3)
+                new_width = round(width_val / float(dpi_val), 3)
+            
+            elif new_unit == 'milimeters':
+                new_height = round((height_val / float(dpi_val)) / 0.0393700787, 2)
+                new_width = round((width_val / float(dpi_val)) / 0.0393700787, 2)
+              
+        height.SetValue(str(new_height))
+        width.SetValue(str(new_width))
+        
+        self.old_unit = new_unit
+              
+    def getSaveParameters(self):
+        
+        dpi = wx.FindWindowByName('Dpi')
+        width = wx.FindWindowByName('Width')
+        height = wx.FindWindowByName('Height')
+        
+        dpi_val = int(dpi.GetValue())
+        width_val = float(width.GetValue())
+        height_val = float(height.GetValue())
+        
+        fmt = self.format_choice.GetStringSelection()
+        
+        if self.unit_choice.GetStringSelection() == 'pixels':
+            height_val = round(height_val / float(dpi_val), 5)
+            width_val = round(width_val / float(dpi_val), 5)
+        elif self.unit_choice.GetStringSelection() == 'milimeters':
+            height_val = round(height_val * 0.0393700787, 5)
+            width_val = round(width_val * 0.0393700787, 5)
+        
+        par_dict = {'height' : height_val,
+                    'width' : width_val,
+                    'dpi' : dpi_val,
+                    'fmt' : fmt,
+                    'cut' : self.tight_border.GetValue()}
+        
+        return par_dict
+                
+class FigureSaveDialog(wx.Dialog): 
+    
+    def __init__(self, parent, figure, save_parameters, *args, **kwargs):
+        wx.Dialog.__init__(self, parent, -1, 'Save figure', *args, **kwargs)
+        
+        self.figure = figure
+        self.parent = parent
+        self.save_parameters = save_parameters
+        
+        dpi_val = str(self.figure.get_dpi())
+        size_val = self.figure.get_size_inches()
+        
+        self.old_fig_val = {'dpi' : dpi_val,
+                            'x' : size_val[0],
+                            'y' : size_val[1]}
+        
+        self.save_panel = FigureSavePanel(self, figure, save_parameters)
+        
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        buttons = self.CreateButtonSizer(wx.OK | wx.CANCEL)
+        self.Bind(wx.EVT_BUTTON, self._onOk, id = wx.ID_OK)
+        self.Bind(wx.EVT_BUTTON, self._onCancel, id = wx.ID_CANCEL)
+        
+        top_sizer.Add(self.save_panel, 1, wx.ALL, 10)
+        
+        top_sizer.Add(buttons, 0, wx.BOTTOM | wx.ALIGN_CENTRE_HORIZONTAL, 10)
+        
+        self.SetSizer(top_sizer)
+        self.Fit()
+        self.CenterOnParent()
+    
+    def restoreFigureSize(self):
+        
+        self.figure.set_dpi(int(self.old_fig_val['dpi']))
+        
+        x = self.old_fig_val['x']
+        y = self.old_fig_val['y']
+    
+        self.figure.set_size_inches(float(x),float(y))
+        
+        self.parent.canvas.draw()
+    
+    def _onCancel(self, event):
+        self.restoreFigureSize()
+        self.EndModal(wx.CANCEL)
+    
+    def _onOk(self, event):
+        
+        try:
+            par = self.save_panel.getSaveParameters()
+        except ValueError:
+            wx.MessageBox('You have provided invalid values.', 'Input error', style = wx.ICON_ERROR)
+            return
+
+        self.figure.set_dpi(par['dpi'])
+        self.figure.set_size_inches(par['width'], par['height'])
+        
+        default_file = "image." + par['fmt']
+        
+        filters = '(*.' +  par['fmt'] + ')|*.' + par['fmt']
+        
+        dlg = wx.FileDialog(self.parent, "Save to file", "", default_file,
+                            wildcard = filters,
+                            style = wx.SAVE | wx.OVERWRITE_PROMPT)
+        
+        if dlg.ShowModal() == wx.ID_OK:
+            dirname  = dlg.GetDirectory()
+            filename = dlg.GetFilename()
+            
+            basename, ext = os.path.splitext(filename)
+            
+            if par['cut']:
+                self.figure.savefig(filename, dpi = par['dpi'], bbox_inches='tight', format = par['fmt'])
+            else:
+                self.figure.savefig(filename, dpi = par['dpi'], format = par['fmt'])
+                
+            self.save_parameters['dpi'] = int(par['dpi'])
+            self.save_parameters['format'] = par['fmt']
+        else:
+            return
+        
+        self.restoreFigureSize()
+            
+        self.EndModal(wx.OK)
+        
