@@ -1650,7 +1650,7 @@ class FigureSavePanel(wx.Panel):
                 
         imgsize_sizer = self.createImageSizeSettings()
         
-        sizer.Add(imgsize_sizer, 0)
+        sizer.Add(imgsize_sizer, 0, wx.ALL, 5)
         
         self.tight_border = wx.CheckBox(self, -1, 'Cut border padding')
         self.tight_border.SetValue(False)    
@@ -1718,6 +1718,7 @@ class FigureSavePanel(wx.Panel):
             if each == 'Height':
                 self.unit_choice = wx.Choice(self, -1, choices = unit_list)
                 self.unit_choice.Bind(wx.EVT_CHOICE, self.onUnitChoice)
+                self.unit_choice.Select(0)
                 grid_sizer.Add(self.unit_choice, 0, wx.ALIGN_CENTRE_VERTICAL)
             else:
                 grid_sizer.Add((1,1), 0)
