@@ -201,6 +201,107 @@ def getMar345ImgDim(filename):
     
     return dim
 
+
+def loadFrelonImage(filename):
+    fo = open(filename, 'rb')
+    
+    ############## FIND HEADER LENGTH AND READ IMAGE ###########
+    fo.seek(0, 2)
+    eof = fo.tell()
+    fo.seek(0)
+    
+    hdr_size = 1
+    byte = None
+    while byte != '}' and hdr_size !=eof:
+        byte = fo.read(1)
+        hdr_size = hdr_size + 1
+        if hdr_size > 10000:
+            raise ValueError
+        
+    ######################## PARSE HEADER ###################
+    fo.seek(0)
+    header = fo.read(hdr_size)
+    header = header.split('\n')
+    
+    header_dict = {}
+    for each in header:
+        sp_line = each.split('=')
+
+        if sp_line[0].strip() == '{' or sp_line[0].strip() == '}' or sp_line[0].strip() == '':
+            continue
+        
+        if len(sp_line) == 2:
+            header_dict[sp_line[0].strip()] = sp_line[1].strip()[:-2]
+        elif len>2:
+            header_dict[sp_line[0].strip()] = each[each.find('=')+2:-2]
+   
+    #print header_dict
+
+    fo.seek(hdr_size)
+    
+    dim1 = int(header_dict['Dim_1'])
+    dim2 = int(header_dict['Dim_2'])
+    
+    img = np.fromfile(fo, dtype='<i2')
+    img = np.reshape(img, (dim1, dim2))
+    
+    fo.close()
+
+    img_hdr = header_dict
+
+    return img, img_hdr
+    
+
+def loadEdfImage(filename):
+    
+    fo = open(filename, 'rb')
+    
+    ############## FIND HEADER LENGTH AND READ IMAGE ###########
+    fo.seek(0, 2)
+    eof = fo.tell()
+    fo.seek(0)
+    
+    hdr_size = 1
+    byte = None
+    while byte != '}' and hdr_size !=eof:
+        byte = fo.read(1)
+        hdr_size = hdr_size + 1
+        if hdr_size > 10000:
+            raise ValueError
+        
+    ######################## PARSE HEADER ###################
+    fo.seek(0)
+    header = fo.read(hdr_size)
+    header = header.split('\n')
+    
+    header_dict = {}
+    for each in header:
+        sp_line = each.split('=')
+
+        if sp_line[0].strip() == '{' or sp_line[0].strip() == '}' or sp_line[0].strip() == '':
+            continue
+        
+        if len(sp_line) == 2:
+            header_dict[sp_line[0].strip()] = sp_line[1].strip()[:-2]
+        elif len>2:
+            header_dict[sp_line[0].strip()] = each[each.find('=')+2:-2]
+   
+    #print header_dict
+
+    fo.seek(hdr_size)
+    
+    dim1 = int(header_dict['Dim_1'])
+    dim2 = int(header_dict['Dim_2'])
+    
+    img = np.fromfile(fo, dtype='<f4')
+    img = np.reshape(img, (dim1, dim2))
+    
+    fo.close()
+
+    img_hdr = header_dict
+
+    return img, img_hdr
+
 def loadSAXSLAB300Image(filename):
     
     try:
@@ -660,6 +761,8 @@ all_image_types = {'Quantum'       : loadQuantumImage,
                    'FLICAM'        : loadTiffImage,
                    'Pilatus'       : loadPilatusImage,
                    'SAXSLab300'    : loadSAXSLAB300Image,
+                   'ESRF EDF'      : loadEdfImage,
+                   'FReLoN'        : loadFrelonImage,
                    '16 bit TIF'    : loadTiffImage,
                    '32 bit TIF'    : load32BitTiffImage}
 
@@ -1674,6 +1777,10 @@ def checkFileType(filename):
         return 'image'
     elif ext == '.fit':
         return 'fit'
+    elif ext == '.edf':
+        return 'image'
+    elif ext == '.ccdraw':
+        return 'image'
     elif ext == '.int':
         return 'int'
     elif ext == '.img' or ext == '.imx_0' or ext == '.dkx_0' or ext == '.dkx_1' or ext == '.png':

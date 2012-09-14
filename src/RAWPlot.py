@@ -43,7 +43,6 @@ class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
                    plotpanel.setParameter('axesscale' + str(i), 'linlin')
                    
                    wx.MessageBox('Data contains too many illegal/negative values for a log plot', 'Error!' )
-                   
             
             try:
                 self.draw()
@@ -158,12 +157,10 @@ class PlotOptionsDialog(wx.Dialog):
                 
         sizer = wx.BoxSizer(wx.VERTICAL)
         
-      
         self.legend = axes.get_legend()
         
         self._old_xlimit = self.axes.xaxis.get_data_interval()
         self._old_ylimit = self.axes.yaxis.get_data_interval()
-        
         
         #If people are still running old matplotlib:
         if self.legend == None:
@@ -268,8 +265,7 @@ class PlotOptionsDialog(wx.Dialog):
             print e
         
         event.Skip()
-        
-        
+   
     def _createAxesSettings(self):
         box = wx.StaticBox(self, -1, 'Axes')
         topbox = wx.StaticBoxSizer(box, wx.VERTICAL)
@@ -762,12 +758,8 @@ class PlotPanel(wx.Panel):
                                     
                                     'title_fontsize2'       : 16,
                                     'xlabel_fontsize2'      : 15,
-                                    'ylabel_fontsize2'      : 15
+                                    'ylabel_fontsize2'      : 15}
                                     
-                                    
-                                    }
-                                    
-        
         self.frame_styles = ['Full', 'XY', 'X', 'Y', 'None']
         
         self.subplot_labels = { 'subtracted'  : ['Subtracted', '$q$', '$I(q)$'],
@@ -1138,11 +1130,7 @@ class PlotPanel(wx.Panel):
         dlg = PlotOptionsDialog(self, self.plotparams, axes)
         dlg.ShowModal()
         dlg.Destroy()
-        
-        
-        
-        #self.updatePlotType(axes)
-    
+            
     def _onLegendOptions(self, evt):
         dlg = LegendOptionsDialog(self, self.plotparams, self.selected_plot)
         dlg.ShowModal()
@@ -1686,9 +1674,7 @@ class FigureSavePanel(wx.Panel):
         
         dpi.SetValue(str(dpi_val))
     
-    def createImageSizeSettings(self):
-        #sizer = wx.BoxSizer(wx.VERTICAL)
-        
+    def createImageSizeSettings(self):        
         grid_sizer = wx.FlexGridSizer(cols = 3, rows = 4, vgap = 5, hgap = 5)
         
         format_list = ['png', 'eps', 'ps', 'pdf', 'tif', 'jpg', 'raw', 'svg']
@@ -1722,14 +1708,7 @@ class FigureSavePanel(wx.Panel):
                 grid_sizer.Add(self.unit_choice, 0, wx.ALIGN_CENTRE_VERTICAL)
             else:
                 grid_sizer.Add((1,1), 0)
-            
-            #sizer.Add(grid_sizer, 0)
-            
-        #self.xypixels_label = wx.StaticText(self, -1, '')
-    
-        #sizer.Add(self.xypixels_label, 0, wx.TOP | wx.ALIGN_CENTRE_HORIZONTAL, 5)
-        
-        
+               
         return grid_sizer
     
     def onUnitChoice(self, event):
@@ -1881,7 +1860,7 @@ class FigureSaveDialog(wx.Dialog):
             filename = os.path.join(dirname, filename)
             
             if par['cut']:
-                self.figure.savefig(filename, dpi = par['dpi'], bbox_inches='tight', format = par['fmt'])
+                self.figure.savefig(filename, dpi = par['dpi'], bbox_inches='tight', format = par['fmt'])#, pad_inches=0)
             else:
                 self.figure.savefig(filename, dpi = par['dpi'], format = par['fmt'])
                 
