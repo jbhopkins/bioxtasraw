@@ -174,7 +174,7 @@ def loadMar345Image(filename):
     try: 
         img_hdr = parseMar345FileHeader(filename)
     except:
-        pass
+        img_hdr = {}
     
     return img, img_hdr
 
@@ -1774,6 +1774,7 @@ def checkFileType(filename):
     #print type_tst
 
     if type_tst == 'II':   # Test if file is a TIFF file (first two bytes are "II")
+        print 'TIFF'
         return 'image'
     elif ext == '.fit':
         return 'fit'
@@ -1789,7 +1790,7 @@ def checkFileType(filename):
     #    return 'bift'
     elif ext == '.dat':
         return 'primus'
-    elif ext == '.mar1200' or ext == '.mar2400' or ext == '.mar3600':
+    elif ext == '.mar1200' or ext == '.mar2400' or ext == '.mar2300' or ext == '.mar3600':
         return 'image'
     elif ext == '.ift':
         return 'ift'

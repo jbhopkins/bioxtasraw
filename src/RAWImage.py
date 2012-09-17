@@ -451,33 +451,50 @@ class ImagePanel(wx.Panel):
             
     def _onMouseScroll(self, event):
         pass
-#        base_scale = 1.05
-#        # get the current x and y limits
+        # get the current x and y limits
 #        ax = self.fig.gca()
-#        
+#      
 #        cur_xlim = ax.get_xlim()
 #        cur_ylim = ax.get_ylim()
-#        cur_xrange = (cur_xlim[1] - cur_xlim[0])*.5
-#        cur_yrange = (cur_ylim[1] - cur_ylim[0])*.5
+#        
+#        cur_xrange = (cur_xlim[1] - cur_xlim[0]) *.5
+#        cur_yrange = (cur_ylim[1] - cur_ylim[0]) *.5
+#        
 #        xdata = event.xdata # get event x location
 #        ydata = event.ydata # get event y location
 #        
 #        if event.button == 'up':
-#            # deal with zoom in
-#            scale_factor = 1/base_scale
+#            # zoom in
+#            scale_factor = 1.15
 #        elif event.button == 'down':
-#            # deal with zoom out
-#            scale_factor = base_scale
+#            # zoom out
+#            scale_factor = 0.85
 #        else:
 #            # deal with something that should never happen
 #            scale_factor = 1
 #            print event.button
-#        # set new limits
-#        ax.set_xlim([xdata - cur_xrange*scale_factor,
-#                     xdata + cur_xrange*scale_factor])
-#        ax.set_ylim([ydata - cur_yrange*scale_factor,
-#                     ydata + cur_yrange*scale_factor])
+#
+#        x2, y2 = self.old_zoom_xy 
 #        
+#        dx = abs(x2-x1)
+#        dy = abs(y1-y2)
+#        
+#        tanA = dy/dx
+#        A = atan(tanA)
+#        
+#        dist = sqrt(dx^2 + dy^2)
+#        
+#        new_center_dist = 0.1 * dist
+#        
+#        new_x_offset = cos(A)* new_center_dist
+#        new_y_offset = tanA * new_x_offset
+#        
+#        # set new limits
+#        ax.set_xlim([1024 - cur_xrange * scale_factor,
+#                     1024 + cur_xrange * scale_factor])
+#        ax.set_ylim([1024 - cur_yrange * scale_factor,
+#                     1024 + cur_yrange * scale_factor])
+#
 #        self.canvas.draw() # force re-draw
     
     def _onMouseMotion(self, event):
