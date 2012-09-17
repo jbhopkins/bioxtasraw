@@ -368,8 +368,8 @@ def average(sasm_list):
     
     avg_i = np.mean(all_i, 0)
     
-    avg_err = np.sqrt( np.sum( np.power(all_err,2), 0 ) ) / np.sqrt(len(all_err))
-    
+    avg_err = np.sqrt( np.sum( np.power(all_err,2), 0 ) ) / len(all_err)  #np.sqrt(len(all_err))
+        
     avg_q = first_sasm.q.copy()[first_q_min:first_q_max]
     avg_parameters = sasm_list[0].getAllParameters().copy()
     
