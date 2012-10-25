@@ -864,7 +864,8 @@ def loadAsciiFile(filename, file_type):
                      '2col'       : load2ColFile,
                      'int'        : loadIntFile,
                      'fit'        : loadFitFile,
-                     'ift'        : loadIftFile}
+                     'ift'        : loadIftFile,
+                     'csv'        : loadCsvFile}
     
     if file_type == None:
         return None
@@ -1313,7 +1314,62 @@ def loadIntFile(filename):
     err = np.sqrt(abs(i))
     
     return SASM.SASM(i, q, err, parameters) 
+
+
+def loadCsvFile(filename):
+    ''' Loads a comma separated file, ignores everything except a three column line'''
     
+    
+    iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+[,]\s?-?\d*[.]\d*[+eE-]*\d+[,]\s?-?\d*[.]\d*[+eE-]*\d+\s*\n')
+    param_pattern = re.compile('[a-zA-Z0-9_]*\s*[=].*')
+
+    i = []
+    q = []
+    err = []
+    
+    parameters = {'filename' : os.path.split(filename)[1]}
+
+    fileheader = {}
+
+    f = open(filename)
+    
+    try:
+        for line in f:
+
+            iq_match = iq_pattern.match(line)
+            param_match = param_pattern.match(line)
+
+            if iq_match:
+                found = iq_match.group().split(',')
+                
+                print found
+                q.append(float(found[0].rstrip('\r\n')))
+                
+                i.append(float(found[1].rstrip('\r\n')))
+                
+                err.append(float(found[2].rstrip('\r\n')))
+                
+            if param_match:
+                found = param_match.group().split('=')
+
+                print found
+                if len(found) == 2:
+                    try:
+                        val = float(found[1].rstrip('\r\n'))
+                    except ValueError:
+                        val = found[1].rstrip('\r\n')
+                
+                    fileheader[found[0]] = val
+                    
+    finally:
+        f.close()
+
+    parameters = {'filename' : os.path.split(filename)[1],
+                  'fileHeader' : fileheader}
+
+    return SASM.SASM(i, q, err, parameters)
+
+
 
 def load2ColFile(filename):
     ''' Loads a two column file (q I) separated by whitespaces '''
@@ -1794,6 +1850,14 @@ def checkFileType(filename):
         return 'image'
     elif ext == '.ift':
         return 'ift'
-    else:
-        return 'rad'
+    elif ext == '.csv':
+        return 'csv'
+    else:  
+        try:
+            float(ext.strip('.'))
+        except Exception:
+            return 'rad'
+        return 'csv'
+        
+        
         

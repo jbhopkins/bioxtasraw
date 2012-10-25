@@ -2259,7 +2259,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         
         # Filelist doesnt take Unicode! convert to normal strings:
         for i in range(0, len(filteredFiles)):
-            filteredFiles[i] = str(filteredFiles[i])
+            filteredFiles[i] = str(filteredFiles[i].encode("iso-8859-15", "backslashreplace"))
             
         filteredFiles.sort(key = str.lower)
         
@@ -2320,7 +2320,8 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
             try:
                 size = os.path.getsize(os.path.join(self.path, i))
                 sec = os.path.getmtime(os.path.join(self.path, i))
-            except WindowsError, e:
+            except Exception, e:
+                print e
                 size = 0
                 sec = 1
 

@@ -233,7 +233,7 @@ def fixBackwardsCompatibility(raw_settings):
     
 def loadSettings(raw_settings, loadpath):
     
-    file_obj = open(loadpath, 'r')
+    file_obj = open(loadpath, 'rb')
     loaded_param = cPickle.load(file_obj)
     file_obj.close()
     
