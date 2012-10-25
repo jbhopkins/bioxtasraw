@@ -951,7 +951,7 @@ def loadIftFile(filename):
     f = open(filename)
         
     parameters = {'filename' : os.path.split(filename)[1],
-                  'fileHeader' : {}}
+                  'counters' : {}}
     
     path_noext, ext = os.path.splitext(filename)
     
@@ -992,10 +992,10 @@ def loadIftFile(filename):
     f = open(filename)
     
     parameters_orig = {'filename' : os.path.split(filename)[1] + '_ORIG',
-                      'fileHeader' : {}}
+                      'counters' : {}}
     
     parameters_fit = {'filename' : os.path.split(filename)[1] + '_FIT',
-                      'fileHeader' : {}}
+                      'counters' : {}}
     
     path_noext, ext = os.path.splitext(filename)
     
@@ -1060,12 +1060,12 @@ def loadFitFile(filename):
         fileHeader = {'comment':firstLine}
     
     parameters = {'filename' : os.path.split(filename)[1],
-                  'fileHeader' : fileHeader}
+                  'counters' : fileHeader}
     
     path_noext, ext = os.path.splitext(filename)
 
     fit_parameters = {'filename'  : os.path.split(path_noext)[1] + '_FIT',
-                      'fileHeader' : {}}
+                      'counters' : {}}
     
     try:
         
@@ -1127,7 +1127,7 @@ def loadPrimusDatFile(filename):
     
     fileHeader = {'comment':firstLine}
     parameters = {'filename' : os.path.split(filename)[1],
-                  'fileHeader' : fileHeader}
+                  'counters' : fileHeader}
     
     try:
         for line in f:
@@ -1281,7 +1281,7 @@ def loadNewRadFile(filename):
     
     
     parameters = {'filename' : os.path.split(filename)[1],
-                  'fileHeader' : fileheader}
+                  'counters' : fileheader}
     
     i = np.array(i)
     q = np.array(q)
@@ -1327,8 +1327,6 @@ def loadCsvFile(filename):
     q = []
     err = []
     
-    parameters = {'filename' : os.path.split(filename)[1]}
-
     fileheader = {}
 
     f = open(filename)
@@ -1342,7 +1340,6 @@ def loadCsvFile(filename):
             if iq_match:
                 found = iq_match.group().split(',')
                 
-                print found
                 q.append(float(found[0].rstrip('\r\n')))
                 
                 i.append(float(found[1].rstrip('\r\n')))
@@ -1352,7 +1349,6 @@ def loadCsvFile(filename):
             if param_match:
                 found = param_match.group().split('=')
 
-                print found
                 if len(found) == 2:
                     try:
                         val = float(found[1].rstrip('\r\n'))
@@ -1365,7 +1361,7 @@ def loadCsvFile(filename):
         f.close()
 
     parameters = {'filename' : os.path.split(filename)[1],
-                  'fileHeader' : fileheader}
+                  'counters' : fileheader}
 
     return SASM.SASM(i, q, err, parameters)
 
