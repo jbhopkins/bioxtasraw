@@ -993,7 +993,13 @@ class MainWorkerThread(threading.Thread):
                     
                     
                     print parameters
-                    ift_sasm = self._runBIFT(sasm, parameters)
+                    
+                    try:
+                        ift_sasm = self._runBIFT(sasm, parameters)
+                    except ValueError, e:
+                        print 'Error in: ift_sasm = self._runBIFT(sasm, parameters)'
+                        print e
+                        continue
                 
                     print 'got ift'
                     if ift_sasm == None:
@@ -7447,6 +7453,8 @@ class IFTSearchStatusDialog(wx.Dialog):
         top_sizer.Add(button_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
         
         self.SetSizer(top_sizer)
+        
+        self.CenterOnParent()
      
      def _onCancel(self, evt):
          BIFT.cancel_bift = True
