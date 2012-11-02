@@ -2892,6 +2892,8 @@ class ManipulationPanel(wx.Panel):
         self.show_all_png = wx.Image(os.path.join(RAWWorkDir, 'resources', 'open_eye.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         self.hide_all_png = wx.Image(os.path.join(RAWWorkDir, 'resources', 'close_eye.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         
+        self.select_all_png = wx.Image(os.path.join(RAWWorkDir, 'resources', 'select_all.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        
     def _createToolbar(self):
         
         sizer = wx.BoxSizer()
@@ -2900,11 +2902,17 @@ class ManipulationPanel(wx.Panel):
         expand_all = wx.StaticBitmap(self, -1, self.expand_all_png)
         show_all = wx.StaticBitmap(self, -1, self.show_all_png)
         hide_all = wx.StaticBitmap(self, -1, self.hide_all_png)
+        
+        select_all= wx.StaticBitmap(self, -1, self.select_all_png)
+        
+        select_all.SetToolTipString('Select All')
         show_all.SetToolTipString('Show All')
         hide_all.SetToolTipString('Hide All')
         
         collapse_all.SetToolTipString('Collapse All')
         expand_all.SetToolTipString('Expand All')
+        
+        select_all.Bind(wx.EVT_LEFT_DOWN, self._onSelectAllButton)
         collapse_all.Bind(wx.EVT_LEFT_DOWN, self._onCollapseAllButton)
         expand_all.Bind(wx.EVT_LEFT_DOWN, self._onExpandAllButton)
         show_all.Bind(wx.EVT_LEFT_DOWN, self._onShowAllButton)
@@ -2912,6 +2920,8 @@ class ManipulationPanel(wx.Panel):
         
         sizer.Add(show_all, 0, wx.LEFT, 5)
         sizer.Add(hide_all, 0, wx.LEFT, 5)
+        sizer.Add((1,1),1, wx.EXPAND)
+        sizer.Add(select_all, 0, wx.LEFT, 5)
         sizer.Add((1,1),1, wx.EXPAND)
         sizer.Add(collapse_all, 0, wx.RIGHT, 5)
         sizer.Add(expand_all, 0, wx.RIGHT, 3)
@@ -3045,6 +3055,11 @@ class ManipulationPanel(wx.Panel):
             
         return self.selected_item_list
     
+    def selectAll(self):
+        for each in self.all_manipulation_items:
+                each._selected = False
+                each.toggleSelect()
+    
     def deselectAllExceptOne(self, item, line = None, enableLocatorLine = False):
         
         if line == None:    
@@ -3148,6 +3163,9 @@ class ManipulationPanel(wx.Panel):
         wx.CallAfter(plot_panel.updateLegend, 1)
         wx.CallAfter(plot_panel.updateLegend, 2)
         wx.CallAfter(plot_panel.canvas.draw)
+        
+    def _onSelectAllButton(self, event):
+        self.selectAll()
                
     def _onCollapseAllButton(self, event):
         self._collapseAllItems()
