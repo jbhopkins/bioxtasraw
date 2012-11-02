@@ -253,6 +253,11 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
             NavigationToolbar2.pan(self)
     
     ## Overridden functions:
+    
+    def home(self, *args, **kwargs):
+        self.parent.fitAxis()
+        self.parent.canvas.draw()
+    
     def zoom(self, *args):
         self._deactivateMaskTools()
         self.ToggleTool(self._NTB2_PAN, False)
@@ -353,7 +358,20 @@ class ImagePanel(wx.Panel):
             self.toolbar._deactivatePanZoom()
         
     def getTool(self):
-        return self.current_tool        
+        return self.current_tool 
+    
+    def fitAxis(self):
+        
+        if self.img == None:
+            return
+        
+        img_ydim, img_xdim = self.img.shape
+        
+        a = self.fig.gca()
+        
+        a.set_xlim((0, img_xdim))
+        a.set_ylim((0, img_ydim))
+               
     
     def untoggleAllToolButtons(self):
         self.masking_panel = wx.FindWindowByName('MaskingPanel')
@@ -450,52 +468,107 @@ class ImagePanel(wx.Panel):
             self._canvas_cursor = Cursor(a, useblit=True, color='red', linewidth=1 )
             
     def _onMouseScroll(self, event):
-        pass
+        
+        if self._plotting_in_progress or self._movement_in_progress:
+            return
+        
         # get the current x and y limits
-#        ax = self.fig.gca()
+        ax = self.fig.gca()
 #      
-#        cur_xlim = ax.get_xlim()
-#        cur_ylim = ax.get_ylim()
+        cur_xlim = ax.get_xlim()
+        cur_ylim = ax.get_ylim()
 #        
-#        cur_xrange = (cur_xlim[1] - cur_xlim[0]) *.5
-#        cur_yrange = (cur_ylim[1] - cur_ylim[0]) *.5
+        cur_xrange = (cur_xlim[1] - cur_xlim[0])
+        cur_yrange = (cur_ylim[1] - cur_ylim[0])
 #        
-#        xdata = event.xdata # get event x location
-#        ydata = event.ydata # get event y location
-#        
-#        if event.button == 'up':
-#            # zoom in
-#            scale_factor = 1.15
-#        elif event.button == 'down':
-#            # zoom out
-#            scale_factor = 0.85
-#        else:
-#            # deal with something that should never happen
-#            scale_factor = 1
-#            print event.button
-#
-#        x2, y2 = self.old_zoom_xy 
-#        
-#        dx = abs(x2-x1)
-#        dy = abs(y1-y2)
-#        
-#        tanA = dy/dx
-#        A = atan(tanA)
-#        
-#        dist = sqrt(dx^2 + dy^2)
-#        
-#        new_center_dist = 0.1 * dist
-#        
-#        new_x_offset = cos(A)* new_center_dist
-#        new_y_offset = tanA * new_x_offset
-#        
-#        # set new limits
-#        ax.set_xlim([1024 - cur_xrange * scale_factor,
-#                     1024 + cur_xrange * scale_factor])
-#        ax.set_ylim([1024 - cur_yrange * scale_factor,
-#                     1024 + cur_yrange * scale_factor])
-#
-#        self.canvas.draw() # force re-draw
+        xdata = event.xdata # get event x location
+        ydata = event.ydata # get event y location
+        
+        if event.button == 'up':
+            # zoom in
+            scale_factor = 1.15
+        elif event.button == 'down':
+            # zoom out
+            scale_factor = 0.85
+        else:
+            # deal with something that should never happen
+            scale_factor = 1
+            print event.button
+
+
+        # MOVE AXIS
+        zx_pix, zy_pix = ax.transAxes.transform((0,0))
+        cx_pix, cy_pix = ax.transAxes.transform((0.5,0.5))
+        mx_pix, my_pix = ax.transData.transform((xdata,ydata))
+         
+        dx = cx_pix - mx_pix
+        dy = cy_pix - my_pix
+         
+        dist = np.sqrt(np.power(abs(dx),2)+np.power(abs(dy),2))
+        
+        step = 0.2
+        new_dist = dist * step   #step = 0..1
+         
+        tanA = abs(dy) / abs(dx)
+        A = np.arctan(tanA)
+        
+        new_dx = np.cos(A) * new_dist
+        new_dy = tanA * new_dx
+        
+        zdx = zx_pix + new_dx
+        zdy = zy_pix + new_dy
+        
+        inv = ax.transData.inverted()
+        
+        zxdata, zydata = inv.transform((zx_pix, zy_pix))
+        zstpx, zstpy = inv.transform((zdx, zdy))
+        
+        dx_move = zstpx - zxdata
+        dy_move = zstpy - zydata
+    
+        
+        if dx >= 0:
+            newxmin = cur_xlim[0] - dx_move
+            newxmax = cur_xlim[1] - dx_move
+        if dx < 0:
+            newxmin = cur_xlim[0] + dx_move
+            newxmax = cur_xlim[1] + dx_move
+        
+        try: 
+            newxlim = (newxmin, newxmax)
+        except UnboundLocalError:
+            return
+        
+        if dy >= 0:
+            newymin = cur_ylim[0] - dy_move
+            newymax = cur_ylim[1] - dy_move
+        if dy < 0:
+            newymin = cur_ylim[0] + dy_move
+            newymax = cur_ylim[1] + dy_move
+            
+        newylim = (newymin, newymax)
+            
+        
+        #ZOOM
+        cur_xrange = (cur_xlim[1] - cur_xlim[0])
+        cur_yrange = (cur_ylim[1] - cur_ylim[0])
+         
+        new_xrange = scale_factor * cur_xrange
+        new_yrange = scale_factor * cur_yrange
+        
+        dxrange = cur_xrange - new_xrange
+        dyrange = cur_yrange - new_yrange
+        
+        xmin, xmax = newxlim
+        newxlim_zoom = (xmin - (dxrange/2.0), xmax + (dxrange/2.0))
+        
+        ymin,ymax = newylim
+        newylim_zoom = (ymin - (dyrange/2.0), ymax + (dyrange/2.0))
+         
+        ax.set_xlim(newxlim_zoom)
+        ax.set_ylim(newylim_zoom)
+        
+        self.canvas.draw() # force re-draw
     
     def _onMouseMotion(self, event):
         ''' handles mouse motions, updates the
