@@ -950,6 +950,7 @@ class PlotPanel(wx.Panel):
     
     
     def _onMouseScrollEvent(self, event):
+        
         x_size,y_size = self.canvas.get_width_height()
         half_y = y_size / 2
         
@@ -989,16 +990,25 @@ class PlotPanel(wx.Panel):
 
 
         # MOVE AXIS
+        
         zx_pix, zy_pix = ax.transAxes.transform((0,0))
         cx_pix, cy_pix = ax.transAxes.transform((0.5,0.5))
-        mx_pix, my_pix = ax.transData.transform((xdata,ydata))
+        
+        try:
+            mx_pix, my_pix = ax.transData.transform((xdata,ydata))
+        except Exception, e:
+            print 'Err in onMousescroll :'
+            print e
+            print xdata, ydata
+            return
+            
          
         dx = cx_pix - mx_pix
         dy = cy_pix - my_pix
          
         dist = numpy.sqrt(numpy.power(abs(dx),2)+numpy.power(abs(dy),2))
         
-        step = 0.2
+        step = 0.15
         new_dist = dist * step   #step = 0..1
          
         tanA = abs(dy) / abs(dx)
@@ -1591,10 +1601,10 @@ class PlotPanel(wx.Panel):
             else:
                 leg.get_frame().set_linewidth(1)
                 
-            try:
-                leg.draggable()   #Interferes with the scroll zoom!
-            except AttributeError:
-                print "WARNING: Old matplotlib version, legend not draggable"
+            #try:
+            #    leg.draggable()   #Interferes with the scroll zoom!
+            #except AttributeError:
+            #    print "WARNING: Old matplotlib version, legend not draggable"
    
         #legend = RAWCustomCtrl.DraggableLegend(leg, self.subplot1)
   
