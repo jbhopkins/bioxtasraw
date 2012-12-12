@@ -951,6 +951,8 @@ class PlotPanel(wx.Panel):
     
     def _onMouseScrollEvent(self, event):
         
+        return
+        
         x_size,y_size = self.canvas.get_width_height()
         half_y = y_size / 2
         
@@ -988,19 +990,24 @@ class PlotPanel(wx.Panel):
             scale_factor = 1
             print event.button
 
-
         # MOVE AXIS
-        
         zx_pix, zy_pix = ax.transAxes.transform((0,0))
         cx_pix, cy_pix = ax.transAxes.transform((0.5,0.5))
         
-        try:
-            mx_pix, my_pix = ax.transData.transform((xdata,ydata))
-        except Exception, e:
-            print 'Err in onMousescroll :'
-            print e
-            print xdata, ydata
-            return
+        #try:
+        
+        #mx_pix, my_pix = ax.transData.transform((xdata, ydata))
+        
+        xy = numpy.array([(xdata,ydata), (xdata, ydata)])
+        
+        mx_pix, my_pix = ax.transData.transform(xy)
+        mx_pix = mx_pix[0]
+        my_pix = my_pix[1]
+        #except Exception, e:
+        #    print 'Err in onMousescroll :'
+        #    print e
+        #    print xdata, ydata
+        #    return
             
          
         dx = cx_pix - mx_pix
@@ -1022,8 +1029,12 @@ class PlotPanel(wx.Panel):
         
         inv = ax.transData.inverted()
         
+        
         zxdata, zydata = inv.transform((zx_pix, zy_pix))
+        
+        
         zstpx, zstpy = inv.transform((zdx, zdy))
+        
         
         dx_move = zstpx - zxdata
         dy_move = zstpy - zydata
@@ -1197,10 +1208,38 @@ class PlotPanel(wx.Panel):
             
             if each.line.get_visible():
                 for each_err_line in each.err_line[0]:
-                    each_err_line.set_visible(state)    
+                    each_err_line.set_visible(state)  
+                    
                 for each_err_line in each.err_line[1]:
                     each_err_line.set_visible(state)
- 
+     
+                    
+                if state == True:
+                    
+                    q_min, q_max = each.getQrange()
+                    q = each.q
+                    i = each.i
+                    
+                    caplines = each.err_line[0]
+                    barlinecols = each.err_line[1]
+                    
+                    yerr = each.err
+                    x = q
+                    y = i                                  
+                    
+                    # Find the ending points of the errorbars 
+                    error_positions = (x, y-yerr), (x, y+yerr) 
+
+                    # Update the caplines 
+                    for i,pos in enumerate(error_positions): 
+                        caplines[i].set_data(pos) 
+
+                    # Update the error bars 
+                    #barlinecols[0].set_segments(zip(zip(x-xerr,y), zip(x+xerr,y))) 
+                    barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr))) 
+                    
+                      
+                
                 
 #                for each_line in each.err_line[0]:
 #                    each_line.set_visible(state)
@@ -1480,6 +1519,7 @@ class PlotPanel(wx.Panel):
             if type == 'normal' or type == 'subtracted':
                 #line, ec, el = a.errorbar(sasm.q, sasm.i, sasm.errorbars, picker = 3)
                 sasm.line.set_data(q, i)
+            
             elif type == 'kratky':
                 #line, ec, el = a.errorbar(sasm.q, sasm.i*power(sasm.q,2), sasm.errorbars, picker = 3)
                 sasm.line.set_data(q, i*numpy.power(q,2))
@@ -1601,10 +1641,10 @@ class PlotPanel(wx.Panel):
             else:
                 leg.get_frame().set_linewidth(1)
                 
-            #try:
-            #    leg.draggable()   #Interferes with the scroll zoom!
-            #except AttributeError:
-            #    print "WARNING: Old matplotlib version, legend not draggable"
+            try:
+                leg.draggable()   #Interferes with the scroll zoom!
+            except AttributeError:
+                print "WARNING: Old matplotlib version, legend not draggable"
    
         #legend = RAWCustomCtrl.DraggableLegend(leg, self.subplot1)
   
