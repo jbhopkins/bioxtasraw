@@ -1610,7 +1610,7 @@ def saveWorkspace(sasm_dict, save_path):
     
 def loadWorkspace(load_path):
     
-    file = open(load_path, 'rb')
+    file = open(load_path, 'r')
 
     try:
         sasm_dict = cPickle.load(file)
