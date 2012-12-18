@@ -850,10 +850,11 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
     errorbars[np.where(np.isnan(errorbars))] = 1e-10
     
     q = np.linspace(0, len(iq)-1, len(iq))
-    
+
     if dezingering == 1:
         iq, errorbars = getIntensityFromQmatrix(qmatrix)
         iq[np.where(np.isnan(iq))] = 0
+        errorbars[np.where(np.isnan(errorbars))] = 1e-10
         
     #Trim trailing zeros
     iq = np.trim_zeros(iq, 'b')

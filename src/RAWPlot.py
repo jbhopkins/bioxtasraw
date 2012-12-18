@@ -1215,6 +1215,7 @@ class PlotPanel(wx.Panel):
      
                     
                 if state == True:
+                    #Update errorbar positions
                     
                     q_min, q_max = each.getQrange()
                     q = each.q
@@ -1235,20 +1236,8 @@ class PlotPanel(wx.Panel):
                         caplines[i].set_data(pos) 
 
                     # Update the error bars 
-                    #barlinecols[0].set_segments(zip(zip(x-xerr,y), zip(x+xerr,y))) 
                     barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr))) 
                     
-                      
-                
-                
-#                for each_line in each.err_line[0]:
-#                    each_line.set_visible(state)
-#                    
-#                for each_line in each.err_line[1]:
-#                    each_line.set_visible(state)
-#                    
-                #setp(each.err_line[0], visible=state)
-                #setp(each.err_line[1], visible=state)
             
         self.canvas.draw()
                         
@@ -1519,6 +1508,26 @@ class PlotPanel(wx.Panel):
             if type == 'normal' or type == 'subtracted':
                 #line, ec, el = a.errorbar(sasm.q, sasm.i, sasm.errorbars, picker = 3)
                 sasm.line.set_data(q, i)
+                
+#                q = sasm.q
+#                i = sasm.i
+#                    
+#                caplines = sasm.err_line[0]
+#                barlinecols = sasm.err_line[1]
+#                    
+#                yerr = sasm.err
+#                x = q
+#                y = i                                  
+#                    
+#                # Find the ending points of the errorbars 
+#                error_positions = (x, y-yerr), (x, y+yerr) 
+#
+#                # Update the caplines 
+#                for i,pos in enumerate(error_positions): 
+#                    caplines[i].set_data(pos) 
+#
+#                # Update the error bars 
+#                barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr))) 
             
             elif type == 'kratky':
                 #line, ec, el = a.errorbar(sasm.q, sasm.i*power(sasm.q,2), sasm.errorbars, picker = 3)
