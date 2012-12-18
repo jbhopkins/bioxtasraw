@@ -1621,8 +1621,6 @@ def loadWorkspace(load_path):
         file = open(load_path, 'rb')
         sasm_dict = cPickle.load(file)
      
-    sasm_dict = cPickle.load(file)
-
     file.close()
     return sasm_dict
 
