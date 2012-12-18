@@ -1603,15 +1603,23 @@ def saveAnalysisCsvFile(sasm_list, include_data, save_path):
     
 def saveWorkspace(sasm_dict, save_path):
 
-    file = open(save_path, 'w')
+    file = open(save_path, 'wb')
 
     cPickle.dump(sasm_dict, file)
+    file.close()
     
 def loadWorkspace(load_path):
     
     file = open(load_path, 'r')
-    
-    sasm_dict = cPickle.load(file)
+
+    try:
+        sasm_dict = cPickle.load(file)
+    except ImportError, e:
+        print e
+        print 'Error loading wsp file, trying different method.'
+        file.close()
+        file = open(load_path, 'rb')
+        sasm_dict = cPickle.load(file)
     
     return sasm_dict
 
