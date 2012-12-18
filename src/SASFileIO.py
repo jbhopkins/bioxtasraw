@@ -1605,7 +1605,7 @@ def saveWorkspace(sasm_dict, save_path):
 
     file = open(save_path, 'wb')
 
-    cPickle.dump(sasm_dict, file, pickle.HIGHEST_PROTOCOL)
+    cPickle.dump(sasm_dict, file, cPickle.HIGHEST_PROTOCOL)
     file.close()
     
 def loadWorkspace(load_path):
