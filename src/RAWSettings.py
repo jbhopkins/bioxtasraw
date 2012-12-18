@@ -274,8 +274,8 @@ def saveSettings(raw_settings, savepath):
         oldMasks[key] = copy.deepcopy(masks[key][0]) 
         masks[key][0] = None
 
-    file_obj = open(savepath, 'wb', cPickle.HIGHEST_PROTOCOL)
-    cPickle.dump(save_dict, file_obj)
+    file_obj = open(savepath, 'wb')
+    cPickle.dump(save_dict, file_obj, cPickle.HIGHEST_PROTOCOL)
     file_obj.close()
     
     ## Make a backup of the config file in case of crash:
