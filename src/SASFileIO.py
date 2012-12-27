@@ -1107,6 +1107,12 @@ def loadFitFile(filename):
     fit_sasm = SASM.SASM(fit, np.copy(q), np.copy(err), fit_parameters)
    
     sasm = SASM.SASM(i, q, err, parameters)
+    
+    
+    print i
+    print q
+    
+    
    
     return [sasm, fit_sasm]
 
@@ -1838,7 +1844,7 @@ def checkFileType(filename):
         print 'TIFF'
         return 'image'
     elif ext == '.fit':
-        return 'fit'
+        return 'primus'
     elif ext == '.edf':
         return 'image'
     elif ext == '.ccdraw':
