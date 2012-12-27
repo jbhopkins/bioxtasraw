@@ -1068,10 +1068,13 @@ def loadFitFile(filename):
                       'counters' : {}}
     
     try:
-        
-        if has_three_columns:
-            for line in f:
-
+        for line in f:
+            
+            three_col_match = three_col_fit.match(line)
+            if three_col_match:
+                has_three_columns = True
+            
+            if has_three_columns:
                 iq_match = three_col_fit.match(line)
 
                 if iq_match:
@@ -1081,11 +1084,10 @@ def loadFitFile(filename):
                     i.append(float(found[1]))
                     fit.append(float(found[2]))
             
-            err = np.ones(len(i))
+                err = np.ones(len(i))
         
-        else:
-            for line in f:
-
+            else:
+            
                 iq_match = iq_pattern.match(line)
 
                 if iq_match:
@@ -1844,7 +1846,7 @@ def checkFileType(filename):
         print 'TIFF'
         return 'image'
     elif ext == '.fit':
-        return 'primus'
+        return 'fit'
     elif ext == '.edf':
         return 'image'
     elif ext == '.ccdraw':
