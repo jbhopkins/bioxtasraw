@@ -322,6 +322,38 @@ class PlotOptionsDialog(wx.Dialog):
         
         self._enableLimitsCtrls(not self.parent.plotparams['auto_fitaxes' + str(self.parent.selected_plot)])
         
+        
+        x_tick_label = wx.StaticText(self, -1, 'x-ticks:')
+        y_tick_label = wx.StaticText(self, -1, 'y-ticks:')
+        
+        for tick in self.axes.xaxis.get_major_ticks():
+            x_tick_size = tick.label.get_fontsize() 
+            break
+        
+        for tick in self.axes.yaxis.get_major_ticks():
+            y_tick_size = tick.label.get_fontsize() 
+            break
+        
+        x_tick_font_size = wx.SpinCtrl(self, -1, str(x_tick_size), name = 'xticksize')
+        x_tick_font_size.SetValue(int(x_tick_size))
+        
+        y_tick_font_size = wx.SpinCtrl(self, -1, str(y_tick_size), name = 'yticksize')
+        y_tick_font_size.SetValue(int(y_tick_size))
+        
+        x_tick_font_size.Bind(wx.EVT_SPINCTRL, self._updateAxesSettings)
+        y_tick_font_size.Bind(wx.EVT_SPINCTRL, self._updateAxesSettings)
+        
+        x_tick_sizer = wx.BoxSizer()
+        x_tick_sizer.Add(x_tick_label, 0)
+        x_tick_sizer.Add(x_tick_font_size, 0)
+        
+        y_tick_sizer = wx.BoxSizer()
+        y_tick_sizer.Add(y_tick_label, 0)
+        y_tick_sizer.Add(y_tick_font_size, 0)
+        
+        topbox.Add(x_tick_sizer, 0)
+        topbox.Add(y_tick_sizer, 0)
+        
         return topbox
     
     def _enableLimitsCtrls(self, state):
@@ -341,6 +373,21 @@ class PlotOptionsDialog(wx.Dialog):
             self._enableLimitsCtrls(True)
             
         self.parent.plotparams['auto_fitaxes' + str(self.parent.selected_plot)] = autolimits
+        
+        obj = event.GetEventObject()
+    
+        if obj.GetName() == 'xticksize':
+            for tick in self.axes.xaxis.get_major_ticks():
+                tick.label.set_fontsize(int(obj.GetValue())) 
+        
+        elif obj.GetName() == 'yticksize':
+            for tick in self.axes.yaxis.get_major_ticks():
+                tick.label.set_fontsize(int(obj.GetValue())) 
+        
+        try:
+            self.parent.canvas.draw()
+        except matplotlib.pyparsing.ParseFatalException, e:
+            print e
     
     
     def _createLegendSettings(self):

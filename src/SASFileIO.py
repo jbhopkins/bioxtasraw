@@ -1110,12 +1110,6 @@ def loadFitFile(filename):
    
     sasm = SASM.SASM(i, q, err, parameters)
     
-    
-    print i
-    print q
-    
-    
-   
     return [sasm, fit_sasm]
 
 
