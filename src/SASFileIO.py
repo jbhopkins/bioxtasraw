@@ -1055,9 +1055,14 @@ def loadFitFile(filename):
     if three_col_match:
         has_three_columns = True
         fileHeader = {}
-    
     else:
         fileHeader = {'comment':firstLine}
+    
+    
+    if "Experimental" in firstLine:
+        sasref = True     #SASREFMX Fit file (Damn those hamburg boys and their 50 different formats!)
+    else:
+        sasref = False
     
     parameters = {'filename' : os.path.split(filename)[1],
                   'counters' : fileHeader}
@@ -1071,20 +1076,25 @@ def loadFitFile(filename):
         for line in f:
             
             three_col_match = three_col_fit.match(line)
-            if three_col_match:
-                has_three_columns = True
             
-            if has_three_columns:
+            if three_col_match:
                 iq_match = three_col_fit.match(line)
 
                 if iq_match:
-                    #print line
-                    found = iq_match.group().split()
-                    q.append(float(found[0]))
-                    i.append(float(found[1]))
-                    fit.append(float(found[2]))
+                    
+                    if not sasref:
+                        found = iq_match.group().split()
+                        q.append(float(found[0]))
+                        i.append(float(found[1]))
+                        fit.append(float(found[2]))
             
-                err = np.ones(len(i))
+                        err = np.ones(len(i))
+                    else: #SASREF fit file
+                        found = line.split()
+                        q.append(float(found[0]))
+                        i.append(float(found[1]))
+                        fit.append(float(found[3]))
+                        err.append(float(found[2]))
         
             else:
             
