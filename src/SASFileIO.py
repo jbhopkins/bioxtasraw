@@ -1618,6 +1618,7 @@ def saveWorkspace(sasm_dict, save_path):
     file = open(save_path, 'wb')
 
     cPickle.dump(sasm_dict, file, cPickle.HIGHEST_PROTOCOL)
+    
     file.close()
     
 def loadWorkspace(load_path):
@@ -1626,7 +1627,7 @@ def loadWorkspace(load_path):
 
     try:
         sasm_dict = cPickle.load(file)
-    except ImportError, e:
+    except (ImportError, EOFError), e:
         print e
         print 'Error loading wsp file, trying different method.'
         file.close()
@@ -1634,6 +1635,7 @@ def loadWorkspace(load_path):
         sasm_dict = cPickle.load(file)
      
     file.close()
+    
     return sasm_dict
 
 
