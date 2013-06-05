@@ -1216,7 +1216,6 @@ def loadFitFile(filename):
 				iq_match = three_col_fit.match(line)
 
 				if iq_match:
-					print 'THREE COL'
 					
 					if not sasref:
 						found = iq_match.group().split()
@@ -1234,7 +1233,6 @@ def loadFitFile(filename):
 						
 			elif five_col_match:
 				#iq_match = five_col_fit.match(line)
-				print 'FIVE COL'
 				found = line.split()
 				q.append(float(found[0]))
 				i.append(float(found[1]))
@@ -1246,7 +1244,6 @@ def loadFitFile(filename):
 				iq_match = iq_pattern.match(line)
 
 				if iq_match:
-					print 'IQ'
 					found = iq_match.group().split()
 					q.append(float(found[0]))
 					i.append(float(found[1]))
