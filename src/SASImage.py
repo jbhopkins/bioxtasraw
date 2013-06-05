@@ -662,6 +662,14 @@ def applyMaskToImage(in_image, mask):
     pass
 
 
+def doFlatfieldCorrection(img, img_hdr, flatfield_img, flatfield_hdr):
+	cor_img = img / flatfield_img   #flat field is often water.
+
+	return cor_img
+
+def doDarkBackgroundCorrection(img, img_hdr, dark_img, dark_hdr):
+	pass
+
 def removeZingers(intensityArray, startIdx = 0, averagingWindowLength = 10, stds = 4):
     ''' Removes spikes from the radial averaged data          
         Threshold is currently 4 times the standard deviation 

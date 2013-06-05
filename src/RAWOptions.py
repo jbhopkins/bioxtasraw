@@ -1144,9 +1144,206 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
             except ValueError:
                 wx.MessageBox('Normalization constant contains illegal characters', 'Invalid input')
                 chkbox.SetValue(False)
+
+class ReductionFlatfield(wx.Panel):
+
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+
+        self.raw_settings = raw_settings
+
+        self.update_keys = ['NormFlatfieldFile',
+                            'NormFlatfieldEnabled']
+
+                              #      label,                  textCtrlId,            buttonId, clrbuttonId,    ButtonText,              BindFunction
+        self.filesData = [("Flatfield image:" , raw_settings.getId('NormFlatfieldFile'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile),
+                          ("Dark image:" , raw_settings.getId('DarkCorrFilename'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile)]   
+
+        self.normConstantsData = ( ("Water Temperature [C]:", raw_settings.getId('NormAbsWaterTemp'), None) ,
+                                   ("Water I(0):", raw_settings.getId('NormAbsWaterI0'), None),
+                                   ("Absolute Scaling Constant:", raw_settings.getId('NormAbsWaterConst'), True))
+
+        box = wx.StaticBox(self, -1, 'Flatfield correction')
+
+        self.abssc_chkbox = wx.CheckBox(self, raw_settings.getId('NormFlatfieldEnabled'), 'Enable flatfield correction')
+        self.abssc_chkbox.Bind(wx.EVT_CHECKBOX, self.onChkBox)
+
+        file_sizer = self.createFileSettings()
+        #norm_const_sizer = self.createNormConstants()
+        chkbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        chkbox_sizer.Add(self.abssc_chkbox, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
+        chkbox_sizer.Add(file_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        #chkbox_sizer.Add(norm_const_sizer, 0, wx.EXPAND | wx.ALL, 5)
+
+        final_sizer = wx.BoxSizer(wx.VERTICAL)
+        final_sizer.Add(chkbox_sizer, 0, wx.EXPAND | wx.ALL, 5)
+
+        self.SetSizer(final_sizer)
+
+    def createFileSettings(self):
+
+        noOfRows = int(len(self.filesData))
+        hSizer = wx.FlexGridSizer(cols = 4, rows = noOfRows, vgap = 3, hgap = 3)
+
+        for labtxt, labl_ID, setButton_ID, clrButton_ID, setButtonTxt, clrButtonTxt, setBindFunc, clrBindFunc in self.filesData:
+
+            setButton = wx.Button(self, setButton_ID, setButtonTxt)
+            setButton.Bind(wx.EVT_BUTTON, setBindFunc)
+            clrButton = wx.Button(self, clrButton_ID, clrButtonTxt)
+            clrButton.Bind(wx.EVT_BUTTON, clrBindFunc)
+
+            label = wx.StaticText(self, -1, labtxt)
+
+            filenameLabel = wx.TextCtrl(self, labl_ID, "None")
+            filenameLabel.SetEditable(False)
+
+            hSizer.Add(label, 1, wx.ALIGN_CENTER_VERTICAL)
+            hSizer.Add(filenameLabel, 1, wx.EXPAND)
+            hSizer.Add(setButton, 1)
+            hSizer.Add(clrButton, 1)
+
+        hSizer.AddGrowableCol(1)
+        return hSizer
+
+    def createNormConstants(self):
+
+        noOfRows = int(len(self.filesData))
+        hSizer = wx.FlexGridSizer(cols = 3, rows = noOfRows, vgap = 3, hgap = 5)
+
+        temps = []
+        for each in RAWSettings.water_scattering_table.keys():
+            temps.append(str(each))
+
+        for eachLabel, id, has_button in self.normConstantsData:
+
+            txt = wx.StaticText(self, -1, eachLabel)
+
+            if id == self.normConstantsData[0][1]:
+                ctrl = wx.Choice(self, id, choices = temps, size = (80, -1))
+                ctrl.Bind(wx.EVT_CHOICE, self._onTempChoice)
+            else:
+                ctrl = wx.TextCtrl(self, id, '0', style = wx.TE_PROCESS_ENTER | wx.TE_RIGHT, size = (80, -1))
+
+            hSizer.Add(txt, 1, wx.ALIGN_CENTER_VERTICAL)
+            hSizer.Add(ctrl, 1)
+
+            if has_button == True:
+                button = wx.Button(self, -1, 'Calculate')
+                button.Bind(wx.EVT_BUTTON, self._onCalculateButton)
+                hSizer.Add(button,1)
+
+            else:
+                hSizer.Add((1,1), 1)
+
+        return hSizer
+
+    def _onTempChoice(self, event):
+        I0_ctrl = wx.FindWindowById(self.normConstantsData[1][1])
+
+        temp_ctrl = event.GetEventObject()
+        temp = temp_ctrl.GetStringSelection()
+
+        I0_ctrl.SetValue(str(RAWSettings.water_scattering_table[int(temp)]))
+
+    def _onCalculateButton(self, event):
+        button = event.GetEventObject()
+        self._calculateConstant()
+
+    def _waitForWorkerThreadToFinish(self):
+
+        mainframe = wx.FindWindowByName('MainFrame')
+        thread_return_queue = mainframe.getQuestionReturnQueue()
+
+        dialog = wx.FindWindowByName('OptionsDialog')
+        dialog.Enable(False)
+
+        while True:
+            try:
+                return_val = thread_return_queue.get(False)
+                thread_return_queue.task_done()
+                dialog.Enable(True)
+                constant_ctrl = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterConst'))
+                constant_ctrl.SetValue(str(return_val))
+                break
+            except Queue.Empty:
+                wx.Yield()
+                time.sleep(0.5)
+
+
+    def _calculateConstant(self):
+
+        if self._checkAbsScWaterFiles():
+
+            waterI0 = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterI0')).GetValue()
+
+            try:
+                waterI0 = float(waterI0)
+                empty_cell_file = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterEmptyFile')).GetValue()
+                water_file =  wx.FindWindowById(self.raw_settings.getId('NormAbsWaterFile')).GetValue()
+
+                mainframe = wx.FindWindowByName('MainFrame')
+                mainframe.queueTaskInWorkerThread('calculate_abs_water_const', [water_file, empty_cell_file, waterI0])
+                wx.CallAfter(self._waitForWorkerThreadToFinish)
+
+            except TypeError:
+                wx.MessageBox('Water I0 value contains illegal characters', 'Invalid input')
+                return
+        else:
+             wx.MessageBox('Empty cell and/or water sample files could not be found.', 'Invalid input')
+
+    def onSetFile(self, event):    
+        self.abssc_chkbox.SetValue(False)
+
+        buttonObj = event.GetEventObject()
+        ID = buttonObj.GetId()            # Button ID
+
+        selectedFile = CreateFileDialog(wx.OPEN)
+
+        if selectedFile == None:
+            return
+
+        for each in self.filesData:
+            if each[2] == ID:
+                    textCtrl = wx.FindWindowById(each[1]) 
+                    textCtrl.SetValue(str(selectedFile))
+
+    def onClrFile(self, event):
+
+        buttonObj = event.GetEventObject()
+        ID = buttonObj.GetId()            # Button ID
+
+        for each in self.filesData:
+                if each[3] == ID:
+                    textCtrl = wx.FindWindowById(each[1]) 
+                    textCtrl.SetValue('None')
+
+        self.abssc_chkbox.SetValue(False)
+
+    def _checkAbsScWaterFiles(self):
+        empty_cell_file = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterEmptyFile')).GetValue()
+        water_file =  wx.FindWindowById(self.raw_settings.getId('NormAbsWaterFile')).GetValue()
+
+        if os.path.isfile(empty_cell_file) and os.path.isfile(water_file):
+            return True
+        else:
+            return False
+
+    def onChkBox(self, event):
+
+        chkbox = event.GetEventObject()
+
+        if chkbox.GetValue() == True:
+            const = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterConst')).GetValue()
+
+            try:
+                float(const)
+            except ValueError:
+                wx.MessageBox('Normalization constant contains illegal characters', 'Invalid input')
+                chkbox.SetValue(False)	
             
 
-class MolecularWeightPanel(wx.Panel):
+class SansOptionsPanel(wx.Panel):
     
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
         
@@ -1154,16 +1351,13 @@ class MolecularWeightPanel(wx.Panel):
         
         self.raw_settings = raw_settings
         
-        self.update_keys = ['MWStandardMW',
-                            'MWStandardI0',
-                            'MWStandardConc']
+        self.update_keys = ['SampleThickness',
+							'MWStandardConc']
     
-                                
-        self.MWData = ( ("MW [kDa]:", raw_settings.getId('MWStandardMW')) ,
-                        ("I(0):", raw_settings.getId('MWStandardI0')),
-                        ("Conc. [mg/ml]:", raw_settings.getId('MWStandardConc')))
+        self.MWData = [("Sample Thickness (cm):", raw_settings.getId('SampleThickness')),
+                        ("Conc. [mg/ml]:", raw_settings.getId('MWStandardConc'))]
                     
-        box = wx.StaticBox(self, -1, 'Molecular Weight Estimation Using a Standard')
+        box = wx.StaticBox(self, -1, 'SANS Parameters')
                 
         mw_sizer = self.createMWSettings()
    
@@ -1200,6 +1394,62 @@ class MolecularWeightPanel(wx.Panel):
             
             hSizer.Add(sizer, 0)
             
+        return hSizer
+
+class MolecularWeightPanel(wx.Panel):
+
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+
+        self.raw_settings = raw_settings
+
+        self.update_keys = ['MWStandardMW',
+                            'MWStandardI0',
+                            'MWStandardConc']
+
+
+        self.MWData = ( ("MW [kDa]:", raw_settings.getId('MWStandardMW')) ,
+                        ("I(0):", raw_settings.getId('MWStandardI0')),
+                        ("Conc. [mg/ml]:", raw_settings.getId('MWStandardConc')))
+
+        box = wx.StaticBox(self, -1, 'Molecular Weight Estimation Using a Standard')
+
+        mw_sizer = self.createMWSettings()
+
+        mwbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        mwbox_sizer.Add(mw_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+
+        final_sizer = wx.BoxSizer(wx.VERTICAL)
+        final_sizer.Add(mwbox_sizer, 0, wx.EXPAND | wx.ALL, 5)
+
+        self.SetSizer(final_sizer)
+
+    def createMWSettings(self):
+
+        hSizer = wx.FlexGridSizer(cols = 6, rows = 1, vgap = 3, hgap = 5)
+
+#        mwchoices = ['BSA', 'Lysozyme', 'Glucose Isomerse']
+#        std_choice = wx.Choice(self, -1, choices = mwchoices)
+#        
+#        sizer = wx.BoxSizer(wx.VERTICAL)
+#        txt = wx.StaticText(self, -1, 'Standard:')
+#            
+#        sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
+#        sizer.Add(std_choice, 0)
+#            
+#        hSizer.Add(sizer, 0)
+
+        for txt, id in self.MWData:
+            sizer = wx.BoxSizer(wx.VERTICAL)
+            ctrl = wx.TextCtrl(self, id, '')
+            txt = wx.StaticText(self, -1, txt)
+
+            sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
+            sizer.Add(ctrl, 0)
+
+            hSizer.Add(sizer, 0)
+
         return hSizer
     
        
@@ -2000,12 +2250,14 @@ all_options = [ [ (1,0,0), wx.NewId(), 'General Settings', GeneralOptionsPanel],
                 #[ (1,3,0), wx.NewId(), 'Masking', MaskingOptionsPanel],
                 [ (2,4,1), wx.NewId(), 'Normalization', ReductionNormalizationPanel] ,
                 [ (2,4,2), wx.NewId(), 'Absolute Scale', ReductionNormalizationAbsScPanel],
+				[ (2,4,3), wx.NewId(), 'Flatfield Correction', ReductionFlatfield],
                 [ (3,0,0), wx.NewId(), 'Molecular Weight', MolecularWeightPanel],
                 [ (4,0,0), wx.NewId(), 'Artifact Removal', ArtifactOptionsPanel],
                 [ (5,0,0), wx.NewId(), 'IFT', IftOptionsPanel],
                 [ (6,0,0), wx.NewId(), "Save Directories", SaveDirectoriesPanel],
     #            [ (5,0,0), wx.NewId(), 'Online Mode', ReductionOptionsPanel],
-                [ (7,0,0), wx.NewId(), "Automation", AutomationOptionsPanel] ]
+                [ (7,0,0), wx.NewId(), "Automation", AutomationOptionsPanel],
+				[ (8,0,0), wx.NewId(), "SANS", SansOptionsPanel]]
                 
 #--- ** TREE BOOK **
 class ConfigTree(CT.CustomTreeCtrl):

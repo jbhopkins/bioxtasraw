@@ -29,7 +29,7 @@ import wx.lib.wordwrap as wordwrap
 import wx.lib.mixins.listctrl as listmix
 import wx.grid as gridlib
 from wx.lib.embeddedimage import PyEmbeddedImage
-from numpy import ceil
+from numpy import ceil, floor
 
 import wx.aui as aui
 import RAWPlot, RAWImage, RAWOptions, RAWSettings, RAWCustomCtrl, RAWAnalysis, BIFT
@@ -1587,11 +1587,18 @@ class MainWorkerThread(threading.Thread):
         
         selected_items = data[0]
         rebin_factor = data[1]
+        log_rebin = data[2]
         
         for each in selected_items:
             sasm = each.getSASM()
         
-            rebin_sasm = SASM.rebin(sasm, rebin_factor)
+            points = floor(len(sasm.q) / rebin_factor)
+            
+            if log_rebin:
+                rebin_sasm = SASM.logBinning(sasm, points)
+            else:
+                rebin_sasm = SASM.rebin(sasm, rebin_factor)
+            
             self._insertSasmFilenamePrefix(rebin_sasm, 'R_')
             
             self._sendSASMToPlot(rebin_sasm, axes_num = 1, notsaved = True)
@@ -3967,11 +3974,12 @@ class ManipItemPanel(wx.Panel):
             selected_items = self.manipulation_panel.getSelectedItems()
             
             dlg = RebinDialog(self)
-            ret = dlg.ShowModal()
+            retval = dlg.ShowModal()
+            ret, logbin = dlg.getValues()
             dlg.Destroy()
             
-            if ret != wx.ID_CANCEL:
-                mainworker_cmd_queue.put(['rebin_items', [selected_items, ret]])
+            if retval != wx.ID_CANCEL:
+                mainworker_cmd_queue.put(['rebin_items', [selected_items, ret, logbin]])
         
         if evt.GetId() == 24: #add to IFT
             
@@ -8223,12 +8231,15 @@ class RebinDialog(wx.Dialog):
         self.choice = wx.Choice(self, -1, choices = choices)
         self.choice.Select(0)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        
+
+        self.log_box = wx.CheckBox(self, -1, 'Logarithmic')
+
         buttonsizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
         self.Bind( wx.EVT_BUTTON, self._onOkClicked, id=wx.ID_OK )
         
         sizer.Add(text, 1)
         sizer.Add(self.choice, 0)
+        sizer.Add(self.log_box, 0, wx.TOP, 5)
         
         top_sizer.Add(sizer, 1, wx.ALL, 10)
         top_sizer.Add(buttonsizer, 1, wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL)
@@ -8240,8 +8251,15 @@ class RebinDialog(wx.Dialog):
 
     def _onOkClicked(self, event):
         ret = int(self.choice.GetStringSelection())
+        log_rebin = self.log_box.GetValue()
+
         self.EndModal(ret)
 
+    def getValues(self):
+        ret = int(self.choice.GetStringSelection())
+        log_rebin = self.log_box.GetValue()
+
+        return [ret, log_rebin]
 
 class ColourChangeDialog(wx.Dialog):
     

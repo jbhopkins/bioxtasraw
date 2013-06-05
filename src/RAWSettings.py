@@ -25,13 +25,14 @@ class RawGuiSettings:
                             #'NormalizeM2'       : [False, wx.NewId(),  'bool'],
                             #'NormalizeTime'     : [False, wx.NewId(),  'bool'],  
                             #'NormalizeM1'       : [False, wx.NewId(),  'bool'],
-                            'NormAbsWater'      : [False,   wx.NewId(),  'bool'],
-                            'NormAbsWaterI0'    : [0.01632, wx.NewId(),  'float'],
-                            'NormAbsWaterTemp'  : ['25',    wx.NewId(),  'choice'],
-                            'NormAbsWaterConst' : [1.0,     wx.NewId(),  'float'],
-                            
-                            
-                            
+							      
+							'NormFlatfieldEnabled'	: [False,   wx.NewId(),  'bool'],
+					
+                            'NormAbsWater'      	: [False,   wx.NewId(),  'bool'],
+                            'NormAbsWaterI0'    	: [0.01632, wx.NewId(),  'float'],
+                            'NormAbsWaterTemp'  	: ['25',    wx.NewId(),  'choice'],
+                            'NormAbsWaterConst' 	: [1.0,     wx.NewId(),  'float'],
+                                                
                             'NormalizeTrans'    : [False, wx.NewId(),  'bool'],
                             'Calibrate'         : [False, wx.NewId(),  'bool'],  # Calibrate AgBe
                             'CalibrateMan'      : [True, wx.NewId(),  'bool'],  # Calibrate manual (wavelength / distance)
@@ -71,7 +72,8 @@ class RawGuiSettings:
                             #'ReadOutNoiseMaskFilename' : [None, wx.NewId(), 'maskFilename'],
                             'NormAbsWaterFile'        : [None, wx.NewId(), 'text'],
                             'NormAbsWaterEmptyFile'   : [None, wx.NewId(), 'text'],
-                                    
+							'NormFlatfieldFile'		  : [None, wx.NewId(), 'text'],	
+
                             'TransparentBSMask'       : [None],
                             'TransparentBSMaskParams' : [None],
                             'BeamStopMask'            : [None],
@@ -97,6 +99,13 @@ class RawGuiSettings:
                             'SmpDetectOffsetDist' : [0.0, wx.NewId(), 'float'],
                             #'WaterAvgMinPoint'    : [30,  wx.NewId(), 'int'],
                             #'WaterAvgMaxPoint'    : [500, wx.NewId(), 'int'],
+
+
+							#SANS Parameters
+							'SampleThickness'		: [0.1,  wx.NewId(), 'float'],
+							'DarkCorrEnabled'		: [False,   wx.NewId(),  'bool'],
+							'DarkCorrFilename'		: [None, wx.NewId(), 'text'],
+							
              
                             #DEFAULT BIFT PARAMETERS
                             'maxDmax'     : [400.0,  wx.NewId(), 'float'],
