@@ -115,8 +115,8 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
         self.Bind(wx.EVT_TOOL, self.onNextImgButton, id = self._MTB_NEXTIMG)
         
         
-        self.RemoveTool(self._NTB2_BACK)
-        self.RemoveTool(self._NTB2_FORWARD)
+        #self.RemoveTool(self._NTB2_BACK)
+        #self.RemoveTool(self._NTB2_FORWARD)
         
         self.Realize()
         
