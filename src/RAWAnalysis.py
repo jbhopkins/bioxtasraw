@@ -28,7 +28,11 @@ class GuinierPlotPanel(wx.Panel):
         wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
         
         main_frame = wx.FindWindowByName('MainFrame')
-        self.raw_settings = main_frame.raw_settings
+        
+        try:
+            self.raw_settings = main_frame.raw_settings
+        except AttributeError:
+            self.raw_settings = RAWSettings.RawGuiSettings()
         
         self.fig = Figure((5,4), 75)
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
@@ -668,7 +672,10 @@ class GuinierControlPanel(wx.Panel):
         self.info_panel = wx.FindWindowByName('InformationPanel')
         self.main_frame = wx.FindWindowByName('MainFrame')
         
-        self.raw_settings = self.main_frame.raw_settings
+        try:
+            self.raw_settings = self.main_frame.raw_settings
+        except AttributeError:
+            self.raw_settings = RAWSettings.RawGuiSettings()
 
         wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
           
@@ -1938,7 +1945,7 @@ class GuinierTestApp(wx.App):
         
 if __name__ == "__main__":
     import SASFileIO
-    
+
     #This GUI can be run from a commandline: python guinierGUI.py <filename>
     args = sys.argv
     

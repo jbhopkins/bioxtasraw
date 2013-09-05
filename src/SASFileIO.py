@@ -12,6 +12,7 @@ import SASMarHeaderReader, packc_ext
 #Need to hack PIL to make it work with py2exe/cx_freeze:
 import Image
 import TiffImagePlugin
+import tifffile
 Image._initialized=2
 
 
@@ -92,12 +93,15 @@ def loadTiffImage(filename):
 def load32BitTiffImage(filename):
 	''' Load TIFF image '''
 	try:
-		im = Image.open(filename)
+		#im = Image.open(open(filename, 'rb'))
 		
-		x,y = im.size
+		img = tifffile.TiffFile(filename).asarray()
+		#im = img.asarray()
 		
-		img = np.fromstring(im.tostring(), np.uint32)
-		img = np.reshape(img, (y,x)) 
+		#x,y = im.size
+		
+		#img = np.fromstring(im.tostring(), np.uint32)
+		#img = np.reshape(img, (y,x)) 
 	#except IOError:
 	except Exception, e:
 		print e
@@ -1478,7 +1482,7 @@ def loadCsvFile(filename):
 	''' Loads a comma separated file, ignores everything except a three column line'''
 	
 	
-	iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+[,]\s?-?\d*[.]\d*[+eE-]*\d+[,]\s?-?\d*[.]\d*[+eE-]*\d+\s*\n')
+	iq_pattern = re.compile('\s*\d*[.]?\d*[+eE-]*\d+[,]\s*-?\d*[.]?\d*[+eE-]*\d+[,]\s*-?\d*[.]?\d*[+eE-]*\d*\s*\n')
 	param_pattern = re.compile('[a-zA-Z0-9_]*\s*[=].*')
 
 	i = []
@@ -1503,6 +1507,10 @@ def loadCsvFile(filename):
 				i.append(float(found[1].rstrip('\r\n')))
 				
 				err.append(float(found[2].rstrip('\r\n')))
+				
+			else:
+				print 'No match:'
+				print line
 				
 			if param_match:
 				found = param_match.group().split('=')
