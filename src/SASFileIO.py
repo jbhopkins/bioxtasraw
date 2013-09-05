@@ -567,6 +567,7 @@ def parsePilatusHeader(filename):
 					hdr['Exposure_time'] = float(line.split()[2])
 		except:
 			print '** error reading the exposure time **'
+			break
 			   
 	f.close()
  
