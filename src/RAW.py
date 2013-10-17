@@ -630,7 +630,7 @@ class MainFrame(wx.Frame):
     def _onAboutDlg(self, event):
         info = wx.AboutDialogInfo()
         info.Name = "RAW"
-        info.Version = "0.99.12 Beta"
+        info.Version = "0.99.13 Beta"
         info.Copyright = "Copyright(C) 2009 RAW"
         info.Description = "RAW is a software package primarily for SAXS 2D data reduction and 1D data analysis.\nIt provides an easy GUI for handling multiple files fast, and a\ngood alternative to commercial or protected software packages for finding\nthe Pair Distance Distribution Function\n\nPlease cite:\nBioXTAS RAW, a software program for high-throughput automated small-angle\nX-ray scattering data reduction and preliminary analysis, J. Appl. Cryst. (2009). 42, 959-964"
 
@@ -1169,7 +1169,7 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
         except SASExceptions.HeaderLoadError, msg:
-            wx.CallAfter(wx.MessageBox, str(msg), 'Error Loading Headerfile', style = wx.ICON_ERROR)
+            wx.CallAfter(wx.MessageBox, str(msg), 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
         except SASExceptions.MaskSizeError, msg:
@@ -1294,7 +1294,7 @@ class MainWorkerThread(threading.Thread):
         
         wx.CallAfter(wx.MessageBox, 'The selected file: ' + filename + '\ncould not be recognized as a '   + str(img_fmt) +
                          ' image format' + ascii + '.\n\nYou can change the image format under Advanced Options in the Options menu.' ,
-                          'Error loading file', style = wx.ICON_ERROR)
+                          'Error loading file', style = wx.ICON_ERROR | wx.OK)
         
     def _showSubtractionError(self, sasm, sub_sasm):
         filename1 = sasm.getParameter('filename')
@@ -1892,7 +1892,7 @@ class InfoPanel(wx.Panel):
         
         infoSizer = wx.BoxSizer()
         
-        self.infoTextBox = wx.TextCtrl(self, -1, 'Welcome to RAW 0.99.12b!\n--------------------------------\n\n', style = wx.TE_MULTILINE)
+        self.infoTextBox = wx.TextCtrl(self, -1, 'Welcome to RAW 0.99.13b!\n--------------------------------\n\n', style = wx.TE_MULTILINE)
         
         self.infoTextBox.SetBackgroundColour('WHITE')
         self.infoTextBox.SetForegroundColour('BLACK')
@@ -2239,7 +2239,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
                 
         except OSError, msg:
             print msg
-            wx.MessageBox(str(msg), 'Error loading folder', style = wx.ICON_ERROR)
+            wx.MessageBox(str(msg), 'Error loading folder', style = wx.ICON_ERROR | wx.OK)
             
     def getFilteredFileList(self):
         
@@ -3448,7 +3448,7 @@ class ManipItemPanel(wx.Panel):
         
         self.SetSizer(self.topsizer)
         
-        self.SetBackgroundColour(wx.Color(250,250,250))
+        self.SetBackgroundColour(wx.Colour(250,250,250))
         
         self._initStartPosition()
         self._updateQTextCtrl()
@@ -3556,11 +3556,11 @@ class ManipItemPanel(wx.Panel):
         
         if self._selected:
             self._selected = False
-            self.SetBackgroundColour(wx.Color(250,250,250))
+            self.SetBackgroundColour(wx.Colour(250,250,250))
             self.info_panel.clearInfo()
         else:
             self._selected = True
-            self.SetBackgroundColour(wx.Color(200,200,200))
+            self.SetBackgroundColour(wx.Colour(200,200,200))
             self.SetFocusIgnoringChildren()
             self.info_panel.updateInfoFromItem(self)
         
@@ -5102,7 +5102,7 @@ class IFTItemPanel(wx.Panel):
         
         self.SetSizer(self.topsizer)
         
-        self.SetBackgroundColour(wx.Color(250,250,250))
+        self.SetBackgroundColour(wx.Colour(250,250,250))
         
         self._initStartPosition()
         self._updateQTextCtrl()
@@ -5212,12 +5212,12 @@ class IFTItemPanel(wx.Panel):
         
         if self._selected:
             self._selected = False
-            self.SetBackgroundColour(wx.Color(250,250,250))
+            self.SetBackgroundColour(wx.Colour(250,250,250))
             self.info_panel.clearInfo()
             self.iftctrl_panel.updateInfo()
         else:
             self._selected = True
-            self.SetBackgroundColour(wx.Color(200,200,200))
+            self.SetBackgroundColour(wx.Colour(200,200,200))
             self.SetFocusIgnoringChildren()
             self.info_panel.updateInfoFromItem(self)
             self.iftctrl_panel.updateInfo()
@@ -5831,8 +5831,7 @@ class IFTControlPanel(wx.Panel):
                               ('Dmax :', parent.paramsInGui['Dmax']),
                               ('Alpha (log):',parent.paramsInGui['Alpha']),
                               ('Algorithm :', parent.paramsInGui['Algorithm']),
-                              ('Force zero :', parent.paramsInGui['ForceZero'])
-                              )
+                              ('Force zero :', parent.paramsInGui['ForceZero']) )
                           #    ('Qmin :', parent.paramsInGui['Qmin']),
                           #    ('Qmax :', parent.paramsInGui['Qmax']))
                           
@@ -5846,7 +5845,7 @@ class IFTControlPanel(wx.Panel):
     def createControls(self):
         
         cols = 4
-        rows = round(len(self.controlData)/ 2)
+        rows = len(self.controlData)
         sizer = wx.FlexGridSizer(cols = cols, rows = rows, vgap = 5, hgap = 5)
         
         for each in self.controlData:
@@ -5864,17 +5863,18 @@ class IFTControlPanel(wx.Panel):
                 sizer.Add((1,1),0)
                 
             elif type == 'forcezero':
-                labelbox = wx.StaticText(self, -1, label)
+                #labelbox = wx.StaticText(self, -1, label)
                 self.dzero_chkbox = wx.CheckBox(self, -1, 'r(0)')
                 self.dmax_chkbox = wx.CheckBox(self, -1, 'r(Dmax)')
                 chkbox = wx.CheckBox(self, -1, 'Continous')
                 box = wx.BoxSizer() 
-                sizer.Add(labelbox, 0,  wx.ALIGN_CENTER_VERTICAL)
+                #sizer.Add(labelbox, 0,  wx.ALIGN_CENTER_VERTICAL)
                 box.Add(self.dzero_chkbox, 0, wx.RIGHT, 5)
                 box.Add(self.dmax_chkbox, 0)
                 sizer.Add(box,0)
                 sizer.Add(wx.StaticText(self, -1, 'Update :'),0, wx.ALIGN_CENTER)
                 sizer.Add(chkbox, 0, wx.ALIGN_CENTER)
+                sizer.Add((1,1),0)
                
                 self.dzero_chkbox.SetValue(True)
                 self.dmax_chkbox.SetValue(True)
@@ -5886,7 +5886,7 @@ class IFTControlPanel(wx.Panel):
                 ###################################
                 
             elif type == 'algo':
-                labelbox = wx.StaticText(self, -1, label)
+                #labelbox = wx.StaticText(self, -1, label)
                 self.algo_choice = wx.Choice(self, id, size = (80,-1), choices = ['BIFT', 'Manual'])
                 self.algo_choice.Select(0)
                 
@@ -5898,10 +5898,11 @@ class IFTControlPanel(wx.Panel):
                 button2.Bind(wx.EVT_BUTTON, self._onSettingsButton)
                 button.Bind(wx.EVT_BUTTON, self._onRunButton)
                    
-                sizer.Add(labelbox, 0, wx.ALIGN_CENTER_VERTICAL)
-                sizer.Add(self.algo_choice, 0, wx.ALIGN_CENTER)
+                #sizer.Add(labelbox, 0, wx.ALIGN_CENTER_VERTICAL)
+                sizer.Add(self.algo_choice, 0, wx.ALIGN_LEFT)
                 sizer.Add(button, 0, wx.ALIGN_CENTER)
                 sizer.Add(button2, 0, wx.ALIGN_CENTER)
+                sizer.Add((1,1),0)
             
             elif type == 'info':
                 labelbox = wx.StaticText(self, -1, label)
@@ -8688,7 +8689,7 @@ class WelcomeDialog(wx.Dialog):
         raw_bitmap = wx.Bitmap(os.path.join(RAWWorkDir, "resources", "raw.ico"))
         rawimg = wx.StaticBitmap(self, -1, raw_bitmap)
         
-        headline = wx.StaticText(self, -1, 'Welcome to RAW 0.99.12b!')
+        headline = wx.StaticText(self, -1, 'Welcome to RAW 0.99.13b!')
         
         text1 = 'Developers/Contributors:'
         text2 = '\nSoren S. Nielsen'
@@ -8759,7 +8760,7 @@ class MySplashScreen(wx.SplashScreen):
     def OnExit(self, evt):
         self.Hide()
             
-        frame = MainFrame('RAW 0.99.12b', -1)
+        frame = MainFrame('RAW 0.99.13b', -1)
         
         self.raw_settings = frame.getRawSettings()
         icon = wx.Icon(name= os.path.join(RAWWorkDir, "resources","raw.ico"), type = wx.BITMAP_TYPE_ICO)
@@ -8793,7 +8794,7 @@ class MySplashScreen(wx.SplashScreen):
         file = os.path.join(RAWWorkDir, 'backup.cfg')
         
         if os.path.exists(file):
-            retcode = wx.MessageBox('Load last saved configuration?', '',
+            retcode = wx.MessageBox('Load last saved configuration?', 'Restore configuration',
                                     style=wx.YES_NO|wx.ICON_QUESTION)
             
             if retcode == wx.YES:

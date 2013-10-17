@@ -495,7 +495,7 @@ class PlotOptionsDialog(wx.Dialog):
         box = wx.StaticBox(self, -1, 'Labels')
         box_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         
-        sizer = wx.FlexGridSizer(cols = 6, rows = 4, vgap = 5, hgap = 5)
+        sizer = wx.FlexGridSizer(cols = 6, rows = 5, vgap = 5, hgap = 5)
         
         sizer.Add((5,5),0)
         sizer.Add((5,5),0)
@@ -1155,8 +1155,13 @@ class PlotPanel(wx.Panel):
             selected_plot = 1
             
         if event.button == 3:
-            if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                self._showPopupMenu(selected_plot)
+            
+            if float(matplotlib.__version__[:3]) >= 1.2:
+                if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
+                    self._showPopupMenu(selected_plot)
+            else:
+                if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
+                    self._showPopupMenu(selected_plot)
 
 #--- ** Popup Menu ***
 

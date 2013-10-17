@@ -559,7 +559,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
     
     def createBindControls(self):
         
-        sizer = wx.FlexGridSizer(rows = 3, cols = 2, vgap = 2, hgap = 2)
+        sizer = wx.FlexGridSizer(rows = 4, cols = 2, vgap = 2, hgap = 2)
         
         name_text = wx.StaticText(self, -1, 'Name:')
         value_text = wx.StaticText(self, -1, 'Value:')
@@ -1011,7 +1011,7 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
     
     def createNormConstants(self):
         
-        noOfRows = int(len(self.filesData))
+        noOfRows = int(len(self.normConstantsData))
         hSizer = wx.FlexGridSizer(cols = 3, rows = noOfRows, vgap = 3, hgap = 5)
         
         temps = []
@@ -1818,7 +1818,7 @@ class SaveDirectoriesPanel(wx.Panel):
         box = wx.StaticBox(self, -1, 'Save Directories')
         chkbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         
-        h_sizer = wx.FlexGridSizer(cols = 4, rows = 1, vgap = 3, hgap = 3)
+        h_sizer = wx.FlexGridSizer(cols = 4, rows = 4, vgap = 3, hgap = 3)
         
         for labtxt, labl_id, set_button_id, clr_button_id in self.directory_data:
             
@@ -2447,29 +2447,38 @@ class OptionsDialog(wx.Dialog):
         sizer.Add(wx.StaticLine(self, style = wx.LI_HORIZONTAL), 0, wx.EXPAND)
         sizer.Add(self.createButtonPanel(), 0, wx.ALIGN_RIGHT | wx.ALL, 5)
         
-        self.SetSizer(sizer)
-        self.SetMinSize((800,600))
-        self.Fit()
+        
+        
+        #self.Fit()
         
         self.CenterOnParent()
         self.initSettings()
+        
         
         item = self.treebook.tree.GetFirstVisibleItem()
 
         if item != None:
             self.treebook.tree.SelectItem(item)
+            
+        self.SetMinSize((800,600))
+        #self.Update()
         
+        self.SendSizeEvent()
+        #self.SendSizeEventToParent()
+        #self.Layout()
         #What a F!ed way to select an item.. is this really the only way?
 
-	try:
-           if focusIndex != None:
-               for i in range(0,self.treebook.tree.GetCount()-1):
-                   item = self.treebook.tree.GetNext(item)
-                   if focusIndex == self.treebook.tree.GetItemText(item):
-                       self.treebook.tree.SelectItem(item)
-	except Exception, e:
-		pass
-            
+        #try:
+        #    if focusIndex != None:
+        #        for i in range(0,self.treebook.tree.GetCount()-1):
+        #            item = self.treebook.tree.GetNext(item)
+        #           
+        #            if focusIndex == self.treebook.tree.GetItemText(item):
+        #                self.treebook.tree.SelectItem(item)
+        #except Exception, e:
+        #    pass
+        #self.Fit()
+        self.SetSizer(sizer)
     
     def createButtonPanel(self):
         
