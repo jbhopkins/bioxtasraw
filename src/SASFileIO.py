@@ -1846,8 +1846,8 @@ def writeRadFile(m, filename, header_on_top = True):
 	q_min, q_max = m.getQrange()
 
 	f2.write('### DATA:\n\n')
-	f2.write('		 Q			   I				   Error\n')
-	f2.write('	  %d\n' % len(m.i[q_min:q_max]))
+	f2.write('         Q               I              Error\n')
+	f2.write('%d\n' % len(m.i[q_min:q_max]))
 		
 	fit = np.zeros(np.size(m.q))
 
@@ -1855,7 +1855,7 @@ def writeRadFile(m, filename, header_on_top = True):
 	#print q_min, q_max, len(m.q), len(m.i), len(m.err)
 	
 	for idx in range(q_min, q_max):
-		line = ('	%.8E  %.8E	%.8E\n') % ( m.q[idx], m.i[idx], m.err[idx])
+		line = ('%.8E %.8E %.8E\n') % ( m.q[idx], m.i[idx], m.err[idx])
 		f2.write(line)
 	
 	f2.write('\n')
@@ -1877,7 +1877,7 @@ def printDict(d, each):
 		if type(d[each][every_key]) == type({}):
 			tmpline = tmpline + ' ' + printDict(d[each], every_key)
 		else:
-			tmpline = tmpline + '	' + str(every_key) + ': ' + str(d[each][every_key]) + '\n'
+			tmpline = tmpline + ' ' + str(every_key) + ': ' + str(d[each][every_key]) + '\n'
 			
 	tmpline = tmpline + '}\n'
 	
@@ -1892,10 +1892,10 @@ def writeBiftFile(m, filename = None):
 	
 	f2.write('BIFT\n')
 	f2.write('Filename: ' + no_path_filename + '\n\n' )
-	f2.write('		 R				  P(R)			   Error\n')
+	f2.write('         R            P(R)             Error\n')
 	
 	for idx in range(0,len(m.i)):
-		line = ('	%.8E  %.8E	%.8E\n') %( m.q[idx], m.i[idx], m.err[idx])
+		line = ('%.8E %.8E %.8E\n') %( m.q[idx], m.i[idx], m.err[idx])
 		f2.write(line)
 	
 	f2.write('\n\n')
@@ -1908,9 +1908,9 @@ def writeBiftFile(m, filename = None):
 	orig_err = m.getParameter('orig_err')
 	fit = m.getParameter('fit')[0]
 	 
-	f2.write('		 Q				  I(q)			  Error			  Fit\n')
+	f2.write('            Q              I(q)             Error          Fit\n')
 	for idx in range(0,len(orig_q)):
-		line = ('	%.8E  %.8E	%.8E  %.8E\n') %( orig_q[idx], orig_i[idx], orig_err[idx], fit[idx])
+		line = ('%.8E %.8E %.8E %.8E\n') %( orig_q[idx], orig_i[idx], orig_err[idx], fit[idx])
 		f2.write(line)
 	
 	f2.write('\n')
