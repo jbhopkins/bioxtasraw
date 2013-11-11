@@ -1892,7 +1892,7 @@ class InfoPanel(wx.Panel):
         
         infoSizer = wx.BoxSizer()
         
-        self.infoTextBox = wx.TextCtrl(self, -1, 'Welcome to RAW 0.99.13b!\n--------------------------------\n\n', style = wx.TE_MULTILINE)
+        self.infoTextBox = wx.TextCtrl(self, -1, 'Welcome to RAW 0.99.9.13b!\n--------------------------------\n\n', style = wx.TE_MULTILINE)
         
         self.infoTextBox.SetBackgroundColour('WHITE')
         self.infoTextBox.SetForegroundColour('BLACK')
@@ -8689,7 +8689,7 @@ class WelcomeDialog(wx.Dialog):
         raw_bitmap = wx.Bitmap(os.path.join(RAWWorkDir, "resources", "raw.ico"))
         rawimg = wx.StaticBitmap(self, -1, raw_bitmap)
         
-        headline = wx.StaticText(self, -1, 'Welcome to RAW 0.99.13b!')
+        headline = wx.StaticText(self, -1, 'Welcome to RAW 0.99.9.13b!')
         
         text1 = 'Developers/Contributors:'
         text2 = '\nSoren S. Nielsen'
@@ -8760,7 +8760,7 @@ class MySplashScreen(wx.SplashScreen):
     def OnExit(self, evt):
         self.Hide()
             
-        frame = MainFrame('RAW 0.99.13b', -1)
+        frame = MainFrame('RAW 0.99.9.13b', -1)
         
         self.raw_settings = frame.getRawSettings()
         icon = wx.Icon(name= os.path.join(RAWWorkDir, "resources","raw.ico"), type = wx.BITMAP_TYPE_ICO)
