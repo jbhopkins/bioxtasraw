@@ -4,9 +4,10 @@ Created on Jul 11, 2010
 @author: specuser
 '''
 
+import xml.etree.ElementTree as ET
 import SASImage, SASM, SASIft, SASExceptions
 import numpy as np
-import os, sys, re, cPickle, time
+import os, sys, re, cPickle, time, binascii, struct
 import SASMarHeaderReader, packc_ext
 
 #Need to hack PIL to make it work with py2exe/cx_freeze:
@@ -76,6 +77,109 @@ def loadMask(filename):
 ############################
 #--- ## Load image files: ##
 ############################
+
+def parseTiffTags(filename):
+	tag_dict = {}
+
+	try:
+		image = open(filename, 'rb')
+	except Exception, e:
+		print e
+		print filename
+		print 'Error opening tiff file!'
+		return None
+		
+	#read the first 2 bytes to know "endian"
+	start = image.read(2)
+	endian = binascii.hexlify(start).upper()
+
+	if endian == "4949":
+		symbol = "<"
+	elif endian == "4D4D":
+		symbol = ">"
+	else:
+		print "ERROR!"
+		return None
+
+	the_answer = image.read(2)
+	the_answer = struct.unpack(symbol+'H',the_answer)[0]
+   
+	if the_answer != 42:
+		print 'answer is not 42!!'
+		return None
+ 
+	#Figure out where the Image File Directory is. It can be
+	#anywhere in the file believe it or not.
+	dir_loc = image.read( 4 )
+	dir_loc = struct.unpack( symbol+'L', dir_loc )[0]
+
+	#goto that section of the file			  
+	image.seek(dir_loc)
+
+	#figure out how many tags there are			   
+	directory_data = image.read(2)
+	num_entries = struct.unpack(symbol+'H',directory_data)[0]
+
+	#loop through the Image File Directory and look for the tags we care about
+	#Width, Height, SamplesPerPixel, and ColorProfile
+	for i in range( num_entries ):
+		a_tag = image.read( 12 )
+		tag = struct.unpack( symbol+'HHLL', a_tag )
+
+		#catch in case the type is SHORT
+		if tag[1] == 3:
+			tag = struct.unpack( symbol+'HHLHH', a_tag )
+
+		#set the class attributes if the tag is one we care about
+		if tag[0] == 256:
+			print tag
+			tag_dict['ImageWidth'] = tag[3]
+
+		if tag[0] == 257:
+			tag_dict['ImageLength'] = tag[3]
+
+		if tag[0] == 258:
+			tag_dict['ColorsPerSample'] = tag[2]
+
+		if tag[0] == 315:
+			metadata_loc = tag[3]
+			metadata_length = tag[2]
+
+			image.seek( metadata_loc )
+			metadata_bytes = image.read( metadata_length )
+			
+			struct_format = '%s%s%s' % ( symbol, metadata_length, 's' )
+			metadata_string = struct.unpack( struct_format, metadata_bytes )[0]
+
+			tag_dict['Artist'] = metadata_string
+
+		if tag[0] == 34675:
+			tag_dict['ColorProfile'] = True
+			if tag_dict['ColorProfile'] == True:
+				icc_loc = tag[3]
+				icc_length = tag[2]
+
+				image.seek( icc_loc )
+				icc_data = image.read( icc_length )
+				struct_format = '%s%s%s' % ( symbol, icc_length, 's' )
+				icc_string = struct.unpack( struct_format, icc_data )[0]
+
+				if "Adobe RGB (1998)" in icc_string:
+					tag_dict['ColorProfile'] = "Adobe RGB (1998)"
+				elif "sRGB IEC61966-2-1" in icc_string:
+					tag_dict['ColorProfile'] = "sRGB IEC61966-2-1"
+				elif "ProPhoto RGB" in icc_string:
+					tag_dict['ColorProfile'] = "Kodak ProPhoto RGB"
+				elif "eciRGB" in icc_string:
+					tag_dict['ColorProfile'] = "eciRGB v2"
+				elif "e\0c\0i\0R\0G\0B\0" in icc_string:
+					tag_dict['ColorProfile'] = "eciRGB v4"
+				else:
+					tag_dict['ColorProfile'] = "Other"
+		else:
+			tag_dict['ColorProfile'] = "None"
+	
+	return tag_dict
 	
 def loadTiffImage(filename):
 	''' Load TIFF image '''
@@ -403,7 +507,8 @@ def loadSAXSLAB300Image(filename):
 		return None, None
 	
 	try:
-	  tag_with_data = tag[1334]
+	  print tag
+	  tag_with_data = tag[315]
 	except (TypeError, KeyError):
 		print "Wrong file format. Missing TIFF tag number"
 		raise
@@ -422,10 +527,7 @@ def loadNeXusFile(filename):
 	data_groups = []
 	header_values = {}
 	
-	
-	
 	file.opengroup('entry0', 'NXentry')
-	
 	
 	subgroups = []
 	for name, nxclass in file.entries():
@@ -467,6 +569,20 @@ def parseCSVHeaderFile(filename):
 	counters = {}
 	
 	return counters
+
+
+def parseGaneshaHeader(filename):
+
+		tiff_tags = parseTiffTags( filename )
+
+		xml_header = tiff_tags[ 'Artist' ]
+
+		DOMTree = minidom.parseString( xml_header )
+		params = DOMTree.getElementsByTagName( 'param' )
+
+		print params
+
+		return {}
 
 
 def parseSAXSLAB300Header(tag_with_data):

@@ -904,7 +904,7 @@ class GuinierControlPanel(wx.Panel):
         
     def createControls(self):
         
-        sizer = wx.FlexGridSizer(rows = 1, cols = 4)
+        sizer = wx.FlexGridSizer(rows = 2, cols = 4)
         sizer.AddGrowableCol(0)
         sizer.AddGrowableCol(1)
         sizer.AddGrowableCol(2)
