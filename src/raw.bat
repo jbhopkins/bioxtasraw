@@ -1,3 +1,4 @@
 @echo off
-python C:\Users\Nielsen\workspace\trunk\src\RAW.py %1
+PATH=%PATH%;C:\Python27;C:\MinGW\bin
+python RAW.py
 @echo on
