@@ -386,6 +386,27 @@ def subtract(sasm1, sasm2):
      
     return newSASM 
 
+def absorbance(sasm1, sasm2):
+    ''' compute the absorbance of one SASM object from another  '''
+    
+    q1_min, q1_max = sasm1.getQrange()
+    q2_min, q2_max = sasm2.getQrange()
+    
+    if len(sasm1.i[q1_min:q1_max]) != len(sasm2.i[q2_min:q2_max]):
+        raise SASExceptions.DataNotCompatible('The curves does not have the same number of points.')
+    
+    i = np.log(sasm2.i[q2_min:q2_max] / sasm1.i[q1_min:q1_max])
+
+    q = sasm1.q.copy()[q1_min:q1_max]
+    
+    err = i*0
+
+    parameters = sasm1.getAllParameters().copy()    
+    absSASM = SASM(i, q, err, parameters)
+     
+    return absSASM 
+
+
 def average(sasm_list):
     ''' Average the intensity of a list of sasm objects '''
     

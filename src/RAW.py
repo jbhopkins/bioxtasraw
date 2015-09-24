@@ -166,8 +166,7 @@ class MainFrame(wx.Frame):
         self.plot_notebook.AddPage(plot_panel, "Main Plot", False)
         self.plot_notebook.AddPage(iftplot_panel, "IFT Plot")
         self.plot_notebook.AddPage(img_panel, "Image", False)
-        
-                             
+                        
         self.control_notebook = aui.AuiNotebook(self, style = aui.AUI_NB_TAB_MOVE)
         page2 = ManipulationPanel(self.control_notebook, self.raw_settings)
         page1 = FilePanel(self.control_notebook)
@@ -630,7 +629,7 @@ class MainFrame(wx.Frame):
     def _onAboutDlg(self, event):
         info = wx.AboutDialogInfo()
         info.Name = "RAW"
-        info.Version = "0.99.13 Beta"
+        info.Version = "1.01 Beta"
         info.Copyright = "Copyright(C) 2009 RAW"
         info.Description = "RAW is a software package primarily for SAXS 2D data reduction and 1D data analysis.\nIt provides an easy GUI for handling multiple files fast, and a\ngood alternative to commercial or protected software packages for finding\nthe Pair Distance Distribution Function\n\nPlease cite:\nBioXTAS RAW, a software program for high-throughput automated small-angle\nX-ray scattering data reduction and preliminary analysis, J. Appl. Cryst. (2009). 42, 959-964"
 
@@ -1164,6 +1163,12 @@ class MainWorkerThread(threading.Thread):
                 
                 self._sendSASMToPlot(sasm, no_update = True)
                 
+                do_auto_save = self._raw_settings.get('AutoSaveOnImageFiles')
+        
+                if do_auto_save:
+                    save_path = self._raw_settings.get('ProcessedFilePath')
+                    self._saveSASM(sasm, '.dat', save_path)
+                
         except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
             self._showDataFormatError(os.path.split(each_filename)[1])
             wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -1187,8 +1192,7 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.plot_panel.updateLegend, 1)
         wx.CallAfter(self.plot_panel.fitAxis)
         wx.CallAfter(self.main_frame.closeBusyDialog)
-    
-    
+        
     def _loadAndShowNextImage(self, data):
     
         current_file = data[0]
@@ -1546,6 +1550,13 @@ class MainWorkerThread(threading.Thread):
                     name2 = sub_sasm.getParameter('filename')
                     
                     self._sendSASMToPlot(subtracted_sasm, axes_num = 2, item_colour = 'red', notsaved = True)
+                    
+                    do_auto_save = self._raw_settings.get('AutoSaveOnSub')
+        
+                    if do_auto_save:
+                        save_path = self._raw_settings.get('SubtractedFilePath')
+                        self._saveSASM(subtracted_sasm, '.dat', save_path)
+                    
             except SASExceptions.DataNotCompatible, msg:
                self._showSubtractionError(sasm, sub_sasm)
                wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -1581,6 +1592,12 @@ class MainWorkerThread(threading.Thread):
         
         wx.CallAfter(self.plot_panel.updateLegend, 1)
         wx.CallAfter(self.main_frame.closeBusyDialog)
+        
+        do_auto_save = self._raw_settings.get('AutoSaveOnAvgFiles')
+        
+        if do_auto_save:
+            save_path = self._raw_settings.get('AveragedFilePath')
+            self._saveSASM(avg_sasm, '.dat', save_path)
         
     
     def _rebinItems(self, data):
@@ -1670,9 +1687,21 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.plot_panel.updateLegend, 1)
                    
     
-    def _saveSASM(self, sasm, filetype = 'dat'):
-        pass
-
+    def _saveSASM(self, sasm, filetype = 'dat', save_path = ''):
+        
+        newext = filetype
+        
+        filename = sasm.getParameter('filename')
+        check_filename, ext = os.path.splitext(filename)
+        check_filename = check_filename + newext
+            
+        filepath = os.path.join(save_path, check_filename)
+        file_exists = os.path.isfile(filepath)
+        filepath = save_path
+        
+        SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+        
+        
     def _saveAnalysisInfo(self, data):
         
         all_items = data[0]
@@ -1892,7 +1921,7 @@ class InfoPanel(wx.Panel):
         
         infoSizer = wx.BoxSizer()
         
-        self.infoTextBox = wx.TextCtrl(self, -1, 'Welcome to RAW 0.99.9.13b!\n--------------------------------\n\n', style = wx.TE_MULTILINE)
+        self.infoTextBox = wx.TextCtrl(self, -1, 'Welcome to RAW 1.01b!\n--------------------------------\n\n', style = wx.TE_MULTILINE)
         
         self.infoTextBox.SetBackgroundColour('WHITE')
         self.infoTextBox.SetForegroundColour('BLACK')
@@ -6054,7 +6083,8 @@ class MaskingPanel(wx.Panel):
         
         self.mask_choices = {'Beamstop mask' : 'BeamStopMask',
                              'Readout-Dark mask' : 'ReadOutNoiseMask',
-                             'Transparent BS mask' : 'TransparentBSMask'}
+                             'Transparent BS mask' : 'TransparentBSMask',
+                             'SAXSLAB BS mask' : 'SaxslabBSMask'}
         
         self.CIRCLE_ID, self.RECTANGLE_ID, self.POLYGON_ID = wx.NewId(), wx.NewId(), wx.NewId()
         self.all_button_ids = [self.CIRCLE_ID, self.RECTANGLE_ID, self.POLYGON_ID]
@@ -6187,14 +6217,36 @@ class MaskingPanel(wx.Panel):
         
         return sizer
     
+    def _calcSaxslabBSMask(self):
+        sasm = self.image_panel.current_sasm
+        
+        img_hdr = sasm.getParameter('imageHeader')
+        img = self.image_panel.img
+        
+        if img != None and img_hdr != None:
+            mask_params = SASImage.createMaskFromHdr(img, img_hdr, flipped = self._main_frame.raw_settings.get('DetectorFlipped90'))
+        
+        print mask_params
+        print mask_params[0]._points
+        print mask_params[0]._radius
+        #mask_params contains the mask and the individual maskshapes
+                
+        return [None, mask_params]
+    
     def _onShowButton(self, event):
         selected_mask = self.selector_choice.GetStringSelection()
         mask_key = self.mask_choices[selected_mask]
         
-        plot_parameters = self.image_panel.getPlotParameters()        
         mask_dict = self._main_frame.raw_settings.get('Masks')
-        mask_params = mask_dict[mask_key]
+            
+        if mask_key == 'SaxslabBSMask':
+            mask_params = self._calcSaxslabBSMask()
+        else:    
+            mask_params = mask_dict[mask_key]
         
+        plot_parameters = self.image_panel.getPlotParameters()        
+        
+        #saved_mask contains all mask patch objects
         saved_mask = mask_params[1]
         
         masks_copy = []     # Need to copy the masks to new objects, ortherwise all kinds of strange things happen
@@ -6208,6 +6260,7 @@ class MaskingPanel(wx.Panel):
         else:
             wx.CallAfter(self.image_panel.clearAllMasks)
             wx.MessageBox('No mask has been set for this mask type.', 'No mask set.', style = wx.ICON_EXCLAMATION)
+    
     
     def _onSetButton(self, event):
         
@@ -8689,7 +8742,7 @@ class WelcomeDialog(wx.Dialog):
         raw_bitmap = wx.Bitmap(os.path.join(RAWWorkDir, "resources", "raw.ico"))
         rawimg = wx.StaticBitmap(self, -1, raw_bitmap)
         
-        headline = wx.StaticText(self, -1, 'Welcome to RAW 0.99.9.13b!')
+        headline = wx.StaticText(self, -1, 'Welcome to RAW 1.01b!')
         
         text1 = 'Developers/Contributors:'
         text2 = '\nSoren S. Nielsen'
@@ -8760,7 +8813,7 @@ class MySplashScreen(wx.SplashScreen):
     def OnExit(self, evt):
         self.Hide()
             
-        frame = MainFrame('RAW 0.99.9.13b', -1)
+        frame = MainFrame('RAW 1.01b', -1)
         
         self.raw_settings = frame.getRawSettings()
         icon = wx.Icon(name= os.path.join(RAWWorkDir, "resources","raw.ico"), type = wx.BITMAP_TYPE_ICO)

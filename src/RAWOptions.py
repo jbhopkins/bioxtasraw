@@ -1603,10 +1603,12 @@ class GeneralOptionsPanel(wx.Panel):
         
         self.raw_settings = raw_settings
         
-        self.update_keys = ['ManipItemCollapsed', 'DatHeaderOnTop']
+        self.update_keys = ['ManipItemCollapsed', 'DatHeaderOnTop', 'UseHeaderForMask', 'DetectorFlipped90']
         
         self.chkboxdata = [('Hide controls on manipulation items for new plots', raw_settings.getId('ManipItemCollapsed')),
-                           ('Write header on top of dat files', raw_settings.getId('DatHeaderOnTop'))]
+                           ('Write header on top of dat files', raw_settings.getId('DatHeaderOnTop')),
+                           ('Use header for mask creation (SAXSLAB instruments)', raw_settings.getId('UseHeaderForMask')),
+                           ('Detector is rotated 90 degrees', raw_settings.getId('DetectorFlipped90'))]
         
         options_sizer = self.createGeneralOptionsData()
         
@@ -1614,7 +1616,7 @@ class GeneralOptionsPanel(wx.Panel):
         final_sizer.Add(options_sizer, 0, wx.EXPAND | wx.ALL, 5)
         
         self.SetSizer(final_sizer)    
-    
+        
     
     def createGeneralOptionsData(self):
         
@@ -1657,7 +1659,8 @@ class MaskingOptionsPanel(wx.Panel):
         
         self.files_data = (("Beamstop Mask:"     , raw_settings.getId('BeamStopMaskFilename'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile),
                           ("Readout Noise Mask:", raw_settings.getId('ReadOutNoiseMaskFilename'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile),
-                          ("Transparent Beamstop Mask:", raw_settings.getId('TransparentBSMaskFilename'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile))
+                          ("Transparent Beamstop Mask:", raw_settings.getId('TransparentBSMaskFilename'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile),
+                          ("SAXSLAB calcualted mask:", raw_settings.getId('TransparentBSMaskFilename'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile))
 
         box = wx.StaticBox(self, -1, 'Mask Files')
         file_sizer = self.createFileSettings()
@@ -1781,6 +1784,9 @@ class SaveDirectoriesPanel(wx.Panel):
         
         self.raw_settings = raw_settings
       
+        self.update_keys = ['ProcessedFilePath' , 'AveragedFilePath' , 'SubtractedFilePath',
+                            'AutoSaveOnImageFiles', 'AutoSaveOnAvgFiles', 'AutoSaveOnSub']
+
                                                                                       #Set button id , clr button id
         self.directory_data = (('Processed files:', raw_settings.getId('ProcessedFilePath'),  wx.NewId(), wx.NewId()),
                               ('Averaged files:',  raw_settings.getId('AveragedFilePath'),   wx.NewId(), wx.NewId()),

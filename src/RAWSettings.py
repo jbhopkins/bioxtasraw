@@ -50,6 +50,8 @@ class RawGuiSettings:
              
                             'UseOnlineFilter' : [False, wx.NewId(), 'bool'],
                             'OnlineFilterExt' : ['',    wx.NewId(), 'text'],
+                            'UseHeaderForMask': [True, wx.NewId(), 'bool'],
+                            'DetectorFlipped90':[False, wx.NewId(), 'bool'],
              
              
                             #CENTER / BINNING

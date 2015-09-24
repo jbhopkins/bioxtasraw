@@ -429,7 +429,15 @@ class ImagePanel(wx.Panel):
 		
 		self.imgobj.cmap = self.plot_parameters['ColorMap']
 		
-		a.set_title(sasm.getParameter('filename'))
+		
+		img_hdr = sasm.getParameter('imageHeader')
+		
+		if img_hdr.has_key('Meas.Description'):
+			title_str = img_hdr['Meas.Description'] + '\n'
+		else:
+			title_str = ''
+			
+		a.set_title(title_str + sasm.getParameter('filename'))
 		a.set_xlabel('x (pixels)')
 		a.set_ylabel('y (pixels)')
 		a.axis('image')

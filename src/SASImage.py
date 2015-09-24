@@ -5,7 +5,9 @@ Created on Jul 7, 2010
 '''
 
 import numpy as np
-from scipy import optimize
+
+#from scipy import optimize
+
 import SASExceptions, SASParser, wx, copy, sys
 # If C extensions have not been built, build them:
 try:
@@ -314,6 +316,7 @@ def calibrateAndNormalize(sasm, img, raw_settings):
         file_hdr = sasm.getParameter('counters')
         
         result = getBindListDataFromHeader(raw_settings, img_hdr, file_hdr, keys = ['Sample Detector Distance', 'Detector Pixel Size', 'Wavelength'])
+        
         if result[0] != None: sd_distance = result[0]
         if result[1] != None: pixel_size = result[1]
         if result[2] != None: wavelength = result[2]
@@ -654,7 +657,68 @@ def createMaskMatrix(img_dim, masks):
     mask = np.flipud(mask)
                 
     return mask
+            
+def createMaskFromHdr(img, img_hdr, flipped = False):
+
+    try:
+        bsmask_info = img_hdr['bsmask_configuration'].split()
+        detector_type = img_hdr['detectortype']
+                
+        bstop_size = float(bsmask_info[3])/2.0
+        arm_width = float(bsmask_info[5])
         
+        if flipped:
+            beam_x = float(bsmask_info[1])+1
+            beam_y = float(bsmask_info[2])+1
+            angle = (2*np.pi/360) * (float(bsmask_info[4])+90)
+        else:
+            beam_x = float(bsmask_info[2])+1
+            beam_y = float(bsmask_info[1])+1
+            angle = (2*np.pi/360) * (float(bsmask_info[4]))
+        
+        masks = []
+        masks.append(CircleMask((beam_x, beam_y), (beam_x + bstop_size, beam_y + bstop_size), 0, img.shape, False))
+        
+        if detector_type == 'PILATUS 300K':
+            points = [(191,489), (214,488), (214,0), (192,0)]
+            masks.append(PolygonMask(points, 1, img.shape, False))
+            points = [(404,489), (426,489), (426,0), (405,0)]
+            masks.append(PolygonMask(points, 1, img.shape, False))
+        
+        #Making mask as long as the image diagonal (cannot be longer)
+        L = np.sqrt( img.shape[0]**2 + img.shape[1]**2 )
+                
+        #width of arm mask
+        N = arm_width
+        
+        x1, y1 = beam_x, beam_y
+        
+        x2 = x1 + (L * np.cos(angle))
+        y2 = y1 + (L * np.sin(angle))
+        
+        dx = x1-x2
+        dy = y1-y2
+        dist = np.sqrt(dx*dx + dy*dy)
+        dx /= dist
+        dy /= dist
+        x3 = int(x1 + (N/2)*dy)
+        y3 = int(y1 - (N/2)*dx)
+        x4 = int(x1 - (N/2)*dy)
+        y4 = int(y1 + (N/2)*dx)
+        
+        x5 = int(x2 + (N/2)*dy)
+        y5 = int(y2 - (N/2)*dx)
+        x6 = int(x2 - (N/2)*dy)
+        y6 = int(y2 + (N/2)*dx)
+        
+        points = [(x3, y3), (x4, y4), (x6, y6), (x5, y5)]
+        
+        masks.append(PolygonMask(points, 2, img.shape, False))
+        
+    except ValueError:
+        raise ValueError
+    
+    return masks
     
 def applyMaskToImage(in_image, mask):
     ''' multiplies the mask matrix to a 2D array (image) to reveal

@@ -7,6 +7,11 @@ Usage:
 
 import sys, glob, os
 
+PY3 = sys.version_info[0] == 3
+
+if PY3:
+    exec_ = eval("exec")
+
 if sys.platform == 'darwin':
     from setuptools import setup
     
