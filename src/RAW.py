@@ -1181,6 +1181,10 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(wx.MessageBox, str(msg), 'Saved mask does not fit loaded image', style = wx.ICON_ERROR)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
+        except SASExceptions.HeaderMaskLoadError, msg:
+            wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header', style = wx.ICON_ERROR)
+            wx.CallAfter(self.main_frame.closeBusyDialog)
+            return
             
         if len(filename_list) == 1 and  img != None:
             self._sendImageToDisplay(img, sasm)

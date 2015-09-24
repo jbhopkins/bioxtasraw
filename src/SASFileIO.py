@@ -1188,9 +1188,12 @@ def loadImageFile(filename, raw_settings):
 	use_hdr_mask = raw_settings.get('UseHeaderForMask')
 	
 	if use_hdr_mask and img_fmt == 'SAXSLab300':
-
-		mask_patches = SASImage.createMaskFromHdr(img, img_hdr, flipped = raw_settings.get('DetectorFlipped90'))
-		bs_mask = SASImage.createMaskMatrix(img.shape, mask_patches)
+		try:
+			mask_patches = SASImage.createMaskFromHdr(img, img_hdr, flipped = raw_settings.get('DetectorFlipped90'))
+			bs_mask = SASImage.createMaskMatrix(img.shape, mask_patches)
+		except KeyError:
+			raise SASExceptions.HeaderMaskLoadError('bsmask_configuration not found in header.')
+			
 		dc_mask = masks['ReadOutNoiseMask'][0]
 	else:
 		bs_mask = masks['BeamStopMask'][0]
