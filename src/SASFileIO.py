@@ -1152,7 +1152,6 @@ def loadImageFile(filename, raw_settings):
 	x_c = raw_settings.get('Xcenter')
 	y_c = raw_settings.get('Ycenter')
 	
-	
 	## Flatfield correction.. this part gets moved to a image correction function later
 	if raw_settings.get('NormFlatfieldEnabled'):
 		flatfield_filename = raw_settings.get('NormFlatfieldFile')
