@@ -2304,7 +2304,7 @@ class MolWeightFrame(wx.Frame):
         params_button.Bind(wx.EVT_BUTTON, self.onChangeParams)
 
         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
-        buttonSizer.Add(params_button, 0, wx.ALIGN_LEFT | wx.LEFT, 5)
+        buttonSizer.Add(params_button, 0, wx.ALIGN_LEFT | wx.RIGHT, 5)
         buttonSizer.Add(savebutton, 0, wx.RIGHT | wx.ALIGN_RIGHT, 5)
         buttonSizer.Add(button, 0, wx.RIGHT | wx.ALIGN_RIGHT, 5)
 
