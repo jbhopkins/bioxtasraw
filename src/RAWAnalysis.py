@@ -2471,7 +2471,7 @@ class MolWeightFrame(wx.Frame):
                    "in solution must be well determined. Unless the scattering contrast is adjusted, this method "
                    "will only work for proteins.")
 
-        dlg = wx.MessageDialog(self.main_frame, msg, "Calculating Molecular Weight", style = wx.ICON_INFORMATION | wx.OK)
+        dlg = wx.MessageDialog(self, msg, "Calculating Molecular Weight", style = wx.ICON_INFORMATION | wx.OK)
         proceed = dlg.ShowModal()
         dlg.Destroy()
 
