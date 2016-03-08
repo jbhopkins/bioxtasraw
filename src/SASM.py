@@ -6,9 +6,11 @@ Created on Jul 5, 2010
 
 import numpy as np
 import scipy.interpolate as interp
+from scipy import integrate as integrate
 import os, copy
 import SASCalib, SASExceptions
 from math import pi, sin
+import wx
 
 class SASM:
     '''
@@ -33,8 +35,10 @@ class SASM:
         self._parameters = parameters
         
         # Make an entry for analysis parameters i.e. Rg, I(0) etc:
-        self._parameters['analysis'] = {}
-        self._parameters['history'] = {}
+        if 'analysis' not in self._parameters:
+            self._parameters['analysis'] = {}
+        if 'history' not in self._parameters:
+            self._parameters['history'] = {}
         
         #Binned intensity variables
         self._i_binned = self._i_raw.copy()
@@ -62,6 +66,15 @@ class SASM:
         self.axes = None
         self.is_plotted = False
         self._selected_q_range = (0, len(self._q_binned))
+
+        #Calculated values
+        try:
+            if len(self.q)>0:
+                self.total_intensity = integrate.simps(self.i, self.q)
+                self.mean_intensity = self.i.mean()
+        except:
+            self.total_intensity = -1
+            self.mean_intensity = -1
         
     def _update(self):
         ''' updates modified intensity after scale, normalization and offset changes '''
@@ -73,6 +86,9 @@ class SASM:
         self.err = ((self._err_binned / self._norm_factor)) * abs(self._scale_factor)
         
         self.q = self._q_binned * self._q_scale_factor
+
+        self.total_intensity = integrate.simps(self.i, self.q)
+        self.mean_intensity = self.i.mean()
     
     def getScale(self):
         return self._scale_factor
@@ -144,7 +160,6 @@ class SASM:
         self._norm_factor = 1
         self._q_scale_factor = 1
         
-        
     def setQrange(self, qrange):
     
         if qrange[0] < 0 or qrange[1] > (len(self._q_binned)):
@@ -170,8 +185,7 @@ class SASM:
             return None
         
     def setParameter(self, key, value):
-        ''' insert key,value pair into parameters dict ''' 
-        
+        ''' insert key,value pair into parameters dict '''        
         self._parameters[key] = value
         
     def removeZingers(self, start_idx = 0, window_length = 10, stds = 4.0):
@@ -359,6 +373,12 @@ class SASM:
         ''' return a copy of the object ''' 
         
         return SASM(copy.copy(self.i), copy.copy(self.q), copy.copy(self.err), copy.copy(self._parameters))
+
+    def getMeanI(self):
+        return self.mean_intensity
+
+    def getTotalI(self):
+        return self.total_intensity
         
         
 class IftSASM(SASM):
@@ -367,45 +387,114 @@ class IftSASM(SASM):
         SASM.__init__(self, i, q, err, parameters)
         
                 
-def subtract(sasm1, sasm2):
+def subtract(sasm1, sasm2, forced = False):
     ''' Subtract one SASM object from another and propagate errors '''
     
     q1_min, q1_max = sasm1.getQrange()
     q2_min, q2_max = sasm2.getQrange()
     
-    if len(sasm1.i[q1_min:q1_max]) != len(sasm2.i[q2_min:q2_max]):
+    if not np.all(sasm1.q[q1_min:q1_max] == sasm2.q[q2_min:q2_max]) and not forced:
         raise SASExceptions.DataNotCompatible('The curves does not have the same number of points.')
-    
-    i = sasm1.i[q1_min:q1_max] - sasm2.i[q2_min:q2_max]
 
-    q = sasm1.q.copy()[q1_min:q1_max]
-    err = np.sqrt( np.power(sasm1.err[q1_min:q1_max], 2) + np.power(sasm2.err[q2_min:q2_max],2))
+    elif not np.all(sasm1.q[q1_min:q1_max] == sasm2.q[q2_min:q2_max]) and forced:
+        q1 = sasm1.q[q1_min:q1_max]
+        q2 = sasm2.q[q2_min:q2_max]
+        i1 = sasm1.i[q1_min:q1_max]
+        i2 = sasm2.i[q2_min:q2_max]
+        err1 = sasm1.err[q1_min:q1_max]
+        err2 = sasm2.err[q2_min:q2_max]
+
+        if q1[0]>q2[0]:
+            start=q1[0]
+            q1start=True
+        else:
+            start=q2[0]
+            q1start=False
+
+        if q1[-1]>q2[-1]:
+            end=q2[-1]
+            q1end=False
+        else:
+            end=q1[-1]
+            q1end=True
+
+        if start>end:
+            raise SASExceptions.DataNotCompatible('Subtraction failed: the curves have no overlapping q region.')
+        
+        shifted = False
+        if len(np.argwhere(q1==start))>0 and len(np.argwhere(q1==end))>0 and len(np.argwhere(q2==start))>0 and len(np.argwhere(q2==end))>0:
+            q1_idx1 = np.argwhere(q1==start)[0][0]
+            q1_idx2 = np.argwhere(q1==end)[0][0]+1
+            q2_idx1 = np.argwhere(q2==start)[0][0]
+            q2_idx2 = np.argwhere(q2==end)[0][0] +1
+
+            if np.all(q1[q1_idx1:q1_idx2]==q2[q2_idx1:q2_idx2]):
+                shifted = True
+
+
+        if shifted:
+            i = i1[q1_idx1:q1_idx2] - i2[q2_idx1:q2_idx2]
+            err = np.sqrt( np.power(err1[q1_idx1:q1_idx2], 2) + np.power(err2[q2_idx1:q2_idx2],2))
+
+            q = copy.deepcopy(q1[q1_idx1:q1_idx2])
+
+            # print i
+            # print q
+        
+        else:
+            q1space=q1[1]-q1[0]
+            q2space=q2[1]-q2[0]
+
+            if q1space>q2space:
+                npts=(end-start)/q1space+1
+            else:
+                npts=(end-start)/q2space+1
+
+            refq=np.linspace(start,end,npts,endpoint=True)
+
+            q1_idx1 = np.argmin(np.absolute(q1-start))
+            q1_idx2 = np.argmin(np.absolute(q1-end))+1
+            q2_idx1 = np.argmin(np.absolute(q2-start))
+            q2_idx2 = np.argmin(np.absolute(q2-end))+1
+
+            q1b, i1b, err1b=binfixed(q1[q1_idx1:q1_idx2], i1[q1_idx1:q1_idx2], err1[q1_idx1:q1_idx2], refq=refq)
+            q2b, i2b, err2b=binfixed(q2[q2_idx1:q2_idx2], i2[q2_idx1:q2_idx2], err2[q2_idx1:q2_idx2], refq=refq)
+            
+            i = i1b - i2b
+            err=np.sqrt(np.square(err1b)+np.square(err2b))
+
+            q = refq 
+
+    else:
+        i = sasm1.i[q1_min:q1_max] - sasm2.i[q2_min:q2_max]
+
+        q = copy.deepcopy(sasm1.q)[q1_min:q1_max]
+        err = np.sqrt( np.power(sasm1.err[q1_min:q1_max], 2) + np.power(sasm2.err[q2_min:q2_max],2))
     
-    parameters = sasm1.getAllParameters().copy()
+    parameters = copy.deepcopy(sasm1.getAllParameters())
     newSASM = SASM(i, q, err, parameters)
+
+    history = newSASM.getParameter('history')
+    if 'averaged_files' in history:
+        del history['averaged_files']
+
+    history1 = []
+    history1.append(copy.deepcopy(sasm1.getParameter('filename')))
+    if 'averaged_files' in sasm1.getParameter('history'):
+        history1.append({'averaged_files' : copy.deepcopy(sasm1.getParameter('history')['averaged_files'])})
+    if 'subtraction' in sasm1.getParameter('history'):
+        history1.append({'subtraction' : copy.deepcopy(sasm1.getParameter('history')['subtraction'])})
+
+    history2 = []
+    history2.append(copy.deepcopy(sasm2.getParameter('filename')))
+    if 'averaged_files' in sasm2.getParameter('history'):
+        history2.append({'averaged_files' : copy.deepcopy(sasm2.getParameter('history')['averaged_files'])})
+    if 'subtraction' in sasm2.getParameter('history'):
+        history2.append({'subtraction' : copy.deepcopy(sasm2.getParameter('history')['subtraction'])})
+
+    history['subtraction'] = {'initial_file':history1, 'subtracted_file':history2}
      
     return newSASM 
-
-def absorbance(sasm1, sasm2):
-    ''' compute the absorbance of one SASM object from another  '''
-    
-    q1_min, q1_max = sasm1.getQrange()
-    q2_min, q2_max = sasm2.getQrange()
-    
-    if len(sasm1.i[q1_min:q1_max]) != len(sasm2.i[q2_min:q2_max]):
-        raise SASExceptions.DataNotCompatible('The curves does not have the same number of points.')
-    
-    i = np.log(sasm2.i[q2_min:q2_max] / sasm1.i[q1_min:q1_max])
-
-    q = sasm1.q.copy()[q1_min:q1_max]
-    
-    err = i*0
-
-    parameters = sasm1.getAllParameters().copy()    
-    absSASM = SASM(i, q, err, parameters)
-     
-    return absSASM 
-
 
 def average(sasm_list):
     ''' Average the intensity of a list of sasm objects '''
@@ -415,11 +504,15 @@ def average(sasm_list):
     first_q_min, first_q_max = first_sasm.getQrange()
     
     number_of_points = len(first_sasm.i[first_q_min:first_q_max])
+
+    # print number_of_points
     
     for each in sasm_list:
         each_q_min, each_q_max = each.getQrange()
-        if len(each.i[each_q_min:each_q_max]) != number_of_points:
-            raise SASExceptions.DataNotCompatible('Average list contains data sets with different number of points')
+        # print each_q_min
+        # print each_q_max
+        if not np.all(each.q[each_q_min:each_q_max] == first_sasm.q[first_q_min:first_q_max]):
+            raise SASExceptions.DataNotCompatible('Average list contains data sets with different q vectors.')
             
     all_i = first_sasm.i[first_q_min : first_q_max]
     
@@ -438,11 +531,29 @@ def average(sasm_list):
     
     avg_err = np.sqrt( np.sum( np.power(all_err,2), 0 ) ) / len(all_err)  #np.sqrt(len(all_err))
         
-    avg_q = first_sasm.q.copy()[first_q_min:first_q_max]
-    avg_parameters = sasm_list[0].getAllParameters().copy()
+    avg_q = copy.deepcopy(first_sasm.q)[first_q_min:first_q_max]
+    avg_parameters = copy.deepcopy(sasm_list[0].getAllParameters())
     
     avgSASM = SASM(avg_i, avg_q, avg_err, avg_parameters)
-    avgSASM.setParameter('avg_filelist', avg_filelist)
+    history = avgSASM.getParameter('history')
+
+    if 'subtraction' in history:
+        del history['subtraction']
+
+    history_list = []
+
+    for eachsasm in sasm_list:
+        each_history = []
+        each_history.append(copy.deepcopy(eachsasm.getParameter('filename')))
+        if 'averaged_files' in eachsasm.getParameter('history'):
+            each_history.append({'averaged_files' : copy.deepcopy(eachsasm.getParameter('history')['averaged_files'])})
+        if 'subtraction' in eachsasm.getParameter('history'):
+            each_history.append({'subtraction' : copy.deepcopy(eachsasm.getParameter('history')['subtraction'])})
+        history_list.append(each_history)
+
+
+    history['averaged_files'] = history_list
+    avgSASM.setParameter('history', history)
     
     return avgSASM
 
@@ -822,14 +933,489 @@ def rebin(sasm, rebin_factor):
     parameters = copy.deepcopy(sasm.getAllParameters())
     
     newSASM = SASM(new_i, new_q, new_err, parameters)
+
+    qstart, qend = sasm.getQrange()
+
+    new_qstart = int(qstart/float(rebin_factor)+.5)
+    new_qend = int(qend/float(rebin_factor)+.5)
+
+    newSASM.setQrange([new_qstart, new_qend])
     
     return newSASM
     
+
+def binfixed(q, I, er, refq):
+    """
+    This function bins the input q, I, and er into the fixed bins of qref
+    """
+    dq=refq[1]-refq[0]
+
+    qn=np.linspace(refq[0]-dq/2.,refq[-1]+1.5*dq, np.around((refq[-1]+2*dq-refq[0])/dq,0)+1,endpoint=True )
+
+
+    dig=np.digitize(q,qn)
+
+    In=np.array([I[dig==i].mean() for i in range(1,len(qn)-1)])
+
+
+    mI = np.ma.masked_equal(I,0)
+
+    Iern=np.array([np.sqrt(np.sum(np.square(er[dig==i]/mI[dig==i])))/len(I[dig==i]) for i in range(1,len(qn)-1)])
+
+    Iern=Iern*In
+
+    qn=refq
+
+    return qn, In, np.nan_to_num(Iern)
     
     
+class SECM:
+    '''
+        SEC-SAS Measurement (SECM) Object.
+    '''
     
+    def __init__(self, file_list, sasm_list, frame_list, parameters):
+        ''' Constructor 
+        
+            parameters contains at least {'filename': filename_with_no_path}
+            other reserved keys are:
+            
+            'counters' : [(countername, value),...] Info from counterfiles
+            'fileHeader' : [(label, value),...] Info from the header in the loaded file
+        '''
+                
+        #Raw inputs variables
+        self._file_list = file_list
+        self._sasm_list = sasm_list
+        self._frame_list_raw = np.array(frame_list, dtype=int)
+        self._parameters = parameters
+        
+        # Make an entry for analysis parameters i.e. Rg, I(0) etc:
+        if 'analysis' not in self._parameters:
+            self._parameters['analysis'] = {}
+        if 'history' not in self._parameters:
+            self._parameters['history'] = {}
+        if 'filename' not in self._parameters:
+            self._parameters['filename'] = os.path.basename(self._file_list[0])
+        
+        #Extract initial mean and total intensity variables
+        self._mean_i_raw = np.array([sasm.getMeanI() for sasm in self._sasm_list])
+        self._total_i_raw = np.array([sasm.getTotalI() for sasm in self._sasm_list])
+
+        #Set up the modified mean and total intensity variables
+        self.mean_i = self._mean_i_raw.copy()
+        self.total_i = self._total_i_raw.copy()
+
+        #Make sure we have as many frame numbers as sasm objects
+        if len(self._sasm_list) != len(self._frame_list_raw):
+            self._frame_list_raw=np.arange(len(self._sasm_list))
+            print 'Warning: Incorrect frame number input to SECM object. Using default frame numbers.'
+
+        self.frame_list = self._frame_list_raw.copy()
+
+        self._scale_factor = 1
+        self._offset_value = 0
+        self._frame_scale_factor = 1
+        
+        #variables used for plot management
+        self.item_panel = None
+        self.plot_panel = None
+        self.line = None
+        self.origline = None
+        self.err_line = None
+        self.axes = None
+        self.is_plotted = False
+
+        self.qref=0
+        self.I_of_q=[]
+
+        self.time=[]
+        main_frame = wx.FindWindowByName('MainFrame')
+        hdr_format = main_frame.raw_settings.get('ImageHdrFormat')
+
+        if hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS':
+            for sasm in self._sasm_list:
+                if sasm.getAllParameters().has_key('counters'):
+                    file_hdr = sasm.getParameter('counters')
+
+                    if '#C' not in file_hdr.values():
+                        if file_hdr.has_key('Time'):
+                            sasm_time = file_hdr['Time']
+                            self.time.append(sasm_time)
+
+                        elif file_hdr.has_key('Seconds'):
+                            sasm_time = file_hdr['Seconds']
+                            if len(self.time) == 0:
+                                self.time.append(0)
+                            else:
+                                self.time.append(sasm_time+self.time[-1])
+
+                        elif file_hdr.has_key('Exposure_time'):
+                            sasm_time = file_hdr['Exposure_time']
+                            if len(self.time) == 0:
+                                self.time.append(0)
+                            else:
+                                self.time.append(sasm_time+self.time[-1])
+
+        self.time=np.array(self.time,dtype=float)
+
+
+        ####### Parameters for autocalculating rg, MW for SEC plot
+        self.initial_buffer_frame = -1
+        self.final_buffer_frame = -1
+        self.window_size = -1
+        self.average_buffer_sasm = None
+        self.subtracted_sasm_list = []
+        self.rg_list = []
+        self.rger_list = []
+        self.i0_list = []
+        self.i0er_list = []
+        self.mw_list = []
+        self.mwer_list = []
+
+        self.calc_line = None
+        self.calc_err_line = None
+        self.calc_axes = None
+        self.calc_is_plotted = False
+        self.calc_has_data = False
+        self.is_visible = True
+
+        
+    def _update(self):
+        ''' updates modified intensity after scale, normalization and offset changes '''
+        
+        #self.i = ((self._i_binned / self._norm_factor) + self._offset_value) * self._scale_factor 
+        self.mean_i = ((self.mean_i) * self._scale_factor) + self._offset_value
+        self.total_i = ((self.total_i) * self._scale_factor) + self._offset_value 
+        
+        self.frame_list = self.frame_list * self._frame_scale_factor
+
+
+    def append(self, filename_list, sasm_list, frame_list):
+
+        self._file_list.extend(filename_list)
+        self._sasm_list.extend(sasm_list)
+        self._frame_list_raw = np.concatenate((self._frame_list_raw, np.array(frame_list, dtype=int)))
+
+        self._mean_i_raw = np.concatenate((self._mean_i_raw, np.array([sasm.getMeanI() for sasm in sasm_list])))
+        self._total_i_raw = np.concatenate((self._total_i_raw, np.array([sasm.getTotalI() for sasm in sasm_list])))
+
+        self.mean_i = self._mean_i_raw.copy()
+        self.total_i = self._total_i_raw.copy()
+
+        if len(self._sasm_list) != len(self._frame_list_raw):
+            self._frame_list_raw=np.arange(len(self._sasm_list))
+            print 'Warning: Incorrect frame number input to SECM object. Using default frame numbers.'
+
+        self.frame_list = self._frame_list_raw.copy()
+
+        time=list(self.time)
+        main_frame = wx.FindWindowByName('MainFrame')
+        hdr_format = main_frame.raw_settings.get('ImageHdrFormat')
+
+        if hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS':
+            for sasm in sasm_list:
+                if sasm.getAllParameters().has_key('counters'):
+                    file_hdr = sasm.getParameter('counters')
+
+                    if '#C' not in file_hdr.values():
+                        if file_hdr.has_key('Time'):
+                            sasm_time = file_hdr['Time']
+                            time.append(sasm_time)
+
+                        elif file_hdr.has_key('Seconds'):
+                            sasm_time = file_hdr['Seconds']
+                            if len(time) == 0:
+                                time.append(0)
+                            else:
+                                time.append(sasm_time+time[-1])
+
+                        elif file_hdr.has_key('Exposure_time'):
+                            sasm_time = file_hdr['Exposure_time']
+                            if len(time) == 0:
+                                time.append(0)
+                            else:
+                                time.append(sasm_time+self.time[-1])
+
+        self.time=np.array(time,dtype=float)
+
+        if self.qref>0:
+
+            I_of_q = []
+
+            closest = lambda qlist: np.argmin(np.absolute(qlist-self.qref))
+
+            for sasm in sasm_list:
+                # print 'in sasm_list loop'
+                q = sasm.q
+                index = closest(q)
+                # print index
+                intensity = sasm.i[index]
+                # print intensity
+                I_of_q.append(intensity)
+
+            self.I_of_q.extend(I_of_q)
+
+        # print self.time
+
+        self._update()
+
     
+    def getScale(self):
+        return self._scale_factor
     
+    def getOffset(self):
+        return self._offset_value
     
+    def getLine(self):
+        return self.line
+
+    def getCalcLine(self):
+        return self.calc_line
+
+    def getSASMList(self, initial_frame, final_frame):
+        sasms = []
+
+        try:
+            initial_frame = int(initial_frame)
+        except:
+            msg = "Invalid value for initial frame."
+            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
+            return sasms
+        try:
+            final_frame = int(final_frame) + 1
+        except:
+            msg = "Invalid value for final frame."
+            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
+            return sasms
+
+
+        if initial_frame > final_frame:
+            msg = "To send data to the main plot, enter a valid frame range (initial frame larger than final frame)."
+            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
+            return sasms
+
+        elif len(np.where(self.frame_list == initial_frame)[0]) == 0:
+            msg = "To send data to the main plot, enter a valid frame range (initial frame not in data set)."
+            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
+            return sasms
+
+        else:
+            index1 = np.where(self.frame_list == initial_frame)[0][0]
+
+            if len(np.where(self.frame_list == final_frame)[0]) == 0:
+                index2 = len(self.frame_list)
+                print 'Warning: Final frame not in data set'
+            else:
+                index2 = np.where(self.frame_list == final_frame)[0][0]
+
+            sasms = self._sasm_list[index1 : index2 +1]
+
+            return self._sasm_list[index1 : index2]
+
+    def getTime(self):
+        if len(self.time)==0:
+            return np.zeros_like(self.frame_list) - 1
+        else:
+            return self.time
+    def scaleRelative(self, relscale):
+        self._scale_factor = abs(self._scale_factor * relscale)
+        self._update()
     
+    def scale(self, scale_factor):
+        ''' Scale intensity by a factor from the raw intensity, also scales errorbars appropiately '''
+        
+        self._scale_factor = abs(scale_factor)
+        self._update()
     
+    def normalize(self, norm_value):
+        ''' Normalize (divide) raw intensity by a value, errorbars follow '''
+        
+        self._norm_factor = norm_value
+        self._update()
+        
+    def offset(self, offset_value):
+        ''' Offset raw intensity by a constant. Only modified intensity is affected '''
+        
+        self._offset_value = offset_value
+        self._update()
+        
+    def reset(self):
+        ''' Reset q, i and err to their original values '''
+        
+        self.mean_i = self._mean_i_raw.copy()
+        self.total_i = self._total_i_raw.copy()
+        self.frame_list = self._frame_list_raw.copy()
+        
+        self._scale_factor = 1
+        self._offset_value = 0
+        self._frame_scale_factor = 1
+    
+    def setAllParameters(self, new_parameters):
+        self._parameters = new_parameters        
+    
+    def getAllParameters(self):
+        return self._parameters
+    
+    def getParameter(self, key):
+        ''' Get parameter from parameters dict '''
+        
+        if self._parameters.has_key(key):
+            return self._parameters[key]
+        else:
+            return None
+        
+    def setParameter(self, key, value):
+        ''' insert key,value pair into parameters dict ''' 
+        
+        self._parameters[key] = value
+        
+    def setScaleValues(self, scale_factor, offset_value, frame_scale_factor):
+        
+        self._scale_factor = scale_factor
+        self._offset_value = offset_value
+        self._frame_scale_factor = q_scale_factor
+        
+    def extractAll(self):
+        ''' extracts all data from the object and delivers it as a dict '''
+        
+        all_data = {}
+
+        all_data['file_list'] = self._file_list
+        all_data['mean_i_raw'] = self._mean_i_raw
+        all_data['total_i_raw'] = self._total_i_raw
+        all_data['frame_list_raw'] = self._frame_list_raw
+        all_data['mean_i'] = self.mean_i
+        all_data['total_i'] = self.total_i
+        all_data['frame_list'] = self.frame_list
+        all_data['i_of_q'] = self.I_of_q
+        all_data['time'] = self.time
+        all_data['qref'] = self.qref
+        
+        all_data['scale_factor'] = self._scale_factor
+        all_data['offset_value'] = self._offset_value
+        all_data['frame_scale_factor'] = self._frame_scale_factor
+        
+        all_data['parameters'] = self._parameters
+
+        all_data['intial_buffer_frame'] = self.initial_buffer_frame
+        all_data['final_buffer_frame'] = self.final_buffer_frame
+        all_data['window_size'] = self.window_size
+        all_data['rg'] = self.rg_list
+        all_data['rger'] = self.rger_list
+        all_data['i0'] = self.i0_list
+        all_data['i0er'] = self.i0er_list
+        all_data['mw'] = self.mw_list
+        all_data['mwer'] = self.mwer_list
+        all_data['calc_has_data'] = self.calc_has_data
+        all_data['is_visible'] = self.is_visible
+
+
+        all_data['sasm_list'] = []
+        for idx in range(len(self._sasm_list)):
+            all_data['sasm_list'].append(self._sasm_list[idx].extractAll())
+
+        if self.average_buffer_sasm == None:
+            all_data['average_buffer_sasm'] = self.average_buffer_sasm
+        else:
+            all_data['average_buffer_sasm'] = self.average_buffer_sasm.extractAll()
+
+
+        all_data['subtracted_sasm_list'] = []
+        for idx in range(len(self.subtracted_sasm_list)):
+            all_data['subtracted_sasm_list'].append(self.subtracted_sasm_list[idx].extractAll())
+
+        
+        return all_data
+    
+    def copy(self):
+        ''' return a copy of the object ''' 
+        
+        return SECM(copy.copy(self.mean_i), copy.copy(self.total_i), copy.copy(self.frame_list), copy.copy(self._parameters))
+
+    def getFilename(self):
+        return self._file_list[0].split('/')[-1]
+
+    def getSASM(self, index=0):
+        return self._sasm_list[index]
+
+    def I(self, qref):
+        # print 'in I(q)'
+        self.qref=float(qref)
+        self.I_of_q = []
+
+        closest = lambda qlist: np.argmin(np.absolute(qlist-self.qref))
+
+        for sasm in self._sasm_list:
+            # print 'in sasm_list loop'
+            q = sasm.q
+            index = closest(q)
+            # print index
+            intensity = sasm.i[index]
+            # print intensity
+            self.I_of_q.append(intensity)
+
+        return self.I_of_q
+
+    def setCalcParams(self, initial, final, window):
+        new = False
+
+        if initial != self.initial_buffer_frame or final != self.final_buffer_frame or window != self.window_size:
+            new = True
+
+            self.initial_buffer_frame = initial
+            self.final_buffer_frame = final
+            self.window_size = window
+
+        # print self.initial_buffer_frame
+        # print self.final_buffer_frame
+        # print self.window_size
+        # print new
+
+        return new
+
+    def getCalcParams(self):
+        return self.initial_buffer_frame, self.final_buffer_frame, self.window_size
+
+    def setAverageBufferSASM(self, sasm):
+
+        self.average_buffer_sasm = sasm
+        
+    def getAllSASMs(self):
+        return self._sasm_list
+
+    def setSubtractedSASMList(self, sasm_list):
+        self.subtracted_sasm_list = sasm_list
+
+    def appendSubtractedSASMList(self, sasm_list):
+        self.subtracted_sasm_list = self.subtracted_sasm_list + sasm_list
+
+    def setRgAndI0(self, rg, rger, i0, i0er):
+        self.rg_list = rg
+        self.rger_list = rger
+        self.i0_list = i0
+        self.i0er_list = i0er
+
+    def setMW(self, mw, mwer):
+        self.mw_list = mw
+        self.mwer_list = mwer
+
+    def getRg(self):
+        return self.rg_list, self.rger_list
+
+    def getMW(self):
+        return self.mw_list, self.mwer_list
+
+    def getI0(self):
+        return self.i0_list, self.i0er_list
+
+    def appendRgAndI0(self, rg, rger, i0, i0er, first_frame):
+        self.rg_list = np.concatenate((self.rg_list[:first_frame],rg))
+        self.rger_list = np.concatenate((self.rger_list[:first_frame],rger))
+        self.i0_list = np.concatenate((self.i0_list[:first_frame],i0))
+        self.i0er_list = np.concatenate((self.i0er_list[:first_frame],i0er))
+
+
+    def appendMW(self, mw, mwer, first_frame):
+        self.mw_list = np.concatenate((self.mw_list[:first_frame], mw))
+        self.mwer_list = np.concatenate((self.mwer_list[:first_frame], mwer))

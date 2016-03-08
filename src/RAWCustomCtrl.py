@@ -251,6 +251,7 @@ class CustomCheckBox(wx.PyControl):
         # Ok, set the wx.PyControl label, its initial size (formerly known an
         # SetBestFittingSize), and inherit the attributes from the standard
         # wx.CheckBox
+        # print label
         self.SetLabel(label)
         self.SetInitialSize(size)
         self.InheritAttributes()

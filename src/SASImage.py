@@ -5,17 +5,24 @@ Created on Jul 7, 2010
 '''
 
 import numpy as np
-
-#from scipy import optimize
-
+from scipy import optimize
 import SASExceptions, SASParser, wx, copy, sys
+import RAWGlobals
+
 # If C extensions have not been built, build them:
-try:
-    import ravg_ext
-except ImportError:
-    import SASbuild_Clibs
-    SASbuild_Clibs.buildAll()
-    import ravg_ext
+if RAWGlobals.compiled_extensions:
+    try:
+        import ravg_ext
+
+    except ImportError:
+        import SASbuild_Clibs
+        try:
+            SASbuild_Clibs.buildAll()
+            import ravg_ext
+
+        except Exception, e:
+            RAWGlobals.compiled_extensions = False
+            print e
     
 import polygonMasking as polymask
 
@@ -316,7 +323,6 @@ def calibrateAndNormalize(sasm, img, raw_settings):
         file_hdr = sasm.getParameter('counters')
         
         result = getBindListDataFromHeader(raw_settings, img_hdr, file_hdr, keys = ['Sample Detector Distance', 'Detector Pixel Size', 'Wavelength'])
-        
         if result[0] != None: sd_distance = result[0]
         if result[1] != None: pixel_size = result[1]
         if result[2] != None: wavelength = result[2]
@@ -657,68 +663,7 @@ def createMaskMatrix(img_dim, masks):
     mask = np.flipud(mask)
                 
     return mask
-            
-def createMaskFromHdr(img, img_hdr, flipped = False):
-
-    try:
-        bsmask_info = img_hdr['bsmask_configuration'].split()
-        detector_type = img_hdr['detectortype']
-                
-        bstop_size = float(bsmask_info[3])/2.0
-        arm_width = float(bsmask_info[5])
         
-        if flipped:
-            beam_x = float(bsmask_info[1])+1
-            beam_y = float(bsmask_info[2])+1
-            angle = (2*np.pi/360) * (float(bsmask_info[4])+90)
-        else:
-            beam_x = float(bsmask_info[2])+1
-            beam_y = float(bsmask_info[1])+1
-            angle = (2*np.pi/360) * (float(bsmask_info[4]))
-        
-        masks = []
-        masks.append(CircleMask((beam_x, beam_y), (beam_x + bstop_size, beam_y + bstop_size), 0, img.shape, False))
-        
-        if detector_type == 'PILATUS 300K':
-            points = [(191,489), (214,488), (214,0), (192,0)]
-            masks.append(PolygonMask(points, 1, img.shape, False))
-            points = [(404,489), (426,489), (426,0), (405,0)]
-            masks.append(PolygonMask(points, 1, img.shape, False))
-        
-        #Making mask as long as the image diagonal (cannot be longer)
-        L = np.sqrt( img.shape[0]**2 + img.shape[1]**2 )
-                
-        #width of arm mask
-        N = arm_width
-        
-        x1, y1 = beam_x, beam_y
-        
-        x2 = x1 + (L * np.cos(angle))
-        y2 = y1 + (L * np.sin(angle))
-        
-        dx = x1-x2
-        dy = y1-y2
-        dist = np.sqrt(dx*dx + dy*dy)
-        dx /= dist
-        dy /= dist
-        x3 = int(x1 + (N/2)*dy)
-        y3 = int(y1 - (N/2)*dx)
-        x4 = int(x1 - (N/2)*dy)
-        y4 = int(y1 + (N/2)*dx)
-        
-        x5 = int(x2 + (N/2)*dy)
-        y5 = int(y2 - (N/2)*dx)
-        x6 = int(x2 - (N/2)*dy)
-        y6 = int(y2 + (N/2)*dx)
-        
-        points = [(x3, y3), (x4, y4), (x6, y6), (x5, y5)]
-        
-        masks.append(PolygonMask(points, 2, img.shape, False))
-        
-    except ValueError:
-        raise ValueError
-    
-    return masks
     
 def applyMaskToImage(in_image, mask):
     ''' multiplies the mask matrix to a 2D array (image) to reveal
@@ -823,7 +768,7 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
     '''
     
     in_image = np.float64(in_image)
-    
+
     ylen, xlen = in_image.shape
     
     xlen = np.int(xlen)
@@ -873,20 +818,38 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
     
     xlen_1 = ylen
     ylen_1 = xlen
+
+    # print np.any(hist<0)
+    # print np.any(hist<0)
             
     print 'Radial averaging in progress...',
     
-    ravg_ext.ravg(readoutNoiseFound,
-                   readoutN,
-                   readoutNoise_mask,
-                   xlen_1, ylen_1,
-                   x_c, y_c,
-                   hist,
-                   low_q, high_q,
-                   in_image,
-                   hist_count, mask, qmatrix, dezingering, dezing_sensitivity)
+    if RAWGlobals.compiled_extensions:
+        ravg_ext.ravg(readoutNoiseFound,
+                       readoutN,
+                       readoutNoise_mask,
+                       xlen_1, ylen_1,
+                       x_c, y_c,
+                       hist,
+                       low_q, high_q,
+                       in_image,
+                       hist_count, mask, qmatrix, dezingering, dezing_sensitivity)
+    else:
+        ravg_python(readoutNoiseFound,
+                       readoutN,
+                       readoutNoise_mask,
+                       xlen_1, ylen_1,
+                       x_c, y_c,
+                       hist,
+                       low_q, high_q,
+                       in_image,
+                       hist_count, mask, qmatrix, dezingering, dezing_sensitivity)
+
     print 'done'
     
+    # print np.any(hist<0)
+    # print np.any(hist_count<0)
+
     hist_cnt = hist_count[2,:]    #contains x-mean
     
     hist_count = hist_count[0,:]  #contains N 
@@ -896,12 +859,16 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
     std_i[np.where(np.isnan(std_i))] = 0
     
     iq = hist / hist_count
+
+    # print iq
     
     if x_c > 0 and x_c < xlen and y_c > 0 and y_c < ylen:
         iq[0] = in_image[x_c, y_c]  #the center is not included in the radial average, so it is set manually her
     
+
     #Estimated Standard deviation   - equal to the std of pixels in the area / sqrt(N)
     errorbars = std_i / np.sqrt(hist_count)
+
     
     if readoutNoiseFound:
         #Average readoutNoise
@@ -918,6 +885,7 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
         iq = iq - readoutNoise
         errorbars = np.sqrt(np.power(errorbars, 2) + np.power(errorbarNoise, 2))
     
+
     iq[np.where(np.isnan(iq))] = 0
     errorbars[np.where(np.isnan(errorbars))] = 1e-10
     
@@ -929,7 +897,7 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
         errorbars[np.where(np.isnan(errorbars))] = 1e-10
         
     #Trim trailing zeros
-    iq = np.trim_zeros(iq, 'b')
+    # iq = np.trim_zeros(iq, 'b')
     iq = iq[:-5]        #Last points are usually garbage they're very few pixels
                         #Cutting the last 5 points here. 
     q = q[0:len(iq)] 
@@ -939,6 +907,279 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
 
 
 
+def ravg_python(readoutNoiseFound, readoutN, readoutNoise_mask, xlen, ylen, x_c, 
+                y_c, hist, low_q, high_q, in_image, hist_count, mask, qmatrix, 
+                dezingering, dezing_sensitivity):
+    
+    WINDOW_LENGTH=30
+    
+    # double rel_x, rel_y, r, delta, deltaN, qmat_cnt, std;
+    # int i, x, y, half_window_size, window_start_idx, q_idx, point_idx;
+    
+    window = np.empty(WINDOW_LENGTH)
+    # double median;
+    # double *window_ptr, *data;
+    # int half_win_len;
+    # int hist_length;
+    
+    hist_length = len(hist)
+    
+    data = qmatrix            #/* Pointer to the numpy array version of qmatrix */
+    
+    window_ptr = window
+    
+    half_window_size = (WINDOW_LENGTH / 2.0)
+    win_len = WINDOW_LENGTH
+    
+    for x in range(xlen):
+            for y in range(ylen):
+           # {
+                rel_x = x-x_c
+                rel_y = y_c-y
+           
+                r = int(((rel_y)**2. + (rel_x)**2.)**0.5)
+                
+                # //res(x,y) = r;
+                
+                if r < high_q and r > low_q and mask[x,y] == 1: #// && in_image(x,y) > 0)
+                # {
+                    q_idx = r
+                    
+                    # /* res2(x,y) = r; */                                  /*  A test image, gives the included range image */
+                    
+                    hist[r] = hist[r] + in_image[x,y]                    #/* Integration of pixel values */
+                    
+                    qmat_cnt = hist_count[0, q_idx]                      #/* Number of pixels in a bin */
+                    qmatrix[q_idx, int(qmat_cnt)] = in_image[x,y]        #/* Save pixel value for later analysis */
+                    
+                    hist_count[0, q_idx] = hist_count[0, q_idx] + 1      #/* Number of pixels in a bin */
+                    
+                    delta = in_image[x,y] - hist_count[1, q_idx]         #/* Calculation of variance start */
+                    
+                    hist_count[1, q_idx] = hist_count[1, q_idx] + (delta / hist_count[0, q_idx])              
+                    hist_count[2, q_idx] = hist_count[2, q_idx] + (delta * (in_image[x,y]-hist_count[1, q_idx]))
+                    
+                    
+                    # /* *******************   Dezingering   ******************** */ 
+                        
+                    if hist_count[0, r] >= WINDOW_LENGTH and dezingering == 1:
+                    # {
+                        point_idx = int(hist_count[0, q_idx])
+                        window_start_idx = point_idx - win_len 
+                    
+                        # window_ptr = window                                                        #/* Reset pointers */
+                        data = qmatrix_array[q_idx, window_start_idx:point_idx]
+
+                        window = data
+
+                        # window.sort()
+                        
+                        # moveDataToWindow(window_ptr, data, win_len)
+                        # quicksort(window, 0, WINDOW_LENGTH-1)
+                        
+                        std = np.std(window)
+                        # window_ptr = window                                                        #/* Reset pointers */
+                        median = np.median(window)
+                        
+                        # //printf("median: %f\\n", median); 
+                        
+                        half_win_len = point_idx - half_window_size
+                        
+                        
+                        if qmatrix[q_idx, half_win_len] > (median + (dezing_sensitivity * std)): #{
+                            qmatrix[q_idx, half_win_len] = median
+                        # }
+                            
+                    # } // end dezinger if case
+                    
+                    
+                # }
+                
+                if readoutNoiseFound == 1 and r < high_q-1 and r > low_q and readoutNoise_mask[x,y] == 0:
+                # {
+                    readoutN[0,0] = readoutN[0,0] + 1
+                    readoutN[0,1] = readoutN[0,1] + in_image[x,y]
+                    
+                    deltaN = in_image[x,y] - readoutN[0,2]
+                    readoutN[0,2] = readoutN[0,2] + (deltaN / readoutN[0,0])
+                    readoutN[0,3] = readoutN[0,3] + (deltaN * (in_image[x,y]-readoutN[0,2]))        
+                    
+                # }  
+            # }
+    
+    # /* *********************************************  */
+    # /* Remove zingers at the first (window/2) points  */
+    # /* *********************************************  */
+    
+    if dezingering == 1:
+        
+        half_window_size = int(WINDOW_LENGTH / 2.0)
+        win_len = WINDOW_LENGTH
+        
+        for q_idx in range(hist_length):
+            # {
+                  
+            if hist_count[0, q_idx] > (win_len + half_window_size):
+                # {
+                          
+                for i in range(win_len+half_window_size, win_len, -1):
+                    # { 
+                
+                    point_idx = i
+                    window_start_idx = point_idx - win_len 
+
+                    data = qmatrix_array[q_idx, window_start_idx:point_idx]
+
+                    window = data       
+                
+                    # moveDataToWindow(window_ptr, data, win_len)
+                    # quicksort(window, 0, WINDOW_LENGTH-1)
+                        
+                    std = np.std(window)
+                    # window_ptr = window                      #/* Reset pointers */
+                    median = np.median(window)
+                    
+                    half_win_len = point_idx - win_len
+                            
+                    if qmatrix[q_idx, half_win_len] > (median + (dezing_sensitivity * std)):
+                    # {
+                        qmatrix[q_idx, half_win_len] = median
+                        
+                    # }      
+                # }   
+            # }  
+        # }
+    # } 
+     
+    print "\n\n********* Radial Averaging and dezingering ********\n"
+    print "Done!"
+    
+    # """
+  
+    # code2 = """
+    
+# def getStd(window_ptr, win_len):
+# # {
+#     # int half_win_len;
+#     # double mean, variance, M2, n, delta;        
+    
+#     M2 = 0.;
+#     n = 0.0;
+#     mean = 0.;
+#     variance = 1.;
+#     delta = 0.;
+    
+#     half_win_len = int(win_len / 2)
+    
+#     while(half_win_len--)
+#     {
+#         ++n;
+#         delta = ((double) *window_ptr) - mean;        
+#         mean = mean + (delta/n);
+        
+#         M2 = M2 + (delta * (((double) *window_ptr) - mean));
+
+#         ++window_ptr;    
+#     }   
+    
+#     if(n > 1)
+#             variance = M2/(n - 1);     /* To avoid devide by zero */         
+
+#     return sqrt(variance);
+# }
+
+# def moveDataToWindow(double *window_ptr, double *data, int win_len)
+# # {
+#     data++;                                        /* Pointers needs to be moved back/forward since */
+#     window_ptr--;                                  /* *data++ doesn't work, but *++data does.. strange! */
+
+#     while(win_len--)
+#     {
+#         *++window_ptr = *--data;                  /* Move values from data array to the window array */  
+#     }
+              
+# # }
+
+# void swap(double *x, double *y)
+# {
+#    long temp;
+#    temp = *x;
+#    *x = *y;
+#    *y = temp;
+# }
+
+# long choose_pivot(long i, long j)
+# {
+#    return((i+j) /2);
+# }
+
+# void quicksort(double list[], long m, long n)
+# {
+#    long key,i,j,k;
+#    if( m < n)
+#    {
+#       k = choose_pivot(m, n);
+#       swap(&list[m], &list[k]);
+#       key = list[m];
+#       i = m+1;
+#       j = n;
+      
+#       while(i <= j)
+#       {
+#          while((i <= n) && (list[i] <= key))
+#             i++;
+#          while((j >= m) && (list[j] > key))
+#             j--;
+#          if( i < j)
+#             swap(&list[i], &list[j]);
+#         }
+      
+#       // swap two elements
+#       swap(&list[m], &list[j]);
+      
+#       // recursively sort the lesser list
+#       quicksort(list, m, j-1);
+#       quicksort(list, j+1, n);
+#    }
+# }
+
+# """        
+#    
+#    stdwin = np.sort(window)
+#    std = np.std(stdwin[:-half_window])
+#    median = np.median(window)
+#                
+#    plus_threshold = median + (std * sensitivity)
+#    minus_threshold = median - (std * sensitivity)
+#        
+#    if intensity_array[i] > plus_threshold or intensity_array[i] < minus_threshold:
+#        intensity_array[i] = median
+        
+  
+    # ravg = ext_tools.ext_function('ravg', code,
+    #                               ['readoutNoiseFound', 'readoutN',
+    #                                'readoutNoise_mask', 'xlen',
+    #                                'ylen','x_c','y_c', 'hist',
+    #                                'low_q', 'high_q', 'in_image',
+    #                                'hist_count', 'mask', 'qmatrix',
+    #                                'dezingering', 'dezing_sensitivity'], 
+    #                                type_converters = converters.blitz)
+    
+    # ravg.customize.add_support_code(code2)
+    
+    # mod.add_function(ravg)
+    
+    # #SYSTEM TEMP DIR MIGHT NOT HAVE WRITE PERMISSION OR HAS SPACES IN IT => FAIL!
+    # #EXTREMELY ANNOYING THAT THE TEMP DIR CAN'T BE SET FROM mod.compile()! .. This is a work around:
+    
+    # kw, file = mod.build_kw_and_file('.', {})
+    
+    # success = build_tools.build_extension(file, temp_dir = temp_dir,
+    #                                           compiler_name = 'gcc',
+    #                                           verbose = 0, **kw)
+   
+    # if success:
+    #     print '\n\n****** ravg_ext module compiled succesfully! *********'
 
 
 

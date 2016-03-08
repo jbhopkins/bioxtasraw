@@ -32,21 +32,28 @@ POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
 import sys
+import RAWGlobals
 #from scipy.weave import ext_tools
 #from scipy.weave import converters
 
-try:
-    import polygonmask_ext
-except ImportError:
-    import SASbuild_Clibs
-    SASbuild_Clibs.buildAll()
-    import polygonmask_ext
+#Check for compiled extensions. If compilation hasn't already failed, try to
+#compile them if they are missing
+if RAWGlobals.compiled_extensions:
+    try:
+        import polygonmask_ext
 
+    except ImportError:
+        import SASbuild_Clibs
+        try:
+            SASbuild_Clibs.buildAll()
+            import polygonmask_ext
 
-try:
-  #  import scipy.weave as weave
+        except Exception, e:
+            RAWGlobals.compiled_extensions = False
+            print e
    
-    def npnpoly(verts,points):
+def npnpoly(verts,points):
+    if RAWGlobals.compiled_extensions:
         verts = verts.astype(np.float64)
         points = points.astype(np.float64)
 
@@ -113,13 +120,12 @@ try:
 #        mod.compile(compiler = 'gcc')
         
         polygonmask_ext.polymsk(xp, yp, x, y, out)
-        
+
         return out
-except:
-    # if scipy.weave is not available, use pure python routine.  Slow.
-    def npnpoly(verts, points):
+
+    else:
         """Check whether given points are in the polygon.
-       
+   
         points - Nx2 array
        
         See http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html    
@@ -138,6 +144,7 @@ except:
                            / (ypj[maybe] - ypi[maybe]) + xpi[maybe]) % 2)
        
         return np.asarray(out,dtype=bool)
+        
 
 
 class Polygeom(np.ndarray):

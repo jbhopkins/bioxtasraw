@@ -5,113 +5,32 @@ Usage:
     python setup.py py2app
 """
 
-import sys, glob, os
+from setuptools import setup, Extension
+import py2app
 
-PY3 = sys.version_info[0] == 3
+py_modules = ['RAWAnalysis', 'RAWCustomCtrl', 'RAWIcons', 'RAWImage', 'RAWOptions', 'RAWPlot'
+ 			'RAWSettings', 'SASbuild_Clibs', 'SASExceptions', 'SASFileIO', 'SASIft', 'SASImage',
+ 			'SASM', 'SASMarHeaderReader', 'testccode', 'tifffile', 'polygonMasking']
 
-if PY3:
-    exec_ = eval("exec")
+extensions = [Extension('bift_ext', ['bift_ext.so']), Extension('pack_ext', ['pack_ext.so']),
+ 			Extension('polygonmask_ext', ['polygonmask_ext.so']), Extension('ravg_ext', ['ravg_ext.so'])]
 
-if sys.platform == 'darwin':
-    from setuptools import setup
-    
-    APP = ['RAW.py']
-    DATA_FILES = []
-    OPTIONS = {'argv_emulation': True,
-               'packages' : ['numpy', 'scipy'],
-               'resources' : './resources'}
 
-    setup(
-          app=APP,
-          data_files=DATA_FILES,
-          options={'py2app': OPTIONS},
-          setup_requires=['py2app'],
-          )
-    
-elif sys.platform == 'win32':
-    from distutils.core import setup
-    import py2exe            
-
-    opts = {
-    'py2exe': { "compressed": 1,
-                "optimize": 1,
-              #  "ascii": 1,
-              #  "bundle_files": 1,
-                'packages' : ["matplotlib.backends.backend_wxagg",
-                              "matplotlib.backends.backend_tkagg",
-                              "scipy.io.matlab.streams",
-                              "matplotlib.numerix.fft",
-                              "matplotlib.numerix.linear_algebra",
-                              "matplotlib.numerix.random_array",
-                              "matplotlib.numerix.ma"
-                              ],
-                'excludes': [#'_tkinter'
-                #             '_gtkagg', '_tkagg', '_agg2', '_cairo', '_cocoaagg',
-                #             '_fltkagg', '_gtk', '_gtkcairo','_backend_gdk',
-                #             '_gobject','_gtkagg','_tkinter','glade','pango',
-                #             'QtCore','QtGui'
-                             ],
-                'dll_excludes': ['tk84.dll',
-                                 'tcl84.dll',
-                                 'msvcp90.dll',
-                                  ]
-              }
-       }
-
-# Save matplotlib-data to mpl-data ( It is located in the matplotlib\mpl-data 
-# folder and the compiled programs will look for it in \mpl-data
-    import matplotlib
-
-    data_files = matplotlib.get_py2exe_datafiles()
-    
-    filelist = glob.glob('./resources/*.*')
-    
-    for each in filelist:
-        file = os.path.split(each)[1]
-        data_files.append(('resources', ['resources\\' + str(file)]))
-
-#    data_files.append(('resources', ['resources\\raw.png']))
-#    data_files.append(('resources', ['resources\\linlin.png']))
-#    data_files.append(('resources', ['resources\\loglin.png']))
-#    data_files.append(('resources', ['resources\\loglog.png']))
-#    data_files.append(('resources', ['resources\\load.png']))
-#    data_files.append(('resources', ['resources\\clear.png']))
-#    data_files.append(('resources', ['resources\\savemask.png']))
-#    data_files.append(('resources', ['resources\\rect.png']))
-#    data_files.append(('resources', ['resources\\poly.png']))
-#    data_files.append(('resources', ['resources\\circle.png']))
-#    data_files.append(('resources', ['resources\\errbars.png']))
-#    data_files.append(('resources', ['resources\\Bob2.gif']))
-#    data_files.append(('resources', ['resources\\logo_atom.gif']))
-#    data_files.append(('resources', ['resources\\wi0009-16.png']))
-#    data_files.append(('resources', ['resources\\agbe2.png']))
-#    data_files.append(('resources', ['resources\\showboth.png']))
-#    data_files.append(('resources', ['resources\\showtop.png']))
-#    data_files.append(('resources', ['resources\\showbottom.png']))
-#    data_files.append(('resources', ['resources\\legend.png']))
-#    data_files.append(('resources', ['resources\\raw.ico']))
-#    data_files.append(('resources', ['resources\\RAW.chm']))
-#    data_files.append(('resources', ['resources\\clear2white.png']))
-#    data_files.append(('resources', ['resources\\clear1white.png']))
-#    data_files.append(('resources', ['resources\\imgctrl.png']))
-#    data_files.append(('resources', ['resources\\hdr.png']))
-#    data_files.append(('resources', ['resources\\Up.png']))
-#    data_files.append(('resources', ['resources\\Folder.png']))
-#    data_files.append(('resources', ['resources\\document.png']))
-
-# for console program use 'console = [{"script" : "scriptname.py"}]
-# windows = 
-    setup(name='BioXTAS RAW',
-          version='0.98',
-          author='Soren S. Nielsen',
-          console=[{'script' : "RAW.py",
-                    'icon_resources':[(1,'resources\\raw.ico')],
-               # 'other_resources':[(24, 1, manifest)],
-               }],
-          options = opts,
-          zipfile = None,
-          data_files = data_files)
-    
-    
-    
-    
+APP = ['RAW.py']
+DATA_FILES = ['Resources','Tests']
+OPTIONS = {'argv_emulation': True,
+ 'includes': py_modules,
+ 'matplotlib_backends': '*',
+ 'packages': ['wx','scipy','matplotlib','numpy','os','sys','glob','Queue','threading','math','time','subprocess',
+ 			'cPickle','PIL'],
+ 'resources': ['Resources','Tests', 'bift_ext.so', 'packc_ext.so','polygonmask_ext.so','ravg_ext.so', 'test_ext.so'],
+ 'site_packages': True}
+ 
+setup(
+    app=APP,
+    data_files=DATA_FILES,
+    options={'py2app': OPTIONS},
+    setup_requires=['py2app']
+    # ext_modules = extensions,
+    # py_modules = py_modules
+)

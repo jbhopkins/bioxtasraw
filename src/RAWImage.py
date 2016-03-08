@@ -23,12 +23,13 @@ Created on Aug 16, 2010
 
 '''
 
-import matplotlib, wx, os, cPickle, sys, platform
+import matplotlib, wx, os, cPickle, sys, platform, copy
 import numpy as np
 from matplotlib.backend_bases import NavigationToolbar2
 from matplotlib.backends.backend_wx import NavigationToolbar2Wx
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.widgets import Cursor
+import RAWIcons
 import SASImage
 
 
@@ -74,17 +75,17 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
 		 
 		workdir = RAWWorkDir
 		
-		circleIcon	  = wx.Bitmap(os.path.join(workdir, "resources", "circle.png"), wx.BITMAP_TYPE_PNG)
-		rectangleIcon = wx.Bitmap(os.path.join(workdir, "resources", "rect.png"), wx.BITMAP_TYPE_PNG)
-		polygonIcon	  = wx.Bitmap(os.path.join(workdir, "resources", "poly.png"), wx.BITMAP_TYPE_PNG)
-		saveMaskIcon  = wx.Bitmap(os.path.join(workdir, "resources", "savemask.png"), wx.BITMAP_TYPE_PNG)
-		clearIcon	  = wx.Bitmap(os.path.join(workdir, "resources", "clear.png"), wx.BITMAP_TYPE_PNG)
-		loadMaskIcon  = wx.Bitmap(os.path.join(workdir, "resources", "load.png"), wx.BITMAP_TYPE_PNG)
-		#agbeCentIcon  = wx.Bitmap(os.path.join(workdir, "resources", "agbe2.png"), wx.BITMAP_TYPE_PNG)
-		hdrInfoIcon	  = wx.Bitmap(os.path.join(workdir, "resources", "hdr.png"), wx.BITMAP_TYPE_PNG)
-		ImgSetIcon	  = wx.Bitmap(os.path.join(workdir, "resources", "imgctrl.png"), wx.BITMAP_TYPE_PNG)
-		#prevImgIcon   = wx.Bitmap(os.path.join(workdir, "resources", "imgctrl.png"), wx.BITMAP_TYPE_PNG)
-		#nextImgIcon   = wx.Bitmap(os.path.join(workdir, "resources", "imgctrl.png"), wx.BITMAP_TYPE_PNG)
+		circleIcon	  = RAWIcons.circle.GetBitmap()
+		rectangleIcon = RAWIcons.rect.GetBitmap()
+		polygonIcon	  = RAWIcons.poly.GetBitmap()
+		saveMaskIcon  = RAWIcons.savemask.GetBitmap()
+		clearIcon	  = RAWIcons.clear.GetBitmap()
+		loadMaskIcon  = RAWIcons.load.GetBitmap()
+		#agbeCentIcon  = RAWIcons.agbe2.GetBitmap()
+		hdrInfoIcon	  = RAWIcons.hdr.GetBitmap()
+		ImgSetIcon	  = RAWIcons.imgctrl.GetBitmap()
+		#prevImgIcon   = RAWIcons.imgctrl.GetBitmap()
+		#nextImgIcon   = RAWIcons.imgctrl.GetBitmap()
 		
 		prevImgIcon = wx.ArtProvider_GetBitmap(wx.ART_GO_BACK,wx.ART_TOOLBAR,(32,32))
 		nextImgIcon = wx.ArtProvider_GetBitmap(wx.ART_GO_FORWARD,wx.ART_TOOLBAR,(32,32))
@@ -408,13 +409,6 @@ class ImagePanel(wx.Panel):
 		self.fig.clear() #Important! or a memory leak will occur!
 		
 		self._initOnNewImage(img, sasm)
-			
-		#print "Preparing image for log..."
-		# Save zero positions to avoid -inf at 0.0 after log!
-		# self.img = uint8((self.img / self.img.max())*255) 
-		#self.imgZeros = where(self.img==0.0) 
-		
-		#if self.plot_parameters['ImgScale'] == 'linear':
 		
 		a = self.fig.gca()
 		
@@ -422,22 +416,9 @@ class ImagePanel(wx.Panel):
 		extent = (0, img_xdim, 0, img_ydim)
 		self.imgobj = a.imshow(self.img, interpolation = 'nearest', extent = extent)
 		
-		#else:
-		#	 self.img[self.imgZeros] = 1
-		#	 self.imgobj = a.imshow(log(self.img), interpolation = 'nearest', extent = extent)
-		#	 self.img[self.imgZeros] = 0
-		
 		self.imgobj.cmap = self.plot_parameters['ColorMap']
 		
-		
-		img_hdr = sasm.getParameter('imageHeader')
-		
-		if img_hdr.has_key('Meas.Description'):
-			title_str = img_hdr['Meas.Description'] + '\n'
-		else:
-			title_str = ''
-			
-		a.set_title(title_str + sasm.getParameter('filename'))
+		a.set_title(sasm.getParameter('filename'))
 		a.set_xlabel('x (pixels)')
 		a.set_ylabel('y (pixels)')
 		a.axis('image')
@@ -454,6 +435,13 @@ class ImagePanel(wx.Panel):
 			self.plot_parameters['LowerClim'] = clim[0]
 		else:
 			clim = self.imgobj.set_clim(self.plot_parameters['LowerClim'], self.plot_parameters['UpperClim'])
+
+		if self.plot_parameters['ImgScale'] == 'linear':
+			norm = matplotlib.colors.Normalize(vmin = self.plot_parameters['LowerClim'], vmax = self.plot_parameters['UpperClim'])
+		else:
+			norm = matplotlib.colors.SymLogNorm(linthresh = 1, vmin = self.plot_parameters['LowerClim'], vmax = self.plot_parameters['UpperClim'])
+
+		self.imgobj.set_norm(norm)
 		
 		#Update figure:
 		self.fig.gca().set_visible(True)
@@ -705,8 +693,17 @@ class ImagePanel(wx.Panel):
 				points = []
 				for i in range(0, len(self._chosen_points_x)):
 					points.append( (self._chosen_points_x[i], self._chosen_points_y[i]) )
+
+				masking_panel = wx.FindWindowByName('MaskingPanel')
+				selected_mask = masking_panel.selector_choice.GetStringSelection()
+				mask_key = masking_panel.mask_choices[selected_mask]
+
+				if mask_key == 'TransparentBSMask':
+					start_negative = True
+				else:
+					start_negative = False
 				
-				self.plot_parameters['storedMasks'].append( SASImage.PolygonMask(points, self._createNewMaskNumber(), self.img.shape) )
+				self.plot_parameters['storedMasks'].append( SASImage.PolygonMask(points, self._createNewMaskNumber(), self.img.shape, negative = start_negative) )
 					
 			self.stopMaskCreation()
 			self.untoggleAllToolButtons()
@@ -1150,9 +1147,20 @@ class ImagePanel(wx.Panel):
 		self._chosen_points_y.append(round(y))
 		
 		if len(self._chosen_points_x) == 2:
+
+			masking_panel = wx.FindWindowByName('MaskingPanel')
+			selected_mask = masking_panel.selector_choice.GetStringSelection()
+			mask_key = masking_panel.mask_choices[selected_mask]
+
+			if mask_key == 'TransparentBSMask':
+				start_negative = True
+			else:
+				start_negative = False
+
+
 			self.plot_parameters['storedMasks'].append( SASImage.CircleMask(  (self._chosen_points_x[0], self._chosen_points_y[0]),
 																			  (self._chosen_points_x[1], self._chosen_points_y[1]),
-																			   self._createNewMaskNumber(), self.img.shape))
+																			   self._createNewMaskNumber(), self.img.shape, negative = start_negative))
 			self.untoggleAllToolButtons()
 			self.stopMaskCreation()
 			
@@ -1165,9 +1173,20 @@ class ImagePanel(wx.Panel):
 		self._chosen_points_y.append(round(y))
 		
 		if len(self._chosen_points_x) == 2:
+
+			masking_panel = wx.FindWindowByName('MaskingPanel')
+			selected_mask = masking_panel.selector_choice.GetStringSelection()
+			mask_key = masking_panel.mask_choices[selected_mask]
+
+			if mask_key == 'TransparentBSMask':
+				start_negative = True
+			else:
+				start_negative = False
+
+
 			self.plot_parameters['storedMasks'].append( SASImage.RectangleMask( (self._chosen_points_x[0], self._chosen_points_y[0]),
 																				(self._chosen_points_x[1], self._chosen_points_y[1]),
-																				 self._createNewMaskNumber(), self.img.shape ))										   
+																				 self._createNewMaskNumber(), self.img.shape, negative = start_negative ))										   
 			self.untoggleAllToolButtons()
 			self.stopMaskCreation()
 	
@@ -1494,7 +1513,7 @@ class ImageSettingsDialog(wx.Dialog):
 			rb.SetSelection(1)
 			
 		## Disabled for now:
-		rb.Enable(False)
+		# rb.Enable(False)
 
 		sizer.Add(rb,1,wx.EXPAND)
 		
@@ -1506,9 +1525,7 @@ class ImageSettingsDialog(wx.Dialog):
 		
 		if selection == 0:
 			if self.parent.plot_parameters['ImgScale'] != 'linear':
-				self.parent.img[self.parent.imgZeros] = 0.0
-				self.ImgObj.set_data(self.parent.img)
-				self.ImgObj.changed()
+
 				self.parent.plot_parameters['ImgScale'] = 'linear'
 				
 				if self.parent.plot_parameters['ClimLocked'] == False:
@@ -1517,32 +1534,44 @@ class ImageSettingsDialog(wx.Dialog):
 					
 					self.parent.plot_parameters['UpperClim'] = maxval
 					self.parent.plot_parameters['LowerClim'] = minval
-					
-					self.ImgObj.set_clim(minval, maxval)
-					self.resetSliders(maxval, minval)
+
+				else:
+					maxval = self.parent.plot_parameters['UpperClim']
+					minval = self.parent.plot_parameters['LowerClim']
+
+				norm = matplotlib.colors.Normalize(vmin = minval, vmax = maxval)
+
+				self.ImgObj.set_norm(norm)
+				self.ImgObj.changed()
+
+				self.ImgObj.set_clim(minval, maxval)
+				self.resetSliders(maxval, minval)
 				
 				self.parent.updateImage()
-		if selection == 1:
+
+		elif selection == 1:
 			if self.parent.plot_parameters['ImgScale'] != 'logarithmic':
-				
-				self.parent.img[self.parent.imgZeros] = 1.0
-				
-				self.newImg = log(self.parent.img)
-				self.newImg = uint16(self.newImg / self.newImg.max() * 65535)
-				 
-				self.ImgObj.set_data(self.newImg)
-				self.ImgObj.changed()
+
 				self.parent.plot_parameters['ImgScale'] = 'logarithmic'
-				
+
 				if self.parent.plot_parameters['ClimLocked'] == False:
-					minval = self.newImg.min()
-					maxval = self.newImg.max()
+					minval = self.parent.img.min()
+					maxval = self.parent.img.max()
 					
 					self.parent.plot_parameters['UpperClim'] = maxval
 					self.parent.plot_parameters['LowerClim'] = minval
-					
-					self.ImgObj.set_clim(minval, maxval)
-					self.resetSliders(maxval, minval)
+
+				else:
+					maxval = self.parent.plot_parameters['UpperClim']
+					minval = self.parent.plot_parameters['LowerClim']
+
+				norm = matplotlib.colors.SymLogNorm(vmin = minval, vmax = maxval,linthresh = 1)
+
+				self.ImgObj.set_norm(norm)
+				self.ImgObj.changed()
+
+				self.ImgObj.set_clim(minval, maxval)
+				self.resetSliders(maxval, minval)
 				
 				self.parent.updateImage()
 				

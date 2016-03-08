@@ -48,10 +48,8 @@ class RawGuiSettings:
                             'AutoAvgNoOfFrames' : [1,  wx.NewId(),  'int'],
                             'AutoBgSubRegExp'   : ['', wx.NewId(), 'text'],
              
-                            'UseOnlineFilter' : [False, wx.NewId(), 'bool'],
-                            'OnlineFilterExt' : ['',    wx.NewId(), 'text'],
-                            'UseHeaderForMask': [True, wx.NewId(), 'bool'],
-                            'DetectorFlipped90':[False, wx.NewId(), 'bool'],
+                            # 'UseOnlineFilter' : [False, wx.NewId(), 'bool'],
+                            # 'OnlineFilterExt' : ['',    wx.NewId(), 'text'],
              
              
                             #CENTER / BINNING
@@ -61,6 +59,7 @@ class RawGuiSettings:
                             'QrangeLow'  : [25,    wx.NewId(), 'int'],
                             'QrangeHigh' : [9999,  wx.NewId(), 'int'],
                             'StartPoint' : [0,     wx.NewId(), 'int'],
+                            'EndPoint'   : [0,     wx.NewId(), 'int'],
                             'PixelCalX'  : [200,   wx.NewId(), 'int'],
                             'PixelCalY'  : [200,   wx.NewId(), 'int'],
                             'ImageDim'   : [[1024,1024]],
@@ -68,6 +67,8 @@ class RawGuiSettings:
                             #MASKING
                             'SampleFile'              : [None, wx.NewId(), 'text'],
                             'BackgroundSASM'          : [None, wx.NewId(), 'text'],
+
+                            'DataSECM'                : [None, wx.NewId(), 'text'],
                             
                             #'TransparentBSMaskFilename': [None, wx.NewId(), 'maskFilename'],
                             #'BeamStopMaskFilename'     : [None, wx.NewId(), 'maskFilename'],
@@ -179,11 +180,33 @@ class RawGuiSettings:
                                                        
                             'NormalizationList'    : [None, wx.NewId(), 'text'],
                             'EnableNormalization'  : [True, wx.NewId(), 'bool'],
+
+                            'OnlineFilterList'    : [None, wx.NewId(), 'text'],
+                            'EnableOnlineFiltering'  : [False, wx.NewId(), 'bool'],
                             
                             'MWStandardMW'         : [0, wx.NewId(), 'float'],
                             'MWStandardI0'         : [0, wx.NewId(), 'float'],
-                            'MWStandardConc'       : [1, wx.NewId(), 'float'],
-                            
+                            'MWStandardConc'       : [0, wx.NewId(), 'float'],
+                            'MWStandardFile'       : ['', wx.NewId(), 'text'],
+
+                            #Initialize volume of correlation molecular mass values.
+                            #Values from Rambo, R. P. & Tainer, J. A. (2013). Nature. 496, 477-481.
+                            'MWVcType'             : ['Protein', wx.NewId(), 'choice'],
+                            'MWVcAProtein'         : [1.0, wx.NewId(), 'float'], #The 'A' coefficient for proteins
+                            'MWVcBProtein'         : [0.1231, wx.NewId(), 'float'], #The 'B' coefficient for proteins
+                            'MWVcARna'             : [0.808, wx.NewId(), 'float'], #The 'A' coefficient for proteins
+                            'MWVcBRna'             : [0.00934, wx.NewId(), 'float'], #The 'B' coefficient for proteins
+
+                            #Initialize porod volume molecularm ass values.
+                            'MWVpRho'              : [0.83*10**(-3), wx.NewId(), 'float'], #The density in kDa/A^3
+
+                            #Initialize Absolute scattering calibration values.
+                            #Default values from Mylonas & Svergun, J. App. Crys. 2007.
+                            'MWAbsRhoMprot'         : [3.22*10**23, wx.NewId(), 'float'], #e-/g, # electrons per dry mass of protein
+                            'MWAbsRhoSolv'          : [3.34*10**23, wx.NewId(), 'float'], #e-/cm^-3, # electrons per volume of aqueous solvent
+                            'MWAbsNuBar'            : [0.7425, wx.NewId(), 'float'], #cm^3/g, # partial specific volume of the protein
+                            'MWAbsR0'               : [2.8179*10**-13, wx.NewId(), 'float'], #cm, scattering lenght of an electron
+
                             #List of available processing commands:
                             'PreProcessingList'    : [None],
                             'PostProcessingList'   : [None],
@@ -304,6 +327,9 @@ def saveSettings(raw_settings, savepath):
         masks[key][0] = oldMasks[key] 
         
     return True
+
+
+
 # Table from http://physchem.kfunigraz.ac.at/sm/Services.htm
 water_scattering_table = {0 : 0.01692,
                         1 : 0.01686,

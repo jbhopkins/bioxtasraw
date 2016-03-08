@@ -17,9 +17,16 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Circle, Rectangle, Polygon
 import numpy as np
 import wx, math
-import sys, os
+import sys, os, copy
 from scipy import linspace, polyval, polyfit, sqrt, randn
-import RAW, RAWSettings, RAWCustomCtrl
+import scipy.interpolate as interp
+from scipy import integrate as integrate
+from scipy.constants import Avogadro
+import RAW, RAWSettings, RAWCustomCtrl, SASCalc, RAWPlot
+from wx.lib.splitter import MultiSplitterWindow
+# These are for the AutoWrapStaticText class
+from wx.lib.wordwrap import wordwrap
+from wx.lib.stattext import GenStaticText as StaticText
 
 class GuinierPlotPanel(wx.Panel):
     
@@ -35,7 +42,6 @@ class GuinierPlotPanel(wx.Panel):
             self.raw_settings = RAWSettings.RawGuiSettings()
         
         self.fig = Figure((5,4), 75)
-        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
                     
         self.data_line = None
     
@@ -44,24 +50,29 @@ class GuinierPlotPanel(wx.Panel):
         self.fig.subplots_adjust(hspace = 0.26)
         
         self.subplots = {}
-        
+             
         for i in range(0, len(subplotLabels)):
             subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
             subplot.set_xlabel(subplotLabels[i][1])
             subplot.set_ylabel(subplotLabels[i][2])
             self.subplots[subplotLabels[i][0]] = subplot 
+
+        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
+        self.fig.set_facecolor('white')
+
+        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
+        self.canvas.SetBackgroundColour('white')
       
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
-        
         self.toolbar = NavigationToolbar2Wx(self.canvas)
         self.toolbar.Realize()
+        # self.toolbar = RAWPlot.CustomSECPlotToolbar(self, self.canvas)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
         sizer.Add(self.toolbar, 0, wx.GROW)
 
         self.SetSizer(sizer)
-        self.canvas.SetBackgroundColour('white')
-        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
-        self.fig.set_facecolor('white')
+        # self.canvas.SetBackgroundColour('white')
         
         # Connect the callback for the draw_event so that window resizing works:
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) 
@@ -136,6 +147,8 @@ class GuinierPlotPanel(wx.Panel):
         mwConc = self.raw_settings.get('MWStandardConc')
         
         conc = wx.FindWindowByName('GuinierControlPanel').getConcentration()
+
+        I0 = float(newInfo['I0'][0])
         
         if mw != 0 and mw > 0 and mwI0 !=0 and mwI0 > 0 and conc != 0 and conc > 0 and mwConc > 0:
             newInfo['MM'] = (newInfo['I0'][0] * (mw/(mwI0/mwConc))) / conc
@@ -269,398 +282,6 @@ class GuinierPlotPanel(wx.Panel):
         self.canvas.blit(a.bbox)
         self.canvas.blit(b.bbox)
         
-           
-#class GuinierPlotPanel(wx.Panel):
-#    
-#    def __init__(self, parent, panel_id, name, wxEmbedded = False):
-#        
-#        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
-#        
-#        self.i = None
-#        self.q = None
-#        
-#        self.fig = Figure((5,4), 75)
-#        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
-#                
-#        self.canvas.mpl_connect('motion_notify_event', self.onMotionEvent)
-##        self.canvas.mpl_connect('button_press_event', self.onMouseButtonPressEvent)
-#        self.canvas.mpl_connect('button_release_event', self.onMouseReleaseEvent)
-#        self.canvas.mpl_connect('pick_event', self.onPick)
-##        self.canvas.mpl_connect('key_press_event', self.onKeyPressEvent)
-#        
-#        #self.toolbar = MaskingPanelToolbar(self, self.canvas)
-#        subplotLabels = [('Guinier', 'q^2', 'ln(I(q)'), ('Error', 'q', 'I(q)')]
-#        
-#        self.fig.subplots_adjust(hspace = 0.26)
-#        
-#        self.subplots = {}
-#        
-#        for i in range(0, len(subplotLabels)):
-#            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
-#            subplot.set_xlabel(subplotLabels[i][1])
-#            subplot.set_ylabel(subplotLabels[i][2])
-#            self.subplots[subplotLabels[i][0]] = subplot 
-#        
-#        sizer = wx.BoxSizer(wx.VERTICAL)
-#        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
-#        
-#        self.toolbar = NavigationToolbar2Wx(self.canvas)
-#        self.toolbar.Realize()
-#        sizer.Add(self.toolbar, 0, wx.GROW)
-#
-#        self.SetSizer(sizer)
-#        self.Fit()
-#        
-#        self.ltop = None
-#        self.lbottom = None
-#        self.pickedArtist = None
-#        
-#        self.lfitbottom = None
-#        self.lfittop = None
-#        self.limits = None
-#        
-#        #Figure Limits
-#        self.bottomlimit = None
-#        self.toplimit = None
-#        
-#        #self.figlim = None
-#        
-#        #Interpolation to I(0) line and linear fitting line
-#        self.interpline = None
-#        self.fitline = None
-#        
-#        self.SetColor()
-#
-#    def onMotionEvent(self, evt):
-#        
-#        if self.pickedArtist:
-#            a = evt.xdata
-#            
-#            if a != None:
-#                findClosest=lambda a,l:min(l,key=lambda x:abs(x-a))
-#            
-#                lx = np.power(self.q,2)
-#                ly = self.i
-#            
-#                closest = findClosest(a,lx)
-#            
-#                idx = np.where(lx == closest)
-#            
-#                idx = idx[0][0]
-#            
-#                controlPanel = wx.FindWindowByName('GuinierControlPanel')
-#            
-#                if self.pickedArtist.get_label() == 'top':
-#                    controlPanel.updateLimits(top = idx)
-#                    self.drawTopLimit(lx[idx], ly[idx])
-#                    self.drawBottomLimit(lx[self.bottomlimit], ly[self.bottomlimit])
-#                    self.toplimit = idx
-#                    self.updateFigureLimits()
-#            
-#                elif self.pickedArtist.get_label() == 'bottom': 
-#                    self.drawBottomLimit(lx[idx], ly[idx])
-#                    self.drawTopLimit(lx[self.toplimit], ly[self.toplimit])
-#                    controlPanel.updateLimits(bottom = idx)
-#                    self.bottomlimit = idx
-#                    self.updateFigureLimits()
-#        
-#
-#    def onMouseReleaseEvent(self, evt):
-#                
-#        if self.pickedArtist:
-#            self.pickedArtist = None
-#            controlPanel = wx.FindWindowByName('GuinierControlPanel')
-#            self.setLimits(controlPanel.getLimits())
-#            
-#            a = self.subplots['Guinier']
-#            
-#           
-#            lims = a.get_xlim()
-#            #self.updateGuinierPlot()
-#            #if self.fitline:
-#            #    self.fitline.remove()
-#            
-#            self.drawFit()
-#            a.set_xlim(lims)
-#
-#    def onPick(self, evt):
-#        
-#        self.pickedArtist = evt.artist
-#        
-#        self.canvas.draw()
-#        
-#    def updateFigureLimits(self):
-#    
-#        a = self.subplots['Guinier']
-#            
-#        x = np.power(self.q,2)
-#        y = np.log(self.i)
-#        
-#        dist = len(self.q[0:self.toplimit])
-#        dist2 = len(self.q[self.bottomlimit:])-1
-#        
-#        if dist > 5:
-#            toplim = self.toplimit-5
-#        else:
-#            toplim = self.toplimit-dist
-#            
-#        if dist2 > 5:
-#            botlim = self.bottomlimit+5
-#        else:
-#            botlim = self.bottomlimit+dist2
-#             
-#        #self.figlim = (x[toplim], x[botlim])
-#        
-#        self.toplimit = toplim
-#        self.bottomlimit = botlim
-#        
-#        a.set_xlim((0, x[botlim]))
-#            
-#        oldylim = a.get_ylim()
-#
-#        if not np.isnan(y[botlim]) and not np.isinf(y[botlim]):
-#            a.set_ylim((y[botlim], oldylim[1]))
-# 
-#        self.canvas.draw()
-#               
-#    def _plotGuinier(self, i, q):
-#        
-#        self.i = i
-#        self.q = q
-#        
-#        controlPanel = wx.FindWindowByName('GuinierControlPanel')
-#        
-#        self.setLimits(controlPanel.getLimits())
-#        
-#        x = np.power(self.q,2)
-#        y = np.log(self.i)
-#        
-#        x = x[np.where(np.isnan(y)==False)]
-#        y = y[np.where(np.isnan(y)==False)]
-#        
-#        x = x[np.where(np.isinf(y)==False)]
-#        y = y[np.where(np.isinf(y)==False)]
-#        
-#        self.maxmin = (min(y), max(y))
-#        
-#        self.subplots['Guinier'].plot(x, y, 'b.')
-#        
-#        self.canvas.draw()
-#        
-#    def updateGuinierPlot(self):
-#        
-#        tlim = self.limits[0]
-#        blim = self.limits[1]
-#        
-#        if self.interpline:
-#            self.interpline.remove()
-#            
-#        #self.subplots['Guinier'].plot(guinier_q[tlim:blim], np.log(i)[tlim:blim], '.')
-#        self.drawFit()
-##        self.updateFigureLimits()
-#        self.canvas.draw()
-#             
-#    def plotExpObj(self, ExpObj):        
-#        self._plotGuinier(ExpObj.i, ExpObj.q)
-#        
-#        #self._plotData(ExpObj.i, ExpObj.q)
-#        
-#        controlPanel = wx.FindWindowByName('GuinierControlPanel')
-#        self.limits = controlPanel.getLimits()
-#                
-#        self.toplimit = 0
-#        self.bottomlimit = len(ExpObj.q)-1
-#        
-#        #self.drawFit()
-#        #self.drawLimits()
-#    
-#    def drawLimits(self, x,y):
-#        
-#        self.drawTopLimit(x,y)
-#        self.drawBottomLimit(x, y)
-#    
-#    def drawTopLimit(self, x, y):
-#        
-#        a = self.subplots['Guinier']
-#        
-#        if self.ltop:
-#            self.ltop.remove()
-#
-#        y = np.log(y)
-#        
-#        if np.isnan(y) or np.isinf(y):
-#            y = 0
-#        
-#        x,y = a.transLimits.transform((x,y))
-#                
-#        self.ltop = matplotlib.lines.Line2D([x,x], [y-0.2,y+0.2], transform=a.transAxes, linewidth = 1,
-#                                             color = 'r', picker = 6, alpha = 1, label = 'top', linestyle = '--')
-#
-#        a.add_artist(self.ltop)
-#        self.canvas.draw()
-#
-#    def drawBottomLimit(self, x, y): 
-#        
-#        a = self.subplots['Guinier']
-#        
-#        if self.lbottom:
-#            self.lbottom.remove()
-#                      
-#        y = np.log(y)
-#        
-#        if np.isnan(y) or np.isinf(y):
-#            y = 0
-#         
-#        x,y = a.transLimits.transform((x,y))
-#
-#        self.lbottom = matplotlib.lines.Line2D([x,x], [y-0.2,y+0.2], transform=a.transAxes, linewidth = 1,
-#                                                color = 'r', picker = 6, alpha = 1, label = 'bottom', linestyle = '--')
-#        
-#        a.add_artist(self.lbottom)
-#        self.canvas.draw()
-#        
-#    def drawFitLimits(self, xall, yall):
-#        
-#        a = self.subplots['Guinier']
-#        
-#        if self.lfitbottom:
-#            self.lfitbottom.remove()
-#            self.lfittop.remove()
-#
-#        x,y = a.transLimits.transform((xall[1],yall[1]))
-#
-#        self.lfitbottom = matplotlib.lines.Line2D([x,x], [y-0.2,y+0.2], transform=a.transAxes, linewidth = 1,
-#                                                color = 'r', picker = 6, alpha = 1, label = 'bottom')
-#        
-#        x,y = a.transLimits.transform((xall[0],yall[0]))
-#
-#        self.lfittop = matplotlib.lines.Line2D([x,x], [y-0.2,y+0.2], transform=a.transAxes, linewidth = 1,
-#                                                color = 'r', picker = 6, alpha = 1, label = 'top')
-#        
-#        a.add_artist(self.lfitbottom)
-#        a.add_artist(self.lfittop)
-#        
-#        self.canvas.draw()
-#    
-#    def drawError(self, x, error):
-#                
-#        a = self.subplots['Error']
-#        
-#        for each in a.get_lines():
-#            each.remove()
-#        
-#        a.plot(x, error, 'b')
-#        
-#        zeroline = np.zeros((1,len(x)))
-#    
-#        a.plot(x, zeroline[0], 'r')
-#        
-#        a.set_xlim((x[0], x[-1]))
-#        a.set_ylim((error.min(), error.max()))
-#    
-#    def drawFit(self):
-#    
-#        #fitfunc = lambda p, x: p[0] + p[1] * x
-#        #errfunc = lambda p, x, y, err: (y - fitfunc(p, x)) / err
-#        
-#        #pinit = [1.0, -1.0]
-#        #out = optimize.leastsq(errfunc, pinit, args=(logx, logy, logyerr), full_output=1)
-#
-#        tlim = self.limits[0]
-#        blim = self.limits[1]
-#
-#        #x = self.subplots['Guinier'].get_lines()[0].get_xdata()
-#        #y = self.subplots['Guinier'].get_lines()[0].get_ydata()
-#        
-#        x = np.power(self.q[tlim:blim+1],2)
-#        y = np.log(self.i[tlim:blim+1])
-#        
-#        x = x[np.where(np.isnan(y)==False)]
-#        y = y[np.where(np.isnan(y)==False)]
-#        
-#        x = x[np.where(np.isinf(y)==False)]
-#        y = y[np.where(np.isinf(y)==False)]
-#               
-#        (ar,br) = polyfit(x,y, 1)
-#
-#        yr = polyval([ar , br], x)
-#        
-#        error = y-yr
-#        
-#        SS_tot = np.sum(np.power(y-np.mean(y),2))
-#        SS_err = np.sum(np.power(error,2))
-#        rsq = 1 - SS_err / SS_tot
-#         
-#        a = self.subplots['Guinier']
-#        
-#        #################### CALC Rg #########################
-#        
-#        self.I0 = br
-#        self.Rg = np.sqrt(-3*ar)
-#        if np.isnan(self.Rg):
-#            self.Rg = 0
-#        
-#        ######## CALCULATE ERROR ON PARAMETERS ###############
-#        
-#        N = len(error)
-#        stde = SS_err / (N-2)
-#        std_slope = stde * np.sqrt( (1/N) +  (np.power(np.mean(x),2)/np.sum(np.power(x-np.mean(x),2))))
-#        std_interc = stde * np.sqrt(  1 / np.sum(np.power(x-np.mean(x),2)))
-#        
-#        ######################################################
-#        
-#        if np.isnan(std_slope):
-#            std_slope = -1
-#        if np.isnan(std_interc):
-#            std_interc = -1
-#        
-#        newInfo = {'I0' : (np.exp(self.I0), std_interc),
-#                   'Rg' : (self.Rg, std_slope),
-#                   'qRg': self.Rg * np.sqrt(x[-1]),
-#                   'rsq': rsq}
-#                                                      
-#        controlPanel = wx.FindWindowByName('GuinierControlPanel')
-#        controlPanel.updateInfo(newInfo)
-#                
-#        xg = [0, x[0]]
-#        yg = [self.I0, yr[0]]
-#        
-#        xfull = np.power(self.q,2)
-#        yfull = np.log(self.i)
-#        
-#        xf = xfull[np.where(np.isnan(yfull)==False)]
-#        yf = yfull[np.where(np.isnan(yfull)==False)]
-#        
-#        if self.fitline != None:
-#            self.fitline.remove()
-#
-#        self.fitline = matplotlib.lines.Line2D(x, yr, linewidth = 1, color = 'r', alpha = 1, label = 'fitline')
-#        a.add_artist(self.fitline)
-#        
-#        self.interpline = matplotlib.lines.Line2D(xg, yg, linewidth = 1, color = 'g', linestyle = '--', alpha = 1, label = 'interpline')
-#        a.add_artist(self.interpline)              
-#        
-#        self.maxmin = (np.min([yr.min(), y.min()]), np.max([y.max(), self.I0]))
-#                
-#        self.drawError(x, error)
-#        
-#        self.canvas.draw_idle()
-#    
-#    def SetColor(self, rgbtuple = None):
-#        """ Set figure and canvas colours to be the same """
-#        if not rgbtuple:
-#             rgbtuple = wx.SystemSettings.GetColour(wx.SYS_COLOUR_BTNFACE).Get()
-#       
-#        col = [c/255.0 for c in rgbtuple]
-#        self.fig.set_facecolor(col)
-#        self.fig.set_edgecolor(col)
-#        self.canvas.SetBackgroundColour(wx.Colour(*rgbtuple))
-#
-#    def setLimits(self, limits):
-#        self.limits = limits
-#        
-#        self.bottomlimit = limits[1]
-#        self.toplimit = limits[0]       
              
 class GuinierControlPanel(wx.Panel):
     
@@ -671,6 +292,11 @@ class GuinierControlPanel(wx.Panel):
         self.manip_item = manip_item
         self.info_panel = wx.FindWindowByName('InformationPanel')
         self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.old_analysis = {}
+
+        if 'guinier' in self.ExpObj.getParameter('analysis'):
+            self.old_analysis = copy.deepcopy(self.ExpObj.getParameter('analysis')['guinier'])
         
         try:
             self.raw_settings = self.main_frame.raw_settings
@@ -698,6 +324,9 @@ class GuinierControlPanel(wx.Panel):
         
         savebutton = wx.Button(self, wx.ID_OK, 'OK')
         savebutton.Bind(wx.EVT_BUTTON, self.onSaveInfo)
+
+        autorg_button = wx.Button(self, -1, 'AutoRG')
+        autorg_button.Bind(wx.EVT_BUTTON, self.onAutoRG)
         
         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
         buttonSizer.Add(savebutton, 1, wx.RIGHT, 5)
@@ -715,6 +344,9 @@ class GuinierControlPanel(wx.Panel):
         controlSizer = self.createControls()
         boxSizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
         boxSizer2.Add(controlSizer, 0, wx.EXPAND)
+        line_sizer = wx.StaticLine(parent = self, style = wx.LI_HORIZONTAL)
+        boxSizer2.Add(line_sizer, 0, flag = wx.EXPAND | wx.ALL, border = 10)
+        boxSizer2.Add(autorg_button, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 5)
         
         bsizer = wx.BoxSizer(wx.VERTICAL)
         bsizer.Add(self.createFileInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
@@ -738,24 +370,38 @@ class GuinierControlPanel(wx.Panel):
             
             guinier = analysis['guinier']
             
-            start_idx = guinier['nStart']
-            end_idx = guinier['nEnd']
-            
+            idx_min = guinier['nStart']
+            idx_max = guinier['nEnd']
+
             spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
             spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
             
             old_start = spinstart.GetValue()
             old_end = spinend.GetValue()
-            
+
             try:
-                spinstart.SetValue(int(start_idx))
-                spinend.SetValue(int(end_idx))
-                self.updatePlot()
+                spinstart.SetValue(int(idx_min))
+                spinend.SetValue(int(idx_max))
+
+                txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+                txt.SetValue(str(round(self.ExpObj.q[int(idx_min)],5)))
             
+                txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+                txt.SetValue(str(round(self.ExpObj.q[int(idx_max)],5)))
+                    
+                self.updatePlot()
             except IndexError:
                 spinstart.SetValue(old_start)
                 spinend.SetValue(old_end)
-                print 'FAILED initSetting! resetting controls'
+
+                txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+                txt.SetValue(str(round(self.ExpObj.q[int(old_start)],5)))
+            
+                txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+                txt.SetValue(str(round(self.ExpObj.q[int(old_end)],5)))
+
+                print 'FAILED AutoRG! resetting controls'
+
             
         
     def setFilename(self, filename):
@@ -796,6 +442,8 @@ class GuinierControlPanel(wx.Panel):
         self.concCtrl = wx.TextCtrl(self, -1, str(val), size = (60, -1))
         txt = wx.StaticText(self, -1,  'mg/ml')
 
+        self.concCtrl.Bind(wx.EVT_TEXT, self._onUpdateConc)
+
         boxsizer.Add(self.concCtrl, 0, wx.EXPAND)
         boxsizer.Add(txt, 0, wx.LEFT, 5)
         
@@ -828,10 +476,10 @@ class GuinierControlPanel(wx.Panel):
         info_dict['qStart'] = qstart_val
         info_dict['qEnd'] = qend_val
         
-        if self.getConcentration() > 0:
+        if float(info_dict['Conc']) > 0:
             self.ExpObj.setParameter('Conc', self.getConcentration())
             
-        if self.getConcentration() > 0:
+        if float(info_dict['MM']) > 0:
             self.ExpObj.setParameter('MW', info_dict['MM'])
         
         analysis_dict = self.ExpObj.getParameter('analysis')
@@ -839,6 +487,13 @@ class GuinierControlPanel(wx.Panel):
         
         if self.manip_item != None:
             wx.CallAfter(self.manip_item.updateInfoTip, analysis_dict, fromGuinierDialog = True)
+            if info_dict != self.old_analysis:
+                wx.CallAfter(self.manip_item.markAsModified)
+
+        mw_window = wx.FindWindowByName('MolWeightFrame')
+
+        if mw_window:
+            mw_window.updateGuinierInfo()
         
         #wx.MessageBox('The parameters have now been stored in memory', 'Parameters Saved')
         
@@ -849,6 +504,45 @@ class GuinierControlPanel(wx.Panel):
         
         diag = wx.FindWindowByName('GuinierFrame')
         diag.OnClose()
+
+    def onAutoRG(self, evt):
+        rg, rger, i0, i0er, idx_min, idx_max = SASCalc.autoRg(self.ExpObj)
+
+        spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
+        spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
+        
+        old_start = spinstart.GetValue()
+        old_end = spinend.GetValue()
+
+        if rg == -1:
+            msg = 'AutoRG could not find a suitable interval to calculate Rg. Values are not updated.'
+            wx.CallAfter(wx.MessageBox, str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK)
+            return
+        else:
+            try:
+                spinstart.SetValue(int(idx_min))
+                spinend.SetValue(int(idx_max))
+
+                txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+                txt.SetValue(str(round(self.ExpObj.q[int(idx_min)],5)))
+            
+                txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+                txt.SetValue(str(round(self.ExpObj.q[int(idx_max)],5)))
+                    
+                self.updatePlot()
+            except IndexError:
+                spinstart.SetValue(old_start)
+                spinend.SetValue(old_end)
+
+                txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+                txt.SetValue(str(round(self.ExpObj.q[int(old_start)],5)))
+            
+                txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+                txt.SetValue(str(round(self.ExpObj.q[int(old_end)],5)))
+
+                print 'FAILED AutoRG! resetting controls'
+                msg = 'AutoRG did not produce a useable result. Please report this to the developers.'
+                wx.CallAfter(wx.MessageBox, str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK)
         
         
     def setCurrentExpObj(self, ExpObj):
@@ -1058,6 +752,20 @@ class GuinierControlPanel(wx.Panel):
         
         #Important, since it's a slow function to update (could do it in a timer instead) otherwise this spin event might loop!
         wx.CallAfter(self.updatePlot)
+
+    def _onUpdateConc(self,evt):
+        mw = self.raw_settings.get('MWStandardMW') 
+        mwI0 = self.raw_settings.get('MWStandardI0')
+        mwConc = self.raw_settings.get('MWStandardConc')
+        
+        conc = self.getConcentration()
+
+        info = self.getInfo()
+        I0 = float(info['I0'])
+        
+        if mw != 0 and mw > 0 and mwI0 !=0 and mwI0 > 0 and conc != 0 and conc > 0 and mwConc > 0:
+            newInfo = {'MM': (I0 * (mw/(mwI0/mwConc)) / conc)}
+            self.updateInfo(newInfo)
         
     def updatePlot(self):
         plotpanel = wx.FindWindowByName('GuinierPlotPanel')
@@ -1127,12 +835,13 @@ class GuinierControlPanel(wx.Panel):
                 guinierData[eachKey] = val
             else:
                 ctrl1 = wx.FindWindowById(self.infodata[eachKey][1])
-                ctrl2 = wx.FindWindowById(self.infodata[eachKey][2])
+                # ctrl2 = wx.FindWindowById(self.infodata[eachKey][2])
                 val1 = ctrl1.GetValue()
-                val2 = ctrl2.GetValue()
+                # val2 = ctrl2.GetValue()
                 
-                guinierData[eachKey] = (val1, val2) 
-                
+                # guinierData[eachKey] = (val1, val2) 
+                guinierData[eachKey] = val1
+
         return guinierData
     
 #---- **** Main Dialog ****
@@ -1961,3 +1670,1337 @@ if __name__ == "__main__":
     #app.MainLoop()
 
 
+class MolWeightFrame(wx.Frame):
+    
+    def __init__(self, parent, title, sasm, manip_item):
+        
+        try:
+            wx.Frame.__init__(self, parent, -1, title, name = 'MolWeightFrame', size = (960,630))
+        except:
+            wx.Frame.__init__(self, None, -1, title, name = 'MolWeightFrame', size = (960,630))
+
+        self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        self.sasm = sasm
+        self.manip_item = manip_item
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.old_analysis = {}
+
+        if 'molecularWeight' in self.sasm.getParameter('analysis'):
+            self.old_analysis = copy.deepcopy(self.sasm.getParameter('analysis')['molecularWeight'])
+
+        try:
+            self.raw_settings = self.main_frame.raw_settings
+        except AttributeError:
+            self.raw_settings = RAWSettings.RawGuiSettings()
+
+        self.infodata = {'I0' : ('I0 :', wx.NewId(), wx.NewId()),
+                         'Rg' : ('Rg :', wx.NewId(), wx.NewId())}
+
+        self.ids = {'VC': {'mol_type' : wx.NewId(), 
+                           'calc_mw' : wx.NewId(), 
+                           'info': wx.NewId(),
+                           'more': wx.NewId(),
+                           'sup_vc': wx.NewId(),
+                           'sup_qr': wx.NewId(),
+                           'sup_a': wx.NewId(),
+                           'sup_b': wx.NewId(),
+                           'sup_plot': wx.NewId()},
+                    'conc': {'calc_mw' : wx.NewId(), 
+                             'info': wx.NewId(),
+                             'more': wx.NewId(),
+                             'conc': wx.NewId(),
+                             'sup_i0': wx.NewId(),
+                             'sup_mw': wx.NewId(),
+                             'sup_conc': wx.NewId(),
+                             'sup_file': wx.NewId()},
+                    'VP': {'calc_mw' : wx.NewId(), 
+                           'info': wx.NewId(),
+                           'more': wx.NewId(),
+                           'sup_vp': wx.NewId(),
+                           'sup_vpc': wx.NewId(),
+                           'sup_density': wx.NewId()},
+                    'abs': {'calc_mw' : wx.NewId(), 
+                              'info': wx.NewId(),
+                              'more': wx.NewId(),
+                              'calib': wx.NewId(),
+                              'conc': wx.NewId(),
+                              'sup_pm': wx.NewId(),
+                              'sup_ps': wx.NewId(),
+                              'sup_pv': wx.NewId(),
+                              'sup_r0': wx.NewId(),
+                              'sup_sc': wx.NewId()}}
+
+
+        topsizer = self._createLayout(self.panel)
+        self._initSettings()
+
+        self.panel.SetSizer(topsizer)
+        self.panel.Layout()
+        self.SendSizeEvent()
+        self.panel.Layout()
+        
+        
+        self.CenterOnParent()
+
+    def _createLayout(self, parent):
+
+        # parent = self.panel
+        
+        self.top_mw = wx.ScrolledWindow(parent, -1)
+
+        self.top_mw.SetScrollbars(20,20,50,50)
+
+        # self.top_mw = self
+
+        self.info_panel = self._createInfoLayout(parent)
+        self.vc_panel = self._createVCLayout(self.top_mw)
+        self.conc_panel = self._createConcLayout(self.top_mw)
+        self.vp_panel = self._createVPLayout(self.top_mw)
+        self.abs_panel = self._createAbsLayout(self.top_mw)
+
+        self.button_panel = self._createButtonLayout(parent)
+
+        
+        mw_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        mw_sizer.Add(self.conc_panel, 0, wx.EXPAND)
+        mw_sizer.AddStretchSpacer(1)
+        mw_sizer.Add(wx.StaticLine(parent = self.top_mw, style = wx.LI_VERTICAL), 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
+        mw_sizer.AddStretchSpacer(1)
+        mw_sizer.Add(self.vc_panel, 0, wx.EXPAND)
+        mw_sizer.AddStretchSpacer(1)
+        mw_sizer.Add(wx.StaticLine(parent = self.top_mw, style = wx.LI_VERTICAL), 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
+        mw_sizer.AddStretchSpacer(1)
+        mw_sizer.Add(self.vp_panel, 0, wx.EXPAND)
+        mw_sizer.AddStretchSpacer(1)
+        mw_sizer.Add(wx.StaticLine(parent = self.top_mw, style = wx.LI_VERTICAL), 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
+        mw_sizer.AddStretchSpacer(1)
+        mw_sizer.Add(self.abs_panel, 0, wx.EXPAND)
+        mw_sizer.AddStretchSpacer(1)
+
+        self.top_mw.SetSizer(mw_sizer)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(self.info_panel, 0, wx.EXPAND)
+        top_sizer.Add(wx.StaticLine(parent = parent, style = wx.LI_HORIZONTAL), 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
+        # top_sizer.Add(mw_sizer, 10, wx.EXPAND)
+        top_sizer.Add(self.top_mw, 10, wx.EXPAND)
+        top_sizer.Add(wx.StaticLine(parent = parent, style = wx.LI_HORIZONTAL), 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
+        top_sizer.Add(self.button_panel, 0, wx.ALIGN_RIGHT | wx.TOP | wx.BOTTOM | wx.LEFT, 5)
+
+        return top_sizer
+
+    def _initSettings(self):
+        
+        analysis = self.sasm.getParameter('analysis')
+        
+        if 'guinier' in analysis:
+            
+            guinier = analysis['guinier']
+
+            for each_key in self.infodata.iterkeys():
+                window = wx.FindWindowById(self.infodata[each_key][1])
+                window.SetValue(guinier[each_key])
+
+
+        self.setFilename(os.path.basename(self.sasm.getParameter('filename')))
+
+        if self.sasm.getAllParameters().has_key('Conc'):
+            conc = str(self.sasm.getParameter('Conc'))
+        else:
+            conc = ''
+
+        wx.FindWindowById(self.ids['conc']['conc']).ChangeValue(conc)
+
+        wx.FindWindowById(self.ids['abs']['conc']).ChangeValue(conc)
+
+        if self.raw_settings.get('NormAbsWater'):
+            wx.FindWindowById(self.ids['abs']['calib']).SetValue(True)
+
+
+        ref_mw = self.raw_settings.get('MWStandardMW') 
+        ref_i0 = self.raw_settings.get('MWStandardI0')
+        ref_conc = self.raw_settings.get('MWStandardConc')
+        ref_file = self.raw_settings.get('MWStandardFile')
+
+        if ref_mw > 0:
+            wx.FindWindowById(self.ids['conc']['sup_mw']).ChangeValue(str(ref_mw))
+        else:
+            wx.FindWindowById(self.ids['conc']['sup_mw']).ChangeValue('')
+        if ref_i0 > 0:
+            wx.FindWindowById(self.ids['conc']['sup_i0']).ChangeValue(str(ref_i0))
+        else:
+            wx.FindWindowById(self.ids['conc']['sup_i0']).ChangeValue('')
+        if ref_conc > 0:
+            wx.FindWindowById(self.ids['conc']['sup_conc']).ChangeValue(str(ref_conc))
+        else:
+            wx.FindWindowById(self.ids['conc']['sup_conc']).ChangeValue('')
+        wx.FindWindowById(self.ids['conc']['sup_file']).ChangeValue(ref_file)
+
+
+        #Initialize VC MW settings
+        aCtrl = wx.FindWindowById(self.ids['VC']['sup_a'])
+        bCtrl = wx.FindWindowById(self.ids['VC']['sup_b'])
+        molCtrl = wx.FindWindowById(self.ids['VC']['mol_type'])
+
+        try:
+            if 'molecularWeight' in analysis:
+                molweight = analysis['molecularWeight']
+                vc_type = molweight['VolumeOfCorrelation']['Type']
+            else:
+                vc_type = self.raw_settings.get('MWVcType') 
+        except Exception, e:
+            print e
+            vc_type = self.raw_settings.get('MWVcType')
+
+        if vc_type == 'Protein':
+            aval = self.raw_settings.get('MWVcAProtein')
+            bval = self.raw_settings.get('MWVcBProtein')
+        else:
+            aval = self.raw_settings.get('MWVcARna')
+            bval = self.raw_settings.get('MWVcBRna')
+
+        aCtrl.SetValue(str(aval))
+        bCtrl.SetValue(str(bval))
+        molCtrl.SetStringSelection(vc_type)
+
+        wx.FindWindowById(self.ids['VC']['sup_plot']).plotSASM(self.sasm)
+
+
+        #Initialize Vp MW settings
+        vp_rho = self.raw_settings.get('MWVpRho')
+
+        wx.FindWindowById(self.ids['VP']['sup_density']).ChangeValue(str(vp_rho))
+
+
+        #Initialize Absolute scattering MW settings.
+        rho_Mprot = self.raw_settings.get('MWAbsRhoMprot') # electrons per dry mass of protein
+        rho_solv = self.raw_settings.get('MWAbsRhoSolv') # electrons per volume of aqueous solvent
+        nu_bar = self.raw_settings.get('MWAbsNuBar') # partial specific volume of the protein
+        r0 = self.raw_settings.get('MWAbsR0') #scattering lenght of an electron
+        d_rho = (rho_Mprot-(rho_solv*nu_bar))*r0
+        wx.FindWindowById(self.ids['abs']['sup_pm']).ChangeValue('%.2E' %(rho_Mprot))
+        wx.FindWindowById(self.ids['abs']['sup_ps']).ChangeValue('%.2E' %(rho_solv))
+        wx.FindWindowById(self.ids['abs']['sup_pv']).ChangeValue('%.4f' %(nu_bar))
+        wx.FindWindowById(self.ids['abs']['sup_r0']).ChangeValue('%.2E' %(r0))
+        wx.FindWindowById(self.ids['abs']['sup_sc']).ChangeValue('%.2E' %(d_rho))
+
+
+        self.calcMW()
+            
+
+    def _createInfoLayout(self, parent):
+        #Filename box
+        box1 = wx.StaticBox(parent, -1, 'Filename')
+        boxSizer1 = wx.StaticBoxSizer(box1, wx.HORIZONTAL)
+        self.filenameTxtCtrl = wx.TextCtrl(parent, -1, '', style = wx.TE_READONLY)
+        boxSizer1.Add(self.filenameTxtCtrl, 1, wx.EXPAND)
+
+        intro_text = ("This panel has four different methods for determining molecular weight from a scattering "
+                        "profile. All of them rely on the I(0) and/or Rg determined by the Guinier fit.\n"
+                        "The methods used (panels from left to right):\n"
+                        "1) Compare I(0) to a known standard (must have MW standard set).\n"
+                        "2) Using the volume of correlation (Vc).\n"
+                        "3) Using the Porod volume (Vp).\n"
+                        "4) Using absolute calibrated intensity (If your data is calibrated, but absolute "
+                        "scale is not enabled in the RAW settings use the checkbox to manually enable).\n"
+                        "'Show Details' provides calculation details and advanced options. 'More Info' "
+                        "gives a brief description of each method.")
+
+        # intro = wx.TextCtrl(self, value=intro_text, style=wx.TE_READONLY|wx.TE_MULTILINE|wx.TE_NO_VSCROLL|wx.BORDER_NONE|wx.TE_RICH2) 
+        # color = wx.SystemSettings.GetColour(wx.SYS_COLOUR_BACKGROUND)
+        # intro.SetBackgroundColour(color)
+
+        intro = AutoWrapStaticText(parent, label = intro_text)
+
+        # Guinier parameters box
+        infoSizer = wx.FlexGridSizer(rows = len(self.infodata), cols = 2)
+        
+        for key in self.infodata.iterkeys():
+            
+            if len(self.infodata[key]) == 2:
+                txt = wx.StaticText(parent, -1, self.infodata[key][0])
+                ctrl = wx.TextCtrl(parent, self.infodata[key][1], '0', style = wx.TE_READONLY)
+                infoSizer.Add(txt, 0)
+                infoSizer.Add(ctrl,0)
+                
+            else:
+                txt = wx.StaticText(parent, -1, self.infodata[key][0])
+                ctrl1 = wx.TextCtrl(parent, self.infodata[key][1], '0', style = wx.TE_READONLY)      
+                
+                bsizer = wx.BoxSizer()
+                bsizer.Add(ctrl1,0,wx.EXPAND)
+                
+                infoSizer.Add(txt,0)
+                infoSizer.Add(bsizer,0)
+
+        guinierfitbutton = wx.Button(parent, -1, 'Guinier Fit')
+        guinierfitbutton.Bind(wx.EVT_BUTTON, self.onGuinierFit)
+        
+        box2 = wx.StaticBox(parent, -1, 'Guinier Parameters')
+        boxSizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
+        boxSizer2.Add(infoSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP ,5)
+        boxSizer2.Add(guinierfitbutton, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT| wx.TOP, 5)
+
+        fileSizer = wx.BoxSizer(wx.VERTICAL)
+        fileSizer.Add(boxSizer1, 0, wx.EXPAND | wx.ALL, 2)
+        fileSizer.AddStretchSpacer(1)
+        fileSizer.Add(boxSizer2, 0, wx.EXPAND | wx.ALL, 2)
+
+        
+        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        top_sizer.Add(intro, 12, wx.EXPAND | wx.ALL, 5)
+        top_sizer.AddStretchSpacer(1)
+        top_sizer.Add(fileSizer, 6, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
+        top_sizer.AddStretchSpacer(1)
+
+        # top_sizer.Layout()
+
+        return top_sizer
+
+    def _createConcLayout(self, parent):
+        concbox = wx.StaticBox(parent, -1, 'I(0) Ref. MW')
+
+        conc_ids = self.ids['conc']
+
+        conc_info = wx.Button(parent, id = conc_ids['info'], label = 'More Info')
+        conc_info.Bind(wx.EVT_BUTTON, self._onInfo)
+
+        conc_details = wx.Button(parent, id = conc_ids['more'], label = 'Show Details')
+        conc_details.Bind(wx.EVT_BUTTON, self._onMore)
+
+        conc_buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
+        conc_buttonsizer.Add(conc_details, 0, wx.RIGHT, 2)
+        conc_buttonsizer.Add(conc_info, 0, wx.LEFT, 2)
+
+
+        concsizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        conc = wx.TextCtrl(parent, conc_ids['conc'], '', size = (60, -1))
+        conc_txt = wx.StaticText(parent, -1,  'Concentration: ')
+        conc_txt2 = wx.StaticText(parent, -1,  'mg/ml')
+
+        conc.Bind(wx.EVT_TEXT, self._onUpdateConc)
+
+        concsizer.Add(conc_txt,0, wx.LEFT, 2)
+        concsizer.Add(conc, 1, wx.EXPAND)
+        concsizer.Add(conc_txt2, 0, wx.LEFT, 1)
+
+
+        mwsizer = wx.BoxSizer(wx.HORIZONTAL)
+        conc_mw = wx.TextCtrl(parent, conc_ids['calc_mw'], '', size = (60, -1), style = wx.TE_READONLY)
+        mw_txt = wx.StaticText(parent, -1, 'MW :')
+        mw_txt2 = wx.StaticText(parent, -1,  'kDa')
+
+        mwsizer.Add(mw_txt,0, wx.LEFT, 2)
+        mwsizer.Add(conc_mw, 1, wx.EXPAND)
+        mwsizer.Add(mw_txt2, 0, wx.LEFT, 1)
+
+
+        sup_txt1 = wx.StaticText(parent, -1, 'Ref. I(0) :')
+        sup_txt2 = wx.StaticText(parent, -1, 'Ref. MW :')
+        sup_txt3 = wx.StaticText(parent, -1, 'kDa')
+        sup_txt4 = wx.StaticText(parent, -1, 'Ref. Concentration :')
+        sup_txt5 = wx.StaticText(parent, -1, 'mg/ml')
+        sup_txt6 = wx.StaticText(parent, -1, 'File :')
+
+        sup_i0 = wx.TextCtrl(parent, conc_ids['sup_i0'], '', size = (60, -1), style = wx.TE_READONLY)
+        sup_mw = wx.TextCtrl(parent, conc_ids['sup_mw'], '', size = (60, -1), style = wx.TE_READONLY)
+        sup_conc = wx.TextCtrl(parent, conc_ids['sup_conc'], '', size = (60, -1), style = wx.TE_READONLY)
+        sup_file = wx.TextCtrl(parent, conc_ids['sup_file'], '', size = (200, -1), style = wx.TE_READONLY)
+
+        sup_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
+        sup_sizer1.Add(sup_txt1, 0)
+        sup_sizer1.Add(sup_i0, 1, wx.EXPAND)
+
+        sup_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        sup_sizer2.Add(sup_txt2,0)
+        sup_sizer2.Add(sup_mw,1,wx.EXPAND)
+        sup_sizer2.Add(sup_txt3,0, wx.LEFT, 1)
+
+        sup_sizer3 = wx.BoxSizer(wx.HORIZONTAL)
+        sup_sizer3.Add(sup_txt4,0)
+        sup_sizer3.Add(sup_conc,1, wx.EXPAND)
+        sup_sizer3.Add(sup_txt5,0, wx.LEFT, 1)
+
+        sup_sizer4 = wx.BoxSizer(wx.HORIZONTAL)
+        sup_sizer4.Add(sup_txt6, 0)
+        sup_sizer4.Add(sup_file, 1, wx.EXPAND)
+
+        self.conc_sup_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.conc_sup_sizer.Add(sup_sizer1, 0, wx.BOTTOM, 5)
+        self.conc_sup_sizer.Add(sup_sizer2, 0, wx.BOTTOM, 5)
+        self.conc_sup_sizer.Add(sup_sizer3, 0, wx.BOTTOM, 5)
+        self.conc_sup_sizer.Add(sup_sizer4, 0)
+
+        
+        self.conc_top_sizer = wx.StaticBoxSizer(concbox, wx.VERTICAL)
+        self.conc_top_sizer.Add(concsizer, 0, wx.BOTTOM, 5)
+        self.conc_top_sizer.Add(mwsizer, 0, wx.BOTTOM, 5)
+        self.conc_top_sizer.Add(self.conc_sup_sizer, 0, wx.BOTTOM, 5)
+        self.conc_top_sizer.Add(conc_buttonsizer, 0, wx.ALIGN_CENTER | wx.TOP, 2)
+
+        self.conc_top_sizer.Hide(self.conc_sup_sizer,recursive = True)
+
+        return self.conc_top_sizer
+
+    def _createVCLayout(self, parent):
+        
+        vcbox = wx.StaticBox(parent, -1, 'Vc MW')
+
+        vc_ids = self.ids['VC']
+
+        vc_info = wx.Button(parent, id = vc_ids['info'], label = 'More Info')
+        vc_info.Bind(wx.EVT_BUTTON, self._onInfo)
+
+        vc_details = wx.Button(parent, id = vc_ids['more'], label = 'Show Details')
+        vc_details.Bind(wx.EVT_BUTTON, self._onMore)
+
+        vc_buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
+        vc_buttonsizer.Add(vc_details, 0, wx.RIGHT, 2)
+        vc_buttonsizer.Add(vc_info, 0, wx.LEFT, 2)
+        
+
+
+        mol_type = wx.Choice(parent, vc_ids['mol_type'], choices = ['Protein', 'RNA'])
+        mol_type.Bind(wx.EVT_CHOICE, self._onMoleculeChoice)
+
+        mwsizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        VCmw = wx.TextCtrl(parent, vc_ids['calc_mw'], '', size = (60, -1), style = wx.TE_READONLY)
+        txt = wx.StaticText(parent, -1, 'MW :')
+        txt2 = wx.StaticText(parent, -1,  'kDa')
+
+        mwsizer.Add(txt,0, wx.LEFT, 2)
+        mwsizer.Add(VCmw, 1, wx.EXPAND)
+        mwsizer.Add(txt2, 0, wx.LEFT, 1)
+
+
+        sup_txt1 = wx.StaticText(parent, -1, 'Vc :')
+        sup_txt2 = wx.StaticText(parent, -1, 'A^2')
+        sup_txt3 = wx.StaticText(parent, -1, 'Qr :')
+        sup_txt4 = wx.StaticText(parent, -1, 'A^3')
+        sup_txt5 = wx.StaticText(parent, -1, 'a :')
+        sup_txt6 = wx.StaticText(parent, -1, 'b :')
+
+        sup_vc = wx.TextCtrl(parent, vc_ids['sup_vc'], '', size = (60, -1), style = wx.TE_READONLY)
+        sup_qr = wx.TextCtrl(parent, vc_ids['sup_qr'], '', size = (60, -1), style = wx.TE_READONLY)
+        sup_a = wx.TextCtrl(parent, vc_ids['sup_a'], '', size = (60, -1), style = wx.TE_READONLY)
+        sup_b = wx.TextCtrl(parent, vc_ids['sup_b'], '', size = (60, -1), style = wx.TE_READONLY)
+
+        sup_sizer = wx.FlexGridSizer(rows = 2, cols = 5, hgap =0, vgap=5)
+        sup_sizer.Add(sup_txt1, 0)
+        sup_sizer.Add(sup_vc, 1, wx.EXPAND)
+        sup_sizer.Add(sup_txt2, 0, wx.LEFT, 1)
+
+        sup_sizer.Add(sup_txt5, 0, wx.LEFT, 10)
+        sup_sizer.Add(sup_a, 1, wx.EXPAND)
+
+        sup_sizer.Add(sup_txt3, 0)
+        sup_sizer.Add(sup_qr, 1, wx.EXPAND)
+        sup_sizer.Add(sup_txt4, 0, wx.LEFT, 1)
+
+        sup_sizer.Add(sup_txt6, 0, wx.LEFT, 10)
+        sup_sizer.Add(sup_b, 1, wx.EXPAND)
+
+        vc_plot = MWPlotPanel(parent, vc_ids['sup_plot'], '')
+
+        self.vc_sup_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.vc_sup_sizer.Add(sup_sizer, 0, wx.BOTTOM, 5)
+        self.vc_sup_sizer.Add(vc_plot, 0, wx.EXPAND)
+
+        
+        self.vc_top_sizer = wx.StaticBoxSizer(vcbox, wx.VERTICAL)
+        self.vc_top_sizer.Add(mol_type, 0, wx.BOTTOM, 5)
+        self.vc_top_sizer.Add(mwsizer, 0, wx.BOTTOM, 5)
+        self.vc_top_sizer.Add(self.vc_sup_sizer, 0, wx.BOTTOM, 5)
+        self.vc_top_sizer.Add(vc_buttonsizer, 0, wx.ALIGN_CENTER | wx.TOP, 2)
+
+        self.vc_top_sizer.Hide(self.vc_sup_sizer, recursive = True)
+
+        return self.vc_top_sizer
+
+    def _createVPLayout(self, parent):
+        vpbox = wx.StaticBox(parent, -1, 'Vp MW')
+
+        vp_ids = self.ids['VP']
+
+        vp_info = wx.Button(parent, id = vp_ids['info'], label = 'More Info')
+        vp_info.Bind(wx.EVT_BUTTON, self._onInfo)
+
+        vp_details = wx.Button(parent, id = vp_ids['more'], label = 'Show Details')
+        vp_details.Bind(wx.EVT_BUTTON, self._onMore)
+
+        vp_buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
+        vp_buttonsizer.Add(vp_details, 0, wx.RIGHT, 2)
+        vp_buttonsizer.Add(vp_info, 0, wx.RIGHT, 2)
+
+        mwsizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        VpMW = wx.TextCtrl(parent, vp_ids['calc_mw'], '', size = (60, -1), style = wx.TE_READONLY)
+        txt = wx.StaticText(parent, -1, 'MW :')
+        txt2 = wx.StaticText(parent, -1,  'kDa')
+
+        mwsizer.Add(txt,0, wx.LEFT, 2)
+        mwsizer.Add(VpMW, 1, wx.EXPAND)
+        mwsizer.Add(txt2, 0, wx.LEFT, 1)
+
+
+        sup_txt1 = wx.StaticText(parent, -1, 'Vp :')
+        sup_txt2 = wx.StaticText(parent, -1, 'A^3')
+        sup_txt3 = wx.StaticText(parent, -1, 'Corrected Vp :')
+        sup_txt4 = wx.StaticText(parent, -1, 'A^3')
+        sup_txt5 = wx.StaticText(parent, -1, 'Macromolecule Density :')
+        sup_txt6 = wx.StaticText(parent, -1, 'kDa/A^3')
+
+        sup_vp = wx.TextCtrl(parent, vp_ids['sup_vp'], '', size = (60, -1), style = wx.TE_READONLY)
+        sup_vpc = wx.TextCtrl(parent, vp_ids['sup_vpc'], '', size = (60, -1), style = wx.TE_READONLY)
+        sup_density = wx.TextCtrl(parent, vp_ids['sup_density'], '', size = (60, -1), style = wx.TE_READONLY)
+
+        sup_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
+        sup_sizer1.Add(sup_txt1, 0)
+        sup_sizer1.Add(sup_vp, 1, wx.EXPAND)
+        sup_sizer1.Add(sup_txt2, 0, wx.LEFT, 1)
+
+        sup_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        sup_sizer2.Add(sup_txt3, 0)
+        sup_sizer2.Add(sup_vpc, 1, wx.EXPAND)
+        sup_sizer2.Add(sup_txt4, 0, wx.LEFT, 1)
+
+        sup_sizer3 = wx.BoxSizer(wx.HORIZONTAL)
+        sup_sizer3.Add(sup_txt5,0)
+        sup_sizer3.Add(sup_density,1,wx.EXPAND)
+        sup_sizer3.Add(sup_txt6,0, wx.LEFT, 1)
+
+        self.vp_sup_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.vp_sup_sizer.Add(sup_sizer1, 0, wx.BOTTOM, 5)
+        self.vp_sup_sizer.Add(sup_sizer2, 0, wx.BOTTOM, 5)
+        self.vp_sup_sizer.Add(sup_sizer3,0)
+
+        
+        self.vp_top_sizer = wx.StaticBoxSizer(vpbox, wx.VERTICAL)
+        self.vp_top_sizer.Add(mwsizer, 0, wx.BOTTOM, 5)
+        self.vp_top_sizer.Add(self.vp_sup_sizer, 0, wx.BOTTOM, 5)
+        self.vp_top_sizer.Add(vp_buttonsizer, 0, wx.ALIGN_CENTER | wx.TOP, 2)
+
+        self.vp_top_sizer.Hide(self.vp_sup_sizer, recursive = True)
+
+        return self.vp_top_sizer
+
+    def _createAbsLayout(self, parent):
+        absbox = wx.StaticBox(parent, -1, 'Abs. MW')
+
+        abs_ids = self.ids['abs']
+
+        abs_checkbox = wx.CheckBox(parent, id = abs_ids['calib'], label = 'Intensity on Absolute Scale', style = wx.ALIGN_RIGHT)
+        abs_checkbox.SetValue(False)
+        abs_checkbox.Bind(wx.EVT_CHECKBOX, self._onAbsCheck)
+
+
+        abs_info = wx.Button(parent, id = abs_ids['info'], label = 'More Info')
+        abs_info.Bind(wx.EVT_BUTTON, self._onInfo)
+
+        abs_details = wx.Button(parent, id = abs_ids['more'], label = 'Show Details')
+        abs_details.Bind(wx.EVT_BUTTON, self._onMore)
+
+        abs_buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
+        abs_buttonsizer.Add(abs_details, 0, wx.RIGHT, 2)
+        abs_buttonsizer.Add(abs_info, 0, wx.LEFT, 2)
+
+        concsizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        conc = wx.TextCtrl(parent, abs_ids['conc'], '', size = (60, -1))
+        conc_txt = wx.StaticText(parent, -1,  'Concentration: ')
+        conc_txt2 = wx.StaticText(parent, -1,  'mg/ml')
+
+        conc.Bind(wx.EVT_TEXT, self._onUpdateConc)
+
+        concsizer.Add(conc_txt,0, wx.LEFT, 2)
+        concsizer.Add(conc, 1, wx.EXPAND)
+        concsizer.Add(conc_txt2, 0, wx.LEFT, 1)
+
+        mwsizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        absMW = wx.TextCtrl(parent, abs_ids['calc_mw'], '', size = (65, -1), style = wx.TE_READONLY)
+        txt = wx.StaticText(parent, -1, 'MW :')
+        txt2 = wx.StaticText(parent, -1,  'kDa')
+
+        mwsizer.Add(txt,0, wx.LEFT, 2)
+        mwsizer.Add(absMW, 1, wx.EXPAND)
+        mwsizer.Add(txt2, 0, wx.LEFT, 1)
+
+
+        sup_txt1 = wx.StaticText(parent, -1, '# electrons per mass dry macromolecule :')
+        sup_txt2 = wx.StaticText(parent, -1, 'e-/g')
+        sup_txt3 = wx.StaticText(parent, -1, '# electrons per volume of buffer :')
+        sup_txt4 = wx.StaticText(parent, -1, 'e-/cm^3')
+        sup_txt5 = wx.StaticText(parent, -1, 'Protein partial specific volume :')
+        sup_txt6 = wx.StaticText(parent, -1, 'cm^3/g')
+        sup_txt7 = wx.StaticText(parent, -1, 'Scattering length of an electron :')
+        sup_txt8 = wx.StaticText(parent, -1, 'cm')
+        sup_txt9 = wx.StaticText(parent, -1, 'Scattering contrast per mass :')
+        sup_txt10 = wx.StaticText(parent, -1, 'e- cm/g')
+
+        sup_pm = wx.TextCtrl(parent, abs_ids['sup_pm'], '', size = (65, -1), style = wx.TE_READONLY)
+        sup_ps = wx.TextCtrl(parent, abs_ids['sup_ps'], '', size = (65, -1), style = wx.TE_READONLY)
+        sup_pv = wx.TextCtrl(parent, abs_ids['sup_pv'], '', size = (65, -1), style = wx.TE_READONLY)
+        sup_r0 = wx.TextCtrl(parent, abs_ids['sup_r0'], '', size = (65, -1), style = wx.TE_READONLY)
+        sup_sc = wx.TextCtrl(parent, abs_ids['sup_sc'], '', size = (65, -1), style = wx.TE_READONLY)
+
+        sup_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
+        sup_sizer1.Add(sup_txt1, 0)
+        sup_sizer1.Add(sup_pm, 1, wx.EXPAND)
+        sup_sizer1.Add(sup_txt2, 0, wx.LEFT, 1)
+
+        sup_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        sup_sizer2.Add(sup_txt3, 0)
+        sup_sizer2.Add(sup_ps, 1, wx.EXPAND)
+        sup_sizer2.Add(sup_txt4, 0, wx.LEFT, 1)
+
+        sup_sizer3 = wx.BoxSizer(wx.HORIZONTAL)
+        sup_sizer3.Add(sup_txt5, 0)
+        sup_sizer3.Add(sup_pv, 1, wx.EXPAND)
+        sup_sizer3.Add(sup_txt6, 0, wx.LEFT, 1)
+
+        sup_sizer4 = wx.BoxSizer(wx.HORIZONTAL)
+        sup_sizer4.Add(sup_txt7, 0)
+        sup_sizer4.Add(sup_r0, 1, wx.EXPAND)
+        sup_sizer4.Add(sup_txt8, 0, wx.LEFT, 1)
+
+        sup_sizer5 = wx.BoxSizer(wx.HORIZONTAL)
+        sup_sizer5.Add(sup_txt9, 0)
+        sup_sizer5.Add(sup_sc, 1, wx.EXPAND)
+        sup_sizer5.Add(sup_txt10, 0, wx.LEFT, 1)
+
+        self.abs_sup_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.abs_sup_sizer.Add(sup_sizer1, 0, wx.BOTTOM, 5)
+        self.abs_sup_sizer.Add(sup_sizer2, 0, wx.BOTTOM, 5)
+        self.abs_sup_sizer.Add(sup_sizer3, 0, wx.BOTTOM, 5)
+        self.abs_sup_sizer.Add(sup_sizer4, 0, wx.BOTTOM, 5)
+        self.abs_sup_sizer.Add(sup_sizer5,0)
+
+        
+        self.abs_top_sizer = wx.StaticBoxSizer(absbox, wx.VERTICAL)
+        self.abs_top_sizer.Add(abs_checkbox, 0, wx.BOTTOM, 5)
+        self.abs_top_sizer.Add(concsizer, 0, wx.BOTTOM, 5)
+        self.abs_top_sizer.Add(mwsizer, 0, wx.BOTTOM, 5)
+        self.abs_top_sizer.Add(self.abs_sup_sizer, 0, wx.BOTTOM, 5)
+        self.abs_top_sizer.Add(abs_buttonsizer, 0, wx.ALIGN_CENTER | wx.TOP, 2)
+
+        self.abs_top_sizer.Hide(self.abs_sup_sizer, recursive = True)
+
+        return self.abs_top_sizer
+
+    def _createButtonLayout(self, parent):
+        button = wx.Button(parent, wx.ID_CANCEL, 'Cancel')
+        button.Bind(wx.EVT_BUTTON, self.onCloseButton)
+        
+        savebutton = wx.Button(parent, wx.ID_OK, 'OK')
+        savebutton.Bind(wx.EVT_BUTTON, self.onSaveInfo)
+
+        params_button = wx.Button(parent, -1, 'Change Advanced Parameters')
+        params_button.Bind(wx.EVT_BUTTON, self.onChangeParams)
+
+        buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttonSizer.Add(params_button, 1, wx.ALIGN_LEFT | wx.LEFT, 5)
+        buttonSizer.AddStretchSpacer(10)
+        buttonSizer.Add(savebutton, 1, wx.RIGHT | wx.ALIGN_RIGHT, 5)
+        buttonSizer.Add(button, 1, wx.RIGHT | wx.ALIGN_RIGHT, 5)
+
+        return buttonSizer
+
+    def setFilename(self, filename):
+        self.filenameTxtCtrl.SetValue(str(filename))
+
+    def onGuinierFit(self,evt):
+
+        strconc = wx.FindWindowById(self.ids['conc']['conc']).GetValue()
+
+        try:
+            conc = float(strconc)
+        except ValueError:
+            conc = -1
+
+        if strconc != '' and conc > 0:
+            self.sasm.setParameter('Conc', conc)
+
+        self.main_frame.showGuinierFitFrame(self.sasm, self.manip_item)
+
+    def updateGuinierInfo(self):
+        analysis = self.sasm.getParameter('analysis')
+        
+        if 'guinier' in analysis:
+            
+            guinier = analysis['guinier']
+
+            for each_key in self.infodata.iterkeys():
+                window = wx.FindWindowById(self.infodata[each_key][1])
+                window.SetValue(guinier[each_key])
+
+        if self.sasm.getAllParameters().has_key('Conc'):
+            conc = str(self.sasm.getParameter('Conc'))
+            wx.FindWindowById(self.ids['conc']['conc']).ChangeValue(conc)
+            wx.FindWindowById(self.ids['abs']['conc']).ChangeValue(conc)
+        
+        self.calcMW()
+
+    def updateMWInfo(self):
+        analysis = self.sasm.getParameter('analysis')
+
+        if self.raw_settings.get('NormAbsWater'):
+            wx.FindWindowById(self.ids['abs']['calib']).SetValue(True)
+
+        ref_mw = self.raw_settings.get('MWStandardMW') 
+        ref_i0 = self.raw_settings.get('MWStandardI0')
+        ref_conc = self.raw_settings.get('MWStandardConc')
+        ref_file = self.raw_settings.get('MWStandardFile')
+
+        if ref_mw > 0:
+            wx.FindWindowById(self.ids['conc']['sup_mw']).ChangeValue(str(ref_mw))
+        else:
+            wx.FindWindowById(self.ids['conc']['sup_mw']).ChangeValue('')
+        if ref_i0 > 0:
+            wx.FindWindowById(self.ids['conc']['sup_i0']).ChangeValue(str(ref_i0))
+        else:
+            wx.FindWindowById(self.ids['conc']['sup_i0']).ChangeValue('')
+        if ref_conc > 0:
+            wx.FindWindowById(self.ids['conc']['sup_conc']).ChangeValue(str(ref_conc))
+        else:
+            wx.FindWindowById(self.ids['conc']['sup_conc']).ChangeValue('')
+        wx.FindWindowById(self.ids['conc']['sup_file']).ChangeValue(ref_file)
+
+
+        #Initialize VC MW settings
+        aCtrl = wx.FindWindowById(self.ids['VC']['sup_a'])
+        bCtrl = wx.FindWindowById(self.ids['VC']['sup_b'])
+        molCtrl = wx.FindWindowById(self.ids['VC']['mol_type'])
+
+        vc_type = molCtrl.GetStringSelection()
+
+        if vc_type == 'Protein':
+            aval = self.raw_settings.get('MWVcAProtein')
+            bval = self.raw_settings.get('MWVcBProtein')
+        else:
+            aval = self.raw_settings.get('MWVcARna')
+            bval = self.raw_settings.get('MWVcBRna')
+
+        aCtrl.SetValue(str(aval))
+        bCtrl.SetValue(str(bval))
+        molCtrl.SetStringSelection(vc_type)
+
+        #Initialize Vp MW settings
+        vp_rho = self.raw_settings.get('MWVpRho')
+
+        wx.FindWindowById(self.ids['VP']['sup_density']).ChangeValue(str(vp_rho))
+
+
+        #Initialize Absolute scattering MW settings.
+        rho_Mprot = self.raw_settings.get('MWAbsRhoMprot') # electrons per dry mass of protein
+        rho_solv = self.raw_settings.get('MWAbsRhoSolv') # electrons per volume of aqueous solvent
+        nu_bar = self.raw_settings.get('MWAbsNuBar') # partial specific volume of the protein
+        r0 = self.raw_settings.get('MWAbsR0') #scattering lenght of an electron
+        d_rho = (rho_Mprot-(rho_solv*nu_bar))*r0
+        wx.FindWindowById(self.ids['abs']['sup_pm']).ChangeValue('%.2E' %(rho_Mprot))
+        wx.FindWindowById(self.ids['abs']['sup_ps']).ChangeValue('%.2E' %(rho_solv))
+        wx.FindWindowById(self.ids['abs']['sup_pv']).ChangeValue('%.4f' %(nu_bar))
+        wx.FindWindowById(self.ids['abs']['sup_r0']).ChangeValue('%.2E' %(r0))
+        wx.FindWindowById(self.ids['abs']['sup_sc']).ChangeValue('%.2E' %(d_rho))
+
+
+        self.calcMW()
+
+    def _onInfo(self,evt):
+        evt_id = evt.GetId()
+
+        if evt_id == self.ids['conc']['info']:
+            msg = ("The scattering at zero angle, I(0) is proportional to the molecular weight of the "
+                  "macromolecule, and the concentration and contrast of the macromolecule in solution. If a reference "
+                  "sample of known molecular weight and concentration is measured, it can be used to calibrate the "
+                  "molecular weight of any other scattering profile with known concentration (assuming constant "
+                  "contrast between reference and sample, and a monodisperse sample). Molecular weight is calculated "
+                  "as:\n\n"
+                  "MW_m = (I(0)_m / c_m) * (MM_st)/(I(0)_st / c_st)\n\n"
+                  "where MW is the molecular weight, c is the concentration, and '_m' and '_st' designates quantities "
+                  "from the macromolecule of interest and the standard respectively. For a reference see, among many, "
+                  "Mylonas, E. & Svergun, D. I. (2007). J. Appl. Crystallogr. 40, s245-s249.\n\n"
+                  "This method can yield inaccurate results if the reference is not properly calibrated, I(0) is not "
+                  "well estimated from the Guinier fit, or the contrast between the macromolecule and buffer is "
+                  "significantly different between the reference and sample.")
+        elif evt_id == self.ids['VC']['info']:
+            msg = ("This method uses the approach described in: Rambo, R. P. & Tainer, J. A. (2013). Nature. "
+                   "496, 477-481. First, the volume of correlation, Vc, is calculated. Unlike the Porod volume, "
+                   "Vc is expected to converge for both compact and flexible macromolecules. Physically, Vc can "
+                   "be interpreted as the particle volume per self-correlation length, and has units of A^2. "
+                   "Vc and the radius of gyration, Rg, are then used to calculate a parameter Qr = Vc^2/Rg. "
+                   "The molecular weight is then calculated as:\n\n"
+                   "MW = (Qr/b)^(a)\n\n"
+                   "where a and b are empirically determined constants that depend upon the type of macromolecule. "
+                   "More details on the calculation are in the reference. The authors claim the error in MW "
+                   "determination is ~5-10%\n\n"
+                   "This method can yield inaccurate results if the integral of q*I(q) doesn't converge, which "
+                   "may indicate the scattering profile is not measured to high enough q or that there is a bad "
+                   "buffer match. It also requires accurate determination of I(0) and Rg. It doesn't work for "
+                   "protein-nucleic acid complexes.")
+        elif evt_id == self.ids['VP']['info']:
+            msg = ("This method uses the approach described in: Fischer, H., de Oliveira Neto, M., Napolitano, "
+                  "H. B., Polikarpov, I., & Craievich, A. F. (2009). J. Appl. Crystallogr. 43, 101-109. First, "
+                  "the Porod volume, Vp, is determined. True determination of the Porod volume requires the "
+                  "scattering profile measured to infinite q. A correction is applied to Vp to account "
+                  "for the limited range of the measurement. The authors report a maximum of 10% uncertainty "
+                  "for calculated molecular weight from globular proteins.\n\n"
+                  "This method can yield inaccurate results if the molecule is not globular. It requires accurate "
+                  "determination of I(0). It also requires an accurate protein density. It only works for "
+                  "proteins.\n\n"
+                  "Note: To do the integration, RAW extrapolates the scattering profile to I(0) using the Guinier fit. "
+                  "The authors of the original paper used smoothed and extrapolated scattering profiles generated by "
+                  "GNOM. This may cause discrepancy. To use this method on GNOM profiles, use the online SAXS MoW "
+                  "calculator located at: http://www.if.sc.usp.br/~saxs/")
+        else:
+            msg = ("This uses the absolute calibration of the scattering profile to determine the molecular weight, "
+                   "as described in Orthaber, D., Bergmann, A., & Glatter, O. (2000). J. Appl. Crystallogr. 33, "
+                   "218-225. By determining the absolute scattering at I(0), if the sample concentration is also "
+                   "known, the molecular weight is calculated as:\n\n"
+                   "MW = (N_A * I(0) / c)/(drho_M^2)\n\n"
+                   "where N_A is the Avagadro number, c is the concentration, and drho_M is the scattering contrast "
+                   "per mass. The accuracy of this method was assessed in Mylonas, E. & Svergun, D. I. (2007). "
+                   "J. Appl. Crystallogr. 40, s245-s249, and for most proteins is <~10%.\n\n"
+                   "This method can yield inaccurate results if the absolute calibration is off, or if the "
+                   "partial specific volume of the macromolecule in solution is incorrect. I(0) and the concentration "
+                   "in solution must be well determined. Unless the scattering contrast is adjusted, this method "
+                   "will only work for proteins.")
+
+        dlg = wx.MessageDialog(self.main_frame, msg, "Calculating Molecular Weight", style = wx.ICON_INFORMATION | wx.OK)
+        proceed = dlg.ShowModal()
+        dlg.Destroy()
+
+    def _onMore(self, evt):
+        evt_id = evt.GetId()
+
+        if evt_id == self.ids['conc']['more']:
+            if self.conc_top_sizer.IsShown(self.conc_sup_sizer):
+                self.conc_top_sizer.Hide(self.conc_sup_sizer,recursive=True)
+                button = wx.FindWindowById(self.ids['conc']['more'])
+                button.SetLabel('Show Details')
+                self.panel.Layout()
+            else:
+                self.conc_top_sizer.Show(self.conc_sup_sizer,recursive=True)
+                button = wx.FindWindowById(self.ids['conc']['more'])
+                button.SetLabel('Hide Details')
+                self.panel.Layout()
+           
+        elif evt_id == self.ids['VC']['more']:
+            if self.vc_top_sizer.IsShown(self.vc_sup_sizer):
+                self.vc_top_sizer.Hide(self.vc_sup_sizer,recursive=True)
+                button = wx.FindWindowById(self.ids['VC']['more'])
+                button.SetLabel('Show Details')
+                self.panel.Layout()
+            else:
+                self.vc_top_sizer.Show(self.vc_sup_sizer,recursive=True)
+                button = wx.FindWindowById(self.ids['VC']['more'])
+                button.SetLabel('Hide Details')
+                self.panel.Layout()
+
+        elif evt_id == self.ids['VP']['more']:
+            if self.vp_top_sizer.IsShown(self.vp_sup_sizer):
+                self.vp_top_sizer.Hide(self.vp_sup_sizer,recursive=True)
+                button = wx.FindWindowById(self.ids['VP']['more'])
+                button.SetLabel('Show Details')
+                self.panel.Layout()
+            else:
+                self.vp_top_sizer.Show(self.vp_sup_sizer,recursive=True)
+                button = wx.FindWindowById(self.ids['VP']['more'])
+                button.SetLabel('Hide Details')
+                self.panel.Layout()
+        else:
+            if self.abs_top_sizer.IsShown(self.abs_sup_sizer):
+                self.abs_top_sizer.Hide(self.abs_sup_sizer,recursive=True)
+                button = wx.FindWindowById(self.ids['abs']['more'])
+                button.SetLabel('Show Details')
+                self.panel.Layout()
+            else:
+                self.abs_top_sizer.Show(self.abs_sup_sizer,recursive=True)
+                button = wx.FindWindowById(self.ids['abs']['more'])
+                button.SetLabel('Hide Details')
+                self.panel.Layout()
+
+
+    def _onMoleculeChoice(self,evt):
+        vc_ids = self.ids['VC']
+
+        aCtrl = wx.FindWindowById(vc_ids['sup_a'])
+        bCtrl = wx.FindWindowById(vc_ids['sup_b'])
+
+        molCtrl = evt.GetEventObject()
+        val = molCtrl.GetStringSelection()
+
+        if val == 'Protein':
+            aval = self.raw_settings.get('MWVcAProtein')
+            bval = self.raw_settings.get('MWVcBProtein')
+        else:
+            aval = self.raw_settings.get('MWVcARna')
+            bval = self.raw_settings.get('MWVcBRna')
+
+        aCtrl.SetValue(str(aval))
+        bCtrl.SetValue(str(bval))
+
+        self.calcVCMW()
+
+    def _onUpdateConc(self, evt):
+        evt_id = evt.GetId()
+
+        concCtrl = evt.GetEventObject()
+        val = concCtrl.GetValue()
+
+        if evt_id == self.ids['conc']['conc']:
+            wx.FindWindowById(self.ids['abs']['conc']).ChangeValue(val)
+        else:
+            wx.FindWindowById(self.ids['conc']['conc']).ChangeValue(val)
+
+        self.calcConcMW()
+        self.calcAbsMW()
+
+    def _onUpdateDensity(self, evt):
+        self.calcVpMW()
+
+    def _onAbsCheck(self, evt):
+        chkbox = evt.GetEventObject()
+
+        if chkbox.GetValue():
+            wx.FindWindowById(self.ids['abs']['conc']).Enable()
+            self.calcAbsMW()
+        else:
+            wx.FindWindowById(self.ids['abs']['conc']).Disable()
+            wx.FindWindowById(self.ids['abs']['calc_mw']).ChangeValue('')
+
+    def onChangeParams(self, evt):
+
+        self.main_frame.showOptionsDialog(focusHead='Molecular Weight')
+
+    def onCloseButton(self, evt):
+        self.OnClose()
+
+    def onSaveInfo(self, evt):
+        calcData = {'I(0)Concentration'  : {},
+                    'VolumeOfCorrelation': {},
+                    'PorodVolume'        : {},
+                    'Absolute'           : {}}
+
+        for eachKey in self.ids.iterkeys():
+            mw = wx.FindWindowById(self.ids[eachKey]['calc_mw']).GetValue()
+
+            if eachKey == 'conc':
+                calcData['I(0)Concentration']['MW'] = mw
+                self.sasm.setParameter('MW', mw)
+
+            elif eachKey == 'VC':
+                mol_type = wx.FindWindowById(self.ids[eachKey]['mol_type']).GetStringSelection()
+                vcor = wx.FindWindowById(self.ids[eachKey]['sup_vc']).GetValue()
+
+                calcData['VolumeOfCorrelation']['MW'] = mw
+                calcData['VolumeOfCorrelation']['Type'] = mol_type
+                calcData['VolumeOfCorrelation']['Vcor'] = vcor
+
+            elif eachKey == 'VP':
+                vporod = wx.FindWindowById(self.ids[eachKey]['sup_vp']).GetValue()
+                vpcor = wx.FindWindowById(self.ids[eachKey]['sup_vpc']).GetValue()
+
+                calcData['PorodVolume']['MW'] = mw
+                calcData['PorodVolume']['VPorod'] = vporod
+                calcData['PorodVolume']['VPorod_Corrected'] = vpcor
+
+            elif eachKey == 'abs':
+                calcData['Absolute']['MW'] = mw
+
+        analysis_dict = self.sasm.getParameter('analysis')
+        analysis_dict['molecularWeight'] = calcData
+
+        strconc = wx.FindWindowById(self.ids['conc']['conc']).GetValue()
+
+        try:
+            conc = float(strconc)
+        except ValueError:
+            conc = -1
+
+        if strconc != '' and conc > 0:
+            self.sasm.setParameter('Conc', conc)
+
+        if self.manip_item != None:
+            wx.CallAfter(self.manip_item.updateInfoTip, analysis_dict, fromGuinierDialog = True)
+            if self.old_analysis != calcData:
+                wx.CallAfter(self.manip_item.markAsModified)
+
+        self.OnClose()
+
+
+    def calcMW(self):
+        self.calcConcMW()
+
+        self.calcVCMW()    
+
+        self.calcVpMW()
+
+        self.calcAbsMW()
+
+    def calcConcMW(self):
+        conc_ids = self.ids['conc']
+        i0 = float(wx.FindWindowById(self.infodata['I0'][1]).GetValue())
+
+        ref_mw = self.raw_settings.get('MWStandardMW') 
+        ref_I0 = self.raw_settings.get('MWStandardI0')
+        ref_conc = self.raw_settings.get('MWStandardConc')
+        
+        try:
+            conc = float(wx.FindWindowById(conc_ids['conc']).GetValue())
+        except ValueError:
+            conc = -1
+        
+        if ref_mw > 0 and ref_I0 > 0 and ref_conc > 0 and conc > 0 and i0 > 0:
+            mw = (i0 * (ref_mw/(ref_I0/ref_conc))) / conc
+
+            mwstr = str(np.around(mw,1))
+
+            if len(mwstr.split('.')[1])>1:
+                mwstr = '%.1E' %(mw)
+
+            mwCtrl = wx.FindWindowById(conc_ids['calc_mw'])
+            mwCtrl.SetValue(mwstr)
+
+    def calcVCMW(self):
+
+        vc_ids = self.ids['VC']
+        rg = float(wx.FindWindowById(self.infodata['Rg'][1]).GetValue())
+        i0 = float(wx.FindWindowById(self.infodata['I0'][1]).GetValue())
+
+        molecule = wx.FindWindowById(vc_ids['mol_type']).GetStringSelection()
+
+        if molecule == 'Protein':
+            is_protein = True
+        else:
+            is_protein = False
+
+        if rg > 0 and i0 > 0:
+            mw, mw_error, tot, vc, qr = SASCalc.autoMW(self.sasm, rg, i0, is_protein)
+
+            mwstr = str(np.around(mw,1))
+
+            if len(mwstr.split('.')[1])>1:
+                mwstr = '%.1E' %(mw)
+
+            mwCtrl = wx.FindWindowById(vc_ids['calc_mw'])
+            mwCtrl.SetValue(mwstr)
+
+
+            vcstr = str(np.around(vc,1))
+
+            if len(vcstr.split('.')[1])>1:
+                vcstr = '%.1E' %(vc)
+
+            wx.FindWindowById(vc_ids['sup_vc']).SetValue(vcstr)
+
+
+            qrstr = str(np.around(qr,1))
+
+            if len(qrstr.split('.')[1])>1:
+                qrstr = '%.1E' %(qr)
+
+            wx.FindWindowById(vc_ids['sup_qr']).SetValue(qrstr)
+    
+    def calcVpMW(self):
+        #This is calculated using the method in Fischer et al. J. App. Crys. 2009
+
+        vp_ids = self.ids['VP']
+
+        rg = float(wx.FindWindowById(self.infodata['Rg'][1]).GetValue())
+        i0 = float(wx.FindWindowById(self.infodata['I0'][1]).GetValue())
+
+        q = self.sasm.q
+        i = self.sasm.i
+        # print q[-1]
+        
+        #These functions are used to correct the porod volume for the length of the q vector
+        qA=[0.15, 0.19954, 0.25092, 0.30046, 0.40046, 0.45092]
+        AA=[ -9921.6416, -7597.0151, -6865.6719, -5951.4927, -4645.5225, -3783.582]
+        qB=[0.14908, 0.19969, 0.24939, 0.3, 0.40031, 0.45]
+        BB=[0.57561, 0.61341, 0.65, 0.68415, 0.77073, 0.8561]
+
+        fA=interp.interp1d(qA,AA)
+        fB=interp.interp1d(qB,BB)
+
+        A=fA(q[-1])
+        B=fB(q[-1])
+        
+        if i0 > 0:
+            #Calculate the Porod Volume
+            pVolume = SASCalc.porodVolume(self.sasm, rg, i0, True)
+
+            #Correct for the length of the q vector
+            if q[-1]<0.45:
+                pv_cor=(A+B*pVolume)
+            else:
+                pv_cor = pVolume
+
+            #Get the input average protein density in solution (to be implimented in the show more)
+            #0.83*10**(-3) is the average density of protein in solution in kDa/A^3
+            density = self.raw_settings.get('MWVpRho')
+
+            mw = pv_cor*density
+
+            mwstr = str(np.around(mw,1))
+
+            if len(mwstr.split('.')[1])>1:
+                mwstr = '%.1E' %(mw)
+
+            mwCtrl = wx.FindWindowById(vp_ids['calc_mw'])
+            mwCtrl.SetValue(mwstr)
+
+            vpstr = str(np.around(pVolume,1))
+
+            if len(vpstr.split('.')[1])>1:
+                vpstr = '%.1E' %(pVolume)
+
+            vpCtrl = wx.FindWindowById(vp_ids['sup_vp'])
+            vpCtrl.SetValue(vpstr)
+
+            vpcstr = str(np.around(pv_cor,1))
+
+            if len(vpcstr.split('.')[1])>1:
+                vpcstr = '%.1E' %(pv_cor)
+
+            pvcCtrl = wx.FindWindowById(vp_ids['sup_vpc'])
+            pvcCtrl.SetValue(vpcstr)
+
+
+
+    def calcAbsMW(self):
+        try:
+            abs_ids = self.ids['abs']
+            i0 = float(wx.FindWindowById(self.infodata['I0'][1]).GetValue())
+
+            #Default values from Mylonas & Svergun, J. App. Crys. 2007.
+            rho_Mprot = self.raw_settings.get('MWAbsRhoMprot') #e-/g, # electrons per dry mass of protein
+            rho_solv = self.raw_settings.get('MWAbsRhoSolv') #e-/cm^-3, # electrons per volume of aqueous solvent
+            nu_bar = self.raw_settings.get('MWAbsNuBar') #cm^3/g, # partial specific volume of the protein
+            r0 = self.raw_settings.get('MWAbsR0') #cm, scattering lenght of an electron
+            
+            try:
+                conc = float(wx.FindWindowById(abs_ids['conc']).GetValue())
+            except ValueError:
+                conc = -1
+            
+            if conc > 0 and i0 > 0 and wx.FindWindowById(abs_ids['calib']).GetValue():
+                d_rho = (rho_Mprot-(rho_solv*nu_bar))*r0
+                mw = (Avogadro*i0/conc)/np.square(d_rho)
+
+                mwstr = str(np.around(mw,1))
+
+                if len(mwstr.split('.')[1])>1 or len(mwstr.split('.')[0])>4:
+                    mwstr = '%.2E' %(mw)
+
+                mwCtrl = wx.FindWindowById(abs_ids['calc_mw'])
+                mwCtrl.SetValue(mwstr)
+        except Exception, e:
+            print e
+
+        
+    def OnClose(self):
+        
+        self.Destroy()
+
+
+class MWPlotPanel(wx.Panel):
+    
+    def __init__(self, parent, panel_id, name, wxEmbedded = False):
+        
+        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        
+        main_frame = wx.FindWindowByName('MainFrame')
+        
+        try:
+            self.raw_settings = main_frame.raw_settings
+        except AttributeError:
+            self.raw_settings = RAWSettings.RawGuiSettings()
+        
+        # self.fig = Figure((5,4), 75)
+        self.fig = Figure((3.25,2.5))
+        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
+                    
+        self.data_line = None
+    
+        subplotLabels = [('Integrated Area of q*I(q)', 'q [1/A]', '$\int q \cdot I(q) dq$', 'VC')]
+        
+        self.subplots = {}
+        
+        for i in range(0, len(subplotLabels)):
+            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
+            subplot.set_xlabel(subplotLabels[i][1])
+            subplot.set_ylabel(subplotLabels[i][2])
+            self.subplots[subplotLabels[i][3]] = subplot 
+      
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
+        
+        # self.toolbar = NavigationToolbar2Wx(self.canvas)
+        # self.toolbar.Realize()
+        # sizer.Add(self.toolbar, 0, wx.GROW)
+
+        self.SetSizer(sizer)
+        self.canvas.SetBackgroundColour('white')
+        self.fig.subplots_adjust(left = 0.26, bottom = 0.16, right = 0.95, top = 0.91)
+        self.fig.set_facecolor('white')
+
+        font_size = 10
+        a = self.subplots['VC']
+
+        a.locator_params(tight = True)
+        a.locator_params(axis='x', nbins = 6)
+
+        a.title.set_size(font_size)
+        a.yaxis.get_label().set_size(font_size)
+        a.xaxis.get_label().set_size(font_size)
+
+        for tick in a.xaxis.get_major_ticks():
+            tick.label.set_fontsize(font_size) 
+
+        for tick in a.yaxis.get_major_ticks():
+            tick.label.set_fontsize(font_size)
+        
+        # Connect the callback for the draw_event so that window resizing works:
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) 
+
+    def ax_redraw(self, widget=None):
+        ''' Redraw plots on window resize event '''
+        
+        a = self.subplots['VC']
+       
+        self.background = self.canvas.copy_from_bbox(a.bbox)
+        
+        self.updateDataPlot(self.orig_i, self.orig_q)
+        
+    def _calcInt(self):
+        ''' calculate pointwise integral '''
+ 
+        q_roi = self.orig_q
+        i_roi = self.orig_i
+
+        y = np.zeros_like(q_roi, dtype = float)
+
+        for a in range(2,len(q_roi)+1):
+            y[a-1] = integrate.simps(q_roi[:a]*i_roi[:a],q_roi[:a])
+        
+        return q_roi, y
+        
+    def plotSASM(self, sasm):
+        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
+        self.canvas.mpl_disconnect(self.cid)
+        self.updateDataPlot(sasm.i, sasm.q)
+        
+        #Reconnect draw_event
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def updateDataPlot(self, i, q):
+        #Save for resizing:
+        self.orig_i = i
+        self.orig_q = q
+            
+        a = self.subplots['VC']
+        
+        try:
+            x, y = self._calcInt()
+        except TypeError:
+            return
+                                                      
+        if not self.data_line:
+            self.data_line, = a.plot(x, y, 'r.')
+            
+            self.canvas.draw()
+            self.background = self.canvas.copy_from_bbox(a.bbox)
+        else:
+            self.canvas.restore_region(self.background)
+            
+            self.data_line.set_ydata(y)
+            self.data_line.set_xdata(x)
+            
+        
+        a.relim()
+        a.autoscale_view()
+        
+        a.draw_artist(self.data_line)
+
+        self.canvas.blit(a.bbox)
+        
+
+# ----------------------------------------------------------------------------
+# Auto-wrapping static text class
+# ----------------------------------------------------------------------------
+class AutoWrapStaticText(StaticText):
+    """
+    A simple class derived from :mod:`lib.stattext` that implements auto-wrapping
+    behaviour depending on the parent size.
+    .. versionadded:: 0.9.5
+    Code from: https://github.com/wxWidgets/Phoenix/blob/master/wx/lib/agw/infobar.py
+    Original author: Andrea Gavana
+    """
+    def __init__(self, parent, label):
+        """
+        Defsult class constructor.
+        :param Window parent: a subclass of :class:`Window`, must not be ``None``;
+        :param string `label`: the :class:`AutoWrapStaticText` text label.
+        """
+        StaticText.__init__(self, parent, -1, label, style=wx.ST_NO_AUTORESIZE)
+        self.label = label
+        # colBg = wx.SystemSettings.GetColour(wx.SYS_COLOUR_INFOBK)
+        # self.SetBackgroundColour(colBg)
+        # self.SetOwnForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_INFOTEXT))
+
+        self.Bind(wx.EVT_SIZE, self.OnSize)
+        self.Bind(wx.EVT_SPLITTER_SASH_POS_CHANGED, self.OnSize)
+        self.Bind(wx.EVT_SPLITTER_SASH_POS_CHANGING, self.OnSize)
+
+    def OnSize(self, event):
+        """
+        Handles the ``wx.EVT_SIZE`` event for :class:`AutoWrapStaticText`.
+        :param `event`: a :class:`SizeEvent` event to be processed.
+        """
+        event.Skip()
+        self.Wrap(event.GetSize().width)
+
+    def Wrap(self, width):
+        """
+        This functions wraps the controls label so that each of its lines becomes at
+        most `width` pixels wide if possible (the lines are broken at words boundaries
+        so it might not be the case if words are too long).
+        If `width` is negative, no wrapping is done.
+        :param integer `width`: the maximum available width for the text, in pixels.
+        :note: Note that this `width` is not necessarily the total width of the control,
+        since a few pixels for the border (depending on the controls border style) may be added.
+        """
+        if width < 0:
+           return
+        self.Freeze()
+
+        dc = wx.ClientDC(self)
+        dc.SetFont(self.GetFont())
+        text = wordwrap(self.label, width, dc)
+        self.SetLabel(text, wrapped=True)
+
+        self.Thaw()
+
+    def SetLabel(self, label, wrapped=False):
+        """
+        Sets the :class:`AutoWrapStaticText` label.
+        All "&" characters in the label are special and indicate that the following character is
+        a mnemonic for this control and can be used to activate it from the keyboard (typically
+        by using ``Alt`` key in combination with it). To insert a literal ampersand character, you
+        need to double it, i.e. use "&&". If this behaviour is undesirable, use `SetLabelText` instead.
+        :param string `label`: the new :class:`AutoWrapStaticText` text label;
+        :param bool `wrapped`: ``True`` if this method was called by the developer using :meth:`~AutoWrapStaticText.SetLabel`,
+        ``False`` if it comes from the :meth:`~AutoWrapStaticText.OnSize` event handler.
+        :note: Reimplemented from :class:`PyControl`.
+        """
+
+        if not wrapped:
+            self.label = label
+
+        StaticText.SetLabel(self, label)
