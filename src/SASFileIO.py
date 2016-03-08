@@ -29,15 +29,31 @@ try:
     import fabio
     read_mar345=True
     use_fabio = True
+
 except Exception, e:
     print e
-    try:
-        import pack_ext
-        use_fabio = False
-    except Exception, e1:
+    use_fabio = False
+
+    if RAWGlobals.compiled_extensions:
+        try:
+            import packc_ext
+            read_mar345=True
+
+        except Exception, e1:
+                import SASbuild_Clibs
+                try:
+                    SASbuild_Clibs.buildAll()
+                    import packc_ext
+                    read_mar345=True
+
+                except Exception, e1:
+                    print e1
+                    RAWGlobals.compiled_extensions = False
+                    print 'Unable to import fabio or pack_ext, Mar345 files cannot be opened.'
+                    read_mar345 = False
+    else:
         print 'Unable to import fabio or pack_ext, Mar345 files cannot be opened.'
         read_mar345 = False
-        print e1
 
 
 

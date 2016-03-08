@@ -1341,7 +1341,7 @@ def buildAll():
         build_bift()
         # build_TridiagonalSolve()
         # build_sinfouriermatrix()
-        # build_packc()
+        build_packc()
     except Exception, e:
         print e
         print 'Failed to compile extensions ravg, polygonmask, bift!'
@@ -1354,6 +1354,7 @@ def buildAll():
             # os.remove('./transmatrix_ext.cpp')
             # os.remove('./tridiagsolve_ext.cpp')
             os.remove('./polygonmask_ext.cpp')
+            os.remove('./packc_ext.cpp')
             os.remove('./test_ext.cpp')
         except Exception, e:
             print 'Cleanup failed : ', e
