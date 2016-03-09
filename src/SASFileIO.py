@@ -5,7 +5,7 @@ Created on Jul 11, 2010
 '''
 
 import xml.etree.ElementTree as ET
-import SASImage, SASM, SASIft, SASExceptions
+import RAWGlobals, SASImage, SASM, SASIft, SASExceptions
 import numpy as np
 import os, sys, re, cPickle, time, binascii, struct, json
 # import SASMarHeaderReader, packc_ext
