@@ -1,4 +1,5 @@
 import wx, os, math, sys
+import RAWIcons
 
 RAWWorkDir = sys.path[0]
 
@@ -147,8 +148,8 @@ def GetCheckedBitmap():
 
 def GetCheckedImage():
     
-    path = os.path.join(RAWWorkDir, 'resources', 'checked.ico')
-    return wx.Image(path, wx.BITMAP_TYPE_ICO)
+    image = RAWIcons.checked.GetImage()
+    return image
 
 #----------------------------------------------------------------------
 
@@ -157,8 +158,8 @@ def GetNotCheckedBitmap():
 
 def GetNotCheckedImage():
     
-    path = os.path.join(RAWWorkDir, 'resources', 'notchecked.ico')
-    return wx.Image(path, wx.BITMAP_TYPE_ICO)
+    image = RAWIcons.notchecked.GetImage()
+    return image
 
 #----------------------------------------------------------------------
 
