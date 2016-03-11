@@ -551,7 +551,7 @@ class GuinierControlPanel(wx.Panel):
                 response = wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK, parent = self)
 
         guinierframe = wx.FindWindowByName('GuinierFrame')
-        guinierframe.Raise()
+        wx.CallAfter(guinierframe.Raise)
         
         
     def setCurrentExpObj(self, ExpObj):
