@@ -1736,6 +1736,8 @@ def loadPrimusDatFile(filename):
         if '### HEADER:' in all_lines[j]:
             header = all_lines[j+1:]
 
+    hdict = None
+
     if len(header)>0:
         hdr_str = ''
         for each_line in header:
@@ -1753,8 +1755,9 @@ def loadPrimusDatFile(filename):
     q = np.array(q)
     err = np.array(err)
 
-    for each in hdict.iterkeys():
-        parameters[each] = hdict[each]
+    if hdict:
+        for each in hdict.iterkeys():
+            parameters[each] = hdict[each]
    
     sasm = SASM.SASM(i, q, err, parameters)
    
