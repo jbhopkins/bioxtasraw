@@ -286,6 +286,8 @@ class GuinierPlotPanel(wx.Panel):
 class GuinierControlPanel(wx.Panel):
     
     def __init__(self, parent, panel_id, name, ExpObj, manip_item):
+
+        self.parent = parent
         
         self.ExpObj = ExpObj
         
@@ -451,49 +453,53 @@ class GuinierControlPanel(wx.Panel):
         
     def onSaveInfo(self, evt):
         gp = wx.FindWindowByName('GuinierPlotPanel')
-        x_fit, y_fit, I0, error, newInfo = gp._calcFit()
-        self.updateInfo(newInfo)
-        
-        info_dict = {}
-        
-        for key in self.infodata.keys():
-            id = self.infodata[key][1]
-            widget = wx.FindWindowById(id)
-            val = widget.GetValue()
+        try:
+            x_fit, y_fit, I0, error, newInfo = gp._calcFit()
+
+            self.updateInfo(newInfo)
             
-            info_dict[key] = val
-        
-        info_dict['Conc'] = self.getConcentration()
-        
-        nstart_val = wx.FindWindowById(self.spinctrlIDs['qstart']).GetValue()
-        nend_val = wx.FindWindowById(self.spinctrlIDs['qend']).GetValue()
-        
-        qstart_val = wx.FindWindowById(self.staticTxtIDs['qstart']).GetValue()
-        qend_val = wx.FindWindowById(self.staticTxtIDs['qend']).GetValue()
+            info_dict = {}
+            
+            for key in self.infodata.keys():
+                id = self.infodata[key][1]
+                widget = wx.FindWindowById(id)
+                val = widget.GetValue()
                 
-        info_dict['nStart'] = nstart_val
-        info_dict['nEnd'] = nend_val
-        info_dict['qStart'] = qstart_val
-        info_dict['qEnd'] = qend_val
-        
-        if float(info_dict['Conc']) > 0:
-            self.ExpObj.setParameter('Conc', self.getConcentration())
+                info_dict[key] = val
             
-        if float(info_dict['MM']) > 0:
-            self.ExpObj.setParameter('MW', info_dict['MM'])
-        
-        analysis_dict = self.ExpObj.getParameter('analysis')
-        analysis_dict['guinier'] = info_dict
-        
-        if self.manip_item != None:
-            wx.CallAfter(self.manip_item.updateInfoTip, analysis_dict, fromGuinierDialog = True)
-            if info_dict != self.old_analysis:
-                wx.CallAfter(self.manip_item.markAsModified)
+            info_dict['Conc'] = self.getConcentration()
+            
+            nstart_val = wx.FindWindowById(self.spinctrlIDs['qstart']).GetValue()
+            nend_val = wx.FindWindowById(self.spinctrlIDs['qend']).GetValue()
+            
+            qstart_val = wx.FindWindowById(self.staticTxtIDs['qstart']).GetValue()
+            qend_val = wx.FindWindowById(self.staticTxtIDs['qend']).GetValue()
+                    
+            info_dict['nStart'] = nstart_val
+            info_dict['nEnd'] = nend_val
+            info_dict['qStart'] = qstart_val
+            info_dict['qEnd'] = qend_val
+            
+            if float(info_dict['Conc']) > 0:
+                self.ExpObj.setParameter('Conc', self.getConcentration())
+                
+            if float(info_dict['MM']) > 0:
+                self.ExpObj.setParameter('MW', info_dict['MM'])
+            
+            analysis_dict = self.ExpObj.getParameter('analysis')
+            analysis_dict['guinier'] = info_dict
+            
+            if self.manip_item != None:
+                wx.CallAfter(self.manip_item.updateInfoTip, analysis_dict, fromGuinierDialog = True)
+                if info_dict != self.old_analysis:
+                    wx.CallAfter(self.manip_item.markAsModified)
 
-        mw_window = wx.FindWindowByName('MolWeightFrame')
+            mw_window = wx.FindWindowByName('MolWeightFrame')
 
-        if mw_window:
-            mw_window.updateGuinierInfo()
+            if mw_window:
+                mw_window.updateGuinierInfo()
+        except TypeError:
+            pass
         
         #wx.MessageBox('The parameters have now been stored in memory', 'Parameters Saved')
         
@@ -516,8 +522,8 @@ class GuinierControlPanel(wx.Panel):
 
         if rg == -1:
             msg = 'AutoRG could not find a suitable interval to calculate Rg. Values are not updated.'
-            wx.CallAfter(wx.MessageBox, str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK, parent = self)
-            return
+            response = wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK, parent = self)
+            
         else:
             try:
                 spinstart.SetValue(int(idx_min))
@@ -542,7 +548,10 @@ class GuinierControlPanel(wx.Panel):
 
                 print 'FAILED AutoRG! resetting controls'
                 msg = 'AutoRG did not produce a useable result. Please report this to the developers.'
-                wx.CallAfter(wx.MessageBox, str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK)
+                response = wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK, parent = self)
+
+        guinierframe = wx.FindWindowByName('GuinierFrame')
+        guinierframe.Raise()
         
         
     def setCurrentExpObj(self, ExpObj):
