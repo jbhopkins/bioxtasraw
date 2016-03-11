@@ -3737,7 +3737,6 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         return self.list_dict
     
     def refreshFileList(self):
-        
         self.DeleteAllItems()
         
         self.dirsList = []
@@ -3844,12 +3843,15 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         return selected
     
     def updateFileList(self):
+        col, ascending = self.GetSortState()
+
         self.readFileList()
         self.refreshFileList()
         self.itemDataMap = self.file_list_dict
         self.itemIndexMap = self.file_list_dict.keys()
         
-        self.OnSortOrderChanged()
+        # self.OnSortOrderChanged()
+        self.SortListItems(col, ascending)
     
     def _savePathToDisk(self):
         
