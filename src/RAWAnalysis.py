@@ -516,7 +516,7 @@ class GuinierControlPanel(wx.Panel):
 
         if rg == -1:
             msg = 'AutoRG could not find a suitable interval to calculate Rg. Values are not updated.'
-            wx.CallAfter(wx.MessageBox, str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK)
+            wx.CallAfter(wx.MessageBox, str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK, parent = self)
             return
         else:
             try:

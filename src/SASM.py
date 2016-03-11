@@ -393,29 +393,29 @@ def subtract(sasm1, sasm2, forced = False):
     q1_min, q1_max = sasm1.getQrange()
     q2_min, q2_max = sasm2.getQrange()
     
-    if not np.all(sasm1.q[q1_min:q1_max] == sasm2.q[q2_min:q2_max]) and not forced:
+    if not np.all(np.round(sasm1.q[q1_min:q1_max],5) == np.round(sasm2.q[q2_min:q2_max],5)) and not forced:
         raise SASExceptions.DataNotCompatible('The curves does not have the same number of points.')
 
-    elif not np.all(sasm1.q[q1_min:q1_max] == sasm2.q[q2_min:q2_max]) and forced:
-        q1 = sasm1.q[q1_min:q1_max]
-        q2 = sasm2.q[q2_min:q2_max]
-        i1 = sasm1.i[q1_min:q1_max]
-        i2 = sasm2.i[q2_min:q2_max]
-        err1 = sasm1.err[q1_min:q1_max]
-        err2 = sasm2.err[q2_min:q2_max]
+    elif not np.all(np.round(sasm1.q[q1_min:q1_max],5) == np.round(sasm2.q[q2_min:q2_max],5)) and forced:
+        q1 = np.round(sasm1.q[q1_min:q1_max],5)
+        q2 = np.round(sasm2.q[q2_min:q2_max],5)
+        i1 = np.round(sasm1.i[q1_min:q1_max],5)
+        i2 = np.round(sasm2.i[q2_min:q2_max],5)
+        err1 = np.round(sasm1.err[q1_min:q1_max],5)
+        err2 = np.round(sasm2.err[q2_min:q2_max],5)
 
         if q1[0]>q2[0]:
-            start=q1[0]
+            start=np.round(q1[0],5)
             q1start=True
         else:
-            start=q2[0]
+            start=np.round(q2[0],5)
             q1start=False
 
         if q1[-1]>q2[-1]:
-            end=q2[-1]
+            end=np.round(q2[-1],5)
             q1end=False
         else:
-            end=q1[-1]
+            end=np.round(q1[-1],5)
             q1end=True
 
         if start>end:

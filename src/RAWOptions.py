@@ -2865,18 +2865,18 @@ class OptionsDialog(wx.Dialog):
         except ValueError:
             dlg = wx.MessageDialog(self, 
             "Invalid value entered. Settings not saved.",
-            'Invalid input', wx.OK|wx.ICON_EXCLAMATION)
+            'Invalid input', wx.OK|wx.ICON_EXCLAMATION, parent = self)
             result = dlg.ShowModal()
             dlg.Destroy()
     
     def onApply(self, event):
         try:
             self.saveSettings()
-            wx.MessageBox('Settings have now been saved.', 'Settings Saved')
+            wx.MessageBox('Settings have now been saved.', 'Settings Saved', parent = self)
         except ValueError:
             dlg = wx.MessageDialog(self, 
             "Invalid value entered. Settings not saved.",
-            'Invalid input', wx.OK|wx.ICON_EXCLAMATION)
+            'Invalid input', wx.OK|wx.ICON_EXCLAMATION, parent = self)
             result = dlg.ShowModal()
             dlg.Destroy()
     

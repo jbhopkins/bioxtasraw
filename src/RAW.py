@@ -2681,7 +2681,7 @@ class MainWorkerThread(threading.Thread):
             qmin, qmax = sasm.getQrange()
             sub_qmin, sub_qmax = sub_sasm.getQrange()
                
-            if numpy.all(sasm.q[qmin:qmax] == sub_sasm.q[sub_qmin:sub_qmax]) == False and not yes_to_all:
+            if numpy.all(numpy.round(sasm.q[qmin:qmax],5) == numpy.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and not yes_to_all:
                 result = self._showQvectorsNotEqualWarning(sasm, sub_sasm)[0]
     
                 if result == wx.ID_YESTOALL:
@@ -2707,7 +2707,7 @@ class MainWorkerThread(threading.Thread):
                    self._showSubtractionError(sasm, sub_sasm)
                    wx.CallAfter(self.main_frame.closeBusyDialog)
                    return
-            elif numpy.all(sasm.q[qmin:qmax] == sub_sasm.q[sub_qmin:sub_qmax]) == False and yes_to_all:
+            elif numpy.all(numpy.round(sasm.q[qmin:qmax],5) == numpy.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and yes_to_all:
                 try:
                     subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
