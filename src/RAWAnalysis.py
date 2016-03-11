@@ -520,9 +520,11 @@ class GuinierControlPanel(wx.Panel):
         old_start = spinstart.GetValue()
         old_end = spinend.GetValue()
 
+        mf = wx.FindWindowByName('MainFrame')
+
         if rg == -1:
             msg = 'AutoRG could not find a suitable interval to calculate Rg. Values are not updated.'
-            response = wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK, parent = self)
+            wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK, parent = mf)
             
         else:
             try:
@@ -548,10 +550,10 @@ class GuinierControlPanel(wx.Panel):
 
                 print 'FAILED AutoRG! resetting controls'
                 msg = 'AutoRG did not produce a useable result. Please report this to the developers.'
-                response = wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK, parent = self)
+                response = wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK, parent = mf)
 
-        guinierframe = wx.FindWindowByName('GuinierFrame')
-        wx.CallAfter(guinierframe.Raise)
+        gf = wx.FindWindowByName('GuinierFrame')
+        wx.CallAfter(gf.Raise)
         
         
     def setCurrentExpObj(self, ExpObj):
