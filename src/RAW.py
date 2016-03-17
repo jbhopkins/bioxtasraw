@@ -55,6 +55,9 @@ if os.path.split(sys.path[0])[1] in ['RAW.exe', 'raw.exe']:
 global cancel_ift
 cancel_ift = False
 
+global workspace_saved
+workspace_saved = True
+
 
 #class MyAuiNotebook(aui.AuiNotebook):
 #    ### TESTING CLOSE BUTTONS ON TABS ###
