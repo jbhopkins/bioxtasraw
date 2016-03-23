@@ -7865,6 +7865,11 @@ class SECPanel(wx.Panel):
          
         for each in self.getSelectedItems():
 
+            try:
+                self.modified_items.remove(each)
+            except:
+                pass
+
             if each.secm == sec_control_panel.secm:
                 sec_control_panel.secm = None
             
