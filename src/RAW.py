@@ -2151,8 +2151,8 @@ class MainWorkerThread(threading.Thread):
 
     def _updateCalcSECParams(self, secm, frame_list):
 
-        first_update_frame = frame_list[0]
-        last_update_frame = int(frame_list[-1])-1
+        first_update_frame = int(frame_list[0])
+        last_update_frame = int(frame_list[-1])
 
         if secm.window_size == -1:
             return
@@ -2182,7 +2182,7 @@ class MainWorkerThread(threading.Thread):
         #Now subtract the average buffer from all of the items in the secm list
         sub_sasm = buffer_avg_sasm
 
-        first_frame = int(first_update_frame) - secm.window_size
+        first_frame = first_update_frame - secm.window_size
 
         if first_frame <0:
             first_frame = 0
@@ -2313,8 +2313,8 @@ class MainWorkerThread(threading.Thread):
         mw[i0<=0] = -1
         mwer[mw==-1] = -1
 
-        secm.appendRgAndI0(rg, rger, i0, i0er, first_frame)
-        secm.appendMW(mw, mwer, first_frame)
+        secm.appendRgAndI0(rg, rger, i0, i0er, first_frame, window_size)
+        secm.appendMW(mw, mwer, first_frame, window_size)
 
         secm.calc_has_data = True
 

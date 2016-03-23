@@ -1183,7 +1183,7 @@ class SECM:
             wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
             return sasms
         try:
-            final_frame = int(final_frame) + 1
+            final_frame = int(final_frame)
         except:
             msg = "Invalid value for final frame."
             wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
@@ -1209,9 +1209,9 @@ class SECM:
             else:
                 index2 = np.where(self.frame_list == final_frame)[0][0]
 
-            sasms = self._sasm_list[index1 : index2 +1]
+            sasms = self._sasm_list[index1 : index2+1]
 
-            return self._sasm_list[index1 : index2]
+            return sasms
 
     def getTime(self):
         if len(self.time)==0:
@@ -1409,13 +1409,19 @@ class SECM:
     def getI0(self):
         return self.i0_list, self.i0er_list
 
-    def appendRgAndI0(self, rg, rger, i0, i0er, first_frame):
-        self.rg_list = np.concatenate((self.rg_list[:first_frame],rg))
-        self.rger_list = np.concatenate((self.rger_list[:first_frame],rger))
-        self.i0_list = np.concatenate((self.i0_list[:first_frame],i0))
-        self.i0er_list = np.concatenate((self.i0er_list[:first_frame],i0er))
+    def appendRgAndI0(self, rg, rger, i0, i0er, first_frame, window_size):
+        index1 = first_frame+(window_size-1)/2
+        index2 = (window_size-1)/2
+
+        self.rg_list = np.concatenate((self.rg_list[:index1],rg[index2:]))
+        self.rger_list = np.concatenate((self.rger_list[:index1],rger[index2:]))
+        self.i0_list = np.concatenate((self.i0_list[:index1],i0[index2:]))
+        self.i0er_list = np.concatenate((self.i0er_list[:index1],i0er[index2:]))
 
 
-    def appendMW(self, mw, mwer, first_frame):
-        self.mw_list = np.concatenate((self.mw_list[:first_frame], mw))
-        self.mwer_list = np.concatenate((self.mwer_list[:first_frame], mwer))
+    def appendMW(self, mw, mwer, first_frame, window_size):
+        index1 = first_frame+(window_size-1)/2
+        index2 = (window_size-1)/2
+
+        self.mw_list = np.concatenate((self.mw_list[:index1], mw[index2:]))
+        self.mwer_list = np.concatenate((self.mwer_list[:index1], mwer[index2:]))

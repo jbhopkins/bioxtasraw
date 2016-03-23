@@ -3184,15 +3184,15 @@ class SECPlotPanel(wx.Panel):
             time= secm.getTime()
 
             if len(time) == 0:
-                wx.MessageBox("Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
+                wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
                 self.plotparams['x_axis_display'] = 'frame'
                 xdata = secm.frame_list
             elif time[0] == -1:
-                wx.MessageBox("Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
+                wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
                 self.plotparams['x_axis_display'] = 'frame'
                 xdata = secm.frame_list
             elif len(time) != len(ydata):
-                wx.MessageBox("Time data not available for every frame in the data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
+                wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
                 self.plotparams['x_axis_display'] = 'frame'
                 xdata = secm.frame_list
             else:
@@ -3266,6 +3266,7 @@ class SECPlotPanel(wx.Panel):
             secm.calc_line.set_marker(calc_line_data['line_marker'])
             secm.calc_line.set_visible(calc_line_data['line_visible'])
         
+        self.updatePlotData(self.subplot1)
         
     def showErrorbars(self, state):
         
@@ -3675,8 +3676,7 @@ class SECPlotPanel(wx.Panel):
         elif self.plotparams['x_axis_display'] == 'time':
             item_list[1].Check(True)
 
-    def updatePlotData(self, axes):
-        # print 'In updatePlotData'
+    def updatePlotData(self, axes, fit=True):
         for each in self.plotted_secms:
             if self.plotparams['y_axis_display'] == 'qspec':
                 q=float(self.plotparams['secm_plot_q'])
@@ -3697,13 +3697,13 @@ class SECPlotPanel(wx.Panel):
                 # print time
 
                 if len(time) == 0:
-                    wx.MessageBox("Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
+                    wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
                     self.plotparams['x_axis_display'] = 'frame'
                 elif time[0] == -1:
-                    wx.MessageBox("Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
+                    wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
                     self.plotparams['x_axis_display'] = 'frame'
                 elif len(time) != len(ydata):
-                    wx.MessageBox("Time data not available for every frame in the data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
+                    wx.CallAfter(wx.MessageBox, "Time data not available for every frame in this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
                     self.plotparams['x_axis_display'] = 'frame'
 
 
@@ -3768,10 +3768,10 @@ class SECPlotPanel(wx.Panel):
         self._setLabels(axes = self.subplot1)
         self._setLabels(axes = self.ryaxis)
 
-        self.fitAxis()
+        if fit:
+            self.fitAxis()
         
         self.canvas.draw()
-        print 'done data'
 
         
     def updatePlotAxes(self):
@@ -3814,99 +3814,99 @@ class SECPlotPanel(wx.Panel):
         print 'done Axes'
         
     def updatePlotAfterManipulation(self, secm_list):
-        
-        for secm in secm_list:
+        for each in self.plotted_secms:
+            if self.plotparams['y_axis_display'] == 'qspec':
+                q=float(self.plotparams['secm_plot_q'])
+                sasm = each.getSASM()
+                qrange = sasm.getQrange()
+                qmin = sasm.q[qrange[0]]
+                qmax = sasm.q[qrange[-1]-1]
 
-            if self.plotparams['y_axis_display'] == 'total':
-        
-                secm.line.set_ydata(secm.total_i)
-
-            elif self.plotparams['y_axis_display'] == 'mean':
-                secm.line.set_ydata(secm.mean_i)
-
-            elif self.plotparams['y_axis_display'] == 'qspec':
-
-                    q=float(self.plotparams['secm_plot_q'])
-                    sasm = secm.getSASM()
-                    qrange = sasm.getQrange()
-                    qmin = sasm.q[qrange[0]]
-                    qmax = sasm.q[qrange[-1]-1]
-
-                    if q > qmax or q < qmin:
-                        wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
-                        self.plotparams['y_axis_display'] = 'total'
-
-                        secm.line.set_ydata(secm.total_i)
-
-                    else:
-                        if secm.qref == q:
-                            secm.line.set_ydata(secm.I_of_q)
-                        else:
-                            secm.line.set_ydata(secm.I(q))
+                if q > qmax or q < qmin:
+                    wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
+                    self.plotparams['y_axis_display'] = 'total'
 
             if self.plotparams['x_axis_display'] == 'time':
-                time = secm.getTime()
+                time= each.getTime()
 
-                ydata = secm.line.get_ydata()
+                ydata = each.line.get_ydata()
+
+                # print time
 
                 if len(time) == 0:
-                    wx.MessageBox("Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
+                    wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
                     self.plotparams['x_axis_display'] = 'frame'
-                    xdata = secm.frame_list
-                    secm.line.set_xdata(xdata)
                 elif time[0] == -1:
-                    wx.MessageBox("Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
+                    wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
                     self.plotparams['x_axis_display'] = 'frame'
-                    xdata = secm.frame_list
-                    secm.line.set_xdata(xdata)
                 elif len(time) != len(ydata):
-                    wx.MessageBox("Time data not available for every frame in the data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
+                    wx.CallAfter(wx.MessageBox, "Time data not available for every frame in this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
                     self.plotparams['x_axis_display'] = 'frame'
-                    xdata = secm.frame_list
-                    secm.line.set_xdata(xdata)
+
+
+        for each in self.plotted_secms:
+            # print 'in loop'
+            # print self.plotparams['y_axis_display']
+            c = '1'
+
+            if self.plotparams['y_axis_display'] == 'total':
+                each.line.set_ydata(each.total_i)
+            elif self.plotparams['y_axis_display'] == 'mean':
+                each.line.set_ydata(each.mean_i)
+            elif self.plotparams['y_axis_display'] == 'qspec':
+                q = float(self.plotparams['secm_plot_q'])
+                if each.qref == q:
+                    each.line.set_ydata(each.I_of_q)
                 else:
-                    xdata = time
-                    secm.line.set_xdata(xdata)
+                    each.line.set_ydata(each.I(q))
 
-            elif self.plotparams['x_axis_display']=='frame':
-                xdata = secm.frame_list
-                secm.line.set_xdata(xdata)
+            if each.calc_has_data:
+                if self.plotparams['secm_plot_calc'] =='RG':
+                    rg = each.rg_list
+                    each.calc_line.set_ydata(rg)
+                    if each.calc_line.get_label() == 'RG' or each.calc_line.get_label() == 'MW' or each.calc_line.get_label() == 'I0':
+                        each.calc_line.set_label('RG')
+                elif self.plotparams['secm_plot_calc'] == 'MW':
+                    mw =  each.mw_list
+                    each.calc_line.set_ydata(mw)
+                    if each.calc_line.get_label() == 'RG' or each.calc_line.get_label() == 'MW' or each.calc_line.get_label() == 'I0':
+                        each.calc_line.set_label('MW')
+                elif self.plotparams['secm_plot_calc'] == 'I0':
+                    i0 =  each.i0_list
+                    each.calc_line.set_ydata(i0)
+                    if each.calc_line.get_label() == 'RG' or each.calc_line.get_label() == 'MW' or each.calc_line.get_label() == 'I0':
+                        each.calc_line.set_label('I0')
 
-            else:
-                xdata = secm.frame_list
-                secm.line.set_xdata(xdata)
-                self.plotparams['x_axis_display'] = 'frame'
+            if self.plotparams['x_axis_display'] == 'frame':
+                each.line.set_xdata(each.frame_list)
+                if each.calc_is_plotted:
+                    each.calc_line.set_xdata(each.frame_list)
+            elif self.plotparams['x_axis_display'] == 'time':
+                each.line.set_xdata(each.getTime())
+                if each.calc_is_plotted:
+                    each.calc_line.set_xdata(each.getTime())
 
+            if each.calc_has_data and each.is_visible:
+                if self.plotparams['secm_plot_calc'] == 'None':
+                    each.calc_line.set_visible(False)
+                    each.calc_line.set_picker(False)
+                else:
+                    each.calc_line.set_visible(True)
+                    each.calc_line.set_picker(True)
 
-            #######If the secm object has calculated structural parameters, plot those
-            param = self.plotparams['secm_plot_calc']
+        if self.plotparams['secm_plot_calc'] == 'None':
+            self.ryaxis.axis('off')
+        else:
+            self.ryaxis.axis('on')
 
-            if param == 'RG':
-                ydata, ydataer = secm.getRg()
-            elif param == 'I0':
-                ydata, ydataer = secm.getI0()
-            elif param == 'MW':
-                ydata, ydataer = secm.getMW()
-            else:
-                ydata = []
-                ydataer = []
+        if self.plotparams['legend_visible_1'] == True:
+            self.updateLegend(1, draw=False)
 
-            if len(ydata)== 0:
-                ydata = np.zeros_like(xdata)-1
-                
-            secm.calc_line.set_xdata(xdata)
-            secm.calc_line.set_ydata(ydata)
-
-            plot_calc = self.plotparams['secm_plot_calc']
-            if not secm.calc_has_data or plot_calc =='None' or not secm.is_visible:
-                secm.calc_line.set_visible(False)
-                secm.calc_line.set_picker(False)
-            else:
-                secm.calc_line.set_visible(True)
-                secm.calc_line.set_picker(True)
-
+        self._setLabels(axes = self.subplot1)
+        self._setLabels(axes = self.ryaxis)
 
         self.canvas.draw()
+
     
     
     def clearPlot(self, plot_num):
@@ -3956,7 +3956,6 @@ class SECPlotPanel(wx.Panel):
             self.plotparams['y_axis_display'] = 'total'
                 
     def _setLabels(self, sasm = None, title = None, xlabel = None, ylabel = None, axes = None):
-        
         if axes == None:
             a = self.fig.gca()
         else:
