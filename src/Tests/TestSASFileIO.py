@@ -23,7 +23,7 @@ def Config_GetTestDataPath(filename):
 class Test_loadTiffImage(unittest.TestCase):
     
     def setUp(self):        
-        self.filename = Config_GetTestDataPath('AgBeh_001_c.tif')
+        self.filename = Config_GetTestDataPath('FLICAM_AgBeh_001_c.tif')
         self.img, self.img_hdr = SASFileIO.loadTiffImage(self.filename)
 
     def test_ImageHasCorrectShape(self):
@@ -84,10 +84,25 @@ class Test_parseCHESSF2CTSfile(unittest.TestCase):
         self.failIf(self.counters == None)
         
     def test_parserReadCorrectBgCount(self):
-        self.failUnlessEqual(self.counters['bgcount'], 1160)
+        self.failUnlessEqual(self.counters['bgcount'], 0)
         
     def test_parserReadCorretExposureTime(self):
-        self.failUnlessEqual(self.counters['exposureTime'], 5)
+        self.failUnlessEqual(self.counters['exposureTime'], 0)
+        
+class Test_parseCHESSF2CTSfile(unittest.TestCase):
+    
+    def setUp(self):      
+        self.filename = Config_GetTestDataPath('Pilatus100K_scan030_033.tiff') 
+        self.counters = SASFileIO.parsePilatusHeader(self.filename)
+
+    def test_countersIsNotNone(self):
+        self.failIf(self.counters == None)
+        
+    def test_parserReadCorrectBgCount(self):
+        self.failUnlessEqual(self.counters['Exposure_date'], '2011:03:15 04:11:32')
+            
+    def test_parserReadCorretExposureTime(self):
+        self.failUnlessEqual(self.counters['Exposure_time'], 60.0)
         
 
 class Test_loadFile_loadRadAsciiFile(unittest.TestCase):
@@ -125,7 +140,7 @@ class Test_loadFile_loadQuantumImageFile(unittest.TestCase):
         self.failUnlessEqual(self.img.shape, (1152,1152))
     
     def test_sasmContainsCorrectNumberOfPoints(self):        
-        self.failUnlessEqual(len(self.sasm.i), 320)
+        self.failUnlessEqual(len(self.sasm.i), 450)
         
     def test_filenameInParametersIsCorrect(self):
         self.failUnlessEqual(self.sasm.getParameter('filename'), os.path.split(self.filename)[1])
@@ -134,17 +149,17 @@ class Test_loadFile_loadQuantumImageFile(unittest.TestCase):
 class Test_parseCHESSG1CountFile(unittest.TestCase):
         
     def setUp(self):
-        self.filename = Config_GetTestDataPath('AgBeh') 
+        self.filename = Config_GetTestDataPath('FLICAM_AgBeh_001_c.tif') 
         self.counters = SASFileIO.parseCHESSG1CountFile(self.filename)
-        
+ 
     def test_countersIsNotNone(self):
         self.failIf(self.counters == None)
         
     def test_parserReadCorrectExposureTime(self):
-        self.failUnlessEqual(float(self.counters['exposureTime']), 1.0)
+        self.failUnlessEqual(float(self.counters['Seconds']), 1.0)
         
     def test_parserReadCorrectGdoor(self):
-        self.failUnlessEqual(int(self.counters['gdoor']), 344904)
+        self.failUnlessEqual(int(self.counters['gdoor']), 1668)
         
     def test_partserReadCorrectS7(self):
         self.failUnlessEqual(int(self.counters['s7']), 0)
@@ -301,7 +316,7 @@ class Test_writeRadFile_LoadAndWriteImageFile(unittest.TestCase):
             os.remove(self.save_filename)
     
     def test_correctFilename(self):
-        self.Config_loadAFlicamFile('AgBeh_001_c.tif')
+        self.Config_loadAFlicamFile('FLICAM_AgBeh_001_c.tif')
         
         SASFileIO.writeRadFile(self.sasm, self.save_filename)
         

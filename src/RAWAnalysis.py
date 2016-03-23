@@ -27,6 +27,13 @@ class GuinierPlotPanel(wx.Panel):
         
         wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
         
+        main_frame = wx.FindWindowByName('MainFrame')
+        
+        try:
+            self.raw_settings = main_frame.raw_settings
+        except AttributeError:
+            self.raw_settings = RAWSettings.RawGuiSettings()
+        
         self.fig = Figure((5,4), 75)
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
                     
@@ -119,8 +126,20 @@ class GuinierPlotPanel(wx.Panel):
         
         newInfo = {'I0' : (np.exp(I0), std_interc),
                    'Rg' : (Rg, std_slope),
-                   'qRg': Rg * np.sqrt(x[-1]),
+                   'qRg_max': Rg * np.sqrt(x[-1]),
+                   'qRg_min' : Rg * np.sqrt(x[0]),
                    'rsq': rsq}
+        
+        
+        mw = self.raw_settings.get('MWStandardMW') 
+        mwI0 = self.raw_settings.get('MWStandardI0')
+        mwConc = self.raw_settings.get('MWStandardConc')
+        
+        conc = wx.FindWindowByName('GuinierControlPanel').getConcentration()
+        
+        if mw != 0 and mw > 0 and mwI0 !=0 and mwI0 > 0 and conc != 0 and conc > 0 and mwConc > 0:
+            newInfo['MM'] = (newInfo['I0'][0] * (mw/(mwI0/mwConc))) / conc
+                        
         
         return x, y_fit, br, error, newInfo
         
@@ -651,6 +670,12 @@ class GuinierControlPanel(wx.Panel):
         
         self.manip_item = manip_item
         self.info_panel = wx.FindWindowByName('InformationPanel')
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        
+        try:
+            self.raw_settings = self.main_frame.raw_settings
+        except AttributeError:
+            self.raw_settings = RAWSettings.RawGuiSettings()
 
         wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
           
@@ -662,9 +687,10 @@ class GuinierControlPanel(wx.Panel):
         
         self.infodata = {'I0' : ('I0 :', wx.NewId(), wx.NewId()),
                          'Rg' : ('Rg :', wx.NewId(), wx.NewId()),
-                         'qRg': ('qRg :', wx.NewId()),
+                         'qRg_max': ('qRg_max :', wx.NewId()),
+                         'qRg_min': ('qRg :', wx.NewId()),
                          'rsq': ('r^2 (fit) :', wx.NewId()),
-                         'weight': ('MM :', wx.NewId())}
+                         'MM': ('MM :', wx.NewId())}
         
 
         button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
@@ -680,7 +706,10 @@ class GuinierControlPanel(wx.Panel):
         box = wx.StaticBox(self, -1, 'Parameters')
         infoSizer = self.createInfoBox()
         boxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        boxSizer.Add(infoSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 5)
+        boxSizer.Add(infoSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP ,5)
+        qrgsizer = self.createQRgInfo()
+        boxSizer.Add(qrgsizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 5)
+        
         
         box2 = wx.StaticBox(self, -1, 'Control')
         controlSizer = self.createControls()
@@ -689,6 +718,7 @@ class GuinierControlPanel(wx.Panel):
         
         bsizer = wx.BoxSizer(wx.VERTICAL)
         bsizer.Add(self.createFileInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
+        bsizer.Add(self.createConcInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
         bsizer.Add(boxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
         bsizer.Add(boxSizer2, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
         bsizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT| wx.TOP, 5)
@@ -744,9 +774,37 @@ class GuinierControlPanel(wx.Panel):
         boxsizer.Add(self.filenameTxtCtrl, 1, wx.EXPAND)
         
         return boxsizer
+    
+    def getConcentration(self):
         
+        try:
+            val = float(self.concCtrl.GetValue())
+            return val
+        except Exception:
+            return 0
+    
+    def createConcInfo(self):
+        box = wx.StaticBox(self, -1, 'Sample Concentration')
+        boxsizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
+        
+        
+        if self.ExpObj.getAllParameters().has_key('Conc'):
+            val = self.ExpObj.getParameter('Conc')
+        else:
+            val = ''
+        
+        self.concCtrl = wx.TextCtrl(self, -1, str(val), size = (60, -1))
+        txt = wx.StaticText(self, -1,  'mg/ml')
+
+        boxsizer.Add(self.concCtrl, 0, wx.EXPAND)
+        boxsizer.Add(txt, 0, wx.LEFT, 5)
+        
+        return boxsizer
         
     def onSaveInfo(self, evt):
+        gp = wx.FindWindowByName('GuinierPlotPanel')
+        x_fit, y_fit, I0, error, newInfo = gp._calcFit()
+        self.updateInfo(newInfo)
         
         info_dict = {}
         
@@ -756,6 +814,8 @@ class GuinierControlPanel(wx.Panel):
             val = widget.GetValue()
             
             info_dict[key] = val
+        
+        info_dict['Conc'] = self.getConcentration()
         
         nstart_val = wx.FindWindowById(self.spinctrlIDs['qstart']).GetValue()
         nend_val = wx.FindWindowById(self.spinctrlIDs['qend']).GetValue()
@@ -767,6 +827,12 @@ class GuinierControlPanel(wx.Panel):
         info_dict['nEnd'] = nend_val
         info_dict['qStart'] = qstart_val
         info_dict['qEnd'] = qend_val
+        
+        if self.getConcentration() > 0:
+            self.ExpObj.setParameter('Conc', self.getConcentration())
+            
+        if self.getConcentration() > 0:
+            self.ExpObj.setParameter('MW', info_dict['MM'])
         
         analysis_dict = self.ExpObj.getParameter('analysis')
         analysis_dict['guinier'] = info_dict
@@ -789,12 +855,30 @@ class GuinierControlPanel(wx.Panel):
         
         self.ExpObj = ExpObj
         #self.onSpinCtrl(self.startSpin)
+    
+    def createQRgInfo(self):
         
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        txt = wx.StaticText(self, -1, self.infodata['qRg_min'][0])
+        ctrl1 = wx.TextCtrl(self, self.infodata['qRg_min'][1], '0')
+        ctrl2 = wx.TextCtrl(self, self.infodata['qRg_max'][1], '0')
+                
+        sizer.Add(txt, 0, wx.RIGHT, 7)
+        sizer.Add(ctrl1,0, wx.RIGHT, 5)
+        sizer.Add(ctrl2,0)
+        
+        return sizer
+    
     def createInfoBox(self):
         
         sizer = wx.FlexGridSizer(rows = len(self.infodata), cols = 2)
         
         for key in self.infodata.iterkeys():
+            
+            
+            if key == 'qRg_min' or key == 'qRg_max':
+                continue
             
             if len(self.infodata[key]) == 2:
                 txt = wx.StaticText(self, -1, self.infodata[key][0])
@@ -820,7 +904,7 @@ class GuinierControlPanel(wx.Panel):
         
     def createControls(self):
         
-        sizer = wx.FlexGridSizer(rows = 1, cols = 4)
+        sizer = wx.FlexGridSizer(rows = 2, cols = 4)
         sizer.AddGrowableCol(0)
         sizer.AddGrowableCol(1)
         sizer.AddGrowableCol(2)
@@ -1060,7 +1144,7 @@ class GuinierFitDialog(wx.Dialog):
     
         splitter1 = wx.SplitterWindow(self, -1)
      
-        controlPanel = GuinierControlPanel(splitter1, -1, 'GuinierControlPanel')
+        self.controlPanel = GuinierControlPanel(splitter1, -1, 'GuinierControlPanel')
         plotPanel = GuinierPlotPanel(splitter1, -1, 'GuinierPlotPanel')
   
         splitter1.SplitVertically(controlPanel, plotPanel, 270)
@@ -1069,7 +1153,10 @@ class GuinierFitDialog(wx.Dialog):
         plotPanel.plotExpObj(ExpObj)
         controlPanel.setSpinLimits(ExpObj)
         controlPanel.setCurrentExpObj(ExpObj)
-
+        
+    def getConcentration(self):
+        return self.controlPanel.getConcentration()
+        
     def OnClose(self):
         self.Destroy()
 
@@ -1195,6 +1282,9 @@ class PorodPlotPanel(wx.Panel):
                    'Rg' : (Rg, std_slope),
                    'qRg': Rg * np.sqrt(x[-1]),
                    'rsq': rsq}
+        
+        
+        
         
         return x, y_fit, br, error, newInfo
         
@@ -1855,7 +1945,7 @@ class GuinierTestApp(wx.App):
         
 if __name__ == "__main__":
     import SASFileIO
-    
+
     #This GUI can be run from a commandline: python guinierGUI.py <filename>
     args = sys.argv
     

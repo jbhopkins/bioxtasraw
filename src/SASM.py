@@ -5,7 +5,8 @@ Created on Jul 5, 2010
 '''
 
 import numpy as np
-import os
+import scipy.interpolate as interp
+import os, copy
 import SASCalib, SASExceptions
 from math import pi, sin
 
@@ -33,6 +34,7 @@ class SASM:
         
         # Make an entry for analysis parameters i.e. Rg, I(0) etc:
         self._parameters['analysis'] = {}
+        self._parameters['history'] = {}
         
         #Binned intensity variables
         self._i_binned = self._i_raw.copy()
@@ -54,6 +56,8 @@ class SASM:
         self.item_panel = None
         self.plot_panel = None
         self.line = None
+        self.origline = None
+        self.fitline = None
         self.err_line = None
         self.axes = None
         self.is_plotted = False
@@ -62,11 +66,11 @@ class SASM:
     def _update(self):
         ''' updates modified intensity after scale, normalization and offset changes '''
         
-        self.i = ((self._i_binned / self._norm_factor) + self._offset_value) * self._scale_factor 
-        
+        #self.i = ((self._i_binned / self._norm_factor) + self._offset_value) * self._scale_factor 
+        self.i = ((self._i_binned / self._norm_factor) * self._scale_factor) + self._offset_value 
+		
         #self.err = ((self._err_binned / self._norm_factor) + self._offset_value) * abs(self._scale_factor)
         self.err = ((self._err_binned / self._norm_factor)) * abs(self._scale_factor)
-        
         
         self.q = self._q_binned * self._q_scale_factor
     
@@ -78,6 +82,10 @@ class SASM:
     
     def getLine(self):
         return self.line
+    
+    def scaleRelative(self, relscale):
+        self._scale_factor = abs(self._scale_factor * relscale)
+        self._update()
     
     def scale(self, scale_factor):
         ''' Scale intensity by a factor from the raw intensity, also scales errorbars appropiately '''
@@ -191,13 +199,59 @@ class SASM:
                 intensity[i] = averging_window_mean
                 
         self._update()
-     
+    
+#	def logRebin(self, no_points, start_idx = 0, end_idx = -1):
+#		pass
+ 
+	def setLogBinning(self, no_points, start_idx = 0, end_idx = -1):
+		
+		if end_idx == -1:
+			end_idx = len(self._i_raw)
+		
+		i = self._i_raw[start_idx:end_idx]
+		q = self._q_raw[start_idx:end_idx]
+		err = self._err_raw[start_idx:end_idx]
+		
+		bins = np.logspace(1, np.log10(len(q)), no_points)
+
+		binned_q = []
+		binned_i = []
+		binned_err = []
+
+		idx = 0
+		for i in range(0, len(bins)):
+			no_of_bins = np.floor(bins[i] - bins[i-1])
+
+			if no_of_bins > 1:
+				mean_q = np.mean( q[ idx : idx + no_of_bins ] )
+				mean_i = np.mean( i[ idx : idx + no_of_bins ] )
+				
+				mean_err = np.sqrt( sum( np.power( err[ idx : idx + no_of_bins ], 2) ) ) / np.sqrt( no_of_bins )
+				
+				binned_q.append(mean_q)
+				binned_i.append(mean_i)
+				binned_err.append(mean_err)
+
+				idx = idx + no_of_bins
+			else:
+				binned_q.append(q[idx])
+				binned_i.append(i[idx])
+				binned_err.append(err[idx])
+				idx = idx + 1
+
+		self._i_binned = np.array(binned_i)
+		self._q_binned = np.array(binned_q)
+		self._err_binned = np.array(binned_err)
+		
+		self._update()
+        self._selected_q_range = (0, len(self._i_binned))
+
+
     def setBinning(self, bin_size, start_idx = 0, end_idx = -1):
         ''' Sets the bin size of the I_q plot 
         
             end_idx will be lowered to fit the bin_size
-            if needed.
-                 
+            if needed.              
         '''
         
         self._bin_size = bin_size
@@ -300,7 +354,18 @@ class SASM:
         all_data['parameters'] = self._parameters
         
         return all_data
-            
+    
+    def copy(self):
+        ''' return a copy of the object ''' 
+        
+        return SASM(copy.copy(self.i), copy.copy(self.q), copy.copy(self.err), copy.copy(self._parameters))
+        
+        
+class IftSASM(SASM):
+    
+    def __init__(self, i, q, err, parameters):
+        SASM.__init__(self, i, q, err, parameters)
+        
                 
 def subtract(sasm1, sasm2):
     ''' Subtract one SASM object from another and propagate errors '''
@@ -320,6 +385,27 @@ def subtract(sasm1, sasm2):
     newSASM = SASM(i, q, err, parameters)
      
     return newSASM 
+
+def absorbance(sasm1, sasm2):
+    ''' compute the absorbance of one SASM object from another  '''
+    
+    q1_min, q1_max = sasm1.getQrange()
+    q2_min, q2_max = sasm2.getQrange()
+    
+    if len(sasm1.i[q1_min:q1_max]) != len(sasm2.i[q2_min:q2_max]):
+        raise SASExceptions.DataNotCompatible('The curves does not have the same number of points.')
+    
+    i = np.log(sasm2.i[q2_min:q2_max] / sasm1.i[q1_min:q1_max])
+
+    q = sasm1.q.copy()[q1_min:q1_max]
+    
+    err = i*0
+
+    parameters = sasm1.getAllParameters().copy()    
+    absSASM = SASM(i, q, err, parameters)
+     
+    return absSASM 
+
 
 def average(sasm_list):
     ''' Average the intensity of a list of sasm objects '''
@@ -349,7 +435,9 @@ def average(sasm_list):
         avg_filelist.append(sasm_list[idx].getParameter('filename'))
     
     avg_i = np.mean(all_i, 0)
-    avg_err = np.sqrt( np.sum( np.power(all_err,2), 0 ) ) / np.sqrt(len(all_err))
+    
+    avg_err = np.sqrt( np.sum( np.power(all_err,2), 0 ) ) / len(all_err)  #np.sqrt(len(all_err))
+        
     avg_q = first_sasm.q.copy()[first_q_min:first_q_max]
     avg_parameters = sasm_list[0].getAllParameters().copy()
     
@@ -500,3 +588,248 @@ def superimpose(sasm_star, sasm_list):
                 
         each_sasm.scale(scale)        
         each_sasm.offset(offset)
+
+
+def merge(sasm_star, sasm_list):
+    
+    """ Merge one or more sasms by averaging and possibly interpolating
+    points if all values are not on the same q scale """
+    
+    #Sort sasms according to lowest q value:    
+    sasm_list.extend([sasm_star])
+    sasm_list = sorted(sasm_list, key=lambda each: each.q[each.getQrange()[0]])
+    
+    s1 = sasm_list[0]
+    s2 = sasm_list[1]
+    
+    sasm_list.pop(0)
+    sasm_list.pop(0)
+    
+    #find overlapping s2 points    
+    highest_q = s1.q[s1.getQrange()[1]-1] 
+    min, max = s2.getQrange()
+    overlapping_q2 = s2.q[min:max][np.where(s2.q[min:max] <= highest_q)]
+    
+    #find overlapping s1 points    
+    lowest_s2_q = s2.q[s2.getQrange()[0]]
+    min, max = s1.getQrange()
+    overlapping_q1 = s1.q[min:max][np.where(s1.q[min:max] >= lowest_s2_q)]
+    
+    tmp_s2i = s2.i.copy()
+    tmp_s2q = s2.q.copy()
+    tmp_s2err = s2.err.copy()
+    
+    if len(overlapping_q1) == 1 and len(overlapping_q2) == 1: #One point overlap
+        q1idx = s1.getQrange()[1]
+        q2idx = s2.getQrange()[0]
+        
+        avg_i = (s1.i[q1idx] + s2.i[q2idx])/2.0
+        
+        tmp_s2i[q2idx] = avg_i
+         
+        minq, maxq = s1.getQrange()
+        q1_indexs = [maxq-1, minq]
+    
+    elif len(overlapping_q1) == 0 and len(overlapping_q2) == 0: #No overlap
+        minq, maxq = s1.getQrange()
+        q1_indexs = [maxq, minq]
+
+    else:   #More than 1 point overlap 
+    
+        added_index = False
+        if overlapping_q2[0] < overlapping_q1[0]:
+            #add the point before overlapping_q1[0] to overlapping_q1
+            idx, = np.where(s1.q == overlapping_q1[0])
+            overlapping_q1 = np.insert(overlapping_q1, 0, s1.q[idx-1][0])
+            added_index = True
+        
+        #get indexes for overlapping_q2 and q1
+        q2_indexs = []
+        q1_indexs = []
+    
+        for each in overlapping_q2:
+            idx, = np.where(s2.q == each)
+            q2_indexs.append(idx[0])
+    
+        for each in overlapping_q1:
+            idx, = np.where(s1.q == each)
+            q1_indexs.append(idx[0])
+        
+        #interpolate overlapping s2 onto s1
+        f = interp.interp1d(s1.q[q1_indexs], s1.i[q1_indexs])
+        intp_I = f(s2.q[q2_indexs])
+        averaged_I = (intp_I + s2.i[q2_indexs])/2.0
+    
+        if added_index:
+            q1_indexs = np.delete(q1_indexs, 0)
+    
+        tmp_s2i[q2_indexs] = averaged_I
+    
+    
+    #Merge the two parts
+    #cut away the overlapping part on s1 and append s2 to it
+    min, max = s1.getQrange()
+    newi = s1.i[min:q1_indexs[0]]
+    newq = s1.q[min:q1_indexs[0]]
+    newerr = s1.err[min:q1_indexs[0]]
+    
+    min, max = s2.getQrange()
+    newi = np.append(newi, tmp_s2i[min:max])
+    newq = np.append(newq, tmp_s2q[min:max])
+    newerr = np.append(newerr, tmp_s2err[min:max])
+            
+    #create a new SASM object with the merged parts. 
+    parameters = {}
+    newSASM = SASM(newi, newq, newerr, parameters)
+    
+    if len(sasm_list) == 0:
+        return newSASM
+    else:
+        return merge(newSASM, sasm_list)
+
+def interpolateToFit(sasm_star, sasm_list):
+    s1 = sasm_star
+    s2 = sasm_list[0]
+      
+    #find overlapping s2 points    
+    min_q1, max_q1 = s1.getQrange()
+    min_q2, max_q2 = s2.getQrange()
+    
+    lowest_q1, highest_q1 = s1.q[s1.getQrange()[0]], s1.q[s1.getQrange()[1]-1] 
+    
+    #fuck hvor besvaerligt!
+    overlapping_q2_top = s2.q[min_q2:max_q2][np.where( (s2.q[min_q2:max_q2] <= highest_q1))]    
+    overlapping_q2 = overlapping_q2_top[np.where(overlapping_q2_top >= lowest_q1)]
+    
+    if overlapping_q2[0] != s2.q[0]:
+        idx = np.where(s2.q == overlapping_q2[0])
+        overlapping_q2 = np.insert(overlapping_q2, 0, s2.q[idx[0]-1])
+  
+    if overlapping_q2[-1] != s2.q[-1]:
+        idx = np.where(s2.q == overlapping_q2[-1])
+        overlapping_q2 = np.append(overlapping_q2, s2.q[idx[0]+1])  
+  
+    overlapping_q1_top = s1.q[min_q1:max_q1][np.where( (s1.q[min_q1:max_q1] <= overlapping_q2[-1]))]
+    overlapping_q1 = overlapping_q1_top[np.where(overlapping_q1_top >= overlapping_q2[0])]
+    
+    q2_indexs = []
+    q1_indexs = []
+    for each in overlapping_q2:
+        idx, = np.where(s2.q == each)
+        q2_indexs.append(idx[0])
+    
+    for each in overlapping_q1:
+        idx, = np.where(s1.q == each)
+        q1_indexs.append(idx[0])
+
+    #interpolate find the I's that fits the q vector of s1:
+    f = interp.interp1d(s2.q[q2_indexs], s2.i[q2_indexs])
+    
+    intp_i_s2 = f(s1.q[q1_indexs])
+    intp_q_s2 = s1.q[q1_indexs].copy()   
+    newerr = s1.err[q1_indexs].copy()
+    
+    parameters = {}
+    
+    newSASM = SASM(intp_i_s2, intp_q_s2, newerr, parameters)
+    
+    return newSASM
+    
+def logBinning(sasm, no_points):
+    
+    #if end_idx == -1:
+#       end_idx = len(self._i_raw)
+    
+    i_roi = sasm._i_binned
+    q_roi = sasm._q_binned
+    err_roi = sasm._err_binned
+    
+    bins = np.logspace(1, np.log10(len(q_roi)), no_points)
+
+    binned_q = []
+    binned_i = []
+    binned_err = []
+
+    idx = 0
+    for i in range(0, len(bins)):
+        no_of_bins = np.floor(bins[i] - bins[i-1])
+
+        if no_of_bins > 1:
+            mean_q = np.mean( q_roi[ idx : idx + no_of_bins ] )
+            mean_i = np.mean( i_roi[ idx : idx + no_of_bins ] )
+            
+            mean_err = np.sqrt( sum( np.power( err_roi[ idx : idx + no_of_bins ], 2) ) ) / np.sqrt( no_of_bins )
+            
+            binned_q.append(mean_q)
+            binned_i.append(mean_i)
+            binned_err.append(mean_err)
+
+            idx = idx + no_of_bins
+        else:
+            binned_q.append(q_roi[idx])
+            binned_i.append(i_roi[idx])
+            binned_err.append(err_roi[idx])
+            idx = idx + 1
+
+    parameters = copy.deepcopy(sasm.getAllParameters())
+    
+    newSASM = SASM(binned_i, binned_q, binned_err, parameters)
+    
+    return newSASM
+
+def rebin(sasm, rebin_factor):
+    ''' Sets the bin size of the I_q plot 
+        end_idx will be lowered to fit the bin_size
+        if needed.              
+    '''
+        
+    #sasm._bin_size = bin_size
+
+    len_iq = len(sasm._i_binned)
+        
+    no_of_bins = int(np.floor(len_iq / rebin_factor))
+    
+    end_idx = no_of_bins * rebin_factor
+   
+    start_idx = 0
+    i_roi = sasm._i_binned[start_idx:end_idx]
+    q_roi = sasm._q_binned[start_idx:end_idx]
+    err_roi = sasm._err_binned[start_idx:end_idx]
+   
+    new_i = np.zeros(no_of_bins)
+    new_q = np.zeros(no_of_bins)
+    new_err = np.zeros(no_of_bins)
+    
+    for eachbin in range(0, no_of_bins):
+        first_idx = eachbin * rebin_factor
+        last_idx = (eachbin * rebin_factor) + rebin_factor
+         
+        new_i[eachbin] = sum(i_roi[first_idx:last_idx]) / rebin_factor
+        new_q[eachbin] = sum(q_roi[first_idx:last_idx]) / rebin_factor
+        new_err[eachbin] = np.sqrt(sum(np.power(err_roi[first_idx:last_idx],2))) / np.sqrt(rebin_factor)
+        
+#    if end_idx == -1 or end_idx == len(sasm._i_raw):
+#        sasm._i_binned = np.append(sasm._i_raw[0:start_idx], new_i)
+#        sasm._q_binned = np.append(sasm._q_raw[0:start_idx], new_q)
+#        sasm._err_binned = np.append(sasm._err_raw[0:start_idx], new_err)
+#    else:
+#        sasm._i_binned = np.append(np.append(sasm._i_raw[0:start_idx], new_i), sasm._i_raw[end_idx:]) 
+#        sasm._q_binned = np.append(np.append(sasm._q_raw[0:start_idx], new_q), sasm._q_raw[end_idx:])
+#        sasm._err_binned = np.append(np.append(sasm._err_raw[0:start_idx], new_err), sasm._err_raw[end_idx:])
+        
+    #sasm._update()
+    #sasm._selected_q_range = (0, len(sasm._i_binned))
+    parameters = copy.deepcopy(sasm.getAllParameters())
+    
+    newSASM = SASM(new_i, new_q, new_err, parameters)
+    
+    return newSASM
+    
+    
+    
+    
+    
+    
+    
+    
+    

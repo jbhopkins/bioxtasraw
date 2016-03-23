@@ -3,7 +3,7 @@ Created on Jul 16, 2010
 
 @author: Soren Nielsen
 '''
-import wx, cPickle, copy
+import wx, cPickle, copy, os, sys
 import SASFileIO
 
 class RawGuiSettings:
@@ -25,13 +25,14 @@ class RawGuiSettings:
                             #'NormalizeM2'       : [False, wx.NewId(),  'bool'],
                             #'NormalizeTime'     : [False, wx.NewId(),  'bool'],  
                             #'NormalizeM1'       : [False, wx.NewId(),  'bool'],
-                            'NormAbsWater'      : [False,   wx.NewId(),  'bool'],
-                            'NormAbsWaterI0'    : [0.01632, wx.NewId(),  'float'],
-                            'NormAbsWaterTemp'  : ['25',    wx.NewId(),  'choice'],
-                            'NormAbsWaterConst' : [1.0,     wx.NewId(),  'float'],
-                            
-                            
-                            
+							      
+							'NormFlatfieldEnabled'	: [False,   wx.NewId(),  'bool'],
+					
+                            'NormAbsWater'      	: [False,   wx.NewId(),  'bool'],
+                            'NormAbsWaterI0'    	: [0.01632, wx.NewId(),  'float'],
+                            'NormAbsWaterTemp'  	: ['25',    wx.NewId(),  'choice'],
+                            'NormAbsWaterConst' 	: [1.0,     wx.NewId(),  'float'],
+                                                
                             'NormalizeTrans'    : [False, wx.NewId(),  'bool'],
                             'Calibrate'         : [False, wx.NewId(),  'bool'],  # Calibrate AgBe
                             'CalibrateMan'      : [True, wx.NewId(),  'bool'],  # Calibrate manual (wavelength / distance)
@@ -49,6 +50,8 @@ class RawGuiSettings:
              
                             'UseOnlineFilter' : [False, wx.NewId(), 'bool'],
                             'OnlineFilterExt' : ['',    wx.NewId(), 'text'],
+                            'UseHeaderForMask': [True, wx.NewId(), 'bool'],
+                            'DetectorFlipped90':[False, wx.NewId(), 'bool'],
              
              
                             #CENTER / BINNING
@@ -71,7 +74,8 @@ class RawGuiSettings:
                             #'ReadOutNoiseMaskFilename' : [None, wx.NewId(), 'maskFilename'],
                             'NormAbsWaterFile'        : [None, wx.NewId(), 'text'],
                             'NormAbsWaterEmptyFile'   : [None, wx.NewId(), 'text'],
-                                    
+							'NormFlatfieldFile'		  : [None, wx.NewId(), 'text'],	
+
                             'TransparentBSMask'       : [None],
                             'TransparentBSMaskParams' : [None],
                             'BeamStopMask'            : [None],
@@ -97,6 +101,13 @@ class RawGuiSettings:
                             'SmpDetectOffsetDist' : [0.0, wx.NewId(), 'float'],
                             #'WaterAvgMinPoint'    : [30,  wx.NewId(), 'int'],
                             #'WaterAvgMaxPoint'    : [500, wx.NewId(), 'int'],
+
+
+							#SANS Parameters
+							'SampleThickness'		: [0.1,  wx.NewId(), 'float'],
+							'DarkCorrEnabled'		: [False,   wx.NewId(),  'bool'],
+							'DarkCorrFilename'		: [None, wx.NewId(), 'text'],
+							
              
                             #DEFAULT BIFT PARAMETERS
                             'maxDmax'     : [400.0,  wx.NewId(), 'float'],
@@ -159,14 +170,19 @@ class RawGuiSettings:
                             'UseHeaderForCalib'    : [False, wx.NewId(), 'bool'],
                             
                             # Header bind list with [(Description : parameter key, header_key)] 
-                            'HeaderBindList'       : [{'Beam X Center'            : ['Xcenter',           None],
-                                                       'Beam Y Center'            : ['Ycenter',           None],
-                                                       'Sample Detector Distance' : ['SampleDistance',    None],
-                                                       'Wavelength'               : ['WaveLength',        None],
-                                                       'Detector Pixel Size'      : ['DetectorPixelSize', None]}],
+                            'HeaderBindList'       : [{'Beam X Center'            : ['Xcenter',           None, ''],
+                                                       'Beam Y Center'            : ['Ycenter',           None, ''],
+                                                       'Sample Detector Distance' : ['SampleDistance',    None, ''],
+                                                       'Wavelength'               : ['WaveLength',        None, ''],
+                                                       'Detector Pixel Size'      : ['DetectorPixelSize', None, ''],
+                                                       'Number of Frames'         : ['NumberOfFrames',    None, '']}],
                                                        
                             'NormalizationList'    : [None, wx.NewId(), 'text'],
                             'EnableNormalization'  : [True, wx.NewId(), 'bool'],
+                            
+                            'MWStandardMW'         : [0, wx.NewId(), 'float'],
+                            'MWStandardI0'         : [0, wx.NewId(), 'float'],
+                            'MWStandardConc'       : [1, wx.NewId(), 'float'],
                             
                             #List of available processing commands:
                             'PreProcessingList'    : [None],
@@ -177,6 +193,9 @@ class RawGuiSettings:
                             'PostProcessing'       : [None],
                             
                             'CurrentCfg'         : [None],
+                            'CompatibleFormats'  : [['.rad', '.tiff', '.tif', '.img', '.csv', '.dat', '.txt'], None],
+                            
+                            
                              
                             'CurveOffsetVal'       : [0.0,   wx.NewId(), 'float'],
                             'OffsetCurve'          : [False, wx.NewId(), 'bool'],
@@ -186,7 +205,12 @@ class RawGuiSettings:
                             
                             #GUI Settings:
                             'csvIncludeData'      : [None],
-                            'ManipItemCollapsed'  : [False, wx.NewId(), 'bool'] 
+                            'ManipItemCollapsed'  : [False, wx.NewId(), 'bool'] ,
+                            'CurrentFilePath'     : [None],
+                            
+                            
+                            'DatHeaderOnTop'      : [False, wx.NewId(), 'bool']
+                            
                             }
     
     def get(self, key):
@@ -207,9 +231,20 @@ class RawGuiSettings:
     def getAllParams(self):
         return self._params
     
+    
+    
+def fixBackwardsCompatibility(raw_settings):
+    
+    #Backwards compatibility for BindList:
+    bind_list = raw_settings.get('HeaderBindList')
+    for each_key in bind_list.keys():
+        if len(bind_list[each_key]) == 2:
+            bind_list[each_key] = [bind_list[each_key][0], bind_list[each_key][1], '']
+        
+    
 def loadSettings(raw_settings, loadpath):
     
-    file_obj = open(loadpath, 'r')
+    file_obj = open(loadpath, 'rb')
     loaded_param = cPickle.load(file_obj)
     file_obj.close()
     
@@ -225,13 +260,15 @@ def loadSettings(raw_settings, loadpath):
     main_frame = wx.FindWindowByName('MainFrame')
     main_frame.queueTaskInWorkerThread('recreate_all_masks', None)
     
+    fixBackwardsCompatibility(raw_settings)
+    
     return True
 
 def saveSettings(raw_settings, savepath):
     param_dict = raw_settings.getAllParams() 
     keys = param_dict.keys()
     
-    exclude_keys = ['ImageFormatList', 'ImageHdrFormatList', 'BackgroundSASM', 'CurrentCfg', 'csvIncludeData']
+    exclude_keys = ['ImageFormatList', 'ImageHdrFormatList', 'BackgroundSASM', 'CurrentCfg', 'csvIncludeData', 'CompatibleFormats']
     
     save_dict = {}
     
@@ -248,9 +285,20 @@ def saveSettings(raw_settings, savepath):
         oldMasks[key] = copy.deepcopy(masks[key][0]) 
         masks[key][0] = None
 
-    file_obj = open(savepath, 'w')
-    cPickle.dump(save_dict, file_obj)
+    file_obj = open(savepath, 'wb')
+    cPickle.dump(save_dict, file_obj, cPickle.HIGHEST_PROTOCOL)
     file_obj.close()
+    
+    ## Make a backup of the config file in case of crash:
+    RAWWorkDir = sys.path[0]
+    if os.path.split(sys.path[0])[1] in ['RAW.exe', 'raw.exe']:
+        RAWWorkDir = os.path.split(sys.path[0])[0]
+        
+    backup_file = os.path.join(RAWWorkDir, 'backup.cfg')
+            
+    FileObj = open(backup_file, 'wb')
+    cPickle.dump(save_dict, FileObj, cPickle.HIGHEST_PROTOCOL)
+    FileObj.close()
     
     for key in masks.keys():
         masks[key][0] = oldMasks[key] 

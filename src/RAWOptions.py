@@ -3,13 +3,13 @@ Created on Aug 2, 2010
 
 @author: specuser
 '''
-import wx, re, sys, os, time, math, Queue
+import wx, re, sys, os, time, math, Queue, copy
 import wx.lib.agw.customtreectrl as CT
 #import wx.lib.agw.floatspin as FS
 import RAWSettings, RAWCustomCtrl
 from numpy import power, ceil
 
-import SASFileIO, SASParser
+import SASFileIO, SASParser, SASExceptions
 
 
 #--- ** TREE BOOK PANELS **
@@ -412,6 +412,7 @@ class HeaderListCtrl(wx.ListCtrl):
         self.InsertColumn(0, 'Name', width = 150)
         self.InsertColumn(1, 'Value', width = 150)
         self.InsertColumn(2, 'Binding', width = 150)
+        self.InsertColumn(3, 'Modifier', width = 150)
         
     def getColumnText(self, index, col):
         item = self.GetItem(index, col)
@@ -437,11 +438,12 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         
         wx.Panel.__init__(self, parent, id, *args, **kwargs)
         
-        self.update_keys = ['ImageFormat', 'ImageHdrFormat']
+        self.update_keys = ['ImageFormat', 'ImageHdrFormat', 'UseHeaderForCalib']
         self.changes = {}
         
         self.raw_settings = raw_settings
         self.currentItem = None
+        self.imghdr_start_idx = 0
         
         self.hdr_format_list = raw_settings.get('ImageHdrFormatList').keys()
         self.hdr_format_list.remove('None')
@@ -458,9 +460,15 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         self.list_sizer = self.createListCtrl()
         self.ctrl_sizer = self.createBindControls()
         self.button_sizer = self.createLoadAndClearButtons()
+        modifier_add_button = wx.Button(self, -1, 'Add')
+        modifier_add_button.Bind(wx.EVT_BUTTON, self.onModifierAddButton)
+        modifier_remove_button = wx.Button(self, -1, 'Remove')
+        modifier_remove_button.Bind(wx.EVT_BUTTON, self.onModifierRemoveButton)
         
         hsizer = wx.BoxSizer()
         hsizer.Add(self.ctrl_sizer, 0, wx.ALL, 5)
+        hsizer.Add(modifier_add_button, 0, wx.LEFT | wx.BOTTOM | wx.ALIGN_BOTTOM, 5)
+        hsizer.Add(modifier_remove_button, 0, wx.LEFT | wx.BOTTOM | wx.ALIGN_BOTTOM, 5)
         hsizer.Add((1,1),1,wx.EXPAND)
         hsizer.Add(self.button_sizer, 0, wx.ALIGN_TOP | wx.ALIGN_RIGHT)
                 
@@ -472,12 +480,15 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         
         self.SetSizer(final_sizer)
         
-        self.enableAllBindCtrls(False)
+        self.enableAllBindCtrls(raw_settings.get('UseHeaderForCalib'))
         
         imghdr = raw_settings.get('ImageHdrList')
         filehdr = raw_settings.get('FileHdrList')
+                
+        self.bind_list = copy.deepcopy(raw_settings.get('HeaderBindList'))
         
         self._updateList(imghdr, filehdr)
+    
         
     def enableAllBindCtrls(self, state):
         
@@ -499,7 +510,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         self.image_choice.SetSelection(0)
         
         hdrfmt_id = self.raw_settings.getId('ImageHdrFormat')
-        self.choice2_text = wx.StaticText(self, -1, 'Header format:')
+        self.choice2_text = wx.StaticText(self, -1, 'Header file format:')
         self.header_choice = wx.Choice(self, hdrfmt_id, choices = self.hdr_format_list)
         self.header_choice.SetSelection(0)
          
@@ -534,8 +545,6 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         
         sizer = wx.BoxSizer(wx.VERTICAL)
         
-        #self.lc = wx.ListCtrl(self, -1, style=wx.LC_REPORT)
-        
         self.lc = HeaderListCtrl(self, style = wx.LC_REPORT)
         self.lc.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onListSelection)
         
@@ -550,26 +559,64 @@ class ReductionImgHdrFormatPanel(wx.Panel):
     
     def createBindControls(self):
         
-        sizer = wx.FlexGridSizer(rows = 3, cols = 2, vgap = 2, hgap = 2)
+        sizer = wx.FlexGridSizer(rows = 4, cols = 2, vgap = 2, hgap = 2)
         
         name_text = wx.StaticText(self, -1, 'Name:')
         value_text = wx.StaticText(self, -1, 'Value:')
         bind_text = wx.StaticText(self, -1, 'Binding:')
+        mod_text = wx.StaticText(self, -1, 'Modifier:')
         
         self.bind_ctrl = wx.Choice(self, -1, choices = self.bind_choice_list)                   
         self.bind_ctrl.Bind(wx.EVT_CHOICE, self.onBindChoice)
         self.bind_name_ctrl = wx.TextCtrl(self, -1, size = self.bind_ctrl.GetSize())
         self.bind_value_ctrl = wx.TextCtrl(self, -1, size = self.bind_ctrl.GetSize())
-        
+        self.bind_mod_ctrl = wx.TextCtrl(self, -1, size = self.bind_ctrl.GetSize())
+                
         sizer.Add(name_text, 1, wx.ALIGN_CENTER)
         sizer.Add(self.bind_name_ctrl, 1)
         sizer.Add(value_text, 1, wx.ALIGN_CENTER)
         sizer.Add(self.bind_value_ctrl, 1)
         sizer.Add(bind_text,1, wx.ALIGN_CENTER)
         sizer.Add(self.bind_ctrl,1)
+        sizer.Add(mod_text,1, wx.ALIGN_CENTER)
+        sizer.Add(self.bind_mod_ctrl,1)
         
         return sizer
     
+    def onModifierRemoveButton(self, event):
+        self.bind_mod_ctrl.SetValue('')
+        self.lc.setColumnText(self.currentItem, 3, '')
+        
+        bindstr = self.bind_ctrl.GetStringSelection()
+        
+        if self.bind_list.has_key(bindstr):
+                self.bind_list[bindstr][2] = ''
+                self.changes['HeaderBindList'] = self.bind_list
+    
+    def onModifierAddButton(self, event):
+        txt = self.bind_mod_ctrl.GetValue()
+        
+        try:
+            bindstr = self.bind_ctrl.GetStringSelection()
+            
+            if bindstr == 'No binding':
+                wx.MessageBox('Please select a binding first.', 'Select binding first')
+                return
+            
+            success = self.calcModifier()
+            if not success:
+                return
+            
+            self.lc.setColumnText(self.currentItem, 3, txt)
+                
+            if self.bind_list.has_key(bindstr):
+                self.bind_list[bindstr][2] = txt
+                self.changes['HeaderBindList'] = self.bind_list             #Updates raw_settings on OK
+        except:
+            pass
+            
+        event.Skip()
+        
     def onUseHeaderChkbox(self, event):
         chkbox = event.GetEventObject()
         self.enableAllBindCtrls(chkbox.GetValue())
@@ -580,10 +627,53 @@ class ReductionImgHdrFormatPanel(wx.Panel):
             self.bind_ctrl.Select(0)
             return
         
+        
+        bindstr = self.bind_ctrl.GetStringSelection() 
+                
+        old_bind = self.lc.getColumnText(self.currentItem, 2)
+        old_mod = self.lc.getColumnText(self.currentItem, 3)
+        
+        if bindstr == old_bind:
+            return
+        
+        #Remove the bind if its already there
+        num_items = self.lc.GetItemCount()
+        for i in range(0, num_items):
+            if self.lc.getColumnText(i, 2) == bindstr:
+                self.lc.setColumnText(i, 2, '')
+                self.lc.setColumnText(i, 3, '')
+        
+        # If the selected binding is No Binding
         if self.bind_ctrl.GetSelection() == 0:
             self.lc.setColumnText(self.currentItem, 2, '')
-        else:
+            self.lc.setColumnText(self.currentItem, 3, '')  
+        else:    
             self.lc.setColumnText(self.currentItem, 2, self.bind_ctrl.GetStringSelection())
+            
+        if old_bind != '':
+                self.bind_list[old_bind][1] = None
+                self.bind_list[old_bind][2] = ''
+                self.changes['HeaderBindList'] = self.bind_list
+      
+        #Store new bind in bind_list
+        header_key = self.lc.getColumnText(self.currentItem, 0)
+        
+        if self.currentItem > self.imghdr_start_idx:
+            selected_header = 'imghdr'
+        else:
+            selected_header = 'filehdr'
+       
+        if bindstr != 'No binding':            
+            #Set new bind
+            self.bind_list[bindstr][1] = [header_key, selected_header]
+            
+            modtxt = self.bind_mod_ctrl.GetValue()
+            self.bind_list[bindstr][2] = modtxt
+            
+            self.changes['HeaderBindList'] = self.bind_list             #Updates raw_settings on OK
+        
+            
+        
         
         self.lc.Update()
     
@@ -598,9 +688,11 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         name = self.lc.getColumnText(self.currentItem, 0)
         value = self.lc.getColumnText(self.currentItem, 1)
         binding = self.lc.getColumnText(self.currentItem, 2)
+        mod = self.lc.getColumnText(self.currentItem, 3)
         
         self.bind_name_ctrl.SetValue(name)
         self.bind_value_ctrl.SetValue(value)
+        self.bind_mod_ctrl.SetValue(mod)
         
         if binding == '':
             self.bind_ctrl.SetSelection(0)
@@ -611,6 +703,9 @@ class ReductionImgHdrFormatPanel(wx.Panel):
     def _updateList(self, imghdr, filehdr):
         
         self.lc.clear()
+        
+        self.file_hdr_list_dict = {}
+        self.img_hdr_list_dict = {}
         
         if filehdr != None:
             
@@ -624,10 +719,14 @@ class ReductionImgHdrFormatPanel(wx.Panel):
                 num_items = self.lc.GetItemCount()
                 self.lc.InsertStringItem(num_items, key)
                 self.lc.SetStringItem(num_items, 1, str(filehdr[key]))
-            
+                self.file_hdr_list_dict[key] = num_items
+                
+                
             self.lc.SetColumnWidth(0, wx.LIST_AUTOSIZE)
             self.lc.SetColumnWidth(1, 170)
             self.lc.SetColumnWidth(2, 150)
+        
+        self.imghdr_start_idx = self.lc.GetItemCount()
         
         if imghdr != None:
             num_items = self.lc.GetItemCount()
@@ -641,12 +740,29 @@ class ReductionImgHdrFormatPanel(wx.Panel):
                 num_items = self.lc.GetItemCount()
                 self.lc.InsertStringItem(num_items, key)
                 self.lc.SetStringItem(num_items, 1, str(imghdr[key]))
+                self.img_hdr_list_dict[key] = num_items
             
             self.lc.SetColumnWidth(0, wx.LIST_AUTOSIZE)
             self.lc.SetColumnWidth(1, 170)
             self.lc.SetColumnWidth(2, 150)
 
+
+        for each in self.bind_list.keys():
+            data = self.bind_list[each][1]
+            mod = self.bind_list[each][2]
+
+            if data != None:
+                if data[1] == 'imghdr': hdr = self.img_hdr_list_dict
+                else: hdr = self.file_hdr_list_dict
+                
+                if data[0] in hdr:
+                    self.lc.SetStringItem(hdr[data[0]], 2, str(each))
+                    self.lc.SetStringItem(hdr[data[0]], 3, str(mod))                 
+
         self.lc.Update()
+        
+        self.changes['ImageHdrList'] = imghdr
+        self.changes['FileHdrList'] = filehdr
             
     def onLoadButton(self, event):
         ''' 
@@ -663,18 +779,35 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         
         try:
             imghdr, filehdr = SASFileIO.loadAllHeaders(filename, image_format, hdr_format)
+        except SASExceptions.WrongImageFormat:
+            wx.MessageBox('The selected file is not of the selected format.', 'Wrong image format', wx.OK | wx.ICON_INFORMATION)
+            return
+        except ValueError:
+            wx.MessageBox('Error loading the header file.', 'Wrong header format', wx.OK | wx.ICON_INFORMATION)
+            return
+        except SASExceptions.HeaderLoadError, e:
+            wx.MessageBox('Error loading the header file:\n' + str(e), 'Wrong header format', wx.OK | wx.ICON_INFORMATION)
+            return
         except:
             wx.MessageBox('Please pick the image file and not the header file itself.', 'Pick the image file', wx.OK | wx.ICON_INFORMATION)
             raise
         
-        self.changes['ImageHdrList'] = imghdr
-        self.changes['FileHdrList'] = filehdr
+        self.onClearBindingsButton(None)
         
         self._updateList(imghdr, filehdr)        
+    
+    def clearBindings(self):
+        
+        for each in self.bind_list.keys():
+            self.bind_list[each][1] = None
+        
+        self.changes['HeaderBindList'] = self.bind_list
     
     def onClearBindingsButton(self, event):
         self.lc.clearColumn(3)
         self.bind_ctrl.SetSelection(0)
+        
+        self.clearBindings()
     
     def onClearAllButton(self, event):
         self.lc.clear()
@@ -684,7 +817,45 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         
         self.changes['ImageHdrList'] = None
         self.changes['FileHdrList'] = None
+        
+        self.clearBindings()
     
+    def calcModifier(self):
+        
+        expr = self.bind_mod_ctrl.GetValue()
+        value = self.bind_value_ctrl.GetValue()
+        #expr = value + expr
+        res = self.calcExpression(expr)
+        
+        if res != None:
+            wx.MessageBox(expr + ' = ' + str(res), 'Expression check:' , style = wx.ICON_INFORMATION)
+            return True
+        else:
+            return False
+        
+        
+    def calcExpression(self, expr):
+        
+        if expr != '':        
+            self.mathparser = SASParser.PyMathParser()
+            self.mathparser.addDefaultFunctions()
+            self.mathparser.addDefaultVariables()
+            
+            self.mathparser.addSpecialVariables(self.changes['ImageHdrList'])
+            self.mathparser.addSpecialVariables(self.changes['FileHdrList'])
+                  
+            self.mathparser.expression = expr
+
+            try:
+                val = self.mathparser.evaluate()
+                return val
+            except Exception, msg:
+                wx.MessageBox(str(msg), 'Error')
+                return None
+        else:
+            return None
+        
+        
     def updateEnable(self):
         self.enableAllBindCtrls(self.chkbox.GetValue())
         
@@ -840,7 +1011,7 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
     
     def createNormConstants(self):
         
-        noOfRows = int(len(self.filesData))
+        noOfRows = int(len(self.normConstantsData))
         hSizer = wx.FlexGridSizer(cols = 3, rows = noOfRows, vgap = 3, hgap = 5)
         
         temps = []
@@ -973,8 +1144,315 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
             except ValueError:
                 wx.MessageBox('Normalization constant contains illegal characters', 'Invalid input')
                 chkbox.SetValue(False)
+
+class ReductionFlatfield(wx.Panel):
+
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+
+        self.raw_settings = raw_settings
+
+        self.update_keys = ['NormFlatfieldFile',
+                            'NormFlatfieldEnabled']
+
+                              #      label,                  textCtrlId,            buttonId, clrbuttonId,    ButtonText,              BindFunction
+        self.filesData = [("Flatfield image:" , raw_settings.getId('NormFlatfieldFile'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile),
+                          ("Dark image:" , raw_settings.getId('DarkCorrFilename'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile)]   
+
+        self.normConstantsData = ( ("Water Temperature [C]:", raw_settings.getId('NormAbsWaterTemp'), None) ,
+                                   ("Water I(0):", raw_settings.getId('NormAbsWaterI0'), None),
+                                   ("Absolute Scaling Constant:", raw_settings.getId('NormAbsWaterConst'), True))
+
+        box = wx.StaticBox(self, -1, 'Flatfield correction')
+
+        self.abssc_chkbox = wx.CheckBox(self, raw_settings.getId('NormFlatfieldEnabled'), 'Enable flatfield correction')
+        self.abssc_chkbox.Bind(wx.EVT_CHECKBOX, self.onChkBox)
+
+        file_sizer = self.createFileSettings()
+        #norm_const_sizer = self.createNormConstants()
+        chkbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        chkbox_sizer.Add(self.abssc_chkbox, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
+        chkbox_sizer.Add(file_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        #chkbox_sizer.Add(norm_const_sizer, 0, wx.EXPAND | wx.ALL, 5)
+
+        final_sizer = wx.BoxSizer(wx.VERTICAL)
+        final_sizer.Add(chkbox_sizer, 0, wx.EXPAND | wx.ALL, 5)
+
+        self.SetSizer(final_sizer)
+
+    def createFileSettings(self):
+
+        noOfRows = int(len(self.filesData))
+        hSizer = wx.FlexGridSizer(cols = 4, rows = noOfRows, vgap = 3, hgap = 3)
+
+        for labtxt, labl_ID, setButton_ID, clrButton_ID, setButtonTxt, clrButtonTxt, setBindFunc, clrBindFunc in self.filesData:
+
+            setButton = wx.Button(self, setButton_ID, setButtonTxt)
+            setButton.Bind(wx.EVT_BUTTON, setBindFunc)
+            clrButton = wx.Button(self, clrButton_ID, clrButtonTxt)
+            clrButton.Bind(wx.EVT_BUTTON, clrBindFunc)
+
+            label = wx.StaticText(self, -1, labtxt)
+
+            filenameLabel = wx.TextCtrl(self, labl_ID, "None")
+            filenameLabel.SetEditable(False)
+
+            hSizer.Add(label, 1, wx.ALIGN_CENTER_VERTICAL)
+            hSizer.Add(filenameLabel, 1, wx.EXPAND)
+            hSizer.Add(setButton, 1)
+            hSizer.Add(clrButton, 1)
+
+        hSizer.AddGrowableCol(1)
+        return hSizer
+
+    def createNormConstants(self):
+
+        noOfRows = int(len(self.filesData))
+        hSizer = wx.FlexGridSizer(cols = 3, rows = noOfRows, vgap = 3, hgap = 5)
+
+        temps = []
+        for each in RAWSettings.water_scattering_table.keys():
+            temps.append(str(each))
+
+        for eachLabel, id, has_button in self.normConstantsData:
+
+            txt = wx.StaticText(self, -1, eachLabel)
+
+            if id == self.normConstantsData[0][1]:
+                ctrl = wx.Choice(self, id, choices = temps, size = (80, -1))
+                ctrl.Bind(wx.EVT_CHOICE, self._onTempChoice)
+            else:
+                ctrl = wx.TextCtrl(self, id, '0', style = wx.TE_PROCESS_ENTER | wx.TE_RIGHT, size = (80, -1))
+
+            hSizer.Add(txt, 1, wx.ALIGN_CENTER_VERTICAL)
+            hSizer.Add(ctrl, 1)
+
+            if has_button == True:
+                button = wx.Button(self, -1, 'Calculate')
+                button.Bind(wx.EVT_BUTTON, self._onCalculateButton)
+                hSizer.Add(button,1)
+
+            else:
+                hSizer.Add((1,1), 1)
+
+        return hSizer
+
+    def _onTempChoice(self, event):
+        I0_ctrl = wx.FindWindowById(self.normConstantsData[1][1])
+
+        temp_ctrl = event.GetEventObject()
+        temp = temp_ctrl.GetStringSelection()
+
+        I0_ctrl.SetValue(str(RAWSettings.water_scattering_table[int(temp)]))
+
+    def _onCalculateButton(self, event):
+        button = event.GetEventObject()
+        self._calculateConstant()
+
+    def _waitForWorkerThreadToFinish(self):
+
+        mainframe = wx.FindWindowByName('MainFrame')
+        thread_return_queue = mainframe.getQuestionReturnQueue()
+
+        dialog = wx.FindWindowByName('OptionsDialog')
+        dialog.Enable(False)
+
+        while True:
+            try:
+                return_val = thread_return_queue.get(False)
+                thread_return_queue.task_done()
+                dialog.Enable(True)
+                constant_ctrl = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterConst'))
+                constant_ctrl.SetValue(str(return_val))
+                break
+            except Queue.Empty:
+                wx.Yield()
+                time.sleep(0.5)
+
+
+    def _calculateConstant(self):
+
+        if self._checkAbsScWaterFiles():
+
+            waterI0 = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterI0')).GetValue()
+
+            try:
+                waterI0 = float(waterI0)
+                empty_cell_file = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterEmptyFile')).GetValue()
+                water_file =  wx.FindWindowById(self.raw_settings.getId('NormAbsWaterFile')).GetValue()
+
+                mainframe = wx.FindWindowByName('MainFrame')
+                mainframe.queueTaskInWorkerThread('calculate_abs_water_const', [water_file, empty_cell_file, waterI0])
+                wx.CallAfter(self._waitForWorkerThreadToFinish)
+
+            except TypeError:
+                wx.MessageBox('Water I0 value contains illegal characters', 'Invalid input')
+                return
+        else:
+             wx.MessageBox('Empty cell and/or water sample files could not be found.', 'Invalid input')
+
+    def onSetFile(self, event):    
+        self.abssc_chkbox.SetValue(False)
+
+        buttonObj = event.GetEventObject()
+        ID = buttonObj.GetId()            # Button ID
+
+        selectedFile = CreateFileDialog(wx.OPEN)
+
+        if selectedFile == None:
+            return
+
+        for each in self.filesData:
+            if each[2] == ID:
+                    textCtrl = wx.FindWindowById(each[1]) 
+                    textCtrl.SetValue(str(selectedFile))
+
+    def onClrFile(self, event):
+
+        buttonObj = event.GetEventObject()
+        ID = buttonObj.GetId()            # Button ID
+
+        for each in self.filesData:
+                if each[3] == ID:
+                    textCtrl = wx.FindWindowById(each[1]) 
+                    textCtrl.SetValue('None')
+
+        self.abssc_chkbox.SetValue(False)
+
+    def _checkAbsScWaterFiles(self):
+        empty_cell_file = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterEmptyFile')).GetValue()
+        water_file =  wx.FindWindowById(self.raw_settings.getId('NormAbsWaterFile')).GetValue()
+
+        if os.path.isfile(empty_cell_file) and os.path.isfile(water_file):
+            return True
+        else:
+            return False
+
+    def onChkBox(self, event):
+
+        chkbox = event.GetEventObject()
+
+        if chkbox.GetValue() == True:
+            const = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterConst')).GetValue()
+
+            try:
+                float(const)
+            except ValueError:
+                wx.MessageBox('Normalization constant contains illegal characters', 'Invalid input')
+                chkbox.SetValue(False)	
             
+
+class SansOptionsPanel(wx.Panel):
+    
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
         
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        
+        self.raw_settings = raw_settings
+        
+        self.update_keys = ['SampleThickness',
+							'MWStandardConc']
+    
+        self.MWData = [("Sample Thickness (cm):", raw_settings.getId('SampleThickness')),
+                        ("Conc. [mg/ml]:", raw_settings.getId('MWStandardConc'))]
+                    
+        box = wx.StaticBox(self, -1, 'SANS Parameters')
+                
+        mw_sizer = self.createMWSettings()
+   
+        mwbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        mwbox_sizer.Add(mw_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        
+        final_sizer = wx.BoxSizer(wx.VERTICAL)
+        final_sizer.Add(mwbox_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.SetSizer(final_sizer)
+    
+    def createMWSettings(self):
+        
+        hSizer = wx.FlexGridSizer(cols = 6, rows = 1, vgap = 3, hgap = 5)
+        
+#        mwchoices = ['BSA', 'Lysozyme', 'Glucose Isomerse']
+#        std_choice = wx.Choice(self, -1, choices = mwchoices)
+#        
+#        sizer = wx.BoxSizer(wx.VERTICAL)
+#        txt = wx.StaticText(self, -1, 'Standard:')
+#            
+#        sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
+#        sizer.Add(std_choice, 0)
+#            
+#        hSizer.Add(sizer, 0)
+        
+        for txt, id in self.MWData:
+            sizer = wx.BoxSizer(wx.VERTICAL)
+            ctrl = wx.TextCtrl(self, id, '')
+            txt = wx.StaticText(self, -1, txt)
+            
+            sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
+            sizer.Add(ctrl, 0)
+            
+            hSizer.Add(sizer, 0)
+            
+        return hSizer
+
+class MolecularWeightPanel(wx.Panel):
+
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+
+        self.raw_settings = raw_settings
+
+        self.update_keys = ['MWStandardMW',
+                            'MWStandardI0',
+                            'MWStandardConc']
+
+
+        self.MWData = ( ("MW [kDa]:", raw_settings.getId('MWStandardMW')) ,
+                        ("I(0):", raw_settings.getId('MWStandardI0')),
+                        ("Conc. [mg/ml]:", raw_settings.getId('MWStandardConc')))
+
+        box = wx.StaticBox(self, -1, 'Molecular Weight Estimation Using a Standard')
+
+        mw_sizer = self.createMWSettings()
+
+        mwbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        mwbox_sizer.Add(mw_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+
+        final_sizer = wx.BoxSizer(wx.VERTICAL)
+        final_sizer.Add(mwbox_sizer, 0, wx.EXPAND | wx.ALL, 5)
+
+        self.SetSizer(final_sizer)
+
+    def createMWSettings(self):
+
+        hSizer = wx.FlexGridSizer(cols = 6, rows = 1, vgap = 3, hgap = 5)
+
+#        mwchoices = ['BSA', 'Lysozyme', 'Glucose Isomerse']
+#        std_choice = wx.Choice(self, -1, choices = mwchoices)
+#        
+#        sizer = wx.BoxSizer(wx.VERTICAL)
+#        txt = wx.StaticText(self, -1, 'Standard:')
+#            
+#        sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
+#        sizer.Add(std_choice, 0)
+#            
+#        hSizer.Add(sizer, 0)
+
+        for txt, id in self.MWData:
+            sizer = wx.BoxSizer(wx.VERTICAL)
+            ctrl = wx.TextCtrl(self, id, '')
+            txt = wx.StaticText(self, -1, txt)
+
+            sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
+            sizer.Add(ctrl, 0)
+
+            hSizer.Add(sizer, 0)
+
+        return hSizer
+    
+       
 class ReductionNormalizationPanel(wx.Panel):
     
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
@@ -1125,9 +1603,12 @@ class GeneralOptionsPanel(wx.Panel):
         
         self.raw_settings = raw_settings
         
-        self.update_keys = ['ManipItemCollapsed']
+        self.update_keys = ['ManipItemCollapsed', 'DatHeaderOnTop', 'UseHeaderForMask', 'DetectorFlipped90']
         
-        self.chkboxdata = [('Hide controls on manipulation items for new plots', raw_settings.getId('ManipItemCollapsed'))]
+        self.chkboxdata = [('Hide controls on manipulation items for new plots', raw_settings.getId('ManipItemCollapsed')),
+                           ('Write header on top of dat files', raw_settings.getId('DatHeaderOnTop')),
+                           ('Use header for mask creation (SAXSLAB instruments)', raw_settings.getId('UseHeaderForMask')),
+                           ('Detector is rotated 90 degrees', raw_settings.getId('DetectorFlipped90'))]
         
         options_sizer = self.createGeneralOptionsData()
         
@@ -1135,7 +1616,7 @@ class GeneralOptionsPanel(wx.Panel):
         final_sizer.Add(options_sizer, 0, wx.EXPAND | wx.ALL, 5)
         
         self.SetSizer(final_sizer)    
-    
+        
     
     def createGeneralOptionsData(self):
         
@@ -1146,7 +1627,7 @@ class GeneralOptionsPanel(wx.Panel):
         for each, id in self.chkboxdata:
             chkBox = wx.CheckBox(self, id, each)
             chkBox.Bind(wx.EVT_CHECKBOX, self.onChkBox)
-            treatmentSizer.Add(chkBox, 0)
+            treatmentSizer.Add(chkBox, 0, wx.TOP, 5)
         
         staticBoxSizer.Add(treatmentSizer, 0, wx.BOTTOM | wx.LEFT, 5)
         
@@ -1178,7 +1659,8 @@ class MaskingOptionsPanel(wx.Panel):
         
         self.files_data = (("Beamstop Mask:"     , raw_settings.getId('BeamStopMaskFilename'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile),
                           ("Readout Noise Mask:", raw_settings.getId('ReadOutNoiseMaskFilename'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile),
-                          ("Transparent Beamstop Mask:", raw_settings.getId('TransparentBSMaskFilename'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile))
+                          ("Transparent Beamstop Mask:", raw_settings.getId('TransparentBSMaskFilename'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile),
+                          ("SAXSLAB calcualted mask:", raw_settings.getId('TransparentBSMaskFilename'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile))
 
         box = wx.StaticBox(self, -1, 'Mask Files')
         file_sizer = self.createFileSettings()
@@ -1302,6 +1784,9 @@ class SaveDirectoriesPanel(wx.Panel):
         
         self.raw_settings = raw_settings
       
+        self.update_keys = ['ProcessedFilePath' , 'AveragedFilePath' , 'SubtractedFilePath',
+                            'AutoSaveOnImageFiles', 'AutoSaveOnAvgFiles', 'AutoSaveOnSub']
+
                                                                                       #Set button id , clr button id
         self.directory_data = (('Processed files:', raw_settings.getId('ProcessedFilePath'),  wx.NewId(), wx.NewId()),
                               ('Averaged files:',  raw_settings.getId('AveragedFilePath'),   wx.NewId(), wx.NewId()),
@@ -1339,7 +1824,7 @@ class SaveDirectoriesPanel(wx.Panel):
         box = wx.StaticBox(self, -1, 'Save Directories')
         chkbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         
-        h_sizer = wx.FlexGridSizer(cols = 4, rows = 1, vgap = 3, hgap = 3)
+        h_sizer = wx.FlexGridSizer(cols = 4, rows = 4, vgap = 3, hgap = 3)
         
         for labtxt, labl_id, set_button_id, clr_button_id in self.directory_data:
             
@@ -1397,6 +1882,12 @@ class IftOptionsPanel(wx.Panel):
         wx.Panel.__init__(self, parent, id, *args, **kwargs)
         
         self.raw_settings = raw_settings
+        
+        self.update_keys = ['maxDmax','minDmax','DmaxPoints','maxAlpha','minAlpha',
+                            'AlphaPoints','PrPoints', 'gnomMaxAlpha','gnomMinAlpha',
+                            'gnomAlphaPoints','gnomPrPoints','OSCILLweight','VALCENweight',
+                            'POSITVweight','SYSDEVweight','STABILweight','DISCRPweight',
+                            'gnomFixInitZero' ]
  
         self.bift_options_data = (("Dmax Upper Bound: ",   raw_settings.getId('maxDmax')),
                                 ("Dmax Lower Bound: ",   raw_settings.getId('minDmax')),
@@ -1765,11 +2256,14 @@ all_options = [ [ (1,0,0), wx.NewId(), 'General Settings', GeneralOptionsPanel],
                 #[ (1,3,0), wx.NewId(), 'Masking', MaskingOptionsPanel],
                 [ (2,4,1), wx.NewId(), 'Normalization', ReductionNormalizationPanel] ,
                 [ (2,4,2), wx.NewId(), 'Absolute Scale', ReductionNormalizationAbsScPanel],
-                [ (3,0,0), wx.NewId(), 'Artifact Removal', ArtifactOptionsPanel]]
-#                [ (3,0,0), wx.NewId(), 'IFT', IftOptionsPanel],
-    #            [ (4,0,0), wx.NewId(), "Save Directories", SaveDirectoriesPanel],
+				[ (2,4,3), wx.NewId(), 'Flatfield Correction', ReductionFlatfield],
+                [ (3,0,0), wx.NewId(), 'Molecular Weight', MolecularWeightPanel],
+                [ (4,0,0), wx.NewId(), 'Artifact Removal', ArtifactOptionsPanel],
+                [ (5,0,0), wx.NewId(), 'IFT', IftOptionsPanel],
+                [ (6,0,0), wx.NewId(), "Save Directories", SaveDirectoriesPanel],
     #            [ (5,0,0), wx.NewId(), 'Online Mode', ReductionOptionsPanel],
-    #            [ (5,1,0), wx.NewId(), "Automation", AutomationOptionsPanel] ]
+                [ (7,0,0), wx.NewId(), "Automation", AutomationOptionsPanel],
+				[ (8,0,0), wx.NewId(), "SANS", SansOptionsPanel]]
                 
 #--- ** TREE BOOK **
 class ConfigTree(CT.CustomTreeCtrl):
@@ -1914,6 +2408,7 @@ class OptionsTreebook(wx.Panel):
         sizer.Add(splitter, 1, wx.EXPAND)
         self.SetSizer(sizer)
         
+        
     def getAllUpdateKeys(self):
         
         all_update_keys = []
@@ -1958,12 +2453,38 @@ class OptionsDialog(wx.Dialog):
         sizer.Add(wx.StaticLine(self, style = wx.LI_HORIZONTAL), 0, wx.EXPAND)
         sizer.Add(self.createButtonPanel(), 0, wx.ALIGN_RIGHT | wx.ALL, 5)
         
-        self.SetSizer(sizer)
-        self.SetMinSize((750,500))
-        self.Fit()
+        
+        
+        #self.Fit()
         
         self.CenterOnParent()
         self.initSettings()
+        
+        
+        item = self.treebook.tree.GetFirstVisibleItem()
+
+        if item != None:
+            self.treebook.tree.SelectItem(item)
+            
+        self.SetMinSize((800,600))
+        #self.Update()
+        
+        self.SendSizeEvent()
+        #self.SendSizeEventToParent()
+        #self.Layout()
+        #What a F!ed way to select an item.. is this really the only way?
+
+        #try:
+        #    if focusIndex != None:
+        #        for i in range(0,self.treebook.tree.GetCount()-1):
+        #            item = self.treebook.tree.GetNext(item)
+        #           
+        #            if focusIndex == self.treebook.tree.GetItemText(item):
+        #                self.treebook.tree.SelectItem(item)
+        #except Exception, e:
+        #    pass
+        #self.Fit()
+        self.SetSizer(sizer)
     
     def createButtonPanel(self):
         

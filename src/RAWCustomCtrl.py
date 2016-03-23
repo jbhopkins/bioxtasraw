@@ -748,7 +748,9 @@ class FloatSpinCtrl(wx.Panel):
         self.oldValue = 0
         
         self.SetSizer(sizer)
-                
+        
+        self.ScalerButton.SetValue(0)
+            
     def CastFloatSpinEvent(self):
         
         event = FloatSpinEvent(myEVT_MY_SPIN, self.GetId())
@@ -795,6 +797,10 @@ class FloatSpinCtrl(wx.Panel):
         val = self.Scale.GetValue()
         val = val.replace(',', '.')
 
+        # Reset spinbutton counter. Fixes bug on MAC
+        if self.ScalerButton.GetValue() > 90000:
+            self.ScalerButton.SetValue(0) 
+        
         try:
             newval = float(val) + (1/self.ScaleDivider)
         except ValueError:
@@ -818,6 +824,10 @@ class FloatSpinCtrl(wx.Panel):
         
         val = self.Scale.GetValue()
         val = val.replace(',', '.')
+        
+        # Reset spinbutton counter. Fixes bug on MAC
+        if self.ScalerButton.GetValue() < -90000:
+            self.ScalerButton.SetValue(0) 
         
         try:
             newval = float(val) - (1/self.ScaleDivider)
@@ -874,6 +884,8 @@ class IntSpinCtrl(wx.Panel):
         self.oldValue = 0
         
         self.SetSizer(sizer)
+        
+        self.ScalerButton.SetValue(0)
                 
     def CastFloatSpinEvent(self):
         
@@ -912,6 +924,12 @@ class IntSpinCtrl(wx.Panel):
         
         newval = int(val) + 1
         
+        # Reset spinbutton counter. Fixes bug on MAC
+        if self.ScalerButton.GetValue() > 90000:
+            self.ScalerButton.SetValue(0) 
+        
+        #print self.min, self.max, val, self.ScalerButton.GetMax(), self.ScalerButton.GetValue()
+        
         if self.max != None:
             if newval > self.max:
                 self.Scale.SetValue(str(self.max))
@@ -931,6 +949,10 @@ class IntSpinCtrl(wx.Panel):
         val = self.Scale.GetValue()
         newval = int(val) - 1
         
+        # Reset spinbutton counter. Fixes bug on MAC
+        if self.ScalerButton.GetValue() < -90000:
+            self.ScalerButton.SetValue(0) 
+        
         if self.min != None:
             if newval < self.min:
                 self.Scale.SetValue(str(self.min))
@@ -945,7 +967,11 @@ class IntSpinCtrl(wx.Panel):
         
     def GetValue(self): 
         value = self.Scale.GetValue()
-        return int(value)
+        
+        try:
+            return int(value)
+        except ValueError:
+            return value
     
     def SetValue(self, value):
         self.Scale.SetValue(str(value))

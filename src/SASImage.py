@@ -5,8 +5,10 @@ Created on Jul 7, 2010
 '''
 
 import numpy as np
-from scipy import optimize
-import SASExceptions, SASParser, wx, copy
+
+#from scipy import optimize
+
+import SASExceptions, SASParser, wx, copy, sys
 # If C extensions have not been built, build them:
 try:
     import ravg_ext
@@ -253,6 +255,50 @@ def calcExpression(expr, img_hdr, file_hdr):
         else:
             return None
 
+
+def getBindListDataFromHeader(raw_settings, img_hdr, file_hdr, keys):
+
+    bind_list = raw_settings.get('HeaderBindList')
+    
+    result = []
+    
+    for each_key in keys:
+        if bind_list[each_key][1] != None:
+            data = bind_list[each_key][1]
+            hdr_choice = data[1]
+            key = data[0]
+            if hdr_choice == 'imghdr': hdr = img_hdr
+            else: hdr = file_hdr
+        
+            if key in hdr:
+                try: 
+                    val = float(hdr[key])
+                    
+                except ValueError: 
+                    sys.stderr.write('\n** ' + each_key + ' bound to header value "' + str(key) + ': ' + str(hdr[key]) + '" could not be converted to a float! **\n')
+                    result.append(None)
+                    continue
+                    
+                try:
+                    # Calculate value with modifier 
+                    if bind_list[each_key][2] != '':
+                        expr = bind_list[each_key][2]
+
+                        val = calcExpression(expr, img_hdr, file_hdr)
+                        result.append(val)
+                    else:
+                        result.append(val)
+                except ValueError: 
+                    sys.stderr.write('\n** Expression: ' + expr + ' does not give a valid result when calculating ' +str(each_key)+' **\n')
+                    result.append(None)
+            else:
+                result.append(None)
+        else:
+            result.append(None)
+                    
+    return result
+
+
 def calibrateAndNormalize(sasm, img, raw_settings):
     
     # Calibrate Q
@@ -263,13 +309,24 @@ def calibrateAndNormalize(sasm, img, raw_settings):
     calibrate_check = raw_settings.get('CalibrateMan')
     enable_normalization = raw_settings.get('EnableNormalization')
     
+    pixel_size = pixel_size / 1000
+    
+    if raw_settings.get('UseHeaderForCalib'):
+        img_hdr = sasm.getParameter('imageHeader')
+        file_hdr = sasm.getParameter('counters')
+        
+        result = getBindListDataFromHeader(raw_settings, img_hdr, file_hdr, keys = ['Sample Detector Distance', 'Detector Pixel Size', 'Wavelength'])
+        
+        if result[0] != None: sd_distance = result[0]
+        if result[1] != None: pixel_size = result[1]
+        if result[2] != None: wavelength = result[2]
+    
     sasm.setBinning(bin_size)
     
     if calibrate_check:
-        sasm.calibrateQ(sd_distance, pixel_size / 1000, wavelength)
+        sasm.calibrateQ(sd_distance, pixel_size, wavelength)
     
     normlist = raw_settings.get('NormalizationList')
-    
     img_hdr = sasm.getParameter('imageHeader')
     file_hdr = sasm.getParameter('counters')
     
@@ -289,11 +346,21 @@ def calibrateAndNormalize(sasm, img, raw_settings):
             #    raise SASExceptions.NormalizationError('Error normalizing in calibrateAndNormalize: ' + str(msg))
         
             if op == '/':
-                sasm.scaleBinnedIntensity(1/val)
+                
+               if val == 0:
+                   raise ValueError('Divide by Zero when normalizing') 
+                
+               sasm.scaleBinnedIntensity(1/val)
+                
             elif op == '+':
                 sasm.offsetBinnedIntensity(val)
             elif op == '*':
+                
+                if val == 0:
+                   raise ValueError('Multiply by Zero when normalizing')
+                
                 sasm.scaleBinnedIntensity(val)
+                
             elif op == '-':
                 sasm.offsetBinnedIntensity(-val)
     
@@ -590,13 +657,82 @@ def createMaskMatrix(img_dim, masks):
     mask = np.flipud(mask)
                 
     return mask
+            
+def createMaskFromHdr(img, img_hdr, flipped = False):
+
+    try:
+        bsmask_info = img_hdr['bsmask_configuration'].split()
+        detector_type = img_hdr['detectortype']
+                
+        bstop_size = float(bsmask_info[3])/2.0
+        arm_width = float(bsmask_info[5])
         
+        if flipped:
+            beam_x = float(bsmask_info[1])+1
+            beam_y = float(bsmask_info[2])+1
+            angle = (2*np.pi/360) * (float(bsmask_info[4])+90)
+        else:
+            beam_x = float(bsmask_info[2])+1
+            beam_y = float(bsmask_info[1])+1
+            angle = (2*np.pi/360) * (float(bsmask_info[4]))
+        
+        masks = []
+        masks.append(CircleMask((beam_x, beam_y), (beam_x + bstop_size, beam_y + bstop_size), 0, img.shape, False))
+        
+        if detector_type == 'PILATUS 300K':
+            points = [(191,489), (214,488), (214,0), (192,0)]
+            masks.append(PolygonMask(points, 1, img.shape, False))
+            points = [(404,489), (426,489), (426,0), (405,0)]
+            masks.append(PolygonMask(points, 1, img.shape, False))
+        
+        #Making mask as long as the image diagonal (cannot be longer)
+        L = np.sqrt( img.shape[0]**2 + img.shape[1]**2 )
+                
+        #width of arm mask
+        N = arm_width
+        
+        x1, y1 = beam_x, beam_y
+        
+        x2 = x1 + (L * np.cos(angle))
+        y2 = y1 + (L * np.sin(angle))
+        
+        dx = x1-x2
+        dy = y1-y2
+        dist = np.sqrt(dx*dx + dy*dy)
+        dx /= dist
+        dy /= dist
+        x3 = int(x1 + (N/2)*dy)
+        y3 = int(y1 - (N/2)*dx)
+        x4 = int(x1 - (N/2)*dy)
+        y4 = int(y1 + (N/2)*dx)
+        
+        x5 = int(x2 + (N/2)*dy)
+        y5 = int(y2 - (N/2)*dx)
+        x6 = int(x2 - (N/2)*dy)
+        y6 = int(y2 + (N/2)*dx)
+        
+        points = [(x3, y3), (x4, y4), (x6, y6), (x5, y5)]
+        
+        masks.append(PolygonMask(points, 2, img.shape, False))
+        
+    except ValueError:
+        raise ValueError
+    
+    return masks
     
 def applyMaskToImage(in_image, mask):
     ''' multiplies the mask matrix to a 2D array (image) to reveal
     the an image where the mask has been applied. '''
     pass
 
+
+def doFlatfieldCorrection(img, img_hdr, flatfield_img, flatfield_hdr):
+	cor_img = img / flatfield_img   #flat field is often water.
+
+	return cor_img
+
+def doDarkBackgroundCorrection(img, img_hdr, dark_img, dark_hdr):
+	pass
 
 def removeZingers(intensityArray, startIdx = 0, averagingWindowLength = 10, stds = 4):
     ''' Removes spikes from the radial averaged data          
@@ -760,7 +896,9 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
     std_i[np.where(np.isnan(std_i))] = 0
     
     iq = hist / hist_count
-    iq[0] = in_image[x_c, y_c]  #the center is not included in the radial average, so it is set manually her
+    
+    if x_c > 0 and x_c < xlen and y_c > 0 and y_c < ylen:
+        iq[0] = in_image[x_c, y_c]  #the center is not included in the radial average, so it is set manually her
     
     #Estimated Standard deviation   - equal to the std of pixels in the area / sqrt(N)
     errorbars = std_i / np.sqrt(hist_count)
@@ -784,10 +922,11 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
     errorbars[np.where(np.isnan(errorbars))] = 1e-10
     
     q = np.linspace(0, len(iq)-1, len(iq))
-    
+
     if dezingering == 1:
         iq, errorbars = getIntensityFromQmatrix(qmatrix)
         iq[np.where(np.isnan(iq))] = 0
+        errorbars[np.where(np.isnan(errorbars))] = 1e-10
         
     #Trim trailing zeros
     iq = np.trim_zeros(iq, 'b')
