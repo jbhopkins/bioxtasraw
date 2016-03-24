@@ -1305,15 +1305,16 @@ def loadFile(filename, raw_settings, no_processing = False):
 
 def loadAsciiFile(filename, file_type):
     
-    ascii_formats = {'rad'          : loadRadFile,
-                     'new_rad'      : loadNewRadFile,
-                     'primus'      : loadPrimusDatFile,
-                     'bift'          : loadBiftFile,
-                     '2col'          : load2ColFile,
-                     'int'          : loadIntFile,
-                     'fit'          : loadFitFile,
-                     'ift'          : loadIftFile,
-                     'csv'          : loadCsvFile}
+    ascii_formats = {'rad'        : loadRadFile,
+                     'new_rad'    : loadNewRadFile,
+                     'primus'     : loadPrimusDatFile,
+                     'bift'       : loadBiftFile,
+                     '2col'       : load2ColFile,
+                     'int'        : loadIntFile,
+                     'fit'        : loadFitFile,
+                     'ift'        : loadIftFile,
+                     'csv'        : loadCsvFile,
+                     'out'        : loadOutFile}
     
     if file_type == None:
         return None
@@ -1336,7 +1337,7 @@ def loadAsciiFile(filename, file_type):
         
     if file_type == 'primus' and sasm == None:
         sasm = ascii_formats['2col'](filename)
-   
+
     if sasm != None and type(sasm) != list:
         sasm.setParameter('filename', os.path.split(filename)[1])
      
@@ -1371,9 +1372,6 @@ def loadImageFile(filename, raw_settings):
         else:
             pass #Raise some error
 
-        
-
-
     ## Read center coordinates from header?
     if raw_settings.get('UseHeaderForCalib'):
         try:
@@ -1384,9 +1382,32 @@ def loadImageFile(filename, raw_settings):
         except ValueError:
             pass
     
+    # ********************
+    # If the file is a SAXSLAB file, then get mask parameters from the header and modify the mask
+    # then apply it...
+    #
+    # Mask should be not be changed, but should be created here. If no mask information is found, then 
+    # use the user created mask. There should be a force user mask setting. 
+    #
+    # ********************
+    
     masks = raw_settings.get('Masks')
-    bs_mask = masks['BeamStopMask'][0]
-    dc_mask = masks['ReadOutNoiseMask'][0]
+    
+    use_hdr_mask = raw_settings.get('UseHeaderForMask')
+    
+    if use_hdr_mask and img_fmt == 'SAXSLab300':
+        try:
+            mask_patches = SASImage.createMaskFromHdr(img, img_hdr, flipped = raw_settings.get('DetectorFlipped90'))
+            bs_mask = SASImage.createMaskMatrix(img.shape, mask_patches)
+        except KeyError:
+            raise SASExceptions.HeaderMaskLoadError('bsmask_configuration not found in header.')
+            
+        dc_mask = masks['ReadOutNoiseMask'][0]
+    else:
+        bs_mask = masks['BeamStopMask'][0]
+        dc_mask = masks['ReadOutNoiseMask'][0]
+
+    
     tbs_mask = masks['TransparentBSMask'][0]
     
     # ********* WARNING WARNING WARNING ****************#
@@ -1401,6 +1422,93 @@ def loadImageFile(filename, raw_settings):
     sasm = createSASMFromImage(img, parameters, x_c, y_c, bs_mask, dc_mask, tbs_mask, dezingering, dezing_sensitivity)
 
     return sasm, img
+
+
+def loadOutFile(filename):
+    p = []
+    r = []
+    err = []
+
+    q = []
+    i = []
+    ierr = []
+    fit = []
+
+    f = open(filename)
+        
+    parameters = {'filename' : os.path.split(filename)[1],
+                  'counters' : {}}
+    
+    path_noext, ext = os.path.splitext(filename)
+    
+    fitfound = False
+    prfound = False 
+    skip_line = True
+    for line in f.readlines():
+        if not fitfound and line.split() == ['S', 'J', 'EXP', 'ERROR', 'J', 'REG', 'I', 'REG']:
+            fitfound = True
+
+        elif fitfound:
+            if skip_line:
+                skip_line = False
+                continue
+            
+            sp_line = line.split()
+            sp_len = len(sp_line)
+            print sp_line
+            print sp_len
+            if sp_len == 2:
+                q.append(float(sp_line[0]))
+                fit.append(float(sp_line[1]))
+                i.append(0)
+                ierr.append(float(sp_line[1])*0.01)
+            elif sp_len == 5:
+                q.append(float(sp_line[0]))
+                fit.append(float(sp_line[4]))
+                i.append(float(sp_line[1]))
+                ierr.append(float(sp_line[2]))
+            elif sp_len == 0:
+                fitfound = False
+                
+        elif not fitfound and line.split() == ['R', 'P(R)', 'ERROR']:
+            prfound = True
+        
+        elif prfound and len(line.split()) == 3:
+            sp_line = line.split()
+            r.append(float(sp_line[0]))
+            p.append(float(sp_line[1]))
+            err.append(float(sp_line[2]))
+            
+            
+    fit_parameters = {'filename'  : os.path.split(path_noext)[1] + '_FIT',
+                      'counters' : {}}
+                    
+    parameters_orig = {'filename' : os.path.split(filename)[1] + '_ORIG',
+                        'counters' : {}}
+                        
+    parameters_ift = {'filename' : os.path.split(filename)[1] + '_IFT',
+                        'counters' : {}}
+    
+    # print i
+    # print q
+    # print ierr
+    i = np.array(i)
+    q = np.array(q)
+    ierr = np.array(ierr)
+    
+    fit = np.array(fit)
+    fit_sasm = SASM.SASM(fit, np.copy(q), np.copy(ierr), fit_parameters)
+
+    sasm = SASM.SASM(i, q, ierr, parameters_orig)
+    
+    p = np.array(p)
+    r = np.array(r)
+    err = np.array(err)
+    
+    ift_sasm = SASM.SASM(p, r, err, parameters_ift)
+
+    return [ift_sasm, sasm, fit_sasm]
+
 
 def loadSECFile(filename):
     file = open(filename, 'r')
@@ -1497,6 +1605,7 @@ def loadSECFile(filename):
         secm_data['line_visible'] = True
 
     return new_secm
+
 
 def loadIftFile(filename):
     iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*$')
@@ -2628,6 +2737,8 @@ def checkFileType(filename):
         return 'image'
     elif ext == '.fit':
         return 'fit'
+    elif ext == '.out':
+        return 'out'
     elif ext == '.nxs': #Nexus file
         return 'image'
     elif ext == '.edf':
@@ -2639,7 +2750,7 @@ def checkFileType(filename):
     elif ext == '.img' or ext == '.imx_0' or ext == '.dkx_0' or ext == '.dkx_1' or ext == '.png':
         return 'image'
     #elif type_tst == 'BI':
-    #     return 'bift'
+    #    return 'bift'
     elif ext == '.dat':
         return 'primus'
     elif ext == '.mar1200' or ext == '.mar2400' or ext == '.mar2300' or ext == '.mar3600':

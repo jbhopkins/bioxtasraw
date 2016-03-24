@@ -30,7 +30,6 @@ import wx.lib.mixins.listctrl as listmix
 import wx.grid as gridlib
 from wx.lib.embeddedimage import PyEmbeddedImage
 from numpy import ceil, floor
-import numpy as np
 
 import wx.aui as aui
 import RAWPlot, RAWImage, RAWOptions, RAWSettings, RAWCustomCtrl, RAWAnalysis, BIFT, RAWIcons, RAWGlobals
@@ -259,7 +258,7 @@ class MainFrame(wx.Frame):
         self.main_worker_thread.setDaemon(True)
         self.main_worker_thread.start()
 
-        icon = wx.Icon(name= os.path.join(RAWWorkDir, "resources","raw.ico"), type = wx.BITMAP_TYPE_ICO)
+        icon = raw_icon_embed.GetIcon()
         self.SetIcon(icon)
         app.SetTopWindow(self)
   
@@ -1774,6 +1773,8 @@ class MainWorkerThread(threading.Thread):
 
         loaded_secm = False
         loaded_sasm = False
+
+        do_auto_save = self._raw_settings.get('AutoSaveOnImageFiles')
        
         try:
             for i in range(len(filename_list)):
@@ -1809,8 +1810,12 @@ class MainWorkerThread(threading.Thread):
                         sasm.setQrange(qrange)
                     
                     self._sendSASMToPlot(sasm, no_update = True, update_legend = False)
+        
+                    if do_auto_save:
+                        save_path = self._raw_settings.get('ProcessedFilePath')
+                        self._saveSASM(sasm, '.dat', save_path)
 
-                if np.mod(i,20) == 0:
+                if numpy.mod(i,20) == 0:
                     if loaded_sasm:
                         wx.CallAfter(self.plot_panel.canvas.draw)
                     if loaded_secm:
@@ -1827,6 +1832,10 @@ class MainWorkerThread(threading.Thread):
             return
         except SASExceptions.MaskSizeError, msg:
             wx.CallAfter(wx.MessageBox, str(msg), 'Saved mask does not fit loaded image', style = wx.ICON_ERROR)
+            wx.CallAfter(self.main_frame.closeBusyDialog)
+            return
+        except SASExceptions.HeaderMaskLoadError, msg:
+            wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header', style = wx.ICON_ERROR)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
             
@@ -1908,6 +1917,10 @@ class MainWorkerThread(threading.Thread):
                 wx.CallAfter(wx.MessageBox, str(msg), 'Saved mask does not fit loaded image', style = wx.ICON_ERROR)
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
+            except SASExceptions.HeaderMaskLoadError, msg:
+                wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header', style = wx.ICON_ERROR)
+                wx.CallAfter(self.main_frame.closeBusyDialog)
+                return
 
             secm = SASM.SECM(filename_list, sasm_list, frame_list, {})
 
@@ -1962,6 +1975,10 @@ class MainWorkerThread(threading.Thread):
             return
         except SASExceptions.MaskSizeError, msg:
             wx.CallAfter(wx.MessageBox, str(msg), 'Saved mask does not fit loaded image', style = wx.ICON_ERROR)
+            wx.CallAfter(self.main_frame.closeBusyDialog)
+            return
+        except SASExceptions.HeaderMaskLoadError, msg:
+            wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header', style = wx.ICON_ERROR)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
 
@@ -2084,12 +2101,12 @@ class MainWorkerThread(threading.Thread):
 
 
         #Now calculate the RG, I0, and MW for each SASM
-        rg = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        rger = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        i0 = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        i0er = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        mw = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        mwer = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+        rg = numpy.zeros_like(numpy.arange(len(subtracted_sasm_list)),dtype=float)
+        rger = numpy.zeros_like(numpy.arange(len(subtracted_sasm_list)),dtype=float)
+        i0 = numpy.zeros_like(numpy.arange(len(subtracted_sasm_list)),dtype=float)
+        i0er = numpy.zeros_like(numpy.arange(len(subtracted_sasm_list)),dtype=float)
+        mw = numpy.zeros_like(numpy.arange(len(subtracted_sasm_list)),dtype=float)
+        mwer = numpy.zeros_like(numpy.arange(len(subtracted_sasm_list)),dtype=float)
 
         if window_size == 1:
             for a in range(len(subtracted_sasm_list)):
@@ -2266,12 +2283,12 @@ class MainWorkerThread(threading.Thread):
         secm.appendSubtractedSASMList(subtracted_sasm_list)
 
         #Now calculate the RG, I0, and MW for each SASM
-        rg = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        rger = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        i0 = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        i0er = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        mw = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        mwer = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+        rg = numpy.zeros_like(numpy.arange(len(subtracted_sasm_list)),dtype=float)
+        rger = numpy.zeros_like(numpy.arange(len(subtracted_sasm_list)),dtype=float)
+        i0 = numpy.zeros_like(numpy.arange(len(subtracted_sasm_list)),dtype=float)
+        i0er = numpy.zeros_like(numpy.arange(len(subtracted_sasm_list)),dtype=float)
+        mw = numpy.zeros_like(numpy.arange(len(subtracted_sasm_list)),dtype=float)
+        mwer = numpy.zeros_like(numpy.arange(len(subtracted_sasm_list)),dtype=float)
 
         if window_size == 1:
             for a in range(len(subtracted_sasm_list)):
@@ -2655,6 +2672,8 @@ class MainWorkerThread(threading.Thread):
 
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while subtracting and plotting...')
 
+        do_auto_save = self._raw_settings.get('AutoSaveOnSub')
+
         marked_item = data[0]
         selected_items = data[1]
 
@@ -2704,7 +2723,10 @@ class MainWorkerThread(threading.Thread):
                         name2 = sub_sasm.getParameter('filename')
                         
                         self._sendSASMToPlot(subtracted_sasm, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
-
+        
+                        if do_auto_save:
+                            save_path = self._raw_settings.get('SubtractedFilePath')
+                            self._saveSASM(subtracted_sasm, '.dat', save_path)
 
                 except SASExceptions.DataNotCompatible, msg:
                    self._showSubtractionError(sasm, sub_sasm)
@@ -2723,6 +2745,9 @@ class MainWorkerThread(threading.Thread):
                     
                     self._sendSASMToPlot(subtracted_sasm, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
 
+                    if do_auto_save:
+                        save_path = self._raw_settings.get('SubtractedFilePath')
+                        self._saveSASM(subtracted_sasm, '.dat', save_path)
 
                 except SASExceptions.DataNotCompatible, msg:
                    self._showSubtractionError(sasm, sub_sasm)
@@ -2741,13 +2766,16 @@ class MainWorkerThread(threading.Thread):
                     
                     self._sendSASMToPlot(subtracted_sasm, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
 
+                    if do_auto_save:
+                        save_path = self._raw_settings.get('SubtractedFilePath')
+                        self._saveSASM(subtracted_sasm, '.dat', save_path)
 
                 except SASExceptions.DataNotCompatible, msg:
                    self._showSubtractionError(sasm, sub_sasm)
                    wx.CallAfter(self.main_frame.closeBusyDialog)
                    return
 
-            if np.mod(i,20) == 0:
+            if numpy.mod(i,20) == 0:
                 wx.CallAfter(self.plot_panel.canvas.draw)
 
         wx.CallAfter(self.plot_panel.fitAxis)
@@ -2778,6 +2806,12 @@ class MainWorkerThread(threading.Thread):
         self._insertSasmFilenamePrefix(avg_sasm, 'A_')
         
         self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'green', notsaved = True)
+
+        do_auto_save = self._raw_settings.get('AutoSaveOnAvgFiles')
+        
+        if do_auto_save:
+            save_path = self._raw_settings.get('AveragedFilePath')
+            self._saveSASM(avg_sasm, '.dat', save_path)
         
         wx.CallAfter(self.plot_panel.updateLegend, 1)
         wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -2892,9 +2926,21 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.plot_panel.updateLegend, 1)
                    
     
-    def _saveSASM(self, sasm, filetype = 'dat'):
-        pass
-
+    def _saveSASM(self, sasm, filetype = 'dat', save_path = ''):
+        
+        newext = filetype
+        
+        filename = sasm.getParameter('filename')
+        check_filename, ext = os.path.splitext(filename)
+        check_filename = check_filename + newext
+            
+        filepath = os.path.join(save_path, check_filename)
+        file_exists = os.path.isfile(filepath)
+        filepath = save_path
+        
+        SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+        
+        
     def _saveAnalysisInfo(self, data):
         
         all_items = data[0]
@@ -3271,13 +3317,9 @@ class MainWorkerThread(threading.Thread):
                 newext = '.dat'
                 
             check_filename = check_filename + newext
-            print check_filename
             
             filepath = os.path.join(save_path, check_filename)
-            print filepath
-
             file_exists = os.path.isfile(filepath)
-            print file_exists
             filepath = save_path
             
             if file_exists and overwrite_all == False:
@@ -6702,8 +6744,8 @@ class IFTItemPanel(wx.Panel):
         self._initStartPosition()
         self._updateQTextCtrl()
         
-        if self.sasm.getParameter('analysis').has_key('guinier'):
-            self.updateInfoTip(self.sasm.getParameter('analysis'))
+        # if self.sasm.getParameter('analysis').has_key('guinier'):
+        #     self.updateInfoTip(self.sasm.getParameter('analysis'))
             
         #controls_not_shown = self.main_frame.raw_settings.get('ManipItemCollapsed')
         controls_not_shown = True
@@ -6924,7 +6966,7 @@ class IFTItemPanel(wx.Panel):
         self.colour_indicator.updateColour(color)
         
     def _onLinePropertyButton(self, event):
-        print 'here?'
+        # print 'here?'
         legend_label = self.getLegendLabel()
         dialog = LinePropertyDialog(self, self.sasm.line, legend_label)
         dialog.ShowModal()
@@ -9186,6 +9228,10 @@ class SECControlPanel(wx.Panel):
             except SASExceptions.MaskSizeError, msg:
                 wx.CallAfter(wx.MessageBox, str(msg), 'Saved mask does not fit selected image', style = wx.ICON_ERROR)
                 fname = None
+            except SASExceptions.HeaderMaskLoadError, msg:
+                wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header', style = wx.ICON_ERROR)
+                wx.CallAfter(self.main_frame.closeBusyDialog)
+                return
 
             sasm = None
             img = None
@@ -9396,11 +9442,11 @@ class SECControlPanel(wx.Panel):
 
         # print frame_list
 
-        if len(np.where(initial_frame==frame_list)[0]) == 0:
+        if len(numpy.where(initial_frame==frame_list)[0]) == 0:
             msg = "Invalid value for intial buffer frame, it must be in the data set."
             wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
             return
-        elif len(np.where(final_frame==frame_list)[0]) == 0:
+        elif len(numpy.where(final_frame==frame_list)[0]) == 0:
             msg = "Invalid value for final buffer frame, it must be in the data set."
             wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
             return
@@ -9640,7 +9686,8 @@ class MaskingPanel(wx.Panel):
         
         self.mask_choices = {'Beamstop mask' : 'BeamStopMask',
                              'Readout-Dark mask' : 'ReadOutNoiseMask',
-                             'ROI Counter mask' : 'TransparentBSMask'}
+                             'ROI Counter mask' : 'TransparentBSMask',
+                             'SAXSLAB BS mask' : 'SaxslabBSMask'}
         
         self.CIRCLE_ID, self.RECTANGLE_ID, self.POLYGON_ID = wx.NewId(), wx.NewId(), wx.NewId()
         self.all_button_ids = [self.CIRCLE_ID, self.RECTANGLE_ID, self.POLYGON_ID]
@@ -9773,13 +9820,33 @@ class MaskingPanel(wx.Panel):
         
         return sizer
     
+    def _calcSaxslabBSMask(self):
+        sasm = self.image_panel.current_sasm
+        
+        img_hdr = sasm.getParameter('imageHeader')
+        img = self.image_panel.img
+        
+        if img != None and img_hdr != None:
+            mask_params = SASImage.createMaskFromHdr(img, img_hdr, flipped = self._main_frame.raw_settings.get('DetectorFlipped90'))
+        
+        print mask_params
+        print mask_params[0]._points
+        print mask_params[0]._radius
+        #mask_params contains the mask and the individual maskshapes
+                
+        return [None, mask_params]
+    
     def _onShowButton(self, event):
         selected_mask = self.selector_choice.GetStringSelection()
         mask_key = self.mask_choices[selected_mask]
         
         plot_parameters = self.image_panel.getPlotParameters()        
         mask_dict = self._main_frame.raw_settings.get('Masks')
-        mask_params = mask_dict[mask_key]
+            
+        if mask_key == 'SaxslabBSMask':
+            mask_params = self._calcSaxslabBSMask()
+        else:    
+            mask_params = mask_dict[mask_key]
         
         saved_mask = mask_params[1]
         
@@ -13040,7 +13107,7 @@ class WelcomeDialog(wx.Dialog):
         button_sizer = wx.BoxSizer()
         button_sizer.Add(self.ok_button,0, wx.RIGHT, 5) 
         
-        raw_bitmap = wx.Bitmap(os.path.join(RAWWorkDir, "resources", "raw.ico"))
+        raw_bitmap = raw_icon_embed.GetBitmap()
         rawimg = wx.StaticBitmap(self, -1, raw_bitmap)
         
         headline = wx.StaticText(self, -1, 'Welcome to RAW 1.0.0b!')
