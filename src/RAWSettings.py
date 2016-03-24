@@ -48,7 +48,7 @@ class RawGuiSettings:
                             'AutoAvgNoOfFrames' : [1,  wx.NewId(),  'int'],
                             'AutoBgSubRegExp'   : ['', wx.NewId(), 'text'],
              
-                            'UseHeaderForMask': [True, wx.NewId(), 'bool'],
+                            'UseHeaderForMask': [False, wx.NewId(), 'bool'],
                             'DetectorFlipped90':[False, wx.NewId(), 'bool'],
                             # 'UseOnlineFilter' : [False, wx.NewId(), 'bool'],
                             # 'OnlineFilterExt' : ['',    wx.NewId(), 'text'],
