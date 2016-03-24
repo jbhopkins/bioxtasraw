@@ -1,0 +1,5 @@
+#!/bin/bash
+#
+pushd $HOME/raw
+python RAW.py
+popd

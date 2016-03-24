@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=RAW
+Exec=start_raw
+Terminal=true
+Type=Application
+Icon=/home/jbh246/raw/resources/raw.ico
