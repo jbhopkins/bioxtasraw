@@ -17,20 +17,36 @@
 #******************************************************************************
 
 from __future__ import division
-#from scipy import *
-#from scipy import optimize
-#from scipy import weave
-#from scipy.weave import converters
-#from scipy.linalg import inv, det, eig
+from scipy import *
+from scipy import optimize
+from scipy import weave
+from scipy.weave import converters
+from scipy.linalg import inv, det, eig
 from numpy import *
 import numpy
+import RAWGlobals
 #import saxsmodel
 #import autoanalysis
 #import random
 #import matplotlib.axes3d as p3
 
 import time, Queue, wx#, random
-import bift_ext, transmatrix_ext, SASM
+# import bift_ext, transmatrix_ext, SASM
+import SASM
+
+if RAWGlobals.compiled_extensions:
+    try:
+        import bift_ext
+
+    except ImportError:
+        import SASbuild_Clibs
+        try:
+            SASbuild_Clibs.buildAll()
+            import bift_ext
+
+        except Exception, e:
+            print e
+            RAWGlobals.compiled_extensions = False
 
 cancel_bift = False
 
@@ -244,6 +260,9 @@ def fmin(func, x0, args=(), xtol=1e-4, ftol=1e-4, maxiter=None, maxfun=None,
 
 
 def C_seeksol(I_exp, m, q, sigma, alpha, dmax, T):
+    # print 'In C_seeksol'
+    # RAWGlobals.compiled_extensions = False
+    # print 'RAWGlobals.compiled_extensions: ' + str(RAWGlobals.compiled_extensions)
     
  #   beg = time.time()  
     
@@ -303,8 +322,18 @@ def C_seeksol(I_exp, m, q, sigma, alpha, dmax, T):
     
     alpha = float(alpha)              # Important! otherwise C code will crash
     
-    s = bift_ext.bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold)
+    if RAWGlobals.compiled_extensions:
+        s = bift_ext.bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold)
+    else:
+        #Warning, slower!
+        s = bift_python(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold)
     
+    # s_ext = bift_ext.bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold)
+    # s_python = bift_python(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold)
+
+    # print 's from bift_ext is ' + str(s_ext)
+    # print 's from bift_python is ' + str(s_python)
+
     # ********************** C++ CODE *******************************
 
 #    mod = ext_tools.ext_module('bift_ext')
@@ -850,9 +879,6 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
     cancel_bift = False
     return ift_sasm
 
-    
-
-
 def pinnedFineSearch(Ep, N, alpha, dmax):
     
     arg = (Ep, N)
@@ -1119,6 +1145,157 @@ def calcPosterior(alpha, dmax, s, Chi, B):
 #%                       Dmax ved vi at den skal ligge mellem 10 og 1000 A,
 #%                       saa den har en konstant sandsynlighed, derfor
 #%                       bidrager den ikke til evidensen.
+
+def bift_python(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold):
+
+
+    # // Initiate Variables
+    ite = 0
+  
+    s = 0.
+    wgrads = 0.
+    wgradc = 0.
+    gradci = 0.
+    gradsi = 0.
+
+    while (ite < maxit and omega > omegamin and abs(1-dotsp) > dotsptol) or ite < minit:
+
+        if ite != 0:
+        
+            #/* Calculating smoothness constraint vector m */
+            
+            for k in range(1,N-1):            
+                m[0, k] =  ((P[0,k-1] + P[0,k+1]) / 2.0)
+            
+
+            m[0,0] =  P[0,1] / 2.0
+            m[0,N-1] =  P[0,N-2] /2.0
+            
+
+            # /* This calculates the Matrix Psumi */
+            
+            for j in range(N):
+                for k in range(N):
+                    Psumi[0,j] = Psumi[0,j] + P[0,k] * Bmat[k,j]
+
+           # // cout << "    " << Psumi(0,50);
+
+           # /* Now calculating dP, and updating P */
+    
+            for k in range(N):        
+                dP[0,k] = (m[0,k]*alpha + sum_dia[0,k] - Psumi[0,k])/(bkk[0,k] + alpha)      #/* ATTENTION! remember C division!, if its all int's then it will be a int result! .. maybe cast it to float()? */
+                
+                Psumi[0,k] = 0    #// Reset values in Psumi for next iteration..otherwise Psumi = Psumi + blah will be wrong!
+    
+                Pold[0,k] = P[0,k]
+     
+                P[0,k] = (1-omega)*P[0,k] + omega*dP[0,k]
+                
+                # /* Pin first and last point to zero! */
+
+                # //P(0,0) = 0.0;
+                # //P(0,N-1) = 0.0;   
+  
+            # //cout << "    " << m(0,50);
+            # //cout << "    " << P(0,50);
+            # //cout << "    " << dP(0,50);
+            # //cout << " | ";
+    
+        # // end if ite != 0
+
+        ite = ite + 1
+
+       # /* Calculating Dotsp */
+      
+        dotsp = 0.
+        wgrads = 0.
+        wgradc = 0.
+        s = 0.
+        for k in range(N):       
+            s = s - pow(P[0,k] - m[0,k], 2)                        #// sum(-power((P-m),2))
+             
+            gradsi = -2*(P[0,k] - m[0,k])                           # // gradsi = (-2*(P-m))
+            wgrads = wgrads + pow(gradsi, 2)
+       
+            gradci = 0
+
+            for j in range(N):
+                gradci = gradci + 2*(P[0,j] * B[j,k])     
+
+            gradci = gradci - 2*sum_dia[0,k]
+            
+            wgradc = wgradc + pow(gradci, 2)
+            dotsp = dotsp + (gradci * gradsi)
+
+      
+    # //      cout << dotsp;
+    # //      cout << "    " << wgrads;
+    # //      cout << "    " << wgradc;
+    # //      cout << "    " << s;
+    # //      cout << " | ";
+
+
+       # /* internal loop to reduce search step (omega) when it's too large */
+         
+        while dotsp < 0 and float(alpha) < float(bkkmax) and ite > 1 and omega > omegamin:
+            omega = omega / omegareduction
+            
+            # /* Updating P */
+             
+            for k in range(N):
+                P[0,k] = (1-omega)*Pold[0,k] + omega*dP[0,k]
+                        
+            # /* Calculating Dotsp */
+            
+            dotsp = 0.
+            wgrads = 0.
+            wgradc = 0.
+            s = 0.
+
+            for k in range(N):
+                s = s - pow(P[0,k]-m[0,k], 2)                        #// sum(-power((P-m),2))     
+                gradsi = -2*(P[0,k]-m[0,k])                            #// gradsi = (-2*(P-m))
+                wgrads = wgrads + pow(gradsi, 2)
+        
+                gradci = 0
+            
+                for j in range(N):
+                    gradci = gradci + 2*(P[0,j]*B[j,k])     
+            
+                gradci = gradci - 2*sum_dia[0,k]
+                  
+                wgradc = wgradc + pow(gradci, 2)
+                dotsp = dotsp + (gradci * gradsi)
+                
+                
+        # // end inner whileloop
+         
+        
+        if wgrads == 0 or wgradc == 0:
+            dotsp = 1.
+        else:
+            wgrads = pow(wgrads, 0.5)
+            wgradc = pow(wgradc, 0.5)
+            dotsp = dotsp / (wgrads * wgradc)
+   
+          
+    # } // end Outer while loop
+
+    # // cout << "ite C: " << ite;
+    # // cout << "alpha: " << double(alpha);
+    # // cout << "omega: " << omega;
+    # //cout << ",   m: " << m(0,20);
+    # //cout << ",   dotsp C: " << dotsp;
+    # //cout << ",   dP:" << dP(0,20);
+    # //cout << "cnt:" << cnt;
+    # //cout << ",   wgrads C: " << wgrads;
+    # //cout << ",   wgradc C: " << wgradc;
+    
+    
+    # //tst(0,1) = wgradc;
+    sout = s
+    
+    return sout
   
     
 def MonteCarloErrorbars(BiftObj, iterations, std_dmax, std_alpha):

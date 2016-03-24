@@ -1,4 +1,5 @@
 import wx, os, math, sys
+import RAWIcons
 
 RAWWorkDir = sys.path[0]
 
@@ -147,8 +148,8 @@ def GetCheckedBitmap():
 
 def GetCheckedImage():
     
-    path = os.path.join(RAWWorkDir, 'resources', 'checked.ico')
-    return wx.Image(path, wx.BITMAP_TYPE_ICO)
+    image = RAWIcons.checked.GetImage()
+    return image
 
 #----------------------------------------------------------------------
 
@@ -157,8 +158,8 @@ def GetNotCheckedBitmap():
 
 def GetNotCheckedImage():
     
-    path = os.path.join(RAWWorkDir, 'resources', 'notchecked.ico')
-    return wx.Image(path, wx.BITMAP_TYPE_ICO)
+    image = RAWIcons.notchecked.GetImage()
+    return image
 
 #----------------------------------------------------------------------
 
@@ -251,6 +252,7 @@ class CustomCheckBox(wx.PyControl):
         # Ok, set the wx.PyControl label, its initial size (formerly known an
         # SetBestFittingSize), and inherit the attributes from the standard
         # wx.CheckBox
+        # print label
         self.SetLabel(label)
         self.SetInitialSize(size)
         self.InheritAttributes()

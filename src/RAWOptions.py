@@ -189,7 +189,6 @@ class ArtifactOptionsPanel(wx.Panel):
 class CalibrationOptionsPanel(wx.Panel):
     
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
-        
         wx.Panel.__init__(self, parent, id, *args, **kwargs)
         
         self.update_keys = ['SampleDistance',
@@ -199,7 +198,8 @@ class CalibrationOptionsPanel(wx.Panel):
                             'Xcenter',
                             'Ycenter',
                             'Binsize',
-                            'StartPoint']
+                            'StartPoint',
+                            'EndPoint']
                             #'QrangeLow',
                             #'QrangeHigh']
 
@@ -218,7 +218,8 @@ class CalibrationOptionsPanel(wx.Panel):
                                 ("Beam Y center:", raw_settings.getId('Ycenter')))
 
         self.expsettings_spin = (("Binning Size:", (raw_settings.getId('Binsize'), wx.NewId())),
-                                 ("Start plots at q-point number:", (raw_settings.getId('StartPoint'), wx.NewId())))
+                                 ("Start plots at q-point number:", (raw_settings.getId('StartPoint'), wx.NewId())),
+                                 ("Skip n points at the end of the curve:", (raw_settings.getId('EndPoint'), wx.NewId())))
                                  #("Q-High (pixels):", (raw_settings.getId('QrangeHigh'), wx.NewId())))
 
         box = wx.StaticBox(self, -1, '2D Reduction Parameters')
@@ -271,7 +272,11 @@ class CalibrationOptionsPanel(wx.Panel):
             for eachSpinCtrl in eachEntry[1:]:
                 txtctrl_id = eachSpinCtrl[0]
                 spin_id = eachSpinCtrl[1]
-                txt_ctrl = RAWCustomCtrl.IntSpinCtrl(self, txtctrl_id, TextLength = 60, min = 0)
+
+                if eachEntry[0] == 'Binning Size:':
+                    txt_ctrl = RAWCustomCtrl.IntSpinCtrl(self, txtctrl_id, TextLength = 60, min = 1)
+                else:
+                    txt_ctrl = RAWCustomCtrl.IntSpinCtrl(self, txtctrl_id, TextLength = 60, min = 0)
                 
                 spin_sizer.Add(txt_ctrl, 0)
         
@@ -943,7 +948,101 @@ class NormListCtrl(wx.ListCtrl):
             op = each[0]
             expr = each[1]    
             self.add(op, expr)
+
+
+class OnlineListCtrl(wx.ListCtrl):
     
+    def __init__(self, parent, id, *args, **kwargs):
+        
+        wx.ListCtrl.__init__(self, parent, id, *args, **kwargs)
+        self.populateList()
+        
+    def populateList(self):
+        self.InsertColumn(0, 'Ignore/Open')
+        self.InsertColumn(1, 'Filter String')
+        self.InsertColumn(2, 'Location')
+        self.SetColumnWidth(0, 100)
+        self.SetColumnWidth(1, 200)
+        
+    def add(self, filt, expr, pos):
+        no_of_items = self.GetItemCount()
+        self.InsertStringItem(no_of_items, filt)
+        self.SetStringItem(no_of_items, 1, expr)
+        self.SetStringItem(no_of_items, 2, pos)
+        
+    def moveItemUp(self, idx):
+        if idx > 0:
+            data = self.getItemData(idx)
+            self.DeleteItem(idx)
+            self.InsertStringItem(idx-1, data[0])
+            self.SetStringItem(idx-1, 1, data[1])
+            self.SetStringItem(idx-1, 2, data[2])
+            self.Select(idx-1, True)
+            
+    def moveItemDown(self, idx):
+        if idx < self.GetItemCount()-1:
+            data = self.getItemData(idx)
+            self.DeleteItem(idx)
+            self.InsertStringItem(idx+1, data[0])
+            self.SetStringItem(idx+1, 1, data[1])
+            self.SetStringItem(idx+1, 2, data[2])
+            self.Select(idx+1, True)
+        
+    def getItemData(self, idx):
+        data1 = self.GetItemText(idx)
+        item = self.GetItem(idx, 1)
+        data2 = item.GetText()
+        item2 = self.GetItem(idx,2)
+        data3 = item2.GetText()
+        
+        return [data1, data2, data3]
+        
+    def getSelectedItems(self):
+        """    Gets the selected items for the list control.
+          Selection is returned as a list of selected indices,
+          low to high.
+        """
+        selection = []
+        index = self.GetFirstSelected()
+        
+        if index == -1:
+            return []
+        
+        selection.append(index)
+        
+        while len(selection) != self.GetSelectedItemCount():
+            index = self.GetNextSelected(index)
+            selection.append(index)
+
+        return selection
+    
+    def getAllItems(self):
+        ''' returns a list with all items and operator '''
+        all_items = []
+        for i in range(0, self.GetItemCount()):
+             all_items.append(self.getItemData(i))
+        
+        return all_items
+    
+    def GetValue(self):
+        ''' Creating a function to mimic other normal control widgets,
+        this makes it easier to update and save settings for this
+        control.'''
+        
+        return self.getAllItems()
+    
+    def SetValue(self, value_list):
+        
+        if value_list == None:
+            return
+        
+        for each in value_list:
+            filt = each[0]
+            expr = each[1]  
+            pos = each[2]  
+            self.add(filt, expr, pos)
+
+
 class ReductionNormalizationAbsScPanel(wx.Panel):
     
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
@@ -1406,43 +1505,79 @@ class MolecularWeightPanel(wx.Panel):
 
         self.update_keys = ['MWStandardMW',
                             'MWStandardI0',
-                            'MWStandardConc']
+                            'MWStandardConc',
+                            'MWStandardFile',
+                            'MWVcType',
+                            'MWVcAProtein',
+                            'MWVcBProtein',
+                            'MWVcARna',
+                            'MWVcBRna',
+                            'MWVpRho',
+                            'MWAbsRhoMprot',
+                            'MWAbsRhoSolv',
+                            'MWAbsNuBar',
+                            'MWAbsR0']
 
 
-        self.MWData = ( ("MW [kDa]:", raw_settings.getId('MWStandardMW')) ,
+        self.RelMWData = ( ("MW [kDa]:", raw_settings.getId('MWStandardMW')) ,
                         ("I(0):", raw_settings.getId('MWStandardI0')),
-                        ("Conc. [mg/ml]:", raw_settings.getId('MWStandardConc')))
+                        ("Conc. [mg/ml]:", raw_settings.getId('MWStandardConc')),
+                        ("Filename:", raw_settings.getId('MWStandardFile')))
+        self.VcMWData = ( ("Default Type:", raw_settings.getId('MWVcType')),
+                        ("Protein Coef. A:", raw_settings.getId('MWVcAProtein')),
+                        ("Protein Coef. B:", raw_settings.getId('MWVcBProtein')),
+                        ("RNA Coef. A:", raw_settings.getId('MWVcARna')),
+                        ("RNA Coef. B:", raw_settings.getId('MWVcBRna')))
+        self.VpMWData = ("Density [kDa/A^3]:", raw_settings.getId('MWVpRho'))
+        self.AbsMWData = ( ("Electrons per dry mass of macromolecule [e-/g]:", raw_settings.getId('MWAbsRhoMprot')),
+                        ("Electrons per volume of aqueous solvent [e-/cm^3]:", raw_settings.getId('MWAbsRhoSolv')),
+                        ("Partial specific volume of the macromolecule [cm^3/g]:", raw_settings.getId('MWAbsNuBar')),
+                        ("Scattering length of an electron [cm]:", raw_settings.getId('MWAbsR0')))
 
-        box = wx.StaticBox(self, -1, 'Molecular Weight Estimation Using a Standard')
+        rel_box = wx.StaticBox(self, -1, 'Molecular Weight Estimation Using a Standard')
+        vc_box = wx.StaticBox(self, -1, 'Molecular Weight Estimation From Volume of Correlation')
+        vp_box = wx.StaticBox(self, -1, 'Molecular Weight Estimation From Corrected Porod Volume')
+        abs_box = wx.StaticBox(self, -1, 'Molecular Weight Estimation From Absolute Intensity Calibration')
 
-        mw_sizer = self.createMWSettings()
+        rel_mw_sizer = self.createRelMWSettings()
+        rel_mwbox_sizer = wx.StaticBoxSizer(rel_box, wx.VERTICAL)
+        rel_mwbox_sizer.Add(rel_mw_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
 
-        mwbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        mwbox_sizer.Add(mw_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        vc_mw_sizer = self.createVcMWSettings()
+        vc_mwbox_sizer = wx.StaticBoxSizer(vc_box, wx.VERTICAL)
+        vc_mwbox_sizer.Add(vc_mw_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+
+        vp_mw_sizer = self.createVpMWSettings()
+        vp_mwbox_sizer = wx.StaticBoxSizer(vp_box, wx.VERTICAL)
+        vp_mwbox_sizer.Add(vp_mw_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+
+        abs_mw_sizer = self.createAbsMWSettings()
+        abs_mwbox_sizer = wx.StaticBoxSizer(abs_box, wx.VERTICAL)
+        abs_mwbox_sizer.Add(abs_mw_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+
+        reset_button = wx.Button(self, -1, 'Reset MW Parameters To Defaults')
+        reset_button.Bind(wx.EVT_BUTTON, self._onResetButton)
 
         final_sizer = wx.BoxSizer(wx.VERTICAL)
-        final_sizer.Add(mwbox_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        final_sizer.Add(rel_mwbox_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        final_sizer.Add(vc_mwbox_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        final_sizer.Add(vp_mwbox_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        final_sizer.Add(abs_mwbox_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        final_sizer.AddStretchSpacer(1)
+        final_sizer.Add(reset_button, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
 
         self.SetSizer(final_sizer)
 
-    def createMWSettings(self):
+    def createRelMWSettings(self):
 
-        hSizer = wx.FlexGridSizer(cols = 6, rows = 1, vgap = 3, hgap = 5)
+        hSizer = wx.FlexGridSizer(cols = 4, rows = 1, vgap = 3, hgap = 5)
 
-#        mwchoices = ['BSA', 'Lysozyme', 'Glucose Isomerse']
-#        std_choice = wx.Choice(self, -1, choices = mwchoices)
-#        
-#        sizer = wx.BoxSizer(wx.VERTICAL)
-#        txt = wx.StaticText(self, -1, 'Standard:')
-#            
-#        sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
-#        sizer.Add(std_choice, 0)
-#            
-#        hSizer.Add(sizer, 0)
-
-        for txt, id in self.MWData:
+        for txt, id in self.RelMWData:
             sizer = wx.BoxSizer(wx.VERTICAL)
-            ctrl = wx.TextCtrl(self, id, '')
+            if id == self.raw_settings.getId('MWStandardFile'):
+                ctrl = wx.TextCtrl(self, id, '', size = (200,-1))
+            else:
+                ctrl = wx.TextCtrl(self, id, '')
             txt = wx.StaticText(self, -1, txt)
 
             sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
@@ -1451,7 +1586,86 @@ class MolecularWeightPanel(wx.Panel):
             hSizer.Add(sizer, 0)
 
         return hSizer
-    
+
+    def createVcMWSettings(self):
+        hSizer = wx.FlexGridSizer(cols = 5, rows = 1, vgap = 3, hgap = 5)
+
+        for txt, id in self.VcMWData:
+            sizer = wx.BoxSizer(wx.VERTICAL)
+            if id == self.raw_settings.getId('MWVcType'):
+                ctrl = wx.Choice(self, id, choices = ['Protein', 'RNA'])
+            else:
+                ctrl = wx.TextCtrl(self, id, '')
+
+            txt = wx.StaticText(self, -1, txt)
+
+            sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
+            sizer.Add(ctrl, 0)
+
+            hSizer.Add(sizer, 0)
+
+        return hSizer
+
+    def createVpMWSettings(self):
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        txt, id = self.VpMWData
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        ctrl = wx.TextCtrl(self, id, '')
+        txt = wx.StaticText(self, -1, txt)
+
+        sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
+        sizer.Add(ctrl, 0)
+
+        hSizer.Add(sizer, 0)
+
+        return hSizer
+
+    def createAbsMWSettings(self):
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+
+        for txt, id in self.AbsMWData:
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+            ctrl = wx.TextCtrl(self, id, '')
+            txt = wx.StaticText(self, -1, txt)
+
+            sizer.Add(txt, 0, wx.ALIGN_CENTER_VERTICAL)
+            sizer.Add(ctrl, 0)
+
+            vSizer.Add(sizer, 0)
+
+        return vSizer
+
+    def _onResetButton(self, evt):
+        default_settings = RAWSettings.RawGuiSettings()
+
+        for key in self.update_keys:
+            id, type = self.raw_settings.getIdAndType(key)
+
+            reset = True
+            for item in self.RelMWData:
+                if id == item[1]:
+                    reset = False
+
+            if reset:
+                val = default_settings.get(key)
+                obj = wx.FindWindowById(id)
+
+                if type == 'bool':
+                    obj.SetValue(val)
+                elif type == 'list':
+                    obj.SetValue(val)
+                    
+                elif type == 'choice':
+                    choice_list = obj.GetStrings() 
+                    idx = choice_list.index(val)
+                    obj.Select(idx)
+                    
+                elif type == 'text' or type == 'int' or type == 'float':
+                    try:
+                        obj.SetValue(val)
+                    except TypeError:
+                        obj.SetValue(str(val))
        
 class ReductionNormalizationPanel(wx.Panel):
     
@@ -1592,7 +1806,118 @@ class ReductionNormalizationPanel(wx.Panel):
                 return
             else:
                 self.norm_list.add(op, expr)
+
+
+class OnlineModePanel(wx.Panel):
+    
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
         
+        self.update_keys = ['OnlineFilterList', 'EnableOnlineFiltering']
+        
+        self.raw_settings = raw_settings
+        
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        
+        self.filt_list_id = raw_settings.getId('OnlineFilterList')
+        self.enable_filt_id = raw_settings.getId('EnableOnlineFiltering')
+        
+        # self.expr_combo_list = ['test']
+        self.selected_item = None
+
+        normsizer = self.createOnlineFilterList()
+        
+        final_sizer = wx.BoxSizer(wx.VERTICAL)
+    
+        final_sizer.Add(normsizer, 1, wx.EXPAND |wx.ALL, 5)
+        
+        self.SetSizer(final_sizer)
+    
+    def createOnlineFilterList(self):
+        
+        filter_list = ['Ignore', 'Open only with']
+        self.filter_choice = wx.Choice(self, -1, choices = filter_list)
+        self.filter_choice.Select(0)
+
+
+        position_list = ['At start', 'Anywhere', 'At end']
+        self.position_choice = wx.Choice(self, -1, choices = position_list)
+        self.position_choice.Select(0)
+
+
+        self.expr = wx.TextCtrl(self, -1, value="")
+        
+        self.online_list = OnlineListCtrl(self, self.filt_list_id, style = wx.LC_REPORT)
+        self.online_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onNormListSelection)
+        
+        self.online_list_title = wx.StaticText(self, -1, 'Online Filter List:')
+        
+        self.enable_norm_chkbox = wx.CheckBox(self, self.enable_filt_id, 'Enable Online Filtering')
+        
+        self.up_button = wx.Button(self, -1, 'Move up')
+        self.up_button.Bind(wx.EVT_BUTTON, self.onUpButton)
+        self.down_button = wx.Button(self, -1, 'Move down')
+        self.down_button.Bind(wx.EVT_BUTTON, self.onDownButton)
+        
+        self.delete_button = wx.Button(self, -1, 'Delete')
+        self.delete_button.Bind(wx.EVT_BUTTON, self.onDeleteButton)
+        self.clear_online_list_button = wx.Button(self, -1, 'Clear all')
+        self.clear_online_list_button.Bind(wx.EVT_BUTTON, self.onClearListButton)
+        
+        add_button = wx.Button(self, -1, 'Add')
+        add_button.Bind(wx.EVT_BUTTON, self.onAddButton)
+        
+        #ud_button_sizer = wx.BoxSizer(wx.VERTICAL)
+        ud_button_sizer = wx.FlexGridSizer(cols = 1, rows = 4, vgap = 3)
+        ud_button_sizer.Add(self.up_button,1, wx.EXPAND)
+        ud_button_sizer.Add(self.down_button, 1, wx.EXPAND)
+        ud_button_sizer.Add(self.delete_button, 1, wx.EXPAND)
+        ud_button_sizer.Add(self.clear_online_list_button, 1, wx.EXPAND)
+        
+        list_sizer= wx.BoxSizer()
+        list_sizer.Add(self.online_list,1, wx.EXPAND | wx.RIGHT, 3)
+        list_sizer.Add(ud_button_sizer,0, wx.LEFT, 3)
+        
+        ctrl_sizer = wx.BoxSizer()
+        ctrl_sizer.Add(self.filter_choice,0, wx.ALIGN_CENTER |wx.RIGHT, 3)
+        ctrl_sizer.Add(self.expr, 1, wx.ALIGN_CENTER |wx.EXPAND | wx.RIGHT, 3)
+        ctrl_sizer.Add(self.position_choice,0, wx.ALIGN_CENTER)
+        ctrl_sizer.Add(add_button,0, wx.ALIGN_CENTER |wx.RIGHT, 3)
+        
+        final_sizer = wx.BoxSizer(wx.VERTICAL)
+        final_sizer.Add(self.enable_norm_chkbox, 0, wx.BOTTOM, 5)
+        final_sizer.Add(self.online_list_title,0, wx.BOTTOM, 5)
+        final_sizer.Add(list_sizer, 1, wx.EXPAND)
+        final_sizer.Add(ctrl_sizer, 0, wx.EXPAND | wx.TOP, 5)
+        
+        return final_sizer
+    
+    def onNormListSelection(self, event):
+        self.selected_item = event.GetItem()
+    
+    def onDeleteButton(self, event):
+        items = self.online_list.getSelectedItems()
+        
+        if len(items) > 0:
+            self.online_list.DeleteItem(items[0])
+    
+    def onUpButton(self, event):
+        itemidx = self.online_list.GetFirstSelected()
+        self.online_list.moveItemUp(itemidx)
+        
+    def onDownButton(self, event):
+        itemidx = self.online_list.GetFirstSelected()
+        self.online_list.moveItemDown(itemidx)
+        
+    def onClearListButton(self, event):
+        self.online_list.DeleteAllItems()
+    
+    def onAddButton(self, event):
+        filt = self.filter_choice.GetStringSelection()
+        expr = self.expr.GetValue()
+        pos = self.position_choice.GetStringSelection()
+        
+        if expr != '':
+            self.online_list.add(filt, expr, pos)        
 
 
 class GeneralOptionsPanel(wx.Panel):
@@ -1616,7 +1941,7 @@ class GeneralOptionsPanel(wx.Panel):
         final_sizer.Add(options_sizer, 0, wx.EXPAND | wx.ALL, 5)
         
         self.SetSizer(final_sizer)    
-        
+    
     
     def createGeneralOptionsData(self):
         
@@ -1647,7 +1972,7 @@ class ReductionOptionsPanel(wx.Panel):
         
         panelsizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(panelsizer)
-        
+
     
 class MaskingOptionsPanel(wx.Panel):
     
@@ -2261,9 +2586,9 @@ all_options = [ [ (1,0,0), wx.NewId(), 'General Settings', GeneralOptionsPanel],
                 [ (4,0,0), wx.NewId(), 'Artifact Removal', ArtifactOptionsPanel],
                 [ (5,0,0), wx.NewId(), 'IFT', IftOptionsPanel],
                 [ (6,0,0), wx.NewId(), "Save Directories", SaveDirectoriesPanel],
-    #            [ (5,0,0), wx.NewId(), 'Online Mode', ReductionOptionsPanel],
-                [ (7,0,0), wx.NewId(), "Automation", AutomationOptionsPanel],
-				[ (8,0,0), wx.NewId(), "SANS", SansOptionsPanel]]
+               [ (7,0,0), wx.NewId(), 'Online Mode', OnlineModePanel],
+                [ (8,0,0), wx.NewId(), "Automation", AutomationOptionsPanel],
+				[ (9,0,0), wx.NewId(), "SANS", SansOptionsPanel]]
                 
 #--- ** TREE BOOK **
 class ConfigTree(CT.CustomTreeCtrl):
@@ -2432,6 +2757,30 @@ class OptionsTreebook(wx.Panel):
                 pass
             
         return changes_dict
+
+    def selectPage(self, heading):
+
+        root = self.tree.GetRootItem()
+
+        item = self.find_branch(self.tree, heading, root)
+
+        if item:
+            self.tree.SelectItem(item)
+       
+
+    def find_branch(self, tree, heading, root):
+        item, cookie = tree.GetFirstChild(root)
+
+        while item and item.IsOk():
+            if tree.GetItemText(item) == heading:
+                return item
+            if tree.ItemHasChildren(item):
+                item2 = self.find_branch(tree, heading, item)
+                if item2:
+                    return item2
+            item, cookie = tree.GetNextChild(root, cookie)
+
+        return None
         
         
 #--- ** MAIN DIALOG ** 
@@ -2441,7 +2790,7 @@ class OptionsDialog(wx.Dialog):
         The option dialog that pops up when the user chooses
         options in the menu.
     '''
-    def __init__(self, parent, raw_settings, focusIndex = None, *args, **kwargs):
+    def __init__(self, parent, raw_settings, focusHeader = None, *args, **kwargs):
       
         wx.Dialog.__init__(self, parent, -1, 'Options', *args, name = 'OptionsDialog', style = wx.RESIZE_BORDER | wx.CAPTION, **kwargs)
         
@@ -2466,12 +2815,17 @@ class OptionsDialog(wx.Dialog):
         if item != None:
             self.treebook.tree.SelectItem(item)
             
-        self.SetMinSize((800,600))
+        if focusHeader:
+            self.treebook.selectPage(focusHeader)
+
         #self.Update()
         
         self.SendSizeEvent()
         #self.SendSizeEventToParent()
-        #self.Layout()
+        # self.Layout()
+        # self.Update()
+        # self.Refresh()
+        # self.Fit()
         #What a F!ed way to select an item.. is this really the only way?
 
         #try:
@@ -2485,6 +2839,12 @@ class OptionsDialog(wx.Dialog):
         #    pass
         #self.Fit()
         self.SetSizer(sizer)
+        self.SetMinSize((800,600))
+        self.SetSize((800,600))
+        # self.Layout()
+        # self.Update()
+        # self.Refresh()
+        # self.Fit()
     
     def createButtonPanel(self):
         
@@ -2511,18 +2871,18 @@ class OptionsDialog(wx.Dialog):
         except ValueError:
             dlg = wx.MessageDialog(self, 
             "Invalid value entered. Settings not saved.",
-            'Invalid input', wx.OK|wx.ICON_EXCLAMATION)
+            'Invalid input', wx.OK|wx.ICON_EXCLAMATION, parent = self)
             result = dlg.ShowModal()
             dlg.Destroy()
     
     def onApply(self, event):
         try:
             self.saveSettings()
-            wx.MessageBox('Settings has now been saved.', 'Settings Saved')
+            wx.MessageBox('Settings have now been saved.', 'Settings Saved', parent = self)
         except ValueError:
             dlg = wx.MessageDialog(self, 
             "Invalid value entered. Settings not saved.",
-            'Invalid input', wx.OK|wx.ICON_EXCLAMATION)
+            'Invalid input', wx.OK|wx.ICON_EXCLAMATION, parent = self)
             result = dlg.ShowModal()
             dlg.Destroy()
     
@@ -2559,7 +2919,7 @@ class OptionsDialog(wx.Dialog):
         
         for key in all_update_keys:
             id, type = self._raw_settings.getIdAndType(key)
-            
+
             obj = wx.FindWindowById(id)
             
             if type == 'bool':
@@ -2584,7 +2944,7 @@ class OptionsDialog(wx.Dialog):
                 
                 if math.isinf(val) or math.isnan(val):
                     raise ValueError
-                
+
             self._raw_settings.set(key, val)
         
         all_non_gui_changes = self.treebook.getAllNonGuiChanges()  
@@ -2592,6 +2952,11 @@ class OptionsDialog(wx.Dialog):
         for each_key in all_non_gui_changes:
             val = all_non_gui_changes[each_key]
             self._raw_settings.set(each_key, val)
+
+        mw_window = wx.FindWindowByName('MolWeightFrame')
+
+        if mw_window:
+            mw_window.updateMWInfo()
             
         
 #--- ** FOR TESTING **

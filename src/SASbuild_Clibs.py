@@ -1319,15 +1319,48 @@ def buildAll():
         os.mkdir(os.path.join(workdir, 'temp'))
     except:
         pass
-    
-    build_testCode()
-    build_radavg()
-    build_polygonmask()
-    build_transmatrix()
-    build_bift()
-    build_TridiagonalSolve()
-    build_sinfouriermatrix()
-    build_packc()
+    try:
+        build_testCode()
+    except Exception, e:
+        print e
+        print 'Failed to compile test code!'
+
+        try:
+            shutil.rmtree('./temp/')
+            os.remove('./test_ext.cpp')
+        except Exception, e:
+            print 'Cleanup failed : ', e
+            
+        return
+
+        
+    try:
+        build_radavg()
+        build_polygonmask()
+        # build_transmatrix()
+        build_bift()
+        # build_TridiagonalSolve()
+        # build_sinfouriermatrix()
+        build_packc()
+    except Exception, e:
+        print e
+        print 'Failed to compile extensions ravg, polygonmask, bift!'
+
+        try:
+            shutil.rmtree('./temp/')
+            os.remove('./bift_ext.cpp')
+            os.remove('./ravg_ext.cpp')
+            # os.remove('./sinefouriermatrix_ext.cpp')
+            # os.remove('./transmatrix_ext.cpp')
+            # os.remove('./tridiagsolve_ext.cpp')
+            os.remove('./polygonmask_ext.cpp')
+            os.remove('./packc_ext.cpp')
+            os.remove('./test_ext.cpp')
+        except Exception, e:
+            print 'Cleanup failed : ', e
+
+        return
+
     
     print ''
     print '*********** Cleaning Up *****************'
@@ -1338,10 +1371,11 @@ def buildAll():
         shutil.rmtree('./temp/')
         os.remove('./bift_ext.cpp')
         os.remove('./ravg_ext.cpp')
-        os.remove('./sinefouriermatrix_ext.cpp')
-        os.remove('./transmatrix_ext.cpp')
-        os.remove('./tridiagsolve_ext.cpp')
+        # os.remove('./sinefouriermatrix_ext.cpp')
+        # os.remove('./transmatrix_ext.cpp')
+        # os.remove('./tridiagsolve_ext.cpp')
         os.remove('./polygonmask_ext.cpp')
+        os.remove('./test_ext.cpp')
     except Exception, e:
         print 'Cleanup failed : ', e
     
