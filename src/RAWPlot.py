@@ -2753,8 +2753,6 @@ class SECPlotPanel(wx.Panel):
         
             
     def fitAxis(self, axes = None, forced = False):
-        print 'In fitAxis'
-        # print axes
 
         if axes:
             plots = axes
@@ -2792,7 +2790,7 @@ class SECPlotPanel(wx.Panel):
                 for each in eachsubplot.lines:
                     if each._label != '_nolegend_' and each._label != '_zero_' and each._label != '_line1' and each.get_visible() == True:
                         # print each.get_ydata()
-                        # print each._label
+                        print each._label
 
                         if plotnum == '1':
                             if maxq1 == None:
@@ -2837,6 +2835,31 @@ class SECPlotPanel(wx.Panel):
                                 maxi2 = ymax
                             if ymin < mini2:
                                 mini2 = ymin
+
+        if maxq1 == None:
+            if maxq2 != None:
+                maxq1 = maxq2
+            else:
+                maxq1 = 1
+
+        elif maxq2 == None:
+            if maxq1 != None:
+                maxq2 = maxq1
+            else:
+                maxq1 = 1
+
+        if minq1 == None:
+            if minq2 != None:
+                minq1 = minq2
+            else:
+                minq1 = 0
+
+        elif minq2 == None:
+            if minq1 != None:
+                minq2 = minq1
+            else:
+                minq1 = 0
+
 
         if maxq1 > maxq2:
             maxq = maxq1
