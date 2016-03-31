@@ -4216,8 +4216,9 @@ class DirCtrlPanel(wx.Panel):
                                     'No Extension files (*.)',
                                     'TIFF files (*.tiff)',
                                     'TIF files (*.tif)',
-                                    'RAD Files (*.rad)',
+                                    # 'RAD Files (*.rad)',
                                     'DAT files (*.dat)',
+                                    'SEC files (*.sec)',
                                     'TXT files (*.txt)',
                                     'IMG files (*.img)',
                                     'FIT files (*.fit)',
@@ -10500,8 +10501,8 @@ class CenteringPanel(wx.Panel):
         print 'wops!'
         
     def updateAll(self):
-        self._updatePlots()
         self.updateCenterFromSettings()
+        self._updatePlots()
     
     def setCenter(self, center):
         self._center = center
@@ -13104,8 +13105,8 @@ class WelcomeDialog(wx.Dialog):
         self.ok_button.Bind(wx.EVT_BUTTON, self._onOKButton)
         self.ok_button.SetDefault()
         
-        button_sizer = wx.BoxSizer()
-        button_sizer.Add(self.ok_button,0, wx.RIGHT, 5) 
+        # button_sizer = wx.BoxSizer()
+        # button_sizer.Add(self.ok_button,0, wx.RIGHT, 5) 
         
         raw_bitmap = raw_icon_embed.GetBitmap()
         rawimg = wx.StaticBitmap(self, -1, raw_bitmap)
@@ -13138,7 +13139,9 @@ class WelcomeDialog(wx.Dialog):
         #label = wx.StaticText(self, -1, ' ')
         
         #final_sizer.Add(label, 0, wx.ALL, 15)
-        final_sizer.Add(button_sizer, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
+        # final_sizer.Add(button_sizer, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
+        final_sizer.Add(self.ok_button, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
+        final_sizer.AddStretchSpacer(1)
         
         self.SetSizer(final_sizer)
         self.Fit()
