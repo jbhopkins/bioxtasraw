@@ -230,16 +230,16 @@ class CalibrationOptionsPanel(wx.Panel):
         constantsSizer = self.createCalibConstants()
         treatmentSizer = self.createTreatmentData()
         
-        recalc_button = wx.Button(self, -1, 'Re-calculate')
-        recalc_button.Bind(wx.EVT_BUTTON, self.onRecalcButton)
-        recalc_button.SetToolTip(wx.ToolTip('Re-calculate the sample detector distance'))
+        # recalc_button = wx.Button(self, -1, 'Re-calculate')
+        # recalc_button.Bind(wx.EVT_BUTTON, self.onRecalcButton)
+        # recalc_button.SetToolTip(wx.ToolTip('Re-calculate the sample detector distance'))
         
         panelsizer = wx.BoxSizer(wx.VERTICAL)
         panelsizer.Add(static_box_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
         panelsizer.Add(constantsSizer, 0, wx.EXPAND | wx.ALL, 5)
         panelsizer.Add(treatmentSizer, 0, wx.EXPAND | wx.BOTTOM | wx.RIGHT | wx.LEFT, 5)
         panelsizer.Add((1,1), 1, wx.EXPAND)
-        panelsizer.Add(recalc_button, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
+        # panelsizer.Add(recalc_button, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
         
         self.SetSizer(panelsizer)
         
@@ -284,8 +284,8 @@ class CalibrationOptionsPanel(wx.Panel):
         
         return static_box_sizer 
         
-    def onRecalcButton(self, event):
-        print 'Not implemented'
+    # def onRecalcButton(self, event):
+    #     print 'Not implemented'
         
 
     def createCalibConstants(self):       

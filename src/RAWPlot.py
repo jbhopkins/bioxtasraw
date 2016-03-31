@@ -871,6 +871,8 @@ class PlotOptionsDialog(wx.Dialog):
             txt_ctrl.Bind(wx.EVT_KEY_UP, self._updateLabels)
             if self.is_legend and each_name == 'legtit':
                 font_size.Bind(wx.EVT_SPINCTRL, self._updateLabels)
+            else:
+                font_size.Bind(wx.EVT_SPINCTRL, self._updateLabels)
             
             if label.get_weight() == 'bold':
                 bold.SetValue(True)
