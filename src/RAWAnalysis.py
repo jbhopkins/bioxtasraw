@@ -1632,6 +1632,7 @@ class GuinierTestFrame(wx.Frame):
         controlPanel.setCurrentExpObj(ExpObj)
         
         self.CenterOnParent()
+        self.Raise()
     
     def SetStatusText(self, text, slot = 0):
         
@@ -1755,6 +1756,8 @@ class MolWeightFrame(wx.Frame):
         
         
         self.CenterOnParent()
+
+        self.Raise()
 
     def _createLayout(self, parent):
 

@@ -2470,13 +2470,13 @@ def saveSECData(save_path, selected_secm, delim=','):
     savecalc = selected_secm.calc_has_data
 
 
-    f.write('Frame_# Integrated_Intensity Mean_Intensity ')
+    f.write('Frame_#%sIntegrated_Intensity%sMean_Intensity%s' %(delim, delim, delim))
     if saveq:
-        f.write('I_at_q=%f ' %(selected_secm.qref))
+        f.write('I_at_q=%f%s' %(selected_secm.qref, delim))
     if savetime:
-        f.write('Time_(s) ')
+        f.write('Time_(s)%s' %(delim))
     if savecalc:
-        f.write('Rg_(A) Rger_(A) I0 I0er MW_(kDa) ')
+        f.write('Rg_(A)%sRger_(A)%sI0%sI0er%sMW_(kDa)%s' %(delim, delim, delim, delim, delim))
     f.write('File_Name\n')
 
     for a in range(len(selected_secm._sasm_list)):
