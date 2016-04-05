@@ -1380,6 +1380,7 @@ class MainWorkerThread(threading.Thread):
                                     'average_items_sec'     : self._averageItemsSEC,
                                     'save_sec_data'         : self._saveSECData,
                                     'save_sec_item'         : self._saveSECItem,
+                                    'save_sec_profiles'     : self._saveSECProfiles,
                                     'calculate_params_sec'  : self._calculateSECParams}
          
         
@@ -3275,8 +3276,71 @@ class MainWorkerThread(threading.Thread):
             SASFileIO.saveSECItem(save_path[b], secm_dict)
 
             selected_items[b].unmarkAsModified()
-            
+
+    def _saveSECProfiles(self, data, iftmode = False):
+        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait, saving profiles...')
+
+        save_path = data[0]
+        item_list = data[1]
+        # print len(item_list)
         
+        overwrite_all = False
+        no_to_all = False
+        for item in item_list:
+            # print item
+            sasm = item
+            
+            filename = sasm.getParameter('filename')
+            
+            check_filename, ext = os.path.splitext(filename)
+            
+            if iftmode:
+                newext = '.ift'
+            else:
+                newext = '.dat'
+                
+            check_filename = check_filename + newext
+            
+            filepath = os.path.join(save_path, check_filename)
+            file_exists = os.path.isfile(filepath)
+            filepath = save_path
+            
+            if file_exists and overwrite_all == False:
+                
+                if no_to_all == False:
+                    result = self._showOverwritePrompt(check_filename, save_path)
+                    
+                    if result[0] == wx.ID_CANCEL:
+                        return
+                
+                    if result[0] == wx.ID_EDIT: #rename
+                        filepath = result[1][0]
+                        filepath, new_filename = os.path.split(filepath)
+                        sasm.setParameter('filename', new_filename)
+                        
+                    if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
+                        SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+                        filename, ext = os.path.splitext(sasm.getParameter('filename'))
+                        sasm.setParameter('filename', filename + newext)
+                        # wx.CallAfter(sasm.item_panel.updateFilenameLabel)
+                        # wx.CallAfter(item.unmarkAsModified)
+                    
+                    if result[0] == wx.ID_YESTOALL:
+                        overwrite_all = True
+                        
+                    if result[0] == wx.ID_NOTOALL:
+                        no_to_all = True
+                
+            else:
+                SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+                filename, ext = os.path.splitext(sasm.getParameter('filename'))
+                sasm.setParameter('filename', filename + newext)
+                # wx.CallAfter(sasm.item_panel.updateFilenameLabel)
+                # wx.CallAfter(item.unmarkAsModified)
+            
+        wx.CallAfter(self.main_frame.closeBusyDialog)
+
+
     def _normalizeByConc(self, data):
         selected_items = data[0]
 
@@ -8081,6 +8145,27 @@ class SECPanel(wx.Panel):
 
         
         mainworker_cmd_queue.put(['save_sec_item', [save_path, selected_items]])
+
+    def _saveProfiles(self):
+        selected_items = self.getSelectedItems()
+
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        path = dirctrl_panel.getDirLabel()
+        
+        if len(selected_items) == 0:
+            return
+
+        else:
+            dirdlg = wx.DirDialog(self, "Please select save directory (multiple files will be saved):", defaultPath = path,)
+            
+            if dirdlg.ShowModal() == wx.ID_OK:
+                save_path = dirdlg.GetPath()
+            else:
+                return
+
+            for item in selected_items:
+
+                mainworker_cmd_queue.put(['save_sec_profiles', [save_path, item.secm._sasm_list]])
             
     def _OnClearAll(self, evt):
         plotpage = wx.FindWindowByName('SECPlotPanel')
@@ -8624,6 +8709,7 @@ class SECItemPanel(wx.Panel):
         
         menu.Append(1, 'Remove' )
         menu.Append(2, 'Export data')
+        menu.Append(6, 'Save all profiles as .dats')
         menu.Append(3, 'Save')
         menu.AppendSeparator()
         
@@ -8667,6 +8753,9 @@ class SECItemPanel(wx.Panel):
                 self.secm.setParameter('filename', filename)
                 self.updateFilenameLabel()
                 self.markAsModified()
+
+        if evt.GetId() ==6:
+            self.sec_panel._saveProfiles()
                         
     
     def _onKeyPress(self, evt):

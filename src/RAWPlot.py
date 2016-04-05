@@ -2792,7 +2792,7 @@ class SECPlotPanel(wx.Panel):
                 for each in eachsubplot.lines:
                     if each._label != '_nolegend_' and each._label != '_zero_' and each._label != '_line1' and each.get_visible() == True:
                         # print each.get_ydata()
-                        print each._label
+                        # print each._label
 
                         if plotnum == '1':
                             if maxq1 == None:
