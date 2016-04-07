@@ -282,7 +282,7 @@ def runAutoRg(sasm, start=-1, end=-1, initialrg=-1):
     return rg, rger, I0, I0er
 
 
-def autoMW(sasm, rg, i0, protein = True, start=-1, end=-1):
+def autoMW(sasm, rg, i0, protein = True):
     #using the rambo tainer 2013 method for molecular mass.
     #Need to properly calculater error!
 

@@ -1999,6 +1999,15 @@ class MainWorkerThread(threading.Thread):
     
 
     def _calculateSECParams(self, secm):
+
+        molecule = self._raw_settings.get('MWVcType')
+
+        if molecule == 'Protein':
+            is_protein = True
+        else:
+            is_protein = False
+
+
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait, calculating (may take a while)...')
         initial_buffer_frame, final_buffer_frame, window_size = secm.getCalcParams()
 
@@ -2117,7 +2126,10 @@ class MainWorkerThread(threading.Thread):
                 rg[a], rger[a], i0[a], i0er[a], indx_min, indx_max = SASCalc.autoRg(current_sasm)
 
                 #Now use the rambo tainer 2013 method to calculate molecular weight
-                mw[a], mwer[a], junk1, junk2, junk3 = SASCalc.autoMW(current_sasm, rg[a], i0[a])
+                if rg[a] > 0:
+                    mw[a], mwer[a], junk1, junk2, junk3 = SASCalc.autoMW(current_sasm, rg[a], i0[a], is_protein)
+                else:
+                    mw[a], mwer[a] = -1, -1
 
         else:
             for a in range(len(subtracted_sasm_list)-(window_size-1)):
@@ -2136,7 +2148,10 @@ class MainWorkerThread(threading.Thread):
                 rg[index], rger[index], i0[index], i0er[index], idx_min, idx_max = SASCalc.autoRg(current_sasm)
 
                 #Now use the rambo tainer 2013 method to calculate molecular weight
-                mw[index], mwer[index], junk1, junk2, junk3 = SASCalc.autoMW(current_sasm, rg[index], i0[index])
+                if rg[index] > 0:
+                    mw[index], mwer[index], junk1, junk2, junk3 = SASCalc.autoMW(current_sasm, rg[index], i0[index], is_protein)
+                else: 
+                    mw[index], mwer[index] = -1, -1
 
         #Set everything that's nonsense to -1
         rg[rg<=0] = -1
@@ -2168,6 +2183,14 @@ class MainWorkerThread(threading.Thread):
 
 
     def _updateCalcSECParams(self, secm, frame_list):
+
+        molecule = self._raw_settings.get('MWVcType')
+
+        if molecule == 'Protein':
+            is_protein = True
+        else:
+            is_protein = False
+
 
         first_update_frame = int(frame_list[0])
         last_update_frame = int(frame_list[-1])
@@ -2299,7 +2322,10 @@ class MainWorkerThread(threading.Thread):
                 rg[a], rger[a], i0[a], i0er[a], indx_min, indx_max = SASCalc.autoRg(current_sasm)
 
                 #Now use the rambo tainer 2013 method to calculate molecular weight
-                mw[a], mwer[a], junk1, junk2, junk3 = SASCalc.autoMW(current_sasm, rg[a], i0[a])
+                if rg[a] > 0:
+                    mw[a], mwer[a], junk1, junk2, junk3 = SASCalc.autoMW(current_sasm, rg[a], i0[a], is_protein)
+                else:
+                    mw[a], mwer[a] = -1, -1
 
         else:
             for a in range(len(subtracted_sasm_list)-(window_size-1)):
@@ -2318,7 +2344,10 @@ class MainWorkerThread(threading.Thread):
                 rg[index], rger[index], i0[index], i0er[index], indx_min, indx_max = SASCalc.autoRg(current_sasm)
 
                 #Now use the rambo tainer 2013 method to calculate molecular weight
-                mw[index], mwer[index], junk1, junk2, junk3 = SASCalc.autoMW(current_sasm, rg[index], i0[index])
+                if rg[index] > 0:
+                    mw[index], mwer[index], junk1, junk2, junk3 = SASCalc.autoMW(current_sasm, rg[index], i0[index], is_protein)
+                else:
+                    mw[index], mwer[index] = -1, -1
 
         #Set everything that's nonsense to -1
         rg[rg<=0] = -1
