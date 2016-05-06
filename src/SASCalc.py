@@ -19,6 +19,10 @@ import time
 import subprocess
 import scipy.optimize
 import wx
+import threading
+import Queue
+import platform
+import SASFileIO
 
 def autoRg(sasm):
     #This function automatically calculates the radius of gyration and scattering intensity at zero angle
@@ -348,4 +352,628 @@ def porodVolume(sasm, rg, i0, start = 0, stop = -1, interp = False):
     return pVolume
 
 
+def runGnom(fname, outname, dmax, args, cfg = True):
+    #This program runs GNOM from the atsas package. It can do so without writing a GNOM cfg file.
+    #It takes as input the filename to run GNOM on, the output name from the GNOM file, the dmax to evaluate
+    #at, and a dictionary of arguments, which can be used to set the optional GNOM arguments.
+    #Using the GNOM cfg file is significantly faster than catching the interactive input and pass arguments there.
 
+    #Solution for non-blocking reads adapted from stack overflow
+    #http://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
+    def enqueue_output(out, queue):
+        line = 'test'
+        line2=''
+        while line != '':
+            line = out.read(1)
+            line2+=line
+            if line == ':':
+                queue.put_nowait([line2])
+                line2=''
+
+        out.close()
+
+    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+    atsasDir = raw_settings.get('ATSASDir')
+
+    opsys = platform.system()
+    if opsys == 'Windows':
+        gnomDir = os.path.join(atsasDir, 'gnom.exe')
+    else:
+        gnomDir = os.path.join(atsasDir, 'gnom')
+
+    datadir = os.path.dirname(fname)
+
+    if cfg:
+        writeGnomCFG(fname, outname, dmax, args)
+
+    if os.path.exists(gnomDir):
+
+        if cfg:
+            proc = subprocess.Popen('%s' %(gnomDir), shell=True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+            proc.communicate('\r\n')
+
+        else:
+            if os.isfile(os.path.join(datadir, 'gnom.cfg')):
+                os.remove(os.path.join(datadir, 'gnom.cfg'))
+
+            gnom_q = Queue.Queue()
+
+            proc = subprocess.Popen('%s' %(gnomDir), shell=True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+            gnom_t = threading.Thread(target=enqueue_output, args=(proc.stdout, gnom_q))
+            gnom_t.daemon = True
+            gnom_t.start()
+
+            while proc.poll() == None:
+                data = None
+                try: 
+                    data = gnom_q.get_nowait()
+                    data = data[0]
+                    # print 'New Line of Data!!!!!!!!!!!!!!!!!!!'
+                    # print data
+                    gnom_q.task_done()
+                    # err = q2.get_nowait()
+                    # print data[0],
+                    # print err
+                except Queue.Empty:
+                    pass
+
+                if data != None:
+
+                    if data.find('[ postscr     ] :') > -1:
+                        proc.stdin.write('\r\n') #Printer type, default is postscr
+
+                    elif data.find('Input data, first file') > -1:
+                        proc.stdin.write('%s\r\n' %(fname)) #Input data, first file. No default.
+
+                    elif data.find('Output file') > -1:
+                        proc.stdin.write('%s\r\n' %(outname)) #Output file, default is gnom.out
+
+                    elif data.find('No of start points to skip') > -1:
+                        if 's_skip' in args and args['s_skip'] != '':
+                            proc.stdin.write('%s\r\n' %(args['s_skip']))
+                        else:
+                            proc.stdin.write('\r\n') #Number of start points to skip, default is 0
+
+                    elif data.find('Input data, second file') > -1:
+                        proc.stdin.write('\r\n') #Input data, second file, default is none
+
+                    elif data.find('No of end points to omit') > -1:
+                        if 'e_skip' in args and args['e_skip'] != '':
+                            proc.stdin.write('%s\r\n' %(args['e_skip']))
+                        else:
+                            proc.stdin.write('\r\n') #Number of end poitns to omit, default is 0
+
+                    elif data.find('Default input errors level') > -1:
+                        proc.stdin.write('\r\n') #Default input errors level, default 0.0
+
+                    elif data.find('Angular scale') > -1:
+                        if 'angular' in args and args['angular'] != '':
+                            proc.stdin.write('%s\r\n' %(args['angular']))
+                        else:
+                            proc.stdin.write('\r\n') #Angular scale, default 1
+
+                    elif data.find('Plot input data') > -1:
+                        proc.stdin.write('n\r\n') #Plot input data, default yes
+
+                    elif data.find('File containing expert parameters') > -1:
+                        if 'expert' in args and args['expert'] != '':
+                            proc.stdin.write('%s\r\n' %(args['expert']))
+                        else:
+                            proc.stdin.write('\r\n') #File containing expert parameters, default none
+
+                    elif data.find('Kernel already calculated') > -1:
+                        proc.stdin.write('\r\n') #Kernel already calculated, default no
+
+                    elif data.find('Type of system') > -1:
+                        if 'system' in args and args['system'] != '':
+                            proc.stdin.write('%s\r\n' %(args['system']))
+                        else:
+                            proc.stdin.write('\r\n') #Type of system, default 0 (P(r) function)
+
+                    elif data.find('Zero condition at r=rmin') > -1:
+                        if 'rmin_zero' in args and args['rmin_zero'] != '':
+                            proc.stdin.write('%s\r\n' %(args['rmin_zero']))
+                        else:
+                            proc.stdin.write('\r\n') #Zero condition at r=rmin, default is yes
+
+                    elif data.find('Zero condition at r=rmax') > -1:
+                        if 'rmax_zero' in args and args['rmax_zero'] != '':
+                            proc.stdin.write('%s\r\n' %(args['rmax_zero']))
+                        else:
+                            proc.stdin.write('\r\n') #Zero condition at r=rmax, default is yes
+
+                    elif data.find('Rmax for evaluating p(r)') > -1:
+                        proc.stdin.write('%s\r\n' %(str(dmax))) #Rmax for evaluating p(r), no default (DMAX!)
+
+                    elif data.find('Number of points in real space') != 101:
+                        if 'npts' in args and args['npts'] != -1:
+                            proc.stdin.write('%s\r\n' %(str(args['npts'])))
+                        else:
+                            proc.stdin.write('\r\n') #Number of points in real space, default is 111
+
+                    elif data.find('Kernel-storage file name') > -1:
+                        proc.stdin.write('\r\n') #Kernal-storage file name, default is kern.bin
+
+                    elif data.find('Experimental setup') > -1:
+                        proc.stdin.write('\r\n') #Experimental setup, default is 0 (no smearing)
+
+                    elif data.find('Initial ALPHA') > -1:
+                        if 'alpha' in args and args['alpha'] != 0.0:
+                            proc.stdin.write('%s\r\n' %(str(args['alpha'])))
+                        else:
+                            proc.stdin.write('\r\n') #Initial ALPHA, default is 0.0
+
+                    elif data.find('Plot alpha distribution') > -1:
+                        proc.stdin.write('n\r\n') #Plot alpha distribution, default is yes
+
+                    elif data.find('Plot results') > -1:
+                        proc.stdin.write('n\r\n') #Plot results, default is no
+
+                    elif data.find('Your choice') > -1:
+                        proc.stdin.write('\r\n') #Choice when selecting one of the following options, CR for EXIT
+
+                    elif data.find('Evaluate errors') > -1:
+                        proc.stdin.write('\r\n') #Evaluate errors, default yes
+
+                    elif data.find('Plot p(r) with errors') > -1:
+                        proc.stdin.write('n\r\n') #Plot p(r) with errors, default yes
+
+                    elif data.find('Next data set') > -1:
+                        proc.stdin.write('\r\n') #Next data set, default no
+        
+
+        iftm=SASFileIO.loadOutFile(outname)[0]
+
+        if cfg:
+            try:
+                os.remove(os.path.join(datadir, 'gnom.cfg'))
+            except Exception as e:
+                print e
+                print 'GNOM cleanup failed to delete gnom.cfg!'
+
+        try:
+            os.remove(os.path.join(datadir, 'kern.bin'))
+        except Exception as e:
+            print e
+            print 'GNOM cleanup failed to delete kern.bin!'
+
+        # if os.path.isfile(outname):
+        #     try:
+        #         os.remove(outname)
+        #     except Exception, e:
+        #         print e
+        #         print 'GNOM cleanup failed!'
+
+        return iftm
+
+    else:
+        print 'Cannot find ATSAS'
+        raise SASExceptions.NoATSASError('Cannot find gnom.')
+        return None
+
+
+def runDatgnom(datname, sasm):
+    #This runs the ATSAS package DATGNOM program, to automatically find the Dmax and P(r) function 
+    #of a scattering profile.
+    analysis = sasm.getParameter('analysis')
+    if 'guinier' in analysis:
+        rg = float(analysis['guinier']['Rg'])
+    else:
+        rg = -1
+
+
+    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+    atsasDir = raw_settings.get('ATSASDir')
+
+    opsys = platform.system()
+
+    if opsys == 'Windows':
+        datgnomDir = os.path.join(atsasDir, 'datgnom.exe')
+    else:
+        datgnomDir = os.path.join(atsasDir, 'datgnom')
+    
+
+    if os.path.exists(datgnomDir):
+
+        outname = 't_datgnom.out'
+        while os.path.isfile(outname):
+            outname = 't'+outname
+
+        if rg <= 0:
+            process=subprocess.Popen('%s %s -o %s' %(datgnomDir, datname, outname), stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+        else:
+            process=subprocess.Popen('%s %s -o %s -r %f' %(datgnomDir, datname, outname, rg),stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+
+        output, error = process.communicate()
+
+        
+        if error == 'Cannot define Dmax' or error=='Could not find Rg':
+
+            if rg <= 0:
+                rg, rger, i0, i0er, idx_min, idx_max =autoRg(sasm.q, sasm.i, sasm.err)
+                if rg>0:
+                    process=subprocess.Popen('%s %s -o %s -r %f' %(datgnomDir, datname, outname, rg),stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+
+                    output, error = process.communicate()
+            else:
+                # print 'No Dmax found, trying datgnom without an rg input'
+                process=subprocess.Popen('%s %s -o %s' %(datgnomDir, datname, outname), stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+
+                output, error = process.communicate()
+
+
+
+        if error == 'Cannot define Dmax' or error=='Could not find Rg' or error=='No intensity values (positive) found' or error == 'LOADATF --E- No data lines recognized.':
+            # print 'Unable to run datgnom successfully'
+            datgnom_success = False
+        # elif error != None:
+        #     datgnom_success = False
+        else:
+            datgnom_success = True
+
+        # print 'DATGNOM output:'
+        # print output
+
+        if datgnom_success:
+            iftm=SASFileIO.loadOutFile(outname)[0]
+        else:
+            iftm = None
+
+        if os.path.isfile(outname):
+            try:
+                os.remove(outname)
+            except Exception, e:
+                print e
+                print 'DATGNOM cleanup failed to remove the .out file!'
+
+        return iftm
+
+    else:
+        print 'Cannot find ATSAS'
+        raise SASExceptions.NoATSASError('Cannot find datgnom.')
+
+
+def writeGnomCFG(fname, outname, dmax, args):
+    #This writes the GNOM CFG file, using the arguments passed into the function.
+    datadir = os.path.dirname(fname)
+
+    f = open(os.path.join(datadir, 'gnom.cfg'),'w')
+    
+    f.write('This line intentionally left blank\n')
+    f.write('PRINTER C [      postscr     ]  Printer type\n')
+    if 'form' in args and args['form'] != '':
+        f.write('FORFAC  C [         %s         ]  Form factor file (valid for JOB=2)\n' %s(args['form']))
+    else:
+        f.write('FORFAC  C [                  ]  Form factor file (valid for JOB=2)\n')
+    if 'expert' in args and args['expert'] != '':
+        f.write('EXPERT  C [     %s         ]  File containing expert parameters\n' %(args['expert']))
+    else:
+        f.write('EXPERT  C [     none         ]  File containing expert parameters\n')
+    f.write('INPUT1  C [        %s        ]  Input file name (first file)\n' %(fname))
+    f.write('INPUT2  C [       none       ]  Input file name (second file)\n')
+    f.write('NSKIP1  I [       0         ]  Number of initial points to skip\n')
+    f.write('NSKIP2  I [        0         ]  Number of final points to skip\n')
+    f.write('OUTPUT  C [       %s         ]  Output file\n' %(outname))
+    if 'angular' in args and args['angular'] != 1:
+        f.write('ISCALE  I [       %s         ]  Angular scale of input data\n' %(args['angular']))
+    else:
+        f.write('ISCALE  I [        1         ]  Angular scale of input data\n')
+    f.write('PLOINP  C [       n          ]  Plotting flag: input data (Y/N)\n')
+    f.write('PLORES  C [       n          ]  Plotting flag: results    (Y/N)\n')
+    f.write('EVAERR  C [       y          ]  Error flags: calculate errors   (Y/N)\n')
+    f.write('PLOERR  C [       n          ]  Plotting flag: p(r) with errors (Y/N)\n')
+    f.write('PLOALPH C [       n          ]  Plotting flag: alpha distribution (Y/N)\n')
+    f.write('LKERN   C [       n          ]  Kernel file status (Y/N)\n')
+    if 'system' in args and args['system'] != 0:
+        f.write('JOBTYP  I [       %s         ]  Type of system (0/1/2/3/4/5/6)\n' %(args['system']))
+    else:
+        f.write('JOBTYP  I [       0          ]  Type of system (0/1/2/3/4/5/6)\n')
+    if 'rmin' in args and args['rmin'] != -1:
+        f.write('RMIN    R [        %s         ]  Rmin for evaluating p(r)\n' %(args['rmin']))
+    else:
+        f.write('RMIN    R [                 ]  Rmin for evaluating p(r)\n')
+    f.write('RMAX    R [        %s        ]  Rmax for evaluating p(r)\n' %(str(dmax)))
+    if 'rmin_zero' in args and args['rmin_zero'] != '':
+        f.write('LZRMIN  C [      %s          ]  Zero condition at r=RMIN (Y/N)\n' %(args['rmin_zero']))
+    else:
+        f.write('LZRMIN  C [       Y          ]  Zero condition at r=RMIN (Y/N)\n')
+    if 'rmax_zero' in args and args['rmax_zero'] != '':
+        f.write('LZRMAX  C [      %s          ]  Zero condition at r=RMAX (Y/N)\n' %(args['rmax_zero']))
+    else:
+        f.write('LZRMAX  C [       Y          ]  Zero condition at r=RMAX (Y/N)\n')
+    f.write('KERNEL  C [       kern.bin   ]  Kernel-storage file\n')
+    f.write('DEVIAT  R [      0.0         ]  Default input errors level\n')
+    f.write('IDET    I [       0          ]  Experimental set up (0/1/2)\n')
+    f.write('FWHM1   R [       0.0        ]  FWHM for 1st run\n')
+    f.write('FWHM2   R [                  ]  FWHM for 2nd run\n')
+    f.write('AH1     R [                  ]  Slit-height parameter AH (first  run)\n')
+    f.write('LH1     R [                  ]  Slit-height parameter LH (first  run)\n')
+    f.write('AW1     R [                  ]  Slit-width  parameter AW (first  run)\n')
+    f.write('LW1     R [                  ]  Slit-width  parameter LW (first  run)\n')
+    f.write('AH2     R [                  ]  Slit-height parameter AH (second run)\n')
+    f.write('LH2     R [                  ]  Slit-height parameter LH (second run)\n')
+    f.write('AW2     R [                  ]  Slit-width  parameter AW (second run)\n')
+    f.write('LW2     R [                  ]  Slit-width  parameter LW (second run)\n')
+    f.write('SPOT1   C [                  ]  Beam profile file (first run)\n')
+    f.write('SPOT2   C [                  ]  Beam profile file (second run)\n')
+    if 'alpha' in args and args['alpha'] !=0.0:
+        f.write('ALPHA   R [      %s         ]  Initial ALPHA\n' %s(str(args['alpha'])))
+    else:
+        f.write('ALPHA   R [      0.0         ]  Initial ALPHA\n')
+    if 'npts' in args and args['npts'] !=101:
+        f.write('NREAL   R [       %s        ]  Number of points in real space\n' %(str(args['npts'])))
+    else:
+        f.write('NREAL   R [       101        ]  Number of points in real space\n')
+    f.write('COEF    R [                  ]\n')
+    if 'radius56' in args and args['radius56'] != -1:
+        f.write('RAD56   R [         %s         ]  Radius/thickness (valid for JOB=5,6)\n' %(args['radius56']))
+    else:
+        f.write('RAD56   R [                  ]  Radius/thickness (valid for JOB=5,6)\n')
+    f.write('NEXTJOB C [        n         ]\n')
+
+
+    f.close()
+
+
+def runDammif(fname, prefix, args):
+
+    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+    atsasDir = raw_settings.get('ATSASDir')
+
+    opsys = platform.system()
+
+    if opsys == 'Windows':
+        dammifDir = os.path.join(atsasDir, 'dammif.exe')
+    else:
+        dammifDir = os.path.join(atsasDir, 'dammif')
+    
+
+    if os.path.exists(dammifDir):
+        if args['mode'].lower() == 'fast' or args['mode'].lower() == 'slow':
+
+            command = '%s --quiet --mode=%s --prefix=%s --unit=%s --symmetry=%s --anisometry=%s' %(dammifDir, args['mode'], prefix, args['unit'], args['sym'], args['anisometry'])
+            if args['omitSolvent']:
+                command = command + ' --omit-solvent'
+            if args['chained']:
+                command = command + ' --chained'
+            if args['constant'] != '':
+                command = command + ' --constant=%s' %(args['constant'])
+
+            command = command + ' %s' %(fname)
+            
+            process=subprocess.Popen(command, shell= True)
+
+            return process
+
+        else:
+            #Solution for non-blocking reads adapted from stack overflow
+            #http://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
+            def enqueue_output(out, queue):
+                dammifRunning = False
+                line = 'test'
+                line2=''
+                while line != '' and not dammifRunning:
+                    line = out.read(1)
+                    line2+=line
+                    if line == ':':
+                        if line2.find('Log opened') > -1:
+                            dammifRunning = True
+                        queue.put_nowait([line2])
+                        line2=''
+
+            dammif_q = Queue.Queue()
+
+            dammifStarted = False
+
+            proc = subprocess.Popen('%s' %(dammifDir), shell = True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+            dammif_t = threading.Thread(target=enqueue_output, args=(proc.stdout, dammif_q))
+            dammif_t.daemon = True
+            dammif_t.start()
+            previous_line = ''
+
+            
+
+            while proc.poll() == None and not dammifStarted:
+                data = None
+                try: 
+                    data = dammif_q.get_nowait()
+                    data = data[0]
+                    # print 'New Line of Data!!!!!!!!!!!!!!!!!!!'
+                    # print data
+                    dammif_q.task_done()
+                    # err = q2.get_nowait()
+                    # print data[0],
+                    # print err
+                except Queue.Empty:
+                    pass
+
+                if data != None:
+                    current_line = data
+                    # print 'Previous line: %s' %(previous_line)
+                    if data.find('GNOM output file to read?') > -1:
+                        proc.stdin.write('%s\r\n' %(fname)) #Dammif input file, no default
+                   
+                    elif previous_line.find('nanometer') > -1:
+                        proc.stdin.write('%s\r\n' %(args['unit'])) #Dammif input file units, default unknown
+                    
+                    elif previous_line.find('Output file prefix?') > -1:
+                        proc.stdin.write('%s\r\n' %(prefix)) #Dammif output file prefix, default dammif
+                    
+                    elif previous_line.find('Omit output of solvent') > -1:
+                        if args['omitSolvent']:
+                            proc.stdin.write('%s\r\n' %('no')) #Omit solvent bead output file, default yes
+                        else:
+                            proc.stdin.write('\r\n')
+                    
+                    elif previous_line.find('Create pseudo chains') > -1:
+                        if args['chained']:
+                            proc.stdin.write('%s\r\n' %('yes')) #Make pseudo chains, default no
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif data.find('p1)') > -1:
+                        proc.stdin.write('%s\r\n' %(args['sym'])) #Particle symmetry, default P1
+
+                    elif previous_line.find('prolate, (o) oblate') > -1:
+                        proc.stdin.write('%s\r\n' %(args['anisometry'])) #Particle anisometry, default Unknown
+
+                    elif data.find('for automatic (default)') > -1:
+                        if args['constant'] != '':
+                            proc.stdin.write('%s\r\n' %(args['constant'])) #Subtract constant offset, default automatic
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif previous_line.find('(s) slow') > -1:
+                        proc.stdin.write('i\r\n') #Annealing setup, default slow
+
+                    elif previous_line.find('Maximum bead count') > -1:
+                        if args['maxBead'] > -1:
+                            proc.stdin.write('%i\r\n' %(args['maxBead'])) #Maximum beads to be used, default unlimited
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif previous_line.find('Dummy atom radius?') > -1:
+                        if args['radius'] > -1:
+                            proc.stdin.write('%f\r\n' %(args['radius'])) #Dummy atom radius, default 1.0
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif previous_line.find('Maximum number of spherical harmonics') > -1:
+                        if args['harmonics'] > -1:
+                            proc.stdin.write('%i\r\n' %(args['harmonics'])) #Maximum number of spherical harmonics to use (1-50), default 20
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif previous_line.find('Proportion of the curve to be fitted') > -1:
+                        if args['propFit'] > -1:
+                            proc.stdin.write('%f\r\n' %(args['propFit'])) #Proportion of curve to be fitted, default 1.00
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif data.find('emphasised porod)') > -1:
+                        if args['curveWeight'] != '':
+                            proc.stdin.write('%s\r\n' %(args['curveWeight'])) #Curve weighting function, default emphasised porod
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif previous_line.find('Initial random seed?') > -1:
+                        if args['seed'] != '':
+                            proc.stdin.write('%s\r\n' %(args['seed'])) #Initial random seed, default current time
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif previous_line.find('Maximum number of temperature steps') > -1:
+                        if args['maxSteps'] > -1:
+                            proc.stdin.write('%i\r\n' %(args['maxSteps'])) #Maximum number of temperature steps, default 200
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif previous_line.find('Minimum number of successes') > -1:
+                        if args['minSuccess'] > -1:
+                            proc.stdin.write('%i\r\n' %(args['minSuccess'])) #Minimum number of success per temperature step to continue, default 200
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif previous_line.find('Maximum number of iterations within a single temperature step?') > -1:
+                        if args['maxIters'] > -1:
+                            proc.stdin.write('%i\r\n' %(args['maxIters'])) #Maximum number of iterations per temperature step, default 200000
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif previous_line.find('is decreased?') > -1:
+                        if args['maxSuccess'] > -1:
+                            proc.stdin.write('%i\r\n' %(args['maxSuccess'])) #Maximum number of successes per T step, before T is decrease, defaul 20000
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif previous_line.find('Temperature schedule factor?') > -1:
+                        if args['TFactor'] > -1:
+                            proc.stdin.write('%f\r\n' %(args['TFactor'])) #Maximum number of successes per T step, before T is decrease, defaul 20000
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif previous_line.find('Rg penalty weight?') > -1:
+                        if args['RgWeight'] > -1:
+                            proc.stdin.write('%f\r\n' %(args['RgWeight'])) #Maximum number of successes per T step, before T is decrease, defaul 20000
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif previous_line.find('Center penalty weight?') > -1:
+                        if args['cenWeight'] > -1:
+                            proc.stdin.write('%f\r\n' %(args['cenWeight'])) #Maximum number of successes per T step, before T is decrease, defaul 20000
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif previous_line.find('Looseness penalty weight?') > -1:
+                        if args['looseWeight'] > -1:
+                            proc.stdin.write('%f\r\n' %(args['looseWeight'])) #Maximum number of successes per T step, before T is decrease, defaul 20000
+                        else:
+                            proc.stdin.write('\r\n')
+                    elif data.find('Log opened') > -1:
+                        dammifStarted = True
+
+                    previous_line = current_line
+
+            proc.stdout.close()
+            proc.stdin.close()
+
+            return proc
+    else:
+        print 'Cannot find ATSAS'
+        raise SASExceptions.NoATSASError('Cannot find dammif.')
+        return None
+
+
+def runDamaver(flist):
+
+    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+    atsasDir = raw_settings.get('ATSASDir')
+
+    opsys = platform.system()
+
+    if opsys == 'Windows':
+        damaverDir = os.path.join(atsasDir, 'damaver.exe')
+    else:
+        damaverDir = os.path.join(atsasDir, 'damaver')
+    
+
+    if os.path.exists(damaverDir):
+        command = '%s --automatic' %(damaverDir)
+
+        for item in flist:
+            command = command + ' %s' %(item)
+        
+        process=subprocess.Popen(command, shell= True, stdout = subprocess.PIPE)
+
+        return process
+
+def runAmbimeter(fname, prefix, args):
+    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+    atsasDir = raw_settings.get('ATSASDir')
+
+    opsys = platform.system()
+
+    if opsys == 'Windows':
+        ambimeterDir = os.path.join(atsasDir, 'ambimeter.exe')
+    else:
+        ambimeterDir = os.path.join(atsasDir, 'ambimeter')
+    
+
+    if os.path.exists(ambimeterDir):
+
+        command = '%s --srg=%s --prefix=%s --files=%s %s' %(ambimeterDir, args['sRg'], prefix, args['files'], fname)
+        process=subprocess.Popen(command, shell= True, stdout=subprocess.PIPE,stderr=subprocess.PIPE,)
+
+        output, error = process.communicate()
+        
+        lines = output.split('\n')
+        ambiCats = lines[0].split(':')[-1].strip()
+        ambiScore = lines[1].split(':')[-1].strip()
+        ambiEval = lines[2]
+
+        return ambiCats, ambiScore, ambiEval
+
+    else:
+        print 'Cannot find ATSAS'
+        raise SASExceptions.NoATSASError('Cannot find ambimeter.')
+        return None

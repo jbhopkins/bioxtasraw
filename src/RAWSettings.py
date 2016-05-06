@@ -121,22 +121,22 @@ class RawGuiSettings:
                             'AlphaPoints' : [16,     wx.NewId(), 'int'],
                             'PrPoints'    : [50,     wx.NewId(), 'int'],
              
-                            #DEFAULT GNOM PARAMETERS
-                            'gnomMaxAlpha'    : [60,   wx.NewId(), 'float'],
-                            'gnomMinAlpha'    : [0.01, wx.NewId(), 'float'],
-                            'gnomAlphaPoints' : [100,  wx.NewId(), 'int'],
-                            'gnomPrPoints'    : [50,   wx.NewId(), 'int'],
-                            'gnomFixInitZero' : [True, wx.NewId(), 'bool'],
+                            #DEFAULT pyGNOM PARAMETERS
+                            'pygnomMaxAlpha'    : [60,   wx.NewId(), 'float'],
+                            'pygnomMinAlpha'    : [0.01, wx.NewId(), 'float'],
+                            'pygnomAlphaPoints' : [100,  wx.NewId(), 'int'],
+                            'pygnomPrPoints'    : [50,   wx.NewId(), 'int'],
+                            'pygnomFixInitZero' : [True, wx.NewId(), 'bool'],
              
-                            'OSCILLweight'    : [3.0, wx.NewId(), 'float'],
-                            'VALCENweight'    : [1.0, wx.NewId(), 'float'],
-                            'POSITVweight'    : [1.0, wx.NewId(), 'float'],
-                            'SYSDEVweight'    : [3.0, wx.NewId(), 'float'],
-                            'STABILweight'    : [3.0, wx.NewId(), 'float'],
-                            'DISCRPweight'    : [1.0, wx.NewId(), 'float'],
+                            'pyOSCILLweight'    : [3.0, wx.NewId(), 'float'],
+                            'pyVALCENweight'    : [1.0, wx.NewId(), 'float'],
+                            'pyPOSITVweight'    : [1.0, wx.NewId(), 'float'],
+                            'pySYSDEVweight'    : [3.0, wx.NewId(), 'float'],
+                            'pySTABILweight'    : [3.0, wx.NewId(), 'float'],
+                            'pyDISCRPweight'    : [1.0, wx.NewId(), 'float'],
              
                             #DEFAULT IFT PARAMETERS:
-                            'IFTAlgoList'        : [['BIFT', 'GNOM']],
+                            'IFTAlgoList'        : [['BIFT', 'pyGNOM']],
                             'IFTAlgoChoice'      : [['BIFT']],
              
                             #ARTIFACT REMOVAL:
@@ -234,7 +234,50 @@ class RawGuiSettings:
                             'CurrentFilePath'     : [None],
                             
                             
-                            'DatHeaderOnTop'      : [False, wx.NewId(), 'bool']
+                            'DatHeaderOnTop'      : [False, wx.NewId(), 'bool'],
+
+                            #ATSAS settings:
+                            'autoFindATSAS'       : [True, wx.NewId(), 'bool'],
+                            'ATSASDir'            : ['', wx.NewId(), 'bool'],
+
+                            #GNOM settings
+                            'gnomExpertFile'      : ['', wx.NewId(), 'text'],
+                            'gnomForceRminZero'   : ['Y', wx.NewId(), 'choice'],
+                            'gnomForceRmaxZero'   : ['Y', wx.NewId(), 'choice'],
+                            'gnomNPoints'         : [101, wx.NewId(), 'int'],
+                            'gnomInitialAlpha'    : [0.0, wx.NewId(), 'float'],
+                            'gnomAngularScale'    : [1, wx.NewId(), 'int'],
+                            'gnomSystem'          : [0, wx.NewId(), 'int'],
+                            'gnomFormFactor'      : ['', wx.NewId(), 'text'],
+                            'gnomRadius56'        : [-1, wx.NewId(), 'float'],
+                            'gnomRmin'            : [-1, wx.NewId(), 'float'],
+
+                            #DAMMIF settings
+                            'dammifMode'          : ['Fast', wx.NewId(), 'choice'],
+                            'dammifSymmetry'      : ['P1', wx.NewId(), 'choice'],
+                            'dammifAnisometry'    : ['Unknown', wx.NewId(), 'choice'],
+                            'dammifUnit'          : ['Unknown', wx.NewId(), 'choice'],
+                            'dammifChained'       : [False, wx.NewId(), 'bool'],
+                            'dammifConstant'      : ['', wx.NewId(), 'text'],
+                            'dammifOmitSolvent'   : [True, wx.NewId(), 'bool'],
+                            'dammifDummyRadius'   : [-1, wx.NewId(), 'float'],
+                            'dammifSH'            : [-1, wx.NewId(), 'int'],
+                            'dammifPropToFit'     : [-1, wx.NewId(), 'float'],
+                            'dammifKnots'         : [-1, wx.NewId(), 'int'],
+                            'dammifCurveWeight'   : ['e', wx.NewId(), 'choice'],
+                            'dammifRandomSeed'    : ['', wx.NewId(), 'text'],
+                            'dammifMaxSteps'      : [-1, wx.NewId(), 'int'],
+                            'dammifMaxIters'      : [-1, wx.NewId(), 'int'],
+                            'dammifMaxStepSuccess': [-1, wx.NewId(), 'int'],
+                            'dammifMinStepSuccess': [-1, wx.NewId(), 'int'],
+                            'dammifTFactor'       : [-1, wx.NewId(), 'float'],
+                            'dammifRgPen'         : [-1, wx.NewId(), 'float'],
+                            'dammifCenPen'        : [-1, wx.NewId(), 'float'],
+                            'dammifLoosePen'      : [-1, wx.NewId(), 'float'],
+                            'dammifAnisPen'       : [-1, wx.NewId(), 'float'],
+                            'dammifMaxBeadCount'  : [-1, wx.NewId(), 'int'],
+                            'dammifReconstruct'   : [15, wx.NewId(), 'int'],
+                            'dammifDamaver'       : [True, wx.NewId(), 'bool']
                             
                             }
     
@@ -280,7 +323,7 @@ def loadSettings(raw_settings, loadpath):
         if each_key in all_params:
             all_params[each_key][0] = copy.copy(loaded_param[each_key])
         else:
-            print 'ERROR: ' + str(each_key) + " not found in RAWSettings."  
+            print 'WARNING: ' + str(each_key) + " not found in RAWSettings."  
     
     main_frame = wx.FindWindowByName('MainFrame')
     main_frame.queueTaskInWorkerThread('recreate_all_masks', None)

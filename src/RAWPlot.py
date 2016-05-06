@@ -1612,7 +1612,7 @@ class PlotPanel(wx.Panel):
             line, ec, el = a.errorbar(numpy.power(sasm.q[q_min:q_max],2), sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
         elif type == 'porod':
             line, ec, el = a.errorbar(sasm.q[q_min:q_max], numpy.power(sasm.q[q_min:q_max],4)*sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
-	
+    
         # print legend_label
         line.set_label(legend_label)        
 
@@ -2141,27 +2141,1014 @@ class IftPlotPanel(PlotPanel):
     
     def __init__(self, parent, id, name, *args, **kwargs):
         
-        PlotPanel.__init__(self, parent, id, name,*args, **kwargs)
+        wx.Panel.__init__(self, parent, id, *args, name = name, **kwargs)
 
-                        
-        self.subplot_labels = { 'subtracted'  : ('Fit', '$q$', '$I(q)$'),
-                                'kratky'      : ('Kratky', 'q [1/A]', 'I(q)q^2'),
-                                'porod'       : ('Porod', 'q [1/A]', 'I(q)q^4'),
-                                'guinier'     : ('Guinier', 'q^2 [1/A^2]', 'ln(I(q)'),
+        self._initFigure()
+        
+        self.toolbar = CustomPlotToolbar(self, self.canvas)
+        
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.canvas, 1, wx.LEFT | wx.TOP | wx.GROW)
+        sizer.Add(self.toolbar, 0, wx.GROW)
+        
+        #color = parent.GetThemeBackgroundColour()
+        self.SetSizer(sizer)
+        #self._setColor(color)
+         
+        # Variables for the plotted experiments:
+        self.legend_names = []
+        self.plotted_iftms = []
+        
+        self.selected_line = None
+        self.selected_line_orig_width = 1
+        self._plot_shown = 0
+        
+        #Timer to automatically restore line width after selection
+        self.blink_timer = wx.Timer()
+        self.blink_timer.Bind(wx.EVT_TIMER, self._onBlinkTimer)
+        
+        self.plotparams = {'axesscale1'          : 'linlin',
+                                    'axesscale2'          : 'linlin',
+                                    'plot1type'           : 'normal',
+                                    'plot2type'           : 'subtracted',
+                                    'plot1state'          : 'linlin',
+                                    'errorbars_on'        : False,
+                                    'autoLegendPos'       : True,
+                                    'subplot1_legend_pos' : None,
+                                    'subplot2_legend_pos' : None,
+                                    'legend_position'     : (0.5,0.5),
+                                    'legend_visible_1'    : False,
+                                    'legend_visible_2'    : False,
+                                    'legend_fontsize1'    : 10,
+                                    'legend_border1'      : False,
+                                    'legend_fontsize2'    : 10,
+                                    'legend_border2'      : False,
+                                    'legend_alpha1'       : 0.7,
+                                    'legend_alpha2'       : 0.7,
+                                    'legend_shadow1'      : False,
+                                    'legend_shadow2'      : False,
+                                    'plot_custom_labels1' : False,
+                                    'plot_custom_labels2' : False,
+                                    'auto_fitaxes1'        : True,
+                                    'auto_fitaxes2'        : True,
+                                    'framestyle1'          : 'lb',
+                                    'framestyle2'          : 'lb',
+                                    
+                                    'title_fontsize1'       : 16,
+                                    'xlabel_fontsize1'      : 15,
+                                    'ylabel_fontsize1'      : 15,
+                                    
+                                    'title_fontsize2'       : 16,
+                                    'xlabel_fontsize2'      : 15,
+                                    'ylabel_fontsize2'      : 15,
+
+                                    'title_font1'           : 'Bitstream Vera Sans',
+                                    'xlabel_font1'          : 'Bitstream Vera Sans',
+                                    'ylabel_font1'          : 'Bitstream Vera Sans',
+                                    
+                                    'title_font2'           : 'Bitstream Vera Sans',
+                                    'xlabel_font2'          : 'Bitstream Vera Sans',
+                                    'ylabel_font2'          : 'Bitstream Vera Sans',
+                                    'legend_font'           : 'Bitstream Vera Sans',
+                                    'zero_line1'            : False,
+                                    'zero_line2'            : False}
+                                    
+        self.frame_styles = ['Full', 'XY', 'X', 'Y', 'None']
+        
+        self.subplot_labels = { 'subtracted'  : ('Data/Fit', '$q$', '$I(q)$'),
+                                'kratky'      : ('Kratky', '$q$ [1/A]', '$I(q)q^2$'),
+                                'porod'       : ('Porod', '$q$ [1/A]', '$I(q)q^4$'),
+                                'guinier'     : ('Guinier', '$q^2$ [1/A^2]', '$\ln(I(q)$'),
                                 'normal'      : ('Pair Distance Distribution Function', '$r$', '$P(r)$')}
         
         self.default_subplot_labels = { 'subtracted'  : ('Fit', '$q$', '$I(q)$'),
-                                'kratky'      : ('Kratky', 'q [1/A]', 'I(q)q^2'),
-                                'porod'       : ('Porod', 'q [1/A]', 'I(q)q^4'),
-                                'guinier'     : ('Guinier', 'q^2 [1/A^2]', 'ln(I(q)'),
-                                'normal'        : ('Pair Distance Distribution Function', '$r$', '$P(r)$')}
+                                        'kratky'      : ('Kratky', 'q [1/A]', 'I(q)q^2'),
+                                        'porod'       : ('Porod', 'q [1/A]', 'I(q)q^4'),
+                                        'guinier'     : ('Guinier', 'q^2 [1/A^2]', 'ln(I(q)'),
+                                        'normal'      : ('Pair Distance Distribution Function', '$r$', '$P(r)$')}
         
+        self.save_parameters ={'dpi' : 100,
+                               'format' : 'png'}
         
-       
-   
         self._setLabels(axes = self.subplot1)
         self._setLabels(axes = self.subplot2)
         
+        self._updateFrameStylesForAllPlots()
+        
+        self.canvas.callbacks.connect('pick_event', self._onPickEvent)
+        self.canvas.callbacks.connect('key_press_event', self._onKeyPressEvent)
+        self.canvas.callbacks.connect('motion_notify_event', self._onMouseMotionEvent)
+        self.canvas.callbacks.connect('button_release_event', self._onMouseButtonReleaseEvent)
+        self.canvas.callbacks.connect('scroll_event', self._onMouseScrollEvent)
+        
+        self._canvas_cursor = Cursor(self.subplot1, useblit=True, color='red', linewidth=1, linestyle ='--' )
+        self._canvas_cursor.horizOn = False
+
+        
+    def _initFigure(self):
+        self.fig = matplotlib.figure.Figure((5,4), 75)        
+        self.subplot1 = self.fig.add_subplot(211)
+        self.subplot2 = self.fig.add_subplot(212)
+
+        self.fig.subplots_adjust(left = 0.14, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
+        self.fig.set_facecolor('white')
+              
+        self.canvas = MyFigureCanvasWxAgg(self, -1, self.fig)
+        self.canvas.SetBackgroundColour('white')
+        
+    def setParameter(self, param, value):
+        self.plotparams[param] = value
+        
+    def getParameter(self, param):
+        return self.plotparams[param]
+    
+    
+    def _updateFrameStylesForAllPlots(self):
+        try:
+            self.updateFrameStyle(axes = self.subplot1)
+            self.updateFrameStyle(axes = self.subplot2)
+        except Exception, e:
+            print 'Possibly too old matplotlib version: ' + str(e)
+            pass
+    def updateFrameStyle(self, axes):
+        if axes == self.subplot1:
+            plotnum = '1'
+        else:
+            plotnum = '2'
+        
+        style = self.plotparams['framestyle' + plotnum]
+        
+        self.setFrameStyle(axes, style)
+    
+    def setFrameStyle(self, axes, style):
+
+        # if axes == self.subplot1:
+        #     plotnum = '1'
+        # else:
+        #     plotnum = '2'
+        
+        # print style
+
+        if style.find('l')>-1:
+            axes.spines['left'].set_color('black')
+            axes.tick_params(left='on', which = 'both')
+        else:
+            axes.spines['left'].set_color('none')
+            axes.tick_params(left='off', which = 'both')
+        if style.find('r')>-1:
+            axes.spines['right'].set_color('black')
+            axes.tick_params(right='on', which = 'both')
+        else:
+            axes.spines['right'].set_color('none')
+            axes.tick_params(right='off', which = 'both')
+        if style.find('t')>-1:
+            axes.spines['top'].set_color('black')
+            axes.tick_params(top='on', which = 'both')
+        else:
+            axes.spines['top'].set_color('none')
+            axes.tick_params(top='off', which = 'both')
+        if style.find('b')>-1:
+            axes.spines['bottom'].set_color('black')
+            axes.tick_params(bottom='on', which = 'both')
+        else:
+            axes.spines['bottom'].set_color('none')
+            axes.tick_params(bottom='off', which = 'both')
+            
+        # self.plotparams['framestyle' + plotnum] == style
+        
+            
+    def fitAxis(self, axes = None, forced = False):
+        
+        if axes:
+            plots = axes
+        else:
+            plots = [self.subplot1, self.subplot2]
+        
+        for eachsubplot in plots:
+            if eachsubplot.lines:
+                
+                maxq = None
+                maxi = None
+            
+                minq = None
+                mini = None
+                
+                if eachsubplot == self.subplot1:
+                    plotnum = '1'
+                else:
+                    plotnum = '2'
+                
+                if self.plotparams['auto_fitaxes' + plotnum] == False and forced == False:
+                    print 'Not fitting axes due to plot settings'
+                    try:
+                        self.canvas.draw()
+                    except ValueError, e:
+                        print 'ValueError in fitaxis() : ' + str(e)
+                    return
+                        
+                for each in eachsubplot.lines:
+                    if each._label != '_nolegend_' and each._label != '_zero_' and each.get_visible() == True:
+                        
+                        if maxq == None:
+                            maxq = max(each.get_xdata())
+                            maxi = max(each.get_ydata())
+            
+                            minq = min(each.get_xdata())
+                            mini = min(each.get_ydata())
+                                
+                        xmax = max(each.get_xdata())
+                        ymax = max(each.get_ydata())
+            
+                        xmin = min(each.get_xdata())
+                        ymin = min(each.get_ydata())
+                   
+                        if xmax > maxq:
+                            maxq = xmax
+                        if xmin < minq:
+                            minq = xmin
+                        if ymax > maxi:
+                            maxi = ymax
+                        if ymin < mini:
+                            mini = ymin
+                            
+                eachsubplot.set_ylim(mini, maxi)
+                eachsubplot.set_xlim(minq, maxq)
+
+                # self.updateFrameStyle(eachsubplot)
+        
+        try:
+            self.canvas.draw()
+        except ValueError, e:
+            print 'ValueError in fitaxis() : ' + str(e)
+            
+        
+    def _onBlinkTimer(self, event):
+     
+        try:
+            self.selected_line.set_linewidth(self.selected_line_orig_width)
+            self.canvas.draw()
+        except:
+            pass    
+       
+        self.selected_line = None
+        self.blink_timer.Stop()
+        
+    def _onPickEvent(self, event):
+        
+        mouseevent = event.mouseevent
+        if mouseevent.button == 'up' or mouseevent.button == 'down':
+            return
+        
+                
+        self.manipulation_panel = wx.FindWindowByName('ManipulationPanel')
+
+        if self.selected_line != None:
+            self.selected_line.set_linewidth(self.selected_line_orig_width)
+        
+        self.selected_line = event.artist
+        
+        try:
+            self.selected_line_orig_width = self.selected_line.get_linewidth()
+            self.selected_line.set_linewidth(self.selected_line_orig_width + 2)
+        except AttributeError:
+            self.selected_line = None
+            return
+                
+        wx.CallAfter(self.manipulation_panel.deselectAllExceptOne, None, self.selected_line)
+        self.canvas.draw()
+        
+        self.blink_timer.Start(500)
+        
+    def _onKeyPressEvent(self, event):
+        pass
+    
+    
+    def _onMouseScrollEvent(self, event):
+        
+        return
+        
+        x_size,y_size = self.canvas.get_width_height()
+        half_y = y_size / 2
+        
+        if self._plot_shown == 1:
+            selected_plot = 1
+        elif self._plot_shown == 2:
+            selected_plot = 2
+        elif event.y <= half_y:
+            selected_plot = 2
+        else:
+            selected_plot = 1
+        
+        if selected_plot == 1:
+            ax = self.subplot1
+        else:
+            ax = self.subplot2
+
+        cur_xlim = ax.get_xlim()
+        cur_ylim = ax.get_ylim()
+#        
+        cur_xrange = (cur_xlim[1] - cur_xlim[0])
+        cur_yrange = (cur_ylim[1] - cur_ylim[0])
+#        
+        xdata = event.xdata # get event x location
+        ydata = event.ydata # get event y location
+        
+        if event.button == 'up':
+            # zoom in
+            scale_factor = 1.15
+        elif event.button == 'down':
+            # zoom out
+            scale_factor = 0.85
+        else:
+            # deal with something that should never happen
+            scale_factor = 1
+            print event.button
+
+        # MOVE AXIS
+        zx_pix, zy_pix = ax.transAxes.transform((0,0))
+        cx_pix, cy_pix = ax.transAxes.transform((0.5,0.5))
+        
+        #try:
+        
+        #mx_pix, my_pix = ax.transData.transform((xdata, ydata))
+        
+        xy = numpy.array([(xdata,ydata), (xdata, ydata)])
+        
+        mx_pix, my_pix = ax.transData.transform(xy)
+        mx_pix = mx_pix[0]
+        my_pix = my_pix[1]
+        #except Exception, e:
+        #    print 'Err in onMousescroll :'
+        #    print e
+        #    print xdata, ydata
+        #    return
+            
+         
+        dx = cx_pix - mx_pix
+        dy = cy_pix - my_pix
+         
+        dist = numpy.sqrt(numpy.power(abs(dx),2)+numpy.power(abs(dy),2))
+        
+        step = 0.15
+        new_dist = dist * step   #step = 0..1
+         
+        tanA = abs(dy) / abs(dx)
+        A = numpy.arctan(tanA)
+        
+        new_dx = numpy.cos(A) * new_dist
+        new_dy = tanA * new_dx
+        
+        zdx = zx_pix + new_dx
+        zdy = zy_pix + new_dy
+        
+        inv = ax.transData.inverted()
+        
+        
+        zxdata, zydata = inv.transform((zx_pix, zy_pix))
+        
+        
+        zstpx, zstpy = inv.transform((zdx, zdy))
+        
+        
+        dx_move = zstpx - zxdata
+        dy_move = zstpy - zydata
+    
+        
+        if dx >= 0:
+            newxmin = cur_xlim[0] - dx_move
+            newxmax = cur_xlim[1] - dx_move
+        if dx < 0:
+            newxmin = cur_xlim[0] + dx_move
+            newxmax = cur_xlim[1] + dx_move
+        
+        try:
+            newxlim = (newxmin, newxmax)
+        except UnboundLocalError:
+            return
+        
+        if dy >= 0:
+            newymin = cur_ylim[0] - dy_move
+            newymax = cur_ylim[1] - dy_move
+        if dy < 0:
+            newymin = cur_ylim[0] + dy_move
+            newymax = cur_ylim[1] + dy_move
+            
+        newylim = (newymin, newymax)
+            
+        
+        #ZOOM
+        cur_xrange = (cur_xlim[1] - cur_xlim[0])
+        cur_yrange = (cur_ylim[1] - cur_ylim[0])
+         
+        new_xrange = scale_factor * cur_xrange
+        new_yrange = scale_factor * cur_yrange
+        
+        dxrange = cur_xrange - new_xrange
+        dyrange = cur_yrange - new_yrange
+        
+        xmin, xmax = newxlim
+        newxlim_zoom = (xmin - (dxrange/2.0), xmax + (dxrange/2.0))
+        
+        ymin,ymax = newylim
+        newylim_zoom = (ymin - (dyrange/2.0), ymax + (dyrange/2.0))
+         
+        ax.set_xlim(newxlim_zoom)
+        ax.set_ylim(newylim_zoom)
+        
+        self.canvas.draw() # force re-draw
+        
+    
+    # def _onMouseMotionEvent(self, event):
+  
+    #     if event.inaxes:
+    #         x, y = event.xdata, event.ydata
+    #         wx.FindWindowByName('MainFrame').SetStatusText('q = ' +  str(round(x,5)) + ', I = ' + str(round(y,5)), 1) 
+                
+    def _onMouseButtonReleaseEvent(self, event):
+        ''' Find out where the mouse button was released
+        and show a pop up menu to change the settings
+        of the figure the mouse was over '''
+        
+        x_size,y_size = self.canvas.get_width_height()
+        half_y = y_size / 2
+        
+        if self._plot_shown == 1:
+            selected_plot = 1
+        elif self._plot_shown == 2:
+            selected_plot = 2
+        elif event.y <= half_y:
+            selected_plot = 2
+        else:
+            selected_plot = 1
+            
+        if event.button == 3:
+            
+            if float(matplotlib.__version__[:3]) >= 1.2:
+                if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
+                    self._showPopupMenu(selected_plot)
+            else:
+                if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
+                    self._showPopupMenu(selected_plot)
+
+#--- ** Popup Menu ***
+
+    def movePlots(self, sasm_list, to_axes):
+        
+        axesThatNeedsUpdatedLegend = []
+        
+        for each in sasm_list:
+            if each.axes != toAxes:
+                plotpanel = each.plotPanel
+      
+                each.line.remove()
+                each.errLine[0][0].remove()
+                each.errLine[0][1].remove()
+                each.errLine[1][0].remove()
+                
+                if not each.axes in axesThatNeedsUpdatedLegend:
+                    axesThatNeedsUpdatedLegend.append(each.axes)
+                
+                plotpanel.PlotExperimentObject(each, axes = toAxes, addToPlottedExps = False)
+                
+        for eachaxes in axesThatNeedsUpdatedLegend:
+            plotpanel._insertLegend(axes = eachaxes)                
+        
+        if axesThatNeedsUpdatedLegend:
+            plotpanel.canvas.draw()
+        
+        
+    def showErrorbars(self, state):
+        
+        for each in self.plotted_iftms:
+            
+            if each.r_line.get_visible():
+                for each_err_line in each.r_err_line[0]:
+                    each_err_line.set_visible(state)  
+                    
+                for each_err_line in each.r_err_line[1]:
+                    each_err_line.set_visible(state)
+    
+                    
+                if state == True:
+                    #Update errorbar positions
+                    
+                    q_min, q_max = each.getQrange()
+                    q = each.r
+                    i = each.p
+                    
+                    caplines = each.r_err_line[0]
+                    barlinecols = each.r_err_line[1]
+                    
+                    yerr = each.err
+                    x = q
+                    y = i                                  
+                    
+                    # Find the ending points of the errorbars 
+                    error_positions = (x, y-yerr), (x, y+yerr) 
+
+                    # Update the caplines 
+                    for i,pos in enumerate(error_positions): 
+                        caplines[i].set_data(pos) 
+
+                    # Update the error bars 
+                    barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr))) 
+
+
+            if each.qo_line.get_visible():
+                for each_err_line in each.qo_err_line[0]:
+                    each_err_line.set_visible(state)  
+                    
+                for each_err_line in each.qo_err_line[1]:
+                    each_err_line.set_visible(state)
+    
+                    
+                if state == True:
+                    #Update errorbar positions
+                    
+                    q_min, q_max = each.getQrange()
+                    q = each.q_orig
+                    i = each.i_orig
+                    
+                    caplines = each.qo_err_line[0]
+                    barlinecols = each.qo_err_line[1]
+                    
+                    yerr = each.err_orig
+                    x = q
+                    y = i                                  
+                    
+                    # Find the ending points of the errorbars 
+                    error_positions = (x, y-yerr), (x, y+yerr) 
+
+                    # Update the caplines 
+                    for i,pos in enumerate(error_positions): 
+                        caplines[i].set_data(pos) 
+
+                    # Update the error bars 
+                    barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr)))
+                    
+            
+        self.canvas.draw()
+                        
+    def _showPopupMenu(self, selected_plot):
+        
+        self.selected_plot = selected_plot
+        
+        mainframe = wx.FindWindowByName('MainFrame')
+    
+        MenuIDs = mainframe.MenuIDs
+        menu = wx.Menu()
+            
+        # plot1SubMenu = self._createPopupAxesMenu('1')
+        plot2SubMenu = self._createPopupAxesMenu('2')
+            
+        if selected_plot == 2:
+            menu.AppendSubMenu(plot2SubMenu, 'Axes')
+
+            sep = menu.AppendSeparator()
+        #legend_item = menu.AppendCheckItem(wx.NewId(), 'Show Legend')
+        #autofitaxes_item = menu.AppendCheckItem(wx.NewId(), 'Auto axes limits')
+        #sep = menu.AppendSeparator()
+        #legend_options = menu.Append(wx.NewId(), 'Legend Options...')
+        plot_options = menu.Append(wx.NewId(), 'Plot Options...')
+        
+       # if self.plotparams['legend_visible'+ '_' + str(selected_plot)]:
+       #     legend_item.Check()
+            
+        #if self.plotparams['auto_fitaxes' + str(selected_plot)]:
+        #    autofitaxes_item.Check()
+            
+        self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
+        #self.Bind(wx.EVT_MENU, self._onToggleLegend, legend_item)
+        #self.Bind(wx.EVT_MENU, self._onAutofitaxesMenuChoice, autofitaxes_item)
+        
+        #self.Bind(wx.EVT_MENU, self._onLegendOptions, legend_options)
+        self.Bind(wx.EVT_MENU, self._onPlotOptions, plot_options) 
+            
+        
+        self.PopupMenu(menu)
+    
+    def _onPlotOptions(self, evt):
+        if self.selected_plot == 1:
+            axes = self.subplot1
+        else:
+            axes = self.subplot2
+        
+        dlg = PlotOptionsDialog(self, self.plotparams, axes)
+        dlg.ShowModal()
+        dlg.Destroy()
+            
+    def _onLegendOptions(self, evt):
+        dlg = LegendOptionsDialog(self, self.plotparams, self.selected_plot)
+        dlg.ShowModal()
+        dlg.Destroy()
+        
+        self.updateLegend(self.selected_plot)
+        
+    def _onPopupMenuChoice(self, evt):
+        mainframe = wx.FindWindowByName('MainFrame')
+        MenuIDs = mainframe.getMenuIds()
+        id = evt.GetId()
+
+        for key in MenuIDs.iterkeys():
+            if MenuIDs[key] == id:
+
+                if key[4] == '1':
+                    
+                    if key[5:7] == 'ty':
+                        self.plotparams['plot1type'] = key[7:]
+                        self.updatePlotType(self.subplot1)
+                        
+                        if key[7:] == 'guinier':
+                            self.plotparams['axesscale1'] = 'loglin'
+                        else:
+                            self.plotparams['axesscale1'] = 'linlin'
+                        
+                        self.updatePlotAxes()
+                        print '1'
+                    else:
+                        self.plotparams['axesscale1'] = key[7:]
+                        self.plotparams['plot1type'] = 'normal'
+                        self.updatePlotType(self.subplot1)
+                        self.updatePlotAxes()
+                        print '2'
+                else:
+                    if key[5:7] == 'ty':
+                        self.plotparams['plot2type'] = key[7:]
+                        self.updatePlotType(self.subplot2)
+                        
+                        if key[7:] == 'guinier':
+                            self.plotparams['axesscale2'] = 'loglin'
+                        else:
+                            self.plotparams['axesscale2'] = 'linlin'
+                        self.updatePlotAxes()
+                        
+                        print '3'
+     
+                    else:
+                        self.plotparams['axesscale2'] = key[7:]
+                        self.plotparams['plot2type'] = 'subtracted'
+                        self.updatePlotType(self.subplot2)
+                        try:
+                            self.updatePlotAxes()
+                        except ValueError, e:
+                            print e
+                        print '4'
+
+        #Update plot settings in menu bar:                        
+        mainframe.setViewMenuScale(id)
+        #evt.Skip()
+    
+    def _onAutofitaxesMenuChoice(self, evt):
+        plotnum = self.selected_plot
+        
+        self.plotparams['auto_fitaxes' + str(plotnum)] = not self.plotparams['auto_fitaxes' + str(plotnum)]
+    
+    def _onToggleLegend(self, event):
+        plotnum = self.selected_plot
+        
+        self.plotparams['legend_visible' + '_' + str(plotnum)] = not self.plotparams['legend_visible' + '_' + str(plotnum)]
+        
+        
+        if self.selected_plot == 1:
+            a = self.subplot1
+        else:
+            a = self.subplot2
+        
+        if self.plotparams['legend_visible' + '_' + str(plotnum)]:
+            #self._insertLegend(a)
+            a.get_legend().set_visible(True)
+        else:
+            a.get_legend().set_visible(False)
+            #a.legend_ = None
+            
+            self.canvas.draw()
+
+    def _createPopupAxesMenu(self, plot_number):
+        
+        mainframe = wx.FindWindowByName('MainFrame')
+        MenuIDs = mainframe.getMenuIds()
+        item_list = []
+        pop_menu = wx.Menu()
+        
+        axes_list = [('sclinlin',    'Lin-Lin'),
+                         ('scloglin',    'Log-Lin'),
+                         ('scloglog',   'Log-Log'),
+                         ('sclinlog',    'Lin-Log'),
+                         ('tyguinier',  'Guinier'),
+                         ('tykratky',   'Kratky'),
+                         ('typorod',   'Porod') ]
+        
+        for key, label in axes_list:
+            item = pop_menu.AppendRadioItem(MenuIDs['plot' + plot_number + key], label)
+            item_list.append(item)
+            
+        self._markCurrentAxesSelection(item_list, plot_number)
+        
+        return pop_menu 
+    
+    def _markCurrentAxesSelection(self, item_list, plot_number):
+        ''' Set the current axes selection on the newly created
+           popup menu ''' 
+        
+        if self.plotparams['plot' + plot_number + 'type'] == 'normal' or self.plotparams['plot' + plot_number + 'type'] == 'subtracted':
+        
+            if self.plotparams['axesscale' + plot_number + ''] == 'loglog':
+                item_list[2].Check(True)
+            elif self.plotparams['axesscale' + plot_number + ''] == 'linlog':
+                item_list[3].Check(True)
+            elif self.plotparams['axesscale' + plot_number + ''] == 'loglin':
+                item_list[1].Check(True)
+            elif self.plotparams['axesscale' + plot_number + ''] == 'linlin':
+                item_list[0].Check(True)
+        
+        else:
+            if self.plotparams['plot' + plot_number + 'type'] == 'guinier':
+                item_list[4].Check(True)
+            elif self.plotparams['plot' + plot_number + 'type'] == 'kratky':
+                item_list[5].Check(True)
+            elif self.plotparams['plot' + plot_number + 'type'] == 'porod':
+                item_list[6].Check(True)
+                
+    def updatePlotType(self, axes):
+                
+        for each in self.plotted_iftms:
+            
+            q_min, q_max = each.getQrange()
+
+            c = '2'
+                                                
+            if self.plotparams['plot' + c + 'type'] == 'kratky':
+                each.qo_line.set_ydata(each.i_orig[q_min:q_max] * numpy.power(each.q_orig[q_min:q_max],2))
+                each.qo_line.set_xdata(each.q_orig[q_min:q_max]) 
+
+                each.qf_line.set_ydata(each.i_fit[q_min:q_max] * numpy.power(each.q_orig[q_min:q_max],2))
+                each.qf_line.set_xdata(each.q_orig[q_min:q_max]) 
+
+            elif self.plotparams['plot' + c + 'type'] == 'guinier':
+                each.qo_line.set_ydata(each.i_orig[q_min:q_max])
+                each.qo_line.set_xdata(numpy.power(each.q_orig[q_min:q_max],2))
+
+                each.qf_line.set_ydata(each.i_fit[q_min:q_max])
+                each.qf_line.set_xdata(numpy.power(each.q_orig[q_min:q_max],2))
+
+            elif self.plotparams['plot' + c + 'type'] == 'porod':
+                each.qo_line.set_ydata(numpy.power(each.q_orig[q_min:q_max],4)*each.i_orig[q_min:q_max])
+                each.qo_line.set_xdata(each.q_orig[q_min:q_max])
+
+                each.qf_line.set_ydata(numpy.power(each.q_orig[q_min:q_max],4)*each.i_fit[q_min:q_max])
+                each.qf_line.set_xdata(each.q_orig[q_min:q_max])
+
+            elif self.plotparams['plot' + c + 'type'] == 'normal' or self.plotparams['plot' + c+ 'type'] == 'subtracted':
+                each.qo_line.set_ydata(each.i_orig[q_min:q_max])
+                each.qo_line.set_xdata(each.q_orig[q_min:q_max])
+
+                each.qf_line.set_ydata(each.i_fit[q_min:q_max])
+                each.qf_line.set_xdata(each.q_orig[q_min:q_max])
+        
+        # self._setLabels(axes = self.subplot1)
+        self._setLabels(axes = self.subplot2)
+            
+        self.fitAxis()
+        
+        self.canvas.draw()
+        print 'done type'
+        
+    def updatePlotAxes(self):
+        
+        axes = [self.subplot1, self.subplot2]
+            
+        for a in axes:
+            
+            if a == self.subplot1:
+                c = 1
+            elif a == self.subplot2:
+                c = 2
+            
+            if self.plotparams.get('axesscale' + str(c)) == 'linlin':
+                a.set_xscale('linear')
+                a.set_yscale('linear')
+                    
+            if self.plotparams.get('axesscale'+ str(c)) == 'loglin':
+                a.set_xscale('linear')
+                
+                a.set_ylim(1, 99999)
+                a.set_yscale('log')
+                a.set_ylim(1, 99999)
+                #a.limit_range_for_scale(1, 99999)
+    
+            if self.plotparams.get('axesscale'+ str(c)) == 'loglog':
+                a.set_xscale('log')
+                a.set_yscale('log')
+                
+            if self.plotparams.get('axesscale'+ str(c)) == 'linlog':
+                a.set_xscale('log')
+                a.set_yscale('linear')
+        
+        self.fitAxis()         
+
+        self.canvas.draw()
+        print 'done Axes'
+        
+    def updatePlotAfterManipulation(self, sasm_list):
+        
+        for sasm in sasm_list:
+            a = sasm.axes
+        
+            if a == self.subplot1:
+                type = self.plotparams.get('plot1type')
+            elif a == self.subplot2:  
+                type = self.plotparams.get('plot2type')
+              
+            q_min, q_max = sasm.getQrange()
+            q = sasm.q[q_min:q_max]
+            i = sasm.i[q_min:q_max]
+              
+            if type == 'normal' or type == 'subtracted':
+                #line, ec, el = a.errorbar(sasm.q, sasm.i, sasm.errorbars, picker = 3)
+                sasm.line.set_data(q, i)
+                
+#                q = sasm.q
+#                i = sasm.i
+#                    
+#                caplines = sasm.err_line[0]
+#                barlinecols = sasm.err_line[1]
+#                    
+#                yerr = sasm.err
+#                x = q
+#                y = i                                  
+#                    
+#                # Find the ending points of the errorbars 
+#                error_positions = (x, y-yerr), (x, y+yerr) 
+#
+#                # Update the caplines 
+#                for i,pos in enumerate(error_positions): 
+#                    caplines[i].set_data(pos) 
+#
+#                # Update the error bars 
+#                barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr))) 
+            
+            elif type == 'kratky':
+                #line, ec, el = a.errorbar(sasm.q, sasm.i*power(sasm.q,2), sasm.errorbars, picker = 3)
+                sasm.line.set_data(q, i*numpy.power(q,2))
+            elif type == 'guinier':
+                #line, ec, el = a.errorbar(power(sasm.q,2), sasm.i, sasm.errorbars, picker = 3)
+                sasm.line.set_data(numpy.power(q,2), i)
+            elif type == 'porod':
+                #line, ec, el = a.errorbar(sasm.q, power(sasm.q,4)*sasm.i, sasm.errorbars, picker = 3)
+                sasm.line.set_data(q, numpy.power(q,4)*i)
+        
+        self.canvas.draw()
+    
+    
+    def clearPlot(self, plot_num):
+        
+        if plot_num == 1:
+            self.subplot1.cla()
+            self._setLabels(axes = self.subplot1)
+        elif plot_num == 2:
+            self.subplot2.cla()
+            self._setLabels(axes = self.subplot2)
+    
+        self.updatePlotAxes()
+    
+        self.canvas.draw()
+        
+    def clearAllPlots(self):
+
+        self.subplot1.cla()
+        self.subplot2.cla()
+        
+        self.plotted_iftms = []
+        
+        self.updatePlotAxes()
+        
+        self._updateFrameStylesForAllPlots()
+        
+        self._setLabels(axes = self.subplot1)
+        self._setLabels(axes = self.subplot2)
+
+        is_zline1 = self.plotparams['zero_line1']
+        is_zline2 = self.plotparams['zero_line2']
+
+        if is_zline1:
+            axes = self.subplot1
+            zero = axes.axhline(color='k')
+            zero.set_label('_zero_')
+
+        if is_zline2:
+            axes = self.subplot2
+            zero = axes.axhline(color='k')
+            zero.set_label('_zero_')
+
+        self.canvas.draw()
+                
+    def _setLabels(self, sasm = None, title = None, xlabel = None, ylabel = None, axes = None):
+        
+        if axes == None:
+            a = self.fig.gca()
+        else:
+            a = axes
+        
+        # Set labels
+        if title == None:
+            if a == self.subplot1:
+                plottype = self.plotparams['plot1type']
+                a.title.set_text(self.subplot_labels[plottype][0])
+                a.yaxis.get_label().set_text(self.subplot_labels[plottype][2])
+                a.yaxis.get_label().set_size(self.plotparams['ylabel_fontsize2'])
+                a.xaxis.get_label().set_text(self.subplot_labels[plottype][1])
+                a.xaxis.get_label().set_size(self.plotparams['xlabel_fontsize2'])
+                           
+            elif a == self.subplot2:
+                plottype = self.plotparams['plot2type']
+                a.title.set_text(self.subplot_labels[plottype][0])
+                a.yaxis.get_label().set_text(self.subplot_labels[plottype][2])
+                a.yaxis.get_label().set_size(self.plotparams['ylabel_fontsize2'])
+                a.xaxis.get_label().set_text(self.subplot_labels[plottype][1])
+                a.xaxis.get_label().set_size(self.plotparams['xlabel_fontsize2'])         
+        else:
+            a.title.set_text(title)
+    
+    def updateLegend(self, plotnum):
+        axes = plotnum
+
+        print plotnum
+        
+        if plotnum == 1:
+            axes = self.subplot1
+        if plotnum == 2:
+            axes = self.subplot2
+        if plotnum == self.subplot1:
+            plotnum = 1
+        if plotnum == self.subplot2:
+            plotnum = 2
+              
+        if self.plotparams['legend_visible' + '_' + str(plotnum)]:
+            leg = axes.legend_ = None
+            self._insertLegend(axes)
+    
+    def _insertLegend(self, axes):
+        ####################################################################
+        # NB!! LEGEND IS THE BIG SPEED HOG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        ###################################################################
+        a = axes
+        
+        if axes.lines:
+            legend_lines = []
+            legend_labels = []
+            
+            for each_line in axes.lines:
+                if each_line.get_visible() == True and each_line.get_label() != '_zero_' and each_line.get_label() != '_nolegend_' and each_line.get_label() != '_line1':
+                    legend_lines.append(each_line)
+                    legend_labels.append(each_line.get_label())
+            
+            if not legend_lines:
+                return
+            
+            if axes == self.subplot1:
+                fontsize = self.plotparams['legend_fontsize1']
+                enable_border = self.plotparams['legend_border1']
+                alpha = self.plotparams['legend_alpha1']
+                leg_visible = self.plotparams['legend_visible_1']
+            else:
+                fontsize = self.plotparams['legend_fontsize2']
+                enable_border =  self.plotparams['legend_border2']
+                alpha = self.plotparams['legend_alpha2']
+                leg_visible = self.plotparams['legend_visible_2']
+            
+            leg = a.legend(legend_lines, legend_labels, prop = fm.FontProperties(size = fontsize), fancybox = True)
+            leg.get_frame().set_alpha(alpha)
+
+            if leg_visible:
+                leg.set_visible(True)
+            else:
+                leg.set_visible(False)
+            
+            if not enable_border:
+                #leg.draw_frame(False)
+                leg.get_frame().set_linewidth(0)
+            else:
+                leg.get_frame().set_linewidth(1)
+                
+            try:
+                leg.draggable()   #Interferes with the scroll zoom!
+            except AttributeError:
+                print "WARNING: Old matplotlib version, legend not draggable"
+   
+        #legend = RAWCustomCtrl.DraggableLegend(leg, self.subplot1)
+  
+        self.canvas.draw()
+    
+    def _setColor(self, rgbtuple):
+        """Set figure and canvas colours to be the same"""
+        if not rgbtuple:
+             rgbtuple = wx.SystemSettings.GetColour(wx.SYS_COLOUR_BTNFACE).Get()
+       
+        col = [c/255.0 for c in rgbtuple]
+        self.fig.set_facecolor(col)
+        self.fig.set_edgecolor(col)
+        self.canvas.SetBackgroundColour(wx.Colour(*rgbtuple))
+
     
     def plotFit(self, sasm, color = None, legend_label_in = None, *args, **kwargs):
         self.clearPlot(2)
@@ -2208,71 +3195,109 @@ class IftPlotPanel(PlotPanel):
         
         self.fitAxis()
         
-    def plotSASM(self, sasm, axes_no = 1, color = None, legend_label_in = None, *args, **kwargs):
+    def plotIFTM(self, iftm, legend_label_in = None, line_data = None, *args, **kwargs):
         
-        if axes_no == 1:
-            a = self.subplot1
-        elif axes_no == 2:
-            a = self.subplot2
-        else:
-            a = axes_no
+        a1 = self.subplot1
+        a2 = self.subplot2
         
-        #plot with errorbars
-        if a == self.subplot1:
-            type = self.plotparams.get('plot1type')
-        elif a == self.subplot2:  
-            type = self.plotparams.get('plot2type')
+        type1 = self.plotparams.get('plot1type') 
+        type2 = self.plotparams.get('plot2type')
         
-        q_min, q_max = sasm.getQrange()
+        q_min, q_max = iftm.getQrange()
         
         if legend_label_in == None:
-            legend_label = sasm.getParameter('filename')
+            legend_label = iftm.getParameter('filename')
         else:
             legend_label = legend_label_in
         
-        if type == 'normal' or type == 'subtracted':
-            line, ec, el = a.errorbar(sasm.q[q_min:q_max], sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label, **kwargs)
-        elif type == 'kratky':
-            line, ec, el = a.errorbar(sasm.q[q_min:q_max], sasm.i[q_min:q_max] * numpy.power(sasm.q,2), sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
-        elif type == 'guinier':
-            line, ec, el = a.errorbar(numpy.power(sasm.q[q_min:q_max],2), sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
-        elif type == 'porod':
-            line, ec, el = a.errorbar(sasm.q[q_min:q_max], numpy.power(sasm.q[q_min:q_max],4)*sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
+        if type1 == 'normal' or type1 == 'subtracted':
+            pr_line, pr_ec, pr_el = a1.errorbar(iftm.r, iftm.p, iftm.err, picker = 3, label = legend_label+'_P(r)', **kwargs)
         
+        pr_line.set_label(legend_label)
+
+        if type2 == 'normal' or type2 == 'subtracted':
+            orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig[q_min:q_max], iftm.i_orig[q_min:q_max], iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp', **kwargs)
+        elif type2 == 'kratky':
+            orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig[q_min:q_max], iftm.i_orig[q_min:q_max] * numpy.power(iftm.q_orig[q_min:q_max],2), iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp',**kwargs)
+        elif type2 == 'guinier':
+            orig_line, orig_ec, orig_el = a2.errorbar(numpy.power(iftm.q_orig[q_min:q_max],2), iftm.i_orig[q_min:q_max], iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp',**kwargs)
+        elif type2 == 'porod':
+            orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig[q_min:q_max], numpy.power(iftm.q_orig[q_min:q_max],4)*iftm.i_orig[q_min:q_max], iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp',**kwargs)
+
+        orig_line.set_label(legend_label+'_Exp')
+
+
+        if type2 == 'normal' or type2 == 'subtracted':
+            fit_line = a2.plot(iftm.q_orig[q_min:q_max], iftm.i_fit[q_min:q_max], picker = 3, label = legend_label+'_Fit', **kwargs)
+        elif type2 == 'kratky':
+            fit_line = a2.plot(iftm.q_orig[q_min:q_max], iftm.i_fit[q_min:q_max] * numpy.power(iftm.q_orig[q_min:q_max],2), picker = 3, label = legend_label+'_Fit',**kwargs)
+        elif type2 == 'guinier':
+            fit_line = a2.plot(numpy.power(iftm.q_orig[q_min:q_max],2), iftm.i_fit[q_min:q_max], picker = 3, label = legend_label+'_Fit',**kwargs)
+        elif type2 == 'porod':
+            fit_line = a2.plot(iftm.q_orig[q_min:q_max], numpy.power(iftm.q_orig[q_min:q_max],4)*iftm.i_fit[q_min:q_max], picker = 3, label = legend_label+'_Fit',**kwargs)
         # print legend_label
-        line.set_label(legend_label) 
+        # line.set_label(legend_label) 
 
         #Hide errorbars:
         if self.plotparams['errorbars_on'] == False:
-            for each in ec:
+            for each in pr_ec:
                 each.set_visible(False)
                 
-            for each in el:
+            for each in pr_el:
                 each.set_visible(False)
-            
-        if color != None:
-            line.set_color(color)
-            
-        sasm.line = line
-        sasm.err_line = (ec, el)
-        sasm.axes = a
-        sasm.canvas = self.canvas
-        sasm.plot_panel = self
-        sasm.is_plotted = True
+
+            for each in orig_ec:
+                each.set_visible(False)
                 
-        self.plotted_sasms.append(sasm)        # Insert the plot into plotted experiments list
+            for each in orig_el:
+                each.set_visible(False)
         
+        iftm.r_line = pr_line
+        iftm.qo_line = orig_line
+        iftm.qf_line = fit_line[0]
+
+        iftm.r_err_line = (pr_ec, pr_el)
+        iftm.qo_err_line = (orig_ec, orig_el)
+
+        iftm.r_axes = a1
+        iftm.qo_axes = a2
+        iftm.qf_axes = a2
+
+        iftm.plot_panel = self
+
+        iftm.canvas = self.canvas
         
-        #Plot fit:
-        self.plotFit(sasm, color = color, legend_label_in = legend_label_in)
+        iftm.is_plotted = True
+                
+        self.plotted_iftms.append(iftm)        # Insert the plot into plotted experiments list
         
+        if line_data != None:
+            pr_line.set_linewidth(line_data['r_line_width'])
+            pr_line.set_linestyle(line_data['r_line_style'])
+            pr_line.set_color(line_data['r_line_color'])
+            pr_line.set_marker(line_data['r_line_marker'])
+            pr_line.set_visible(line_data['r_line_visible'])
+
+            orig_line.set_linewidth(line_data['qo_line_width'])
+            orig_line.set_linestyle(line_data['qo_line_style'])
+            orig_line.set_color(line_data['qo_line_color'])
+            orig_line.set_marker(line_data['qo_line_marker'])
+            orig_line.set_visible(line_data['qo_line_visible'])
+
+            fit_line[0].set_linewidth(line_data['qf_line_width'])
+            fit_line[0].set_linestyle(line_data['qf_line_style'])
+            fit_line[0].set_color(line_data['qf_line_color'])
+            fit_line[0].set_marker(line_data['qf_line_marker'])
+            fit_line[0].set_visible(line_data['qf_line_visible'])
         
     def _onMouseMotionEvent(self, event):
   
-        if event.inaxes:
+        if event.inaxes == self.subplot1:
             x, y = event.xdata, event.ydata
             wx.FindWindowByName('MainFrame').SetStatusText('r = ' +  str(round(x,5)) + ', P(r) = ' + str(round(y,5)), 1) 
-        
+        elif event.inaxes == self.subplot2:
+            x, y = event.xdata, event.ydata
+            wx.FindWindowByName('MainFrame').SetStatusText('q = ' +  str(round(x,5)) + ', I(q) = ' + str(round(y,5)), 1) 
         
 class FigureSavePanel(wx.Panel):
     #def __init__(self, parent, plotparams, axes, *args, **kwargs):

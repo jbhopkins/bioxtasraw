@@ -7,7 +7,7 @@ Created on Jul 11, 2010
 import xml.etree.ElementTree as ET
 import RAWGlobals, SASImage, SASM, SASIft, SASExceptions
 import numpy as np
-import os, sys, re, cPickle, time, binascii, struct, json
+import os, sys, re, cPickle, time, binascii, struct, json, copy
 # import SASMarHeaderReader, packc_ext
 import SASMarHeaderReader #Attempting to remove the reliance on compiled packages. Switchin Mar345 reading to fabio.
 
@@ -1293,7 +1293,8 @@ def loadFile(filename, raw_settings, no_processing = False):
         sasm = loadAsciiFile(filename, file_type)
         img = None
     
-    SASM.postProcessSasm(sasm, raw_settings)
+    if type(sasm) != list:
+        SASM.postProcessSasm(sasm, raw_settings)
     
     if file_type == 'image' and no_processing == False:
             SASM.postProcessImageSasm(sasm, raw_settings)
@@ -1304,11 +1305,10 @@ def loadFile(filename, raw_settings, no_processing = False):
     return sasm, img
 
 def loadAsciiFile(filename, file_type):
-    
     ascii_formats = {'rad'        : loadRadFile,
                      'new_rad'    : loadNewRadFile,
                      'primus'     : loadPrimusDatFile,
-                     'bift'       : loadBiftFile,
+                     # 'bift'       : loadBiftFile, #'ift' is used instead
                      '2col'       : load2ColFile,
                      'int'        : loadIntFile,
                      'fit'        : loadFitFile,
@@ -1324,7 +1324,7 @@ def loadAsciiFile(filename, file_type):
     if ascii_formats.has_key(file_type):
         sasm = ascii_formats[file_type](filename)
     
-    if sasm != None:
+    if sasm != None and file_type != 'ift' and file_type != 'out':
         if type(sasm) != list and len(sasm.i) == 0:
             sasm = None
             
@@ -1425,89 +1425,150 @@ def loadImageFile(filename, raw_settings):
 
 
 def loadOutFile(filename):
-    p = []
-    r = []
-    err = []
+    #Loads GNOM .out files into IFTM objects
+    qfull = []
+    qshort = []
+    Jexp = []
+    Jerr  = []
+    Jreg = []
+    Ireg = []
 
-    q = []
-    i = []
-    ierr = []
-    fit = []
+    R = []
+    P = []
+    Perr = []
 
-    f = open(filename)
+    fline = open(filename).readlines()
+
+    outfile = copy.copy(fline)
+    
+    i = 0
+    
+    while (i < len(fline)):
+        if (fline[i].find('The measure of inconsistency AN1 equals to') > -1): 
+            tmp = fline[i].split()
+            AN1 = float(tmp[7])
+            break 
+        i = i + 1
         
-    parameters = {'filename' : os.path.split(filename)[1],
-                  'counters' : {}}
-    
-    path_noext, ext = os.path.splitext(filename)
-    
-    fitfound = False
-    prfound = False 
-    skip_line = True
-    for line in f.readlines():
-        if not fitfound and line.split() == ['S', 'J', 'EXP', 'ERROR', 'J', 'REG', 'I', 'REG']:
-            fitfound = True
+    while (i < len(fline)):
+        if (fline[i].find('Current') > -1): 
+            tmp = fline[i].split()
+            Actual_DISCRP = float(tmp[1])
+            Actual_OSCILL = float(tmp[2])
+            Actual_STABIL = float(tmp[3])
+            Actual_SYSDEV = float(tmp[4])
+            Actual_POSITV = float(tmp[5])
+            Actual_VALCEN = float(tmp[6])
+            break
+        i = i + 1
 
-        elif fitfound:
-            if skip_line:
-                skip_line = False
-                continue
+    while (i < len(fline)):
+        if (fline[i].find('Total  estimate') > -1): 
+            tmp = fline[i].split()
+            TE_out = float(tmp[3])
+            quality = ' '.join(tmp[6:])
+            break
+        i = i + 1
+
             
-            sp_line = line.split()
-            sp_len = len(sp_line)
-            print sp_line
-            print sp_len
-            if sp_len == 2:
-                q.append(float(sp_line[0]))
-                fit.append(float(sp_line[1]))
-                i.append(0)
-                ierr.append(float(sp_line[1])*0.01)
-            elif sp_len == 5:
-                q.append(float(sp_line[0]))
-                fit.append(float(sp_line[4]))
-                i.append(float(sp_line[1]))
-                ierr.append(float(sp_line[2]))
-            elif sp_len == 0:
-                fitfound = False
-                
-        elif not fitfound and line.split() == ['R', 'P(R)', 'ERROR']:
-            prfound = True
+    while (i < len(fline)):
+        if (fline[i].find('S          J EXP       ERROR       J REG       I REG') > -1): break 
+        i = i + 1
+
+    i = i + 2
+      
+# extract experimental and fitted profiles
+      
+    while (i < len(fline)):
+          
+        tmp = fline[i].split()
+          
+        if (len(tmp) == 2):
+            qfull.append(float(tmp[0]))
+            Ireg.append(float(tmp[1]))
+        elif (len(tmp)==5):
+            qfull.append(float(tmp[0]))
+            qshort.append(float(tmp[0]))
+            Jexp.append(float(tmp[1]))
+            Jerr.append(float(tmp[2]))
+            Jreg.append(float(tmp[3]))
+            Ireg.append(float(tmp[4]))
+        else: 
+            break
         
-        elif prfound and len(line.split()) == 3:
-            sp_line = line.split()
-            r.append(float(sp_line[0]))
-            p.append(float(sp_line[1]))
-            err.append(float(sp_line[2]))
+        i = i + 1
+          
+# now search for P(r)
+          
+    i = i + 6
+          
+    while (i < len(fline)):
+              
+        tmp = fline[i].split()
             
-            
-    fit_parameters = {'filename'  : os.path.split(path_noext)[1] + '_FIT',
-                      'counters' : {}}
-                    
-    parameters_orig = {'filename' : os.path.split(filename)[1] + '_ORIG',
-                        'counters' : {}}
-                        
-    parameters_ift = {'filename' : os.path.split(filename)[1] + '_IFT',
-                        'counters' : {}}
-    
-    # print i
-    # print q
-    # print ierr
-    i = np.array(i)
-    q = np.array(q)
-    ierr = np.array(ierr)
-    
-    fit = np.array(fit)
-    fit_sasm = SASM.SASM(fit, np.copy(q), np.copy(ierr), fit_parameters)
+        if (len(tmp) == 3):
+            R.append(float(tmp[0]))
+            P.append(float(tmp[1]))
+            Perr.append(float(tmp[2]))
+        else: 
+            break
+        
+        i = i + 1
 
-    sasm = SASM.SASM(i, q, ierr, parameters_orig)
-    
-    p = np.array(p)
-    r = np.array(r)
-    err = np.array(err)
-    
-    ift_sasm = SASM.SASM(p, r, err, parameters_ift)
+    i = i + 1
+    tmp = fline[i].split()
+    if len(tmp)==12:
+        Rg_out = float(tmp[4])
+        rger = float(tmp[6])
+        I0=float(tmp[9])
+        I0er=float(tmp[11])
 
-    return [ift_sasm, sasm, fit_sasm]
+    else:
+        tmp=fline[i]
+        Rg_out=float(tmp[tmp.find('=')+1:tmp.find('+-')])
+        if tmp[tmp.find('+-')+2:tmp.find('I(0)')].startswith('**'):
+            rger=-1
+        else:
+            rger=float(tmp[tmp.find('+-')+2:tmp.find('I(0)')])
+        index1=tmp.find('I(0)')
+        tmp2=tmp[index1:]
+        I0=float(tmp2[tmp2.find('=')+1:tmp2.find('+-')])
+        I0er=float(tmp2[tmp2.find('+-')+2:])
+
+    # Output variables not in the results file:
+    # 'r'         : R,            #R, note R[-1] == Dmax
+    #             'p'         : P,            #P(r)
+    #             'perr'      : Perr,         #P(r) error
+    #             'qlong'     : qfull,        #q down to q=0
+    #             'qexp'      : qshort,       #experimental q range
+    #             'jexp'      : Jexp,         #Experimental intensities
+    #             'jerr'      : Jerr,         #Experimental errors
+    #             'jreg'      : Jreg,         #Experimental intensities from P(r)
+    #             'ireg'      : Ireg,         #Experimental intensities extrapolated to q=0
+
+    name = os.path.basename(filename)
+
+    results = { 'dmax'      : R[-1],        #Dmax
+                'TE'        : TE_out,       #Total estimate
+                'rg'        : Rg_out,       #Real space Rg
+                'rger'      : rger,         #Real space rg error
+                'i0'        : I0,           #Real space I0
+                'i0er'      : I0er,         #Real space I0 error,
+                'out'       : outfile,      #Full contents of the outfile, for writing later
+                'quality'   : quality,      #Quality of GNOM out file
+                'chisq'     : Actual_DISCRP,#DISCRIP, chi squared
+                'oscil'     : Actual_OSCILL,#Oscillation of solution
+                'stabil'    : Actual_STABIL,#Stability of solution
+                'sysdev'    : Actual_SYSDEV,#Systematic deviation of solution
+                'positv'    : Actual_POSITV,#Relative norm of the positive part of P(r)
+                'valcen'    : Actual_VALCEN,#Validity of the chosen interval in real space
+                'filename'  : name,         #GNOM filename
+                'algorithm' : 'GNOM'        #Lets us know what algorithm was used to find the IFT
+                    }
+
+    iftm = SASM.IFTM(P, R, Perr, Jexp, qshort, Jerr, Jreg, results, Ireg, qfull)
+
+    return [iftm]
 
 
 def loadSECFile(filename):
@@ -1608,6 +1669,7 @@ def loadSECFile(filename):
 
 
 def loadIftFile(filename):
+    #Loads RAW BIFT .ift files into IFTM objects
     iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*$')
     three_col_fit = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*$')
     
@@ -1617,8 +1679,8 @@ def loadIftFile(filename):
 
     f = open(filename)
         
-    parameters = {'filename' : os.path.split(filename)[1],
-                  'counters' : {}}
+    # parameters = {'filename' : os.path.split(filename)[1],
+    #               'counters' : {}}
     
     path_noext, ext = os.path.splitext(filename)
     
@@ -1645,12 +1707,12 @@ def loadIftFile(filename):
     r = np.array(r)
     err = np.array(err)
     
-    sasm = SASM.SASM(p, r, err, parameters)
+    # sasm = SASM.SASM(p, r, err, parameters)
    
     ######################### LOAD FIT ###########################
     i = []
     q = []
-    err = []
+    err_orig = []
     fit = []
 
     sasm_orig = None
@@ -1658,13 +1720,13 @@ def loadIftFile(filename):
 
     f = open(filename)
     
-    parameters_orig = {'filename' : os.path.split(filename)[1] + '_ORIG',
-                      'counters' : {}}
+    # parameters_orig = {'filename' : os.path.split(filename)[1] + '_ORIG',
+    #                   'counters' : {}}
     
-    parameters_fit = {'filename' : os.path.split(filename)[1] + '_FIT',
-                      'counters' : {}}
+    # parameters_fit = {'filename' : os.path.split(filename)[1] + '_FIT',
+    #                   'counters' : {}}
     
-    path_noext, ext = os.path.splitext(filename)
+    # path_noext, ext = os.path.splitext(filename)
     
     try:  
         for line in f:
@@ -1677,20 +1739,20 @@ def loadIftFile(filename):
 
                 q.append(float(found[0]))
                 i.append(float(found[1]))
-                err.append(float(found[2]))
+                err_orig.append(float(found[2]))
                 fit.append(float(found[3]))
                 
         
         i = np.array(i)
         q = np.array(q)
-        err = np.array(err)
+        err_orig = np.array(err_orig)
         fit = np.array(fit)
     
-        orig_sasm = SASM.SASM(i, q, err, parameters_orig)
-        fit_sasm = SASM.SASM(fit, q, err, parameters_fit)
+        # orig_sasm = SASM.SASM(i, q, err, parameters_orig)
+        # fit_sasm = SASM.SASM(fit, q, err, parameters_fit)
     
-        parameters['orig_sasm'] = orig_sasm
-        parameters['fit_sasm'] = fit_sasm
+        # parameters['orig_sasm'] = orig_sasm
+        # parameters['fit_sasm'] = fit_sasm
     except Exception, e:
         print 'No fit data found, or error loading fit data'
         print e
@@ -1698,8 +1760,35 @@ def loadIftFile(filename):
     finally:
         f.close()
 
+
+    #Check to see if there is any header from RAW, and if so get that.
+    f = open(filename)
+    all_lines = f.readlines()
+    f.close()
+    header = []
+    for j in range(len(all_lines)):
+        if '### HEADER:' in all_lines[j]:
+            header = all_lines[j+1:]
+
+    hdict = None
+
+    if len(header)>0:
+        hdr_str = ''
+        for each_line in header:
+            hdr_str=hdr_str+each_line
+        try:
+            hdict = dict(json.loads(hdr_str))
+            print 'Loading RAW info/analysis...'
+        except Exception, e:
+            print 'Unable to load header/analysis information. Maybe the file was not generated by RAW or was generated by an old version of RAW?'
+            hdict = {}
+
+    parameters = hdict
+    parameters['filename'] = os.path.split(filename)[1]
+
+    iftm = SASM.IFTM(p, r, err, i, q, err_orig, fit, parameters)
     
-    return [sasm]
+    return [iftm]
     
     
 def loadFitFile(filename):
@@ -1820,9 +1909,26 @@ def loadPrimusDatFile(filename):
     fileHeader = {'comment':firstLine}
     parameters = {'filename' : os.path.split(filename)[1],
                   'counters' : fileHeader}
+
+    lines = f.readlines()
+
+    f.close()
+
+    if lines[1].find('model_intensity') > -1:
+        #FoXS file with a fit! has four data columns
+        is_foxs_fit=True
+        comment = firstLine+'\n'+lines[0]+lines[1]
+        parameters['comment']=comment
+        lines = lines[2:]
+        imodel = []
+
+    else:
+        is_foxs_fit = False
     
-    try:
-        for line in f:
+    
+    for line in lines:
+
+        if not is_foxs_fit:
 
             iq_match = iq_pattern.match(line)
 
@@ -1832,9 +1938,16 @@ def loadPrimusDatFile(filename):
                 q.append(float(found[0]))
                 i.append(float(found[1]))
                 err.append(float(found[2]))
+        else:
+            found = line.split()
+            q.append(float(found[0]))
+            i.append(float(found[1]))
+            imodel.append(float(found[2]))
+            err.append(float(found[3]))
 
-    finally:
-        f.close()
+
+
+
 
     #Check to see if there is any header from RAW, and if so get that.
     f = open(filename)
@@ -1855,7 +1968,7 @@ def loadPrimusDatFile(filename):
             hdict = dict(json.loads(hdr_str))
             print 'Loading RAW info/analysis...'
         except Exception, e:
-            print 'Unable to load header/analysis information. Maybe the file was not generated by RAW or was generated by an old version of RAW?'
+            # print 'Unable to load header/analysis information. Maybe the file was not generated by RAW or was generated by an old version of RAW?'
             hdict = {}
 
         
@@ -1866,9 +1979,18 @@ def loadPrimusDatFile(filename):
 
     if hdict:
         for each in hdict.iterkeys():
-            parameters[each] = hdict[each]
+            if each != 'filename':
+                parameters[each] = hdict[each]
    
     sasm = SASM.SASM(i, q, err, parameters)
+
+    if is_foxs_fit:
+        parameters2 = copy.copy(parameters)
+        parameters2['filename'] = os.path.splitext(os.path.split(filename)[1])[0]+'_FIT'
+
+        sasm_model = SASM.SASM(imodel,q,err,parameters2)
+
+        return [sasm, sasm_model]
    
     return sasm
 
@@ -2122,98 +2244,98 @@ def load2ColFile(filename):
     return SASM.SASM(i, q, err, parameters)
 
 
-def loadBiftFile(filename):
+# def loadBiftFile(filename):
     
-    iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+[+-]*\d*[.]\d*[+Ee-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*\n')
-    param_pattern = re.compile('[a-zA-Z0-9_]*\s*[:]\s+.*')
+#     iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+[+-]*\d*[.]\d*[+Ee-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*\n')
+#     param_pattern = re.compile('[a-zA-Z0-9_]*\s*[:]\s+.*')
     
-    bift_param_pattern = re.compile('\s\s\s[a-zA-Z0-9_]*\s*[:]\s+.*')
+#     bift_param_pattern = re.compile('\s\s\s[a-zA-Z0-9_]*\s*[:]\s+.*')
     
-    iq_orig_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*\n')
+#     iq_orig_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*\n')
 
-    i = []
-    q = []
-    err = []
+#     i = []
+#     q = []
+#     err = []
     
-    i_orig = []
-    q_orig = []
-    err_orig = []
-    fit = []
-    d = {}
-    allData = {}
+#     i_orig = []
+#     q_orig = []
+#     err_orig = []
+#     fit = []
+#     d = {}
+#     allData = {}
      
 
-    f = open(filename)
+#     f = open(filename)
     
-    try:
-        for line in f:
+#     try:
+#         for line in f:
 
-            iq_match = iq_pattern.match(line)
-            param_match = param_pattern.match(line)
-            iq_orig_match = iq_orig_pattern.match(line)
-            bift_param_match = bift_param_pattern.match(line)
+#             iq_match = iq_pattern.match(line)
+#             param_match = param_pattern.match(line)
+#             iq_orig_match = iq_orig_pattern.match(line)
+#             bift_param_match = bift_param_pattern.match(line)
 
-            if iq_match:
-                found = iq_match.group().split()
-                q.append(float(found[0]))
-                i.append(float(found[1]))
-                err.append(float(found[2]))
+#             if iq_match:
+#                 found = iq_match.group().split()
+#                 q.append(float(found[0]))
+#                 i.append(float(found[1]))
+#                 err.append(float(found[2]))
                 
-            if iq_orig_match:
-                found = iq_orig_match.group().split()
-                q_orig.append(float(found[0]))
-                i_orig.append(float(found[1]))
-                err_orig.append(float(found[2]))
-                fit.append(float(found[3]))
+#             if iq_orig_match:
+#                 found = iq_orig_match.group().split()
+#                 q_orig.append(float(found[0]))
+#                 i_orig.append(float(found[1]))
+#                 err_orig.append(float(found[2]))
+#                 fit.append(float(found[3]))
             
-            if bift_param_match:
-                found = bift_param_match.group().split()
+#             if bift_param_match:
+#                 found = bift_param_match.group().split()
                 
-                try:
-                    val = float(found[2])
-                except ValueError:
-                    val = found[2]
+#                 try:
+#                     val = float(found[2])
+#                 except ValueError:
+#                     val = found[2]
                 
-                allData[found[0]] = val
+#                 allData[found[0]] = val
                 
                 
-            if param_match:
-                found = param_match.group().split()
+#             if param_match:
+#                 found = param_match.group().split()
 
-                if len(found) == 3:
-                    try:
-                        val = float(found[2])
-                    except ValueError:
-                        val = found[2]
+#                 if len(found) == 3:
+#                     try:
+#                         val = float(found[2])
+#                     except ValueError:
+#                         val = found[2]
                 
-                    d[found[0]] = val
+#                     d[found[0]] = val
                 
-                elif len(found) > 3:
-                    arr = []
-                    for each in range(2,len(found)):
-                        try:
-                            val = float(found[each])
-                        except ValueError:
-                            val = found[each]
+#                 elif len(found) > 3:
+#                     arr = []
+#                     for each in range(2,len(found)):
+#                         try:
+#                             val = float(found[each])
+#                         except ValueError:
+#                             val = found[each]
                         
-                        arr.append(val)
+#                         arr.append(val)
                     
-                    d[found[0]] = arr
-                else:
-                    d[found[0]] = ''
+#                     d[found[0]] = arr
+#                 else:
+#                     d[found[0]] = ''
 
-    finally:
-        f.close()
+#     finally:
+#         f.close()
     
-    P = np.array(i)
-    R = np.array(q)
-    err = np.array(err)
+#     P = np.array(i)
+#     R = np.array(q)
+#     err = np.array(err)
    
-    allData['orig_q'] = q_orig
-    allData['orig_i'] = i_orig
-    allData['orig_err'] = err_orig
+#     allData['orig_q'] = q_orig
+#     allData['orig_i'] = i_orig
+#     allData['orig_err'] = err_orig
 
-    return SASIft.IFTM(P, R, err, d, fit, allData)
+#     return SASIft.IFTM(P, R, err, d, fit, allData)
 
 #####################################
 #--- ## Write RAW Generated Files: ##
@@ -2229,7 +2351,9 @@ def saveMeasurement(sasm, save_path, raw_settings, filetype = '.dat'):
     header_on_top = raw_settings.get('DatHeaderOnTop')
     
     if filetype == '.ift':
-        writeBiftFile(sasm, os.path.join(save_path, filename + filetype))
+        writeIftFile(sasm, os.path.join(save_path, filename + filetype))
+    elif filetype == '.out':
+        writeOutFile(sasm, os.path.join(save_path, filename + filetype))
     else:
         writeRadFile(sasm, os.path.join(save_path, filename + filetype), header_on_top)
 
@@ -2352,6 +2476,38 @@ def saveAnalysisCsvFile(sasm_list, include_data, save_path):
                         file.write(' ')
                 else:
                     file.write(' ')
+
+            elif var =='GNOM':
+                if parameters.has_key('analysis'):
+                    analysis_dict = each_sasm.getParameter('analysis')
+
+                    if analysis_dict.has_key('GNOM'):
+                        gnom = analysis_dict['GNOM']
+
+                        if gnom.has_key(key):
+                            file.write(str(gnom[key]))
+                        else:
+                            file.write(' ')
+                    else:
+                        file.write(' ')
+                else:
+                    file.write(' ')
+
+            elif var == 'BIFT':
+                if parameters.has_key('analysis'):
+                    analysis_dict = each_sasm.getParameter('analysis')
+
+                    if analysis_dict.has_key('BIFT'):
+                        bift = analysis_dict['BIFT']
+
+                        if bift.has_key(key):
+                            file.write(str(bift[key]))
+                        else:
+                            file.write(' ')
+                    else:
+                        file.write(' ')
+                else:
+                    file.write(' ')
             
             
         file.write('\n')   
@@ -2379,6 +2535,7 @@ def saveAllAnalysisData(save_path, sasm_list, delim=','):
         if 'guinier' in analysis_done and 'Guinier_Rg' not in header_list:
             for key in sorted(analysis['guinier'].keys()):
                 header_list.append('Guinier_'+key)
+
         if 'molecularWeight' in analysis_done and 'VolumeOfCorrelation_MW_(kDa)' not in header_list:
             for key in sorted(analysis['molecularWeight'].keys()):
                 for subkey in sorted(analysis['molecularWeight'][key].keys()):
@@ -2390,6 +2547,14 @@ def saveAllAnalysisData(save_path, sasm_list, delim=','):
                         header_list.append(key+'_'+subkey+'_(A^2)')
                     else:
                         header_list.append(key+'_'+subkey)
+
+        if 'GNOM' in analysis_done and 'GNOM_Dmax' not in header_list:
+            for key in sorted(analysis['GNOM'].keys()):
+                header_list.append('GNOM_'+key)
+
+        if 'BIFT' in analysis_done and 'BIFT_Dmax' not in header_list:
+            for key in sorted(analysis['BIFT'].keys()):
+                header_list.append('BIFT_'+key)
 
 
     f.write(delim.join(header_list)+'\n')
@@ -2410,12 +2575,23 @@ def saveAllAnalysisData(save_path, sasm_list, delim=','):
         else: 
             has_mw = False
 
+        if 'GNOM' in analysis_done:
+            has_gnom = True
+        else:
+            has_gnom = False
+
+        if 'BIFT' in analysis_done:
+            has_bift = True
+        else:
+            has_bift = False
+
         data_list = []
 
         for header in header_list:
             if header == 'Filename':
                 data_list.append(sasm.getParameter('filename'))
 
+            
             elif header.startswith('Guinier'):
                 temp = header.split('_')
                 if len(temp[1:])>1:
@@ -2428,6 +2604,7 @@ def saveAllAnalysisData(save_path, sasm_list, delim=','):
                 else:
                     data_list.append('N/A')
 
+            
             elif header.startswith('Absolute') or header.startswith('I(0)Concentration') or header.startswith('PorodVolume') or header.startswith('VolumeOfCorrelation'):
                 temp = header.split('_')
                 key1 = temp[0]
@@ -2443,6 +2620,33 @@ def saveAllAnalysisData(save_path, sasm_list, delim=','):
                     data_list.append(str(analysis['molecularWeight'][key1][key2]))
                 else:
                     data_list.append('N/A')
+
+            
+            elif header.startswith('GNOM'):
+                temp = header.split('_')
+                if len(temp[1:])>1:
+                    key = '_'.join(temp[1:])
+                else:
+                    key = temp[1]
+
+                if has_gnom:
+                    data_list.append(str(analysis['GNOM'][key]))
+                else:
+                    data_list.append('N/A')
+
+
+            elif header.startswith('BIFT'):
+                temp = header.split('_')
+                if len(temp[1:])>1:
+                    key = '_'.join(temp[1:])
+                else:
+                    key = temp[1]
+
+                if has_bift:
+                    data_list.append(str(analysis['BIFT'][key]))
+                else:
+                    data_list.append('N/A')
+
 
             else:
                 data_list.append('N/A')
@@ -2612,8 +2816,8 @@ def printDict(d, each):
     
     return tmpline
 
-def writeBiftFile(m, filename = None):
-    ''' Writes an ASCII file from a measurement object, using the RAD format '''
+def writeIftFile(m, filename):
+    ''' Writes an ASCII file from an IFT measurement object created by BIFT'''
     
     d = m.getAllParameters()
     f2 = open(filename, 'w')
@@ -2623,8 +2827,8 @@ def writeBiftFile(m, filename = None):
     f2.write('Filename: ' + no_path_filename + '\n\n' )
     f2.write('         R            P(R)             Error\n')
     
-    for idx in range(0,len(m.i)):
-        line = ('%.8E %.8E %.8E\n') %( m.q[idx], m.i[idx], m.err[idx])
+    for idx in range(0,len(m.p)):
+        line = ('%.8E %.8E %.8E\n') %( m.r[idx], m.p[idx], m.err[idx])
         f2.write(line)
     
     f2.write('\n\n')
@@ -2632,10 +2836,10 @@ def writeBiftFile(m, filename = None):
      
     bift_info = m.getParameter('bift_info')
     
-    orig_q = m.getParameter('orig_q')
-    orig_i = m.getParameter('orig_i')
-    orig_err = m.getParameter('orig_err')
-    fit = m.getParameter('fit')[0]
+    orig_q = m.q_orig
+    orig_i = m.i_orig
+    orig_err = m.err_orig
+    fit = m.i_fit
      
     f2.write('            Q              I(q)             Error          Fit\n')
     for idx in range(0,len(orig_q)):
@@ -2651,63 +2855,20 @@ def writeBiftFile(m, filename = None):
     
     f2.close()
     
+
+def writeOutFile(m, filename):
+    ''' Writes an ASCII file from an IFT measurement object created by GNOM'''
     
-    
+    outfile = outfile = m.getParameter('out')
+
+    f = open(filename, 'w')
+
+    for line in outfile:
+        f.write(line)
+
+    f.close()
      
-#     ###########################################################
-#     # Write IFT parameters:
-#     ###########################################################
-#     savedParams = ['dmax', 'alpha', 'I0', 'Rg', 'ChiSquared']
-#     
-#     for each in savedParams:
-#         
-#         val = float(m.allData[each])
-#
-#         strval = str(val)
-#         
-#         line = '    ' + each + ' : ' + strval + '\n'
-#         f2.write(line)
-#     
-#
-#     f2.write('\n')
-#     line = ('***********************************************************************')
-#     f2.write(line)
-#     f2.write('\n\n')
-#     f2.write('            Q                 I                Error               Fit\n')
-#
-#     orig_data = m.allData
-#     fit = m.fit[0]
-#     orig_q = orig_data['orig_q']
-#     orig_I = orig_data['orig_i']
-#     orig_err = orig_data['orig_err']
-#     
-#     for idx in range(0,len(orig_I)):
-#         line = ('     %.8E  %.8E     %.8E  %.8E\n') %( orig_q[idx], orig_I[idx], orig_err[idx], float(fit[idx]) )
-#         f2.write(line)
-#     
-#     
-#     f2.write('\n\n')
-#     
-#     
-#     sortedKeys = d.keys()
-#     sortedKeys.sort()
-#     
-#     for each in sortedKeys:#d.iterkeys():
-#     
-#         if type(d[each]) == type([]):
-#             tmpline = ''
-#             for every in d[each]:
-#                 tmpline = tmpline + str(every) + ' '
-#
-#             tmpline = tmpline.strip()
-#         
-#             line = each + ' : ' + tmpline + '\n'
-#         else:
-#             line = each + ' : ' + str(d[each]) + '\n'
-#
-#         f2.write(line)
-#     
-#     f2.close()
+
 
 def checkFileType(filename):
     ''' Tries to find out what file type it is and reports it back '''

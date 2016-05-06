@@ -17,16 +17,19 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Circle, Rectangle, Polygon
 import numpy as np
 import wx, math
-import sys, os, copy
+import sys, os, copy, multiprocessing, threading, Queue
 from scipy import linspace, polyval, polyfit, sqrt, randn
 import scipy.interpolate as interp
 from scipy import integrate as integrate
 from scipy.constants import Avogadro
-import RAW, RAWSettings, RAWCustomCtrl, SASCalc, RAWPlot
+import RAW, RAWSettings, RAWCustomCtrl, SASCalc, RAWPlot, SASFileIO, SASM, SASExceptions, BIFT, RAWGlobals
 from wx.lib.splitter import MultiSplitterWindow
 # These are for the AutoWrapStaticText class
 from wx.lib.wordwrap import wordwrap
 from wx.lib.stattext import GenStaticText as StaticText
+import wx.lib.agw.flatnotebook as flatNB
+
+import time, random
 
 class GuinierPlotPanel(wx.Panel):
     
@@ -371,9 +374,16 @@ class GuinierControlPanel(wx.Panel):
         if 'guinier' in analysis:
             
             guinier = analysis['guinier']
-            
-            idx_min = guinier['nStart']
-            idx_max = guinier['nEnd']
+
+            qmin = float(guinier['qStart'])
+            qmax = float(guinier['qEnd'])
+
+            findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
+            closest_qmin = findClosest(qmin, self.ExpObj.q)
+            closest_qmax = findClosest(qmax, self.ExpObj.q)
+
+            idx_min = np.where(self.ExpObj.q == closest_qmin)[0][0]
+            idx_max = np.where(self.ExpObj.q == closest_qmax)[0][0]
 
             spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
             spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
@@ -402,7 +412,7 @@ class GuinierControlPanel(wx.Panel):
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'])
                 txt.SetValue(str(round(self.ExpObj.q[int(old_end)],5)))
 
-                print 'FAILED AutoRG! resetting controls'
+                # print 'FAILED AutoRG! resetting controls'
 
             
         
@@ -732,7 +742,6 @@ class GuinierControlPanel(wx.Panel):
         spin.SetFocus()
         
     def onSpinCtrl(self, evt):
-        
         id = evt.GetId()
         
         spin = wx.FindWindowById(id)
@@ -854,755 +863,8 @@ class GuinierControlPanel(wx.Panel):
                 guinierData[eachKey] = val1
 
         return guinierData
-    
-#---- **** Main Dialog ****
-    
-class GuinierFitDialog(wx.Dialog):
 
-    def __init__(self, parent, ExpObj):
-        wx.Dialog.__init__(self, parent, -1, 'Guinier Fit', name = 'GuinierDialog', size = (800,600))
-    
-        splitter1 = wx.SplitterWindow(self, -1)
-     
-        self.controlPanel = GuinierControlPanel(splitter1, -1, 'GuinierControlPanel')
-        plotPanel = GuinierPlotPanel(splitter1, -1, 'GuinierPlotPanel')
-  
-        splitter1.SplitVertically(controlPanel, plotPanel, 270)
-        splitter1.SetMinimumPaneSize(50)
-    
-        plotPanel.plotExpObj(ExpObj)
-        controlPanel.setSpinLimits(ExpObj)
-        controlPanel.setCurrentExpObj(ExpObj)
-        
-    def getConcentration(self):
-        return self.controlPanel.getConcentration()
-        
-    def OnClose(self):
-        self.Destroy()
-
-
-#---- **** Porod plotting ****
-
-class PorodDialog(wx.Dialog):
-
-    def __init__(self, parent, ExpObj):
-        wx.Dialog.__init__(self, parent, -1, 'Porod', name = 'PorodDialog', size = (800,600))
-    
-        splitter1 = wx.SplitterWindow(self, -1)
-     
-        controlPanel = PorodControlPanel(splitter1, -1, 'PorodControlPanel')
-        plotPanel = PorodPlotPanel(splitter1, -1, 'PorodPlotPanel')
-  
-        splitter1.SplitVertically(controlPanel, plotPanel, 270)
-        splitter1.SetMinimumPaneSize(50)
-    
-        plotPanel.plotExpObj(ExpObj)
-        controlPanel.setSpinLimits(ExpObj)
-        controlPanel.setCurrentExpObj(ExpObj)
-
-    def OnClose(self):
-        self.Destroy()
-
-
-class PorodPlotPanel(wx.Panel):
-    
-    def __init__(self, parent, panel_id, name, wxEmbedded = False):
-        
-        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
-        
-        self.fig = Figure((5,4), 75)
-        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
-                    
-        self.data_line = None
-    
-        subplotLabels = [('Porod', 'q', 'I(q)q^4', .1)]
-        
-        self.fig.subplots_adjust(hspace = 0.26)
-        
-        self.subplots = {}
-        
-        for i in range(0, len(subplotLabels)):
-            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
-            subplot.set_xlabel(subplotLabels[i][1])
-            subplot.set_ylabel(subplotLabels[i][2])
-            self.subplots[subplotLabels[i][0]] = subplot 
-      
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
-        
-        self.toolbar = NavigationToolbar2Wx(self.canvas)
-        self.toolbar.Realize()
-        sizer.Add(self.toolbar, 0, wx.GROW)
-
-        self.SetSizer(sizer)
-        self.canvas.SetBackgroundColour('white')
-        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
-        self.fig.set_facecolor('white')
-        
-        # Connect the callback for the draw_event so that window resizing works:
-        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) 
-
-    def ax_redraw(self, widget=None):
-        ''' Redraw plots on window resize event '''
-        
-        a = self.subplots['Porod']
-    
-        self.background = self.canvas.copy_from_bbox(a.bbox)
-        
-        self.updateDataPlot()
-        
-    def _calcFit(self):
-        ''' calculate fit and statistics '''
- 
-        q_roi = self.q
-        i_roi = self.i
-        
-        x = np.power(q_roi, 2)
-        y = np.log(i_roi)
-        
-        #Remove NaN and Inf values:
-        x = x[np.where(np.isnan(y) == False)]
-        y = y[np.where(np.isnan(y) == False)]
-        x = x[np.where(np.isinf(y) == False)]
-        y = y[np.where(np.isinf(y) == False)]
-        
-        #Get 1.st order fit:
-        ar, br = polyfit(x, y, 1)
-        
-        #Obtain fit values:
-        y_fit = polyval([ar, br], x)
-        
-        #Get fit statistics:
-        error = y - y_fit
-        SS_tot = np.sum(np.power(y-np.mean(y),2))
-        SS_err = np.sum(np.power(error, 2))
-        rsq = 1 - SS_err / SS_tot
-        
-        I0 = br
-        Rg = np.sqrt(-3*ar)
-                
-        if np.isnan(Rg):
-            Rg = 0  
-        
-        ######## CALCULATE ERROR ON PARAMETERS ###############
-        
-        N = len(error)
-        stde = SS_err / (N-2)
-        std_slope = stde * np.sqrt( (1/N) +  (np.power(np.mean(x),2)/np.sum(np.power(x-np.mean(x),2))))
-        std_interc = stde * np.sqrt(  1 / np.sum(np.power(x-np.mean(x),2)))
-        
-        ######################################################
-        
-        if np.isnan(std_slope):
-            std_slope = -1
-        if np.isnan(std_interc):
-            std_interc = -1
-        
-        newInfo = {'I0' : (np.exp(I0), std_interc),
-                   'Rg' : (Rg, std_slope),
-                   'qRg': Rg * np.sqrt(x[-1]),
-                   'rsq': rsq}
-        
-        
-        
-        
-        return x, y_fit, br, error, newInfo
-        
-    def plotExpObj(self, ExpObj):
-        xlim = [0, len(ExpObj.i)]
-        
-        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
-        self.canvas.mpl_disconnect(self.cid)
-        #self.updateDataPlot(ExpObj.i, ExpObj.q, xlim)
-        
-        #Reconnect draw_event
-        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
-
-    def updateDataPlot(self):
-        
-        pass
-            
-#        xmin, xmax = xlim
-#        
-#        #Save for resizing:
-#        self.orig_i = i
-#        self.orig_q = q
-#        self.xlim = xlim
-#        
-#        #Cut out region of interest
-#        self.i = i[xmin:xmax]
-#        self.q = q[xmin:xmax]
-#        
-#        ## Plot the (at most) 3 first and last points after fit:
-#        if xmin < 3:
-#            min_offset = xmin
-#        else:
-#            min_offset = 3
-#        
-#        if xmax > len(q)-3:
-#            max_offset = len(q) - xmax
-#        else:
-#            max_offset = 3
-#
-#        xmin = xmin - min_offset
-#        xmax = xmax + max_offset
-#        
-#        #data containing the 3 first and last points
-#        q_offset = q[xmin:xmax]
-#        i_offset = i[xmin:xmax]
-#            
-#        x = np.power(q_offset, 2)
-#        y = np.log(i_offset)
-#         
-#        x = x[np.where(np.isnan(y)==False)]
-#        y = y[np.where(np.isnan(y)==False)]
-#        x = x[np.where(np.isinf(y)==False)]
-#        y = y[np.where(np.isinf(y)==False)]
-#            
-#        a = self.subplots['Porod']
-#        
-#        
-#        try:
-#            x_fit, y_fit, I0, error, newInfo = self._calcFit()
-#        except TypeError:
-#            return
-#                                                      
-#        controlPanel = wx.FindWindowByName('PorodControlPanel')
-#        wx.CallAfter(controlPanel.updateInfo, newInfo)
-#        
-#        xg = [0, x_fit[0]]
-#        yg = [I0, y_fit[0]]
-#        
-#        zeros = np.zeros((1,len(x_fit)))[0]
-#        
-#        x_lim_front = x[0]
-#        x_lim_back = x[-1]
-#        
-#        if not self.data_line:
-#            self.data_line, = a.plot(x, y, 'b.', animated = True)
-#            self.fit_line, = a.plot(x_fit, y_fit, 'r', animated = True)
-#            self.interp_line, = a.plot(xg, yg, 'g--', animated = True)
-#
-#            self.error_line, = b.plot(x_fit, error, 'b', animated = True)
-#            self.zero_line, = b.plot(x_fit, zeros, 'r', animated = True)
-#            
-#            self.lim_front_line = a.axvline(x=x_lim_front, color = 'r', linestyle = '--', animated = True)
-#            self.lim_back_line = a.axvline(x=x_lim_back, color = 'r', linestyle = '--', animated = True)
-#            
-#            #self.lim_back_line, = a.plot([x_lim_back, x_lim_back], [y_lim_back-0.2, y_lim_back+0.2], transform=a.transAxes, animated = True)
-#            
-#            self.canvas.draw()
-#            self.background = self.canvas.copy_from_bbox(a.bbox)
-#            self.err_background = self.canvas.copy_from_bbox(b.bbox)
-#        else:
-#            self.canvas.restore_region(self.background)
-#            
-#            self.data_line.set_ydata(y)
-#            self.data_line.set_xdata(x)
-#            
-#            self.fit_line.set_ydata(y_fit)
-#            self.fit_line.set_xdata(x_fit)
-#            
-#            self.interp_line.set_xdata(xg)
-#            self.interp_line.set_ydata(yg)
-#            
-#            self.lim_back_line.set_xdata(x_fit[-1])
-#            self.lim_front_line.set_xdata(x_fit[0])
-#  
-#            #Error lines:          
-#            self.error_line.set_xdata(x_fit)
-#            self.error_line.set_ydata(error)
-#            self.zero_line.set_xdata(x_fit)
-#            self.zero_line.set_ydata(zeros)
-#        
-#        a.relim()
-#        a.autoscale_view()
-#        
-#        a.draw_artist(self.data_line)
-#        a.draw_artist(self.fit_line)
-#        a.draw_artist(self.interp_line)
-#        a.draw_artist(self.lim_front_line)
-#        a.draw_artist(self.lim_back_line)
-#
-#        b.set_xlim((x_fit[0], x_fit[-1]))
-#        b.set_ylim((error.min(), error.max()))
-#  
-#        #restore white background in error plot and draw new error:
-#        self.canvas.restore_region(self.err_background)
-#        b.draw_artist(self.error_line)
-#        b.draw_artist(self.zero_line)
-#
-#        self.canvas.blit(a.bbox)
-#        self.canvas.blit(b.bbox)
-
-
-class PorodControlPanel(wx.Panel):
-    
-    def __init__(self, parent, panel_id, name, ExpObj, manip_item):
-        
-        self.ExpObj = ExpObj
-        
-        self.manip_item = manip_item
-
-        wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
-          
-        self.spinctrlIDs = {'qstart' : wx.NewId(),
-                            'qend'   : wx.NewId()}
-        
-        self.staticTxtIDs = {'qstart' : wx.NewId(),
-                            'qend'   : wx.NewId()}
-        
-        self.infodata = {'I0' : ('I0 :', wx.NewId(), wx.NewId()),
-                         'Rg' : ('Rg :', wx.NewId(), wx.NewId()),
-                         'Volume': ('Volume :', wx.NewId()),
-                         'Weight': ('Weight :', wx.NewId())}
-        
-
-        button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
-        button.Bind(wx.EVT_BUTTON, self.onCloseButton)
-        
-        savebutton = wx.Button(self, wx.ID_OK, 'OK')
-        savebutton.Bind(wx.EVT_BUTTON, self.onSaveInfo)
-        
-        buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
-        buttonSizer.Add(savebutton, 1, wx.RIGHT, 5)
-        buttonSizer.Add(button, 1)
-        
-        
-        box = wx.StaticBox(self, -1, 'Parameters')
-        infoSizer = self.createInfoBox()
-        boxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        boxSizer.Add(infoSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 5)
-        
-        box2 = wx.StaticBox(self, -1, 'Control')
-        controlSizer = self.createControls()
-        boxSizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
-        boxSizer2.Add(controlSizer, 0, wx.EXPAND)
-        
-        bsizer = wx.BoxSizer(wx.VERTICAL)
-        bsizer.Add(self.createFileInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
-        bsizer.Add(boxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
-        bsizer.Add(boxSizer2, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
-        bsizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT| wx.TOP, 5)
-         
-        self.SetSizer(bsizer)
-        
-        self.setFilename(os.path.basename(ExpObj.getParameter('filename')))
-        
-        #self._initSettings()
-                
-                
-    def _initSettings(self):
-        
-        analysis = self.ExpObj.getParameter('analysis')
-        
-        if 'porod' in analysis:
-            
-            porod = analysis['porod']
-            
-            start_idx = porod['nStart']
-            end_idx = porod['nEnd']
-            
-            spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
-            spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
-            
-            old_start = spinstart.GetValue()
-            old_end = spinend.GetValue()
-            
-            try:
-                spinstart.SetValue(int(start_idx))
-                spinend.SetValue(int(end_idx))
-                self.updatePlot()
-            
-            except IndexError:
-                spinstart.SetValue(old_start)
-                spinend.SetValue(old_end)
-                print 'FAILED initSetting! resetting controls'
-            
-        
-    def setFilename(self, filename):
-        self.filenameTxtCtrl.SetValue(str(filename))
-        
-    def createFileInfo(self):
-        
-        box = wx.StaticBox(self, -1, 'Filename')
-        boxsizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
-        
-        #txt = wx.StaticText(self, -1, 'Filename :')
-        self.filenameTxtCtrl = wx.TextCtrl(self, -1, '', style = wx.TE_READONLY)
-        
-        #boxsizer.Add((5,5),0)
-        #boxsizer.Add(txt,0,wx.EXPAND | wx.TOP , 4)
-        boxsizer.Add(self.filenameTxtCtrl, 1, wx.EXPAND)
-        
-        return boxsizer
-        
-        
-    def onSaveInfo(self, evt):
-        
-        info_dict = {}
-        
-        for key in self.infodata.keys():
-            id = self.infodata[key][1]
-            widget = wx.FindWindowById(id)
-            val = widget.GetValue()
-            
-            info_dict[key] = val
-        
-        nstart_val = wx.FindWindowById(self.spinctrlIDs['qstart']).GetValue()
-        nend_val = wx.FindWindowById(self.spinctrlIDs['qend']).GetValue()
-        
-        qstart_val = wx.FindWindowById(self.staticTxtIDs['qstart']).GetValue()
-        qend_val = wx.FindWindowById(self.staticTxtIDs['qend']).GetValue()
-                
-        info_dict['nStart'] = nstart_val
-        info_dict['nEnd'] = nend_val
-        info_dict['qStart'] = qstart_val
-        info_dict['qEnd'] = qend_val
-        
-        analysis_dict = self.ExpObj.getParameter('analysis')
-        analysis_dict['porod'] = info_dict
-        
-        if self.manip_item != None:
-            wx.CallAfter(self.manip_item.updateInfoTip, analysis_dict)
-        
-        wx.MessageBox('The parameters have now been stored in memory', 'Parameters Saved')
-        
-        diag = wx.FindWindowByName('PorodFrame')
-        diag.OnClose()
-        
-    def onCloseButton(self, evt):
-        
-        diag = wx.FindWindowByName('PorodFrame')
-        diag.OnClose()
-        
-        
-    def setCurrentExpObj(self, ExpObj):
-        
-        self.ExpObj = ExpObj
-        #self.onSpinCtrl(self.startSpin)
-        
-    def createInfoBox(self):
-        
-        sizer = wx.FlexGridSizer(rows = len(self.infodata), cols = 2)
-        
-        for key in self.infodata.iterkeys():
-            
-            if len(self.infodata[key]) == 2:
-                txt = wx.StaticText(self, -1, self.infodata[key][0])
-                ctrl = wx.TextCtrl(self, self.infodata[key][1], '0')
-                sizer.Add(txt, 0)
-                sizer.Add(ctrl,0)
-            else:
-                txt = wx.StaticText(self, -1, self.infodata[key][0])
-                ctrl1 = wx.TextCtrl(self, self.infodata[key][1], '0')      
-                #ctrl2 = wx.TextCtrl(self, self.infodata[key][2], '0', size = (60,21))
-                #txtpm = wx.StaticText(self, -1, u"\u00B1")
-                
-                bsizer = wx.BoxSizer()
-                bsizer.Add(ctrl1,0,wx.EXPAND)
-                #bsizer.Add(txtpm,0, wx.LEFT | wx.TOP, 3)
-                #bsizer.Add(ctrl2,0,wx.EXPAND | wx.LEFT, 3)
-                
-                sizer.Add(txt,0)
-                sizer.Add(bsizer,0)
-             
-        return sizer
-        
-    def createControls(self):
-        
-        sizer = wx.FlexGridSizer(rows = 1, cols = 4)
-        sizer.AddGrowableCol(0)
-        sizer.AddGrowableCol(1)
-        sizer.AddGrowableCol(2)
-        sizer.AddGrowableCol(3)
-        
-        sizer.Add(wx.StaticText(self,-1,'q_min'),1, wx.LEFT, 5)
-        sizer.Add(wx.StaticText(self,-1,'n_min'),1)
-        sizer.Add(wx.StaticText(self,-1,'q_max'),1)
-        sizer.Add(wx.StaticText(self,-1,'n_max'),1)
-          
-        self.startSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qstart'], size = (60,-1))
-        self.endSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1))
-        
-#        if sys.platform == 'darwin':
-#             # For getting Mac to process ENTER events:
-#            self.startSpin.GetChildren()[0].SetWindowStyle(wx.PROCESS_ENTER)
-#            self.startSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterOnSpinCtrl)                           
-#                                                         
-#            self.endSpin.GetChildren()[0].SetWindowStyle(wx.PROCESS_ENTER)
-#            self.endSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterOnSpinCtrl) 
-#        
-        
-        self.startSpin.SetValue(0)
-        self.endSpin.SetValue(0)
-            
-        self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
-        self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
-        
-        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (55, 22), style = wx.PROCESS_ENTER)
-        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (55, 22), style = wx.PROCESS_ENTER)
-        
-        self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
-        self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
-        
-        sizer.Add(self.qstartTxt, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 3)
-        sizer.Add(self.startSpin, 0, wx.EXPAND | wx.RIGHT, 3)
-        sizer.Add(self.qendTxt, 0, wx.EXPAND | wx.RIGHT, 3)
-        sizer.Add(self.endSpin, 0, wx.EXPAND | wx.RIGHT, 5)
-        
-        return sizer
-    
-    def onEnterInQlimits(self, evt):
-        
-        id = evt.GetId()
-        
-        lx = self.ExpObj.q
-        ly = self.ExpObj.i
-        
-        findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
-
-        txtctrl = wx.FindWindowById(id)
-        
-        #### If User inputs garbage: ####
-        try:
-            val = float(txtctrl.GetValue())
-        except ValueError:
-            if id == self.staticTxtIDs['qstart']:
-                spinctrl = wx.FindWindowById(self.spinctrlIDs['qstart'])
-                txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
-                idx = int(spinctrl.GetValue())
-                txt.SetValue(str(round(self.ExpObj.q[idx],5)))
-                return
-            
-            if id == self.staticTxtIDs['qend']:
-                spinctrl = wx.FindWindowById(self.spinctrlIDs['qend'])
-                txt = wx.FindWindowById(self.staticTxtIDs['qend'])
-                idx = int(spinctrl.GetValue())
-                txt.SetValue(str(round(self.ExpObj.q[idx],5)))
-                return
-        #################################
-            
-        closest = findClosest(val,lx)
-            
-        i = np.where(lx == closest)[0][0]
-        
-        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'])
-        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'])
-        
-        if id == self.staticTxtIDs['qstart']:
-            
-            max = endSpin.GetValue()
-            
-            if i > max-3:
-                i = max - 3
-            
-            startSpin.SetValue(i)
-            
-        elif id == self.staticTxtIDs['qend']:
-            minq = startSpin.GetValue()
-            
-            
-            if i < minq+3:
-                i = minq + 3
-            
-            endSpin.SetValue(i)
-                
-        txtctrl.SetValue(str(round(self.ExpObj.q[int(i)],5)))
-        
-        wx.CallAfter(self.updatePlot)
-        
-    def setSpinLimits(self, ExpObj):
-        self.startSpin.SetRange((0, len(ExpObj.q)-1))
-        self.endSpin.SetRange((0, len(ExpObj.q)-1))
-        
-        self.endSpin.SetValue(len(ExpObj.q)-1)
-        txt = wx.FindWindowById(self.staticTxtIDs['qend'])
-        txt.SetValue(str(round(ExpObj.q[int(len(ExpObj.q)-1)],4)))
-        txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
-        txt.SetValue(str(round(ExpObj.q[0],4)))
-        
-        self._initSettings()
-        
-    def onEnterOnSpinCtrl(self, evt):
-        ''' Little workaround to make enter key in spinctrl work on Mac too '''
-        spin = evt.GetEventObject()
-        
-        self.startSpin.SetFocus()
-        self.endSpin.SetFocus()
-        
-        spin.SetFocus()
-        
-    def onSpinCtrl(self, evt):
-        
-        id = evt.GetId()
-        
-        spin = wx.FindWindowById(id)
-             
-        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'])
-        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'])
-            
-        i = spin.GetValue()
-        
-        #Make sure the boundaries don't cross:
-        if id == self.spinctrlIDs['qstart']:
-            max = endSpin.GetValue()
-            txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
-            
-            if i > max-3:
-                i = max - 3
-                spin.SetValue(i)
-            
-        elif id == self.spinctrlIDs['qend']:
-            min = startSpin.GetValue()
-            txt = wx.FindWindowById(self.staticTxtIDs['qend'])
-            
-            if i < min+3:
-                i = min + 3
-                spin.SetValue(i)
-                
-        txt.SetValue(str(round(self.ExpObj.q[int(i)],5)))
-        
-        #Important, since it's a slow function to update (could do it in a timer instead) otherwise this spin event might loop!
-        wx.CallAfter(self.updatePlot)
-        
-    def updatePlot(self):
-        plotpanel = wx.FindWindowByName('PorodPlotPanel')
-        a = plotpanel.subplots['Porod']
-        
-        spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
-        spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
-        
-        i = int(spinstart.GetValue())
-        
-        x = self.ExpObj.q
-        y = self.ExpObj.i
-        
-        spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
-        
-        i2 = int(spinend.GetValue())
-        
-        xlim = [i,i2]
-        plotpanel.updateDataPlot(y, x, xlim)
-        
-    def updateInfo(self, newInfo):
-        
-        for eachkey in newInfo.iterkeys():
-            
-            if len(self.infodata[eachkey]) == 2: 
-                ctrl = wx.FindWindowById(self.infodata[eachkey][1])
-                ctrl.SetValue(str(round(newInfo[eachkey],5)))
-            else:
-                ctrl = wx.FindWindowById(self.infodata[eachkey][1])
-                ctrl.SetValue(str(round(newInfo[eachkey][0],5)))
-                
-                #ctrlerr = wx.FindWindowById(self.infodata[eachkey][2])
-                #ctrlerr.SetValue(str(round(newInfo[eachkey][1],5)))
-             
-    def updateLimits(self, top = None, bottom = None):
-  
-        if bottom:
-            spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
-            spinend.SetValue(bottom)
-            txt = wx.FindWindowById(self.staticTxtIDs['qend'])
-            txt.SetValue(str(round(self.ExpObj.q[int(bottom)],4)))
-            
-        if top:
-            spinend = wx.FindWindowById(self.spinctrlIDs['qstart'])
-            spinend.SetValue(top)
-            txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
-            txt.SetValue(str(round(self.ExpObj.q[int(top)],4)))
-            
-    def getLimits(self):
-        
-        spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
-        spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
-        
-        return [int(spinstart.GetValue()), int(spinend.GetValue())]
-    
-    def getInfo(self):
-        
-        porodData = {}
-        
-        for eachKey in self.infodata.iterkeys():
-            
-            if len(self.infodata[eachKey]) == 2:
-                ctrl = wx.FindWindowById(self.infodata[eachKey][1])
-                val = ctrl.GetValue()
-                porodData[eachKey] = val
-            else:
-                ctrl1 = wx.FindWindowById(self.infodata[eachKey][1])
-                ctrl2 = wx.FindWindowById(self.infodata[eachKey][2])
-                val1 = ctrl1.GetValue()
-                val2 = ctrl2.GetValue()
-                
-                porodData[eachKey] = (val1, val2) 
-                
-        return porodData
-
-#---- **** FOR TESTING ****
-
-
-class PorodTestFrame(wx.Frame):
-    
-    def __init__(self, parent, title, ExpObj, manip_item):
-        
-        try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'PorodFrame', size = (800,600))
-        except:
-            wx.Frame.__init__(self, None, -1, title, name = 'PorodFrame', size = (800,600))
-        
-        splitter1 = wx.SplitterWindow(self, -1)   
-        
-        plotPanel = PorodPlotPanel(splitter1, -1, 'PorodPlotPanel')
-        controlPanel = PorodControlPanel(splitter1, -1, 'PorodControlPanel', ExpObj, manip_item)
-          
-        splitter1.SplitVertically(controlPanel, plotPanel, 290)
-        splitter1.SetMinimumPaneSize(50)
-        
-        self.statusbar = self.CreateStatusBar()
-        self.statusbar.SetFieldsCount(1)
-        #self.statusbar.SetStatusWidths([-3, -2])
-
-        plotPanel.plotExpObj(ExpObj)
-        
-        
-        controlPanel.setSpinLimits(ExpObj)
-        controlPanel.setCurrentExpObj(ExpObj)
-        
-        self.CenterOnParent()
-    
-    def SetStatusText(self, text, slot = 0):
-        
-        self.statusbar.SetStatusText(text, slot)
-        
-    def OnClose(self):
-        
-        self.Destroy()
-        
-class PorodTestApp(wx.App):
-    
-    def OnInit(self, filename = None):
-        
-        #ExpObj, ImgDummy = fileIO.loadFile('/home/specuser/Downloads/BSUB_MVMi7_5_FULL_001_c_plot.rad')
-        
-        tst_file = os.path.join(os.getcwd(), 'Tests', 'TestData', 'lyzexp.dat')
-        
-        #tst_file = os.path.join(os.getcwd(), 'Tests', 'TestData', 'Lys12_1_001_plot.rad')
-        
-        print tst_file
-        raw_settings = RAWSettings.RawGuiSettings()
-
-        ExpObj, ImgDummy = SASFileIO.loadFile(tst_file, raw_settings)
-        
-        frame = PorodTestFrame(self, 'Porod', ExpObj, None)
-        self.SetTopWindow(frame)
-        frame.SetSize((800,600))
-        frame.CenterOnScreen()
-        frame.Show(True)
-        return True
-
-              
+### Main Guinier Frame!!! ###
 class GuinierTestFrame(wx.Frame):
     
     def __init__(self, parent, title, ExpObj, manip_item):
@@ -1641,46 +903,753 @@ class GuinierTestFrame(wx.Frame):
     def OnClose(self):
         
         self.Destroy()
-        
-class GuinierTestApp(wx.App):
     
-    def OnInit(self, filename = None):
-        
-        #ExpObj, ImgDummy = fileIO.loadFile('/home/specuser/Downloads/BSUB_MVMi7_5_FULL_001_c_plot.rad')
-        
-        tst_file = os.path.join(os.getcwd(), 'Tests', 'TestData', 'lyzexp.dat')
-        
-        #tst_file = os.path.join(os.getcwd(), 'Tests', 'TestData', 'Lys12_1_001_plot.rad')
-        
-        print tst_file
-        raw_settings = RAWSettings.RawGuiSettings()
+#---- **** Main Dialog ****
+    
+# class GuinierFitDialog(wx.Dialog):
 
-        ExpObj, ImgDummy = SASFileIO.loadFile(tst_file, raw_settings)
+#     def __init__(self, parent, ExpObj):
+#         wx.Dialog.__init__(self, parent, -1, 'Guinier Fit', name = 'GuinierDialog', size = (800,600))
+    
+#         splitter1 = wx.SplitterWindow(self, -1)
+     
+#         self.controlPanel = GuinierControlPanel(splitter1, -1, 'GuinierControlPanel')
+#         plotPanel = GuinierPlotPanel(splitter1, -1, 'GuinierPlotPanel')
+  
+#         splitter1.SplitVertically(controlPanel, plotPanel, 270)
+#         splitter1.SetMinimumPaneSize(50)
+    
+#         plotPanel.plotExpObj(ExpObj)
+#         controlPanel.setSpinLimits(ExpObj)
+#         controlPanel.setCurrentExpObj(ExpObj)
         
-        frame = GuinierTestFrame(self, 'Guinier Fit', ExpObj, None)
-        self.SetTopWindow(frame)
-        frame.SetSize((800,600))
-        frame.CenterOnScreen()
-        frame.Show(True)
-        return True
+#     def getConcentration(self):
+#         return self.controlPanel.getConcentration()
         
-if __name__ == "__main__":
-    import SASFileIO
+#     def OnClose(self):
+#         self.Destroy()
 
-    #This GUI can be run from a commandline: python guinierGUI.py <filename>
-    args = sys.argv
-    
-    if len(args) > 1:
-        filename = args[1]
-    else:
-        filename = None
-    
-    app = GuinierTestApp(0, filename)   #MyApp(redirect = True)
-    app.MainLoop()
-    
-    #app = PorodTestApp(0, filename)   #MyApp(redirect = True)
-    #app.MainLoop()
 
+# #---- **** Porod plotting ****
+
+# class PorodDialog(wx.Dialog):
+
+#     def __init__(self, parent, ExpObj):
+#         wx.Dialog.__init__(self, parent, -1, 'Porod', name = 'PorodDialog', size = (800,600))
+    
+#         splitter1 = wx.SplitterWindow(self, -1)
+     
+#         controlPanel = PorodControlPanel(splitter1, -1, 'PorodControlPanel')
+#         plotPanel = PorodPlotPanel(splitter1, -1, 'PorodPlotPanel')
+  
+#         splitter1.SplitVertically(controlPanel, plotPanel, 270)
+#         splitter1.SetMinimumPaneSize(50)
+    
+#         plotPanel.plotExpObj(ExpObj)
+#         controlPanel.setSpinLimits(ExpObj)
+#         controlPanel.setCurrentExpObj(ExpObj)
+
+#     def OnClose(self):
+#         self.Destroy()
+
+
+# class PorodPlotPanel(wx.Panel):
+    
+#     def __init__(self, parent, panel_id, name, wxEmbedded = False):
+        
+#         wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        
+#         self.fig = Figure((5,4), 75)
+#         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
+                    
+#         self.data_line = None
+    
+#         subplotLabels = [('Porod', 'q', 'I(q)q^4', .1)]
+        
+#         self.fig.subplots_adjust(hspace = 0.26)
+        
+#         self.subplots = {}
+        
+#         for i in range(0, len(subplotLabels)):
+#             subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
+#             subplot.set_xlabel(subplotLabels[i][1])
+#             subplot.set_ylabel(subplotLabels[i][2])
+#             self.subplots[subplotLabels[i][0]] = subplot 
+      
+#         sizer = wx.BoxSizer(wx.VERTICAL)
+#         sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
+        
+#         self.toolbar = NavigationToolbar2Wx(self.canvas)
+#         self.toolbar.Realize()
+#         sizer.Add(self.toolbar, 0, wx.GROW)
+
+#         self.SetSizer(sizer)
+#         self.canvas.SetBackgroundColour('white')
+#         self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
+#         self.fig.set_facecolor('white')
+        
+#         # Connect the callback for the draw_event so that window resizing works:
+#         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) 
+
+#     def ax_redraw(self, widget=None):
+#         ''' Redraw plots on window resize event '''
+        
+#         a = self.subplots['Porod']
+    
+#         self.background = self.canvas.copy_from_bbox(a.bbox)
+        
+#         self.updateDataPlot()
+        
+#     def _calcFit(self):
+#         ''' calculate fit and statistics '''
+ 
+#         q_roi = self.q
+#         i_roi = self.i
+        
+#         x = np.power(q_roi, 2)
+#         y = np.log(i_roi)
+        
+#         #Remove NaN and Inf values:
+#         x = x[np.where(np.isnan(y) == False)]
+#         y = y[np.where(np.isnan(y) == False)]
+#         x = x[np.where(np.isinf(y) == False)]
+#         y = y[np.where(np.isinf(y) == False)]
+        
+#         #Get 1.st order fit:
+#         ar, br = polyfit(x, y, 1)
+        
+#         #Obtain fit values:
+#         y_fit = polyval([ar, br], x)
+        
+#         #Get fit statistics:
+#         error = y - y_fit
+#         SS_tot = np.sum(np.power(y-np.mean(y),2))
+#         SS_err = np.sum(np.power(error, 2))
+#         rsq = 1 - SS_err / SS_tot
+        
+#         I0 = br
+#         Rg = np.sqrt(-3*ar)
+                
+#         if np.isnan(Rg):
+#             Rg = 0  
+        
+#         ######## CALCULATE ERROR ON PARAMETERS ###############
+        
+#         N = len(error)
+#         stde = SS_err / (N-2)
+#         std_slope = stde * np.sqrt( (1/N) +  (np.power(np.mean(x),2)/np.sum(np.power(x-np.mean(x),2))))
+#         std_interc = stde * np.sqrt(  1 / np.sum(np.power(x-np.mean(x),2)))
+        
+#         ######################################################
+        
+#         if np.isnan(std_slope):
+#             std_slope = -1
+#         if np.isnan(std_interc):
+#             std_interc = -1
+        
+#         newInfo = {'I0' : (np.exp(I0), std_interc),
+#                    'Rg' : (Rg, std_slope),
+#                    'qRg': Rg * np.sqrt(x[-1]),
+#                    'rsq': rsq}
+        
+        
+        
+        
+#         return x, y_fit, br, error, newInfo
+        
+#     def plotExpObj(self, ExpObj):
+#         xlim = [0, len(ExpObj.i)]
+        
+#         #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
+#         self.canvas.mpl_disconnect(self.cid)
+#         #self.updateDataPlot(ExpObj.i, ExpObj.q, xlim)
+        
+#         #Reconnect draw_event
+#         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+#     def updateDataPlot(self):
+        
+#         pass
+            
+# #        xmin, xmax = xlim
+# #        
+# #        #Save for resizing:
+# #        self.orig_i = i
+# #        self.orig_q = q
+# #        self.xlim = xlim
+# #        
+# #        #Cut out region of interest
+# #        self.i = i[xmin:xmax]
+# #        self.q = q[xmin:xmax]
+# #        
+# #        ## Plot the (at most) 3 first and last points after fit:
+# #        if xmin < 3:
+# #            min_offset = xmin
+# #        else:
+# #            min_offset = 3
+# #        
+# #        if xmax > len(q)-3:
+# #            max_offset = len(q) - xmax
+# #        else:
+# #            max_offset = 3
+# #
+# #        xmin = xmin - min_offset
+# #        xmax = xmax + max_offset
+# #        
+# #        #data containing the 3 first and last points
+# #        q_offset = q[xmin:xmax]
+# #        i_offset = i[xmin:xmax]
+# #            
+# #        x = np.power(q_offset, 2)
+# #        y = np.log(i_offset)
+# #         
+# #        x = x[np.where(np.isnan(y)==False)]
+# #        y = y[np.where(np.isnan(y)==False)]
+# #        x = x[np.where(np.isinf(y)==False)]
+# #        y = y[np.where(np.isinf(y)==False)]
+# #            
+# #        a = self.subplots['Porod']
+# #        
+# #        
+# #        try:
+# #            x_fit, y_fit, I0, error, newInfo = self._calcFit()
+# #        except TypeError:
+# #            return
+# #                                                      
+# #        controlPanel = wx.FindWindowByName('PorodControlPanel')
+# #        wx.CallAfter(controlPanel.updateInfo, newInfo)
+# #        
+# #        xg = [0, x_fit[0]]
+# #        yg = [I0, y_fit[0]]
+# #        
+# #        zeros = np.zeros((1,len(x_fit)))[0]
+# #        
+# #        x_lim_front = x[0]
+# #        x_lim_back = x[-1]
+# #        
+# #        if not self.data_line:
+# #            self.data_line, = a.plot(x, y, 'b.', animated = True)
+# #            self.fit_line, = a.plot(x_fit, y_fit, 'r', animated = True)
+# #            self.interp_line, = a.plot(xg, yg, 'g--', animated = True)
+# #
+# #            self.error_line, = b.plot(x_fit, error, 'b', animated = True)
+# #            self.zero_line, = b.plot(x_fit, zeros, 'r', animated = True)
+# #            
+# #            self.lim_front_line = a.axvline(x=x_lim_front, color = 'r', linestyle = '--', animated = True)
+# #            self.lim_back_line = a.axvline(x=x_lim_back, color = 'r', linestyle = '--', animated = True)
+# #            
+# #            #self.lim_back_line, = a.plot([x_lim_back, x_lim_back], [y_lim_back-0.2, y_lim_back+0.2], transform=a.transAxes, animated = True)
+# #            
+# #            self.canvas.draw()
+# #            self.background = self.canvas.copy_from_bbox(a.bbox)
+# #            self.err_background = self.canvas.copy_from_bbox(b.bbox)
+# #        else:
+# #            self.canvas.restore_region(self.background)
+# #            
+# #            self.data_line.set_ydata(y)
+# #            self.data_line.set_xdata(x)
+# #            
+# #            self.fit_line.set_ydata(y_fit)
+# #            self.fit_line.set_xdata(x_fit)
+# #            
+# #            self.interp_line.set_xdata(xg)
+# #            self.interp_line.set_ydata(yg)
+# #            
+# #            self.lim_back_line.set_xdata(x_fit[-1])
+# #            self.lim_front_line.set_xdata(x_fit[0])
+# #  
+# #            #Error lines:          
+# #            self.error_line.set_xdata(x_fit)
+# #            self.error_line.set_ydata(error)
+# #            self.zero_line.set_xdata(x_fit)
+# #            self.zero_line.set_ydata(zeros)
+# #        
+# #        a.relim()
+# #        a.autoscale_view()
+# #        
+# #        a.draw_artist(self.data_line)
+# #        a.draw_artist(self.fit_line)
+# #        a.draw_artist(self.interp_line)
+# #        a.draw_artist(self.lim_front_line)
+# #        a.draw_artist(self.lim_back_line)
+# #
+# #        b.set_xlim((x_fit[0], x_fit[-1]))
+# #        b.set_ylim((error.min(), error.max()))
+# #  
+# #        #restore white background in error plot and draw new error:
+# #        self.canvas.restore_region(self.err_background)
+# #        b.draw_artist(self.error_line)
+# #        b.draw_artist(self.zero_line)
+# #
+# #        self.canvas.blit(a.bbox)
+# #        self.canvas.blit(b.bbox)
+
+
+# class PorodControlPanel(wx.Panel):
+    
+#     def __init__(self, parent, panel_id, name, ExpObj, manip_item):
+        
+#         self.ExpObj = ExpObj
+        
+#         self.manip_item = manip_item
+
+#         wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+          
+#         self.spinctrlIDs = {'qstart' : wx.NewId(),
+#                             'qend'   : wx.NewId()}
+        
+#         self.staticTxtIDs = {'qstart' : wx.NewId(),
+#                             'qend'   : wx.NewId()}
+        
+#         self.infodata = {'I0' : ('I0 :', wx.NewId(), wx.NewId()),
+#                          'Rg' : ('Rg :', wx.NewId(), wx.NewId()),
+#                          'Volume': ('Volume :', wx.NewId()),
+#                          'Weight': ('Weight :', wx.NewId())}
+        
+
+#         button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
+#         button.Bind(wx.EVT_BUTTON, self.onCloseButton)
+        
+#         savebutton = wx.Button(self, wx.ID_OK, 'OK')
+#         savebutton.Bind(wx.EVT_BUTTON, self.onSaveInfo)
+        
+#         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+#         buttonSizer.Add(savebutton, 1, wx.RIGHT, 5)
+#         buttonSizer.Add(button, 1)
+        
+        
+#         box = wx.StaticBox(self, -1, 'Parameters')
+#         infoSizer = self.createInfoBox()
+#         boxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+#         boxSizer.Add(infoSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 5)
+        
+#         box2 = wx.StaticBox(self, -1, 'Control')
+#         controlSizer = self.createControls()
+#         boxSizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
+#         boxSizer2.Add(controlSizer, 0, wx.EXPAND)
+        
+#         bsizer = wx.BoxSizer(wx.VERTICAL)
+#         bsizer.Add(self.createFileInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
+#         bsizer.Add(boxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+#         bsizer.Add(boxSizer2, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
+#         bsizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT| wx.TOP, 5)
+         
+#         self.SetSizer(bsizer)
+        
+#         self.setFilename(os.path.basename(ExpObj.getParameter('filename')))
+        
+#         #self._initSettings()
+                
+                
+#     def _initSettings(self):
+        
+#         analysis = self.ExpObj.getParameter('analysis')
+        
+#         if 'porod' in analysis:
+            
+#             porod = analysis['porod']
+            
+#             start_idx = porod['nStart']
+#             end_idx = porod['nEnd']
+            
+#             spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
+#             spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
+            
+#             old_start = spinstart.GetValue()
+#             old_end = spinend.GetValue()
+            
+#             try:
+#                 spinstart.SetValue(int(start_idx))
+#                 spinend.SetValue(int(end_idx))
+#                 self.updatePlot()
+            
+#             except IndexError:
+#                 spinstart.SetValue(old_start)
+#                 spinend.SetValue(old_end)
+#                 print 'FAILED initSetting! resetting controls'
+            
+        
+#     def setFilename(self, filename):
+#         self.filenameTxtCtrl.SetValue(str(filename))
+        
+#     def createFileInfo(self):
+        
+#         box = wx.StaticBox(self, -1, 'Filename')
+#         boxsizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
+        
+#         #txt = wx.StaticText(self, -1, 'Filename :')
+#         self.filenameTxtCtrl = wx.TextCtrl(self, -1, '', style = wx.TE_READONLY)
+        
+#         #boxsizer.Add((5,5),0)
+#         #boxsizer.Add(txt,0,wx.EXPAND | wx.TOP , 4)
+#         boxsizer.Add(self.filenameTxtCtrl, 1, wx.EXPAND)
+        
+#         return boxsizer
+        
+        
+#     def onSaveInfo(self, evt):
+        
+#         info_dict = {}
+        
+#         for key in self.infodata.keys():
+#             id = self.infodata[key][1]
+#             widget = wx.FindWindowById(id)
+#             val = widget.GetValue()
+            
+#             info_dict[key] = val
+        
+#         nstart_val = wx.FindWindowById(self.spinctrlIDs['qstart']).GetValue()
+#         nend_val = wx.FindWindowById(self.spinctrlIDs['qend']).GetValue()
+        
+#         qstart_val = wx.FindWindowById(self.staticTxtIDs['qstart']).GetValue()
+#         qend_val = wx.FindWindowById(self.staticTxtIDs['qend']).GetValue()
+                
+#         info_dict['nStart'] = nstart_val
+#         info_dict['nEnd'] = nend_val
+#         info_dict['qStart'] = qstart_val
+#         info_dict['qEnd'] = qend_val
+        
+#         analysis_dict = self.ExpObj.getParameter('analysis')
+#         analysis_dict['porod'] = info_dict
+        
+#         if self.manip_item != None:
+#             wx.CallAfter(self.manip_item.updateInfoTip, analysis_dict)
+        
+#         wx.MessageBox('The parameters have now been stored in memory', 'Parameters Saved')
+        
+#         diag = wx.FindWindowByName('PorodFrame')
+#         diag.OnClose()
+        
+#     def onCloseButton(self, evt):
+        
+#         diag = wx.FindWindowByName('PorodFrame')
+#         diag.OnClose()
+        
+        
+#     def setCurrentExpObj(self, ExpObj):
+        
+#         self.ExpObj = ExpObj
+#         #self.onSpinCtrl(self.startSpin)
+        
+#     def createInfoBox(self):
+        
+#         sizer = wx.FlexGridSizer(rows = len(self.infodata), cols = 2)
+        
+#         for key in self.infodata.iterkeys():
+            
+#             if len(self.infodata[key]) == 2:
+#                 txt = wx.StaticText(self, -1, self.infodata[key][0])
+#                 ctrl = wx.TextCtrl(self, self.infodata[key][1], '0')
+#                 sizer.Add(txt, 0)
+#                 sizer.Add(ctrl,0)
+#             else:
+#                 txt = wx.StaticText(self, -1, self.infodata[key][0])
+#                 ctrl1 = wx.TextCtrl(self, self.infodata[key][1], '0')      
+#                 #ctrl2 = wx.TextCtrl(self, self.infodata[key][2], '0', size = (60,21))
+#                 #txtpm = wx.StaticText(self, -1, u"\u00B1")
+                
+#                 bsizer = wx.BoxSizer()
+#                 bsizer.Add(ctrl1,0,wx.EXPAND)
+#                 #bsizer.Add(txtpm,0, wx.LEFT | wx.TOP, 3)
+#                 #bsizer.Add(ctrl2,0,wx.EXPAND | wx.LEFT, 3)
+                
+#                 sizer.Add(txt,0)
+#                 sizer.Add(bsizer,0)
+             
+#         return sizer
+        
+#     def createControls(self):
+        
+#         sizer = wx.FlexGridSizer(rows = 1, cols = 4)
+#         sizer.AddGrowableCol(0)
+#         sizer.AddGrowableCol(1)
+#         sizer.AddGrowableCol(2)
+#         sizer.AddGrowableCol(3)
+        
+#         sizer.Add(wx.StaticText(self,-1,'q_min'),1, wx.LEFT, 5)
+#         sizer.Add(wx.StaticText(self,-1,'n_min'),1)
+#         sizer.Add(wx.StaticText(self,-1,'q_max'),1)
+#         sizer.Add(wx.StaticText(self,-1,'n_max'),1)
+          
+#         self.startSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qstart'], size = (60,-1))
+#         self.endSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1))
+        
+# #        if sys.platform == 'darwin':
+# #             # For getting Mac to process ENTER events:
+# #            self.startSpin.GetChildren()[0].SetWindowStyle(wx.PROCESS_ENTER)
+# #            self.startSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterOnSpinCtrl)                           
+# #                                                         
+# #            self.endSpin.GetChildren()[0].SetWindowStyle(wx.PROCESS_ENTER)
+# #            self.endSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterOnSpinCtrl) 
+# #        
+        
+#         self.startSpin.SetValue(0)
+#         self.endSpin.SetValue(0)
+            
+#         self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
+#         self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
+        
+#         self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (55, 22), style = wx.PROCESS_ENTER)
+#         self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (55, 22), style = wx.PROCESS_ENTER)
+        
+#         self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
+#         self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
+        
+#         sizer.Add(self.qstartTxt, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 3)
+#         sizer.Add(self.startSpin, 0, wx.EXPAND | wx.RIGHT, 3)
+#         sizer.Add(self.qendTxt, 0, wx.EXPAND | wx.RIGHT, 3)
+#         sizer.Add(self.endSpin, 0, wx.EXPAND | wx.RIGHT, 5)
+        
+#         return sizer
+    
+#     def onEnterInQlimits(self, evt):
+        
+#         id = evt.GetId()
+        
+#         lx = self.ExpObj.q
+#         ly = self.ExpObj.i
+        
+#         findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
+
+#         txtctrl = wx.FindWindowById(id)
+        
+#         #### If User inputs garbage: ####
+#         try:
+#             val = float(txtctrl.GetValue())
+#         except ValueError:
+#             if id == self.staticTxtIDs['qstart']:
+#                 spinctrl = wx.FindWindowById(self.spinctrlIDs['qstart'])
+#                 txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+#                 idx = int(spinctrl.GetValue())
+#                 txt.SetValue(str(round(self.ExpObj.q[idx],5)))
+#                 return
+            
+#             if id == self.staticTxtIDs['qend']:
+#                 spinctrl = wx.FindWindowById(self.spinctrlIDs['qend'])
+#                 txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+#                 idx = int(spinctrl.GetValue())
+#                 txt.SetValue(str(round(self.ExpObj.q[idx],5)))
+#                 return
+#         #################################
+            
+#         closest = findClosest(val,lx)
+            
+#         i = np.where(lx == closest)[0][0]
+        
+#         endSpin = wx.FindWindowById(self.spinctrlIDs['qend'])
+#         startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'])
+        
+#         if id == self.staticTxtIDs['qstart']:
+            
+#             max = endSpin.GetValue()
+            
+#             if i > max-3:
+#                 i = max - 3
+            
+#             startSpin.SetValue(i)
+            
+#         elif id == self.staticTxtIDs['qend']:
+#             minq = startSpin.GetValue()
+            
+            
+#             if i < minq+3:
+#                 i = minq + 3
+            
+#             endSpin.SetValue(i)
+                
+#         txtctrl.SetValue(str(round(self.ExpObj.q[int(i)],5)))
+        
+#         wx.CallAfter(self.updatePlot)
+        
+#     def setSpinLimits(self, ExpObj):
+#         self.startSpin.SetRange((0, len(ExpObj.q)-1))
+#         self.endSpin.SetRange((0, len(ExpObj.q)-1))
+        
+#         self.endSpin.SetValue(len(ExpObj.q)-1)
+#         txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+#         txt.SetValue(str(round(ExpObj.q[int(len(ExpObj.q)-1)],4)))
+#         txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+#         txt.SetValue(str(round(ExpObj.q[0],4)))
+        
+#         self._initSettings()
+        
+#     def onEnterOnSpinCtrl(self, evt):
+#         ''' Little workaround to make enter key in spinctrl work on Mac too '''
+#         spin = evt.GetEventObject()
+        
+#         self.startSpin.SetFocus()
+#         self.endSpin.SetFocus()
+        
+#         spin.SetFocus()
+        
+#     def onSpinCtrl(self, evt):
+        
+#         id = evt.GetId()
+        
+#         spin = wx.FindWindowById(id)
+             
+#         startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'])
+#         endSpin = wx.FindWindowById(self.spinctrlIDs['qend'])
+            
+#         i = spin.GetValue()
+        
+#         #Make sure the boundaries don't cross:
+#         if id == self.spinctrlIDs['qstart']:
+#             max = endSpin.GetValue()
+#             txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+            
+#             if i > max-3:
+#                 i = max - 3
+#                 spin.SetValue(i)
+            
+#         elif id == self.spinctrlIDs['qend']:
+#             min = startSpin.GetValue()
+#             txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+            
+#             if i < min+3:
+#                 i = min + 3
+#                 spin.SetValue(i)
+                
+#         txt.SetValue(str(round(self.ExpObj.q[int(i)],5)))
+        
+#         #Important, since it's a slow function to update (could do it in a timer instead) otherwise this spin event might loop!
+#         wx.CallAfter(self.updatePlot)
+        
+#     def updatePlot(self):
+#         plotpanel = wx.FindWindowByName('PorodPlotPanel')
+#         a = plotpanel.subplots['Porod']
+        
+#         spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
+#         spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
+        
+#         i = int(spinstart.GetValue())
+        
+#         x = self.ExpObj.q
+#         y = self.ExpObj.i
+        
+#         spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
+        
+#         i2 = int(spinend.GetValue())
+        
+#         xlim = [i,i2]
+#         plotpanel.updateDataPlot(y, x, xlim)
+        
+#     def updateInfo(self, newInfo):
+        
+#         for eachkey in newInfo.iterkeys():
+            
+#             if len(self.infodata[eachkey]) == 2: 
+#                 ctrl = wx.FindWindowById(self.infodata[eachkey][1])
+#                 ctrl.SetValue(str(round(newInfo[eachkey],5)))
+#             else:
+#                 ctrl = wx.FindWindowById(self.infodata[eachkey][1])
+#                 ctrl.SetValue(str(round(newInfo[eachkey][0],5)))
+                
+#                 #ctrlerr = wx.FindWindowById(self.infodata[eachkey][2])
+#                 #ctrlerr.SetValue(str(round(newInfo[eachkey][1],5)))
+             
+#     def updateLimits(self, top = None, bottom = None):
+  
+#         if bottom:
+#             spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
+#             spinend.SetValue(bottom)
+#             txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+#             txt.SetValue(str(round(self.ExpObj.q[int(bottom)],4)))
+            
+#         if top:
+#             spinend = wx.FindWindowById(self.spinctrlIDs['qstart'])
+#             spinend.SetValue(top)
+#             txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+#             txt.SetValue(str(round(self.ExpObj.q[int(top)],4)))
+            
+#     def getLimits(self):
+        
+#         spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
+#         spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
+        
+#         return [int(spinstart.GetValue()), int(spinend.GetValue())]
+    
+#     def getInfo(self):
+        
+#         porodData = {}
+        
+#         for eachKey in self.infodata.iterkeys():
+            
+#             if len(self.infodata[eachKey]) == 2:
+#                 ctrl = wx.FindWindowById(self.infodata[eachKey][1])
+#                 val = ctrl.GetValue()
+#                 porodData[eachKey] = val
+#             else:
+#                 ctrl1 = wx.FindWindowById(self.infodata[eachKey][1])
+#                 ctrl2 = wx.FindWindowById(self.infodata[eachKey][2])
+#                 val1 = ctrl1.GetValue()
+#                 val2 = ctrl2.GetValue()
+                
+#                 porodData[eachKey] = (val1, val2) 
+                
+#         return porodData
+
+# #---- **** FOR TESTING ****
+
+
+# class PorodTestFrame(wx.Frame):
+    
+#     def __init__(self, parent, title, ExpObj, manip_item):
+        
+#         try:
+#             wx.Frame.__init__(self, parent, -1, title, name = 'PorodFrame', size = (800,600))
+#         except:
+#             wx.Frame.__init__(self, None, -1, title, name = 'PorodFrame', size = (800,600))
+        
+#         splitter1 = wx.SplitterWindow(self, -1)   
+        
+#         plotPanel = PorodPlotPanel(splitter1, -1, 'PorodPlotPanel')
+#         controlPanel = PorodControlPanel(splitter1, -1, 'PorodControlPanel', ExpObj, manip_item)
+          
+#         splitter1.SplitVertically(controlPanel, plotPanel, 290)
+#         splitter1.SetMinimumPaneSize(50)
+        
+#         self.statusbar = self.CreateStatusBar()
+#         self.statusbar.SetFieldsCount(1)
+#         #self.statusbar.SetStatusWidths([-3, -2])
+
+#         plotPanel.plotExpObj(ExpObj)
+        
+        
+#         controlPanel.setSpinLimits(ExpObj)
+#         controlPanel.setCurrentExpObj(ExpObj)
+        
+#         self.CenterOnParent()
+    
+#     def SetStatusText(self, text, slot = 0):
+        
+#         self.statusbar.SetStatusText(text, slot)
+        
+#     def OnClose(self):
+        
+#         self.Destroy()
+        
+# class PorodTestApp(wx.App):
+    
+#     def OnInit(self, filename = None):
+        
+#         #ExpObj, ImgDummy = fileIO.loadFile('/home/specuser/Downloads/BSUB_MVMi7_5_FULL_001_c_plot.rad')
+        
+#         tst_file = os.path.join(os.getcwd(), 'Tests', 'TestData', 'lyzexp.dat')
+        
+#         #tst_file = os.path.join(os.getcwd(), 'Tests', 'TestData', 'Lys12_1_001_plot.rad')
+        
+#         print tst_file
+#         raw_settings = RAWSettings.RawGuiSettings()
+
+#         ExpObj, ImgDummy = SASFileIO.loadFile(tst_file, raw_settings)
+        
+#         frame = PorodTestFrame(self, 'Porod', ExpObj, None)
+#         self.SetTopWindow(frame)
+#         frame.SetSize((800,600))
+#         frame.CenterOnScreen()
+#         frame.Show(True)
+#         return True
 
 class MolWeightFrame(wx.Frame):
     
@@ -1765,7 +1734,8 @@ class MolWeightFrame(wx.Frame):
         
         self.top_mw = wx.ScrolledWindow(parent, -1)
 
-        self.top_mw.SetScrollbars(20,20,50,50)
+        # self.top_mw.SetScrollbars(20,20,50,50)
+        self.top_mw.SetScrollRate(20,20)
 
         # self.top_mw = self
 
@@ -2741,15 +2711,16 @@ class MolWeightFrame(wx.Frame):
         fA=interp.interp1d(qA,AA)
         fB=interp.interp1d(qB,BB)
 
-        A=fA(q[-1])
-        B=fB(q[-1])
+        if q[-1] < 0.45092:
+            A=fA(q[-1])
+            B=fB(q[-1])
         
         if i0 > 0:
             #Calculate the Porod Volume
             pVolume = SASCalc.porodVolume(self.sasm, rg, i0, True)
 
             #Correct for the length of the q vector
-            if q[-1]<0.45:
+            if q[-1]<0.45092:
                 pv_cor=(A+B*pVolume)
             else:
                 pv_cor = pVolume
@@ -2860,7 +2831,7 @@ class MWPlotPanel(wx.Panel):
 
         self.SetSizer(sizer)
         self.canvas.SetBackgroundColour('white')
-        self.fig.subplots_adjust(left = 0.26, bottom = 0.16, right = 0.95, top = 0.91)
+        self.fig.subplots_adjust(left = 0.35, bottom = 0.16, right = 0.95, top = 0.91)
         self.fig.set_facecolor('white')
 
         font_size = 10
@@ -2944,6 +2915,2927 @@ class MWPlotPanel(wx.Panel):
         self.canvas.blit(a.bbox)
         
 
+
+class GNOMFrame(wx.Frame):
+    
+    def __init__(self, parent, title, sasm, manip_item):
+        
+        try:
+            wx.Frame.__init__(self, parent, -1, title, name = 'GNOMFrame', size = (800,600))
+        except:
+            wx.Frame.__init__(self, None, -1, title, name = 'GNOMFrame', size = (800,600))
+        
+        self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+
+        splitter1 = wx.SplitterWindow(self, -1)                
+        
+        self.plotPanel = GNOMPlotPanel(splitter1, -1, 'GNOMPlotPanel')
+        self.controlPanel = GNOMControlPanel(splitter1, -1, 'GNOMControlPanel', sasm, manip_item)
+  
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, 290)
+        splitter1.SetMinimumPaneSize(50)
+        
+        self.statusbar = self.CreateStatusBar()
+        self.statusbar.SetFieldsCount(1)
+        #self.statusbar.SetStatusWidths([-3, -2])
+
+        self.initGNOM(self.plotPanel, self.controlPanel, sasm)
+        
+        self.CenterOnParent()
+        self.Raise()
+    
+    def initGNOM(self, plotPanel, controlPanel, sasm):
+
+        analysis_dict = sasm.getParameter('analysis')
+        if 'GNOM' in analysis_dict:
+            iftm = self.controlPanel.initGnomValues(sasm)
+
+        else:
+            dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+            path = dirctrl_panel.getDirLabel()
+
+            cwd = os.getcwd()
+
+            savename = 't_dat.dat'
+
+            while os.path.isfile(os.path.join(path, savename)):
+                savename = 't'+savename
+
+            # save_sasm = copy.deepcopy(sasm)
+            save_sasm = SASM.SASM(copy.deepcopy(sasm.i), copy.deepcopy(sasm.q), copy.deepcopy(sasm.err), copy.deepcopy(sasm.getAllParameters()))
+
+            save_sasm.setParameter('filename', savename)
+
+            save_sasm.setQrange(sasm.getQrange())
+
+            SASFileIO.saveMeasurement(save_sasm, path, self._raw_settings, filetype = '.dat')
+            
+            os.chdir(path)
+
+            try:
+                init_iftm = SASCalc.runDatgnom(savename, sasm)
+            except SASExceptions.NoATSASError as e:
+                wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
+                self.cleanupGNOM(path, savename = savename)
+                os.chdir(cwd)
+                self.onClose()
+                return
+
+            os.chdir(cwd)
+
+
+            if init_iftm == None:
+                outname = 't_datgnom.out'
+                while os.path.isfile(outname):
+                    outname = 't'+outname
+
+                if 'Guinier' in analysis_dict:
+                    rg = float(analysis_dict['Guinier']['Rg'])
+                    dmax = int(rg*3.) #Mostly arbitrary guess at Dmax
+
+                else:
+                    dmax = 80 #Completely arbitrary default setting for Dmax
+
+                os.chdir(path)
+
+                try:
+                    init_iftm = SASCalc.runGnom(savename, outname, dmax, self.controlPanel.gnom_settings)
+                except SASExceptions.NoATSASError as e:
+                    wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
+                    self.cleanupGNOM(path, savename = savename, outname = outname)
+                    self.onClose()
+                    os.chdir(cwd)
+                    return
+
+                os.chdir(cwd)
+
+                self.cleanupGNOM(path, outname = outname)
+
+            self.cleanupGNOM(path, savename = savename)
+            
+            
+            iftm = controlPanel.initDatgnomValues(sasm, init_iftm)
+
+        qrange = sasm.getQrange()
+
+        plotPanel.plotPr(sasm, iftm)
+
+    def updateGNOMSettings(self):
+        self.controlPanel.updateGNOMSettings()
+
+
+    def SetStatusText(self, text, slot = 0):
+        
+        self.statusbar.SetStatusText(text, slot)
+
+    def cleanupGNOM(self, path, savename = '', outname = ''):
+        savefile = os.path.join(path, savename)
+        outfile = os.path.join(path, outname)
+
+        if savename != '':
+            if os.path.isfile(savefile):
+                try:
+                    os.remove(savefile)
+                except Exception, e:
+                    print e
+                    print 'GNOM cleanup failed to remove the .dat file!'
+
+        if outname != '':
+            if os.path.isfile(outfile):
+                try:
+                    os.remove(outfile)
+                except Exception, e:
+                    print e
+                    print 'GNOM cleanup failed to remove the .out file!'
+        
+    def OnClose(self):
+        
+        self.Destroy()
+
+
+
+class GNOMPlotPanel(wx.Panel):
+    
+    def __init__(self, parent, panel_id, name, wxEmbedded = False):
+        
+        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        
+        main_frame = wx.FindWindowByName('MainFrame')
+        
+        try:
+            self.raw_settings = main_frame.raw_settings
+        except AttributeError:
+            self.raw_settings = RAWSettings.RawGuiSettings()
+        
+        self.fig = Figure((5,4), 75)
+                    
+        self.ift = None
+    
+        subplotLabels = [('P(r)', 'r', 'P(r)', .1), ('Data/Fit', 'q', 'I(q)', 0.1)]
+        
+        self.fig.subplots_adjust(hspace = 0.26)
+        
+        self.subplots = {}
+             
+        for i in range(0, len(subplotLabels)):
+            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
+            subplot.set_xlabel(subplotLabels[i][1])
+            subplot.set_ylabel(subplotLabels[i][2])
+            self.subplots[subplotLabels[i][0]] = subplot 
+
+        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
+        self.fig.set_facecolor('white')
+
+        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
+        self.canvas.SetBackgroundColour('white')
+      
+        self.toolbar = NavigationToolbar2Wx(self.canvas)
+        self.toolbar.Realize()
+        # self.toolbar = RAWPlot.CustomSECPlotToolbar(self, self.canvas)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
+        sizer.Add(self.toolbar, 0, wx.GROW)
+
+        self.SetSizer(sizer)
+        # self.canvas.SetBackgroundColour('white')
+        
+        # Connect the callback for the draw_event so that window resizing works:
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) 
+
+    def ax_redraw(self, widget=None):
+        ''' Redraw plots on window resize event '''
+        
+        a = self.subplots['P(r)']
+        b = self.subplots['Data/Fit']
+
+        self.background = self.canvas.copy_from_bbox(a.bbox)
+        self.err_background = self.canvas.copy_from_bbox(b.bbox)
+        
+        if self.ift != None:
+            self.updateDataPlot(self.orig_q, self.orig_i, self.orig_err, self.orig_r, self.orig_p, self.orig_perr, self.orig_qexp, self.orig_jreg, self.xlim)
+    
+        
+    def plotPr(self, sasm, iftm):
+        # xlim = [0, len(sasm.i)]
+        
+        xlim = sasm.getQrange()
+
+        r = iftm.r
+        p = iftm.p
+        perr = iftm.err
+
+        i = iftm.i_orig 
+        q = iftm.q_orig 
+        err = iftm.err_orig
+
+        qexp = q
+        jreg = iftm.i_fit
+
+        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
+        self.canvas.mpl_disconnect(self.cid)
+        self.updateDataPlot(sasm.q, sasm.i, sasm.err, r, p, perr, qexp, jreg, xlim)
+        
+        #Reconnect draw_event
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def updateDataPlot(self, q, i, err, r, p, perr, qexp, jreg, xlim):
+            
+        xmin, xmax = xlim
+        
+        #Save for resizing:
+        self.orig_q = q
+        self.orig_i = i
+        self.orig_err = err
+        self.orig_r = r
+        self.orig_p = p
+        self.orig_perr = perr
+        self.orig_qexp = qexp
+        self.orig_jreg = jreg
+
+        self.xlim = xlim
+        
+        # #Cut out region of interest
+        self.i = i[xmin:xmax]
+        self.q = q[xmin:xmax]
+            
+        a = self.subplots['P(r)']
+        b = self.subplots['Data/Fit']
+                                                      
+        controlPanel = wx.FindWindowByName('GNOMControlPanel')
+        
+        if not self.ift:
+            self.ift, = a.plot(r, p, 'r.-', animated = True)
+
+            a.axhline(color = 'k')
+
+            self.data_line, = b.plot(self.q, self.i, 'bo', animated = True)
+            self.gnom_line, = b.plot(qexp, jreg, 'r', animated = True)
+            
+            #self.lim_back_line, = a.plot([x_lim_back, x_lim_back], [y_lim_back-0.2, y_lim_back+0.2], transform=a.transAxes, animated = True)
+            
+            self.canvas.draw()
+            self.background = self.canvas.copy_from_bbox(a.bbox)
+            self.err_background = self.canvas.copy_from_bbox(b.bbox)
+        else:
+            self.canvas.restore_region(self.background)
+            
+            self.ift.set_ydata(p)
+            self.ift.set_xdata(r)
+  
+            #Error lines:          
+            self.data_line.set_xdata(self.q)
+            self.data_line.set_ydata(self.i)
+            self.gnom_line.set_xdata(qexp)
+            self.gnom_line.set_ydata(jreg)
+        
+        a.relim()
+        a.autoscale_view()
+        
+        a.draw_artist(self.ift)
+
+        b.relim()
+        b.autoscale_view()
+
+        # b.set_xlim((self.q[0], self.q[-1]))
+        # b.set_ylim((error.min(), error.max()))
+  
+        #restore white background in error plot and draw new error:
+        # self.canvas.restore_region(self.err_background)
+        b.draw_artist(self.data_line)
+        b.draw_artist(self.gnom_line)
+
+        self.canvas.blit(a.bbox)
+        self.canvas.blit(b.bbox)
+        
+             
+class GNOMControlPanel(wx.Panel):
+    
+    def __init__(self, parent, panel_id, name, sasm, manip_item):
+
+        wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        self.parent = parent
+        
+        self.sasm = sasm
+        
+        self.manip_item = manip_item
+        self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.old_analysis = {}
+
+        if 'GNOM' in self.sasm.getParameter('analysis'):
+            self.old_analysis = copy.deepcopy(self.sasm.getParameter('analysis')['GNOM'])
+     
+        self.gnom_settings = {  'expert'        : self.raw_settings.get('gnomExpertFile'),
+                                'rmin_zero'     : self.raw_settings.get('gnomForceRminZero'),
+                                'rmax_zero'     : self.raw_settings.get('gnomForceRmaxZero'),
+                                'npts'          : self.raw_settings.get('gnomNPoints'),
+                                'alpha'         : self.raw_settings.get('gnomInitialAlpha'),
+                                'angular'       : self.raw_settings.get('gnomAngularScale'),
+                                'system'        : self.raw_settings.get('gnomSystem'),
+                                'form'          : self.raw_settings.get('gnomFormFactor'),
+                                'radius56'      : self.raw_settings.get('gnomRadius56'),
+                                'rmin'          : self.raw_settings.get('gnomRmin')
+                                }
+
+        self.out_list = {}
+
+
+        self.spinctrlIDs = {'qstart' : wx.NewId(),
+                            'qend'   : wx.NewId(),
+                            'dmax'   : wx.NewId()}
+        
+        self.staticTxtIDs = {'qstart' : wx.NewId(),
+                            'qend'   : wx.NewId()}
+
+
+        self.infodata = {'guinierI0' : ('I0 :', wx.NewId(), wx.NewId()),
+                         'guinierRg' : ('Rg :', wx.NewId(), wx.NewId()),
+                         'gnomI0'    : ('I0 :', wx.NewId(), wx.NewId()),
+                         'gnomRg'    : ('Rg :', wx.NewId(), wx.NewId()),
+                         'TE': ('Total Estimate :', wx.NewId()),
+                         'gnomQuality': ('GNOM says :', wx.NewId()),
+                         'chisq': ('chi^2 (fit) :', wx.NewId())
+                         }
+
+
+        button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
+        button.Bind(wx.EVT_BUTTON, self.onCloseButton)
+        
+        savebutton = wx.Button(self, wx.ID_OK, 'OK')
+        savebutton.Bind(wx.EVT_BUTTON, self.onSaveInfo)
+        
+        buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttonSizer.Add(savebutton, 1, wx.RIGHT, 5)
+        buttonSizer.Add(button, 1)
+
+        # saveOutButton = wx.Button(self, -1, 'Save .out file')
+        # saveOutButton.Bind(wx.EVT_BUTTON, self.onSaveOutButton)
+
+        # dammifButton = wx.Button(self, -1, 'Process using Dammif/n')
+        # dammifButton.Bind(wx.EVT_BUTTON, self.onDammifButton)
+
+        # buttonSizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        # buttonSizer2.Add(saveOutButton, 0)
+        # buttonSizer2.Add(dammifButton, 1)
+
+
+        box2 = wx.StaticBox(self, -1, 'Control')
+        controlSizer = self.createControls()
+        boxSizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
+        boxSizer2.Add(controlSizer, 0, wx.EXPAND)
+
+
+        box = wx.StaticBox(self, -1, 'Parameters')
+        infoSizer = self.createInfoBox()
+        boxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        boxSizer.Add(infoSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP ,5)
+        # qrgsizer = self.createQRgInfo()
+        # boxSizer.Add(qrgsizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 5)
+        
+        
+        
+        
+        bsizer = wx.BoxSizer(wx.VERTICAL)
+        bsizer.Add(self.createFileInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
+        # bsizer.Add(self.createConcInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+        bsizer.Add(boxSizer2, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
+        bsizer.Add(boxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+        # bsizer.Add(buttonSizer2, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT| wx.TOP, 5)
+        bsizer.AddStretchSpacer(1)
+        bsizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+         
+        self.SetSizer(bsizer)
+        
+
+    def initDatgnomValues(self, sasm, iftm):
+        self.setSpinLimits(sasm)
+
+        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'])
+        guinierRgWindow = wx.FindWindowById(self.infodata['guinierRg'][1])
+        guinierI0Window = wx.FindWindowById(self.infodata['guinierI0'][1])
+
+        dmax = int(round(iftm.getParameter('dmax')))
+
+        if dmax != iftm.getParameter('dmax'):
+            self.calcGNOM(dmax)
+        else:
+            self.out_list[str(dmax)] = iftm
+
+        dmaxWindow.SetValue(dmax)
+
+        self.updateGNOMInfo(self.out_list[str(dmax)])
+
+        if 'guinier' in sasm.getParameter('analysis'):
+            
+            guinier = sasm.getParameter('analysis')['guinier']
+
+            try:
+                guinierRgWindow.SetValue(str(guinier['Rg']))
+            except Exception as e:
+                print e
+                guinierRgWindow.SetValue('')
+
+            try:
+                guinierI0Window.SetValue(str(guinier['I0']))
+            except Exception as e:
+                print e
+                guinierI0Window.SetValue('')
+
+        self.setFilename(os.path.basename(sasm.getParameter('filename')))
+
+        return self.out_list[str(dmax)]
+
+    def initGnomValues(self, sasm):
+
+        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'])
+        guinierRgWindow = wx.FindWindowById(self.infodata['guinierRg'][1])
+        guinierI0Window = wx.FindWindowById(self.infodata['guinierI0'][1])
+        
+        dmax = sasm.getParameter('analysis')['GNOM']['Dmax']
+        qmin = sasm.getParameter('analysis')['GNOM']['qStart']
+        qmax = sasm.getParameter('analysis')['GNOM']['qEnd']
+
+        findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
+        closest_qmin = findClosest(qmin, sasm.q)
+        closest_qmax = findClosest(qmax, sasm.q)
+
+        new_nmin = np.where(sasm.q == closest_qmin)[0][0]
+        new_nmax = np.where(sasm.q == closest_qmax)[0][0]
+
+        self.startSpin.SetRange((0, len(sasm.q)-1))
+        self.endSpin.SetRange((0, len(sasm.q)-1))
+        
+        self.endSpin.SetValue(new_nmax)
+        self.startSpin.SetValue(new_nmin)
+        txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+        txt.SetValue(str(round(sasm.q[new_nmax],4)))
+        txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+        txt.SetValue(str(round(sasm.q[new_nmin],4)))
+
+        self.calcGNOM(dmax)
+
+        dmaxWindow.SetValue(dmax)
+
+        self.updateGNOMInfo(self.out_list[str(dmax)])
+
+        if 'guinier' in sasm.getParameter('analysis'):
+            
+            guinier = sasm.getParameter('analysis')['guinier']
+
+            try:
+                guinierRgWindow.SetValue(str(guinier['Rg']))
+            except Exception as e:
+                print e
+                guinierRgWindow.SetValue('')
+
+            try:
+                guinierI0Window.SetValue(str(guinier['I0']))
+            except Exception as e:
+                print e
+                guinierI0Window.SetValue('')
+
+        self.setFilename(os.path.basename(sasm.getParameter('filename')))
+
+        return self.out_list[str(dmax)]
+        
+
+
+    def updateGNOMInfo(self, iftm):
+        gnomRgWindow = wx.FindWindowById(self.infodata['gnomRg'][1])
+        gnomI0Window = wx.FindWindowById(self.infodata['gnomI0'][1])
+        gnomTEWindow = wx.FindWindowById(self.infodata['TE'][1])
+        gnomQualityWindow = wx.FindWindowById(self.infodata['gnomQuality'][1])
+        gnomChisqWindow = wx.FindWindowById(self.infodata['chisq'][1])
+
+        gnomRgWindow.SetValue(str(iftm.getParameter('rg')))
+        gnomI0Window.SetValue(str(iftm.getParameter('i0')))
+        gnomTEWindow.SetValue(str(iftm.getParameter('TE')))
+        gnomChisqWindow.SetValue(str(iftm.getParameter('chisq')))
+        gnomQualityWindow.SetValue(str(iftm.getParameter('quality')))
+            
+        
+    def setFilename(self, filename):
+        self.filenameTxtCtrl.SetValue(str(filename))
+        
+    def createFileInfo(self):
+        
+        box = wx.StaticBox(self, -1, 'Filename')
+        boxsizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
+        
+        #txt = wx.StaticText(self, -1, 'Filename :')
+        self.filenameTxtCtrl = wx.TextCtrl(self, -1, '', style = wx.TE_READONLY)
+        
+        #boxsizer.Add((5,5),0)
+        #boxsizer.Add(txt,0,wx.EXPAND | wx.TOP , 4)
+        boxsizer.Add(self.filenameTxtCtrl, 1, wx.EXPAND)
+        
+        return boxsizer
+        
+    def onSaveInfo(self, evt):
+
+        gnom_results = {}
+
+        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'])
+        dmax = str(dmaxWindow.GetValue())
+
+        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'])
+        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'])
+        start_idx = startSpin.GetValue()
+        end_idx = endSpin.GetValue()
+
+        gnom_results['Dmax'] = dmax
+        gnom_results['Total_Estimate'] = self.out_list[dmax].getParameter('TE')
+        gnom_results['Real_Space_Rg'] = self.out_list[dmax].getParameter('rg')
+        gnom_results['Real_Space_I0'] = self.out_list[dmax].getParameter('i0')
+        gnom_results['qStart'] = self.sasm.q[start_idx]
+        gnom_results['qEnd'] = self.sasm.q[end_idx]
+        # gnom_results['GNOM_ChiSquared'] = self.out_list[dmax]['chisq']
+        # gnom_results['GNOM_Quality_Assessment'] = self.out_list[dmax]['gnomQuality']
+
+        analysis_dict = self.sasm.getParameter('analysis')
+        analysis_dict['GNOM'] = gnom_results
+
+        if self.manip_item != None:
+            if gnom_results != self.old_analysis:
+                wx.CallAfter(self.manip_item.markAsModified)
+
+        iftm = self.out_list[dmax]
+        iftm.setParameter('filename', os.path.splitext(self.sasm.getParameter('filename'))[0]+'.out')
+
+        RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [iftm, 'black', None, True]])
+        
+        diag = wx.FindWindowByName('GNOMFrame')
+        diag.OnClose()
+        
+    def onCloseButton(self, evt):
+        
+        diag = wx.FindWindowByName('GNOMFrame')
+        diag.OnClose()
+
+    def onSaveOutButton(self, evt):
+
+        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'])
+        dmax = dmaxWindow.GetValue()
+
+        filename = self.sasm.getParameter('filename')
+        
+        iftm = self.out_list[str(dmax)]
+
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        path = dirctrl_panel.getDirLabel()
+
+        fname = os.path.splitext(os.path.basename(filename))[0]+'.out'
+        msg = "Please select save directory and enter save file name"
+        dialog = wx.FileDialog(self, message = msg, style = wx.FD_SAVE, defaultDir = path, defaultFile = fname) 
+
+
+        if dialog.ShowModal() == wx.ID_OK:               
+            path = dialog.GetPath()
+        else:
+            return
+
+        path=os.path.splitext(path)[0]+'.out'
+        filename = os.path.basename(path)
+
+        iftm.setParameter('filename', filename)
+
+        SASFileIO.writeOutFile(iftm, path)
+
+
+    def onDammifButton(self, evt):
+        dammifFrame = wx.FindWindowByName('DammifFrame')
+
+        if dammifFrame:
+            dammifFrame.Destroy()
+
+
+        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'])
+        dmax = dmaxWindow.GetValue()
+
+        filename = self.sasm.getParameter('filename')
+        
+        iftm = self.out_list[str(dmax)]
+        outfile = iftm.getParameter('out')
+
+
+        dammifFrame = DammifFrame(self.main_frame, 'DAMMIF', outfile, filename)
+        dammifFrame.SetIcon(self.main_frame.GetIcon())
+        dammifFrame.Show(True)
+
+    def onDatgnomButton(self, evt):
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        path = dirctrl_panel.getDirLabel()
+
+        cwd = os.getcwd()
+
+        savename = 't_dat.dat'
+
+        while os.path.isfile(os.path.join(path, savename)):
+            savename = 't'+savename
+
+        # save_sasm = copy.deepcopy(sasm)
+        save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q), copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
+
+        save_sasm.setParameter('filename', savename)
+
+        save_sasm.setQrange(self.sasm.getQrange())
+
+        SASFileIO.saveMeasurement(save_sasm, path, self.raw_settings, filetype = '.dat')
+        
+        os.chdir(path)
+
+        try:
+            datgnom = SASCalc.runDatgnom(savename, self.sasm)
+        except SASExceptions.NoATSASError as e:
+            wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
+            top = wx.FindWindowByName('GNOMFrame')
+            top.cleanupGNOM(path, savename = savename)
+            os.chdir(cwd)
+            top.OnClose()
+            return
+
+        os.chdir(cwd)
+
+        top = wx.FindWindowByName('GNOMFrame')
+        top.cleanupGNOM(path, savename = savename)
+
+        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'])
+
+        dmax = int(round(datgnom.getParameter('dmax')))
+
+        if dmax != datgnom.getParameter('dmax') and dmax not in self.out_list:
+            self.calcGNOM(dmax)
+        elif dmax == datgnom.getParameter('dmax') and dmax not in self.out_list:
+            self.out_list[str(dmax)] = datgnom
+
+        dmaxWindow.SetValue(dmax)
+
+        self.updateGNOMInfo(self.out_list[str(dmax)])
+
+        self.updatePlot()
+    
+    def createInfoBox(self):
+
+        sizer = wx.FlexGridSizer(rows = 3, cols = 3)
+
+        sizer.Add((0,0))
+
+        rglabel = wx.StaticText(self, -1, 'Rg (A)')
+        i0label = wx.StaticText(self, -1, 'I0')
+
+        sizer.Add(rglabel, 0, wx.ALL, 5)
+        sizer.Add(i0label, 0, wx.ALL, 5)
+
+        guinierlabel = wx.StaticText(self, -1, 'Guinier :')
+        self.guinierRg = wx.TextCtrl(self, self.infodata['guinierRg'][1], '0', size = (60,-1), style = wx.TE_READONLY)
+        self.guinierI0 = wx.TextCtrl(self, self.infodata['guinierI0'][1], '0', size = (60,-1), style = wx.TE_READONLY)
+
+        sizer.Add(guinierlabel, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 5)
+        sizer.Add(self.guinierRg, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        sizer.Add(self.guinierI0, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+
+        gnomlabel = wx.StaticText(self, -1, 'P(r) :')
+        self.gnomRg = wx.TextCtrl(self, self.infodata['gnomRg'][1], '0', size = (60,-1), style = wx.TE_READONLY)
+        self.gnomI0 = wx.TextCtrl(self, self.infodata['gnomI0'][1], '0', size = (60,-1), style = wx.TE_READONLY)
+
+        sizer.Add(gnomlabel, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 5)
+        sizer.Add(self.gnomRg, 0, wx.ALL, 5)
+        sizer.Add(self.gnomI0, 0, wx.ALL, 5)
+
+
+        teLabel = wx.StaticText(self, -1, self.infodata['TE'][0])
+        self.totalEstimate = wx.TextCtrl(self, self.infodata['TE'][1], '0', size = (60,-1), style = wx.TE_READONLY)
+
+        teSizer = wx.BoxSizer(wx.HORIZONTAL)
+        teSizer.Add(teLabel, 0, wx.RIGHT, 5)
+        teSizer.Add(self.totalEstimate, 0, wx.RIGHT, 5)
+
+        chisqLabel = wx.StaticText(self, -1, self.infodata['chisq'][0])
+        self.chisq = wx.TextCtrl(self, self.infodata['chisq'][1], '0', size = (60,-1), style = wx.TE_READONLY)
+
+        chisqSizer = wx.BoxSizer(wx.HORIZONTAL)
+        chisqSizer.Add(chisqLabel, 0, wx.RIGHT, 5)
+        chisqSizer.Add(self.chisq, 0, wx.RIGHT, 5)
+
+        qualityLabel = wx.StaticText(self, -1, self.infodata['gnomQuality'][0])
+        self.quality = wx.TextCtrl(self, self.infodata['gnomQuality'][1], '', style = wx.TE_READONLY)
+
+        qualitySizer = wx.BoxSizer(wx.HORIZONTAL)
+        qualitySizer.Add(qualityLabel, 0, wx.RIGHT, 5)
+        qualitySizer.Add(self.quality, 1)
+
+        
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(sizer,0)
+        top_sizer.Add(teSizer,0, wx.BOTTOM, 5)
+        top_sizer.Add(chisqSizer,0, wx.BOTTOM, 5)
+        top_sizer.Add(qualitySizer,0, wx.BOTTOM | wx.EXPAND, 5)
+
+        return top_sizer
+        
+    def createControls(self):
+        
+        sizer = wx.FlexGridSizer(rows = 2, cols = 4)
+        sizer.AddGrowableCol(0)
+        sizer.AddGrowableCol(1)
+        sizer.AddGrowableCol(2)
+        sizer.AddGrowableCol(3)
+        
+        sizer.Add(wx.StaticText(self,-1,'q_min'),1, wx.LEFT, 5)
+        sizer.Add(wx.StaticText(self,-1,'n_min'),1)
+        sizer.Add(wx.StaticText(self,-1,'q_max'),1)
+        sizer.Add(wx.StaticText(self,-1,'n_max'),1)
+          
+        self.startSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qstart'], size = (60,-1), min =0)
+        self.endSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1), min = 0)     
+        
+        self.startSpin.SetValue(0)
+        self.endSpin.SetValue(0)
+            
+        self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
+        self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
+        
+        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (55, 22), style = wx.PROCESS_ENTER)
+        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (55, 22), style = wx.PROCESS_ENTER)
+        
+        self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
+        self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
+        
+        sizer.Add(self.qstartTxt, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 3)
+        sizer.Add(self.startSpin, 0, wx.EXPAND | wx.RIGHT, 3)
+        sizer.Add(self.qendTxt, 0, wx.EXPAND | wx.RIGHT, 3)
+        sizer.Add(self.endSpin, 0, wx.EXPAND | wx.RIGHT, 5)
+
+
+        dmax_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.dmaxSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['dmax'], size = (60,-1), min = 1)
+
+        self.dmaxSpin.SetValue(0)
+        self.dmaxSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
+        self.dmaxSpin.Bind(wx.EVT_TEXT, self.onDmaxText)
+
+        dmax_sizer.Add(wx.StaticText(self, -1, 'Dmax :'), 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
+        dmax_sizer.Add(self.dmaxSpin, 0, wx.EXPAND | wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
+
+
+        advancedParams = wx.Button(self, -1, 'Change Advanced Parameters')
+        advancedParams.Bind(wx.EVT_BUTTON, self.onChangeParams)
+
+        datgnom = wx.Button(self, -1, 'DATGNOM')
+        datgnom.Bind(wx.EVT_BUTTON, self.onDatgnomButton)
+
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(sizer, 0, wx.EXPAND)
+        top_sizer.Add(dmax_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
+        top_sizer.Add(advancedParams, 0, wx.CENTER | wx.BOTTOM, 10)
+        top_sizer.Add(datgnom, 0, wx.CENTER | wx.BOTTOM, 10)
+
+        
+        return top_sizer
+
+    def onDmaxText(self,evt):
+        self.dmaxSpin.Unbind(wx.EVT_TEXT) #Avoid infinite recursion
+
+        dmax = str(self.dmaxSpin.GetValue())
+        dmax = float(dmax.replace(',', '.'))
+        self.dmaxSpin.SetValue(int(dmax))
+
+        self.dmaxSpin.Bind(wx.EVT_TEXT, self.onDmaxText)
+    
+    def onEnterInQlimits(self, evt):
+        
+        id = evt.GetId()
+        
+        lx = self.sasm.q
+        ly = self.sasm.i
+        
+        findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
+
+        txtctrl = wx.FindWindowById(id)
+        
+        #### If User inputs garbage: ####
+        try:
+            val = float(txtctrl.GetValue())
+        except ValueError:
+            if id == self.staticTxtIDs['qstart']:
+                spinctrl = wx.FindWindowById(self.spinctrlIDs['qstart'])
+                txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+                idx = int(spinctrl.GetValue())
+                txt.SetValue(str(round(self.sasm.q[idx],5)))
+                return
+            
+            if id == self.staticTxtIDs['qend']:
+                spinctrl = wx.FindWindowById(self.spinctrlIDs['qend'])
+                txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+                idx = int(spinctrl.GetValue())
+                txt.SetValue(str(round(self.sasm.q[idx],5)))
+                return
+        #################################
+            
+        closest = findClosest(val,lx)
+            
+        i = np.where(lx == closest)[0][0]
+        
+        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'])
+        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'])
+        
+        if id == self.staticTxtIDs['qstart']:
+            
+            max = endSpin.GetValue()
+            
+            if i > max-3:
+                i = max - 3
+            
+            startSpin.SetValue(i)
+            
+        elif id == self.staticTxtIDs['qend']:
+            minq = startSpin.GetValue()
+            
+            
+            if i < minq+3:
+                i = minq + 3
+            
+            endSpin.SetValue(i)
+                
+        txtctrl.SetValue(str(round(self.sasm.q[int(i)],5)))
+
+
+        self.out_list = {}
+        
+        wx.CallAfter(self.updatePlot)
+        
+    def setSpinLimits(self, sasm):
+        self.startSpin.SetRange((0, len(sasm.q)-1))
+        self.endSpin.SetRange((0, len(sasm.q)-1))
+        
+        self.endSpin.SetValue(len(sasm.q)-1)
+        txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+        txt.SetValue(str(round(sasm.q[int(len(sasm.q)-1)],4)))
+        txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+        txt.SetValue(str(round(sasm.q[0],4)))
+        
+        # self._initSettings()
+        
+    def onSpinCtrl(self, evt):
+
+        # self.startSpin.Disable()
+        # self.endSpin.Disable()
+        # self.dmaxSpin.Disable()
+
+        id = evt.GetId()
+
+        if id != self.spinctrlIDs['dmax']:
+            spin = wx.FindWindowById(id)
+                 
+            startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'])
+            endSpin = wx.FindWindowById(self.spinctrlIDs['qend'])
+                
+            i = spin.GetValue()
+            
+            #Make sure the boundaries don't cross:
+            if id == self.spinctrlIDs['qstart']:
+                max = endSpin.GetValue()
+                txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+                
+                if i > max-3:
+                    i = max - 3
+                    spin.SetValue(i)
+                
+            elif id == self.spinctrlIDs['qend']:
+                min = startSpin.GetValue()
+                txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+                
+                if i < min+3:
+                    i = min + 3
+                    spin.SetValue(i)
+                    
+            txt.SetValue(str(round(self.sasm.q[int(i)],5)))
+
+            self.out_list = {}
+
+        #Important, since it's a slow function to update (could do it in a timer instead) otherwise this spin event might loop!
+        wx.CallAfter(self.updatePlot)
+
+        
+    def updatePlot(self):
+        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'])
+        dmax = dmaxWindow.GetValue()
+
+        if dmax not in self.out_list:
+            self.calcGNOM(dmax)
+
+        self.updateGNOMInfo(self.out_list[str(dmax)])
+
+        plotpanel = wx.FindWindowByName('GNOMPlotPanel')
+
+        dmax_window = wx.FindWindowById(self.spinctrlIDs['dmax'])
+        dmax = str(dmax_window.GetValue())
+        # a = plotpanel.subplots['P(r)']
+        # b = plotpanel.supbplots['Data/Fit']
+        
+        spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
+        spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
+        
+        i = int(spinstart.GetValue())
+        
+        # x = self.sasm.q
+        # y = self.sasm.i
+        
+        # spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
+        
+        i2 = int(spinend.GetValue())
+        
+        xlim = [i,i2]
+
+        q = self.sasm.q
+        i = self.sasm.i
+        err = self.sasm.err
+        
+        r = self.out_list[dmax].r
+        p = self.out_list[dmax].p
+        perr = self.out_list[dmax].err
+        qexp = self.out_list[dmax].q_orig
+        jreg = self.out_list[dmax].i_fit
+
+
+        plotpanel.updateDataPlot(q, i, err, r, p, perr, qexp, jreg, xlim)
+        
+        plotpanel.canvas.draw()
+
+        # self.startSpin.Enable()
+        # self.endSpin.Enable()
+        # self.dmaxSpin.Enable()
+
+
+    def calcGNOM(self, dmax):
+        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'])
+        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'])
+
+        start = int(startSpin.GetValue())
+        end = int(endSpin.GetValue())
+
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        path = dirctrl_panel.getDirLabel()
+
+        cwd = os.getcwd()
+
+        savename = 't_dat.dat'
+
+        while os.path.isfile(os.path.join(path, savename)):
+            savename = 't'+savename
+
+        outname = 't_out.out'
+        while os.path.isfile(os.path.join(path, outname)):
+            outname = 't'+outname
+
+        # save_sasm = copy.deepcopy(self.sasm)
+        save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q), copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
+
+        save_sasm.setParameter('filename', savename)
+        save_sasm.setQrange((start, end))
+
+        SASFileIO.saveMeasurement(save_sasm, path, self.raw_settings, filetype = '.dat')
+        
+
+        os.chdir(path)
+        try:
+            iftm = SASCalc.runGnom(savename, outname, dmax, self.gnom_settings)
+        except SASExceptions.NoATSASError as e:
+            wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
+            top = wx.FindWindowByName('GNOMFrame')
+            top.cleanupGNOM(path, savename, outname)
+            os.chdir(cwd)
+            top.OnClose()
+            return
+
+        os.chdir(cwd)
+
+        top = wx.FindWindowByName('GNOMFrame')
+        top.cleanupGNOM(path, savename, outname)
+        
+        self.out_list[str(int(iftm.getParameter('dmax')))] = iftm
+
+
+    def updateGNOMSettings(self):
+        self.old_settings = copy.deepcopy(self.gnom_settings)
+
+        self.gnom_settings = {  'expert'        : self.raw_settings.get('gnomExpertFile'),
+                                'rmin_zero'     : self.raw_settings.get('gnomForceRminZero'),
+                                'rmax_zero'     : self.raw_settings.get('gnomForceRmaxZero'),
+                                'npts'          : self.raw_settings.get('gnomNPoints'),
+                                'alpha'         : self.raw_settings.get('gnomInitialAlpha'),
+                                'angular'       : self.raw_settings.get('gnomAngularScale'),
+                                'system'        : self.raw_settings.get('gnomSystem'),
+                                'form'          : self.raw_settings.get('gnomFormFactor'),
+                                'radius56'      : self.raw_settings.get('gnomRadius56'),
+                                'rmin'          : self.raw_settings.get('gnomRmin')
+                                }
+
+        if self.old_settings != self.gnom_settings:
+            self.out_list = {}
+
+        self.updatePlot()
+
+
+    def onChangeParams(self, evt):
+        self.main_frame.showOptionsDialog(focusHead='GNOM')
+
+
+class DammifFrame(wx.Frame):
+    
+    def __init__(self, parent, title, iftm, manip_item):
+        
+        try:
+            wx.Frame.__init__(self, parent, -1, title, name = 'DammifFrame', size = (675,700))
+        except:
+            wx.Frame.__init__(self, None, -1, title, name = 'DammifFrame', size = (675,700))
+
+        self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        self.manip_item = manip_item
+
+        self.iftm = iftm
+
+        self.ift = iftm.getParameter('out')
+
+        self.filename = iftm.getParameter('filename')
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+        self.infodata = {}
+
+        self.ids = {'runs'          : wx.NewId(),
+                    'procs'         : wx.NewId(),
+                    'mode'          : wx.NewId(),
+                    'sym'           : wx.NewId(),
+                    'anisometry'    : wx.NewId(),
+                    'status'        : wx.NewId(),
+                    'damaver'       : wx.NewId(),
+                    'save'          : wx.NewId(),
+                    'prefix'        : wx.NewId(),
+                    'logbook'       : wx.NewId(),
+                    'start'         : wx.NewId(),
+                    'abort'         : wx.NewId(),
+                    'changedir'     : wx.NewId()
+                    }
+
+        self.threads = []
+
+
+        topsizer = self._createLayout(self.panel)
+        self._initSettings()
+
+        self.panel.SetSizer(topsizer)
+        self.panel.Layout()
+        self.SendSizeEvent()
+        self.panel.Layout()
+        
+        
+        self.CenterOnParent()
+
+        self.Raise()
+
+
+    def _createLayout(self, parent):
+
+        savedir_text = wx.StaticText(parent, -1, 'Output directory :')
+        savedir_ctrl = wx.TextCtrl(parent, self.ids['save'], '', size = (350, -1))
+       
+        try:
+            savedir_ctrl.AutoCompleteDirectories() #compatability for older versions of wxpython
+        except AttributeError as e:
+            print e
+
+        savedir_button = wx.Button(parent, self.ids['changedir'], 'Select/Change Directory')
+        savedir_button.Bind(wx.EVT_BUTTON, self.onChangeDirectoryButton)
+
+        savedir_sizer = wx.BoxSizer(wx.VERTICAL)
+        savedir_sizer.Add(savedir_text, 0, wx.ALL, 5)
+        savedir_sizer.Add(savedir_ctrl, 0, wx.ALL | wx.EXPAND, 5)
+        savedir_sizer.Add(savedir_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+
+
+        prefix_text = wx.StaticText(parent, -1, 'Output prefix :')
+        prefix_ctrl = wx.TextCtrl(parent, self.ids['prefix'], '', size = (150, -1))
+
+        prefix_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        prefix_sizer.Add(prefix_text, 0, wx.ALL, 5)
+        prefix_sizer.Add(prefix_ctrl, 1, wx.ALL, 5)
+        prefix_sizer.AddStretchSpacer(1)
+        
+
+        nruns_text = wx.StaticText(parent, -1, 'Number of reconstructions :')
+        nruns_ctrl = wx.TextCtrl(parent, self.ids['runs'], '', size = (60, -1))
+        nruns_ctrl.Bind(wx.EVT_TEXT, self.onRunsText)
+
+        nruns_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        nruns_sizer.Add(nruns_text, 0, wx.ALL, 5)
+        nruns_sizer.Add(nruns_ctrl, 0, wx.ALL, 5)
+
+
+        nprocs = multiprocessing.cpu_count()
+        nprocs_choices = [str(i) for i in range(nprocs, 0, -1)]
+        nprocs_text = wx.StaticText(parent, -1, 'Number of simultaneous runs :')
+        nprocs_choice = wx.Choice(parent, self.ids['procs'], choices = nprocs_choices)
+
+        nprocs_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        nprocs_sizer.Add(nprocs_text, 0, wx.ALL, 5)
+        nprocs_sizer.Add(nprocs_choice, 0, wx.ALL, 5)
+
+
+        mode_text = wx.StaticText(parent, -1, 'Mode :')
+        mode_choice = wx.Choice(parent, self.ids['mode'], choices = ['Fast', 'Slow', 'Custom'])
+
+        mode_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        mode_sizer.Add(mode_text, 0, wx.ALL, 5)
+        mode_sizer.Add(mode_choice, 0, wx.ALL, 5)
+
+
+        sym_choices = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11',
+                        'P12', 'P13', 'P14', 'P15', 'P16', 'P17', 'P18', 'P19', 'P22', 'P222',
+                        'P32', 'P42', 'P52', 'P62', 'P72', 'P82', 'P92', 'P102', 'P112', 'P122']
+
+        sym_text = wx.StaticText(parent, -1, 'Symmetry :')
+        sym_choice = wx.Choice(parent, self.ids['sym'], choices = sym_choices)
+
+        sym_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sym_sizer.Add(sym_text, 0, wx.ALL, 5)
+        sym_sizer.Add(sym_choice, 0, wx.ALL, 5)
+
+
+        anisometry_choices = ['Unknown', 'Prolate', 'Oblate']
+        aniso_text = wx.StaticText(parent, -1, 'Anisometry :')
+        aniso_choice = wx.Choice(parent, self.ids['anisometry'], choices = anisometry_choices)
+
+        aniso_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        aniso_sizer.Add(aniso_text, 0, wx.ALL, 5)
+        aniso_sizer.Add(aniso_choice, 0, wx.ALL, 5)
+
+        damaver_chk = wx.CheckBox(parent, self.ids['damaver'], 'Align and average envelopes (damaver)')
+
+        advancedButton = wx.Button(parent, -1, 'Change Advanced Settings')
+        advancedButton.Bind(wx.EVT_BUTTON, self._onAdvancedButton)
+
+
+        settings_box = wx.StaticBox(parent, -1, 'Settings')
+        settings_sizer = wx.StaticBoxSizer(settings_box, wx.VERTICAL)
+        settings_sizer.Add(savedir_sizer, 0, wx.EXPAND)
+        # settings_sizer.Add(savedir_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        settings_sizer.Add(prefix_sizer, 0, wx.EXPAND)
+        settings_sizer.Add(nruns_sizer, 0)
+        settings_sizer.Add(nprocs_sizer, 0)
+        settings_sizer.Add(mode_sizer, 0)
+        settings_sizer.Add(sym_sizer, 0)
+        settings_sizer.Add(aniso_sizer, 0)
+        settings_sizer.Add(damaver_chk, 0, wx.ALL, 5)
+        settings_sizer.Add(advancedButton, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+
+
+        start_button = wx.Button(parent, self.ids['start'], 'Start')
+        start_button.Bind(wx.EVT_BUTTON, self.onStartButton)
+
+        abort_button = wx.Button(parent, self.ids['abort'], 'Abort')
+        abort_button.Bind(wx.EVT_BUTTON, self.onAbortButton)
+
+        button_box = wx.StaticBox(parent, -1, 'Controls')
+        button_sizer = wx.StaticBoxSizer(button_box, wx.HORIZONTAL)
+        button_sizer.AddStretchSpacer(1)
+        button_sizer.Add(start_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        button_sizer.Add(abort_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        button_sizer.AddStretchSpacer(1)
+
+        control_sizer = wx.BoxSizer(wx.VERTICAL)
+        control_sizer.Add(settings_sizer, 0, wx.EXPAND)
+        control_sizer.Add(button_sizer, 0, wx.ALIGN_CENTER | wx.EXPAND)
+
+
+        self.status = wx.TextCtrl(parent, self.ids['status'], '', style = wx.TE_MULTILINE | wx.TE_READONLY, size = (100,200))
+        status_box = wx.StaticBox(parent, -1, 'Status')
+        status_sizer = wx.StaticBoxSizer(status_box, wx.VERTICAL)
+        status_sizer.Add(self.status, 1, wx.EXPAND | wx.ALL, 5)
+
+
+        half_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        half_sizer.Add(control_sizer, 2, wx.EXPAND)
+        half_sizer.Add(status_sizer, 1, wx.EXPAND)
+
+
+        try:
+            self.logbook = flatNB.FlatNotebook(parent, self.ids['logbook'], agwStyle = flatNB.FNB_NAV_BUTTONS_WHEN_NEEDED | flatNB.FNB_NO_X_BUTTON)
+        except AttributeError as e:
+            print e
+            self.logbook = flatNB.FlatNotebook(parent, self.ids['logbook'])     #compatability for older versions of wxpython
+            self.logbook.SetWindowStyleFlag(flatNB.FNB_NO_X_BUTTON)
+
+        self.logbook.DeleteAllPages()
+
+        log_box = wx.StaticBox(parent, -1, 'Log')
+        log_sizer = wx.StaticBoxSizer(log_box, wx.HORIZONTAL)
+        log_sizer.Add(self.logbook, 1, wx.ALL | wx.EXPAND, 5)
+
+
+        close_button = wx.Button(parent, -1, 'Close')
+        close_button.Bind(wx.EVT_BUTTON, self._onCloseButton)
+
+
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:     #compatability for older versions of wxpython
+            top_sizer = wx.BoxSizer(wx.VERTICAL)
+            top_sizer.Add(half_sizer, 0, wx.EXPAND)
+            top_sizer.Add(log_sizer, 1, wx.EXPAND)
+            top_sizer.Add(close_button, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
+        else:
+            top_sizer = wx.BoxSizer(wx.VERTICAL)
+            top_sizer.Add(half_sizer, 1, wx.EXPAND)
+            top_sizer.Add(log_sizer, 1, wx.EXPAND)
+            top_sizer.Add(close_button, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
+
+
+        self.dammif_timer = wx.Timer(parent)
+        parent.Bind(wx.EVT_TIMER, self.onDammifTimer, self.dammif_timer)
+
+
+        return top_sizer
+
+
+    def _initSettings(self):
+        self.dammif_settings = {'mode'          : self.raw_settings.get('dammifMode'),
+                                'unit'          : self.raw_settings.get('dammifUnit'),
+                                'sym'           : self.raw_settings.get('dammifSymmetry'),
+                                'anisometry'    : self.raw_settings.get('dammifAnisometry'),
+                                'omitSolvent'   : self.raw_settings.get('dammifOmitSolvent'),
+                                'chained'       : self.raw_settings.get('dammifChained'),
+                                'constant'      : self.raw_settings.get('dammifConstant'),
+                                'maxBead'       : self.raw_settings.get('dammifMaxBeadCount'),
+                                'radius'        : self.raw_settings.get('dammifDummyRadius'),
+                                'harmonics'     : self.raw_settings.get('dammifSH'),
+                                'propFit'       : self.raw_settings.get('dammifPropToFit'),
+                                'curveWeight'   : self.raw_settings.get('dammifCurveWeight'),
+                                'seed'          : self.raw_settings.get('dammifRandomSeed'),
+                                'maxSteps'      : self.raw_settings.get('dammifMaxSteps'),
+                                'maxIters'      : self.raw_settings.get('dammifMaxIters'),
+                                'maxSuccess'    : self.raw_settings.get('dammifMaxStepSuccess'),
+                                'minSuccess'    : self.raw_settings.get('dammifMinStepSuccess'),
+                                'TFactor'       : self.raw_settings.get('dammifTFactor'),
+                                'RgWeight'      : self.raw_settings.get('dammifRgPen'),
+                                'cenWeight'     : self.raw_settings.get('dammifCenPen'),
+                                'looseWeight'   : self.raw_settings.get('dammifLoosePen')
+                                }
+
+        mode = wx.FindWindowById(self.ids['mode'])
+        mode.SetStringSelection(self.dammif_settings['mode'])
+
+        sym = wx.FindWindowById(self.ids['sym'])
+        sym.SetStringSelection(self.dammif_settings['sym'])
+
+        anisometry = wx.FindWindowById(self.ids['anisometry'])
+        anisometry.SetStringSelection(self.dammif_settings['anisometry'])
+
+        procs = wx.FindWindowById(self.ids['procs'])
+        if multiprocessing.cpu_count() > 1:
+            procs.SetSelection(1)
+        else:
+            procs.SetSelection(0)
+
+        damaver = wx.FindWindowById(self.ids['damaver'])
+        damaver.SetValue(self.raw_settings.get('dammifDamaver'))
+
+        prefix = wx.FindWindowById(self.ids['prefix'])
+        prefix.SetValue(os.path.splitext(self.filename)[0])
+
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        path = dirctrl_panel.getDirLabel()
+
+        save = wx.FindWindowById(self.ids['save'])
+        save.SetValue(path)
+
+        nruns = wx.FindWindowById(self.ids['runs'])
+        nruns.SetValue(str(self.raw_settings.get('dammifReconstruct')))
+
+        abort_button = wx.FindWindowById(self.ids['abort']).Disable()
+
+
+    def onStartButton(self, evt):
+        #Set the dammif settings
+        self.setArgs()
+
+        #Get user settings on number of runs, save location, etc
+        damaver_window = wx.FindWindowById(self.ids['damaver'])
+        damaver = damaver_window.GetValue()
+
+        prefix_window = wx.FindWindowById(self.ids['prefix'])
+        prefix = prefix_window.GetValue()
+
+        path_window = wx.FindWindowById(self.ids['save'])
+        path = path_window.GetValue()
+
+        procs_window = wx.FindWindowById(self.ids['procs'])
+        procs = int(procs_window.GetStringSelection())
+
+        nruns_window = wx.FindWindowById(self.ids['runs'])
+        nruns = int(nruns_window.GetValue())
+
+        outname = os.path.join(path, prefix+'.out')
+
+
+        #Check to see if any files will be overwritten. Prompt use if that is the case. Write the .out file for dammif to use
+        if os.path.exists(outname):
+            existingOut = SASFileIO.loadOutFile(outname)[0].getParameter('out')
+            if existingOut != self.ift:
+
+                msg = "Warning: the file %s already exists in the specified directory, and is not identical to the P(r) dammif will use. To continue, RAW must overwrite this file. Do you wish to continue?" %(prefix+'.out')
+                dlg = wx.MessageDialog(self.main_frame, msg, "Overwrite existing file?", style = wx.ICON_WARNING | wx.YES_NO)
+                proceed = dlg.ShowModal()
+                dlg.Destroy()
+            
+                if proceed == wx.ID_YES:
+                    f = open(outname, 'w')
+
+                    for line in self.ift:
+                        f.write(line)
+
+                    f.close()
+                else:
+                    return
+        else:
+            f = open(outname, 'w')
+
+            for line in self.ift:
+                f.write(line)
+
+            f.close()
+
+        dammif_names = {key: value for (key, value) in [(str(i), prefix+'_%s' %(str(i).zfill(2))) for i in range(1, nruns+1)]}
+
+        yes_to_all = False
+        for key in dammif_names:
+            LogName = os.path.join(path, dammif_names[key]+'.log')
+            InName = os.path.join(path, dammif_names[key]+'.in')
+            FitName = os.path.join(path, dammif_names[key]+'.fit')
+            FirName = os.path.join(path, dammif_names[key]+'.fir')
+            EnvelopeName = os.path.join(path, dammif_names[key]+'-1.pdb')
+            SolventName = os.path.join(path, dammif_names[key]+'-0.pdb')
+
+            if (os.path.exists(LogName) or os.path.exists(InName) or os.path.exists(FitName) or os.path.exists(FirName) or os.path.exists(EnvelopeName) or os.path.exists(SolventName)) and not yes_to_all:
+                button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
+                question = 'Warning: selected directory contains DAMMIF output files with the prefix\n"%s". Running DAMMIF will overwrite these files.\nDo you wish to continue?' %(dammif_names[key])
+                label = 'Overwrite existing files?'
+                icon = wx.ART_WARNING
+
+                question_dialog = RAWCustomCtrl.CustomQuestionDialog(self.main_frame, question, button_list, label, icon, style = wx.CAPTION)
+                result = question_dialog.ShowModal()
+                question_dialog.Destroy()
+
+                if result == wx.ID_NO:
+                    return
+                elif result == wx.ID_YESTOALL:
+                    yes_to_all = True
+
+        yes_to_all = False
+
+        damaver_names = [prefix+'_damfilt.pdb', prefix+'_damsel.log', prefix+'_damstart.pdb', prefix+'_damsup.log',
+                        prefix+'_damaver.pdb', 'damfilt.pdb', 'damsel.log', 'damstart.pdb', 'damsup.log', 'damaver.pdb']
+
+        for item in damaver_names:
+
+            if os.path.exists(os.path.join(path, item)) and not yes_to_all:
+                button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
+                question = 'Warning: selected directory contains the DAMAVER output file\n"%s". Running DAMAVER will overwrite this file.\nDo you wish to continue?' %(item)
+                label = 'Overwrite existing files?'
+                icon = wx.ART_WARNING
+
+                question_dialog = RAWCustomCtrl.CustomQuestionDialog(self.main_frame, question, button_list, label, icon, style = wx.CAPTION)
+                result = question_dialog.ShowModal()
+                question_dialog.Destroy()
+
+                if result == wx.ID_NO:
+                    return
+                elif result == wx.ID_YESTOALL:
+                    yes_to_all = True
+
+
+        #Set up the various bits of information the threads will need. Set up the status windows.
+        self.dammif_ids = {key: value for (key, value) in [(str(i), wx.NewId()) for i in range(1, nruns+1)]}
+
+        self.thread_nums = Queue.Queue()
+        
+        for i in range(1, nruns+1):
+            text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids[str(i)], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
+            self.logbook.AddPage(text_ctrl, str(i))
+            self.thread_nums.put(str(i))
+
+        if nruns > 1 and damaver:
+            self.dammif_ids['damaver'] = wx.NewId()
+            text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['damaver'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
+            self.logbook.AddPage(text_ctrl, 'Damaver')
+
+        self.status.SetValue('Starting processing\n')
+
+
+        for key in self.ids:
+            if key != 'logbook' and key != 'abort' and key != 'status':
+                wx.FindWindowById(self.ids[key]).Disable()
+            elif key == 'abort':
+                wx.FindWindowById(self.ids[key]).Enable()
+
+
+        self.threads = []
+        
+        self.my_semaphore = threading.BoundedSemaphore(procs)
+        self.start_semaphore = threading.BoundedSemaphore(1)
+
+        self.abort_event = threading.Event()
+        self.abort_event.clear()
+
+        self.rs = Queue.Queue()
+
+        for key in self.dammif_ids:
+            if key != 'damaver':
+                t = threading.Thread(target = self.runDammif, args = (outname, prefix, path))
+                t.daemon = True
+                t.start()
+                self.threads.append(t)
+                # while len(self.threads) < procs and len(self.threads) < nruns:
+                #     time.sleep(1) #Need a sleep in here so they get different random seeds! Has to be one second, as dammif seems to be taking time since epoch as the random seed.
+        
+        self.dammif_timer.Start(1000)
+
+
+    def onAbortButton(self, evt):
+        self.abort_event.set()
+
+        if self.dammif_timer.IsRunning():
+            self.dammif_timer.Stop()
+
+        aborted = False
+
+        while not aborted:
+            done_list = [False for i in range(len(self.threads))]
+            for i in range(len(self.threads)):
+                if not self.threads[i].is_alive():
+                    done_list[i] = True
+            if np.all(done_list):
+                aborted = True
+            time.sleep(.1)
+
+
+        for key in self.ids:
+            if key != 'logbook' and key != 'abort' and key != 'status':
+                wx.FindWindowById(self.ids[key]).Enable()
+            elif key == 'abort':
+                wx.FindWindowById(self.ids[key]).Disable()
+
+
+        self.status.AppendText('Processing Aborted!')
+
+
+    def onChangeDirectoryButton(self, evt):
+        path = wx.FindWindowById(self.ids['save']).GetValue()
+
+        dirdlg = wx.DirDialog(self, "Please select save directory:", defaultPath = path)
+            
+        if dirdlg.ShowModal() == wx.ID_OK:
+            new_path = dirdlg.GetPath()
+            wx.FindWindowById(self.ids['save']).SetValue(new_path)
+
+
+    def onRunsText(self, evt):
+        nruns_ctrl = wx.FindWindowById(self.ids['runs'])
+        
+
+        nruns = nruns_ctrl.GetValue()
+        if nruns != '' and not nruns.isdigit():
+            nruns_ctrl.Unbind(wx.EVT_TEXT) #Avoid infinite recursion
+
+            
+            try:
+                nruns = float(nruns.replace(',', '.'))
+            except ValueError as e:
+                print e
+                nruns = ''
+            if nruns != '':
+                nruns = str(int(nruns))
+
+            nruns_ctrl.SetValue(nruns)
+
+            nruns_ctrl.Bind(wx.EVT_TEXT, self.onRunsText)
+
+
+    def setArgs(self):
+        for key in self.dammif_settings:
+            if key in self.ids:
+                window = wx.FindWindowById(self.ids[key])
+
+                self.dammif_settings[key] = window.GetStringSelection()
+
+
+    def runDammif(self, outname, prefix, path):
+
+        with self.my_semaphore:
+            #Check to see if things have been aborted
+            if self.abort_event.isSet():
+                my_num = self.thread_nums.get()
+                damId = self.dammif_ids[my_num]
+                damWindow = wx.FindWindowById(damId)
+                wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
+                return
+
+
+            #Make sure that you don't start two dammif processes with the same random seed
+            with self.start_semaphore:
+                if not self.rs.empty():
+                    old_rs = self.rs.get()
+                    while old_rs == int(time.time()):
+                        time.sleep(0.01)
+                self.rs.put(int(time.time()))
+
+            my_num = self.thread_nums.get()
+            damId = self.dammif_ids[my_num]
+            damWindow = wx.FindWindowById(damId)
+
+            dam_prefix = prefix+'_%s' %(my_num.zfill(2))
+
+
+            #Remove old files, so they don't mess up the program
+            old_files = [os.path.join(path, dam_prefix+'.log'), os.path.join(path, dam_prefix+'.in'),
+                        os.path.join(path, dam_prefix+'.fit'), os.path.join(path, dam_prefix+'.fir'),
+                        os.path.join(path, dam_prefix+'-1.pdb'), os.path.join(path, dam_prefix+'-0.pdb')]
+
+            for item in old_files:
+                if os.path.exists(item):
+                    os.remove(item)
+
+
+            #Run DAMMIF
+            dam_args = self.dammif_settings
+
+            wx.CallAfter(self.status.AppendText, 'Starting DAMMIF run %s\n' %(my_num))
+
+            cwd = os.getcwd()
+            os.chdir(path)
+
+            dammif_proc = SASCalc.runDammif(outname, dam_prefix, dam_args)
+
+            os.chdir(cwd)
+
+            logname = os.path.join(path,dam_prefix)+'.log'
+
+            while not os.path.exists(logname):
+                time.sleep(0.001)
+
+            pos = 0
+
+            #Send the DAMMIF log output to the screen.
+            while dammif_proc.poll() == None:
+                if self.abort_event.isSet():
+                    dammif_proc.terminate()
+                    wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
+                    return
+
+                logfile = open(os.path.join(path,dam_prefix)+'.log', 'rb')
+                logfile.seek(pos)
+
+                newtext = logfile.read()
+
+                if newtext != '':
+                    wx.CallAfter(damWindow.AppendText, newtext)
+
+                pos = logfile.tell()
+                logfile.close()
+
+                time.sleep(.1)
+
+            logfile = open(os.path.join(path,dam_prefix)+'.log', 'rb')
+            logfile.seek(pos)
+            final_status = logfile.read()
+            logfile.close()
+
+            wx.CallAfter(damWindow.AppendText, final_status)
+
+
+            wx.CallAfter(self.status.AppendText, 'Finished DAMMIF run %s\n' %(my_num))
+
+
+    def runDamaver(self, prefix, path):
+        #Solution for non-blocking reads adapted from stack overflow
+        #http://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
+        def enqueue_output(out, queue):
+            line = 'test'
+            line2=''
+            while line != '':
+                line = out.read(1)
+                line2+=line
+                if line == '\n':
+                    queue.put_nowait([line2])
+                    line2=''
+                time.sleep(0.001)
+
+
+        with self.my_semaphore:
+            #Check to see if things have been aborted
+            if self.abort_event.isSet():
+                my_num = self.thread_nums.get()
+                damId = self.dammif_ids[my_num]
+                damWindow = wx.FindWindowById(damId)
+                wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
+                return
+
+            damId = self.dammif_ids['damaver']
+            damWindow = wx.FindWindowById(damId)
+
+            #Remove old files, so they don't mess up the program
+            old_files = [os.path.join(path, prefix+'_damfilt.pdb'), os.path.join(path, prefix+'_damsel.log'),
+                        os.path.join(path, prefix+'_damstart.pdb'), os.path.join(path, prefix+'_damsup.log'),
+                        os.path.join(path, prefix+'_damaver.pdb'), os.path.join(path, 'damfilt.pdb'), 
+                        os.path.join(path, 'damsel.log'), os.path.join(path, 'damstart.pdb'), 
+                        os.path.join(path, 'damsup.log'), os.path.join(path, 'damaver.pdb')]
+
+            for item in old_files:
+                if os.path.exists(item):
+                    os.remove(item)
+
+            wx.CallAfter(self.status.AppendText, 'Starting DAMAVER\n')
+
+
+            nruns_window = wx.FindWindowById(self.ids['runs'])
+            nruns = int(nruns_window.GetValue())
+
+            dam_filelist = [os.path.join(path, prefix+'_%s-1.pdb' %(str(i).zfill(2))) for i in range(1, nruns+1)]
+
+
+            cwd = os.getcwd()
+            os.chdir(path)
+
+            damaver_proc = SASCalc.runDamaver(dam_filelist)
+
+            os.chdir(cwd)
+
+
+            damaver_q = Queue.Queue()
+            readout_t = threading.Thread(target=enqueue_output, args=(damaver_proc.stdout, damaver_q))
+            readout_t.daemon = True
+            readout_t.start()
+
+            
+            #Send the damaver output to the screen.
+            while damaver_proc.poll() == None:
+                if self.abort_event.isSet():
+                    damaver_proc.terminate()
+                    wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
+                    return
+
+                try:
+                    new_text = damaver_q.get_nowait()
+                    new_text = new_text[0]
+
+                    wx.CallAfter(damWindow.AppendText, new_text)
+                except Queue.Empty:
+                    pass
+                time.sleep(0.001)
+
+
+            new_files = [(os.path.join(path, 'damfilt.pdb'), os.path.join(path, prefix+'_damfilt.pdb')), 
+                        (os.path.join(path, 'damsel.log'), os.path.join(path, prefix+'_damsel.log')),
+                        (os.path.join(path, 'damstart.pdb'), os.path.join(path, prefix+'_damstart.pdb')), 
+                        (os.path.join(path, 'damsup.log'), os.path.join(path, prefix+'_damsup.log')),
+                        (os.path.join(path, 'damaver.pdb'), os.path.join(path, prefix+'_damaver.pdb'))]
+
+            for item in new_files:
+                os.rename(item[0], item[1])
+
+
+            wx.CallAfter(self.status.AppendText, 'Finished DAMAVER\n')
+
+            self.finishedProcessing()
+
+
+    def onDammifTimer(self, evt):
+        dammif_finished = False
+
+        done_list = [False for i in range(len(self.threads))]
+        for i in range(len(self.threads)):
+            if not self.threads[i].is_alive():
+                done_list[i] = True
+        if np.all(done_list):
+            dammif_finished = True
+
+
+        if dammif_finished:
+            self.dammif_timer.Stop()
+
+            if 'damaver' in self.dammif_ids:
+                path_window = wx.FindWindowById(self.ids['save'])
+                path = path_window.GetValue()
+
+                prefix_window = wx.FindWindowById(self.ids['prefix'])
+                prefix = prefix_window.GetValue()
+
+
+                t = threading.Thread(target = self.runDamaver, args = (prefix, path))
+                t.daemon = True
+                t.start()
+                self.threads.append(t)
+
+            else:
+                self.finishedProcessing()
+
+
+    def finishedProcessing(self):
+        for key in self.ids:
+            if key != 'logbook' and key != 'abort' and key != 'status':
+                wx.FindWindowById(self.ids[key]).Enable()
+            elif key == 'abort':
+                wx.FindWindowById(self.ids[key]).Disable()
+
+        self.status.AppendText('Finished Processing')
+
+
+    def _onAdvancedButton(self, evt):
+        self.main_frame.showOptionsDialog(focusHead='DAMMIF')
+
+
+    def updateDAMMIFSettings(self):
+        self.dammif_settings = {'mode'          : self.raw_settings.get('dammifMode'),
+                                'unit'          : self.raw_settings.get('dammifUnit'),
+                                'sym'           : self.raw_settings.get('dammifSymmetry'),
+                                'anisometry'    : self.raw_settings.get('dammifAnisometry'),
+                                'omitSolvent'   : self.raw_settings.get('dammifOmitSolvent'),
+                                'chained'       : self.raw_settings.get('dammifChained'),
+                                'constant'      : self.raw_settings.get('dammifConstant'),
+                                'maxBead'       : self.raw_settings.get('dammifMaxBeadCount'),
+                                'radius'        : self.raw_settings.get('dammifDummyRadius'),
+                                'harmonics'     : self.raw_settings.get('dammifSH'),
+                                'propFit'       : self.raw_settings.get('dammifPropToFit'),
+                                'curveWeight'   : self.raw_settings.get('dammifCurveWeight'),
+                                'seed'          : self.raw_settings.get('dammifRandomSeed'),
+                                'maxSteps'      : self.raw_settings.get('dammifMaxSteps'),
+                                'maxIters'      : self.raw_settings.get('dammifMaxIters'),
+                                'maxSuccess'    : self.raw_settings.get('dammifMaxStepSuccess'),
+                                'minSuccess'    : self.raw_settings.get('dammifMinStepSuccess'),
+                                'TFactor'       : self.raw_settings.get('dammifTFactor'),
+                                'RgWeight'      : self.raw_settings.get('dammifRgPen'),
+                                'cenWeight'     : self.raw_settings.get('dammifCenPen'),
+                                'looseWeight'   : self.raw_settings.get('dammifLoosePen')
+                                }
+
+        mode = wx.FindWindowById(self.ids['mode'])
+        mode.SetStringSelection(self.dammif_settings['mode'])
+
+        sym = wx.FindWindowById(self.ids['sym'])
+        sym.SetStringSelection(self.dammif_settings['sym'])
+
+        anisometry = wx.FindWindowById(self.ids['anisometry'])
+        anisometry.SetStringSelection(self.dammif_settings['anisometry'])
+
+        procs = wx.FindWindowById(self.ids['procs'])
+        procs.SetSelection(1)
+
+        damaver = wx.FindWindowById(self.ids['damaver'])
+        damaver.SetValue(self.raw_settings.get('dammifDamaver'))
+
+        prefix = wx.FindWindowById(self.ids['prefix'])
+        prefix.SetValue(os.path.splitext(self.filename)[0])
+
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        path = dirctrl_panel.getDirLabel()
+
+        save = wx.FindWindowById(self.ids['save'])
+        save.SetValue(path)
+
+        nruns = wx.FindWindowById(self.ids['runs'])
+        nruns.SetValue(str(self.raw_settings.get('dammifReconstruct')))
+
+
+    def _onCloseButton(self, evt):
+        self.Close()
+
+
+    def OnClose(self, event):
+
+        process_finished = True
+
+        if self.dammif_timer.IsRunning():
+            process_finished = False
+
+        if process_finished:
+            done_list = [False for i in range(len(self.threads))]
+
+            if len(done_list) > 0:
+                for i in range(len(self.threads)):
+                    if not self.threads[i].is_alive():
+                        done_list[i] = True
+                if not np.all(done_list):
+                    process_finished = True
+
+        if not process_finished and event.CanVeto():
+            msg = "Warning: DAMMIF or DAMAVER is still running. Closing this window will abort the currently running processes. Do you want to continue closing the window?"
+            dlg = wx.MessageDialog(self.main_frame, msg, "Abort DAMMIF/DAMAVER?", style = wx.ICON_WARNING | wx.YES_NO)
+            proceed = dlg.ShowModal()
+            dlg.Destroy()
+
+            if proceed == wx.ID_YES:
+                self.abort_event.set()
+
+                if self.dammif_timer.IsRunning():
+                    self.dammif_timer.Stop()
+
+                aborted = False
+
+                while not aborted:
+                    done_list = [False for i in range(len(self.threads))]
+                    for i in range(len(self.threads)):
+                        if not self.threads[i].is_alive():
+                            done_list[i] = True
+                    if np.all(done_list):
+                        aborted = True
+                    time.sleep(.1)
+
+                for key in self.ids:
+                    if key != 'logbook' and key != 'abort' and key != 'status':
+                        wx.FindWindowById(self.ids[key]).Enable()
+                    elif key == 'abort':
+                        wx.FindWindowById(self.ids[key]).Disable()
+
+                self.status.AppendText('Processing Aborted!')
+
+            else:
+                event.Veto()
+                return
+
+        elif not process_finished:
+            #Try to gracefully exit
+            self.abort_event.set()
+
+            if self.dammif_timer.IsRunning():
+                self.dammif_timer.Stop()
+
+            aborted = False
+
+            while not aborted:
+                done_list = [False for i in range(len(self.threads))]
+                for i in range(len(self.threads)):
+                    if not self.threads[i].is_alive():
+                        done_list[i] = True
+                if np.all(done_list):
+                    aborted = True
+                time.sleep(.1)
+
+            for key in self.ids:
+                if key != 'logbook' and key != 'abort' and key != 'status':
+                    wx.FindWindowById(self.ids[key]).Enable()
+                elif key == 'abort':
+                    wx.FindWindowById(self.ids[key]).Disable()
+
+            self.status.AppendText('Processing Aborted!')
+
+        self.Destroy()
+
+class BIFTFrame(wx.Frame):
+    
+    def __init__(self, parent, title, sasm, manip_item):
+        
+        try:
+            wx.Frame.__init__(self, parent, -1, title, name = 'BIFTFrame', size = (800,600))
+        except:
+            wx.Frame.__init__(self, None, -1, title, name = 'BIFTFrame', size = (800,600))
+        
+        self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+
+        splitter1 = wx.SplitterWindow(self, -1)                
+        
+        self.plotPanel = BIFTPlotPanel(splitter1, -1, 'BIFTPlotPanel')
+        self.controlPanel = BIFTControlPanel(splitter1, -1, 'BIFTControlPanel', sasm, manip_item)
+  
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, 290)
+
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+            splitter1.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
+        else:
+            splitter1.SetMinimumPaneSize(50)
+
+        # self.statusbar = self.CreateStatusBar()
+        # self.statusbar.SetFieldsCount(1)
+        #self.statusbar.SetStatusWidths([-3, -2])
+
+        # self.initGNOM(self.plotPanel, self.controlPanel, sasm)
+        
+        self.CenterOnParent()
+        self.Raise()
+
+        wx.FutureCall(50, self.initBIFT)
+    
+    def initBIFT(self):
+        self.controlPanel.runBIFT()
+
+    def SetStatusText(self, text, slot = 0):
+        
+        self.statusbar.SetStatusText(text, slot)
+
+
+    def OnClose(self):
+        
+        self.Destroy()
+
+
+
+class BIFTPlotPanel(wx.Panel):
+    
+    def __init__(self, parent, panel_id, name, wxEmbedded = False):
+        
+        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        
+        main_frame = wx.FindWindowByName('MainFrame')
+        
+        try:
+            self.raw_settings = main_frame.raw_settings
+        except AttributeError:
+            self.raw_settings = RAWSettings.RawGuiSettings()
+        
+        self.fig = Figure((5,4), 75)
+                    
+        self.ift = None
+    
+        subplotLabels = [('P(r)', 'r', 'P(r)', .1), ('Data/Fit', 'q', 'I(q)', 0.1)]
+        
+        self.fig.subplots_adjust(hspace = 0.26)
+        
+        self.subplots = {}
+             
+        for i in range(0, len(subplotLabels)):
+            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
+            subplot.set_xlabel(subplotLabels[i][1])
+            subplot.set_ylabel(subplotLabels[i][2])
+            self.subplots[subplotLabels[i][0]] = subplot 
+
+        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
+        self.fig.set_facecolor('white')
+
+        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
+        self.canvas.SetBackgroundColour('white')
+      
+        self.toolbar = NavigationToolbar2Wx(self.canvas)
+        self.toolbar.Realize()
+        # self.toolbar = RAWPlot.CustomSECPlotToolbar(self, self.canvas)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
+        sizer.Add(self.toolbar, 0, wx.GROW)
+
+        self.SetSizer(sizer)
+        # self.canvas.SetBackgroundColour('white')
+        
+        # Connect the callback for the draw_event so that window resizing works:
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) 
+
+    def ax_redraw(self, widget=None):
+        ''' Redraw plots on window resize event '''
+        
+        a = self.subplots['P(r)']
+        b = self.subplots['Data/Fit']
+
+        self.background = self.canvas.copy_from_bbox(a.bbox)
+        self.err_background = self.canvas.copy_from_bbox(b.bbox)
+        
+        if self.ift != None:
+            self.updateDataPlot(self.orig_q, self.orig_i, self.orig_err, self.orig_r, self.orig_p, self.orig_perr, self.orig_qexp, self.orig_jreg, self.xlim)
+    
+        
+    def plotPr(self, iftm):
+        
+        xlim = iftm.getQrange()
+
+        r = iftm.r
+        p = iftm.p
+        perr = iftm.err
+
+        i = iftm.i_orig 
+        q = iftm.q_orig 
+        err = iftm.err_orig
+
+        qexp = q
+        jreg = iftm.i_fit
+
+        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
+        self.canvas.mpl_disconnect(self.cid)
+        self.updateDataPlot(q, i, err, r, p, perr, qexp, jreg, xlim)
+        
+        #Reconnect draw_event
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def updateDataPlot(self, q, i, err, r, p, perr, qexp, jreg, xlim):
+            
+        xmin, xmax = xlim
+        
+        #Save for resizing:
+        self.orig_q = q
+        self.orig_i = i
+        self.orig_err = err
+        self.orig_r = r
+        self.orig_p = p
+        self.orig_perr = perr
+        self.orig_qexp = qexp
+        self.orig_jreg = jreg
+
+        self.xlim = xlim
+        
+        # #Cut out region of interest
+        self.i = i[xmin:xmax]
+        self.q = q[xmin:xmax]
+            
+        a = self.subplots['P(r)']
+        b = self.subplots['Data/Fit']
+                                                      
+        controlPanel = wx.FindWindowByName('BIFTControlPanel')
+
+        
+        if not self.ift:
+            self.ift, = a.plot(r, p, 'r.-', animated = True)
+
+            a.axhline(color = 'k')
+
+            self.data_line, = b.plot(self.q, self.i, 'bo', animated = True)
+            self.gnom_line, = b.plot(qexp, jreg, 'r', animated = True)
+            
+            #self.lim_back_line, = a.plot([x_lim_back, x_lim_back], [y_lim_back-0.2, y_lim_back+0.2], transform=a.transAxes, animated = True)
+            
+            self.canvas.draw()
+            self.background = self.canvas.copy_from_bbox(a.bbox)
+            self.err_background = self.canvas.copy_from_bbox(b.bbox)
+        else:
+            self.canvas.restore_region(self.background)
+            
+            self.ift.set_ydata(p)
+            self.ift.set_xdata(r)
+  
+            #Error lines:          
+            self.data_line.set_xdata(self.q)
+            self.data_line.set_ydata(self.i)
+            self.gnom_line.set_xdata(qexp)
+            self.gnom_line.set_ydata(jreg)
+        
+        a.relim()
+        a.autoscale_view()
+        
+        a.draw_artist(self.ift)
+
+        b.relim()
+        b.autoscale_view()
+
+        # b.set_xlim((self.q[0], self.q[-1]))
+        # b.set_ylim((error.min(), error.max()))
+  
+        #restore white background in error plot and draw new error:
+        # self.canvas.restore_region(self.err_background)
+        b.draw_artist(self.data_line)
+        b.draw_artist(self.gnom_line)
+
+        self.canvas.blit(a.bbox)
+        self.canvas.blit(b.bbox)
+        
+             
+class BIFTControlPanel(wx.Panel):
+    
+    def __init__(self, parent, panel_id, name, sasm, manip_item):
+
+        wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        self.parent = parent
+        
+        self.sasm = sasm
+        
+        self.manip_item = manip_item
+        self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.old_analysis = {}
+
+        if 'BIFT' in self.sasm.getParameter('analysis'):
+            self.old_analysis = copy.deepcopy(self.sasm.getParameter('analysis')['BIFT'])
+     
+        self.bift_settings = (self.raw_settings.get('PrPoints'),
+                                  self.raw_settings.get('maxAlpha'),
+                                  self.raw_settings.get('minAlpha'),
+                                  self.raw_settings.get('AlphaPoints'),
+                                  self.raw_settings.get('maxDmax'),
+                                  self.raw_settings.get('minDmax'),
+                                  self.raw_settings.get('DmaxPoints'))
+
+
+        self.infodata = {'dmax'         : ('Dmax :', wx.NewId()),
+                         'alpha'        : ('Alpha :', wx.NewId()),
+                         'guinierI0'    : ('I0 :', wx.NewId()),
+                         'guinierRg'    : ('Rg :', wx.NewId()),
+                         'biftI0'       : ('I0 :', wx.NewId()),
+                         'biftRg'       : ('Rg :', wx.NewId()),
+                         'chisq'        : ('chi^2 (fit) :', wx.NewId())
+                         }
+
+        self.statusIds = {  'status'      : wx.NewId(),
+                            'evidence'  : wx.NewId(),
+                            'chi'       : wx.NewId(),
+                            'alpha'     : wx.NewId(),
+                            'dmax'      : wx.NewId(),
+                            'spoint'    : wx.NewId(),
+                            'tpoint'    : wx.NewId()}
+
+        self.buttonIds = {  'abort'     : wx.NewId(),
+                            'settings'  : wx.NewId(),
+                            'run'       : wx.NewId()}
+
+
+        self.iftm = None
+
+
+        button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
+        button.Bind(wx.EVT_BUTTON, self.onCloseButton)
+        
+        savebutton = wx.Button(self, wx.ID_OK, 'OK')
+        savebutton.Bind(wx.EVT_BUTTON, self.onSaveInfo)
+        
+        buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttonSizer.Add(savebutton, 1, wx.RIGHT, 5)
+        buttonSizer.Add(button, 1)
+
+        # saveOutButton = wx.Button(self, self.buttonIds['save'], 'Save .ift file')
+        # saveOutButton.Bind(wx.EVT_BUTTON, self.onSaveOutButton)
+        # saveOutButton.Disable()
+
+        # dammifButton = wx.Button(self, -1, 'Process using Dammif/n')
+        # dammifButton.Bind(wx.EVT_BUTTON, self.onDammifButton)
+
+        # buttonSizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        # buttonSizer2.Add(saveOutButton, 1, wx.ALIGN_CENTER, 5)
+        # buttonSizer2.Add(dammifButton, 1)
+
+
+        box2 = wx.StaticBox(self, -1, 'Control')
+        controlSizer = self.createControls()
+        boxSizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
+        boxSizer2.Add(controlSizer, 0, wx.EXPAND | wx.ALIGN_CENTER)
+
+
+        box = wx.StaticBox(self, -1, 'Parameters')
+        infoSizer = self.createInfoBox()
+        boxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        boxSizer.Add(infoSizer, 0, wx.EXPAND)
+        # qrgsizer = self.createQRgInfo()
+        # boxSizer.Add(qrgsizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 5)
+
+        box3 = wx.StaticBox(self, -1, 'Status')
+        statusSizer = self.createStatus()
+        boxSizer3 = wx.StaticBoxSizer(box3, wx.VERTICAL)
+        boxSizer3.Add(statusSizer, 0, wx.EXPAND)
+        
+        
+        bsizer = wx.BoxSizer(wx.VERTICAL)
+        bsizer.Add(self.createFileInfo(), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        # bsizer.Add(self.createConcInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+        bsizer.Add(boxSizer2, 0, wx.EXPAND, 5)
+        bsizer.Add(boxSizer, 0, wx.EXPAND | wx.BOTTOM, 5)
+        # bsizer.Add(buttonSizer2, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        bsizer.Add(boxSizer3, 0, wx.EXPAND | wx.TOP, 5)
+        bsizer.AddStretchSpacer(1)
+        bsizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+         
+        self.SetSizer(bsizer)
+
+        self.initValues()
+
+        self.BIFT_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.onBIFTTimer, self.BIFT_timer)
+
+        self.BIFT_queue = Queue.Queue()
+
+    def createFileInfo(self):
+        
+        box = wx.StaticBox(self, -1, 'Filename')
+        boxsizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
+        
+        #txt = wx.StaticText(self, -1, 'Filename :')
+        self.filenameTxtCtrl = wx.TextCtrl(self, -1, '', style = wx.TE_READONLY)
+        
+        #boxsizer.Add((5,5),0)
+        #boxsizer.Add(txt,0,wx.EXPAND | wx.TOP , 4)
+        boxsizer.Add(self.filenameTxtCtrl, 1, wx.EXPAND)
+        
+        return boxsizer
+
+    def createInfoBox(self):
+
+        dmaxLabel = wx.StaticText(self, -1, 'Dmax :')
+        self.dmaxWindow = wx.TextCtrl(self, self.infodata['dmax'][1], '-1', size = (60,-1), style = wx.TE_READONLY)
+
+        dmaxSizer = wx.BoxSizer(wx.HORIZONTAL)
+        dmaxSizer.Add(dmaxLabel, 0, wx.RIGHT, 5)
+        dmaxSizer.Add(self.dmaxWindow, 0, wx.RIGHT, 5)
+
+        alphaLabel = wx.StaticText(self, -1, 'Log(Alpha) :')
+        self.alphaWindow = wx.TextCtrl(self, self.infodata['alpha'][1], '-1', size = (60,-1), style = wx.TE_READONLY)
+
+        alphaSizer = wx.BoxSizer(wx.HORIZONTAL)
+        alphaSizer.Add(alphaLabel, 0, wx.RIGHT, 5)
+        alphaSizer.Add(self.alphaWindow, 0, wx.RIGHT, 5)
+
+
+        sizer = wx.FlexGridSizer(rows = 3, cols = 3)
+
+        sizer.Add((0,0))
+
+        rglabel = wx.StaticText(self, -1, 'Rg (A)')
+        i0label = wx.StaticText(self, -1, 'I0')
+
+        sizer.Add(rglabel, 0, wx.ALL, 5)
+        sizer.Add(i0label, 0, wx.ALL, 5)
+
+        guinierlabel = wx.StaticText(self, -1, 'Guinier :')
+        self.guinierRg = wx.TextCtrl(self, self.infodata['guinierRg'][1], '0', size = (60,-1), style = wx.TE_READONLY)
+        self.guinierI0 = wx.TextCtrl(self, self.infodata['guinierI0'][1], '0', size = (60,-1), style = wx.TE_READONLY)
+
+        sizer.Add(guinierlabel, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 5)
+        sizer.Add(self.guinierRg, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        sizer.Add(self.guinierI0, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+
+        biftlabel = wx.StaticText(self, -1, 'P(r) :')
+        self.biftRg = wx.TextCtrl(self, self.infodata['biftRg'][1], '0', size = (60,-1), style = wx.TE_READONLY)
+        self.biftI0 = wx.TextCtrl(self, self.infodata['biftI0'][1], '0', size = (60,-1), style = wx.TE_READONLY)
+
+        sizer.Add(biftlabel, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 5)
+        sizer.Add(self.biftRg, 0, wx.ALL, 5)
+        sizer.Add(self.biftI0, 0, wx.ALL, 5)
+
+
+        chisqLabel = wx.StaticText(self, -1, self.infodata['chisq'][0])
+        self.chisq = wx.TextCtrl(self, self.infodata['chisq'][1], '0', size = (60,-1), style = wx.TE_READONLY)
+
+        chisqSizer = wx.BoxSizer(wx.HORIZONTAL)
+        chisqSizer.Add(chisqLabel, 0, wx.RIGHT, 5)
+        chisqSizer.Add(self.chisq, 0, wx.RIGHT, 5)
+
+        
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(dmaxSizer, 0, wx.BOTTOM, 5)
+        top_sizer.Add(alphaSizer, 0, wx.BOTTOM, 5)
+        top_sizer.Add(sizer,0, wx.BOTTOM, 5)
+        top_sizer.Add(chisqSizer,0, wx.BOTTOM, 5)
+
+        return top_sizer
+        
+    def createControls(self):
+        
+        runButton = wx.Button(self, self.buttonIds['run'], 'Run')
+        runButton.Bind(wx.EVT_BUTTON, self.onRunButton)
+
+        abortButton = wx.Button(self, self.buttonIds['abort'], 'Abort')
+        abortButton.Bind(wx.EVT_BUTTON, self.onAbortButton)
+        
+        advancedParams = wx.Button(self, self.buttonIds['settings'], 'Settings')
+        advancedParams.Bind(wx.EVT_BUTTON, self.onChangeParams)
+
+
+        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        top_sizer.Add(runButton, 0, wx.ALL, 3)
+        top_sizer.Add(abortButton, 0, wx.ALL, 3)
+        top_sizer.Add(advancedParams, 0, wx.ALL, 3)
+
+        
+        return top_sizer
+
+    def createStatus(self):
+
+        statusLabel = wx.StaticText(self, -1, 'Status :')
+        statusText = wx.StaticText(self, self.statusIds['status'], '')
+
+        statusSizer = wx.BoxSizer(wx.HORIZONTAL)
+        statusSizer.Add(statusLabel, 0, wx.RIGHT, 3)
+        statusSizer.Add(statusText, 0, wx.RIGHT, 3)
+
+
+        evidenceLabel = wx.StaticText(self, -1, 'Evidence :')
+        evidenceText = wx.StaticText(self, self.statusIds['evidence'], '')
+
+        evidenceSizer = wx.BoxSizer(wx.HORIZONTAL)
+        evidenceSizer.Add(evidenceLabel, 0, wx.RIGHT, 3)
+        evidenceSizer.Add(evidenceText, 0, wx.RIGHT, 3)
+
+
+        chiLabel = wx.StaticText(self, -1, 'Chi :')
+        chiText = wx.StaticText(self, self.statusIds['chi'], '')
+
+        chiSizer = wx.BoxSizer(wx.HORIZONTAL)
+        chiSizer.Add(chiLabel, 0, wx.RIGHT, 3)
+        chiSizer.Add(chiText, 0, wx.RIGHT, 3)
+
+
+        alphaLabel = wx.StaticText(self, -1, 'Alpha :')
+        alphaText = wx.StaticText(self, self.statusIds['alpha'], '')
+
+        alphaSizer = wx.BoxSizer(wx.HORIZONTAL)
+        alphaSizer.Add(alphaLabel, 0, wx.RIGHT, 3)
+        alphaSizer.Add(alphaText, 0, wx.RIGHT, 3)
+
+
+        dmaxLabel = wx.StaticText(self, -1, 'Dmax :')
+        dmaxText = wx.StaticText(self, self.statusIds['dmax'], '')
+
+        dmaxSizer = wx.BoxSizer(wx.HORIZONTAL)
+        dmaxSizer.Add(dmaxLabel, 0, wx.RIGHT, 3)
+        dmaxSizer.Add(dmaxText, 0, wx.RIGHT, 3)
+
+        spointLabel = wx.StaticText(self, -1, 'Current Search Point :')
+        spointText = wx.StaticText(self, self.statusIds['spoint'], '')
+
+        spointSizer = wx.BoxSizer(wx.HORIZONTAL)
+        spointSizer.Add(spointLabel, 0, wx.RIGHT, 3)
+        spointSizer.Add(spointText, 0, wx.RIGHT, 3)
+
+
+        tpointLabel = wx.StaticText(self, -1, 'Total Search Points :')
+        tpointText = wx.StaticText(self, self.statusIds['tpoint'], '')
+
+        tpointSizer = wx.BoxSizer(wx.HORIZONTAL)
+        tpointSizer.Add(tpointLabel, 0, wx.RIGHT, 3)
+        tpointSizer.Add(tpointText, 0, wx.RIGHT, 3)
+
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(statusSizer, 0, wx.BOTTOM, 3)
+        top_sizer.Add(evidenceSizer, 0, wx.BOTTOM, 3)
+        top_sizer.Add(chiSizer, 0, wx.BOTTOM, 3)
+        top_sizer.Add(alphaSizer, 0, wx.BOTTOM, 3)
+        top_sizer.Add(dmaxSizer, 0, wx.BOTTOM, 3)
+        top_sizer.Add(spointSizer, 0, wx.BOTTOM, 3)
+        top_sizer.Add(tpointSizer, 0, wx.BOTTOM, 3)
+
+        return top_sizer
+
+    def initValues(self):
+
+        guinierRgWindow = wx.FindWindowById(self.infodata['guinierRg'][1])
+        guinierI0Window = wx.FindWindowById(self.infodata['guinierI0'][1])
+
+        if 'guinier' in self.sasm.getParameter('analysis'):
+            
+            guinier = self.sasm.getParameter('analysis')['guinier']
+
+            try:
+                guinierRgWindow.SetValue(str(guinier['Rg']))
+            except Exception as e:
+                print e
+                guinierRgWindow.SetValue('')
+
+            try:
+                guinierI0Window.SetValue(str(guinier['I0']))
+            except Exception as e:
+                print e
+                guinierI0Window.SetValue('')
+
+        self.setFilename(os.path.basename(self.sasm.getParameter('filename'))) 
+        
+    def onSaveInfo(self, evt):
+
+        if self.iftm != None:
+
+            results_dict = {}
+
+            results_dict['Dmax'] = str(self.iftm.getParameter('dmax'))
+            results_dict['Real_Space_Rg'] = str(self.iftm.getParameter('Rg'))
+            results_dict['Real_Space_I0'] = str(self.iftm.getParameter('I0'))
+            results_dict['ChiSquared'] = str(self.iftm.getParameter('ChiSquared'))
+            results_dict['LogAlpha'] = str(self.iftm.getParameter('alpha'))
+
+
+            analysis_dict = self.sasm.getParameter('analysis')
+            analysis_dict['BIFT'] = results_dict
+
+            if self.manip_item != None:
+                if results_dict != self.old_analysis:
+                    wx.CallAfter(self.manip_item.markAsModified)
+
+        if self.BIFT_timer.IsRunning():
+            self.BIFT_timer.Stop()
+            RAWGlobals.cancel_bift = True
+
+        RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [self.iftm, 'blue', None, True]])
+        
+        diag = wx.FindWindowByName('BIFTFrame')
+        diag.OnClose()
+
+    def onChangeParams(self, evt):
+        self.main_frame.showOptionsDialog(focusHead='IFT')
+
+    def onRunButton(self, evt):
+        self.runBIFT()
+        
+    def onCloseButton(self, evt):
+
+        if self.BIFT_timer.IsRunning():
+            self.BIFT_timer.Stop()
+            RAWGlobals.cancel_bift = True
+        
+        diag = wx.FindWindowByName('BIFTFrame')
+        diag.OnClose()
+
+    def onAbortButton(self, evt):
+        RAWGlobals.cancel_bift = True
+
+    def onSaveOutButton(self, evt):
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        save_path = dirctrl_panel.getDirLabel()
+
+        overwrite_all = False
+        no_to_all = False
+        
+        sasm = self.iftm
+        
+        filename = self.sasm.getParameter('filename')
+
+        sasm.setParameter('filename', filename)
+        
+        check_filename, ext = os.path.splitext(filename)
+        
+        newext = '.ift'
+  
+        check_filename = check_filename + newext
+        
+        msg = "Please select save directory and enter save file name"
+        dialog = wx.FileDialog(self, message = msg, style = wx.FD_SAVE, defaultDir = save_path, defaultFile = check_filename) 
+        
+        if dialog.ShowModal() == wx.ID_OK:               
+            path = dialog.GetPath()
+        else:
+            return
+
+        path=os.path.splitext(path)[0]+'.ift'
+        filename = os.path.basename(path)
+
+        save_path = os.path.dirname(path)
+
+        sasm.setParameter('filename', filename)
+
+        SASFileIO.saveMeasurement(sasm, save_path, self.raw_settings, filetype = newext)
+
+
+    def onDammifButton(self, evt):
+        pass
+        # dammifFrame = wx.FindWindowByName('DammifFrame')
+
+        # if dammifFrame:
+        #     dammifFrame.Destroy()
+
+
+        # dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'])
+        # dmax = dmaxWindow.GetValue()
+
+        # filename = self.sasm.getParameter('filename')
+        
+        # gnomDict = self.out_list[str(dmax)]
+        # outfile = gnomDict['out']
+
+
+        # dammifFrame = DammifFrame(self.main_frame, 'Dammif', outfile, filename)
+        # dammifFrame.SetIcon(self.main_frame.GetIcon())
+        # dammifFrame.Show(True)
+
+    def updateBIFTInfo(self):
+        biftRgWindow = wx.FindWindowById(self.infodata['biftRg'][1])
+        biftI0Window = wx.FindWindowById(self.infodata['biftI0'][1])
+        biftChisqWindow = wx.FindWindowById(self.infodata['chisq'][1])
+        biftDmaxWindow = wx.FindWindowById(self.infodata['dmax'][1])
+        biftAlphaWindow = wx.FindWindowById(self.infodata['alpha'][1])
+
+        if self.iftm != None:
+
+            biftRgWindow.SetValue(str(self.iftm.getParameter('Rg')))
+            biftI0Window.SetValue(str(self.iftm.getParameter('I0')))
+            biftChisqWindow.SetValue(str(self.iftm.getParameter('ChiSquared')))
+            biftDmaxWindow.SetValue(str(self.iftm.getParameter('dmax')))
+            biftAlphaWindow.SetValue(str(self.iftm.getParameter('alpha')))
+            
+    def setFilename(self, filename):
+        self.filenameTxtCtrl.SetValue(str(filename))
+    
+    def updatePlot(self):
+
+        xlim = self.iftm.getQrange()
+
+        r = self.iftm.r
+        p = self.iftm.p
+        perr = self.iftm.err
+
+        i = self.iftm.i_orig 
+        q = self.iftm.q_orig 
+        err = self.iftm.err_orig
+
+        qexp = q
+        jreg = self.iftm.i_fit
+
+        plotpanel = wx.FindWindowByName('BIFTPlotPanel')
+
+        plotpanel.updateDataPlot(q, i, err, r, p, perr, qexp, jreg, xlim)
+        
+        plotpanel.canvas.draw()
+
+        # self.startSpin.Enable()
+        # self.endSpin.Enable()
+        # self.dmaxSpin.Enable()
+
+    def updateBIFTSettings(self):
+        self.old_settings = copy.deepcopy(self.bift_settings)
+
+        self.bift_settings = (self.raw_settings.get('PrPoints'),
+                          self.raw_settings.get('maxAlpha'),
+                          self.raw_settings.get('minAlpha'),
+                          self.raw_settings.get('AlphaPoints'),
+                          self.raw_settings.get('maxDmax'),
+                          self.raw_settings.get('minDmax'),
+                          self.raw_settings.get('DmaxPoints'))
+
+        if self.old_settings != self.bift_settings:
+            pass
+
+        self.updatePlot()
+
+    def runBIFT(self):
+
+        for key in self.buttonIds:
+            if key not in ['abort']:
+                wx.FindWindowById(self.buttonIds[key]).Disable()
+            else:
+                wx.FindWindowById(self.buttonIds[key]).Enable()
+
+        RAWGlobals.cancel_bift = False
+
+        while not self.BIFT_queue.empty():
+            self.BIFT_queue.get_nowait()
+
+        self.BIFT_timer.Start(1)
+
+        self.updateStatus({'status': 'Performing search grid'})
+
+        RAWGlobals.mainworker_cmd_queue.put(['ift', ['BIFT', self.sasm, self.BIFT_queue, self.bift_settings]])
+
+    def updateStatus(self, updates):
+        for key in updates:
+            wx.FindWindowById(self.statusIds[key]).SetLabel(str(updates[key]))
+
+    def clearStatus(self, exception_list):
+        for key in self.statusIds:
+            if key not in exception_list:
+                wx.FindWindowById(self.statusIds[key]).SetLabel('')
+
+    def finishedProcessing(self):
+        for key in self.buttonIds:
+            if key not in ['abort']:
+                wx.FindWindowById(self.buttonIds[key]).Enable()
+            else:
+                wx.FindWindowById(self.buttonIds[key]).Disable()
+
+    def onBIFTTimer(self, evt):
+        try:
+            args = self.BIFT_queue.get_nowait()
+            if 'update' in args:
+                self.updateStatus(args['update'])
+
+            elif 'success' in args:
+                self.iftm = args['results']
+                self.updateStatus({'status' : 'BIFT done'})
+                self.updatePlot()
+                self.updateBIFTInfo()
+                self.finishedProcessing()
+
+                if self.BIFT_timer.IsRunning():
+                    self.BIFT_timer.Stop()
+
+            elif 'failed' in args:
+                self.updateStatus({'status' : 'BIFT failed'})
+                self.clearStatus(['status'])
+                self.finishedProcessing()
+
+                if self.BIFT_timer.IsRunning():
+                    self.BIFT_timer.Stop()
+
+            elif 'canceled' in args:
+                self.updateStatus({'status' : 'BIFT canceled'})
+                self.clearStatus(['status'])
+                self.finishedProcessing()
+
+                if self.BIFT_timer.IsRunning():
+                    self.BIFT_timer.Stop()
+
+            
+        except Queue.Empty:
+            pass
+        
+
+class AmbimeterFrame(wx.Frame):
+    
+    def __init__(self, parent, title, iftm, manip_item):
+        
+        try:
+            wx.Frame.__init__(self, parent, -1, title, name = 'AmbimeterFrame', size = (450,500))
+        except:
+            wx.Frame.__init__(self, None, -1, title, name = 'AmbimeterFrame', size = (450,500))
+
+        self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        self.manip_item = manip_item
+
+        self.iftm = iftm
+
+        self.ift = iftm.getParameter('out')
+
+        self.filename = iftm.getParameter('filename')
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+        self.ids = {'input'         : wx.NewId(),
+                    'rg'            : wx.NewId(),
+                    'prefix'        : wx.NewId(),
+                    'files'         : wx.NewId(),
+                    'sRg'           : wx.NewId(),
+                    'save'          : wx.NewId(),
+                    'ambiCats'      : wx.NewId(),
+                    'ambiScore'     : wx.NewId(),
+                    'ambiEval'      : wx.NewId()}
+
+
+        self.ambi_settings = {}
+
+
+        topsizer = self._createLayout(self.panel)
+        self._initSettings()
+        self._getSettings()
+        
+
+        self.panel.SetSizer(topsizer)
+        self.panel.Layout()
+        self.SendSizeEvent()
+        self.panel.Layout()
+        
+
+        self.CenterOnParent()
+
+        self.Raise()
+
+        wx.FutureCall(50,self.runAmbimeter)
+
+
+    def _createLayout(self, parent):
+
+        file_text = wx.StaticText(parent, -1, 'File :')
+        file_ctrl = wx.TextCtrl(parent, self.ids['input'], '', size = (150, -1), style = wx.TE_READONLY)
+
+        file_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        file_sizer.Add(file_text, 0, wx.ALL, 5)
+        file_sizer.Add(file_ctrl, 2, wx.ALL | wx.EXPAND, 5)
+        file_sizer.AddStretchSpacer(1)
+
+        rg_text = wx.StaticText(parent, -1, 'Rg :')
+        rg_ctrl = wx.TextCtrl(parent, self.ids['rg'], '', size = (60, -1), style = wx.TE_READONLY)
+
+        rg_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        rg_sizer.Add(rg_text, 0, wx.ALL, 5)
+        rg_sizer.Add(rg_ctrl, 1, wx.ALL | wx.EXPAND, 5)
+
+
+        srg_text = wx.StaticText(parent, -1, 'Upper q*Rg limit (3 < q*Rg <7) :')
+        srg_ctrl = wx.TextCtrl(parent, self.ids['sRg'], '4', size = (60, -1))
+        srg_ctrl.Bind(wx.EVT_TEXT, self.onSrgText)
+
+        srg_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        srg_sizer.Add(srg_text, 0, wx.ALL, 5)
+        srg_sizer.Add(srg_ctrl, 1, wx.ALL, 5)
+
+
+        shape_text = wx.StaticText(parent, -1, 'Output shape(s) to save: ')
+        shape_choice = wx.Choice(parent, self.ids['files'], choices = ['None', 'Best', 'All'])
+
+        shape_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        shape_sizer.Add(shape_text, 0, wx.ALL, 5)
+        shape_sizer.Add(shape_choice, 0, wx.ALL, 5)
+
+        savedir_text = wx.StaticText(parent, -1, 'Output directory :')
+        savedir_ctrl = wx.TextCtrl(parent, self.ids['save'], '', size = (350, -1))
+       
+        try:
+            savedir_ctrl.AutoCompleteDirectories() #compatability for older versions of wxpython
+        except AttributeError as e:
+            print e
+
+        savedir_button = wx.Button(parent, -1, 'Select/Change Directory')
+        savedir_button.Bind(wx.EVT_BUTTON, self.onChangeDirectoryButton)
+
+        savedir_sizer = wx.BoxSizer(wx.VERTICAL)
+        savedir_sizer.Add(savedir_text, 0, wx.ALL, 5)
+        savedir_sizer.Add(savedir_ctrl, 0, wx.ALL | wx.EXPAND, 5)
+        savedir_sizer.Add(savedir_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+
+
+        prefix_text = wx.StaticText(parent, -1, 'Output prefix :')
+        prefix_ctrl = wx.TextCtrl(parent, self.ids['prefix'], '', size = (150, -1))
+
+        prefix_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        prefix_sizer.Add(prefix_text, 0, wx.ALL, 5)
+        prefix_sizer.Add(prefix_ctrl, 2, wx.ALL, 5)
+        prefix_sizer.AddStretchSpacer(1)
+
+
+        start_button = wx.Button(parent, -1, 'Run')
+        start_button.Bind(wx.EVT_BUTTON, self.onStartButton)
+
+
+        settings_box = wx.StaticBox(parent, -1, 'Controls')
+        settings_sizer = wx.StaticBoxSizer(settings_box, wx.VERTICAL)
+        settings_sizer.Add(srg_sizer, 0)
+        # settings_sizer.Add(savedir_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        settings_sizer.Add(shape_sizer, 0)
+        settings_sizer.Add(savedir_sizer, 0, wx.EXPAND)
+        settings_sizer.Add(prefix_sizer, 0, wx.EXPAND)
+        settings_sizer.Add(start_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+
+
+        cats_text = wx.StaticText(parent, -1, 'Number of compatible shape categories :')
+        cats_ctrl = wx.TextCtrl(parent, self.ids['ambiCats'], '', size = (60, -1), style = wx.TE_READONLY)
+
+        cats_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        cats_sizer.Add(cats_text, 0, wx.ALL, 5)
+        cats_sizer.Add(cats_ctrl, 0, wx.ALL, 5)
+
+
+        score_text = wx.StaticText(parent, -1, 'Ambiguity score :')
+        score_ctrl = wx.TextCtrl(parent, self.ids['ambiScore'], '', size = (60, -1), style = wx.TE_READONLY)
+
+        score_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        score_sizer.Add(score_text, 0, wx.ALL, 5)
+        score_sizer.Add(score_ctrl, 0, wx.ALL, 5)
+
+        eval_text = wx.StaticText(parent, -1, 'AMBIMETER says :')
+        eval_ctrl = wx.TextCtrl(parent, self.ids['ambiEval'], '', size = (250, -1), style = wx.TE_READONLY)
+
+        eval_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        eval_sizer.Add(eval_text, 0, wx.ALL, 5)
+        eval_sizer.Add(eval_ctrl, 1, wx.ALL, 5)
+
+
+        results_box = wx.StaticBox(parent, -1, 'Results')
+        results_sizer = wx.StaticBoxSizer(results_box, wx.VERTICAL)
+        results_sizer.Add(cats_sizer, 0)
+        # results_sizer.Add(savedir_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        results_sizer.Add(score_sizer, 0)
+        results_sizer.Add(eval_sizer, 0, wx.EXPAND)
+
+
+        button = wx.Button(parent, wx.ID_CANCEL, 'Cancel')
+        button.Bind(wx.EVT_BUTTON, self._onCloseButton)
+        
+        savebutton = wx.Button(parent, wx.ID_OK, 'OK')
+        savebutton.Bind(wx.EVT_BUTTON, self.onSaveInfo)
+        
+        buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttonSizer.Add(savebutton, 1, wx.RIGHT, 5)
+        buttonSizer.Add(button, 1)
+        
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(file_sizer, 0, wx.EXPAND)
+        top_sizer.Add(rg_sizer, 0)
+        top_sizer.Add(settings_sizer, 0, wx.EXPAND)
+        top_sizer.Add(results_sizer, 0, wx.EXPAND)
+        top_sizer.Add(buttonSizer, 0, wx.TOP | wx.ALIGN_RIGHT, 5)
+
+
+        return top_sizer
+
+    def _initSettings(self):
+        fname_window = wx.FindWindowById(self.ids['input'])
+        fname_window.SetValue(self.iftm.getParameter('filename'))
+
+        rg_window = wx.FindWindowById(self.ids['rg'])
+        rg_window.SetValue(str(self.iftm.getParameter('rg')))
+
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        path = dirctrl_panel.getDirLabel()
+
+        outdir_window = wx.FindWindowById(self.ids['save'])
+        outdir_window.SetValue(path)
+
+        outprefix_window = wx.FindWindowById(self.ids['prefix'])
+        outprefix_window.SetValue(os.path.splitext(os.path.basename(self.iftm.getParameter('filename')))[0])
+
+    def _getSettings(self):
+
+        outdir_window = wx.FindWindowById(self.ids['save'])
+        self.ambi_settings['path'] = outdir_window.GetValue()
+
+        outprefix_window = wx.FindWindowById(self.ids['prefix'])
+        self.ambi_settings['prefix'] = outprefix_window.GetValue()
+
+        outsrg_window = wx.FindWindowById(self.ids['sRg'])
+        self.ambi_settings['sRg'] = outsrg_window.GetValue()
+
+        outfiles_window = wx.FindWindowById(self.ids['files'])
+        self.ambi_settings['files'] = outfiles_window.GetStringSelection()
+
+
+    def onStartButton(self, evt):
+        self._getSettings()
+        self.runAmbimeter()
+
+
+    def runAmbimeter(self):
+        bi = wx.BusyInfo('Running AMBIMETER, pleae wait.', self)
+
+        cwd = os.getcwd()
+        os.chdir(self.ambi_settings['path'])
+
+        outname = 't_ambimeter.out'
+        while os.path.isfile(outname):
+            outname = 't'+outname
+
+        SASFileIO.writeOutFile(self.iftm, os.path.join(self.ambi_settings['path'], outname))
+
+        try:
+            output = SASCalc.runAmbimeter(outname, self.ambi_settings['prefix'], self.ambi_settings)
+
+        except SASExceptions.NoATSASError as e:
+            wx.CallAfter(wx.MessageBox, str(e), 'Error running Ambimeter', style = wx.ICON_ERROR | wx.OK)
+            os.remove(outname)
+            os.chdir(cwd)
+            self.onClose()
+
+
+        os.remove(outname)
+
+        os.chdir(cwd)
+        
+        cats_window = wx.FindWindowById(self.ids['ambiCats'])
+        cats_window.SetValue(output[0])
+
+        score_window = wx.FindWindowById(self.ids['ambiScore'])
+        score_window.SetValue(output[1])
+
+        eval_window = wx.FindWindowById(self.ids['ambiEval'])
+        eval_window.SetValue(output[2])
+
+        bi.Destroy()
+
+
+    def onChangeDirectoryButton(self, evt):
+        path = wx.FindWindowById(self.ids['save']).GetValue()
+
+        dirdlg = wx.DirDialog(self, "Please select save directory:", defaultPath = path)
+            
+        if dirdlg.ShowModal() == wx.ID_OK:
+            new_path = dirdlg.GetPath()
+            wx.FindWindowById(self.ids['save']).SetValue(new_path)
+
+
+    def onSrgText(self, evt):
+        srg_ctrl = wx.FindWindowById(self.ids['sRg'])
+        
+
+        srg = srg_ctrl.GetValue()
+        if srg != '' and not srg.isdigit():
+
+            try:
+                srg = float(srg.replace(',', '.'))
+            except ValueError as e:
+                print e
+                srg = ''
+            if srg != '':
+                srg = str(float(srg))
+
+            srg_ctrl.ChangeValue(srg)
+
+
+    def _onCloseButton(self, evt):
+        self.Close()
+
+    def onSaveInfo(self, evt):
+        
+
+        self.Close()
+
+
+    def OnClose(self, event):
+
+        self.Destroy()
+
+
 # ----------------------------------------------------------------------------
 # Auto-wrapping static text class
 # ----------------------------------------------------------------------------
@@ -3017,3 +5909,43 @@ class AutoWrapStaticText(StaticText):
             self.label = label
 
         StaticText.SetLabel(self, label)
+
+
+class GuinierTestApp(wx.App):
+    
+    def OnInit(self, filename = None):
+        
+        #ExpObj, ImgDummy = fileIO.loadFile('/home/specuser/Downloads/BSUB_MVMi7_5_FULL_001_c_plot.rad')
+        
+        tst_file = os.path.join(os.getcwd(), 'Tests', 'TestData', 'lyzexp.dat')
+        
+        #tst_file = os.path.join(os.getcwd(), 'Tests', 'TestData', 'Lys12_1_001_plot.rad')
+        
+        print tst_file
+        raw_settings = RAWSettings.RawGuiSettings()
+
+        ExpObj, ImgDummy = SASFileIO.loadFile(tst_file, raw_settings)
+        
+        frame = GuinierTestFrame(self, 'Guinier Fit', ExpObj, None)
+        self.SetTopWindow(frame)
+        frame.SetSize((800,600))
+        frame.CenterOnScreen()
+        frame.Show(True)
+        return True
+        
+if __name__ == "__main__":
+    import SASFileIO
+
+    #This GUI can be run from a commandline: python guinierGUI.py <filename>
+    args = sys.argv
+    
+    if len(args) > 1:
+        filename = args[1]
+    else:
+        filename = None
+    
+    app = GuinierTestApp(0, filename)   #MyApp(redirect = True)
+    app.MainLoop()
+    
+    #app = PorodTestApp(0, filename)   #MyApp(redirect = True)
+    #app.MainLoop()

@@ -1,5 +1,6 @@
 import wx, os, math, sys
 import RAWIcons
+import time
 
 RAWWorkDir = sys.path[0]
 
@@ -754,7 +755,6 @@ class FloatSpinCtrl(wx.Panel):
         self.ScalerButton.SetValue(0)
             
     def CastFloatSpinEvent(self):
-        
         event = FloatSpinEvent(myEVT_MY_SPIN, self.GetId())
         event.SetValue( self.Scale.GetValue() )
         self.GetEventHandler().ProcessEvent(event)
@@ -890,13 +890,11 @@ class IntSpinCtrl(wx.Panel):
         self.ScalerButton.SetValue(0)
                 
     def CastFloatSpinEvent(self):
-        
         event = FloatSpinEvent(myEVT_MY_SPIN, self.GetId())
         event.SetValue( self.Scale.GetValue() )
         self.GetEventHandler().ProcessEvent(event)
       
     def OnScaleChange(self, event):
-        
         self.ScalerButton.SetValue(0) # Resit spinbutton position for button to work in linux
         
         val = self.Scale.GetValue()
@@ -919,7 +917,6 @@ class IntSpinCtrl(wx.Panel):
         self.CastFloatSpinEvent()
 
     def OnSpinUpScale(self, event):
-
         self.ScalerButton.SetFocus()    # Just to remove focus from the bgscaler to throw kill_focus event and update
         
         val = self.Scale.GetValue()
@@ -945,7 +942,6 @@ class IntSpinCtrl(wx.Panel):
 
     def OnSpinDownScale(self, event):
         #self.ScalerButton.SetValue(80)   # This breaks the spinbutton on Linux
-
         self.ScalerButton.SetFocus()    # Just to remove focus from the bgscaler to throw kill_focus event and update
         
         val = self.Scale.GetValue()

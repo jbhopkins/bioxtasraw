@@ -30,7 +30,7 @@ import RAWGlobals
 #import random
 #import matplotlib.axes3d as p3
 
-import time, Queue, wx#, random
+import time, Queue, wx, os#, random
 # import bift_ext, transmatrix_ext, SASM
 import SASM
 
@@ -47,8 +47,6 @@ if RAWGlobals.compiled_extensions:
         except Exception, e:
             print e
             RAWGlobals.compiled_extensions = False
-
-cancel_bift = False
 
 #################################################################################
 ################# Taken from numpy to add cancel function #######################
@@ -116,7 +114,6 @@ def fmin(func, x0, args=(), xtol=1e-4, ftol=1e-4, maxiter=None, maxfun=None,
     one or more variables.
 
     """
-    global cancel_bift
     
     fcalls, func = wrap_function(func, args)
     x0 = asfarray(x0).flatten()
@@ -163,8 +160,7 @@ def fmin(func, x0, args=(), xtol=1e-4, ftol=1e-4, maxiter=None, maxfun=None,
 
     while (fcalls[0] < maxfun and iterations < maxiter):
         
-        if cancel_bift:
-            cancel_bift = False
+        if RAWGlobals.cancel_bift:
             return
         
         if (max(numpy.ravel(abs(sim[1:]-sim[0]))) <= xtol \
@@ -541,8 +537,8 @@ def GetEvidence(alpha, dmax, Ep, N):
     T = createTransMatrix(Ep.q[min:max], r)
     P = makePriorDistDistribution(Ep, N, dmax, T, 'sphere', Ep.q[min:max])
     
-    print 'Alpha : ' ,alpha
-    print 'Dmax  : ' , dmax
+    # print 'Alpha : ' ,alpha
+    # print 'Dmax  : ' , dmax
     
     Pout, evd, c  = C_seeksol(Ep.i[min:max], P, Ep.q[min:max], Ep.err[min:max], alpha, dmax, T)
         
@@ -595,14 +591,14 @@ def SingleSolve(alpha, dmax, Ep, N):
     
     Rg = sqrt(abs(RgSq))[0]
     
-    print 'Rg : ', Rg
-    print 'dr : ', dr
-    print 'Area2 : ', area2
+    # print 'Rg : ', Rg
+    # print 'dr : ', dr
+    # print 'Area2 : ', area2
     
     I0 = mean(Fit[0, 0:5])
-    print Fit[0, 0:5]
-    print 'I(0) from avg of 5 first points :', I0
-    print 'I(0) from area under P(r) : ', area
+    # print Fit[0, 0:5]
+    # print 'I(0) from avg of 5 first points :', I0
+    # print 'I(0) from area under P(r) : ', area
     
     I0 = area
     
@@ -620,18 +616,16 @@ def SingleSolve(alpha, dmax, Ep, N):
     # Save all information from the search
     bift_info = {'alpha' : alphafin,
                 'dmax' : dmaxfin,
-                'orig_i' : Ep.i[min:max],
-                'orig_q' : Ep.q[min:max],
-                'orig_err': Ep.err[min:max],
                 'I0' : I0,
                 'ChiSquared' : c,
                 'Rg' : Rg,
                 'post': post,
-                'fit' : Fit}
+                'filename': os.path.splitext(Ep.getParameter('filename'))[0]+'.ift',
+                'algorithm' : 'BIFT'}
         
     #ExpObj = cartToPol.BIFTMeasurement(transpose(Pr), r, ones((len(transpose(Pr)),1)), Ep.param, Fit, plotinfo)
 
-    ift_sasm = SASM.IftSASM(transpose(Pr), r, ones(len(transpose(Pr))), bift_info) 
+    ift_sasm = SASM.IFTM(transpose(Pr), r, ones(len(transpose(Pr))), Ep.i[min:max], Ep.q[min:max], Ep.err[min:max], Fit[0], bift_info) 
     
     return ift_sasm
     
@@ -650,8 +644,8 @@ def fineGetEvidence(data, Ep, N):
     T = createTransMatrix(Ep.q[min:max], r)
     P = makePriorDistDistribution(Ep, N, dmax, T, 'sphere', Ep.q[min:max])
     
-    print alpha
-    print dmax
+    # print alpha
+    # print dmax
     
     ########################################################################
     # THIS IS A BIG NO NO!.. need to change it later. 
@@ -660,13 +654,13 @@ def fineGetEvidence(data, Ep, N):
                    'evidence' : '',
                    'chi'      : '',
                    'dmax'     : dmax,
-                   'cur_point': '',
-                   'tot_points': '',
+                   'spoint': '',
+                   'tpoint': '',
                    'filename' : Ep.getParameter('filename')}
         
-    statusdlg = wx.FindWindowByName('BIFTStatusDlg')
-    if statusdlg != None:
-        wx.CallAfter(statusdlg.updateData, bift_status)
+    # statusdlg = wx.FindWindowByName('BIFTStatusDlg')
+    # if statusdlg != None:
+    #     wx.CallAfter(statusdlg.updateData, bift_status)
     #########################################################################
     
     Pout, evd, c  = C_seeksol(Ep.i[min:max], P, Ep.q[min:max], Ep.err[min:max], alpha, dmax, T)
@@ -674,19 +668,17 @@ def fineGetEvidence(data, Ep, N):
     return -evd
 
 
-def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
+def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
     '''
         Runs the BIFT algorithm on an Experiment Object or a filename
         
         N = Number of points in the P(r) function
         DmaxUbound = Upper bound for Dmax
-        DmaxLbound = Lower bound for Dmax
+        # DmaxLbound = Lower bound for Dmax
         
         AlphaUbound = Upper bound of Alpha
         AlphaLbound = Lower bound of Alpha
     '''
-    
-    global cancel_bift
     
     Ep = Exp
     
@@ -719,8 +711,8 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
         alpha_idx = 0
         for each_alpha in alpha_points:
             
-            if cancel_bift:
-                cancel_bift = False
+            if RAWGlobals.cancel_bift:
+                queue.put({'canceled' : True})
                 return None
                     
             post, c, result = GetEvidence(each_alpha, each_dmax, Ep, N)
@@ -728,27 +720,29 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
             if c == '1.#QNAN':
                 print 'ERROR !! GOT #QNAN!'
 
-            print ''
-            print "alphaC =", exp(each_alpha)
-            print "evdC =", post
-            print "C = ", str(c)
-            print "Dmax =", each_dmax
+            # print ''
+            # print "alphaC =", exp(each_alpha)
+            # print "evdC =", post
+            # print "C = ", str(c)
+            # print "Dmax =", each_dmax
     
-            bift_status = {'alpha'    : exp(each_alpha),
+            bift_status = {'alpha'    : each_alpha,
                            'evidence' : post,
                            'chi'      : c,
                            'dmax'     : each_dmax,
-                           'cur_point': current_point,
-                           'tot_points': total_points,
-                           'filename' : Exp.getParameter('filename')}
+                           'spoint'   : current_point,
+                           'tpoint'   : total_points}
+
+            queue.put({'update' : bift_status})
            
-            ########################################################################
-            # THIS IS A BIG NO NO!.. need to change it later. 
-            ########################################################################
-            statusdlg = wx.FindWindowByName('BIFTStatusDlg')
-            if statusdlg != None:
-                wx.CallAfter(statusdlg.updateData, bift_status)
-            ########################################################################
+            # ########################################################################
+            # # THIS IS A BIG NO NO!.. need to change it later. 
+            # ########################################################################
+            # statusdlg = wx.FindWindowByName('BIFTStatusDlg')
+            # if statusdlg != None:
+            #     # wx.CallAfter(statusdlg.updateData, bift_status)
+            #     pass
+            # ########################################################################
             
             if post < finalpost:
                 finalpost = post
@@ -769,33 +763,35 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
         
         dmax_idx = dmax_idx + 1
     
-    print "final alpha: ", alphafin      
-    print "final dmax: ", dmaxfin
-    print "c_alpha: ", alphac
-    print "c_dmax: ", dmaxc
+    # print "final alpha: ", alphafin      
+    # print "final dmax: ", dmaxfin
+    # print "c_alpha: ", alphac
+    # print "c_dmax: ", dmaxc
     
     end = time.time()
     dt = end - beg
-    print 'Search took %9.6f Seconds' % dt 
+    # print 'Search took %9.6f Seconds' % dt 
     
     
-    bift_status = {'alpha'    : exp(alphafin) ,
-                   'evidence' : post,
-                   'chi'      : c,
-                   'dmax'     : dmaxfin,
-                   'cur_point': current_point,
-                   'tot_points': total_points,
-                   'filename' : Exp.getParameter('filename')}
+    bift_status = {'alpha'      : alphafin,
+                   'evidence'   : post,
+                   'chi'        : c,
+                   'dmax'       : dmaxfin,
+                   'spoint'     : current_point,
+                   'tpoint'     : total_points,
+                   'status'     : 'Running a fine search'}
     
-    wx.CallAfter(statusdlg.updateData, bift_status, True)
+    # wx.CallAfter(statusdlg.updateData, bift_status, True)
+
+    queue.put({'update' : bift_status})
     
-    print "Making fine search..."
+    # print "Making fine search..."
     src_result = fineSearch(Ep, N, log(alphafin), dmaxfin)
     
     if src_result != None:
         alphafin, dmaxfin = src_result
     else:
-        cancel_bift = False
+        queue.put({'canceled' : True})
         return None
 
     ###########################################
@@ -840,14 +836,14 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
     
     Rg = sqrt(abs(RgSq))[0]
     
-    print 'Rg : ', Rg
-    print 'dr : ', dr
-    print 'Area2 : ', area2
+    # print 'Rg : ', Rg
+    # print 'dr : ', dr
+    # print 'Area2 : ', area2
     
     I0 = mean(Fit[0, 0:5])
-    print Fit[0, 0:5]
-    print 'I(0) from avg of 5 first points :', I0
-    print 'I(0) from area under P(r) : ', area
+    # print Fit[0, 0:5]
+    # print 'I(0) from avg of 5 first points :', I0
+    # print 'I(0) from area under P(r) : ', area
     
     I0 = area
     
@@ -864,19 +860,24 @@ def doBift(Exp, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
                 'all_posteriors' : all_posteriors,
                 'alpha' : alphafin,
                 'dmax' : dmaxfin,
-                'orig_i' : Ep.i[min:max],
-                'orig_q' : Ep.q[min:max],
-                'orig_err': Ep.err[min:max],
                 'I0' : I0[0],
                 'ChiSquared' : c,
                 'Rg' : Rg,
-                'fit' : Fit}
+                'filename': os.path.splitext(Ep.getParameter('filename'))[0]+'.ift',
+                'algorithm' : 'BIFT'}
     
-    ift_sasm = SASM.IftSASM(transpose(Pr), r, ones(len(transpose(Pr))), bift_info) 
+    ift_sasm = SASM.IFTM(transpose(Pr), r, ones(len(transpose(Pr))), Ep.i[min:max], Ep.q[min:max], Ep.err[min:max], Fit[0], bift_info) 
+
+    bift_status = {'alpha'      : alphafin,
+                   'evidence'   : post,
+                   'chi'        : c,
+                   'dmax'       : dmaxfin,
+                   'spoint'     : current_point,
+                   'tpoint'     : total_points}
     
+    queue.put({'update' : bift_status})
     #return Out, Pout, r, Ep.i, plotinfo
     
-    cancel_bift = False
     return ift_sasm
 
 def pinnedFineSearch(Ep, N, alpha, dmax):
@@ -895,13 +896,13 @@ def fineSearch(Ep, N, alpha, dmax):
     arg = (Ep, N)
     
     #opt = optimize.fmin(fineGetEvidence, [alpha, dmax], args = arg)
-    opt = fmin(fineGetEvidence, [alpha, dmax], args = arg)
+    opt = fmin(fineGetEvidence, [alpha, dmax], args = arg, disp = False)
     
     if opt == None:
         return
     
-    print "Optimum found: "
-    print exp(opt[0]), opt[1]
+    # print "Optimum found: "
+    # print exp(opt[0]), opt[1]
 
     return exp(opt[0]), opt[1]
 

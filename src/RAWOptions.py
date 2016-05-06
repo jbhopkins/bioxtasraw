@@ -3,11 +3,13 @@ Created on Aug 2, 2010
 
 @author: specuser
 '''
-import wx, re, sys, os, time, math, Queue, copy
+import wx, re, sys, os, time, math, Queue, copy, subprocess
 import wx.lib.agw.customtreectrl as CT
 #import wx.lib.agw.floatspin as FS
 import RAWSettings, RAWCustomCtrl
 from numpy import power, ceil
+import platform
+import glob
 
 import SASFileIO, SASParser, SASExceptions
 
@@ -2209,10 +2211,10 @@ class IftOptionsPanel(wx.Panel):
         self.raw_settings = raw_settings
         
         self.update_keys = ['maxDmax','minDmax','DmaxPoints','maxAlpha','minAlpha',
-                            'AlphaPoints','PrPoints', 'gnomMaxAlpha','gnomMinAlpha',
-                            'gnomAlphaPoints','gnomPrPoints','OSCILLweight','VALCENweight',
-                            'POSITVweight','SYSDEVweight','STABILweight','DISCRPweight',
-                            'gnomFixInitZero' ]
+                            'AlphaPoints','PrPoints', 'pygnomMaxAlpha','pygnomMinAlpha',
+                            'pygnomAlphaPoints','pygnomPrPoints','pyOSCILLweight','pyVALCENweight',
+                            'pyPOSITVweight','pySYSDEVweight','pySTABILweight','pyDISCRPweight',
+                            'pygnomFixInitZero' ]
  
         self.bift_options_data = (("Dmax Upper Bound: ",   raw_settings.getId('maxDmax')),
                                 ("Dmax Lower Bound: ",   raw_settings.getId('minDmax')),
@@ -2222,18 +2224,18 @@ class IftOptionsPanel(wx.Panel):
                                 ("Alpha Search Points:", raw_settings.getId('AlphaPoints')),
                                 ("P(r) Points:",         raw_settings.getId('PrPoints')))
                                 
-        self.gnom_options_data = (("Alpha Upper Bound:",   raw_settings.getId('gnomMaxAlpha')),
-                                ("Alpha Lower Bound:",   raw_settings.getId('gnomMinAlpha')),
-                                ("Alpha Search Points:", raw_settings.getId('gnomAlphaPoints')),
-                                ("P(r) Points:",         raw_settings.getId('gnomPrPoints')),
-                                ("OSCILL weight:",       raw_settings.getId('OSCILLweight')),
-                                ("VALCEN weight:",       raw_settings.getId('VALCENweight')),
-                                ("POSITV weight:",       raw_settings.getId('POSITVweight')),
-                                ("SYSDEV weight:",       raw_settings.getId('SYSDEVweight')),
-                                ("STABIL weight:",       raw_settings.getId('STABILweight')),
-                                ("DISCRP weight:",       raw_settings.getId('DISCRPweight')))
+        self.gnom_options_data = (("Alpha Upper Bound:",   raw_settings.getId('pygnomMaxAlpha')),
+                                ("Alpha Lower Bound:",   raw_settings.getId('pygnomMinAlpha')),
+                                ("Alpha Search Points:", raw_settings.getId('pygnomAlphaPoints')),
+                                ("P(r) Points:",         raw_settings.getId('pygnomPrPoints')),
+                                ("OSCILL weight:",       raw_settings.getId('pyOSCILLweight')),
+                                ("VALCEN weight:",       raw_settings.getId('pyVALCENweight')),
+                                ("POSITV weight:",       raw_settings.getId('pyPOSITVweight')),
+                                ("SYSDEV weight:",       raw_settings.getId('pySYSDEVweight')),
+                                ("STABIL weight:",       raw_settings.getId('pySTABILweight')),
+                                ("DISCRP weight:",       raw_settings.getId('pyDISCRPweight')))
         
-        self.gnom_chkbox_data = (("Force P(r=0) to zero:", raw_settings.getId('gnomFixInitZero')), [])
+        self.gnom_chkbox_data = (("Force P(r=0) to zero:", raw_settings.getId('pygnomFixInitZero')), [])
         
         notebook = wx.Notebook(self, -1)
 
@@ -2249,7 +2251,7 @@ class IftOptionsPanel(wx.Panel):
         
     
         gnom_panel = wx.Panel(notebook, -1)
-        box2 = wx.StaticBox(gnom_panel, -1, 'GNOM Parameters')
+        box2 = wx.StaticBox(gnom_panel, -1, 'pyGNOM Parameters')
         
         gnom_options_sizer = self.createGnomOptions(gnom_panel)  
         
@@ -2261,7 +2263,7 @@ class IftOptionsPanel(wx.Panel):
         gnom_panel.SetSizer(gnom_sizer)
         
         notebook.AddPage(bift_panel, "BIFT")
-        notebook.AddPage(gnom_panel, "GNOM")
+        notebook.AddPage(gnom_panel, "pyGNOM")
         
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(notebook, 1, wx.EXPAND | wx.ALL, 5)
@@ -2504,6 +2506,733 @@ class AutomationOptionsPanel(wx.Panel):
         return chkboxSizer
 
 
+class ATSASGeneralPanel(wx.Panel):
+    
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+        
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        
+        self.raw_settings = raw_settings
+      
+        self.update_keys = ['autoFindATSAS', 'ATSASDir']
+
+        self.chkboxdata = [('Automatically find the ATSAS bin location', raw_settings.getId('autoFindATSAS'))]
+        
+        self.data = [('ATSAS bin location :', raw_settings.getId('ATSASDir'))]
+
+        options_sizer = self.createATSASOptions()
+        
+        final_sizer = wx.BoxSizer(wx.VERTICAL)
+        final_sizer.Add(options_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.SetSizer(final_sizer)    
+
+    def createATSASOptions(self):
+
+        # wx.StaticBox(self, -1, '')
+        self.autoFind = wx.CheckBox(self, self.chkboxdata[0][1], self.chkboxdata[0][0])
+        self.autoFind.SetValue(self.raw_settings.get('autoFindATSAS'))
+        self.autoFind.Bind(wx.EVT_CHECKBOX, self.onAutoFind)
+
+        self.dirLabel = wx.StaticText(self, -1, self.data[0][0])
+        self.datadir = wx.TextCtrl(self, self.data[0][1], self.raw_settings.get('ATSASDir'), size = (475,-1))
+        
+        self.dirButton = wx.Button(self, -1, 'Select Directory')
+        self.dirButton.Bind(wx.EVT_BUTTON, self.onDirButton)
+
+        if not self.autoFind.GetValue():
+            self.datadir.SetEditable(True)
+            self.dirButton.Enable()
+
+        else:
+            self.datadir.SetEditable(False)
+            self.dirButton.Disable()
+
+        horSizer = wx.BoxSizer(wx.HORIZONTAL)
+        horSizer.Add(self.datadir, 1, wx.EXPAND | wx.RIGHT, 5)
+        horSizer.Add(self.dirButton, 0)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.autoFind, 0, wx.BOTTOM | wx.TOP, 5)
+        sizer.Add(self.dirLabel, 0, wx.BOTTOM | wx.TOP, 5)
+        sizer.Add(horSizer, 0, wx.BOTTOM | wx.TOP | wx.EXPAND, 5)
+
+        return sizer
+
+    def onAutoFind(self, evt):
+        findsas = evt.GetEventObject().GetValue()
+
+        if not findsas:
+            self.datadir.SetEditable(True)
+            self.dirButton.Enable()
+
+        else:
+            self.datadir.SetEditable(False)
+            self.dirButton.Disable()
+            atsasDirectory = findATSASDirectory()
+
+            self.datadir.SetValue(atsasDirectory)
+
+
+    def onDirButton(self, evt):
+        path = self.datadir.GetValue()
+        dirdlg = wx.DirDialog(self, "Please select ATSAS bin directory (.../ATSAS/bin):", defaultPath = path,)
+            
+        if dirdlg.ShowModal() == wx.ID_OK:
+            path = dirdlg.GetPath()
+        else:
+            path = ''
+
+        self.datadir.SetValue(path)
+
+
+class ATSASGnom(wx.Panel):
+    
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+        
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+
+        # self.SetScrollbars(20,20,50,50)
+        
+        self.raw_settings = raw_settings
+      
+        # self.update_keys = ['gnomExpertFile', 'gnomForceRminZero', 'gnomForceRmaxZero','gnomNPoints',
+        #                     'gnomInitialAlpha', 'gnomAngularScale', 'gnomSystem', 'gnomFormFactor']
+
+        self.update_keys = ['gnomForceRminZero', 'gnomForceRmaxZero', 'gnomNPoints', 'gnomInitialAlpha']
+
+        options_sizer = self.createGNOMOptions()
+        
+        # final_sizer = wx.BoxSizer(wx.VERTICAL)
+        # final_sizer.Add(options_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        
+        # self.SetSizer(final_sizer) 
+
+        self.SetSizer(options_sizer)   
+
+    def createGNOMOptions(self):
+        rmin_text = wx.StaticText(self, -1, 'Force P(r) to 0 at r = 0 :')
+        rmin_choice = wx.Choice(self, self.raw_settings.getId('gnomForceRminZero'), choices = ['Y', 'N'])
+        # rmin_choice.SetStringSelection(self.raw_settings.get('gnomForceRminZero'))
+
+        rmin_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        rmin_sizer.Add(rmin_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+        rmin_sizer.Add(rmin_choice, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+
+        rmax_text = wx.StaticText(self, -1, 'Force P(r) to 0 at r = Dmax :')
+        rmax_choice = wx.Choice(self, self.raw_settings.getId('gnomForceRmaxZero'), choices = ['Y', 'N'])
+        # rmax_choice.SetStringSelection(self.raw_settings.get('gnomForceRmaxZero'))
+
+        rmax_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        rmax_sizer.Add(rmax_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+        rmax_sizer.Add(rmax_choice, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+
+
+        npts_text = wx.StaticText(self, -1, 'Number of points in real space :')
+        npts_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomNPoints'), '', size = (60, -1))
+
+        npts_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        npts_sizer.Add(npts_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+        npts_sizer.Add(npts_ctrl, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+
+
+        alpha_text = wx.StaticText(self, -1, 'Initial Alpha :')
+        alpha_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomInitialAlpha'), '', size = (60, -1))
+
+        alpha_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        alpha_sizer.Add(alpha_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+        alpha_sizer.Add(alpha_ctrl, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+
+        resetText = wx.StaticText(self, -1, 'Reset all GNOM settings (including advanced) to default:')
+        resetButton = wx.Button(self, -1, 'Reset to default')
+        resetButton.Bind(wx.EVT_BUTTON, self._onResetButton)
+
+        resetBox = wx.StaticBox(self, -1, 'Reset')
+        resetSizer = wx.StaticBoxSizer(resetBox, wx.VERTICAL)
+        resetSizer.Add(resetText, 0, wx.ALL, 5)
+        resetSizer.Add(resetButton, 0, wx.ALL, 5)
+
+        advanced_text = wx.StaticText(self, -1, 'This panel allows you to set the commonly used advanced settings used by the ATSAS software GNOM.')
+        
+
+        standardBox = wx.StaticBox(self, -1, 'Standard Settings')
+        standardSizer = wx.StaticBoxSizer(standardBox, wx.VERTICAL)
+        standardSizer.Add(rmin_sizer, 0)
+        standardSizer.Add(rmax_sizer, 0)
+        standardSizer.Add(npts_sizer, 0)
+        standardSizer.Add(alpha_sizer, 0)
+
+
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        top_sizer.Add(advanced_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+        top_sizer.Add(standardSizer, 0)
+        top_sizer.Add(resetSizer, 0)
+
+        return top_sizer
+
+
+    def _onResetButton(self, evt):
+        default_settings = RAWSettings.RawGuiSettings()
+
+        for key in self.update_keys:
+            id, type = self.raw_settings.getIdAndType(key)
+
+            val = default_settings.get(key)
+            obj = wx.FindWindowById(id)
+
+            if type == 'bool':
+                obj.SetValue(val)
+            elif type == 'list':
+                obj.SetValue(val)
+                
+            elif type == 'choice':
+                choice_list = obj.GetStrings() 
+                idx = choice_list.index(val)
+                obj.Select(idx)
+                
+            elif type == 'text' or type == 'int' or type == 'float':
+                try:
+                    obj.SetValue(val)
+                except TypeError:
+                    obj.SetValue(str(val))
+
+        myId = -1
+        for item in all_options:
+            if item[2] == "GNOM Advanced":
+                myId = item[1]
+
+        if myId != -1:
+            gnomAdvanced = wx.FindWindowById(myId)
+
+            for key in gnomAdvanced.update_keys:
+                id, type = self.raw_settings.getIdAndType(key)
+
+                val = default_settings.get(key)
+                obj = wx.FindWindowById(id)
+
+                if type == 'bool':
+                    obj.SetValue(val)
+                elif type == 'list':
+                    obj.SetValue(val)
+                    
+                elif type == 'choice':
+                    choice_list = obj.GetStrings() 
+                    idx = choice_list.index(val)
+                    obj.Select(idx)
+                    
+                elif type == 'text' or type == 'int' or type == 'float':
+                    try:
+                        obj.SetValue(val)
+                    except TypeError:
+                        obj.SetValue(str(val))
+
+
+
+class ATSASGnomAdvanced(wx.Panel):
+    
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+        
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+
+        # self.SetScrollbars(20,20,50,50)
+        
+        self.raw_settings = raw_settings
+
+        self.update_keys = ['gnomAngularScale', 'gnomSystem', 'gnomExpertFile', 'gnomFormFactor',
+                            'gnomRadius56', 'gnomRmin']
+
+        self.button_ids = {'expert' : wx.NewId(),
+                            'form': wx.NewId()}
+
+
+        options_sizer = self.createGNOMOptions()
+        
+        # final_sizer = wx.BoxSizer(wx.VERTICAL)
+        # final_sizer.Add(options_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        
+        # self.SetSizer(final_sizer) 
+
+        self.SetSizer(options_sizer)   
+
+    def createGNOMOptions(self):
+
+
+        angular_box = wx.StaticBox(self)
+        angular_text1 = wx.StaticText(self, -1, 'Angular Scale :')
+        angular_text2 = wx.StaticText(self, -1, '1 - q=4pi*sin(theta)/lambda [A^-1]\n2 - q=4pi*sin(theta)/lambda, convert [nm^-1] to [A^-1]\n3 - q=2*sin(theta)/lambda [A^-1]\n4 - q=2*sin(theta)/lambda, convert [nm^-1] to [A^-1]', style = wx.TE_MULTILINE)
+        angular_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomAngularScale'), '', size = (60,-1))
+
+        angular_sizer = wx.StaticBoxSizer(angular_box, wx.VERTICAL)
+        angular_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        angular_sizer2.Add(angular_text1, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+        angular_sizer2.Add(angular_ctrl, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+
+        angular_sizer.Add(angular_sizer2, 0)
+        angular_sizer.Add(angular_text2, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+
+
+        system_box = wx.StaticBox(self)
+        system_text1 = wx.StaticText(self, -1, 'Job Type :')
+        system_text2 = wx.StaticText(self, -1, '0 - P(r) for a mondisperse system\n1 - Volume distribution function for polydisperse system of solid spheres\n2 - P(r) with a user supplied form factor\n3 - Thickness distance distribution of a monodisperse system of flattened particles\n4 - Cross-section distance distribution of monodisperse rod-like particles\n5 - Length distribution of a polydisperse system of long cylinders\n6 - Surface distribution function for a polydisperse system of spherical shells', style = wx.TE_MULTILINE)
+        system_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomSystem'), '', size = (60,-1))
+
+        system_sizer = wx.StaticBoxSizer(system_box, wx.VERTICAL)
+        system_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        system_sizer2.Add(system_text1, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+        system_sizer2.Add(system_ctrl, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+
+        system_sizer.Add(system_sizer2, 0)
+        system_sizer.Add(system_text2, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+
+
+        expert_text = wx.StaticText(self, -1, 'Expert parameters file :',)
+        expert_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomExpertFile'), '', size = (325,-1))
+        expert_button = wx.Button(self, self.button_ids['expert'], 'Select')
+        expert_button.Bind(wx.EVT_BUTTON, self.onSelectButton)
+
+        expert_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        expert_sizer.Add(expert_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+        expert_sizer.Add(expert_ctrl, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+        expert_sizer.Add(expert_button, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+
+
+        form_text = wx.StaticText(self, -1, 'Form factor file (job 2):',)
+        form_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomFormFactor'), '', size = (325,-1))
+        form_button = wx.Button(self, self.button_ids['form'], 'Select')
+        form_button.Bind(wx.EVT_BUTTON, self.onSelectButton)
+
+        form_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        form_sizer.Add(form_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+        form_sizer.Add(form_ctrl, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+        form_sizer.Add(form_button, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+
+
+        radius_text = wx.StaticText(self, -1, 'Radius/thickness (job 5/6)')
+        radius_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomRadius56'), size = (60, -1))
+
+        radius_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        radius_sizer.Add(radius_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+        radius_sizer.Add(radius_ctrl, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+
+        radmin_text = wx.StaticText(self, -1, 'Dmin (optional, set to -1 to ignore, jobs 1, 2, 5, 6) :')
+        radmin_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomRmin'), size = (60,-1))
+
+        radmin_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        radmin_sizer.Add(radmin_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+        radmin_sizer.Add(radmin_ctrl, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+
+
+        advanced_text = wx.StaticText(self, -1, 'This panel allows you to set the less common advanced settings used by the ATSAS software GNOM.')
+        
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        top_sizer.Add(advanced_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+        top_sizer.Add(angular_sizer,0)
+        top_sizer.Add(system_sizer, 0)
+        top_sizer.Add(expert_sizer, 0)
+        top_sizer.Add(form_sizer, 0)
+        top_sizer.Add(radius_sizer,0)
+        top_sizer.Add(radmin_sizer,0)
+
+        return top_sizer
+
+    # def onAutoFind(self, evt):
+    #     findsas = evt.GetEventObject().GetValue()
+
+    #     if not findsas:
+    #         self.datadir.SetEditable(True)
+    #         self.dirButton.Enable()
+
+    #     else:
+    #         self.datadir.SetEditable(False)
+    #         self.dirButton.Disable()
+    #         atsasDirectory = findATSASDirectory()
+
+    #         self.datadir.SetValue(atsasDirectory)
+
+
+    def onSelectButton(self, evt):
+
+        button_id = evt.GetId()
+
+        if button_id == self.button_ids['expert']:
+            path = wx.FindWindowById(self.raw_settings.getId('gnomExpertFile')).GetValue()
+        elif button_id == self.button_ids['form']:
+            path = wx.FindWindowById(self.raw_settings.getId('gnomFormFactor')).GetValue()
+        else:
+            path = ''
+
+
+        dirdlg = wx.FileDialog(self, "Please select file:", defaultDir = path,)
+            
+        if dirdlg.ShowModal() == wx.ID_OK:
+            path = dirdlg.GetPath()
+        else:
+            path = ''
+
+
+        if button_id == self.button_ids['expert']:
+            path = wx.FindWindowById(self.raw_settings.getId('gnomExpertFile')).SetValue(path)
+        elif button_id == self.button_ids['form']:
+            path = wx.FindWindowById(self.raw_settings.getId('gnomFormFactor')).SetValue(path)
+        else:
+            path = ''
+
+
+class ATSASDammif(wx.Panel):
+    
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+        
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+
+        self.raw_settings = raw_settings
+        
+        self.update_keys = ['dammifMode', 'dammifSymmetry', 'dammifAnisometry', 'dammifUnit', 'dammifChained',
+                            'dammifConstant', 'dammifOmitSolvent', 'dammifReconstruct', 'dammifDamaver']
+        
+        modeChoices = ['Fast', 'Slow', 'Custom']
+
+        symChoices = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11',
+                        'P12', 'P13', 'P14', 'P15', 'P16', 'P17', 'P18', 'P19', 'P22', 'P222',
+                        'P32', 'P42', 'P52', 'P62', 'P72', 'P82', 'P92', 'P102', 'P112', 'P122']
+
+        anisometryChoices = ['Unknown', 'Prolate', 'Oblate']
+
+        self.default_options = (("Mode:",   raw_settings.getId('dammifMode'), 'choice', modeChoices),
+                                ("Symmetry:",   raw_settings.getId('dammifSymmetry'), 'choice', symChoices),
+                                ("Anisometry: ", raw_settings.getId('dammifAnisometry'), 'choice', anisometryChoices),
+                                ("Number of reconstructions:", raw_settings.getId('dammifReconstruct'), 'int'),
+                                ("Automatically average reconstructions (DAMAVER)", raw_settings.getId('dammifDamaver'), 'bool'))
+
+        unitChoices = ['Unknown', 'Angstrom', 'Nanometer']
+
+        self.standard_options = (('Units:', raw_settings.getId('dammifUnit'), 'choice', unitChoices),
+                                ('Constant offset (blank to automatically set):', raw_settings.getId('dammifConstant'), 'text'),
+                                ('Create Pseudo-Chains in PDB output', raw_settings.getId('dammifChained'), 'bool'),
+                                ('Omit solvent PDB file', raw_settings.getId('dammifOmitSolvent'), 'bool'))
+        
+        
+        # self.myPanel = wx.ScrolledWindow(self, -1)
+        # self.myPanel.SetScrollbars(20,20,50,50)
+
+        # layoutSizer = self._createLayout(self.myPanel)
+        layoutSizer = self._createLayout(self)
+
+        # top_sizer = self._createLayout(self)
+
+        # self.myPanel.SetSizer(layoutSizer)
+        # # self.myPanel.FitInside()
+
+        # # self.myPanel.SetScrollRate(20,20)
+
+        # self.myPanel.FitInside()
+
+        # self.myPanel.Layout()
+        # self.SendSizeEvent()
+        # self.myPanel.Layout()
+
+        # top_sizer = wx.BoxSizer(wx.VERTICAL)
+        # top_sizer.Add(self.myPanel, 0)
+        
+        # self.SetSizer(top_sizer)
+
+        self.SetSizer(layoutSizer)
+
+        self.Layout()
+        
+    def _createLayout(self, parent):
+
+        defaultBox = wx.StaticBox(parent, -1, 'Defaults')
+        defaultSizer = wx.StaticBoxSizer(defaultBox, wx.VERTICAL)
+
+        defaultText = wx.StaticText(parent, -1, 'The default settings applied when the DAMMIF window is opened.')
+        defaultSizer.Add(defaultText, 0, wx.ALL, 3)
+
+        for item in self.default_options:
+            label = item[0]
+            myId = item[1]
+            itemType = item[2]
+
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+            if itemType == 'choice':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.Choice(parent, myId, choices = item[3])
+
+                sizer.Add(labeltxt, 0, wx.ALL, 2)
+                sizer.Add(ctrl, 0, wx.ALL, 2)
+
+            elif itemType == 'text' or itemType == 'int' or itemType =='float':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1))
+
+                sizer.Add(labeltxt, 0, wx.ALL, 2)
+                sizer.Add(ctrl, 0, wx.ALL, 2)
+
+            elif itemType == 'bool':
+                ctrl = wx.CheckBox(parent, myId, label)
+                sizer.Add(ctrl, 0, wx.ALL, 2)
+
+            defaultSizer.Add(sizer, 0)
+
+
+        standardBox = wx.StaticBox(parent, -1, 'Standard Settings')
+        standardSizer = wx.StaticBoxSizer(standardBox, wx.VERTICAL)
+
+        standardText = wx.StaticText(parent, -1, 'Standard settings that can be changed in Fast/Slow mode.')
+        standardSizer.Add(standardText, 0, wx.ALL, 3)
+
+        for item in self.standard_options:
+            label = item[0]
+            myId = item[1]
+            itemType = item[2]
+            
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+            if itemType == 'choice':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.Choice(parent, myId, choices = item[3])
+
+                sizer.Add(labeltxt, 0, wx.ALL, 3)
+                sizer.Add(ctrl, 0, wx.ALL, 3)
+            elif itemType == 'text':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1))
+
+                sizer.Add(labeltxt, 0, wx.ALL, 3)
+                sizer.Add(ctrl, 0, wx.ALL, 3)
+            elif itemType == 'bool':
+                ctrl = wx.CheckBox(parent, myId, label)
+                sizer.Add(ctrl, 0, wx.ALL, 3)
+
+            standardSizer.Add(sizer, 0)
+
+
+        resetText = wx.StaticText(parent, -1, 'Reset all DAMMIF settings (including advanced) to default:')
+        resetButton = wx.Button(parent, -1, 'Reset to default')
+        resetButton.Bind(wx.EVT_BUTTON, self._onResetButton)
+
+        resetBox = wx.StaticBox(parent, -1, 'Reset')
+        resetSizer = wx.StaticBoxSizer(resetBox, wx.VERTICAL)
+        resetSizer.Add(resetText, 0, wx.ALL, 5)
+        resetSizer.Add(resetButton, 0, wx.ALL, 5)
+
+        
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(defaultSizer,0)
+        top_sizer.Add(standardSizer,0)
+        top_sizer.Add(resetSizer, 0)
+
+        return top_sizer
+
+
+    def _onResetButton(self, evt):
+        default_settings = RAWSettings.RawGuiSettings()
+
+        for key in self.update_keys:
+            id, type = self.raw_settings.getIdAndType(key)
+
+            val = default_settings.get(key)
+            obj = wx.FindWindowById(id)
+
+            if type == 'bool':
+                obj.SetValue(val)
+            elif type == 'list':
+                obj.SetValue(val)
+                
+            elif type == 'choice':
+                choice_list = obj.GetStrings() 
+                idx = choice_list.index(val)
+                obj.Select(idx)
+                
+            elif type == 'text' or type == 'int' or type == 'float':
+                try:
+                    obj.SetValue(val)
+                except TypeError:
+                    obj.SetValue(str(val))
+
+        myId = -1
+        for item in all_options:
+            if item[2] == "DAMMIF Advanced":
+                myId = item[1]
+
+        if myId != -1:
+            dammifAdvanced = wx.FindWindowById(myId)
+
+            for key in dammifAdvanced.update_keys:
+                id, type = self.raw_settings.getIdAndType(key)
+
+                val = default_settings.get(key)
+                obj = wx.FindWindowById(id)
+
+                if type == 'bool':
+                    obj.SetValue(val)
+                elif type == 'list':
+                    obj.SetValue(val)
+                    
+                elif type == 'choice':
+                    choice_list = obj.GetStrings() 
+                    idx = choice_list.index(val)
+                    obj.Select(idx)
+                    
+                elif type == 'text' or type == 'int' or type == 'float':
+                    try:
+                        obj.SetValue(val)
+                    except TypeError:
+                        obj.SetValue(str(val))
+
+
+
+class ATSASDammifAdvanced(wx.Panel):
+    
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+        
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+
+        self.raw_settings = raw_settings
+        
+        self.update_keys = ['dammifDummyRadius', 'dammifSH', 'dammifPropToFit',
+                            'dammifKnots', 'dammifCurveWeight', 'dammifRandomSeed', 'dammifMaxSteps', 'dammifMaxIters',
+                            'dammifMaxStepSuccess', 'dammifMinStepSuccess', 'dammifTFactor', 'dammifRgPen', 
+                            'dammifCenPen', 'dammifLoosePen', 'dammifAnisPen', 'dammifMaxBeadCount']
+        
+        weightChoices = ['l', 'p', 'e', 'n']
+
+        self.custom_options = (("Dummy atom radius (1.0-?, Angstrom):", raw_settings.getId('dammifDummyRadius'), 'float'),
+                                ("Maximum number of spherical harmonics (1-50):", raw_settings.getId('dammifSH'), 'int'),
+                                ("Proprotion of the curve to fit (0.0-1.0):", raw_settings.getId('dammifPropToFit'), 'float'),
+                                ("Number of knots in the curve to fit (1-?):", raw_settings.getId('dammifKnots'), 'int'),
+                                ("Curve weighting function ([l]log, [p]orod, [e]mphasized porod, [n]one):", raw_settings.getId('dammifCurveWeight'), 'choice', weightChoices),
+                                ("Initial Random Seed (blank to automatically generate):", raw_settings.getId('dammifRandomSeed'), 'text'),
+                                ("Maximum temperature steps in annealing procedure (1-?):", raw_settings.getId('dammifMaxSteps'), 'int'),
+                                ("Maximum iterations within a single temperature step (1-?):", raw_settings.getId('dammifMaxIters'), 'int'),
+                                ("Maximum successes per temperature step before temperature decreased (1-?):", raw_settings.getId('dammifMaxStepSuccess'), 'int'),
+                                ("Minimum successes per temperature step before temperature decreased (1-?):", raw_settings.getId('dammifMinStepSuccess'), 'int'),
+                                ("Temperature schedule factor (0.0-1.0):", raw_settings.getId('dammifTFactor'), 'float'),
+                                ("Rg penalty weight (0.0-...):", raw_settings.getId('dammifRgPen'), 'float'),
+                                ("Center penalty weight (0.0-...):", raw_settings.getId('dammifCenPen'), 'float'),
+                                ("Looseness penalty weight (0.0-...):", raw_settings.getId('dammifLoosePen'), 'float'),
+                                ("Anisometry penalty weight (0.0-...):", raw_settings.getId('dammifAnisPen'), 'float'),
+                                ("Maximum bead count:", raw_settings.getId('dammifMaxBeadCount'), 'int')
+                                )
+        
+        layoutSizer = self._createLayout(self)
+
+        self.SetSizer(layoutSizer)
+        
+    def _createLayout(self, parent):
+
+        customSizer = wx.BoxSizer(wx.VERTICAL)
+
+        customText = wx.StaticText(parent, -1, 'These settings are used when "Custom" is selected as the mode in the DAMMIF panel.\nThis is equivalent to the DAMMIF interactive mode in the command line.\nUnless otherwise noted, a value of -1 means DAMMIF will use the default setting.')
+        customSizer.Add(customText, 0, wx.ALL, 5)
+
+        for item in self.custom_options:
+            label = item[0]
+            myId = item[1]
+            itemType = item[2]
+
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+            if itemType == 'choice':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.Choice(parent, myId, choices = item[3])
+
+                sizer.Add(labeltxt, 0, wx.ALL, 2)
+                sizer.Add(ctrl, 0, wx.ALL, 2)
+
+            elif itemType == 'text' or itemType == 'int' or itemType =='float':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1))
+
+                sizer.Add(labeltxt, 0, wx.ALL, 2)
+                sizer.Add(ctrl, 0, wx.ALL, 2)
+
+            elif itemType == 'bool':
+                ctrl = wx.CheckBox(parent, myId, label)
+                sizer.Add(ctrl, 0, wx.ALL, 2)
+
+            customSizer.Add(sizer, 0)
+        
+
+        return customSizer
+        
+
+def findATSASDirectory():
+    opsys= platform.system()
+
+    if opsys== 'Darwin':
+        default_path = '/Applications/ATSAS/bin'
+    elif opsys== 'Windows':
+        default_path = 'C:\\atsas\\bin'
+    elif opsys== 'Linux':
+        default_path = '~/atsas'
+        default_path = os.path.expanduser(default_path)
+
+        if os.path.exists(default_path):
+            dirs = glob.glob(default_path+'/*')
+
+            for item in dirs:
+                if item.split('/')[-1].lower().startswith('atsas'):
+                    default_path = item
+                    break
+
+            default_path = os.path.join(default_path, 'bin')
+
+    is_atsas = os.path.exists(default_path)
+
+    if is_atsas:
+        return default_path
+
+
+    try:
+        path = os.environ['PATH']
+    except Exception as e:
+        path = None
+        print e
+
+    if path != None:
+        if opsys == 'Windows':
+            split_path = path.split(';')
+        else:
+            split_path = path.split(':')
+
+        for item in split_path:
+            if item.lower().find('atsas') > -1 and item.lower().find('bin') > -1:
+                return item
+
+
+    try:
+        atsas_path = os.environ['ATSAS']
+    except Exception as e:
+        atsas_path = None
+        print e
+
+    if atsas_path != None:
+        if atsas_path.lower().find('atsas') > -1:
+            atsas_path = atsas_path.rstrip('\\')
+            atsas_path = atsas_path.rstrip('/')
+            if atsas_path.endswith('bin'):
+                return atsas_path
+            else:
+                if os.path.exists(os.path.join(atsas_path, 'bin')):
+                    return os.path.join(atsas_path, 'bin')
+
+
+    if opsys != 'Windows':
+        which = subprocess.Popen('which dammif', stdout=subprocess.PIPE,shell=True)
+        output = which.communicate()
+
+        atsas_path = output[0].strip()
+
+        if atsas_path != '':
+            return os.path.dirname(atsas_path)
+
+    return ''
+
+
 def ExtractFilenameAndFrameNumber(filename, frameregexp, nameregexp):
     
     frame = 'No Match'
@@ -2586,9 +3315,14 @@ all_options = [ [ (1,0,0), wx.NewId(), 'General Settings', GeneralOptionsPanel],
                 [ (4,0,0), wx.NewId(), 'Artifact Removal', ArtifactOptionsPanel],
                 [ (5,0,0), wx.NewId(), 'IFT', IftOptionsPanel],
                 [ (6,0,0), wx.NewId(), "Save Directories", SaveDirectoriesPanel],
-               [ (7,0,0), wx.NewId(), 'Online Mode', OnlineModePanel],
+                [ (7,0,0), wx.NewId(), 'Online Mode', OnlineModePanel],
                 [ (8,0,0), wx.NewId(), "Automation", AutomationOptionsPanel],
-				[ (9,0,0), wx.NewId(), "SANS", SansOptionsPanel]]
+                [ (9,0,0), wx.NewId(), "ATSAS", ATSASGeneralPanel],
+                [ (9,1,1), wx.NewId(), "GNOM", ATSASGnom],
+                [ (9,1,2), wx.NewId(), "GNOM Advanced", ATSASGnomAdvanced],
+                [ (9,5,1), wx.NewId(), "DAMMIF", ATSASDammif],
+                [ (9,5,2), wx.NewId(), "DAMMIF Advanced", ATSASDammifAdvanced],
+				[ (10,0,0), wx.NewId(), "SANS", SansOptionsPanel]]
                 
 #--- ** TREE BOOK **
 class ConfigTree(CT.CustomTreeCtrl):
@@ -2616,13 +3350,17 @@ class ConfigTree(CT.CustomTreeCtrl):
             
             if last_idx == idx:
                 if sub_idx == 0:
-                    self.child = self.AppendItem(self.child, label, data = id)
-                elif subsubidx == 1:
-                    self.child = self.AppendItem(self.child, label, data = id)
+                    self.AppendItem(self.top_child, label, data = id)
+                    last_sub_idx = sub_idx
+                elif sub_idx != last_sub_idx:
+                    self.middle_child = self.AppendItem(self.top_child, label, data = id)
+                    last_sub_idx = sub_idx
+                # elif subsubidx == 1:
+                #     self.middle_child = self.AppendItem(self.top_child, label, data = id)
                 else:
-                    self.AppendItem(self.child, label, data = id)     
+                    self.AppendItem(self.middle_child, label, data = id)     
             else:
-                self.child = self.AppendItem(self.root, label, data = id)
+                self.top_child = self.AppendItem(self.root, label, data = id)
             
             # Select the first option in the list
             if last_idx == 0:
@@ -2957,6 +3695,16 @@ class OptionsDialog(wx.Dialog):
 
         if mw_window:
             mw_window.updateMWInfo()
+
+        gnom_window = wx.FindWindowByName('GNOMFrame')
+
+        if gnom_window:
+            gnom_window.updateGNOMSettings()
+
+        dammif_window = wx.FindWindowByName('DammifFrame')
+
+        if dammif_window:
+            dammif_window.updateDAMMIFSettings()
             
         
 #--- ** FOR TESTING **
