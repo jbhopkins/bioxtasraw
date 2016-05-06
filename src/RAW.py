@@ -4962,6 +4962,7 @@ class ManipulationPanel(wx.Panel):
             else:
                 wx.CallAfter(plot_panel.updateLegend, 2)
         
+        wx.CallAfter(plot_panel.fitAxis)
         wx.CallAfter(plot_panel.canvas.draw)
         
         self.underpanel_sizer.Layout()
@@ -6508,6 +6509,8 @@ class IFTPanel(wx.Panel):
 
         wx.CallAfter(self.iftplot_panel.updateLegend, 1)
         wx.CallAfter(self.iftplot_panel.updateLegend, 2)
+
+        wx.CallAfter(self.iftplot_panel.fitAxis)
         
         wx.CallAfter(self.iftplot_panel.canvas.draw)
 
@@ -8278,6 +8281,8 @@ class SECPanel(wx.Panel):
             idx = self.all_manipulation_items.index(each)
             self.all_manipulation_items[idx].Destroy()
             self.all_manipulation_items.pop(idx)
+
+        wx.CallAfter(plot_panel.fitAxis)
 
         self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
