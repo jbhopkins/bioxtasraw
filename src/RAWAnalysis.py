@@ -4501,7 +4501,7 @@ class DammifFrame(wx.Frame):
                     wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
                     return
 
-                logfile = open(os.path.join(path,dam_prefix)+'.log', 'rb')
+                logfile = open(logname, 'rb')
                 logfile.seek(pos)
 
                 newtext = logfile.read()
