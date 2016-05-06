@@ -8443,6 +8443,7 @@ class SECPanel(wx.Panel):
         # self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         
         # self._star_marked_item = None
+        self.modified_items = []
         
         self.Thaw()
         
