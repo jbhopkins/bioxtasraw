@@ -5544,9 +5544,9 @@ class AmbimeterFrame(wx.Frame):
     def __init__(self, parent, title, iftm, manip_item):
         
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'AmbimeterFrame', size = (450,500))
+            wx.Frame.__init__(self, parent, -1, title, name = 'AmbimeterFrame', size = (450,525))
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'AmbimeterFrame', size = (450,500))
+            wx.Frame.__init__(self, None, -1, title, name = 'AmbimeterFrame', size = (450,525))
 
         self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -5625,6 +5625,7 @@ class AmbimeterFrame(wx.Frame):
 
         shape_text = wx.StaticText(parent, -1, 'Output shape(s) to save: ')
         shape_choice = wx.Choice(parent, self.ids['files'], choices = ['None', 'Best', 'All'])
+        shape_choice.SetSelection(0)
 
         shape_sizer = wx.BoxSizer(wx.HORIZONTAL)
         shape_sizer.Add(shape_text, 0, wx.ALL, 5)
@@ -5777,7 +5778,9 @@ class AmbimeterFrame(wx.Frame):
             wx.CallAfter(wx.MessageBox, str(e), 'Error running Ambimeter', style = wx.ICON_ERROR | wx.OK)
             os.remove(outname)
             os.chdir(cwd)
-            self.onClose()
+            bi.Destroy()
+            self.Close()
+            return
 
 
         os.remove(outname)

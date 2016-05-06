@@ -962,7 +962,13 @@ def runAmbimeter(fname, prefix, args):
     if os.path.exists(ambimeterDir):
 
         command = '%s --srg=%s --prefix=%s --files=%s %s' %(ambimeterDir, args['sRg'], prefix, args['files'], fname)
-        process=subprocess.Popen(command, shell= True, stdout=subprocess.PIPE,stderr=subprocess.PIPE,)
+        process=subprocess.Popen(command, shell= True, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+
+        start = time.time()
+        while process.poll() == None:
+            if time.time()-start > 60:
+                raise SASExceptions.NoATSASError('Ambimeter timed out. Try running it from the command line to diagnose this problem.')
+                return None
 
         output, error = process.communicate()
         
