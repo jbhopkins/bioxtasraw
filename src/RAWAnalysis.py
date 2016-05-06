@@ -4492,8 +4492,6 @@ class DammifFrame(wx.Frame):
             while not os.path.exists(logname):
                 time.sleep(0.01)
 
-            print os.path.exists(logname)
-
             pos = 0
 
             #Send the DAMMIF log output to the screen.
