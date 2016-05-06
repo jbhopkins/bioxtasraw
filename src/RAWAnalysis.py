@@ -4490,7 +4490,9 @@ class DammifFrame(wx.Frame):
             logname = os.path.join(path,dam_prefix)+'.log'
 
             while not os.path.exists(logname):
-                time.sleep(0.001)
+                time.sleep(0.01)
+
+            print os.path.exists(logname)
 
             pos = 0
 

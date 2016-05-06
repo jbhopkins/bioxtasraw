@@ -522,13 +522,13 @@ class MainFrame(wx.Frame):
 
         if os.path.exists(ambiPath):
 
-            process = subprocess.Popen('ambimeter -v', shell= True, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            process = subprocess.Popen('%s -v' %(ambiPath), shell= True, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 
             output, error = process.communicate()
 
             rev = output.split('\n')[0].split()[-1].strip().strip(')(r')
 
-            if int(rev) >= 6670:
+            if int(rev) >= 6669:
 
 
                 if self.ambimeterframe:
