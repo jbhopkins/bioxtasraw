@@ -1432,7 +1432,7 @@ class OnlineController:
                         else:
                             print process_str
                             files_to_plot.append(filepath)
-                            mainworker_cmd_queue.put(['plot', [filepath]])
+                            # mainworker_cmd_queue.put(['plot', [filepath]])
                             #UPDATE PLOT
 
             else:
