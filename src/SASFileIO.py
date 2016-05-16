@@ -1914,6 +1914,9 @@ def loadPrimusDatFile(filename):
 
     f.close()
 
+    if len(lines) == 0:
+        raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file.')
+
     if lines[1].find('model_intensity') > -1:
         #FoXS file with a fit! has four data columns
         is_foxs_fit=True

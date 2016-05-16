@@ -2002,7 +2002,8 @@ class MainWorkerThread(threading.Thread):
 
 
         file_list = wx.FindWindowByName('FileListCtrl')
-        wx.CallAfter(file_list.SetFocus)
+        if file_list != None:
+            wx.CallAfter(file_list.SetFocus)
 
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
@@ -10147,7 +10148,7 @@ class MaskingPanel(wx.Panel):
         sizer = wx.BoxSizer()
 
         self.selector_choice = wx.Choice(self, -1, choices = self.mask_choices.keys())
-        self.selector_choice.Select(2)
+        self.selector_choice.SetStringSelection('Beamstop mask')
         
         set_button = wx.Button(self, -1, 'Set', size = (60,-1))
         set_button.Bind(wx.EVT_BUTTON, self._onSetButton)
