@@ -3616,7 +3616,7 @@ class OptionsDialog(wx.Dialog):
     def onApply(self, event):
         try:
             self.saveSettings()
-            wx.MessageBox('Settings have now been saved.', 'Settings Saved', parent = self)
+            wx.MessageBox('Settings have been updated.', 'Settings Updated', parent = self)
         except ValueError:
             dlg = wx.MessageDialog(self, 
             "Invalid value entered. Settings not saved.",

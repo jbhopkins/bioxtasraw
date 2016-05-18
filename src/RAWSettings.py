@@ -313,7 +313,12 @@ def fixBackwardsCompatibility(raw_settings):
 def loadSettings(raw_settings, loadpath):
     
     file_obj = open(loadpath, 'rb')
-    loaded_param = cPickle.load(file_obj)
+    try:
+        loaded_param = cPickle.load(file_obj)
+    except (KeyError, EOFError, ImportError, IndexError, AttributeError, cPickle.UnpicklingError) as e:
+        print e
+        file_obj.close()
+        return False
     file_obj.close()
     
     keys = loaded_param.keys()
@@ -370,6 +375,14 @@ def saveSettings(raw_settings, savepath):
     
     for key in masks.keys():
         masks[key][0] = oldMasks[key] 
+
+    dummy_settings = RawGuiSettings()
+    try:
+        loadSettings(dummy_settings, savepath)
+    except (KeyError, EOFError, ImportError, IndexError, AttributeError, cPickle.UnpicklingError) as e:
+        print e
+        os.remove(savepath)
+        return False
         
     return True
 

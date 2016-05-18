@@ -306,7 +306,7 @@ class MainFrame(wx.Frame):
                         self.raw_settings.set('CurrentCfg', file)
                     else:
                         wx.CallAfter(wx.MessageBox,'Load failed, config file might be corrupted.',
-                                      'Load failed', style = wx.ICON_EXCLAMATION)
+                                      'Load failed', style = wx.ICON_ERROR | wx.OK)
 
             dirctrl = wx.FindWindowByName('DirCtrlPanel')
             dirctrl._useSavedPathIfExisits()
@@ -1180,6 +1180,10 @@ class MainFrame(wx.Frame):
             
             if success:
                 self.raw_settings.set('CurrentCfg', file)
+
+            else:
+                wx.CallAfter(wx.MessageBox,'Load failed, config file might be corrupted.',
+                              'Load failed', style = wx.ICON_ERROR| wx.OK)
             
             
     def _onSaveSettings(self, evt):   
@@ -1194,6 +1198,9 @@ class MainFrame(wx.Frame):
             
             if success:
                 self.raw_settings.set('CurrentCfg', file)
+
+            else:
+                wx.MessageBox('Your settings failed to save! Please try again.', 'Save failed!', style = wx.ICON_ERROR | wx.OK)
                 
     def _onLoadWorkspaceMenu(self, evt):
         manip_panel = wx.FindWindowByName('ManipulationPanel')
@@ -4512,7 +4519,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
                         raw_settings.set('CurrentCfg', full_dir_filename)
                     else:
                         wx.MessageBox('Load failed, config file might be corrupted',
-                              'Load failed', style = wx.YES_NO | wx.ICON_EXCLAMATION)
+                              'Load failed', style = wx.OK | wx.ICON_ERROR)
                 
             else:    
                 mainworker_cmd_queue.put(('plot', [full_dir_filename]))
