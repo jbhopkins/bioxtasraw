@@ -1550,10 +1550,10 @@ class PlotPanel(wx.Panel):
             
             if float(matplotlib.__version__[:3]) >= 1.2:
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    self._showPopupMenu(selected_plot)
+                    wx.CallAfter(self._showPopupMenu, selected_plot)
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    self._showPopupMenu(selected_plot)
+                    wx.CallAfter(self._showPopupMenu, selected_plot)
 
 #--- ** Popup Menu ***
 
@@ -1725,6 +1725,8 @@ class PlotPanel(wx.Panel):
             
         
         self.PopupMenu(menu)
+
+        menu.Destroy()
     
     def _onPlotOptions(self, evt):
         if self.selected_plot == 1:
@@ -2585,10 +2587,10 @@ class IftPlotPanel(PlotPanel):
             
             if float(matplotlib.__version__[:3]) >= 1.2:
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    self._showPopupMenu(selected_plot)
+                    wx.CallAfter(self._showPopupMenu, selected_plot)
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    self._showPopupMenu(selected_plot)
+                    wx.CallAfter(self._showPopupMenu, selected_plot)
 
 #--- ** Popup Menu ***
 
@@ -2726,6 +2728,8 @@ class IftPlotPanel(PlotPanel):
             
         
         self.PopupMenu(menu)
+
+        menu.Destroy()
     
     def _onPlotOptions(self, evt):
         if self.selected_plot == 1:
@@ -4143,10 +4147,10 @@ class SECPlotPanel(wx.Panel):
             
             if float(matplotlib.__version__[:3]) >= 1.2:
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    self._showPopupMenu(selected_plot)
+                    wx.CallAfter(self._showPopupMenu, selected_plot)
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    self._showPopupMenu(selected_plot)
+                    wx.CallAfter(self._showPopupMenu, selected_plot)
 
 #--- ** Popup Menu ***
 
@@ -4398,6 +4402,8 @@ class SECPlotPanel(wx.Panel):
             
         
         self.PopupMenu(menu)
+
+        menu.Destroy()
     
     def _onPlotOptions(self, evt):
         axes = self.subplot1

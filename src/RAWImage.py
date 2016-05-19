@@ -517,80 +517,80 @@ class ImagePanel(wx.Panel):
 			scale_factor = 1
 			print event.button
 
-
-		# MOVE AXIS
-		zx_pix, zy_pix = ax.transAxes.transform((0,0))
-		cx_pix, cy_pix = ax.transAxes.transform((0.5,0.5))
-		mx_pix, my_pix = ax.transData.transform((xdata,ydata))
-		 
-		dx = cx_pix - mx_pix
-		dy = cy_pix - my_pix
-		 
-		dist = np.sqrt(np.power(abs(dx),2)+np.power(abs(dy),2))
-		
-		step = 0.2
-		new_dist = dist * step	 #step = 0..1
-		 
-		tanA = abs(dy) / abs(dx)
-		A = np.arctan(tanA)
-		
-		new_dx = np.cos(A) * new_dist
-		new_dy = tanA * new_dx
-		
-		zdx = zx_pix + new_dx
-		zdy = zy_pix + new_dy
-		
-		inv = ax.transData.inverted()
-		
-		zxdata, zydata = inv.transform((zx_pix, zy_pix))
-		zstpx, zstpy = inv.transform((zdx, zdy))
-		
-		dx_move = zstpx - zxdata
-		dy_move = zstpy - zydata
-	
-		
-		if dx >= 0:
-			newxmin = cur_xlim[0] - dx_move
-			newxmax = cur_xlim[1] - dx_move
-		if dx < 0:
-			newxmin = cur_xlim[0] + dx_move
-			newxmax = cur_xlim[1] + dx_move
-		
-		try: 
-			newxlim = (newxmin, newxmax)
-		except UnboundLocalError:
-			return
-		
-		if dy >= 0:
-			newymin = cur_ylim[0] - dy_move
-			newymax = cur_ylim[1] - dy_move
-		if dy < 0:
-			newymin = cur_ylim[0] + dy_move
-			newymax = cur_ylim[1] + dy_move
+		if xdata != None and ydata != None:
+			# MOVE AXIS
+			zx_pix, zy_pix = ax.transAxes.transform((0,0))
+			cx_pix, cy_pix = ax.transAxes.transform((0.5,0.5))
+			mx_pix, my_pix = ax.transData.transform((xdata,ydata))
+			 
+			dx = cx_pix - mx_pix
+			dy = cy_pix - my_pix
+			 
+			dist = np.sqrt(np.power(abs(dx),2)+np.power(abs(dy),2))
 			
-		newylim = (newymin, newymax)
+			step = 0.2
+			new_dist = dist * step	 #step = 0..1
+			 
+			tanA = abs(dy) / abs(dx)
+			A = np.arctan(tanA)
 			
+			new_dx = np.cos(A) * new_dist
+			new_dy = tanA * new_dx
+			
+			zdx = zx_pix + new_dx
+			zdy = zy_pix + new_dy
+			
+			inv = ax.transData.inverted()
+			
+			zxdata, zydata = inv.transform((zx_pix, zy_pix))
+			zstpx, zstpy = inv.transform((zdx, zdy))
+			
+			dx_move = zstpx - zxdata
+			dy_move = zstpy - zydata
 		
-		#ZOOM
-		cur_xrange = (cur_xlim[1] - cur_xlim[0])
-		cur_yrange = (cur_ylim[1] - cur_ylim[0])
-		 
-		new_xrange = scale_factor * cur_xrange
-		new_yrange = scale_factor * cur_yrange
-		
-		dxrange = cur_xrange - new_xrange
-		dyrange = cur_yrange - new_yrange
-		
-		xmin, xmax = newxlim
-		newxlim_zoom = (xmin - (dxrange/2.0), xmax + (dxrange/2.0))
-		
-		ymin,ymax = newylim
-		newylim_zoom = (ymin - (dyrange/2.0), ymax + (dyrange/2.0))
-		 
-		ax.set_xlim(newxlim_zoom)
-		ax.set_ylim(newylim_zoom)
-		
-		self.canvas.draw() # force re-draw
+			
+			if dx >= 0:
+				newxmin = cur_xlim[0] - dx_move
+				newxmax = cur_xlim[1] - dx_move
+			if dx < 0:
+				newxmin = cur_xlim[0] + dx_move
+				newxmax = cur_xlim[1] + dx_move
+			
+			try: 
+				newxlim = (newxmin, newxmax)
+			except UnboundLocalError:
+				return
+			
+			if dy >= 0:
+				newymin = cur_ylim[0] - dy_move
+				newymax = cur_ylim[1] - dy_move
+			if dy < 0:
+				newymin = cur_ylim[0] + dy_move
+				newymax = cur_ylim[1] + dy_move
+				
+			newylim = (newymin, newymax)
+				
+			
+			#ZOOM
+			cur_xrange = (cur_xlim[1] - cur_xlim[0])
+			cur_yrange = (cur_ylim[1] - cur_ylim[0])
+			 
+			new_xrange = scale_factor * cur_xrange
+			new_yrange = scale_factor * cur_yrange
+			
+			dxrange = cur_xrange - new_xrange
+			dyrange = cur_yrange - new_yrange
+			
+			xmin, xmax = newxlim
+			newxlim_zoom = (xmin - (dxrange/2.0), xmax + (dxrange/2.0))
+			
+			ymin,ymax = newylim
+			newylim_zoom = (ymin - (dyrange/2.0), ymax + (dyrange/2.0))
+			 
+			ax.set_xlim(newxlim_zoom)
+			ax.set_ylim(newylim_zoom)
+			
+			self.canvas.draw() # force re-draw
 	
 	def _onMouseMotion(self, event):
 		''' handles mouse motions, updates the
@@ -693,7 +693,7 @@ class ImagePanel(wx.Panel):
 		
 		if self.getTool() == None and self._right_click_on_patch == True:
 			self._right_click_on_patch = False
-			self._showPopUpMenu()
+			wx.CallAfter(self._showPopUpMenu)
 			
 		elif self.getTool() == 'polygon':
 			
@@ -804,6 +804,8 @@ class ImagePanel(wx.Panel):
 		self.PopupMenu(menu)
 		
 		self._selected_patch = None
+
+		menu.Destroy()
 		
 	def _onPopupMenuChoice(self, evt):
 		id = evt.GetId()

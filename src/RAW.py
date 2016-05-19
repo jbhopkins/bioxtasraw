@@ -24,23 +24,24 @@ Created on Sep 31, 2010
 
 import wx, os, subprocess, time, math, threading, Queue, numpy, cPickle, copy, sys, glob
 import platform, fnmatch, shutil
+
 import wx.lib.scrolledpanel as scrolled
 import wx.lib.wordwrap as wordwrap
 import wx.lib.mixins.listctrl as listmix
 import wx.grid as gridlib
+import wx.lib.colourchooser as colorchooser
+import wx.lib.buttons as wxbutton
+import wx.lib.agw.supertooltip as STT
+import SASFileIO, SASM, SASExceptions, SASImage, SASCalc
+import wx.aui as aui
+import matplotlib.colors as mplcol
+
 from wx.lib.embeddedimage import PyEmbeddedImage
 from numpy import ceil, floor
 
-import wx.aui as aui
 import RAWPlot, RAWImage, RAWOptions, RAWSettings, RAWCustomCtrl, RAWAnalysis, BIFT, RAWIcons, RAWGlobals
-import SASFileIO, SASM, SASExceptions, SASImage, SASCalc
-import matplotlib.colors as mplcol
-import wx.lib.colourchooser as colorchooser
-import wx.lib.buttons as wxbutton
-from wx.lib.agw.balloontip import *
-from wx._core import ICON_ERROR
-
 from RAWGlobals import mainworker_cmd_queue
+
 thread_wait_event = threading.Event()
 question_return_queue = Queue.Queue()
 
@@ -4338,9 +4339,11 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)        
         self.PopupMenu(menu)
+
+        menu.Destroy()
     
     def _onRightMouseClick(self, event):
-        self._showPopupMenu()
+        wx.CallAfter(self._showPopupMenu)
     
     def _onPopupMenuChoice(self, event):
         choice_id = event.GetId()
@@ -4744,27 +4747,47 @@ class ManipulationPanel(wx.Panel):
         
     def _createToolbar(self):
         
-        sizer = wx.BoxSizer()
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        collapse_all = wx.StaticBitmap(self, -1, self.collapse_all_png)
-        expand_all = wx.StaticBitmap(self, -1, self.expand_all_png)
-        show_all = wx.StaticBitmap(self, -1, self.show_all_png)
-        hide_all = wx.StaticBitmap(self, -1, self.hide_all_png)
+        collapse_all = wx.BitmapButton(self, -1, self.collapse_all_png)
+        expand_all = wx.BitmapButton(self, -1, self.expand_all_png)
+        show_all = wx.BitmapButton(self, -1, self.show_all_png)
+        hide_all = wx.BitmapButton(self, -1, self.hide_all_png)
+        select_all= wx.BitmapButton(self, -1, self.select_all_png)
         
-        select_all= wx.StaticBitmap(self, -1, self.select_all_png)
-        
-        select_all.Bind(wx.EVT_LEFT_DOWN, self._onSelectAllButton)
-        collapse_all.Bind(wx.EVT_LEFT_DOWN, self._onCollapseAllButton)
-        expand_all.Bind(wx.EVT_LEFT_DOWN, self._onExpandAllButton)
-        show_all.Bind(wx.EVT_LEFT_DOWN, self._onShowAllButton)
-        hide_all.Bind(wx.EVT_LEFT_DOWN, self._onHideAllButton)
+        select_all.Bind(wx.EVT_BUTTON, self._onSelectAllButton)
+        collapse_all.Bind(wx.EVT_BUTTON, self._onCollapseAllButton)
+        expand_all.Bind(wx.EVT_BUTTON, self._onExpandAllButton)
+        show_all.Bind(wx.EVT_BUTTON, self._onShowAllButton)
+        hide_all.Bind(wx.EVT_BUTTON, self._onHideAllButton)
 
-        select_all.SetToolTipString('Select All')
-        show_all.SetToolTipString('Show All')
-        hide_all.SetToolTipString('Hide All')
-        
-        collapse_all.SetToolTipString('Collapse All')
-        expand_all.SetToolTipString('Expand All')
+        if platform.system() == 'Darwin':
+            show_tip = STT.SuperToolTip(" ", header = "Show All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            show_tip.SetTarget(show_all)
+            show_tip.ApplyStyle('Blue Glass')
+
+            hide_tip = STT.SuperToolTip(" ", header = "Hide All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            hide_tip.SetTarget(hide_all)
+            hide_tip.ApplyStyle('Blue Glass')
+
+            select_tip = STT.SuperToolTip(" ", header = "Select All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            select_tip.SetTarget(select_all)
+            select_tip.ApplyStyle('Blue Glass')
+
+            collapse_tip = STT.SuperToolTip(" ", header = "Collapse All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            collapse_tip.SetTarget(collapse_all)
+            collapse_tip.ApplyStyle('Blue Glass')
+
+            expand_tip = STT.SuperToolTip(" ", header = "Expand All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            expand_tip.SetTarget(expand_all)
+            expand_tip.ApplyStyle('Blue Glass')
+
+        else:
+            select_all.SetToolTipString('Select All')
+            show_all.SetToolTip(wx.ToolTip('Show All'))
+            hide_all.SetToolTipString('Hide All')
+            collapse_all.SetToolTipString('Collapse All')
+            expand_all.SetToolTipString('Expand All')
         
         sizer.Add(show_all, 0, wx.LEFT, 5)
         sizer.Add(hide_all, 0, wx.LEFT, 5)
@@ -4926,7 +4949,6 @@ class ManipulationPanel(wx.Panel):
                     each.toggleSelect()
                     
     def removeSelectedItems(self):
-       
         if len(self.getSelectedItems()) == 0: return
         
         self.Freeze()
@@ -4937,12 +4959,11 @@ class ManipulationPanel(wx.Panel):
         axes_that_needs_updated_legend = []
          
         for each in self.getSelectedItems():
-            
             try:
                 self.modified_items.remove(each)
             except:
                 pass
-            
+
             plot_panel = each.sasm.plot_panel
             
             each.sasm.line.remove()
@@ -4952,27 +4973,26 @@ class ManipulationPanel(wx.Panel):
             
             i = plot_panel.plotted_sasms.index(each.sasm)
             plot_panel.plotted_sasms.pop(i)
-            
+
             if not each.sasm.axes in axes_that_needs_updated_legend:
                 axes_that_needs_updated_legend.append(each.sasm.axes)
             
             if each == self._star_marked_item:
                 self._star_marked_item = None
-            
+
             idx = self.all_manipulation_items.index(each)
             self.all_manipulation_items[idx].Destroy()
             self.all_manipulation_items.pop(idx)
-            
         
         for eachaxes in axes_that_needs_updated_legend:
             if eachaxes == plot_panel.subplot1:
                 wx.CallAfter(plot_panel.updateLegend, 1)
             else:
                 wx.CallAfter(plot_panel.updateLegend, 2)
-        
+
         wx.CallAfter(plot_panel.fitAxis)
         wx.CallAfter(plot_panel.canvas.draw)
-        
+
         self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Refresh()    
@@ -5146,7 +5166,11 @@ class ManipulationPanel(wx.Panel):
                 
                 wx.CallAfter(plotpanel.plotSASM, each, toAxes, color = line_color, legend_label_in = label)
                 
-                
+                visible = each_item._selected_for_plot
+
+                wx.CallAfter(each_item.showItem, visible)
+
+
         plotpanel = wx.FindWindowByName('PlotPanel')
         wx.CallAfter(plotpanel.updateLegend, 1)
         wx.CallAfter(plotpanel.updateLegend, 2)
@@ -5253,7 +5277,6 @@ class ManipItemPanel(wx.Panel):
         self.SelectedForPlot.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
         self.SelectedForPlot.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
         
-        self.SelectedForPlot.SetToolTipString('Show Plot')
         self.SelectedForPlot.SetForegroundColour(font_colour)
         
         self.legend_label_text = wx.StaticText(self, -1, '')
@@ -5268,24 +5291,55 @@ class ManipItemPanel(wx.Panel):
         
         self.colour_indicator = RAWCustomCtrl.ColourIndicator(self, -1, color, size = (20,15))
         self.colour_indicator.Bind(wx.EVT_LEFT_DOWN, self._onLinePropertyButton)
-        self.colour_indicator.SetToolTipString('Line Properties')
 
         self.bg_star = wx.StaticBitmap(self, -1, self.gray_png)
         self.bg_star.Bind(wx.EVT_LEFT_DOWN, self._onStarButton)
-        self.bg_star.SetToolTipString('Mark')
         
         self.expand_collapse = wx.StaticBitmap(self, -1, self.collapse_png)
         self.expand_collapse.Bind(wx.EVT_LEFT_DOWN, self._onExpandCollapseButton)
-        self.expand_collapse.SetToolTipString('Collapse/Expand')
         
         self.target_icon = wx.StaticBitmap(self, -1, self.target_png)
         self.target_icon.Bind(wx.EVT_LEFT_DOWN, self._onTargetButton)
-        self.target_icon.SetToolTipString('Locate Line')
+        
 
         self.info_icon = wx.StaticBitmap(self, -1, self.info_png)
         self.info_icon.Bind(wx.EVT_LEFT_DOWN, self._onInfoButton)
-        self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nRg: N/A\nI(0): N/A')
-        
+       
+        if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+            show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            show_tip.SetTarget(self.SelectedForPlot)
+            show_tip.ApplyStyle('Blue Glass')
+
+            line_tip = STT.SuperToolTip(" ", header = "Line Properties", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            line_tip.SetTarget(self.colour_indicator)
+            line_tip.ApplyStyle('Blue Glass')
+
+            mark_tip = STT.SuperToolTip(" ", header = "Mark", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            mark_tip.SetTarget(self.bg_star)
+            mark_tip.ApplyStyle('Blue Glass')
+
+            expand_tip = STT.SuperToolTip(" ", header = "Collapse/Expand", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            expand_tip.SetTarget(self.expand_collapse)
+            expand_tip.ApplyStyle('Blue Glass')
+
+            target_tip = STT.SuperToolTip(" ", header = "Locate Line", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            target_tip.SetTarget(self.target_icon)
+            target_tip.ApplyStyle('Blue Glass')
+
+            self.info_tip = STT.SuperToolTip("Rg: N/A\nI(0): N/A", header = "Extended Info", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            self.info_tip.SetDrawHeaderLine(True)
+            self.info_tip.SetTarget(self.info_icon)
+            self.info_tip.ApplyStyle('Blue Glass')
+
+        else:
+            self.SelectedForPlot.SetToolTipString('Show Plot')
+            self.colour_indicator.SetToolTipString('Line Properties')
+            self.bg_star.SetToolTipString('Mark')
+            self.expand_collapse.SetToolTipString('Collapse/Expand')
+            self.target_icon.SetToolTipString('Locate Line')
+            self.info_icon.SetToolTipString('Extended Info\n--------------------------------\nRg: N/A\nI(0): N/A')
+
+
         self.locator_on = False
         self.locator_old_width = 1
         
@@ -5340,7 +5394,7 @@ class ManipItemPanel(wx.Panel):
         else:
             guinier = {}
         
-        string0 = 'Show Extended Info\n--------------------------------'
+        string0 = 'Extended Info\n--------------------------------\n'
         string1 = ''
         string2 = ''
         string3 = ''
@@ -5349,21 +5403,27 @@ class ManipItemPanel(wx.Panel):
             rg = guinier['Rg']
             i_zero = guinier['I0']
         
-            string1 = '\nRg: ' + str(rg) + '\nI(0): ' + str(i_zero)
+            string1 = 'Rg: ' + str(rg) + '\nI(0): ' + str(i_zero) + '\n'
         else:
-            string1 = '\nRg: N/A' + '\nI(0): N/A'
+            string1 = 'Rg: N/A' + '\nI(0): N/A\n'
             
         if self.sasm.getAllParameters().has_key('Conc'):
-            string2 = '\nConc: ' + str(self.sasm.getParameter('Conc'))
+            string2 = 'Conc: ' + str(self.sasm.getParameter('Conc')) + '\n'
                     
         if self.sasm.getAllParameters().has_key('Notes'):
             if self.sasm.getParameter('Notes') != '':
-                string3 = '\nNote: ' + str(self.sasm.getParameter('Notes'))  
+                string3 = 'Note: ' + str(self.sasm.getParameter('Notes'))  
         
-        string = string0+string1+string2+string3
-        
-        if string != '':    
-            self.info_icon.SetToolTipString(string)
+        if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+            string = string1+string2+string3
+        else:
+            string = string0+string1+string2+string3
+
+        if string != '':
+            if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                self.info_tip.SetMessage(string)
+            else:
+                self.info_icon.SetToolTipString(string)
                 
         if fromGuinierDialog:     
             self.info_panel.updateInfoFromItem(self)
@@ -5772,6 +5832,8 @@ class ManipItemPanel(wx.Panel):
         
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)        
         self.PopupMenu(menu)
+
+        menu.Destroy()
     
     def _onShowImage(self):
         
@@ -6032,7 +6094,7 @@ class ManipItemPanel(wx.Panel):
             self.toggleSelect()
             self.manipulation_panel.deselectAllExceptOne(self)
                     
-        self._showPopupMenu()
+        wx.CallAfter(self._showPopupMenu)
         
     def _onLeftMouseButton(self, evt):
         ctrl_is_down = evt.CmdDown()
@@ -6102,6 +6164,8 @@ class ManipItemPanel(wx.Panel):
                     self.sasm.offset(value)
         
         wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
+
+        wx.CallAfter(self.sasm.plot_panel.fitAxis, [self.sasm.axes])
         
         self.markAsModified()
         event.Skip()
@@ -6309,25 +6373,46 @@ class IFTPanel(wx.Panel):
         
         sizer = wx.BoxSizer()
         
-        # collapse_all = wx.StaticBitmap(self, -1, self.collapse_all_png)
-        # expand_all = wx.StaticBitmap(self, -1, self.expand_all_png)
-        show_all = wx.StaticBitmap(self, -1, self.show_all_png)
-        hide_all = wx.StaticBitmap(self, -1, self.hide_all_png)
-        select_all= wx.StaticBitmap(self, -1, self.select_all_png)
+        # collapse_all = wx.BitmapButton(self, -1, self.collapse_all_png)
+        # expand_all = wx.BitmapButton(self, -1, self.expand_all_png)
+        show_all = wx.BitmapButton(self, -1, self.show_all_png)
+        hide_all = wx.BitmapButton(self, -1, self.hide_all_png)
+        select_all= wx.BitmapButton(self, -1, self.select_all_png)
 
 
-        show_all.SetToolTipString('Show All')
-        hide_all.SetToolTipString('Hide All')
-        select_all.SetToolTipString('Select All')
+        if platform.system() == 'Darwin':
+            show_tip = STT.SuperToolTip(" ", header = "Show All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            show_tip.SetTarget(show_all)
+            show_tip.ApplyStyle('Blue Glass')
+
+            hide_tip = STT.SuperToolTip(" ", header = "Hide All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            hide_tip.SetTarget(hide_all)
+            hide_tip.ApplyStyle('Blue Glass')
+
+            select_tip = STT.SuperToolTip(" ", header = "Select All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            select_tip.SetTarget(select_all)
+            select_tip.ApplyStyle('Blue Glass')
+
+            # collapse_tip = STT.SuperToolTip(" ", header = "Collapse All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            # collapse_tip.SetTarget(collapse_all)
+            # collapse_tip.ApplyStyle('Blue Glass')
+
+            # expand_tip = STT.SuperToolTip(" ", header = "Expand All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            # expand_tip.SetTarget(expand_all)
+            # expand_tip.ApplyStyle('Blue Glass')
+
+        else:
+            select_all.SetToolTipString('Select All')
+            show_all.SetToolTip(wx.ToolTip('Show All'))
+            hide_all.SetToolTipString('Hide All')
+            # collapse_all.SetToolTipString('Collapse All')
+            # expand_all.SetToolTipString('Expand All')
         
-        # collapse_all.SetToolTipString('Collapse All')
-        # expand_all.SetToolTipString('Expand All')
-        
-        # collapse_all.Bind(wx.EVT_LEFT_DOWN, self._onCollapseAllButton)
-        # expand_all.Bind(wx.EVT_LEFT_DOWN, self._onExpandAllButton)
-        show_all.Bind(wx.EVT_LEFT_DOWN, self._onShowAllButton)
-        hide_all.Bind(wx.EVT_LEFT_DOWN, self._onHideAllButton)
-        select_all.Bind(wx.EVT_LEFT_DOWN, self._onSelectAllButton)
+        # collapse_all.Bind(wx.EVT_BUTTON, self._onCollapseAllButton)
+        # expand_all.Bind(wx.EVT_BUTTON, self._onExpandAllButton)
+        show_all.Bind(wx.EVT_BUTTON, self._onShowAllButton)
+        hide_all.Bind(wx.EVT_BUTTON, self._onHideAllButton)
+        select_all.Bind(wx.EVT_BUTTON, self._onSelectAllButton)
         
         sizer.Add(show_all, 0, wx.LEFT, 5)
         sizer.Add(hide_all, 0, wx.LEFT, 5)
@@ -7051,7 +7136,6 @@ class IFTItemPanel(wx.Panel):
         self.SelectedForPlot.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
         self.SelectedForPlot.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
         
-        self.SelectedForPlot.SetToolTipString('Show Plot')
         self.SelectedForPlot.SetForegroundColour(font_colour)
         
         self.legend_label_text = wx.StaticText(self, -1, '')
@@ -7067,23 +7151,18 @@ class IFTItemPanel(wx.Panel):
         
         self.colour_indicator = RAWCustomCtrl.ColourIndicator(self, -1, color, size = (20,15))
         self.colour_indicator.Bind(wx.EVT_LEFT_DOWN, self._onLinePropertyButton)
-        self.colour_indicator.SetToolTipString('Line Properties')
 
         # self.bg_star = wx.StaticBitmap(self, -1, self.gray_png)
         # self.bg_star.Bind(wx.EVT_LEFT_DOWN, self._onStarButton)
-        # self.bg_star.SetToolTipString('Mark')
         
         # self.expand_collapse = wx.StaticBitmap(self, -1, self.collapse_png)
         # self.expand_collapse.Bind(wx.EVT_LEFT_DOWN, self._onExpandCollapseButton)
-        # self.expand_collapse.SetToolTipString('Collapse/Expand')
         
         self.target_icon = wx.StaticBitmap(self, -1, self.target_png)
         self.target_icon.Bind(wx.EVT_LEFT_DOWN, self._onTargetButton)
-        self.target_icon.SetToolTipString('Locate Line')
 
         #self.info_icon = wx.StaticBitmap(self, -1, self.info_png)
         #self.info_icon.Bind(wx.EVT_LEFT_DOWN, self._onInfoButton)
-        #self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nRg: N/A\nI(0): N/A')
         
         
         # if self.ift_parameters == {}:
@@ -7092,7 +7171,25 @@ class IFTItemPanel(wx.Panel):
         #     self.lock_icon = wx.StaticBitmap(self, -1, self.lock_open_png)
     
         # self.lock_icon.Bind(wx.EVT_LEFT_DOWN, self._onLockButton)
-        # self.lock_icon.SetToolTipString('Lock Fit Plot')
+
+
+        if platform.system() == 'Darwin':
+            show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            show_tip.SetTarget(self.SelectedForPlot)
+            show_tip.ApplyStyle('Blue Glass')
+
+            line_tip = STT.SuperToolTip(" ", header = "Line Properties", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            line_tip.SetTarget(self.colour_indicator)
+            line_tip.ApplyStyle('Blue Glass')
+
+            target_tip = STT.SuperToolTip(" ", header = "Locate Line", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            target_tip.SetTarget(self.target_icon)
+            target_tip.ApplyStyle('Blue Glass')
+
+        else:
+            self.SelectedForPlot.SetToolTipString('Show Plot')
+            self.colour_indicator.SetToolTipString('Line Properties')
+            self.target_icon.SetToolTipString('Locate Line')
         
         
         
@@ -7140,43 +7237,6 @@ class IFTItemPanel(wx.Panel):
         #     self.showControls(not controls_not_shown)
 
         self.updateShowItemCheckBox()
-               
-    
-    def updateInfoTip(self, analysis_dict, fromGuinierDialog = False):
-        
-        
-        if analysis_dict.has_key('guinier'):
-            guinier = analysis_dict['guinier']
-        else:
-            guinier = {}
-        
-        string0 = 'Show Extended Info\n--------------------------------'
-        string1 = ''
-        string2 = ''
-        string3 = ''
-        
-        if guinier.has_key('Rg') and guinier.has_key('I0'):
-            rg = guinier['Rg']
-            i_zero = guinier['I0']
-        
-            string1 = '\nRg: ' + str(rg) + '\nI(0): ' + str(i_zero)
-        else:
-            string1 = '\nRg: N/A' + '\nI(0): N/A'
-            
-        if self.iftm.getAllParameters().has_key('Conc'):
-            string2 = '\nConc: ' + str(self.iftm.getParameter('Conc'))   
-        
-        if self.iftm.getAllParameters().has_key('Notes'):
-            if self.iftm.getParameter('Notes') != '':
-                string3 = '\nNote: ' + str(self.iftm.getParameter('Notes'))  
-        
-        string = string0+string1+string2+string3
-        
-        if string != '':    
-            self.info_icon.SetToolTipString(string)
-                  
-        if fromGuinierDialog:
-            self.info_panel.updateInfoFromItem(self)
             
             
     def setCurrentIFTParameters(self, ift_parameters):
@@ -7567,6 +7627,8 @@ class IFTItemPanel(wx.Panel):
         
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)        
         self.PopupMenu(menu)
+
+        menu.Destroy()
     
     def _onShowImage(self):
         
@@ -7774,7 +7836,7 @@ class IFTItemPanel(wx.Panel):
             self.toggleSelect()
             self.manipulation_panel.deselectAllExceptOne(self)
                     
-        self._showPopupMenu()
+        wx.CallAfter(self._showPopupMenu)
         
     def _onLeftMouseButton(self, evt):
         ctrl_is_down = evt.CmdDown()
@@ -8099,23 +8161,36 @@ class SECPanel(wx.Panel):
         
         sizer = wx.BoxSizer()
         
-        select_all= wx.StaticBitmap(self, -1, self.select_all_png)    
-        # collapse_all = wx.StaticBitmap(self, -1, self.collapse_all_png)
-        # expand_all = wx.StaticBitmap(self, -1, self.expand_all_png)
-        show_all = wx.StaticBitmap(self, -1, self.show_all_png)
-        hide_all = wx.StaticBitmap(self, -1, self.hide_all_png)
-        show_all.SetToolTipString('Show All')
-        hide_all.SetToolTipString('Hide All')
-        select_all.SetToolTipString('Select All')
+        select_all= wx.BitmapButton(self, -1, self.select_all_png)    
+        # collapse_all = wx.BitmapButton(self, -1, self.collapse_all_png)
+        # expand_all = wx.BitmapButton(self, -1, self.expand_all_png)
+        show_all = wx.BitmapButton(self, -1, self.show_all_png)
+        hide_all = wx.BitmapButton(self, -1, self.hide_all_png)
         
-        # collapse_all.SetToolTipString('Collapse All')
-        # expand_all.SetToolTipString('Expand All')
+        if platform.system() == 'Darwin':
+            show_tip = STT.SuperToolTip(" ", header = "Show All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            show_tip.SetTarget(show_all)
+            show_tip.ApplyStyle('Blue Glass')
+
+            hide_tip = STT.SuperToolTip(" ", header = "Hide All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            hide_tip.SetTarget(hide_all)
+            hide_tip.ApplyStyle('Blue Glass')
+
+            select_tip = STT.SuperToolTip(" ", header = "Select All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            select_tip.SetTarget(select_all)
+            select_tip.ApplyStyle('Blue Glass')
+
+        else:
+            select_all.SetToolTipString('Select All')
+            show_all.SetToolTip(wx.ToolTip('Show All'))
+            hide_all.SetToolTipString('Hide All')
+            
         
-        # collapse_all.Bind(wx.EVT_LEFT_DOWN, self._onCollapseAllButton)
-        # expand_all.Bind(wx.EVT_LEFT_DOWN, self._onExpandAllButton)
-        show_all.Bind(wx.EVT_LEFT_DOWN, self._onShowAllButton)
-        hide_all.Bind(wx.EVT_LEFT_DOWN, self._onHideAllButton)
-        select_all.Bind(wx.EVT_LEFT_DOWN, self._onSelectAllButton)
+        # collapse_all.Bind(wx.EVT_BUTTON, self._onCollapseAllButton)
+        # expand_all.Bind(wx.EVT_BUTTON, self._onExpandAllButton)
+        show_all.Bind(wx.EVT_BUTTON, self._onShowAllButton)
+        hide_all.Bind(wx.EVT_BUTTON, self._onHideAllButton)
+        select_all.Bind(wx.EVT_BUTTON, self._onSelectAllButton)
         
         sizer.Add(show_all, 0, wx.LEFT, 5)
         sizer.Add(hide_all, 0, wx.LEFT, 5)
@@ -8624,7 +8699,6 @@ class SECItemPanel(wx.Panel):
         self.SelectedForPlot.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
         self.SelectedForPlot.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
         
-        self.SelectedForPlot.SetToolTipString('Show Plot')
         self.SelectedForPlot.SetForegroundColour(font_colour)
         
         self.legend_label_text = wx.StaticText(self, -1, '')
@@ -8639,11 +8713,11 @@ class SECItemPanel(wx.Panel):
         
         self.colour_indicator = RAWCustomCtrl.ColourIndicator(self, -1, color, size = (20,15))
         self.colour_indicator.Bind(wx.EVT_LEFT_DOWN, self._onLinePropertyButton)
-        self.colour_indicator.SetToolTipString('Line Properties')
+        
 
         self.bg_star = wx.StaticBitmap(self, -1, self.gray_png)
         self.bg_star.Bind(wx.EVT_LEFT_DOWN, self._onStarButton)
-        self.bg_star.SetToolTipString('Mark')
+        
         
         # self.expand_collapse = wx.StaticBitmap(self, -1, self.collapse_png)
         # self.expand_collapse.Bind(wx.EVT_LEFT_DOWN, self._onExpandCollapseButton)
@@ -8651,12 +8725,40 @@ class SECItemPanel(wx.Panel):
         
         self.target_icon = wx.StaticBitmap(self, -1, self.target_png)
         self.target_icon.Bind(wx.EVT_LEFT_DOWN, self._onTargetButton)
-        self.target_icon.SetToolTipString('Locate Line')
+        
 
         self.info_icon = wx.StaticBitmap(self, -1, self.info_png)
         self.info_icon.Bind(wx.EVT_LEFT_DOWN, self._onInfoButton)
-        self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nFirst buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A')
         
+        if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+            show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            show_tip.SetTarget(self.SelectedForPlot)
+            show_tip.ApplyStyle('Blue Glass')
+
+            line_tip = STT.SuperToolTip(" ", header = "Line Properties", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            line_tip.SetTarget(self.colour_indicator)
+            line_tip.ApplyStyle('Blue Glass')
+
+            mark_tip = STT.SuperToolTip(" ", header = "Mark", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            mark_tip.SetTarget(self.bg_star)
+            mark_tip.ApplyStyle('Blue Glass')
+
+            target_tip = STT.SuperToolTip(" ", header = "Locate Line", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            target_tip.SetTarget(self.target_icon)
+            target_tip.ApplyStyle('Blue Glass')
+
+            self.info_tip = STT.SuperToolTip("First buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A'", header = "Extended Info", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            self.info_tip.SetDrawHeaderLine(True)
+            self.info_tip.SetTarget(self.info_icon)
+            self.info_tip.ApplyStyle('Blue Glass')
+
+        else:
+            self.SelectedForPlot.SetToolTipString('Show Plot')
+            self.colour_indicator.SetToolTipString('Line Properties')
+            self.bg_star.SetToolTipString('Mark')
+            self.target_icon.SetToolTipString('Locate Line')
+            self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nFirst buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A')
+
         self.locator_on = False
         self.locator_old_width = 1
         
@@ -8711,9 +8813,15 @@ class SECItemPanel(wx.Panel):
         window = self.secm.window_size
 
         if initial == -1 or final == -1 or window == -1:
-            self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nFirst buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A')
+            if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                self.info_tip.SetMessage('First buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A')
+            else:
+                self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nFirst buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A')
         else:
-            self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nFirst buffer frame: %i\nLast buffer frame: %i\nAverage window size: %i' %(initial, final, window))
+            if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                self.info_tip.SetMessage('First buffer frame: %i\nLast buffer frame: %i\nAverage window size: %i' %(initial, final, window))
+            else:
+                self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nFirst buffer frame: %i\nLast buffer frame: %i\nAverage window size: %i' %(initial, final, window))
 
     def _onInfoButton(self, event):
         pass
@@ -8984,6 +9092,8 @@ class SECItemPanel(wx.Panel):
         
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)        
         self.PopupMenu(menu)
+
+        menu.Destroy()
     
     def _onPopupMenuChoice(self, evt):
             
@@ -9047,7 +9157,7 @@ class SECItemPanel(wx.Panel):
             self.toggleSelect()
             self.sec_panel.deselectAllExceptOne(self)
                     
-        self._showPopupMenu()
+        wx.CallAfter(self._showPopupMenu)
         
     def _onLeftMouseButton(self, evt):
         ctrl_is_down = evt.CmdDown()
@@ -11939,7 +12049,7 @@ class HdrDataDialog(wx.Dialog):
             float(value)
             self.grid_changed = True
         except ValueError:
-            wx.MessageBox('Illegal value entered', 'Invalid Entry', style=ICON_ERROR)
+            wx.MessageBox('Illegal value entered', 'Invalid Entry', style=wx.ICON_ERROR)
             self.data_grid.SetCellValue(row, col, self.saved_value)
             
     def _getNumOfHeaderValues(self):
@@ -12086,7 +12196,7 @@ class DataDialog(wx.Dialog):
             float(value)
             self.grid_changed = True
         except ValueError:
-            wx.MessageBox('Illegal value entered', 'Invalid Entry', style=ICON_ERROR)
+            wx.MessageBox('Illegal value entered', 'Invalid Entry', style=wx.ICON_ERROR)
             self.data_grid.SetCellValue(row, col, self.saved_value)
         
     def _insertData(self):
