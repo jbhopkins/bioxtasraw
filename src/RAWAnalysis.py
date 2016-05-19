@@ -145,16 +145,16 @@ class GuinierPlotPanel(wx.Panel):
                    'rsq': rsq}
         
         
-        mw = self.raw_settings.get('MWStandardMW') 
-        mwI0 = self.raw_settings.get('MWStandardI0')
-        mwConc = self.raw_settings.get('MWStandardConc')
+        # mw = self.raw_settings.get('MWStandardMW') 
+        # mwI0 = self.raw_settings.get('MWStandardI0')
+        # mwConc = self.raw_settings.get('MWStandardConc')
         
-        conc = wx.FindWindowByName('GuinierControlPanel').getConcentration()
+        # conc = wx.FindWindowByName('GuinierControlPanel').getConcentration()
 
-        I0 = float(newInfo['I0'][0])
+        # I0 = float(newInfo['I0'][0])
         
-        if mw != 0 and mw > 0 and mwI0 !=0 and mwI0 > 0 and conc != 0 and conc > 0 and mwConc > 0:
-            newInfo['MM'] = (newInfo['I0'][0] * (mw/(mwI0/mwConc))) / conc
+        # if mw != 0 and mw > 0 and mwI0 !=0 and mwI0 > 0 and conc != 0 and conc > 0 and mwConc > 0:
+        #     newInfo['MM'] = (newInfo['I0'][0] * (mw/(mwI0/mwConc))) / conc
                         
         
         return x, y_fit, br, error, newInfo
@@ -320,8 +320,8 @@ class GuinierControlPanel(wx.Panel):
                          'Rg' : ('Rg :', wx.NewId(), wx.NewId()),
                          'qRg_max': ('qRg_max :', wx.NewId()),
                          'qRg_min': ('qRg :', wx.NewId()),
-                         'rsq': ('r^2 (fit) :', wx.NewId()),
-                         'MM': ('MM :', wx.NewId())}
+                         'rsq': ('r^2 (fit) :', wx.NewId())}
+                         # 'MM': ('MM :', wx.NewId())}
         
 
         button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
@@ -355,7 +355,7 @@ class GuinierControlPanel(wx.Panel):
         
         bsizer = wx.BoxSizer(wx.VERTICAL)
         bsizer.Add(self.createFileInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
-        bsizer.Add(self.createConcInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+        # bsizer.Add(self.createConcInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
         bsizer.Add(boxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
         bsizer.Add(boxSizer2, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
         bsizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT| wx.TOP, 5)
@@ -433,33 +433,33 @@ class GuinierControlPanel(wx.Panel):
         
         return boxsizer
     
-    def getConcentration(self):
+    # def getConcentration(self):
         
-        try:
-            val = float(self.concCtrl.GetValue())
-            return val
-        except Exception:
-            return 0
+    #     try:
+    #         val = float(self.concCtrl.GetValue())
+    #         return val
+    #     except Exception:
+    #         return 0
     
-    def createConcInfo(self):
-        box = wx.StaticBox(self, -1, 'Sample Concentration')
-        boxsizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
+    # def createConcInfo(self):
+    #     box = wx.StaticBox(self, -1, 'Sample Concentration')
+    #     boxsizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
         
         
-        if self.ExpObj.getAllParameters().has_key('Conc'):
-            val = self.ExpObj.getParameter('Conc')
-        else:
-            val = ''
+    #     if self.ExpObj.getAllParameters().has_key('Conc'):
+    #         val = self.ExpObj.getParameter('Conc')
+    #     else:
+    #         val = ''
         
-        self.concCtrl = wx.TextCtrl(self, -1, str(val), size = (60, -1))
-        txt = wx.StaticText(self, -1,  'mg/ml')
+    #     self.concCtrl = wx.TextCtrl(self, -1, str(val), size = (60, -1))
+    #     txt = wx.StaticText(self, -1,  'mg/ml')
 
-        self.concCtrl.Bind(wx.EVT_TEXT, self._onUpdateConc)
+    #     self.concCtrl.Bind(wx.EVT_TEXT, self._onUpdateConc)
 
-        boxsizer.Add(self.concCtrl, 0, wx.EXPAND)
-        boxsizer.Add(txt, 0, wx.LEFT, 5)
+    #     boxsizer.Add(self.concCtrl, 0, wx.EXPAND)
+    #     boxsizer.Add(txt, 0, wx.LEFT, 5)
         
-        return boxsizer
+    #     return boxsizer
         
     def onSaveInfo(self, evt):
         gp = wx.FindWindowByName('GuinierPlotPanel')
@@ -477,7 +477,7 @@ class GuinierControlPanel(wx.Panel):
                 
                 info_dict[key] = val
             
-            info_dict['Conc'] = self.getConcentration()
+            # info_dict['Conc'] = self.getConcentration()
             
             nstart_val = wx.FindWindowById(self.spinctrlIDs['qstart']).GetValue()
             nend_val = wx.FindWindowById(self.spinctrlIDs['qend']).GetValue()
@@ -490,11 +490,11 @@ class GuinierControlPanel(wx.Panel):
             info_dict['qStart'] = qstart_val
             info_dict['qEnd'] = qend_val
             
-            if float(info_dict['Conc']) > 0:
-                self.ExpObj.setParameter('Conc', self.getConcentration())
+            # if float(info_dict['Conc']) > 0:
+            #     self.ExpObj.setParameter('Conc', self.getConcentration())
                 
-            if float(info_dict['MM']) > 0:
-                self.ExpObj.setParameter('MW', info_dict['MM'])
+            # if float(info_dict['MM']) > 0:
+            #     self.ExpObj.setParameter('MW', info_dict['MM'])
             
             analysis_dict = self.ExpObj.getParameter('analysis')
             analysis_dict['guinier'] = info_dict
@@ -773,19 +773,19 @@ class GuinierControlPanel(wx.Panel):
         #Important, since it's a slow function to update (could do it in a timer instead) otherwise this spin event might loop!
         wx.CallAfter(self.updatePlot)
 
-    def _onUpdateConc(self,evt):
-        mw = self.raw_settings.get('MWStandardMW') 
-        mwI0 = self.raw_settings.get('MWStandardI0')
-        mwConc = self.raw_settings.get('MWStandardConc')
+    # def _onUpdateConc(self,evt):
+    #     mw = self.raw_settings.get('MWStandardMW') 
+    #     mwI0 = self.raw_settings.get('MWStandardI0')
+    #     mwConc = self.raw_settings.get('MWStandardConc')
         
-        conc = self.getConcentration()
+    #     conc = self.getConcentration()
 
-        info = self.getInfo()
-        I0 = float(info['I0'])
+    #     info = self.getInfo()
+    #     I0 = float(info['I0'])
         
-        if mw != 0 and mw > 0 and mwI0 !=0 and mwI0 > 0 and conc != 0 and conc > 0 and mwConc > 0:
-            newInfo = {'MM': (I0 * (mw/(mwI0/mwConc)) / conc)}
-            self.updateInfo(newInfo)
+    #     if mw != 0 and mw > 0 and mwI0 !=0 and mwI0 > 0 and conc != 0 and conc > 0 and mwConc > 0:
+    #         newInfo = {'MM': (I0 * (mw/(mwI0/mwConc)) / conc)}
+    #         self.updateInfo(newInfo)
         
     def updatePlot(self):
         plotpanel = wx.FindWindowByName('GuinierPlotPanel')

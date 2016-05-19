@@ -109,6 +109,7 @@ class MainFrame(wx.Frame):
                         'masking'             : wx.NewId(),
                         'goOnline'            : wx.NewId(),
                         'goOffline'           : wx.NewId(),
+                        'changeOnline'        : wx.NewId(),
                         'plot1tynormal'       : wx.NewId(),
                         'plot1tyguinier'      : wx.NewId(),
                         'plot1tykratky'       : wx.NewId(),
@@ -610,7 +611,8 @@ class MainFrame(wx.Frame):
                                       ('Porod',   self.MenuIDs['plot2typorod'],  self._onViewMenu, 'radio')],
                     
                     'onlinemenu':    [('Offline', self.MenuIDs['goOffline'], self._onOnlineMenu, 'radio'),
-                                      ('Online', self.MenuIDs['goOnline'], self._onOnlineMenu, 'radio')],
+                                      ('Online', self.MenuIDs['goOnline'], self._onOnlineMenu, 'radio'),
+                                      ('Change Directory', self.MenuIDs['changeOnline'], self._onOnlineMenu, 'normal')],
 
                     'viewSECLeft':   [('Integrated Intensity', self.MenuIDs['secplottotal'], self._onViewMenu, 'radio'),
                                       ('Mean Intensity', self.MenuIDs['secplotmean'], self._onViewMenu, 'radio'),
@@ -1154,9 +1156,12 @@ class MainFrame(wx.Frame):
                 item = menubar.FindItemById(self.MenuIDs['goOffline'])
                 item.Check(True)
                 
-        else:
+        elif id == self.MenuIDs['goOffline']:
             self.setStatus('Mode: OFFLINE', 2)
             self.OnlineControl.goOffline()
+
+        elif id == self.MenuIDs['changeOnline']:
+            self.OnlineControl.changeOnline()
         
         
     def _onOptionsMenu(self, event):
@@ -1369,7 +1374,7 @@ class OnlineController:
     def selectSearchDir(self):
         self.dirctrl = wx.FindWindowByName('DirCtrlPanel')
         
-        path = None
+        found_path = False
         
         if self.seek_dir == []:
             self.seek_dir = str(self.dirctrl.getDirLabel())
@@ -1377,17 +1382,33 @@ class OnlineController:
         dirdlg = wx.DirDialog(self.parent, "Please select search directory:", str(self.seek_dir))
 
         if dirdlg.ShowModal() == wx.ID_OK:               
-            path = dirdlg.GetPath()
-            self.seek_dir = path 
+            self.seek_dir = dirdlg.GetPath()
+            found_path = True
             
-        return path    
+        return found_path
+
+    def changeOnline(self):
+        found_path = self.selectSearchDir()
+        
+        if found_path != None:
+            dir_list = os.listdir(self.seek_dir)
+            
+            dir_list_dict = {}
+            for each_file in dir_list:
+                dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)))
+            
+            self.old_dir_list_dict = dir_list_dict
+            
+            return True
+        
+        return False
     
     def goOnline(self):
         
-        path = self.selectSearchDir()
+        found_path = self.selectSearchDir()
         
-        if path != None:
-            dir_list = os.listdir(path)
+        if found_path != None:
+            dir_list = os.listdir(self.seek_dir)
             
             dir_list_dict = {}
             for each_file in dir_list:
@@ -1414,9 +1435,10 @@ class OnlineController:
         dir_list_dict = {}
         
         for each_file in dir_list:
-            dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)))
+            dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)), os.path.getsize(os.path.join(self.seek_dir, each_file)))
             
         diff_list = list(set(dir_list_dict.items()) - set(self.old_dir_list_dict.items()))
+        diff_list.sort(key = lambda name: name[0])
 
         files_to_plot=[]
 
@@ -1479,9 +1501,13 @@ class OnlineController:
                         if self._fileTypeIsCompatible(filepath):
                             
                             if each_newfile in self.old_dir_list_dict:
-                                #ONLY UPDATE IMAGE
-                                mainworker_cmd_queue.put(['online_mode_update_data', [filepath]])
-                                print 'Changed: ' + str(each_newfile)
+                                if each[1][1] == self.old_dir_list_dict[each_newfile][1]:
+                                    #If the size is the same, ONLY UPDATE IMAGE
+                                    mainworker_cmd_queue.put(['online_mode_update_data', [filepath]])
+                                    print 'Changed: ' + str(each_newfile)
+                                else:
+                                    print process_str
+                                    files_to_plot.append(filepath)
                             else:
                                 print process_str
                                 files_to_plot.append(filepath)
