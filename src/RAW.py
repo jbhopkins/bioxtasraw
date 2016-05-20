@@ -40,7 +40,7 @@ from wx.lib.embeddedimage import PyEmbeddedImage
 from numpy import ceil, floor
 
 import RAWPlot, RAWImage, RAWOptions, RAWSettings, RAWCustomCtrl, RAWAnalysis, BIFT, RAWIcons, RAWGlobals
-from RAWGlobals import mainworker_cmd_queue, RAWWorkDir
+from RAWGlobals import mainworker_cmd_queue, RAWWorkDir, workspace_saved
 
 thread_wait_event = threading.Event()
 question_return_queue = Queue.Queue()
@@ -48,49 +48,6 @@ question_return_queue = Queue.Queue()
 # RAWWorkDir = sys.path[0]
 
 # RAWGlobals.init_globals()
-
-global workspace_saved
-workspace_saved = True
-
-
-#class MyAuiNotebook(aui.AuiNotebook):
-#    ### TESTING CLOSE BUTTONS ON TABS ###
-#
-#    def __init__(self, *args, **kwargs):
-#        #kwargs['style'] = kwargs.get('style', aui.AUI_NB_DEFAULT_STYLE) 
-#       super(MyAuiNotebook, self).__init__(*args, **kwargs)
-#        #self.Bind(aui.EVT_AUINOTEBOOK_PAGE_CLOSE, self.onClosePage)
-#	   self.Bind(aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.onPageChange)
-#
-#	#self.SetWindowStyle(self.GetWindowStyle() & ~aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
-#
-#    def onPageChange(self, event):
-#	   event.Skip()
-#	   idx = self.GetSelection()
-#	   style = self.GetWindowStyle()	
-#	   print self.GetPageText(idx)
-#
-#	if idx != 2:	
-#        	self.SetWindowStyle(style & ~aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
-#		self.Refresh()
-#	else:
-#        	self.SetWindowStyle(style | aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
-#		self.Refresh()
-#
-##	self.ToggleWindowStyle(aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
-#
-#    def onClosePage(self, event):
-#        event.Skip()
-#        #if self.GetPageCount() <= 2:
-#        #    # Prevent last tab from being closed
-#        #    self.ToggleWindowStyle(aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
-#
-#    def AddPage(self, *args, **kwargs):
-#        super(MyAuiNotebook, self).AddPage(*args, **kwargs)
-#        ## Allow closing tabs when we have more than one tab:
-#        #if self.GetPageCount() > 1:
-#        #    self.SetWindowStyle(self.GetWindowStyleFlag() | \
-#        #        aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
 
 
 class MainFrame(wx.Frame):
@@ -194,7 +151,7 @@ class MainFrame(wx.Frame):
         
         self.plot_notebook = aui.AuiNotebook(self, style = aui.AUI_NB_TAB_MOVE | aui.AUI_NB_TAB_SPLIT | aui.AUI_NB_SCROLL_BUTTONS)
 	#self.plot_notebook = MyAuiNotebook(self, style = aui.AUI_NB_TAB_MOVE | aui.AUI_NB_TAB_SPLIT | aui.AUI_NB_SCROLL_BUTTONS)
-
+        
 
         plot_panel = RAWPlot.PlotPanel(self.plot_notebook, -1, 'PlotPanel')
         img_panel = RAWImage.ImagePanel(self.plot_notebook, -1, 'ImagePanel')
@@ -212,7 +169,8 @@ class MainFrame(wx.Frame):
         page4 = SECPanel(self.control_notebook, self.raw_settings)
         page3 = IFTPanel(self.control_notebook, self.raw_settings)
         page1 = FilePanel(self.control_notebook)
-        
+
+        self.control_notebook.Bind(aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.onControlTabChange)
         
        
         self.control_notebook.AddPage(page1, "Files", True)
@@ -321,6 +279,13 @@ class MainFrame(wx.Frame):
     
     def getRawSettings(self):
         return self.raw_settings
+
+    def findAtsas(self):
+        find_atsas = self.raw_settings.get('autoFindATSAS')
+        if find_atsas:
+            atsas_dir = RAWOptions.findATSASDirectory()
+
+            self.raw_settings.set('ATSASDir', atsas_dir)
 
     def test(self):
         self._mgr.GetPane(self.info_panel).Show(False)
@@ -1159,7 +1124,10 @@ class MainFrame(wx.Frame):
             self.OnlineControl.goOffline()
 
         elif id == self.MenuIDs['changeOnline']:
-            self.OnlineControl.changeOnline()
+            result = self.OnlineControl.changeOnline()
+
+            if result == False:
+                wx.MessageBox('Could not change online directory. Online mode must be active to change the directory.', 'Change directory failed', style = wx.ICON_INFORMATION | wx.OK)
         
         
     def _onOptionsMenu(self, event):
@@ -1351,6 +1319,20 @@ class MainFrame(wx.Frame):
         else:
             self.OnlineControl.stopTimer()
 
+    def onControlTabChange(self, evt):
+        page = self.control_notebook.GetPageText(evt.GetSelection())
+
+        if page == 'IFT' or page == 'SEC':
+            self.info_panel.clearInfo()
+
+        elif page == 'Manipulation':
+            manip = wx.FindWindowByName('ManipulationPanel')
+            selected_items = manip.getSelectedItems()
+
+            if len(selected_items) > 0:
+                self.info_panel.updateInfoFromItem(selected_items[0])
+
+
 class OnlineController:                                   
     def __init__(self, parent, raw_settings):
         
@@ -1392,7 +1374,7 @@ class OnlineController:
         return found_path
 
     def changeOnline(self):
-        if self.online_imter.IsRunning():
+        if self.isRunning():
             found_path = self.selectSearchDir()
             
             if found_path != None:
@@ -8989,12 +8971,12 @@ class SECItemPanel(wx.Panel):
         if self._selected:
             self._selected = False
             self.SetBackgroundColour(wx.Colour(250,250,250))
-            self.info_panel.clearInfo()
+            # self.info_panel.clearInfo()
         else:
             self._selected = True
             self.SetBackgroundColour(wx.Colour(200,200,200))
             self.SetFocusIgnoringChildren()
-            self.info_panel.clearInfo()
+            # self.info_panel.clearInfo()
             # self.info_panel.updateInfoFromItem(self)
         
         self.Refresh()

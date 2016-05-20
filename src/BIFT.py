@@ -19,8 +19,6 @@
 from __future__ import division
 from scipy import *
 from scipy import optimize
-from scipy import weave
-from scipy.weave import converters
 from scipy.linalg import inv, det, eig
 from numpy import *
 import numpy
@@ -33,6 +31,10 @@ import RAWGlobals
 import time, Queue, wx, os#, random
 # import bift_ext, transmatrix_ext, SASM
 import SASM
+
+if not RAWGlobals.frozen:
+    from scipy import weave
+    from scipy.weave import converters
 
 if RAWGlobals.compiled_extensions:
     try:
@@ -1051,8 +1053,20 @@ def createTransMatrix(q, r):
            }
            
     """   
-    weave.inline(code,['qlen', 'rlen', 'T', 'r', 'q', 'c'], type_converters = converters.blitz, compiler = "gcc")    
 
+    if not RAWGlobals.frozen:
+        weave.inline(code,['qlen', 'rlen', 'T', 'r', 'q', 'c'], type_converters = converters.blitz, compiler = "gcc")    
+
+    else:
+        for i in range(qlen):
+            for j in range(rlen):
+                qr = q[i]*r[j]
+                chk = c*math.sin(qr)/qr
+
+                if chk != chk:      #Checks for nan values?
+                    T[i, j] = 1
+                else:
+                    T[i,j] = chk
 #    transext = ext_tools.ext_function('trans_matrix', code, ['qlen', 'rlen', 'T', 'r', 'q', 'c'], type_converters = converters.blitz)   
 #    mod.add_function(transext)
 #    mod.compile(compiler = 'gcc')

@@ -334,6 +334,10 @@ def loadSettings(raw_settings, loadpath):
     main_frame.queueTaskInWorkerThread('recreate_all_masks', None)
     
     fixBackwardsCompatibility(raw_settings)
+
+    if raw_settings.get('autoFindATSAS'):
+        main_frame = wx.FindWindowByName('MainFrame')
+        main_frame.findAtsas()
     
     return True
 

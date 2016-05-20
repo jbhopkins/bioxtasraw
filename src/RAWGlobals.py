@@ -11,13 +11,16 @@ mainworker_cmd_queue = Queue.Queue()
 global cancel_bift
 cancel_bift = False
 
-global application_path
+global workspace_saved
+workspace_saved = True
 
+global frozen
+
+#Checks whether RAW is running in a compiled (frozen) version or a live interpreter
 if getattr(sys, 'frozen', False):
-    print 'Frozen'
-    application_path = os.path.dirname(sys.executable)
-elif __file__:
-    application_path = os.path.dirname(__file__)
+    frozen = True 
+else
+    frozen = False
 
 global RAWWorkDir
 RAWWorkDir = sys.path[0]
