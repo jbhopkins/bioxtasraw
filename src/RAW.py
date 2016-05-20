@@ -40,15 +40,12 @@ from wx.lib.embeddedimage import PyEmbeddedImage
 from numpy import ceil, floor
 
 import RAWPlot, RAWImage, RAWOptions, RAWSettings, RAWCustomCtrl, RAWAnalysis, BIFT, RAWIcons, RAWGlobals
-from RAWGlobals import mainworker_cmd_queue
+from RAWGlobals import mainworker_cmd_queue, RAWWorkDir
 
 thread_wait_event = threading.Event()
 question_return_queue = Queue.Queue()
 
-RAWWorkDir = sys.path[0]
-
-if os.path.split(sys.path[0])[1] in ['RAW.exe', 'raw.exe']:
-    RAWWorkDir = os.path.split(sys.path[0])[0]
+# RAWWorkDir = sys.path[0]
 
 # RAWGlobals.init_globals()
 
@@ -1347,7 +1344,13 @@ class MainFrame(wx.Frame):
         dialog.Destroy()
         
         return file
-        
+
+    def controlTimer(self, state):
+        if state:
+            self.OnlineControl.startTimer()
+        else:
+            self.OnlineControl.stopTimer()
+
 class OnlineController:                                   
     def __init__(self, parent, raw_settings):
         
@@ -1389,18 +1392,19 @@ class OnlineController:
         return found_path
 
     def changeOnline(self):
-        found_path = self.selectSearchDir()
-        
-        if found_path != None:
-            dir_list = os.listdir(self.seek_dir)
+        if self.online_imter.IsRunning():
+            found_path = self.selectSearchDir()
             
-            dir_list_dict = {}
-            for each_file in dir_list:
-                dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)))
-            
-            self.old_dir_list_dict = dir_list_dict
-            
-            return True
+            if found_path != None:
+                dir_list = os.listdir(self.seek_dir)
+                
+                dir_list_dict = {}
+                for each_file in dir_list:
+                    dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)),os.path.getsize(os.path.join(self.seek_dir, each_file)))
+                
+                self.old_dir_list_dict = dir_list_dict
+                
+                return True
         
         return False
     
@@ -1413,7 +1417,7 @@ class OnlineController:
             
             dir_list_dict = {}
             for each_file in dir_list:
-                dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)))
+                dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)), os.path.getsize(os.path.join(self.seek_dir, each_file)))
             
             self.old_dir_list_dict = dir_list_dict
             
@@ -1423,7 +1427,19 @@ class OnlineController:
         return False
         
     def goOffline(self):
-        self.online_timer.Stop()
+        return self.online_timer.Stop()
+
+    def startTimer(self):
+        return self.online_timer.Start(2000)
+
+    def stopTimer(self):
+        return self.online_timer.Stop()
+
+    def isRunning(self):
+        return self.online_timer.IsRunning()
+
+    def getTargetDir(self):
+        return self.seek_dir
    
     def onOnlineTimer(self, evt):
         ''' This function checks for new files and processes them as they come in '''
@@ -1535,6 +1551,16 @@ class OnlineController:
             print 'Not compatible file format.'
             return False
 
+    def updateSkipList(self, file_list):
+        dir_list_dict = {}
+
+        for each_file in file_list:
+            dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)), os.path.getsize(os.path.join(self.seek_dir, each_file)))
+            
+        diff_list = list(set(dir_list_dict.items()) - set(self.old_dir_list_dict.items()))
+        diff_list.sort(key = lambda name: name[0])
+
+        self.old_dir_list_dict.update(diff_list)
 
 class OnlineSECController:                                   
     def __init__(self, parent, raw_settings):
@@ -3565,6 +3591,12 @@ class MainWorkerThread(threading.Thread):
     def _saveSECItem(self,data):
         save_path, selected_items = data[0], data[1]
 
+        if self.main_frame.OnlineControl.isRunning() and save_path == self.main_frame.OnlineControl.getTargetDir():
+            self.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
+
         for b in range(len(selected_items)):
 
             secm = selected_items[b].secm
@@ -3591,6 +3623,12 @@ class MainWorkerThread(threading.Thread):
             SASFileIO.saveSECItem(save_path[b], secm_dict)
 
             selected_items[b].unmarkAsModified()
+
+            if restart_timer:
+                self.main_frame.OnlineControl.updateSkipList([check_filename])
+
+        if restart_timer:
+            wx.CallAfter(self.main_frame.controlTimer, True)
 
     def _saveSECProfiles(self, data, iftmode = False):
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait, saving profiles...')
@@ -3677,9 +3715,16 @@ class MainWorkerThread(threading.Thread):
                 
 
     def _saveItems(self, data, iftmode = False):
-        
+
+
         save_path = data[0]
         item_list = data[1]
+
+        if self.main_frame.OnlineControl.isRunning() and save_path == self.main_frame.OnlineControl.getTargetDir():
+            self.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
         
         overwrite_all = False
         no_to_all = False
@@ -3740,6 +3785,12 @@ class MainWorkerThread(threading.Thread):
                 sasm.setParameter('filename', filename + newext)
                 wx.CallAfter(sasm.item_panel.updateFilenameLabel)
                 wx.CallAfter(item.unmarkAsModified)
+
+            if restart_timer:
+                self.main_frame.OnlineControl.updateSkipList([check_filename])
+        
+        if restart_timer:
+            wx.CallAfter(self.main_frame.controlTimer, True)
 
 #--- ** Info Panel **
 
