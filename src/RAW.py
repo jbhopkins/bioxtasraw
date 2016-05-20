@@ -180,6 +180,7 @@ class MainFrame(wx.Frame):
         self.RAWWorkDir = RAWWorkDir
           
         self.OnlineControl = OnlineController(self, self.raw_settings)
+        self.OnlineSECControl = OnlineSECController(self, self.raw_settings)
          
         self.statusbar = self.CreateStatusBar()
         self.statusbar.SetFieldsCount(3)
@@ -1533,6 +1534,30 @@ class OnlineController:
         else:
             print 'Not compatible file format.'
             return False
+
+
+class OnlineSECController:                                   
+    def __init__(self, parent, raw_settings):
+        
+        self.parent = parent
+        
+        self.main_frame = parent
+
+        self._raw_settings = raw_settings
+
+        self.online_timer = wx.Timer()
+        
+        self.online_timer.Bind(wx.EVT_TIMER, self.onOnlineTimer)
+    
+    def goOnline(self):
+        self.sec_control_panel = wx.FindWindowByName('SECControlPanel')
+        self.online_timer.Start(1000)
+        
+    def goOffline(self):
+        self.online_timer.Stop()
+   
+    def onOnlineTimer(self, evt):
+        self.sec_control_panel.onUpdate()
         
 
 
@@ -2146,11 +2171,10 @@ class MainWorkerThread(threading.Thread):
         secm = data[2]
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while SEC data loads\n(may take a while)...')
 
-
         sasm_list=[[] for i in range(len(filename_list))]
 
-        try:
-            for j in range(len(filename_list)):
+        for j in range(len(filename_list)):
+            try:
                 each_filename = filename_list[j]
                 sasm, img = SASFileIO.loadFile(each_filename, self._raw_settings)
                 
@@ -2165,32 +2189,39 @@ class MainWorkerThread(threading.Thread):
                 
                 sasm_list[j]=sasm
                 
-        except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
-            self._showDataFormatError(os.path.split(each_filename)[1])
-            wx.CallAfter(self.main_frame.closeBusyDialog)
-            return
-        except SASExceptions.HeaderLoadError, msg:
-            wx.CallAfter(wx.MessageBox, str(msg), 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
-            wx.CallAfter(self.main_frame.closeBusyDialog)
-            return
-        except SASExceptions.MaskSizeError, msg:
-            wx.CallAfter(wx.MessageBox, str(msg), 'Saved mask does not fit loaded image', style = wx.ICON_ERROR)
-            wx.CallAfter(self.main_frame.closeBusyDialog)
-            return
-        except SASExceptions.HeaderMaskLoadError, msg:
-            wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header', style = wx.ICON_ERROR)
-            wx.CallAfter(self.main_frame.closeBusyDialog)
-            return
+            except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
+                # self._showDataFormatError(os.path.split(each_filename)[1])
+                wx.CallAfter(self.main_frame.closeBusyDialog)
+                wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'file', msg)
+                return
+            except SASExceptions.HeaderLoadError, msg:
+                # wx.CallAfter(wx.MessageBox, str(msg), 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
+                wx.CallAfter(self.main_frame.closeBusyDialog)
+                wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'header', msg)
+                return
+            except SASExceptions.MaskSizeError, msg:
+                # wx.CallAfter(wx.MessageBox, str(msg), 'Saved mask does not fit loaded image', style = wx.ICON_ERROR)
+                wx.CallAfter(self.main_frame.closeBusyDialog)
+                wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'mask', msg)
+                return
+            except SASExceptions.HeaderMaskLoadError, msg:
+                # wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header', style = wx.ICON_ERROR)
+                wx.CallAfter(self.main_frame.closeBusyDialog)
+                wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'mask_header', msg)
+                return
 
         secm.append(filename_list, sasm_list, frame_list)
 
-        self._updateCalcSECParams(secm, frame_list)
+
+        if secm.calc_has_data:
+            self._updateCalcSECParams(secm, frame_list)
 
         self._updateSECMPlot(secm)
 
         wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 3)
-        file_list = wx.FindWindowByName('SECPanel')
-        wx.CallAfter(file_list.SetFocus)
+        sec_panel = wx.FindWindowByName('SECPanel')
+        wx.CallAfter(sec_panel.SetFocus)
+        wx.CallAfter(self.sec_control_panel.updateSucceeded)
         
         # wx.CallAfter(self.plot_panel.updateLegend, 1)
         # wx.CallAfter(self.plot_panel.fitAxis)
@@ -2373,6 +2404,7 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 3)
         sec_controls = wx.FindWindowByName('SECPanel')
         wx.CallAfter(sec_controls.SetFocus)
+        wx.CallAfter(self.sec_control_panel.updateSucceeded)
 
         # print rg
         # print i0
@@ -9416,6 +9448,10 @@ class SECControlPanel(wx.Panel):
 
         self._raw_settings = self.main_frame.raw_settings
 
+        self._is_online = False
+        self.tries = 1
+        self.max_tries = 3
+
         self.filename = ''
         self.frame_list = []
         self._manual=False
@@ -9558,17 +9594,23 @@ class SECControlPanel(wx.Panel):
         
         # sizer.Add(fnum_sizer, 1, flag = wx.EXPAND | wx.ALIGN_CENTER | wx.TOP, border = 4)
 
-        load_button = wx.Button(self, -1, 'Load')
-        load_button.Bind(wx.EVT_BUTTON, self._onLoadButton)
+        # load_button = wx.Button(self, -1, 'Load')
+        # load_button.Bind(wx.EVT_BUTTON, self._onLoadButton)
 
         update_button = wx.Button(self, -1, 'Update')
         update_button.Bind(wx.EVT_BUTTON, self._onUpdateButton)
 
+        self.online_mode_button = wx.CheckBox(self, -1, "Automatically Update")
+        self.online_mode_button.SetValue(self._is_online)
+        self.online_mode_button.Bind(wx.EVT_CHECKBOX, self._onOnlineButton)
+
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        button_sizer.Add(load_button, 0, flag = wx.ALIGN_CENTER | wx.ALL, border = 4)
-        button_sizer.AddSpacer((5,0))
+        # button_sizer.Add(load_button, 0, flag = wx.ALIGN_CENTER | wx.ALL, border = 4)
+        # button_sizer.AddSpacer((5,0))
         button_sizer.Add(update_button, 0, flag = wx.ALIGN_CENTER | wx.ALL, border = 4)
+        button_sizer.AddSpacer((5,0))
+        button_sizer.Add(self.online_mode_button, 0, flag = wx.ALIGN_CENTER | wx.ALL, border = 4)
 
         sizer.Add(button_sizer, 1, flag = wx.ALIGN_CENTER | wx.TOP)
 
@@ -9687,6 +9729,21 @@ class SECControlPanel(wx.Panel):
     def updateSECItem(self,secm):
         self.secm = secm
     
+    def _onOnlineButton(self, evt):
+        go_online = evt.IsChecked()
+
+        if go_online:
+            self._goOnline()
+        else:
+            self._goOffline()
+
+    def _goOnline(self):
+        self._is_online = True
+        self.main_frame.OnlineSECControl.goOnline()
+
+    def _goOffline(self):
+        self._is_online = False
+        self.main_frame.OnlineSECControl.goOffline()
     
     def _onSelectButton(self, evt):    
 
@@ -9731,11 +9788,16 @@ class SECControlPanel(wx.Panel):
                 # self.directory_box.SetValue(self.directory)
                 self._fillBoxes()
 
+                self._onLoad()
+
         else:
              wx.CallAfter(wx.MessageBox, 'The "%s" header format is not supported for automated SEC-SAXS file loading. You can use the "Plot SEC" button in the file window to plot any SEC-SAXS data. Please contact the RAW developers if you want to add automated loading support for a particular header format.' %(hdr_format) ,
                                       'Error loading file', style = wx.ICON_ERROR | wx.OK)
 
-    def _onLoadButton(self,evt):
+    # def _onLoadButton(self,evt):
+    #     self._onLoad()
+
+    def _onLoad(self):
         file_list, frame_list = self._makeFileList()
 
         if len(file_list) > 0:
@@ -9744,20 +9806,23 @@ class SECControlPanel(wx.Panel):
 
         else:
             wx.MessageBox("Can't find files to load", style=wx.ICON_ERROR | wx.OK)
-        
 
     def _onUpdateButton(self,evt):
-        #Need to add to this function to update the structural parameters
+        self.onUpdate()        
+
+    def onUpdate(self):
 
         if self.secm != None:
-            old_frame_list = copy.copy(self.frame_list)
+
+            if self._is_online:
+                self._goOffline()
+
+            old_frame_list = self._getFrameList(self.secm._file_list)
             self._fillBoxes()
 
             dif_frame_list = list(set(self.frame_list)-set(old_frame_list))
 
             dif_frame_list.sort(key=lambda frame: int(frame))
-
-            # print dif_frame_list
 
             if len(dif_frame_list)>0:
 
@@ -9771,6 +9836,48 @@ class SECControlPanel(wx.Panel):
             if len(file_list) > 0:
                 mainworker_cmd_queue.put(['update_secm', [file_list, modified_frame_list, self.secm]])
 
+            else:
+                self.updateSucceeded()
+
+    def updateFailed(self, name, error, msg):
+        self.tries = self.tries + 1
+        if self.tries <= self.max_tries:
+            self.onUpdate()
+        else:
+            self._goOffline()
+            self.online_mode_button.SetValue(False)
+            if error == 'file':
+                self._showDataFormatError(os.path.split(name)[1])
+            elif error == 'header':
+                wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic SEC updating turned off.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
+            elif error == 'mask':
+                 wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic SEC updating turned off.', 'Saved mask does not fit loaded image', style = wx.ICON_ERROR)
+            elif error == 'mask_header':
+                wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic SEC updating turned off.', 'Mask information was not found in header', style = wx.ICON_ERROR)
+
+    def updateSucceeded(self):
+        if self.online_mode_button.IsChecked() and not self._is_online:
+            self._goOnline()
+
+        self.tries = 1
+
+    def _showDataFormatError(self, filename, include_ascii = True, include_sec = False):
+        img_fmt = self._raw_settings.get('ImageFormat')
+        
+        if include_ascii:
+            ascii = ' or any of the supported ASCII formats'
+        else:
+            ascii = ''
+
+        if include_sec:
+            sec = ' or the RAW SEC format'
+        else:
+            sec = ''
+        
+        wx.CallAfter(wx.MessageBox, 'The selected file: ' + filename + '\ncould not be recognized as a '   + str(img_fmt) +
+                         ' image format' + ascii + sec + '.\n\nYou can change the image format under Advanced Options in the Options menu.\n'+
+                         'Automatic SEC updating turned off.' ,
+                          'Error loading file', style = wx.ICON_ERROR | wx.OK)
 
     def _onFramesToMainPlot(self,evt):
         ######################## NEEDS TO ADD ITEMS TO LEGEND ############################
@@ -9954,6 +10061,9 @@ class SECControlPanel(wx.Panel):
         secm.item_panel.markAsModified()
 
         if newParams:
+            if self._is_online:
+                self._goOffline()
+
             mainworker_cmd_queue.put(['calculate_params_sec', secm])
 
 
@@ -12367,11 +12477,9 @@ class SECDataDialog(wx.Dialog):
     def _insertData(self):
 
         data_len = len(self.secm.total_i)
-        
-        frame_number = range(data_len)
 
         for i in range(data_len):
-            self.data_grid.SetCellValue(i, 0, str(frame_number[i]))
+            self.data_grid.SetCellValue(i, 0, str(self.secm.frame_list[i]))
             self.data_grid.SetCellValue(i, 1, str(self.secm.total_i[i]))
             self.data_grid.SetCellValue(i, 2, str(self.secm.mean_i[i]))
 

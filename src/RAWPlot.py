@@ -57,17 +57,19 @@ class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
             plotpanel.fitAxis()
                
                
-            
+    #These don't do anything at the moment, but were giving me some strange errors on the sec plot
     def _onLeftButtonUp(self, evt):
         """End measuring on an axis."""
         x = evt.GetX()
         y = self.figure.bbox.height - evt.GetY()
-        #print 'release button', 1
+        
         evt.Skip()
+
         if self.HasCapture(): self.ReleaseMouse()
         try:
             FigureCanvasBase.button_release_event(self, x, y, 1, guiEvent=evt)
-        except:
+        except Exception as e:
+            print e
             print 'Log fail! Switch to Lin-Lin plot in the menu'
         
 
@@ -75,12 +77,16 @@ class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
         """Start measuring on an axis."""
         x = evt.GetX()
         y = self.figure.bbox.height - evt.GetY()
+
         evt.Skip()
         self.CaptureMouse()
+
         try:
             FigureCanvasBase.button_press_event(self, x, y, 1, guiEvent=evt)
-        except:
+        except Exception as e:
+            print e
             print 'Log fail! Switch to Lin-Lin plot in the menu'
+
 
 class LegendOptionsDialog(wx.Dialog):
     def __init__(self, parent, plotparams, selected_plot, *args, **kwargs):
@@ -4091,7 +4097,6 @@ class SECPlotPanel(wx.Panel):
         
     
     def _onMouseMotionEvent(self, event):
-  
         if event.inaxes:
             x, y = event.xdata, event.ydata
 
@@ -4140,7 +4145,6 @@ class SECPlotPanel(wx.Panel):
         #     selected_plot = 2
         # else:
         #     selected_plot = 1
-            
         selected_plot=1
 
         if event.button == 3:
@@ -4933,6 +4937,9 @@ class SECPlotPanel(wx.Panel):
                     if each.calc_line.get_label() == 'RG' or each.calc_line.get_label() == 'MW' or each.calc_line.get_label() == 'I0':
                         each.calc_line.set_label('I0')
 
+            else:
+                each.calc_line.set_ydata(np.zeros_like(each.line.get_ydata))
+
             if self.plotparams['x_axis_display'] == 'frame':
                 each.line.set_xdata(each.frame_list)
                 if each.calc_is_plotted:
@@ -4962,7 +4969,6 @@ class SECPlotPanel(wx.Panel):
         self._setLabels(axes = self.ryaxis)
 
         self.canvas.draw()
-
     
     
     def clearPlot(self, plot_num):
