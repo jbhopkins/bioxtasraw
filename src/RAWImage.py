@@ -693,7 +693,7 @@ class ImagePanel(wx.Panel):
         
         if self.getTool() == None and self._right_click_on_patch == True:
             self._right_click_on_patch = False
-            if wx.__version__.split('.')[0] >= 3:
+            if int(wx.__version__.split('.')[0]) >= 3:
                 wx.CallAfter(self._showPopupMenu)
             else:
                 self._showPopupMenu()

@@ -4435,7 +4435,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
     
     def _onRightMouseClick(self, event):
         
-        if wx.__version__.split('.')[0] >= 3:
+        if int(wx.__version__.split('.')[0]) >= 3:
             wx.CallAfter(self._showPopupMenu)
         else:
             self._showPopupMenu()
@@ -6192,7 +6192,7 @@ class ManipItemPanel(wx.Panel):
                     
         #This is stupid. In wxpython 2.8, calling with the call after means no popup menu when multiple 
         #items are selected. In wxpython 3.0, calling without the callafter creates a segfault on mac.
-        if wx.__version__.split('.')[0] >= 3:   
+        if int(wx.__version__.split('.')[0]) >= 3:   
             wx.CallAfter(self._showPopupMenu)
         else:
             self._showPopupMenu()
@@ -7937,7 +7937,7 @@ class IFTItemPanel(wx.Panel):
             self.toggleSelect()
             self.manipulation_panel.deselectAllExceptOne(self)
                     
-        if wx.__version__.split('.')[0] >= 3:
+        if int(wx.__version__.split('.')[0]) >= 3:
             wx.CallAfter(self._showPopupMenu)
         else:
             self._showPopupMenu()
@@ -9261,7 +9261,7 @@ class SECItemPanel(wx.Panel):
             self.toggleSelect()
             self.sec_panel.deselectAllExceptOne(self)
                     
-        if wx.__version__.split('.')[0] >= 3:
+        if int(wx.__version__.split('.')[0]) >= 3:
             wx.CallAfter(self._showPopupMenu)
         else:
             self._showPopupMenu()
