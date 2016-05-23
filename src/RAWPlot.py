@@ -1556,10 +1556,17 @@ class PlotPanel(wx.Panel):
             
             if float(matplotlib.__version__[:3]) >= 1.2:
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    wx.CallAfter(self._showPopupMenu, selected_plot)
+                    if wx.__version__.split('.')[0] >= 3:
+                        wx.CallAfter(self._showPopupMenu, selected_plot)
+                    else:
+                        self._showPopupMenu(selected_plot)
+                    
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    wx.CallAfter(self._showPopupMenu, selected_plot)
+                    if wx.__version__.split('.')[0] >= 3:
+                        wx.CallAfter(self._showPopupMenu, selected_plot)
+                    else:
+                        self._showPopupMenu(selected_plot)
 
 #--- ** Popup Menu ***
 
@@ -2593,10 +2600,16 @@ class IftPlotPanel(PlotPanel):
             
             if float(matplotlib.__version__[:3]) >= 1.2:
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    wx.CallAfter(self._showPopupMenu, selected_plot)
+                    if wx.__version__.split('.')[0] >= 3:
+                        wx.CallAfter(self._showPopupMenu, selected_plot)
+                    else:
+                        self._showPopupMenu(selected_plot)
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    wx.CallAfter(self._showPopupMenu, selected_plot)
+                    if wx.__version__.split('.')[0] >= 3:
+                        wx.CallAfter(self._showPopupMenu, selected_plot)
+                    else:
+                        self._showPopupMenu(selected_plot)
 
 #--- ** Popup Menu ***
 
@@ -4151,10 +4164,16 @@ class SECPlotPanel(wx.Panel):
             
             if float(matplotlib.__version__[:3]) >= 1.2:
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    wx.CallAfter(self._showPopupMenu, selected_plot)
+                    if wx.__version__.split('.')[0] >= 3:
+                        wx.CallAfter(self._showPopupMenu, selected_plot)
+                    else:
+                        self._showPopupMenu(selected_plot)
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    wx.CallAfter(self._showPopupMenu, selected_plot)
+                    if wx.__version__.split('.')[0] >= 3:
+                        wx.CallAfter(self._showPopupMenu, selected_plot)
+                    else:
+                        self._showPopupMenu(selected_plot)
 
 #--- ** Popup Menu ***
 

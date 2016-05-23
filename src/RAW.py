@@ -4434,7 +4434,12 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         menu.Destroy()
     
     def _onRightMouseClick(self, event):
-        wx.CallAfter(self._showPopupMenu)
+        
+        if wx.__version__.split('.')[0] >= 3:
+            wx.CallAfter(self._showPopupMenu)
+        else:
+            self._showPopupMenu()
+
     
     def _onPopupMenuChoice(self, event):
         choice_id = event.GetId()
@@ -6185,7 +6190,12 @@ class ManipItemPanel(wx.Panel):
             self.toggleSelect()
             self.manipulation_panel.deselectAllExceptOne(self)
                     
-        wx.CallAfter(self._showPopupMenu)
+        #This is stupid. In wxpython 2.8, calling with the call after means no popup menu when multiple 
+        #items are selected. In wxpython 3.0, calling without the callafter creates a segfault on mac.
+        if wx.__version__.split('.')[0] >= 3:   
+            wx.CallAfter(self._showPopupMenu)
+        else:
+            self._showPopupMenu()
         
     def _onLeftMouseButton(self, evt):
         ctrl_is_down = evt.CmdDown()
@@ -7927,7 +7937,10 @@ class IFTItemPanel(wx.Panel):
             self.toggleSelect()
             self.manipulation_panel.deselectAllExceptOne(self)
                     
-        wx.CallAfter(self._showPopupMenu)
+        if wx.__version__.split('.')[0] >= 3:
+            wx.CallAfter(self._showPopupMenu)
+        else:
+            self._showPopupMenu()
         
     def _onLeftMouseButton(self, evt):
         ctrl_is_down = evt.CmdDown()
@@ -9248,7 +9261,10 @@ class SECItemPanel(wx.Panel):
             self.toggleSelect()
             self.sec_panel.deselectAllExceptOne(self)
                     
-        wx.CallAfter(self._showPopupMenu)
+        if wx.__version__.split('.')[0] >= 3:
+            wx.CallAfter(self._showPopupMenu)
+        else:
+            self._showPopupMenu()
         
     def _onLeftMouseButton(self, evt):
         ctrl_is_down = evt.CmdDown()

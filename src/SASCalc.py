@@ -586,12 +586,13 @@ def runDatgnom(datname, sasm):
 
         output, error = process.communicate()
 
+        error = error.strip()
         
         if error == 'Cannot define Dmax' or error=='Could not find Rg':
 
             if rg <= 0:
-                rg, rger, i0, i0er, idx_min, idx_max =autoRg(sasm.q, sasm.i, sasm.err)
-                if rg>0:
+                rg, rger, i0, i0er, idx_min, idx_max =autoRg(sasm)
+                if rg>10:
                     process=subprocess.Popen('%s %s -o %s -r %f' %(datgnomDir, datname, outname, rg),stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
 
                     output, error = process.communicate()
@@ -601,10 +602,11 @@ def runDatgnom(datname, sasm):
 
                 output, error = process.communicate()
 
+        error = error.strip()
 
 
         if error == 'Cannot define Dmax' or error=='Could not find Rg' or error=='No intensity values (positive) found' or error == 'LOADATF --E- No data lines recognized.':
-            # print 'Unable to run datgnom successfully'
+            print 'Unable to run datgnom successfully'
             datgnom_success = False
         # elif error != None:
         #     datgnom_success = False
