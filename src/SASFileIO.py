@@ -229,7 +229,17 @@ def parseTiffTags(filename):
             tag_dict['ColorProfile'] = "None"
     
     return tag_dict
-    
+
+def loadFabio(filename):
+    fabio_img = fabio.open(filename)
+
+    img = fabio_img.data
+    img_hdr = fabio_img.getheader()
+
+    img = np.fliplr(img)
+
+    return img, img_hdr
+
 def loadTiffImage(filename):
     ''' Load TIFF image '''
     try:
@@ -312,38 +322,31 @@ def loadPilatusImage(filename):
     return img, img_hdr
 
 def loadMar345Image(filename):    
+   
+    dim = getMar345ImgDim(filename)
     
-    if use_fabio:
-        mar345_img = fabio.open(filename)
+    try:
+        SizeOfImage = dim[0]
+    except TypeError:
+        raise SASExceptions.WrongImageFormat("Could not get the dimensions out of the image..")       
+    
+    
+    img_ = np.zeros((SizeOfImage*SizeOfImage), dtype= np.int16)
+    
+    filename_ = filename.encode('utf8')
 
-        img = mar345_img.data
-        img_hdr = mar345_img.header
-
-    else:
-        dim = getMar345ImgDim(filename)
-        
-        try:
-            SizeOfImage = dim[0]
-        except TypeError:
-            raise SASExceptions.WrongImageFormat("Could not get the dimensions out of the image..")       
-        
-        
-        img_ = np.zeros((SizeOfImage*SizeOfImage), dtype= np.int16)
-        
-        filename_ = filename.encode('utf8')
-
-        img = packc_ext.packc(filename_,SizeOfImage,img_)
-        img = img_.astype(np.uint16) #transform 2byte array to uint16 array
-        img_ = np.reshape(img,(SizeOfImage, SizeOfImage))
-        img = np.flipud(img_)
-        
-        #transform image array to matrix and mirror it.         
-        del img_ # kill img_ and tempimg to free memory
-        
-        try: 
-            img_hdr = parseMar345FileHeader(filename)
-        except:
-            img_hdr = {}
+    img = packc_ext.packc(filename_,SizeOfImage,img_)
+    img = img_.astype(np.uint16) #transform 2byte array to uint16 array
+    img_ = np.reshape(img,(SizeOfImage, SizeOfImage))
+    img = np.flipud(img_)
+    
+    #transform image array to matrix and mirror it.         
+    del img_ # kill img_ and tempimg to free memory
+    
+    try: 
+        img_hdr = parseMar345FileHeader(filename)
+    except:
+        img_hdr = {}
     
     return img, img_hdr
 
@@ -756,69 +759,69 @@ def parsePilatusHeader(filename):
     return hdr
     
 
-# def parseMar345FileHeader(filename):
+def parseMar345FileHeader(filename):
     
-#     mar_file = open(filename, 'r')
+    mar_file = open(filename, 'r')
     
-#     mar_file.seek(128)
+    mar_file.seek(128)
     
-#     hdr = {}
+    hdr = {}
     
-#     line = ''
+    line = ''
     
-#     split_hdr = []
+    split_hdr = []
     
     
-#     while 'END OF HEADER' not in line:
-#         line = mar_file.readline().strip('/n')
+    while 'END OF HEADER' not in line:
+        line = mar_file.readline().strip('/n')
         
-#         if len(line.split()) > 1:
-#             split_hdr.append(line.split())
+        if len(line.split()) > 1:
+            split_hdr.append(line.split())
         
-#     mar_file.close()
+    mar_file.close()
     
-#     for each_line in split_hdr:
+    for each_line in split_hdr:
         
-#         if each_line[0] == 'DATE':
-#             hdr['DATE'] = each_line[1] + ' ' + each_line[2] + ' ' + each_line[3] + ' ' + each_line[4] + ' ' + each_line[5]
+        if each_line[0] == 'DATE':
+            hdr['DATE'] = each_line[1] + ' ' + each_line[2] + ' ' + each_line[3] + ' ' + each_line[4] + ' ' + each_line[5]
             
-#         elif each_line[0] == 'GENERATOR':
-#             hdr['GENERATOR'] = each_line[1] + ' ' + each_line[2]
-#             hdr['GENERATOR_kV'] =  each_line[4]
-#             hdr['GENERATOR_mA'] =  each_line[6]
+        elif each_line[0] == 'GENERATOR':
+            hdr['GENERATOR'] = each_line[1] + ' ' + each_line[2]
+            hdr['GENERATOR_kV'] =  each_line[4]
+            hdr['GENERATOR_mA'] =  each_line[6]
         
-#         elif each_line[0] == 'GAPS':
-#             c=1
-#             for i in range(1, len(each_line)):
-#                 hdr['GAPS' + '_' + str(c)] = each_line[i]
-#                 c+=1
+        elif each_line[0] == 'GAPS':
+            c=1
+            for i in range(1, len(each_line)):
+                hdr['GAPS' + '_' + str(c)] = each_line[i]
+                c+=1
         
-#         elif each_line[0] == 'END':
-#             break
+        elif each_line[0] == 'END':
+            break
         
-#         elif len(each_line) == 2:
-#             hdr[each_line[0]] = each_line[1]
+        elif len(each_line) == 2:
+            hdr[each_line[0]] = each_line[1]
         
-#         elif len(each_line) == 4:
-#             hdr[each_line[0]] = each_line[1]
-#             hdr[each_line[0] + '_' + each_line[2]] = each_line[3]
+        elif len(each_line) == 4:
+            hdr[each_line[0]] = each_line[1]
+            hdr[each_line[0] + '_' + each_line[2]] = each_line[3]
             
-#         elif len(each_line) == 5:
-#             hdr[each_line[0] + '_' + each_line[1]] = each_line[2]
-#             hdr[each_line[0] + '_' + each_line[3]] = each_line[4]
+        elif len(each_line) == 5:
+            hdr[each_line[0] + '_' + each_line[1]] = each_line[2]
+            hdr[each_line[0] + '_' + each_line[3]] = each_line[4]
         
-#         elif len(each_line) == 7:
-#             hdr[each_line[0] + '_' + each_line[1]] = each_line[2]
-#             hdr[each_line[0] + '_' + each_line[3]] = each_line[4]
-#             hdr[each_line[0] + '_' + each_line[5]] = each_line[6]
+        elif len(each_line) == 7:
+            hdr[each_line[0] + '_' + each_line[1]] = each_line[2]
+            hdr[each_line[0] + '_' + each_line[3]] = each_line[4]
+            hdr[each_line[0] + '_' + each_line[5]] = each_line[6]
             
-#         elif len(each_line) == 9:
-#             hdr[each_line[0] + '_' + each_line[1]] = each_line[2]
-#             hdr[each_line[0] + '_' + each_line[3]] = each_line[4]
-#             hdr[each_line[0] + '_' + each_line[5]] = each_line[6]
-#             hdr[each_line[0] + '_' + each_line[7]] = each_line[8]
+        elif len(each_line) == 9:
+            hdr[each_line[0] + '_' + each_line[1]] = each_line[2]
+            hdr[each_line[0] + '_' + each_line[3]] = each_line[4]
+            hdr[each_line[0] + '_' + each_line[5]] = each_line[6]
+            hdr[each_line[0] + '_' + each_line[7]] = each_line[8]
             
-#     return hdr
+    return hdr
     
 def parseQuantumFileHeader(filename):
     ''' parses the header in a Quantum detector image '''
@@ -1186,10 +1189,55 @@ all_header_types = {'None'           : None,
                     'I911-4 Maxlab': parseMAXLABI911HeaderFile,
                     'BioCAT'       : parseBioCATlogfile}
 
-if read_mar345:   
-    all_image_types = {'Quantum'       : loadQuantumImage,
+if use_fabio:
+    all_image_types = {
+                       'Pilatus'       : loadFabio,
+                       'CBF'                : loadFabio,
+                       'SAXSLab300'         : loadSAXSLAB300Image,
+                       'ADSC Quantum'       : loadFabio,
+                       'Bruker'             : loadFabio,
+                       'Gatan Digital Micrograph' : loadFabio,
+                       'EDNA-XML'           : loadFabio,
+                       'ESRF EDF'           : loadFabio,
+                       'FReLoN'             : loadFrelonImage,
+                       'Nonius KappaCCD'    : loadFabio,
+                       'Fit2D spreadsheet'  : loadFabio,
+                       'FLICAM'             : loadFabio,
+                       'General Electric'   : loadFabio,
+                       'Hamamatsu CCD'      : loadFabio,
+                       'HDF5 (Hierarchical data format)'  : loadFabio,
+                       'ILL SANS D11'       : loadIllSANSImage,
+                       'MarCCD 165'         : loadFabio,
+                       'Mar345'             : loadFabio, 
+                       'Medoptics'          : loadTiffImage,
+                       'Numpy 2D Array'     : loadFabio,
+                       'Oxford Diffraction' : loadFabio,
+                       'Pixi'               : loadFabio,
+                       'Portable aNy Map'   : loadFabio,
+                       'Rigaku SAXS format' : loadFabio,
+                       '16 bit TIF'         : loadFabio,
+                       '32 bit TIF'         : load32BitTiffImage
+                       # 'NeXus'           : loadNeXusFile,
+                                          }
+
+else:
+    if read_mar345:   
+        all_image_types = {'Quantum'       : loadQuantumImage,
+                           'MarCCD 165'       : loadMarCCD165Image,
+                           'Mar345'           : loadMar345Image, 
+                           'Medoptics'       : loadTiffImage,
+                           'FLICAM'           : loadTiffImage,
+                           'Pilatus'       : loadPilatusImage,
+                           'SAXSLab300'       : loadSAXSLAB300Image,
+                           'ESRF EDF'       : loadEdfImage,
+                           'FReLoN'           : loadFrelonImage,
+                           '16 bit TIF'       : loadTiffImage,
+                           '32 bit TIF'       : load32BitTiffImage,
+                           # 'NeXus'           : loadNeXusFile,
+                           'ILL SANS D11'  : loadIllSANSImage                   }
+    else:
+        all_image_types = {'Quantum'       : loadQuantumImage,
                        'MarCCD 165'       : loadMarCCD165Image,
-                       'Mar345'           : loadMar345Image, 
                        'Medoptics'       : loadTiffImage,
                        'FLICAM'           : loadTiffImage,
                        'Pilatus'       : loadPilatusImage,
@@ -1200,19 +1248,7 @@ if read_mar345:
                        '32 bit TIF'       : load32BitTiffImage,
                        # 'NeXus'           : loadNeXusFile,
                        'ILL SANS D11'  : loadIllSANSImage                   }
-else:
-    all_image_types = {'Quantum'       : loadQuantumImage,
-                   'MarCCD 165'       : loadMarCCD165Image,
-                   'Medoptics'       : loadTiffImage,
-                   'FLICAM'           : loadTiffImage,
-                   'Pilatus'       : loadPilatusImage,
-                   'SAXSLab300'       : loadSAXSLAB300Image,
-                   'ESRF EDF'       : loadEdfImage,
-                   'FReLoN'           : loadFrelonImage,
-                   '16 bit TIF'       : loadTiffImage,
-                   '32 bit TIF'       : load32BitTiffImage,
-                   # 'NeXus'           : loadNeXusFile,
-                   'ILL SANS D11'  : loadIllSANSImage                   }
+
 
 def loadAllHeaders(filename, image_type, header_type):
     ''' returns the image header and the info from the header file only. '''

@@ -2226,9 +2226,9 @@ class MainWorkerThread(threading.Thread):
 
         self._updateSECMPlot(secm)
 
-        wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 3)
+        # wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 3)
         sec_panel = wx.FindWindowByName('SECPanel')
-        wx.CallAfter(sec_panel.SetFocus)
+        # wx.CallAfter(sec_panel.SetFocus)
         wx.CallAfter(self.sec_control_panel.updateSucceeded)
         
         # wx.CallAfter(self.plot_panel.updateLegend, 1)
@@ -2606,9 +2606,9 @@ class MainWorkerThread(threading.Thread):
 
         self._updateSECMPlot(secm)
 
-        wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 3)
-        sec_controls = wx.FindWindowByName('SECPanel')
-        wx.CallAfter(sec_controls.SetFocus)
+        # wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 3)
+        # sec_controls = wx.FindWindowByName('SECPanel')
+        # wx.CallAfter(sec_controls.SetFocus)
 
 
     def _loadAndShowNextImage(self, data):
@@ -9891,6 +9891,7 @@ class SECControlPanel(wx.Panel):
     def updateFailed(self, name, error, msg):
         self.tries = self.tries + 1
         if self.tries <= self.max_tries:
+            time.sleep(1)
             self.onUpdate()
         else:
             self._goOffline()
