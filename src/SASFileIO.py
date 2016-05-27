@@ -27,7 +27,6 @@ Image._initialized=2
 
 try:
     import fabio
-    read_mar345=True
     use_fabio = True
 
 except Exception, e:

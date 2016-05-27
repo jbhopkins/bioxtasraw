@@ -4,7 +4,7 @@ Created on Jul 16, 2010
 @author: Soren Nielsen
 '''
 import wx, cPickle, copy, os, sys
-import SASFileIO
+import RAWGlobals, SASFileIO
 
 class RawGuiSettings:
     '''
@@ -316,7 +316,7 @@ def loadSettings(raw_settings, loadpath):
     try:
         loaded_param = cPickle.load(file_obj)
     except (KeyError, EOFError, ImportError, IndexError, AttributeError, cPickle.UnpicklingError) as e:
-        print e
+        print 'Error type: %s, error: %s' %(type(e).__name__, e)
         file_obj.close()
         return False
     file_obj.close()
@@ -342,53 +342,53 @@ def loadSettings(raw_settings, loadpath):
     return True
 
 def saveSettings(raw_settings, savepath):
-    param_dict = raw_settings.getAllParams() 
+    param_dict = copy.deepcopy(raw_settings.getAllParams())
     keys = param_dict.keys()
     
-    exclude_keys = ['ImageFormatList', 'ImageHdrFormatList', 'BackgroundSASM', 'CurrentCfg', 'csvIncludeData', 'CompatibleFormats']
+    exclude_keys = ['ImageFormatList', 'ImageHdrFormatList', 'BackgroundSASM', 'CurrentCfg', 'csvIncludeData', 'CompatibleFormats', 'ATSASDir']
     
     save_dict = {}
     
     for each_key in keys:
         if each_key not in exclude_keys:
-            save_dict[each_key] = copy.copy(param_dict[each_key][0])
+            save_dict[each_key] = param_dict[each_key][0]
     
     #remove big mask arrays from the cfg file
     masks = save_dict['Masks'] 
-    oldMasks = {}
     
-    # Saving created image masks that will be removed for the cfg file.
     for key in masks.keys():
-        oldMasks[key] = copy.deepcopy(masks[key][0]) 
         masks[key][0] = None
 
     file_obj = open(savepath, 'wb')
-    cPickle.dump(save_dict, file_obj, cPickle.HIGHEST_PROTOCOL)
+    try:
+        cPickle.dump(save_dict, file_obj, cPickle.HIGHEST_PROTOCOL)
+    except Exception as e:
+        print 'Error type: %s, error: %s' %(type(e).__name__, e)
+        file_obj.close()
+        return False
+   
     file_obj.close()
     
-    ## Make a backup of the config file in case of crash:
-    RAWWorkDir = sys.path[0]
-    if os.path.split(sys.path[0])[1] in ['RAW.exe', 'raw.exe']:
-        RAWWorkDir = os.path.split(sys.path[0])[0]
-        
-    backup_file = os.path.join(RAWWorkDir, 'backup.cfg')
+    ## Make a backup of the config file in case of crash:        
+    backup_file = os.path.join(RAWGlobals.RAWWorkDir, 'backup.cfg')
             
     FileObj = open(backup_file, 'wb')
-    cPickle.dump(save_dict, FileObj, cPickle.HIGHEST_PROTOCOL)
+    try:
+        cPickle.dump(save_dict, FileObj, cPickle.HIGHEST_PROTOCOL)
+    except Exception as e:
+        print 'Error type: %s, error: %s' %(type(e).__name__, e)
+        FileObj.close()
+        return False
     FileObj.close()
-    
-    for key in masks.keys():
-        masks[key][0] = oldMasks[key] 
 
     dummy_settings = RawGuiSettings()
-    try:
-        loadSettings(dummy_settings, savepath)
-    except (KeyError, EOFError, ImportError, IndexError, AttributeError, cPickle.UnpicklingError) as e:
-        print e
+    
+    test_load = loadSettings(dummy_settings, savepath)
+    
+    if not test_load:
         os.remove(savepath)
-        return False
-        
-    return True
+    
+    return test_load
 
 
 
