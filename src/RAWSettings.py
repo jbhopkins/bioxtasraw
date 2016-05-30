@@ -161,7 +161,7 @@ class RawGuiSettings:
                 
                             #IMAGE FORMATS
                             'ImageFormatList'      : [SASFileIO.all_image_types],
-                            'ImageFormat'          : ['Quantum', wx.NewId(), 'choice'],
+                            'ImageFormat'          : ['Pilatus', wx.NewId(), 'choice'],
                             
                             #HEADER FORMATS
                             'ImageHdrFormatList'   : [SASFileIO.all_header_types],
@@ -342,16 +342,18 @@ def loadSettings(raw_settings, loadpath):
     return True
 
 def saveSettings(raw_settings, savepath):
-    param_dict = copy.deepcopy(raw_settings.getAllParams())
+    param_dict = raw_settings.getAllParams()
     keys = param_dict.keys()
     
-    exclude_keys = ['ImageFormatList', 'ImageHdrFormatList', 'BackgroundSASM', 'CurrentCfg', 'csvIncludeData', 'CompatibleFormats', 'ATSASDir']
+    exclude_keys = ['ImageFormatList', 'ImageHdrFormatList', 'BackgroundSASM', 'CurrentCfg', 'csvIncludeData', 'CompatibleFormats', 'DataSECM']
     
     save_dict = {}
     
     for each_key in keys:
         if each_key not in exclude_keys:
             save_dict[each_key] = param_dict[each_key][0]
+
+    save_dict = copy.deepcopy(save_dict)
     
     #remove big mask arrays from the cfg file
     masks = save_dict['Masks'] 
@@ -363,7 +365,7 @@ def saveSettings(raw_settings, savepath):
     try:
         cPickle.dump(save_dict, file_obj, cPickle.HIGHEST_PROTOCOL)
     except Exception as e:
-        print 'Error type: %s, error: %s' %(type(e).__name__, e)
+        print '<Error> type: %s, message: %s' %(type(e).__name__, e)
         file_obj.close()
         return False
    
