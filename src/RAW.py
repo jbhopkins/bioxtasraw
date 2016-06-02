@@ -1259,7 +1259,6 @@ class MainFrame(wx.Frame):
             print e
     
     def _onCloseWindow(self, event):
-        # print 'This is really working!'
 
         manipulation_panel = wx.FindWindowByName('ManipulationPanel')
         sec_panel = wx.FindWindowByName('SECPanel')
@@ -4615,7 +4614,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
                     
                     
                     if success:
-                        raw_settings.set('CurrentCfg', full_dir_filename)
+                        raw_settings.set('CurrentCfg', file)
                     else:
                         wx.MessageBox('Load failed, config file might be corrupted',
                               'Load failed', style = wx.OK | wx.ICON_ERROR)
@@ -5024,8 +5023,12 @@ class ManipulationPanel(wx.Panel):
         return self.selected_item_list
     
     def selectAll(self):
-        for each in self.all_manipulation_items:
-                each._selected = False
+        for i in range(len(self.all_manipulation_items)):
+            each = self.all_manipulation_items[i]
+            each._selected = False
+            if i != len(self.all_manipulation_items) -1:
+                each.toggleSelect(update_info = False)
+            else:
                 each.toggleSelect()
     
     def deselectAllExceptOne(self, item, line = None, enableLocatorLine = False):
@@ -5034,15 +5037,15 @@ class ManipulationPanel(wx.Panel):
             for each in self.all_manipulation_items:
                 if each != item:
                     each._selected = True
-                    each.toggleSelect()
+                    each.toggleSelect(update_info=False)
         else:
             for each in self.all_manipulation_items:
                 if each.sasm.getLine() == line:
                     each._selected = False
-                    each.toggleSelect()
+                    each.toggleSelect(update_info = False)
                 else:
                     each._selected = True
-                    each.toggleSelect()
+                    each.toggleSelect(update_info = False)
                     
     def removeSelectedItems(self):
         if len(self.getSelectedItems()) == 0: return
@@ -5573,17 +5576,20 @@ class ManipItemPanel(wx.Panel):
         
         wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
     
-    def toggleSelect(self):
+    def toggleSelect(self, set_focus = False, update_info = True):
         
         if self._selected:
             self._selected = False
             self.SetBackgroundColour(wx.Colour(250,250,250))
-            self.info_panel.clearInfo()
+            if update_info:
+                self.info_panel.clearInfo()
         else:
             self._selected = True
             self.SetBackgroundColour(wx.Colour(200,200,200))
-            self.SetFocusIgnoringChildren()
-            self.info_panel.updateInfoFromItem(self)
+            if set_focus:
+                self.SetFocusIgnoringChildren()
+            if update_info:
+                self.info_panel.updateInfoFromItem(self)
         
         self.Refresh()
         
@@ -6205,7 +6211,6 @@ class ManipItemPanel(wx.Panel):
         
         if shift_is_down:
             try:
-                
                 first_marked_item_idx = manipulation_panel.all_manipulation_items.index(manipulation_panel.getSelectedItems()[0])
                 last_marked_item = manipulation_panel.getSelectedItems()[-1]
                 last_marked_item_idx = manipulation_panel.all_manipulation_items.index(last_marked_item)
@@ -6221,9 +6226,13 @@ class ManipItemPanel(wx.Panel):
                         
                 top_item = max(idxs)
                 bottom_item = min(idxs)
-            
-                for each in manipulation_panel.all_manipulation_items[bottom_item+adj:top_item+adj]:
-                    each.toggleSelect()
+                item_list = manipulation_panel.all_manipulation_items[bottom_item+adj:top_item+adj]
+                for i in range(len(item_list)):
+                    each = item_list[i]
+                    if i != len(item_list)-1:
+                        each.toggleSelect(update_info = False)
+                    else:
+                        each.toggleSelect()
             except IndexError:
                 pass
             
@@ -6232,9 +6241,9 @@ class ManipItemPanel(wx.Panel):
         else:
             manipulation_panel.deselectAllExceptOne(self)
             self.toggleSelect()
-            
+        
         evt.Skip()
-              
+        
     def _onStarButton(self, event):
 
         if self._selected_as_bg == True:
@@ -6638,8 +6647,12 @@ class IFTPanel(wx.Panel):
         self.selectAll()
 
     def selectAll(self):
-        for each in self.all_manipulation_items:
-                each._selected = False
+        for i in range(len(self.all_manipulation_items)):
+            each = self.all_manipulation_items[i]
+            each._selected = False
+            if i != len(self.all_manipulation_items) -1:
+                each.toggleSelect(update_info = False)
+            else:
                 each.toggleSelect()
     
     def deselectAllExceptOne(self, item, line = None, enableLocatorLine = False):
@@ -6648,15 +6661,15 @@ class IFTPanel(wx.Panel):
             for each in self.all_manipulation_items:
                 if each != item:
                     each._selected = True
-                    each.toggleSelect()
+                    each.toggleSelect(update_info=False)
         else:
             for each in self.all_manipulation_items:
                 if each.sasm.getLine() == line:
                     each._selected = False
-                    each.toggleSelect()
+                    each.toggleSelect(update_info = False)
                 else:
                     each._selected = True
-                    each.toggleSelect()
+                    each.toggleSelect(update_info = False)
                     
     def removeSelectedItems(self):
        
@@ -7429,19 +7442,20 @@ class IFTItemPanel(wx.Panel):
         
         wx.CallAfter(self.iftm.plot_panel.updatePlotAfterManipulation, [self.iftm])
     
-    def toggleSelect(self):
+    def toggleSelect(self, set_focus = False, update_info = True):
         
         if self._selected:
             self._selected = False
             self.SetBackgroundColour(wx.Colour(250,250,250))
-            # self.info_panel.clearInfo()
-            # self.iftctrl_panel.updateInfo()
+            # if update_info:
+                # self.info_panel.clearInfo()
         else:
             self._selected = True
             self.SetBackgroundColour(wx.Colour(200,200,200))
-            self.SetFocusIgnoringChildren()
-            # self.info_panel.updateInfoFromItem(self)
-            # self.iftctrl_panel.updateInfo()
+            if set_focus:
+                self.SetFocusIgnoringChildren()
+            # if update_info:
+                # self.info_panel.updateInfoFromItem(self)
         
         self.Refresh()
         
@@ -7967,8 +7981,13 @@ class IFTItemPanel(wx.Panel):
                 top_item = max(idxs)
                 bottom_item = min(idxs)
             
-                for each in manipulation_panel.all_manipulation_items[bottom_item+adj:top_item+adj]:
-                    each.toggleSelect()
+                item_list = manipulation_panel.all_manipulation_items[bottom_item+adj:top_item+adj]
+                for i in range(len(item_list)):
+                    each = item_list[i]
+                    if i != len(item_list)-1:
+                        each.toggleSelect(update_info = False)
+                    else:
+                        each.toggleSelect()
             except IndexError:
                 pass
             
@@ -8327,8 +8346,12 @@ class SECPanel(wx.Panel):
         self.Refresh()
 
     def selectAll(self):
-        for each in self.all_manipulation_items:
-                each._selected = False
+        for i in range(len(self.all_manipulation_items)):
+            each = self.all_manipulation_items[i]
+            each._selected = False
+            if i != len(self.all_manipulation_items) -1:
+                each.toggleSelect(update_info = False)
+            else:
                 each.toggleSelect()
 
     def _onShowAllButton(self, event):
@@ -8388,15 +8411,15 @@ class SECPanel(wx.Panel):
             for each in self.all_manipulation_items:
                 if each != item:
                     each._selected = True
-                    each.toggleSelect()
+                    each.toggleSelect(update_info = False)
         else:
             for each in self.all_manipulation_items:
                 if each.secm.getLine() == line or each.secm.getCalcLine() == line:
                     each._selected = False
-                    each.toggleSelect()
+                    each.toggleSelect(update_info = False)
                 else:
                     each._selected = True
-                    each.toggleSelect()
+                    each.toggleSelect(update_info = False)
 
     def removeSelectedItems(self):
 
@@ -8979,18 +9002,20 @@ class SECItemPanel(wx.Panel):
         
         wx.CallAfter(self.secm.plot_panel.updatePlotAfterManipulation, [self.secm])
     
-    def toggleSelect(self):
+    def toggleSelect(self, set_focus = False, update_info = True):
         
         if self._selected:
             self._selected = False
             self.SetBackgroundColour(wx.Colour(250,250,250))
-            # self.info_panel.clearInfo()
+            # if update_info:
+            #     self.info_panel.clearInfo()
         else:
             self._selected = True
             self.SetBackgroundColour(wx.Colour(200,200,200))
-            self.SetFocusIgnoringChildren()
-            # self.info_panel.clearInfo()
-            # self.info_panel.updateInfoFromItem(self)
+            if set_focus:
+                self.SetFocusIgnoringChildren()
+            # if update_info:
+            #     self.info_panel.updateInfoFromItem(self)
         
         self.Refresh()
         
@@ -9291,8 +9316,13 @@ class SECItemPanel(wx.Panel):
                 top_item = max(idxs)
                 bottom_item = min(idxs)
             
-                for each in sec_panel.all_manipulation_items[bottom_item+adj:top_item+adj]:
-                    each.toggleSelect()
+                item_list = sec_panel.all_manipulation_items[bottom_item+adj:top_item+adj]
+                for i in range(len(item_list)):
+                    each = item_list[i]
+                    if i != len(item_list)-1:
+                        each.toggleSelect(update_info = False)
+                    else:
+                        each.toggleSelect()
             except IndexError:
                 pass
             
