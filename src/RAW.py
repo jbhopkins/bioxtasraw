@@ -2060,6 +2060,8 @@ class MainWorkerThread(threading.Thread):
         filename_list=data[0]
         frame_list=data[1]
 
+        secm_list = []
+
         if len(data) == 3:
             update_sec_object = data[2]
         else:
@@ -2081,7 +2083,9 @@ class MainWorkerThread(threading.Thread):
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                     return
 
-                self._sendSECMToPlot(secm)
+                secm_list.append(secm)
+
+            self._sendSECMToPlot(secm_list)
 
         else:
             sasm_list=[[] for i in range(len(filename_list))]
