@@ -1284,7 +1284,7 @@ def loadImage(filename, image_type):
 
     try:
         img, imghdr = all_image_types[image_type](filename)
-    except ValueError, msg:
+    except (ValueError, TypeError) as msg:
         raise SASExceptions.WrongImageFormat('Error loading image, ' + str(msg))
     
     return img, imghdr

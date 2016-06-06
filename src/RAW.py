@@ -1678,20 +1678,8 @@ class MainWorkerThread(threading.Thread):
         
     
     def _sendIFTMToPlot(self, iftm, item_colour = 'black', line_color = None, no_update = False, update_legend = False, notsaved = False):
-        # print 'In sendIFTMToIFTPlot'
-
-        if type(iftm) == list:
-            length = len(iftm)
-
-            for i in range(length):
-                ift_parameters = iftm[i].getAllParameters()
-                wx.CallAfter(self.ift_plot_panel.plotIFTM, iftm[i])
-                wx.CallAfter(self.ift_item_panel.addItem, iftm[i], item_colour, ift_parameters, notsaved = notsaved)
-
-        else:
-            ift_parameters = iftm.getAllParameters()
-            wx.CallAfter(self.ift_plot_panel.plotIFTM, iftm)
-            wx.CallAfter(self.ift_item_panel.addItem, iftm, item_colour, ift_parameters, notsaved = notsaved)
+        wx.CallAfter(self.ift_plot_panel.plotIFTM, iftm)
+        wx.CallAfter(self.ift_item_panel.addItem, iftm, item_colour, notsaved = notsaved)
         
         if no_update == False:
             wx.CallAfter(self.ift_plot_panel.fitAxis)
@@ -1703,15 +1691,8 @@ class MainWorkerThread(threading.Thread):
         
     def _sendSASMToPlot(self, sasm, axes_num = 1, item_colour = 'black', line_color = None, no_update = False, notsaved = False, update_legend = True):
         
-        if type(sasm) == list:
-            length = len(sasm)
-        
-            for i in range(0, length):
-                wx.CallAfter(self.plot_panel.plotSASM, sasm[i], axes_num, color = line_color)
-                wx.CallAfter(self.manipulation_panel.addItem, sasm[i], item_colour, notsaved = notsaved)
-        else:
-            wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num, color = line_color)        
-            wx.CallAfter(self.manipulation_panel.addItem, sasm, item_colour, notsaved = notsaved)
+        wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num, color = line_color)
+        wx.CallAfter(self.manipulation_panel.addItem, sasm, item_colour, notsaved = notsaved)
             
         if no_update == False:
             wx.CallAfter(self.plot_panel.fitAxis)
@@ -1725,17 +1706,10 @@ class MainWorkerThread(threading.Thread):
         
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while plotting frames...')
 
-        if type(sasm) == list:
-            length = len(sasm)
-        
-            for i in range(0, length):
-                wx.CallAfter(self.plot_panel.plotSASM, sasm[i], axes_num, color = line_color)
-                wx.CallAfter(self.manipulation_panel.addItem, sasm[i], item_colour, notsaved = notsaved)
-        else:
-            wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num, color = line_color)        
-            wx.CallAfter(self.manipulation_panel.addItem, sasm, item_colour, notsaved = notsaved)
+        wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num, color = line_color)        
+        wx.CallAfter(self.manipulation_panel.addItem, sasm, item_colour, notsaved = notsaved)
             
-        if no_update == False:
+        if not no_update:
             wx.CallAfter(self.plot_panel.fitAxis)
 
         if update_legend:
@@ -1747,25 +1721,14 @@ class MainWorkerThread(threading.Thread):
 
     def _sendSECMToPlot(self, secm, item_colour = 'black', line_color = None, no_update = False, notsaved = False, update_legend = True):
         
-        if type(secm) == list:
-            length = len(secm)
-        
-            for i in range(0, length):
-                wx.CallAfter(self.sec_plot_panel.plotSECM, secm[i], color = line_color)
-                wx.CallAfter(self.sec_item_panel.addItem, secm[i], item_colour, notsaved = notsaved)
-        else:
-            wx.CallAfter(self.sec_plot_panel.plotSECM, secm, color = line_color)
-            wx.CallAfter(self.sec_item_panel.addItem, secm, item_colour, notsaved = notsaved)
+        wx.CallAfter(self.sec_plot_panel.plotSECM, secm, color = line_color)
+        wx.CallAfter(self.sec_item_panel.addItem, secm, item_colour, notsaved = notsaved)
             
         if no_update == False:
             wx.CallAfter(self.sec_plot_panel.fitAxis)
 
         if update_legend:
             wx.CallAfter(self.sec_plot_panel.updateLegend, 1)
-
-        # wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 3)
-        # file_list = wx.FindWindowByName('SECPanel')
-        # wx.CallAfter(file_list.SetFocus)
 
 
     def _updateSECMPlot(self, secm, item_colour = 'black', line_color = None, no_update = False, notsaved = False):
@@ -1956,7 +1919,6 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(wx.MessageBox, 'The mask has been created and enabled.', 'Mask creation finished', style = wx.ICON_INFORMATION)
         
     def _loadAndPlot(self, filename_list):     
-        # ta=time.time()
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while plotting...')
 
         loaded_secm = False
@@ -1964,22 +1926,28 @@ class MainWorkerThread(threading.Thread):
         loaded_iftm = False
 
         do_auto_save = self._raw_settings.get('AutoSaveOnImageFiles')
+
+        sasm_list = []
+        iftm_list = []
+        secm_list = []
        
         try:
             for i in range(len(filename_list)):
-
+                
                 each_filename = filename_list[i]
 
                 file_ext = os.path.splitext(each_filename)[1] 
 
                 if file_ext == '.sec':
+
                     try:
                         secm = SASFileIO.loadSECFile(each_filename)
                     except:
                         self._showDataFormatError(os.path.split(each_filename)[1], include_sec = True)
                         wx.CallAfter(self.main_frame.closeBusyDialog)
                         return
-                    self._sendSECMToPlot(secm, no_update = True, update_legend = False)
+                    secm_list.append(secm)
+
                     img = None
                     loaded_secm = True
 
@@ -1991,18 +1959,15 @@ class MainWorkerThread(threading.Thread):
                     else:
                         item_colour = 'black'
 
-                    self._sendIFTMToPlot(iftm, item_colour = item_colour, no_update = True, update_legend = False)
+                    if type(iftm) == list:
+                        iftm_list.append(iftm[0])
 
                     loaded_iftm = True
-
 
                 else:
                     sasm, img = SASFileIO.loadFile(each_filename, self._raw_settings)
 
                     loaded_sasm = True
-
-                    # print sasm
-                    # print img
                     
                     if img != None:
                         qrange = sasm.getQrange()
@@ -2012,8 +1977,8 @@ class MainWorkerThread(threading.Thread):
                         # print end_point
                         qrange = (start_point, len(sasm.getBinnedQ())-end_point)
                         sasm.setQrange(qrange)
-                    
-                    self._sendSASMToPlot(sasm, no_update = True, update_legend = False)
+
+                    sasm_list.append(sasm)
         
                     if do_auto_save:
                         save_path = self._raw_settings.get('ProcessedFilePath')
@@ -2021,13 +1986,29 @@ class MainWorkerThread(threading.Thread):
 
                 if numpy.mod(i,20) == 0:
                     if loaded_sasm:
+                        self._sendSASMToPlot(sasm_list, no_update = True, update_legend = False)
                         wx.CallAfter(self.plot_panel.canvas.draw)
                     if loaded_secm:
+                        self._sendSECMToPlot(secm_list, no_update = True, update_legend = False)
                         wx.CallAfter(self.sec_plot_panel.canvas.draw)
                     if loaded_iftm:
+                        self._sendIFTMToPlot(iftm_list, item_colour = item_colour, no_update = True, update_legend = False)
                         wx.CallAfter(self.ift_plot_panel.canvas.draw)
 
-                
+                    sasm_list = []
+                    iftm_list = []
+                    secm_list = []
+
+            
+            if len(sasm_list) > 0:
+                self._sendSASMToPlot(sasm_list, no_update = True, update_legend = False)
+
+            if len(iftm_list) > 0:
+                self._sendIFTMToPlot(iftm_list, item_colour = item_colour, no_update = True, update_legend = False)
+
+            if len(secm_list) > 0:
+                self._sendSECMToPlot(secm_list, no_update = True, update_legend = False)
+
         except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
             self._showDataFormatError(os.path.split(each_filename)[1])
             wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -2670,7 +2651,7 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while loading image...')
        
         img_fmt = self._raw_settings.get('ImageFormat')
-        
+        print filename
         try:
             if not os.path.isfile(filename):
                 raise SASExceptions.WrongImageFormat('not a valid file!')
@@ -2970,6 +2951,8 @@ class MainWorkerThread(threading.Thread):
         
         yes_to_all = False
 
+        subtracted_list = []
+
         for i in range(len(selected_items)):
             each = selected_items[i]
             # result = wx.ID_YES
@@ -2992,14 +2975,9 @@ class MainWorkerThread(threading.Thread):
                     if result == wx.ID_YES or result == wx.ID_YESTOALL:
                         subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
                         self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-                        
-                        #Insert into history of new file.
-                        
-                        scale2 = sub_sasm.getScale()
-                        offset2 = sub_sasm.getOffset()
-                        name2 = sub_sasm.getParameter('filename')
-                        
-                        self._sendSASMToPlot(subtracted_sasm, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
+                                                
+                        subtracted_list.append(subtracted_sasm)
+                        # self._sendSASMToPlot(subtracted_sasm, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
         
                         if do_auto_save:
                             save_path = self._raw_settings.get('SubtractedFilePath')
@@ -3014,13 +2992,8 @@ class MainWorkerThread(threading.Thread):
                     subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
                     
-                    #Insert into history of new file.
-                    
-                    scale2 = sub_sasm.getScale()
-                    offset2 = sub_sasm.getOffset()
-                    name2 = sub_sasm.getParameter('filename')
-                    
-                    self._sendSASMToPlot(subtracted_sasm, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
+                    subtracted_list.append(subtracted_sasm)
+                    # self._sendSASMToPlot(subtracted_sasm, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
 
                     if do_auto_save:
                         save_path = self._raw_settings.get('SubtractedFilePath')
@@ -3035,13 +3008,8 @@ class MainWorkerThread(threading.Thread):
                     subtracted_sasm = SASM.subtract(sasm, sub_sasm)
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
                     
-                    #Insert into history of new file.
-                    
-                    scale2 = sub_sasm.getScale()
-                    offset2 = sub_sasm.getOffset()
-                    name2 = sub_sasm.getParameter('filename')
-                    
-                    self._sendSASMToPlot(subtracted_sasm, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
+                    subtracted_list.append(subtracted_sasm)
+                    # self._sendSASMToPlot(subtracted_sasm, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
 
                     if do_auto_save:
                         save_path = self._raw_settings.get('SubtractedFilePath')
@@ -3053,7 +3021,12 @@ class MainWorkerThread(threading.Thread):
                    return
 
             if numpy.mod(i,20) == 0:
+                self._sendSASMToPlot(subtracted_list, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
                 wx.CallAfter(self.plot_panel.canvas.draw)
+                subtracted_list = []
+
+        if len(subtracted_list) > 0:
+            self._sendSASMToPlot(subtracted_list, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
 
         wx.CallAfter(self.plot_panel.fitAxis)
         wx.CallAfter(self.plot_panel.updateLegend, 2)
@@ -4918,10 +4891,27 @@ class ManipulationPanel(wx.Panel):
     
     def addItem(self, sasm, item_colour = 'black', item_visible = True, notsaved = False):
         
-        newItem = ManipItemPanel(self.underpanel, sasm, font_colour = item_colour,
-                                 item_visible = item_visible)
+        
         self.Freeze()
-        self.underpanel_sizer.Add(newItem, 0, wx.GROW)
+
+        if type(sasm) == list:
+
+            for item in sasm:
+                newItem = ManipItemPanel(self.underpanel, item, font_colour = item_colour,
+                             item_visible = item_visible, modified = notsaved)
+
+                self.underpanel_sizer.Add(newItem, 0, wx.GROW)
+                self.all_manipulation_items.append(newItem)
+                item.item_panel = newItem
+
+        else:
+            newItem = ManipItemPanel(self.underpanel, sasm, font_colour = item_colour,
+                                     item_visible = item_visible, modified = notsaved)
+
+            self.underpanel_sizer.Add(newItem, 0, wx.GROW)
+            self.all_manipulation_items.append(newItem)
+            sasm.item_panel = newItem
+        
         self.underpanel_sizer.Layout()
         
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
@@ -4930,13 +4920,6 @@ class ManipulationPanel(wx.Panel):
         self.Thaw()
         
         # Keeping track of all items in our list:
-        self.all_manipulation_items.append(newItem)
-        
-        
-        sasm.item_panel = newItem
-        
-        if notsaved:
-            newItem.markAsModified()
         
     def setItemAsBackground(self, item):
         
@@ -5325,7 +5308,7 @@ class ManipulationPanel(wx.Panel):
         
 
 class ManipItemPanel(wx.Panel):
-    def __init__(self, parent, sasm, font_colour = 'BLACK', legend_label = '', item_visible = True):
+    def __init__(self, parent, sasm, font_colour = 'BLACK', legend_label = '', item_visible = True, modified = False):
         
         wx.Panel.__init__(self, parent, style = wx.BORDER_RAISED)
         
@@ -5482,8 +5465,19 @@ class ManipItemPanel(wx.Panel):
         
         if controls_not_shown:
             self.showControls(not controls_not_shown)
+
+        if modified:
+            parent = self.GetParent()
+        
+            filename = self.sasm.getParameter('filename')
+            self.SelectedForPlot.SetLabel('* ' + str(filename))
+            self.SelectedForPlot.Refresh()
+            
+            if self not in self.manipulation_panel.modified_items:
+                self.manipulation_panel.modified_items.append(self)
         
         self.updateShowItemCheckBox()
+
         
         
     def updateInfoTip(self, analysis_dict, fromGuinierDialog = False):
@@ -6535,11 +6529,27 @@ class IFTPanel(wx.Panel):
         return sizer
     
     
-    def addItem(self, iftm, item_colour = 'black', ift_parameters = {}, item_visible = True, notsaved = False):
-        
-        newItem = IFTItemPanel(self.underpanel, iftm, font_colour = item_colour, ift_parameters = ift_parameters, item_visible = item_visible)
+    def addItem(self, iftm_list, item_colour = 'black', item_visible = True, notsaved = False):
+        if type(iftm_list) != list:
+            iftm_list = [iftm_list]
+
         self.Freeze()
-        self.underpanel_sizer.Add(newItem, 0, wx.GROW)
+
+        for iftm in iftm_list:
+            newItem = IFTItemPanel(self.underpanel, iftm, font_colour = item_colour, ift_parameters = iftm.getAllParameters(), item_visible = item_visible, modified = notsaved)
+            self.underpanel_sizer.Add(newItem, 0, wx.GROW)
+
+            iftm.item_panel = newItem
+
+            # Keeping track of all items in our list:
+            self.all_manipulation_items.append(newItem)
+            
+            try:
+                newItem._updateColourIndicator()
+            except AttributeError:
+                pass
+        
+
         self.underpanel_sizer.Layout()
         
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
@@ -6547,21 +6557,11 @@ class IFTPanel(wx.Panel):
         self.Refresh()
         self.Thaw()
         
-        # Keeping track of all items in our list:
-        self.all_manipulation_items.append(newItem)
-        
-        iftm.item_panel = newItem
-        
+       
         # self.deselectAllExceptOne(newItem)
         # newItem.toggleSelect()
 
-        if notsaved:
-            newItem.markAsModified()
         
-        try:
-            newItem._updateColourIndicator()
-        except AttributeError:
-            pass
         
     def setItemAsBackground(self, item):
         
@@ -7187,7 +7187,7 @@ class IFTPanel(wx.Panel):
                 first = False
 
 class IFTItemPanel(wx.Panel):
-    def __init__(self, parent, iftm, font_colour = 'BLACK', legend_label = '', ift_parameters = {}, item_visible = True):
+    def __init__(self, parent, iftm, font_colour = 'BLACK', legend_label = '', ift_parameters = {}, item_visible = True, modified = False):
         
         wx.Panel.__init__(self, parent, style = wx.BORDER_RAISED)
         
@@ -7351,6 +7351,16 @@ class IFTItemPanel(wx.Panel):
         #     self.showControls(not controls_not_shown)
 
         self.updateShowItemCheckBox()
+
+        if modified:
+            parent = self.GetParent()
+        
+            filename = self.iftm.getParameter('filename')
+            self.SelectedForPlot.SetLabel('* ' + str(filename))
+            self.SelectedForPlot.Refresh()
+            
+            if self not in self.manipulation_panel.modified_items:
+                self.manipulation_panel.modified_items.append(self)
             
             
     def setCurrentIFTParameters(self, ift_parameters):
@@ -8500,12 +8510,26 @@ class SECPanel(wx.Panel):
         
         self.Thaw()
 
-    def addItem(self, secm, item_colour = 'black', item_visible = True, notsaved = False):
+    def addItem(self, secm_list, item_colour = 'black', item_visible = True, notsaved = False):
         
-        newItem = SECItemPanel(self.underpanel, secm, font_colour = item_colour,
-                                 item_visible = item_visible)
         self.Freeze()
-        self.underpanel_sizer.Add(newItem, 0, wx.GROW)
+
+        if type(secm_list) != list:
+            secm_list = [secm_list]
+
+        for secm in secm_list:
+
+            newItem = SECItemPanel(self.underpanel, secm, font_colour = item_colour,
+                                     item_visible = item_visible, modified = notsaved)
+        
+            self.underpanel_sizer.Add(newItem, 0, wx.GROW)
+
+            # Keeping track of all items in our list:
+            self.all_manipulation_items.append(newItem)
+
+            secm.item_panel = newItem
+
+
         self.underpanel_sizer.Layout()
         
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
@@ -8513,15 +8537,6 @@ class SECPanel(wx.Panel):
         self.Refresh()
         self.Thaw()
         
-        # Keeping track of all items in our list:
-        self.all_manipulation_items.append(newItem)
-        
-        
-        secm.item_panel = newItem
-        
-        if notsaved:
-            newItem.markAsModified()
-    
     def saveData(self):
         selected_items = self.getSelectedItems()
 
@@ -8772,7 +8787,7 @@ class SECPanel(wx.Panel):
 
 
 class SECItemPanel(wx.Panel):
-    def __init__(self, parent, secm, font_colour = 'BLACK', legend_label = '', item_visible = True):
+    def __init__(self, parent, secm, font_colour = 'BLACK', legend_label = '', item_visible = True, modified = False):
         
         wx.Panel.__init__(self, parent, style = wx.BORDER_RAISED)
         
@@ -8929,6 +8944,16 @@ class SECItemPanel(wx.Panel):
         
         # if controls_not_shown:
         #     self.showControls(not controls_not_shown)
+
+        if modified:
+            parent = self.GetParent()
+        
+            filename = self.secm.getParameter('filename')
+            self.SelectedForPlot.SetLabel('* ' + str(filename))
+            self.SelectedForPlot.Refresh()
+
+            if self not in self.sec_panel.modified_items:
+                self.sec_panel.modified_items.append(self)
         
         self.updateShowItemCheckBox()
 

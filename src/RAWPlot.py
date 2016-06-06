@@ -1594,7 +1594,7 @@ class PlotPanel(wx.Panel):
         if axesThatNeedsUpdatedLegend:
             plotpanel.canvas.draw()
 
-    def plotSASM(self, sasm, axes_no = 1, color = None, legend_label_in = None, line_data = None, *args, **kwargs):
+    def plotSASM(self, sasm_list, axes_no = 1, color = None, legend_label_in = None, line_data = None, *args, **kwargs):
         
         if axes_no == 1:
             a = self.subplot1
@@ -1603,61 +1603,66 @@ class PlotPanel(wx.Panel):
         else:
             a = axes_no
             
+        if type(sasm_list) != list:
+            sasm_list = [sasm_list]
+
       
         #plot with errorbars
         if a == self.subplot1:
-            type = self.plotparams.get('plot1type')
+            plottype= self.plotparams.get('plot1type')
         elif a == self.subplot2:  
-            type = self.plotparams.get('plot2type')
-        
-        q_min, q_max = sasm.getQrange()
-        
-        if legend_label_in == None:
-            legend_label = sasm.getParameter('filename')
-        else:
-            legend_label = legend_label_in
+            plottype= self.plotparams.get('plot2type')
 
-        if type == 'normal' or type == 'subtracted':
-            line, ec, el = a.errorbar(sasm.q[q_min:q_max], sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label, **kwargs)
-        elif type == 'kratky':
-            line, ec, el = a.errorbar(sasm.q[q_min:q_max], sasm.i[q_min:q_max] * numpy.power(sasm.q,2), sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
-        elif type == 'guinier':
-            line, ec, el = a.errorbar(numpy.power(sasm.q[q_min:q_max],2), sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
-        elif type == 'porod':
-            line, ec, el = a.errorbar(sasm.q[q_min:q_max], numpy.power(sasm.q[q_min:q_max],4)*sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
-    
-        # print legend_label
-        line.set_label(legend_label)        
+        for sasm in sasm_list:
+        
+            q_min, q_max = sasm.getQrange()
+            
+            if legend_label_in == None:
+                legend_label = sasm.getParameter('filename')
+            else:
+                legend_label = legend_label_in
 
-        #Hide errorbars:
-        if self.plotparams['errorbars_on'] == False:
-            #ec[0].set_visible(False)
-            #ec[1].set_visible(False)
-            #el[0].set_visible(False)
-            
-            for each in ec:
-                each.set_visible(False)    
-            for each in el:
-                each.set_visible(False)
-            
-        if color != None:
-            line.set_color(color)
-            
-        sasm.line = line
-        sasm.err_line = (ec, el)
-        sasm.axes = a
-        sasm.canvas = self.canvas
-        sasm.plot_panel = self
-        sasm.is_plotted = True
+            if plottype== 'normal' or plottype== 'subtracted':
+                line, ec, el = a.errorbar(sasm.q[q_min:q_max], sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label, **kwargs)
+            elif plottype== 'kratky':
+                line, ec, el = a.errorbar(sasm.q[q_min:q_max], sasm.i[q_min:q_max] * numpy.power(sasm.q,2), sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
+            elif plottype== 'guinier':
+                line, ec, el = a.errorbar(numpy.power(sasm.q[q_min:q_max],2), sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
+            elif plottype== 'porod':
+                line, ec, el = a.errorbar(sasm.q[q_min:q_max], numpy.power(sasm.q[q_min:q_max],4)*sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
+        
+            # print legend_label
+            line.set_label(legend_label)        
+
+            #Hide errorbars:
+            if self.plotparams['errorbars_on'] == False:
+                #ec[0].set_visible(False)
+                #ec[1].set_visible(False)
+                #el[0].set_visible(False)
                 
-        self.plotted_sasms.append(sasm)        # Insert the plot into plotted experiments list
-    
-        if line_data != None:
-            line.set_linewidth(line_data['line_width'])
-            line.set_linestyle(line_data['line_style'])
-            line.set_color(line_data['line_color'])
-            line.set_marker(line_data['line_marker'])
-            line.set_visible(line_data['line_visible'])
+                for each in ec:
+                    each.set_visible(False)    
+                for each in el:
+                    each.set_visible(False)
+                
+            if color != None:
+                line.set_color(color)
+                
+            sasm.line = line
+            sasm.err_line = (ec, el)
+            sasm.axes = a
+            sasm.canvas = self.canvas
+            sasm.plot_panel = self
+            sasm.is_plotted = True
+                    
+            self.plotted_sasms.append(sasm)        # Insert the plot into plotted experiments list
+        
+            if line_data != None:
+                line.set_linewidth(line_data['line_width'])
+                line.set_linestyle(line_data['line_style'])
+                line.set_color(line_data['line_color'])
+                line.set_marker(line_data['line_marker'])
+                line.set_visible(line_data['line_visible'])
         
         
     def showErrorbars(self, state):
@@ -1957,15 +1962,15 @@ class PlotPanel(wx.Panel):
             a = sasm.axes
         
             if a == self.subplot1:
-                type = self.plotparams.get('plot1type')
+                plottype= self.plotparams.get('plot1type')
             elif a == self.subplot2:  
-                type = self.plotparams.get('plot2type')
+                plottype= self.plotparams.get('plot2type')
               
             q_min, q_max = sasm.getQrange()
             q = sasm.q[q_min:q_max]
             i = sasm.i[q_min:q_max]
               
-            if type == 'normal' or type == 'subtracted':
+            if plottype== 'normal' or plottype== 'subtracted':
                 #line, ec, el = a.errorbar(sasm.q, sasm.i, sasm.errorbars, picker = 3)
                 sasm.line.set_data(q, i)
                 
@@ -1989,13 +1994,13 @@ class PlotPanel(wx.Panel):
 #                # Update the error bars 
 #                barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr))) 
             
-            elif type == 'kratky':
+            elif plottype== 'kratky':
                 #line, ec, el = a.errorbar(sasm.q, sasm.i*power(sasm.q,2), sasm.errorbars, picker = 3)
                 sasm.line.set_data(q, i*numpy.power(q,2))
-            elif type == 'guinier':
+            elif plottype== 'guinier':
                 #line, ec, el = a.errorbar(power(sasm.q,2), sasm.i, sasm.errorbars, picker = 3)
                 sasm.line.set_data(numpy.power(q,2), i)
-            elif type == 'porod':
+            elif plottype== 'porod':
                 #line, ec, el = a.errorbar(sasm.q, power(sasm.q,4)*sasm.i, sasm.errorbars, picker = 3)
                 sasm.line.set_data(q, numpy.power(q,4)*i)
         
@@ -3218,100 +3223,105 @@ class IftPlotPanel(PlotPanel):
         
         self.fitAxis()
         
-    def plotIFTM(self, iftm, legend_label_in = None, line_data = None, *args, **kwargs):
+    def plotIFTM(self, iftm_list, legend_label_in = None, line_data = None, *args, **kwargs):
         
         a1 = self.subplot1
         a2 = self.subplot2
         
         type1 = self.plotparams.get('plot1type') 
         type2 = self.plotparams.get('plot2type')
+
+        if type(iftm_list) != list:
+            iftm_list = [iftm_list]
+
+        for iftm in iftm_list:
         
-        q_min, q_max = iftm.getQrange()
-        
-        if legend_label_in == None:
-            legend_label = iftm.getParameter('filename')
-        else:
-            legend_label = legend_label_in
-        
-        if type1 == 'normal' or type1 == 'subtracted':
-            pr_line, pr_ec, pr_el = a1.errorbar(iftm.r, iftm.p, iftm.err, picker = 3, label = legend_label+'_P(r)', **kwargs)
-        
-        pr_line.set_label(legend_label)
+            q_min, q_max = iftm.getQrange()
+            
+            if legend_label_in == None:
+                legend_label = iftm.getParameter('filename')
+            else:
+                legend_label = legend_label_in
+            
+            if type1 == 'normal' or type1 == 'subtracted':
+                pr_line, pr_ec, pr_el = a1.errorbar(iftm.r, iftm.p, iftm.err, picker = 3, label = legend_label+'_P(r)', **kwargs)
+            
+            pr_line.set_label(legend_label)
 
-        if type2 == 'normal' or type2 == 'subtracted':
-            orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig[q_min:q_max], iftm.i_orig[q_min:q_max], iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp', **kwargs)
-        elif type2 == 'kratky':
-            orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig[q_min:q_max], iftm.i_orig[q_min:q_max] * numpy.power(iftm.q_orig[q_min:q_max],2), iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp',**kwargs)
-        elif type2 == 'guinier':
-            orig_line, orig_ec, orig_el = a2.errorbar(numpy.power(iftm.q_orig[q_min:q_max],2), iftm.i_orig[q_min:q_max], iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp',**kwargs)
-        elif type2 == 'porod':
-            orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig[q_min:q_max], numpy.power(iftm.q_orig[q_min:q_max],4)*iftm.i_orig[q_min:q_max], iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp',**kwargs)
+            if type2 == 'normal' or type2 == 'subtracted':
+                orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig[q_min:q_max], iftm.i_orig[q_min:q_max], iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp', **kwargs)
+            elif type2 == 'kratky':
+                orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig[q_min:q_max], iftm.i_orig[q_min:q_max] * numpy.power(iftm.q_orig[q_min:q_max],2), iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp',**kwargs)
+            elif type2 == 'guinier':
+                orig_line, orig_ec, orig_el = a2.errorbar(numpy.power(iftm.q_orig[q_min:q_max],2), iftm.i_orig[q_min:q_max], iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp',**kwargs)
+            elif type2 == 'porod':
+                orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig[q_min:q_max], numpy.power(iftm.q_orig[q_min:q_max],4)*iftm.i_orig[q_min:q_max], iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp',**kwargs)
 
-        orig_line.set_label(legend_label+'_Exp')
+            orig_line.set_label(legend_label+'_Exp')
 
 
-        if type2 == 'normal' or type2 == 'subtracted':
-            fit_line = a2.plot(iftm.q_orig[q_min:q_max], iftm.i_fit[q_min:q_max], picker = 3, label = legend_label+'_Fit', **kwargs)
-        elif type2 == 'kratky':
-            fit_line = a2.plot(iftm.q_orig[q_min:q_max], iftm.i_fit[q_min:q_max] * numpy.power(iftm.q_orig[q_min:q_max],2), picker = 3, label = legend_label+'_Fit',**kwargs)
-        elif type2 == 'guinier':
-            fit_line = a2.plot(numpy.power(iftm.q_orig[q_min:q_max],2), iftm.i_fit[q_min:q_max], picker = 3, label = legend_label+'_Fit',**kwargs)
-        elif type2 == 'porod':
-            fit_line = a2.plot(iftm.q_orig[q_min:q_max], numpy.power(iftm.q_orig[q_min:q_max],4)*iftm.i_fit[q_min:q_max], picker = 3, label = legend_label+'_Fit',**kwargs)
-        # print legend_label
-        # line.set_label(legend_label) 
+            if type2 == 'normal' or type2 == 'subtracted':
+                fit_line = a2.plot(iftm.q_orig[q_min:q_max], iftm.i_fit[q_min:q_max], picker = 3, label = legend_label+'_Fit', **kwargs)
+            elif type2 == 'kratky':
+                fit_line = a2.plot(iftm.q_orig[q_min:q_max], iftm.i_fit[q_min:q_max] * numpy.power(iftm.q_orig[q_min:q_max],2), picker = 3, label = legend_label+'_Fit',**kwargs)
+            elif type2 == 'guinier':
+                fit_line = a2.plot(numpy.power(iftm.q_orig[q_min:q_max],2), iftm.i_fit[q_min:q_max], picker = 3, label = legend_label+'_Fit',**kwargs)
+            elif type2 == 'porod':
+                fit_line = a2.plot(iftm.q_orig[q_min:q_max], numpy.power(iftm.q_orig[q_min:q_max],4)*iftm.i_fit[q_min:q_max], picker = 3, label = legend_label+'_Fit',**kwargs)
+            # print legend_label
+            # line.set_label(legend_label) 
 
-        #Hide errorbars:
-        if self.plotparams['errorbars_on'] == False:
-            for each in pr_ec:
-                each.set_visible(False)
-                
-            for each in pr_el:
-                each.set_visible(False)
+            #Hide errorbars:
+            if self.plotparams['errorbars_on'] == False:
+                for each in pr_ec:
+                    each.set_visible(False)
+                    
+                for each in pr_el:
+                    each.set_visible(False)
 
-            for each in orig_ec:
-                each.set_visible(False)
-                
-            for each in orig_el:
-                each.set_visible(False)
-        
-        iftm.r_line = pr_line
-        iftm.qo_line = orig_line
-        iftm.qf_line = fit_line[0]
+                for each in orig_ec:
+                    each.set_visible(False)
+                    
+                for each in orig_el:
+                    each.set_visible(False)
+            
+            iftm.r_line = pr_line
+            iftm.qo_line = orig_line
+            iftm.qf_line = fit_line[0]
 
-        iftm.r_err_line = (pr_ec, pr_el)
-        iftm.qo_err_line = (orig_ec, orig_el)
+            iftm.r_err_line = (pr_ec, pr_el)
+            iftm.qo_err_line = (orig_ec, orig_el)
 
-        iftm.r_axes = a1
-        iftm.qo_axes = a2
-        iftm.qf_axes = a2
+            iftm.r_axes = a1
+            iftm.qo_axes = a2
+            iftm.qf_axes = a2
 
-        iftm.plot_panel = self
+            iftm.plot_panel = self
 
-        iftm.canvas = self.canvas
-        
-        iftm.is_plotted = True
-                
-        self.plotted_iftms.append(iftm)        # Insert the plot into plotted experiments list
-        
-        if line_data != None:
-            pr_line.set_linewidth(line_data['r_line_width'])
-            pr_line.set_linestyle(line_data['r_line_style'])
-            pr_line.set_color(line_data['r_line_color'])
-            pr_line.set_marker(line_data['r_line_marker'])
-            pr_line.set_visible(line_data['r_line_visible'])
+            iftm.canvas = self.canvas
+            
+            iftm.is_plotted = True
+                    
+            self.plotted_iftms.append(iftm)        # Insert the plot into plotted experiments list
+            
+            if line_data != None:
+                pr_line.set_linewidth(line_data['r_line_width'])
+                pr_line.set_linestyle(line_data['r_line_style'])
+                pr_line.set_color(line_data['r_line_color'])
+                pr_line.set_marker(line_data['r_line_marker'])
+                pr_line.set_visible(line_data['r_line_visible'])
 
-            orig_line.set_linewidth(line_data['qo_line_width'])
-            orig_line.set_linestyle(line_data['qo_line_style'])
-            orig_line.set_color(line_data['qo_line_color'])
-            orig_line.set_marker(line_data['qo_line_marker'])
-            orig_line.set_visible(line_data['qo_line_visible'])
+                orig_line.set_linewidth(line_data['qo_line_width'])
+                orig_line.set_linestyle(line_data['qo_line_style'])
+                orig_line.set_color(line_data['qo_line_color'])
+                orig_line.set_marker(line_data['qo_line_marker'])
+                orig_line.set_visible(line_data['qo_line_visible'])
 
-            fit_line[0].set_linewidth(line_data['qf_line_width'])
-            fit_line[0].set_linestyle(line_data['qf_line_style'])
-            fit_line[0].set_color(line_data['qf_line_color'])
-            fit_line[0].set_marker(line_data['qf_line_marker'])
-            fit_line[0].set_visible(line_data['qf_line_visible'])
+                fit_line[0].set_linewidth(line_data['qf_line_width'])
+                fit_line[0].set_linestyle(line_data['qf_line_style'])
+                fit_line[0].set_color(line_data['qf_line_color'])
+                fit_line[0].set_marker(line_data['qf_line_marker'])
+                fit_line[0].set_visible(line_data['qf_line_visible'])
         
     def _onMouseMotionEvent(self, event):
   
@@ -4201,149 +4211,151 @@ class SECPlotPanel(wx.Panel):
         if axesThatNeedsUpdatedLegend:
             plotpanel.canvas.draw()
 
-    def plotSECM(self, secm, color = None, legend_label_in = None, line_data = None, calc_line_data = None, *args, **kwargs):
+    def plotSECM(self, secm_list, color = None, legend_label_in = None, line_data = None, calc_line_data = None, *args, **kwargs):
         
         a = self.subplot1
+
+        if type(secm_list) != list:
+            secm_list = [secm_list]
             
       
         #plot with errorbars
-        type = self.plotparams.get('plot1type')
-
-        print legend_label_in
+        # type = self.plotparams.get('plot1type')
         
         # q_min, q_max = secm.getQrange()
         
-        if legend_label_in == None:
-            legend_label = secm.getFilename()
-            # print 'set label legend to filename'
-            # print legend_label
-        else:
-            # print 'set label legend to input'
-            legend_label = legend_label_in
+        for secm in secm_list:
+            if legend_label_in == None:
+                legend_label = secm.getFilename()
+                # print 'set label legend to filename'
+                # print legend_label
+            else:
+                # print 'set label legend to input'
+                legend_label = legend_label_in
 
-        if self.plotparams.get('y_axis_display') == 'total':
-            ydata = secm.total_i
-
-            # line = a.plot(secm.frame_list, secm.total_i, picker = 3, label = legend_label, **kwargs)[0]
-
-        elif self.plotparams.get('y_axis_display') == 'mean':
-            ydata = secm.mean_i
-            # line = a.plot(secm.frame_list, secm.mean_i, picker = 3, label = legend_label, **kwargs)[0]
-
-        elif self.plotparams.get('y_axis_display') == 'qspec':
-            q=float(self.plotparams['secm_plot_q'])
-            sasm = secm.getSASM()
-            qrange = sasm.getQrange()
-            qmin = sasm.q[qrange[0]]
-            qmax = sasm.q[qrange[-1]-1]
-
-            if q > qmax or q < qmin:
-                wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
-                self.plotparams['y_axis_display'] = 'total'
+            if self.plotparams.get('y_axis_display') == 'total':
                 ydata = secm.total_i
+
                 # line = a.plot(secm.frame_list, secm.total_i, picker = 3, label = legend_label, **kwargs)[0]
 
-            else:
-                if self.qref == q:
-                    ydata = secm.I_of_q
+            elif self.plotparams.get('y_axis_display') == 'mean':
+                ydata = secm.mean_i
+                # line = a.plot(secm.frame_list, secm.mean_i, picker = 3, label = legend_label, **kwargs)[0]
+
+            elif self.plotparams.get('y_axis_display') == 'qspec':
+                q=float(self.plotparams['secm_plot_q'])
+                sasm = secm.getSASM()
+                qrange = sasm.getQrange()
+                qmin = sasm.q[qrange[0]]
+                qmax = sasm.q[qrange[-1]-1]
+
+                if q > qmax or q < qmin:
+                    wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
+                    self.plotparams['y_axis_display'] = 'total'
+                    ydata = secm.total_i
+                    # line = a.plot(secm.frame_list, secm.total_i, picker = 3, label = legend_label, **kwargs)[0]
+
                 else:
-                    ydata = secm.I(q)
-                # line = a.plot(secm.frame_list, secm.I(q), picker = 3, label = legend_label, **kwargs)[0]
+                    if self.qref == q:
+                        ydata = secm.I_of_q
+                    else:
+                        ydata = secm.I(q)
+                    # line = a.plot(secm.frame_list, secm.I(q), picker = 3, label = legend_label, **kwargs)[0]
 
-        else:
-            print 'no y data selected!'
-            return
-
-        if self.plotparams.get('x_axis_display') == 'frame':
-            xdata = secm.frame_list
-
-        elif self.plotparams.get('x_axis_display') == 'time':
-            time= secm.getTime()
-
-            if len(time) == 0:
-                wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
-                self.plotparams['x_axis_display'] = 'frame'
-                xdata = secm.frame_list
-            elif time[0] == -1:
-                wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
-                self.plotparams['x_axis_display'] = 'frame'
-                xdata = secm.frame_list
-            elif len(time) != len(ydata):
-                wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
-                self.plotparams['x_axis_display'] = 'frame'
-                xdata = secm.frame_list
             else:
-                xdata = time
-        else:
-            print 'no x data selected!'
-            return
+                print 'no y data selected!'
+                return
 
-        line = a.plot(xdata, ydata, picker = 3, label = legend_label, **kwargs)[0]
+            if self.plotparams.get('x_axis_display') == 'frame':
+                xdata = secm.frame_list
 
-        line.set_label(legend_label)        
-            
-        secm.line = line
-        secm.axes = a
-        secm.canvas = self.canvas
-        secm.plot_panel = self
-        secm.is_plotted = True
+            elif self.plotparams.get('x_axis_display') == 'time':
+                time= secm.getTime()
 
-        #######If the secm object has calculated structural parameters, plot those
-        param = self.plotparams['secm_plot_calc']
+                if len(time) == 0:
+                    wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
+                    self.plotparams['x_axis_display'] = 'frame'
+                    xdata = secm.frame_list
+                elif time[0] == -1:
+                    wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
+                    self.plotparams['x_axis_display'] = 'frame'
+                    xdata = secm.frame_list
+                elif len(time) != len(ydata):
+                    wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
+                    self.plotparams['x_axis_display'] = 'frame'
+                    xdata = secm.frame_list
+                else:
+                    xdata = time
+            else:
+                print 'no x data selected!'
+                return
 
-        if param == 'RG':
-            ydata, ydataer = secm.getRg()
-        elif param == 'I0':
-            ydata, ydataer = secm.getI0()
-        elif param == 'MW':
-            ydata, ydataer = secm.getMW()
-        else:
-            ydata = []
-            ydataer = []
+            line = a.plot(xdata, ydata, picker = 3, label = legend_label, **kwargs)[0]
 
-        if len(ydata)== 0:
-            ydata = np.zeros_like(xdata)-1
-            
-        calc_line = self.ryaxis.plot(xdata, ydata, picker = 3, label = param, **kwargs)[0]
-        calc_line.set_label(param)
+            line.set_label(legend_label)        
+                
+            secm.line = line
+            secm.axes = a
+            secm.canvas = self.canvas
+            secm.plot_panel = self
+            secm.is_plotted = True
 
-        secm.calc_line = calc_line
-        secm.cacl_axes = self.ryaxis
-        secm.calc_is_plotted = True
+            #######If the secm object has calculated structural parameters, plot those
+            param = self.plotparams['secm_plot_calc']
 
-        plot_calc = self.plotparams['secm_plot_calc']
+            if param == 'RG':
+                ydata, ydataer = secm.getRg()
+            elif param == 'I0':
+                ydata, ydataer = secm.getI0()
+            elif param == 'MW':
+                ydata, ydataer = secm.getMW()
+            else:
+                ydata = []
+                ydataer = []
 
-        if not secm.calc_has_data  or plot_calc == 'None' or not secm.is_visible:
-            secm.calc_line.set_visible(False)
-            secm.calc_line.set_picker(False)
-        else:
-            secm.calc_line.set_visible(True)
-            secm.calc_line.set_picker(True)
+            if len(ydata)== 0:
+                ydata = np.zeros_like(xdata)-1
+                
+            calc_line = self.ryaxis.plot(xdata, ydata, picker = 3, label = param, **kwargs)[0]
+            calc_line.set_label(param)
+
+            secm.calc_line = calc_line
+            secm.cacl_axes = self.ryaxis
+            secm.calc_is_plotted = True
+
+            plot_calc = self.plotparams['secm_plot_calc']
+
+            if not secm.calc_has_data  or plot_calc == 'None' or not secm.is_visible:
+                secm.calc_line.set_visible(False)
+                secm.calc_line.set_picker(False)
+            else:
+                secm.calc_line.set_visible(True)
+                secm.calc_line.set_picker(True)
 
 
-        if color != None:
-            secm.line.set_color(color)
-            secm.calc_line.set_color(color)
+            if color != None:
+                secm.line.set_color(color)
+                secm.calc_line.set_color(color)
 
 
-        #Back to the main show                
-        self.plotted_secms.append(secm)        # Insert the plot into plotted experiments list
-    
-        if line_data != None:
-            secm.line.set_linewidth(line_data['line_width'])
-            secm.line.set_linestyle(line_data['line_style'])
-            secm.line.set_color(line_data['line_color'])
-            secm.line.set_marker(line_data['line_marker'])
-            secm.line.set_visible(line_data['line_visible'])
-
-        if calc_line_data != None:
-            secm.calc_line.set_linewidth(calc_line_data['line_width'])
-            secm.calc_line.set_linestyle(calc_line_data['line_style'])
-            secm.calc_line.set_color(calc_line_data['line_color'])
-            secm.calc_line.set_marker(calc_line_data['line_marker'])
-            secm.calc_line.set_visible(calc_line_data['line_visible'])
+            #Back to the main show                
+            self.plotted_secms.append(secm)        # Insert the plot into plotted experiments list
         
-        self.updatePlotData(self.subplot1)
+            if line_data != None:
+                secm.line.set_linewidth(line_data['line_width'])
+                secm.line.set_linestyle(line_data['line_style'])
+                secm.line.set_color(line_data['line_color'])
+                secm.line.set_marker(line_data['line_marker'])
+                secm.line.set_visible(line_data['line_visible'])
+
+            if calc_line_data != None:
+                secm.calc_line.set_linewidth(calc_line_data['line_width'])
+                secm.calc_line.set_linestyle(calc_line_data['line_style'])
+                secm.calc_line.set_color(calc_line_data['line_color'])
+                secm.calc_line.set_marker(calc_line_data['line_marker'])
+                secm.calc_line.set_visible(calc_line_data['line_visible'])
+            
+            self.updatePlotData(self.subplot1)
         
     def showErrorbars(self, state):
         
