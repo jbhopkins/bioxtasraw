@@ -135,6 +135,7 @@ def parseTiffTags(filename):
         print e
         print filename
         print 'Error opening tiff file!'
+        image.close()
         return None
         
     #read the first 2 bytes to know "endian"
@@ -226,6 +227,8 @@ def parseTiffTags(filename):
                     tag_dict['ColorProfile'] = "Other"
         else:
             tag_dict['ColorProfile'] = "None"
+
+    image.close()
     
     return tag_dict
 
@@ -733,7 +736,7 @@ def parsePilatusHeader(filename):
     
         hdr = {}
     except:
-        print 'Reading Quantum header failed'
+        print 'Reading Pilatus header failed'
         return {}
     
     lineNum = 0
@@ -850,10 +853,12 @@ def parseQuantumFileHeader(filename):
             if lineNum > 30: #header ends after line 27.. but just making sure
                 break
             
-        f.close()
     except:
         print 'Reading Quantum header failed'
         return {}
+
+    finally:
+        f.close()
         
     return hdr
 
@@ -1050,6 +1055,8 @@ def parseMAXLABI911HeaderFile(filename):
     file = open(hdr_file,'r')
     
     all_lines = file.readlines()
+
+    file.close()
     
     counters = {}
     
@@ -1069,6 +1076,8 @@ def parseMAXLABI77HeaderFile(filename):
     file = open(hdr_file,'r')
     
     all_lines = file.readlines()
+
+    file.close()
     
     counters = {}
     
@@ -1122,6 +1131,8 @@ def parseBioCATlogfile(filename):
     f=open(countFilename,'r')
 
     allLines=f.readlines()
+
+    f.close()
 
     searchName='.'.join(fname.split('.')[:-1])
 
@@ -1617,8 +1628,8 @@ def loadSECFile(filename):
         file.close()
         file = open(filename, 'rb')
         secm_data = cPickle.load(file)
-     
-    file.close()
+    finally:
+        file.close()
 
     sasm_list = []
 
@@ -2753,8 +2764,8 @@ def loadWorkspace(load_path):
         file.close()
         file = open(load_path, 'rb')
         sasm_dict = cPickle.load(file)
-     
-    file.close()
+    finally:
+        file.close()
     
     return sasm_dict
 

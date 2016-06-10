@@ -5036,7 +5036,7 @@ class ManipulationPanel(wx.Panel):
         if len(self.getSelectedItems()) == 0: return
         
         self.Freeze()
-        
+
         info_panel = wx.FindWindowByName('InformationPanel')
         info_panel.clearInfo()
         
@@ -5479,7 +5479,6 @@ class ManipItemPanel(wx.Panel):
                 self.manipulation_panel.modified_items.append(self)
         
         self.updateShowItemCheckBox()
-
         
         
     def updateInfoTip(self, analysis_dict, fromGuinierDialog = False):
