@@ -2155,8 +2155,6 @@ class MainWorkerThread(threading.Thread):
                 wx.CallAfter(self.main_frame.plot_notebook.SetSelection, secpage)
 
 
-    
-
     def _updateSECM(self, data):
         filename_list = data[0]
         frame_list = data[1]

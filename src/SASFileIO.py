@@ -243,7 +243,7 @@ def loadTiffImage(filename):
     ''' Load TIFF image '''
     try:
         im = Image.open(filename)
-        img = np.fromstring(im.tostring(), np.uint16)
+        img = np.fromstring(im.tobyte(), np.uint16) #tobyte is compatible with pillow >=3.0, tostring was depreciated
         img = np.reshape(img, im.size) 
     except IOError:
         return None, {}
@@ -1201,7 +1201,7 @@ if use_fabio:
                        'FReLoN'             : loadFrelonImage,
                        'Nonius KappaCCD'    : loadFabio,
                        'Fit2D spreadsheet'  : loadFabio,
-                       'FLICAM'             : loadFabio,
+                       'FLICAM'             : loadTiffImage,
                        'General Electric'   : loadFabio,
                        'Hamamatsu CCD'      : loadFabio,
                        'HDF5 (Hierarchical data format)'  : loadFabio,
