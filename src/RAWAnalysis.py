@@ -4414,8 +4414,6 @@ class DammifFrame(wx.Frame):
 
         nruns = nruns_ctrl.GetValue()
         if nruns != '' and not nruns.isdigit():
-            nruns_ctrl.Unbind(wx.EVT_TEXT) #Avoid infinite recursion
-
             
             try:
                 nruns = float(nruns.replace(',', '.'))
@@ -4425,9 +4423,7 @@ class DammifFrame(wx.Frame):
             if nruns != '':
                 nruns = str(int(nruns))
 
-            nruns_ctrl.SetValue(nruns)
-
-            nruns_ctrl.Bind(wx.EVT_TEXT, self.onRunsText)
+            nruns_ctrl.ChangeValue(nruns) #Use changevalue instead of setvalue to avoid having to unbind and rebind
 
 
     def setArgs(self):

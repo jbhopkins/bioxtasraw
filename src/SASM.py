@@ -75,6 +75,32 @@ class SASM:
         except:
             self.total_intensity = -1
             self.mean_intensity = -1
+
+    def __deepcopy__(self, memo):
+        #Raw intensity variables
+        i_raw = copy.deepcopy(self._i_raw, memo)
+        q_raw = copy.deepcopy(self._q_raw, memo)
+        err_raw = copy.deepcopy(self._err_raw, memo)
+        parameters = copy.deepcopy(self._parameters, memo)
+        
+        newsasm = SASM(i_raw, q_raw, err_raw, parameters)
+        
+        #Binned intensity variables
+        newsasm.setQrange(copy.deepcopy(self.getQrange(), memo))
+
+        newsasm.scale(copy.deepcopy(self.getScale(), memo))
+        newsasm.normalize(copy.deepcopy(self._norm_factor, memo))
+        newsasm.offset(copy.deepcopy(self.getOffset(), memo))
+        newsasm._q_scale_factor = copy.deepcopy(self._q_scale_factor, memo)
+        newsasm._bin_size = copy.deepcopy(self.getBinning(), memo)
+
+        newsasm.setBinnedI(copy.deepcopy(self.getBinnedI(), memo))
+        newsasm.setBinnedQ(copy.deepcopy(self.getBinnedQ(), memo))
+        newsasm.setBinnedErr(copy.deepcopy(self.getBinnedErr(), memo))
+
+        newsasm._update()
+
+        return newsasm
         
     def _update(self):
         ''' updates modified intensity after scale, normalization and offset changes '''
@@ -87,8 +113,14 @@ class SASM:
         
         self.q = self._q_binned * self._q_scale_factor
 
-        self.total_intensity = integrate.simps(self.i, self.q)
-        self.mean_intensity = self.i.mean()
+        #Calculated values
+        try:
+            if len(self.q)>0:
+                self.total_intensity = integrate.simps(self.i, self.q)
+                self.mean_intensity = self.i.mean()
+        except:
+            self.total_intensity = -1
+            self.mean_intensity = -1
     
     def getScale(self):
         return self._scale_factor
@@ -1229,6 +1261,9 @@ def average(sasm_list):
     avg_i = np.mean(all_i, 0)
     
     avg_err = np.sqrt( np.sum( np.power(all_err,2), 0 ) ) / len(all_err)  #np.sqrt(len(all_err))
+
+    avg_i = copy.deepcopy(avg_i)
+    avg_err = copy.deepcopy(avg_err)
         
     avg_q = copy.deepcopy(first_sasm.q)[first_q_min:first_q_max]
     avg_parameters = copy.deepcopy(sasm_list[0].getAllParameters())

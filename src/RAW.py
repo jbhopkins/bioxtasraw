@@ -1703,7 +1703,6 @@ class MainWorkerThread(threading.Thread):
 
 
     def _sendSASMToPlotSEC(self, sasm, axes_num = 1, item_colour = 'black', line_color = None, no_update = False, notsaved = False, update_legend = True):
-        
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while plotting frames...')
 
         wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num, color = line_color)        
@@ -10006,8 +10005,20 @@ class SECControlPanel(wx.Panel):
             elif len(self.sec_panel.all_manipulation_items)>1:
 
                 if selected_item != None:
-                    secm = selected_item.secm
-                    sasm_list = secm.getSASMList(self.initial_selected_frame, self.final_selected_frame)
+
+                    if not selected_item.SelectedForPlot.GetValue():
+                        msg = "Warning: The selected SEC curve is not shown on the plot. Send frames to main plot anyways?\nNote: You can select a different SEC curve by starring it."
+                        dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection", style = wx.ICON_QUESTION | wx.YES_NO)
+                        proceed = dlg.ShowModal()
+                        dlg.Destroy()
+                    else:
+                        proceed = wx.ID_YES
+
+                    if proceed == wx.ID_YES:
+                        secm = selected_item.secm
+                        sasm_list = secm.getSASMList(self.initial_selected_frame, self.final_selected_frame)
+                    else:
+                        return
 
                 else:
                     msg = "To send data to the main plot, select a SEC curve by starring it."
@@ -10028,6 +10039,8 @@ class SECControlPanel(wx.Panel):
                 proceed = wx.ID_YES
 
             if proceed == wx.ID_YES:
+                for i in range(len(sasm_list)):
+                    sasm_list[i] = copy.deepcopy(sasm_list[i])
                 # wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while sending frames to plot...')
                 mainworker_cmd_queue.put(['to_plot_SEC', sasm_list])
                 # wx.CallAfter(self.main_frame.closeBusyDialog) 
@@ -10051,8 +10064,20 @@ class SECControlPanel(wx.Panel):
             elif len(self.sec_panel.all_manipulation_items)>1:
 
                 if selected_item != None:
-                    secm = selected_item.secm
-                    sasm_list = secm.getSASMList(self.initial_selected_frame, self.final_selected_frame)
+
+                    if not selected_item.SelectedForPlot.GetValue():
+                        msg = "Warning: The selected SEC curve is not shown on the plot. Send average to main plot anyways?\nNote: You can select a different SEC curve by starring it."
+                        dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection", style = wx.ICON_QUESTION | wx.YES_NO)
+                        proceed = dlg.ShowModal()
+                        dlg.Destroy()
+                    else:
+                        proceed = wx.ID_YES
+
+                    if proceed == wx.ID_YES:
+                        secm = selected_item.secm
+                        sasm_list = secm.getSASMList(self.initial_selected_frame, self.final_selected_frame)
+                    else:
+                        return
 
                 else:
                     msg = "To send data to the main plot, select a SEC curve by starring it."
@@ -10138,7 +10163,19 @@ class SECControlPanel(wx.Panel):
             wx.MessageBox("Star the SEC-SAXS item for which you wish to set the parameters.", style=wx.ICON_ERROR | wx.OK)
             return
         elif len(self.sec_panel.all_manipulation_items)>1:
-            secm = selected_item.secm
+
+            if not selected_item.SelectedForPlot.GetValue():
+                msg = "Warning: The selected SEC curve is not shown on the plot. Set/Update parameters anyways?\nNote: You can select a different SEC curve by starring it."
+                dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection", style = wx.ICON_QUESTION | wx.YES_NO)
+                proceed = dlg.ShowModal()
+                dlg.Destroy()
+            else:
+                proceed = wx.ID_YES
+
+            if proceed == wx.ID_YES:
+                secm = selected_item.secm
+            else:
+                return
         else:
             secm = self.sec_panel.all_manipulation_items[0].secm
 
