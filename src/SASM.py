@@ -1592,8 +1592,6 @@ def rebin(sasm, rebin_factor):
         end_idx will be lowered to fit the bin_size
         if needed.              
     '''
-        
-    #sasm._bin_size = bin_size
 
     len_iq = len(sasm._i_binned)
         
@@ -1618,17 +1616,7 @@ def rebin(sasm, rebin_factor):
         new_q[eachbin] = sum(q_roi[first_idx:last_idx]) / rebin_factor
         new_err[eachbin] = np.sqrt(sum(np.power(err_roi[first_idx:last_idx],2))) / np.sqrt(rebin_factor)
         
-#    if end_idx == -1 or end_idx == len(sasm._i_raw):
-#        sasm._i_binned = np.append(sasm._i_raw[0:start_idx], new_i)
-#        sasm._q_binned = np.append(sasm._q_raw[0:start_idx], new_q)
-#        sasm._err_binned = np.append(sasm._err_raw[0:start_idx], new_err)
-#    else:
-#        sasm._i_binned = np.append(np.append(sasm._i_raw[0:start_idx], new_i), sasm._i_raw[end_idx:]) 
-#        sasm._q_binned = np.append(np.append(sasm._q_raw[0:start_idx], new_q), sasm._q_raw[end_idx:])
-#        sasm._err_binned = np.append(np.append(sasm._err_raw[0:start_idx], new_err), sasm._err_raw[end_idx:])
-        
-    #sasm._update()
-    #sasm._selected_q_range = (0, len(sasm._i_binned))
+
     parameters = copy.deepcopy(sasm.getAllParameters())
     
     newSASM = SASM(new_i, new_q, new_err, parameters)
@@ -1636,7 +1624,7 @@ def rebin(sasm, rebin_factor):
     qstart, qend = sasm.getQrange()
 
     new_qstart = int(qstart/float(rebin_factor)+.5)
-    new_qend = int(qend/float(rebin_factor)+.5)
+    new_qend = int(qend/float(rebin_factor))
 
     newSASM.setQrange([new_qstart, new_qend])
     

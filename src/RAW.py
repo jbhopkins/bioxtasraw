@@ -5051,9 +5051,11 @@ class ManipulationPanel(wx.Panel):
             plot_panel = each.sasm.plot_panel
             
             each.sasm.line.remove()
+            each.sasm.line = None
             each.sasm.err_line[0][0].remove()
             each.sasm.err_line[0][1].remove()
             each.sasm.err_line[1][0].remove()
+            each.sasm.err_line = None
             
             i = plot_panel.plotted_sasms.index(each.sasm)
             plot_panel.plotted_sasms.pop(i)
