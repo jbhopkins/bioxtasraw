@@ -5172,12 +5172,18 @@ class ManipulationPanel(wx.Panel):
         selected_items = self.getSelectedItems()
         
         findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
+
+        manip_plot = wx.FindWindowByName("PlotPanel")
+
+        sasm_list = []
         
         for each_item in selected_items:
             if each_item == star_item:
                 continue
             
             sasm = each_item.getSASM()
+
+            sasm_list.append(sasm)
             
             old_nmin, old_nmax = sasm.getQrange()
             
@@ -5226,7 +5232,13 @@ class ManipulationPanel(wx.Panel):
             if 'linemarker' in sync_parameters:
                 sasm.line.set_marker(linemarker)
             
-            each_item.updateControlsFromSASM()
+            each_item.updateControlsFromSASM(updatePlot=False)
+
+            each_item.markAsModified()
+
+
+        wx.CallAfter(manip_plot.updatePlotAfterManipulation, sasm_list)
+
         
     def movePlots(self, ExpObjList, toAxes):
         
@@ -5549,7 +5561,7 @@ class ManipItemPanel(wx.Panel):
     def getLegendLabel(self):
         return self._legend_label
     
-    def updateControlsFromSASM(self):    
+    def updateControlsFromSASM(self, updatePlot = True):    
         scale = self.sasm.getScale()
         offset = self.sasm.getOffset()
         qmin, qmax = self.sasm.getQrange()
@@ -5570,7 +5582,8 @@ class ManipItemPanel(wx.Panel):
         offset_ctrl.SetValue(str(offset))
         scale_ctrl.SetValue(str(scale))
         
-        wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
+        if updatePlot:
+            wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
     
     def toggleSelect(self, set_focus = False, update_info = True):
         
