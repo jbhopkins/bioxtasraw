@@ -7833,6 +7833,7 @@ class IFTItemPanel(wx.Panel):
             if filename:
                 self.iftm.setParameter('filename', filename)
                 self.updateFilenameLabel()
+                self.markAsModified()
         
         if evt.GetId() == 15:
             #A to s
