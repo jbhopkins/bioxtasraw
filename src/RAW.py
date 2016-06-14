@@ -1331,6 +1331,11 @@ class MainFrame(wx.Frame):
             if len(selected_items) > 0:
                 self.info_panel.updateInfoFromItem(selected_items[0])
 
+        elif page == 'Files':
+            file_panel = wx.FindWindowByName('FilePanel')
+            file_panel.dir_panel.refresh()
+
+
 
 class OnlineController:                                   
     def __init__(self, parent, raw_settings):
@@ -2921,7 +2926,7 @@ class MainWorkerThread(threading.Thread):
         SASM.superimpose(star_item.getSASM(), selected_sasms)
         
         for each_item in selected_items:
-            each_item.updateControlsFromSASM()
+            each_item.updateControlsFromSASM(updatePlot=False)
         
         wx.CallAfter(self.plot_panel.updatePlotAfterManipulation, selected_sasms)
     
@@ -4749,6 +4754,9 @@ class DirCtrlPanel(wx.Panel):
             self.setDirLabel(path)
             
     def _onRefreshButton(self, event):
+        self.refresh()
+
+    def refresh(self):
         self.file_list_box.updateFileList()
             
     def setDirLabel(self, path):
