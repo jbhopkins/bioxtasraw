@@ -45,28 +45,14 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
 
         self.fig_axes = parent.fig.gca()
         self.parent = parent
-        
-        self._MTB_CIRCLE    = wx.NewId()
-        self._MTB_RECTANGLE = wx.NewId()
-        self._MTB_POLYGON   = wx.NewId()
-        self._MTB_SAVEMASK  = wx.NewId()
-        self._MTB_LOADMASK  = wx.NewId()
-        self._MTB_CLEAR     = wx.NewId()
-        self._MTB_AGBECENT  = wx.NewId()
+
         self._MTB_HDRINFO   = wx.NewId()
         self._MTB_IMGSET    = wx.NewId()
         self._MTB_PREVIMG   = wx.NewId()
         self._MTB_NEXTIMG   = wx.NewId()
         
         
-        self.allToolButtons = [self._MTB_CIRCLE, 
-                               self._MTB_RECTANGLE,
-                               self._MTB_POLYGON,
-                               self._MTB_SAVEMASK,
-                               self._MTB_LOADMASK,
-                               self._MTB_CLEAR,
-                 #              self._MTB_AGBECENT,
-                               self._MTB_HDRINFO,
+        self.allToolButtons = [self._MTB_HDRINFO,
                                self._MTB_IMGSET,
                                self._MTB_PREVIMG,
                                self._MTB_NEXTIMG]
@@ -75,17 +61,8 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
          
         workdir = RAWWorkDir
         
-        circleIcon    = RAWIcons.circle.GetBitmap()
-        rectangleIcon = RAWIcons.rect.GetBitmap()
-        polygonIcon   = RAWIcons.poly.GetBitmap()
-        saveMaskIcon  = RAWIcons.savemask.GetBitmap()
-        clearIcon     = RAWIcons.clear.GetBitmap()
-        loadMaskIcon  = RAWIcons.load.GetBitmap()
-        #agbeCentIcon  = RAWIcons.agbe2.GetBitmap()
         hdrInfoIcon   = RAWIcons.hdr.GetBitmap()
         ImgSetIcon    = RAWIcons.imgctrl.GetBitmap()
-        #prevImgIcon   = RAWIcons.imgctrl.GetBitmap()
-        #nextImgIcon   = RAWIcons.imgctrl.GetBitmap()
         
         prevImgIcon = wx.ArtProvider_GetBitmap(wx.ART_GO_BACK,wx.ART_TOOLBAR,(32,32))
         nextImgIcon = wx.ArtProvider_GetBitmap(wx.ART_GO_FORWARD,wx.ART_TOOLBAR,(32,32))
@@ -93,7 +70,6 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
         
         self.AddSeparator()
 
-        self.AddSimpleTool(self._MTB_CLEAR, clearIcon, 'Clear Mask')
         self.AddSimpleTool(self._MTB_HDRINFO, hdrInfoIcon, 'Show Header Information')
         self.AddSimpleTool(self._MTB_IMGSET, ImgSetIcon, 'Image Display Settings')
         
@@ -103,22 +79,13 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
         self.AddSimpleTool(self._MTB_NEXTIMG, nextImgIcon, 'Next Image')
         
     
-        self.Bind(wx.EVT_TOOL, self.onCircleTool, id = self._MTB_CIRCLE)
-        self.Bind(wx.EVT_TOOL, self.onRectangleTool, id = self._MTB_RECTANGLE)
-        self.Bind(wx.EVT_TOOL, self.onPolygonTool, id = self._MTB_POLYGON)
-        self.Bind(wx.EVT_TOOL, self.onSaveMaskButton, id = self._MTB_SAVEMASK)
-        self.Bind(wx.EVT_TOOL, self.onLoadMaskButton, id = self._MTB_LOADMASK)
-        self.Bind(wx.EVT_TOOL, self.onClearButton, id = self._MTB_CLEAR)
         self.Bind(wx.EVT_TOOL, self.onHeaderInfoButton, id = self._MTB_HDRINFO)
         self.Bind(wx.EVT_TOOL, self.onImageSettingsButton, id = self._MTB_IMGSET)
         
         self.Bind(wx.EVT_TOOL, self.onPreviousImgButton, id = self._MTB_PREVIMG)
         self.Bind(wx.EVT_TOOL, self.onNextImgButton, id = self._MTB_NEXTIMG)
-        
-        
-        #self.RemoveTool(self._NTB2_BACK)
-        #self.RemoveTool(self._NTB2_FORWARD)
-        
+ 
+
         self.Realize()
         
         self._current_tool = None
@@ -126,9 +93,6 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
     
     def getCurrentTool(self):
         return self._current_tool
-    
-    def untoggleTool(self):
-        self.untoggleAllToolButtons()
         
     def onPreviousImgButton(self, event):
         mainframe = wx.FindWindowByName('MainFrame')
@@ -154,94 +118,12 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
         self.parent.showImageSetDialog()
                 
     def onHeaderInfoButton(self, event):
-        #self._deactivateAgbeCent()
         self._deactivatePanZoom()
         self.parent.showHdrInfo()
-        
-    def agbeCent(self, event):
-        self._deactivatePanZoom()
-        
-        if not self.GetToolState(self._MTB_AGBECENT):
-            self.parent.setTool(None)
-        else:
-            self.parent.setTool('agbecent')
-            self.parent.clearPatches()
-            self.parent.agbeCalibration()
-    
-    def onCircleTool(self, event):
-        #self._deactivateAgbeCent()
-        self._deactivatePanZoom()    
-        self.parent.stopMaskCreation(untoggle = False)
-        
-        if self.GetToolState(self._MTB_CIRCLE):
-            self.untoggleAllToolButtons(self._MTB_CIRCLE)
-            self.parent.setTool('circle')
-        else:
-            self.untoggleAllToolButtons()
-
-    def onRectangleTool(self, event):
-        #self._deactivateAgbeCent()
-        self._deactivatePanZoom()
-        self.parent.stopMaskCreation(untoggle = False)
-        
-        if self.GetToolState(self._MTB_RECTANGLE):
-            self.untoggleAllToolButtons(self._MTB_RECTANGLE)
-            self.parent.setTool('rectangle')
-        else:
-            self.untoggleAllToolButtons()
-    
-    def onPolygonTool(self, event):
-        #self._deactivateAgbeCent()
-        self._deactivatePanZoom()
-        self.parent.stopMaskCreation(untoggle = False)
-        
-        if self.GetToolState(self._MTB_POLYGON):
-            self.untoggleAllToolButtons(self._MTB_POLYGON)
-            self.parent.setTool('polygon')
-        else:
-            self.untoggleAllToolButtons()
-        
-    def onClearButton(self, event):
-        #self._deactivateAgbeCent()
-        self._deactivatePanZoom()
-        self.parent.clearAllMasks()
-
-    def onSaveMaskButton(self, event):
-        #self._deactivateAgbeCent()
-        self._deactivatePanZoom()
-        saveMask()
-        
-    def onLoadMaskButton(self, event):
-        #self._deactivateAgbeCent()
-        self._deactivatePanZoom()
-        shape = self.parent.img.shape
-        
-        if shape != None:
-            loadMask(shape)
-
-    def untoggleAllToolButtons(self, tog = None):
-        for each in self.allToolButtons:
-        
-            if tog == None:
-                self.ToggleTool(each, False)
-            elif each != tog:
-                self.ToggleTool(each, False)
-        
-        if tog == None:
-            #self._current_tool = None
-            self.parent.setTool(None)
     
     def _deactivateMaskTools(self):
-        self.untoggleAllToolButtons()
+        print 'in toolbar _deactivateMaskTools'
         self.parent.stopMaskCreation()
-    
-    def _deactivateAgbeCent(self):
-        
-        if self.GetToolState(self._MTB_AGBECENT):
-            self.ToggleTool(self._MTB_AGBECENT, False)
-            #self._current_tool = None
-            self.parent.setTool(None)
-            self.parent.plotStoredMasks()
     
     def _deactivatePanZoom(self):
         ''' Disable the zoon and pan buttons if they are pressed: '''
@@ -254,6 +136,12 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
         if self.GetToolState(wxid):
             self.ToggleTool(wxid, False)
             NavigationToolbar2.zoom(self)
+
+
+        if float(matplotlib.__version__[:3]) >= 1.2:
+            wxid = self.wx_ids['Pan']
+        else:
+            wxid = self._NTB2_PAN
             
         if self.GetToolState(wxid):
             self.ToggleTool(wxid, False)
@@ -266,21 +154,26 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
         self.parent.canvas.draw()
     
     def zoom(self, *args):
-        self._deactivateMaskTools()
+        masking_panel = wx.FindWindowByName('MaskingPanel')
+        if masking_panel.IsShown():
+            self._deactivateMaskTools()
+
 
         if float(matplotlib.__version__[:3]) >= 1.2:
             wxid = self.wx_ids['Pan']
         else:
             wxid = self._NTB2_PAN
-         
+
         self.ToggleTool(wxid, False)
         NavigationToolbar2.zoom(self, *args)
     
     def pan(self, *args):
-        self._deactivateMaskTools()
+        masking_panel = wx.FindWindowByName('MaskingPanel')
+        if masking_panel.IsShown():
+            self._deactivateMaskTools()
 
         if float(matplotlib.__version__[:3]) >= 1.2:
-            wxid = self.wx_ids['Pan']
+            wxid = self.wx_ids['Zoom']
         else:
             wxid = self._NTB2_ZOOM
 
@@ -395,7 +288,6 @@ class ImagePanel(wx.Panel):
     def untoggleAllToolButtons(self):
         self.masking_panel = wx.FindWindowByName('MaskingPanel')
         self.masking_panel.disableDrawButtons()
-        self.toolbar.untoggleAllToolButtons()
         self.setTool(None)
         
     def showImage(self, img, sasm):
@@ -789,7 +681,7 @@ class ImagePanel(wx.Panel):
         self._selected_patch = event.artist   #toggleMaskSelection sets it to None
             
             
-    def _showPopUpMenu(self):
+    def _showPopupMenu(self):
         ''' Show a popup menu that gives the user the
         option to toggle between a positive and negative
         mask. '''
