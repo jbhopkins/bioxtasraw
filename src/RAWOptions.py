@@ -1962,6 +1962,19 @@ class GeneralOptionsPanel(wx.Panel):
     
     def onChkBox(self, event):
         pass
+
+class ConfigRootSettings(wx.Panel):
+    
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+        
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        
+        self.raw_settings = raw_settings
+        
+        panelsizer = wx.BoxSizer(wx.VERTICAL)
+        self.SetSizer(panelsizer)
+        
+        
     
      
 class ReductionOptionsPanel(wx.Panel):
@@ -3303,7 +3316,8 @@ def TestAutoBgSubRegExpression(filename, regexp):
 # widgets and insert it into all_options below.
 #################################################################
 
-all_options = [ [ (1,0,0), wx.NewId(), 'General Settings', GeneralOptionsPanel],
+all_options = [ [ (0,0,0), wx.NewId(), 'Configuration Settings', ConfigRootSettings],
+                [ (1,0,0), wx.NewId(), 'General Settings', GeneralOptionsPanel],
                 [ (2,0,0), wx.NewId(), '2D Reduction', ReductionOptionsPanel],
                 [ (2,1,0), wx.NewId(), 'Image/Header Format', ReductionImgHdrFormatPanel],
                 [ (2,2,0), wx.NewId(), 'Calibration', CalibrationOptionsPanel],  
@@ -3341,11 +3355,11 @@ class ConfigTree(CT.CustomTreeCtrl):
         
         self.parent = parent
         
-        self.root = self.AddRoot("Configuration Settings")
+        self.root = self.AddRoot("Configuration Settings", data=all_options[0][1])
         
         last_idx = -1
         last_sub_idx = -1
-        for each_idx, id, label, panelfunc in all_options:
+        for each_idx, id, label, panelfunc in all_options[1:]:
             idx, sub_idx, subsubidx = each_idx
             
             if last_idx == idx:
