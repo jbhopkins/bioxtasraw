@@ -11087,7 +11087,7 @@ class CenteringPanel(wx.Panel):
             
     
     def _onRepeatTimer(self, event):
-        steps = int(self._step_combo.GetValue())
+        steps = float(self._step_combo.GetValue())
         wx.Yield()
         wx.CallAfter(self._moveCenter, self._pressed_button_id, steps)
     
@@ -11103,8 +11103,8 @@ class CenteringPanel(wx.Panel):
         self._pressed_button_id = id
         wx.CallAfter(self._moveCenter, id, steps)
         
-        if platform.system() != 'Darwin':
-            self._repeat_timer.Start(100)
+        # if platform.system() != 'Darwin':
+        self._repeat_timer.Start(100)
         
         event.Skip()
     

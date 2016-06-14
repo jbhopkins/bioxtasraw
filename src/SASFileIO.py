@@ -246,7 +246,7 @@ def loadTiffImage(filename):
     ''' Load TIFF image '''
     try:
         im = Image.open(filename)
-        img = np.fromstring(im.tobyte(), np.uint16) #tobyte is compatible with pillow >=3.0, tostring was depreciated
+        img = np.fromstring(im.tobytes(), np.uint16) #tobytes is compatible with pillow >=3.0, tostring was depreciated
         img = np.reshape(img, im.size) 
     except IOError:
         return None, {}
