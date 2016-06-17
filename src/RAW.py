@@ -4790,9 +4790,13 @@ class ManipulationPanel(wx.Panel):
         self._initializeIcons()
         toolbarsizer = self._createToolbar()
 
+        
+
         self.underpanel = scrolled.ScrolledPanel(self, -1, style = wx.BORDER_SUNKEN)
         self.underpanel.SetVirtualSize((200, 200))
         self.underpanel.SetScrollRate(20,20)
+
+        self.underpanel.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
       
         self.all_manipulation_items = []
         self.selected_item_list = []
@@ -5328,6 +5332,12 @@ class ManipulationPanel(wx.Panel):
             save_path = path
         
         mainworker_cmd_queue.put(['save_items', [save_path, selected_items]])
+
+    def _onKeyPress(self, evt):
+        key = evt.GetKeyCode()
+
+        if key == 65 and evt.CmdDown():
+            self.selectAll()
         
 
 class ManipItemPanel(wx.Panel):
@@ -6187,23 +6197,17 @@ class ManipItemPanel(wx.Panel):
     def _onKeyPress(self, evt):
         
         key = evt.GetKeyCode()
+
+        # print key
         
         if ((key == wx.WXK_DELETE) or (key == wx.WXK_BACK and evt.CmdDown())) and self._selected == True:
             self.removeSelf()
-            
-        if key == wx.WXK_UP:
-            if evt.CmdDown():
-                print 'CTRL UP'
-            else:
-                print "UP!"
-        if key == wx.WXK_DOWN:
-            if evt.CmdDown():
-                print 'CTRL DOWN'
-            else:
-                print "DOWN!"
                 
-        if key == 83: #S
+        elif key == 83: #S
             self._onShowImage()
+
+        elif key == 65 and evt.CmdDown(): #A
+            self.manipulation_panel.selectAll()
             
             
     def _onRightMouseButton(self, evt):
@@ -6464,6 +6468,8 @@ class IFTPanel(wx.Panel):
         self.underpanel = scrolled.ScrolledPanel(self, -1, style = wx.BORDER_SUNKEN)
         self.underpanel.SetVirtualSize((200, 200))
         self.underpanel.SetScrollRate(20,20)
+
+        self.underpanel.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
       
         self.all_manipulation_items = []
         self.selected_item_list = []
@@ -7208,6 +7214,13 @@ class IFTPanel(wx.Panel):
             else:
                 panelsizer.Add(sizer, 0.1, wx.EXPAND | wx.LEFT | wx.RIGHT, 10)
                 first = False
+
+    def _onKeyPress(self, evt):
+        key = evt.GetKeyCode()
+
+        if key == 65 and evt.CmdDown():
+            self.selectAll()
+
 
 class IFTItemPanel(wx.Panel):
     def __init__(self, parent, iftm, font_colour = 'BLACK', legend_label = '', ift_parameters = {}, item_visible = True, modified = False):
@@ -7964,20 +7977,12 @@ class IFTItemPanel(wx.Panel):
 
         if ((key == wx.WXK_DELETE) or (key == wx.WXK_BACK and evt.CmdDown())) and self._selected == True:
             self.removeSelf()
-            
-        if key == wx.WXK_UP:
-            if evt.CmdDown():
-                print 'CTRL UP'
-            else:
-                print "UP!"
-        if key == wx.WXK_DOWN:
-            if evt.CmdDown():
-                print 'CTRL DOWN'
-            else:
-                print "DOWN!"
                 
-        if key == 83: #S
+        elif key == 83: #S
             self._onShowImage()
+
+        elif key == 65 and evt.CmdDown(): #A
+            self.manipulation_panel.selectAll()
             
             
     def _onRightMouseButton(self, evt):
@@ -8278,6 +8283,8 @@ class SECPanel(wx.Panel):
         self.underpanel = scrolled.ScrolledPanel(self, -1, style = wx.BORDER_SUNKEN)
         self.underpanel.SetVirtualSize((200, 200))
         self.underpanel.SetScrollRate(20,20)
+
+        self.underpanel.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
       
         self.all_manipulation_items = []
         self.selected_item = []
@@ -8809,6 +8816,12 @@ class SECPanel(wx.Panel):
     def getItems(self):
         return self.all_manipulation_items
 
+    def _onKeyPress(self, evt):
+        key = evt.GetKeyCode()
+
+        if key == 65 and evt.CmdDown():
+            self.selectAll()
+
 
 class SECItemPanel(wx.Panel):
     def __init__(self, parent, secm, font_colour = 'BLACK', legend_label = '', item_visible = True, modified = False):
@@ -9316,16 +9329,19 @@ class SECItemPanel(wx.Panel):
         if ((key == wx.WXK_DELETE) or (key == wx.WXK_BACK and evt.CmdDown())) and self._selected == True:
             self.removeSelf()
             
-        if key == wx.WXK_UP:
-            if evt.CmdDown():
-                print 'CTRL UP'
-            else:
-                print "UP!"
-        if key == wx.WXK_DOWN:
-            if evt.CmdDown():
-                print 'CTRL DOWN'
-            else:
-                print "DOWN!"
+        # if key == wx.WXK_UP:
+        #     if evt.CmdDown():
+        #         print 'CTRL UP'
+        #     else:
+        #         print "UP!"
+        # if key == wx.WXK_DOWN:
+        #     if evt.CmdDown():
+        #         print 'CTRL DOWN'
+        #     else:
+        #         print "DOWN!"
+
+        elif key == 65 and evt.CmdDown(): #A
+            self.sec_panel.selectAll()
             
             
     def _onRightMouseButton(self, evt):
