@@ -1635,15 +1635,17 @@ class PlotPanel(wx.Panel):
             line.set_label(legend_label)        
 
             #Hide errorbars:
-            if self.plotparams['errorbars_on'] == False:
-                #ec[0].set_visible(False)
-                #ec[1].set_visible(False)
-                #el[0].set_visible(False)
-                
-                for each in ec:
+
+            for each in ec:
+                if self.plotparams['errorbars_on'] == False:
                     each.set_visible(False)    
-                for each in el:
+                if color != None:
+                    each.set_color(color)
+            for each in el:
+                if self.plotparams['errorbars_on'] == False:
                     each.set_visible(False)
+                if color != None:
+                    each.set_color(color)
                 
             if color != None:
                 line.set_color(color)

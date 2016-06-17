@@ -5253,7 +5253,6 @@ class ManipulationPanel(wx.Panel):
 
         
     def movePlots(self, ExpObjList, toAxes):
-        
         for each_item in ExpObjList:
             
             each = each_item.getSASM()
@@ -5272,7 +5271,7 @@ class ManipulationPanel(wx.Panel):
                     label = each_item.getLegendLabel()
                 else:
                     label = None
-                
+
                 wx.CallAfter(plotpanel.plotSASM, each, toAxes, color = line_color, legend_label_in = label)
                 
                 visible = each_item._selected_for_plot
@@ -6888,7 +6887,6 @@ class IFTPanel(wx.Panel):
             each_item.updateControlsFromSASM()
         
     def movePlots(self, ExpObjList, toAxes):
-        
         for each_item in ExpObjList:
             
             each = each_item.getSASM()
@@ -6907,7 +6905,7 @@ class IFTPanel(wx.Panel):
                     label = each_item.getLegendLabel()
                 else:
                     label = None
-                
+
                 wx.CallAfter(plotpanel.plotSASM, each, toAxes, color = line_color, legend_label_in = label)
                 
                 
