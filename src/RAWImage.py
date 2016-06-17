@@ -122,7 +122,6 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
         self.parent.showHdrInfo()
     
     def _deactivateMaskTools(self):
-        print 'in toolbar _deactivateMaskTools'
         self.parent.stopMaskCreation()
     
     def _deactivatePanZoom(self):
@@ -837,6 +836,9 @@ class ImagePanel(wx.Panel):
             del(a.lines[:])     # delete plotted masks
         if a.patches:
             del(a.patches[:])
+
+        if self.center_patch:
+            a.add_patch(self.center_patch)
         
         self.canvas.draw()
             
@@ -869,7 +871,7 @@ class ImagePanel(wx.Panel):
                 self._drawPolygon(each.getPoints(), id, each, color = col)
                 
         
-        if self.center_patch and stored_masks:
+        if self.center_patch:
             a.add_patch(self.center_patch)
 
         self.canvas.draw()
