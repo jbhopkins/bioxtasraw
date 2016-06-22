@@ -9229,12 +9229,12 @@ class SECItemPanel(wx.Panel):
             # print legend_label
             dialog = SECMLinePropertyDialog(self, self.secm, legend_label)
             answer = dialog.ShowModal()
-            new_legend_label = dialog.getLegendLabel()
+            new_legend_labels = dialog.getLegendLabel()
             self._updateColourIndicator()
             dialog.Destroy()
             
             if answer == wx.ID_OK:
-                self._legend_label = new_legend_label
+                self._legend_label = new_legend_labels
                 self._updateLegendLabel()
                 
         except TypeError:
@@ -9454,12 +9454,13 @@ class SECItemPanel(wx.Panel):
     
     def _updateLegendLabel(self):
         
-        if self._legend_label == '' or self._legend_label == None:
+        if self._legend_label == '' or self._legend_label == None or self._legend_label == {}:
             self.secm.line.set_label(self.secm.getParameter('filename'))
             self.legend_label_text.SetLabel('')
         else:
-            self.secm.line.set_label(str(self._legend_label))
-            self.legend_label_text.SetLabel('[' + str(self._legend_label) + ']')
+            self.secm.line.set_label(str(self._legend_label[self.secm.line]))
+            self.secm.calc_line.set_label(str(self._legend_label[self.secm.calc_line]))
+            self.legend_label_text.SetLabel('[' + str(self._legend_label[self.secm.line]) + ']')
             
         wx.CallAfter(self.secm.plot_panel.updateLegend, self.secm.axes)
         
@@ -13150,7 +13151,7 @@ class ColourChangeDialog(wx.Dialog):
         elif self.linename == 'LineColour':
             return self.sasm.line.get_color()
         elif self.linename == 'ErrColour':
-            return self.sasm.line.get_color()
+            return self.sasm.err_line[0][0].get_color()
         elif self.linename == 'CalcMarLineColour':
             return self.sasm.calc_line.get_markeredgecolor()
         elif self.linename == 'CalcMarFillColour':
@@ -13165,7 +13166,7 @@ class ColourChangeDialog(wx.Dialog):
         elif self.linename == 'PrLineColour':
             return self.sasm.r_line.get_color()
         elif self.linename == 'PrErrColour':
-            return self.sasm.r_line.get_color()
+            return self.sasm.r_err_line[0][0].get_color()
 
         elif self.linename == 'QoMarLineColour':
             return self.sasm.qo_line.get_markeredgecolor()
@@ -13174,7 +13175,7 @@ class ColourChangeDialog(wx.Dialog):
         elif self.linename == 'QoLineColour':
             return self.sasm.qo_line.get_color()
         elif self.linename == 'QoErrColour':
-            return self.sasm.qo_line.get_color()
+            return self.sasm.qo_err_line[0][0].get_color()
 
         elif self.linename == 'QfMarLineColour':
             return self.sasm.qf_line.get_markeredgecolor()
@@ -14494,19 +14495,39 @@ class SECMLinePropertyDialog(wx.Dialog):
         self.Bind( wx.EVT_BUTTON, self._onOkButton, id=wx.ID_OK )
         self.Bind( wx.EVT_BUTTON, self._onCancelButton, id=wx.ID_CANCEL )
         
+        sec_box = wx.StaticBox(self, -1, 'SEC Line')
+        secline_sizer = wx.StaticBoxSizer(sec_box, wx.VERTICAL)
+
+        line_legend = self._createLegendLabelControls(self.line)
+
         linesettings_sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap = 5, hgap = 10)
         linesettings_sizer.Add(self._createLineControls(), 1, wx.EXPAND)
         # linesettings_sizer.Add(self._createErrorBarsControls(), 1, wx.EXPAND)
         linesettings_sizer.Add(self._createLineMarkerControls(), 1, wx.EXPAND)
 
+        secline_sizer.Add(line_legend, 0, wx.ALL | wx.EXPAND, 5)
+        secline_sizer.Add(linesettings_sizer, 0, wx.ALL | wx.EXPAND, 5)
+
+
+        calc_box = wx.StaticBox(self, -1, 'Calculated Line')
+        calcline_sizer = wx.StaticBoxSizer(calc_box, wx.VERTICAL)
+
+        calc_legend = self._createLegendLabelControls(self.calc_line)
+
         calclinesettings_sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap = 5, hgap = 10)
         calclinesettings_sizer.Add(self._createLineControls(calc = True), 1, wx.EXPAND)
         # linesettings_sizer.Add(self._createErrorBarsControls(), 1, wx.EXPAND)
         calclinesettings_sizer.Add(self._createLineMarkerControls(calc = True), 1, wx.EXPAND)
+
+        calcline_sizer.Add(calc_legend, 0, wx.ALL | wx.EXPAND, 5)
+        calcline_sizer.Add(calclinesettings_sizer, 0, wx.ALL | wx.EXPAND, 5)
         
-        top_sizer.Add(self._createLegendLabelControls(), 0, wx.ALL | wx.EXPAND, 10)
-        top_sizer.Add(linesettings_sizer, 0, wx.ALL | wx.EXPAND, 10)
-        top_sizer.Add(calclinesettings_sizer, 0, wx.ALL | wx.EXPAND, 10)
+        # top_sizer.Add(self._createLegendLabelControls(), 0, wx.ALL | wx.EXPAND, 10)
+        # top_sizer.Add(linesettings_sizer, 0, wx.ALL | wx.EXPAND, 10)
+        # top_sizer.Add(calclinesettings_sizer, 0, wx.ALL | wx.EXPAND, 10)
+
+        top_sizer.Add(secline_sizer, 0, wx.ALL | wx.EXPAND, 2)
+        top_sizer.Add(calcline_sizer, 0, wx.ALL | wx.EXPAND, 2)
         
         top_sizer.Add(wx.StaticLine(self, -1), wx.EXPAND |wx.TOP | wx.BOTTOM, 3)
         top_sizer.Add(buttonsizer, 0, wx.CENTER | wx.BOTTOM, 10)
@@ -14516,17 +14537,33 @@ class SECMLinePropertyDialog(wx.Dialog):
         self.CenterOnParent()
     
     
-    def _createLegendLabelControls(self):
-        topbox = wx.StaticBox(self, -1, 'Legend Label') 
-        box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-        
-        self.legend_label_text = wx.TextCtrl(self, -1, self.legend_label)
-        
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.legend_label_text, 1, wx.EXPAND)
-        
-        box.Add(sizer, 0, wx.EXPAND | wx.ALL, 5)
+    def _createLegendLabelControls(self, line):
+
+        if line == self.line:
+            topbox = wx.StaticBox(self, -1, 'Legend Label') 
+            box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
+            
+            self.line_legend_label_text = wx.TextCtrl(self, -1, self.line.get_label())
+            
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+            sizer.Add(self.line_legend_label_text, 1, wx.EXPAND)
+            
+            box.Add(sizer, 0, wx.EXPAND | wx.ALL, 5)
+
+        elif line == self.calc_line:
+            topbox = wx.StaticBox(self, -1, 'Legend Label') 
+            box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
+            
+            self.calc_legend_label_text = wx.TextCtrl(self, -1, self.calc_line.get_label())
+            
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+            sizer.Add(self.calc_legend_label_text, 1, wx.EXPAND)
+            
+            box.Add(sizer, 0, wx.EXPAND | wx.ALL, 5)
+
+
         return box
+
     
     def _createErrorBarsControls(self):
         topbox = wx.StaticBox(self, -1, 'Error Bars') 
@@ -14801,7 +14838,10 @@ class SECMLinePropertyDialog(wx.Dialog):
         return box
     
     def getLegendLabel(self):
-        return self.legend_label_text.GetValue()
+        data = {self.line       : self.line_legend_label_text.GetValue(),
+                self.calc_line  : self.calc_legend_label_text.GetValue()}
+
+        return data
     
     def updateErrorLines(self, data):
         
