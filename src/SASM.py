@@ -1105,7 +1105,7 @@ def subtract(sasm1, sasm2, forced = False):
     q2_min, q2_max = sasm2.getQrange()
     
     if not np.all(np.round(sasm1.q[q1_min:q1_max],5) == np.round(sasm2.q[q2_min:q2_max],5)) and not forced:
-        raise SASExceptions.DataNotCompatible('The curves does not have the same number of points.')
+        raise SASExceptions.DataNotCompatible('The curves does not have the same q vectors.')
 
     elif not np.all(np.round(sasm1.q[q1_min:q1_max],5) == np.round(sasm2.q[q2_min:q2_max],5)) and forced:
         q1 = np.round(sasm1.q[q1_min:q1_max],5)
@@ -1227,7 +1227,7 @@ def absorbance(sasm1, sasm2):
      
     return absSASM 
 
-def average(sasm_list):
+def average(sasm_list, forced = False):
     ''' Average the intensity of a list of sasm objects '''
     
     #Check average is possible with provided curves:
@@ -1242,7 +1242,7 @@ def average(sasm_list):
         each_q_min, each_q_max = each.getQrange()
         # print each_q_min
         # print each_q_max
-        if not np.all(each.q[each_q_min:each_q_max] == first_sasm.q[first_q_min:first_q_max]):
+        if not np.all(np.round(each.q[each_q_min:each_q_max], 5) == np.round(first_sasm.q[first_q_min:first_q_max], 5)) and not forced:
             raise SASExceptions.DataNotCompatible('Average list contains data sets with different q vectors.')
             
     all_i = first_sasm.i[first_q_min : first_q_max]
