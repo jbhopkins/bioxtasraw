@@ -87,75 +87,6 @@ class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
             print e
             print 'Log fail! Switch to Lin-Lin plot in the menu'
 
-
-class LegendOptionsDialog(wx.Dialog):
-    def __init__(self, parent, plotparams, selected_plot, *args, **kwargs):
-        
-        wx.Dialog.__init__(self, parent, -1, 'Legend Options' , *args, **kwargs)
-        
-        self.plotparams = plotparams
-        self.selected_plot = selected_plot
-        
-        choices = ['5','6','7','8','9','10','11','12','13','14','15','16',
-                   '17', '18','19', '20', '21', '22', '23', '24', '25',
-                   '26', '27', '28', '29', '30']
-         
-        self.font_size_choice = wx.Choice(self, -1, choices = choices)
-        
-        old_font_size = plotparams['legend_fontsize' +  str(selected_plot)]
-        old_alpha_val = plotparams['legend_alpha' +  str(selected_plot)]
-        
-        self.font_size_choice.Select(choices.index(str(old_font_size)))
-        
-        self.border_chkbox = wx.CheckBox(self, -1, 'Border')
-        font_size_text = wx.StaticText(self, -1, 'Font size : ')
-        alpha_text = wx.StaticText(self, -1, 'Transparency (0.0 - 1.0) : ')
-        
-        self.alpha_val = RAWCustomCtrl.FloatSpinCtrl(self, -1, str(old_alpha_val), never_negative = True)
-        
-        alpha_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        alpha_sizer.Add(alpha_text, 0, wx.ALIGN_CENTER_VERTICAL)
-        alpha_sizer.Add(self.alpha_val, 0)
-        
-        
-        borderchk = plotparams['legend_border' +  str(selected_plot)]
-        
-        self.border_chkbox.SetValue(borderchk)
-       
-        fontsizer = wx.BoxSizer()
-        fontsizer.Add(font_size_text, 0, wx.ALIGN_CENTER_VERTICAL)
-        fontsizer.Add(self.font_size_choice, 0)
-        
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(fontsizer, 0)
-        sizer.Add(alpha_sizer, 0, wx.TOP, 10)
-        
-        sizer.Add(self.border_chkbox, 0, wx.TOP | wx.BOTTOM, 10)
-        buttons = self.CreateButtonSizer(wx.OK | wx.CANCEL)
-        
-        self.Bind(wx.EVT_BUTTON, self._onOk, id = wx.ID_OK)
-        
-        sizer.Add(buttons, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
-        
-        top_sizer = wx.BoxSizer()
-        
-        top_sizer.Add(sizer,1, wx.ALL, 10)
-        
-        self.SetSizer(top_sizer)
-        self.Fit()
-        self.CenterOnParent()
-    
-    def _onOk(self, event):        
-        self.plotparams['legend_border' +  str(self.selected_plot)] = self.border_chkbox.GetValue()
-        
-        fontsize = int(self.font_size_choice.GetStringSelection())
-        self.plotparams['legend_fontsize' +  str(self.selected_plot)] = int(fontsize)
-
-        alpha = self.alpha_val.GetValue()
-        self.plotparams['legend_alpha' +  str(self.selected_plot)] = float(alpha)
-        
-
-        self.EndModal(wx.OK)
         
 class PlotOptionsDialog(wx.Dialog):
     def __init__(self, parent, plotparams, axes, *args, **kwargs):
@@ -974,38 +905,20 @@ class CustomPlotToolbar(NavigationToolbar2Wx):
         NavigationToolbar2Wx.__init__(self, canvas)
         
         self.workdir = workdir = RAWWorkDir
-
-        # clear1IconFilename = os.path.join(self.workdir, "resources" ,"clear1white.png")
-        # clear2IconFilename = os.path.join(self.workdir, "resources" ,"clear2white.png")
-        # errbarsIconFilename = os.path.join(self.workdir, "resources" ,"errbars.png")
-        # legendIconFilename = os.path.join(self.workdir, "resources", "legend.png")
-        # showbothIconFilename = os.path.join(self.workdir, "resources", "showboth.png")
-        # showtopIconFilename = os.path.join(self.workdir, "resources", "showtop.png")
-        # showbottomIconFilename = os.path.join(self.workdir, "resources", "showbottom.png")
         
-        clear1_icon = RAWIcons.clear1white.GetBitmap()
-        clear2_icon = RAWIcons.clear2white.GetBitmap()
         errbars_icon = RAWIcons.errbars.GetBitmap()
-        legend_icon = RAWIcons.legend.GetBitmap()
         showboth_icon = RAWIcons.showboth.GetBitmap()
         showtop_icon = RAWIcons.showtop.GetBitmap()
         showbottom_icon = RAWIcons.showbottom.GetBitmap()
         
         self.AddSeparator()
         self.AddCheckTool(self._MTB_ERRBARS, errbars_icon, shortHelp='Show Errorbars')
-        #self.AddSimpleTool(self._MTB_LEGEND, legend_icon, 'Adjust Legend')
         self.AddSeparator()
         self.AddCheckTool(self._MTB_SHOWBOTH, showboth_icon, shortHelp='Show Both Plots')
         self.AddCheckTool(self._MTB_SHOWTOP, showtop_icon,  shortHelp='Show Top Plot')
         self.AddCheckTool(self._MTB_SHOWBOTTOM, showbottom_icon, shortHelp='Show Bottom Plot')
-        #self.AddSeparator()
-        #self.AddSimpleTool(self._MTB_CLR1, clear1_icon, 'Clear Top Plot')
-        #self.AddSimpleTool(self._MTB_CLR2, clear2_icon, 'Clear Bottom Plot')
         
-        self.Bind(wx.EVT_TOOL, self.clear1, id = self._MTB_CLR1)
-        self.Bind(wx.EVT_TOOL, self.clear2, id = self._MTB_CLR2)
         self.Bind(wx.EVT_TOOL, self.errbars, id = self._MTB_ERRBARS)
-        self.Bind(wx.EVT_TOOL, self.legend, id = self._MTB_LEGEND)
         self.Bind(wx.EVT_TOOL, self.showboth, id = self._MTB_SHOWBOTH)
         self.Bind(wx.EVT_TOOL, self.showtop, id = self._MTB_SHOWTOP)
         self.Bind(wx.EVT_TOOL, self.showbottom, id = self._MTB_SHOWBOTTOM)
@@ -1068,36 +981,7 @@ class CustomPlotToolbar(NavigationToolbar2Wx):
         self.parent.subplot2.change_geometry(1,1,1)
         self.parent._plot_shown = 2
         self.parent.canvas.draw()
-        
-            
-    def legend(self, evt):   
-        canvas = self.parent.canvas
-        plots = (self.parent.subplot1, self.parent.subplot2)
-        dialog = LegendDialog(self.parent, plots, canvas)
-        dialog.ShowModal()
-        
-    def clear1(self, evt):
-        self.parent.clearSubplot(self.parent.subplot1)
-    def clear2(self, evt):
-        self.parent.clearSubplot(self.parent.subplot2)
 
-#*********************************************
-# *** This causes Segmentation Error on Linux! :
-#*********************************************
-
-#    def set_cursor(self, cursor):
-#        ''' overriding this method from parent '''
-#        
-#        cursord = {
-#                   cursors.MOVE : wx.Cursor(os.path.join(self.workdir, "resources" ,"SmoothMove.cur"), wx.BITMAP_TYPE_CUR),
-#                   cursors.HAND : wx.Cursor(os.path.join(self.workdir, "resources" ,"SmoothMove.cur"), wx.BITMAP_TYPE_CUR),
-#                   cursors.POINTER : wx.StockCursor(wx.CURSOR_ARROW),
-#                   cursors.SELECT_REGION : wx.Cursor(os.path.join(self.workdir, "resources" ,"zoom-in.cur"), wx.BITMAP_TYPE_CUR),            #wx.CURSOR_CROSS,
-#                   }
-#        
-#        cursor = cursord[cursor]
-#        self.parent.canvas.SetCursor( cursor )
-#       
     def errbars(self, evt):
         
         if not(self.ErrorbarIsOn):
@@ -1740,7 +1624,6 @@ class PlotPanel(wx.Panel):
         #self.Bind(wx.EVT_MENU, self._onToggleLegend, legend_item)
         #self.Bind(wx.EVT_MENU, self._onAutofitaxesMenuChoice, autofitaxes_item)
         
-        #self.Bind(wx.EVT_MENU, self._onLegendOptions, legend_options)
         self.Bind(wx.EVT_MENU, self._onPlotOptions, plot_options) 
             
         
@@ -1758,13 +1641,6 @@ class PlotPanel(wx.Panel):
         dlg.ShowModal()
         dlg.Destroy()
             
-    def _onLegendOptions(self, evt):
-        dlg = LegendOptionsDialog(self, self.plotparams, self.selected_plot)
-        dlg.ShowModal()
-        dlg.Destroy()
-        
-        self.updateLegend(self.selected_plot)
-        
     def _onPopupMenuChoice(self, evt):
         mainframe = wx.FindWindowByName('MainFrame')
         MenuIDs = mainframe.getMenuIds()
@@ -2093,7 +1969,6 @@ class PlotPanel(wx.Panel):
             plotnum = 2
               
         if self.plotparams['legend_visible' + '_' + str(plotnum)]:
-            leg = axes.legend_ = None
             self._insertLegend(axes)
     
     def _insertLegend(self, axes):
@@ -2105,6 +1980,14 @@ class PlotPanel(wx.Panel):
         if axes.lines:
             legend_lines = []
             legend_labels = []
+
+            old_legend = axes.get_legend()
+            
+            if  old_legend != None:
+                old_loc = old_legend._loc
+                axes.legend_ = None
+            else:
+                old_loc = None
             
             for each_line in axes.lines:
                 if each_line.get_visible() == True and each_line.get_label() != '_zero_' and each_line.get_label() != '_nolegend_' and each_line.get_label() != '_line1':
@@ -2119,14 +2002,17 @@ class PlotPanel(wx.Panel):
                 enable_border = self.plotparams['legend_border1']
                 alpha = self.plotparams['legend_alpha1']
                 leg_visible = self.plotparams['legend_visible_1']
+                shadow = self.plotparams['legend_shadow1']
             else:
                 fontsize = self.plotparams['legend_fontsize2']
                 enable_border =  self.plotparams['legend_border2']
                 alpha = self.plotparams['legend_alpha2']
                 leg_visible = self.plotparams['legend_visible_2']
+                shadow = self.plotparams['legend_shadow1']
             
             leg = a.legend(legend_lines, legend_labels, prop = fm.FontProperties(size = fontsize), fancybox = True)
             leg.get_frame().set_alpha(alpha)
+            leg.shadow = shadow
 
             if leg_visible:
                 leg.set_visible(True)
@@ -2141,6 +2027,8 @@ class PlotPanel(wx.Panel):
                 
             try:
                 leg.draggable()   #Interferes with the scroll zoom!
+                if old_loc != None:
+                    leg._loc = old_loc
             except AttributeError:
                 print "WARNING: Old matplotlib version, legend not draggable"
    
@@ -2749,7 +2637,6 @@ class IftPlotPanel(PlotPanel):
         #self.Bind(wx.EVT_MENU, self._onToggleLegend, legend_item)
         #self.Bind(wx.EVT_MENU, self._onAutofitaxesMenuChoice, autofitaxes_item)
         
-        #self.Bind(wx.EVT_MENU, self._onLegendOptions, legend_options)
         self.Bind(wx.EVT_MENU, self._onPlotOptions, plot_options) 
             
         
@@ -2766,13 +2653,6 @@ class IftPlotPanel(PlotPanel):
         dlg = PlotOptionsDialog(self, self.plotparams, axes)
         dlg.ShowModal()
         dlg.Destroy()
-            
-    def _onLegendOptions(self, evt):
-        dlg = LegendOptionsDialog(self, self.plotparams, self.selected_plot)
-        dlg.ShowModal()
-        dlg.Destroy()
-        
-        self.updateLegend(self.selected_plot)
         
     def _onPopupMenuChoice(self, evt):
         mainframe = wx.FindWindowByName('MainFrame')
@@ -3114,18 +2994,24 @@ class IftPlotPanel(PlotPanel):
             plotnum = 2
               
         if self.plotparams['legend_visible' + '_' + str(plotnum)]:
-            leg = axes.legend_ = None
             self._insertLegend(axes)
     
     def _insertLegend(self, axes):
         ####################################################################
         # NB!! LEGEND IS THE BIG SPEED HOG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ###################################################################
-        a = axes
         
         if axes.lines:
             legend_lines = []
             legend_labels = []
+
+            old_legend = axes.get_legend()
+
+            if  old_legend != None:
+                old_loc = old_legend._loc
+                axes.legend_ = None
+            else:
+                old_loc = None
             
             for each_line in axes.lines:
                 if each_line.get_visible() == True and each_line.get_label() != '_zero_' and each_line.get_label() != '_nolegend_' and each_line.get_label() != '_line1':
@@ -3140,14 +3026,17 @@ class IftPlotPanel(PlotPanel):
                 enable_border = self.plotparams['legend_border1']
                 alpha = self.plotparams['legend_alpha1']
                 leg_visible = self.plotparams['legend_visible_1']
+                shadow = self.plotparams['legend_shadow1']
             else:
                 fontsize = self.plotparams['legend_fontsize2']
                 enable_border =  self.plotparams['legend_border2']
                 alpha = self.plotparams['legend_alpha2']
                 leg_visible = self.plotparams['legend_visible_2']
+                shadow = self.plotparams['legend_shadow2']
             
-            leg = a.legend(legend_lines, legend_labels, prop = fm.FontProperties(size = fontsize), fancybox = True)
+            leg = axes.legend(legend_lines, legend_labels, prop = fm.FontProperties(size = fontsize), fancybox = True)
             leg.get_frame().set_alpha(alpha)
+            leg.shadow = shadow
 
             if leg_visible:
                 leg.set_visible(True)
@@ -3162,6 +3051,9 @@ class IftPlotPanel(PlotPanel):
                 
             try:
                 leg.draggable()   #Interferes with the scroll zoom!
+                if old_loc != None:
+                    leg._loc = old_loc
+
             except AttributeError:
                 print "WARNING: Old matplotlib version, legend not draggable"
    
@@ -4434,7 +4326,6 @@ class SECPlotPanel(wx.Panel):
         #self.Bind(wx.EVT_MENU, self._onToggleLegend, legend_item)
         #self.Bind(wx.EVT_MENU, self._onAutofitaxesMenuChoice, autofitaxes_item)
         
-        #self.Bind(wx.EVT_MENU, self._onLegendOptions, legend_options)
         self.Bind(wx.EVT_MENU, self._onPlotOptions, plot_options) 
             
         
@@ -4448,13 +4339,6 @@ class SECPlotPanel(wx.Panel):
         dlg = PlotOptionsDialog(self, self.plotparams, axes)
         dlg.ShowModal()
         dlg.Destroy()
-            
-    def _onLegendOptions(self, evt):
-        dlg = LegendOptionsDialog(self, self.plotparams, self.selected_plot)
-        dlg.ShowModal()
-        dlg.Destroy()
-        
-        self.updateLegend(self.selected_plot)
         
     def _onPopupMenuChoice(self, evt): 
         # print 'start of _onPopupMenuChoice'
@@ -5108,7 +4992,6 @@ class SECPlotPanel(wx.Panel):
             plotnum = 2
               
         if self.plotparams['legend_visible' + '_' + str(plotnum)]:
-            leg = axes.legend_ = None
             self._insertLegend(axes, draw)
     
     def _insertLegend(self, axes, draw=True):
@@ -5134,13 +5017,23 @@ class SECPlotPanel(wx.Panel):
         if not legend_lines:
             return
         else:
+            old_legend = axes.get_legend()
+
+            if  old_legend != None:
+                old_loc = old_legend._loc
+                axes.legend_ = None
+            else:
+                old_loc = None
+
             fontsize = self.plotparams['legend_fontsize1']
             enable_border = self.plotparams['legend_border1']
             alpha = self.plotparams['legend_alpha1']
             leg_visible = self.plotparams['legend_visible_1']
+            shadow = self.plotparams['legend_shadow1']
         
             leg = a.legend(legend_lines, legend_labels, prop = fm.FontProperties(size = fontsize), fancybox = True)
             leg.get_frame().set_alpha(alpha)
+            leg.shadow = shadow
 
             if leg_visible:
                 leg.set_visible(True)
@@ -5155,6 +5048,8 @@ class SECPlotPanel(wx.Panel):
                 
             try:
                 leg.draggable()   #Interferes with the scroll zoom!
+                if old_loc != None:
+                    leg._loc = old_loc
             except AttributeError:
                 print "WARNING: Old matplotlib version, legend not draggable"
    
