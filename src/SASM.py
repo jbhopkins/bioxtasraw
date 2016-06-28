@@ -1006,7 +1006,7 @@ class SECM:
         return SECM(copy.copy(self.mean_i), copy.copy(self.total_i), copy.copy(self.frame_list), copy.copy(self._parameters))
 
     def getFilename(self):
-        return self._file_list[0].split('/')[-1]
+        return os.path.basename(self._file_list[0])
 
     def getSASM(self, index=0):
         return self._sasm_list[index]

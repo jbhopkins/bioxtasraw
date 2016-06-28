@@ -3200,6 +3200,16 @@ def findATSASDirectory():
         return default_path
 
 
+    if opsys != 'Windows':
+        which = subprocess.Popen('which dammif', stdout=subprocess.PIPE,shell=True)
+        output = which.communicate()
+
+        atsas_path = output[0].strip()
+
+        if atsas_path != '':
+            return os.path.dirname(atsas_path)
+
+
     try:
         path = os.environ['PATH']
     except Exception as e:
@@ -3232,16 +3242,6 @@ def findATSASDirectory():
             else:
                 if os.path.exists(os.path.join(atsas_path, 'bin')):
                     return os.path.join(atsas_path, 'bin')
-
-
-    if opsys != 'Windows':
-        which = subprocess.Popen('which dammif', stdout=subprocess.PIPE,shell=True)
-        output = which.communicate()
-
-        atsas_path = output[0].strip()
-
-        if atsas_path != '':
-            return os.path.dirname(atsas_path)
 
     return ''
 

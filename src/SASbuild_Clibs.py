@@ -276,7 +276,7 @@ def build_bift():
                                               verbose = 0, **kw)
    
     if success:
-        print '\n\n****** bift_ext module compiled succesfully! *********'
+        print '\n****** bift_ext module compiled succesfully! *********\n'
     
 def build_transmatrix():
     
@@ -339,7 +339,7 @@ def build_transmatrix():
                                               verbose = 0, **kw)
    
     if success:
-        print '\n\n****** transmatrix_ext module compiled succesfully! *********'
+        print '\n****** transmatrix_ext module compiled succesfully! *********\n'
         
 def build_sinfouriermatrix():
     
@@ -399,7 +399,7 @@ def build_sinfouriermatrix():
                                               verbose = 0, **kw)
    
     if success:
-        print '\n\n****** fouriermatrix_ext module compiled succesfully! *********'
+        print '\n****** fouriermatrix_ext module compiled succesfully! *********\n'
         
         
 def build_calcmaxq(): 
@@ -707,7 +707,7 @@ def build_radavg():
                                               verbose = 0, **kw)
    
     if success:
-        print '\n\n****** ravg_ext module compiled succesfully! *********'
+        print '\n****** ravg_ext module compiled succesfully! *********\n'
 
 
 def build_testCode():
@@ -923,9 +923,9 @@ def build_testCode():
                                               verbose = 0, **kw)
    
     if success:
-        print '\n\n****** test module compiled succesfully! *********'
+        print '\n****** test module compiled succesfully! *********\n'
     else:
-        print '\n\n****** test module failed! *********'
+        print '\n****** test module failed! *********\n'
     
 
 def build_polygonmask():
@@ -1008,7 +1008,7 @@ def build_polygonmask():
                                               verbose = 0, **kw)
 
     if success:
-        print '\n\n****** polymask_ext module compiled succesfully! *********'        
+        print '\n****** polymask_ext module compiled succesfully! *********\n'        
 
 def build_TridiagonalSolve(): 
     ''' See http://en.wikipedia.org/wiki/Tridiagonal_matrix_algorithm '''
@@ -1059,7 +1059,7 @@ def build_TridiagonalSolve():
                                               verbose = 0, **kw)
    
     if success:
-        print '\n\n****** tridiagsolve_ext module compiled succesfully! *********'
+        print '\n****** tridiagsolve_ext module compiled succesfully! *********\n'
 
 
 
@@ -1308,7 +1308,7 @@ def build_packc():
                                               verbose = 0, **kw)
     
     if success:
-        print '\n\n****** packc module compiled succesfully! *********'
+        print '\n****** packc module compiled succesfully! *********\n'
 
 
 def buildAll():
