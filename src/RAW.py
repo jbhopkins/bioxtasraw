@@ -2707,7 +2707,7 @@ class MainWorkerThread(threading.Thread):
         
         wx.CallAfter(wx.MessageBox, 'The selected file: ' + filename + '\ncould not be recognized as a '   + str(img_fmt) +
                          ' image format' + ascii + sec + '.\n\nYou can change the image format under Advanced Options in the Options menu.' ,
-                          'Error loading file', style = wx.ICON_ERROR | wx.OK)
+                          'Error loading file', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
     def _showSECFormatError(self, filename, include_ascii = True):
         img_fmt = self._raw_settings.get('ImageFormat')
@@ -2719,7 +2719,7 @@ class MainWorkerThread(threading.Thread):
         
         wx.CallAfter(wx.MessageBox, 'The selected file: ' + filename + '\ncould not be recognized as a '   + str(img_fmt) +
                          ' image format' + ascii + '.\n\nIf you are loading a set of files as a SEC curve, make sure the selection contains only individual scattering profiles (no .sec files).\n\nYou can change the image format under Advanced Options in the Options menu.' ,
-                          'Error loading file', style = wx.ICON_ERROR | wx.OK)
+                          'Error loading file', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         
     def _showSubtractionError(self, sasm, sub_sasm):
         filename1 = sasm.getParameter('filename')
@@ -2730,7 +2730,7 @@ class MainWorkerThread(threading.Thread):
         points2 = len(sub_sasm.i[q2_min:q2_max])
         wx.CallAfter(wx.MessageBox, filename1 + ' has ' + str(points1) + ' data points.\n'  +
             filename2 + ' has ' + str(points2) + ' data points.\n\n' +
-            'Subtraction is not possible. Data files must have equal number of points.', 'Subtraction Error')
+            'Subtraction is not possible. Data files must have equal number of points.', 'Subtraction Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         
     def _showAverageError(self, err_no):
         
@@ -2739,28 +2739,28 @@ class MainWorkerThread(threading.Thread):
         elif err_no == 2:
             wx.CallAfter(wx.MessageBox, 'Please select at least two items to be averaged.' , 'Average Error')
         elif err_no == 3:
-            wx.CallAfter(wx.MessageBox, 'The selected items must have the same q vectors to be averaged.' , 'Average Error')
+            wx.CallAfter(wx.MessageBox, 'The selected items must have the same q vectors to be averaged.' , 'Average Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
     
     def _showPleaseSelectItemsError(self, type):
         
         if type == 'average':
-            wx.CallAfter(wx.MessageBox, 'Please select the items you want to average.\n\nYou can select multiple items by holding down the CTRL or SHIFT key.' , 'No items selected')
+            wx.CallAfter(wx.MessageBox, 'Please select the items you want to average.\n\nYou can select multiple items by holding down the CTRL or SHIFT key.' , 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         if type == 'subtract': 
             wx.CallAfter(wx.MessageBox, 'Please select the items you want the marked (star) item subtracted from.'+
-                              '\nUse CTRL or SHIFT to select multiple items.', 'No items selected')
+                              '\nUse CTRL or SHIFT to select multiple items.', 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         if type == 'superimpose':
-            wx.CallAfter(wx.MessageBox, 'Please select the items you want to superimpose.\n\nYou can select multiple items by holding down the CTRL or SHIFT key.' , 'No items selected')            
+            wx.CallAfter(wx.MessageBox, 'Please select the items you want to superimpose.\n\nYou can select multiple items by holding down the CTRL or SHIFT key.' , 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)            
            
     def _showPleaseMarkItemError(self, type):
         
         if type == 'subtract':
-            wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you are using for subtraction', 'No item marked')
+            wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you are using for subtraction', 'No item marked', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         if type == 'merge':
-            wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you are using as the main curve for merging', 'No item marked')
+            wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you are using as the main curve for merging', 'No item marked', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         if type == 'superimpose':
-            wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you want to superimpose to.', 'No item marked')
+            wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you want to superimpose to.', 'No item marked', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         if type == 'interpolate':
-            wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you are using as the main curve for interpolation', 'No item marked')
+            wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you are using as the main curve for interpolation', 'No item marked', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
             
     def _showQvectorsNotEqualWarning(self, sasm, sub_sasm):
         
@@ -2777,7 +2777,7 @@ class MainWorkerThread(threading.Thread):
         return answer
     
     def _showQuickReduceFinished(self, processed_files, number_of_files):
-        wx.CallAfter(wx.MessageBox, 'Quick reduction finished. Processed ' + str(processed_files) + ' out of ' + str(number_of_files) + ' files.', 'Quick reduction finished', style = wx.ICON_INFORMATION)
+        wx.CallAfter(wx.MessageBox, 'Quick reduction finished. Processed ' + str(processed_files) + ' out of ' + str(number_of_files) + ' files.', 'Quick reduction finished', style = wx.ICON_INFORMATION | wx.STAY_ON_TOP)
         
     def _showOverwritePrompt(self, filename, save_path):
         
