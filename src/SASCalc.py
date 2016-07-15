@@ -720,9 +720,9 @@ def writeGnomCFG(fname, outname, dmax, args):
 def runDammif(fname, prefix, args):
     #Note: This run dammif command must be run with the current working directory as the directory
     #where the file is located. Otherwise, there are issues if the filepath contains a space.
-    print fname
+
     fname = os.path.split(fname)[1]
-    print fname
+
     raw_settings = wx.FindWindowByName('MainFrame').raw_settings
     atsasDir = raw_settings.get('ATSASDir')
 

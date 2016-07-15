@@ -1189,7 +1189,7 @@ class HdrInfoDialog(wx.Dialog):
         
         sizer = wx.BoxSizer(wx.VERTICAL)
         
-        self.text = wx.TextCtrl(self, -1, style = wx.TE_MULTILINE)
+        self.text = wx.TextCtrl(self, -1, style = wx.TE_MULTILINE | wx.TE_READONLY)
         
         self.text.AppendText('#############################################\n')
         self.text.AppendText('                                 Header information\n')

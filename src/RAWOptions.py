@@ -1061,8 +1061,8 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
                             'NormAbsWaterConst']
         
                               #      label,                  textCtrlId,            buttonId, clrbuttonId,    ButtonText,              BindFunction
-        self.filesData = (("Empty cell:"   , raw_settings.getId('NormAbsWaterEmptyFile'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile),
-                          ("Water sample:" , raw_settings.getId('NormAbsWaterFile'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile))        
+        self.filesData = (("Empty cell:"   , raw_settings.getId('NormAbsWaterEmptyFile'), wx.NewId(), wx.NewId(), "Set", "Clear", self.onSetFile, self.onClrFile),
+                          ("Water sample:" , raw_settings.getId('NormAbsWaterFile'), wx.NewId(), wx.NewId(), "Set", "Clear", self.onSetFile, self.onClrFile))        
                                 
         self.normConstantsData = ( ("Water Temperature [C]:", raw_settings.getId('NormAbsWaterTemp'), None) ,
                                    ("Water I(0):", raw_settings.getId('NormAbsWaterI0'), None),
@@ -1258,8 +1258,8 @@ class ReductionFlatfield(wx.Panel):
                             'NormFlatfieldEnabled']
 
                               #      label,                  textCtrlId,            buttonId, clrbuttonId,    ButtonText,              BindFunction
-        self.filesData = [("Flatfield image:" , raw_settings.getId('NormFlatfieldFile'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile),
-                          ("Dark image:" , raw_settings.getId('DarkCorrFilename'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile)]   
+        self.filesData = [("Flatfield image:" , raw_settings.getId('NormFlatfieldFile'), wx.NewId(), wx.NewId(), "Set", "Clear", self.onSetFile, self.onClrFile)]
+                          # ("Dark image:" , raw_settings.getId('DarkCorrFilename'), wx.NewId(), wx.NewId(), "Set", "Clear", self.onSetFile, self.onClrFile)]   
 
         self.normConstantsData = ( ("Water Temperature [C]:", raw_settings.getId('NormAbsWaterTemp'), None) ,
                                    ("Water I(0):", raw_settings.getId('NormAbsWaterI0'), None),
@@ -1935,7 +1935,7 @@ class GeneralOptionsPanel(wx.Panel):
         self.chkboxdata = [('Hide controls on manipulation items for new plots', raw_settings.getId('ManipItemCollapsed')),
                            ('Write header on top of dat files', raw_settings.getId('DatHeaderOnTop')),
                            ('Use header for mask creation (SAXSLAB instruments)', raw_settings.getId('UseHeaderForMask')),
-                           ('Detector is rotated 90 degrees', raw_settings.getId('DetectorFlipped90'))]
+                           ('Detector is rotated 90 degrees (SAXSLAB instruments)', raw_settings.getId('DetectorFlipped90'))]
         
         options_sizer = self.createGeneralOptionsData()
         
@@ -1997,10 +1997,10 @@ class MaskingOptionsPanel(wx.Panel):
        
         self.raw_settings = raw_settings
         
-        self.files_data = (("Beamstop Mask:"     , raw_settings.getId('BeamStopMaskFilename'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile),
-                          ("Readout Noise Mask:", raw_settings.getId('ReadOutNoiseMaskFilename'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile),
-                          ("Transparent Beamstop Mask:", raw_settings.getId('TransparentBSMaskFilename'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile),
-                          ("SAXSLAB calcualted mask:", raw_settings.getId('TransparentBSMaskFilename'), wx.NewId(), wx.NewId(), "Set..", "Clear", self.onSetFile, self.onClrFile))
+        self.files_data = (("Beamstop Mask:"     , raw_settings.getId('BeamStopMaskFilename'), wx.NewId(), wx.NewId(), "Set", "Clear", self.onSetFile, self.onClrFile),
+                          ("Readout Noise Mask:", raw_settings.getId('ReadOutNoiseMaskFilename'), wx.NewId(), wx.NewId(), "Set", "Clear", self.onSetFile, self.onClrFile),
+                          ("Transparent Beamstop Mask:", raw_settings.getId('TransparentBSMaskFilename'), wx.NewId(), wx.NewId(), "Set", "Clear", self.onSetFile, self.onClrFile),
+                          ("SAXSLAB calcualted mask:", raw_settings.getId('TransparentBSMaskFilename'), wx.NewId(), wx.NewId(), "Set", "Clear", self.onSetFile, self.onClrFile))
 
         box = wx.StaticBox(self, -1, 'Mask Files')
         file_sizer = self.createFileSettings()
@@ -2170,7 +2170,7 @@ class SaveDirectoriesPanel(wx.Panel):
             
             if labtxt != None:
             
-                set_button = wx.Button(self, set_button_id, 'Set..')
+                set_button = wx.Button(self, set_button_id, 'Set')
                 set_button.Bind(wx.EVT_BUTTON, self.onSetFile)
                 clr_button = wx.Button(self, clr_button_id, 'Clear')
                 clr_button.Bind(wx.EVT_BUTTON, self.onClrFile)
@@ -3330,13 +3330,13 @@ all_options = [ [ (0,0,0), wx.NewId(), 'Configuration Settings', ConfigRootSetti
                 [ (5,0,0), wx.NewId(), 'IFT', IftOptionsPanel],
                 [ (6,0,0), wx.NewId(), "Save Directories", SaveDirectoriesPanel],
                 [ (7,0,0), wx.NewId(), 'Online Mode', OnlineModePanel],
-                [ (8,0,0), wx.NewId(), "Automation", AutomationOptionsPanel],
+                # [ (8,0,0), wx.NewId(), "Automation", AutomationOptionsPanel],
                 [ (9,0,0), wx.NewId(), "ATSAS", ATSASGeneralPanel],
                 [ (9,1,1), wx.NewId(), "GNOM", ATSASGnom],
                 [ (9,1,2), wx.NewId(), "GNOM Advanced", ATSASGnomAdvanced],
                 [ (9,5,1), wx.NewId(), "DAMMIF", ATSASDammif],
-                [ (9,5,2), wx.NewId(), "DAMMIF Advanced", ATSASDammifAdvanced],
-				[ (10,0,0), wx.NewId(), "SANS", SansOptionsPanel]]
+                [ (9,5,2), wx.NewId(), "DAMMIF Advanced", ATSASDammifAdvanced]]
+				# [ (10,0,0), wx.NewId(), "SANS", SansOptionsPanel]]
                 
 #--- ** TREE BOOK **
 class ConfigTree(CT.CustomTreeCtrl):

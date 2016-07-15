@@ -55,7 +55,7 @@ class RawGuiSettings:
              
              
                             #CENTER / BINNING
-                            'Binsize'    : [2,     wx.NewId(), 'int'],
+                            'Binsize'    : [1,     wx.NewId(), 'int'],
                             'Xcenter'    : [512.0, wx.NewId(), 'float'],
                             'Ycenter'    : [512.0, wx.NewId(), 'float'],
                             'QrangeLow'  : [25,    wx.NewId(), 'int'],
@@ -177,8 +177,8 @@ class RawGuiSettings:
                                                        'Beam Y Center'            : ['Ycenter',           None, ''],
                                                        'Sample Detector Distance' : ['SampleDistance',    None, ''],
                                                        'Wavelength'               : ['WaveLength',        None, ''],
-                                                       'Detector Pixel Size'      : ['DetectorPixelSize', None, ''],
-                                                       'Number of Frames'         : ['NumberOfFrames',    None, '']}],
+                                                       'Detector Pixel Size'      : ['DetectorPixelSize', None, '']}],
+                                                       # 'Number of Frames'         : ['NumberOfFrames',    None, '']}],
                                                        
                             'NormalizationList'    : [None, wx.NewId(), 'text'],
                             'EnableNormalization'  : [True, wx.NewId(), 'bool'],

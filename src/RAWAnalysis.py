@@ -9,27 +9,20 @@ matplotlib.rc('image', origin = 'lower')        # turn image upside down.. x,y, 
 
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg#,Toolbar, FigureCanvasWx
 from matplotlib.backends.backend_wx import NavigationToolbar2Wx
-from matplotlib.backend_bases import NavigationToolbar2
-from matplotlib.patches import Circle, Rectangle, Polygon
 from matplotlib.figure import Figure
-from matplotlib.widgets import Cursor#, Slider, Button
-from matplotlib.font_manager import FontProperties
-from matplotlib.patches import Circle, Rectangle, Polygon
 import numpy as np
-import wx, math
-import sys, os, copy, multiprocessing, threading, Queue
-from scipy import linspace, polyval, polyfit, sqrt, randn
+import sys, os, copy, multiprocessing, threading, Queue, wx, time
+
+from scipy import polyval, polyfit, sqrt, integrate
 import scipy.interpolate as interp
-from scipy import integrate as integrate
 from scipy.constants import Avogadro
+
 import RAW, RAWSettings, RAWCustomCtrl, SASCalc, RAWPlot, SASFileIO, SASM, SASExceptions, BIFT, RAWGlobals
-from wx.lib.splitter import MultiSplitterWindow
+
 # These are for the AutoWrapStaticText class
 from wx.lib.wordwrap import wordwrap
 from wx.lib.stattext import GenStaticText as StaticText
 import wx.lib.agw.flatnotebook as flatNB
-
-import time, random
 
 class GuinierPlotPanel(wx.Panel):
     
@@ -48,7 +41,7 @@ class GuinierPlotPanel(wx.Panel):
                     
         self.data_line = None
     
-        subplotLabels = [('Guinier', 'q^2', 'ln(I(q)', .1), ('Error', 'q', 'I(q)', 0.1)]
+        subplotLabels = [('Guinier', '$q^2$', '$\ln(I(q))$', .1), ('Residual', '$q^2$', '$\Delta \ln (I(q))$', 0.1)]
         
         self.fig.subplots_adjust(hspace = 0.26)
         
@@ -58,9 +51,10 @@ class GuinierPlotPanel(wx.Panel):
             subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
             subplot.set_xlabel(subplotLabels[i][1])
             subplot.set_ylabel(subplotLabels[i][2])
+
             self.subplots[subplotLabels[i][0]] = subplot 
 
-        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
+        self.fig.subplots_adjust(left = 0.15, bottom = 0.08, right = 0.95, top = 0.95, hspace = 0.3)
         self.fig.set_facecolor('white')
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
@@ -84,12 +78,16 @@ class GuinierPlotPanel(wx.Panel):
         ''' Redraw plots on window resize event '''
         
         a = self.subplots['Guinier']
-        b = self.subplots['Error']
+        b = self.subplots['Residual']
 
         self.background = self.canvas.copy_from_bbox(a.bbox)
         self.err_background = self.canvas.copy_from_bbox(b.bbox)
+
+        self.canvas.mpl_disconnect(self.cid)
         
         self.updateDataPlot(self.orig_i, self.orig_q, self.xlim)
+
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
         
     def _calcFit(self):
         ''' calculate fit and statistics '''
@@ -142,20 +140,7 @@ class GuinierPlotPanel(wx.Panel):
                    'Rg' : (Rg, std_slope),
                    'qRg_max': Rg * np.sqrt(x[-1]),
                    'qRg_min' : Rg * np.sqrt(x[0]),
-                   'rsq': rsq}
-        
-        
-        # mw = self.raw_settings.get('MWStandardMW') 
-        # mwI0 = self.raw_settings.get('MWStandardI0')
-        # mwConc = self.raw_settings.get('MWStandardConc')
-        
-        # conc = wx.FindWindowByName('GuinierControlPanel').getConcentration()
-
-        # I0 = float(newInfo['I0'][0])
-        
-        # if mw != 0 and mw > 0 and mwI0 !=0 and mwI0 > 0 and conc != 0 and conc > 0 and mwConc > 0:
-        #     newInfo['MM'] = (newInfo['I0'][0] * (mw/(mwI0/mwConc))) / conc
-                        
+                   'rsq': rsq}                        
         
         return x, y_fit, br, error, newInfo
         
@@ -183,10 +168,10 @@ class GuinierPlotPanel(wx.Panel):
         self.q = q[xmin:xmax]
         
         ## Plot the (at most) 3 first and last points after fit:
-        if xmin < 3:
+        if xmin < 20:
             min_offset = xmin
         else:
-            min_offset = 3
+            min_offset = 20
         
         if xmax > len(q)-3:
             max_offset = len(q) - xmax
@@ -209,7 +194,7 @@ class GuinierPlotPanel(wx.Panel):
         y = y[np.where(np.isinf(y)==False)]
             
         a = self.subplots['Guinier']
-        b = self.subplots['Error']
+        b = self.subplots['Residual']
         
         try:
             x_fit, y_fit, I0, error, newInfo = self._calcFit()
@@ -238,15 +223,11 @@ class GuinierPlotPanel(wx.Panel):
             
             self.lim_front_line = a.axvline(x=x_lim_front, color = 'r', linestyle = '--', animated = True)
             self.lim_back_line = a.axvline(x=x_lim_back, color = 'r', linestyle = '--', animated = True)
-            
-            #self.lim_back_line, = a.plot([x_lim_back, x_lim_back], [y_lim_back-0.2, y_lim_back+0.2], transform=a.transAxes, animated = True)
-            
+                        
             self.canvas.draw()
             self.background = self.canvas.copy_from_bbox(a.bbox)
             self.err_background = self.canvas.copy_from_bbox(b.bbox)
-        else:
-            self.canvas.restore_region(self.background)
-            
+        else:            
             self.data_line.set_ydata(y)
             self.data_line.set_xdata(x)
             
@@ -262,28 +243,46 @@ class GuinierPlotPanel(wx.Panel):
             #Error lines:          
             self.error_line.set_xdata(x_fit)
             self.error_line.set_ydata(error)
+
             self.zero_line.set_xdata(x_fit)
             self.zero_line.set_ydata(zeros)
         
+        a_oldx = a.get_xlim()
+        a_oldy = a.get_ylim()
+        b_oldx = b.get_xlim()
+        b_oldy = b.get_ylim()
+
         a.relim()
         a.autoscale_view()
+
+        b.relim()
+        b.autoscale_view()
+
+        # b.set_xlim((x_fit[0], x_fit[-1]))
+        # b.set_ylim((error.min(), error.max()))
+
+        a_newx = a.get_xlim()
+        a_newy = a.get_ylim()
+        b_newx = b.get_xlim()
+        b_newy = b.get_ylim()
+
+        self.canvas.restore_region(self.background)
+        self.canvas.restore_region(self.err_background)
         
         a.draw_artist(self.data_line)
         a.draw_artist(self.fit_line)
         a.draw_artist(self.interp_line)
         a.draw_artist(self.lim_front_line)
         a.draw_artist(self.lim_back_line)
-
-        b.set_xlim((x_fit[0], x_fit[-1]))
-        b.set_ylim((error.min(), error.max()))
   
-        #restore white background in error plot and draw new error:
-        self.canvas.restore_region(self.err_background)
         b.draw_artist(self.error_line)
         b.draw_artist(self.zero_line)
 
         self.canvas.blit(a.bbox)
         self.canvas.blit(b.bbox)
+
+        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy:
+            self.canvas.draw()
         
              
 class GuinierControlPanel(wx.Panel):
@@ -321,7 +320,6 @@ class GuinierControlPanel(wx.Panel):
                          'qRg_max': ('qRg_max :', wx.NewId()),
                          'qRg_min': ('qRg :', wx.NewId()),
                          'rsq': ('r^2 (fit) :', wx.NewId())}
-                         # 'MM': ('MM :', wx.NewId())}
         
 
         button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
@@ -363,8 +361,6 @@ class GuinierControlPanel(wx.Panel):
         self.SetSizer(bsizer)
         
         self.setFilename(os.path.basename(ExpObj.getParameter('filename')))
-        
-        #self._initSettings()
                 
                 
     def _initSettings(self):
@@ -412,8 +408,6 @@ class GuinierControlPanel(wx.Panel):
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'])
                 txt.SetValue(str(round(self.ExpObj.q[int(old_end)],5)))
 
-                # print 'FAILED AutoRG! resetting controls'
-
             
         
     def setFilename(self, filename):
@@ -424,42 +418,11 @@ class GuinierControlPanel(wx.Panel):
         box = wx.StaticBox(self, -1, 'Filename')
         boxsizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
         
-        #txt = wx.StaticText(self, -1, 'Filename :')
         self.filenameTxtCtrl = wx.TextCtrl(self, -1, '', style = wx.TE_READONLY)
         
-        #boxsizer.Add((5,5),0)
-        #boxsizer.Add(txt,0,wx.EXPAND | wx.TOP , 4)
         boxsizer.Add(self.filenameTxtCtrl, 1, wx.EXPAND)
         
         return boxsizer
-    
-    # def getConcentration(self):
-        
-    #     try:
-    #         val = float(self.concCtrl.GetValue())
-    #         return val
-    #     except Exception:
-    #         return 0
-    
-    # def createConcInfo(self):
-    #     box = wx.StaticBox(self, -1, 'Sample Concentration')
-    #     boxsizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
-        
-        
-    #     if self.ExpObj.getAllParameters().has_key('Conc'):
-    #         val = self.ExpObj.getParameter('Conc')
-    #     else:
-    #         val = ''
-        
-    #     self.concCtrl = wx.TextCtrl(self, -1, str(val), size = (60, -1))
-    #     txt = wx.StaticText(self, -1,  'mg/ml')
-
-    #     self.concCtrl.Bind(wx.EVT_TEXT, self._onUpdateConc)
-
-    #     boxsizer.Add(self.concCtrl, 0, wx.EXPAND)
-    #     boxsizer.Add(txt, 0, wx.LEFT, 5)
-        
-    #     return boxsizer
         
     def onSaveInfo(self, evt):
         gp = wx.FindWindowByName('GuinierPlotPanel')
@@ -477,8 +440,6 @@ class GuinierControlPanel(wx.Panel):
                 
                 info_dict[key] = val
             
-            # info_dict['Conc'] = self.getConcentration()
-            
             nstart_val = wx.FindWindowById(self.spinctrlIDs['qstart']).GetValue()
             nend_val = wx.FindWindowById(self.spinctrlIDs['qend']).GetValue()
             
@@ -489,12 +450,6 @@ class GuinierControlPanel(wx.Panel):
             info_dict['nEnd'] = nend_val
             info_dict['qStart'] = qstart_val
             info_dict['qEnd'] = qend_val
-            
-            # if float(info_dict['Conc']) > 0:
-            #     self.ExpObj.setParameter('Conc', self.getConcentration())
-                
-            # if float(info_dict['MM']) > 0:
-            #     self.ExpObj.setParameter('MW', info_dict['MM'])
             
             analysis_dict = self.ExpObj.getParameter('analysis')
             analysis_dict['guinier'] = info_dict
@@ -510,8 +465,6 @@ class GuinierControlPanel(wx.Panel):
                 mw_window.updateGuinierInfo()
         except TypeError:
             pass
-        
-        #wx.MessageBox('The parameters have now been stored in memory', 'Parameters Saved')
         
         diag = wx.FindWindowByName('GuinierFrame')
         diag.OnClose()
@@ -569,7 +522,6 @@ class GuinierControlPanel(wx.Panel):
     def setCurrentExpObj(self, ExpObj):
         
         self.ExpObj = ExpObj
-        #self.onSpinCtrl(self.startSpin)
     
     def createQRgInfo(self):
         
@@ -604,13 +556,9 @@ class GuinierControlPanel(wx.Panel):
             else:
                 txt = wx.StaticText(self, -1, self.infodata[key][0])
                 ctrl1 = wx.TextCtrl(self, self.infodata[key][1], '0')      
-                #ctrl2 = wx.TextCtrl(self, self.infodata[key][2], '0', size = (60,21))
-                #txtpm = wx.StaticText(self, -1, u"\u00B1")
                 
                 bsizer = wx.BoxSizer()
                 bsizer.Add(ctrl1,0,wx.EXPAND)
-                #bsizer.Add(txtpm,0, wx.LEFT | wx.TOP, 3)
-                #bsizer.Add(ctrl2,0,wx.EXPAND | wx.LEFT, 3)
                 
                 sizer.Add(txt,0)
                 sizer.Add(bsizer,0)
@@ -631,16 +579,7 @@ class GuinierControlPanel(wx.Panel):
         sizer.Add(wx.StaticText(self,-1,'n_max'),1)
           
         self.startSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qstart'], size = (60,-1))
-        self.endSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1))
-        
-#        if sys.platform == 'darwin':
-#             # For getting Mac to process ENTER events:
-#            self.startSpin.GetChildren()[0].SetWindowStyle(wx.PROCESS_ENTER)
-#            self.startSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterOnSpinCtrl)                           
-#                                                         
-#            self.endSpin.GetChildren()[0].SetWindowStyle(wx.PROCESS_ENTER)
-#            self.endSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterOnSpinCtrl) 
-#        
+        self.endSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1)) 
         
         self.startSpin.SetValue(0)
         self.endSpin.SetValue(0)
@@ -773,19 +712,6 @@ class GuinierControlPanel(wx.Panel):
         #Important, since it's a slow function to update (could do it in a timer instead) otherwise this spin event might loop!
         wx.CallAfter(self.updatePlot)
 
-    # def _onUpdateConc(self,evt):
-    #     mw = self.raw_settings.get('MWStandardMW') 
-    #     mwI0 = self.raw_settings.get('MWStandardI0')
-    #     mwConc = self.raw_settings.get('MWStandardConc')
-        
-    #     conc = self.getConcentration()
-
-    #     info = self.getInfo()
-    #     I0 = float(info['I0'])
-        
-    #     if mw != 0 and mw > 0 and mwI0 !=0 and mwI0 > 0 and conc != 0 and conc > 0 and mwConc > 0:
-    #         newInfo = {'MM': (I0 * (mw/(mwI0/mwConc)) / conc)}
-    #         self.updateInfo(newInfo)
         
     def updatePlot(self):
         plotpanel = wx.FindWindowByName('GuinierPlotPanel')
@@ -805,8 +731,7 @@ class GuinierControlPanel(wx.Panel):
         
         xlim = [i,i2]
         plotpanel.updateDataPlot(y, x, xlim)
-        
-        #plotpanel.canvas.draw()
+
         
     def updateInfo(self, newInfo):
         
@@ -818,9 +743,6 @@ class GuinierControlPanel(wx.Panel):
             else:
                 ctrl = wx.FindWindowById(self.infodata[eachkey][1])
                 ctrl.SetValue(str(round(newInfo[eachkey][0],5)))
-                
-                #ctrlerr = wx.FindWindowById(self.infodata[eachkey][2])
-                #ctrlerr.SetValue(str(round(newInfo[eachkey][1],5)))
              
     def updateLimits(self, top = None, bottom = None):
   
@@ -855,11 +777,8 @@ class GuinierControlPanel(wx.Panel):
                 guinierData[eachKey] = val
             else:
                 ctrl1 = wx.FindWindowById(self.infodata[eachKey][1])
-                # ctrl2 = wx.FindWindowById(self.infodata[eachKey][2])
+
                 val1 = ctrl1.GetValue()
-                # val2 = ctrl2.GetValue()
-                
-                # guinierData[eachKey] = (val1, val2) 
                 guinierData[eachKey] = val1
 
         return guinierData
@@ -882,10 +801,6 @@ class GuinierTestFrame(wx.Frame):
   
         splitter1.SplitVertically(controlPanel, plotPanel, 290)
         splitter1.SetMinimumPaneSize(50)
-        
-        self.statusbar = self.CreateStatusBar()
-        self.statusbar.SetFieldsCount(1)
-        #self.statusbar.SetStatusWidths([-3, -2])
 
         plotPanel.plotExpObj(ExpObj)
         
@@ -895,761 +810,11 @@ class GuinierTestFrame(wx.Frame):
         
         self.CenterOnParent()
         self.Raise()
-    
-    def SetStatusText(self, text, slot = 0):
-        
-        self.statusbar.SetStatusText(text, slot)
         
     def OnClose(self):
         
         self.Destroy()
-    
-#---- **** Main Dialog ****
-    
-# class GuinierFitDialog(wx.Dialog):
 
-#     def __init__(self, parent, ExpObj):
-#         wx.Dialog.__init__(self, parent, -1, 'Guinier Fit', name = 'GuinierDialog', size = (800,600))
-    
-#         splitter1 = wx.SplitterWindow(self, -1)
-     
-#         self.controlPanel = GuinierControlPanel(splitter1, -1, 'GuinierControlPanel')
-#         plotPanel = GuinierPlotPanel(splitter1, -1, 'GuinierPlotPanel')
-  
-#         splitter1.SplitVertically(controlPanel, plotPanel, 270)
-#         splitter1.SetMinimumPaneSize(50)
-    
-#         plotPanel.plotExpObj(ExpObj)
-#         controlPanel.setSpinLimits(ExpObj)
-#         controlPanel.setCurrentExpObj(ExpObj)
-        
-#     def getConcentration(self):
-#         return self.controlPanel.getConcentration()
-        
-#     def OnClose(self):
-#         self.Destroy()
-
-
-# #---- **** Porod plotting ****
-
-# class PorodDialog(wx.Dialog):
-
-#     def __init__(self, parent, ExpObj):
-#         wx.Dialog.__init__(self, parent, -1, 'Porod', name = 'PorodDialog', size = (800,600))
-    
-#         splitter1 = wx.SplitterWindow(self, -1)
-     
-#         controlPanel = PorodControlPanel(splitter1, -1, 'PorodControlPanel')
-#         plotPanel = PorodPlotPanel(splitter1, -1, 'PorodPlotPanel')
-  
-#         splitter1.SplitVertically(controlPanel, plotPanel, 270)
-#         splitter1.SetMinimumPaneSize(50)
-    
-#         plotPanel.plotExpObj(ExpObj)
-#         controlPanel.setSpinLimits(ExpObj)
-#         controlPanel.setCurrentExpObj(ExpObj)
-
-#     def OnClose(self):
-#         self.Destroy()
-
-
-# class PorodPlotPanel(wx.Panel):
-    
-#     def __init__(self, parent, panel_id, name, wxEmbedded = False):
-        
-#         wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
-        
-#         self.fig = Figure((5,4), 75)
-#         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
-                    
-#         self.data_line = None
-    
-#         subplotLabels = [('Porod', 'q', 'I(q)q^4', .1)]
-        
-#         self.fig.subplots_adjust(hspace = 0.26)
-        
-#         self.subplots = {}
-        
-#         for i in range(0, len(subplotLabels)):
-#             subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
-#             subplot.set_xlabel(subplotLabels[i][1])
-#             subplot.set_ylabel(subplotLabels[i][2])
-#             self.subplots[subplotLabels[i][0]] = subplot 
-      
-#         sizer = wx.BoxSizer(wx.VERTICAL)
-#         sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
-        
-#         self.toolbar = NavigationToolbar2Wx(self.canvas)
-#         self.toolbar.Realize()
-#         sizer.Add(self.toolbar, 0, wx.GROW)
-
-#         self.SetSizer(sizer)
-#         self.canvas.SetBackgroundColour('white')
-#         self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
-#         self.fig.set_facecolor('white')
-        
-#         # Connect the callback for the draw_event so that window resizing works:
-#         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) 
-
-#     def ax_redraw(self, widget=None):
-#         ''' Redraw plots on window resize event '''
-        
-#         a = self.subplots['Porod']
-    
-#         self.background = self.canvas.copy_from_bbox(a.bbox)
-        
-#         self.updateDataPlot()
-        
-#     def _calcFit(self):
-#         ''' calculate fit and statistics '''
- 
-#         q_roi = self.q
-#         i_roi = self.i
-        
-#         x = np.power(q_roi, 2)
-#         y = np.log(i_roi)
-        
-#         #Remove NaN and Inf values:
-#         x = x[np.where(np.isnan(y) == False)]
-#         y = y[np.where(np.isnan(y) == False)]
-#         x = x[np.where(np.isinf(y) == False)]
-#         y = y[np.where(np.isinf(y) == False)]
-        
-#         #Get 1.st order fit:
-#         ar, br = polyfit(x, y, 1)
-        
-#         #Obtain fit values:
-#         y_fit = polyval([ar, br], x)
-        
-#         #Get fit statistics:
-#         error = y - y_fit
-#         SS_tot = np.sum(np.power(y-np.mean(y),2))
-#         SS_err = np.sum(np.power(error, 2))
-#         rsq = 1 - SS_err / SS_tot
-        
-#         I0 = br
-#         Rg = np.sqrt(-3*ar)
-                
-#         if np.isnan(Rg):
-#             Rg = 0  
-        
-#         ######## CALCULATE ERROR ON PARAMETERS ###############
-        
-#         N = len(error)
-#         stde = SS_err / (N-2)
-#         std_slope = stde * np.sqrt( (1/N) +  (np.power(np.mean(x),2)/np.sum(np.power(x-np.mean(x),2))))
-#         std_interc = stde * np.sqrt(  1 / np.sum(np.power(x-np.mean(x),2)))
-        
-#         ######################################################
-        
-#         if np.isnan(std_slope):
-#             std_slope = -1
-#         if np.isnan(std_interc):
-#             std_interc = -1
-        
-#         newInfo = {'I0' : (np.exp(I0), std_interc),
-#                    'Rg' : (Rg, std_slope),
-#                    'qRg': Rg * np.sqrt(x[-1]),
-#                    'rsq': rsq}
-        
-        
-        
-        
-#         return x, y_fit, br, error, newInfo
-        
-#     def plotExpObj(self, ExpObj):
-#         xlim = [0, len(ExpObj.i)]
-        
-#         #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
-#         self.canvas.mpl_disconnect(self.cid)
-#         #self.updateDataPlot(ExpObj.i, ExpObj.q, xlim)
-        
-#         #Reconnect draw_event
-#         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
-
-#     def updateDataPlot(self):
-        
-#         pass
-            
-# #        xmin, xmax = xlim
-# #        
-# #        #Save for resizing:
-# #        self.orig_i = i
-# #        self.orig_q = q
-# #        self.xlim = xlim
-# #        
-# #        #Cut out region of interest
-# #        self.i = i[xmin:xmax]
-# #        self.q = q[xmin:xmax]
-# #        
-# #        ## Plot the (at most) 3 first and last points after fit:
-# #        if xmin < 3:
-# #            min_offset = xmin
-# #        else:
-# #            min_offset = 3
-# #        
-# #        if xmax > len(q)-3:
-# #            max_offset = len(q) - xmax
-# #        else:
-# #            max_offset = 3
-# #
-# #        xmin = xmin - min_offset
-# #        xmax = xmax + max_offset
-# #        
-# #        #data containing the 3 first and last points
-# #        q_offset = q[xmin:xmax]
-# #        i_offset = i[xmin:xmax]
-# #            
-# #        x = np.power(q_offset, 2)
-# #        y = np.log(i_offset)
-# #         
-# #        x = x[np.where(np.isnan(y)==False)]
-# #        y = y[np.where(np.isnan(y)==False)]
-# #        x = x[np.where(np.isinf(y)==False)]
-# #        y = y[np.where(np.isinf(y)==False)]
-# #            
-# #        a = self.subplots['Porod']
-# #        
-# #        
-# #        try:
-# #            x_fit, y_fit, I0, error, newInfo = self._calcFit()
-# #        except TypeError:
-# #            return
-# #                                                      
-# #        controlPanel = wx.FindWindowByName('PorodControlPanel')
-# #        wx.CallAfter(controlPanel.updateInfo, newInfo)
-# #        
-# #        xg = [0, x_fit[0]]
-# #        yg = [I0, y_fit[0]]
-# #        
-# #        zeros = np.zeros((1,len(x_fit)))[0]
-# #        
-# #        x_lim_front = x[0]
-# #        x_lim_back = x[-1]
-# #        
-# #        if not self.data_line:
-# #            self.data_line, = a.plot(x, y, 'b.', animated = True)
-# #            self.fit_line, = a.plot(x_fit, y_fit, 'r', animated = True)
-# #            self.interp_line, = a.plot(xg, yg, 'g--', animated = True)
-# #
-# #            self.error_line, = b.plot(x_fit, error, 'b', animated = True)
-# #            self.zero_line, = b.plot(x_fit, zeros, 'r', animated = True)
-# #            
-# #            self.lim_front_line = a.axvline(x=x_lim_front, color = 'r', linestyle = '--', animated = True)
-# #            self.lim_back_line = a.axvline(x=x_lim_back, color = 'r', linestyle = '--', animated = True)
-# #            
-# #            #self.lim_back_line, = a.plot([x_lim_back, x_lim_back], [y_lim_back-0.2, y_lim_back+0.2], transform=a.transAxes, animated = True)
-# #            
-# #            self.canvas.draw()
-# #            self.background = self.canvas.copy_from_bbox(a.bbox)
-# #            self.err_background = self.canvas.copy_from_bbox(b.bbox)
-# #        else:
-# #            self.canvas.restore_region(self.background)
-# #            
-# #            self.data_line.set_ydata(y)
-# #            self.data_line.set_xdata(x)
-# #            
-# #            self.fit_line.set_ydata(y_fit)
-# #            self.fit_line.set_xdata(x_fit)
-# #            
-# #            self.interp_line.set_xdata(xg)
-# #            self.interp_line.set_ydata(yg)
-# #            
-# #            self.lim_back_line.set_xdata(x_fit[-1])
-# #            self.lim_front_line.set_xdata(x_fit[0])
-# #  
-# #            #Error lines:          
-# #            self.error_line.set_xdata(x_fit)
-# #            self.error_line.set_ydata(error)
-# #            self.zero_line.set_xdata(x_fit)
-# #            self.zero_line.set_ydata(zeros)
-# #        
-# #        a.relim()
-# #        a.autoscale_view()
-# #        
-# #        a.draw_artist(self.data_line)
-# #        a.draw_artist(self.fit_line)
-# #        a.draw_artist(self.interp_line)
-# #        a.draw_artist(self.lim_front_line)
-# #        a.draw_artist(self.lim_back_line)
-# #
-# #        b.set_xlim((x_fit[0], x_fit[-1]))
-# #        b.set_ylim((error.min(), error.max()))
-# #  
-# #        #restore white background in error plot and draw new error:
-# #        self.canvas.restore_region(self.err_background)
-# #        b.draw_artist(self.error_line)
-# #        b.draw_artist(self.zero_line)
-# #
-# #        self.canvas.blit(a.bbox)
-# #        self.canvas.blit(b.bbox)
-
-
-# class PorodControlPanel(wx.Panel):
-    
-#     def __init__(self, parent, panel_id, name, ExpObj, manip_item):
-        
-#         self.ExpObj = ExpObj
-        
-#         self.manip_item = manip_item
-
-#         wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
-          
-#         self.spinctrlIDs = {'qstart' : wx.NewId(),
-#                             'qend'   : wx.NewId()}
-        
-#         self.staticTxtIDs = {'qstart' : wx.NewId(),
-#                             'qend'   : wx.NewId()}
-        
-#         self.infodata = {'I0' : ('I0 :', wx.NewId(), wx.NewId()),
-#                          'Rg' : ('Rg :', wx.NewId(), wx.NewId()),
-#                          'Volume': ('Volume :', wx.NewId()),
-#                          'Weight': ('Weight :', wx.NewId())}
-        
-
-#         button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
-#         button.Bind(wx.EVT_BUTTON, self.onCloseButton)
-        
-#         savebutton = wx.Button(self, wx.ID_OK, 'OK')
-#         savebutton.Bind(wx.EVT_BUTTON, self.onSaveInfo)
-        
-#         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
-#         buttonSizer.Add(savebutton, 1, wx.RIGHT, 5)
-#         buttonSizer.Add(button, 1)
-        
-        
-#         box = wx.StaticBox(self, -1, 'Parameters')
-#         infoSizer = self.createInfoBox()
-#         boxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-#         boxSizer.Add(infoSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 5)
-        
-#         box2 = wx.StaticBox(self, -1, 'Control')
-#         controlSizer = self.createControls()
-#         boxSizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
-#         boxSizer2.Add(controlSizer, 0, wx.EXPAND)
-        
-#         bsizer = wx.BoxSizer(wx.VERTICAL)
-#         bsizer.Add(self.createFileInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
-#         bsizer.Add(boxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
-#         bsizer.Add(boxSizer2, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
-#         bsizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT| wx.TOP, 5)
-         
-#         self.SetSizer(bsizer)
-        
-#         self.setFilename(os.path.basename(ExpObj.getParameter('filename')))
-        
-#         #self._initSettings()
-                
-                
-#     def _initSettings(self):
-        
-#         analysis = self.ExpObj.getParameter('analysis')
-        
-#         if 'porod' in analysis:
-            
-#             porod = analysis['porod']
-            
-#             start_idx = porod['nStart']
-#             end_idx = porod['nEnd']
-            
-#             spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
-#             spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
-            
-#             old_start = spinstart.GetValue()
-#             old_end = spinend.GetValue()
-            
-#             try:
-#                 spinstart.SetValue(int(start_idx))
-#                 spinend.SetValue(int(end_idx))
-#                 self.updatePlot()
-            
-#             except IndexError:
-#                 spinstart.SetValue(old_start)
-#                 spinend.SetValue(old_end)
-#                 print 'FAILED initSetting! resetting controls'
-            
-        
-#     def setFilename(self, filename):
-#         self.filenameTxtCtrl.SetValue(str(filename))
-        
-#     def createFileInfo(self):
-        
-#         box = wx.StaticBox(self, -1, 'Filename')
-#         boxsizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
-        
-#         #txt = wx.StaticText(self, -1, 'Filename :')
-#         self.filenameTxtCtrl = wx.TextCtrl(self, -1, '', style = wx.TE_READONLY)
-        
-#         #boxsizer.Add((5,5),0)
-#         #boxsizer.Add(txt,0,wx.EXPAND | wx.TOP , 4)
-#         boxsizer.Add(self.filenameTxtCtrl, 1, wx.EXPAND)
-        
-#         return boxsizer
-        
-        
-#     def onSaveInfo(self, evt):
-        
-#         info_dict = {}
-        
-#         for key in self.infodata.keys():
-#             id = self.infodata[key][1]
-#             widget = wx.FindWindowById(id)
-#             val = widget.GetValue()
-            
-#             info_dict[key] = val
-        
-#         nstart_val = wx.FindWindowById(self.spinctrlIDs['qstart']).GetValue()
-#         nend_val = wx.FindWindowById(self.spinctrlIDs['qend']).GetValue()
-        
-#         qstart_val = wx.FindWindowById(self.staticTxtIDs['qstart']).GetValue()
-#         qend_val = wx.FindWindowById(self.staticTxtIDs['qend']).GetValue()
-                
-#         info_dict['nStart'] = nstart_val
-#         info_dict['nEnd'] = nend_val
-#         info_dict['qStart'] = qstart_val
-#         info_dict['qEnd'] = qend_val
-        
-#         analysis_dict = self.ExpObj.getParameter('analysis')
-#         analysis_dict['porod'] = info_dict
-        
-#         if self.manip_item != None:
-#             wx.CallAfter(self.manip_item.updateInfoTip, analysis_dict)
-        
-#         wx.MessageBox('The parameters have now been stored in memory', 'Parameters Saved')
-        
-#         diag = wx.FindWindowByName('PorodFrame')
-#         diag.OnClose()
-        
-#     def onCloseButton(self, evt):
-        
-#         diag = wx.FindWindowByName('PorodFrame')
-#         diag.OnClose()
-        
-        
-#     def setCurrentExpObj(self, ExpObj):
-        
-#         self.ExpObj = ExpObj
-#         #self.onSpinCtrl(self.startSpin)
-        
-#     def createInfoBox(self):
-        
-#         sizer = wx.FlexGridSizer(rows = len(self.infodata), cols = 2)
-        
-#         for key in self.infodata.iterkeys():
-            
-#             if len(self.infodata[key]) == 2:
-#                 txt = wx.StaticText(self, -1, self.infodata[key][0])
-#                 ctrl = wx.TextCtrl(self, self.infodata[key][1], '0')
-#                 sizer.Add(txt, 0)
-#                 sizer.Add(ctrl,0)
-#             else:
-#                 txt = wx.StaticText(self, -1, self.infodata[key][0])
-#                 ctrl1 = wx.TextCtrl(self, self.infodata[key][1], '0')      
-#                 #ctrl2 = wx.TextCtrl(self, self.infodata[key][2], '0', size = (60,21))
-#                 #txtpm = wx.StaticText(self, -1, u"\u00B1")
-                
-#                 bsizer = wx.BoxSizer()
-#                 bsizer.Add(ctrl1,0,wx.EXPAND)
-#                 #bsizer.Add(txtpm,0, wx.LEFT | wx.TOP, 3)
-#                 #bsizer.Add(ctrl2,0,wx.EXPAND | wx.LEFT, 3)
-                
-#                 sizer.Add(txt,0)
-#                 sizer.Add(bsizer,0)
-             
-#         return sizer
-        
-#     def createControls(self):
-        
-#         sizer = wx.FlexGridSizer(rows = 1, cols = 4)
-#         sizer.AddGrowableCol(0)
-#         sizer.AddGrowableCol(1)
-#         sizer.AddGrowableCol(2)
-#         sizer.AddGrowableCol(3)
-        
-#         sizer.Add(wx.StaticText(self,-1,'q_min'),1, wx.LEFT, 5)
-#         sizer.Add(wx.StaticText(self,-1,'n_min'),1)
-#         sizer.Add(wx.StaticText(self,-1,'q_max'),1)
-#         sizer.Add(wx.StaticText(self,-1,'n_max'),1)
-          
-#         self.startSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qstart'], size = (60,-1))
-#         self.endSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1))
-        
-# #        if sys.platform == 'darwin':
-# #             # For getting Mac to process ENTER events:
-# #            self.startSpin.GetChildren()[0].SetWindowStyle(wx.PROCESS_ENTER)
-# #            self.startSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterOnSpinCtrl)                           
-# #                                                         
-# #            self.endSpin.GetChildren()[0].SetWindowStyle(wx.PROCESS_ENTER)
-# #            self.endSpin.GetChildren()[0].Bind(wx.EVT_TEXT_ENTER, self.onEnterOnSpinCtrl) 
-# #        
-        
-#         self.startSpin.SetValue(0)
-#         self.endSpin.SetValue(0)
-            
-#         self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
-#         self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
-        
-#         self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (55, 22), style = wx.PROCESS_ENTER)
-#         self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (55, 22), style = wx.PROCESS_ENTER)
-        
-#         self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
-#         self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
-        
-#         sizer.Add(self.qstartTxt, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 3)
-#         sizer.Add(self.startSpin, 0, wx.EXPAND | wx.RIGHT, 3)
-#         sizer.Add(self.qendTxt, 0, wx.EXPAND | wx.RIGHT, 3)
-#         sizer.Add(self.endSpin, 0, wx.EXPAND | wx.RIGHT, 5)
-        
-#         return sizer
-    
-#     def onEnterInQlimits(self, evt):
-        
-#         id = evt.GetId()
-        
-#         lx = self.ExpObj.q
-#         ly = self.ExpObj.i
-        
-#         findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
-
-#         txtctrl = wx.FindWindowById(id)
-        
-#         #### If User inputs garbage: ####
-#         try:
-#             val = float(txtctrl.GetValue())
-#         except ValueError:
-#             if id == self.staticTxtIDs['qstart']:
-#                 spinctrl = wx.FindWindowById(self.spinctrlIDs['qstart'])
-#                 txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
-#                 idx = int(spinctrl.GetValue())
-#                 txt.SetValue(str(round(self.ExpObj.q[idx],5)))
-#                 return
-            
-#             if id == self.staticTxtIDs['qend']:
-#                 spinctrl = wx.FindWindowById(self.spinctrlIDs['qend'])
-#                 txt = wx.FindWindowById(self.staticTxtIDs['qend'])
-#                 idx = int(spinctrl.GetValue())
-#                 txt.SetValue(str(round(self.ExpObj.q[idx],5)))
-#                 return
-#         #################################
-            
-#         closest = findClosest(val,lx)
-            
-#         i = np.where(lx == closest)[0][0]
-        
-#         endSpin = wx.FindWindowById(self.spinctrlIDs['qend'])
-#         startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'])
-        
-#         if id == self.staticTxtIDs['qstart']:
-            
-#             max = endSpin.GetValue()
-            
-#             if i > max-3:
-#                 i = max - 3
-            
-#             startSpin.SetValue(i)
-            
-#         elif id == self.staticTxtIDs['qend']:
-#             minq = startSpin.GetValue()
-            
-            
-#             if i < minq+3:
-#                 i = minq + 3
-            
-#             endSpin.SetValue(i)
-                
-#         txtctrl.SetValue(str(round(self.ExpObj.q[int(i)],5)))
-        
-#         wx.CallAfter(self.updatePlot)
-        
-#     def setSpinLimits(self, ExpObj):
-#         self.startSpin.SetRange((0, len(ExpObj.q)-1))
-#         self.endSpin.SetRange((0, len(ExpObj.q)-1))
-        
-#         self.endSpin.SetValue(len(ExpObj.q)-1)
-#         txt = wx.FindWindowById(self.staticTxtIDs['qend'])
-#         txt.SetValue(str(round(ExpObj.q[int(len(ExpObj.q)-1)],4)))
-#         txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
-#         txt.SetValue(str(round(ExpObj.q[0],4)))
-        
-#         self._initSettings()
-        
-#     def onEnterOnSpinCtrl(self, evt):
-#         ''' Little workaround to make enter key in spinctrl work on Mac too '''
-#         spin = evt.GetEventObject()
-        
-#         self.startSpin.SetFocus()
-#         self.endSpin.SetFocus()
-        
-#         spin.SetFocus()
-        
-#     def onSpinCtrl(self, evt):
-        
-#         id = evt.GetId()
-        
-#         spin = wx.FindWindowById(id)
-             
-#         startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'])
-#         endSpin = wx.FindWindowById(self.spinctrlIDs['qend'])
-            
-#         i = spin.GetValue()
-        
-#         #Make sure the boundaries don't cross:
-#         if id == self.spinctrlIDs['qstart']:
-#             max = endSpin.GetValue()
-#             txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
-            
-#             if i > max-3:
-#                 i = max - 3
-#                 spin.SetValue(i)
-            
-#         elif id == self.spinctrlIDs['qend']:
-#             min = startSpin.GetValue()
-#             txt = wx.FindWindowById(self.staticTxtIDs['qend'])
-            
-#             if i < min+3:
-#                 i = min + 3
-#                 spin.SetValue(i)
-                
-#         txt.SetValue(str(round(self.ExpObj.q[int(i)],5)))
-        
-#         #Important, since it's a slow function to update (could do it in a timer instead) otherwise this spin event might loop!
-#         wx.CallAfter(self.updatePlot)
-        
-#     def updatePlot(self):
-#         plotpanel = wx.FindWindowByName('PorodPlotPanel')
-#         a = plotpanel.subplots['Porod']
-        
-#         spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
-#         spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
-        
-#         i = int(spinstart.GetValue())
-        
-#         x = self.ExpObj.q
-#         y = self.ExpObj.i
-        
-#         spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
-        
-#         i2 = int(spinend.GetValue())
-        
-#         xlim = [i,i2]
-#         plotpanel.updateDataPlot(y, x, xlim)
-        
-#     def updateInfo(self, newInfo):
-        
-#         for eachkey in newInfo.iterkeys():
-            
-#             if len(self.infodata[eachkey]) == 2: 
-#                 ctrl = wx.FindWindowById(self.infodata[eachkey][1])
-#                 ctrl.SetValue(str(round(newInfo[eachkey],5)))
-#             else:
-#                 ctrl = wx.FindWindowById(self.infodata[eachkey][1])
-#                 ctrl.SetValue(str(round(newInfo[eachkey][0],5)))
-                
-#                 #ctrlerr = wx.FindWindowById(self.infodata[eachkey][2])
-#                 #ctrlerr.SetValue(str(round(newInfo[eachkey][1],5)))
-             
-#     def updateLimits(self, top = None, bottom = None):
-  
-#         if bottom:
-#             spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
-#             spinend.SetValue(bottom)
-#             txt = wx.FindWindowById(self.staticTxtIDs['qend'])
-#             txt.SetValue(str(round(self.ExpObj.q[int(bottom)],4)))
-            
-#         if top:
-#             spinend = wx.FindWindowById(self.spinctrlIDs['qstart'])
-#             spinend.SetValue(top)
-#             txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
-#             txt.SetValue(str(round(self.ExpObj.q[int(top)],4)))
-            
-#     def getLimits(self):
-        
-#         spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
-#         spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
-        
-#         return [int(spinstart.GetValue()), int(spinend.GetValue())]
-    
-#     def getInfo(self):
-        
-#         porodData = {}
-        
-#         for eachKey in self.infodata.iterkeys():
-            
-#             if len(self.infodata[eachKey]) == 2:
-#                 ctrl = wx.FindWindowById(self.infodata[eachKey][1])
-#                 val = ctrl.GetValue()
-#                 porodData[eachKey] = val
-#             else:
-#                 ctrl1 = wx.FindWindowById(self.infodata[eachKey][1])
-#                 ctrl2 = wx.FindWindowById(self.infodata[eachKey][2])
-#                 val1 = ctrl1.GetValue()
-#                 val2 = ctrl2.GetValue()
-                
-#                 porodData[eachKey] = (val1, val2) 
-                
-#         return porodData
-
-# #---- **** FOR TESTING ****
-
-
-# class PorodTestFrame(wx.Frame):
-    
-#     def __init__(self, parent, title, ExpObj, manip_item):
-        
-#         try:
-#             wx.Frame.__init__(self, parent, -1, title, name = 'PorodFrame', size = (800,600))
-#         except:
-#             wx.Frame.__init__(self, None, -1, title, name = 'PorodFrame', size = (800,600))
-        
-#         splitter1 = wx.SplitterWindow(self, -1)   
-        
-#         plotPanel = PorodPlotPanel(splitter1, -1, 'PorodPlotPanel')
-#         controlPanel = PorodControlPanel(splitter1, -1, 'PorodControlPanel', ExpObj, manip_item)
-          
-#         splitter1.SplitVertically(controlPanel, plotPanel, 290)
-#         splitter1.SetMinimumPaneSize(50)
-        
-#         self.statusbar = self.CreateStatusBar()
-#         self.statusbar.SetFieldsCount(1)
-#         #self.statusbar.SetStatusWidths([-3, -2])
-
-#         plotPanel.plotExpObj(ExpObj)
-        
-        
-#         controlPanel.setSpinLimits(ExpObj)
-#         controlPanel.setCurrentExpObj(ExpObj)
-        
-#         self.CenterOnParent()
-    
-#     def SetStatusText(self, text, slot = 0):
-        
-#         self.statusbar.SetStatusText(text, slot)
-        
-#     def OnClose(self):
-        
-#         self.Destroy()
-        
-# class PorodTestApp(wx.App):
-    
-#     def OnInit(self, filename = None):
-        
-#         #ExpObj, ImgDummy = fileIO.loadFile('/home/specuser/Downloads/BSUB_MVMi7_5_FULL_001_c_plot.rad')
-        
-#         tst_file = os.path.join(os.getcwd(), 'Tests', 'TestData', 'lyzexp.dat')
-        
-#         #tst_file = os.path.join(os.getcwd(), 'Tests', 'TestData', 'Lys12_1_001_plot.rad')
-        
-#         print tst_file
-#         raw_settings = RAWSettings.RawGuiSettings()
-
-#         ExpObj, ImgDummy = SASFileIO.loadFile(tst_file, raw_settings)
-        
-#         frame = PorodTestFrame(self, 'Porod', ExpObj, None)
-#         self.SetTopWindow(frame)
-#         frame.SetSize((800,600))
-#         frame.CenterOnScreen()
-#         frame.Show(True)
-#         return True
 
 class MolWeightFrame(wx.Frame):
     
@@ -1729,15 +894,9 @@ class MolWeightFrame(wx.Frame):
         self.Raise()
 
     def _createLayout(self, parent):
-
-        # parent = self.panel
         
         self.top_mw = wx.ScrolledWindow(parent, -1)
-
-        # self.top_mw.SetScrollbars(20,20,50,50)
         self.top_mw.SetScrollRate(20,20)
-
-        # self.top_mw = self
 
         self.info_panel = self._createInfoLayout(parent)
         self.vc_panel = self._createVCLayout(self.top_mw)
@@ -1769,7 +928,6 @@ class MolWeightFrame(wx.Frame):
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(self.info_panel, 0, wx.EXPAND)
         top_sizer.Add(wx.StaticLine(parent = parent, style = wx.LI_HORIZONTAL), 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
-        # top_sizer.Add(mw_sizer, 10, wx.EXPAND)
         top_sizer.Add(self.top_mw, 10, wx.EXPAND)
         top_sizer.Add(wx.StaticLine(parent = parent, style = wx.LI_HORIZONTAL), 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
         top_sizer.Add(self.button_panel, 0, wx.ALIGN_RIGHT | wx.TOP | wx.BOTTOM | wx.LEFT, 5)
@@ -1893,10 +1051,6 @@ class MolWeightFrame(wx.Frame):
                         "'Show Details' provides calculation details and advanced options. 'More Info' "
                         "gives a brief description of each method.")
 
-        # intro = wx.TextCtrl(self, value=intro_text, style=wx.TE_READONLY|wx.TE_MULTILINE|wx.TE_NO_VSCROLL|wx.BORDER_NONE|wx.TE_RICH2) 
-        # color = wx.SystemSettings.GetColour(wx.SYS_COLOUR_BACKGROUND)
-        # intro.SetBackgroundColour(color)
-
         intro = AutoWrapStaticText(parent, label = intro_text)
 
         # Guinier parameters box
@@ -1939,8 +1093,6 @@ class MolWeightFrame(wx.Frame):
         top_sizer.AddStretchSpacer(1)
         top_sizer.Add(fileSizer, 6, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
         top_sizer.AddStretchSpacer(1)
-
-        # top_sizer.Layout()
 
         return top_sizer
 
@@ -2824,10 +1976,6 @@ class MWPlotPanel(wx.Panel):
       
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
-        
-        # self.toolbar = NavigationToolbar2Wx(self.canvas)
-        # self.toolbar.Realize()
-        # sizer.Add(self.toolbar, 0, wx.GROW)
 
         self.SetSizer(sizer)
         self.canvas.SetBackgroundColour('white')
@@ -2860,7 +2008,9 @@ class MWPlotPanel(wx.Panel):
        
         self.background = self.canvas.copy_from_bbox(a.bbox)
         
+        self.canvas.mpl_disconnect(self.cid)
         self.updateDataPlot(self.orig_i, self.orig_q)
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
         
     def _calcInt(self):
         ''' calculate pointwise integral '''
@@ -2900,19 +2050,27 @@ class MWPlotPanel(wx.Panel):
             
             self.canvas.draw()
             self.background = self.canvas.copy_from_bbox(a.bbox)
-        else:
-            self.canvas.restore_region(self.background)
-            
+        else:          
             self.data_line.set_ydata(y)
             self.data_line.set_xdata(x)
-            
-        
+
+        a_oldx = a.get_xlim()
+        a_oldy = a.get_ylim()
+
         a.relim()
         a.autoscale_view()
+
+        a_newx = a.get_xlim()
+        a_newy = a.get_ylim()
+
+        self.canvas.restore_region(self.background)
         
         a.draw_artist(self.data_line)
 
         self.canvas.blit(a.bbox)
+
+        if a_oldx != a_newx or a_oldy != a_newy:
+            self.canvas.draw()
         
 
 
@@ -2934,10 +2092,6 @@ class GNOMFrame(wx.Frame):
   
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, 290)
         splitter1.SetMinimumPaneSize(50)
-        
-        self.statusbar = self.CreateStatusBar()
-        self.statusbar.SetFieldsCount(1)
-        #self.statusbar.SetStatusWidths([-3, -2])
 
         self.initGNOM(self.plotPanel, self.controlPanel, sasm)
         
@@ -2961,7 +2115,6 @@ class GNOMFrame(wx.Frame):
             while os.path.isfile(os.path.join(path, savename)):
                 savename = 't'+savename
 
-            # save_sasm = copy.deepcopy(sasm)
             save_sasm = SASM.SASM(copy.deepcopy(sasm.i), copy.deepcopy(sasm.q), copy.deepcopy(sasm.err), copy.deepcopy(sasm.getAllParameters()))
 
             save_sasm.setParameter('filename', savename)
@@ -3022,11 +2175,6 @@ class GNOMFrame(wx.Frame):
 
     def updateGNOMSettings(self):
         self.controlPanel.updateGNOMSettings()
-
-
-    def SetStatusText(self, text, slot = 0):
-        
-        self.statusbar.SetStatusText(text, slot)
 
     def cleanupGNOM(self, path, savename = '', outname = ''):
         savefile = os.path.join(path, savename)
@@ -3091,14 +2239,12 @@ class GNOMPlotPanel(wx.Panel):
       
         self.toolbar = NavigationToolbar2Wx(self.canvas)
         self.toolbar.Realize()
-        # self.toolbar = RAWPlot.CustomSECPlotToolbar(self, self.canvas)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
         sizer.Add(self.toolbar, 0, wx.GROW)
 
         self.SetSizer(sizer)
-        # self.canvas.SetBackgroundColour('white')
         
         # Connect the callback for the draw_event so that window resizing works:
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) 
@@ -3113,8 +2259,9 @@ class GNOMPlotPanel(wx.Panel):
         self.err_background = self.canvas.copy_from_bbox(b.bbox)
         
         if self.ift != None:
+            self.canvas.mpl_disconnect(self.cid) #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
             self.updateDataPlot(self.orig_q, self.orig_i, self.orig_err, self.orig_r, self.orig_p, self.orig_perr, self.orig_qexp, self.orig_jreg, self.xlim)
-    
+            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) #Reconnect draw_event
         
     def plotPr(self, sasm, iftm):
         # xlim = [0, len(sasm.i)]
@@ -3169,17 +2316,13 @@ class GNOMPlotPanel(wx.Panel):
 
             a.axhline(color = 'k')
 
-            self.data_line, = b.plot(self.q, self.i, 'bo', animated = True)
+            self.data_line, = b.plot(self.q, self.i, 'b.', animated = True)
             self.gnom_line, = b.plot(qexp, jreg, 'r', animated = True)
-            
-            #self.lim_back_line, = a.plot([x_lim_back, x_lim_back], [y_lim_back-0.2, y_lim_back+0.2], transform=a.transAxes, animated = True)
             
             self.canvas.draw()
             self.background = self.canvas.copy_from_bbox(a.bbox)
             self.err_background = self.canvas.copy_from_bbox(b.bbox)
-        else:
-            self.canvas.restore_region(self.background)
-            
+        else:            
             self.ift.set_ydata(p)
             self.ift.set_xdata(r)
   
@@ -3188,25 +2331,36 @@ class GNOMPlotPanel(wx.Panel):
             self.data_line.set_ydata(self.i)
             self.gnom_line.set_xdata(qexp)
             self.gnom_line.set_ydata(jreg)
+
+        a_oldx = a.get_xlim()
+        a_oldy = a.get_ylim()
+        b_oldx = b.get_xlim()
+        b_oldy = b.get_ylim()
         
         a.relim()
         a.autoscale_view()
-        
-        a.draw_artist(self.ift)
 
         b.relim()
         b.autoscale_view()
 
-        # b.set_xlim((self.q[0], self.q[-1]))
-        # b.set_ylim((error.min(), error.max()))
+        a_newx = a.get_xlim()
+        a_newy = a.get_ylim()
+        b_newx = b.get_xlim()
+        b_newy = b.get_ylim()
+        
+        self.canvas.restore_region(self.background)
+        a.draw_artist(self.ift)
   
         #restore white background in error plot and draw new error:
-        # self.canvas.restore_region(self.err_background)
+        self.canvas.restore_region(self.err_background)
         b.draw_artist(self.data_line)
         b.draw_artist(self.gnom_line)
 
         self.canvas.blit(a.bbox)
         self.canvas.blit(b.bbox)
+
+        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy:
+            self.canvas.draw()
         
              
 class GNOMControlPanel(wx.Panel):
@@ -3272,16 +2426,6 @@ class GNOMControlPanel(wx.Panel):
         buttonSizer.Add(savebutton, 1, wx.RIGHT, 5)
         buttonSizer.Add(button, 1)
 
-        # saveOutButton = wx.Button(self, -1, 'Save .out file')
-        # saveOutButton.Bind(wx.EVT_BUTTON, self.onSaveOutButton)
-
-        # dammifButton = wx.Button(self, -1, 'Process using Dammif/n')
-        # dammifButton.Bind(wx.EVT_BUTTON, self.onDammifButton)
-
-        # buttonSizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        # buttonSizer2.Add(saveOutButton, 0)
-        # buttonSizer2.Add(dammifButton, 1)
-
 
         box2 = wx.StaticBox(self, -1, 'Control')
         controlSizer = self.createControls()
@@ -3293,18 +2437,12 @@ class GNOMControlPanel(wx.Panel):
         infoSizer = self.createInfoBox()
         boxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         boxSizer.Add(infoSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP ,5)
-        # qrgsizer = self.createQRgInfo()
-        # boxSizer.Add(qrgsizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 5)
-        
-        
         
         
         bsizer = wx.BoxSizer(wx.VERTICAL)
         bsizer.Add(self.createFileInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
-        # bsizer.Add(self.createConcInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
         bsizer.Add(boxSizer2, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
         bsizer.Add(boxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
-        # bsizer.Add(buttonSizer2, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT| wx.TOP, 5)
         bsizer.AddStretchSpacer(1)
         bsizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
          
@@ -3426,11 +2564,8 @@ class GNOMControlPanel(wx.Panel):
         box = wx.StaticBox(self, -1, 'Filename')
         boxsizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
         
-        #txt = wx.StaticText(self, -1, 'Filename :')
         self.filenameTxtCtrl = wx.TextCtrl(self, -1, '', style = wx.TE_READONLY)
         
-        #boxsizer.Add((5,5),0)
-        #boxsizer.Add(txt,0,wx.EXPAND | wx.TOP , 4)
         boxsizer.Add(self.filenameTxtCtrl, 1, wx.EXPAND)
         
         return boxsizer
@@ -3505,27 +2640,6 @@ class GNOMControlPanel(wx.Panel):
 
         SASFileIO.writeOutFile(iftm, path)
 
-
-    def onDammifButton(self, evt):
-        dammifFrame = wx.FindWindowByName('DammifFrame')
-
-        if dammifFrame:
-            dammifFrame.Destroy()
-
-
-        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'])
-        dmax = dmaxWindow.GetValue()
-
-        filename = self.sasm.getParameter('filename')
-        
-        iftm = self.out_list[str(dmax)]
-        outfile = iftm.getParameter('out')
-
-
-        dammifFrame = DammifFrame(self.main_frame, 'DAMMIF', outfile, filename)
-        dammifFrame.SetIcon(self.main_frame.GetIcon())
-        dammifFrame.Show(True)
-
     def onDatgnomButton(self, evt):
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
         path = dirctrl_panel.getDirLabel()
@@ -3537,7 +2651,6 @@ class GNOMControlPanel(wx.Panel):
         while os.path.isfile(os.path.join(path, savename)):
             savename = 't'+savename
 
-        # save_sasm = copy.deepcopy(sasm)
         save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q), copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
 
         save_sasm.setParameter('filename', savename)
@@ -3779,14 +2892,9 @@ class GNOMControlPanel(wx.Panel):
         txt.SetValue(str(round(sasm.q[int(len(sasm.q)-1)],4)))
         txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
         txt.SetValue(str(round(sasm.q[0],4)))
-        
-        # self._initSettings()
+
         
     def onSpinCtrl(self, evt):
-
-        # self.startSpin.Disable()
-        # self.endSpin.Disable()
-        # self.dmaxSpin.Disable()
 
         id = evt.GetId()
 
@@ -3836,18 +2944,11 @@ class GNOMControlPanel(wx.Panel):
 
         dmax_window = wx.FindWindowById(self.spinctrlIDs['dmax'])
         dmax = str(dmax_window.GetValue())
-        # a = plotpanel.subplots['P(r)']
-        # b = plotpanel.supbplots['Data/Fit']
         
         spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
         spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
         
         i = int(spinstart.GetValue())
-        
-        # x = self.sasm.q
-        # y = self.sasm.i
-        
-        # spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
         
         i2 = int(spinend.GetValue())
         
@@ -3865,12 +2966,6 @@ class GNOMControlPanel(wx.Panel):
 
 
         plotpanel.updateDataPlot(q, i, err, r, p, perr, qexp, jreg, xlim)
-        
-        plotpanel.canvas.draw()
-
-        # self.startSpin.Enable()
-        # self.endSpin.Enable()
-        # self.dmaxSpin.Enable()
 
 
     def calcGNOM(self, dmax):
@@ -3894,7 +2989,6 @@ class GNOMControlPanel(wx.Panel):
         while os.path.isfile(os.path.join(path, outname)):
             outname = 't'+outname
 
-        # save_sasm = copy.deepcopy(self.sasm)
         save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q), copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
 
         save_sasm.setParameter('filename', savename)
@@ -3940,7 +3034,7 @@ class GNOMControlPanel(wx.Panel):
         if self.old_settings != self.gnom_settings:
             self.out_list = {}
 
-        self.updatePlot()
+        wx.CallAfter(self.updatePlot())
 
 
     def onChangeParams(self, evt):
@@ -4364,8 +3458,6 @@ class DammifFrame(wx.Frame):
                 t.daemon = True
                 t.start()
                 self.threads.append(t)
-                # while len(self.threads) < procs and len(self.threads) < nruns:
-                #     time.sleep(1) #Need a sleep in here so they get different random seeds! Has to be one second, as dammif seems to be taking time since epoch as the random seed.
         
         self.dammif_timer.Start(1000)
 
@@ -4817,12 +3909,6 @@ class BIFTFrame(wx.Frame):
             splitter1.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(50)
-
-        # self.statusbar = self.CreateStatusBar()
-        # self.statusbar.SetFieldsCount(1)
-        #self.statusbar.SetStatusWidths([-3, -2])
-
-        # self.initGNOM(self.plotPanel, self.controlPanel, sasm)
         
         self.CenterOnParent()
         self.Raise()
@@ -4831,11 +3917,6 @@ class BIFTFrame(wx.Frame):
     
     def initBIFT(self):
         self.controlPanel.runBIFT()
-
-    def SetStatusText(self, text, slot = 0):
-        
-        self.statusbar.SetStatusText(text, slot)
-
 
     def OnClose(self):
         
@@ -4880,14 +3961,12 @@ class BIFTPlotPanel(wx.Panel):
       
         self.toolbar = NavigationToolbar2Wx(self.canvas)
         self.toolbar.Realize()
-        # self.toolbar = RAWPlot.CustomSECPlotToolbar(self, self.canvas)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
         sizer.Add(self.toolbar, 0, wx.GROW)
 
         self.SetSizer(sizer)
-        # self.canvas.SetBackgroundColour('white')
         
         # Connect the callback for the draw_event so that window resizing works:
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) 
@@ -4902,8 +3981,9 @@ class BIFTPlotPanel(wx.Panel):
         self.err_background = self.canvas.copy_from_bbox(b.bbox)
         
         if self.ift != None:
+            self.canvas.mpl_disconnect(self.cid)
             self.updateDataPlot(self.orig_q, self.orig_i, self.orig_err, self.orig_r, self.orig_p, self.orig_perr, self.orig_qexp, self.orig_jreg, self.xlim)
-    
+            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
         
     def plotPr(self, iftm):
         
@@ -4958,7 +4038,7 @@ class BIFTPlotPanel(wx.Panel):
 
             a.axhline(color = 'k')
 
-            self.data_line, = b.plot(self.q, self.i, 'bo', animated = True)
+            self.data_line, = b.plot(self.q, self.i, 'b.', animated = True)
             self.gnom_line, = b.plot(qexp, jreg, 'r', animated = True)
             
             #self.lim_back_line, = a.plot([x_lim_back, x_lim_back], [y_lim_back-0.2, y_lim_back+0.2], transform=a.transAxes, animated = True)
@@ -4966,9 +4046,7 @@ class BIFTPlotPanel(wx.Panel):
             self.canvas.draw()
             self.background = self.canvas.copy_from_bbox(a.bbox)
             self.err_background = self.canvas.copy_from_bbox(b.bbox)
-        else:
-            self.canvas.restore_region(self.background)
-            
+        else:         
             self.ift.set_ydata(p)
             self.ift.set_xdata(r)
   
@@ -4977,25 +4055,37 @@ class BIFTPlotPanel(wx.Panel):
             self.data_line.set_ydata(self.i)
             self.gnom_line.set_xdata(qexp)
             self.gnom_line.set_ydata(jreg)
+
+        a_oldx = a.get_xlim()
+        a_oldy = a.get_ylim()
+        b_oldx = b.get_xlim()
+        b_oldy = b.get_ylim()
         
         a.relim()
         a.autoscale_view()
-        
-        a.draw_artist(self.ift)
 
         b.relim()
         b.autoscale_view()
 
-        # b.set_xlim((self.q[0], self.q[-1]))
-        # b.set_ylim((error.min(), error.max()))
+        a_newx = a.get_xlim()
+        a_newy = a.get_ylim()
+        b_newx = b.get_xlim()
+        b_newy = b.get_ylim()
+
+        self.canvas.restore_region(self.background)
+        
+        a.draw_artist(self.ift)
   
         #restore white background in error plot and draw new error:
-        # self.canvas.restore_region(self.err_background)
+        self.canvas.restore_region(self.err_background)
         b.draw_artist(self.data_line)
         b.draw_artist(self.gnom_line)
 
         self.canvas.blit(a.bbox)
         self.canvas.blit(b.bbox)
+
+        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy:
+            self.canvas.draw()
         
              
 class BIFTControlPanel(wx.Panel):
@@ -5062,17 +4152,6 @@ class BIFTControlPanel(wx.Panel):
         buttonSizer.Add(savebutton, 1, wx.RIGHT, 5)
         buttonSizer.Add(button, 1)
 
-        # saveOutButton = wx.Button(self, self.buttonIds['save'], 'Save .ift file')
-        # saveOutButton.Bind(wx.EVT_BUTTON, self.onSaveOutButton)
-        # saveOutButton.Disable()
-
-        # dammifButton = wx.Button(self, -1, 'Process using Dammif/n')
-        # dammifButton.Bind(wx.EVT_BUTTON, self.onDammifButton)
-
-        # buttonSizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        # buttonSizer2.Add(saveOutButton, 1, wx.ALIGN_CENTER, 5)
-        # buttonSizer2.Add(dammifButton, 1)
-
 
         box2 = wx.StaticBox(self, -1, 'Control')
         controlSizer = self.createControls()
@@ -5084,8 +4163,6 @@ class BIFTControlPanel(wx.Panel):
         infoSizer = self.createInfoBox()
         boxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         boxSizer.Add(infoSizer, 0, wx.EXPAND)
-        # qrgsizer = self.createQRgInfo()
-        # boxSizer.Add(qrgsizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 5)
 
         box3 = wx.StaticBox(self, -1, 'Status')
         statusSizer = self.createStatus()
@@ -5095,10 +4172,8 @@ class BIFTControlPanel(wx.Panel):
         
         bsizer = wx.BoxSizer(wx.VERTICAL)
         bsizer.Add(self.createFileInfo(), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-        # bsizer.Add(self.createConcInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
         bsizer.Add(boxSizer2, 0, wx.EXPAND, 5)
         bsizer.Add(boxSizer, 0, wx.EXPAND | wx.BOTTOM, 5)
-        # bsizer.Add(buttonSizer2, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT | wx.TOP, 5)
         bsizer.Add(boxSizer3, 0, wx.EXPAND | wx.TOP, 5)
         bsizer.AddStretchSpacer(1)
         bsizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
@@ -5117,11 +4192,8 @@ class BIFTControlPanel(wx.Panel):
         box = wx.StaticBox(self, -1, 'Filename')
         boxsizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
         
-        #txt = wx.StaticText(self, -1, 'Filename :')
         self.filenameTxtCtrl = wx.TextCtrl(self, -1, '', style = wx.TE_READONLY)
         
-        #boxsizer.Add((5,5),0)
-        #boxsizer.Add(txt,0,wx.EXPAND | wx.TOP , 4)
         boxsizer.Add(self.filenameTxtCtrl, 1, wx.EXPAND)
         
         return boxsizer
@@ -5380,27 +4452,6 @@ class BIFTControlPanel(wx.Panel):
 
         SASFileIO.saveMeasurement(sasm, save_path, self.raw_settings, filetype = newext)
 
-
-    def onDammifButton(self, evt):
-        pass
-        # dammifFrame = wx.FindWindowByName('DammifFrame')
-
-        # if dammifFrame:
-        #     dammifFrame.Destroy()
-
-
-        # dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'])
-        # dmax = dmaxWindow.GetValue()
-
-        # filename = self.sasm.getParameter('filename')
-        
-        # gnomDict = self.out_list[str(dmax)]
-        # outfile = gnomDict['out']
-
-
-        # dammifFrame = DammifFrame(self.main_frame, 'Dammif', outfile, filename)
-        # dammifFrame.SetIcon(self.main_frame.GetIcon())
-        # dammifFrame.Show(True)
 
     def updateBIFTInfo(self):
         biftRgWindow = wx.FindWindowById(self.infodata['biftRg'][1])

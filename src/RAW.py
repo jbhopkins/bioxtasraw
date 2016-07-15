@@ -1970,7 +1970,6 @@ class MainWorkerThread(threading.Thread):
 
                 else:
                     sasm, img = SASFileIO.loadFile(each_filename, self._raw_settings)
-
                     loaded_sasm = True
                     
                     if img != None:
@@ -1982,7 +1981,10 @@ class MainWorkerThread(threading.Thread):
                         qrange = (start_point, len(sasm.getBinnedQ())-end_point)
                         sasm.setQrange(qrange)
 
-                    sasm_list.append(sasm)
+                    if type(sasm) == list:
+                        sasm_list.extend(sasm)
+                    else:
+                        sasm_list.append(sasm)
         
                     if do_auto_save:
                         save_path = self._raw_settings.get('ProcessedFilePath')
@@ -3152,7 +3154,6 @@ class MainWorkerThread(threading.Thread):
         #wx.CallAfter(self.main_frame.closeBusyDialog)
     
     def _interpolateItems(self, data):
-        
         marked_item = data[0]
         selected_items = data[1]
         

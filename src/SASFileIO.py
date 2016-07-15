@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 import RAWGlobals, SASImage, SASM, SASIft, SASExceptions
 import numpy as np
 import os, sys, re, cPickle, time, binascii, struct, json, copy
+from xml.dom import minidom
 # import SASMarHeaderReader, packc_ext
 import SASMarHeaderReader #Attempting to remove the reliance on compiled packages. Switchin Mar345 reading to fabio.
 
@@ -632,9 +633,6 @@ def loadSAXSLAB300Image(filename):
 ##########################################
 #--- ## Parse Counter Files and Headers ##
 ##########################################
-
-import pdb
-from xml.dom import minidom
 
 def parseCSVHeaderFile(filename):
     counters = {}
@@ -1347,7 +1345,7 @@ def loadFile(filename, raw_settings, no_processing = False):
         
     if type(sasm) != list and (sasm == None or len(sasm.i) == 0):
         raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
-         
+
     return sasm, img
 
 def loadAsciiFile(filename, file_type):
@@ -1358,6 +1356,7 @@ def loadAsciiFile(filename, file_type):
                      '2col'       : load2ColFile,
                      'int'        : loadIntFile,
                      'fit'        : loadFitFile,
+                     'fir'        : loadFitFile,
                      'ift'        : loadIftFile,
                      'csv'        : loadCsvFile,
                      'out'        : loadOutFile}
@@ -1386,7 +1385,7 @@ def loadAsciiFile(filename, file_type):
 
     if sasm != None and type(sasm) != list:
         sasm.setParameter('filename', os.path.split(filename)[1])
-     
+
     return sasm
 
 
@@ -2938,15 +2937,14 @@ def checkFileType(filename):
     
     path, ext = os.path.splitext(filename)
 
-    print type_tst
-
     if type_tst == 'RR':
         return 'image'
-    if type_tst == 'II':   # Test if file is a TIFF file (first two bytes are "II")
-        print 'TIFF'
+    elif type_tst == 'II':   # Test if file is a TIFF file (first two bytes are "II")
         return 'image'
     elif ext == '.fit':
         return 'fit'
+    elif ext == '.fir':
+        return 'fir'
     elif ext == '.out':
         return 'out'
     elif ext == '.nxs': #Nexus file
@@ -2965,16 +2963,24 @@ def checkFileType(filename):
         return 'primus'
     elif ext == '.mar1200' or ext == '.mar2400' or ext == '.mar2300' or ext == '.mar3600':
         return 'image'
+    elif (ext == '.img' or ext == '.sfrm' or ext == '.dm3' or ext == '.edf' or ext == '.xml' or ext == '.cbf' or ext == '.kccd' or
+        ext == '.msk' or ext == '.spr' or ext == '.tif' or ext == '.h5' or ext == '.mccd' or ext == '.mar3450' or ext =='.npy' or
+        ext == '.pnm' or ext == '.No'):
+        return 'image'
     elif ext == '.ift':
         return 'ift'
     elif ext == '.csv':
         return 'csv'
     else:  
         try:
-            float(ext.strip('.'))
-        except Exception:
-            return 'rad'
-        return 'csv'
+            fabio.open(filename)
+            return 'image'
+        except:
+            try:
+                float(ext.strip('.'))
+            except Exception:
+                return 'rad'
+            return 'csv'
         
         
         

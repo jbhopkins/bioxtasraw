@@ -1062,7 +1062,7 @@ def ravg_python(readoutNoiseFound, readoutN, readoutNoise_mask, xlen, ylen, x_c,
                     readoutN[0,1] = readoutN[0,1] + in_image[x,y]
                     
                     deltaN = in_image[x,y] - readoutN[0,2]
-                    readoutN[0,2] = readoutN[0,2] + (deltaN / readoutN[0,0])
+                    readoutN[0,2] = readoutN[0,2] + (deltaN / readoutN[0,0]) #Running average
                     readoutN[0,3] = readoutN[0,3] + (deltaN * (in_image[x,y]-readoutN[0,2]))        
                     
                 # }  

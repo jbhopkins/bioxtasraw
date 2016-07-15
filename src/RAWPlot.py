@@ -1479,7 +1479,6 @@ class PlotPanel(wx.Panel):
             plotpanel.canvas.draw()
 
     def plotSASM(self, sasm_list, axes_no = 1, color = None, legend_label_in = None, line_data = None, *args, **kwargs):
-        
         if axes_no == 1:
             a = self.subplot1
         elif axes_no == 2:
@@ -1489,7 +1488,6 @@ class PlotPanel(wx.Panel):
             
         if type(sasm_list) != list:
             sasm_list = [sasm_list]
-
       
         #plot with errorbars
         if a == self.subplot1:
