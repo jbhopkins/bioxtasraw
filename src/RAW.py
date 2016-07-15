@@ -1973,7 +1973,7 @@ class MainWorkerThread(threading.Thread):
                     loaded_sasm = True
                     
                     if img != None:
-                        qrange = sasm.getQrange()
+                        # qrange = sasm.getQrange()
                         start_point = self._raw_settings.get('StartPoint')
                         # print start_point
                         end_point = self._raw_settings.get('EndPoint')
@@ -2875,6 +2875,11 @@ class MainWorkerThread(threading.Thread):
                 if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
                     try:
                         sasm, img = SASFileIO.loadFile(full_load_path, self._raw_settings)
+
+                        start_point = self._raw_settings.get('StartPoint')
+                        end_point = self._raw_settings.get('EndPoint')
+                        qrange = (start_point, len(sasm.getBinnedQ())-end_point)
+                        sasm.setQrange(qrange)
                         
                         if result[0] == wx.ID_EDIT:
                             final_save_path, new_filename = os.path.split(result[1][0])                
@@ -2893,6 +2898,11 @@ class MainWorkerThread(threading.Thread):
             else:
                 try:
                     sasm, img = SASFileIO.loadFile(full_load_path, self._raw_settings)
+
+                    start_point = self._raw_settings.get('StartPoint')
+                    end_point = self._raw_settings.get('EndPoint')
+                    qrange = (start_point, len(sasm.getBinnedQ())-end_point)
+                    sasm.setQrange(qrange)
                     
                     if img != None:
                         SASFileIO.saveMeasurement(sasm, save_path, self._raw_settings)
@@ -12907,7 +12917,7 @@ class QuickReduceDialog(wx.Dialog):
         filecount_label = wx.StaticText(self, -1, '# of files selected : ' + str(len(selected_files)))
         
         savedir_label = wx.StaticText(self, -1, 'Save Directory :')
-        format_label = wx.StaticText(self, -1, 'Format :')
+        # format_label = wx.StaticText(self, -1, 'Format :')
         
         savedir_sizer = wx.BoxSizer()
         self.save_textctrl = wx.TextCtrl(self, -1, path, size = (400, -1))
@@ -12929,9 +12939,9 @@ class QuickReduceDialog(wx.Dialog):
         final_sizer.Add(filecount_label, 0, wx.TOP | wx.LEFT | wx.RIGHT, 10)
         final_sizer.Add(savedir_label, 0, wx.TOP | wx.LEFT | wx.RIGHT, 10)
         final_sizer.Add(savedir_sizer, 0, wx.LEFT | wx.RIGHT, 10)
-        final_sizer.Add(format_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
-        final_sizer.Add(format_choice, 0, wx.LEFT | wx.RIGHT, 10)
-        final_sizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.TOP, 10)
+        # final_sizer.Add(format_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+        # final_sizer.Add(format_choice, 0, wx.LEFT | wx.RIGHT, 10)
+        # final_sizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.TOP, 10)
         final_sizer.Add(button_sizer, 0, wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL, 10)
         
         self.SetSizer(final_sizer)

@@ -4489,12 +4489,6 @@ class BIFTControlPanel(wx.Panel):
         plotpanel = wx.FindWindowByName('BIFTPlotPanel')
 
         plotpanel.updateDataPlot(q, i, err, r, p, perr, qexp, jreg, xlim)
-        
-        plotpanel.canvas.draw()
-
-        # self.startSpin.Enable()
-        # self.endSpin.Enable()
-        # self.dmaxSpin.Enable()
 
     def updateBIFTSettings(self):
         self.old_settings = copy.deepcopy(self.bift_settings)
