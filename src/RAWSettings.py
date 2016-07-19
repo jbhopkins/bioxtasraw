@@ -62,8 +62,8 @@ class RawGuiSettings:
                             'QrangeHigh' : [9999,  wx.NewId(), 'int'],
                             'StartPoint' : [0,     wx.NewId(), 'int'],
                             'EndPoint'   : [0,     wx.NewId(), 'int'],
-                            'PixelCalX'  : [200,   wx.NewId(), 'int'],
-                            'PixelCalY'  : [200,   wx.NewId(), 'int'],
+                            # 'PixelCalX'  : [200,   wx.NewId(), 'int'],
+                            # 'PixelCalY'  : [200,   wx.NewId(), 'int'],
                             'ImageDim'   : [[1024,1024]],
              
                             #MASKING

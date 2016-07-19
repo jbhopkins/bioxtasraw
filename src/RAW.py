@@ -11105,9 +11105,9 @@ class CenteringPanel(wx.Panel):
         self._main_frame.raw_settings.set('WaveLength', wavelength)
         self._main_frame.raw_settings.set('DetectorPixelSize', pixel_size)
         
-        sd_pixels = round(SASImage.calcFromSDToAgBePixels(sd, wavelength, pixel_size / 1000.0),0)
+        # sd_pixels = round(SASImage.calcFromSDToAgBePixels(sd, wavelength, pixel_size / 1000.0),0)
                 
-        self._main_frame.raw_settings.set('PixelCalX', sd_pixels)
+        # self._main_frame.raw_settings.set('PixelCalX', sd_pixels)
     
     def _getCalibValues(self):
         
@@ -11243,20 +11243,23 @@ class CenteringPanel(wx.Panel):
         self.image_panel.enableAgbeAutoCentMode()
         
     def _updateAgbeRings(self):
-        
         sd_distance, wavelength, pixel_size = self._getCalibValues()
         
         sample_detec_pixels = SASImage.calcFromSDToAgBePixels(sd_distance, wavelength, pixel_size / 1000.0)
                 
         wx.CallAfter(self.image_panel.clearPatches)
-        wx.CallAfter(self.image_panel._drawAgBeRings, self._center, sample_detec_pixels)
+        if not numpy.isnan(sample_detec_pixels): #If wavelength is too long, can get value sfor the ring radius that are nans
+            wx.CallAfter(self.image_panel._drawAgBeRings, self._center, sample_detec_pixels)
+        else:
+            self._wavelen_text.SetValue('1')
+            wx.MessageBox('Wavelength too long, cannot show silver-behenate rings on the plot. Must be less than 116 angstroms.', 'Invalid Entry', style=wx.ICON_ERROR)
+            return
     
     def updateCenterTextCtrls(self):
         self._x_cent_text.SetValue(str(self._center[0]))
         self._y_cent_text.SetValue(str(self._center[1]))
     
     def _updatePlots(self):
-        
         if self._pattern_list.GetSelection() == 1:
             self._updateAgbeRings()
             

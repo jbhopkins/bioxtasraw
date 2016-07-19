@@ -1396,6 +1396,13 @@ def loadImageFile(filename, raw_settings):
         
     img, img_hdr = loadImage(filename, img_fmt)
 
+    try:
+        json.dumps(img_hdr)
+    except UnicodeDecodeError as e:
+        for key in img_hdr:
+            if type(img_hdr[key]) == str:
+                img_hdr[key] = unicode(img_hdr[key], errors='ignore')
+
     hdrfile_info = loadHeader(filename, hdr_fmt)
  
     parameters = {'imageHeader' : img_hdr,

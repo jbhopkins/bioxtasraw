@@ -1320,8 +1320,8 @@ class ImageSettingsDialog(wx.Dialog):
         self.sliderinfo = (                           
                            ################### ctrl,     slider #############
                            ('Upper limit:', wx.NewId(), wx.NewId(), 'UpperClim'),
-                           ('Lower limit:', wx.NewId(), wx.NewId(), 'LowerClim'),
-                           ('Brightness:', wx.NewId(), wx.NewId(), 'Brightness'))
+                           ('Lower limit:', wx.NewId(), wx.NewId(), 'LowerClim'))
+                           # ('Brightness:', wx.NewId(), wx.NewId(), 'Brightness'))
                           
         
         self.scaleinfo = (('Linear', wx.NewId(), 'ImgScale'), 
@@ -1511,11 +1511,11 @@ class ImageSettingsDialog(wx.Dialog):
             else:
                 
                 slider.SetMin(int(self.minval))
-                slider.SetMax(min(int(self.maxval), 65534))
+                slider.SetMax(int(self.maxval))
             
             if self.parent.plot_parameters[each[3]] != None:
-                val.SetValue(str(    min(self.parent.plot_parameters[each[3]], 65534)   ))
-                slider.SetValue(float(   min(self.parent.plot_parameters[each[3]], 65534   )))
+                val.SetValue(str(self.parent.plot_parameters[each[3]]))
+                slider.SetValue(float(self.parent.plot_parameters[each[3]]))
             
             hslider = wx.BoxSizer(wx.HORIZONTAL)
                
@@ -1593,47 +1593,60 @@ class ImageSettingsDialog(wx.Dialog):
                 else:
                     self.parent.updateClim()
             
-    def setBrightnessAndContrastUINT16(self):
-        brightness = self.parent.plot_parameters['Brightness'] - 100;
-        contrast = (self.parent.plot_parameters['Contrast'] - 100)/10;
-        max_value = 0;
+#     def setBrightnessAndContrastUINT16(self):
+#         print 'setting brightness'
+#         brightness = self.parent.plot_parameters['Brightness'] - 100;
+#         contrast = (self.parent.plot_parameters['Contrast'] - 100)/10;
+#         max_value = 0;
         
-        print brightness
-        print contrast
+#         print brightness
+#         print contrast
         
-        lut = np.array(range(0,65536), int)
+#         lut = np.array(range(0,65536), int)
 
-    # The algorithm is by Werner D. Streidt
-    # (http://visca.com/ffactory/archives/5-99/msg00021.html)
-        if( contrast > 0 ):
-            delta = 32767.*contrast/100;
-            a = 65535./(65535. - delta*2);
-            b = a*(brightness - delta);
-        else:
-            delta = -32768.*contrast/100;
-            a = (65536.-delta*2)/65535.;
-            b = a*brightness + delta;
+#     # The algorithm is by Werner D. Streidt
+#     # (http://visca.com/ffactory/archives/5-99/msg00021.html)
+#         if( contrast > 0 ):
+#             delta = 32767.*contrast/100;
+#             a = 65535./(65535. - delta*2);
+#             b = a*(brightness - delta);
+#         else:
+#             delta = -32768.*contrast/100;
+#             a = (65536.-delta*2)/65535.;
+#             b = a*brightness + delta;
 
-        for i in range(65536):
-            v = round(a*i + b);
-            if( v < 0 ):
-                v = 0;
-            if( v > 65535 ):
-                v = 65535;
-            lut[i] = v;
+#         print a
+#         print b
+
+#         for i in range(65536):
+#             v = round(a*i + b)
+
+#             if( v < 0 ):
+#                 v = 0
+
+#             if( v > 65535 ):
+#                 v = 65535
+
+#             lut[i] = v
+
+#         change = lambda x: lut[x]
+
+#         print change(0)
+#         print change(10)
+#         print change(50)
     
-        newImg = lut[np.int(self.parent.img)]
+#         newImg = change(self.parent.img)
         
         
-      #  if self.parent.plot_parameters['ImgScale'] != 'logarithmic':
-      #      newImg[where(newImg) == 0] = 1.0
-      #      newImg = log(self.parent.img)
-      #      newImg = uint16(self.newImg / self.newImg.max() * 65535)
+#       #  if self.parent.plot_parameters['ImgScale'] != 'logarithmic':
+#       #      newImg[where(newImg) == 0] = 1.0
+#       #      newImg = log(self.parent.img)
+#       #      newImg = uint16(self.newImg / self.newImg.max() * 65535)
                  
-                #self.ImgObj.set_data(self.newImg)
-#       newImg[where(newImg<1)] = 1
-        self.ImgObj.set_data(newImg)
-        self.parent.updateImage()
+#                 #self.ImgObj.set_data(self.newImg)
+# #       newImg[where(newImg<1)] = 1
+#         self.ImgObj.set_data(newImg)
+#         self.parent.updateImage()
 
 #--- ** FOR TESTING **
 class ImageTestFrame(wx.Frame):

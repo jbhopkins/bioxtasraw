@@ -3034,7 +3034,7 @@ class GNOMControlPanel(wx.Panel):
         if self.old_settings != self.gnom_settings:
             self.out_list = {}
 
-        wx.CallAfter(self.updatePlot())
+        self.updatePlot()
 
 
     def onChangeParams(self, evt):
@@ -3421,6 +3421,8 @@ class DammifFrame(wx.Frame):
         self.dammif_ids = {key: value for (key, value) in [(str(i), wx.NewId()) for i in range(1, nruns+1)]}
 
         self.thread_nums = Queue.Queue()
+        
+        self.logbook.DeleteAllPages()
         
         for i in range(1, nruns+1):
             text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids[str(i)], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
