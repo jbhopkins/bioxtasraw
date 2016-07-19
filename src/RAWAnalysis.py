@@ -266,6 +266,9 @@ class GuinierPlotPanel(wx.Panel):
         b_newx = b.get_xlim()
         b_newy = b.get_ylim()
 
+        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy:
+            self.canvas.draw()
+
         self.canvas.restore_region(self.background)
         self.canvas.restore_region(self.err_background)
         
@@ -281,9 +284,6 @@ class GuinierPlotPanel(wx.Panel):
         self.canvas.blit(a.bbox)
         self.canvas.blit(b.bbox)
 
-        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy:
-            self.canvas.draw()
-        
              
 class GuinierControlPanel(wx.Panel):
     
@@ -730,7 +730,10 @@ class GuinierControlPanel(wx.Panel):
         i2 = int(spinend.GetValue())
         
         xlim = [i,i2]
+
+        plotpanel.canvas.mpl_disconnect(plotpanel.cid) #disconnect draw event to avoid recursions
         plotpanel.updateDataPlot(y, x, xlim)
+        plotpanel.cid = plotpanel.canvas.mpl_connect('draw_event', plotpanel.ax_redraw) #Reconnect draw_event
 
         
     def updateInfo(self, newInfo):
@@ -2063,14 +2066,7 @@ class MWPlotPanel(wx.Panel):
         a_newx = a.get_xlim()
         a_newy = a.get_ylim()
 
-        self.canvas.restore_region(self.background)
-        
-        a.draw_artist(self.data_line)
-
-        self.canvas.blit(a.bbox)
-
-        if a_oldx != a_newx or a_oldy != a_newy:
-            self.canvas.draw()
+        self.canvas.draw()
         
 
 
@@ -2171,7 +2167,7 @@ class GNOMFrame(wx.Frame):
 
         qrange = sasm.getQrange()
 
-        plotPanel.plotPr(sasm, iftm)
+        plotPanel.plotPr(iftm)
 
     def updateGNOMSettings(self):
         self.controlPanel.updateGNOMSettings()
@@ -2260,13 +2256,13 @@ class GNOMPlotPanel(wx.Panel):
         
         if self.ift != None:
             self.canvas.mpl_disconnect(self.cid) #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
-            self.updateDataPlot(self.orig_q, self.orig_i, self.orig_err, self.orig_r, self.orig_p, self.orig_perr, self.orig_qexp, self.orig_jreg, self.xlim)
+            self.updateDataPlot(self.orig_q, self.orig_i, self.orig_err, self.orig_r, self.orig_p, self.orig_perr, self.orig_qexp, self.orig_jreg)
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) #Reconnect draw_event
         
-    def plotPr(self, sasm, iftm):
+    def plotPr(self, iftm):
         # xlim = [0, len(sasm.i)]
         
-        xlim = sasm.getQrange()
+        # xlim = iftm.getQrange()
 
         r = iftm.r
         p = iftm.p
@@ -2281,14 +2277,12 @@ class GNOMPlotPanel(wx.Panel):
 
         #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
         self.canvas.mpl_disconnect(self.cid)
-        self.updateDataPlot(sasm.q, sasm.i, sasm.err, r, p, perr, qexp, jreg, xlim)
+        self.updateDataPlot(q, i, err, r, p, perr, qexp, jreg)
         
         #Reconnect draw_event
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
-    def updateDataPlot(self, q, i, err, r, p, perr, qexp, jreg, xlim):
-            
-        xmin, xmax = xlim
+    def updateDataPlot(self, q, i, err, r, p, perr, qexp, jreg):
         
         #Save for resizing:
         self.orig_q = q
@@ -2299,12 +2293,6 @@ class GNOMPlotPanel(wx.Panel):
         self.orig_perr = perr
         self.orig_qexp = qexp
         self.orig_jreg = jreg
-
-        self.xlim = xlim
-        
-        # #Cut out region of interest
-        self.i = i[xmin:xmax]
-        self.q = q[xmin:xmax]
             
         a = self.subplots['P(r)']
         b = self.subplots['Data/Fit']
@@ -2314,21 +2302,23 @@ class GNOMPlotPanel(wx.Panel):
         if not self.ift:
             self.ift, = a.plot(r, p, 'r.-', animated = True)
 
-            a.axhline(color = 'k')
+            self.zero_line  = a.axhline(color = 'k', animated = True)
 
-            self.data_line, = b.plot(self.q, self.i, 'b.', animated = True)
+            self.data_line, = b.plot(q, i, 'b.', animated = True)
             self.gnom_line, = b.plot(qexp, jreg, 'r', animated = True)
             
             self.canvas.draw()
             self.background = self.canvas.copy_from_bbox(a.bbox)
             self.err_background = self.canvas.copy_from_bbox(b.bbox)
-        else:            
+
+
+        else:
             self.ift.set_ydata(p)
             self.ift.set_xdata(r)
   
             #Error lines:          
-            self.data_line.set_xdata(self.q)
-            self.data_line.set_ydata(self.i)
+            self.data_line.set_xdata(q)
+            self.data_line.set_ydata(i)
             self.gnom_line.set_xdata(qexp)
             self.gnom_line.set_ydata(jreg)
 
@@ -2343,13 +2333,20 @@ class GNOMPlotPanel(wx.Panel):
         b.relim()
         b.autoscale_view()
 
+        # if  np.all(p>=0):
+        #     a.set_ylim(bottom = p.min())
+
         a_newx = a.get_xlim()
         a_newy = a.get_ylim()
         b_newx = b.get_xlim()
         b_newy = b.get_ylim()
+
+        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy:
+            self.canvas.draw()
         
         self.canvas.restore_region(self.background)
         a.draw_artist(self.ift)
+        a.draw_artist(self.zero_line)
   
         #restore white background in error plot and draw new error:
         self.canvas.restore_region(self.err_background)
@@ -2359,8 +2356,7 @@ class GNOMPlotPanel(wx.Panel):
         self.canvas.blit(a.bbox)
         self.canvas.blit(b.bbox)
 
-        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy:
-            self.canvas.draw()
+        
         
              
 class GNOMControlPanel(wx.Panel):
@@ -2414,6 +2410,8 @@ class GNOMControlPanel(wx.Panel):
                          'gnomQuality': ('GNOM says :', wx.NewId()),
                          'chisq': ('chi^2 (fit) :', wx.NewId())
                          }
+
+        self.plotted_iftm = None 
 
 
         button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
@@ -2965,7 +2963,8 @@ class GNOMControlPanel(wx.Panel):
         jreg = self.out_list[dmax].i_fit
 
 
-        plotpanel.updateDataPlot(q, i, err, r, p, perr, qexp, jreg, xlim)
+        # plotpanel.updateDataPlot(q, i, err, r, p, perr, qexp, jreg, xlim)
+        plotpanel.plotPr(self.out_list[dmax])
 
 
     def calcGNOM(self, dmax):
@@ -4038,7 +4037,7 @@ class BIFTPlotPanel(wx.Panel):
         if not self.ift:
             self.ift, = a.plot(r, p, 'r.-', animated = True)
 
-            a.axhline(color = 'k')
+            self.zero_line = a.axhline(color = 'k', animated = True)
 
             self.data_line, = b.plot(self.q, self.i, 'b.', animated = True)
             self.gnom_line, = b.plot(qexp, jreg, 'r', animated = True)
@@ -4074,9 +4073,13 @@ class BIFTPlotPanel(wx.Panel):
         b_newx = b.get_xlim()
         b_newy = b.get_ylim()
 
+        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy:
+            self.canvas.draw()
+
         self.canvas.restore_region(self.background)
         
         a.draw_artist(self.ift)
+        a.draw_artist(self.zero_line)
   
         #restore white background in error plot and draw new error:
         self.canvas.restore_region(self.err_background)
@@ -4085,9 +4088,6 @@ class BIFTPlotPanel(wx.Panel):
 
         self.canvas.blit(a.bbox)
         self.canvas.blit(b.bbox)
-
-        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy:
-            self.canvas.draw()
         
              
 class BIFTControlPanel(wx.Panel):
@@ -4475,22 +4475,23 @@ class BIFTControlPanel(wx.Panel):
     
     def updatePlot(self):
 
-        xlim = self.iftm.getQrange()
+        # xlim = self.iftm.getQrange()
 
-        r = self.iftm.r
-        p = self.iftm.p
-        perr = self.iftm.err
+        # r = self.iftm.r
+        # p = self.iftm.p
+        # perr = self.iftm.err
 
-        i = self.iftm.i_orig 
-        q = self.iftm.q_orig 
-        err = self.iftm.err_orig
+        # i = self.iftm.i_orig 
+        # q = self.iftm.q_orig 
+        # err = self.iftm.err_orig
 
-        qexp = q
-        jreg = self.iftm.i_fit
+        # qexp = q
+        # jreg = self.iftm.i_fit
 
         plotpanel = wx.FindWindowByName('BIFTPlotPanel')
 
-        plotpanel.updateDataPlot(q, i, err, r, p, perr, qexp, jreg, xlim)
+        # plotpanel.updateDataPlot(q, i, err, r, p, perr, qexp, jreg, xlim)
+        plotpanel.plotPr(self.iftm)
 
     def updateBIFTSettings(self):
         self.old_settings = copy.deepcopy(self.bift_settings)
