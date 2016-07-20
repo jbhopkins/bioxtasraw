@@ -1232,7 +1232,7 @@ class MainFrame(wx.Frame):
     def _onAboutDlg(self, event):
         info = wx.AboutDialogInfo()
         info.Name = "RAW"
-        info.Version = "1.0.2"
+        info.Version = "1.0.3"
         info.Copyright = "Copyright(C) 2009 RAW"
         info.Description = "RAW is a software package primarily for SAXS 2D data reduction and 1D data analysis.\nIt provides an easy GUI for handling multiple files fast, and a\ngood alternative to commercial or protected software packages for finding\nthe Pair Distance Distribution Function\n\nPlease cite:\nBioXTAS RAW, a software program for high-throughput automated small-angle\nX-ray scattering data reduction and preliminary analysis, J. Appl. Cryst. (2009). 42, 959-964"
 
@@ -2020,7 +2020,7 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
         except SASExceptions.HeaderLoadError, msg:
-            wx.CallAfter(wx.MessageBox, str(msg), 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
+            wx.CallAfter(wx.MessageBox, str(msg)+' Please check that the header file is in the directory with the data.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
         except SASExceptions.MaskSizeError, msg:
@@ -2117,7 +2117,7 @@ class MainWorkerThread(threading.Thread):
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
             except SASExceptions.HeaderLoadError, msg:
-                wx.CallAfter(wx.MessageBox, str(msg), 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
+                wx.CallAfter(wx.MessageBox, str(msg)+' Please check that the header file is in the directory with the data.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
             except SASExceptions.MaskSizeError, msg:
@@ -2708,7 +2708,7 @@ class MainWorkerThread(threading.Thread):
             sec = ''
         
         wx.CallAfter(wx.MessageBox, 'The selected file: ' + filename + '\ncould not be recognized as a '   + str(img_fmt) +
-                         ' image format' + ascii + sec + '.\n\nYou can change the image format under Advanced Options in the Options menu.' ,
+                         ' image format' + ascii + sec + '. This can be caused by failing to load the correct configuration file.\n\nYou can change the image format under Advanced Options in the Options menu.' ,
                           'Error loading file', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
     def _showSECFormatError(self, filename, include_ascii = True):
@@ -2720,7 +2720,7 @@ class MainWorkerThread(threading.Thread):
             ascii = ''
         
         wx.CallAfter(wx.MessageBox, 'The selected file: ' + filename + '\ncould not be recognized as a '   + str(img_fmt) +
-                         ' image format' + ascii + '.\n\nIf you are loading a set of files as a SEC curve, make sure the selection contains only individual scattering profiles (no .sec files).\n\nYou can change the image format under Advanced Options in the Options menu.' ,
+                         ' image format' + ascii + '. This can be caused by failing to load the correct configuration file. \n\nIf you are loading a set of files as a SEC curve, make sure the selection contains only individual scattering profiles (no .sec files).\n\nYou can change the image format under Advanced Options in the Options menu.' ,
                           'Error loading file', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         
     def _showSubtractionError(self, sasm, sub_sasm):
@@ -3773,7 +3773,7 @@ class InfoPanel(wx.Panel):
         
         infoSizer = wx.BoxSizer()
         
-        self.infoTextBox = wx.TextCtrl(self, -1, 'Welcome to RAW 1.0.2!\n--------------------------------\n\n', style = wx.TE_MULTILINE)
+        self.infoTextBox = wx.TextCtrl(self, -1, 'Welcome to RAW 1.0.3!\n--------------------------------\n\n', style = wx.TE_MULTILINE)
         
         self.infoTextBox.SetBackgroundColour('WHITE')
         self.infoTextBox.SetForegroundColour('BLACK')
@@ -14979,7 +14979,7 @@ class WelcomeDialog(wx.Dialog):
         raw_bitmap = raw_icon_embed.GetBitmap()
         rawimg = wx.StaticBitmap(self, -1, raw_bitmap)
         
-        headline = wx.StaticText(self, -1, 'Welcome to RAW 1.0.2!')
+        headline = wx.StaticText(self, -1, 'Welcome to RAW 1.0.3!')
         
         text1 = 'Developers/Contributors:'
         text2 = '\nSoren S. Nielsen'
@@ -15108,7 +15108,7 @@ class MySplashScreen(wx.SplashScreen):
         evt.Skip()
         
     def ShowMain(self):            
-        frame = MainFrame('RAW 1.0.2', -1)
+        frame = MainFrame('RAW 1.0.3', -1)
         
         dlg = WelcomeDialog(frame, name = "WelcomeDialog")
         dlg.ShowModal()
