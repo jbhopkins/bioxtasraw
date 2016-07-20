@@ -3615,18 +3615,21 @@ class DammifFrame(wx.Frame):
 
 
     def runDamaver(self, prefix, path):
+
+        read_semaphore = threading.BoundedSemaphore(1)
         #Solution for non-blocking reads adapted from stack overflow
         #http://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
         def enqueue_output(out, queue):
-            line = 'test'
-            line2=''
-            while line != '':
-                line = out.read(1)
-                line2+=line
-                if line == '\n':
-                    queue.put_nowait([line2])
-                    line2=''
-                time.sleep(0.001)
+            with read_semaphore:
+                line = 'test'
+                line2=''
+                while line != '':
+                    line = out.read(1)
+                    line2+=line
+                    if line == '\n':
+                        queue.put_nowait([line2])
+                        line2=''
+                    time.sleep(0.00001)
 
 
         with self.my_semaphore:
@@ -3690,6 +3693,17 @@ class DammifFrame(wx.Frame):
                 except Queue.Empty:
                     pass
                 time.sleep(0.001)
+
+            with read_semaphore: #see if there's any last data that we missed
+                try:
+                    new_text = damaver_q.get_nowait()
+                    print new_text
+                    new_text = new_text[0]
+
+                    wx.CallAfter(damWindow.AppendText, new_text)
+                except Queue.Empty:
+                    pass
+
 
 
             new_files = [(os.path.join(path, 'damfilt.pdb'), os.path.join(path, prefix+'_damfilt.pdb')), 
