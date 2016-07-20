@@ -1849,7 +1849,7 @@ class MainWorkerThread(threading.Thread):
         file_obj.close()
     
         #wx.CallAfter(wx.MessageBox, 'The mask has been saved.', 'Mask Saved')
-        img_dim = self.image_panel.img.shape
+        # img_dim = self.image_panel.img.shape
         #wx.CallAfter(RAWImage.showUseMaskDialog, fullpath_filename, img_dim)
         
     
@@ -10618,9 +10618,11 @@ class MaskingPanel(wx.Panel):
         img_hdr = sasm.getParameter('imageHeader')
         img = self.image_panel.img
         
-        if img != None and img_hdr != None:
+        if img != None and img_hdr != None and 'bsmask_configuration' in img_hdr:
             mask_params = SASImage.createMaskFromHdr(img, img_hdr, flipped = self._main_frame.raw_settings.get('DetectorFlipped90'))
-        
+        else:
+            wx.MessageBox('The image does not have a SAXSLAB Beamstop Mask in the header.', 'No mask available.', style = wx.ICON_EXCLAMATION)
+
         print mask_params
         print mask_params[0]._points
         print mask_params[0]._radius

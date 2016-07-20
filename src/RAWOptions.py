@@ -2153,6 +2153,7 @@ class SaveDirectoriesPanel(wx.Panel):
         
         for label, id in self.auto_save_data:
             chkbox = wx.CheckBox(self, id, label)
+            chkbox.Bind(wx.EVT_CHECKBOX, self.onSaveCheckbox)
             chkbox_sizer.Add((1,5), 0)
             chkbox_sizer.Add(chkbox, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
         
@@ -2213,6 +2214,34 @@ class SaveDirectoriesPanel(wx.Panel):
                 if clr_button_id == id:
                     textCtrl = wx.FindWindowById(labl_id) 
                     textCtrl.SetValue('None')
+
+                    if labl_id == self.raw_settings.getId('ProcessedFilePath'):
+                        wx.FindWindowById(self.raw_settings.getId('AutoSaveOnImageFiles')).SetValue(False)
+                    elif labl_id == self.raw_settings.getId('AveragedFilePath'):
+                        wx.FindWindowById(self.raw_settings.getId('AutoSaveOnAvgFiles')).SetValue(False)
+                    elif labl_id == self.raw_settings.getId('SubtractedFilePath'):
+                        wx.FindWindowById(self.raw_settings.getId('AutoSaveOnSub')).SetValue(False)
+
+    def onSaveCheckbox(self, event):
+        my_id = event.GetId()
+
+        checkbox = wx.FindWindowById(my_id)
+
+        if checkbox.GetValue():
+            if my_id == self.raw_settings.getId('AutoSaveOnImageFiles'):
+                directory = wx.FindWindowById(self.raw_settings.getId('ProcessedFilePath')).GetValue()
+
+            elif my_id == self.raw_settings.getId('AutoSaveOnAvgFiles'):
+                directory = wx.FindWindowById(self.raw_settings.getId('AveragedFilePath')).GetValue()
+
+            elif my_id == self.raw_settings.getId('AutoSaveOnSub'):
+                directory = wx.FindWindowById(self.raw_settings.getId('SubtractedFilePath')).GetValue()
+
+            if not os.path.exists(directory):
+                checkbox.SetValue(False)
+                wx.MessageBox('Save directory "%s" does not exist. Please select a valid save directory to enable automatic saving.' %(directory), 'Directory does not exist', parent = self)
+
+
                     
 
 class IftOptionsPanel(wx.Panel):
