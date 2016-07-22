@@ -491,7 +491,7 @@ class MainFrame(wx.Frame):
 
             output, error = process.communicate()
 
-            rev = output.split('\n')[0].split()[-1].strip().strip(')(r')
+            rev = output.split('\n')[0].split()[-1].strip().strip(')(rM').strip('aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ')
 
             if int(rev) >= 6669:
 
