@@ -1433,6 +1433,8 @@ def loadImageFile(filename, raw_settings):
             if x_y[1] != None: y_c = x_y[1]
         except ValueError:
             pass
+        except TypeError:
+            raise SASExceptions.HeaderLoadError('Error loading header, file corrupt?')
     
     # ********************
     # If the file is a SAXSLAB file, then get mask parameters from the header and modify the mask

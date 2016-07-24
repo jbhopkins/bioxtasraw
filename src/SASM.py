@@ -366,6 +366,10 @@ class SASM:
         self._norm_factor = norm_factor
         self._q_scale_factor = q_scale_factor
         self._bin_size = bin_size
+
+	def scaleRawIntensity(self, scale):
+	    self._i_raw = self._i_raw * scale
+	    self._err_raw = self._err_raw * scale
     
     def scaleBinnedIntensity(self, scale):
         self._i_binned = self._i_binned * scale

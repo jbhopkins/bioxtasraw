@@ -150,7 +150,7 @@ class MainFrame(wx.Frame):
         self._mgr.SetManagedWindow(self)
         
         self.plot_notebook = aui.AuiNotebook(self, style = aui.AUI_NB_TAB_MOVE | aui.AUI_NB_TAB_SPLIT | aui.AUI_NB_SCROLL_BUTTONS)
-	#self.plot_notebook = MyAuiNotebook(self, style = aui.AUI_NB_TAB_MOVE | aui.AUI_NB_TAB_SPLIT | aui.AUI_NB_SCROLL_BUTTONS)
+    #self.plot_notebook = MyAuiNotebook(self, style = aui.AUI_NB_TAB_MOVE | aui.AUI_NB_TAB_SPLIT | aui.AUI_NB_SCROLL_BUTTONS)
         
 
         plot_panel = RAWPlot.PlotPanel(self.plot_notebook, -1, 'PlotPanel')
@@ -212,7 +212,7 @@ class MainFrame(wx.Frame):
         
         self._mgr.GetPane(self.control_notebook).MinSize((200,300))
 
-	#print self.getRawSettings().getAllParams()['CompatibleFormats']
+    #print self.getRawSettings().getAllParams()['CompatibleFormats']
 
         #Load workdir from rawcfg.dat:
         self._loadCfg()
@@ -252,10 +252,13 @@ class MainFrame(wx.Frame):
             file = os.path.join(RAWWorkDir, 'backup.cfg')
             
             if os.path.exists(file):
-                dlg = wx.MessageDialog(parent = self, message = 'Load last saved configuration?', caption = 'Restore configuration', style=wx.YES_NO|wx.ICON_QUESTION)
-
-                answer = dlg.ShowModal()
-                dlg.Destroy()
+    
+                if self.raw_settings.get('PromptConfigLoad'):
+                    dlg = wx.MessageDialog(parent = self, message = 'Load last saved configuration?', caption = 'Restore configuration', style=wx.YES_NO|wx.ICON_QUESTION)
+                    answer = dlg.ShowModal()
+                    dlg.Destroy()
+                else:
+                    answer = wx.ID_YES
 
                 if answer == wx.ID_YES:
                     success = RAWSettings.loadSettings(self.raw_settings, file)
@@ -1360,6 +1363,20 @@ class OnlineController:
         self.is_online = False
         self.seek_dir = []
         self.bg_filename = None
+
+      
+        if self._raw_settings.get('OnlineModeOnStartup') and os.path.isdir(self._raw_settings.get('OnlineStartupDir')):
+            path = self._raw_settings.get('OnlineStarupDir')
+            #print 'Going online using path : ', path
+            if path != None:
+                self.seek_dir = path
+                self.goOnline()
+                self.main_frame.setStatus('Mode: ONLINE', 2)
+
+                menubar = self.main_frame.GetMenuBar()
+                item = menubar.FindItemById(self.main_frame.MenuIDs['goOnline'])
+                item.Check(True)
+
     
     def selectSearchDir(self):
         self.dirctrl = wx.FindWindowByName('DirCtrlPanel')
@@ -1396,8 +1413,11 @@ class OnlineController:
     
     def goOnline(self):
         
-        found_path = self.selectSearchDir()
-        
+        if self.seek_dir == []:
+            found_path = self.selectSearchDir()
+        else:
+            found_path = True       
+
         if found_path != None:
             dir_list = os.listdir(self.seek_dir)
             
@@ -1621,7 +1641,7 @@ class MainWorkerThread(threading.Thread):
                                     'merge_items'           : self._mergeItems,
                                     'rebin_items'           : self._rebinItems,
                                     'ift'                   : self._runIft,
-				                    'interpolate_items'     : self._interpolateItems,
+                                    'interpolate_items'     : self._interpolateItems,
                                     'plot_iftfit'           : self._plotIftFit,
                                     'normalize_conc'        : self._normalizeByConc,
                                     'sec_plot'              : self._loadAndPlotSEC,
@@ -3177,7 +3197,7 @@ class MainWorkerThread(threading.Thread):
         
         marked_sasm = marked_item.getSASM()    
         sasm_list = []
-	
+    
         for each_item in selected_items:
             sasm_list.append(each_item.getSASM())
         

@@ -183,8 +183,10 @@ class RawGuiSettings:
                             'NormalizationList'    : [None, wx.NewId(), 'text'],
                             'EnableNormalization'  : [True, wx.NewId(), 'bool'],
 
-                            'OnlineFilterList'    : [None, wx.NewId(), 'text'],
-                            'EnableOnlineFiltering'  : [False, wx.NewId(), 'bool'],
+                            'OnlineFilterList'     : [None, wx.NewId(), 'text'],
+                            'EnableOnlineFiltering': [False, wx.NewId(), 'bool'],
+                            'OnlineModeOnStartup'  : [False, wx.NewId(), 'bool'],
+	                        'OnlineStartupDir'     : [None, wx.NewId(), 'text'],
                             
                             'MWStandardMW'         : [0, wx.NewId(), 'float'],
                             'MWStandardI0'         : [0, wx.NewId(), 'float'],
@@ -235,6 +237,7 @@ class RawGuiSettings:
                             
                             
                             'DatHeaderOnTop'      : [False, wx.NewId(), 'bool'],
+                            'PromptConfigLoad'    : [True, wx.NewId(), 'bool'],
 
                             #ATSAS settings:
                             'autoFindATSAS'       : [True, wx.NewId(), 'bool'],

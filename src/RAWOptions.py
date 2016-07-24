@@ -1919,7 +1919,7 @@ class OnlineModePanel(wx.Panel):
         pos = self.position_choice.GetStringSelection()
         
         if expr != '':
-            self.online_list.add(filt, expr, pos)        
+            self.online_list.add(filt, expr, pos)    
 
 
 class GeneralOptionsPanel(wx.Panel):
@@ -1930,12 +1930,14 @@ class GeneralOptionsPanel(wx.Panel):
         
         self.raw_settings = raw_settings
         
-        self.update_keys = ['ManipItemCollapsed', 'DatHeaderOnTop', 'UseHeaderForMask', 'DetectorFlipped90']
+        self.update_keys = ['ManipItemCollapsed', 'DatHeaderOnTop', 'UseHeaderForMask', 'DetectorFlipped90', 'OnlineModeOnStartup', 'OnlineStartupDir']# 'PromptConfigLoad']
         
         self.chkboxdata = [('Hide controls on manipulation items for new plots', raw_settings.getId('ManipItemCollapsed')),
                            ('Write header on top of dat files', raw_settings.getId('DatHeaderOnTop')),
                            ('Use header for mask creation (SAXSLAB instruments)', raw_settings.getId('UseHeaderForMask')),
-                           ('Detector is rotated 90 degrees (SAXSLAB instruments)', raw_settings.getId('DetectorFlipped90'))]
+                           ('Detector is rotated 90 degrees (SAXSLAB instruments)', raw_settings.getId('DetectorFlipped90')),
+                           #('Prompt for config load on startup', raw_settings.getId('PromptConfigLoad')),
+                           ('Start online mode on startup', raw_settings.getId('OnlineModeOnStartup'))]
         
         options_sizer = self.createGeneralOptionsData()
         
@@ -1956,9 +1958,30 @@ class GeneralOptionsPanel(wx.Panel):
             chkBox.Bind(wx.EVT_CHECKBOX, self.onChkBox)
             treatmentSizer.Add(chkBox, 0, wx.TOP, 5)
         
-        staticBoxSizer.Add(treatmentSizer, 0, wx.BOTTOM | wx.LEFT, 5)
-        
+        staticBoxSizer.Add(treatmentSizer, 0, wx.BOTTOM | wx.LEFT, 5)       
+
+        online_dir_ctrl = wx.TextCtrl(self, self.raw_settings.getId('OnlineStartupDir'), '')
+        online_dir_txt = wx.StaticText(self, -1, 'Online mode startup directory :')
+
+        setdir_button = wx.Button(self, -1, 'Set')
+        setdir_button.Bind(wx.EVT_BUTTON, self.onOnlineDirSet) 
+
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        hsizer.Add(online_dir_txt, 0)
+        hsizer.Add(online_dir_ctrl, 1, wx.EXPAND | wx.LEFT, 5)
+        hsizer.Add(setdir_button, 0, wx.LEFT, 5)
+
+        staticBoxSizer.Add(hsizer, 1, wx.EXPAND | wx.LEFT, 5) 
+
         return staticBoxSizer
+
+    def onOnlineDirSet(self, event):
+        dirdlg = wx.DirDialog(self.GetParent(), "Please select directory:", '')
+        
+        if dirdlg.ShowModal() == wx.ID_OK:                
+            selected_path = dirdlg.GetPath()
+            ctrl = wx.FindWindowById(self.raw_settings.getId('OnlineStartupDir'))
+            ctrl.SetValue(str(selected_path))
     
     def onChkBox(self, event):
         pass

@@ -326,7 +326,10 @@ def calibrateAndNormalize(sasm, img, raw_settings):
         if result[0] != None: sd_distance = result[0]
         if result[1] != None: pixel_size = result[1]
         if result[2] != None: wavelength = result[2]
-    
+    	
+	sc = SASCalib.calcIncidentAngleCorrection(sasm, sd_distance, pixel_size)
+	sasm.scaleRawIntensity(1.0/sc)
+	
     sasm.setBinning(bin_size)
     
     if calibrate_check:

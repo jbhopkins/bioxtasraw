@@ -56,7 +56,7 @@ def calcIncidentAngleCorrection(sasm, sd_distance, pixel_size):
       
     '''
 
-    q_list = sasm.getBinnedQ()
+    q_list = sasm.q #getBinnedQ()
     iac = np.ones(len(q_list))
     
     for idx in range(0,len(iac)):
