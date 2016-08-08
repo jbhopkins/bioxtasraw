@@ -607,9 +607,9 @@ def loadMPAFile(filename):
 
     for i in range(len(lines)):
         line = lines[i]
-
         if line.find('=') > -1:
-            key, value = line.strip().split('=')
+            key = line.strip().split('=')[0]
+            value = '='.join(line.strip().split('=')[1:])
 
             if header_prefix == '':
                 header["None"][key] = value
@@ -626,7 +626,6 @@ def loadMPAFile(filename):
             else:
                 header_prefix = line.strip().strip('[]')
                 header[header_prefix] = {}
-
 
     if header['None']['mpafmt'] == 'asc':
         while pos<len(lines):
@@ -645,7 +644,6 @@ def loadMPAFile(filename):
     img = data['CDAT0'].reshape((int(header['ADC1']['range']), int(header['ADC2']['range'])))
 
     img_hdr = {}
-
     for key in header:
         for subkey in header[key]:
             if key == 'None':
@@ -1344,6 +1342,7 @@ def loadImage(filename, image_type):
     try:
         img, imghdr = all_image_types[image_type](filename)
     except (ValueError, TypeError, KeyError) as msg:
+        # print msg
         raise SASExceptions.WrongImageFormat('Error loading image, ' + str(msg))
     
     return img, imghdr

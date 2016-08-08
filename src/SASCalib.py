@@ -50,9 +50,10 @@ def calcSolidAngleCorrection(sasm, sd_distance, pixel_size):
       q. This can be compensated for by dividing by the ratio of the solid angles,
       which is proportional to cos(2*theta)^3. 
 
+      Inputs:
       pixel_size = Detector Pixel Size in millimeters
-      max_length = maximum q-vector length in pixels
       sd_distance = Sample-Detector distance
+      sasm, with the q vector still in pixel units, rather than calibrated to A^-1.
       
     '''
 
