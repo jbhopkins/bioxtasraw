@@ -50,7 +50,7 @@ class TestSASCalib(unittest.TestCase):
 
     def test_IncidentAngleCorrection(self):
         
-        iac = SASCalib.calcIncidentAngleCorrection(self.sasm, self.sd_distance, self.pixel_size)
+        iac = SASCalib.calcSolidAngleCorrection(self.sasm, self.sd_distance, self.pixel_size)
                 
         answer = np.array([ 1.0, 0.99999999, 0.99999997, 0.99999993, 0.99999988, 0.99999982])
         assert_almost_equal(iac, answer, 8)

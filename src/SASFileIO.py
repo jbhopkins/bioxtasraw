@@ -591,43 +591,72 @@ def loadSAXSLAB300Image(filename):
     return img, img_hdr
 
 
-# def loadNeXusFile(filename):
-#     '''Very experimental NeXus support'''
-    
-#     file = nxs.open(filename, 'r')
-    
-#     data_groups = []
-#     header_values = {}
-    
-#     file.opengroup('entry0', 'NXentry')
-    
-#     subgroups = []
-#     for name, nxclass in file.entries():
-#         #print name, nxclass
+def loadMPAFile(filename):
 
-#         if nxclass == 'NXdata':
-#             data_groups.append('name')
-            
-#         if 'NX' in nxclass:
-#             subgroups.append(name)
+    header_prefix = ''
+    data_prefix = ''
 
-#         if nxclass == 'SDS':
-#             header_values[name] = file.getdata()
+    header = {"None" : {}}
+    data ={}
 
-#     file.closegroup()
+    fo = open (filename, 'r')
 
-#     file.opengroup('data', 'NXdata')
-#     file.opendata('data')
-    
-#     img = file.getdata()
+    lines = fo.readlines()
 
-#     img = img[:,:,0]
+    fo.close()
 
-#     file.close()
-    
-#     print subgroups
+    for i in range(len(lines)):
+        line = lines[i]
 
-#     return img, header_values
+        if line.find('=') > -1:
+            key, value = line.strip().split('=')
+
+            if header_prefix == '':
+                header["None"][key] = value
+
+            else:
+                header[header_prefix][key] = value
+
+
+        else:
+            if line.startswith('[DATA') or line.startswith('[CDAT'):
+                pos = i
+                break
+
+            else:
+                header_prefix = line.strip().strip('[]')
+                header[header_prefix] = {}
+
+
+    if header['None']['mpafmt'] == 'asc':
+        while pos<len(lines):
+            line = lines[pos]
+
+            data_prefix, num = line.strip().strip('[]').split(',')
+            # data_lines = np.array([float(fo.readline().strip()) for i in range(int(num))])
+
+            data[data_prefix] = np.array(lines[pos+1:pos+int(num)+1],dtype=float)
+            # data[data_prefix] = np.array([float(j.strip()) for j in lines[i+1:i+int(num)+1]])
+            pos = pos+int(num)+1
+    else:
+        print 'cannot recognize the mpa format %s' %(header['None']['mpafmt'])
+        return
+
+    img = data['CDAT0'].reshape((int(header['ADC1']['range']), int(header['ADC2']['range'])))
+
+    img_hdr = {}
+
+    for key in header:
+        for subkey in header[key]:
+            if key == 'None':
+                img_hdr[subkey] = header[key][subkey]
+            else:
+                img_hdr[key+'_'+subkey] = header[key][subkey]
+
+    return img, img_hdr
+
+
+
     
 
 ##########################################
@@ -1181,6 +1210,23 @@ def parseCHESSG1Filename(filename):
     return (countFilename, filenumber, frame_number)
 
 
+def parseBL19U2HeaderFile(filename):
+    fname, ext = os.path.splitext(filename)
+
+    countFilename=fname + '.txt'
+
+    counters = {}
+
+    with open(countFilename, 'r') as f:
+        for line in f:
+            name = line.split(':')[0]
+            value = ':'.join(line.split(':')[1:])
+            counters[name.strip().replace(' ', '_')] = value.strip()
+
+    return counters
+
+
+
 #################################################################
 #--- ** Header and Image formats **
 #################################################################
@@ -1190,12 +1236,13 @@ def parseCHESSG1Filename(filename):
 
 all_header_types = {'None'           : None,
  #                     'CSV'            : parseCSVHeaderFile,
-                    'F2, CHESS'       : parseCHESSF2CTSfile, 
-                    'G1, CHESS'       : parseCHESSG1CountFile,
-                    'G1 WAXS, CHESS'       : parseCHESSG1CountFileWAXS,
-                    'I711, MaxLab' : parseMAXLABI77HeaderFile,
-                    'I911-4 Maxlab': parseMAXLABI911HeaderFile,
-                    'BioCAT'       : parseBioCATlogfile}
+                    'F2, CHESS'         : parseCHESSF2CTSfile, 
+                    'G1, CHESS'         : parseCHESSG1CountFile,
+                    'G1 WAXS, CHESS'    : parseCHESSG1CountFileWAXS,
+                    'I711, MaxLab'      : parseMAXLABI77HeaderFile,
+                    'I911-4 Maxlab'     : parseMAXLABI911HeaderFile,
+                    'BioCAT, APS'       : parseBioCATlogfile,
+                    'BL19U2, SSRF'      : parseBL19U2HeaderFile}
 
 if use_fabio:
     all_image_types = {
@@ -1224,7 +1271,8 @@ if use_fabio:
                        'Portable aNy Map'   : loadFabio,
                        'Rigaku SAXS format' : loadFabio,
                        '16 bit TIF'         : loadFabio,
-                       '32 bit TIF'         : load32BitTiffImage
+                       '32 bit TIF'         : load32BitTiffImage,
+                       'MPA (multiwire)'    : loadMPAFile
                        # 'NeXus'           : loadNeXusFile,
                                           }
 
@@ -1242,7 +1290,8 @@ else:
                            '16 bit TIF'       : loadTiffImage,
                            '32 bit TIF'       : load32BitTiffImage,
                            # 'NeXus'           : loadNeXusFile,
-                           'ILL SANS D11'  : loadIllSANSImage                   }
+                           'ILL SANS D11'  : loadIllSANSImage,
+                           'MPA (multiwire)'    : loadMPAFile                   }
     else:
         all_image_types = {'Quantum'       : loadQuantumImage,
                        'MarCCD 165'       : loadMarCCD165Image,
@@ -1255,7 +1304,8 @@ else:
                        '16 bit TIF'       : loadTiffImage,
                        '32 bit TIF'       : load32BitTiffImage,
                        # 'NeXus'           : loadNeXusFile,
-                       'ILL SANS D11'  : loadIllSANSImage                   }
+                       'ILL SANS D11'  : loadIllSANSImage,
+                       'MPA (multiwire)'    : loadMPAFile                   }
 
 
 def loadAllHeaders(filename, image_type, header_type):
@@ -1293,7 +1343,7 @@ def loadImage(filename, image_type):
 
     try:
         img, imghdr = all_image_types[image_type](filename)
-    except (ValueError, TypeError) as msg:
+    except (ValueError, TypeError, KeyError) as msg:
         raise SASExceptions.WrongImageFormat('Error loading image, ' + str(msg))
     
     return img, imghdr
@@ -1409,6 +1459,11 @@ def loadImageFile(filename, raw_settings):
                   'counters'    : hdrfile_info,
                   'filename'    : os.path.split(filename)[1],
                   'load_path'    : filename}
+
+    for key in parameters['counters']:
+        if key.lower().find('concentration') > -1 or key.lower().find('mg/ml') > -1:
+            parameters['Conc'] = parameters['counters'][key]
+            break
     
     x_c = raw_settings.get('Xcenter')
     y_c = raw_settings.get('Ycenter')
@@ -2964,11 +3019,11 @@ def checkFileType(filename):
         return 'image'
     elif ext == '.int':
         return 'int'
-    elif ext == '.img' or ext == '.imx_0' or ext == '.dkx_0' or ext == '.dkx_1' or ext == '.png':
+    elif ext == '.img' or ext == '.imx_0' or ext == '.dkx_0' or ext == '.dkx_1' or ext == '.png' or ext == '.mpa':
         return 'image'
     #elif type_tst == 'BI':
     #    return 'bift'
-    elif ext == '.dat':
+    elif ext == '.dat' or ext == '.sub':
         return 'primus'
     elif ext == '.mar1200' or ext == '.mar2400' or ext == '.mar2300' or ext == '.mar3600':
         return 'image'

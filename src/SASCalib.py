@@ -39,24 +39,24 @@ def calcTheta(sd_distance, pixel_size, q_length_pixels):
         theta = .5 * atan( (q_length_pixels * pixel_size) / sd_distance )
         return theta
 
-def calcIncidentAngleCorrection(sasm, sd_distance, pixel_size):
+def calcSolidAngleCorrection(sasm, sd_distance, pixel_size):
     '''
       returns an array that should be multiplied to the intensity values
-      calculated from the detector pixel size to apply the 
-      angle correction. 
+      calculated to apply the solid angle correction. 
       
-      This compensates for the fact that a wave coming at an angle to the
-      detecting layer on the detector will travel longer
-      in the detecting medium and give rise to higher intensity values
-      than waves entering perpendicular. 
-      
+      This compensates for the fact that the detector face is assumed to be planar.
+      Thus, as you move out on the detector, each pixel subtends a smaller solid angle,
+      and so absorbs fewer pixels. This results in artificially low intensities at high
+      q. This can be compensated for by dividing by the ratio of the solid angles,
+      which is proportional to cos(2*theta)^3. 
+
       pixel_size = Detector Pixel Size in millimeters
       max_length = maximum q-vector length in pixels
       sd_distance = Sample-Detector distance
       
     '''
 
-    q_list = sasm.q #getBinnedQ()
+    q_list = sasm.q
     iac = np.ones(len(q_list))
     
     for idx in range(0,len(iac)):

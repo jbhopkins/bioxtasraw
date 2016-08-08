@@ -6,7 +6,7 @@ Created on Jul 7, 2010
 
 import numpy as np
 from scipy import optimize
-import SASExceptions, SASParser, wx, copy, sys
+import SASExceptions, SASParser, SASCalib, wx, copy, sys
 import RAWGlobals
 
 # If C extensions have not been built, build them:
@@ -326,10 +326,11 @@ def calibrateAndNormalize(sasm, img, raw_settings):
         if result[0] != None: sd_distance = result[0]
         if result[1] != None: pixel_size = result[1]
         if result[2] != None: wavelength = result[2]
-    	
-	sc = SASCalib.calcIncidentAngleCorrection(sasm, sd_distance, pixel_size)
-	sasm.scaleRawIntensity(1.0/sc)
-	
+        
+    sc = SASCalib.calcSolidAngleCorrection(sasm, sd_distance, pixel_size)
+    
+    sasm.scaleRawIntensity(1.0/sc)
+    
     sasm.setBinning(bin_size)
     
     if calibrate_check:
@@ -736,12 +737,12 @@ def applyMaskToImage(in_image, mask):
 
 
 def doFlatfieldCorrection(img, img_hdr, flatfield_img, flatfield_hdr):
-	cor_img = img / flatfield_img   #flat field is often water.
+    cor_img = img / flatfield_img   #flat field is often water.
 
-	return cor_img
+    return cor_img
 
 def doDarkBackgroundCorrection(img, img_hdr, dark_img, dark_hdr):
-	pass
+    pass
 
 def removeZingers(intensityArray, startIdx = 0, averagingWindowLength = 10, stds = 4):
     ''' Removes spikes from the radial averaged data          
