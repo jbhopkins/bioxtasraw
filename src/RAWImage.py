@@ -537,7 +537,6 @@ class ImagePanel(wx.Panel):
             wx.CallAfter(self._onRightMouseButtonRelease, xd, yd, event)
         
     def _onLeftMouseButtonRelease(self, x, y, event):
-        
         if self._movement_in_progress == True:
                 self._insertNewCoordsIntoMask()
                 self._movement_in_progress = False
@@ -790,16 +789,16 @@ class ImagePanel(wx.Panel):
             self.canvas.draw()
     
     def _insertNewCoordsIntoMask(self):
-        
         patch = self._selected_patch
         mask = self._getMaskFromId(self._selected_patch.id)
                         
         if isinstance(patch, matplotlib.patches.Circle):
+
             newCenter = patch.center
             
             #first point is center, next point is first on circle perferie
-            mask.setPoints([newCenter, (newCenter[0]+mask.getRadius(), newCenter[1])])
-                    
+            mask.setPoints([newCenter, (newCenter[0]+r, newCenter[1])])
+
         elif isinstance(patch, matplotlib.patches.Rectangle):
                         
             x = patch.get_x()
@@ -807,7 +806,7 @@ class ImagePanel(wx.Panel):
             
             dx = x - mask.getPoints()[0][0]
             dy = y - mask.getPoints()[0][1]
-            
+
             mask.setPoints([(x, y),(mask.getPoints()[1][0] + dx, mask.getPoints()[1][1] + dy)])
                                 
         elif isinstance(patch, matplotlib.patches.Polygon):
@@ -1064,10 +1063,10 @@ class ImagePanel(wx.Panel):
             else:
                 start_negative = False
 
-
-            self.plot_parameters['storedMasks'].append( SASImage.CircleMask(  (self._chosen_points_x[0], self._chosen_points_y[0]),
-                                                                              (self._chosen_points_x[1], self._chosen_points_y[1]),
-                                                                               self._createNewMaskNumber(), self.img.shape, negative = start_negative))
+            if (self._chosen_points_x[1]-self._chosen_points_x[0])**2+(self._chosen_points_y[1]-self._chosen_points_y[0])**2 > 0:
+                self.plot_parameters['storedMasks'].append( SASImage.CircleMask(  (self._chosen_points_x[0], self._chosen_points_y[0]),
+                                                                                  (self._chosen_points_x[1], self._chosen_points_y[1]),
+                                                                                   self._createNewMaskNumber(), self.img.shape, negative = start_negative))
             self.untoggleAllToolButtons()
             self.stopMaskCreation()
             
@@ -1090,10 +1089,10 @@ class ImagePanel(wx.Panel):
             else:
                 start_negative = False
 
-
-            self.plot_parameters['storedMasks'].append( SASImage.RectangleMask( (self._chosen_points_x[0], self._chosen_points_y[0]),
-                                                                                (self._chosen_points_x[1], self._chosen_points_y[1]),
-                                                                                 self._createNewMaskNumber(), self.img.shape, negative = start_negative ))                                         
+            if (self._chosen_points_x[1]-self._chosen_points_x[0])**2 > 0 and (self._chosen_points_y[1]-self._chosen_points_y[0])**2 > 0:
+                self.plot_parameters['storedMasks'].append( SASImage.RectangleMask( (self._chosen_points_x[0], self._chosen_points_y[0]),
+                                                                                    (self._chosen_points_x[1], self._chosen_points_y[1]),
+                                                                                     self._createNewMaskNumber(), self.img.shape, negative = start_negative ))                                         
             self.untoggleAllToolButtons()
             self.stopMaskCreation()
     

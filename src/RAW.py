@@ -5229,14 +5229,22 @@ class ManipulationPanel(wx.Panel):
             sasm_list.append(sasm)
             
             old_nmin, old_nmax = sasm.getQrange()
+
+            modified = False
             
             try:
                 if 'nmin' in sync_parameters and 'nmax' in sync_parameters:
                     sasm.setQrange([nmin, nmax])
+                    if nmin != old_nmin or nmax != old_nmax:
+                        modified = True
                 elif 'nmin' in sync_parameters:
                     sasm.setQrange([nmin, old_nmax])
+                    if nmin != old_nmin:
+                        modified = True
                 elif 'nmax' in sync_parameters:
-                    sasm.setQrange([old_nmin, nmax])                    
+                    sasm.setQrange([old_nmin, nmax])
+                    if nmax != old_nmax:
+                        modified = True
                     
             except SASExceptions.InvalidQrange, msg:
                 dial = wx.MessageDialog(None, 'Filename : ' + sasm.getParameter('filename') + '\n\n' + str(msg),
@@ -5253,31 +5261,67 @@ class ManipulationPanel(wx.Panel):
                 closest = findClosest(qmin, q)
                 new_nmin = numpy.where(q == closest)[0][0]
                 closest = findClosest(qmax, q)
-                new_nmax = numpy.where(q == closest)[0][0]
+                new_nmax = numpy.where(q == closest)[0][0]+1
                 sasm.setQrange([new_nmin, new_nmax])
+
+                if new_nmin != old_nmin or new_nmax != old_nmax:
+                    modified = True
+
             elif 'qmin' in sync_parameters:
                 closest = findClosest(qmin, q)
                 new_nmin = numpy.where(q == closest)[0][0]
-                sasm.setQrange([new_nmin, old_nmax])    
+                sasm.setQrange([new_nmin, old_nmax])
+
+                if new_nmin != old_nmin:
+                    modified = True
+
             elif 'qmax' in sync_parameters:
                 closest = findClosest(qmax, q)
-                new_nmax = numpy.where(q == closest)[0][0]
+                new_nmax = numpy.where(q == closest)[0][0]+1
                 sasm.setQrange([old_nmin, new_nmax])
+
+                if new_nmax != old_nmax:
+                    modified = True
                 
             if 'scale' in sync_parameters:
+                old_scale = sasm.getScale()
                 sasm.scale(scale)
+
+                if old_scale != scale:
+                    modified = True
+
             if 'offset' in sync_parameters:
+                old_offset = sasm.getOffset()
                 sasm.offset(offset)
+
+                if old_offset != offset:
+                    modified = True
+
             if 'linestyle' in sync_parameters:
+                old_linestyle = sasm.line.get_linestyle()
                 sasm.line.set_linestyle(linestyle)
+
+                if old_linestyle != linestyle:
+                    modified = True
+
             if 'linewidth' in sync_parameters:
+                old_linewidth = sasm.line.get_linewidth()
                 sasm.line.set_linewidth(linewidth)
+
+                if old_linewidth != linewidth:
+                    modified = True
+
             if 'linemarker' in sync_parameters:
+                old_linemarker = sasm.line.get_marker()
                 sasm.line.set_marker(linemarker)
+
+                if old_linemarker != linemarker:
+                    modified = True
             
             each_item.updateControlsFromSASM(updatePlot=False)
 
-            each_item.markAsModified()
+            if modified:
+                each_item.markAsModified()
 
 
         wx.CallAfter(manip_plot.updatePlotAfterManipulation, sasm_list)
@@ -10943,6 +10987,11 @@ class CenteringPanel(wx.Panel):
         down_button.Bind(wx.EVT_LEFT_DOWN, self._onCenteringButtons)
         right_button.Bind(wx.EVT_LEFT_DOWN, self._onCenteringButtons)
         left_button.Bind(wx.EVT_LEFT_DOWN, self._onCenteringButtons)
+
+        up_button.Bind(wx.EVT_LEFT_DCLICK, self._onCenteringButtons)
+        down_button.Bind(wx.EVT_LEFT_DCLICK, self._onCenteringButtons)
+        right_button.Bind(wx.EVT_LEFT_DCLICK, self._onCenteringButtons)
+        left_button.Bind(wx.EVT_LEFT_DCLICK, self._onCenteringButtons)
         
         up_button.Bind(wx.EVT_LEFT_UP, self._onCenteringButtonsUp)
         down_button.Bind(wx.EVT_LEFT_UP, self._onCenteringButtonsUp)
@@ -11161,11 +11210,11 @@ class CenteringPanel(wx.Panel):
         wx.CallAfter(self._moveCenter, self._pressed_button_id, steps)
     
     def _onCenteringButtonsUp(self, event):
-
         self._repeat_timer.Stop()
         event.Skip()
     
     def _onCenteringButtons(self, event):
+
         id = event.GetId()
         
         steps = float(self._step_combo.GetValue())
@@ -11173,7 +11222,7 @@ class CenteringPanel(wx.Panel):
         wx.CallAfter(self._moveCenter, id, steps)
         
         # if platform.system() != 'Darwin':
-        self._repeat_timer.Start(100)
+        self._repeat_timer.Start(150)
         
         event.Skip()
     
