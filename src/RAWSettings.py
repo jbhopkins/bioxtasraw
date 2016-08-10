@@ -220,7 +220,10 @@ class RawGuiSettings:
                             'PostProcessing'       : [None],
                             
                             'CurrentCfg'         : [None],
-                            'CompatibleFormats'  : [['.rad', '.tiff', '.tif', '.img', '.csv', '.dat', '.txt'], None],
+                            'CompatibleFormats'  : [['.rad', '.tiff', '.tif', '.img', '.csv', '.dat', '.txt', '.sfrm', '.dm3', '.edf',
+                                                     '.xml', '.cbf', '.kccd', '.msk', '.spr', '.h5', '.mccd', '.mar3450', '.npy', '.pnm',
+                                                      '.No', '.imx_0', '.dkx_0', '.dkx_1', '.png', '.mpa', '.ift', '.sub', '.fit', '.fir',
+                                                      '.out', '.mar1200', '.mar2400', '.mar2300', '.mar3600', '.int', '.ccdraw'], None],
                             
                             
                              
@@ -229,6 +232,8 @@ class RawGuiSettings:
                             'CurveScaleVal'        : [1.0,   wx.NewId(), 'float'],
                             'ScaleCurve'           : [False, wx.NewId(), 'bool'],
                             
+                            #SEC Settiongs:
+                            'secCalcThreshold'      : [1.02, wx.NewId(), 'float'],
                             
                             #GUI Settings:
                             'csvIncludeData'      : [None],

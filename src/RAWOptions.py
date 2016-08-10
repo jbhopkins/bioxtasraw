@@ -2570,6 +2570,42 @@ class AutomationOptionsPanel(wx.Panel):
             
         return chkboxSizer
 
+class SecPanel(wx.Panel):
+    
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+        
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        
+        self.raw_settings = raw_settings
+      
+        self.update_keys = ['secCalcThreshold']
+
+                                                                                     
+        self.settings = [('Intensity ratio (to background) threshold for calculating Rg, MW, I0:', raw_settings.getId('secCalcThreshold'))]
+        
+        sizer = self.createOptions()
+        
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        top_sizer.Add(sizer, 1, wx.EXPAND | wx.ALL, 5)
+        self.SetSizer(top_sizer)
+        
+        
+    def createOptions(self):
+        
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        for item in self.settings:
+            label = wx.StaticText(self, -1, item[0])
+            value = wx.TextCtrl(self, item[1], '', size = (60, -1) )
+
+            sizer.Add(label, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+            sizer.Add(value, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+
+
+        return sizer
+
+
 
 class ATSASGeneralPanel(wx.Panel):
     
@@ -3382,6 +3418,7 @@ all_options = [ [ (0,0,0), wx.NewId(), 'Configuration Settings', ConfigRootSetti
                 [ (5,0,0), wx.NewId(), 'IFT', IftOptionsPanel],
                 [ (6,0,0), wx.NewId(), "Save Directories", SaveDirectoriesPanel],
                 [ (7,0,0), wx.NewId(), 'Online Mode', OnlineModePanel],
+                [ (8,0,0), wx.NewId(), 'SEC-SAXS', SecPanel],
                 # [ (8,0,0), wx.NewId(), "Automation", AutomationOptionsPanel],
                 [ (9,0,0), wx.NewId(), "ATSAS", ATSASGeneralPanel],
                 [ (9,1,1), wx.NewId(), "GNOM", ATSASGnom],

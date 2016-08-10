@@ -1379,7 +1379,6 @@ def loadFile(filename, raw_settings, no_processing = False):
         except (ValueError, NameError), msg:
             print msg
         
-        sasm.setParameter('normalizations', raw_settings.get('NormalizationList'))
         sasm.setParameter('config_file', raw_settings.get('CurrentCfg'))
           
     else:
@@ -1734,23 +1733,26 @@ def loadSECFile(filename):
     for item in secm_data['subtracted_sasm_list']:
         sasm_data = item
         
-        new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
-        new_sasm.setBinnedI(sasm_data['i_binned'])
-        new_sasm.setBinnedQ(sasm_data['q_binned'])
-        new_sasm.setBinnedErr(sasm_data['err_binned'])
-        
-        new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
-                                sasm_data['norm_factor'], sasm_data['q_scale_factor'],
-                                sasm_data['bin_size'])
-        
-        new_sasm.setQrange(sasm_data['selected_qrange'])
-        
-        try:
-            new_sasm.setParameter('analysis', sasm_data['parameters_analysis'])
-        except KeyError:
-            pass
-        
-        new_sasm._update()
+        if sasm_data != -1:
+            new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
+            new_sasm.setBinnedI(sasm_data['i_binned'])
+            new_sasm.setBinnedQ(sasm_data['q_binned'])
+            new_sasm.setBinnedErr(sasm_data['err_binned'])
+            
+            new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
+                                    sasm_data['norm_factor'], sasm_data['q_scale_factor'],
+                                    sasm_data['bin_size'])
+            
+            new_sasm.setQrange(sasm_data['selected_qrange'])
+            
+            try:
+                new_sasm.setParameter('analysis', sasm_data['parameters_analysis'])
+            except KeyError:
+                pass
+            
+            new_sasm._update()
+        else:
+            new_sasm = -1
 
         subtracted_sasm_list.append(new_sasm)
 

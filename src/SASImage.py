@@ -341,6 +341,8 @@ def calibrateAndNormalize(sasm, img, raw_settings):
     file_hdr = sasm.getParameter('counters')
     
     if normlist != None and enable_normalization == True:
+        sasm.setParameter('normalizations', {'Counter_norms':raw_settings.get('NormalizationList')})
+
         for each in normlist:
             op, expr = each
             
@@ -373,6 +375,8 @@ def calibrateAndNormalize(sasm, img, raw_settings):
                 
             elif op == '-':
                 sasm.offsetBinnedIntensity(-val)
+    else:
+        sasm.setParameter('normalizations', {})
     
     return sasm
     

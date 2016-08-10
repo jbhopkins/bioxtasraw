@@ -740,6 +740,7 @@ class SECM:
         self.initial_buffer_frame = -1
         self.final_buffer_frame = -1
         self.window_size = -1
+        self.threshold = -1
         self.average_buffer_sasm = None
         self.subtracted_sasm_list = []
         self.rg_list = []
@@ -999,7 +1000,10 @@ class SECM:
 
         all_data['subtracted_sasm_list'] = []
         for idx in range(len(self.subtracted_sasm_list)):
-            all_data['subtracted_sasm_list'].append(self.subtracted_sasm_list[idx].extractAll())
+            if self.subtracted_sasm_list[idx] != -1:
+                all_data['subtracted_sasm_list'].append(self.subtracted_sasm_list[idx].extractAll())
+            else:
+                all_data['subtracted_sasm_list'].append(-1)
 
         
         return all_data
@@ -1033,15 +1037,16 @@ class SECM:
 
         return self.I_of_q
 
-    def setCalcParams(self, initial, final, window):
+    def setCalcParams(self, initial, final, window, threshold):
         new = False
 
-        if initial != self.initial_buffer_frame or final != self.final_buffer_frame or window != self.window_size:
+        if initial != self.initial_buffer_frame or final != self.final_buffer_frame or window != self.window_size or threshold != self.threshold:
             new = True
 
             self.initial_buffer_frame = initial
             self.final_buffer_frame = final
             self.window_size = window
+            self.threshold = threshold
 
         # print self.initial_buffer_frame
         # print self.final_buffer_frame
@@ -1354,6 +1359,12 @@ def calcAbsoluteScaleWaterConst(water_sasm, emptycell_sasm, I0_water, raw_settin
 def normalizeAbsoluteScaleWater(sasm, raw_settings):
     abs_scale_constant = raw_settings.get('NormAbsWaterConst')
     sasm.scaleBinnedIntensity(abs_scale_constant)
+
+    norm_parameter = sasm.getParameter('normalizations')
+
+    norm_parameter['Absolute_scale_factor'] = abs_scale_constant
+
+    sasm.setParameter('Normalizations', norm_parameter)
 
     return sasm, abs_scale_constant
 
