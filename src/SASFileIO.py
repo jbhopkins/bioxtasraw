@@ -2871,7 +2871,7 @@ def writeHeader(d, f2, ignore_list = []):
     #     if each != 'fileHeader':
     #         f2.write(line)
 
-    f2.write(json.dumps(d,indent = 4))
+    f2.write(json.dumps(d,indent = 4), sort_keys = True)
     
     f2.write('\n\n')
     
@@ -2924,7 +2924,7 @@ def printDict(d, each):
             
     # tmpline = tmpline + '}\n'
 
-    tmpline = each + ' '+ json.dumps(d[each], indent = 4)+'\n'
+    tmpline = each + ' '+ json.dumps(d[each], indent = 4, sort_keys=True)+'\n'
     
     return tmpline
 

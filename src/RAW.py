@@ -23,7 +23,7 @@ Created on Sep 31, 2010
 '''
 
 import wx, os, subprocess, time, math, threading, Queue, numpy, cPickle, copy, sys, glob
-import platform, fnmatch, shutil
+import platform, fnmatch, shutil, json
 
 import wx.lib.scrolledpanel as scrolled
 import wx.lib.wordwrap as wordwrap
@@ -221,7 +221,7 @@ class MainFrame(wx.Frame):
         self.main_worker_thread.setDaemon(True)
         self.main_worker_thread.start()
 
-        icon = raw_icon_embed.GetIcon()
+        icon = RAWIcons.raw_icon_embed.GetIcon()
         self.SetIcon(icon)
         app.SetTopWindow(self)
   
@@ -6119,6 +6119,7 @@ class ManipItemPanel(wx.Panel):
             img.Enable(False)
         menu.Append(20, 'Show data')
         menu.Append(21, 'Show header')
+        menu.Append(33, 'Show history')
         
         menu.AppendSeparator()
         menu.Append(8, 'Move to top plot')
@@ -6334,7 +6335,12 @@ class ManipItemPanel(wx.Panel):
             
             sasm = selectedSASMList[0].getSASM()
             Mainframe.showBIFTFrame(sasm, selectedSASMList[0])
-            
+
+        if evt.GetId() == 33:
+            dlg = HistoryDialog(self, self.sasm)
+            dlg.ShowModal()
+            dlg.Destroy()
+                        
     
     def _saveAllAnalysisInfo(self):
         selected_items = self.manipulation_panel.getSelectedItems()
@@ -13007,6 +13013,56 @@ class IFTDataDialog(wx.Dialog):
         self.EndModal(wx.ID_OK)
 
 
+class HistoryDialog(wx.Dialog):
+    
+    def __init__(self, parent, sasm = None, *args, **kwargs):
+        
+        wx.Dialog.__init__(self, parent, -1, 'History Display', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs)
+        
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.sasm = sasm
+        
+        self.text = wx.TextCtrl(self, -1, style = wx.TE_MULTILINE | wx.TE_READONLY)
+        self.text.AppendText('#############################################\n')
+        self.text.AppendText('History of : %s\n' %(sasm.getParameter('filename')))
+        self.text.AppendText('#############################################\n\n')
+
+        history = sasm.getParameter('history')
+
+        if history != {} and history != None:
+            self.text.AppendText(json.dumps(history, indent = 4, sort_keys = True))
+
+        else:
+            norm = sasm.getParameter('normalizations')
+            config = sasm.getParameter('config_file')
+            load = sasm.getParameter('load_path')
+
+            if norm != {} and norm != None:
+                self.text.AppendText('Normalizations:\n%s\n\n' %(json.dumps(norm, indent = 4, sort_keys = True)))
+            if config != {} and config != None:
+                self.text.AppendText('Configuration File:\n%s\n\n' %(json.dumps(config, indent = 4, sort_keys = True)))
+            if load != {} and load != None:
+                self.text.AppendText('Load Path:\n%s\n\n' %(json.dumps(load, indent = 4, sort_keys = True)))
+
+        
+        self.sizer.Add(self.text, 1, wx.ALL | wx.EXPAND, 10)
+
+        self.sizer.Add(self._CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
+        
+        self.Bind(wx.EVT_BUTTON, self._onOk, id=wx.ID_OK)
+
+        self.SetSizer(self.sizer)
+        
+        self.CenterOnParent()
+        
+        
+    def _onOk(self, event):
+            
+        self.EndModal(wx.ID_OK)
+
+
+
 class TestDialog2(wx.Dialog):
     
     def __init__(self, parent, *args, **kwargs):
@@ -15146,7 +15202,7 @@ class WelcomeDialog(wx.Dialog):
         # button_sizer = wx.BoxSizer()
         # button_sizer.Add(self.ok_button,0, wx.RIGHT, 5) 
         
-        raw_bitmap = raw_icon_embed.GetBitmap()
+        raw_bitmap = RAWIcons.raw_icon_embed.GetBitmap()
         rawimg = wx.StaticBitmap(self, -1, raw_bitmap)
         
         headline = wx.StaticText(self, -1, 'Welcome to RAW 1.1.0!')
@@ -15283,44 +15339,6 @@ class MySplashScreen(wx.SplashScreen):
         dlg = WelcomeDialog(frame, name = "WelcomeDialog")
         dlg.ShowModal()
 
-        
-    
-
-        # The program will freeze without this line.
-
-
-raw_icon_embed =PyEmbeddedImage(
-    "iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXNSR0IArs4c6QAAAVlpVFh0"
-    "WE1MOmNvbS5hZG9iZS54bXAAAAAAADx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0"
-    "YS8iIHg6eG1wdGs9IlhNUCBDb3JlIDUuNC4wIj4KICAgPHJkZjpSREYgeG1sbnM6cmRmPSJo"
-    "dHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICAgICAgPHJk"
-    "ZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIKICAgICAgICAgICAgeG1sbnM6dGlmZj0iaHR0"
-    "cDovL25zLmFkb2JlLmNvbS90aWZmLzEuMC8iPgogICAgICAgICA8dGlmZjpPcmllbnRhdGlv"
-    "bj4xPC90aWZmOk9yaWVudGF0aW9uPgogICAgICA8L3JkZjpEZXNjcmlwdGlvbj4KICAgPC9y"
-    "ZGY6UkRGPgo8L3g6eG1wbWV0YT4KTMInWQAABLRJREFUaAXtV1tMW2Uc/xVakFJKKyut3Mpg"
-    "FCvrNtYZiHtwy1ymMV4SExNNTDRG46vxRY3vPvuCPuzJy4NOEnd5cIlkxgtlssoUSIUOhHLr"
-    "KbBCKZRr6/f/u6+eWpLF1Hg8S//J6fed//32/b9TA16/kYGOwVhTadSx+4DxgN4DqLEUK6Bp"
-    "C+r/DOj/EFtKNW2BQo0XW6jQDBYqX7wHCs1gofK6r4BhdzOj6485Q0ZAoWXUUr5ES+P/hm3d"
-    "B7Dvp+ivwRsom53OSZDVfn/Ou5YvSVcdPJ52diHvDJDzE59+ggdHg0i7alESjfGqpcPSduNG"
-    "nLchRwvw8mvo6upGXgDj42OIhEJS5q5rRXl5Hk9qaysPRwjJ+3e6xBOPpBGO9pJG+7Vvr3Fi"
-    "660m9DUeQffb7yKnhRYUBQs3h+BOJUnXXWHPZse2wwHfcX+W97sLn8OpzGbf1ZuM9wgcvqMY"
-    "HQjAvbLEpM3ECjKPnGId4fA40qERlK78mWliSNU3wXfmLKKxGCL910DOE9RtJllPTgCRqd9x"
-    "4MoXcN4pFXOKn7nETlZQ4uQ69cY7cov+q1+zPLXdfpAe7Mfae++jyuXCdu/H3J5u4VBodgbR"
-    "hkYYAt+j7vJnOaLULuEmN9OsQ0HgTgBzrgb4/cf+qgBlXxH9byXjkkk4Hjp5BtZjnZgTahOi"
-    "Ou0Tw2yYrCRa22EXygmGfw7CePHLLI1wv3X4OVPWiTF6ZdrW1ctoev4lBFp98Eb7ODnkWOCj"
-    "HtYtk0UrgTUxhtEPe+BZngGNTMKT3frHn4C7oZlxzLgoslAWvM57YmLGTj87X1tpzvaiOrvm"
-    "h7xoa/OASj/f8wGko6SEnK86dRqUKYL4xg4/JaIKZIscIEcIT+D9sS8bfH91AyeOCeKHBora"
-    "ruLrRFPzQSZnW2jq+gDui8WzCu1mExR3G3ZF1uuF8vVyG1zxRVB3Em268SBazj3FvUkZco6N"
-    "M00arbw1gbR4LAIhnSTa6uQcFDHljr/1JoIiOMusIhgWpRiSdgeMTz+Hw14vJiOTsAq9alAe"
-    "7kbHY2fxgNPJaA6AJs9eOAyLShFlx1wvsicemklmoUwamhHBbPu7UFVtw2DvBZCzEhLtHqSs"
-    "uXfGOlpRkbiddcY5OICp/gEcfuFFdlLqJR3JE352niq7cO5JJEVSpV8UHFWV7ErgAGhsqp0g"
-    "IrVH1zPPMt+0OCzh4E0kLvWyE6SwengIEf8JDnLtUCvIyYzNxq1xVJR3eyclbfD6y6UrUFSB"
-    "lS4todlcztlWxHiU4BSznZwn8Dx6GgHhm3omUmVk9onHSNmnw2mutSMhHgLKoEWMNgl0WMpM"
-    "FRicm8WtkVEcMpmwNzyCqp9+wG5bByCyQkAz2263Y211RYpm12aPBzGqqApWlSWeSFKeSEYh"
-    "TwNBAgUk7wbCqbNP74b5aDRDBuPxOBuXq7yqiUnCNxe/Qvr8edH384xy1dZJ0n+yUnv5X32F"
-    "p480mHcTS8J+K31m0GHXCmpaWnFSTC81/KMA1IL/l73uP6eLAWjdSsbb67ta+1CQfRHAXkEK"
-    "tBY2Luu/AsUW0rSL7oVDrPMWWt7Q+RQq3gOaHmHx/0H3FbgHLrLiIdb0FPwBwjQD94YpSggA"
-    "AAAASUVORK5CYII=")
 
 class RawTaskbarIcon(wx.TaskBarIcon):
     TBMENU_RESTORE = wx.NewId()
@@ -15334,7 +15352,7 @@ class RawTaskbarIcon(wx.TaskBarIcon):
         self.frame = frame
  
         # Set the image
-        self.tbIcon = raw_icon_embed.GetIcon()
+        self.tbIcon = RAWIcons.raw_icon_embed.GetIcon()
  
         self.SetIcon(self.tbIcon, "Test")
  

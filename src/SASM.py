@@ -1195,25 +1195,23 @@ def subtract(sasm1, sasm2, forced = False):
     newSASM = SASM(i, q, err, parameters)
 
     history = newSASM.getParameter('history')
-    if 'averaged_files' in history:
-        del history['averaged_files']
+
+    history = {}
 
     history1 = []
     history1.append(copy.deepcopy(sasm1.getParameter('filename')))
-    if 'averaged_files' in sasm1.getParameter('history'):
-        history1.append({'averaged_files' : copy.deepcopy(sasm1.getParameter('history')['averaged_files'])})
-    if 'subtraction' in sasm1.getParameter('history'):
-        history1.append({'subtraction' : copy.deepcopy(sasm1.getParameter('history')['subtraction'])})
+    for key in sasm1.getParameter('history'):
+        history1.append({ key : copy.deepcopy(sasm1.getParameter('history')[key])})
 
     history2 = []
     history2.append(copy.deepcopy(sasm2.getParameter('filename')))
-    if 'averaged_files' in sasm2.getParameter('history'):
-        history2.append({'averaged_files' : copy.deepcopy(sasm2.getParameter('history')['averaged_files'])})
-    if 'subtraction' in sasm2.getParameter('history'):
-        history2.append({'subtraction' : copy.deepcopy(sasm2.getParameter('history')['subtraction'])})
+    for key in sasm2.getParameter('history'):
+        history2.append({key : copy.deepcopy(sasm2.getParameter('history')[key])})
 
     history['subtraction'] = {'initial_file':history1, 'subtracted_file':history2}
-     
+    
+    newSASM.setParameter('history', history)
+
     return newSASM 
 
 def absorbance(sasm1, sasm2):
@@ -1231,7 +1229,7 @@ def absorbance(sasm1, sasm2):
     
     err = i*0
 
-    parameters = sasm1.getAllParameters().copy()    
+    parameters = copy.deepcopy(sasm1.getAllParameters())   
     absSASM = SASM(i, q, err, parameters)
      
     return absSASM 
@@ -1280,18 +1278,17 @@ def average(sasm_list, forced = False):
     avgSASM = SASM(avg_i, avg_q, avg_err, avg_parameters)
     history = avgSASM.getParameter('history')
 
-    if 'subtraction' in history:
-        del history['subtraction']
+    history = {}
 
     history_list = []
 
     for eachsasm in sasm_list:
         each_history = []
         each_history.append(copy.deepcopy(eachsasm.getParameter('filename')))
-        if 'averaged_files' in eachsasm.getParameter('history'):
-            each_history.append({'averaged_files' : copy.deepcopy(eachsasm.getParameter('history')['averaged_files'])})
-        if 'subtraction' in eachsasm.getParameter('history'):
-            each_history.append({'subtraction' : copy.deepcopy(eachsasm.getParameter('history')['subtraction'])})
+
+        for key in eachsasm.getParameter('history'):
+            each_history.append({key : copy.deepcopy(eachsasm.getParameter('history')[key])})
+
         history_list.append(each_history)
 
 
@@ -1539,8 +1536,25 @@ def merge(sasm_star, sasm_list):
     newerr = np.append(newerr, tmp_s2err[min:max])
             
     #create a new SASM object with the merged parts. 
-    parameters = {}
+    parameters = copy.deepcopy(s1.getAllParameters())
     newSASM = SASM(newi, newq, newerr, parameters)
+
+    history = newSASM.getParameter('history')
+
+    history = {}
+
+    history_list = []
+
+    for eachsasm in [s1, s2]:
+        each_history = []
+        each_history.append(copy.deepcopy(eachsasm.getParameter('filename')))
+        for key in eachsasm.getParameter('history'):
+            each_history.append({key : copy.deepcopy(eachsasm.getParameter('history')[key])})
+
+        history_list.append(each_history)
+
+    history['merged_files'] = history_list
+    newSASM.setParameter('history', history)
     
     if len(sasm_list) == 0:
         return newSASM
@@ -1589,10 +1603,27 @@ def interpolateToFit(sasm_star, sasm_list):
     intp_q_s2 = s1.q[q1_indexs].copy()   
     newerr = s1.err[q1_indexs].copy()
     
-    parameters = {}
+    parameters = copy.deepcopy(s1.getAllParameters())
     
     newSASM = SASM(intp_i_s2, intp_q_s2, newerr, parameters)
-    
+
+    history = newSASM.getParameter('history')
+
+    history = {}
+
+    history1 = []
+    history1.append(copy.deepcopy(s1.getParameter('filename')))
+    for key in s1.getParameter('history'):
+        history1.append({key:copy.deepcopy(s1.getParameter('history')[key])})
+
+    history2 = []
+    history2.append(copy.deepcopy(s2.getParameter('filename')))
+    for key in s2.getParameter('history'):
+        history2.append({key:copy.deepcopy(s2.getParameter('history')[key])})
+
+    history['interpolation'] = {'initial_file':history1, 'interpolated_to_q_of':history2}
+    newSASM.setParameter('history', history)
+
     return newSASM
     
 def logBinning(sasm, no_points):
@@ -1612,7 +1643,7 @@ def logBinning(sasm, no_points):
 
     idx = 0
     for i in range(0, len(bins)):
-        no_of_bins = np.floor(bins[i] - bins[i-1])
+        no_of_bins = int(np.floor(bins[i] - bins[i-1]))
 
         if no_of_bins > 1:
             mean_q = np.mean( q_roi[ idx : idx + no_of_bins ] )
@@ -1634,6 +1665,20 @@ def logBinning(sasm, no_points):
     parameters = copy.deepcopy(sasm.getAllParameters())
     
     newSASM = SASM(binned_i, binned_q, binned_err, parameters)
+
+    history = newSASM.getParameter('history')
+
+    history = {}
+
+    history1 = []
+    history1.append(copy.deepcopy(sasm.getParameter('filename')))
+
+    for key in sasm.getParameter('history'):
+        history1.append({key:copy.deepcopy(sasm.getParameter('history')[key])})
+
+    history['log_binning'] = {'initial_file' : history1, 'initial_points' : len(q_roi), 'final_points': len(bins)}
+
+    newSASM.setParameter('history', history)
     
     return newSASM
 
@@ -1677,6 +1722,20 @@ def rebin(sasm, rebin_factor):
     new_qend = int(qend/float(rebin_factor))
 
     newSASM.setQrange([new_qstart, new_qend])
+
+    history = newSASM.getParameter('history')
+
+    history = {}
+
+    history1 = []
+    history1.append(copy.deepcopy(sasm.getParameter('filename')))
+
+    for key in sasm.getParameter('history'):
+        history1.append({key:copy.deepcopy(sasm.getParameter('history')[key])})
+
+    history['log_binning'] = {'initial_file' : history1, 'initial_points' : len_iq, 'final_points': no_of_bins}
+
+    newSASM.setParameter('history', history)
     
     return newSASM
     
