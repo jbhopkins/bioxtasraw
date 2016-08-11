@@ -797,7 +797,7 @@ class ImagePanel(wx.Panel):
             newCenter = patch.center
             
             #first point is center, next point is first on circle perferie
-            mask.setPoints([newCenter, (newCenter[0]+r, newCenter[1])])
+            mask.setPoints([newCenter, (newCenter[0]+mask.getRadius(), newCenter[1])])
 
         elif isinstance(patch, matplotlib.patches.Rectangle):
                         

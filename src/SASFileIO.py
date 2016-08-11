@@ -321,7 +321,7 @@ def loadPilatusImage(filename):
     except:
         img_hdr = {}
         pass
-    
+
     return img, img_hdr
 
 def loadMar345Image(filename):    
@@ -758,15 +758,15 @@ def parsePilatusHeader(filename):
     
     try:
         f = open(filename, 'r')
-    
+        header = f.read(4096)
+        f.close()
         hdr = {}
     except:
         print 'Reading Pilatus header failed'
         return {}
-    
     lineNum = 0
     
-    for line in f:                 
+    for line in header:
         date_found = param_pattern.search(line)
         
         if date_found:      
@@ -781,7 +781,7 @@ def parsePilatusHeader(filename):
             print '** error reading the exposure time **'
             break
                
-    f.close()
+    # f.close()
  
     return hdr
     
@@ -938,7 +938,6 @@ def parseCHESSF2CTSfile(filename):
 def parseCHESSG1CountFile(filename):
     ''' Loads information from the counter file at CHESS, G1 from
     the image filename '''
-    
     dir, file = os.path.split(filename)
     underscores = file.split('_')
     
@@ -1328,8 +1327,9 @@ def loadHeader(filename, header_type):
         except IOError as io:
             error_type = io[0]
             raise SASExceptions.HeaderLoadError(str(io).replace("u'",''))
-        #except:
-        #     raise SASExceptions.HeaderLoadError('Header file for : ' + str(filename) + ' could not be read or contains incorrectly formatted data. ')
+        except Exception as e:
+            print e
+            raise SASExceptions.HeaderLoadError('Header file for : ' + str(filename) + ' could not be read or contains incorrectly formatted data. ')
     else:
         return {}
     
@@ -1373,7 +1373,7 @@ def loadFile(filename, raw_settings, no_processing = False):
         except (ValueError, AttributeError), msg:
             print 'SASFileIO.loadFile : ' + str(msg)
             raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
-        
+
         try:
             sasm = SASImage.calibrateAndNormalize(sasm, img, raw_settings)
         except (ValueError, NameError), msg:
@@ -1452,7 +1452,6 @@ def loadImageFile(filename, raw_settings):
                 img_hdr[key] = unicode(img_hdr[key], errors='ignore')
 
     hdrfile_info = loadHeader(filename, hdr_fmt)
- 
     parameters = {'imageHeader' : img_hdr,
                   'counters'    : hdrfile_info,
                   'filename'    : os.path.split(filename)[1],
