@@ -13053,6 +13053,8 @@ class HistoryDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self._onOk, id=wx.ID_OK)
 
         self.SetSizer(self.sizer)
+
+        self.Layout()
         
         self.CenterOnParent()
         

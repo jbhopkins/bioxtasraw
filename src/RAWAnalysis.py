@@ -3093,13 +3093,29 @@ class DammifFrame(wx.Frame):
         self.SendSizeEvent()
         self.panel.Layout()
         
-        
         self.CenterOnParent()
 
         self.Raise()
 
 
     def _createLayout(self, parent):
+
+        # file_text = wx.StaticText(parent, -1, 'File :')
+        # file_ctrl = wx.TextCtrl(parent, -1, self.filename, size = (150, -1), style = wx.TE_READONLY)
+
+        # file_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # file_sizer.Add(file_text, 0, wx.ALL, 5)
+        # file_sizer.Add(file_ctrl, 2, wx.ALL | wx.EXPAND, 5)
+        # file_sizer.AddStretchSpacer(1)
+
+        
+        
+        file_ctrl = wx.TextCtrl(parent, -1, self.filename, size = (150, -1), style = wx.TE_READONLY)
+        
+        file_box = wx.StaticBox(parent, -1, 'Filename')
+        file_sizer = wx.StaticBoxSizer(file_box, wx.HORIZONTAL)
+        file_sizer.Add(file_ctrl, 2, wx.ALL | wx.EXPAND, 5)
+        file_sizer.AddStretchSpacer(1)
 
         savedir_text = wx.StaticText(parent, -1, 'Output directory :')
         savedir_ctrl = wx.TextCtrl(parent, self.ids['save'], '', size = (350, -1))
@@ -3149,9 +3165,9 @@ class DammifFrame(wx.Frame):
         mode_text = wx.StaticText(parent, -1, 'Mode :')
         mode_choice = wx.Choice(parent, self.ids['mode'], choices = ['Fast', 'Slow', 'Custom'])
 
-        mode_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        mode_sizer.Add(mode_text, 0, wx.ALL, 5)
-        mode_sizer.Add(mode_choice, 0, wx.ALL, 5)
+        # mode_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # mode_sizer.Add(mode_text, 0, wx.ALL, 5)
+        # mode_sizer.Add(mode_choice, 0, wx.ALL, 5)
 
 
         sym_choices = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11',
@@ -3161,18 +3177,33 @@ class DammifFrame(wx.Frame):
         sym_text = wx.StaticText(parent, -1, 'Symmetry :')
         sym_choice = wx.Choice(parent, self.ids['sym'], choices = sym_choices)
 
-        sym_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sym_sizer.Add(sym_text, 0, wx.ALL, 5)
-        sym_sizer.Add(sym_choice, 0, wx.ALL, 5)
+        # sym_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # sym_sizer.Add(sym_text, 0, wx.ALL, 5)
+        # sym_sizer.Add(sym_choice, 0, wx.ALL, 5)
 
 
         anisometry_choices = ['Unknown', 'Prolate', 'Oblate']
         aniso_text = wx.StaticText(parent, -1, 'Anisometry :')
         aniso_choice = wx.Choice(parent, self.ids['anisometry'], choices = anisometry_choices)
 
-        aniso_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        aniso_sizer.Add(aniso_text, 0, wx.ALL, 5)
-        aniso_sizer.Add(aniso_choice, 0, wx.ALL, 5)
+        # aniso_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # aniso_sizer.Add(aniso_text, 0, wx.ALL, 5)
+        # aniso_sizer.Add(aniso_choice, 0, wx.ALL, 5)
+
+
+        choices_sizer = wx.FlexGridSizer(2, 3, 5, 10)
+        choices_sizer.SetFlexibleDirection(wx.HORIZONTAL)
+        choices_sizer.AddGrowableCol(0)
+        choices_sizer.AddGrowableCol(1)
+        choices_sizer.AddGrowableCol(2)
+
+        choices_sizer.Add(mode_text)
+        choices_sizer.Add(sym_text)
+        choices_sizer.Add(aniso_text)
+
+        choices_sizer.Add(mode_choice)
+        choices_sizer.Add(sym_choice)
+        choices_sizer.Add(aniso_choice)
 
         damaver_chk = wx.CheckBox(parent, self.ids['damaver'], 'Align and average envelopes (damaver)')
 
@@ -3187,9 +3218,10 @@ class DammifFrame(wx.Frame):
         settings_sizer.Add(prefix_sizer, 0, wx.EXPAND)
         settings_sizer.Add(nruns_sizer, 0)
         settings_sizer.Add(nprocs_sizer, 0)
-        settings_sizer.Add(mode_sizer, 0)
-        settings_sizer.Add(sym_sizer, 0)
-        settings_sizer.Add(aniso_sizer, 0)
+        # settings_sizer.Add(mode_sizer, 0)
+        # settings_sizer.Add(sym_sizer, 0)
+        # settings_sizer.Add(aniso_sizer, 0)
+        settings_sizer.Add(choices_sizer, 0, wx.ALL | wx.EXPAND, 5)
         settings_sizer.Add(damaver_chk, 0, wx.ALL, 5)
         settings_sizer.Add(advancedButton, 0, wx.ALL | wx.ALIGN_CENTER, 5)
 
@@ -3208,6 +3240,7 @@ class DammifFrame(wx.Frame):
         button_sizer.AddStretchSpacer(1)
 
         control_sizer = wx.BoxSizer(wx.VERTICAL)
+        control_sizer.Add(file_sizer, 0, wx.EXPAND)
         control_sizer.Add(settings_sizer, 0, wx.EXPAND)
         control_sizer.Add(button_sizer, 0, wx.ALIGN_CENTER | wx.EXPAND)
 
@@ -4643,6 +4676,8 @@ class AmbimeterFrame(wx.Frame):
         self.panel.Layout()
         self.SendSizeEvent()
         self.panel.Layout()
+
+        self.Layout()
         
 
         self.CenterOnParent()
