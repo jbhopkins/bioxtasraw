@@ -1382,14 +1382,16 @@ class OnlineController:
         found_path = False
         
         if self.seek_dir == []:
-            self.seek_dir = str(self.dirctrl.getDirLabel())
+            start_dir = str(self.dirctrl.getDirLabel())
+        else:
+            start_dir = self.seek_dir
 
-        dirdlg = wx.DirDialog(self.parent, "Please select search directory:", str(self.seek_dir))
+        dirdlg = wx.DirDialog(self.parent, "Please select search directory:", str(start_dir))
 
         if dirdlg.ShowModal() == wx.ID_OK:               
             self.seek_dir = dirdlg.GetPath()
             found_path = True
-            
+
         return found_path
 
     def changeOnline(self):
@@ -1416,7 +1418,7 @@ class OnlineController:
         else:
             found_path = True       
 
-        if found_path != None:
+        if found_path:
             dir_list = os.listdir(self.seek_dir)
             
             dir_list_dict = {}
@@ -1451,6 +1453,36 @@ class OnlineController:
         self._enable_filt=self._raw_settings.get('EnableOnlineFiltering')
         
         self.file_list_ctrl = wx.FindWindowByName('FileListCtrl')
+
+        if not os.path.exists(self.seek_dir):
+            self.seek_dir = []
+
+            question = "Warning: the online mode directory does not exist.\nWhat do you want to do?"
+            button_list = [('Change Directory', wx.NewId()),('Go Offline', wx.NewId())]
+            label = "Missing Directory"
+            icon = wx.ART_WARNING
+
+            question_dialog = RAWCustomCtrl.CustomQuestionDialog(self.main_frame, question, button_list, label, icon, None, None, style = wx.CAPTION)
+            result = question_dialog.ShowModal()
+            question_dialog.Destroy()
+
+            if result == button_list[0][1]:
+                success = self.changeOnline()
+                print success
+                if not success:
+                    self.goOffline()
+                    self.main_frame.setStatus('Mode: OFFLINE', 2)
+                    menubar = self.main_frame.GetMenuBar()
+                    item = menubar.FindItemById(self.main_frame.MenuIDs['goOffline'])
+                    item.Check(True)
+            else:
+                self.goOffline()
+                self.main_frame.setStatus('Mode: OFFLINE', 2)
+                menubar = self.main_frame.GetMenuBar()
+                item = menubar.FindItemById(self.main_frame.MenuIDs['goOffline'])
+                item.Check(True)
+                return
+
         dir_list = os.listdir(self.seek_dir)
         
         dir_list_dict = {}

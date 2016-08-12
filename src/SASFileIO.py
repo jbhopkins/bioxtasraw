@@ -1218,7 +1218,7 @@ def parseBL19U2HeaderFile(filename):
         for line in f:
             name = line.split(':')[0]
             value = ':'.join(line.split(':')[1:])
-            counters[name.strip().replace(' ', '_')] = value.strip()
+            counters[name.strip()] = value.strip()
 
     return counters
 
@@ -1442,7 +1442,12 @@ def loadImageFile(filename, raw_settings):
     img_fmt = raw_settings.get('ImageFormat')
     hdr_fmt = raw_settings.get('ImageHdrFormat')
         
-    img, img_hdr = loadImage(filename, img_fmt)
+    img, tmp_hdr = loadImage(filename, img_fmt)
+
+    img_hdr = {}
+
+    for key in tmp_hdr:
+        img_hdr[key.replace(' ', '_')] = tmp_hdr[key]
 
     try:
         json.dumps(img_hdr)
@@ -1451,7 +1456,14 @@ def loadImageFile(filename, raw_settings):
             if type(img_hdr[key]) == str:
                 img_hdr[key] = unicode(img_hdr[key], errors='ignore')
 
-    hdrfile_info = loadHeader(filename, hdr_fmt)
+    tmp_hdrfile_info = loadHeader(filename, hdr_fmt)
+
+    hdrfile_info = {}
+
+    for key in tmp_hdrfile_info:
+        hdrfile_info[key.replace(' ', '_')] = tmp_hdrfile_info[key]
+
+
     parameters = {'imageHeader' : img_hdr,
                   'counters'    : hdrfile_info,
                   'filename'    : os.path.split(filename)[1],
