@@ -989,3 +989,26 @@ def runAmbimeter(fname, prefix, args):
         print 'Cannot find ATSAS'
         raise SASExceptions.NoATSASError('Cannot find ambimeter.')
         return None
+
+def runDamclust(flist):
+
+    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+    atsasDir = raw_settings.get('ATSASDir')
+
+    opsys = platform.system()
+
+    if opsys == 'Windows':
+        damclustDir = os.path.join(atsasDir, 'damclust.exe')
+    else:
+        damclustDir = os.path.join(atsasDir, 'damclust')
+    
+
+    if os.path.exists(damclustDir):
+        command = '%s' %(damclustDir)
+
+        for item in flist:
+            command = command + ' %s' %(item)
+        
+        process=subprocess.Popen(command, shell= True, stdout = subprocess.PIPE)
+
+        return process

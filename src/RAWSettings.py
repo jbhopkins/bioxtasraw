@@ -285,7 +285,8 @@ class RawGuiSettings:
                             'dammifAnisPen'       : [-1, wx.NewId(), 'float'],
                             'dammifMaxBeadCount'  : [-1, wx.NewId(), 'int'],
                             'dammifReconstruct'   : [15, wx.NewId(), 'int'],
-                            'dammifDamaver'       : [True, wx.NewId(), 'bool']
+                            'dammifDamaver'       : [True, wx.NewId(), 'bool'],
+                            'dammifDamclust'      : [False, wx.NewId(), 'bool']
                             
                             }
     

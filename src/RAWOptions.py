@@ -2991,7 +2991,7 @@ class ATSASDammif(wx.Panel):
         self.raw_settings = raw_settings
         
         self.update_keys = ['dammifMode', 'dammifSymmetry', 'dammifAnisometry', 'dammifUnit', 'dammifChained',
-                            'dammifConstant', 'dammifOmitSolvent', 'dammifReconstruct', 'dammifDamaver']
+                            'dammifConstant', 'dammifOmitSolvent', 'dammifReconstruct', 'dammifDamaver', 'dammifDamclust']
         
         modeChoices = ['Fast', 'Slow', 'Custom']
 
@@ -3005,7 +3005,8 @@ class ATSASDammif(wx.Panel):
                                 ("Symmetry:",   raw_settings.getId('dammifSymmetry'), 'choice', symChoices),
                                 ("Anisometry: ", raw_settings.getId('dammifAnisometry'), 'choice', anisometryChoices),
                                 ("Number of reconstructions:", raw_settings.getId('dammifReconstruct'), 'int'),
-                                ("Automatically average reconstructions (DAMAVER)", raw_settings.getId('dammifDamaver'), 'bool'))
+                                ("Automatically average reconstructions (DAMAVER)", raw_settings.getId('dammifDamaver'), 'bool'),
+                                ("Automatically cluster reconstructions (DAMCLUST)", raw_settings.getId('dammifDamclust'), 'bool'))
 
         unitChoices = ['Unknown', 'Angstrom', 'Nanometer']
 
@@ -3076,6 +3077,9 @@ class ATSASDammif(wx.Panel):
                 ctrl = wx.CheckBox(parent, myId, label)
                 sizer.Add(ctrl, 0, wx.ALL, 2)
 
+                if myId == self.raw_settings.getId('dammifDamaver') or myId == self.raw_settings.getId('dammifDamclust'):
+                    ctrl.Bind(wx.EVT_CHECKBOX, self._onCheckBox)
+
             defaultSizer.Add(sizer, 0)
 
 
@@ -3127,6 +3131,15 @@ class ATSASDammif(wx.Panel):
         top_sizer.Add(resetSizer, 0)
 
         return top_sizer
+
+    def _onCheckBox(self,evt):
+        if evt.GetId() == self.raw_settings.getId('dammifDamaver') and evt.IsChecked():
+            damclust = wx.FindWindowById(self.raw_settings.getId('dammifDamclust'))
+            damclust.SetValue(False)
+
+        elif evt.GetId() == self.raw_settings.getId('dammifDamclust') and evt.IsChecked():
+            damaver = wx.FindWindowById(self.raw_settings.getId('dammifDamaver'))
+            damaver.SetValue(False)
 
 
     def _onResetButton(self, evt):

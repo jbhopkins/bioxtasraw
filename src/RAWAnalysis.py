@@ -3074,6 +3074,7 @@ class DammifFrame(wx.Frame):
                     'anisometry'    : wx.NewId(),
                     'status'        : wx.NewId(),
                     'damaver'       : wx.NewId(),
+                    'damclust'      : wx.NewId(),
                     'save'          : wx.NewId(),
                     'prefix'        : wx.NewId(),
                     'logbook'       : wx.NewId(),
@@ -3206,6 +3207,10 @@ class DammifFrame(wx.Frame):
         choices_sizer.Add(aniso_choice)
 
         damaver_chk = wx.CheckBox(parent, self.ids['damaver'], 'Align and average envelopes (damaver)')
+        damaver_chk.Bind(wx.EVT_CHECKBOX, self.onCheckBox)
+
+        damclust_chk = wx.CheckBox(parent, self.ids['damclust'], 'Align and cluster envelopes (damclust)')
+        damclust_chk.Bind(wx.EVT_CHECKBOX, self.onCheckBox)
 
         advancedButton = wx.Button(parent, -1, 'Change Advanced Settings')
         advancedButton.Bind(wx.EVT_BUTTON, self._onAdvancedButton)
@@ -3223,6 +3228,7 @@ class DammifFrame(wx.Frame):
         # settings_sizer.Add(aniso_sizer, 0)
         settings_sizer.Add(choices_sizer, 0, wx.ALL | wx.EXPAND, 5)
         settings_sizer.Add(damaver_chk, 0, wx.ALL, 5)
+        settings_sizer.Add(damclust_chk, 0, wx.ALL, 5)
         settings_sizer.Add(advancedButton, 0, wx.ALL | wx.ALIGN_CENTER, 5)
 
 
@@ -3335,6 +3341,9 @@ class DammifFrame(wx.Frame):
         damaver = wx.FindWindowById(self.ids['damaver'])
         damaver.SetValue(self.raw_settings.get('dammifDamaver'))
 
+        damclust = wx.FindWindowById(self.ids['damclust'])
+        damclust.SetValue(self.raw_settings.get('dammifDamclust'))
+
         prefix = wx.FindWindowById(self.ids['prefix'])
         prefix.SetValue(os.path.splitext(self.filename)[0])
 
@@ -3357,6 +3366,9 @@ class DammifFrame(wx.Frame):
         #Get user settings on number of runs, save location, etc
         damaver_window = wx.FindWindowById(self.ids['damaver'])
         damaver = damaver_window.GetValue()
+
+        damclust_window = wx.FindWindowById(self.ids['damclust'])
+        damclust = damclust_window.GetValue()
 
         prefix_window = wx.FindWindowById(self.ids['prefix'])
         prefix = prefix_window.GetValue()
@@ -3426,29 +3438,6 @@ class DammifFrame(wx.Frame):
                 elif result == wx.ID_YESTOALL:
                     yes_to_all = True
 
-        yes_to_all = False
-
-        damaver_names = [prefix+'_damfilt.pdb', prefix+'_damsel.log', prefix+'_damstart.pdb', prefix+'_damsup.log',
-                        prefix+'_damaver.pdb', 'damfilt.pdb', 'damsel.log', 'damstart.pdb', 'damsup.log', 'damaver.pdb']
-
-        for item in damaver_names:
-
-            if os.path.exists(os.path.join(path, item)) and not yes_to_all:
-                button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
-                question = 'Warning: selected directory contains the DAMAVER output file\n"%s". Running DAMAVER will overwrite this file.\nDo you wish to continue?' %(item)
-                label = 'Overwrite existing files?'
-                icon = wx.ART_WARNING
-
-                question_dialog = RAWCustomCtrl.CustomQuestionDialog(self.main_frame, question, button_list, label, icon, style = wx.CAPTION)
-                result = question_dialog.ShowModal()
-                question_dialog.Destroy()
-
-                if result == wx.ID_NO:
-                    return
-                elif result == wx.ID_YESTOALL:
-                    yes_to_all = True
-
-
         #Set up the various bits of information the threads will need. Set up the status windows.
         self.dammif_ids = {key: value for (key, value) in [(str(i), wx.NewId()) for i in range(1, nruns+1)]}
 
@@ -3462,9 +3451,57 @@ class DammifFrame(wx.Frame):
             self.thread_nums.put(str(i))
 
         if nruns > 1 and damaver:
+
+            damaver_names = [prefix+'_damfilt.pdb', prefix+'_damsel.log', prefix+'_damstart.pdb', prefix+'_damsup.log',
+                        prefix+'_damaver.pdb', 'damfilt.pdb', 'damsel.log', 'damstart.pdb', 'damsup.log', 'damaver.pdb']
+
+            for item in damaver_names:
+
+                if os.path.exists(os.path.join(path, item)) and not yes_to_all:
+                    button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
+                    question = 'Warning: selected directory contains the DAMAVER output file\n"%s". Running DAMAVER will overwrite this file.\nDo you wish to continue?' %(item)
+                    label = 'Overwrite existing files?'
+                    icon = wx.ART_WARNING
+
+                    question_dialog = RAWCustomCtrl.CustomQuestionDialog(self.main_frame, question, button_list, label, icon, style = wx.CAPTION)
+                    result = question_dialog.ShowModal()
+                    question_dialog.Destroy()
+
+                    if result == wx.ID_NO:
+                        return
+                    elif result == wx.ID_YESTOALL:
+                        yes_to_all = True
+
             self.dammif_ids['damaver'] = wx.NewId()
             text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['damaver'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
             self.logbook.AddPage(text_ctrl, 'Damaver')
+
+
+        elif nruns > 1 and damclust:
+
+            damclust_names = [prefix+'_damclust.log']
+
+            for item in damclust_names:
+
+                if os.path.exists(os.path.join(path, item)) and not yes_to_all:
+                    button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
+                    question = 'Warning: selected directory contains the DAMCLUST output file\n"%s". Running DAMCLUST will overwrite this file.\nDo you wish to continue?' %(item)
+                    label = 'Overwrite existing files?'
+                    icon = wx.ART_WARNING
+
+                    question_dialog = RAWCustomCtrl.CustomQuestionDialog(self.main_frame, question, button_list, label, icon, style = wx.CAPTION)
+                    result = question_dialog.ShowModal()
+                    question_dialog.Destroy()
+
+                    if result == wx.ID_NO:
+                        return
+                    elif result == wx.ID_YESTOALL:
+                        yes_to_all = True
+
+            self.dammif_ids['damclust'] = wx.NewId()
+            text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['damclust'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
+            self.logbook.AddPage(text_ctrl, 'Damclust')
+
 
         self.status.SetValue('Starting processing\n')
 
@@ -3487,7 +3524,7 @@ class DammifFrame(wx.Frame):
         self.rs = Queue.Queue()
 
         for key in self.dammif_ids:
-            if key != 'damaver':
+            if key != 'damaver' and key != 'damclust':
                 t = threading.Thread(target = self.runDammif, args = (outname, prefix, path))
                 t.daemon = True
                 t.start()
@@ -3738,7 +3775,6 @@ class DammifFrame(wx.Frame):
                     pass
 
 
-
             new_files = [(os.path.join(path, 'damfilt.pdb'), os.path.join(path, prefix+'_damfilt.pdb')), 
                         (os.path.join(path, 'damsel.log'), os.path.join(path, prefix+'_damsel.log')),
                         (os.path.join(path, 'damstart.pdb'), os.path.join(path, prefix+'_damstart.pdb')), 
@@ -3750,6 +3786,103 @@ class DammifFrame(wx.Frame):
 
 
             wx.CallAfter(self.status.AppendText, 'Finished DAMAVER\n')
+
+            self.finishedProcessing()
+
+
+    def runDamclust(self, prefix, path):
+
+        read_semaphore = threading.BoundedSemaphore(1)
+        #Solution for non-blocking reads adapted from stack overflow
+        #http://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
+        def enqueue_output(out, queue):
+            with read_semaphore:
+                line = 'test'
+                line2=''
+                while line != '':
+                    line = out.read(1)
+                    line2+=line
+                    if line == '\n':
+                        queue.put_nowait([line2])
+                        line2=''
+                    time.sleep(0.00001)
+
+
+        with self.my_semaphore:
+            #Check to see if things have been aborted
+            if self.abort_event.isSet():
+                my_num = self.thread_nums.get()
+                damId = self.dammif_ids[my_num]
+                damWindow = wx.FindWindowById(damId)
+                wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
+                return
+
+            damId = self.dammif_ids['damclust']
+            damWindow = wx.FindWindowById(damId)
+
+            #Remove old files, so they don't mess up the program
+            old_files = [os.path.join(path, prefix+'_damclust.log')]
+
+            for item in old_files:
+                if os.path.exists(item):
+                    os.remove(item)
+
+            wx.CallAfter(self.status.AppendText, 'Starting DAMCLUST\n')
+
+
+            nruns_window = wx.FindWindowById(self.ids['runs'])
+            nruns = int(nruns_window.GetValue())
+
+            dam_filelist = [os.path.join(path, prefix+'_%s-1.pdb' %(str(i).zfill(2))) for i in range(1, nruns+1)]
+
+
+            cwd = os.getcwd()
+            os.chdir(path)
+
+            damclust_proc = SASCalc.runDamclust(dam_filelist)
+
+            os.chdir(cwd)
+
+
+            damclust_q = Queue.Queue()
+            readout_t = threading.Thread(target=enqueue_output, args=(damclust_proc.stdout, damclust_q))
+            readout_t.daemon = True
+            readout_t.start()
+
+            
+            #Send the damclust output to the screen.
+            while damclust_proc.poll() == None:
+                if self.abort_event.isSet():
+                    damclust_proc.terminate()
+                    wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
+                    return
+
+                try:
+                    new_text = damclust_q.get_nowait()
+                    new_text = new_text[0]
+
+                    wx.CallAfter(damWindow.AppendText, new_text)
+                except Queue.Empty:
+                    pass
+                time.sleep(0.001)
+
+            with read_semaphore: #see if there's any last data that we missed
+                try:
+                    new_text = damclust_q.get_nowait()
+                    print new_text
+                    new_text = new_text[0]
+
+                    wx.CallAfter(damWindow.AppendText, new_text)
+                except Queue.Empty:
+                    pass
+
+
+            new_files = [(os.path.join(path, 'damclust.log'), os.path.join(path, prefix+'_damclust.log'))]
+
+            for item in new_files:
+                os.rename(item[0], item[1])
+
+            wx.CallAfter(self.status.AppendText, 'Finished DAMCLUST\n')
 
             self.finishedProcessing()
 
@@ -3781,6 +3914,19 @@ class DammifFrame(wx.Frame):
                 t.start()
                 self.threads.append(t)
 
+            elif 'damclust' in self.dammif_ids:
+                path_window = wx.FindWindowById(self.ids['save'])
+                path = path_window.GetValue()
+
+                prefix_window = wx.FindWindowById(self.ids['prefix'])
+                prefix = prefix_window.GetValue()
+
+
+                t = threading.Thread(target = self.runDamclust, args = (prefix, path))
+                t.daemon = True
+                t.start()
+                self.threads.append(t)
+
             else:
                 self.finishedProcessing()
 
@@ -3797,6 +3943,15 @@ class DammifFrame(wx.Frame):
 
     def _onAdvancedButton(self, evt):
         self.main_frame.showOptionsDialog(focusHead='DAMMIF')
+
+    def onCheckBox(self,evt):
+        if evt.GetId() == self.ids['damaver'] and evt.IsChecked():
+            damclust = wx.FindWindowById(self.ids['damclust'])
+            damclust.SetValue(False)
+
+        elif evt.GetId() == self.ids['damclust'] and evt.IsChecked():
+            damaver = wx.FindWindowById(self.ids['damaver'])
+            damaver.SetValue(False)
 
 
     def updateDAMMIFSettings(self):
@@ -3837,6 +3992,9 @@ class DammifFrame(wx.Frame):
 
         damaver = wx.FindWindowById(self.ids['damaver'])
         damaver.SetValue(self.raw_settings.get('dammifDamaver'))
+
+        damclust = wx.FindWindowById(self.ids['damclust'])
+        damclust.SetValue(self.raw_settings.get('dammifDamclust'))
 
         prefix = wx.FindWindowById(self.ids['prefix'])
         prefix.SetValue(os.path.splitext(self.filename)[0])
