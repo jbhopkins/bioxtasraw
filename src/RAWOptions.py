@@ -2007,9 +2007,32 @@ class ReductionOptionsPanel(wx.Panel):
         wx.Panel.__init__(self, parent, id, *args, **kwargs)
         
         self.raw_settings = raw_settings
+
+        self.update_keys = ['DoSolidAngleCorrection']# 'PromptConfigLoad']
         
-        panelsizer = wx.BoxSizer(wx.VERTICAL)
-        self.SetSizer(panelsizer)
+        self.chkboxdata = [('Correct for the change in the solid angle of the pixels', raw_settings.getId('DoSolidAngleCorrection'))]
+
+        options_sizer = self.createReductionOptionsData()
+        
+        final_sizer = wx.BoxSizer(wx.VERTICAL)
+        final_sizer.Add(options_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.SetSizer(final_sizer) 
+
+
+    def createReductionOptionsData(self):
+        
+        box = wx.StaticBox(self, -1, 'Reduction Options')
+        staticBoxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        
+        treatmentSizer = wx.BoxSizer(wx.VERTICAL)
+        for each, id in self.chkboxdata:
+            chkBox = wx.CheckBox(self, id, each)
+            treatmentSizer.Add(chkBox, 0, wx.TOP, 5)
+        
+        staticBoxSizer.Add(treatmentSizer, 0, wx.BOTTOM | wx.LEFT, 5)       
+
+        return staticBoxSizer
 
     
 class MaskingOptionsPanel(wx.Panel):

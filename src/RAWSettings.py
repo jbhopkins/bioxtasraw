@@ -50,8 +50,9 @@ class RawGuiSettings:
              
                             'UseHeaderForMask': [False, wx.NewId(), 'bool'],
                             'DetectorFlipped90':[False, wx.NewId(), 'bool'],
-                            # 'UseOnlineFilter' : [False, wx.NewId(), 'bool'],
-                            # 'OnlineFilterExt' : ['',    wx.NewId(), 'text'],
+
+                            #CORRECTIONS
+                            'DoSolidAngleCorrection' : [True, wx.NewId(), 'bool'],
              
              
                             #CENTER / BINNING
@@ -62,8 +63,6 @@ class RawGuiSettings:
                             'QrangeHigh' : [9999,  wx.NewId(), 'int'],
                             'StartPoint' : [0,     wx.NewId(), 'int'],
                             'EndPoint'   : [0,     wx.NewId(), 'int'],
-                            # 'PixelCalX'  : [200,   wx.NewId(), 'int'],
-                            # 'PixelCalY'  : [200,   wx.NewId(), 'int'],
                             'ImageDim'   : [[1024,1024]],
              
                             #MASKING
@@ -72,9 +71,6 @@ class RawGuiSettings:
 
                             'DataSECM'                : [None, wx.NewId(), 'text'],
                             
-                            #'TransparentBSMaskFilename': [None, wx.NewId(), 'maskFilename'],
-                            #'BeamStopMaskFilename'     : [None, wx.NewId(), 'maskFilename'],
-                            #'ReadOutNoiseMaskFilename' : [None, wx.NewId(), 'maskFilename'],
                             'NormAbsWaterFile'        : [None, wx.NewId(), 'text'],
                             'NormAbsWaterEmptyFile'   : [None, wx.NewId(), 'text'],
 							'NormFlatfieldFile'		  : [None, wx.NewId(), 'text'],	
@@ -102,8 +98,6 @@ class RawGuiSettings:
                             'ReferenceDistMm'     : [0.0, wx.NewId(), 'float'],
                             'DetectorPixelSize'   : [70.5, wx.NewId(), 'float'],
                             'SmpDetectOffsetDist' : [0.0, wx.NewId(), 'float'],
-                            #'WaterAvgMinPoint'    : [30,  wx.NewId(), 'int'],
-                            #'WaterAvgMaxPoint'    : [500, wx.NewId(), 'int'],
 
 
 							#SANS Parameters
@@ -210,14 +204,6 @@ class RawGuiSettings:
                             'MWAbsRhoSolv'          : [3.34*10**23, wx.NewId(), 'float'], #e-/cm^-3, # electrons per volume of aqueous solvent
                             'MWAbsNuBar'            : [0.7425, wx.NewId(), 'float'], #cm^3/g, # partial specific volume of the protein
                             'MWAbsR0'               : [2.8179*10**-13, wx.NewId(), 'float'], #cm, scattering lenght of an electron
-
-                            #List of available processing commands:
-                            'PreProcessingList'    : [None],
-                            'PostProcessingList'   : [None],
-                            
-                            #List containing processing names to be executed:
-                            'PreProcessing'        : [None],
-                            'PostProcessing'       : [None],
                             
                             'CurrentCfg'         : [None],
                             'CompatibleFormats'  : [['.rad', '.tiff', '.tif', '.img', '.csv', '.dat', '.txt', '.sfrm', '.dm3', '.edf',
@@ -225,12 +211,6 @@ class RawGuiSettings:
                                                       '.No', '.imx_0', '.dkx_0', '.dkx_1', '.png', '.mpa', '.ift', '.sub', '.fit', '.fir',
                                                       '.out', '.mar1200', '.mar2400', '.mar2300', '.mar3600', '.int', '.ccdraw'], None],
                             
-                            
-                             
-                            'CurveOffsetVal'       : [0.0,   wx.NewId(), 'float'],
-                            'OffsetCurve'          : [False, wx.NewId(), 'bool'],
-                            'CurveScaleVal'        : [1.0,   wx.NewId(), 'float'],
-                            'ScaleCurve'           : [False, wx.NewId(), 'bool'],
                             
                             #SEC Settiongs:
                             'secCalcThreshold'      : [1.02, wx.NewId(), 'float'],
