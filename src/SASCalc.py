@@ -234,58 +234,6 @@ def autoRg(sasm):
     return rg, rger, i0, i0er, idx_min, idx_max
 
 
-def runAutoRg(sasm, start=-1, end=-1, initialrg=-1):
-
-    #This function runs the atsas autorg function. It is currently not used in the program, but could be useful
-    #if the program is ever tied more closely to that software package.
-
-    #save the file in the current working directory
-    q = sasm.q
-    i = sasm.i
-    err = sasm.err
-    tname='temp.dat'
-    f=open(tname,'w')
-    for a in range(len(q)):
-        f.write(str(q[a]) + ' ' + str(i[a]) + ' ' + str(err[a])+'\n')
-    f.close()
-
-    done=False
-
-    # print tname
-
-    while not done:
-        done=os.path.isfile(tname)
-        time.sleep(0.01)
-
-    process=subprocess.Popen('autorg ' + tname, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    process.wait()
-    output=process.stdout.read().split('\n')
-    # print output
-    # print output[0]
-
-    process=subprocess.Popen('rm -f '+tname, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    process.wait()
-
-    if output[0] != '' and not output[0].startswith('No Rg'):
-        rgt=output[0]
-        I0t=output[1]
-
-        rg=float(rgt[rgt.find('=')+1:rgt.find('/')-1].strip())
-        I0=float(I0t[I0t.find('=')+1:I0t.find('/')-1].strip())
-
-        rger=float(rgt[rgt.find('/')+2:rgt.find('(')].strip())
-        I0er=float(I0t[I0t.find('/')+2:].strip())
-
-    else:
-        rg=-1
-        I0=-1
-        rger=-1
-        I0er=-1
-
-
-    return rg, rger, I0, I0er
-
-
 def autoMW(sasm, rg, i0, protein = True):
     #using the rambo tainer 2013 method for molecular mass.
     #Need to properly calculater error!

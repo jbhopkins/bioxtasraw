@@ -2081,6 +2081,8 @@ class GNOMFrame(wx.Frame):
         
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
+        self.main_frame = parent
+
         splitter1 = wx.SplitterWindow(self, -1)                
         
         self.plotPanel = GNOMPlotPanel(splitter1, -1, 'GNOMPlotPanel')
@@ -2116,6 +2118,12 @@ class GNOMFrame(wx.Frame):
             save_sasm.setParameter('filename', savename)
 
             save_sasm.setQrange(sasm.getQrange())
+
+            if self.main_frame.OnlineControl.isRunning() and path == self.main_frame.OnlineControl.getTargetDir():
+                self.main_frame.controlTimer(False)
+                restart_timer = True
+            else:
+                restart_timer = False
 
             SASFileIO.saveMeasurement(save_sasm, path, self._raw_settings, filetype = '.dat')
             
@@ -2161,6 +2169,9 @@ class GNOMFrame(wx.Frame):
                 self.cleanupGNOM(path, outname = outname)
 
             self.cleanupGNOM(path, savename = savename)
+
+            if restart_timer:
+                wx.CallAfter(self.main_frame.controlTimer, True)
             
             
             iftm = controlPanel.initDatgnomValues(sasm, init_iftm)
@@ -2599,7 +2610,11 @@ class GNOMControlPanel(wx.Panel):
         iftm = self.out_list[dmax]
         iftm.setParameter('filename', os.path.splitext(self.sasm.getParameter('filename'))[0]+'.out')
 
-        RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [iftm, 'black', None, True]])
+        if self.raw_settings.get('AutoSaveOnGnom'):
+             RAWGlobals.mainworker_cmd_queue.put(['save_iftm', [iftm, self.raw_settings.get('GnomFilePath')]])
+
+        RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [iftm, 'black', None, not self.raw_settings.get('AutoSaveOnGnom')]])
+
         
         diag = wx.FindWindowByName('GNOMFrame')
         diag.OnClose()
@@ -2608,35 +2623,6 @@ class GNOMControlPanel(wx.Panel):
         
         diag = wx.FindWindowByName('GNOMFrame')
         diag.OnClose()
-
-    def onSaveOutButton(self, evt):
-
-        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'])
-        dmax = dmaxWindow.GetValue()
-
-        filename = self.sasm.getParameter('filename')
-        
-        iftm = self.out_list[str(dmax)]
-
-        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
-        path = dirctrl_panel.getDirLabel()
-
-        fname = os.path.splitext(os.path.basename(filename))[0]+'.out'
-        msg = "Please select save directory and enter save file name"
-        dialog = wx.FileDialog(self, message = msg, style = wx.FD_SAVE, defaultDir = path, defaultFile = fname) 
-
-
-        if dialog.ShowModal() == wx.ID_OK:               
-            path = dialog.GetPath()
-        else:
-            return
-
-        path=os.path.splitext(path)[0]+'.out'
-        filename = os.path.basename(path)
-
-        iftm.setParameter('filename', filename)
-
-        SASFileIO.writeOutFile(iftm, path)
 
     def onDatgnomButton(self, evt):
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
@@ -2655,6 +2641,14 @@ class GNOMControlPanel(wx.Panel):
 
         save_sasm.setQrange(self.sasm.getQrange())
 
+        top = wx.FindWindowByName('GNOMFrame')
+
+        if top.main_frame.OnlineControl.isRunning() and path == top.main_frame.OnlineControl.getTargetDir():
+            top.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
+
         SASFileIO.saveMeasurement(save_sasm, path, self.raw_settings, filetype = '.dat')
         
         os.chdir(path)
@@ -2671,8 +2665,10 @@ class GNOMControlPanel(wx.Panel):
 
         os.chdir(cwd)
 
-        top = wx.FindWindowByName('GNOMFrame')
         top.cleanupGNOM(path, savename = savename)
+
+        if restart_timer:
+            wx.CallAfter(top.main_frame.controlTimer, True)
 
         dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'])
 
@@ -2993,6 +2989,16 @@ class GNOMControlPanel(wx.Panel):
         save_sasm.setParameter('filename', savename)
         save_sasm.setQrange((start, end))
 
+
+        top = wx.FindWindowByName('GNOMFrame')
+
+        if top.main_frame.OnlineControl.isRunning() and path == top.main_frame.OnlineControl.getTargetDir():
+            top.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
+
+
         SASFileIO.saveMeasurement(save_sasm, path, self.raw_settings, filetype = '.dat')
         
 
@@ -3009,8 +3015,10 @@ class GNOMControlPanel(wx.Panel):
 
         os.chdir(cwd)
 
-        top = wx.FindWindowByName('GNOMFrame')
         top.cleanupGNOM(path, savename, outname)
+
+        if restart_timer:
+            wx.CallAfter(top.main_frame.controlTimer, True)
         
         self.out_list[str(int(iftm.getParameter('dmax')))] = iftm
 
@@ -4600,7 +4608,10 @@ class BIFTControlPanel(wx.Panel):
             self.BIFT_timer.Stop()
             RAWGlobals.cancel_bift = True
 
-        RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [self.iftm, 'blue', None, True]])
+        if self.raw_settings.get('AutoSaveOnBift'):
+             RAWGlobals.mainworker_cmd_queue.put(['save_iftm', [self.iftm, self.raw_settings.get('BiftFilePath')]])
+
+        RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [self.iftm, 'blue', None, not self.raw_settings.get('AutoSaveOnBift')]])
         
         diag = wx.FindWindowByName('BIFTFrame')
         diag.OnClose()
@@ -4622,42 +4633,6 @@ class BIFTControlPanel(wx.Panel):
 
     def onAbortButton(self, evt):
         RAWGlobals.cancel_bift = True
-
-    def onSaveOutButton(self, evt):
-        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
-        save_path = dirctrl_panel.getDirLabel()
-
-        overwrite_all = False
-        no_to_all = False
-        
-        sasm = self.iftm
-        
-        filename = self.sasm.getParameter('filename')
-
-        sasm.setParameter('filename', filename)
-        
-        check_filename, ext = os.path.splitext(filename)
-        
-        newext = '.ift'
-  
-        check_filename = check_filename + newext
-        
-        msg = "Please select save directory and enter save file name"
-        dialog = wx.FileDialog(self, message = msg, style = wx.FD_SAVE, defaultDir = save_path, defaultFile = check_filename) 
-        
-        if dialog.ShowModal() == wx.ID_OK:               
-            path = dialog.GetPath()
-        else:
-            return
-
-        path=os.path.splitext(path)[0]+'.ift'
-        filename = os.path.basename(path)
-
-        save_path = os.path.dirname(path)
-
-        sasm.setParameter('filename', filename)
-
-        SASFileIO.saveMeasurement(sasm, save_path, self.raw_settings, filetype = newext)
 
 
     def updateBIFTInfo(self):
@@ -5018,6 +4993,14 @@ class AmbimeterFrame(wx.Frame):
         while os.path.isfile(outname):
             outname = 't'+outname
 
+
+        if self.main_frame.OnlineControl.isRunning() and self.ambi_settings['path'] == self.main_frame.OnlineControl.getTargetDir():
+            self.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
+
+
         SASFileIO.writeOutFile(self.iftm, os.path.join(self.ambi_settings['path'], outname))
 
         try:
@@ -5033,6 +5016,10 @@ class AmbimeterFrame(wx.Frame):
 
 
         os.remove(outname)
+
+        if restart_timer:
+            wx.CallAfter(self.main_frame.controlTimer, True)
+
 
         os.chdir(cwd)
         

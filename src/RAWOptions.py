@@ -2170,17 +2170,21 @@ class SaveDirectoriesPanel(wx.Panel):
         
         self.raw_settings = raw_settings
       
-        self.update_keys = ['ProcessedFilePath' , 'AveragedFilePath' , 'SubtractedFilePath',
-                            'AutoSaveOnImageFiles', 'AutoSaveOnAvgFiles', 'AutoSaveOnSub']
+        self.update_keys = ['ProcessedFilePath' , 'AveragedFilePath' , 'SubtractedFilePath', 'BiftFilePath', 'GnomFilePath',
+                            'AutoSaveOnImageFiles', 'AutoSaveOnAvgFiles', 'AutoSaveOnSub', 'AutoSaveOnBift', 'AutoSaveOnGnom']
 
                                                                                       #Set button id , clr button id
         self.directory_data = (('Processed files:', raw_settings.getId('ProcessedFilePath'),  wx.NewId(), wx.NewId()),
                               ('Averaged files:',  raw_settings.getId('AveragedFilePath'),   wx.NewId(), wx.NewId()),
-                              ('Subtracted files:',raw_settings.getId('SubtractedFilePath'), wx.NewId(), wx.NewId()))
+                              ('Subtracted files:',raw_settings.getId('SubtractedFilePath'), wx.NewId(), wx.NewId()),
+                              ('BIFT files:', raw_settings.getId('BiftFilePath'), wx.NewId(), wx.NewId()),
+                              ('GNOM files:', raw_settings.getId('GnomFilePath'), wx.NewId(), wx.NewId()))
         
         self.auto_save_data = (('Save Processed Image Files Automatically', raw_settings.getId('AutoSaveOnImageFiles')),
                               ('Save Averaged Data Files Automatically', raw_settings.getId('AutoSaveOnAvgFiles')),
-                              ('Save Subtracted Data Files Automatically', raw_settings.getId('AutoSaveOnSub')))
+                              ('Save Subtracted Data Files Automatically', raw_settings.getId('AutoSaveOnSub')),
+                              ('Save BIFT Data Files Automatically', raw_settings.getId('AutoSaveOnBift')),
+                              ('Save GNOM Data Files Automatically', raw_settings.getId('AutoSaveOnGnom')))
         
         dir_sizer = self.createDirectoryOptions()
         
@@ -2211,7 +2215,7 @@ class SaveDirectoriesPanel(wx.Panel):
         box = wx.StaticBox(self, -1, 'Save Directories')
         chkbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         
-        h_sizer = wx.FlexGridSizer(cols = 4, rows = 4, vgap = 3, hgap = 3)
+        h_sizer = wx.FlexGridSizer(cols = 4, rows = len(self.directory_data), vgap = 3, hgap = 3)
         
         for labtxt, labl_id, set_button_id, clr_button_id in self.directory_data:
             
@@ -2282,6 +2286,12 @@ class SaveDirectoriesPanel(wx.Panel):
 
             elif my_id == self.raw_settings.getId('AutoSaveOnSub'):
                 directory = wx.FindWindowById(self.raw_settings.getId('SubtractedFilePath')).GetValue()
+
+            elif my_id == self.raw_settings.getId('AutoSaveOnBift'):
+                directory = wx.FindWindowById(self.raw_settings.getId('BiftFilePath')).GetValue()
+
+            elif my_id == self.raw_settings.getId('AutoSaveOnGnom'):
+                directory = wx.FindWindowById(self.raw_settings.getId('GnomFilePath')).GetValue()
 
             if not os.path.exists(directory):
                 checkbox.SetValue(False)
@@ -3452,7 +3462,7 @@ all_options = [ [ (0,0,0), wx.NewId(), 'Configuration Settings', ConfigRootSetti
                 [ (3,0,0), wx.NewId(), 'Molecular Weight', MolecularWeightPanel],
                 [ (4,0,0), wx.NewId(), 'Artifact Removal', ArtifactOptionsPanel],
                 [ (5,0,0), wx.NewId(), 'IFT', IftOptionsPanel],
-                [ (6,0,0), wx.NewId(), "Save Directories", SaveDirectoriesPanel],
+                [ (6,0,0), wx.NewId(), "Autosave", SaveDirectoriesPanel],
                 [ (7,0,0), wx.NewId(), 'Online Mode', OnlineModePanel],
                 [ (8,0,0), wx.NewId(), 'SEC-SAXS', SecPanel],
                 # [ (8,0,0), wx.NewId(), "Automation", AutomationOptionsPanel],

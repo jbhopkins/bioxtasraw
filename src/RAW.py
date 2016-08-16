@@ -272,10 +272,26 @@ class MainFrame(wx.Frame):
 
 
         find_atsas = self.raw_settings.get('autoFindATSAS')
+
         if find_atsas:
             atsas_dir = RAWOptions.findATSASDirectory()
 
             self.raw_settings.set('ATSASDir', atsas_dir)
+
+        start_online_mode = self.raw_settings.get('OnlineModeOnStartup')
+
+        online_path = self.raw_settings.get('OnlineStartupDir')
+
+        if start_online_mode and os.path.isdir(online_path):
+            if online_path != None:
+                self.OnlineControl.seek_dir = online_path
+                self.OnlineControl.goOnline()
+
+                self.setStatus('Mode: ONLINE', 2)
+
+            menubar = self.GetMenuBar()
+            item = menubar.FindItemById(self.MenuIDs['goOnline'])
+            item.Check(True)
 
     
     def getRawSettings(self):
@@ -1362,10 +1378,9 @@ class OnlineController:
         self.seek_dir = []
         self.bg_filename = None
 
-      
         if self._raw_settings.get('OnlineModeOnStartup') and os.path.isdir(self._raw_settings.get('OnlineStartupDir')):
             path = self._raw_settings.get('OnlineStarupDir')
-            #print 'Going online using path : ', path
+
             if path != None:
                 self.seek_dir = path
                 self.goOnline()
@@ -1590,6 +1605,9 @@ class OnlineController:
     def updateSkipList(self, file_list):
         dir_list_dict = {}
 
+        print 'in updateskiplist'
+        print file_list
+
         for each_file in file_list:
             dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)), os.path.getsize(os.path.join(self.seek_dir, each_file)))
             
@@ -1683,7 +1701,8 @@ class MainWorkerThread(threading.Thread):
                                     'save_sec_data'         : self._saveSECData,
                                     'save_sec_item'         : self._saveSECItem,
                                     'save_sec_profiles'     : self._saveSECProfiles,
-                                    'calculate_params_sec'  : self._calculateSECParams}
+                                    'calculate_params_sec'  : self._calculateSECParams,
+                                    'save_iftm'             : self._saveIFTM}
          
         
     def run(self):
@@ -3340,6 +3359,13 @@ class MainWorkerThread(threading.Thread):
     
     def _saveSASM(self, sasm, filetype = 'dat', save_path = ''):
         
+        if self.main_frame.OnlineControl.isRunning() and save_path == self.main_frame.OnlineControl.getTargetDir():
+            self.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
+
+
         newext = filetype
         
         filename = sasm.getParameter('filename')
@@ -3351,13 +3377,59 @@ class MainWorkerThread(threading.Thread):
         filepath = save_path
         
         SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+
+        if restart_timer:
+            self.main_frame.OnlineControl.updateSkipList([check_filename])
+            wx.CallAfter(self.main_frame.controlTimer, True)
+
+
+    def _saveIFTM(self, data):
+
+        sasm = data[0]
+        save_path = data[1]
+
+        if self.main_frame.OnlineControl.isRunning() and save_path == self.main_frame.OnlineControl.getTargetDir():
+            self.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
+        
+
+        if sasm.getParameter('algorithm') == 'GNOM':
+            newext = '.out'
+        else:
+            newext = '.ift'
+            
+        filename = sasm.getParameter('filename')
+        
+        check_filename, ext = os.path.splitext(filename)
+
+        check_filename = check_filename + newext
+            
+        filepath = os.path.join(save_path, check_filename)
+        file_exists = os.path.isfile(filepath)
+        filepath = save_path
+            
+        
+        SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+                    
+
+        if restart_timer:
+            self.main_frame.OnlineControl.updateSkipList([check_filename])
+            wx.CallAfter(self.main_frame.controlTimer, True)
         
         
     def _saveAnalysisInfo(self, data):
-        
+        #Saves selected analysis info
         all_items = data[0]
         include_data = data[1]
         save_path = data[2]
+
+        if self.main_frame.OnlineControl.isRunning() and os.path.split(save_path)[0] == self.main_frame.OnlineControl.getTargetDir():
+            self.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
         
         selected_sasms = []
         
@@ -3374,18 +3446,38 @@ class MainWorkerThread(threading.Thread):
         
         result = SASFileIO.saveAnalysisCsvFile(selected_sasms, include_data, save_path)
 
+        if restart_timer:
+            self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path)[1]])
+            wx.CallAfter(self.main_frame.controlTimer, True)
+
     def _saveAllAnalysisInfo(self, data):
+
         save_path, selected_sasms = data[0], data[1]
 
+        if self.main_frame.OnlineControl.isRunning() and os.path.split(save_path)[0] == self.main_frame.OnlineControl.getTargetDir():
+            self.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
+
         SASFileIO.saveAllAnalysisData(save_path, selected_sasms)
+
+        if restart_timer:
+            self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path)[1]])
+            wx.CallAfter(self.main_frame.controlTimer, True)
         
         
     def _saveWorkspace(self, data):
-        
         sasm_items = data[0]
         ift_items = data[1]
         secm_items = data[2]
         save_path = data[3]
+
+        if self.main_frame.OnlineControl.isRunning() and os.path.split(save_path)[0] == self.main_frame.OnlineControl.getTargetDir():
+            self.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
           
         save_dict = {}
         
@@ -3470,6 +3562,10 @@ class MainWorkerThread(threading.Thread):
         SASFileIO.saveWorkspace(save_dict, save_path)
         
         workspace_saved = True
+
+        if restart_timer:
+            self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path)[1]])
+            wx.CallAfter(self.main_frame.controlTimer, True)
         
     def _loadWorkspace(self, data):
         
@@ -3704,15 +3800,28 @@ class MainWorkerThread(threading.Thread):
     def _saveSECData(self,data):
         save_path, selected_items = data[0], data[1]
 
+        if self.main_frame.OnlineControl.isRunning() and os.path.split(save_path[0])[0] == self.main_frame.OnlineControl.getTargetDir():
+            self.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
+
         for b in range(len(selected_items)):
 
             selected_secm = selected_items[b].secm
             SASFileIO.saveSECData(save_path[b], selected_secm)
 
+            if restart_timer:
+                self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path[b])[1]])
+
+
+        if restart_timer:
+            wx.CallAfter(self.main_frame.controlTimer, True)
+
     def _saveSECItem(self,data):
         save_path, selected_items = data[0], data[1]
 
-        if self.main_frame.OnlineControl.isRunning() and save_path == self.main_frame.OnlineControl.getTargetDir():
+        if self.main_frame.OnlineControl.isRunning() and os.path.split(save_path[0])[0] == self.main_frame.OnlineControl.getTargetDir():
             self.main_frame.controlTimer(False)
             restart_timer = True
         else:
@@ -3746,7 +3855,7 @@ class MainWorkerThread(threading.Thread):
             selected_items[b].unmarkAsModified()
 
             if restart_timer:
-                self.main_frame.OnlineControl.updateSkipList([check_filename])
+                self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path[b])[1]])
 
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
@@ -3757,6 +3866,13 @@ class MainWorkerThread(threading.Thread):
         save_path = data[0]
         item_list = data[1]
         # print len(item_list)
+
+        if self.main_frame.OnlineControl.isRunning() and save_path == self.main_frame.OnlineControl.getTargetDir():
+            self.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
+
         
         overwrite_all = False
         no_to_all = False
@@ -3768,10 +3884,7 @@ class MainWorkerThread(threading.Thread):
             
             check_filename, ext = os.path.splitext(filename)
             
-            if iftmode:
-                newext = '.ift'
-            else:
-                newext = '.dat'
+            newext = '.dat'
                 
             check_filename = check_filename + newext
             
@@ -3811,6 +3924,12 @@ class MainWorkerThread(threading.Thread):
                 sasm.setParameter('filename', filename + newext)
                 # wx.CallAfter(sasm.item_panel.updateFilenameLabel)
                 # wx.CallAfter(item.unmarkAsModified)
+
+            if restart_timer:
+                self.main_frame.OnlineControl.updateSkipList([check_filename])
+
+        if restart_timer:
+            wx.CallAfter(self.main_frame.controlTimer, True)
             
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
@@ -12119,7 +12238,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         idx = idx + 1
         for each in keys: 
             self.variable_listctrl.InsertStringItem(idx, '\t'+each)
-            self.variable_data[idx] = ['guinier', each]         
+            self.variable_data[idx] = ['guinier', each, each]         
             idx = idx + 1
 
     def _addMWVariables(self):
@@ -12158,7 +12277,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         idx = idx + 1
         for each in keys: 
             self.variable_listctrl.InsertStringItem(idx, '\t'+each)
-            self.variable_data[idx] = ['GNOM', each]         
+            self.variable_data[idx] = ['GNOM', each, each]         
             idx = idx + 1
 
     def _addBIFTVariables(self):
@@ -12176,7 +12295,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         idx = idx + 1
         for each in keys: 
             self.variable_listctrl.InsertStringItem(idx, '\t'+each)
-            self.variable_data[idx] = ['BIFT', each]         
+            self.variable_data[idx] = ['BIFT', each, each]         
             idx = idx + 1
     
     def _addFileHdrVariables(self):
@@ -12217,7 +12336,6 @@ class SaveAnalysisInfoPanel(wx.Panel):
         return self.included_data
     
     def _updateIncludeList(self, include_data):
-        
         if include_data == None:
             return
         

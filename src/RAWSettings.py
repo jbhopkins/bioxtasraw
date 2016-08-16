@@ -149,9 +149,13 @@ class RawGuiSettings:
                             'ProcessedFilePath'    : [None,  wx.NewId(), 'text'],
                             'AveragedFilePath'     : [None,  wx.NewId(), 'text'],
                             'SubtractedFilePath'   : [None,  wx.NewId(), 'text'],
+                            'BiftFilePath'         : [None,  wx.NewId(), 'text'],
+                            'GnomFilePath'         : [None,  wx.NewId(), 'text'],
                             'AutoSaveOnImageFiles' : [False, wx.NewId(), 'bool'],
                             'AutoSaveOnAvgFiles'   : [False, wx.NewId(), 'bool'],
                             'AutoSaveOnSub'        : [False, wx.NewId(), 'bool'],
+                            'AutoSaveOnBift'       : [False, wx.NewId(), 'bool'],
+                            'AutoSaveOnGnom'       : [False, wx.NewId(), 'bool'],
                 
                             #IMAGE FORMATS
                             'ImageFormatList'      : [SASFileIO.all_image_types],
