@@ -803,7 +803,11 @@ class GuinierTestFrame(wx.Frame):
         controlPanel = GuinierControlPanel(splitter1, -1, 'GuinierControlPanel', ExpObj, manip_item)
   
         splitter1.SplitVertically(controlPanel, plotPanel, 290)
-        splitter1.SetMinimumPaneSize(50)
+
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+            splitter1.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
+        else:
+            splitter1.SetMinimumPaneSize(50)
 
         plotPanel.plotExpObj(ExpObj)
         
@@ -2089,7 +2093,11 @@ class GNOMFrame(wx.Frame):
         self.controlPanel = GNOMControlPanel(splitter1, -1, 'GNOMControlPanel', sasm, manip_item)
   
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, 290)
-        splitter1.SetMinimumPaneSize(50)
+        
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+            splitter1.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
+        else:
+            splitter1.SetMinimumPaneSize(50)
 
         self.initGNOM(self.plotPanel, self.controlPanel, sasm)
         
