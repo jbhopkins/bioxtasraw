@@ -15342,22 +15342,21 @@ class SECMLinePropertyDialog(wx.Dialog):
 #--- ** Startup app **
 
 
-class WelcomeDialog(wx.Dialog):
+class WelcomeDialog(wx.Frame):
     def __init__(self, parent, *args, **kwargs):
         
-        wx.Dialog.__init__(self,parent, -1, *args, **kwargs)
+        wx.Frame.__init__(self,parent, -1, style = wx.NO_BORDER, *args, **kwargs)
         
-        self.ok_button = wx.Button(self, -1, 'OK')       
+        self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        
+        self.ok_button = wx.Button(self.panel, -1, 'OK')       
         self.ok_button.Bind(wx.EVT_BUTTON, self._onOKButton)
         self.ok_button.SetDefault()
         
-        # button_sizer = wx.BoxSizer()
-        # button_sizer.Add(self.ok_button,0, wx.RIGHT, 5) 
-        
         raw_bitmap = RAWIcons.raw_icon_embed.GetBitmap()
-        rawimg = wx.StaticBitmap(self, -1, raw_bitmap)
+        rawimg = wx.StaticBitmap(self.panel, -1, raw_bitmap)
         
-        headline = wx.StaticText(self, -1, 'Welcome to RAW 1.1.0!')
+        headline = wx.StaticText(self.panel, -1, 'Welcome to RAW 1.1.0!')
         
         text1 = 'Developers/Contributors:'
         text2 = '\nSoren S. Nielsen'
@@ -15379,28 +15378,26 @@ class WelcomeDialog(wx.Dialog):
         final_sizer.Add(headline, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 15)
         
         for each in all_text:
-            txt = wx.StaticText(self, -1, each)
+            txt = wx.StaticText(self.panel, -1, each)
             final_sizer.Add(txt, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.LEFT | wx.RIGHT, 15)
 
-        #label = wx.StaticText(self, -1, ' ')
-        
-        #final_sizer.Add(label, 0, wx.ALL, 15)
-        # final_sizer.Add(button_sizer, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
         final_sizer.Add(self.ok_button, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
-        final_sizer.AddStretchSpacer(1)
-        
-        self.SetSizer(final_sizer)
+
+        self.panel.SetSizer(final_sizer)
+        self.panel.Layout()
+        self.panel.Fit()
         self.Fit()
+
         self.CenterOnParent()
-        # self.ToggleWindowStyle(wx.STAY_ON_TOP)
+
     
     def _onOKButton(self, event):
         # mainworker_cmd_queue.put(['startup', sys.argv])
         wx.FutureCall(1, wx.FindWindowByName("MainFrame")._onStartup, sys.argv)
-        self.EndModal(wx.ID_OK)
+        self.OnClose()
         
-    def _onCancelButton(self, event):
-        self.EndModal(wx.ID_CANCEL)
+    def OnClose(self):
+        self.Destroy()
         
     def getFilename(self):
         return self._filename
@@ -15489,7 +15486,7 @@ class MySplashScreen(wx.SplashScreen):
         frame = MainFrame('RAW 1.1.0', -1)
         
         dlg = WelcomeDialog(frame, name = "WelcomeDialog")
-        dlg.ShowModal()
+        dlg.Show(True)
 
 
 class RawTaskbarIcon(wx.TaskBarIcon):
