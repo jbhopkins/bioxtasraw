@@ -1448,14 +1448,14 @@ class PlotPanel(wx.Panel):
             
             if float(matplotlib.__version__[:3]) >= 1.2:
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3:
+                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
                         wx.CallAfter(self._showPopupMenu, selected_plot)
                     else:
                         self._showPopupMenu(selected_plot)
                     
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3:
+                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
                         wx.CallAfter(self._showPopupMenu, selected_plot)
                     else:
                         self._showPopupMenu(selected_plot)
@@ -2501,13 +2501,13 @@ class IftPlotPanel(PlotPanel):
             
             if float(matplotlib.__version__[:3]) >= 1.2:
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3:
+                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
                         wx.CallAfter(self._showPopupMenu, selected_plot)
                     else:
                         self._showPopupMenu(selected_plot)
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3:
+                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
                         wx.CallAfter(self._showPopupMenu, selected_plot)
                     else:
                         self._showPopupMenu(selected_plot)
@@ -4074,13 +4074,13 @@ class SECPlotPanel(wx.Panel):
             
             if float(matplotlib.__version__[:3]) >= 1.2:
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3:
+                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
                         wx.CallAfter(self._showPopupMenu, selected_plot)
                     else:
                         self._showPopupMenu(selected_plot)
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3:
+                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
                         wx.CallAfter(self._showPopupMenu, selected_plot)
                     else:
                         self._showPopupMenu(selected_plot)
