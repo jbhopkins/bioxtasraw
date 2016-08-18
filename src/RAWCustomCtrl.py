@@ -731,13 +731,13 @@ class FloatSpinCtrl(wx.Panel):
         self.defaultScaleDivider = 100
         self.ScaleDivider = 100
         
-        self.ScalerButton = wx.SpinButton(self, -1, size = (20,22), style = button_style)
+        self.ScalerButton = wx.SpinButton(self, -1, style = button_style)
         self.ScalerButton.Bind(wx.EVT_SET_FOCUS, self.OnFocusChange)
         self.ScalerButton.Bind(wx.EVT_SPIN_UP, self.OnSpinUpScale)
         self.ScalerButton.Bind(wx.EVT_SPIN_DOWN, self.OnSpinDownScale)
         self.ScalerButton.SetRange(-99999, 99999)   #Needed for proper function of button on Linux
                 
-        self.Scale = wx.TextCtrl(self, -1, initValue, size = (TextLength,22), style = wx.TE_PROCESS_ENTER)
+        self.Scale = wx.TextCtrl(self, -1, initValue, size = (TextLength,-1), style = wx.TE_PROCESS_ENTER)
         self.Scale.Bind(wx.EVT_KILL_FOCUS, self.OnFocusChange)
         self.Scale.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
         
@@ -866,7 +866,7 @@ class IntSpinCtrl(wx.Panel):
         
         wx.Panel.__init__(self, parent, id, **kwargs)
         
-        self.ScalerButton = wx.SpinButton(self, -1, size = (20,22), style = wx.SP_VERTICAL)
+        self.ScalerButton = wx.SpinButton(self, -1, style = wx.SP_VERTICAL)
         self.ScalerButton.Bind(wx.EVT_SET_FOCUS, self.OnScaleChange)
         self.ScalerButton.Bind(wx.EVT_SPIN_UP, self.OnSpinUpScale)
         self.ScalerButton.Bind(wx.EVT_SPIN_DOWN, self.OnSpinDownScale)
@@ -874,7 +874,7 @@ class IntSpinCtrl(wx.Panel):
         self.max = max
         self.min = min
                 
-        self.Scale = wx.TextCtrl(self, -1, str(min), size = (TextLength,22), style = wx.TE_PROCESS_ENTER)
+        self.Scale = wx.TextCtrl(self, -1, str(min), size = (TextLength,-1), style = wx.TE_PROCESS_ENTER)
         self.Scale.Bind(wx.EVT_KILL_FOCUS, self.OnScaleChange)
         self.Scale.Bind(wx.EVT_TEXT_ENTER, self.OnScaleChange)
         

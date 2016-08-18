@@ -2965,7 +2965,7 @@ class ATSASGnomAdvanced(wx.Panel):
         top_sizer.Add(advanced_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
         top_sizer.Add(angular_sizer,0)
         top_sizer.Add(system_sizer, 0)
-        top_sizer.Add(expert_sizer, 0)
+        top_sizer.Add(expert_sizer, 0, wx.TOP, 5)
         top_sizer.Add(form_sizer, 0)
         top_sizer.Add(radius_sizer,0)
         top_sizer.Add(radmin_sizer,0)
@@ -3247,7 +3247,7 @@ class ATSASDammifAdvanced(wx.Panel):
         
         weightChoices = ['l', 'p', 'e', 'n']
 
-        self.custom_options = (("Dummy atom radius (1.0-?, Angstrom):", raw_settings.getId('dammifDummyRadius'), 'float'),
+        self.custom_options_long = (("Dummy atom radius (1.0-?, Angstrom):", raw_settings.getId('dammifDummyRadius'), 'float'),
                                 ("Maximum number of spherical harmonics (1-50):", raw_settings.getId('dammifSH'), 'int'),
                                 ("Proprotion of the curve to fit (0.0-1.0):", raw_settings.getId('dammifPropToFit'), 'float'),
                                 ("Number of knots in the curve to fit (1-?):", raw_settings.getId('dammifKnots'), 'int'),
@@ -3257,7 +3257,9 @@ class ATSASDammifAdvanced(wx.Panel):
                                 ("Maximum iterations within a single temperature step (1-?):", raw_settings.getId('dammifMaxIters'), 'int'),
                                 ("Maximum successes per temperature step before temperature decreased (1-?):", raw_settings.getId('dammifMaxStepSuccess'), 'int'),
                                 ("Minimum successes per temperature step before temperature decreased (1-?):", raw_settings.getId('dammifMinStepSuccess'), 'int'),
-                                ("Temperature schedule factor (0.0-1.0):", raw_settings.getId('dammifTFactor'), 'float'),
+                                )
+
+        self.custom_options_short = (("Temperature schedule factor (0.0-1.0):", raw_settings.getId('dammifTFactor'), 'float'),
                                 ("Rg penalty weight (0.0-...):", raw_settings.getId('dammifRgPen'), 'float'),
                                 ("Center penalty weight (0.0-...):", raw_settings.getId('dammifCenPen'), 'float'),
                                 ("Looseness penalty weight (0.0-...):", raw_settings.getId('dammifLoosePen'), 'float'),
@@ -3276,7 +3278,7 @@ class ATSASDammifAdvanced(wx.Panel):
         customText = wx.StaticText(parent, -1, 'These settings are used when "Custom" is selected as the mode in the DAMMIF panel.\nThis is equivalent to the DAMMIF interactive mode in the command line.\nUnless otherwise noted, a value of -1 means DAMMIF will use the default setting.')
         customSizer.Add(customText, 0, wx.ALL, 5)
 
-        for item in self.custom_options:
+        for item in self.custom_options_long:
             label = item[0]
             myId = item[1]
             itemType = item[2]
@@ -3302,6 +3304,34 @@ class ATSASDammifAdvanced(wx.Panel):
                 sizer.Add(ctrl, 0, wx.ALL, 2)
 
             customSizer.Add(sizer, 0)
+
+        short_sizer = wx.FlexGridSizer(rows = int(len(self.custom_options_short)/2.+.5), cols =4, hgap =2, vgap =2)
+
+        for item in self.custom_options_short:
+            label = item[0]
+            myId = item[1]
+            itemType = item[2]
+
+            if itemType == 'choice':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.Choice(parent, myId, choices = item[3])
+
+                short_sizer.Add(labeltxt, 0)
+                short_sizer.Add(ctrl, 0)
+
+            elif itemType == 'text' or itemType == 'int' or itemType =='float':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1))
+
+                short_sizer.Add(labeltxt, 0)
+                short_sizer.Add(ctrl, 0)
+
+            elif itemType == 'bool':
+                ctrl = wx.CheckBox(parent, myId, label)
+                short_sizer.Add(ctrl, 0, wx.ALL, 2)
+                short_sizer.AddStretchSpacer(1)
+
+        customSizer.Add(short_sizer,0)
         
 
         return customSizer

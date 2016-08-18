@@ -483,11 +483,9 @@ class GuinierControlPanel(wx.Panel):
         old_start = spinstart.GetValue()
         old_end = spinend.GetValue()
 
-        mf = wx.FindWindowByName('MainFrame')
-
         if rg == -1:
             msg = 'AutoRG could not find a suitable interval to calculate Rg. Values are not updated.'
-            wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK, parent = mf)
+            wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK)
             
         else:
             try:
@@ -513,10 +511,7 @@ class GuinierControlPanel(wx.Panel):
 
                 print 'FAILED AutoRG! resetting controls'
                 msg = 'AutoRG did not produce a useable result. Please report this to the developers.'
-                response = wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK, parent = mf)
-
-        gf = wx.FindWindowByName('GuinierFrame')
-        wx.CallAfter(gf.Raise)
+                response = wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK)
         
         
     def setCurrentExpObj(self, ExpObj):
@@ -4417,7 +4412,7 @@ class BIFTControlPanel(wx.Panel):
         
         self.filenameTxtCtrl = wx.TextCtrl(self, -1, '', style = wx.TE_READONLY)
         
-        boxsizer.Add(self.filenameTxtCtrl, 1, wx.EXPAND)
+        boxsizer.Add(self.filenameTxtCtrl, 1, wx.EXPAND | wx.ALL, 3)
         
         return boxsizer
 
@@ -4474,10 +4469,10 @@ class BIFTControlPanel(wx.Panel):
 
         
         top_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(dmaxSizer, 0, wx.BOTTOM, 5)
-        top_sizer.Add(alphaSizer, 0, wx.BOTTOM, 5)
-        top_sizer.Add(sizer,0, wx.BOTTOM, 5)
-        top_sizer.Add(chisqSizer,0, wx.BOTTOM, 5)
+        top_sizer.Add(dmaxSizer, 0, wx.BOTTOM | wx.LEFT, 5)
+        top_sizer.Add(alphaSizer, 0, wx.BOTTOM | wx.LEFT, 5)
+        top_sizer.Add(sizer,0, wx.BOTTOM | wx.LEFT, 5)
+        top_sizer.Add(chisqSizer,0, wx.BOTTOM | wx.LEFT, 5)
 
         return top_sizer
         
@@ -4559,13 +4554,13 @@ class BIFTControlPanel(wx.Panel):
 
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(statusSizer, 0, wx.BOTTOM, 3)
-        top_sizer.Add(evidenceSizer, 0, wx.BOTTOM, 3)
-        top_sizer.Add(chiSizer, 0, wx.BOTTOM, 3)
-        top_sizer.Add(alphaSizer, 0, wx.BOTTOM, 3)
-        top_sizer.Add(dmaxSizer, 0, wx.BOTTOM, 3)
-        top_sizer.Add(spointSizer, 0, wx.BOTTOM, 3)
-        top_sizer.Add(tpointSizer, 0, wx.BOTTOM, 3)
+        top_sizer.Add(statusSizer, 0, wx.ALL, 3)
+        top_sizer.Add(evidenceSizer, 0, wx.ALL, 3)
+        top_sizer.Add(chiSizer, 0, wx.ALL, 3)
+        top_sizer.Add(alphaSizer, 0, wx.ALL, 3)
+        top_sizer.Add(dmaxSizer, 0, wx.ALL, 3)
+        top_sizer.Add(spointSizer, 0, wx.ALL, 3)
+        top_sizer.Add(tpointSizer, 0, wx.ALL, 3)
 
         return top_sizer
 

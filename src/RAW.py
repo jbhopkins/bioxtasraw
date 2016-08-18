@@ -6556,7 +6556,9 @@ class ManipItemPanel(wx.Panel):
                     
         #This is stupid. In wxpython 2.8, calling with the call after means no popup menu when multiple 
         #items are selected. In wxpython 3.0, calling without the callafter creates a segfault on mac.
-        if int(wx.__version__.split('.')[0]) >= 3:   
+        #In wxpython 3.0 on linux (debia), with the callafter causes the menu to only show while you hold
+        #down the button.
+        if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':   
             wx.CallAfter(self._showPopupMenu)
         else:
             self._showPopupMenu()
@@ -6771,7 +6773,7 @@ class ManipItemPanel(wx.Panel):
                 
                 spin_control.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onQrangeChange)
                 
-                q_ctrl = wx.TextCtrl(self, qtxtId, '', size = (55,22), style = wx.PROCESS_ENTER)
+                q_ctrl = wx.TextCtrl(self, qtxtId, '', size = (55,-1), style = wx.PROCESS_ENTER)
                 q_ctrl.Bind(wx.EVT_TEXT_ENTER, self._onEnterInQrangeTextCtrl)
                 
                 spin_sizer = wx.BoxSizer()
@@ -13659,7 +13661,7 @@ class ColourChangeDialog(wx.Dialog):
 
 class LinePropertyDialog(wx.Dialog):
     
-    def __init__(self, parent, sasm, legend_label, size = (478, 414), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
+    def __init__(self, parent, sasm, legend_label, size = (478, 418), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
         if sasm.line == None:
             wx.MessageBox('Unable to change line properties.\nNo plot has been made for this item.', 'No plot')
             return
@@ -14005,7 +14007,7 @@ class LinePropertyDialog(wx.Dialog):
 
 class IFTMLinePropertyDialog(wx.Dialog):
     
-    def __init__(self, parent, iftm, legend_label, size = (868, 590), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
+    def __init__(self, parent, iftm, legend_label, size = (868, 598), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
 
         if iftm.r_line == None:
             wx.MessageBox('Unable to change line properties.\nNo plot has been made for this item.', 'No plot')
@@ -14824,7 +14826,7 @@ class IFTMLinePropertyDialog(wx.Dialog):
 
 class SECMLinePropertyDialog(wx.Dialog):
     
-    def __init__(self, parent, secm, legend_label, size = (433, 541), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
+    def __init__(self, parent, secm, legend_label, size = (433, 549), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
 
         if secm.line == None:
             wx.MessageBox('Unable to change line properties.\nNo plot has been made for this item.', 'No plot')
@@ -15447,7 +15449,7 @@ class MyApp(wx.App):
         wx.App.__init__(self, *args, **kwargs)
         # This catches events when the app is asked to activate by some other
         # process on Mac
-        self.Bind(wx.EVT_ACTIVATE_APP, self.OnActivate) 
+        # self.Bind(wx.EVT_ACTIVATE_APP, self.OnActivate) 
     
     def OnInit(self):    
         MySplash = MySplashScreen()
@@ -15461,38 +15463,38 @@ class MyApp(wx.App):
         
         return True
 
-    def BringWindowToFront(self):
-        try: # it's possible for this event to come when the frame is closed
-            self.GetTopWindow().Raise()
-        except:
-            pass
+    # def BringWindowToFront(self):
+    #     try: # it's possible for this event to come when the frame is closed
+    #         self.GetTopWindow().Raise()
+    #     except:
+    #         pass
     
-    def OnActivate(self, event):
-        # if this is an activate event, rather than something else, like iconize.
-        if event.GetActive():
-            self.BringWindowToFront()
-        event.Skip()
+    # def OnActivate(self, event):
+    #     # if this is an activate event, rather than something else, like iconize.
+    #     if event.GetActive():
+    #         self.BringWindowToFront()
+    #     event.Skip()
 
-    #Mac specific
-    def MacOpenFile(self, filename):
-        """Called for files droped on dock icon, or opened via finders context menu"""
-        if filename != 'RAW.py':
-            print filename
-            print "%s dropped on app"%(filename) #code to load filename goes here.
-        # self.OpenFileMessage(filename)
+    # #Mac specific
+    # def MacOpenFile(self, filename):
+    #     """Called for files droped on dock icon, or opened via finders context menu"""
+    #     if filename != 'RAW.py':
+    #         print filename
+    #         print "%s dropped on app"%(filename) #code to load filename goes here.
+    #     # self.OpenFileMessage(filename)
     
-    #Mac specific
-    def MacReopenApp(self):
-        """Called when the doc icon is clicked, and ???"""
-        self.BringWindowToFront()
+    # #Mac specific
+    # def MacReopenApp(self):
+    #     """Called when the doc icon is clicked, and ???"""
+    #     self.BringWindowToFront()
 
-    #Mac specific
-    def MacNewFile(self):
-        pass
+    # #Mac specific
+    # def MacNewFile(self):
+    #     pass
     
-    #Mac specific
-    def MacPrintFile(self, file_path):
-        pass
+    # #Mac specific
+    # def MacPrintFile(self, file_path):
+    #     pass
     
 class MySplashScreen(wx.SplashScreen):
     """
