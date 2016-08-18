@@ -1254,7 +1254,7 @@ class MainFrame(wx.Frame):
         info.Description = "RAW is a software package primarily for SAXS 2D data reduction and 1D data analysis.\nIt provides an easy GUI for handling multiple files fast, and a\ngood alternative to commercial or protected software packages for finding\nthe Pair Distance Distribution Function\n\nPlease cite:\nBioXTAS RAW, a software program for high-throughput automated small-angle\nX-ray scattering data reduction and preliminary analysis, J. Appl. Cryst. (2009). 42, 959-964"
 
         info.WebSite = ("http://bioxtasraw.sourceforge.net/", "The RAW Project Homepage")
-        info.Developers = [u"Soren S. Nielsen", u"Jesse B. Hopkins", u"Richard E. Gillilan", u"Jesper Nygaard", u"Kurt Andersen"]
+        info.Developers = [u"Soren S. Nielsen", u"Jesse B. Hopkins", u"Richard E. Gillilan", u"Jesper Nygaard"]
         info.License = "This program is free software: you can redistribute it and/or modify it under the terms of the\nGNU General Public License as published by the Free Software Foundation, either version 3\n of the License, or (at your option) any later version.\n\nThis program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;\nwithout even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\nSee the GNU General Public License for more details.\n\nYou should have received a copy of the GNU General Public License along with this program.\nIf not, see http://www.gnu.org/licenses/"
         
         # Show the wx.AboutBox
@@ -2056,7 +2056,16 @@ class MainWorkerThread(threading.Thread):
         
                     if do_auto_save:
                         save_path = self._raw_settings.get('ProcessedFilePath')
-                        self._saveSASM(sasm, '.dat', save_path)
+
+                        try:
+                            self._saveSASM(sasm, '.dat', save_path)
+                        except IOError, e:
+                            self._raw_settings.set('AutoSaveOnImageFiles', False)
+                            self._raw_settings.set('AutoSaveOnAvgFiles', False)
+                            self._raw_settings.set('AutoSaveOnSub', False)
+
+                            wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutoSave has been disabled. If you are using a config file from a different computer\nPlease go into Advanced Options/Save Directories to change the save folders, or save you config file to\navoid this message next time.', 'AutoSave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+        
 
                 if numpy.mod(i,20) == 0:
                     if loaded_sasm:
@@ -3393,14 +3402,6 @@ class MainWorkerThread(threading.Thread):
             restart_timer = True
         else:
             restart_timer = False
-        
-
-        if sasm.getParameter('algorithm') == 'GNOM':
-            newext = '.out'
-        else:
-            newext = '.ift'
-            
-        filename = sasm.getParameter('filename')
         
         check_filename, ext = os.path.splitext(filename)
 
@@ -15359,16 +15360,16 @@ class WelcomeDialog(wx.Frame):
         headline = wx.StaticText(self.panel, -1, 'Welcome to RAW 1.1.0!')
         
         text1 = 'Developers/Contributors:'
-        text2 = '\nSoren S. Nielsen'
+        text2 = '\nSoren Skou'
         text3 = 'Jesse B. Hopkins'
         text4 = 'Richard E. Gillilan'
         text5 = 'Jesper Nygaard'
         text6 = 'Kurt Andersen'
         
-        text7 = '\nHelp this software become better by reporting bugs to: sskn@life.ku.dk'
+        text7 = '\nHelp this software become better by reporting bugs to:\n     soren.skou@saxslab.dk or jbh246@cornell.edu\n'
         
-        text8 = '\nIf you use this software for your SAXS data processing please cite:\n'
-        text9 = '"BioXTAS RAW, a software program for high-throughput automated small-angle\nX-ray scattering data reduction and preliminary analysis", J. Appl. Cryst. (2009). 42, 959-964\n\n'
+        text8 = 'If you use this software for your SAXS data processing please cite:    \n'
+        text9 = '"BioXTAS RAW, a software program for high-throughput\nautomated small-angle X-ray scattering data reduction\nand preliminary analysis", J. Appl. Cryst. (2009). 42, 959-964\n\n'
 
 
         all_text = [text1, text2, text3, text4, text5, text6, text7, text8, text9]
