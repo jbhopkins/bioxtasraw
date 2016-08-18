@@ -3402,6 +3402,13 @@ class MainWorkerThread(threading.Thread):
             restart_timer = True
         else:
             restart_timer = False
+
+        if sasm.getParameter('algorithm') == 'GNOM':
+            newext = '.out'
+        else:
+            newext = '.ift'
+
+        filename = sasm.getParameter('filename')
         
         check_filename, ext = os.path.splitext(filename)
 
@@ -8625,8 +8632,8 @@ class SECPanel(wx.Panel):
         
         self.infoBox = SECControlPanel(self)
         
-        self.panelsizer.Add(self.infoBox, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER | wx.EXPAND, 10)
-        self.panelsizer.Add(toolbarsizer, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.EXPAND, 5)        
+        self.panelsizer.Add(self.infoBox, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER | wx.EXPAND, 5)
+        self.panelsizer.Add(toolbarsizer, 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 5)        
         self.panelsizer.Add(self.underpanel, 1, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT, 3)
         
         self.createButtons(self.panelsizer)
@@ -9986,10 +9993,7 @@ class SECControlPanel(wx.Panel):
         fnum_sizer.AddGrowableCol(4)
         fnum_sizer.AddGrowableCol(5)
 
-        select_button = wx.Button(self, -1, 'Select file in SEC run')
-        select_button.Bind(wx.EVT_BUTTON, self._onSelectButton)
-
-        sizer.Add(select_button, 0, flag = wx.ALIGN_CENTER | wx.ALL, border = 4)
+        
 
         # sizer.Add((1,1),0)
         # sizer.Add(select_button,0, wx.ALIGN_CENTER)
@@ -10010,10 +10014,10 @@ class SECControlPanel(wx.Panel):
 
                 img_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-                img_sizer.Add(labelbox, 0, wx.ALIGN_RIGHT | wx.ALL, border = 2)
-                img_sizer.Add(self.image_prefix_box, 2, wx.ALIGN_LEFT | wx.ALL, border = 2)
+                img_sizer.Add(labelbox, 0, wx.ALIGN_RIGHT | wx.RIGHT, border = 2)
+                img_sizer.Add(self.image_prefix_box, 2, wx.ALIGN_LEFT | wx.LEFT, border = 2)
                 img_sizer.AddStretchSpacer(1)
-                sizer.Add(img_sizer, 0, flag = wx.EXPAND | wx.ALIGN_LEFT | wx.TOP, border = 4)
+                
 
                
         #         ###################################
@@ -10063,7 +10067,11 @@ class SECControlPanel(wx.Panel):
                 run_sizer.Add(self.final_frame_number_box,2, wx.EXPAND)
                 # run_sizer.AddStretchSpacer(3)
 
-                sizer.Add(run_sizer, 0, flag = wx.EXPAND | wx.ALIGN_LEFT | wx.TOP, border = 4)
+
+        load_box = wx.StaticBox(self, -1, 'Load')
+        load_sizer = wx.StaticBoxSizer(load_box, wx.VERTICAL)
+        load_sizer.Add(img_sizer, 0, flag = wx.EXPAND | wx.ALIGN_LEFT | wx.TOP | wx.LEFT | wx.RIGHT | wx.BOTTOM, border = 2)
+        load_sizer.Add(run_sizer, 0, flag = wx.EXPAND | wx.ALIGN_LEFT | wx.TOP | wx.LEFT | wx.RIGHT, border = 2)
 
         
         # sizer.Add(fnum_sizer, 1, flag = wx.EXPAND | wx.ALIGN_CENTER | wx.TOP, border = 4)
@@ -10071,26 +10079,34 @@ class SECControlPanel(wx.Panel):
         # load_button = wx.Button(self, -1, 'Load')
         # load_button.Bind(wx.EVT_BUTTON, self._onLoadButton)
 
+        select_button = wx.Button(self, -1, 'Select file in SEC run')
+        select_button.Bind(wx.EVT_BUTTON, self._onSelectButton)
+
+        # sizer.Add(select_button, 0, flag = wx.ALIGN_CENTER | wx.ALL, border = 4)
+
         update_button = wx.Button(self, -1, 'Update')
         update_button.Bind(wx.EVT_BUTTON, self._onUpdateButton)
 
-        self.online_mode_button = wx.CheckBox(self, -1, "Automatically Update")
+        self.online_mode_button = wx.CheckBox(self, -1, "AutoUpdate")
         self.online_mode_button.SetValue(self._is_online)
         self.online_mode_button.Bind(wx.EVT_CHECKBOX, self._onOnlineButton)
 
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        # button_sizer.Add(load_button, 0, flag = wx.ALIGN_CENTER | wx.ALL, border = 4)
-        # button_sizer.AddSpacer((5,0))
-        button_sizer.Add(update_button, 0, flag = wx.ALIGN_CENTER | wx.ALL, border = 4)
-        button_sizer.AddSpacer((5,0))
-        button_sizer.Add(self.online_mode_button, 0, flag = wx.ALIGN_CENTER | wx.ALL, border = 4)
+        button_sizer.Add(select_button, 0, flag = wx.ALIGN_CENTER | wx.LEFT, border = 2)
+        button_sizer.AddSpacer((9,0))
+        button_sizer.Add(update_button, 0, flag = wx.ALIGN_CENTER)
+        button_sizer.AddSpacer((9,0))
+        button_sizer.Add(self.online_mode_button, 0, flag = wx.ALIGN_CENTER | wx.RIGHT, border = 2)
 
-        sizer.Add(button_sizer, 1, flag = wx.ALIGN_CENTER | wx.TOP)
+        load_sizer.Add(button_sizer, 1, wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, 2)
+        sizer.Add(load_sizer, 0, wx.EXPAND | wx.BOTTOM, 5)
 
-        line_sizer = wx.StaticLine(parent = self, style = wx.LI_HORIZONTAL)
+        # sizer.Add(button_sizer, 1, flag = wx.ALIGN_CENTER | wx.TOP)
 
-        sizer.Add(line_sizer, 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 10)
+        # line_sizer = wx.StaticLine(parent = self, style = wx.LI_HORIZONTAL)
+
+        # sizer.Add(line_sizer, 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 10)
 
         selected_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -10119,7 +10135,7 @@ class SECControlPanel(wx.Panel):
 
         selected_sizer.AddStretchSpacer(1)
 
-        sizer.Add(selected_sizer,0, flag = wx.EXPAND | wx.TOP | wx.ALIGN_CENTER, border = 12)
+        # sizer.Add(selected_sizer,0, flag = wx.EXPAND | wx.TOP | wx.ALIGN_CENTER, border = 12)
 
         
         ####
@@ -10131,27 +10147,19 @@ class SECControlPanel(wx.Panel):
         average_plot_button.Bind(wx.EVT_BUTTON, self._onAverageToMainPlot)
 
         
-        button_sizer.Add(frames_plot_button, 0, flag = wx.ALIGN_CENTER | wx.TOP, border = 8)
-        button_sizer.Add(average_plot_button, 0, flag = wx.ALIGN_CENTER | wx.TOP, border = 8)
+        button_sizer.Add(frames_plot_button, 0, flag = wx.ALIGN_CENTER)
+        button_sizer.AddSpacer((9,0))
+        button_sizer.Add(average_plot_button, 0, flag = wx.ALIGN_CENTER)
 
-        sizer.Add(button_sizer, 0, flag = wx.ALIGN_CENTER | wx.BOTTOM, border = 4)
+        send_box = wx.StaticBox(self, -1, 'Data to main plot')
+        send_sizer = wx.StaticBoxSizer(send_box, wx.VERTICAL)
 
+        send_sizer.Add(selected_sizer,0, flag = wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER, border = 2)
+        send_sizer.Add(button_sizer, 0, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
 
-        ####
-        line_sizer2 = wx.StaticLine(parent = self, style = wx.LI_HORIZONTAL)
-        sizer.Add(line_sizer2, 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 10)
+        sizer.Add(send_sizer, 0, flag = wx.EXPAND | wx.BOTTOM, border = 5)
 
-
-        ####
-        calc_heading_sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        labelbox = wx.StaticText(self, -1, 'Calculate/Plot Structural Parameters :')
-
-        calc_heading_sizer.AddStretchSpacer(1)
-        calc_heading_sizer.Add(labelbox,0, flag=wx.ALIGN_CENTER)
-        calc_heading_sizer.AddStretchSpacer(1)
-        sizer.Add(calc_heading_sizer,0, flag = wx.EXPAND | wx.TOP | wx.ALIGN_CENTER, border = 8)
-
+        #######
         average_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         for each in self.controlData:
@@ -10184,19 +10192,22 @@ class SECControlPanel(wx.Panel):
                 average_sizer.Add(labelbox3,0)
                 average_sizer.Add(self.window_size_box,2, wx.EXPAND)
 
-        sizer.Add(average_sizer,0, flag = wx.EXPAND | wx.TOP | wx.ALIGN_CENTER, border = 8)
-
-
         ####
         calc_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         calc_parameters_button = wx.Button(self, -1, 'Set/Update Parameters')
         calc_parameters_button.Bind(wx.EVT_BUTTON, self._onSetCalcParams)
 
-        calc_button_sizer.Add(calc_parameters_button, 0, flag = wx.ALIGN_CENTER | wx.TOP, border = 8)
+        calc_button_sizer.Add(calc_parameters_button, 0, flag = wx.ALIGN_CENTER)
 
-        sizer.Add(calc_button_sizer, 0, flag = wx.ALIGN_CENTER | wx.BOTTOM, border = 4)
-                
+        calc_box = wx.StaticBox(self, -1, 'Calculate/plot params')
+        calc_sizer = wx.StaticBoxSizer(calc_box, wx.VERTICAL)
+
+        calc_sizer.Add(average_sizer,0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, border = 2)
+        calc_sizer.Add(calc_button_sizer, 0, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
+        
+        sizer.Add(calc_sizer, 0, wx.EXPAND)
+        
         return sizer   
 
 
@@ -11693,6 +11704,7 @@ class InformationPanel(wx.Panel):
         self.num_of_imghdr_keys = 0
         
         self._disableAllControls()
+
     def _disableAllControls(self):
         for each in self.GetChildren():
             each.Enable(False)
@@ -11711,8 +11723,8 @@ class InformationPanel(wx.Panel):
         self.header_txt.SetFont(self.used_font1)
         self.header_choice.Bind(wx.EVT_CHOICE, self._onHeaderBrowserChoice)
         
-        sizer.Add(self.header_choice, .5, wx.EXPAND | wx.RIGHT, 5)
-        sizer.Add(self.header_txt, 1, wx.EXPAND)
+        sizer.Add(self.header_choice, 1, wx.EXPAND | wx.RIGHT, 5)
+        sizer.Add(self.header_txt, 2, wx.EXPAND)
         
         return sizer
     
@@ -11763,7 +11775,7 @@ class InformationPanel(wx.Panel):
         siz.Add(self.conc_txt, 1, wx.EXPAND)    
         analysis_sizer.Add(siz, 1, wx.RIGHT | wx.EXPAND, 10)
             
-        sizer.Add(name_sizer, 0, wx.EXPAND | wx.BOTTOM, 10)
+        sizer.Add(name_sizer, 0, wx.EXPAND | wx.BOTTOM, 5)
         sizer.Add(analysis_sizer, 1, wx.EXPAND | wx.RIGHT, 5)
         
         return sizer
@@ -13647,13 +13659,13 @@ class ColourChangeDialog(wx.Dialog):
 
 class LinePropertyDialog(wx.Dialog):
     
-    def __init__(self, parent, sasm, legend_label, style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
+    def __init__(self, parent, sasm, legend_label, size = (478, 414), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
         if sasm.line == None:
             wx.MessageBox('Unable to change line properties.\nNo plot has been made for this item.', 'No plot')
             return
             
         
-        wx.Dialog.__init__(self, parent, -1, "Line Properties", *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, "Line Properties", size =size, style=style, *args, **kwargs)
         
         self.sasm = sasm
         self.line = sasm.line
@@ -13713,19 +13725,36 @@ class LinePropertyDialog(wx.Dialog):
         self.Bind( wx.EVT_BUTTON, self._onOkButton, id=wx.ID_OK )
         self.Bind( wx.EVT_BUTTON, self._onCancelButton, id=wx.ID_CANCEL )
         
-        linesettings_sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap = 5, hgap = 10)
+        linesettings_sizer = wx.FlexGridSizer(cols = 5, rows = 2, vgap = 5, hgap = 10)
+        linesettings_sizer.AddGrowableCol(0)
+        linesettings_sizer.AddGrowableCol(2)
+        linesettings_sizer.AddGrowableCol(4)
+
+        linesettings_sizer.AddStretchSpacer(1)
         linesettings_sizer.Add(self._createLineControls(), 1, wx.EXPAND)
+        linesettings_sizer.AddStretchSpacer(1)
         linesettings_sizer.Add(self._createErrorBarsControls(), 1, wx.EXPAND)
+        linesettings_sizer.AddStretchSpacer(1)
+
+        linesettings_sizer.AddStretchSpacer(1)
         linesettings_sizer.Add(self._createLineMarkerControls(), 1, wx.EXPAND)
+        linesettings_sizer.AddStretchSpacer(1)
+        linesettings_sizer.AddStretchSpacer(1)
+        linesettings_sizer.AddStretchSpacer(1)
         
         top_sizer.Add(self._createLegendLabelControls(), 0, wx.ALL | wx.EXPAND, 10)
         top_sizer.Add(linesettings_sizer, 0, wx.ALL | wx.EXPAND, 10)
-        
+        top_sizer.AddStretchSpacer(1)
         top_sizer.Add(wx.StaticLine(self, -1), wx.EXPAND |wx.TOP | wx.BOTTOM, 3)
         top_sizer.Add(buttonsizer, 0, wx.CENTER | wx.BOTTOM, 10)
-        
+
         self.SetSizer(top_sizer)
-        self.Fit()
+
+        self.Layout()
+
+        if platform.system() != 'Linux' or int(wx.__version__.split('.')[0]) <3:
+            self.Fit()
+
         self.CenterOnParent()
     
     
@@ -13976,14 +14005,14 @@ class LinePropertyDialog(wx.Dialog):
 
 class IFTMLinePropertyDialog(wx.Dialog):
     
-    def __init__(self, parent, iftm, legend_label, style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
+    def __init__(self, parent, iftm, legend_label, size = (868, 590), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
 
         if iftm.r_line == None:
             wx.MessageBox('Unable to change line properties.\nNo plot has been made for this item.', 'No plot')
             return
             
         
-        wx.Dialog.__init__(self, parent, -1, "IFT Line Properties", style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, "IFT Line Properties", size=size, style = style, *args, **kwargs)
         
         self.iftm = iftm
         self.r_line = iftm.r_line
@@ -14165,6 +14194,7 @@ class IFTMLinePropertyDialog(wx.Dialog):
 
         side_sizer = wx.BoxSizer(wx.HORIZONTAL)
         side_sizer.Add(rboxSizer, 0, wx.EXPAND)
+        side_sizer.AddStretchSpacer(1)
         side_sizer.Add(qoboxSizer, 0, wx.EXPAND)
 
         side_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
@@ -14173,14 +14203,19 @@ class IFTMLinePropertyDialog(wx.Dialog):
         
         
         top_sizer.Add(side_sizer, 0, wx.ALL | wx.EXPAND, 2)
-
+        top_sizer.AddStretchSpacer(1)
         top_sizer.Add(side_sizer2, 0, wx.ALL | wx.EXPAND, 2)
-        
+        top_sizer.AddStretchSpacer(1)
         top_sizer.Add(wx.StaticLine(self, -1), wx.EXPAND |wx.TOP | wx.BOTTOM, 2)
         top_sizer.Add(buttonsizer, 0, wx.CENTER | wx.BOTTOM, 3)
         
         self.SetSizer(top_sizer)
-        self.Fit()
+
+        self.Layout()
+
+        if platform.system() != 'Linux' or int(wx.__version__.split('.')[0]) <3:
+            self.Fit()
+
         self.CenterOnParent()
     
     
@@ -14789,14 +14824,14 @@ class IFTMLinePropertyDialog(wx.Dialog):
 
 class SECMLinePropertyDialog(wx.Dialog):
     
-    def __init__(self, parent, secm, legend_label, style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
+    def __init__(self, parent, secm, legend_label, size = (433, 541), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
 
         if secm.line == None:
             wx.MessageBox('Unable to change line properties.\nNo plot has been made for this item.', 'No plot')
             return
             
         
-        wx.Dialog.__init__(self, parent, -1, "SEC Line Properties", *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, "SEC Line Properties", size = size, style = style, *args, **kwargs)
         
         self.secm = secm
         self.line = secm.line
@@ -14852,9 +14887,7 @@ class SECMLinePropertyDialog(wx.Dialog):
 
         color = conv.to_rgb(self.calc_line.get_markeredgecolor())
         self._calcmarlinecolour = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
-        
-        # color = conv.to_rgb(self.secm.err_line[0][0].get_color())
-        # self._errcolour = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
+
         
         self._old_linestyle = self.line.get_linestyle()
         self._old_linemarker = self.line.get_marker()
@@ -14870,17 +14903,6 @@ class SECMLinePropertyDialog(wx.Dialog):
         self._old_calcmarlinecolour = self.calc_line.get_markeredgecolor()
         self._old_calcmarsize = self.calc_line.get_markersize()
 
-
-        # self._old_errcolour = self.secm.err_line[0][0].get_color()
-        # self._old_errlinewidth = self.secm.err_line[0][0].get_linewidth()
-
-        # errstyle = self.secm.err_line[1][0].get_linestyle()
-        # strange_errlinestyles = {(None, None) : '-',
-        #                         (0,(6.0, 6.0))    : '--',
-        #                         (0,(3.0, 5.0, 1.0, 5.0)) : '-.',
-        #                         (0,(1.0, 3.0)) : ':'}
-        
-        # self._old_errlinestyle = strange_errlinestyles[errstyle[0]]
            
         top_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -14893,10 +14915,16 @@ class SECMLinePropertyDialog(wx.Dialog):
 
         line_legend = self._createLegendLabelControls(self.line)
 
-        linesettings_sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap = 5, hgap = 10)
+        linesettings_sizer = wx.FlexGridSizer(cols = 5, rows = 1, vgap = 5, hgap = 10)
+        linesettings_sizer.AddGrowableCol(0)
+        linesettings_sizer.AddGrowableCol(2)
+        linesettings_sizer.AddGrowableCol(4)
+
+        linesettings_sizer.AddStretchSpacer(1)
         linesettings_sizer.Add(self._createLineControls(), 1, wx.EXPAND)
-        # linesettings_sizer.Add(self._createErrorBarsControls(), 1, wx.EXPAND)
+        linesettings_sizer.AddStretchSpacer(1)
         linesettings_sizer.Add(self._createLineMarkerControls(), 1, wx.EXPAND)
+        linesettings_sizer.AddStretchSpacer(1)
 
         secline_sizer.Add(line_legend, 0, wx.ALL | wx.EXPAND, 5)
         secline_sizer.Add(linesettings_sizer, 0, wx.ALL | wx.EXPAND, 5)
@@ -14907,26 +14935,35 @@ class SECMLinePropertyDialog(wx.Dialog):
 
         calc_legend = self._createLegendLabelControls(self.calc_line)
 
-        calclinesettings_sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap = 5, hgap = 10)
+        calclinesettings_sizer = wx.FlexGridSizer(cols = 5, rows = 1, vgap = 5, hgap = 10)
+        calclinesettings_sizer.AddGrowableCol(0)
+        calclinesettings_sizer.AddGrowableCol(2)
+        calclinesettings_sizer.AddGrowableCol(4)
+
+        calclinesettings_sizer.AddStretchSpacer(1)
         calclinesettings_sizer.Add(self._createLineControls(calc = True), 1, wx.EXPAND)
-        # linesettings_sizer.Add(self._createErrorBarsControls(), 1, wx.EXPAND)
+        calclinesettings_sizer.AddStretchSpacer(1)
         calclinesettings_sizer.Add(self._createLineMarkerControls(calc = True), 1, wx.EXPAND)
+        calclinesettings_sizer.AddStretchSpacer(1)
 
         calcline_sizer.Add(calc_legend, 0, wx.ALL | wx.EXPAND, 5)
         calcline_sizer.Add(calclinesettings_sizer, 0, wx.ALL | wx.EXPAND, 5)
         
-        # top_sizer.Add(self._createLegendLabelControls(), 0, wx.ALL | wx.EXPAND, 10)
-        # top_sizer.Add(linesettings_sizer, 0, wx.ALL | wx.EXPAND, 10)
-        # top_sizer.Add(calclinesettings_sizer, 0, wx.ALL | wx.EXPAND, 10)
 
         top_sizer.Add(secline_sizer, 0, wx.ALL | wx.EXPAND, 2)
+        top_sizer.AddStretchSpacer(1)
         top_sizer.Add(calcline_sizer, 0, wx.ALL | wx.EXPAND, 2)
-        
+        top_sizer.AddStretchSpacer(1)
         top_sizer.Add(wx.StaticLine(self, -1), wx.EXPAND |wx.TOP | wx.BOTTOM, 3)
         top_sizer.Add(buttonsizer, 0, wx.CENTER | wx.BOTTOM, 10)
         
         self.SetSizer(top_sizer)
-        self.Fit()
+
+        self.Layout()
+
+        if platform.system() != 'Linux' or int(wx.__version__.split('.')[0]) <3:
+            self.Fit()
+
         self.CenterOnParent()
     
     
@@ -15487,6 +15524,7 @@ class MySplashScreen(wx.SplashScreen):
         frame = MainFrame('RAW 1.1.0', -1)
         
         dlg = WelcomeDialog(frame, name = "WelcomeDialog")
+        dlg.SetIcon(frame.GetIcon())
         dlg.Show(True)
 
 

@@ -262,7 +262,7 @@ class CalibrationOptionsPanel(wx.Panel):
             sizer.Add(txt, 1, wx.EXPAND)
             sizer.Add(ctrl, 0)
             
-            static_box_sizer.Add(sizer, 1, wx.EXPAND)
+            static_box_sizer.Add(sizer, 1, wx.EXPAND | wx.TOP, 4)
         
         for eachEntry in self.expsettings_spin:
             
@@ -282,7 +282,7 @@ class CalibrationOptionsPanel(wx.Panel):
                 
                 spin_sizer.Add(txt_ctrl, 0)
         
-            static_box_sizer.Add(spin_sizer, 1, wx.EXPAND)   
+            static_box_sizer.Add(spin_sizer, 1, wx.EXPAND | wx.TOP, 4)   
         
         return static_box_sizer 
         

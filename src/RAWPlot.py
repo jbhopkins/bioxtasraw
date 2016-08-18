@@ -1,4 +1,4 @@
-import wx, os, sys, math, numpy
+import wx, os, sys, math, numpy, platform
 import matplotlib
 matplotlib.rcParams['backend'] = 'WxAgg'
 
@@ -91,7 +91,7 @@ class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
 class PlotOptionsDialog(wx.Dialog):
     def __init__(self, parent, plotparams, axes, *args, **kwargs):
 
-        wx.Dialog.__init__(self, parent, -1, 'Plot Options' , *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, 'Plot Options' , size = (575,522), *args, **kwargs)
         
         self.axes = axes
         self.plotparams = plotparams
@@ -164,6 +164,7 @@ class PlotOptionsDialog(wx.Dialog):
         
         legax_sizer = wx.BoxSizer(wx.HORIZONTAL)
         legax_sizer.Add(self._createLegendSettings(), 0, wx.EXPAND)
+        legax_sizer.AddStretchSpacer(1)
         legax_sizer.Add(self._createAxesSettings(), 0, wx.LEFT | wx.EXPAND, 10)
         
         sizer.Add(self._createLabelSettings(), 0, wx.EXPAND)
@@ -179,7 +180,14 @@ class PlotOptionsDialog(wx.Dialog):
         top_sizer.Add(sizer,1, wx.ALL, 10)
         
         self.SetSizer(top_sizer)
-        self.Fit()
+        self.Layout()
+
+        if platform.system() != 'Linux' or int(wx.__version__.split('.')[0]) <3:
+            self.Fit()
+        else:
+            if self.is_sec:
+                self.SetSize((650,608))
+
         self.CenterOnParent()
 
 

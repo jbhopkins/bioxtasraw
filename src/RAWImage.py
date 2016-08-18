@@ -1171,14 +1171,17 @@ class HdrInfoDialog(wx.Dialog):
     
     def __init__(self, parent, sasm):
         
-        wx.Dialog.__init__(self, parent, -1, size = (500,500))
+        wx.Dialog.__init__(self, parent, -1, 'Image Header', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX,  size = (500,500))
 
         self.sasm = sasm
         
         final_sizer = wx.BoxSizer(wx.VERTICAL)
         sizer = self.createHdrInfoWindow()
+
+        button_sizer = self.CreateButtonSizer(wx.CLOSE)
         
-        final_sizer.Add(sizer, 1, wx.EXPAND)
+        final_sizer.Add(sizer, 1, wx.EXPAND | wx.ALL, 5)
+        final_sizer.Add(button_sizer,0, wx.BOTTOM, 5)
         
         self.SetSizer(final_sizer)
         
