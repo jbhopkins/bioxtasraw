@@ -326,13 +326,55 @@ def loadSettings(raw_settings, loadpath):
     main_frame = wx.FindWindowByName('MainFrame')
     main_frame.queueTaskInWorkerThread('recreate_all_masks', None)
     
+    postProcess(raw_settings)    
+    
+    return True
+
+def postProcess(raw_settings):
     fixBackwardsCompatibility(raw_settings)
+
+    dir_check_list = [('AutoSaveOnImageFiles', 'ProcessedFilePath'), ('AutoSaveOnAvgFiles', 'AveragedFilePath'), 
+                    ('AutoSaveOnSub', 'SubtractedFilePath'), ('AutoSaveOnBift', 'BiftFilePath'),
+                    ('AutoSaveOnGnom', 'GnomFilePath'), ('OnlineModeOnStartup', 'OnlineStartupDir')
+                    ]
+
+    file_check_list = [('NormFlatfieldEnabled', 'NormFlatfieldFile')]
+
+    change_list = []
+
+    message_dir = {'AutoSaveOnImageFiles'   : '- AutoSave processed image files',
+                    'AutoSaveOnAvgFiles'    : '- AutoSave averaged files',
+                    'AutoSaveOnSub'         : '- AutoSave subtracted files',
+                    'AutoSaveOnBift'        : '- AutoSave BIFT files',
+                    'AutoSaveOnGnom'        : '- AutoSave GNOM files',
+                    'OnlineModeOnStartup'   : '- Start online mode when RAW starts',
+                    'NormFlatfieldEnabled'  : '- Apply a flatfield correction'
+                    }
+
+    for item in dir_check_list:
+        if raw_settings.get(item[0]):
+            if not os.path.isdir(raw_settings.get(item[1])):
+                raw_settings.set(item[0], False)
+                change_list.append(item[0])
+
+    for item in file_check_list:
+        if raw_settings.get(item[0]):
+            if not os.path.isfile(raw_settings.get(item[1])):
+                raw_settings.set(item[0], False)
+                change_list.append(item[0])
+
+    text = ''
+    for item in change_list:
+        text = text + message_dir[item] +'\n'
+
+    if len(change_list) > 0:
+        wx.CallAfter(wx.MessageBox, 'The following settings have been disabled because the appropriate directory/file could not be found:\n'+text+'\nIf you are using a config file from a different computer please go into Advanced Options to change the settings, or save you config file to avoid this message next time.', 'Load Settings Warning', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
     if raw_settings.get('autoFindATSAS'):
         main_frame = wx.FindWindowByName('MainFrame')
         main_frame.findAtsas()
-    
-    return True
+
+    return
 
 def saveSettings(raw_settings, savepath):
     param_dict = raw_settings.getAllParams()

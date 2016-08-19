@@ -681,6 +681,7 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
         AlphaUbound = Upper bound of Alpha
         AlphaLbound = Lower bound of Alpha
     '''
+
     
     Ep = Exp
     
@@ -699,14 +700,15 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
     finalpost = 1e20            
     bestc = 1e22
     
-    beg = time.time()  
-    
     # Cycle though dmax/alpha points and find best posterior / evidence
     all_posteriors = zeros((len(dmax_points), len(alpha_points)))
     dmax_idx = 0
     
     total_points = len(dmax_points) * len(alpha_points)
     current_point = 0
+
+    alphafin = -1
+    dmaxfin = -1
     
     for each_dmax in dmax_points:
         
@@ -770,21 +772,21 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
     # print "c_alpha: ", alphac
     # print "c_dmax: ", dmaxc
     
-    end = time.time()
-    dt = end - beg
     # print 'Search took %9.6f Seconds' % dt 
-    
+    if alphafin == -1 and dmaxfin == -1:
+        queue.put({'failed':True})
+        return
     
     bift_status = {'alpha'      : alphafin,
-                   'evidence'   : post,
-                   'chi'        : c,
+                   'evidence'   : finalpost,
+                   'chi'        : bestc,
                    'dmax'       : dmaxfin,
                    'spoint'     : current_point,
                    'tpoint'     : total_points,
                    'status'     : 'Running a fine search'}
     
     # wx.CallAfter(statusdlg.updateData, bift_status, True)
-
+    
     queue.put({'update' : bift_status})
     
     # print "Making fine search..."
@@ -869,7 +871,7 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
                 'algorithm' : 'BIFT'}
     
     ift_sasm = SASM.IFTM(transpose(Pr), r, ones(len(transpose(Pr))), Ep.i[min:max], Ep.q[min:max], Ep.err[min:max], Fit[0], bift_info) 
-
+    
     bift_status = {'alpha'      : alphafin,
                    'evidence'   : post,
                    'chi'        : c,

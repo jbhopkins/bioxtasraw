@@ -782,7 +782,7 @@ class GuinierControlPanel(wx.Panel):
         return guinierData
 
 ### Main Guinier Frame!!! ###
-class GuinierTestFrame(wx.Frame):
+class GuinierFrame(wx.Frame):
     
     def __init__(self, parent, title, ExpObj, manip_item):
         
@@ -2369,8 +2369,6 @@ class GNOMPlotPanel(wx.Panel):
 
         self.canvas.blit(a.bbox)
         self.canvas.blit(b.bbox)
-
-        
         
              
 class GNOMControlPanel(wx.Panel):
@@ -2614,7 +2612,11 @@ class GNOMControlPanel(wx.Panel):
         iftm.setParameter('filename', os.path.splitext(self.sasm.getParameter('filename'))[0]+'.out')
 
         if self.raw_settings.get('AutoSaveOnGnom'):
-             RAWGlobals.mainworker_cmd_queue.put(['save_iftm', [iftm, self.raw_settings.get('GnomFilePath')]])
+            if os.path.isdir(self.raw_settings.get('GnomFilePath')):
+                RAWGlobals.mainworker_cmd_queue.put(['save_iftm', [iftm, self.raw_settings.get('GnomFilePath')]])
+            else:
+                self.raw_settings.set('GnomFilePath', False)
+                wx.CallAfter(wx.MessageBox, 'The folder:\n' +self.raw_settings.get('GNOMFilePath')+ '\ncould not be found. Autosave of GNOM files has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
         RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [iftm, 'black', None, not self.raw_settings.get('AutoSaveOnGnom')]])
 
@@ -4611,10 +4613,15 @@ class BIFTControlPanel(wx.Panel):
             self.BIFT_timer.Stop()
             RAWGlobals.cancel_bift = True
 
-        if self.raw_settings.get('AutoSaveOnBift'):
-             RAWGlobals.mainworker_cmd_queue.put(['save_iftm', [self.iftm, self.raw_settings.get('BiftFilePath')]])
+        if self.raw_settings.get('AutoSaveOnBift') and self.iftm != None:
+            if os.path.isdir(self.raw_settings.get('BiftFilePath')):
+                RAWGlobals.mainworker_cmd_queue.put(['save_iftm', [self.iftm, self.raw_settings.get('BiftFilePath')]])
+            else:
+                self.raw_settings.set('AutoSaveOnBift', False)
+                wx.CallAfter(wx.MessageBox, 'The folder:\n' +self.raw_settings.get('BiftFilePath')+ '\ncould not be found. Autosave of BIFT files has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
-        RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [self.iftm, 'blue', None, not self.raw_settings.get('AutoSaveOnBift')]])
+        if self.iftm != None:
+            RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [self.iftm, 'blue', None, not self.raw_settings.get('AutoSaveOnBift')]])
         
         diag = wx.FindWindowByName('BIFTFrame')
         diag.OnClose()
@@ -5170,7 +5177,7 @@ class GuinierTestApp(wx.App):
 
         ExpObj, ImgDummy = SASFileIO.loadFile(tst_file, raw_settings)
         
-        frame = GuinierTestFrame(self, 'Guinier Fit', ExpObj, None)
+        frame = GuinierFrame(self, 'Guinier Fit', ExpObj, None)
         self.SetTopWindow(frame)
         frame.SetSize((800,600))
         frame.CenterOnScreen()

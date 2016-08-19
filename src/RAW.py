@@ -437,7 +437,7 @@ class MainFrame(wx.Frame):
         if self.guinierframe:
             self.guinierframe.Destroy()
         
-        self.guinierframe = RAWAnalysis.GuinierTestFrame(self, 'Guinier Fit', sasm, manip_item)
+        self.guinierframe = RAWAnalysis.GuinierFrame(self, 'Guinier Fit', sasm, manip_item)
         self.guinierframe.SetIcon(self.GetIcon())
         self.guinierframe.Show(True)
 
@@ -1254,7 +1254,7 @@ class MainFrame(wx.Frame):
         info.Description = "RAW is a software package primarily for SAXS 2D data reduction and 1D data analysis.\nIt provides an easy GUI for handling multiple files fast, and a\ngood alternative to commercial or protected software packages for finding\nthe Pair Distance Distribution Function\n\nPlease cite:\nBioXTAS RAW, a software program for high-throughput automated small-angle\nX-ray scattering data reduction and preliminary analysis, J. Appl. Cryst. (2009). 42, 959-964"
 
         info.WebSite = ("http://bioxtasraw.sourceforge.net/", "The RAW Project Homepage")
-        info.Developers = [u"Soren S. Nielsen", u"Jesse B. Hopkins", u"Richard E. Gillilan", u"Jesper Nygaard"]
+        info.Developers = [u"Soren Skou", u"Jesse B. Hopkins", u"Richard E. Gillilan", u"Jesper Nygaard"]
         info.License = "This program is free software: you can redistribute it and/or modify it under the terms of the\nGNU General Public License as published by the Free Software Foundation, either version 3\n of the License, or (at your option) any later version.\n\nThis program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;\nwithout even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\nSee the GNU General Public License for more details.\n\nYou should have received a copy of the GNU General Public License along with this program.\nIf not, see http://www.gnu.org/licenses/"
         
         # Show the wx.AboutBox
@@ -1604,9 +1604,6 @@ class OnlineController:
 
     def updateSkipList(self, file_list):
         dir_list_dict = {}
-
-        print 'in updateskiplist'
-        print file_list
 
         for each_file in file_list:
             dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)), os.path.getsize(os.path.join(self.seek_dir, each_file)))
@@ -2061,10 +2058,8 @@ class MainWorkerThread(threading.Thread):
                             self._saveSASM(sasm, '.dat', save_path)
                         except IOError, e:
                             self._raw_settings.set('AutoSaveOnImageFiles', False)
-                            self._raw_settings.set('AutoSaveOnAvgFiles', False)
-                            self._raw_settings.set('AutoSaveOnSub', False)
-
-                            wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutoSave has been disabled. If you are using a config file from a different computer\nPlease go into Advanced Options/Save Directories to change the save folders, or save you config file to\navoid this message next time.', 'AutoSave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+                            do_auto_save = False
+                            wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutosave of processed images has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         
 
                 if numpy.mod(i,20) == 0:
@@ -3172,7 +3167,12 @@ class MainWorkerThread(threading.Thread):
         
                         if do_auto_save:
                             save_path = self._raw_settings.get('SubtractedFilePath')
-                            self._saveSASM(subtracted_sasm, '.dat', save_path)
+                            try:
+                                self._saveSASM(subtracted_sasm, '.dat', save_path)
+                            except IOError, e:
+                                self._raw_settings.set('AutoSaveOnSub', False)
+                                do_auto_save = False
+                                wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutosave of subtracted images has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
                 except SASExceptions.DataNotCompatible, msg:
                    self._showSubtractionError(sasm, sub_sasm)
@@ -3188,7 +3188,12 @@ class MainWorkerThread(threading.Thread):
 
                     if do_auto_save:
                         save_path = self._raw_settings.get('SubtractedFilePath')
-                        self._saveSASM(subtracted_sasm, '.dat', save_path)
+                        try:
+                            self._saveSASM(subtracted_sasm, '.dat', save_path)
+                        except IOError, e:
+                            self._raw_settings.set('AutoSaveOnSub', False)
+                            do_auto_save = False
+                            wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutosave of subtracted images has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
                 except SASExceptions.DataNotCompatible, msg:
                    self._showSubtractionError(sasm, sub_sasm)
@@ -3204,7 +3209,12 @@ class MainWorkerThread(threading.Thread):
 
                     if do_auto_save:
                         save_path = self._raw_settings.get('SubtractedFilePath')
-                        self._saveSASM(subtracted_sasm, '.dat', save_path)
+                        try:
+                            self._saveSASM(subtracted_sasm, '.dat', save_path)
+                        except IOError, e:
+                            self._raw_settings.set('AutoSaveOnSub', False)
+                            do_auto_save = False
+                            wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutosave of subtracted images has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
                 except SASExceptions.DataNotCompatible, msg:
                    self._showSubtractionError(sasm, sub_sasm)
@@ -3252,7 +3262,13 @@ class MainWorkerThread(threading.Thread):
         
         if do_auto_save:
             save_path = self._raw_settings.get('AveragedFilePath')
-            self._saveSASM(avg_sasm, '.dat', save_path)
+
+            try:
+                self._saveSASM(avg_sasm, '.dat', save_path)
+            except IOError as e:
+                self._raw_settings.set('AutoSaveOnAvgFiles', False)
+
+                wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutosave of averaged images has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         
         wx.CallAfter(self.plot_panel.updateLegend, 1)
         wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -15385,7 +15401,7 @@ class SECMLinePropertyDialog(wx.Dialog):
 class WelcomeDialog(wx.Frame):
     def __init__(self, parent, *args, **kwargs):
         
-        wx.Frame.__init__(self,parent, -1, style = wx.NO_BORDER, *args, **kwargs)
+        wx.Frame.__init__(self,parent, -1, style = wx.RESIZE_BORDER | wx.STAY_ON_TOP, *args, **kwargs)
         
         self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
         
@@ -15428,6 +15444,12 @@ class WelcomeDialog(wx.Frame):
         self.panel.Fit()
         self.Fit()
 
+        self.SetDefaultItem(self.ok_button)
+
+        self.panel.Bind(wx.EVT_KEY_DOWN, self._onKeyDown)
+
+        self.Raise()
+
         self.CenterOnParent()
 
     
@@ -15435,6 +15457,12 @@ class WelcomeDialog(wx.Frame):
         # mainworker_cmd_queue.put(['startup', sys.argv])
         wx.FutureCall(1, wx.FindWindowByName("MainFrame")._onStartup, sys.argv)
         self.OnClose()
+
+    def _onKeyDown(self, event):
+        if event.GetKeyCode() == wx.WXK_RETURN:
+            self._onOKButton(-1)
+        else:
+            event.Skip()
         
     def OnClose(self):
         self.Destroy()
