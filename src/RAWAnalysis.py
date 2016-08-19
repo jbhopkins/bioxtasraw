@@ -810,6 +810,21 @@ class GuinierFrame(wx.Frame):
         controlPanel.setSpinLimits(ExpObj)
         controlPanel.setCurrentExpObj(ExpObj)
         
+        splitter1.Layout()
+        self.Layout()
+        self.SendSizeEvent()
+        splitter1.Layout()
+        self.Layout()
+
+        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+            print 'fitting the guinier window size'
+            self.Fit()
+            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+                size = self.GetSize()
+                size[1] = size[1] + 20
+                self.SetSize(size)
+
+
         self.CenterOnParent()
         self.Raise()
         
@@ -889,6 +904,13 @@ class MolWeightFrame(wx.Frame):
         self.panel.Layout()
         self.SendSizeEvent()
         self.panel.Layout()
+
+        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+            self.Fit()
+            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+                size = self.GetSize()
+                size[1] = size[1] + 20
+                self.SetSize(size)
         
         
         self.CenterOnParent()
@@ -2094,6 +2116,19 @@ class GNOMFrame(wx.Frame):
         else:
             splitter1.SetMinimumPaneSize(50)
 
+        splitter1.Layout()
+        self.Layout()
+        self.SendSizeEvent()
+        splitter1.Layout()
+        self.Layout()
+
+        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+            self.Fit()
+            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+                size = self.GetSize()
+                size[1] = size[1] + 20
+                self.SetSize(size)
+
         self.initGNOM(self.plotPanel, self.controlPanel, sasm)
         
         self.CenterOnParent()
@@ -3106,6 +3141,13 @@ class DammifFrame(wx.Frame):
         self.panel.Layout()
         self.SendSizeEvent()
         self.panel.Layout()
+
+        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+            self.Fit()
+            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+                size = self.GetSize()
+                size[1] = size[1] + 20
+                self.SetSize(size)
         
         self.CenterOnParent()
 
@@ -4128,6 +4170,19 @@ class BIFTFrame(wx.Frame):
             splitter1.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(50)
+
+        splitter1.Layout()
+        self.Layout()
+        self.SendSizeEvent()
+        splitter1.Layout()
+        self.Layout()
+
+        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+            self.Fit()
+            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+                size = self.GetSize()
+                size[1] = size[1] + 20
+                self.SetSize(size)
         
         self.CenterOnParent()
         self.Raise()
@@ -4821,6 +4876,14 @@ class AmbimeterFrame(wx.Frame):
         self.panel.Layout()
 
         self.Layout()
+
+
+        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+            self.Fit()
+            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+                size = self.GetSize()
+                size[1] = size[1] + 20
+                self.SetSize(size)
         
 
         self.CenterOnParent()

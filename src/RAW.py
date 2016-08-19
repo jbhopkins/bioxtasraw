@@ -13772,6 +13772,12 @@ class LinePropertyDialog(wx.Dialog):
 
         if platform.system() != 'Linux' or int(wx.__version__.split('.')[0]) <3:
             self.Fit()
+        elif self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+            self.Fit()
+            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+                size = self.GetSize()
+                size[1] = size[1] + 20
+                self.SetSize(size)
 
         self.CenterOnParent()
     
@@ -14233,6 +14239,12 @@ class IFTMLinePropertyDialog(wx.Dialog):
 
         if platform.system() != 'Linux' or int(wx.__version__.split('.')[0]) <3:
             self.Fit()
+        elif self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+            self.Fit()
+            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+                size = self.GetSize()
+                size[1] = size[1] + 20
+                self.SetSize(size)
 
         self.CenterOnParent()
     
@@ -14981,6 +14993,12 @@ class SECMLinePropertyDialog(wx.Dialog):
 
         if platform.system() != 'Linux' or int(wx.__version__.split('.')[0]) <3:
             self.Fit()
+        elif self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+            self.Fit()
+            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+                size = self.GetSize()
+                size[1] = size[1] + 20
+                self.SetSize(size)
 
         self.CenterOnParent()
     
