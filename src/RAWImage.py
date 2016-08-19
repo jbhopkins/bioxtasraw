@@ -1178,10 +1178,11 @@ class HdrInfoDialog(wx.Dialog):
         final_sizer = wx.BoxSizer(wx.VERTICAL)
         sizer = self.createHdrInfoWindow()
 
-        button_sizer = self.CreateButtonSizer(wx.CLOSE)
+        button = wx.Button(self, wx.ID_CLOSE, 'Close')
+        button.Bind(wx.EVT_BUTTON, self.onClose)
         
         final_sizer.Add(sizer, 1, wx.EXPAND | wx.ALL, 5)
-        final_sizer.Add(button_sizer,0, wx.BOTTOM, 5)
+        final_sizer.Add(button,0, wx.BOTTOM | wx.ALIGN_RIGHT | wx.RIGHT, 5)
         
         self.SetSizer(final_sizer)
         
@@ -1217,6 +1218,9 @@ class HdrInfoDialog(wx.Dialog):
         sizer.Add(self.text, 1, wx.EXPAND)
         
         return sizer
+
+    def onClose(self, event):
+        self.EndModal(wx.ID_OK)
     
 
 def createMaskFileDialog(mode):

@@ -1056,7 +1056,7 @@ def createTransMatrix(q, r):
            
     """   
 
-    if not RAWGlobals.frozen:
+    if not RAWGlobals.frozen and RAWGlobals.compiled_extensions:
         weave.inline(code,['qlen', 'rlen', 'T', 'r', 'q', 'c'], type_converters = converters.blitz, compiler = "gcc")    
 
     else:
