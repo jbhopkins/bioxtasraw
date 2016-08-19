@@ -296,6 +296,7 @@ class GuinierControlPanel(wx.Panel):
         self.manip_item = manip_item
         self.info_panel = wx.FindWindowByName('InformationPanel')
         self.main_frame = wx.FindWindowByName('MainFrame')
+        self.guinier_frame = wx.FindWindowByName('GuinierFrame')
 
         self.old_analysis = {}
 
@@ -329,7 +330,7 @@ class GuinierControlPanel(wx.Panel):
         savebutton.Bind(wx.EVT_BUTTON, self.onSaveInfo)
 
         autorg_button = wx.Button(self, -1, 'AutoRG')
-        autorg_button.Bind(wx.EVT_BUTTON, self.onAutoRG)
+        autorg_button.Bind(wx.EVT_BUTTON, self.onAutoRg)
         
         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
         buttonSizer.Add(savebutton, 1, wx.RIGHT, 5)
@@ -408,6 +409,9 @@ class GuinierControlPanel(wx.Panel):
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'])
                 txt.SetValue(str(round(self.ExpObj.q[int(old_end)],5)))
 
+        else:
+            self.runAutoRg()
+
             
         
     def setFilename(self, filename):
@@ -474,7 +478,10 @@ class GuinierControlPanel(wx.Panel):
         diag = wx.FindWindowByName('GuinierFrame')
         diag.OnClose()
 
-    def onAutoRG(self, evt):
+    def onAutoRg(self, evt):
+        self.runAutoRg()
+    
+    def runAutoRg(self):
         rg, rger, i0, i0er, idx_min, idx_max = SASCalc.autoRg(self.ExpObj)
 
         spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
@@ -484,8 +491,8 @@ class GuinierControlPanel(wx.Panel):
         old_end = spinend.GetValue()
 
         if rg == -1:
-            msg = 'AutoRG could not find a suitable interval to calculate Rg. Values are not updated.'
-            wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK)
+            msg = 'AutoRG could not find a suitable interval to calculate Rg.'
+            wx.CallAfter(wx.MessageBox, str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK)
             
         else:
             try:
@@ -512,7 +519,6 @@ class GuinierControlPanel(wx.Panel):
                 print 'FAILED AutoRG! resetting controls'
                 msg = 'AutoRG did not produce a useable result. Please report this to the developers.'
                 response = wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK)
-        
         
     def setCurrentExpObj(self, ExpObj):
         
@@ -664,7 +670,6 @@ class GuinierControlPanel(wx.Panel):
         txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
         txt.SetValue(str(round(ExpObj.q[0],4)))
         
-        self._initSettings()
         
     def onEnterOnSpinCtrl(self, evt):
         ''' Little workaround to make enter key in spinctrl work on Mac too '''
@@ -795,9 +800,9 @@ class GuinierFrame(wx.Frame):
                 
         
         plotPanel = GuinierPlotPanel(splitter1, -1, 'GuinierPlotPanel')
-        controlPanel = GuinierControlPanel(splitter1, -1, 'GuinierControlPanel', ExpObj, manip_item)
+        self.controlPanel = GuinierControlPanel(splitter1, -1, 'GuinierControlPanel', ExpObj, manip_item)
   
-        splitter1.SplitVertically(controlPanel, plotPanel, 290)
+        splitter1.SplitVertically(self.controlPanel, plotPanel, 290)
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
             splitter1.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
@@ -807,8 +812,9 @@ class GuinierFrame(wx.Frame):
         plotPanel.plotExpObj(ExpObj)
         
         
-        controlPanel.setSpinLimits(ExpObj)
-        controlPanel.setCurrentExpObj(ExpObj)
+        self.controlPanel.setSpinLimits(ExpObj)
+        self.controlPanel.setCurrentExpObj(ExpObj)
+        self.controlPanel._initSettings()
         
         splitter1.Layout()
         self.Layout()
@@ -818,7 +824,7 @@ class GuinierFrame(wx.Frame):
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
             print 'fitting the guinier window size'
-            self.Fit()
+            splitter1.Fit()
             if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
                 size = self.GetSize()
                 size[1] = size[1] + 20
@@ -827,6 +833,7 @@ class GuinierFrame(wx.Frame):
 
         self.CenterOnParent()
         self.Raise()
+
         
     def OnClose(self):
         
@@ -906,7 +913,7 @@ class MolWeightFrame(wx.Frame):
         self.panel.Layout()
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-            self.Fit()
+            self.panel.Fit()
             if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
                 size = self.GetSize()
                 size[1] = size[1] + 20
@@ -2123,7 +2130,7 @@ class GNOMFrame(wx.Frame):
         self.Layout()
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-            self.Fit()
+            splitter1.Fit()
             if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
                 size = self.GetSize()
                 size[1] = size[1] + 20
@@ -3143,7 +3150,7 @@ class DammifFrame(wx.Frame):
         self.panel.Layout()
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-            self.Fit()
+            self.panel.Fit()
             if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
                 size = self.GetSize()
                 size[1] = size[1] + 20
@@ -4178,7 +4185,7 @@ class BIFTFrame(wx.Frame):
         self.Layout()
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-            self.Fit()
+            splitter1.Fit()
             if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
                 size = self.GetSize()
                 size[1] = size[1] + 20
@@ -4879,7 +4886,7 @@ class AmbimeterFrame(wx.Frame):
 
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-            self.Fit()
+            self.panel.Fit()
             if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
                 size = self.GetSize()
                 size[1] = size[1] + 20
