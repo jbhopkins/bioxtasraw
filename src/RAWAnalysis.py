@@ -3793,7 +3793,7 @@ class DammifFrame(wx.Frame):
             nruns_window = wx.FindWindowById(self.ids['runs'])
             nruns = int(nruns_window.GetValue())
 
-            dam_filelist = [os.path.join(path, prefix+'_%s-1.pdb' %(str(i).zfill(2))) for i in range(1, nruns+1)]
+            dam_filelist = [prefix+'_%s-1.pdb' %(str(i).zfill(2)) for i in range(1, nruns+1)]
 
 
             cwd = os.getcwd()
@@ -3895,7 +3895,7 @@ class DammifFrame(wx.Frame):
             nruns_window = wx.FindWindowById(self.ids['runs'])
             nruns = int(nruns_window.GetValue())
 
-            dam_filelist = [os.path.join(path, prefix+'_%s-1.pdb' %(str(i).zfill(2))) for i in range(1, nruns+1)]
+            dam_filelist = [prefix+'_%s-1.pdb' %(str(i).zfill(2)) for i in range(1, nruns+1)]
 
 
             cwd = os.getcwd()
