@@ -344,6 +344,14 @@ def calibrateAndNormalize(sasm, img, raw_settings):
     if normlist != None and enable_normalization == True:
         sasm.setParameter('normalizations', {'Counter_norms':raw_settings.get('NormalizationList')})
 
+        if raw_settings.get('DoSolidAngleCorrection'):    
+
+            norm_parameter = sasm.getParameter('normalizations')
+
+            norm_parameter['Solid_Angle_Correction'] = 'On'
+
+            sasm.setParameter('Normalizations', norm_parameter)
+
         for each in normlist:
             op, expr = each
             

@@ -336,7 +336,20 @@ class MainFrame(wx.Frame):
         self._mgr.GetPane(self.masking_panel).Show(False)
         self._mgr.GetPane(self.control_notebook).Show(True)
         self._mgr.Update()
-        self.plot_notebook.SetSelection(0)
+
+
+        mainpage = -1
+
+        for i in range(self.plot_notebook.GetPageCount()):
+            if self.plot_notebook.GetPageText(i) == 'Main Plot':
+                mainpage = i
+                self.plot_notebook.SetSelection(mainpage)
+
+        #This is stupid and shouldn't be necessary!
+        if mainpage > -1:
+            while self.plot_notebook.GetSelection() != mainpage:
+                time.sleep(.001)
+                self.plot_notebook.SetSelection(mainpage)
         
     def showCenteringPane(self):
         self._mgr.GetPane(self.centering_panel).Show(True)
@@ -11010,7 +11023,7 @@ class MaskingPanel(wx.Panel):
         
         selected_mask = self.selector_choice.GetStringSelection()
         
-        if selected_mask != '':
+        if selected_mask != 'SAXSLAB BS mask':
             mask_key = self.mask_choices[selected_mask]
             
             mask_dict = self._main_frame.raw_settings.get('Masks')
@@ -11039,13 +11052,18 @@ class MaskingPanel(wx.Panel):
             if len(masks) != 0:
                 queue = self._main_frame.getWorkerThreadQueue()
                 queue.put(['create_mask', [mask_key, masks_copy, img_dim]])
+
+        else:
+            dial = wx.MessageDialog(None, 'SAXSLAB beamstop masks are set in the image header, and cannot be modified. If you wish to disable the use of this mask, you can do so by unchecking the "Use header for mask creation" option in the General Settings in the Advanced Options panel.\n\nIf you wish to mask additional portions of the image, please set a normal Beamstop Mask.', 'Cannot remove mask', 
+            wx.OK | wx.ICON_WARNING)
+            dial.ShowModal()
                             
         
     def _onClearButton(self, event):
         
         selected_mask = self.selector_choice.GetStringSelection()
         
-        if selected_mask != '':
+        if selected_mask != 'SAXSLAB BS mask':
             
             dial = wx.MessageDialog(None, 'Are you sure you want to delete this mask?', 'Are you sure?', 
             wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
@@ -11058,7 +11076,13 @@ class MaskingPanel(wx.Panel):
             mask_dict = self._main_frame.raw_settings.get('Masks')
             mask_dict[mask_key] = [None, None]
             self.image_panel.clearAllMasks()
-    
+
+        else:
+            dial = wx.MessageDialog(None, 'SAXSLAB beamstop masks are set in the image header, and cannot be modified. If you wish to disable the use of this mask, you can do so by unchecking the "Use header for mask creation" option in the General Settings in the Advanced Options panel.', 'Cannot remove mask', 
+            wx.OK | wx.ICON_WARNING)
+            dial.ShowModal()
+
+
     def _onClearDrawnMasks(self, event):
         wx.CallAfter(self.image_panel.clearAllMasks)
     

@@ -13,6 +13,7 @@ from xml.dom import minidom
 import SASMarHeaderReader #Attempting to remove the reliance on compiled packages. Switchin Mar345 reading to fabio.
 
 #switched from PIL to pillow
+import PIL
 from PIL import Image #pillow
 from PIL import TiffImagePlugin #pillow
 
@@ -247,7 +248,11 @@ def loadTiffImage(filename):
     ''' Load TIFF image '''
     try:
         im = Image.open(filename)
-        img = np.fromstring(im.tobytes(), np.uint16) #tobytes is compatible with pillow >=3.0, tostring was depreciated
+        if int(PIL.PILLOW_VERSION.split('.')[0])>2:
+            img = np.fromstring(im.tobytes(), np.uint16) #tobytes is compatible with pillow >=3.0, tostring was depreciated
+        else:
+            img = np.fromstring(im.tostring(), np.uint16)
+
         img = np.reshape(img, im.size) 
     except IOError:
         return None, {}
@@ -564,8 +569,12 @@ def loadSAXSLAB300Image(filename):
         im1b = im1a.transpose(Image.ROTATE_90)
         im2 = im1b.transpose(Image.FLIP_TOP_BOTTOM)
         
-        newArr = np.fromstring(im2.tostring(), np.int32)
-        
+        # newArr = np.fromstring(im2.tobytes(), np.int32)
+        if int(PIL.PILLOW_VERSION.split('.')[0])<3:
+            newArr = np.fromstring(im2.tostring(), np.int32)
+        else:
+            newArr = np.fromstring(im2.tobytes(), np.int32)
+
         # reduce negative vals
         newArr = np.where(newArr >= 0, newArr, 0)
         newArr = np.reshape(newArr, (im2.size[1],im2.size[0])) 
@@ -574,20 +583,25 @@ def loadSAXSLAB300Image(filename):
         except AttributeError:
           tag = None
         dim = np.shape(newArr)
+
         
     except (IOError, ValueError):
         return None, None
     
     try:
-      print tag
-      tag_with_data = tag[315]
+        print tag
+        if int(PIL.PILLOW_VERSION.split('.')[0])<3:
+            tag_with_data = tag[315]
+        else:
+            tag_with_data = tag[315][0]
+
     except (TypeError, KeyError):
         print "Wrong file format. Missing TIFF tag number"
         raise
 
     img = newArr
     img_hdr = parseSAXSLAB300Header(tag_with_data)
-       
+
     return img, img_hdr
 
 
@@ -683,17 +697,19 @@ def parseGaneshaHeader(filename):
 
 def parseSAXSLAB300Header(tag_with_data):
     ''' Read the header information from a TIFF file tag '''
-    
+
     #d = odict()
     d = {}
     DOMTree = minidom.parseString(tag_with_data)
+
     params = DOMTree.getElementsByTagName('param')
+
     for p in params:
       try:
         d[p.attributes['name'].value] = p.childNodes[0].data
       except IndexError:
         pass
-    
+
     tr={} # dictionary for transaltion :)
     tr['det_exposure_time'] = 'exposure_time'
     tr['livetime'] = 'integration_time' 
@@ -749,7 +765,7 @@ def parseSAXSLAB300Header(tag_with_data):
       try:
         d[i] = float(d[i])
       except ValueError: pass
-    
+
     return d
 
 def parsePilatusHeader(filename):
@@ -1516,7 +1532,14 @@ def loadImageFile(filename, raw_settings):
     if use_hdr_mask and img_fmt == 'SAXSLab300':
         try:
             mask_patches = SASImage.createMaskFromHdr(img, img_hdr, flipped = raw_settings.get('DetectorFlipped90'))
-            bs_mask = SASImage.createMaskMatrix(img.shape, mask_patches)
+            bs_mask_patches = masks['BeamStopMask'][1]
+
+            if bs_mask_patches != None:
+                all_mask_patches = mask_patches + bs_mask_patches
+            else:
+                all_mask_patches = mask_patches
+                
+            bs_mask = SASImage.createMaskMatrix(img.shape, all_mask_patches)
         except KeyError:
             raise SASExceptions.HeaderMaskLoadError('bsmask_configuration not found in header.')
             
