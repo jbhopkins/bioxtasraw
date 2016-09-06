@@ -741,6 +741,7 @@ class SECM:
         self.final_buffer_frame = -1
         self.window_size = -1
         self.threshold = -1
+        self.mol_type = ''
         self.average_buffer_sasm = None
         self.subtracted_sasm_list = []
         self.rg_list = []
@@ -1037,15 +1038,16 @@ class SECM:
 
         return self.I_of_q
 
-    def setCalcParams(self, initial, final, window, threshold):
+    def setCalcParams(self, initial, final, window, mol_type, threshold):
         new = False
 
-        if initial != self.initial_buffer_frame or final != self.final_buffer_frame or window != self.window_size or threshold != self.threshold:
+        if initial != self.initial_buffer_frame or final != self.final_buffer_frame or window != self.window_size or self.mol_type != mol_type or threshold != self.threshold:
             new = True
 
             self.initial_buffer_frame = initial
             self.final_buffer_frame = final
             self.window_size = window
+            self.mol_type = mol_type
             self.threshold = threshold
 
         # print self.initial_buffer_frame

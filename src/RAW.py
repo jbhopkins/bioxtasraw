@@ -2311,7 +2311,7 @@ class MainWorkerThread(threading.Thread):
 
     def _calculateSECParams(self, secm):
 
-        molecule = self._raw_settings.get('MWVcType')
+        molecule = secm.mol_type
 
         if molecule == 'Protein':
             is_protein = True
@@ -2546,7 +2546,7 @@ class MainWorkerThread(threading.Thread):
 
     def _updateCalcSECParams(self, secm, frame_list):
 
-        molecule = self._raw_settings.get('MWVcType')
+        molecule = secm.mol_type
 
         if molecule == 'Protein':
             is_protein = True
@@ -8619,22 +8619,15 @@ class SECPanel(wx.Panel):
         self.otherParams={'Frame List' : (wx.NewId(), 'framelist'),
                         'Manual' : (wx.NewId(), 'manual')}
 
-        self.paramsInGui={'Filename'               : (wx.NewId(), 'filename'),
-                          'Image Header'           : (wx.NewId(), 'imghdr'),
-                          'Directory'              : (wx.NewId(), 'dir'),
+        self.paramsInGui={'Image Header'           : (wx.NewId(), 'imghdr'),
                           'Initial Run #'          : (wx.NewId(), 'irunnum'),
-                          'Final Run #'            : (wx.NewId(), 'frunnum'),
                           'Initial Frame #'        : (wx.NewId(), 'iframenum'),
                           'Final Frame #'          : (wx.NewId(), 'fframenum'),
                           'Initial Selected Frame' : (wx.NewId(), 'isframenum'),
                           'Final Selected Frame'   : (wx.NewId(), 'fsframenum'),
-                          'Calculate'              : (wx.NewId(), 'calc'),
                           'Initial Buffer Frame'   : (wx.NewId(), 'ibufframe'),
                           'Final Buffer Frame'     : (wx.NewId(), 'fbufframe'),
-                          'Window Size'            : (wx.NewId(), 'wsize'),
-                          'Plot Choice'            : (wx.NewId(), 'choice'),
-                          'Right Axis Min'         : (wx.NewId(), 'raxismin'),
-                          'Right Axis Max'         : (wx.NewId(), 'raxismax')}
+                          'Window Size'            : (wx.NewId(), 'wsize')}
         
         self.buttons = (("Save",self._onSaveButton),
                         ("Remove", self._onRemoveButton),
@@ -8661,9 +8654,9 @@ class SECPanel(wx.Panel):
         self.underpanel_sizer = wx.BoxSizer(wx.VERTICAL)    
         self.underpanel.SetSizer(self.underpanel_sizer)
         
-        self.infoBox = SECControlPanel(self)
+        self.sec_control_panel = SECControlPanel(self)
         
-        self.panelsizer.Add(self.infoBox, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER | wx.EXPAND, 5)
+        self.panelsizer.Add(self.sec_control_panel, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER | wx.EXPAND, 5)
         self.panelsizer.Add(toolbarsizer, 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 5)        
         self.panelsizer.Add(self.underpanel, 1, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT, 3)
         
@@ -9072,6 +9065,8 @@ class SECPanel(wx.Panel):
         
         self.sec_plot_panel.clearAllPlots()
 
+        self.sec_control_panel.clearAll()
+
     def clearList(self):
         self.Freeze()
         
@@ -9094,6 +9089,8 @@ class SECPanel(wx.Panel):
         self.modified_items = []
         
         self.Thaw()
+
+        self.sec_control_panel.clearAll()
     
     def _onLoadFile(self, evt):   
          
@@ -9293,7 +9290,7 @@ class SECItemPanel(wx.Panel):
             target_tip.SetTarget(self.target_icon)
             target_tip.ApplyStyle('Blue Glass')
 
-            self.info_tip = STT.SuperToolTip("First buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A'", header = "Extended Info", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            self.info_tip = STT.SuperToolTip("First buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A\nMol. type: N/A", header = "Extended Info", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             self.info_tip.SetDrawHeaderLine(True)
             self.info_tip.SetTarget(self.info_icon)
             self.info_tip.ApplyStyle('Blue Glass')
@@ -9303,7 +9300,7 @@ class SECItemPanel(wx.Panel):
             self.colour_indicator.SetToolTipString('Line Properties')
             self.bg_star.SetToolTipString('Mark')
             self.target_icon.SetToolTipString('Locate Line')
-            self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nFirst buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A')
+            self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nFirst buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A\nMol. type: N/A')
 
         self.locator_on = False
         self.locator_old_width = 1
@@ -9367,17 +9364,18 @@ class SECItemPanel(wx.Panel):
         initial = self.secm.initial_buffer_frame
         final = self.secm.final_buffer_frame
         window = self.secm.window_size
+        mol_type = self.secm.mol_type
 
         if initial == -1 or final == -1 or window == -1:
             if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
-                self.info_tip.SetMessage('First buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A')
+                self.info_tip.SetMessage('First buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A\nMol. type: N/A')
             else:
-                self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nFirst buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A')
+                self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nFirst buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A\nMol. type: N/A')
         else:
             if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
-                self.info_tip.SetMessage('First buffer frame: %i\nLast buffer frame: %i\nAverage window size: %i' %(initial, final, window))
+                self.info_tip.SetMessage('First buffer frame: %i\nLast buffer frame: %i\nAverage window size: %i\nMol. type: %s' %(initial, final, window, mol_type))
             else:
-                self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nFirst buffer frame: %i\nLast buffer frame: %i\nAverage window size: %i' %(initial, final, window))
+                self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nFirst buffer frame: %i\nLast buffer frame: %i\nAverage window size: %i\nMol. Type: %s' %(initial, final, window, mol_type))
 
     def _onInfoButton(self, event):
         pass
@@ -9966,11 +9964,9 @@ class SECControlPanel(wx.Panel):
 
         self.filename = ''
         self.frame_list = []
-        self._manual=False
         self.image_prefix = ""
         self.directory = ""
         self.initial_run_number = ""
-        self.final_run_number = ""
         self.initial_frame_number = ""
         self.final_frame_number = ""
         self.initial_selected_frame = ""
@@ -9980,29 +9976,17 @@ class SECControlPanel(wx.Panel):
         self.initial_buffer_frame=""
         self.final_buffer_frame=""
         self.window_size = "5"
-        self._calculate = False
-        self.right_axis_min = ""
-        self.right_axis_max = ""
-        self.plot_choice = 'RG'
+        self.mol_type = "Protein"
 
-        self.controlData = (  ('File :', parent.paramsInGui['Filename'], self.filename),
-                              ('Frame List :', parent.otherParams['Frame List'], self.frame_list),
-                              ('Manual', parent.otherParams['Manual'], self._manual),
-                              ('Directory :', parent.paramsInGui['Directory'], self.directory),
-                              ('Image Prefix :', parent.paramsInGui['Image Header'], self.image_prefix),
+        self.controlData = (  ('Image Prefix :', parent.paramsInGui['Image Header'], self.image_prefix),
                               ('Initial Run # :', parent.paramsInGui['Initial Run #'], self.initial_run_number),
-                              ('Final Run # :',parent.paramsInGui['Final Run #'], self.final_run_number),
                               ('Initial Frame # :', parent.paramsInGui['Initial Frame #'], self.initial_frame_number),
                               ('Final Frame # :',parent.paramsInGui['Final Frame #'], self.final_frame_number), 
                               ('Initial Selected Frame :', parent.paramsInGui['Initial Selected Frame'], self.initial_selected_frame),
                               ('Final Selected Frame :', parent.paramsInGui['Final Selected Frame'], self.final_selected_frame),
-                              ('Calculate Structural Parameters :', parent.paramsInGui['Calculate'], self._calculate),
                               ('Initial Buffer Frame', parent.paramsInGui['Initial Buffer Frame'], self.initial_buffer_frame),
                               ('Final Buffer Frame', parent.paramsInGui['Final Buffer Frame'], self.final_buffer_frame),
-                              ('Window Size :', parent.paramsInGui['Window Size'], self.window_size),
-                              ('Plot : ', parent.paramsInGui['Plot Choice'], self.plot_choice),
-                              ('Right Axis Min', parent.paramsInGui['Right Axis Min'], self.right_axis_min),
-                              ('Right Axis Max', parent.paramsInGui['Right Axis Max'], self.right_axis_max))
+                              ('Window Size :', parent.paramsInGui['Window Size'], self.window_size))
 
         
         topsizer = self.createControls()
@@ -10025,12 +10009,6 @@ class SECControlPanel(wx.Panel):
         fnum_sizer.AddGrowableCol(5)
 
         
-
-        # sizer.Add((1,1),0)
-        # sizer.Add(select_button,0, wx.ALIGN_CENTER)
-        # sizer.Add((1,1),0)
-        # sizer.Add((1,1),0)
-        
         for each in self.controlData:
             
             label = each[0]
@@ -10049,37 +10027,17 @@ class SECControlPanel(wx.Panel):
                 img_sizer.Add(self.image_prefix_box, 2, wx.ALIGN_LEFT | wx.LEFT, border = 2)
                 img_sizer.AddStretchSpacer(1)
                 
-
-               
-        #         ###################################
-                
             elif type == 'irunnum':
                 labelbox = wx.StaticText(self, -1, "Run : ")
-                # labelbox2=wx.StaticText(self,-1," to ")
 
                 self.initial_run_number_box = wx.TextCtrl(self, id=id, value=self.initial_run_number, size = (50,20), style = wx.TE_READONLY)
 
                 run_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-
-
                 run_sizer.AddStretchSpacer(0)
                 run_sizer.Add(labelbox,0)
                 run_sizer.Add(self.initial_run_number_box,2, wx.EXPAND)
                 run_sizer.AddStretchSpacer(1)
-                # run_sizer.AddStretchSpacer(3)
-                # run_sizer.AddStretchSpacer(3)
-                # fnum_sizer.Add(labelbox2,0)
-
-                
-
-
-            elif type == 'frunnum':
-                # self.final_run_number_box = wx.TextCtrl(self, id=id, value=self.final_run_number, size = (50,20))
-
-                # fnum_sizer.Add(self.final_run_number_box,1, wx.EXPAND)
-                # fnum_sizer.AddStretchSpacer(3)
-                pass
             
             elif type == 'iframenum':
                 labelbox = wx.StaticText(self, -1, "Frames : ")
@@ -10087,7 +10045,6 @@ class SECControlPanel(wx.Panel):
 
                 self.initial_frame_number_box = wx.TextCtrl(self, id=id, value=self.initial_frame_number, size = (50,20), style = wx.TE_READONLY)
 
-                # fnum_sizer.AddStretchSpacer(3)
                 run_sizer.Add(labelbox,0)
                 run_sizer.Add(self.initial_frame_number_box,2, wx.EXPAND)
                 run_sizer.Add(labelbox2,0)
@@ -10096,7 +10053,6 @@ class SECControlPanel(wx.Panel):
                 self.final_frame_number_box = wx.TextCtrl(self, id=id, value=self.final_frame_number, size = (50,20), style = wx.TE_READONLY)
 
                 run_sizer.Add(self.final_frame_number_box,2, wx.EXPAND)
-                # run_sizer.AddStretchSpacer(3)
 
 
         load_box = wx.StaticBox(self, -1, 'Load')
@@ -10104,16 +10060,10 @@ class SECControlPanel(wx.Panel):
         load_sizer.Add(img_sizer, 0, flag = wx.EXPAND | wx.ALIGN_LEFT | wx.TOP | wx.LEFT | wx.RIGHT | wx.BOTTOM, border = 2)
         load_sizer.Add(run_sizer, 0, flag = wx.EXPAND | wx.ALIGN_LEFT | wx.TOP | wx.LEFT | wx.RIGHT, border = 2)
 
-        
-        # sizer.Add(fnum_sizer, 1, flag = wx.EXPAND | wx.ALIGN_CENTER | wx.TOP, border = 4)
-
-        # load_button = wx.Button(self, -1, 'Load')
-        # load_button.Bind(wx.EVT_BUTTON, self._onLoadButton)
 
         select_button = wx.Button(self, -1, 'Select file in SEC run')
         select_button.Bind(wx.EVT_BUTTON, self._onSelectButton)
 
-        # sizer.Add(select_button, 0, flag = wx.ALIGN_CENTER | wx.ALL, border = 4)
 
         update_button = wx.Button(self, -1, 'Update')
         update_button.Bind(wx.EVT_BUTTON, self._onUpdateButton)
@@ -10133,11 +10083,6 @@ class SECControlPanel(wx.Panel):
         load_sizer.Add(button_sizer, 1, wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, 2)
         sizer.Add(load_sizer, 0, wx.EXPAND | wx.BOTTOM, 5)
 
-        # sizer.Add(button_sizer, 1, flag = wx.ALIGN_CENTER | wx.TOP)
-
-        # line_sizer = wx.StaticLine(parent = self, style = wx.LI_HORIZONTAL)
-
-        # sizer.Add(line_sizer, 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 10)
 
         selected_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -10165,8 +10110,6 @@ class SECControlPanel(wx.Panel):
                 selected_sizer.Add(self.final_selected_box,1)
 
         selected_sizer.AddStretchSpacer(1)
-
-        # sizer.Add(selected_sizer,0, flag = wx.EXPAND | wx.TOP | wx.ALIGN_CENTER, border = 12)
 
         
         ####
@@ -10226,10 +10169,17 @@ class SECControlPanel(wx.Panel):
         ####
         calc_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
+        calc_mol_label = wx.StaticText(self, -1, 'Mol. Type : ')
+        self.calc_mol_type = wx.Choice(self, -1, choices=['Protein', 'RNA'])
+        self.calc_mol_type.SetStringSelection(self._raw_settings.get('MWVcType'))
+
         calc_parameters_button = wx.Button(self, -1, 'Set/Update Parameters')
         calc_parameters_button.Bind(wx.EVT_BUTTON, self._onSetCalcParams)
 
-        calc_button_sizer.Add(calc_parameters_button, 0, flag = wx.ALIGN_CENTER)
+        calc_button_sizer.Add(calc_mol_label, 0)
+        calc_button_sizer.Add(self.calc_mol_type, 1, flag = wx.ALIGN_RIGHT | wx.EXPAND| wx.RIGHT, border = 4)
+        calc_button_sizer.AddStretchSpacer(1)
+        calc_button_sizer.Add(calc_parameters_button, 0, flag = wx.ALIGN_LEFT)
 
         calc_box = wx.StaticBox(self, -1, 'Calculate/plot params')
         calc_sizer = wx.StaticBoxSizer(calc_box, wx.VERTICAL)
@@ -10300,8 +10250,6 @@ class SECControlPanel(wx.Panel):
 
             if fname != None:
                 self.directory, self.filename = os.path.split(fname)
-                # self.file_box.SetValue(self.filename)
-                # self.directory_box.SetValue(self.directory)
                 self._fillBoxes()
 
                 self._onLoad()
@@ -10310,8 +10258,6 @@ class SECControlPanel(wx.Panel):
              wx.CallAfter(wx.MessageBox, 'The "%s" header format is not supported for automated SEC-SAXS file loading. You can use the "Plot SEC" button in the file window to plot any SEC-SAXS data. Please contact the RAW developers if you want to add automated loading support for a particular header format.' %(hdr_format) ,
                                       'Error loading file', style = wx.ICON_ERROR | wx.OK)
 
-    # def _onLoadButton(self,evt):
-    #     self._onLoad()
 
     def _onLoad(self):
         file_list, frame_list = self._makeFileList()
@@ -10397,7 +10343,6 @@ class SECControlPanel(wx.Panel):
                           'Error loading file', style = wx.ICON_ERROR | wx.OK)
 
     def _onFramesToMainPlot(self,evt):
-        ######################## NEEDS TO ADD ITEMS TO LEGEND ############################
         self._updateControlValues()
 
         sasm_list=[]
@@ -10451,12 +10396,10 @@ class SECControlPanel(wx.Panel):
             if proceed == wx.ID_YES:
                 for i in range(len(sasm_list)):
                     sasm_list[i] = copy.deepcopy(sasm_list[i])
-                # wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while sending frames to plot...')
+
                 mainworker_cmd_queue.put(['to_plot_SEC', sasm_list])
-                # wx.CallAfter(self.main_frame.closeBusyDialog) 
 
     def _onAverageToMainPlot(self,evt):
-        ######################## NEEDS TO ADD ITEMS TO LEGEND ############################
         self._updateControlValues()
 
         sasm_list=[]
@@ -10515,6 +10458,7 @@ class SECControlPanel(wx.Panel):
         ibufId = self._findWindowId('ibufframe')
         fbufId = self._findWindowId('fbufframe')
         wsizeId = self._findWindowId('wsize')
+
 
         ibufWindow = wx.FindWindowById(ibufId)
         fbufWindow = wx.FindWindowById(fbufId)
@@ -10609,14 +10553,15 @@ class SECControlPanel(wx.Panel):
         self.initial_buffer_frame = initial_frame
         self.final_buffer_frame = final_frame
         self.window_size = window
+        self.mol_type = self.calc_mol_type.GetStringSelection()
         threshold = self._raw_settings.get('secCalcThreshold')
 
-        newParams = secm.setCalcParams(self.initial_buffer_frame, self.final_buffer_frame, self.window_size, threshold)
-
-        secm.item_panel.updateInfoTip()
-        secm.item_panel.markAsModified()
+        newParams = secm.setCalcParams(self.initial_buffer_frame, self.final_buffer_frame, self.window_size, self.mol_type, threshold)
 
         if newParams:
+            secm.item_panel.updateInfoTip()
+            secm.item_panel.markAsModified()
+
             if self._is_online:
                 self._goOffline()
 
@@ -10660,9 +10605,6 @@ class SECControlPanel(wx.Panel):
                 elif ptype == 'irunnum':
                     self.initial_run_number = data.GetValue()
 
-                # elif ptype == 'frunnum':
-                #     self.final_run_number = data.GetValue()
-
                 elif ptype == 'iframenum':
                     self.initial_frame_number = data.GetValue()
 
@@ -10695,14 +10637,8 @@ class SECControlPanel(wx.Panel):
                 elif ptype == 'wsize':
                     self.window_size = data.GetValue()
 
-                elif ptype == 'choice':
-                    self.plot_choice = data.GetString(data.GetCurrentSelection())
+        self.mol_type = self.calc_mol_type.GetStringSelection()
 
-                elif ptype == 'raxismin':
-                    self.right_axis_min = data.GetValue()
-
-                elif ptype == 'raxismax':
-                    self.right_axis_max = data.GetValue()
 
     def _makeFileList(self,modified_frame_list=[]):
 
@@ -10736,12 +10672,6 @@ class SECControlPanel(wx.Panel):
 
         return file_list, modified_frame_list
 
-        # if self.image_prefix != '' or self.filename != '':
-        #     rfill=len(self.initial_run_number)
-
-        #     for run in range(int(self.initial_run_number), int(self.final_run_number)+1):
-        #         for frame in frame_list:
-
 
     def _fillBoxes(self):
 
@@ -10752,8 +10682,6 @@ class SECControlPanel(wx.Panel):
             if self.filename != '':
 
                 count_filename, run_number, frame_number = SASFileIO.parseCHESSG1Filename(os.path.join(self.directory, self.filename))
-
-                # print count_filename
 
                 filelist=glob.glob(count_filename + '_' + run_number + '_*')
 
@@ -10766,8 +10694,6 @@ class SECControlPanel(wx.Panel):
                 self.initial_run_number = run_number
 
                 self.initial_run_number_box.SetValue(run_number)
-
-                # self.final_run_number_box.SetValue(run_number)
 
                 self.initial_frame_number = self.frame_list[0]
 
@@ -10808,7 +10734,7 @@ class SECControlPanel(wx.Panel):
             type = each[1][1]
             id = each[1][0]
 
-            if type != 'framelist' and type != 'manual' and type != 'filename' and type != 'dir' and type != 'frunnum' and type != 'wsize' and type != 'calc' and type != 'choice' and type != 'calc':
+            if type != 'framelist' and type != 'wsize':
                 infobox = wx.FindWindowById(id)
                 infobox.SetValue('')
             elif type == 'framelist':
@@ -10816,22 +10742,15 @@ class SECControlPanel(wx.Panel):
             elif type == 'wsize':
                 infobox = wx.FindWindowById(id)
                 infobox.SetValue('5')
-            elif type == 'choice':
-                infobox = wx.FindWindowById(id)
-                infobox.SetSelection(0)
 
-            # else:
-            #     infobox = wx.FindWindowById(id)
-            #     infobox.SetValue(False)
-
+        self.calc_mol_type.SetStringSelection(self._raw_settings.get('MWVcType'))
         self.secm=None
-        self._calculate = False
 
         self._updateControlValues
         self._updateCalcValues()
 
 
-#--- ** Centering Panel **
+#--- ** Masking Panel **
 
 class MaskingPanel(wx.Panel):
     
