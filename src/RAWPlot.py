@@ -1,4 +1,4 @@
-import wx, os, sys, math, numpy, platform
+import wx, os, sys, math, platform, itertools
 import matplotlib
 matplotlib.rcParams['backend'] = 'WxAgg'
 
@@ -1335,7 +1335,7 @@ class PlotPanel(wx.Panel):
         
         #mx_pix, my_pix = ax.transData.transform((xdata, ydata))
         
-        xy = numpy.array([(xdata,ydata), (xdata, ydata)])
+        xy = np.array([(xdata,ydata), (xdata, ydata)])
         
         mx_pix, my_pix = ax.transData.transform(xy)
         mx_pix = mx_pix[0]
@@ -1350,15 +1350,15 @@ class PlotPanel(wx.Panel):
         dx = cx_pix - mx_pix
         dy = cy_pix - my_pix
          
-        dist = numpy.sqrt(numpy.power(abs(dx),2)+numpy.power(abs(dy),2))
+        dist = np.sqrt(np.power(abs(dx),2)+np.power(abs(dy),2))
         
         step = 0.15
         new_dist = dist * step   #step = 0..1
          
         tanA = abs(dy) / abs(dx)
-        A = numpy.arctan(tanA)
+        A = np.arctan(tanA)
         
-        new_dx = numpy.cos(A) * new_dist
+        new_dx = np.cos(A) * new_dist
         new_dy = tanA * new_dx
         
         zdx = zx_pix + new_dx
@@ -1515,11 +1515,11 @@ class PlotPanel(wx.Panel):
             if plottype== 'normal' or plottype== 'subtracted':
                 line, ec, el = a.errorbar(sasm.q[q_min:q_max], sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label, **kwargs)
             elif plottype== 'kratky':
-                line, ec, el = a.errorbar(sasm.q[q_min:q_max], sasm.i[q_min:q_max] * numpy.power(sasm.q,2), sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
+                line, ec, el = a.errorbar(sasm.q[q_min:q_max], sasm.i[q_min:q_max] * np.power(sasm.q,2), sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
             elif plottype== 'guinier':
-                line, ec, el = a.errorbar(numpy.power(sasm.q[q_min:q_max],2), sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
+                line, ec, el = a.errorbar(np.power(sasm.q[q_min:q_max],2), sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
             elif plottype== 'porod':
-                line, ec, el = a.errorbar(sasm.q[q_min:q_max], numpy.power(sasm.q[q_min:q_max],4)*sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
+                line, ec, el = a.errorbar(sasm.q[q_min:q_max], np.power(sasm.q[q_min:q_max],4)*sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
         
             # print legend_label
             line.set_label(legend_label)        
@@ -1784,13 +1784,13 @@ class PlotPanel(wx.Panel):
                 c = '2'
                                                 
             if self.plotparams['plot' + c + 'type'] == 'kratky':
-                each.line.set_ydata(each.i[q_min:q_max] * numpy.power(each.q[q_min:q_max],2))
+                each.line.set_ydata(each.i[q_min:q_max] * np.power(each.q[q_min:q_max],2))
                 each.line.set_xdata(each.q[q_min:q_max]) 
             elif self.plotparams['plot' + c + 'type'] == 'guinier':
                 each.line.set_ydata(each.i[q_min:q_max])
-                each.line.set_xdata(numpy.power(each.q[q_min:q_max],2))
+                each.line.set_xdata(np.power(each.q[q_min:q_max],2))
             elif self.plotparams['plot' + c + 'type'] == 'porod':
-                each.line.set_ydata(numpy.power(each.q[q_min:q_max],4)*each.i[q_min:q_max])
+                each.line.set_ydata(np.power(each.q[q_min:q_max],4)*each.i[q_min:q_max])
                 each.line.set_xdata(each.q[q_min:q_max])
             elif self.plotparams['plot' + c + 'type'] == 'normal' or self.plotparams['plot' + c+ 'type'] == 'subtracted':
                 each.line.set_ydata(each.i[q_min:q_max])
@@ -1880,13 +1880,13 @@ class PlotPanel(wx.Panel):
             
             elif plottype== 'kratky':
                 #line, ec, el = a.errorbar(sasm.q, sasm.i*power(sasm.q,2), sasm.errorbars, picker = 3)
-                sasm.line.set_data(q, i*numpy.power(q,2))
+                sasm.line.set_data(q, i*np.power(q,2))
             elif plottype== 'guinier':
                 #line, ec, el = a.errorbar(power(sasm.q,2), sasm.i, sasm.errorbars, picker = 3)
-                sasm.line.set_data(numpy.power(q,2), i)
+                sasm.line.set_data(np.power(q,2), i)
             elif plottype== 'porod':
                 #line, ec, el = a.errorbar(sasm.q, power(sasm.q,4)*sasm.i, sasm.errorbars, picker = 3)
-                sasm.line.set_data(q, numpy.power(q,4)*i)
+                sasm.line.set_data(q, np.power(q,4)*i)
         
         self.canvas.draw()
     
@@ -2388,7 +2388,7 @@ class IftPlotPanel(PlotPanel):
         
         #mx_pix, my_pix = ax.transData.transform((xdata, ydata))
         
-        xy = numpy.array([(xdata,ydata), (xdata, ydata)])
+        xy = np.array([(xdata,ydata), (xdata, ydata)])
         
         mx_pix, my_pix = ax.transData.transform(xy)
         mx_pix = mx_pix[0]
@@ -2403,15 +2403,15 @@ class IftPlotPanel(PlotPanel):
         dx = cx_pix - mx_pix
         dy = cy_pix - my_pix
          
-        dist = numpy.sqrt(numpy.power(abs(dx),2)+numpy.power(abs(dy),2))
+        dist = np.sqrt(np.power(abs(dx),2)+np.power(abs(dy),2))
         
         step = 0.15
         new_dist = dist * step   #step = 0..1
          
         tanA = abs(dy) / abs(dx)
-        A = numpy.arctan(tanA)
+        A = np.arctan(tanA)
         
-        new_dx = numpy.cos(A) * new_dist
+        new_dx = np.cos(A) * new_dist
         new_dy = tanA * new_dx
         
         zdx = zx_pix + new_dx
@@ -2794,24 +2794,24 @@ class IftPlotPanel(PlotPanel):
             c = '2'
                                                 
             if self.plotparams['plot' + c + 'type'] == 'kratky':
-                each.qo_line.set_ydata(each.i_orig[q_min:q_max] * numpy.power(each.q_orig[q_min:q_max],2))
+                each.qo_line.set_ydata(each.i_orig[q_min:q_max] * np.power(each.q_orig[q_min:q_max],2))
                 each.qo_line.set_xdata(each.q_orig[q_min:q_max]) 
 
-                each.qf_line.set_ydata(each.i_fit[q_min:q_max] * numpy.power(each.q_orig[q_min:q_max],2))
+                each.qf_line.set_ydata(each.i_fit[q_min:q_max] * np.power(each.q_orig[q_min:q_max],2))
                 each.qf_line.set_xdata(each.q_orig[q_min:q_max]) 
 
             elif self.plotparams['plot' + c + 'type'] == 'guinier':
                 each.qo_line.set_ydata(each.i_orig[q_min:q_max])
-                each.qo_line.set_xdata(numpy.power(each.q_orig[q_min:q_max],2))
+                each.qo_line.set_xdata(np.power(each.q_orig[q_min:q_max],2))
 
                 each.qf_line.set_ydata(each.i_fit[q_min:q_max])
-                each.qf_line.set_xdata(numpy.power(each.q_orig[q_min:q_max],2))
+                each.qf_line.set_xdata(np.power(each.q_orig[q_min:q_max],2))
 
             elif self.plotparams['plot' + c + 'type'] == 'porod':
-                each.qo_line.set_ydata(numpy.power(each.q_orig[q_min:q_max],4)*each.i_orig[q_min:q_max])
+                each.qo_line.set_ydata(np.power(each.q_orig[q_min:q_max],4)*each.i_orig[q_min:q_max])
                 each.qo_line.set_xdata(each.q_orig[q_min:q_max])
 
-                each.qf_line.set_ydata(numpy.power(each.q_orig[q_min:q_max],4)*each.i_fit[q_min:q_max])
+                each.qf_line.set_ydata(np.power(each.q_orig[q_min:q_max],4)*each.i_fit[q_min:q_max])
                 each.qf_line.set_xdata(each.q_orig[q_min:q_max])
 
             elif self.plotparams['plot' + c + 'type'] == 'normal' or self.plotparams['plot' + c+ 'type'] == 'subtracted':
@@ -2905,13 +2905,13 @@ class IftPlotPanel(PlotPanel):
             
             elif type == 'kratky':
                 #line, ec, el = a.errorbar(sasm.q, sasm.i*power(sasm.q,2), sasm.errorbars, picker = 3)
-                sasm.line.set_data(q, i*numpy.power(q,2))
+                sasm.line.set_data(q, i*np.power(q,2))
             elif type == 'guinier':
                 #line, ec, el = a.errorbar(power(sasm.q,2), sasm.i, sasm.errorbars, picker = 3)
-                sasm.line.set_data(numpy.power(q,2), i)
+                sasm.line.set_data(np.power(q,2), i)
             elif type == 'porod':
                 #line, ec, el = a.errorbar(sasm.q, power(sasm.q,4)*sasm.i, sasm.errorbars, picker = 3)
-                sasm.line.set_data(q, numpy.power(q,4)*i)
+                sasm.line.set_data(q, np.power(q,4)*i)
         
         self.canvas.draw()
     
@@ -3151,11 +3151,11 @@ class IftPlotPanel(PlotPanel):
             if type2 == 'normal' or type2 == 'subtracted':
                 orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig[q_min:q_max], iftm.i_orig[q_min:q_max], iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp', **kwargs)
             elif type2 == 'kratky':
-                orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig[q_min:q_max], iftm.i_orig[q_min:q_max] * numpy.power(iftm.q_orig[q_min:q_max],2), iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp',**kwargs)
+                orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig[q_min:q_max], iftm.i_orig[q_min:q_max] * np.power(iftm.q_orig[q_min:q_max],2), iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp',**kwargs)
             elif type2 == 'guinier':
-                orig_line, orig_ec, orig_el = a2.errorbar(numpy.power(iftm.q_orig[q_min:q_max],2), iftm.i_orig[q_min:q_max], iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp',**kwargs)
+                orig_line, orig_ec, orig_el = a2.errorbar(np.power(iftm.q_orig[q_min:q_max],2), iftm.i_orig[q_min:q_max], iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp',**kwargs)
             elif type2 == 'porod':
-                orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig[q_min:q_max], numpy.power(iftm.q_orig[q_min:q_max],4)*iftm.i_orig[q_min:q_max], iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp',**kwargs)
+                orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig[q_min:q_max], np.power(iftm.q_orig[q_min:q_max],4)*iftm.i_orig[q_min:q_max], iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp',**kwargs)
 
             orig_line.set_label(legend_label+'_Exp')
 
@@ -3163,11 +3163,11 @@ class IftPlotPanel(PlotPanel):
             if type2 == 'normal' or type2 == 'subtracted':
                 fit_line = a2.plot(iftm.q_orig[q_min:q_max], iftm.i_fit[q_min:q_max], picker = 3, label = legend_label+'_Fit', **kwargs)
             elif type2 == 'kratky':
-                fit_line = a2.plot(iftm.q_orig[q_min:q_max], iftm.i_fit[q_min:q_max] * numpy.power(iftm.q_orig[q_min:q_max],2), picker = 3, label = legend_label+'_Fit',**kwargs)
+                fit_line = a2.plot(iftm.q_orig[q_min:q_max], iftm.i_fit[q_min:q_max] * np.power(iftm.q_orig[q_min:q_max],2), picker = 3, label = legend_label+'_Fit',**kwargs)
             elif type2 == 'guinier':
-                fit_line = a2.plot(numpy.power(iftm.q_orig[q_min:q_max],2), iftm.i_fit[q_min:q_max], picker = 3, label = legend_label+'_Fit',**kwargs)
+                fit_line = a2.plot(np.power(iftm.q_orig[q_min:q_max],2), iftm.i_fit[q_min:q_max], picker = 3, label = legend_label+'_Fit',**kwargs)
             elif type2 == 'porod':
-                fit_line = a2.plot(iftm.q_orig[q_min:q_max], numpy.power(iftm.q_orig[q_min:q_max],4)*iftm.i_fit[q_min:q_max], picker = 3, label = legend_label+'_Fit',**kwargs)
+                fit_line = a2.plot(iftm.q_orig[q_min:q_max], np.power(iftm.q_orig[q_min:q_max],4)*iftm.i_fit[q_min:q_max], picker = 3, label = legend_label+'_Fit',**kwargs)
             # print legend_label
             # line.set_label(legend_label) 
 
@@ -3606,6 +3606,8 @@ class SECPlotPanel(wx.Panel):
         self.selected_line = None
         self.selected_line_orig_width = 1
         self._plot_shown = 1
+
+        self.markers = itertools.cycle(('o', 'v', 's', 'p', 'h', 'D', '^', '<', '<',))
         
         #Timer to automatically restore line width after selection
         self.blink_timer = wx.Timer()
@@ -3933,7 +3935,7 @@ class SECPlotPanel(wx.Panel):
         
         #mx_pix, my_pix = ax.transData.transform((xdata, ydata))
         
-        xy = numpy.array([(xdata,ydata), (xdata, ydata)])
+        xy = np.array([(xdata,ydata), (xdata, ydata)])
         
         mx_pix, my_pix = ax.transData.transform(xy)
         mx_pix = mx_pix[0]
@@ -3948,15 +3950,15 @@ class SECPlotPanel(wx.Panel):
         dx = cx_pix - mx_pix
         dy = cy_pix - my_pix
          
-        dist = numpy.sqrt(numpy.power(abs(dx),2)+numpy.power(abs(dy),2))
+        dist = np.sqrt(np.power(abs(dx),2)+np.power(abs(dy),2))
         
         step = 0.15
         new_dist = dist * step   #step = 0..1
          
         tanA = abs(dy) / abs(dx)
-        A = numpy.arctan(tanA)
+        A = np.arctan(tanA)
         
-        new_dx = numpy.cos(A) * new_dist
+        new_dx = np.cos(A) * new_dist
         new_dy = tanA * new_dx
         
         zdx = zx_pix + new_dx
@@ -4216,7 +4218,7 @@ class SECPlotPanel(wx.Panel):
             if len(ydata)== 0:
                 ydata = np.zeros_like(xdata)-1
                 
-            calc_line = self.ryaxis.plot(xdata, ydata, picker = 3, label = param, **kwargs)[0]
+            calc_line = self.ryaxis.plot(xdata, ydata, marker = self.markers.next(), linestyle = '', picker = 3, label = param, **kwargs)[0]
             calc_line.set_label(param)
 
             secm.calc_line = calc_line

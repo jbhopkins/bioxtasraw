@@ -5367,7 +5367,7 @@ class SVDSECPlotPanel(wx.Panel):
                     
         self.secm = None
     
-        subplotLabels = [('SECPlot', 'Frame #', 'Total I', .1)]
+        subplotLabels = [('SECPlot', 'Frame #', 'Intensity', .1)]
         
         self.fig.subplots_adjust(hspace = 0.26)
         
@@ -5408,31 +5408,33 @@ class SVDSECPlotPanel(wx.Panel):
         
         if self.secm != None:
             self.canvas.mpl_disconnect(self.cid)
-            self.updateDataPlot(self.orig_frame_list, self.orig_total_i, self.orig_mean_i, self.orig_framei, self.orig_framef)
+            self.updateDataPlot(self.orig_frame_list, self.orig_intensity, self.orig_framei, self.orig_framef)
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
         
-    def plotSECM(self, secm, framei, framef):
-
+    def plotSECM(self, secm, framei, framef, ydata_type):
         frame_list = secm.frame_list
         
-        total_i = secm.total_i
-        mean_i = secm.mean_i
+        if ydata_type == 'qspec':
+            intensity = secm.I_of_q
+        elif ydata_type == 'mean':
+            intensity = secm.mean_i
+        else:
+            intensity = secm.total_i
 
         #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
         self.canvas.mpl_disconnect(self.cid)
-        self.updateDataPlot(frame_list, total_i, mean_i, framei, framef)
+        self.updateDataPlot(frame_list, intensity, framei, framef)
         
         #Reconnect draw_event
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
-    def updateDataPlot(self, frame_list, total_i, mean_i, framei, framef):
+    def updateDataPlot(self, frame_list, intensity, framei, framef):
             
         xmin, xmax = frame_list[0], frame_list[-1]
         
         #Save for resizing:
         self.orig_frame_list = frame_list
-        self.orig_total_i = total_i
-        self.orig_mean_i = mean_i
+        self.orig_intensity = intensity
         self.orig_framei = framei
         self.orig_framef = framef
         
@@ -5443,18 +5445,18 @@ class SVDSECPlotPanel(wx.Panel):
         a = self.subplots['SECPlot']
         
         if not self.secm:
-            self.secm, = a.plot(frame_list, total_i, 'r.-', animated = True)
+            self.secm, = a.plot(frame_list, intensity, 'r.-', animated = True)
 
-            self.cut_line, = a.plot(frame_list[framei:framef+1], total_i[framei:framef+1], 'b.-', animated = True)
+            self.cut_line, = a.plot(frame_list[framei:framef+1], intensity[framei:framef+1], 'b.-', animated = True)
             
             self.canvas.draw()
             self.background = self.canvas.copy_from_bbox(a.bbox)
         else:         
-            self.secm.set_ydata(total_i)
+            self.secm.set_ydata(intensity)
             self.secm.set_xdata(frame_list)
   
             #Error lines:
-            self.cut_line.set_ydata(total_i[framei:framef+1])
+            self.cut_line.set_ydata(intensity[framei:framef+1])
             self.cut_line.set_xdata(frame_list[framei:framef+1])
             
 
@@ -5506,6 +5508,8 @@ class SVDControlPanel(wx.Panel):
 
         self.button_ids = {'save_svd'   : wx.NewId(),
                             'save_all'  : wx.NewId()}
+
+        self.ydata_type = 'total'
 
         self.svd_U = None
         self.svd_s = None
@@ -5699,6 +5703,16 @@ class SVDControlPanel(wx.Panel):
         else:
             self.subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.subtracted_sasm_list, [], self.secm.getAllParameters())
 
+
+        if self.manip_item != None:
+            sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
+
+            self.ydata_type = sec_plot_panel.plotparams['y_axis_display']
+
+            if self.ydata_type == 'qspec':
+                q=float(sec_plot_panel.plotparams['secm_plot_q'])
+                self.subtracted_secm.I(q)
+
         self.updateSECPlot()
 
         wx.CallAfter(self.runSVD)
@@ -5864,9 +5878,9 @@ class SVDControlPanel(wx.Panel):
         profile_window = wx.FindWindowById(self.control_ids['profile'])
 
         if profile_window.GetStringSelection() == 'Unsubtracted':
-            plotpanel.plotSECM(self.secm, framei, framef)
+            plotpanel.plotSECM(self.secm, framei, framef, self.ydata_type)
         else:
-            plotpanel.plotSECM(self.subtracted_secm, framei, framef)
+            plotpanel.plotSECM(self.subtracted_secm, framei, framef, self.ydata_type)
 
     def updateSVDPlot(self):
         plotpanel = wx.FindWindowByName('SVDResultsPlotPanel')
