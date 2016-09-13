@@ -1760,7 +1760,7 @@ def loadSECFile(filename):
     new_secm.setMW(secm_data['mw'], secm_data['mwer'])
     new_secm.calc_has_data = secm_data['calc_has_data']
 
-    new_secm.setParameter('filename', os.path.splitext(os.path.split(filename)[1])[0])
+    new_secm.setParameter('filename', os.path.split(filename)[1])
 
     subtracted_sasm_list = []
 

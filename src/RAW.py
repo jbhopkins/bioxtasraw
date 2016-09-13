@@ -3921,9 +3921,14 @@ class MainWorkerThread(threading.Thread):
         else:
             restart_timer = False
 
+        overwrite_all = False
+        no_to_all = False
+
         for b in range(len(selected_items)):
 
-            secm = selected_items[b].secm
+            item = selected_items[b]
+            secm = item.secm
+
             secm_dict = secm.extractAll()
         
             secm_dict['line_color'] = secm.line.get_color()
@@ -3944,9 +3949,43 @@ class MainWorkerThread(threading.Thread):
 
             secm_dict['parameters_analysis'] = secm_dict['parameters']['analysis']  #pickle wont save this unless its raised up
 
-            SASFileIO.saveSECItem(save_path[b], secm_dict)
+            filepath = save_path[b]
 
-            selected_items[b].unmarkAsModified()
+            file_exists = os.path.isfile(filepath)
+
+            if file_exists and overwrite_all == False:
+
+                if no_to_all == False:
+                    result = self._showOverwritePrompt(os.path.split(filepath)[1], os.path.split(filepath)[0])
+
+                if result[0] == wx.ID_CANCEL:
+                    return
+
+                if result[0] == wx.ID_EDIT:
+                    filepath = result[1][0]
+                    path, new_filename = os.path.split(filepath)
+                    secm.setParameter('filename', new_filename)
+
+                if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
+                    SASFileIO.saveSECItem(filepath, secm_dict)
+                    filename, ext = os.path.splitext(secm.getParameter('filename'))
+                    secm.setParameter('filename', filename+'.sec')
+                    wx.CallAfter(secm.item_panel.updateFilenameLabel)
+                    wx.CallAfter(item.unmarkAsModified)
+
+                if result[0] == wx.ID_YESTOALL:
+                    overwrite_all = True
+
+                if result[0] == wx.ID_NOTOALL:
+                    no_to_all = True
+
+            else:
+                SASFileIO.saveSECItem(filepath, secm_dict)
+                filename, ext = os.path.splitext(secm.getParameter('filename'))
+                secm.setParameter('filename', filename+'.sec')
+                wx.CallAfter(secm.item_panel.updateFilenameLabel)
+                wx.CallAfter(item.unmarkAsModified)
+
 
             if restart_timer:
                 self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path[b])[1]])
@@ -3954,7 +3993,7 @@ class MainWorkerThread(threading.Thread):
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
 
-    def _saveSECProfiles(self, data, iftmode = False):
+    def _saveSECProfiles(self, data):
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait, saving profiles...')
 
         save_path = data[0]
@@ -6640,7 +6679,7 @@ class ManipItemPanel(wx.Panel):
             Mainframe.showSVDFrame(secm, None)
         
         else:
-            msg = 'You must select at least 2 P(r) functions to run SVD.'
+            msg = 'You must select at least 2 scattering profiles to run SVD.'
             dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
             proceed = dlg.ShowModal()
             dlg.Destroy()
@@ -9109,6 +9148,9 @@ class SECPanel(wx.Panel):
 
             path=os.path.splitext(path)[0]+'.sec'
             save_path = [path]
+
+            name = os.path.split(path)[1]
+            selected_items[0].secm.setParameter('filename', name)
         
         elif len(selected_items) == 0:
             return

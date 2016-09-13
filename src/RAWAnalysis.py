@@ -5498,9 +5498,10 @@ class SVDControlPanel(wx.Panel):
         self.control_ids = {'profile'   : wx.NewId(),
                             'fstart'    : wx.NewId(),
                             'fend'      : wx.NewId(),
-                            'fname'     : wx.NewId(),
                             'svd_start' : wx.NewId(),
                             'svd_end'   : wx.NewId()}
+
+        self.field_ids = {'fname'     : wx.NewId()}
                             
 
         self.button_ids = {'save_svd'   : wx.NewId(),
@@ -5525,7 +5526,7 @@ class SVDControlPanel(wx.Panel):
         box = wx.StaticBox(self, -1, 'Filename')
         filesizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
         
-        filenameTxtCtrl = wx.TextCtrl(self, self.control_ids['fname'], '', style = wx.TE_READONLY)
+        filenameTxtCtrl = wx.TextCtrl(self, self.field_ids['fname'], '', style = wx.TE_READONLY)
         
         filesizer.Add(filenameTxtCtrl, 1, wx.ALL, 3)
 
@@ -5631,7 +5632,7 @@ class SVDControlPanel(wx.Panel):
 
         filename = self.secm.getParameter('filename')
 
-        filename_window = wx.FindWindowById(self.control_ids['fname'])
+        filename_window = wx.FindWindowById(self.field_ids['fname'])
         filename_window.SetValue(filename)
 
         analysis_dict = self.secm.getParameter('analysis')
@@ -5879,16 +5880,16 @@ class SVDControlPanel(wx.Panel):
         plotpanel.plotSVD(self.svd_U, self.svd_s, self.svd_V, self.svd_U_autocor, self.svd_V_autocor, svd_start, svd_end)
 
     def _onSaveButton(self, evt):
-        if evt.GetId() == self.control_ids['save_svd']:
+        if evt.GetId() == self.button_ids['save_svd']:
             self.saveSV()
-        elif evt.GetId() == self.control_ids['save_all']:
+        elif evt.GetId() == self.button_ids['save_all']:
             self.saveAll()
 
     def saveSV(self):
         dirctrl = wx.FindWindowByName('DirCtrlPanel')
         path = str(dirctrl.getDirLabel())
 
-        filename_window = wx.FindWindowById(self.control_ids['fname'])
+        filename_window = wx.FindWindowById(self.field_ids['fname'])
         filename = filename_window.GetValue()
 
         name, ext = os.path.splitext(filename)
@@ -5920,7 +5921,7 @@ class SVDControlPanel(wx.Panel):
         dirctrl = wx.FindWindowByName('DirCtrlPanel')
         path = str(dirctrl.getDirLabel())
 
-        filename_window = wx.FindWindowById(self.control_ids['fname'])
+        filename_window = wx.FindWindowById(self.field_ids['fname'])
         filename = filename_window.GetValue()
 
         name, ext = os.path.splitext(filename)
@@ -5964,9 +5965,24 @@ class SVDControlPanel(wx.Panel):
 
 
         analysis_dict = self.secm.getParameter('analysis')
+
+        if 'svd' in analysis_dict:
+            old_svd_dict = analysis_dict['svd']
+        else:
+            old_svd_dict = {}
+
+        if old_svd_dict == svd_dict:
+            modified = False
+        else:
+            modified = True
+
         analysis_dict['svd'] = svd_dict
 
         self.secm.setParameter('analysis', analysis_dict)
+
+        if self.manip_item != None:
+            if modified:
+                self.manip_item.markAsModified()
 
         self.svd_frame.OnClose()
 
