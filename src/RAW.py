@@ -3873,21 +3873,6 @@ class MainWorkerThread(threading.Thread):
 
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
-    def _backupWorkspace(self, data):
-        #Note, not compatible with current save workspace function
-        #Needs to be updated
-        print 'Backing up workspace . . .'
-        all_items = data[0]
-        
-        backupfile = os.path.join(RAWWorkDir, '_wspBackup.wsp')
-        
-        data_out = [all_items, backupfile]
-        
-        self._saveWorkspace(data_out)
-    
-    def _backupSettings(self, data):
-        pass 
-
     def _saveIftItems(self, data):
         self._saveItems(data, iftmode=True)
 
@@ -3900,10 +3885,37 @@ class MainWorkerThread(threading.Thread):
         else:
             restart_timer = False
 
+        overwrite_all = False
+        no_to_all = False
+
         for b in range(len(selected_items)):
 
             selected_secm = selected_items[b].secm
-            SASFileIO.saveSECData(save_path[b], selected_secm)
+            
+            filepath = save_path[b]
+            file_exists = os.path.isfile(filepath)
+
+            if file_exists and overwrite_all == False:
+                if no_to_all == False:
+                    result = self._showOverwritePrompt(os.path.split(filepath)[1], os.path.split(filepath)[0])
+
+                if result[0] == wx.ID_CANCEL:
+                    return
+
+                if result[0] == wx.ID_EDIT:
+                    filepath = result[1][0]
+
+                if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
+                    SASFileIO.saveSECData(save_path[b], selected_secm)
+
+                if result[0] == wx.ID_YESTOALL:
+                    overwrite_all = True
+
+                if result[0] == wx.ID_NOTOALL:
+                    no_to_all = True
+
+            else:
+                SASFileIO.saveSECData(save_path[b], selected_secm)
 
             if restart_timer:
                 self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path[b])[1]])
