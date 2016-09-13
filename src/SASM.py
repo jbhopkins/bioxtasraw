@@ -683,6 +683,7 @@ class SECM:
         self.total_i = self._total_i_raw.copy()
 
         #Make sure we have as many frame numbers as sasm objects
+
         if len(self._sasm_list) != len(self._frame_list_raw):
             self._frame_list_raw=np.arange(len(self._sasm_list))
             print 'Warning: Incorrect frame number input to SECM object. Using default frame numbers.'

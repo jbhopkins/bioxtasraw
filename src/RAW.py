@@ -1291,7 +1291,7 @@ class MainFrame(wx.Frame):
     def _onAboutDlg(self, event):
         info = wx.AboutDialogInfo()
         info.Name = "RAW"
-        info.Version = "1.1.0"
+        info.Version = "1.1.1"
         info.Copyright = "Copyright(C) 2009 RAW"
         info.Description = "RAW is a software package primarily for SAXS 2D data reduction and 1D data analysis.\nIt provides an easy GUI for handling multiple files fast, and a\ngood alternative to commercial or protected software packages for finding\nthe Pair Distance Distribution Function\n\nPlease cite:\nBioXTAS RAW, a software program for high-throughput automated small-angle\nX-ray scattering data reduction and preliminary analysis, J. Appl. Cryst. (2009). 42, 959-964"
 
@@ -2377,7 +2377,7 @@ class MainWorkerThread(threading.Thread):
         #Find the reference intensity of the average buffer sasm
         plot_y = self.sec_plot_panel.getParameter('y_axis_display')
 
-        closest = lambda qlist: np.argmin(np.absolute(qlist-self.sec_plot_panel.qref))
+        closest = lambda qlist: numpy.argmin(numpy.absolute(qlist-self.sec_plot_panel.qref))
 
         if plot_y == 'total':
             ref_intensity = buffer_avg_sasm.getTotalI()
@@ -2615,7 +2615,7 @@ class MainWorkerThread(threading.Thread):
         #Find the reference intensity of the average buffer sasm
         plot_y = self.sec_plot_panel.getParameter('y_axis_display')
 
-        closest = lambda qlist: np.argmin(np.absolute(qlist-self.sec_plot_panel.qref))
+        closest = lambda qlist: numpy.argmin(numpy.absolute(qlist-self.sec_plot_panel.qref))
 
         if plot_y == 'total':
             ref_intensity = buffer_avg_sasm.getTotalI()
@@ -4136,7 +4136,7 @@ class InfoPanel(wx.Panel):
         
         infoSizer = wx.BoxSizer()
         
-        self.infoTextBox = wx.TextCtrl(self, -1, 'Welcome to RAW 1.1.0!\n--------------------------------\n\n', style = wx.TE_MULTILINE)
+        self.infoTextBox = wx.TextCtrl(self, -1, 'Welcome to RAW 1.1.1!\n--------------------------------\n\n', style = wx.TE_MULTILINE)
         
         self.infoTextBox.SetBackgroundColour('WHITE')
         self.infoTextBox.SetForegroundColour('BLACK')
@@ -6349,10 +6349,11 @@ class ManipItemPanel(wx.Panel):
         else:
             if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'gnom')):
                 menu.Append(31, 'GNOM (ATSAS)')
+        menu.Append(34, 'SVD')
         # menu.Append(24, 'Add to IFT list')
         
-        if self.sasm.getAllParameters().has_key('orig_sasm'):
-            menu.Append(26, 'Plot fit')
+        # if self.sasm.getAllParameters().has_key('orig_sasm'):
+        #     menu.Append(26, 'Plot fit')
             
         #menu.AppendMenu(3, 'Indirect Fourier Transform', iftmenu)
         menu.AppendMenu(wx.NewId(), 'Convert q-scale', convertq_menu)
@@ -6400,33 +6401,33 @@ class ManipItemPanel(wx.Panel):
             marked_item = self.manipulation_panel.getBackgroundItem()
             mainworker_cmd_queue.put(['subtract_items', [marked_item, selected_items]])
         
-        if evt.GetId() == 5:
+        elif evt.GetId() == 5:
             #Delete
             wx.CallAfter(self.manipulation_panel.removeSelectedItems)
         
-        if evt.GetId() == 6:
+        elif evt.GetId() == 6:
             #Average 
             selected_items = self.manipulation_panel.getSelectedItems()
             mainworker_cmd_queue.put(['average_items', selected_items])
             
-        if evt.GetId() == 7:
+        elif evt.GetId() == 7:
             self.manipulation_panel.saveItems()
                 
-        if evt.GetId() == 8:
+        elif evt.GetId() == 8:
             #Move to top plot
             plotpanel = wx.FindWindowByName('PlotPanel')
             selected_items = self.manipulation_panel.getSelectedItems()
             self.manipulation_panel.movePlots(selected_items, plotpanel.subplot1)
             wx.CallAfter(plotpanel.fitAxis)
                 
-        if evt.GetId() == 9:
+        elif evt.GetId() == 9:
             #Move to bottom plot
             plotpanel = wx.FindWindowByName('PlotPanel')
             selected_items = self.manipulation_panel.getSelectedItems()
             self.manipulation_panel.movePlots(selected_items, plotpanel.subplot2)
             wx.CallAfter(plotpanel.fitAxis)
             
-        if evt.GetId() == 13:
+        elif evt.GetId() == 13:
             #Guinier fit
             Mainframe = wx.FindWindowByName('MainFrame')
             selectedSASMList = self.manipulation_panel.getSelectedItems()
@@ -6434,26 +6435,26 @@ class ManipItemPanel(wx.Panel):
             sasm = selectedSASMList[0].getSASM()
             Mainframe.showGuinierFitFrame(sasm, selectedSASMList[0])
             
-        if evt.GetId() == 10:
-            #BIFT
-            analysisPage = wx.FindWindowByName('AutoAnalysisPage')
-            analysisPage.runBiftOnExperimentObject(self.ExpObj.copy(), expParams)
+        # elif evt.GetId() == 10:
+        #     #BIFT
+        #     analysisPage = wx.FindWindowByName('AutoAnalysisPage')
+        #     analysisPage.runBiftOnExperimentObject(self.ExpObj.copy(), expParams)
             
-        if evt.GetId() == 12:
-            #Add to IFT List
-            autoanalysis = wx.FindWindowByName('AutoAnalysisPage')
+        # elif evt.GetId() == 12:
+        #     #Add to IFT List
+        #     autoanalysis = wx.FindWindowByName('AutoAnalysisPage')
             
-            for ExpObj in ManipulationPage.GetSelectedExpObjs():
-                ExpObjIFT = ExpObj.copy()
-                autoanalysis.addExpObjToList(ExpObjIFT)
+        #     for ExpObj in ManipulationPage.GetSelectedExpObjs():
+        #         ExpObjIFT = ExpObj.copy()
+        #         autoanalysis.addExpObjToList(ExpObjIFT)
             
-            wx.CallAfter(wx.MessageBox, 'File(s) have been added to the IFT list', 'Files Added')
+        #     wx.CallAfter(wx.MessageBox, 'File(s) have been added to the IFT list', 'Files Added')
             
-        if evt.GetId() == 11:
-            #GNOM
-            analysisPage.runBiftOnExperimentObject(self.ExpObj.copy(), expParams)
+        # elif evt.GetId() == 11:
+        #     #GNOM
+        #     analysisPage.runBiftOnExperimentObject(self.ExpObj.copy(), expParams)
             
-        if evt.GetId() == 14:
+        elif evt.GetId() == 14:
             dlg = FilenameChangeDialog(self, self.sasm.getParameter('filename'))
             dlg.ShowModal()
             filename =  dlg.getFilename()
@@ -6464,13 +6465,13 @@ class ManipItemPanel(wx.Panel):
                 self.updateFilenameLabel()
                 self.markAsModified()
         
-        if evt.GetId() == 15:
+        elif evt.GetId() == 15:
             #A to s
             self.sasm.scaleBinnedQ(10.0)
             self._updateQTextCtrl()
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
             
-        if evt.GetId() == 16:
+        elif evt.GetId() == 16:
             #s to A
             self.sasm.scaleBinnedQ(0.1)
             self._updateQTextCtrl()
@@ -6486,7 +6487,7 @@ class ManipItemPanel(wx.Panel):
 #                self._legend_label = legend_label
 #                self._updateLegendLabel()
                 
-        if evt.GetId() == 18:
+        elif evt.GetId() == 18:
             #Save Select Analysis Info
             #self._saveAnalysisInfo()
             
@@ -6494,30 +6495,30 @@ class ManipItemPanel(wx.Panel):
             dlg.ShowModal()
             dlg.Destroy()
             
-        if evt.GetId() == 19:
+        elif evt.GetId() == 19:
             #Show Image
             self._onShowImage()
             
-        if evt.GetId() == 20:
+        elif evt.GetId() == 20:
             dlg = DataDialog(self, self.sasm)
             dlg.ShowModal()
             dlg.Destroy()
             
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
             
-        if evt.GetId() == 21:
+        elif evt.GetId() == 21:
             dlg = HdrDataDialog(self, self.sasm)
             dlg.ShowModal()
             dlg.Destroy()
             
             #wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
         
-        if evt.GetId() == 22:
+        elif evt.GetId() == 22:
             selected_items = self.manipulation_panel.getSelectedItems()
             marked_item = self.manipulation_panel.getBackgroundItem()
             mainworker_cmd_queue.put(['merge_items', [marked_item, selected_items]])
             
-        if evt.GetId() == 23:
+        elif evt.GetId() == 23:
             selected_items = self.manipulation_panel.getSelectedItems()
             
             dlg = RebinDialog(self)
@@ -6528,32 +6529,32 @@ class ManipItemPanel(wx.Panel):
             if retval != wx.ID_CANCEL:
                 mainworker_cmd_queue.put(['rebin_items', [selected_items, ret, logbin]])
         
-        if evt.GetId() == 24: #add to IFT
+        # elif evt.GetId() == 24: #add to IFT
             
-            selected_items = self.manipulation_panel.getSelectedItems()
+        #     selected_items = self.manipulation_panel.getSelectedItems()
             
-            ift_panel = wx.FindWindowByName('IFTPanel')
+        #     ift_panel = wx.FindWindowByName('IFTPanel')
             
-            for each_item in selected_items:
-                ift_panel.addItem(each_item.getSASM().copy())
+        #     for each_item in selected_items:
+        #         ift_panel.addItem(each_item.getSASM().copy())
         
-        if evt.GetId() == 25:
+        elif evt.GetId() == 25:
             selected_items = self.manipulation_panel.getSelectedItems()
             marked_item = self.manipulation_panel.getBackgroundItem()
             mainworker_cmd_queue.put(['interpolate_items', [marked_item, selected_items]])
             
-        if evt.GetId() == 26:
-           selected_items = self.manipulation_panel.getSelectedItems()
-           mainworker_cmd_queue.put(['plot_iftfit', [selected_items]])
+        # if evt.GetId() == 26:
+        #    selected_items = self.manipulation_panel.getSelectedItems()
+        #    mainworker_cmd_queue.put(['plot_iftfit', [selected_items]])
            
-        if evt.GetId() == 27:
+        elif evt.GetId() == 27:
            self.useAsMWStandard()
            
-        if evt.GetId() == 28:
+        elif evt.GetId() == 28:
            selected_items = self.manipulation_panel.getSelectedItems()
            mainworker_cmd_queue.put(['normalize_conc', [selected_items]])
 
-        if evt.GetId() == 29:
+        elif evt.GetId() == 29:
             #Molecular weight panel fit
             Mainframe = wx.FindWindowByName('MainFrame')
             selectedSASMList = self.manipulation_panel.getSelectedItems()
@@ -6561,11 +6562,11 @@ class ManipItemPanel(wx.Panel):
             sasm = selectedSASMList[0].getSASM()
             Mainframe.showMolWeightFrame(sasm, selectedSASMList[0])
 
-        if evt.GetId() == 30:
+        elif evt.GetId() == 30:
             #Save All Analysis Info
             self._saveAllAnalysisInfo()
 
-        if evt.GetId() == 31:
+        elif evt.GetId() == 31:
             #Open the GNOM window
             Mainframe = wx.FindWindowByName('MainFrame')
             selectedSASMList = self.manipulation_panel.getSelectedItems()
@@ -6573,7 +6574,7 @@ class ManipItemPanel(wx.Panel):
             sasm = selectedSASMList[0].getSASM()
             Mainframe.showGNOMFrame(sasm, selectedSASMList[0])
 
-        if evt.GetId() == 32:
+        elif evt.GetId() == 32:
             #Open the GNOM window
             Mainframe = wx.FindWindowByName('MainFrame')
             selectedSASMList = self.manipulation_panel.getSelectedItems()
@@ -6581,10 +6582,15 @@ class ManipItemPanel(wx.Panel):
             sasm = selectedSASMList[0].getSASM()
             Mainframe.showBIFTFrame(sasm, selectedSASMList[0])
 
-        if evt.GetId() == 33:
+        elif evt.GetId() == 33:
+            #Show the history viewer dialog
             dlg = HistoryDialog(self, self.sasm)
             dlg.ShowModal()
             dlg.Destroy()
+
+        elif evt.GetId() == 34:
+            #Run SVD on the selected profiles
+            self._runSVD()
                         
     
     def _saveAllAnalysisInfo(self):
@@ -6616,6 +6622,28 @@ class ManipItemPanel(wx.Panel):
             return
             
         mainworker_cmd_queue.put(['save_all_analysis_info', [save_path, selected_sasms]])
+
+    def _runSVD(self):
+        Mainframe = wx.FindWindowByName('MainFrame')
+
+        selected_items = self.manipulation_panel.getSelectedItems()
+
+        if len(selected_items) > 1:
+            selected_sasms = [item.sasm for item in selected_items]
+
+            selected_filenames = [sasm.getParameter('filename') for sasm in selected_sasms]
+
+            frame_list = range(len(selected_sasms))
+
+            secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {})
+
+            Mainframe.showSVDFrame(secm, None)
+        
+        else:
+            msg = 'You must select at least 2 P(r) functions to run SVD.'
+            dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
+            proceed = dlg.ShowModal()
+            dlg.Destroy()
     
     def _onKeyPress(self, evt):
         
@@ -8199,6 +8227,7 @@ class IFTItemPanel(wx.Panel):
                     menu.Append(23, 'Run DAMMIF')
                 if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter')):
                     menu.Append(24, 'Run AMBIMETER')
+        menu.Append(25, 'SVD')
 
         menu.AppendSeparator()
         menu.Append(20, 'Show data')
@@ -8223,66 +8252,66 @@ class IFTItemPanel(wx.Panel):
     
     def _onPopupMenuChoice(self, evt):
         
-        if evt.GetId() == 4:
-            #Subtract
-            selected_items = self.manipulation_panel.getSelectedItems()
-            marked_item = self.manipulation_panel.getBackgroundItem()
-            mainworker_cmd_queue.put(['subtract_items', [marked_item, selected_items]])
+        # if evt.GetId() == 4:
+        #     #Subtract
+        #     selected_items = self.manipulation_panel.getSelectedItems()
+        #     marked_item = self.manipulation_panel.getBackgroundItem()
+        #     mainworker_cmd_queue.put(['subtract_items', [marked_item, selected_items]])
         
         if evt.GetId() == 5:
             #Delete
             wx.CallAfter(self.manipulation_panel.removeSelectedItems)
         
-        if evt.GetId() == 6:
-            #Average 
-            selected_items = self.manipulation_panel.getSelectedItems()
-            mainworker_cmd_queue.put(['average_items', selected_items])
+        # if evt.GetId() == 6:
+        #     #Average 
+        #     selected_items = self.manipulation_panel.getSelectedItems()
+        #     mainworker_cmd_queue.put(['average_items', selected_items])
             
-        if evt.GetId() == 7:
+        elif evt.GetId() == 7:
             self.manipulation_panel.saveItems()
                 
-        if evt.GetId() == 8:
-            #Move to top plot
-            plotpanel = wx.FindWindowByName('PlotPanel')
-            selected_items = self.manipulation_panel.getSelectedItems()
-            self.manipulation_panel.movePlots(selected_items, plotpanel.subplot1)
-            wx.CallAfter(plotpanel.fitAxis)
+        # if evt.GetId() == 8:
+        #     #Move to top plot
+        #     plotpanel = wx.FindWindowByName('PlotPanel')
+        #     selected_items = self.manipulation_panel.getSelectedItems()
+        #     self.manipulation_panel.movePlots(selected_items, plotpanel.subplot1)
+        #     wx.CallAfter(plotpanel.fitAxis)
                 
-        if evt.GetId() == 9:
-            #Move to bottom plot
-            plotpanel = wx.FindWindowByName('PlotPanel')
-            selected_items = self.manipulation_panel.getSelectedItems()
-            self.manipulation_panel.movePlots(selected_items, plotpanel.subplot2)
-            wx.CallAfter(plotpanel.fitAxis)
+        # if evt.GetId() == 9:
+        #     #Move to bottom plot
+        #     plotpanel = wx.FindWindowByName('PlotPanel')
+        #     selected_items = self.manipulation_panel.getSelectedItems()
+        #     self.manipulation_panel.movePlots(selected_items, plotpanel.subplot2)
+        #     wx.CallAfter(plotpanel.fitAxis)
             
-        if evt.GetId() == 13:
-            #Guinier fit
-            Mainframe = wx.FindWindowByName('MainFrame')
-            selectedIFTMList = self.manipulation_panel.getSelectedItems()
+        # if evt.GetId() == 13:
+        #     #Guinier fit
+        #     Mainframe = wx.FindWindowByName('MainFrame')
+        #     selectedIFTMList = self.manipulation_panel.getSelectedItems()
             
-            iftm = selectedIFTMList[0].getIFTM()
-            Mainframe.showGuinierFitFrame(iftm, selectedIFTMList[0])
+        #     iftm = selectedIFTMList[0].getIFTM()
+        #     Mainframe.showGuinierFitFrame(iftm, selectedIFTMList[0])
             
-        if evt.GetId() == 10:
-            #BIFT
-            analysisPage = wx.FindWindowByName('AutoAnalysisPage')
-            analysisPage.runBiftOnExperimentObject(self.ExpObj.copy(), expParams)
+        # if evt.GetId() == 10:
+        #     #BIFT
+        #     analysisPage = wx.FindWindowByName('AutoAnalysisPage')
+        #     analysisPage.runBiftOnExperimentObject(self.ExpObj.copy(), expParams)
             
-        if evt.GetId() == 12:
-            #Add to IFT List
-            autoanalysis = wx.FindWindowByName('AutoAnalysisPage')
+        # if evt.GetId() == 12:
+        #     #Add to IFT List
+        #     autoanalysis = wx.FindWindowByName('AutoAnalysisPage')
             
-            for ExpObj in ManipulationPage.GetSelectedExpObjs():
-                ExpObjIFT = ExpObj.copy()
-                autoanalysis.addExpObjToList(ExpObjIFT)
+        #     for ExpObj in ManipulationPage.GetSelectedExpObjs():
+        #         ExpObjIFT = ExpObj.copy()
+        #         autoanalysis.addExpObjToList(ExpObjIFT)
             
-            wx.CallAfter(wx.MessageBox, 'File(s) have been added to the IFT list', 'Files Added')
+        #     wx.CallAfter(wx.MessageBox, 'File(s) have been added to the IFT list', 'Files Added')
             
-        if evt.GetId() == 11:
-            #GNOM
-            analysisPage.runBiftOnExperimentObject(self.ExpObj.copy(), expParams)
+        # if evt.GetId() == 11:
+        #     #GNOM
+        #     analysisPage.runBiftOnExperimentObject(self.ExpObj.copy(), expParams)
             
-        if evt.GetId() == 14:
+        elif evt.GetId() == 14:
             dlg = FilenameChangeDialog(self, self.iftm.getParameter('filename'))
             dlg.ShowModal()
             filename =  dlg.getFilename()
@@ -8293,41 +8322,41 @@ class IFTItemPanel(wx.Panel):
                 self.updateFilenameLabel()
                 self.markAsModified()
         
-        if evt.GetId() == 15:
-            #A to s
-            self.iftm.scaleBinnedQ(10.0)
-            self._updateQTextCtrl()
-            wx.CallAfter(self.iftm.plot_panel.updatePlotAfterManipulation, [self.iftm])
+        # if evt.GetId() == 15:
+        #     #A to s
+        #     self.iftm.scaleBinnedQ(10.0)
+        #     self._updateQTextCtrl()
+        #     wx.CallAfter(self.iftm.plot_panel.updatePlotAfterManipulation, [self.iftm])
             
-        if evt.GetId() == 16:
-            #s to A
-            self.iftm.scaleBinnedQ(0.1)
-            self._updateQTextCtrl()
-            wx.CallAfter(self.iftm.plot_panel.updatePlotAfterManipulation, [self.iftm])
+        # if evt.GetId() == 16:
+        #     #s to A
+        #     self.iftm.scaleBinnedQ(0.1)
+        #     self._updateQTextCtrl()
+        #     wx.CallAfter(self.iftm.plot_panel.updatePlotAfterManipulation, [self.iftm])
         
-        if evt.GetId() == 17:
-            dlg = LegendLabelChangeDialog(self, self._legend_label)
-            answer = dlg.ShowModal()
-            legend_label = dlg.getLegendLabel()
-            dlg.Destroy()
+        # if evt.GetId() == 17:
+        #     dlg = LegendLabelChangeDialog(self, self._legend_label)
+        #     answer = dlg.ShowModal()
+        #     legend_label = dlg.getLegendLabel()
+        #     dlg.Destroy()
             
-            if answer == wx.ID_OK:
-                self._legend_label = legend_label
-                self._updateLegendLabel()
+        #     if answer == wx.ID_OK:
+        #         self._legend_label = legend_label
+        #         self._updateLegendLabel()
                 
-        if evt.GetId() == 18:
-            #Save Analysis Info
-            #self._saveAnalysisInfo()
+        # if evt.GetId() == 18:
+        #     #Save Analysis Info
+        #     #self._saveAnalysisInfo()
             
-            dlg = SaveAnalysisInfoDialog(self, self.main_frame.raw_settings, self.manipulation_panel.getSelectedItems())
-            dlg.ShowModal()
-            dlg.Destroy()
+        #     dlg = SaveAnalysisInfoDialog(self, self.main_frame.raw_settings, self.manipulation_panel.getSelectedItems())
+        #     dlg.ShowModal()
+        #     dlg.Destroy()
             
-        if evt.GetId() == 19:
-            #Show Image
-            self._onShowImage()
+        # if evt.GetId() == 19:
+        #     #Show Image
+        #     self._onShowImage()
             
-        if evt.GetId() == 20:
+        elif evt.GetId() == 20:
             # print 'Data dialog not yet available with IFT items'
             dlg = IFTDataDialog(self, self.iftm)
             dlg.ShowModal()
@@ -8335,24 +8364,28 @@ class IFTItemPanel(wx.Panel):
             
             # wx.CallAfter(self.iftm.plot_panel.updatePlotAfterManipulation, [self.iftm])
             
-        if evt.GetId() == 21:
-            dlg = HdrDataDialog(self, self.iftm)
-            dlg.ShowModal()
-            dlg.Destroy()
+        # if evt.GetId() == 21:
+        #     dlg = HdrDataDialog(self, self.iftm)
+        #     dlg.ShowModal()
+        #     dlg.Destroy()
             
-            #wx.CallAfter(self.iftm.plot_panel.updatePlotAfterManipulation, [self.iftm])
+        #     #wx.CallAfter(self.iftm.plot_panel.updatePlotAfterManipulation, [self.iftm])
     
-        if evt.GetId() == 22:
+        elif evt.GetId() == 22:
             #To main plot
             self._toMainPlot()
 
-        if evt.GetId() == 23:
+        elif evt.GetId() == 23:
             #DAMMIF
             self.main_frame.showDAMMIFFrame(self.iftm, self)
 
-        if evt.GetId() == 24:
+        elif evt.GetId() == 24:
             #AMBIMETER
             self.main_frame.showAmbiFrame(self.iftm, self)
+
+        elif evt.GetId() == 25:
+            #SVD
+            self._runSVD()
 
     def _toMainPlot(self):
         selected_items = self.manipulation_panel.getSelectedItems()
@@ -8374,26 +8407,51 @@ class IFTItemPanel(wx.Panel):
 
         mainworker_cmd_queue.put(['to_plot', sasm_list])
 
-    def _saveAnalysisInfo(self):
+    # def _saveAnalysisInfo(self):
+    #     selected_items = self.manipulation_panel.getSelectedItems()
+            
+    #     if len(selected_items) == 0:
+    #         return
+        
+    #     dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+    #     save_path = dirctrl_panel.getDirLabel()
+        
+    #     filters = 'Comma Separated Files (*.csv)|*.csv'
+            
+    #     dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path) 
+    #     #dirdlg = wx.DirDialog(self, "Please select save directory:", str(save_path))
+            
+    #     if dialog.ShowModal() == wx.ID_OK:               
+    #         save_path = dialog.GetPath()
+    #     else:
+    #          return
+            
+    #     mainworker_cmd_queue.put(['save_analysis_info', [selected_items, save_path]])
+
+    def _runSVD(self):
+        Mainframe = wx.FindWindowByName('MainFrame')
+
         selected_items = self.manipulation_panel.getSelectedItems()
-            
-        if len(selected_items) == 0:
-            return
-        
-        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
-        save_path = dirctrl_panel.getDirLabel()
-        
-        filters = 'Comma Separated Files (*.csv)|*.csv'
-            
-        dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path) 
-        #dirdlg = wx.DirDialog(self, "Please select save directory:", str(save_path))
-            
-        if dialog.ShowModal() == wx.ID_OK:               
-            save_path = dialog.GetPath()
+
+        if len(selected_items) > 1:
+
+            selected_iftms = [item.iftm for item in selected_items]
+
+            selected_sasms = [SASM.SASM(iftm.p, iftm.r, iftm.err, iftm.getAllParameters()) for iftm in selected_iftms]
+
+            selected_filenames = [sasm.getParameter('filename') for sasm in selected_sasms]
+
+            frame_list = range(len(selected_sasms))
+
+            secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {})
+
+            Mainframe.showSVDFrame(secm, None)
+
         else:
-             return
-            
-        mainworker_cmd_queue.put(['save_analysis_info', [selected_items, save_path]])
+            msg = 'You must select at least 2 P(r) functions to run SVD.'
+            dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
+            proceed = dlg.ShowModal()
+            dlg.Destroy()
     
     def _onKeyPress(self, evt):
         
@@ -13203,7 +13261,7 @@ class HistoryDialog(wx.Dialog):
     
     def __init__(self, parent, sasm = None, *args, **kwargs):
         
-        wx.Dialog.__init__(self, parent, -1, 'History Display', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, 'History Display', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, size = (-1,500), *args, **kwargs)
         
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -15435,7 +15493,7 @@ class WelcomeDialog(wx.Frame):
         raw_bitmap = RAWIcons.raw_icon_embed.GetBitmap()
         rawimg = wx.StaticBitmap(self.panel, -1, raw_bitmap)
         
-        headline = wx.StaticText(self.panel, -1, 'Welcome to RAW 1.1.0!')
+        headline = wx.StaticText(self.panel, -1, 'Welcome to RAW 1.1.1!')
         
         text1 = 'Developers/Contributors:'
         text2 = '\nSoren Skou'
@@ -15574,7 +15632,7 @@ class MySplashScreen(wx.SplashScreen):
         evt.Skip()
         
     def ShowMain(self):            
-        frame = MainFrame('RAW 1.1.0', -1)
+        frame = MainFrame('RAW 1.1.1', -1)
         
         dlg = WelcomeDialog(frame, name = "WelcomeDialog")
         dlg.SetIcon(frame.GetIcon())

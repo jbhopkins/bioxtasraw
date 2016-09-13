@@ -5543,7 +5543,6 @@ class SVDControlPanel(wx.Panel):
         profile_sizer.Add(label, 0, wx.LEFT | wx.RIGHT, 3)
         profile_sizer.Add(profile_type, 1, wx.RIGHT, 3)
 
-
         #control what the range of curves you're using is.
         label1 = wx.StaticText(self, -1, 'Use Frames :')
         label2 = wx.StaticText(self, -1, 'to')
@@ -5568,6 +5567,9 @@ class SVDControlPanel(wx.Panel):
         control_sizer.Add(profile_sizer, 0,  wx.TOP | wx.EXPAND, 3)
         control_sizer.Add(frame_sizer, 0, wx.TOP | wx.EXPAND, 8)
         control_sizer.Add(sec_plot, 0, wx.TOP | wx.EXPAND, 8)
+
+        if self.manip_item == None:
+            control_sizer.Hide(profile_sizer, recursive = True)
 
 
         #svd results
@@ -5691,7 +5693,10 @@ class SVDControlPanel(wx.Panel):
 
 
         #make a subtracted profile SECM
-        self.subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.subtracted_sasm_list, self.secm.frame_list, self.secm.getAllParameters())
+        if len(self.secm.subtracted_sasm_list)>0:
+            self.subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.subtracted_sasm_list, self.secm.frame_list, self.secm.getAllParameters())
+        else:
+            self.subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.subtracted_sasm_list, [], self.secm.getAllParameters())
 
         self.updateSECPlot()
 
