@@ -118,7 +118,8 @@ class MainFrame(wx.Frame):
                         'rungnom'             : wx.NewId(),
                         'rundammif'           : wx.NewId(),
                         'bift'                : wx.NewId(),
-                        'runambimeter'        : wx.NewId()
+                        'runambimeter'        : wx.NewId(),
+                        'runsvd'              : wx.NewId()
                         }
         
         self.tbIcon = RawTaskbarIcon(self)
@@ -129,6 +130,7 @@ class MainFrame(wx.Frame):
         self.biftframe = None
         self.dammifframe = None
         self.ambimeterframe = None
+        self.svdframe = None
         self.raw_settings = RAWSettings.RawGuiSettings()
         
         self.RAWWorkDir = RAWWorkDir
@@ -546,6 +548,16 @@ class MainFrame(wx.Frame):
                                     wx.OK | wx.ICON_INFORMATION)
             answer2 = dial2.ShowModal()
             dial2.Destroy()
+
+    def showSVDFrame(self, secm, manip_item):
+
+        if self.svdframe:
+            self.svdframe.Destroy()
+                
+        self.svdframe = RAWAnalysis.SVDFrame(self, 'SVD', secm, manip_item)
+        self.svdframe.SetIcon(self.GetIcon())
+        self.svdframe.Show(True)
+            
             
     def _createSingleMenuBarItem(self, info):
         
@@ -662,6 +674,7 @@ class MainFrame(wx.Frame):
                                ('&Molecular weight', self.MenuIDs['molweight'], self._onToolsMenu, 'normal'),
                                ('&BIFT', self.MenuIDs['bift'], self._onToolsMenu, 'normal'),
                                ('&ATSAS', None, submenus['atsas'], 'submenu'),
+                               ('&SVD', self.MenuIDs['runsvd'], self._onToolsMenu, 'normal'),
                                (None, None, None, 'separator'),
                                ('&Centering/Calibration', self.MenuIDs['centering'], self._onToolsMenu, 'normal'),
                                ('&Masking', self.MenuIDs['masking'], self._onToolsMenu, 'normal')
@@ -905,7 +918,6 @@ class MainFrame(wx.Frame):
                 wx.MessageBox("Please select a scattering profile from the list on the manipulation page.", "No profile selected")
 
         elif id == self.MenuIDs['runambimeter']:
-            pass
             manippage = wx.FindWindowByName('IFTPanel')
 
             current_page = self.control_notebook.GetSelection()
@@ -920,6 +932,23 @@ class MainFrame(wx.Frame):
                 self.showAmbiFrame(iftm, manippage.getSelectedItems()[0])
             else:
                 wx.MessageBox("Please select an IFT from the list on the IFT page.", "No IFT selected")
+
+
+        elif id == self.MenuIDs['runsvd']:
+            manippage = wx.FindWindowByName('SECPanel')
+
+            current_page = self.control_notebook.GetSelection()
+            page = self.control_notebook.GetPage(current_page)
+            # print page_label
+            if page !=manippage:
+                wx.MessageBox('The selected operation cannot be performed unless the SEC window is selected.', 'Select SEC Window', style = wx.ICON_INFORMATION)
+                return
+            
+            if len(manippage.getSelectedItems()) > 0:
+                secm = manippage.getSelectedItems()[0].getSECM()
+                self.showSVDFrame(secm, manippage.getSelectedItems()[0])
+            else:
+                wx.MessageBox("Please select a SEC curve from the list on the SEC page.", "No SEC curve selected")
 
 
     def _onViewMenu(self, evt):
@@ -2021,10 +2050,10 @@ class MainWorkerThread(threading.Thread):
                 file_ext = os.path.splitext(each_filename)[1] 
 
                 if file_ext == '.sec':
-
                     try:
                         secm = SASFileIO.loadSECFile(each_filename)
-                    except:
+                    except Exception as e:
+                        print 'Error type: %s, error: %s' %(type(e).__name__, e)
                         self._showDataFormatError(os.path.split(each_filename)[1], include_sec = True)
                         wx.CallAfter(self.main_frame.closeBusyDialog)
                         return
@@ -2368,6 +2397,8 @@ class MainWorkerThread(threading.Thread):
         full_sasm_list = secm.getAllSASMs()
 
         subtracted_sasm_list = []
+
+        use_subtracted_sasm = []
         
         yes_to_all = False
 
@@ -2388,40 +2419,25 @@ class MainWorkerThread(threading.Thread):
                 sasm_intensity = sasm.i[index]
 
             if sasm_intensity/ref_intensity > threshold:
+                use_subtracted_sasm.append(True)
+            else:
+                use_subtracted_sasm.append(False)
 
-                result = wx.ID_YES
-                
-                qmin, qmax = sasm.getQrange()
-                sub_qmin, sub_qmax = sub_sasm.getQrange()
+            result = wx.ID_YES
+            
+            qmin, qmax = sasm.getQrange()
+            sub_qmin, sub_qmax = sub_sasm.getQrange()
 
-                if numpy.all(numpy.round(sasm.q[qmin:qmax],5) == numpy.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and not yes_to_all:
-                    result = self._showQvectorsNotEqualWarning(sasm, sub_sasm)[0]
-        
-                    if result == wx.ID_YESTOALL:
-                        yes_to_all = True
-                    elif result == wx.ID_CANCEL:
-                        wx.CallAfter(self.main_frame.closeBusyDialog)
-                        return
-                    try:
-                        if result == wx.ID_YES or result == wx.ID_YESTOALL:
-                            subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
-                            self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-                            
-                            #Insert into history of new file.
-                            
-                            scale2 = sub_sasm.getScale()
-                            offset2 = sub_sasm.getOffset()
-                            name2 = sub_sasm.getParameter('filename')
-
-                            subtracted_sasm_list.append(subtracted_sasm)
-
-
-                    except SASExceptions.DataNotCompatible, msg:
-                       self._showSubtractionError(sasm, sub_sasm)
-                       wx.CallAfter(self.main_frame.closeBusyDialog)
-                       return
-                elif numpy.all(numpy.round(sasm.q[qmin:qmax],5) == numpy.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and yes_to_all:
-                    try:
+            if numpy.all(numpy.round(sasm.q[qmin:qmax],5) == numpy.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and not yes_to_all:
+                result = self._showQvectorsNotEqualWarning(sasm, sub_sasm)[0]
+    
+                if result == wx.ID_YESTOALL:
+                    yes_to_all = True
+                elif result == wx.ID_CANCEL:
+                    wx.CallAfter(self.main_frame.closeBusyDialog)
+                    return
+                try:
+                    if result == wx.ID_YES or result == wx.ID_YESTOALL:
                         subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
                         self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
                         
@@ -2432,34 +2448,51 @@ class MainWorkerThread(threading.Thread):
                         name2 = sub_sasm.getParameter('filename')
 
                         subtracted_sasm_list.append(subtracted_sasm)
-                      
-
-                    except SASExceptions.DataNotCompatible, msg:
-                       self._showSubtractionError(sasm, sub_sasm)
-                       wx.CallAfter(self.main_frame.closeBusyDialog)
-                       return
-                else:
-                    try:
-                        subtracted_sasm = SASM.subtract(sasm, sub_sasm)
-                        self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-                        
-                        #Insert into history of new file.
-                        
-                        scale2 = sub_sasm.getScale()
-                        offset2 = sub_sasm.getOffset()
-                        name2 = sub_sasm.getParameter('filename')
-
-                        subtracted_sasm_list.append(subtracted_sasm)
 
 
-                    except SASExceptions.DataNotCompatible, msg:
-                       self._showSubtractionError(sasm, sub_sasm)
-                       wx.CallAfter(self.main_frame.closeBusyDialog)
-                       return
+                except SASExceptions.DataNotCompatible, msg:
+                   self._showSubtractionError(sasm, sub_sasm)
+                   wx.CallAfter(self.main_frame.closeBusyDialog)
+                   return
+            elif numpy.all(numpy.round(sasm.q[qmin:qmax],5) == numpy.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and yes_to_all:
+                try:
+                    subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
+                    self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
+                    
+                    #Insert into history of new file.
+                    
+                    scale2 = sub_sasm.getScale()
+                    offset2 = sub_sasm.getOffset()
+                    name2 = sub_sasm.getParameter('filename')
+
+                    subtracted_sasm_list.append(subtracted_sasm)
+                  
+
+                except SASExceptions.DataNotCompatible, msg:
+                   self._showSubtractionError(sasm, sub_sasm)
+                   wx.CallAfter(self.main_frame.closeBusyDialog)
+                   return
             else:
-                subtracted_sasm_list.append(-1)
+                try:
+                    subtracted_sasm = SASM.subtract(sasm, sub_sasm)
+                    self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
+                    
+                    #Insert into history of new file.
+                    
+                    scale2 = sub_sasm.getScale()
+                    offset2 = sub_sasm.getOffset()
+                    name2 = sub_sasm.getParameter('filename')
 
-        secm.setSubtractedSASMList(subtracted_sasm_list)
+                    subtracted_sasm_list.append(subtracted_sasm)
+
+
+                except SASExceptions.DataNotCompatible, msg:
+                   self._showSubtractionError(sasm, sub_sasm)
+                   wx.CallAfter(self.main_frame.closeBusyDialog)
+                   return
+
+
+        secm.setSubtractedSASMList(subtracted_sasm_list, use_subtracted_sasm)
 
         #Now calculate the RG, I0, and MW for each SASM
         rg = numpy.zeros_like(numpy.arange(len(subtracted_sasm_list)),dtype=float)
@@ -2472,8 +2505,9 @@ class MainWorkerThread(threading.Thread):
         if window_size == 1:
             for a in range(len(subtracted_sasm_list)):
                 current_sasm = subtracted_sasm_list[a]
+                use_current_sasm = use_subtracted_sasm[a]
 
-                if current_sasm != -1:
+                if use_current_sasm:
                     #use autorg to find the Rg and I0
                     rg[a], rger[a], i0[a], i0er[a], indx_min, indx_max = SASCalc.autoRg(current_sasm)
 
@@ -2491,10 +2525,7 @@ class MainWorkerThread(threading.Thread):
 
                 current_sasm_list = subtracted_sasm_list[a:a+window_size]
 
-                truth_test = numpy.empty_like(current_sasm_list)
-
-                for i in range(len(current_sasm_list)):
-                    truth_test[i] = (current_sasm_list[i] != -1)
+                truth_test = use_subtracted_sasm[a:a+window_size]
 
                 if numpy.all(truth_test):
                     try:
@@ -2612,6 +2643,8 @@ class MainWorkerThread(threading.Thread):
         full_sasm_list = secm.getSASMList(first_frame, last_frame)
 
         subtracted_sasm_list = []
+
+        use_subtracted_sasm = []
         
         yes_to_all = False
 
@@ -2632,40 +2665,25 @@ class MainWorkerThread(threading.Thread):
                 sasm_intensity = sasm.i[index]
 
             if sasm_intensity/ref_intensity > threshold:
+                use_subtracted_sasm.append(True)
+            else:
+                use_subtracted_sasm.append(False)
 
-                result = wx.ID_YES
-                
-                qmin, qmax = sasm.getQrange()
-                sub_qmin, sub_qmax = sub_sasm.getQrange()
+            result = wx.ID_YES
+            
+            qmin, qmax = sasm.getQrange()
+            sub_qmin, sub_qmax = sub_sasm.getQrange()
 
-                if numpy.all(numpy.round(sasm.q[qmin:qmax],5) == numpy.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and not yes_to_all:
-                    result = self._showQvectorsNotEqualWarning(sasm, sub_sasm)[0]
-        
-                    if result == wx.ID_YESTOALL:
-                        yes_to_all = True
-                    elif result == wx.ID_CANCEL:
-                        wx.CallAfter(self.main_frame.closeBusyDialog)
-                        return
-                    try:
-                        if result == wx.ID_YES or result == wx.ID_YESTOALL:
-                            subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
-                            self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-                            
-                            #Insert into history of new file.
-                            
-                            scale2 = sub_sasm.getScale()
-                            offset2 = sub_sasm.getOffset()
-                            name2 = sub_sasm.getParameter('filename')
-
-                            subtracted_sasm_list.append(subtracted_sasm)
-
-
-                    except SASExceptions.DataNotCompatible, msg:
-                       self._showSubtractionError(sasm, sub_sasm)
-                       wx.CallAfter(self.main_frame.closeBusyDialog)
-                       return
-                elif numpy.all(numpy.round(sasm.q[qmin:qmax],5) == numpy.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and yes_to_all:
-                    try:
+            if numpy.all(numpy.round(sasm.q[qmin:qmax],5) == numpy.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and not yes_to_all:
+                result = self._showQvectorsNotEqualWarning(sasm, sub_sasm)[0]
+    
+                if result == wx.ID_YESTOALL:
+                    yes_to_all = True
+                elif result == wx.ID_CANCEL:
+                    wx.CallAfter(self.main_frame.closeBusyDialog)
+                    return
+                try:
+                    if result == wx.ID_YES or result == wx.ID_YESTOALL:
                         subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
                         self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
                         
@@ -2676,36 +2694,51 @@ class MainWorkerThread(threading.Thread):
                         name2 = sub_sasm.getParameter('filename')
 
                         subtracted_sasm_list.append(subtracted_sasm)
-                      
-
-                    except SASExceptions.DataNotCompatible, msg:
-                       self._showSubtractionError(sasm, sub_sasm)
-                       wx.CallAfter(self.main_frame.closeBusyDialog)
-                       return
-                else:
-                    try:
-                        subtracted_sasm = SASM.subtract(sasm, sub_sasm)
-                        self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-                        
-                        #Insert into history of new file.
-                        
-                        scale2 = sub_sasm.getScale()
-                        offset2 = sub_sasm.getOffset()
-                        name2 = sub_sasm.getParameter('filename')
-
-                        subtracted_sasm_list.append(subtracted_sasm)
 
 
-                    except SASExceptions.DataNotCompatible, msg:
-                       self._showSubtractionError(sasm, sub_sasm)
-                       wx.CallAfter(self.main_frame.closeBusyDialog)
-                       return
+                except SASExceptions.DataNotCompatible, msg:
+                   self._showSubtractionError(sasm, sub_sasm)
+                   wx.CallAfter(self.main_frame.closeBusyDialog)
+                   return
+            elif numpy.all(numpy.round(sasm.q[qmin:qmax],5) == numpy.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and yes_to_all:
+                try:
+                    subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
+                    self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
+                    
+                    #Insert into history of new file.
+                    
+                    scale2 = sub_sasm.getScale()
+                    offset2 = sub_sasm.getOffset()
+                    name2 = sub_sasm.getParameter('filename')
 
+                    subtracted_sasm_list.append(subtracted_sasm)
+                  
+
+                except SASExceptions.DataNotCompatible, msg:
+                   self._showSubtractionError(sasm, sub_sasm)
+                   wx.CallAfter(self.main_frame.closeBusyDialog)
+                   return
             else:
-                subtracted_sasm_list.append(-1)
+                try:
+                    subtracted_sasm = SASM.subtract(sasm, sub_sasm)
+                    self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
+                    
+                    #Insert into history of new file.
+                    
+                    scale2 = sub_sasm.getScale()
+                    offset2 = sub_sasm.getOffset()
+                    name2 = sub_sasm.getParameter('filename')
+
+                    subtracted_sasm_list.append(subtracted_sasm)
 
 
-        secm.appendSubtractedSASMList(subtracted_sasm_list)
+                except SASExceptions.DataNotCompatible, msg:
+                   self._showSubtractionError(sasm, sub_sasm)
+                   wx.CallAfter(self.main_frame.closeBusyDialog)
+                   return
+
+
+        secm.appendSubtractedSASMList(subtracted_sasm_list, use_subtracted_sasm)
 
         #Now calculate the RG, I0, and MW for each SASM
         rg = numpy.zeros_like(numpy.arange(len(subtracted_sasm_list)),dtype=float)
@@ -2718,8 +2751,9 @@ class MainWorkerThread(threading.Thread):
         if window_size == 1:
             for a in range(len(subtracted_sasm_list)):
                 current_sasm = subtracted_sasm_list[a]
+                use_current_sasm = use_subtracted_sasm[a]
 
-                if current_sasm != -1:
+                if use_current_sasm:
                     #use autorg to find the Rg and I0
                     rg[a], rger[a], i0[a], i0er[a], indx_min, indx_max = SASCalc.autoRg(current_sasm)
 
@@ -2735,10 +2769,7 @@ class MainWorkerThread(threading.Thread):
             for a in range(len(subtracted_sasm_list)-(window_size-1)):
                 current_sasm_list = subtracted_sasm_list[a:a+window_size]
 
-                truth_test = numpy.empty_like(current_sasm_list)
-
-                for i in range(len(current_sasm_list)):
-                    truth_test[i] = (current_sasm_list[i] != -1)
+                truth_test = use_subtracted_sasm[a:a+window_size]
 
                 if numpy.all(truth_test):
                     try:
@@ -3649,7 +3680,7 @@ class MainWorkerThread(threading.Thread):
 
                 new_secm = SASM.SECM(secm_data['file_list'], sasm_list, secm_data['frame_list'], secm_data['parameters'])
 
-                new_secm.setCalcParams(secm_data['intial_buffer_frame'], secm_data['final_buffer_frame'], secm_data['window_size'])
+                new_secm.setCalcParams(secm_data['intial_buffer_frame'], secm_data['final_buffer_frame'], secm_data['window_size'], secm_data['mol_type'], secm_data['threshold'])
                 new_secm.setRgAndI0(secm_data['rg'], secm_data['rger'], secm_data['i0'], secm_data['i0er'])
                 new_secm.setMW(secm_data['mw'], secm_data['mwer'])
                 new_secm.calc_has_data = secm_data['calc_has_data']
@@ -3685,7 +3716,33 @@ class MainWorkerThread(threading.Thread):
 
                     subtracted_sasm_list.append(new_sasm)
 
-                new_secm.setSubtractedSASMList(subtracted_sasm_list)
+                new_secm.setSubtractedSASMList(subtracted_sasm_list, secm_data['use_subtracted_sasm'])
+
+
+                sasm_data = secm_data['average_buffer_sasm']
+        
+                if sasm_data != -1:
+                    new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
+                    new_sasm.setBinnedI(sasm_data['i_binned'])
+                    new_sasm.setBinnedQ(sasm_data['q_binned'])
+                    new_sasm.setBinnedErr(sasm_data['err_binned'])
+                    
+                    new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
+                                            sasm_data['norm_factor'], sasm_data['q_scale_factor'],
+                                            sasm_data['bin_size'])
+                    
+                    new_sasm.setQrange(sasm_data['selected_qrange'])
+                    
+                    try:
+                        new_sasm.setParameter('analysis', sasm_data['parameters_analysis'])
+                    except KeyError:
+                        pass
+                    
+                    new_sasm._update()
+                else:
+                    new_sasm = -1
+
+                new_secm.setAverageBufferSASM(new_sasm)
 
 
                 try:
@@ -9639,6 +9696,8 @@ class SECItemPanel(wx.Panel):
         menu.Append(6, 'Save all profiles as .dats')
         menu.Append(3, 'Save')
         menu.AppendSeparator()
+        menu.Append(7, 'SVD')
+        menu.AppendSeparator()
         
         menu.Append(4, 'Show data')
         
@@ -9652,27 +9711,23 @@ class SECItemPanel(wx.Panel):
         menu.Destroy()
     
     def _onPopupMenuChoice(self, evt):
-            
-#        if evt.GetId() == 3:
-#            #IFT
-#            analysisPage.runBiftOnExperimentObject(self.ExpObj, expParams)
                 
         if evt.GetId() == 1:
             #Delete
             wx.CallAfter(self.sec_panel.removeSelectedItems)
         
-        if evt.GetId() == 2:
+        elif evt.GetId() == 2:
             self.sec_panel.saveData()
 
-        if evt.GetId() == 3:
+        elif evt.GetId() == 3:
             self.sec_panel._saveItems()
 
-        if evt.GetId() == 4:
+        elif evt.GetId() == 4:
             dlg = SECDataDialog(self, self.secm)
             dlg.ShowModal()
             dlg.Destroy()
             
-        if evt.GetId() == 5:
+        elif evt.GetId() == 5:
             dlg = FilenameChangeDialog(self, self.secm.getParameter('filename'))
             dlg.ShowModal()
             filename =  dlg.getFilename()
@@ -9683,8 +9738,15 @@ class SECItemPanel(wx.Panel):
                 self.updateFilenameLabel()
                 self.markAsModified()
 
-        if evt.GetId() ==6:
+        elif evt.GetId() ==6:
             self.sec_panel._saveProfiles()
+
+        elif evt.GetId() == 7:
+            Mainframe = wx.FindWindowByName('MainFrame')
+            selectedSECMList = self.sec_panel.getSelectedItems()
+            
+            secm = selectedSECMList[0].getSECM()
+            Mainframe.showSVDFrame(secm, selectedSECMList[0])
                         
     
     def _onKeyPress(self, evt):
@@ -10511,10 +10573,10 @@ class SECControlPanel(wx.Panel):
         selected_item = self.sec_panel.getDataItem()
 
         if len(self.sec_panel.all_manipulation_items) == 0:
-            wx.MessageBox("SEC-SAXS data must be loaded to set parameters.", style=wx.ICON_ERROR | wx.OK)
+            wx.MessageBox("SEC-SAXS data must be loaded to set parameters.", "No data loaded", style=wx.ICON_ERROR | wx.OK)
             return
         elif len(self.sec_panel.all_manipulation_items)>1 and selected_item == None:
-            wx.MessageBox("Star the SEC-SAXS item for which you wish to set the parameters.", style=wx.ICON_ERROR | wx.OK)
+            wx.MessageBox("Star the SEC-SAXS item for which you wish to set the parameters.", "No item selected", style=wx.ICON_ERROR | wx.OK)
             return
         elif len(self.sec_panel.all_manipulation_items)>1:
 

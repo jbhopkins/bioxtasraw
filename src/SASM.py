@@ -744,6 +744,7 @@ class SECM:
         self.mol_type = ''
         self.average_buffer_sasm = None
         self.subtracted_sasm_list = []
+        self.use_subtracted_sasm = []
         self.rg_list = []
         self.rger_list = []
         self.i0_list = []
@@ -979,6 +980,8 @@ class SECM:
         all_data['intial_buffer_frame'] = self.initial_buffer_frame
         all_data['final_buffer_frame'] = self.final_buffer_frame
         all_data['window_size'] = self.window_size
+        all_data['mol_type'] = self.mol_type
+        all_data['threshold'] = self.threshold
         all_data['rg'] = self.rg_list
         all_data['rger'] = self.rger_list
         all_data['i0'] = self.i0_list
@@ -987,6 +990,8 @@ class SECM:
         all_data['mwer'] = self.mwer_list
         all_data['calc_has_data'] = self.calc_has_data
         all_data['is_visible'] = self.is_visible
+
+        all_data['use_subtracted_sasm'] = self.use_subtracted_sasm
 
 
         all_data['sasm_list'] = []
@@ -1067,11 +1072,13 @@ class SECM:
     def getAllSASMs(self):
         return self._sasm_list
 
-    def setSubtractedSASMList(self, sasm_list):
+    def setSubtractedSASMList(self, sasm_list, use_sasm_list):
         self.subtracted_sasm_list = sasm_list
+        self.use_subtracted_sasm = use_sasm_list
 
-    def appendSubtractedSASMList(self, sasm_list):
+    def appendSubtractedSASMList(self, sasm_list, use_sasm_list):
         self.subtracted_sasm_list = self.subtracted_sasm_list + sasm_list
+        self.use_subtracted_sasm = self.use_subtracted_sasm + use_sasm_list
 
     def setRgAndI0(self, rg, rger, i0, i0er):
         self.rg_list = rg

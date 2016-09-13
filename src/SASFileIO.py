@@ -1755,7 +1755,7 @@ def loadSECFile(filename):
 
     new_secm = SASM.SECM(secm_data['file_list'], sasm_list, secm_data['frame_list'], secm_data['parameters'])
 
-    new_secm.setCalcParams(secm_data['intial_buffer_frame'], secm_data['final_buffer_frame'], secm_data['window_size'])
+    new_secm.setCalcParams(secm_data['intial_buffer_frame'], secm_data['final_buffer_frame'], secm_data['window_size'], secm_data['mol_type'], secm_data['threshold'])
     new_secm.setRgAndI0(secm_data['rg'], secm_data['rger'], secm_data['i0'], secm_data['i0er'])
     new_secm.setMW(secm_data['mw'], secm_data['mwer'])
     new_secm.calc_has_data = secm_data['calc_has_data']
@@ -1790,7 +1790,33 @@ def loadSECFile(filename):
 
         subtracted_sasm_list.append(new_sasm)
 
-    new_secm.setSubtractedSASMList(subtracted_sasm_list)
+    new_secm.setSubtractedSASMList(subtracted_sasm_list, secm_data['use_subtracted_sasm'])
+
+
+    sasm_data = secm_data['average_buffer_sasm']
+        
+    if sasm_data != -1:
+        new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
+        new_sasm.setBinnedI(sasm_data['i_binned'])
+        new_sasm.setBinnedQ(sasm_data['q_binned'])
+        new_sasm.setBinnedErr(sasm_data['err_binned'])
+        
+        new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
+                                sasm_data['norm_factor'], sasm_data['q_scale_factor'],
+                                sasm_data['bin_size'])
+        
+        new_sasm.setQrange(sasm_data['selected_qrange'])
+        
+        try:
+            new_sasm.setParameter('analysis', sasm_data['parameters_analysis'])
+        except KeyError:
+            pass
+        
+        new_sasm._update()
+    else:
+        new_sasm = -1
+
+    new_secm.setAverageBufferSASM(new_sasm)
 
 
     try:
@@ -2849,6 +2875,35 @@ def saveWorkspace(sasm_dict, save_path):
     cPickle.dump(sasm_dict, file, cPickle.HIGHEST_PROTOCOL)
     
     file.close()
+
+
+def saveCSVFile(filename, data, header = ''):
+    if header != '':
+        np.savetxt(filename, data, delimiter = ',', header = header, comments = '')
+    else:
+        np.savetxt(filename, data, delimiter = ',', comments ='')
+
+
+def saveSVDData(filename, svd_data, u_data, v_data):
+
+    with open(filename, 'w') as fsave:
+        fsave.write('Singular_values,U_Autocorrelation,V_Autocorrelation\n')
+
+        for line in svd_data:
+            fsave.write(','.join(map(str, line))+'\n')
+
+        fsave.write('\n\n')
+        fsave.write('U_matrix_(left_singular_vectors)\n')
+
+        for line in u_data:
+            fsave.write(','.join(map(str, line))+'\n')
+
+        fsave.write('\n\n')
+        fsave.write('V_matrix_(right_singular_vectors)\n')
+
+        for line in v_data:
+            fsave.write(','.join(map(str, line))+'\n')
+
     
 def loadWorkspace(load_path):
     
@@ -2868,11 +2923,6 @@ def loadWorkspace(load_path):
     return sasm_dict
 
 
-def writeCommaSeparatedAnalysisInfo():
-    ''' Coming soon '''
-    pass
-
-
 def writeHeader(d, f2, ignore_list = []):
     f2.write('### HEADER:\n\n')
     
@@ -2882,29 +2932,6 @@ def writeHeader(d, f2, ignore_list = []):
     for ignored_key in ignore_list:
         if ignored_key in d.keys():
             del d[ignored_key]
-
-    # sortedKeys = d.keys()
-    # sortedKeys.sort()
-    
-    # for each in sortedKeys:#d.iterkeys()
-        
-    #     if type(d[each]) == type([]):
-    #         tmpline = ''
-    #         for every in d[each]:
-    #             tmpline = tmpline + str(every) + ' '
-
-    #         tmpline = tmpline.strip()
-        
-    #         line = each + ': ' + tmpline + '\n'
-            
-    #     elif type(d[each]) == type({}):
-    #         line = printDict(d, each)
-            
-    #     else:
-    #         line = each + ': ' + str(d[each]) + '\n'
-
-    #     if each != 'fileHeader':
-    #         f2.write(line)
 
     f2.write(json.dumps(d,indent = 4, sort_keys = True))
     
@@ -2928,9 +2955,6 @@ def writeRadFile(m, filename, header_on_top = True):
     f2.write('%d\n' % len(m.i[q_min:q_max]))
         
     fit = np.zeros(np.size(m.q))
-
-    
-    #print q_min, q_max, len(m.q), len(m.i), len(m.err)
     
     for idx in range(q_min, q_max):
         line = ('%.8E %.8E %.8E\n') % ( m.q[idx], m.i[idx], m.err[idx])
@@ -2944,20 +2968,6 @@ def writeRadFile(m, filename, header_on_top = True):
     f2.close()
 
 def printDict(d, each):
-    # tmpline = each + ' {'
-            
-    # newline = False
-    # for every_key in d[each].keys():
-    #     if not newline:
-    #         tmpline = tmpline + '\n'
-    #         newline = True
-        
-    #     if type(d[each][every_key]) == type({}):
-    #         tmpline = tmpline + ' ' + printDict(d[each], every_key)
-    #     else:
-    #         tmpline = tmpline + ' ' + str(every_key) + ': ' + str(d[each][every_key]) + '\n'
-            
-    # tmpline = tmpline + '}\n'
 
     tmpline = each + ' '+ json.dumps(d[each], indent = 4, sort_keys=True)+'\n'
     

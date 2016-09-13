@@ -5157,6 +5157,818 @@ class AmbimeterFrame(wx.Frame):
         self.Destroy()
 
 
+
+class SVDFrame(wx.Frame):
+    
+    def __init__(self, parent, title, sasm, manip_item):
+        
+        try:
+            wx.Frame.__init__(self, parent, -1, title, name = 'SVDFrame', size = (800,650))
+        except:
+            wx.Frame.__init__(self, None, -1, title, name = 'SVDFrame', size = (800,650))
+        
+        self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+
+        splitter1 = wx.SplitterWindow(self, -1)                
+        
+        self.plotPanel = SVDResultsPlotPanel(splitter1, -1, 'SVDResultsPlotPanel')
+        self.controlPanel = SVDControlPanel(splitter1, -1, 'SVDControlPanel', sasm, manip_item)
+  
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, 290)
+
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+            splitter1.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
+        else:
+            splitter1.SetMinimumPaneSize(50)
+
+        splitter1.Layout()
+        self.Layout()
+        self.SendSizeEvent()
+        splitter1.Layout()
+        self.Layout()
+
+        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+            splitter1.Fit()
+            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+                size = self.GetSize()
+                size[1] = size[1] + 20
+                self.SetSize(size)
+        
+        self.CenterOnParent()
+        self.Raise()
+
+    def OnClose(self):
+        
+        self.Destroy()
+
+
+
+class SVDResultsPlotPanel(wx.Panel):
+    
+    def __init__(self, parent, panel_id, name, wxEmbedded = False):
+        
+        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        
+        main_frame = wx.FindWindowByName('MainFrame')
+        
+        try:
+            self.raw_settings = main_frame.raw_settings
+        except AttributeError:
+            self.raw_settings = RAWSettings.RawGuiSettings()
+        
+        self.fig = Figure((5,4), 75)
+                    
+        self.svd = None
+    
+        subplotLabels = [('Singular_Values', 'Index', 'Value', .1), ('AutoCorrelation', 'Index', 'Absolute Value', 0.1)]
+        
+        self.fig.subplots_adjust(hspace = 0.26)
+        
+        self.subplots = {}
+             
+        for i in range(0, len(subplotLabels)):
+            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
+            subplot.set_xlabel(subplotLabels[i][1])
+            subplot.set_ylabel(subplotLabels[i][2])
+            self.subplots[subplotLabels[i][0]] = subplot 
+
+        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
+        self.fig.set_facecolor('white')
+
+        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
+        self.canvas.SetBackgroundColour('white')
+      
+        self.toolbar = NavigationToolbar2Wx(self.canvas)
+        self.toolbar.Realize()
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
+        sizer.Add(self.toolbar, 0, wx.GROW)
+
+        self.SetSizer(sizer)
+        
+        # Connect the callback for the draw_event so that window resizing works:
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) 
+
+    def ax_redraw(self, widget=None):
+        ''' Redraw plots on window resize event '''
+        
+        a = self.subplots['Singular_Values']
+        b = self.subplots['AutoCorrelation']
+
+        self.background = self.canvas.copy_from_bbox(a.bbox)
+        self.err_background = self.canvas.copy_from_bbox(b.bbox)
+        
+        if self.svd != None:
+            self.canvas.mpl_disconnect(self.cid)
+            self.updateDataPlot(self.orig_index, self.orig_svd_s, self.orig_svd_U_autocor, self.orig_svd_V_autocor, self.orig_svd_start, self.orig_svd_end)
+            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+        
+    def plotSVD(self, svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, svd_start, svd_end):
+        index = np.arange(len(svd_s))
+
+        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
+        self.canvas.mpl_disconnect(self.cid)
+        self.updateDataPlot(index, svd_s, svd_U_autocor, svd_V_autocor, svd_start, svd_end)
+        
+        #Reconnect draw_event
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def updateDataPlot(self, index, svd_s, svd_U_autocor, svd_V_autocor, svd_start, svd_end):
+            
+        #Save for resizing:
+        self.orig_index = index
+        self.orig_svd_s = svd_s
+        self.orig_svd_U_autocor = svd_U_autocor
+        self.orig_svd_V_autocor = svd_V_autocor
+        self.orig_svd_start = svd_start
+        self.orig_svd_end = svd_end
+
+            
+        a = self.subplots['Singular_Values']
+        b = self.subplots['AutoCorrelation']
+
+        xdata = index[svd_start:svd_end+1]
+        ydata1 = svd_s[svd_start:svd_end+1]
+        ydata2 = svd_U_autocor[svd_start:svd_end+1]
+        ydata3 = svd_V_autocor[svd_start:svd_end+1]
+
+        # print ydata2
+        # print ydata3
+
+        if not self.svd:
+            self.svd, = a.semilogy(xdata, ydata1, 'r.-', animated = True)
+
+            self.u_autocor, = b.plot(xdata, ydata2, 'r.-', label = 'U (Left singular vectors)', animated = True)
+            self.v_autocor, = b.plot(xdata, ydata3, 'b.-', label = 'V (Right singular vectors)', animated = True)
+            b.legend(fontsize = 12)
+            
+            #self.lim_back_line, = a.plot([x_lim_back, x_lim_back], [y_lim_back-0.2, y_lim_back+0.2], transform=a.transAxes, animated = True)
+            
+            self.canvas.draw()
+            self.background = self.canvas.copy_from_bbox(a.bbox)
+            self.err_background = self.canvas.copy_from_bbox(b.bbox)
+        else:         
+            self.svd.set_xdata(xdata)
+            self.svd.set_ydata(ydata1)
+       
+            self.u_autocor.set_xdata(xdata)
+            self.u_autocor.set_ydata(ydata2)
+
+            self.v_autocor.set_xdata(xdata)
+            self.v_autocor.set_ydata(ydata3)
+
+        a_oldx = a.get_xlim()
+        a_oldy = a.get_ylim()
+        b_oldx = b.get_xlim()
+        b_oldy = b.get_ylim()
+        
+        a.relim()
+        a.autoscale_view()
+
+        b.relim()
+        b.autoscale_view()
+
+        a_newx = a.get_xlim()
+        a_newy = a.get_ylim()
+        b_newx = b.get_xlim()
+        b_newy = b.get_ylim()
+
+        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy:
+            self.canvas.draw()
+
+        self.canvas.restore_region(self.background)
+        
+        a.draw_artist(self.svd)
+  
+        #restore white background in error plot and draw new error:
+        self.canvas.restore_region(self.err_background)
+        b.draw_artist(self.u_autocor)
+        b.draw_artist(self.v_autocor)
+
+        self.canvas.blit(a.bbox)
+        self.canvas.blit(b.bbox)
+
+
+class SVDSECPlotPanel(wx.Panel):
+    
+    def __init__(self, parent, panel_id, name, wxEmbedded = False):
+        
+        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        
+        main_frame = wx.FindWindowByName('MainFrame')
+        
+        try:
+            self.raw_settings = main_frame.raw_settings
+        except AttributeError:
+            self.raw_settings = RAWSettings.RawGuiSettings()
+        
+        self.fig = Figure((5,4), 75)
+                    
+        self.secm = None
+    
+        subplotLabels = [('SECPlot', 'Frame #', 'Total I', .1)]
+        
+        self.fig.subplots_adjust(hspace = 0.26)
+        
+        self.subplots = {}
+             
+        for i in range(0, len(subplotLabels)):
+            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, label = subplotLabels[i][0])
+            subplot.set_xlabel(subplotLabels[i][1])
+            subplot.set_ylabel(subplotLabels[i][2])
+            self.subplots[subplotLabels[i][0]] = subplot 
+
+        self.fig.subplots_adjust(left = 0.18, bottom = 0.13, right = 0.93, top = 0.93, hspace = 0.26)
+        self.fig.set_facecolor('white')
+
+        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
+        self.canvas.SetBackgroundColour('white')
+      
+        self.toolbar = NavigationToolbar2Wx(self.canvas)
+        self.toolbar.Realize()
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
+        sizer.Add(self.toolbar, 0, wx.GROW)
+
+        self.SetSizer(sizer)
+        
+        # Connect the callback for the draw_event so that window resizing works:
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) 
+
+    def ax_redraw(self, widget=None):
+        ''' Redraw plots on window resize event '''
+        
+        a = self.subplots['SECPlot']
+        # b = self.subplots['Data/Fit']
+
+        self.background = self.canvas.copy_from_bbox(a.bbox)
+        # self.err_background = self.canvas.copy_from_bbox(b.bbox)
+        
+        if self.secm != None:
+            self.canvas.mpl_disconnect(self.cid)
+            self.updateDataPlot(self.orig_frame_list, self.orig_total_i, self.orig_mean_i, self.orig_framei, self.orig_framef)
+            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+        
+    def plotSECM(self, secm, framei, framef):
+
+        frame_list = secm.frame_list
+        
+        total_i = secm.total_i
+        mean_i = secm.mean_i
+
+        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
+        self.canvas.mpl_disconnect(self.cid)
+        self.updateDataPlot(frame_list, total_i, mean_i, framei, framef)
+        
+        #Reconnect draw_event
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def updateDataPlot(self, frame_list, total_i, mean_i, framei, framef):
+            
+        xmin, xmax = frame_list[0], frame_list[-1]
+        
+        #Save for resizing:
+        self.orig_frame_list = frame_list
+        self.orig_total_i = total_i
+        self.orig_mean_i = mean_i
+        self.orig_framei = framei
+        self.orig_framef = framef
+        
+        # #Cut out region of interest
+        # self.i = i[xmin:xmax]
+        # self.q = q[xmin:xmax]
+            
+        a = self.subplots['SECPlot']
+        
+        if not self.secm:
+            self.secm, = a.plot(frame_list, total_i, 'r.-', animated = True)
+
+            self.cut_line, = a.plot(frame_list[framei:framef+1], total_i[framei:framef+1], 'b.-', animated = True)
+            
+            self.canvas.draw()
+            self.background = self.canvas.copy_from_bbox(a.bbox)
+        else:         
+            self.secm.set_ydata(total_i)
+            self.secm.set_xdata(frame_list)
+  
+            #Error lines:
+            self.cut_line.set_ydata(total_i[framei:framef+1])
+            self.cut_line.set_xdata(frame_list[framei:framef+1])
+            
+
+        a_oldx = a.get_xlim()
+        a_oldy = a.get_ylim()
+        
+        a.relim()
+        a.autoscale_view()
+
+        a_newx = a.get_xlim()
+        a_newy = a.get_ylim()
+
+        if a_newx != a_oldx or a_newy != a_oldy:
+            self.canvas.draw()
+
+        self.canvas.restore_region(self.background)
+        
+        a.draw_artist(self.secm)
+        a.draw_artist(self.cut_line)
+
+        self.canvas.blit(a.bbox)
+        
+             
+class SVDControlPanel(wx.Panel):
+    
+    def __init__(self, parent, panel_id, name, secm, manip_item):
+
+        wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        self.parent = parent
+
+        self.svd_frame = wx.FindWindowByName('SVDFrame')
+        
+        self.secm = secm
+        
+        self.manip_item = manip_item
+        self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.control_ids = {'profile'   : wx.NewId(),
+                            'fstart'    : wx.NewId(),
+                            'fend'      : wx.NewId(),
+                            'fname'     : wx.NewId(),
+                            'svd_start' : wx.NewId(),
+                            'svd_end'   : wx.NewId()}
+                            
+
+        self.button_ids = {'save_svd'   : wx.NewId(),
+                            'save_all'  : wx.NewId()}
+
+        self.svd_U = None
+        self.svd_s = None
+        self.svd_V = None
+
+        control_sizer = self._createLayout()
+
+        self.SetSizer(control_sizer)
+
+        self.initValues()
+
+
+    def _createLayout(self):
+
+        top_sizer =wx.BoxSizer(wx.VERTICAL)
+
+        #filename sizer
+        box = wx.StaticBox(self, -1, 'Filename')
+        filesizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
+        
+        filenameTxtCtrl = wx.TextCtrl(self, self.control_ids['fname'], '', style = wx.TE_READONLY)
+        
+        filesizer.Add(filenameTxtCtrl, 1, wx.ALL, 3)
+
+
+        #svd controls
+        box = wx.StaticBox(self, -1, 'Controls')
+        control_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+
+        #control if you're using unsubtracted or subtracted curves
+        label = wx.StaticText(self, -1, 'Use :')
+        profile_type = wx.Choice(self, self.control_ids['profile'], choices = ['Unsubtracted', 'Subtracted'])
+        profile_type.Bind(wx.EVT_CHOICE, self._onProfileChoice)
+
+        profile_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        profile_sizer.Add(label, 0, wx.LEFT | wx.RIGHT, 3)
+        profile_sizer.Add(profile_type, 1, wx.RIGHT, 3)
+
+
+        #control what the range of curves you're using is.
+        label1 = wx.StaticText(self, -1, 'Use Frames :')
+        label2 = wx.StaticText(self, -1, 'to')
+        start_frame = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['fstart'], size = (60,-1))
+        end_frame = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['fend'], size = (60,-1))
+
+        start_frame.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeFrame)
+        end_frame.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeFrame)
+
+        frame_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        frame_sizer.Add(label1, 0, wx.LEFT | wx.RIGHT, 3)
+        frame_sizer.Add(start_frame, 0, wx.RIGHT, 3)
+        frame_sizer.Add(label2, 0, wx.RIGHT, 3)
+        frame_sizer.Add(end_frame, 0, wx.RIGHT, 3)
+
+
+        #plot the sec data
+        sec_plot = SVDSECPlotPanel(self, -1, 'SVDSECPlotPanel')
+
+
+        #SVD control sizer
+        control_sizer.Add(profile_sizer, 0,  wx.TOP | wx.EXPAND, 3)
+        control_sizer.Add(frame_sizer, 0, wx.TOP | wx.EXPAND, 8)
+        control_sizer.Add(sec_plot, 0, wx.TOP | wx.EXPAND, 8)
+
+
+        #svd results
+        box = wx.StaticBox(self, -1, 'Results')
+        results_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+
+        #Control plotted SVD range
+        label1 = wx.StaticText(self, -1, 'Plot indexes :')
+        label2 = wx.StaticText(self, -1, 'to')
+        start_svd = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['svd_start'], size = (60,-1))
+        end_svd = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['svd_end'], size = (60,-1))
+
+        start_svd.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeSVD)
+        end_svd.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeSVD)
+
+        svdrange_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        svdrange_sizer.Add(label1, 0, wx.LEFT | wx.RIGHT, 3)
+        svdrange_sizer.Add(start_svd, 0, wx.RIGHT, 3)
+        svdrange_sizer.Add(label2, 0, wx.RIGHT, 3)
+        svdrange_sizer.Add(end_svd, 0, wx.RIGHT, 3)
+
+
+        #Save SVD info
+        save_svd_auto = wx.Button(self, self.button_ids['save_svd'], 'Save Plotted Values')
+        save_svd_auto.Bind(wx.EVT_BUTTON, self._onSaveButton)
+
+        save_svd_all = wx.Button(self, self.button_ids['save_all'], 'Save All')
+        save_svd_all.Bind(wx.EVT_BUTTON, self._onSaveButton)
+
+        svd_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        svd_button_sizer.Add(save_svd_auto, 1, wx.LEFT | wx.RIGHT, 3)
+        svd_button_sizer.Add(save_svd_all, 1, wx.RIGHT, 3)
+
+
+        results_sizer.Add(svdrange_sizer, 0,  wx.TOP | wx.EXPAND, 3)
+        results_sizer.Add(svd_button_sizer,0, wx.TOP | wx.EXPAND, 3)
+
+
+        button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
+        button.Bind(wx.EVT_BUTTON, self._onCancelButton)
+        
+        savebutton = wx.Button(self, wx.ID_OK, 'OK')
+        savebutton.Bind(wx.EVT_BUTTON, self._onOkButton)
+        
+        buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttonSizer.Add(savebutton, 1, wx.RIGHT, 5)
+        buttonSizer.Add(button, 1)
+
+
+        top_sizer.Add(filesizer, 0, wx.EXPAND | wx.TOP, 3)
+        top_sizer.Add(control_sizer, 0, wx.EXPAND | wx.TOP, 3)
+        top_sizer.Add(results_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 3)
+        top_sizer.AddStretchSpacer(1)
+        top_sizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+
+        return top_sizer
+
+    def initValues(self):
+
+        filename = self.secm.getParameter('filename')
+
+        filename_window = wx.FindWindowById(self.control_ids['fname'])
+        filename_window.SetValue(filename)
+
+        analysis_dict = self.secm.getParameter('analysis')
+
+        if 'svd' not in analysis_dict:
+
+            framei = self.secm.frame_list[0]
+            framef = self.secm.frame_list[-1]
+
+
+            framei_window = wx.FindWindowById(self.control_ids['fstart'])
+            framef_window = wx.FindWindowById(self.control_ids['fend'])
+
+            if len(self.secm.subtracted_sasm_list)>0:
+                frame_start = max(np.where(self.secm.use_subtracted_sasm)[0][0], framei)
+                frame_end = min(np.where(self.secm.use_subtracted_sasm)[0][-1], framef)
+
+            else:
+                frame_start = framei
+                frame_end = framef
+
+            framei_window.SetValue(frame_start)
+            framef_window.SetValue(frame_end)
+
+            framei_window.SetRange((framei, framef))
+            framef_window.SetRange((framei, framef))
+
+
+            svd_start_window =wx.FindWindowById(self.control_ids['svd_start'])
+            svd_end_window =wx.FindWindowById(self.control_ids['svd_end'])
+
+            svd_start_window.SetValue(0)
+            svd_end_window.SetValue(min(framef-framei,10))
+
+            svd_start_window.SetRange((0, framef-framei-1))
+            svd_end_window.SetRange((1, framef-framei))
+
+        else:
+            framei = self.secm.frame_list[0]
+            framef = self.secm.frame_list[-1]
+
+            framei_window = wx.FindWindowById(self.control_ids['fstart'])
+            framef_window = wx.FindWindowById(self.control_ids['fend'])
+
+            svd_start_window =wx.FindWindowById(self.control_ids['svd_start'])
+            svd_end_window =wx.FindWindowById(self.control_ids['svd_end'])
+
+            framei_window.SetRange((framei, framef))
+            framef_window.SetRange((framei, framef))
+
+            svd_start_window.SetRange((0, framef-framei-1))
+            svd_end_window.SetRange((1, framef-framei))
+
+            for key in analysis_dict['svd']:
+                if key != 'profile':
+                    wx.FindWindowById(self.control_ids[key]).SetValue(analysis_dict['svd'][key])
+                else:
+                    wx.FindWindowById(self.control_ids[key]).SetStringSelection(analysis_dict['svd'][key])
+
+
+        #make a subtracted profile SECM
+        self.subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.subtracted_sasm_list, self.secm.frame_list, self.secm.getAllParameters())
+
+        self.updateSECPlot()
+
+        wx.CallAfter(self.runSVD)
+
+
+    #This function is called when the profiles used are changed between subtracted and unsubtracted.
+    def _onProfileChoice(self, evt):
+        if len(self.subtracted_secm.getAllSASMs()) > 0:
+            wx.CallAfter(self.updateSECPlot)
+            wx.CallAfter(self.runSVD)
+        else:
+            msg = 'No subtracted files are available for this SEC curve. You can create subtracted curves by setting a buffer range in the SEC Control Panel and calculating the parameter values. You will have to reopen the SVD window after doing this.'
+            dlg = wx.MessageDialog(self, msg, "No subtracted files", style = wx.ICON_INFORMATION | wx.OK)
+            proceed = dlg.ShowModal()
+            dlg.Destroy()
+
+            profile_window = wx.FindWindowById(evt.GetId())
+            profile_window.SetStringSelection('Unsubtracted')
+
+
+    #This function is called when the start and end frame range spin controls are modified
+    def _onChangeFrame(self, evt):
+        id = evt.GetId()
+
+        spin = wx.FindWindowById(id)
+            
+        new_val = spin.GetValue()
+
+        fstart_window = wx.FindWindowById(self.control_ids['fstart'])
+        fend_window = wx.FindWindowById(self.control_ids['fend'])
+
+        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'])
+        svd_end_window =wx.FindWindowById(self.control_ids['svd_end'])
+
+        #Make sure the boundaries don't cross:
+        if id == self.control_ids['fstart']:
+            max_val = fend_window.GetValue()
+            
+            if new_val > max_val-1:
+                new_val = max_val - 1
+                spin.SetValue(new_val)
+            
+        elif id == self.control_ids['fend']:
+            min_val = fstart_window.GetValue()
+            
+            if new_val < min_val+1:
+                new_val = min_val + 1
+                spin.SetValue(new_val)
+
+        svd_min = svd_start_window.GetValue()
+        svd_max = svd_end_window.GetValue()
+        tot = fend_window.GetValue()-fstart_window.GetValue()
+
+        if svd_max > tot:
+            svd_end_window.SetValue(tot)
+
+        if svd_min > tot:
+            svd_start_window.SetValue(tot-1)
+
+        wx.CallAfter(self.updateSECPlot)
+
+        wx.CallAfter(self.runSVD)
+
+    def _onChangeSVD(self, evt):
+        id = evt.GetId()
+
+        spin = wx.FindWindowById(id)
+            
+        new_val = spin.GetValue()
+
+        fstart_window = wx.FindWindowById(self.control_ids['fstart'])
+        fend_window = wx.FindWindowById(self.control_ids['fend'])
+
+        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'])
+        svd_end_window = wx.FindWindowById(self.control_ids['svd_end'])
+
+        #Make sure the boundaries don't cross:
+        if id == self.control_ids['svd_start']:
+            max_val = svd_end_window.GetValue()
+
+            tot = fend_window.GetValue()-fstart_window.GetValue()
+
+            if new_val > tot - 1:
+                new_val = tot - 1
+                spin.SetValue(new_val)
+            
+            elif new_val > max_val-1:
+                new_val = max_val - 1
+                spin.SetValue(new_val)
+            
+        elif id == self.control_ids['svd_end']:
+            min_val = svd_start_window.GetValue()
+
+            tot = fend_window.GetValue()-fstart_window.GetValue()
+
+            if new_val > tot:
+                new_val = tot
+                spin.SetValue(new_val)
+            
+            elif new_val < min_val+1:
+                new_val = min_val + 1
+                spin.SetValue(new_val)
+
+        wx.CallAfter(self.updateSVDPlot)
+
+
+    def onSaveInfo(self, evt):
+        
+        diag = wx.FindWindowByName('SVDFrame')
+        diag.OnClose()
+
+        
+    def onCloseButton(self, evt):
+
+        if self.BIFT_timer.IsRunning():
+            self.BIFT_timer.Stop()
+            RAWGlobals.cancel_bift = True
+        
+        diag = wx.FindWindowByName('SVDFrame')
+        diag.OnClose()
+    
+    def updateResultsPlot(self):
+
+        plotpanel = wx.FindWindowByName('SVDResultsPlotPanel')
+
+        plotpanel.plotPr(self.iftm)
+
+    def runSVD(self):
+        profile_window = wx.FindWindowById(self.control_ids['profile'])
+
+        framei_window = wx.FindWindowById(self.control_ids['fstart'])
+        framef_window = wx.FindWindowById(self.control_ids['fend'])
+
+        framei = framei_window.GetValue()
+        framef = framef_window.GetValue()
+
+        if profile_window.GetStringSelection() == 'Unsubtracted':
+            secm = self.secm
+        else:
+            secm = self.subtracted_secm
+
+        
+        sasm_list = secm.getSASMList(framei, framef)
+
+        svd_a = np.array([sasm.i for sasm in sasm_list])
+
+        self.svd_U, self.svd_s, svd_Vt = np.linalg.svd(svd_a, full_matrices = True)
+        self.svd_V = svd_Vt.T
+        self.svd_U_autocor = np.abs(np.array([np.correlate(self.svd_U[:,i], self.svd_U[:,i], mode = 'full')[-self.svd_U.shape[0]+1] for i in range(self.svd_U.shape[1])]))
+        self.svd_V_autocor = np.abs(np.array([np.correlate(self.svd_V[:,i], self.svd_V[:,i], mode = 'full')[-self.svd_V.shape[0]+1] for i in range(self.svd_V.shape[1])]))
+
+        wx.CallAfter(self.updateSVDPlot)
+
+    def updateSECPlot(self):
+
+        plotpanel = wx.FindWindowByName('SVDSECPlotPanel')
+        framei_window = wx.FindWindowById(self.control_ids['fstart'])
+        framef_window = wx.FindWindowById(self.control_ids['fend'])
+
+        framei = framei_window.GetValue()
+        framef = framef_window.GetValue()
+
+        profile_window = wx.FindWindowById(self.control_ids['profile'])
+
+        if profile_window.GetStringSelection() == 'Unsubtracted':
+            plotpanel.plotSECM(self.secm, framei, framef)
+        else:
+            plotpanel.plotSECM(self.subtracted_secm, framei, framef)
+
+    def updateSVDPlot(self):
+        plotpanel = wx.FindWindowByName('SVDResultsPlotPanel')
+
+        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'])
+        svd_end_window = wx.FindWindowById(self.control_ids['svd_end'])
+
+        svd_start = svd_start_window.GetValue()
+        svd_end = svd_end_window.GetValue()
+
+        plotpanel.plotSVD(self.svd_U, self.svd_s, self.svd_V, self.svd_U_autocor, self.svd_V_autocor, svd_start, svd_end)
+
+    def _onSaveButton(self, evt):
+        if evt.GetId() == self.control_ids['save_svd']:
+            self.saveSV()
+        elif evt.GetId() == self.control_ids['save_all']:
+            self.saveAll()
+
+    def saveSV(self):
+        dirctrl = wx.FindWindowByName('DirCtrlPanel')
+        path = str(dirctrl.getDirLabel())
+
+        filename_window = wx.FindWindowById(self.control_ids['fname'])
+        filename = filename_window.GetValue()
+
+        name, ext = os.path.splitext(filename)
+
+        filename = name + '_sv.csv'
+
+        dialog = wx.FileDialog(self, message = "Please select save directory and enter save file name", style = wx.FD_SAVE, defaultDir = path, defaultFile = filename) 
+            
+        if dialog.ShowModal() == wx.ID_OK:
+            save_path = dialog.GetPath()
+            name, ext = os.path.splitext(filename)
+            filename = os.path.join(name, '.csv')
+        else:
+            return
+
+        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'])
+        svd_end_window = wx.FindWindowById(self.control_ids['svd_end'])
+
+        svd_start = svd_start_window.GetValue()
+        svd_end = svd_end_window.GetValue()
+        
+        data = np.column_stack((self.svd_s[svd_start:svd_end+1], self.svd_U_autocor[svd_start:svd_end+1], self.svd_V_autocor[svd_start:svd_end+1]))
+
+        header = 'Singular_values,U_Autocorrelation,V_Autocorrelation'
+
+        SASFileIO.saveCSVFile(save_path, data, header)
+
+    def saveAll(self):
+        dirctrl = wx.FindWindowByName('DirCtrlPanel')
+        path = str(dirctrl.getDirLabel())
+
+        filename_window = wx.FindWindowById(self.control_ids['fname'])
+        filename = filename_window.GetValue()
+
+        name, ext = os.path.splitext(filename)
+
+        filename = name + '_svd_all.csv'
+
+        dialog = wx.FileDialog(self, message = "Please select save directory and enter save file name", style = wx.FD_SAVE, defaultDir = path, defaultFile = filename) 
+            
+        if dialog.ShowModal() == wx.ID_OK:
+            save_path = dialog.GetPath()
+            name, ext = os.path.splitext(filename)
+            filename = os.path.join(name, '.csv')
+        else:
+            return
+
+        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'])
+        svd_end_window = wx.FindWindowById(self.control_ids['svd_end'])
+
+        svd_start = svd_start_window.GetValue()
+        svd_end = svd_end_window.GetValue()
+        
+        svd_data = np.column_stack((self.svd_s[svd_start:svd_end+1], self.svd_U_autocor[svd_start:svd_end+1], self.svd_V_autocor[svd_start:svd_end+1]))
+
+        u_data = self.svd_U[:,svd_start:svd_end+1]
+        v_data = self.svd_V[:,svd_start:svd_end+1]
+
+        SASFileIO.saveSVDData(save_path, svd_data, u_data, v_data)
+
+
+    def _onCancelButton(self, evt):
+        self.svd_frame.OnClose()
+
+
+    def _onOkButton(self, evt):
+        svd_dict = {}
+        for key in self.control_ids:
+            if key != 'profile':
+                svd_dict[key] = wx.FindWindowById(self.control_ids[key]).GetValue()
+            else:
+                svd_dict[key] = wx.FindWindowById(self.control_ids[key]).GetStringSelection()
+
+
+        analysis_dict = self.secm.getParameter('analysis')
+        analysis_dict['svd'] = svd_dict
+
+        self.secm.setParameter('analysis', analysis_dict)
+
+        self.svd_frame.OnClose()
+
+
+
+
+
 # ----------------------------------------------------------------------------
 # Auto-wrapping static text class
 # ----------------------------------------------------------------------------
@@ -5255,7 +6067,6 @@ class GuinierTestApp(wx.App):
         return True
         
 if __name__ == "__main__":
-    import SASFileIO
 
     #This GUI can be run from a commandline: python guinierGUI.py <filename>
     args = sys.argv
