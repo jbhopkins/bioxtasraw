@@ -5994,9 +5994,9 @@ class EFAFrame(wx.Frame):
     def __init__(self, parent, title, sasm, manip_item):
         
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'SVDFrame', size = (800,700))
+            wx.Frame.__init__(self, parent, -1, title, name = 'EFAFrame', size = (800,700))
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'SVDFrame', size = (800,700))
+            wx.Frame.__init__(self, None, -1, title, name = 'EFAFrame', size = (800,700))
         
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -6151,24 +6151,32 @@ class EFAFrame(wx.Frame):
 
             if self.panel1_results['input'] != 0:
 
-                self.top_sizer.Hide(wx.FindWindowById(self.splitter_ids[self.current_panel]), recursive = True)
+                if type(self.panel1_results['svd_u']) != None and not np.any(np.isnan(self.panel1_results['svd_u'])):
 
-                self.top_sizer.Show(wx.FindWindowById(self.splitter_ids[self.current_panel+1]), recursive = True)
+                    self.top_sizer.Hide(wx.FindWindowById(self.splitter_ids[self.current_panel]), recursive = True)
 
-                self.current_panel = self.current_panel + 1
+                    self.top_sizer.Show(wx.FindWindowById(self.splitter_ids[self.current_panel+1]), recursive = True)
 
-                self.back_button.Enable()
+                    self.current_panel = self.current_panel + 1
 
-                efa_panel2 =  wx.FindWindowByName('EFAControlPanel2')
+                    self.back_button.Enable()
 
-                if not efa_panel2.initialized:
-                    efa_panel2.initialize(self.panel1_results)
+                    efa_panel2 =  wx.FindWindowByName('EFAControlPanel2')
 
-                elif self.panel1_results['fstart'] != efa_panel2.panel1_results['fstart'] or self.panel1_results['fend'] != efa_panel2.panel1_results['fend'] or self.panel1_results['profile'] != efa_panel2.panel1_results['profile']:
-                    efa_panel2.reinitialize(self.panel1_results, efa = True)
+                    if not efa_panel2.initialized:
+                        efa_panel2.initialize(self.panel1_results)
 
-                elif  self.panel1_results['input'] != efa_panel2.panel1_results['input']:
-                    efa_panel2.reinitialize(self.panel1_results, efa = False)
+                    elif self.panel1_results['fstart'] != efa_panel2.panel1_results['fstart'] or self.panel1_results['fend'] != efa_panel2.panel1_results['fend'] or self.panel1_results['profile'] != efa_panel2.panel1_results['profile']:
+                        efa_panel2.reinitialize(self.panel1_results, efa = True)
+
+                    elif  self.panel1_results['input'] != efa_panel2.panel1_results['input']:
+                        efa_panel2.reinitialize(self.panel1_results, efa = False)
+
+                else:
+                    msg = 'SVD not successful. Either change data range or type, or select a new data set.'
+                    dlg = wx.MessageDialog(self, msg, "No Singular Values Found", style = wx.ICON_INFORMATION | wx.OK)
+                    proceed = dlg.ShowModal()
+                    dlg.Destroy()   
 
             else:
                 msg = 'Please enter the number of significant singular values to use for the evolving factor analysis in the User Input area.'
@@ -6568,67 +6576,75 @@ class EFAControlPanel1(wx.Panel):
 
         self.runSVD()
 
-        #Attempts to figure out the significant number of singular values
-        if user_input_window.GetValue() == 0:
-            point1 = 0
-            point2 = 0
-            point3 = 0
+        if type(self.svd_U) != None:
+            #Attempts to figure out the significant number of singular values
+            if user_input_window.GetValue() == 0:
+                point1 = 0
+                point2 = 0
+                point3 = 0
 
-            i = 0
-            ratio_found = False
+                i = 0
+                ratio_found = False
 
-            while i < range(self.svd_s.shape[0]) and not ratio_found:
-                ratio = self.svd_s/self.svd_s[i]
+                while i < self.svd_s.shape[0]-1 and not ratio_found:
+                    ratio = self.svd_s/self.svd_s[i]
 
-                if ratio[i+1] > 0.75:
-                    point1 = i
-                    ratio_found = True
+                    if ratio[i+1] > 0.75:
+                        point1 = i
+                        ratio_found = True
 
-                i = i +1
+                    i = i +1
 
-            u_points = np.where(self.svd_U_autocor > 0.6)[0]
-            index_list = []
+                if not ratio_found:
+                    point1 = self.svd_s.shape[0]
 
-            for i in range(1,len(u_points)):
-                if u_points[i-1] +1 == u_points[i]:
-                    index_list.append(i)
+                u_points = np.where(self.svd_U_autocor > 0.6)[0]
+                index_list = []
 
-            point2 = len(index_list)
+                if len(u_points) > 0:
 
-            if point2 == 0:
-                if u_points[0] == 0:
-                    point2 =1
-            else:
-                point2 = point2 + 1
+                    for i in range(1,len(u_points)):
+                        if u_points[i-1] +1 == u_points[i]:
+                            index_list.append(i)
+
+                    point2 = len(index_list)
+
+                    if point2 == 0:
+                        if u_points[0] == 0:
+                            point2 =1
+                    else:
+                        point2 = point2 + 1
 
 
-            v_points = np.where(self.svd_V_autocor > 0.6)[0]
-            index_list = []
+                v_points = np.where(self.svd_V_autocor > 0.6)[0]
+                index_list = []
 
-            for i in range(1,len(v_points)):
-                if v_points[i-1] +1 == v_points[i]:
-                    index_list.append(i)
+                if len(v_points) > 0:
 
-            point3 = len(index_list)
+                    for i in range(1,len(v_points)):
+                        if v_points[i-1] +1 == v_points[i]:
+                            index_list.append(i)
 
-            if point3 == 0:
-                if v_points[0] == 0:
-                    point3 =1
-            else:
-                point3 = point3 + 1
+                    point3 = len(index_list)
 
-            plist = [point1, point2, point3]
+                    if point3 == 0:
+                        if v_points[0] == 0:
+                            point3 =1
+                    else:
+                        point3 = point3 + 1
 
-            mode, count = stats.mode(plist)
+                plist = [point1, point2, point3]
 
-            mode = mode[0]
-            count = count[0]
+                mode, count = stats.mode(plist)
 
-            if count > 1:
-                user_input_window.SetValue(mode)
+                mode = mode[0]
+                count = count[0]
 
-            elif np.mean(plist) > np.std(plist):
-                user_input_window.SetValue(int(np.mean(plist)))
+                if count > 1:
+                    user_input_window.SetValue(mode)
+
+                elif np.mean(plist) > np.std(plist):
+                    user_input_window.SetValue(int(np.mean(plist)))
 
 
     #This function is called when the profiles used are changed between subtracted and unsubtracted.
@@ -6761,7 +6777,12 @@ class EFAControlPanel1(wx.Panel):
 
         # self.svd_a = self.svd_a.T 
 
-        self.svd_U, self.svd_s, svd_Vt = np.linalg.svd(self.svd_a, full_matrices = True)
+        try:
+            self.svd_U, self.svd_s, svd_Vt = np.linalg.svd(self.svd_a, full_matrices = True)
+        except:
+            wx.CallAfter(wx.MessageBox, 'Initial SVD did not converge, so EFA cannot proceed.', 'SVD Failed', style = wx.ICON_ERROR | wx.OK)
+            return
+
         self.svd_V = svd_Vt.T
         self.svd_U_autocor = np.abs(np.array([np.correlate(self.svd_U[:,i], self.svd_U[:,i], mode = 'full')[-self.svd_U.shape[0]+1] for i in range(self.svd_U.shape[1])]))
         self.svd_V_autocor = np.abs(np.array([np.correlate(self.svd_V[:,i], self.svd_V[:,i], mode = 'full')[-self.svd_V.shape[0]+1] for i in range(self.svd_V.shape[1])]))
@@ -6785,15 +6806,17 @@ class EFAControlPanel1(wx.Panel):
             plotpanel.plotSECM(self.subtracted_secm, framei, framef, self.ydata_type)
 
     def updateSVDPlot(self):
-        plotpanel = wx.FindWindowByName('EFAResultsPlotPanel1')
 
-        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'])
-        svd_end_window = wx.FindWindowById(self.control_ids['svd_end'])
+        if type(self.svd_s) != None and not np.any(np.isnan(self.svd_s)):
+            plotpanel = wx.FindWindowByName('EFAResultsPlotPanel1')
 
-        svd_start = svd_start_window.GetValue()
-        svd_end = svd_end_window.GetValue()
+            svd_start_window = wx.FindWindowById(self.control_ids['svd_start'])
+            svd_end_window = wx.FindWindowById(self.control_ids['svd_end'])
 
-        plotpanel.plotSVD(self.svd_U, self.svd_s, self.svd_V, self.svd_U_autocor, self.svd_V_autocor, svd_start, svd_end)
+            svd_start = svd_start_window.GetValue()
+            svd_end = svd_end_window.GetValue()
+
+            plotpanel.plotSVD(self.svd_U, self.svd_s, self.svd_V, self.svd_U_autocor, self.svd_V_autocor, svd_start, svd_end)
 
 
 class EFAControlPanel2(wx.Panel):
