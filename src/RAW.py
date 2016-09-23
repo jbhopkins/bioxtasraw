@@ -946,21 +946,71 @@ class MainFrame(wx.Frame):
 
 
         elif id == self.MenuIDs['runsvd']:
-            manippage = wx.FindWindowByName('SECPanel')
+            secpage = wx.FindWindowByName('SECPanel')
+            manippage = wx.FindWindowByName('ManipulationPanel')
+            iftpage = wx.FindWindowByName('IFTPanel')
 
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
-            # print page_label
-            if page !=manippage:
-                wx.MessageBox('The selected operation cannot be performed unless the SEC window is selected.', 'Select SEC Window', style = wx.ICON_INFORMATION)
-                return
-            
-            if len(manippage.getSelectedItems()) > 0:
-                secm = manippage.getSelectedItems()[0].getSECM()
-                self.showSVDFrame(secm, manippage.getSelectedItems()[0])
-            else:
-                wx.MessageBox("Please select a SEC curve from the list on the SEC page.", "No SEC curve selected")
 
+            if page == manippage:
+                selected_items = manippage.getSelectedItems()
+
+                if len(selected_items) > 1:
+                    selected_sasms = [item.sasm for item in selected_items]
+
+                    selected_filenames = [sasm.getParameter('filename') for sasm in selected_sasms]
+
+                    frame_list = range(len(selected_sasms))
+
+                    secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {})
+
+                    manip_item = None
+                
+                else:
+                    msg = 'You must select at least 2 scattering profiles to run SVD.'
+                    dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
+                    proceed = dlg.ShowModal()
+                    dlg.Destroy()
+
+                    return
+
+            elif page == iftpage:
+                selected_items = iftpage.getSelectedItems()
+
+                if len(selected_items) > 1:
+
+                    selected_iftms = [item.iftm for item in selected_items]
+
+                    selected_sasms = [SASM.SASM(iftm.p, iftm.r, iftm.err, iftm.getAllParameters()) for iftm in selected_iftms]
+
+                    selected_filenames = [sasm.getParameter('filename') for sasm in selected_sasms]
+
+                    frame_list = range(len(selected_sasms))
+
+                    secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {})
+
+                    manip_item = None
+
+                else:
+                    msg = 'You must select at least 2 P(r) functions to run SVD.'
+                    dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
+                    proceed = dlg.ShowModal()
+                    dlg.Destroy()
+
+                    return
+            
+            elif page == secpage:
+                selected_items = secpage.getSelectedItems()
+
+                if len(selected_items) > 0:
+                    secm = selected_items[0].getSECM()
+                    manip_item = selected_items[0]
+                else:
+                    wx.MessageBox("Please select a SEC curve from the list on the SEC page.", "No SEC curve selected")
+                    return
+
+            self.showSVDFrame(secm, manip_item)
 
     def _onViewMenu(self, evt):
         
