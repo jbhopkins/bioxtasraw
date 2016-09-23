@@ -119,7 +119,8 @@ class MainFrame(wx.Frame):
                         'rundammif'           : wx.NewId(),
                         'bift'                : wx.NewId(),
                         'runambimeter'        : wx.NewId(),
-                        'runsvd'              : wx.NewId()
+                        'runsvd'              : wx.NewId(),
+                        'runefa'              : wx.NewId()
                         }
         
         self.tbIcon = RawTaskbarIcon(self)
@@ -131,6 +132,7 @@ class MainFrame(wx.Frame):
         self.dammifframe = None
         self.ambimeterframe = None
         self.svdframe = None
+        self.efaframe = None
         self.raw_settings = RAWSettings.RawGuiSettings()
         
         self.RAWWorkDir = RAWWorkDir
@@ -554,10 +556,18 @@ class MainFrame(wx.Frame):
         if self.svdframe:
             self.svdframe.Destroy()
                 
-        self.svdframe = RAWAnalysis.SVDFrame(self, 'SVD', secm, manip_item)
+        self.svdframe = RAWAnalysis.SVDFrame(self, 'Singular Value Decomposition', secm, manip_item)
         self.svdframe.SetIcon(self.GetIcon())
         self.svdframe.Show(True)
-            
+
+    def showEFAFrame(self, secm, manip_item):
+
+        if self.efaframe:
+            self.efaframe.Destroy()
+                
+        self.efaframe = RAWAnalysis.EFAFrame(self, 'Evolving Factor Analysis', secm, manip_item)
+        self.efaframe.SetIcon(self.GetIcon())
+        self.efaframe.Show(True)
             
     def _createSingleMenuBarItem(self, info):
         
@@ -675,6 +685,7 @@ class MainFrame(wx.Frame):
                                ('&BIFT', self.MenuIDs['bift'], self._onToolsMenu, 'normal'),
                                ('&ATSAS', None, submenus['atsas'], 'submenu'),
                                ('&SVD', self.MenuIDs['runsvd'], self._onToolsMenu, 'normal'),
+                               ('&EFA', self.MenuIDs['runefa'], self._onToolsMenu, 'normal'),
                                (None, None, None, 'separator'),
                                ('&Centering/Calibration', self.MenuIDs['centering'], self._onToolsMenu, 'normal'),
                                ('&Masking', self.MenuIDs['masking'], self._onToolsMenu, 'normal')
@@ -9809,6 +9820,7 @@ class SECItemPanel(wx.Panel):
         menu.Append(3, 'Save')
         menu.AppendSeparator()
         menu.Append(7, 'SVD')
+        menu.Append(8, 'EFA')
         menu.AppendSeparator()
         
         menu.Append(4, 'Show data')
@@ -9859,6 +9871,13 @@ class SECItemPanel(wx.Panel):
             
             secm = selectedSECMList[0].getSECM()
             Mainframe.showSVDFrame(secm, selectedSECMList[0])
+
+        elif evt.GetId() == 8:
+            Mainframe = wx.FindWindowByName('MainFrame')
+            selectedSECMList = self.sec_panel.getSelectedItems()
+            
+            secm = selectedSECMList[0].getSECM()
+            Mainframe.showEFAFrame(secm, selectedSECMList[0])
                         
     
     def _onKeyPress(self, evt):

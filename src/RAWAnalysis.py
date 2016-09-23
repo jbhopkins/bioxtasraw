@@ -16,6 +16,7 @@ import sys, os, copy, multiprocessing, threading, Queue, wx, time
 from scipy import polyval, polyfit, sqrt, integrate
 import scipy.interpolate as interp
 from scipy.constants import Avogadro
+import scipy.stats as stats
 
 import RAW, RAWSettings, RAWCustomCtrl, SASCalc, RAWPlot, SASFileIO, SASM, SASExceptions, BIFT, RAWGlobals
 
@@ -5220,7 +5221,7 @@ class SVDResultsPlotPanel(wx.Panel):
                     
         self.svd = None
     
-        subplotLabels = [('Singular_Values', 'Index', 'Value', .1), ('AutoCorrelation', 'Index', 'Absolute Value', 0.1)]
+        subplotLabels = [('Singular Values', 'Index', 'Value', .1), ('AutoCorrelation', 'Index', 'Absolute Value', 0.1)]
         
         self.fig.subplots_adjust(hspace = 0.26)
         
@@ -5253,7 +5254,7 @@ class SVDResultsPlotPanel(wx.Panel):
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
         
-        a = self.subplots['Singular_Values']
+        a = self.subplots['Singular Values']
         b = self.subplots['AutoCorrelation']
 
         self.background = self.canvas.copy_from_bbox(a.bbox)
@@ -5285,7 +5286,7 @@ class SVDResultsPlotPanel(wx.Panel):
         self.orig_svd_end = svd_end
 
             
-        a = self.subplots['Singular_Values']
+        a = self.subplots['Singular Values']
         b = self.subplots['AutoCorrelation']
 
         xdata = index[svd_start:svd_end+1]
@@ -5823,22 +5824,7 @@ class SVDControlPanel(wx.Panel):
         
         diag = wx.FindWindowByName('SVDFrame')
         diag.OnClose()
-
-        
-    def onCloseButton(self, evt):
-
-        if self.BIFT_timer.IsRunning():
-            self.BIFT_timer.Stop()
-            RAWGlobals.cancel_bift = True
-        
-        diag = wx.FindWindowByName('SVDFrame')
-        diag.OnClose()
     
-    def updateResultsPlot(self):
-
-        plotpanel = wx.FindWindowByName('SVDResultsPlotPanel')
-
-        plotpanel.plotPr(self.iftm)
 
     def runSVD(self):
         profile_window = wx.FindWindowById(self.control_ids['profile'])
@@ -5858,6 +5844,7 @@ class SVDControlPanel(wx.Panel):
         sasm_list = secm.getSASMList(framei, framef)
 
         svd_a = np.array([sasm.i for sasm in sasm_list])
+        svd_a = svd_a.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose svd_a
 
         self.svd_U, self.svd_s, svd_Vt = np.linalg.svd(svd_a, full_matrices = True)
         self.svd_V = svd_Vt.T
@@ -6002,6 +5989,2033 @@ class SVDControlPanel(wx.Panel):
 
 
 
+class EFAFrame(wx.Frame):
+    
+    def __init__(self, parent, title, sasm, manip_item):
+        
+        try:
+            wx.Frame.__init__(self, parent, -1, title, name = 'SVDFrame', size = (800,700))
+        except:
+            wx.Frame.__init__(self, None, -1, title, name = 'SVDFrame', size = (800,700))
+        
+        self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+
+        self.sasm = sasm
+        self.manip_item = manip_item
+
+        self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        self.splitter_ids = {1  : wx.NewId(),
+                            2   : wx.NewId(),
+                            3   : wx.NewId()}
+
+
+        self.panel1_results = {'profile'        : '',
+                                'fstart'        : 0,
+                                'fend'          : 0,
+                                'svd_start'     : 0,
+                                'svd_end'       : 0,
+                                'input'         : 0,
+                                'int'           : [],
+                                'err'           : [],
+                                'svd_u'         : [],
+                                'svd_s'         : [],
+                                'svd_v'         : [],
+                                'svd_int_norm'  : [],
+                                'use_sub'       : True,
+                                'sub_secm'      : None,
+                                'ydata_type'    : 'Total'}
+
+        self.panel2_results = {'start_points'   : [],
+                                'end_points'    : [],
+                                'points'        : []}
+
+        self.panel3_results = {'options'    : {},
+                                'steps'     : 0,
+                                'iterations': 0,
+                                'converged' : False,
+                                'ranges'    : [],
+                                'profiles'  : []}
+
+        self.current_panel = 1
+
+
+        self._createLayout(self.panel)
+        
+        self.CenterOnParent()
+        self.Raise()
+
+    def _createLayout(self, parent):
+
+        #Creating the first EFA analysis panel
+        self.splitter1 = wx.SplitterWindow(parent, self.splitter_ids[1])                
+        
+        self.plotPanel1 = SVDResultsPlotPanel(self.splitter1, -1, 'EFAResultsPlotPanel1')
+        self.controlPanel1 = EFAControlPanel1(self.splitter1, -1, 'EFAControlPanel1', self.sasm, self.manip_item)
+  
+        self.splitter1.SplitVertically(self.controlPanel1, self.plotPanel1, 290)
+
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+            self.splitter1.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
+        else:
+            self.splitter1.SetMinimumPaneSize(50)
+
+        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+            self.splitter1.Fit()
+            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+                size = self.GetSize()
+                size[1] = size[1] + 20
+                self.SetSize(size)
+
+
+        self.splitter2 = wx.SplitterWindow(parent, self.splitter_ids[2])                
+        
+        self.plotPanel2 = EFAResultsPlotPanel2(self.splitter2, -1, 'EFAResultsPlotPanel2')
+        self.controlPanel2 = EFAControlPanel2(self.splitter2, -1, 'EFAControlPanel2', self.sasm, self.manip_item)
+  
+        self.splitter2.SplitVertically(self.controlPanel2, self.plotPanel2, 290)
+
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+            self.splitter2.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
+        else:
+            self.splitter2.SetMinimumPaneSize(50)
+
+        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+            self.splitter2.Fit()
+
+
+        self.splitter3 = wx.SplitterWindow(parent, self.splitter_ids[3])                
+        
+        self.plotPanel3 = EFAResultsPlotPanel3(self.splitter3, -1, 'EFAResultsPlotPanel3')
+        self.controlPanel3 = EFAControlPanel3(self.splitter3, -1, 'EFAControlPanel3', self.sasm, self.manip_item)
+  
+        self.splitter3.SplitVertically(self.controlPanel3, self.plotPanel3, 290)
+
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+            self.splitter3.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
+        else:
+            self.splitter3.SetMinimumPaneSize(50)
+
+        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+            self.splitter3.Fit()
+
+
+        #Creating the fixed buttons
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        self.next_button = wx.Button(parent, -1, 'Next')
+        self.next_button.Bind(wx.EVT_BUTTON, self._onNextButton)
+
+        self.back_button = wx.Button(parent, -1, 'Back')
+        self.back_button.Bind(wx.EVT_BUTTON, self._onBackButton)
+        self.back_button.Disable()
+
+        self.cancel_button = wx.Button(parent, -1, 'Cancel')
+        self.cancel_button.Bind(wx.EVT_BUTTON, self._onCancelButton)
+
+        self.done_button = wx.Button(parent, -1, 'Done')
+        self.done_button.Bind(wx.EVT_BUTTON, self._onDoneButton)
+        self.done_button.Disable()
+
+        button_sizer.Add(self.cancel_button, 0 , wx.LEFT | wx.ALIGN_LEFT,3)
+        button_sizer.Add(self.done_button, 0, wx.LEFT | wx.ALIGN_LEFT, 3)
+        button_sizer.AddStretchSpacer(1)
+        button_sizer.Add(self.back_button, 0, wx.RIGHT | wx.ALIGN_RIGHT, 3)
+        button_sizer.Add(self.next_button, 0, wx.RIGHT | wx.ALIGN_RIGHT, 3)
+
+        sl = wx.StaticLine(parent, wx.ID_ANY, style=wx.LI_HORIZONTAL)
+
+        self.top_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.top_sizer.Add(self.splitter1, 1, wx.EXPAND | wx.BOTTOM, 3)
+        self.top_sizer.Add(self.splitter2, 1, wx.EXPAND | wx.BOTTOM, 3)
+        self.top_sizer.Add(self.splitter3, 1, wx.EXPAND | wx.BOTTOM, 3)
+        self.top_sizer.Add(sl, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 3)
+        self.top_sizer.Add(button_sizer, 0, wx.ALIGN_RIGHT | wx.TOP | wx.BOTTOM | wx.EXPAND, 3)
+
+
+        self.top_sizer.Hide(self.splitter2, recursive = True)
+        self.top_sizer.Hide(self.splitter3, recursive = True)
+
+        self.panel.SetSizer(self.top_sizer)
+
+        self.panel.Layout()
+        self.SendSizeEvent()
+        self.panel.Layout()
+
+
+    def _onNextButton(self, evt):
+        
+        if self.current_panel == 1:
+
+            self.getPanel1Values()
+
+            if self.panel1_results['input'] != 0:
+
+                self.top_sizer.Hide(wx.FindWindowById(self.splitter_ids[self.current_panel]), recursive = True)
+
+                self.top_sizer.Show(wx.FindWindowById(self.splitter_ids[self.current_panel+1]), recursive = True)
+
+                self.current_panel = self.current_panel + 1
+
+                self.back_button.Enable()
+
+                efa_panel2 =  wx.FindWindowByName('EFAControlPanel2')
+
+                if not efa_panel2.initialized:
+                    efa_panel2.initialize(self.panel1_results)
+
+                elif self.panel1_results['fstart'] != efa_panel2.panel1_results['fstart'] or self.panel1_results['fend'] != efa_panel2.panel1_results['fend'] or self.panel1_results['profile'] != efa_panel2.panel1_results['profile']:
+                    efa_panel2.reinitialize(self.panel1_results, efa = True)
+
+                elif  self.panel1_results['input'] != efa_panel2.panel1_results['input']:
+                    efa_panel2.reinitialize(self.panel1_results, efa = False)
+
+            else:
+                msg = 'Please enter the number of significant singular values to use for the evolving factor analysis in the User Input area.'
+                dlg = wx.MessageDialog(self, msg, "No Singular Values Selected", style = wx.ICON_INFORMATION | wx.OK)
+                proceed = dlg.ShowModal()
+                dlg.Destroy()     
+
+        elif self.current_panel == 2:
+
+            self.getPanel2Values()
+
+            correct = np.all([point[0] < point[1] for point in self.panel2_results['points']])
+
+            if correct:
+
+                self.top_sizer.Hide(wx.FindWindowById(self.splitter_ids[self.current_panel]), recursive = True)
+
+                self.top_sizer.Show(wx.FindWindowById(self.splitter_ids[self.current_panel+1]), recursive = True)
+
+                self.current_panel = self.current_panel + 1
+
+                self.next_button.Disable()
+
+                self.done_button.Enable()
+
+                efa_panel3 =  wx.FindWindowByName('EFAControlPanel3')
+
+                if not efa_panel3.initialized:
+                    efa_panel3.initialize(self.panel1_results, self.panel2_results)
+
+                elif self.panel1_results['fstart'] != efa_panel3.panel1_results['fstart'] or self.panel1_results['fend'] != efa_panel3.panel1_results['fend'] or self.panel1_results['profile'] != efa_panel3.panel1_results['profile'] or self.panel1_results['input'] != efa_panel3.panel1_results['input']:
+                    efa_panel3.reinitialize(self.panel1_results, self.panel2_results, rebuild = True)
+
+                elif  np.any(self.panel2_results['points'] != efa_panel3._getRanges()):
+                    efa_panel3.reinitialize(self.panel1_results, self.panel2_results, rebuild = False)
+
+            else:
+                msg = 'The smallest start value must be less than the smallest end value, the second smallest start value must be less than the second smallest end value, and so on. Please change start and end values according (if necessary, you can further adjust these ranges on the next page).'
+                dlg = wx.MessageDialog(self, msg, "Start and End Values Incorrect", style = wx.ICON_INFORMATION | wx.OK)
+                proceed = dlg.ShowModal()
+                dlg.Destroy() 
+
+
+        self.panel.Layout()
+        self.SendSizeEvent()
+        self.panel.Layout()
+
+    def _onBackButton(self, evt):
+
+        if self.current_panel == 2:
+            self.top_sizer.Hide(wx.FindWindowById(self.splitter_ids[self.current_panel]), recursive = True)
+
+            self.top_sizer.Show(wx.FindWindowById(self.splitter_ids[self.current_panel-1]), recursive = True)
+
+            self.current_panel = self.current_panel - 1
+
+            self.back_button.Disable()
+
+        elif self.current_panel == 3:
+            self.top_sizer.Hide(wx.FindWindowById(self.splitter_ids[self.current_panel]), recursive = True)
+
+            self.top_sizer.Show(wx.FindWindowById(self.splitter_ids[self.current_panel-1]), recursive = True)
+
+            self.current_panel = self.current_panel - 1
+
+            self.next_button.Enable()
+
+            self.done_button.Disable()
+
+            efa_panel3 =  wx.FindWindowByName('EFAControlPanel3')
+
+            efa_panel2 =  wx.FindWindowByName('EFAControlPanel2')
+
+            points = efa_panel3._getRanges()
+
+            if  np.any(self.panel2_results['points'] != points):
+                forward_sv = points[:,0]
+                backward_sv = points[:,1]
+
+                if np.all(np.sort(forward_sv) == forward_sv) and np.all(np.sort(backward_sv) == backward_sv):
+                    efa_panel2.setSVs(points)
+
+
+        self.panel.Layout()
+        self.SendSizeEvent()
+        self.panel.Layout()
+
+    def _onCancelButton(self, evt):
+        self.OnClose()
+
+    def _onDoneButton(self, evt):
+        self.getPanel3Values()
+
+        if self.panel3_results['converged']:
+            RAWGlobals.mainworker_cmd_queue.put(['to_plot', self.panel3_results['profiles']])
+
+        self.OnClose()
+
+    def getPanel1Values(self):
+        for key in self.panel1_results:
+            if key in self.controlPanel1.control_ids:
+                window = wx.FindWindowById(self.controlPanel1.control_ids[key])
+
+                if key != 'profile':
+                    value = window.GetValue()
+
+                else:
+                    value = window.GetStringSelection()
+
+            elif key == 'int':
+                value = self.controlPanel1.i
+
+            elif key == 'err':
+                value = self.controlPanel1.err
+
+            elif key == 'svd_u':
+                value = self.controlPanel1.svd_U
+
+            elif key == 'svd_s':
+                value = self.controlPanel1.svd_s
+
+            elif key == 'svd_v':
+                value = self.controlPanel1.svd_V
+
+            elif key == 'svd_int_norm':
+                value = self.controlPanel1.svd_a
+
+            elif key =='use_sub':
+                profile_window = wx.FindWindowById(self.controlPanel1.control_ids['profile'])
+
+                if profile_window.GetStringSelection() == 'Unsubtracted':
+                    value = False
+                else:
+                    value = True
+
+            elif key == 'sub_secm':
+                value = self.controlPanel1.subtracted_secm
+
+            elif key == 'ydata_type':
+                value = self.controlPanel1.ydata_type
+
+            self.panel1_results[key] = value
+
+    def getPanel2Values(self):
+        window = wx.FindWindowByName('EFAControlPanel2')
+
+        forward_points = [wx.FindWindowById(my_id).GetValue() for my_id in window.forward_ids]
+        self.panel2_results['forward_points'] = copy.copy(forward_points)
+
+        backward_points = [wx.FindWindowById(my_id).GetValue() for my_id in window.backward_ids]
+        self.panel2_results['backward_points'] = copy.copy(backward_points)
+
+        forward_points.sort()
+        backward_points.sort()
+
+        points = np.column_stack((forward_points,backward_points))
+
+        self.panel2_results['points'] = points
+
+    def getPanel3Values(self):
+        window = wx.FindWindowByName('EFAControlPanel3')
+
+        self.panel3_results['steps'] = window.conv_data['steps']
+        self.panel3_results['iterations'] = window.conv_data['iterations']
+        self.panel3_results['options'] = window.conv_data['options']
+        self.panel3_results['steps'] = window.conv_data['steps']
+
+        self.panel3_results['converged'] = window.converged
+
+        if self.panel3_results['converged']:
+            self.panel3_results['ranges'] = window._getRanges()
+            self.panel3_results['profiles'] = window.sasms
+
+    def OnClose(self):
+        
+        self.Destroy()       
+             
+class EFAControlPanel1(wx.Panel):
+    
+    def __init__(self, parent, panel_id, name, secm, manip_item):
+
+        wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        self.parent = parent
+
+        self.svd_frame = wx.FindWindowByName('EFAFrame')
+        
+        self.secm = secm
+        
+        self.manip_item = manip_item
+        self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.control_ids = {'profile'   : wx.NewId(),
+                            'fstart'    : wx.NewId(),
+                            'fend'      : wx.NewId(),
+                            'svd_start' : wx.NewId(),
+                            'svd_end'   : wx.NewId(),
+                            'input'     : wx.NewId()}
+
+        self.field_ids = {'fname'     : wx.NewId()}
+
+        self.ydata_type = 'total'
+
+        self.svd_U = None
+        self.svd_s = None
+        self.svd_V = None
+
+        control_sizer = self._createLayout()
+
+        self.SetSizer(control_sizer)
+
+        self.initValues()
+
+
+    def _createLayout(self):
+
+        top_sizer =wx.BoxSizer(wx.VERTICAL)
+
+        #filename sizer
+        box = wx.StaticBox(self, -1, 'Filename')
+        filesizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
+        
+        filenameTxtCtrl = wx.TextCtrl(self, self.field_ids['fname'], '', style = wx.TE_READONLY)
+        
+        filesizer.Add(filenameTxtCtrl, 1, wx.ALL, 3)
+
+
+        #svd controls
+        box = wx.StaticBox(self, -1, 'Controls')
+        control_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+
+        #control if you're using unsubtracted or subtracted curves
+        label = wx.StaticText(self, -1, 'Use :')
+        profile_type = wx.Choice(self, self.control_ids['profile'], choices = ['Unsubtracted', 'Subtracted'])
+        profile_type.Bind(wx.EVT_CHOICE, self._onProfileChoice)
+        profile_type.SetStringSelection('Subtracted')
+
+        profile_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        profile_sizer.Add(label, 0, wx.LEFT | wx.RIGHT, 3)
+        profile_sizer.Add(profile_type, 1, wx.RIGHT, 3)
+
+        #control what the range of curves you're using is.
+        label1 = wx.StaticText(self, -1, 'Use Frames :')
+        label2 = wx.StaticText(self, -1, 'to')
+        start_frame = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['fstart'], size = (60,-1))
+        end_frame = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['fend'], size = (60,-1))
+
+        start_frame.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeFrame)
+        end_frame.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeFrame)
+
+        frame_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        frame_sizer.Add(label1, 0, wx.LEFT | wx.RIGHT, 3)
+        frame_sizer.Add(start_frame, 0, wx.RIGHT, 3)
+        frame_sizer.Add(label2, 0, wx.RIGHT, 3)
+        frame_sizer.Add(end_frame, 0, wx.RIGHT, 3)
+
+
+        #plot the sec data
+        sec_plot = SVDSECPlotPanel(self, -1, 'EFASECPlotPanel')
+
+
+        #SVD control sizer
+        control_sizer.Add(profile_sizer, 0,  wx.TOP | wx.EXPAND, 3)
+        control_sizer.Add(frame_sizer, 0, wx.TOP | wx.EXPAND, 8)
+        control_sizer.Add(sec_plot, 0, wx.TOP | wx.EXPAND, 8)
+
+        if self.manip_item == None:
+            control_sizer.Hide(profile_sizer, recursive = True)
+
+
+        #svd results
+        box = wx.StaticBox(self, -1, 'Results')
+        results_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+
+        #Control plotted SVD range
+        label1 = wx.StaticText(self, -1, 'Plot indexes :')
+        label2 = wx.StaticText(self, -1, 'to')
+        start_svd = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['svd_start'], size = (60,-1))
+        end_svd = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['svd_end'], size = (60,-1))
+
+        start_svd.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeSVD)
+        end_svd.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeSVD)
+
+        svdrange_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        svdrange_sizer.Add(label1, 0, wx.LEFT | wx.RIGHT, 3)
+        svdrange_sizer.Add(start_svd, 0, wx.RIGHT, 3)
+        svdrange_sizer.Add(label2, 0, wx.RIGHT, 3)
+        svdrange_sizer.Add(end_svd, 0, wx.RIGHT, 3)
+
+        results_sizer.Add(svdrange_sizer, 0,  wx.TOP | wx.EXPAND, 3)
+
+
+        #Input number of significant values to use for EFA
+        box = wx.StaticBox(self, -1, 'User Input')
+        input_sizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
+        
+        label1 = wx.StaticText(self, -1, '# Significant SVs :')
+        user_input = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['input'], size = (60,-1))
+
+
+        input_sizer.Add(label1, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 3)
+        input_sizer.Add(user_input, 0, wx.ALL, 3)
+        input_sizer.AddStretchSpacer(1)
+
+
+        top_sizer.Add(filesizer, 0, wx.EXPAND | wx.TOP, 3)
+        top_sizer.Add(control_sizer, 0, wx.EXPAND | wx.TOP, 3)
+        top_sizer.Add(results_sizer, 0, wx.EXPAND | wx.TOP, 3)
+        top_sizer.Add(input_sizer, 0, wx.TOP | wx.BOTTOM | wx.EXPAND, 3)
+        top_sizer.AddStretchSpacer(1)
+
+        return top_sizer
+
+
+    def initValues(self):
+
+        filename = self.secm.getParameter('filename')
+
+        filename_window = wx.FindWindowById(self.field_ids['fname'])
+        filename_window.SetValue(filename)
+
+        analysis_dict = self.secm.getParameter('analysis')
+
+        framei_window = wx.FindWindowById(self.control_ids['fstart'])
+        framef_window = wx.FindWindowById(self.control_ids['fend'])
+
+        svd_start_window =wx.FindWindowById(self.control_ids['svd_start'])
+        svd_end_window =wx.FindWindowById(self.control_ids['svd_end'])
+
+        user_input_window = wx.FindWindowById(self.control_ids['input'])
+
+
+        framei = self.secm.frame_list[0]
+        framef = self.secm.frame_list[-1]
+
+        framei_window.SetRange((framei, framef))
+        framef_window.SetRange((framei, framef))
+
+        svd_start_window.SetRange((0, framef-framei-1))
+        svd_end_window.SetRange((1, framef-framei))
+
+        user_input_window.SetValue(0)
+        user_input_window.SetRange((0, framef-framei))
+
+        if 'efa' not in analysis_dict:
+
+            if len(self.secm.subtracted_sasm_list)>0:
+                frame_start = max(np.where(self.secm.use_subtracted_sasm)[0][0]-50, framei)
+                frame_end = min(np.where(self.secm.use_subtracted_sasm)[0][-1]+50, framef)
+
+            else:
+                frame_start = framei
+                frame_end = framef
+
+            framei_window.SetValue(frame_start)
+            framef_window.SetValue(frame_end)
+
+            svd_start_window.SetValue(0)
+            svd_end_window.SetValue(min(framef-framei,10))
+
+        else:
+            for key in analysis_dict['efa']:
+                if key != 'profile':
+                    wx.FindWindowById(self.control_ids[key]).SetValue(analysis_dict['svd'][key])
+                else:
+                    wx.FindWindowById(self.control_ids[key]).SetStringSelection(analysis_dict['svd'][key])
+
+
+        #make a subtracted profile SECM
+        if len(self.secm.subtracted_sasm_list)>0:
+            self.subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.subtracted_sasm_list, self.secm.frame_list, self.secm.getAllParameters())
+        else:
+            self.subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.subtracted_sasm_list, [], self.secm.getAllParameters())
+            
+            profile_window = wx.FindWindowById(self.control_ids['profile'])
+            profile_window.SetStringSelection('Unsubtracted')
+
+            if self.manip_item != None:
+                msg = 'No subtracted files are available for this SEC curve. It is recommended that you run EFA on subtracted profiles. You can create subtracted curves by setting a buffer range in the SEC Control Panel and calculating the parameter values. You will have to reopen the EFA window after doing this.'
+                dlg = wx.MessageDialog(self, msg, "No subtracted files", style = wx.ICON_INFORMATION | wx.CANCEL | wx.OK)
+                proceed = dlg.ShowModal()
+                dlg.Destroy()            
+
+
+        if self.manip_item != None:
+            sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
+
+            self.ydata_type = sec_plot_panel.plotparams['y_axis_display']
+
+            if self.ydata_type == 'qspec':
+                q=float(sec_plot_panel.plotparams['secm_plot_q'])
+                self.subtracted_secm.I(q)
+
+        self.updateSECPlot()
+
+        self.runSVD()
+
+        #Attempts to figure out the significant number of singular values
+        if user_input_window.GetValue() == 0:
+            point1 = 0
+            point2 = 0
+            point3 = 0
+
+            i = 0
+            ratio_found = False
+
+            while i < range(self.svd_s.shape[0]) and not ratio_found:
+                ratio = self.svd_s/self.svd_s[i]
+
+                if ratio[i+1] > 0.75:
+                    point1 = i
+                    ratio_found = True
+
+                i = i +1
+
+            u_points = np.where(self.svd_U_autocor > 0.6)[0]
+            index_list = []
+
+            for i in range(1,len(u_points)):
+                if u_points[i-1] +1 == u_points[i]:
+                    index_list.append(i)
+
+            point2 = len(index_list)
+
+            if point2 == 0:
+                if u_points[0] == 0:
+                    point2 =1
+            else:
+                point2 = point2 + 1
+
+
+            v_points = np.where(self.svd_V_autocor > 0.6)[0]
+            index_list = []
+
+            for i in range(1,len(v_points)):
+                if v_points[i-1] +1 == v_points[i]:
+                    index_list.append(i)
+
+            point3 = len(index_list)
+
+            if point3 == 0:
+                if v_points[0] == 0:
+                    point3 =1
+            else:
+                point3 = point3 + 1
+
+            plist = [point1, point2, point3]
+
+            mode, count = stats.mode(plist)
+
+            mode = mode[0]
+            count = count[0]
+
+            if count > 1:
+                user_input_window.SetValue(mode)
+
+            elif np.mean(plist) > np.std(plist):
+                user_input_window.SetValue(int(np.mean(plist)))
+
+
+    #This function is called when the profiles used are changed between subtracted and unsubtracted.
+    def _onProfileChoice(self, evt):
+        if len(self.subtracted_secm.getAllSASMs()) > 0:
+            wx.CallAfter(self.updateSECPlot)
+            self.runSVD()
+
+        else:
+            msg = 'No subtracted files are available for this SEC curve. You can create subtracted curves by setting a buffer range in the SEC Control Panel and calculating the parameter values. You will have to reopen the EFA window after doing this.'
+            dlg = wx.MessageDialog(self, msg, "No subtracted files", style = wx.ICON_INFORMATION | wx.OK)
+            proceed = dlg.ShowModal()
+            dlg.Destroy()
+
+            profile_window = wx.FindWindowById(evt.GetId())
+            profile_window.SetStringSelection('Unsubtracted')
+
+
+    #This function is called when the start and end frame range spin controls are modified
+    def _onChangeFrame(self, evt):
+        id = evt.GetId()
+
+        spin = wx.FindWindowById(id)
+            
+        new_val = spin.GetValue()
+
+        fstart_window = wx.FindWindowById(self.control_ids['fstart'])
+        fend_window = wx.FindWindowById(self.control_ids['fend'])
+
+        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'])
+        svd_end_window =wx.FindWindowById(self.control_ids['svd_end'])
+
+        #Make sure the boundaries don't cross:
+        if id == self.control_ids['fstart']:
+            max_val = fend_window.GetValue()
+            
+            if new_val > max_val-1:
+                new_val = max_val - 1
+                spin.SetValue(new_val)
+            
+        elif id == self.control_ids['fend']:
+            min_val = fstart_window.GetValue()
+            
+            if new_val < min_val+1:
+                new_val = min_val + 1
+                spin.SetValue(new_val)
+
+        svd_min = svd_start_window.GetValue()
+        svd_max = svd_end_window.GetValue()
+        tot = fend_window.GetValue()-fstart_window.GetValue()
+
+        if svd_max > tot:
+            svd_end_window.SetValue(tot)
+
+        if svd_min > tot:
+            svd_start_window.SetValue(tot-1)
+
+        wx.CallAfter(self.updateSECPlot)
+
+        self.runSVD()
+
+    def _onChangeSVD(self, evt):
+        id = evt.GetId()
+
+        spin = wx.FindWindowById(id)
+            
+        new_val = spin.GetValue()
+
+        fstart_window = wx.FindWindowById(self.control_ids['fstart'])
+        fend_window = wx.FindWindowById(self.control_ids['fend'])
+
+        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'])
+        svd_end_window = wx.FindWindowById(self.control_ids['svd_end'])
+
+        #Make sure the boundaries don't cross:
+        if id == self.control_ids['svd_start']:
+            max_val = svd_end_window.GetValue()
+
+            tot = fend_window.GetValue()-fstart_window.GetValue()
+
+            if new_val > tot - 1:
+                new_val = tot - 1
+                spin.SetValue(new_val)
+            
+            elif new_val > max_val-1:
+                new_val = max_val - 1
+                spin.SetValue(new_val)
+            
+        elif id == self.control_ids['svd_end']:
+            min_val = svd_start_window.GetValue()
+
+            tot = fend_window.GetValue()-fstart_window.GetValue()
+
+            if new_val > tot:
+                new_val = tot
+                spin.SetValue(new_val)
+            
+            elif new_val < min_val+1:
+                new_val = min_val + 1
+                spin.SetValue(new_val)
+
+        wx.CallAfter(self.updateSVDPlot)
+
+    def runSVD(self):
+        profile_window = wx.FindWindowById(self.control_ids['profile'])
+
+        framei_window = wx.FindWindowById(self.control_ids['fstart'])
+        framef_window = wx.FindWindowById(self.control_ids['fend'])
+
+        framei = framei_window.GetValue()
+        framef = framef_window.GetValue()
+
+        if profile_window.GetStringSelection() == 'Unsubtracted':
+            secm = self.secm
+        else:
+            secm = self.subtracted_secm
+
+        sasm_list = secm.getSASMList(framei, framef)
+
+        i = np.array([sasm.i for sasm in sasm_list])
+        err = np.array([sasm.err for sasm in sasm_list])
+
+        self.i = i.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose
+        self.err = err.T
+
+        err_mean = np.mean(self.err, axis = 1)
+        self.err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), self.err.shape)
+
+        self.svd_a = self.i/self.err_avg
+
+        # self.svd_a = self.svd_a.T 
+
+        self.svd_U, self.svd_s, svd_Vt = np.linalg.svd(self.svd_a, full_matrices = True)
+        self.svd_V = svd_Vt.T
+        self.svd_U_autocor = np.abs(np.array([np.correlate(self.svd_U[:,i], self.svd_U[:,i], mode = 'full')[-self.svd_U.shape[0]+1] for i in range(self.svd_U.shape[1])]))
+        self.svd_V_autocor = np.abs(np.array([np.correlate(self.svd_V[:,i], self.svd_V[:,i], mode = 'full')[-self.svd_V.shape[0]+1] for i in range(self.svd_V.shape[1])]))
+
+        wx.CallAfter(self.updateSVDPlot)
+
+    def updateSECPlot(self):
+
+        plotpanel = wx.FindWindowByName('EFASECPlotPanel')
+        framei_window = wx.FindWindowById(self.control_ids['fstart'])
+        framef_window = wx.FindWindowById(self.control_ids['fend'])
+
+        framei = framei_window.GetValue()
+        framef = framef_window.GetValue()
+
+        profile_window = wx.FindWindowById(self.control_ids['profile'])
+
+        if profile_window.GetStringSelection() == 'Unsubtracted':
+            plotpanel.plotSECM(self.secm, framei, framef, self.ydata_type)
+        else:
+            plotpanel.plotSECM(self.subtracted_secm, framei, framef, self.ydata_type)
+
+    def updateSVDPlot(self):
+        plotpanel = wx.FindWindowByName('EFAResultsPlotPanel1')
+
+        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'])
+        svd_end_window = wx.FindWindowById(self.control_ids['svd_end'])
+
+        svd_start = svd_start_window.GetValue()
+        svd_end = svd_end_window.GetValue()
+
+        plotpanel.plotSVD(self.svd_U, self.svd_s, self.svd_V, self.svd_U_autocor, self.svd_V_autocor, svd_start, svd_end)
+
+
+class EFAControlPanel2(wx.Panel):
+    
+    def __init__(self, parent, panel_id, name, secm, manip_item):
+
+        wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        self.parent = parent
+
+        self.efa_frame = wx.FindWindowByName('EFAFrame')
+        
+        self.secm = secm
+        
+        self.manip_item = manip_item
+        self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.initialized = False
+
+        control_sizer = self._createLayout()
+
+        self.SetSizer(control_sizer)
+
+
+    def _createLayout(self):
+
+        self.top_efa = wx.ScrolledWindow(self, -1)
+        self.top_efa.SetScrollRate(20,20)
+
+        top_sizer =wx.BoxSizer(wx.VERTICAL)
+
+
+        #svd controls
+        box = wx.StaticBox(self.top_efa, -1, 'User Input')
+        control_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+
+        self.forward_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        label = wx.StaticText(self.top_efa, -1, 'Forward ')
+
+        self.forward_sizer.Add(label, 0)
+
+
+        self.backward_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        label = wx.StaticText(self.top_efa, -1, 'Backward :')
+
+        self.backward_sizer.Add(label, 0)
+
+
+        control_sizer.Add(self.forward_sizer, 0, wx.EXPAND | wx.TOP, 3)
+        control_sizer.Add(self.backward_sizer, 0, wx.EXPAND | wx.TOP, 3)
+
+        self.top_efa.SetSizer(control_sizer)
+
+        top_sizer.Add(self.top_efa, 1, wx.EXPAND)
+        # top_sizer.AddStretchSpacer(1)
+
+        return top_sizer
+
+
+    def initialize(self, svd_results):
+        self.panel1_results = copy.copy(svd_results)
+
+        nvals = svd_results['input']
+
+        self.forward_ids = [wx.NewId() for i in range(nvals)]
+        self.backward_ids = [wx.NewId() for i in range(nvals)]
+
+        self.fsizer = wx.FlexGridSizer(cols = 2, rows = nvals, vgap = 3, hgap = 3)
+        self.bsizer = wx.FlexGridSizer(cols = 2, rows = nvals, vgap = 3, hgap = 3)
+
+        start = svd_results['fstart']
+        end = svd_results['fend']
+
+        for i in range(nvals):
+            
+            flabel = wx.StaticText(self.top_efa, -1, 'Value %i start :' %(i))
+            fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.forward_ids[i], size = (60, -1))
+            fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onForwardControl)
+            fcontrol.SetValue(start+i)
+            fcontrol.SetRange((start+i,end))
+
+            self.fsizer.Add(flabel, 0)
+            self.fsizer.Add(fcontrol, 0)
+            
+            blabel = wx.StaticText(self.top_efa, -1, 'Value %i start :' %(i))
+            bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.backward_ids[i], size = (60, -1))
+            bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onBackwardControl)
+            bcontrol.SetValue(start)
+            bcontrol.SetRange((start,end-i))
+
+            self.bsizer.Add(blabel, 0)
+            self.bsizer.Add(bcontrol, 0)
+
+
+        self.forward_sizer.Add(self.fsizer, 0, wx.TOP, 3)
+        self.backward_sizer.Add(self.bsizer, 0, wx.TOP, 3)
+
+        busy_dialog = wx.BusyInfo('Running EFA', self.efa_frame)
+
+        self.efa_forward = self.runEFA('forward')
+        self.efa_backward = self.runEFA('backward')
+
+        busy_dialog.Destroy()
+        busy_dialog = None
+
+        self._findEFAPoints()
+
+        self.initialized = True
+
+        wx.CallAfter(self.updateEFAPlot)
+
+    def reinitialize(self, svd_results, efa):
+        self.panel1_results = copy.copy(svd_results)
+
+        nvals = svd_results['input']
+
+        self.forward_ids = [wx.NewId() for i in range(nvals)]
+        self.backward_ids = [wx.NewId() for i in range(nvals)]
+
+        self.forward_sizer.Hide(self.fsizer)
+        self.forward_sizer.Detach(self.fsizer)
+
+        self.backward_sizer.Hide(self.bsizer)
+        self.backward_sizer.Detach(self.bsizer)
+
+        for child in self.fsizer.GetChildren():
+            self.fsizer.Hide(child.Window)
+            self.fsizer.Detach(child.Window)
+
+        for child in self.bsizer.GetChildren():
+            self.bsizer.Hide(child.Window)
+            self.bsizer.Detach(child.Window)
+
+
+        self.forward_sizer.Layout()
+        self.backward_sizer.Layout()
+        self.top_efa.Layout()
+        self.Layout()
+
+        start = svd_results['fstart']
+        end = svd_results['fend']
+
+        self.fsizer = wx.FlexGridSizer(cols = 2, rows = nvals, vgap = 3, hgap = 3)
+        self.bsizer = wx.FlexGridSizer(cols = 2, rows = nvals, vgap = 3, hgap = 3)
+
+        for i in range(nvals):
+            
+            flabel = wx.StaticText(self.top_efa, -1, 'Value %i start :' %(i))
+            fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.forward_ids[i], size = (60, -1))
+            fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onForwardControl)
+            fcontrol.SetValue(start+i)
+            fcontrol.SetRange((start+i,end))
+
+            self.fsizer.Add(flabel, 0)
+            self.fsizer.Add(fcontrol, 0)
+            
+            blabel = wx.StaticText(self.top_efa, -1, 'Value %i end :' %(i))
+            bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.backward_ids[i], size = (60, -1))
+            bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onBackwardControl)
+            bcontrol.SetValue(start)
+            bcontrol.SetRange((start,end-i))
+
+            self.bsizer.Add(blabel, 0)
+            self.bsizer.Add(bcontrol, 0)
+
+
+        self.forward_sizer.Add(self.fsizer, 0, wx.TOP, 3)
+        self.backward_sizer.Add(self.bsizer, 0, wx.TOP, 3)
+
+        self.forward_sizer.Layout()
+        self.backward_sizer.Layout()
+        self.top_efa.Layout()
+        self.Layout()
+
+        if efa:
+            busy_dialog = wx.BusyInfo('Running EFA', self.efa_frame)
+
+            self.efa_forward = self.runEFA('forward')
+            self.efa_backward = self.runEFA('backward')
+
+            busy_dialog.Destroy()
+            busy_dialog = None
+
+        self._findEFAPoints()
+
+        plotpanel = wx.FindWindowByName('EFAResultsPlotPanel2')
+        plotpanel.refresh()
+        
+        wx.CallAfter(self.updateEFAPlot)
+
+    def _onForwardControl(self, evt):
+        self.updateEFAPlot()
+
+    def _onBackwardControl(self, evt):
+        self.updateEFAPlot()
+
+    def setSVs(self, points):
+        for i in range(len(points)):
+            forward = wx.FindWindowById(self.forward_ids[i])
+            backward = wx.FindWindowById(self.backward_ids[len(self.backward_ids)-1-i])
+
+            forward.SetValue(points[i][0])
+            backward.SetValue(points[i][1])
+
+        wx.CallAfter(self.updateEFAPlot)
+
+    def _findEFAPoints(self):
+
+        forward_windows = [wx.FindWindowById(my_id) for my_id in self.forward_ids]
+
+        backward_windows = [wx.FindWindowById(my_id) for my_id in self.backward_ids]
+
+        start_offset = self.panel1_results['fstart']
+
+        old_value = start_offset
+
+        for i in range(len(forward_windows)):
+            if int(forward_windows[i].GetValue()) == int( start_offset+i):
+                try:
+                    d1 = np.gradient(self.efa_forward[i,i+1:])
+
+                    val_list = np.where(d1/d1.max()>.03+.05*i)[0] + start_offset
+
+                    start = val_list[0]
+                    j = 1
+
+                    while start < old_value and j < len(val_list):
+                        start = val_list[j]
+                        j = j+1
+
+                    if j == len(val_list):
+                        start = val_list[0]
+
+                    forward_windows[i].SetValue(start)
+
+                    old_value = start
+                
+                except Exception as e:
+                    print e
+
+
+        old_value = self.panel1_results['fend']
+
+        backward = self.efa_backward[:, ::-1]
+
+        for i in range(len(backward_windows)):
+            if int(backward_windows[i].GetValue()) == int(start_offset):
+                try:
+                    d1 = np.gradient(backward[i,:len(backward[i])-1-i])
+
+                    d1_norm = d1/d1.min()
+
+                    val_list = np.where(d1_norm>.05+.15*i)[0] + start_offset
+
+                    end = val_list[-1]
+                    j = 2
+
+                    while end > old_value and j < len(val_list):
+                        end = val_list[-j]
+                        j = j+1
+
+                    if j == len(val_list):
+                        end = val_list[-1]
+
+                    backward_windows[i].SetValue(end)
+
+                    old_value = end
+                
+                except Exception as e:
+                    print e
+
+
+
+    def runEFA(self, mode):
+        A = self.panel1_results['svd_int_norm']
+
+        slist = np.zeros_like(A)
+
+        jmax = A.shape[1]
+
+        if mode.lower() == 'backward':
+            A = A[:,::-1]
+
+        for j in range(jmax):
+            s = np.linalg.svd(A[:, :j+1], full_matrices = False, compute_uv = False)
+            slist[:s.size, j] = s
+
+        return slist
+
+    def updateEFAPlot(self):
+        plotpanel = wx.FindWindowByName('EFAResultsPlotPanel2')
+
+        nvals = self.panel1_results['input']+1
+
+        forward_points = [wx.FindWindowById(my_id).GetValue() for my_id in self.forward_ids]
+
+        backward_points = [wx.FindWindowById(my_id).GetValue() for my_id in self.backward_ids]
+
+        forward_data = {'slist' : self.efa_forward[:nvals, :],
+                        'index' : np.arange(len(self.efa_forward[0]))+self.panel1_results['fstart'],
+                        'points': forward_points}
+
+        backward_data = {'slist': self.efa_backward[:nvals, ::-1],
+                        'index' : np.arange(len(self.efa_backward[0]))+self.panel1_results['fstart'],
+                        'points': backward_points}
+
+        plotpanel.plotEFA(forward_data, backward_data)
+
+
+class EFAResultsPlotPanel2(wx.Panel):
+    
+    def __init__(self, parent, panel_id, name, wxEmbedded = False):
+        
+        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        
+        main_frame = wx.FindWindowByName('MainFrame')
+        
+        try:
+            self.raw_settings = main_frame.raw_settings
+        except AttributeError:
+            self.raw_settings = RAWSettings.RawGuiSettings()
+        
+        self.fig = Figure((5,4), 75)
+                    
+        self.f_lines = []
+        self.b_lines = []
+
+        self.f_markers = []
+        self.b_markers = []
+    
+        subplotLabels = [('Forward EFA', 'Index', 'Singular Value', 0.1), ('Backward EFA', 'Index', 'Singular Value', 0.1)]
+        
+        self.fig.subplots_adjust(hspace = 0.26)
+        
+        self.subplots = {}
+             
+        for i in range(0, len(subplotLabels)):
+            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
+            subplot.set_xlabel(subplotLabels[i][1])
+            subplot.set_ylabel(subplotLabels[i][2])
+            self.subplots[subplotLabels[i][0]] = subplot 
+
+        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
+        self.fig.set_facecolor('white')
+
+        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
+        self.canvas.SetBackgroundColour('white')
+      
+        self.toolbar = NavigationToolbar2Wx(self.canvas)
+        self.toolbar.Realize()
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
+        sizer.Add(self.toolbar, 0, wx.GROW)
+
+        self.SetSizer(sizer)
+        
+        # Connect the callback for the draw_event so that window resizing works:
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) 
+
+    def ax_redraw(self, widget=None):
+        ''' Redraw plots on window resize event '''
+
+        a = self.subplots['Forward EFA']
+        b = self.subplots['Backward EFA']
+
+        self.f_background = self.canvas.copy_from_bbox(a.bbox)
+        self.b_background = self.canvas.copy_from_bbox(b.bbox)
+        
+        if len(self.f_lines)>0:
+            self.canvas.mpl_disconnect(self.cid)
+            self.updateDataPlot(self.orig_forward_data, self.orig_backward_data)
+            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def refresh(self):
+        a = self.subplots['Forward EFA']
+        b = self.subplots['Backward EFA']
+
+        self.f_lines = []
+        self.b_lines = []
+
+        self.f_markers = []
+        self.b_markers = []
+
+        while len(a.lines) != 0:
+            a.lines.pop(0)
+
+        while len(b.lines) != 0:
+            b.lines.pop(0)
+
+        a.set_prop_cycle(None)
+        b.set_prop_cycle(None)
+        
+    def plotEFA(self, forward_data, backward_data):
+
+        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
+        self.canvas.mpl_disconnect(self.cid)
+        self.updateDataPlot(forward_data, backward_data)
+        
+        #Reconnect draw_event
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def updateDataPlot(self, forward_data, backward_data):
+        #Save for resizing:
+        self.orig_forward_data = forward_data
+        self.orig_backward_data = backward_data
+
+        index = forward_data['index']
+        f_slist = forward_data['slist']
+        f_points = forward_data['points']
+
+        b_slist = backward_data['slist']
+        b_points = backward_data['points']
+
+        fp_index = [np.where(index == point)[0][0] for point in f_points]
+        bp_index = [np.where(index == point)[0][0] for point in b_points]
+            
+        a = self.subplots['Forward EFA']
+        b = self.subplots['Backward EFA']
+
+
+        if len(self.f_lines) == 0:
+
+            for j in range(f_slist.shape[0]):
+                line, = a.semilogy(index, f_slist[j], label = 'SV %i' %(j), animated = True)
+                self.f_lines.append(line)
+
+            for j in range(len(f_points)):
+                point, = a.semilogy(f_points[j], f_slist[j][fp_index[j]], 'o', markeredgewidth = 2, markeredgecolor = self.f_lines[j].get_color(), markerfacecolor='none', markersize = '8', label = '_nolegend_', animated = True)
+                self.f_markers.append(point)
+
+            for k in range(b_slist.shape[0]):
+                line, = b.semilogy(index, b_slist[k], label = 'SV %i' %(k), animated = True)
+                self.b_lines.append(line)
+
+            for k in range(len(b_points)):
+                point, = b.semilogy(b_points[k], b_slist[k][bp_index[k]], 'o', markeredgewidth = 2, markeredgecolor = self.b_lines[k].get_color(), markerfacecolor='none', markersize = '8', label = '_nolegend_', animated = True)
+                self.b_markers.append(point)
+
+            a.legend(fontsize = 12, loc = 'upper left')
+            b.legend(fontsize = 12)
+            
+            self.canvas.draw()
+            self.f_background = self.canvas.copy_from_bbox(a.bbox)
+            self.b_background = self.canvas.copy_from_bbox(b.bbox)
+
+        else:         
+            for j in range(len(self.f_lines)):
+                line = self.f_lines[j]
+                line.set_xdata(index)
+                line.set_ydata(f_slist[j])
+
+            for j in range(len(self.f_markers)):
+                marker = self.f_markers[j]
+                marker.set_xdata(f_points[j])
+                marker.set_ydata(f_slist[j][fp_index[j]])
+
+            for k in range(len(self.b_lines)):
+                line = self.b_lines[k]
+                line.set_xdata(index)
+                line.set_ydata(b_slist[k])
+
+            for k in range(len(self.b_markers)):
+                marker = self.b_markers[k]
+                marker.set_xdata(b_points[k])
+                marker.set_ydata(b_slist[k][bp_index[k]])
+
+        a_oldx = a.get_xlim()
+        a_oldy = a.get_ylim()
+        b_oldx = b.get_xlim()
+        b_oldy = b.get_ylim()
+        
+        a.relim()
+        a.autoscale_view()
+
+        b.relim()
+        b.autoscale_view()
+
+        a_newx = a.get_xlim()
+        a_newy = a.get_ylim()
+        b_newx = b.get_xlim()
+        b_newy = b.get_ylim()
+
+        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy:
+            self.canvas.draw()
+
+        self.canvas.restore_region(self.f_background)
+        
+        for line in self.f_lines:
+            a.draw_artist(line)
+
+        for marker in self.f_markers:
+            a.draw_artist(marker)
+  
+        #restore white background in error plot and draw new error:
+        self.canvas.restore_region(self.b_background)
+
+        for line in self.b_lines:
+            b.draw_artist(line)
+
+        for marker in self.b_markers:
+            b.draw_artist(marker)
+
+        self.canvas.blit(a.bbox)
+        self.canvas.blit(b.bbox)
+
+
+
+class EFAControlPanel3(wx.Panel):
+    
+    def __init__(self, parent, panel_id, name, secm, manip_item):
+
+        wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        self.parent = parent
+
+        self.efa_frame = wx.FindWindowByName('EFAFrame')
+        
+        self.secm = secm
+        
+        self.manip_item = manip_item
+        self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.control_ids = {'n_iter'    : wx.NewId(),
+                            'tol'       : wx.NewId(),
+                            'status'    : wx.NewId()}
+
+        self.control_values = {'n_iter' : 1000,
+                                'tol'   : 1e-12}
+
+        self.initialized = False
+        self.converged = False
+
+        control_sizer = self._createLayout()
+
+        self.SetSizer(control_sizer)
+
+
+    def _createLayout(self):
+
+        self.top_efa = wx.ScrolledWindow(self, -1)
+        self.top_efa.SetScrollRate(20,20)
+
+        top_sizer =wx.BoxSizer(wx.VERTICAL)
+
+        sec_plot = EFARangePlotPanel(self, -1, 'EFARangePlotPanel')
+
+        #svd controls
+        box = wx.StaticBox(self.top_efa, -1, 'Component Range Controls')
+        self.peak_control_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+
+        self.top_efa.SetSizer(self.peak_control_sizer)
+
+
+        box = wx.StaticBox(self, -1, 'Iteration Controls')
+        iter_control_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+
+        grid_sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap =3, hgap =3)
+        
+        num_label = wx.StaticText(self, -1, 'Number of iterations :')
+        
+        num_control = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['n_iter'], size = (60,-1))
+        num_control.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onIterControl)
+        num_control.SetValue(str(self.control_values['n_iter']))
+        num_control.SetRange((1, 1e12))
+
+        grid_sizer.Add(num_label, 0)
+        grid_sizer.Add(num_control, 1)
+
+
+        tol_label = wx.StaticText(self, -1, 'Convergence threshold :')
+        
+        tol_control = RAWCustomCtrl.FloatSpinCtrl(self, self.control_ids['tol'], size = (60,-1), never_negative = True)
+        tol_control.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onIterControl)
+        tol_control.SetValue(str(self.control_values['tol']))
+
+        grid_sizer.Add(tol_label, 0)
+        grid_sizer.Add(tol_control, 1)
+
+        iter_control_sizer.Add(grid_sizer, 1, wx.TOP | wx.BOTTOM | wx.EXPAND, 3)
+
+
+        box = wx.StaticBox(self, -1, 'Status')
+        status_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+
+        status_label = wx.StaticText(self, self.control_ids['status'], '')
+
+        status_sizer.Add(status_label,0, wx.ALL, 3)
+
+
+        top_sizer.Add(sec_plot, 0, wx.ALL | wx.EXPAND, 3)
+        top_sizer.Add(self.top_efa, 1, wx.EXPAND)
+        top_sizer.Add(iter_control_sizer, 0, wx.EXPAND)
+        top_sizer.Add(status_sizer, 0, wx.EXPAND)
+        # top_sizer.AddStretchSpacer(1)
+
+        return top_sizer
+
+
+    def initialize(self, svd_results, efa_results):
+        self.panel1_results = copy.copy(svd_results)
+
+        self.panel2_results = copy.copy(efa_results)
+
+        nvals = efa_results['points'].shape[0]
+
+        self.range_ids = [(wx.NewId(), wx.NewId()) for i in range(nvals)]
+
+        self.range_sizer = wx.FlexGridSizer(cols = 4, rows = nvals, vgap = 3, hgap = 3)
+
+        start = svd_results['fstart']
+        end = svd_results['fend']
+
+        points = efa_results['points']
+
+        for i in range(nvals):
+            
+            label1 = wx.StaticText(self.top_efa, -1, 'Range %i :' %(i))
+            fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][0], size = (60, -1))
+            fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
+            fcontrol.SetValue(points[i][0])
+            fcontrol.SetRange((start+i,end))
+
+            self.range_sizer.Add(label1, 0)
+            self.range_sizer.Add(fcontrol, 0)
+            
+            label2 = wx.StaticText(self.top_efa, -1, 'to')
+            bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][1], size = (60, -1))
+            bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
+            bcontrol.SetValue(points[i][1])
+            bcontrol.SetRange((start,end-i))
+
+            self.range_sizer.Add(label2, 0)
+            self.range_sizer.Add(bcontrol, 0)
+
+
+        self.peak_control_sizer.Add(self.range_sizer, 0, wx.TOP, 3)
+
+        self.initialized = True
+
+        wx.CallAfter(self.runRotation)
+
+        wx.CallAfter(self.updateRangePlot)
+
+    def reinitialize(self, svd_results, efa_results, rebuild):
+        self.panel1_results = copy.copy(svd_results)
+
+        self.panel2_results = copy.copy(efa_results)
+
+        nvals = efa_results['points'].shape[0]
+
+        if rebuild:
+            self.peak_control_sizer.Hide(self.range_sizer)
+            self.peak_control_sizer.Detach(self.range_sizer)
+
+            for child in self.range_sizer.GetChildren():
+                self.range_sizer.Hide(child.Window)
+                self.range_sizer.Detach(child.Window)
+
+            self.peak_control_sizer.Layout()
+            self.top_efa.Layout()
+            self.Layout()
+
+            self.range_ids = [(wx.NewId(), wx.NewId()) for i in range(nvals)]
+
+            self.range_sizer = wx.FlexGridSizer(cols = 4, rows = nvals, vgap = 3, hgap = 3)
+
+            start = svd_results['fstart']
+            end = svd_results['fend']
+
+            points = efa_results['points']
+
+            for i in range(nvals):
+                
+                label1 = wx.StaticText(self.top_efa, -1, 'Range %i :' %(i))
+                fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][0], size = (60, -1))
+                fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
+                fcontrol.SetValue(points[i][0])
+                fcontrol.SetRange((start+i,end))
+
+                self.range_sizer.Add(label1, 0)
+                self.range_sizer.Add(fcontrol, 0)
+                
+                label2 = wx.StaticText(self.top_efa, -1, 'to')
+                bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][1], size = (60, -1))
+                bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
+                bcontrol.SetValue(points[i][1])
+                bcontrol.SetRange((start,end-i))
+
+                self.range_sizer.Add(label2, 0)
+                self.range_sizer.Add(bcontrol, 0)
+
+
+            self.peak_control_sizer.Add(self.range_sizer, 0, wx.TOP, 3)
+
+            self.peak_control_sizer.Layout()
+            self.top_efa.Layout()
+            self.Layout()
+
+            plotpanel = wx.FindWindowByName('EFAResultsPlotPanel3')
+            plotpanel.refresh()
+
+        else:
+            for i in range(nvals):
+                my_ids = self.range_ids[i]
+                points = efa_results['points'][i]
+
+                start = wx.FindWindowById(my_ids[0])
+                end = wx.FindWindowById(my_ids[1])
+
+                start.SetValue(points[0])
+                end.SetValue(points[1])
+
+            plotpanel = wx.FindWindowByName('EFAResultsPlotPanel3')
+            plotpanel.refresh()
+
+        wx.CallAfter(self.runRotation)
+        wx.CallAfter(self.updateRangePlot)
+
+
+    def _onIterControl(self, evt):
+        wx.CallAfter(self.runRotation)
+
+    def _onRangeControl(self, evt):
+        wx.CallAfter(self.updateRangePlot)
+        wx.CallAfter(self.runRotation)
+
+    def _updateStatus(self, in_progress = False):
+        status_window = wx.FindWindowById(self.control_ids['status'])
+
+        if not in_progress:
+            if self.converged:
+                status = 'Rotation Successful\n'
+            else:
+                status = 'Rotation failed. Try adjusting ranges\nor iteration settings.'
+        else:
+            status = 'Rotation in progress'
+
+        status_window.SetLabel(status)
+
+
+    def updateRotation(self, M,C,D):
+        S = np.dot(D, np.linalg.pinv(np.transpose(M*C)))
+
+        Cnew = np.transpose(np.dot(np.linalg.pinv(S), D))
+
+        csum = np.sum(M*Cnew, axis = 0)
+        Cnew = Cnew/np.broadcast_to(csum, Cnew.shape) #normalizes by the sum of each column
+
+        return Cnew
+
+    def runRotation(self):
+        #Get component ranges and iteration control values
+        self._updateStatus(True)
+
+        ranges = self._getRanges()
+
+        start = self.panel1_results['fstart']
+
+        ranges = ranges - start
+
+        niter = int(wx.FindWindowById(self.control_ids['n_iter']).GetValue())
+        tol = float(wx.FindWindowById(self.control_ids['tol']).GetValue())
+
+        #Calculate the initial matrices
+        num_sv = ranges.shape[0]
+
+        D = self.panel1_results['svd_int_norm']
+
+        C = self.panel1_results['svd_v'][:,:num_sv]
+
+
+        M = np.zeros_like(C)
+
+        for j in range(num_sv):
+            M[ranges[j][0]:ranges[j][1]+1, j] = 1
+
+
+        #Do an initial rotation
+        C = self.updateRotation(M, C, D)
+
+
+        #Carry out the calculation to convergence
+        k = 0
+        converged = False
+
+        dc = []
+
+        while k < niter and not converged:
+            k = k+1
+
+            Cnew = self.updateRotation(M, C, D)
+
+            dck = np.sum(np.abs(Cnew - C))
+
+            dc.append(dck)
+
+            C = Cnew
+
+            if dck < tol:
+                converged = True
+
+
+        self.conv_data = {'steps'   : dc,
+                        'iterations': k,
+                        'final_step': dc[-1],
+                        'options'   : {'niter': niter, 'tol': tol}}
+
+        #Check whether the calculation converged
+        if k == niter and dck > tol:
+            self.converged = False
+        else:
+            self.converged = True
+
+        if self.converged:
+            #Calculate SAXS basis vectors
+            mult = np.linalg.pinv(np.transpose(M*C))
+            intensity = np.dot(self.panel1_results['int'], mult)
+            err = np.sqrt(np.dot(np.square(self.panel1_results['err']), np.square(mult)))
+
+            int_norm = np.dot(D, mult)
+            resid = D - np.dot(int_norm, np.transpose(M*C))
+
+            chisq = np.mean(np.square(resid),0)
+
+            #Save the results
+            self.rotation_data = {'M'   : M,
+                                'C'     : C,
+                                'int'   : intensity,
+                                'err'   : err,
+                                'chisq' : chisq}
+
+
+            wx.CallAfter(self.updateResultsPlot)
+
+            self._makeSASMs()
+
+        wx.CallAfter(self._updateStatus)
+
+    def _getRanges(self):
+        ranges = []
+
+        for my_ids in self.range_ids:
+            ranges.append([wx.FindWindowById(my_ids[0]).GetValue(), wx.FindWindowById(my_ids[1]).GetValue()])
+
+        ranges = np.array(ranges, dtype = int)
+
+        return ranges
+
+    def _makeSASMs(self):
+        nprofiles = len(self.range_ids)
+
+        self.sasms = [None for i in range(nprofiles)]
+
+        old_filename = self.secm.getParameter('filename').split('.')
+
+        if len(old_filename) > 1:
+            old_filename = '.'.join(old_filename[:-1])
+        else:
+            old_filename = old_filename[0]
+
+        for i in range(nprofiles):
+            q = self.secm.getSASM().q
+
+            intensity = self.rotation_data['int'][:,i]
+
+            err = self.rotation_data['err'][:,i]
+
+            sasm = SASM.SASM(intensity, q, err, {})
+
+            sasm.setParameter('filename', old_filename+'_%i' %(i))
+
+            self.sasms[i] = sasm
+
+
+    def updateRangePlot(self):
+        plotpanel = wx.FindWindowByName('EFARangePlotPanel')
+
+        ydata_type = self.panel1_results['ydata_type']
+
+        if self.panel1_results['use_sub']:
+            plot_secm = self.panel1_results['sub_secm']
+        else:
+            plot_secm = self.secm
+
+        framei = self.panel1_results['fstart']
+        framef = self.panel1_results['fend']
+
+        ranges = self._getRanges()
+
+        plotpanel.plotRange(plot_secm, framei, framef, ydata_type, ranges)
+
+    def updateResultsPlot(self):
+        plotpanel = wx.FindWindowByName('EFAResultsPlotPanel3')
+
+        framei = self.panel1_results['fstart']
+        framef = self.panel1_results['fend']
+
+        rmsd_data = [self.rotation_data['chisq'], range(framei, framef+1)]
+
+        plotpanel.plotEFA(self.sasms, rmsd_data)
+
+
+class EFAResultsPlotPanel3(wx.Panel):
+    
+    def __init__(self, parent, panel_id, name, wxEmbedded = False):
+
+        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        
+        main_frame = wx.FindWindowByName('MainFrame')
+        
+        try:
+            self.raw_settings = main_frame.raw_settings
+        except AttributeError:
+            self.raw_settings = RAWSettings.RawGuiSettings()
+        
+        self.fig = Figure((5,4), 75)
+                    
+        self.a_lines = []
+        self.b_lines = []
+    
+        subplotLabels = [('Scattering Profiles', 'q ($\AA^{-1}$)', 'I', 0.1), ('Mean Error Weighted $\chi^2$', 'Index', '$\chi^2$', 0.1)]
+        
+        self.fig.subplots_adjust(hspace = 0.26)
+        
+        self.subplots = {}
+             
+        for i in range(0, len(subplotLabels)):
+            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
+            subplot.set_xlabel(subplotLabels[i][1])
+            subplot.set_ylabel(subplotLabels[i][2])
+            self.subplots[subplotLabels[i][0]] = subplot 
+
+        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
+        self.fig.set_facecolor('white')
+
+        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
+        self.canvas.SetBackgroundColour('white')
+      
+        self.toolbar = NavigationToolbar2Wx(self.canvas)
+        self.toolbar.Realize()
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
+        sizer.Add(self.toolbar, 0, wx.GROW)
+
+        self.SetSizer(sizer)
+        
+        # Connect the callback for the draw_event so that window resizing works:
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) 
+
+    def ax_redraw(self, widget=None):
+        ''' Redraw plots on window resize event '''
+
+        a = self.subplots['Scattering Profiles']
+        b = self.subplots['Mean Error Weighted $\chi^2$']
+
+        self.a_background = self.canvas.copy_from_bbox(a.bbox)
+        self.b_background = self.canvas.copy_from_bbox(b.bbox)
+        
+        if len(self.a_lines)>0:
+            self.canvas.mpl_disconnect(self.cid)
+            self.updateDataPlot(self.orig_profile_data, self.orig_rmsd_data)
+            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def refresh(self):
+        a = self.subplots['Scattering Profiles']
+        b = self.subplots['Mean Error Weighted $\chi^2$']
+
+        self.a_lines = []
+        self.b_lines = []
+
+        while len(a.lines) != 0:
+            a.lines.pop(0)
+
+        while len(b.lines) != 0:
+            b.lines.pop(0)
+
+        a.set_prop_cycle(None)
+        b.set_prop_cycle(None)
+        
+    def plotEFA(self, profile_data, rmsd_data):
+
+        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
+        self.canvas.mpl_disconnect(self.cid)
+        self.updateDataPlot(profile_data, rmsd_data)
+        
+        #Reconnect draw_event
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def updateDataPlot(self, profile_data, rmsd_data):
+        #Save for resizing:
+        self.orig_profile_data = profile_data
+        self.orig_rmsd_data = rmsd_data
+            
+        a = self.subplots['Scattering Profiles']
+        b = self.subplots['Mean Error Weighted $\chi^2$']
+
+
+        if len(self.a_lines) == 0:
+
+            for j in range(len(profile_data)):
+                line, = a.semilogy(profile_data[j].q, profile_data[j].i, label = 'Range %i' %(j), animated = True)
+                self.a_lines.append(line)
+
+            line, = b.plot(rmsd_data[1], rmsd_data[0], animated = True)
+
+            self.b_lines.append(line)
+
+
+            a.legend(fontsize = 12)
+            # b.legend(fontsize = 12)
+            
+            self.canvas.draw()
+            self.a_background = self.canvas.copy_from_bbox(a.bbox)
+            self.b_background = self.canvas.copy_from_bbox(b.bbox)
+
+        else:         
+            for j in range(len(self.a_lines)):
+                line = self.a_lines[j]
+                line.set_xdata(profile_data[j].q)
+                line.set_ydata(profile_data[j].i)
+
+            line = self.b_lines[0]
+            line.set_xdata(rmsd_data[1])
+            line.set_ydata(rmsd_data[0])
+
+        a_oldx = a.get_xlim()
+        a_oldy = a.get_ylim()
+        b_oldx = b.get_xlim()
+        b_oldy = b.get_ylim()
+        
+        a.relim()
+        a.autoscale_view()
+
+        b.relim()
+        b.autoscale_view()
+
+        a_newx = a.get_xlim()
+        a_newy = a.get_ylim()
+        b_newx = b.get_xlim()
+        b_newy = b.get_ylim()
+
+        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy:
+            self.canvas.draw()
+
+        self.canvas.restore_region(self.a_background)
+        
+        for line in self.a_lines:
+            a.draw_artist(line)
+  
+
+        self.canvas.restore_region(self.b_background)
+
+        for line in self.b_lines:
+            b.draw_artist(line)
+
+
+        self.canvas.blit(a.bbox)
+        self.canvas.blit(b.bbox)
+
+
+class EFARangePlotPanel(wx.Panel):
+    
+    def __init__(self, parent, panel_id, name, wxEmbedded = False):
+        
+        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        
+        main_frame = wx.FindWindowByName('MainFrame')
+        
+        try:
+            self.raw_settings = main_frame.raw_settings
+        except AttributeError:
+            self.raw_settings = RAWSettings.RawGuiSettings()
+        
+        self.fig = Figure((5,4), 75)
+                    
+        self.cut_line = None
+        self.range_arrows = []
+        self.range_lines = []
+    
+        subplotLabels = [('SECPlot', 'Frame #', 'Intensity', .1)]
+        
+        self.fig.subplots_adjust(hspace = 0.26)
+        
+        self.subplots = {}
+             
+        for i in range(0, len(subplotLabels)):
+            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, label = subplotLabels[i][0])
+            subplot.set_xlabel(subplotLabels[i][1])
+            subplot.set_ylabel(subplotLabels[i][2])
+            self.subplots[subplotLabels[i][0]] = subplot 
+
+        self.fig.subplots_adjust(left = 0.18, bottom = 0.13, right = 0.93, top = 0.93, hspace = 0.26)
+        self.fig.set_facecolor('white')
+
+        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
+        self.canvas.SetBackgroundColour('white')
+      
+        self.toolbar = NavigationToolbar2Wx(self.canvas)
+        self.toolbar.Realize()
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
+        sizer.Add(self.toolbar, 0, wx.GROW)
+
+        self.SetSizer(sizer)
+        
+        # Connect the callback for the draw_event so that window resizing works:
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) 
+
+    def ax_redraw(self, widget=None):
+        ''' Redraw plots on window resize event '''
+        
+        a = self.subplots['SECPlot']
+        # b = self.subplots['Data/Fit']
+
+        self.background = self.canvas.copy_from_bbox(a.bbox)
+        # self.err_background = self.canvas.copy_from_bbox(b.bbox)
+        
+        if self.cut_line != None:
+            self.canvas.mpl_disconnect(self.cid)
+            self.updateDataPlot(self.orig_frame_list, self.orig_intensity, self.orig_framei, self.orig_framef, self.orig_ranges)
+            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+        
+    def plotRange(self, secm, framei, framef, ydata_type, ranges):
+        frame_list = secm.frame_list
+        
+        if ydata_type == 'qspec':
+            intensity = secm.I_of_q
+        elif ydata_type == 'mean':
+            intensity = secm.mean_i
+        else:
+            intensity = secm.total_i
+
+        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
+        self.canvas.mpl_disconnect(self.cid)
+        self.updateDataPlot(frame_list, intensity, framei, framef, ranges)
+        
+        #Reconnect draw_event
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def updateDataPlot(self, frame_list, intensity, framei, framef, ranges):
+            
+        xmin, xmax = frame_list[0], frame_list[-1]
+        
+        #Save for resizing:
+        self.orig_frame_list = frame_list
+        self.orig_intensity = intensity
+        self.orig_framei = framei
+        self.orig_framef = framef
+        self.orig_ranges = ranges
+            
+        a = self.subplots['SECPlot']
+        
+        if self.cut_line == None:
+
+            self.cut_line, = a.plot(frame_list[framei:framef+1], intensity[framei:framef+1], 'k.-', animated = True)
+            
+            a.set_prop_cycle(None) #Resets the color cycler to the original state
+            
+            for i in range(ranges.shape[0]):
+                color = a._get_lines.prop_cycler.next()['color']
+
+                annotation = a.annotate('', xy = (ranges[i][0], 0.975-0.05*(i)), xytext = (ranges[i][1], 0.975-0.05*(i)), xycoords = ('data', 'axes fraction'), arrowprops = dict(arrowstyle = '<->', color = color), animated = True)
+                self.range_arrows.append(annotation)
+
+                rline1 = a.axvline(ranges[i][0], 0, 0.975-0.05*(i), linestyle = 'dashed', color = color, animated = True)
+                rline2 = a.axvline(ranges[i][1], 0, 0.975-0.05*(i), linestyle = 'dashed', color = color, animated = True)
+
+                self.range_lines.append([rline1, rline2])
+
+            self.canvas.draw()
+            self.background = self.canvas.copy_from_bbox(a.bbox)
+
+
+        else:         
+            self.cut_line.set_ydata(intensity[framei:framef+1])
+            self.cut_line.set_xdata(frame_list[framei:framef+1])
+
+            for i in range(ranges.shape[0]):
+                arr = self.range_arrows[i]
+
+                arr.xy = (ranges[i][0], 0.975-0.05*(i))
+                arr.xyann = (ranges[i][1], 0.975-0.05*(i))
+
+                lines = self.range_lines[i]
+
+                lines[0].set_xdata(ranges[i][0])
+                lines[1].set_xdata(ranges[i][1])
+            
+
+        a_oldx = a.get_xlim()
+        a_oldy = a.get_ylim()
+        
+        a.relim()
+        a.autoscale_view()
+
+        a_newx = a.get_xlim()
+        a_newy = a.get_ylim()
+
+        if a_newx != a_oldx or a_newy != a_oldy:
+            self.canvas.draw()
+
+        self.canvas.restore_region(self.background)
+        
+        a.draw_artist(self.cut_line)
+
+        for anno in self.range_arrows:
+            a.draw_artist(anno)
+
+        for lines in self.range_lines:
+            a.draw_artist(lines[0])
+            a.draw_artist(lines[1])
+
+        self.canvas.blit(a.bbox)
 
 
 # ----------------------------------------------------------------------------
