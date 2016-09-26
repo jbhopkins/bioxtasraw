@@ -1870,7 +1870,8 @@ class MainWorkerThread(threading.Thread):
                                     'save_sec_item'         : self._saveSECItem,
                                     'save_sec_profiles'     : self._saveSECProfiles,
                                     'calculate_params_sec'  : self._calculateSECParams,
-                                    'save_iftm'             : self._saveIFTM}
+                                    'save_iftm'             : self._saveIFTM,
+                                    'to_plot_sasm'          : self._plotSASM}
          
         
     def run(self):
@@ -3160,6 +3161,15 @@ class MainWorkerThread(threading.Thread):
         notsaved = data[3]
 
         self._sendIFTMToPlot(iftm, item_colour = item_colour, line_color = line_color, notsaved = notsaved)
+
+    def _plotSASM(self, data):
+
+        sasm = data[0]
+        item_colour = data[1]
+        line_color = data[2]
+        notsaved = data[3]
+
+        self._sendSASMToPlot(sasm, item_colour = item_colour, line_color = line_color, notsaved = notsaved)
 
     def _plotIftFit(self, data):
              

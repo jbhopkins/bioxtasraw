@@ -6277,7 +6277,23 @@ class EFAFrame(wx.Frame):
         self.getPanel3Values()
 
         if self.panel3_results['converged']:
-            RAWGlobals.mainworker_cmd_queue.put(['to_plot', self.panel3_results['profiles']])
+            RAWGlobals.mainworker_cmd_queue.put(['to_plot_sasm', [self.panel3_results['profiles'], 'black', None, True]])
+
+
+        if type(self.manip_item) != None:
+            analysis_dict = self.secm.getParameter('analysis')
+
+            efa_dict = {}
+
+            efa_dict['fstart'] = self.panel1_results['fstart']
+            efa_dict['fend'] = self.panel1_results['fend']
+            efa_dict['profile'] = self.panel1_results['profile']
+            efa_dict['nsvs'] = self.panel1_results['input']
+            efa_dict['ranges'] = self.panel3_results['ranges']
+            efa_dict['iter_limit'] = self.panel3_results['options']['niter']
+            efa_dict['tolerance'] = self.panel3_results['options']['tol']
+
+            analysis_dict['efa'] = efa_dict
 
         self.OnClose()
 
@@ -6560,10 +6576,15 @@ class EFAControlPanel1(wx.Panel):
 
         else:
             for key in analysis_dict['efa']:
-                if key != 'profile':
-                    wx.FindWindowById(self.control_ids[key]).SetValue(analysis_dict['svd'][key])
-                else:
-                    wx.FindWindowById(self.control_ids[key]).SetStringSelection(analysis_dict['svd'][key])
+                if key == 'profile':
+                    wx.FindWindowById(self.control_ids[key]).SetStringSelection(analysis_dict['efa'][key])
+                elif key == 'nsvs':
+                    wx.FindWindowById(self.control_ids['input']).SetValue(analysis_dict['efa'][key])
+                elif key in self.control_ids:
+                     wx.FindWindowById(self.control_ids[key]).SetValue(analysis_dict['efa'][key])
+
+            svd_start_window.SetValue(0)
+            svd_end_window.SetValue(min(framef-framei,10))
 
 
         #make a subtracted profile SECM
@@ -6902,6 +6923,8 @@ class EFAControlPanel2(wx.Panel):
     def initialize(self, svd_results):
         self.panel1_results = copy.copy(svd_results)
 
+        analysis_dict = self.secm.getParameter('analysis')
+
         nvals = svd_results['input']
 
         self.forward_ids = [wx.NewId() for i in range(nvals)]
@@ -6945,7 +6968,21 @@ class EFAControlPanel2(wx.Panel):
         busy_dialog.Destroy()
         busy_dialog = None
 
-        self._findEFAPoints()
+        if 'efa' in analysis_dict:
+            if nvals == analysis_dict['efa']['nsvs'] and self.panel1_results['fstart'] == analysis_dict['efa']['fstart'] and self.panel1_results['fend'] == analysis_dict['efa']['fend'] and self.panel1_results['profile'] == analysis_dict['efa']['profile']:
+                points = analysis_dict['efa']['ranges']
+
+                forward_sv = points[:,0]
+                backward_sv = points[:,1]
+
+                if np.all(np.sort(forward_sv) == forward_sv) and np.all(np.sort(backward_sv) == backward_sv):
+                    self.setSVs(points)
+                else:
+                    self._findEFAPoints()
+            else:
+                self._findEFAPoints()
+        else:
+            self._findEFAPoints()
 
         self.initialized = True
 
@@ -7460,6 +7497,8 @@ class EFAControlPanel3(wx.Panel):
 
         self.panel2_results = copy.copy(efa_results)
 
+        analysis_dict = self.secm.getParameter('analysis')
+
         nvals = efa_results['points'].shape[0]
 
         self.range_ids = [(wx.NewId(), wx.NewId(), wx.NewId()) for i in range(nvals)]
@@ -7499,6 +7538,15 @@ class EFAControlPanel3(wx.Panel):
 
 
         self.peak_control_sizer.Add(self.range_sizer, 0, wx.TOP, 3)
+
+        if 'efa' in analysis_dict:
+            efa_dict = analysis_dict['efa']
+            if efa_dict['fstart'] == self.panel1_results['fstart'] and efa_dict['fend'] == self.panel1_results['fend'] and efa_dict['profile'] == self.panel1_results['profile'] and efa_dict['nsvs'] == self.panel1_results['input'] and np.all(efa_dict['ranges'] == self._getRanges()):
+                iter_window = wx.FindWindowById(self.control_ids['n_iter'])
+                tol_window = wx.FindWindowById(self.control_ids['tol'])
+
+                iter_window.SetValue(str(efa_dict['iter_limit']))
+                tol_window.SetValue(str(efa_dict['tolerance']))
 
         self.initialized = True
 
@@ -7784,6 +7832,19 @@ class EFAControlPanel3(wx.Panel):
             sasm = SASM.SASM(intensity, q, err, {})
 
             sasm.setParameter('filename', old_filename+'_%i' %(i))
+
+            history_dict = {}
+
+            history_dict['input_filename'] = self.panel1_results['filename']
+            history_dict['start_index'] = str(self.panel1_results['fstart'])
+            history_dict['end_index'] = str(self.panel1_results['fend'])
+            history_dict['component_number'] = str(i)
+
+            points = self._getRanges()[i]
+            history_dict['component_range'] = '[%i, %i]' %(points[0], points[1])
+
+            history = sasm.getParameter('history')
+            history['EFA'] = history_dict
 
             self.sasms[i] = sasm
 
