@@ -2909,6 +2909,127 @@ def saveSVDData(filename, svd_data, u_data, v_data):
         for line in v_data:
             fsave.write(','.join(map(str, line))+'\n')
 
+
+def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
+    framei = panel1_results['fstart']
+    framef = panel1_results['fend']
+    index = range(framei, framef+1)
+
+    nvals = panel1_results['input']
+
+    qvals = panel1_results['q']
+
+    header_string = ''
+
+    header_string = header_string + '# SEC data name: %s\n' %(panel1_results['filename'])
+    header_string = header_string + '# Started at SEC frame: %s\n' %(str(framei))
+    header_string = header_string + '# Ended at SEC frame: %s\n' %(str(framef))
+    header_string = header_string + '# Used: %s\n' %(panel1_results['profile'])
+    header_string = header_string + '# Number of significant singular values: %s\n' %(str(nvals))
+    header_string = header_string + '# Component Ranges:\n'
+    for i in range(len(panel3_results['ranges'])):
+        header_string = header_string + '#\tRange %i: %i to %i\n' %(i, panel3_results['ranges'][i][0], panel3_results['ranges'][i][1])
+    header_string = header_string + '# Rotation setings: Iterations: %s   Convergence threshold: %s\n' %(panel3_results['options']['niter'], panel3_results['options']['tol'])
+    header_string = header_string + '# Rotation converged: %s\n' %(str(panel3_results['converged']))
+    if panel3_results['converged']:
+        header_string = header_string + '# Rotation results: Iterations: %s\n' %(panel3_results['iterations'])
+    header_string = header_string + '\n'
+
+    body_string = ''
+    if panel3_results['converged']:
+        body_string = body_string+'Concentration Matrix Results\n'
+        body_string = body_string+'Index,'+','.join(['Value_%i' %i for i in range(nvals)])+'\n'
+
+        conc = panel3_results['conc']
+
+        conc_output = np.column_stack((index, conc))
+
+        for line in conc_output:
+            body_string = body_string+','.join(map(str, line)) + '\n'
+
+        body_string = body_string +'\n'
+
+
+        body_string = body_string+'Rotation Chi^2\n'
+        body_string = body_string+'Index,Chi^2\n'
+
+        chisq = panel3_results['chisq']
+
+        chisq_output = np.column_stack((index, chisq))
+
+        for line in chisq_output:
+            body_string = body_string+','.join(map(str, line)) + '\n'
+
+        body_string = body_string +'\n'
+
+
+    body_string = body_string + 'Forward EFA Results\n'
+    body_string = body_string + 'Index,'+','.join(['Value_%i' %i for i in range(nvals+1)])+'\n'
+
+    fefa = panel2_results['forward_efa'].T[:,:nvals+1]
+    fefa_output = np.column_stack((index, fefa))
+
+    for line in fefa_output:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
+
+    body_string = body_string + 'Backward EFA Results\n'
+    body_string = body_string + 'Index,'+','.join(['Value_%i' %i for i in range(nvals)])+'\n'
+
+    befa = panel2_results['backward_efa'][:, ::-1].T[:,:nvals+1]
+    befa_output = np.column_stack((index, befa))
+
+    for line in befa_output:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
+
+    body_string = body_string + 'Singular Value Results\n\n'
+    body_string = body_string + 'Singular Values\n'
+    body_string = body_string + 'Index,Value\n'
+
+    svs = panel1_results['svd_s']
+
+    svs_output = np.column_stack((range(len(svs)),svs))
+
+    for line in svs_output:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
+
+    body_string = body_string + 'Left Singular Vectors (U)\n'
+    body_string = body_string + 'Q,'+','.join(['Column_%i' %i for i in range(nvals)])+'\n'
+
+    svd_u = panel1_results['svd_u'].T[:,:nvals]
+    svd_u_output = np.column_stack((qvals, svd_u))
+
+    for line in svd_u_output:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
+
+    body_string = body_string + 'Right Singular Vectors (V)\n'
+    body_string = body_string + 'Index,'+','.join(['Column_%i' %i for i in range(nvals)])+'\n'
+
+    svd_v = panel1_results['svd_v'][:,:nvals]
+    svd_v_output = np.column_stack((index, svd_v))
+
+    for line in svd_v_output:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
+    save_string = header_string + body_string
+
+
+    with open(filename, 'w') as fsave:
+        fsave.write(save_string)
+
     
 def loadWorkspace(load_path):
     

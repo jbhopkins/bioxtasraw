@@ -5901,8 +5901,8 @@ class SVDControlPanel(wx.Panel):
             
         if dialog.ShowModal() == wx.ID_OK:
             save_path = dialog.GetPath()
-            name, ext = os.path.splitext(filename)
-            filename = os.path.join(name, '.csv')
+            name, ext = os.path.splitext(save_path)
+            save_path = name + '.csv'
         else:
             return
 
@@ -5933,8 +5933,8 @@ class SVDControlPanel(wx.Panel):
             
         if dialog.ShowModal() == wx.ID_OK:
             save_path = dialog.GetPath()
-            name, ext = os.path.splitext(filename)
-            filename = os.path.join(name, '.csv')
+            name, ext = os.path.splitext(save_path)
+            save_path = name + '.csv'
         else:
             return
 
@@ -5991,7 +5991,7 @@ class SVDControlPanel(wx.Panel):
 
 class EFAFrame(wx.Frame):
     
-    def __init__(self, parent, title, sasm, manip_item):
+    def __init__(self, parent, title, secm, manip_item):
         
         try:
             wx.Frame.__init__(self, parent, -1, title, name = 'EFAFrame', size = (800,700))
@@ -6000,7 +6000,7 @@ class EFAFrame(wx.Frame):
         
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
-        self.sasm = sasm
+        self.secm = secm
         self.manip_item = manip_item
 
         self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
@@ -6024,18 +6024,24 @@ class EFAFrame(wx.Frame):
                                 'svd_int_norm'  : [],
                                 'use_sub'       : True,
                                 'sub_secm'      : None,
-                                'ydata_type'    : 'Total'}
+                                'ydata_type'    : 'Total',
+                                'filename'      : '',
+                                'q'             : []}
 
         self.panel2_results = {'start_points'   : [],
                                 'end_points'    : [],
-                                'points'        : []}
+                                'points'        : [],
+                                'forward_efa'   : [],
+                                'backward_efa'  : []}
 
         self.panel3_results = {'options'    : {},
                                 'steps'     : 0,
                                 'iterations': 0,
                                 'converged' : False,
                                 'ranges'    : [],
-                                'profiles'  : []}
+                                'profiles'  : [],
+                                'conc'      : [],
+                                'chisq'     : []}
 
         self.current_panel = 1
 
@@ -6051,12 +6057,12 @@ class EFAFrame(wx.Frame):
         self.splitter1 = wx.SplitterWindow(parent, self.splitter_ids[1])                
         
         self.plotPanel1 = SVDResultsPlotPanel(self.splitter1, -1, 'EFAResultsPlotPanel1')
-        self.controlPanel1 = EFAControlPanel1(self.splitter1, -1, 'EFAControlPanel1', self.sasm, self.manip_item)
+        self.controlPanel1 = EFAControlPanel1(self.splitter1, -1, 'EFAControlPanel1', self.secm, self.manip_item)
   
-        self.splitter1.SplitVertically(self.controlPanel1, self.plotPanel1, 290)
+        self.splitter1.SplitVertically(self.controlPanel1, self.plotPanel1, 300)
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            self.splitter1.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
+            self.splitter1.SetMinimumPaneSize(300)    #Back compatability with older wxpython versions
         else:
             self.splitter1.SetMinimumPaneSize(50)
 
@@ -6071,12 +6077,12 @@ class EFAFrame(wx.Frame):
         self.splitter2 = wx.SplitterWindow(parent, self.splitter_ids[2])                
         
         self.plotPanel2 = EFAResultsPlotPanel2(self.splitter2, -1, 'EFAResultsPlotPanel2')
-        self.controlPanel2 = EFAControlPanel2(self.splitter2, -1, 'EFAControlPanel2', self.sasm, self.manip_item)
+        self.controlPanel2 = EFAControlPanel2(self.splitter2, -1, 'EFAControlPanel2', self.secm, self.manip_item)
   
-        self.splitter2.SplitVertically(self.controlPanel2, self.plotPanel2, 290)
+        self.splitter2.SplitVertically(self.controlPanel2, self.plotPanel2, 300)
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            self.splitter2.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
+            self.splitter2.SetMinimumPaneSize(300)    #Back compatability with older wxpython versions
         else:
             self.splitter2.SetMinimumPaneSize(50)
 
@@ -6087,12 +6093,12 @@ class EFAFrame(wx.Frame):
         self.splitter3 = wx.SplitterWindow(parent, self.splitter_ids[3])                
         
         self.plotPanel3 = EFAResultsPlotPanel3(self.splitter3, -1, 'EFAResultsPlotPanel3')
-        self.controlPanel3 = EFAControlPanel3(self.splitter3, -1, 'EFAControlPanel3', self.sasm, self.manip_item)
+        self.controlPanel3 = EFAControlPanel3(self.splitter3, -1, 'EFAControlPanel3', self.secm, self.manip_item)
   
-        self.splitter3.SplitVertically(self.controlPanel3, self.plotPanel3, 290)
+        self.splitter3.SplitVertically(self.controlPanel3, self.plotPanel3, 300)
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            self.splitter3.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
+            self.splitter3.SetMinimumPaneSize(300)    #Back compatability with older wxpython versions
         else:
             self.splitter3.SetMinimumPaneSize(50)
 
@@ -6318,6 +6324,13 @@ class EFAFrame(wx.Frame):
             elif key == 'ydata_type':
                 value = self.controlPanel1.ydata_type
 
+            elif key == 'filename':
+                filename_window = wx.FindWindowById(self.controlPanel1.field_ids['fname'])
+                value = filename_window.GetValue()
+
+            elif key == 'q':
+                value = self.secm.getSASM().q
+
             self.panel1_results[key] = value
 
     def getPanel2Values(self):
@@ -6336,6 +6349,10 @@ class EFAFrame(wx.Frame):
 
         self.panel2_results['points'] = points
 
+        self.panel2_results['forward_efa'] = window.efa_forward
+        self.panel2_results['backward_efa'] = window.efa_backward
+
+
     def getPanel3Values(self):
         window = wx.FindWindowByName('EFAControlPanel3')
 
@@ -6349,6 +6366,8 @@ class EFAFrame(wx.Frame):
         if self.panel3_results['converged']:
             self.panel3_results['ranges'] = window._getRanges()
             self.panel3_results['profiles'] = window.sasms
+            self.panel3_results['conc'] = window.rotation_data['C']
+            self.panel3_results['chisq'] = window.rotation_data['chisq']
 
     def OnClose(self):
         
@@ -7346,9 +7365,10 @@ class EFAControlPanel3(wx.Panel):
 
         self.raw_settings = self.main_frame.raw_settings
 
-        self.control_ids = {'n_iter'    : wx.NewId(),
-                            'tol'       : wx.NewId(),
-                            'status'    : wx.NewId()}
+        self.control_ids = {'n_iter'        : wx.NewId(),
+                            'tol'           : wx.NewId(),
+                            'status'        : wx.NewId(),
+                            'save_results'  : wx.NewId()}
 
         self.control_values = {'n_iter' : 1000,
                                 'tol'   : 1e-12}
@@ -7413,10 +7433,23 @@ class EFAControlPanel3(wx.Panel):
         status_sizer.Add(status_label,0, wx.ALL, 3)
 
 
+        box = wx.StaticBox(self, -1, 'Results')
+        results_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+
+        save_results = wx.Button(self, self.control_ids['save_results'], 'Save EFA Data (not profiles)')
+        save_results.Bind(wx.EVT_BUTTON, self._onSaveButton)
+
+        # button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # button_sizer.Add(save_results, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 3)
+
+        results_sizer.Add(save_results, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
+
         top_sizer.Add(sec_plot, 0, wx.ALL | wx.EXPAND, 3)
         top_sizer.Add(self.top_efa, 1, wx.EXPAND)
         top_sizer.Add(iter_control_sizer, 0, wx.EXPAND)
         top_sizer.Add(status_sizer, 0, wx.EXPAND)
+        top_sizer.Add(results_sizer, 0, wx.EXPAND)
         # top_sizer.AddStretchSpacer(1)
 
         return top_sizer
@@ -7429,9 +7462,9 @@ class EFAControlPanel3(wx.Panel):
 
         nvals = efa_results['points'].shape[0]
 
-        self.range_ids = [(wx.NewId(), wx.NewId()) for i in range(nvals)]
+        self.range_ids = [(wx.NewId(), wx.NewId(), wx.NewId()) for i in range(nvals)]
 
-        self.range_sizer = wx.FlexGridSizer(cols = 4, rows = nvals, vgap = 3, hgap = 3)
+        self.range_sizer = wx.FlexGridSizer(cols = 5, rows = nvals, vgap = 3, hgap = 3)
 
         start = svd_results['fstart']
         end = svd_results['fend']
@@ -7446,7 +7479,7 @@ class EFAControlPanel3(wx.Panel):
             fcontrol.SetValue(points[i][0])
             fcontrol.SetRange((start+i,end))
 
-            self.range_sizer.Add(label1, 0)
+            self.range_sizer.Add(label1, 0, wx.LEFT, 3)
             self.range_sizer.Add(fcontrol, 0)
             
             label2 = wx.StaticText(self.top_efa, -1, 'to')
@@ -7457,6 +7490,12 @@ class EFAControlPanel3(wx.Panel):
 
             self.range_sizer.Add(label2, 0)
             self.range_sizer.Add(bcontrol, 0)
+
+            force_pos = wx.CheckBox(self.top_efa, self.range_ids[i][2], 'C>=0')
+            force_pos.Bind(wx.EVT_CHECKBOX, self._onRangeControl)
+            force_pos.SetValue(True)
+
+            self.range_sizer.Add(force_pos, 0)
 
 
         self.peak_control_sizer.Add(self.range_sizer, 0, wx.TOP, 3)
@@ -7486,9 +7525,9 @@ class EFAControlPanel3(wx.Panel):
             self.top_efa.Layout()
             self.Layout()
 
-            self.range_ids = [(wx.NewId(), wx.NewId()) for i in range(nvals)]
+            self.range_ids = [(wx.NewId(), wx.NewId(), wx.NewId()) for i in range(nvals)]
 
-            self.range_sizer = wx.FlexGridSizer(cols = 4, rows = nvals, vgap = 3, hgap = 3)
+            self.range_sizer = wx.FlexGridSizer(cols = 5, rows = nvals, vgap = 3, hgap = 3)
 
             start = svd_results['fstart']
             end = svd_results['fend']
@@ -7503,7 +7542,7 @@ class EFAControlPanel3(wx.Panel):
                 fcontrol.SetValue(points[i][0])
                 fcontrol.SetRange((start+i,end))
 
-                self.range_sizer.Add(label1, 0)
+                self.range_sizer.Add(label1, 0, wx.LEFT, 3)
                 self.range_sizer.Add(fcontrol, 0)
                 
                 label2 = wx.StaticText(self.top_efa, -1, 'to')
@@ -7514,6 +7553,12 @@ class EFAControlPanel3(wx.Panel):
 
                 self.range_sizer.Add(label2, 0)
                 self.range_sizer.Add(bcontrol, 0)
+
+                force_pos = wx.CheckBox(self.top_efa, self.range_ids[i][2], 'C>=0')
+                force_pos.Bind(wx.EVT_CHECKBOX, self._onRangeControl)
+                force_pos.SetValue(True)
+
+                self.range_sizer.Add(force_pos, 0)
 
 
             self.peak_control_sizer.Add(self.range_sizer, 0, wx.TOP, 3)
@@ -7550,6 +7595,32 @@ class EFAControlPanel3(wx.Panel):
         wx.CallAfter(self.updateRangePlot)
         wx.CallAfter(self.runRotation)
 
+    def _onSaveButton(self, evt):
+        self.efa_frame.getPanel3Values()
+
+        panel3_results = self.efa_frame.panel3_results
+
+        dirctrl = wx.FindWindowByName('DirCtrlPanel')
+        path = str(dirctrl.getDirLabel())
+
+        filename = self.panel1_results['filename']
+
+        name, ext = os.path.splitext(filename)
+
+        filename = name + '_efa.csv'
+
+        dialog = wx.FileDialog(self, message = "Please select save directory and enter save file name", style = wx.FD_SAVE, defaultDir = path, defaultFile = filename) 
+            
+        if dialog.ShowModal() == wx.ID_OK:
+            save_path = dialog.GetPath()
+            name, ext = os.path.splitext(save_path)
+            save_path = name+'.csv'
+        else:
+            return
+
+        SASFileIO.saveEFAData(save_path, self.panel1_results, self.panel2_results, panel3_results)
+
+
     def _updateStatus(self, in_progress = False):
         status_window = wx.FindWindowById(self.control_ids['status'])
 
@@ -7565,6 +7636,22 @@ class EFAControlPanel3(wx.Panel):
 
 
     def updateRotation(self, M,C,D):
+        S = np.dot(D, np.linalg.pinv(np.transpose(M*C)))
+
+        Cnew = np.transpose(np.dot(np.linalg.pinv(S), D))
+
+        for i in range(len(self.range_ids)):
+            window = wx.FindWindowById(self.range_ids[i][2])
+            if window.GetValue():
+                Cnew[Cnew[:,i] < 0,i] = 0
+
+        csum = np.sum(M*Cnew, axis = 0)
+        Cnew = Cnew/np.broadcast_to(csum, Cnew.shape) #normalizes by the sum of each column
+
+        return Cnew
+
+    def firstRotation(self, M,C,D):
+        #Have to run an initial rotation without forcing C>=0 or things typically fail to converge (usually the SVD fails)
         S = np.dot(D, np.linalg.pinv(np.transpose(M*C)))
 
         Cnew = np.transpose(np.dot(np.linalg.pinv(S), D))
@@ -7602,7 +7689,7 @@ class EFAControlPanel3(wx.Panel):
 
 
         #Do an initial rotation
-        C = self.updateRotation(M, C, D)
+        C = self.firstRotation(M, C, D) 
 
 
         #Carry out the calculation to convergence
@@ -7659,6 +7746,9 @@ class EFAControlPanel3(wx.Panel):
             wx.CallAfter(self.updateResultsPlot)
 
             self._makeSASMs()
+
+        else:
+            wx.CallAfter(self.clearResultsPlot)
 
         wx.CallAfter(self._updateStatus)
 
@@ -7724,6 +7814,13 @@ class EFAControlPanel3(wx.Panel):
         rmsd_data = [self.rotation_data['chisq'], range(framei, framef+1)]
 
         plotpanel.plotEFA(self.sasms, rmsd_data)
+
+    def clearResultsPlot(self):
+        plotpanel = wx.FindWindowByName('EFAResultsPlotPanel3')
+
+        plotpanel.refresh()
+
+        plotpanel.canvas.draw()
 
 
 class EFAResultsPlotPanel3(wx.Panel):
@@ -7889,7 +7986,7 @@ class EFARangePlotPanel(wx.Panel):
     
     def __init__(self, parent, panel_id, name, wxEmbedded = False):
         
-        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER, size = (300,300))
         
         main_frame = wx.FindWindowByName('MainFrame')
         
@@ -7898,7 +7995,7 @@ class EFARangePlotPanel(wx.Panel):
         except AttributeError:
             self.raw_settings = RAWSettings.RawGuiSettings()
         
-        self.fig = Figure((5,4), 75)
+        self.fig = Figure((4,4), 75)
                     
         self.cut_line = None
         self.range_arrows = []
