@@ -564,6 +564,16 @@ class MainFrame(wx.Frame):
 
         if self.efaframe:
             self.efaframe.Destroy()
+
+        #make a subtracted profile SECM
+        if len(secm.subtracted_sasm_list) == 0 and manip_item != None:
+            msg = 'No subtracted files are available for this SEC curve. It is recommended that you run EFA on subtracted profiles. You can create subtracted curves by setting a buffer range in the SEC Control Panel and calculating the parameter values. Click OK to continue with the EFA without subtracted files.'
+            dlg = wx.MessageDialog(self, msg, "No subtracted files", style = wx.ICON_INFORMATION | wx.CANCEL | wx.OK)
+            proceed = dlg.ShowModal()
+            dlg.Destroy()
+
+            if proceed == wx.ID_CANCEL:
+                return   
                 
         self.efaframe = RAWAnalysis.EFAFrame(self, 'Evolving Factor Analysis', secm, manip_item)
         self.efaframe.SetIcon(self.GetIcon())
@@ -6540,6 +6550,7 @@ class ManipItemPanel(wx.Panel):
             if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'gnom')):
                 menu.Append(31, 'GNOM (ATSAS)')
         menu.Append(34, 'SVD')
+        menu.Append(35, 'EFA')
         # menu.Append(24, 'Add to IFT list')
         
         # if self.sasm.getAllParameters().has_key('orig_sasm'):
@@ -6781,6 +6792,10 @@ class ManipItemPanel(wx.Panel):
         elif evt.GetId() == 34:
             #Run SVD on the selected profiles
             self._runSVD()
+
+        elif evt.GetId() == 35:
+            #Run EFA on the selected profiles
+            self._runEFA()
                         
     
     def _saveAllAnalysisInfo(self):
@@ -6828,6 +6843,28 @@ class ManipItemPanel(wx.Panel):
             secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {})
 
             Mainframe.showSVDFrame(secm, None)
+        
+        else:
+            msg = 'You must select at least 2 scattering profiles to run EFA.'
+            dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
+            proceed = dlg.ShowModal()
+            dlg.Destroy()
+
+    def _runEFA(self):
+        Mainframe = wx.FindWindowByName('MainFrame')
+
+        selected_items = self.manipulation_panel.getSelectedItems()
+
+        if len(selected_items) > 1:
+            selected_sasms = [item.sasm for item in selected_items]
+
+            selected_filenames = [sasm.getParameter('filename') for sasm in selected_sasms]
+
+            frame_list = range(len(selected_sasms))
+
+            secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {})
+
+            Mainframe.showEFAFrame(secm, None)
         
         else:
             msg = 'You must select at least 2 scattering profiles to run SVD.'
@@ -8418,6 +8455,7 @@ class IFTItemPanel(wx.Panel):
                 if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter')):
                     menu.Append(24, 'Run AMBIMETER')
         menu.Append(25, 'SVD')
+        menu.Append(26, 'EFA')
 
         menu.AppendSeparator()
         menu.Append(20, 'Show data')
@@ -8577,6 +8615,10 @@ class IFTItemPanel(wx.Panel):
             #SVD
             self._runSVD()
 
+        elif evt.GetId() == 26:
+            #EFA
+            self._runEFA()
+
     def _toMainPlot(self):
         selected_items = self.manipulation_panel.getSelectedItems()
 
@@ -8639,6 +8681,31 @@ class IFTItemPanel(wx.Panel):
 
         else:
             msg = 'You must select at least 2 P(r) functions to run SVD.'
+            dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
+            proceed = dlg.ShowModal()
+            dlg.Destroy()
+
+    def _runEFA(self):
+        Mainframe = wx.FindWindowByName('MainFrame')
+
+        selected_items = self.manipulation_panel.getSelectedItems()
+
+        if len(selected_items) > 1:
+
+            selected_iftms = [item.iftm for item in selected_items]
+
+            selected_sasms = [SASM.SASM(iftm.p, iftm.r, iftm.err, iftm.getAllParameters()) for iftm in selected_iftms]
+
+            selected_filenames = [sasm.getParameter('filename') for sasm in selected_sasms]
+
+            frame_list = range(len(selected_sasms))
+
+            secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {})
+
+            Mainframe.showSVDFrame(secm, None)
+
+        else:
+            msg = 'You must select at least 2 P(r) functions to run EFA.'
             dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
             proceed = dlg.ShowModal()
             dlg.Destroy()

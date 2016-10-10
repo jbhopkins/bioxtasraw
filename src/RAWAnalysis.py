@@ -2468,6 +2468,9 @@ class GNOMControlPanel(wx.Panel):
 
         self.plotted_iftm = None 
 
+        info_button = wx.Button(self, -1, 'How To Cite')
+        info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
+
 
         button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
         button.Bind(wx.EVT_BUTTON, self.onCloseButton)
@@ -2476,8 +2479,9 @@ class GNOMControlPanel(wx.Panel):
         savebutton.Bind(wx.EVT_BUTTON, self.onSaveInfo)
         
         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttonSizer.Add(info_button,0, wx.LEFT | wx.RIGHT, 5)
         buttonSizer.Add(savebutton, 1, wx.RIGHT, 5)
-        buttonSizer.Add(button, 1)
+        buttonSizer.Add(button, 1, wx.RIGHT, 5)
 
 
         box2 = wx.StaticBox(self, -1, 'Control')
@@ -2671,6 +2675,10 @@ class GNOMControlPanel(wx.Panel):
         
         diag = wx.FindWindowByName('GNOMFrame')
         diag.OnClose()
+
+    def _onInfoButton(self, evt):
+        msg = 'If you use GNOM in your work, in addition to citing the RAW paper please cite the paper given here: https://www.embl-hamburg.de/biosaxs/gnom.html'
+        wx.MessageBox(str(msg), "How to cite GNOM", style = wx.ICON_INFORMATION | wx.OK)
 
     def onDatgnomButton(self, evt):
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
@@ -3342,6 +3350,13 @@ class DammifFrame(wx.Frame):
         close_button = wx.Button(parent, -1, 'Close')
         close_button.Bind(wx.EVT_BUTTON, self._onCloseButton)
 
+        info_button = wx.Button(parent, -1, 'How To Cite')
+        info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
+
+        button_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(info_button, 0, wx.RIGHT, 5)
+        button_sizer.Add(close_button, 0)
+
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:     #compatability for older versions of wxpython
             top_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -3352,7 +3367,7 @@ class DammifFrame(wx.Frame):
             top_sizer = wx.BoxSizer(wx.VERTICAL)
             top_sizer.Add(half_sizer, 1, wx.EXPAND)
             top_sizer.Add(log_sizer, 1, wx.EXPAND)
-            top_sizer.Add(close_button, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
+            top_sizer.Add(button_sizer, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
 
 
         self.dammif_timer = wx.Timer(parent)
@@ -4075,6 +4090,9 @@ class DammifFrame(wx.Frame):
     def _onCloseButton(self, evt):
         self.Close()
 
+    def _onInfoButton(self, evt):
+        msg = 'If you use DAMMIF in your work, in addition to citing the RAW paper please cite the paper given here: https://www.embl-hamburg.de/biosaxs/dammif.html'
+        wx.MessageBox(str(msg), "How to cite DAMMIF", style = wx.ICON_INFORMATION | wx.OK)
 
     def OnClose(self, event):
 
@@ -5006,6 +5024,8 @@ class AmbimeterFrame(wx.Frame):
         results_sizer.Add(score_sizer, 0)
         results_sizer.Add(eval_sizer, 0, wx.EXPAND)
 
+        info_button = wx.Button(parent, -1, 'How To Cite')
+        info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
 
         button = wx.Button(parent, wx.ID_CANCEL, 'Cancel')
         button.Bind(wx.EVT_BUTTON, self._onCloseButton)
@@ -5014,6 +5034,7 @@ class AmbimeterFrame(wx.Frame):
         savebutton.Bind(wx.EVT_BUTTON, self.onSaveInfo)
         
         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttonSizer.Add(info_button,1,wx.RIGHT, 5)
         buttonSizer.Add(savebutton, 1, wx.RIGHT, 5)
         buttonSizer.Add(button, 1)
         
@@ -5023,7 +5044,8 @@ class AmbimeterFrame(wx.Frame):
         top_sizer.Add(rg_sizer, 0)
         top_sizer.Add(settings_sizer, 0, wx.EXPAND)
         top_sizer.Add(results_sizer, 0, wx.EXPAND)
-        top_sizer.Add(buttonSizer, 0, wx.TOP | wx.ALIGN_RIGHT, 5)
+        top_sizer.AddStretchSpacer(1)
+        top_sizer.Add(buttonSizer, 0, wx.TOP | wx.BOTTOM | wx.ALIGN_RIGHT, 5)
 
 
         return top_sizer
@@ -5147,9 +5169,12 @@ class AmbimeterFrame(wx.Frame):
     def _onCloseButton(self, evt):
         self.Close()
 
+    def _onInfoButton(self, evt):
+        msg = 'If you use AMBIMETER in your work, in addition to citing the RAW paper please cite: Petoukhov, M. V. & Svergun, D. I. (2015). Acta Cryst. D71, 1051-1058.'
+        wx.MessageBox(str(msg), "How to cite AMBIMETER", style = wx.ICON_INFORMATION | wx.OK)
+
     def onSaveInfo(self, evt):
         
-
         self.Close()
 
 
@@ -5164,9 +5189,9 @@ class SVDFrame(wx.Frame):
     def __init__(self, parent, title, sasm, manip_item):
         
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'SVDFrame', size = (800,650))
+            wx.Frame.__init__(self, parent, -1, title, name = 'SVDFrame', size = (800,680))
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'SVDFrame', size = (800,650))
+            wx.Frame.__init__(self, None, -1, title, name = 'SVDFrame', size = (800,680))
         
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -5502,7 +5527,8 @@ class SVDControlPanel(wx.Panel):
                             'fstart'    : wx.NewId(),
                             'fend'      : wx.NewId(),
                             'svd_start' : wx.NewId(),
-                            'svd_end'   : wx.NewId()}
+                            'svd_end'   : wx.NewId(),
+                            'norm_data' : wx.NewId()}
 
         self.field_ids = {'fname'     : wx.NewId()}
                             
@@ -5564,6 +5590,10 @@ class SVDControlPanel(wx.Panel):
         frame_sizer.Add(label2, 0, wx.RIGHT, 3)
         frame_sizer.Add(end_frame, 0, wx.RIGHT, 3)
 
+        norm_data = wx.CheckBox(self, self.control_ids['norm_data'], 'Normalize by uncertainty')
+        norm_data.SetValue(True)
+        norm_data.Bind(wx.EVT_CHECKBOX, self._onNormChoice)
+
 
         #plot the sec data
         sec_plot = SVDSECPlotPanel(self, -1, 'SVDSECPlotPanel')
@@ -5572,6 +5602,7 @@ class SVDControlPanel(wx.Panel):
         #SVD control sizer
         control_sizer.Add(profile_sizer, 0,  wx.TOP | wx.EXPAND, 3)
         control_sizer.Add(frame_sizer, 0, wx.TOP | wx.EXPAND, 8)
+        control_sizer.Add(norm_data, 0, wx.TOP | wx.EXPAND, 8)
         control_sizer.Add(sec_plot, 0, wx.TOP | wx.EXPAND, 8)
 
         if self.manip_item == None:
@@ -5777,6 +5808,9 @@ class SVDControlPanel(wx.Panel):
 
         wx.CallAfter(self.runSVD)
 
+    def _onNormChoice(self, evt):
+        wx.CallAfter(self.runSVD)
+
     def _onChangeSVD(self, evt):
         id = evt.GetId()
 
@@ -5840,11 +5874,23 @@ class SVDControlPanel(wx.Panel):
         else:
             secm = self.subtracted_secm
 
+        norm_data_window = wx.FindWindowById(self.control_ids['norm_data'])
+        norm_data = norm_data_window.GetValue()
         
         sasm_list = secm.getSASMList(framei, framef)
 
         svd_a = np.array([sasm.i for sasm in sasm_list])
         svd_a = svd_a.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose svd_a
+
+        if norm_data:
+            err = np.array([sasm.err for sasm in sasm_list])
+            err = err.T
+
+            err_mean = np.mean(err, axis = 1)
+            err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), err.shape)
+
+            svd_a = svd_a/err_avg
+
 
         self.svd_U, self.svd_s, svd_Vt = np.linalg.svd(svd_a, full_matrices = True)
         self.svd_V = svd_Vt.T
@@ -6123,8 +6169,12 @@ class EFAFrame(wx.Frame):
         self.done_button.Bind(wx.EVT_BUTTON, self._onDoneButton)
         self.done_button.Disable()
 
+        info_button = wx.Button(parent, -1, 'How To Cite')
+        info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
+
         button_sizer.Add(self.cancel_button, 0 , wx.LEFT | wx.ALIGN_LEFT,3)
         button_sizer.Add(self.done_button, 0, wx.LEFT | wx.ALIGN_LEFT, 3)
+        button_sizer.Add(info_button, 0, wx.LEFT | wx.ALIGN_LEFT, 3)
         button_sizer.AddStretchSpacer(1)
         button_sizer.Add(self.back_button, 0, wx.RIGHT | wx.ALIGN_RIGHT, 3)
         button_sizer.Add(self.next_button, 0, wx.RIGHT | wx.ALIGN_RIGHT, 3)
@@ -6296,6 +6346,10 @@ class EFAFrame(wx.Frame):
             analysis_dict['efa'] = efa_dict
 
         self.OnClose()
+
+    def _onInfoButton(self, evt):
+        msg = 'If you use evolving factor analysis (EFA) in your work, in addition to citing the RAW paper please cite: Steve P. Meisburger, Alexander B. Taylor, Crystal A. Khan, Shengnan Zhang, Paul F. Fitzpatrick, and Nozomi Ando. Journal of the American Chemical Society 2016 138 (20), 6506-6516.'
+        wx.MessageBox(str(msg), "How to cite EFA", style = wx.ICON_INFORMATION | wx.OK)
 
     def getPanel1Values(self):
         for key in self.panel1_results:
@@ -6595,13 +6649,6 @@ class EFAControlPanel1(wx.Panel):
             
             profile_window = wx.FindWindowById(self.control_ids['profile'])
             profile_window.SetStringSelection('Unsubtracted')
-
-            if self.manip_item != None:
-                msg = 'No subtracted files are available for this SEC curve. It is recommended that you run EFA on subtracted profiles. You can create subtracted curves by setting a buffer range in the SEC Control Panel and calculating the parameter values. You will have to reopen the EFA window after doing this.'
-                dlg = wx.MessageDialog(self, msg, "No subtracted files", style = wx.ICON_INFORMATION | wx.CANCEL | wx.OK)
-                proceed = dlg.ShowModal()
-                dlg.Destroy()            
-
 
         if self.manip_item != None:
             sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
@@ -7737,7 +7784,11 @@ class EFAControlPanel3(wx.Panel):
 
 
         #Do an initial rotation
-        C = self.firstRotation(M, C, D) 
+        try:
+            C = self.firstRotation(M, C, D) 
+        except np.linalg.linalg.LinAlgError as e:
+            print e
+            print 'initial rotation failed'
 
 
         #Carry out the calculation to convergence
@@ -7748,8 +7799,15 @@ class EFAControlPanel3(wx.Panel):
 
         while k < niter and not converged:
             k = k+1
-
-            Cnew = self.updateRotation(M, C, D)
+            try:
+                Cnew = self.updateRotation(M, C, D)
+            except np.linalg.linalg.LinAlgError as e:
+                print e
+                print 'Rotation failed at step %i' %(k)
+                k = niter
+                dck = tol +1
+                dc.append(dck)
+                break
 
             dck = np.sum(np.abs(Cnew - C))
 
