@@ -1726,6 +1726,40 @@ def loadSECFile(filename):
     finally:
         file.close()
 
+    new_secm, line_data, calc_line_data = makeSECFile(secm_data)
+
+    new_secm.setParameter('filename', os.path.split(filename)[1])
+
+    return new_secm
+
+
+def makeSECFile(secm_data):
+
+    default_dict =     {'sasm_list'             : [],
+                        'file_list'             : [],
+                        'frame_list'            : [],
+                        'parameters'            : {},
+                        'initial_buffer_frame'  : -1,
+                        'final_buffer_frame'    : -1,
+                        'window_size'           : -1,
+                        'mol_type'              : '',
+                        'threshold'             : -1,
+                        'rg'                    : [],
+                        'rger'                  : [],
+                        'i0'                    : [],
+                        'i0er'                  : [],
+                        'mw'                    : [],
+                        'mwer'                  : [],
+                        'calc_has_data'         : False,
+                        'subtracted_sasm_list'  : [],
+                        'use_subtracted_sasm'   : [],
+                        'average_buffer_sasm'   : None                        
+                        }
+
+    for key in default_dict:
+        if key not in secm_data:
+            secm_data[key] = default_dict[key]
+            
     sasm_list = []
 
     for item in secm_data['sasm_list']:
@@ -1759,8 +1793,6 @@ def loadSECFile(filename):
     new_secm.setRgAndI0(secm_data['rg'], secm_data['rger'], secm_data['i0'], secm_data['i0er'])
     new_secm.setMW(secm_data['mw'], secm_data['mwer'])
     new_secm.calc_has_data = secm_data['calc_has_data']
-
-    new_secm.setParameter('filename', os.path.split(filename)[1])
 
     subtracted_sasm_list = []
 
@@ -1835,7 +1867,7 @@ def loadSECFile(filename):
         line_data = None    #Backwards compatibility
         secm_data['line_visible'] = True
 
-    return new_secm
+    return new_secm, line_data, calc_line_data
 
 
 def loadIftFile(filename):

@@ -7457,6 +7457,8 @@ class EFAControlPanel3(wx.Panel):
         self.control_values = {'n_iter' : 1000,
                                 'tol'   : 1e-12}
 
+        self.fail_text = ''
+
         self.initialized = False
         self.converged = False
 
@@ -7563,7 +7565,7 @@ class EFAControlPanel3(wx.Panel):
             fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][0], size = (60, -1))
             fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
             fcontrol.SetValue(points[i][0])
-            fcontrol.SetRange((start+i,end))
+            fcontrol.SetRange((start+i,points[i][1]-1))
 
             self.range_sizer.Add(label1, 0, wx.LEFT, 3)
             self.range_sizer.Add(fcontrol, 0)
@@ -7572,7 +7574,7 @@ class EFAControlPanel3(wx.Panel):
             bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][1], size = (60, -1))
             bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
             bcontrol.SetValue(points[i][1])
-            bcontrol.SetRange((start,end-i))
+            bcontrol.SetRange((points[i][0]+1,end-i))
 
             self.range_sizer.Add(label2, 0)
             self.range_sizer.Add(bcontrol, 0)
@@ -7635,7 +7637,7 @@ class EFAControlPanel3(wx.Panel):
                 fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][0], size = (60, -1))
                 fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
                 fcontrol.SetValue(points[i][0])
-                fcontrol.SetRange((start+i,end))
+                fcontrol.SetRange((start+i,points[i][1]-1))
 
                 self.range_sizer.Add(label1, 0, wx.LEFT, 3)
                 self.range_sizer.Add(fcontrol, 0)
@@ -7644,7 +7646,7 @@ class EFAControlPanel3(wx.Panel):
                 bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][1], size = (60, -1))
                 bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
                 bcontrol.SetValue(points[i][1])
-                bcontrol.SetRange((start,end-i))
+                bcontrol.SetRange((points[i][0]+1,end-i))
 
                 self.range_sizer.Add(label2, 0)
                 self.range_sizer.Add(bcontrol, 0)
@@ -7687,6 +7689,33 @@ class EFAControlPanel3(wx.Panel):
         wx.CallAfter(self.runRotation)
 
     def _onRangeControl(self, evt):
+
+        myId = evt.GetId()
+
+        for ids in self.range_ids:
+            if myId in ids:
+
+                if myId == ids[0]:
+                    spinctrl = wx.FindWindowById(ids[1])
+
+                    current_range = spinctrl.GetRange()
+
+                    new_range = (int(evt.GetValue())+1, current_range[1])
+
+                    spinctrl.SetRange(new_range)
+
+                else:
+                    spinctrl = wx.FindWindowById(ids[0])
+
+                    current_range = spinctrl.GetRange()
+
+                    new_range = (current_range[0],int(evt.GetValue())-1)
+
+                    spinctrl.SetRange(new_range)
+
+                break
+
+
         wx.CallAfter(self.updateRangePlot)
         wx.CallAfter(self.runRotation)
 
@@ -7723,11 +7752,13 @@ class EFAControlPanel3(wx.Panel):
             if self.converged:
                 status = 'Rotation Successful\n'
             else:
-                status = 'Rotation failed. Try adjusting ranges\nor iteration settings.'
+                status = self.fail_text
         else:
             status = 'Rotation in progress'
 
         status_window.SetLabel(status)
+
+        self.Layout()
 
 
     def updateRotation(self, M,C,D):
@@ -7782,13 +7813,15 @@ class EFAControlPanel3(wx.Panel):
         for j in range(num_sv):
             M[ranges[j][0]:ranges[j][1]+1, j] = 1
 
+        #Set a variable to test whether the rotation fails for a numerical reason
+        failed = False
+
 
         #Do an initial rotation
         try:
             C = self.firstRotation(M, C, D) 
         except np.linalg.linalg.LinAlgError as e:
-            print e
-            print 'initial rotation failed'
+            failed = True
 
 
         #Carry out the calculation to convergence
@@ -7797,17 +7830,12 @@ class EFAControlPanel3(wx.Panel):
 
         dc = []
 
-        while k < niter and not converged:
+        while k < niter and not converged and not failed:
             k = k+1
             try:
                 Cnew = self.updateRotation(M, C, D)
             except np.linalg.linalg.LinAlgError as e:
-                print e
-                print 'Rotation failed at step %i' %(k)
-                k = niter
-                dck = tol +1
-                dc.append(dck)
-                break
+               failed = True
 
             dck = np.sum(np.abs(Cnew - C))
 
@@ -7819,14 +7847,19 @@ class EFAControlPanel3(wx.Panel):
                 converged = True
 
 
-        self.conv_data = {'steps'   : dc,
-                        'iterations': k,
-                        'final_step': dc[-1],
-                        'options'   : {'niter': niter, 'tol': tol}}
+        if not failed:
+            self.conv_data = {'steps'   : dc,
+                            'iterations': k,
+                            'final_step': dc[-1],
+                            'options'   : {'niter': niter, 'tol': tol}}
 
         #Check whether the calculation converged
         if k == niter and dck > tol:
             self.converged = False
+            self.fail_text = 'Rotataion failed to converge after %i\n iterations with final delta = %.2E.' %(k, dc[-1])
+        elif failed:
+            self.converged = False
+            self.fail_text = 'Rotataion failed due to a numerical error\n in the algorithm. Try adjusting ranges.'
         else:
             self.converged = True
 

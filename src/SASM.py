@@ -999,7 +999,7 @@ class SECM:
         for idx in range(len(self._sasm_list)):
             all_data['sasm_list'].append(self._sasm_list[idx].extractAll())
 
-        if self.average_buffer_sasm == None:
+        if type(self.average_buffer_sasm) == None or self.average_buffer_sasm == -1:
             all_data['average_buffer_sasm'] = self.average_buffer_sasm
         else:
             all_data['average_buffer_sasm'] = self.average_buffer_sasm.extractAll()

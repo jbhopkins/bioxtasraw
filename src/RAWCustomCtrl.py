@@ -991,7 +991,10 @@ class IntSpinCtrl(wx.Panel):
  
     def SetRange(self, minmax):
         self.max = minmax[1]
-        self.min = minmax[0]  
+        self.min = minmax[0]
+
+    def GetRange(self):
+        return (self.min, self.max)
         
         
 class CustomQuestionDialog(wx.Dialog):
