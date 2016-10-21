@@ -2677,7 +2677,7 @@ class GNOMControlPanel(wx.Panel):
         diag.OnClose()
 
     def _onInfoButton(self, evt):
-        msg = 'If you use GNOM in your work, in addition to citing the RAW paper please cite the paper given here: https://www.embl-hamburg.de/biosaxs/gnom.html'
+        msg = 'If you use GNOM in your work, in addition to citing the RAW paper please cite the paper given here:\nhttps://www.embl-hamburg.de/biosaxs/gnom.html'
         wx.MessageBox(str(msg), "How to cite GNOM", style = wx.ICON_INFORMATION | wx.OK)
 
     def onDatgnomButton(self, evt):
@@ -4091,8 +4091,8 @@ class DammifFrame(wx.Frame):
         self.Close()
 
     def _onInfoButton(self, evt):
-        msg = 'If you use DAMMIF in your work, in addition to citing the RAW paper please cite the paper given here: https://www.embl-hamburg.de/biosaxs/dammif.html'
-        wx.MessageBox(str(msg), "How to cite DAMMIF", style = wx.ICON_INFORMATION | wx.OK)
+        msg = 'In addition to citing the RAW paper:\n If you use DAMMIF in your work please cite the paper given here:\nhttps://www.embl-hamburg.de/biosaxs/dammif.html\n\nIf you use DAMAVER in your work, please cite the paper given here:\nhttps://www.embl-hamburg.de/biosaxs/damaver.html\n\nIf you use DAMCLUST in your work please cite the paper given here:\nhttps://www.embl-hamburg.de/biosaxs/manuals/damclust.html'
+        wx.MessageBox(str(msg), "How to cite DAMMIF/DAMAVER/DAMCLUST", style = wx.ICON_INFORMATION | wx.OK)
 
     def OnClose(self, event):
 
@@ -4442,6 +4442,8 @@ class BIFTControlPanel(wx.Panel):
 
         self.iftm = None
 
+        info_button = wx.Button(self, -1, 'How To Cite')
+        info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
 
         button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
         button.Bind(wx.EVT_BUTTON, self.onCloseButton)
@@ -4450,8 +4452,9 @@ class BIFTControlPanel(wx.Panel):
         savebutton.Bind(wx.EVT_BUTTON, self.onSaveInfo)
         
         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttonSizer.Add(info_button,0, wx.LEFT | wx.RIGHT, 5)
         buttonSizer.Add(savebutton, 1, wx.RIGHT, 5)
-        buttonSizer.Add(button, 1)
+        buttonSizer.Add(button, 1, wx.RIGHT, 5)
 
 
         box2 = wx.StaticBox(self, -1, 'Control')
@@ -4725,6 +4728,9 @@ class BIFTControlPanel(wx.Panel):
     def onAbortButton(self, evt):
         RAWGlobals.cancel_bift = True
 
+    def _onInfoButton(self, evt):
+        msg = 'If you use BIFT in your work, in addition to citing the RAW paper please cite:\nHansen, S. (2000). J. Appl. Cryst. 33, 1415-1421.'
+        wx.MessageBox(str(msg), "How to cite BIFT", style = wx.ICON_INFORMATION | wx.OK)
 
     def updateBIFTInfo(self):
         biftRgWindow = wx.FindWindowById(self.infodata['biftRg'][1])
@@ -5170,7 +5176,7 @@ class AmbimeterFrame(wx.Frame):
         self.Close()
 
     def _onInfoButton(self, evt):
-        msg = 'If you use AMBIMETER in your work, in addition to citing the RAW paper please cite: Petoukhov, M. V. & Svergun, D. I. (2015). Acta Cryst. D71, 1051-1058.'
+        msg = 'If you use AMBIMETER in your work, in addition to citing the RAW paper please cite:\nPetoukhov, M. V. & Svergun, D. I. (2015). Acta Cryst. D71, 1051-1058.'
         wx.MessageBox(str(msg), "How to cite AMBIMETER", style = wx.ICON_INFORMATION | wx.OK)
 
     def onSaveInfo(self, evt):
@@ -6040,9 +6046,9 @@ class EFAFrame(wx.Frame):
     def __init__(self, parent, title, secm, manip_item):
         
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'EFAFrame', size = (800,700))
+            wx.Frame.__init__(self, parent, -1, title, name = 'EFAFrame', size = (950,750))
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'EFAFrame', size = (800,700))
+            wx.Frame.__init__(self, None, -1, title, name = 'EFAFrame', size = (950,750))
         
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -6105,7 +6111,7 @@ class EFAFrame(wx.Frame):
         self.plotPanel1 = SVDResultsPlotPanel(self.splitter1, -1, 'EFAResultsPlotPanel1')
         self.controlPanel1 = EFAControlPanel1(self.splitter1, -1, 'EFAControlPanel1', self.secm, self.manip_item)
   
-        self.splitter1.SplitVertically(self.controlPanel1, self.plotPanel1, 300)
+        self.splitter1.SplitVertically(self.controlPanel1, self.plotPanel1, 325)
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
             self.splitter1.SetMinimumPaneSize(300)    #Back compatability with older wxpython versions
@@ -6348,7 +6354,7 @@ class EFAFrame(wx.Frame):
         self.OnClose()
 
     def _onInfoButton(self, evt):
-        msg = 'If you use evolving factor analysis (EFA) in your work, in addition to citing the RAW paper please cite: Steve P. Meisburger, Alexander B. Taylor, Crystal A. Khan, Shengnan Zhang, Paul F. Fitzpatrick, and Nozomi Ando. Journal of the American Chemical Society 2016 138 (20), 6506-6516.'
+        msg = 'If you use evolving factor analysis (EFA) in your work, in addition to citing the RAW paper please cite:\nSteve P. Meisburger, Alexander B. Taylor, Crystal A. Khan, Shengnan Zhang, Paul F. Fitzpatrick, and Nozomi Ando. Journal of the American Chemical Society 2016 138 (20), 6506-6516.'
         wx.MessageBox(str(msg), "How to cite EFA", style = wx.ICON_INFORMATION | wx.OK)
 
     def getPanel1Values(self):
@@ -7704,7 +7710,9 @@ class EFAControlPanel3(wx.Panel):
 
                     spinctrl.SetRange(new_range)
 
-                else:
+                    wx.CallAfter(self.updateRangePlot)
+
+                elif myId == ids[1]:
                     spinctrl = wx.FindWindowById(ids[0])
 
                     current_range = spinctrl.GetRange()
@@ -7713,10 +7721,10 @@ class EFAControlPanel3(wx.Panel):
 
                     spinctrl.SetRange(new_range)
 
+                    wx.CallAfter(self.updateRangePlot)
+
                 break
 
-
-        wx.CallAfter(self.updateRangePlot)
         wx.CallAfter(self.runRotation)
 
     def _onSaveButton(self, evt):
@@ -7965,7 +7973,9 @@ class EFAControlPanel3(wx.Panel):
 
         rmsd_data = [self.rotation_data['chisq'], range(framei, framef+1)]
 
-        plotpanel.plotEFA(self.sasms, rmsd_data)
+        conc_data = [self.rotation_data['C'], range(framei, framef+1)]
+
+        plotpanel.plotEFA(self.sasms, rmsd_data, conc_data)
 
     def clearResultsPlot(self):
         plotpanel = wx.FindWindowByName('EFAResultsPlotPanel3')
@@ -7992,20 +8002,36 @@ class EFAResultsPlotPanel3(wx.Panel):
                     
         self.a_lines = []
         self.b_lines = []
+        self.c_lines = []
     
-        subplotLabels = [('Scattering Profiles', 'q ($\AA^{-1}$)', 'I', 0.1), ('Mean Error Weighted $\chi^2$', 'Index', '$\chi^2$', 0.1)]
+        subplotLabels = [('Scattering Profiles', 'q ($\AA^{-1}$)', 'I', 0.1), ('Mean Error Weighted $\chi^2$', 'Index', '$\chi^2$', 0.1), ('Concentration', 'Index', 'Arb.', 0.1)]
         
         self.fig.subplots_adjust(hspace = 0.26)
         
         self.subplots = {}
-             
-        for i in range(0, len(subplotLabels)):
-            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
-            subplot.set_xlabel(subplotLabels[i][1])
-            subplot.set_ylabel(subplotLabels[i][2])
-            self.subplots[subplotLabels[i][0]] = subplot 
 
-        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
+        subplot = self.fig.add_subplot(2, 2, (1,2), title = subplotLabels[0][0], label = subplotLabels[0][0])
+        subplot.set_xlabel(subplotLabels[0][1])
+        subplot.set_ylabel(subplotLabels[0][2])
+        self.subplots[subplotLabels[0][0]] = subplot 
+
+        subplot = self.fig.add_subplot(2, 2, 3, title = subplotLabels[1][0], label = subplotLabels[1][0])
+        subplot.set_xlabel(subplotLabels[1][1])
+        subplot.set_ylabel(subplotLabels[1][2])
+        self.subplots[subplotLabels[1][0]] = subplot 
+
+        subplot = self.fig.add_subplot(2, 2, 4, title = subplotLabels[2][0], label = subplotLabels[2][0])
+        subplot.set_xlabel(subplotLabels[2][1])
+        subplot.set_ylabel(subplotLabels[2][2])
+        self.subplots[subplotLabels[2][0]] = subplot 
+             
+        # for i in range(0, len(subplotLabels)):
+        #     subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
+        #     subplot.set_xlabel(subplotLabels[i][1])
+        #     subplot.set_ylabel(subplotLabels[i][2])
+        #     self.subplots[subplotLabels[i][0]] = subplot 
+
+        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26, wspace = 0.26)
         self.fig.set_facecolor('white')
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
@@ -8028,21 +8054,25 @@ class EFAResultsPlotPanel3(wx.Panel):
 
         a = self.subplots['Scattering Profiles']
         b = self.subplots['Mean Error Weighted $\chi^2$']
+        c = self.subplots['Concentration']
 
         self.a_background = self.canvas.copy_from_bbox(a.bbox)
         self.b_background = self.canvas.copy_from_bbox(b.bbox)
+        self.c_background = self.canvas.copy_from_bbox(c.bbox)
         
         if len(self.a_lines)>0:
             self.canvas.mpl_disconnect(self.cid)
-            self.updateDataPlot(self.orig_profile_data, self.orig_rmsd_data)
+            self.updateDataPlot(self.orig_profile_data, self.orig_rmsd_data, self.orig_conc_data)
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def refresh(self):
         a = self.subplots['Scattering Profiles']
         b = self.subplots['Mean Error Weighted $\chi^2$']
+        c = self.subplots['Concentration']
 
         self.a_lines = []
         self.b_lines = []
+        self.c_lines = []
 
         while len(a.lines) != 0:
             a.lines.pop(0)
@@ -8050,25 +8080,31 @@ class EFAResultsPlotPanel3(wx.Panel):
         while len(b.lines) != 0:
             b.lines.pop(0)
 
+        while len(c.lines) != 0:
+            c.lines.pop(0)
+
         a.set_prop_cycle(None)
         b.set_prop_cycle(None)
+        c.set_prop_cycle(None)
         
-    def plotEFA(self, profile_data, rmsd_data):
+    def plotEFA(self, profile_data, rmsd_data, conc_data):
 
         #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
         self.canvas.mpl_disconnect(self.cid)
-        self.updateDataPlot(profile_data, rmsd_data)
+        self.updateDataPlot(profile_data, rmsd_data, conc_data)
         
         #Reconnect draw_event
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
-    def updateDataPlot(self, profile_data, rmsd_data):
+    def updateDataPlot(self, profile_data, rmsd_data, conc_data):
         #Save for resizing:
         self.orig_profile_data = profile_data
         self.orig_rmsd_data = rmsd_data
+        self.orig_conc_data = conc_data
             
         a = self.subplots['Scattering Profiles']
         b = self.subplots['Mean Error Weighted $\chi^2$']
+        c = self.subplots['Concentration']
 
 
         if len(self.a_lines) == 0:
@@ -8081,13 +8117,17 @@ class EFAResultsPlotPanel3(wx.Panel):
 
             self.b_lines.append(line)
 
+            for j in range(conc_data[0].shape[1]):
+                line, = c.plot(conc_data[1], conc_data[0][:,j], animated = True)
+                self.c_lines.append(line)
+
 
             a.legend(fontsize = 12)
-            # b.legend(fontsize = 12)
             
             self.canvas.draw()
             self.a_background = self.canvas.copy_from_bbox(a.bbox)
             self.b_background = self.canvas.copy_from_bbox(b.bbox)
+            self.c_background = self.canvas.copy_from_bbox(c.bbox)
 
         else:         
             for j in range(len(self.a_lines)):
@@ -8099,10 +8139,17 @@ class EFAResultsPlotPanel3(wx.Panel):
             line.set_xdata(rmsd_data[1])
             line.set_ydata(rmsd_data[0])
 
+            for j in range(len(self.c_lines)):
+                line = self.c_lines[j]
+                line.set_xdata(conc_data[1])
+                line.set_ydata(conc_data[0][:,j])
+
         a_oldx = a.get_xlim()
         a_oldy = a.get_ylim()
         b_oldx = b.get_xlim()
         b_oldy = b.get_ylim()
+        c_oldx = c.get_xlim()
+        c_oldy = c.get_ylim()
         
         a.relim()
         a.autoscale_view()
@@ -8110,12 +8157,17 @@ class EFAResultsPlotPanel3(wx.Panel):
         b.relim()
         b.autoscale_view()
 
+        c.relim()
+        c.autoscale_view()
+
         a_newx = a.get_xlim()
         a_newy = a.get_ylim()
         b_newx = b.get_xlim()
         b_newy = b.get_ylim()
+        c_newx = c.get_xlim()
+        c_newy = c.get_ylim()
 
-        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy:
+        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy or c_newx != c_oldx or c_newy != c_oldy:
             self.canvas.draw()
 
         self.canvas.restore_region(self.a_background)
@@ -8130,8 +8182,14 @@ class EFAResultsPlotPanel3(wx.Panel):
             b.draw_artist(line)
 
 
+        self.canvas.restore_region(self.c_background)
+
+        for line in self.c_lines:
+            c.draw_artist(line)
+
         self.canvas.blit(a.bbox)
         self.canvas.blit(b.bbox)
+        self.canvas.blit(c.bbox)
 
 
 class EFARangePlotPanel(wx.Panel):

@@ -1431,7 +1431,7 @@ class MainFrame(wx.Frame):
     def _onAboutDlg(self, event):
         info = wx.AboutDialogInfo()
         info.Name = "RAW"
-        info.Version = "1.1.1"
+        info.Version = "1.2.0"
         info.Copyright = "Copyright(C) 2009 RAW"
         info.Description = "RAW is a software package primarily for SAXS 2D data reduction and 1D data analysis.\nIt provides an easy GUI for handling multiple files fast, and a\ngood alternative to commercial or protected software packages for finding\nthe Pair Distance Distribution Function\n\nPlease cite:\nBioXTAS RAW, a software program for high-throughput automated small-angle\nX-ray scattering data reduction and preliminary analysis, J. Appl. Cryst. (2009). 42, 959-964"
 
@@ -4232,7 +4232,7 @@ class InfoPanel(wx.Panel):
         
         infoSizer = wx.BoxSizer()
         
-        self.infoTextBox = wx.TextCtrl(self, -1, 'Welcome to RAW 1.1.1!\n--------------------------------\n\n', style = wx.TE_MULTILINE)
+        self.infoTextBox = wx.TextCtrl(self, -1, 'Welcome to RAW 1.2.0!\n--------------------------------\n\n', style = wx.TE_MULTILINE)
         
         self.infoTextBox.SetBackgroundColour('WHITE')
         self.infoTextBox.SetForegroundColour('BLACK')
@@ -15469,7 +15469,7 @@ class WelcomeDialog(wx.Frame):
         raw_bitmap = RAWIcons.raw_icon_embed.GetBitmap()
         rawimg = wx.StaticBitmap(self.panel, -1, raw_bitmap)
         
-        headline = wx.StaticText(self.panel, -1, 'Welcome to RAW 1.1.1!')
+        headline = wx.StaticText(self.panel, -1, 'Welcome to RAW 1.2.0!')
         
         text1 = 'Developers/Contributors:'
         text2 = '\nSoren Skou'
@@ -15608,7 +15608,7 @@ class MySplashScreen(wx.SplashScreen):
         evt.Skip()
         
     def ShowMain(self):            
-        frame = MainFrame('RAW 1.1.1', -1)
+        frame = MainFrame('RAW 1.2.0', -1)
         
         dlg = WelcomeDialog(frame, name = "WelcomeDialog")
         dlg.SetIcon(frame.GetIcon())
