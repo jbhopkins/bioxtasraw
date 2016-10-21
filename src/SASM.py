@@ -999,7 +999,7 @@ class SECM:
         for idx in range(len(self._sasm_list)):
             all_data['sasm_list'].append(self._sasm_list[idx].extractAll())
 
-        if type(self.average_buffer_sasm) == None or self.average_buffer_sasm == -1:
+        if self.average_buffer_sasm is None or self.average_buffer_sasm == -1:
             all_data['average_buffer_sasm'] = self.average_buffer_sasm
         else:
             all_data['average_buffer_sasm'] = self.average_buffer_sasm.extractAll()
@@ -1019,9 +1019,6 @@ class SECM:
         ''' return a copy of the object ''' 
         
         return SECM(copy.copy(self.mean_i), copy.copy(self.total_i), copy.copy(self.frame_list), copy.copy(self._parameters))
-
-    def getFilename(self):
-        return os.path.basename(self._file_list[0])
 
     def getSASM(self, index=0):
         return self._sasm_list[index]

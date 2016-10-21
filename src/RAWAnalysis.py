@@ -6330,7 +6330,7 @@ class EFAFrame(wx.Frame):
             RAWGlobals.mainworker_cmd_queue.put(['to_plot_sasm', [self.panel3_results['profiles'], 'black', None, True]])
 
 
-        if type(self.manip_item) != None:
+        if self.manip_item is not None:
             analysis_dict = self.secm.getParameter('analysis')
 
             efa_dict = {}
@@ -6663,7 +6663,7 @@ class EFAControlPanel1(wx.Panel):
 
         self.runSVD()
 
-        if type(self.svd_U) != None:
+        if self.svd_U is not None:
             #Attempts to figure out the significant number of singular values
             if user_input_window.GetValue() == 0:
                 point1 = 0
@@ -6894,7 +6894,7 @@ class EFAControlPanel1(wx.Panel):
 
     def updateSVDPlot(self):
 
-        if type(self.svd_s) != None and not np.any(np.isnan(self.svd_s)):
+        if self.svd_s is not None and not np.any(np.isnan(self.svd_s)):
             plotpanel = wx.FindWindowByName('EFAResultsPlotPanel1')
 
             svd_start_window = wx.FindWindowById(self.control_ids['svd_start'])

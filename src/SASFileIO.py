@@ -1407,7 +1407,7 @@ def loadFile(filename, raw_settings, no_processing = False):
     if file_type == 'image' and no_processing == False:
             SASM.postProcessImageSasm(sasm, raw_settings)
         
-    if type(sasm) != list and (sasm == None or len(sasm.i) == 0):
+    if type(sasm) != list and (sasm is None or len(sasm.i) == 0):
         raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
 
     return sasm, img
@@ -1425,7 +1425,7 @@ def loadAsciiFile(filename, file_type):
                      'csv'        : loadCsvFile,
                      'out'        : loadOutFile}
     
-    if file_type == None:
+    if file_type is None:
         return None
     
     sasm = None
@@ -1433,21 +1433,21 @@ def loadAsciiFile(filename, file_type):
     if ascii_formats.has_key(file_type):
         sasm = ascii_formats[file_type](filename)
     
-    if sasm != None and file_type != 'ift' and file_type != 'out':
+    if sasm is not None and file_type != 'ift' and file_type != 'out':
         if type(sasm) != list and len(sasm.i) == 0:
             sasm = None
             
-    if file_type == 'rad' and sasm == None:
+    if file_type == 'rad' and sasm is None:
         
         sasm = ascii_formats['new_rad'](filename)
         
-        if sasm == None:
+        if sasm is None:
             sasm = ascii_formats['primus'](filename)
         
-    if file_type == 'primus' and sasm == None:
+    if file_type == 'primus' and sasm is None:
         sasm = ascii_formats['2col'](filename)
 
-    if sasm != None and type(sasm) != list:
+    if sasm is not None and type(sasm) != list:
         sasm.setParameter('filename', os.path.split(filename)[1])
 
     return sasm

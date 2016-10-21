@@ -5,8 +5,8 @@ matplotlib.rcParams['backend'] = 'WxAgg'
 from matplotlib.backends.backend_wx import NavigationToolbar2Wx
 from matplotlib.backends.backend_wx import FigureCanvasBase
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
-from matplotlib.backend_bases import cursors
-from matplotlib.widgets import Cursor
+# from matplotlib.backend_bases import cursors
+# from matplotlib.widgets import Cursor
 import matplotlib.font_manager as fm
 import numpy as np
 # from matplotlib.font_manager import FontProperties
@@ -1105,8 +1105,8 @@ class PlotPanel(wx.Panel):
         self.canvas.callbacks.connect('button_release_event', self._onMouseButtonReleaseEvent)
         self.canvas.callbacks.connect('scroll_event', self._onMouseScrollEvent)
         
-        self._canvas_cursor = Cursor(self.subplot1, useblit=True, color='red', linewidth=1, linestyle ='--' )
-        self._canvas_cursor.horizOn = False
+        # self._canvas_cursor = Cursor(self.subplot1, useblit=True, color='red', linewidth=1, linestyle ='--', label = '_cursor_')
+        # self._canvas_cursor.horizOn = False
     
     def _initFigure(self):
         self.fig = matplotlib.figure.Figure((5,4), 75)        
@@ -1125,7 +1125,6 @@ class PlotPanel(wx.Panel):
     def getParameter(self, param):
         return self.plotparams[param]
     
-    
     def _updateFrameStylesForAllPlots(self):
         try:
             self.updateFrameStyle(axes = self.subplot1)
@@ -1133,6 +1132,7 @@ class PlotPanel(wx.Panel):
         except Exception, e:
             print 'Possibly too old matplotlib version: ' + str(e)
             pass
+
     def updateFrameStyle(self, axes):
         if axes == self.subplot1:
             plotnum = '1'
@@ -1144,13 +1144,6 @@ class PlotPanel(wx.Panel):
         self.setFrameStyle(axes, style)
     
     def setFrameStyle(self, axes, style):
-
-        # if axes == self.subplot1:
-        #     plotnum = '1'
-        # else:
-        #     plotnum = '2'
-        
-        # print style
 
         if style.find('l')>-1:
             axes.spines['left'].set_color('black')
@@ -1175,10 +1168,7 @@ class PlotPanel(wx.Panel):
             axes.tick_params(bottom='on', which = 'both')
         else:
             axes.spines['bottom'].set_color('none')
-            axes.tick_params(bottom='off', which = 'both')
-            
-        # self.plotparams['framestyle' + plotnum] == style
-        
+            axes.tick_params(bottom='off', which = 'both')        
             
     def fitAxis(self, axes = None, forced = False):
         
@@ -1210,8 +1200,8 @@ class PlotPanel(wx.Panel):
                     return
                         
                 for each in eachsubplot.lines:
-                    if each._label != '_nolegend_' and each._label != '_zero_' and each.get_visible() == True:
-                        
+                    if each._label != '_nolegend_' and each._label != '_zero_' and each._label != '_cursor_' and each.get_visible() == True:
+
                         if maxq == None:
                             maxq = max(each.get_xdata())
                             maxi = max(each.get_ydata())
@@ -1233,11 +1223,12 @@ class PlotPanel(wx.Panel):
                             maxi = ymax
                         if ymin < mini:
                             mini = ymin
-                            
-                eachsubplot.set_ylim(mini, maxi)
-                eachsubplot.set_xlim(minq, maxq)
+                
+                if mini is not None and maxi is not None:
+                    eachsubplot.set_ylim(mini, maxi)
 
-                # self.updateFrameStyle(eachsubplot)
+                if minq is not None and maxq is not None:
+                    eachsubplot.set_xlim(minq, maxq)
         
         try:
             self.canvas.draw()
@@ -1802,7 +1793,6 @@ class PlotPanel(wx.Panel):
         self.fitAxis()
         
         self.canvas.draw()
-        print 'done type'
         
     def updatePlotAxes(self):
         
@@ -1838,7 +1828,6 @@ class PlotPanel(wx.Panel):
         self.fitAxis()         
 
         self.canvas.draw()
-        print 'done Axes'
         
     def updatePlotAfterManipulation(self, sasm_list):
         
@@ -1967,11 +1956,11 @@ class PlotPanel(wx.Panel):
         
         if plotnum == 1:
             axes = self.subplot1
-        if plotnum == 2:
+        elif plotnum == 2:
             axes = self.subplot2
-        if plotnum == self.subplot1:
+        elif plotnum == self.subplot1:
             plotnum = 1
-        if plotnum == self.subplot2:
+        elif plotnum == self.subplot2:
             plotnum = 2
               
         if self.plotparams['legend_visible' + '_' + str(plotnum)]:
@@ -2157,8 +2146,8 @@ class IftPlotPanel(PlotPanel):
         self.canvas.callbacks.connect('button_release_event', self._onMouseButtonReleaseEvent)
         self.canvas.callbacks.connect('scroll_event', self._onMouseScrollEvent)
         
-        self._canvas_cursor = Cursor(self.subplot1, useblit=True, color='red', linewidth=1, linestyle ='--' )
-        self._canvas_cursor.horizOn = False
+        # self._canvas_cursor = Cursor(self.subplot1, useblit=True, color='red', linewidth=1, linestyle ='--' )
+        # self._canvas_cursor.horizOn = False
 
         
     def _initFigure(self):
@@ -2827,7 +2816,6 @@ class IftPlotPanel(PlotPanel):
         self.fitAxis()
         
         self.canvas.draw()
-        print 'done type'
         
     def updatePlotAxes(self):
         
@@ -2863,7 +2851,6 @@ class IftPlotPanel(PlotPanel):
         self.fitAxis()         
 
         self.canvas.draw()
-        print 'done Axes'
         
     def updatePlotAfterManipulation(self, sasm_list):
         
@@ -3624,8 +3611,8 @@ class SECPlotPanel(wx.Panel):
         self.canvas.callbacks.connect('button_release_event', self._onMouseButtonReleaseEvent)
         self.canvas.callbacks.connect('scroll_event', self._onMouseScrollEvent)
         
-        self._canvas_cursor = Cursor(self.subplot1, useblit=True, color='red', linewidth=1, linestyle ='--' )
-        self._canvas_cursor.horizOn = False
+        # self._canvas_cursor = Cursor(self.subplot1, useblit=True, color='red', linewidth=1, linestyle ='--' )
+        # self._canvas_cursor.horizOn = False
     
     def _initFigure(self):
         self.fig = matplotlib.figure.Figure((5,4), 75)        
@@ -4128,7 +4115,7 @@ class SECPlotPanel(wx.Panel):
         
         for secm in secm_list:
             if legend_label_in == None:
-                legend_label = secm.getFilename()
+                legend_label = secm.getParameter('filename')
                 # print 'set label legend to filename'
                 # print legend_label
             else:
@@ -4757,7 +4744,6 @@ class SECPlotPanel(wx.Panel):
             self.fitAxis()
         
         self.canvas.draw()
-
         
     def updatePlotAxes(self):
         
@@ -4796,7 +4782,6 @@ class SECPlotPanel(wx.Panel):
         self.fitAxis()         
 
         self.canvas.draw()
-        print 'done Axes'
         
     def updatePlotAfterManipulation(self, secm_list):
         for each in self.plotted_secms:
