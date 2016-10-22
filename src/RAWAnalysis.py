@@ -5384,7 +5384,7 @@ class SVDResultsPlotPanel(wx.Panel):
 
 class SVDSECPlotPanel(wx.Panel):
     
-    def __init__(self, parent, panel_id, name, wxEmbedded = False):
+    def __init__(self, parent, panel_id, name, svd = False, wxEmbedded = False):
         
         wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
         
@@ -5395,7 +5395,13 @@ class SVDSECPlotPanel(wx.Panel):
         except AttributeError:
             self.raw_settings = RAWSettings.RawGuiSettings()
         
-        self.fig = Figure((5,4), 75)
+        if (int(matplotlib.__version__.split('.')[0]) == 1 and int(matplotlib.__version__.split('.')[1]) >= 5) or int(matplotlib.__version__.split('.')[0]) > 1: 
+            self.fig = Figure((4,4), 75)
+        else:
+            if not svd:
+                self.fig = Figure((300./75,4), 75)
+            else:
+                self.fig = Figure((250./75,4), 75)
                     
         self.secm = None
     
@@ -5602,7 +5608,7 @@ class SVDControlPanel(wx.Panel):
 
 
         #plot the sec data
-        sec_plot = SVDSECPlotPanel(self, -1, 'SVDSECPlotPanel')
+        sec_plot = SVDSECPlotPanel(self, -1, 'SVDSECPlotPanel', svd = True)
 
 
         #SVD control sizer
@@ -7338,7 +7344,7 @@ class EFAResultsPlotPanel2(wx.Panel):
         while len(b.lines) != 0:
             b.lines.pop(0)
 
-        if int(matplotlib.__version__.split('.')[0]) >=1 and int(matplotlib.__version__.split('.')[1]) >=5:
+        if (int(matplotlib.__version__.split('.')[0]) ==1 and int(matplotlib.__version__.split('.')[1]) >=5) or int(matplotlib.__version__.split('.')[0]) > 1:
             a.set_prop_cycle(None)
             b.set_prop_cycle(None)
         else:
@@ -8118,7 +8124,7 @@ class EFAResultsPlotPanel3(wx.Panel):
         while len(c.lines) != 0:
             c.lines.pop(0)
 
-        if int(matplotlib.__version__.split('.')[0])>=1 and int(matplotlib.__version__.split('.')[1])>=5:
+        if (int(matplotlib.__version__.split('.')[0]) ==1 and int(matplotlib.__version__.split('.')[1]) >=5) or int(matplotlib.__version__.split('.')[0]) > 1:
             a.set_prop_cycle(None)
             b.set_prop_cycle(None)
             c.set_prop_cycle(None)
@@ -8236,7 +8242,7 @@ class EFARangePlotPanel(wx.Panel):
     
     def __init__(self, parent, panel_id, name, wxEmbedded = False):
         
-        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER, size = (300,300))
+        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER, size = (275,300))
         
         main_frame = wx.FindWindowByName('MainFrame')
         
@@ -8245,7 +8251,10 @@ class EFARangePlotPanel(wx.Panel):
         except AttributeError:
             self.raw_settings = RAWSettings.RawGuiSettings()
         
-        self.fig = Figure((4,4), 75)
+        if (int(matplotlib.__version__.split('.')[0]) ==1 and int(matplotlib.__version__.split('.')[1]) >=5) or int(matplotlib.__version__.split('.')[0]) > 1: 
+            self.fig = Figure((4,4), 75)
+        else:
+            self.fig = Figure((275./75,4), dpi = 75)
                     
         self.cut_line = None
         self.range_arrows = []
@@ -8329,13 +8338,13 @@ class EFARangePlotPanel(wx.Panel):
 
             self.cut_line, = a.plot(frame_list[framei:framef+1], intensity[framei:framef+1], 'k.-', animated = True)
             
-            if int(matplotlib.__version__.split('.')[0]) >=1 and int(matplotlib.__version__.split('.')[1]) >=5:
+            if (int(matplotlib.__version__.split('.')[0]) ==1 and int(matplotlib.__version__.split('.')[1]) >=5) or int(matplotlib.__version__.split('.')[0]) > 1:
                 a.set_prop_cycle(None) #Resets the color cycler to the original state
             else:
                 a.set_color_cycle(None)
             
             for i in range(ranges.shape[0]):
-                if int(matplotlib.__version__.split('.')[0]) >=1 and int(matplotlib.__version__.split('.')[1]) >=5:
+                if (int(matplotlib.__version__.split('.')[0]) ==1 and int(matplotlib.__version__.split('.')[1]) >=5) or int(matplotlib.__version__.split('.')[0]) > 1:
                     color = a._get_lines.prop_cycler.next()['color']
                 else:
                     color = a._get_lines.color_cycle.next()
