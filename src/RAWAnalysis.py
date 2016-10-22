@@ -5893,7 +5893,16 @@ class SVDControlPanel(wx.Panel):
             err = err.T
 
             err_mean = np.mean(err, axis = 1)
-            err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), err.shape)
+            if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
+                err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), err.shape)
+            else:
+                err_avg = np.array([err_mean for i in range(err.shape[1])]).T
+            # print self.i.shape
+            # print self.err_avg.shape
+            # print err_mean[0]
+            # print self.err_avg[0][0]
+            # print err_mean[-1]
+            # print self.err_avg[-1][0]
 
             svd_a = svd_a/err_avg
 
@@ -6114,7 +6123,7 @@ class EFAFrame(wx.Frame):
         self.splitter1.SplitVertically(self.controlPanel1, self.plotPanel1, 325)
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            self.splitter1.SetMinimumPaneSize(300)    #Back compatability with older wxpython versions
+            self.splitter1.SetMinimumPaneSize(325)    #Back compatability with older wxpython versions
         else:
             self.splitter1.SetMinimumPaneSize(50)
 
@@ -6864,7 +6873,16 @@ class EFAControlPanel1(wx.Panel):
         self.err = err.T
 
         err_mean = np.mean(self.err, axis = 1)
-        self.err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), self.err.shape)
+        if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
+            self.err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), self.err.shape)
+        else:
+            self.err_avg = np.array([err_mean for i in range(self.i.shape[1])]).T
+            # print self.i.shape
+            # print self.err_avg.shape
+            # print err_mean[0]
+            # print self.err_avg[0][0]
+            # print err_mean[-1]
+            # print self.err_avg[-1][0]
 
         self.svd_a = self.i/self.err_avg
 
@@ -7320,8 +7338,12 @@ class EFAResultsPlotPanel2(wx.Panel):
         while len(b.lines) != 0:
             b.lines.pop(0)
 
-        a.set_prop_cycle(None)
-        b.set_prop_cycle(None)
+        if int(matplotlib.__version__.split('.')[0]) >=1 and int(matplotlib.__version__.split('.')[1]) >=5:
+            a.set_prop_cycle(None)
+            b.set_prop_cycle(None)
+        else:
+            a.set_color_cycle(None)
+            b.set_color_cycle(None)
         
     def plotEFA(self, forward_data, backward_data):
 
@@ -7358,7 +7380,7 @@ class EFAResultsPlotPanel2(wx.Panel):
                 self.f_lines.append(line)
 
             for j in range(len(f_points)):
-                point, = a.semilogy(f_points[j], f_slist[j][fp_index[j]], 'o', markeredgewidth = 2, markeredgecolor = self.f_lines[j].get_color(), markerfacecolor='none', markersize = '8', label = '_nolegend_', animated = True)
+                point, = a.semilogy(f_points[j], f_slist[j][fp_index[j]], 'o', markeredgewidth = 2, markeredgecolor = self.f_lines[j].get_color(), markerfacecolor='none', markersize = 8, label = '_nolegend_', animated = True)
                 self.f_markers.append(point)
 
             for k in range(b_slist.shape[0]):
@@ -7366,7 +7388,7 @@ class EFAResultsPlotPanel2(wx.Panel):
                 self.b_lines.append(line)
 
             for k in range(len(b_points)):
-                point, = b.semilogy(b_points[k], b_slist[k][bp_index[k]], 'o', markeredgewidth = 2, markeredgecolor = self.b_lines[k].get_color(), markerfacecolor='none', markersize = '8', label = '_nolegend_', animated = True)
+                point, = b.semilogy(b_points[k], b_slist[k][bp_index[k]], 'o', markeredgewidth = 2, markeredgecolor = self.b_lines[k].get_color(), markerfacecolor='none', markersize = 8, label = '_nolegend_', animated = True)
                 self.b_markers.append(point)
 
             a.legend(fontsize = 12, loc = 'upper left')
@@ -7780,7 +7802,14 @@ class EFAControlPanel3(wx.Panel):
                 Cnew[Cnew[:,i] < 0,i] = 0
 
         csum = np.sum(M*Cnew, axis = 0)
-        Cnew = Cnew/np.broadcast_to(csum, Cnew.shape) #normalizes by the sum of each column
+        if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
+            Cnew = Cnew/np.broadcast_to(csum, Cnew.shape) #normalizes by the sum of each column
+        else:
+            norm = np.array([csum for i in range(Cnew.shape[0])])
+            # print Cnew.shape
+            # print norm.shape
+            Cnew = Cnew/norm #normalizes by the sum of each column
+        
 
         return Cnew
 
@@ -7791,7 +7820,13 @@ class EFAControlPanel3(wx.Panel):
         Cnew = np.transpose(np.dot(np.linalg.pinv(S), D))
 
         csum = np.sum(M*Cnew, axis = 0)
-        Cnew = Cnew/np.broadcast_to(csum, Cnew.shape) #normalizes by the sum of each column
+        if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
+            Cnew = Cnew/np.broadcast_to(csum, Cnew.shape) #normalizes by the sum of each column
+        else:
+            norm = np.array([csum for i in range(Cnew.shape[0])])
+            # print Cnew.shape
+            # print norm.shape
+            Cnew = Cnew/norm #normalizes by the sum of each column
 
         return Cnew
 
@@ -8083,9 +8118,14 @@ class EFAResultsPlotPanel3(wx.Panel):
         while len(c.lines) != 0:
             c.lines.pop(0)
 
-        a.set_prop_cycle(None)
-        b.set_prop_cycle(None)
-        c.set_prop_cycle(None)
+        if int(matplotlib.__version__.split('.')[0])>=1 and int(matplotlib.__version__.split('.')[1])>=5:
+            a.set_prop_cycle(None)
+            b.set_prop_cycle(None)
+            c.set_prop_cycle(None)
+        else:
+            a.set_color_cycle(None)
+            b.set_color_cycle(None)
+            c.set_color_cycle(None)
         
     def plotEFA(self, profile_data, rmsd_data, conc_data):
 
@@ -8289,10 +8329,16 @@ class EFARangePlotPanel(wx.Panel):
 
             self.cut_line, = a.plot(frame_list[framei:framef+1], intensity[framei:framef+1], 'k.-', animated = True)
             
-            a.set_prop_cycle(None) #Resets the color cycler to the original state
+            if int(matplotlib.__version__.split('.')[0]) >=1 and int(matplotlib.__version__.split('.')[1]) >=5:
+                a.set_prop_cycle(None) #Resets the color cycler to the original state
+            else:
+                a.set_color_cycle(None)
             
             for i in range(ranges.shape[0]):
-                color = a._get_lines.prop_cycler.next()['color']
+                if int(matplotlib.__version__.split('.')[0]) >=1 and int(matplotlib.__version__.split('.')[1]) >=5:
+                    color = a._get_lines.prop_cycler.next()['color']
+                else:
+                    color = a._get_lines.color_cycle.next()
 
                 annotation = a.annotate('', xy = (ranges[i][0], 0.975-0.05*(i)), xytext = (ranges[i][1], 0.975-0.05*(i)), xycoords = ('data', 'axes fraction'), arrowprops = dict(arrowstyle = '<->', color = color), animated = True)
                 self.range_arrows.append(annotation)
