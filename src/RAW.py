@@ -960,6 +960,7 @@ class MainFrame(wx.Frame):
             secpage = wx.FindWindowByName('SECPanel')
             manippage = wx.FindWindowByName('ManipulationPanel')
             iftpage = wx.FindWindowByName('IFTPanel')
+            filepage = wx.FindWindowByName('FilePanel')
 
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
@@ -1021,6 +1022,10 @@ class MainFrame(wx.Frame):
                     wx.MessageBox("Please select a SEC curve from the list on the SEC page.", "No SEC curve selected")
                     return
 
+            elif page == filepage:
+                wx.MessageBox('The selected operation cannot be performed from the file tab.', 'Select Different Tab', style = wx.ICON_INFORMATION)
+                return
+
             self.showSVDFrame(secm, manip_item)
 
 
@@ -1028,6 +1033,7 @@ class MainFrame(wx.Frame):
             secpage = wx.FindWindowByName('SECPanel')
             manippage = wx.FindWindowByName('ManipulationPanel')
             iftpage = wx.FindWindowByName('IFTPanel')
+            filepage = wx.FindWindowByName('FilePanel')
 
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
@@ -1088,6 +1094,10 @@ class MainFrame(wx.Frame):
                 else:
                     wx.MessageBox("Please select a SEC curve from the list on the SEC page.", "No SEC curve selected")
                     return
+
+            elif page == filepage:
+                wx.MessageBox('The selected operation cannot be performed from the file tab.', 'Select Different Tab', style = wx.ICON_INFORMATION)
+                return
 
             self.showEFAFrame(secm, manip_item)
 
