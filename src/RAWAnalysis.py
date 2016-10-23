@@ -5903,12 +5903,6 @@ class SVDControlPanel(wx.Panel):
                 err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), err.shape)
             else:
                 err_avg = np.array([err_mean for i in range(err.shape[1])]).T
-            # print self.i.shape
-            # print self.err_avg.shape
-            # print err_mean[0]
-            # print self.err_avg[0][0]
-            # print err_mean[-1]
-            # print self.err_avg[-1][0]
 
             svd_a = svd_a/err_avg
 
@@ -6883,16 +6877,8 @@ class EFAControlPanel1(wx.Panel):
             self.err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), self.err.shape)
         else:
             self.err_avg = np.array([err_mean for i in range(self.i.shape[1])]).T
-            # print self.i.shape
-            # print self.err_avg.shape
-            # print err_mean[0]
-            # print self.err_avg[0][0]
-            # print err_mean[-1]
-            # print self.err_avg[-1][0]
 
         self.svd_a = self.i/self.err_avg
-
-        # self.svd_a = self.svd_a.T 
 
         try:
             self.svd_U, self.svd_s, svd_Vt = np.linalg.svd(self.svd_a, full_matrices = True)
@@ -7812,10 +7798,8 @@ class EFAControlPanel3(wx.Panel):
             Cnew = Cnew/np.broadcast_to(csum, Cnew.shape) #normalizes by the sum of each column
         else:
             norm = np.array([csum for i in range(Cnew.shape[0])])
-            # print Cnew.shape
-            # print norm.shape
-            Cnew = Cnew/norm #normalizes by the sum of each column
-        
+
+            Cnew = Cnew/norm #normalizes by the sum of each column        
 
         return Cnew
 
@@ -7830,9 +7814,8 @@ class EFAControlPanel3(wx.Panel):
             Cnew = Cnew/np.broadcast_to(csum, Cnew.shape) #normalizes by the sum of each column
         else:
             norm = np.array([csum for i in range(Cnew.shape[0])])
-            # print Cnew.shape
-            # print norm.shape
-            Cnew = Cnew/norm #normalizes by the sum of each column
+
+            Cnew = Cnew/norm #normalizes by the sum of each column      
 
         return Cnew
 
