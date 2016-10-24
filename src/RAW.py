@@ -1776,7 +1776,8 @@ class OnlineController:
                     else:
                         print 'Ignored: '+str(each_newfile)
 
-            mainworker_cmd_queue.put(['plot', files_to_plot])
+            if len(files_to_plot) > 0:
+                mainworker_cmd_queue.put(['plot', files_to_plot])
 
             self.old_dir_list_dict.update(diff_list)
         
