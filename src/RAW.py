@@ -1640,6 +1640,8 @@ class OnlineController:
         return False
         
     def goOffline(self):
+        self.main_frame.setStatus(process_str, 0)
+        
         return self.online_timer.Stop()
 
     def startTimer(self):
@@ -1660,6 +1662,8 @@ class OnlineController:
         self._enable_filt=self._raw_settings.get('EnableOnlineFiltering')
         
         self.file_list_ctrl = wx.FindWindowByName('FileListCtrl')
+
+        self.main_frame.setStatus('', 0)
 
         if not os.path.exists(self.seek_dir):
             self.seek_dir = []
