@@ -7946,7 +7946,12 @@ class EFAControlPanel3(wx.Panel):
             old_filename = old_filename[0]
 
         for i in range(nprofiles):
-            q = self.secm.getSASM().q
+            old_sasm = self.secm.getSASM()
+            q = old_sasm.q
+
+            qmin, qmax = old_sasm.getQrange()
+
+            q = q[qmin:qmax]
 
             intensity = self.rotation_data['int'][:,i]
 
