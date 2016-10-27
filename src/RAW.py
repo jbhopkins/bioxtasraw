@@ -1640,7 +1640,7 @@ class OnlineController:
         return False
         
     def goOffline(self):
-        self.main_frame.setStatus(process_str, 0)
+        self.main_frame.setStatus('', 0)
         
         return self.online_timer.Stop()
 
