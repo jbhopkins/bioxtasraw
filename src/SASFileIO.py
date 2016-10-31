@@ -2735,7 +2735,7 @@ def saveAllAnalysisData(save_path, sasm_list, delim=','):
     #Write the first lines in the file: 
     f.write('RAW_ANALYSIS_DATA\n')
     f.write(str(date).replace(' ', '_') + '\n')
-    header_list = ['Filename']
+    header_list = ['Filename', 'Concentration']
 
     for sasm in sasm_list:
         analysis = sasm.getParameter('analysis')
@@ -2773,6 +2773,8 @@ def saveAllAnalysisData(save_path, sasm_list, delim=','):
     for sasm in sasm_list:
         analysis = sasm.getParameter('analysis')
 
+        all_params = sasm.getAllParameters()
+
         analysis_done = analysis.keys()
 
         if 'guinier' in analysis_done:
@@ -2800,6 +2802,12 @@ def saveAllAnalysisData(save_path, sasm_list, delim=','):
         for header in header_list:
             if header == 'Filename':
                 data_list.append(sasm.getParameter('filename'))
+
+            elif header == 'Concentration':
+                if 'Conc' in all_params.keys():
+                    data_list.append(str(all_params['Conc']))
+                else:
+                    data_list.append('')
 
             
             elif header.startswith('Guinier'):

@@ -4338,8 +4338,12 @@ class SECPlotPanel(wx.Panel):
     def _onPopupMenuChoice(self, evt): 
         # print 'start of _onPopupMenuChoice'
         mainframe = wx.FindWindowByName('MainFrame')
+        seccontrol = wx.FindWindowByName('SECControlPanel')
         MenuIDs = mainframe.getMenuIds()
         id = evt.GetId()
+
+        if seccontrol._is_online:
+            mainframe.OnlineSECControl.goOffline()
 
         for key in MenuIDs.iterkeys():
             if MenuIDs[key] == id:
@@ -4462,6 +4466,9 @@ class SECPlotPanel(wx.Panel):
                     
 
                 #evt.Skip()
+
+        if seccontrol._is_online:
+            mainframe.OnlineSECControl.goOnline()
     
     def _onAutofitaxesMenuChoice(self, evt):
         plotnum = self.selected_plot

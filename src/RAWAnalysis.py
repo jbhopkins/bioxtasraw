@@ -5192,7 +5192,7 @@ class AmbimeterFrame(wx.Frame):
 
 class SVDFrame(wx.Frame):
     
-    def __init__(self, parent, title, sasm, manip_item):
+    def __init__(self, parent, title, secm, manip_item):
         
         try:
             wx.Frame.__init__(self, parent, -1, title, name = 'SVDFrame', size = (800,680))
@@ -5202,9 +5202,11 @@ class SVDFrame(wx.Frame):
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
         splitter1 = wx.SplitterWindow(self, -1)                
+
+        copy_secm = copy.copy(secm)
         
         self.plotPanel = SVDResultsPlotPanel(splitter1, -1, 'SVDResultsPlotPanel')
-        self.controlPanel = SVDControlPanel(splitter1, -1, 'SVDControlPanel', sasm, manip_item)
+        self.controlPanel = SVDControlPanel(splitter1, -1, 'SVDControlPanel', copy_secm, manip_item)
   
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, 290)
 
@@ -6061,7 +6063,7 @@ class EFAFrame(wx.Frame):
         
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
-        self.secm = secm
+        self.secm = copy.copy(secm)
         self.manip_item = manip_item
 
         self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
