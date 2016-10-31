@@ -350,7 +350,7 @@ def calibrateAndNormalize(sasm, img, raw_settings):
 
             norm_parameter['Solid_Angle_Correction'] = 'On'
 
-            sasm.setParameter('Normalizations', norm_parameter)
+            sasm.setParameter('normalizations', norm_parameter)
 
         for each in normlist:
             op, expr = each

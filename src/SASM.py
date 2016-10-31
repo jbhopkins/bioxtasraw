@@ -1368,7 +1368,7 @@ def normalizeAbsoluteScaleWater(sasm, raw_settings):
 
     norm_parameter['Absolute_scale_factor'] = abs_scale_constant
 
-    sasm.setParameter('Normalizations', norm_parameter)
+    sasm.setParameter('normalizations', norm_parameter)
 
     return sasm, abs_scale_constant
 
