@@ -1012,33 +1012,37 @@ class ImagePanel(wx.Panel):
         
         self._polygon_guide_line = None
         
-    def _drawAgBeRings(self, x, r):
+    def _drawAgBeRings(self, x, r_list):
         
         a = self.fig.gca()
         
-        cir = matplotlib.patches.Circle( x, radius = r, alpha = 1, fill = False, linestyle = 'dashed', linewidth = 1.5, edgecolor = 'red') 
-        a.add_patch(cir)
-        txt1 = a.text(x[0]-10, x[1]-r-10, 'q = 0.1076', size = 'large', color = 'yellow')
+        # cir = matplotlib.patches.Circle( x, radius = r, alpha = 1, fill = False, linestyle = 'dashed', linewidth = 1.5, edgecolor = 'red') 
+        # a.add_patch(cir)
+        # txt1 = a.text(x[0]-10, x[1]-r-10, 'q = 0.1076', size = 'large', color = 'yellow')
         
-        cir = matplotlib.patches.Circle( x, radius = 2*r, alpha = 1, fill = False, linestyle = 'dashed', linewidth = 1.5, edgecolor = 'red') 
-        a.add_patch(cir)
-        txt2 = a.text(x[0]-10, x[1]-2*r-10, 'q = 0.2152', size = 'large', color = 'yellow')
+        # cir = matplotlib.patches.Circle( x, radius = 2*r, alpha = 1, fill = False, linestyle = 'dashed', linewidth = 1.5, edgecolor = 'red') 
+        # a.add_patch(cir)
+        # txt2 = a.text(x[0]-10, x[1]-2*r-10, 'q = 0.2152', size = 'large', color = 'yellow')
         
-        cir = matplotlib.patches.Circle( x, radius = 3*r, alpha = 1, fill = False, linestyle = 'dashed', edgecolor = 'red') 
-        a.add_patch(cir)
-        txt3 = a.text(x[0]-10, x[1]-3*r-10, 'q = 0.3229', size = 'large', color = 'yellow')
+        # cir = matplotlib.patches.Circle( x, radius = 3*r, alpha = 1, fill = False, linestyle = 'dashed', edgecolor = 'red') 
+        # a.add_patch(cir)
+        # txt3 = a.text(x[0]-10, x[1]-3*r-10, 'q = 0.3229', size = 'large', color = 'yellow')
         
-        cir = matplotlib.patches.Circle( x, radius = 4*r, alpha = 1, fill = False, linestyle = 'dashed', edgecolor = 'red') 
-        a.add_patch(cir)
-        txt4 = a.text(x[0]-10, x[1]-4*r-10, 'q = 0.4305', size = 'large', color = 'yellow')
+        # cir = matplotlib.patches.Circle( x, radius = 4*r, alpha = 1, fill = False, linestyle = 'dashed', edgecolor = 'red') 
+        # a.add_patch(cir)
+        # txt4 = a.text(x[0]-10, x[1]-4*r-10, 'q = 0.4305', size = 'large', color = 'yellow')
         
-        cir = matplotlib.patches.Circle( x, radius = 5*r, alpha = 1, fill = False, linestyle = 'dashed', edgecolor = 'red') 
-        a.add_patch(cir)
-        txt4 = a.text(x[0]-10, x[1]-5*r-10, 'q = 0.538', size = 'large', color = 'yellow')
+        # cir = matplotlib.patches.Circle( x, radius = 5*r, alpha = 1, fill = False, linestyle = 'dashed', edgecolor = 'red') 
+        # a.add_patch(cir)
+        # txt4 = a.text(x[0]-10, x[1]-5*r-10, 'q = 0.538', size = 'large', color = 'yellow')
         
-        cir = matplotlib.patches.Circle( x, radius = 3, alpha = 1, facecolor = 'red', edgecolor = 'red')
-        a.add_patch(cir)
-        
+        # cir = matplotlib.patches.Circle( x, radius = 3, alpha = 1, facecolor = 'red', edgecolor = 'red')
+        # a.add_patch(cir)
+
+        for r in r_list:
+            cir = matplotlib.patches.Circle(x, radius = r, alpha = 1, fill = False, linestyle = 'dashed', linewidth = 1.5, edgecolor = 'red')
+            a.add_patch(cir)
+
         try:
             self.canvas.draw()
         except ValueError, e:

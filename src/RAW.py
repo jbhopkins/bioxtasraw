@@ -43,6 +43,13 @@ from collections import OrderedDict, defaultdict
 import RAWPlot, RAWImage, RAWOptions, RAWSettings, RAWCustomCtrl, RAWAnalysis, BIFT, RAWIcons, RAWGlobals
 from RAWGlobals import mainworker_cmd_queue, RAWWorkDir, workspace_saved
 
+try:
+    import pyFAI.calibrant
+    # RAWGlobals.usepyFAI = True
+except:
+    pass
+    # RAWGlobals.usepyFAI = False
+
 thread_wait_event = threading.Event()
 question_return_queue = Queue.Queue()
 
@@ -11233,6 +11240,9 @@ class CenteringPanel(wx.Panel):
         self._y_center = None
         self._repeat_timer = wx.Timer()
         self._repeat_timer.Bind(wx.EVT_TIMER, self._onRepeatTimer)
+
+        if RAWGlobals.usepyFAI:
+            self.cal_factory = pyFAI.calibrant.calibrant_factory()
         
         self.manual_widget_list = []
         
@@ -11267,7 +11277,7 @@ class CenteringPanel(wx.Panel):
         
         self._center = [0,0]
         self.updateCenterFromSettings()
-        wx.CallAfter(self._updateAgbeRings)
+        wx.CallAfter(self._updateCenteringRings)
                 
     def _initBitmaps(self):
         
@@ -11364,7 +11374,11 @@ class CenteringPanel(wx.Panel):
         info_sizer = wx.BoxSizer()
         
         step_list= ['0.1', '1', '2', '5', '10', '20', '50', '100', '500']
-        pattern_list = ['None', 'Silver-Behenate']
+
+        if RAWGlobals.usepyFAI:
+            pattern_list = ['None'] + sorted(self.cal_factory.keys(), key = str.lower)
+        else:
+            pattern_list = ['None', 'Silver-Behenate']
         
         self._x_cent_text = wx.TextCtrl(self, -1, '0', size = (65, -1), style = wx.TE_PROCESS_ENTER)
         self._y_cent_text = wx.TextCtrl(self, -1, '0', size = (65, -1), style = wx.TE_PROCESS_ENTER)
@@ -11386,7 +11400,11 @@ class CenteringPanel(wx.Panel):
         self._pixel_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onPixelWavelengthChange)
                 
         self._pattern_list = wx.Choice(self, -1, choices = pattern_list)
-        self._pattern_list.Select(1)
+        if RAWGlobals.usepyFAI and 'AgBh' in self.cal_factory.keys():
+            print 'selecting pattern with key'
+            self._pattern_list.SetStringSelection('AgBh')
+        else:
+            self._pattern_list.Select(1)
         self._pattern_list.Bind(wx.EVT_CHOICE, self._onPatternChoice)
         
         wavelen_label = wx.StaticText(self, -1, 'Wavelength:')
@@ -11589,13 +11607,13 @@ class CenteringPanel(wx.Panel):
         wx.MessageBox('Click on the image to move the center to a new location.', 'Select center on image')
     
     def _onPatternChoice(self, event):
-        selection = self._pattern_list.GetSelection()
-        
-        if selection == 1: #Agbe
-            wx.CallAfter(self._updateAgbeRings)
+        selection = self._pattern_list.GetStringSelection()
             
-        elif selection == 0: #none
+        if selection == 'None': #none
             wx.CallAfter(self.image_panel.clearPatches)
+
+        else: #Agbe
+            wx.CallAfter(self._updateCenteringRings)
             
     def _onSampDetDistSpin(self, event):
         self._updatePlots()
@@ -11653,14 +11671,30 @@ class CenteringPanel(wx.Panel):
         
         self.image_panel.enableAgbeAutoCentMode()
         
-    def _updateAgbeRings(self):
+    def _updateCenteringRings(self):
         sd_distance, wavelength, pixel_size = self._getCalibValues()
-        
-        sample_detec_pixels = SASImage.calcFromSDToAgBePixels(sd_distance, wavelength, pixel_size / 1000.0)
+
+        selection = self._pattern_list.GetStringSelection()
+
+        if RAWGlobals.usepyFAI:
+            self.calibrant = self.cal_factory(selection)
+            self.calibrant.set_wavelength(wavelength*1e-10) #set the wavelength in m
+
+            #Calculate pixel position of the calibrant rings
+            two_thetas = np.array(self.calibrant.get_2th())
+            if len(two_thetas) > 0:
+                opposite = np.tan(two_thetas) * sd_distance
+                agbh_dist_list = list(opposite / (pixel_size/1000.))
+            else:
+                agbh_dist_list = [np.nan]
+            
+        else:
+            sample_detec_pixels = SASImage.calcFromSDToAgBePixels(sd_distance, wavelength, pixel_size / 1000.0)
+            agbh_dist_list = [sample_detec_pixels*i for i in range(1,10)]
                 
         wx.CallAfter(self.image_panel.clearPatches)
-        if not np.isnan(sample_detec_pixels): #If wavelength is too long, can get value sfor the ring radius that are nans
-            wx.CallAfter(self.image_panel._drawAgBeRings, self._center, sample_detec_pixels)
+        if not np.isnan(agbh_dist_list[0]): #If wavelength is too long, can get values for the ring radius that are nans
+            wx.CallAfter(self.image_panel._drawAgBeRings, self._center, agbh_dist_list)
         else:
             self._wavelen_text.SetValue('1')
             wx.MessageBox('Wavelength too long, cannot show silver-behenate rings on the plot. Must be less than 116 angstroms.', 'Invalid Entry', style=wx.ICON_ERROR)
@@ -11671,8 +11705,8 @@ class CenteringPanel(wx.Panel):
         self._y_cent_text.SetValue(str(self._center[1]))
     
     def _updatePlots(self):
-        if self._pattern_list.GetSelection() == 1:
-            self._updateAgbeRings()
+        if self._pattern_list.GetStringSelection() != 'None':
+            self._updateCenteringRings()
             
     def updateCenterFromSettings(self):    
         x_center = self._main_frame.raw_settings.get('Xcenter')
