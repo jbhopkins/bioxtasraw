@@ -7839,7 +7839,10 @@ class EFAControlPanel3(wx.Panel):
 
         D = self.panel1_results['svd_int_norm']
 
-        C = self.panel1_results['svd_v'][:,:num_sv]
+        if not self.converged:
+            C = self.panel1_results['svd_v'][:,:num_sv]
+        else:
+            C = self.rotation_data['C']
 
 
         M = np.zeros_like(C)
