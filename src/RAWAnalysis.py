@@ -7596,7 +7596,7 @@ class EFAControlPanel3(wx.Panel):
             bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][1], size = (60, -1))
             bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
             bcontrol.SetValue(points[i][1])
-            bcontrol.SetRange((points[i][0]+1,end-i))
+            bcontrol.SetRange((points[i][0]+1,end-(nvals-1-i)))
 
             self.range_sizer.Add(label2, 0)
             self.range_sizer.Add(bcontrol, 0)

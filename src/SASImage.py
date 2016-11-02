@@ -6,8 +6,15 @@ Created on Jul 7, 2010
 
 import numpy as np
 from scipy import optimize
-import SASExceptions, SASParser, SASCalib, wx, copy, sys
-import RAWGlobals
+import SASExceptions, SASParser, SASCalib, SASM, RAWGlobals
+import wx, sys, math
+
+try:
+    import pyFAI
+    # RAWGlobals.usepyFAI = True
+except:
+    pass
+    # RAWGlobals.usepyFAI = False
 
 # If C extensions have not been built, build them:
 if RAWGlobals.compiled_extensions:
@@ -386,6 +393,14 @@ def calibrateAndNormalize(sasm, img, raw_settings):
                 sasm.offsetBinnedIntensity(-val)
     else:
         sasm.setParameter('normalizations', {})
+
+        if raw_settings.get('DoSolidAngleCorrection'):    
+
+            norm_parameter = sasm.getParameter('normalizations')
+
+            norm_parameter['Solid_Angle_Correction'] = 'On'
+
+            sasm.setParameter('normalizations', norm_parameter)
     
     return sasm
     
@@ -982,6 +997,153 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
     errorbars = errorbars[0:len(iq)]
         
     return [iq, q, errorbars, qmatrix]
+
+
+def pyFAIIntegrateCalibrateNormalize(img, parameters, x_cin, y_cin, raw_settings, mask = None, tbs_mask = None):
+    print 'using pyfai!!!!'
+    # Get appropriate settings
+    sd_distance = raw_settings.get('SampleDistance')
+    pixel_size = raw_settings.get('DetectorPixelSize')
+    wavelength = raw_settings.get('WaveLength')
+    bin_size = raw_settings.get('Binsize')
+    normlist = raw_settings.get('NormalizationList')
+    
+    do_calibration = raw_settings.get('CalibrateMan')
+    do_normalization = raw_settings.get('EnableNormalization')
+    do_flatfield = raw_settings.get('NormFlatfieldEnabled')
+    do_solidangle = raw_settings.get('DoSolidAngleCorrection')
+    do_useheaderforcalib = raw_settings.get('UseHeaderForCalib')
+    
+    #Put everything in appropriate units
+    pixel_size = pixel_size *1e-6 #convert pixel size to m
+    wavelength = wavelength*1e-10 #convert wl to m
+
+    if do_useheaderforcalib:
+        img_hdr = sasm.getParameter('imageHeader')
+        file_hdr = sasm.getParameter('counters')
+        
+        result = getBindListDataFromHeader(raw_settings, img_hdr, file_hdr, keys = ['Sample Detector Distance', 'Detector Pixel Size', 'Wavelength'])
+        if result[0] != None: sd_distance = result[0]
+        if result[1] != None: pixel_size = result[1]
+        if result[2] != None: wavelength = result[2]
+    
+    #Set up mask
+    img = np.float64(img)
+
+    ylen, xlen = img.shape
+    
+    xlen = int(xlen)
+    ylen = int(ylen)
+ 
+    # If no mask is given, the mask is pure zeroes
+    if mask is None:
+        mask = np.zeroes(img.shape)
+
+    else:
+        mask = np.logical_not(mask)
+        
+    # if readoutNoise_mask == None:
+    #     readoutNoiseFound = 0
+    #     readoutNoise_mask = np.zeros(img.shape, dtype = np.float64)
+    # else:
+    #     readoutNoiseFound = 1
+    
+    # readoutN = np.zeros((1,4), dtype = np.float64)
+    
+    # Find the maximum distance to the edge in the image:        
+    maxlen1 = int(max(xlen - x_cin, ylen - y_cin, xlen - (xlen - x_cin), ylen - (ylen - y_cin)))
+    
+    diag1 = int(np.sqrt((xlen-x_cin)**2 + y_cin**2))
+    diag2 = int(np.sqrt((x_cin**2 + y_cin**2)))
+    diag3 = int(np.sqrt((x_cin**2 + (ylen-y_cin)**2)))
+    diag4 = int(np.sqrt((xlen-x_cin)**2 + (ylen-y_cin)**2))
+    
+    maxlen = int(max(diag1, diag2, diag3, diag4, maxlen1))   
+
+    x_c = float(x_cin)
+    y_c = float(y_cin)
+    
+    ai = pyFAI.AzimuthalIntegrator()
+
+    if do_calibration:
+        ai.wavelength = wavelength
+        ai.pixel1 = pixel_size
+        ai.pixel2 = pixel_size
+        ai.setFit2D(sd_distance, x_c, y_c)
+
+    if do_flatfield:
+        flatfield_filename = raw_settings.get('NormFlatfieldFile')
+        ai.set_flatfiles(flatfield_filename)
+
+    print ai
+    qmin_theta = SASCalib.calcTheta(sd_distance*1e-3, pixel_size, 0)
+    qmin = ((4 * math.pi * math.sin(qmin_theta)) / (wavelength*1e10))
+
+    qmax_theta = SASCalib.calcTheta(sd_distance*1e-3, pixel_size, maxlen)
+    qmax = ((4 * math.pi * math.sin(qmax_theta)) / (wavelength*1e10))
+
+    q_range = (qmin, qmax)
+
+    #Carry out the integration
+    q, iq, errorbars = ai.integrate1d(img, maxlen, mask = mask, correctSolidAngle = do_solidangle, error_model = 'poisson', unit = 'q_A^-1', radial_range = q_range, method = 'nosplit_csr')
+    
+    i_raw = iq[:-5]        #Last points are usually garbage they're very few pixels
+                        #Cutting the last 5 points here. 
+    q_raw = q[0:len(i_raw)] 
+    errorbars = errorbars[0:len(i_raw)]
+
+    err_raw_non_nan = np.nan_to_num(errorbars)
+
+    if tbs_mask is not None:
+        roi_counter = img_array[tbs_mask==1].sum()
+        parameters['counters']['roi_counter'] = roi_counter
+
+    parameters['normalizations'] = {}
+    if do_solidangle:
+        parameters['normalizations']['Solid_Angle_Correction'] = 'On'
+
+    sasm = SASM.SASM(i_raw, q_raw, err_raw_non_nan, parameters)
+
+    img_hdr = sasm.getParameter('imageHeader')
+    file_hdr = sasm.getParameter('counters')
+
+    if normlist != None and do_normalization == True:
+        sasm.setParameter('normalizations', {'Counter_norms' : normlist})
+
+        for each in normlist:
+            op, expr = each
+            
+            #try:
+            val = calcExpression(expr, img_hdr, file_hdr)
+            
+            if val != None:
+                val = float(val)
+            else:
+                raise ValueError
+            #except:
+            #    msg = 'calcExpression error'
+            #    raise SASExceptions.NormalizationError('Error normalizing in calibrateAndNormalize: ' + str(msg))
+        
+            if op == '/':
+                
+               if val == 0:
+                   raise ValueError('Divide by Zero when normalizing') 
+                
+               sasm.scaleBinnedIntensity(1/val)
+                
+            elif op == '+':
+                sasm.offsetBinnedIntensity(val)
+            elif op == '*':
+                
+                if val == 0:
+                   raise ValueError('Multiply by Zero when normalizing')
+                
+                sasm.scaleBinnedIntensity(val)
+                
+            elif op == '-':
+                sasm.offsetBinnedIntensity(-val)
+    
+    return sasm
 
 
 

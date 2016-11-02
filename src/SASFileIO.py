@@ -1390,10 +1390,11 @@ def loadFile(filename, raw_settings, no_processing = False):
             print 'SASFileIO.loadFile : ' + str(msg)
             raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
 
-        try:
-            sasm = SASImage.calibrateAndNormalize(sasm, img, raw_settings)
-        except (ValueError, NameError), msg:
-            print msg
+        if not RAWGlobals.usepyFAI:
+            try:
+                sasm = SASImage.calibrateAndNormalize(sasm, img, raw_settings)
+            except (ValueError, NameError), msg:
+                print msg
         
         sasm.setParameter('config_file', raw_settings.get('CurrentCfg'))
           
@@ -1492,17 +1493,6 @@ def loadImageFile(filename, raw_settings):
     
     x_c = raw_settings.get('Xcenter')
     y_c = raw_settings.get('Ycenter')
-    
-    ## Flatfield correction.. this part gets moved to a image correction function later
-    if raw_settings.get('NormFlatfieldEnabled'):
-        flatfield_filename = raw_settings.get('NormFlatfieldFile')
-        flatfield_img = loadImage(flatfield_filename, img_fmt)
-        flatfield_hdr = loadHeader(flatfield_filename, hdr_fmt)
-        
-        if flatfield_filename != None:
-            img, img_hdr = SASImage.doFlatfieldCorrection(img, img_hdr, flatfield_img, flatfield_hdr)
-        else:
-            pass #Raise some error
 
     ## Read center coordinates from header?
     if raw_settings.get('UseHeaderForCalib'):
@@ -1557,10 +1547,25 @@ def loadImageFile(filename, raw_settings):
     #####################################################
     y_c = img.shape[0]-y_c
     
-    dezingering = raw_settings.get('ZingerRemovalRadAvg')
-    dezing_sensitivity = raw_settings.get('ZingerRemovalRadAvgStd')
-    
-    sasm = createSASMFromImage(img, parameters, x_c, y_c, bs_mask, dc_mask, tbs_mask, dezingering, dezing_sensitivity)
+    if not RAWGlobals.usepyFAI:
+        ## Flatfield correction.. this part gets moved to a image correction function later
+        if raw_settings.get('NormFlatfieldEnabled'):
+            flatfield_filename = raw_settings.get('NormFlatfieldFile')
+            flatfield_img, flatfield_img_hdr = loadImage(flatfield_filename, img_fmt)
+            flatfield_hdr = loadHeader(flatfield_filename, hdr_fmt)
+            
+            if flatfield_filename != None:
+                img, img_hdr = SASImage.doFlatfieldCorrection(img, img_hdr, flatfield_img, flatfield_hdr)
+            else:
+                pass #Raise some error
+        
+        dezingering = raw_settings.get('ZingerRemovalRadAvg')
+        dezing_sensitivity = raw_settings.get('ZingerRemovalRadAvgStd')
+        
+        sasm = createSASMFromImage(img, parameters, x_c, y_c, bs_mask, dc_mask, tbs_mask, dezingering, dezing_sensitivity)
+
+    else:
+        sasm = SASImage.pyFAIIntegrateCalibrateNormalize(img, parameters, x_c, y_c, raw_settings, bs_mask, tbs_mask)
 
     return sasm, img
 

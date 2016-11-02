@@ -2235,7 +2235,7 @@ class MainWorkerThread(threading.Thread):
                     sasm, img = SASFileIO.loadFile(each_filename, self._raw_settings)
                     loaded_sasm = True
                     
-                    if img != None:
+                    if img is not None:
                         # qrange = sasm.getQrange()
                         start_point = self._raw_settings.get('StartPoint')
                         # print start_point
@@ -2302,7 +2302,7 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
             
-        if len(filename_list) == 1 and  img != None:
+        if len(filename_list) == 1 and  img is not None:
             self._sendImageToDisplay(img, sasm)
         
         if loaded_secm and not loaded_sasm and not loaded_iftm:
@@ -2371,7 +2371,7 @@ class MainWorkerThread(threading.Thread):
                     each_filename = filename_list[j]
                     sasm, img = SASFileIO.loadFile(each_filename, self._raw_settings)
                     
-                    if img != None:
+                    if img is not None:
                         qrange = sasm.getQrange()
                         start_point = self._raw_settings.get('StartPoint')
                         # print start_point
@@ -2444,7 +2444,7 @@ class MainWorkerThread(threading.Thread):
                 each_filename = filename_list[j]
                 sasm, img = SASFileIO.loadFile(each_filename, self._raw_settings)
                 
-                if img != None:
+                if img is not None:
                     qrange = sasm.getQrange()
                     start_point = self._raw_settings.get('StartPoint')
                     # print start_point
@@ -2999,7 +2999,7 @@ class MainWorkerThread(threading.Thread):
                 if self._fileTypeIsCompatible(next_file_path):
                     img, imghdr = SASFileIO.loadImage(next_file_path, img_fmt)
                     
-                if img != None:
+                if img is not None:
                     parameters = {'filename' : os.path.split(next_file_path)[1],
                                   'imageHeader' : imghdr}
         
@@ -3264,7 +3264,7 @@ class MainWorkerThread(threading.Thread):
                         else:
                             final_save_path = save_path
                         
-                        if img != None:
+                        if img is not None:
                             SASFileIO.saveMeasurement(sasm, final_save_path, self._raw_settings)
                             processed_files += 1
                         else:
@@ -3281,7 +3281,7 @@ class MainWorkerThread(threading.Thread):
                     qrange = (start_point, len(sasm.getBinnedQ())-end_point)
                     sasm.setQrange(qrange)
                     
-                    if img != None:
+                    if img is not None:
                         SASFileIO.saveMeasurement(sasm, save_path, self._raw_settings)
                         processed_files += 1
                     else:
@@ -11011,7 +11011,7 @@ class MaskingPanel(wx.Panel):
         img_hdr = sasm.getParameter('imageHeader')
         img = self.image_panel.img
         
-        if img != None and img_hdr != None and 'bsmask_configuration' in img_hdr:
+        if img is not None and img_hdr != None and 'bsmask_configuration' in img_hdr:
             mask_params = SASImage.createMaskFromHdr(img, img_hdr, flipped = self._main_frame.raw_settings.get('DetectorFlipped90'))
         else:
             wx.MessageBox('The image does not have a SAXSLAB Beamstop Mask in the header.', 'No mask available.', style = wx.ICON_EXCLAMATION)
