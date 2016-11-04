@@ -1506,7 +1506,7 @@ class PlotPanel(wx.Panel):
             if plottype== 'normal' or plottype== 'subtracted':
                 line, ec, el = a.errorbar(sasm.q[q_min:q_max], sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label, **kwargs)
             elif plottype== 'kratky':
-                line, ec, el = a.errorbar(sasm.q[q_min:q_max], sasm.i[q_min:q_max] * np.power(sasm.q,2), sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
+                line, ec, el = a.errorbar(sasm.q[q_min:q_max], sasm.i[q_min:q_max] * np.power(sasm.q[q_min,qmax],2), sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
             elif plottype== 'guinier':
                 line, ec, el = a.errorbar(np.power(sasm.q[q_min:q_max],2), sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
             elif plottype== 'porod':
