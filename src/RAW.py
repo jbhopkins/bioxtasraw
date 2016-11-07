@@ -11329,30 +11329,34 @@ class CenteringPanel(wx.Panel):
         self.target_bmp = RAWIcons.center_target.GetBitmap()
     
     def _createAutoCenteringSizer(self):
+
+        if RAWGlobals.usepyFAI:
+            pass
+        else:
         
-        sizer = wx.BoxSizer()
-        
-        choices = ['Silver-Behenate']
-        
-        self.method_text = wx.StaticText(self, -1, 'Method:')
-        
-        self.auto_method_choice = wx.Choice(self, -1, choices = choices)
-        self.auto_method_choice.Select(0)
-        
-        method_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        
-        method_sizer.Add(self.method_text,0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
-        method_sizer.Add(self.auto_method_choice, 0)
-        
-        self.auto_start_button = wx.Button(self, -1, 'Start')
-        self.auto_start_button.Bind(wx.EVT_BUTTON, self._onAutoCenterStartButton)
-        
-        #Automatic centering doesn't work on compiled versions!
-        #self.auto_start_button.Enable(False)
-        
-        sizer.Add(method_sizer,0, wx.RIGHT, 10)
-        sizer.Add((1,1), 1, wx.EXPAND)
-        sizer.Add(self.auto_start_button,0)
+            sizer = wx.BoxSizer()
+            
+            choices = ['Silver-Behenate']
+            
+            self.method_text = wx.StaticText(self, -1, 'Method:')
+            
+            self.auto_method_choice = wx.Choice(self, -1, choices = choices)
+            self.auto_method_choice.Select(0)
+            
+            method_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            
+            method_sizer.Add(self.method_text,0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+            method_sizer.Add(self.auto_method_choice, 0)
+            
+            self.auto_start_button = wx.Button(self, -1, 'Start')
+            self.auto_start_button.Bind(wx.EVT_BUTTON, self._onAutoCenterStartButton)
+            
+            #Automatic centering doesn't work on compiled versions!
+            #self.auto_start_button.Enable(False)
+            
+            sizer.Add(method_sizer,0, wx.RIGHT, 10)
+            sizer.Add((1,1), 1, wx.EXPAND)
+            sizer.Add(self.auto_start_button,0)
         
         return sizer
     
@@ -11434,7 +11438,6 @@ class CenteringPanel(wx.Panel):
                 
         self._pattern_list = wx.Choice(self, -1, choices = pattern_list)
         if RAWGlobals.usepyFAI and 'AgBh' in self.cal_factory.keys():
-            print 'selecting pattern with key'
             self._pattern_list.SetStringSelection('AgBh')
         else:
             self._pattern_list.Select(1)
@@ -11687,7 +11690,10 @@ class CenteringPanel(wx.Panel):
         self.updateCenterTextCtrls()
         
         self._pattern_list.Select(1)
-        wx.CallAfter(self.image_panel._drawAgBeRings, x, r)
+
+        agbh_dist_list = [r*i for i in range(1,5)]
+
+        wx.CallAfter(self.image_panel._drawCenteringRings, x, agbh_dist_list)
         self.image_panel.agbe_selected_points = []
 
     def _enableControls(self, state):
@@ -11723,11 +11729,11 @@ class CenteringPanel(wx.Panel):
             
         else:
             sample_detec_pixels = SASImage.calcFromSDToAgBePixels(sd_distance, wavelength, pixel_size / 1000.0)
-            agbh_dist_list = [sample_detec_pixels*i for i in range(1,10)]
+            agbh_dist_list = [sample_detec_pixels*i for i in range(1,5)]
                 
         wx.CallAfter(self.image_panel.clearPatches)
         if not np.isnan(agbh_dist_list[0]): #If wavelength is too long, can get values for the ring radius that are nans
-            wx.CallAfter(self.image_panel._drawAgBeRings, self._center, agbh_dist_list)
+            wx.CallAfter(self.image_panel._drawCenteringRings, self._center, agbh_dist_list)
         else:
             self._wavelen_text.SetValue('1')
             wx.MessageBox('Wavelength too long, cannot show silver-behenate rings on the plot. Must be less than 116 angstroms.', 'Invalid Entry', style=wx.ICON_ERROR)

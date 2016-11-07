@@ -1012,7 +1012,7 @@ class ImagePanel(wx.Panel):
         
         self._polygon_guide_line = None
         
-    def _drawAgBeRings(self, x, r_list):
+    def _drawCenteringRings(self, x, r_list):
         
         a = self.fig.gca()
         
@@ -1046,7 +1046,7 @@ class ImagePanel(wx.Panel):
         try:
             self.canvas.draw()
         except ValueError, e:
-            print 'ValueError in _drawAgBeRings : ' + str(e)
+            print 'ValueError in _drawCenteringRings : ' + str(e)
             
     def _addCirclePoint(self, x, y, event):
         ''' Add point to chosen points list and create a circle

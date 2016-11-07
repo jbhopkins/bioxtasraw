@@ -29,4 +29,4 @@ if os.path.split(sys.path[0])[1] in ['RAW.exe', 'raw.exe']:
     RAWWorkDir = os.path.split(sys.path[0])[0]
 
 global usepyFAI
-usepyFAI = False
+usepyFAI = True
