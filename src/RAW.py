@@ -11331,7 +11331,29 @@ class CenteringPanel(wx.Panel):
     def _createAutoCenteringSizer(self):
 
         if RAWGlobals.usepyFAI:
-            pass
+            sizer = wx.BoxSizer()
+            
+            choices = ['Silver-Behenate']
+            
+            self.method_text = wx.StaticText(self, -1, 'Method:')
+            
+            self.auto_method_choice = wx.Choice(self, -1, choices = choices)
+            self.auto_method_choice.Select(0)
+            
+            method_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            
+            method_sizer.Add(self.method_text,0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+            method_sizer.Add(self.auto_method_choice, 0)
+            
+            self.auto_start_button = wx.Button(self, -1, 'Start')
+            self.auto_start_button.Bind(wx.EVT_BUTTON, self._onAutoCenterStartButton)
+            
+            #Automatic centering doesn't work on compiled versions!
+            #self.auto_start_button.Enable(False)
+            
+            sizer.Add(method_sizer,0, wx.RIGHT, 10)
+            sizer.Add((1,1), 1, wx.EXPAND)
+            sizer.Add(self.auto_start_button,0)
         else:
         
             sizer = wx.BoxSizer()
