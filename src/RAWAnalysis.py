@@ -5697,8 +5697,9 @@ class SVDControlPanel(wx.Panel):
             framef_window = wx.FindWindowById(self.control_ids['fend'])
 
             if len(self.secm.subtracted_sasm_list)>0:
-                frame_start = max(np.where(self.secm.use_subtracted_sasm)[0][0], framei)
-                frame_end = min(np.where(self.secm.use_subtracted_sasm)[0][-1], framef)
+                if not np.all(self.secm.use_subtracted_sasm):
+                    frame_start = max(np.where(self.secm.use_subtracted_sasm)[0][0], framei)
+                    frame_end = min(np.where(self.secm.use_subtracted_sasm)[0][-1], framef)
 
             else:
                 frame_start = framei

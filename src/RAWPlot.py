@@ -693,18 +693,23 @@ class PlotOptionsDialog(wx.Dialog):
         for i in range(0, len(self.axes_fixed_limits_data)):
             id = self.axes_fixed_limits_data[i][1]
 
-            if self.axes_fixed_limits_data[i][0] == 'xmin':
-                xmin = float(wx.FindWindowById(id).GetValue())
-            elif self.axes_fixed_limits_data[i][0] == 'xmax':
-                xmax = float(wx.FindWindowById(id).GetValue())
-            elif self.axes_fixed_limits_data[i][0] == 'ymin':
-                ymin = float(wx.FindWindowById(id).GetValue())
-            elif self.axes_fixed_limits_data[i][0] == 'ymax':
-                ymax = float(wx.FindWindowById(id).GetValue())
-            elif self.axes_fixed_limits_data[i][0] == 'y2min':
-                y2min = float(wx.FindWindowById(id).GetValue())
-            elif self.axes_fixed_limits_data[i][0] == 'y2max':
-                y2max = float(wx.FindWindowById(id).GetValue())
+            try:
+
+                if self.axes_fixed_limits_data[i][0] == 'xmin':
+                    xmin = float(wx.FindWindowById(id).GetValue())
+                elif self.axes_fixed_limits_data[i][0] == 'xmax':
+                    xmax = float(wx.FindWindowById(id).GetValue())
+                elif self.axes_fixed_limits_data[i][0] == 'ymin':
+                    ymin = float(wx.FindWindowById(id).GetValue())
+                elif self.axes_fixed_limits_data[i][0] == 'ymax':
+                    ymax = float(wx.FindWindowById(id).GetValue())
+                elif self.axes_fixed_limits_data[i][0] == 'y2min':
+                    y2min = float(wx.FindWindowById(id).GetValue())
+                elif self.axes_fixed_limits_data[i][0] == 'y2max':
+                    y2max = float(wx.FindWindowById(id).GetValue())
+
+            except ValueError:
+                pass
 
         self.axes.set_xlim((xmin, xmax))
         self.axes.set_ylim((ymin, ymax))

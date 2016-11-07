@@ -9722,6 +9722,9 @@ class SECItemPanel(wx.Panel):
             
     def _showPopupMenu(self):
 
+        if self.sec_control_panel._is_online:
+            self.sec_control_panel._goOffline()
+
         menu = wx.Menu()
         
         number_of_selected_items = len(self.sec_panel.getSelectedItems())
@@ -9745,6 +9748,9 @@ class SECItemPanel(wx.Panel):
         self.PopupMenu(menu)
 
         menu.Destroy()
+
+        if self.sec_control_panel.online_mode_button.IsChecked() and not self.sec_control_panel._is_online:
+            self.sec_control_panel._goOnline()
     
     def _onPopupMenuChoice(self, evt):
                 
@@ -10378,6 +10384,9 @@ class SECControlPanel(wx.Panel):
 
 
     def _onLoad(self):
+        if self._is_online:
+            self._goOffline()
+
         file_list, frame_list = self._makeFileList()
 
         if len(file_list) > 0:
@@ -10386,6 +10395,9 @@ class SECControlPanel(wx.Panel):
 
         else:
             wx.MessageBox("Can't find files to load", style=wx.ICON_ERROR | wx.OK)
+
+        if self.online_mode_button.IsChecked() and not self._is_online:
+            self._goOnline()
 
     def _onUpdateButton(self,evt):
         self.onUpdate()        
@@ -10461,6 +10473,10 @@ class SECControlPanel(wx.Panel):
                           'Error loading file', style = wx.ICON_ERROR | wx.OK)
 
     def _onFramesToMainPlot(self,evt):
+
+        if self._is_online:
+            self._goOffline()
+
         self._updateControlValues()
 
         sasm_list=[]
@@ -10517,7 +10533,14 @@ class SECControlPanel(wx.Panel):
 
                 mainworker_cmd_queue.put(['to_plot_SEC', sasm_list])
 
+        if self.online_mode_button.IsChecked() and not self._is_online:
+            self._goOnline()
+
     def _onAverageToMainPlot(self,evt):
+
+        if self._is_online:
+            self._goOffline()
+
         self._updateControlValues()
 
         sasm_list=[]
@@ -10572,7 +10595,14 @@ class SECControlPanel(wx.Panel):
             if proceed == wx.ID_YES:
                 mainworker_cmd_queue.put(['average_items_sec', sasm_list])
 
+        if self.online_mode_button.IsChecked() and not self._is_online:
+            self._goOnline()
+
     def _onSetCalcParams(self, event):
+
+        if self._is_online:
+            self._goOffline()
+
         ibufId = self._findWindowId('ibufframe')
         fbufId = self._findWindowId('fbufframe')
         wsizeId = self._findWindowId('wsize')
@@ -10684,6 +10714,9 @@ class SECControlPanel(wx.Panel):
                 self._goOffline()
 
             mainworker_cmd_queue.put(['calculate_params_sec', secm])
+
+        if self.online_mode_button.IsChecked() and not self._is_online:
+            self._goOnline()
 
 
     def _findWindowId(self,type):
