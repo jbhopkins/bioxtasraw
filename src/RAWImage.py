@@ -144,6 +144,8 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
         if self.GetToolState(wxid):
             self.ToggleTool(wxid, False)
             NavigationToolbar2.pan(self)
+
+        self._current_tool = None
     
     ## Overridden functions:
     
@@ -164,6 +166,11 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
 
         self.ToggleTool(wxid, False)
         NavigationToolbar2.zoom(self, *args)
+
+        if self.GetToolState(args[0].GetId()):
+            self._current_tool = 'Zoom'
+        else:
+            self._current_tool = None
     
     def pan(self, *args):
         masking_panel = wx.FindWindowByName('MaskingPanel')
@@ -177,6 +184,11 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
 
         self.ToggleTool(wxid, False)
         NavigationToolbar2.pan(self, *args)
+
+        if self.GetToolState(args[0].GetId()):
+            self._current_tool = 'Pan'
+        else:
+            self._current_tool = None
         
 class ImagePanel(wx.Panel):
     
@@ -574,7 +586,7 @@ class ImagePanel(wx.Panel):
             a.add_patch(cir)
             self.canvas.draw()
 
-        elif self.pyfai_cent_mode:
+        elif self.pyfai_cent_mode and self.toolbar.getCurrentTool() is None:
 
             centering_panel = wx.FindWindowByName('CenteringPanel')
 

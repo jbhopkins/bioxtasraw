@@ -11293,7 +11293,7 @@ class CenteringPanel(wx.Panel):
                                     'help':         wx.NewId()
                                 }
 
-        self.pyfai_enable = ['remove_pts', 'start', 'done', 'cancel']
+        self.pyfai_enable = ['detector', 'remove_pts', 'start', 'done', 'cancel']
 
         if RAWGlobals.usepyFAI:
             self.cal_factory = pyFAI.calibrant.calibrant_factory()
@@ -11395,7 +11395,7 @@ class CenteringPanel(wx.Panel):
             # ring_btn_sizer.Add(ring_add_btn, 0, wx.LEFT | wx.RIGHT, 3)
             # ring_btn_sizer.Add(ring_remove_btn, 0, wx.RIGHT, 3)
 
-            det_list = sorted(pyFAI.detectors.ALL_DETECTORS.keys())
+            det_list = self._getDetList()
 
             det_text = wx.StaticText(self, -1, 'Detector: ')
             det_choice = wx.Choice(self, self.pyfai_autofit_ids['detector'], choices = det_list)
@@ -11635,6 +11635,54 @@ class CenteringPanel(wx.Panel):
         cancel_button.Bind(wx.EVT_BUTTON, self._onCancelButton)
     
         return sizer
+
+    def _getDetList(self):
+
+        extra_det_list = ['detector']
+
+        # Gets rid of all the aliases, not sure if I want to do that
+        
+        # dets = pyFAI.detectors.ALL_DETECTORS
+
+        # keys = dets.keys()
+
+        # for key in keys:
+        #     if key.find('_') > -1:
+        #         tmp_key = ''.join(key.split('_'))
+
+        #         if dets.has_key(tmp_key):
+        #             dets.pop(tmp_key)
+
+        #         tmp_key = '-'.join(key.split('_'))
+
+        #         if dets.has_key(tmp_key):
+        #             dets.pop(tmp_key)
+
+        # unique_dets = defaultdict(list)
+
+        # for k, v in dets.iteritems():
+        #     unique_dets[v].append(k)
+
+        # final_dets = {}
+
+        # for k, v in unique_dets.iteritems():
+        #     if len(v) > 1:
+        #         v = sorted(v, key = len, reverse = True)
+            
+        #     final_dets[v[0]] = k
+
+
+        # Keeps all the aliases
+        final_dets = pyFAI.detectors.ALL_DETECTORS
+
+
+        for key in extra_det_list:
+            if final_dets.has_key(key):
+                final_dets.pop(key)
+
+        det_list = ['Other'] + sorted(final_dets.keys(), key = str.lower)
+
+        return det_list
     
     def _onEnterInCenterCtrl(self, event):
         
@@ -11880,16 +11928,17 @@ class CenteringPanel(wx.Panel):
         msg = ("To run automatic centering and calibration you should:\n"
                 "1) Select the appropriate Standard in the manual calibration section.\n"
                 "2) Select the parameters to hold constant by checking boxes in the Fix section.\n"
-                "3) Select the detector type to be used. If your detector is not in the list, the automatic centering will not work.\n"
+                "3) Select the detector type to be used. If your detector is not in the list, select Other.\n"
                 "4) Set the Ring # to the index of the first ring visible on the detector. The ring index starts at zero for the largest "
                 "d-spacing ring (nearest the beam) and increments by one for each ring thereafter. IMPORTANT: The first ring visible on your "
                 "detector image may not be ring 0!\n"
-                "6) Click the Start button. Then click on the first ring in the image. Points in that ring will be automatically selected. "
+                "5) Click the Start button. Then click on the first ring in the image. Points in that ring will be automatically selected. "
                 "Click on other parts of the ring as necessary to fill in points.\n"
-                "7) Increment the ring number as appropriate for the next ring visible on the image (usually increment by 1, for example from 0 to 1), "
+                "6) Increment the ring number as appropriate for the next ring visible on the image (usually increment by 1, for example from 0 to 1), "
                 "and click on the next ring on the image to select points there. Repeat for all visible rings.\n"
-                "8) (If necessary) To remove points in a ring, set the Ring # to that ring, and click the Clear All Points In Ring button.\n"
-                "8) Click the Done button once you have selected points in all of the visible standard rings. At this point, automatic centering and calibration will be carried out.")
+                "7) (If necessary) To remove points in a ring, set the Ring # to that ring, and click the Clear All Points In Ring button.\n"
+                "8) Click the Done button once you have selected points in all of the visible standard rings. At this point, automatic centering and calibration will be carried out.\n"
+                "Note: ring points cannot be selected if the Pan or Zoom tool are selected.")
 
         wx.MessageBox(msg, 'Instructions')
 
@@ -11914,7 +11963,13 @@ class CenteringPanel(wx.Panel):
         calibrant = self.cal_factory(cal_selection)
         calibrant.set_wavelength(wavelength*1e-10)
 
-        detector = pyFAI.detector_factory(det_selection)
+        if det_selection != 'Other':
+            detector = pyFAI.detector_factory(det_selection)
+
+        else:
+            pixel_size = float(self._pixel_text.GetValue())*1e-6
+
+            detector = pyFAI.detectors.Detector(pixel1 = pixel_size, pixel2 = pixel_size, max_shape = img.shape)
 
         self.c = SASCalib.RAWCalibration(img, wavelength = calibrant.wavelength, calibrant = calibrant, detector = detector)
         self.c.ai = pyFAI.AzimuthalIntegrator(wavelength = wavelength, detector = detector)

@@ -212,7 +212,7 @@ class CalibrationOptionsPanel(wx.Panel):
                                    ("Wavelength:"               , raw_settings.getId('WaveLength') , 'A'),                                   
                                    #("Sample thickness:", raw_settings.getId('SampleThickness'), 'mm'),                           
                                    
-                                   ("Detector Pixelsize:",            raw_settings.getId('DetectorPixelSize'), 'um'))
+                                   ("Detector Pixel Size:",            raw_settings.getId('DetectorPixelSize'), 'um'))
                              
         self.treatmentdata = [("Calibrate Q-range",  raw_settings.getId('CalibrateMan'))]
         
@@ -403,7 +403,7 @@ class CalibrationOptionsPanel(wx.Panel):
                 pass
             else:
                 calibChkBox.SetValue(False)
-                wx.MessageBox('Please enter a valid Wavelength, Detector Pixelsize and Sample-Detector\n' +
+                wx.MessageBox('Please enter a valid Wavelength, Detector Pixel Size and Sample-Detector\n' +
                               'distance in advanced options/calibration.', 'Attention!', wx.OK | wx.ICON_EXCLAMATION)
                 
 
