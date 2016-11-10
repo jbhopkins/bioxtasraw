@@ -4148,7 +4148,7 @@ class SECPlotPanel(wx.Panel):
                     # line = a.plot(secm.frame_list, secm.total_i, picker = 3, label = legend_label, **kwargs)[0]
 
                 else:
-                    if self.qref == q:
+                    if secm.qref == q:
                         ydata = secm.I_of_q
                     else:
                         ydata = secm.I(q)

@@ -2502,7 +2502,6 @@ class MainWorkerThread(threading.Thread):
     
 
     def _calculateSECParams(self, secm):
-
         molecule = secm.mol_type
 
         if molecule == 'Protein':
@@ -2540,7 +2539,7 @@ class MainWorkerThread(threading.Thread):
         #Find the reference intensity of the average buffer sasm
         plot_y = self.sec_plot_panel.getParameter('y_axis_display')
 
-        closest = lambda qlist: np.argmin(np.absolute(qlist-self.sec_plot_panel.qref))
+        closest = lambda qlist: np.argmin(np.absolute(qlist-secm.qref))
 
         if plot_y == 'total':
             ref_intensity = buffer_avg_sasm.getTotalI()
@@ -2778,7 +2777,7 @@ class MainWorkerThread(threading.Thread):
         #Find the reference intensity of the average buffer sasm
         plot_y = self.sec_plot_panel.getParameter('y_axis_display')
 
-        closest = lambda qlist: np.argmin(np.absolute(qlist-self.sec_plot_panel.qref))
+        closest = lambda qlist: np.argmin(np.absolute(qlist-secm.qref))
 
         if plot_y == 'total':
             ref_intensity = buffer_avg_sasm.getTotalI()
