@@ -11,10 +11,9 @@ import wx, sys, math
 
 try:
     import pyFAI
-    # RAWGlobals.usepyFAI = True
+    RAWGlobals.usepyFAI = True
 except:
-    pass
-    # RAWGlobals.usepyFAI = False
+    RAWGlobals.usepyFAI = False
 
 # If C extensions have not been built, build them:
 if RAWGlobals.compiled_extensions:

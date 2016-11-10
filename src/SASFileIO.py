@@ -1390,7 +1390,8 @@ def loadFile(filename, raw_settings, no_processing = False):
             print 'SASFileIO.loadFile : ' + str(msg)
             raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
 
-        if not RAWGlobals.usepyFAI:
+        if not RAWGlobals.usepyFAI_integration:
+            # print 'using standard RAW calibration and normalization'
             try:
                 sasm = SASImage.calibrateAndNormalize(sasm, img, raw_settings)
             except (ValueError, NameError), msg:
@@ -1547,7 +1548,8 @@ def loadImageFile(filename, raw_settings):
     #####################################################
     y_c = img.shape[0]-y_c
     
-    if not RAWGlobals.usepyFAI:
+    if not RAWGlobals.usepyFAI_integration:
+        # print 'Using standard RAW integration'
         ## Flatfield correction.. this part gets moved to a image correction function later
         if raw_settings.get('NormFlatfieldEnabled'):
             flatfield_filename = raw_settings.get('NormFlatfieldFile')

@@ -29,8 +29,7 @@ from matplotlib.backend_bases import NavigationToolbar2
 from matplotlib.backends.backend_wx import NavigationToolbar2Wx
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.widgets import Cursor
-import RAWIcons
-import SASImage
+import RAWIcons, SASImage, SASCalib
 
 
 RAWWorkDir = sys.path[0]
@@ -233,7 +232,11 @@ class ImagePanel(wx.Panel):
         self.next_mask_number = 0
         
         self.center_click_mode = False
-        self.agbe_cent_mode = False
+        self.raw_cent_mode = False
+        self.pyfai_cent_mode = False
+        self.pyfai_ring_num = 0
+
+        self.pyfai_color_cycle = ['y', 'c', 'g', 'b', 'k', 'w']
         
         self.plot_parameters = {'axesscale'         : 'linlin', 
                                 'storedMasks'       : [],
@@ -366,11 +369,11 @@ class ImagePanel(wx.Panel):
     def enableCenterClickMode(self, state = True):
         self.center_click_mode = state
     
-    def enableAgbeAutoCentMode(self, state = True):
-        self.agbe_cent_mode = state
-        
-#        if state == False:
-#            self.agbe_selected_points = []
+    def enableRAWAutoCentMode(self, state = True):
+        self.raw_cent_mode = state
+
+    def enableAutoCentMode(self, state = True):
+        self.pyfai_cent_mode = state
     
     def _initOnNewImage(self, img, sasm):
         ''' Inserts information about the newly displayed image
@@ -564,13 +567,28 @@ class ImagePanel(wx.Panel):
         elif tool == 'rectangle':
             self._addRectanglePoint(x, y, event)
                         
-        elif self.agbe_cent_mode == True:
+        elif self.raw_cent_mode == True:
             self.agbe_selected_points.append( (x, y) )
                     
             cir = matplotlib.patches.Circle( (int(x), int(y)), radius = 3, alpha = 1, facecolor = 'yellow', edgecolor = 'yellow')
             a.add_patch(cir)
             self.canvas.draw()
+
+        elif self.pyfai_cent_mode:
+
+            centering_panel = wx.FindWindowByName('CenteringPanel')
+
+            points, centering_panel.c.points = SASCalib.new_grp(self.img, [x, y], centering_panel.c.points, 100, self.pyfai_ring_num)
+
+            if not points:
+                wx.MessageBox('Failed to find any points in the calibrant ring. Try another location or, if no points in any ring can be found, cancel the auto centering.', 'Automatic Peak Search Failed')
             
+            for point in points:
+                cir = matplotlib.patches.Circle((point[1], point[0]), radius = 1, alpha = 1, color = self.pyfai_color_cycle[int(self.pyfai_ring_num) % len(self.pyfai_color_cycle)])
+                a.add_patch(cir)
+
+            self.canvas.draw()
+
         elif self.center_click_mode == True:
             self.center_click_mode = False
             centering_panel = wx.FindWindowByName('CenteringPanel')
@@ -1047,6 +1065,16 @@ class ImagePanel(wx.Panel):
             self.canvas.draw()
         except ValueError, e:
             print 'ValueError in _drawCenteringRings : ' + str(e)
+
+    def drawCenteringPoints(self, points):
+
+        a = self.fig.gca()
+
+        for point in points:
+            cir = matplotlib.patches.Circle((point[1], point[0]), radius = 1, alpha = 1, color = self.pyfai_color_cycle[int(point[2]) % len(self.pyfai_color_cycle)])
+            a.add_patch(cir)
+
+        self.canvas.draw()
             
     def _addCirclePoint(self, x, y, event):
         ''' Add point to chosen points list and create a circle

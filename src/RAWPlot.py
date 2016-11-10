@@ -1966,8 +1966,7 @@ class PlotPanel(wx.Panel):
         elif plotnum == self.subplot2:
             plotnum = 2
               
-        if self.plotparams['legend_visible' + '_' + str(plotnum)]:
-            self._insertLegend(axes)
+        self._insertLegend(axes)
     
     def _insertLegend(self, axes):
         ####################################################################
@@ -2989,8 +2988,7 @@ class IftPlotPanel(PlotPanel):
         if plotnum == self.subplot2:
             plotnum = 2
               
-        if self.plotparams['legend_visible' + '_' + str(plotnum)]:
-            self._insertLegend(axes)
+        self._insertLegend(axes)
     
     def _insertLegend(self, axes):
         ####################################################################
@@ -4994,8 +4992,7 @@ class SECPlotPanel(wx.Panel):
         if plotnum == self.ryaxis:
             plotnum = 2
               
-        if self.plotparams['legend_visible' + '_' + str(plotnum)]:
-            self._insertLegend(axes, draw)
+        self._insertLegend(axes, draw)
     
     def _insertLegend(self, axes, draw=True):
         ####################################################################

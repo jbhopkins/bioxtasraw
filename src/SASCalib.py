@@ -5,6 +5,14 @@ Created on Jul 11, 2010
 '''
 import numpy as np
 from math import pi, asin, tan, atan, cos, sin, asin
+import sys
+import RAWGlobals
+
+try:
+    import pyFAI, pyFAI.calibrant, pyFAI.calibration
+    RAWGlobals.usepyFAI = True
+except:
+    RAWGlobals.usepyFAI = False
 
 def calcAbsScaleConstWater(water_sasm, start_idx, end_idx):
     '''
@@ -92,3 +100,146 @@ def calcDistanceFromAgBeh(first_ring_dist, pixel_size, wavelength):
     sd_distance = adjacent
     
     return sd_distance
+
+
+#########################################
+#Methods adapted from pyFAI methods of the same or similar name to automatically get points in calibrant rings and fit them
+
+def new_grp(img, loc, gpt, defaultNbPoints, ring):
+
+    massif = pyFAI.massif.Massif(img)
+    points = massif.find_peaks([loc[1], loc[0]], defaultNbPoints)
+    if points:
+        gpt.append(points, ring=ring)
+
+    return points, gpt
+
+
+class RAWCalibration():
+    # A mash up of the pyFAI.calibration AbstractCalibration and Calibration classes
+
+    PARAMETERS = ["dist", "poni1", "poni2", "rot1", "rot2", "rot3", "wavelength"]
+
+    def __init__(self, img, wavelength = None, detector = None, calibrant = None, pixelSize = None, gaussianWidth = None):
+        self.gaussianWidth = gaussianWidth
+        self.detector = detector
+        self.calibrant = calibrant
+        self.pixelSize = pixelSize
+        self.wavelength = wavelength
+        self.img = img
+
+        self.fixed = pyFAI.utils.FixedParameters()
+        self.fixed.add_or_discard("wavelength", True)
+        self.fixed.add_or_discard("rot1", True)
+        self.fixed.add_or_discard("rot2", True)
+        self.fixed.add_or_discard("rot3", True)
+        self.max_iter = 1000
+        self.interactive = False
+        self.weighted = False
+
+    def initgeoRef(self):
+        # Modified initgeoRef from the pyFAI.calibration.Calibration class
+            """
+            Tries to initialise the GeometryRefinement (dist, poni, rot)
+            Returns a dictionary of key value pairs
+            """
+            defaults = {"dist": 0.1, "poni1": 0.0, "poni2": 0.0,
+                        "rot1": 0.0, "rot2": 0.0, "rot3": 0.0}
+            if self.detector:
+                try:
+                    p1, p2, _p3 = self.detector.calc_cartesian_positions()
+                    defaults["poni1"] = p1.max() / 2.
+                    defaults["poni2"] = p2.max() / 2.
+                except Exception as err:
+                    print err
+            if self.ai:
+                for key in defaults.keys():  # not PARAMETERS which holds wavelength
+                    val = getattr(self.ai, key, None)
+                    if val is not None:
+                        defaults[key] = val
+            return defaults
+
+    def refine(self):
+        # Modified refine from the pyFAI.calibration.Calibration class
+        """
+        Contains the geometry refinement part specific to Calibration
+        Sets up the initial guess when starting pyFAI-calib
+        """
+        # First attempt
+        defaults = self.initgeoRef()
+        self.geoRef = pyFAI.geometryRefinement.GeometryRefinement(self.data,
+                                         detector=self.detector,
+                                         wavelength=self.wavelength,
+                                         calibrant=self.calibrant,
+                                         **defaults)
+        self.geoRef.refine2(1000000, fix=self.fixed)
+        scor = self.geoRef.chi2()
+        pars = [getattr(self.geoRef, p) for p in self.PARAMETERS]
+
+        scores = [(scor, pars), ]
+
+        # Second attempt
+        defaults = self.initgeoRef()
+        self.geoRef = pyFAI.geometryRefinement.GeometryRefinement(self.data,
+                                         detector=self.detector,
+                                         wavelength=self.wavelength,
+                                         calibrant=self.calibrant,
+                                         **defaults)
+        self.geoRef.guess_poni()
+        self.geoRef.refine2(1000000, fix=self.fixed)
+        scor = self.geoRef.chi2()
+        pars = [getattr(self.geoRef, p) for p in self.PARAMETERS]
+
+        scores.append((scor, pars))
+
+        # Choose the best scoring method: At this point we might also ask
+        # a user to just type the numbers in?
+        scores.sort()
+        scor, pars = scores[0]
+        for parval, parname in zip(pars, self.PARAMETERS):
+            setattr(self.geoRef, parname, parval)
+
+        # Now continue as before
+        self.refine2()
+
+    def refine2(self):
+        # Modified refine from the pyFAI.calibration.AbstractCalibration class
+        """
+        Contains the common geometry refinement part
+        """
+        previous = sys.maxint
+        finished = False
+        while not finished:
+            count = 0
+            if "wavelength" in self.fixed:
+                while (previous > self.geoRef.chi2()) and (count < self.max_iter):
+                    if (count == 0):
+                        previous = sys.maxsize
+                    else:
+                        previous = self.geoRef.chi2()
+                    self.geoRef.refine2(1000000, fix=self.fixed)
+                    count += 1
+            else:
+                while previous > self.geoRef.chi2_wavelength() and (count < self.max_iter):
+                    if (count == 0):
+                        previous = sys.maxsize
+                    else:
+                        previous = self.geoRef.chi2()
+                    self.geoRef.refine2_wavelength(1000000, fix=self.fixed)
+                    count += 1
+                self.points.setWavelength_change2th(self.geoRef.wavelength)
+            # self.geoRef.save(self.basename + ".poni")
+            self.geoRef.del_ttha()
+            self.geoRef.del_dssa()
+            self.geoRef.del_chia()
+            tth = self.geoRef.twoThetaArray(self.img.shape)
+            dsa = self.geoRef.solidAngleArray(self.img.shape)
+#            self.geoRef.chiArray(self.peakPicker.shape)
+#            self.geoRef.cornerArray(self.peakPicker.shape)
+
+            if self.interactive:
+                finished = self.prompt()
+            else:
+                finished = True
+            if not finished:
+                previous = sys.maxsize
