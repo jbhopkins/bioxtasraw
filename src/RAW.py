@@ -128,7 +128,8 @@ class MainFrame(wx.Frame):
                         'bift'                : wx.NewId(),
                         'runambimeter'        : wx.NewId(),
                         'runsvd'              : wx.NewId(),
-                        'runefa'              : wx.NewId()
+                        'runefa'              : wx.NewId(),
+                        'showhistory'         : wx.NewId()
                         }
         
         self.tbIcon = RawTaskbarIcon(self)
@@ -683,12 +684,13 @@ class MainFrame(wx.Frame):
                  ('&Options', [('&Advanced Options...', self.MenuIDs['advancedOptions'], self._onOptionsMenu, 'normal'),
                               ('&Online mode', None, submenus['onlinemenu'], 'submenu')]),
                               
-                 ('&View',    [('&Show image', self.MenuIDs['showimage'], self._onViewMenu, 'normal'),
-                               ('&Show data', self.MenuIDs['showdata'], self._onViewMenu, 'normal'),
-                               ('&Show header', self.MenuIDs['showheader'], self._onViewMenu, 'normal'),
+                 ('&View',    [('&Show Image', self.MenuIDs['showimage'], self._onViewMenu, 'normal'),
+                               ('&Show Data', self.MenuIDs['showdata'], self._onViewMenu, 'normal'),
+                               ('&Show Header', self.MenuIDs['showheader'], self._onViewMenu, 'normal'),
+                               ('&Show History', self.MenuIDs['showhistory'], self._onViewMenu, 'normal'),
                                (None, None, None, 'separator'),
-                               ('&Top Main Plot Axes', None, submenus['viewPlot1Scale'], 'submenu'),
-                               ('&Bottom Main Plot Axes', None, submenus['viewPlot2Scale'], 'submenu'),
+                               ('&Main Plot Top Axes', None, submenus['viewPlot1Scale'], 'submenu'),
+                               ('&Main Plot Bottom Axes', None, submenus['viewPlot2Scale'], 'submenu'),
                                ('&SEC Plot Left Y Axis', None, submenus['viewSECLeft'], 'submenu'),
                                ('&SEC Plot Right Y Axis', None, submenus['viewSECRight'], 'submenu'),
                                ('&SEC Plot X Axis', None, submenus['viewSECX'], 'submenu')
@@ -1167,6 +1169,23 @@ class MainFrame(wx.Frame):
                 return
 
             dlg = HdrDataDialog(self, selected_items[0].sasm)
+            dlg.ShowModal()
+            dlg.Destroy()
+
+        elif val == self.MenuIDs['showhistory']:
+            current_page = self.control_notebook.GetSelection()
+            page = self.control_notebook.GetPage(current_page)
+
+            if page != wx.FindWindowByName('ManipulationPanel'):
+                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Window', style = wx.ICON_INFORMATION)
+                return
+
+            selected_items = page.getSelectedItems()
+            if len(selected_items) !=1:
+                wx.MessageBox('Please select one (and only one) item to view the history.', 'Select Item', style = wx.ICON_INFORMATION)
+                return
+
+            dlg = HistoryDialog(self, selected_items[0].sasm)
             dlg.ShowModal()
             dlg.Destroy()
 

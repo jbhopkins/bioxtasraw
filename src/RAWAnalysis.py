@@ -6360,6 +6360,7 @@ class EFAFrame(wx.Frame):
             efa_dict['ranges'] = self.panel3_results['ranges']
             efa_dict['iter_limit'] = self.panel3_results['options']['niter']
             efa_dict['tolerance'] = self.panel3_results['options']['tol']
+            efa_dict['method'] = self.panel3_results['options']['method']
 
             analysis_dict['efa'] = efa_dict
 
@@ -7474,6 +7475,7 @@ class EFAControlPanel3(wx.Panel):
 
         self.control_ids = {'n_iter'        : wx.NewId(),
                             'tol'           : wx.NewId(),
+                            'method'        : wx.NewId(),
                             'status'        : wx.NewId(),
                             'save_results'  : wx.NewId()}
 
@@ -7506,10 +7508,19 @@ class EFAControlPanel3(wx.Panel):
         self.top_efa.SetSizer(self.peak_control_sizer)
 
 
-        box = wx.StaticBox(self, -1, 'Iteration Controls')
+        box = wx.StaticBox(self, -1, 'Controls')
         iter_control_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
-        grid_sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap =3, hgap =3)
+        grid_sizer = wx.FlexGridSizer(cols = 2, rows = 3, vgap =3, hgap =3)
+
+        method_label = wx.StaticText(self, -1, 'Method :')
+        method_control = wx.Choice(self, self.control_ids['method'], choices = ['Hybrid', 'Iterative', 'Explicit'])
+        method_control.SetStringSelection('Hybrid')
+        method_control.Bind(wx.EVT_CHOICE, self._onIterControl)
+
+        grid_sizer.Add(method_label)
+        grid_sizer.Add(method_control)
+
         
         num_label = wx.StaticText(self, -1, 'Number of iterations :')
         
@@ -7606,6 +7617,8 @@ class EFAControlPanel3(wx.Panel):
             force_pos.Bind(wx.EVT_CHECKBOX, self._onRangeControl)
             force_pos.SetValue(True)
 
+            print self.range_ids[i][2]
+
             self.range_sizer.Add(force_pos, 0)
 
 
@@ -7614,11 +7627,23 @@ class EFAControlPanel3(wx.Panel):
         if 'efa' in analysis_dict:
             efa_dict = analysis_dict['efa']
             if efa_dict['fstart'] == self.panel1_results['fstart'] and efa_dict['fend'] == self.panel1_results['fend'] and efa_dict['profile'] == self.panel1_results['profile'] and efa_dict['nsvs'] == self.panel1_results['input'] and np.all(efa_dict['ranges'] == self._getRanges()):
-                iter_window = wx.FindWindowById(self.control_ids['n_iter'])
-                tol_window = wx.FindWindowById(self.control_ids['tol'])
+                
+                keylist = ['n_iter', 'tol', 'method']
 
-                iter_window.SetValue(str(efa_dict['iter_limit']))
-                tol_window.SetValue(str(efa_dict['tolerance']))
+                for key in keylist:
+                    if key in efa_dict and key in self.control_ids:
+                        window = wx.FindWindowById(self.control_ids[key])
+
+                        if key != 'method':
+                            try:
+                                window.SetValue(str(efa_dict[key]))
+                            except Exception as e:
+                                print e
+                        else:
+                            try:
+                                window.SetStringSelection(str(efa_dict[key]))
+                            except Exception as e:
+                                print e
 
         self.initialized = True
 
@@ -7709,6 +7734,29 @@ class EFAControlPanel3(wx.Panel):
 
 
     def _onIterControl(self, evt):
+
+        if evt.GetId() == self.control_ids['method']:
+            window = wx.FindWindowById(self.control_ids['method'])
+            method = window.GetStringSelection()
+
+            if method == 'Explicit':
+                enable = False
+
+            else:
+                enable = True
+            
+            for ids in self.range_ids:
+                my_id = ids[2]
+                window = wx.FindWindowById(my_id)
+                window.Enable(enable)
+
+            window = wx.FindWindowById(self.control_ids['n_iter'])
+            window.Enable(enable)
+
+            window = wx.FindWindowById(self.control_ids['tol'])
+            window.Enable(enable)
+
+
         wx.CallAfter(self.runRotation)
 
     def _onRangeControl(self, evt):
@@ -7822,38 +7870,15 @@ class EFAControlPanel3(wx.Panel):
 
         return Cnew
 
-    def runRotation(self):
-        #Get component ranges and iteration control values
-        self._updateStatus(True)
+    def _initIterative(self, M, num_sv, D):
 
-        ranges = self._getRanges()
-
-        start = self.panel1_results['fstart']
-
-        ranges = ranges - start
-
-        niter = int(wx.FindWindowById(self.control_ids['n_iter']).GetValue())
-        tol = float(wx.FindWindowById(self.control_ids['tol']).GetValue())
-
-        #Calculate the initial matrices
-        num_sv = ranges.shape[0]
-
-        D = self.panel1_results['svd_int_norm']
+        #Set a variable to test whether the rotation fails for a numerical reason
+        failed = False
 
         if not self.converged:
             C = self.panel1_results['svd_v'][:,:num_sv]
         else:
             C = self.rotation_data['C']
-
-
-        M = np.zeros_like(C)
-
-        for j in range(num_sv):
-            M[ranges[j][0]:ranges[j][1]+1, j] = 1
-
-        #Set a variable to test whether the rotation fails for a numerical reason
-        failed = False
-
 
         #Do an initial rotation
         try:
@@ -7861,6 +7886,35 @@ class EFAControlPanel3(wx.Panel):
         except np.linalg.linalg.LinAlgError as e:
             failed = True
 
+        return failed, C, None, None
+
+    def _initExplicit(self, M, num_sv, D):
+        V_bar = self.panel1_results['svd_v'][:,:num_sv]
+
+        T = np.ones((num_sv, num_sv))
+
+        failed = False
+
+        return failed, None, V_bar, T
+
+    def _initHybrid(self, M, num_sv, D):
+        failed, temp, V_bar, T = self._initExplicit(M, num_sv, D)
+
+        if not self.converged:
+            C, failed, temp1, temp2, temp3 = self._runExplicit(M, None, None, None, V_bar, T)
+        else:
+            C = self.rotation_data['C']
+
+        return failed, C, None, None
+
+    def _runIterative(self, *args):
+        M = args[0]
+        D = args[1]
+        failed = args[2]
+        C = args[3]
+
+        niter = int(wx.FindWindowById(self.control_ids['n_iter']).GetValue())
+        tol = float(wx.FindWindowById(self.control_ids['tol']).GetValue())
 
         #Carry out the calculation to convergence
         k = 0
@@ -7884,22 +7938,100 @@ class EFAControlPanel3(wx.Panel):
             if dck < tol:
                 converged = True
 
+        return C, failed, converged, dc, k
+
+    def _runExplicit(self, *args):
+        M = args[0]
+        failed = args[2]
+        V_bar = args[4]
+        T = args[5]
+
+        num_sv = M.shape[1]
+
+        for i in range(num_sv):
+            V_i_0 = V_bar[np.logical_not(M[:,i]),:]
+
+            T[i,1:num_sv] = -np.dot(V_i_0[:,0].T, np.linalg.pinv(V_i_0[:,1:num_sv].T))
+
+        C = np.dot(T, V_bar.T)
+
+        if -1*C.min() > C.max():
+            C = C*-1
+
+        converged = True
+
+        return C.T, failed, converged, None, None
+
+
+    def runRotation(self):
+        #Get component ranges and iteration control values
+        self._updateStatus(True)
+
+        ranges = self._getRanges()
+
+        start = self.panel1_results['fstart']
+
+        ranges = ranges - start
+
+        niter = int(wx.FindWindowById(self.control_ids['n_iter']).GetValue())
+        tol = float(wx.FindWindowById(self.control_ids['tol']).GetValue())
+        method = wx.FindWindowById(self.control_ids['method']).GetStringSelection()
+
+        init_dict = {'Hybrid'       : self._initHybrid,
+                    'Iterative'     : self._initIterative,
+                    'Explicit'      : self._initExplicit}
+
+        run_dict = {'Hybrid'        : self._runIterative,
+                    'Iterative'     : self._runIterative,
+                    'Explicit'      : self._runExplicit}
+
+        #Calculate the initial matrices
+        num_sv = ranges.shape[0]
+
+        D = self.panel1_results['svd_int_norm']
+
+        M = np.zeros_like(self.panel1_results['svd_v'][:,:num_sv])
+
+        for j in range(num_sv):
+            M[ranges[j][0]:ranges[j][1]+1, j] = 1
+
+
+        init_results = init_dict[method](M, num_sv, D) #Init takes M, num_sv, and D, and returns failed, C, V_bar, T in that order. If a method doesn't use a particular variable, then it should return None for that result
+
+
+        C, failed, converged, dc, k = run_dict[method](M, D, init_results[0], init_results[1], init_results[2], init_results[3]) #Takes M, failed, C, D in that order. If a method doesn't use a particular variable, then it should be passed None for that variable.
+        
 
         if not failed:
-            self.conv_data = {'steps'   : dc,
-                            'iterations': k,
-                            'final_step': dc[-1],
-                            'options'   : {'niter': niter, 'tol': tol}}
+            if method != 'Explicit':
+                self.conv_data = {'steps'   : dc,
+                                'iterations': k,
+                                'final_step': dc[-1],
+                                'options'   : {'niter': niter, 'tol': tol, 'method': method}}
+            else:
+                self.conv_data = {'steps'   : None,
+                                'iterations': None,
+                                'final_step': None,
+                                'options'   : {'niter': niter, 'tol': tol, 'method': method}}
 
         #Check whether the calculation converged
-        if k == niter and dck > tol:
-            self.converged = False
-            self.fail_text = 'Rotataion failed to converge after %i\n iterations with final delta = %.2E.' %(k, dc[-1])
-        elif failed:
-            self.converged = False
-            self.fail_text = 'Rotataion failed due to a numerical error\n in the algorithm. Try adjusting ranges.'
+
+        if method != 'Explicit':
+            if k == niter and dc[-1] > tol:
+                self.converged = False
+                self.fail_text = 'Rotataion failed to converge after %i\n iterations with final delta = %.2E.' %(k, dc[-1])
+            elif failed:
+                self.converged = False
+                self.fail_text = 'Rotataion failed due to a numerical error\n in the algorithm. Try adjusting ranges or changing method.'
+            else:
+                self.converged = True
+
         else:
-            self.converged = True
+            if failed:
+                self.converged = False
+                self.fail_text = 'Rotataion failed due to a numerical error\n in the algorithm. Try adjusting ranges or changing method.'
+            else:
+                self.converged = True
 
         if self.converged:
             #Calculate SAXS basis vectors

@@ -2976,7 +2976,9 @@ def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
     header_string = header_string + '# Component Ranges:\n'
     for i in range(len(panel3_results['ranges'])):
         header_string = header_string + '#\tRange %i: %i to %i\n' %(i, panel3_results['ranges'][i][0], panel3_results['ranges'][i][1])
-    header_string = header_string + '# Rotation setings: Iterations: %s   Convergence threshold: %s\n' %(panel3_results['options']['niter'], panel3_results['options']['tol'])
+    header_string = header_string + '# Rotation setings: Method: %s\n' %(panel3_results['options']['method'])
+    if panel3_results['options']['method'] != 'Explicit':
+        header_string = header_string + '# Rotation setings: Iterations: %s   Convergence threshold: %s\n' %(panel3_results['options']['niter'], panel3_results['options']['tol'])
     header_string = header_string + '# Rotation converged: %s\n' %(str(panel3_results['converged']))
     if panel3_results['converged']:
         header_string = header_string + '# Rotation results: Iterations: %s\n' %(panel3_results['iterations'])
