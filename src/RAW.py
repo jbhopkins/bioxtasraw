@@ -25,6 +25,7 @@ Created on Sep 31, 2010
 import wx, os, subprocess, time, math, threading, Queue, cPickle, copy, sys, glob
 import numpy as np
 import platform, fnmatch, shutil, json
+import scipy.constants
 
 import wx.lib.scrolledpanel as scrolled
 import wx.lib.wordwrap as wordwrap
@@ -11526,13 +11527,15 @@ class CenteringPanel(wx.Panel):
         self._step_combo = wx.ComboBox(self, -1, choices = step_list)
         self._step_combo.Select(1)
         
-        self._wavelen_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 80)
+        self._wavelen_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 70)
+        self._energy_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 70)
         self._pixel_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 80)
         self._sd_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 80)
         
         self._sd_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onSampDetDistSpin)
-        self._wavelen_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onPixelWavelengthChange)
+        self._wavelen_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onWavelengthChange)
         self._pixel_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onPixelWavelengthChange)
+        self._energy_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onEnergyChange)
                 
         self._pattern_list = wx.Choice(self, -1, choices = pattern_list)
         if RAWGlobals.usepyFAI and 'AgBh' in self.cal_factory.keys():
@@ -11542,6 +11545,7 @@ class CenteringPanel(wx.Panel):
         self._pattern_list.Bind(wx.EVT_CHOICE, self._onPatternChoice)
         
         wavelen_label = wx.StaticText(self, -1, 'Wavelength:')
+        energy_label = wx.StaticText(self, -1, 'Energy:')
         sd_label = wx.StaticText(self, -1, 'Sample-Detector Distance:')
         pixel_label = wx.StaticText(self, -1, 'Detector Pixel Size:')
         
@@ -11553,11 +11557,13 @@ class CenteringPanel(wx.Panel):
         sd_unit_label = wx.StaticText(self, -1, 'mm')
         pixelsize_unit_label = wx.StaticText(self, -1, 'um')
         wavelength_unit_label = wx.StaticText(self, -1, 'A')
+        energy_unit_label = wx.StaticText(self, -1, 'keV')
         
         x_sizer = wx.BoxSizer(wx.VERTICAL)
         y_sizer = wx.BoxSizer(wx.VERTICAL)
         step_sizer = wx.BoxSizer(wx.VERTICAL)
         wave_sizer = wx.BoxSizer(wx.VERTICAL)
+        energy_sizer = wx.BoxSizer(wx.VERTICAL)
         pixel_sizer = wx.BoxSizer(wx.VERTICAL)
         sd_sizer = wx.BoxSizer(wx.VERTICAL)
         pattern_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -11565,6 +11571,7 @@ class CenteringPanel(wx.Panel):
         sd_unit_sizer = wx.BoxSizer()
         pixelsize_unit_sizer = wx.BoxSizer()
         wavelength_unit_sizer = wx.BoxSizer()
+        energy_unit_sizer = wx.BoxSizer()
     
         step_sizer.Add(step_label,0, wx.TOP,-1)
         step_sizer.Add(self._step_combo, 0)
@@ -11573,17 +11580,23 @@ class CenteringPanel(wx.Panel):
         y_sizer.Add(ylabel, 0)
         y_sizer.Add(self._y_cent_text,0)
     
-        sd_unit_sizer.Add(self._sd_text, 0, wx.RIGHT, 5)
+        sd_unit_sizer.Add(self._sd_text, 0, wx.RIGHT, 3)
         sd_unit_sizer.Add(sd_unit_label, 0, wx.ALIGN_CENTER_VERTICAL)
         
-        pixelsize_unit_sizer.Add(self._pixel_text, 0, wx.RIGHT, 5)
+        pixelsize_unit_sizer.Add(self._pixel_text, 0, wx.RIGHT, 3)
         pixelsize_unit_sizer.Add(pixelsize_unit_label, 0, wx.ALIGN_CENTER_VERTICAL)
         
-        wavelength_unit_sizer.Add(self._wavelen_text, 0, wx.RIGHT, 5)
-        wavelength_unit_sizer.Add(wavelength_unit_label, 0, wx.ALIGN_CENTER_VERTICAL)
+        wavelength_unit_sizer.Add(self._wavelen_text, 0, wx.RIGHT, 3)
+        wavelength_unit_sizer.Add(wavelength_unit_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT)
+
+        energy_unit_sizer.Add(self._energy_text, 0, wx.RIGHT, 3)
+        energy_unit_sizer.Add(energy_unit_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT)
     
         wave_sizer.Add(wavelen_label, 0)
         wave_sizer.Add(wavelength_unit_sizer, 0)
+
+        energy_sizer.Add(energy_label, 0)
+        energy_sizer.Add(energy_unit_sizer, 0)
         
         sd_sizer.Add(sd_label, 0)
         sd_sizer.Add(sd_unit_sizer, 0)
@@ -11595,20 +11608,26 @@ class CenteringPanel(wx.Panel):
         pattern_sizer.Add(self._pattern_list, 0)
         
     
-        self.final_sizer = wx.BoxSizer(wx.VERTICAL)
-    
         self.xycenter_sizer = wx.BoxSizer()
         self.xycenter_sizer.Add(x_sizer,0, wx.RIGHT, 5)
         self.xycenter_sizer.Add(y_sizer,0, wx.RIGHT, 5)
         self.xycenter_sizer.Add(step_sizer,0)
+
+
+        energy_wl_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        energy_wl_sizer.Add(wave_sizer, 0, wx.RIGHT, 15)
+        energy_wl_sizer.Add(energy_sizer, 0)
+
         
         self.calib_sizer = wx.BoxSizer(wx.VERTICAL)
         
-        self.calib_sizer.Add(wave_sizer, 0, wx.BOTTOM, 5)
+        self.calib_sizer.Add(energy_wl_sizer, 0, wx.BOTTOM, 5)
         self.calib_sizer.Add(sd_sizer, 0, wx.BOTTOM, 5)
         self.calib_sizer.Add(pixel_sizer, 0, wx.BOTTOM, 5)
         self.calib_sizer.Add(pattern_sizer,0, wx.BOTTOM, 5)
         
+        self.final_sizer = wx.BoxSizer(wx.VERTICAL)
+
         self.final_sizer.Add(self.xycenter_sizer,0, wx.BOTTOM, 5)
         self.final_sizer.Add(self.calib_sizer,0)
         
@@ -11619,6 +11638,7 @@ class CenteringPanel(wx.Panel):
         self.manual_widget_list.append(self._pixel_text)
         self.manual_widget_list.append(self._sd_text)
         self.manual_widget_list.append(self._pattern_list)
+        self.manual_widget_list.append(self._energy_text)
         
         return self.final_sizer
             
@@ -11792,6 +11812,32 @@ class CenteringPanel(wx.Panel):
     def _onPixelWavelengthChange(self, event):
 
         self._updatePlots()
+
+    def _onWavelengthChange(self, evt):
+        c = scipy.constants.c
+        h = scipy.constants.h
+        e = scipy.constants.e
+
+        wl = float(evt.GetValue())*1e-10
+
+        E=c*h/(wl*e)*1e-3
+
+        self._energy_text.SetValue(str(E))
+
+        self._updatePlots()
+
+    def _onEnergyChange(self, evt):
+        c = scipy.constants.c
+        h = scipy.constants.h
+        e = scipy.constants.e
+
+        E = float(evt.GetValue())*1e3
+
+        wl=c*h/(E*e)*1e10
+        
+        self._wavelen_text.SetValue(str(wl))
+
+        self._updatePlots()
         
     def _onTargetButton(self, event): 
         self.image_panel.enableCenterClickMode()
@@ -11820,29 +11866,31 @@ class CenteringPanel(wx.Panel):
 
         selection = self._pattern_list.GetStringSelection()
 
-        if RAWGlobals.usepyFAI:
-            self.calibrant = self.cal_factory(selection)
-            self.calibrant.set_wavelength(wavelength*1e-10) #set the wavelength in m
+        if selection != 'None':
 
-            #Calculate pixel position of the calibrant rings
-            two_thetas = np.array(self.calibrant.get_2th())
-            if len(two_thetas) > 0:
-                opposite = np.tan(two_thetas) * sd_distance
-                agbh_dist_list = list(opposite / (pixel_size/1000.))
-            else:
-                agbh_dist_list = [np.nan]
-            
-        else:
-            sample_detec_pixels = SASImage.calcFromSDToAgBePixels(sd_distance, wavelength, pixel_size / 1000.0)
-            agbh_dist_list = [sample_detec_pixels*i for i in range(1,5)]
+            if RAWGlobals.usepyFAI:
+                self.calibrant = self.cal_factory(selection)
+                self.calibrant.set_wavelength(wavelength*1e-10) #set the wavelength in m
+
+                #Calculate pixel position of the calibrant rings
+                two_thetas = np.array(self.calibrant.get_2th())
+                if len(two_thetas) > 0:
+                    opposite = np.tan(two_thetas) * sd_distance
+                    agbh_dist_list = list(opposite / (pixel_size/1000.))
+                else:
+                    agbh_dist_list = [np.nan]
                 
-        wx.CallAfter(self.image_panel.clearPatches)
-        if not np.isnan(agbh_dist_list[0]): #If wavelength is too long, can get values for the ring radius that are nans
-            wx.CallAfter(self.image_panel._drawCenteringRings, self._center, agbh_dist_list)
-        else:
-            self._wavelen_text.SetValue('1')
-            wx.MessageBox('Wavelength too long, cannot show silver-behenate rings on the plot. Must be less than 116 angstroms.', 'Invalid Entry', style=wx.ICON_ERROR)
-            return
+            else:
+                sample_detec_pixels = SASImage.calcFromSDToAgBePixels(sd_distance, wavelength, pixel_size / 1000.0)
+                agbh_dist_list = [sample_detec_pixels*i for i in range(1,5)]
+                    
+            wx.CallAfter(self.image_panel.clearPatches)
+            if not np.isnan(agbh_dist_list[0]): #If wavelength is too long, can get values for the ring radius that are nans
+                wx.CallAfter(self.image_panel._drawCenteringRings, self._center, agbh_dist_list)
+            else:
+                self._wavelen_text.SetValue('1')
+                wx.MessageBox('Wavelength too long, cannot show silver-behenate rings on the plot. Must be less than 116 angstroms.', 'Invalid Entry', style=wx.ICON_ERROR)
+                return
     
     def updateCenterTextCtrls(self):
         self._x_cent_text.SetValue(str(self._center[0]))
@@ -11859,10 +11907,19 @@ class CenteringPanel(wx.Panel):
         wavelength = self._main_frame.raw_settings.get('WaveLength')
         pixel_size = self._main_frame.raw_settings.get('DetectorPixelSize') 
         samp_detc_dist = self._main_frame.raw_settings.get('SampleDistance')
+
+        c = scipy.constants.c
+        h = scipy.constants.h
+        e = scipy.constants.e
+
+        wl = float(wavelength)*1e-10
+
+        energy=c*h/(wl*e)*1e-3
         
         self._sd_text.SetValue(str(samp_detc_dist))
         self._pixel_text.SetValue(str(pixel_size))
         self._wavelen_text.SetValue(str(wavelength))
+        self._energy_text.SetValue(str(energy))
         
         self._center = [x_center, y_center]
         self.updateCenterTextCtrls()
@@ -11951,14 +12008,18 @@ class CenteringPanel(wx.Panel):
             wx.MessageBox('You must have an image shown in the Image plot to use auto centering.', 'No Image Loaded', wx.OK)
             return
 
+        sd_distance, wavelength, pixel_size = self._getCalibValues()
+        cal_selection = self._pattern_list.GetStringSelection()
+        det_selection = wx.FindWindowById(self.pyfai_autofit_ids['detector']).GetStringSelection()
+
+        if cal_selection == 'None':
+            wx.MessageBox('You must select a calibration standard to use autocentering.', 'No Calibration Standard Selected', wx.OK)
+            return
+
         wx.CallAfter(self.image_panel.clearPatches)
 
         self._enableControls(False)
         self._enablePyfaiControls()
-
-        sd_distance, wavelength, pixel_size = self._getCalibValues()
-        cal_selection = self._pattern_list.GetStringSelection()
-        det_selection = wx.FindWindowById(self.pyfai_autofit_ids['detector']).GetStringSelection()
 
         calibrant = self.cal_factory(cal_selection)
         calibrant.set_wavelength(wavelength*1e-10)
