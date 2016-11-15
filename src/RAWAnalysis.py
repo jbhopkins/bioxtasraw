@@ -7617,8 +7617,6 @@ class EFAControlPanel3(wx.Panel):
             force_pos.Bind(wx.EVT_CHECKBOX, self._onRangeControl)
             force_pos.SetValue(True)
 
-            print self.range_ids[i][2]
-
             self.range_sizer.Add(force_pos, 0)
 
 
@@ -7644,6 +7642,10 @@ class EFAControlPanel3(wx.Panel):
                                 window.SetStringSelection(str(efa_dict[key]))
                             except Exception as e:
                                 print e
+
+        if nvals == 1:
+            window = wx.FindWindowById(self.control_ids['method'])
+            window.SetStringSelection('Iterative')
 
         self.initialized = True
 
@@ -7712,9 +7714,6 @@ class EFAControlPanel3(wx.Panel):
             self.top_efa.Layout()
             self.Layout()
 
-            plotpanel = wx.FindWindowByName('EFAResultsPlotPanel3')
-            plotpanel.refresh()
-
         else:
             for i in range(nvals):
                 my_ids = self.range_ids[i]
@@ -7726,8 +7725,11 @@ class EFAControlPanel3(wx.Panel):
                 start.SetValue(points[0])
                 end.SetValue(points[1])
 
-            plotpanel = wx.FindWindowByName('EFAResultsPlotPanel3')
-            plotpanel.refresh()
+        plotpanel = wx.FindWindowByName('EFAResultsPlotPanel3')
+        plotpanel.refresh()
+
+        plotpanel = wx.FindWindowByName('EFARangePlotPanel')
+        plotpanel.refresh()
 
         wx.CallAfter(self.runRotation)
         wx.CallAfter(self.updateRangePlot)
@@ -7942,25 +7944,40 @@ class EFAControlPanel3(wx.Panel):
 
     def _runExplicit(self, *args):
         M = args[0]
+        D = args[1]
         failed = args[2]
         V_bar = args[4]
         T = args[5]
 
         num_sv = M.shape[1]
 
-        for i in range(num_sv):
-            V_i_0 = V_bar[np.logical_not(M[:,i]),:]
+        if num_sv == 1:
+            I = self.panel1_results['sub_secm'].total_i
+            C = I.reshape(M.shape)*M
+        else:
+            for i in range(num_sv):
+                V_i_0 = V_bar[np.logical_not(M[:,i]),:]
 
-            T[i,1:num_sv] = -np.dot(V_i_0[:,0].T, np.linalg.pinv(V_i_0[:,1:num_sv].T))
+                T[i,1:num_sv] = -np.dot(V_i_0[:,0].T, np.linalg.pinv(V_i_0[:,1:num_sv].T))
 
-        C = np.dot(T, V_bar.T)
+            C = np.dot(T, V_bar.T)
+
+            C = C.T
 
         if -1*C.min() > C.max():
             C = C*-1
 
         converged = True
 
-        return C.T, failed, converged, None, None
+        csum = np.sum(M*C, axis = 0)
+        if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
+            C = C/np.broadcast_to(csum, C.shape) #normalizes by the sum of each column
+        else:
+            norm = np.array([csum for i in range(C.shape[0])])
+
+            C = C/norm #normalizes by the sum of each column
+
+        return C, failed, converged, None, None
 
 
     def runRotation(self):
@@ -8429,6 +8446,21 @@ class EFARangePlotPanel(wx.Panel):
             self.canvas.mpl_disconnect(self.cid)
             self.updateDataPlot(self.orig_frame_list, self.orig_intensity, self.orig_framei, self.orig_framef, self.orig_ranges)
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def refresh(self):
+        a = self.subplots['SECPlot']
+        
+        self.range_lines = []
+        self.range_arrows = []
+        self.cut_line = None
+
+        while len(a.lines) != 0:
+            a.lines.pop(0)
+
+        if (int(matplotlib.__version__.split('.')[0]) ==1 and int(matplotlib.__version__.split('.')[1]) >=5) or int(matplotlib.__version__.split('.')[0]) > 1:
+            a.set_prop_cycle(None)
+        else:
+            a.set_color_cycle(None)
         
     def plotRange(self, secm, framei, framef, ydata_type, ranges):
         frame_list = secm.frame_list
@@ -8460,7 +8492,7 @@ class EFARangePlotPanel(wx.Panel):
             
         a = self.subplots['SECPlot']
         
-        if self.cut_line == None:
+        if self.cut_line is None:
 
             self.cut_line, = a.plot(frame_list[framei:framef+1], intensity[framei:framef+1], 'k.-', animated = True)
             
