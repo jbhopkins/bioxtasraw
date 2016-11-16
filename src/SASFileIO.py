@@ -2980,7 +2980,7 @@ def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
     if panel3_results['options']['method'] != 'Explicit':
         header_string = header_string + '# Rotation setings: Iterations: %s   Convergence threshold: %s\n' %(panel3_results['options']['niter'], panel3_results['options']['tol'])
     header_string = header_string + '# Rotation converged: %s\n' %(str(panel3_results['converged']))
-    if panel3_results['converged']:
+    if panel3_results['converged'] and panel3_results['options']['method'] != 'Explicit':
         header_string = header_string + '# Rotation results: Iterations: %s\n' %(panel3_results['iterations'])
     header_string = header_string + '\n'
 

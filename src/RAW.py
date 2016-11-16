@@ -5548,7 +5548,7 @@ class ManipulationPanel(wx.Panel):
             for each in self.all_manipulation_items:
                 if each.sasm.getLine() == line:
                     each._selected = False
-                    each.toggleSelect(update_info = False)
+                    each.toggleSelect(update_info = True)
                 else:
                     each._selected = True
                     each.toggleSelect(update_info = False)
@@ -11336,7 +11336,7 @@ class CenteringPanel(wx.Panel):
         self.manual_boxsizer.Add((1,1), 1, wx.EXPAND)
         self.manual_boxsizer.Add(button_sizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.RIGHT, 15)
         
-        auto_box = wx.StaticBox(self, -1, 'Automatic Centering')
+        auto_box = wx.StaticBox(self, -1, 'Automatic Centering/Calibration')
         auto_boxsizer = wx.StaticBoxSizer(auto_box)
         
         auto_sizer = self._createAutoCenteringSizer()
