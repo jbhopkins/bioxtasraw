@@ -9,7 +9,7 @@ import sys
 import RAWGlobals
 
 try:
-    import pyFAI, pyFAI.calibrant, pyFAI.calibration
+    import pyFAI, pyFAI.geometryRefinement
     RAWGlobals.usepyFAI = True
 except:
     RAWGlobals.usepyFAI = False

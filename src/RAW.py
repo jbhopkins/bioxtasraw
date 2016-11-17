@@ -22,11 +22,10 @@ Created on Sep 31, 2010
 #******************************************************************************
 '''
 
-import wx, os, subprocess, time, math, threading, Queue, cPickle, copy, sys, glob
-import numpy as np
-import platform, fnmatch, shutil, json
+import wx, os, subprocess, time, math, threading, Queue, cPickle, copy, sys, glob, platform, fnmatch, shutil, json
 import scipy.constants
 
+import numpy as np
 import wx.lib.scrolledpanel as scrolled
 import wx.lib.wordwrap as wordwrap
 import wx.lib.mixins.listctrl as listmix
@@ -34,18 +33,18 @@ import wx.grid as gridlib
 import wx.lib.colourchooser as colorchooser
 import wx.lib.buttons as wxbutton
 import wx.lib.agw.supertooltip as STT
-import SASFileIO, SASM, SASExceptions, SASImage, SASCalc
 import wx.aui as aui
 import matplotlib.colors as mplcol
 
 from wx.lib.embeddedimage import PyEmbeddedImage
 from collections import OrderedDict, defaultdict
 
-import RAWPlot, RAWImage, RAWOptions, RAWSettings, RAWCustomCtrl, RAWAnalysis, BIFT, RAWIcons, RAWGlobals, SASCalib
+import SASFileIO, SASM, SASExceptions, SASImage, SASCalc, SASCalib
+import RAWPlot, RAWImage, RAWOptions, RAWSettings, RAWCustomCtrl, RAWAnalysis, BIFT, RAWIcons, RAWGlobals, 
 from RAWGlobals import mainworker_cmd_queue, RAWWorkDir, workspace_saved
 
 try:
-    import pyFAI.calibrant
+    import pyFAI, pyFAI.calibrant, pyFAI.peak_picker
     RAWGlobals.usepyFAI = True
 except:
     RAWGlobals.usepyFAI = False
@@ -12054,7 +12053,6 @@ class CenteringPanel(wx.Panel):
         self.c = SASCalib.RAWCalibration(img, wavelength = calibrant.wavelength, calibrant = calibrant, detector = detector)
         self.c.ai = pyFAI.AzimuthalIntegrator(wavelength = wavelength, detector = detector)
         self.c.ai.setFit2D(sd_distance, self._center[0], self._center[1]) #Takes the sample-detector distance in mm, beamx and beam y in pixels.
-        
         self.c.points = pyFAI.peak_picker.ControlPoints(None, calibrant=calibrant, wavelength=calibrant.wavelength)
 
         self.image_panel.enableAutoCentMode()
