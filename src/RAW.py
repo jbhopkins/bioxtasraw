@@ -52,10 +52,6 @@ except:
 thread_wait_event = threading.Event()
 question_return_queue = Queue.Queue()
 
-# RAWWorkDir = sys.path[0]
-
-# RAWGlobals.init_globals()
-
 
 class MainFrame(wx.Frame):
     
