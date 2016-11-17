@@ -40,7 +40,7 @@ from wx.lib.embeddedimage import PyEmbeddedImage
 from collections import OrderedDict, defaultdict
 
 import SASFileIO, SASM, SASExceptions, SASImage, SASCalc, SASCalib
-import RAWPlot, RAWImage, RAWOptions, RAWSettings, RAWCustomCtrl, RAWAnalysis, BIFT, RAWIcons, RAWGlobals, 
+import RAWPlot, RAWImage, RAWOptions, RAWSettings, RAWCustomCtrl, RAWAnalysis, BIFT, RAWIcons, RAWGlobals
 from RAWGlobals import mainworker_cmd_queue, RAWWorkDir, workspace_saved
 
 try:
