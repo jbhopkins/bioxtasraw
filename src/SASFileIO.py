@@ -4,6 +4,11 @@ Created on Jul 11, 2010
 @author: specuser
 '''
 
+try:
+    import hdf5plugin #This has to be imported before PIL and fabio, I think, and before h5py . . .
+except:
+    print 'RAW WARNING: hdf5plugin not present, Eiger images will not load!!!'
+
 import xml.etree.ElementTree as ET
 import RAWGlobals, SASImage, SASM, SASIft, SASExceptions
 import numpy as np
@@ -26,6 +31,8 @@ from PIL import TiffImagePlugin #pillow
 #Need to hack PIL to make it work with py2exe/cx_freeze:
 import tifffile
 Image._initialized=2
+
+
 
 try:
     import fabio
@@ -55,6 +62,8 @@ except Exception, e:
     else:
         print 'Unable to import fabio or pack_ext, Mar345 files cannot be opened.'
         read_mar345 = False
+
+
 
 
 

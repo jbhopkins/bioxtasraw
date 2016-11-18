@@ -1558,14 +1558,14 @@ class ImageSettingsDialog(wx.Dialog):
                 slider.SetMin(0)
                 slider.SetMax(200)
                 slider.Enable(False)
-            else:
-                
+            else:                
                 slider.SetMin(int(self.minval))
-                slider.SetMax(int(self.maxval))
+                slider.SetMax(min(int(self.maxval),2147483647))
+
             
             if self.parent.plot_parameters[each[3]] != None:
                 val.SetValue(str(self.parent.plot_parameters[each[3]]))
-                slider.SetValue(float(self.parent.plot_parameters[each[3]]))
+                slider.SetValue(min(float(self.parent.plot_parameters[each[3]]), 2147483647))
             
             hslider = wx.BoxSizer(wx.HORIZONTAL)
                
@@ -1598,9 +1598,9 @@ class ImageSettingsDialog(wx.Dialog):
                 slider.SetMax(200)
             else:
                 slider.SetMin(minval)
-                slider.SetMax(maxval)
+                slider.SetMax(min(maxval,2147483647))
             
-            slider.SetValue(float(self.parent.plot_parameters[each[3]]))
+            slider.SetValue(min(2147483647,float(self.parent.plot_parameters[each[3]])))
     
     def onLockValues(self, event):
         
@@ -1617,7 +1617,7 @@ class ImageSettingsDialog(wx.Dialog):
             if each[1] == id:
                 ctrl = wx.FindWindowById(id)
                 slider = wx.FindWindowById(each[2])
-                slider.SetValue(float(ctrl.GetValue()))
+                slider.SetValue(min(2147483647,float(ctrl.GetValue())))
                 
                 val = ctrl.GetValue()
                 self.parent.plot_parameters[each[3]] = float(val)
