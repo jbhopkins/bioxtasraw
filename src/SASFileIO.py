@@ -5,16 +5,17 @@ Created on Jul 11, 2010
 '''
 
 try:
-    import hdf5plugin #This has to be imported before PIL and fabio, I think, and before h5py . . .
+    import hdf5plugin #This has to be imported before fabio, and h5py (and, I think, PIL/pillow) . . .
+    use_eiger = True
 except:
-    print 'RAW WARNING: hdf5plugin not present, Eiger images will not load!!!'
+    print 'RAW WARNING: hdf5plugin not present, Eiger hdf5 images will not load.'
+    use_eiger = False
 
 import xml.etree.ElementTree as ET
 import RAWGlobals, SASImage, SASM, SASIft, SASExceptions
 import numpy as np
 import os, sys, re, cPickle, time, binascii, struct, json, copy
 from xml.dom import minidom
-# import SASMarHeaderReader, packc_ext
 import SASMarHeaderReader #Attempting to remove the reliance on compiled packages. Switchin Mar345 reading to fabio.
 
 #switched from PIL to pillow
@@ -22,17 +23,11 @@ import PIL
 from PIL import Image #pillow
 from PIL import TiffImagePlugin #pillow
 
-#Trying to make it work for py2app
-# import PIL.Image
-# import PIL.TiffImagePlugin
-
 # import Image #PIL
 # import TiffImagePlugin #PIL
 #Need to hack PIL to make it work with py2exe/cx_freeze:
 import tifffile
 Image._initialized=2
-
-
 
 try:
     import fabio
@@ -64,9 +59,11 @@ except Exception, e:
         read_mar345 = False
 
 
-
-
-
+#Could use dectris albula library to read eiger files. Shouldn't be necessary, but won't remove capability in comments
+# try:
+#     import dectris.albula as albula
+# except:
+#     print "Couldn't find albula library!"
 
 # try:
 #     import nxs
@@ -252,6 +249,21 @@ def loadFabio(filename):
     img = np.fliplr(img)
 
     return img, img_hdr
+
+# def loadEiger(filename):
+#     try:
+#         series = albula.DImageSeries()
+#         series.open(filename)
+#         img_object = series[series.first()]
+
+#         img = img_object.data()
+#     except albula.DOutOfRangeException:
+#         raise ValueError
+
+#     img_hdr = {}
+
+#     return img, img_hdr
+
 
 def loadTiffImage(filename):
     ''' Load TIFF image '''
@@ -1096,6 +1108,77 @@ def parseCHESSG1CountFileWAXS(filename):
     
     return counters
 
+def parseCHESSG1CountFileEiger(filename):
+    ''' Loads information from the counter file at CHESS, G1 from
+    the image filename '''
+
+    dir, file = os.path.split(filename)
+
+    dir = os.path.dirname(dir)
+    underscores = file.split('_')
+    
+    countFile = underscores[0]
+    
+    filenumber = int(underscores[-3].strip('scan'))
+    
+    try:
+        frame_number = int(underscores[-1].split('.')[0])-1
+    except Exception:
+        frame_number = 0
+        
+      
+    if len(underscores)>3:
+        for each in underscores[1:-3]:
+            countFile += '_' + each
+            
+    countFilename = os.path.join(dir, countFile)
+
+    file = open(countFilename,'r')
+    
+    allLines = file.readlines()
+    file.close()
+    
+    line_num = 0
+    start_found = False
+    start_idx = None
+    label_idx = None
+    date_idx = None
+
+    for eachLine in allLines:
+        splitline = eachLine.split()
+        
+        if len(splitline) > 1:
+            if splitline[0] == '#S' and splitline[1] == str(filenumber):
+                start_found = True
+                start_idx = line_num
+            
+            if splitline[0] == '#D' and start_found:
+                date_idx = line_num
+            
+            if splitline[0] == '#L' and start_found:
+                label_idx = line_num
+                break
+        
+        line_num = line_num + 1
+
+    counters = {}
+
+    try:
+        if start_idx and label_idx:
+            labels = allLines[label_idx].split()
+            vals = allLines[label_idx+1+frame_number].split()
+            
+        for idx in range(0,len(vals)):      
+            counters[labels[idx+1]] = vals[idx]
+    
+        if date_idx:
+            counters['date'] = allLines[date_idx][3:-1]
+    
+    except:
+        print 'Error loading G1 header'
+    
+    return counters
+
 def parseMAXLABI911HeaderFile(filename):
     
     filepath, ext = os.path.splitext(filename)
@@ -1261,6 +1344,7 @@ all_header_types = {'None'           : None,
                     'F2, CHESS'         : parseCHESSF2CTSfile, 
                     'G1, CHESS'         : parseCHESSG1CountFile,
                     'G1 WAXS, CHESS'    : parseCHESSG1CountFileWAXS,
+                    'G1 Eiger, CHESS'   : parseCHESSG1CountFileEiger,
                     'I711, MaxLab'      : parseMAXLABI77HeaderFile,
                     'I911-4 Maxlab'     : parseMAXLABI911HeaderFile,
                     'BioCAT, APS'       : parseBioCATlogfile,
@@ -1298,38 +1382,29 @@ if use_fabio:
                        # 'NeXus'           : loadNeXusFile,
                                           }
 
+    if use_eiger:
+        # all_image_types['Eiger'] =  loadEiger
+        all_image_types['Eiger'] = loadFabio
+
 else:
+    all_image_types = {'Quantum'            : loadQuantumImage,
+                       'MarCCD 165'             : loadMarCCD165Image,
+                       'Medoptics'              : loadTiffImage,
+                       'FLICAM'                 : loadTiffImage,
+                       'Pilatus'                : loadPilatusImage,
+                       'SAXSLab300'             : loadSAXSLAB300Image,
+                       'ESRF EDF'               : loadEdfImage,
+                       'FReLoN'                 : loadFrelonImage,
+                       '16 bit TIF'             : loadTiffImage,
+                       '32 bit TIF'             : load32BitTiffImage,
+                       # 'NeXus'                : loadNeXusFile,
+                       'ILL SANS D11'           : loadIllSANSImage,
+                       'MPA (multiwire)'        : loadMPAFile
+                       }
+
     if read_mar345:   
-        all_image_types = {'Quantum'       : loadQuantumImage,
-                           'MarCCD 165'       : loadMarCCD165Image,
-                           'Mar345'           : loadMar345Image, 
-                           'Medoptics'       : loadTiffImage,
-                           'FLICAM'           : loadTiffImage,
-                           'Pilatus'       : loadPilatusImage,
-                           'SAXSLab300'       : loadSAXSLAB300Image,
-                           'ESRF EDF'       : loadEdfImage,
-                           'FReLoN'           : loadFrelonImage,
-                           '16 bit TIF'       : loadTiffImage,
-                           '32 bit TIF'       : load32BitTiffImage,
-                           # 'NeXus'           : loadNeXusFile,
-                           'ILL SANS D11'  : loadIllSANSImage,
-                           'MPA (multiwire)'    : loadMPAFile                   }
-    else:
-        all_image_types = {'Quantum'       : loadQuantumImage,
-                       'MarCCD 165'       : loadMarCCD165Image,
-                       'Medoptics'       : loadTiffImage,
-                       'FLICAM'           : loadTiffImage,
-                       'Pilatus'       : loadPilatusImage,
-                       'SAXSLab300'       : loadSAXSLAB300Image,
-                       'ESRF EDF'       : loadEdfImage,
-                       'FReLoN'           : loadFrelonImage,
-                       '16 bit TIF'       : loadTiffImage,
-                       '32 bit TIF'       : load32BitTiffImage,
-                       # 'NeXus'           : loadNeXusFile,
-                       'ILL SANS D11'  : loadIllSANSImage,
-                       'MPA (multiwire)'    : loadMPAFile                   }
-
-
+        all_image_types['Mar345'] = loadMar345Image
+        
 def loadAllHeaders(filename, image_type, header_type):
     ''' returns the image header and the info from the header file only. '''
     
@@ -1345,7 +1420,7 @@ def loadAllHeaders(filename, image_type, header_type):
 def loadHeader(filename, header_type):
     ''' returns header information based on the *image* filename
      and the type of headerfile     '''
-    
+
     if header_type != 'None':
         try:
             hdr = all_header_types[header_type](filename)
@@ -1366,10 +1441,10 @@ def loadImage(filename, image_type):
 
     try:
         img, imghdr = all_image_types[image_type](filename)
-    except (ValueError, TypeError, KeyError) as msg:
+    except (ValueError, TypeError, KeyError, fabio.fabioutils.NotGoodReader) as msg:
         # print msg
         raise SASExceptions.WrongImageFormat('Error loading image, ' + str(msg))
-    
+
     return img, imghdr
 
 #################################
