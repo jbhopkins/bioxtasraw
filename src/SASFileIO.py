@@ -107,6 +107,7 @@ def createSASMFromImage(img_array, parameters = {}, x_c = None, y_c = None, mask
     err_raw_non_nan = np.nan_to_num(err_raw)
 
     if tbs_mask != None:
+        print 'setting ROI counter!'
         roi_counter = img_array[tbs_mask==1].sum()
         parameters['counters']['roi_counter'] = roi_counter
     
@@ -1405,7 +1406,7 @@ else:
     if read_mar345:   
         all_image_types['Mar345'] = loadMar345Image
         
-def loadAllHeaders(filename, image_type, header_type):
+def loadAllHeaders(filename, image_type, header_type, raw_settings):
     ''' returns the image header and the info from the header file only. '''
     
     img, imghdr = loadImage(filename, image_type)
@@ -1414,6 +1415,18 @@ def loadAllHeaders(filename, image_type, header_type):
         hdr = loadHeader(filename, header_type)
     else:
         hdr = None
+
+    masks = raw_settings.get('Masks')
+    tbs_mask = masks['TransparentBSMask'][0]
+
+    if tbs_mask != None:
+        print 'setting ROI counter!'
+        roi_counter = img[tbs_mask==1].sum()
+        if hdr is None:
+            thdr['roi_counter'] = roi_counter
+            hdr = thdr
+        else:
+            hdr['roi_counter'] = roi_counter
     
     return imghdr, hdr
 

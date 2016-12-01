@@ -785,7 +785,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         hdr_format = self.header_choice.GetStringSelection()
         
         try:
-            imghdr, filehdr = SASFileIO.loadAllHeaders(filename, image_format, hdr_format)
+            imghdr, filehdr = SASFileIO.loadAllHeaders(filename, image_format, hdr_format, self.raw_settings)
         except SASExceptions.WrongImageFormat:
             wx.MessageBox('The selected file is not of the selected format.', 'Wrong image format', wx.OK | wx.ICON_INFORMATION)
             return
