@@ -107,7 +107,6 @@ def createSASMFromImage(img_array, parameters = {}, x_c = None, y_c = None, mask
     err_raw_non_nan = np.nan_to_num(err_raw)
 
     if tbs_mask != None:
-        print 'setting ROI counter!'
         roi_counter = img_array[tbs_mask==1].sum()
         parameters['counters']['roi_counter'] = roi_counter
     
@@ -120,9 +119,8 @@ def loadMask(filename):
 
     if os.path.splitext(filename)[1] == 'msk':
         
-        FileObj = open(filename, 'r')             
-        maskPlotParameters = cPickle.load(FileObj)
-        FileObj.close()       
+        with open(filename, 'r') as FileObj:
+            maskPlotParameters = cPickle.load(FileObj)      
         
         i=0
         for each in maskPlotParameters['storedMasks']:
@@ -139,105 +137,103 @@ def parseTiffTags(filename):
     tag_dict = {}
 
     try:
-        image = open(filename, 'rb')
+        with open(filename, 'rb') as image:
+        
+            #read the first 2 bytes to know "endian"
+            start = image.read(2)
+            endian = binascii.hexlify(start).upper()
+
+            if endian == "4949":
+                symbol = "<"
+            elif endian == "4D4D":
+                symbol = ">"
+            else:
+                print "ERROR!"
+                return None
+
+            the_answer = image.read(2)
+            the_answer = struct.unpack(symbol+'H',the_answer)[0]
+           
+            if the_answer != 42:
+                print 'answer is not 42!!'
+                return None
+         
+            #Figure out where the Image File Directory is. It can be
+            #anywhere in the file believe it or not.
+            dir_loc = image.read( 4 )
+            dir_loc = struct.unpack( symbol+'L', dir_loc )[0]
+
+            #goto that section of the file              
+            image.seek(dir_loc)
+
+            #figure out how many tags there are               
+            directory_data = image.read(2)
+            num_entries = struct.unpack(symbol+'H',directory_data)[0]
+
+            #loop through the Image File Directory and look for the tags we care about
+            #Width, Height, SamplesPerPixel, and ColorProfile
+            for i in range( num_entries ):
+                a_tag = image.read( 12 )
+                tag = struct.unpack( symbol+'HHLL', a_tag )
+
+                #catch in case the type is SHORT
+                if tag[1] == 3:
+                    tag = struct.unpack( symbol+'HHLHH', a_tag )
+
+                #set the class attributes if the tag is one we care about
+                if tag[0] == 256:
+                    print tag
+                    tag_dict['ImageWidth'] = tag[3]
+
+                if tag[0] == 257:
+                    tag_dict['ImageLength'] = tag[3]
+
+                if tag[0] == 258:
+                    tag_dict['ColorsPerSample'] = tag[2]
+
+                if tag[0] == 315:
+                    metadata_loc = tag[3]
+                    metadata_length = tag[2]
+
+                    image.seek( metadata_loc )
+                    metadata_bytes = image.read( metadata_length )
+                    
+                    struct_format = '%s%s%s' % ( symbol, metadata_length, 's' )
+                    metadata_string = struct.unpack( struct_format, metadata_bytes )[0]
+
+                    tag_dict['Artist'] = metadata_string
+
+                if tag[0] == 34675:
+                    tag_dict['ColorProfile'] = True
+                    if tag_dict['ColorProfile'] == True:
+                        icc_loc = tag[3]
+                        icc_length = tag[2]
+
+                        image.seek( icc_loc )
+                        icc_data = image.read( icc_length )
+                        struct_format = '%s%s%s' % ( symbol, icc_length, 's' )
+                        icc_string = struct.unpack( struct_format, icc_data )[0]
+
+                        if "Adobe RGB (1998)" in icc_string:
+                            tag_dict['ColorProfile'] = "Adobe RGB (1998)"
+                        elif "sRGB IEC61966-2-1" in icc_string:
+                            tag_dict['ColorProfile'] = "sRGB IEC61966-2-1"
+                        elif "ProPhoto RGB" in icc_string:
+                            tag_dict['ColorProfile'] = "Kodak ProPhoto RGB"
+                        elif "eciRGB" in icc_string:
+                            tag_dict['ColorProfile'] = "eciRGB v2"
+                        elif "e\0c\0i\0R\0G\0B\0" in icc_string:
+                            tag_dict['ColorProfile'] = "eciRGB v4"
+                        else:
+                            tag_dict['ColorProfile'] = "Other"
+                else:
+                    tag_dict['ColorProfile'] = "None"
+
     except Exception, e:
         print e
         print filename
         print 'Error opening tiff file!'
-        image.close()
         return None
-        
-    #read the first 2 bytes to know "endian"
-    start = image.read(2)
-    endian = binascii.hexlify(start).upper()
-
-    if endian == "4949":
-        symbol = "<"
-    elif endian == "4D4D":
-        symbol = ">"
-    else:
-        print "ERROR!"
-        return None
-
-    the_answer = image.read(2)
-    the_answer = struct.unpack(symbol+'H',the_answer)[0]
-   
-    if the_answer != 42:
-        print 'answer is not 42!!'
-        return None
- 
-    #Figure out where the Image File Directory is. It can be
-    #anywhere in the file believe it or not.
-    dir_loc = image.read( 4 )
-    dir_loc = struct.unpack( symbol+'L', dir_loc )[0]
-
-    #goto that section of the file              
-    image.seek(dir_loc)
-
-    #figure out how many tags there are               
-    directory_data = image.read(2)
-    num_entries = struct.unpack(symbol+'H',directory_data)[0]
-
-    #loop through the Image File Directory and look for the tags we care about
-    #Width, Height, SamplesPerPixel, and ColorProfile
-    for i in range( num_entries ):
-        a_tag = image.read( 12 )
-        tag = struct.unpack( symbol+'HHLL', a_tag )
-
-        #catch in case the type is SHORT
-        if tag[1] == 3:
-            tag = struct.unpack( symbol+'HHLHH', a_tag )
-
-        #set the class attributes if the tag is one we care about
-        if tag[0] == 256:
-            print tag
-            tag_dict['ImageWidth'] = tag[3]
-
-        if tag[0] == 257:
-            tag_dict['ImageLength'] = tag[3]
-
-        if tag[0] == 258:
-            tag_dict['ColorsPerSample'] = tag[2]
-
-        if tag[0] == 315:
-            metadata_loc = tag[3]
-            metadata_length = tag[2]
-
-            image.seek( metadata_loc )
-            metadata_bytes = image.read( metadata_length )
-            
-            struct_format = '%s%s%s' % ( symbol, metadata_length, 's' )
-            metadata_string = struct.unpack( struct_format, metadata_bytes )[0]
-
-            tag_dict['Artist'] = metadata_string
-
-        if tag[0] == 34675:
-            tag_dict['ColorProfile'] = True
-            if tag_dict['ColorProfile'] == True:
-                icc_loc = tag[3]
-                icc_length = tag[2]
-
-                image.seek( icc_loc )
-                icc_data = image.read( icc_length )
-                struct_format = '%s%s%s' % ( symbol, icc_length, 's' )
-                icc_string = struct.unpack( struct_format, icc_data )[0]
-
-                if "Adobe RGB (1998)" in icc_string:
-                    tag_dict['ColorProfile'] = "Adobe RGB (1998)"
-                elif "sRGB IEC61966-2-1" in icc_string:
-                    tag_dict['ColorProfile'] = "sRGB IEC61966-2-1"
-                elif "ProPhoto RGB" in icc_string:
-                    tag_dict['ColorProfile'] = "Kodak ProPhoto RGB"
-                elif "eciRGB" in icc_string:
-                    tag_dict['ColorProfile'] = "eciRGB v2"
-                elif "e\0c\0i\0R\0G\0B\0" in icc_string:
-                    tag_dict['ColorProfile'] = "eciRGB v4"
-                else:
-                    tag_dict['ColorProfile'] = "Other"
-        else:
-            tag_dict['ColorProfile'] = "None"
-
-    image.close()
     
     return tag_dict
 
@@ -286,15 +282,13 @@ def loadTiffImage(filename):
 def load32BitTiffImage(filename):
     ''' Load TIFF image '''
     try:
-        #im = Image.open(open(filename, 'rb'))
-        
-        img = tifffile.TiffFile(filename).asarray()
-        #im = img.asarray()
-        
-        #x,y = im.size
-        
-        #img = np.fromstring(im.tostring(), np.uint32)
-        #img = np.reshape(img, (y,x)) 
+        im = Image.open(filename)
+        if int(PIL.PILLOW_VERSION.split('.')[0])>2:
+            img = np.fromstring(im.tobytes(), np.uint32) #tobytes is compatible with pillow >=3.0, tostring was depreciated
+        else:
+            img = np.fromstring(im.tostring(), np.uint32)
+
+        img = np.reshape(img, im.size) 
     #except IOError:
     except Exception, e:
         print e
@@ -308,11 +302,10 @@ def loadQuantumImage(filename):
     ''' Load image from quantum detectors (512 byte header) 
     and also obtains the image header '''
     
-    f = open(filename, 'rb')
-    f.seek(512)                            # Jump over header
+    with open(filename, 'rb') as f:
+        f.seek(512)                            # Jump over header
 
-    Img = np.fromfile(f, dtype=np.uint16)
-    f.close()
+        Img = np.fromfile(f, dtype=np.uint16)
     
     xydim = int(np.sqrt(np.shape(Img))[0])    #assuming square image
 
@@ -382,82 +375,69 @@ def loadMar345Image(filename):
 
 def getMar345ImgDim(filename):
     
-    mar_file = open(filename, 'r')
-    mar_file.seek(4096)
-    
-    dim = None
-    
-    for i in range(0, 5):            # search 5 lines from starting point
-        line = mar_file.readline()
+    with open(filename, 'r') as mar_file:
+        mar_file.seek(4096)
         
-        if 'CCP' in line:
-            splitline = line.split()
+        dim = None
+        
+        for i in range(0, 5):            # search 5 lines from starting point
+            line = mar_file.readline()
             
-            x = int(splitline[4].strip(','))
-            y = int(splitline[6].strip(','))
-            
-            dim = x,y
-            break
-                 
-    mar_file.close()
+            if 'CCP' in line:
+                splitline = line.split()
+                
+                x = int(splitline[4].strip(','))
+                y = int(splitline[6].strip(','))
+                
+                dim = x,y
+                break
     
     return dim
 
-#fabio only version
-# def loadMar345Image(filename):
-
-#     mar345_img = fabio.open(filename)
-
-#     img = mar345_img.data
-#     img_hdr = mar345_img.header
-
-#     return img, img_hdr
-
 
 def loadFrelonImage(filename):
-    fo = open(filename, 'rb')
     
-    ############## FIND HEADER LENGTH AND READ IMAGE ###########
-    fo.seek(0, 2)
-    eof = fo.tell()
-    fo.seek(0)
+    with open(filename, 'rb') as fo: 
     
-    hdr_size = 1
-    byte = None
-    while byte != '}' and hdr_size !=eof:
-        byte = fo.read(1)
-        hdr_size = hdr_size + 1
-        if hdr_size > 10000:
-            raise ValueError
+        ############## FIND HEADER LENGTH AND READ IMAGE ###########
+        fo.seek(0, 2)
+        eof = fo.tell()
+        fo.seek(0)
         
-    ######################## PARSE HEADER ###################
-    fo.seek(0)
-    header = fo.read(hdr_size)
-    header = header.split('\n')
-    
-    header_dict = {}
-    for each in header:
-        sp_line = each.split('=')
-
-        if sp_line[0].strip() == '{' or sp_line[0].strip() == '}' or sp_line[0].strip() == '':
-            continue
+        hdr_size = 1
+        byte = None
+        while byte != '}' and hdr_size !=eof:
+            byte = fo.read(1)
+            hdr_size = hdr_size + 1
+            if hdr_size > 10000:
+                raise ValueError
+            
+        ######################## PARSE HEADER ###################
+        fo.seek(0)
+        header = fo.read(hdr_size)
+        header = header.split('\n')
         
-        if len(sp_line) == 2:
-            header_dict[sp_line[0].strip()] = sp_line[1].strip()[:-2]
-        elif len>2:
-            header_dict[sp_line[0].strip()] = each[each.find('=')+2:-2]
-   
-    #print header_dict
+        header_dict = {}
+        for each in header:
+            sp_line = each.split('=')
 
-    fo.seek(hdr_size)
-    
-    dim1 = int(header_dict['Dim_1'])
-    dim2 = int(header_dict['Dim_2'])
-    
-    img = np.fromfile(fo, dtype='<i2')
-    img = np.reshape(img, (dim1, dim2))
-    
-    fo.close()
+            if sp_line[0].strip() == '{' or sp_line[0].strip() == '}' or sp_line[0].strip() == '':
+                continue
+            
+            if len(sp_line) == 2:
+                header_dict[sp_line[0].strip()] = sp_line[1].strip()[:-2]
+            elif len>2:
+                header_dict[sp_line[0].strip()] = each[each.find('=')+2:-2]
+       
+        #print header_dict
+
+        fo.seek(hdr_size)
+        
+        dim1 = int(header_dict['Dim_1'])
+        dim2 = int(header_dict['Dim_2'])
+        
+        img = np.fromfile(fo, dtype='<i2')
+        img = np.reshape(img, (dim1, dim2))
 
     img_hdr = header_dict
 
@@ -466,11 +446,9 @@ def loadFrelonImage(filename):
 
 def loadIllSANSImage(filename):
     
-    datafile = open(filename, 'r')
-    
-    all_lines = datafile.readlines()
-    
-    datafile.close()
+    with open(filename, 'r') as datafile:
+        all_lines = datafile.readlines()
+
     
     ############################################
     # Find image location:
@@ -535,49 +513,47 @@ def loadIllSANSImage(filename):
 
 def loadEdfImage(filename):
     
-    fo = open(filename, 'rb')
+    with open(filename, 'rb') as fo:
     
-    ############## FIND HEADER LENGTH AND READ IMAGE ###########
-    fo.seek(0, 2)
-    eof = fo.tell()
-    fo.seek(0)
-    
-    hdr_size = 1
-    byte = None
-    while byte != '}' and hdr_size !=eof:
-        byte = fo.read(1)
-        hdr_size = hdr_size + 1
-        if hdr_size > 10000:
-            raise ValueError
+        ############## FIND HEADER LENGTH AND READ IMAGE ###########
+        fo.seek(0, 2)
+        eof = fo.tell()
+        fo.seek(0)
         
-    ######################## PARSE HEADER ###################
-    fo.seek(0)
-    header = fo.read(hdr_size)
-    header = header.split('\n')
-    
-    header_dict = {}
-    for each in header:
-        sp_line = each.split('=')
-
-        if sp_line[0].strip() == '{' or sp_line[0].strip() == '}' or sp_line[0].strip() == '':
-            continue
+        hdr_size = 1
+        byte = None
+        while byte != '}' and hdr_size !=eof:
+            byte = fo.read(1)
+            hdr_size = hdr_size + 1
+            if hdr_size > 10000:
+                raise ValueError
+            
+        ######################## PARSE HEADER ###################
+        fo.seek(0)
+        header = fo.read(hdr_size)
+        header = header.split('\n')
         
-        if len(sp_line) == 2:
-            header_dict[sp_line[0].strip()] = sp_line[1].strip()[:-2]
-        elif len>2:
-            header_dict[sp_line[0].strip()] = each[each.find('=')+2:-2]
-   
-    #print header_dict
+        header_dict = {}
+        for each in header:
+            sp_line = each.split('=')
 
-    fo.seek(hdr_size)
-    
-    dim1 = int(header_dict['Dim_1'])
-    dim2 = int(header_dict['Dim_2'])
-    
-    img = np.fromfile(fo, dtype='<f4')
-    img = np.reshape(img, (dim1, dim2))
-    
-    fo.close()
+            if sp_line[0].strip() == '{' or sp_line[0].strip() == '}' or sp_line[0].strip() == '':
+                continue
+            
+            if len(sp_line) == 2:
+                header_dict[sp_line[0].strip()] = sp_line[1].strip()[:-2]
+            elif len>2:
+                header_dict[sp_line[0].strip()] = each[each.find('=')+2:-2]
+       
+        #print header_dict
+
+        fo.seek(hdr_size)
+        
+        dim1 = int(header_dict['Dim_1'])
+        dim2 = int(header_dict['Dim_2'])
+        
+        img = np.fromfile(fo, dtype='<f4')
+        img = np.reshape(img, (dim1, dim2))
 
     img_hdr = header_dict
 
@@ -635,11 +611,9 @@ def loadMPAFile(filename):
     header = {"None" : {}}
     data ={}
 
-    fo = open (filename, 'r')
+    with open(filename, 'r') as fo:
+        lines = fo.readlines()
 
-    lines = fo.readlines()
-
-    fo.close()
 
     for i in range(len(lines)):
         line = lines[i]
@@ -795,9 +769,8 @@ def parsePilatusHeader(filename):
     param_pattern = re.compile('\d*[:]\d*[:]\d*\D\d*[:]\d*[:]\d*')
     
     try:
-        f = open(filename, 'r')
-        header = f.read(4096)
-        f.close()
+        with open(filename, 'r') as f:
+            header = f.read(4096)
         hdr = {}
     except:
         print 'Reading Pilatus header failed'
@@ -818,32 +791,28 @@ def parsePilatusHeader(filename):
         except:
             print '** error reading the exposure time **'
             break
-               
-    # f.close()
  
     return hdr
     
 
 def parseMar345FileHeader(filename):
     
-    mar_file = open(filename, 'r')
+    with open(filename, 'r') as mar_file:
     
-    mar_file.seek(128)
-    
-    hdr = {}
-    
-    line = ''
-    
-    split_hdr = []
-    
-    
-    while 'END OF HEADER' not in line:
-        line = mar_file.readline().strip('/n')
+        mar_file.seek(128)
         
-        if len(line.split()) > 1:
-            split_hdr.append(line.split())
+        hdr = {}
         
-    mar_file.close()
+        line = ''
+        
+        split_hdr = []
+        
+        
+        while 'END OF HEADER' not in line:
+            line = mar_file.readline().strip('/n')
+            
+            if len(line.split()) > 1:
+                split_hdr.append(line.split())
     
     for each_line in split_hdr:
         
@@ -933,34 +902,28 @@ def parseCHESSF2CTSfile(filename):
     datePattern = re.compile('#D\s.*\n')
     
     
-    #try:
-    f = open(filename[:-3] + 'cts')
-    #except Exception as msg:         
-    #     error_code = msg.args
-    #     raise SASExceptions.FileHeaderNotFoundError(str(msg))
+    with open(filename[:-3] + 'cts') as f:
     
-    mon1, mon2, exposure_time, closed_shutter_count = None, None, None, None
-    
-    for line in f:
-        timeMonitor_match = timeMonitorPattern.search(line)
-        closedShutterCount_match = closedShutterCountPattern.search(line)
-        date_match = datePattern.search(line)
+        mon1, mon2, exposure_time, closed_shutter_count = None, None, None, None
         
-        if timeMonitor_match:            
-            exposure_time = int(timeMonitor_match.group().split('-')[0])
-            mon1 = int(timeMonitor_match.group().split(' ')[3])
-            mon2 = int(timeMonitor_match.group().split(' ')[4])
-                 
-        if closedShutterCount_match:
-            closed_shutter_count = int(closedShutterCount_match.group().split(' ')[1])
+        for line in f:
+            timeMonitor_match = timeMonitorPattern.search(line)
+            closedShutterCount_match = closedShutterCountPattern.search(line)
+            date_match = datePattern.search(line)
             
-        if date_match:
-            try:
-                date = date_match.group()[3:-1]
-            except Exception:
-                date = 'Error loading date'
-            
-    f.close()
+            if timeMonitor_match:            
+                exposure_time = int(timeMonitor_match.group().split('-')[0])
+                mon1 = int(timeMonitor_match.group().split(' ')[3])
+                mon2 = int(timeMonitor_match.group().split(' ')[4])
+                     
+            if closedShutterCount_match:
+                closed_shutter_count = int(closedShutterCount_match.group().split(' ')[1])
+                
+            if date_match:
+                try:
+                    date = date_match.group()[3:-1]
+                except Exception:
+                    date = 'Error loading date'
     
     background = closed_shutter_count * exposure_time
     
@@ -995,10 +958,8 @@ def parseCHESSG1CountFile(filename):
             
     countFilename = os.path.join(dir, countFile)
 
-    file = open(countFilename,'r')
-    
-    allLines = file.readlines()
-    file.close()
+    with open(countFilename,'r') as f:
+        allLines = f.readlines()
     
     line_num = 0
     start_found = False
@@ -1063,10 +1024,8 @@ def parseCHESSG1CountFileWAXS(filename):
             
     countFilename = os.path.join(dir, countFile)
 
-    file = open(countFilename,'r')
-    
-    allLines = file.readlines()
-    file.close()
+    with open(countFilename,'r') as f:
+        allLines = f.readlines()
     
     line_num = 0
     start_found = False
@@ -1134,10 +1093,8 @@ def parseCHESSG1CountFileEiger(filename):
             
     countFilename = os.path.join(dir, countFile)
 
-    file = open(countFilename,'r')
-    
-    allLines = file.readlines()
-    file.close()
+    with open(countFilename,'r') as f:
+        allLines = f.readlines()
     
     line_num = 0
     start_found = False
@@ -1185,11 +1142,8 @@ def parseMAXLABI911HeaderFile(filename):
     filepath, ext = os.path.splitext(filename)
     hdr_file = filename + '.hdr'
     
-    file = open(hdr_file,'r')
-    
-    all_lines = file.readlines()
-
-    file.close()
+    with open(hdr_file,'r') as f:
+        all_lines = f.readlines()
     
     counters = {}
     
@@ -1206,11 +1160,8 @@ def parseMAXLABI77HeaderFile(filename):
     filepath, ext = os.path.splitext(filename)
     hdr_file = filename + '.hdr'
     
-    file = open(hdr_file,'r')
-    
-    all_lines = file.readlines()
-
-    file.close()
+    with open(hdr_file,'r') as f:
+        all_lines = f.readlines()
     
     counters = {}
     
@@ -1261,11 +1212,8 @@ def parseBioCATlogfile(filename):
 
     countFilename=os.path.join(datadir, '_'.join(fname.split('_')[:-1])+'.log')
 
-    f=open(countFilename,'r')
-
-    allLines=f.readlines()
-
-    f.close()
+    with open(countFilename,'r') as f:
+        allLines=f.readlines()
 
     searchName='.'.join(fname.split('.')[:-1])
 
@@ -1420,7 +1368,6 @@ def loadAllHeaders(filename, image_type, header_type, raw_settings):
     tbs_mask = masks['TransparentBSMask'][0]
 
     if tbs_mask != None:
-        print 'setting ROI counter!'
         roi_counter = img[tbs_mask==1].sum()
         if hdr is None:
             thdr['roi_counter'] = roi_counter
@@ -1454,7 +1401,7 @@ def loadImage(filename, image_type):
 
     try:
         img, imghdr = all_image_types[image_type](filename)
-    except (ValueError, TypeError, KeyError, fabio.fabioutils.NotGoodReader) as msg:
+    except (ValueError, TypeError, KeyError, fabio.fabioutils.NotGoodReader, Exception) as msg:
         # print msg
         raise SASExceptions.WrongImageFormat('Error loading image, ' + str(msg))
 
@@ -1682,7 +1629,8 @@ def loadOutFile(filename):
     P = []
     Perr = []
 
-    fline = open(filename).readlines()
+    with open(filename) as f:
+        fline = f.readlines()
 
     outfile = copy.copy(fline)
     
@@ -1983,14 +1931,9 @@ def loadIftFile(filename):
     r = []
     err = []
 
-    f = open(filename)
-        
-    # parameters = {'filename' : os.path.split(filename)[1],
-    #               'counters' : {}}
+    with open(filename) as f:
     
-    path_noext, ext = os.path.splitext(filename)
-    
-    try:
+        path_noext, ext = os.path.splitext(filename)
         
         for line in f:
 
@@ -2003,17 +1946,10 @@ def loadIftFile(filename):
                 r.append(float(found[0]))
                 p.append(float(found[1]))
                 err.append(float(found[2]))
-            
-        err = np.ones(len(p))
-
-    finally:
-        f.close()
 
     p = np.array(p)
     r = np.array(r)
     err = np.array(err)
-    
-    # sasm = SASM.SASM(p, r, err, parameters)
    
     ######################### LOAD FIT ###########################
     i = []
@@ -2024,53 +1960,42 @@ def loadIftFile(filename):
     sasm_orig = None
     sasm_fit = None
 
-    f = open(filename)
+    with open(filename) as f:
     
-    # parameters_orig = {'filename' : os.path.split(filename)[1] + '_ORIG',
-    #                   'counters' : {}}
-    
-    # parameters_fit = {'filename' : os.path.split(filename)[1] + '_FIT',
-    #                   'counters' : {}}
-    
-    # path_noext, ext = os.path.splitext(filename)
-    
-    try:  
-        for line in f:
+        try:  
+            for line in f:
 
-            fourcol_match = iq_pattern.match(line)
+                fourcol_match = iq_pattern.match(line)
 
-            if fourcol_match:
-                #print line
-                found = fourcol_match.group().split()
+                if fourcol_match:
+                    #print line
+                    found = fourcol_match.group().split()
 
-                q.append(float(found[0]))
-                i.append(float(found[1]))
-                err_orig.append(float(found[2]))
-                fit.append(float(found[3]))
-                
+                    q.append(float(found[0]))
+                    i.append(float(found[1]))
+                    err_orig.append(float(found[2]))
+                    fit.append(float(found[3]))
+                    
+            
+            i = np.array(i)
+            q = np.array(q)
+            err_orig = np.array(err_orig)
+            fit = np.array(fit)
         
-        i = np.array(i)
-        q = np.array(q)
-        err_orig = np.array(err_orig)
-        fit = np.array(fit)
-    
-        # orig_sasm = SASM.SASM(i, q, err, parameters_orig)
-        # fit_sasm = SASM.SASM(fit, q, err, parameters_fit)
-    
-        # parameters['orig_sasm'] = orig_sasm
-        # parameters['fit_sasm'] = fit_sasm
-    except Exception, e:
-        print 'No fit data found, or error loading fit data'
-        print e
-
-    finally:
-        f.close()
+            # orig_sasm = SASM.SASM(i, q, err, parameters_orig)
+            # fit_sasm = SASM.SASM(fit, q, err, parameters_fit)
+        
+            # parameters['orig_sasm'] = orig_sasm
+            # parameters['fit_sasm'] = fit_sasm
+        except Exception, e:
+            print 'No fit data found, or error loading fit data'
+            print e
 
 
     #Check to see if there is any header from RAW, and if so get that.
-    f = open(filename)
-    all_lines = f.readlines()
-    f.close()
+    with open(filename) as f:
+        all_lines = f.readlines()
+
     header = []
     for j in range(len(all_lines)):
         if '### HEADER:' in all_lines[j]:
@@ -2110,32 +2035,31 @@ def loadFitFile(filename):
 
     has_three_columns = False
 
-    f = open(filename)
+    with open(filename) as f:
     
-    firstLine = f.readline()
-    
-    three_col_match = three_col_fit.match(firstLine)
-    if three_col_match:
-        has_three_columns = True
-        fileHeader = {}
-    else:
-        fileHeader = {'comment':firstLine}
-    
-    
-    if "Experimental" in firstLine:
-        sasref = True      #SASREFMX Fit file (Damn those hamburg boys and their 50 different formats!)
-    else:
-        sasref = False
-    
-    parameters = {'filename' : os.path.split(filename)[1],
-                  'counters' : fileHeader}
-    
-    path_noext, ext = os.path.splitext(filename)
+        firstLine = f.readline()
+        
+        three_col_match = three_col_fit.match(firstLine)
+        if three_col_match:
+            has_three_columns = True
+            fileHeader = {}
+        else:
+            fileHeader = {'comment':firstLine}
+        
+        
+        if "Experimental" in firstLine:
+            sasref = True      #SASREFMX Fit file (Damn those hamburg boys and their 50 different formats!)
+        else:
+            sasref = False
+        
+        parameters = {'filename' : os.path.split(filename)[1],
+                      'counters' : fileHeader}
+        
+        path_noext, ext = os.path.splitext(filename)
 
-    fit_parameters = {'filename'  : os.path.split(path_noext)[1] + '_FIT',
-                      'counters' : {}}
-    
-    try:
+        fit_parameters = {'filename'  : os.path.split(path_noext)[1] + '_FIT',
+                          'counters' : {}}
+
         for line in f:
             
             three_col_match = three_col_fit.match(line)
@@ -2179,8 +2103,6 @@ def loadFitFile(filename):
                     err.append(float(found[2]))
                     fit.append(float(found[3]))
 
-    finally:
-        f.close()
 
     if len(i) == 0:
         raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
@@ -2208,11 +2130,8 @@ def loadPrimusDatFile(filename):
     q = []
     err = []
 
-    f = open(filename)
-    
-    # firstLine = f.readline()
-
-    lines = f.readlines()
+    with open(filename) as f:
+        lines = f.readlines()
 
     firstLine = lines[0]
 
@@ -2224,10 +2143,6 @@ def loadPrimusDatFile(filename):
     fileHeader = {'comment':firstLine}
     parameters = {'filename' : os.path.split(filename)[1],
                   'counters' : fileHeader}
-
-    
-
-    f.close()
 
     if len(lines) == 0:
         raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file.')
@@ -2265,9 +2180,9 @@ def loadPrimusDatFile(filename):
 
 
     #Check to see if there is any header from RAW, and if so get that.
-    f = open(filename)
-    all_lines = f.readlines()
-    f.close()
+    with open(filename) as f:   #Why does this need to open the file twice? Why did I do this?
+        all_lines = f.readlines()
+
     header = []
     for j in range(len(all_lines)):
         if '### HEADER:' in all_lines[j]:
@@ -2322,9 +2237,8 @@ def loadRadFile(filename):
 
     fileheader = {}
 
-    f = open(filename)
-    
-    try:
+    with open(filename) as f:
+
         for line in f:
 
             iq_match = iq_pattern.match(line)
@@ -2362,9 +2276,6 @@ def loadRadFile(filename):
                     fileheader[found[0]] = arr
                 else:
                     fileheader[found[0]] = ''
-
-    finally:
-        f.close()
     
     
     parameters = {'filename' : os.path.split(filename)[1],
@@ -2391,9 +2302,8 @@ def loadNewRadFile(filename):
 
     fileheader = {}
 
-    f = open(filename)
+    with open(filename) as f:
     
-    try:
         for line in f:
 
             iq_match = iq_pattern.match(line)
@@ -2431,9 +2341,6 @@ def loadNewRadFile(filename):
                     fileheader[found[0]] = arr
                 else:
                     fileheader[found[0]] = ''
-
-    finally:
-        f.close()
     
     
     parameters = {'filename' : os.path.split(filename)[1],
@@ -2454,9 +2361,8 @@ def loadIntFile(filename):
     err = []
     parameters = {'filename' : os.path.split(filename)[1]}
     
-    f = open(filename)
-    all_lines = f.readlines()
-    f.close()
+    with open(filename) as f:
+        all_lines = f.readlines()
     
     for each_line in all_lines:
         split_line = each_line.split()
@@ -2485,9 +2391,8 @@ def loadCsvFile(filename):
     
     fileheader = {}
 
-    f = open(filename)
+    with open(filename) as f:
     
-    try:
         for line in f:
 
             iq_match = iq_pattern.match(line)
@@ -2517,8 +2422,6 @@ def loadCsvFile(filename):
                 
                     fileheader[found[0]] = val
                     
-    finally:
-        f.close()
 
     parameters = {'filename' : os.path.split(filename)[1],
                   'counters' : fileheader}
@@ -2537,9 +2440,8 @@ def load2ColFile(filename):
     err = []
     parameters = {'filename' : os.path.split(filename)[1]}
  
-    f = open(filename)
+    with open(filename) as f:
     
-    try:
         for line in f:
             iq_match = iq_pattern.match(line)
 
@@ -2548,8 +2450,6 @@ def load2ColFile(filename):
                 q.append(float(found[0]))
                 i.append(float(found[1]))
 #
-    finally:
-        f.close()
     
     i = np.array(i)
     q = np.array(q)
@@ -2558,98 +2458,7 @@ def load2ColFile(filename):
     return SASM.SASM(i, q, err, parameters)
 
 
-# def loadBiftFile(filename):
-    
-#     iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+[+-]*\d*[.]\d*[+Ee-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*\n')
-#     param_pattern = re.compile('[a-zA-Z0-9_]*\s*[:]\s+.*')
-    
-#     bift_param_pattern = re.compile('\s\s\s[a-zA-Z0-9_]*\s*[:]\s+.*')
-    
-#     iq_orig_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*\n')
 
-#     i = []
-#     q = []
-#     err = []
-    
-#     i_orig = []
-#     q_orig = []
-#     err_orig = []
-#     fit = []
-#     d = {}
-#     allData = {}
-     
-
-#     f = open(filename)
-    
-#     try:
-#         for line in f:
-
-#             iq_match = iq_pattern.match(line)
-#             param_match = param_pattern.match(line)
-#             iq_orig_match = iq_orig_pattern.match(line)
-#             bift_param_match = bift_param_pattern.match(line)
-
-#             if iq_match:
-#                 found = iq_match.group().split()
-#                 q.append(float(found[0]))
-#                 i.append(float(found[1]))
-#                 err.append(float(found[2]))
-                
-#             if iq_orig_match:
-#                 found = iq_orig_match.group().split()
-#                 q_orig.append(float(found[0]))
-#                 i_orig.append(float(found[1]))
-#                 err_orig.append(float(found[2]))
-#                 fit.append(float(found[3]))
-            
-#             if bift_param_match:
-#                 found = bift_param_match.group().split()
-                
-#                 try:
-#                     val = float(found[2])
-#                 except ValueError:
-#                     val = found[2]
-                
-#                 allData[found[0]] = val
-                
-                
-#             if param_match:
-#                 found = param_match.group().split()
-
-#                 if len(found) == 3:
-#                     try:
-#                         val = float(found[2])
-#                     except ValueError:
-#                         val = found[2]
-                
-#                     d[found[0]] = val
-                
-#                 elif len(found) > 3:
-#                     arr = []
-#                     for each in range(2,len(found)):
-#                         try:
-#                             val = float(found[each])
-#                         except ValueError:
-#                             val = found[each]
-                        
-#                         arr.append(val)
-                    
-#                     d[found[0]] = arr
-#                 else:
-#                     d[found[0]] = ''
-
-#     finally:
-#         f.close()
-    
-#     P = np.array(i)
-#     R = np.array(q)
-#     err = np.array(err)
-   
-#     allData['orig_q'] = q_orig
-#     allData['orig_i'] = i_orig
-#     allData['orig_err'] = err_orig
-
-#     return SASIft.IFTM(P, R, err, d, fit, allData)
 
 #####################################
 #--- ## Write RAW Generated Files: ##
@@ -2665,59 +2474,50 @@ def saveMeasurement(sasm, save_path, raw_settings, filetype = '.dat'):
     header_on_top = raw_settings.get('DatHeaderOnTop')
     
     if filetype == '.ift':
-        writeIftFile(sasm, os.path.join(save_path, filename + filetype))
+        try:
+            writeIftFile(sasm, os.path.join(save_path, filename + filetype))
+        except TypeError as e:
+            print 'Error in saveMeasurement, type: %s, error: %s' %(type(e).__name__, e)
+            print 'Resaving file without header'
+            print sasm.getAllParameters()
+            writeIftFile(sasm, os.path.join(save_path, filename + filetype), False)
+
+            raise SASExceptions.HeaderSaveError(e)
     elif filetype == '.out':
         writeOutFile(sasm, os.path.join(save_path, filename + filetype))
     else:
-        writeRadFile(sasm, os.path.join(save_path, filename + filetype), header_on_top)
+        try:
+            writeRadFile(sasm, os.path.join(save_path, filename + filetype), header_on_top)
+        except TypeError as e:
+            print 'Error in saveMeasurement, type: %s, error: %s' %(type(e).__name__, e)
+            print 'Resaving file without header'
+            print sasm.getAllParameters()
+            writeRadFile(sasm, os.path.join(save_path, filename + filetype), header_on_top, False)
+
+            raise SASExceptions.HeaderSaveError(e)
 
 
 def saveSECItem(save_path, secm_dict):
 
-    file = open(save_path, 'wb')
-
-    cPickle.dump(secm_dict, file, cPickle.HIGHEST_PROTOCOL)
-    
-    file.close()
+    with open(save_path, 'wb') as f:
+        cPickle.dump(secm_dict, f, cPickle.HIGHEST_PROTOCOL)
 
 
 def saveAnalysisCsvFile(sasm_list, include_data, save_path):
     
-    file = open(save_path, 'w')
+    with open(save_path, 'w') as file:
     
-    if len(sasm_list) == 0:
-        return None
-    
-    date = time.ctime()
-    
-    #Write the first line in the csv: 
-    file.write('RAW ANALYSIS DATA\n')
-    file.write(str(date) + '\n')
-    file.write('Filename')
-    
-    all_included_keys = sorted(include_data.keys())
-    
-    for each_data in all_included_keys:
-        var = include_data[each_data][0]
-        key = include_data[each_data][1]
-        try:
-            key2 = include_data[each_data][2]
-        except:
-            key2=None
+        if len(sasm_list) == 0:
+            return None
         
-        if key2:
-            line = ',' + str(key)+'_'+str(key2)
-        else:
-            line = ',' + str(key)
-        file.write(line)
-    
-    file.write('\n')
+        date = time.ctime()
         
-    for each_sasm in sasm_list:
+        #Write the first line in the csv: 
+        file.write('RAW ANALYSIS DATA\n')
+        file.write(str(date) + '\n')
+        file.write('Filename')
         
-        parameters = each_sasm.getAllParameters()
-        
-        file.write(each_sasm.getParameter('filename'))
+        all_included_keys = sorted(include_data.keys())
         
         for each_data in all_included_keys:
             var = include_data[each_data][0]
@@ -2727,303 +2527,318 @@ def saveAnalysisCsvFile(sasm_list, include_data, save_path):
             except:
                 key2=None
             
-            file.write(',')
+            if key2:
+                line = ',' + str(key)+'_'+str(key2)
+            else:
+                line = ',' + str(key)
+            file.write(line)
+        
+        file.write('\n')
             
-            if var == 'general':
-                if parameters.has_key(key):
-                    file.write('"' + str(each_sasm.getParameter(key)) + '"')
-                elif key == 'scale':
-                    file.write('"' + str(each_sasm.getScale()) + '"')
-                elif key == 'offset':
-                    file.write('"' + str(each_sasm.getOffset()) + '"')
+        for each_sasm in sasm_list:
+            
+            parameters = each_sasm.getAllParameters()
+            
+            file.write(each_sasm.getParameter('filename'))
+            
+            for each_data in all_included_keys:
+                var = include_data[each_data][0]
+                key = include_data[each_data][1]
+                try:
+                    key2 = include_data[each_data][2]
+                except:
+                    key2=None
                 
-            
-            elif var == 'imageHeader':
-                if parameters.has_key('imageHeader'):
-                    img_hdr = each_sasm.getParameter('imageHeader')
-                    if img_hdr.has_key(key):
-                        file.write(str(img_hdr[key]))
+                file.write(',')
+                
+                if var == 'general':
+                    if parameters.has_key(key):
+                        file.write('"' + str(each_sasm.getParameter(key)) + '"')
+                    elif key == 'scale':
+                        file.write('"' + str(each_sasm.getScale()) + '"')
+                    elif key == 'offset':
+                        file.write('"' + str(each_sasm.getOffset()) + '"')
+                    
+                
+                elif var == 'imageHeader':
+                    if parameters.has_key('imageHeader'):
+                        img_hdr = each_sasm.getParameter('imageHeader')
+                        if img_hdr.has_key(key):
+                            file.write(str(img_hdr[key]))
+                        else:
+                            file.write(' ')
                     else:
-                        file.write(' ')
-                else:
-                        file.write(' ')
-            
-            elif var == 'counters':
-                if parameters.has_key('counters'):
-                    file_hdr = each_sasm.getParameter('counters')
-                    if file_hdr.has_key(key):
-                        file.write(str(file_hdr[key]))
-                    else:
-                        file.write(' ')
-                else:
-                    file.write(' ')
-                    
-                    
-            elif var == 'guinier':
-                if parameters.has_key('analysis'):
-                    analysis_dict = each_sasm.getParameter('analysis')
-                    
-                    if analysis_dict.has_key('guinier'):
-                        guinier = analysis_dict['guinier']
-                    
-                        if guinier.has_key(key):
-                            file.write(str(guinier[key]))
+                            file.write(' ')
+                
+                elif var == 'counters':
+                    if parameters.has_key('counters'):
+                        file_hdr = each_sasm.getParameter('counters')
+                        if file_hdr.has_key(key):
+                            file.write(str(file_hdr[key]))
                         else:
                             file.write(' ')
                     else:
                         file.write(' ')
-                else:
-                    file.write(' ')
-
-            elif var == 'molecularWeight':
-                if parameters.has_key('analysis'):
-                    analysis_dict = each_sasm.getParameter('analysis')
-                    
-                    if analysis_dict.has_key('molecularWeight'):
-                        mw = analysis_dict['molecularWeight']
-                    
-                        if mw.has_key(key):
-                            file.write(str(mw[key][key2]))
+                        
+                        
+                elif var == 'guinier':
+                    if parameters.has_key('analysis'):
+                        analysis_dict = each_sasm.getParameter('analysis')
+                        
+                        if analysis_dict.has_key('guinier'):
+                            guinier = analysis_dict['guinier']
+                        
+                            if guinier.has_key(key):
+                                file.write(str(guinier[key]))
+                            else:
+                                file.write(' ')
                         else:
                             file.write(' ')
                     else:
                         file.write(' ')
-                else:
-                    file.write(' ')
 
-            elif var =='GNOM':
-                if parameters.has_key('analysis'):
-                    analysis_dict = each_sasm.getParameter('analysis')
-
-                    if analysis_dict.has_key('GNOM'):
-                        gnom = analysis_dict['GNOM']
-
-                        if gnom.has_key(key):
-                            file.write(str(gnom[key]))
+                elif var == 'molecularWeight':
+                    if parameters.has_key('analysis'):
+                        analysis_dict = each_sasm.getParameter('analysis')
+                        
+                        if analysis_dict.has_key('molecularWeight'):
+                            mw = analysis_dict['molecularWeight']
+                        
+                            if mw.has_key(key):
+                                file.write(str(mw[key][key2]))
+                            else:
+                                file.write(' ')
                         else:
                             file.write(' ')
                     else:
                         file.write(' ')
-                else:
-                    file.write(' ')
 
-            elif var == 'BIFT':
-                if parameters.has_key('analysis'):
-                    analysis_dict = each_sasm.getParameter('analysis')
+                elif var =='GNOM':
+                    if parameters.has_key('analysis'):
+                        analysis_dict = each_sasm.getParameter('analysis')
 
-                    if analysis_dict.has_key('BIFT'):
-                        bift = analysis_dict['BIFT']
+                        if analysis_dict.has_key('GNOM'):
+                            gnom = analysis_dict['GNOM']
 
-                        if bift.has_key(key):
-                            file.write(str(bift[key]))
+                            if gnom.has_key(key):
+                                file.write(str(gnom[key]))
+                            else:
+                                file.write(' ')
                         else:
                             file.write(' ')
                     else:
                         file.write(' ')
-                else:
-                    file.write(' ')
-            
-            
-        file.write('\n')   
-            
-    file.close()
+
+                elif var == 'BIFT':
+                    if parameters.has_key('analysis'):
+                        analysis_dict = each_sasm.getParameter('analysis')
+
+                        if analysis_dict.has_key('BIFT'):
+                            bift = analysis_dict['BIFT']
+
+                            if bift.has_key(key):
+                                file.write(str(bift[key]))
+                            else:
+                                file.write(' ')
+                        else:
+                            file.write(' ')
+                    else:
+                        file.write(' ')
+                
+                
+            file.write('\n')   
     
     return True
 
 def saveAllAnalysisData(save_path, sasm_list, delim=','):
     #Exports all analysis data from multiple sasm objects into delimited form. Default is space delimited
-    f=open(save_path, 'w')
+    with open(save_path, 'w') as f:
 
-    date = time.ctime()
-    
-    #Write the first lines in the file: 
-    f.write('RAW_ANALYSIS_DATA\n')
-    f.write(str(date).replace(' ', '_') + '\n')
-    header_list = ['Filename', 'Concentration']
+        date = time.ctime()
+        
+        #Write the first lines in the file: 
+        f.write('RAW_ANALYSIS_DATA\n')
+        f.write(str(date).replace(' ', '_') + '\n')
+        header_list = ['Filename', 'Concentration']
 
-    for sasm in sasm_list:
-        analysis = sasm.getParameter('analysis')
+        for sasm in sasm_list:
+            analysis = sasm.getParameter('analysis')
 
-        analysis_done = analysis.keys()
+            analysis_done = analysis.keys()
 
-        if 'guinier' in analysis_done and 'Guinier_Rg' not in header_list:
-            for key in sorted(analysis['guinier'].keys()):
-                header_list.append('Guinier_'+key)
+            if 'guinier' in analysis_done and 'Guinier_Rg' not in header_list:
+                for key in sorted(analysis['guinier'].keys()):
+                    header_list.append('Guinier_'+key)
 
-        if 'molecularWeight' in analysis_done and 'VolumeOfCorrelation_MW_(kDa)' not in header_list:
-            for key in sorted(analysis['molecularWeight'].keys()):
-                for subkey in sorted(analysis['molecularWeight'][key].keys()):
-                    if subkey.endswith('MW'):
-                        header_list.append(key+'_'+subkey+'_(kDa)')
-                    elif subkey.endswith('VPorod') or subkey.endswith('VPorod_Corrected'):
-                        header_list.append(key+'_'+subkey+'_(A^3)')
-                    elif subkey.endswith('Vc'):
-                        header_list.append(key+'_'+subkey+'_(A^2)')
-                    else:
-                        header_list.append(key+'_'+subkey)
+            if 'molecularWeight' in analysis_done and 'VolumeOfCorrelation_MW_(kDa)' not in header_list:
+                for key in sorted(analysis['molecularWeight'].keys()):
+                    for subkey in sorted(analysis['molecularWeight'][key].keys()):
+                        if subkey.endswith('MW'):
+                            header_list.append(key+'_'+subkey+'_(kDa)')
+                        elif subkey.endswith('VPorod') or subkey.endswith('VPorod_Corrected'):
+                            header_list.append(key+'_'+subkey+'_(A^3)')
+                        elif subkey.endswith('Vc'):
+                            header_list.append(key+'_'+subkey+'_(A^2)')
+                        else:
+                            header_list.append(key+'_'+subkey)
 
-        if 'GNOM' in analysis_done and 'GNOM_Dmax' not in header_list:
-            for key in sorted(analysis['GNOM'].keys()):
-                header_list.append('GNOM_'+key)
+            if 'GNOM' in analysis_done and 'GNOM_Dmax' not in header_list:
+                for key in sorted(analysis['GNOM'].keys()):
+                    header_list.append('GNOM_'+key)
 
-        if 'BIFT' in analysis_done and 'BIFT_Dmax' not in header_list:
-            for key in sorted(analysis['BIFT'].keys()):
-                header_list.append('BIFT_'+key)
-
-
-    f.write(delim.join(header_list)+'\n')
+            if 'BIFT' in analysis_done and 'BIFT_Dmax' not in header_list:
+                for key in sorted(analysis['BIFT'].keys()):
+                    header_list.append('BIFT_'+key)
 
 
-    for sasm in sasm_list:
-        analysis = sasm.getParameter('analysis')
-
-        all_params = sasm.getAllParameters()
-
-        analysis_done = analysis.keys()
-
-        if 'guinier' in analysis_done:
-            has_guinier = True
-        else:
-            has_guinier = False
-
-        if 'molecularWeight' in analysis_done:
-            has_mw = True
-        else: 
-            has_mw = False
-
-        if 'GNOM' in analysis_done:
-            has_gnom = True
-        else:
-            has_gnom = False
-
-        if 'BIFT' in analysis_done:
-            has_bift = True
-        else:
-            has_bift = False
-
-        data_list = []
-
-        for header in header_list:
-            if header == 'Filename':
-                data_list.append(sasm.getParameter('filename'))
-
-            elif header == 'Concentration':
-                if 'Conc' in all_params.keys():
-                    data_list.append(str(all_params['Conc']))
-                else:
-                    data_list.append('')
-
-            
-            elif header.startswith('Guinier'):
-                temp = header.split('_')
-                if len(temp[1:])>1:
-                    key = '_'.join(temp[1:])
-                else:
-                    key = temp[1]
-
-                if has_guinier:
-                    data_list.append(str(analysis['guinier'][key]))
-                else:
-                    data_list.append('N/A')
-
-            
-            elif header.startswith('Absolute') or header.startswith('I(0)Concentration') or header.startswith('PorodVolume') or header.startswith('VolumeOfCorrelation'):
-                temp = header.split('_')
-                key1 = temp[0]
-                if len(temp[1:])>1:
-                    if temp[-1].endswith(')'):
-                        key2 = '_'.join(temp[1:-1])
-                    else:
-                        key2 = '_'.join(temp[1:])
-                else:
-                    key2 = temp[1]
-
-                if has_mw:
-                    data_list.append(str(analysis['molecularWeight'][key1][key2]))
-                else:
-                    data_list.append('N/A')
-
-            
-            elif header.startswith('GNOM'):
-                temp = header.split('_')
-                if len(temp[1:])>1:
-                    key = '_'.join(temp[1:])
-                else:
-                    key = temp[1]
-
-                if has_gnom:
-                    data_list.append(str(analysis['GNOM'][key]))
-                else:
-                    data_list.append('N/A')
+        f.write(delim.join(header_list)+'\n')
 
 
-            elif header.startswith('BIFT'):
-                temp = header.split('_')
-                if len(temp[1:])>1:
-                    key = '_'.join(temp[1:])
-                else:
-                    key = temp[1]
+        for sasm in sasm_list:
+            analysis = sasm.getParameter('analysis')
 
-                if has_bift:
-                    data_list.append(str(analysis['BIFT'][key]))
-                else:
-                    data_list.append('N/A')
+            all_params = sasm.getAllParameters()
 
+            analysis_done = analysis.keys()
 
+            if 'guinier' in analysis_done:
+                has_guinier = True
             else:
-                data_list.append('N/A')
+                has_guinier = False
 
-        f.write(delim.join(data_list)+'\n')
-            
-    f.close()
+            if 'molecularWeight' in analysis_done:
+                has_mw = True
+            else: 
+                has_mw = False
+
+            if 'GNOM' in analysis_done:
+                has_gnom = True
+            else:
+                has_gnom = False
+
+            if 'BIFT' in analysis_done:
+                has_bift = True
+            else:
+                has_bift = False
+
+            data_list = []
+
+            for header in header_list:
+                if header == 'Filename':
+                    data_list.append(sasm.getParameter('filename'))
+
+                elif header == 'Concentration':
+                    if 'Conc' in all_params.keys():
+                        data_list.append(str(all_params['Conc']))
+                    else:
+                        data_list.append('')
+
+                
+                elif header.startswith('Guinier'):
+                    temp = header.split('_')
+                    if len(temp[1:])>1:
+                        key = '_'.join(temp[1:])
+                    else:
+                        key = temp[1]
+
+                    if has_guinier:
+                        data_list.append(str(analysis['guinier'][key]))
+                    else:
+                        data_list.append('N/A')
+
+                
+                elif header.startswith('Absolute') or header.startswith('I(0)Concentration') or header.startswith('PorodVolume') or header.startswith('VolumeOfCorrelation'):
+                    temp = header.split('_')
+                    key1 = temp[0]
+                    if len(temp[1:])>1:
+                        if temp[-1].endswith(')'):
+                            key2 = '_'.join(temp[1:-1])
+                        else:
+                            key2 = '_'.join(temp[1:])
+                    else:
+                        key2 = temp[1]
+
+                    if has_mw:
+                        data_list.append(str(analysis['molecularWeight'][key1][key2]))
+                    else:
+                        data_list.append('N/A')
+
+                
+                elif header.startswith('GNOM'):
+                    temp = header.split('_')
+                    if len(temp[1:])>1:
+                        key = '_'.join(temp[1:])
+                    else:
+                        key = temp[1]
+
+                    if has_gnom:
+                        data_list.append(str(analysis['GNOM'][key]))
+                    else:
+                        data_list.append('N/A')
+
+
+                elif header.startswith('BIFT'):
+                    temp = header.split('_')
+                    if len(temp[1:])>1:
+                        key = '_'.join(temp[1:])
+                    else:
+                        key = temp[1]
+
+                    if has_bift:
+                        data_list.append(str(analysis['BIFT'][key]))
+                    else:
+                        data_list.append('N/A')
+
+
+                else:
+                    data_list.append('N/A')
+
+            f.write(delim.join(data_list)+'\n')
 
 def saveSECData(save_path, selected_secm, delim=','):
     #Exports the data from a SEC object into delimited form. Default is space delimited
-    f=open(save_path, 'w')
+    with open(save_path, 'w') as f:
 
-    if selected_secm.qref != 0:
-        saveq=True
-    else:
-        saveq=False
+        if selected_secm.qref != 0:
+            saveq=True
+        else:
+            saveq=False
 
-    time = selected_secm.getTime()
+        time = selected_secm.getTime()
 
-    if len(time)>0 and time[0] != -1 and len(time) == len(selected_secm.frame_list):
-        savetime = True
-    else:
-        savetime = False
+        if len(time)>0 and time[0] != -1 and len(time) == len(selected_secm.frame_list):
+            savetime = True
+        else:
+            savetime = False
 
-    savecalc = selected_secm.calc_has_data
+        savecalc = selected_secm.calc_has_data
 
 
-    f.write('Frame_#%sIntegrated_Intensity%sMean_Intensity%s' %(delim, delim, delim))
-    if saveq:
-        f.write('I_at_q=%f%s' %(selected_secm.qref, delim))
-    if savetime:
-        f.write('Time_(s)%s' %(delim))
-    if savecalc:
-        f.write('Rg_(A)%sRger_(A)%sI0%sI0er%sMW_(kDa)%s' %(delim, delim, delim, delim, delim))
-    f.write('File_Name\n')
-
-    for a in range(len(selected_secm._sasm_list)):
-        f.write('%i%s%f%s%f%s' %(selected_secm.frame_list[a], delim, selected_secm.total_i[a], delim, selected_secm.mean_i[a], delim))
+        f.write('Frame_#%sIntegrated_Intensity%sMean_Intensity%s' %(delim, delim, delim))
         if saveq:
-            f.write('%f%s' %(selected_secm.I_of_q[a], delim))
+            f.write('I_at_q=%f%s' %(selected_secm.qref, delim))
         if savetime:
-            f.write('%f%s' %(time[a], delim))
+            f.write('Time_(s)%s' %(delim))
         if savecalc:
-            f.write('%f%s%f%s%f%s%f%s%f%s' %(selected_secm.rg_list[a], delim, selected_secm.rger_list[a], delim, selected_secm.i0_list[a], delim, selected_secm.i0er_list[a], delim, selected_secm.mw_list[a], delim))
-        f.write('%s\n' %(selected_secm._file_list[a].split('/')[-1]))
-            
-    f.close()
+            f.write('Rg_(A)%sRger_(A)%sI0%sI0er%sMW_(kDa)%s' %(delim, delim, delim, delim, delim))
+        f.write('File_Name\n')
+
+        for a in range(len(selected_secm._sasm_list)):
+            f.write('%i%s%f%s%f%s' %(selected_secm.frame_list[a], delim, selected_secm.total_i[a], delim, selected_secm.mean_i[a], delim))
+            if saveq:
+                f.write('%f%s' %(selected_secm.I_of_q[a], delim))
+            if savetime:
+                f.write('%f%s' %(time[a], delim))
+            if savecalc:
+                f.write('%f%s%f%s%f%s%f%s%f%s' %(selected_secm.rg_list[a], delim, selected_secm.rger_list[a], delim, selected_secm.i0_list[a], delim, selected_secm.i0er_list[a], delim, selected_secm.mw_list[a], delim))
+            f.write('%s\n' %(selected_secm._file_list[a].split('/')[-1]))
+
     
 def saveWorkspace(sasm_dict, save_path):
 
-    file = open(save_path, 'wb')
+    with open(save_path, 'wb') as f:
 
-    cPickle.dump(sasm_dict, file, cPickle.HIGHEST_PROTOCOL)
-    
-    file.close()
+        cPickle.dump(sasm_dict, f, cPickle.HIGHEST_PROTOCOL)
 
 
 def saveCSVFile(filename, data, header = ''):
@@ -3179,18 +2994,16 @@ def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
     
 def loadWorkspace(load_path):
     
-    file = open(load_path, 'r')
+    with open(load_path, 'r') as file:
 
-    try:
-        sasm_dict = cPickle.load(file)
-    except (ImportError, EOFError), e:
-        print e
-        print 'Error loading wsp file, trying different method.'
-        file.close()
-        file = open(load_path, 'rb')
-        sasm_dict = cPickle.load(file)
-    finally:
-        file.close()
+        try:
+            sasm_dict = cPickle.load(file)
+        except (ImportError, EOFError), e:
+            print e
+            print 'Error loading wsp file, trying different method.'
+            file.close()
+            file = open(load_path, 'rb')
+            sasm_dict = cPickle.load(file)
     
     return sasm_dict
 
@@ -3210,34 +3023,36 @@ def writeHeader(d, f2, ignore_list = []):
     f2.write('\n\n')
     
 
-def writeRadFile(m, filename, header_on_top = True):
+def writeRadFile(m, filename, header_on_top = True, use_header = True):
     ''' Writes an ASCII file from a measurement object, using the RAD format '''
     
-    d = m.getAllParameters()
+    if use_header:
+        d = m.getAllParameters()
+    else:
+        d = {}
     
-    f2 = open(filename, 'w')
+    with open(filename, 'w') as f2:
     
-    if header_on_top == True:
-        writeHeader(d, f2)
-    
-    q_min, q_max = m.getQrange()
-
-    f2.write('### DATA:\n\n')
-    f2.write('         Q               I              Error\n')
-    f2.write('%d\n' % len(m.i[q_min:q_max]))
+        if header_on_top == True:
+            writeHeader(d, f2)
         
-    fit = np.zeros(np.size(m.q))
-    
-    for idx in range(q_min, q_max):
-        line = ('%.8E %.8E %.8E\n') % ( m.q[idx], m.i[idx], m.err[idx])
-        f2.write(line)
-    
-    f2.write('\n')
-    if header_on_top == False:
+        q_min, q_max = m.getQrange()
+
+        f2.write('### DATA:\n\n')
+        f2.write('         Q               I              Error\n')
+        f2.write('%d\n' % len(m.i[q_min:q_max]))
+            
+        fit = np.zeros(np.size(m.q))
+        
+        for idx in range(q_min, q_max):
+            line = ('%.8E %.8E %.8E\n') % ( m.q[idx], m.i[idx], m.err[idx])
+            f2.write(line)
+        
         f2.write('\n')
-        writeHeader(d, f2)
-     
-    f2.close()
+        if header_on_top == False:
+            f2.write('\n')
+            writeHeader(d, f2)
+
 
 def printDict(d, each):
 
@@ -3245,44 +3060,46 @@ def printDict(d, each):
     
     return tmpline
 
-def writeIftFile(m, filename):
+def writeIftFile(m, filename, use_header = True):
     ''' Writes an ASCII file from an IFT measurement object created by BIFT'''
     
-    d = m.getAllParameters()
-    f2 = open(filename, 'w')
-    no_path_filename = m.getParameter('filename')
-    
-    f2.write('BIFT\n')
-    f2.write('Filename: ' + no_path_filename + '\n\n' )
-    f2.write('         R            P(R)             Error\n')
-    
-    for idx in range(0,len(m.p)):
-        line = ('%.8E %.8E %.8E\n') %( m.r[idx], m.p[idx], m.err[idx])
-        f2.write(line)
-    
-    f2.write('\n\n')
-     
-     
-    bift_info = m.getParameter('bift_info')
-    
-    orig_q = m.q_orig
-    orig_i = m.i_orig
-    orig_err = m.err_orig
-    fit = m.i_fit
-     
-    f2.write('            Q              I(q)             Error          Fit\n')
-    for idx in range(0,len(orig_q)):
-        line = ('%.8E %.8E %.8E %.8E\n') %( orig_q[idx], orig_i[idx], orig_err[idx], fit[idx])
-        f2.write(line)
-    
-    f2.write('\n')
-    
-    ignore_list = ['all_posteriors', 'alpha_points', 'fit', 'orig_i', 'orig_q',
-                   'orig_err', 'dmax_points', 'orig_sasm', 'fit_sasm']
-    
-    writeHeader(d, f2, ignore_list)
-    
-    f2.close()
+    if use_header:
+        d = m.getAllParameters()
+    else:
+        d = {}
+
+    with open(filename, 'w') as f2:
+        no_path_filename = m.getParameter('filename')
+        
+        f2.write('BIFT\n')
+        f2.write('Filename: ' + no_path_filename + '\n\n' )
+        f2.write('         R            P(R)             Error\n')
+        
+        for idx in range(0,len(m.p)):
+            line = ('%.8E %.8E %.8E\n') %( m.r[idx], m.p[idx], m.err[idx])
+            f2.write(line)
+        
+        f2.write('\n\n')
+         
+         
+        bift_info = m.getParameter('bift_info')
+        
+        orig_q = m.q_orig
+        orig_i = m.i_orig
+        orig_err = m.err_orig
+        fit = m.i_fit
+         
+        f2.write('            Q              I(q)             Error          Fit\n')
+        for idx in range(0,len(orig_q)):
+            line = ('%.8E %.8E %.8E %.8E\n') %( orig_q[idx], orig_i[idx], orig_err[idx], fit[idx])
+            f2.write(line)
+        
+        f2.write('\n')
+        
+        ignore_list = ['all_posteriors', 'alpha_points', 'fit', 'orig_i', 'orig_q',
+                       'orig_err', 'dmax_points', 'orig_sasm', 'fit_sasm']
+        
+        writeHeader(d, f2, ignore_list)
     
 
 def writeOutFile(m, filename):
@@ -3290,12 +3107,10 @@ def writeOutFile(m, filename):
     
     outfile = outfile = m.getParameter('out')
 
-    f = open(filename, 'w')
+    with open(filename, 'w') as f:
 
-    for line in outfile:
-        f.write(line)
-
-    f.close()
+        for line in outfile:
+            f.write(line)
      
 
 
@@ -3303,18 +3118,13 @@ def checkFileType(filename):
     ''' Tries to find out what file type it is and reports it back '''
     
     try:
-        f = open(filename, "rb")              # Open in binary mode for portability
+        with open(filename, "rb") as f:           # Open in binary mode for portability
+            try:
+                type_tst = SASMarHeaderReader.stringvar(SASMarHeaderReader.fread(f,'cc'))
+            except:
+                raise Exception('Reading a byte of file ' + filename + ' failed..')
     except IOError:
         raise Exception('Reading file ' + filename + ' failed..')
-    
-    #Read first byte off file:
-    try:
-        type_tst = SASMarHeaderReader.stringvar(SASMarHeaderReader.fread(f,'cc'))
-    except:
-        f.close()
-        raise Exception('Reading a byte of file ' + filename + ' failed..')
-        
-    f.close()
     
     path, ext = os.path.splitext(filename)
 

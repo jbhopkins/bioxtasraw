@@ -3135,22 +3135,26 @@ class MainWorkerThread(threading.Thread):
         
         if type == 'average':
             wx.CallAfter(wx.MessageBox, 'Please select the items you want to average.\n\nYou can select multiple items by holding down the CTRL or SHIFT key.' , 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
-        if type == 'subtract': 
+        elif type == 'subtract': 
             wx.CallAfter(wx.MessageBox, 'Please select the items you want the marked (star) item subtracted from.'+
                               '\nUse CTRL or SHIFT to select multiple items.', 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
-        if type == 'superimpose':
+        elif type == 'superimpose':
             wx.CallAfter(wx.MessageBox, 'Please select the items you want to superimpose.\n\nYou can select multiple items by holding down the CTRL or SHIFT key.' , 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)            
            
     def _showPleaseMarkItemError(self, type):
         
         if type == 'subtract':
             wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you are using for subtraction', 'No item marked', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
-        if type == 'merge':
+        elif type == 'merge':
             wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you are using as the main curve for merging', 'No item marked', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
-        if type == 'superimpose':
+        elif type == 'superimpose':
             wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you want to superimpose to.', 'No item marked', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
-        if type == 'interpolate':
+        elif type == 'interpolate':
             wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you are using as the main curve for interpolation', 'No item marked', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+
+    def _showSaveError(self, err_type):
+        if err_type == 'header':
+            wx.CallAfter(wx.MessageBox, 'Header values could not be saved, file was saved without them.', 'Invalid Header Values', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
             
     def _showQvectorsNotEqualWarning(self, sasm, sub_sasm):
         
@@ -3285,7 +3289,11 @@ class MainWorkerThread(threading.Thread):
                             final_save_path = save_path
                         
                         if img is not None:
-                            SASFileIO.saveMeasurement(sasm, final_save_path, self._raw_settings)
+                            try:
+                                SASFileIO.saveMeasurement(sasm, final_save_path, self._raw_settings)
+                            except SASExceptions.HeaderSaveError as e:
+                                self._showSaveError('header')
+
                             processed_files += 1
                         else:
                             self._showDataFormatError(os.path.split(each_filename)[1], include_ascii = False)
@@ -3302,7 +3310,11 @@ class MainWorkerThread(threading.Thread):
                     sasm.setQrange(qrange)
                     
                     if img is not None:
-                        SASFileIO.saveMeasurement(sasm, save_path, self._raw_settings)
+                        try:
+                            SASFileIO.saveMeasurement(sasm, save_path, self._raw_settings)
+                        except SASExceptions.HeaderSaveError as e:
+                            self._showSaveError('header')
+
                         processed_files += 1
                     else:
                         self._showDataFormatError(os.path.split(each_filename)[1], include_ascii = False)
@@ -3630,7 +3642,10 @@ class MainWorkerThread(threading.Thread):
         file_exists = os.path.isfile(filepath)
         filepath = save_path
         
-        SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+        try:
+            SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+        except SASExceptions.HeaderSaveError as e:
+            self._showSaveError('header')
 
         if restart_timer:
             self.main_frame.OnlineControl.updateSkipList([check_filename])
@@ -3663,8 +3678,10 @@ class MainWorkerThread(threading.Thread):
         file_exists = os.path.isfile(filepath)
         filepath = save_path
             
-        
-        SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+        try:
+            SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+        except SASExceptions.HeaderSaveError as e:
+            self._showSaveError('header')
                     
 
         if restart_timer:
@@ -4131,7 +4148,10 @@ class MainWorkerThread(threading.Thread):
                         sasm.setParameter('filename', new_filename)
                         
                     if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
-                        SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+                        try:
+                            SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+                        except SASExceptions.HeaderSaveError as e:
+                            self._showSaveError('header')
                         filename, ext = os.path.splitext(sasm.getParameter('filename'))
                         sasm.setParameter('filename', filename + newext)
                         # wx.CallAfter(sasm.item_panel.updateFilenameLabel)
@@ -4144,7 +4164,10 @@ class MainWorkerThread(threading.Thread):
                         no_to_all = True
                 
             else:
-                SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+                try:
+                    SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+                except SASExceptions.HeaderSaveError as e:
+                    self._showSaveError('header')
                 filename, ext = os.path.splitext(sasm.getParameter('filename'))
                 sasm.setParameter('filename', filename + newext)
                 # wx.CallAfter(sasm.item_panel.updateFilenameLabel)
@@ -4232,7 +4255,10 @@ class MainWorkerThread(threading.Thread):
                         sasm.setParameter('filename', new_filename)
                         
                     if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
-                        SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+                        try:
+                            SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+                        except SASExceptions.HeaderSaveError as e:
+                            self._showSaveError('header')
                         filename, ext = os.path.splitext(sasm.getParameter('filename'))
                         sasm.setParameter('filename', filename + newext)
                         wx.CallAfter(sasm.item_panel.updateFilenameLabel)
@@ -4245,7 +4271,10 @@ class MainWorkerThread(threading.Thread):
                         no_to_all = True
                 
             else:
-                SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+                try:
+                    SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+                except SASExceptions.HeaderSaveError as e:
+                    self._showSaveError('header')
                 filename, ext = os.path.splitext(sasm.getParameter('filename'))
                 sasm.setParameter('filename', filename + newext)
                 wx.CallAfter(sasm.item_panel.updateFilenameLabel)

@@ -912,9 +912,7 @@ def runAmbimeter(fname, prefix, args):
     else:
         ambimeterDir = os.path.join(atsasDir, 'ambimeter')
     
-
     if os.path.exists(ambimeterDir):
-
         command = '%s --srg=%s --prefix=%s --files=%s %s' %(ambimeterDir, args['sRg'], prefix, args['files'], fname)
         process=subprocess.Popen(command, shell= True, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 
@@ -925,7 +923,7 @@ def runAmbimeter(fname, prefix, args):
                 return None
 
         output, error = process.communicate()
-        
+
         lines = output.split('\n')
         ambiCats = lines[0].split(':')[-1].strip()
         ambiScore = lines[1].split(':')[-1].strip()

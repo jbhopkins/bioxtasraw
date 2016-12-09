@@ -2171,7 +2171,10 @@ class GNOMFrame(wx.Frame):
             else:
                 restart_timer = False
 
-            SASFileIO.saveMeasurement(save_sasm, path, self._raw_settings, filetype = '.dat')
+            try:
+                SASFileIO.saveMeasurement(save_sasm, path, self._raw_settings, filetype = '.dat')
+            except SASExceptions.HeaderSaveError as e:
+                self._showSaveError('header')
             
             os.chdir(path)
 
@@ -2705,7 +2708,10 @@ class GNOMControlPanel(wx.Panel):
         else:
             restart_timer = False
 
-        SASFileIO.saveMeasurement(save_sasm, path, self.raw_settings, filetype = '.dat')
+        try:
+            SASFileIO.saveMeasurement(save_sasm, path, self.raw_settings, filetype = '.dat')
+        except SASExceptions.HeaderSaveError as e:
+            self._showSaveError('header')
         
         os.chdir(path)
 
@@ -3054,8 +3060,10 @@ class GNOMControlPanel(wx.Panel):
         else:
             restart_timer = False
 
-
-        SASFileIO.saveMeasurement(save_sasm, path, self.raw_settings, filetype = '.dat')
+        try:
+            SASFileIO.saveMeasurement(save_sasm, path, self.raw_settings, filetype = '.dat')
+        except SASExceptions.HeaderSaveError as e:
+            self._showSaveError('header')
         
 
         os.chdir(path)
@@ -5058,7 +5066,7 @@ class AmbimeterFrame(wx.Frame):
 
     def _initSettings(self):
         fname_window = wx.FindWindowById(self.ids['input'])
-        fname_window.SetValue(self.iftm.getParameter('filename'))
+        fname_window.SetValue(self.iftm.getParameter('filename').replace(' ','_'))
 
         rg_window = wx.FindWindowById(self.ids['rg'])
         rg_window.SetValue(str(self.iftm.getParameter('rg')))
@@ -5113,7 +5121,7 @@ class AmbimeterFrame(wx.Frame):
         SASFileIO.writeOutFile(self.iftm, os.path.join(self.ambi_settings['path'], outname))
 
         try:
-            output = SASCalc.runAmbimeter(outname, self.ambi_settings['prefix'], self.ambi_settings)
+            output = SASCalc.runAmbimeter(outname, self.ambi_settings['prefix'].replace(' ','_'), self.ambi_settings)
 
         except SASExceptions.NoATSASError as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running Ambimeter', style = wx.ICON_ERROR | wx.OK)
