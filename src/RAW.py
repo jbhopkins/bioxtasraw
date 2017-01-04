@@ -1951,7 +1951,7 @@ class MainWorkerThread(threading.Thread):
             
             img, imghdr = SASFileIO.loadImage(filename, img_fmt)
             
-            if img == None:
+            if img[-1] == None:
                 raise SASExceptions.WrongImageFormat('not a valid file!')
                 
         except Exception, e:
@@ -1959,11 +1959,11 @@ class MainWorkerThread(threading.Thread):
             return 
         
         parameters = {'filename' : os.path.split(filename)[1],
-                      'imageHeader' : imghdr}
+                      'imageHeader' : imghdr[-1]}
         
         bogus_sasm = SASM.SASM([0,1], [0,1], [0,1], parameters)
         
-        self._sendImageToDisplay(img, bogus_sasm)
+        self._sendImageToDisplay(img[-1], bogus_sasm)
         
     
     def _sendIFTMToPlot(self, iftm, item_colour = 'black', line_color = None, no_update = False, update_legend = False, notsaved = False):
@@ -2060,6 +2060,18 @@ class MainWorkerThread(threading.Thread):
             water_sasm, img = SASFileIO.loadFile(filename, self._raw_settings, no_processing = True)
             filename = empty_filename
             empty_sasm, img = SASFileIO.loadFile(filename, self._raw_settings, no_processing = True)
+
+            if type(water_sasm) == list:
+                if len(water_sasm) == 1:
+                    water_sasm = water_sasm[0]
+                else:
+                    water_sasm = SASM.average(water_sasm)
+
+            if type(empty_sasm) == list:
+                if len(empty_sasm) == 1:
+                    empty_sasm = empty_sasm[0]
+                else:
+                    empty_sasm = SASM.average(empty_sasm)
                         
             abs_scale_constant = SASM.calcAbsoluteScaleWaterConst(water_sasm, empty_sasm, waterI0, self._raw_settings)
         except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
@@ -2262,8 +2274,14 @@ class MainWorkerThread(threading.Thread):
                         # print start_point
                         end_point = self._raw_settings.get('EndPoint')
                         # print end_point
-                        qrange = (start_point, len(sasm.getBinnedQ())-end_point)
-                        sasm.setQrange(qrange)
+
+                        if type(sasm) != list:
+                            qrange = (start_point, len(sasm.getBinnedQ())-end_point)
+                            sasm.setQrange(qrange)
+                        else:
+                            qrange = (start_point, len(sasm[0].getBinnedQ())-end_point)
+                            for each_sasm in sasm:
+                                each_sasm.setQrange(qrange)
 
                     if type(sasm) == list:
                         sasm_list.extend(sasm)
@@ -2324,7 +2342,10 @@ class MainWorkerThread(threading.Thread):
             return
             
         if len(filename_list) == 1 and  img is not None:
-            self._sendImageToDisplay(img, sasm)
+            if type(img) == list:
+                self._sendImageToDisplay(img[-1], sasm[-1])
+            else:
+                self._sendImageToDisplay(img, sasm)
         
         if loaded_secm and not loaded_sasm and not loaded_iftm:
             wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 3)
@@ -2395,12 +2416,21 @@ class MainWorkerThread(threading.Thread):
                     if img is not None:
                         qrange = sasm.getQrange()
                         start_point = self._raw_settings.get('StartPoint')
-                        # print start_point
                         end_point = self._raw_settings.get('EndPoint')
-                        # print end_point
-                        qrange = (start_point, len(sasm.getBinnedQ())-end_point)
-                        sasm.setQrange(qrange)
-                    
+
+                        if type(sasm) != list:
+                            qrange = (start_point, len(sasm.getBinnedQ())-end_point)
+                            sasm.setQrange(qrange)
+                        else:
+                            qrange = (start_point, len(sasm[0].getBinnedQ())-end_point)
+                            for each_sasm in sasm:
+                                each_sasm.setQrange(qrange)
+                            
+                            if len(sasm) == 1:
+                                sasm = sasm[0]
+                            else:
+                                sasm = SASM.average(sasm) #If load sec loads a file with multiple sasms, it averages them into one sasm
+
                     sasm_list[j]=sasm
                     
             except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
@@ -2468,11 +2498,20 @@ class MainWorkerThread(threading.Thread):
                 if img is not None:
                     qrange = sasm.getQrange()
                     start_point = self._raw_settings.get('StartPoint')
-                    # print start_point
                     end_point = self._raw_settings.get('EndPoint')
-                    # print end_point
-                    qrange = (start_point, len(sasm.getBinnedQ())-end_point)
-                    sasm.setQrange(qrange)
+
+                    if type(sasm) != list:
+                        qrange = (start_point, len(sasm.getBinnedQ())-end_point)
+                        sasm.setQrange(qrange)
+                    else:
+                        qrange = (start_point, len(sasm[0].getBinnedQ())-end_point)
+                        for each_sasm in sasm:
+                            each_sasm.setQrange(qrange)
+
+                        if len(sasm) == 1:
+                            sasm = sasm[0]
+                        else:
+                            sasm = SASM.average(sasm) #If load sec loads a file with multiple sasms, it averages them into one sasm
                 
                 sasm_list[j]=sasm
                 
@@ -3021,11 +3060,11 @@ class MainWorkerThread(threading.Thread):
                     
                 if img is not None:
                     parameters = {'filename' : os.path.split(next_file_path)[1],
-                                  'imageHeader' : imghdr}
+                                  'imageHeader' : imghdr[-1]}
         
                     bogus_sasm = SASM.SASM([0,1], [0,1], [0,1], parameters)
         
-                    self._sendImageToDisplay(img, bogus_sasm)
+                    self._sendImageToDisplay(img[-1], bogus_sasm)
                     break
             except Exception, e:
                 pass
@@ -3063,11 +3102,11 @@ class MainWorkerThread(threading.Thread):
             return
         
         parameters = {'filename' : os.path.split(filename)[1],
-                      'imageHeader' : imghdr}
+                      'imageHeader' : imghdr[-1]}
         
         bogus_sasm = SASM.SASM([0,1], [0,1], [0,1], parameters)
         
-        self._sendImageToDisplay(img, bogus_sasm)
+        self._sendImageToDisplay(img[-1], bogus_sasm)
         wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 2)
         file_list = wx.FindWindowByName('FileListCtrl')
         wx.CallAfter(file_list.SetFocus)
@@ -3279,12 +3318,24 @@ class MainWorkerThread(threading.Thread):
 
                         start_point = self._raw_settings.get('StartPoint')
                         end_point = self._raw_settings.get('EndPoint')
-                        qrange = (start_point, len(sasm.getBinnedQ())-end_point)
-                        sasm.setQrange(qrange)
+                        
+                        if type(sasm) != list:
+                            qrange = (start_point, len(sasm.getBinnedQ())-end_point)
+                            sasm.setQrange(qrange)
+                        else:
+                            qrange = (start_point, len(sasm[0].getBinnedQ())-end_point)
+                            for each_sasm in sasm:
+                                each_sasm.setQrange(qrange)
                         
                         if result[0] == wx.ID_EDIT:
                             final_save_path, new_filename = os.path.split(result[1][0])                
                             sasm.setParameter('filename', new_filename)
+
+                            if type(sasm) != list:
+                                sasm.setParameter('filename', new_filename)
+                            else:
+                                for each_sasm in sasm:
+                                    sasm.setParameter('filename', new_filename)
                         else:
                             final_save_path = save_path
                         
@@ -3306,8 +3357,14 @@ class MainWorkerThread(threading.Thread):
 
                     start_point = self._raw_settings.get('StartPoint')
                     end_point = self._raw_settings.get('EndPoint')
-                    qrange = (start_point, len(sasm.getBinnedQ())-end_point)
-                    sasm.setQrange(qrange)
+
+                    if type(sasm) != list:
+                        qrange = (start_point, len(sasm.getBinnedQ())-end_point)
+                        sasm.setQrange(qrange)
+                    else:
+                        qrange = (start_point, len(sasm[0].getBinnedQ())-end_point)
+                        for each_sasm in sasm:
+                            each_sasm.setQrange(qrange)
                     
                     if img is not None:
                         try:
@@ -7717,21 +7774,7 @@ class IFTPanel(wx.Panel):
             textctrl = wx.FindWindowById(id)
             value = textctrl.GetValue()
         
-            biftparams[eachParam] = int(value)
-    
-    def _onLoadFile(self, evt):   
-         
-        selected_file = self._CreateFileDialog(wx.OPEN)
-        
-        if selected_file:
-       
-            sasm, img = SASFileIO.loadFile(selected_file, self.raw_settings)
-            
-            try:        
-                self.addItem(sasm)
-            except Exception:
-                print 'WARNING!! Error in _OnLoadFile!!'
-            
+            biftparams[eachParam] = int(value)            
  
     def _CreateFileDialog(self, mode):
         
@@ -9234,21 +9277,7 @@ class SECPanel(wx.Panel):
         
         self.Thaw()
 
-        self.sec_control_panel.clearAll()
-    
-    def _onLoadFile(self, evt):   
-         
-        selected_file = self._CreateFileDialog(wx.OPEN)
-        
-        if selected_file:
-       
-            sasm, img = SASFileIO.loadFile(selected_file, self.raw_settings)
-            
-            try:        
-                self.addItem(sasm)
-            except Exception:
-                print 'WARNING!! Error in _OnLoadFile!!'
-            
+        self.sec_control_panel.clearAll()            
  
     def _CreateFileDialog(self, mode):
         

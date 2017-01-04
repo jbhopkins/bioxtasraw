@@ -800,6 +800,9 @@ class ReductionImgHdrFormatPanel(wx.Panel):
             raise
         
         self.onClearBindingsButton(None)
+
+        if type(imghdr) == list:
+            imghdr = imghdr[0]
         
         self._updateList(imghdr, filehdr)        
     

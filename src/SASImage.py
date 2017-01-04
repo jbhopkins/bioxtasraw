@@ -312,8 +312,7 @@ def getBindListDataFromHeader(raw_settings, img_hdr, file_hdr, keys):
     return result
 
 
-def calibrateAndNormalize(sasm, img, raw_settings):
-    
+def calibrateAndNormalize(sasm_list, img_list, raw_settings):
     # Calibrate Q
     sd_distance = raw_settings.get('SampleDistance')
     pixel_size = raw_settings.get('DetectorPixelSize')
@@ -323,85 +322,93 @@ def calibrateAndNormalize(sasm, img, raw_settings):
     enable_normalization = raw_settings.get('EnableNormalization')
     
     pixel_size = pixel_size / 1000
+
+    if type(sasm_list) != list:
+        sasm_list = [sasm_list]
+        img_list = [img_list]
     
-    if raw_settings.get('UseHeaderForCalib'):
+    for i in range(len(sasm_list)):
+        sasm = sasm_list[i]
+        img = img_list[i]
+
+        if raw_settings.get('UseHeaderForCalib'):
+            img_hdr = sasm.getParameter('imageHeader')
+            file_hdr = sasm.getParameter('counters')
+            
+            result = getBindListDataFromHeader(raw_settings, img_hdr, file_hdr, keys = ['Sample Detector Distance', 'Detector Pixel Size', 'Wavelength'])
+            if result[0] != None: sd_distance = result[0]
+            if result[1] != None: pixel_size = result[1]
+            if result[2] != None: wavelength = result[2]
+        
+        if raw_settings.get('DoSolidAngleCorrection'):    
+            sc = SASCalib.calcSolidAngleCorrection(sasm, sd_distance, pixel_size)
+            
+            sasm.scaleRawIntensity(1.0/sc)
+        
+        sasm.setBinning(bin_size)
+        
+        if calibrate_check:
+            sasm.calibrateQ(sd_distance, pixel_size, wavelength)
+        
+        normlist = raw_settings.get('NormalizationList')
         img_hdr = sasm.getParameter('imageHeader')
         file_hdr = sasm.getParameter('counters')
         
-        result = getBindListDataFromHeader(raw_settings, img_hdr, file_hdr, keys = ['Sample Detector Distance', 'Detector Pixel Size', 'Wavelength'])
-        if result[0] != None: sd_distance = result[0]
-        if result[1] != None: pixel_size = result[1]
-        if result[2] != None: wavelength = result[2]
-    
-    if raw_settings.get('DoSolidAngleCorrection'):    
-        sc = SASCalib.calcSolidAngleCorrection(sasm, sd_distance, pixel_size)
-        
-        sasm.scaleRawIntensity(1.0/sc)
-    
-    sasm.setBinning(bin_size)
-    
-    if calibrate_check:
-        sasm.calibrateQ(sd_distance, pixel_size, wavelength)
-    
-    normlist = raw_settings.get('NormalizationList')
-    img_hdr = sasm.getParameter('imageHeader')
-    file_hdr = sasm.getParameter('counters')
-    
-    if normlist != None and enable_normalization == True:
-        sasm.setParameter('normalizations', {'Counter_norms':raw_settings.get('NormalizationList')})
+        if normlist != None and enable_normalization == True:
+            sasm.setParameter('normalizations', {'Counter_norms':raw_settings.get('NormalizationList')})
 
-        if raw_settings.get('DoSolidAngleCorrection'):    
+            if raw_settings.get('DoSolidAngleCorrection'):    
 
-            norm_parameter = sasm.getParameter('normalizations')
+                norm_parameter = sasm.getParameter('normalizations')
 
-            norm_parameter['Solid_Angle_Correction'] = 'On'
+                norm_parameter['Solid_Angle_Correction'] = 'On'
 
-            sasm.setParameter('normalizations', norm_parameter)
+                sasm.setParameter('normalizations', norm_parameter)
 
-        for each in normlist:
-            op, expr = each
+            for each in normlist:
+                op, expr = each
+                
+                #try:
+                val = calcExpression(expr, img_hdr, file_hdr)
+                
+                if val != None:
+                    val = float(val)
+                else:
+                    raise ValueError
+                #except:
+                #    msg = 'calcExpression error'
+                #    raise SASExceptions.NormalizationError('Error normalizing in calibrateAndNormalize: ' + str(msg))
             
-            #try:
-            val = calcExpression(expr, img_hdr, file_hdr)
-            
-            if val != None:
-                val = float(val)
-            else:
-                raise ValueError
-            #except:
-            #    msg = 'calcExpression error'
-            #    raise SASExceptions.NormalizationError('Error normalizing in calibrateAndNormalize: ' + str(msg))
-        
-            if op == '/':
-                
-               if val == 0:
-                   raise ValueError('Divide by Zero when normalizing') 
-                
-               sasm.scaleBinnedIntensity(1/val)
-                
-            elif op == '+':
-                sasm.offsetBinnedIntensity(val)
-            elif op == '*':
-                
-                if val == 0:
-                   raise ValueError('Multiply by Zero when normalizing')
-                
-                sasm.scaleBinnedIntensity(val)
-                
-            elif op == '-':
-                sasm.offsetBinnedIntensity(-val)
-    else:
-        sasm.setParameter('normalizations', {})
+                if op == '/':
+                    
+                   if val == 0:
+                       raise ValueError('Divide by Zero when normalizing') 
+                    
+                   sasm.scaleBinnedIntensity(1/val)
+                    
+                elif op == '+':
+                    sasm.offsetBinnedIntensity(val)
+                elif op == '*':
+                    
+                    if val == 0:
+                       raise ValueError('Multiply by Zero when normalizing')
+                    
+                    sasm.scaleBinnedIntensity(val)
+                    
+                elif op == '-':
+                    sasm.offsetBinnedIntensity(-val)
+        else:
+            sasm.setParameter('normalizations', {})
 
-        if raw_settings.get('DoSolidAngleCorrection'):    
+            if raw_settings.get('DoSolidAngleCorrection'):    
 
-            norm_parameter = sasm.getParameter('normalizations')
+                norm_parameter = sasm.getParameter('normalizations')
 
-            norm_parameter['Solid_Angle_Correction'] = 'On'
+                norm_parameter['Solid_Angle_Correction'] = 'On'
 
-            sasm.setParameter('normalizations', norm_parameter)
+                sasm.setParameter('normalizations', norm_parameter)
     
-    return sasm
+    return sasm_list
     
 
 def finetuneAgbePoints(img, x_c, y_c, x1, y1, r):
@@ -764,6 +771,9 @@ def applyMaskToImage(in_image, mask):
 
 
 def doFlatfieldCorrection(img, img_hdr, flatfield_img, flatfield_hdr):
+    if type(flatfield_img) == list:
+        flatfield_img = np.average(flatfield_img, axis=0)
+        
     cor_img = img / flatfield_img   #flat field is often water.
 
     return cor_img

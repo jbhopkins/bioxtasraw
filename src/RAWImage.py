@@ -1730,6 +1730,11 @@ class ImageTestFrame(wx.Frame):
         
         file = os.path.join(os.getcwd(), 'Tests', 'TestData', 'AgBe_Quantum.img')
         sasm, img = SASFileIO.loadFile(file, self.raw_settings)
+
+        if type(sasm) == list:
+            sasm = sasm[-1]
+            img = img[-1]
+            
         self.image_panel.showImage(img, sasm)
         
         

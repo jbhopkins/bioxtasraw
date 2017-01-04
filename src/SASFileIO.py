@@ -240,10 +240,32 @@ def parseTiffTags(filename):
 def loadFabio(filename):
     fabio_img = fabio.open(filename)
 
-    img = fabio_img.data
-    img_hdr = fabio_img.getheader()
+    if fabio_img.nframes == 1:
+        data = fabio_img.data
+        hdr = fabio_img.getheader()
 
-    img = np.fliplr(img)
+        data = np.fliplr(data)
+
+        img = [data]
+        img_hdr = [hdr]
+
+    else:
+        img = [None for i in range(fabio_img.nframes)]
+        img_hdr = [None for i in range(fabio_img.nframes)]
+
+        data = fabio_img.data
+        hdr = fabio_img.getheader()
+
+        img[0] = data
+        img_hdr[0] = hdr
+
+        for i in range(1,fabio_img.nframes):
+            fabio_img = fabio_img.next()
+            data = fabio_img.data
+            hdr = fabio_img.getheader()
+
+            img[i] = np.fliplr(data)
+            img_hdr[i] = hdr
 
     return img, img_hdr
 
@@ -1280,6 +1302,31 @@ def parseBL19U2HeaderFile(filename):
     return counters
 
 
+def parsePetraIIIP12EigerFile(filename, new_filename = None):
+    if new_filename:
+        fnum = int(new_filename.split('_')[-1].split('.')[0])+1
+    else:
+        fnum = 1
+
+    data_path, data_name = os.path.split(filename)
+
+    header_name = '_'.join(data_name.split('_')[:2])+'_%05i.txt' %(fnum)
+
+    header_path = os.path.join(os.path.split(data_path)[0], 'header')
+
+    countFilename = os.path.join(header_path, header_name)
+
+    counters = {}
+
+    with open(countFilename, 'r') as f:
+        for line in f:
+            name = line.split(':')[0]
+            value = ':'.join(line.split(':')[1:])
+            counters[name.strip()] = value.strip()
+
+    return counters
+
+
 
 #################################################################
 #--- ** Header and Image formats **
@@ -1288,16 +1335,17 @@ def parseBL19U2HeaderFile(filename):
 # dictionary header_types below
 #################################################################
 
-all_header_types = {'None'           : None,
- #                     'CSV'            : parseCSVHeaderFile,
-                    'F2, CHESS'         : parseCHESSF2CTSfile, 
-                    'G1, CHESS'         : parseCHESSG1CountFile,
-                    'G1 WAXS, CHESS'    : parseCHESSG1CountFileWAXS,
-                    'G1 Eiger, CHESS'   : parseCHESSG1CountFileEiger,
-                    'I711, MaxLab'      : parseMAXLABI77HeaderFile,
-                    'I911-4 Maxlab'     : parseMAXLABI911HeaderFile,
-                    'BioCAT, APS'       : parseBioCATlogfile,
-                    'BL19U2, SSRF'      : parseBL19U2HeaderFile}
+all_header_types = {'None'                  : None,
+ #                     'CSV'                : parseCSVHeaderFile,
+                    'F2, CHESS'             : parseCHESSF2CTSfile, 
+                    'G1, CHESS'             : parseCHESSG1CountFile,
+                    'G1 WAXS, CHESS'        : parseCHESSG1CountFileWAXS,
+                    'G1 Eiger, CHESS'       : parseCHESSG1CountFileEiger,
+                    'I711, MaxLab'          : parseMAXLABI77HeaderFile,
+                    'I911-4 Maxlab'         : parseMAXLABI911HeaderFile,
+                    'BioCAT, APS'           : parseBioCATlogfile,
+                    'BL19U2, SSRF'          : parseBL19U2HeaderFile,
+                    'P12 Eiger, Petra III'  : parsePetraIIIP12EigerFile}
 
 if use_fabio:
     all_image_types = {
@@ -1360,7 +1408,7 @@ def loadAllHeaders(filename, image_type, header_type, raw_settings):
     img, imghdr = loadImage(filename, image_type)
     
     if header_type != 'None':
-        hdr = loadHeader(filename, header_type)
+        hdr = loadHeader(filename, filename, header_type)
     else:
         hdr = None
 
@@ -1368,22 +1416,33 @@ def loadAllHeaders(filename, image_type, header_type, raw_settings):
     tbs_mask = masks['TransparentBSMask'][0]
 
     if tbs_mask != None:
-        roi_counter = img[tbs_mask==1].sum()
-        if hdr is None:
-            thdr['roi_counter'] = roi_counter
-            hdr = thdr
+        if type(img) != list:
+            roi_counter = img[tbs_mask==1].sum()
+            if hdr is None:
+                thdr['roi_counter'] = roi_counter
+                hdr = thdr
+            else:
+                hdr['roi_counter'] = roi_counter
         else:
-            hdr['roi_counter'] = roi_counter
+            roi_counter = img[0][tbs_mask==1].sum() #In the case of multiple images in the same file, load the ROI for the last one
+            if hdr is None:
+                thdr['roi_counter'] = roi_counter
+                hdr = thdr
+            else:
+                hdr['roi_counter'] = roi_counter
     
     return imghdr, hdr
 
-def loadHeader(filename, header_type):
+def loadHeader(filename, new_filename, header_type):
     ''' returns header information based on the *image* filename
      and the type of headerfile     '''
 
     if header_type != 'None':
         try:
-            hdr = all_header_types[header_type](filename)
+            if new_filename != os.path.split(filename)[1]:
+                hdr = all_header_types[header_type](filename, new_filename)
+            else:
+                hdr = all_header_types[header_type](filename)
         except IOError as io:
             error_type = io[0]
             raise SASExceptions.HeaderLoadError(str(io).replace("u'",''))
@@ -1391,7 +1450,17 @@ def loadHeader(filename, header_type):
             print e
             raise SASExceptions.HeaderLoadError('Header file for : ' + str(filename) + ' could not be read or contains incorrectly formatted data. ')
     else:
-        return {}
+        hdr = {}
+
+    #Clean up headers by removing spaces in header names and non-unicode characters)
+    hdr = {key.replace(' ', '_').translate(None, '()[]') : hdr[key] for key in hdr}
+
+    hdr = { key : unicode(hdr[key], errors='ignore') if type(hdr[key]) == str else hdr[key] for key in hdr}
+
+    try:
+        json.dumps(hdr)
+    except UnicodeDecodeError as e:
+        hdr = { key : unicode(hdr[key], errors='ignore') if type(hdr[key]) == str else hdr[key] for key in hdr}
     
     return hdr
 
@@ -1404,6 +1473,23 @@ def loadImage(filename, image_type):
     except (ValueError, TypeError, KeyError, fabio.fabioutils.NotGoodReader, Exception) as msg:
         # print msg
         raise SASExceptions.WrongImageFormat('Error loading image, ' + str(msg))
+
+    if type(img) != list:
+        img = [img]
+    if type(imghdr) != list:
+        imghdr = [imghdr]
+
+
+    #Clean up headers by removing spaces in header names and non-unicode characters)
+    for hdr in imghdr:
+        hdr = {key.replace(' ', '_').translate(None, '()[]') : hdr[key] for key in hdr}
+
+        hdr = { key : unicode(hdr[key], errors='ignore') if type(hdr[key]) == str else hdr[key] for key in hdr}
+
+        try:
+            json.dumps(hdr)
+        except UnicodeDecodeError as e:
+            hdr = { key : unicode(hdr[key], errors='ignore') if type(hdr[key]) == str else hdr[key] for key in hdr}
 
     return img, imghdr
 
@@ -1419,7 +1505,6 @@ def loadFile(filename, raw_settings, no_processing = False):
     '''
     try:
         file_type = checkFileType(filename)
-        # print 'checking file type'
         print file_type
     except IOError:
         raise
@@ -1435,23 +1520,36 @@ def loadFile(filename, raw_settings, no_processing = False):
             raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
 
         if not RAWGlobals.usepyFAI_integration:
-            # print 'using standard RAW calibration and normalization'
             try:
                 sasm = SASImage.calibrateAndNormalize(sasm, img, raw_settings)
             except (ValueError, NameError), msg:
                 print msg
         
-        sasm.setParameter('config_file', raw_settings.get('CurrentCfg'))
+        #Always do some post processing for image files
+        if type(sasm) == list:
+            for current_sasm in sasm:
+
+                current_sasm.setParameter('config_file', raw_settings.get('CurrentCfg'))
+
+                SASM.postProcessSasm(current_sasm, raw_settings)
+
+                if not no_processing:
+                    SASM.postProcessImageSasm(current_sasm, raw_settings)
+        else:
+            sasm.setParameter('config_file', raw_settings.get('CurrentCfg'))
+
+            SASM.postProcessSasm(sasm, raw_settings)
+
+            if not no_processing:
+                SASM.postProcessImageSasm(sasm, raw_settings)
           
     else:
         sasm = loadAsciiFile(filename, file_type)
         img = None
-    
-    if type(sasm) != list:
-        SASM.postProcessSasm(sasm, raw_settings)
-    
-    if file_type == 'image' and no_processing == False:
-            SASM.postProcessImageSasm(sasm, raw_settings)
+        
+        #If you don't want to post process asci files, return them as a list
+        if type(sasm) != list:
+            SASM.postProcessSasm(sasm, raw_settings)
         
     if type(sasm) != list and (sasm is None or len(sasm.i) == 0):
         raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
@@ -1504,116 +1602,125 @@ def loadImageFile(filename, raw_settings):
     img_fmt = raw_settings.get('ImageFormat')
     hdr_fmt = raw_settings.get('ImageHdrFormat')
         
-    img, tmp_hdr = loadImage(filename, img_fmt)
+    loaded_data, loaded_hdr = loadImage(filename, img_fmt)
 
-    img_hdr = {}
+    sasm_list = [None for i in range(len(loaded_data))]
 
-    for key in tmp_hdr:
-        img_hdr[key.replace(' ', '_')] = tmp_hdr[key]
-
-    try:
-        json.dumps(img_hdr)
-    except UnicodeDecodeError as e:
-        for key in img_hdr:
-            if type(img_hdr[key]) == str:
-                img_hdr[key] = unicode(img_hdr[key], errors='ignore')
-
-    tmp_hdrfile_info = loadHeader(filename, hdr_fmt)
-
-    hdrfile_info = {}
-
-    for key in tmp_hdrfile_info:
-        hdrfile_info[key.replace(' ', '_')] = tmp_hdrfile_info[key]
-
-
-    parameters = {'imageHeader' : img_hdr,
-                  'counters'    : hdrfile_info,
-                  'filename'    : os.path.split(filename)[1],
-                  'load_path'    : filename}
-
-    for key in parameters['counters']:
-        if key.lower().find('concentration') > -1 or key.lower().find('mg/ml') > -1:
-            parameters['Conc'] = parameters['counters'][key]
-            break
-    
-    x_c = raw_settings.get('Xcenter')
-    y_c = raw_settings.get('Ycenter')
-
-    ## Read center coordinates from header?
-    if raw_settings.get('UseHeaderForCalib'):
-        try:
-            x_y = SASImage.getBindListDataFromHeader(raw_settings, img_hdr, hdrfile_info, keys = ['Beam X Center', 'Beam Y Center'])
-        
-            if x_y[0] != None: x_c = x_y[0]
-            if x_y[1] != None: y_c = x_y[1]
-        except ValueError:
-            pass
-        except TypeError:
-            raise SASExceptions.HeaderLoadError('Error loading header, file corrupt?')
-    
-    # ********************
-    # If the file is a SAXSLAB file, then get mask parameters from the header and modify the mask
-    # then apply it...
-    #
-    # Mask should be not be changed, but should be created here. If no mask information is found, then 
-    # use the user created mask. There should be a force user mask setting. 
-    #
-    # ********************
-    
-    masks = raw_settings.get('Masks')
-    
-    use_hdr_mask = raw_settings.get('UseHeaderForMask')
-    
-    if use_hdr_mask and img_fmt == 'SAXSLab300':
-        try:
-            mask_patches = SASImage.createMaskFromHdr(img, img_hdr, flipped = raw_settings.get('DetectorFlipped90'))
-            bs_mask_patches = masks['BeamStopMask'][1]
-
-            if bs_mask_patches != None:
-                all_mask_patches = mask_patches + bs_mask_patches
-            else:
-                all_mask_patches = mask_patches
-                
-            bs_mask = SASImage.createMaskMatrix(img.shape, all_mask_patches)
-        except KeyError:
-            raise SASExceptions.HeaderMaskLoadError('bsmask_configuration not found in header.')
-            
-        dc_mask = masks['ReadOutNoiseMask'][0]
-    else:
-        bs_mask = masks['BeamStopMask'][0]
-        dc_mask = masks['ReadOutNoiseMask'][0]
-
-    
-    tbs_mask = masks['TransparentBSMask'][0]
-    
-    # ********* WARNING WARNING WARNING ****************#
-    # Hmm.. axes start from the lower left, but array coords starts
-    # from upper left:
-    #####################################################
-    y_c = img.shape[0]-y_c
-    
-    if not RAWGlobals.usepyFAI_integration:
-        # print 'Using standard RAW integration'
-        ## Flatfield correction.. this part gets moved to a image correction function later
-        if raw_settings.get('NormFlatfieldEnabled'):
+    #Pre-load the flatfield file, so it's not loaded every time
+    if raw_settings.get('NormFlatfieldEnabled'):
+        if flatfield_filename != None:
             flatfield_filename = raw_settings.get('NormFlatfieldFile')
             flatfield_img, flatfield_img_hdr = loadImage(flatfield_filename, img_fmt)
-            flatfield_hdr = loadHeader(flatfield_filename, hdr_fmt)
-            
-            if flatfield_filename != None:
-                img, img_hdr = SASImage.doFlatfieldCorrection(img, img_hdr, flatfield_img, flatfield_hdr)
+            flatfield_hdr = loadHeader(flatfield_filename, flatfield_filename, hdr_fmt)
+            flatfield_img = np.average(flatfield_img, axis=0)
+
+    #Process all loaded images into sasms
+    for i in range(len(loaded_data)):
+        img = loaded_data[i]
+        tmp_hdr = loaded_hdr[i]
+
+        img_hdr = {}
+
+        if len(loaded_data) > 1:
+            temp_filename = os.path.split(filename)[1].split('.')
+            if len(temp_filename) > 1:
+                temp_filename[-2] = temp_filename[-2] + '_%05i' %(i)
             else:
-                pass #Raise some error
-        
-        dezingering = raw_settings.get('ZingerRemovalRadAvg')
-        dezing_sensitivity = raw_settings.get('ZingerRemovalRadAvgStd')
-        
-        sasm = createSASMFromImage(img, parameters, x_c, y_c, bs_mask, dc_mask, tbs_mask, dezingering, dezing_sensitivity)
+                temp_filename[0] = temp_filename[0] + '_%05i' %(i)
 
-    else:
-        sasm = SASImage.pyFAIIntegrateCalibrateNormalize(img, parameters, x_c, y_c, raw_settings, bs_mask, tbs_mask)
+            new_filename = '.'.join(temp_filename)
+        else:
+            new_filename = os.path.split(filename)[1]
 
-    return sasm, img
+        hdrfile_info = loadHeader(filename, new_filename, hdr_fmt)
+
+        parameters = {'imageHeader' : img_hdr,
+                      'counters'    : hdrfile_info,
+                      'filename'    : new_filename,
+                      'load_path'   : filename}
+
+        for key in parameters['counters']:
+            if key.lower().find('concentration') > -1 or key.lower().find('mg/ml') > -1:
+                parameters['Conc'] = parameters['counters'][key]
+                break
+        
+        x_c = raw_settings.get('Xcenter')
+        y_c = raw_settings.get('Ycenter')
+
+        ## Read center coordinates from header?
+        if raw_settings.get('UseHeaderForCalib'):
+            try:
+                x_y = SASImage.getBindListDataFromHeader(raw_settings, img_hdr, hdrfile_info, keys = ['Beam X Center', 'Beam Y Center'])
+            
+                if x_y[0] != None: x_c = x_y[0]
+                if x_y[1] != None: y_c = x_y[1]
+            except ValueError:
+                pass
+            except TypeError:
+                raise SASExceptions.HeaderLoadError('Error loading header, file corrupt?')
+        
+        # ********************
+        # If the file is a SAXSLAB file, then get mask parameters from the header and modify the mask
+        # then apply it...
+        #
+        # Mask should be not be changed, but should be created here. If no mask information is found, then 
+        # use the user created mask. There should be a force user mask setting. 
+        #
+        # ********************
+        
+        masks = raw_settings.get('Masks')
+        
+        use_hdr_mask = raw_settings.get('UseHeaderForMask')
+        
+        if use_hdr_mask and img_fmt == 'SAXSLab300':
+            try:
+                mask_patches = SASImage.createMaskFromHdr(img, img_hdr, flipped = raw_settings.get('DetectorFlipped90'))
+                bs_mask_patches = masks['BeamStopMask'][1]
+
+                if bs_mask_patches != None:
+                    all_mask_patches = mask_patches + bs_mask_patches
+                else:
+                    all_mask_patches = mask_patches
+                    
+                bs_mask = SASImage.createMaskMatrix(img.shape, all_mask_patches)
+            except KeyError:
+                raise SASExceptions.HeaderMaskLoadError('bsmask_configuration not found in header.')
+                
+            dc_mask = masks['ReadOutNoiseMask'][0]
+        else:
+            bs_mask = masks['BeamStopMask'][0]
+            dc_mask = masks['ReadOutNoiseMask'][0]
+
+        
+        tbs_mask = masks['TransparentBSMask'][0]
+        
+        # ********* WARNING WARNING WARNING ****************#
+        # Hmm.. axes start from the lower left, but array coords starts
+        # from upper left:
+        #####################################################
+        y_c = img.shape[0]-y_c
+        
+        if not RAWGlobals.usepyFAI_integration:
+            # print 'Using standard RAW integration'
+            ## Flatfield correction.. this part gets moved to a image correction function later
+            if raw_settings.get('NormFlatfieldEnabled'):
+                if flatfield_filename != None:
+                    img, img_hdr = SASImage.doFlatfieldCorrection(img, img_hdr, flatfield_img, flatfield_hdr)
+                else:
+                    pass #Raise some error
+            
+            dezingering = raw_settings.get('ZingerRemovalRadAvg')
+            dezing_sensitivity = raw_settings.get('ZingerRemovalRadAvgStd')
+            
+            sasm = createSASMFromImage(img, parameters, x_c, y_c, bs_mask, dc_mask, tbs_mask, dezingering, dezing_sensitivity)
+
+        else:
+            sasm = SASImage.pyFAIIntegrateCalibrateNormalize(img, parameters, x_c, y_c, raw_settings, bs_mask, tbs_mask)
+
+        sasm_list[i] = sasm
+
+
+    return sasm_list, loaded_data
 
 
 def loadOutFile(filename):
@@ -2468,33 +2575,37 @@ def load2ColFile(filename):
 def saveMeasurement(sasm, save_path, raw_settings, filetype = '.dat'):
     ''' Saves a Measurement Object to a .rad file.
         Returns the filename of the saved file '''
-    
-    filename, ext = os.path.splitext(sasm.getParameter('filename'))
-    
-    header_on_top = raw_settings.get('DatHeaderOnTop')
-    
-    if filetype == '.ift':
-        try:
-            writeIftFile(sasm, os.path.join(save_path, filename + filetype))
-        except TypeError as e:
-            print 'Error in saveMeasurement, type: %s, error: %s' %(type(e).__name__, e)
-            print 'Resaving file without header'
-            print sasm.getAllParameters()
-            writeIftFile(sasm, os.path.join(save_path, filename + filetype), False)
 
-            raise SASExceptions.HeaderSaveError(e)
-    elif filetype == '.out':
-        writeOutFile(sasm, os.path.join(save_path, filename + filetype))
-    else:
-        try:
-            writeRadFile(sasm, os.path.join(save_path, filename + filetype), header_on_top)
-        except TypeError as e:
-            print 'Error in saveMeasurement, type: %s, error: %s' %(type(e).__name__, e)
-            print 'Resaving file without header'
-            print sasm.getAllParameters()
-            writeRadFile(sasm, os.path.join(save_path, filename + filetype), header_on_top, False)
+    if type(sasm) != list:
+        sasm = [sasm]
+    
+    for each_sasm in sasm:
+        filename, ext = os.path.splitext(each_sasm.getParameter('filename'))
+        
+        header_on_top = raw_settings.get('DatHeaderOnTop')
+        
+        if filetype == '.ift':
+            try:
+                writeIftFile(each_sasm, os.path.join(save_path, filename + filetype))
+            except TypeError as e:
+                print 'Error in saveMeasurement, type: %s, error: %s' %(type(e).__name__, e)
+                print 'Resaving file without header'
+                print each_sasm.getAllParameters()
+                writeIftFile(each_sasm, os.path.join(save_path, filename + filetype), False)
 
-            raise SASExceptions.HeaderSaveError(e)
+                raise SASExceptions.HeaderSaveError(e)
+        elif filetype == '.out':
+            writeOutFile(each_sasm, os.path.join(save_path, filename + filetype))
+        else:
+            try:
+                writeRadFile(each_sasm, os.path.join(save_path, filename + filetype), header_on_top)
+            except TypeError as e:
+                print 'Error in saveMeasurement, type: %s, error: %s' %(type(e).__name__, e)
+                print 'Resaving file without header'
+                print each_sasm.getAllParameters()
+                writeRadFile(each_sasm, os.path.join(save_path, filename + filetype), header_on_top, False)
+
+                raise SASExceptions.HeaderSaveError(e)
 
 
 def saveSECItem(save_path, secm_dict):

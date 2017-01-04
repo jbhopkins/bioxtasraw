@@ -169,7 +169,7 @@ class Test_loadMaxlabI711Header(unittest.TestCase):
     
     def setUp(self):
         self.filename = Config_GetTestDataPath('MaxlabMarCCD165.tif')
-        self.hdr = SASFileIO.loadHeader(self.filename, 'I711, MaxLab')
+        self.hdr = SASFileIO.loadHeader(self.filename, self.filename, 'I711, MaxLab')
         
 #    def test_fileHdrNotEmpty_shouldBeLargerThanZero(self):
 #        file_hdr = self.hdr['counters']
@@ -306,6 +306,8 @@ class Test_writeRadFile_LoadAndWriteImageFile(unittest.TestCase):
     def Config_loadAFlicamFile(self, filename):
         self.filename = Config_GetTestDataPath(filename)
         self.sasm, self.img = SASFileIO.loadFile(self.filename, self.raw_settings)
+        self.sasm = self.sasm[0]
+        self.img = self.img[0]
     
     def setUp(self):
         self.save_filename = Config_GetTestDataPath('TestAgBeh_001_c.rad')

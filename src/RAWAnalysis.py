@@ -7516,7 +7516,7 @@ class EFAControlPanel3(wx.Panel):
         self.top_efa.SetSizer(self.peak_control_sizer)
 
 
-        box = wx.StaticBox(self, -1, 'Controls')
+        box = wx.StaticBox(self, -1, 'Rotation Controls')
         iter_control_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
         grid_sizer = wx.FlexGridSizer(cols = 2, rows = 3, vgap =3, hgap =3)
@@ -8659,6 +8659,9 @@ class GuinierTestApp(wx.App):
 
         ExpObj, ImgDummy = SASFileIO.loadFile(tst_file, raw_settings)
         
+        if type(ExpObj) == list:
+            ExpObj = ExpObj[0]
+
         frame = GuinierFrame(self, 'Guinier Fit', ExpObj, None)
         self.SetTopWindow(frame)
         frame.SetSize((800,600))
