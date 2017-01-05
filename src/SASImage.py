@@ -2,6 +2,24 @@
 Created on Jul 7, 2010
 
 @author: specuser
+
+#******************************************************************************
+# This file is part of RAW.
+#
+#    RAW is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    RAW is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with RAW.  If not, see <http://www.gnu.org/licenses/>.
+#
+#******************************************************************************
 '''
 
 import numpy as np
@@ -381,19 +399,23 @@ def calibrateAndNormalize(sasm_list, img_list, raw_settings):
             
                 if op == '/':
                     
-                   if val == 0:
-                       raise ValueError('Divide by Zero when normalizing') 
-                    
-                   sasm.scaleBinnedIntensity(1/val)
+                   # if val == 0:
+                   #     raise ValueError('Divide by Zero when normalizing') 
+                
+                    if val != 0:
+                        sasm.scaleBinnedIntensity(1/val)
+                    else:
+                        print 'WARNING: Divide by zero when normalizing, normalization value ignore!'
                     
                 elif op == '+':
                     sasm.offsetBinnedIntensity(val)
                 elif op == '*':
                     
-                    if val == 0:
-                       raise ValueError('Multiply by Zero when normalizing')
-                    
-                    sasm.scaleBinnedIntensity(val)
+                    # if val == 0:
+                    #    raise ValueError('Multiply by Zero when normalizing')
+                    if val != 0:
+                        sasm.scaleBinnedIntensity(val)
+                        print 'WARNING: Multiply by zero when normalizing, normalization value ignored!'
                     
                 elif op == '-':
                     sasm.offsetBinnedIntensity(-val)
