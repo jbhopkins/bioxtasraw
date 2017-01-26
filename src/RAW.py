@@ -2414,7 +2414,6 @@ class MainWorkerThread(threading.Thread):
                     sasm, img = SASFileIO.loadFile(each_filename, self._raw_settings)
                     
                     if img is not None:
-                        qrange = sasm.getQrange()
                         start_point = self._raw_settings.get('StartPoint')
                         end_point = self._raw_settings.get('EndPoint')
 
@@ -2496,7 +2495,6 @@ class MainWorkerThread(threading.Thread):
                 sasm, img = SASFileIO.loadFile(each_filename, self._raw_settings)
                 
                 if img is not None:
-                    qrange = sasm.getQrange()
                     start_point = self._raw_settings.get('StartPoint')
                     end_point = self._raw_settings.get('EndPoint')
 
