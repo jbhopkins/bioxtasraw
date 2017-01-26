@@ -3146,10 +3146,24 @@ def writeHeader(d, f2, ignore_list = []):
     for ignored_key in ignore_list:
         if ignored_key in d.keys():
             del d[ignored_key]
-
-    f2.write(json.dumps(d,indent = 4, sort_keys = True))
+    
+    f2.write(json.dumps(d,indent = 4, sort_keys = True, cls = MyEncoder))
     
     f2.write('\n\n')
+
+
+#This class goes with write header, and was lifted from:
+#https://stackoverflow.com/questions/27050108/convert-numpy-type-to-python/27050186#27050186
+class MyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, numpy.integer):
+            return int(obj)
+        elif isinstance(obj, numpy.floating):
+            return float(obj)
+        elif isinstance(obj, numpy.ndarray):
+            return obj.tolist()
+        else:
+            return super(MyEncoder, self).default(obj)
     
 
 def writeRadFile(m, filename, header_on_top = True, use_header = True):

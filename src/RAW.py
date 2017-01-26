@@ -3348,6 +3348,8 @@ class MainWorkerThread(threading.Thread):
                             self._showDataFormatError(os.path.split(each_filename)[1], include_ascii = False)
                     except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
                         self._showDataFormatError(os.path.split(each_filename)[1], include_ascii = False)
+                    except SASExceptions.HeaderLoadError, msg:
+                        wx.CallAfter(wx.MessageBox, str(msg)+' Could not find the header file. Skipping this file and proceeding.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
             
             else:
                 try:
@@ -3375,6 +3377,8 @@ class MainWorkerThread(threading.Thread):
                         self._showDataFormatError(os.path.split(each_filename)[1], include_ascii = False)
                 except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
                     self._showDataFormatError(os.path.split(each_filename)[1], include_ascii = False)
+                except SASExceptions.HeaderLoadError, msg:
+                        wx.CallAfter(wx.MessageBox, str(msg)+' Could not find the header file. Skipping this file and proceeding.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
                         
         self._showQuickReduceFinished(processed_files, len(filename_list))
     
@@ -3664,16 +3668,18 @@ class MainWorkerThread(threading.Thread):
         sasm_list = []
     
         for each_item in selected_items:
-            sasm_list.append(each_item.getSASM())
+            sasm = each_item.getSASM()
         
-        interpolate_sasm = SASM.interpolateToFit(marked_sasm, sasm_list)
+            interpolate_sasm = SASM.interpolateToFit(marked_sasm, sasm)
+            
+            filename = sasm.getParameter('filename')
+            interpolate_sasm.setParameter('filename', filename)
+            
+            self._insertSasmFilenamePrefix(interpolate_sasm, 'I_')
+
+            sasm_list.append(interpolate_sasm)
         
-        filename = marked_sasm.getParameter('filename')
-        interpolate_sasm.setParameter('filename', filename)
-        
-        self._insertSasmFilenamePrefix(interpolate_sasm, 'I_')
-        
-        self._sendSASMToPlot(interpolate_sasm, axes_num = 1, notsaved = True)
+        self._sendSASMToPlot(sasm_list, axes_num = 1, notsaved = True)
         
         wx.CallAfter(self.plot_panel.updateLegend, 1)
                    

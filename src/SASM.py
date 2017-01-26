@@ -1586,9 +1586,9 @@ def merge(sasm_star, sasm_list):
     else:
         return merge(newSASM, sasm_list)
 
-def interpolateToFit(sasm_star, sasm_list):
+def interpolateToFit(sasm_star, sasm):
     s1 = sasm_star
-    s2 = sasm_list[0]
+    s2 = sasm
       
     #find overlapping s2 points    
     min_q1, max_q1 = s1.getQrange()
