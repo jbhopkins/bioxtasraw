@@ -102,7 +102,7 @@ def autoRg(sasm):
 
 
     #This function takes every window size in the window list, stepts it through the data range, and
-    #fits it to get the RG and I0. If basic conditions are met, qmin*RG<1 and qmax*RG>1.3, and RG>0.1,
+    #fits it to get the RG and I0. If basic conditions are met, qmin*RG<1 and qmax*RG<1.35, and RG>0.1,
     #We keep the fit.
     for w in window_list:
         for start in range(data_start,data_end-w, data_step):
@@ -112,7 +112,7 @@ def autoRg(sasm):
                 RG=np.sqrt(-3.*opt[1])
                 I0=np.exp(opt[0])
 
-                if q[start]*RG < 1 and q[start+w]*RG<1.3 and RG>0.1:
+                if q[start]*RG < 1 and q[start+w-1]*RG<1.35 and RG>0.1:
 
                     #error in rg and i0 is calculated by noting that q(x)+/-Dq has Dq=abs(dq/dx)Dx, where q(x) is your function you're using 
                     #on the quantity x+/-Dx, with Dq and Dx as the uncertainties and dq/dx the derviative of q with respect to x.
@@ -135,7 +135,7 @@ def autoRg(sasm):
                             dof = w - 2.
                             reduced_chi_sqr = chi_sqr/dof
 
-                            fit_list.append([start, w, q[start], q[start+w], RG, RGer, I0, I0er, q[start]*RG, q[start+w]*RG, r_sqr, chi_sqr, reduced_chi_sqr])
+                            fit_list.append([start, w, q[start], q[start+w-1], RG, RGer, I0, I0er, q[start]*RG, q[start+w-1]*RG, r_sqr, chi_sqr, reduced_chi_sqr])
 
     #Extreme cases: may need to relax the parameters.
     if len(fit_list)<1:
@@ -170,7 +170,7 @@ def autoRg(sasm):
         for a in range(len(fit_list)):
             #Scores all should be 1 based. Reduced chi_square score is not, hence it not being weighted.
 
-            qmaxrg_score = fit_list[a,9]/1.3
+            qmaxrg_score = 1-np.absolute((fit_list[a,9]-1.3)/1.3)
             qminrg_score = 1-fit_list[a,8]
             rg_frac_err_score = 1-fit_list[a,5]/fit_list[a,4]
             i0_frac_err_score = 1 - fit_list[a,7]/fit_list[a,6]
@@ -190,8 +190,8 @@ def autoRg(sasm):
             all_scores.append(scores)
 
 
-        #I have picked an aribtrary threshold here. Not sure if 0.5 is a good quality cutoff or not.
-        if quality.max() > .6:
+        #I have picked an aribtrary threshold here. Not sure if 0.6 is a good quality cutoff or not.
+        if quality.max() > 0.6:
             # idx = quality.argmax()
             # rg = fit_list[idx,4]
             # rger1 = fit_list[idx,5]
@@ -215,7 +215,7 @@ def autoRg(sasm):
                 i0 = fit_list[:,6][quality>quality[idx]-.1].mean()
                 i0er = fit_list[:,7][quality>quality[idx]-.1].std()
                 idx_min = fit_list[idx,0]
-                idx_max = fit_list[idx,0]+fit_list[idx,1]
+                idx_max = fit_list[idx,0]+fit_list[idx,1]-1
             except:
                 idx = quality.argmax()
                 rg = fit_list[idx,4]
@@ -223,7 +223,7 @@ def autoRg(sasm):
                 i0 = fit_list[idx,6]
                 i0er = fit_list[idx,7]
                 idx_min = fit_list[idx,0]
-                idx_max = fit_list[idx,0]+fit_list[idx,1]
+                idx_max = fit_list[idx,0]+fit_list[idx,1]-1
 
 
         else:

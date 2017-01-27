@@ -183,8 +183,8 @@ class GuinierPlotPanel(wx.Panel):
         self.xlim = xlim
         
         #Cut out region of interest
-        self.i = i[xmin:xmax]
-        self.q = q[xmin:xmax]
+        self.i = i[xmin:xmax+1]
+        self.q = q[xmin:xmax+1]
         
         ## Plot the (at most) 3 first and last points after fit:
         if xmin < 20:
@@ -192,13 +192,13 @@ class GuinierPlotPanel(wx.Panel):
         else:
             min_offset = 20
         
-        if xmax > len(q)-3:
-            max_offset = len(q) - xmax
+        if xmax+1 > len(q)-3:
+            max_offset = len(q) - (xmax+1)
         else:
             max_offset = 3
 
         xmin = xmin - min_offset
-        xmax = xmax + max_offset
+        xmax = xmax + 1 + max_offset
         
         #data containing the 3 first and last points
         q_offset = q[xmin:xmax]
@@ -661,8 +661,8 @@ class GuinierControlPanel(wx.Panel):
             
             max = endSpin.GetValue()
             
-            if i > max-3:
-                i = max - 3
+            if i > max-2:
+                i = max - 2
             
             startSpin.SetValue(i)
             
@@ -670,8 +670,8 @@ class GuinierControlPanel(wx.Panel):
             minq = startSpin.GetValue()
             
             
-            if i < minq+3:
-                i = minq + 3
+            if i < minq+2:
+                i = minq + 2
             
             endSpin.SetValue(i)
                 
@@ -714,16 +714,16 @@ class GuinierControlPanel(wx.Panel):
             max = endSpin.GetValue()
             txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
             
-            if i > max-3:
-                i = max - 3
+            if i > max-2:
+                i = max - 2
                 spin.SetValue(i)
             
         elif id == self.spinctrlIDs['qend']:
             min = startSpin.GetValue()
             txt = wx.FindWindowById(self.staticTxtIDs['qend'])
             
-            if i < min+3:
-                i = min + 3
+            if i < min+2:
+                i = min + 2
                 spin.SetValue(i)
                 
         txt.SetValue(str(round(self.ExpObj.q[int(i)],5)))
@@ -740,13 +740,10 @@ class GuinierControlPanel(wx.Panel):
         spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
         
         i = int(spinstart.GetValue())
+        i2 = int(spinend.GetValue())
         
         x = self.ExpObj.q
         y = self.ExpObj.i
-        
-        spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
-        
-        i2 = int(spinend.GetValue())
         
         xlim = [i,i2]
 
