@@ -4140,8 +4140,8 @@ class MainWorkerThread(threading.Thread):
                     SASFileIO.saveSECItem(filepath, secm_dict)
                     filename, ext = os.path.splitext(secm.getParameter('filename'))
                     secm.setParameter('filename', filename+'.sec')
-                    wx.CallAfter(secm.item_panel.updateFilenameLabel)
-                    wx.CallAfter(item.unmarkAsModified)
+                    wx.CallAfter(secm.item_panel.updateFilenameLabel, updateSelf = False, updateParent = False,  updateLegend = False)
+                    wx.CallAfter(item.unmarkAsModified, updateParent = False)
 
                 if result[0] == wx.ID_YESTOALL:
                     overwrite_all = True
@@ -4153,12 +4153,18 @@ class MainWorkerThread(threading.Thread):
                 SASFileIO.saveSECItem(filepath, secm_dict)
                 filename, ext = os.path.splitext(secm.getParameter('filename'))
                 secm.setParameter('filename', filename+'.sec')
-                wx.CallAfter(secm.item_panel.updateFilenameLabel)
-                wx.CallAfter(item.unmarkAsModified)
+                wx.CallAfter(secm.item_panel.updateFilenameLabel, updateSelf = False, updateParent = False,  updateLegend = False)
+                wx.CallAfter(item.unmarkAsModified, updateParent = False)
 
 
             if restart_timer:
                 self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path[b])[1]])
+
+        secm.item_panel.parent.Refresh()
+        secm.item_panel.parent.Layout()
+
+        secm.plot_panel.updateLegend(1)
+        secm.plot_panel.updateLegend(1)
 
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
@@ -4265,7 +4271,6 @@ class MainWorkerThread(threading.Thread):
 
     def _saveItems(self, data, iftmode = False):
 
-
         save_path = data[0]
         item_list = data[1]
 
@@ -4274,6 +4279,9 @@ class MainWorkerThread(threading.Thread):
             restart_timer = True
         else:
             restart_timer = False
+
+        if iftmode:
+            axes_update_list = []
         
         overwrite_all = False
         no_to_all = False
@@ -4322,8 +4330,12 @@ class MainWorkerThread(threading.Thread):
                             self._showSaveError('header')
                         filename, ext = os.path.splitext(sasm.getParameter('filename'))
                         sasm.setParameter('filename', filename + newext)
-                        wx.CallAfter(sasm.item_panel.updateFilenameLabel)
-                        wx.CallAfter(item.unmarkAsModified)
+
+                        wx.CallAfter(sasm.item_panel.updateFilenameLabel, updateSelf = False, updateParent = False,  updateLegend = False)
+                        wx.CallAfter(item.unmarkAsModified, updateParent = False)
+
+                        if not iftmode:
+                            axes_update_list.append(sasm.axes)
                     
                     if result[0] == wx.ID_YESTOALL:
                         overwrite_all = True
@@ -4338,11 +4350,27 @@ class MainWorkerThread(threading.Thread):
                     self._showSaveError('header')
                 filename, ext = os.path.splitext(sasm.getParameter('filename'))
                 sasm.setParameter('filename', filename + newext)
-                wx.CallAfter(sasm.item_panel.updateFilenameLabel)
-                wx.CallAfter(item.unmarkAsModified)
+
+                wx.CallAfter(sasm.item_panel.updateFilenameLabel, updateSelf = False, updateParent = False, updateLegend = False)
+                wx.CallAfter(item.unmarkAsModified, updateParent = False)
+
+                if not iftmode:
+                    axes_update_list.append(sasm.axes)   
 
             if restart_timer:
                 self.main_frame.OnlineControl.updateSkipList([check_filename])
+
+        sasm.item_panel.parent.Refresh()
+        sasm.item_panel.parent.Layout()
+
+        if iftmode:
+            sasm.item_panel.ift_plot_panel.updateLegend(1)
+            sasm.item_panel.ift_plot_panel.updateLegend(2)
+        else:
+            axes_update_list = set(axes_update_list)
+
+            for axis in axes_update_list:
+                sasm.item_panel.plot_panel.updateLegend(axis)
         
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
@@ -6377,44 +6405,53 @@ class ManipItemPanel(wx.Panel):
         self.SelectedForPlot.SetValue(self._selected_for_plot)
         self.sasm.line.set_picker(self._selected_for_plot)
     
-    def markAsModified(self):
-        parent = self.GetParent()
-        
+    def markAsModified(self):        
         filename = self.sasm.getParameter('filename')
         self.SelectedForPlot.SetLabel('* ' + str(filename))
+        
         self.SelectedForPlot.Refresh()
         self.topsizer.Layout()
-        parent.Layout()            
-        parent.Refresh()
+        
+        self.parent.Layout()
+        self.parent.Refresh()
         
         if self not in self.manipulation_panel.modified_items:
             self.manipulation_panel.modified_items.append(self)
     
-    def unmarkAsModified(self):
-        parent = self.GetParent()
-        
+    def unmarkAsModified(self, updateSelf = True, updateParent = True):
         filename = self.sasm.getParameter('filename')
+
         self.SelectedForPlot.SetLabel(str(filename))
-        self.SelectedForPlot.Refresh()
-        self.topsizer.Layout()
-        parent.Layout()            
-        parent.Refresh()
+        if updateSelf:
+            self.SelectedForPlot.Refresh()
+            self.topsizer.Layout()
+
+        if updateParent:
+            self.parent.Layout()
+            self.parent.Refresh()
         try:
             self.manipulation_panel.modified_items.remove(self)
         except:
             pass
         
-    def updateFilenameLabel(self):
+    def updateFilenameLabel(self, updateSelf = True, updateParent = True, updateLegend = True):
         filename = self.sasm.getParameter('filename')
         
         if self._legend_label == '':
             self.sasm.line.set_label(filename)
-        self.plot_panel.updateLegend(self.sasm.axes)
+
+        if updateLegend:
+            self.plot_panel.updateLegend(self.sasm.axes)
+
         self.SelectedForPlot.SetLabel(str(filename))
-        self.SelectedForPlot.Refresh()
-        self.topsizer.Layout()
-        self.GetParent().Layout()            
-        self.GetParent().Refresh()
+
+        if updateSelf:
+            self.SelectedForPlot.Refresh()
+            self.topsizer.Layout()
+
+        if updateParent:
+            self.parent.Layout()
+            self.parent.Refresh()
     
     
     def useAsMWStandard(self):
@@ -8039,27 +8076,30 @@ class IFTItemPanel(wx.Panel):
             line.set_picker(self._selected_for_plot)
         
     def markAsModified(self):
-        parent = self.GetParent()
-        
         filename = self.iftm.getParameter('filename')
+
         self.SelectedForPlot.SetLabel('* ' + str(filename))
+        
         self.SelectedForPlot.Refresh()
         self.topsizer.Layout()
-        parent.Layout()            
-        parent.Refresh()
+        
+        self.parent.Layout()
+        self.parent.Refresh()
         
         if self not in self.manipulation_panel.modified_items:
             self.manipulation_panel.modified_items.append(self)
     
-    def unmarkAsModified(self):
-        parent = self.GetParent()
-        
+    def unmarkAsModified(self, updateSelf = True, updateParent = True):
         filename = self.iftm.getParameter('filename')
+
         self.SelectedForPlot.SetLabel(str(filename))
-        self.SelectedForPlot.Refresh()
-        self.topsizer.Layout()
-        parent.Layout()            
-        parent.Refresh()
+        if updateSelf:
+            self.SelectedForPlot.Refresh()
+            self.topsizer.Layout()
+
+        if updateParent:
+            self.parent.Layout()
+            self.parent.Refresh()
         try:
             self.manipulation_panel.modified_items.remove(self)
         except:
@@ -8265,7 +8305,7 @@ class IFTItemPanel(wx.Panel):
                 # Update the error bars 
                 barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr)))
         
-    def updateFilenameLabel(self):
+    def updateFilenameLabel(self, updateSelf = True, updateParent = True, updateLegend = True):
         filename = self.iftm.getParameter('filename')
         
         if self._legend_label == '':
@@ -8274,14 +8314,19 @@ class IFTItemPanel(wx.Panel):
 
                 line.set_label(filename+current_label.split('_')[-1])
 
+        if updateLegend:
+            self.ift_plot_panel.updateLegend(1)
+            self.ift_plot_panel.updateLegend(2)
 
-        self.ift_plot_panel.updateLegend(1)
-        self.ift_plot_panel.updateLegend(2)
         self.SelectedForPlot.SetLabel(str(filename))
-        self.SelectedForPlot.Refresh()
-        self.topsizer.Layout()
-        self.GetParent().Layout()            
-        self.GetParent().Refresh()
+
+        if updateSelf:
+            self.SelectedForPlot.Refresh()
+            self.topsizer.Layout()
+
+        if updateParent:
+            self.parent.Layout()
+            self.parent.Refresh()
     
     def _initializeIcons(self):
         
@@ -9697,43 +9742,54 @@ class SECItemPanel(wx.Panel):
         self.secm.line.set_picker(self._selected_for_plot)
     
     def markAsModified(self):
-        parent = self.GetParent()
-        
         filename = self.secm.getParameter('filename')
         self.SelectedForPlot.SetLabel('* ' + str(filename))
+        
         self.SelectedForPlot.Refresh()
         self.topsizer.Layout()
-        parent.Layout()            
-        parent.Refresh()
+        
+        self.parent.Layout()
+        self.parent.Refresh()
         
         if self not in self.sec_panel.modified_items:
             self.sec_panel.modified_items.append(self)
     
-    def unmarkAsModified(self):
+    def unmarkAsModified(self, updateSelf = True, updateParent = True):
         parent = self.GetParent()
         
         filename = self.secm.getParameter('filename')
         self.SelectedForPlot.SetLabel(str(filename))
-        self.SelectedForPlot.Refresh()
-        self.topsizer.Layout()
-        parent.Layout()            
-        parent.Refresh()
+
+        if updateSelf:
+            self.SelectedForPlot.Refresh()
+            self.topsizer.Layout()
+
+        if updateParent:
+            self.parent.Layout()
+            self.parent.Refresh()
         try:
             self.sec_panel.modified_items.remove(self)
         except:
             pass
         
-    def updateFilenameLabel(self):
+    def updateFilenameLabel(self, updateSelf = True, updateParent = True, updateLegend = True):
         filename = self.secm.getParameter('filename')
         
         if self._legend_label == '':
             self.secm.line.set_label(filename)
-        self.sec_plot_panel.updateLegend(self.secm.axes)
+
+        if updateLegend:
+            self.sec_plot_panel.updateLegend(self.secm.axes)
+
         self.SelectedForPlot.SetLabel(str(filename))
-        self.SelectedForPlot.Refresh()
-        self.topsizer.Layout()
-        self.GetParent().Layout()            
-        self.GetParent().Refresh()
+
+        if updateSelf:
+            self.SelectedForPlot.Refresh()
+            self.topsizer.Layout()
+
+        if updateParent:
+            self.parent.Layout()
+            self.parent.Refresh()
                 
     def _initializeIcons(self):
         
