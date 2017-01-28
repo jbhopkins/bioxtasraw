@@ -1462,7 +1462,7 @@ class MainFrame(wx.Frame):
     def _onAboutDlg(self, event):
         info = wx.AboutDialogInfo()
         info.Name = "RAW"
-        info.Version = "1.2.1"
+        info.Version = RAWGlobals.version
         info.Copyright = "Copyright(C) 2009 RAW"
         info.Description = "RAW is a software package primarily for SAXS 2D data reduction and 1D data analysis.\nIt provides an easy GUI for handling multiple files fast, and a\ngood alternative to commercial or protected software packages for finding\nthe Pair Distance Distribution Function\n\nPlease cite:\nBioXTAS RAW, a software program for high-throughput automated small-angle\nX-ray scattering data reduction and preliminary analysis, J. Appl. Cryst. (2009). 42, 959-964"
 
@@ -4270,7 +4270,6 @@ class MainWorkerThread(threading.Thread):
                 
 
     def _saveItems(self, data, iftmode = False):
-
         save_path = data[0]
         item_list = data[1]
 
@@ -4280,7 +4279,7 @@ class MainWorkerThread(threading.Thread):
         else:
             restart_timer = False
 
-        if iftmode:
+        if not iftmode:
             axes_update_list = []
         
         overwrite_all = False
@@ -4319,7 +4318,7 @@ class MainWorkerThread(threading.Thread):
                         return
                 
                     if result[0] == wx.ID_EDIT: #rename
-                        filepath = result[1][0]
+                        filepath = result[1]
                         filepath, new_filename = os.path.split(filepath)
                         sasm.setParameter('filename', new_filename)
                         
@@ -4331,7 +4330,7 @@ class MainWorkerThread(threading.Thread):
                         filename, ext = os.path.splitext(sasm.getParameter('filename'))
                         sasm.setParameter('filename', filename + newext)
 
-                        wx.CallAfter(sasm.item_panel.updateFilenameLabel, updateSelf = False, updateParent = False,  updateLegend = False)
+                        wx.CallAfter(sasm.item_panel.updateFilenameLabel, updateParent = False,  updateLegend = False)
                         wx.CallAfter(item.unmarkAsModified, updateParent = False)
 
                         if not iftmode:
@@ -4351,7 +4350,7 @@ class MainWorkerThread(threading.Thread):
                 filename, ext = os.path.splitext(sasm.getParameter('filename'))
                 sasm.setParameter('filename', filename + newext)
 
-                wx.CallAfter(sasm.item_panel.updateFilenameLabel, updateSelf = False, updateParent = False, updateLegend = False)
+                wx.CallAfter(sasm.item_panel.updateFilenameLabel, updateParent = False, updateLegend = False)
                 wx.CallAfter(item.unmarkAsModified, updateParent = False)
 
                 if not iftmode:
@@ -4375,33 +4374,7 @@ class MainWorkerThread(threading.Thread):
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
 
-#--- ** Info Panel **
 
-class InfoPanel(wx.Panel):
-    
-    def __init__(self, parent):
-        
-        wx.Panel.__init__(self, parent, name = 'InfoPanel')
-        
-        infoSizer = wx.BoxSizer()
-        
-        self.infoTextBox = wx.TextCtrl(self, -1, 'Welcome to RAW 1.2.1!\n--------------------------------\n\n', style = wx.TE_MULTILINE)
-        
-        self.infoTextBox.SetBackgroundColour('WHITE')
-        self.infoTextBox.SetForegroundColour('BLACK')
-        
-        infoSizer.Add(self.infoTextBox, 1, wx.EXPAND)
-        
-        self.SetSizer(infoSizer)
-        
-    def WriteText(self, text):
-        
-        self.infoTextBox.AppendText(text)
-        
-    def Clear(self):
-        
-        self.infoTextBox.Clear()
-        
 #***************        
 #--- ** File Panel **
 #***************
@@ -16026,7 +15999,7 @@ class WelcomeDialog(wx.Frame):
         raw_bitmap = RAWIcons.raw_icon_embed.GetBitmap()
         rawimg = wx.StaticBitmap(self.panel, -1, raw_bitmap)
         
-        headline = wx.StaticText(self.panel, -1, 'Welcome to RAW 1.2.1!')
+        headline = wx.StaticText(self.panel, -1, 'Welcome to RAW %s!' %(RAWGlobals.version))
         
         text1 = 'Developers/Contributors:'
         text2 = '\nSoren Skou'
@@ -16035,7 +16008,7 @@ class WelcomeDialog(wx.Frame):
         text5 = 'Jesper Nygaard'
         text6 = 'Kurt Andersen'
         
-        text7 = '\nHelp this software become better by reporting bugs to:\n     soren.skou@saxslab.dk or jbh246@cornell.edu\n'
+        text7 = '\nHelp this software become better by reporting bugs to:\n     soren.skou@saxslab.dk and jbh246@cornell.edu\n'
         
         text8 = 'If you use this software for your SAXS data processing please cite:    \n'
         text9 = '"BioXTAS RAW, a software program for high-throughput\nautomated small-angle X-ray scattering data reduction\nand preliminary analysis", J. Appl. Cryst. (2009). 42, 959-964\n\n'
@@ -16165,7 +16138,7 @@ class MySplashScreen(wx.SplashScreen):
         evt.Skip()
         
     def ShowMain(self):            
-        frame = MainFrame('RAW 1.2.1', -1)
+        frame = MainFrame('RAW %s' %(RAWGlobals.version), -1)
         
         dlg = WelcomeDialog(frame, name = "WelcomeDialog")
         dlg.SetIcon(frame.GetIcon())

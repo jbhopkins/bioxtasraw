@@ -51,3 +51,6 @@ global usepyFAI
 
 global usepyFAI_integration
 usepyFAI_integration = False
+
+global version
+version = '1.2.2'

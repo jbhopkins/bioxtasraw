@@ -1088,9 +1088,8 @@ class CustomQuestionDialog(wx.Dialog):
             self.EndModal(id)
         
     def _onRenameButton(self):
-        
         ok = self._openFileDialog(self._filename)
-        
+
         if ok:
             self.EndModal(wx.ID_EDIT)
     
@@ -1102,15 +1101,17 @@ class CustomQuestionDialog(wx.Dialog):
             self, message="Choose filename and location.",
             defaultDir=self._current_directory,
             defaultFile=filename,
-            wildcard = "RAD files (*.rad)|*.rad| All files (*.*)|*.*",
+            wildcard = "All files (*.*)|*.*",
 
             style=wx.FD_OVERWRITE_PROMPT | wx.FD_SAVE)
         
         dlg.SetDirectory(self._current_directory)
-        
-        if dlg.ShowModal() == wx.ID_OK:
-            self._path = dlg.GetPaths()
-           
+
+        result = dlg.ShowModal()
+
+        if result == wx.ID_OK:
+            self._path = dlg.GetPath()
+
         dlg.Destroy()
         
         if self._path:
