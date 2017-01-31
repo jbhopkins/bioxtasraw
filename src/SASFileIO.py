@@ -1422,18 +1422,29 @@ else:
         
 def loadAllHeaders(filename, image_type, header_type, raw_settings):
     ''' returns the image header and the info from the header file only. '''
-    
+
     img, imghdr = loadImage(filename, image_type)
+
+    if len(img) > 1:
+        temp_filename = os.path.split(filename)[1].split('.')
+        if len(temp_filename) > 1:
+            temp_filename[-2] = temp_filename[-2] + '_%05i' %(i)
+        else:
+            temp_filename[0] = temp_filename[0] + '_%05i' %(i)
+
+        new_filename = '.'.join(temp_filename)
+    else:
+        new_filename = os.path.split(filename)[1]
     
     if header_type != 'None':
-        hdr = loadHeader(filename, filename, header_type)
+        hdr = loadHeader(filename, new_filename, header_type)
     else:
         hdr = None
 
     masks = raw_settings.get('Masks')
     tbs_mask = masks['TransparentBSMask'][0]
 
-    if tbs_mask != None:
+    if tbs_mask is None:
         if type(img) != list:
             roi_counter = img[tbs_mask==1].sum()
             if hdr is None:
