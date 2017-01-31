@@ -1552,8 +1552,6 @@ class ImageSettingsDialog(wx.Dialog):
             else:
                 slider.Bind(wx.EVT_SCROLL_CHANGED, self.OnSlider)
             
-            #slider.Bind(wx.EVT_LEFT_UP, self.OnTest)
-            
             if each[3] == 'Brightness' or each[3] == 'Contrast':
                 slider.SetMin(0)
                 slider.SetMax(200)
@@ -1565,7 +1563,7 @@ class ImageSettingsDialog(wx.Dialog):
             
             if self.parent.plot_parameters[each[3]] != None:
                 val.SetValue(str(self.parent.plot_parameters[each[3]]))
-                slider.SetValue(min(float(self.parent.plot_parameters[each[3]]), 2147483647))
+                slider.SetValue(min(int(self.parent.plot_parameters[each[3]]), 2147483647))
             
             hslider = wx.BoxSizer(wx.HORIZONTAL)
                
@@ -1583,9 +1581,6 @@ class ImageSettingsDialog(wx.Dialog):
 
         return finalSizer
     
-    def OnTest(self, event):
-        print 'BAM!'
-    
     def resetSliders(self, maxval, minval):
         
         for each in self.sliderinfo:
@@ -1600,7 +1595,7 @@ class ImageSettingsDialog(wx.Dialog):
                 slider.SetMin(minval)
                 slider.SetMax(min(maxval,2147483647))
             
-            slider.SetValue(min(2147483647,float(self.parent.plot_parameters[each[3]])))
+            slider.SetValue(min(2147483647,int(self.parent.plot_parameters[each[3]])))
     
     def onLockValues(self, event):
         
@@ -1610,39 +1605,49 @@ class ImageSettingsDialog(wx.Dialog):
             self.parent.plot_parameters['ClimLocked'] = False
     
     def OnTxtEnter(self, event):
-
         id = event.GetId()
         
         for each in self.sliderinfo:
             if each[1] == id:
                 ctrl = wx.FindWindowById(id)
                 slider = wx.FindWindowById(each[2])
-                slider.SetValue(min(2147483647,float(ctrl.GetValue())))
-                
+
                 val = ctrl.GetValue()
-                self.parent.plot_parameters[each[3]] = float(val)
+
+                try:
+                    int(val)
+                except ValueError:
+                    val = slider.GetMin()
+
+                slider.SetValue(min(2147483647,int(val)))
+                
+                self.parent.plot_parameters[each[3]] = int(val)
                 
                 if each[3] == 'Brightness' or each[3] == 'Contrast':
                     self.setBrightnessAndContrastUINT16()
                 else:
                     self.parent.updateClim()
 
+        event.Skip()
+
     def OnSlider(self, event):
-        
         id = event.GetId()
         
         for each in self.sliderinfo:
             if each[2] == id:        
                 slider = event.GetEventObject()
-                val = slider.GetValue()    
-                wx.FindWindowById(each[1]).SetValue(str(val))
-                self.parent.plot_parameters[each[3]] = float(val)
+                val = slider.GetValue()
+
+                wx.FindWindowById(each[1]).ChangeValue(str(val))
+                self.parent.plot_parameters[each[3]] = int(val)
                 
                 if each[3] == 'Brightness' or each[3] == 'Contrast':
                     self.setBrightnessAndContrastUINT16()
                 else:
                     self.parent.updateClim()
-            
+
+        event.Skip()
+
 #     def setBrightnessAndContrastUINT16(self):
 #         print 'setting brightness'
 #         brightness = self.parent.plot_parameters['Brightness'] - 100;

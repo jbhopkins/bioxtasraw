@@ -794,11 +794,15 @@ class FloatSpinCtrl(wx.Panel):
             return
         
         self.CastFloatSpinEvent()
+
+        event.Skip()
         
     def OnEnter(self, event):
         self.OnScaleChange(None)
         self.Scale.SelectAll()
         self.CastFloatSpinEvent()
+
+        event.Skip()
             
     def OnScaleChange(self, event):
         
@@ -948,6 +952,8 @@ class IntSpinCtrl(wx.Panel):
         #if val != self.oldValue:
         self.oldValue = val
         self.CastFloatSpinEvent()
+
+        event.Skip()
 
     def OnSpinUpScale(self, event):
         self.ScalerButton.SetFocus()    # Just to remove focus from the bgscaler to throw kill_focus event and update

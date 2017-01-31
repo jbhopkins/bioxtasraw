@@ -11818,6 +11818,7 @@ class CenteringPanel(wx.Panel):
             self.setCenter([float(x),float(y)])
         except ValueError:
             pass
+        event.Skip()
         
     def _onOkButton(self, event):
         if not RAWGlobals.usepyFAI:
