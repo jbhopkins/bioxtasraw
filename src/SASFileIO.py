@@ -1444,7 +1444,7 @@ def loadAllHeaders(filename, image_type, header_type, raw_settings):
     masks = raw_settings.get('Masks')
     tbs_mask = masks['TransparentBSMask'][0]
 
-    if tbs_mask is None:
+    if tbs_mask is not None:
         if type(img) != list:
             roi_counter = img[tbs_mask==1].sum()
             if hdr is None:

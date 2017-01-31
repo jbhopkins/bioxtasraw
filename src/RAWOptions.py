@@ -116,7 +116,7 @@ class ArtifactOptionsPanel(wx.Panel):
             
                 if type != 'bool':
                     text = wx.StaticText(self, -1, label)
-                    ctrl = wx.TextCtrl(self, id, 'None')
+                    ctrl = wx.TextCtrl(self, id, 'None', style = wx.TE_PROCESS_ENTER)
                 
                     grid_sizer.Add(text, 1, wx.EXPAND | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
                     grid_sizer.Add(ctrl, 1, wx.EXPAND | wx.ALIGN_CENTER)
@@ -144,7 +144,7 @@ class ArtifactOptionsPanel(wx.Panel):
             
                 if type != 'bool':
                     text = wx.StaticText(self, -1, label)
-                    ctrl = wx.TextCtrl(self, id, 'None')
+                    ctrl = wx.TextCtrl(self, id, 'None', style = wx.TE_PROCESS_ENTER)
                 
                     grid_sizer.Add(text, 1, wx.EXPAND | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
                     grid_sizer.Add(ctrl, 1, wx.EXPAND | wx.ALIGN_CENTER)
@@ -171,7 +171,7 @@ class ArtifactOptionsPanel(wx.Panel):
             
             if type != 'bool':
                 text = wx.StaticText(self, -1, label)
-                ctrl = wx.TextCtrl(self, id, 'None')
+                ctrl = wx.TextCtrl(self, id, 'None', style = wx.TE_PROCESS_ENTER)
                 
                 grid_sizer.Add(text, 1, wx.EXPAND | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
                 grid_sizer.Add(ctrl, 1, wx.EXPAND | wx.ALIGN_CENTER)
@@ -593,9 +593,9 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         
         self.bind_ctrl = wx.Choice(self, -1, choices = self.bind_choice_list)                   
         self.bind_ctrl.Bind(wx.EVT_CHOICE, self.onBindChoice)
-        self.bind_name_ctrl = wx.TextCtrl(self, -1, size = self.bind_ctrl.GetSize())
-        self.bind_value_ctrl = wx.TextCtrl(self, -1, size = self.bind_ctrl.GetSize())
-        self.bind_mod_ctrl = wx.TextCtrl(self, -1, size = self.bind_ctrl.GetSize())
+        self.bind_name_ctrl = wx.TextCtrl(self, -1, size = self.bind_ctrl.GetSize(), style = wx.TE_PROCESS_ENTER)
+        self.bind_value_ctrl = wx.TextCtrl(self, -1, size = self.bind_ctrl.GetSize(), style = wx.TE_PROCESS_ENTER)
+        self.bind_mod_ctrl = wx.TextCtrl(self, -1, size = self.bind_ctrl.GetSize(), style = wx.TE_PROCESS_ENTER)
                 
         sizer.Add(name_text, 1, wx.ALIGN_CENTER)
         sizer.Add(self.bind_name_ctrl, 1)
@@ -1120,7 +1120,7 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
     
             label = wx.StaticText(self, -1, labtxt)
 
-            filenameLabel = wx.TextCtrl(self, labl_ID, "None")
+            filenameLabel = wx.TextCtrl(self, labl_ID, "None", style = wx.TE_PROCESS_ENTER)
             filenameLabel.SetEditable(False)
                             
             hSizer.Add(label, 1, wx.ALIGN_CENTER_VERTICAL)
@@ -1317,7 +1317,7 @@ class ReductionFlatfield(wx.Panel):
 
             label = wx.StaticText(self, -1, labtxt)
 
-            filenameLabel = wx.TextCtrl(self, labl_ID, "None")
+            filenameLabel = wx.TextCtrl(self, labl_ID, "None", style = wx.TE_PROCESS_ENTER)
             filenameLabel.SetEditable(False)
 
             hSizer.Add(label, 1, wx.ALIGN_CENTER_VERTICAL)
@@ -1508,7 +1508,7 @@ class SansOptionsPanel(wx.Panel):
         
         for txt, id in self.MWData:
             sizer = wx.BoxSizer(wx.VERTICAL)
-            ctrl = wx.TextCtrl(self, id, '')
+            ctrl = wx.TextCtrl(self, id, '', style = wx.TE_PROCESS_ENTER)
             txt = wx.StaticText(self, -1, txt)
             
             sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
@@ -1598,9 +1598,9 @@ class MolecularWeightPanel(wx.Panel):
         for txt, id in self.RelMWData:
             sizer = wx.BoxSizer(wx.VERTICAL)
             if id == self.raw_settings.getId('MWStandardFile'):
-                ctrl = wx.TextCtrl(self, id, '', size = (200,-1))
+                ctrl = wx.TextCtrl(self, id, '', size = (200,-1), style = wx.TE_PROCESS_ENTER)
             else:
-                ctrl = wx.TextCtrl(self, id, '')
+                ctrl = wx.TextCtrl(self, id, '', style = wx.TE_PROCESS_ENTER)
             txt = wx.StaticText(self, -1, txt)
 
             sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
@@ -1618,7 +1618,7 @@ class MolecularWeightPanel(wx.Panel):
             if id == self.raw_settings.getId('MWVcType'):
                 ctrl = wx.Choice(self, id, choices = ['Protein', 'RNA'])
             else:
-                ctrl = wx.TextCtrl(self, id, '')
+                ctrl = wx.TextCtrl(self, id, '', style = wx.TE_PROCESS_ENTER)
 
             txt = wx.StaticText(self, -1, txt)
 
@@ -1634,7 +1634,7 @@ class MolecularWeightPanel(wx.Panel):
 
         txt, id = self.VpMWData
         sizer = wx.BoxSizer(wx.VERTICAL)
-        ctrl = wx.TextCtrl(self, id, '')
+        ctrl = wx.TextCtrl(self, id, '', style = wx.TE_PROCESS_ENTER)
         txt = wx.StaticText(self, -1, txt)
 
         sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
@@ -1649,7 +1649,7 @@ class MolecularWeightPanel(wx.Panel):
 
         for txt, id in self.AbsMWData:
             sizer = wx.BoxSizer(wx.HORIZONTAL)
-            ctrl = wx.TextCtrl(self, id, '')
+            ctrl = wx.TextCtrl(self, id, '', style = wx.TE_PROCESS_ENTER)
             txt = wx.StaticText(self, -1, txt)
 
             sizer.Add(txt, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -1703,7 +1703,15 @@ class ReductionNormalizationPanel(wx.Panel):
         self.norm_list_id = raw_settings.getId('NormalizationList')
         self.enable_norm_id = raw_settings.getId('EnableNormalization')
         
-        self.expr_combo_list = []
+        
+        img_hdr = self.raw_settings.get('ImageHdrList')
+        file_hdr = self.raw_settings.get('FileHdrList')
+
+        try:
+            self.expr_combo_list = [''] + sorted(img_hdr.keys() + file_hdr.keys())
+        except AttributeError:
+            self.expr_combo_list = ['']
+
         self.selected_item = None
 
         normsizer = self.createNormalizeList()
@@ -1720,7 +1728,8 @@ class ReductionNormalizationPanel(wx.Panel):
         self.operator_choice = wx.Choice(self, -1, choices = operator_list)
         self.operator_choice.Select(0)
         
-        self.expr_combo = wx.ComboBox(self, -1, choices = self.expr_combo_list)
+        self.expr_combo = wx.ComboBox(self, -1, choices = self.expr_combo_list, style = wx.TE_PROCESS_ENTER)
+        self.expr_combo.Select(0)
         
         self.norm_list = NormListCtrl(self, self.norm_list_id, style = wx.LC_REPORT)
         self.norm_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onNormListSelection)
@@ -1830,6 +1839,19 @@ class ReductionNormalizationPanel(wx.Panel):
             else:
                 self.norm_list.add(op, expr)
 
+    def updateNonGuiChanges(self):
+        img_hdr = self.raw_settings.get('ImageHdrList')
+        file_hdr = self.raw_settings.get('FileHdrList')
+
+        self.expr_combo_list = [''] + sorted(img_hdr.keys() + file_hdr.keys())
+        
+        if not self.expr_combo.IsTextEmpty():
+            expr = self.expr_combo.GetValue()
+
+        self.expr_combo.SetItems(self.expr_combo_list)
+
+        self.expr_combo.SetValue(expr)
+
 
 class OnlineModePanel(wx.Panel):
     
@@ -1867,7 +1889,7 @@ class OnlineModePanel(wx.Panel):
         self.position_choice.Select(0)
 
 
-        self.expr = wx.TextCtrl(self, -1, value="")
+        self.expr = wx.TextCtrl(self, -1, value="", style = wx.TE_PROCESS_ENTER)
         
         self.online_list = OnlineListCtrl(self, self.filt_list_id, style = wx.LC_REPORT)
         self.online_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onNormListSelection)
@@ -1981,7 +2003,7 @@ class GeneralOptionsPanel(wx.Panel):
         
         staticBoxSizer.Add(treatmentSizer, 0, wx.BOTTOM | wx.LEFT, 5)       
 
-        online_dir_ctrl = wx.TextCtrl(self, self.raw_settings.getId('OnlineStartupDir'), '')
+        online_dir_ctrl = wx.TextCtrl(self, self.raw_settings.getId('OnlineStartupDir'), '', style = wx.TE_PROCESS_ENTER)
         online_dir_txt = wx.StaticText(self, -1, 'Online mode startup directory :')
 
         setdir_button = wx.Button(self, -1, 'Set')
@@ -2093,7 +2115,7 @@ class MaskingOptionsPanel(wx.Panel):
     
             label = wx.StaticText(self, -1, labtxt)
 
-            filename_label = wx.TextCtrl(self, labl_id, "None")
+            filename_label = wx.TextCtrl(self, labl_id, "None", style = wx.TE_PROCESS_ENTER)
             filename_label.SetEditable(False)
                             
             hSizer.Add(label, 1, wx.ALIGN_CENTER_VERTICAL)
@@ -2249,7 +2271,7 @@ class SaveDirectoriesPanel(wx.Panel):
     
                 label = wx.StaticText(self, -1, labtxt)
 
-                filenameLabel = wx.TextCtrl(self, labl_id, '')
+                filenameLabel = wx.TextCtrl(self, labl_id, '', style = wx.TE_PROCESS_ENTER)
                 filenameLabel.SetEditable(False)
                             
                 h_sizer.Add(label, 1, wx.ALIGN_CENTER_VERTICAL)
@@ -2399,7 +2421,7 @@ class IftOptionsPanel(wx.Panel):
         for label, id in self.gnom_options_data:
             
             labeltxt = wx.StaticText(gnom_panel, -1, label)
-            ctrl = wx.TextCtrl(gnom_panel, id, '0', size = (60, 21), style = wx.TE_RIGHT)
+            ctrl = wx.TextCtrl(gnom_panel, id, '0', size = (60, 21), style = wx.TE_RIGHT | wx.TE_PROCESS_ENTER)
             
             grid_sizer.Add(labeltxt, 1, wx.CENTER)
             grid_sizer.Add(ctrl, 1)
@@ -2426,7 +2448,7 @@ class IftOptionsPanel(wx.Panel):
             id = each[1]
             
             labeltxt = wx.StaticText(bift_panel, -1, str(label))
-            ctrl = wx.TextCtrl(bift_panel, id, '0', size = (60, 21), style = wx.TE_RIGHT)
+            ctrl = wx.TextCtrl(bift_panel, id, '0', size = (60, 21), style = wx.TE_RIGHT | wx.TE_PROCESS_ENTER)
             
             grid_sizer.Add(labeltxt, 1)
             grid_sizer.Add(ctrl, 1)
@@ -2464,21 +2486,21 @@ class AutomationOptionsPanel(wx.Panel):
         box12 = wx.BoxSizer(wx.HORIZONTAL)
         
         self.reglabel = wx.StaticText(self, -1, 'Regular Expression (frame):')
-        self.regctrl = wx.TextCtrl(self, self.raw_settings.getId('AutoAvgRegExp'), size = (150,-1))
+        self.regctrl = wx.TextCtrl(self, self.raw_settings.getId('AutoAvgRegExp'), size = (150,-1), style = wx.TE_PROCESS_ENTER)
        
         box1 = wx.BoxSizer(wx.VERTICAL)
         box1.Add(self.reglabel,0)
         box1.Add(self.regctrl,0)
         
         self.reglabelname = wx.StaticText(self, -1, 'Regular Expression (name):')
-        self.regctrlname = wx.TextCtrl(self, self.raw_settings.getId('AutoAvgNameRegExp'), size = (150,-1))
+        self.regctrlname = wx.TextCtrl(self, self.raw_settings.getId('AutoAvgNameRegExp'), size = (150,-1), style = wx.TE_PROCESS_ENTER)
        
         box5 = wx.BoxSizer(wx.VERTICAL)
         box5.Add(self.reglabelname,0)
         box5.Add(self.regctrlname,0)
         
         self.numofframesLabel = wx.StaticText(self, -1, 'No. of Frames:')
-        self.numofframesCtrl = wx.TextCtrl(self, self.raw_settings.getId('AutoAvgNoOfFrames'), '1', style = wx.TE_CENTER)
+        self.numofframesCtrl = wx.TextCtrl(self, self.raw_settings.getId('AutoAvgNoOfFrames'), '1', style = wx.TE_CENTER | wx.TE_PROCESS_ENTER)
         box2 = wx.BoxSizer(wx.VERTICAL)
         box2.Add(self.numofframesLabel,0)
         box2.Add(self.numofframesCtrl,0)
@@ -2491,19 +2513,19 @@ class AutomationOptionsPanel(wx.Panel):
         box34 = wx.BoxSizer(wx.HORIZONTAL)
         
         testfilenameLabel = wx.StaticText(self, -1, 'Test Filename:')
-        self.testfilenameCtrl = wx.TextCtrl(self, -1, size = (150,-1))
+        self.testfilenameCtrl = wx.TextCtrl(self, -1, size = (150,-1), style = wx.TE_PROCESS_ENTER)
         box3 = wx.BoxSizer(wx.VERTICAL)
         box3.Add(testfilenameLabel,0)
         box3.Add(self.testfilenameCtrl,0)
         
         testfilenameLabelex = wx.StaticText(self, -1, 'Extracted Filename:')
-        self.testfilenameCtrlex = wx.TextCtrl(self, -1, size = (150,-1), style = wx.TE_CENTER | wx.TE_READONLY)
+        self.testfilenameCtrlex = wx.TextCtrl(self, -1, size = (150,-1), style = wx.TE_CENTER | wx.TE_READONLY | wx.TE_PROCESS_ENTER)
         box6 = wx.BoxSizer(wx.VERTICAL)
         box6.Add(testfilenameLabelex,0)
         box6.Add(self.testfilenameCtrlex,0)
         
         testframenum = wx.StaticText(self, -1, 'Frame #:')
-        self.testframectrl = wx.TextCtrl(self, -1, style = wx.TE_CENTER | wx.TE_READONLY)
+        self.testframectrl = wx.TextCtrl(self, -1, style = wx.TE_CENTER | wx.TE_READONLY | wx.TE_PROCESS_ENTER)
         testbutton = wx.Button(self, -1 , 'Test')
         testbutton.Bind(wx.EVT_BUTTON, self.OnAutoAvgTest)
         
@@ -2549,7 +2571,7 @@ class AutomationOptionsPanel(wx.Panel):
         box12 = wx.BoxSizer(wx.HORIZONTAL)
         
         self.autobgreglabel = wx.StaticText(self, -1, 'Regular Expression:')
-        self.autobgregctrl = wx.TextCtrl(self, self.raw_settings.getId('AutoBgSubRegExp'), size = (150,-1))
+        self.autobgregctrl = wx.TextCtrl(self, self.raw_settings.getId('AutoBgSubRegExp'), size = (150,-1), style = wx.TE_PROCESS_ENTER)
        
         box1 = wx.BoxSizer(wx.VERTICAL)
         box1.Add(self.autobgreglabel,0)
@@ -2561,13 +2583,13 @@ class AutomationOptionsPanel(wx.Panel):
         box34 = wx.BoxSizer(wx.HORIZONTAL)
         
         testfilenameLabel = wx.StaticText(self, -1, 'Test Filename:')
-        self.autobgtestfilenameCtrl = wx.TextCtrl(self, -1, size = (150,-1))
+        self.autobgtestfilenameCtrl = wx.TextCtrl(self, -1, size = (150,-1), style = wx.TE_PROCESS_ENTER)
         box3 = wx.BoxSizer(wx.VERTICAL)
         box3.Add(testfilenameLabel,0)
         box3.Add(self.autobgtestfilenameCtrl,0)
         
         testframenum = wx.StaticText(self, -1, 'Match Test:')
-        self.autobgtestframectrl = wx.TextCtrl(self, -1, style = wx.TE_CENTER | wx.TE_READONLY)
+        self.autobgtestframectrl = wx.TextCtrl(self, -1, style = wx.TE_CENTER | wx.TE_READONLY | wx.TE_PROCESS_ENTER)
         testbutton = wx.Button(self, -1 , 'Test')
         testbutton.Bind(wx.EVT_BUTTON, self.OnAutoBgTest)
         
@@ -2651,7 +2673,7 @@ class SecPanel(wx.Panel):
 
         for item in self.settings:
             label = wx.StaticText(self, -1, item[0])
-            value = wx.TextCtrl(self, item[1], '', size = (60, -1) )
+            value = wx.TextCtrl(self, item[1], '', size = (60, -1), style = wx.TE_PROCESS_ENTER )
 
             sizer.Add(label, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
             sizer.Add(value, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
@@ -2690,7 +2712,7 @@ class ATSASGeneralPanel(wx.Panel):
         self.autoFind.Bind(wx.EVT_CHECKBOX, self.onAutoFind)
 
         self.dirLabel = wx.StaticText(self, -1, self.data[0][0])
-        self.datadir = wx.TextCtrl(self, self.data[0][1], self.raw_settings.get('ATSASDir'), size = (475,-1))
+        self.datadir = wx.TextCtrl(self, self.data[0][1], self.raw_settings.get('ATSASDir'), size = (475,-1), style = wx.TE_PROCESS_ENTER)
         
         self.dirButton = wx.Button(self, -1, 'Select Directory')
         self.dirButton.Bind(wx.EVT_BUTTON, self.onDirButton)
@@ -2784,7 +2806,7 @@ class ATSASGnom(wx.Panel):
 
 
         npts_text = wx.StaticText(self, -1, 'Number of points in real space :')
-        npts_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomNPoints'), '', size = (60, -1))
+        npts_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomNPoints'), '', size = (60, -1), style = wx.TE_PROCESS_ENTER)
 
         npts_sizer = wx.BoxSizer(wx.HORIZONTAL)
         npts_sizer.Add(npts_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
@@ -2792,7 +2814,7 @@ class ATSASGnom(wx.Panel):
 
 
         alpha_text = wx.StaticText(self, -1, 'Initial Alpha :')
-        alpha_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomInitialAlpha'), '', size = (60, -1))
+        alpha_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomInitialAlpha'), '', size = (60, -1), style = wx.TE_PROCESS_ENTER)
 
         alpha_sizer = wx.BoxSizer(wx.HORIZONTAL)
         alpha_sizer.Add(alpha_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
@@ -2917,7 +2939,7 @@ class ATSASGnomAdvanced(wx.Panel):
         angular_box = wx.StaticBox(self)
         angular_text1 = wx.StaticText(self, -1, 'Angular Scale :')
         angular_text2 = wx.StaticText(self, -1, '1 - q=4pi*sin(theta)/lambda [A^-1]\n2 - q=4pi*sin(theta)/lambda, convert [nm^-1] to [A^-1]\n3 - q=2*sin(theta)/lambda [A^-1]\n4 - q=2*sin(theta)/lambda, convert [nm^-1] to [A^-1]', style = wx.TE_MULTILINE)
-        angular_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomAngularScale'), '', size = (60,-1))
+        angular_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomAngularScale'), '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
 
         angular_sizer = wx.StaticBoxSizer(angular_box, wx.VERTICAL)
         angular_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
@@ -2931,7 +2953,7 @@ class ATSASGnomAdvanced(wx.Panel):
         system_box = wx.StaticBox(self)
         system_text1 = wx.StaticText(self, -1, 'Job Type :')
         system_text2 = wx.StaticText(self, -1, '0 - P(r) for a mondisperse system\n1 - Volume distribution function for polydisperse system of solid spheres\n2 - P(r) with a user supplied form factor\n3 - Thickness distance distribution of a monodisperse system of flattened particles\n4 - Cross-section distance distribution of monodisperse rod-like particles\n5 - Length distribution of a polydisperse system of long cylinders\n6 - Surface distribution function for a polydisperse system of spherical shells', style = wx.TE_MULTILINE)
-        system_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomSystem'), '', size = (60,-1))
+        system_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomSystem'), '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
 
         system_sizer = wx.StaticBoxSizer(system_box, wx.VERTICAL)
         system_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
@@ -2943,7 +2965,7 @@ class ATSASGnomAdvanced(wx.Panel):
 
 
         expert_text = wx.StaticText(self, -1, 'Expert parameters file :',)
-        expert_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomExpertFile'), '', size = (325,-1))
+        expert_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomExpertFile'), '', size = (325,-1), style = wx.TE_PROCESS_ENTER)
         expert_button = wx.Button(self, self.button_ids['expert'], 'Select')
         expert_button.Bind(wx.EVT_BUTTON, self.onSelectButton)
 
@@ -2954,7 +2976,7 @@ class ATSASGnomAdvanced(wx.Panel):
 
 
         form_text = wx.StaticText(self, -1, 'Form factor file (job 2):',)
-        form_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomFormFactor'), '', size = (325,-1))
+        form_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomFormFactor'), '', size = (325,-1), style = wx.TE_PROCESS_ENTER)
         form_button = wx.Button(self, self.button_ids['form'], 'Select')
         form_button.Bind(wx.EVT_BUTTON, self.onSelectButton)
 
@@ -2965,14 +2987,14 @@ class ATSASGnomAdvanced(wx.Panel):
 
 
         radius_text = wx.StaticText(self, -1, 'Radius/thickness (job 5/6)')
-        radius_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomRadius56'), size = (60, -1))
+        radius_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomRadius56'), size = (60, -1), style = wx.TE_PROCESS_ENTER)
 
         radius_sizer = wx.BoxSizer(wx.HORIZONTAL)
         radius_sizer.Add(radius_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
         radius_sizer.Add(radius_ctrl, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
 
         radmin_text = wx.StaticText(self, -1, 'Dmin (optional, set to -1 to ignore, jobs 1, 2, 5, 6) :')
-        radmin_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomRmin'), size = (60,-1))
+        radmin_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomRmin'), size = (60,-1), style = wx.TE_PROCESS_ENTER)
 
         radmin_sizer = wx.BoxSizer(wx.HORIZONTAL)
         radmin_sizer.Add(radmin_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
@@ -3122,7 +3144,7 @@ class ATSASDammif(wx.Panel):
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
                 labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1))
+                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
 
                 sizer.Add(labeltxt, 0, wx.ALL, 2)
                 sizer.Add(ctrl, 0, wx.ALL, 2)
@@ -3158,7 +3180,7 @@ class ATSASDammif(wx.Panel):
                 sizer.Add(ctrl, 0, wx.ALL, 3)
             elif itemType == 'text':
                 labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1))
+                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
 
                 sizer.Add(labeltxt, 0, wx.ALL, 3)
                 sizer.Add(ctrl, 0, wx.ALL, 3)
@@ -3315,7 +3337,7 @@ class ATSASDammifAdvanced(wx.Panel):
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
                 labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1))
+                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
 
                 sizer.Add(labeltxt, 0, wx.ALL, 2)
                 sizer.Add(ctrl, 0, wx.ALL, 2)
@@ -3342,7 +3364,7 @@ class ATSASDammifAdvanced(wx.Panel):
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
                 labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1))
+                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
 
                 short_sizer.Add(labeltxt, 0)
                 short_sizer.Add(ctrl, 0)
@@ -3612,6 +3634,7 @@ class PagePanel(wx.Panel):
         for idx, id, label, panelfunc in all_options:
             if panelfunc != None:
                 panel = panelfunc(self, id, raw_settings)
+                panel.SetExtraStyle(wx.WS_EX_BLOCK_EVENTS)
                 panel.Hide()
                 self.all_panels.append(panel)
                 page_sizer.Add(panel, 1, wx.EXPAND)
@@ -3637,6 +3660,7 @@ class PagePanel(wx.Panel):
             self.current_page.Hide()
             self.current_page = new_panel 
             self.current_page.Show()
+            self.current_page.SetFocus()
             
             self.title_string.SetLabel(option_label)
             self.Layout()
@@ -3695,6 +3719,13 @@ class OptionsTreebook(wx.Panel):
                 pass
             
         return changes_dict
+
+    def updateAllNonGuiChanges(self):
+        for each in self.page_panel.all_panels:
+            try:
+                each.updateNonGuiChanges()
+            except AttributeError:
+                pass
 
     def selectPage(self, heading):
 
@@ -3885,11 +3916,13 @@ class OptionsDialog(wx.Dialog):
 
             self._raw_settings.set(key, val)
         
-        all_non_gui_changes = self.treebook.getAllNonGuiChanges()  
+        all_non_gui_changes = self.treebook.getAllNonGuiChanges()
                 
         for each_key in all_non_gui_changes:
             val = all_non_gui_changes[each_key]
             self._raw_settings.set(each_key, val)
+
+        self.treebook.updateAllNonGuiChanges()
 
         mw_window = wx.FindWindowByName('MolWeightFrame')
 
