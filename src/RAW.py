@@ -5339,6 +5339,8 @@ class DirCtrlPanel(wx.Panel):
                 self.file_list_box.setDir(pathtxt)
             else:
                 self.setDirLabel(str(self._old_path))
+
+        event.Skip()
     
     def _onSetDirButton(self, event):
         pathtxt = self.getDirLabel()
@@ -12412,6 +12414,8 @@ class InformationPanel(wx.Panel):
                 self.selectedItem.updateInfoTip(self.sasm.getParameter('analysis'))
             except Exception, e:
                 pass
+
+        event.Skip()
 
     def _updateConc(self, event):
         try:

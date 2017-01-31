@@ -560,6 +560,8 @@ class CustomCheckBox(wx.PyControl):
         # around the checkbox label, so we refresh ourselves
         self.Refresh()
 
+        event.Skip()
+
 
     def OnKillFocus(self, event):
         """ Handles the wx.EVT_KILL_FOCUS event for CustomCheckBox. """
@@ -569,6 +571,8 @@ class CustomCheckBox(wx.PyControl):
         # We lost focus, and we want a dotted rectangle to be cleared
         # around the checkbox label, so we refresh ourselves        
         self.Refresh()
+
+        event.Skip()
 
         
     def OnPaint(self, event):
