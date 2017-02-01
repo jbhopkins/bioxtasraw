@@ -3660,7 +3660,7 @@ class PagePanel(wx.Panel):
             self.current_page.Hide()
             self.current_page = new_panel 
             self.current_page.Show()
-            self.current_page.SetFocus()
+            # self.current_page.SetFocus()
             
             self.title_string.SetLabel(option_label)
             self.Layout()

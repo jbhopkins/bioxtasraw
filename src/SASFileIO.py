@@ -1753,7 +1753,23 @@ def loadImageFile(filename, raw_settings):
 
 
 def loadOutFile(filename):
-    #Loads GNOM .out files into IFTM objects
+
+    five_col_fit = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*$')
+    three_col_fit = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*$')
+    two_col_fit = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
+
+    results_fit = re.compile('\s*Current\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s*\d*[.]?\d*[+eE-]*\d*\s*$')
+
+    te_fit = re.compile('\s*Total\s+[Ee]stimate\s*:\s+\d*[.]\d+\s*\(?[A-Za-z\s]+\)?\s*$')
+    te_num_fit = re.compile('\d*[.]\d+')
+    te_quality_fit = re.compile('[Aa][A-Za-z\s]+\)?\s*$')
+
+    p_rg_fit = re.compile('\s*Real\s+space\s*\:?\s*Rg\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*\+-\s*\d*[.]\d+[+eE-]*\d*')
+    q_rg_fit = re.compile('\s*Reciprocal\s+space\s*\:?\s*Rg\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*')
+
+    p_i0_fit = re.compile('\s*Real\s+space\s*\:?[A-Za-z0-9\s\.,+-=]*\(0\)\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*\+-\s*\d*[.]\d+[+eE-]*\d*')
+    q_i0_fit = re.compile('\s*Reciprocal\s+space\s*\:?[A-Za-z0-9\s\.,+-=]*\(0\)\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*')
+
     qfull = []
     qshort = []
     Jexp = []
@@ -1765,107 +1781,91 @@ def loadOutFile(filename):
     P = []
     Perr = []
 
+    outfile = []
+
     with open(filename) as f:
-        fline = f.readlines()
+        for line in f:
+            twocol_match = two_col_fit.match(line)
+            threecol_match = three_col_fit.match(line)
+            fivecol_match = five_col_fit.match(line)
+            results_match = results_fit.match(line)
+            te_match = te_fit.match(line)
+            p_rg_match = p_rg_fit.match(line)
+            q_rg_match = q_rg_fit.match(line)
+            p_i0_match = p_i0_fit.match(line)
+            q_i0_match = q_i0_fit.match(line)
 
-    outfile = copy.copy(fline)
-    
-    i = 0
-    
-    while (i < len(fline)):
-        if (fline[i].find('The measure of inconsistency AN1 equals to') > -1): 
-            tmp = fline[i].split()
-            AN1 = float(tmp[7])
-            break 
-        i = i + 1
-        
-    while (i < len(fline)):
-        if (fline[i].find('Current') > -1): 
-            tmp = fline[i].split()
-            Actual_DISCRP = float(tmp[1])
-            Actual_OSCILL = float(tmp[2])
-            Actual_STABIL = float(tmp[3])
-            Actual_SYSDEV = float(tmp[4])
-            Actual_POSITV = float(tmp[5])
-            Actual_VALCEN = float(tmp[6])
-            break
-        i = i + 1
+            outfile.append(line)
 
-    while (i < len(fline)):
-        if (fline[i].find('Total  estimate') > -1): 
-            tmp = fline[i].split()
-            TE_out = float(tmp[3])
-            quality = ' '.join(tmp[6:])
-            break
-        i = i + 1
+            if twocol_match:
+                # print line
+                found = twocol_match.group().split()
 
-            
-    while (i < len(fline)):
-        if (fline[i].find('S          J EXP       ERROR       J REG       I REG') > -1): break 
-        i = i + 1
+                qfull.append(float(found[0]))
+                Ireg.append(float(found[1]))
 
-    i = i + 2
-      
-# extract experimental and fitted profiles
-      
-    while (i < len(fline)):
-          
-        tmp = fline[i].split()
-          
-        if (len(tmp) == 2):
-            qfull.append(float(tmp[0]))
-            Ireg.append(float(tmp[1]))
-        elif (len(tmp)==5):
-            qfull.append(float(tmp[0]))
-            qshort.append(float(tmp[0]))
-            Jexp.append(float(tmp[1]))
-            Jerr.append(float(tmp[2]))
-            Jreg.append(float(tmp[3]))
-            Ireg.append(float(tmp[4]))
-        else: 
-            break
-        
-        i = i + 1
-          
-# now search for P(r)
-          
-    i = i + 6
-          
-    while (i < len(fline)):
-              
-        tmp = fline[i].split()
-            
-        if (len(tmp) == 3):
-            R.append(float(tmp[0]))
-            P.append(float(tmp[1]))
-            Perr.append(float(tmp[2]))
-        else: 
-            break
-        
-        i = i + 1
+            elif threecol_match:
+                #print line
+                found = threecol_match.group().split()
 
-    i = i + 1
-    tmp = fline[i].split()
-    if len(tmp)==12:
-        Rg_out = float(tmp[4])
-        rger = float(tmp[6])
-        I0=float(tmp[9])
-        I0er=float(tmp[11])
+                R.append(float(found[0]))
+                P.append(float(found[1]))
+                Perr.append(float(found[2]))
 
-    else:
-        tmp=fline[i]
-        Rg_out=float(tmp[tmp.find('=')+1:tmp.find('+-')])
-        if tmp[tmp.find('+-')+2:tmp.find('I(0)')].startswith('**'):
-            rger=-1
-        else:
-            rger=float(tmp[tmp.find('+-')+2:tmp.find('I(0)')])
-        index1=tmp.find('I(0)')
-        tmp2=tmp[index1:]
-        I0=float(tmp2[tmp2.find('=')+1:tmp2.find('+-')])
-        I0er=float(tmp2[tmp2.find('+-')+2:])
+            elif fivecol_match:
+                #print line
+                found = fivecol_match.group().split()
+
+                qfull.append(float(found[0]))
+                qshort.append(float(found[0]))
+                Jexp.append(float(found[1]))
+                Jerr.append(float(found[2]))
+                Jreg.append(float(found[3]))
+                Ireg.append(float(found[4]))
+
+            elif results_match:
+                found = results_match.group().split()
+                Actual_DISCRP = float(found[1])
+                Actual_OSCILL = float(found[2])
+                Actual_STABIL = float(found[3])
+                Actual_SYSDEV = float(found[4])
+                Actual_POSITV = float(found[5])
+                Actual_VALCEN = float(found[6])
+
+                if len(found) == 8:
+                    Actual_SMOOTH = float(found[7])
+                else:
+                    Actual_SMOOTH = -1
+
+            elif te_match:
+                te_num_search = te_num_fit.search(line)
+                te_quality_search = te_quality_fit.search(line)
+
+                TE_out = float(te_num_search.group().strip())
+                quality = te_quality_search.group().strip().rstrip(')').strip()
+
+
+            if p_rg_match:
+                found = p_rg_match.group().split()
+                rg = float(found[-3])
+                rger = float(found[-1])
+
+            elif q_rg_match:
+                found = q_rg_match.group().split()
+                q_rg = float(found[-1])
+
+            if p_i0_match:
+                found = p_i0_match.group().split()
+                i0 = float(found[-3])
+                i0er = float(found[-1])
+
+            elif q_i0_match:
+                found = q_i0_match.group().split()
+                q_i0 = float(found[-1])
+                    
 
     # Output variables not in the results file:
-    # 'r'         : R,            #R, note R[-1] == Dmax
+    #             'r'         : R,            #R, note R[-1] == Dmax
     #             'p'         : P,            #P(r)
     #             'perr'      : Perr,         #P(r) error
     #             'qlong'     : qfull,        #q down to q=0
@@ -1879,10 +1879,12 @@ def loadOutFile(filename):
 
     results = { 'dmax'      : R[-1],        #Dmax
                 'TE'        : TE_out,       #Total estimate
-                'rg'        : Rg_out,       #Real space Rg
+                'rg'        : rg,           #Real space Rg
                 'rger'      : rger,         #Real space rg error
-                'i0'        : I0,           #Real space I0
-                'i0er'      : I0er,         #Real space I0 error,
+                'i0'        : i0,           #Real space I0
+                'i0er'      : i0er,         #Real space I0 error
+                'q_rg'      : q_rg,         #Reciprocal space Rg
+                'q_i0'      : q_i0,         #Reciprocal space I0
                 'out'       : outfile,      #Full contents of the outfile, for writing later
                 'quality'   : quality,      #Quality of GNOM out file
                 'chisq'     : Actual_DISCRP,#DISCRIP, chi squared
@@ -1891,6 +1893,7 @@ def loadOutFile(filename):
                 'sysdev'    : Actual_SYSDEV,#Systematic deviation of solution
                 'positv'    : Actual_POSITV,#Relative norm of the positive part of P(r)
                 'valcen'    : Actual_VALCEN,#Validity of the chosen interval in real space
+                'smooth'    : Actual_SMOOTH,#Smoothness of the chosen interval? -1 indicates no real value, for versions of GNOM < 5.0 (ATSAS <2.8)
                 'filename'  : name,         #GNOM filename
                 'algorithm' : 'GNOM'        #Lets us know what algorithm was used to find the IFT
                     }
