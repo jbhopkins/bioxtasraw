@@ -254,7 +254,7 @@ class RawGuiSettings:
                             'gnomExpertFile'      : ['', wx.NewId(), 'text'],
                             'gnomForceRminZero'   : ['Y', wx.NewId(), 'choice'],
                             'gnomForceRmaxZero'   : ['Y', wx.NewId(), 'choice'],
-                            'gnomNPoints'         : [101, wx.NewId(), 'int'],
+                            'gnomNPoints'         : [171, wx.NewId(), 'int'],
                             'gnomInitialAlpha'    : [0.0, wx.NewId(), 'float'],
                             'gnomAngularScale'    : [1, wx.NewId(), 'int'],
                             'gnomSystem'          : [0, wx.NewId(), 'int'],
@@ -267,7 +267,7 @@ class RawGuiSettings:
                             'gnomAW'              : [-1, wx.NewId(), 'float'],
                             'gnomLW'              : [-1, wx.NewId(), 'float'],
                             'gnomSpot'            : ['', wx.NewId(), 'text'],
-                            'gnomExp'             : [0, wx.NewId(), 'int'],
+                            'gnomExpt'             : [0, wx.NewId(), 'int'],
 
                             #DAMMIF settings
                             'dammifMode'          : ['Fast', wx.NewId(), 'choice'],

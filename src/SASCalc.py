@@ -311,8 +311,7 @@ def porodVolume(sasm, rg, i0, start = 0, stop = -1, interp = False):
 
 
 def runGnom(fname, outname, dmax, args, new_gnom = False):
-    a = time.time()
-    #This program runs GNOM from the atsas package. It can do so without writing a GNOM cfg file.
+    #This function runs GNOM from the atsas package. It can do so without writing a GNOM cfg file.
     #It takes as input the filename to run GNOM on, the output name from the GNOM file, the dmax to evaluate
     #at, and a dictionary of arguments, which can be used to set the optional GNOM arguments.
     #Using the GNOM cfg file is significantly faster than catching the interactive input and pass arguments there.
@@ -339,7 +338,7 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
 
     if new_gnom:
         #Check whether everything can be set at the command line:
-        fresh_settings = RAWSettings.RawGuiSettings()
+        fresh_settings = RAWSettings.RawGuiSettings().getAllParams()
 
         key_ref = { 'gnomExpertFile' : 'expert',
                     'gnomForceRminZero' : 'rmin_zero',
@@ -356,7 +355,8 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
                     'gnomLH'            : 'lh',
                     'gnomAW'            : 'aw',
                     'gnomLW'            : 'lw',
-                    'gnomSpot'          : 'spot'
+                    'gnomSpot'          : 'spot',
+                    'gnomExpt'          : 'expt'
                     }
 
         cmd_line_keys = {'rmin_zero', 'rmax_zero', 'system', 'rmin', 'radiu56', 'npts', 'alpha'}
@@ -365,7 +365,7 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
 
         for key in fresh_settings:
             if key.startswith('gnom'):
-                if fresh_settings[key] != args[key_ref[key]]:
+                if fresh_settings[key][0] != args[key_ref[key]]:
                     changed.append((key_ref[key]))
 
         print changed
@@ -399,7 +399,7 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
                 os.remove(os.path.join(datadir, 'gnom.cfg'))
 
             if new_gnom and use_cmd_line:
-                cmd = '%s --rmax=%s --outname=%s --nr=%s' %(gnomDir, str(dmax), outname, str(arg['npts']))
+                cmd = '%s --rmax=%s --output=%s --nr=%s' %(gnomDir, str(dmax), outname, str(args['npts']))
 
                 if 'system' in changed:
                     cmd = cmd+' --system=%s' %(str(args['system']))
@@ -408,7 +408,7 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
                     cmd = cmd+' --rmin=%s' %(str(args['rmin']))
 
                 if 'radius56' in changed:
-                    cmd = cmd + ' --rad56=%s' %(str(args['radius56'])):
+                    cmd = cmd + ' --rad56=%s' %(str(args['radius56']))
 
                 if 'rmin_zero' in changed:
                     cmd = cmd + ' --force-zero-rmin=%s' %(args['rmin_zero'])
@@ -419,14 +419,11 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
                 if 'alpha' in changed:
                     cmd = cmd + ' --alpha=%s' %(str(args['alpha']))
 
-                print cmd
+                cmd = cmd + ' %s' %(fname)
 
                 proc = subprocess.Popen(cmd, shell=True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
 
                 output, error = proc.communicate()
-
-                print output
-                print error
 
             else:
 
@@ -497,19 +494,19 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
                         elif data.find('Kernel already calculated') > -1:
                             proc.stdin.write('\r\n') #Kernel already calculated, default no
 
-                        elif data.find('Type of system') > -1 or data.find('arbitrary monodisperse') > -1:
+                        elif data.find('Type of system') > -1 or data.find('arbitrary monodisperse)') > -1:
                             if 'system' in args and args['system'] != '':
                                 proc.stdin.write('%s\r\n' %(args['system']))
                             else:
                                 proc.stdin.write('\r\n') #Type of system, default 0 (P(r) function)
 
-                        elif (data.find('Zero condition at r=rmin') > -1 and data.find('[') > -1) or previous_line.find('Zero condition at r=rmin (default') > -1:
+                        elif (data.find('Zero condition at r=rmin') > -1 and data.find('[') > -1) or (previous_line.find('Zero condition at r=rmin') > -1 and previous_line.find('(') > -1):
                             if 'rmin_zero' in args and args['rmin_zero'] != '':
                                 proc.stdin.write('%s\r\n' %(args['rmin_zero']))
                             else:
                                 proc.stdin.write('\r\n') #Zero condition at r=rmin, default is yes
 
-                        elif (data.find('Zero condition at r=rmax') > -1 and data.find('[') > -1) or previous_line.find('Zero condition at r=rmax (default') > -1:
+                        elif (data.find('Zero condition at r=rmax') > -1 and data.find('[') > -1) or (previous_line.find('Zero condition at r=rmax') > -1 and previous_line.find('(') > -1):
                             if 'rmax_zero' in args and args['rmax_zero'] != '':
                                 proc.stdin.write('%s\r\n' %(args['rmax_zero']))
                             else:
@@ -527,7 +524,7 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
                         elif data.find('Kernel-storage file name') > -1:
                             proc.stdin.write('\r\n') #Kernal-storage file name, default is kern.bin
 
-                        elif data.find('Experimental setup') > -1 or data.find('point collimation') > -1:
+                        elif (data.find('Experimental setup') > -1 and data.find('[') > -1) or data.find('point collimation)') > -1:
                             if 'gnomExp' in args:
                                 proc.stdin.write('%s\r\n' %(str(args['gnomExp'])))
                             else:
@@ -611,7 +608,7 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
 
                         #Prompts from GNOM5
                         elif previous_line.find('(e) expert') > -1:
-                            roc.stdin.write('\r\n') #Default is user, good for now. Looks like setting weights is now done in expert mode rather than with a file, so eventually incorporate that.
+                            proc.stdin.write('\r\n') #Default is user, good for now. Looks like setting weights is now done in expert mode rather than with a file, so eventually incorporate that.
 
                         elif previous_line.find('First point to use') > -1:
                             if 's_skip' in args and args['s_skip'] != '':
@@ -620,7 +617,7 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
                                 proc.stdin.write('\r\n') #Number of start points to skip, plus one, default is 1
 
                         elif previous_line.find('Last point to use') > -1:
-                            tot_pts = int(current_line.split()[0].strip())
+                            tot_pts = int(current_line.split()[0].strip().rstrip(')'))
                             if 'e_skip' in args and args['e_skip'] != '':
                                 proc.stdin.write('%i\r\n' %(tot_pts-int(args['e_skip'])))
                             else:
@@ -642,11 +639,8 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
                         elif data.find('Slit height experimental profile file') > -1:
                             pass
 
-
                         previous_line2 = previous_line
-                        previous_line = current_line
-
-        print time.time() - a        
+                        previous_line = current_line     
 
         iftm=SASFileIO.loadOutFile(outname)[0]
 
@@ -657,11 +651,12 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
                 print e
                 print 'GNOM cleanup failed to delete gnom.cfg!'
 
-        try:
-            os.remove(os.path.join(datadir, 'kern.bin'))
-        except Exception as e:
-            print e
-            print 'GNOM cleanup failed to delete kern.bin!'
+        if not new_gnom:
+            try:
+                os.remove(os.path.join(datadir, 'kern.bin'))
+            except Exception as e:
+                print e
+                print 'GNOM cleanup failed to delete kern.bin!'
 
         return iftm
 
