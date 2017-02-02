@@ -2291,7 +2291,7 @@ class GNOMFrame(wx.Frame):
             version_match = re.search(dammif_re, output)
             version = version_match.group().split()[-1]
 
-            if version.split('.')[0] > 2 or (version.split('.')[0] == 2 and version.split('.')[1] >=8):
+            if int(version.split('.')[0]) > 2 or (int(version.split('.')[0]) == 2 and int(version.split('.')[1]) >=8):
                 self.new_gnom = True
             else:
                 self.new_gnom = False

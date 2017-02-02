@@ -335,7 +335,6 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
     else:
         cfg = True
 
-
     if new_gnom:
         #Check whether everything can be set at the command line:
         fresh_settings = RAWSettings.RawGuiSettings().getAllParams()
@@ -368,7 +367,6 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
                 if fresh_settings[key][0] != args[key_ref[key]]:
                     changed.append((key_ref[key]))
 
-        print changed
 
         if set(changed) <= cmd_line_keys:
             use_cmd_line = True
