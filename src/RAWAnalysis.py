@@ -3908,10 +3908,10 @@ class DammifFrame(wx.Frame):
                     pass
                 time.sleep(0.001)
 
+            time.sleep(2)
             with read_semaphore: #see if there's any last data that we missed
                 try:
                     new_text = damaver_q.get_nowait()
-                    print new_text
                     new_text = new_text[0]
 
                     wx.CallAfter(damWindow.AppendText, new_text)
@@ -4010,6 +4010,7 @@ class DammifFrame(wx.Frame):
                     pass
                 time.sleep(0.001)
 
+            time.sleep(2)
             with read_semaphore: #see if there's any last data that we missed
                 try:
                     new_text = damclust_q.get_nowait()
