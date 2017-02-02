@@ -261,6 +261,13 @@ class RawGuiSettings:
                             'gnomFormFactor'      : ['', wx.NewId(), 'text'],
                             'gnomRadius56'        : [-1, wx.NewId(), 'float'],
                             'gnomRmin'            : [-1, wx.NewId(), 'float'],
+                            'gnomFWHM'            : [-1, wx.NewId(), 'float'],
+                            'gnomAH'              : [-1, wx.NewId(), 'float'],
+                            'gnomLH'              : [-1, wx.NewId(), 'float'],
+                            'gnomAW'              : [-1, wx.NewId(), 'float'],
+                            'gnomLW'              : [-1, wx.NewId(), 'float'],
+                            'gnomSpot'            : ['', wx.NewId(), 'text'],
+                            'gnomExp'             : [0, wx.NewId(), 'int'],
 
                             #DAMMIF settings
                             'dammifMode'          : ['Fast', wx.NewId(), 'choice'],

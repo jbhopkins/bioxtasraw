@@ -1847,10 +1847,13 @@ class ReductionNormalizationPanel(wx.Panel):
         
         if not self.expr_combo.IsTextEmpty():
             expr = self.expr_combo.GetValue()
+        else:
+            expr = ''
 
         self.expr_combo.SetItems(self.expr_combo_list)
 
-        self.expr_combo.SetValue(expr)
+        if expr != '':
+            self.expr_combo.SetValue(expr)
 
 
 class OnlineModePanel(wx.Panel):
@@ -2919,9 +2922,11 @@ class ATSASGnomAdvanced(wx.Panel):
 
         self.update_keys = ['gnomAngularScale', 'gnomSystem', 'gnomExpertFile', 'gnomFormFactor',
                             'gnomRadius56', 'gnomRmin']
+                            # 'gnomFWHM', 'gnomAH', 'gnomLH', 'gnomAW', 'gnomLW', 'gnomSpot', 'gnomExp'] #to incorporate later?
 
         self.button_ids = {'expert' : wx.NewId(),
-                            'form': wx.NewId()}
+                            'form': wx.NewId(),
+                            'spot': wx.NewId()}
 
 
         options_sizer = self.createGNOMOptions()
@@ -2975,7 +2980,7 @@ class ATSASGnomAdvanced(wx.Panel):
         expert_sizer.Add(expert_button, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
 
 
-        form_text = wx.StaticText(self, -1, 'Form factor file (job 2):',)
+        form_text = wx.StaticText(self, -1, 'Form factor file (job 2) :',)
         form_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomFormFactor'), '', size = (325,-1), style = wx.TE_PROCESS_ENTER)
         form_button = wx.Button(self, self.button_ids['form'], 'Select')
         form_button.Bind(wx.EVT_BUTTON, self.onSelectButton)
@@ -2986,19 +2991,30 @@ class ATSASGnomAdvanced(wx.Panel):
         form_sizer.Add(form_button, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
 
 
-        radius_text = wx.StaticText(self, -1, 'Radius/thickness (job 5/6)')
+        radius_text = wx.StaticText(self, -1, 'Radius/thickness (job 5/6) :')
         radius_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomRadius56'), size = (60, -1), style = wx.TE_PROCESS_ENTER)
 
         radius_sizer = wx.BoxSizer(wx.HORIZONTAL)
         radius_sizer.Add(radius_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
         radius_sizer.Add(radius_ctrl, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
 
-        radmin_text = wx.StaticText(self, -1, 'Dmin (optional, set to -1 to ignore, jobs 1, 2, 5, 6) :')
+        radmin_text = wx.StaticText(self, -1, 'Dmin (jobs 1, 2, 5, 6) :')
         radmin_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomRmin'), size = (60,-1), style = wx.TE_PROCESS_ENTER)
 
         radmin_sizer = wx.BoxSizer(wx.HORIZONTAL)
         radmin_sizer.Add(radmin_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
         radmin_sizer.Add(radmin_ctrl, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+
+        comb_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
+        comb_sizer1.Add(radius_sizer)
+        comb_sizer1.Add(radmin_sizer)
+
+
+        # bfwhm_text = wx.StaticText(self, -1, 'Beam FWHM (exp. setup 1/2) :')
+        # bfwhm_text = wx.TextCtrl(self, self.raw_settings.getId('gnomFWHM'), size = (60, -1), style = wx.TE_PROCESS_ENTER)
+
+        # bfwhm_text = wx.StaticText(self, -1, 'Beam AH (exp. setup 1) :')
+        # bfwhm_text = wx.TextCtrl(self, self.raw_settings.getId('gnomFWHM'), size = (60, -1), style = wx.TE_PROCESS_ENTER)
 
 
         advanced_text = wx.StaticText(self, -1, 'This panel allows you to set the less common advanced settings used by the ATSAS software GNOM.')
@@ -3010,8 +3026,7 @@ class ATSASGnomAdvanced(wx.Panel):
         top_sizer.Add(system_sizer, 0)
         top_sizer.Add(expert_sizer, 0, wx.TOP, 5)
         top_sizer.Add(form_sizer, 0)
-        top_sizer.Add(radius_sizer,0)
-        top_sizer.Add(radmin_sizer,0)
+        top_sizer.Add(comb_sizer1, 0)
 
         return top_sizer
 

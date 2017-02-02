@@ -29,7 +29,7 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg#,Toolbar, Figure
 from matplotlib.backends.backend_wx import NavigationToolbar2Wx
 from matplotlib.figure import Figure
 import numpy as np
-import sys, os, copy, multiprocessing, threading, Queue, wx, time
+import sys, os, copy, multiprocessing, threading, Queue, wx, time, re
 
 from scipy import polyval, polyfit, sqrt, integrate
 import scipy.interpolate as interp
@@ -2159,6 +2159,8 @@ class GNOMFrame(wx.Frame):
     
     def initGNOM(self, plotPanel, controlPanel, sasm):
 
+        getGnomVersion()
+
         analysis_dict = sasm.getParameter('analysis')
         if 'GNOM' in analysis_dict:
             iftm = self.controlPanel.initGnomValues(sasm)
@@ -2220,7 +2222,7 @@ class GNOMFrame(wx.Frame):
                 os.chdir(path)
 
                 try:
-                    init_iftm = SASCalc.runGnom(savename, outname, dmax, self.controlPanel.gnom_settings)
+                    init_iftm = SASCalc.runGnom(savename, outname, dmax, self.controlPanel.gnom_settings, new_gnom = self.new_gnom)
                 except SASExceptions.NoATSASError as e:
                     wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
                     self.cleanupGNOM(path, savename = savename, outname = outname)
@@ -2266,6 +2268,34 @@ class GNOMFrame(wx.Frame):
                 except Exception, e:
                     print e
                     print 'GNOM cleanup failed to remove the .out file!'
+
+    def getGnomVersion(self):
+        #Checks if we have gnom4 or gnom5
+        raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+        atsasDir = raw_settings.get('ATSASDir')
+
+        opsys = platform.system()
+
+        if opsys == 'Windows':
+            datgnomDir = os.path.join(atsasDir, 'dammif.exe')
+        else:
+            datgnomDir = os.path.join(atsasDir, 'dammif')
+        
+
+        if os.path.exists(datgnomDir):
+            process=subprocess.Popen('dammif -v', stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True) #gnom4 doesn't do a proper -v!!! So use something else
+            output, error = process.communicate()
+            output = output.strip()
+            error = error.strip()
+
+            dammif_re = 'ATSAS\s*\d+[.]\d+[.]\d*'
+            version_match = re.search(dammif_re, output)
+            version = version_match.group().split()[-1]
+
+            if version.split('.')[0] > 2 or (version.split('.')[0] == 2 and version.split('.')[1] >=8):
+                self.new_gnom = True
+            else:
+                self.new_gnom = False
         
     def OnClose(self):
         
@@ -2461,7 +2491,13 @@ class GNOMControlPanel(wx.Panel):
                                 'system'        : self.raw_settings.get('gnomSystem'),
                                 'form'          : self.raw_settings.get('gnomFormFactor'),
                                 'radius56'      : self.raw_settings.get('gnomRadius56'),
-                                'rmin'          : self.raw_settings.get('gnomRmin')
+                                'rmin'          : self.raw_settings.get('gnomRmin'),
+                                'fwhm'          : self.raw_settings.get('gnomFWHM'),
+                                'ah'            : self.raw_settings.get('gnomAH'),
+                                'lh'            : self.raw_settings.get('gnomLH'),
+                                'aw'            : self.raw_settings.get('gnomAW'),
+                                'lw'            : self.raw_settings.get('gnomLW'),
+                                'spot'          : self.raw_settings.get('gnomSpot')
                                 }
 
         self.out_list = {}
@@ -3083,7 +3119,7 @@ class GNOMControlPanel(wx.Panel):
 
         os.chdir(path)
         try:
-            iftm = SASCalc.runGnom(savename, outname, dmax, self.gnom_settings)
+            iftm = SASCalc.runGnom(savename, outname, dmax, self.gnom_settings, new_gnom = self.new_gnom)
         except SASExceptions.NoATSASError as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
             top = wx.FindWindowByName('GNOMFrame')
@@ -3114,7 +3150,13 @@ class GNOMControlPanel(wx.Panel):
                                 'system'        : self.raw_settings.get('gnomSystem'),
                                 'form'          : self.raw_settings.get('gnomFormFactor'),
                                 'radius56'      : self.raw_settings.get('gnomRadius56'),
-                                'rmin'          : self.raw_settings.get('gnomRmin')
+                                'rmin'          : self.raw_settings.get('gnomRmin'),
+                                'fwhm'          : self.raw_settings.get('gnomFWHM'),
+                                'ah'            : self.raw_settings.get('gnomAH'),
+                                'lh'            : self.raw_settings.get('gnomLH'),
+                                'aw'            : self.raw_settings.get('gnomAW'),
+                                'lw'            : self.raw_settings.get('gnomLW'),
+                                'spot'          : self.raw_settings.get('gnomSpot')
                                 }
 
         if self.old_settings != self.gnom_settings:
