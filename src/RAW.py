@@ -491,7 +491,7 @@ class MainFrame(wx.Frame):
             #if not self.guinierframe:
 
             if result:
-                self.dammifframe = RAWAnalysis.DammifFrame(self, 'DAMMIF', iftm, manip_item)
+                self.dammifframe = RAWAnalysis.DammifFrame(self, 'DAMMIF/N', iftm, manip_item)
                 self.dammifframe.SetIcon(self.GetIcon())
                 self.dammifframe.Show(True)
             else:
@@ -663,7 +663,7 @@ class MainFrame(wx.Frame):
                     'convertq':      [('q * 10', self.MenuIDs['q*10'], self._onToolsMenu, 'normal'),
                                       ('q / 10', self.MenuIDs['q/10'], self._onToolsMenu, 'normal')],
                     'atsas':         [('GNOM', self.MenuIDs['rungnom'], self._onToolsMenu, 'normal'),
-                                      ('DAMMIF', self.MenuIDs['rundammif'], self._onToolsMenu, 'normal'),
+                                      ('DAMMIF/N', self.MenuIDs['rundammif'], self._onToolsMenu, 'normal'),
                                       ('AMBIMETER', self.MenuIDs['runambimeter'], self._onToolsMenu, 'normal')]
                                       }         
                                     
@@ -5441,11 +5441,11 @@ class ManipulationPanel(wx.Panel):
         hide_all.Bind(wx.EVT_BUTTON, self._onHideAllButton)
 
         if platform.system() == 'Darwin':
-            show_tip = STT.SuperToolTip(" ", header = "Show All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            show_tip = STT.SuperToolTip(" ", header = "Show", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(show_all)
             show_tip.ApplyStyle('Blue Glass')
 
-            hide_tip = STT.SuperToolTip(" ", header = "Hide All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            hide_tip = STT.SuperToolTip(" ", header = "Hide", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             hide_tip.SetTarget(hide_all)
             hide_tip.ApplyStyle('Blue Glass')
 
@@ -5453,20 +5453,20 @@ class ManipulationPanel(wx.Panel):
             select_tip.SetTarget(select_all)
             select_tip.ApplyStyle('Blue Glass')
 
-            collapse_tip = STT.SuperToolTip(" ", header = "Collapse All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            collapse_tip = STT.SuperToolTip(" ", header = "Collapse", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             collapse_tip.SetTarget(collapse_all)
             collapse_tip.ApplyStyle('Blue Glass')
 
-            expand_tip = STT.SuperToolTip(" ", header = "Expand All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            expand_tip = STT.SuperToolTip(" ", header = "Expand", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             expand_tip.SetTarget(expand_all)
             expand_tip.ApplyStyle('Blue Glass')
 
         else:
             select_all.SetToolTipString('Select All')
-            show_all.SetToolTip(wx.ToolTip('Show All'))
-            hide_all.SetToolTipString('Hide All')
-            collapse_all.SetToolTipString('Collapse All')
-            expand_all.SetToolTipString('Expand All')
+            show_all.SetToolTip(wx.ToolTip('Show'))
+            hide_all.SetToolTipString('Hide')
+            collapse_all.SetToolTipString('Collapse')
+            expand_all.SetToolTipString('Expand')
         
         sizer.Add(show_all, 0, wx.LEFT, 5)
         sizer.Add(hide_all, 0, wx.LEFT, 5)
@@ -5575,8 +5575,17 @@ class ManipulationPanel(wx.Panel):
         self._star_marked_item = None
         
     def _collapseAllItems(self):
-        for each in self.all_manipulation_items:
-            each.showControls(False)
+        self.underpanel.Freeze()
+
+        selected_items = self.getSelectedItems()
+
+        if len(selected_items) == 0:
+            for each in self.all_manipulation_items:
+                each.showControls(False)
+
+        else:
+            for each in selected_items:
+                each.showControls(False)
         
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Layout()            
@@ -5584,10 +5593,21 @@ class ManipulationPanel(wx.Panel):
         
         self.Layout()            
         self.Refresh()
+
+        self.underpanel.Thaw()
             
     def _expandAllItems(self):
-        for each in self.all_manipulation_items:
-            each.showControls(True)
+        self.underpanel.Freeze()
+
+        selected_items = self.getSelectedItems()
+
+        if len(selected_items) == 0:
+            for each in self.all_manipulation_items:
+                each.showControls(True)
+
+        else:
+            for each in selected_items:
+                each.showControls(True)
         
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Layout()            
@@ -5595,6 +5615,8 @@ class ManipulationPanel(wx.Panel):
         
         self.Layout()            
         self.Refresh()
+
+        self.underpanel.Thaw()
         
 
     def removeItem(self, item):
@@ -5695,39 +5717,56 @@ class ManipulationPanel(wx.Panel):
         self.Thaw()
         
     def _onShowAllButton(self, event):
-        
-        for each in self.all_manipulation_items:
-           each.showItem(True)
+        self.underpanel.Freeze()
+
+        selected_items = self.getSelectedItems()
+
+        if len(selected_items) == 0:
+            for each in self.all_manipulation_items:
+               each.showItem(True)
+
+        else:
+            for each in selected_items:
+                each.showItem(True)
+
+        self.underpanel.Layout()            
+        self.underpanel.Refresh()
+            
+        self.Layout()            
+        self.Refresh()
+
+        self.underpanel.Thaw()
            
         plot_panel = wx.FindWindowByName('PlotPanel')
         wx.CallAfter(plot_panel.updateLegend, 1)
         wx.CallAfter(plot_panel.updateLegend, 2)
         wx.CallAfter(plot_panel.fitAxis)
-        
-        self.underpanel.Layout()            
-        self.underpanel.Refresh()
-            
-        self.Layout()            
-        self.Refresh()
            
     def _onHideAllButton(self, event):
         self.underpanel.Freeze()
-        
-        for each in self.all_manipulation_items:
-           each.showItem(False)
-        
+
+        selected_items = self.getSelectedItems()
+
+        if len(selected_items) == 0:
+            for each in self.all_manipulation_items:
+               each.showItem(False)
+
+        else:
+            for each in selected_items:
+                each.showItem(False)
+
         self.underpanel.Layout()            
         self.underpanel.Refresh()
             
         self.Layout()            
         self.Refresh()
-        
+
         self.underpanel.Thaw()
-        
+           
         plot_panel = wx.FindWindowByName('PlotPanel')
         wx.CallAfter(plot_panel.updateLegend, 1)
         wx.CallAfter(plot_panel.updateLegend, 2)
-        wx.CallAfter(plot_panel.canvas.draw)
+        wx.CallAfter(plot_panel.fitAxis)
         
     def _onSelectAllButton(self, event):
         self.selectAll()
@@ -7210,11 +7249,11 @@ class IFTPanel(wx.Panel):
 
 
         if platform.system() == 'Darwin':
-            show_tip = STT.SuperToolTip(" ", header = "Show All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            show_tip = STT.SuperToolTip(" ", header = "Show", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(show_all)
             show_tip.ApplyStyle('Blue Glass')
 
-            hide_tip = STT.SuperToolTip(" ", header = "Hide All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            hide_tip = STT.SuperToolTip(" ", header = "Hide", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             hide_tip.SetTarget(hide_all)
             hide_tip.ApplyStyle('Blue Glass')
 
@@ -7232,8 +7271,8 @@ class IFTPanel(wx.Panel):
 
         else:
             select_all.SetToolTipString('Select All')
-            show_all.SetToolTip(wx.ToolTip('Show All'))
-            hide_all.SetToolTipString('Hide All')
+            show_all.SetToolTip(wx.ToolTip('Show'))
+            hide_all.SetToolTipString('Hide')
             # collapse_all.SetToolTipString('Collapse All')
             # expand_all.SetToolTipString('Expand All')
         
@@ -7454,31 +7493,49 @@ class IFTPanel(wx.Panel):
         
     def _onShowAllButton(self, event):
         
-        for each in self.all_manipulation_items:
-           each.showItem(True)
+        self.underpanel.Freeze()
+
+        selected_items = self.getSelectedItems()
+
+        if len(selected_items) == 0:
+            for each in self.all_manipulation_items:
+               each.showItem(True)
+
+        else:
+            for each in selected_items:
+                each.showItem(True)
+
+        self.underpanel.Layout()            
+        self.underpanel.Refresh()
+            
+        self.Layout()            
+        self.Refresh()
+
+        self.underpanel.Thaw()
            
         wx.CallAfter(self.iftplot_panel.updateLegend, 1)
         wx.CallAfter(self.iftplot_panel.updateLegend, 2)
         wx.CallAfter(self.iftplot_panel.fitAxis)
-        
-        self.underpanel.Layout()            
-        self.underpanel.Refresh()
-            
-        self.Layout()            
-        self.Refresh()
            
     def _onHideAllButton(self, event):
         self.underpanel.Freeze()
-        
-        for each in self.all_manipulation_items:
-           each.showItem(False)
-        
+
+        selected_items = self.getSelectedItems()
+
+        if len(selected_items) == 0:
+            for each in self.all_manipulation_items:
+               each.showItem(False)
+
+        else:
+            for each in selected_items:
+                each.showItem(False)
+
         self.underpanel.Layout()            
         self.underpanel.Refresh()
             
         self.Layout()            
         self.Refresh()
-        
+
         self.underpanel.Thaw()
         
         wx.CallAfter(self.iftplot_panel.updateLegend, 1)
@@ -8394,12 +8451,12 @@ class IFTItemPanel(wx.Panel):
         if self.is_gnom:
             if opsys == 'Windows':
                 if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'dammif.exe')):
-                    menu.Append(23, 'Run DAMMIF')
+                    menu.Append(23, 'Run DAMMIF/N')
                 if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter.exe')):
                     menu.Append(24, 'Run AMBIMETER')
             else:
                 if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'dammif')):
-                    menu.Append(23, 'Run DAMMIF')
+                    menu.Append(23, 'Run DAMMIF/N')
                 if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter')):
                     menu.Append(24, 'Run AMBIMETER')
         menu.Append(25, 'SVD')
@@ -8900,11 +8957,11 @@ class SECPanel(wx.Panel):
         hide_all = wx.BitmapButton(self, -1, self.hide_all_png)
         
         if platform.system() == 'Darwin':
-            show_tip = STT.SuperToolTip(" ", header = "Show All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            show_tip = STT.SuperToolTip(" ", header = "Show", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(show_all)
             show_tip.ApplyStyle('Blue Glass')
 
-            hide_tip = STT.SuperToolTip(" ", header = "Hide All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            hide_tip = STT.SuperToolTip(" ", header = "Hide", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             hide_tip.SetTarget(hide_all)
             hide_tip.ApplyStyle('Blue Glass')
 
@@ -8914,8 +8971,8 @@ class SECPanel(wx.Panel):
 
         else:
             select_all.SetToolTipString('Select All')
-            show_all.SetToolTip(wx.ToolTip('Show All'))
-            hide_all.SetToolTipString('Hide All')
+            show_all.SetToolTip(wx.ToolTip('Show'))
+            hide_all.SetToolTipString('Hide')
             
         
         # collapse_all.Bind(wx.EVT_BUTTON, self._onCollapseAllButton)
@@ -8964,37 +9021,52 @@ class SECPanel(wx.Panel):
                 each.toggleSelect()
 
     def _onShowAllButton(self, event):
-        
-        for each in self.all_manipulation_items:
-           each.showItem(True)
+        self.underpanel.Freeze()
+
+        selected_items = self.getSelectedItems()
+
+        if len(selected_items) == 0:
+            for each in self.all_manipulation_items:
+               each.showItem(True)
            
-        wx.CallAfter(self.sec_plot_panel.updateLegend, 1)
-        # wx.CallAfter(self.sec_plot_panel.updateLegend, 2)
-        wx.CallAfter(self.sec_plot_panel.fitAxis)
+        else:
+            for each in selected_items:
+                each.showItem(True)
         
         self.underpanel.Layout()            
         self.underpanel.Refresh()
             
         self.Layout()            
         self.Refresh()
+
+        self.underpanel.Thaw()
+
+        wx.CallAfter(self.sec_plot_panel.updateLegend, 1)
+        wx.CallAfter(self.sec_plot_panel.fitAxis)
            
     def _onHideAllButton(self, event):
         self.underpanel.Freeze()
-        
-        for each in self.all_manipulation_items:
-           each.showItem(False)
+
+        selected_items = self.getSelectedItems()
+
+        if len(selected_items) == 0:
+            for each in self.all_manipulation_items:
+               each.showItem(False)
+           
+        else:
+            for each in selected_items:
+                each.showItem(False)
         
         self.underpanel.Layout()            
         self.underpanel.Refresh()
             
         self.Layout()            
         self.Refresh()
-        
+
         self.underpanel.Thaw()
-        
+
         wx.CallAfter(self.sec_plot_panel.updateLegend, 1)
-        # wx.CallAfter(self.sec_plot_panel.updateLegend, 2)
-        wx.CallAfter(self.sec_plot_panel.canvas.draw)
+        wx.CallAfter(self.sec_plot_panel.fitAxis)
                
     def _onCollapseAllButton(self, event):
         self._collapseAllItems()

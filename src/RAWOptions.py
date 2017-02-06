@@ -3073,7 +3073,7 @@ class ATSASGnomAdvanced(wx.Panel):
             path = ''
 
 
-class ATSASDammif(wx.Panel):
+class ATSASDammix(wx.Panel):
     
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
         
@@ -3081,8 +3081,8 @@ class ATSASDammif(wx.Panel):
 
         self.raw_settings = raw_settings
         
-        self.update_keys = ['dammifMode', 'dammifSymmetry', 'dammifAnisometry', 'dammifUnit', 'dammifChained',
-                            'dammifConstant', 'dammifOmitSolvent', 'dammifReconstruct', 'dammifDamaver', 'dammifDamclust']
+        self.update_keys = ['dammifMode', 'dammifSymmetry', 'dammifAnisometry', 'dammifUnit', 'dammifReconstruct', 
+                            'dammifDamaver', 'dammifDamclust']
         
         modeChoices = ['Fast', 'Slow', 'Custom']
 
@@ -3101,10 +3101,7 @@ class ATSASDammif(wx.Panel):
 
         unitChoices = ['Unknown', 'Angstrom', 'Nanometer']
 
-        self.standard_options = (('Units:', raw_settings.getId('dammifUnit'), 'choice', unitChoices),
-                                ('Constant offset (blank to automatically set):', raw_settings.getId('dammifConstant'), 'text'),
-                                ('Create Pseudo-Chains in PDB output', raw_settings.getId('dammifChained'), 'bool'),
-                                ('Omit solvent PDB file', raw_settings.getId('dammifOmitSolvent'), 'bool'))
+        self.standard_options = (('Units:', raw_settings.getId('dammifUnit'), 'choice', unitChoices), None) #stupid, but to keep it a list it needs another item . . .
         
         
         # self.myPanel = wx.ScrolledWindow(self, -1)
@@ -3181,32 +3178,34 @@ class ATSASDammif(wx.Panel):
         standardSizer.Add(standardText, 0, wx.ALL, 3)
 
         for item in self.standard_options:
-            label = item[0]
-            myId = item[1]
-            itemType = item[2]
-            
-            sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-            if itemType == 'choice':
-                labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.Choice(parent, myId, choices = item[3])
+            if item is not None:
+                label = item[0]
+                myId = item[1]
+                itemType = item[2]
+                
+                sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-                sizer.Add(labeltxt, 0, wx.ALL, 3)
-                sizer.Add(ctrl, 0, wx.ALL, 3)
-            elif itemType == 'text':
-                labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+                if itemType == 'choice':
+                    labeltxt = wx.StaticText(parent, -1, label)
+                    ctrl = wx.Choice(parent, myId, choices = item[3])
 
-                sizer.Add(labeltxt, 0, wx.ALL, 3)
-                sizer.Add(ctrl, 0, wx.ALL, 3)
-            elif itemType == 'bool':
-                ctrl = wx.CheckBox(parent, myId, label)
-                sizer.Add(ctrl, 0, wx.ALL, 3)
+                    sizer.Add(labeltxt, 0, wx.ALL, 3)
+                    sizer.Add(ctrl, 0, wx.ALL, 3)
+                elif itemType == 'text':
+                    labeltxt = wx.StaticText(parent, -1, label)
+                    ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
 
-            standardSizer.Add(sizer, 0)
+                    sizer.Add(labeltxt, 0, wx.ALL, 3)
+                    sizer.Add(ctrl, 0, wx.ALL, 3)
+                elif itemType == 'bool':
+                    ctrl = wx.CheckBox(parent, myId, label)
+                    sizer.Add(ctrl, 0, wx.ALL, 3)
+
+                standardSizer.Add(sizer, 0)
 
 
-        resetText = wx.StaticText(parent, -1, 'Reset all DAMMIF settings (including advanced) to default:')
+        resetText = wx.StaticText(parent, -1, 'Reset all DAMMIF/N settings (including advanced) to default:')
         resetButton = wx.Button(parent, -1, 'Reset to default')
         resetButton.Bind(wx.EVT_BUTTON, self._onResetButton)
 
@@ -3260,37 +3259,35 @@ class ATSASDammif(wx.Panel):
 
         myId = -1
         for item in all_options:
-            if item[2] == "DAMMIF Advanced":
+            if item[2] == "DAMMIF Advanced" or item[2] == "DAMMIF/N Advanced" or item[2] == "DAMMIN Advanced":
                 myId = item[1]
 
-        if myId != -1:
-            dammifAdvanced = wx.FindWindowById(myId)
+                dammifAdvanced = wx.FindWindowById(myId)
 
-            for key in dammifAdvanced.update_keys:
-                id, type = self.raw_settings.getIdAndType(key)
+                for key in dammifAdvanced.update_keys:
+                    id, type = self.raw_settings.getIdAndType(key)
 
-                val = default_settings.get(key)
-                obj = wx.FindWindowById(id)
+                    val = default_settings.get(key)
+                    obj = wx.FindWindowById(id)
 
-                if type == 'bool':
-                    obj.SetValue(val)
-                elif type == 'list':
-                    obj.SetValue(val)
-                    
-                elif type == 'choice':
-                    choice_list = obj.GetStrings() 
-                    idx = choice_list.index(val)
-                    obj.Select(idx)
-                    
-                elif type == 'text' or type == 'int' or type == 'float':
-                    try:
+                    if type == 'bool':
                         obj.SetValue(val)
-                    except TypeError:
-                        obj.SetValue(str(val))
+                    elif type == 'list':
+                        obj.SetValue(val)
+                        
+                    elif type == 'choice':
+                        choice_list = obj.GetStrings() 
+                        idx = choice_list.index(val)
+                        obj.Select(idx)
+                        
+                    elif type == 'text' or type == 'int' or type == 'float':
+                        try:
+                            obj.SetValue(val)
+                        except TypeError:
+                            obj.SetValue(str(val))
 
 
-
-class ATSASDammifAdvanced(wx.Panel):
+class ATSASDammixAdvanced(wx.Panel):
     
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
         
@@ -3298,31 +3295,18 @@ class ATSASDammifAdvanced(wx.Panel):
 
         self.raw_settings = raw_settings
         
-        self.update_keys = ['dammifDummyRadius', 'dammifSH', 'dammifPropToFit',
-                            'dammifKnots', 'dammifCurveWeight', 'dammifRandomSeed', 'dammifMaxSteps', 'dammifMaxIters',
-                            'dammifMaxStepSuccess', 'dammifMinStepSuccess', 'dammifTFactor', 'dammifRgPen', 
-                            'dammifCenPen', 'dammifLoosePen', 'dammifAnisPen', 'dammifMaxBeadCount']
-        
-        weightChoices = ['l', 'p', 'e', 'n']
+        self.update_keys = ['dammifSH', 'dammifPropToFit', 'dammifMaxSteps', 'dammifMaxIters', 'dammifMaxStepSuccess', 
+                            'dammifMinStepSuccess', 'dammifLoosePen']
 
-        self.custom_options_long = (("Dummy atom radius (1.0-?, Angstrom):", raw_settings.getId('dammifDummyRadius'), 'float'),
-                                ("Maximum number of spherical harmonics (1-50):", raw_settings.getId('dammifSH'), 'int'),
-                                ("Proprotion of the curve to fit (0.0-1.0):", raw_settings.getId('dammifPropToFit'), 'float'),
-                                ("Number of knots in the curve to fit (1-?):", raw_settings.getId('dammifKnots'), 'int'),
-                                ("Curve weighting function ([l]log, [p]orod, [e]mphasized porod, [n]one):", raw_settings.getId('dammifCurveWeight'), 'choice', weightChoices),
-                                ("Initial Random Seed (blank to automatically generate):", raw_settings.getId('dammifRandomSeed'), 'text'),
+        self.custom_options_long = (("Maximum number of spherical harmonics (1-50):", raw_settings.getId('dammifSH'), 'int'),
                                 ("Maximum temperature steps in annealing procedure (1-?):", raw_settings.getId('dammifMaxSteps'), 'int'),
                                 ("Maximum iterations within a single temperature step (1-?):", raw_settings.getId('dammifMaxIters'), 'int'),
                                 ("Maximum successes per temperature step before temperature decreased (1-?):", raw_settings.getId('dammifMaxStepSuccess'), 'int'),
-                                ("Minimum successes per temperature step before temperature decreased (1-?):", raw_settings.getId('dammifMinStepSuccess'), 'int'),
+                                ("Minimum successes per temperature step before temperature decreased (1-?):", raw_settings.getId('dammifMinStepSuccess'), 'int')
                                 )
 
-        self.custom_options_short = (("Temperature schedule factor (0.0-1.0):", raw_settings.getId('dammifTFactor'), 'float'),
-                                ("Rg penalty weight (0.0-...):", raw_settings.getId('dammifRgPen'), 'float'),
-                                ("Center penalty weight (0.0-...):", raw_settings.getId('dammifCenPen'), 'float'),
-                                ("Looseness penalty weight (0.0-...):", raw_settings.getId('dammifLoosePen'), 'float'),
-                                ("Anisometry penalty weight (0.0-...):", raw_settings.getId('dammifAnisPen'), 'float'),
-                                ("Maximum bead count:", raw_settings.getId('dammifMaxBeadCount'), 'int')
+        self.custom_options_short = (("Looseness penalty weight (0.0-...):", raw_settings.getId('dammifLoosePen'), 'float'),
+                                ("Proprotion of the curve to fit (0.0-1.0):", raw_settings.getId('dammifPropToFit'), 'float')
                                 )
         
         layoutSizer = self._createLayout(self)
@@ -3333,7 +3317,206 @@ class ATSASDammifAdvanced(wx.Panel):
 
         customSizer = wx.BoxSizer(wx.VERTICAL)
 
-        customText = wx.StaticText(parent, -1, 'These settings are used when "Custom" is selected as the mode in the DAMMIF panel.\nThis is equivalent to the DAMMIF interactive mode in the command line.\nUnless otherwise noted, a value of -1 means DAMMIF will use the default setting.')
+        customText = wx.StaticText(parent, -1, 'These settings are used when "Custom" is selected as the mode in the DAMMIF/N panel.\nThis is equivalent to the DAMMIF/N interactive mode in the command line.\nUnless otherwise noted, a value of -1 means DAMMIF/N will use the default setting.')
+        customSizer.Add(customText, 0, wx.ALL, 5)
+
+        for item in self.custom_options_long:
+            label = item[0]
+            myId = item[1]
+            itemType = item[2]
+
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+            if itemType == 'choice':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.Choice(parent, myId, choices = item[3])
+
+                sizer.Add(labeltxt, 0, wx.ALL, 2)
+                sizer.Add(ctrl, 0, wx.ALL, 2)
+
+            elif itemType == 'text' or itemType == 'int' or itemType =='float':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+
+                sizer.Add(labeltxt, 0, wx.ALL, 2)
+                sizer.Add(ctrl, 0, wx.ALL, 2)
+
+            elif itemType == 'bool':
+                ctrl = wx.CheckBox(parent, myId, label)
+                sizer.Add(ctrl, 0, wx.ALL, 2)
+
+            customSizer.Add(sizer, 0)
+
+        short_sizer = wx.FlexGridSizer(rows = int(len(self.custom_options_short)/2.+.5), cols =4, hgap =2, vgap =2)
+
+        for item in self.custom_options_short:
+            label = item[0]
+            myId = item[1]
+            itemType = item[2]
+
+            if itemType == 'choice':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.Choice(parent, myId, choices = item[3])
+
+                short_sizer.Add(labeltxt, 0)
+                short_sizer.Add(ctrl, 0)
+
+            elif itemType == 'text' or itemType == 'int' or itemType =='float':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+
+                short_sizer.Add(labeltxt, 0)
+                short_sizer.Add(ctrl, 0)
+
+            elif itemType == 'bool':
+                ctrl = wx.CheckBox(parent, myId, label)
+                short_sizer.Add(ctrl, 0, wx.ALL, 2)
+                short_sizer.AddStretchSpacer(1)
+
+        customSizer.Add(short_sizer,0)
+        
+
+        return customSizer
+
+
+class ATSASDammifAdvanced(wx.Panel):
+    
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+        
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+
+        self.raw_settings = raw_settings
+        
+        self.update_keys = ['dammifDummyRadius', 'dammifKnots', 'dammifCurveWeight', 'dammifRandomSeed', 'dammifTFactor', 'dammifRgPen', 
+                            'dammifCenPen', 'dammifAnisPen', 'dammifMaxBeadCount', 'dammifChained', 'dammifConstant', 'dammifOmitSolvent'
+                            ]
+        
+        weightChoices = ['l', 'p', 'e', 'n']
+
+        self.custom_options_long = (("Dummy atom radius (1.0-?, Angstrom):", raw_settings.getId('dammifDummyRadius'), 'float'),
+                                ("Number of knots in the curve to fit (1-?):", raw_settings.getId('dammifKnots'), 'int'),
+                                ("Curve weighting function ([l]log, [p]orod, [e]mphasized porod, [n]one):", raw_settings.getId('dammifCurveWeight'), 'choice', weightChoices),
+                                ("Initial Random Seed (blank to automatically generate):", raw_settings.getId('dammifRandomSeed'), 'text'),
+                                ('Constant offset (blank to automatically set):', raw_settings.getId('dammifConstant'), 'text'),
+                                ('Create Pseudo-Chains in PDB output', raw_settings.getId('dammifChained'), 'bool')
+                                )
+
+        self.custom_options_short = (("Temperature schedule factor (0.0-1.0):", raw_settings.getId('dammifTFactor'), 'float'),
+                                ("Rg penalty weight (0.0-...):", raw_settings.getId('dammifRgPen'), 'float'),
+                                ("Center penalty weight (0.0-...):", raw_settings.getId('dammifCenPen'), 'float'),
+                                ("Anisometry penalty weight (0.0-...):", raw_settings.getId('dammifAnisPen'), 'float'),
+                                ("Maximum bead count:", raw_settings.getId('dammifMaxBeadCount'), 'int'),
+                                ('Omit solvent PDB file', raw_settings.getId('dammifOmitSolvent'), 'bool')
+                                )
+        
+        layoutSizer = self._createLayout(self)
+
+        self.SetSizer(layoutSizer)
+        
+    def _createLayout(self, parent):
+
+        customSizer = wx.BoxSizer(wx.VERTICAL)
+
+        customText = wx.StaticText(parent, -1, 'These settings are used when "Custom" is selected as the mode in the DAMMIF/N panel.\nThis is equivalent to the DAMMIF interactive mode in the command line.\nUnless otherwise noted, a value of -1 means DAMMIF will use the default setting.')
+        customSizer.Add(customText, 0, wx.ALL, 5)
+
+        for item in self.custom_options_long:
+            label = item[0]
+            myId = item[1]
+            itemType = item[2]
+
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+            if itemType == 'choice':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.Choice(parent, myId, choices = item[3])
+
+                sizer.Add(labeltxt, 0, wx.ALL, 2)
+                sizer.Add(ctrl, 0, wx.ALL, 2)
+
+            elif itemType == 'text' or itemType == 'int' or itemType =='float':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+
+                sizer.Add(labeltxt, 0, wx.ALL, 2)
+                sizer.Add(ctrl, 0, wx.ALL, 2)
+
+            elif itemType == 'bool':
+                ctrl = wx.CheckBox(parent, myId, label)
+                sizer.Add(ctrl, 0, wx.ALL, 2)
+
+            customSizer.Add(sizer, 0)
+
+        short_sizer = wx.FlexGridSizer(rows = int(len(self.custom_options_short)/2.+.5), cols =4, hgap =2, vgap =2)
+
+        for item in self.custom_options_short:
+            label = item[0]
+            myId = item[1]
+            itemType = item[2]
+
+            if itemType == 'choice':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.Choice(parent, myId, choices = item[3])
+
+                short_sizer.Add(labeltxt, 0)
+                short_sizer.Add(ctrl, 0)
+
+            elif itemType == 'text' or itemType == 'int' or itemType =='float':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+
+                short_sizer.Add(labeltxt, 0)
+                short_sizer.Add(ctrl, 0)
+
+            elif itemType == 'bool':
+                ctrl = wx.CheckBox(parent, myId, label)
+                short_sizer.Add(ctrl, 0, wx.ALL, 2)
+                short_sizer.AddStretchSpacer(1)
+
+        customSizer.Add(short_sizer,0)
+        
+
+        return customSizer
+
+
+class ATSASDamminAdvanced(wx.Panel):
+    
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+        
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+
+        self.raw_settings = raw_settings
+        
+        self.update_keys = ['damminInitial', 'damminKnots', 'damminConstant', 'damminDiameter', 'damminPacking',
+                            'damminCoordination', 'damminDisconPen', 'damminPeriphPen', 'damminCurveWeight', 'damminAnealSched'
+                            ]
+        
+        weightChoices = ['0', '1', '2']
+        volumeChoices = ['S', 'E', 'C', 'P']
+
+        self.custom_options_long = (("Initial search volume ([S]phere, [E]llipsoid, [C]ylinder, [P]arallelapiped):", raw_settings.getId('damminInitial'), 'choice', volumeChoices),
+                                ("Number of knots in the curve to fit (1-?):", raw_settings.getId('damminKnots'), 'int'),
+                                ("Curve weighting function (0: porod, 1: emphasized porod, 2: log):", raw_settings.getId('damminCurveWeight'), 'choice', weightChoices),
+                                ('Constant offset (blank to automatically set):', raw_settings.getId('damminConstant'), 'text')                                
+                                )
+
+        self.custom_options_short = (("Sphere diamaver [Angstrom]", raw_settings.getId('damminDiameter'), 'float'),
+                                ('Packing radius of dummy atoms:', raw_settings.getId('damminPacking'), 'float'),
+                                ('Radius of 1st coordination sphere:', raw_settings.getId('damminCoordination'), 'float'),
+                                ('Disconnectivity penalty weight:', raw_settings.getId('damminDisconPen'), 'float'),
+                                ('Peripheral penalty weight:', raw_settings.getId('damminPeriphPen'), 'float'),
+                                ('Annealing schedule factor:', raw_settings.getId('damminAnealSched'), 'float')
+                                )
+        
+        layoutSizer = self._createLayout(self)
+
+        self.SetSizer(layoutSizer)
+        
+    def _createLayout(self, parent):
+
+        customSizer = wx.BoxSizer(wx.VERTICAL)
+
+        customText = wx.StaticText(parent, -1, 'These settings are used when "Custom" is selected as the mode in the DAMMIF/N panel.\nThis is equivalent to the DAMMIN interactive mode in the command line.\nUnless otherwise noted, a value of -1 means DAMMIN will use the default setting.')
         customSizer.Add(customText, 0, wx.ALL, 5)
 
         for item in self.custom_options_long:
@@ -3557,9 +3740,12 @@ all_options = [ [ (0,0,0), wx.NewId(), 'Configuration Settings', ConfigRootSetti
                 [ (9,0,0), wx.NewId(), "ATSAS", ATSASGeneralPanel],
                 [ (9,1,1), wx.NewId(), "GNOM", ATSASGnom],
                 [ (9,1,2), wx.NewId(), "GNOM Advanced", ATSASGnomAdvanced],
-                [ (9,5,1), wx.NewId(), "DAMMIF", ATSASDammif],
-                [ (9,5,2), wx.NewId(), "DAMMIF Advanced", ATSASDammifAdvanced]]
-				# [ (10,0,0), wx.NewId(), "SANS", SansOptionsPanel]]
+                [ (9,5,1), wx.NewId(), "DAMMIF/N", ATSASDammix],
+                [ (9,5,2), wx.NewId(), "DAMMIF/N Advanced", ATSASDammixAdvanced],
+                [ (9,5,2), wx.NewId(), "DAMMIF Advanced", ATSASDammifAdvanced],
+                [ (9,5,2), wx.NewId(), "DAMMIN Advanced", ATSASDamminAdvanced]
+				# [ (10,0,0), wx.NewId(), "SANS", SansOptionsPanel]
+                ]
                 
 #--- ** TREE BOOK **
 class ConfigTree(CT.CustomTreeCtrl):

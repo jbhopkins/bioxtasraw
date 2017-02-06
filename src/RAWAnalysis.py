@@ -1899,6 +1899,12 @@ class MolWeightFrame(wx.Frame):
 
         q = self.sasm.q
         i = self.sasm.i
+        err = self.sasm.err
+        qmin, qmax = self.sasm.getQrange()
+
+        q = q[qmin:qmax]
+        i = i[qmin:qmax]
+        err = err[qmin:qmax]
         # print q[-1]
         
         #These functions are used to correct the porod volume for the length of the q vector
@@ -2056,14 +2062,14 @@ class MWPlotPanel(wx.Panel):
         self.background = self.canvas.copy_from_bbox(a.bbox)
         
         self.canvas.mpl_disconnect(self.cid)
-        self.updateDataPlot(self.orig_i, self.orig_q)
+        self.updateDataPlot(self.orig_i, self.orig_q, (self.orig_qmin, self.orig_qmax))
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
         
     def _calcInt(self):
         ''' calculate pointwise integral '''
  
-        q_roi = self.orig_q
-        i_roi = self.orig_i
+        q_roi = self.orig_q[self.orig_qmin:self.orig_qmax]
+        i_roi = self.orig_i[self.orig_qmin:self.orig_qmax]
 
         y = np.zeros_like(q_roi, dtype = float)
 
@@ -2075,15 +2081,18 @@ class MWPlotPanel(wx.Panel):
     def plotSASM(self, sasm):
         #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
         self.canvas.mpl_disconnect(self.cid)
-        self.updateDataPlot(sasm.i, sasm.q)
+        self.updateDataPlot(sasm.i, sasm.q, sasm.getQrange())
         
         #Reconnect draw_event
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
-    def updateDataPlot(self, i, q):
+    def updateDataPlot(self, i, q, qrange):
         #Save for resizing:
         self.orig_i = i
         self.orig_q = q
+
+        self.orig_qmin = qrange[0]
+        self.orig_qmax = qrange[1]
             
         a = self.subplots['VC']
         
@@ -3052,27 +3061,6 @@ class GNOMControlPanel(wx.Panel):
         dmax_window = wx.FindWindowById(self.spinctrlIDs['dmax'])
         dmax = str(dmax_window.GetValue())
         
-        spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
-        spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
-        
-        i = int(spinstart.GetValue())
-        
-        i2 = int(spinend.GetValue())
-        
-        xlim = [i,i2]
-
-        q = self.sasm.q
-        i = self.sasm.i
-        err = self.sasm.err
-        
-        r = self.out_list[dmax].r
-        p = self.out_list[dmax].p
-        perr = self.out_list[dmax].err
-        qexp = self.out_list[dmax].q_orig
-        jreg = self.out_list[dmax].i_fit
-
-
-        # plotpanel.updateDataPlot(q, i, err, r, p, perr, qexp, jreg, xlim)
         plotpanel.plotPr(self.out_list[dmax])
 
 
@@ -3210,7 +3198,8 @@ class DammifFrame(wx.Frame):
                     'logbook'       : wx.NewId(),
                     'start'         : wx.NewId(),
                     'abort'         : wx.NewId(),
-                    'changedir'     : wx.NewId()
+                    'changedir'     : wx.NewId(),
+                    'program'       : wx.NewId()
                     }
 
         self.threads = []
@@ -3238,16 +3227,6 @@ class DammifFrame(wx.Frame):
 
     def _createLayout(self, parent):
 
-        # file_text = wx.StaticText(parent, -1, 'File :')
-        # file_ctrl = wx.TextCtrl(parent, -1, self.filename, size = (150, -1), style = wx.TE_READONLY)
-
-        # file_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        # file_sizer.Add(file_text, 0, wx.ALL, 5)
-        # file_sizer.Add(file_ctrl, 2, wx.ALL | wx.EXPAND, 5)
-        # file_sizer.AddStretchSpacer(1)
-
-        
-        
         file_ctrl = wx.TextCtrl(parent, -1, self.filename, size = (150, -1), style = wx.TE_READONLY)
         
         file_box = wx.StaticBox(parent, -1, 'Filename')
@@ -3300,12 +3279,12 @@ class DammifFrame(wx.Frame):
         nprocs_sizer.Add(nprocs_choice, 0, wx.ALL, 5)
 
 
+        program_text = wx.StaticText(parent, -1, 'Use :')
+        program_choice = wx.Choice(parent, self.ids['program'], choices = ['DAMMIF', 'DAMMIN'])
+
+
         mode_text = wx.StaticText(parent, -1, 'Mode :')
         mode_choice = wx.Choice(parent, self.ids['mode'], choices = ['Fast', 'Slow', 'Custom'])
-
-        # mode_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        # mode_sizer.Add(mode_text, 0, wx.ALL, 5)
-        # mode_sizer.Add(mode_choice, 0, wx.ALL, 5)
 
 
         sym_choices = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11',
@@ -3315,30 +3294,25 @@ class DammifFrame(wx.Frame):
         sym_text = wx.StaticText(parent, -1, 'Symmetry :')
         sym_choice = wx.Choice(parent, self.ids['sym'], choices = sym_choices)
 
-        # sym_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        # sym_sizer.Add(sym_text, 0, wx.ALL, 5)
-        # sym_sizer.Add(sym_choice, 0, wx.ALL, 5)
-
 
         anisometry_choices = ['Unknown', 'Prolate', 'Oblate']
         aniso_text = wx.StaticText(parent, -1, 'Anisometry :')
         aniso_choice = wx.Choice(parent, self.ids['anisometry'], choices = anisometry_choices)
 
-        # aniso_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        # aniso_sizer.Add(aniso_text, 0, wx.ALL, 5)
-        # aniso_sizer.Add(aniso_choice, 0, wx.ALL, 5)
 
-
-        choices_sizer = wx.FlexGridSizer(2, 3, 5, 10)
+        choices_sizer = wx.FlexGridSizer(2, 4, 5, 10)
         choices_sizer.SetFlexibleDirection(wx.HORIZONTAL)
         choices_sizer.AddGrowableCol(0)
         choices_sizer.AddGrowableCol(1)
         choices_sizer.AddGrowableCol(2)
+        choices_sizer.AddGrowableCol(3)
 
+        choices_sizer.Add(program_text)
         choices_sizer.Add(mode_text)
         choices_sizer.Add(sym_text)
         choices_sizer.Add(aniso_text)
 
+        choices_sizer.Add(program_choice)
         choices_sizer.Add(mode_choice)
         choices_sizer.Add(sym_choice)
         choices_sizer.Add(aniso_choice)
@@ -3444,27 +3418,37 @@ class DammifFrame(wx.Frame):
 
 
     def _initSettings(self):
-        self.dammif_settings = {'mode'          : self.raw_settings.get('dammifMode'),
-                                'unit'          : self.raw_settings.get('dammifUnit'),
-                                'sym'           : self.raw_settings.get('dammifSymmetry'),
-                                'anisometry'    : self.raw_settings.get('dammifAnisometry'),
-                                'omitSolvent'   : self.raw_settings.get('dammifOmitSolvent'),
-                                'chained'       : self.raw_settings.get('dammifChained'),
-                                'constant'      : self.raw_settings.get('dammifConstant'),
-                                'maxBead'       : self.raw_settings.get('dammifMaxBeadCount'),
-                                'radius'        : self.raw_settings.get('dammifDummyRadius'),
-                                'harmonics'     : self.raw_settings.get('dammifSH'),
-                                'propFit'       : self.raw_settings.get('dammifPropToFit'),
-                                'curveWeight'   : self.raw_settings.get('dammifCurveWeight'),
-                                'seed'          : self.raw_settings.get('dammifRandomSeed'),
-                                'maxSteps'      : self.raw_settings.get('dammifMaxSteps'),
-                                'maxIters'      : self.raw_settings.get('dammifMaxIters'),
-                                'maxSuccess'    : self.raw_settings.get('dammifMaxStepSuccess'),
-                                'minSuccess'    : self.raw_settings.get('dammifMinStepSuccess'),
-                                'TFactor'       : self.raw_settings.get('dammifTFactor'),
-                                'RgWeight'      : self.raw_settings.get('dammifRgPen'),
-                                'cenWeight'     : self.raw_settings.get('dammifCenPen'),
-                                'looseWeight'   : self.raw_settings.get('dammifLoosePen')
+        self.dammif_settings = {'mode'              : self.raw_settings.get('dammifMode'),
+                                'unit'              : self.raw_settings.get('dammifUnit'),
+                                'sym'               : self.raw_settings.get('dammifSymmetry'),
+                                'anisometry'        : self.raw_settings.get('dammifAnisometry'),
+                                'omitSolvent'       : self.raw_settings.get('dammifOmitSolvent'),
+                                'chained'           : self.raw_settings.get('dammifChained'),
+                                'constant'          : self.raw_settings.get('dammifConstant'),
+                                'maxBead'           : self.raw_settings.get('dammifMaxBeadCount'),
+                                'radius'            : self.raw_settings.get('dammifDummyRadius'),
+                                'harmonics'         : self.raw_settings.get('dammifSH'),
+                                'propFit'           : self.raw_settings.get('dammifPropToFit'),
+                                'curveWeight'       : self.raw_settings.get('dammifCurveWeight'),
+                                'seed'              : self.raw_settings.get('dammifRandomSeed'),
+                                'maxSteps'          : self.raw_settings.get('dammifMaxSteps'),
+                                'maxIters'          : self.raw_settings.get('dammifMaxIters'),
+                                'maxSuccess'        : self.raw_settings.get('dammifMaxStepSuccess'),
+                                'minSuccess'        : self.raw_settings.get('dammifMinStepSuccess'),
+                                'TFactor'           : self.raw_settings.get('dammifTFactor'),
+                                'RgWeight'          : self.raw_settings.get('dammifRgPen'),
+                                'cenWeight'         : self.raw_settings.get('dammifCenPen'),
+                                'looseWeight'       : self.raw_settings.get('dammifLoosePen'),
+                                'initialDAM'        : self.raw_settings.get('damminInitial'),
+                                'knots'             : self.raw_settings.get('damminKnots'),
+                                'damminConstant'    : self.raw_settings.get('damminConstant'),
+                                'diameter'          : self.raw_settings.get('damminDiameter'),
+                                'packing'           : self.raw_settings.get('damminPacking'),
+                                'coordination'      : self.raw_settings.get('damminCoordination'),
+                                'disconWeight'      : self.raw_settings.get('damminDisconPen'),
+                                'periphWeight'      : self.raw_settings.get('damminPeriphPen'),
+                                'damminCurveWeight' : self.raw_settings.get('damminCurveWeight'),
+                                'annealSched'       : self.raw_settings.get('damminAnealSched')
                                 }
 
         mode = wx.FindWindowById(self.ids['mode'])
@@ -3525,6 +3509,9 @@ class DammifFrame(wx.Frame):
 
         nruns_window = wx.FindWindowById(self.ids['runs'])
         nruns = int(nruns_window.GetValue())
+
+        program_window = wx.FindWindowById(self.ids['program'])
+        program = program_window.GetStringSelection()
 
         outname = os.path.join(path, prefix+'.out')
 
@@ -3669,7 +3656,7 @@ class DammifFrame(wx.Frame):
 
         for key in self.dammif_ids:
             if key != 'damaver' and key != 'damclust':
-                t = threading.Thread(target = self.runDammif, args = (outname, prefix, path))
+                t = threading.Thread(target = self.runDammif, args = (outname, prefix, path, program))
                 t.daemon = True
                 t.start()
                 self.threads.append(t)
@@ -3741,7 +3728,7 @@ class DammifFrame(wx.Frame):
                 self.dammif_settings[key] = window.GetStringSelection()
 
 
-    def runDammif(self, outname, prefix, path):
+    def runDammif(self, outname, prefix, path, program):
 
         with self.my_semaphore:
             #Check to see if things have been aborted
@@ -3781,12 +3768,15 @@ class DammifFrame(wx.Frame):
             #Run DAMMIF
             dam_args = self.dammif_settings
 
-            wx.CallAfter(self.status.AppendText, 'Starting DAMMIF run %s\n' %(my_num))
+            wx.CallAfter(self.status.AppendText, 'Starting %s run %s\n' %(program, my_num))
 
             cwd = os.getcwd()
             os.chdir(path)
 
-            dammif_proc = SASCalc.runDammif(outname, dam_prefix, dam_args)
+            if program == 'DAMMIF':
+                dammif_proc = SASCalc.runDammif(outname, dam_prefix, dam_args)
+            else:
+                dammif_proc = SASCalc.runDammin(outname, dam_prefix, dam_args)
 
             os.chdir(cwd)
 
@@ -4100,27 +4090,37 @@ class DammifFrame(wx.Frame):
 
 
     def updateDAMMIFSettings(self):
-        self.dammif_settings = {'mode'          : self.raw_settings.get('dammifMode'),
-                                'unit'          : self.raw_settings.get('dammifUnit'),
-                                'sym'           : self.raw_settings.get('dammifSymmetry'),
-                                'anisometry'    : self.raw_settings.get('dammifAnisometry'),
-                                'omitSolvent'   : self.raw_settings.get('dammifOmitSolvent'),
-                                'chained'       : self.raw_settings.get('dammifChained'),
-                                'constant'      : self.raw_settings.get('dammifConstant'),
-                                'maxBead'       : self.raw_settings.get('dammifMaxBeadCount'),
-                                'radius'        : self.raw_settings.get('dammifDummyRadius'),
-                                'harmonics'     : self.raw_settings.get('dammifSH'),
-                                'propFit'       : self.raw_settings.get('dammifPropToFit'),
-                                'curveWeight'   : self.raw_settings.get('dammifCurveWeight'),
-                                'seed'          : self.raw_settings.get('dammifRandomSeed'),
-                                'maxSteps'      : self.raw_settings.get('dammifMaxSteps'),
-                                'maxIters'      : self.raw_settings.get('dammifMaxIters'),
-                                'maxSuccess'    : self.raw_settings.get('dammifMaxStepSuccess'),
-                                'minSuccess'    : self.raw_settings.get('dammifMinStepSuccess'),
-                                'TFactor'       : self.raw_settings.get('dammifTFactor'),
-                                'RgWeight'      : self.raw_settings.get('dammifRgPen'),
-                                'cenWeight'     : self.raw_settings.get('dammifCenPen'),
-                                'looseWeight'   : self.raw_settings.get('dammifLoosePen')
+        self.dammif_settings = {'mode'              : self.raw_settings.get('dammifMode'),
+                                'unit'              : self.raw_settings.get('dammifUnit'),
+                                'sym'               : self.raw_settings.get('dammifSymmetry'),
+                                'anisometry'        : self.raw_settings.get('dammifAnisometry'),
+                                'omitSolvent'       : self.raw_settings.get('dammifOmitSolvent'),
+                                'chained'           : self.raw_settings.get('dammifChained'),
+                                'constant'          : self.raw_settings.get('dammifConstant'),
+                                'maxBead'           : self.raw_settings.get('dammifMaxBeadCount'),
+                                'radius'            : self.raw_settings.get('dammifDummyRadius'),
+                                'harmonics'         : self.raw_settings.get('dammifSH'),
+                                'propFit'           : self.raw_settings.get('dammifPropToFit'),
+                                'curveWeight'       : self.raw_settings.get('dammifCurveWeight'),
+                                'seed'              : self.raw_settings.get('dammifRandomSeed'),
+                                'maxSteps'          : self.raw_settings.get('dammifMaxSteps'),
+                                'maxIters'          : self.raw_settings.get('dammifMaxIters'),
+                                'maxSuccess'        : self.raw_settings.get('dammifMaxStepSuccess'),
+                                'minSuccess'        : self.raw_settings.get('dammifMinStepSuccess'),
+                                'TFactor'           : self.raw_settings.get('dammifTFactor'),
+                                'RgWeight'          : self.raw_settings.get('dammifRgPen'),
+                                'cenWeight'         : self.raw_settings.get('dammifCenPen'),
+                                'looseWeight'       : self.raw_settings.get('dammifLoosePen'),
+                                'initialDAM'        : self.raw_settings.get('damminInitial'),
+                                'knots'             : self.raw_settings.get('damminKnots'),
+                                'damminConstant'    : self.raw_settings.get('damminConstant'),
+                                'diameter'          : self.raw_settings.get('damminDiameter'),
+                                'packing'           : self.raw_settings.get('damminPacking'),
+                                'coordination'      : self.raw_settings.get('damminCoordination'),
+                                'disconWeight'      : self.raw_settings.get('damminDisconPen'),
+                                'periphWeight'      : self.raw_settings.get('damminPeriphPen'),
+                                'damminCurveWeight' : self.raw_settings.get('damminCurveWeight'),
+                                'annealSched'       : self.raw_settings.get('damminAnealSched')
                                 }
 
         mode = wx.FindWindowById(self.ids['mode'])

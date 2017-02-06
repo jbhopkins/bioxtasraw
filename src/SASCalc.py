@@ -41,6 +41,11 @@ def autoRg(sasm):
     q = sasm.q
     i = sasm.i
     err = sasm.err
+    qmin, qmax = sasm.getQrange()
+
+    q = q[qmin:qmax]
+    i = i[qmin:qmax]
+    err = err[qmin:qmax]
 
     #Pick the start of the RG fitting range. Note that in autorg, this is done
     #by looking for strong deviations at low q from aggregation or structure factor
@@ -253,8 +258,13 @@ def autoMW(sasm, rg, i0, protein = True):
     q = sasm.q
     i = sasm.i
     err = sasm.err
+    qmin, qmax = sasm.getQrange()
 
-    #The volume of volume  is the ratio of i0 to $\int q*I dq$
+    q = q[qmin:qmax]
+    i = i[qmin:qmax]
+    err = err[qmin:qmax]
+
+    #The volume of correlation is the ratio of i0 to $\int q*I dq$
     tot=integrate.simps(q*i,q)
 
     vc=i0/tot
@@ -287,6 +297,12 @@ def porodVolume(sasm, rg, i0, start = 0, stop = -1, interp = False):
 
     q_exp = sasm.q
     i_exp = sasm.i
+    err_exp = sasm.err
+    qmin, qmax = sasm.getQrange()
+
+    q_exp = q_exp[qmin:qmax]
+    i_exp = i_exp[qmin:qmax]
+    err_exp = err_exp[qmin:qmax]
 
 
     if interp:
@@ -1122,3 +1138,233 @@ def runDamclust(flist):
         process=subprocess.Popen(command, shell= True, stdout = subprocess.PIPE)
 
         return process
+
+
+def runDammin(fname, prefix, args):
+    #Note: This run dammin command must be run with the current working directory as the directory
+    #where the file is located. Otherwise, there are issues if the filepath contains a space.
+
+    fname = os.path.split(fname)[1]
+
+    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+    atsasDir = raw_settings.get('ATSASDir')
+
+    opsys = platform.system()
+
+    if opsys == 'Windows':
+        dammifDir = os.path.join(atsasDir, 'dammin.exe')
+    else:
+        dammifDir = os.path.join(atsasDir, 'dammin')
+    
+
+    if os.path.exists(dammifDir):
+        if args['mode'].lower() == 'fast' or args['mode'].lower() == 'slow':
+
+            command = '%s --mo=%s --lo=%s --un=%s --sy=%s' %(dammifDir, args['mode'], prefix, '1', args['sym'])
+
+            if args['anisometry'] != 'Unknown':
+                command = command + ' --an=%s' %(args['anisometry'])
+
+            command = command + ' %s' %(fname)
+            
+            process=subprocess.Popen(command, shell= True, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+
+            return process
+
+        else:
+            #Solution for non-blocking reads adapted from stack overflow
+            #http://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
+            def enqueue_output(out, queue):
+                dammifRunning = False
+                line = 'test'
+                line2=''
+                while line != '' and not dammifRunning:
+                    line = out.read(1)
+                    line2+=line
+                    if line == ':':
+                        if line2.find('Log opened') > -1:
+                            dammifRunning = True
+                        queue.put_nowait([line2])
+                        line2=''
+
+            dammif_q = Queue.Queue()
+
+            dammifStarted = False
+
+            proc = subprocess.Popen('%s' %(dammifDir), shell = True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+            dammif_t = threading.Thread(target=enqueue_output, args=(proc.stdout, dammif_q))
+            dammif_t.daemon = True
+            dammif_t.start()
+            previous_line = ''
+
+            
+
+            while proc.poll() == None and not dammifStarted:
+                data = None
+                try: 
+                    data = dammif_q.get_nowait()
+                    data = data[0]
+                    # print 'New Line of Data!!!!!!!!!!!!!!!!!!!'
+                    # print data
+                    dammif_q.task_done()
+                    # err = q2.get_nowait()
+                    # print data[0],
+                    # print err
+                except Queue.Empty:
+                    pass
+
+                if data != None:
+                    current_line = data
+                    # print 'Previous line: %s' %(previous_line)
+
+                    if data.find('[E]xpert') > -1:
+                        proc.stdin.write('E\r\n' %(fname)) #Dammif run mode
+
+                    elif data.find('Log file name') > -1:
+                        proc.stdin.write('%s\r\n' %(prefix)) #Dammif input file, no default
+
+                    elif data.find('GNOM output file') > -1:
+                        proc.stdin.write('%s\r\n' %(fname)) #Dammif input file, no default
+
+                    elif data.find('project description') > -1:
+                        proc.stdin.write('\r\n' %(fname)) #Extra information, default is none
+                   
+                    elif data.find('1/nm') > -1:
+                        proc.stdin.write('%s\r\n' %(args['unit'])) #Dammif input file units, default 1/angstrom
+                    
+                    elif data.find('Portion of curve') > -1:
+                        proc.stdin.write('\r\n' %(prefix)) #Portion of curve to be fitted, default all (1.0)
+                    
+                    elif data.find('parallelepiped') > -1:
+                        if 'initialDAM' in args:
+                            proc.stdin.write('%s\r\n' %(args['initialDAM'])) #MInitial dammin shape, default sphere (S)
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif data.find('P1)') > -1:
+                        proc.stdin.write('%s\r\n' %(args['sym'])) #Particle symmetry, default P1
+
+                    elif data.find('<P>rolate') > -1:
+                        proc.stdin.write('%s\r\n' %(args['anisometry'])) #Particle anisometry, default Unknown
+
+                    elif data.find('knots') > -1:
+                        if 'knots' in args:
+                            proc.stdin.write('%s\r\n' %(str(args['knots']))) #Number of knots in the curve to be fit, default 20
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif data.find('automatic subtraction') > -1:
+                        if 'damminConstant' in args:
+                            proc.stdin.write('%s\r\n' %(args['damminConstant'])) #Subtract constant offset, default automatic
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif data.find('Maximum order of harmonics') > -1:
+                        if args['harmonics'] > -1:
+                            proc.stdin.write('%i\r\n' %(args['harmonics'])) #Maximum number of spherical harmonics to use (1-50), default 20
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif data.find('diameter') > -1:
+                        if args['diameter'] > -1:
+                            proc.stdin.write('%f\r\n' %(args['diameter'])) #Dummy atom diameter, default 1.0
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif data.find('Packing radius') > -1:
+                        if args['packing'] > -1:
+                            proc.stdin.write('%i\r\n' %(args['packing'])) 
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif data.find('coordination sphere') > -1:
+                        if args['coordination'] > -1:
+                            proc.stdin.write('%i\r\n' %(args['coordination']))
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif data.find('Looseness penalty weight') > -1:
+                        if args['looseWeight'] > -1:
+                            proc.stdin.write('%f\r\n' %(args['looseWeight'])) 
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif data.find('Disconnectivity penalty') > -1:
+                        if args['disconWeight'] > -1:
+                            proc.stdin.write('%i\r\n' %(args['disconWeight'])) 
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif data.find('Peripheral penalty weight') > -1:
+                        if args['periphWeight'] > -1:
+                            proc.stdin.write('%f\r\n' %(args['periphWeight'])) 
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif data.find('Fixing thresholds') > -1:
+                        proc.stdin.write('\r\n')
+
+                    elif data.find('Randomize the structure') > -1:
+                        proc.stdin.write('\r\n') 
+
+                    elif data.find('0=s^2') > -1:
+                        proc.stdin.write('%s\r\n' %(args['damminCurveWeight'])) #Curve weighting function, default emphasised porod
+
+                    elif data.find('scale factor') > -1:
+                        proc.stdin.write('\r\n')
+
+                    elif data.find('Initial annealing temperature') > -1:
+                        proc.stdin.write('\r\n')
+
+                    elif data.find('Annealing schedule factor') > -1:
+                        if args['annealSched'] > -1:
+                            proc.stdin.write('%f\r\n' %(args['annealSched']))
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif data.find('# of independent') > -1:
+                        proc.stdin.write('\r\n')
+
+                    elif data.find('Max # of iterations') > -1:
+                        if args['maxIters'] > -1:
+                            proc.stdin.write('%i\r\n' %(args['maxIters'])) #Maximum number of iterations per temperature step
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif data.find('Max # of successes') > -1:
+                        if args['maxSuccess'] > -1:
+                            proc.stdin.write('%i\r\n' %(args['maxSuccess']))
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif data.find('Min # of successes') > -1:
+                        if args['minSuccess'] > -1:
+                            proc.stdin.write('%i\r\n' %(args['minSuccess'])) #Minimum number of success per temperature step to continue, default 200
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif data.find('Max # of annealing steps') > -1:
+                        if args['maxSteps'] > -1:
+                            proc.stdin.write('%i\r\n' %(args['maxSteps'])) #Maximum number of temperature steps, default 200
+                        else:
+                            proc.stdin.write('\r\n')
+
+                    elif data.find('Proportion of the curve to be fitted') > -1:
+                        if args['propFit'] > -1:
+                            proc.stdin.write('%f\r\n' %(args['propFit'])) #Proportion of curve to be fitted, default 1.00
+                        else:
+                            proc.stdin.write('\r\n')
+                 
+                    elif data.find('annealing procedure started') > -1:
+                        dammifStarted = True
+
+                    previous_line = current_line
+
+            proc.stdout.close()
+            proc.stdin.close()
+
+            return proc
+    else:
+        print 'Cannot find ATSAS'
+        raise SASExceptions.NoATSASError('Cannot find dammif.')
+        return None

@@ -295,7 +295,18 @@ class RawGuiSettings:
                             'dammifMaxBeadCount'  : [-1, wx.NewId(), 'int'],
                             'dammifReconstruct'   : [15, wx.NewId(), 'int'],
                             'dammifDamaver'       : [True, wx.NewId(), 'bool'],
-                            'dammifDamclust'      : [False, wx.NewId(), 'bool']
+                            'dammifDamclust'      : [False, wx.NewId(), 'bool'],
+
+                            'damminInitial'       : ['S', wx.NewId(), 'choice'], #Initial DAM
+                            'damminKnots'           : [20, wx.NewId(), 'int'],
+                            'damminConstant'        : [0, wx.NewId(), 'float'],
+                            'damminDiameter'        : [-1, wx.NewId(), 'float'],
+                            'damminPacking'         : [-1, wx.NewId(), 'float'],
+                            'damminCoordination'    : [-1, wx.NewId(), 'float'],
+                            'damminDisconPen'       : [-1, wx.NewId(), 'float'],
+                            'damminPeriphPen'       : [-1, wx.NewId(), 'float'],
+                            'damminCurveWeight'     : ['1', wx.NewId(), 'choice'],
+                            'damminAnealSched'      : [-1, wx.NewId(), 'float']
                             
                             }
     
