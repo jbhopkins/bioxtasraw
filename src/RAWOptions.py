@@ -3081,8 +3081,8 @@ class ATSASDammix(wx.Panel):
 
         self.raw_settings = raw_settings
         
-        self.update_keys = ['dammifMode', 'dammifSymmetry', 'dammifAnisometry', 'dammifUnit', 'dammifReconstruct', 
-                            'dammifDamaver', 'dammifDamclust']
+        self.update_keys = ['dammifProgram', 'dammifMode', 'dammifSymmetry', 'dammifAnisometry', 'dammifUnit', 'dammifReconstruct', 
+                            'dammifDamaver', 'dammifDamclust', 'dammifRefine']
         
         modeChoices = ['Fast', 'Slow', 'Custom']
 
@@ -3092,41 +3092,22 @@ class ATSASDammix(wx.Panel):
 
         anisometryChoices = ['Unknown', 'Prolate', 'Oblate']
 
-        self.default_options = (("Mode:",   raw_settings.getId('dammifMode'), 'choice', modeChoices),
+        programChoices = ['DAMMIF', 'DAMMIN']
+
+        self.default_options = (("Program:", raw_settings.getId('dammifProgram'), 'choice', programChoices),
+                                ("Mode:",   raw_settings.getId('dammifMode'), 'choice', modeChoices),
                                 ("Symmetry:",   raw_settings.getId('dammifSymmetry'), 'choice', symChoices),
                                 ("Anisometry: ", raw_settings.getId('dammifAnisometry'), 'choice', anisometryChoices),
                                 ("Number of reconstructions:", raw_settings.getId('dammifReconstruct'), 'int'),
                                 ("Automatically average reconstructions (DAMAVER)", raw_settings.getId('dammifDamaver'), 'bool'),
-                                ("Automatically cluster reconstructions (DAMCLUST)", raw_settings.getId('dammifDamclust'), 'bool'))
+                                ("Automatically cluster reconstructions (DAMCLUST)", raw_settings.getId('dammifDamclust'), 'bool'),
+                                ("Automatically refine DAMAVER generated damstart.pdb with DAMMIN", raw_settings.getId('dammifRefine'), 'bool'))
 
         unitChoices = ['Unknown', 'Angstrom', 'Nanometer']
 
         self.standard_options = (('Units:', raw_settings.getId('dammifUnit'), 'choice', unitChoices), None) #stupid, but to keep it a list it needs another item . . .
         
-        
-        # self.myPanel = wx.ScrolledWindow(self, -1)
-        # self.myPanel.SetScrollbars(20,20,50,50)
-
-        # layoutSizer = self._createLayout(self.myPanel)
         layoutSizer = self._createLayout(self)
-
-        # top_sizer = self._createLayout(self)
-
-        # self.myPanel.SetSizer(layoutSizer)
-        # # self.myPanel.FitInside()
-
-        # # self.myPanel.SetScrollRate(20,20)
-
-        # self.myPanel.FitInside()
-
-        # self.myPanel.Layout()
-        # self.SendSizeEvent()
-        # self.myPanel.Layout()
-
-        # top_sizer = wx.BoxSizer(wx.VERTICAL)
-        # top_sizer.Add(self.myPanel, 0)
-        
-        # self.SetSizer(top_sizer)
 
         self.SetSizer(layoutSizer)
 

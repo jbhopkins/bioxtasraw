@@ -3163,9 +3163,9 @@ class DammifFrame(wx.Frame):
     def __init__(self, parent, title, iftm, manip_item):
         
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'DammifFrame', size = (675,700))
+            wx.Frame.__init__(self, parent, -1, title, name = 'DammifFrame', size = (675,750))
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'DammifFrame', size = (675,700))
+            wx.Frame.__init__(self, None, -1, title, name = 'DammifFrame', size = (675,750))
 
         self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -3199,7 +3199,8 @@ class DammifFrame(wx.Frame):
                     'start'         : wx.NewId(),
                     'abort'         : wx.NewId(),
                     'changedir'     : wx.NewId(),
-                    'program'       : wx.NewId()
+                    'program'       : wx.NewId(),
+                    'refine'        : wx.NewId()
                     }
 
         self.threads = []
@@ -3320,6 +3321,11 @@ class DammifFrame(wx.Frame):
         damaver_chk = wx.CheckBox(parent, self.ids['damaver'], 'Align and average envelopes (damaver)')
         damaver_chk.Bind(wx.EVT_CHECKBOX, self.onCheckBox)
 
+        refine_chk = wx.CheckBox(parent, self.ids['refine'], 'Refine average with dammin')
+        refine_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        refine_sizer.AddSpacer(20)
+        refine_sizer.Add(refine_chk)
+
         damclust_chk = wx.CheckBox(parent, self.ids['damclust'], 'Align and cluster envelopes (damclust)')
         damclust_chk.Bind(wx.EVT_CHECKBOX, self.onCheckBox)
 
@@ -3339,6 +3345,7 @@ class DammifFrame(wx.Frame):
         # settings_sizer.Add(aniso_sizer, 0)
         settings_sizer.Add(choices_sizer, 0, wx.ALL | wx.EXPAND, 5)
         settings_sizer.Add(damaver_chk, 0, wx.ALL, 5)
+        settings_sizer.Add(refine_sizer, 0, wx.ALL, 5)
         settings_sizer.Add(damclust_chk, 0, wx.ALL, 5)
         settings_sizer.Add(advancedButton, 0, wx.ALL | wx.ALIGN_CENTER, 5)
 
@@ -3461,10 +3468,7 @@ class DammifFrame(wx.Frame):
         anisometry.SetStringSelection(self.dammif_settings['anisometry'])
 
         procs = wx.FindWindowById(self.ids['procs'])
-        if multiprocessing.cpu_count() > 1:
-            procs.SetSelection(1)
-        else:
-            procs.SetSelection(0)
+        procs.SetSelection(1)
 
         damaver = wx.FindWindowById(self.ids['damaver'])
         damaver.SetValue(self.raw_settings.get('dammifDamaver'))
@@ -3483,6 +3487,14 @@ class DammifFrame(wx.Frame):
 
         nruns = wx.FindWindowById(self.ids['runs'])
         nruns.SetValue(str(self.raw_settings.get('dammifReconstruct')))
+
+        refine = wx.FindWindowById(self.ids['refine'])
+
+        if refine.IsEnabled:
+            refine.SetValue(self.raw_settings.get('dammifRefine'))
+
+        program = wx.FindWindowById(self.ids['program'])
+        program.SetStringSelection(self.raw_settings.get('dammifProgram'))
 
         abort_button = wx.FindWindowById(self.ids['abort']).Disable()
 
@@ -3512,6 +3524,9 @@ class DammifFrame(wx.Frame):
 
         program_window = wx.FindWindowById(self.ids['program'])
         program = program_window.GetStringSelection()
+
+        refine_window = wx.FindWindowById(self.ids['refine'])
+        refine = refine_window.GetValue()
 
         outname = os.path.join(path, prefix+'.out')
 
@@ -3544,6 +3559,8 @@ class DammifFrame(wx.Frame):
             f.close()
 
         dammif_names = {key: value for (key, value) in [(str(i), prefix+'_%s' %(str(i).zfill(2))) for i in range(1, nruns+1)]}
+        if refine:
+            dammif_names['refine'] = 'refine_' + prefix
 
         yes_to_all = False
         for key in dammif_names:
@@ -3556,7 +3573,7 @@ class DammifFrame(wx.Frame):
 
             if (os.path.exists(LogName) or os.path.exists(InName) or os.path.exists(FitName) or os.path.exists(FirName) or os.path.exists(EnvelopeName) or os.path.exists(SolventName)) and not yes_to_all:
                 button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
-                question = 'Warning: selected directory contains DAMMIF output files with the prefix\n"%s". Running DAMMIF will overwrite these files.\nDo you wish to continue?' %(dammif_names[key])
+                question = 'Warning: selected directory contains DAMMIF/N output files with the prefix:\n"%s".\nRunning DAMMIF/N will overwrite these files.\nDo you wish to continue?' %(dammif_names[key])
                 label = 'Overwrite existing files?'
                 icon = wx.ART_WARNING
 
@@ -3633,6 +3650,11 @@ class DammifFrame(wx.Frame):
             text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['damclust'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
             self.logbook.AddPage(text_ctrl, 'Damclust')
 
+        if refine:
+            self.dammif_ids['refine'] = wx.NewId()
+            text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['refine'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
+            self.logbook.AddPage(text_ctrl, 'Refine')
+
 
         self.status.SetValue('Starting processing\n')
 
@@ -3655,7 +3677,7 @@ class DammifFrame(wx.Frame):
         self.rs = Queue.Queue()
 
         for key in self.dammif_ids:
-            if key != 'damaver' and key != 'damclust':
+            if key != 'damaver' and key != 'damclust' and key != 'refine':
                 t = threading.Thread(target = self.runDammif, args = (outname, prefix, path, program))
                 t.daemon = True
                 t.start()
@@ -3728,13 +3750,16 @@ class DammifFrame(wx.Frame):
                 self.dammif_settings[key] = window.GetStringSelection()
 
 
-    def runDammif(self, outname, prefix, path, program):
+    def runDammif(self, outname, prefix, path, program, refine = False):
 
         with self.my_semaphore:
             #Check to see if things have been aborted
             if self.abort_event.isSet():
-                my_num = self.thread_nums.get()
-                damId = self.dammif_ids[my_num]
+                if not refine:
+                    my_num = self.thread_nums.get()
+                    damId = self.dammif_ids[my_num]
+                else:
+                    damId = self.dammif_ids['refine']
                 damWindow = wx.FindWindowById(damId)
                 wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
                 return
@@ -3748,11 +3773,17 @@ class DammifFrame(wx.Frame):
                         time.sleep(0.01)
                 self.rs.put(int(time.time()))
 
-            my_num = self.thread_nums.get()
-            damId = self.dammif_ids[my_num]
+            if not refine:
+                my_num = self.thread_nums.get()
+                damId = self.dammif_ids[my_num]
+            else:
+                damId = self.dammif_ids['refine']
             damWindow = wx.FindWindowById(damId)
 
-            dam_prefix = prefix+'_%s' %(my_num.zfill(2))
+            if not refine:
+                dam_prefix = prefix+'_%s' %(my_num.zfill(2))
+            else:
+                dam_prefix = 'refine_' + prefix
 
 
             #Remove old files, so they don't mess up the program
@@ -3768,10 +3799,20 @@ class DammifFrame(wx.Frame):
             #Run DAMMIF
             dam_args = self.dammif_settings
 
-            wx.CallAfter(self.status.AppendText, 'Starting %s run %s\n' %(program, my_num))
+            if refine:
+                self.dammif_settings['mode'] = 'Refine'
+                self.dammif_settings['initialDAM'] = prefix+'_damstart.pdb'
+
+            if refine:
+                wx.CallAfter(self.status.AppendText, 'Starting Refinement\n')
+            else:
+                wx.CallAfter(self.status.AppendText, 'Starting %s run %s\n' %(program, my_num))
 
             cwd = os.getcwd()
             os.chdir(path)
+
+            if refine:
+                program = 'DAMMIN'
 
             if program == 'DAMMIF':
                 dammif_proc = SASCalc.runDammif(outname, dam_prefix, dam_args)
@@ -3814,8 +3855,11 @@ class DammifFrame(wx.Frame):
 
             wx.CallAfter(damWindow.AppendText, final_status)
 
-
-            wx.CallAfter(self.status.AppendText, 'Finished DAMMIF run %s\n' %(my_num))
+            if refine:
+                wx.CallAfter(self.status.AppendText, 'Finished Refinement\n')
+                self.finishedProcessing()
+            else:
+                wx.CallAfter(self.status.AppendText, 'Finished %s run %s\n' %(program, my_num))
 
 
     def runDamaver(self, prefix, path):
@@ -3839,8 +3883,7 @@ class DammifFrame(wx.Frame):
         with self.my_semaphore:
             #Check to see if things have been aborted
             if self.abort_event.isSet():
-                my_num = self.thread_nums.get()
-                damId = self.dammif_ids[my_num]
+                damId = self.dammif_ids['damaver']
                 damWindow = wx.FindWindowById(damId)
                 wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
                 return
@@ -3921,7 +3964,21 @@ class DammifFrame(wx.Frame):
 
             wx.CallAfter(self.status.AppendText, 'Finished DAMAVER\n')
 
-            self.finishedProcessing()
+            refine_window = wx.FindWindowById(self.ids['refine'])
+            refine = refine_window.GetValue()
+
+            if refine:
+                program_window = wx.FindWindowById(self.ids['program'])
+                program = program_window.GetStringSelection()
+
+                outname = os.path.join(path, prefix+'.out')
+
+                t = threading.Thread(target = self.runDammif, args = (outname, prefix, path, program, refine))
+                t.daemon = True
+                t.start()
+                self.threads.append(t)
+            else:
+                self.finishedProcessing()
 
 
     def runDamclust(self, prefix, path):
@@ -3945,13 +4002,12 @@ class DammifFrame(wx.Frame):
         with self.my_semaphore:
             #Check to see if things have been aborted
             if self.abort_event.isSet():
-                my_num = self.thread_nums.get()
-                damId = self.dammif_ids[my_num]
+                damId = self.dammif_ids['damclust']
                 damWindow = wx.FindWindowById(damId)
                 wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
                 return
 
-            damId = self.dammif_ids['damclust']
+            
             damWindow = wx.FindWindowById(damId)
 
             #Remove old files, so they don't mess up the program
@@ -4073,20 +4129,35 @@ class DammifFrame(wx.Frame):
             elif key == 'abort':
                 wx.FindWindowById(self.ids[key]).Disable()
 
-        self.status.AppendText('Finished Processing')
+        wx.CallAfter(self.status.AppendText, 'Finished Processing')
 
 
     def _onAdvancedButton(self, evt):
-        self.main_frame.showOptionsDialog(focusHead='DAMMIF')
+        self.main_frame.showOptionsDialog(focusHead='DAMMIF/N')
 
     def onCheckBox(self,evt):
+        refine = wx.FindWindowById(self.ids['refine'])
+
         if evt.GetId() == self.ids['damaver'] and evt.IsChecked():
             damclust = wx.FindWindowById(self.ids['damclust'])
             damclust.SetValue(False)
 
+            if not refine.IsEnabled():
+                refine.Enable()
+                refine.SetValue(self.raw_settings.get('dammifRefine'))
+
+        elif evt.GetId() == self.ids['damaver'] and not evt.IsChecked():
+            if refine.IsEnabled():
+                refine.Disable()
+                refine.SetValue(False)
+
         elif evt.GetId() == self.ids['damclust'] and evt.IsChecked():
             damaver = wx.FindWindowById(self.ids['damaver'])
             damaver.SetValue(False)
+
+            if refine.IsEnabled():
+                refine.Disable()
+                refine.SetValue(False)
 
 
     def updateDAMMIFSettings(self):
@@ -4153,13 +4224,21 @@ class DammifFrame(wx.Frame):
         nruns = wx.FindWindowById(self.ids['runs'])
         nruns.SetValue(str(self.raw_settings.get('dammifReconstruct')))
 
+        refine = wx.FindWindowById(self.ids['refine'])
+        
+        if refine.IsEnabled:
+            refine.SetValue(self.raw_settings.get('dammifRefine'))
+
+        program = wx.FindWindowById(self.ids['program'])
+        program.SetStringSelection(self.raw_settings.get('dammifProgram'))
+
 
     def _onCloseButton(self, evt):
         self.Close()
 
     def _onInfoButton(self, evt):
-        msg = 'In addition to citing the RAW paper:\n If you use DAMMIF in your work please cite the paper given here:\nhttps://www.embl-hamburg.de/biosaxs/dammif.html\n\nIf you use DAMAVER in your work, please cite the paper given here:\nhttps://www.embl-hamburg.de/biosaxs/damaver.html\n\nIf you use DAMCLUST in your work please cite the paper given here:\nhttps://www.embl-hamburg.de/biosaxs/manuals/damclust.html'
-        wx.MessageBox(str(msg), "How to cite DAMMIF/DAMAVER/DAMCLUST", style = wx.ICON_INFORMATION | wx.OK)
+        msg = 'In addition to citing the RAW paper:\n If you use DAMMIF in your work please cite the paper given here:\nhttps://www.embl-hamburg.de/biosaxs/dammif.html\n\nIf you use DAMMIN in your work please cite the paper given here:\nhttps://www.embl-hamburg.de/biosaxs/dammin.html\n\nIIf you use DAMAVER in your work, please cite the paper given here:\nhttps://www.embl-hamburg.de/biosaxs/damaver.html\n\nIf you use DAMCLUST in your work please cite the paper given here:\nhttps://www.embl-hamburg.de/biosaxs/manuals/damclust.html'
+        wx.MessageBox(str(msg), "How to cite DAMMIF/DAMMIN/DAMAVER/DAMCLUST", style = wx.ICON_INFORMATION | wx.OK)
 
     def OnClose(self, event):
 
@@ -4179,8 +4258,8 @@ class DammifFrame(wx.Frame):
                     process_finished = True
 
         if not process_finished and event.CanVeto():
-            msg = "Warning: DAMMIF or DAMAVER is still running. Closing this window will abort the currently running processes. Do you want to continue closing the window?"
-            dlg = wx.MessageDialog(self.main_frame, msg, "Abort DAMMIF/DAMAVER?", style = wx.ICON_WARNING | wx.YES_NO)
+            msg = "Warning: DAMMIF/N, DAMAVER, or DAMCLUST is still running. Closing this window will abort the currently running processes. Do you want to continue closing the window?"
+            dlg = wx.MessageDialog(self.main_frame, msg, "Abort DAMMIF/DAMMIN/DAMAVER/DAMCLUST?", style = wx.ICON_WARNING | wx.YES_NO)
             proceed = dlg.ShowModal()
             dlg.Destroy()
 
