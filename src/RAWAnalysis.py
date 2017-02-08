@@ -3409,7 +3409,7 @@ class DammifFrame(wx.Frame):
             top_sizer = wx.BoxSizer(wx.VERTICAL)
             top_sizer.Add(half_sizer, 0, wx.EXPAND)
             top_sizer.Add(log_sizer, 1, wx.EXPAND)
-            top_sizer.Add(close_button, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
+            top_sizer.Add(button_sizer, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
         else:
             top_sizer = wx.BoxSizer(wx.VERTICAL)
             top_sizer.Add(half_sizer, 1, wx.EXPAND)
