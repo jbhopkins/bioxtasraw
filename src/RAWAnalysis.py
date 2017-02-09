@@ -35,6 +35,7 @@ from scipy import polyval, polyfit, sqrt, integrate
 import scipy.interpolate as interp
 from scipy.constants import Avogadro
 import scipy.stats as stats
+import scipy.optimize
 
 import RAW, RAWSettings, RAWCustomCtrl, SASCalc, RAWPlot, SASFileIO, SASM, SASExceptions, BIFT, RAWGlobals
 
@@ -104,27 +105,39 @@ class GuinierPlotPanel(wx.Panel):
 
         self.canvas.mpl_disconnect(self.cid)
         
-        self.updateDataPlot(self.orig_i, self.orig_q, self.xlim)
+        self.updateDataPlot(self.orig_i, self.orig_q, self.orig_err, self.xlim)
 
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
         
     def _calcFit(self):
         ''' calculate fit and statistics '''
- 
         q_roi = self.q
         i_roi = self.i
+        err_roi = self.err
         
         x = np.power(q_roi, 2)
         y = np.log(i_roi)
+        err = y*np.absolute(err_roi/i_roi)
         
         #Remove NaN and Inf values:
         x = x[np.where(np.isnan(y) == False)]
+        err = err[np.where(np.isnan(y) == False)]
         y = y[np.where(np.isnan(y) == False)]
+
         x = x[np.where(np.isinf(y) == False)]
+        err = err[np.where(np.isinf(y) == False)]
         y = y[np.where(np.isinf(y) == False)]
+
         
         #Get 1.st order fit:
         ar, br = polyfit(x, y, 1)
+
+        #This uses error weighted points to calculate the Rg. Probably the correct way to do it, but different
+        #from how it has always been done.
+        # f = lambda x, a, b: a+b*x
+        # opt, cov = scipy.optimize.curve_fit(f, x, y, sigma = err, absolute_sigma = True)
+        # ar = opt[1]
+        # br = opt[0]
         
         #Obtain fit values:
         y_fit = polyval([ar, br], x)
@@ -168,23 +181,25 @@ class GuinierPlotPanel(wx.Panel):
         
         #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
         self.canvas.mpl_disconnect(self.cid)
-        self.updateDataPlot(ExpObj.i, ExpObj.q, xlim)
+        self.updateDataPlot(ExpObj.i, ExpObj.q, ExpObj.err, xlim)
         
         #Reconnect draw_event
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
-    def updateDataPlot(self, i, q, xlim):
-            
+    def updateDataPlot(self, i, q, err, xlim):
+
         xmin, xmax = xlim
         
         #Save for resizing:
         self.orig_i = i
         self.orig_q = q
+        self.orig_err = err
         self.xlim = xlim
         
         #Cut out region of interest
         self.i = i[xmin:xmax+1]
         self.q = q[xmin:xmax+1]
+        self.err = err[xmin:xmax+1]
         
         ## Plot the (at most) 3 first and last points after fit:
         if xmin < 20:
@@ -744,11 +759,12 @@ class GuinierControlPanel(wx.Panel):
         
         x = self.ExpObj.q
         y = self.ExpObj.i
+        err = self.ExpObj.err
         
         xlim = [i,i2]
 
         plotpanel.canvas.mpl_disconnect(plotpanel.cid) #disconnect draw event to avoid recursions
-        plotpanel.updateDataPlot(y, x, xlim)
+        plotpanel.updateDataPlot(y, x, err, xlim)
         plotpanel.cid = plotpanel.canvas.mpl_connect('draw_event', plotpanel.ax_redraw) #Reconnect draw_event
 
         
@@ -839,7 +855,6 @@ class GuinierFrame(wx.Frame):
         self.Layout()
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-            print 'fitting the guinier window size'
             splitter1.Fit()
             if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
                 size = self.GetSize()

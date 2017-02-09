@@ -74,8 +74,8 @@ def autoRg(sasm):
 
     #Start out by transforming as usual.
     qs = np.square(q)
-    il = np.log(np.absolute(i))
-    iler = np.log(err)
+    il = np.log(i)
+    iler = il*np.absolute(err/i)
 
     #Pick a minimum fitting window size. 10 is consistent with atsas autorg.
     min_window = 10
@@ -104,7 +104,22 @@ def autoRg(sasm):
     #We keep the fit.
     for w in window_list:
         for start in range(data_start,data_end-w, data_step):
-            opt, cov = scipy.optimize.curve_fit(f, qs[start:start+w], il[start:start+w], sigma = iler[start:start+w])
+            x = qs[start:start+w]
+            y = il[start:start+w]
+            yerr = iler[start:start+w]
+
+            #Remove NaN and Inf values:
+            x = x[np.where(np.isnan(y) == False)]
+            yerr = yerr[np.where(np.isnan(y) == False)]
+            y = y[np.where(np.isnan(y) == False)]
+
+            x = x[np.where(np.isinf(y) == False)]
+            yerr = yerr[np.where(np.isinf(y) == False)]
+            y = y[np.where(np.isinf(y) == False)]
+
+            # opt, cov = scipy.optimize.curve_fit(f, x, y, sigma = yerr, absolute_sigma = True)
+
+            opt, cov = scipy.optimize.curve_fit(f, x, y)
 
             if opt[1] < 0 and np.isreal(opt[1]) and np.isreal(opt[0]):
                 RG=np.sqrt(-3.*opt[1])
@@ -114,7 +129,7 @@ def autoRg(sasm):
 
                     #error in rg and i0 is calculated by noting that q(x)+/-Dq has Dq=abs(dq/dx)Dx, where q(x) is your function you're using 
                     #on the quantity x+/-Dx, with Dq and Dx as the uncertainties and dq/dx the derviative of q with respect to x.
-                    RGer=np.absolute(0.5*(np.sqrt(-3/opt[1])))*np.sqrt(np.absolute(cov[1,1,]))
+                    RGer=np.absolute(0.5*(np.sqrt(-3./opt[1])))*np.sqrt(np.absolute(cov[1,1,]))
                     I0er=I0*np.sqrt(np.absolute(cov[0,0]))
 
                     if RGer/RG <= 1:
@@ -212,16 +227,16 @@ def autoRg(sasm):
                 rger = fit_list[:,5][quality>quality[idx]-.1].std()
                 i0 = fit_list[:,6][quality>quality[idx]-.1].mean()
                 i0er = fit_list[:,7][quality>quality[idx]-.1].std()
-                idx_min = fit_list[idx,0]
-                idx_max = fit_list[idx,0]+fit_list[idx,1]-1
+                idx_min = int(fit_list[idx,0])
+                idx_max = int(fit_list[idx,0]+fit_list[idx,1]-1)
             except:
                 idx = quality.argmax()
                 rg = fit_list[idx,4]
                 rger1 = fit_list[idx,5]
                 i0 = fit_list[idx,6]
                 i0er = fit_list[idx,7]
-                idx_min = fit_list[idx,0]
-                idx_max = fit_list[idx,0]+fit_list[idx,1]-1
+                idx_min = int(fit_list[idx,0])
+                idx_max = int(fit_list[idx,0]+fit_list[idx,1]-1)
 
 
         else:
