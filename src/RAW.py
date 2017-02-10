@@ -4160,11 +4160,11 @@ class MainWorkerThread(threading.Thread):
             if restart_timer:
                 self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path[b])[1]])
 
-        secm.item_panel.parent.Refresh()
-        secm.item_panel.parent.Layout()
+        wx.CallAfter(secm.item_panel.parent.Refresh)
+        wx.CallAfter(secm.item_panel.parent.Layout)
 
-        secm.plot_panel.updateLegend(1)
-        secm.plot_panel.updateLegend(1)
+        wx.CallAfter(secm.plot_panel.updateLegend, 1)
+        wx.CallAfter(secm.plot_panel.updateLegend, 1)
 
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
@@ -4359,17 +4359,17 @@ class MainWorkerThread(threading.Thread):
             if restart_timer:
                 self.main_frame.OnlineControl.updateSkipList([check_filename])
 
-        sasm.item_panel.parent.Refresh()
-        sasm.item_panel.parent.Layout()
+        wx.CallAfter(sasm.item_panel.parent.Refresh)
+        wx.CallAfter(sasm.item_panel.parent.Layout)
 
         if iftmode:
-            sasm.item_panel.ift_plot_panel.updateLegend(1)
-            sasm.item_panel.ift_plot_panel.updateLegend(2)
+            wx.CallAfter(sasm.item_panel.ift_plot_panel.updateLegend, 1)
+            wx.CallAfter(sasm.item_panel.ift_plot_panel.updateLegend, 2)
         else:
             axes_update_list = set(axes_update_list)
 
             for axis in axes_update_list:
-                sasm.item_panel.plot_panel.updateLegend(axis)
+                wx.CallAfter(sasm.item_panel.plot_panel.updateLegend, axis)
         
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
