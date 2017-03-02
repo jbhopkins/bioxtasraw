@@ -4516,7 +4516,7 @@ class FilePanel(wx.Panel):
         
         if answer == wx.ID_CANCEL or answer == wx.ID_NO:
             return
-        if answer == wx.ID_SAVE:
+        elif answer == wx.ID_SAVE:
             self.main_frame.saveWorkspace()
             
         else:

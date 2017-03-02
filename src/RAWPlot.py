@@ -16,24 +16,18 @@
 #
 #******************************************************************************
 
-import wx, os, sys, math, platform, itertools
-import matplotlib
+import wx, os, sys, math, platform, itertools, copy, matplotlib
+import numpy as np
+
 matplotlib.rcParams['backend'] = 'WxAgg'
 
 from matplotlib.backends.backend_wx import NavigationToolbar2Wx
 from matplotlib.backends.backend_wx import FigureCanvasBase
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
-# from matplotlib.backend_bases import cursors
-# from matplotlib.widgets import Cursor
 import matplotlib.font_manager as fm
-import numpy as np
-# from matplotlib.font_manager import FontProperties
+
 import RAWCustomCtrl, RAWIcons
-
-RAWWorkDir = sys.path[0]
-
-if os.path.split(sys.path[0])[1] in ['RAW.exe', 'raw.exe']:
-    RAWWorkDir = os.path.split(sys.path[0])[0]
+from RAWGlobals import RAWWorkDir
 
 class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
     
@@ -139,6 +133,7 @@ class PlotOptionsDialog(wx.Dialog):
 
         if self.is_sec:
             self._old_legend_settings = {'size'   : self.parent.plotparams['legend_fontsize'+plotnum],
+                                            'fontname'  : self.parent.plotparams['legend_font' + plotnum],
                                              'alpha'  : self.parent.plotparams['legend_alpha'+plotnum],
                                              'border' : self.parent.plotparams['legend_border'+plotnum],
                                              'shadow' : self.parent.plotparams['legend_shadow'+plotnum],
@@ -146,6 +141,7 @@ class PlotOptionsDialog(wx.Dialog):
                                              'showboth' : self.parent.plotparams['legend_showcalc']}
         else:
             self._old_legend_settings = {'size'   : self.parent.plotparams['legend_fontsize'+plotnum],
+                                            'fontname'  : self.parent.plotparams['legend_font' + plotnum],
                                              'alpha'  : self.parent.plotparams['legend_alpha'+plotnum],
                                              'border' : self.parent.plotparams['legend_border'+plotnum],
                                              'shadow' : self.parent.plotparams['legend_shadow'+plotnum],
@@ -209,13 +205,15 @@ class PlotOptionsDialog(wx.Dialog):
 
     def _getFonts(self):
         font_list = fm.get_fontconfig_fonts()
-        # font_list = fm.findSystemFonts()
 
         names=[]
 
         for item in font_list:
             try:
-                names.append(fm.FontProperties(fname=item).get_name())
+                font_name = fm.FontProperties(fname=item).get_name()
+
+                if font_name != 'System Font' and not font_name.startswith('.'):
+                    names.append(font_name)
             except:
                 pass
 
@@ -223,76 +221,145 @@ class PlotOptionsDialog(wx.Dialog):
 
         names.sort()
 
-        for i in range(10):
-            for item in names:
-                if item == 'System Font' or item.startswith('.'):
-                    names.remove(item)
-
         return names
 
-
-    
-    def _updateLabels(self, event):
-        label_params = ['text', 'size', 'weight', 'style']
-        obj = event.GetEventObject()
+    def _createLabelSettings(self):
+        
         if self.is_sec and self.sec_calc != 'None':
-            if obj.GetName() == 'title':
-                label = self.title
-                ids = self.labels[0][2]
-            elif obj.GetName() == 'xlabel':
-                label = self.xlabel
-                ids = self.labels[1][2]
-            elif obj.GetName() == 'ylabel':
-                label = self.ylabel
-                ids = self.labels[2][2]
-            elif obj.GetName() == 'y2label':
-                label = self.y2label
-                ids = self.labels[3][2]
-            elif obj.GetName() == 'legtit':
-                label = self.legend.get_title()
-                ids = self.labels[4][2]
+            self.labels = [('Title:', 'title', {'text'  : wx.NewId(),
+                                               'size'  : wx.NewId(),
+                                               'weight': wx.NewId(),
+                                               'style' : wx.NewId(),
+                                               'fontname'  : wx.NewId()}),
+                      
+                      ('x-axis label:', 'xlabel',{'text'  : wx.NewId(),
+                                                  'size'  : wx.NewId(),
+                                                  'weight': wx.NewId(),
+                                                  'style' : wx.NewId(),
+                                                  'fontname'  : wx.NewId()}),
+                      
+                      ('y-axis (left) label:', 'ylabel',{'text'  : wx.NewId(),
+                                                  'size'  : wx.NewId(),
+                                                  'weight': wx.NewId(),
+                                                  'style' : wx.NewId(),
+                                                  'fontname'  : wx.NewId()}),
 
+                      ('y-axis (right) label:', 'y2label',{'text'  : wx.NewId(),
+                                                  'size'  : wx.NewId(),
+                                                  'weight': wx.NewId(),
+                                                  'style' : wx.NewId(),
+                                                  'fontname'  : wx.NewId()}),
+                           
+                      ('Legend title:', 'legtit',{'text'  : wx.NewId(),
+                                                  'size'  : wx.NewId(),
+                                                  'weight': wx.NewId(),
+                                                  'style' : wx.NewId(),
+                                                  'fontname'  : wx.NewId()})]
         else:
-            if obj.GetName() == 'title':
-                label = self.title
-                ids = self.labels[0][2]
-            elif obj.GetName() == 'xlabel':
-                label = self.xlabel
-                ids = self.labels[1][2]
-            elif obj.GetName() == 'ylabel':
-                label = self.ylabel
-                ids = self.labels[2][2]
-            elif obj.GetName() == 'legtit':
-                label = self.legend.get_title()
-                ids = self.labels[3][2]
-            
-        for key in label_params:
-            
-            ctrl = wx.FindWindowById(ids[key])
-            val = ctrl.GetValue()
-            
-            if key == 'weight':
-                if val: value = 'bold'
-                else: value = 'normal'
-                label.set_weight(value)
-            elif key == 'style':
-                if val: value = 'italic'
-                else: value = 'normal'
-                label.set_style(value)
-            elif key == 'size':
-                label.set_size(val)
-            elif key == 'text':
-                label.set_text(val)
+            self.labels = [('Title:', 'title', {'text'  : wx.NewId(),
+                                               'size'  : wx.NewId(),
+                                               'weight': wx.NewId(),
+                                               'style' : wx.NewId(),
+                                               'fontname'  : wx.NewId()}),
+                      
+                      ('x-axis label:', 'xlabel',{'text'  : wx.NewId(),
+                                                  'size'  : wx.NewId(),
+                                                  'weight': wx.NewId(),
+                                                  'style' : wx.NewId(),
+                                                  'fontname'  : wx.NewId()}),
+                      
+                      ('y-axis label:', 'ylabel',{'text'  : wx.NewId(),
+                                                  'size'  : wx.NewId(),
+                                                  'weight': wx.NewId(),
+                                                  'style' : wx.NewId(),
+                                                  'fontname'  : wx.NewId()}),
+                           
+                      ('Legend title:', 'legtit',{'text'  : wx.NewId(),
+                                                  'size'  : wx.NewId(),
+                                                  'weight': wx.NewId(),
+                                                  'style' : wx.NewId(),
+                                                  'fontname'  : wx.NewId()})]
         
-        if obj.GetName() == 'legtit':
-            self.legend.set_title(label.get_text())
         
-        try:
-            self.parent.canvas.draw()
-        except matplotlib.pyparsing.ParseFatalException, e:
-            print e
+        box = wx.StaticBox(self, -1, 'Labels')
+        box_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         
-        event.Skip()
+        nrows = len(self.labels)+1
+        sizer = wx.FlexGridSizer(cols = 6, rows = nrows, vgap = 5, hgap = 5)
+        
+        sizer.Add((5,5),0)
+        sizer.Add((5,5),0)
+        sizer.Add(wx.StaticText(self, -1, 'Font'),1)
+        sizer.Add(wx.StaticText(self, -1, 'Size'),1)
+        sizer.Add(wx.StaticText(self, -1, 'Bold'),1)
+        sizer.Add(wx.StaticText(self, -1, 'Italic'),1)
+        
+        for each_label, each_name, id in self.labels:
+            if each_name == 'title': label = self.title
+            elif each_name == 'xlabel': label = self.xlabel
+            elif each_name == 'ylabel': label = self.ylabel
+            elif each_name == 'y2label': label = self.y2label
+            elif each_name == 'legtit': 
+                if self.legend == None:
+                    label=matplotlib.text.Text()
+                else:
+                    label = self.legend.get_title()
+    
+            txt = wx.StaticText(self, -1, each_label)
+            
+            labtxt = label.get_text()
+
+            if each_name == 'legtit':
+                 if labtxt == 'None': labtxt = ''
+            
+            txt_ctrl = wx.TextCtrl(self, id['text'], labtxt, name = each_name)
+
+            font_ctrl = wx.Choice(self, id['fontname'], choices = self.font_list ,name = each_name)
+            if each_name == 'legtit' and not self.is_legend:
+                font_ctrl.SetStringSelection(self._old_legend_settings['fontname'])
+            else:
+                font_ctrl.SetStringSelection(label.get_fontname())
+
+            font_size = wx.SpinCtrl(self, id['size'], str(label.get_size()), name = each_name)
+            font_size.SetValue(int(label.get_size()))
+             
+            bold = wx.CheckBox(self, id['weight'], name = each_name)
+            italic = wx.CheckBox(self, id['style'], name = each_name)
+            
+            bold.Bind(wx.EVT_CHECKBOX, self._updateLabels)
+            italic.Bind(wx.EVT_CHECKBOX, self._updateLabels)
+            txt_ctrl.Bind(wx.EVT_KEY_UP, self._updateLabels)
+            font_ctrl.Bind(wx.EVT_CHOICE, self._updateLabels)
+            font_size.Bind(wx.EVT_SPINCTRL, self._updateLabels)
+            
+            if label.get_weight() == 'bold':
+                bold.SetValue(True)
+            if label.get_style() == 'italic':
+                italic.SetValue(True)
+            
+            self._old_settings[each_name]['text'] = label.get_text()
+            self._old_settings[each_name]['weight'] = label.get_weight()
+            self._old_settings[each_name]['size'] = label.get_size()
+            self._old_settings[each_name]['style'] = label.get_style()
+            self._old_settings[each_name]['fontname'] = label.get_fontname()
+            
+            if each_name == 'legtit' and not self.is_legend:
+                txt_ctrl.Enable(False)
+                font_ctrl.Enable(False)
+                font_size.Enable(False)
+                bold.Enable(False)
+                italic.Enable(False)
+
+            sizer.Add(txt, 0)
+            sizer.Add(txt_ctrl, 0)
+            sizer.Add(font_ctrl, 0)
+            sizer.Add(font_size, 0)
+            sizer.Add(bold, 0)
+            sizer.Add(italic, 0)
+        
+        box_sizer.Add(sizer, 1, wx.ALL, 5)
+        return box_sizer
+
    
     def _createAxesSettings(self):
         box = wx.StaticBox(self, -1, 'Axes')
@@ -459,6 +526,64 @@ class PlotOptionsDialog(wx.Dialog):
             topbox.Add(y2_tick_sizer, 0)
         
         return topbox
+
+
+    def _createLegendSettings(self):
+        
+        box = wx.StaticBox(self, -1, 'Legend')
+        topbox = wx.StaticBoxSizer(box, wx.VERTICAL)
+        
+        if self.is_sec:
+            sizer = wx.FlexGridSizer(rows = 7, cols = 2, hgap = 5, vgap = 3)
+        else:
+            sizer = wx.FlexGridSizer(rows = 6, cols = 2, hgap = 5, vgap = 3)
+        
+        self.font_size = wx.SpinCtrl(self, -1, str(self._old_legend_settings['size']))
+        self.font_size.SetValue(int(self._old_legend_settings['size']))
+        self.font_size.Bind(wx.EVT_SPINCTRL, self._updateLegendSettings)
+        
+        self.border_chkbox = wx.CheckBox(self, -1)
+        self.border_chkbox.Bind(wx.EVT_CHECKBOX, self._updateLegendSettings)
+        self.border_chkbox.SetValue(self._old_legend_settings['border'])
+        
+        self.shadow_chkbox =  wx.CheckBox(self, -1)
+        self.shadow_chkbox.Bind(wx.EVT_CHECKBOX, self._updateLegendSettings)
+        self.shadow_chkbox.SetValue(self._old_legend_settings['shadow'])
+        
+        self.legend_enable = wx.CheckBox(self, -1)
+        self.legend_enable.Bind(wx.EVT_CHECKBOX, self._updateLegendSettings)
+        self.legend_enable.SetValue(self._old_legend_settings['visible'])
+    
+        alpha_text = wx.StaticText(self, -1, 'Transparency % : ')
+        self.alpha = wx.SpinCtrl(self, -1, str(abs(self._old_legend_settings['alpha']-100)))
+        self.alpha.SetValue(int(abs(self._old_legend_settings['alpha']*100-100)))
+        self.alpha.Bind(wx.EVT_SPINCTRL, self._updateLegendSettings)
+
+        if self.is_sec:
+            self.show_calc = wx.CheckBox(self,-1)
+            self.show_calc.Bind(wx.EVT_CHECKBOX, self._updateLegendSettings)
+            self.show_calc.SetValue(self._old_legend_settings['showboth'])
+
+        
+        sizer.Add(wx.StaticText(self, -1, 'Visible'), 0)
+        sizer.Add(self.legend_enable, 0, wx.BOTTOM,2 )
+        sizer.Add(wx.StaticText(self, -1, 'Font size:'), 0, wx.ALIGN_CENTRE_VERTICAL)
+        sizer.Add(self.font_size, 0)
+        sizer.Add(alpha_text, 0, wx.ALIGN_CENTRE_VERTICAL)
+        sizer.Add(self.alpha, 0)
+        sizer.Add(wx.StaticText(self, -1, 'Border'), 0)
+        sizer.Add(self.border_chkbox, 0)
+        sizer.Add(wx.StaticText(self, -1, 'Shadow'), 0)
+        sizer.Add(self.shadow_chkbox, 0)
+
+        if self.is_sec:
+            sizer.Add(wx.StaticText(self,-1,'Show labels for calculated lines'),0)
+            sizer.Add(self.show_calc,0,wx.Bottom,2)
+        
+        
+        topbox.Add(sizer, 0, wx.ALL, 5)
+        return topbox
+
     
     def _enableLimitsCtrls(self, state):
         
@@ -547,63 +672,7 @@ class PlotOptionsDialog(wx.Dialog):
             self.parent.canvas.draw()
         except matplotlib.pyparsing.ParseFatalException, e:
             print e
-    
-    
-    def _createLegendSettings(self):
-        
-        box = wx.StaticBox(self, -1, 'Legend')
-        topbox = wx.StaticBoxSizer(box, wx.VERTICAL)
-        
-        if self.is_sec:
-            sizer = wx.FlexGridSizer(rows = 7, cols = 2, hgap = 5, vgap = 3)
-        else:
-            sizer = wx.FlexGridSizer(rows = 6, cols = 2, hgap = 5, vgap = 3)
-        
-        self.font_size = wx.SpinCtrl(self, -1, str(self._old_legend_settings['size']))
-        self.font_size.SetValue(int(self._old_legend_settings['size']))
-        self.font_size.Bind(wx.EVT_SPINCTRL, self._updateLegendSettings)
-        
-        self.border_chkbox = wx.CheckBox(self, -1)
-        self.border_chkbox.Bind(wx.EVT_CHECKBOX, self._updateLegendSettings)
-        self.border_chkbox.SetValue(self._old_legend_settings['border'])
-        
-        self.shadow_chkbox =  wx.CheckBox(self, -1)
-        self.shadow_chkbox.Bind(wx.EVT_CHECKBOX, self._updateLegendSettings)
-        self.shadow_chkbox.SetValue(self._old_legend_settings['shadow'])
-        
-        self.legend_enable = wx.CheckBox(self, -1)
-        self.legend_enable.Bind(wx.EVT_CHECKBOX, self._updateLegendSettings)
-        self.legend_enable.SetValue(self._old_legend_settings['visible'])
-    
-        alpha_text = wx.StaticText(self, -1, 'Transparency % : ')
-        self.alpha = wx.SpinCtrl(self, -1, str(abs(self._old_legend_settings['alpha']-100)))
-        self.alpha.SetValue(int(abs(self._old_legend_settings['alpha']*100-100)))
-        self.alpha.Bind(wx.EVT_SPINCTRL, self._updateLegendSettings)
 
-        if self.is_sec:
-            self.show_calc = wx.CheckBox(self,-1)
-            self.show_calc.Bind(wx.EVT_CHECKBOX, self._updateLegendSettings)
-            self.show_calc.SetValue(self._old_legend_settings['showboth'])
-
-        
-        sizer.Add(wx.StaticText(self, -1, 'Visible'), 0)
-        sizer.Add(self.legend_enable, 0, wx.BOTTOM,2 )
-        sizer.Add(wx.StaticText(self, -1, 'Font size:'), 0, wx.ALIGN_CENTRE_VERTICAL)
-        sizer.Add(self.font_size, 0)
-        sizer.Add(alpha_text, 0, wx.ALIGN_CENTRE_VERTICAL)
-        sizer.Add(self.alpha, 0)
-        sizer.Add(wx.StaticText(self, -1, 'Border'), 0)
-        sizer.Add(self.border_chkbox, 0)
-        sizer.Add(wx.StaticText(self, -1, 'Shadow'), 0)
-        sizer.Add(self.shadow_chkbox, 0)
-
-        if self.is_sec:
-            sizer.Add(wx.StaticText(self,-1,'Show labels for calculated lines'),0)
-            sizer.Add(self.show_calc,0,wx.Bottom,2)
-        
-        
-        topbox.Add(sizer, 0, wx.ALL, 5)
-        return topbox
     
     def _updateLegendSettings(self, event):
 
@@ -637,23 +706,6 @@ class PlotOptionsDialog(wx.Dialog):
             showboth = self.show_calc.GetValue()
             current_showboth = self.parent.plotparams['legend_showcalc']
             self.parent.plotparams['legend_showcalc'] = showboth
-        
-        # if leg_visible and self.is_legend:
-        #     if self.is_sec and self.sec_calc != 'None':
-        #         idlist = self.labels[4][2].values()
-        #     else:
-        #         idlist = self.labels[3][2].values()
-        #     for id in idlist:
-        #         wx.FindWindowById(id).Enable(True)
-
-        # elif self.is_legend:
-        #     if self.is_sec and self.sec_calc != 'None':
-        #         idlist = self.labels[4][2].values()
-        #     else:
-        #         idlist = self.labels[3][2].values()
-        #     for id in idlist:
-        #         wx.FindWindowById(id).Enable(False)
-
 
         if self.is_legend:
 
@@ -733,142 +785,93 @@ class PlotOptionsDialog(wx.Dialog):
         if self.is_sec and self.sec_calc != 'None':
             self.axes2.set_xlim((xmin, xmax))
             self.axes2.set_ylim((y2min, y2max))
-                  
-    def _createLabelSettings(self):
-        
+
+
+    def _updateLabels(self, event):
+
+        plotnum = str(self.parent.selected_plot)
+
+        label_params = ['text', 'size', 'weight', 'style', 'fontname']
+        obj = event.GetEventObject()
+
         if self.is_sec and self.sec_calc != 'None':
-            self.labels = [('Title:', 'title', {'text'  : wx.NewId(),
-                                           'size'  : wx.NewId(),
-                                           'weight': wx.NewId(),
-                                           'style' : wx.NewId(),
-                                           'font'  : wx.NewId()}),
-                      
-                      ('x-axis label:', 'xlabel',{'text'  : wx.NewId(),
-                                                  'size'  : wx.NewId(),
-                                                  'weight': wx.NewId(),
-                                                  'style' : wx.NewId(),
-                                                  'font'  : wx.NewId()}),
-                      
-                      ('y-axis (left) label:', 'ylabel',{'text'  : wx.NewId(),
-                                                  'size'  : wx.NewId(),
-                                                  'weight': wx.NewId(),
-                                                  'style' : wx.NewId(),
-                                                  'font'  : wx.NewId()}),
+            if obj.GetName() == 'title':
+                label = self.title
+                ids = self.labels[0][2]
+            elif obj.GetName() == 'xlabel':
+                label = self.xlabel
+                ids = self.labels[1][2]
+            elif obj.GetName() == 'ylabel':
+                label = self.ylabel
+                ids = self.labels[2][2]
+            elif obj.GetName() == 'y2label':
+                label = self.y2label
+                ids = self.labels[3][2]
+            elif obj.GetName() == 'legtit':
+                label = self.legend.get_title()
+                ids = self.labels[4][2]
 
-                      ('y-axis (right) label:', 'y2label',{'text'  : wx.NewId(),
-                                                  'size'  : wx.NewId(),
-                                                  'weight': wx.NewId(),
-                                                  'style' : wx.NewId(),
-                                                  'font'  : wx.NewId()}),
-                           
-                      ('Legend title:', 'legtit',{'text'  : wx.NewId(),
-                                                  'size'  : wx.NewId(),
-                                                  'weight': wx.NewId(),
-                                                  'style' : wx.NewId(),
-                                                  'font'  : wx.NewId()})]
         else:
-            self.labels = [('Title:', 'title', {'text'  : wx.NewId(),
-                                           'size'  : wx.NewId(),
-                                           'weight': wx.NewId(),
-                                           'style' : wx.NewId(),
-                                           'font'  : wx.NewId()}),
-                      
-                      ('x-axis label:', 'xlabel',{'text'  : wx.NewId(),
-                                                  'size'  : wx.NewId(),
-                                                  'weight': wx.NewId(),
-                                                  'style' : wx.NewId(),
-                                                  'font'  : wx.NewId()}),
-                      
-                      ('y-axis label:', 'ylabel',{'text'  : wx.NewId(),
-                                                  'size'  : wx.NewId(),
-                                                  'weight': wx.NewId(),
-                                                  'style' : wx.NewId(),
-                                                  'font'  : wx.NewId()}),
-                           
-                      ('Legend title:', 'legtit',{'text'  : wx.NewId(),
-                                                  'size'  : wx.NewId(),
-                                                  'weight': wx.NewId(),
-                                                  'style' : wx.NewId(),
-                                                  'font'  : wx.NewId()})]
-        
-        
-        box = wx.StaticBox(self, -1, 'Labels')
-        box_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        
-        nrows = len(self.labels)+1
-        sizer = wx.FlexGridSizer(cols = 6, rows = nrows, vgap = 5, hgap = 5)
-        
-        sizer.Add((5,5),0)
-        sizer.Add((5,5),0)
-        sizer.Add(wx.StaticText(self, -1, 'Font'),1)
-        sizer.Add(wx.StaticText(self, -1, 'Size'),1)
-        sizer.Add(wx.StaticText(self, -1, 'Bold'),1)
-        sizer.Add(wx.StaticText(self, -1, 'Italic'),1)
-        
-        for each_label, each_name, id in self.labels:
-            if each_name == 'title': label = self.title
-            elif each_name == 'xlabel': label = self.xlabel
-            elif each_name == 'ylabel': label = self.ylabel
-            elif each_name == 'y2label': label = self.y2label
-            elif each_name == 'legtit': 
-                if self.legend == None:
-                    label=matplotlib.text.Text()
-                else:
-                    label = self.legend.get_title()
-    
-            txt = wx.StaticText(self, -1, each_label)
+            if obj.GetName() == 'title':
+                label = self.title
+                ids = self.labels[0][2]
+            elif obj.GetName() == 'xlabel':
+                label = self.xlabel
+                ids = self.labels[1][2]
+            elif obj.GetName() == 'ylabel':
+                label = self.ylabel
+                ids = self.labels[2][2]
+            elif obj.GetName() == 'legtit':
+                label = self.legend.get_title()
+                ids = self.labels[3][2]
             
-            labtxt = label.get_text()
-            if each_name == 'legtit':
-                 if labtxt == 'None': labtxt = ''
-
-            # print self.font_list
+        for key in label_params:
             
-            txt_ctrl = wx.TextCtrl(self, id['text'], labtxt, name = each_name)
-            font_ctrl = wx.Choice(self, id['font'], choices = self.font_list ,name = each_name)
-            font_size = wx.SpinCtrl(self, id['size'], str(label.get_size()), name = each_name)
-            font_size.SetValue(int(label.get_size()))
-             
-            bold = wx.CheckBox(self, id['weight'], name = each_name)
-            italic = wx.CheckBox(self, id['style'], name = each_name)
-            
-            bold.Bind(wx.EVT_CHECKBOX, self._updateLabels)
-            italic.Bind(wx.EVT_CHECKBOX, self._updateLabels)
-            txt_ctrl.Bind(wx.EVT_KEY_UP, self._updateLabels)
-            if self.is_legend and each_name == 'legtit':
-                font_size.Bind(wx.EVT_SPINCTRL, self._updateLabels)
+            ctrl = wx.FindWindowById(ids[key])
+            if key != 'fontname':
+                val = ctrl.GetValue()
             else:
-                font_size.Bind(wx.EVT_SPINCTRL, self._updateLabels)
+                val = ctrl.GetStringSelection()
             
-            if label.get_weight() == 'bold':
-                bold.SetValue(True)
-            if label.get_style() == 'italic':
-                italic.SetValue(True)
-            
-            self._old_settings[each_name]['text'] = label.get_text()
-            self._old_settings[each_name]['weight'] = label.get_weight()
-            self._old_settings[each_name]['size'] = label.get_size()
-            self._old_settings[each_name]['style'] = label.get_style()
-            
-            if each_name == 'legtit' and not self.is_legend:
-                txt_ctrl.Enable(False)
-                font_ctrl.Enable(False)
-                font_size.Enable(False)
-                bold.Enable(False)
-                italic.Enable(False)
+            if key == 'weight':
+                if val: 
+                    value = 'bold'
+                else: 
+                    value = 'normal'
+                label.set_weight(value)
 
-            sizer.Add(txt, 0)
-            sizer.Add(txt_ctrl, 0)
-            sizer.Add(font_ctrl, 0)
-            sizer.Add(font_size, 0)
-            sizer.Add(bold, 0)
-            sizer.Add(italic, 0)
+            elif key == 'style':
+                if val: 
+                    value = 'italic'
+                else: 
+                    value = 'normal'
+                label.set_style(value)
+
+            elif key == 'size':
+                label.set_size(val)
+                self.parent.plotparams['%s_fontsize%s' %(obj.GetName(), plotnum)] = val
+
+            elif key == 'text':
+                label.set_text(val)
+
+            elif key == 'fontname':
+                label.set_fontname(val)
+                self.parent.plotparams['%s_font%s' %(obj.GetName(), plotnum)] = val
         
-        box_sizer.Add(sizer, 1, wx.ALL, 5)
-        return box_sizer
+        if obj.GetName() == 'legtit':
+            self.legend.set_title(label.get_text())
+        
+        try:
+            self.parent.canvas.draw()
+        except matplotlib.pyparsing.ParseFatalException, e:
+            print e
+        
+        event.Skip()
+
     
     def _restoreOldSettings(self):
-        
+        plotnum = str(self.parent.selected_plot)
+
         for each in self._old_settings.keys():
             for each_key in self._old_settings[each].keys():
                 if each == 'title':
@@ -880,17 +883,24 @@ class PlotOptionsDialog(wx.Dialog):
                 elif each == 'ylabel':
                     expr = 'self.ylabel.set_' + each_key + '("' + str(self._old_settings[each][each_key]) + '")'
                     exec expr
+                elif each == 'y2label':
+                    expr = 'self.y2label.set_' + each_key + '("' + str(self._old_settings[each][each_key]) + '")'
+                    exec expr
+                elif each == 'legtit' and self.is_legend:
+                    expr = 'self.legend.get_title().set_' + each_key + '("' + str(self._old_settings[each][each_key]) + '")'
+                    exec expr
+
+                if each_key == 'size':
+                    self.parent.plotparams['%s_fontsize%s' %(each, plotnum)] = self._old_settings[each][each_key]
+
+                if each_key == 'fontname':
+                    self.parent.plotparams['%s_font%s' %(each, plotnum)] = self._old_settings[each][each_key]
+
+        if self.is_legend:
+            self.legend.set_title(self.legend.get_title().get_text())
                     
                     
         self.parent.canvas.draw()
-                
-    
-    def _onDefaultButton(self, evt):
-        old_title, old_xlabel, old_ylabel = self.parent.default_subplot_labels[self.current_type]
-        
-        self.title.SetValue(old_title)
-        self.xlabel.SetValue(old_xlabel)
-        self.ylabel.SetValue(old_ylabel)
     
     def _onOk(self, event):
         
@@ -1051,17 +1061,49 @@ class PlotPanel(wx.Panel):
         #Timer to automatically restore line width after selection
         self.blink_timer = wx.Timer()
         self.blink_timer.Bind(wx.EVT_TIMER, self._onBlinkTimer)
-        
+
+        #Find the plot font, which is strangely hard!
+        f_list = fm.get_fontconfig_fonts()
+        fonts=[]
+
+        for item in f_list:
+            try:
+                font_name = fm.FontProperties(fname=item).get_name()
+
+                if font_name != 'System Font' and not item.startswith('.'):
+                    fonts.append(font_name)
+            except:
+                pass
+
+        fonts = list(set(fonts))
+        fonts.sort()
+
+        possible_fonts = matplotlib.rcParams['font.'+matplotlib.rcParams['font.family'][0]]
+
+        found_font = False
+        i = 0
+        self.default_plot_font = None
+        while not found_font and i in range(len(possible_fonts)):
+            test_font = possible_fonts[i]
+
+            if test_font in fonts:
+                self.default_plot_font = test_font
+                found_font = True
+
+            i = i + 1
+
+        if self.default_plot_font is None:
+            self.default_plot_font = 'Arial'
+
         self.plotparams = {'axesscale1'          : 'linlin',
                                     'axesscale2'          : 'linlin',
                                     'plot1type'           : 'normal',
                                     'plot2type'           : 'subtracted',
                                     'plot1state'          : 'linlin',
                                     'errorbars_on'        : False,
-                                    'autoLegendPos'       : True,
+
                                     'subplot1_legend_pos' : None,
                                     'subplot2_legend_pos' : None,
-                                    'legend_position'     : (0.5,0.5),
                                     'legend_visible_1'    : False,
                                     'legend_visible_2'    : False,
                                     'legend_fontsize1'    : 10,
@@ -1072,8 +1114,13 @@ class PlotPanel(wx.Panel):
                                     'legend_alpha2'       : 0.7,
                                     'legend_shadow1'      : False,
                                     'legend_shadow2'      : False,
-                                    'plot_custom_labels1' : False,
-                                    'plot_custom_labels2' : False,
+
+                                    'legtit_fontsize1'    : 12,
+                                    'legtit_fontsize2'    : 12,
+
+                                    'legtit_font1'           : self.default_plot_font,
+                                    'legtit_font2'           : self.default_plot_font,
+
                                     'auto_fitaxes1'        : True,
                                     'auto_fitaxes2'        : True,
                                     'framestyle1'          : 'lb',
@@ -1087,30 +1134,29 @@ class PlotPanel(wx.Panel):
                                     'xlabel_fontsize2'      : 15,
                                     'ylabel_fontsize2'      : 15,
 
-                                    'title_font1'           : 'Bitstream Vera Sans',
-                                    'xlabel_font1'          : 'Bitstream Vera Sans',
-                                    'ylabel_font1'          : 'Bitstream Vera Sans',
+                                    'title_font1'           : self.default_plot_font,
+                                    'xlabel_font1'          : self.default_plot_font,
+                                    'ylabel_font1'          : self.default_plot_font,
                                     
-                                    'title_font2'           : 'Bitstream Vera Sans',
-                                    'xlabel_font2'          : 'Bitstream Vera Sans',
-                                    'ylabel_font2'          : 'Bitstream Vera Sans',
-                                    'legend_font'           : 'Bitstream Vera Sans',
+                                    'title_font2'           : self.default_plot_font,
+                                    'xlabel_font2'          : self.default_plot_font,
+                                    'ylabel_font2'          : self.default_plot_font,
+
+                                    'legend_font1'          : self.default_plot_font,
+                                    'legend_font2'          : self.default_plot_font,
+
                                     'zero_line1'            : False,
                                     'zero_line2'            : False}
                                     
         self.frame_styles = ['Full', 'XY', 'X', 'Y', 'None']
         
-        self.subplot_labels = { 'subtracted'  : ['Subtracted', '$q$', '$I(q)$'],
+        self.default_subplot_labels = { 'subtracted'  : ['Subtracted', '$q$', '$I(q)$'],
                                 'kratky'      : ['Kratky', '$q$', '$I(q)q^{2}$'],
                                 'guinier'     : ['Guinier', '$q^{2}$', '$ln(I(q))$'],
                                 'porod'       : ['Porod', '$q$', '$I(q)q^{4}$'],
                                 'normal'      : ['Main Plot', '$q$', '$I(q)$']}
-        
-        self.default_subplot_labels = { 'subtracted'  : ['Subtracted', 'q [1/A]', 'I(q)'],
-                                        'kratky'      : ['Kratky', 'q [1/A]', 'I(q)q^2'],
-                                        'guinier'     : ['Guinier', 'q^2 [1/A^2]', 'ln(I(q)'],
-                                        'porod'       : ['Porod', 'q [1/A]', 'I(q)q^4'],
-                                        'normal'      : ['Main Plot', 'q [1/A]', 'I(q)']}
+
+        self.subplot_labels = copy.copy(self.default_subplot_labels)
         
         self.save_parameters ={'dpi' : 100,
                                'format' : 'png'}
@@ -1343,20 +1389,11 @@ class PlotPanel(wx.Panel):
         zx_pix, zy_pix = ax.transAxes.transform((0,0))
         cx_pix, cy_pix = ax.transAxes.transform((0.5,0.5))
         
-        #try:
-        
-        #mx_pix, my_pix = ax.transData.transform((xdata, ydata))
-        
         xy = np.array([(xdata,ydata), (xdata, ydata)])
         
         mx_pix, my_pix = ax.transData.transform(xy)
         mx_pix = mx_pix[0]
         my_pix = my_pix[1]
-        #except Exception, e:
-        #    print 'Err in onMousescroll :'
-        #    print e
-        #    print xdata, ydata
-        #    return
             
          
         dx = cx_pix - mx_pix
@@ -1532,8 +1569,7 @@ class PlotPanel(wx.Panel):
                 line, ec, el = a.errorbar(np.power(sasm.q[q_min:q_max],2), sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
             elif plottype== 'porod':
                 line, ec, el = a.errorbar(sasm.q[q_min:q_max], np.power(sasm.q[q_min:q_max],4)*sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
-        
-            # print legend_label
+
             line.set_label(legend_label)        
 
             #Hide errorbars:
@@ -1626,21 +1662,10 @@ class PlotPanel(wx.Panel):
             menu.AppendSubMenu(plot2SubMenu, 'Axes')
 
         sep = menu.AppendSeparator()
-        #legend_item = menu.AppendCheckItem(wx.NewId(), 'Show Legend')
-        #autofitaxes_item = menu.AppendCheckItem(wx.NewId(), 'Auto axes limits')
-        #sep = menu.AppendSeparator()
-        #legend_options = menu.Append(wx.NewId(), 'Legend Options...')
         plot_options = menu.Append(wx.NewId(), 'Plot Options...')
-        
-       # if self.plotparams['legend_visible'+ '_' + str(selected_plot)]:
-       #     legend_item.Check()
-            
-        #if self.plotparams['auto_fitaxes' + str(selected_plot)]:
-        #    autofitaxes_item.Check()
+
             
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
-        #self.Bind(wx.EVT_MENU, self._onToggleLegend, legend_item)
-        #self.Bind(wx.EVT_MENU, self._onAutofitaxesMenuChoice, autofitaxes_item)
         
         self.Bind(wx.EVT_MENU, self._onPlotOptions, plot_options) 
             
@@ -1658,6 +1683,7 @@ class PlotPanel(wx.Panel):
         dlg = PlotOptionsDialog(self, self.plotparams, axes)
         dlg.ShowModal()
         dlg.Destroy()
+
             
     def _onPopupMenuChoice(self, evt):
         mainframe = wx.FindWindowByName('MainFrame')
@@ -1916,6 +1942,8 @@ class PlotPanel(wx.Panel):
         
     def clearAllPlots(self):
 
+        self.subplot_labels = copy.copy(self.default_subplot_labels)
+
         self.subplot1.cla()
         self.subplot2.cla()
         
@@ -1955,20 +1983,37 @@ class PlotPanel(wx.Panel):
             if a == self.subplot1:
                 plottype = self.plotparams['plot1type']
                 a.title.set_text(self.subplot_labels[plottype][0])
+                a.title.set_size(self.plotparams['title_fontsize1'])
+                a.title.set_fontname(self.plotparams['title_font1'])
                 a.yaxis.get_label().set_text(self.subplot_labels[plottype][2])
-                a.yaxis.get_label().set_size(self.plotparams['ylabel_fontsize2'])
+                a.yaxis.get_label().set_fontname(self.plotparams['ylabel_font1'])
+                a.yaxis.get_label().set_size(self.plotparams['ylabel_fontsize1'])
                 a.xaxis.get_label().set_text(self.subplot_labels[plottype][1])
-                a.xaxis.get_label().set_size(self.plotparams['xlabel_fontsize2'])
+                a.xaxis.get_label().set_fontname(self.plotparams['xlabel_font1'])
+                a.xaxis.get_label().set_size(self.plotparams['xlabel_fontsize1'])
                            
             elif a == self.subplot2:
                 plottype = self.plotparams['plot2type']
                 a.title.set_text(self.subplot_labels[plottype][0])
+                a.title.set_size(self.plotparams['title_fontsize2'])
+                a.title.set_fontname(self.plotparams['title_font2'])
                 a.yaxis.get_label().set_text(self.subplot_labels[plottype][2])
+                a.yaxis.get_label().set_fontname(self.plotparams['ylabel_font2'])
                 a.yaxis.get_label().set_size(self.plotparams['ylabel_fontsize2'])
                 a.xaxis.get_label().set_text(self.subplot_labels[plottype][1])
-                a.xaxis.get_label().set_size(self.plotparams['xlabel_fontsize2'])         
+                a.xaxis.get_label().set_fontname(self.plotparams['xlabel_font2'])
+                a.xaxis.get_label().set_size(self.plotparams['xlabel_fontsize2'])       
         else:
             a.title.set_text(title)
+            if a == self.subplot1:
+                plottype = self.plotparams['plot1type']
+                a.title.set_fontname(self.plotparams['title_font1'])
+                a.title.set_size(self.plotparams['title_fontsize1'])
+                           
+            elif a == self.subplot2:
+                plottype = self.plotparams['plot2type']
+                a.title.set_fontname(self.plotparams['title_font2'])
+                a.title.set_size(self.plotparams['title_fontsize2'])
     
     def updateLegend(self, plotnum):
         axes = plotnum
@@ -2014,20 +2059,31 @@ class PlotPanel(wx.Panel):
             
             if axes == self.subplot1:
                 fontsize = self.plotparams['legend_fontsize1']
+                fontname = self.plotparams['legend_font1']
                 enable_border = self.plotparams['legend_border1']
                 alpha = self.plotparams['legend_alpha1']
                 leg_visible = self.plotparams['legend_visible_1']
                 shadow = self.plotparams['legend_shadow1']
+
+                titsize = self.plotparams['legtit_fontsize1']
+                titfont = self.plotparams['legtit_font1']
             else:
                 fontsize = self.plotparams['legend_fontsize2']
+                fontname = self.plotparams['legend_font2']
                 enable_border =  self.plotparams['legend_border2']
                 alpha = self.plotparams['legend_alpha2']
                 leg_visible = self.plotparams['legend_visible_2']
                 shadow = self.plotparams['legend_shadow1']
+
+                titsize = self.plotparams['legtit_fontsize2']
+                titfont = self.plotparams['legtit_font2']
             
-            leg = a.legend(legend_lines, legend_labels, prop = fm.FontProperties(size = fontsize), fancybox = True)
+            leg = a.legend(legend_lines, legend_labels, prop = fm.FontProperties(size = fontsize, family = fontname), fancybox = True)
             leg.get_frame().set_alpha(alpha)
             leg.shadow = shadow
+
+            leg.get_title().set_fontname(titfont)
+            leg.get_title().set_size(titsize)
 
             if leg_visible:
                 leg.set_visible(True)
@@ -2091,6 +2147,39 @@ class IftPlotPanel(PlotPanel):
         #Timer to automatically restore line width after selection
         self.blink_timer = wx.Timer()
         self.blink_timer.Bind(wx.EVT_TIMER, self._onBlinkTimer)
+
+        #Find the plot font, which is strangely hard!
+        f_list = fm.get_fontconfig_fonts()
+        fonts=[]
+
+        for item in f_list:
+            try:
+                font_name = fm.FontProperties(fname=item).get_name()
+
+                if font_name != 'System Font' and not item.startswith('.'):
+                    fonts.append(font_name)
+            except:
+                pass
+
+        fonts = list(set(fonts))
+        fonts.sort()
+
+        possible_fonts = matplotlib.rcParams['font.'+matplotlib.rcParams['font.family'][0]]
+
+        found_font = False
+        i = 0
+        self.default_plot_font = None
+        while not found_font and i in range(len(possible_fonts)):
+            test_font = possible_fonts[i]
+
+            if test_font in fonts:
+                self.default_plot_font = test_font
+                found_font = True
+
+            i = i + 1
+
+        if self.default_plot_font is None:
+            self.default_plot_font = 'Arial'
         
         self.plotparams = {'axesscale1'          : 'linlin',
                                     'axesscale2'          : 'linlin',
@@ -2098,10 +2187,9 @@ class IftPlotPanel(PlotPanel):
                                     'plot2type'           : 'subtracted',
                                     'plot1state'          : 'linlin',
                                     'errorbars_on'        : False,
-                                    'autoLegendPos'       : True,
+
                                     'subplot1_legend_pos' : None,
                                     'subplot2_legend_pos' : None,
-                                    'legend_position'     : (0.5,0.5),
                                     'legend_visible_1'    : False,
                                     'legend_visible_2'    : False,
                                     'legend_fontsize1'    : 10,
@@ -2112,8 +2200,13 @@ class IftPlotPanel(PlotPanel):
                                     'legend_alpha2'       : 0.7,
                                     'legend_shadow1'      : False,
                                     'legend_shadow2'      : False,
-                                    'plot_custom_labels1' : False,
-                                    'plot_custom_labels2' : False,
+
+                                    'legtit_fontsize1'    : 12,
+                                    'legtit_fontsize2'    : 12,
+
+                                    'legtit_font1'           : self.default_plot_font,
+                                    'legtit_font2'           : self.default_plot_font,
+
                                     'auto_fitaxes1'        : True,
                                     'auto_fitaxes2'        : True,
                                     'framestyle1'          : 'lb',
@@ -2127,30 +2220,29 @@ class IftPlotPanel(PlotPanel):
                                     'xlabel_fontsize2'      : 15,
                                     'ylabel_fontsize2'      : 15,
 
-                                    'title_font1'           : 'Bitstream Vera Sans',
-                                    'xlabel_font1'          : 'Bitstream Vera Sans',
-                                    'ylabel_font1'          : 'Bitstream Vera Sans',
+                                    'title_font1'           : self.default_plot_font,
+                                    'xlabel_font1'          : self.default_plot_font,
+                                    'ylabel_font1'          : self.default_plot_font,
                                     
-                                    'title_font2'           : 'Bitstream Vera Sans',
-                                    'xlabel_font2'          : 'Bitstream Vera Sans',
-                                    'ylabel_font2'          : 'Bitstream Vera Sans',
-                                    'legend_font'           : 'Bitstream Vera Sans',
+                                    'title_font2'           : self.default_plot_font,
+                                    'xlabel_font2'          : self.default_plot_font,
+                                    'ylabel_font2'          : self.default_plot_font,
+
+                                    'legend_font1'           : self.default_plot_font,
+                                    'legend_font2'           : self.default_plot_font,
+
                                     'zero_line1'            : False,
                                     'zero_line2'            : False}
                                     
         self.frame_styles = ['Full', 'XY', 'X', 'Y', 'None']
         
-        self.subplot_labels = { 'subtracted'  : ('Data/Fit', '$q$', '$I(q)$'),
-                                'kratky'      : ('Kratky', '$q$ [1/A]', '$I(q)q^2$'),
-                                'porod'       : ('Porod', '$q$ [1/A]', '$I(q)q^4$'),
-                                'guinier'     : ('Guinier', '$q^2$ [1/A^2]', '$\ln(I(q)$'),
-                                'normal'      : ('Pair Distance Distribution Function', '$r$', '$P(r)$')}
-        
-        self.default_subplot_labels = { 'subtracted'  : ('Fit', '$q$', '$I(q)$'),
-                                        'kratky'      : ('Kratky', 'q [1/A]', 'I(q)q^2'),
-                                        'porod'       : ('Porod', 'q [1/A]', 'I(q)q^4'),
-                                        'guinier'     : ('Guinier', 'q^2 [1/A^2]', 'ln(I(q)'),
+        self.default_subplot_labels = { 'subtracted'  : ('Data/Fit', '$q$', '$I(q)$'),
+                                        'kratky'      : ('Kratky', '$q$ [1/A]', '$I(q)q^2$'),
+                                        'porod'       : ('Porod', '$q$ [1/A]', '$I(q)q^4$'),
+                                        'guinier'     : ('Guinier', '$q^2$ [1/A^2]', '$\ln(I(q)$'),
                                         'normal'      : ('Pair Distance Distribution Function', '$r$', '$P(r)$')}
+
+        self.subplot_labels = copy.copy(self.default_subplot_labels)
         
         self.save_parameters ={'dpi' : 100,
                                'format' : 'png'}
@@ -2206,13 +2298,6 @@ class IftPlotPanel(PlotPanel):
         self.setFrameStyle(axes, style)
     
     def setFrameStyle(self, axes, style):
-
-        # if axes == self.subplot1:
-        #     plotnum = '1'
-        # else:
-        #     plotnum = '2'
-        
-        # print style
 
         if style.find('l')>-1:
             axes.spines['left'].set_color('black')
@@ -2393,20 +2478,12 @@ class IftPlotPanel(PlotPanel):
         zx_pix, zy_pix = ax.transAxes.transform((0,0))
         cx_pix, cy_pix = ax.transAxes.transform((0.5,0.5))
         
-        #try:
-        
-        #mx_pix, my_pix = ax.transData.transform((xdata, ydata))
         
         xy = np.array([(xdata,ydata), (xdata, ydata)])
         
         mx_pix, my_pix = ax.transData.transform(xy)
         mx_pix = mx_pix[0]
         my_pix = my_pix[1]
-        #except Exception, e:
-        #    print 'Err in onMousescroll :'
-        #    print e
-        #    print xdata, ydata
-        #    return
             
          
         dx = cx_pix - mx_pix
@@ -2740,11 +2817,9 @@ class IftPlotPanel(PlotPanel):
             a = self.subplot2
         
         if self.plotparams['legend_visible' + '_' + str(plotnum)]:
-            #self._insertLegend(a)
             a.get_legend().set_visible(True)
         else:
             a.get_legend().set_visible(False)
-            #a.legend_ = None
             
             self.canvas.draw()
 
@@ -2938,6 +3013,8 @@ class IftPlotPanel(PlotPanel):
         
     def clearAllPlots(self):
 
+        self.subplot_labels = copy.copy(self.default_subplot_labels)
+
         self.subplot1.cla()
         self.subplot2.cla()
         
@@ -2977,20 +3054,37 @@ class IftPlotPanel(PlotPanel):
             if a == self.subplot1:
                 plottype = self.plotparams['plot1type']
                 a.title.set_text(self.subplot_labels[plottype][0])
+                a.title.set_size(self.plotparams['title_fontsize1'])
+                a.title.set_fontname(self.plotparams['title_font1'])
                 a.yaxis.get_label().set_text(self.subplot_labels[plottype][2])
-                a.yaxis.get_label().set_size(self.plotparams['ylabel_fontsize2'])
+                a.yaxis.get_label().set_fontname(self.plotparams['ylabel_font1'])
+                a.yaxis.get_label().set_size(self.plotparams['ylabel_fontsize1'])
                 a.xaxis.get_label().set_text(self.subplot_labels[plottype][1])
-                a.xaxis.get_label().set_size(self.plotparams['xlabel_fontsize2'])
+                a.xaxis.get_label().set_fontname(self.plotparams['xlabel_font1'])
+                a.xaxis.get_label().set_size(self.plotparams['xlabel_fontsize1'])
                            
             elif a == self.subplot2:
                 plottype = self.plotparams['plot2type']
                 a.title.set_text(self.subplot_labels[plottype][0])
+                a.title.set_size(self.plotparams['title_fontsize2'])
+                a.title.set_fontname(self.plotparams['title_font2'])
                 a.yaxis.get_label().set_text(self.subplot_labels[plottype][2])
+                a.yaxis.get_label().set_fontname(self.plotparams['ylabel_font2'])
                 a.yaxis.get_label().set_size(self.plotparams['ylabel_fontsize2'])
                 a.xaxis.get_label().set_text(self.subplot_labels[plottype][1])
-                a.xaxis.get_label().set_size(self.plotparams['xlabel_fontsize2'])         
+                a.xaxis.get_label().set_fontname(self.plotparams['xlabel_font2'])
+                a.xaxis.get_label().set_size(self.plotparams['xlabel_fontsize2'])       
         else:
             a.title.set_text(title)
+            if a == self.subplot1:
+                plottype = self.plotparams['plot1type']
+                a.title.set_fontname(self.plotparams['title_font1'])
+                a.title.set_size(self.plotparams['title_fontsize1'])
+                           
+            elif a == self.subplot2:
+                plottype = self.plotparams['plot2type']
+                a.title.set_fontname(self.plotparams['title_font2'])
+                a.title.set_size(self.plotparams['title_fontsize2'])
     
     def updateLegend(self, plotnum):
         axes = plotnum
@@ -3035,20 +3129,31 @@ class IftPlotPanel(PlotPanel):
             
             if axes == self.subplot1:
                 fontsize = self.plotparams['legend_fontsize1']
+                fontname = self.plotparams['legend_font1']
                 enable_border = self.plotparams['legend_border1']
                 alpha = self.plotparams['legend_alpha1']
                 leg_visible = self.plotparams['legend_visible_1']
                 shadow = self.plotparams['legend_shadow1']
+
+                titsize = self.plotparams['legend_fontsize1']
+                titfont = self.plotparams['legend_font1']
             else:
                 fontsize = self.plotparams['legend_fontsize2']
+                fontname = self.plotparams['legend_font2']
                 enable_border =  self.plotparams['legend_border2']
                 alpha = self.plotparams['legend_alpha2']
                 leg_visible = self.plotparams['legend_visible_2']
                 shadow = self.plotparams['legend_shadow2']
+
+                titsize = self.plotparams['legend_fontsize2']
+                titfont = self.plotparams['legend_font2']
             
-            leg = axes.legend(legend_lines, legend_labels, prop = fm.FontProperties(size = fontsize), fancybox = True)
+            leg = axes.legend(legend_lines, legend_labels, prop = fm.FontProperties(size = fontsize, family = fontname), fancybox = True)
             leg.get_frame().set_alpha(alpha)
             leg.shadow = shadow
+
+            leg.get_title().set_fontname(titfont)
+            leg.get_title().set_size(titsize)
 
             if leg_visible:
                 leg.set_visible(True)
@@ -3056,7 +3161,6 @@ class IftPlotPanel(PlotPanel):
                 leg.set_visible(False)
             
             if not enable_border:
-                #leg.draw_frame(False)
                 leg.get_frame().set_linewidth(0)
             else:
                 leg.get_frame().set_linewidth(1)
@@ -3068,8 +3172,6 @@ class IftPlotPanel(PlotPanel):
 
             except AttributeError:
                 print "WARNING: Old matplotlib version, legend not draggable"
-   
-        #legend = RAWCustomCtrl.DraggableLegend(leg, self.subplot1)
   
         self.canvas.draw()
     
@@ -3174,8 +3276,6 @@ class IftPlotPanel(PlotPanel):
                 fit_line = a2.plot(np.power(iftm.q_orig[q_min:q_max],2), iftm.i_fit[q_min:q_max], picker = 3, label = legend_label+'_Fit',**kwargs)
             elif type2 == 'porod':
                 fit_line = a2.plot(iftm.q_orig[q_min:q_max], np.power(iftm.q_orig[q_min:q_max],4)*iftm.i_fit[q_min:q_max], picker = 3, label = legend_label+'_Fit',**kwargs)
-            # print legend_label
-            # line.set_label(legend_label) 
 
             #Hide errorbars:
             if self.plotparams['errorbars_on'] == False:
@@ -3536,6 +3636,39 @@ class SECPlotPanel(wx.Panel):
     def __init__(self, parent, id, name, *args, **kwargs):
         
         wx.Panel.__init__(self, parent, id, *args, name = name, **kwargs)
+
+        #Find the plot font, which is strangely hard!
+        f_list = fm.get_fontconfig_fonts()
+        fonts=[]
+
+        for item in f_list:
+            try:
+                font_name = fm.FontProperties(fname=item).get_name()
+
+                if font_name != 'System Font' and not item.startswith('.'):
+                    fonts.append(font_name)
+            except:
+                pass
+
+        fonts = list(set(fonts))
+        fonts.sort()
+
+        possible_fonts = matplotlib.rcParams['font.'+matplotlib.rcParams['font.family'][0]]
+
+        found_font = False
+        i = 0
+        self.default_plot_font = None
+        while not found_font and i in range(len(possible_fonts)):
+            test_font = possible_fonts[i]
+
+            if test_font in fonts:
+                self.default_plot_font = test_font
+                found_font = True
+
+            i = i + 1
+
+        if self.default_plot_font is None:
+            self.default_plot_font = 'Arial'
         
         self.plotparams = {'axesscale1'          : 'linlin',
                                     'axesscale2'          : 'linlin',
@@ -3543,37 +3676,36 @@ class SECPlotPanel(wx.Panel):
                                     'plot2type'           : 'subtracted',
                                     'plot1state'          : 'linlin',
                                     'errorbars_on'        : False,
-                                    'autoLegendPos'       : True,
+
                                     'subplot1_legend_pos' : None,
-                                    'subplot2_legend_pos' : None,
-                                    'legend_position'     : (0.5,0.5),
                                     'legend_visible_1'    : False,
-                                    'legend_visible_2'    : False,
                                     'legend_fontsize1'    : 10,
                                     'legend_border1'      : False,
-                                    'legend_fontsize2'    : 10,
-                                    'legend_border2'      : False,
                                     'legend_alpha1'       : 0.7,
-                                    'legend_alpha2'       : 0.7,
                                     'legend_shadow1'      : False,
-                                    'legend_shadow2'      : False,
                                     'legend_showcalc'     : False,
-                                    'plot_custom_labels1' : False,
-                                    'plot_custom_labels2' : False,
+
+                                    'legtit_fontsize1'    : 12,
+
+                                    'legtit_font1'           : self.default_plot_font,
+
                                     'auto_fitaxes1'        : True,
-                                    'auto_fitaxes2'        : True,
                                     'framestyle1'          : 'lb',
                                     'framestyle2'          : 'r',
                                     
                                     'title_fontsize1'       : 16,
                                     'xlabel_fontsize1'      : 15,
                                     'ylabel_fontsize1'      : 15,
-                                    
-                                    'title_fontsize2'       : 16,
-                                    'xlabel_fontsize2'      : 15,
-                                    'ylabel_fontsize2'      : 15,
+                                    'y2label_fontsize1'      : 15,
+
+                                    'title_font1'           : self.default_plot_font,
+                                    'xlabel_font1'          : self.default_plot_font,
+                                    'ylabel_font1'          : self.default_plot_font,
+                                    'y2label_font1'          : self.default_plot_font,
+                                    'legend_font1'          : self.default_plot_font,
+
                                     'zero_line1'            : False,
-                                    'zero_line2'            : False,
+
                                     'y_axis_display'        : 'total',
                                     'x_axis_display'        : 'frame',
                                     'intensity_q'           : '0',
@@ -3582,13 +3714,13 @@ class SECPlotPanel(wx.Panel):
                                     
         self.frame_styles = ['Full', 'XY', 'X', 'Y', 'None']
         
-        self.subplot_labels = { 'total'      : ['SEC Plot', 'Frame #', 'Integrated Intensity'],
-                                'mean'       : ['SEC Plot', 'Frame #', 'Mean Intensity'],
-                                'qspec'      : ['SEC Plot', 'Frame #', 'Intensity at q = '],
-                                'frame'     : ['SEC Plot', 'Frame #', 'Integrated Intensity'],
-                                'time'       : ['SEC Plot', 'Time (s)', 'Integrated Intensity']}
-        
-        self.default_subplot_labels = { 'total'      : ['SEC Plot', 'Frame #', 'Integrated Intensity']}
+        self.default_subplot_labels = { 'total'      : ['SEC Plot', 'Frame #', 'Integrated Intensity'],
+                                        'mean'       : ['SEC Plot', 'Frame #', 'Mean Intensity'],
+                                        'qspec'      : ['SEC Plot', 'Frame #', 'Intensity at q = '],
+                                        'frame'     : ['SEC Plot', 'Frame #', 'Integrated Intensity'],
+                                        'time'       : ['SEC Plot', 'Time (s)', 'Integrated Intensity']}
+
+        self.subplot_labels = copy.copy(self.default_subplot_labels)
         
         self.save_parameters ={'dpi' : 100,
                                'format' : 'png'}
@@ -3757,13 +3889,9 @@ class SECPlotPanel(wx.Panel):
 
                 for each in eachsubplot.lines:
                     if each._label != '_nolegend_' and each._label != '_zero_' and each._label != '_line1' and each.get_visible() == True:
-                        # print each.get_ydata()
-                        # print each._label
 
                         if plotnum == '1':
                             if maxq1 == None:
-                                # print each.get_xdata()
-                                # print each.get_ydata()
                                 maxq1 = max(each.get_xdata())
                                 maxi1 = max(each.get_ydata())
                 
@@ -3771,8 +3899,6 @@ class SECPlotPanel(wx.Panel):
                                 mini1 = min(each.get_ydata())
                         elif plotnum =='2':
                             if maxq2 == None:
-                                # print each.get_xdata()
-                                # print each.get_ydata()
                                 maxq2 = max(each.get_xdata())
                                 maxi2 = max(each.get_ydata())
                 
@@ -3937,20 +4063,11 @@ class SECPlotPanel(wx.Panel):
         zx_pix, zy_pix = ax.transAxes.transform((0,0))
         cx_pix, cy_pix = ax.transAxes.transform((0.5,0.5))
         
-        #try:
-        
-        #mx_pix, my_pix = ax.transData.transform((xdata, ydata))
-        
         xy = np.array([(xdata,ydata), (xdata, ydata)])
         
         mx_pix, my_pix = ax.transData.transform(xy)
         mx_pix = mx_pix[0]
         my_pix = my_pix[1]
-        #except Exception, e:
-        #    print 'Err in onMousescroll :'
-        #    print e
-        #    print xdata, ydata
-        #    return
             
          
         dx = cx_pix - mx_pix
@@ -4049,16 +4166,16 @@ class SECPlotPanel(wx.Panel):
 
             if not main:
                 if calced != 'None':
-                    wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I = %.3f, %s = %.2f' %(xaxis, x, y2, calced, y), 1) 
+                    wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I = %.6f, %s = %.2f' %(xaxis, x, y2, calced, y), 1) 
 
                 else:
-                    wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I = %.3f' %(xaxis, x, y2), 1)
+                    wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I = %.6f' %(xaxis, x, y2), 1)
 
             else:
                 if calced != 'None':
-                    wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I = %.3f, %s = %.2f' %(xaxis, x, y, calced, y2), 1) 
+                    wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I = %.6f, %s = %.2f' %(xaxis, x, y, calced, y2), 1) 
                 else:
-                    wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I = %.3f' %(xaxis, x, y), 1)
+                    wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I = %.6f' %(xaxis, x, y), 1)
                 
     def _onMouseButtonReleaseEvent(self, event):
         ''' Find out where the mouse button was released
@@ -4125,30 +4242,19 @@ class SECPlotPanel(wx.Panel):
 
         if type(secm_list) != list:
             secm_list = [secm_list]
-            
-      
-        #plot with errorbars
-        # type = self.plotparams.get('plot1type')
-        
-        # q_min, q_max = secm.getQrange()
         
         for secm in secm_list:
             if legend_label_in == None:
                 legend_label = secm.getParameter('filename')
-                # print 'set label legend to filename'
-                # print legend_label
+
             else:
-                # print 'set label legend to input'
                 legend_label = legend_label_in
 
             if self.plotparams.get('y_axis_display') == 'total':
                 ydata = secm.total_i
 
-                # line = a.plot(secm.frame_list, secm.total_i, picker = 3, label = legend_label, **kwargs)[0]
-
             elif self.plotparams.get('y_axis_display') == 'mean':
                 ydata = secm.mean_i
-                # line = a.plot(secm.frame_list, secm.mean_i, picker = 3, label = legend_label, **kwargs)[0]
 
             elif self.plotparams.get('y_axis_display') == 'qspec':
                 q=float(self.plotparams['secm_plot_q'])
@@ -4161,14 +4267,12 @@ class SECPlotPanel(wx.Panel):
                     wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
                     self.plotparams['y_axis_display'] = 'total'
                     ydata = secm.total_i
-                    # line = a.plot(secm.frame_list, secm.total_i, picker = 3, label = legend_label, **kwargs)[0]
 
                 else:
                     if secm.qref == q:
                         ydata = secm.I_of_q
                     else:
                         ydata = secm.I(q)
-                    # line = a.plot(secm.frame_list, secm.I(q), picker = 3, label = legend_label, **kwargs)[0]
 
             else:
                 print 'no y data selected!'
@@ -4324,21 +4428,10 @@ class SECPlotPanel(wx.Panel):
         menu.AppendSubMenu(plotSubMenu4, 'X Data')
 
         sep = menu.AppendSeparator()
-        #legend_item = menu.AppendCheckItem(wx.NewId(), 'Show Legend')
-        #autofitaxes_item = menu.AppendCheckItem(wx.NewId(), 'Auto axes limits')
-        #sep = menu.AppendSeparator()
-        #legend_options = menu.Append(wx.NewId(), 'Legend Options...')
+
         plot_options = menu.Append(wx.NewId(), 'Plot Options...')
-        
-       # if self.plotparams['legend_visible'+ '_' + str(selected_plot)]:
-       #     legend_item.Check()
-            
-        #if self.plotparams['auto_fitaxes' + str(selected_plot)]:
-        #    autofitaxes_item.Check()
             
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
-        #self.Bind(wx.EVT_MENU, self._onToggleLegend, legend_item)
-        #self.Bind(wx.EVT_MENU, self._onAutofitaxesMenuChoice, autofitaxes_item)
         
         self.Bind(wx.EVT_MENU, self._onPlotOptions, plot_options) 
             
@@ -4355,7 +4448,6 @@ class SECPlotPanel(wx.Panel):
         dlg.Destroy()
         
     def _onPopupMenuChoice(self, evt): 
-        # print 'start of _onPopupMenuChoice'
         mainframe = wx.FindWindowByName('MainFrame')
         seccontrol = wx.FindWindowByName('SECControlPanel')
         MenuIDs = mainframe.getMenuIds()
@@ -4371,11 +4463,7 @@ class SECPlotPanel(wx.Panel):
 
                     self.plotparams['axesscale1'] = key[7:]
                     self.plotparams['plot1type'] = 'normal'
-                    # self.updatePlotType(self.subplot1)
-                    self.updatePlotAxes()
-
-                    # mainframe.setViewMenuScale(id)
-                    
+                    self.updatePlotAxes()                    
 
                 elif key.startswith('sec'):
                     if key == 'secplottotal':
@@ -4388,7 +4476,6 @@ class SECPlotPanel(wx.Panel):
 
                     elif key == 'secplotq':
                         self.plotparams['y_axis_display'] = 'qspec'
-                        # print 'Calling updatePlotData'
                         self._getQValue()
                         self.updatePlotData(self.subplot1)
 
@@ -4503,11 +4590,9 @@ class SECPlotPanel(wx.Panel):
         a = self.subplot1
         
         if self.plotparams['legend_visible' + '_' + str(plotnum)]:
-            #self._insertLegend(a)
             a.get_legend().set_visible(True)
         else:
             a.get_legend().set_visible(False)
-            #a.legend_ = None
             
             self.canvas.draw()
 
@@ -4692,8 +4777,6 @@ class SECPlotPanel(wx.Panel):
 
                 ydata = each.line.get_ydata()
 
-                # print time
-
                 if len(time) == 0:
                     wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
                     self.plotparams['x_axis_display'] = 'frame'
@@ -4706,8 +4789,6 @@ class SECPlotPanel(wx.Panel):
 
 
         for each in self.plotted_secms:
-            # print 'in loop'
-            # print self.plotparams['y_axis_display']
             c = '1'
 
             if self.plotparams['y_axis_display'] == 'total':
@@ -4827,8 +4908,6 @@ class SECPlotPanel(wx.Panel):
 
                 ydata = each.line.get_ydata()
 
-                # print time
-
                 if len(time) == 0:
                     wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
                     self.plotparams['x_axis_display'] = 'frame'
@@ -4841,8 +4920,6 @@ class SECPlotPanel(wx.Panel):
 
 
         for each in self.plotted_secms:
-            # print 'in loop'
-            # print self.plotparams['y_axis_display']
             c = '1'
 
             if self.plotparams['y_axis_display'] == 'total':
@@ -4920,6 +4997,8 @@ class SECPlotPanel(wx.Panel):
         
     def clearAllPlots(self):
 
+        self.subplot_labels = copy.copy(self.default_subplot_labels)
+
         self.subplot1.cla()
         self._setLabels(axes = self.subplot1)
         self.ryaxis.cla()
@@ -4966,14 +5045,18 @@ class SECPlotPanel(wx.Panel):
                 
                 a.title.set_text(self.subplot_labels[plottype][0])
                 a.title.set_size(self.plotparams['title_fontsize1'])
+                a.title.set_fontname(self.plotparams['title_font1'])
 
                 if plottype == 'total' or plottype == 'mean':
                     a.yaxis.get_label().set_text(self.subplot_labels[plottype][2])
                 elif plottype == 'qspec':
-                    a.yaxis.get_label().set_text(self.subplot_labels[plottype][2]+self.plotparams['secm_plot_q']+' (1/A)')
+                    a.yaxis.get_label().set_text(self.subplot_labels[plottype][2]+self.plotparams['secm_plot_q'])
                 else:
                     a.yaxis.get_label().set_text(self.subplot_labels('Y'))
+
                 a.yaxis.get_label().set_size(self.plotparams['ylabel_fontsize1'])
+                a.yaxis.get_label().set_fontname(self.plotparams['ylabel_font1'])
+
 
                 xaxistype = self.plotparams['x_axis_display']
 
@@ -4981,22 +5064,27 @@ class SECPlotPanel(wx.Panel):
                     a.xaxis.get_label().set_text(self.subplot_labels[xaxistype][1])
                 else:
                     a.xaxis.get_label().set_text('X')
+
                 a.xaxis.get_label().set_size(self.plotparams['xlabel_fontsize1'])
+                a.xaxis.get_label().set_fontname(self.plotparams['xlabel_font1'])
 
             if a == self.ryaxis:
                 calctype = self.plotparams['secm_plot_calc']
                 if calctype == 'RG':
-                    a.set_ylabel('Rg (A)')
+                    a.set_ylabel('Rg')
                 elif calctype == 'MW':
                     a.set_ylabel('Molecular Weight (kDa)')
                 elif calctype == 'I0':
                     a.set_ylabel('I0')
 
-                a.yaxis.get_label().set_size(self.plotparams['ylabel_fontsize1'])
+                a.yaxis.get_label().set_size(self.plotparams['y2label_fontsize1'])
+                a.yaxis.get_label().set_fontname(self.plotparams['y2label_font1'])
 
                                 
         else:
             a.title.set_text(title)
+            a.title.set_fontname(self.plotparams['title_font1'])
+            a.title.set_size(self.plotparams['title_fontsize1'])
     
     def updateLegend(self, plotnum, draw=True):
         axes = plotnum
@@ -5044,14 +5132,21 @@ class SECPlotPanel(wx.Panel):
                 old_loc = None
 
             fontsize = self.plotparams['legend_fontsize1']
+            fontname = self.plotparams['legend_font1']
             enable_border = self.plotparams['legend_border1']
             alpha = self.plotparams['legend_alpha1']
             leg_visible = self.plotparams['legend_visible_1']
             shadow = self.plotparams['legend_shadow1']
+
+            titsize = self.plotparams['legtit_fontsize1']
+            titfont = self.plotparams['legtit_font1']
         
-            leg = a.legend(legend_lines, legend_labels, prop = fm.FontProperties(size = fontsize), fancybox = True)
+            leg = a.legend(legend_lines, legend_labels, prop = fm.FontProperties(size = fontsize, family = fontname), fancybox = True)
             leg.get_frame().set_alpha(alpha)
             leg.shadow = shadow
+
+            leg.get_title().set_fontname(titfont)
+            leg.get_title().set_size(titsize)
 
             if leg_visible:
                 leg.set_visible(True)
@@ -5059,7 +5154,6 @@ class SECPlotPanel(wx.Panel):
                 leg.set_visible(False)
             
             if not enable_border:
-                #leg.draw_frame(False)
                 leg.get_frame().set_linewidth(0)
             else:
                 leg.get_frame().set_linewidth(1)
@@ -5071,7 +5165,6 @@ class SECPlotPanel(wx.Panel):
             except AttributeError:
                 print "WARNING: Old matplotlib version, legend not draggable"
    
-        #legend = RAWCustomCtrl.DraggableLegend(leg, self.subplot1)
         if draw:
             self.canvas.draw()
     
