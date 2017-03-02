@@ -1937,7 +1937,7 @@ class MolWeightFrame(wx.Frame):
         
         if i0 > 0:
             #Calculate the Porod Volume
-            pVolume = SASCalc.porodVolume(self.sasm, rg, i0, True)
+            pVolume = SASCalc.porodVolume(self.sasm, rg, i0, interp = True)
 
             #Correct for the length of the q vector
             if q[-1]<0.45092:

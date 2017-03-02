@@ -3039,7 +3039,11 @@ class MainWorkerThread(threading.Thread):
         if current_file == None:
             idx = 0
         else:
-            idx = dir.index(current_file)
+            try:
+                idx = dir.index(current_file)
+            except ValueError:
+                idx = 0
+                wx.CallAfter(wx.MessageBox, 'Could not find the current image file in the active directory. Defaulting to the first file in the active directory (if possible). Please check the active directory in the Files control tab.', 'Error Loading Image', style = wx.ICON_ERROR | wx.OK)
         
 
         while True:

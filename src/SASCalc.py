@@ -322,11 +322,11 @@ def porodVolume(sasm, rg, i0, start = 0, stop = -1, interp = False):
 
     if interp:
         def f(x):
-            i0*np.exp((-1./3.)*np.square(rg)*np.square(x))
+            return i0*np.exp((-1./3.)*np.square(rg)*np.square(x))
 
-        q_interp = np.arange(0,q_exp[0],100)
+        q_interp = np.linspace(0,q_exp[0]-.00001,100)
 
-        i_interp = f(x)
+        i_interp = f(q_interp)
 
         q = np.concatenate((q_interp,q_exp))
         i = np.concatenate((i_interp,i_exp))
