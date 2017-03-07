@@ -23,7 +23,7 @@ Created on Aug 16, 2010
 
 '''
 
-import matplotlib, wx, os, cPickle, sys, platform, copy
+import matplotlib, wx, os, sys, platform
 import numpy as np
 from matplotlib.backend_bases import NavigationToolbar2
 from matplotlib.backends.backend_wx import NavigationToolbar2Wx
@@ -57,8 +57,6 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
                                self._MTB_NEXTIMG]
 
         NavigationToolbar2Wx.__init__(self, canvas)
-
-        workdir = RAWWorkDir
 
         hdrInfoIcon   = RAWIcons.hdr.GetBitmap()
         ImgSetIcon    = RAWIcons.imgctrl.GetBitmap()
@@ -716,7 +714,7 @@ class ImagePanel(wx.Panel):
 
         menu = wx.Menu()
 
-        i1 = menu.AppendRadioItem(1, 'Normal Mask')
+        menu.AppendRadioItem(1, 'Normal Mask')
         i2 = menu.AppendRadioItem(2, 'Inverted Mask')
 
         if self._selected_patch.mask.isNegativeMask() == True:
@@ -947,11 +945,6 @@ class ImagePanel(wx.Panel):
                 self.background = self.canvas.copy_from_bbox(self.fig.gca().bbox)
 
         elif tool == 'rectangle':
-            #if a.lines: del(a.lines[:]) # clear old guide lines
-
-            width = x - self._chosen_points_x[-1]
-            height = y - self._chosen_points_y[-1]
-
             xPoints = [self._chosen_points_x[-1], x, x, self._chosen_points_x[-1], self._chosen_points_x[-1]]
             yPoints = [self._chosen_points_y[-1], self._chosen_points_y[-1], y, y, self._chosen_points_y[-1]]
 
@@ -1045,26 +1038,6 @@ class ImagePanel(wx.Panel):
     def _drawCenteringRings(self, x, r_list):
 
         a = self.fig.gca()
-
-        # cir = matplotlib.patches.Circle( x, radius = r, alpha = 1, fill = False, linestyle = 'dashed', linewidth = 1.5, edgecolor = 'red')
-        # a.add_patch(cir)
-        # txt1 = a.text(x[0]-10, x[1]-r-10, 'q = 0.1076', size = 'large', color = 'yellow')
-
-        # cir = matplotlib.patches.Circle( x, radius = 2*r, alpha = 1, fill = False, linestyle = 'dashed', linewidth = 1.5, edgecolor = 'red')
-        # a.add_patch(cir)
-        # txt2 = a.text(x[0]-10, x[1]-2*r-10, 'q = 0.2152', size = 'large', color = 'yellow')
-
-        # cir = matplotlib.patches.Circle( x, radius = 3*r, alpha = 1, fill = False, linestyle = 'dashed', edgecolor = 'red')
-        # a.add_patch(cir)
-        # txt3 = a.text(x[0]-10, x[1]-3*r-10, 'q = 0.3229', size = 'large', color = 'yellow')
-
-        # cir = matplotlib.patches.Circle( x, radius = 4*r, alpha = 1, fill = False, linestyle = 'dashed', edgecolor = 'red')
-        # a.add_patch(cir)
-        # txt4 = a.text(x[0]-10, x[1]-4*r-10, 'q = 0.4305', size = 'large', color = 'yellow')
-
-        # cir = matplotlib.patches.Circle( x, radius = 5*r, alpha = 1, fill = False, linestyle = 'dashed', edgecolor = 'red')
-        # a.add_patch(cir)
-        # txt4 = a.text(x[0]-10, x[1]-5*r-10, 'q = 0.538', size = 'large', color = 'yellow')
 
         cir = matplotlib.patches.Circle( x, radius = 3, alpha = 1, facecolor = 'red', edgecolor = 'red')
         a.add_patch(cir)
@@ -1313,7 +1286,6 @@ def saveMask():
         plot_parameters = img_panel.getPlotParameters()
 
         masks = plot_parameters['storedMasks']
-        img_dim = img_panel.img.shape
 
         if masks != []:
 

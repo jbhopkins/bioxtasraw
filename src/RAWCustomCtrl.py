@@ -18,7 +18,7 @@
 
 import wx, os, math, sys, platform
 import RAWIcons
-import time
+# import time
 
 RAWWorkDir = sys.path[0]
 

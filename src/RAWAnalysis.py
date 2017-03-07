@@ -31,13 +31,13 @@ from matplotlib.figure import Figure
 import numpy as np
 import sys, os, copy, multiprocessing, threading, Queue, wx, time, re, platform, subprocess
 
-from scipy import polyval, polyfit, sqrt, integrate
+from scipy import polyval, polyfit, integrate
 import scipy.interpolate as interp
 from scipy.constants import Avogadro
 import scipy.stats as stats
-import scipy.optimize
+# import scipy.optimize
 
-import RAW, RAWSettings, RAWCustomCtrl, SASCalc, RAWPlot, SASFileIO, SASM, SASExceptions, BIFT, RAWGlobals
+import RAWSettings, RAWCustomCtrl, SASCalc, SASFileIO, SASM, SASExceptions, RAWGlobals
 
 # These are for the AutoWrapStaticText class
 from wx.lib.wordwrap import wordwrap
@@ -82,7 +82,6 @@ class GuinierPlotPanel(wx.Panel):
 
         self.toolbar = NavigationToolbar2Wx(self.canvas)
         self.toolbar.Realize()
-        # self.toolbar = RAWPlot.CustomSECPlotToolbar(self, self.canvas)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
@@ -552,7 +551,7 @@ class GuinierControlPanel(wx.Panel):
 
                 print 'FAILED AutoRG! resetting controls'
                 msg = 'AutoRG did not produce a useable result. Please report this to the developers.'
-                response = wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK)
+                wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK)
 
     def setCurrentExpObj(self, ExpObj):
 
@@ -640,7 +639,6 @@ class GuinierControlPanel(wx.Panel):
         id = evt.GetId()
 
         lx = self.ExpObj.q
-        ly = self.ExpObj.i
 
         findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
 
@@ -749,7 +747,6 @@ class GuinierControlPanel(wx.Panel):
 
     def updatePlot(self):
         plotpanel = wx.FindWindowByName('GuinierPlotPanel')
-        a = plotpanel.subplots['Guinier']
 
         spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
         spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
@@ -1544,8 +1541,6 @@ class MolWeightFrame(wx.Frame):
         self.calcMW()
 
     def updateMWInfo(self):
-        analysis = self.sasm.getParameter('analysis')
-
         if self.raw_settings.get('NormAbsWater'):
             wx.FindWindowById(self.ids['abs']['calib']).SetValue(True)
 
@@ -1669,7 +1664,7 @@ class MolWeightFrame(wx.Frame):
                    "will only work for proteins.")
 
         dlg = wx.MessageDialog(self, msg, "Calculating Molecular Weight", style = wx.ICON_INFORMATION | wx.OK)
-        proceed = dlg.ShowModal()
+        dlg.ShowModal()
         dlg.Destroy()
 
     def _onMore(self, evt):
@@ -2125,14 +2120,8 @@ class MWPlotPanel(wx.Panel):
             self.data_line.set_ydata(y)
             self.data_line.set_xdata(x)
 
-        a_oldx = a.get_xlim()
-        a_oldy = a.get_ylim()
-
         a.relim()
         a.autoscale_view()
-
-        a_newx = a.get_xlim()
-        a_newy = a.get_ylim()
 
         self.canvas.draw()
 
@@ -2265,8 +2254,6 @@ class GNOMFrame(wx.Frame):
 
 
             iftm = controlPanel.initDatgnomValues(sasm, init_iftm)
-
-        qrange = sasm.getQrange()
 
         plotPanel.plotPr(iftm)
 
@@ -2424,8 +2411,6 @@ class GNOMPlotPanel(wx.Panel):
 
         a = self.subplots['P(r)']
         b = self.subplots['Data/Fit']
-
-        controlPanel = wx.FindWindowByName('GNOMControlPanel')
 
         if not self.ift:
             self.ift, = a.plot(r, p, 'r.-', animated = True)
@@ -2957,7 +2942,6 @@ class GNOMControlPanel(wx.Panel):
         id = evt.GetId()
 
         lx = self.sasm.q
-        ly = self.sasm.i
 
         findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
 
@@ -3511,7 +3495,7 @@ class DammifFrame(wx.Frame):
         program = wx.FindWindowById(self.ids['program'])
         program.SetStringSelection(self.raw_settings.get('dammifProgram'))
 
-        abort_button = wx.FindWindowById(self.ids['abort']).Disable()
+        wx.FindWindowById(self.ids['abort']).Disable()
 
 
     def onStartButton(self, evt):
@@ -4490,9 +4474,6 @@ class BIFTPlotPanel(wx.Panel):
 
         a = self.subplots['P(r)']
         b = self.subplots['Data/Fit']
-
-        controlPanel = wx.FindWindowByName('BIFTControlPanel')
-
 
         if not self.ift:
             self.ift, = a.plot(r, p, 'r.-', animated = True)
@@ -5631,17 +5612,11 @@ class SVDSECPlotPanel(wx.Panel):
 
     def updateDataPlot(self, frame_list, intensity, framei, framef):
 
-        xmin, xmax = frame_list[0], frame_list[-1]
-
         #Save for resizing:
         self.orig_frame_list = frame_list
         self.orig_intensity = intensity
         self.orig_framei = framei
         self.orig_framef = framef
-
-        # #Cut out region of interest
-        # self.i = i[xmin:xmax]
-        # self.q = q[xmin:xmax]
 
         a = self.subplots['SECPlot']
 
@@ -5934,7 +5909,7 @@ class SVDControlPanel(wx.Panel):
         else:
             msg = 'No subtracted files are available for this SEC curve. You can create subtracted curves by setting a buffer range in the SEC Control Panel and calculating the parameter values. You will have to reopen the SVD window after doing this.'
             dlg = wx.MessageDialog(self, msg, "No subtracted files", style = wx.ICON_INFORMATION | wx.OK)
-            proceed = dlg.ShowModal()
+            dlg.ShowModal()
             dlg.Destroy()
 
             profile_window = wx.FindWindowById(evt.GetId())
@@ -6410,13 +6385,13 @@ class EFAFrame(wx.Frame):
                 else:
                     msg = 'SVD not successful. Either change data range or type, or select a new data set.'
                     dlg = wx.MessageDialog(self, msg, "No Singular Values Found", style = wx.ICON_INFORMATION | wx.OK)
-                    proceed = dlg.ShowModal()
+                    dlg.ShowModal()
                     dlg.Destroy()
 
             else:
                 msg = 'Please enter the number of significant singular values to use for the evolving factor analysis in the User Input area.'
                 dlg = wx.MessageDialog(self, msg, "No Singular Values Selected", style = wx.ICON_INFORMATION | wx.OK)
-                proceed = dlg.ShowModal()
+                dlg.ShowModal()
                 dlg.Destroy()
 
         elif self.current_panel == 2:
@@ -6451,7 +6426,7 @@ class EFAFrame(wx.Frame):
             else:
                 msg = 'The smallest start value must be less than the smallest end value, the second smallest start value must be less than the second smallest end value, and so on. Please change start and end values according (if necessary, you can further adjust these ranges on the next page).'
                 dlg = wx.MessageDialog(self, msg, "Start and End Values Incorrect", style = wx.ICON_INFORMATION | wx.OK)
-                proceed = dlg.ShowModal()
+                dlg.ShowModal()
                 dlg.Destroy()
 
 
@@ -6923,7 +6898,7 @@ class EFAControlPanel1(wx.Panel):
         else:
             msg = 'No subtracted files are available for this SEC curve. You can create subtracted curves by setting a buffer range in the SEC Control Panel and calculating the parameter values. You will have to reopen the EFA window after doing this.'
             dlg = wx.MessageDialog(self, msg, "No subtracted files", style = wx.ICON_INFORMATION | wx.OK)
-            proceed = dlg.ShowModal()
+            dlg.ShowModal()
             dlg.Destroy()
 
             profile_window = wx.FindWindowById(evt.GetId())
@@ -7041,7 +7016,7 @@ class EFAControlPanel1(wx.Panel):
         if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
             self.err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), self.err.shape)
         else:
-            self.err_avg = np.array([err_mean for i in range(self.i.shape[1])]).T
+            self.err_avg = np.array([err_mean for k in range(self.i.shape[1])]).T
 
         self.svd_a = self.i/self.err_avg
 
@@ -7052,8 +7027,8 @@ class EFAControlPanel1(wx.Panel):
             return
 
         self.svd_V = svd_Vt.T
-        self.svd_U_autocor = np.abs(np.array([np.correlate(self.svd_U[:,i], self.svd_U[:,i], mode = 'full')[-self.svd_U.shape[0]+1] for i in range(self.svd_U.shape[1])]))
-        self.svd_V_autocor = np.abs(np.array([np.correlate(self.svd_V[:,i], self.svd_V[:,i], mode = 'full')[-self.svd_V.shape[0]+1] for i in range(self.svd_V.shape[1])]))
+        self.svd_U_autocor = np.abs(np.array([np.correlate(self.svd_U[:,k], self.svd_U[:,k], mode = 'full')[-self.svd_U.shape[0]+1] for k in range(self.svd_U.shape[1])]))
+        self.svd_V_autocor = np.abs(np.array([np.correlate(self.svd_V[:,k], self.svd_V[:,k], mode = 'full')[-self.svd_V.shape[0]+1] for k in range(self.svd_V.shape[1])]))
 
         wx.CallAfter(self.updateSVDPlot)
 
@@ -8046,7 +8021,7 @@ class EFAControlPanel3(wx.Panel):
         #Do an initial rotation
         try:
             C = self.firstRotation(M, C, D)
-        except np.linalg.linalg.LinAlgError as e:
+        except np.linalg.linalg.LinAlgError:
             failed = True
 
         return failed, C, None, None
@@ -8089,7 +8064,7 @@ class EFAControlPanel3(wx.Panel):
             k = k+1
             try:
                 Cnew = self.updateRotation(M, C, D)
-            except np.linalg.linalg.LinAlgError as e:
+            except np.linalg.linalg.LinAlgError:
                failed = True
 
             dck = np.sum(np.abs(Cnew - C))
@@ -8105,7 +8080,7 @@ class EFAControlPanel3(wx.Panel):
 
     def _runExplicit(self, *args):
         M = args[0]
-        D = args[1]
+        # D = args[1]
         failed = args[2]
         V_bar = args[4]
         T = args[5]
@@ -8641,9 +8616,6 @@ class EFARangePlotPanel(wx.Panel):
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def updateDataPlot(self, frame_list, intensity, framei, framef, ranges):
-
-        xmin, xmax = frame_list[0], frame_list[-1]
-
         #Save for resizing:
         self.orig_frame_list = frame_list
         self.orig_intensity = intensity
