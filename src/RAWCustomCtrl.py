@@ -27,9 +27,9 @@ if os.path.split(sys.path[0])[1] in ['RAW.exe', 'raw.exe']:
 
 class ColourIndicator(wx.PyControl):
     """
-    A custom class that shows the colour of the line plot.  
+    A custom class that shows the colour of the line plot.
     """
-    
+
     def __init__(self, parent, id=wx.ID_ANY, color = 'black', pos=wx.DefaultPosition,
                  size=wx.DefaultSize, style=wx.NO_BORDER, validator=wx.DefaultValidator,
                  name="ColourIndicator"):
@@ -40,19 +40,19 @@ class ColourIndicator(wx.PyControl):
 
         self.InitializeColours()
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        
+
         self._line_thickness = 5
         self._linecolor = color
-        
+
     def updateColour(self, colour):
         self._linecolor = colour
         self.Refresh()
-     
+
     def InitializeColours(self):
         """ Initializes the focus indicator pen. """
 
         textClr = self.GetForegroundColour()
-        
+
         if wx.Platform == "__WXMAC__":
             self._focusIndPen = wx.Pen(textClr, 1, wx.SOLID)
         else:
@@ -72,7 +72,7 @@ class ColourIndicator(wx.PyControl):
         # actual drawing in the Draw() method, passing the newly
         # initialized wx.BufferedPaintDC
         self.Draw(dc)
-        
+
 #        """set up the device context (DC) for painting"""
 #        self.dc = wx.PaintDC(self)
 #        self.dc.BeginDrawing()
@@ -103,7 +103,7 @@ class ColourIndicator(wx.PyControl):
         for the text, positioning them centered vertically.
         """
         # Get the actual client size of ourselves
-        width, height = self.GetClientSize()        
+        width, height = self.GetClientSize()
         start_point = (height // 2) - self._line_thickness // 2
 
 #        if not width or not height:
@@ -112,25 +112,25 @@ class ColourIndicator(wx.PyControl):
 
         # Initialize the wx.BufferedPaintDC, assigning a background
         # colour and a foreground colour (to draw the text)
-        
-        
+
+
         #self.parent.GetBackgroundColour()
         backColour = self.parent.GetBackgroundColour() #wx.Colour(255,255,255)
         backBrush = wx.Brush(backColour, wx.SOLID)
         dc.SetBackground(backBrush)
         dc.Clear()
-                
+
         dc.SetBrush(wx.Brush(self._linecolor, wx.SOLID))
         dc.SetPen(wx.Pen(self._linecolor))
         dc.DrawRectangle(0, start_point, width, self._line_thickness)
-        
-        
+
+
 
 #        if self.IsEnabled():
 #            dc.SetTextForeground(self.GetForegroundColour())
 #        else:
 #            dc.SetTextForeground(wx.SystemSettings.GetColour(wx.SYS_COLOUR_GRAYTEXT))
-#            
+#
 #        dc.SetFont(self.GetFont())
 #
 #        # Get the text label for the checkbox, the associated check bitmap
@@ -166,7 +166,7 @@ def GetCheckedBitmap():
     return wx.BitmapFromImage(GetCheckedImage())
 
 def GetCheckedImage():
-    
+
     image = RAWIcons.checked.GetImage()
     return image
 
@@ -176,7 +176,7 @@ def GetNotCheckedBitmap():
     return wx.BitmapFromImage(GetNotCheckedImage())
 
 def GetNotCheckedImage():
-    
+
     image = RAWIcons.notchecked.GetImage()
     return image
 
@@ -187,18 +187,18 @@ def GrayOut(anImage):
     Convert the given image (in place) to a grayed-out version,
     appropriate for a 'disabled' appearance.
     """
-    
+
     factor = 0.7        # 0 < f < 1.  Higher Is Grayer
-    
+
     if anImage.HasMask():
         maskColor = (anImage.GetMaskRed(), anImage.GetMaskGreen(), anImage.GetMaskBlue())
     else:
         maskColor = None
-        
+
     data = map(ord, list(anImage.GetData()))
 
     for i in range(0, len(data), 3):
-        
+
         pixel = (data[i], data[i+1], data[i+2])
         pixel = MakeGray(pixel, factor, maskColor)
 
@@ -206,7 +206,7 @@ def GrayOut(anImage):
             data[i+x] = pixel[x]
 
     anImage.SetData(''.join(map(chr, data)))
-    
+
     return anImage.ConvertToBitmap()
 
 
@@ -215,7 +215,7 @@ def MakeGray((r,g,b), factor, maskColor):
     Make a pixel grayed-out. If the pixel matches the maskcolor, it won't be
     changed.
     """
-    
+
     if (r,g,b) != maskColor:
         return map(lambda x: int((230 - x) * factor) + x, (r,g,b))
     else:
@@ -227,7 +227,7 @@ class CustomCheckBox(wx.PyControl):
     A custom class that replicates some of the functionalities of wx.CheckBox,
     while being completely owner-drawn with a nice check bitmaps.
     """
-    
+
     def __init__(self, parent, id=wx.ID_ANY, label="", pos=wx.DefaultPosition,
                  size=wx.DefaultSize, style=wx.NO_BORDER, validator=wx.DefaultValidator,
                  name="CustomCheckBox"):
@@ -251,16 +251,16 @@ class CustomCheckBox(wx.PyControl):
         # except that it allows some of the more common C++ virtual method
         # to be overridden in Python derived class. For CustomCheckBox, we
         # basically need to override DoGetBestSize and AcceptsFocusFromKeyboard
-        
+
         wx.PyControl.__init__(self, parent, id, pos, size, style, validator, name)
 
         # Initialize our cool bitmaps
-        self.InitializeBitmaps()        
+        self.InitializeBitmaps()
 
         # Initialize the focus pen colour/dashes, for faster drawing later
         self.InitializeColours()
-        
-        # By default, we start unchecked        
+
+        # By default, we start unchecked
         self._checked = False
 
         # Set the spacing between the check bitmap and the label to 3 by default.
@@ -322,14 +322,14 @@ class CustomCheckBox(wx.PyControl):
             self._focusIndPen  = wx.Pen(textClr, 1, wx.USER_DASH)
             self._focusIndPen.SetDashes([1,1])
             self._focusIndPen.SetCap(wx.CAP_BUTT)
-        
+
 
     def GetBitmap(self):
         """
         Returns the appropriated bitmap depending on the checking state
         (Checked/UnCkecked) and the control state (Enabled/Disabled).
         """
-        
+
         if self.IsEnabled():
             # So we are Enabled
             if self.IsChecked():
@@ -344,8 +344,8 @@ class CustomCheckBox(wx.PyControl):
                 return self._bitmaps["CheckedDisable"]
             else:
                 return self._bitmaps["UnCheckedDisable"]
-            
-        
+
+
     def SetLabel(self, label):
         """
         Sets the CustomCheckBox text label and updates the control's size to
@@ -365,11 +365,11 @@ class CustomCheckBox(wx.PyControl):
         Sets the CustomCheckBox text font and updates the control's size to
         exactly fit the label plus the bitmap.
         """
-        
+
         wx.PyControl.SetFont(self, font)
 
         # The font for text label has changed, so we must recalculate our best
-        # size and refresh ourselves.        
+        # size and refresh ourselves.
         self.InvalidateBestSize()
         self.Refresh()
 
@@ -396,12 +396,12 @@ class CustomCheckBox(wx.PyControl):
         dc = wx.ClientDC(self)
         dc.SetFont(font)
 
-        # Measure our label        
+        # Measure our label
         textWidth, textHeight = dc.GetTextExtent(label)
-        
+
         # Retrieve the check bitmap dimensions
         bitmapWidth, bitmapHeight = bitmap.GetWidth(), bitmap.GetHeight()
-        
+
         # Get the spacing between the check bitmap and the text
         spacing = self.GetSpacing()
 
@@ -411,7 +411,7 @@ class CustomCheckBox(wx.PyControl):
         # the bitmap width
         totalWidth = bitmapWidth + spacing + textWidth
         totalHeight = max(textHeight, bitmapHeight)
-                
+
         best = wx.Size(totalWidth, totalHeight)
 
         # Cache the best size so it doesn't need to be calculated again,
@@ -433,7 +433,7 @@ class CustomCheckBox(wx.PyControl):
 
         # It seems to me that wx.CheckBox does not accept focus with mouse
         # but please correct me if I am wrong!
-        return False        
+        return False
 
 
     def HasFocus(self):
@@ -469,16 +469,16 @@ class CustomCheckBox(wx.PyControl):
 
         wx.PyControl.Enable(self, enable)
 
-        # We have to refresh ourselves, as our state changed        
+        # We have to refresh ourselves, as our state changed
         self.Refresh()
 
-        
+
     def GetDefaultAttributes(self):
         """
         Overridden base class virtual.  By default we should use
         the same font/colour attributes as the native wx.CheckBox.
         """
-        
+
         return wx.CheckBox.GetClassDefaultAttributes()
 
 
@@ -487,7 +487,7 @@ class CustomCheckBox(wx.PyControl):
         Overridden base class virtual.  If the parent has non-default
         colours then we want this control to inherit them.
         """
-        
+
         return True
 
 
@@ -504,16 +504,16 @@ class CustomCheckBox(wx.PyControl):
 
     def GetSpacing(self):
         """ Returns the spacing between the check bitmap and the text. """
-        
+
         return self._spacing
-    
+
 
     def GetValue(self):
         """
         Returns the state of CustomCheckBox, True if checked, False
         otherwise.
         """
-        
+
         return self._checked
 
 
@@ -523,7 +523,7 @@ class CustomCheckBox(wx.PyControl):
         latter, it returns True if the CustomCheckBox is checked and False
         otherwise.
         """
-        
+
         return self._checked
 
 
@@ -535,7 +535,7 @@ class CustomCheckBox(wx.PyControl):
 
         self._checked = state
 
-        # Refresh ourselves: the bitmap has changed        
+        # Refresh ourselves: the bitmap has changed
         self.Refresh()
 
 
@@ -553,7 +553,7 @@ class CustomCheckBox(wx.PyControl):
 
     def OnSetFocus(self, event):
         """ Handles the wx.EVT_SET_FOCUS event for CustomCheckBox. """
-        
+
         self._hasFocus = True
 
         # We got focus, and we want a dotted rectangle to be painted
@@ -569,12 +569,12 @@ class CustomCheckBox(wx.PyControl):
         self._hasFocus = False
 
         # We lost focus, and we want a dotted rectangle to be cleared
-        # around the checkbox label, so we refresh ourselves        
+        # around the checkbox label, so we refresh ourselves
         self.Refresh()
 
         event.Skip()
 
-        
+
     def OnPaint(self, event):
         """ Handles the wx.EVT_PAINT event for CustomCheckBox. """
 
@@ -613,7 +613,7 @@ class CustomCheckBox(wx.PyControl):
             dc.SetTextForeground(self.GetForegroundColour())
         else:
             dc.SetTextForeground(wx.SystemSettings.GetColour(wx.SYS_COLOUR_GRAYTEXT))
-            
+
         dc.SetFont(self.GetFont())
 
         # Get the text label for the checkbox, the associated check bitmap
@@ -649,7 +649,7 @@ class CustomCheckBox(wx.PyControl):
             dc.SetBrush(wx.TRANSPARENT_BRUSH)
             dc.SetPen(self._focusIndPen)
             dc.DrawRectangle(textXpos, textYpos, textWidth, textHeight)
-            
+
 
     def OnEraseBackground(self, event):
         """ Handles the wx.EVT_ERASE_BACKGROUND event for CustomCheckBox. """
@@ -658,7 +658,7 @@ class CustomCheckBox(wx.PyControl):
         # of wx.BufferedPaintDC + an empty OnEraseBackground event to
         # reduce flicker
         pass
-        
+
 
     def OnMouseClick(self, event):
         """ Handles the wx.EVT_LEFT_DOWN event for CustomCheckBox. """
@@ -668,16 +668,16 @@ class CustomCheckBox(wx.PyControl):
         if not self.IsEnabled():
             # Nothing to do, we are disabled
             return
-        
+
         if x < 20:
                 self.SendCheckBoxEvent()
-                
+
         event.Skip()
 
 
     def SendCheckBoxEvent(self):
         """ Actually sends the wx.wxEVT_COMMAND_CHECKBOX_CLICKED event. """
-        
+
         # This part of the code may be reduced to a 3-liner code
         # but it is kept for better understanding the event handling.
         # If you can, however, avoid code duplication; in this case,
@@ -691,14 +691,14 @@ class CustomCheckBox(wx.PyControl):
 
             # We were checked, so we should become unchecked
             self._checked = False
-            
+
             # Fire a wx.CommandEvent: this generates a
             # wx.wxEVT_COMMAND_CHECKBOX_CLICKED event that can be caught by the
             # developer by doing something like:
             # MyCheckBox.Bind(wx.EVT_CHECKBOX, self.OnCheckBox)
             checkEvent = wx.CommandEvent(wx.wxEVT_COMMAND_CHECKBOX_CLICKED,
                                          self.GetId())
-            
+
             # Set the integer event value to 0 (we are switching to unchecked state)
             checkEvent.SetInt(0)
 
@@ -722,37 +722,37 @@ class CustomCheckBox(wx.PyControl):
 
         # Refresh ourselves: the bitmap has changed
         self.Refresh()
-        
-        
+
+
 class FloatSpinEvent(wx.PyCommandEvent):
-    
+
     def __init__(self, evtType, id):
-        
+
         wx.PyCommandEvent.__init__(self, evtType, id)
         self.value = 0
-        
+
     def GetValue(self):
         return self.value
-    
+
     def SetValue(self, value):
         self.value = value
-        
+
 myEVT_MY_SPIN = wx.NewEventType()
 EVT_MY_SPIN = wx.PyEventBinder(myEVT_MY_SPIN, 1)
 
 
 class FloatSpinCtrl(wx.Panel):
-    
+
     def __init__(self, parent, id, initValue = None, button_style = wx.SP_VERTICAL, TextLength = 40, never_negative = False,  **kwargs):
-        
+
         wx.Panel.__init__(self, parent, id, **kwargs)
-        
+
         if initValue == None:
             initValue = '1.00'
-        
+
         self.defaultScaleDivider = 100
         self.ScaleDivider = 100
-        
+
         if platform.system() != 'Windows':
             self.ScalerButton = wx.SpinButton(self, -1, style = button_style)
         else:
@@ -761,58 +761,58 @@ class FloatSpinCtrl(wx.Panel):
         self.ScalerButton.Bind(wx.EVT_SPIN_UP, self.OnSpinUpScale)
         self.ScalerButton.Bind(wx.EVT_SPIN_DOWN, self.OnSpinDownScale)
         self.ScalerButton.SetRange(-99999, 99999)   #Needed for proper function of button on Linux
-        
-        if platform.system() != 'Windows':        
+
+        if platform.system() != 'Windows':
             self.Scale = wx.TextCtrl(self, -1, initValue, size = (TextLength,-1), style = wx.TE_PROCESS_ENTER)
         else:
             self.Scale = wx.TextCtrl(self, -1, initValue, size = (TextLength,22), style = wx.TE_PROCESS_ENTER)
 
         self.Scale.Bind(wx.EVT_KILL_FOCUS, self.OnFocusChange)
         self.Scale.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
-        
+
         self._never_negative = never_negative
-        
+
         sizer = wx.BoxSizer()
-        
+
         sizer.Add(self.Scale, 0, wx.RIGHT, 1)
         sizer.Add(self.ScalerButton, 0)
-        
+
         self.oldValue = 0
-        
+
         self.SetSizer(sizer)
-        
+
         self.ScalerButton.SetValue(0)
-            
+
     def CastFloatSpinEvent(self):
         event = FloatSpinEvent(myEVT_MY_SPIN, self.GetId())
         event.SetValue( self.Scale.GetValue() )
         self.GetEventHandler().ProcessEvent(event)
-        
+
     def OnFocusChange(self, event):
-        
+
         val = self.Scale.GetValue()
-         
+
         try:
              float(val)
         except ValueError:
             return
-        
+
         self.CastFloatSpinEvent()
 
         event.Skip()
-        
+
     def OnEnter(self, event):
         self.OnScaleChange(None)
         self.Scale.SelectAll()
         self.CastFloatSpinEvent()
 
         event.Skip()
-            
+
     def OnScaleChange(self, event):
-        
+
         val = self.Scale.GetValue()
         val = val.replace(',', '.')
-        
+
         try:
             self.num_of_digits = len(val.split('.')[1])
 
@@ -820,85 +820,85 @@ class FloatSpinCtrl(wx.Panel):
                 self.ScaleDivider = self.defaultScaleDivider
             else:
                 self.ScaleDivider = math.pow(10, self.num_of_digits)
-                  
+
         except IndexError:
             self.ScaleDivider = 1.0
             self.num_of_digits = 0
-                         
+
     def OnSpinUpScale(self, event):
 
         self.OnScaleChange(None)
-            
+
         val = self.Scale.GetValue()
         val = val.replace(',', '.')
 
         # Reset spinbutton counter. Fixes bug on MAC
         if self.ScalerButton.GetValue() > 90000:
-            self.ScalerButton.SetValue(0) 
-        
+            self.ScalerButton.SetValue(0)
+
         try:
             newval = float(val) + (1/self.ScaleDivider)
         except ValueError:
             self.CastFloatSpinEvent()
             return
-        
+
         if self.num_of_digits > 0:
             newval_str = ("%." + str(self.num_of_digits) + "f") %  newval
         else:
             newval_str = ("%d") %  newval
-        
+
         self.Scale.SetValue(newval_str)
         self.CastFloatSpinEvent()
-            
+
     def _showInvalidNumberError(self):
         wx.CallAfter(wx.MessageBox, 'The entered value is invalid. Please remove non-numeric characters.', 'Invalid Value Error', style = wx.ICON_ERROR)
-        
+
     def OnSpinDownScale(self, event):
 
         self.OnScaleChange(None)
-        
+
         val = self.Scale.GetValue()
         val = val.replace(',', '.')
-        
+
         # Reset spinbutton counter. Fixes bug on MAC
         if self.ScalerButton.GetValue() < -90000:
-            self.ScalerButton.SetValue(0) 
-        
+            self.ScalerButton.SetValue(0)
+
         try:
             newval = float(val) - (1/self.ScaleDivider)
-            
+
             if newval == 0.0 and self._never_negative == True:
                 self.num_of_digits = self.num_of_digits + 1
                 self.ScaleDivider = math.pow(10, self.num_of_digits)
-                
+
                 newval = float(val) - (1/self.ScaleDivider)
-            
+
         except ValueError:
             self.CastFloatSpinEvent()
             return
-        
+
         if self.num_of_digits > 0:
             newval_str = ("%." + str(self.num_of_digits) + "f") %  newval
         else:
             newval_str = ("%d") %  newval
-        
-        self.Scale.SetValue(str(newval_str))  
+
+        self.Scale.SetValue(str(newval_str))
         self.CastFloatSpinEvent()
-        
-    def GetValue(self): 
+
+    def GetValue(self):
         value = self.Scale.GetValue()
         return value
-    
+
     def SetValue(self, value):
         self.Scale.SetValue(value)
-        
-        
+
+
 class IntSpinCtrl(wx.Panel):
-    
+
     def __init__(self, parent, id, min = None, max = None, TextLength = 40, **kwargs):
-        
+
         wx.Panel.__init__(self, parent, id, **kwargs)
-        
+
         if platform.system() != 'Windows':
             self.ScalerButton = wx.SpinButton(self, -1, style = wx.SP_VERTICAL)
         else:
@@ -910,7 +910,7 @@ class IntSpinCtrl(wx.Panel):
         self.ScalerButton.SetRange(-99999, 99999)
         self.max = max
         self.min = min
-        
+
         if platform.system() != 'Windows':
             self.Scale = wx.TextCtrl(self, -1, str(min), size = (TextLength,-1), style = wx.TE_PROCESS_ENTER)
         else:
@@ -918,41 +918,41 @@ class IntSpinCtrl(wx.Panel):
 
         self.Scale.Bind(wx.EVT_KILL_FOCUS, self.OnScaleChange)
         self.Scale.Bind(wx.EVT_TEXT_ENTER, self.OnScaleChange)
-        
+
         sizer = wx.BoxSizer()
-        
+
         sizer.Add(self.Scale, 0, wx.RIGHT, 1)
         sizer.Add(self.ScalerButton, 0)
-        
+
         self.oldValue = 0
-        
+
         self.SetSizer(sizer)
-        
+
         self.ScalerButton.SetValue(0)
-                
+
     def CastFloatSpinEvent(self):
         event = FloatSpinEvent(myEVT_MY_SPIN, self.GetId())
         event.SetValue( self.Scale.GetValue() )
         self.GetEventHandler().ProcessEvent(event)
-      
+
     def OnScaleChange(self, event):
         self.ScalerButton.SetValue(0) # Resit spinbutton position for button to work in linux
-        
+
         val = self.Scale.GetValue()
-                
+
         if self.max != None:
-            
+
             try:
                 float(val)
             except ValueError:
                 return
-            
+
             if float(val) > self.max:
                 self.Scale.SetValue(str(self.max))
         if self.min != None:
             if float(val) < self.min:
                 self.Scale.SetValue(str(self.min))
-        
+
         #if val != self.oldValue:
         self.oldValue = val
         self.CastFloatSpinEvent()
@@ -961,148 +961,148 @@ class IntSpinCtrl(wx.Panel):
 
     def OnSpinUpScale(self, event):
         self.ScalerButton.SetFocus()    # Just to remove focus from the bgscaler to throw kill_focus event and update
-        
+
         val = self.Scale.GetValue()
-        
+
         newval = int(val) + 1
-        
+
         # Reset spinbutton counter. Fixes bug on MAC
         if self.ScalerButton.GetValue() > 90000:
-            self.ScalerButton.SetValue(0) 
-        
+            self.ScalerButton.SetValue(0)
+
         #print self.min, self.max, val, self.ScalerButton.GetMax(), self.ScalerButton.GetValue()
-        
+
         if self.max != None:
             if newval > self.max:
                 self.Scale.SetValue(str(self.max))
             else:
                 self.Scale.SetValue(str(newval))
-        else:        
+        else:
             self.Scale.SetValue(str(newval))
-                    
+
         self.oldValue = newval
         wx.CallAfter(self.CastFloatSpinEvent)
 
     def OnSpinDownScale(self, event):
         #self.ScalerButton.SetValue(80)   # This breaks the spinbutton on Linux
         self.ScalerButton.SetFocus()    # Just to remove focus from the bgscaler to throw kill_focus event and update
-        
+
         val = self.Scale.GetValue()
         newval = int(val) - 1
-        
+
         # Reset spinbutton counter. Fixes bug on MAC
         if self.ScalerButton.GetValue() < -90000:
-            self.ScalerButton.SetValue(0) 
-        
+            self.ScalerButton.SetValue(0)
+
         if self.min != None:
             if newval < self.min:
                 self.Scale.SetValue(str(self.min))
             else:
                 self.Scale.SetValue(str(newval))
         else:
-            self.Scale.SetValue(str(newval))  
-        
+            self.Scale.SetValue(str(newval))
+
         self.oldValue = newval
         wx.CallAfter(self.CastFloatSpinEvent)
-    
-        
-    def GetValue(self): 
+
+
+    def GetValue(self):
         value = self.Scale.GetValue()
-        
+
         try:
             return int(value)
         except ValueError:
             return value
-    
+
     def SetValue(self, value):
         self.Scale.SetValue(str(value))
- 
+
     def SetRange(self, minmax):
         self.max = minmax[1]
         self.min = minmax[0]
 
     def GetRange(self):
         return (self.min, self.max)
-        
-        
+
+
 class CustomQuestionDialog(wx.Dialog):
-    
-    def __init__(self, parent, 
-                 question_text, 
-                 button_list, 
-                 title, 
-                 icon = None, 
+
+    def __init__(self, parent,
+                 question_text,
+                 button_list,
+                 title,
+                 icon = None,
                  filename = None,
                  current_dir = None,
                  *args, **kwargs):
-        
+
         wx.Dialog.__init__(self, parent, -1, title, *args, **kwargs)
-        
+
         self.icon = icon
         self._path = None
         self._filename = filename
         self._current_directory = current_dir
-        
+
         self.question_text = question_text
         self.button_list = button_list
-        
+
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         button_panel = self._createButtonPanel()
         question_panel = self._createQuestionPanel()
-        
+
         self.main_sizer.Add(question_panel, 0, wx.ALL, 20)
         self.main_sizer.Add(button_panel, 0, wx.ALL | wx.ALIGN_CENTER, 10)
-        
+
         self.SetSizer(self.main_sizer)
-        
+
         self.Fit()
-        
+
     def _createQuestionPanel(self):
-        
+
         question_panel = wx.BoxSizer()
-        
+
         question_label = wx.StaticText(self, -1, self.question_text)
-        
+
         if self.icon:
             cbmp = wx.ArtProvider.GetBitmap(self.icon,  wx.ART_MESSAGE_BOX)
             bitmap = wx.StaticBitmap(self, -1, cbmp)
             question_panel.Add(bitmap, 0,  wx.RIGHT, 15)
-            
+
         question_panel.Add(question_label, 0)
-        
+
         return question_panel
-    
+
     def _createButtonPanel(self):
-        
+
         button_panel = wx.BoxSizer()
-        
+
         for button_label, id in self.button_list:
             button = wx.Button(self, id, button_label)
-            
+
             if (button_label, id) != self.button_list[-1]:
                 button_panel.Add(button, 0, wx.RIGHT, 5)
             else:
                 button_panel.Add(button, 0)
-            
+
             button.Bind(wx.EVT_BUTTON, self._onButton)
-        
+
         return button_panel
-            
+
     def _onButton(self, event):
         id = event.GetId()
-        
+
         if id == wx.ID_EDIT:
             self._onRenameButton()
         else:
             self.EndModal(id)
-        
+
     def _onRenameButton(self):
         ok = self._openFileDialog(self._filename)
 
         if ok:
             self.EndModal(wx.ID_EDIT)
-    
+
     def _openFileDialog(self, filename):
         """
         Create and show the Open FileDialog
@@ -1114,7 +1114,7 @@ class CustomQuestionDialog(wx.Dialog):
             wildcard = "All files (*.*)|*.*",
 
             style=wx.FD_OVERWRITE_PROMPT | wx.FD_SAVE)
-        
+
         dlg.SetDirectory(self._current_directory)
 
         result = dlg.ShowModal()
@@ -1123,29 +1123,29 @@ class CustomQuestionDialog(wx.Dialog):
             self._path = dlg.GetPath()
 
         dlg.Destroy()
-        
+
         if self._path:
             return True
         else:
             return False
-    
+
     def getPath(self):
         return self._path
-    
-    
+
+
 class DraggableLegend:
     def __init__(self, legend, ax):
         self.subplot = ax
-        
+
         self.legend = legend
         self.gotLegend = False
-        
+
         self.legend.set_axes(self.subplot)
         legend.figure.canvas.mpl_connect('motion_notify_event', self.on_motion)
         legend.figure.canvas.mpl_connect('pick_event', self.on_pick)
         legend.figure.canvas.mpl_connect('button_release_event', self.on_release)
         legend.set_picker(self.my_legend_picker)
-        
+
     def on_motion(self, evt):
         if self.gotLegend:
             dx = evt.x - self.mouse_x
@@ -1157,21 +1157,21 @@ class DraggableLegend:
 
     def my_legend_picker(self, legend, evt):
         self.legend.set_axes(self.subplot)
-        return self.legend.legendPatch.contains(evt)   
+        return self.legend.legendPatch.contains(evt)
 
-    def on_pick(self, evt): 
-        
+    def on_pick(self, evt):
+
         if evt.artist == self.legend:
             bbox = self.legend.get_window_extent()
             self.mouse_x = evt.mouseevent.x
             self.mouse_y = evt.mouseevent.y
             self.legend_x = bbox.xmin
-            self.legend_y = bbox.ymin 
+            self.legend_y = bbox.ymin
             self.gotLegend = 1
 
     def on_release(self, event):
         if self.gotLegend:
             self.gotLegend = False
 
-    
-        
+
+

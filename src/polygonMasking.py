@@ -51,7 +51,7 @@ if RAWGlobals.compiled_extensions:
         except Exception, e:
             RAWGlobals.compiled_extensions = False
             print e
-   
+
 def npnpoly(verts,points):
     if RAWGlobals.compiled_extensions:
         verts = verts.astype(np.float64)
@@ -68,9 +68,9 @@ def npnpoly(verts,points):
         code = """
         /* Code from:
            http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
-   
+
            Copyright (c) 1970-2003, Wm. Randolph Franklin
-   
+
            Permission is hereby granted, free of charge, to any person
            obtaining a copy of this software and associated documentation
            files (the "Software"), to deal in the Software without
@@ -78,7 +78,7 @@ def npnpoly(verts,points):
            modify, merge, publish, distribute, sublicense, and/or sell copies
            of the Software, and to permit persons to whom the Software is
            furnished to do so, subject to the following conditions:
-   
+
         1. Redistributions of source code must retain the above
                  copyright notice, this list of conditions and the following
                  disclaimers.
@@ -88,7 +88,7 @@ def npnpoly(verts,points):
         3. The name of W. Randolph Franklin may not be used to endorse
                  or promote products derived from this Software without
                  specific prior written permission.
-   
+
            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
            EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
            MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -97,7 +97,7 @@ def npnpoly(verts,points):
            ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
            CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
            SOFTWARE. */
-       
+
         int i,j,n;
         unsigned int c;
         int nr_verts = Nxp[0];
@@ -107,34 +107,34 @@ def npnpoly(verts,points):
                 if ((((yp(i)<=y(n)) && (y(n)<yp(j))) ||
                   ((yp(j)<=y(n)) && (y(n)<yp(i)))) &&
                 (x(n) < (xp(j) - xp(i)) * (y(n) - yp(i)) / (yp(j) - yp(i)) + xp(i)))
-           
+
         c = !c;
         }
     out(n) = c;
         }
         """
         #weave.inline(code, ['xp','yp','x','y','out'], type_converters=weave.converters.blitz)
-        
-#        polymsk = ext_tools.ext_function('polymsk', code, ['xp','yp','x','y','out'], type_converters = converters.blitz)   
+
+#        polymsk = ext_tools.ext_function('polymsk', code, ['xp','yp','x','y','out'], type_converters = converters.blitz)
 #        mod.add_function(polymsk)
 #        mod.compile(compiler = 'gcc')
-        
+
         polygonmask_ext.polymsk(xp, yp, x, y, out)
 
         return out
 
     else:
         """Check whether given points are in the polygon.
-   
+
         points - Nx2 array
-       
-        See http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html    
+
+        See http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
         """
         out = []
-       
+
         xpi = verts[:,0]
         ypi = verts[:,1]
-        # shift        
+        # shift
         xpj = xpi[np.arange(xpi.size)-1]
         ypj = ypi[np.arange(ypi.size)-1]
         maybe = np.empty(len(xpi),dtype=bool)
@@ -142,9 +142,9 @@ def npnpoly(verts,points):
             maybe[:] = ((ypi <= y) & (y < ypj)) | ((ypj <= y) & (y < ypi))
             out.append(sum(x < (xpj[maybe]-xpi[maybe])*(y - ypi[maybe]) \
                            / (ypj[maybe] - ypi[maybe]) + xpi[maybe]) % 2)
-       
+
         return np.asarray(out,dtype=bool)
-        
+
 
 
 class Polygeom(np.ndarray):
@@ -155,34 +155,34 @@ class Polygeom(np.ndarray):
     def __new__(self, verts):
         """
         Given xp and yp (both 1D arrays or sequences), create a new polygon.
-       
+
         p = Polygon(vertices) where vertices is an Nx2 array
-       
+
         p.inside(x, y) - Calculate whether points lie inside the polygon.
         p.area() - The area enclosed by the polygon.
         p.centroid() - The centroid of the polygon
         """
         verts = np.atleast_2d(verts)
-               
+
         assert verts.shape[1] == 2, 'Vertices should be an Nx2 array, but is %s' % str(verts.shape)
         assert len(verts) >= 3, 'Need 3 vertices to create polygon.'
-       
+
         # close polygon, if needed
         if not np.all(verts[0]==verts[-1]):
             verts = np.vstack((verts,verts[0]))
 
         self.verts = verts
-       
+
         return verts.view(Polygeom).copy()
-   
-   
+
+
     def inside(self,points):
         points = np.atleast_2d(points)
-        
+
         assert points.shape[1] == 2, \
                "Points should be of shape Nx2, is %s" % str(points.shape)
         return npnpoly(self.verts,points).astype(bool)
-   
+
     def get_area(self):
         """
         Return the area of the polygon.
@@ -201,52 +201,52 @@ class Polygeom(np.ndarray):
         a = np.diff(v[:-1][:,[1,0]]*v[1:])
         area = a.sum()/2.0
         return ((v[:-1,:] + v[1:,:])*a).sum(axis=0) / (6.0*area)
-   
+
     area = property(get_area)
     centroid = property(get_centroid)
-    
+
 def getCoords(p, (xDim, yDim) ):
-    
+
     points = []
     for each in p[0]:
-        
+
         y = int(each / xDim)
         x = each % xDim
-        
-        #points.append( (abs(yDim-x), y) )    #Damn that x,y is really y,x thing.. 
-        
+
+        #points.append( (abs(yDim-x), y) )    #Damn that x,y is really y,x thing..
+
         # ARGH! there is a major screwup between x,y somewhere.. this works in RAW: but masking test need the one above
-        points.append( (x, y) )    #Damn that x,y is really y,x thing..  
-    
+        points.append( (x, y) )    #Damn that x,y is really y,x thing..
+
     return points
 
 if __name__ == '__main__':
     import pylab as pl
-    
+
     #grid = np.mgrid[0:1:10j,0:1:10j].reshape(2,-1).swapaxes(0,1)
-   
+
     grid = np.mgrid[0:10,0:10].reshape(2,-1).swapaxes(0,1)
     # simple area test
-    
+
     verts = np.array([[0.0,0.0],
                       [0.0,5.0],
                       [6.0,0.0]])
-    
+
     pb = Polygeom(verts)
     inside = pb.inside(grid)
     print inside
-    
+
     p = np.where(inside==True)
     coords = getCoords(p, (10, 10))
-    
+
     print coords
-   
+
     tst = np.zeros((10,10))
     for each in coords:
         tst[each] = 1
     print tst
-    
-    
+
+
 #    # concave enclosure test-case for inside.
 #    verts = np.array([[0.15,0.15],
 #                      [0.25,0.15],
@@ -268,7 +268,7 @@ if __name__ == '__main__':
     print xc, yc
     pl.plot([xc], [yc], 'co')
     pl.show()
-   
+
     pl.figure()
     # many points in a semicircle, to test speed.
     grid = np.mgrid[0:1:1000j,0:1:1000j].reshape(2,-1).swapaxes(0,1)
@@ -285,7 +285,7 @@ if __name__ == '__main__':
     xc, yc = pc.centroid
     print xc, yc
     pl.plot([xc], [yc], 'co')
-    pl.show() 
-#    
-    
-    
+    pl.show()
+#
+
+

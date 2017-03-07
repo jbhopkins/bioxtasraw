@@ -21,23 +21,23 @@ from math import *
 class PyMathParser(object):
     '''
     Taken from http://www.bestcode.com/html/evaluate_math_expressions_pyth.html
-    
+
     Mathematical Expression Evaluator class.
     You can set the expression member, set the functions, variables and then call
     evaluate() function that will return you the result of the mathematical expression
     given as a string.
     '''
-   
+
     '''
     Mathematical expression to evaluate.
     '''
     expression = ''
-   
+
     '''
     Dictionary of functions that can be used in the expression.
     '''
     functions = {'__builtins__':None};
-   
+
     '''
     Dictionary of variables that can be used in the expression.
     '''
@@ -47,21 +47,21 @@ class PyMathParser(object):
         '''
         Constructor
         '''
-   
+
     def evaluate(self):
         '''
         Evaluate the mathematical expression given as a string in the expression member variable.
-       
+
         '''
         return eval(self.expression, self.variables, self.functions);
-    
+
     def addSpecialVariables(self, var_dict):
-        
+
         if var_dict == None:
             return
-        
+
         for each_key in var_dict.keys():
-            
+
             try:
                 val = float(var_dict[each_key])
                 self.variables[each_key] = val
@@ -122,7 +122,7 @@ class PyMathParser(object):
         self.functions['sqrt']=sqrt
         self.functions['tan']=tan
         self.functions['tanh']=tanh
-       
+
     def addDefaultVariables(self):
         '''
         Add e and pi to the list of defined variables.

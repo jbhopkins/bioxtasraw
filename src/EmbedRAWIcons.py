@@ -59,7 +59,7 @@ for i in range(len(image_list)):
     f.close()
     for line in code:
         img_code = img_code + line
-    
+
 
 os.remove(RAWWorkDir+'/temp.py')
 

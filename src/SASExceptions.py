@@ -27,7 +27,7 @@ class WrongImageFormat(Exception):
            self.parameter = value
        def __str__(self):
            return repr(self.parameter)
-       
+
 class MaskSizeError(Exception):
        def __init__(self, value):
            self.parameter = value
@@ -39,7 +39,7 @@ class UnrecognizedDataFormat(Exception):
            self.parameter = value
        def __str__(self):
            return repr(self.parameter)
-       
+
 class DataNotCompatible(Exception):
        def __init__(self, value):
            self.parameter = value
@@ -51,7 +51,7 @@ class InvalidQrange(Exception):
            self.parameter = value
        def __str__(self):
            return repr(self.parameter)
-       
+
 class CenterNotFound(Exception):
        def __init__(self, value):
            self.parameter = value
@@ -63,19 +63,19 @@ class AbsScaleNormFailed(Exception):
            self.parameter = value
        def __str__(self):
            return repr(self.parameter)
-       
+
 class NormalizationError(Exception):
        def __init__(self, value):
            self.parameter = value
        def __str__(self):
            return repr(self.parameter)
-       
+
 class HeaderLoadError(Exception):
        def __init__(self, value):
            self.parameter = value
        def __str__(self):
            return repr(self.parameter)
-       
+
 class HeaderMaskLoadError(Exception):
        def __init__(self, value):
            self.parameter = value

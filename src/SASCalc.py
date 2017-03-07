@@ -127,7 +127,7 @@ def autoRg(sasm):
 
                 if q[start]*RG < 1 and q[start+w-1]*RG<1.35 and RG>0.1:
 
-                    #error in rg and i0 is calculated by noting that q(x)+/-Dq has Dq=abs(dq/dx)Dx, where q(x) is your function you're using 
+                    #error in rg and i0 is calculated by noting that q(x)+/-Dq has Dq=abs(dq/dx)Dx, where q(x) is your function you're using
                     #on the quantity x+/-Dx, with Dq and Dx as the uncertainties and dq/dx the derviative of q with respect to x.
                     RGer=np.absolute(0.5*(np.sqrt(-3./opt[1])))*np.sqrt(np.absolute(cov[1,1,]))
                     I0er=I0*np.sqrt(np.absolute(cov[0,0]))
@@ -170,7 +170,7 @@ def autoRg(sasm):
         reduced_chi_sqr_weight = 0
         window_size_weight = 4
 
-        weights = np.array([qmaxrg_weight, qminrg_weight, rg_frac_err_weight, i0_frac_err_weight, r_sqr_weight, 
+        weights = np.array([qmaxrg_weight, qminrg_weight, rg_frac_err_weight, i0_frac_err_weight, r_sqr_weight,
                             reduced_chi_sqr_weight, window_size_weight])
 
         quality = np.zeros(len(fit_list))
@@ -191,7 +191,7 @@ def autoRg(sasm):
             reduced_chi_sqr_score = 1/fit_list[a,12] #Not right
             window_size_score = fit_list[a,1]/max_window_real
 
-            scores = np.array([qmaxrg_score, qminrg_score, rg_frac_err_score, i0_frac_err_score, r_sqr_score, 
+            scores = np.array([qmaxrg_score, qminrg_score, rg_frac_err_score, i0_frac_err_score, r_sqr_score,
                                reduced_chi_sqr_score, window_size_score])
 
             # print scores
@@ -288,7 +288,7 @@ def autoMW(sasm, rg, i0, protein = True):
     qr=np.square(vc)/rg
 
     #The molecular weight is then determined in a power law relationship. Note, the 1000 puts it in kDa
-    
+
     if protein:
         A = raw_settings.get('MWVcAProtein')
         B = raw_settings.get('MWVcBProtein')
@@ -468,7 +468,7 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
 
                 while proc.poll() == None:
                     data = None
-                    try: 
+                    try:
                         data = gnom_q.get_nowait()
                         data = data[0]
                         gnom_q.task_done()
@@ -669,7 +669,7 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
                             pass
 
                         previous_line2 = previous_line
-                        previous_line = current_line     
+                        previous_line = current_line
 
         iftm=SASFileIO.loadOutFile(outname)[0]
 
@@ -696,7 +696,7 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
 
 
 def runDatgnom(datname, sasm):
-    #This runs the ATSAS package DATGNOM program, to automatically find the Dmax and P(r) function 
+    #This runs the ATSAS package DATGNOM program, to automatically find the Dmax and P(r) function
     #of a scattering profile.
     analysis = sasm.getParameter('analysis')
     if 'guinier' in analysis:
@@ -714,7 +714,7 @@ def runDatgnom(datname, sasm):
         datgnomDir = os.path.join(atsasDir, 'datgnom.exe')
     else:
         datgnomDir = os.path.join(atsasDir, 'datgnom')
-    
+
 
     if os.path.exists(datgnomDir):
 
@@ -730,7 +730,7 @@ def runDatgnom(datname, sasm):
         output, error = process.communicate()
 
         error = error.strip()
-        
+
         if error == 'Cannot define Dmax' or error=='Could not find Rg':
 
             if rg <= 0:
@@ -783,7 +783,7 @@ def writeGnomCFG(fname, outname, dmax, args):
     datadir = os.path.dirname(fname)
 
     f = open(os.path.join(datadir, 'gnom.cfg'),'w')
-    
+
     f.write('This line intentionally left blank\n')
     f.write('PRINTER C [      postscr     ]  Printer type\n')
     if 'form' in args and args['form'] != '':
@@ -875,7 +875,7 @@ def runDammif(fname, prefix, args):
         dammifDir = os.path.join(atsasDir, 'dammif.exe')
     else:
         dammifDir = os.path.join(atsasDir, 'dammif')
-    
+
 
     if os.path.exists(dammifDir):
         if args['mode'].lower() == 'fast' or args['mode'].lower() == 'slow':
@@ -889,7 +889,7 @@ def runDammif(fname, prefix, args):
                 command = command + ' --constant=%s' %(args['constant'])
 
             command = command + ' %s' %(fname)
-            
+
             process=subprocess.Popen(command, shell= True)
 
             return process
@@ -920,11 +920,11 @@ def runDammif(fname, prefix, args):
             dammif_t.start()
             previous_line = ''
 
-            
+
 
             while proc.poll() == None and not dammifStarted:
                 data = None
-                try: 
+                try:
                     data = dammif_q.get_nowait()
                     data = data[0]
                     # print 'New Line of Data!!!!!!!!!!!!!!!!!!!'
@@ -941,19 +941,19 @@ def runDammif(fname, prefix, args):
                     # print 'Previous line: %s' %(previous_line)
                     if data.find('GNOM output file to read?') > -1:
                         proc.stdin.write('%s\r\n' %(fname)) #Dammif input file, no default
-                   
+
                     elif previous_line.find('nanometer') > -1:
                         proc.stdin.write('%s\r\n' %(args['unit'])) #Dammif input file units, default unknown
-                    
+
                     elif previous_line.find('Output file prefix?') > -1:
                         proc.stdin.write('%s\r\n' %(prefix)) #Dammif output file prefix, default dammif
-                    
+
                     elif previous_line.find('Omit output of solvent') > -1:
                         if args['omitSolvent']:
                             proc.stdin.write('%s\r\n' %('no')) #Omit solvent bead output file, default yes
                         else:
                             proc.stdin.write('\r\n')
-                    
+
                     elif previous_line.find('Create pseudo chains') > -1:
                         if args['chained']:
                             proc.stdin.write('%s\r\n' %('yes')) #Make pseudo chains, default no
@@ -1084,14 +1084,14 @@ def runDamaver(flist):
         damaverDir = os.path.join(atsasDir, 'damaver.exe')
     else:
         damaverDir = os.path.join(atsasDir, 'damaver')
-    
+
 
     if os.path.exists(damaverDir):
         command = '%s --automatic' %(damaverDir)
 
         for item in flist:
             command = command + ' %s' %(item)
-        
+
         process=subprocess.Popen(command, shell= True, stdout = subprocess.PIPE)
 
         return process
@@ -1106,7 +1106,7 @@ def runAmbimeter(fname, prefix, args):
         ambimeterDir = os.path.join(atsasDir, 'ambimeter.exe')
     else:
         ambimeterDir = os.path.join(atsasDir, 'ambimeter')
-    
+
     if os.path.exists(ambimeterDir):
         command = '%s --srg=%s --prefix=%s --files=%s %s' %(ambimeterDir, args['sRg'], prefix, args['files'], fname)
         process=subprocess.Popen(command, shell= True, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
@@ -1142,14 +1142,14 @@ def runDamclust(flist):
         damclustDir = os.path.join(atsasDir, 'damclust.exe')
     else:
         damclustDir = os.path.join(atsasDir, 'damclust')
-    
+
 
     if os.path.exists(damclustDir):
         command = '%s' %(damclustDir)
 
         for item in flist:
             command = command + ' %s' %(item)
-        
+
         process=subprocess.Popen(command, shell= True, stdout = subprocess.PIPE)
 
         return process
@@ -1170,7 +1170,7 @@ def runDammin(fname, prefix, args):
         dammifDir = os.path.join(atsasDir, 'dammin.exe')
     else:
         dammifDir = os.path.join(atsasDir, 'dammin')
-    
+
 
     if os.path.exists(dammifDir):
         if args['mode'].lower() == 'fast' or args['mode'].lower() == 'slow':
@@ -1188,7 +1188,7 @@ def runDammin(fname, prefix, args):
                 command = command + ' --an=%s' %(args['anisometry'])
 
             command = command + ' %s' %(fname)
-            
+
             process=subprocess.Popen(command, shell= True, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
 
             return process
@@ -1223,11 +1223,11 @@ def runDammin(fname, prefix, args):
             dammif_t.start()
             previous_line = ''
 
-            
+
 
             while proc.poll() == None and not dammifStarted:
                 data = None
-                try: 
+                try:
                     data = dammif_q.get_nowait()
                     data = data[0]
                     # print 'New Line of Data!!!!!!!!!!!!!!!!!!!'
@@ -1257,7 +1257,7 @@ def runDammin(fname, prefix, args):
 
                     elif data.find('project description') > -1:
                         proc.stdin.write('\r\n') #Extra information, default is none
-                   
+
                     elif data.find('1/nm') > -1:
                         if args['unit'] == 'Angstrom':
                             proc.stdin.write('1\r\n') #Dammif input file units, default 1/angstrom
@@ -1265,13 +1265,13 @@ def runDammin(fname, prefix, args):
                             proc.stdin.write('2\r\n') #Dammif input file units, default 1/angstrom
                         else:
                             proc.stdin.write('\r\n') #Dammif input file units, default 1/angstrom
-                    
+
                     elif data.find('Portion of the curve') > -1:
                         if args['propFit'] > -1:
                             proc.stdin.write('%f\r\n' %(args['propFit'])) #Proportion of curve to be fitted, default 1.00
                         else:
                             proc.stdin.write('\r\n')
-                    
+
                     elif data.find('parallelepiped') > -1:
                         if 'initialDAM' in args:
                             proc.stdin.write('%s\r\n' %(args['initialDAM'])) #Initial dammin shape, default sphere (S)
@@ -1311,7 +1311,7 @@ def runDammin(fname, prefix, args):
 
                     elif data.find('Packing radius') > -1 and args['mode'] != 'Refine':
                         if args['packing'] > -1:
-                            proc.stdin.write('%i\r\n' %(args['packing'])) 
+                            proc.stdin.write('%i\r\n' %(args['packing']))
                         else:
                             proc.stdin.write('\r\n')
 
@@ -1323,19 +1323,19 @@ def runDammin(fname, prefix, args):
 
                     elif data.find('Looseness penalty weight') > -1 and args['mode'] != 'Refine':
                         if args['looseWeight'] > -1:
-                            proc.stdin.write('%f\r\n' %(args['looseWeight'])) 
+                            proc.stdin.write('%f\r\n' %(args['looseWeight']))
                         else:
                             proc.stdin.write('\r\n')
 
                     elif data.find('Disconnectivity penalty') > -1 and args['mode'] != 'Refine':
                         if args['disconWeight'] > -1:
-                            proc.stdin.write('%i\r\n' %(args['disconWeight'])) 
+                            proc.stdin.write('%i\r\n' %(args['disconWeight']))
                         else:
                             proc.stdin.write('\r\n')
 
                     elif data.find('Peripheral penalty weight') > -1 and args['mode'] != 'Refine':
                         if args['periphWeight'] > -1:
-                            proc.stdin.write('%f\r\n' %(args['periphWeight'])) 
+                            proc.stdin.write('%f\r\n' %(args['periphWeight']))
                         else:
                             proc.stdin.write('\r\n')
 
@@ -1343,7 +1343,7 @@ def runDammin(fname, prefix, args):
                         proc.stdin.write('\r\n')
 
                     elif data.find('Randomize the structure') > -1 and args['mode'] != 'Refine':
-                        proc.stdin.write('\r\n') 
+                        proc.stdin.write('\r\n')
 
                     elif data.find('0=s^2') > -1 and args['mode'] != 'Refine' and args['mode'] != 'Refine':
                         proc.stdin.write('%s\r\n' %(args['damminCurveWeight'])) #Curve weighting function, default emphasised porod
@@ -1389,7 +1389,7 @@ def runDammin(fname, prefix, args):
 
                     elif data.find('Reset core') > -1:
                         proc.stdin.write('\r\n')
-                 
+
                     elif data.find('annealing procedure started') > -1:
                         dammifStarted = True
 

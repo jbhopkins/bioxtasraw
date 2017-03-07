@@ -20,7 +20,7 @@ import Queue
 import sys
 import os
 
-global compiled_extensions 
+global compiled_extensions
 compiled_extensions = True
 
 global mainworker_cmd_queue
@@ -36,7 +36,7 @@ global frozen
 
 #Checks whether RAW is running in a compiled (frozen) version or a live interpreter
 if getattr(sys, 'frozen', False):
-    frozen = True 
+    frozen = True
 else:
     frozen = False
 

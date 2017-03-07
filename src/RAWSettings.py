@@ -27,52 +27,52 @@ import RAWGlobals, SASFileIO
 class RawGuiSettings:
     '''
     This object contains all the settings nessecary for the GUI.
-    
+
     '''
     def __init__(self, settings = None):
         '''
         Accepts a dictionary argument for the parameters. Uses default is no settings are given.
         '''
-        
+
         self._params = settings
-        
+
         if settings == None:
             self._params = {
                             #'NormalizeConst'    : [1.0,   wx.NewId(), 'float'],
                             #'NormalizeConstChk' : [False, wx.NewId(),  'bool'],
                             #'NormalizeM2'       : [False, wx.NewId(),  'bool'],
-                            #'NormalizeTime'     : [False, wx.NewId(),  'bool'],  
+                            #'NormalizeTime'     : [False, wx.NewId(),  'bool'],
                             #'NormalizeM1'       : [False, wx.NewId(),  'bool'],
-							      
+
 							'NormFlatfieldEnabled'	: [False,   wx.NewId(),  'bool'],
-					
+
                             'NormAbsWater'      	: [False,   wx.NewId(),  'bool'],
                             'NormAbsWaterI0'    	: [0.01632, wx.NewId(),  'float'],
                             'NormAbsWaterTemp'  	: ['25',    wx.NewId(),  'choice'],
                             'NormAbsWaterConst' 	: [1.0,     wx.NewId(),  'float'],
-                                                
+
                             'NormalizeTrans'    : [False, wx.NewId(),  'bool'],
                             'Calibrate'         : [False, wx.NewId(),  'bool'],  # Calibrate AgBe
                             'CalibrateMan'      : [True, wx.NewId(),  'bool'],  # Calibrate manual (wavelength / distance)
                             'AutoBgSubtract'    : [False, wx.NewId(),  'bool'],
                             'CountNormalize'    : [1.0,   wx.NewId(), 'float'],
-                            
+
                             'AutoBIFT'          : [False, wx.NewId(), 'bool'],
                             'AutoAvg'           : [False, wx.NewId(), 'bool'],
                             'AutoAvgRemovePlots': [False, wx.NewId(), 'bool'],
-             
+
                             'AutoAvgRegExp'     : ['', wx.NewId(), 'text'],
                             'AutoAvgNameRegExp' : ['', wx.NewId(), 'text'],
                             'AutoAvgNoOfFrames' : [1,  wx.NewId(),  'int'],
                             'AutoBgSubRegExp'   : ['', wx.NewId(), 'text'],
-             
+
                             'UseHeaderForMask': [False, wx.NewId(), 'bool'],
                             'DetectorFlipped90':[False, wx.NewId(), 'bool'],
 
                             #CORRECTIONS
                             'DoSolidAngleCorrection' : [True, wx.NewId(), 'bool'],
-             
-             
+
+
                             #CENTER / BINNING
                             'Binsize'    : [1,     wx.NewId(), 'int'],
                             'Xcenter'    : [512.0, wx.NewId(), 'float'],
@@ -82,16 +82,16 @@ class RawGuiSettings:
                             'StartPoint' : [0,     wx.NewId(), 'int'],
                             'EndPoint'   : [0,     wx.NewId(), 'int'],
                             'ImageDim'   : [[1024,1024]],
-             
+
                             #MASKING
                             'SampleFile'              : [None, wx.NewId(), 'text'],
                             'BackgroundSASM'          : [None, wx.NewId(), 'text'],
 
                             'DataSECM'                : [None, wx.NewId(), 'text'],
-                            
+
                             'NormAbsWaterFile'        : [None, wx.NewId(), 'text'],
                             'NormAbsWaterEmptyFile'   : [None, wx.NewId(), 'text'],
-							'NormFlatfieldFile'		  : [None, wx.NewId(), 'text'],	
+							'NormFlatfieldFile'		  : [None, wx.NewId(), 'text'],
 
                             'TransparentBSMask'       : [None],
                             'TransparentBSMaskParams' : [None],
@@ -104,9 +104,9 @@ class RawGuiSettings:
                                                           'ReadOutNoiseMask' : [None, None],
                                                           'TransparentBSMask': [None, None],
                                                          }],
-                                                         
-                            'MaskDimension'          : [1024,1024],  
-                            
+
+                            'MaskDimension'          : [1024,1024],
+
                             #Q-CALIBRATION
                             'WaveLength'          : [1.0,  wx.NewId(), 'float'],
                             'SampleDistance'      : [1000, wx.NewId(), 'float'],
@@ -122,8 +122,8 @@ class RawGuiSettings:
 							'SampleThickness'		: [0.1,  wx.NewId(), 'float'],
 							'DarkCorrEnabled'		: [False,   wx.NewId(),  'bool'],
 							'DarkCorrFilename'		: [None, wx.NewId(), 'text'],
-							
-             
+
+
                             #DEFAULT BIFT PARAMETERS
                             'maxDmax'     : [400.0,  wx.NewId(), 'float'],
                             'minDmax'     : [10.0,   wx.NewId(), 'float'],
@@ -132,37 +132,37 @@ class RawGuiSettings:
                             'minAlpha'    : [150.0,  wx.NewId(), 'float'],
                             'AlphaPoints' : [16,     wx.NewId(), 'int'],
                             'PrPoints'    : [50,     wx.NewId(), 'int'],
-             
+
                             #DEFAULT pyGNOM PARAMETERS
                             'pygnomMaxAlpha'    : [60,   wx.NewId(), 'float'],
                             'pygnomMinAlpha'    : [0.01, wx.NewId(), 'float'],
                             'pygnomAlphaPoints' : [100,  wx.NewId(), 'int'],
                             'pygnomPrPoints'    : [50,   wx.NewId(), 'int'],
                             'pygnomFixInitZero' : [True, wx.NewId(), 'bool'],
-             
+
                             'pyOSCILLweight'    : [3.0, wx.NewId(), 'float'],
                             'pyVALCENweight'    : [1.0, wx.NewId(), 'float'],
                             'pyPOSITVweight'    : [1.0, wx.NewId(), 'float'],
                             'pySYSDEVweight'    : [3.0, wx.NewId(), 'float'],
                             'pySTABILweight'    : [3.0, wx.NewId(), 'float'],
                             'pyDISCRPweight'    : [1.0, wx.NewId(), 'float'],
-             
+
                             #DEFAULT IFT PARAMETERS:
                             'IFTAlgoList'        : [['BIFT', 'pyGNOM']],
                             'IFTAlgoChoice'      : [['BIFT']],
-             
+
                             #ARTIFACT REMOVAL:
                             'ZingerRemovalRadAvg'    : [False, wx.NewId(), 'bool'],
                             'ZingerRemovalRadAvgStd' : [4.0,     wx.NewId(), 'float'],
-        
+
                             'ZingerRemoval'     : [False, wx.NewId(), 'bool'],
                             'ZingerRemoveSTD'   : [4,     wx.NewId(), 'int'],
                             'ZingerRemoveWinLen': [10,    wx.NewId(), 'int'],
                             'ZingerRemoveIdx'   : [10,    wx.NewId(), 'int'],
-             
+
                             'ZingerRemovalAvgStd'  : [8,     wx.NewId(), 'int'],
                             'ZingerRemovalAvg'     : [False, wx.NewId(), 'bool'],
-             
+
                             #SAVE DIRECTORIES
                             'ProcessedFilePath'    : [None,  wx.NewId(), 'text'],
                             'AveragedFilePath'     : [None,  wx.NewId(), 'text'],
@@ -174,28 +174,28 @@ class RawGuiSettings:
                             'AutoSaveOnSub'        : [False, wx.NewId(), 'bool'],
                             'AutoSaveOnBift'       : [False, wx.NewId(), 'bool'],
                             'AutoSaveOnGnom'       : [False, wx.NewId(), 'bool'],
-                
+
                             #IMAGE FORMATS
                             'ImageFormatList'      : [SASFileIO.all_image_types],
                             'ImageFormat'          : ['Pilatus', wx.NewId(), 'choice'],
-                            
+
                             #HEADER FORMATS
                             'ImageHdrFormatList'   : [SASFileIO.all_header_types],
                             'ImageHdrFormat'       : ['None', wx.NewId(), 'choice'],
-                            
+
                             'ImageHdrList'         : [None],
                             'FileHdrList'          : [None],
-                             
+
                             'UseHeaderForCalib'    : [False, wx.NewId(), 'bool'],
-                            
-                            # Header bind list with [(Description : parameter key, header_key)] 
+
+                            # Header bind list with [(Description : parameter key, header_key)]
                             'HeaderBindList'       : [{'Beam X Center'            : ['Xcenter',           None, ''],
                                                        'Beam Y Center'            : ['Ycenter',           None, ''],
                                                        'Sample Detector Distance' : ['SampleDistance',    None, ''],
                                                        'Wavelength'               : ['WaveLength',        None, ''],
                                                        'Detector Pixel Size'      : ['DetectorPixelSize', None, '']}],
                                                        # 'Number of Frames'         : ['NumberOfFrames',    None, '']}],
-                                                       
+
                             'NormalizationList'    : [None, wx.NewId(), 'text'],
                             'EnableNormalization'  : [True, wx.NewId(), 'bool'],
 
@@ -203,7 +203,7 @@ class RawGuiSettings:
                             'EnableOnlineFiltering': [False, wx.NewId(), 'bool'],
                             'OnlineModeOnStartup'  : [False, wx.NewId(), 'bool'],
 	                        'OnlineStartupDir'     : [None, wx.NewId(), 'text'],
-                            
+
                             'MWStandardMW'         : [0, wx.NewId(), 'float'],
                             'MWStandardI0'         : [0, wx.NewId(), 'float'],
                             'MWStandardConc'       : [0, wx.NewId(), 'float'],
@@ -226,23 +226,23 @@ class RawGuiSettings:
                             'MWAbsRhoSolv'          : [3.34*10**23, wx.NewId(), 'float'], #e-/cm^-3, # electrons per volume of aqueous solvent
                             'MWAbsNuBar'            : [0.7425, wx.NewId(), 'float'], #cm^3/g, # partial specific volume of the protein
                             'MWAbsR0'               : [2.8179*10**-13, wx.NewId(), 'float'], #cm, scattering lenght of an electron
-                            
+
                             'CurrentCfg'         : [None],
                             'CompatibleFormats'  : [['.rad', '.tiff', '.tif', '.img', '.csv', '.dat', '.txt', '.sfrm', '.dm3', '.edf',
                                                      '.xml', '.cbf', '.kccd', '.msk', '.spr', '.h5', '.mccd', '.mar3450', '.npy', '.pnm',
                                                       '.No', '.imx_0', '.dkx_0', '.dkx_1', '.png', '.mpa', '.ift', '.sub', '.fit', '.fir',
                                                       '.out', '.mar1200', '.mar2400', '.mar2300', '.mar3600', '.int', '.ccdraw'], None],
-                            
-                            
+
+
                             #SEC Settiongs:
                             'secCalcThreshold'      : [1.02, wx.NewId(), 'float'],
-                            
+
                             #GUI Settings:
                             'csvIncludeData'      : [None],
                             'ManipItemCollapsed'  : [False, wx.NewId(), 'bool'] ,
                             'CurrentFilePath'     : [None],
-                            
-                            
+
+
                             'DatHeaderOnTop'      : [False, wx.NewId(), 'bool'],
                             'PromptConfigLoad'    : [True, wx.NewId(), 'bool'],
 
@@ -310,40 +310,40 @@ class RawGuiSettings:
                             'damminPeriphPen'       : [-1, wx.NewId(), 'float'],
                             'damminCurveWeight'     : ['1', wx.NewId(), 'choice'],
                             'damminAnealSched'      : [-1, wx.NewId(), 'float']
-                            
+
                             }
-    
+
     def get(self, key):
         return self._params[key][0]
-    
+
     def set(self, key, value):
-        self._params[key][0] = value 
+        self._params[key][0] = value
 
     def getId(self, key):
         return self._params[key][1]
-    
+
     def getType(self, key):
         return self._params[key][2]
-    
+
     def getIdAndType(self, key):
         return (self._params[key][1], self._params[key][2])
-    
+
     def getAllParams(self):
         return self._params
-    
-    
-    
+
+
+
 def fixBackwardsCompatibility(raw_settings):
-    
+
     #Backwards compatibility for BindList:
     bind_list = raw_settings.get('HeaderBindList')
     for each_key in bind_list.keys():
         if len(bind_list[each_key]) == 2:
             bind_list[each_key] = [bind_list[each_key][0], bind_list[each_key][1], '']
-        
-    
+
+
 def loadSettings(raw_settings, loadpath):
-    
+
     file_obj = open(loadpath, 'rb')
     try:
         loaded_param = cPickle.load(file_obj)
@@ -352,27 +352,27 @@ def loadSettings(raw_settings, loadpath):
         file_obj.close()
         return False
     file_obj.close()
-    
+
     keys = loaded_param.keys()
     all_params = raw_settings.getAllParams()
-    
+
     for each_key in keys:
         if each_key in all_params:
             all_params[each_key][0] = copy.copy(loaded_param[each_key])
         else:
-            print 'WARNING: ' + str(each_key) + " not found in RAWSettings."  
-    
+            print 'WARNING: ' + str(each_key) + " not found in RAWSettings."
+
     main_frame = wx.FindWindowByName('MainFrame')
     main_frame.queueTaskInWorkerThread('recreate_all_masks', None)
-    
-    postProcess(raw_settings)    
-    
+
+    postProcess(raw_settings)
+
     return True
 
 def postProcess(raw_settings):
     fixBackwardsCompatibility(raw_settings)
 
-    dir_check_list = [('AutoSaveOnImageFiles', 'ProcessedFilePath'), ('AutoSaveOnAvgFiles', 'AveragedFilePath'), 
+    dir_check_list = [('AutoSaveOnImageFiles', 'ProcessedFilePath'), ('AutoSaveOnAvgFiles', 'AveragedFilePath'),
                     ('AutoSaveOnSub', 'SubtractedFilePath'), ('AutoSaveOnBift', 'BiftFilePath'),
                     ('AutoSaveOnGnom', 'GnomFilePath'), ('OnlineModeOnStartup', 'OnlineStartupDir')
                     ]
@@ -418,20 +418,20 @@ def postProcess(raw_settings):
 def saveSettings(raw_settings, savepath):
     param_dict = raw_settings.getAllParams()
     keys = param_dict.keys()
-    
+
     exclude_keys = ['ImageFormatList', 'ImageHdrFormatList', 'BackgroundSASM', 'CurrentCfg', 'csvIncludeData', 'CompatibleFormats', 'DataSECM']
-    
+
     save_dict = {}
-    
+
     for each_key in keys:
         if each_key not in exclude_keys:
             save_dict[each_key] = param_dict[each_key][0]
 
     save_dict = copy.deepcopy(save_dict)
-    
+
     #remove big mask arrays from the cfg file
-    masks = save_dict['Masks'] 
-    
+    masks = save_dict['Masks']
+
     for key in masks.keys():
         masks[key][0] = None
 
@@ -442,12 +442,12 @@ def saveSettings(raw_settings, savepath):
         print '<Error> type: %s, message: %s' %(type(e).__name__, e)
         file_obj.close()
         return False
-   
+
     file_obj.close()
-    
-    ## Make a backup of the config file in case of crash:        
+
+    ## Make a backup of the config file in case of crash:
     backup_file = os.path.join(RAWGlobals.RAWWorkDir, 'backup.cfg')
-            
+
     FileObj = open(backup_file, 'wb')
     try:
         cPickle.dump(save_dict, FileObj, cPickle.HIGHEST_PROTOCOL)
@@ -458,12 +458,12 @@ def saveSettings(raw_settings, savepath):
     FileObj.close()
 
     dummy_settings = RawGuiSettings()
-    
+
     test_load = loadSettings(dummy_settings, savepath)
-    
+
     if not test_load:
         os.remove(savepath)
-    
+
     return test_load
 
 
@@ -477,7 +477,7 @@ water_scattering_table = {0 : 0.01692,
                         5 : 0.01665,
                         6 : 0.01661,
                         7 : 0.01657,
-                        8 : 0.01653, 
+                        8 : 0.01653,
                         9 : 0.01650,
                         10 : 0.01647,
                         11 : 0.01645,
@@ -557,7 +557,7 @@ water_scattering_table = {0 : 0.01692,
                         85 : 0.01902,
                         86 : 0.01909,
                         87 : 0.01917,
-                        88 : 0.01925, 
+                        88 : 0.01925,
                         89 : 0.01932,
                         90 : 0.01940,
                         91 : 0.01948,
@@ -568,6 +568,6 @@ water_scattering_table = {0 : 0.01692,
                         96 : 0.01989,
                         97 : 0.01998,
                         98 : 0.02006,
-                        99 : 0.02015, 
+                        99 : 0.02015,
                         100 : 0.02023}
-    
+

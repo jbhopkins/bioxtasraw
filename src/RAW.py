@@ -54,7 +54,7 @@ question_return_queue = Queue.Queue()
 
 
 class MainFrame(wx.Frame):
-    
+
     def __init__(self, title, frame_id):
         wx.Frame.__init__(self, None, frame_id, title, name = 'MainFrame')
 
@@ -126,9 +126,9 @@ class MainFrame(wx.Frame):
                         'runefa'              : wx.NewId(),
                         'showhistory'         : wx.NewId()
                         }
-        
+
         self.tbIcon = RawTaskbarIcon(self)
-        
+
         self.guinierframe = None
         self.molweightframe = None
         self.gnomframe = None
@@ -138,40 +138,40 @@ class MainFrame(wx.Frame):
         self.svdframe = None
         self.efaframe = None
         self.raw_settings = RAWSettings.RawGuiSettings()
-        
+
         self.RAWWorkDir = RAWWorkDir
-          
+
         self.OnlineControl = OnlineController(self, self.raw_settings)
         self.OnlineSECControl = OnlineSECController(self, self.raw_settings)
-         
+
         self.statusbar = self.CreateStatusBar()
         self.statusbar.SetFieldsCount(3)
         self.statusbar.SetStatusWidths([-3, -2, -1])
-        self.statusbar.SetStatusText('Mode: OFFLINE', 2)    
+        self.statusbar.SetStatusText('Mode: OFFLINE', 2)
         self.Bind(wx.EVT_CLOSE, self._onCloseWindow)
-        
+
         # *************** Set minimum frame size ***************
         self.SetMinSize((800,600))
-        
+
         # /* CREATE PLOT NOTEBOOK */
         self._mgr = aui.AuiManager()
         self._mgr.SetManagedWindow(self)
-        
+
         self.plot_notebook = aui.AuiNotebook(self, style = aui.AUI_NB_TAB_MOVE | aui.AUI_NB_TAB_SPLIT | aui.AUI_NB_SCROLL_BUTTONS)
     #self.plot_notebook = MyAuiNotebook(self, style = aui.AUI_NB_TAB_MOVE | aui.AUI_NB_TAB_SPLIT | aui.AUI_NB_SCROLL_BUTTONS)
-        
+
 
         plot_panel = RAWPlot.PlotPanel(self.plot_notebook, -1, 'PlotPanel')
         img_panel = RAWImage.ImagePanel(self.plot_notebook, -1, 'ImagePanel')
         iftplot_panel = RAWPlot.IftPlotPanel(self.plot_notebook, -1, 'IFTPlotPanel')
         sec_panel = RAWPlot.SECPlotPanel(self.plot_notebook,-1, 'SECPlotPanel')
-        
+
         self.plot_notebook.AddPage(plot_panel, "Main Plot", True)
         self.plot_notebook.AddPage(iftplot_panel, "IFT Plot", False)
         self.plot_notebook.AddPage(img_panel, "Image", False)
         self.plot_notebook.AddPage(sec_panel, "SEC", False)
-        
-                             
+
+
         self.control_notebook = aui.AuiNotebook(self, style = aui.AUI_NB_TAB_MOVE)
         page2 = ManipulationPanel(self.control_notebook, self.raw_settings)
         page4 = SECPanel(self.control_notebook, self.raw_settings)
@@ -179,13 +179,13 @@ class MainFrame(wx.Frame):
         page1 = FilePanel(self.control_notebook)
 
         self.control_notebook.Bind(aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.onControlTabChange)
-        
-       
+
+
         self.control_notebook.AddPage(page1, "Files", True)
         self.control_notebook.AddPage(page2, "Manipulation", False)
         self.control_notebook.AddPage(page3, "IFT", False)
         self.control_notebook.AddPage(page4, "SEC",False)
-        
+
         self.info_panel = InformationPanel(self)
         self.centering_panel = CenteringPanel(self, -1)
         self.masking_panel = MaskingPanel(self, -1)
@@ -196,7 +196,7 @@ class MainFrame(wx.Frame):
                           CloseButton(False).Left().Layer(0).Caption("Control Panel").MinSize((400,300)).PinButton(True).Row(0).Position(1))
         self._mgr.AddPane(self.plot_notebook, aui.AuiPaneInfo().Name("plotpanel").
                           CloseButton(False).Centre().Layer(0).Caption("Plot Panel"))
-        
+
         self._mgr.AddPane(self.centering_panel, aui.AuiPaneInfo().Name("centeringpanel").
                            CloseButton(False).Left().Layer(0).Caption("Centering / Calibration").
                            PinButton(True).Row(0).Position(2))
@@ -207,23 +207,23 @@ class MainFrame(wx.Frame):
 
         self._mgr.GetPane(self.centering_panel).Show(False)
         self._mgr.GetPane(self.centering_panel).dock_proportion = 350000
-        
+
         self._mgr.GetPane(self.masking_panel).Show(False)
         self._mgr.GetPane(self.masking_panel).dock_proportion = 350000
 
         self._mgr.GetPane(self.info_panel).FloatingSize((300,200))
         self._mgr.GetPane(self.control_notebook).dock_proportion = 350000
-        
+
         self._mgr.GetPane(self.info_panel).dock_proportion = 120000
-        
+
         self._mgr.Update()
-        
+
         self._mgr.GetPane(self.control_notebook).MinSize((200,300))
 
         #Load workdir from rawcfg.dat:
         self._loadCfg()
-        self._createMenuBar()        
-                
+        self._createMenuBar()
+
         # Start Plot Thread:
         self.main_worker_thread = MainWorkerThread(self, self.raw_settings)
         self.main_worker_thread.setDaemon(True)
@@ -232,7 +232,7 @@ class MainFrame(wx.Frame):
         icon = RAWIcons.raw_icon_embed.GetIcon()
         self.SetIcon(icon)
         app.SetTopWindow(self)
-  
+
         self.SetSize((1024,768))
         self.CenterOnScreen()
         self.Show(True)
@@ -249,16 +249,16 @@ class MainFrame(wx.Frame):
         if len(data) > 1:
             arg = data[1]
             file, ext = os.path.splitext(arg)
-            
+
             if ext == '.wsp':
                 if os.path.exists(arg):
-                     mainworker_cmd_queue.put(['load_workspace', [arg]])  
-    
+                     mainworker_cmd_queue.put(['load_workspace', [arg]])
+
         else:
             file = os.path.join(RAWWorkDir, 'backup.cfg')
-            
+
             if os.path.exists(file):
-    
+
                 if self.raw_settings.get('PromptConfigLoad'):
                     dlg = wx.MessageDialog(parent = self, message = 'Load last saved configuration?', caption = 'Restore configuration', style=wx.YES_NO|wx.ICON_QUESTION)
                     answer = dlg.ShowModal()
@@ -268,7 +268,7 @@ class MainFrame(wx.Frame):
 
                 if answer == wx.ID_YES:
                     success = RAWSettings.loadSettings(self.raw_settings, file)
-                
+
                     if success:
                         self.raw_settings.set('CurrentCfg', file)
                     else:
@@ -301,7 +301,7 @@ class MainFrame(wx.Frame):
             item = menubar.FindItemById(self.MenuIDs['goOnline'])
             item.Check(True)
 
-    
+
     def getRawSettings(self):
         return self.raw_settings
 
@@ -315,23 +315,23 @@ class MainFrame(wx.Frame):
     def test(self):
         self._mgr.GetPane(self.info_panel).Show(False)
         self._mgr.Update()
-        
+
     def queueTaskInWorkerThread(self, taskname, data):
         mainworker_cmd_queue.put([taskname, data])
-        
+
     def closeBusyDialog(self):
         self._busyDialog.Destroy()
         self._busyDialog = None
-    
-    def showBusyDialog(self, text): 
+
+    def showBusyDialog(self, text):
         self._busyDialog = wx.BusyInfo(text, self)
-    
+
     def getWorkerThreadQueue(self):
         return mainworker_cmd_queue
-    
+
     def getQuestionReturnQueue(self):
         return question_return_queue
-    
+
     def showMaskingPane(self):
         self._mgr.GetPane(self.masking_panel).Show(True)
         self._mgr.GetPane(self.centering_panel).Show(False)
@@ -339,7 +339,7 @@ class MainFrame(wx.Frame):
         self._mgr.Update()
         self.plot_notebook.SetSelection(2)
         wx.FindWindowByName('MaskingPanel').updateView()
-        
+
     def closeMaskingPane(self):
         self._mgr.GetPane(self.masking_panel).Show(False)
         self._mgr.GetPane(self.control_notebook).Show(True)
@@ -358,49 +358,49 @@ class MainFrame(wx.Frame):
             while self.plot_notebook.GetSelection() != mainpage:
                 time.sleep(.001)
                 self.plot_notebook.SetSelection(mainpage)
-        
+
     def showCenteringPane(self):
         self._mgr.GetPane(self.centering_panel).Show(True)
         self._mgr.GetPane(self.control_notebook).Show(False)
         self._mgr.GetPane(self.masking_panel).Show(False)
         self._mgr.Update()
         self.plot_notebook.SetSelection(2)
-        
+
         self.centering_panel.updateAll()
-        
+
     def closeCenteringPane(self):
         self._mgr.GetPane(self.centering_panel).Show(False)
         self._mgr.GetPane(self.control_notebook).Show(True)
         self._mgr.Update()
         self.plot_notebook.SetSelection(0)
 
-        
+
     def showQuestionDialogFromThread(self, question, label, button_list, icon = None, filename = None, save_path = None):
         ''' Function to show a question dialog from the thread '''
-        
+
         question_dialog = RAWCustomCtrl.CustomQuestionDialog(self, question, button_list, label, icon, filename, save_path, style = wx.CAPTION)
         result = question_dialog.ShowModal()
         path = question_dialog.getPath()
-        question_dialog.Destroy()        
-        
+        question_dialog.Destroy()
+
         if path:
             question_return_queue.put([result, path])
         else:
-            question_return_queue.put([result])  # put answer in thread safe queue 
-        
+            question_return_queue.put([result])  # put answer in thread safe queue
+
         thread_wait_event.set()                 # Release thread from its waiting state
-        
+
     def _loadCfg(self):
-        
+
         try:
             file = 'rawcfg.dat'
             FileObj = open(file, 'r')
             savedInfo = cPickle.load(FileObj)
             FileObj.close()
-            
+
             dirctrl = wx.FindWindowByName('DirCtrlPanel')
             dirctrl.SetPath(savedInfo['workdir'])
-            
+
             self.ChangeParameter('ImageFormat', savedInfo['ImageFormat'])
         except:
             pass
@@ -419,7 +419,7 @@ class MainFrame(wx.Frame):
 
             if self.gnomframe:
                 self.gnomframe.Destroy()
-            
+
             #if not self.guinierframe:
             self.gnomframe = RAWAnalysis.GNOMFrame(self, 'GNOM', sasm, manip_item)
             self.gnomframe.SetIcon(self.GetIcon())
@@ -427,7 +427,7 @@ class MainFrame(wx.Frame):
 
         else:
             msg = 'The GNOM program in the ATSAS package could not be found. Please make sure that ATSAS is installed, and that you have defined the ATSAS directory in the RAW Advanced Options. '
-            dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS", 
+            dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS",
                                     wx.OK | wx.ICON_INFORMATION)
             answer2 = dial2.ShowModal()
             dial2.Destroy()
@@ -437,27 +437,27 @@ class MainFrame(wx.Frame):
 
         if self.biftframe:
             self.biftframe.Destroy()
-        
+
         #if not self.guinierframe:
         self.biftframe = RAWAnalysis.BIFTFrame(self, 'BIFT', sasm, manip_item)
         self.biftframe.SetIcon(self.GetIcon())
         self.biftframe.Show(True)
-    
+
     def showMolWeightFrame(self, sasm, manip_item):
-        
+
         if self.molweightframe:
             self.molweightframe.Destroy()
-        
+
         #if not self.guinierframe:
         self.molweightframe = RAWAnalysis.MolWeightFrame(self, 'Molecular Weight', sasm, manip_item)
         self.molweightframe.SetIcon(self.GetIcon())
         self.molweightframe.Show(True)
 
     def showGuinierFitFrame(self, sasm, manip_item):
-        
+
         if self.guinierframe:
             self.guinierframe.Destroy()
-        
+
         self.guinierframe = RAWAnalysis.GuinierFrame(self, 'Guinier Fit', sasm, manip_item)
         self.guinierframe.SetIcon(self.GetIcon())
         self.guinierframe.Show(True)
@@ -466,7 +466,7 @@ class MainFrame(wx.Frame):
 
         if iftm.getParameter('algorithm') != 'GNOM':
             msg = 'DAMMIF can only process IFTs produced by GNOM. This was produced using %s.' %(iftm.getParameter('algorithm'))
-            dial2 = wx.MessageDialog(self, msg, "Wrong IFT type", 
+            dial2 = wx.MessageDialog(self, msg, "Wrong IFT type",
                                     wx.OK | wx.ICON_ERROR)
             answer2 = dial2.ShowModal()
             dial2.Destroy()
@@ -487,7 +487,7 @@ class MainFrame(wx.Frame):
                 result = self.dammifframe.Close()
             else:
                 result = True
-            
+
             #if not self.guinierframe:
 
             if result:
@@ -499,16 +499,16 @@ class MainFrame(wx.Frame):
 
         else:
             msg = 'The DAMMIF program in the ATSAS package could not be found. Please make sure that ATSAS is installed, and that you have defined the ATSAS directory in the RAW Advanced Options. '
-            dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS", 
+            dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS",
                                     wx.OK | wx.ICON_INFORMATION)
             answer2 = dial2.ShowModal()
             dial2.Destroy()
-  
+
     def showAmbiFrame(self, iftm, manip_item):
 
         if iftm.getParameter('algorithm') != 'GNOM':
             msg = 'AMBIMETER can only process IFTs produced by GNOM. This was produced using %s.' %(iftm.getParameter('algorithm'))
-            dial2 = wx.MessageDialog(self, msg, "Wrong IFT type", 
+            dial2 = wx.MessageDialog(self, msg, "Wrong IFT type",
                                     wx.OK | wx.ICON_ERROR)
             answer2 = dial2.ShowModal()
             dial2.Destroy()
@@ -536,21 +536,21 @@ class MainFrame(wx.Frame):
 
                 if self.ambimeterframe:
                     self.ambimeterframe.Close()
-                
+
                 self.ambimeterframe = RAWAnalysis.AmbimeterFrame(self, 'AMBIMETER', iftm, manip_item)
                 self.ambimeterframe.SetIcon(self.GetIcon())
                 self.ambimeterframe.Show(True)
-            
+
             else:
                 msg = 'The AMBIMETER version is not recent enough. You need to have ATSAS >= 2.7.1 installed to use this feature.'
-                dial2 = wx.MessageDialog(self, msg, "Wrong AMBIMETER Version", 
+                dial2 = wx.MessageDialog(self, msg, "Wrong AMBIMETER Version",
                                         wx.OK | wx.ICON_INFORMATION)
                 answer2 = dial2.ShowModal()
-                dial2.Destroy()  
+                dial2.Destroy()
 
         else:
             msg = 'The AMBIMETER program in the ATSAS package could not be found. Please make sure that ATSAS is installed, and that you have defined the ATSAS directory in the RAW Advanced Options. '
-            dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS", 
+            dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS",
                                     wx.OK | wx.ICON_INFORMATION)
             answer2 = dial2.ShowModal()
             dial2.Destroy()
@@ -559,7 +559,7 @@ class MainFrame(wx.Frame):
 
         if self.svdframe:
             self.svdframe.Destroy()
-                
+
         self.svdframe = RAWAnalysis.SVDFrame(self, 'Singular Value Decomposition', secm, manip_item)
         self.svdframe.SetIcon(self.GetIcon())
         self.svdframe.Show(True)
@@ -577,60 +577,60 @@ class MainFrame(wx.Frame):
             dlg.Destroy()
 
             if proceed == wx.ID_CANCEL:
-                return   
-                
+                return
+
         self.efaframe = RAWAnalysis.EFAFrame(self, 'Evolving Factor Analysis', secm, manip_item)
         self.efaframe.SetIcon(self.GetIcon())
         self.efaframe.Show(True)
-            
+
     def _createSingleMenuBarItem(self, info):
-        
+
         menu = wx.Menu()
-        
+
         for each in info:
-            
+
             type = each[3]
             bindFunc = each[2]
             menuid = each[1]
             label = each[0]
-            
+
             if type == 'normal':
                 menu.Append(menuid, label)
                 self.Bind(wx.EVT_MENU, bindFunc, id = menuid)
-            
+
             elif type == 'check':
                 menu.AppendCheckItem(menuid, label)
                 self.Bind(wx.EVT_MENU, bindFunc, id = menuid)
-                
+
             elif type == 'radio':
                 menu.AppendRadioItem(menuid, label)
                 self.Bind(wx.EVT_MENU, bindFunc, id = menuid)
-                
+
             elif type == 'submenu':
                 submenu = self._createSingleMenuBarItem(bindFunc)
                 menu.AppendSubMenu(submenu, label)
-                
+
             elif type == 'separator':
                 menu.AppendSeparator()
-                
+
         return menu
-    
+
     def _onHelp(self, event):
         msg = "In program help is not current available for RAW. For tutorials, demo videos, and installation guides, please see the RAW project home page (select Help->About for more details)."
         wx.CallAfter(wx.MessageBox, msg, 'Sorry!', style=wx.OK|wx.ICON_INFORMATION)
         # os.execl('xchm')
-    
+
     def _createMenuBar(self):
-        
-        submenus = {                    
+
+        submenus = {
                     'viewPlot1Scale':[('Lin-Lin', self.MenuIDs['plot1sclinlin'], self._onViewMenu, 'radio'),
                                       ('Log-Lin', self.MenuIDs['plot1scloglin'], self._onViewMenu, 'radio'),
                                       ('Log-Log', self.MenuIDs['plot1scloglog'], self._onViewMenu, 'radio'),
                                       ('Lin-Log', self.MenuIDs['plot1sclinlog'], self._onViewMenu, 'radio'),
                                       ('Guinier', self.MenuIDs['plot1tyguinier'],self._onViewMenu, 'radio'),
-                                      ('Kratky',  self.MenuIDs['plot1tykratky'], self._onViewMenu, 'radio'),                            
+                                      ('Kratky',  self.MenuIDs['plot1tykratky'], self._onViewMenu, 'radio'),
                                       ('Porod',   self.MenuIDs['plot1typorod'],  self._onViewMenu, 'radio')],
-                                      
+
                     'viewPlot2Scale':[('Lin-Lin', self.MenuIDs['plot2sclinlin'], self._onViewMenu, 'radio'),
                                       ('Log-Lin', self.MenuIDs['plot2scloglin'], self._onViewMenu, 'radio'),
                                       ('Log-Log', self.MenuIDs['plot2scloglog'], self._onViewMenu, 'radio'),
@@ -638,7 +638,7 @@ class MainFrame(wx.Frame):
                                       ('Guinier', self.MenuIDs['plot2tyguinier'],self._onViewMenu, 'radio'),
                                       ('Kratky',  self.MenuIDs['plot2tykratky'], self._onViewMenu, 'radio'),
                                       ('Porod',   self.MenuIDs['plot2typorod'],  self._onViewMenu, 'radio')],
-                    
+
                     'onlinemenu':    [('Offline', self.MenuIDs['goOffline'], self._onOnlineMenu, 'radio'),
                                       ('Online', self.MenuIDs['goOnline'], self._onOnlineMenu, 'radio'),
                                       ('Change Directory', self.MenuIDs['changeOnline'], self._onOnlineMenu, 'normal')],
@@ -665,9 +665,9 @@ class MainFrame(wx.Frame):
                     'atsas':         [('GNOM', self.MenuIDs['rungnom'], self._onToolsMenu, 'normal'),
                                       ('DAMMIF/N', self.MenuIDs['rundammif'], self._onToolsMenu, 'normal'),
                                       ('AMBIMETER', self.MenuIDs['runambimeter'], self._onToolsMenu, 'normal')]
-                                      }         
-                                    
-        
+                                      }
+
+
         menus = [('&File',    [('&Load Settings', self.MenuIDs['loadSettings'], self._onLoadMenu, 'normal'),
                                ('&Save Settings', self.MenuIDs['saveSettings'], self._onSaveMenu, 'normal'),
                                (None, None, None, 'separator'),
@@ -675,10 +675,10 @@ class MainFrame(wx.Frame):
                                ('&Save Workspace', self.MenuIDs['saveWorkspace'], self._onSaveWorkspaceMenu, 'normal'),
                                (None, None, None, 'separator'),
                                ('E&xit', self.MenuIDs['exit'], self._onFileMenu, 'normal')]),
-                 
+
                  ('&Options', [('&Advanced Options...', self.MenuIDs['advancedOptions'], self._onOptionsMenu, 'normal'),
                               ('&Online mode', None, submenus['onlinemenu'], 'submenu')]),
-                              
+
                  ('&View',    [('&Show Image', self.MenuIDs['showimage'], self._onViewMenu, 'normal'),
                                ('&Show Data', self.MenuIDs['showdata'], self._onViewMenu, 'normal'),
                                ('&Show Header', self.MenuIDs['showheader'], self._onViewMenu, 'normal'),
@@ -690,7 +690,7 @@ class MainFrame(wx.Frame):
                                ('&SEC Plot Right Y Axis', None, submenus['viewSECRight'], 'submenu'),
                                ('&SEC Plot X Axis', None, submenus['viewSECX'], 'submenu')
                                ]),
-                              
+
                  ('&Tools',   [('&Operations', None, submenus['operations'], 'submenu'),
                                ('&Convert q-scale', None, submenus['convertq'], 'submenu'),
                                ('&Use as MW standard', self.MenuIDs['mwstandard'], self._onToolsMenu, 'normal'),
@@ -705,28 +705,28 @@ class MainFrame(wx.Frame):
                                ('&Centering/Calibration', self.MenuIDs['centering'], self._onToolsMenu, 'normal'),
                                ('&Masking', self.MenuIDs['masking'], self._onToolsMenu, 'normal')
                               ]),
-                              
+
                  ('&Help',    [('&Help!', self.MenuIDs['help'], self._onHelp, 'normal'),
                                (None, None, None, 'separator'),
                                ('&About', self.MenuIDs['about'], self._onAboutDlg, 'normal')])]
-        
+
         menubar = wx.MenuBar()
-        
+
         for each in menus:
-         
+
             menuitem = self._createSingleMenuBarItem(each[1])
-            menubar.Append(menuitem, each[0])    
-        
+            menubar.Append(menuitem, each[0])
+
         self.Bind(wx.EVT_MENU, self._onFileMenu, id = wx.ID_EXIT)
 
         self.SetMenuBar(menubar)
-        
+
     def _onToolsMenu(self, evt):
-        
+
         id = evt.GetId()
-        
+
         if id == self.MenuIDs['guinierfit']:
-                        
+
             manippage = wx.FindWindowByName('ManipulationPanel')
 
             current_page = self.control_notebook.GetSelection()
@@ -735,13 +735,13 @@ class MainFrame(wx.Frame):
             if page !=manippage:
                 wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
-            
+
             if len(manippage.getSelectedItems()) > 0:
                 sasm = manippage.getSelectedItems()[0].getSASM()
                 self.showGuinierFitFrame(sasm, manippage.getSelectedItems()[0])
             else:
                 wx.MessageBox("Please select a scattering profile from the list on the manipulation page.", "No profile selected")
-        
+
         elif id == self.MenuIDs['molweight']:
             manippage = wx.FindWindowByName('ManipulationPanel')
 
@@ -751,19 +751,19 @@ class MainFrame(wx.Frame):
             if page !=manippage:
                 wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
-            
+
             if len(manippage.getSelectedItems()) > 0:
                 sasm = manippage.getSelectedItems()[0].getSASM()
                 self.showMolWeightFrame(sasm, manippage.getSelectedItems()[0])
             else:
                 wx.MessageBox("Please select a scattering profile from the list on the manipulation page.", "No profile selected")
-        
+
         elif id == self.MenuIDs['centering']:
             self.showCenteringPane()
-        
+
         elif id == self.MenuIDs['masking']:
             self.showMaskingPane()
-        
+
         elif id == self.MenuIDs['subtract']:
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
@@ -813,7 +813,7 @@ class MainFrame(wx.Frame):
             retval = dlg.ShowModal()
             ret, logbin = dlg.getValues()
             dlg.Destroy()
-            
+
             if retval != wx.ID_CANCEL:
                 mainworker_cmd_queue.put(['rebin_items', [selected_items, ret, logbin]])
 
@@ -870,7 +870,7 @@ class MainFrame(wx.Frame):
         elif id == self.MenuIDs['norm_conc']:
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
-            
+
             if page != wx.FindWindowByName('ManipulationPanel'):
                 wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
@@ -881,7 +881,7 @@ class MainFrame(wx.Frame):
         elif id == self.MenuIDs['mwstandard']:
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
-            
+
             if page != wx.FindWindowByName('ManipulationPanel'):
                 wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
@@ -903,7 +903,7 @@ class MainFrame(wx.Frame):
             if page !=manippage:
                 wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
-            
+
             if len(manippage.getSelectedItems()) > 0:
                 sasm = manippage.getSelectedItems()[0].getSASM()
                 self.showGNOMFrame(sasm, manippage.getSelectedItems()[0])
@@ -920,7 +920,7 @@ class MainFrame(wx.Frame):
             if page !=manippage:
                 wx.MessageBox('The selected operation cannot be performed unless the IFT window is selected.', 'Select IFT Window', style = wx.ICON_INFORMATION)
                 return
-            
+
             if len(manippage.getSelectedItems()) > 0:
                 iftm = manippage.getSelectedItems()[0].getIFTM()
                 self.showDAMMIFFrame(iftm, manippage.getSelectedItems()[0])
@@ -936,7 +936,7 @@ class MainFrame(wx.Frame):
             if page !=manippage:
                 wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
-            
+
             if len(manippage.getSelectedItems()) > 0:
                 sasm = manippage.getSelectedItems()[0].getSASM()
                 self.showBIFTFrame(sasm, manippage.getSelectedItems()[0])
@@ -952,7 +952,7 @@ class MainFrame(wx.Frame):
             if page !=manippage:
                 wx.MessageBox('The selected operation cannot be performed unless the IFT window is selected.', 'Select IFT Window', style = wx.ICON_INFORMATION)
                 return
-            
+
             if len(manippage.getSelectedItems()) > 0:
                 iftm = manippage.getSelectedItems()[0].getIFTM()
                 self.showAmbiFrame(iftm, manippage.getSelectedItems()[0])
@@ -982,7 +982,7 @@ class MainFrame(wx.Frame):
                     secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {})
 
                     manip_item = None
-                
+
                 else:
                     msg = 'You must select at least 2 scattering profiles to run SVD.'
                     dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
@@ -1015,7 +1015,7 @@ class MainFrame(wx.Frame):
                     dlg.Destroy()
 
                     return
-            
+
             elif page == secpage:
                 selected_items = secpage.getSelectedItems()
 
@@ -1055,7 +1055,7 @@ class MainFrame(wx.Frame):
                     secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {})
 
                     manip_item = None
-                
+
                 else:
                     msg = 'You must select at least 2 scattering profiles to run EFA.'
                     dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
@@ -1088,7 +1088,7 @@ class MainFrame(wx.Frame):
                     dlg.Destroy()
 
                     return
-            
+
             elif page == secpage:
                 selected_items = secpage.getSelectedItems()
 
@@ -1106,7 +1106,7 @@ class MainFrame(wx.Frame):
             self.showEFAFrame(secm, manip_item)
 
     def _onViewMenu(self, evt):
-        
+
         val = evt.GetId()
 
         if val == self.MenuIDs['showimage']:
@@ -1121,7 +1121,7 @@ class MainFrame(wx.Frame):
             if len(selected_items) !=1:
                 wx.MessageBox('Please select one (and only one) item to view the image.', 'Select Item', style = wx.ICON_INFORMATION)
                 return
-            
+
             if not selected_items[0].sasm.getAllParameters().has_key('load_path'):
                 wx.MessageBox('The image associated with the data could not be found.', 'Image Not Found', style = wx.ICON_INFORMATION)
                 return
@@ -1186,48 +1186,48 @@ class MainFrame(wx.Frame):
 
         else:
             key = [k for k, v in self.MenuIDs.iteritems() if v == val][0]
-            
+
             plotpanel = wx.FindWindowByName('PlotPanel')
             secplotpanel = wx.FindWindowByName('SECPlotPanel')
-            
+
             if key[0:7] == 'plot2sc':
                 plotpanel.plotparams['axesscale2'] = key[-6:]
                 plotpanel.plotparams['plot2type'] = 'subtracted'
                 plotpanel.updatePlotAxes()
                 plotpanel.updatePlotType(plotpanel.subplot2)
-             
+
             elif key[0:7] == 'plot1sc':
                 plotpanel.plotparams['axesscale1'] = key[-6:]
                 plotpanel.plotparams['plot1type'] = 'normal'
                 plotpanel.updatePlotAxes()
                 plotpanel.updatePlotType(plotpanel.subplot1)
-                
+
             elif key[0:7] == 'plot1ty':
                 plotpanel.plotparams['plot1type'] = key[7:]
-                
+
                 if key[7:] == 'guinier':
                     plotpanel.plotparams['axesscale1'] = 'loglin'
                     plotpanel.updatePlotAxes()
-                
+
                 elif key[7:] == 'kratky' or key[7:] == 'porod':
                     plotpanel.plotparams['axesscale1'] = 'linlin'
                     plotpanel.updatePlotAxes()
-                    
+
                 plotpanel.updatePlotType(plotpanel.subplot1)
-                
-        
+
+
             elif key[0:7] == 'plot2ty':
                 plotpanel.plotparams['plot2type'] = key[7:]
-                
-                
+
+
                 if key[7:] == 'guinier':
                     plotpanel.plotparams['axesscale2'] = 'loglin'
                     plotpanel.updatePlotAxes()
-                    
+
                 elif key[7:] == 'kratky' or key[7:] == 'porod':
                     plotpanel.plotparams['axesscale2'] = 'linlin'
                     plotpanel.updatePlotAxes()
-                
+
                 plotpanel.updatePlotType(plotpanel.subplot2)
 
             if key == 'secplottotal':
@@ -1259,7 +1259,7 @@ class MainFrame(wx.Frame):
                     secplotpanel.plotparams['framestyle2'] = secplotpanel.plotparams['framestyle2']+'r'
                     secplotpanel._updateFrameStylesForAllPlots()
                 secplotpanel.updatePlotData(secplotpanel.ryaxis)
-                
+
             elif key == 'secplotmw':
                 secplotpanel.plotparams['secm_plot_calc'] = 'MW'
                 raxis_on = secplotpanel.plotparams['framestyle1'].find('r')
@@ -1268,7 +1268,7 @@ class MainFrame(wx.Frame):
                     secplotpanel.plotparams['framestyle2'] = secplotpanel.plotparams['framestyle2']+'r'
                     secplotpanel._updateFrameStylesForAllPlots()
                 secplotpanel.updatePlotData(secplotpanel.ryaxis)
-                
+
             elif key == 'secploti0':
                 secplotpanel.plotparams['secm_plot_calc'] = 'I0'
                 raxis_on = secplotpanel.plotparams['framestyle1'].find('r')
@@ -1277,7 +1277,7 @@ class MainFrame(wx.Frame):
                     secplotpanel.plotparams['framestyle2'] = secplotpanel.plotparams['framestyle2']+'r'
                     secplotpanel._updateFrameStylesForAllPlots()
                 secplotpanel.updatePlotData(secplotpanel.ryaxis)
-                
+
             elif key == 'secplotnone':
                 secplotpanel.plotparams['secm_plot_calc'] = 'None'
                 secplotpanel.updatePlotData(secplotpanel.ryaxis)
@@ -1331,24 +1331,24 @@ class MainFrame(wx.Frame):
                 secplotpanel.plotparams['axesscale2'] = param
 
                 secplotpanel.updatePlotAxes()
-    
+
     def _onSaveMenu(self, event):
         self._onSaveSettings(None)
 
     def _onOnlineMenu(self, event):
-        
+
         id = event.GetId()
-#        
+#
         if id == self.MenuIDs['goOnline']:
             is_online = self.OnlineControl.goOnline()
-            
+
             if is_online:
                 self.setStatus('Mode: ONLINE', 2)
             else:
                 menubar = self.GetMenuBar()
                 item = menubar.FindItemById(self.MenuIDs['goOffline'])
                 item.Check(True)
-                
+
         elif id == self.MenuIDs['goOffline']:
             self.setStatus('Mode: OFFLINE', 2)
             self.OnlineControl.goOffline()
@@ -1358,87 +1358,87 @@ class MainFrame(wx.Frame):
 
             if result == False:
                 wx.MessageBox('Could not change online directory. Online mode must be active to change the directory.', 'Change directory failed', style = wx.ICON_INFORMATION | wx.OK)
-        
-        
+
+
     def _onOptionsMenu(self, event):
-        
+
         if event.GetId() == self.MenuIDs['advancedOptions']:
             self.showOptionsDialog()
-    
+
     def _onFileMenu(self, event):
-        
+
         if event.GetId() == self.MenuIDs['exit'] or event.GetId() == wx.ID_EXIT:
             self._onCloseWindow(0)
-            
+
     def _onLoadMenu(self, event):
         self._onLoadSettings(None)
-    
-    def _onLoadSettings(self, evt):   
-        
+
+    def _onLoadSettings(self, evt):
+
         file = self._createFileDialog(wx.OPEN)
-        
+
         if file:
             success = RAWSettings.loadSettings(self.raw_settings, file)
-            
+
             if success:
                 self.raw_settings.set('CurrentCfg', file)
 
             else:
                 wx.CallAfter(wx.MessageBox,'Load failed, config file might be corrupted.',
                               'Load failed', style = wx.ICON_ERROR| wx.OK)
-            
-            
-    def _onSaveSettings(self, evt):   
+
+
+    def _onSaveSettings(self, evt):
         file = self._createFileDialog(wx.SAVE)
-        
+
         if file:
-            
+
             if os.path.splitext(file)[1] != '.cfg':
                 file = file + '.cfg'
-            
+
             success = RAWSettings.saveSettings(self.raw_settings, file)
-            
+
             if success:
                 self.raw_settings.set('CurrentCfg', file)
 
             else:
                 wx.MessageBox('Your settings failed to save! Please try again.', 'Save failed!', style = wx.ICON_ERROR | wx.OK)
-                
+
     def _onLoadWorkspaceMenu(self, evt):
         manip_panel = wx.FindWindowByName('ManipulationPanel')
-        
+
         all_items = manip_panel.getItems()
-        
+
         file = self._createFileDialog(wx.OPEN, 'Workspace files', '*.wsp')
-        
+
         if file:
             if os.path.splitext(file)[1] != '.wsp':
                 file = file + '.wsp'
-        
+
             mainworker_cmd_queue.put(['load_workspace', [file]])
-    
+
     def _onSaveWorkspaceMenu(self, evt):
         self.saveWorkspace()
-        
+
     def saveWorkspace(self):
-        
+
         manip_panel = wx.FindWindowByName('ManipulationPanel')
         ift_panel = wx.FindWindowByName('IFTPanel')
         sec_panel = wx.FindWindowByName('SECPanel')
-        
+
         sasm_items = manip_panel.getItems()
         ift_items = ift_panel.getItems()
         secm_items = sec_panel.getItems()
-        
+
         file = self._createFileDialog(wx.SAVE, 'Workspace files', '*.wsp')
-        
+
         if file:
             if os.path.splitext(file)[1] != '.wsp':
                 file = file + '.wsp'
-        
+
             mainworker_cmd_queue.put(['save_workspace', [sasm_items, ift_items, secm_items, file]])
-    
-    
+
+
     def showOptionsDialog(self, focusHead = None):
 
         if focusHead != None:
@@ -1448,17 +1448,17 @@ class MainFrame(wx.Frame):
             dialog = RAWOptions.OptionsDialog(self, self.raw_settings)
 
         dialog.ShowModal()
-        
+
     def getMenuIds(self):
         return self.MenuIDs
-    
+
     def setStatus(self, statustxt, idx):
-        
+
         self.statusbar.SetStatusText(statustxt,idx)
-    
+
     def setViewMenuScale(self, id):
         self.MenuBar.FindItemById(id).Check(True)
-    
+
     def _onAboutDlg(self, event):
         info = wx.AboutDialogInfo()
         info.Name = "RAW"
@@ -1469,34 +1469,34 @@ class MainFrame(wx.Frame):
         info.WebSite = ("http://bioxtasraw.sourceforge.net/", "The RAW Project Homepage")
         info.Developers = [u"Soren Skou", u"Jesse B. Hopkins", u"Richard E. Gillilan", u"Jesper Nygaard"]
         info.License = "This program is free software: you can redistribute it and/or modify it under the terms of the\nGNU General Public License as published by the Free Software Foundation, either version 3\n of the License, or (at your option) any later version.\n\nThis program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;\nwithout even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\nSee the GNU General Public License for more details.\n\nYou should have received a copy of the GNU General Public License along with this program.\nIf not, see http://www.gnu.org/licenses/"
-        
+
         # Show the wx.AboutBox
         wx.AboutBox(info)
-    
+
     def saveBackupData(self):
-        
+
         file = 'backup.ini'
-        
+
         try:
             file_obj = open(file, 'w')
-        
+
             path = wx.FindWindowByName('FileListCtrl').path
             save_info = {'workdir' : path}
-        
+
             cPickle.dump(save_info, file_obj)
             file_obj.close()
         except Exception, e:
             print e
-    
+
     def _onCloseWindow(self, event):
 
         manipulation_panel = wx.FindWindowByName('ManipulationPanel')
         sec_panel = wx.FindWindowByName('SECPanel')
 
         answer2 = wx.ID_YES
-        
+
         if manipulation_panel.modified_items != [] or sec_panel.modified_items != []:
-            
+
             if manipulation_panel.modified_items !=[] and sec_panel.modified_items != []:
                 message = 'manipulation and SEC '
             elif manipulation_panel.modified_items !=[] and sec_panel.modified_items == []:
@@ -1504,7 +1504,7 @@ class MainFrame(wx.Frame):
             else:
                 message = 'SEC '
 
-            dial2 = wx.MessageDialog(self, 'You have unsaved changes in your ' + message + 'data. Do you want to discard these changes?', 'Discard changes?', 
+            dial2 = wx.MessageDialog(self, 'You have unsaved changes in your ' + message + 'data. Do you want to discard these changes?', 'Discard changes?',
                                      wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
             answer2 = dial2.ShowModal()
             dial2.Destroy()
@@ -1519,27 +1519,27 @@ class MainFrame(wx.Frame):
             self.tbIcon.RemoveIcon()
             self.tbIcon.Destroy()
             self.Destroy()
-        
+
     def _createFileDialog(self, mode, name = 'Config files', ext = '*.cfg'):
-        
+
         file = None
-        
+
         path = wx.FindWindowByName('FileListCtrl').path
-        
+
         if mode == wx.OPEN:
             filters = name + ' (' + ext + ')|' + ext + '|All files (*.*)|*.*'
             dialog = wx.FileDialog( None, style = mode, wildcard = filters, defaultDir = path)
         if mode == wx.SAVE:
             filters = name + ' ('+ext+')|'+ext
-            dialog = wx.FileDialog( None, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = path)        
-        
+            dialog = wx.FileDialog( None, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = path)
+
         # Show the dialog and get user input
         if dialog.ShowModal() == wx.ID_OK:
             file = dialog.GetPath()
-            
+
         # Destroy the dialog
         dialog.Destroy()
-        
+
         return file
 
     def controlTimer(self, state):
@@ -1567,11 +1567,11 @@ class MainFrame(wx.Frame):
 
 
 
-class OnlineController:                                   
+class OnlineController:
     def __init__(self, parent, raw_settings):
-        
+
         self.parent = parent
-        
+
         self.main_frame = parent
 
         self._raw_settings = raw_settings
@@ -1580,10 +1580,10 @@ class OnlineController:
 
         self._filt_list=self._raw_settings.get('OnlineFilterList')
         self._enable_filt=self._raw_settings.get('EnableOnlineFiltering')
-        
+
         # Setup the online file checker timer
         self.online_timer = wx.Timer()
-        
+
         self.online_timer.Bind(wx.EVT_TIMER, self.onOnlineTimer)
 
         self.old_dir_list_dict = {}
@@ -1603,12 +1603,12 @@ class OnlineController:
                 item = menubar.FindItemById(self.main_frame.MenuIDs['goOnline'])
                 item.Check(True)
 
-    
+
     def selectSearchDir(self):
         self.dirctrl = wx.FindWindowByName('DirCtrlPanel')
-        
+
         found_path = False
-        
+
         if self.seek_dir == []:
             start_dir = str(self.dirctrl.getDirLabel())
         else:
@@ -1616,7 +1616,7 @@ class OnlineController:
 
         dirdlg = wx.DirDialog(self.parent, "Please select search directory:", str(start_dir))
 
-        if dirdlg.ShowModal() == wx.ID_OK:               
+        if dirdlg.ShowModal() == wx.ID_OK:
             self.seek_dir = dirdlg.GetPath()
             found_path = True
 
@@ -1625,44 +1625,44 @@ class OnlineController:
     def changeOnline(self):
         if self.isRunning():
             found_path = self.selectSearchDir()
-            
+
             if found_path != None:
                 dir_list = os.listdir(self.seek_dir)
-                
+
                 dir_list_dict = {}
                 for each_file in dir_list:
                     dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)),os.path.getsize(os.path.join(self.seek_dir, each_file)))
-                
+
                 self.old_dir_list_dict = dir_list_dict
-                
+
                 return True
-        
+
         return False
-    
+
     def goOnline(self):
-        
+
         if self.seek_dir == []:
             found_path = self.selectSearchDir()
         else:
-            found_path = True       
+            found_path = True
 
         if found_path:
             dir_list = os.listdir(self.seek_dir)
-            
+
             dir_list_dict = {}
             for each_file in dir_list:
                 dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)), os.path.getsize(os.path.join(self.seek_dir, each_file)))
-            
+
             self.old_dir_list_dict = dir_list_dict
-            
+
             self.online_timer.Start(2000)
             return True
-        
+
         return False
-        
+
     def goOffline(self):
         self.main_frame.setStatus('', 0)
-        
+
         return self.online_timer.Stop()
 
     def startTimer(self):
@@ -1676,12 +1676,12 @@ class OnlineController:
 
     def getTargetDir(self):
         return self.seek_dir
-   
+
     def onOnlineTimer(self, evt):
         ''' This function checks for new files and processes them as they come in '''
         self._filt_list=self._raw_settings.get('OnlineFilterList')
         self._enable_filt=self._raw_settings.get('EnableOnlineFiltering')
-        
+
         self.file_list_ctrl = wx.FindWindowByName('FileListCtrl')
 
         self.main_frame.setStatus('', 0)
@@ -1716,12 +1716,12 @@ class OnlineController:
                 return
 
         dir_list = os.listdir(self.seek_dir)
-        
+
         dir_list_dict = {}
-        
+
         for each_file in dir_list:
             dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)), os.path.getsize(os.path.join(self.seek_dir, each_file)))
-            
+
         diff_list = list(set(dir_list_dict.items()) - set(self.old_dir_list_dict.items()))
         diff_list.sort(key = lambda name: name[0])
 
@@ -1732,14 +1732,14 @@ class OnlineController:
 
                 for each in diff_list:
                     each_newfile = each[0]
-                    
-                    process_str = 'Processing incomming file: ' + str(each_newfile) 
+
+                    process_str = 'Processing incomming file: ' + str(each_newfile)
                     self.main_frame.setStatus(process_str, 0)
 
                     filepath = os.path.join(self.seek_dir, str(each_newfile))
 
                     if self._fileTypeIsCompatible(filepath):
-                        
+
                         if each_newfile in self.old_dir_list_dict:
                             #ONLY UPDATE IMAGE
                             mainworker_cmd_queue.put(['online_mode_update_data', [filepath]])
@@ -1778,13 +1778,13 @@ class OnlineController:
                                     load=False
 
                     if load:
-                        process_str = 'Processing incomming file: ' + str(each_newfile) 
+                        process_str = 'Processing incomming file: ' + str(each_newfile)
                         self.main_frame.setStatus(process_str, 0)
 
                         filepath = os.path.join(self.seek_dir, str(each_newfile))
 
                         if self._fileTypeIsCompatible(filepath):
-                            
+
                             if each_newfile in self.old_dir_list_dict:
                                 if each[1][1] == self.old_dir_list_dict[each_newfile][1]:
                                     #If the size is the same, ONLY UPDATE IMAGE
@@ -1805,16 +1805,16 @@ class OnlineController:
                 mainworker_cmd_queue.put(['plot', files_to_plot])
 
             self.old_dir_list_dict.update(diff_list)
-        
-        
+
+
     def _fileTypeIsCompatible(self, path):
         root, ext = os.path.splitext(path)
         #print ext
         compatible_formats = self.main_frame.getRawSettings().get('CompatibleFormats')
         #print compatible_formats
         #print self.main_frame.getRawSettings().getAllParams()['CompatibleFormats']
-        
-        if str(ext) in compatible_formats: 
+
+        if str(ext) in compatible_formats:
             return True
         else:
             print 'Not compatible file format.'
@@ -1825,47 +1825,47 @@ class OnlineController:
 
         for each_file in file_list:
             dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)), os.path.getsize(os.path.join(self.seek_dir, each_file)))
-            
+
         diff_list = list(set(dir_list_dict.items()) - set(self.old_dir_list_dict.items()))
         diff_list.sort(key = lambda name: name[0])
 
         self.old_dir_list_dict.update(diff_list)
 
-class OnlineSECController:                                   
+class OnlineSECController:
     def __init__(self, parent, raw_settings):
-        
+
         self.parent = parent
-        
+
         self.main_frame = parent
 
         self._raw_settings = raw_settings
 
         self.online_timer = wx.Timer()
-        
+
         self.online_timer.Bind(wx.EVT_TIMER, self.onOnlineTimer)
-    
+
     def goOnline(self):
         self.sec_control_panel = wx.FindWindowByName('SECControlPanel')
         self.online_timer.Start(1000)
-        
+
     def goOffline(self):
         self.online_timer.Stop()
-   
+
     def onOnlineTimer(self, evt):
         self.sec_control_panel.onUpdate()
-        
+
 
 
 class MainWorkerThread(threading.Thread):
-    
+
     def __init__(self, parent, raw_settings):
-        
+
         threading.Thread.__init__(self)
-        
+
         self._raw_settings = raw_settings
         self._parent = parent
         self._abort = False
-        
+
         self.manipulation_panel = wx.FindWindowByName('ManipulationPanel')
         self.plot_panel = wx.FindWindowByName('PlotPanel')
         self.image_panel = wx.FindWindowByName('ImagePanel')
@@ -1876,11 +1876,11 @@ class MainWorkerThread(threading.Thread):
         self.sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
         self.sec_item_panel = wx.FindWindowByName('SECPanel')
         self.sec_control_panel = wx.FindWindowByName('SECControlPanel')
-        
-        
+
+
         self.ift_plot_panel = wx.FindWindowByName('IFTPlotPanel')
         self.ift_item_panel = wx.FindWindowByName('IFTPanel')
-        
+
         self._commands = {'plot' : self._loadAndPlot,
                                     'online_mode_update_data' : self._onlineModeUpdate,
                                     'show_nextprev_img'     : self._loadAndShowNextImage,
@@ -1919,70 +1919,70 @@ class MainWorkerThread(threading.Thread):
                                     'calculate_params_sec'  : self._calculateSECParams,
                                     'save_iftm'             : self._saveIFTM,
                                     'to_plot_sasm'          : self._plotSASM}
-         
-        
+
+
     def run(self):
-        
+
         while True:
             try:
                 command, data = mainworker_cmd_queue.get()
             except Queue.Empty:
                 command = None
-                
+
             if command != None:
-                
+
                 if self._abort == True:
                     self._cleanUpAfterAbort()
                 else:
                     self._commands[command](data)
-        
+
     def _cleanUpAfterAbort(self):
         pass
-    
-    
+
+
     def _onlineModeUpdate(self, data):
-        filename = data[0] 
-    
+        filename = data[0]
+
         img_fmt = self._raw_settings.get('ImageFormat')
-        
+
         try:
             if not os.path.isfile(filename):
                 raise SASExceptions.WrongImageFormat('not a valid file!')
-            
+
             img, imghdr = SASFileIO.loadImage(filename, img_fmt)
-            
+
             if img[-1] == None:
                 raise SASExceptions.WrongImageFormat('not a valid file!')
-                
+
         except Exception, e:
             print  'File load failed: ' + str(e)
-            return 
-        
+            return
+
         parameters = {'filename' : os.path.split(filename)[1],
                       'imageHeader' : imghdr[-1]}
-        
+
         bogus_sasm = SASM.SASM([0,1], [0,1], [0,1], parameters)
-        
+
         self._sendImageToDisplay(img[-1], bogus_sasm)
-        
-    
+
+
     def _sendIFTMToPlot(self, iftm, item_colour = 'black', line_color = None, no_update = False, update_legend = False, notsaved = False):
         wx.CallAfter(self.ift_plot_panel.plotIFTM, iftm)
         wx.CallAfter(self.ift_item_panel.addItem, iftm, item_colour, notsaved = notsaved)
-        
+
         if no_update == False:
             wx.CallAfter(self.ift_plot_panel.fitAxis)
-        
+
         if update_legend:
             wx.CallAfter(self.ift_plot_panel.updateLegend, 1)
             wx.CallAfter(self.ift_plot_panel.updateLegend, 2)
-        
-        
+
+
     def _sendSASMToPlot(self, sasm, axes_num = 1, item_colour = 'black', line_color = None, no_update = False, notsaved = False, update_legend = True):
-        
+
         wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num, color = line_color)
         wx.CallAfter(self.manipulation_panel.addItem, sasm, item_colour, notsaved = notsaved)
-            
+
         if no_update == False:
             wx.CallAfter(self.plot_panel.fitAxis)
 
@@ -1994,9 +1994,9 @@ class MainWorkerThread(threading.Thread):
     def _sendSASMToPlotSEC(self, sasm, axes_num = 1, item_colour = 'black', line_color = None, no_update = False, notsaved = False, update_legend = True):
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while plotting frames...')
 
-        wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num, color = line_color)        
+        wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num, color = line_color)
         wx.CallAfter(self.manipulation_panel.addItem, sasm, item_colour, notsaved = notsaved)
-            
+
         if not no_update:
             wx.CallAfter(self.plot_panel.fitAxis)
 
@@ -2004,14 +2004,14 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.plot_panel.updateLegend, 1)
             wx.CallAfter(self.plot_panel.updateLegend, 2)
 
-        wx.CallAfter(self.main_frame.closeBusyDialog) 
+        wx.CallAfter(self.main_frame.closeBusyDialog)
 
 
     def _sendSECMToPlot(self, secm, item_colour = 'black', line_color = None, no_update = False, notsaved = False, update_legend = True):
-        
+
         wx.CallAfter(self.sec_plot_panel.plotSECM, secm, color = line_color)
         wx.CallAfter(self.sec_item_panel.addItem, secm, item_colour, notsaved = notsaved)
-            
+
         if no_update == False:
             wx.CallAfter(self.sec_plot_panel.fitAxis)
 
@@ -2020,16 +2020,16 @@ class MainWorkerThread(threading.Thread):
 
 
     def _updateSECMPlot(self, secm, item_colour = 'black', line_color = None, no_update = False, notsaved = False):
-        
+
         if type(secm) == list:
             # length = len(secm)
-        
+
             wx.CallAfter(self.sec_plot_panel.updatePlotAfterManipulation, secm)
 
         else:
             secm_list=[secm]
             wx.CallAfter(self.sec_plot_panel.updatePlotAfterManipulation, secm_list)
-            
+
         if no_update == False:
             wx.CallAfter(self.sec_plot_panel.fitAxis)
 
@@ -2039,17 +2039,17 @@ class MainWorkerThread(threading.Thread):
         # file_list = wx.FindWindowByName('SECPanel')
         # wx.CallAfter(file_list.SetFocus)
 
-        
+
     def _sendImageToDisplay(self, img, sasm):
         wx.CallAfter(self.image_panel.showImage, img, sasm)
-    
+
     ################################
     # COMMANDS:
     ################################
-    
+
     def _calcAbsScWaterConst(self, data):
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while loading files and calculating the absolute scale constant...')
-    
+
         abs_scale_constant = 1.0
         water_filename = data[0]
         empty_filename = data[1]
@@ -2072,39 +2072,39 @@ class MainWorkerThread(threading.Thread):
                     empty_sasm = empty_sasm[0]
                 else:
                     empty_sasm = SASM.average(empty_sasm)
-                        
+
             abs_scale_constant = SASM.calcAbsoluteScaleWaterConst(water_sasm, empty_sasm, waterI0, self._raw_settings)
         except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
-            self._showDataFormatError(os.path.split(filename)[1])    
+            self._showDataFormatError(os.path.split(filename)[1])
         except SASExceptions.DataNotCompatible, msg:
             self._showSubtractionError(water_sasm, empty_sasm)
 
-        wx.CallAfter(self.main_frame.closeBusyDialog) 
+        wx.CallAfter(self.main_frame.closeBusyDialog)
         question_return_queue.put(abs_scale_constant)
-    
-    
+
+
     def _runBIFT(self, sasm, bift_queue, parameters):
         ift_sasm = BIFT.doBift(sasm, bift_queue, *parameters)
         return ift_sasm
-    
+
     def _runManualIft(self, sasm, parameters):
         dmax = parameters['dmax']
         alpha = parameters['alpha']
-        
+
         ift_sasm = BIFT.SingleSolve(alpha, dmax, sasm, 50)
         return ift_sasm
-    
+
     def _runGnomIft(self, data):
         pass
-    
+
     def _runIft(self, data):
         algo = data[0]
         sasm = data[1]
         bift_queue = data[2]
         ift_parameters = data[3]
-        
+
         if algo == 'BIFT':
-            try:                
+            try:
                 try:
                     ift_sasm = self._runBIFT(sasm, bift_queue, ift_parameters)
                     if ift_sasm != None:
@@ -2112,113 +2112,113 @@ class MainWorkerThread(threading.Thread):
                 except ValueError, e:
                     print 'Error in: ift_sasm = self._runBIFT(sasm, parameters)'
                     print e
-            
-            
+
+
             except UnboundLocalError, e:
                 print 'doBift error: ', e
-        
+
                 bift_queue.put({'failed' : True})
-        
+
         if algo == 'Manual':
-            
+
             try:
                 ift_sasm = self._runManualIft(sasm, ift_parameters)
             except ValueError, e:
                 print 'doBift error: ', e
 
                 bift_queue.put({'failed' : True})
-        
-         
+
+
     def _saveMaskFile(self, data):
-        
+
         fullpath_filename = data[0]
-        
+
         masks = data[1]
-        
+
         path, ext = os.path.splitext(fullpath_filename)
-        
+
         if ext != '.msk':
             fullpath_filename = fullpath_filename + '.msk'
-                    
+
         file_obj = open(fullpath_filename, 'w')
         cPickle.dump(masks, file_obj)
         file_obj.close()
-    
+
         #wx.CallAfter(wx.MessageBox, 'The mask has been saved.', 'Mask Saved')
         # img_dim = self.image_panel.img.shape
         #wx.CallAfter(RAWImage.showUseMaskDialog, fullpath_filename, img_dim)
-        
-    
-    def _loadMaskFile(self, data):        
+
+
+    def _loadMaskFile(self, data):
             wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while loading and creating mask...')
 
             fullpath_filename = data[0]
-            
+
             filenamepath, extension = os.path.splitext(fullpath_filename)
-        
+
             if extension == '.msk':
                 file_obj = open(fullpath_filename, 'r')
                 masks = cPickle.load(file_obj)
                 file_obj.close()
-        
+
                 i=0
                 for each in masks:
                     each.maskID = i
                     i = i + 1
-                        
+
                 plot_param = self.image_panel.getPlotParameters()
                 plot_param['storedMasks'].extend(masks)
                 self.image_panel.setPlotParameters(plot_param)
 
-                #Plot mask on load:                
+                #Plot mask on load:
 #                parameters = {'filename' : os.path.split(filenamepath)[1],
 #                              'imageHeader' : []}
 #                bogus_sasm= SASM.SASM([0,1], [0,1], [0,1], parameters)
 #                wx.CallAfter(self.image_panel.showImage,mask, bogus_sasm)
 
                 wx.CallAfter(self.image_panel.plotStoredMasks)
-                       
+
             wx.CallAfter(self.main_frame.closeBusyDialog)
-    
+
     def _recreateAllMasks(self, data):
-        
+
         mask_dict = self._raw_settings.get('Masks')
         img_dim = self._raw_settings.get('MaskDimension')
-        
+
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while creating all masks...')
-        
+
         for each_key in mask_dict.keys():
             masks = mask_dict[each_key][1]
-            
+
             if masks != None:
                 mask_img = SASImage.createMaskMatrix(img_dim, masks)
                 mask_param = mask_dict[each_key]
                 mask_param[0] = mask_img
                 mask_param[1] = masks
-        
+
         wx.CallAfter(self.main_frame.closeBusyDialog)
-    
+
     def _createMask(self, data):
-        
+
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while creating the mask...')
-        
+
         mask_key = data[0]
         masks = data[1]
         img_dim = data[2]
-        
+
         mask_img = SASImage.createMaskMatrix(img_dim, masks)
-        
+
         self._raw_settings.set('MaskDimension', img_dim)
         mask_dict = self._raw_settings.get('Masks')
         mask_param = mask_dict[mask_key]
-        
+
         mask_param[0] = mask_img
         mask_param[1] = masks
-                
+
         wx.CallAfter(self.main_frame.closeBusyDialog)
         wx.CallAfter(wx.MessageBox, 'The mask has been created and enabled.', 'Mask creation finished', style = wx.ICON_INFORMATION)
-        
-    def _loadAndPlot(self, filename_list):     
+
+    def _loadAndPlot(self, filename_list):
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while plotting...')
 
         loaded_secm = False
@@ -2230,13 +2230,13 @@ class MainWorkerThread(threading.Thread):
         sasm_list = []
         iftm_list = []
         secm_list = []
-       
+
         try:
             for i in range(len(filename_list)):
-                
+
                 each_filename = filename_list[i]
 
-                file_ext = os.path.splitext(each_filename)[1] 
+                file_ext = os.path.splitext(each_filename)[1]
 
                 if file_ext == '.sec':
                     try:
@@ -2267,7 +2267,7 @@ class MainWorkerThread(threading.Thread):
                 else:
                     sasm, img = SASFileIO.loadFile(each_filename, self._raw_settings)
                     loaded_sasm = True
-                    
+
                     if img is not None:
                         # qrange = sasm.getQrange()
                         start_point = self._raw_settings.get('StartPoint')
@@ -2287,7 +2287,7 @@ class MainWorkerThread(threading.Thread):
                         sasm_list.extend(sasm)
                     else:
                         sasm_list.append(sasm)
-        
+
                     if do_auto_save:
                         save_path = self._raw_settings.get('ProcessedFilePath')
 
@@ -2297,7 +2297,7 @@ class MainWorkerThread(threading.Thread):
                             self._raw_settings.set('AutoSaveOnImageFiles', False)
                             do_auto_save = False
                             wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutosave of processed images has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
-        
+
 
                 if np.mod(i,20) == 0:
                     if loaded_sasm:
@@ -2314,7 +2314,7 @@ class MainWorkerThread(threading.Thread):
                     iftm_list = []
                     secm_list = []
 
-            
+
             if len(sasm_list) > 0:
                 self._sendSASMToPlot(sasm_list, no_update = True, update_legend = False)
 
@@ -2340,20 +2340,20 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header', style = wx.ICON_ERROR)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
-            
+
         if len(filename_list) == 1 and  img is not None:
             if type(img) == list:
                 self._sendImageToDisplay(img[-1], sasm[-1])
             else:
                 self._sendImageToDisplay(img, sasm)
-        
+
         if loaded_secm and not loaded_sasm and not loaded_iftm:
             wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 3)
         elif loaded_iftm and not loaded_sasm:
             wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 1)
-        else: 
+        else:
             wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 0)
-        
+
         if loaded_sasm:
             wx.CallAfter(self.plot_panel.updateLegend, 1)
             wx.CallAfter(self.plot_panel.fitAxis)
@@ -2412,7 +2412,7 @@ class MainWorkerThread(threading.Thread):
                 for j in range(len(filename_list)):
                     each_filename = filename_list[j]
                     sasm, img = SASFileIO.loadFile(each_filename, self._raw_settings)
-                    
+
                     if img is not None:
                         start_point = self._raw_settings.get('StartPoint')
                         end_point = self._raw_settings.get('EndPoint')
@@ -2424,14 +2424,14 @@ class MainWorkerThread(threading.Thread):
                             qrange = (start_point, len(sasm[0].getBinnedQ())-end_point)
                             for each_sasm in sasm:
                                 each_sasm.setQrange(qrange)
-                            
+
                             if len(sasm) == 1:
                                 sasm = sasm[0]
                             else:
                                 sasm = SASM.average(sasm) #If load sec loads a file with multiple sasms, it averages them into one sasm
 
                     sasm_list[j]=sasm
-                    
+
             except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
                 self._showSECFormatError(os.path.split(each_filename)[1])
                 wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -2462,7 +2462,7 @@ class MainWorkerThread(threading.Thread):
 
         # file_list = wx.FindWindowByName('SECPanel')
         # wx.CallAfter(file_list.SetFocus)
-        
+
         wx.CallAfter(self.sec_plot_panel.updateLegend, 1)
         wx.CallAfter(self.sec_plot_panel.fitAxis)
         wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -2493,7 +2493,7 @@ class MainWorkerThread(threading.Thread):
             try:
                 each_filename = filename_list[j]
                 sasm, img = SASFileIO.loadFile(each_filename, self._raw_settings)
-                
+
                 if img is not None:
                     start_point = self._raw_settings.get('StartPoint')
                     end_point = self._raw_settings.get('EndPoint')
@@ -2510,9 +2510,9 @@ class MainWorkerThread(threading.Thread):
                             sasm = sasm[0]
                         else:
                             sasm = SASM.average(sasm) #If load sec loads a file with multiple sasms, it averages them into one sasm
-                
+
                 sasm_list[j]=sasm
-                
+
             except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
                 # self._showDataFormatError(os.path.split(each_filename)[1])
                 wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -2546,11 +2546,11 @@ class MainWorkerThread(threading.Thread):
         sec_panel = wx.FindWindowByName('SECPanel')
         # wx.CallAfter(sec_panel.SetFocus)
         wx.CallAfter(self.sec_control_panel.updateSucceeded)
-        
+
         # wx.CallAfter(self.plot_panel.updateLegend, 1)
         # wx.CallAfter(self.plot_panel.fitAxis)
         wx.CallAfter(self.main_frame.closeBusyDialog)
-    
+
 
     def _calculateSECParams(self, secm):
         molecule = secm.mol_type
@@ -2582,7 +2582,7 @@ class MainWorkerThread(threading.Thread):
                 self._showAverageError(1)
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
-        
+
         self._insertSasmFilenamePrefix(buffer_avg_sasm, 'A_')
 
         secm.setAverageBufferSASM(buffer_avg_sasm)
@@ -2612,7 +2612,7 @@ class MainWorkerThread(threading.Thread):
         subtracted_sasm_list = []
 
         use_subtracted_sasm = []
-        
+
         yes_to_all = False
 
         for sasm in full_sasm_list:
@@ -2637,13 +2637,13 @@ class MainWorkerThread(threading.Thread):
                 use_subtracted_sasm.append(False)
 
             result = wx.ID_YES
-            
+
             qmin, qmax = sasm.getQrange()
             sub_qmin, sub_qmax = sub_sasm.getQrange()
 
             if np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and not yes_to_all:
                 result = self._showQvectorsNotEqualWarning(sasm, sub_sasm)[0]
-    
+
                 if result == wx.ID_YESTOALL:
                     yes_to_all = True
                 elif result == wx.ID_CANCEL:
@@ -2653,9 +2653,9 @@ class MainWorkerThread(threading.Thread):
                     if result == wx.ID_YES or result == wx.ID_YESTOALL:
                         subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
                         self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-                        
+
                         #Insert into history of new file.
-                        
+
                         scale2 = sub_sasm.getScale()
                         offset2 = sub_sasm.getOffset()
                         name2 = sub_sasm.getParameter('filename')
@@ -2671,15 +2671,15 @@ class MainWorkerThread(threading.Thread):
                 try:
                     subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-                    
+
                     #Insert into history of new file.
-                    
+
                     scale2 = sub_sasm.getScale()
                     offset2 = sub_sasm.getOffset()
                     name2 = sub_sasm.getParameter('filename')
 
                     subtracted_sasm_list.append(subtracted_sasm)
-                  
+
 
                 except SASExceptions.DataNotCompatible, msg:
                    self._showSubtractionError(sasm, sub_sasm)
@@ -2689,9 +2689,9 @@ class MainWorkerThread(threading.Thread):
                 try:
                     subtracted_sasm = SASM.subtract(sasm, sub_sasm)
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-                    
+
                     #Insert into history of new file.
-                    
+
                     scale2 = sub_sasm.getScale()
                     offset2 = sub_sasm.getOffset()
                     name2 = sub_sasm.getParameter('filename')
@@ -2756,7 +2756,7 @@ class MainWorkerThread(threading.Thread):
                     #Now use the rambo tainer 2013 method to calculate molecular weight
                     if rg[index] > 0:
                         mw[index], mwer[index], junk1, junk2, junk3 = SASCalc.autoMW(current_sasm, rg[index], i0[index], is_protein)
-                    else: 
+                    else:
                         mw[index], mwer[index] = -1, -1
 
                 else:
@@ -2820,7 +2820,7 @@ class MainWorkerThread(threading.Thread):
                 self._showAverageError(1)
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
-        
+
         self._insertSasmFilenamePrefix(buffer_avg_sasm, 'A_')
 
         secm.setAverageBufferSASM(buffer_avg_sasm)
@@ -2858,7 +2858,7 @@ class MainWorkerThread(threading.Thread):
         subtracted_sasm_list = []
 
         use_subtracted_sasm = []
-        
+
         yes_to_all = False
 
         for sasm in full_sasm_list:
@@ -2883,13 +2883,13 @@ class MainWorkerThread(threading.Thread):
                 use_subtracted_sasm.append(False)
 
             result = wx.ID_YES
-            
+
             qmin, qmax = sasm.getQrange()
             sub_qmin, sub_qmax = sub_sasm.getQrange()
 
             if np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and not yes_to_all:
                 result = self._showQvectorsNotEqualWarning(sasm, sub_sasm)[0]
-    
+
                 if result == wx.ID_YESTOALL:
                     yes_to_all = True
                 elif result == wx.ID_CANCEL:
@@ -2899,9 +2899,9 @@ class MainWorkerThread(threading.Thread):
                     if result == wx.ID_YES or result == wx.ID_YESTOALL:
                         subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
                         self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-                        
+
                         #Insert into history of new file.
-                        
+
                         scale2 = sub_sasm.getScale()
                         offset2 = sub_sasm.getOffset()
                         name2 = sub_sasm.getParameter('filename')
@@ -2917,15 +2917,15 @@ class MainWorkerThread(threading.Thread):
                 try:
                     subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-                    
+
                     #Insert into history of new file.
-                    
+
                     scale2 = sub_sasm.getScale()
                     offset2 = sub_sasm.getOffset()
                     name2 = sub_sasm.getParameter('filename')
 
                     subtracted_sasm_list.append(subtracted_sasm)
-                  
+
 
                 except SASExceptions.DataNotCompatible, msg:
                    self._showSubtractionError(sasm, sub_sasm)
@@ -2935,9 +2935,9 @@ class MainWorkerThread(threading.Thread):
                 try:
                     subtracted_sasm = SASM.subtract(sasm, sub_sasm)
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-                    
+
                     #Insert into history of new file.
-                    
+
                     scale2 = sub_sasm.getScale()
                     offset2 = sub_sasm.getOffset()
                     name2 = sub_sasm.getParameter('filename')
@@ -3025,17 +3025,17 @@ class MainWorkerThread(threading.Thread):
 
 
     def _loadAndShowNextImage(self, data):
-    
+
         current_file = data[0]
         direction = data[1]
-        
+
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while loading image...')
-       
+
         img_fmt = self._raw_settings.get('ImageFormat')
-        
+
         path = self.dir_panel.file_list_box.path
         dir = sorted(os.listdir(path))
-        
+
         if current_file == None:
             idx = 0
         else:
@@ -3044,88 +3044,88 @@ class MainWorkerThread(threading.Thread):
             except ValueError:
                 idx = 0
                 wx.CallAfter(wx.MessageBox, 'Could not find the current image file in the active directory. Defaulting to the first file in the active directory (if possible). Please check the active directory in the Files control tab.', 'Error Loading Image', style = wx.ICON_ERROR | wx.OK)
-        
+
 
         while True:
             idx = idx + direction
-            
+
             if idx < 0: break
             if idx >= len(dir): break
-            
+
             next_file = dir[idx]
             next_file_path = os.path.join(path, next_file)
-            
+
             try:
                 img = None
                 if self._fileTypeIsCompatible(next_file_path):
                     img, imghdr = SASFileIO.loadImage(next_file_path, img_fmt)
-                    
+
                 if img is not None:
                     parameters = {'filename' : os.path.split(next_file_path)[1],
                                   'imageHeader' : imghdr[-1]}
-        
+
                     bogus_sasm = SASM.SASM([0,1], [0,1], [0,1], parameters)
-        
+
                     self._sendImageToDisplay(img[-1], bogus_sasm)
                     break
             except Exception, e:
                 pass
-            
+
         wx.CallAfter(self.main_frame.closeBusyDialog)
-        
+
     def _fileTypeIsCompatible(self, path):
         root, ext = os.path.splitext(path)
 
         compatible_formats = self.main_frame.getRawSettings().get('CompatibleFormats')
-        
-        if str(ext) in compatible_formats: 
+
+        if str(ext) in compatible_formats:
             return True
         else:
             return False
-     
+
     def _loadAndShowImage(self, filename):
-        
+
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while loading image...')
-       
+
         img_fmt = self._raw_settings.get('ImageFormat')
         print filename
         try:
             if not os.path.isfile(filename):
                 raise SASExceptions.WrongImageFormat('not a valid file!')
-            
+
             img, imghdr = SASFileIO.loadImage(filename, img_fmt)
-            
+
             if img == None:
                 raise SASExceptions.WrongImageFormat('not a valid file!')
-                
+
         except SASExceptions.WrongImageFormat, msg:
             self._showDataFormatError(os.path.split(filename)[1], include_ascii = False)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
-        
+
         parameters = {'filename' : os.path.split(filename)[1],
                       'imageHeader' : imghdr[-1]}
-        
+
         bogus_sasm = SASM.SASM([0,1], [0,1], [0,1], parameters)
-        
+
         self._sendImageToDisplay(img[-1], bogus_sasm)
         wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 2)
         file_list = wx.FindWindowByName('FileListCtrl')
         wx.CallAfter(file_list.SetFocus)
         wx.CallAfter(self.main_frame.closeBusyDialog)
-    
+
     def _calibrateSASM(self, sasm):
-    
+
         #if self._raw_settings.get('CalibrateMan'):
         sd_distance = self._raw_settings.get('SampleDistance')
         pixel_size = self._raw_settings.get('DetectorPixelSize')
         wavelength = self._raw_settings.get('WaveLength')
-        
+
         sasm.calibrateQ(sd_distance, pixel_size, wavelength)
-        
+
     def _showDataFormatError(self, filename, include_ascii = True, include_sec = False):
         img_fmt = self._raw_settings.get('ImageFormat')
-        
+
         if include_ascii:
             ascii = ' or any of the supported ASCII formats'
         else:
@@ -3135,23 +3135,23 @@ class MainWorkerThread(threading.Thread):
             sec = ' or the RAW SEC format'
         else:
             sec = ''
-        
+
         wx.CallAfter(wx.MessageBox, 'The selected file: ' + filename + '\ncould not be recognized as a '   + str(img_fmt) +
                          ' image format' + ascii + sec + '. This can be caused by failing to load the correct configuration file.\n\nYou can change the image format under Advanced Options in the Options menu.' ,
                           'Error loading file', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
     def _showSECFormatError(self, filename, include_ascii = True):
         img_fmt = self._raw_settings.get('ImageFormat')
-        
+
         if include_ascii:
             ascii = ' or any of the supported ASCII formats'
         else:
             ascii = ''
-        
+
         wx.CallAfter(wx.MessageBox, 'The selected file: ' + filename + '\ncould not be recognized as a '   + str(img_fmt) +
                          ' image format' + ascii + '. This can be caused by failing to load the correct configuration file. \n\nIf you are loading a set of files as a SEC curve, make sure the selection contains only individual scattering profiles (no .sec files).\n\nYou can change the image format under Advanced Options in the Options menu.' ,
                           'Error loading file', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
-        
+
     def _showSubtractionError(self, sasm, sub_sasm):
         filename1 = sasm.getParameter('filename')
         q1_min, q1_max = sasm.getQrange()
@@ -3162,28 +3162,28 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(wx.MessageBox, filename1 + ' has ' + str(points1) + ' data points.\n'  +
             filename2 + ' has ' + str(points2) + ' data points.\n\n' +
             'Subtraction is not possible. Data files must have equal number of points.', 'Subtraction Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
-        
+
     def _showAverageError(self, err_no):
-        
+
         if err_no == 1:
             wx.CallAfter(wx.MessageBox, 'The selected items must have the same total number of points to be averaged.', 'Average Error')
         elif err_no == 2:
             wx.CallAfter(wx.MessageBox, 'Please select at least two items to be averaged.' , 'Average Error')
         elif err_no == 3:
             wx.CallAfter(wx.MessageBox, 'The selected items must have the same q vectors to be averaged.' , 'Average Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
-    
+
     def _showPleaseSelectItemsError(self, type):
-        
+
         if type == 'average':
             wx.CallAfter(wx.MessageBox, 'Please select the items you want to average.\n\nYou can select multiple items by holding down the CTRL or SHIFT key.' , 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
-        elif type == 'subtract': 
+        elif type == 'subtract':
             wx.CallAfter(wx.MessageBox, 'Please select the items you want the marked (star) item subtracted from.'+
                               '\nUse CTRL or SHIFT to select multiple items.', 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         elif type == 'superimpose':
-            wx.CallAfter(wx.MessageBox, 'Please select the items you want to superimpose.\n\nYou can select multiple items by holding down the CTRL or SHIFT key.' , 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)            
-           
+            wx.CallAfter(wx.MessageBox, 'Please select the items you want to superimpose.\n\nYou can select multiple items by holding down the CTRL or SHIFT key.' , 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+
     def _showPleaseMarkItemError(self, type):
-        
+
         if type == 'subtract':
             wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you are using for subtraction', 'No item marked', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         elif type == 'merge':
@@ -3196,54 +3196,54 @@ class MainWorkerThread(threading.Thread):
     def _showSaveError(self, err_type):
         if err_type == 'header':
             wx.CallAfter(wx.MessageBox, 'Header values could not be saved, file was saved without them.', 'Invalid Header Values', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
-            
+
     def _showQvectorsNotEqualWarning(self, sasm, sub_sasm):
-        
+
         sub_filename = sub_sasm.getParameter('filename')
         filename = sasm.getParameter('filename')
-        
+
         button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO), ('Cancel', wx.ID_CANCEL)]
         question = 'Q vectors for ' + str(filename) + ' and ' + str(sub_filename) + ' are not the same. \nContinuing subtraction will attempt to find matching q regions in or create matching q regions by binning.\nDo you wish to continue?'
         label = 'Q vectors do not match'
         icon = wx.ART_WARNING
-        
+
         answer = self._displayQuestionDialog(question, label, button_list, icon)
-        
+
         return answer
-    
+
     def _showQuickReduceFinished(self, processed_files, number_of_files):
         wx.CallAfter(wx.MessageBox, 'Quick reduction finished. Processed ' + str(processed_files) + ' out of ' + str(number_of_files) + ' files.', 'Quick reduction finished', style = wx.ICON_INFORMATION | wx.STAY_ON_TOP)
-        
+
     def _showOverwritePrompt(self, filename, save_path):
-        
-        button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO), 
+
+        button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO),
                        ('No to all', wx.ID_NOTOALL), ('Rename', wx.ID_EDIT), ('Cancel', wx.ID_CANCEL)]
-        
+
         path = os.path.join(save_path, filename)
-        
+
         question = 'Filename: ' + str(path) + '\nalready exists. Do you wish to overwrite the existing file?'
         label = 'File exists'
         icon = wx.ART_WARNING
-        
+
         answer = self._displayQuestionDialog(question, label, button_list, icon, filename, save_path)
-        
+
         return answer
-        
+
     def _displayQuestionDialog(self, question, label, button_list, icon = None, filename = None, save_path = None):
-        
+
         wx.CallAfter(self.main_frame.showQuestionDialogFromThread, question, label, button_list, icon, filename, save_path)
-     
+
         thread_wait_event.wait()
         thread_wait_event.clear()
-        
+
         answer = question_return_queue.get()
         question_return_queue.task_done()
-        
-        return answer    
-                    
+
+        return answer
+
     def _subtractFilenames(self):
         pass
-    
+
     def _plotIFTM(self, data):
 
         iftm = data[0]
@@ -3263,64 +3263,64 @@ class MainWorkerThread(threading.Thread):
         self._sendSASMToPlot(sasm, item_colour = item_colour, line_color = line_color, notsaved = notsaved)
 
     def _plotIftFit(self, data):
-             
+
         selected_items = data[0]
-        
+
         selected_sasms = []
         for each_item in selected_items:
             selected_sasms.append(each_item.getSASM())
-           
+
         for each in selected_sasms:
-            
+
             param = each.getAllParameters()
-            
+
             if each.getAllParameters().has_key('orig_sasm'):
                 self._sendSASMToPlot(each.getParameter('orig_sasm').copy())
             if each.getAllParameters().has_key('fit_sasm'):
                 self._sendSASMToPlot(each.getParameter('fit_sasm').copy())
-        
-    
+
+
         wx.CallAfter(self.plot_panel.updateLegend, 1)
 
     def _quickReduce(self, data):
-        
+
         save_path = data[0]
         load_path = data[1]
         filename_list = data[2]
         format_ext = data[3]
-        
+
         yes_to_all = False
         no_to_all = False
         processed_files = 0
-        
+
         for each_filename in filename_list:
-                
+
             full_load_path = os.path.join(load_path, each_filename)
             no_ext_filename, ext = os.path.splitext(each_filename)
-                
+
             check_filename = no_ext_filename + format_ext
             check_path = os.path.join(save_path, check_filename)
-                
+
             if os.path.exists(check_path) and yes_to_all == False:
-                
+
                 if no_to_all == True:
                     result = wx.ID_NO
                 else:
                     result = self._showOverwritePrompt(check_filename, save_path)
-                    
+
                 if result[0] == wx.ID_NOTOALL:
                     no_to_all = True
-            
+
                 if result[0] == wx.ID_YESTOALL:
                     yes_to_all = True
-                
+
                 if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
                     try:
                         sasm, img = SASFileIO.loadFile(full_load_path, self._raw_settings)
 
                         start_point = self._raw_settings.get('StartPoint')
                         end_point = self._raw_settings.get('EndPoint')
-                        
+
                         if type(sasm) != list:
                             qrange = (start_point, len(sasm.getBinnedQ())-end_point)
                             sasm.setQrange(qrange)
@@ -3328,9 +3328,9 @@ class MainWorkerThread(threading.Thread):
                             qrange = (start_point, len(sasm[0].getBinnedQ())-end_point)
                             for each_sasm in sasm:
                                 each_sasm.setQrange(qrange)
-                        
+
                         if result[0] == wx.ID_EDIT:
-                            final_save_path, new_filename = os.path.split(result[1][0])                
+                            final_save_path, new_filename = os.path.split(result[1][0])
                             sasm.setParameter('filename', new_filename)
 
                             if type(sasm) != list:
@@ -3340,7 +3340,7 @@ class MainWorkerThread(threading.Thread):
                                     sasm.setParameter('filename', new_filename)
                         else:
                             final_save_path = save_path
-                        
+
                         if img is not None:
                             try:
                                 SASFileIO.saveMeasurement(sasm, final_save_path, self._raw_settings)
@@ -3354,7 +3354,7 @@ class MainWorkerThread(threading.Thread):
                         self._showDataFormatError(os.path.split(each_filename)[1], include_ascii = False)
                     except SASExceptions.HeaderLoadError, msg:
                         wx.CallAfter(wx.MessageBox, str(msg)+' Could not find the header file. Skipping this file and proceeding.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
-            
+
             else:
                 try:
                     sasm, img = SASFileIO.loadFile(full_load_path, self._raw_settings)
@@ -3369,7 +3369,7 @@ class MainWorkerThread(threading.Thread):
                         qrange = (start_point, len(sasm[0].getBinnedQ())-end_point)
                         for each_sasm in sasm:
                             each_sasm.setQrange(qrange)
-                    
+
                     if img is not None:
                         try:
                             SASFileIO.saveMeasurement(sasm, save_path, self._raw_settings)
@@ -3383,37 +3383,37 @@ class MainWorkerThread(threading.Thread):
                     self._showDataFormatError(os.path.split(each_filename)[1], include_ascii = False)
                 except SASExceptions.HeaderLoadError, msg:
                         wx.CallAfter(wx.MessageBox, str(msg)+' Could not find the header file. Skipping this file and proceeding.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
-                        
+
         self._showQuickReduceFinished(processed_files, len(filename_list))
-    
-    
+
+
     def _superimposeItems(self, data):
-        
+
         star_item = data[0]
         selected_items = data[1]
-        
+
         if star_item == None:
             self._showPleaseMarkItemError('superimpose')
-            return 
-        
+            return
+
         if star_item in selected_items:
             selected_items.remove(star_item)
-         
+
         if len(selected_items) == 0:
             self._showPleaseSelectItemsError('superimpose')
             return
-        
+
         selected_sasms = []
         for each_item in selected_items:
             selected_sasms.append(each_item.getSASM())
-            
+
         SASM.superimpose(star_item.getSASM(), selected_sasms)
-        
+
         for each_item in selected_items:
             each_item.updateControlsFromSASM(updatePlot=False)
-        
+
         wx.CallAfter(self.plot_panel.updatePlotAfterManipulation, selected_sasms)
-    
+
     def _subtractItems(self, data):
         ''' subtracts the marked item from other selected items in the
         manipulation list '''
@@ -3427,7 +3427,7 @@ class MainWorkerThread(threading.Thread):
 
         if marked_item in selected_items:
             selected_items.remove(marked_item)
-        
+
         if marked_item == None:
             self._showPleaseMarkItemError('subtract')
             wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -3436,9 +3436,9 @@ class MainWorkerThread(threading.Thread):
             self._showPleaseSelectItemsError('subtract')
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
-        
+
         sub_sasm = marked_item.getSASM()
-        
+
         yes_to_all = False
 
         subtracted_list = []
@@ -3449,13 +3449,13 @@ class MainWorkerThread(threading.Thread):
             sasm = each.getSASM()
 
             print sasm.getParameter('filename')
-            
+
             qmin, qmax = sasm.getQrange()
             sub_qmin, sub_qmax = sub_sasm.getQrange()
-               
+
             if np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and not yes_to_all:
                 result = self._showQvectorsNotEqualWarning(sasm, sub_sasm)[0]
-    
+
                 if result == wx.ID_YESTOALL:
                     yes_to_all = True
                 elif result == wx.ID_CANCEL:
@@ -3465,10 +3465,10 @@ class MainWorkerThread(threading.Thread):
                     if result == wx.ID_YES or result == wx.ID_YESTOALL:
                         subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
                         self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-                                                
+
                         subtracted_list.append(subtracted_sasm)
                         # self._sendSASMToPlot(subtracted_sasm, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
-        
+
                         if do_auto_save:
                             save_path = self._raw_settings.get('SubtractedFilePath')
                             try:
@@ -3486,7 +3486,7 @@ class MainWorkerThread(threading.Thread):
                 try:
                     subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-                    
+
                     subtracted_list.append(subtracted_sasm)
                     # self._sendSASMToPlot(subtracted_sasm, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
 
@@ -3507,7 +3507,7 @@ class MainWorkerThread(threading.Thread):
                 try:
                     subtracted_sasm = SASM.subtract(sasm, sub_sasm)
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-                    
+
                     subtracted_list.append(subtracted_sasm)
                     # self._sendSASMToPlot(subtracted_sasm, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
 
@@ -3536,34 +3536,34 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.plot_panel.fitAxis)
         wx.CallAfter(self.plot_panel.updateLegend, 2)
         wx.CallAfter(self.main_frame.closeBusyDialog)
-                
+
     def _averageItems(self, item_list):
-        
+
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while averaging and plotting...')
-        
+
         sasm_list = []
-                
+
         if len(item_list) < 2:
             self._showAverageError(2)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
-        
+
         for each_item in item_list:
             sasm_list.append(each_item.getSASM())
-            
+
         try:
             avg_sasm = SASM.average(sasm_list)
         except SASExceptions.DataNotCompatible:
             self._showAverageError(3)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
-        
+
         self._insertSasmFilenamePrefix(avg_sasm, 'A_')
-        
+
         self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'green', notsaved = True)
 
         do_auto_save = self._raw_settings.get('AutoSaveOnAvgFiles')
-        
+
         if do_auto_save:
             save_path = self._raw_settings.get('AveragedFilePath')
 
@@ -3573,123 +3573,123 @@ class MainWorkerThread(threading.Thread):
                 self._raw_settings.set('AutoSaveOnAvgFiles', False)
 
                 wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutosave of averaged images has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
-        
+
         wx.CallAfter(self.plot_panel.updateLegend, 1)
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
     def _averageItemsSEC(self, sasm_list):
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while averaging and sending to main plot...')
-                        
+
         if len(sasm_list) < 2:
             self._showAverageError(2)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
-            
+
         try:
             avg_sasm = SASM.average(sasm_list)
         except SASExceptions.DataNotCompatible:
             self._showAverageError(1)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
-        
+
         self._insertSasmFilenamePrefix(avg_sasm, 'A_')
-        
+
         self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'green', notsaved = True)
-        
+
         wx.CallAfter(self.plot_panel.updateLegend, 1)
         wx.CallAfter(self.main_frame.closeBusyDialog)
-        
-    
+
+
     def _rebinItems(self, data):
-        
+
         selected_items = data[0]
         rebin_factor = data[1]
         log_rebin = data[2]
-        
+
         for each in selected_items:
             sasm = each.getSASM()
-        
+
             points = np.floor(len(sasm.q) / rebin_factor)
-            
+
             if log_rebin:
                 rebin_sasm = SASM.logBinning(sasm, points)
             else:
                 rebin_sasm = SASM.rebin(sasm, rebin_factor)
-            
+
             self._insertSasmFilenamePrefix(rebin_sasm, 'R_')
-            
+
             self._sendSASMToPlot(rebin_sasm, axes_num = 1, notsaved = True)
-        
+
             wx.CallAfter(self.plot_panel.updateLegend, 1)
-        
+
     def _insertSasmFilenamePrefix(self, sasm, prefix = '', extension = ''):
         filename = sasm.getParameter('filename')
         new_filename, ext = os.path.splitext(filename)
         sasm.setParameter('filename', prefix + new_filename + extension)
-    
+
     def _mergeItems(self, data):
-        
+
         marked_item = data[0]
         selected_items = data[1]
-        
+
         if marked_item in selected_items:
             idx = selected_items.index(marked_item)
             selected_items.pop(idx)
-        
+
         if marked_item == None:
             self._showPleaseMarkItemError('merge')
-            return 
-        
-        marked_sasm = marked_item.getSASM()    
+            return
+
+        marked_sasm = marked_item.getSASM()
         sasm_list = []
         for each_item in selected_items:
             sasm_list.append(each_item.getSASM())
-        
+
         merged_sasm = SASM.merge(marked_sasm, sasm_list)
-        
+
         filename = marked_sasm.getParameter('filename')
         merged_sasm.setParameter('filename', filename)
         self._insertSasmFilenamePrefix(merged_sasm, 'M_')
-        
+
         self._sendSASMToPlot(merged_sasm, axes_num = 1, notsaved = True)
-        
+
         wx.CallAfter(self.plot_panel.updateLegend, 1)
         #wx.CallAfter(self.main_frame.closeBusyDialog)
-    
+
     def _interpolateItems(self, data):
         marked_item = data[0]
         selected_items = data[1]
-        
+
         if marked_item in selected_items:
             idx = selected_items.index(marked_item)
             selected_items.pop(idx)
-        
+
         if marked_item == None:
             self._showPleaseMarkItemError('interpolate')
-            return 
-        
-        marked_sasm = marked_item.getSASM()    
+            return
+
+        marked_sasm = marked_item.getSASM()
         sasm_list = []
-    
+
         for each_item in selected_items:
             sasm = each_item.getSASM()
-        
+
             interpolate_sasm = SASM.interpolateToFit(marked_sasm, sasm)
-            
+
             filename = sasm.getParameter('filename')
             interpolate_sasm.setParameter('filename', filename)
-            
+
             self._insertSasmFilenamePrefix(interpolate_sasm, 'I_')
 
             sasm_list.append(interpolate_sasm)
-        
+
         self._sendSASMToPlot(sasm_list, axes_num = 1, notsaved = True)
-        
+
         wx.CallAfter(self.plot_panel.updateLegend, 1)
-                   
-    
+
+
     def _saveSASM(self, sasm, filetype = 'dat', save_path = ''):
-        
+
         if self.main_frame.OnlineControl.isRunning() and save_path == self.main_frame.OnlineControl.getTargetDir():
             self.main_frame.controlTimer(False)
             restart_timer = True
@@ -3698,15 +3698,15 @@ class MainWorkerThread(threading.Thread):
 
 
         newext = filetype
-        
+
         filename = sasm.getParameter('filename')
         check_filename, ext = os.path.splitext(filename)
         check_filename = check_filename + newext
-            
+
         filepath = os.path.join(save_path, check_filename)
         file_exists = os.path.isfile(filepath)
         filepath = save_path
-        
+
         try:
             SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
         except SASExceptions.HeaderSaveError as e:
@@ -3734,26 +3734,26 @@ class MainWorkerThread(threading.Thread):
             newext = '.ift'
 
         filename = sasm.getParameter('filename')
-        
+
         check_filename, ext = os.path.splitext(filename)
 
         check_filename = check_filename + newext
-            
+
         filepath = os.path.join(save_path, check_filename)
         file_exists = os.path.isfile(filepath)
         filepath = save_path
-            
+
         try:
             SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
         except SASExceptions.HeaderSaveError as e:
             self._showSaveError('header')
-                    
+
 
         if restart_timer:
             self.main_frame.OnlineControl.updateSkipList([check_filename])
             wx.CallAfter(self.main_frame.controlTimer, True)
-        
-        
+
+
     def _saveAnalysisInfo(self, data):
         #Saves selected analysis info
         all_items = data[0]
@@ -3765,20 +3765,20 @@ class MainWorkerThread(threading.Thread):
             restart_timer = True
         else:
             restart_timer = False
-        
+
         selected_sasms = []
-        
+
         check_filename, ext = os.path.splitext(save_path)
         save_path = check_filename + '.csv'
 
         for each_item in all_items:
             sasm = each_item.getSASM()
             selected_sasms.append(sasm)
-            
+
 #            if analysis_dict.keys() == []:
 #                wx.CallAfter(wx.MessageBox, 'No analysis information was found for file: ' + sasm.getParameter('filename') + '\n\nSave was aborted.', 'Analysis information not found', style = wx.ICON_EXCLAMATION)
 #                return
-        
+
         result = SASFileIO.saveAnalysisCsvFile(selected_sasms, include_data, save_path)
 
         if restart_timer:
@@ -3800,8 +3800,8 @@ class MainWorkerThread(threading.Thread):
         if restart_timer:
             self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path)[1]])
             wx.CallAfter(self.main_frame.controlTimer, True)
-        
-        
+
+
     def _saveWorkspace(self, data):
         sasm_items = data[0]
         ift_items = data[1]
@@ -3813,39 +3813,39 @@ class MainWorkerThread(threading.Thread):
             restart_timer = True
         else:
             restart_timer = False
-          
+
         save_dict = OrderedDict()
         # save_dict = {}
-        
+
         for idx in range(0, len(sasm_items)):
-            
+
             sasm = sasm_items[idx].getSASM()
             sasm_dict = sasm.extractAll()
-        
+
             sasm_dict['line_color'] = sasm.line.get_color()
             sasm_dict['line_width'] = sasm.line.get_linewidth()
             sasm_dict['line_style'] = sasm.line.get_linestyle()
             sasm_dict['line_marker'] = sasm.line.get_marker()
             sasm_dict['line_visible'] = sasm.line.get_visible()
-            
+
             sasm_dict['item_controls_visible'] = sasm.item_panel.getControlsVisible()
             sasm_dict['item_font_color'] = sasm.item_panel.getFontColour()
             sasm_dict['item_selected_for_plot'] = sasm.item_panel.getSelectedForPlot()
 
             sasm_dict['parameters_analysis'] = sasm_dict['parameters']['analysis']  #pickle wont save this unless its raised up
-    
+
             if sasm.axes == sasm.plot_panel.subplot1:
                 sasm_dict['plot_axes'] = 1
             else:
                 sasm_dict['plot_axes'] = 2
-            
+
             save_dict['sasm_'+str(idx)] = sasm_dict
 
         for idx in range(0, len(ift_items)):
-            
+
             iftm = ift_items[idx].getIFTM()
             iftm_dict = iftm.extractAll()
-        
+
             iftm_dict['r_line_color'] = iftm.r_line.get_color()
             iftm_dict['r_line_width'] = iftm.r_line.get_linewidth()
             iftm_dict['r_line_style'] = iftm.r_line.get_linestyle()
@@ -3863,18 +3863,18 @@ class MainWorkerThread(threading.Thread):
             iftm_dict['qf_line_style'] = iftm.qf_line.get_linestyle()
             iftm_dict['qf_line_marker'] = iftm.qf_line.get_marker()
             iftm_dict['qf_line_visible'] = iftm.qf_line.get_visible()
-            
+
             iftm_dict['item_font_color'] = iftm.item_panel.getFontColour()
-            iftm_dict['item_selected_for_plot'] = iftm.item_panel.getSelectedForPlot()         
-            
+            iftm_dict['item_selected_for_plot'] = iftm.item_panel.getSelectedForPlot()
+
             save_dict['iftm_'+str(idx)] = iftm_dict
-            
+
 
         for idx in range(0, len(secm_items)):
-            
+
             secm = secm_items[idx].getSECM()
             secm_dict = secm.extractAll()
-        
+
             secm_dict['line_color'] = secm.line.get_color()
             secm_dict['line_width'] = secm.line.get_linewidth()
             secm_dict['line_style'] = secm.line.get_linestyle()
@@ -3886,31 +3886,31 @@ class MainWorkerThread(threading.Thread):
             secm_dict['calc_line_style'] = secm.calc_line.get_linestyle()
             secm_dict['calc_line_marker'] = secm.calc_line.get_marker()
             secm_dict['calc_line_visible'] = secm.calc_line.get_visible()
-            
+
             secm_dict['item_controls_visible'] = secm.item_panel.getControlsVisible()
             secm_dict['item_font_color'] = secm.item_panel.getFontColour()
             secm_dict['item_selected_for_plot'] = secm.item_panel.getSelectedForPlot()
 
             secm_dict['parameters_analysis'] = secm_dict['parameters']['analysis']  #pickle wont save this unless its raised up
-            
+
             save_dict['secm_'+str(idx)] = secm_dict
-        
+
         SASFileIO.saveWorkspace(save_dict, save_path)
-        
+
         workspace_saved = True
 
         if restart_timer:
             self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path)[1]])
             wx.CallAfter(self.main_frame.controlTimer, True)
-        
+
     def _loadWorkspace(self, data):
-        
+
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while loading workspace...')
-        
+
         load_path = data[0]
-        
+
         item_dict = SASFileIO.loadWorkspace(load_path)
-        
+
         if type(item_dict) == OrderedDict:
             keylist = item_dict.keys()
         else:
@@ -3952,21 +3952,21 @@ class MainWorkerThread(threading.Thread):
 
                 line_data = {}
                 line_data['r_line_color'] = iftm_data['r_line_color']
-                line_data['r_line_width'] = iftm_data['r_line_width'] 
-                line_data['r_line_style'] = iftm_data['r_line_style'] 
-                line_data['r_line_marker'] = iftm_data['r_line_marker'] 
+                line_data['r_line_width'] = iftm_data['r_line_width']
+                line_data['r_line_style'] = iftm_data['r_line_style']
+                line_data['r_line_marker'] = iftm_data['r_line_marker']
                 line_data['r_line_visible'] = iftm_data['r_line_visible']
 
                 line_data['qo_line_color'] = iftm_data['qo_line_color']
-                line_data['qo_line_width'] = iftm_data['qo_line_width'] 
-                line_data['qo_line_style'] = iftm_data['qo_line_style'] 
-                line_data['qo_line_marker'] = iftm_data['qo_line_marker'] 
+                line_data['qo_line_width'] = iftm_data['qo_line_width']
+                line_data['qo_line_style'] = iftm_data['qo_line_style']
+                line_data['qo_line_marker'] = iftm_data['qo_line_marker']
                 line_data['qo_line_visible'] = iftm_data['qo_line_visible']
 
                 line_data['qf_line_color'] = iftm_data['qf_line_color']
-                line_data['qf_line_width'] = iftm_data['qf_line_width'] 
-                line_data['qf_line_style'] = iftm_data['qf_line_style'] 
-                line_data['qf_line_marker'] = iftm_data['qf_line_marker'] 
+                line_data['qf_line_width'] = iftm_data['qf_line_width']
+                line_data['qf_line_style'] = iftm_data['qf_line_style']
+                line_data['qf_line_marker'] = iftm_data['qf_line_marker']
                 line_data['qf_line_visible'] = iftm_data['qf_line_visible']
 
 
@@ -3979,23 +3979,23 @@ class MainWorkerThread(threading.Thread):
             else:
                 #Backwards compatability requires us to not test the sasm prefix
                 sasm_data = item_dict[each_key]
-                
+
                 new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
                 new_sasm.setBinnedI(sasm_data['i_binned'])
                 new_sasm.setBinnedQ(sasm_data['q_binned'])
                 new_sasm.setBinnedErr(sasm_data['err_binned'])
-                
+
                 new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
                                         sasm_data['norm_factor'], sasm_data['q_scale_factor'],
                                         sasm_data['bin_size'])
-                
+
                 new_sasm.setQrange(sasm_data['selected_qrange'])
-                
+
                 try:
                     new_sasm.setParameter('analysis', sasm_data['parameters_analysis'])
                 except KeyError:
                     pass
-                
+
                 new_sasm._update()
 
                 #### THIS HAS TO BE UPDATED TO ACCOUNT FOR LINESTYLES AND VISIBILITY
@@ -4004,7 +4004,7 @@ class MainWorkerThread(threading.Thread):
                     line_data = {'line_color' : sasm_data['line_color'],
                                  'line_width' : sasm_data['line_width'],
                                  'line_style' : sasm_data['line_style'],
-                                 'line_marker': sasm_data['line_marker'], 
+                                 'line_marker': sasm_data['line_marker'],
                                  'line_visible' :sasm_data['line_visible']}
                 except KeyError:
                     line_data = None    #Backwards compatibility
@@ -4017,11 +4017,11 @@ class MainWorkerThread(threading.Thread):
                 wx.CallAfter(self.manipulation_panel.addItem, new_sasm,
                               item_colour = sasm_data['item_font_color'],
                               item_visible = sasm_data['item_selected_for_plot'])
-                
 
-            
-            
-            
+
+
+
+
         wx.CallAfter(self.plot_panel.updateLegend, 1)
         wx.CallAfter(self.plot_panel.updateLegend, 2)
         wx.CallAfter(self.plot_panel.fitAxis)
@@ -4053,7 +4053,7 @@ class MainWorkerThread(threading.Thread):
         for b in range(len(selected_items)):
 
             selected_secm = selected_items[b].secm
-            
+
             filepath = save_path[b]
             file_exists = os.path.isfile(filepath)
 
@@ -4104,7 +4104,7 @@ class MainWorkerThread(threading.Thread):
             secm = item.secm
 
             secm_dict = secm.extractAll()
-        
+
             secm_dict['line_color'] = secm.line.get_color()
             secm_dict['line_width'] = secm.line.get_linewidth()
             secm_dict['line_style'] = secm.line.get_linestyle()
@@ -4116,7 +4116,7 @@ class MainWorkerThread(threading.Thread):
             secm_dict['calc_line_style'] = secm.calc_line.get_linestyle()
             secm_dict['calc_line_marker'] = secm.calc_line.get_marker()
             secm_dict['calc_line_visible'] = secm.calc_line.get_visible()
-            
+
             secm_dict['item_controls_visible'] = secm.item_panel.getControlsVisible()
             secm_dict['item_font_color'] = secm.item_panel.getFontColour()
             secm_dict['item_selected_for_plot'] = secm.item_panel.getSelectedForPlot()
@@ -4186,38 +4186,38 @@ class MainWorkerThread(threading.Thread):
         else:
             restart_timer = False
 
-        
+
         overwrite_all = False
         no_to_all = False
         for item in item_list:
             # print item
             sasm = item
-            
+
             filename = sasm.getParameter('filename')
-            
+
             check_filename, ext = os.path.splitext(filename)
-            
+
             newext = '.dat'
-                
+
             check_filename = check_filename + newext
-            
+
             filepath = os.path.join(save_path, check_filename)
             file_exists = os.path.isfile(filepath)
             filepath = save_path
-            
+
             if file_exists and overwrite_all == False:
-                
+
                 if no_to_all == False:
                     result = self._showOverwritePrompt(check_filename, save_path)
-                    
+
                     if result[0] == wx.ID_CANCEL:
                         return
-                
+
                     if result[0] == wx.ID_EDIT: #rename
                         filepath = result[1][0]
                         filepath, new_filename = os.path.split(filepath)
                         sasm.setParameter('filename', new_filename)
-                        
+
                     if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
                         try:
                             SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
@@ -4227,13 +4227,13 @@ class MainWorkerThread(threading.Thread):
                         sasm.setParameter('filename', filename + newext)
                         # wx.CallAfter(sasm.item_panel.updateFilenameLabel)
                         # wx.CallAfter(item.unmarkAsModified)
-                    
+
                     if result[0] == wx.ID_YESTOALL:
                         overwrite_all = True
-                        
+
                     if result[0] == wx.ID_NOTOALL:
                         no_to_all = True
-                
+
             else:
                 try:
                     SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
@@ -4249,7 +4249,7 @@ class MainWorkerThread(threading.Thread):
 
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
-            
+
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
 
@@ -4258,20 +4258,20 @@ class MainWorkerThread(threading.Thread):
 
         for each in selected_items:
             sasm = each.getSASM()
-        
+
             if sasm.getAllParameters().has_key('Conc'):
                 conc = sasm.getParameter('Conc')
-                
+
                 try:
                     conc = float(conc)
-                    
+
                     scale = 1/conc
                     sasm.scaleRelative(scale)
                     wx.CallAfter(each.updateControlsFromSASM)
-                    
+
                 except ValueError:
                     continue
-                
+
 
     def _saveItems(self, data, iftmode = False):
         save_path = data[0]
@@ -4285,7 +4285,7 @@ class MainWorkerThread(threading.Thread):
 
         if not iftmode:
             axes_update_list = []
-        
+
         overwrite_all = False
         no_to_all = False
         for item in item_list:
@@ -4294,11 +4294,11 @@ class MainWorkerThread(threading.Thread):
                 sasm = item.iftm
             else:
                 sasm = item.sasm
-            
+
             filename = sasm.getParameter('filename')
-            
+
             check_filename, ext = os.path.splitext(filename)
-            
+
             if iftmode:
                 if sasm.getParameter('algorithm') == 'GNOM':
                     newext = '.out'
@@ -4306,26 +4306,26 @@ class MainWorkerThread(threading.Thread):
                     newext = '.ift'
             else:
                 newext = '.dat'
-                
+
             check_filename = check_filename + newext
-            
+
             filepath = os.path.join(save_path, check_filename)
             file_exists = os.path.isfile(filepath)
             filepath = save_path
-            
+
             if file_exists and overwrite_all == False:
-                
+
                 if no_to_all == False:
                     result = self._showOverwritePrompt(check_filename, save_path)
-                    
+
                     if result[0] == wx.ID_CANCEL:
                         return
-                
+
                     if result[0] == wx.ID_EDIT: #rename
                         filepath = result[1]
                         filepath, new_filename = os.path.split(filepath)
                         sasm.setParameter('filename', new_filename)
-                        
+
                     if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
                         try:
                             SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
@@ -4339,13 +4339,13 @@ class MainWorkerThread(threading.Thread):
 
                         if not iftmode:
                             axes_update_list.append(sasm.axes)
-                    
+
                     if result[0] == wx.ID_YESTOALL:
                         overwrite_all = True
-                        
+
                     if result[0] == wx.ID_NOTOALL:
                         no_to_all = True
-                
+
             else:
                 try:
                     SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
@@ -4358,7 +4358,7 @@ class MainWorkerThread(threading.Thread):
                 wx.CallAfter(item.unmarkAsModified, updateParent = False)
 
                 if not iftmode:
-                    axes_update_list.append(sasm.axes)   
+                    axes_update_list.append(sasm.axes)
 
             if restart_timer:
                 self.main_frame.OnlineControl.updateSkipList([check_filename])
@@ -4374,20 +4374,20 @@ class MainWorkerThread(threading.Thread):
 
             for axis in axes_update_list:
                 wx.CallAfter(sasm.item_panel.plot_panel.updateLegend, axis)
-        
+
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
 
 
-#***************        
+#***************
 #--- ** File Panel **
 #***************
-                             
+
 class FilePanel(wx.Panel):
     def __init__(self, parent):
-        
+
         wx.Panel.__init__(self, parent, size = (400,600), name = 'FilePanel')
-        
+
         self.plot_panel = wx.FindWindowByName('PlotPanel')
         self.manipulation_panel = wx.FindWindowByName('ManipulationPanel')
         self.main_frame = wx.FindWindowByName('MainFrame')
@@ -4395,10 +4395,10 @@ class FilePanel(wx.Panel):
         self.sec_panel = wx.FindWindowByName('SECPanel')
         self.sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
         self.ift_panel = wx.FindWindowByName('IFTPanel')
-        
+
         # *************** buttons ****************************
         self.dir_panel = DirCtrlPanel(self)
-        
+
         self.button_data = ( ("Quick Reduce", self._onReduceButton),
                            ("Plot", self._onPlotButton),
                            ("Clear All", self._onClearAllButton),
@@ -4407,133 +4407,133 @@ class FilePanel(wx.Panel):
                            ("Plot SEC", self._onPlotSECButton))
 
         self.NO_OF_BUTTONS_IN_EACH_ROW = 3
-        
+
         #bg_label_sizer = self._createBackgroundFileLabels()
         button_sizer = self._createButtons()
-        
+
         # *************** Directory Control ***********************
-        b2sizer = wx.BoxSizer(wx.VERTICAL) 
+        b2sizer = wx.BoxSizer(wx.VERTICAL)
         b2sizer.Add((10,10), 0)
-       # b2sizer.Add(bg_label_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.ALIGN_CENTRE, 10) 
+       # b2sizer.Add(bg_label_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.ALIGN_CENTRE, 10)
         b2sizer.Add((5,5))
         b2sizer.Add(self.dir_panel, 1, wx.EXPAND| wx.LEFT | wx.RIGHT, 10)
-        b2sizer.Add(button_sizer, 0, wx.EXPAND | wx.ALIGN_CENTER | wx.TOP | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)                      
+        b2sizer.Add(button_sizer, 0, wx.EXPAND | wx.ALIGN_CENTER | wx.TOP | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
 
         self.SetSizer(b2sizer)
-        
+
     def _createBackgroundFileLabels(self):
         box = wx.StaticBox(self, -1, 'Background File:')
         bg_label_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        
+
         bg_filename = wx.StaticText(self, -1, 'None')
         bg_filename.SetMinSize((230,20))
-        
+
         bg_label_sizer.Add(bg_filename, 1, wx.EXPAND)
-        
+
         return bg_label_sizer
-        
+
     def _createButtons(self):
         no_of_buttons = len(self.button_data)
         no_of_rows = int(np.ceil(no_of_buttons / self.NO_OF_BUTTONS_IN_EACH_ROW))
-        
+
         button_sizer = wx.GridSizer( cols = self.NO_OF_BUTTONS_IN_EACH_ROW, rows = no_of_rows, hgap = 3, vgap = 3)
-        
+
         for button_txt, bindfunc in self.button_data:
             button = wx.Button(self, -1, button_txt)
-            button.Bind(wx.EVT_BUTTON, bindfunc)    
+            button.Bind(wx.EVT_BUTTON, bindfunc)
             button_sizer.Add(button, 1, wx.ALIGN_CENTER | wx.EXPAND)
-            
+
             #################################################3
             if button_txt == '' or button_txt == 'Average':
                 #button.Enable(False)
                 pass
-                
-        return button_sizer    
-    
-    
+
+        return button_sizer
+
+
     def _fileTypeIsCompatible(self, path):
         root, ext = os.path.splitext(path)
 
         compatible_formats = self.main_frame.getRawSettings().get('CompatibleFormats')
-        
-        if str(ext) in compatible_formats: 
+
+        if str(ext) in compatible_formats:
             return True
         else:
             return False
-    
+
     def _onViewButton(self, event):
-        
+
         filelist = wx.FindWindowByName('FileListCtrl')
-        filelist.openFileInExternalViewer() 
+        filelist.openFileInExternalViewer()
         #wx.CallAfter(self.main_frame.test2)
-        
+
 #        dlg = TestDialog2(self, -1)
 #        dlg.ShowModal()
 #        dlg.Destroy()
 #        plot_panel = wx.FindWindowByName('PlotPanel')
 #        ax = plot_panel.subplot1
 #        plot_panel._insertLegend(ax)
-#        
+#
 
-        
+
     def _onPlotButton(self, event):
-        
+
         files = []
-        
+
         for each_filename in self.dir_panel.file_list_box.getSelectedFilenames():
             path = os.path.join(self.dir_panel.file_list_box.path, each_filename)
             files.append(path)
-            
+
         mainworker_cmd_queue.put(['plot', files])
 
 
     def _onPlotSECButton(self, event):
-        
+
         files = []
-        
+
         for each_filename in self.dir_panel.file_list_box.getSelectedFilenames():
             path = os.path.join(self.dir_panel.file_list_box.path, each_filename)
             files.append(path)
 
         frame_list = range(len(files))
-            
+
         mainworker_cmd_queue.put(['sec_plot', [files, frame_list]])
 
 
-    
+
     def _onClearAllButton(self, event):
-        
+
         global workspace_saved
 
         if workspace_saved == False:
             dial = SaveDialog(self, -1, 'Workspace not saved', 'The workspace has been modified, do you want to save your changes?')
-        else: 
-            dial = wx.MessageDialog(self, 'Are you sure you want to clear everything?', 'Are you sure?', 
+        else:
+            dial = wx.MessageDialog(self, 'Are you sure you want to clear everything?', 'Are you sure?',
                                     wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
-        
+
         answer = dial.ShowModal()
         dial.Destroy()
-        
+
         if answer == wx.ID_CANCEL or answer == wx.ID_NO:
             return
         elif answer == wx.ID_SAVE:
             self.main_frame.saveWorkspace()
-            
+
         else:
             answer2 = wx.ID_YES
-            
+
             if self.manipulation_panel.modified_items != [] or self.sec_panel.modified_items != [] or self.ift_panel.modified_items !=[]:
-                
+
                 msg_list = []
                 if self.manipulation_panel.modified_items !=[]:
                     msg_list.append('Manipulation')
-                
+
                 if self.sec_panel.modified_items != []:
                     msg_list.append('SEC')
-                
+
                 if self.ift_panel.modified_items != []:
                     msg_list.append('IFT')
-                
+
                 if len(msg_list) == 1:
                     message = msg_list[0]
                 elif len(msg_list) == 2:
@@ -4543,11 +4543,11 @@ class FilePanel(wx.Panel):
 
 
 
-                dial2 = wx.MessageDialog(self, 'You have unsaved changes in your ' + message + ' data. Do you want to discard these changes?', 'Discard changes?', 
+                dial2 = wx.MessageDialog(self, 'You have unsaved changes in your ' + message + ' data. Do you want to discard these changes?', 'Discard changes?',
                                          wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
                 answer2 = dial2.ShowModal()
                 dial2.Destroy()
-            
+
             if answer2 == wx.ID_YES:
                 self.plot_panel.clearAllPlots()
                 self.image_panel.clearFigure()
@@ -4555,16 +4555,16 @@ class FilePanel(wx.Panel):
                 self.ift_panel.ClearData()
                 self.sec_plot_panel.clearAllPlots()
                 self.sec_panel.clearList()
-        
+
         info_panel = wx.FindWindowByName('InformationPanel')
         info_panel.clearInfo()
-    
+
     def _onReduceButton(self, event):
-        
+
         selected_files = self.dir_panel.file_list_box.getSelectedFilenames()
-        
+
         load_path = self.dir_panel.getDirLabel()
-        
+
         dlg = QuickReduceDialog(self, load_path, selected_files)
         result = dlg.ShowModal()
 
@@ -4572,28 +4572,28 @@ class FilePanel(wx.Panel):
             save_path = dlg.getPath()
         else:
             return
-        
+
         dlg.Destroy()
-        
+
         mainworker_cmd_queue.put(['quick_reduce', [save_path, load_path, selected_files, '.dat']])
-        
-        
+
+
     def _onShowImageButton(self, event):
-        
+
         if len(self.dir_panel.file_list_box.getSelectedFilenames()) > 0:
-            filename = self.dir_panel.file_list_box.getSelectedFilenames()[0]        
+            filename = self.dir_panel.file_list_box.getSelectedFilenames()[0]
             path = os.path.join(self.dir_panel.file_list_box.path, filename)
             mainworker_cmd_queue.put(['show_image', path])
-        
+
     def _onSubtractButton(self, event):
-        
+
         pass
         #dirpanel = wx.FindWindowByName('DirCtrlPanel')
         #print dirpanel.itemDataMap
         #wx.CallAfter(self.main_frame.showCenteringPane)
-        
+
         #RAWSettings.loadSettings(self.main_frame.raw_settings, 'testdat.dat')
-        
+
         #dlg = SaveAnalysisInfoDialog(self)
         #dlg.ShowModal()
 
@@ -4602,27 +4602,27 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
 
     def __init__(self, parent, id):
         wx.ListCtrl.__init__(self, parent, id, style = wx.LC_REPORT |wx.LC_VIRTUAL, name = 'FileListCtrl')
-        
+
         self.path = os.getcwd()
         self.files = []
         self.parent = parent
-        self.mainframe = wx.FindWindowByName('MainFrame')        
+        self.mainframe = wx.FindWindowByName('MainFrame')
         self.file_panel = wx.FindWindowByName('FilePanel')
-        self.dirctrl_panel = parent 
+        self.dirctrl_panel = parent
 
         self.filteredFilesList = []
         self.dirsList = []
         self.file_list_dict = {}
         self.folder_list_dict = {}
-        
+
         self.copylist = []
         self.cut_selected = False
         self.copy_selected = False
-        
+
         self.InsertColumn(0, 'Name')
         self.InsertColumn(1, 'Ext')
         self.InsertColumn(2, 'Modified')
-        self.InsertColumn(3, 'Size', wx.LIST_FORMAT_RIGHT)    
+        self.InsertColumn(3, 'Size', wx.LIST_FORMAT_RIGHT)
         self.SetColumnWidth(0, 160)
         self.SetColumnWidth(1, 40)
         self.SetColumnWidth(2, 125)
@@ -4634,7 +4634,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         self.attr2.SetBackgroundColour("White")
 
         ### Prepare list images:
-        self.il = wx.ImageList(16, 16)        
+        self.il = wx.ImageList(16, 16)
 
         a={"sm_up":"GO_UP","sm_dn":"GO_DOWN","w_idx":"WARNING","e_idx":"ERROR","i_idx":"QUESTION"}
         for k,v in a.items():
@@ -4643,9 +4643,9 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
 
         self.documentimg = self.il.Add(RAWIcons.document.GetBitmap())
         self.folderimg = self.il.Add(RAWIcons.Folder.GetBitmap())
-        self.upimg = self.il.Add(RAWIcons.Up.GetBitmap())            
+        self.upimg = self.il.Add(RAWIcons.Up.GetBitmap())
         self.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
-    
+
         #Init the list:
         self.itemDataMap = {}
         self.itemIndexMap = {}.keys()
@@ -4653,10 +4653,10 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
 
         listmix.ListCtrlAutoWidthMixin.__init__(self)
         listmix.ColumnSorterMixin.__init__(self, 4)
-    
+
         #Default sorting order:
         self.SortListItems(0, 1)
-        
+
         self.Bind(wx.EVT_LEFT_DCLICK, self._onDoubleLeftMouseClickOrEnterKey)
         self.Bind(wx.EVT_KEY_DOWN, self._onKeyPressEvent)
         self.Bind(wx.EVT_RIGHT_UP, self._onRightMouseClick)
@@ -4665,13 +4665,13 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         #---------------------------------------------------
         # These methods are callbacks for implementing the
         # "virtualness" of the list...
-        
-        
+
+
 #    def GetSecondarySortValues(self, col, key1, key2):
 #
 #        def ss(key):
 #            return self.itemDataMap[key][3]
-#        
+#
 #        return (ss(key1), ss(key2))
 
     def OnGetItemText(self, item, col):
@@ -4689,7 +4689,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
             return self.upimg
         elif itemtype == 'dir':
             return self.folderimg
-        else:    
+        else:
             return -1
 
     def OnGetItemAttr(self, item):
@@ -4715,7 +4715,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         items = list(self.itemDataMap.keys())
         items.sort(sorter)
         self.itemIndexMap = items
-        
+
         # redraw the list
         self.Refresh()
 
@@ -4728,32 +4728,32 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
 #        return (self.sm_dn, self.sm_up)
 
     def onColClick(self, event):
-        
+
 #        if event.GetColumn() == self.sort_column:
 #            self.reverse_sort = not self.reverse_sort
 #        else:
 #            self.reverse_sort = False
-        
+
 #        self.sort_column = event.GetColumn()
 
 #    self.updateSorting()
 
         event.Skip()
         #self.updateFileList()
- 
+
     def readFileList(self):
         try:
             self.files = os.listdir(self.path)
-                
+
         except OSError, msg:
             print msg
             wx.MessageBox(str(msg), 'Error loading folder', style = wx.ICON_ERROR | wx.OK)
-            
+
     def getFilteredFileList(self):
-        
-        sel = self.dirctrl_panel.getExtensionFilterString() 
+
+        sel = self.dirctrl_panel.getExtensionFilterString()
         extIdx = sel.find('*.')
-        
+
         if self.dirctrl_panel.getExtensionFilterString() not in self.dirctrl_panel.file_extension_list:
             filteredFiles = fnmatch.filter(self.files, sel)
         else:
@@ -4767,60 +4767,60 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
 
             if extension == '.':
                 extension = ''
-        
+
             if extension != '.*':
                 filteredFiles = []
                 for each in self.files:
                     name, ext = os.path.splitext(each)
-                
+
                     if ext.lower() == extension:
                         filteredFiles.append(name+ext)
             else:
                 filteredFiles = self.files
-        
+
         # Filelist doesnt take Unicode! convert to normal strings:
         for i in range(0, len(filteredFiles)):
             filteredFiles[i] = str(filteredFiles[i].encode("iso-8859-15", "backslashreplace"))
-            
+
         filteredFiles.sort(key = str.lower)
-        
+
         return filteredFiles
-    
+
     def getListDict(self):
         return self.list_dict
-    
+
     def refreshFileList(self):
         self.DeleteAllItems()
-        
+
         self.dirsList = []
-        
+
         self.file_list_dict = {}
         self.folder_list_dict = {}
-        
+
         ### Take out the directories and sort them:
         for each in self.files:
             if os.path.isdir(os.path.join(self.path, each)):
                 self.dirsList.append(str(each))
-        
+
         self.dirsList.sort(key = str.lower)
-        
-        ## Remove directories fromt the file list:   
+
+        ## Remove directories fromt the file list:
         for each in self.dirsList:
             self.files.remove(each)
-        
-        filteredFiles = self.getFilteredFileList()  
-        
+
+        filteredFiles = self.getFilteredFileList()
+
         if len(self.path) > 1:
             #self.InsertStringItem(0, '..')
             #self.SetItemImage(0,0)
             j = 1
         else:
             j = 1
-        
+
         for i in self.dirsList:
             (name, ext) = os.path.splitext(i)
             ex = ext[1:]
-            
+
             try:
                 size = os.path.getsize(os.path.join(self.path, i))
                 sec = os.path.getmtime(os.path.join(self.path, i))
@@ -4829,11 +4829,11 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
                 sec = 1
 
             self.file_list_dict[j] = (name, ex, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)), '', 'dir')
-                      
+
             j += 1
-        
-        end_of_folders_idx = j    
-            
+
+        end_of_folders_idx = j
+
         for i in filteredFiles:
             (name, ext) = os.path.splitext(i)
             ex = ext[1:]
@@ -4846,55 +4846,55 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
                 sec = 1
 
             self.file_list_dict[j] = (name, ex, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)), str(round(size/1000,1)) + ' KB', 'file')
-            
+
             j += 1
-    
+
         self.insertSortedFilesIntoList(end_of_folders_idx)
-    
+
     def insertSortedFilesIntoList(self, end_of_folders_idx):
 
         self.file_list_dict[0] = ('..', '', '', '', 'up')
         self.itemDataMap = self.file_list_dict
         self.itemIndexMap = self.file_list_dict.keys()
         self.SetItemCount(len(self.file_list_dict))
-    
+
         self.OnSortOrderChanged()
-    
+
 
     def getSelectedFilenames(self):
-         
+
         if self.GetSelectedItemCount() == 0:
              return []
-        
+
         selected = []
         selIdx = self.GetFirstSelected()
-        
+
         filename = self.GetItemText(selIdx)
         ext_item = self.GetItem(selIdx,1).GetText()
-        
+
         if ext_item:
             fullfilename = filename + '.' + ext_item
         else:
             fullfilename = filename
-        
+
         selected.append(fullfilename)
-        
+
         for i in range(1, self.GetSelectedItemCount()):
             newSelIdx = self.GetNextSelected(selIdx)
             selIdx = newSelIdx
-            
+
             filename = self.GetItemText(selIdx)
             ext_item = self.GetItem(selIdx,1).GetText()
-        
+
             if ext_item:
                 fullfilename = filename + '.' + ext_item
             else:
                 fullfilename = filename
-            
+
             selected.append(fullfilename)
-    
+
         return selected
-    
+
     def updateFileList(self):
         col, ascending = self.GetSortState()
 
@@ -4902,94 +4902,94 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         self.refreshFileList()
         self.itemDataMap = self.file_list_dict
         self.itemIndexMap = self.file_list_dict.keys()
-        
+
         # self.OnSortOrderChanged()
         self.SortListItems(col, ascending)
-    
+
     def _savePathToDisk(self):
-        
+
         save_path = os.path.join(RAWWorkDir, 'backup.ini')
-        
+
         data = {'path' : self.path}
-        
+
         print self.path
-                
+
         file_obj = open(save_path, 'w')
         cPickle.dump(data, file_obj)
         file_obj.close()
         #except Exception, e:
         #    print e
-        
+
     def setDir(self, dir):
         self.path = dir
         self.updateFileList()
-        
+
     def getDir(self):
         return self.path
-        
+
     def _onKeyPressEvent(self, event):
-        
+
         shift_is_down = event.ShiftDown()
-        
+
         if event.GetKeyCode() ==  wx.WXK_F5:
             self.readFileList()
             self.refreshFileList()
-            
+
         elif event.GetKeyCode() ==  wx.WXK_UP:
             self._onUpKey(shift_is_down)
-            
+
         elif event.GetKeyCode() ==  wx.WXK_DOWN:
             self._onDownKey(shift_is_down)
-            
+
         elif event.GetKeyCode() == wx.WXK_RETURN:
             self._onDoubleLeftMouseClickOrEnterKey(event)
-            
+
         elif event.GetKeyCode() == 83: #S
             wx.CallAfter(self.file_panel._onShowImageButton, None)
-            
+
         elif event.GetKeyCode() == 80: #P
             wx.CallAfter(self.file_panel._onPlotButton, None)
-            
+
         elif event.GetKeyCode() == 67: #C
             wx.CallAfter(self.file_panel._onClearAllButton, None)
-        
+
         elif event.GetKeyCode() == 81: #Q
             wx.CallAfter(self.file_panel._onReduceButton, None)
-        
+
         elif event.GetKeyCode() == 69: #e
             self.openFileInExternalViewer()
-            
+
     def _onUpKey(self, shift_is_down):
-        
+
         selidx = self.GetFirstSelected()
         no_of_items = self.GetItemCount()
-        
+
         new_idx = selidx - 1
-        
+
         if new_idx != -1:
             if not shift_is_down:
                 self.Select(selidx, False)
             self.Select(new_idx, True)
             self.EnsureVisible(new_idx)
-     
+
     def _onDownKey(self, shift_is_down):
         selidx = self.GetFirstSelected()
         no_of_items = self.GetItemCount()
-        
+
         new_idx = selidx + 1
-        
+
         if selidx < no_of_items-1 :
             if not shift_is_down:
                 self.Select(selidx, False)
-            
+
             self.Select(new_idx, True)
             self.EnsureVisible(new_idx)
-    
-    
+
+
     def _showPopupMenu(self):
-        
+
         menu = wx.Menu()
-              
+
         menu.Append(1, 'New Folder')
         menu.AppendSeparator()
         menu.Append(2, 'Rename' )
@@ -4998,105 +4998,105 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         menu.Append(4, 'Copy')
         paste = menu.Append(5, 'Paste')
         paste.Enable(False)
-        
+
         if self.copy_selected or self.cut_selected:
             paste.Enable(True)
-            
-        
+
+
         menu.AppendSeparator()
         menu.Append(6, 'Delete')
-        
-        self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)        
+
+        self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
         self.PopupMenu(menu)
 
         menu.Destroy()
-    
+
     def _onRightMouseClick(self, event):
-        
+
         if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
             wx.CallAfter(self._showPopupMenu)
         else:
             self._showPopupMenu()
 
-    
+
     def _onPopupMenuChoice(self, event):
         choice_id = event.GetId()
-        
+
         choices = {1 : self._createNewFolder,
                    2 : self._renameFile,
                    3 : self._cutFile,
                    4 : self._copyFile,
                    5 : self._pasteFile,
                    6 : self._deleteFile}
-        
+
         if choices.has_key(choice_id):
             choices[choice_id]()
-    
+
     def _pasteFile(self):
-        
+
         if self.cut_selected or self.copy_selected:
-           
+
             for each in self.copylist:
-                
+
                 try:
                     srcdir, filename = os.path.split(each)
                     dstpath = os.path.join(self.path, filename)
-                
-                    if self.cut_selected:        
+
+                    if self.cut_selected:
                         shutil.move(each, dstpath)
                     elif self.copy_selected:
                         shutil.copy(each, dstpath)
-                        
-                except Exception, e: 
+
+                except Exception, e:
                     wx.MessageBox('Paste failed:\n' + str(e), 'Failed')
-        
+
             self.cut_selected = False
             self.copy_selected = False
             self.copylist = []
-            
+
             self.updateFileList()
-        
+
     def _copyFile(self):
-        
+
         filename_list = self.getSelectedFilenames()
-        
+
         self.copylist = []
         for each in filename_list:
             self.copylist.append(os.path.join(self.path, each))
-            
+
         self.copy_selected = True
         self.cut_selected = False
-        
+
     def _cutFile(self):
         filename_list = self.getSelectedFilenames()
-        
+
         self.copylist = []
         for each in filename_list:
             self.copylist.append(os.path.join(self.path, each))
-            
+
         self.copy_selected = False
         self.cut_selected = True
-        
+
     def _createNewFolder(self):
-        
+
         dlg = FilenameChangeDialog(self, 'New Folder')
         result = dlg.ShowModal()
-        
+
         if result == wx.ID_OK:
             dirname = dlg.getFilename()
-            
+
             try:
                 os.mkdir(os.path.join(self.path, dirname))
             except Exception, e:
                 wx.MessageBox('Folder creation failed:\n' + str(e), 'Failed')
                 return
-    
+
         self.updateFileList()
-    
+
     def _deleteFile(self):
-        
+
         filename_list = self.getSelectedFilenames()
-        
+
         if len(filename_list) == 1:
             txt = 'this'
             txt2 = ''
@@ -5106,11 +5106,11 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         else:
             wx.MessageBox('No files selected', 'Failed')
             return
-        
+
         dlg = wx.MessageDialog(self, 'Are you sure you want to PERMANETLY delete ' + txt + ' file'+ txt2 +'?:', 'Are you sure?', wx.YES_NO | wx.ICON_INFORMATION)
-    
+
         answer = dlg.ShowModal()
-        
+
         if answer == wx.ID_YES:
             for each in filename_list:
                 try:
@@ -5121,86 +5121,86 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
                 except Exception, e:
                      wx.MessageBox('Delete failed: ' + str(e), 'Failed')
                      return
-                 
+
         self.updateFileList()
-    
+
     def _renameFile(self):
-        
+
         filename = self.getSelectedFilenames()[0]
         dlg = FilenameChangeDialog(self, filename)
-        
+
         answer = dlg.ShowModal()
-        
+
         if answer == wx.ID_OK:
             new_filename = dlg.getFilename()
-            
+
             if new_filename != filename:
-            
+
                 try:
                     os.rename(os.path.join(self.path, filename), os.path.join(self.path, new_filename))
                 except Exception, e:
                     wx.MessageBox('Rename failed: ' + str(e), 'Failed')
-                    
+
                 self.updateFileList()
-            
+
         dlg.Destroy()
-            
-        
-    
+
+
+
     def _onDoubleLeftMouseClickOrEnterKey(self, event):
-        
+
         if self.getSelectedFilenames() != []:
             fullfilename = self.getSelectedFilenames()[0]
         else:
             return
-        
+
         if fullfilename == '..':
             self.path = os.path.split(self.path)[0]
             if self.path == '.':
-                self.path += '/' 
+                self.path += '/'
             self.parent.setDirLabel(self.path)
             self.updateFileList()
-            
+
         elif os.path.isdir(os.path.join(self.path, fullfilename)):
             self.path = os.path.join(self.path, fullfilename)
             self.parent.setDirLabel(self.path)
             self.updateFileList()
-            
+
         else:
-            
+
             full_dir_filename = os.path.join(self.path, fullfilename)
-            
+
             file, ext = os.path.splitext(full_dir_filename)
-            
+
             if ext == '.wsp':
                 ret = wx.MessageBox('Are you sure you want to load this workspace?',
                               'Load workspace?', style = wx.YES_NO | wx.ICON_QUESTION)
-                
+
                 if ret == wx.YES:
                     mainworker_cmd_queue.put(['load_workspace', [full_dir_filename]])
-                    
+
             elif ext == '.cfg':
                 ret = wx.MessageBox('Are you sure you want to load this config file?',
                               'Load new configuration?', style = wx.YES_NO | wx.ICON_QUESTION)
-                
+
                 if ret == wx.YES:
                     raw_settings = self.mainframe.getRawSettings()
-                    
+
                     try:
                         success = RAWSettings.loadSettings(raw_settings, full_dir_filename)
                     except IOError, e:
                         wx.MessageBox(str(e), 'Error loading file', style = wx.OK | wx.ICON_EXCLAMATION)
-                    
-                    
+
+
                     if success:
                         raw_settings.set('CurrentCfg', file)
                     else:
                         wx.MessageBox('Load failed, config file might be corrupted',
                               'Load failed', style = wx.OK | wx.ICON_ERROR)
-                
-            else:    
+
+            else:
                 mainworker_cmd_queue.put(('plot', [full_dir_filename]))
-            
+
     def openFileInExternalViewer(self):
 
         if self.getSelectedFilenames():
@@ -5223,10 +5223,10 @@ class DirCtrlPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent, name = 'DirCtrlPanel')
         self.parent = parent
-        
+
         self.main_frame = wx.FindWindowByName('MainFrame')
         self.raw_settings = self.main_frame.getRawSettings()
-        
+
         self.file_extension_list = ['All files (*.*)',
                                     'No Extension files (*.)',
                                     'TIFF files (*.tiff)',
@@ -5239,27 +5239,27 @@ class DirCtrlPanel(wx.Panel):
                                     'FIT files (*.fit)',
                                     'WSP files (*.wsp)',
                                     'CFG files (*.cfg)']
-        
+
         dirctrlpanel_sizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         self.ext_choice = self._createExtentionBox()       #File extention filter
-        
+
         self._createDirCtrl(dirctrlpanel_sizer)            #Listbox containing filenames
-        
+
         dirctrlpanel_sizer.Add(self.ext_choice, 0, wx.EXPAND | wx.TOP, 2)
-        
+
         self.SetSizer(dirctrlpanel_sizer, wx.EXPAND)
-        
+
         self.selected_file = None
         self._old_path = '.'
-        
+
         self.file_list = []
-        
-    
+
+
     def _useSavedPathIfExisits(self):
-        #if self.raw_settings.getAllParams().has_key('CurrentFilePath'):    
+        #if self.raw_settings.getAllParams().has_key('CurrentFilePath'):
         #    path = self.raw_settings.get('CurrentFilePath')
-        
+
         path = None
 
         load_path = os.path.join(RAWWorkDir, 'backup.ini')
@@ -5273,46 +5273,46 @@ class DirCtrlPanel(wx.Panel):
         except Exception, e:
             print e
             path = None
-                    
+
         if path != None and os.path.exists(path):
             self.setDirLabel(path)
             self.file_list_box.setDir(path)
             print 'Switched to saved path: ' + str(path)
-        
+
 
     def _createDirCtrl(self, dirctrlpanel_sizer):
-        
+
         dir_label_sizer = wx.BoxSizer()
-        
+
         self.dir_label = wx.TextCtrl(self, -1, "/" , size = (30,16), style = wx.TE_PROCESS_ENTER)
         self.dir_label.Bind(wx.EVT_KILL_FOCUS, self._onEnterOrFocusShiftInDirLabel)
         self.dir_label.Bind(wx.EVT_TEXT_ENTER, self._onEnterOrFocusShiftInDirLabel)
 
         dir_bitmap = RAWIcons.folder_search.GetBitmap()
         refresh_bitmap = RAWIcons.refreshlist2.GetBitmap()
-        
+
         self.dir_button = wx.BitmapButton(self, -1, dir_bitmap)
         self.dir_button.Bind(wx.EVT_BUTTON, self._onSetDirButton)
         self.dir_button.SetToolTipString('Open Folder')
-        
+
         self.refresh_button = wx.BitmapButton(self, -1, refresh_bitmap)
         self.refresh_button.Bind(wx.EVT_BUTTON, self._onRefreshButton)
         self.refresh_button.SetToolTipString('Refresh')
-        
+
         dir_label_sizer.Add(self.dir_label, 1, wx.EXPAND | wx.RIGHT, 2)
         dir_label_sizer.Add(self.dir_button,0)
         dir_label_sizer.Add(self.refresh_button,0)
-        
+
         self.file_list_box = CustomListCtrl(self, -1)
         self.file_list_box.Bind(wx.EVT_LIST_ITEM_SELECTED, self._onLeftMouseClick)
         self.file_list_box.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self._onRightMouseClick)
-        
+
         dirctrlpanel_sizer.Add(dir_label_sizer, 0, wx.EXPAND | wx.BOTTOM, 2)
         dirctrlpanel_sizer.Add(self.file_list_box, 1, wx.EXPAND)
-        
+
         self.selected_files = []
         self.bg_filename = []
-              
+
     def _createExtentionBox(self):
         self.dropdown = wx.ComboBox(self, style = wx.TE_PROCESS_ENTER)
         self.dropdown.AppendItems(strings = self.file_extension_list)
@@ -5321,65 +5321,65 @@ class DirCtrlPanel(wx.Panel):
         self.dropdown.Bind(wx.EVT_TEXT_ENTER, self._onExtensionComboEnterKey)
         self.dropdown.Bind(wx.EVT_TEXT, self._onExtensionComboTextChange)
         return self.dropdown
-    
+
     def getExtensionFilterString(self):
         return self.dropdown.GetValue()
-    
+
     def _onExtensionComboTextChange(self, event):
         self.file_list_box.updateFileList()
-        
+
     def _onExtensionComboEnterKey(self, event):
         self.file_list_box.updateFileList()
 
-    def _onExtensionComboChoice(self, event):   
+    def _onExtensionComboChoice(self, event):
         self.file_list_box.updateFileList()
-        
+
     def _onEnterOrFocusShiftInDirLabel(self, event):
         pathtxt = self.getDirLabel()
-            
+
         if pathtxt != self.file_list_box.getDir():
-            if os.path.isdir(pathtxt):               
+            if os.path.isdir(pathtxt):
                 self._old_path = pathtxt
                 self.file_list_box.setDir(pathtxt)
             else:
                 self.setDirLabel(str(self._old_path))
 
         event.Skip()
-    
+
     def _onSetDirButton(self, event):
         pathtxt = self.getDirLabel()
         dirdlg = wx.DirDialog(self, "Please select directory:", str(pathtxt))
-        
-        if dirdlg.ShowModal() == wx.ID_OK:               
+
+        if dirdlg.ShowModal() == wx.ID_OK:
             path = dirdlg.GetPath()
             self.file_list_box.setDir(path)
             self.setDirLabel(path)
-            
+
     def _onRefreshButton(self, event):
         self.refresh()
 
     def refresh(self):
         self.file_list_box.updateFileList()
-            
+
     def setDirLabel(self, path):
         self.dir_label.SetValue(path)
-        
+
     def getDirLabel(self):
         return self.dir_label.GetValue()
-      
+
     def _onLeftMouseClick(self, event):
         pass
-    
+
     def _onRightMouseClick(self, event):
         pass
-    
+
 
 #--- ** Manipulation panel **
 
 class ManipulationPanel(wx.Panel):
     def __init__(self, parent, raw_settings):
         wx.Panel.__init__(self, parent, name = 'ManipulationPanel')
-        
+
         self.button_data = ( ('Save', self._onSaveButton),
                                      ('Sync', self._onSyncButton),
                                      ('Remove', self._onRemoveButton),
@@ -5388,56 +5388,56 @@ class ManipulationPanel(wx.Panel):
                                      ('Subtract', self._onSubtractButton))
 
         self.panelsizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         self._initializeIcons()
         toolbarsizer = self._createToolbar()
 
-        
+
 
         self.underpanel = scrolled.ScrolledPanel(self, -1, style = wx.BORDER_SUNKEN)
         self.underpanel.SetVirtualSize((200, 200))
         self.underpanel.SetScrollRate(20,20)
 
         self.underpanel.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-      
+
         self.all_manipulation_items = []
         self.selected_item_list = []
-        
+
         self.modified_items = []
-        
-        self.underpanel_sizer = wx.BoxSizer(wx.VERTICAL)    
+
+        self.underpanel_sizer = wx.BoxSizer(wx.VERTICAL)
         self.underpanel.SetSizer(self.underpanel_sizer)
-        
+
         self.buttonSizer = self.createButtons()
 
-        self.panelsizer.Add(toolbarsizer, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.EXPAND, 5)        
+        self.panelsizer.Add(toolbarsizer, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.EXPAND, 5)
         self.panelsizer.Add(self.underpanel, 1, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT, 3)
         self.panelsizer.Add(self.buttonSizer, 0, wx.EXPAND | wx.ALIGN_CENTER | wx.TOP |wx.BOTTOM | wx.LEFT | wx.RIGHT, 10)
-        
+
         self.SetSizer(self.panelsizer)
-        
+
         self._star_marked_item = None
         self._raw_settings = raw_settings
-        
+
     def _initializeIcons(self):
         self.collapse_all_png = RAWIcons.collapse_all.GetBitmap()
         self.expand_all_png = RAWIcons.expand_all.GetBitmap()
-        
+
         self.show_all_png = RAWIcons.open_eye.GetBitmap()
         self.hide_all_png = RAWIcons.close_eye.GetBitmap()
-        
+
         self.select_all_png = RAWIcons.select_all.GetBitmap()
-        
+
     def _createToolbar(self):
-        
+
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        
+
         collapse_all = wx.BitmapButton(self, -1, self.collapse_all_png)
         expand_all = wx.BitmapButton(self, -1, self.expand_all_png)
         show_all = wx.BitmapButton(self, -1, self.show_all_png)
         hide_all = wx.BitmapButton(self, -1, self.hide_all_png)
         select_all= wx.BitmapButton(self, -1, self.select_all_png)
-        
+
         select_all.Bind(wx.EVT_BUTTON, self._onSelectAllButton)
         collapse_all.Bind(wx.EVT_BUTTON, self._onCollapseAllButton)
         expand_all.Bind(wx.EVT_BUTTON, self._onExpandAllButton)
@@ -5471,7 +5471,7 @@ class ManipulationPanel(wx.Panel):
             hide_all.SetToolTipString('Hide')
             collapse_all.SetToolTipString('Collapse')
             expand_all.SetToolTipString('Expand')
-        
+
         sizer.Add(show_all, 0, wx.LEFT, 5)
         sizer.Add(hide_all, 0, wx.LEFT, 5)
         sizer.Add((1,1),1, wx.EXPAND)
@@ -5479,34 +5479,34 @@ class ManipulationPanel(wx.Panel):
         sizer.Add((1,1),1, wx.EXPAND)
         sizer.Add(collapse_all, 0, wx.RIGHT, 5)
         sizer.Add(expand_all, 0, wx.RIGHT, 3)
-        
+
         return sizer
-                
+
     def createButtons(self):
-        
+
         cols = 3
         rows = round(len(self.button_data)/cols)
-        
+
         sizer = wx.GridSizer(cols = cols, rows = rows, hgap = 3, vgap = 3)
-        
+
         for each in self.button_data:
             label = each[0]
             func = each[1]
-            
+
             button = wx.Button(self, -1, label)
             button.Bind(wx.EVT_BUTTON, func)
-            
+
             ##########################################
             if label == 'BIFT':
                 button.Enable(False)
-            
+
             sizer.Add(button, 1, wx.ALIGN_CENTER | wx.EXPAND)
-        
+
         return sizer
-    
+
     def addItem(self, sasm, item_colour = 'black', item_visible = True, notsaved = False):
-        
-        
+
+
         self.Freeze()
 
         if type(sasm) == list:
@@ -5526,58 +5526,58 @@ class ManipulationPanel(wx.Panel):
             self.underpanel_sizer.Add(newItem, 0, wx.GROW)
             self.all_manipulation_items.append(newItem)
             sasm.item_panel = newItem
-        
+
         self.underpanel_sizer.Layout()
-        
+
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-        self.Layout()            
+        self.Layout()
         self.Refresh()
         self.Thaw()
-        
+
         # Keeping track of all items in our list:
-        
+
     def setItemAsBackground(self, item):
-        
+
         bg_sasm = self._raw_settings.get('BackgroundSASM')
-        
+
         if bg_sasm != None:
             try:
                 bg_sasm.itempanel.enableStar(False)
             except:
                 pass
-        
+
         self._raw_settings.set('BackgroundSASM', item.sasm)
         item.enableStar(True)
         self._star_marked_item = item
-        
+
     def getBackgroundItem(self):
         return self._star_marked_item
-        
+
     def clearList(self):
         self.Freeze()
-        
+
         rest_of_items = []
         for each in self.all_manipulation_items:
-            
+
             try:
                 each.Destroy()
             except ValueError:
                 rest_of_items.append(each)
 
-                
+
         self.all_manipulation_items = rest_of_items
         self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-        
+
         self._star_marked_item = None
         self.modified_items = []
-        
+
         self.Thaw()
-        
+
     def clearBackgroundItem(self):
         self._raw_settings.set('BackgroundSASM', None)
         self._star_marked_item = None
-        
+
     def _collapseAllItems(self):
         self.underpanel.Freeze()
 
@@ -5590,16 +5590,16 @@ class ManipulationPanel(wx.Panel):
         else:
             for each in selected_items:
                 each.showControls(False)
-        
+
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-        self.underpanel.Layout()            
+        self.underpanel.Layout()
         self.underpanel.Refresh()
-        
-        self.Layout()            
+
+        self.Layout()
         self.Refresh()
 
         self.underpanel.Thaw()
-            
+
     def _expandAllItems(self):
         self.underpanel.Freeze()
 
@@ -5612,36 +5612,36 @@ class ManipulationPanel(wx.Panel):
         else:
             for each in selected_items:
                 each.showControls(True)
-        
+
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-        self.underpanel.Layout()            
+        self.underpanel.Layout()
         self.underpanel.Refresh()
-        
-        self.Layout()            
+
+        self.Layout()
         self.Refresh()
 
         self.underpanel.Thaw()
-        
+
 
     def removeItem(self, item):
-        
+
         self.all_manipulation_items.remove(item)
-        
+
         if item == self._star_marked_item:
             self._star_marked_item = None
-        
+
         item.Destroy()
-        
+
     def getSelectedItems(self):
-        
+
         self.selected_item_list = []
-        
+
         for each in self.all_manipulation_items:
             if each._selected == True:
                 self.selected_item_list.append(each)
-            
+
         return self.selected_item_list
-    
+
     def selectAll(self):
         for i in range(len(self.all_manipulation_items)):
             each = self.all_manipulation_items[i]
@@ -5650,10 +5650,10 @@ class ManipulationPanel(wx.Panel):
                 each.toggleSelect(update_info = False)
             else:
                 each.toggleSelect()
-    
+
     def deselectAllExceptOne(self, item, line = None, enableLocatorLine = False):
-        
-        if line == None:    
+
+        if line == None:
             for each in self.all_manipulation_items:
                 if each != item:
                     each._selected = True
@@ -5666,17 +5666,17 @@ class ManipulationPanel(wx.Panel):
                 else:
                     each._selected = True
                     each.toggleSelect(update_info = False)
-                    
+
     def removeSelectedItems(self):
         if len(self.getSelectedItems()) == 0: return
-        
+
         self.Freeze()
 
         info_panel = wx.FindWindowByName('InformationPanel')
         info_panel.clearInfo()
-        
+
         axes_that_needs_updated_legend = []
-         
+
         for each in self.getSelectedItems():
             try:
                 self.modified_items.remove(each)
@@ -5684,27 +5684,27 @@ class ManipulationPanel(wx.Panel):
                 pass
 
             plot_panel = each.sasm.plot_panel
-            
+
             each.sasm.line.remove()
             each.sasm.line = None
             each.sasm.err_line[0][0].remove()
             each.sasm.err_line[0][1].remove()
             each.sasm.err_line[1][0].remove()
             each.sasm.err_line = None
-            
+
             i = plot_panel.plotted_sasms.index(each.sasm)
             plot_panel.plotted_sasms.pop(i)
 
             if not each.sasm.axes in axes_that_needs_updated_legend:
                 axes_that_needs_updated_legend.append(each.sasm.axes)
-            
+
             if each == self._star_marked_item:
                 self._star_marked_item = None
 
             idx = self.all_manipulation_items.index(each)
             self.all_manipulation_items[idx].Destroy()
             self.all_manipulation_items.pop(idx)
-        
+
         for eachaxes in axes_that_needs_updated_legend:
             if eachaxes == plot_panel.subplot1:
                 wx.CallAfter(plot_panel.updateLegend, 1)
@@ -5716,10 +5716,10 @@ class ManipulationPanel(wx.Panel):
 
         self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-        self.underpanel.Refresh()    
-        
+        self.underpanel.Refresh()
+
         self.Thaw()
-        
+
     def _onShowAllButton(self, event):
         self.underpanel.Freeze()
 
@@ -5733,19 +5733,19 @@ class ManipulationPanel(wx.Panel):
             for each in selected_items:
                 each.showItem(True)
 
-        self.underpanel.Layout()            
+        self.underpanel.Layout()
         self.underpanel.Refresh()
-            
-        self.Layout()            
+
+        self.Layout()
         self.Refresh()
 
         self.underpanel.Thaw()
-           
+
         plot_panel = wx.FindWindowByName('PlotPanel')
         wx.CallAfter(plot_panel.updateLegend, 1)
         wx.CallAfter(plot_panel.updateLegend, 2)
         wx.CallAfter(plot_panel.fitAxis)
-           
+
     def _onHideAllButton(self, event):
         self.underpanel.Freeze()
 
@@ -5759,89 +5759,89 @@ class ManipulationPanel(wx.Panel):
             for each in selected_items:
                 each.showItem(False)
 
-        self.underpanel.Layout()            
+        self.underpanel.Layout()
         self.underpanel.Refresh()
-            
-        self.Layout()            
+
+        self.Layout()
         self.Refresh()
 
         self.underpanel.Thaw()
-           
+
         plot_panel = wx.FindWindowByName('PlotPanel')
         wx.CallAfter(plot_panel.updateLegend, 1)
         wx.CallAfter(plot_panel.updateLegend, 2)
         wx.CallAfter(plot_panel.fitAxis)
-        
+
     def _onSelectAllButton(self, event):
         self.selectAll()
-               
+
     def _onCollapseAllButton(self, event):
         self._collapseAllItems()
-        
+
     def _onExpandAllButton(self, event):
         self._expandAllItems()
-            
+
     def _onBiftButton(self, event):
         pass
-    
+
     def _onAverageButton(self, event):
         selected_items = self.getSelectedItems()
         mainworker_cmd_queue.put(['average_items', selected_items])
-        
+
     def _onRemoveButton(self, event):
         self.removeSelectedItems()
-    
+
     def _onSaveButton(self, event):
         self.saveItems()
-    
+
     def _onSyncButton(self, event):
         syncdialog = SyncDialog(self)
         syncdialog.ShowModal()
         syncdialog.Destroy()
-        
+
     def _onSubtractButton(self, event):
         mainworker_cmd_queue.put(['subtract_items', ( self._star_marked_item, self.getSelectedItems()  )])
-        
+
     def _onSuperimposeButton(self, event):
         mainworker_cmd_queue.put(['superimpose_items', ( self._star_marked_item, self.getSelectedItems()  )])
-        
-    
+
+
     def synchronizeSelectedItems(self, sync_parameters):
         star_item = self.getBackgroundItem()
-        
+
         if not star_item or (len(sync_parameters) == 0):
             return
-        
+
         star_sasm = star_item.getSASM()
-        
+
         scale = star_sasm.getScale()
         offset = star_sasm.getOffset()
         nmin, nmax = star_sasm.getQrange()
         qmin, qmax = star_sasm.getBinnedQ()[nmin], star_sasm.getBinnedQ()[nmax-1]
         linestyle = star_sasm.line.get_linestyle()
         linewidth = star_sasm.line.get_linewidth()
-        linemarker = star_sasm.line.get_marker() 
-        
+        linemarker = star_sasm.line.get_marker()
+
         selected_items = self.getSelectedItems()
-        
+
         findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
 
         manip_plot = wx.FindWindowByName("PlotPanel")
 
         sasm_list = []
-        
+
         for each_item in selected_items:
             if each_item == star_item:
                 continue
-            
+
             sasm = each_item.getSASM()
 
             sasm_list.append(sasm)
-            
+
             old_nmin, old_nmax = sasm.getQrange()
 
             modified = False
-            
+
             try:
                 if 'nmin' in sync_parameters and 'nmax' in sync_parameters:
                     sasm.setQrange([nmin, nmax])
@@ -5855,18 +5855,18 @@ class ManipulationPanel(wx.Panel):
                     sasm.setQrange([old_nmin, nmax])
                     if nmax != old_nmax:
                         modified = True
-                    
+
             except SASExceptions.InvalidQrange, msg:
                 dial = wx.MessageDialog(None, 'Filename : ' + sasm.getParameter('filename') + '\n\n' + str(msg),
                                 'Invalid Qrange',
                                 wx.OK | wx.CANCEL | wx.NO_DEFAULT | wx.ICON_QUESTION)
                 answer = dial.ShowModal()
-                    
+
                 if answer == wx.ID_CANCEL:
                     return
-                
+
             q = sasm.getBinnedQ()
-            
+
             if 'qmin' in sync_parameters and 'qmax' in sync_parameters:
                 closest = findClosest(qmin, q)
                 new_nmin = np.where(q == closest)[0][0]
@@ -5892,7 +5892,7 @@ class ManipulationPanel(wx.Panel):
 
                 if new_nmax != old_nmax:
                     modified = True
-                
+
             if 'scale' in sync_parameters:
                 old_scale = sasm.getScale()
                 sasm.scale(scale)
@@ -5927,7 +5927,7 @@ class ManipulationPanel(wx.Panel):
 
                 if old_linemarker != linemarker:
                     modified = True
-            
+
             each_item.updateControlsFromSASM(updatePlot=False)
 
             if modified:
@@ -5936,29 +5936,29 @@ class ManipulationPanel(wx.Panel):
 
         wx.CallAfter(manip_plot.updatePlotAfterManipulation, sasm_list)
 
-        
+
     def movePlots(self, ExpObjList, toAxes):
         for each_item in ExpObjList:
-            
+
             each = each_item.getSASM()
-            
+
             if each.axes != toAxes:
                 plotpanel = each.plot_panel
-      
+
                 each.line.remove()
                 each.err_line[0][0].remove()
                 each.err_line[0][1].remove()
                 each.err_line[1][0].remove()
-        
+
                 line_color = each.line.get_color()
-                
+
                 if each_item.getLegendLabel() != '':
                     label = each_item.getLegendLabel()
                 else:
                     label = None
 
                 wx.CallAfter(plotpanel.plotSASM, each, toAxes, color = line_color, legend_label_in = label)
-                
+
                 visible = each_item._selected_for_plot
 
                 wx.CallAfter(each_item.showItem, visible)
@@ -5968,14 +5968,14 @@ class ManipulationPanel(wx.Panel):
         wx.CallAfter(plotpanel.updateLegend, 1)
         wx.CallAfter(plotpanel.updateLegend, 2)
         wx.CallAfter(plotpanel.canvas.draw)
-    
+
     def getItems(self):
         return self.all_manipulation_items
-            
+
     def updateLayout(self):
         self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-    
+
     def saveItems(self):
         selected_items = self.getSelectedItems()
 
@@ -5983,15 +5983,15 @@ class ManipulationPanel(wx.Panel):
         path = dirctrl_panel.getDirLabel()
 
         if len(selected_items) == 1:
-            
+
             # filters = 'Comma Separated Files (*.csv)|*.csv'
-                
-            # dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path) 
+
+            # dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
             fname = os.path.splitext(os.path.basename(selected_items[0].sasm.getParameter('filename')))[0]+'.dat'
             msg = "Please select save directory and enter save file name"
-            dialog = wx.FileDialog(self, message = msg, style = wx.FD_SAVE, defaultDir = path, defaultFile = fname) 
-                
-            if dialog.ShowModal() == wx.ID_OK:               
+            dialog = wx.FileDialog(self, message = msg, style = wx.FD_SAVE, defaultDir = path, defaultFile = fname)
+
+            if dialog.ShowModal() == wx.ID_OK:
                 path = dialog.GetPath()
             else:
                 return
@@ -6002,19 +6002,19 @@ class ManipulationPanel(wx.Panel):
             wx.CallAfter(selected_items[0].updateFilenameLabel)
 
             save_path = os.path.dirname(path)
-        
+
         elif len(selected_items) == 0:
             return
 
         else:
             dirdlg = wx.DirDialog(self, "Please select save directory (multiple files will be saved):", defaultPath = path)
-            
+
             if dirdlg.ShowModal() == wx.ID_OK:
                 path = dirdlg.GetPath()
             else:
                 return
             save_path = path
-        
+
         mainworker_cmd_queue.put(['save_items', [save_path, selected_items]])
 
     def _onKeyPress(self, evt):
@@ -6022,88 +6022,88 @@ class ManipulationPanel(wx.Panel):
 
         if key == 65 and evt.CmdDown():
             self.selectAll()
-        
+
 
 class ManipItemPanel(wx.Panel):
     def __init__(self, parent, sasm, font_colour = 'BLACK', legend_label = '', item_visible = True, modified = False):
-        
+
         wx.Panel.__init__(self, parent, style = wx.BORDER_RAISED)
-        
+
         self.parent = parent
         self.sasm = sasm
         self.sasm.itempanel = self
-        
+
         self.manipulation_panel = wx.FindWindowByName('ManipulationPanel')
         self.plot_panel = wx.FindWindowByName('PlotPanel')
         self.main_frame = wx.FindWindowByName('MainFrame')
-        
+
         self.raw_settings = self.main_frame.raw_settings
-        
+
         self.info_panel = wx.FindWindowByName('InformationPanel')
         self.info_settings = {'hdr_choice' : 0}
-        
+
         self._selected_as_bg = False
         self._selected_for_plot = item_visible
         self._controls_visible = True
         self._selected = False
         self._legend_label = legend_label
-        
+
         self._font_colour = font_colour
-        
+
         filename = sasm.getParameter('filename')
-               
+
         self.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
         self.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
         self.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
         #Label, TextCtrl_ID, SPIN_ID
-        
+
         self._initializeIcons()
-                                       
+
         self.qmax = len(self.sasm.q)
-                             
-        self.spin_controls = (("q Min:", wx.NewId(), wx.NewId(), (1, self.qmax-1), 'nlow'),        
+
+        self.spin_controls = (("q Min:", wx.NewId(), wx.NewId(), (1, self.qmax-1), 'nlow'),
                              ("q Max:", wx.NewId(), wx.NewId(), (2, self.qmax), 'nhigh'))
-        
+
         self.float_spin_controls = (
                                    # ("Conc:", wx.NewId(), 'conc', '1.0', self._onScaleOffsetChange),
                                     ("Scale:", wx.NewId(), 'scale', str(sasm.getScale()), self._onScaleOffsetChange),
                                     ("Offset:", wx.NewId(), 'offset', str(sasm.getOffset()), self._onScaleOffsetChange))
-    
+
         self.SelectedForPlot = RAWCustomCtrl.CustomCheckBox(self, -1, filename)
         self.SelectedForPlot.SetValue(True)
         self.SelectedForPlot.Bind(wx.EVT_CHECKBOX, self._onSelectedChkBox)
         self.SelectedForPlot.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
         self.SelectedForPlot.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
         self.SelectedForPlot.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
-        
+
         self.SelectedForPlot.SetForegroundColour(font_colour)
-        
+
         self.legend_label_text = wx.StaticText(self, -1, '')
-        
+
         self.legend_label_text.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
         self.legend_label_text.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
         self.legend_label_text.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-        
+
         conv = mplcol.ColorConverter()
         color = conv.to_rgb(self.sasm.line.get_mfc())
         color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
-        
+
         self.colour_indicator = RAWCustomCtrl.ColourIndicator(self, -1, color, size = (20,15))
         self.colour_indicator.Bind(wx.EVT_LEFT_DOWN, self._onLinePropertyButton)
 
         self.bg_star = wx.StaticBitmap(self, -1, self.gray_png)
         self.bg_star.Bind(wx.EVT_LEFT_DOWN, self._onStarButton)
-        
+
         self.expand_collapse = wx.StaticBitmap(self, -1, self.collapse_png)
         self.expand_collapse.Bind(wx.EVT_LEFT_DOWN, self._onExpandCollapseButton)
-        
+
         self.target_icon = wx.StaticBitmap(self, -1, self.target_png)
         self.target_icon.Bind(wx.EVT_LEFT_DOWN, self._onTargetButton)
-        
+
 
         self.info_icon = wx.StaticBitmap(self, -1, self.info_png)
         self.info_icon.Bind(wx.EVT_LEFT_DOWN, self._onInfoButton)
-       
+
         if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
             show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(self.SelectedForPlot)
@@ -6141,7 +6141,7 @@ class ManipItemPanel(wx.Panel):
 
         self.locator_on = False
         self.locator_old_width = 1
-        
+
         panelsizer = wx.BoxSizer()
         panelsizer.Add(self.SelectedForPlot, 0, wx.LEFT | wx.TOP, 3)
         panelsizer.Add(self.legend_label_text, 0, wx.LEFT | wx.TOP, 3)
@@ -6151,78 +6151,78 @@ class ManipItemPanel(wx.Panel):
         panelsizer.Add(self.target_icon, 0, wx.RIGHT | wx.TOP, 4)
         panelsizer.Add(self.colour_indicator, 0, wx.RIGHT | wx.TOP, 5)
         panelsizer.Add(self.bg_star, 0, wx.LEFT | wx.RIGHT | wx.TOP, 3)
-        
-    
+
+
         self.topsizer = wx.BoxSizer(wx.VERTICAL)
         self.topsizer.Add(panelsizer, 1, wx.EXPAND)
-        
+
         #self.controlSizer = wx.BoxSizer(wx.VERTICAL)
         self.controlSizer = wx.FlexGridSizer(cols = 4, rows = 2, vgap = 3, hgap = 7)
-       
+
         self._createSimpleSpinCtrls(self.controlSizer)
-        self._createFloatSpinCtrls(self.controlSizer) 
-        
+        self._createFloatSpinCtrls(self.controlSizer)
+
         self.topsizer.Add((5,5),0)
         self.topsizer.Add(self.controlSizer, 0, wx.EXPAND | wx.LEFT | wx.BOTTOM, 5)
-        
+
         self.SetSizer(self.topsizer)
-        
+
         self.SetBackgroundColour(wx.Colour(250,250,250))
-        
+
         self._initStartPosition()
         self._updateQTextCtrl()
-        
+
         if self.sasm.getParameter('analysis').has_key('guinier'):
             self.updateInfoTip(self.sasm.getParameter('analysis'))
-            
+
         controls_not_shown = self.main_frame.raw_settings.get('ManipItemCollapsed')
-        
+
         if not self._selected_for_plot:
             controls_not_shown = True
-        
+
         if controls_not_shown:
             self.showControls(not controls_not_shown)
 
         if modified:
             parent = self.GetParent()
-        
+
             filename = self.sasm.getParameter('filename')
             self.SelectedForPlot.SetLabel('* ' + str(filename))
             self.SelectedForPlot.Refresh()
-            
+
             if self not in self.manipulation_panel.modified_items:
                 self.manipulation_panel.modified_items.append(self)
-        
+
         self.updateShowItemCheckBox()
-        
-        
+
+
     def updateInfoTip(self, analysis_dict, fromGuinierDialog = False):
-        
+
         if analysis_dict.has_key('guinier'):
             guinier = analysis_dict['guinier']
         else:
             guinier = {}
-        
+
         string0 = 'Extended Info\n--------------------------------\n'
         string1 = ''
         string2 = ''
         string3 = ''
-        
+
         if guinier.has_key('Rg') and guinier.has_key('I0'):
             rg = guinier['Rg']
             i_zero = guinier['I0']
-        
+
             string1 = 'Rg: ' + str(rg) + '\nI(0): ' + str(i_zero) + '\n'
         else:
             string1 = 'Rg: N/A' + '\nI(0): N/A\n'
-            
+
         if self.sasm.getAllParameters().has_key('Conc'):
             string2 = 'Conc: ' + str(self.sasm.getParameter('Conc')) + '\n'
-                    
+
         if self.sasm.getAllParameters().has_key('Notes'):
             if self.sasm.getParameter('Notes') != '':
-                string3 = 'Note: ' + str(self.sasm.getParameter('Notes'))  
-        
+                string3 = 'Note: ' + str(self.sasm.getParameter('Notes'))
+
         if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
             string = string1+string2+string3
         else:
@@ -6233,10 +6233,10 @@ class ManipItemPanel(wx.Panel):
                 self.info_tip.SetMessage(string)
             else:
                 self.info_icon.SetToolTipString(string)
-                
-        if fromGuinierDialog:     
+
+        if fromGuinierDialog:
             self.info_panel.updateInfoFromItem(self)
-                
+
     def enableStar(self, state):
         if state == True:
             self.bg_star.SetBitmap(self.star_png)
@@ -6244,51 +6244,51 @@ class ManipItemPanel(wx.Panel):
         else:
             self.bg_star.SetBitmap(self.gray_png)
             self._selected_as_bg = False
-        
+
         self.bg_star.Refresh()
-        
+
     def removeSelf(self):
         #Has to be callafter under Linux.. or it'll crash
         wx.CallAfter(self.manipulation_panel.removeSelectedItems)
-        
+
     def getSASM(self):
-        return self.sasm        
-    
+        return self.sasm
+
     def getFontColour(self):
         return self._font_colour
-    
+
     def getSelectedForPlot(self):
         return self._selected_for_plot
-    
+
     def getLegendLabel(self):
         return self._legend_label
-    
-    def updateControlsFromSASM(self, updatePlot = True):    
+
+    def updateControlsFromSASM(self, updatePlot = True):
         scale = self.sasm.getScale()
         offset = self.sasm.getOffset()
         qmin, qmax = self.sasm.getQrange()
-        
+
         qmin_ctrl = wx.FindWindowById(self.spin_controls[0][1])
         qmax_ctrl = wx.FindWindowById(self.spin_controls[1][1])
         qmintxt = wx.FindWindowById(self.spin_controls[0][2])
         qmaxtxt = wx.FindWindowById(self.spin_controls[1][2])
-        
+
         qmin_ctrl.SetValue(str(qmin))
-        qmax_ctrl.SetValue(str(qmax-1))        
+        qmax_ctrl.SetValue(str(qmax-1))
         qmintxt.SetValue(str(round(self.sasm.q[qmin],4)))
         qmaxtxt.SetValue(str(round(self.sasm.q[qmax-1],4)))
-        
+
         scale_ctrl = wx.FindWindowById(self.float_spin_controls[0][1])
         offset_ctrl = wx.FindWindowById(self.float_spin_controls[1][1])
-    
+
         offset_ctrl.SetValue(str(offset))
         scale_ctrl.SetValue(str(scale))
-        
+
         if updatePlot:
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
-    
+
     def toggleSelect(self, set_focus = False, update_info = True):
-        
+
         if self._selected:
             self._selected = False
             self.SetBackgroundColour(wx.Colour(250,250,250))
@@ -6301,13 +6301,13 @@ class ManipItemPanel(wx.Panel):
                 self.SetFocusIgnoringChildren()
             if update_info:
                 self.info_panel.updateInfoFromItem(self)
-        
+
         self.Refresh()
-        
+
     def enableLocatorLine(self):
-        
+
         self.locator_on = not self.locator_on
-        
+
         if self.locator_on == True:
             self.target_icon.SetBitmap(self.target_on_png)
             self.locator_old_width = self.sasm.line.get_linewidth()
@@ -6318,14 +6318,14 @@ class ManipItemPanel(wx.Panel):
             self.target_icon.SetBitmap(self.target_png)
             self.sasm.line.set_linewidth(self.locator_old_width)
             wx.CallAfter(self.sasm.plot_panel.canvas.draw)
-            
+
         self.target_icon.Refresh()
-        
+
     def getControlsVisible(self):
         return self._controls_visible
-        
+
     def showControls(self, state):
-        
+
         if state == False:
             self.expand_collapse.SetBitmap(self.expand_png)
             self._controls_visible = False
@@ -6348,18 +6348,18 @@ class ManipItemPanel(wx.Panel):
             self.controlSizer.Show(5, True)
             self.controlSizer.Show(6, True)
             self.controlSizer.Show(7, True)
-            
+
         self.expand_collapse.Refresh()
         self.topsizer.Layout()
-        
-    
+
+
     def showItem(self, state):
         self._selected_for_plot = state
-        
+
         if self._selected_for_plot == False:
             self._controls_visible = False
             self.showControls(self._controls_visible)
-        
+
         self.SelectedForPlot.SetValue(self._selected_for_plot)
         self.sasm.line.set_visible(self._selected_for_plot)
         self.sasm.line.set_picker(self._selected_for_plot)      #Line can't be selected when it's hidden
@@ -6374,8 +6374,8 @@ class ManipItemPanel(wx.Panel):
             if err_bars:
 
                 for each_err_line in each.err_line[0]:
-                    each_err_line.set_visible(state)  
-                    
+                    each_err_line.set_visible(state)
+
                 for each_err_line in each.err_line[1]:
                     each_err_line.set_visible(state)
 
@@ -6389,53 +6389,53 @@ class ManipItemPanel(wx.Panel):
             if err_bars:
 
                 for each_err_line in each.err_line[0]:
-                    each_err_line.set_visible(state)  
-                    
+                    each_err_line.set_visible(state)
+
                 for each_err_line in each.err_line[1]:
                     each_err_line.set_visible(state)
-                    
+
                 if state == True:
                     #Update errorbar positions
-                    
+
                     q_min, q_max = each.getQrange()
                     q = each.q
                     i = each.i
-                    
+
                     caplines = each.err_line[0]
                     barlinecols = each.err_line[1]
-                    
+
                     yerr = each.err
                     x = q
-                    y = i                                  
-                    
-                    # Find the ending points of the errorbars 
-                    error_positions = (x, y-yerr), (x, y+yerr) 
+                    y = i
 
-                    # Update the caplines 
-                    for i,pos in enumerate(error_positions): 
-                        caplines[i].set_data(pos) 
+                    # Find the ending points of the errorbars
+                    error_positions = (x, y-yerr), (x, y+yerr)
 
-                    # Update the error bars 
-                    barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr))) 
-    
+                    # Update the caplines
+                    for i,pos in enumerate(error_positions):
+                        caplines[i].set_data(pos)
+
+                    # Update the error bars
+                    barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr)))
+
     def updateShowItemCheckBox(self):
         #self.showControls(self._controls_visible)
         self.SelectedForPlot.SetValue(self._selected_for_plot)
         self.sasm.line.set_picker(self._selected_for_plot)
-    
-    def markAsModified(self):        
+
+    def markAsModified(self):
         filename = self.sasm.getParameter('filename')
         self.SelectedForPlot.SetLabel('* ' + str(filename))
-        
+
         self.SelectedForPlot.Refresh()
         self.topsizer.Layout()
-        
+
         self.parent.Layout()
         self.parent.Refresh()
-        
+
         if self not in self.manipulation_panel.modified_items:
             self.manipulation_panel.modified_items.append(self)
-    
+
     def unmarkAsModified(self, updateSelf = True, updateParent = True):
         filename = self.sasm.getParameter('filename')
 
@@ -6451,10 +6451,10 @@ class ManipItemPanel(wx.Panel):
             self.manipulation_panel.modified_items.remove(self)
         except:
             pass
-        
+
     def updateFilenameLabel(self, updateSelf = True, updateParent = True, updateLegend = True):
         filename = self.sasm.getParameter('filename')
-        
+
         if self._legend_label == '':
             self.sasm.line.set_label(filename)
 
@@ -6470,24 +6470,24 @@ class ManipItemPanel(wx.Panel):
         if updateParent:
             self.parent.Layout()
             self.parent.Refresh()
-    
-    
+
+
     def useAsMWStandard(self):
-        
+
         if self.sasm.getAllParameters().has_key('Conc'):
             conc = self.sasm.getParameter('Conc')
-            
+
             if float(conc) > 0:
                 if self.sasm.getParameter('analysis').has_key('guinier'):
                     analysis = self.sasm.getParameter('analysis')
                     guinier = analysis['guinier']
-                        
+
                     if guinier.has_key('I0'):
                         i0 = guinier['I0']
-                            
+
                         if float(i0)>0:
                             MW = wx.GetTextFromUser('Please enter the molecular weight of the standard in units of [kDa].')
-                                
+
                             try:
                                 MW = float(MW)
                             except Exception:
@@ -6495,7 +6495,7 @@ class ManipItemPanel(wx.Panel):
                                 return
 
                             filename = os.path.basename(self.sasm.getParameter('filename'))
-                                
+
                             self.raw_settings.set('MWStandardMW', float(MW))
                             self.raw_settings.set('MWStandardI0', float(i0))
                             self.raw_settings.set('MWStandardConc', float(conc))
@@ -6503,9 +6503,9 @@ class ManipItemPanel(wx.Panel):
 
                             self.sasm.setParameter('MW', MW)
                             self.info_panel.updateInfoFromItem(self)
-                                
+
                             wx.MessageBox('New standard parameters has been saved.', 'Saved', wx.OK | wx.ICON_INFORMATION)
-                                
+
                     else:
                         wx.MessageBox('Please perform a Guinier analysis to obtain I0', 'I0 not found', wx.OK | wx.ICON_EXCLAMATION)
                 else:
@@ -6515,39 +6515,39 @@ class ManipItemPanel(wx.Panel):
         else:
             wx.MessageBox('Please enter the concentration in the information panel.', 'Concentration not found', wx.OK | wx.ICON_EXCLAMATION)  #  except Exception, e:
 
-                
+
     def _initializeIcons(self):
-        
+
         self.gray_png = RAWIcons.Star_icon_notenabled.GetBitmap()
         self.star_png = RAWIcons.Star_icon_org.GetBitmap()
-        
+
         self.collapse_png = RAWIcons.collapse.GetBitmap()
         self.expand_png = RAWIcons.expand.GetBitmap()
-        
+
         self.target_png = RAWIcons.target.GetBitmap()
         self.target_on_png = RAWIcons.target_orange.GetBitmap()
 
         self.info_png = RAWIcons.info_16_2.GetBitmap()
 
     def _initStartPosition(self):
-        
+
         qmin_ctrl = wx.FindWindowById(self.spin_controls[0][1])
         qmax_ctrl = wx.FindWindowById(self.spin_controls[1][1])
-        
+
         qrange = self.sasm.getQrange()
-        
+
         qmin_ctrl.SetValue(str(qrange[0]))
         qmax_ctrl.SetValue(str(qrange[1]-1))
-        
+
     def _updateColourIndicator(self):
         conv = mplcol.ColorConverter()
         color = conv.to_rgb(self.sasm.line.get_color())
         color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
-        
+
         self.colour_indicator.updateColour(color)
-        
+
     def _onLinePropertyButton(self, event):
-        
+
         try:
             legend_label = self.getLegendLabel()
             dialog = LinePropertyDialog(self, self.sasm, legend_label)
@@ -6555,48 +6555,48 @@ class ManipItemPanel(wx.Panel):
             new_legend_label = dialog.getLegendLabel()
             self._updateColourIndicator()
             dialog.Destroy()
-            
+
             if answer == wx.ID_OK:
                 self._legend_label = new_legend_label
                 self._updateLegendLabel()
-                
+
         except TypeError:
             return
-        
+
     def _onExpandCollapseButton(self, event):
         self._controls_visible = not self._controls_visible
         self.showControls(self._controls_visible)
-        
+
         self.manipulation_panel.underpanel.SetVirtualSize(self.manipulation_panel.underpanel.GetBestVirtualSize())
-        self.GetParent().Layout()            
+        self.GetParent().Layout()
         self.GetParent().Refresh()
-        
-        self.GetParent().GetParent().Layout()            
+
+        self.GetParent().GetParent().Layout()
         self.GetParent().GetParent().Refresh()
-                        
+
     def _onTargetButton(self, event):
         self.enableLocatorLine()
-        
+
     def _onInfoButton(self, event):
         pass
-            
+
     def _showPopupMenu(self):
         opsys = platform.system()
 
         menu = wx.Menu()
-        
+
         number_of_selected_items = len(self.manipulation_panel.getSelectedItems())
-        
+
 #        iftmenu = wx.Menu()
 #        iftmenu.Append(10, 'Run BIFT')
 #        iftmenu.Append(11, 'Run GNOM using current Dmax')
 #        iftmenu.AppendSeparator()
 #        iftmenu.Append(12, 'Add to IFT list')
-        
+
         convertq_menu = wx.Menu()
         convertq_menu.Append(15, 'q * 10')
         convertq_menu.Append(16, 'q / 10')
-        
+
         submenu = menu.Append(4, 'Subtract')
         avgmenu = menu.Append(6, 'Average' )
         mermenu = menu.Append(22, 'Merge')
@@ -6605,7 +6605,7 @@ class ManipItemPanel(wx.Panel):
         menu.AppendSeparator()
         menu.Append(27, 'Use as MW standard')
         menu.Append(28, 'Normalize by conc')
-        
+
         menu.AppendSeparator()
         menu.Append(5, 'Remove' )
         menu.AppendSeparator()
@@ -6621,22 +6621,22 @@ class ManipItemPanel(wx.Panel):
         menu.Append(34, 'SVD')
         menu.Append(35, 'EFA')
         # menu.Append(24, 'Add to IFT list')
-        
+
         # if self.sasm.getAllParameters().has_key('orig_sasm'):
         #     menu.Append(26, 'Plot fit')
-            
+
         #menu.AppendMenu(3, 'Indirect Fourier Transform', iftmenu)
         menu.AppendMenu(wx.NewId(), 'Convert q-scale', convertq_menu)
-        
+
         menu.AppendSeparator()
         img = menu.Append(19, 'Show image')
-        
+
         if not self.sasm.getAllParameters().has_key('load_path'):
             img.Enable(False)
         menu.Append(20, 'Show data')
         menu.Append(21, 'Show header')
         menu.Append(33, 'Show history')
-        
+
         menu.AppendSeparator()
         menu.Append(8, 'Move to top plot')
         menu.Append(9, 'Move to bottom plot')
@@ -6647,169 +6647,169 @@ class ManipItemPanel(wx.Panel):
         menu.Append(30, 'Save all analysis info')
         menu.Append(18, 'Save item info')
         menu.Append(7, 'Save selected file(s)')
-        
-        self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)        
+
+        self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
         self.PopupMenu(menu)
 
         menu.Destroy()
-    
+
     def _onShowImage(self):
-        
+
         if self.sasm.getAllParameters().has_key('load_path'):
             path = self.sasm.getParameter('load_path')
             mainworker_cmd_queue.put(['show_image', path])
-    
+
     def _onPopupMenuChoice(self, evt):
-            
+
 #        if evt.GetId() == 3:
 #            #IFT
 #            analysisPage.runBiftOnExperimentObject(self.ExpObj, expParams)
-        
+
         if evt.GetId() == 4:
             #Subtract
             selected_items = self.manipulation_panel.getSelectedItems()
             marked_item = self.manipulation_panel.getBackgroundItem()
             mainworker_cmd_queue.put(['subtract_items', [marked_item, selected_items]])
-        
+
         elif evt.GetId() == 5:
             #Delete
             wx.CallAfter(self.manipulation_panel.removeSelectedItems)
-        
+
         elif evt.GetId() == 6:
-            #Average 
+            #Average
             selected_items = self.manipulation_panel.getSelectedItems()
             mainworker_cmd_queue.put(['average_items', selected_items])
-            
+
         elif evt.GetId() == 7:
             self.manipulation_panel.saveItems()
-                
+
         elif evt.GetId() == 8:
             #Move to top plot
             plotpanel = wx.FindWindowByName('PlotPanel')
             selected_items = self.manipulation_panel.getSelectedItems()
             self.manipulation_panel.movePlots(selected_items, plotpanel.subplot1)
             wx.CallAfter(plotpanel.fitAxis)
-                
+
         elif evt.GetId() == 9:
             #Move to bottom plot
             plotpanel = wx.FindWindowByName('PlotPanel')
             selected_items = self.manipulation_panel.getSelectedItems()
             self.manipulation_panel.movePlots(selected_items, plotpanel.subplot2)
             wx.CallAfter(plotpanel.fitAxis)
-            
+
         elif evt.GetId() == 13:
             #Guinier fit
             Mainframe = wx.FindWindowByName('MainFrame')
             selectedSASMList = self.manipulation_panel.getSelectedItems()
-            
+
             sasm = selectedSASMList[0].getSASM()
             Mainframe.showGuinierFitFrame(sasm, selectedSASMList[0])
-            
+
         # elif evt.GetId() == 10:
         #     #BIFT
         #     analysisPage = wx.FindWindowByName('AutoAnalysisPage')
         #     analysisPage.runBiftOnExperimentObject(self.ExpObj.copy(), expParams)
-            
+
         # elif evt.GetId() == 12:
         #     #Add to IFT List
         #     autoanalysis = wx.FindWindowByName('AutoAnalysisPage')
-            
+
         #     for ExpObj in ManipulationPage.GetSelectedExpObjs():
         #         ExpObjIFT = ExpObj.copy()
         #         autoanalysis.addExpObjToList(ExpObjIFT)
-            
+
         #     wx.CallAfter(wx.MessageBox, 'File(s) have been added to the IFT list', 'Files Added')
-            
+
         # elif evt.GetId() == 11:
         #     #GNOM
         #     analysisPage.runBiftOnExperimentObject(self.ExpObj.copy(), expParams)
-            
+
         elif evt.GetId() == 14:
             dlg = FilenameChangeDialog(self, self.sasm.getParameter('filename'))
             dlg.ShowModal()
             filename =  dlg.getFilename()
             dlg.Destroy()
-            
+
             if filename:
                 self.sasm.setParameter('filename', filename)
                 self.updateFilenameLabel()
                 self.markAsModified()
-        
+
         elif evt.GetId() == 15:
             #A to s
             self.sasm.scaleBinnedQ(10.0)
             self._updateQTextCtrl()
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
-            
+
         elif evt.GetId() == 16:
             #s to A
             self.sasm.scaleBinnedQ(0.1)
             self._updateQTextCtrl()
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
-        
+
         elif evt.GetId() == 18:
             #Save Select Analysis Info
             #self._saveAnalysisInfo()
-            
+
             dlg = SaveAnalysisInfoDialog(self, self.main_frame.raw_settings, self.manipulation_panel.getSelectedItems())
             dlg.ShowModal()
             dlg.Destroy()
-            
+
         elif evt.GetId() == 19:
             #Show Image
             self._onShowImage()
-            
+
         elif evt.GetId() == 20:
             dlg = DataDialog(self, self.sasm)
             dlg.ShowModal()
             dlg.Destroy()
-            
+
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
-            
+
         elif evt.GetId() == 21:
             dlg = HdrDataDialog(self, self.sasm)
             dlg.ShowModal()
             dlg.Destroy()
-            
+
             #wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
-        
+
         elif evt.GetId() == 22:
             selected_items = self.manipulation_panel.getSelectedItems()
             marked_item = self.manipulation_panel.getBackgroundItem()
             mainworker_cmd_queue.put(['merge_items', [marked_item, selected_items]])
-            
+
         elif evt.GetId() == 23:
             selected_items = self.manipulation_panel.getSelectedItems()
-            
+
             dlg = RebinDialog(self)
             retval = dlg.ShowModal()
             ret, logbin = dlg.getValues()
             dlg.Destroy()
-            
+
             if retval != wx.ID_CANCEL:
                 mainworker_cmd_queue.put(['rebin_items', [selected_items, ret, logbin]])
-        
+
         # elif evt.GetId() == 24: #add to IFT
-            
+
         #     selected_items = self.manipulation_panel.getSelectedItems()
-            
+
         #     ift_panel = wx.FindWindowByName('IFTPanel')
-            
+
         #     for each_item in selected_items:
         #         ift_panel.addItem(each_item.getSASM().copy())
-        
+
         elif evt.GetId() == 25:
             selected_items = self.manipulation_panel.getSelectedItems()
             marked_item = self.manipulation_panel.getBackgroundItem()
             mainworker_cmd_queue.put(['interpolate_items', [marked_item, selected_items]])
-            
+
         # if evt.GetId() == 26:
         #    selected_items = self.manipulation_panel.getSelectedItems()
         #    mainworker_cmd_queue.put(['plot_iftfit', [selected_items]])
-           
+
         elif evt.GetId() == 27:
            self.useAsMWStandard()
-           
+
         elif evt.GetId() == 28:
            selected_items = self.manipulation_panel.getSelectedItems()
            mainworker_cmd_queue.put(['normalize_conc', [selected_items]])
@@ -6818,7 +6818,7 @@ class ManipItemPanel(wx.Panel):
             #Molecular weight panel fit
             Mainframe = wx.FindWindowByName('MainFrame')
             selectedSASMList = self.manipulation_panel.getSelectedItems()
-            
+
             sasm = selectedSASMList[0].getSASM()
             Mainframe.showMolWeightFrame(sasm, selectedSASMList[0])
 
@@ -6830,7 +6830,7 @@ class ManipItemPanel(wx.Panel):
             #Open the GNOM window
             Mainframe = wx.FindWindowByName('MainFrame')
             selectedSASMList = self.manipulation_panel.getSelectedItems()
-            
+
             sasm = selectedSASMList[0].getSASM()
             Mainframe.showGNOMFrame(sasm, selectedSASMList[0])
 
@@ -6838,7 +6838,7 @@ class ManipItemPanel(wx.Panel):
             #Open the GNOM window
             Mainframe = wx.FindWindowByName('MainFrame')
             selectedSASMList = self.manipulation_panel.getSelectedItems()
-            
+
             sasm = selectedSASMList[0].getSASM()
             Mainframe.showBIFTFrame(sasm, selectedSASMList[0])
 
@@ -6855,8 +6855,8 @@ class ManipItemPanel(wx.Panel):
         elif evt.GetId() == 35:
             #Run EFA on the selected profiles
             self._runEFA()
-                        
-    
+
+
     def _saveAllAnalysisInfo(self):
         selected_items = self.manipulation_panel.getSelectedItems()
 
@@ -6866,25 +6866,25 @@ class ManipItemPanel(wx.Panel):
         path = dirctrl_panel.getDirLabel()
 
         if len(selected_sasms) >= 1:
-            
+
             filters = 'Comma Separated Files (*.csv)|*.csv'
-                
-            # dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path) 
+
+            # dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
             fname = 'RAW_analysis.csv'
             msg = "Please select save directory and enter save file name"
-            dialog = wx.FileDialog( None, message = msg, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = path, defaultFile = fname) 
-                
-            if dialog.ShowModal() == wx.ID_OK:               
+            dialog = wx.FileDialog( None, message = msg, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = path, defaultFile = fname)
+
+            if dialog.ShowModal() == wx.ID_OK:
                 path = dialog.GetPath()
             else:
                 return
 
             path=os.path.splitext(path)[0]+'.csv'
             save_path = path
-        
+
         else:
             return
-            
+
         mainworker_cmd_queue.put(['save_all_analysis_info', [save_path, selected_sasms]])
 
     def _runSVD(self):
@@ -6902,7 +6902,7 @@ class ManipItemPanel(wx.Panel):
             secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {})
 
             Mainframe.showSVDFrame(secm, None)
-        
+
         else:
             msg = 'You must select at least 2 scattering profiles to run EFA.'
             dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
@@ -6924,66 +6924,66 @@ class ManipItemPanel(wx.Panel):
             secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {})
 
             Mainframe.showEFAFrame(secm, None)
-        
+
         else:
             msg = 'You must select at least 2 scattering profiles to run SVD.'
             dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
             proceed = dlg.ShowModal()
             dlg.Destroy()
-    
+
     def _onKeyPress(self, evt):
-        
+
         key = evt.GetKeyCode()
 
         # print key
-        
+
         if ((key == wx.WXK_DELETE) or (key == wx.WXK_BACK and evt.CmdDown())) and self._selected == True:
             self.removeSelf()
-                
+
         elif key == 83: #S
             self._onShowImage()
 
         elif key == 65 and evt.CmdDown(): #A
             self.manipulation_panel.selectAll()
-            
-            
+
+
     def _onRightMouseButton(self, evt):
         self.SetFocusIgnoringChildren()
-        
+
         if not self._selected:
             self.toggleSelect()
             self.manipulation_panel.deselectAllExceptOne(self)
-                    
-        #This is stupid. In wxpython 2.8, calling with the call after means no popup menu when multiple 
+
+        #This is stupid. In wxpython 2.8, calling with the call after means no popup menu when multiple
         #items are selected. In wxpython 3.0, calling without the callafter creates a segfault on mac.
         #In wxpython 3.0 on linux (debian), with the callafter causes the menu to only show while you hold
         #down the button.
-        if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':   
+        if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
             wx.CallAfter(self._showPopupMenu)
         else:
             self._showPopupMenu()
-        
+
     def _onLeftMouseButton(self, evt):
         ctrl_is_down = evt.CmdDown()
         shift_is_down = evt.ShiftDown()
-        
+
         manipulation_panel = wx.FindWindowByName('ManipulationPanel')
-        
+
         if shift_is_down:
             try:
                 first_marked_item_idx = manipulation_panel.all_manipulation_items.index(manipulation_panel.getSelectedItems()[0])
                 last_marked_item = manipulation_panel.getSelectedItems()[-1]
                 last_marked_item_idx = manipulation_panel.all_manipulation_items.index(last_marked_item)
-                
+
                 this_item_idx = manipulation_panel.all_manipulation_items.index(self)
-            
+
                 if last_marked_item_idx > this_item_idx:
                     adj = 0
                     idxs = [first_marked_item_idx, this_item_idx]
                 else:
                     idxs = [last_marked_item_idx, this_item_idx]
                     adj = 1
-                        
+
                 top_item = max(idxs)
                 bottom_item = min(idxs)
                 item_list = manipulation_panel.all_manipulation_items[bottom_item+adj:top_item+adj]
@@ -6995,15 +6995,15 @@ class ManipItemPanel(wx.Panel):
                         each.toggleSelect()
             except IndexError:
                 pass
-            
+
         elif ctrl_is_down:
             self.toggleSelect()
         else:
             manipulation_panel.deselectAllExceptOne(self)
             self.toggleSelect()
-        
+
         evt.Skip()
-        
+
     def _onStarButton(self, event):
 
         if self._selected_as_bg == True:
@@ -7011,196 +7011,196 @@ class ManipItemPanel(wx.Panel):
             self.manipulation_panel.clearBackgroundItem()
         else:
             self.manipulation_panel.setItemAsBackground(self)
-            
+
     def _showInvalidValueError(self):
         wx.CallAfter(wx.MessageBox, 'The entered value is invalid. Please remove non-numeric characters.', 'Invalid Value Error', style = wx.ICON_ERROR)
-                    
+
     def _onScaleOffsetChange(self, event):
         id = event.GetId()
-        
+
         try:
             value = float(event.GetValue())
         except ValueError:
             self._showInvalidValueError()
             return
-        
+
         for each_label, each_id, each_name, eachInit_value, each_bindfunc in self.float_spin_controls:
-            
+
             if id == each_id:
-                
+
                 if each_name == 'scale':
                     self.sasm.scale(value)
                 elif each_name == 'offset':
                     self.sasm.offset(value)
-        
+
         wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
 
         wx.CallAfter(self.sasm.plot_panel.fitAxis, [self.sasm.axes])
-        
+
         self.markAsModified()
         event.Skip()
-        
+
     def _updateQTextCtrl(self):
         qmin_ctrl = wx.FindWindowById(self.spin_controls[0][1])
         qmax_ctrl = wx.FindWindowById(self.spin_controls[1][1])
-        
+
         qmintxt = wx.FindWindowById(self.spin_controls[0][2])
         qmaxtxt = wx.FindWindowById(self.spin_controls[1][2])
-        
+
         try:
             qmin = int(qmin_ctrl.GetValue())
             qmax = int(qmax_ctrl.GetValue())
         except ValueError:
             self._showInvalidValueError()
             return
-        
+
         qmintxt.SetValue(str(round(self.sasm.q[qmin],4)))
         qmaxtxt.SetValue(str(round(self.sasm.q[qmax],4)))
-        
+
         qrange = (qmin, qmax+1) # +1 to be able to use the range for array slicing [0:n+1]
 
-        self.sasm.setQrange(qrange)   
-    
+        self.sasm.setQrange(qrange)
+
     def _updateLegendLabel(self):
-        
+
         if self._legend_label == '' or self._legend_label == None:
             self.sasm.line.set_label(self.sasm.getParameter('filename'))
             self.legend_label_text.SetLabel('')
         else:
             self.sasm.line.set_label(str(self._legend_label))
             self.legend_label_text.SetLabel('[' + str(self._legend_label) + ']')
-            
+
         wx.CallAfter(self.sasm.plot_panel.updateLegend, self.sasm.axes)
-        
-    
+
+
     def _onQrangeChange(self, event):
         self._updateQTextCtrl()
         wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
         self.markAsModified()
-        
+
     def _onEnterInQrangeTextCtrl(self, evt):
-        
+
         id = evt.GetId()
         txtctrl = wx.FindWindowById(id)
-        
+
         try:
             val = float(txtctrl.GetValue())
         except ValueError:
             self._showInvalidValueError()
             return
-        
+
         if id == self.spin_controls[0][2]:
                 spinctrl = wx.FindWindowById(self.spin_controls[0][1])
         elif id == self.spin_controls[1][2]:
                 spinctrl = wx.FindWindowById(self.spin_controls[1][1])
-        
+
         q = self.sasm.getBinnedQ()
-        
+
         findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
-                
+
         closest = findClosest(val, q)
-        idx = np.where(q == closest)[0][0]  
-        
+        idx = np.where(q == closest)[0][0]
+
         spinctrl.SetValue(idx)
         self._onQrangeChange(None)
         txtctrl.SelectAll()
-     
+
     def _onSelectedChkBox(self, event):
         self._selected_for_plot = not self._selected_for_plot
-        
+
         self.showItem(self._selected_for_plot)
-        
-        self.GetParent().Layout()            
+
+        self.GetParent().Layout()
         self.GetParent().Refresh()
 
         wx.CallAfter(self.plot_panel.updateLegend, self.sasm.axes)
         wx.CallAfter(self.sasm.plot_panel.canvas.draw)
-        
+
         self.sasm.plot_panel.fitAxis([self.sasm.axes])
-        
+
     def _createFloatSpinCtrls(self, control_sizer):
-        
+
         for label, id, name, initValue, bindfunc in self.float_spin_controls:
-            
+
             label = wx.StaticText(self, -1, label)
-            
+
             label.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
             label.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
             label.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-            
+
             if initValue.find('.') == -1:
                 initValue = initValue + '.0'
-            
+
             if name == 'scale':
                 spinCtrl = RAWCustomCtrl.FloatSpinCtrl(self, id, initValue, TextLength = 100, never_negative = True)
             else:
                 spinCtrl = RAWCustomCtrl.FloatSpinCtrl(self, id, initValue, TextLength = 100)
-                
+
             spinCtrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, bindfunc)
-            
+
             control_sizer.Add(label, 1, wx.TOP, 3)
             control_sizer.Add(spinCtrl, 1, wx.EXPAND)
-            
-        
+
+
     def _createSimpleSpinCtrls(self, control_sizer):
-        
-        
+
+
         for each_spinctrl in self.spin_controls:
                 spin_id = each_spinctrl[1]
                 spin_label_text = each_spinctrl[0]
                 qtxtId = each_spinctrl[2]
                 spin_range = each_spinctrl[3]
                 spin_name = each_spinctrl[4]
-                
+
                 spin_min = spin_range[0]
                 spin_max = spin_range[1]
-    
+
                 spin_min, spin_max = self.sasm.getBinnedQ()[0], self.sasm.getBinnedQ()[-1]
-            
+
                 nlow, nhigh = 0, (len(self.sasm.getBinnedQ())-1)
-                      
+
                 spin_label = wx.StaticText(self, -1, spin_label_text)
                 spin_label.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
                 spin_label.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
                 spin_label.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-                        
-                spin_control = RAWCustomCtrl.IntSpinCtrl(self, spin_id, min = nlow, max = nhigh, TextLength = 43) 
-                                        
+
+                spin_control = RAWCustomCtrl.IntSpinCtrl(self, spin_id, min = nlow, max = nhigh, TextLength = 43)
+
                 if spin_name == 'nlow':
                     spin_control.SetValue(nlow)
                 elif spin_name == 'nhigh':
                     spin_control.SetValue(nhigh)
-                
+
                 spin_control.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onQrangeChange)
-                
+
                 q_ctrl = wx.TextCtrl(self, qtxtId, '', size = (55,-1), style = wx.PROCESS_ENTER)
                 q_ctrl.Bind(wx.EVT_TEXT_ENTER, self._onEnterInQrangeTextCtrl)
-                
+
                 spin_sizer = wx.BoxSizer()
                 spin_sizer.Add(q_ctrl, 0, wx.RIGHT, 3)
                 spin_sizer.Add(spin_control, 0)
-                
-                control_sizer.Add(spin_label, 0)        
+
+                control_sizer.Add(spin_label, 0)
                 control_sizer.Add(spin_sizer, 0)
-                
+
 #--- ** IFT Panel **
 
 class IFTPanel(wx.Panel):
     def __init__(self, parent, raw_settings, expParams = []):
         wx.Panel.__init__(self, parent, name = 'IFTPanel')
-        
+
         self.expParams = expParams
         self.raw_settings = raw_settings
         self.iftplot_panel = wx.FindWindowByName('IFTPlotPanel')
-        
+
         self.buttons = (("Save", self._onSaveButton),
                         ("Remove", self._onRemoveButton),
                         ("Clear IFT Data", self._onClearList))
-        
-        # /* INSERT WIDGETS */ 
-        
+
+        # /* INSERT WIDGETS */
+
         self.panelsizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         self._initializeIcons()
         toolbarsizer = self._createToolbar()
 
@@ -7209,42 +7209,42 @@ class IFTPanel(wx.Panel):
         self.underpanel.SetScrollRate(20,20)
 
         self.underpanel.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-      
+
         self.all_manipulation_items = []
         self.selected_item_list = []
         self.modified_items = []
-        
-        self.underpanel_sizer = wx.BoxSizer(wx.VERTICAL)    
+
+        self.underpanel_sizer = wx.BoxSizer(wx.VERTICAL)
         self.underpanel.SetSizer(self.underpanel_sizer)
-        
+
         # self.infoBox = IFTControlPanel(self)
         # self.infoBox.Enable(False)
-        
+
         # self.panelsizer.Add(self.infoBox, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER, 10)
-        self.panelsizer.Add(toolbarsizer, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.EXPAND, 5)        
+        self.panelsizer.Add(toolbarsizer, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.EXPAND, 5)
         self.panelsizer.Add(self.underpanel, 1, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT, 3)
-        
+
         self.createButtons(self.panelsizer)
         #self.panelsizer.Add(self.buttonSizer, 0, wx.EXPAND | wx.ALIGN_CENTER | wx.TOP |wx.BOTTOM | wx.LEFT | wx.RIGHT, 10)
-        
+
         self.SetSizer(self.panelsizer)
-        
+
         self._star_marked_item = None
         self._raw_settings = raw_settings
-        
+
     def _initializeIcons(self):
         # self.collapse_all_png = RAWIcons.collapse_all.GetBitmap()
         # self.expand_all_png = RAWIcons.expand_all.GetBitmap()
-        
+
         self.show_all_png = RAWIcons.open_eye.GetBitmap()
         self.hide_all_png = RAWIcons.close_eye.GetBitmap()
 
         self.select_all_png = RAWIcons.select_all.GetBitmap()
-        
+
     def _createToolbar(self):
-        
+
         sizer = wx.BoxSizer()
-        
+
         # collapse_all = wx.BitmapButton(self, -1, self.collapse_all_png)
         # expand_all = wx.BitmapButton(self, -1, self.expand_all_png)
         show_all = wx.BitmapButton(self, -1, self.show_all_png)
@@ -7279,13 +7279,13 @@ class IFTPanel(wx.Panel):
             hide_all.SetToolTipString('Hide')
             # collapse_all.SetToolTipString('Collapse All')
             # expand_all.SetToolTipString('Expand All')
-        
+
         # collapse_all.Bind(wx.EVT_BUTTON, self._onCollapseAllButton)
         # expand_all.Bind(wx.EVT_BUTTON, self._onExpandAllButton)
         show_all.Bind(wx.EVT_BUTTON, self._onShowAllButton)
         hide_all.Bind(wx.EVT_BUTTON, self._onHideAllButton)
         select_all.Bind(wx.EVT_BUTTON, self._onSelectAllButton)
-        
+
         sizer.Add(show_all, 0, wx.LEFT, 5)
         sizer.Add(hide_all, 0, wx.LEFT, 5)
         sizer.Add((1,1),1, wx.EXPAND)
@@ -7293,10 +7293,10 @@ class IFTPanel(wx.Panel):
         sizer.Add((1,1),1, wx.EXPAND)
         # sizer.Add(collapse_all, 0, wx.RIGHT, 5)
         # sizer.Add(expand_all, 0, wx.RIGHT, 3)
-        
+
         return sizer
-    
-    
+
+
     def addItem(self, iftm_list, item_colour = 'black', item_visible = True, notsaved = False):
         if type(iftm_list) != list:
             iftm_list = [iftm_list]
@@ -7311,104 +7311,104 @@ class IFTPanel(wx.Panel):
 
             # Keeping track of all items in our list:
             self.all_manipulation_items.append(newItem)
-            
+
             try:
                 newItem._updateColourIndicator()
             except AttributeError:
                 pass
-        
+
 
         self.underpanel_sizer.Layout()
-        
+
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-        self.Layout()            
+        self.Layout()
         self.Refresh()
         self.Thaw()
-        
-       
+
+
         # self.deselectAllExceptOne(newItem)
         # newItem.toggleSelect()
 
-        
-        
+
+
     def setItemAsBackground(self, item):
-        
+
         bg_sasm = self._raw_settings.get('BackgroundSASM')
-        
+
         if bg_sasm != None:
             try:
                 bg_sasm.itempanel.enableStar(False)
             except:
                 pass
-        
+
         self._raw_settings.set('BackgroundSASM', item.sasm)
         item.enableStar(True)
         self._star_marked_item = item
-        
+
     def getBackgroundItem(self):
         return self._star_marked_item
-        
+
     def clearList(self):
         self.Freeze()
-        
+
         rest_of_items = []
         for each in self.all_manipulation_items:
-            
+
             try:
                 each.Destroy()
             except ValueError:
                 rest_of_items.append(each)
 
-                
+
         self.all_manipulation_items = rest_of_items
         self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-        
+
         self._star_marked_item = None
-        
+
         self.Thaw()
-        
+
     def clearBackgroundItem(self):
         self._raw_settings.set('BackgroundSASM', None)
         self._star_marked_item = None
-        
+
     def _collapseAllItems(self):
         for each in self.all_manipulation_items:
             each.showControls(False)
-        
-        self.underpanel.Layout()            
+
+        self.underpanel.Layout()
         self.underpanel.Refresh()
-        
-        self.Layout()            
+
+        self.Layout()
         self.Refresh()
-            
+
     def _expandAllItems(self):
         for each in self.all_manipulation_items:
             each.showControls(True)
-            
-        self.underpanel.Layout()            
+
+        self.underpanel.Layout()
         self.underpanel.Refresh()
-        
-        self.Layout()            
+
+        self.Layout()
         self.Refresh()
-    
+
     def removeItem(self, item):
-        
+
         self.all_manipulation_items.remove(item)
-        
+
         if item == self._star_marked_item:
             self._star_marked_item = None
-        
+
         item.Destroy()
-        
+
     def getSelectedItems(self):
-        
+
         self.selected_item_list = []
-        
+
         for each in self.all_manipulation_items:
             if each._selected == True:
                 self.selected_item_list.append(each)
-            
+
         return self.selected_item_list
 
     def _onSelectAllButton(self, event):
@@ -7422,10 +7422,10 @@ class IFTPanel(wx.Panel):
                 each.toggleSelect(update_info = False)
             else:
                 each.toggleSelect()
-    
+
     def deselectAllExceptOne(self, item, line = None, enableLocatorLine = False):
-        
-        if line == None:    
+
+        if line == None:
             for each in self.all_manipulation_items:
                 if each != item:
                     each._selected = True
@@ -7438,24 +7438,24 @@ class IFTPanel(wx.Panel):
                 else:
                     each._selected = True
                     each.toggleSelect(update_info = False)
-                    
+
     def removeSelectedItems(self):
-       
+
         if len(self.getSelectedItems()) == 0:
             return
-        
+
         self.Freeze()
-        
+
         # info_panel = wx.FindWindowByName('InformationPanel')
         # info_panel.clearInfo()
-         
+
         for each in self.getSelectedItems():
-            
-            for line in each.lines:    
-                
+
+            for line in each.lines:
+
                 try:
                     line.remove()
-                
+
                 except (IndexError, ValueError):
                     pass
 
@@ -7467,17 +7467,17 @@ class IFTPanel(wx.Panel):
                 each.iftm.qo_err_line[0][0].remove()
                 each.iftm.qo_err_line[0][1].remove()
                 each.iftm.qo_err_line[1][0].remove()
-            
+
                 i = self.iftplot_panel.plotted_iftms.index(each.iftm)
                 self.iftplot_panel.plotted_iftms.pop(i)
 
             except (IndexError, ValueError):
                     pass
 
-                
+
             # if each == self._star_marked_item:
             #     self._star_marked_item = None
-            
+
             idx = self.all_manipulation_items.index(each)
             self.all_manipulation_items[idx].Destroy()
             self.all_manipulation_items.pop(idx)
@@ -7486,17 +7486,17 @@ class IFTPanel(wx.Panel):
         wx.CallAfter(self.iftplot_panel.updateLegend, 2)
 
         wx.CallAfter(self.iftplot_panel.fitAxis)
-        
+
         wx.CallAfter(self.iftplot_panel.canvas.draw)
 
         self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-        self.underpanel.Refresh()    
-        
+        self.underpanel.Refresh()
+
         self.Thaw()
-        
+
     def _onShowAllButton(self, event):
-        
+
         self.underpanel.Freeze()
 
         selected_items = self.getSelectedItems()
@@ -7509,18 +7509,18 @@ class IFTPanel(wx.Panel):
             for each in selected_items:
                 each.showItem(True)
 
-        self.underpanel.Layout()            
+        self.underpanel.Layout()
         self.underpanel.Refresh()
-            
-        self.Layout()            
+
+        self.Layout()
         self.Refresh()
 
         self.underpanel.Thaw()
-           
+
         wx.CallAfter(self.iftplot_panel.updateLegend, 1)
         wx.CallAfter(self.iftplot_panel.updateLegend, 2)
         wx.CallAfter(self.iftplot_panel.fitAxis)
-           
+
     def _onHideAllButton(self, event):
         self.underpanel.Freeze()
 
@@ -7534,88 +7534,88 @@ class IFTPanel(wx.Panel):
             for each in selected_items:
                 each.showItem(False)
 
-        self.underpanel.Layout()            
+        self.underpanel.Layout()
         self.underpanel.Refresh()
-            
-        self.Layout()            
+
+        self.Layout()
         self.Refresh()
 
         self.underpanel.Thaw()
-        
+
         wx.CallAfter(self.iftplot_panel.updateLegend, 1)
         wx.CallAfter(self.iftplot_panel.updateLegend, 2)
         wx.CallAfter(self.iftplot_panel.canvas.draw)
-               
+
     def _onCollapseAllButton(self, event):
         self._collapseAllItems()
-        
+
     def _onExpandAllButton(self, event):
         self._expandAllItems()
-            
+
     def _onBiftButton(self, event):
         pass
-         
+
     def _onRemoveButton(self, event):
         self.removeSelectedItems()
-    
+
     def _onSaveButton(self, event):
         self.saveItems()
-    
+
     def _onSyncButton(self, event):
         syncdialog = SyncDialog(self)
         syncdialog.ShowModal()
         syncdialog.Destroy()
-             
+
     def _onSuperimposeButton(self, event):
         mainworker_cmd_queue.put(['superimpose_items', ( self._star_marked_item, self.getSelectedItems()  )])
-        
+
     def synchronizeSelectedItems(self, sync_parameters):
         star_item = self.getBackgroundItem()
-        
+
         if not star_item or (len(sync_parameters) == 0):
             return
-        
+
         star_sasm = star_item.getSASM()
-        
+
         scale = star_sasm.getScale()
         offset = star_sasm.getOffset()
         nmin, nmax = star_sasm.getQrange()
         qmin, qmax = star_sasm.getBinnedQ()[nmin], star_sasm.getBinnedQ()[nmax-1]
         linestyle = star_sasm.line.get_linestyle()
         linewidth = star_sasm.line.get_linewidth()
-        linemarker = star_sasm.line.get_marker() 
-        
+        linemarker = star_sasm.line.get_marker()
+
         selected_items = self.getSelectedItems()
-        
+
         findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
-        
+
         for each_item in selected_items:
             if each_item == star_item:
                 continue
-            
+
             sasm = each_item.getSASM()
-            
+
             old_nmin, old_nmax = sasm.getQrange()
-            
+
             try:
                 if 'nmin' in sync_parameters and 'nmax' in sync_parameters:
                     sasm.setQrange([nmin, nmax])
                 elif 'nmin' in sync_parameters:
                     sasm.setQrange([nmin, old_nmax])
                 elif 'nmax' in sync_parameters:
-                    sasm.setQrange([old_nmin, nmax])                    
-                    
+                    sasm.setQrange([old_nmin, nmax])
+
             except SASExceptions.InvalidQrange, msg:
                 dial = wx.MessageDialog(None, 'Filename : ' + sasm.getParameter('filename') + '\n\n' + str(msg),
                                 'Invalid Qrange',
                                 wx.OK | wx.CANCEL | wx.NO_DEFAULT | wx.ICON_QUESTION)
                 answer = dial.ShowModal()
-                    
+
                 if answer == wx.ID_CANCEL:
                     return
-                
+
             q = sasm.getBinnedQ()
-            
+
             if 'qmin' in sync_parameters and 'qmax' in sync_parameters:
                 closest = findClosest(qmin, q)
                 new_nmin = np.where(q == closest)[0][0]
@@ -7625,12 +7625,12 @@ class IFTPanel(wx.Panel):
             elif 'qmin' in sync_parameters:
                 closest = findClosest(qmin, q)
                 new_nmin = np.where(q == closest)[0][0]
-                sasm.setQrange([new_nmin, old_nmax])    
+                sasm.setQrange([new_nmin, old_nmax])
             elif 'qmax' in sync_parameters:
                 closest = findClosest(qmax, q)
                 new_nmax = np.where(q == closest)[0][0]
                 sasm.setQrange([old_nmin, new_nmax])
-                
+
             if 'scale' in sync_parameters:
                 sasm.scale(scale)
             if 'offset' in sync_parameters:
@@ -7641,47 +7641,47 @@ class IFTPanel(wx.Panel):
                 sasm.line.set_linewidth(linewidth)
             if 'linemarker' in sync_parameters:
                 sasm.line.set_marker(linemarker)
-            
+
             each_item.updateControlsFromSASM()
-        
+
     def movePlots(self, ExpObjList, toAxes):
         for each_item in ExpObjList:
-            
+
             each = each_item.getSASM()
-            
+
             if each.axes != toAxes:
                 plotpanel = each.plot_panel
-      
+
                 each.line.remove()
                 each.err_line[0][0].remove()
                 each.err_line[0][1].remove()
                 each.err_line[1][0].remove()
-        
+
                 line_color = each.line.get_color()
-                
+
                 if each_item.getLegendLabel() != '':
                     label = each_item.getLegendLabel()
                 else:
                     label = None
 
                 wx.CallAfter(plotpanel.plotSASM, each, toAxes, color = line_color, legend_label_in = label)
-                
-                
+
+
         plotpanel = wx.FindWindowByName('PlotPanel')
         wx.CallAfter(plotpanel.updateLegend, 1)
         wx.CallAfter(plotpanel.updateLegend, 2)
         wx.CallAfter(plotpanel.canvas.draw)
-    
+
     def getItems(self):
         return self.all_manipulation_items
-            
+
     def updateLayout(self):
         self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-    
+
     def saveItems(self):
         selected_items = self.getSelectedItems()
-        
+
         selected_items = self.getSelectedItems()
 
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
@@ -7696,15 +7696,15 @@ class IFTPanel(wx.Panel):
             else:
                 file_ext = '.ift'
 
-            
+
             # filters = 'Comma Separated Files (*.csv)|*.csv'
-                
-            # dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path) 
+
+            # dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
             fname = os.path.splitext(os.path.basename(selected_items[0].iftm.getParameter('filename')))[0]+file_ext
             msg = "Please select save directory and enter save file name"
-            dialog = wx.FileDialog(self, message = msg, style = wx.FD_SAVE, defaultDir = path, defaultFile = fname) 
-                
-            if dialog.ShowModal() == wx.ID_OK:               
+            dialog = wx.FileDialog(self, message = msg, style = wx.FD_SAVE, defaultDir = path, defaultFile = fname)
+
+            if dialog.ShowModal() == wx.ID_OK:
                 path = dialog.GetPath()
             else:
                 return
@@ -7715,193 +7715,193 @@ class IFTPanel(wx.Panel):
             wx.CallAfter(selected_items[0].updateFilenameLabel)
 
             save_path = os.path.dirname(path)
-        
+
         elif len(selected_items) == 0:
             return
 
         else:
             dirdlg = wx.DirDialog(self, "Please select save directory (multiple files will be saved):", defaultPath = path,)
-            
+
             if dirdlg.ShowModal() == wx.ID_OK:
                 path = dirdlg.GetPath()
             else:
                 return
             save_path = path
-        
-        mainworker_cmd_queue.put(['save_iftitems', [save_path, selected_items]])
-            
-        
-    
-##################################################################################### 
 
- 
+        mainworker_cmd_queue.put(['save_iftitems', [save_path, selected_items]])
+
+
+
+#####################################################################################
+
+
     def _onClearList(self, evt):
         self.ClearData()
 
     def ClearData(self):
 
         self.Freeze()
-        
+
         rest_of_items = []
         for each in self.all_manipulation_items:
-            
+
             try:
                 each.Destroy()
             except ValueError:
                 rest_of_items.append(each)
-                
+
         self.all_manipulation_items = rest_of_items
         self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-        
+
         self._star_marked_item = None
-        
+
         self.Thaw()
-        
+
         self.iftplot_panel.clearAllPlots()
-        
+
     def _OnManual(self, evt):
         ''' Solve button '''
-        
+
         selectedFile = self.filelist.GetSelections()
-        
+
         if selectedFile == None or selectedFile == ():
             return
-        
+
         selectedFile = selectedFile[0]
-        
+
         NO_FILE_SELECTED = -1
 
         if selectedFile == NO_FILE_SELECTED:
             return
         else:
             SelectedExpObj = self.filelist.GetClientData(selectedFile)[0]
-        
+
         dmax, alpha = self.infoBox.getDmaxAlpha()
-        
+
         dmax = float(dmax)
         alpha = float(alpha)
-        
+
         #print SelectedExpObj.type
         SelectedExpObj.setQrange(SelectedExpObj.idx)
-        
+
         N = self.expParams['PrPoints']
-        
-        
+
+
         ExpObj = BIFT.SingleSolve(alpha, dmax, SelectedExpObj, N)
-        
+
         ExpObj.isBifted = True
-        
+
         biftPlotPanel = wx.FindWindowByName('BIFTPlotPanel')
         biftPlotPanel.PlotBIFTExperimentObject(ExpObj)
-        
+
         self.infoBox.updateInfo([SelectedExpObj, ExpObj])
-  
+
     def _OnClearAll(self, evt):
         plotpage = wx.FindWindowByName('BIFTPlotPanel')
         plotpage.OnClear(0)
-        
+
     def _OnOptions(self, evt):
-        
+
         optionsPage = wx.FindWindowByName('OptionsPage')
         optionsPage.ShowOptionsDialog(3)    # Index 1 = BIFT page
-    
+
     def _OnDoBift(self, evt):
-                
+
         expList = []
         for each in self.filelist.GetSelections():
             expList.append(self.filelist.GetClientData(each)[0])
-        
+
         if expList == []:
             return
-        
+
         for each in expList:
             each.setQrange(each.idx)
-        
-        calculationThread = BiftCalculationThread(self, expList) 
+
+        calculationThread = BiftCalculationThread(self, expList)
         calculationThread.start()
-    
+
     def addBiftObjToList(self, ExpObj, BiftObj):
-         
+
          for idx in range(0, self.filelist.GetCount()):
              E = self.filelist.GetClientData(idx)
-             
+
              if ExpObj == E[0]:
                  self.filelist.SetClientData(idx, [ExpObj, BiftObj])
                  self.infoBox.updateInfo([ExpObj, BiftObj])
                  return
-                  
+
          self.filelist.Insert(BiftObj.param['filename'], 0, [ExpObj, BiftObj])
          self.filelist.DeselectAll()
          self.filelist.SetSelection(0)
          self.infoBox.updateInfo([ExpObj, BiftObj])
          self.filelist.SetItemBackgroundColour(0, (100,100,100))
-         
+
     def runBiftOnExperimentObject(self, ExpObj, expParams):
-        
+
         self.expParams = expParams
         biftThread = BiftCalculationThread(self, ExpObj)
         biftThread.start()
 
     def _setBIFTParamsFromGui(self):
-        
+
         for eachParam in biftparams.keys():
-            
+
             id = self.biftParamsId.get(eachParam)[0]
             textctrl = wx.FindWindowById(id)
             value = textctrl.GetValue()
-        
-            biftparams[eachParam] = int(value)            
- 
+
+            biftparams[eachParam] = int(value)
+
     def _CreateFileDialog(self, mode):
-        
+
         file = None
-        
+
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
         load_path = dirctrl_panel.getDirLabel()
-        
+
         if mode == wx.OPEN:
             filters = 'All files (*.*)|*.*|Rad files (*.rad)|*.rad|Dat files (*.dat)|*.dat|Txt files (*.txt)|*.txt'
             dialog = wx.FileDialog( None, 'Select a file', load_path, style = mode, wildcard = filters)
         if mode == wx.SAVE:
             filters = 'Dat files (*.dat)|*.dat'
-            dialog = wx.FileDialog( None, 'Name file and location', load_path, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters)        
-        
+            dialog = wx.FileDialog( None, 'Name file and location', load_path, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters)
+
         # Show the dialog and get user input
         if dialog.ShowModal() == wx.ID_OK:
             file = dialog.GetPath()
-            
+
         # Destroy the dialog
         dialog.Destroy()
-        
+
         return file
-    
+
     def createButtons(self, panelsizer):
-        
+
         sizer = wx.GridSizer(cols = 3, rows = np.ceil(len(self.buttons)/3))
-        
+
         #sizer.Add((10,10) ,1 , wx.EXPAND)
         for each in self.buttons:
             if each:
-                
+
                 label = each[0]
                 bindfunc = each[1]
-                
+
                 button = wx.Button(self, -1, label)
                 button.Bind(wx.EVT_BUTTON, bindfunc)
-                
-                sizer.Add(button, 1, wx.EXPAND | wx.ALIGN_CENTER)         
-          
+
+                sizer.Add(button, 1, wx.EXPAND | wx.ALIGN_CENTER)
+
         panelsizer.Add(sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.TOP | wx.ALIGN_CENTRE | wx.EXPAND, 10)
-        
+
     def createBiftOptions(self, panelsizer):
-        
+
         for each in self.biftoptions:
             if each:
                 labeltxt = each[0]
                 id = each[1]
                 param_value = biftparams.get(each[2])
-                
+
                 sizer = wx.BoxSizer()
 
                 label = wx.StaticText(self, -1, labeltxt)
@@ -7909,40 +7909,40 @@ class IFTPanel(wx.Panel):
 
                 sizer.Add(label, 1, wx.EXPAND)
                 sizer.Add(ctrl,0)
-                
+
                 panelsizer.Add(sizer, 0.1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
-        
+
     def createMaxMinOptions(self, panelsizer):
-        
+
         topsizer = wx.BoxSizer()
-        
+
         topsizer.Add((9,10),1, wx.EXPAND)
         topsizer.Add(wx.StaticText(self,-1,'Min',size = (45,15)),0)
         topsizer.Add(wx.StaticText(self,-1,'  Max',size = (45,15)),0)
         topsizer.Add(wx.StaticText(self,-1,'   Points',size = (45,15)),0)
-                     
+
         panelsizer.Add(topsizer, 0.1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
-        
+
         first = True
         for each in self.biftmaxminoptions:
-            
+
             sizer = wx.BoxSizer()
-            
+
             labeltxt = each[0]
-            
+
             min_id = each[1][1]
             max_id = each[1][0]
             points_id = each[1][2]
-            
+
             max_param_value = biftparams.get(each[2][0])
             min_param_value = biftparams.get(each[2][1])
             points_param_value = biftparams.get(each[2][2])
-                        
+
             label = wx.StaticText(self, -1, labeltxt)
             minCtrl = wx.TextCtrl(self, min_id, str(min_param_value), style = wx.TE_PROCESS_ENTER, size = (45,22))
-            maxCtrl = wx.TextCtrl(self, max_id, str(max_param_value), style = wx.TE_PROCESS_ENTER, size = (45,22))        
-            pointsCtrl = wx.TextCtrl(self, points_id, str(points_param_value), style = wx.TE_PROCESS_ENTER, size = (45,22))        
-        
+            maxCtrl = wx.TextCtrl(self, max_id, str(max_param_value), style = wx.TE_PROCESS_ENTER, size = (45,22))
+            pointsCtrl = wx.TextCtrl(self, points_id, str(points_param_value), style = wx.TE_PROCESS_ENTER, size = (45,22))
+
             sizer.Add(label, 1, wx.EXPAND)
             sizer.Add(minCtrl,0, wx.RIGHT, 10)
             sizer.Add(maxCtrl,0, wx.RIGHT, 10)
@@ -7963,14 +7963,14 @@ class IFTPanel(wx.Panel):
 
 class IFTItemPanel(wx.Panel):
     def __init__(self, parent, iftm, font_colour = 'BLACK', legend_label = defaultdict(str), ift_parameters = {}, item_visible = True, modified = False):
-        
+
         wx.Panel.__init__(self, parent, style = wx.BORDER_RAISED)
-        
+
         self.parent = parent
         self.iftm = iftm
         self.iftm.itempanel = self
         self.ift_parameters = ift_parameters
-        
+
         self.lines = [self.iftm.r_line, self.iftm.qo_line, self.iftm.qf_line]
 
         self.manipulation_panel = wx.FindWindowByName('IFTPanel')
@@ -7980,17 +7980,17 @@ class IFTItemPanel(wx.Panel):
 
         self.info_panel = wx.FindWindowByName('InformationPanel')
         self.ift_plot_panel = wx.FindWindowByName('IFTPlotPanel')
-        
+
         self.info_settings = {'hdr_choice' : 0}
-        
+
         self._selected_as_bg = False
         self._selected_for_plot = item_visible
         self._controls_visible = True
         self._selected = False
         self._legend_label = legend_label
-        
+
         self._font_colour = font_colour
-        
+
         filename = iftm.getParameter('filename')
 
         if self.iftm.getParameter('algorithm') == 'GNOM':
@@ -7999,35 +7999,35 @@ class IFTItemPanel(wx.Panel):
             self.is_gnom = False
 
         self.raw_settings = self.main_frame.raw_settings
-               
+
         self.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
         self.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
         self.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-        
+
         self._initializeIcons()
-    
+
         self.SelectedForPlot = RAWCustomCtrl.CustomCheckBox(self, -1, filename)
         self.SelectedForPlot.SetValue(True)
         self.SelectedForPlot.Bind(wx.EVT_CHECKBOX, self._onSelectedChkBox)
         self.SelectedForPlot.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
         self.SelectedForPlot.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
         self.SelectedForPlot.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
-        
+
         self.SelectedForPlot.SetForegroundColour(font_colour)
-        
+
         self.legend_label_text = wx.StaticText(self, -1, '')
-        
+
         self.legend_label_text.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
         self.legend_label_text.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
         self.legend_label_text.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-        
+
         conv = mplcol.ColorConverter()
         color = [1,1,1]
         color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
-        
+
         self.colour_indicator = RAWCustomCtrl.ColourIndicator(self, -1, color, size = (20,15))
         self.colour_indicator.Bind(wx.EVT_LEFT_DOWN, self._onLinePropertyButton)
-        
+
         self.target_icon = wx.StaticBitmap(self, -1, self.target_png)
         self.target_icon.Bind(wx.EVT_LEFT_DOWN, self._onTargetButton)
 
@@ -8049,27 +8049,27 @@ class IFTItemPanel(wx.Panel):
             self.SelectedForPlot.SetToolTipString('Show Plot')
             self.colour_indicator.SetToolTipString('Line Properties')
             self.target_icon.SetToolTipString('Locate Line')
-        
-        
-        
+
+
+
         self.locator_on = False
         self.locator_old_width = {}
-        
+
         panelsizer = wx.BoxSizer()
         panelsizer.Add(self.SelectedForPlot, 0, wx.LEFT | wx.TOP, 3)
         panelsizer.Add(self.legend_label_text, 0, wx.LEFT | wx.TOP, 3)
         panelsizer.Add((1,1), 1, wx.EXPAND)
         panelsizer.Add(self.target_icon, 0, wx.RIGHT | wx.TOP, 4)
         panelsizer.Add(self.colour_indicator, 0, wx.RIGHT | wx.TOP, 5)
-        
+
         self.topsizer = wx.BoxSizer(wx.VERTICAL)
         self.topsizer.Add(panelsizer, 1, wx.EXPAND)
-        
-        
+
+
         self.topsizer.Add((5,5),0)
-        
+
         self.SetSizer(self.topsizer)
-        
+
         self.SetBackgroundColour(wx.Colour(250,250,250))
 
         if not self._selected_for_plot:
@@ -8079,21 +8079,21 @@ class IFTItemPanel(wx.Panel):
 
         if modified:
             parent = self.GetParent()
-        
+
             filename = self.iftm.getParameter('filename')
             self.SelectedForPlot.SetLabel('* ' + str(filename))
             self.SelectedForPlot.Refresh()
-            
+
             if self not in self.manipulation_panel.modified_items:
                 self.manipulation_panel.modified_items.append(self)
-            
-            
+
+
     def setCurrentIFTParameters(self, ift_parameters):
         self.ift_parameters = ift_parameters
-        
+
     def getIftParameters(self):
         return self.ift_parameters
-    
+
     def enableStar(self, state):
         if state == True:
             self.bg_star.SetBitmap(self.star_png)
@@ -8101,7 +8101,7 @@ class IFTItemPanel(wx.Panel):
         else:
             self.bg_star.SetBitmap(self.gray_png)
             self._selected_as_bg = False
-        
+
         self.bg_star.Refresh()
 
     def updateShowItemCheckBox(self):
@@ -8110,21 +8110,21 @@ class IFTItemPanel(wx.Panel):
 
         for line in self.lines:
             line.set_picker(self._selected_for_plot)
-        
+
     def markAsModified(self):
         filename = self.iftm.getParameter('filename')
 
         self.SelectedForPlot.SetLabel('* ' + str(filename))
-        
+
         self.SelectedForPlot.Refresh()
         self.topsizer.Layout()
-        
+
         self.parent.Layout()
         self.parent.Refresh()
-        
+
         if self not in self.manipulation_panel.modified_items:
             self.manipulation_panel.modified_items.append(self)
-    
+
     def unmarkAsModified(self, updateSelf = True, updateParent = True):
         filename = self.iftm.getParameter('filename')
 
@@ -8144,44 +8144,44 @@ class IFTItemPanel(wx.Panel):
     def removeSelf(self):
         #Has to be callafter under Linux.. or it'll crash
         wx.CallAfter(self.manipulation_panel.removeSelectedItems)
-        
+
     def getIFTM(self):
-        return self.iftm        
-    
+        return self.iftm
+
     def getFontColour(self):
         return self._font_colour
-    
+
     def getSelectedForPlot(self):
         return self._selected_for_plot
-    
+
     def getLegendLabel(self):
         return self._legend_label
-    
-    def updateControlsFromIFTM(self):    
+
+    def updateControlsFromIFTM(self):
         scale = self.iftm.getScale()
         offset = self.iftm.getOffset()
         qmin, qmax = self.iftm.getQrange()
-        
+
         qmin_ctrl = wx.FindWindowById(self.spin_controls[0][1])
         qmax_ctrl = wx.FindWindowById(self.spin_controls[1][1])
         qmintxt = wx.FindWindowById(self.spin_controls[0][2])
         qmaxtxt = wx.FindWindowById(self.spin_controls[1][2])
-        
+
         qmin_ctrl.SetValue(str(qmin))
-        qmax_ctrl.SetValue(str(qmax-1))        
+        qmax_ctrl.SetValue(str(qmax-1))
         qmintxt.SetValue(str(round(self.iftm.q[qmin],4)))
         qmaxtxt.SetValue(str(round(self.iftm.q[qmax-1],4)))
-        
+
         scale_ctrl = wx.FindWindowById(self.float_spin_controls[0][1])
         offset_ctrl = wx.FindWindowById(self.float_spin_controls[1][1])
-    
+
         offset_ctrl.SetValue(str(offset))
         scale_ctrl.SetValue(str(scale))
-        
+
         wx.CallAfter(self.iftm.plot_panel.updatePlotAfterManipulation, [self.iftm])
-    
+
     def toggleSelect(self, set_focus = False, update_info = True):
-        
+
         if self._selected:
             self._selected = False
             self.SetBackgroundColour(wx.Colour(250,250,250))
@@ -8194,18 +8194,18 @@ class IFTItemPanel(wx.Panel):
                 self.SetFocusIgnoringChildren()
             # if update_info:
                 # self.info_panel.updateInfoFromItem(self)
-        
+
         self.Refresh()
-        
+
     def enableLocatorLine(self):
-        
+
         self.locator_on = not self.locator_on
 
         if self.locator_on == True:
             self.target_icon.SetBitmap(self.target_on_png)
         else:
             self.target_icon.SetBitmap(self.target_png)
-        
+
         for line in self.lines:
             if self.locator_on == True:
                 self.locator_old_width[line] = line.get_linewidth()
@@ -8215,14 +8215,14 @@ class IFTItemPanel(wx.Panel):
             else:
                 line.set_linewidth(self.locator_old_width[line])
                 wx.CallAfter(self.iftm.plot_panel.canvas.draw)
-            
+
         self.target_icon.Refresh()
-        
+
     def getControlsVisible(self):
         return self._controls_visible
-        
+
     def showControls(self, state):
-        
+
         if state == False:
             self.expand_collapse.SetBitmap(self.expand_png)
             self._controls_visible = False
@@ -8245,14 +8245,14 @@ class IFTItemPanel(wx.Panel):
             self.controlSizer.Show(5, True)
             self.controlSizer.Show(6, True)
             self.controlSizer.Show(7, True)
-            
+
         self.expand_collapse.Refresh()
         self.topsizer.Layout()
-        
-    
+
+
     def showItem(self, state):
         self._selected_for_plot = state
-        
+
         self.SelectedForPlot.SetValue(state)
 
         for line in self.lines:
@@ -8270,80 +8270,80 @@ class IFTItemPanel(wx.Panel):
 
             if err_bars:
                 for each_err_line in each.r_err_line[0]:
-                    each_err_line.set_visible(state)  
-                    
+                    each_err_line.set_visible(state)
+
                 for each_err_line in each.r_err_line[1]:
                     each_err_line.set_visible(state)
 
                 for each_err_line in each.qo_err_line[0]:
-                    each_err_line.set_visible(state)  
-                    
+                    each_err_line.set_visible(state)
+
                 for each_err_line in each.qo_err_line[1]:
                     each_err_line.set_visible(state)
 
         else:
             if err_bars:
                 for each_err_line in each.r_err_line[0]:
-                    each_err_line.set_visible(state)  
-                    
+                    each_err_line.set_visible(state)
+
                 for each_err_line in each.r_err_line[1]:
                     each_err_line.set_visible(state)
 
-                    
+
                 q_min, q_max = each.getQrange()
                 q = each.r
                 i = each.p
-                
+
                 caplines = each.r_err_line[0]
                 barlinecols = each.r_err_line[1]
-                
+
                 yerr = each.err
                 x = q
-                y = i                                  
-                
-                # Find the ending points of the errorbars 
-                error_positions = (x, y-yerr), (x, y+yerr) 
+                y = i
 
-                # Update the caplines 
-                for i,pos in enumerate(error_positions): 
-                    caplines[i].set_data(pos) 
+                # Find the ending points of the errorbars
+                error_positions = (x, y-yerr), (x, y+yerr)
 
-                # Update the error bars 
-                barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr))) 
+                # Update the caplines
+                for i,pos in enumerate(error_positions):
+                    caplines[i].set_data(pos)
+
+                # Update the error bars
+                barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr)))
 
 
 
                 for each_err_line in each.qo_err_line[0]:
-                    each_err_line.set_visible(state)  
-                    
+                    each_err_line.set_visible(state)
+
                 for each_err_line in each.qo_err_line[1]:
                     each_err_line.set_visible(state)
 
-                    
+
                 q_min, q_max = each.getQrange()
                 q = each.q_orig
                 i = each.i_orig
-                
+
                 caplines = each.qo_err_line[0]
                 barlinecols = each.qo_err_line[1]
-                
+
                 yerr = each.err_orig
                 x = q
-                y = i                                  
-                
-                # Find the ending points of the errorbars 
-                error_positions = (x, y-yerr), (x, y+yerr) 
+                y = i
 
-                # Update the caplines 
-                for i,pos in enumerate(error_positions): 
-                    caplines[i].set_data(pos) 
+                # Find the ending points of the errorbars
+                error_positions = (x, y-yerr), (x, y+yerr)
 
-                # Update the error bars 
+                # Update the caplines
+                for i,pos in enumerate(error_positions):
+                    caplines[i].set_data(pos)
+
+                # Update the error bars
                 barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr)))
-        
+
     def updateFilenameLabel(self, updateSelf = True, updateParent = True, updateLegend = True):
         filename = self.iftm.getParameter('filename')
-        
+
         if self._legend_label == '':
             for line in self.lines:
                 current_label = line.get_label()
@@ -8363,15 +8363,15 @@ class IFTItemPanel(wx.Panel):
         if updateParent:
             self.parent.Layout()
             self.parent.Refresh()
-    
+
     def _initializeIcons(self):
-        
+
         self.gray_png = RAWIcons.Star_icon_notenabled.GetBitmap()
         self.star_png = RAWIcons.Star_icon_org.GetBitmap()
-        
+
         self.collapse_png = RAWIcons.collapse.GetBitmap()
         self.expand_png = RAWIcons.expand.GetBitmap()
-        
+
         self.target_png = RAWIcons.target.GetBitmap()
         self.target_on_png = RAWIcons.target_orange.GetBitmap()
 
@@ -8379,23 +8379,23 @@ class IFTItemPanel(wx.Panel):
         self.lock_open_png = RAWIcons.stock_lock_open.GetBitmap()
         self.lock_closed_png = RAWIcons.stock_lock_closed.GetBitmap()
         self.lock_open_grayed_png = RAWIcons.stock_lock_open_grayed.GetBitmap()
-        
+
     def _initStartPosition(self):
-        
+
         qmin_ctrl = wx.FindWindowById(self.spin_controls[0][1])
         qmax_ctrl = wx.FindWindowById(self.spin_controls[1][1])
-        
+
         qrange = self.iftm.getQrange()
-        
+
         qmin_ctrl.SetValue(str(qrange[0]))
-        
+
     def _updateColourIndicator(self):
         conv = mplcol.ColorConverter()
         color = conv.to_rgb(self.iftm.r_line.get_mfc())
         color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
-        
+
         self.colour_indicator.updateColour(color)
-        
+
     def _onLinePropertyButton(self, event):
         # print 'here?'
         try:
@@ -8405,47 +8405,47 @@ class IFTItemPanel(wx.Panel):
             new_legend_labels = dialog.getLegendLabel()
             self._updateColourIndicator()
             dialog.Destroy()
-            
+
             if answer == wx.ID_OK:
                 self._legend_label = new_legend_labels
                 self._updateLegendLabel()
 
         except TypeError:
             return
-        
+
     def _onExpandCollapseButton(self, event):
         self._controls_visible = not self._controls_visible
         self.showControls(self._controls_visible)
-        
-        self.GetParent().Layout()            
+
+        self.GetParent().Layout()
         self.GetParent().Refresh()
-        
-        self.GetParent().GetParent().Layout()            
+
+        self.GetParent().GetParent().Layout()
         self.GetParent().GetParent().Refresh()
-            
+
     def _onTargetButton(self, event):
         self.enableLocatorLine()
-        
+
     def _onInfoButton(self, event):
         pass
-    
+
     def _onLockButton(self, event):
         if self.ift_parameters == {}:
             return
-        
+
         self._lock_on = not self._lock_on
-        
+
         if self._lock_on:
             self.lock_icon.SetBitmap(self.lock_closed_png)
         else:
             self.lock_icon.SetBitmap(self.lock_open_png)
-            
+
     def _showPopupMenu(self):
         opsys = platform.system()
 
         menu = wx.Menu()
-        
-        
+
+
         menu.Append(14, 'Rename')
         # menu.Append(17, 'Set legend label')
         menu.AppendSeparator()
@@ -8469,50 +8469,50 @@ class IFTItemPanel(wx.Panel):
         menu.AppendSeparator()
         menu.Append(20, 'Show data')
         # menu.Append(21, 'Show header')
-        
+
         menu.AppendSeparator()
         menu.Append(5, 'Remove' )
         # menu.Append(18, 'Save item info')
         menu.AppendSeparator()
         menu.Append(7, 'Save selected file(s)')
-        
-        self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)        
+
+        self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
         self.PopupMenu(menu)
 
         menu.Destroy()
-    
+
     def _onShowImage(self):
-        
+
         if self.iftm.getAllParameters().has_key('load_path'):
             path = self.iftm.getParameter('load_path')
             mainworker_cmd_queue.put(['show_image', path])
-    
+
     def _onPopupMenuChoice(self, evt):
-        
+
         if evt.GetId() == 5:
             #Delete
             wx.CallAfter(self.manipulation_panel.removeSelectedItems)
-            
+
         elif evt.GetId() == 7:
             self.manipulation_panel.saveItems()
-            
+
         elif evt.GetId() == 14:
             dlg = FilenameChangeDialog(self, self.iftm.getParameter('filename'))
             dlg.ShowModal()
             filename =  dlg.getFilename()
             dlg.Destroy()
-            
+
             if filename:
                 self.iftm.setParameter('filename', filename)
                 self.updateFilenameLabel()
                 self.markAsModified()
-            
+
         elif evt.GetId() == 20:
             # print 'Data dialog not yet available with IFT items'
             dlg = IFTDataDialog(self, self.iftm)
             dlg.ShowModal()
             dlg.Destroy()
-            
+
         elif evt.GetId() == 22:
             #To main plot
             self._toMainPlot()
@@ -8602,56 +8602,56 @@ class IFTItemPanel(wx.Panel):
             dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
             proceed = dlg.ShowModal()
             dlg.Destroy()
-    
+
     def _onKeyPress(self, evt):
-        
+
         key = evt.GetKeyCode()
 
         if ((key == wx.WXK_DELETE) or (key == wx.WXK_BACK and evt.CmdDown())) and self._selected == True:
             self.removeSelf()
-                
+
         elif key == 83: #S
             self._onShowImage()
 
         elif key == 65 and evt.CmdDown(): #A
             self.manipulation_panel.selectAll()
-            
-            
+
+
     def _onRightMouseButton(self, evt):
         if not self._selected:
             self.toggleSelect()
             self.manipulation_panel.deselectAllExceptOne(self)
-                    
+
         if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
             wx.CallAfter(self._showPopupMenu)
         else:
             self._showPopupMenu()
-        
+
     def _onLeftMouseButton(self, evt):
         ctrl_is_down = evt.CmdDown()
         shift_is_down = evt.ShiftDown()
-        
+
         manipulation_panel = wx.FindWindowByName('IFTPanel')
-        
+
         if shift_is_down:
             try:
-                
+
                 first_marked_item_idx = manipulation_panel.all_manipulation_items.index(manipulation_panel.getSelectedItems()[0])
                 last_marked_item = manipulation_panel.getSelectedItems()[-1]
                 last_marked_item_idx = manipulation_panel.all_manipulation_items.index(last_marked_item)
-                
+
                 this_item_idx = manipulation_panel.all_manipulation_items.index(self)
-            
+
                 if last_marked_item_idx > this_item_idx:
                     adj = 0
                     idxs = [first_marked_item_idx, this_item_idx]
                 else:
                     idxs = [last_marked_item_idx, this_item_idx]
                     adj = 1
-                        
+
                 top_item = max(idxs)
                 bottom_item = min(idxs)
-            
+
                 item_list = manipulation_panel.all_manipulation_items[bottom_item+adj:top_item+adj]
                 for i in range(len(item_list)):
                     each = item_list[i]
@@ -8661,15 +8661,15 @@ class IFTItemPanel(wx.Panel):
                         each.toggleSelect()
             except IndexError:
                 pass
-            
+
         elif ctrl_is_down:
             self.toggleSelect()
         else:
             manipulation_panel.deselectAllExceptOne(self)
             self.toggleSelect()
-            
+
         evt.Skip()
-              
+
     def _onStarButton(self, event):
 
         if self._selected_as_bg == True:
@@ -8677,64 +8677,64 @@ class IFTItemPanel(wx.Panel):
             self.manipulation_panel.clearBackgroundItem()
         else:
             self.manipulation_panel.setItemAsBackground(self)
-            
+
     def _showInvalidValueError(self):
         wx.CallAfter(wx.MessageBox, 'The entered value is invalid. Please remove non-numeric characters.', 'Invalid Value Error', style = wx.ICON_ERROR)
-                    
+
     def _onScaleOffsetChange(self, event):
         id = event.GetId()
-        
+
         try:
             value = float(event.GetValue())
         except ValueError:
             self._showInvalidValueError()
             return
-        
+
         for each_label, each_id, each_name, eachInit_value, each_bindfunc in self.float_spin_controls:
-            
+
             if id == each_id:
-                
+
                 if each_name == 'scale':
                     self.iftm.scale(value)
                 elif each_name == 'offset':
                     self.iftm.offset(value)
-        
+
         wx.CallAfter(self.iftm.plot_panel.updatePlotAfterManipulation, [self.iftm])
 
         event.Skip()
-        
+
     def _updateQTextCtrl(self):
         qmin_ctrl = wx.FindWindowById(self.spin_controls[0][1])
         qmax_ctrl = wx.FindWindowById(self.spin_controls[1][1])
-        
+
         qmintxt = wx.FindWindowById(self.spin_controls[0][2])
         qmaxtxt = wx.FindWindowById(self.spin_controls[1][2])
-        
+
         try:
             qmin = int(qmin_ctrl.GetValue())
             qmax = int(qmax_ctrl.GetValue())
         except ValueError:
             self._showInvalidValueError()
             return
-        
+
         qmintxt.SetValue(str(round(self.iftm.q[qmin],4)))
         qmaxtxt.SetValue(str(round(self.iftm.q[qmax],4)))
-        
+
         qrange = (qmin, qmax+1) # +1 to be able to use the range for array slicing [0:n+1]
 
-        self.iftm.setQrange(qrange)   
-    
+        self.iftm.setQrange(qrange)
+
     def _updateLegendLabel(self):
-        
+
         labels = np.array(self._legend_label.values())
 
         noupdate = np.all(labels == '')
-        
+
         if self._legend_label is None or noupdate:
             self.iftm.r_line.set_label(self.iftm.getParameter('filename'))
             self.iftm.qo_line.set_label(self.iftm.getParameter('filename'))
             self.iftm.qf_line.set_label(self.iftm.getParameter('filename'))
-      
+
             self.legend_label_text.SetLabel('')
         else:
             if str(self._legend_label[self.iftm.r_line]) != '':
@@ -8754,119 +8754,119 @@ class IFTItemPanel(wx.Panel):
                 self.legend_label_text.SetLabel('[' + str(self._legend_label[self.iftm.r_line]) + ']')
             else:
                 self.legend_label_text.SetLabel('')
-            
+
         wx.CallAfter(self.iftm.plot_panel.updateLegend, 1)
         wx.CallAfter(self.iftm.plot_panel.updateLegend, 2)
-        
-    
+
+
     def _onQrangeChange(self, event):
         self._updateQTextCtrl()
         wx.CallAfter(self.iftm.plot_panel.updatePlotAfterManipulation, [self.iftm])
-        
+
     def _onEnterInQrangeTextCtrl(self, evt):
-        
+
         id = evt.GetId()
         txtctrl = wx.FindWindowById(id)
-        
+
         try:
             val = float(txtctrl.GetValue())
         except ValueError:
             self._showInvalidValueError()
             return
-        
+
         if id == self.spin_controls[0][2]:
                 spinctrl = wx.FindWindowById(self.spin_controls[0][1])
         elif id == self.spin_controls[1][2]:
                 spinctrl = wx.FindWindowById(self.spin_controls[1][1])
-        
+
         q = self.iftm.getBinnedQ()
-        
+
         findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
-                
+
         closest = findClosest(val, q)
-        idx = np.where(q == closest)[0][0]  
-        
+        idx = np.where(q == closest)[0][0]
+
         spinctrl.SetValue(idx)
         self._onQrangeChange(None)
         txtctrl.SelectAll()
-     
+
     def _onSelectedChkBox(self, event):
         self._selected_for_plot = not self._selected_for_plot
-        
+
         self.showItem(self._selected_for_plot)
-        
-        self.GetParent().Layout()            
+
+        self.GetParent().Layout()
         self.GetParent().Refresh()
-        
+
         wx.CallAfter(self.ift_plot_panel.updateLegend, self.iftm.r_axes)
         wx.CallAfter(self.ift_plot_panel.updateLegend, self.iftm.qo_axes)
         wx.CallAfter(self.iftm.plot_panel.canvas.draw)
-        
+
         self.iftm.plot_panel.fitAxis()
-        
+
     def _createFloatSpinCtrls(self, control_sizer):
-        
+
         for label, id, name, initValue, bindfunc in self.float_spin_controls:
-            
+
             label = wx.StaticText(self, -1, label)
-            
+
             label.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
             label.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
             label.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-            
+
             if initValue.find('.') == -1:
                 initValue = initValue + '.0'
-            
+
             if name == 'scale':
                 spinCtrl = RAWCustomCtrl.FloatSpinCtrl(self, id, initValue, TextLength = 100, never_negative = True)
             else:
                 spinCtrl = RAWCustomCtrl.FloatSpinCtrl(self, id, initValue, TextLength = 100)
-                
+
             spinCtrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, bindfunc)
-            
+
             control_sizer.Add(label, 1, wx.TOP, 3)
             control_sizer.Add(spinCtrl, 1, wx.EXPAND)
-            
-        
+
+
     def _createSimpleSpinCtrls(self, control_sizer):
-        
-        
+
+
         for each_spinctrl in self.spin_controls:
                 spin_id = each_spinctrl[1]
                 spin_label_text = each_spinctrl[0]
                 qtxtId = each_spinctrl[2]
                 spin_range = each_spinctrl[3]
                 spin_name = each_spinctrl[4]
-                
+
                 spin_min = spin_range[0]
                 spin_max = spin_range[1]
-    
+
                 spin_min, spin_max = self.iftm.getBinnedQ()[0], self.iftm.getBinnedQ()[-1]
-            
+
                 nlow, nhigh = 0, (len(self.iftm.getBinnedQ())-1)
-                      
+
                 spin_label = wx.StaticText(self, -1, spin_label_text)
                 spin_label.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
                 spin_label.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
                 spin_label.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-                        
-                spin_control = RAWCustomCtrl.IntSpinCtrl(self, spin_id, min = nlow, max = nhigh, TextLength = 43) 
-                                        
+
+                spin_control = RAWCustomCtrl.IntSpinCtrl(self, spin_id, min = nlow, max = nhigh, TextLength = 43)
+
                 if spin_name == 'nlow':
                     spin_control.SetValue(nlow)
                 elif spin_name == 'nhigh':
                     spin_control.SetValue(nhigh)
-                
+
                 spin_control.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onQrangeChange)
-                
+
                 q_ctrl = wx.TextCtrl(self, qtxtId, '', size = (55,22), style = wx.PROCESS_ENTER)
                 q_ctrl.Bind(wx.EVT_TEXT_ENTER, self._onEnterInQrangeTextCtrl)
-                
+
                 spin_sizer = wx.BoxSizer()
                 spin_sizer.Add(q_ctrl, 0, wx.RIGHT, 3)
                 spin_sizer.Add(spin_control, 0)
-                
-                control_sizer.Add(spin_label, 0)        
+
+                control_sizer.Add(spin_label, 0)
                 control_sizer.Add(spin_sizer, 0)
 
 
@@ -8876,7 +8876,7 @@ class IFTItemPanel(wx.Panel):
 class SECPanel(wx.Panel):
     def __init__(self, parent, raw_settings, expParams = []):
         wx.Panel.__init__(self, parent, name = 'SECPanel')
-        
+
         self.expParams = expParams
         self._raw_settings = raw_settings
         self.sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
@@ -8884,7 +8884,7 @@ class SECPanel(wx.Panel):
         self.all_manipulation_items = []
 
         self.modified_items = []
-        
+
         self.otherParams={'Frame List' : (wx.NewId(), 'framelist'),
                         'Manual' : (wx.NewId(), 'manual')}
 
@@ -8897,13 +8897,13 @@ class SECPanel(wx.Panel):
                           'Initial Buffer Frame'   : (wx.NewId(), 'ibufframe'),
                           'Final Buffer Frame'     : (wx.NewId(), 'fbufframe'),
                           'Window Size'            : (wx.NewId(), 'wsize')}
-        
+
         self.buttons = (("Save",self._onSaveButton),
                         ("Remove", self._onRemoveButton),
                         ("Clear SEC Data", self._onClearList))
-        
-        # /* INSERT WIDGETS */ 
-        
+
+        # /* INSERT WIDGETS */
+
         self.panelsizer = wx.BoxSizer(wx.VERTICAL)
 
         self._initializeIcons()
@@ -8914,36 +8914,36 @@ class SECPanel(wx.Panel):
         self.underpanel.SetScrollRate(20,20)
 
         self.underpanel.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-      
+
         self.all_manipulation_items = []
         self.selected_item = []
 
         self.starred_item = None
-        
-        self.underpanel_sizer = wx.BoxSizer(wx.VERTICAL)    
+
+        self.underpanel_sizer = wx.BoxSizer(wx.VERTICAL)
         self.underpanel.SetSizer(self.underpanel_sizer)
-        
+
         self.sec_control_panel = SECControlPanel(self)
-        
+
         self.panelsizer.Add(self.sec_control_panel, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER | wx.EXPAND, 5)
-        self.panelsizer.Add(toolbarsizer, 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 5)        
+        self.panelsizer.Add(toolbarsizer, 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 5)
         self.panelsizer.Add(self.underpanel, 1, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT, 3)
-        
+
         self.createButtons(self.panelsizer)
-        
+
         self.SetSizer(self.panelsizer)
-            
+
     def _onRemoveButton(self, event):
         self.removeSelectedItems()
 
-    
+
     def _onSaveButton(self, event):
         self._saveItems()
 
     def _initializeIcons(self):
         # self.collapse_all_png = RAWIcons.collapse_all.GetBitmap()
         # self.expand_all_png = RAWIcons.expand_all.GetBitmap()
-        
+
         self.show_all_png = RAWIcons.open_eye.GetBitmap()
         self.hide_all_png = RAWIcons.close_eye.GetBitmap()
 
@@ -8951,15 +8951,15 @@ class SECPanel(wx.Panel):
 
 
     def _createToolbar(self):
-        
+
         sizer = wx.BoxSizer()
-        
-        select_all= wx.BitmapButton(self, -1, self.select_all_png)    
+
+        select_all= wx.BitmapButton(self, -1, self.select_all_png)
         # collapse_all = wx.BitmapButton(self, -1, self.collapse_all_png)
         # expand_all = wx.BitmapButton(self, -1, self.expand_all_png)
         show_all = wx.BitmapButton(self, -1, self.show_all_png)
         hide_all = wx.BitmapButton(self, -1, self.hide_all_png)
-        
+
         if platform.system() == 'Darwin':
             show_tip = STT.SuperToolTip(" ", header = "Show", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(show_all)
@@ -8977,14 +8977,14 @@ class SECPanel(wx.Panel):
             select_all.SetToolTipString('Select All')
             show_all.SetToolTip(wx.ToolTip('Show'))
             hide_all.SetToolTipString('Hide')
-            
-        
+
+
         # collapse_all.Bind(wx.EVT_BUTTON, self._onCollapseAllButton)
         # expand_all.Bind(wx.EVT_BUTTON, self._onExpandAllButton)
         show_all.Bind(wx.EVT_BUTTON, self._onShowAllButton)
         hide_all.Bind(wx.EVT_BUTTON, self._onHideAllButton)
         select_all.Bind(wx.EVT_BUTTON, self._onSelectAllButton)
-        
+
         sizer.Add(show_all, 0, wx.LEFT, 5)
         sizer.Add(hide_all, 0, wx.LEFT, 5)
         sizer.Add((1,1),1, wx.EXPAND)
@@ -8992,27 +8992,27 @@ class SECPanel(wx.Panel):
         sizer.Add((1,1),1, wx.EXPAND)
         # sizer.Add(collapse_all, 0, wx.RIGHT, 5)
         # sizer.Add(expand_all, 0, wx.RIGHT, 3)
-        
+
         return sizer
 
     def _collapseAllItems(self):
         for each in self.all_manipulation_items:
             each.showControls(False)
-        
-        self.underpanel.Layout()            
+
+        self.underpanel.Layout()
         self.underpanel.Refresh()
-        
-        self.Layout()            
+
+        self.Layout()
         self.Refresh()
-            
+
     def _expandAllItems(self):
         for each in self.all_manipulation_items:
             each.showControls(True)
-            
-        self.underpanel.Layout()            
+
+        self.underpanel.Layout()
         self.underpanel.Refresh()
-        
-        self.Layout()            
+
+        self.Layout()
         self.Refresh()
 
     def selectAll(self):
@@ -9032,22 +9032,22 @@ class SECPanel(wx.Panel):
         if len(selected_items) == 0:
             for each in self.all_manipulation_items:
                each.showItem(True)
-           
+
         else:
             for each in selected_items:
                 each.showItem(True)
-        
-        self.underpanel.Layout()            
+
+        self.underpanel.Layout()
         self.underpanel.Refresh()
-            
-        self.Layout()            
+
+        self.Layout()
         self.Refresh()
 
         self.underpanel.Thaw()
 
         wx.CallAfter(self.sec_plot_panel.updateLegend, 1)
         wx.CallAfter(self.sec_plot_panel.fitAxis)
-           
+
     def _onHideAllButton(self, event):
         self.underpanel.Freeze()
 
@@ -9056,25 +9056,25 @@ class SECPanel(wx.Panel):
         if len(selected_items) == 0:
             for each in self.all_manipulation_items:
                each.showItem(False)
-           
+
         else:
             for each in selected_items:
                 each.showItem(False)
-        
-        self.underpanel.Layout()            
+
+        self.underpanel.Layout()
         self.underpanel.Refresh()
-            
-        self.Layout()            
+
+        self.Layout()
         self.Refresh()
 
         self.underpanel.Thaw()
 
         wx.CallAfter(self.sec_plot_panel.updateLegend, 1)
         wx.CallAfter(self.sec_plot_panel.fitAxis)
-               
+
     def _onCollapseAllButton(self, event):
         self._collapseAllItems()
-        
+
     def _onExpandAllButton(self, event):
         self._expandAllItems()
 
@@ -9082,17 +9082,17 @@ class SECPanel(wx.Panel):
         self.selectAll()
 
     def getSelectedItems(self):
-        
+
         self.selected_item_list = []
-        
+
         for each in self.all_manipulation_items:
             if each._selected == True:
                 self.selected_item_list.append(each)
-            
+
         return self.selected_item_list
 
     def deselectAllExceptOne(self, item, line = None, enableLocatorLine = False):
-        if line == None:    
+        if line == None:
             for each in self.all_manipulation_items:
                 if each != item:
                     each._selected = True
@@ -9109,14 +9109,14 @@ class SECPanel(wx.Panel):
     def removeSelectedItems(self):
 
         sec_control_panel = wx.FindWindowByName('SECControlPanel')
-       
+
         if len(self.getSelectedItems()) == 0:
             return
-        
+
         self.Freeze()
-        
+
         axes_that_needs_updated_legend = []
-         
+
         for each in self.getSelectedItems():
 
             try:
@@ -9126,53 +9126,53 @@ class SECPanel(wx.Panel):
 
             if each.secm == sec_control_panel.secm:
                 sec_control_panel.secm = None
-            
-            if each.secm.line != None:      
+
+            if each.secm.line != None:
                 plot_panel = each.secm.plot_panel
-            
+
                 try:
                     each.secm.line.remove()
-                    
+
                     if each.secm.origline != None:
                         each.secm.origline.remove()
-                
+
                     i = plot_panel.plotted_secms.index(each.secm)
                     plot_panel.plotted_secms.pop(i)
                 except (IndexError, ValueError):
                     pass
-            
+
                 if not each.secm.axes in axes_that_needs_updated_legend:
                     axes_that_needs_updated_legend.append(each.secm.axes)
-                    
+
                 for eachaxes in axes_that_needs_updated_legend:
                     if eachaxes == plot_panel.subplot1:
                         wx.CallAfter(plot_panel.updateLegend, 1)
                     else:
                         wx.CallAfter(plot_panel.updateLegend, 2)
 
-            if each.secm.calc_line != None:      
+            if each.secm.calc_line != None:
                 plot_panel = each.secm.plot_panel
-            
+
                 try:
                     each.secm.calc_line.remove()
-                
+
                 except (IndexError, ValueError):
                     pass
-            
+
                 if not each.secm.calc_axes in axes_that_needs_updated_legend:
                     axes_that_needs_updated_legend.append(each.secm.calc_axes)
-                    
+
                 for eachaxes in axes_that_needs_updated_legend:
                     if eachaxes == plot_panel.subplot1:
                         wx.CallAfter(plot_panel.updateLegend, 1)
                     else:
                         wx.CallAfter(plot_panel.updateLegend, 2)
-                    
+
                 wx.CallAfter(plot_panel.canvas.draw)
-                
+
             if each == self.starred_item:
                 self.starred_item = None
-            
+
             idx = self.all_manipulation_items.index(each)
             self.all_manipulation_items[idx].Destroy()
             self.all_manipulation_items.pop(idx)
@@ -9181,12 +9181,12 @@ class SECPanel(wx.Panel):
 
         self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-        self.underpanel.Refresh()    
-        
+        self.underpanel.Refresh()
+
         self.Thaw()
 
     def addItem(self, secm_list, item_colour = 'black', item_visible = True, notsaved = False):
-        
+
         self.Freeze()
 
         if type(secm_list) != list:
@@ -9196,7 +9196,7 @@ class SECPanel(wx.Panel):
 
             newItem = SECItemPanel(self.underpanel, secm, font_colour = item_colour,
                                      item_visible = item_visible, modified = notsaved)
-        
+
             self.underpanel_sizer.Add(newItem, 0, wx.GROW)
 
             # Keeping track of all items in our list:
@@ -9206,12 +9206,12 @@ class SECPanel(wx.Panel):
 
 
         self.underpanel_sizer.Layout()
-        
+
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-        self.Layout()            
+        self.Layout()
         self.Refresh()
         self.Thaw()
-        
+
     def saveData(self):
         selected_items = self.getSelectedItems()
 
@@ -9219,28 +9219,28 @@ class SECPanel(wx.Panel):
         path = dirctrl_panel.getDirLabel()
 
         if len(selected_items) == 1:
-            
+
             filters = 'Comma Separated Files (*.csv)|*.csv'
-                
-            # dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path) 
+
+            # dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
             fname = os.path.splitext(os.path.basename(selected_items[0].secm.getParameter('filename')))[0]+'.csv'
             msg = "Please select save directory and enter save file name"
-            dialog = wx.FileDialog( None, message = msg, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = path, defaultFile = fname) 
-                
-            if dialog.ShowModal() == wx.ID_OK:               
+            dialog = wx.FileDialog( None, message = msg, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = path, defaultFile = fname)
+
+            if dialog.ShowModal() == wx.ID_OK:
                 path = dialog.GetPath()
             else:
                 return
 
             path=os.path.splitext(path)[0]+'.csv'
             save_path = [path]
-        
+
         elif len(selected_items) == 0:
             return
 
         else:
             dirdlg = wx.DirDialog(self, "Please select save directory (multiple files will be saved):", defaultPath = path)
-            
+
             if dirdlg.ShowModal() == wx.ID_OK:
                 path = dirdlg.GetPath()
             else:
@@ -9253,7 +9253,7 @@ class SECPanel(wx.Panel):
                 name=os.path.splitext(os.path.basename(item.secm.getParameter('filename')))[0]+'_sec_data.csv'
                 save_path.append(os.path.join(path, name))
 
-        
+
         mainworker_cmd_queue.put(['save_sec_data', [save_path, selected_items]])
 
     def _saveItems(self):
@@ -9263,15 +9263,15 @@ class SECPanel(wx.Panel):
         path = dirctrl_panel.getDirLabel()
 
         if len(selected_items) == 1:
-            
+
             # filters = 'Comma Separated Files (*.csv)|*.csv'
-                
-            # dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path) 
+
+            # dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
             fname = os.path.splitext(os.path.basename(selected_items[0].secm.getParameter('filename')))[0]+'.sec'
             msg = "Please select save directory and enter save file name"
-            dialog = wx.FileDialog(self, message = msg, style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, defaultDir = path, defaultFile = fname) 
-                
-            if dialog.ShowModal() == wx.ID_OK:               
+            dialog = wx.FileDialog(self, message = msg, style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, defaultDir = path, defaultFile = fname)
+
+            if dialog.ShowModal() == wx.ID_OK:
                 path = dialog.GetPath()
             else:
                 return
@@ -9281,13 +9281,13 @@ class SECPanel(wx.Panel):
 
             name = os.path.split(path)[1]
             selected_items[0].secm.setParameter('filename', name)
-        
+
         elif len(selected_items) == 0:
             return
 
         else:
             dirdlg = wx.DirDialog(self, "Please select save directory (multiple files will be saved):", defaultPath = path,)
-            
+
             if dirdlg.ShowModal() == wx.ID_OK:
                 path = dirdlg.GetPath()
             else:
@@ -9300,7 +9300,7 @@ class SECPanel(wx.Panel):
                 name=os.path.splitext(os.path.split(item.secm.getParameter('filename'))[1])[0]+'.sec'
                 save_path.append(os.path.join(path, name))
 
-        
+
         mainworker_cmd_queue.put(['save_sec_item', [save_path, selected_items]])
 
     def _saveProfiles(self):
@@ -9308,13 +9308,13 @@ class SECPanel(wx.Panel):
 
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
         path = dirctrl_panel.getDirLabel()
-        
+
         if len(selected_items) == 0:
             return
 
         else:
             dirdlg = wx.DirDialog(self, "Please select save directory (multiple files will be saved):", defaultPath = path,)
-            
+
             if dirdlg.ShowModal() == wx.ID_OK:
                 save_path = dirdlg.GetPath()
             else:
@@ -9323,43 +9323,43 @@ class SECPanel(wx.Panel):
             for item in selected_items:
 
                 mainworker_cmd_queue.put(['save_sec_profiles', [save_path, item.secm._sasm_list]])
-            
+
     def _OnClearAll(self, evt):
         plotpage = wx.FindWindowByName('SECPlotPanel')
         plotpage.OnClear(0)
 
     def _onClearList(self, evt):
         self.Freeze()
-        
+
         rest_of_items = []
         for each in self.all_manipulation_items:
-            
+
             try:
                 each.Destroy()
             except ValueError:
                 rest_of_items.append(each)
             except AttributeError:
                 each = None
-                
+
         self.all_manipulation_items = rest_of_items
         # self.underpanel_sizer.Layout()
         # self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-        
+
         # self._star_marked_item = None
         self.modified_items = []
-        
+
         self.Thaw()
-        
+
         self.sec_plot_panel.clearAllPlots()
 
         self.sec_control_panel.clearAll()
 
     def clearList(self):
         self.Freeze()
-        
+
         rest_of_items = []
         for each in self.all_manipulation_items:
-            
+
             try:
                 each.Destroy()
             except ValueError:
@@ -9367,63 +9367,63 @@ class SECPanel(wx.Panel):
             except AttributeError:
                 each = None
 
-                
+
         self.all_manipulation_items = rest_of_items
         # self.underpanel_sizer.Layout()
         # self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-        
+
         # self._star_marked_item = None
         self.modified_items = []
-        
+
         self.Thaw()
 
-        self.sec_control_panel.clearAll()            
- 
+        self.sec_control_panel.clearAll()
+
     def _CreateFileDialog(self, mode):
-        
+
         file = None
-        
+
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
         load_path = dirctrl_panel.getDirLabel()
-        
+
         if mode == wx.OPEN:
             filters = 'All files (*.*)|*.*|Rad files (*.rad)|*.rad|Dat files (*.dat)|*.dat|Txt files (*.txt)|*.txt'
             dialog = wx.FileDialog( None, 'Select a file', load_path, style = mode, wildcard = filters)
         if mode == wx.SAVE:
             filters = 'Dat files (*.dat)|*.dat'
-            dialog = wx.FileDialog( None, 'Name file and location', load_path, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters)        
-        
+            dialog = wx.FileDialog( None, 'Name file and location', load_path, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters)
+
         # Show the dialog and get user input
         if dialog.ShowModal() == wx.ID_OK:
             file = dialog.GetPath()
-            
+
         # Destroy the dialog
         dialog.Destroy()
-        
+
         return file
-    
+
     def createButtons(self, panelsizer):
-        
+
         sizer = wx.GridSizer(cols = 3, rows = np.ceil(len(self.buttons)/3))
-        
+
         #sizer.Add((10,10) ,1 , wx.EXPAND)
         for each in self.buttons:
             if each:
-                
+
                 label = each[0]
                 bindfunc = each[1]
-                
+
                 button = wx.Button(self, -1, label)
                 button.Bind(wx.EVT_BUTTON, bindfunc)
-                
-                sizer.Add(button, 1, wx.EXPAND | wx.ALIGN_CENTER)         
-          
+
+                sizer.Add(button, 1, wx.EXPAND | wx.ALIGN_CENTER)
+
         panelsizer.Add(sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.TOP | wx.ALIGN_CENTRE | wx.EXPAND, 10)
 
     def setItemAsData(self, item):
-        
+
         bg_secm = self._raw_settings.get('DataSECM')
-        
+
         if bg_secm != None:
             try:
                 bg_secm.itempanel.enableStar(False)
@@ -9438,11 +9438,11 @@ class SECPanel(wx.Panel):
             except:
                 pass
 
-        
+
         self._raw_settings.set('DataSECM', item.secm)
         item.enableStar(True)
         self.starred_item = item
-        
+
     def getDataItem(self):
         return self.starred_item
 
@@ -9462,88 +9462,88 @@ class SECPanel(wx.Panel):
 
 class SECItemPanel(wx.Panel):
     def __init__(self, parent, secm, font_colour = 'BLACK', legend_label = defaultdict(str), item_visible = True, modified = False):
-        
+
         wx.Panel.__init__(self, parent, style = wx.BORDER_RAISED)
-        
+
         self.parent = parent
         self.secm = secm
         self.secm.itempanel = self
-        
+
         self.sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
         self.main_frame = wx.FindWindowByName('MainFrame')
         self.sec_control_panel = wx.FindWindowByName('SECControlPanel')
         self.sec_panel = wx.FindWindowByName('SECPanel')
-        
+
         self.raw_settings = self.main_frame.raw_settings
-        
+
         self.info_panel = wx.FindWindowByName('InformationPanel')
         self.info_settings = {'hdr_choice' : 0}
-        
+
         self._selected_as_bg = False
         self._selected_for_plot = item_visible
         self._controls_visible = True
         self._selected = False
         self._legend_label = legend_label
-        
+
         self._font_colour = font_colour
-        
+
         filename = secm.getParameter('filename')
-               
+
         self.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
         self.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
         self.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
         #Label, TextCtrl_ID, SPIN_ID
-        
+
         self._initializeIcons()
-                                       
+
         # self.qmax = len(self.secm.q)
-                             
-        # self.spin_controls = (("q Min:", wx.NewId(), wx.NewId(), (1, self.qmax-1), 'nlow'),        
+
+        # self.spin_controls = (("q Min:", wx.NewId(), wx.NewId(), (1, self.qmax-1), 'nlow'),
         #                      ("q Max:", wx.NewId(), wx.NewId(), (2, self.qmax), 'nhigh'))
-        
+
         # self.float_spin_controls = (
         #                            # ("Conc:", wx.NewId(), 'conc', '1.0', self._onScaleOffsetChange),
         #                             ("Scale:", wx.NewId(), 'scale', str(secm.getScale()), self._onScaleOffsetChange),
         #                             ("Offset:", wx.NewId(), 'offset', str(secm.getOffset()), self._onScaleOffsetChange))
-    
+
         self.SelectedForPlot = RAWCustomCtrl.CustomCheckBox(self, -1, filename)
         self.SelectedForPlot.SetValue(True)
         self.SelectedForPlot.Bind(wx.EVT_CHECKBOX, self._onSelectedChkBox)
         self.SelectedForPlot.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
         self.SelectedForPlot.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
         self.SelectedForPlot.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
-        
+
         self.SelectedForPlot.SetForegroundColour(font_colour)
-        
+
         self.legend_label_text = wx.StaticText(self, -1, '')
-        
+
         self.legend_label_text.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
         self.legend_label_text.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
         self.legend_label_text.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-        
+
         conv = mplcol.ColorConverter()
         color = conv.to_rgb(self.secm.line.get_mfc())
         color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
-        
+
         self.colour_indicator = RAWCustomCtrl.ColourIndicator(self, -1, color, size = (20,15))
         self.colour_indicator.Bind(wx.EVT_LEFT_DOWN, self._onLinePropertyButton)
-        
+
 
         self.bg_star = wx.StaticBitmap(self, -1, self.gray_png)
         self.bg_star.Bind(wx.EVT_LEFT_DOWN, self._onStarButton)
-        
-        
+
+
         # self.expand_collapse = wx.StaticBitmap(self, -1, self.collapse_png)
         # self.expand_collapse.Bind(wx.EVT_LEFT_DOWN, self._onExpandCollapseButton)
         # self.expand_collapse.SetToolTipString('Collapse/Expand')
-        
+
         self.target_icon = wx.StaticBitmap(self, -1, self.target_png)
         self.target_icon.Bind(wx.EVT_LEFT_DOWN, self._onTargetButton)
-        
+
 
         self.info_icon = wx.StaticBitmap(self, -1, self.info_png)
         self.info_icon.Bind(wx.EVT_LEFT_DOWN, self._onInfoButton)
-        
+
         if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
             show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(self.SelectedForPlot)
@@ -9575,7 +9575,7 @@ class SECItemPanel(wx.Panel):
 
         self.locator_on = False
         self.locator_old_width = 1
-        
+
         panelsizer = wx.BoxSizer()
         panelsizer.Add(self.SelectedForPlot, 0, wx.LEFT | wx.TOP, 3)
         panelsizer.Add(self.legend_label_text, 0, wx.LEFT | wx.TOP, 3)
@@ -9585,53 +9585,53 @@ class SECItemPanel(wx.Panel):
         panelsizer.Add(self.target_icon, 0, wx.RIGHT | wx.TOP, 4)
         panelsizer.Add(self.colour_indicator, 0, wx.RIGHT | wx.TOP, 5)
         panelsizer.Add(self.bg_star, 0, wx.LEFT | wx.RIGHT | wx.TOP, 3)
-        
-    
+
+
         self.topsizer = wx.BoxSizer(wx.VERTICAL)
         self.topsizer.Add(panelsizer, 1, wx.EXPAND)
-        
+
         #self.controlSizer = wx.BoxSizer(wx.VERTICAL)
         self.controlSizer = wx.FlexGridSizer(cols = 4, rows = 2, vgap = 3, hgap = 7)
-       
+
         # self._createSimpleSpinCtrls(self.controlSizer)
-        # self._createFloatSpinCtrls(self.controlSizer) 
-        
+        # self._createFloatSpinCtrls(self.controlSizer)
+
         self.topsizer.Add((5,5),0)
         self.topsizer.Add(self.controlSizer, 0, wx.EXPAND | wx.LEFT | wx.BOTTOM, 5)
-        
+
         self.SetSizer(self.topsizer)
-        
+
         self.SetBackgroundColour(wx.Colour(250,250,250))
-        
+
         # self._initStartPosition()
         # self._updateQTextCtrl()
-        
+
         if self.secm.initial_buffer_frame != -1:
             self.updateInfoTip()
-            
+
         # controls_not_shown = self.main_frame.raw_settings.get('ManipItemCollapsed')
-        
+
         # if not self._selected_for_plot:
         #     controls_not_shown = True
-        
+
         # if controls_not_shown:
         #     self.showControls(not controls_not_shown)
 
         if modified:
             parent = self.GetParent()
-        
+
             filename = self.secm.getParameter('filename')
             self.SelectedForPlot.SetLabel('* ' + str(filename))
             self.SelectedForPlot.Refresh()
 
             if self not in self.sec_panel.modified_items:
                 self.sec_panel.modified_items.append(self)
-        
+
         self.updateShowItemCheckBox()
 
 
     def updateInfoTip(self):
-        
+
         initial = self.secm.initial_buffer_frame
         final = self.secm.final_buffer_frame
         window = self.secm.window_size
@@ -9650,7 +9650,7 @@ class SECItemPanel(wx.Panel):
 
     def _onInfoButton(self, event):
         pass
-                
+
     def enableStar(self, state):
         if state == True:
             self.bg_star.SetBitmap(self.star_png)
@@ -9658,50 +9658,50 @@ class SECItemPanel(wx.Panel):
         else:
             self.bg_star.SetBitmap(self.gray_png)
             self._selected_as_bg = False
-        
+
         self.bg_star.Refresh()
-        
+
     def removeSelf(self):
         #Has to be callafter under Linux.. or it'll crash
         wx.CallAfter(self.sec_panel.removeSelectedItems)
-        
+
     def getSECM(self):
-        return self.secm        
-    
+        return self.secm
+
     def getFontColour(self):
         return self._font_colour
-    
+
     def getSelectedForPlot(self):
         return self._selected_for_plot
-    
+
     def getLegendLabel(self):
         return self._legend_label
-    
-    def updateControlsFromSECM(self):    
+
+    def updateControlsFromSECM(self):
         scale = self.secm.getScale()
         offset = self.secm.getOffset()
         qmin, qmax = self.secm.getQrange()
-        
+
         qmin_ctrl = wx.FindWindowById(self.spin_controls[0][1])
         qmax_ctrl = wx.FindWindowById(self.spin_controls[1][1])
         qmintxt = wx.FindWindowById(self.spin_controls[0][2])
         qmaxtxt = wx.FindWindowById(self.spin_controls[1][2])
-        
+
         qmin_ctrl.SetValue(str(qmin))
-        qmax_ctrl.SetValue(str(qmax-1))        
+        qmax_ctrl.SetValue(str(qmax-1))
         qmintxt.SetValue(str(round(self.secm.q[qmin],4)))
         qmaxtxt.SetValue(str(round(self.secm.q[qmax-1],4)))
-        
+
         scale_ctrl = wx.FindWindowById(self.float_spin_controls[0][1])
         offset_ctrl = wx.FindWindowById(self.float_spin_controls[1][1])
-    
+
         offset_ctrl.SetValue(str(offset))
         scale_ctrl.SetValue(str(scale))
-        
+
         wx.CallAfter(self.secm.plot_panel.updatePlotAfterManipulation, [self.secm])
-    
+
     def toggleSelect(self, set_focus = False, update_info = True):
-        
+
         if self._selected:
             self._selected = False
             self.SetBackgroundColour(wx.Colour(250,250,250))
@@ -9714,13 +9714,13 @@ class SECItemPanel(wx.Panel):
                 self.SetFocusIgnoringChildren()
             # if update_info:
             #     self.info_panel.updateInfoFromItem(self)
-        
+
         self.Refresh()
-        
+
     def enableLocatorLine(self):
-        
+
         self.locator_on = not self.locator_on
-        
+
         if self.locator_on == True:
             self.target_icon.SetBitmap(self.target_on_png)
             self.locator_old_width = self.secm.line.get_linewidth()
@@ -9736,14 +9736,14 @@ class SECItemPanel(wx.Panel):
             if self.secm.calc_has_data and self.secm.calc_is_plotted:
                 self.secm.calc_line.set_linewidth(self.locator_old_width)
             wx.CallAfter(self.secm.plot_panel.canvas.draw)
-            
+
         self.target_icon.Refresh()
-        
+
     def getControlsVisible(self):
         return self._controls_visible
-        
+
     def showControls(self, state):
-        
+
         if state == False:
             self.expand_collapse.SetBitmap(self.expand_png)
             self._controls_visible = False
@@ -9766,18 +9766,18 @@ class SECItemPanel(wx.Panel):
             self.controlSizer.Show(5, True)
             self.controlSizer.Show(6, True)
             self.controlSizer.Show(7, True)
-            
+
         self.expand_collapse.Refresh()
         self.topsizer.Layout()
-        
-    
+
+
     def showItem(self, state):
         self._selected_for_plot = state
-        
+
         if self._selected_for_plot == False:
             self._controls_visible = False
             # self.showControls(self._controls_visible)
-        
+
         self.SelectedForPlot.SetValue(self._selected_for_plot)
         self.secm.line.set_visible(self._selected_for_plot)
         self.secm.line.set_picker(self._selected_for_plot)      #Line can't be selected when it's hidden
@@ -9786,28 +9786,28 @@ class SECItemPanel(wx.Panel):
             self.secm.calc_line.set_visible(self._selected_for_plot)
             self.secm.calc_line.set_picker(self._selected_for_plot)      #Line can't be selected when it's hidden
         self.secm.is_visible = self._selected_for_plot
-    
+
     def updateShowItemCheckBox(self):
         #self.showControls(self._controls_visible)
         self.SelectedForPlot.SetValue(self._selected_for_plot)
         self.secm.line.set_picker(self._selected_for_plot)
-    
+
     def markAsModified(self):
         filename = self.secm.getParameter('filename')
         self.SelectedForPlot.SetLabel('* ' + str(filename))
-        
+
         self.SelectedForPlot.Refresh()
         self.topsizer.Layout()
-        
+
         self.parent.Layout()
         self.parent.Refresh()
-        
+
         if self not in self.sec_panel.modified_items:
             self.sec_panel.modified_items.append(self)
-    
+
     def unmarkAsModified(self, updateSelf = True, updateParent = True):
         parent = self.GetParent()
-        
+
         filename = self.secm.getParameter('filename')
         self.SelectedForPlot.SetLabel(str(filename))
 
@@ -9822,10 +9822,10 @@ class SECItemPanel(wx.Panel):
             self.sec_panel.modified_items.remove(self)
         except:
             pass
-        
+
     def updateFilenameLabel(self, updateSelf = True, updateParent = True, updateLegend = True):
         filename = self.secm.getParameter('filename')
-        
+
         if self._legend_label == '':
             self.secm.line.set_label(filename)
 
@@ -9841,36 +9841,36 @@ class SECItemPanel(wx.Panel):
         if updateParent:
             self.parent.Layout()
             self.parent.Refresh()
-                
+
     def _initializeIcons(self):
-        
+
         self.gray_png = RAWIcons.Star_icon_notenabled.GetBitmap()
         self.star_png = RAWIcons.Star_icon_org.GetBitmap()
-        
+
         self.collapse_png = RAWIcons.collapse.GetBitmap()
         self.expand_png = RAWIcons.expand.GetBitmap()
-        
+
         self.target_png = RAWIcons.target.GetBitmap()
         self.target_on_png = RAWIcons.target_orange.GetBitmap()
 
         self.info_png = RAWIcons.info_16_2.GetBitmap()
 
     def _initStartPosition(self):
-        
+
         qmin_ctrl = wx.FindWindowById(self.spin_controls[0][1])
         qmax_ctrl = wx.FindWindowById(self.spin_controls[1][1])
-        
+
         qrange = self.secm.getQrange()
-        
+
         qmin_ctrl.SetValue(str(qrange[0]))
-        
+
     def _updateColourIndicator(self):
         conv = mplcol.ColorConverter()
         color = conv.to_rgb(self.secm.line.get_color())
         color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
-        
+
         self.colour_indicator.updateColour(color)
-        
+
     def _onLinePropertyButton(self, event):
 
         try:
@@ -9880,37 +9880,37 @@ class SECItemPanel(wx.Panel):
             new_legend_labels = dialog.getLegendLabel()
             self._updateColourIndicator()
             dialog.Destroy()
-            
+
             if answer == wx.ID_OK:
                 self._legend_label = new_legend_labels
                 self._updateLegendLabel()
-                
+
         except TypeError:
             return
-        
+
     def _onExpandCollapseButton(self, event):
         self._controls_visible = not self._controls_visible
         self.showControls(self._controls_visible)
-        
+
         self.sec_panel.underpanel.SetVirtualSize(self.sec_panel.underpanel.GetBestVirtualSize())
-        self.GetParent().Layout()            
+        self.GetParent().Layout()
         self.GetParent().Refresh()
-        
-        self.GetParent().GetParent().Layout()            
+
+        self.GetParent().GetParent().Layout()
         self.GetParent().GetParent().Refresh()
-                        
+
     def _onTargetButton(self, event):
         self.enableLocatorLine()
-            
+
     def _showPopupMenu(self):
 
         if self.sec_control_panel._is_online:
             self.sec_control_panel._goOffline()
 
         menu = wx.Menu()
-        
+
         number_of_selected_items = len(self.sec_panel.getSelectedItems())
-        
+
         menu.Append(1, 'Remove' )
         menu.Append(2, 'Export data')
         menu.Append(6, 'Save all profiles as .dats')
@@ -9919,27 +9919,27 @@ class SECItemPanel(wx.Panel):
         menu.Append(7, 'SVD')
         menu.Append(8, 'EFA')
         menu.AppendSeparator()
-        
+
         menu.Append(4, 'Show data')
-        
+
         menu.AppendSeparator()
         menu.Append(5, 'Rename')
-        
-        
-        self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)        
+
+
+        self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
         self.PopupMenu(menu)
 
         menu.Destroy()
 
         if self.sec_control_panel.online_mode_button.IsChecked() and not self.sec_control_panel._is_online:
             self.sec_control_panel._goOnline()
-    
+
     def _onPopupMenuChoice(self, evt):
-                
+
         if evt.GetId() == 1:
             #Delete
             wx.CallAfter(self.sec_panel.removeSelectedItems)
-        
+
         elif evt.GetId() == 2:
             self.sec_panel.saveData()
 
@@ -9950,13 +9950,13 @@ class SECItemPanel(wx.Panel):
             dlg = SECDataDialog(self, self.secm)
             dlg.ShowModal()
             dlg.Destroy()
-            
+
         elif evt.GetId() == 5:
             dlg = FilenameChangeDialog(self, self.secm.getParameter('filename'))
             dlg.ShowModal()
             filename =  dlg.getFilename()
             dlg.Destroy()
-            
+
             if filename:
                 self.secm.setParameter('filename', filename)
                 self.updateFilenameLabel()
@@ -9968,25 +9968,25 @@ class SECItemPanel(wx.Panel):
         elif evt.GetId() == 7:
             Mainframe = wx.FindWindowByName('MainFrame')
             selectedSECMList = self.sec_panel.getSelectedItems()
-            
+
             secm = selectedSECMList[0].getSECM()
             Mainframe.showSVDFrame(secm, selectedSECMList[0])
 
         elif evt.GetId() == 8:
             Mainframe = wx.FindWindowByName('MainFrame')
             selectedSECMList = self.sec_panel.getSelectedItems()
-            
+
             secm = selectedSECMList[0].getSECM()
             Mainframe.showEFAFrame(secm, selectedSECMList[0])
-                        
-    
+
+
     def _onKeyPress(self, evt):
-        
+
         key = evt.GetKeyCode()
-        
+
         if ((key == wx.WXK_DELETE) or (key == wx.WXK_BACK and evt.CmdDown())) and self._selected == True:
             self.removeSelf()
-            
+
         # if key == wx.WXK_UP:
         #     if evt.CmdDown():
         #         print 'CTRL UP'
@@ -10000,45 +10000,45 @@ class SECItemPanel(wx.Panel):
 
         elif key == 65 and evt.CmdDown(): #A
             self.sec_panel.selectAll()
-            
-            
+
+
     def _onRightMouseButton(self, evt):
         self.SetFocusIgnoringChildren()
-        
+
         if not self._selected:
             self.toggleSelect()
             self.sec_panel.deselectAllExceptOne(self)
-                    
+
         if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
             wx.CallAfter(self._showPopupMenu)
         else:
             self._showPopupMenu()
-        
+
     def _onLeftMouseButton(self, evt):
         ctrl_is_down = evt.CmdDown()
         shift_is_down = evt.ShiftDown()
-        
+
         sec_panel = wx.FindWindowByName('SECPanel')
-        
+
         if shift_is_down:
             try:
-                
+
                 first_marked_item_idx = sec_panel.all_manipulation_items.index(sec_panel.getSelectedItems()[0])
                 last_marked_item = sec_panel.getSelectedItems()[-1]
                 last_marked_item_idx = sec_panel.all_manipulation_items.index(last_marked_item)
-                
+
                 this_item_idx = sec_panel.all_manipulation_items.index(self)
-            
+
                 if last_marked_item_idx > this_item_idx:
                     adj = 0
                     idxs = [first_marked_item_idx, this_item_idx]
                 else:
                     idxs = [last_marked_item_idx, this_item_idx]
                     adj = 1
-                        
+
                 top_item = max(idxs)
                 bottom_item = min(idxs)
-            
+
                 item_list = sec_panel.all_manipulation_items[bottom_item+adj:top_item+adj]
                 for i in range(len(item_list)):
                     each = item_list[i]
@@ -10048,15 +10048,15 @@ class SECItemPanel(wx.Panel):
                         each.toggleSelect()
             except IndexError:
                 pass
-            
+
         elif ctrl_is_down:
             self.toggleSelect()
         else:
             sec_panel.deselectAllExceptOne(self)
             self.toggleSelect()
-            
+
         evt.Skip()
-              
+
     def _onStarButton(self, event):
 
         if self._selected_as_bg == True:
@@ -10064,67 +10064,67 @@ class SECItemPanel(wx.Panel):
             self.sec_panel.clearDataItem()
         else:
             self.sec_panel.setItemAsData(self)
-            
+
     def _showInvalidValueError(self):
         wx.CallAfter(wx.MessageBox, 'The entered value is invalid. Please remove non-numeric characters.', 'Invalid Value Error', style = wx.ICON_ERROR)
-                    
+
     def _onScaleOffsetChange(self, event):
         id = event.GetId()
-        
+
         try:
             value = float(event.GetValue())
         except ValueError:
             self._showInvalidValueError()
             return
-        
+
         for each_label, each_id, each_name, eachInit_value, each_bindfunc in self.float_spin_controls:
-            
+
             if id == each_id:
-                
+
                 if each_name == 'scale':
                     self.secm.scale(value)
                 elif each_name == 'offset':
                     self.secm.offset(value)
-        
+
         wx.CallAfter(self.secm.plot_panel.updatePlotAfterManipulation, [self.secm])
-        
+
         self.markAsModified()
         event.Skip()
-        
+
     def _updateQTextCtrl(self):
         qmin_ctrl = wx.FindWindowById(self.spin_controls[0][1])
         qmax_ctrl = wx.FindWindowById(self.spin_controls[1][1])
-        
+
         qmintxt = wx.FindWindowById(self.spin_controls[0][2])
         qmaxtxt = wx.FindWindowById(self.spin_controls[1][2])
-        
+
         try:
             qmin = int(qmin_ctrl.GetValue())
             qmax = int(qmax_ctrl.GetValue())
         except ValueError:
             self._showInvalidValueError()
             return
-        
+
         qmintxt.SetValue(str(round(self.secm.q[qmin],4)))
         qmaxtxt.SetValue(str(round(self.secm.q[qmax],4)))
-        
+
         qrange = (qmin, qmax+1) # +1 to be able to use the range for array slicing [0:n+1]
 
-        self.secm.setQrange(qrange)   
-    
+        self.secm.setQrange(qrange)
+
     def _updateLegendLabel(self):
 
         labels = np.array(self._legend_label.values())
 
         noupdate = np.all(labels == '')
-        
+
         if self._legend_label is None or noupdate:
             self.secm.line.set_label(self.secm.getParameter('filename'))
             self.secm.calc_line.set_label(self.sec_plot_panel.plotparams['secm_plot_calc'])
             self.legend_label_text.SetLabel('')
         else:
             for key in self._legend_label:
-                if str(self._legend_label[key]) != '':                    
+                if str(self._legend_label[key]) != '':
                     if key == self.secm.line and str(self._legend_label[key]) != self.secm.getParameter('filename'):
                         key.set_label(str(self._legend_label[key]))
                         self.legend_label_text.SetLabel('[' + str(self._legend_label[self.secm.line]) + ']')
@@ -10135,130 +10135,130 @@ class SECItemPanel(wx.Panel):
                         self.secm.line.set_label(self.secm.getParameter('filename'))
                     elif key == self.secm.calc_line:
                         self.secm.calc_line.set_label(self.sec_plot_panel.plotparams['secm_plot_calc'])
-            
+
         wx.CallAfter(self.secm.plot_panel.updateLegend, self.secm.axes)
-    
+
     def _onQrangeChange(self, event):
         self._updateQTextCtrl()
         wx.CallAfter(self.secm.plot_panel.updatePlotAfterManipulation, [self.secm])
         self.markAsModified()
-        
+
     def _onEnterInQrangeTextCtrl(self, evt):
-        
+
         id = evt.GetId()
         txtctrl = wx.FindWindowById(id)
-        
+
         try:
             val = float(txtctrl.GetValue())
         except ValueError:
             self._showInvalidValueError()
             return
-        
+
         if id == self.spin_controls[0][2]:
                 spinctrl = wx.FindWindowById(self.spin_controls[0][1])
         elif id == self.spin_controls[1][2]:
                 spinctrl = wx.FindWindowById(self.spin_controls[1][1])
-        
+
         q = self.secm.getBinnedQ()
-        
+
         findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
-                
+
         closest = findClosest(val, q)
-        idx = np.where(q == closest)[0][0]  
-        
+        idx = np.where(q == closest)[0][0]
+
         spinctrl.SetValue(idx)
         self._onQrangeChange(None)
         txtctrl.SelectAll()
-     
+
     def _onSelectedChkBox(self, event):
         self._selected_for_plot = not self._selected_for_plot
-        
+
         self.showItem(self._selected_for_plot)
-        
-        self.GetParent().Layout()            
+
+        self.GetParent().Layout()
         self.GetParent().Refresh()
-        
+
         wx.CallAfter(self.sec_plot_panel.updateLegend, self.secm.axes)
         wx.CallAfter(self.secm.plot_panel.canvas.draw)
-        
+
         wx.CallAfter(self.secm.plot_panel.fitAxis)
-        
+
     def _createFloatSpinCtrls(self, control_sizer):
-        
+
         for label, id, name, initValue, bindfunc in self.float_spin_controls:
-            
+
             label = wx.StaticText(self, -1, label)
-            
+
             label.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
             label.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
             label.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-            
+
             if initValue.find('.') == -1:
                 initValue = initValue + '.0'
-            
+
             if name == 'scale':
                 spinCtrl = RAWCustomCtrl.FloatSpinCtrl(self, id, initValue, TextLength = 100, never_negative = True)
             else:
                 spinCtrl = RAWCustomCtrl.FloatSpinCtrl(self, id, initValue, TextLength = 100)
-                
+
             spinCtrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, bindfunc)
-            
+
             control_sizer.Add(label, 1, wx.TOP, 3)
             control_sizer.Add(spinCtrl, 1, wx.EXPAND)
-            
-        
+
+
     def _createSimpleSpinCtrls(self, control_sizer):
-        
-        
+
+
         for each_spinctrl in self.spin_controls:
                 spin_id = each_spinctrl[1]
                 spin_label_text = each_spinctrl[0]
                 qtxtId = each_spinctrl[2]
                 spin_range = each_spinctrl[3]
                 spin_name = each_spinctrl[4]
-                
+
                 spin_min = spin_range[0]
                 spin_max = spin_range[1]
-    
+
                 spin_min, spin_max = self.secm.getBinnedQ()[0], self.secm.getBinnedQ()[-1]
-            
+
                 nlow, nhigh = 0, (len(self.secm.getBinnedQ())-1)
-                      
+
                 spin_label = wx.StaticText(self, -1, spin_label_text)
                 spin_label.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
                 spin_label.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
                 spin_label.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-                        
-                spin_control = RAWCustomCtrl.IntSpinCtrl(self, spin_id, min = nlow, max = nhigh, TextLength = 43) 
-                                        
+
+                spin_control = RAWCustomCtrl.IntSpinCtrl(self, spin_id, min = nlow, max = nhigh, TextLength = 43)
+
                 if spin_name == 'nlow':
                     spin_control.SetValue(nlow)
                 elif spin_name == 'nhigh':
                     spin_control.SetValue(nhigh)
-                
+
                 spin_control.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onQrangeChange)
-                
+
                 q_ctrl = wx.TextCtrl(self, qtxtId, '', size = (55,22), style = wx.PROCESS_ENTER)
                 q_ctrl.Bind(wx.EVT_TEXT_ENTER, self._onEnterInQrangeTextCtrl)
-                
+
                 spin_sizer = wx.BoxSizer()
                 spin_sizer.Add(q_ctrl, 0, wx.RIGHT, 3)
                 spin_sizer.Add(spin_control, 0)
-                
-                control_sizer.Add(spin_label, 0)        
+
+                control_sizer.Add(spin_label, 0)
                 control_sizer.Add(spin_sizer, 0)
 
 
 class SECControlPanel(wx.Panel):
-    
+
     def __init__(self, parent):
-        
+
         wx.Panel.__init__(self, parent, -1, name = 'SECControlPanel')
-        
+
         self.parent = parent
 
         self.main_frame = wx.FindWindowByName('MainFrame')
-        
+
         self.sec_panel = wx.FindWindowByName('SECPanel')
         self.sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
 
@@ -10287,22 +10287,22 @@ class SECControlPanel(wx.Panel):
         self.controlData = (  ('Image Prefix :', parent.paramsInGui['Image Header'], self.image_prefix),
                               ('Initial Run # :', parent.paramsInGui['Initial Run #'], self.initial_run_number),
                               ('Initial Frame # :', parent.paramsInGui['Initial Frame #'], self.initial_frame_number),
-                              ('Final Frame # :',parent.paramsInGui['Final Frame #'], self.final_frame_number), 
+                              ('Final Frame # :',parent.paramsInGui['Final Frame #'], self.final_frame_number),
                               ('Initial Selected Frame :', parent.paramsInGui['Initial Selected Frame'], self.initial_selected_frame),
                               ('Final Selected Frame :', parent.paramsInGui['Final Selected Frame'], self.final_selected_frame),
                               ('Initial Buffer Frame', parent.paramsInGui['Initial Buffer Frame'], self.initial_buffer_frame),
                               ('Final Buffer Frame', parent.paramsInGui['Final Buffer Frame'], self.final_buffer_frame),
                               ('Window Size :', parent.paramsInGui['Window Size'], self.window_size))
 
-        
+
         topsizer = self.createControls()
-        
+
         self.currentExpObj = None
-        
+
         self.SetSizer(topsizer)
-        
+
     def createControls(self):
-        
+
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         cols = 6
@@ -10314,13 +10314,13 @@ class SECControlPanel(wx.Panel):
         fnum_sizer.AddGrowableCol(4)
         fnum_sizer.AddGrowableCol(5)
 
-        
+
         for each in self.controlData:
-            
+
             label = each[0]
             type = each[1][1]
             id = each[1][0]
-                
+
             if type == 'imghdr':
 
                 labelbox = wx.StaticText(self, -1, label)
@@ -10332,7 +10332,7 @@ class SECControlPanel(wx.Panel):
                 img_sizer.Add(labelbox, 0, wx.ALIGN_RIGHT | wx.RIGHT, border = 2)
                 img_sizer.Add(self.image_prefix_box, 2, wx.ALIGN_LEFT | wx.LEFT, border = 2)
                 img_sizer.AddStretchSpacer(1)
-                
+
             elif type == 'irunnum':
                 labelbox = wx.StaticText(self, -1, "Run : ")
 
@@ -10344,7 +10344,7 @@ class SECControlPanel(wx.Panel):
                 run_sizer.Add(labelbox,0)
                 run_sizer.Add(self.initial_run_number_box,2, wx.EXPAND)
                 run_sizer.AddStretchSpacer(1)
-            
+
             elif type == 'iframenum':
                 labelbox = wx.StaticText(self, -1, "Frames : ")
                 labelbox2=wx.StaticText(self,-1," to ")
@@ -10395,7 +10395,7 @@ class SECControlPanel(wx.Panel):
         selected_sizer.AddStretchSpacer(1)
 
         for each in self.controlData:
-            
+
             label = each[0]
             type = each[1][1]
             id = each[1][0]
@@ -10417,7 +10417,7 @@ class SECControlPanel(wx.Panel):
 
         selected_sizer.AddStretchSpacer(1)
 
-        
+
         ####
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -10426,7 +10426,7 @@ class SECControlPanel(wx.Panel):
         average_plot_button = wx.Button(self, -1, 'Average To Main Plot')
         average_plot_button.Bind(wx.EVT_BUTTON, self._onAverageToMainPlot)
 
-        
+
         button_sizer.Add(frames_plot_button, 0, flag = wx.ALIGN_CENTER)
         button_sizer.AddSpacer((9,0))
         button_sizer.Add(average_plot_button, 0, flag = wx.ALIGN_CENTER)
@@ -10443,7 +10443,7 @@ class SECControlPanel(wx.Panel):
         average_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         for each in self.controlData:
-            
+
             label = each[0]
             type = each[1][1]
             id = each[1][0]
@@ -10492,15 +10492,15 @@ class SECControlPanel(wx.Panel):
 
         calc_sizer.Add(average_sizer,0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, border = 2)
         calc_sizer.Add(calc_button_sizer, 0, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
-        
+
         sizer.Add(calc_sizer, 0, wx.EXPAND)
-        
-        return sizer   
+
+        return sizer
 
 
     def updateSECItem(self,secm):
         self.secm = secm
-    
+
     def _onOnlineButton(self, evt):
         go_online = evt.IsChecked()
 
@@ -10516,8 +10516,8 @@ class SECControlPanel(wx.Panel):
     def _goOffline(self):
         self._is_online = False
         self.main_frame.OnlineSECControl.goOffline()
-    
-    def _onSelectButton(self, evt):    
+
+    def _onSelectButton(self, evt):
 
         hdr_format = self._raw_settings.get('ImageHdrFormat')
 
@@ -10529,13 +10529,13 @@ class SECControlPanel(wx.Panel):
 
             try:
                 sasm, img = SASFileIO.loadFile(fname, self.parent._raw_settings)
-                    
+
             except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
                 img_fmt = self._raw_settings.get('ImageFormat')
-                
+
                 ascii = ' or any of the supported ASCII formats'
 
-                
+
                 wx.CallAfter(wx.MessageBox, 'The selected file: ' + fname + '\ncould not be recognized as a '   + str(img_fmt) +
                                  ' image format' + ascii + '.\n\nYou can change the image format under Advanced Options in the Options menu.' ,
                                   'Error loading file', style = wx.ICON_ERROR | wx.OK)
@@ -10582,7 +10582,7 @@ class SECControlPanel(wx.Panel):
             self._goOnline()
 
     def _onUpdateButton(self,evt):
-        self.onUpdate()        
+        self.onUpdate()
 
     def onUpdate(self):
 
@@ -10638,7 +10638,7 @@ class SECControlPanel(wx.Panel):
 
     def _showDataFormatError(self, filename, include_ascii = True, include_sec = False):
         img_fmt = self._raw_settings.get('ImageFormat')
-        
+
         if include_ascii:
             ascii = ' or any of the supported ASCII formats'
         else:
@@ -10648,7 +10648,7 @@ class SECControlPanel(wx.Panel):
             sec = ' or the RAW SEC format'
         else:
             sec = ''
-        
+
         wx.CallAfter(wx.MessageBox, 'The selected file: ' + filename + '\ncould not be recognized as a '   + str(img_fmt) +
                          ' image format' + ascii + sec + '.\n\nYou can change the image format under Advanced Options in the Options menu.\n'+
                          'Automatic SEC updating turned off.' ,
@@ -10837,7 +10837,7 @@ class SECControlPanel(wx.Panel):
         if proceed == wx.ID_NO:
             return
 
-        
+
         selected_item = self.sec_panel.getDataItem()
 
         if len(self.sec_panel.all_manipulation_items) == 0:
@@ -10950,7 +10950,7 @@ class SECControlPanel(wx.Panel):
                 elif ptype == 'fsframenum':
                     self.final_selected_frame = data.GetValue()
 
-    
+
     def _updateCalcValues(self):
         for parameter in self.controlData:
 
@@ -11033,7 +11033,7 @@ class SECControlPanel(wx.Panel):
                 self.initial_frame_number_box.SetValue(self.initial_frame_number)
 
                 self.final_selected_frame = self.frame_list[-1]
-                    
+
                 self.final_frame_number_box.SetValue(self.final_selected_frame)
 
                 self._updateControlValues
@@ -11046,7 +11046,7 @@ class SECControlPanel(wx.Panel):
         hdr_format = self._raw_settings.get('ImageHdrFormat')
 
         if hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS':
-            
+
             for f in filelist:
                 frame=SASFileIO.parseCHESSG1Filename(f)[2]
                 # print frame
@@ -11059,7 +11059,7 @@ class SECControlPanel(wx.Panel):
 
 
         return framelist
-            
+
 
     def clearAll(self):
         for each in self.controlData:
@@ -11086,153 +11086,153 @@ class SECControlPanel(wx.Panel):
 #--- ** Masking Panel **
 
 class MaskingPanel(wx.Panel):
-    
+
     def __init__(self, parent,id):
-        
+
         wx.Panel.__init__(self, parent, id, name = 'MaskingPanel')
-        
+
         self.mask_choices = {'Beamstop mask' : 'BeamStopMask',
                              'Readout-Dark mask' : 'ReadOutNoiseMask',
                              'ROI Counter mask' : 'TransparentBSMask',
                              'SAXSLAB BS mask' : 'SaxslabBSMask'}
-        
+
         self.CIRCLE_ID, self.RECTANGLE_ID, self.POLYGON_ID = wx.NewId(), wx.NewId(), wx.NewId()
         self.all_button_ids = [self.CIRCLE_ID, self.RECTANGLE_ID, self.POLYGON_ID]
-        
+
         self._main_frame = wx.FindWindowByName('MainFrame')
         self.image_panel = wx.FindWindowByName('ImagePanel')
-        
+
         self._initBitmaps()
         manual_box = wx.StaticBox(self, -1, 'Mask Drawing')
         self.manual_boxsizer = wx.StaticBoxSizer(manual_box)
         self.manual_boxsizer.Add((1,1), 1, wx.EXPAND)
         self.manual_boxsizer.Add(self._createDrawButtons(), 0, wx.EXPAND | wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
         self.manual_boxsizer.Add((1,1), 1, wx.EXPAND)
-        
+
         auto_box = wx.StaticBox(self, -1, 'Mask Creation')
         auto_boxsizer = wx.StaticBoxSizer(auto_box)
         auto_boxsizer.Add(self._createMaskSelector(), 1, wx.EXPAND |wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
-        
+
         option_box = wx.StaticBox(self, -1, 'Mask Drawing Options')
         option_boxsizer = wx.StaticBoxSizer(option_box)
         option_boxsizer.Add(self._createMaskOptions(), 1, wx.EXPAND |wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
-        
+
         button_sizer = self._createButtonSizer()
-        
+
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.manual_boxsizer, 0, wx.EXPAND | wx.ALL, 5)
         self.sizer.Add(option_boxsizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
         self.sizer.Add(auto_boxsizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
         self.sizer.Add(button_sizer, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-        
+
         self.SetSizer(self.sizer)
-        
+
         self._center = [0,0]
         self.show_center = False
         #self.updateCenterFromSettings()
-        
+
     def setTool(self, tool):
         self.image_panel.setTool(tool)
-        
+
     def _createDrawButtons(self):
-        
+
         sizer = wx.BoxSizer()
-    
+
         self.circle_button = wxbutton.GenBitmapToggleButton(self, self.CIRCLE_ID, self.circle_bmp, size = (80,80))
         self.rectangle_button = wxbutton.GenBitmapToggleButton(self, self.RECTANGLE_ID, self.rectangle_bmp, size = (80,80))
         self.polygon_button = wxbutton.GenBitmapToggleButton(self, self.POLYGON_ID, self.polygon_bmp, size = (80,80))
-        
+
         self.circle_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
         self.rectangle_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
         self.polygon_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
-        
+
         self.circle_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
         self.rectangle_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
         self.polygon_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
         sizer.Add(self.circle_button, 0)
         sizer.Add(self.rectangle_button,0)
         sizer.Add(self.polygon_button,0)
-        
-        
+
+
         save_button= wx.Button(self, -1, "Save")
         save_button.Bind(wx.EVT_BUTTON, self._onSaveMaskToFile)
-        
+
         load_button= wx.Button(self, -1, "Load")
         load_button.Bind(wx.EVT_BUTTON, self._onLoadMaskFromFile)
-        
+
         clear_button= wx.Button(self, -1, "Clear")
         clear_button.Bind(wx.EVT_BUTTON, self._onClearDrawnMasks)
-        
+
         button_sizer = wx.BoxSizer()
         button_sizer.Add(save_button, 0, wx.RIGHT, 3)
         button_sizer.Add(load_button, 0, wx.RIGHT, 3)
         button_sizer.Add(clear_button, 0)
-        
-        
+
+
         final_sizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         final_sizer.Add(sizer,0)
         final_sizer.Add(button_sizer,0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 10)
-        
+
         return final_sizer
-    
+
     def _createMaskOptions(self):
-        
+
         sizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         center_chkbox = wx.CheckBox(self, -1, 'Show Beam Center')
         center_chkbox.Bind(wx.EVT_CHECKBOX, self._onShowCenterChkbox)
-    
+
         sizer.Add(center_chkbox, 0)
         #sizer.Add(button_sizer,0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 5)
-            
+
         return sizer
-        
+
     def _onShowCenterChkbox(self, event):
-        
+
         x_c = self._main_frame.raw_settings.get('Xcenter')
         y_c = self._main_frame.raw_settings.get('Ycenter')
-        
+
         cent = (x_c, y_c)
-        
+
         chkbox = event.GetEventObject()
-        
+
         if chkbox.GetValue() == True:
             self.show_center = True
             wx.CallAfter(self.image_panel.drawCenterPatch, cent)
         else:
             self.show_center = False
             wx.CallAfter(self.image_panel.removeCenterPatch)
-    
+
     def _createMaskSelector(self):
-        
+
         sizer = wx.BoxSizer()
 
         self.selector_choice = wx.Choice(self, -1, choices = self.mask_choices.keys())
         self.selector_choice.SetStringSelection('Beamstop mask')
-        
+
         set_button = wx.Button(self, -1, 'Set', size = (60,-1))
         set_button.Bind(wx.EVT_BUTTON, self._onSetButton)
-        
+
         clear_button = wx.Button(self, -1, 'Remove', size = (65,-1))
         clear_button.Bind(wx.EVT_BUTTON, self._onClearButton)
-        
+
         show_button = wx.Button(self, -1, 'Show', size = (60,-1))
         show_button.Bind(wx.EVT_BUTTON, self._onShowButton)
-        
+
         sizer.Add(self.selector_choice, 1, wx.EXPAND | wx.RIGHT, 5)
         sizer.Add(clear_button, 0)
         sizer.Add(set_button,0)
         sizer.Add(show_button,0)
-        
+
         return sizer
-    
+
     def _calcSaxslabBSMask(self):
         sasm = self.image_panel.current_sasm
-        
+
         img_hdr = sasm.getParameter('imageHeader')
         img = self.image_panel.img
-        
+
         if img is not None and img_hdr != None and 'bsmask_configuration' in img_hdr:
             mask_params = SASImage.createMaskFromHdr(img, img_hdr, flipped = self._main_frame.raw_settings.get('DetectorFlipped90'))
         else:
@@ -11242,26 +11242,26 @@ class MaskingPanel(wx.Panel):
         print mask_params[0]._points
         print mask_params[0]._radius
         #mask_params contains the mask and the individual maskshapes
-                
+
         return [None, mask_params]
-    
+
     def _onShowButton(self, event):
         selected_mask = self.selector_choice.GetStringSelection()
         mask_key = self.mask_choices[selected_mask]
-        
-        plot_parameters = self.image_panel.getPlotParameters()        
+
+        plot_parameters = self.image_panel.getPlotParameters()
         mask_dict = self._main_frame.raw_settings.get('Masks')
-            
+
         if mask_key == 'SaxslabBSMask':
             mask_params = self._calcSaxslabBSMask()
-        else:    
+        else:
             mask_params = mask_dict[mask_key]
-        
+
         saved_mask = mask_params[1]
-        
+
         masks_copy = []     # Need to copy the masks to new objects, ortherwise all kinds of strange things happen
                             # when you switch between masks or modify masks.
-        
+
         if saved_mask != None:
             for each in saved_mask:
                 masks_copy.append(copy.copy(each))
@@ -11270,195 +11270,195 @@ class MaskingPanel(wx.Panel):
         else:
             wx.CallAfter(self.image_panel.clearAllMasks)
             wx.MessageBox('No mask has been set for this mask type.', 'No mask set.', style = wx.ICON_EXCLAMATION)
-    
+
     def _onSetButton(self, event):
-        
+
         selected_mask = self.selector_choice.GetStringSelection()
-        
+
         if selected_mask != 'SAXSLAB BS mask':
             mask_key = self.mask_choices[selected_mask]
-            
+
             mask_dict = self._main_frame.raw_settings.get('Masks')
-            
+
             if mask_dict[mask_key][1] != None:
-                dial = wx.MessageDialog(None, 'Do you want to overwrite the existing mask?', 'Overwrite exisiting mask?', 
+                dial = wx.MessageDialog(None, 'Do you want to overwrite the existing mask?', 'Overwrite exisiting mask?',
                                         wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
                 answer = dial.ShowModal()
 
                 if answer == wx.ID_NO:
                     return
-            
+
             plot_parameters = self.image_panel.getPlotParameters()
             masks = plot_parameters['storedMasks']
             masks_copy = []
-            
+
             for each in masks:
                 masks_copy.append(copy.copy(each))
-            
+
             if masks == [] or self.image_panel.img == None:
-                wx.MessageBox('No masks has been drawn. Draw a mask before setting it as the current mask.', 'Setting mask failed') 
+                wx.MessageBox('No masks has been drawn. Draw a mask before setting it as the current mask.', 'Setting mask failed')
                 return
-            
+
             img_dim = self.image_panel.img.shape
-    
+
             if len(masks) != 0:
                 queue = self._main_frame.getWorkerThreadQueue()
                 queue.put(['create_mask', [mask_key, masks_copy, img_dim]])
 
         else:
-            dial = wx.MessageDialog(None, 'SAXSLAB beamstop masks are set in the image header, and cannot be modified. If you wish to disable the use of this mask, you can do so by unchecking the "Use header for mask creation" option in the General Settings in the Advanced Options panel.\n\nIf you wish to mask additional portions of the image, please set a normal Beamstop Mask.', 'Cannot remove mask', 
+            dial = wx.MessageDialog(None, 'SAXSLAB beamstop masks are set in the image header, and cannot be modified. If you wish to disable the use of this mask, you can do so by unchecking the "Use header for mask creation" option in the General Settings in the Advanced Options panel.\n\nIf you wish to mask additional portions of the image, please set a normal Beamstop Mask.', 'Cannot remove mask',
             wx.OK | wx.ICON_WARNING)
             dial.ShowModal()
-                            
-        
+
+
     def _onClearButton(self, event):
-        
+
         selected_mask = self.selector_choice.GetStringSelection()
-        
+
         if selected_mask != 'SAXSLAB BS mask':
-            
-            dial = wx.MessageDialog(None, 'Are you sure you want to delete this mask?', 'Are you sure?', 
+
+            dial = wx.MessageDialog(None, 'Are you sure you want to delete this mask?', 'Are you sure?',
             wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
             answer = dial.ShowModal()
 
             if answer == wx.ID_NO:
                 return
-            
+
             mask_key = self.mask_choices[selected_mask]
             mask_dict = self._main_frame.raw_settings.get('Masks')
             mask_dict[mask_key] = [None, None]
             self.image_panel.clearAllMasks()
 
         else:
-            dial = wx.MessageDialog(None, 'SAXSLAB beamstop masks are set in the image header, and cannot be modified. If you wish to disable the use of this mask, you can do so by unchecking the "Use header for mask creation" option in the General Settings in the Advanced Options panel.', 'Cannot remove mask', 
+            dial = wx.MessageDialog(None, 'SAXSLAB beamstop masks are set in the image header, and cannot be modified. If you wish to disable the use of this mask, you can do so by unchecking the "Use header for mask creation" option in the General Settings in the Advanced Options panel.', 'Cannot remove mask',
             wx.OK | wx.ICON_WARNING)
             dial.ShowModal()
 
 
     def _onClearDrawnMasks(self, event):
         wx.CallAfter(self.image_panel.clearAllMasks)
-    
+
     def _onLoadMaskFromFile(self, event):
         file = self._createFileDialog(wx.OPEN)
-        
+
         if file:
             queue = self._main_frame.getWorkerThreadQueue()
             queue.put(['load_mask', [file]])
-    
+
     def _onSaveMaskToFile(self, event):
-        
+
         file = self._createFileDialog(wx.SAVE)
-        
+
         if file:
             plot_parameters = self.image_panel.getPlotParameters()
             masks = plot_parameters['storedMasks']
             masks_copy = []
-        
+
             for each in masks:
                 masks_copy.append(copy.copy(each))
-        
+
             queue = self._main_frame.getWorkerThreadQueue()
             queue.put(['save_mask', [file, masks_copy]])
-    
+
     def _onDrawButton(self, event):
         button = event.GetEventObject()
         id = button.GetId()
-        
+
         if button.GetToggle():
             self.disableDrawButtons(id)
-            
+
             if self.CIRCLE_ID == id:
                 self.setTool('circle')
             elif self.RECTANGLE_ID == id:
                 self.setTool('rectangle')
             elif self.POLYGON_ID == id:
                 self.setTool('polygon')
-                    
+
     def disableDrawButtons(self, id = None):
         for each in self.all_button_ids:
                 if each != id:
                     wx.FindWindowById(each).SetToggle(False)
-        
+
     def _createButtonSizer(self):
         sizer = wx.BoxSizer()
-        
+
         ok_button = wx.Button(self, wx.ID_OK, 'OK')
         #cancel_button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
-        
+
         sizer.Add(ok_button, 0, wx.RIGHT, 10)
         #sizer.Add(cancel_button, 0)
-        
+
         ok_button.Bind(wx.EVT_BUTTON, self._onOkButton)
         #cancel_button.Bind(wx.EVT_BUTTON, self._onCancelButton)
-    
+
         return sizer
-    
+
     def _onOkButton(self, event):
         self.image_panel.stopMaskCreation()
         wx.CallAfter(self.image_panel.clearAllMasks)
         wx.CallAfter(self._main_frame.closeMaskingPane)
-    
+
     def _onCancelButton(self, event):
         self.image_panel.stopMaskCreation()
         wx.CallAfter(self._main_frame.closeMaskingPane)
         wx.CallAfter(self.image_panel.clearAllMasks)
-    
+
     def updateView(self):
         wx.CallAfter(self.image_panel.clearPatches)
         if self.show_center:
             x_c = self._main_frame.raw_settings.get('Xcenter')
             y_c = self._main_frame.raw_settings.get('Ycenter')
-        
+
             cent = (x_c, y_c)
             wx.CallAfter(self.image_panel.drawCenterPatch, cent)
-             
+
     def _createFileDialog(self, mode):
-         
+
         file = None
-        
+
         path = wx.FindWindowByName('FileListCtrl').path
-        
+
         if mode == wx.OPEN:
             filters = 'Mask files (*.msk)|*.msk|All files (*.*)|*.*'
             dialog = wx.FileDialog( None, style = mode, wildcard = filters, defaultDir = path)
         if mode == wx.SAVE:
             filters = 'Mask files (*.msk)|*.msk'
-            dialog = wx.FileDialog( None, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = path)        
-        
+            dialog = wx.FileDialog( None, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = path)
+
         # Show the dialog and get user input
         if dialog.ShowModal() == wx.ID_OK:
             file = dialog.GetPath()
-            
+
         # Destroy the dialog
         dialog.Destroy()
-        
+
         return file
-    
+
     def _initBitmaps(self):
-        
+
         workdir = self._main_frame.RAWWorkDir
-        
+
         self.circle_bmp = RAWIcons.CircleIcon.GetBitmap()
         self.rectangle_bmp = RAWIcons.RectangleIcon.GetBitmap()
         self.polygon_bmp = RAWIcons.PolygonIcon3.GetBitmap()
 
 class CenteringPanel(wx.Panel):
-    
-    
+
+
     def __init__(self, parent,id):
-        
+
         wx.Panel.__init__(self, parent, id, name = 'CenteringPanel')
-        
+
         self.ID_UP, self.ID_DOWN, self.ID_RIGHT, self.ID_LEFT, self.ID_TARGET =  ( wx.NewId(), wx.NewId(), wx.NewId(), wx.NewId(), wx.NewId())
-        
+
         self._x_center = None
         self._y_center = None
         self._repeat_timer = wx.Timer()
         self._repeat_timer.Bind(wx.EVT_TIMER, self._onRepeatTimer)
 
-        self._fix_list = [  ('Wavelength', wx.NewId()), 
-                            ('S-D Dist.', wx.NewId()), 
-                            ('Beam X', wx.NewId()), 
+        self._fix_list = [  ('Wavelength', wx.NewId()),
+                            ('S-D Dist.', wx.NewId()),
+                            ('Beam X', wx.NewId()),
                             ('Beam Y', wx.NewId())
                         ]
 
@@ -11483,63 +11483,63 @@ class CenteringPanel(wx.Panel):
             self.cal_factory = pyFAI.calibrant.calibrant_factory()
 
         self.autocenter = False
-        
+
         self.manual_widget_list = []
-        
+
         self._main_frame = wx.FindWindowByName('MainFrame')
         self.image_panel = wx.FindWindowByName('ImagePanel')
-        
+
         self._initBitmaps()
         manual_box = wx.StaticBox(self, -1, 'Manual Center/Calibration Adjustments')
         self.manual_boxsizer = wx.StaticBoxSizer(manual_box)
-        
+
         button_sizer = self._createCenteringButtonsSizer()
         info_sizer = self._createCenteringInfoSizer()
-        
+
         self.manual_boxsizer.Add(info_sizer, 0, wx.ALL, 5)
         self.manual_boxsizer.Add((1,1), 1, wx.EXPAND)
         self.manual_boxsizer.Add(button_sizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.RIGHT, 15)
-        
+
         auto_box = wx.StaticBox(self, -1, 'Automatic Centering/Calibration')
         auto_boxsizer = wx.StaticBoxSizer(auto_box)
-        
+
         auto_sizer = self._createAutoCenteringSizer()
         auto_boxsizer.Add(auto_sizer, 1, wx.EXPAND | wx.ALL, 5)
-        
+
         button_sizer = self._createButtonSizer()
-        
+
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.manual_boxsizer, 0, wx.EXPAND | wx.ALL, 5)
         self.sizer.Add(auto_boxsizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
         self.sizer.Add(button_sizer, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-        
+
         self.SetSizer(self.sizer)
-        
+
         self._center = [0,0]
         self.updateCenterFromSettings()
         wx.CallAfter(self._updateCenteringRings)
-                
+
     def _initBitmaps(self):
-        
+
         workdir = self._main_frame.RAWWorkDir
-        
+
         self.up_arrow_img = RAWIcons.center_arrow_up.GetImage()
         self.right_arrow_img = self.up_arrow_img.Rotate90()
         self.down_arrow_img = self.right_arrow_img.Rotate90()
         self.left_arrow_img = self.down_arrow_img.Rotate90()
-        
+
         self.up_arrow_bmp = self.up_arrow_img.ConvertToBitmap()
         self.right_arrow_bmp = self.right_arrow_img.ConvertToBitmap()
         self.down_arrow_bmp = self.down_arrow_img.ConvertToBitmap()
         self.left_arrow_bmp = self.left_arrow_img.ConvertToBitmap()
-        
+
         self.target_bmp = RAWIcons.center_target.GetBitmap()
-    
+
     def _createAutoCenteringSizer(self):
 
         if RAWGlobals.usepyFAI:
             top_sizer = wx.BoxSizer(wx.VERTICAL)
-            
+
             fix_ctrl_sizer = wx.FlexGridSizer(cols = 4, rows = int(len(self._fix_list)/4. + .5), hgap = 3, vgap = 3)
 
             for label, newid in self._fix_list:
@@ -11571,7 +11571,7 @@ class CenteringPanel(wx.Panel):
             ring_sizer.Add(ring_text, 0, wx.LEFT | wx.RIGHT, 3)
             ring_sizer.Add(ring_ctrl, 0, wx.RIGHT, 3)
             ring_sizer.Add(ring_remove_btn, 0, wx.RIGHT, 3)
-            
+
             # ring_add_btn = wx.Button(self, self.pyfai_autofit_ids['add_pts'], 'Add Points To Ring')
             # ring_add_btn.Bind(wx.EVT_BUTTON, self._onAutoRingButton)
 
@@ -11619,39 +11619,39 @@ class CenteringPanel(wx.Panel):
             top_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
             choices = ['Silver-Behenate']
-            
+
             self.method_text = wx.StaticText(self, -1, 'Method:')
-            
+
             self.auto_method_choice = wx.Choice(self, -1, choices = choices)
             self.auto_method_choice.Select(0)
-            
+
             method_sizer = wx.BoxSizer(wx.HORIZONTAL)
-            
+
             method_sizer.Add(self.method_text,0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
             method_sizer.Add(self.auto_method_choice, 0)
-            
+
             self.auto_start_button = wx.Button(self, -1, 'Start')
             self.auto_start_button.Bind(wx.EVT_BUTTON, self._onAutoCenterStartButton)
-            
+
             #Automatic centering doesn't work on compiled versions!
             #self.auto_start_button.Enable(False)
-            
+
             top_sizer.Add(method_sizer,0, wx.RIGHT, 10)
             top_sizer.Add((1,1), 1, wx.EXPAND)
             top_sizer.Add(self.auto_start_button,0)
-        
+
         return top_sizer
-    
+
     def _createCenteringButtonsSizer(self):
-        
+
         buttonsizer = wx.FlexGridSizer(rows = 3, cols = 3)
-        
+
         up_button = wx.BitmapButton(self, self.ID_UP, self.up_arrow_bmp)
         down_button = wx.BitmapButton(self,self.ID_DOWN, self.down_arrow_bmp)
         right_button = wx.BitmapButton(self, self.ID_RIGHT , self.right_arrow_bmp)
         left_button = wx.BitmapButton(self, self.ID_LEFT, self.left_arrow_bmp)
         target_button = wx.BitmapButton(self, self.ID_TARGET, self.target_bmp)
-        
+
         up_button.Bind(wx.EVT_LEFT_DOWN, self._onCenteringButtons)
         down_button.Bind(wx.EVT_LEFT_DOWN, self._onCenteringButtons)
         right_button.Bind(wx.EVT_LEFT_DOWN, self._onCenteringButtons)
@@ -11661,15 +11661,15 @@ class CenteringPanel(wx.Panel):
         down_button.Bind(wx.EVT_LEFT_DCLICK, self._onCenteringButtons)
         right_button.Bind(wx.EVT_LEFT_DCLICK, self._onCenteringButtons)
         left_button.Bind(wx.EVT_LEFT_DCLICK, self._onCenteringButtons)
-        
+
         up_button.Bind(wx.EVT_LEFT_UP, self._onCenteringButtonsUp)
         down_button.Bind(wx.EVT_LEFT_UP, self._onCenteringButtonsUp)
         right_button.Bind(wx.EVT_LEFT_UP, self._onCenteringButtonsUp)
         left_button.Bind(wx.EVT_LEFT_UP, self._onCenteringButtonsUp)
-        
-        
+
+
         target_button.Bind(wx.EVT_BUTTON, self._onTargetButton)
-        
+
         buttonsizer.Add((1,1))
         buttonsizer.Add(up_button, 0)
         buttonsizer.Add((1,1))
@@ -11679,69 +11679,69 @@ class CenteringPanel(wx.Panel):
         buttonsizer.Add((1,1))
         buttonsizer.Add(down_button, 0)
         buttonsizer.Add((1,1))
-        
+
         self.manual_widget_list.append(up_button)
         self.manual_widget_list.append(down_button)
         self.manual_widget_list.append(left_button)
         self.manual_widget_list.append(right_button)
         self.manual_widget_list.append(target_button)
-        
+
         return buttonsizer
-    
+
     def _createCenteringInfoSizer(self):
-        
+
         info_sizer = wx.BoxSizer()
-        
+
         step_list= ['0.1', '1', '2', '5', '10', '20', '50', '100', '500']
 
         if RAWGlobals.usepyFAI:
             pattern_list = ['None'] + sorted(self.cal_factory.keys(), key = str.lower)
         else:
             pattern_list = ['None', 'Silver-Behenate']
-        
+
         self._x_cent_text = wx.TextCtrl(self, -1, '0', size = (65, -1), style = wx.TE_PROCESS_ENTER)
         self._y_cent_text = wx.TextCtrl(self, -1, '0', size = (65, -1), style = wx.TE_PROCESS_ENTER)
         self._y_cent_text.Bind(wx.EVT_TEXT_ENTER, self._onEnterInCenterCtrl)
         self._x_cent_text.Bind(wx.EVT_TEXT_ENTER, self._onEnterInCenterCtrl)
         self._x_cent_text.Bind(wx.EVT_KILL_FOCUS, self._onEnterInCenterCtrl)
         self._y_cent_text.Bind(wx.EVT_KILL_FOCUS, self._onEnterInCenterCtrl)
-        
+
         # self._step_combo = wx.ComboBox(self, -1, choices = step_list, size = self._x_cent_text.GetSize())
         self._step_combo = wx.ComboBox(self, -1, choices = step_list)
         self._step_combo.Select(1)
-        
+
         self._wavelen_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 70)
         self._energy_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 70)
         self._pixel_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 80)
         self._sd_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 80)
-        
+
         self._sd_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onSampDetDistSpin)
         self._wavelen_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onWavelengthChange)
         self._pixel_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onPixelWavelengthChange)
         self._energy_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onEnergyChange)
-                
+
         self._pattern_list = wx.Choice(self, -1, choices = pattern_list)
         if RAWGlobals.usepyFAI and 'AgBh' in self.cal_factory.keys():
             self._pattern_list.SetStringSelection('AgBh')
         else:
             self._pattern_list.Select(1)
         self._pattern_list.Bind(wx.EVT_CHOICE, self._onPatternChoice)
-        
+
         wavelen_label = wx.StaticText(self, -1, 'Wavelength:')
         energy_label = wx.StaticText(self, -1, 'Energy:')
         sd_label = wx.StaticText(self, -1, 'Sample-Detector Distance:')
         pixel_label = wx.StaticText(self, -1, 'Detector Pixel Size:')
-        
+
         ylabel = wx.StaticText(self, -1, 'Y center:')
         xlabel = wx.StaticText(self, -1, 'X center:')
         step_label = wx.StaticText(self, -1, 'Steps:')
         pattern_label = wx.StaticText(self, -1, 'Standard:')
-        
+
         sd_unit_label = wx.StaticText(self, -1, 'mm')
         pixelsize_unit_label = wx.StaticText(self, -1, 'um')
         wavelength_unit_label = wx.StaticText(self, -1, 'A')
         energy_unit_label = wx.StaticText(self, -1, 'keV')
-        
+
         x_sizer = wx.BoxSizer(wx.VERTICAL)
         y_sizer = wx.BoxSizer(wx.VERTICAL)
         step_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -11750,47 +11750,47 @@ class CenteringPanel(wx.Panel):
         pixel_sizer = wx.BoxSizer(wx.VERTICAL)
         sd_sizer = wx.BoxSizer(wx.VERTICAL)
         pattern_sizer = wx.BoxSizer(wx.VERTICAL)
-    
+
         sd_unit_sizer = wx.BoxSizer()
         pixelsize_unit_sizer = wx.BoxSizer()
         wavelength_unit_sizer = wx.BoxSizer()
         energy_unit_sizer = wx.BoxSizer()
-    
+
         step_sizer.Add(step_label,0, wx.TOP,-1)
         step_sizer.Add(self._step_combo, 0)
         x_sizer.Add(xlabel, 0)
-        x_sizer.Add(self._x_cent_text,0)        
+        x_sizer.Add(self._x_cent_text,0)
         y_sizer.Add(ylabel, 0)
         y_sizer.Add(self._y_cent_text,0)
-    
+
         sd_unit_sizer.Add(self._sd_text, 0, wx.RIGHT, 3)
         sd_unit_sizer.Add(sd_unit_label, 0, wx.ALIGN_CENTER_VERTICAL)
-        
+
         pixelsize_unit_sizer.Add(self._pixel_text, 0, wx.RIGHT, 3)
         pixelsize_unit_sizer.Add(pixelsize_unit_label, 0, wx.ALIGN_CENTER_VERTICAL)
-        
+
         wavelength_unit_sizer.Add(self._wavelen_text, 0, wx.RIGHT, 3)
         wavelength_unit_sizer.Add(wavelength_unit_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT)
 
         energy_unit_sizer.Add(self._energy_text, 0, wx.RIGHT, 3)
         energy_unit_sizer.Add(energy_unit_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT)
-    
+
         wave_sizer.Add(wavelen_label, 0)
         wave_sizer.Add(wavelength_unit_sizer, 0)
 
         energy_sizer.Add(energy_label, 0)
         energy_sizer.Add(energy_unit_sizer, 0)
-        
+
         sd_sizer.Add(sd_label, 0)
         sd_sizer.Add(sd_unit_sizer, 0)
-        
+
         pixel_sizer.Add(pixel_label, 0)
         pixel_sizer.Add(pixelsize_unit_sizer, 0)
-        
+
         pattern_sizer.Add(pattern_label, 0)
         pattern_sizer.Add(self._pattern_list, 0)
-        
-    
+
+
         self.xycenter_sizer = wx.BoxSizer()
         self.xycenter_sizer.Add(x_sizer,0, wx.RIGHT, 5)
         self.xycenter_sizer.Add(y_sizer,0, wx.RIGHT, 5)
@@ -11801,19 +11801,19 @@ class CenteringPanel(wx.Panel):
         energy_wl_sizer.Add(wave_sizer, 0, wx.RIGHT, 15)
         energy_wl_sizer.Add(energy_sizer, 0)
 
-        
+
         self.calib_sizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         self.calib_sizer.Add(energy_wl_sizer, 0, wx.BOTTOM, 5)
         self.calib_sizer.Add(sd_sizer, 0, wx.BOTTOM, 5)
         self.calib_sizer.Add(pixel_sizer, 0, wx.BOTTOM, 5)
         self.calib_sizer.Add(pattern_sizer,0, wx.BOTTOM, 5)
-        
+
         self.final_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.final_sizer.Add(self.xycenter_sizer,0, wx.BOTTOM, 5)
         self.final_sizer.Add(self.calib_sizer,0)
-        
+
         self.manual_widget_list.append(self._x_cent_text)
         self.manual_widget_list.append(self._y_cent_text)
         self.manual_widget_list.append(self._step_combo)
@@ -11822,21 +11822,21 @@ class CenteringPanel(wx.Panel):
         self.manual_widget_list.append(self._sd_text)
         self.manual_widget_list.append(self._pattern_list)
         self.manual_widget_list.append(self._energy_text)
-        
+
         return self.final_sizer
-            
+
     def _createButtonSizer(self):
         sizer = wx.BoxSizer()
-        
+
         ok_button = wx.Button(self, wx.ID_OK, 'OK')
         cancel_button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
-        
+
         sizer.Add(ok_button, 0, wx.RIGHT, 10)
         sizer.Add(cancel_button, 0)
-        
+
         ok_button.Bind(wx.EVT_BUTTON, self._onOkButton)
         cancel_button.Bind(wx.EVT_BUTTON, self._onCancelButton)
-    
+
         return sizer
 
     def _getDetList(self):
@@ -11844,7 +11844,7 @@ class CenteringPanel(wx.Panel):
         extra_det_list = ['detector']
 
         # Gets rid of all the aliases, not sure if I want to do that
-        
+
         # dets = pyFAI.detectors.ALL_DETECTORS
 
         # keys = dets.keys()
@@ -11871,7 +11871,7 @@ class CenteringPanel(wx.Panel):
         # for k, v in unique_dets.iteritems():
         #     if len(v) > 1:
         #         v = sorted(v, key = len, reverse = True)
-            
+
         #     final_dets[v[0]] = k
 
 
@@ -11886,24 +11886,24 @@ class CenteringPanel(wx.Panel):
         det_list = ['Other'] + sorted(final_dets.keys(), key = str.lower)
 
         return det_list
-    
+
     def _onEnterInCenterCtrl(self, event):
-        
+
         x = str(self._x_cent_text.GetValue()).replace(',','.')
         y = str(self._y_cent_text.GetValue()).replace(',','.')
-        
+
         try:
             self.setCenter([float(x),float(y)])
         except ValueError:
             pass
         event.Skip()
-        
+
     def _onOkButton(self, event):
         if not RAWGlobals.usepyFAI:
             self.image_panel.enableCenterClickMode(False)
             self.image_panel.enableRAWAutoCentMode(False)
             self.image_panel.agbe_selected_points = []
-            
+
             button = self.auto_start_button
             if button.GetLabelText() == 'Done':
                 button.SetLabel('Start')
@@ -11912,25 +11912,25 @@ class CenteringPanel(wx.Panel):
         else:
             if self.autocenter:
                 self._cleanUpAutoCenter()
-        
+
         wx.CallAfter(self._main_frame.closeCenteringPane)
         wx.CallAfter(self.image_panel.clearPatches)
-        
+
         self._main_frame.raw_settings.set('Xcenter', self._center[0])
         self._main_frame.raw_settings.set('Ycenter', self._center[1])
-        
+
         sd, wavelength, pixel_size = self._getCalibValues()
-        
+
         self._main_frame.raw_settings.set('SampleDistance', sd)
         self._main_frame.raw_settings.set('WaveLength', wavelength)
         self._main_frame.raw_settings.set('DetectorPixelSize', pixel_size)
-        
+
         # sd_pixels = round(SASImage.calcFromSDToAgBePixels(sd, wavelength, pixel_size / 1000.0),0)
-                
+
         # self._main_frame.raw_settings.set('PixelCalX', sd_pixels)
-    
+
     def _getCalibValues(self):
-        
+
         sd = float(self._sd_text.GetValue())
         wavelength = float(self._wavelen_text.GetValue())
         pixel_size = float(self._pixel_text.GetValue())
@@ -11952,35 +11952,35 @@ class CenteringPanel(wx.Panel):
             if self.autocenter:
                 self._cleanUpAutoCenter()
 
-        
+
         self.updateCenterFromSettings()
         wx.CallAfter(self._main_frame.closeCenteringPane)
-        wx.CallAfter(self.image_panel.clearPatches)         
-    
+        wx.CallAfter(self.image_panel.clearPatches)
+
     def _onRepeatTimer(self, event):
         steps = float(self._step_combo.GetValue())
         wx.Yield()
         wx.CallAfter(self._moveCenter, self._pressed_button_id, steps)
-    
+
     def _onCenteringButtonsUp(self, event):
         self._repeat_timer.Stop()
         event.Skip()
-    
+
     def _onCenteringButtons(self, event):
 
         id = event.GetId()
-        
+
         steps = float(self._step_combo.GetValue())
         self._pressed_button_id = id
         wx.CallAfter(self._moveCenter, id, steps)
-        
+
         # if platform.system() != 'Darwin':
         self._repeat_timer.Start(150)
-        
+
         event.Skip()
-    
+
     def _moveCenter(self, id, steps):
-        
+
         if id == self.ID_UP:
             self._center[1] += steps
         if id == self.ID_DOWN:
@@ -11989,10 +11989,10 @@ class CenteringPanel(wx.Panel):
             self._center[0] += steps
         if id == self.ID_LEFT:
             self._center[0] -= steps
-            
+
         self.updateCenterTextCtrls()
         wx.CallAfter(self._updatePlots)
-        
+
     def _onPixelWavelengthChange(self, event):
 
         self._updatePlots()
@@ -12018,30 +12018,30 @@ class CenteringPanel(wx.Panel):
         E = float(evt.GetValue())*1e3
 
         wl=c*h/(E*e)*1e10
-        
+
         self._wavelen_text.SetValue(str(wl))
 
         self._updatePlots()
-        
-    def _onTargetButton(self, event): 
+
+    def _onTargetButton(self, event):
         self.image_panel.enableCenterClickMode()
-        
+
         wx.MessageBox('Click on the image to move the center to a new location.', 'Select center on image')
-    
+
     def _onPatternChoice(self, event):
         selection = self._pattern_list.GetStringSelection()
-            
+
         if selection == 'None': #none
             wx.CallAfter(self.image_panel.clearPatches)
 
         else: #Agbe
             wx.CallAfter(self._updateCenteringRings)
-            
+
     def _onSampDetDistSpin(self, event):
         self._updatePlots()
 
     def _enableControls(self, state):
-        
+
         for each in self.manual_widget_list:
             each.Enable(state)
 
@@ -12063,11 +12063,11 @@ class CenteringPanel(wx.Panel):
                     agbh_dist_list = list(opposite / (pixel_size/1000.))
                 else:
                     agbh_dist_list = [np.nan]
-                
+
             else:
                 sample_detec_pixels = SASImage.calcFromSDToAgBePixels(sd_distance, wavelength, pixel_size / 1000.0)
                 agbh_dist_list = [sample_detec_pixels*i for i in range(1,5)]
-                    
+
             wx.CallAfter(self.image_panel.clearPatches)
             if not np.isnan(agbh_dist_list[0]): #If wavelength is too long, can get values for the ring radius that are nans
                 wx.CallAfter(self.image_panel._drawCenteringRings, self._center, agbh_dist_list)
@@ -12075,21 +12075,21 @@ class CenteringPanel(wx.Panel):
                 self._wavelen_text.SetValue('1')
                 wx.MessageBox('Wavelength too long, cannot show silver-behenate rings on the plot. Must be less than 116 angstroms.', 'Invalid Entry', style=wx.ICON_ERROR)
                 return
-    
+
     def updateCenterTextCtrls(self):
         self._x_cent_text.SetValue(str(self._center[0]))
         self._y_cent_text.SetValue(str(self._center[1]))
-    
+
     def _updatePlots(self):
         if self._pattern_list.GetStringSelection() != 'None':
             self._updateCenteringRings()
-            
-    def updateCenterFromSettings(self):    
+
+    def updateCenterFromSettings(self):
         x_center = self._main_frame.raw_settings.get('Xcenter')
         y_center = self._main_frame.raw_settings.get('Ycenter')
-        
+
         wavelength = self._main_frame.raw_settings.get('WaveLength')
-        pixel_size = self._main_frame.raw_settings.get('DetectorPixelSize') 
+        pixel_size = self._main_frame.raw_settings.get('DetectorPixelSize')
         samp_detc_dist = self._main_frame.raw_settings.get('SampleDistance')
 
         c = scipy.constants.c
@@ -12099,31 +12099,31 @@ class CenteringPanel(wx.Panel):
         wl = float(wavelength)*1e-10
 
         energy=c*h/(wl*e)*1e-3
-        
+
         self._sd_text.SetValue(str(samp_detc_dist))
         self._pixel_text.SetValue(str(pixel_size))
         self._wavelen_text.SetValue(str(wavelength))
         self._energy_text.SetValue(str(energy))
-        
+
         self._center = [x_center, y_center]
         self.updateCenterTextCtrls()
-    
+
     def _updateSampleDetectorDist(self):
-        
+
         wavelength = float(self._wavelen_text.GetValue())
         pixel_size = float(self._pixel_text.GetValue())
         samp_dist = float(self._sd_text.GetValue())
-        
+
         samp_dist_in_pixels = SASImage.calcFromSDToAgBePixels(samp_dist, wavelength, pixel_size)
-        
+
         samp_dist_in_mm = round(SASImage.calcAgBeSampleDetectorDist(samp_dist_in_pixels, wavelength, pixel_size),1)
-        
-        self._sd_text.SetValue(str(samp_dist_in_mm))      
-        
+
+        self._sd_text.SetValue(str(samp_dist_in_mm))
+
     def updateAll(self):
         self.updateCenterFromSettings()
         self._updatePlots()
-    
+
     def setCenter(self, center):
         self._center = center
         self.updateCenterTextCtrls()
@@ -12147,7 +12147,7 @@ class CenteringPanel(wx.Panel):
 
         if not RAWGlobals.usepyFAI:
             button = event.GetEventObject()
-            
+
             if button.GetLabelText() == 'Start':
                 button.SetLabel('Done')
                 self._startAgbeAutoCentering()
@@ -12161,7 +12161,7 @@ class CenteringPanel(wx.Panel):
 
     def _onAutoCenterDoneButton(self, evt):
         self._stopAutoCentering()
-        
+
     def _onAutoCenterCancelButton(self, evt):
         self._cleanUpAutoCenter()
 
@@ -12269,38 +12269,38 @@ class CenteringPanel(wx.Panel):
 
     #Autocenter the old RAW way
     def _startAgbeAutoCentering(self):
-        
+
         self._enableControls(False)
-        
+
         wx.CallAfter(self.image_panel.clearPatches)
         answer = wx.MessageBox('Please select at least 3 points just outside the inner circle of the AgBe image and then press the "Done" button', 'AgBe Center Calibration', wx.OK | wx.CANCEL)
-        
+
         self.image_panel.enableRAWAutoCentMode()
 
     def _endAgbeAutoCentering(self):
 
         self._enableControls(True)
-        
+
         self.image_panel.enableRAWAutoCentMode(False)
         points = self.image_panel.getSelectedAgbePoints()
         img = self.image_panel.img
-        
+
         try:
             x, r = SASImage.calcCenterCoords(img, points, tune = True)  # x = (x_c,y_c)
         except SASExceptions.CenterNotFound:
             self.image_panel.agbe_selected_points = []
             wx.MessageBox('The center could not be found.\nPlease try again or use the manual settings.', 'Center was not found')
             return
-        
+
         self._center = [x[0], x[1]]
-        
+
         wavelength = float(self._wavelen_text.GetValue())
         pixel_size = float(self._pixel_text.GetValue())
-        
+
         sd_dist = round(SASImage.calcAgBeSampleDetectorDist(r, wavelength, pixel_size / 1000.0),1)
         self._sd_text.SetValue(str(sd_dist))
         self.updateCenterTextCtrls()
-        
+
         self._pattern_list.Select(1)
 
         agbh_dist_list = [r*i for i in range(1,5)]
@@ -12313,62 +12313,62 @@ class CenteringPanel(wx.Panel):
 #----- **** InformationPanel ****
 
 class InformationPanel(wx.Panel):
-    
+
     def __init__(self, parent):
-        
+
         self.font_size1 = 11
         self.font_size2 = 12
-            
+
         if platform.system() == 'Windows' or platform.system() == 'Linux':
             self.font_size1 = 8
             self.font_size2 = 10
-        
+
         self.used_font1 = wx.Font(self.font_size1, wx.SWISS, wx.NORMAL, wx.NORMAL)
         self.used_font2 = wx.Font(self.font_size2, wx.SWISS, wx.NORMAL, wx.NORMAL)
-        
+
         wx.Panel.__init__(self, parent, name = 'InformationPanel')
-        
+
         infoSizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         self.analysis_data = [('Rg:', 'Rg', wx.NewId()),
                               ('I0:', 'I0', wx.NewId()),
                               ('MW:', 'MW', wx.NewId())]
-        
+
         self.conc_data = ('Conc:', 'Conc', wx.NewId())
-        
+
         self.analysis_info_sizer = self._createAnalysisInfoSizer()
-        
+
         infoSizer.Add(self.analysis_info_sizer, 0, wx.ALL | wx.EXPAND, 5)
-    
+
 
         #header_note_box = wx.StaticBox(self, -1, 'Header data / Notes')
         #header_note_boxsizer = wx.StaticBoxSizer(header_note_box, orient = wx.VERTICAL)
-        
+
         header_note_boxsizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         note_txt = wx.StaticText(self,-1,'Description / Notes:')
         note_txt.SetFont(self.used_font1)
-        
+
         hdrbrow_txt = wx.StaticText(self,-1,'Header browser:')
         hdrbrow_txt.SetFont(self.used_font1)
-        
+
         header_note_boxsizer.Add(note_txt, 0)
         header_note_boxsizer.Add(self._createNoteSizer(), 0, wx.ALL | wx.EXPAND, 5)
         header_note_boxsizer.Add(hdrbrow_txt, 0)
         self.header_browser_sizer = self._createHeaderBrowserSizer()
         header_note_boxsizer.Add(self.header_browser_sizer, 0, wx.ALL | wx.EXPAND, 5)
-        
+
         infoSizer.Add(header_note_boxsizer, 1, wx.EXPAND | wx.ALL, 5)
- 
+
         self.SetSizer(infoSizer)
-        
+
         self.header_choice_key = None
         self.header_choice_hdr = None
         self.selectedItem = None
         self.sasm = None
         self.num_of_file_hdr_keys = 0
         self.num_of_imghdr_keys = 0
-        
+
         self._disableAllControls()
 
     def _disableAllControls(self):
@@ -12378,113 +12378,113 @@ class InformationPanel(wx.Panel):
     def _enableAllControls(self):
         for each in self.GetChildren():
             each.Enable(True)
-        
+
     def _createHeaderBrowserSizer(self):
-        
+
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        
+
         self.header_choice = wx.Choice(self, -1)
         self.header_txt = wx.TextCtrl(self, -1, '', style = wx.TE_CENTRE)
         self.header_choice.SetFont(self.used_font1)
         self.header_txt.SetFont(self.used_font1)
         self.header_choice.Bind(wx.EVT_CHOICE, self._onHeaderBrowserChoice)
-        
+
         sizer.Add(self.header_choice, 1, wx.EXPAND | wx.RIGHT, 5)
         sizer.Add(self.header_txt, 2, wx.EXPAND)
-        
+
         return sizer
-    
+
     def _createAnalysisInfoSizer(self):
-        
+
         sizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         name_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.name_label = wx.StaticText(self, -1, 'Name:')
         self.name_txt = wx.StaticText(self, -1, 'None')
-        
+
         self.name_label.SetFont(self.used_font1)
         self.name_txt.SetFont(self.used_font1)
-        
-        
+
+
         name_sizer.Add(self.name_label, 0, wx.RIGHT, 10)
         name_sizer.Add(self.name_txt, 1, wx.EXPAND)
-        
+
         analysis_sizer = wx.BoxSizer()
         for each in self.analysis_data:
             label = each[0]
             id = each[2]
             value = 'N/A'
-            
+
             label_txt = wx.StaticText(self, -1, label)
             value_txt = wx.TextCtrl(self, id, value, size = (60, -1), style = wx.TE_READONLY)
             label_txt.SetFont(self.used_font1)
             value_txt.SetFont(self.used_font1)
             value_txt.SetSize((60,-1))
-            
+
             siz = wx.BoxSizer()
             siz.Add(label_txt, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
             siz.Add(value_txt, 1, wx.EXPAND)
-            
+
             analysis_sizer.Add(siz, 1, wx.RIGHT | wx.EXPAND, 10)
-            
+
         ## add conc ctrl:
         label_txt = wx.StaticText(self, -1, self.conc_data[0])
         label_txt.SetFont(self.used_font1)
-        
+
         self.conc_txt = wx.TextCtrl(self, self.conc_data[2], 'N/A', size = (60, -1))
         self.conc_txt.Bind(wx.EVT_KILL_FOCUS, self._onNoteTextKillFocus)
         self.conc_txt.Bind(wx.EVT_TEXT, self._updateConc)
         self.conc_txt.SetFont(self.used_font1)
-        
+
         siz = wx.BoxSizer()
         siz.Add(label_txt, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
-        siz.Add(self.conc_txt, 1, wx.EXPAND)    
+        siz.Add(self.conc_txt, 1, wx.EXPAND)
         analysis_sizer.Add(siz, 1, wx.RIGHT | wx.EXPAND, 10)
-            
+
         sizer.Add(name_sizer, 0, wx.EXPAND | wx.BOTTOM, 5)
         sizer.Add(analysis_sizer, 1, wx.EXPAND | wx.RIGHT, 5)
-        
+
         return sizer
-    
+
     def _createNoteSizer(self):
         sizer = wx.BoxSizer()
-                
+
         self.noteTextBox = wx.TextCtrl(self, -1, '')
         self.noteTextBox.SetBackgroundColour('WHITE')
         self.noteTextBox.SetForegroundColour('BLACK')
-        
+
         #length, height = self.noteTextBox.GetTextExtent('TEST')
         #self.noteTextBox.SetMaxSize((-1,30))
         #self.noteTextBox.SetSize((-1, 2*height))
-        
+
         self.noteTextBox.Bind(wx.EVT_KILL_FOCUS, self._onNoteTextKillFocus)
-        
+
         sizer.Add(self.noteTextBox, 1, wx.EXPAND)
-        
+
         return sizer
-    
+
     def _onNoteTextKillFocus(self, event):
-        
+
         note_txt = self.noteTextBox.GetValue()
-        
-        try:        
+
+        try:
             self.sasm.setParameter('Notes', note_txt)
         except AttributeError:
             pass
-    
+
         try:
             conc = self.conc_txt.GetValue().replace(',','.')
             if self.sasm != None and conc != 'N/A':
-            
+
                 float(conc)
                 self.sasm.setParameter('Conc', float(conc))
-        
-            
+
+
         except Exception, e:
             print e
             print 'info error, Conc'
-    
-    
+
+
         if self.sasm != None and self.selectedItem != None:
             try:
                 self.selectedItem.updateInfoTip(self.sasm.getParameter('analysis'))
@@ -12497,58 +12497,58 @@ class InformationPanel(wx.Panel):
         try:
             conc = self.conc_txt.GetValue().replace(',','.')
             if self.sasm != None and conc != 'N/A' and conc != 'N/' and conc !='N' and conc !='/A' and conc !='A' and conc != 'NA' and conc != '' and conc !='.':
-            
+
                 float(conc)
                 self.sasm.setParameter('Conc', float(conc))
-        
-            
+
+
         except Exception, e:
             print e
             print 'info error, Conc'
-        
+
     def _onHeaderBrowserChoice(self, event):
-        
+
         key = self.header_choice.GetStringSelection()
         sel_idx = self.header_choice.GetSelection()
-        
+
         if self.sasm == None or key == 'No header info':
             return
-        
+
         self.header_choice_key = key
-        
+
         if sel_idx < (self.num_of_file_hdr_keys):
             self.header_choice_hdr = 'counters'
         else:
             self.header_choice_hdr = 'imageHeader'
-        
+
         img_hdr = self.sasm.getParameter('imageHeader')
         file_hdr = self.sasm.getParameter('counters')
-        
+
         if self.header_choice_hdr == 'imageHeader' and img_hdr.has_key(key):
             self.header_txt.SetValue(str(img_hdr[key]))
         if self.header_choice_hdr == 'counters' and file_hdr.has_key(key):
             self.header_txt.SetValue(str(file_hdr[key]))
-            
+
         if sel_idx != wx.NOT_FOUND:
             self.selectedItem.info_settings['hdr_choice'] = sel_idx
         else:
             self.selectedItem.info_settings['hdr_choice'] = 0
-    
+
     def clearInfo(self):
         self._disableAllControls()
-        
+
         if self.sasm != None and self.selectedItem != None:
             try:
                 self.selectedItem.updateInfoTip(self.sasm.getParameter('analysis'))
             except Exception, e:
                 pass
-        
+
         try:
             note_txt = self.noteTextBox.GetValue()
             self.sasm.setParameter('Notes', note_txt)
-        
+
             # conc = self.conc_txt.GetValue().replace(',','.')
-            
+
             # try:
             #     if conc != 'N/A' and conc != 'N\A' and self.sasm != None:
             #         float(conc)
@@ -12556,37 +12556,37 @@ class InformationPanel(wx.Panel):
             # except Exception, e:
             #     print e
             #     print 'info error, Conc'
-            
+
         except AttributeError:
             pass
-        
+
         self.name_txt.SetLabel('')
-        
+
         for each in self.analysis_data:
             id = each[2]
-            
+
             label = wx.FindWindowById(id)
             label.SetValue('N/A')
-            
+
         self.header_txt.SetValue('')
         self.header_choice.SetItems([''])
         self.noteTextBox.SetValue('')
         self.conc_txt.SetValue('N/A')
         self.num_of_file_hdr_keys = 0
         self.num_of_imghdr_keys = 0
-        
+
         self.sasm = None
         self.selectedItem = None
-        
+
         self.analysis_info_sizer.Layout()
-        self.Refresh()   
+        self.Refresh()
 
     def updateInfoFromItem(self, item):
         self.clearInfo()
-        
+
         self.sasm = item.getSASM()
-                
-        # ## THE FACT THAT THIS HAS TO BE DONE IS SO>!@ STRANGE!! 
+
+        # ## THE FACT THAT THIS HAS TO BE DONE IS SO>!@ STRANGE!!
         # if self.sasm.getParameter('analysis').has_key('guinier'):
         #     analysis_dict = self.sasm.getParameter('analysis')
         #     guinier = analysis_dict['guinier']
@@ -12595,63 +12595,63 @@ class InformationPanel(wx.Panel):
         #     except KeyError:
         #         pass
         ########################################################
-                
+
         self.selectedItem = item
-        
+
         filename = self.sasm.getParameter('filename')
         self.name_txt.SetLabel(str(filename))
-        
+
         if self.sasm.getParameter('analysis').has_key('guinier'):
             analysis_dict = self.sasm.getParameter('analysis')
             guinier = analysis_dict['guinier']
-        
+
             if guinier.has_key('Rg') and guinier.has_key('I0'):
                 rg = guinier['Rg']
                 i_zero = guinier['I0']
-        
+
                 for each in self.analysis_data:
                     key = each[1]
                     id = each[2]
-                    
+
                     txt = wx.FindWindowById(id)
-                    
+
                     if guinier.has_key(key):
-                        txt.SetValue(str(guinier[key]))       
-                        
+                        txt.SetValue(str(guinier[key]))
+
         if self.sasm.getAllParameters().has_key('Conc'):
             conc_ctrl = wx.FindWindowById(self.conc_data[2])
             conc_ctrl.SetValue(str(self.sasm.getParameter('Conc')))
-            
+
         if self.sasm.getAllParameters().has_key('MW'):
             mw_ctrl = wx.FindWindowById(self.analysis_data[2][2])
             mw_ctrl.SetValue(str(self.sasm.getParameter('MW')))
-        
+
         all_choices = []
         file_hdr = {}
         img_hdr = {}
         if self.sasm.getAllParameters().has_key('counters'):
-            file_hdr = self.sasm.getParameter('counters')            
+            file_hdr = self.sasm.getParameter('counters')
             all_filehdr_keys = file_hdr.keys()
             all_choices.extend(all_filehdr_keys)
             self.num_of_file_hdr_keys = len(all_filehdr_keys)
-        
+
         if self.sasm.getAllParameters().has_key('imageHeader'):
             img_hdr = self.sasm.getParameter('imageHeader')
             all_imghdr_keys = img_hdr.keys()
             all_choices.extend(all_imghdr_keys)
             self.num_of_imghdr_keys = len(all_imghdr_keys)
-            
-            
-        if len(all_choices) > 0:    
+
+
+        if len(all_choices) > 0:
             self.header_choice.SetItems(all_choices)
-            
+
             try:
                 if self.header_choice_key != None:
                     if self.header_choice_hdr == 'imageHeader' and img_hdr.has_key(self.header_choice_key):
                         idx = all_imghdr_keys.index(self.header_choice_key)
                         idx = idx + self.num_of_file_hdr_keys
                         self.header_choice.SetSelection(idx)
-                        
+
                     elif self.header_choice_hdr == 'counters' and file_hdr.has_key(self.header_choice_key):
                         idx = all_filehdr_keys.index(self.header_choice_key)
                         self.header_choice.SetSelection(idx)
@@ -12659,76 +12659,76 @@ class InformationPanel(wx.Panel):
                         self.header_choice.SetSelection(item.info_settings['hdr_choice'])
                 else:
                     self.header_choice.SetSelection(item.info_settings['hdr_choice'])
-                    
+
                 self._onHeaderBrowserChoice(None)
             except Exception, e:
                 self.header_choice.SetSelection(0)
                 print e
                 print 'InfoPanel error'
-        
+
         else:
             self.header_choice.SetItems(['No header info'])
             self.header_choice.Select(0)
-        
+
         if self.sasm.getParameter('Notes') != None:
             self.noteTextBox.SetValue(self.sasm.getParameter('Notes'))
-        
+
         self.analysis_info_sizer.Layout()
         self.header_browser_sizer.Layout()
-        
+
         self._enableAllControls()
-        self.Refresh()   
-    
-    def WriteText(self, text):    
+        self.Refresh()
+
+    def WriteText(self, text):
         self.infoTextBox.AppendText(text)
-        
+
 
 class SaveAnalysisInfoPanel(wx.Panel):
-    
+
     def __init__(self, parent, item_list = None, include_data = None):
         wx.Panel.__init__(self, parent, name = 'SaveAnalysisInfoPanel')
-        
+
         self.SetMinSize((600,600))
-        
+
         self.variable_data = {}
-        
+
         self.item_list = item_list
         self.included_data = {}
         sizer = wx.BoxSizer()
-        
+
         self.include_listctrl = SaveAnalysisListCtrl(self, -1, style = wx.LC_REPORT | wx.LC_NO_HEADER)
         self.variable_listctrl = SaveAnalysisListCtrl(self, -1, style = wx.LC_REPORT | wx.LC_NO_HEADER)
-        
+
         include_sizer = wx.BoxSizer(wx.VERTICAL)
         include_sizer.Add(wx.StaticText(self, -1, 'Include list:'), 0)
         include_sizer.Add(self.include_listctrl, 1, wx.EXPAND)
-        
+
         variable_sizer = wx.BoxSizer(wx.VERTICAL)
         variable_sizer.Add(wx.StaticText(self, -1, 'Variable list:'), 0)
         variable_sizer.Add(self.variable_listctrl, 1, wx.EXPAND)
-        
+
         self.include_button = wx.Button(self, -1, '->')
         self.exclude_button = wx.Button(self, -1, '<-')
-        
+
         self.include_button.Bind(wx.EVT_BUTTON, self._onIncludeButton)
         self.exclude_button.Bind(wx.EVT_BUTTON, self._onExcludeButton)
-        
+
         self.button_sizer = wx.BoxSizer(wx.VERTICAL)
         self.button_sizer.Add(self.include_button, 0)
         self.button_sizer.Add(self.exclude_button, 0)
-        
+
         sizer.Add(variable_sizer, 1, wx.EXPAND | wx.ALL, 10)
         sizer.Add(self.button_sizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         sizer.Add(include_sizer, 1, wx.EXPAND | wx.ALL, 10)
-        
+
         self.SetSizer(sizer)
-        
+
         self.variable_listctrl.InsertColumn(0, 'name')
         width, height = self.variable_listctrl.GetSize()
-        
+
         self.variable_listctrl.SetColumnWidth(0, 300)
         self.include_listctrl.SetColumnWidth(0, 300)
-        
+
         self._addGeneralVariables()
         self._addGuinierVariables()
         self._addMWVariables()
@@ -12736,108 +12736,108 @@ class SaveAnalysisInfoPanel(wx.Panel):
         self._addBIFTVariables()
         self._addFileHdrVariables()
         self._addImageHdrVariables()
-    
+
         self._updateIncludeList(include_data)
-        
+
     def _onIncludeButton(self, event):
         selected_items = self.variable_listctrl.getSelectedItems()
-        
+
         all_items = []
-        
+
         for each_item in selected_items:
             data = copy.copy(self.variable_data[each_item])
-            
+
             if data[1] == None:
                 continue
-            
+
             txt = self.variable_listctrl.GetItem(each_item).GetText()
             all_items.append(data)
-  
+
             idx = self.include_listctrl.GetItemCount()
             self.include_listctrl.InsertStringItem(idx, txt)
-                
-            self.included_data[idx] = data   
-        
+
+            self.included_data[idx] = data
+
     def _onExcludeButton(self, event):
         selected_items = self.include_listctrl.getSelectedItems()
-        
+
         if len(selected_items) > 0:
             each = selected_items[0]
         else:
             return
-        
+
         self.include_listctrl.DeleteItem(each)
         del self.included_data[each]
-        
+
         self._updateIncludedData()
-            
+
     def _updateIncludedData(self):
-        
+
         idx = 0
         new_dict = {}
         for each in sorted(self.included_data.keys()):
-            
+
             new_dict[idx] = self.included_data[each]
             idx = idx+1
-            
+
         self.included_data = new_dict
-               
+
     def _getAllImageHdrKeys(self):
         all_imghdr_keys = []
-        
+
         all_keys = []
         for each_item in self.item_list:
             each_sasm = each_item.getSASM()
-            
+
             if each_sasm.getAllParameters().has_key('imageHeader'):
                img_hdr = each_sasm.getParameter('imageHeader')
                keys = img_hdr.keys()
                all_keys.extend(keys)
-               
+
         all_imghdr_keys.extend(set(all_keys))
-        
+
         return all_imghdr_keys
-            
+
     def _getAllFileHdrKeys(self):
         all_filehdr_keys = []
-        
+
         all_keys = []
         for each_item in self.item_list:
             each_sasm = each_item.getSASM()
-            
+
             if each_sasm.getAllParameters().has_key('counters'):
                img_hdr = each_sasm.getParameter('counters')
                keys = img_hdr.keys()
                all_keys.extend(keys)
-               
+
         all_filehdr_keys.extend(set(all_keys))
-        
+
         return all_filehdr_keys
-    
+
     def _getAllGuinierKeys(self):
         all_guinier_keys = []
-        
+
         all_keys = []
         for each_item in self.item_list:
             each_sasm = each_item.getSASM()
-            
+
             if each_sasm.getParameter('analysis').has_key('guinier'):
                analysis = each_sasm.getParameter('analysis')
                guinier = analysis['guinier']
                keys = guinier.keys()
                all_keys.extend(keys)
-               
+
         all_guinier_keys.extend(set(all_keys))
-        
+
         return all_guinier_keys
 
     def _getAllMWKeys(self):
         all_mw_keys = []
-        
+
         all_keys = []
         for each_item in self.item_list:
             each_sasm = each_item.getSASM()
-            
+
             if each_sasm.getParameter('analysis').has_key('molecularWeight'):
                 analysis = each_sasm.getParameter('analysis')
                 mw = analysis['molecularWeight']
@@ -12847,192 +12847,192 @@ class SaveAnalysisInfoPanel(wx.Panel):
                     subkeys = mw[each_key].keys()
                     for each_subkey in subkeys:
                         key_list.append((each_key, each_subkey))
-                
+
                 all_keys.extend(key_list)
-               
+
         all_mw_keys.extend(set(all_keys))
-        
+
         return all_mw_keys
 
 
     def _getAllGNOMKeys(self):
         all_gnom_keys = []
-        
+
         all_keys = []
         for each_item in self.item_list:
             each_sasm = each_item.getSASM()
-            
+
             if each_sasm.getParameter('analysis').has_key('GNOM'):
                analysis = each_sasm.getParameter('analysis')
                gnom = analysis['GNOM']
                keys = gnom.keys()
                all_keys.extend(keys)
-               
+
         all_gnom_keys.extend(set(all_keys))
-        
+
         return all_gnom_keys
-        
+
 
     def _getAllBIFTKeys(self):
         all_gnom_keys = []
-        
+
         all_keys = []
         for each_item in self.item_list:
             each_sasm = each_item.getSASM()
-            
+
             if each_sasm.getParameter('analysis').has_key('BIFT'):
                analysis = each_sasm.getParameter('analysis')
                gnom = analysis['BIFT']
                keys = gnom.keys()
                all_keys.extend(keys)
-               
+
         all_gnom_keys.extend(set(all_keys))
-        
+
         return all_gnom_keys
 
-    
+
     def _addGeneralVariables(self):
         general_data = [('General', None), ('\tConcentration', 'Conc'), ('\tDescription / Notes', 'Notes'),
                         ('\tScale', 'scale'), ('\tOffset', 'offset')]
-        
+
         idx = 0
-        for each in general_data: 
+        for each in general_data:
             self.variable_listctrl.InsertStringItem(idx, each[0])
             self.variable_data[idx] = ['general' , each[1], each[0]]
-            
+
             idx = idx + 1
-            
+
         self.variable_listctrl.SetItemBackgroundColour(0, 'GRAY')
-    
+
     def _addGuinierVariables(self):
         keys = self._getAllGuinierKeys()
-        
+
         if len(keys) == 0:
             return
-        
+
         idx = self.variable_listctrl.GetItemCount()
-                
+
         self.variable_listctrl.InsertStringItem(idx, 'Guinier Analysis')
         self.variable_data[idx] = ['guinier', None]
-        
+
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
-        for each in keys: 
+        for each in keys:
             self.variable_listctrl.InsertStringItem(idx, '\t'+each)
-            self.variable_data[idx] = ['guinier', each, each]         
+            self.variable_data[idx] = ['guinier', each, each]
             idx = idx + 1
 
     def _addMWVariables(self):
         keys = self._getAllMWKeys()
 
         # print keys
-        
+
         if len(keys) == 0:
             return
-        
+
         idx = self.variable_listctrl.GetItemCount()
-                
+
         self.variable_listctrl.InsertStringItem(idx, 'MW Analysis')
         self.variable_data[idx] = ['molecularWeight', None]
-        
+
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
-        for each in keys: 
+        for each in keys:
             self.variable_listctrl.InsertStringItem(idx, '\t%s_%s' %(each[0], each[1]))
-            self.variable_data[idx] = ['molecularWeight', each[0], each[1]]         
+            self.variable_data[idx] = ['molecularWeight', each[0], each[1]]
             idx = idx + 1
 
 
     def _addGNOMVariables(self):
         keys = self._getAllGNOMKeys()
-        
+
         if len(keys) == 0:
             return
-        
+
         idx = self.variable_listctrl.GetItemCount()
-                
+
         self.variable_listctrl.InsertStringItem(idx, 'GNOM Analysis')
         self.variable_data[idx] = ['GNOM', None]
-        
+
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
-        for each in keys: 
+        for each in keys:
             self.variable_listctrl.InsertStringItem(idx, '\t'+each)
-            self.variable_data[idx] = ['GNOM', each, each]         
+            self.variable_data[idx] = ['GNOM', each, each]
             idx = idx + 1
 
     def _addBIFTVariables(self):
         keys = self._getAllBIFTKeys()
-        
+
         if len(keys) == 0:
             return
-        
+
         idx = self.variable_listctrl.GetItemCount()
-                
+
         self.variable_listctrl.InsertStringItem(idx, 'BIFT Analysis')
         self.variable_data[idx] = ['BIFT', None]
-        
+
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
-        for each in keys: 
+        for each in keys:
             self.variable_listctrl.InsertStringItem(idx, '\t'+each)
-            self.variable_data[idx] = ['BIFT', each, each]         
+            self.variable_data[idx] = ['BIFT', each, each]
             idx = idx + 1
-    
+
     def _addFileHdrVariables(self):
         keys = self._getAllFileHdrKeys()
-        
+
         if len(keys) == 0:
             return
-        
+
         idx = self.variable_listctrl.GetItemCount()
-        
+
         self.variable_listctrl.InsertStringItem(idx, 'Header File')
         self.variable_data[idx] = ['Header File', None]
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
-        for each in keys: 
+        for each in keys:
             self.variable_listctrl.InsertStringItem(idx, '\t'+each)
-            self.variable_data[idx] = ['counters', each, each]                   
+            self.variable_data[idx] = ['counters', each, each]
             idx = idx + 1
-    
+
     def _addImageHdrVariables(self):
         keys = self._getAllImageHdrKeys()
-        
+
         if len(keys) == 0:
             return
-        
+
         idx = self.variable_listctrl.GetItemCount()
-        
+
         self.variable_listctrl.InsertStringItem(idx, 'Image Header')
         self.variable_data[idx] = ['Image Header', None]
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
-        for each in keys: 
+        for each in keys:
             self.variable_listctrl.InsertStringItem(idx, '\t'+each)
-            self.variable_data[idx] = ['imageHeader', each, each]        
+            self.variable_data[idx] = ['imageHeader', each, each]
             idx = idx + 1
-            
+
     def getIncludeData(self):
         return self.included_data
-    
+
     def _updateIncludeList(self, include_data):
         if include_data == None:
             return
-        
+
         for each in sorted(include_data.keys()):
             idx = self.include_listctrl.GetItemCount()
             self.include_listctrl.InsertStringItem(idx, include_data[each][2])
-                
+
             self.included_data[idx] = include_data[each]
 
-        
+
 #----- **** Dialogs ****
 
 class IFTSearchStatusDialog(wx.Dialog):
      def __init__(self, parent, id):
         wx.Dialog.__init__(self, parent, id, 'BIFT Search', name = 'BIFTStatusDlg', size = (280,230))
-        
+
         self.widget_data = [
           ('filename', 'Processing data :', wx.NewId()),
           ('evidence', 'Evidence :', wx.NewId()),
@@ -13041,147 +13041,147 @@ class IFTSearchStatusDialog(wx.Dialog):
           ('dmax', 'Dmax :', wx.NewId()),
           ('cur_point', 'Current search point :', wx.NewId()),
           ('tot_points', 'Total search points :', wx.NewId())]
-         
-         
+
+
         skip_button = wx.Button(self, -1, 'Skip')
         button = wx.Button(self, -1, 'Cancel')
         button.Bind(wx.EVT_BUTTON, self._onCancel)
         skip_button.Bind(wx.EVT_BUTTON, self._onSkip)
-        
+
         button_sizer = wx.BoxSizer()
         button_sizer.Add(button, 0)
         button_sizer.Add(skip_button, 0, wx.LEFT, 10)
-        
+
         self.status_text = wx.StaticText(self, -1, 'Performing grid search')
-        
+
         self.count = 0
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.onStatusTimer, self.timer)
         self.timer.Start(250)
-        
+
         top_sizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         sizer = self.createDataWidgets()
-        
+
         top_sizer.Add(sizer, 0, wx.ALL, 10)
         top_sizer.Add(self.status_text, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
         top_sizer.Add(button_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
-        
+
         self.SetSizer(top_sizer)
-        
+
         self.CenterOnParent()
-     
+
      def _onCancel(self, evt):
          BIFT.cancel_bift = True
-         
+
          global cancel_ift
          cancel_ift = True
-         
+
          self.timer.Stop()
-         
+
      def _onSkip(self, evt):
          BIFT.cancel_bift = True
-     
+
      def createDataWidgets(self):
-         
+
          sizer = wx.FlexGridSizer(cols = 2, rows = len(self.widget_data), vgap = 3, hgap = 5)
-         
+
          for each in self.widget_data:
              label = each[1]
              id = each[2]
-             
+
              sizer.Add(wx.StaticText(self, -1, label), 1)
              sizer.Add(wx.StaticText(self, id, ''), 1)
-             
+
          return sizer
-         
+
      def updateData(self, status_data, fine_tune = False):
          for each in self.widget_data:
              key = each[0]
              id = each[2]
              txt = wx.FindWindowById(id)
-            
+
              txt.SetLabel(str(status_data[key]))
-             
+
          if fine_tune:
              self.status_text.SetLabel('Finetuning solution')
-             
+
      def onStatusTimer(self, evt):
          self.count = self.count + 1
-         
+
          if self.count == 5:
              self.count = 0
-             
+
          label = self.status_text.GetLabel()
          label = label.strip('.')
-         
+
          self.status_text.SetLabel(label + (self.count * '.'))
-        
-         
+
+
      def onUpdateTimer(self, evt):
 
         try:
             status_data = self.search_status_queue.get()
         except Queue.Empty:
             status_data = None
-            
-        
+
+
         if status_data == 'END':
             self.timer.Stop()
             return
-        
+
         if status_data != None:
             self.updateData(status_data)
-        
+
      def OnClose(self, evt):
          self.timer.Stop()
          self.EndModal(wx.ID_OK)
-        
+
 class SaveDialog(wx.Dialog):
     def __init__(self, parent, id, title, text):
         wx.Dialog.__init__(self, parent, id, title)
 
         sizer =  wx.BoxSizer(wx.VERTICAL)
         sizer.Add(wx.StaticText(self, -1, text), 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
-        
+
         button_sizer = wx.BoxSizer()
-      
+
         button_sizer.Add(wx.Button(self, wx.ID_SAVE, 'Save'), 0, wx.RIGHT, 5)
         button_sizer.Add(wx.Button(self, wx.ID_DELETE, 'Discard'), 0, wx.RIGHT, 5)
         button_sizer.Add(wx.Button(self, wx.ID_CANCEL, 'Cancel'), 0)
         sizer.Add(button_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
-        
+
         self.Bind(wx.EVT_BUTTON, self._onCancel, id=wx.ID_CANCEL)
         self.Bind(wx.EVT_BUTTON, self._onDiscard, id=wx.ID_DELETE)
         self.Bind(wx.EVT_BUTTON, self._onSave, id=wx.ID_SAVE)
 
         self.SetSizer(sizer)
         self.Fit()
-        
+
     def _onCancel(self, event):
         self.EndModal(wx.ID_CANCEL)
-    
+
     def _onDiscard(self, event):
         self.EndModal(wx.ID_DELETE)
-    
+
     def _onSave(self, event):
         self.EndModal(wx.ID_SAVE)
-        
+
 class SaveAnalysisListCtrl(wx.ListCtrl):
-    
+
     def __init__(self, parent, id, *args, **kwargs):
-        
+
         wx.ListCtrl.__init__(self, parent, id, *args, **kwargs)
         self.populateList()
-        
+
     def populateList(self):
         self.InsertColumn(0, 'Name')
         self.SetColumnWidth(0, 300)
-        
+
     def add(self, expr):
         no_of_items = self.GetItemCount()
         self.SetStringItem(no_of_items, 0, expr)
-        
+
     def moveItemUp(self, idx):
         if idx > 0:
             data = self.getItemData(idx)
@@ -13189,7 +13189,7 @@ class SaveAnalysisListCtrl(wx.ListCtrl):
             self.InsertStringItem(idx-1, data[0])
             self.SetStringItem(idx-1, 1, data[1])
             self.Select(idx-1, True)
-            
+
     def moveItemDown(self, idx):
         if idx < self.GetItemCount()-1:
             data = self.getItemData(idx)
@@ -13197,14 +13197,14 @@ class SaveAnalysisListCtrl(wx.ListCtrl):
             self.InsertStringItem(idx+1, data[0])
             self.SetStringItem(idx+1, 1, data[1])
             self.Select(idx+1, True)
-        
+
     def getItemData(self, idx):
         data1 = self.GetItemText(idx)
         item = self.GetItem(idx, 1)
         data2 = item.GetText()
-        
+
         return [data1, data2]
-        
+
     def getSelectedItems(self):
         """    Gets the selected items for the list control.
           Selection is returned as a list of selected indices,
@@ -13212,127 +13212,127 @@ class SaveAnalysisListCtrl(wx.ListCtrl):
         """
         selection = []
         index = self.GetFirstSelected()
-        
+
         if index == -1:
             return []
-        
+
         selection.append(index)
-        
+
         while len(selection) != self.GetSelectedItemCount():
             index = self.GetNextSelected(index)
             selection.append(index)
 
         return selection
-    
+
     def getAllItems(self):
         ''' returns a list with all items and operator '''
         all_items = []
         for i in range(0, self.GetItemCount()):
              all_items.append(self.getItemData(i))
-        
+
         return all_items
-    
+
     def GetValue(self):
         ''' Creating a function to mimic other normal control widgets,
         this makes it easier to update and save settings for this
         control.'''
-        
+
         return self.getAllItems()
-    
+
     def SetValue(self, value_list):
-        
+
         if value_list == None:
             return
-        
+
         for each in value_list:
             op = each[0]
-            expr = each[1]    
+            expr = each[1]
             self.add(op, expr)
 
 class SaveAnalysisInfoDialog(wx.Dialog):
-    
+
     def __init__(self, parent, raw_settings, item_list = None, *args, **kwargs):
-        
+
         wx.Dialog.__init__(self, parent, -1, 'Select variables to include in the comma separated file.', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, size = (900,600), *args, **kwargs)
-        
+
         self.raw_settings = raw_settings
-        
+
         include_data = self.raw_settings.get('csvIncludeData')
-        
-        self.item_list = item_list    
+
+        self.item_list = item_list
         self.panel = SaveAnalysisInfoPanel(self, item_list = item_list, include_data = include_data)
-        
+
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         self.sizer.Add(self.panel,1, wx.ALL | wx.EXPAND, 10)
         buttonsizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
         self.sizer.Add(buttonsizer,0, wx.BOTTOM | wx.RIGHT | wx.LEFT | wx.ALIGN_RIGHT, 10)
-        
+
         self.Bind(wx.EVT_BUTTON, self._onOk, id = wx.ID_OK)
-        
+
         self.SetSizer(self.sizer)
         self.Layout()
         # self.Fit()
-        
+
     def _onOk(self, event):
         include_data = self.panel.getIncludeData()
-        
+
         if len(include_data) > 0:
-            
+
             save_path = self._showSaveDialog()
             if save_path == None:
                 return
-            
+
             data = [self.item_list, include_data, save_path]
             mainworker_cmd_queue.put(['save_analysis_info', data])
             #make the workerthread make a csv file.
-        
+
         self.raw_settings.set('csvIncludeData', include_data)
         self.EndModal(wx.ID_OK)
-        
-    
+
+
     def _showSaveDialog(self):
-            
+
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
         save_path = dirctrl_panel.getDirLabel()
-        
+
         filters = 'Comma Separated Files (*.csv)|*.csv'
-            
-        dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path) 
-            
-        if dialog.ShowModal() == wx.ID_OK:               
+
+        dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
+
+        if dialog.ShowModal() == wx.ID_OK:
             save_path = dialog.GetPath()
             return save_path
         else:
              return None
 
 class TestDialog(wx.Dialog):
-    
+
     def __init__(self, parent, *args, **kwargs):
-        
+
         wx.Dialog.__init__(self, parent, *args, **kwargs)
-        
+
         #self.panel = CenteringPanel(self, -1)
-    
+
         self.panel = InformationPanel(self)
-        
+
         self.sizer = wx.BoxSizer()
-        
+
         self.sizer.Add(self.panel,0, wx.ALL, 10)
         self.SetSizer(self.sizer)
         self.Fit()
-   
+
 class HdrDataDialog(wx.Dialog):
-    
+
     def __init__(self, parent, sasm = None, *args, **kwargs):
-        
+
         wx.Dialog.__init__(self, parent, -1, 'Header Data Display', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs)
-        
+
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.grid_changed = False
         self.sasm = sasm
-        
+
         #For testing
         if self.sasm == None:
             data_len = 100
@@ -13340,133 +13340,133 @@ class HdrDataDialog(wx.Dialog):
         else:
             data_len = len(sasm.getBinnedI())
             filename_label = wx.StaticText(self, -1, 'Filename : ' + sasm.getParameter('filename'))
-        
+
         self.data_grid = gridlib.Grid(self)
-        self.data_grid.SetDefaultCellAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE) 
-        
+        self.data_grid.SetDefaultCellAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
+
         data_len = self._getNumOfHeaderValues()
-                
+
         self.data_grid.CreateGrid(data_len, 2)
         self.data_grid.SetColLabelValue(0, 'Key')
         self.data_grid.SetColLabelValue(1, 'Value')
         self.data_grid.SetMinSize((400,400))
-        
+
         self.sizer.Add(filename_label, 0, wx.TOP | wx.LEFT, 10)
         self.sizer.Add(self.data_grid, 1, wx.ALL | wx.EXPAND, 10)
         self.sizer.Add(self._CreateButtonSizer(wx.OK | wx.CANCEL), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
-        
+
         self.Bind(wx.EVT_BUTTON, self._onOk, id=wx.ID_OK)
         self.Bind(wx.EVT_BUTTON, self._onCancel, id=wx.ID_CANCEL)
         self.Bind(gridlib.EVT_GRID_CELL_CHANGE, self._onChange)
         self.Bind(gridlib.EVT_GRID_EDITOR_SHOWN, self._onEditCell)
-        
+
         self.SetSizer(self.sizer)
-        
+
         if self.sasm != None:
             self._insertData()
-        
+
         self.data_grid.AutoSizeColumns()
         self.Fit()
-        
+
         self.CenterOnParent()
-    
+
     def _onEditCell(self, event):
         col = self.data_grid.GridCursorCol
         row = self.data_grid.GridCursorRow
-        
+
         self.saved_value = self.data_grid.GetCellValue(row, col)
-        
+
         event.Skip()
-    
+
     def _onChange(self, event):
-        
+
         try:
             col = self.data_grid.GridCursorCol
             row = self.data_grid.GridCursorRow
-        
+
             value = self.data_grid.GetCellValue(row, col)
             float(value)
             self.grid_changed = True
         except ValueError:
             wx.MessageBox('Illegal value entered', 'Invalid Entry', style=wx.ICON_ERROR)
             self.data_grid.SetCellValue(row, col, self.saved_value)
-            
+
     def _getNumOfHeaderValues(self):
-        
+
         all_keys = []
-        
+
         if self.sasm.getAllParameters().has_key('counters'):
             file_hdr = self.sasm.getParameter('counters')
             keys = file_hdr.keys()
             all_keys.extend(keys)
-            
+
         if self.sasm.getAllParameters().has_key('imageHeader'):
             img_hdr = self.sasm.getParameter('imageHeader')
-            keys = img_hdr.keys()    
+            keys = img_hdr.keys()
             all_keys.extend(keys)
-            
+
         return len(all_keys)
-        
+
     def _insertData(self):
-          
+
         imghdr_data_len = 0
         filehdr_data_len = 0
 
         if self.sasm.getAllParameters().has_key('counters'):
             file_hdr = self.sasm.getParameter('counters')
             keys = file_hdr.keys()
-        
+
             if len(keys) > 0:
                 filehdr_data_len = len(keys)
-                
+
                 for i in range(0, filehdr_data_len):
                     self.data_grid.SetCellValue(i, 0, str(keys[i]))
-                    self.data_grid.SetCellValue(i, 1, str(file_hdr[keys[i]]))        
-        
+                    self.data_grid.SetCellValue(i, 1, str(file_hdr[keys[i]]))
+
         if self.sasm.getAllParameters().has_key('imageHeader'):
             img_hdr = self.sasm.getParameter('imageHeader')
             keys = img_hdr.keys()
-        
+
             if len(keys) > 0:
                 imghdr_data_len = len(keys)
-                
+
                 for i in range(filehdr_data_len, filehdr_data_len + imghdr_data_len):
                     self.data_grid.SetCellValue(i, 0, str(keys[i-filehdr_data_len]))
                     self.data_grid.SetCellValue(i, 1, str(img_hdr[keys[i-filehdr_data_len]]))
 
-    
+
     def _writeData(self):
         data_len = len(self.sasm.getBinnedI())
-        
+
         new_I = []
         new_Q = []
         new_Err = []
-        
+
         for i in range(0, data_len):
             new_Q.append(float(self.data_grid.GetCellValue(i, 0)))
             new_I.append(float(self.data_grid.GetCellValue(i, 1)))
-            new_Err.append(float(self.data_grid.GetCellValue(i, 2)))   
-            
+            new_Err.append(float(self.data_grid.GetCellValue(i, 2)))
+
         self.sasm.setBinnedI(np.array(new_I))
         self.sasm.setBinnedQ(np.array(new_Q))
         self.sasm.setBinnedErr(np.array(new_Err))
-        
+
         self.sasm._update()
-        
+
     def _onOk(self, event):
 #        if self.grid_changed:
 #            self._writeData()
-            
+
         self.EndModal(wx.ID_OK)
     def _onCancel(self, event):
-        self.EndModal(wx.ID_CANCEL) 
-        
+        self.EndModal(wx.ID_CANCEL)
+
 class DataDialog(wx.Dialog):
-    
+
     def __init__(self, parent, sasm = None, *args, **kwargs):
-        
+
         wx.Dialog.__init__(self, parent, -1, 'Scattering Data Display', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs)
-        
+
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.grid_changed = False
@@ -13478,10 +13478,10 @@ class DataDialog(wx.Dialog):
         else:
             data_len = len(sasm.getBinnedI())
             filename_label = wx.StaticText(self, -1, 'Filename : ' + sasm.getParameter('filename'))
-        
+
         self.data_grid = gridlib.Grid(self)
-        self.data_grid.SetDefaultCellAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE) 
-        
+        self.data_grid.SetDefaultCellAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
+
         self.data_grid.CreateGrid(data_len, 3)
         self.data_grid.SetColLabelValue(0, 'q')
         self.data_grid.SetColLabelValue(1, 'i')
@@ -13489,25 +13489,25 @@ class DataDialog(wx.Dialog):
         self.data_grid.SetMinSize((400,400))
 
         self.data_grid.EnableEditing(False)
-        
+
         self.sizer.Add(filename_label, 0, wx.TOP | wx.LEFT, 10)
         self.sizer.Add(self.data_grid, 1, wx.ALL | wx.EXPAND, 10)
         self.sizer.Add(self._CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
-        
+
         # self.Bind(wx.EVT_BUTTON, self._onOk, id=wx.ID_OK)
         # self.Bind(wx.EVT_BUTTON, self._onCancel, id=wx.ID_CANCEL)
         # self.Bind(gridlib.EVT_GRID_CELL_CHANGE, self._onChange)
         # self.Bind(gridlib.EVT_GRID_EDITOR_SHOWN, self._onEditCell)
-        
+
         self.SetSizer(self.sizer)
-        
+
         if self.sasm != None:
             self._insertData()
-        
-        
+
+
         self.data_grid.AutoSizeColumns()
         self.Fit()
-        
+
 #        try:
 #            file_list_ctrl = wx.FindWindowByName('PlotPanel')
 #            pos = file_list_ctrl.GetScreenPosition()
@@ -13516,73 +13516,73 @@ class DataDialog(wx.Dialog):
 #            pass
 
         self.CenterOnParent()
-    
+
     def _onEditCell(self, event):
         col = self.data_grid.GridCursorCol
         row = self.data_grid.GridCursorRow
-        
+
         self.saved_value = self.data_grid.GetCellValue(row, col)
-        
+
         event.Skip()
-    
+
     def _onChange(self, event):
-        
+
         try:
             col = self.data_grid.GridCursorCol
             row = self.data_grid.GridCursorRow
-        
+
             value = self.data_grid.GetCellValue(row, col)
             float(value)
             self.grid_changed = True
         except ValueError:
             wx.MessageBox('Illegal value entered', 'Invalid Entry', style=wx.ICON_ERROR)
             self.data_grid.SetCellValue(row, col, self.saved_value)
-        
+
     def _insertData(self):
         data_len = len(self.sasm.getBinnedI())
-        
+
         I = self.sasm.getBinnedI()
         Q = self.sasm.getBinnedQ()
         Err = self.sasm.getBinnedErr()
-        
+
         for i in range(0, data_len):
             self.data_grid.SetCellValue(i, 0, str(Q[i]))
             self.data_grid.SetCellValue(i, 1, str(I[i]))
             self.data_grid.SetCellValue(i, 2, str(Err[i]))
-    
+
     def _writeData(self):
         data_len = len(self.sasm.getBinnedI())
-        
+
         new_I = []
         new_Q = []
         new_Err = []
-        
+
         for i in range(0, data_len):
             new_Q.append(float(self.data_grid.GetCellValue(i, 0)))
             new_I.append(float(self.data_grid.GetCellValue(i, 1)))
-            new_Err.append(float(self.data_grid.GetCellValue(i, 2)))   
-            
+            new_Err.append(float(self.data_grid.GetCellValue(i, 2)))
+
         self.sasm.setBinnedI(np.array(new_I))
         self.sasm.setBinnedQ(np.array(new_Q))
         self.sasm.setBinnedErr(np.array(new_Err))
-        
+
         self.sasm._update()
-        
+
     def _onOk(self, event):
         if self.grid_changed:
             self._writeData()
-            
+
         self.EndModal(wx.ID_OK)
     def _onCancel(self, event):
         self.EndModal(wx.ID_CANCEL)
 
 
 class SECDataDialog(wx.Dialog):
-    
+
     def __init__(self, parent, secm = None, *args, **kwargs):
-        
+
         wx.Dialog.__init__(self, parent, -1, 'SEC Data Display', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs)
-        
+
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
@@ -13612,7 +13612,7 @@ class SECDataDialog(wx.Dialog):
 
         self.data_grid = gridlib.Grid(self)
         self.data_grid.EnableEditing(False)
-        self.data_grid.SetDefaultCellAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE) 
+        self.data_grid.SetDefaultCellAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
 
         columns = 4
 
@@ -13622,7 +13622,7 @@ class SECDataDialog(wx.Dialog):
             columns = columns + 1
         if self.showcalc:
             columns = columns + 5
-        
+
         self.data_grid.CreateGrid(data_len, columns)
         self.data_grid.SetColLabelValue(0, 'Frame Number')
         self.data_grid.SetColLabelValue(1, 'Integrated Intensity')
@@ -13652,22 +13652,22 @@ class SECDataDialog(wx.Dialog):
 
 
         self.data_grid.SetMinSize((600,400))
-        
+
         self.sizer.Add(filename_label, 0, wx.TOP | wx.LEFT, 10)
         self.sizer.Add(self.data_grid, 1, wx.ALL | wx.EXPAND, 10)
         self.sizer.Add(self._CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
-        
+
         self.Bind(wx.EVT_BUTTON, self._onOk, id=wx.ID_OK)
-        
+
         self.SetSizer(self.sizer)
-        
+
         if self.secm != None:
             self._insertData()
-        
-        
+
+
         self.data_grid.AutoSizeColumns()
         self.Fit()
-        
+
 #        try:
 #            file_list_ctrl = wx.FindWindowByName('PlotPanel')
 #            pos = file_list_ctrl.GetScreenPosition()
@@ -13676,7 +13676,7 @@ class SECDataDialog(wx.Dialog):
 #            pass
 
         self.CenterOnParent()
-        
+
     def _insertData(self):
 
         data_len = len(self.secm.total_i)
@@ -13706,35 +13706,35 @@ class SECDataDialog(wx.Dialog):
                 index = index +1
 
             self.data_grid.SetCellValue(i, index, os.path.split(self.secm._file_list[i])[1])
-    
+
     def _writeData(self):
         data_len = len(self.secm.getBinnedI())
-        
+
         new_I = []
         new_Q = []
         new_Err = []
-        
+
         for i in range(0, data_len):
             new_Q.append(float(self.data_grid.GetCellValue(i, 0)))
             new_I.append(float(self.data_grid.GetCellValue(i, 1)))
-            new_Err.append(float(self.data_grid.GetCellValue(i, 2)))   
-            
+            new_Err.append(float(self.data_grid.GetCellValue(i, 2)))
+
         self.secm.setBinnedI(np.array(new_I))
         self.secm.setBinnedQ(np.array(new_Q))
         self.secm.setBinnedErr(np.array(new_Err))
-        
+
         self.secm._update()
-        
+
     def _onOk(self, event):
         self.EndModal(wx.ID_OK)
 
 
 class IFTDataDialog(wx.Dialog):
-    
+
     def __init__(self, parent, iftm = None, *args, **kwargs):
-        
+
         wx.Dialog.__init__(self, parent, -1, 'IFT Data Display', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs)
-        
+
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.iftm = iftm
@@ -13749,13 +13749,13 @@ class IFTDataDialog(wx.Dialog):
 
         self.data_grid = gridlib.Grid(self)
         self.data_grid.EnableEditing(False)
-        self.data_grid.SetDefaultCellAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE) 
+        self.data_grid.SetDefaultCellAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
 
         columns = 7
 
         if self.extrap:
             columns = columns + 2
-        
+
         self.data_grid.CreateGrid(self.data_len, columns)
         self.data_grid.SetColLabelValue(0, 'R')
         self.data_grid.SetColLabelValue(1, 'P(r)')
@@ -13772,25 +13772,25 @@ class IFTDataDialog(wx.Dialog):
             self.data_grid.SetColLabelValue(index, 'Extrap. q')
             self.data_grid.SetColLabelValue(index+1, 'Extrap. I')
             index = index +2
-        
+
 
         self.data_grid.SetMinSize((700,400))
-        
+
         self.sizer.Add(filename_label, 0, wx.TOP | wx.LEFT, 10)
         self.sizer.Add(self.data_grid, 1, wx.ALL | wx.EXPAND, 10)
         self.sizer.Add(self._CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
-        
+
         self.Bind(wx.EVT_BUTTON, self._onOk, id=wx.ID_OK)
-        
+
         self.SetSizer(self.sizer)
-        
+
         self._insertData()
-        
+
         self.data_grid.AutoSizeColumns()
         self.Fit()
 
         self.CenterOnParent()
-        
+
     def _insertData(self):
 
         for i in range(self.data_len):
@@ -13839,21 +13839,21 @@ class IFTDataDialog(wx.Dialog):
                     self.data_grid.SetCellValue(i, 8, str(self.iftm.i_extrap[i]))
                 else:
                     self.data_grid.SetCellValue(i, 8, '')
-        
+
     def _onOk(self, event):
         self.EndModal(wx.ID_OK)
 
 
 class HistoryDialog(wx.Dialog):
-    
+
     def __init__(self, parent, sasm = None, *args, **kwargs):
-        
+
         wx.Dialog.__init__(self, parent, -1, 'History Display', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, size = (-1,500), *args, **kwargs)
-        
+
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.sasm = sasm
-        
+
         self.text = wx.TextCtrl(self, -1, style = wx.TE_MULTILINE | wx.TE_READONLY)
         self.text.AppendText('#############################################\n')
         self.text.AppendText('History of : %s\n' %(sasm.getParameter('filename')))
@@ -13876,46 +13876,46 @@ class HistoryDialog(wx.Dialog):
             if load != {} and load != None:
                 self.text.AppendText('Load Path:\n%s\n\n' %(json.dumps(load, indent = 4, sort_keys = True)))
 
-        
+
         self.sizer.Add(self.text, 1, wx.ALL | wx.EXPAND, 10)
 
         self.sizer.Add(self._CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
-        
+
         self.Bind(wx.EVT_BUTTON, self._onOk, id=wx.ID_OK)
 
         self.SetSizer(self.sizer)
 
         self.Layout()
-        
+
         self.CenterOnParent()
-        
-        
+
+
     def _onOk(self, event):
-            
+
         self.EndModal(wx.ID_OK)
 
 
 
 class TestDialog2(wx.Dialog):
-    
+
     def __init__(self, parent, *args, **kwargs):
-        
+
         wx.Dialog.__init__(self, parent, *args, **kwargs)
-        
+
         self.panel = MaskingPanel(self, -1)
-        
+
         self.sizer = wx.BoxSizer()
-        
+
         self.sizer.Add(self.panel,0, wx.ALL, 10)
         self.SetSizer(self.sizer)
         self.Fit()
-        
+
 class SyncDialog(wx.Dialog):
-    
+
     def __init__(self, parent, *args, **kwargs):
-        
+
         wx.Dialog.__init__(self, parent, -1, 'Synchronize', *args, **kwargs)
-            
+
         self.chkbox_list = [('q min', 'qmin', wx.NewId()),
                        ('q max', 'qmax', wx.NewId()),
                        ('n min', 'nmin', wx.NewId()),
@@ -13925,78 +13925,78 @@ class SyncDialog(wx.Dialog):
                        ('line style', 'linestyle', wx.NewId()),
                        ('line width', 'linewidth', wx.NewId()),
                        ('line marker', 'linemarker', wx.NewId())]
-        
+
         self.selected_boxes = []
-        
+
         top_sizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         sync_box = wx.StaticBox(self, -1, 'Synchronize Parameters')
         sync_boxsizer = wx.StaticBoxSizer(sync_box)
         sync_boxsizer.SetOrientation(wx.VERTICAL)
-        
+
         for each in self.chkbox_list:
             label, key, id = each
             chkbox = wx.CheckBox(self, id, label, name = key)
             chkbox.Bind(wx.EVT_CHECKBOX, self._onCheckBox)
             sync_boxsizer.Add(chkbox, 0, wx.TOP | wx.LEFT, 5)
-            
+
         sync_boxsizer.Add((5,5),0)
 
         button_sizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
         self.Bind( wx.EVT_BUTTON, self._onOkClicked, id=wx.ID_OK )
-        
+
         top_sizer.Add(sync_boxsizer, 1, wx.EXPAND | wx.ALL, 10)
         top_sizer.Add(button_sizer, 0, wx.ALL, 10)
-            
+
         self.SetSizer(top_sizer)
-        
+
         self.Fit()
         self.CenterOnParent()
-    
+
     def _onOkClicked(self, event):
         manipulation_panel = wx.FindWindowByName('ManipulationPanel')
-        
+
         wx.CallAfter(manipulation_panel.synchronizeSelectedItems, self.selected_boxes)
-        
+
         self.EndModal(wx.ID_OK)
-    
+
     def _onCheckBox(self, event):
-        
+
         chkbox = event.GetEventObject()
-        
+
         if chkbox.IsChecked():
             self.selected_boxes.append(chkbox.GetName())
         else:
             self.selected_boxes.remove(chkbox.GetName())
-         
+
 class QuickReduceDialog(wx.Dialog):
-    
+
     def __init__(self, parent, path, selected_files, *args, **kwargs):
-        
+
         wx.Dialog.__init__(self,parent, -1, 'Quick Reduce Settings', *args, **kwargs)
-        
+
         self._path = path
         filecount_label = wx.StaticText(self, -1, '# of files selected : ' + str(len(selected_files)))
-        
+
         savedir_label = wx.StaticText(self, -1, 'Save Directory :')
         # format_label = wx.StaticText(self, -1, 'Format :')
-        
+
         savedir_sizer = wx.BoxSizer()
         self.save_textctrl = wx.TextCtrl(self, -1, path, size = (400, -1))
-        
+
         folder_bmp = wx.ArtProvider.GetBitmap(wx.ART_FOLDER,  wx.ART_MENU)
         save_search_button = wx.BitmapButton(self, -1, folder_bmp)
         save_search_button.Bind(wx.EVT_BUTTON, self._onSearchButton)
-        
+
         savedir_sizer.Add(self.save_textctrl, 1, wx.RIGHT | wx.EXPAND, 2)
         savedir_sizer.Add(save_search_button, 0)
-        
+
         # format_choice = wx.Choice(self, -1, choices = ['.rad (RAW)', '.dat (ATSAS)'])
         # format_choice.Select(0)
-        
+
         button_sizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
         self.Bind( wx.EVT_BUTTON, self._onOkClicked, id=wx.ID_OK )
-        
+
         final_sizer = wx.BoxSizer(wx.VERTICAL)
         final_sizer.Add(filecount_label, 0, wx.TOP | wx.LEFT | wx.RIGHT, 10)
         final_sizer.Add(savedir_label, 0, wx.TOP | wx.LEFT | wx.RIGHT, 10)
@@ -14005,138 +14005,138 @@ class QuickReduceDialog(wx.Dialog):
         # final_sizer.Add(format_choice, 0, wx.LEFT | wx.RIGHT, 10)
         # final_sizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.TOP, 10)
         final_sizer.Add(button_sizer, 0, wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL, 10)
-        
+
         self.SetSizer(final_sizer)
-        
+
         self.Fit()
         self.CenterOnParent()
-    
+
     def _onOkClicked(self, event):
-        
+
         self._path = self.save_textctrl.GetValue()
         if not os.path.exists(self._path):
             wx.MessageBox('Path does not exist or contains illegal characters.', 'Path not valid', style = wx.ICON_ERROR)
             return
         else:
             self.EndModal(wx.ID_OK)
-        
+
     def _onSearchButton(self, event):
 
         dirdlg = wx.DirDialog(self, "Please select directory:", str(self._path))
-            
+
         if dirdlg.ShowModal() == wx.ID_OK:
             self._path = dirdlg.GetPath()
             self.save_textctrl.SetValue(str(self._path))
-            
+
     def getPath(self):
         return self._path
-        
+
 
 class FilenameChangeDialog(wx.Dialog):
-    
+
     def __init__(self, parent, filename, dlgtype = None, style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
-        
+
         if dlgtype == 'Folder':
             hdr = 'Folder Name'
         else:
             hdr = 'Change Name'
-            
+
         wx.Dialog.__init__(self,parent, -1, hdr, *args, **kwargs)
-        
+
         self.ok_button = wx.Button(self, -1, 'OK')
         self.cancel_button = wx.Button(self, -1, 'Cancel')
         self._filename = None
-        
+
         self.ok_button.Bind(wx.EVT_BUTTON, self._onOKButton)
         self.cancel_button.Bind(wx.EVT_BUTTON, self._onCancelButton)
-        
+
         button_sizer = wx.BoxSizer()
         button_sizer.Add(self.ok_button,0, wx.RIGHT, 5)
-        button_sizer.Add(self.cancel_button,0)        
-        
+        button_sizer.Add(self.cancel_button,0)
+
         label = wx.StaticText(self, -1, 'Name :')
         self.ctrl = wx.TextCtrl(self, -1, '', size = (200, -1))
         self.ctrl.SetValue(str(filename))
-        
+
         filename_sizer = wx.BoxSizer()
         filename_sizer.Add(label,0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
         filename_sizer.Add(self.ctrl, 1, wx.EXPAND | wx.RIGHT, 5)
-        
+
         final_sizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         final_sizer.Add(filename_sizer, 0, wx.ALL, 15)
         final_sizer.Add(button_sizer, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
-        
+
         self.SetSizer(final_sizer)
         self.Fit()
         self.CenterOnParent()
-    
+
     def _onOKButton(self, event):
         self._filename = self.ctrl.GetValue()
         self.EndModal(wx.ID_OK)
-        
+
     def _onCancelButton(self, event):
         self.EndModal(wx.ID_CANCEL)
-        
+
     def getFilename(self):
         return self._filename
-    
-        
+
+
 
 class LegendLabelChangeDialog(wx.Dialog):
-    
+
     def __init__(self, parent, legend_label, style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
-        
+
         wx.Dialog.__init__(self,parent, -1, 'Change Legend Label', *args, **kwargs)
-        
+
         self.ok_button = wx.Button(self, -1, 'OK')
         self.cancel_button = wx.Button(self, -1, 'Cancel')
         self._legend_label = ''
-        
+
         self.ok_button.Bind(wx.EVT_BUTTON, self._onOKButton)
         self.cancel_button.Bind(wx.EVT_BUTTON, self._onCancelButton)
-        
+
         button_sizer = wx.BoxSizer()
         button_sizer.Add(self.ok_button,0, wx.RIGHT, 5)
-        button_sizer.Add(self.cancel_button,0)        
-        
+        button_sizer.Add(self.cancel_button,0)
+
         label_txt = 'Label :'
         label = wx.StaticText(self, -1,label_txt)
         self.ctrl = wx.TextCtrl(self, -1, '', size = (200, -1))
         self.ctrl.SetValue(str(legend_label))
-        
+
         filename_sizer = wx.BoxSizer()
         filename_sizer.Add(label,0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
         filename_sizer.Add(self.ctrl, 1, wx.EXPAND | wx.RIGHT, 5)
-        
+
         final_sizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         final_sizer.Add(filename_sizer, 0, wx.ALL, 15)
         final_sizer.Add(button_sizer, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
-        
+
         self.SetSizer(final_sizer)
         self.Fit()
         self.CenterOnParent()
-    
+
     def _onOKButton(self, event):
         self._legend_label = self.ctrl.GetValue()
         self.EndModal(wx.ID_OK)
-        
+
     def _onCancelButton(self, event):
         self.EndModal(wx.ID_CANCEL)
-        
+
     def getLegendLabel(self):
         return self._legend_label
 
 
 class RebinDialog(wx.Dialog):
-    
+
     def __init__(self, parent, style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
-        
+
         wx.Dialog.__init__(self, parent, -1, 'Rebinning', *args, **kwargs)
-        
+
         top_sizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         choices = ['2','3','4','5','6','7','8','9','10']
         text = wx.StaticText(self, -1, 'Select bin reduction factor :')
         self.choice = wx.Choice(self, -1, choices = choices)
@@ -14147,17 +14147,17 @@ class RebinDialog(wx.Dialog):
 
         buttonsizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
         self.Bind( wx.EVT_BUTTON, self._onOkClicked, id=wx.ID_OK )
-        
+
         sizer.Add(text, 1)
         sizer.Add(self.choice, 0)
         sizer.Add(self.log_box, 0, wx.TOP, 5)
-        
+
         top_sizer.Add(sizer, 1, wx.ALL, 10)
         top_sizer.Add(buttonsizer, 1, wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL)
-        
+
         self.SetSizer(top_sizer)
         self.Fit()
-        
+
         self.CenterOnParent()
 
     def _onOkClicked(self, event):
@@ -14173,50 +14173,50 @@ class RebinDialog(wx.Dialog):
         return [ret, log_rebin]
 
 class ColourChangeDialog(wx.Dialog):
-    
+
     def __init__(self, parent, sasm, linename, style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
-        
+
         wx.Dialog.__init__(self, parent, -1, 'Pick a Colour', *args, **kwargs)
-        
+
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.linename = linename
         self.sasm = sasm
-        
+
         old_color = self.getOldColour()
-        
+
         if old_color == "None": #Transparant marker
             old_color = self.sasm.line.get_color()
-        
+
         conv = mplcol.ColorConverter()
         color = conv.to_rgb(old_color)
         self._old_linecolour = color
         color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
         self._linecolour = color
-        
+
         buttonsizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
         self.Bind( wx.EVT_BUTTON, self._onOkClicked, id=wx.ID_OK )
-        
+
         self.colourchoice = colorchooser.PyColourChooser(self, -1)
         self.colourchoice.SetValue(self._linecolour)
         self.colourchoice.palette.Bind(wx.EVT_LEFT_UP, self.updateLine)
-        
+
         for each in self.colourchoice.colour_boxs:
             each.GetColourBox().Bind(wx.EVT_LEFT_UP, self.updateLine)
-        
+
         sizer.Add(self.colourchoice, 1)
-        
+
         top_sizer.Add(sizer, 0, wx.ALL, 10)
         top_sizer.Add(buttonsizer, 0, wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL, 10)
-        
+
         self.SetSizer(top_sizer)
         self.Fit()
-        
+
         self.CenterOnParent()
-        
+
     def getOldColour(self):
-        
+
         if self.linename == 'MarLineColour':
             return self.sasm.line.get_markeredgecolor()
         elif self.linename == 'MarFillColour':
@@ -14258,11 +14258,11 @@ class ColourChangeDialog(wx.Dialog):
             return self.sasm.qf_line.get_color()
 
 
-            
+
     def updateLine(self, event):
         colour =  self.colourchoice.GetValue().Get(False)
         colour =  (colour[0]/255.0, colour[1]/255.0, colour[2]/255.0)
-        
+
         if self.linename == 'MarFillColour':
             self.sasm.line.set_markerfacecolor(colour)
         elif self.linename == 'MarLineColour':
@@ -14270,11 +14270,11 @@ class ColourChangeDialog(wx.Dialog):
         elif self.linename == 'LineColour':
             self.sasm.line.set_color(colour)
         elif self.linename == 'ErrColour':
-            
+
             for each in self.sasm.err_line:
                 for line in each:
                     line.set_color(colour)
-        
+
         elif self.linename == 'CalcMarFillColour':
             self.sasm.calc_line.set_markerfacecolor(colour)
         elif self.linename == 'CalcMarLineColour':
@@ -14290,7 +14290,7 @@ class ColourChangeDialog(wx.Dialog):
         elif self.linename == 'PrLineColour':
             self.sasm.r_line.set_color(colour)
         elif self.linename == 'PrErrColour':
-            
+
             for each in self.sasm.r_err_line:
                 for line in each:
                     line.set_color(colour)
@@ -14302,7 +14302,7 @@ class ColourChangeDialog(wx.Dialog):
         elif self.linename == 'QoLineColour':
             self.sasm.qo_line.set_color(colour)
         elif self.linename == 'QoErrColour':
-            
+
             for each in self.sasm.qo_err_line:
                 for line in each:
                     line.set_color(colour)
@@ -14314,46 +14314,46 @@ class ColourChangeDialog(wx.Dialog):
         elif self.linename == 'QfLineColour':
             self.sasm.qf_line.set_color(colour)
 
-        
+
         self.sasm.plot_panel.canvas.draw()
-        
+
         event.Skip()
 
     def _onOkClicked(self, event):
         self.EndModal(wx.ID_OK)
-        
+
     def _onCancel(self, event):
         pass
 
 class LinePropertyDialog(wx.Dialog):
-    
+
     def __init__(self, parent, sasm, legend_label, size = (478, 418), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
         if sasm.line == None:
             wx.MessageBox('Unable to change line properties.\nNo plot has been made for this item.', 'No plot')
             return
-            
-        
+
+
         wx.Dialog.__init__(self, parent, -1, "Line Properties", size =size, style=style, *args, **kwargs)
-        
+
         self.sasm = sasm
         self.line = sasm.line
         self.legend_label = legend_label
-        
+
         self.linewidth_combo_choices = ['1.0', '2.0', '3.0', '4.0', '5.0']
         self.linestyle_list_choices = ['None', '-', '--', '-.', ':']
         self.linemarker_list_choices = ['None', '+', '*', ',','.','1','2','3','4','<', '>', 'D', 'H', '^','_','d','h','o','p','s','v','x','|']
-        
+
         self._linestyle = self.line.get_linestyle()
         self._linemarker = self.line.get_marker()
         self._linewidth = self.line.get_linewidth()
-        
+
         conv = mplcol.ColorConverter()
         color = conv.to_rgb(self.line.get_color())
         self._old_linecolour = color
         color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
         self._linecolour = color
-        
-        
+
+
         mfc = self.line.get_markerfacecolor()
         if mfc != "None":
             color = conv.to_rgb(self.line.get_markerfacecolor())
@@ -14363,13 +14363,13 @@ class LinePropertyDialog(wx.Dialog):
             color = conv.to_rgb(self.line.get_markeredgecolor())
             self._marcolour =  wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
             self.hollow_marker = True
-        
+
         color = conv.to_rgb(self.line.get_markeredgecolor())
         self._marlinecolour = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
-        
+
         color = conv.to_rgb(self.sasm.err_line[0][0].get_color())
         self._errcolour = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
-        
+
         self._old_linestyle = self.line.get_linestyle()
         self._old_linemarker = self.line.get_marker()
         self._old_linewidth = self.line.get_linewidth()
@@ -14384,15 +14384,15 @@ class LinePropertyDialog(wx.Dialog):
                                 (0,(6.0, 6.0))    : '--',
                                 (0,(3.0, 5.0, 1.0, 5.0)) : '-.',
                                 (0,(1.0, 3.0)) : ':'}
-        
+
         self._old_errlinestyle = strange_errlinestyles[errstyle[0]]
-           
+
         top_sizer = wx.BoxSizer(wx.VERTICAL)
 
         buttonsizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
         self.Bind( wx.EVT_BUTTON, self._onOkButton, id=wx.ID_OK )
         self.Bind( wx.EVT_BUTTON, self._onCancelButton, id=wx.ID_CANCEL )
-        
+
         linesettings_sizer = wx.FlexGridSizer(cols = 5, rows = 2, vgap = 5, hgap = 10)
         linesettings_sizer.AddGrowableCol(0)
         linesettings_sizer.AddGrowableCol(2)
@@ -14409,7 +14409,7 @@ class LinePropertyDialog(wx.Dialog):
         linesettings_sizer.AddStretchSpacer(1)
         linesettings_sizer.AddStretchSpacer(1)
         linesettings_sizer.AddStretchSpacer(1)
-        
+
         top_sizer.Add(self._createLegendLabelControls(), 0, wx.ALL | wx.EXPAND, 10)
         top_sizer.Add(linesettings_sizer, 0, wx.ALL | wx.EXPAND, 10)
         top_sizer.AddStretchSpacer(1)
@@ -14430,41 +14430,41 @@ class LinePropertyDialog(wx.Dialog):
                 self.SetSize(size)
 
         self.CenterOnParent()
-    
-    
+
+
     def _createLegendLabelControls(self):
-        topbox = wx.StaticBox(self, -1, 'Legend Label') 
+        topbox = wx.StaticBox(self, -1, 'Legend Label')
         box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-        
+
         self.legend_label_text = wx.TextCtrl(self, -1, self.legend_label)
-        
+
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.legend_label_text, 1, wx.EXPAND)
-        
+
         box.Add(sizer, 0, wx.EXPAND | wx.ALL, 5)
         return box
-    
+
     def _createErrorBarsControls(self):
-        topbox = wx.StaticBox(self, -1, 'Error Bars') 
+        topbox = wx.StaticBox(self, -1, 'Error Bars')
         box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-        
+
         err_linewidth_label = wx.StaticText(self, -1, 'Width :')
         err_linestyle_label = wx.StaticText(self, -1, 'Style :')
         err_colour_label = wx.StaticText(self, -1, 'Line Colour :')
-        
+
         self.err_linewidth = wx.SpinCtrl(self, -1, '1')
         self.err_linewidth.SetRange(1, 99)
         self.err_linewidth.SetValue(self._old_errlinewidth)
         self.err_linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
-        
+
         self.err_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
         self.err_linestyle_list.Select(self.linestyle_list_choices.index(str(self._old_errlinestyle)))
         self.err_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
-        
+
         self.err_colour = wx.Panel(self, -1, name = 'ErrColour', style = wx.RAISED_BORDER)
         self.err_colour.SetBackgroundColour(self._errcolour)
         self.err_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
-      
+
         sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
         sizer.Add(err_linestyle_label, 0)
         sizer.Add(self.err_linestyle_list, 0, wx.EXPAND)
@@ -14472,19 +14472,19 @@ class LinePropertyDialog(wx.Dialog):
         sizer.Add(self.err_linewidth, 0, wx.EXPAND)
         sizer.Add(err_colour_label, 0)
         sizer.Add(self.err_colour, 0, wx.EXPAND)
-      
+
         box.Add(sizer, 0, wx.ALL, 5)
-        
+
         return box
-    
+
     def _onColourPress(self, event):
-        
+
         colour_panel = event.GetEventObject()
-        
+
         dlg = ColourChangeDialog(self, self.sasm, colour_panel.GetName())
         dlg.ShowModal()
         dlg.Destroy()
-        
+
         if colour_panel.GetName() == 'LineColour':
             color = self.line.get_color()
         elif colour_panel.GetName() == 'ErrColour':
@@ -14493,50 +14493,50 @@ class LinePropertyDialog(wx.Dialog):
             color = self.line.get_markeredgecolor()
         elif colour_panel.GetName() == 'MarFillColour':
             color = self.line.get_markerfacecolor()
-        
+
         conv = mplcol.ColorConverter()
-        
+
         if color != "None": #Not transparent
             color = conv.to_rgb(color)
             color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
-        
+
             colour_panel.SetBackgroundColour(color)
             colour_panel.Refresh()
-    
+
     def _createLineMarkerControls(self):
-        topbox = wx.StaticBox(self, -1, 'Data Point Marker') 
+        topbox = wx.StaticBox(self, -1, 'Data Point Marker')
         box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-        
+
         mar_size_label = wx.StaticText(self, -1, 'Size :')
         self.mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour :')
         self.mar_fillcolour_label.Enable(not self.hollow_marker)
         mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
         mar_linemarker_label = wx.StaticText(self, -1, 'Marker :')
         mar_hollow_label = wx.StaticText(self, -1, 'Hollow :')
-        
+
         #self.mar_size = wx.SpinCtrl(self, -1, '1')
         self.mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
         self.mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
         self.mar_size.SetValue(str(self._old_marsize))
         #self.mar_size.Bind(wx.EVT_SPINCTRL, self.updateLine)
-        
+
         self.mar_fillcolour = wx.Panel(self, -1, name = 'MarFillColour', style = wx.RAISED_BORDER)
         self.mar_fillcolour.SetBackgroundColour(self._marcolour)
         self.mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
         self.mar_fillcolour.Enable(not self.hollow_marker)
-        
+
         self.mar_linecolour = wx.Panel(self, -1, name = 'MarLineColour', style = wx.RAISED_BORDER)
         self.mar_linecolour.SetBackgroundColour(self._marlinecolour)
         self.mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
-        
+
         self.mar_linemarker_list = wx.Choice(self, -1, choices = self.linemarker_list_choices)
         self.mar_linemarker_list.Select(self.linemarker_list_choices.index(str(self._linemarker)))
         self.mar_linemarker_list.Bind(wx.EVT_CHOICE, self.updateLine)
-        
+
         self.mar_hollow = wx.CheckBox(self, -1)
         self.mar_hollow.SetValue(self.hollow_marker)
         self.mar_hollow.Bind(wx.EVT_CHECKBOX, self._onHollowCheckBox)
-      
+
         sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
         sizer.Add(mar_linemarker_label, 0)
         sizer.Add(self.mar_linemarker_list, 0, wx.EXPAND)
@@ -14548,16 +14548,16 @@ class LinePropertyDialog(wx.Dialog):
         sizer.Add(self.mar_fillcolour, 0, wx.EXPAND)
         sizer.Add(mar_hollow_label, 0)
         sizer.Add(self.mar_hollow, 0, wx.EXPAND)
-        
-      
+
+
         box.Add(sizer, 0, wx.ALL, 5)
-        
+
         return box
-    
+
     def _onHollowCheckBox(self, event):
-        
+
         chkbox = event.GetEventObject()
-        
+
         if chkbox.GetValue() == True:
             self.line.set_markerfacecolor("None")
             self.sasm.plot_panel.canvas.draw()
@@ -14570,124 +14570,124 @@ class LinePropertyDialog(wx.Dialog):
             colour =  (colour[0]/255.0, colour[1]/255.0, colour[2]/255.0)
             self.line.set_markerfacecolor(colour)
             self.sasm.plot_panel.canvas.draw()
-    
+
     def _createLineControls(self):
-        
-        topbox = wx.StaticBox(self, -1, 'Line') 
+
+        topbox = wx.StaticBox(self, -1, 'Line')
         box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-        
+
         linewidth_label = wx.StaticText(self, -1, 'Width :')
         linestyle_label = wx.StaticText(self, -1, 'Style :')
         linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
-        
+
         self.linewidth = wx.SpinCtrl(self, -1, '1')
         self.linewidth.SetRange(1,99)
         self.linewidth.SetValue(self._old_linewidth)
         self.linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
-        
+
         self.linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
         self.linestyle_list.Select(self.linestyle_list_choices.index(str(self._linestyle)))
         self.linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
-        
+
         self.line_colour = wx.Panel(self, -1, name = 'LineColour', style = wx.RAISED_BORDER)
         self.line_colour.SetBackgroundColour(self._linecolour)
         self.line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
-              
+
         sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
-        
+
         sizer.Add(linestyle_label, 0)
         sizer.Add(self.linestyle_list, 0, wx.EXPAND)
         sizer.Add(linewidth_label, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.linewidth, 0, wx.EXPAND)
         sizer.Add(linecolour_label, 0)
         sizer.Add(self.line_colour, 0, wx.EXPAND)
-  
+
         box.Add(sizer, 0, wx.ALL, 5)
-        
+
         return box
-    
+
     def getLegendLabel(self):
         return self.legend_label_text.GetValue()
-    
+
     def updateErrorLines(self, data):
-        
+
         for each in self.sasm.err_line:
             for line in each:
                 func, param = data
                 getattr(line, func)(param)
-                
-        
+
+
     def updateLine(self, event):
         marker =  self.mar_linemarker_list.GetStringSelection()
         width =  self.linewidth.GetValue()
         style =  self.linestyle_list.GetStringSelection()
-        
+
         mar_size = self.mar_size.GetValue()
         err_linewidth = self.err_linewidth.GetValue()
         err_linestyle = self.err_linestyle_list.GetStringSelection()
-        
+
         self.line.set_marker(marker)
-        
+
         colour =  self.mar_linecolour.GetBackgroundColour()
         colour =  (colour[0]/255.0, colour[1]/255.0, colour[2]/255.0)
-        
+
         self.updateErrorLines(['set_linewidth', err_linewidth])
-        
+
         each = self.sasm.err_line[1]
         if err_linestyle != "None":
             for line in each:
                 line.set_linestyle(err_linestyle)
-        
+
         self.line.set_markeredgecolor(colour)
         self.line.set_linewidth(float(width))
-        self.line.set_linestyle(style)    
+        self.line.set_linestyle(style)
         #self.line.set_color(colour)
         self.line.set_markersize(float(mar_size))
-        
+
         self.sasm.plot_panel.canvas.draw()
-        
+
         if event != None:
             event.Skip()
-        
+
     def _onCancelButton(self, event):
         self.line.set_linewidth(self._old_linewidth)
         self.line.set_linestyle(self._old_linestyle)
         self.line.set_color(self._old_linecolour)
-        
+
         self.line.set_marker(self._old_linemarker)
         self.line.set_markeredgecolor(self._old_marlinecolour)
         self.line.set_markerfacecolor(self._old_marcolour)
         self.line.set_markersize(self._old_marsize)
-        
+
         #Stupid errorbars:
         line1, line2 = self.sasm.err_line
         for each in line2:
             each.set_linestyle(self._old_errlinestyle)
             each.set_linewidth(self._old_errlinewidth)
-            each.set_color(self._old_errcolour)   
+            each.set_color(self._old_errcolour)
         for each in line1:
             each.set_linewidth(self._old_errlinewidth)
             each.set_color(self._old_errcolour)
-        
+
         self.EndModal(wx.ID_CANCEL)
 
     def _onOkButton(self, event):
         self.updateLine(None)
-      
+
         self.EndModal(wx.ID_OK)
 
 
 class IFTMLinePropertyDialog(wx.Dialog):
-    
+
     def __init__(self, parent, iftm, legend_label, size = (868, 598), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
 
         if iftm.r_line == None:
             wx.MessageBox('Unable to change line properties.\nNo plot has been made for this item.', 'No plot')
             return
-            
-        
+
+
         wx.Dialog.__init__(self, parent, -1, "IFT Line Properties", size=size, style = style, *args, **kwargs)
-        
+
         self.iftm = iftm
         self.r_line = iftm.r_line
         self.qo_line = iftm.qo_line
@@ -14697,11 +14697,11 @@ class IFTMLinePropertyDialog(wx.Dialog):
         self.line_ids = {self.r_line : wx.NewId(),
                         self.qo_line : wx.NewId(),
                         self.qf_line : wx.NewId()}
-        
+
         self.linewidth_combo_choices = ['1.0', '2.0', '3.0', '4.0', '5.0']
         self.linestyle_list_choices = ['None', '-', '--', '-.', ':']
         self.linemarker_list_choices = ['None', '+', '*', ',','.','1','2','3','4','<', '>', 'D', 'H', '^','_','d','h','o','p','s','v','x','|']
-        
+
         self.r_linestyle = self.r_line.get_linestyle()
         self.r_linemarker = self.r_line.get_marker()
         self.r_linewidth = self.r_line.get_linewidth()
@@ -14713,8 +14713,8 @@ class IFTMLinePropertyDialog(wx.Dialog):
         self.qf_linestyle = self.qf_line.get_linestyle()
         self.qf_linemarker = self.qf_line.get_marker()
         self.qf_linewidth = self.qf_line.get_linewidth()
-       
-        
+
+
         conv = mplcol.ColorConverter()
 
         r_color = conv.to_rgb(self.r_line.get_color())
@@ -14732,8 +14732,8 @@ class IFTMLinePropertyDialog(wx.Dialog):
         self.r_linecolour = r_color
         self.qo_linecolour = qo_color
         self.qf_linecolour = qf_color
-        
-        
+
+
         r_mfc = self.r_line.get_markerfacecolor()
 
         if r_mfc != "None":
@@ -14744,7 +14744,7 @@ class IFTMLinePropertyDialog(wx.Dialog):
             color = conv.to_rgb(self.r_line.get_markeredgecolor())
             self.r_marcolour =  wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
             self.r_hollow_marker = True
-        
+
         qo_mfc = self.qo_line.get_markerfacecolor()
 
         if qo_mfc != "None":
@@ -14775,13 +14775,13 @@ class IFTMLinePropertyDialog(wx.Dialog):
 
         color = conv.to_rgb(self.qf_line.get_markeredgecolor())
         self.qf_marlinecolour = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
-        
+
         color = conv.to_rgb(self.iftm.r_err_line[0][0].get_color())
         self.r_errcolour = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
 
         color = conv.to_rgb(self.iftm.qo_err_line[0][0].get_color())
         self.qo_errcolour = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
-        
+
         self._old_r_linestyle = self.r_line.get_linestyle()
         self._old_r_linemarker = self.r_line.get_marker()
         self._old_r_linewidth = self.r_line.get_linewidth()
@@ -14812,7 +14812,7 @@ class IFTMLinePropertyDialog(wx.Dialog):
                                 (0,(6.0, 6.0))    : '--',
                                 (0,(3.0, 5.0, 1.0, 5.0)) : '-.',
                                 (0,(1.0, 3.0)) : ':'}
-        
+
         self._old_r_errlinestyle = strange_errlinestyles[errstyle[0]]
 
         self._old_qo_errcolour = self.iftm.qo_err_line[0][0].get_color()
@@ -14823,16 +14823,16 @@ class IFTMLinePropertyDialog(wx.Dialog):
                                 (0,(6.0, 6.0))    : '--',
                                 (0,(3.0, 5.0, 1.0, 5.0)) : '-.',
                                 (0,(1.0, 3.0)) : ':'}
-        
+
         self._old_qo_errlinestyle = strange_errlinestyles[errstyle[0]]
 
-           
+
         top_sizer = wx.BoxSizer(wx.VERTICAL)
 
         buttonsizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
         self.Bind( wx.EVT_BUTTON, self._onOkButton, id=wx.ID_OK )
         self.Bind( wx.EVT_BUTTON, self._onCancelButton, id=wx.ID_CANCEL )
-        
+
 
         r_linesettings_sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap = 3, hgap = 3)
         r_linesettings_sizer.Add(self._createLineControls(self.r_line), 1, wx.EXPAND)
@@ -14874,15 +14874,15 @@ class IFTMLinePropertyDialog(wx.Dialog):
         side_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
         side_sizer2.Add(qfboxSizer, 0, wx.EXPAND)
         side_sizer2.AddStretchSpacer(1)
-        
-        
+
+
         top_sizer.Add(side_sizer, 0, wx.ALL | wx.EXPAND, 2)
         top_sizer.AddStretchSpacer(1)
         top_sizer.Add(side_sizer2, 0, wx.ALL | wx.EXPAND, 2)
         top_sizer.AddStretchSpacer(1)
         top_sizer.Add(wx.StaticLine(self, -1), wx.EXPAND |wx.TOP | wx.BOTTOM, 2)
         top_sizer.Add(buttonsizer, 0, wx.CENTER | wx.BOTTOM, 3)
-        
+
         self.SetSizer(top_sizer)
 
         self.Layout()
@@ -14897,48 +14897,48 @@ class IFTMLinePropertyDialog(wx.Dialog):
                 self.SetSize(size)
 
         self.CenterOnParent()
-    
-    
+
+
     def _createLegendLabelControls(self, line):
         if line == self.r_line:
-            topbox = wx.StaticBox(self, -1, 'Legend Label') 
+            topbox = wx.StaticBox(self, -1, 'Legend Label')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-            
+
             self.r_legend_label_text = wx.TextCtrl(self, -1, self.legend_label[self.r_line])
-            
+
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             sizer.Add(self.r_legend_label_text, 1, wx.EXPAND)
-            
+
             box.Add(sizer, 0, wx.EXPAND | wx.ALL, 3)
 
         elif line == self.qo_line:
-            topbox = wx.StaticBox(self, -1, 'Legend Label') 
+            topbox = wx.StaticBox(self, -1, 'Legend Label')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-            
+
             self.qo_legend_label_text = wx.TextCtrl(self, -1, self.legend_label[self.qo_line])
-            
+
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             sizer.Add(self.qo_legend_label_text, 1, wx.EXPAND)
-            
+
             box.Add(sizer, 0, wx.EXPAND | wx.ALL, 3)
 
         elif line == self.qf_line:
-            topbox = wx.StaticBox(self, -1, 'Legend Label') 
+            topbox = wx.StaticBox(self, -1, 'Legend Label')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-            
+
             self.qf_legend_label_text = wx.TextCtrl(self, -1, self.legend_label[self.qf_line])
-            
+
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             sizer.Add(self.qf_legend_label_text, 1, wx.EXPAND)
-            
+
             box.Add(sizer, 0, wx.EXPAND | wx.ALL, 3)
 
 
         return box
-    
+
     def _createErrorBarsControls(self, line):
 
-        topbox = wx.StaticBox(self, -1, 'Error Bars') 
+        topbox = wx.StaticBox(self, -1, 'Error Bars')
         box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
         if line == self.r_line:
@@ -14946,17 +14946,17 @@ class IFTMLinePropertyDialog(wx.Dialog):
             err_linewidth_label = wx.StaticText(self, -1, 'Width :')
             err_linestyle_label = wx.StaticText(self, -1, 'Style :')
             err_colour_label = wx.StaticText(self, -1, 'Line Colour :')
-            
+
             self.r_err_linewidth = wx.SpinCtrl(self, -1, '1')
             self.r_err_linewidth.SetRange(1, 99)
             self.r_err_linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
-            
+
             self.r_err_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
             self.r_err_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
-            
+
             self.r_err_colour = wx.Panel(self, -1, name = 'PrErrColour', style = wx.RAISED_BORDER)
             self.r_err_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
-          
+
             sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
             sizer.Add(err_linestyle_label, 0)
             sizer.Add(self.r_err_linestyle_list, 0, wx.EXPAND)
@@ -14973,17 +14973,17 @@ class IFTMLinePropertyDialog(wx.Dialog):
             err_linewidth_label = wx.StaticText(self, -1, 'Width :')
             err_linestyle_label = wx.StaticText(self, -1, 'Style :')
             err_colour_label = wx.StaticText(self, -1, 'Line Colour :')
-            
+
             self.qo_err_linewidth = wx.SpinCtrl(self, -1, '1')
             self.qo_err_linewidth.SetRange(1, 99)
             self.qo_err_linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
-            
+
             self.qo_err_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
             self.qo_err_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
-            
+
             self.qo_err_colour = wx.Panel(self, -1, name = 'QoErrColour', style = wx.RAISED_BORDER)
             self.qo_err_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
-          
+
             sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
             sizer.Add(err_linestyle_label, 0)
             sizer.Add(self.qo_err_linestyle_list, 0, wx.EXPAND)
@@ -14998,17 +14998,17 @@ class IFTMLinePropertyDialog(wx.Dialog):
 
 
         box.Add(sizer, 0, wx.ALL, 5)
-        
+
         return box
-    
+
     def _onColourPress(self, event):
-        
+
         colour_panel = event.GetEventObject()
-        
+
         dlg = ColourChangeDialog(self, self.iftm, colour_panel.GetName())
         dlg.ShowModal()
         dlg.Destroy()
-        
+
         if colour_panel.GetName() == 'PrLineColour':
             color = self.r_line.get_color()
         elif colour_panel.GetName() == 'PrErrColour':
@@ -15033,52 +15033,52 @@ class IFTMLinePropertyDialog(wx.Dialog):
             color = self.qf_line.get_markeredgecolor()
         elif colour_panel.GetName() == 'QfMarFillColour':
             color = self.qf_line.get_markerfacecolor()
-        
+
         conv = mplcol.ColorConverter()
-        
+
         if color != "None": #Not transparent
             color = conv.to_rgb(color)
             color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
-        
+
             colour_panel.SetBackgroundColour(color)
             colour_panel.Refresh()
-    
+
     def _createLineMarkerControls(self, line):
 
         if line == self.r_line:
-            topbox = wx.StaticBox(self, -1, 'Data Point Marker') 
+            topbox = wx.StaticBox(self, -1, 'Data Point Marker')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-            
+
             mar_size_label = wx.StaticText(self, -1, 'Size :')
             self.r_mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour :')
             self.r_mar_fillcolour_label.Enable(not self.r_hollow_marker)
             mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
             mar_linemarker_label = wx.StaticText(self, -1, 'Marker :')
             mar_hollow_label = wx.StaticText(self, -1, 'Hollow :')
-            
+
             #self.r_mar_size = wx.SpinCtrl(self, -1, '1')
             self.r_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
             self.r_mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
             self.r_mar_size.SetValue(str(self._old_r_marsize))
             #self.r_mar_size.Bind(wx.EVT_SPINCTRL, self.r_updateLine)
-            
+
             self.r_mar_fillcolour = wx.Panel(self, -1, name = 'PrMarFillColour', style = wx.RAISED_BORDER)
             self.r_mar_fillcolour.SetBackgroundColour(self.r_marcolour)
             self.r_mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
             self.r_mar_fillcolour.Enable(not self.r_hollow_marker)
-            
+
             self.r_mar_linecolour = wx.Panel(self, -1, name = 'PrMarLineColour', style = wx.RAISED_BORDER)
             self.r_mar_linecolour.SetBackgroundColour(self.r_marlinecolour)
             self.r_mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
-            
+
             self.r_mar_linemarker_list = wx.Choice(self, -1, choices = self.linemarker_list_choices)
             self.r_mar_linemarker_list.Select(self.linemarker_list_choices.index(str(self.r_linemarker)))
             self.r_mar_linemarker_list.Bind(wx.EVT_CHOICE, self.updateLine)
-            
+
             self.r_mar_hollow = wx.CheckBox(self, -1)
             self.r_mar_hollow.SetValue(self.r_hollow_marker)
             self.r_mar_hollow.Bind(wx.EVT_CHECKBOX, self.r_onHollowCheckBox)
-          
+
             sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
             sizer.Add(mar_linemarker_label, 0)
             sizer.Add(self.r_mar_linemarker_list, 0, wx.EXPAND)
@@ -15090,44 +15090,44 @@ class IFTMLinePropertyDialog(wx.Dialog):
             sizer.Add(self.r_mar_fillcolour, 0, wx.EXPAND)
             sizer.Add(mar_hollow_label, 0)
             sizer.Add(self.r_mar_hollow, 0, wx.EXPAND)
-            
-          
+
+
             box.Add(sizer, 0, wx.ALL, 5)
 
         elif line == self.qo_line:
-            topbox = wx.StaticBox(self, -1, 'Data Point Marker') 
+            topbox = wx.StaticBox(self, -1, 'Data Point Marker')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-            
+
             mar_size_label = wx.StaticText(self, -1, 'Size :')
             self.qo_mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour :')
             self.qo_mar_fillcolour_label.Enable(not self.qo_hollow_marker)
             mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
             mar_linemarker_label = wx.StaticText(self, -1, 'Marker :')
             mar_hollow_label = wx.StaticText(self, -1, 'Hollow :')
-            
+
             #self.qo_mar_size = wx.SpinCtrl(self, -1, '1')
             self.qo_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
             self.qo_mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
             self.qo_mar_size.SetValue(str(self._old_qo_marsize))
             #self.qo_mar_size.Bind(wx.EVT_SPINCTRL, self.qo_updateLine)
-            
+
             self.qo_mar_fillcolour = wx.Panel(self, -1, name = 'QoMarFillColour', style = wx.RAISED_BORDER)
             self.qo_mar_fillcolour.SetBackgroundColour(self.qo_marcolour)
             self.qo_mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
             self.qo_mar_fillcolour.Enable(not self.qo_hollow_marker)
-            
+
             self.qo_mar_linecolour = wx.Panel(self, -1, name = 'QoMarLineColour', style = wx.RAISED_BORDER)
             self.qo_mar_linecolour.SetBackgroundColour(self.qo_marlinecolour)
             self.qo_mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
-            
+
             self.qo_mar_linemarker_list = wx.Choice(self, -1, choices = self.linemarker_list_choices)
             self.qo_mar_linemarker_list.Select(self.linemarker_list_choices.index(str(self.qo_linemarker)))
             self.qo_mar_linemarker_list.Bind(wx.EVT_CHOICE, self.updateLine)
-            
+
             self.qo_mar_hollow = wx.CheckBox(self, -1)
             self.qo_mar_hollow.SetValue(self.qo_hollow_marker)
             self.qo_mar_hollow.Bind(wx.EVT_CHECKBOX, self.qo_onHollowCheckBox)
-          
+
             sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
             sizer.Add(mar_linemarker_label, 0)
             sizer.Add(self.qo_mar_linemarker_list, 0, wx.EXPAND)
@@ -15139,45 +15139,45 @@ class IFTMLinePropertyDialog(wx.Dialog):
             sizer.Add(self.qo_mar_fillcolour, 0, wx.EXPAND)
             sizer.Add(mar_hollow_label, 0)
             sizer.Add(self.qo_mar_hollow, 0, wx.EXPAND)
-            
-          
+
+
             box.Add(sizer, 0, wx.ALL, 5)
 
 
         elif line == self.qf_line:
-            topbox = wx.StaticBox(self, -1, 'Data Point Marker') 
+            topbox = wx.StaticBox(self, -1, 'Data Point Marker')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-            
+
             mar_size_label = wx.StaticText(self, -1, 'Size :')
             self.qf_mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour :')
             self.qf_mar_fillcolour_label.Enable(not self.qf_hollow_marker)
             mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
             mar_linemarker_label = wx.StaticText(self, -1, 'Marker :')
             mar_hollow_label = wx.StaticText(self, -1, 'Hollow :')
-            
+
             #self.qf_mar_size = wx.SpinCtrl(self, -1, '1')
             self.qf_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
             self.qf_mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
             self.qf_mar_size.SetValue(str(self._old_qf_marsize))
             #self.qf_mar_size.Bind(wx.EVT_SPINCTRL, self.qf_updateLine)
-            
+
             self.qf_mar_fillcolour = wx.Panel(self, -1, name = 'QfMarFillColour', style = wx.RAISED_BORDER)
             self.qf_mar_fillcolour.SetBackgroundColour(self.qf_marcolour)
             self.qf_mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
             self.qf_mar_fillcolour.Enable(not self.qf_hollow_marker)
-            
+
             self.qf_mar_linecolour = wx.Panel(self, -1, name = 'QfMarLineColour', style = wx.RAISED_BORDER)
             self.qf_mar_linecolour.SetBackgroundColour(self.qf_marlinecolour)
             self.qf_mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
-            
+
             self.qf_mar_linemarker_list = wx.Choice(self, -1, choices = self.linemarker_list_choices)
             self.qf_mar_linemarker_list.Select(self.linemarker_list_choices.index(str(self.qf_linemarker)))
             self.qf_mar_linemarker_list.Bind(wx.EVT_CHOICE, self.updateLine)
-            
+
             self.qf_mar_hollow = wx.CheckBox(self, -1)
             self.qf_mar_hollow.SetValue(self.qf_hollow_marker)
             self.qf_mar_hollow.Bind(wx.EVT_CHECKBOX, self.qf_onHollowCheckBox)
-          
+
             sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
             sizer.Add(mar_linemarker_label, 0)
             sizer.Add(self.qf_mar_linemarker_list, 0, wx.EXPAND)
@@ -15189,16 +15189,16 @@ class IFTMLinePropertyDialog(wx.Dialog):
             sizer.Add(self.qf_mar_fillcolour, 0, wx.EXPAND)
             sizer.Add(mar_hollow_label, 0)
             sizer.Add(self.qf_mar_hollow, 0, wx.EXPAND)
-            
-          
+
+
             box.Add(sizer, 0, wx.ALL, 5)
-        
+
         return box
-    
+
     def r_onHollowCheckBox(self, event):
-        
+
         chkbox = event.GetEventObject()
-        
+
         if chkbox.GetValue() == True:
             self.r_line.set_markerfacecolor("None")
             self.iftm.plot_panel.canvas.draw()
@@ -15213,9 +15213,9 @@ class IFTMLinePropertyDialog(wx.Dialog):
             self.iftm.plot_panel.canvas.draw()
 
     def qo_onHollowCheckBox(self, event):
-        
+
         chkbox = event.GetEventObject()
-        
+
         if chkbox.GetValue() == True:
             self.qo_line.set_markerfacecolor("None")
             self.iftm.plot_panel.canvas.draw()
@@ -15230,9 +15230,9 @@ class IFTMLinePropertyDialog(wx.Dialog):
             self.iftm.plot_panel.canvas.draw()
 
     def qf_onHollowCheckBox(self, event):
-        
+
         chkbox = event.GetEventObject()
-        
+
         if chkbox.GetValue() == True:
             self.qf_line.set_markerfacecolor("None")
             self.iftm.plot_panel.canvas.draw()
@@ -15247,113 +15247,113 @@ class IFTMLinePropertyDialog(wx.Dialog):
             self.iftm.plot_panel.canvas.draw()
 
     def _createLineControls(self, line):
-        
+
         if line == self.r_line:
-            topbox = wx.StaticBox(self, -1, 'Line') 
+            topbox = wx.StaticBox(self, -1, 'Line')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-            
+
             linewidth_label = wx.StaticText(self, -1, 'Width :')
             linestyle_label = wx.StaticText(self, -1, 'Style :')
             linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
-            
+
             self.r_linewidth = wx.SpinCtrl(self, -1, '1')
             self.r_linewidth.SetRange(1,99)
             self.r_linewidth.SetValue(self._old_r_linewidth)
             self.r_linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
-            
+
             self.r_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
             self.r_linestyle_list.Select(self.linestyle_list_choices.index(str(self.r_linestyle)))
             self.r_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
-            
+
             self.r_line_colour = wx.Panel(self, -1, name = 'PrLineColour', style = wx.RAISED_BORDER)
             self.r_line_colour.SetBackgroundColour(self.r_linecolour)
             self.r_line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
-                  
+
             sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
-            
+
             sizer.Add(linestyle_label, 0)
             sizer.Add(self.r_linestyle_list, 0, wx.EXPAND)
             sizer.Add(linewidth_label, 0, wx.ALIGN_CENTER_VERTICAL)
             sizer.Add(self.r_linewidth, 0, wx.EXPAND)
             sizer.Add(linecolour_label, 0)
             sizer.Add(self.r_line_colour, 0, wx.EXPAND)
-      
+
             box.Add(sizer, 0, wx.ALL, 5)
 
         elif line == self.qo_line:
-            topbox = wx.StaticBox(self, -1, 'Line') 
+            topbox = wx.StaticBox(self, -1, 'Line')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-            
+
             linewidth_label = wx.StaticText(self, -1, 'Width :')
             linestyle_label = wx.StaticText(self, -1, 'Style :')
             linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
-            
+
             self.qo_linewidth = wx.SpinCtrl(self, -1, '1')
             self.qo_linewidth.SetRange(1,99)
             self.qo_linewidth.SetValue(self._old_qo_linewidth)
             self.qo_linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
-            
+
             self.qo_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
             self.qo_linestyle_list.Select(self.linestyle_list_choices.index(str(self.qo_linestyle)))
             self.qo_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
-            
+
             self.qo_line_colour = wx.Panel(self, -1, name = 'QoLineColour', style = wx.RAISED_BORDER)
             self.qo_line_colour.SetBackgroundColour(self.qo_linecolour)
             self.qo_line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
-                  
+
             sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
-            
+
             sizer.Add(linestyle_label, 0)
             sizer.Add(self.qo_linestyle_list, 0, wx.EXPAND)
             sizer.Add(linewidth_label, 0, wx.ALIGN_CENTER_VERTICAL)
             sizer.Add(self.qo_linewidth, 0, wx.EXPAND)
             sizer.Add(linecolour_label, 0)
             sizer.Add(self.qo_line_colour, 0, wx.EXPAND)
-      
+
             box.Add(sizer, 0, wx.ALL, 5)
 
         elif line == self.qf_line:
-            topbox = wx.StaticBox(self, -1, 'Line') 
+            topbox = wx.StaticBox(self, -1, 'Line')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-            
+
             linewidth_label = wx.StaticText(self, -1, 'Width :')
             linestyle_label = wx.StaticText(self, -1, 'Style :')
             linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
-            
+
             self.qf_linewidth = wx.SpinCtrl(self, -1, '1')
             self.qf_linewidth.SetRange(1,99)
             self.qf_linewidth.SetValue(self._old_qf_linewidth)
             self.qf_linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
-            
+
             self.qf_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
             self.qf_linestyle_list.Select(self.linestyle_list_choices.index(str(self.qf_linestyle)))
             self.qf_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
-            
+
             self.qf_line_colour = wx.Panel(self, -1, name = 'QfLineColour', style = wx.RAISED_BORDER)
             self.qf_line_colour.SetBackgroundColour(self.qf_linecolour)
             self.qf_line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
-                  
+
             sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
-            
+
             sizer.Add(linestyle_label, 0)
             sizer.Add(self.qf_linestyle_list, 0, wx.EXPAND)
             sizer.Add(linewidth_label, 0, wx.ALIGN_CENTER_VERTICAL)
             sizer.Add(self.qf_linewidth, 0, wx.EXPAND)
             sizer.Add(linecolour_label, 0)
             sizer.Add(self.qf_line_colour, 0, wx.EXPAND)
-      
+
             box.Add(sizer, 0, wx.ALL, 5)
-        
+
         return box
-    
+
     def getLegendLabel(self):
         data = {self.r_line : self.r_legend_label_text.GetValue(),
                 self.qo_line : self.qo_legend_label_text.GetValue(),
                 self.qf_line : self.qf_legend_label_text.GetValue()}
         return data
-    
+
     def updateErrorLines(self, data):
-        
+
         if data[2] == self.r_line:
             for each in self.iftm.r_err_line:
                 for line in each:
@@ -15365,32 +15365,32 @@ class IFTMLinePropertyDialog(wx.Dialog):
                 for line in each:
                     func, param = data[0], data[1]
                     getattr(line, func)(param)
-                
-        
+
+
     def updateLine(self, event):
         marker =  self.r_mar_linemarker_list.GetStringSelection()
         width =  self.r_linewidth.GetValue()
         style =  self.r_linestyle_list.GetStringSelection()
-        
+
         mar_size = self.r_mar_size.GetValue()
         err_linewidth = self.r_err_linewidth.GetValue()
         err_linestyle = self.r_err_linestyle_list.GetStringSelection()
-        
+
         self.r_line.set_marker(marker)
-        
+
         colour =  self.r_mar_linecolour.GetBackgroundColour()
         colour =  (colour[0]/255.0, colour[1]/255.0, colour[2]/255.0)
-        
+
         self.updateErrorLines(['set_linewidth', err_linewidth, self.r_line])
-        
+
         each = self.iftm.r_err_line[1]
         if err_linestyle != "None":
             for line in each:
                 line.set_linestyle(err_linestyle)
-        
+
         self.r_line.set_markeredgecolor(colour)
         self.r_line.set_linewidth(float(width))
-        self.r_line.set_linestyle(style)    
+        self.r_line.set_linestyle(style)
         #self.line.set_color(colour)
         self.r_line.set_markersize(float(mar_size))
 
@@ -15398,26 +15398,26 @@ class IFTMLinePropertyDialog(wx.Dialog):
         marker =  self.qo_mar_linemarker_list.GetStringSelection()
         width =  self.qo_linewidth.GetValue()
         style =  self.qo_linestyle_list.GetStringSelection()
-        
+
         mar_size = self.qo_mar_size.GetValue()
         err_linewidth = self.qo_err_linewidth.GetValue()
         err_linestyle = self.qo_err_linestyle_list.GetStringSelection()
-        
+
         self.qo_line.set_marker(marker)
-        
+
         colour =  self.qo_mar_linecolour.GetBackgroundColour()
         colour =  (colour[0]/255.0, colour[1]/255.0, colour[2]/255.0)
-        
+
         self.updateErrorLines(['set_linewidth', err_linewidth, self.qo_line])
-        
+
         each = self.iftm.qo_err_line[1]
         if err_linestyle != "None":
             for line in each:
                 line.set_linestyle(err_linestyle)
-        
+
         self.qo_line.set_markeredgecolor(colour)
         self.qo_line.set_linewidth(float(width))
-        self.qo_line.set_linestyle(style)    
+        self.qo_line.set_linestyle(style)
         #self.line.set_color(colour)
         self.qo_line.set_markersize(float(mar_size))
 
@@ -15425,31 +15425,31 @@ class IFTMLinePropertyDialog(wx.Dialog):
         marker =  self.qf_mar_linemarker_list.GetStringSelection()
         width =  self.qf_linewidth.GetValue()
         style =  self.qf_linestyle_list.GetStringSelection()
-        
+
         mar_size = self.qf_mar_size.GetValue()
-        
+
         self.qf_line.set_marker(marker)
-        
+
         colour =  self.qf_mar_linecolour.GetBackgroundColour()
         colour =  (colour[0]/255.0, colour[1]/255.0, colour[2]/255.0)
-        
+
         self.qf_line.set_markeredgecolor(colour)
         self.qf_line.set_linewidth(float(width))
-        self.qf_line.set_linestyle(style)    
+        self.qf_line.set_linestyle(style)
         #self.line.set_color(colour)
         self.qf_line.set_markersize(float(mar_size))
 
-        
+
         self.iftm.plot_panel.canvas.draw()
-        
+
         if event != None:
             event.Skip()
-        
+
     def _onCancelButton(self, event):
         self.r_line.set_linewidth(self._old_r_linewidth)
         self.r_line.set_linestyle(self._old_r_linestyle)
         self.r_line.set_color(self._old_r_linecolour)
-        
+
         self.r_line.set_marker(self._old_r_linemarker)
         self.r_line.set_markeredgecolor(self._old_r_marlinecolour)
         self.r_line.set_markerfacecolor(self._old_r_marcolour)
@@ -15459,7 +15459,7 @@ class IFTMLinePropertyDialog(wx.Dialog):
         self.qo_line.set_linewidth(self._old_qo_linewidth)
         self.qo_line.set_linestyle(self._old_qo_linestyle)
         self.qo_line.set_color(self._old_qo_linecolour)
-        
+
         self.qo_line.set_marker(self._old_qo_linemarker)
         self.qo_line.set_markeredgecolor(self._old_qo_marlinecolour)
         self.qo_line.set_markerfacecolor(self._old_qo_marcolour)
@@ -15469,18 +15469,18 @@ class IFTMLinePropertyDialog(wx.Dialog):
         self.qf_line.set_linewidth(self._old_qf_linewidth)
         self.qf_line.set_linestyle(self._old_qf_linestyle)
         self.qf_line.set_color(self._old_qf_linecolour)
-        
+
         self.qf_line.set_marker(self._old_qf_linemarker)
         self.qf_line.set_markeredgecolor(self._old_qf_marlinecolour)
         self.qf_line.set_markerfacecolor(self._old_qf_marcolour)
         self.qf_line.set_markersize(self._old_qf_marsize)
-        
+
         # Stupid errorbars:
         line1, line2 = self.iftm.r_err_line
         for each in line2:
             each.set_linestyle(self._old_r_errlinestyle)
             each.set_linewidth(self._old_r_errlinewidth)
-            each.set_color(self._old_r_errcolour)   
+            each.set_color(self._old_r_errcolour)
         for each in line1:
             each.set_linewidth(self._old_r_errlinewidth)
             each.set_color(self._old_r_errcolour)
@@ -15489,39 +15489,39 @@ class IFTMLinePropertyDialog(wx.Dialog):
         for each in line2:
             each.set_linestyle(self._old_qo_errlinestyle)
             each.set_linewidth(self._old_qo_errlinewidth)
-            each.set_color(self._old_qo_errcolour)   
+            each.set_color(self._old_qo_errcolour)
         for each in line1:
             each.set_linewidth(self._old_qo_errlinewidth)
             each.set_color(self._old_qo_errcolour)
-        
+
         self.EndModal(wx.ID_CANCEL)
 
     def _onOkButton(self, event):
         self.updateLine(None)
-      
+
         self.EndModal(wx.ID_OK)
 
 
 class SECMLinePropertyDialog(wx.Dialog):
-    
+
     def __init__(self, parent, secm, legend_label, size = (433, 549), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
 
         if secm.line == None:
             wx.MessageBox('Unable to change line properties.\nNo plot has been made for this item.', 'No plot')
             return
-            
-        
+
+
         wx.Dialog.__init__(self, parent, -1, "SEC Line Properties", size = size, style = style, *args, **kwargs)
-        
+
         self.secm = secm
         self.line = secm.line
         self.calc_line = secm.calc_line
         self.legend_label = legend_label
-        
+
         self.linewidth_combo_choices = ['1.0', '2.0', '3.0', '4.0', '5.0']
         self.linestyle_list_choices = ['None', '-', '--', '-.', ':']
         self.linemarker_list_choices = ['None', '+', '*', ',','.','1','2','3','4','<', '>', 'D', 'H', '^','_','d','h','o','p','s','v','x','|']
-        
+
         self._linestyle = self.line.get_linestyle()
         self._linemarker = self.line.get_marker()
         self._linewidth = self.line.get_linewidth()
@@ -15529,7 +15529,7 @@ class SECMLinePropertyDialog(wx.Dialog):
         self._calclinestyle = self.calc_line.get_linestyle()
         self._calclinemarker = self.calc_line.get_marker()
         self._calclinewidth = self.calc_line.get_linewidth()
-        
+
         conv = mplcol.ColorConverter()
         color = conv.to_rgb(self.line.get_color())
         calc_color = conv.to_rgb(self.calc_line.get_color())
@@ -15539,8 +15539,8 @@ class SECMLinePropertyDialog(wx.Dialog):
         calc_color = wx.Colour(int(calc_color[0]*255), int(calc_color[1]*255), int(calc_color[2]*255))
         self._linecolour = color
         self._calclinecolour = calc_color
-        
-        
+
+
         mfc = self.line.get_markerfacecolor()
 
         if mfc != "None":
@@ -15551,7 +15551,7 @@ class SECMLinePropertyDialog(wx.Dialog):
             color = conv.to_rgb(self.line.get_markeredgecolor())
             self._marcolour =  wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
             self.hollow_marker = True
-        
+
         mfc_calc = self.calc_line.get_markerfacecolor()
         if mfc_calc != "None":
             color = conv.to_rgb(mfc_calc)
@@ -15568,7 +15568,7 @@ class SECMLinePropertyDialog(wx.Dialog):
         color = conv.to_rgb(self.calc_line.get_markeredgecolor())
         self._calcmarlinecolour = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
 
-        
+
         self._old_linestyle = self.line.get_linestyle()
         self._old_linemarker = self.line.get_marker()
         self._old_linewidth = self.line.get_linewidth()
@@ -15583,13 +15583,13 @@ class SECMLinePropertyDialog(wx.Dialog):
         self._old_calcmarlinecolour = self.calc_line.get_markeredgecolor()
         self._old_calcmarsize = self.calc_line.get_markersize()
 
-           
+
         top_sizer = wx.BoxSizer(wx.VERTICAL)
 
         buttonsizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
         self.Bind( wx.EVT_BUTTON, self._onOkButton, id=wx.ID_OK )
         self.Bind( wx.EVT_BUTTON, self._onCancelButton, id=wx.ID_CANCEL )
-        
+
         sec_box = wx.StaticBox(self, -1, 'SEC Line')
         secline_sizer = wx.StaticBoxSizer(sec_box, wx.VERTICAL)
 
@@ -15628,7 +15628,7 @@ class SECMLinePropertyDialog(wx.Dialog):
 
         calcline_sizer.Add(calc_legend, 0, wx.ALL | wx.EXPAND, 5)
         calcline_sizer.Add(calclinesettings_sizer, 0, wx.ALL | wx.EXPAND, 5)
-        
+
 
         top_sizer.Add(secline_sizer, 0, wx.ALL | wx.EXPAND, 2)
         top_sizer.AddStretchSpacer(1)
@@ -15636,7 +15636,7 @@ class SECMLinePropertyDialog(wx.Dialog):
         top_sizer.AddStretchSpacer(1)
         top_sizer.Add(wx.StaticLine(self, -1), wx.EXPAND |wx.TOP | wx.BOTTOM, 3)
         top_sizer.Add(buttonsizer, 0, wx.CENTER | wx.BOTTOM, 10)
-        
+
         self.SetSizer(top_sizer)
 
         self.Layout()
@@ -15651,57 +15651,57 @@ class SECMLinePropertyDialog(wx.Dialog):
                 self.SetSize(size)
 
         self.CenterOnParent()
-    
-    
+
+
     def _createLegendLabelControls(self, line):
 
         if line == self.line:
-            topbox = wx.StaticBox(self, -1, 'Legend Label') 
+            topbox = wx.StaticBox(self, -1, 'Legend Label')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-            
+
             self.line_legend_label_text = wx.TextCtrl(self, -1, self.legend_label[self.line])
-            
+
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             sizer.Add(self.line_legend_label_text, 1, wx.EXPAND)
-            
+
             box.Add(sizer, 0, wx.EXPAND | wx.ALL, 5)
 
         elif line == self.calc_line:
-            topbox = wx.StaticBox(self, -1, 'Legend Label') 
+            topbox = wx.StaticBox(self, -1, 'Legend Label')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-            
+
             self.calc_legend_label_text = wx.TextCtrl(self, -1, self.legend_label[self.calc_line])
-            
+
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             sizer.Add(self.calc_legend_label_text, 1, wx.EXPAND)
-            
+
             box.Add(sizer, 0, wx.EXPAND | wx.ALL, 5)
 
 
         return box
 
-    
+
     def _createErrorBarsControls(self):
-        topbox = wx.StaticBox(self, -1, 'Error Bars') 
+        topbox = wx.StaticBox(self, -1, 'Error Bars')
         box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-        
+
         err_linewidth_label = wx.StaticText(self, -1, 'Width :')
         err_linestyle_label = wx.StaticText(self, -1, 'Style :')
         err_colour_label = wx.StaticText(self, -1, 'Line Colour :')
-        
+
         self.err_linewidth = wx.SpinCtrl(self, -1, '1')
         self.err_linewidth.SetRange(1, 99)
         self.err_linewidth.SetValue(self._old_errlinewidth)
         self.err_linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
-        
+
         self.err_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
         self.err_linestyle_list.Select(self.linestyle_list_choices.index(str(self._old_errlinestyle)))
         self.err_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
-        
+
         self.err_colour = wx.Panel(self, -1, name = 'ErrColour', style = wx.RAISED_BORDER)
         self.err_colour.SetBackgroundColour(self._errcolour)
         self.err_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
-      
+
         sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
         sizer.Add(err_linestyle_label, 0)
         sizer.Add(self.err_linestyle_list, 0, wx.EXPAND)
@@ -15709,19 +15709,19 @@ class SECMLinePropertyDialog(wx.Dialog):
         sizer.Add(self.err_linewidth, 0, wx.EXPAND)
         sizer.Add(err_colour_label, 0)
         sizer.Add(self.err_colour, 0, wx.EXPAND)
-      
+
         box.Add(sizer, 0, wx.ALL, 5)
-        
+
         return box
-    
+
     def _onColourPress(self, event):
-        
+
         colour_panel = event.GetEventObject()
-        
+
         dlg = ColourChangeDialog(self, self.secm, colour_panel.GetName())
         dlg.ShowModal()
         dlg.Destroy()
-        
+
         if colour_panel.GetName() == 'LineColour':
             color = self.line.get_color()
         # elif colour_panel.GetName() == 'ErrColour':
@@ -15739,52 +15739,52 @@ class SECMLinePropertyDialog(wx.Dialog):
             color = self.calc_line.get_markeredgecolor()
         elif colour_panel.GetName() == 'CalcMarFillColour':
             color = self.calc_line.get_markerfacecolor()
-        
+
         conv = mplcol.ColorConverter()
-        
+
         if color != "None": #Not transparent
             color = conv.to_rgb(color)
             color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
-        
+
             colour_panel.SetBackgroundColour(color)
             colour_panel.Refresh()
-    
+
     def _createLineMarkerControls(self, calc = False):
 
         if not calc:
-            topbox = wx.StaticBox(self, -1, 'Data Point Marker') 
+            topbox = wx.StaticBox(self, -1, 'Data Point Marker')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-            
+
             mar_size_label = wx.StaticText(self, -1, 'Size :')
             self.mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour :')
             self.mar_fillcolour_label.Enable(not self.hollow_marker)
             mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
             mar_linemarker_label = wx.StaticText(self, -1, 'Marker :')
             mar_hollow_label = wx.StaticText(self, -1, 'Hollow :')
-            
+
             #self.mar_size = wx.SpinCtrl(self, -1, '1')
             self.mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
             self.mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
             self.mar_size.SetValue(str(self._old_marsize))
             #self.mar_size.Bind(wx.EVT_SPINCTRL, self.updateLine)
-            
+
             self.mar_fillcolour = wx.Panel(self, -1, name = 'MarFillColour', style = wx.RAISED_BORDER)
             self.mar_fillcolour.SetBackgroundColour(self._marcolour)
             self.mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
             self.mar_fillcolour.Enable(not self.hollow_marker)
-            
+
             self.mar_linecolour = wx.Panel(self, -1, name = 'MarLineColour', style = wx.RAISED_BORDER)
             self.mar_linecolour.SetBackgroundColour(self._marlinecolour)
             self.mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
-            
+
             self.mar_linemarker_list = wx.Choice(self, -1, choices = self.linemarker_list_choices)
             self.mar_linemarker_list.Select(self.linemarker_list_choices.index(str(self._linemarker)))
             self.mar_linemarker_list.Bind(wx.EVT_CHOICE, self.updateLine)
-            
+
             self.mar_hollow = wx.CheckBox(self, -1)
             self.mar_hollow.SetValue(self.hollow_marker)
             self.mar_hollow.Bind(wx.EVT_CHECKBOX, self._onHollowCheckBox)
-          
+
             sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
             sizer.Add(mar_linemarker_label, 0)
             sizer.Add(self.mar_linemarker_list, 0, wx.EXPAND)
@@ -15796,44 +15796,44 @@ class SECMLinePropertyDialog(wx.Dialog):
             sizer.Add(self.mar_fillcolour, 0, wx.EXPAND)
             sizer.Add(mar_hollow_label, 0)
             sizer.Add(self.mar_hollow, 0, wx.EXPAND)
-            
-          
+
+
             box.Add(sizer, 0, wx.ALL, 5)
 
         else:
-            topbox = wx.StaticBox(self, -1, 'Calc Data Point Marker') 
+            topbox = wx.StaticBox(self, -1, 'Calc Data Point Marker')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-            
+
             mar_size_label = wx.StaticText(self, -1, 'Size :')
             self.calc_mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour :')
             self.calc_mar_fillcolour_label.Enable(not self.hollow_marker_calc)
             mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
             mar_linemarker_label = wx.StaticText(self, -1, 'Marker :')
             mar_hollow_label = wx.StaticText(self, -1, 'Hollow :')
-            
+
             #self.mar_size = wx.SpinCtrl(self, -1, '1')
             self.calc_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
             self.calc_mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
             self.calc_mar_size.SetValue(str(self._old_calcmarsize))
             #self.mar_size.Bind(wx.EVT_SPINCTRL, self.updateLine)
-            
+
             self.calc_mar_fillcolour = wx.Panel(self, -1, name = 'CalcMarFillColour', style = wx.RAISED_BORDER)
             self.calc_mar_fillcolour.SetBackgroundColour(self._calcmarcolour)
             self.calc_mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
             self.calc_mar_fillcolour.Enable(not self.hollow_marker_calc)
-            
+
             self.calc_mar_linecolour = wx.Panel(self, -1, name = 'CalcMarLineColour', style = wx.RAISED_BORDER)
             self.calc_mar_linecolour.SetBackgroundColour(self._calcmarlinecolour)
             self.calc_mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
-            
+
             self.calc_mar_linemarker_list = wx.Choice(self, -1, choices = self.linemarker_list_choices)
             self.calc_mar_linemarker_list.Select(self.linemarker_list_choices.index(str(self._calclinemarker)))
             self.calc_mar_linemarker_list.Bind(wx.EVT_CHOICE, self.updateLine)
-            
+
             self.calc_mar_hollow = wx.CheckBox(self, -1)
             self.calc_mar_hollow.SetValue(self.hollow_marker_calc)
             self.calc_mar_hollow.Bind(wx.EVT_CHECKBOX, self._onHollowCheckBoxCalc)
-          
+
             sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
             sizer.Add(mar_linemarker_label, 0)
             sizer.Add(self.calc_mar_linemarker_list, 0, wx.EXPAND)
@@ -15845,16 +15845,16 @@ class SECMLinePropertyDialog(wx.Dialog):
             sizer.Add(self.calc_mar_fillcolour, 0, wx.EXPAND)
             sizer.Add(mar_hollow_label, 0)
             sizer.Add(self.calc_mar_hollow, 0, wx.EXPAND)
-            
-          
+
+
             box.Add(sizer, 0, wx.ALL, 5)
-        
+
         return box
-    
+
     def _onHollowCheckBox(self, event):
-        
+
         chkbox = event.GetEventObject()
-        
+
         if chkbox.GetValue() == True:
             self.line.set_markerfacecolor("None")
             self.secm.plot_panel.canvas.draw()
@@ -15869,9 +15869,9 @@ class SECMLinePropertyDialog(wx.Dialog):
             self.secm.plot_panel.canvas.draw()
 
     def _onHollowCheckBoxCalc(self, event):
-        
+
         chkbox = event.GetEventObject()
-        
+
         if chkbox.GetValue() == True:
             self.calc_line.set_markerfacecolor("None")
             self.secm.plot_panel.canvas.draw()
@@ -15886,111 +15886,111 @@ class SECMLinePropertyDialog(wx.Dialog):
             self.secm.plot_panel.canvas.draw()
 
     def _createLineControls(self, calc = False):
-        
+
         if not calc:
-            topbox = wx.StaticBox(self, -1, 'Line') 
+            topbox = wx.StaticBox(self, -1, 'Line')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-            
+
             linewidth_label = wx.StaticText(self, -1, 'Width :')
             linestyle_label = wx.StaticText(self, -1, 'Style :')
             linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
-            
+
             self.linewidth = wx.SpinCtrl(self, -1, '1')
             self.linewidth.SetRange(1,99)
             self.linewidth.SetValue(self._old_linewidth)
             self.linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
-            
+
             self.linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
             self.linestyle_list.Select(self.linestyle_list_choices.index(str(self._linestyle)))
             self.linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
-            
+
             self.line_colour = wx.Panel(self, -1, name = 'LineColour', style = wx.RAISED_BORDER)
             self.line_colour.SetBackgroundColour(self._linecolour)
             self.line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
-                  
+
             sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
-            
+
             sizer.Add(linestyle_label, 0)
             sizer.Add(self.linestyle_list, 0, wx.EXPAND)
             sizer.Add(linewidth_label, 0, wx.ALIGN_CENTER_VERTICAL)
             sizer.Add(self.linewidth, 0, wx.EXPAND)
             sizer.Add(linecolour_label, 0)
             sizer.Add(self.line_colour, 0, wx.EXPAND)
-      
+
             box.Add(sizer, 0, wx.ALL, 5)
 
         else:
-            topbox = wx.StaticBox(self, -1, 'Calc Line') 
+            topbox = wx.StaticBox(self, -1, 'Calc Line')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-            
+
             linewidth_label = wx.StaticText(self, -1, 'Width :')
             linestyle_label = wx.StaticText(self, -1, 'Style :')
             linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
-            
+
             self.calc_linewidth = wx.SpinCtrl(self, -1, '1')
             self.calc_linewidth.SetRange(1,99)
             self.calc_linewidth.SetValue(self._old_calclinewidth)
             self.calc_linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
-            
+
             self.calc_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
             self.calc_linestyle_list.Select(self.linestyle_list_choices.index(str(self._calclinestyle)))
             self.calc_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
-            
+
             self.calc_line_colour = wx.Panel(self, -1, name = 'CalcLineColour', style = wx.RAISED_BORDER)
             self.calc_line_colour.SetBackgroundColour(self._calclinecolour)
             self.calc_line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
-                  
+
             sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
-            
+
             sizer.Add(linestyle_label, 0)
             sizer.Add(self.calc_linestyle_list, 0, wx.EXPAND)
             sizer.Add(linewidth_label, 0, wx.ALIGN_CENTER_VERTICAL)
             sizer.Add(self.calc_linewidth, 0, wx.EXPAND)
             sizer.Add(linecolour_label, 0)
             sizer.Add(self.calc_line_colour, 0, wx.EXPAND)
-      
+
             box.Add(sizer, 0, wx.ALL, 5)
-        
+
         return box
-    
+
     def getLegendLabel(self):
         data = {self.line       : self.line_legend_label_text.GetValue(),
                 self.calc_line  : self.calc_legend_label_text.GetValue()}
 
         return data
-    
+
     def updateErrorLines(self, data):
-        
+
         for each in self.secm.err_line:
             for line in each:
                 func, param = data
                 getattr(line, func)(param)
-                
-        
+
+
     def updateLine(self, event):
         marker =  self.mar_linemarker_list.GetStringSelection()
         width =  self.linewidth.GetValue()
         style =  self.linestyle_list.GetStringSelection()
-        
+
         mar_size = self.mar_size.GetValue()
         # err_linewidth = self.err_linewidth.GetValue()
         # err_linestyle = self.err_linestyle_list.GetStringSelection()
-        
+
         self.line.set_marker(marker)
-        
+
         colour =  self.mar_linecolour.GetBackgroundColour()
         colour =  (colour[0]/255.0, colour[1]/255.0, colour[2]/255.0)
-        
+
         # self.updateErrorLines(['set_linewidth', err_linewidth])
-        
+
         # each = self.secm.err_line[1]
         # if err_linestyle != "None":
         #     for line in each:
         #         line.set_linestyle(err_linestyle)
-        
+
         self.line.set_markeredgecolor(colour)
         self.line.set_linewidth(float(width))
-        self.line.set_linestyle(style)    
+        self.line.set_linestyle(style)
         #self.line.set_color(colour)
         self.line.set_markersize(float(mar_size))
 
@@ -15998,39 +15998,39 @@ class SECMLinePropertyDialog(wx.Dialog):
         calc_marker =  self.calc_mar_linemarker_list.GetStringSelection()
         calc_width =  self.calc_linewidth.GetValue()
         calc_style =  self.calc_linestyle_list.GetStringSelection()
-        
+
         calc_mar_size = self.calc_mar_size.GetValue()
         # err_linewidth = self.err_linewidth.GetValue()
         # err_linestyle = self.err_linestyle_list.GetStringSelection()
-        
+
         self.calc_line.set_marker(calc_marker)
-        
+
         calc_colour =  self.calc_mar_linecolour.GetBackgroundColour()
         calc_colour =  (calc_colour[0]/255.0, calc_colour[1]/255.0, calc_colour[2]/255.0)
-        
+
         # self.updateErrorLines(['set_linewidth', err_linewidth])
-        
+
         # each = self.secm.err_line[1]
         # if err_linestyle != "None":
         #     for line in each:
         #         line.set_linestyle(err_linestyle)
-        
+
         self.calc_line.set_markeredgecolor(calc_colour)
         self.calc_line.set_linewidth(float(calc_width))
-        self.calc_line.set_linestyle(calc_style)    
+        self.calc_line.set_linestyle(calc_style)
         #self.line.set_color(colour)
         self.calc_line.set_markersize(float(calc_mar_size))
-        
+
         self.secm.plot_panel.canvas.draw()
-        
+
         if event != None:
             event.Skip()
-        
+
     def _onCancelButton(self, event):
         self.line.set_linewidth(self._old_linewidth)
         self.line.set_linestyle(self._old_linestyle)
         self.line.set_color(self._old_linecolour)
-        
+
         self.line.set_marker(self._old_linemarker)
         self.line.set_markeredgecolor(self._old_marlinecolour)
         self.line.set_markerfacecolor(self._old_marcolour)
@@ -16040,67 +16040,67 @@ class SECMLinePropertyDialog(wx.Dialog):
         self.calc_line.set_linewidth(self._old_calclinewidth)
         self.calc_line.set_linestyle(self._old_calclinestyle)
         self.calc_line.set_color(self._old_calclinecolour)
-        
+
         self.calc_line.set_marker(self._old_linemarker)
         self.calc_line.set_markeredgecolor(self._old_calcmarlinecolour)
         self.calc_line.set_markerfacecolor(self._old_calcmarcolour)
         self.calc_line.set_markersize(self._old_calcmarsize)
-        
+
         #Stupid errorbars:
         # line1, line2 = self.secm.err_line
         # for each in line2:
         #     each.set_linestyle(self._old_errlinestyle)
         #     each.set_linewidth(self._old_errlinewidth)
-        #     each.set_color(self._old_errcolour)   
+        #     each.set_color(self._old_errcolour)
         # for each in line1:
         #     each.set_linewidth(self._old_errlinewidth)
         #     each.set_color(self._old_errcolour)
-        
+
         self.EndModal(wx.ID_CANCEL)
 
     def _onOkButton(self, event):
         self.updateLine(None)
-      
+
         self.EndModal(wx.ID_OK)
-        
+
 #--- ** Startup app **
 
 
 class WelcomeDialog(wx.Frame):
     def __init__(self, parent, *args, **kwargs):
-        
+
         wx.Frame.__init__(self,parent, -1, style = wx.RESIZE_BORDER | wx.STAY_ON_TOP, *args, **kwargs)
-        
+
         self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
-        
-        self.ok_button = wx.Button(self.panel, -1, 'OK')       
+
+        self.ok_button = wx.Button(self.panel, -1, 'OK')
         self.ok_button.Bind(wx.EVT_BUTTON, self._onOKButton)
         self.ok_button.SetDefault()
-        
+
         raw_bitmap = RAWIcons.raw_icon_embed.GetBitmap()
         rawimg = wx.StaticBitmap(self.panel, -1, raw_bitmap)
-        
+
         headline = wx.StaticText(self.panel, -1, 'Welcome to RAW %s!' %(RAWGlobals.version))
-        
+
         text1 = 'Developers/Contributors:'
         text2 = '\nSoren Skou'
         text3 = 'Jesse B. Hopkins'
         text4 = 'Richard E. Gillilan'
         text5 = 'Jesper Nygaard'
         text6 = 'Kurt Andersen'
-        
+
         text7 = '\nHelp this software become better by reporting bugs to:\n     soren.skou@saxslab.dk and jbh246@cornell.edu\n'
-        
+
         text8 = 'If you use this software for your SAXS data processing please cite:    \n'
         text9 = '"BioXTAS RAW, a software program for high-throughput\nautomated small-angle X-ray scattering data reduction\nand preliminary analysis", J. Appl. Cryst. (2009). 42, 959-964\n\n'
 
 
         all_text = [text1, text2, text3, text4, text5, text6, text7, text8, text9]
-        
+
         final_sizer = wx.BoxSizer(wx.VERTICAL)
         final_sizer.Add(rawimg, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL, 10)
         final_sizer.Add(headline, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 15)
-        
+
         for each in all_text:
             txt = wx.StaticText(self.panel, -1, each)
             final_sizer.Add(txt, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.LEFT | wx.RIGHT, 15)
@@ -16120,7 +16120,7 @@ class WelcomeDialog(wx.Frame):
 
         self.CenterOnParent()
 
-    
+
     def _onOKButton(self, event):
         # mainworker_cmd_queue.put(['startup', sys.argv])
         wx.FutureCall(1, wx.FindWindowByName("MainFrame")._onStartup, sys.argv)
@@ -16131,10 +16131,10 @@ class WelcomeDialog(wx.Frame):
             self._onOKButton(-1)
         else:
             event.Skip()
-        
+
     def OnClose(self):
         self.Destroy()
-        
+
     def getFilename(self):
         return self._filename
 
@@ -16145,9 +16145,9 @@ class MyApp(wx.App):
         wx.App.__init__(self, *args, **kwargs)
         # This catches events when the app is asked to activate by some other
         # process on Mac
-        # self.Bind(wx.EVT_ACTIVATE_APP, self.OnActivate) 
-    
-    def OnInit(self):    
+        # self.Bind(wx.EVT_ACTIVATE_APP, self.OnActivate)
+
+    def OnInit(self):
         MySplash = MySplashScreen()
         MySplash.Show()
 
@@ -16156,7 +16156,7 @@ class MyApp(wx.App):
         for f in  sys.argv[1:]:
             # self.OpenFileMessage(f)
             print f
-        
+
         return True
 
     # def BringWindowToFront(self):
@@ -16164,7 +16164,7 @@ class MyApp(wx.App):
     #         self.GetTopWindow().Raise()
     #     except:
     #         pass
-    
+
     # def OnActivate(self, event):
     #     # if this is an activate event, rather than something else, like iconize.
     #     if event.GetActive():
@@ -16178,7 +16178,7 @@ class MyApp(wx.App):
     #         print filename
     #         print "%s dropped on app"%(filename) #code to load filename goes here.
     #     # self.OpenFileMessage(filename)
-    
+
     # #Mac specific
     # def MacReopenApp(self):
     #     """Called when the doc icon is clicked, and ???"""
@@ -16187,24 +16187,24 @@ class MyApp(wx.App):
     # #Mac specific
     # def MacNewFile(self):
     #     pass
-    
+
     # #Mac specific
     # def MacPrintFile(self, file_path):
     #     pass
-    
+
 class MySplashScreen(wx.SplashScreen):
     """
         Create a splash screen widget.
     """
-    
+
     def __init__(self, parent = None):
-        
+
         aBitmap = wx.Image(name = os.path.join(RAWWorkDir, "resources","logo_atom.gif")).ConvertToBitmap()
         splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
         splashDuration = 2000 # milliseconds
-        
+
         wx.SplashScreen.__init__(self, aBitmap, splashStyle, splashDuration, parent)
-        
+
         self.Bind(wx.EVT_CLOSE, self.OnExit)
 
         wx.Yield()
@@ -16217,10 +16217,10 @@ class MySplashScreen(wx.SplashScreen):
             self.ShowMain()
         self.Hide()
         evt.Skip()
-        
-    def ShowMain(self):            
+
+    def ShowMain(self):
         frame = MainFrame('RAW %s' %(RAWGlobals.version), -1)
-        
+
         dlg = WelcomeDialog(frame, name = "WelcomeDialog")
         dlg.SetIcon(frame.GetIcon())
         dlg.Show(True)
@@ -16231,21 +16231,21 @@ class RawTaskbarIcon(wx.TaskBarIcon):
     TBMENU_CLOSE   = wx.NewId()
     TBMENU_CHANGE  = wx.NewId()
     TBMENU_REMOVE  = wx.NewId()
- 
+
     #----------------------------------------------------------------------
     def __init__(self, frame):
         wx.TaskBarIcon.__init__(self)
         self.frame = frame
- 
+
         # Set the image
         self.tbIcon = RAWIcons.raw_icon_embed.GetIcon()
- 
+
         self.SetIcon(self.tbIcon, "Test")
- 
+
         # bind some events
         self.Bind(wx.EVT_MENU, self.OnTaskBarClose, id=self.TBMENU_CLOSE)
         self.Bind(wx.EVT_TASKBAR_LEFT_DOWN, self.OnTaskBarLeftClick)
- 
+
     #----------------------------------------------------------------------
     def CreatePopupMenu(self, evt=None):
         """
@@ -16260,19 +16260,19 @@ class RawTaskbarIcon(wx.TaskBarIcon):
         menu.AppendSeparator()
         menu.Append(self.TBMENU_CLOSE,   "Exit Program")
         return menu
- 
+
     #----------------------------------------------------------------------
     def OnTaskBarActivate(self, evt):
         """"""
         pass
- 
+
     #----------------------------------------------------------------------
     def OnTaskBarClose(self, evt):
         """
         Destroy the taskbar icon and frame from the taskbar icon itself
         """
         self.frame.Close()
- 
+
     #----------------------------------------------------------------------
     def OnTaskBarLeftClick(self, evt):
         """
@@ -16281,8 +16281,8 @@ class RawTaskbarIcon(wx.TaskBarIcon):
         menu = self.CreatePopupMenu()
         self.PopupMenu(menu)
         menu.Destroy()
-       
+
 if __name__ == '__main__':
     app = MyApp(0)   #MyApp(redirect = True)
     app.MainLoop()
-        
+
