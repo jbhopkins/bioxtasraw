@@ -613,10 +613,7 @@ def calcBresenhamLinePoints(x0, y0, x1, y1):
         Dx = x1 - x0
         Dy = y1 - y0
 
-    xstep = 1
-
     if Dx < 0:
-        xstep = -1
         Dx = -Dx
 
         xrange = range(x1, x0+1)
@@ -818,8 +815,8 @@ def removeZingers(intensityArray, startIdx = 0, averagingWindowLength = 10, stds
 
         averagingWindow = intensityArray[i - averagingWindowLength : i - 1]
 
-        stdOfAveragingWindow = scipy.std(averagingWindow)
-        meanOfAvergingWindow = scipy.mean(averagingWindow)
+        stdOfAveragingWindow = np.std(averagingWindow)
+        meanOfAvergingWindow = np.mean(averagingWindow)
 
         threshold = meanOfAvergingWindow + (stds * stdOfAveragingWindow)
 
@@ -1050,8 +1047,8 @@ def pyFAIIntegrateCalibrateNormalize(img, parameters, x_cin, y_cin, raw_settings
     wavelength = wavelength*1e-10 #convert wl to m
 
     if do_useheaderforcalib:
-        img_hdr = sasm.getParameter('imageHeader')
-        file_hdr = sasm.getParameter('counters')
+        img_hdr = parameters['imageHeader']
+        file_hdr = parameters['counters']
 
         result = getBindListDataFromHeader(raw_settings, img_hdr, file_hdr, keys = ['Sample Detector Distance', 'Detector Pixel Size', 'Wavelength'])
         if result[0] != None: sd_distance = result[0]
@@ -1126,7 +1123,7 @@ def pyFAIIntegrateCalibrateNormalize(img, parameters, x_cin, y_cin, raw_settings
     err_raw_non_nan = np.nan_to_num(errorbars)
 
     if tbs_mask is not None:
-        roi_counter = img_array[tbs_mask==1].sum()
+        roi_counter = img[tbs_mask==1].sum()
         parameters['counters']['roi_counter'] = roi_counter
 
     parameters['normalizations'] = {}
@@ -1197,8 +1194,6 @@ def ravg_python(readoutNoiseFound, readoutN, readoutNoise_mask, xlen, ylen, x_c,
 
     data = qmatrix            #/* Pointer to the numpy array version of qmatrix */
 
-    window_ptr = window
-
     half_window_size = (WINDOW_LENGTH / 2.0)
     win_len = WINDOW_LENGTH
 
@@ -1238,8 +1233,7 @@ def ravg_python(readoutNoiseFound, readoutN, readoutNoise_mask, xlen, ylen, x_c,
                         point_idx = int(hist_count[0, q_idx])
                         window_start_idx = point_idx - win_len
 
-                        # window_ptr = window                                                        #/* Reset pointers */
-                        data = qmatrix_array[q_idx, window_start_idx:point_idx]
+                        data = qmatrix[q_idx, window_start_idx:point_idx]
 
                         window = data
 
@@ -1299,7 +1293,7 @@ def ravg_python(readoutNoiseFound, readoutN, readoutNoise_mask, xlen, ylen, x_c,
                     point_idx = i
                     window_start_idx = point_idx - win_len
 
-                    data = qmatrix_array[q_idx, window_start_idx:point_idx]
+                    data = qmatrix[q_idx, window_start_idx:point_idx]
 
                     window = data
 
