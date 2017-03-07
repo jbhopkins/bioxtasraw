@@ -21,7 +21,7 @@ Created on Jul 16, 2010
 #
 #******************************************************************************
 '''
-import wx, cPickle, copy, os, sys
+import wx, cPickle, copy, os
 import RAWGlobals, SASFileIO
 
 class RawGuiSettings:

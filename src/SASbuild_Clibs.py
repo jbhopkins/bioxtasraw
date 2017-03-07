@@ -16,12 +16,9 @@
 #
 #******************************************************************************
 
-from scipy.weave import ext_tools
-from scipy.weave import converters
+from scipy.weave import ext_tools, converters, build_tools
 import numpy as np
-from scipy import weave
-from scipy.weave import build_tools
-import os, sys, shutil, SASImage
+import os, sys, shutil
 
 workdir = os.getcwd()
 

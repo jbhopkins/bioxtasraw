@@ -30,7 +30,6 @@
 
 from __future__ import division
 import struct
-import sys
 import re
 
 def stringvar(s):

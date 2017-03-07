@@ -22,7 +22,7 @@ Created on Jul 11, 2010
 #******************************************************************************
 '''
 import numpy as np
-from math import pi, asin, tan, atan, cos, sin, asin
+from math import pi, asin, tan, atan, cos
 import sys
 import RAWGlobals
 

@@ -25,7 +25,7 @@ import wx, re, sys, os, time, math, Queue, copy, subprocess
 import wx.lib.agw.customtreectrl as CT
 #import wx.lib.agw.floatspin as FS
 import RAWSettings, RAWCustomCtrl
-from numpy import power, ceil
+from numpy import ceil
 import platform
 import glob
 
@@ -237,9 +237,9 @@ class CalibrationOptionsPanel(wx.Panel):
         self.expsettingsdata = (("Beam X center:", raw_settings.getId('Xcenter')),
                                 ("Beam Y center:", raw_settings.getId('Ycenter')))
 
-        self.expsettings_spin = (("Binning Size:", (raw_settings.getId('Binsize'), wx.NewId())),
-                                 ("Start plots at q-point number:", (raw_settings.getId('StartPoint'), wx.NewId())),
-                                 ("Skip n points at the end of the curve:", (raw_settings.getId('EndPoint'), wx.NewId())))
+        self.expsettings_spin = (("Binning Size:", (raw_settings.getId('Binsize'),)),
+                                 ("Start plots at q-point number:", (raw_settings.getId('StartPoint'),)),
+                                 ("Skip n points at the end of the curve:", (raw_settings.getId('EndPoint'),)))
                                  #("Q-High (pixels):", (raw_settings.getId('QrangeHigh'), wx.NewId())))
 
         box = wx.StaticBox(self, -1, '2D Reduction Parameters')
@@ -291,7 +291,6 @@ class CalibrationOptionsPanel(wx.Panel):
 
             for eachSpinCtrl in eachEntry[1:]:
                 txtctrl_id = eachSpinCtrl[0]
-                spin_id = eachSpinCtrl[1]
 
                 if eachEntry[0] == 'Binning Size:':
                     txt_ctrl = RAWCustomCtrl.IntSpinCtrl(self, txtctrl_id, TextLength = 60, min = 1)
@@ -303,10 +302,6 @@ class CalibrationOptionsPanel(wx.Panel):
             static_box_sizer.Add(spin_sizer, 1, wx.EXPAND | wx.TOP, 4)
 
         return static_box_sizer
-
-    # def onRecalcButton(self, event):
-    #     print 'Not implemented'
-
 
     def createCalibConstants(self):
 
@@ -338,91 +333,11 @@ class CalibrationOptionsPanel(wx.Panel):
         treatmentSizer = wx.BoxSizer(wx.VERTICAL)
         for each, id in self.treatmentdata:
             chkBox = wx.CheckBox(self, id, each)
-            chkBox.Bind(wx.EVT_CHECKBOX, self.onChkBox)
             treatmentSizer.Add(chkBox, 0)
 
         staticBoxSizer.Add(treatmentSizer, 0, wx.BOTTOM | wx.LEFT, 5)
 
         return staticBoxSizer
-
-    def onChkBox(self, event):
-        # Calibrate Q range etc
-        chkboxID = event.GetId()
-
-        #self._correctConflictingSettings(chkboxID)
-
-
-    def _correctConflictingSettings(self, chkboxID):
-
-        norm1ID = self.raw_settings.getId('NormalizeM1')
-        norm2ID = self.raw_settings.getId('NormalizeM2')
-        norm3ID = self.raw_settings.getId('NormalizeTime')
-        norm4ID = self.raw_settings.getId('NormalizeTrans')
-
-        normM1box = wx.FindWindowById(norm1ID)
-        normM2box = wx.FindWindowById(norm2ID)
-        normTimebox = wx.FindWindowById(norm3ID)
-        normTransbox = wx.FindWindowById(norm4ID)
-
-        if chkboxID == self.raw_settings.getId('CalibrateMan'):
-            calibChkBox = wx.FindWindowById(self.raw_settings.getId('Calibrate'))
-            calibChkBox.SetValue(False)
-        elif chkboxID == self.raw_settings.getId('Calibrate'):
-            calibChkBox = wx.FindWindowById(self.raw_settings.getId('CalibrateMan'))
-            calibChkBox.SetValue(False)
-
-        #################################################
-        #### IF Absolute Calibration Checkbox is pressed:
-        #################################################
-
-        if chkboxID == self.raw_settings.getId('NormalizeAbs'):
-            absChkBox = wx.FindWindowById(self.raw_settings.getId('NormalizeAbs'))
-
-            if absChkBox.GetValue() == True:
-
-                if self.raw_settings.get('WaterFile') == None or self.raw_settings.get('EmptyFile') == None:
-                    absChkBox.SetValue(False)
-                    wx.MessageBox('Please enter an Empty cell sample file and a Water sample file under advanced options.', 'Attention!', wx.OK | wx.ICON_EXCLAMATION)
-                else:
-                    pass
-            else:
-                normTransbox.Enable(True)
-                normTimebox.Enable(True)
-
-        #################################################
-        #### IF AgBe Calibration Checkbox is pressed:
-        #################################################
-
-        if chkboxID == self.raw_settings.getId('Calibrate'):
-            calibChkBox = wx.FindWindowById(self.raw_settings.getId('Calibrate'))
-
-            wavelength = float(wx.FindWindowById(self.raw_settings.getId('WaveLength')).GetValue().replace(',','.'))
-            pixelsize   = float(wx.FindWindowById(self.raw_settings.getId('DetectorPixelSize')).GetValue().replace(',','.'))
-
-            if wavelength != 0 and pixelsize != 0:
-                pass
-            else:
-                calibChkBox.SetValue(False)
-                wx.MessageBox('Please enter a valid Wavelength and Detector Pixelsize in advanced options.', 'Attention!', wx.OK | wx.ICON_EXCLAMATION)
-
-        if chkboxID == self.raw_settings.getId('CalibrateMan'):
-            calibChkBox = wx.FindWindowById(self.raw_settings.getId('CalibrateMan'))
-
-            try:
-                wavelength  = float(wx.FindWindowById(self.raw_settings.getId('WaveLength')).GetValue().replace(',','.'))
-                pixelsize   = float(wx.FindWindowById(self.raw_settings.getId('DetectorPixelSize')).GetValue().replace(',','.'))
-                smpDist     = float(wx.FindWindowById(self.raw_settings.getId('SampleDistance')).GetValue().replace(',','.'))
-            except:
-                wavelength = 0
-                pixelsize = 0
-                smpDist = 0
-
-            if wavelength != 0 and pixelsize != 0 and smpDist !=0:
-                pass
-            else:
-                calibChkBox.SetValue(False)
-                wx.MessageBox('Please enter a valid Wavelength, Detector Pixel Size and Sample-Detector\n' +
-                              'distance in advanced options/calibration.', 'Attention!', wx.OK | wx.ICON_EXCLAMATION)
 
 
 class HeaderListCtrl(wx.ListCtrl):
@@ -656,7 +571,6 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         bindstr = self.bind_ctrl.GetStringSelection()
 
         old_bind = self.lc.getColumnText(self.currentItem, 2)
-        old_mod = self.lc.getColumnText(self.currentItem, 3)
 
         if bindstr == old_bind:
             return
@@ -696,9 +610,6 @@ class ReductionImgHdrFormatPanel(wx.Panel):
             self.bind_list[bindstr][2] = modtxt
 
             self.changes['HeaderBindList'] = self.bind_list             #Updates raw_settings on OK
-
-
-
 
         self.lc.Update()
 
@@ -851,8 +762,6 @@ class ReductionImgHdrFormatPanel(wx.Panel):
     def calcModifier(self):
 
         expr = self.bind_mod_ctrl.GetValue()
-        value = self.bind_value_ctrl.GetValue()
-        #expr = value + expr
         res = self.calcExpression(expr)
 
         if res != None:
@@ -1172,7 +1081,6 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
         I0_ctrl.SetValue(str(RAWSettings.water_scattering_table[int(temp)]))
 
     def _onCalculateButton(self, event):
-        button = event.GetEventObject()
         self._calculateConstant()
 
     def _waitForWorkerThreadToFinish(self):
@@ -1369,7 +1277,6 @@ class ReductionFlatfield(wx.Panel):
         I0_ctrl.SetValue(str(RAWSettings.water_scattering_table[int(temp)]))
 
     def _onCalculateButton(self, event):
-        button = event.GetEventObject()
         self._calculateConstant()
 
     def _waitForWorkerThreadToFinish(self):
@@ -2079,134 +1986,6 @@ class ReductionOptionsPanel(wx.Panel):
         staticBoxSizer.Add(treatmentSizer, 0, wx.BOTTOM | wx.LEFT, 5)
 
         return staticBoxSizer
-
-
-class MaskingOptionsPanel(wx.Panel):
-
-    def __init__(self, parent, id, raw_settings, *args, **kwargs):
-
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
-
-        self.raw_settings = raw_settings
-
-        self.files_data = (("Beamstop Mask:"     , raw_settings.getId('BeamStopMaskFilename'), wx.NewId(), wx.NewId(), "Set", "Clear", self.onSetFile, self.onClrFile),
-                          ("Readout Noise Mask:", raw_settings.getId('ReadOutNoiseMaskFilename'), wx.NewId(), wx.NewId(), "Set", "Clear", self.onSetFile, self.onClrFile),
-                          ("Transparent Beamstop Mask:", raw_settings.getId('TransparentBSMaskFilename'), wx.NewId(), wx.NewId(), "Set", "Clear", self.onSetFile, self.onClrFile),
-                          ("SAXSLAB calcualted mask:", raw_settings.getId('TransparentBSMaskFilename'), wx.NewId(), wx.NewId(), "Set", "Clear", self.onSetFile, self.onClrFile))
-
-        box = wx.StaticBox(self, -1, 'Mask Files')
-        file_sizer = self.createFileSettings()
-        chkbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        chkbox_sizer.Add(file_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
-
-        panelsizer = wx.BoxSizer(wx.VERTICAL)
-        panelsizer.Add(chkbox_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
-        self.SetSizer(panelsizer)
-
-
-    def createFileSettings(self):
-
-        no_of_rows = int(len(self.files_data))
-        hSizer = wx.FlexGridSizer(cols = 4, rows = no_of_rows, vgap = 3, hgap = 3)
-
-        for labtxt, labl_id, set_button_id, clr_button_id, set_button_txt, clr_button_txt, set_bind_func, clr_bind_func in self.files_data:
-
-            set_button = wx.Button(self, set_button_id, set_button_txt, size = (45,22))
-            set_button.Bind(wx.EVT_BUTTON, set_bind_func)
-            clr_button = wx.Button(self, clr_button_id, clr_button_txt, size = (45,22))
-            clr_button.Bind(wx.EVT_BUTTON, clr_bind_func)
-
-            label = wx.StaticText(self, -1, labtxt)
-
-            filename_label = wx.TextCtrl(self, labl_id, "None", style = wx.TE_PROCESS_ENTER)
-            filename_label.SetEditable(False)
-
-            hSizer.Add(label, 1, wx.ALIGN_CENTER_VERTICAL)
-            hSizer.Add(filename_label, 1, wx.EXPAND)
-            hSizer.Add(set_button, 1)
-            hSizer.Add(clr_button, 1)
-
-        hSizer.AddGrowableCol(1)
-
-        return hSizer
-
-    def _getMaskFileDialog(self):
-
-        filters = 'Mask files (*.msk)|*.msk|All files (*.*)|*.*'
-        filedlg = wx.FileDialog( None, style = wx.OPEN, wildcard = filters)
-
-        if filedlg.ShowModal() == wx.ID_OK:
-            mask_filename = filedlg.GetFilename()
-            mask_dir = filedlg.GetDirectory()
-            mask_fullpath = filedlg.GetPath()
-            filedlg.Destroy()
-
-            return (mask_filename, mask_dir, mask_fullpath)
-        else:
-            filedlg.Destroy()
-            return (None, None, None)
-
-    def setMask(self, name):
-
-        mask_filename, mask_dir, mask_fullpath = self._getMaskFileDialog()
-
-        if mask_filename != None:
-
-
-            ## send command to worker thread.
-
-            choice = {'Beamstop'             : masking.LoadBeamStopMask,
-                      'Readout'              : masking.LoadReadoutNoiseMask,
-                      'TransparentBeamstop'  : masking.LoadBeamStopMask}
-
-            choice[name](mask_fullpath)
-
-        return mask_filename
-
-    def onSetFile(self, evt):
-
-        for labtxt, labl_id, set_button_id, clr_button_id, set_button_txt, clr_button_txt, set_bind_func, clr_bind_func in self.files_data:
-            id = evt.GetId()
-
-            #Set button:
-            if id == set_button_id:
-
-                if labl_id == self.raw_settings.getId('BeamStopMaskFilename'):
-                    filename = self.setMask('Beamstop')
-
-                elif labl_id == self.raw_settings.getId('ReadOutNoiseMaskFilename'):
-                    filename = self.setMask('Readout')
-
-                elif labl_id == self.raw_settings.getId('TransparentBSMaskFilename'):
-                    filename = self.setMask('TransparentBeamstop')
-
-                if filename != None:
-                    filenameLabel = wx.FindWindowById(labl_id)
-                    filenameLabel.SetValue(filename)
-
-    def onClrFile(self, evt):
-        for labtxt, labl_ID, set_button_id, clr_button_id, set_button_txt, clr_button_txt, set_bind_func, clr_bind_func in self.files_data:
-            id = evt.GetId()
-
-            if id == clr_button_id:
-                if labl_ID == self.raw_settings.getId('BeamStopMaskFilename'):
-                    self.raw_settings.set('BeamStopMask', None)
-                    self.raw_settings.set('BeamStopMaskFilename', None)
-                    self.raw_settings.set('BeamStopMaskParams', None)
-
-                if labl_ID == self.raw_settings.getId('ReadOutNoiseMaskFilename'):
-                    self.raw_settings.set('ReadOutNoiseMask', None)
-                    self.raw_settings.set('ReadOutNoiseMaskFilename', None)
-                    self.raw_settings.set('ReadOutNoiseMaskParams', None)
-
-                if labl_ID == self.raw_settings.getId('TransparentBSMaskFilename'):
-                    self.raw_settings.set('TransparentBSMask', None)
-                    self.raw_settings.set('TransparentBSMaskFilename', None)
-                    self.raw_settings.set('TransparentBSMaskParams', None)
-
-                filename_label = wx.FindWindowById(labl_ID)
-                filename_label.SetValue('None')
-
 
 class SaveDirectoriesPanel(wx.Panel):
 
@@ -3707,7 +3486,6 @@ all_options = [ [ (0,0,0), wx.NewId(), 'Configuration Settings', ConfigRootSetti
                 [ (2,0,0), wx.NewId(), '2D Reduction', ReductionOptionsPanel],
                 [ (2,1,0), wx.NewId(), 'Image/Header Format', ReductionImgHdrFormatPanel],
                 [ (2,2,0), wx.NewId(), 'Calibration', CalibrationOptionsPanel],
-                #[ (1,3,0), wx.NewId(), 'Masking', MaskingOptionsPanel],
                 [ (2,4,1), wx.NewId(), 'Normalization', ReductionNormalizationPanel] ,
                 [ (2,4,2), wx.NewId(), 'Absolute Scale', ReductionNormalizationAbsScPanel],
 				[ (2,4,3), wx.NewId(), 'Flatfield Correction', ReductionFlatfield],
@@ -4023,7 +3801,7 @@ class OptionsDialog(wx.Dialog):
             dlg = wx.MessageDialog(self,
             "Invalid value entered. Settings not saved.",
             'Invalid input', wx.OK|wx.ICON_EXCLAMATION, parent = self)
-            result = dlg.ShowModal()
+            dlg.ShowModal()
             dlg.Destroy()
 
     def onApply(self, event):
@@ -4034,7 +3812,7 @@ class OptionsDialog(wx.Dialog):
             dlg = wx.MessageDialog(self,
             "Invalid value entered. Settings not saved.",
             'Invalid input', wx.OK|wx.ICON_EXCLAMATION, parent = self)
-            result = dlg.ShowModal()
+            dlg.ShowModal()
             dlg.Destroy()
 
     def onCancel(self, event):

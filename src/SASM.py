@@ -972,7 +972,7 @@ class SECM:
 
         self._scale_factor = scale_factor
         self._offset_value = offset_value
-        self._frame_scale_factor = q_scale_factor
+        self._frame_scale_factor = frame_scale_factor
 
     def extractAll(self):
         ''' extracts all data from the object and delivers it as a dict '''
@@ -1151,17 +1151,13 @@ def subtract(sasm1, sasm2, forced = False):
 
         if q1[0]>q2[0]:
             start=np.round(q1[0],5)
-            q1start=True
         else:
             start=np.round(q2[0],5)
-            q1start=False
 
         if q1[-1]>q2[-1]:
             end=np.round(q2[-1],5)
-            q1end=False
         else:
             end=np.round(q1[-1],5)
-            q1end=True
 
         if start>end:
             raise SASExceptions.DataNotCompatible('Subtraction failed: the curves have no overlapping q region.')
@@ -1266,14 +1262,8 @@ def average(sasm_list, forced = False):
     first_sasm = sasm_list[0]
     first_q_min, first_q_max = first_sasm.getQrange()
 
-    number_of_points = len(first_sasm.i[first_q_min:first_q_max])
-
-    # print number_of_points
-
     for each in sasm_list:
         each_q_min, each_q_max = each.getQrange()
-        # print each_q_min
-        # print each_q_max
         if not np.all(np.round(each.q[each_q_min:each_q_max], 5) == np.round(first_sasm.q[first_q_min:first_q_max], 5)) and not forced:
             raise SASExceptions.DataNotCompatible('Average list contains data sets with different q vectors.')
 
@@ -1418,7 +1408,7 @@ def superimpose(sasm_star, sasm_list):
 
     q_star = sasm_star.q
     i_star = sasm_star.i
-    err_star = sasm_star.err
+    # err_star = sasm_star.err
 
     q_star_qrange_min, q_star_qrange_max = sasm_star.getQrange()
 
@@ -1426,7 +1416,7 @@ def superimpose(sasm_star, sasm_list):
 
         each_q = each_sasm.getBinnedQ()
         each_i = each_sasm.getBinnedI()
-        each_err = each_sasm.getBinnedErr()
+        # each_err = each_sasm.getBinnedErr()
 
         each_q_qrange_min, each_q_qrange_max = each_sasm.getQrange()
 
@@ -1440,15 +1430,9 @@ def superimpose(sasm_star, sasm_list):
         min_q_idx = np.where(q_star >= min_q_each)[0][0]
         max_q_idx = np.where(q_star <= max_q_each)[0][-1]
 
-        print min_q, max_q
-        print min_q_idx, max_q_idx
-        print each_q_qrange_min, each_q_qrange_max
-
         I_resamp = np.interp(q_star[min_q_idx:max_q_idx+1],
                              each_q[each_q_qrange_min:each_q_qrange_max-1],
                              each_i[each_q_qrange_min:each_q_qrange_max-1])
-
-        #print I_resamp
 
         I_buf = np.ones(max_q_idx - min_q_idx + 1)
 

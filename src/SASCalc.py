@@ -28,9 +28,8 @@ functions, including calculation of rg and molecular weight.
 
 """
 import numpy as np
-import scipy.interpolate as interp
 from scipy import integrate as integrate
-import os, copy, time, subprocess, scipy.optimize, wx, threading, Queue, platform
+import os, time, subprocess, scipy.optimize, wx, threading, Queue, platform
 
 import SASFileIO, SASExceptions, RAWSettings
 
@@ -232,7 +231,7 @@ def autoRg(sasm):
             except:
                 idx = quality.argmax()
                 rg = fit_list[idx,4]
-                rger1 = fit_list[idx,5]
+                rger = fit_list[idx,5]
                 i0 = fit_list[idx,6]
                 i0er = fit_list[idx,7]
                 idx_min = int(fit_list[idx,0])
@@ -787,7 +786,7 @@ def writeGnomCFG(fname, outname, dmax, args):
     f.write('This line intentionally left blank\n')
     f.write('PRINTER C [      postscr     ]  Printer type\n')
     if 'form' in args and args['form'] != '':
-        f.write('FORFAC  C [         %s         ]  Form factor file (valid for JOB=2)\n' %s(args['form']))
+        f.write('FORFAC  C [         %s         ]  Form factor file (valid for JOB=2)\n' %(args['form']))
     else:
         f.write('FORFAC  C [                  ]  Form factor file (valid for JOB=2)\n')
     if 'expert' in args and args['expert'] != '':
@@ -842,7 +841,7 @@ def writeGnomCFG(fname, outname, dmax, args):
     f.write('SPOT1   C [                  ]  Beam profile file (first run)\n')
     f.write('SPOT2   C [                  ]  Beam profile file (second run)\n')
     if 'alpha' in args and args['alpha'] !=0.0:
-        f.write('ALPHA   R [      %s         ]  Initial ALPHA\n' %s(str(args['alpha'])))
+        f.write('ALPHA   R [      %s         ]  Initial ALPHA\n' %(str(args['alpha'])))
     else:
         f.write('ALPHA   R [      0.0         ]  Initial ALPHA\n')
     if 'npts' in args and args['npts'] !=101:

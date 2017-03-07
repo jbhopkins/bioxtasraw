@@ -16,7 +16,7 @@
 #
 #******************************************************************************
 
-import wx, os, sys, math, platform, itertools, copy, matplotlib
+import wx, os, sys, platform, itertools, copy, matplotlib
 import numpy as np
 
 matplotlib.rcParams['backend'] = 'WxAgg'
@@ -950,7 +950,7 @@ class CustomPlotToolbar(NavigationToolbar2Wx):
 
         NavigationToolbar2Wx.__init__(self, canvas)
 
-        self.workdir = workdir = RAWWorkDir
+        self.workdir = RAWWorkDir
 
         errbars_icon = RAWIcons.errbars.GetBitmap()
         showboth_icon = RAWIcons.showboth.GetBitmap()
@@ -1518,30 +1518,6 @@ class PlotPanel(wx.Panel):
 
 #--- ** Popup Menu ***
 
-    def movePlots(self, sasm_list, to_axes):
-
-        axesThatNeedsUpdatedLegend = []
-
-        for each in sasm_list:
-            if each.axes != toAxes:
-                plotpanel = each.plotPanel
-
-                each.line.remove()
-                each.errLine[0][0].remove()
-                each.errLine[0][1].remove()
-                each.errLine[1][0].remove()
-
-                if not each.axes in axesThatNeedsUpdatedLegend:
-                    axesThatNeedsUpdatedLegend.append(each.axes)
-
-                plotpanel.PlotExperimentObject(each, axes = toAxes, addToPlottedExps = False)
-
-        for eachaxes in axesThatNeedsUpdatedLegend:
-            plotpanel._insertLegend(axes = eachaxes)
-
-        if axesThatNeedsUpdatedLegend:
-            plotpanel.canvas.draw()
-
     def plotSASM(self, sasm_list, axes_no = 1, color = None, legend_label_in = None, line_data = None, *args, **kwargs):
         if axes_no == 1:
             a = self.subplot1
@@ -1655,9 +1631,6 @@ class PlotPanel(wx.Panel):
 
         self.selected_plot = selected_plot
 
-        mainframe = wx.FindWindowByName('MainFrame')
-
-        MenuIDs = mainframe.MenuIDs
         menu = wx.Menu()
 
         plot1SubMenu = self._createPopupAxesMenu('1')
@@ -1668,7 +1641,7 @@ class PlotPanel(wx.Panel):
         else:
             menu.AppendSubMenu(plot2SubMenu, 'Axes')
 
-        sep = menu.AppendSeparator()
+        menu.AppendSeparator()
         plot_options = menu.Append(wx.NewId(), 'Plot Options...')
 
 
@@ -2012,13 +1985,10 @@ class PlotPanel(wx.Panel):
 
                 old_title = old_legend.get_title()
                 old_title_text = old_title.get_text()
-                old_title_font = old_title.get_fontname()
-                old_title_fontsize = old_title.get_size()
                 old_title_weight = old_title.get_weight()
                 old_title_style = old_title.get_style()
 
                 axes.legend_ = None
-
 
             for each_line in axes.lines:
                 if each_line.get_visible() == True and each_line.get_label() != '_zero_' and each_line.get_label() != '_nolegend_' and each_line.get_label() != '_line1':
@@ -2576,31 +2546,6 @@ class IftPlotPanel(PlotPanel):
 
 #--- ** Popup Menu ***
 
-    def movePlots(self, sasm_list, to_axes):
-
-        axesThatNeedsUpdatedLegend = []
-
-        for each in sasm_list:
-            if each.axes != toAxes:
-                plotpanel = each.plotPanel
-
-                each.line.remove()
-                each.errLine[0][0].remove()
-                each.errLine[0][1].remove()
-                each.errLine[1][0].remove()
-
-                if not each.axes in axesThatNeedsUpdatedLegend:
-                    axesThatNeedsUpdatedLegend.append(each.axes)
-
-                plotpanel.PlotExperimentObject(each, axes = toAxes, addToPlottedExps = False)
-
-        for eachaxes in axesThatNeedsUpdatedLegend:
-            plotpanel._insertLegend(axes = eachaxes)
-
-        if axesThatNeedsUpdatedLegend:
-            plotpanel.canvas.draw()
-
-
     def showErrorbars(self, state):
 
         for each in self.plotted_iftms:
@@ -2677,9 +2622,6 @@ class IftPlotPanel(PlotPanel):
 
         self.selected_plot = selected_plot
 
-        mainframe = wx.FindWindowByName('MainFrame')
-
-        MenuIDs = mainframe.MenuIDs
         menu = wx.Menu()
 
         plot2SubMenu = self._createPopupAxesMenu('2')
@@ -2687,7 +2629,7 @@ class IftPlotPanel(PlotPanel):
         if selected_plot == 2:
             menu.AppendSubMenu(plot2SubMenu, 'Axes')
 
-            sep = menu.AppendSeparator()
+            menu.AppendSeparator()
 
         plot_options = menu.Append(wx.NewId(), 'Plot Options...')
 
@@ -3038,8 +2980,6 @@ class IftPlotPanel(PlotPanel):
 
                 old_title = old_legend.get_title()
                 old_title_text = old_title.get_text()
-                old_title_font = old_title.get_fontname()
-                old_title_fontsize = old_title.get_size()
                 old_title_weight = old_title.get_weight()
                 old_title_style = old_title.get_style()
 
@@ -3307,13 +3247,6 @@ class FigureSavePanel(wx.Panel):
         self.Fit()
         self.CenterOnParent()
 
-    def updatePixels(self):
-        dpi = wx.FindWindowByName('Dpi')
-        width = wx.FindWindowByName('Width')
-        height = wx.FindWindowByName('Height')
-
-        self.xypixels.SetValue('')
-
     def updateSettings(self):
         dpi = wx.FindWindowByName('Dpi')
         width = wx.FindWindowByName('Width')
@@ -3541,9 +3474,7 @@ class CustomSECPlotToolbar(NavigationToolbar2Wx):
 
         NavigationToolbar2Wx.__init__(self, canvas)
 
-        self.workdir = workdir = RAWWorkDir
-
-        clear1_icon = RAWIcons.clear1white.GetBitmap()
+        self.workdir = RAWWorkDir
 
         self.Bind(wx.EVT_TOOL, self.clear1, id = self._MTB_CLR1)
 
@@ -4128,30 +4059,6 @@ class SECPlotPanel(wx.Panel):
 
 #--- ** Popup Menu ***
 
-    def movePlots(self, sasm_list, to_axes):
-
-        axesThatNeedsUpdatedLegend = []
-
-        for each in sasm_list:
-            if each.axes != toAxes:
-                plotpanel = each.plotPanel
-
-                each.line.remove()
-                each.errLine[0][0].remove()
-                each.errLine[0][1].remove()
-                each.errLine[1][0].remove()
-
-                if not each.axes in axesThatNeedsUpdatedLegend:
-                    axesThatNeedsUpdatedLegend.append(each.axes)
-
-                plotpanel.PlotExperimentObject(each, axes = toAxes, addToPlottedExps = False)
-
-        for eachaxes in axesThatNeedsUpdatedLegend:
-            plotpanel._insertLegend(axes = eachaxes)
-
-        if axesThatNeedsUpdatedLegend:
-            plotpanel.canvas.draw()
-
     def plotSECM(self, secm_list, color = None, legend_label_in = None, line_data = None, calc_line_data = None, *args, **kwargs):
 
         a = self.subplot1
@@ -4328,12 +4235,9 @@ class SECPlotPanel(wx.Panel):
 
         self.selected_plot = selected_plot
 
-        mainframe = wx.FindWindowByName('MainFrame')
-
-        MenuIDs = mainframe.MenuIDs
         menu = wx.Menu()
 
-        plot1SubMenu = self._createPopupAxesMenu('1')
+        # plot1SubMenu = self._createPopupAxesMenu('1')
         plotSubMenu2 = self._createPopupYdataMenu('1')
         plotSubMenu3 = self._createPopupYdataMenu('2')
         plotSubMenu4 = self._createPopupXdataMenu('1')
@@ -4343,7 +4247,7 @@ class SECPlotPanel(wx.Panel):
         menu.AppendSubMenu(plotSubMenu3, 'Y Data (Right Axis)')
         menu.AppendSubMenu(plotSubMenu4, 'X Data')
 
-        sep = menu.AppendSeparator()
+        menu.AppendSeparator()
 
         plot_options = menu.Append(wx.NewId(), 'Plot Options...')
 
@@ -4686,8 +4590,6 @@ class SECPlotPanel(wx.Panel):
 
 
         for each in self.plotted_secms:
-            c = '1'
-
             if self.plotparams['y_axis_display'] == 'total':
                 each.line.set_ydata(each.total_i)
             elif self.plotparams['y_axis_display'] == 'mean':
@@ -4817,8 +4719,6 @@ class SECPlotPanel(wx.Panel):
 
 
         for each in self.plotted_secms:
-            c = '1'
-
             if self.plotparams['y_axis_display'] == 'total':
                 each.line.set_ydata(each.total_i)
             elif self.plotparams['y_axis_display'] == 'mean':
@@ -5024,8 +4924,6 @@ class SECPlotPanel(wx.Panel):
 
             old_title = old_legend.get_title()
             old_title_text = old_title.get_text()
-            old_title_font = old_title.get_fontname()
-            old_title_fontsize = old_title.get_size()
             old_title_weight = old_title.get_weight()
             old_title_style = old_title.get_style()
 
