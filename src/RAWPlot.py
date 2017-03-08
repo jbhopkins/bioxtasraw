@@ -62,11 +62,9 @@ class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
                    wx.MessageBox('Data contains too many illegal/negative values for a log plot', 'Error!' )
 
             try:
-                self.draw()
+                plotpanel.fitAxis()
             except ValueError, e:
                 print 'MyFigureCanvasWxAgg: ' + str(e)
-
-            plotpanel.fitAxis()
 
 
     #These don't do anything at the moment, but were giving me some strange errors on the sec plot
@@ -919,9 +917,7 @@ class PlotOptionsDialog(wx.Dialog):
         self.parent.subplot_labels[type] = [self.title.get_text(), self.xlabel.get_text(), self.ylabel.get_text()]
 
         if self.parent.plotparams['auto_fitaxes' + str(self.parent.selected_plot)]:
-            print 'Changing the axes . . . .'
             self.parent.fitAxis(forced = True)
-            self.parent.canvas.draw()
         else:
             self.parent.canvas.draw()
 
@@ -977,7 +973,6 @@ class CustomPlotToolbar(NavigationToolbar2Wx):
 
     def home(self, *args, **kwargs):
         self.parent.fitAxis(forced = True)
-        self.parent.canvas.draw()
 
     def save(self,  *args, **kwargs):
         dia = FigureSaveDialog(self.parent, self.parent.fig, self.parent.save_parameters)
@@ -1795,8 +1790,6 @@ class PlotPanel(wx.Panel):
 
         self.fitAxis()
 
-        self.canvas.draw()
-
     def updatePlotAxes(self):
 
         axes = [self.subplot1, self.subplot2]
@@ -1830,8 +1823,6 @@ class PlotPanel(wx.Panel):
 
         self.fitAxis()
 
-        self.canvas.draw()
-
     def updatePlotAfterManipulation(self, sasm_list, draw = True):
 
         for sasm in sasm_list:
@@ -1859,20 +1850,6 @@ class PlotPanel(wx.Panel):
         if draw:
             self.fitAxis()
 
-
-    def clearPlot(self, plot_num):
-
-        if plot_num == 1:
-            self.subplot1.cla()
-            self._setLabels(axes = self.subplot1)
-        elif plot_num == 2:
-            self.subplot2.cla()
-            self._setLabels(axes = self.subplot2)
-
-        self.updatePlotAxes()
-
-        self.canvas.draw()
-
     def clearAllPlots(self):
 
         self.subplot_labels = copy.copy(self.default_subplot_labels)
@@ -1881,8 +1858,6 @@ class PlotPanel(wx.Panel):
         self.subplot2.cla()
 
         self.plotted_sasms = []
-
-        self.updatePlotAxes()
 
         self._updateFrameStylesForAllPlots()
 
@@ -1902,7 +1877,7 @@ class PlotPanel(wx.Panel):
             zero = axes.axhline(color='k')
             zero.set_label('_zero_')
 
-        self.canvas.draw()
+        self.updatePlotAxes()
 
     def _setLabels(self, sasm = None, title = None, xlabel = None, ylabel = None, axes = None):
 
@@ -2795,8 +2770,6 @@ class IftPlotPanel(PlotPanel):
 
         self.fitAxis()
 
-        self.canvas.draw()
-
     def updatePlotAxes(self):
 
         axes = [self.subplot1, self.subplot2]
@@ -2830,8 +2803,6 @@ class IftPlotPanel(PlotPanel):
 
         self.fitAxis()
 
-        self.canvas.draw()
-
     def updatePlotAfterManipulation(self, sasm_list, draw = True):
 
         for sasm in sasm_list:
@@ -2858,20 +2829,6 @@ class IftPlotPanel(PlotPanel):
         if draw:
             self.fitAxis()
 
-
-    def clearPlot(self, plot_num):
-
-        if plot_num == 1:
-            self.subplot1.cla()
-            self._setLabels(axes = self.subplot1)
-        elif plot_num == 2:
-            self.subplot2.cla()
-            self._setLabels(axes = self.subplot2)
-
-        self.updatePlotAxes()
-
-        self.canvas.draw()
-
     def clearAllPlots(self):
 
         self.subplot_labels = copy.copy(self.default_subplot_labels)
@@ -2880,8 +2837,6 @@ class IftPlotPanel(PlotPanel):
         self.subplot2.cla()
 
         self.plotted_iftms = []
-
-        self.updatePlotAxes()
 
         self._updateFrameStylesForAllPlots()
 
@@ -2901,7 +2856,7 @@ class IftPlotPanel(PlotPanel):
             zero = axes.axhline(color='k')
             zero.set_label('_zero_')
 
-        self.canvas.draw()
+        self.updatePlotAxes()
 
     def _setLabels(self, sasm = None, title = None, xlabel = None, ylabel = None, axes = None):
 
@@ -3069,51 +3024,6 @@ class IftPlotPanel(PlotPanel):
         self.fig.set_edgecolor(col)
         self.canvas.SetBackgroundColour(wx.Colour(*rgbtuple))
 
-
-    def plotFit(self, sasm, color = None, legend_label_in = None, *args, **kwargs):
-        self.clearPlot(2)
-        a = self.subplot2
-
-        #If no IFT info is present, just plot the intensity curve
-        if not sasm.getAllParameters().has_key('orig_sasm'):
-            line, ec, el = a.errorbar(sasm.q, sasm.i, picker = 3, label = sasm.getParameter('filename'), **kwargs)
-            line.set_color('blue')
-
-            sasm.line = line
-            sasm.err_line = (ec, el)
-            sasm.axes = a
-            sasm.canvas = self.canvas
-            sasm.plot_panel = self
-            sasm.is_plotted = True
-
-            self.fitAxis()
-            return
-
-
-        orig_sasm = sasm.getParameter('orig_sasm')
-        legend_label = orig_sasm.getParameter('filename')
-
-        if legend_label_in == None:
-            new_label = sasm.getParameter('filename') + ' (FIT)'
-        else:
-            new_label = legend_label_in + ' (FIT)'
-
-
-        i = sasm.getParameter('orig_i')
-        q = sasm.getParameter('orig_q')
-        fit = sasm.getParameter('fit')[0]
-
-        line, ec, el = a.errorbar(q, i, picker = 3, label = legend_label, **kwargs)
-        line.set_color('blue')
-
-        sasm.origline = line
-
-        line, ec, el = a.errorbar(q, fit, picker = 3, label = new_label, **kwargs)
-        line.set_color('red')
-
-        sasm.fitline = line
-
-        self.fitAxis()
 
     def plotIFTM(self, iftm_list, legend_label_in = None, line_data = None, *args, **kwargs):
 
@@ -3483,10 +3393,8 @@ class CustomSECPlotToolbar(NavigationToolbar2Wx):
 
         self.Realize()
 
-
     def home(self, *args, **kwargs):
         self.parent.fitAxis(forced = True)
-        self.parent.canvas.draw()
 
     def save(self,  *args, **kwargs):
         dia = FigureSaveDialog(self.parent, self.parent.fig, self.parent.save_parameters)
@@ -4651,8 +4559,8 @@ class SECPlotPanel(wx.Panel):
 
         if fit:
             self.fitAxis()
-
-        self.canvas.draw()
+        else:
+            self.canvas.draw()
 
     def updatePlotAxes(self):
 
@@ -4689,8 +4597,6 @@ class SECPlotPanel(wx.Panel):
 
 
         self.fitAxis()
-
-        self.canvas.draw()
 
     def updatePlotAfterManipulation(self, secm_list, draw = True):
         for each in self.plotted_secms:
@@ -4784,18 +4690,6 @@ class SECPlotPanel(wx.Panel):
         if draw:
             self.fitAxis()
 
-
-    def clearPlot(self, plot_num):
-
-        self.subplot1.cla()
-        self._setLabels(axes = self.subplot1)
-        self.ryaxis.cla()
-        self._setLabels(axes=self.ryaxis)
-
-        self.updatePlotAxes()
-
-        self.canvas.draw()
-
     def clearAllPlots(self):
 
         self.subplot_labels = copy.copy(self.default_subplot_labels)
@@ -4807,8 +4701,6 @@ class SECPlotPanel(wx.Panel):
 
         self.plotted_secms = []
 
-        self.updatePlotAxes()
-
         self._updateFrameStylesForAllPlots()
 
         is_zline1 = self.plotparams['zero_line1']
@@ -4818,7 +4710,7 @@ class SECPlotPanel(wx.Panel):
             zero = axes.axhline(color='k')
             zero.set_label('_zero_')
 
-        self.canvas.draw()
+        self.updatePlotAxes()
 
     def _getQValue(self):
         dlg = wx.TextEntryDialog(self,message = 'Enter q value at which to plot I(q) vs. frame', caption = 'Pick q Value')
