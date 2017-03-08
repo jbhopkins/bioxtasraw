@@ -1963,12 +1963,12 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.ift_plot_panel.plotIFTM, iftm)
         wx.CallAfter(self.ift_item_panel.addItem, iftm, item_colour, notsaved = notsaved)
 
+        if update_legend:
+            wx.CallAfter(self.ift_plot_panel.updateLegend, 1, False)
+            wx.CallAfter(self.ift_plot_panel.updateLegend, 2, False)
+
         if no_update == False:
             wx.CallAfter(self.ift_plot_panel.fitAxis)
-
-        if update_legend:
-            wx.CallAfter(self.ift_plot_panel.updateLegend, 1)
-            wx.CallAfter(self.ift_plot_panel.updateLegend, 2)
 
 
     def _sendSASMToPlot(self, sasm, axes_num = 1, item_colour = 'black', line_color = None, no_update = False, notsaved = False, update_legend = True):
@@ -1976,12 +1976,11 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num, color = line_color)
         wx.CallAfter(self.manipulation_panel.addItem, sasm, item_colour, notsaved = notsaved)
 
+        if update_legend:
+            wx.CallAfter(self.plot_panel.updateLegend, axes_num, False)
+
         if no_update == False:
             wx.CallAfter(self.plot_panel.fitAxis)
-
-        if update_legend:
-            wx.CallAfter(self.plot_panel.updateLegend, 1)
-            wx.CallAfter(self.plot_panel.updateLegend, 2)
 
 
     def _sendSASMToPlotSEC(self, sasm, axes_num = 1, item_colour = 'black', line_color = None, no_update = False, notsaved = False, update_legend = True):
@@ -1990,12 +1989,11 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num, color = line_color)
         wx.CallAfter(self.manipulation_panel.addItem, sasm, item_colour, notsaved = notsaved)
 
+        if update_legend:
+            wx.CallAfter(self.plot_panel.updateLegend, axes_num, False)
+
         if not no_update:
             wx.CallAfter(self.plot_panel.fitAxis)
-
-        if update_legend:
-            wx.CallAfter(self.plot_panel.updateLegend, 1)
-            wx.CallAfter(self.plot_panel.updateLegend, 2)
 
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
@@ -2005,11 +2003,11 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.sec_plot_panel.plotSECM, secm, color = line_color)
         wx.CallAfter(self.sec_item_panel.addItem, secm, item_colour, notsaved = notsaved)
 
+        if update_legend:
+            wx.CallAfter(self.sec_plot_panel.updateLegend, 1, False)
+
         if no_update == False:
             wx.CallAfter(self.sec_plot_panel.fitAxis)
-
-        if update_legend:
-            wx.CallAfter(self.sec_plot_panel.updateLegend, 1)
 
 
     def _updateSECMPlot(self, secm, item_colour = 'black', line_color = None, no_update = False, notsaved = False):
@@ -2342,14 +2340,14 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 0)
 
         if loaded_sasm:
-            wx.CallAfter(self.plot_panel.updateLegend, 1)
+            wx.CallAfter(self.plot_panel.updateLegend, 1, False)
             wx.CallAfter(self.plot_panel.fitAxis)
         if loaded_secm:
-            wx.CallAfter(self.sec_plot_panel.updateLegend, 1)
+            wx.CallAfter(self.sec_plot_panel.updateLegend, 1, False)
             wx.CallAfter(self.sec_plot_panel.fitAxis)
         if loaded_iftm:
-            wx.CallAfter(self.ift_plot_panel.updateLegend, 1)
-            wx.CallAfter(self.ift_plot_panel.updateLegend, 2)
+            wx.CallAfter(self.ift_plot_panel.updateLegend, 1, False)
+            wx.CallAfter(self.ift_plot_panel.updateLegend, 2, False)
             wx.CallAfter(self.ift_plot_panel.fitAxis)
 
 
@@ -2358,8 +2356,6 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(file_list.SetFocus)
 
         wx.CallAfter(self.main_frame.closeBusyDialog)
-
-        # print time.time()-ta
 
     def _loadAndPlotSEC(self, data):
         filename_list=data[0]
@@ -2390,7 +2386,7 @@ class MainWorkerThread(threading.Thread):
 
                 secm_list.append(secm)
 
-            self._sendSECMToPlot(secm_list)
+            self._sendSECMToPlot(secm_list, no_update = True, update_legend = False)
 
         else:
             sasm_list=[[] for i in range(len(filename_list))]
@@ -2438,19 +2434,12 @@ class MainWorkerThread(threading.Thread):
 
             secm = SASM.SECM(filename_list, sasm_list, frame_list, {})
 
-            self._sendSECMToPlot(secm, notsaved = True)
+            self._sendSECMToPlot(secm, notsaved = True, no_update = True, update_legend = False)
 
         if update_sec_object:
             wx.CallAfter(self.sec_control_panel.updateSECItem, secm)
 
-        # sec_window = wx.FindWindowByName('SECPlotPanel')
-        # wx.CallAfter(sec_window.SetFocus)
-        # wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 3)
-
-        # file_list = wx.FindWindowByName('SECPanel')
-        # wx.CallAfter(file_list.SetFocus)
-
-        wx.CallAfter(self.sec_plot_panel.updateLegend, 1)
+        wx.CallAfter(self.sec_plot_panel.updateLegend, 1, False)
         wx.CallAfter(self.sec_plot_panel.fitAxis)
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
@@ -3478,8 +3467,8 @@ class MainWorkerThread(threading.Thread):
         if len(subtracted_list) > 0:
             self._sendSASMToPlot(subtracted_list, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
 
+        wx.CallAfter(self.plot_panel.updateLegend, 2, False)
         wx.CallAfter(self.plot_panel.fitAxis)
-        wx.CallAfter(self.plot_panel.updateLegend, 2)
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
     def _averageItems(self, item_list):
@@ -3519,7 +3508,6 @@ class MainWorkerThread(threading.Thread):
 
                 wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutosave of averaged images has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
-        wx.CallAfter(self.plot_panel.updateLegend, 1)
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
     def _averageItemsSEC(self, sasm_list):
@@ -3541,9 +3529,7 @@ class MainWorkerThread(threading.Thread):
 
         self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'green', notsaved = True)
 
-        wx.CallAfter(self.plot_panel.updateLegend, 1)
         wx.CallAfter(self.main_frame.closeBusyDialog)
-
 
     def _rebinItems(self, data):
 
@@ -3564,8 +3550,6 @@ class MainWorkerThread(threading.Thread):
             self._insertSasmFilenamePrefix(rebin_sasm, 'R_')
 
             self._sendSASMToPlot(rebin_sasm, axes_num = 1, notsaved = True)
-
-            wx.CallAfter(self.plot_panel.updateLegend, 1)
 
     def _insertSasmFilenamePrefix(self, sasm, prefix = '', extension = ''):
         filename = sasm.getParameter('filename')
@@ -3598,9 +3582,6 @@ class MainWorkerThread(threading.Thread):
 
         self._sendSASMToPlot(merged_sasm, axes_num = 1, notsaved = True)
 
-        wx.CallAfter(self.plot_panel.updateLegend, 1)
-        #wx.CallAfter(self.main_frame.closeBusyDialog)
-
     def _interpolateItems(self, data):
         marked_item = data[0]
         selected_items = data[1]
@@ -3629,8 +3610,6 @@ class MainWorkerThread(threading.Thread):
             sasm_list.append(interpolate_sasm)
 
         self._sendSASMToPlot(sasm_list, axes_num = 1, notsaved = True)
-
-        wx.CallAfter(self.plot_panel.updateLegend, 1)
 
 
     def _saveSASM(self, sasm, filetype = 'dat', save_path = ''):
@@ -3961,15 +3940,15 @@ class MainWorkerThread(threading.Thread):
 
 
 
-        wx.CallAfter(self.plot_panel.updateLegend, 1)
-        wx.CallAfter(self.plot_panel.updateLegend, 2)
+        wx.CallAfter(self.plot_panel.updateLegend, 1, False)
+        wx.CallAfter(self.plot_panel.updateLegend, 2, False)
         wx.CallAfter(self.plot_panel.fitAxis)
 
-        wx.CallAfter(self.ift_plot_panel.updateLegend, 1)
-        wx.CallAfter(self.ift_plot_panel.updateLegend, 2)
+        wx.CallAfter(self.ift_plot_panel.updateLegend, 1, False)
+        wx.CallAfter(self.ift_plot_panel.updateLegend, 2, False)
         wx.CallAfter(self.ift_plot_panel.fitAxis)
 
-        wx.CallAfter(self.sec_plot_panel.updateLegend, 1)
+        wx.CallAfter(self.sec_plot_panel.updateLegend, 1, False)
         wx.CallAfter(self.sec_plot_panel.fitAxis)
 
         wx.CallAfter(self.main_frame.closeBusyDialog)

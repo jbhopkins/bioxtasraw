@@ -4912,7 +4912,7 @@ class SECPlotPanel(wx.Panel):
                     legend_lines.append(each_line)
                     legend_labels.append(each_line.get_label())
 
-        old_legend = axes.get_legend()
+        old_legend = a.get_legend()
 
         if  old_legend is not None:
             self.plotparams['legend_pos1'] = old_legend._loc
@@ -4922,7 +4922,7 @@ class SECPlotPanel(wx.Panel):
             old_title_weight = old_title.get_weight()
             old_title_style = old_title.get_style()
 
-            axes.legend_ = None
+            a.legend_ = None
 
         if not legend_lines:
             return
