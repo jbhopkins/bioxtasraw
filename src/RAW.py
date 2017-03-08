@@ -2015,22 +2015,16 @@ class MainWorkerThread(threading.Thread):
     def _updateSECMPlot(self, secm, item_colour = 'black', line_color = None, no_update = False, notsaved = False):
 
         if type(secm) == list:
-            # length = len(secm)
-
-            wx.CallAfter(self.sec_plot_panel.updatePlotAfterManipulation, secm)
+            wx.CallAfter(self.sec_plot_panel.updatePlotAfterManipulation, secm, draw = False)
 
         else:
             secm_list=[secm]
-            wx.CallAfter(self.sec_plot_panel.updatePlotAfterManipulation, secm_list)
+            wx.CallAfter(self.sec_plot_panel.updatePlotAfterManipulation, secm_list, draw = False)
+
+        wx.CallAfter(self.sec_plot_panel.updateLegend, 1, draw = False)
 
         if no_update == False:
             wx.CallAfter(self.sec_plot_panel.fitAxis)
-
-        wx.CallAfter(self.sec_plot_panel.updateLegend, 1)
-
-        # wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 3)
-        # file_list = wx.FindWindowByName('SECPanel')
-        # wx.CallAfter(file_list.SetFocus)
 
 
     def _sendImageToDisplay(self, img, sasm):
@@ -4088,7 +4082,7 @@ class MainWorkerThread(threading.Thread):
                     SASFileIO.saveSECItem(filepath, secm_dict)
                     filename, ext = os.path.splitext(secm.getParameter('filename'))
                     secm.setParameter('filename', filename+'.sec')
-                    wx.CallAfter(secm.item_panel.updateFilenameLabel, updateSelf = False, updateParent = False,  updateLegend = False)
+                    wx.CallAfter(secm.item_panel.updateFilenameLabel, updateParent = False,  updateLegend = False)
                     wx.CallAfter(item.unmarkAsModified, updateParent = False)
 
                 if result[0] == wx.ID_YESTOALL:
@@ -4101,7 +4095,7 @@ class MainWorkerThread(threading.Thread):
                 SASFileIO.saveSECItem(filepath, secm_dict)
                 filename, ext = os.path.splitext(secm.getParameter('filename'))
                 secm.setParameter('filename', filename+'.sec')
-                wx.CallAfter(secm.item_panel.updateFilenameLabel, updateSelf = False, updateParent = False,  updateLegend = False)
+                wx.CallAfter(secm.item_panel.updateFilenameLabel, updateParent = False,  updateLegend = False)
                 wx.CallAfter(item.unmarkAsModified, updateParent = False)
 
 
@@ -4111,7 +4105,6 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(secm.item_panel.parent.Refresh)
         wx.CallAfter(secm.item_panel.parent.Layout)
 
-        wx.CallAfter(secm.plot_panel.updateLegend, 1)
         wx.CallAfter(secm.plot_panel.updateLegend, 1)
 
         if restart_timer:
@@ -4169,8 +4162,6 @@ class MainWorkerThread(threading.Thread):
                             self._showSaveError('header')
                         filename, ext = os.path.splitext(sasm.getParameter('filename'))
                         sasm.setParameter('filename', filename + newext)
-                        # wx.CallAfter(sasm.item_panel.updateFilenameLabel)
-                        # wx.CallAfter(item.unmarkAsModified)
 
                     if result[0] == wx.ID_YESTOALL:
                         overwrite_all = True
@@ -4185,8 +4176,6 @@ class MainWorkerThread(threading.Thread):
                     self._showSaveError('header')
                 filename, ext = os.path.splitext(sasm.getParameter('filename'))
                 sasm.setParameter('filename', filename + newext)
-                # wx.CallAfter(sasm.item_panel.updateFilenameLabel)
-                # wx.CallAfter(item.unmarkAsModified)
 
             if restart_timer:
                 self.main_frame.OnlineControl.updateSkipList([check_filename])
@@ -4409,16 +4398,6 @@ class FilePanel(wx.Panel):
 
         filelist = wx.FindWindowByName('FileListCtrl')
         filelist.openFileInExternalViewer()
-        #wx.CallAfter(self.main_frame.test2)
-
-#        dlg = TestDialog2(self, -1)
-#        dlg.ShowModal()
-#        dlg.Destroy()
-#        plot_panel = wx.FindWindowByName('PlotPanel')
-#        ax = plot_panel.subplot1
-#        plot_panel._insertLegend(ax)
-#
-
 
     def _onPlotButton(self, event):
 
@@ -4429,7 +4408,6 @@ class FilePanel(wx.Panel):
             files.append(path)
 
         mainworker_cmd_queue.put(['plot', files])
-
 
     def _onPlotSECButton(self, event):
 
@@ -4442,8 +4420,6 @@ class FilePanel(wx.Panel):
         frame_list = range(len(files))
 
         mainworker_cmd_queue.put(['sec_plot', [files, frame_list]])
-
-
 
     def _onClearAllButton(self, event):
 
@@ -5331,8 +5307,6 @@ class ManipulationPanel(wx.Panel):
         self._initializeIcons()
         toolbarsizer = self._createToolbar()
 
-
-
         self.underpanel = scrolled.ScrolledPanel(self, -1, style = wx.BORDER_SUNKEN)
         self.underpanel.SetVirtualSize((200, 200))
         self.underpanel.SetScrollRate(20,20)
@@ -5473,8 +5447,6 @@ class ManipulationPanel(wx.Panel):
         self.Refresh()
         self.Thaw()
 
-        # Keeping track of all items in our list:
-
     def setItemAsBackground(self, item):
 
         bg_sasm = self._raw_settings.get('BackgroundSASM')
@@ -5525,7 +5497,6 @@ class ManipulationPanel(wx.Panel):
         if len(selected_items) == 0:
             for each in self.all_manipulation_items:
                 each.showControls(False)
-
         else:
             for each in selected_items:
                 each.showControls(False)
@@ -5547,7 +5518,6 @@ class ManipulationPanel(wx.Panel):
         if len(selected_items) == 0:
             for each in self.all_manipulation_items:
                 each.showControls(True)
-
         else:
             for each in selected_items:
                 each.showControls(True)
@@ -5560,16 +5530,6 @@ class ManipulationPanel(wx.Panel):
         self.Refresh()
 
         self.underpanel.Thaw()
-
-
-    def removeItem(self, item):
-
-        self.all_manipulation_items.remove(item)
-
-        if item == self._star_marked_item:
-            self._star_marked_item = None
-
-        item.Destroy()
 
     def getSelectedItems(self):
 
@@ -5646,12 +5606,11 @@ class ManipulationPanel(wx.Panel):
 
         for eachaxes in axes_that_needs_updated_legend:
             if eachaxes == plot_panel.subplot1:
-                wx.CallAfter(plot_panel.updateLegend, 1)
+                wx.CallAfter(plot_panel.updateLegend, 1, False)
             else:
-                wx.CallAfter(plot_panel.updateLegend, 2)
+                wx.CallAfter(plot_panel.updateLegend, 2, False)
 
         wx.CallAfter(plot_panel.fitAxis)
-        wx.CallAfter(plot_panel.canvas.draw)
 
         self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
@@ -5681,9 +5640,11 @@ class ManipulationPanel(wx.Panel):
         self.underpanel.Thaw()
 
         plot_panel = wx.FindWindowByName('PlotPanel')
-        wx.CallAfter(plot_panel.updateLegend, 1)
-        wx.CallAfter(plot_panel.updateLegend, 2)
+        wx.CallAfter(plot_panel.updateLegend, 1, False)
+        wx.CallAfter(plot_panel.updateLegend, 2, False)
         wx.CallAfter(plot_panel.fitAxis)
+
+        event.Skip()
 
     def _onHideAllButton(self, event):
         self.underpanel.Freeze()
@@ -5707,43 +5668,50 @@ class ManipulationPanel(wx.Panel):
         self.underpanel.Thaw()
 
         plot_panel = wx.FindWindowByName('PlotPanel')
-        wx.CallAfter(plot_panel.updateLegend, 1)
-        wx.CallAfter(plot_panel.updateLegend, 2)
+        wx.CallAfter(plot_panel.updateLegend, 1, False)
+        wx.CallAfter(plot_panel.updateLegend, 2, False)
         wx.CallAfter(plot_panel.fitAxis)
+
+        event.Skip()
 
     def _onSelectAllButton(self, event):
         self.selectAll()
+        event.Skip()
 
     def _onCollapseAllButton(self, event):
         self._collapseAllItems()
+        event.Skip()
 
     def _onExpandAllButton(self, event):
         self._expandAllItems()
-
-    def _onBiftButton(self, event):
-        pass
+        event.Skip()
 
     def _onAverageButton(self, event):
         selected_items = self.getSelectedItems()
         mainworker_cmd_queue.put(['average_items', selected_items])
+        event.Skip()
 
     def _onRemoveButton(self, event):
         self.removeSelectedItems()
+        event.Skip()
 
     def _onSaveButton(self, event):
         self.saveItems()
+        event.Skip()
 
     def _onSyncButton(self, event):
         syncdialog = SyncDialog(self)
         syncdialog.ShowModal()
         syncdialog.Destroy()
+        event.Skip()
 
     def _onSubtractButton(self, event):
-        mainworker_cmd_queue.put(['subtract_items', ( self._star_marked_item, self.getSelectedItems()  )])
+        mainworker_cmd_queue.put(['subtract_items', (self._star_marked_item, self.getSelectedItems())])
+        event.Skip()
 
     def _onSuperimposeButton(self, event):
-        mainworker_cmd_queue.put(['superimpose_items', ( self._star_marked_item, self.getSelectedItems()  )])
-
+        mainworker_cmd_queue.put(['superimpose_items', (self._star_marked_item, self.getSelectedItems())])
+        event.Skip()
 
     def synchronizeSelectedItems(self, sync_parameters):
         star_item = self.getBackgroundItem()
@@ -5905,9 +5873,9 @@ class ManipulationPanel(wx.Panel):
 
 
         plotpanel = wx.FindWindowByName('PlotPanel')
-        wx.CallAfter(plotpanel.updateLegend, 1)
-        wx.CallAfter(plotpanel.updateLegend, 2)
-        wx.CallAfter(plotpanel.canvas.draw)
+        wx.CallAfter(plotpanel.updateLegend, 1, False)
+        wx.CallAfter(plotpanel.updateLegend, 2, False)
+        wx.CallAfter(plotpanel.fitAxis)
 
     def getItems(self):
         return self.all_manipulation_items
@@ -6354,7 +6322,6 @@ class ManipItemPanel(wx.Panel):
                     barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr)))
 
     def updateShowItemCheckBox(self):
-        #self.showControls(self._controls_visible)
         self.SelectedForPlot.SetValue(self._selected_for_plot)
         self.sasm.line.set_picker(self._selected_for_plot)
 
@@ -6407,7 +6374,6 @@ class ManipItemPanel(wx.Panel):
         if updateParent:
             self.parent.Layout()
             self.parent.Refresh()
-
 
     def useAsMWStandard(self):
 
@@ -6581,10 +6547,6 @@ class ManipItemPanel(wx.Panel):
 
     def _onPopupMenuChoice(self, evt):
 
-#        if evt.GetId() == 3:
-#            #IFT
-#            analysisPage.runBiftOnExperimentObject(self.ExpObj, expParams)
-
         if evt.GetId() == 4:
             #Subtract
             selected_items = self.manipulation_panel.getSelectedItems()
@@ -6649,9 +6611,6 @@ class ManipItemPanel(wx.Panel):
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
 
         elif evt.GetId() == 18:
-            #Save Select Analysis Info
-            #self._saveAnalysisInfo()
-
             dlg = SaveAnalysisInfoDialog(self, self.main_frame.raw_settings, self.manipulation_panel.getSelectedItems())
             dlg.ShowModal()
             dlg.Destroy()
@@ -6671,8 +6630,6 @@ class ManipItemPanel(wx.Panel):
             dlg = HdrDataDialog(self, self.sasm)
             dlg.ShowModal()
             dlg.Destroy()
-
-            #wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
 
         elif evt.GetId() == 22:
             selected_items = self.manipulation_panel.getSelectedItems()
@@ -6899,6 +6856,7 @@ class ManipItemPanel(wx.Panel):
             self.manipulation_panel.clearBackgroundItem()
         else:
             self.manipulation_panel.setItemAsBackground(self)
+        event.Skip()
 
     def _showInvalidValueError(self):
         wx.CallAfter(wx.MessageBox, 'The entered value is invalid. Please remove non-numeric characters.', 'Invalid Value Error', style = wx.ICON_ERROR)
@@ -6922,8 +6880,6 @@ class ManipItemPanel(wx.Panel):
                     self.sasm.offset(value)
 
         wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
-
-        wx.CallAfter(self.sasm.plot_panel.fitAxis, [self.sasm.axes])
 
         self.markAsModified()
         event.Skip()
@@ -6965,6 +6921,7 @@ class ManipItemPanel(wx.Panel):
         self._updateQTextCtrl()
         wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
         self.markAsModified()
+        event.Skip()
 
     def _onEnterInQrangeTextCtrl(self, evt):
 
@@ -6992,6 +6949,7 @@ class ManipItemPanel(wx.Panel):
         spinctrl.SetValue(idx)
         self._onQrangeChange(None)
         txtctrl.SelectAll()
+        evt.Skip()
 
     def _onSelectedChkBox(self, event):
         self._selected_for_plot = not self._selected_for_plot
@@ -7004,6 +6962,8 @@ class ManipItemPanel(wx.Panel):
         self.plot_panel.updateLegend(self.sasm.axes, False)
 
         self.sasm.plot_panel.fitAxis([self.sasm.axes])
+
+        event.Skip()
 
     def _createFloatSpinCtrls(self, control_sizer):
 
@@ -7244,15 +7204,6 @@ class IFTPanel(wx.Panel):
         self.Layout()
         self.Refresh()
 
-    def removeItem(self, item):
-
-        self.all_manipulation_items.remove(item)
-
-        if item == self._star_marked_item:
-            self._star_marked_item = None
-
-        item.Destroy()
-
     def getSelectedItems(self):
 
         self.selected_item_list = []
@@ -7299,12 +7250,9 @@ class IFTPanel(wx.Panel):
         self.Freeze()
 
         for each in self.getSelectedItems():
-
             for line in each.lines:
-
                 try:
                     line.remove()
-
                 except (IndexError, ValueError):
                     pass
 
@@ -7319,7 +7267,6 @@ class IFTPanel(wx.Panel):
 
                 i = self.iftplot_panel.plotted_iftms.index(each.iftm)
                 self.iftplot_panel.plotted_iftms.pop(i)
-
             except (IndexError, ValueError):
                     pass
 
@@ -7327,12 +7274,10 @@ class IFTPanel(wx.Panel):
             self.all_manipulation_items[idx].Destroy()
             self.all_manipulation_items.pop(idx)
 
-        wx.CallAfter(self.iftplot_panel.updateLegend, 1)
-        wx.CallAfter(self.iftplot_panel.updateLegend, 2)
+        wx.CallAfter(self.iftplot_panel.updateLegend, 1, False)
+        wx.CallAfter(self.iftplot_panel.updateLegend, 2, False)
 
         wx.CallAfter(self.iftplot_panel.fitAxis)
-
-        wx.CallAfter(self.iftplot_panel.canvas.draw)
 
         self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
@@ -7362,8 +7307,8 @@ class IFTPanel(wx.Panel):
 
         self.underpanel.Thaw()
 
-        wx.CallAfter(self.iftplot_panel.updateLegend, 1)
-        wx.CallAfter(self.iftplot_panel.updateLegend, 2)
+        wx.CallAfter(self.iftplot_panel.updateLegend, 1, False)
+        wx.CallAfter(self.iftplot_panel.updateLegend, 2, False)
         wx.CallAfter(self.iftplot_panel.fitAxis)
 
     def _onHideAllButton(self, event):
@@ -7387,9 +7332,9 @@ class IFTPanel(wx.Panel):
 
         self.underpanel.Thaw()
 
-        wx.CallAfter(self.iftplot_panel.updateLegend, 1)
-        wx.CallAfter(self.iftplot_panel.updateLegend, 2)
-        wx.CallAfter(self.iftplot_panel.canvas.draw)
+        wx.CallAfter(self.iftplot_panel.updateLegend, 1, False)
+        wx.CallAfter(self.iftplot_panel.updateLegend, 2, False)
+        wx.CallAfter(self.iftplot_panel.fitAxis)
 
     def _onRemoveButton(self, event):
         self.removeSelectedItems()
@@ -7724,29 +7669,6 @@ class IFTItemPanel(wx.Panel):
     def getLegendLabel(self):
         return self._legend_label
 
-    def updateControlsFromIFTM(self):
-        scale = self.iftm.getScale()
-        offset = self.iftm.getOffset()
-        qmin, qmax = self.iftm.getQrange()
-
-        qmin_ctrl = wx.FindWindowById(self.spin_controls[0][1])
-        qmax_ctrl = wx.FindWindowById(self.spin_controls[1][1])
-        qmintxt = wx.FindWindowById(self.spin_controls[0][2])
-        qmaxtxt = wx.FindWindowById(self.spin_controls[1][2])
-
-        qmin_ctrl.SetValue(str(qmin))
-        qmax_ctrl.SetValue(str(qmax-1))
-        qmintxt.SetValue(str(round(self.iftm.q[qmin],4)))
-        qmaxtxt.SetValue(str(round(self.iftm.q[qmax-1],4)))
-
-        scale_ctrl = wx.FindWindowById(self.float_spin_controls[0][1])
-        offset_ctrl = wx.FindWindowById(self.float_spin_controls[1][1])
-
-        offset_ctrl.SetValue(str(offset))
-        scale_ctrl.SetValue(str(scale))
-
-        wx.CallAfter(self.iftm.plot_panel.updatePlotAfterManipulation, [self.iftm])
-
     def toggleSelect(self, set_focus = False, update_info = True):
 
         if self._selected:
@@ -7793,7 +7715,6 @@ class IFTItemPanel(wx.Panel):
         for line in self.lines:
             line.set_visible(state)
             line.set_picker(state)      #Line can't be selected when it's hidden
-
 
         each = self.iftm
 
@@ -8386,7 +8307,7 @@ class SECPanel(wx.Panel):
 
         self.underpanel.Thaw()
 
-        wx.CallAfter(self.sec_plot_panel.updateLegend, 1)
+        wx.CallAfter(self.sec_plot_panel.updateLegend, 1, False)
         wx.CallAfter(self.sec_plot_panel.fitAxis)
 
     def _onHideAllButton(self, event):
@@ -8410,7 +8331,7 @@ class SECPanel(wx.Panel):
 
         self.underpanel.Thaw()
 
-        wx.CallAfter(self.sec_plot_panel.updateLegend, 1)
+        wx.CallAfter(self.sec_plot_panel.updateLegend, 1, False)
         wx.CallAfter(self.sec_plot_panel.fitAxis)
 
     def _onCollapseAllButton(self, event):
@@ -8459,7 +8380,6 @@ class SECPanel(wx.Panel):
         axes_that_needs_updated_legend = []
 
         for each in self.getSelectedItems():
-
             try:
                 self.modified_items.remove(each)
             except:
@@ -8470,13 +8390,10 @@ class SECPanel(wx.Panel):
 
             if each.secm.line != None:
                 plot_panel = each.secm.plot_panel
-
                 try:
                     each.secm.line.remove()
-
                     if each.secm.origline != None:
                         each.secm.origline.remove()
-
                     i = plot_panel.plotted_secms.index(each.secm)
                     plot_panel.plotted_secms.pop(i)
                 except (IndexError, ValueError):
@@ -8485,31 +8402,12 @@ class SECPanel(wx.Panel):
                 if not each.secm.axes in axes_that_needs_updated_legend:
                     axes_that_needs_updated_legend.append(each.secm.axes)
 
-                for eachaxes in axes_that_needs_updated_legend:
-                    if eachaxes == plot_panel.subplot1:
-                        wx.CallAfter(plot_panel.updateLegend, 1)
-                    else:
-                        wx.CallAfter(plot_panel.updateLegend, 2)
-
             if each.secm.calc_line != None:
                 plot_panel = each.secm.plot_panel
-
                 try:
                     each.secm.calc_line.remove()
-
                 except (IndexError, ValueError):
                     pass
-
-                if not each.secm.calc_axes in axes_that_needs_updated_legend:
-                    axes_that_needs_updated_legend.append(each.secm.calc_axes)
-
-                for eachaxes in axes_that_needs_updated_legend:
-                    if eachaxes == plot_panel.subplot1:
-                        wx.CallAfter(plot_panel.updateLegend, 1)
-                    else:
-                        wx.CallAfter(plot_panel.updateLegend, 2)
-
-                wx.CallAfter(plot_panel.canvas.draw)
 
             if each == self.starred_item:
                 self.starred_item = None
@@ -8518,7 +8416,9 @@ class SECPanel(wx.Panel):
             self.all_manipulation_items[idx].Destroy()
             self.all_manipulation_items.pop(idx)
 
-        wx.CallAfter(plot_panel.fitAxis)
+        wx.CallAfter(self.sec_plot_panel.updateLegend, 1, False)
+
+        wx.CallAfter(self.sec_plot_panel.fitAxis)
 
         self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())

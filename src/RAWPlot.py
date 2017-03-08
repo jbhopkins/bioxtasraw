@@ -1832,7 +1832,7 @@ class PlotPanel(wx.Panel):
 
         self.canvas.draw()
 
-    def updatePlotAfterManipulation(self, sasm_list):
+    def updatePlotAfterManipulation(self, sasm_list, draw = True):
 
         for sasm in sasm_list:
             a = sasm.axes
@@ -1856,7 +1856,8 @@ class PlotPanel(wx.Panel):
             elif plottype== 'porod':
                 sasm.line.set_data(q, np.power(q,4)*i)
 
-        self.canvas.draw()
+        if draw:
+            self.fitAxis()
 
 
     def clearPlot(self, plot_num):
@@ -2831,7 +2832,7 @@ class IftPlotPanel(PlotPanel):
 
         self.canvas.draw()
 
-    def updatePlotAfterManipulation(self, sasm_list):
+    def updatePlotAfterManipulation(self, sasm_list, draw = True):
 
         for sasm in sasm_list:
             a = sasm.axes
@@ -2854,7 +2855,8 @@ class IftPlotPanel(PlotPanel):
                 sasm.line.set_data(np.power(q,2), i)
                 sasm.line.set_data(q, np.power(q,4)*i)
 
-        self.canvas.draw()
+        if draw:
+            self.fitAxis()
 
 
     def clearPlot(self, plot_num):
@@ -4690,7 +4692,7 @@ class SECPlotPanel(wx.Panel):
 
         self.canvas.draw()
 
-    def updatePlotAfterManipulation(self, secm_list):
+    def updatePlotAfterManipulation(self, secm_list, draw = True):
         for each in self.plotted_secms:
             if self.plotparams['y_axis_display'] == 'qspec':
                 q=float(self.plotparams['secm_plot_q'])
@@ -4779,7 +4781,8 @@ class SECPlotPanel(wx.Panel):
         self._setLabels(axes = self.subplot1)
         self._setLabels(axes = self.ryaxis)
 
-        self.canvas.draw()
+        if draw:
+            self.fitAxis()
 
 
     def clearPlot(self, plot_num):
@@ -4885,29 +4888,20 @@ class SECPlotPanel(wx.Panel):
             a.title.set_size(self.plotparams['title_fontsize1'])
 
     def updateLegend(self, plotnum, draw=True):
-        axes = plotnum
+        #Takes the plotnum argument for historical reasons: i.e. I'm too
+        #lazy to change the inputs everywhere
+        self._insertLegend(draw)
 
-        if plotnum == 1:
-            axes = self.subplot1
-        if plotnum == self.subplot1:
-            plotnum = 1
-        if plotnum == 2:
-            axes = self.ryaxis
-        if plotnum == self.ryaxis:
-            plotnum = 2
-
-        self._insertLegend(axes, draw)
-
-    def _insertLegend(self, axes, draw=True):
+    def _insertLegend(self, draw=True):
         ####################################################################
         # NB!! LEGEND IS THE BIG SPEED HOG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ###################################################################
-        a = axes
+        a = self.subplot1
 
         if self.plotparams['legend_showcalc1']:
             axes_list = [self.subplot1, self.ryaxis]
         else:
-            axes_list = [axes]
+            axes_list = [self.subplot1]
 
         legend_lines = []
         legend_labels = []
