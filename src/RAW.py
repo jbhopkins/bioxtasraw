@@ -5867,14 +5867,15 @@ class ManipulationPanel(wx.Panel):
                 if old_linemarker != linemarker:
                     modified = True
 
-            each_item.updateControlsFromSASM(updatePlot=False)
+            wx.CallAfter(each_item.updateControlsFromSASM, updatePlot=False)
 
             if modified:
-                each_item.markAsModified()
+                wx.CallAfter(each_item.markAsModified, updateParent = False)
 
+        wx.CallAfter(each_item.parent.Refresh)
+        wx.CallAfter(each_item.parent.Layout)
 
         wx.CallAfter(manip_plot.updatePlotAfterManipulation, sasm_list)
-
 
     def movePlots(self, ExpObjList, toAxes):
         for each_item in ExpObjList:
@@ -6357,15 +6358,17 @@ class ManipItemPanel(wx.Panel):
         self.SelectedForPlot.SetValue(self._selected_for_plot)
         self.sasm.line.set_picker(self._selected_for_plot)
 
-    def markAsModified(self):
+    def markAsModified(self, updateSelf = True, updateParent = True):
         filename = self.sasm.getParameter('filename')
         self.SelectedForPlot.SetLabel('* ' + str(filename))
 
-        self.SelectedForPlot.Refresh()
-        self.topsizer.Layout()
+        if updateSelf:
+            self.SelectedForPlot.Refresh()
+            self.topsizer.Layout()
 
-        self.parent.Layout()
-        self.parent.Refresh()
+        if updateParent:
+            self.parent.Layout()
+            self.parent.Refresh()
 
         if self not in self.manipulation_panel.modified_items:
             self.manipulation_panel.modified_items.append(self)
@@ -6998,8 +7001,7 @@ class ManipItemPanel(wx.Panel):
         self.GetParent().Layout()
         self.GetParent().Refresh()
 
-        wx.CallAfter(self.plot_panel.updateLegend, self.sasm.axes)
-        wx.CallAfter(self.sasm.plot_panel.canvas.draw)
+        self.plot_panel.updateLegend(self.sasm.axes, False)
 
         self.sasm.plot_panel.fitAxis([self.sasm.axes])
 
@@ -7674,16 +7676,18 @@ class IFTItemPanel(wx.Panel):
         for line in self.lines:
             line.set_picker(self._selected_for_plot)
 
-    def markAsModified(self):
+    def markAsModified(self, updateSelf = True, updateParent = True):
         filename = self.iftm.getParameter('filename')
 
         self.SelectedForPlot.SetLabel('* ' + str(filename))
 
-        self.SelectedForPlot.Refresh()
-        self.topsizer.Layout()
+        if updateSelf:
+            self.SelectedForPlot.Refresh()
+            self.topsizer.Layout()
 
-        self.parent.Layout()
-        self.parent.Refresh()
+        if updateParent:
+            self.parent.Layout()
+            self.parent.Refresh()
 
         if self not in self.manipulation_panel.modified_items:
             self.manipulation_panel.modified_items.append(self)
@@ -8203,9 +8207,8 @@ class IFTItemPanel(wx.Panel):
         self.GetParent().Layout()
         self.GetParent().Refresh()
 
-        wx.CallAfter(self.ift_plot_panel.updateLegend, self.iftm.r_axes)
-        wx.CallAfter(self.ift_plot_panel.updateLegend, self.iftm.qo_axes)
-        wx.CallAfter(self.iftm.plot_panel.canvas.draw)
+        self.ift_plot_panel.updateLegend(self.iftm.r_axes, False)
+        self.ift_plot_panel.updateLegend(self.iftm.qo_axes, False)
 
         self.iftm.plot_panel.fitAxis()
 
@@ -9038,15 +9041,17 @@ class SECItemPanel(wx.Panel):
         self.SelectedForPlot.SetValue(self._selected_for_plot)
         self.secm.line.set_picker(self._selected_for_plot)
 
-    def markAsModified(self):
+    def markAsModified(self, updateSelf = True, updateParent = True):
         filename = self.secm.getParameter('filename')
         self.SelectedForPlot.SetLabel('* ' + str(filename))
 
-        self.SelectedForPlot.Refresh()
-        self.topsizer.Layout()
+        if updateSelf:
+            self.SelectedForPlot.Refresh()
+            self.topsizer.Layout()
 
-        self.parent.Layout()
-        self.parent.Refresh()
+        if updateParent:
+            self.parent.Layout()
+            self.parent.Refresh()
 
         if self not in self.sec_panel.modified_items:
             self.sec_panel.modified_items.append(self)
@@ -9303,10 +9308,9 @@ class SECItemPanel(wx.Panel):
         self.GetParent().Layout()
         self.GetParent().Refresh()
 
-        wx.CallAfter(self.sec_plot_panel.updateLegend, self.secm.axes)
-        wx.CallAfter(self.secm.plot_panel.canvas.draw)
+        self.sec_plot_panel.updateLegend(self.secm.axes, False)
 
-        wx.CallAfter(self.secm.plot_panel.fitAxis)
+        self.secm.plot_panel.fitAxis()
 
 
 class SECControlPanel(wx.Panel):

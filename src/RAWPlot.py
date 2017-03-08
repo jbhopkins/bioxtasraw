@@ -1947,7 +1947,7 @@ class PlotPanel(wx.Panel):
                 a.title.set_fontname(self.plotparams['title_font2'])
                 a.title.set_size(self.plotparams['title_fontsize2'])
 
-    def updateLegend(self, plotnum):
+    def updateLegend(self, plotnum, draw = True):
         axes = plotnum
 
         print plotnum
@@ -1961,9 +1961,9 @@ class PlotPanel(wx.Panel):
         elif plotnum == self.subplot2:
             plotnum = 2
 
-        self._insertLegend(axes)
+        self._insertLegend(axes, draw)
 
-    def _insertLegend(self, axes):
+    def _insertLegend(self, axes, draw = True):
         ####################################################################
         # NB!! LEGEND IS THE BIG SPEED HOG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ###################################################################
@@ -2061,7 +2061,8 @@ class PlotPanel(wx.Panel):
             except AttributeError:
                 print "WARNING: Old matplotlib version, legend not draggable"
 
-        self.canvas.draw()
+        if draw:
+            self.canvas.draw()
 
     def _setColor(self, rgbtuple):
         """Set figure and canvas colours to be the same"""
@@ -2944,7 +2945,7 @@ class IftPlotPanel(PlotPanel):
                 a.title.set_fontname(self.plotparams['title_font2'])
                 a.title.set_size(self.plotparams['title_fontsize2'])
 
-    def updateLegend(self, plotnum):
+    def updateLegend(self, plotnum, draw = True):
         axes = plotnum
 
         print plotnum
@@ -2958,9 +2959,9 @@ class IftPlotPanel(PlotPanel):
         if plotnum == self.subplot2:
             plotnum = 2
 
-        self._insertLegend(axes)
+        self._insertLegend(axes, draw)
 
-    def _insertLegend(self, axes):
+    def _insertLegend(self, axes, draw = True):
         ####################################################################
         # NB!! LEGEND IS THE BIG SPEED HOG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ###################################################################
@@ -3053,8 +3054,8 @@ class IftPlotPanel(PlotPanel):
 
             except AttributeError:
                 print "WARNING: Old matplotlib version, legend not draggable"
-
-        self.canvas.draw()
+        if draw:
+            self.canvas.draw()
 
     def _setColor(self, rgbtuple):
         """Set figure and canvas colours to be the same"""

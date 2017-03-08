@@ -19,17 +19,12 @@
 from __future__ import division
 from scipy import *
 from scipy import optimize
-from scipy.linalg import inv, det, eig
+from scipy.linalg import det
 from numpy import *
 import numpy
 import RAWGlobals
-#import saxsmodel
-#import autoanalysis
-#import random
-#import matplotlib.axes3d as p3
 
-import time, Queue, wx, os#, random
-# import bift_ext, transmatrix_ext, SASM
+import os
 import SASM
 
 if not RAWGlobals.frozen:
