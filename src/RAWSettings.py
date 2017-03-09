@@ -234,7 +234,7 @@ class RawGuiSettings:
                                                       '.out', '.mar1200', '.mar2400', '.mar2300', '.mar3600', '.int', '.ccdraw'], None],
 
 
-                            #SEC Settiongs:
+                            #SEC Settings:
                             'secCalcThreshold'      : [1.02, wx.NewId(), 'float'],
 
                             #GUI Settings:
@@ -309,8 +309,11 @@ class RawGuiSettings:
                             'damminDisconPen'       : [-1, wx.NewId(), 'float'],
                             'damminPeriphPen'       : [-1, wx.NewId(), 'float'],
                             'damminCurveWeight'     : ['1', wx.NewId(), 'choice'],
-                            'damminAnealSched'      : [-1, wx.NewId(), 'float']
+                            'damminAnealSched'      : [-1, wx.NewId(), 'float'],
 
+                            #Weighted Average Settings
+                            'weightCounter'         : ['', wx.NewId(), 'choice'],
+                            'weightByError'         : [True, wx.NewId(), 'bool'],
                             }
 
     def get(self, key):

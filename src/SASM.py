@@ -1235,26 +1235,6 @@ def subtract(sasm1, sasm2, forced = False):
 
     return newSASM
 
-def absorbance(sasm1, sasm2):
-    ''' compute the absorbance of one SASM object from another  '''
-
-    q1_min, q1_max = sasm1.getQrange()
-    q2_min, q2_max = sasm2.getQrange()
-
-    if len(sasm1.i[q1_min:q1_max]) != len(sasm2.i[q2_min:q2_max]):
-        raise SASExceptions.DataNotCompatible('The curves does not have the same number of points.')
-
-    i = np.log(sasm2.i[q2_min:q2_max] / sasm1.i[q1_min:q1_max])
-
-    q = sasm1.q.copy()[q1_min:q1_max]
-
-    err = i*0
-
-    parameters = copy.deepcopy(sasm1.getAllParameters())
-    absSASM = SASM(i, q, err, parameters)
-
-    return absSASM
-
 def average(sasm_list, forced = False):
     ''' Average the intensity of a list of sasm objects '''
 
@@ -1312,45 +1292,101 @@ def average(sasm_list, forced = False):
 
     return avgSASM
 
-def addFilenamePrefix(sasm, prefix):
-    ''' add prefix to the filename variable in the SASM parameters '''
+def weightedAverage(sasm_list, weightByError, weightCounter, forced = False):
+    ''' Weighted average of the intensity of a list of sasm objects '''
+    #Check average is possible with provided curves:
+    first_sasm = sasm_list[0]
+    first_q_min, first_q_max = first_sasm.getQrange()
 
-    filename = sasm.getParameter('filename')
-    sasm.setParameter('filename', prefix + filename)
+    for each in sasm_list:
+        each_q_min, each_q_max = each.getQrange()
+        if not np.all(np.round(each.q[each_q_min:each_q_max], 5) == np.round(first_sasm.q[first_q_min:first_q_max], 5)) and not forced:
+            raise SASExceptions.DataNotCompatible('Average list contains data sets with different q vectors.')
 
-    return sasm
+    all_i = first_sasm.i[first_q_min : first_q_max]
+    all_err = first_sasm.err[first_q_min : first_q_max]
 
-def addFilenameSuffix(sasm, suffix):
-    ''' add suffix to the filename variable in the SASM parameters '''
+    if not weightByError:
+        if first_sasm.getAllParameters().has_key('counters'):
+            file_hdr = first_sasm.getParameter('counters')
+        if first_sasm.getAllParameters().has_key('imageHeader'):
+            img_hdr = first_sasm.getParameter('imageHeader')
 
-    filename, ext = os.path.splitext(sasm.getParameter('filename'))
-    sasm.setParameter('filename', filename + suffix + ext)
+        if weightCounter in file_hdr:
+            all_weight = float(file_hdr[weightCounter])
+        else:
+            all_weight = float(img_hdr[weightCounter])
 
-    return sasm
+    avg_filelist = []
+    if not weightByError:
+        avg_filelist.append([first_sasm.getParameter('filename'), all_weight])
+    else:
+        avg_filelist.append([first_sasm.getParameter('filename'), 'error'])
 
-def determineOutlierMinMax(data, sensitivity):
-    ''' Determines the max and min borders for outliers using
-        interquantile range-based fences '''
+    for idx in range(1, len(sasm_list)):
+        each_q_min, each_q_max = sasm_list[idx].getQrange()
+        all_i = np.vstack((all_i, sasm_list[idx].i[each_q_min:each_q_max]))
+        all_err = np.vstack((all_err, sasm_list[idx].err[each_q_min:each_q_max]))
 
-    N = len(data)
-    data_sorted = np.sort(data)
+        if not weightByError:
+            if sasm_list[idx].getAllParameters().has_key('counters'):
+                file_hdr = sasm_list[idx].getParameter('counters')
+            if sasm_list[idx].getAllParameters().has_key('imageHeader'):
+                img_hdr = sasm_list[idx].getParameter('imageHeader')
 
-    P25_idx = round((25.0/100) * N)
-    P75_idx = round((75.0/100) * (N-1))
+            if weightCounter in file_hdr:
+                try:
+                    all_weight = np.vstack((all_weight, float(file_hdr[weightCounter])))
+                except ValueError:
+                    raise SASExceptions.DataNotCompatible('Not all weight counter values were numbers.')
 
-    P25 = data_sorted[P25_idx]
-    P75 = data_sorted[P75_idx]
+            else:
+                try:
+                    all_weight = np.vstack((all_weight, float(img_hdr[weightCounter])))
+                except ValueError:
+                    raise SASExceptions.DataNotCompatible('Not all weight counter values were numbers.')
 
-    IQR = P75-P25
+        if not weightByError:
+            avg_filelist.append([sasm_list[idx].getParameter('filename'), all_weight])
+        else:
+            avg_filelist.append([sasm_list[idx].getParameter('filename'), 'error'])
 
-    min = P25 - (sensitivity * IQR)
-    max = P75 + (sensitivity * IQR)
+    if not weightByError:
+        weight = all_weight.flatten()
+        avg_i = np.average(all_i, axis=0, weights=weight)
+        avg_err = np.sqrt(np.average(np.square(all_err), axis=0, weights=np.square(weight)))
+    else:
+        all_err = 1/(np.square(all_err))
+        avg_i = np.average(all_i, axis=0, weights = all_err)
+        avg_err = np.sqrt(1/np.sum(all_err,0))
 
-    return (min, max)
+    avg_i = copy.deepcopy(avg_i)
+    avg_err = copy.deepcopy(avg_err)
 
-def removeZingersAndAverage(sasmList):
-    pass
+    avg_q = copy.deepcopy(first_sasm.q)[first_q_min:first_q_max]
+    avg_parameters = copy.deepcopy(sasm_list[0].getAllParameters())
 
+    avgSASM = SASM(avg_i, avg_q, avg_err, avg_parameters)
+    history = avgSASM.getParameter('history')
+
+    history = {}
+
+    history_list = []
+
+    for eachsasm in sasm_list:
+        each_history = []
+        each_history.append(copy.deepcopy(eachsasm.getParameter('filename')))
+
+        for key in eachsasm.getParameter('history'):
+            each_history.append({key : copy.deepcopy(eachsasm.getParameter('history')[key])})
+
+        history_list.append(each_history)
+
+
+    history['weighted_averaged_files'] = history_list
+    avgSASM.setParameter('history', history)
+
+    return avgSASM
 
 def calcAbsoluteScaleWaterConst(water_sasm, emptycell_sasm, I0_water, raw_settings):
 

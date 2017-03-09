@@ -56,73 +56,74 @@ class MainFrame(wx.Frame):
     def __init__(self, title, frame_id):
         wx.Frame.__init__(self, None, frame_id, title, name = 'MainFrame')
 
-        self.MenuIDs = {'exit'                : wx.NewId(),
-                        'advancedOptions'     : wx.NewId(),
-                        'loadSettings'        : wx.NewId(),
-                        'saveSettings'        : wx.NewId(),
-                        'centering'           : wx.NewId(),
-                        'masking'             : wx.NewId(),
-                        'goOnline'            : wx.NewId(),
-                        'goOffline'           : wx.NewId(),
-                        'changeOnline'        : wx.NewId(),
-                        'plot1tynormal'       : wx.NewId(),
-                        'plot1tyguinier'      : wx.NewId(),
-                        'plot1tykratky'       : wx.NewId(),
-                        'plot1typorod'        : wx.NewId(),
-                        'plot1tysubtracted'   : wx.NewId(),
-                        'plot2tynormal'       : wx.NewId(),
-                        'plot2tyguinier'      : wx.NewId(),
-                        'plot2tykratky'       : wx.NewId(),
-                        'plot2tysubtracted'   : wx.NewId(),
-                        'plot2typorod'        : wx.NewId(),
-                        'plot1sclinlin'       : wx.NewId(),
-                        'plot1scloglog'       : wx.NewId(),
-                        'plot1scloglin'       : wx.NewId(),
-                        'plot1sclinlog'       : wx.NewId(),
-                        'plot2sclinlin'       : wx.NewId(),
-                        'plot2scloglog'       : wx.NewId(),
-                        'plot2scloglin'       : wx.NewId(),
-                        'plot2sclinlog'       : wx.NewId(),
-                        'secplottotal'        : wx.NewId(),
-                        'secplotmean'         : wx.NewId(),
-                        'secplotq'            : wx.NewId(),
-                        'secplotframe'        : wx.NewId(),
-                        'secplottime'         : wx.NewId(),
-                        'secplotrg'           : wx.NewId(),
-                        'secplotmw'           : wx.NewId(),
-                        'secploti0'           : wx.NewId(),
-                        'secplotnone'         : wx.NewId(),
-                        'secplotlylin'        : wx.NewId(),
-                        'secplotlylog'        : wx.NewId(),
-                        'secplotrylin'        : wx.NewId(),
-                        'secplotrylog'        : wx.NewId(),
-                        'secplotxlin'         : wx.NewId(),
-                        'secplotxlog'         : wx.NewId(),
-                        'help'                : wx.NewId(),
-                        'about'               : wx.NewId(),
-                        'guinierfit'          : wx.NewId(),
-                        'molweight'           : wx.NewId(),
-                        'saveWorkspace'       : wx.NewId(),
-                        'loadWorkspace'       : wx.NewId(),
-                        'average'             : wx.NewId(),
-                        'subtract'            : wx.NewId(),
-                        'merge'               : wx.NewId(),
-                        'rebin'               : wx.NewId(),
-                        'interpolate'         : wx.NewId(),
-                        'q*10'                : wx.NewId(),
-                        'q/10'                : wx.NewId(),
-                        'norm_conc'           : wx.NewId(),
-                        'mwstandard'          : wx.NewId(),
-                        'showimage'           : wx.NewId(),
-                        'showdata'            : wx.NewId(),
-                        'showheader'          : wx.NewId(),
-                        'rungnom'             : wx.NewId(),
-                        'rundammif'           : wx.NewId(),
-                        'bift'                : wx.NewId(),
-                        'runambimeter'        : wx.NewId(),
-                        'runsvd'              : wx.NewId(),
-                        'runefa'              : wx.NewId(),
-                        'showhistory'         : wx.NewId()
+        self.MenuIDs = {'exit'                  : wx.NewId(),
+                        'advancedOptions'       : wx.NewId(),
+                        'loadSettings'          : wx.NewId(),
+                        'saveSettings'          : wx.NewId(),
+                        'centering'             : wx.NewId(),
+                        'masking'               : wx.NewId(),
+                        'goOnline'              : wx.NewId(),
+                        'goOffline'             : wx.NewId(),
+                        'changeOnline'          : wx.NewId(),
+                        'plot1tynormal'         : wx.NewId(),
+                        'plot1tyguinier'        : wx.NewId(),
+                        'plot1tykratky'         : wx.NewId(),
+                        'plot1typorod'          : wx.NewId(),
+                        'plot1tysubtracted'     : wx.NewId(),
+                        'plot2tynormal'         : wx.NewId(),
+                        'plot2tyguinier'        : wx.NewId(),
+                        'plot2tykratky'         : wx.NewId(),
+                        'plot2tysubtracted'     : wx.NewId(),
+                        'plot2typorod'          : wx.NewId(),
+                        'plot1sclinlin'         : wx.NewId(),
+                        'plot1scloglog'         : wx.NewId(),
+                        'plot1scloglin'         : wx.NewId(),
+                        'plot1sclinlog'         : wx.NewId(),
+                        'plot2sclinlin'         : wx.NewId(),
+                        'plot2scloglog'         : wx.NewId(),
+                        'plot2scloglin'         : wx.NewId(),
+                        'plot2sclinlog'         : wx.NewId(),
+                        'secplottotal'          : wx.NewId(),
+                        'secplotmean'           : wx.NewId(),
+                        'secplotq'              : wx.NewId(),
+                        'secplotframe'          : wx.NewId(),
+                        'secplottime'           : wx.NewId(),
+                        'secplotrg'             : wx.NewId(),
+                        'secplotmw'             : wx.NewId(),
+                        'secploti0'             : wx.NewId(),
+                        'secplotnone'           : wx.NewId(),
+                        'secplotlylin'          : wx.NewId(),
+                        'secplotlylog'          : wx.NewId(),
+                        'secplotrylin'          : wx.NewId(),
+                        'secplotrylog'          : wx.NewId(),
+                        'secplotxlin'           : wx.NewId(),
+                        'secplotxlog'           : wx.NewId(),
+                        'help'                  : wx.NewId(),
+                        'about'                 : wx.NewId(),
+                        'guinierfit'            : wx.NewId(),
+                        'molweight'             : wx.NewId(),
+                        'saveWorkspace'         : wx.NewId(),
+                        'loadWorkspace'         : wx.NewId(),
+                        'average'               : wx.NewId(),
+                        'subtract'              : wx.NewId(),
+                        'merge'                 : wx.NewId(),
+                        'rebin'                 : wx.NewId(),
+                        'interpolate'           : wx.NewId(),
+                        'q*10'                  : wx.NewId(),
+                        'q/10'                  : wx.NewId(),
+                        'norm_conc'             : wx.NewId(),
+                        'mwstandard'            : wx.NewId(),
+                        'showimage'             : wx.NewId(),
+                        'showdata'              : wx.NewId(),
+                        'showheader'            : wx.NewId(),
+                        'rungnom'               : wx.NewId(),
+                        'rundammif'             : wx.NewId(),
+                        'bift'                  : wx.NewId(),
+                        'runambimeter'          : wx.NewId(),
+                        'runsvd'                : wx.NewId(),
+                        'runefa'                : wx.NewId(),
+                        'showhistory'           : wx.NewId(),
+                        'weightedAverage'       : wx.NewId(),
                         }
 
         self.tbIcon = RawTaskbarIcon(self)
@@ -657,6 +658,7 @@ class MainFrame(wx.Frame):
                                       ('Merge', self.MenuIDs['merge'], self._onToolsMenu, 'normal'),
                                       ('Rebin', self.MenuIDs['rebin'], self._onToolsMenu, 'normal'),
                                       ('Interpolate', self.MenuIDs['interpolate'], self._onToolsMenu, 'normal'),
+                                      ('Weighted Average', self.MenuIDs['weightedAverage'], self._onToolsMenu, 'normal'),
                                       ('Normalize by concentration', self.MenuIDs['norm_conc'], self._onToolsMenu, 'normal')],
                     'convertq':      [('q * 10', self.MenuIDs['q*10'], self._onToolsMenu, 'normal'),
                                       ('q / 10', self.MenuIDs['q/10'], self._onToolsMenu, 'normal')],
@@ -826,6 +828,17 @@ class MainFrame(wx.Frame):
             selected_items = page.getSelectedItems()
             marked_item = page.getBackgroundItem()
             mainworker_cmd_queue.put(['interpolate_items', [marked_item, selected_items]])
+
+        elif id == self.MenuIDs['weightedAverage']:
+            current_page = self.control_notebook.GetSelection()
+            page = self.control_notebook.GetPage(current_page)
+            # print page_label
+            if page != wx.FindWindowByName('ManipulationPanel'):
+                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                return
+
+            selected_items = page.getSelectedItems()
+            mainworker_cmd_queue.put(['weighted_average_items', selected_items])
 
         elif id == self.MenuIDs['q*10']:
             current_page = self.control_notebook.GetSelection()
@@ -1911,7 +1924,9 @@ class MainWorkerThread(threading.Thread):
                                     'save_sec_profiles'     : self._saveSECProfiles,
                                     'calculate_params_sec'  : self._calculateSECParams,
                                     'save_iftm'             : self._saveIFTM,
-                                    'to_plot_sasm'          : self._plotSASM}
+                                    'to_plot_sasm'          : self._plotSASM,
+                                    'weighted_average_items': self._weightedAverageItems,
+                                    }
 
 
     def run(self):
@@ -3528,6 +3543,73 @@ class MainWorkerThread(threading.Thread):
         self._insertSasmFilenamePrefix(avg_sasm, 'A_')
 
         self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'green', notsaved = True)
+
+        wx.CallAfter(self.main_frame.closeBusyDialog)
+
+    def _weightedAverageItems(self, item_list):
+
+        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while averaging and plotting...')
+
+        sasm_list = []
+
+        if len(item_list) < 2:
+            self._showAverageError(2)
+            wx.CallAfter(self.main_frame.closeBusyDialog)
+            return
+
+        for each_item in item_list:
+            sasm_list.append(each_item.getSASM())
+
+        weightByError = self._raw_settings.get('weightByError')
+        weightCounter = self._raw_settings.get('weightCounter')
+
+        if not weightByError and weightCounter == '':
+            wx.CallAfter(wx.MessageBox, 'An appropriate counter to weight the data is not selected and error weighting is not enabled. Weighted average aborted.', 'Weighted Average Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+            return
+
+        if not weightByError:
+            has_header = []
+
+            for each_sasm in sasm_list:
+                header_keys = []
+                if each_sasm.getAllParameters().has_key('counters'):
+                    file_hdr = each_sasm.getParameter('counters')
+                    header_keys = header_keys + file_hdr.keys()
+                if each_sasm.getAllParameters().has_key('imageHeader'):
+                    img_hdr = each_sasm.getParameter('imageHeader')
+                    header_keys = header_keys + img_hdr.keys()
+
+                if weightCounter in header_keys:
+                    has_header.append(True)
+                else:
+                    has_header.append(False)
+
+            if not np.all(has_header):
+                wx.CallAfter(wx.MessageBox, 'Not all selected items had the counter value selected as the weight. Weighted average aborted.', 'Weighted Average Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+                return
+
+        try:
+            avg_sasm = SASM.weightedAverage(sasm_list, weightByError, weightCounter)
+        except SASExceptions.DataNotCompatible:
+            self._showAverageError(3)
+            wx.CallAfter(self.main_frame.closeBusyDialog)
+            return
+
+        self._insertSasmFilenamePrefix(avg_sasm, 'A_')
+
+        self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'green', notsaved = True)
+
+        do_auto_save = self._raw_settings.get('AutoSaveOnAvgFiles')
+
+        if do_auto_save:
+            save_path = self._raw_settings.get('AveragedFilePath')
+
+            try:
+                self._saveSASM(avg_sasm, '.dat', save_path)
+            except IOError as e:
+                self._raw_settings.set('AutoSaveOnAvgFiles', False)
+
+                wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutosave of averaged images has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
@@ -6473,6 +6555,7 @@ class ManipItemPanel(wx.Panel):
         menu.Append(22, 'Merge')
         menu.Append(23, 'Rebin')
         menu.Append(25, 'Interpolate')
+        menu.Append(36, 'Weighted Average')
         menu.AppendSeparator()
         menu.Append(27, 'Use as MW standard')
         menu.Append(28, 'Normalize by conc')
@@ -6679,6 +6762,11 @@ class ManipItemPanel(wx.Panel):
         elif evt.GetId() == 35:
             #Run EFA on the selected profiles
             self._runEFA()
+
+        elif evt.GetId() == 36:
+            #Weighted Average
+            selected_items = self.manipulation_panel.getSelectedItems()
+            mainworker_cmd_queue.put(['weighted_average_items', selected_items])
 
 
     def _saveAllAnalysisInfo(self):

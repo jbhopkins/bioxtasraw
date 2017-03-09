@@ -3337,6 +3337,81 @@ class ATSASDamminAdvanced(wx.Panel):
 
         return customSizer
 
+class WeightedAveragePanel(wx.Panel):
+
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+
+        self.raw_settings = raw_settings
+
+        self.update_keys = ['weightCounter', 'weightByError']
+
+        img_hdr = self.raw_settings.get('ImageHdrList')
+        file_hdr = self.raw_settings.get('FileHdrList')
+
+        try:
+            self.expr_combo_list = [''] + sorted(img_hdr.keys() + file_hdr.keys())
+        except AttributeError:
+            self.expr_combo_list = ['']
+
+
+        self.settings = [('Weight by error', raw_settings.getId('weightByError'), 'bool'),
+                        ('Counter to use as weight for weighted average (weighted by 1/cval)', raw_settings.getId('weightCounter'), 'choice', self.expr_combo_list)]
+
+        sizer = self.createOptions(self)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        top_sizer.Add(sizer, 1, wx.EXPAND | wx.ALL, 5)
+        self.SetSizer(top_sizer)
+
+
+    def createOptions(self, parent):
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        for item in self.settings:
+            label = item[0]
+            myId = item[1]
+            itemType = item[2]
+
+            short_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+            if itemType == 'choice':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.Choice(parent, myId, choices = item[3])
+
+                short_sizer.Add(labeltxt, 0)
+                short_sizer.Add(ctrl, 0)
+
+            elif itemType == 'text' or itemType == 'int' or itemType =='float':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+
+                short_sizer.Add(labeltxt, 0)
+                short_sizer.Add(ctrl, 0)
+
+            elif itemType == 'bool':
+                ctrl = wx.CheckBox(parent, myId, label)
+                short_sizer.Add(ctrl, 0, wx.ALL, 2)
+                short_sizer.AddStretchSpacer(1)
+
+                ctrl.Bind(wx.EVT_CHECKBOX, self._onCheckBox)
+
+            sizer.Add(short_sizer,0)
+
+        if self.raw_settings.get('weightByError'):
+            wx.FindWindowById(self.raw_settings.getId('weightCounter')).Disable()
+
+        return sizer
+
+    def _onCheckBox(self, event):
+        if not event.GetEventObject().GetValue():
+            wx.FindWindowById(self.raw_settings.getId('weightCounter')).Enable()
+        else:
+            wx.FindWindowById(self.raw_settings.getId('weightCounter')).Disable()
+        event.Skip()
 
 def findATSASDirectory():
     opsys= platform.system()
@@ -3377,9 +3452,8 @@ def findATSASDirectory():
 
     try:
         path = os.environ['PATH']
-    except Exception as e:
+    except Exception:
         path = None
-        print e
 
     if path != None:
         if opsys == 'Windows':
@@ -3394,9 +3468,8 @@ def findATSASDirectory():
 
     try:
         atsas_path = os.environ['ATSAS']
-    except Exception as e:
+    except Exception:
         atsas_path = None
-        print e
 
     if atsas_path != None:
         if atsas_path.lower().find('atsas') > -1:
@@ -3502,7 +3575,8 @@ all_options = [ [ (0,0,0), wx.NewId(), 'Configuration Settings', ConfigRootSetti
                 [ (9,5,1), wx.NewId(), "DAMMIF/N", ATSASDammix],
                 [ (9,5,2), wx.NewId(), "DAMMIF/N Advanced", ATSASDammixAdvanced],
                 [ (9,5,2), wx.NewId(), "DAMMIF Advanced", ATSASDammifAdvanced],
-                [ (9,5,2), wx.NewId(), "DAMMIN Advanced", ATSASDamminAdvanced]
+                [ (9,5,2), wx.NewId(), "DAMMIN Advanced", ATSASDamminAdvanced],
+                [ (10,0,0), wx.NewId(), "Weighted Average", WeightedAveragePanel],
 				# [ (10,0,0), wx.NewId(), "SANS", SansOptionsPanel]
                 ]
 
