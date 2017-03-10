@@ -591,7 +591,11 @@ class ImagePanel(wx.Panel):
             points, centering_panel.c.points = SASCalib.new_grp(self.img, [x, y], centering_panel.c.points, 100, self.pyfai_ring_num)
 
             if not points:
-                wx.MessageBox('Failed to find any points in the calibrant ring. Try another location or, if no points in any ring can be found, cancel the auto centering.', 'Automatic Peak Search Failed')
+                if self.canvas.HasCapture():
+                    self.canvas.ReleaseMouse()
+                wx.CallAfter(wx.MessageBox, 'Failed to find any points in the calibrant ring. Try another location or, if no points in any ring can be found, cancel the auto centering.', 'Automatic Peak Search Failed', style = wx.ICON_ERROR | wx.OK)
+                return
+                
 
             for point in points:
                 cir = matplotlib.patches.Circle((point[1], point[0]), radius = 1, alpha = 1, color = self.pyfai_color_cycle[int(self.pyfai_ring_num) % len(self.pyfai_color_cycle)])
