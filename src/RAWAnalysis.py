@@ -22,11 +22,11 @@ Created on Mar 23, 2010
 #******************************************************************************
 '''
 import matplotlib
-#matplotlib.use('WXAgg')
+matplotlib.rcParams['backend'] = 'WxAgg'
 matplotlib.rc('image', origin = 'lower')        # turn image upside down.. x,y, starting from lower left
 
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg#,Toolbar, FigureCanvasWx
-from matplotlib.backends.backend_wx import NavigationToolbar2Wx
+from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.figure import Figure
 import numpy as np
 import sys, os, copy, multiprocessing, threading, Queue, wx, time, re, platform, subprocess
@@ -35,7 +35,6 @@ from scipy import polyval, polyfit, integrate
 import scipy.interpolate as interp
 from scipy.constants import Avogadro
 import scipy.stats as stats
-# import scipy.optimize
 
 import RAWSettings, RAWCustomCtrl, SASCalc, SASFileIO, SASM, SASExceptions, RAWGlobals
 
@@ -80,7 +79,7 @@ class GuinierPlotPanel(wx.Panel):
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         self.canvas.SetBackgroundColour('white')
 
-        self.toolbar = NavigationToolbar2Wx(self.canvas)
+        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
         self.toolbar.Realize()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -290,9 +289,6 @@ class GuinierPlotPanel(wx.Panel):
 
         b.relim()
         b.autoscale_view()
-
-        # b.set_xlim((x_fit[0], x_fit[-1]))
-        # b.set_ylim((error.min(), error.max()))
 
         a_newx = a.get_xlim()
         a_newy = a.get_ylim()
@@ -761,6 +757,15 @@ class GuinierControlPanel(wx.Panel):
         xlim = [i,i2]
 
         plotpanel.canvas.mpl_disconnect(plotpanel.cid) #disconnect draw event to avoid recursions
+
+        #Deals with problems of the zoom, pan, and home button and autoscaling the axes when we change the data range
+        a = plotpanel.subplots['Guinier']
+        b = plotpanel.subplots['Residual']
+        if not a.get_autoscale_on():
+            a.set_autoscale_on(True)
+        if not b.get_autoscale_on():
+            b.set_autoscale_on(True)
+
         plotpanel.updateDataPlot(y, x, err, xlim)
         plotpanel.cid = plotpanel.canvas.mpl_connect('draw_event', plotpanel.ax_redraw) #Reconnect draw_event
 
@@ -2348,7 +2353,7 @@ class GNOMPlotPanel(wx.Panel):
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         self.canvas.SetBackgroundColour('white')
 
-        self.toolbar = NavigationToolbar2Wx(self.canvas)
+        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
         self.toolbar.Realize()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -2445,9 +2450,6 @@ class GNOMPlotPanel(wx.Panel):
 
         b.relim()
         b.autoscale_view()
-
-        # if  np.all(p>=0):
-        #     a.set_ylim(bottom = p.min())
 
         a_newx = a.get_xlim()
         a_newy = a.get_ylim()
@@ -3059,6 +3061,13 @@ class GNOMControlPanel(wx.Panel):
 
         dmax_window = wx.FindWindowById(self.spinctrlIDs['dmax'])
         dmax = str(dmax_window.GetValue())
+
+        a = plotpanel.subplots['P(r)']
+        b = plotpanel.subplots['Data/Fit']
+        if not a.get_autoscale_on():
+            a.set_autoscale_on(True)
+        if not b.get_autoscale_on():
+            b.set_autoscale_on(True)
 
         plotpanel.plotPr(self.out_list[dmax])
 
@@ -4404,7 +4413,7 @@ class BIFTPlotPanel(wx.Panel):
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         self.canvas.SetBackgroundColour('white')
 
-        self.toolbar = NavigationToolbar2Wx(self.canvas)
+        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
         self.toolbar.Realize()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -5414,7 +5423,7 @@ class SVDResultsPlotPanel(wx.Panel):
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         self.canvas.SetBackgroundColour('white')
 
-        self.toolbar = NavigationToolbar2Wx(self.canvas)
+        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
         self.toolbar.Realize()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -5567,7 +5576,7 @@ class SVDSECPlotPanel(wx.Panel):
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         self.canvas.SetBackgroundColour('white')
 
-        self.toolbar = NavigationToolbar2Wx(self.canvas)
+        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
         self.toolbar.Realize()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -7428,7 +7437,7 @@ class EFAResultsPlotPanel2(wx.Panel):
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         self.canvas.SetBackgroundColour('white')
 
-        self.toolbar = NavigationToolbar2Wx(self.canvas)
+        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
         self.toolbar.Realize()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -8357,7 +8366,7 @@ class EFAResultsPlotPanel3(wx.Panel):
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         self.canvas.SetBackgroundColour('white')
 
-        self.toolbar = NavigationToolbar2Wx(self.canvas)
+        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
         self.toolbar.Realize()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -8557,7 +8566,7 @@ class EFARangePlotPanel(wx.Panel):
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         self.canvas.SetBackgroundColour('white')
 
-        self.toolbar = NavigationToolbar2Wx(self.canvas)
+        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
         self.toolbar.Realize()
 
         sizer = wx.BoxSizer(wx.VERTICAL)

@@ -789,7 +789,7 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
     # print "Making fine search..."
     src_result = fineSearch(Ep, N, log(alphafin), dmaxfin)
 
-    if src_result != None:
+    if src_result is not None:
         alphafin, dmaxfin = src_result
     else:
         queue.put({'canceled' : True})
@@ -899,7 +899,7 @@ def fineSearch(Ep, N, alpha, dmax):
     #opt = optimize.fmin(fineGetEvidence, [alpha, dmax], args = arg)
     opt = fmin(fineGetEvidence, [alpha, dmax], args = arg, disp = False)
 
-    if opt == None:
+    if opt is None:
         return
 
     # print "Optimum found: "

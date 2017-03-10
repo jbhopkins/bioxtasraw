@@ -20,9 +20,9 @@ import wx, os, sys, platform, itertools, copy, matplotlib
 import numpy as np
 
 matplotlib.rcParams['backend'] = 'WxAgg'
+matplotlib.rcParams['errorbar.capsize'] = 3
 
-from matplotlib.backends.backend_wx import NavigationToolbar2Wx
-from matplotlib.backends.backend_wx import FigureCanvasBase
+from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 import matplotlib.font_manager as fm
 
@@ -42,7 +42,7 @@ class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
         evt.Skip()
 
         try:
-            FigureCanvasBase.motion_notify_event(self, x, y, guiEvent=evt)
+            FigureCanvasWxAgg.motion_notify_event(self, x, y, guiEvent=evt)
         except:
             print 'Log fail! Switch to Lin-Lin plot in the menu'
             print "Unexpected error:", sys.exc_info()[0]
@@ -77,7 +77,7 @@ class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
 
         if self.HasCapture(): self.ReleaseMouse()
         try:
-            FigureCanvasBase.button_release_event(self, x, y, 1, guiEvent=evt)
+            FigureCanvasWxAgg.button_release_event(self, x, y, 1, guiEvent=evt)
         except Exception as e:
             print e
             print 'Log fail! Switch to Lin-Lin plot in the menu'
@@ -92,7 +92,7 @@ class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
         self.CaptureMouse()
 
         try:
-            FigureCanvasBase.button_press_event(self, x, y, 1, guiEvent=evt)
+            FigureCanvasWxAgg.button_press_event(self, x, y, 1, guiEvent=evt)
         except Exception as e:
             print e
             print 'Log fail! Switch to Lin-Lin plot in the menu'
@@ -928,7 +928,7 @@ class PlotOptionsDialog(wx.Dialog):
         self._restoreOldSettings()
         self.EndModal(wx.ID_CANCEL)
 
-class CustomPlotToolbar(NavigationToolbar2Wx):
+class CustomPlotToolbar(NavigationToolbar2WxAgg):
     def __init__(self, parent, canvas):
 
         self.fig_axes = parent.fig.gca()
@@ -944,7 +944,7 @@ class CustomPlotToolbar(NavigationToolbar2Wx):
         self._MTB_CLR2 = wx.NewId()
         self._MTB_SHOWBOTTOM = wx.NewId()
 
-        NavigationToolbar2Wx.__init__(self, canvas)
+        NavigationToolbar2WxAgg.__init__(self, canvas)
 
         self.workdir = RAWWorkDir
 
@@ -3375,7 +3375,7 @@ class FigureSaveDialog(wx.Dialog):
         self.EndModal(wx.OK)
 
 
-class CustomSECPlotToolbar(NavigationToolbar2Wx):
+class CustomSECPlotToolbar(NavigationToolbar2WxAgg):
     def __init__(self, parent, canvas):
 
         self.fig_axes = parent.fig.gca()
@@ -3385,7 +3385,7 @@ class CustomSECPlotToolbar(NavigationToolbar2Wx):
 
         self._MTB_CLR1 = wx.NewId()
 
-        NavigationToolbar2Wx.__init__(self, canvas)
+        NavigationToolbar2WxAgg.__init__(self, canvas)
 
         self.workdir = RAWWorkDir
 

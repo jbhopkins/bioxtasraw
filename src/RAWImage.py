@@ -25,8 +25,8 @@ Created on Aug 16, 2010
 
 import matplotlib, wx, os, sys, platform
 import numpy as np
-from matplotlib.backend_bases import NavigationToolbar2
-from matplotlib.backends.backend_wx import NavigationToolbar2Wx
+matplotlib.rcParams['backend'] = 'WxAgg'
+from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.widgets import Cursor
 import RAWIcons, SASImage, SASCalib
@@ -37,7 +37,7 @@ RAWWorkDir = sys.path[0]
 if os.path.split(sys.path[0])[1] in ['RAW.exe', 'raw.exe']:
     RAWWorkDir = os.path.split(sys.path[0])[0]
 
-class ImagePanelToolbar(NavigationToolbar2Wx):
+class ImagePanelToolbar(NavigationToolbar2WxAgg):
     ''' The toolbar under the image in the image panel '''
 
     def __init__(self, parent, canvas):
@@ -56,7 +56,7 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
                                self._MTB_PREVIMG,
                                self._MTB_NEXTIMG]
 
-        NavigationToolbar2Wx.__init__(self, canvas)
+        NavigationToolbar2WxAgg.__init__(self, canvas)
 
         hdrInfoIcon   = RAWIcons.hdr.GetBitmap()
         ImgSetIcon    = RAWIcons.imgctrl.GetBitmap()
@@ -131,7 +131,7 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
 
         if self.GetToolState(wxid):
             self.ToggleTool(wxid, False)
-            NavigationToolbar2.zoom(self)
+            NavigationToolbar2WxAgg.zoom(self)
 
 
         if float(matplotlib.__version__[:3]) >= 1.2:
@@ -141,7 +141,7 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
 
         if self.GetToolState(wxid):
             self.ToggleTool(wxid, False)
-            NavigationToolbar2.pan(self)
+            NavigationToolbar2WxAgg.pan(self)
 
         self._current_tool = None
 
@@ -163,7 +163,7 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
             wxid = self._NTB2_PAN
 
         self.ToggleTool(wxid, False)
-        NavigationToolbar2.zoom(self, *args)
+        NavigationToolbar2WxAgg.zoom(self, *args)
 
         if self.GetToolState(args[0].GetId()):
             self._current_tool = 'Zoom'
@@ -181,7 +181,7 @@ class ImagePanelToolbar(NavigationToolbar2Wx):
             wxid = self._NTB2_ZOOM
 
         self.ToggleTool(wxid, False)
-        NavigationToolbar2.pan(self, *args)
+        NavigationToolbar2WxAgg.pan(self, *args)
 
         if self.GetToolState(args[0].GetId()):
             self._current_tool = 'Pan'
@@ -263,7 +263,7 @@ class ImagePanel(wx.Panel):
 
     def showHdrInfo(self):
 
-        if self.current_sasm != None:
+        if self.current_sasm is not None:
             diag = HdrInfoDialog(self, self.current_sasm)
             diag.ShowModal()
             diag.Destroy()
@@ -286,7 +286,7 @@ class ImagePanel(wx.Panel):
 
     def fitAxis(self):
 
-        if self.img == None:
+        if self.img is None:
             return
 
         img_ydim, img_xdim = self.img.shape
@@ -362,7 +362,7 @@ class ImagePanel(wx.Panel):
         self.canvas.draw()
 
     def showImageSetDialog(self):
-        if self.img != None:
+        if self.img is not None:
             diag = ImageSettingsDialog(self, self.current_sasm, self.imgobj)
             diag.ShowModal()
             diag.Destroy()
@@ -421,7 +421,7 @@ class ImagePanel(wx.Panel):
             scale_factor = 1
             print event.button
 
-        if xdata != None and ydata != None:
+        if xdata is not None and ydata is not None:
             # MOVE AXIS
             zx_pix, zy_pix = ax.transAxes.transform((0,0))
             cx_pix, cy_pix = ax.transAxes.transform((0.5,0.5))
@@ -595,7 +595,7 @@ class ImagePanel(wx.Panel):
                     self.canvas.ReleaseMouse()
                 wx.CallAfter(wx.MessageBox, 'Failed to find any points in the calibrant ring. Try another location or, if no points in any ring can be found, cancel the auto centering.', 'Automatic Peak Search Failed', style = wx.ICON_ERROR | wx.OK)
                 return
-                
+
 
             for point in points:
                 cir = matplotlib.patches.Circle((point[1], point[0]), radius = 1, alpha = 1, color = self.pyfai_color_cycle[int(self.pyfai_ring_num) % len(self.pyfai_color_cycle)])
@@ -613,7 +613,7 @@ class ImagePanel(wx.Panel):
 
     def _onRightMouseButtonRelease(self, x, y, event):
 
-        if self.getTool() == None and self._right_click_on_patch == True:
+        if self.getTool() is None and self._right_click_on_patch == True:
             self._right_click_on_patch = False
             if int(wx.__version__.split('.')[0]) >= 3:
                 wx.CallAfter(self._showPopupMenu)
@@ -685,7 +685,7 @@ class ImagePanel(wx.Panel):
         see _onLeftMouseButtonRelease too. If it is not
         selected it should be. '''
 
-        if self.getTool() == None:
+        if self.getTool() is None:
 
             self._selected_patch = event.artist
 
@@ -761,7 +761,7 @@ class ImagePanel(wx.Panel):
             dX = mouseX - old_points[0][0]
             dY = mouseY - old_points[0][1]
 
-            if self._first_mouse_pos == None:        # Is reset when mouse button is released
+            if self._first_mouse_pos is None:        # Is reset when mouse button is released
                 self._first_mouse_pos = (dX, dY)
 
             if isinstance(patch, matplotlib.patches.Circle):
@@ -786,7 +786,7 @@ class ImagePanel(wx.Panel):
         ''' Changes the colour of the patch when the patch is selected
         or deselected. '''
 
-        if self._selected_patch != None:
+        if self._selected_patch is not None:
 
             if self._selected_patch.selected == 1:
                 self._selected_patch.set_facecolor('yellow')
@@ -1180,7 +1180,7 @@ class ImagePanel(wx.Panel):
         upper = self.plot_parameters['UpperClim']
         lower = self.plot_parameters['LowerClim']
 
-        if upper != None and lower != None and self.imgobj != None:
+        if upper is not None and lower is not None and self.imgobj is not None:
             if lower < upper:
                 self.imgobj.set_clim(lower, upper)
                 self.canvas.draw()
@@ -1220,7 +1220,7 @@ class HdrInfoDialog(wx.Dialog):
         self.text.AppendText('#############################################\n\n')
 
 
-        if self.sasm != None:
+        if self.sasm is not None:
             param = self.sasm.getAllParameters()
             keys = param.iterkeys()
 
@@ -1336,7 +1336,7 @@ class ImageSettingsDialog(wx.Dialog):
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        if not parent.plot_parameters['UpperClim'] == None and not parent.plot_parameters['LowerClim'] == None:
+        if not parent.plot_parameters['UpperClim'] is None and not parent.plot_parameters['LowerClim'] is None:
             self.maxval = parent.plot_parameters['maxImgVal']
             self.minval = parent.plot_parameters['minImgVal']
         else:
@@ -1427,7 +1427,7 @@ class ImageSettingsDialog(wx.Dialog):
         elif self.colorRadioList[selection] == 'Spectral':
             self.parent.plot_parameters['ColorMap'] = matplotlib.cm.spectral
 
-        if self.ImgObj != None:
+        if self.ImgObj is not None:
             self.ImgObj.cmap = self.parent.plot_parameters['ColorMap']
             self.ImgObj.changed()
             self.parent.updateImage()
@@ -1537,7 +1537,7 @@ class ImageSettingsDialog(wx.Dialog):
                 slider.SetMax(min(int(self.maxval),2147483647))
 
 
-            if self.parent.plot_parameters[each[3]] != None:
+            if self.parent.plot_parameters[each[3]] is not None:
                 val.SetValue(str(self.parent.plot_parameters[each[3]]))
                 slider.SetValue(min(int(self.parent.plot_parameters[each[3]]), 2147483647))
 
