@@ -16,8 +16,11 @@
 #
 #******************************************************************************
 
-# from scipy.weave import ext_tools, converters, build_tools
-from weave import ext_tools, converters, build_tools
+
+try:
+    from weave import ext_tools, converters, build_tools
+except ImportError:
+    from scipy.weave import ext_tools, converters, build_tools
 import numpy as np
 import os, sys, shutil
 

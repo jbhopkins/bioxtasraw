@@ -28,10 +28,13 @@ import os
 import SASM
 
 if not RAWGlobals.frozen:
-    # from scipy import weave
-    # from scipy.weave import converters
-    import weave
-    from weave import converters
+    
+    try:
+        import weave
+        from weave import converters
+    except ImportError:
+        from scipy import weave
+        from scipy.weave import converters
 
 if RAWGlobals.compiled_extensions:
     try:
