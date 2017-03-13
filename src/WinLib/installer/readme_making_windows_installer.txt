@@ -1,7 +1,7 @@
 Readme for making windows installers
 
 
-To make a compiled windows .exe version of raw, use pyinstaller 3.1.1 on 
+To make a compiled windows .exe version of raw, use pyinstaller (3.2.1 verified working) on 
 windows 7 (probably works on 8 and 10, but is it back compatabile?).
 
 
