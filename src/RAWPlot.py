@@ -20,7 +20,9 @@ import wx, os, sys, platform, itertools, copy, matplotlib
 import numpy as np
 
 matplotlib.rcParams['backend'] = 'WxAgg'
-matplotlib.rcParams['errorbar.capsize'] = 3
+if int(matplotlib.__version__.split('.')[0]) >= 2:
+    matplotlib.rcParams['errorbar.capsize'] = 3
+
 
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
