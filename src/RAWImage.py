@@ -31,12 +31,6 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.widgets import Cursor
 import RAWIcons, SASImage, SASCalib
 
-
-RAWWorkDir = sys.path[0]
-
-if os.path.split(sys.path[0])[1] in ['RAW.exe', 'raw.exe']:
-    RAWWorkDir = os.path.split(sys.path[0])[0]
-
 class ImagePanelToolbar(NavigationToolbar2WxAgg):
     ''' The toolbar under the image in the image panel '''
 

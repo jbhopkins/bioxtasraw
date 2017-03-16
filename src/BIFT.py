@@ -28,7 +28,6 @@ import os
 import SASM
 
 if not RAWGlobals.frozen:
-    
     try:
         import weave
         from weave import converters

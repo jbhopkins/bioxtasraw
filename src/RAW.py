@@ -1480,7 +1480,6 @@ class MainFrame(wx.Frame):
         wx.AboutBox(info)
 
     def saveBackupData(self):
-
         file = 'backup.ini'
 
         try:
@@ -4883,20 +4882,6 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         # self.OnSortOrderChanged()
         self.SortListItems(col, ascending)
 
-    def _savePathToDisk(self):
-
-        save_path = os.path.join(RAWWorkDir, 'backup.ini')
-
-        data = {'path' : self.path}
-
-        print self.path
-
-        file_obj = open(save_path, 'w')
-        cPickle.dump(data, file_obj)
-        file_obj.close()
-        #except Exception, e:
-        #    print e
-
     def setDir(self, dir):
         self.path = dir
         self.updateFileList()
@@ -5233,9 +5218,6 @@ class DirCtrlPanel(wx.Panel):
 
 
     def _useSavedPathIfExisits(self):
-        #if self.raw_settings.getAllParams().has_key('CurrentFilePath'):
-        #    path = self.raw_settings.get('CurrentFilePath')
-
         path = None
 
         load_path = os.path.join(RAWWorkDir, 'backup.ini')
@@ -5480,8 +5462,8 @@ class ManipulationPanel(wx.Panel):
 
     def addItem(self, sasm, item_colour = 'black', item_visible = True, notsaved = False):
 
-
-        self.Freeze()
+        if not RAWGlobals.frozen:
+            self.Freeze()
 
         if type(sasm) == list:
 
@@ -5506,7 +5488,8 @@ class ManipulationPanel(wx.Panel):
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.Layout()
         self.Refresh()
-        self.Thaw()
+        if not RAWGlobals.frozen:
+            self.Thaw()
 
     def setItemAsBackground(self, item):
 
@@ -5526,7 +5509,8 @@ class ManipulationPanel(wx.Panel):
         return self._star_marked_item
 
     def clearList(self):
-        self.Freeze()
+        if not RAWGlobals.frozen:
+            self.Freeze()
 
         rest_of_items = []
         for each in self.all_manipulation_items:
@@ -5543,8 +5527,8 @@ class ManipulationPanel(wx.Panel):
 
         self._star_marked_item = None
         self.modified_items = []
-
-        self.Thaw()
+        if not RAWGlobals.frozen:
+            self.Thaw()
 
     def clearBackgroundItem(self):
         self._raw_settings.set('BackgroundSASM', None)
@@ -5630,7 +5614,8 @@ class ManipulationPanel(wx.Panel):
     def removeSelectedItems(self):
         if len(self.getSelectedItems()) == 0: return
 
-        self.Freeze()
+        if not RAWGlobals.frozen:
+            self.Freeze()
 
         info_panel = wx.FindWindowByName('InformationPanel')
         info_panel.clearInfo()
@@ -5677,7 +5662,11 @@ class ManipulationPanel(wx.Panel):
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Refresh()
 
-        self.Thaw()
+        self.Layout()
+        self.Refresh()
+
+        if not RAWGlobals.frozen:
+            self.Thaw()
 
     def _onShowAllButton(self, event):
         self.underpanel.Freeze()
@@ -7185,8 +7174,8 @@ class IFTPanel(wx.Panel):
     def addItem(self, iftm_list, item_colour = 'black', item_visible = True, notsaved = False):
         if type(iftm_list) != list:
             iftm_list = [iftm_list]
-
-        self.Freeze()
+        if not RAWGlobals.frozen:
+            self.Freeze()
 
         for iftm in iftm_list:
             newItem = IFTItemPanel(self.underpanel, iftm, font_colour = item_colour, ift_parameters = iftm.getAllParameters(), item_visible = item_visible, modified = notsaved)
@@ -7208,7 +7197,8 @@ class IFTPanel(wx.Panel):
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.Layout()
         self.Refresh()
-        self.Thaw()
+        if not RAWGlobals.frozen:
+            self.Thaw()
 
     def setItemAsBackground(self, item):
 
@@ -7228,7 +7218,8 @@ class IFTPanel(wx.Panel):
         return self._star_marked_item
 
     def clearList(self):
-        self.Freeze()
+        if not RAWGlobals.frozen:
+            self.Freeze()
 
         rest_of_items = []
         for each in self.all_manipulation_items:
@@ -7245,7 +7236,8 @@ class IFTPanel(wx.Panel):
 
         self._star_marked_item = None
 
-        self.Thaw()
+        if not RAWGlobals.frozen:
+            self.Thaw()
 
     def clearBackgroundItem(self):
         self._raw_settings.set('BackgroundSASM', None)
@@ -7313,8 +7305,8 @@ class IFTPanel(wx.Panel):
 
         if len(self.getSelectedItems()) == 0:
             return
-
-        self.Freeze()
+        if not RAWGlobals.frozen:
+            self.Freeze()
 
         for each in self.getSelectedItems():
             for line in each.lines:
@@ -7349,8 +7341,8 @@ class IFTPanel(wx.Panel):
         self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Refresh()
-
-        self.Thaw()
+        if not RAWGlobals.frozen:
+            self.Thaw()
 
     def _onShowAllButton(self, event):
 
@@ -7472,8 +7464,8 @@ class IFTPanel(wx.Panel):
         self.ClearData()
 
     def ClearData(self):
-
-        self.Freeze()
+        if not RAWGlobals.frozen:
+            self.Freeze()
 
         rest_of_items = []
         for each in self.all_manipulation_items:
@@ -7488,8 +7480,8 @@ class IFTPanel(wx.Panel):
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
 
         self._star_marked_item = None
-
-        self.Thaw()
+        if not RAWGlobals.frozen:
+            self.Thaw()
 
         self.iftplot_panel.clearAllPlots()
 
@@ -8441,8 +8433,8 @@ class SECPanel(wx.Panel):
 
         if len(self.getSelectedItems()) == 0:
             return
-
-        self.Freeze()
+        if not RAWGlobals.frozen:
+            self.Freeze()
 
         axes_that_needs_updated_legend = []
 
@@ -8490,12 +8482,12 @@ class SECPanel(wx.Panel):
         self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Refresh()
-
-        self.Thaw()
+        if not RAWGlobals.frozen:
+            self.Thaw()
 
     def addItem(self, secm_list, item_colour = 'black', item_visible = True, notsaved = False):
-
-        self.Freeze()
+        if not RAWGlobals.frozen:
+            self.Freeze()
 
         if type(secm_list) != list:
             secm_list = [secm_list]
@@ -8518,7 +8510,8 @@ class SECPanel(wx.Panel):
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.Layout()
         self.Refresh()
-        self.Thaw()
+        if not RAWGlobals.frozen:
+            self.Thaw()
 
     def saveData(self):
         selected_items = self.getSelectedItems()
@@ -8637,7 +8630,8 @@ class SECPanel(wx.Panel):
         plotpage.OnClear(0)
 
     def _onClearList(self, evt):
-        self.Freeze()
+        if not RAWGlobals.frozen:
+            self.Freeze()
 
         rest_of_items = []
         for each in self.all_manipulation_items:
@@ -8655,15 +8649,16 @@ class SECPanel(wx.Panel):
 
         # self._star_marked_item = None
         self.modified_items = []
-
-        self.Thaw()
+        if not RAWGlobals.frozen:
+            self.Thaw()
 
         self.sec_plot_panel.clearAllPlots()
 
         self.sec_control_panel.clearAll()
 
     def clearList(self):
-        self.Freeze()
+        if not RAWGlobals.frozen:
+            self.Freeze()
 
         rest_of_items = []
         for each in self.all_manipulation_items:
@@ -8682,8 +8677,8 @@ class SECPanel(wx.Panel):
 
         # self._star_marked_item = None
         self.modified_items = []
-
-        self.Thaw()
+        if not RAWGlobals.frozen:
+            self.Thaw()
 
         self.sec_control_panel.clearAll()
 
