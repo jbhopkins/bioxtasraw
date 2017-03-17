@@ -19,6 +19,10 @@
 import Queue
 import sys
 import os
+import platform
+
+opsys = platform.system()
+
 
 global compiled_extensions
 compiled_extensions = True
@@ -45,6 +49,11 @@ RAWWorkDir = sys.path[0]
 
 if os.path.split(sys.path[0])[1] in ['RAW.exe', 'raw.exe']:
     RAWWorkDir = os.path.split(sys.path[0])[0]
+elif opsys== 'Darwin' and frozen:
+    RAWWorkDir = os.path.expanduser('~/Library/Application Support/RAW')
+
+    if not os.path.exists(RAWWorkDir):
+        os.mkdir(RAWWorkDir)
 
 global usepyFAI
 # usepyFAI = True

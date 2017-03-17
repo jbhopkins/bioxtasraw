@@ -237,45 +237,34 @@ class MainFrame(wx.Frame):
         self.Show(True)
 
     def _onStartup(self, data):
-
         if not RAWGlobals.compiled_extensions:
             msg = 'Warning: failed to compile extensions. Loading/integrating images, creating masks, and running BIFT will be slower than normal. If you want to compile the extensions, please see the RAW install guide or contact the developers.'
             dlg = wx.MessageDialog(parent = self, message = msg, caption = 'Failed to compile extensions', style=wx.OK|wx.ICON_EXCLAMATION)
             dlg.ShowModal()
             dlg.Destroy()
 
+        file = os.path.join(RAWWorkDir, 'backup.cfg')
 
-        if len(data) > 1:
-            arg = data[1]
-            file, ext = os.path.splitext(arg)
+        if os.path.exists(file):
 
-            if ext == '.wsp':
-                if os.path.exists(arg):
-                     mainworker_cmd_queue.put(['load_workspace', [arg]])
+            if self.raw_settings.get('PromptConfigLoad'):
+                dlg = wx.MessageDialog(parent = self, message = 'Load last saved configuration?', caption = 'Restore configuration', style=wx.YES_NO|wx.ICON_QUESTION)
+                answer = dlg.ShowModal()
+                dlg.Destroy()
+            else:
+                answer = wx.ID_YES
 
-        else:
-            file = os.path.join(RAWWorkDir, 'backup.cfg')
+            if answer == wx.ID_YES:
+                success = RAWSettings.loadSettings(self.raw_settings, file)
 
-            if os.path.exists(file):
-
-                if self.raw_settings.get('PromptConfigLoad'):
-                    dlg = wx.MessageDialog(parent = self, message = 'Load last saved configuration?', caption = 'Restore configuration', style=wx.YES_NO|wx.ICON_QUESTION)
-                    answer = dlg.ShowModal()
-                    dlg.Destroy()
+                if success:
+                    self.raw_settings.set('CurrentCfg', file)
                 else:
-                    answer = wx.ID_YES
+                    wx.CallAfter(wx.MessageBox,'Load failed, config file might be corrupted.',
+                                  'Load failed', style = wx.ICON_ERROR | wx.OK)
 
-                if answer == wx.ID_YES:
-                    success = RAWSettings.loadSettings(self.raw_settings, file)
-
-                    if success:
-                        self.raw_settings.set('CurrentCfg', file)
-                    else:
-                        wx.CallAfter(wx.MessageBox,'Load failed, config file might be corrupted.',
-                                      'Load failed', style = wx.ICON_ERROR | wx.OK)
-
-            dirctrl = wx.FindWindowByName('DirCtrlPanel')
-            dirctrl._useSavedPathIfExisits()
+        dirctrl = wx.FindWindowByName('DirCtrlPanel')
+        dirctrl._useSavedPathIfExisits()
 
 
         find_atsas = self.raw_settings.get('autoFindATSAS')
@@ -299,6 +288,10 @@ class MainFrame(wx.Frame):
             menubar = self.GetMenuBar()
             item = menubar.FindItemById(self.MenuIDs['goOnline'])
             item.Check(True)
+
+        if len(data)>1:
+            files_to_plot = data[1:]
+            mainworker_cmd_queue.put(['plot', files_to_plot])
 
 
     def getRawSettings(self):
@@ -1480,7 +1473,7 @@ class MainFrame(wx.Frame):
         wx.AboutBox(info)
 
     def saveBackupData(self):
-        file = 'backup.ini'
+        file = os.path.join(RAWGlobals.RAWWorkDir,'backup.ini')
 
         try:
             file_obj = open(file, 'w')
@@ -5462,8 +5455,7 @@ class ManipulationPanel(wx.Panel):
 
     def addItem(self, sasm, item_colour = 'black', item_visible = True, notsaved = False):
 
-        if not RAWGlobals.frozen:
-            self.Freeze()
+        self.underpanel.Freeze()
 
         if type(sasm) == list:
 
@@ -5483,13 +5475,11 @@ class ManipulationPanel(wx.Panel):
             self.all_manipulation_items.append(newItem)
             sasm.item_panel = newItem
 
-        self.underpanel_sizer.Layout()
-
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-        self.Layout()
-        self.Refresh()
-        if not RAWGlobals.frozen:
-            self.Thaw()
+        self.underpanel.Layout()
+        self.underpanel.Refresh()
+
+        self.underpanel.Thaw()
 
     def setItemAsBackground(self, item):
 
@@ -5509,8 +5499,7 @@ class ManipulationPanel(wx.Panel):
         return self._star_marked_item
 
     def clearList(self):
-        if not RAWGlobals.frozen:
-            self.Freeze()
+        # self.underpanel.Freeze()
 
         rest_of_items = []
         for each in self.all_manipulation_items:
@@ -5522,13 +5511,15 @@ class ManipulationPanel(wx.Panel):
 
 
         self.all_manipulation_items = rest_of_items
-        self.underpanel_sizer.Layout()
-        self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
 
         self._star_marked_item = None
         self.modified_items = []
-        if not RAWGlobals.frozen:
-            self.Thaw()
+
+        self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
+        self.underpanel.Layout()
+        self.underpanel.Refresh()
+
+        # self.underpanel.Thaw()
 
     def clearBackgroundItem(self):
         self._raw_settings.set('BackgroundSASM', None)
@@ -5550,9 +5541,6 @@ class ManipulationPanel(wx.Panel):
         self.underpanel.Layout()
         self.underpanel.Refresh()
 
-        self.Layout()
-        self.Refresh()
-
         self.underpanel.Thaw()
 
     def _expandAllItems(self):
@@ -5570,9 +5558,6 @@ class ManipulationPanel(wx.Panel):
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Layout()
         self.underpanel.Refresh()
-
-        self.Layout()
-        self.Refresh()
 
         self.underpanel.Thaw()
 
@@ -5612,10 +5597,10 @@ class ManipulationPanel(wx.Panel):
                     each.toggleSelect(update_info = False)
 
     def removeSelectedItems(self):
-        if len(self.getSelectedItems()) == 0: return
+        if len(self.getSelectedItems()) == 0:
+            return
 
-        if not RAWGlobals.frozen:
-            self.Freeze()
+        # self.underpanel.Freeze()
 
         info_panel = wx.FindWindowByName('InformationPanel')
         info_panel.clearInfo()
@@ -5640,7 +5625,7 @@ class ManipulationPanel(wx.Panel):
             i = plot_panel.plotted_sasms.index(each.sasm)
             plot_panel.plotted_sasms.pop(i)
 
-            if not each.sasm.axes in axes_that_needs_updated_legend:
+            if each.sasm.axes not in axes_that_needs_updated_legend:
                 axes_that_needs_updated_legend.append(each.sasm.axes)
 
             if each == self._star_marked_item:
@@ -5658,15 +5643,11 @@ class ManipulationPanel(wx.Panel):
 
         wx.CallAfter(plot_panel.fitAxis)
 
-        self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
+        self.underpanel.Layout()
         self.underpanel.Refresh()
 
-        self.Layout()
-        self.Refresh()
-
-        if not RAWGlobals.frozen:
-            self.Thaw()
+        # self.underpanel.Thaw()
 
     def _onShowAllButton(self, event):
         self.underpanel.Freeze()
@@ -5683,9 +5664,6 @@ class ManipulationPanel(wx.Panel):
 
         self.underpanel.Layout()
         self.underpanel.Refresh()
-
-        self.Layout()
-        self.Refresh()
 
         self.underpanel.Thaw()
 
@@ -5711,9 +5689,6 @@ class ManipulationPanel(wx.Panel):
 
         self.underpanel.Layout()
         self.underpanel.Refresh()
-
-        self.Layout()
-        self.Refresh()
 
         self.underpanel.Thaw()
 
@@ -7174,8 +7149,6 @@ class IFTPanel(wx.Panel):
     def addItem(self, iftm_list, item_colour = 'black', item_visible = True, notsaved = False):
         if type(iftm_list) != list:
             iftm_list = [iftm_list]
-        if not RAWGlobals.frozen:
-            self.Freeze()
 
         for iftm in iftm_list:
             newItem = IFTItemPanel(self.underpanel, iftm, font_colour = item_colour, ift_parameters = iftm.getAllParameters(), item_visible = item_visible, modified = notsaved)
@@ -7192,13 +7165,9 @@ class IFTPanel(wx.Panel):
                 pass
 
 
-        self.underpanel_sizer.Layout()
-
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-        self.Layout()
-        self.Refresh()
-        if not RAWGlobals.frozen:
-            self.Thaw()
+        self.underpanel.Layout()
+        self.underpanel.Refresh()
 
     def setItemAsBackground(self, item):
 
@@ -7218,9 +7187,6 @@ class IFTPanel(wx.Panel):
         return self._star_marked_item
 
     def clearList(self):
-        if not RAWGlobals.frozen:
-            self.Freeze()
-
         rest_of_items = []
         for each in self.all_manipulation_items:
 
@@ -7231,37 +7197,15 @@ class IFTPanel(wx.Panel):
 
 
         self.all_manipulation_items = rest_of_items
-        self.underpanel_sizer.Layout()
-        self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-
         self._star_marked_item = None
 
-        if not RAWGlobals.frozen:
-            self.Thaw()
+        self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
+        self.underpanel.Layout()
+        self.underpanel.Refresh()
 
     def clearBackgroundItem(self):
         self._raw_settings.set('BackgroundSASM', None)
         self._star_marked_item = None
-
-    def _collapseAllItems(self):
-        for each in self.all_manipulation_items:
-            each.showControls(False)
-
-        self.underpanel.Layout()
-        self.underpanel.Refresh()
-
-        self.Layout()
-        self.Refresh()
-
-    def _expandAllItems(self):
-        for each in self.all_manipulation_items:
-            each.showControls(True)
-
-        self.underpanel.Layout()
-        self.underpanel.Refresh()
-
-        self.Layout()
-        self.Refresh()
 
     def getSelectedItems(self):
 
@@ -7305,8 +7249,6 @@ class IFTPanel(wx.Panel):
 
         if len(self.getSelectedItems()) == 0:
             return
-        if not RAWGlobals.frozen:
-            self.Freeze()
 
         for each in self.getSelectedItems():
             for line in each.lines:
@@ -7338,11 +7280,9 @@ class IFTPanel(wx.Panel):
 
         wx.CallAfter(self.iftplot_panel.fitAxis)
 
-        self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
+        self.underpanel.Layout()
         self.underpanel.Refresh()
-        if not RAWGlobals.frozen:
-            self.Thaw()
 
     def _onShowAllButton(self, event):
 
@@ -7360,9 +7300,6 @@ class IFTPanel(wx.Panel):
 
         self.underpanel.Layout()
         self.underpanel.Refresh()
-
-        self.Layout()
-        self.Refresh()
 
         self.underpanel.Thaw()
 
@@ -7385,9 +7322,6 @@ class IFTPanel(wx.Panel):
 
         self.underpanel.Layout()
         self.underpanel.Refresh()
-
-        self.Layout()
-        self.Refresh()
 
         self.underpanel.Thaw()
 
@@ -7464,9 +7398,6 @@ class IFTPanel(wx.Panel):
         self.ClearData()
 
     def ClearData(self):
-        if not RAWGlobals.frozen:
-            self.Freeze()
-
         rest_of_items = []
         for each in self.all_manipulation_items:
 
@@ -7476,13 +7407,12 @@ class IFTPanel(wx.Panel):
                 rest_of_items.append(each)
 
         self.all_manipulation_items = rest_of_items
-        self.underpanel_sizer.Layout()
+
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
+        self.underpanel.Layout()
+        self.underpanel.Refresh()
 
         self._star_marked_item = None
-        if not RAWGlobals.frozen:
-            self.Thaw()
-
         self.iftplot_panel.clearAllPlots()
 
     def _OnClearAll(self, evt):
@@ -8316,26 +8246,6 @@ class SECPanel(wx.Panel):
 
         return sizer
 
-    def _collapseAllItems(self):
-        for each in self.all_manipulation_items:
-            each.showControls(False)
-
-        self.underpanel.Layout()
-        self.underpanel.Refresh()
-
-        self.Layout()
-        self.Refresh()
-
-    def _expandAllItems(self):
-        for each in self.all_manipulation_items:
-            each.showControls(True)
-
-        self.underpanel.Layout()
-        self.underpanel.Refresh()
-
-        self.Layout()
-        self.Refresh()
-
     def selectAll(self):
         for i in range(len(self.all_manipulation_items)):
             each = self.all_manipulation_items[i]
@@ -8361,9 +8271,6 @@ class SECPanel(wx.Panel):
         self.underpanel.Layout()
         self.underpanel.Refresh()
 
-        self.Layout()
-        self.Refresh()
-
         self.underpanel.Thaw()
 
         wx.CallAfter(self.sec_plot_panel.updateLegend, 1, False)
@@ -8384,9 +8291,6 @@ class SECPanel(wx.Panel):
 
         self.underpanel.Layout()
         self.underpanel.Refresh()
-
-        self.Layout()
-        self.Refresh()
 
         self.underpanel.Thaw()
 
@@ -8433,8 +8337,6 @@ class SECPanel(wx.Panel):
 
         if len(self.getSelectedItems()) == 0:
             return
-        if not RAWGlobals.frozen:
-            self.Freeze()
 
         axes_that_needs_updated_legend = []
 
@@ -8479,15 +8381,12 @@ class SECPanel(wx.Panel):
 
         wx.CallAfter(self.sec_plot_panel.fitAxis)
 
-        self.underpanel_sizer.Layout()
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
+        self.underpanel.Layout()
         self.underpanel.Refresh()
-        if not RAWGlobals.frozen:
-            self.Thaw()
 
     def addItem(self, secm_list, item_colour = 'black', item_visible = True, notsaved = False):
-        if not RAWGlobals.frozen:
-            self.Freeze()
+        self.underpanel.Freeze()
 
         if type(secm_list) != list:
             secm_list = [secm_list]
@@ -8505,13 +8404,11 @@ class SECPanel(wx.Panel):
             secm.item_panel = newItem
 
 
-        self.underpanel_sizer.Layout()
-
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-        self.Layout()
-        self.Refresh()
-        if not RAWGlobals.frozen:
-            self.Thaw()
+        self.underpanel.Layout()
+        self.underpanel.Refresh()
+
+        self.underpanel.Thaw()
 
     def saveData(self):
         selected_items = self.getSelectedItems()
@@ -8630,9 +8527,6 @@ class SECPanel(wx.Panel):
         plotpage.OnClear(0)
 
     def _onClearList(self, evt):
-        if not RAWGlobals.frozen:
-            self.Freeze()
-
         rest_of_items = []
         for each in self.all_manipulation_items:
 
@@ -8644,22 +8538,17 @@ class SECPanel(wx.Panel):
                 each = None
 
         self.all_manipulation_items = rest_of_items
-        # self.underpanel_sizer.Layout()
-        # self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-
-        # self._star_marked_item = None
         self.modified_items = []
-        if not RAWGlobals.frozen:
-            self.Thaw()
+
+        self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
+        self.underpanel.Layout()
+        self.underpanel.Refresh()
 
         self.sec_plot_panel.clearAllPlots()
 
         self.sec_control_panel.clearAll()
 
     def clearList(self):
-        if not RAWGlobals.frozen:
-            self.Freeze()
-
         rest_of_items = []
         for each in self.all_manipulation_items:
 
@@ -8672,13 +8561,11 @@ class SECPanel(wx.Panel):
 
 
         self.all_manipulation_items = rest_of_items
-        # self.underpanel_sizer.Layout()
-        # self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-
-        # self._star_marked_item = None
         self.modified_items = []
-        if not RAWGlobals.frozen:
-            self.Thaw()
+
+        self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
+        self.underpanel.Layout()
+        self.underpanel.Refresh()
 
         self.sec_control_panel.clearAll()
 
@@ -15056,7 +14943,6 @@ class WelcomeDialog(wx.Frame):
         text8 = 'If you use this software for your SAXS data processing please cite:    \n'
         text9 = '"BioXTAS RAW, a software program for high-throughput\nautomated small-angle X-ray scattering data reduction\nand preliminary analysis", J. Appl. Cryst. (2009). 42, 959-964\n\n'
 
-
         all_text = [text1, text2, text3, text4, text5, text6, text7, text8, text9]
 
         final_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -15113,12 +14999,6 @@ class MyApp(wx.App):
         MySplash = MySplashScreen()
         MySplash.Show()
 
-        #On Mac, catch files asked to open
-        # print sys.argv
-        for f in  sys.argv[1:]:
-            # self.OpenFileMessage(f)
-            print f
-
         return True
 
     # def BringWindowToFront(self):
@@ -15133,26 +15013,21 @@ class MyApp(wx.App):
     #         self.BringWindowToFront()
     #     event.Skip()
 
+
+    #NOTE: These mac specific events *should* be implimented, but
+    #currently pyinstaller doesn't actually forward these vents to the
+    #program, so there is not way of testing whether they actually work.
+    #For now they remain commented out.
     # #Mac specific
     # def MacOpenFile(self, filename):
     #     """Called for files droped on dock icon, or opened via finders context menu"""
-    #     if filename != 'RAW.py':
-    #         print filename
-    #         print "%s dropped on app"%(filename) #code to load filename goes here.
-    #     # self.OpenFileMessage(filename)
+    #     mainworker_cmd_queue.put(['plot', filename])
 
     # #Mac specific
     # def MacReopenApp(self):
     #     """Called when the doc icon is clicked, and ???"""
-    #     self.BringWindowToFront()
+    #     self.GetTopWindow().Raise()
 
-    # #Mac specific
-    # def MacNewFile(self):
-    #     pass
-
-    # #Mac specific
-    # def MacPrintFile(self, file_path):
-    #     pass
 
 class MySplashScreen(wx.SplashScreen):
     """
@@ -15161,7 +15036,11 @@ class MySplashScreen(wx.SplashScreen):
 
     def __init__(self, parent = None):
 
-        aBitmap = wx.Image(name = os.path.join(RAWWorkDir, "resources","logo_atom.gif")).ConvertToBitmap()
+        if RAWGlobals.frozen and platform.system() == 'Darwin':
+            aBitmap = wx.Image(name = os.path.join(sys.path[0], "resources","logo_atom.gif")).ConvertToBitmap()
+        else:
+            aBitmap = wx.Image(name = os.path.join(RAWWorkDir, "resources","logo_atom.gif")).ConvertToBitmap()
+
         splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
         splashDuration = 2000 # milliseconds
 
@@ -15196,7 +15075,10 @@ class RawTaskbarIcon(wx.TaskBarIcon):
 
     #----------------------------------------------------------------------
     def __init__(self, frame):
-        wx.TaskBarIcon.__init__(self)
+        if platform.system() == 'Darwin':
+            wx.TaskBarIcon.__init__(self, iconType=wx.TBI_DOCK)
+        else:
+            wx.TaskBarIcon.__init__(self)
         self.frame = frame
 
         # Set the image
@@ -15206,22 +15088,22 @@ class RawTaskbarIcon(wx.TaskBarIcon):
 
         # bind some events
         self.Bind(wx.EVT_MENU, self.OnTaskBarClose, id=self.TBMENU_CLOSE)
-        self.Bind(wx.EVT_TASKBAR_LEFT_DOWN, self.OnTaskBarLeftClick)
+        # self.Bind(wx.EVT_TASKBAR_LEFT_DOWN, self.OnTaskBarLeftClick)
 
     #----------------------------------------------------------------------
-    def CreatePopupMenu(self, evt=None):
-        """
-        This method is called by the base class when it needs to popup
-        the menu for the default EVT_RIGHT_DOWN event.  Just create
-        the menu how you want it and return it from this function,
-        the base class takes care of the rest.
-        """
-        menu = wx.Menu()
-        menu.Append(self.TBMENU_RESTORE, "Open Program")
-        menu.Append(self.TBMENU_CHANGE, "Show all the Items")
-        menu.AppendSeparator()
-        menu.Append(self.TBMENU_CLOSE,   "Exit Program")
-        return menu
+    # def CreatePopupMenu(self, evt=None):
+    #     """
+    #     This method is called by the base class when it needs to popup
+    #     the menu for the default EVT_RIGHT_DOWN event.  Just create
+    #     the menu how you want it and return it from this function,
+    #     the base class takes care of the rest.
+    #     """
+    #     menu = wx.Menu()
+    #     menu.Append(self.TBMENU_RESTORE, "Open Program")
+    #     menu.Append(self.TBMENU_CHANGE, "Show all the Items")
+    #     menu.AppendSeparator()
+    #     menu.Append(self.TBMENU_CLOSE,   "Exit Program")
+    #     return menu
 
     #----------------------------------------------------------------------
     def OnTaskBarActivate(self, evt):
@@ -15236,13 +15118,13 @@ class RawTaskbarIcon(wx.TaskBarIcon):
         self.frame.Close()
 
     #----------------------------------------------------------------------
-    def OnTaskBarLeftClick(self, evt):
-        """
-        Create the right-click menu
-        """
-        menu = self.CreatePopupMenu()
-        self.PopupMenu(menu)
-        menu.Destroy()
+    # def OnTaskBarLeftClick(self, evt):
+    #     """
+    #     Create the right-click menu
+    #     """
+    #     menu = self.CreatePopupMenu()
+    #     self.PopupMenu(menu)
+    #     menu.Destroy()
 
 if __name__ == '__main__':
     app = MyApp(0)   #MyApp(redirect = True)
