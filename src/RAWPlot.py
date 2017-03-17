@@ -28,8 +28,7 @@ from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 import matplotlib.font_manager as fm
 
-import RAWCustomCtrl, RAWIcons
-from RAWGlobals import RAWWorkDir
+import RAWCustomCtrl, RAWIcons, RAWGlobals
 
 class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
 
@@ -948,7 +947,7 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
 
         NavigationToolbar2WxAgg.__init__(self, canvas)
 
-        self.workdir = RAWWorkDir
+        self.workdir = RAWGlobals.RAWWorkDir
 
         errbars_icon = RAWIcons.errbars.GetBitmap()
         showboth_icon = RAWIcons.showboth.GetBitmap()
@@ -3389,7 +3388,7 @@ class CustomSECPlotToolbar(NavigationToolbar2WxAgg):
 
         NavigationToolbar2WxAgg.__init__(self, canvas)
 
-        self.workdir = RAWWorkDir
+        self.workdir = RAWGlobals.RAWWorkDir
 
         self.Bind(wx.EVT_TOOL, self.clear1, id = self._MTB_CLR1)
 

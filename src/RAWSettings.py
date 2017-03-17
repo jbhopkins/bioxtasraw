@@ -110,7 +110,6 @@ class RawGuiSettings:
                             #Q-CALIBRATION
                             'WaveLength'          : [1.0,  wx.NewId(), 'float'],
                             'SampleDistance'      : [1000, wx.NewId(), 'float'],
-                            'SampleThickness'     : [0.0, wx.NewId(), 'float'],
                             'ReferenceQ'          : [0.0, wx.NewId(), 'float'],
                             'ReferenceDistPixel'  : [0,   wx.NewId(), 'int'],
                             'ReferenceDistMm'     : [0.0, wx.NewId(), 'float'],

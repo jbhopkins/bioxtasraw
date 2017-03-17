@@ -16,7 +16,7 @@
 #
 #******************************************************************************
 
-import wx, os, math, sys, platform
+import wx, math, platform
 import RAWIcons
 # import time
 

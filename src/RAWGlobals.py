@@ -18,25 +18,14 @@
 
 import Queue
 import sys
-import os
-import platform
 
-opsys = platform.system()
-
-
-global compiled_extensions
 compiled_extensions = True
 
-global mainworker_cmd_queue
 mainworker_cmd_queue = Queue.Queue()
 
-global cancel_bift
 cancel_bift = False
 
-global workspace_saved
 workspace_saved = True
-
-global frozen
 
 #Checks whether RAW is running in a compiled (frozen) version or a live interpreter
 if getattr(sys, 'frozen', False):
@@ -44,22 +33,10 @@ if getattr(sys, 'frozen', False):
 else:
     frozen = False
 
-global RAWWorkDir
-RAWWorkDir = sys.path[0]
+RAWWorkDir = ''
 
-if os.path.split(sys.path[0])[1] in ['RAW.exe', 'raw.exe']:
-    RAWWorkDir = os.path.split(sys.path[0])[0]
-elif opsys== 'Darwin' and frozen:
-    RAWWorkDir = os.path.expanduser('~/Library/Application Support/RAW')
+RAWResourcesDir = ''
 
-    if not os.path.exists(RAWWorkDir):
-        os.mkdir(RAWWorkDir)
-
-global usepyFAI
-# usepyFAI = True
-
-global usepyFAI_integration
 usepyFAI_integration = False
 
-global version
 version = '1.2.2'

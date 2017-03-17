@@ -39,7 +39,7 @@ from collections import OrderedDict, defaultdict
 
 import SASFileIO, SASM, SASExceptions, SASImage, SASCalc, SASCalib
 import RAWPlot, RAWImage, RAWOptions, RAWSettings, RAWCustomCtrl, RAWAnalysis, BIFT, RAWIcons, RAWGlobals
-from RAWGlobals import mainworker_cmd_queue, RAWWorkDir, workspace_saved
+from RAWGlobals import mainworker_cmd_queue
 
 try:
     import pyFAI, pyFAI.calibrant, pyFAI.peak_picker
@@ -137,8 +137,6 @@ class MainFrame(wx.Frame):
         self.svdframe = None
         self.efaframe = None
         self.raw_settings = RAWSettings.RawGuiSettings()
-
-        self.RAWWorkDir = RAWWorkDir
 
         self.OnlineControl = OnlineController(self, self.raw_settings)
         self.OnlineSECControl = OnlineSECController(self, self.raw_settings)
@@ -243,7 +241,7 @@ class MainFrame(wx.Frame):
             dlg.ShowModal()
             dlg.Destroy()
 
-        file = os.path.join(RAWWorkDir, 'backup.cfg')
+        file = os.path.join(RAWGlobals.RAWWorkDir, 'backup.cfg')
 
         if os.path.exists(file):
 
@@ -3889,7 +3887,7 @@ class MainWorkerThread(threading.Thread):
 
         SASFileIO.saveWorkspace(save_dict, save_path)
 
-        workspace_saved = True
+        RAWGlobals.workspace_saved = True
 
         if restart_timer:
             self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path)[1]])
@@ -4476,7 +4474,7 @@ class FilePanel(wx.Panel):
 
     def _onClearAllButton(self, event):
 
-        if workspace_saved == False:
+        if RAWGlobals.workspace_saved == False:
             dial = SaveDialog(self, -1, 'Workspace not saved', 'The workspace has been modified, do you want to save your changes?')
         else:
             dial = wx.MessageDialog(self, 'Are you sure you want to clear everything?', 'Are you sure?',
@@ -5213,7 +5211,7 @@ class DirCtrlPanel(wx.Panel):
     def _useSavedPathIfExisits(self):
         path = None
 
-        load_path = os.path.join(RAWWorkDir, 'backup.ini')
+        load_path = os.path.join(RAWGlobals.RAWWorkDir, 'backup.ini')
 
         try:
             file_obj = open(load_path, 'r')
@@ -11880,114 +11878,6 @@ class SaveAnalysisInfoPanel(wx.Panel):
 
 #----- **** Dialogs ****
 
-class IFTSearchStatusDialog(wx.Dialog):
-     def __init__(self, parent, id):
-        wx.Dialog.__init__(self, parent, id, 'BIFT Search', name = 'BIFTStatusDlg', size = (280,230))
-
-        self.widget_data = [
-          ('filename', 'Processing data :', wx.NewId()),
-          ('evidence', 'Evidence :', wx.NewId()),
-          ('chi', 'Chi :', wx.NewId()),
-          ('alpha', 'Alpha :', wx.NewId()),
-          ('dmax', 'Dmax :', wx.NewId()),
-          ('cur_point', 'Current search point :', wx.NewId()),
-          ('tot_points', 'Total search points :', wx.NewId())]
-
-
-        skip_button = wx.Button(self, -1, 'Skip')
-        button = wx.Button(self, -1, 'Cancel')
-        button.Bind(wx.EVT_BUTTON, self._onCancel)
-        skip_button.Bind(wx.EVT_BUTTON, self._onSkip)
-
-        button_sizer = wx.BoxSizer()
-        button_sizer.Add(button, 0)
-        button_sizer.Add(skip_button, 0, wx.LEFT, 10)
-
-        self.status_text = wx.StaticText(self, -1, 'Performing grid search')
-
-        self.count = 0
-        self.timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, self.onStatusTimer, self.timer)
-        self.timer.Start(250)
-
-        top_sizer = wx.BoxSizer(wx.VERTICAL)
-
-        sizer = self.createDataWidgets()
-
-        top_sizer.Add(sizer, 0, wx.ALL, 10)
-        top_sizer.Add(self.status_text, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
-        top_sizer.Add(button_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
-
-        self.SetSizer(top_sizer)
-
-        self.CenterOnParent()
-
-     def _onCancel(self, evt):
-         BIFT.cancel_bift = True
-
-         global cancel_ift
-         cancel_ift = True
-
-         self.timer.Stop()
-
-     def _onSkip(self, evt):
-         BIFT.cancel_bift = True
-
-     def createDataWidgets(self):
-
-         sizer = wx.FlexGridSizer(cols = 2, rows = len(self.widget_data), vgap = 3, hgap = 5)
-
-         for each in self.widget_data:
-             label = each[1]
-             id = each[2]
-
-             sizer.Add(wx.StaticText(self, -1, label), 1)
-             sizer.Add(wx.StaticText(self, id, ''), 1)
-
-         return sizer
-
-     def updateData(self, status_data, fine_tune = False):
-         for each in self.widget_data:
-             key = each[0]
-             id = each[2]
-             txt = wx.FindWindowById(id)
-
-             txt.SetLabel(str(status_data[key]))
-
-         if fine_tune:
-             self.status_text.SetLabel('Finetuning solution')
-
-     def onStatusTimer(self, evt):
-         self.count = self.count + 1
-
-         if self.count == 5:
-             self.count = 0
-
-         label = self.status_text.GetLabel()
-         label = label.strip('.')
-
-         self.status_text.SetLabel(label + (self.count * '.'))
-
-
-     def onUpdateTimer(self, evt):
-
-        try:
-            status_data = self.search_status_queue.get()
-        except Queue.Empty:
-            status_data = None
-
-
-        if status_data == 'END':
-            self.timer.Stop()
-            return
-
-        if status_data != None:
-            self.updateData(status_data)
-
-     def OnClose(self, evt):
-         self.timer.Stop()
-         self.EndModal(wx.ID_OK)
-
 class SaveDialog(wx.Dialog):
     def __init__(self, parent, id, title, text):
         wx.Dialog.__init__(self, parent, id, title)
@@ -14996,16 +14886,31 @@ class MyApp(wx.App):
         # self.Bind(wx.EVT_ACTIVATE_APP, self.OnActivate)
 
     def OnInit(self):
+        standard_paths = wx.StandardPaths.Get()
+
+        RAWGlobals.RAWWorkDir = standard_paths.GetUserLocalDataDir()
+        if not os.path.exists(RAWGlobals.RAWWorkDir):
+            os.mkdir(RAWGlobals.RAWWorkDir)
+
+        if RAWGlobals.frozen:
+            if platform.system() == 'Windows':
+                RAWGlobals.RAWResourcesDir = os.path.join(standard_paths.GetResourcesDir(),'resources')
+            else:
+                RAWGlobals.RAWResourcesDir = standard_paths.GetResourcesDir()
+        else:
+            RAWGlobals.RAWResourcesDir = os.path.join(sys.path[0], 'resources')
+
+
         MySplash = MySplashScreen()
         MySplash.Show()
 
         return True
 
-    # def BringWindowToFront(self):
-    #     try: # it's possible for this event to come when the frame is closed
-    #         self.GetTopWindow().Raise()
-    #     except:
-    #         pass
+    def BringWindowToFront(self):
+        try: # it's possible for this event to come when the frame is closed
+            self.GetTopWindow().Raise()
+        except:
+            pass
 
     # def OnActivate(self, event):
     #     # if this is an activate event, rather than something else, like iconize.
@@ -15019,14 +14924,14 @@ class MyApp(wx.App):
     #program, so there is not way of testing whether they actually work.
     #For now they remain commented out.
     # #Mac specific
-    # def MacOpenFile(self, filename):
+    # def MacOpenFiles(self, filename):
     #     """Called for files droped on dock icon, or opened via finders context menu"""
     #     mainworker_cmd_queue.put(['plot', filename])
 
     # #Mac specific
     # def MacReopenApp(self):
     #     """Called when the doc icon is clicked, and ???"""
-    #     self.GetTopWindow().Raise()
+    #     self.BringWindowToFront().Raise()
 
 
 class MySplashScreen(wx.SplashScreen):
@@ -15036,10 +14941,7 @@ class MySplashScreen(wx.SplashScreen):
 
     def __init__(self, parent = None):
 
-        if RAWGlobals.frozen and platform.system() == 'Darwin':
-            aBitmap = wx.Image(name = os.path.join(sys.path[0], "resources","logo_atom.gif")).ConvertToBitmap()
-        else:
-            aBitmap = wx.Image(name = os.path.join(RAWWorkDir, "resources","logo_atom.gif")).ConvertToBitmap()
+        aBitmap = RAWIcons.logo_atom.GetBitmap()
 
         splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
         splashDuration = 2000 # milliseconds

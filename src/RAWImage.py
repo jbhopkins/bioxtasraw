@@ -23,13 +23,13 @@ Created on Aug 16, 2010
 
 '''
 
-import matplotlib, wx, os, sys, platform
+import matplotlib, wx, os, platform
 import numpy as np
 matplotlib.rcParams['backend'] = 'WxAgg'
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.widgets import Cursor
-import RAWIcons, SASImage, SASCalib
+import RAWIcons, RAWGlobals, SASImage, SASCalib
 
 class ImagePanelToolbar(NavigationToolbar2WxAgg):
     ''' The toolbar under the image in the image panel '''
@@ -91,8 +91,8 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
             current_file = self.parent.current_sasm.getParameter('filename')
         except AttributeError:
             current_file = None
-        mainworker_cmd_queue = mainframe.getWorkerThreadQueue()
-        mainworker_cmd_queue.put(['show_nextprev_img', [current_file, -1]])
+        RAWGlobals.mainworker_cmd_queue = mainframe.getWorkerThreadQueue()
+        RAWGlobals.mainworker_cmd_queue.put(['show_nextprev_img', [current_file, -1]])
 
     def onNextImgButton(self, event):
 
@@ -102,8 +102,8 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
         except AttributeError:
             current_file = None
 
-        mainworker_cmd_queue = mainframe.getWorkerThreadQueue()
-        mainworker_cmd_queue.put(['show_nextprev_img', [current_file, 1]])
+        RAWGlobals.mainworker_cmd_queue = mainframe.getWorkerThreadQueue()
+        RAWGlobals.mainworker_cmd_queue.put(['show_nextprev_img', [current_file, 1]])
 
     def onImageSettingsButton(self, event):
         self.parent.showImageSetDialog()
@@ -1681,7 +1681,6 @@ class ImageTestFrame(wx.Frame):
         wx.Frame.__init__(self, None, frame_id, title, name = 'MainFrame')
 
         self.SetSize((500,500))
-        self.RAWWorkDir = '.'
         self.raw_settings = RAWSettings.RawGuiSettings()
 
         self.background_panel = wx.Panel(self, -1)
