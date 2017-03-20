@@ -5227,6 +5227,10 @@ class DirCtrlPanel(wx.Panel):
             self.setDirLabel(path)
             self.file_list_box.setDir(path)
             print 'Switched to saved path: ' + str(path)
+        else:
+            path = wx.StandardPaths.Get().GetDocumentsDir()
+            self.setDirLabel(path)
+            self.file_list_box.setDir(path)
 
 
     def _createDirCtrl(self, dirctrlpanel_sizer):
