@@ -8,7 +8,7 @@ Steps:
 4) Copy the info.plist into top level Contents folder in the RAW.app package 
 5) Update the version number in the info.plist file that you copied.
 7) Open disk utility
-8) Create a new disk image (File->New Image>Blank Image) that is ~5% larger than the .app package. Name it RAW, but save it as untitled.
+8) Create a new disk image (File->New Image>Blank Image) that is ~12% larger than the .app package. Name it RAW, but save it as untitled.
 9) Open the mounted disk image. Copy the .app file and a shortcut of the applications folder to the disk image. Size and arrange as desired.
 9) In Disk Utility, Image->Convert, select the prepared disk image, and name it RAW-1.2.2-Mac (note, the disk image must be ejected for this to work
 

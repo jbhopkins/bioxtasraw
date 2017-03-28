@@ -1113,7 +1113,8 @@ class MolWeightFrame(wx.Frame):
                         "4) Using absolute calibrated intensity (If your data is calibrated, but absolute "
                         "scale is not enabled in the RAW settings use the checkbox to manually enable).\n"
                         "'Show Details' provides calculation details and advanced options. 'More Info' "
-                        "gives a brief description of each method.")
+                        "gives a citation (if appropriate), a brief description of each method, and "
+                        "discusses when they may fail.")
 
         intro = AutoWrapStaticText(parent, label = intro_text)
 
@@ -1347,6 +1348,11 @@ class MolWeightFrame(wx.Frame):
         mwsizer.Add(VpMW, 1, wx.EXPAND)
         mwsizer.Add(txt2, 0, wx.LEFT, 1)
 
+        mw_warning = AutoWrapStaticText(parent, 'Warning: final q point is outside the extrapolation region (0.15 < q < 0.45 1/A), no correction has been applied!')
+
+        self.mw_warning_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.mw_warning_sizer.Add(mw_warning, wx.EXPAND)
+
 
         sup_txt1 = wx.StaticText(parent, -1, 'Vp :')
         sup_txt2 = wx.StaticText(parent, -1, 'A^3')
@@ -1382,10 +1388,12 @@ class MolWeightFrame(wx.Frame):
 
         self.vp_top_sizer = wx.StaticBoxSizer(vpbox, wx.VERTICAL)
         self.vp_top_sizer.Add(mwsizer, 0, wx.BOTTOM, 5)
+        self.vp_top_sizer.Add(self.mw_warning_sizer, 0, wx.BOTTOM | wx.EXPAND, 5)
         self.vp_top_sizer.Add(self.vp_sup_sizer, 0, wx.BOTTOM, 5)
         self.vp_top_sizer.Add(vp_buttonsizer, 0, wx.ALIGN_CENTER | wx.TOP, 2)
 
         self.vp_top_sizer.Hide(self.vp_sup_sizer, recursive = True)
+        self.vp_top_sizer.Hide(self.mw_warning_sizer, recursive = True)
 
         return self.vp_top_sizer
 
@@ -1622,38 +1630,36 @@ class MolWeightFrame(wx.Frame):
                   "where MW is the molecular weight, c is the concentration, and '_m' and '_st' designates quantities "
                   "from the macromolecule of interest and the standard respectively. For a reference see, among many, "
                   "Mylonas, E. & Svergun, D. I. (2007). J. Appl. Crystallogr. 40, s245-s249.\n\n"
-                  "This method can yield inaccurate results if the reference is not properly calibrated, I(0) is not "
-                  "well estimated from the Guinier fit, or the contrast between the macromolecule and buffer is "
-                  "significantly different between the reference and sample.")
+                  "This method can yield inaccurate results if:\n"
+                  "- The reference is not properly calibrated (concentration, I(0) measurement).\n"
+                  "- I(0) is poorly determined.\n"
+                  "- Sample concentration is poorly determined.\n"
+                  "- The contrast between the macromolecule and buffer is significantly different between the reference and sample.")
         elif evt_id == self.ids['VC']['info']:
             msg = ("This method uses the approach described in: Rambo, R. P. & Tainer, J. A. (2013). Nature. "
-                   "496, 477-481. First, the volume of correlation, Vc, is calculated. Unlike the Porod volume, "
-                   "Vc is expected to converge for both compact and flexible macromolecules. Physically, Vc can "
-                   "be interpreted as the particle volume per self-correlation length, and has units of A^2. "
-                   "Vc and the radius of gyration, Rg, are then used to calculate a parameter Qr = Vc^2/Rg. "
-                   "The molecular weight is then calculated as:\n\n"
-                   "MW = (Qr/b)^(a)\n\n"
-                   "where a and b are empirically determined constants that depend upon the type of macromolecule. "
-                   "More details on the calculation are in the reference. The authors claim the error in MW "
-                   "determination is ~5-10%\n\n"
-                   "This method can yield inaccurate results if the integral of q*I(q) doesn't converge, which "
-                   "may indicate the scattering profile is not measured to high enough q or that there is a bad "
-                   "buffer match. It also requires accurate determination of I(0) and Rg. It doesn't work for "
-                   "protein-nucleic acid complexes.")
+                   "496, 477-481, please cite this paper in addition to the RAW paper if you use this method. "
+                   "This method should work for both compact and flexible macromolecules. "
+                   "The authors claim the error in MW determination is ~5-10%.\n\n"
+                   "This method can yield inaccurate results if:\n"
+                   "- The integral of q*I(q) doesn't converge (click 'Show Details' to see), which can indicate "
+                   "the scattering profile is not measured to high enough q or that there is a bad buffer match.\n"
+                   "- I(0) and/or Rg are poorly determined.\n"
+                   "- You have a protein-nucleic acid complex.")
         elif evt_id == self.ids['VP']['info']:
             msg = ("This method uses the approach described in: Fischer, H., de Oliveira Neto, M., Napolitano, "
-                  "H. B., Polikarpov, I., & Craievich, A. F. (2009). J. Appl. Crystallogr. 43, 101-109. First, "
-                  "the Porod volume, Vp, is determined. True determination of the Porod volume requires the "
-                  "scattering profile measured to infinite q. A correction is applied to Vp to account "
-                  "for the limited range of the measurement. The authors report a maximum of 10% uncertainty "
-                  "for calculated molecular weight from globular proteins.\n\n"
-                  "This method can yield inaccurate results if the molecule is not globular. It requires accurate "
-                  "determination of I(0). It also requires an accurate protein density. It only works for "
-                  "proteins.\n\n"
-                  "Note: To do the integration, RAW extrapolates the scattering profile to I(0) using the Guinier fit. "
+                  "H. B., Polikarpov, I., & Craievich, A. F. (2009). J. Appl. Crystallogr. 43, 101-109, "
+                  "please cite this paper in addition to the RAW paper if you use this method.  It applies "
+                  "a correction to the Porod volume, which has only been calculated for 0.15 < q_max < 0.45 1/A. "
+                  "For scattering profiles with a maximum q outside this range, no correction is applied by RAW. "
+                  "The authors report a maximum of 10% uncertainty for calculated molecular weight from globular proteins.\n\n"
+                  "This method can yield inaccurate results if:\n"
+                  "- The molecule is not globular (i.e. is flexible or extended).\n"
+                  "- I(0) is poorly determined.\n"
+                  "- The protein density used is inaccurate (can be changed in advanced settings).\n"
+                  "- Your molecule is not a protein.\n\n"
+                  "Note: To do the integration, RAW extrapolates the scattering profile to I(0) using the Guinier fit (if necessary). "
                   "The authors of the original paper used smoothed and extrapolated scattering profiles generated by "
-                  "GNOM. This may cause discrepancy. To use this method on GNOM profiles, use the online SAXS MoW "
-                  "calculator located at: http://www.if.sc.usp.br/~saxs/")
+                  "GNOM. This extrapolation method is currently used in their online calculator: http://saxs.ifsc.usp.br/).")
         else:
             msg = ("This uses the absolute calibration of the scattering profile to determine the molecular weight, "
                    "as described in Orthaber, D., Bergmann, A., & Glatter, O. (2000). J. Appl. Crystallogr. 33, "
@@ -1663,10 +1669,12 @@ class MolWeightFrame(wx.Frame):
                    "where N_A is the Avagadro number, c is the concentration, and drho_M is the scattering contrast "
                    "per mass. The accuracy of this method was assessed in Mylonas, E. & Svergun, D. I. (2007). "
                    "J. Appl. Crystallogr. 40, s245-s249, and for most proteins is <~10%.\n\n"
-                   "This method can yield inaccurate results if the absolute calibration is off, or if the "
-                   "partial specific volume of the macromolecule in solution is incorrect. I(0) and the concentration "
-                   "in solution must be well determined. Unless the scattering contrast is adjusted, this method "
-                   "will only work for proteins.")
+                   "This method can yield inaccurate results if:\n"
+                   "- The absolute calibration is not accurate.\n"
+                   "- I(0) is poorly determined."
+                   "- Sample concentration is poorly determined."
+                   "- Scattering contrast is wrong, either from buffer changes or macromolecule type "
+                   "(default settings are for protein).")
 
         dlg = wx.MessageDialog(self, msg, "Calculating Molecular Weight", style = wx.ICON_INFORMATION | wx.OK)
         dlg.ShowModal()
@@ -1770,6 +1778,18 @@ class MolWeightFrame(wx.Frame):
         else:
             wx.FindWindowById(self.ids['abs']['conc']).Disable()
             wx.FindWindowById(self.ids['abs']['calc_mw']).ChangeValue('')
+
+    def _showVpMWWarning(self, show):
+
+        if show:
+            if not self.vp_top_sizer.IsShown(self.mw_warning_sizer):
+                self.vp_top_sizer.Show(self.mw_warning_sizer,recursive=True)
+                self.panel.Layout()
+
+        else:
+            if self.vp_top_sizer.IsShown(self.mw_warning_sizer):
+                self.vp_top_sizer.Hide(self.mw_warning_sizer,recursive=True)
+                self.panel.Layout()
 
     def onChangeParams(self, evt):
 
@@ -1924,23 +1944,26 @@ class MolWeightFrame(wx.Frame):
 
         #These functions are used to correct the porod volume for the length of the q vector
         qA=[0.15, 0.19954, 0.25092, 0.30046, 0.40046, 0.45092]
-        AA=[ -9921.6416, -7597.0151, -6865.6719, -5951.4927, -4645.5225, -3783.582]
+        AA=[ -9901, -7580, -6863, -5962, -4626, -3768]
         qB=[0.14908, 0.19969, 0.24939, 0.3, 0.40031, 0.45]
-        BB=[0.57561, 0.61341, 0.65, 0.68415, 0.77073, 0.8561]
+        BB=[0.5758, 0.6132, 0.6496, 0.6835, 0.7690, 0.8545]
 
         fA=interp.interp1d(qA,AA)
         fB=interp.interp1d(qB,BB)
 
-        if q[-1] < 0.45092:
+        if q[-1]<0.45 and q[-1]>0.15:
             A=fA(q[-1])
             B=fB(q[-1])
+            self._showVpMWWarning(False)
+        else:
+            self._showVpMWWarning(True)
 
         if i0 > 0:
             #Calculate the Porod Volume
             pVolume = SASCalc.porodVolume(self.sasm, rg, i0, interp = True)
 
             #Correct for the length of the q vector
-            if q[-1]<0.45092:
+            if q[-1]<0.45 and q[-1]>0.15:
                 pv_cor=(A+B*pVolume)
             else:
                 pv_cor = pVolume
@@ -2077,37 +2100,65 @@ class MWPlotPanel(wx.Panel):
         self.background = self.canvas.copy_from_bbox(a.bbox)
 
         self.canvas.mpl_disconnect(self.cid)
-        self.updateDataPlot(self.orig_i, self.orig_q, (self.orig_qmin, self.orig_qmax))
+        self.updateDataPlot(self.orig_i, self.orig_q, (self.orig_qmin, self.orig_qmax), self.orig_analysis)
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
-    def _calcInt(self):
+    def _calcInt(self, interp=True):
         ''' calculate pointwise integral '''
 
-        q_roi = self.orig_q[self.orig_qmin:self.orig_qmax]
-        i_roi = self.orig_i[self.orig_qmin:self.orig_qmax]
+        analysis = self.orig_analysis
 
-        y = np.zeros_like(q_roi, dtype = float)
+        q = self.orig_q[self.orig_qmin:self.orig_qmax]
+        i = self.orig_i[self.orig_qmin:self.orig_qmax]
 
-        for a in range(2,len(q_roi)+1):
-            y[a-1] = integrate.simps(q_roi[:a]*i_roi[:a],q_roi[:a])
+        if interp and q[0] != 0 and 'guinier' in analysis:
+            guinier_analysis = analysis['guinier']
+            qmin = float(guinier_analysis['qStart'])
+            i0 = float(guinier_analysis['I0'])
+            rg = float(guinier_analysis['Rg'])
 
-        return q_roi, y
+            findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
+            closest_qmin = findClosest(qmin, q)
+
+            idx_min = np.where(q == closest_qmin)[0][0]
+
+            q = q[idx_min:]
+            i = i[idx_min:]
+
+            def f(x):
+                return i0*np.exp((-1./3.)*np.square(rg)*np.square(x))
+
+            q_interp = np.arange(0,q[0],q[1]-q[0])
+            i_interp = f(q_interp)
+
+            q = np.concatenate((q_interp, q))
+            i = np.concatenate((i_interp, i))
+
+        y = np.zeros_like(q, dtype = float)
+        qi = q*i
+
+        for a in range(2,len(q)+1):
+            y[a-1] = integrate.simps(qi[:a],q[:a])
+
+        return q, y
 
     def plotSASM(self, sasm):
         #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
         self.canvas.mpl_disconnect(self.cid)
-        self.updateDataPlot(sasm.i, sasm.q, sasm.getQrange())
+        self.updateDataPlot(sasm.i, sasm.q, sasm.getQrange(), sasm.getParameter('analysis'))
 
         #Reconnect draw_event
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
-    def updateDataPlot(self, i, q, qrange):
+    def updateDataPlot(self, i, q, qrange, analysis):
         #Save for resizing:
         self.orig_i = i
         self.orig_q = q
 
         self.orig_qmin = qrange[0]
         self.orig_qmax = qrange[1]
+
+        self.orig_analysis = analysis
 
         a = self.subplots['VC']
 

@@ -6954,7 +6954,6 @@ class ManipItemPanel(wx.Panel):
         self._updateQTextCtrl()
         wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
         self.markAsModified()
-        event.Skip()
 
     def _onEnterInQrangeTextCtrl(self, evt):
 

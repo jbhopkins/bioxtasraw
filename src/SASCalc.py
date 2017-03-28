@@ -263,9 +263,8 @@ def autoRg(sasm):
     return rg, rger, i0, i0er, idx_min, idx_max
 
 
-def autoMW(sasm, rg, i0, protein = True):
+def autoMW(sasm, rg, i0, protein = True, interp = True):
     #using the rambo tainer 2013 method for molecular mass.
-    #Need to properly calculater error!
 
     raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -277,6 +276,34 @@ def autoMW(sasm, rg, i0, protein = True):
     q = q[qmin:qmax]
     i = i[qmin:qmax]
     err = err[qmin:qmax]
+
+    analysis = sasm.getParameter('analysis')
+
+    if interp and q[0] != 0:
+        def f(x):
+            return i0*np.exp((-1./3.)*np.square(rg)*np.square(x))
+
+        if 'guinier' in analysis:
+            guinier_analysis = analysis['guinier']
+            qmin = float(guinier_analysis['qStart'])
+
+            findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
+            closest_qmin = findClosest(qmin, q)
+
+            idx_min = np.where(q == closest_qmin)[0][0]
+
+            q = q[idx_min:]
+            i = i[idx_min:]
+            err = err[idx_min:]
+
+        q_interp = np.arange(0,q[0],q[1]-q[0])
+        i_interp = f(q_interp)
+        err_interp = np.sqrt(i_interp)
+
+        q = np.concatenate((q_interp, q))
+        i = np.concatenate((i_interp, i))
+        err = np.concatenate((err_interp, err))
+
 
     #The volume of correlation is the ratio of i0 to $\int q*I dq$
     tot=integrate.simps(q*i,q)
@@ -307,31 +334,43 @@ def autoMW(sasm, rg, i0, protein = True):
 def porodInvariant(sasm,start=0,stop=-1):
     return integrate.simps(sasm.i[start:stop]*np.square(sasm.q[start:stop]),sasm.q[start:stop])
 
-def porodVolume(sasm, rg, i0, start = 0, stop = -1, interp = False):
+def porodVolume(sasm, rg, i0, start = 0, stop = -1, interp = True):
 
-    q_exp = sasm.q
-    i_exp = sasm.i
-    err_exp = sasm.err
+    q = sasm.q
+    i = sasm.i
+    err = sasm.err
     qmin, qmax = sasm.getQrange()
 
-    q_exp = q_exp[qmin:qmax]
-    i_exp = i_exp[qmin:qmax]
-    err_exp = err_exp[qmin:qmax]
+    q = q[qmin:qmax]
+    i = i[qmin:qmax]
+    err = err[qmin:qmax]
 
+    analysis = sasm.getParameter('analysis')
 
-    if interp:
+    if interp and q[0] != 0:
         def f(x):
             return i0*np.exp((-1./3.)*np.square(rg)*np.square(x))
 
-        q_interp = np.linspace(0,q_exp[0]-.00001,100)
+        if 'guinier' in analysis:
+            guinier_analysis = analysis['guinier']
+            qmin = float(guinier_analysis['qStart'])
 
+            findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
+            closest_qmin = findClosest(qmin, q)
+
+            idx_min = np.where(q == closest_qmin)[0][0]
+
+            q = q[idx_min:]
+            i = i[idx_min:]
+            err = err[idx_min:]
+
+        q_interp = np.arange(0,q[0],q[1]-q[0])
         i_interp = f(q_interp)
+        err_interp = np.sqrt(i_interp)
 
-        q = np.concatenate((q_interp,q_exp))
-        i = np.concatenate((i_interp,i_exp))
-    else:
-        q = q_exp
-        i = i_exp
+        q = np.concatenate((q_interp, q))
+        i = np.concatenate((i_interp, i))
+        err = np.concatenate((err_interp, err))
 
     pInvar = integrate.simps(i[start:stop]*np.square(q[start:stop]),q[start:stop])
 
