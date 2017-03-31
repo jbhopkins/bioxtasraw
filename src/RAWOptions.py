@@ -1462,7 +1462,7 @@ class MolecularWeightPanel(wx.Panel):
         self.AbsMWData = ( ("Electrons per dry mass of macromolecule [e-/g]:", raw_settings.getId('MWAbsRhoMprot')),
                         ("Electrons per volume of aqueous solvent [e-/cm^3]:", raw_settings.getId('MWAbsRhoSolv')),
                         ("Partial specific volume of the macromolecule [cm^3/g]:", raw_settings.getId('MWAbsNuBar')),
-                        ("Scattering length of an electron [cm]:", raw_settings.getId('MWAbsR0')))
+                        ("Scattering length of an electron [cm/e-]:", raw_settings.getId('MWAbsR0')))
 
         rel_box = wx.StaticBox(self, -1, 'Molecular Weight Estimation Using a Standard')
         vc_box = wx.StaticBox(self, -1, 'Molecular Weight Estimation From Volume of Correlation')

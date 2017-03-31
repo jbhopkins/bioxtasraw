@@ -525,7 +525,7 @@ def C_seeksol(I_exp, m, q, sigma, alpha, dmax, T):
 
     post = calcPosterior( alpha, dmax, s, c, B )
 
-    return P, post, c
+    return P, post, c/I_exp.size
 
 
 def GetEvidence(alpha, dmax, Ep, N):
@@ -731,7 +731,7 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
 
             bift_status = {'alpha'    : each_alpha,
                            'evidence' : post,
-                           'chi'      : c,
+                           'chi'      : c,          #Actually chi squared
                            'dmax'     : each_dmax,
                            'spoint'   : current_point,
                            'tpoint'   : total_points}

@@ -933,8 +933,8 @@ class MolWeightFrame(wx.Frame):
                               'sup_pm': wx.NewId(),
                               'sup_ps': wx.NewId(),
                               'sup_pv': wx.NewId(),
-                              'sup_r0': wx.NewId(),
-                              'sup_sc': wx.NewId()}}
+                              'sup_sc': wx.NewId()}
+                              }
 
 
         topsizer = self._createLayout(self.panel)
@@ -1090,7 +1090,6 @@ class MolWeightFrame(wx.Frame):
         wx.FindWindowById(self.ids['abs']['sup_pm']).ChangeValue('%.2E' %(rho_Mprot))
         wx.FindWindowById(self.ids['abs']['sup_ps']).ChangeValue('%.2E' %(rho_solv))
         wx.FindWindowById(self.ids['abs']['sup_pv']).ChangeValue('%.4f' %(nu_bar))
-        wx.FindWindowById(self.ids['abs']['sup_r0']).ChangeValue('%.2E' %(r0))
         wx.FindWindowById(self.ids['abs']['sup_sc']).ChangeValue('%.2E' %(d_rho))
 
 
@@ -1446,16 +1445,13 @@ class MolWeightFrame(wx.Frame):
         sup_txt4 = wx.StaticText(parent, -1, 'e-/cm^3')
         sup_txt5 = wx.StaticText(parent, -1, 'Protein partial specific volume :')
         sup_txt6 = wx.StaticText(parent, -1, 'cm^3/g')
-        sup_txt7 = wx.StaticText(parent, -1, 'Scattering length of an electron :')
-        sup_txt8 = wx.StaticText(parent, -1, 'cm')
-        sup_txt9 = wx.StaticText(parent, -1, 'Scattering contrast per mass :')
+        sup_txt9 = wx.StaticText(parent, -1, 'Calc. Scattering contrast per mass :')
         sup_txt10 = wx.StaticText(parent, -1, 'e- cm/g')
 
-        sup_pm = wx.TextCtrl(parent, abs_ids['sup_pm'], '', size = (65, -1), style = wx.TE_READONLY)
-        sup_ps = wx.TextCtrl(parent, abs_ids['sup_ps'], '', size = (65, -1), style = wx.TE_READONLY)
-        sup_pv = wx.TextCtrl(parent, abs_ids['sup_pv'], '', size = (65, -1), style = wx.TE_READONLY)
-        sup_r0 = wx.TextCtrl(parent, abs_ids['sup_r0'], '', size = (65, -1), style = wx.TE_READONLY)
-        sup_sc = wx.TextCtrl(parent, abs_ids['sup_sc'], '', size = (65, -1), style = wx.TE_READONLY)
+        sup_pm = wx.TextCtrl(parent, abs_ids['sup_pm'], '', size = (70, -1), style = wx.TE_READONLY)
+        sup_ps = wx.TextCtrl(parent, abs_ids['sup_ps'], '', size = (70, -1), style = wx.TE_READONLY)
+        sup_pv = wx.TextCtrl(parent, abs_ids['sup_pv'], '', size = (70, -1), style = wx.TE_READONLY)
+        sup_sc = wx.TextCtrl(parent, abs_ids['sup_sc'], '', size = (70, -1), style = wx.TE_READONLY)
 
         sup_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
         sup_sizer1.Add(sup_txt1, 0)
@@ -1472,11 +1468,6 @@ class MolWeightFrame(wx.Frame):
         sup_sizer3.Add(sup_pv, 1, wx.EXPAND)
         sup_sizer3.Add(sup_txt6, 0, wx.LEFT, 1)
 
-        sup_sizer4 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer4.Add(sup_txt7, 0)
-        sup_sizer4.Add(sup_r0, 1, wx.EXPAND)
-        sup_sizer4.Add(sup_txt8, 0, wx.LEFT, 1)
-
         sup_sizer5 = wx.BoxSizer(wx.HORIZONTAL)
         sup_sizer5.Add(sup_txt9, 0)
         sup_sizer5.Add(sup_sc, 1, wx.EXPAND)
@@ -1486,7 +1477,6 @@ class MolWeightFrame(wx.Frame):
         self.abs_sup_sizer.Add(sup_sizer1, 0, wx.BOTTOM, 5)
         self.abs_sup_sizer.Add(sup_sizer2, 0, wx.BOTTOM, 5)
         self.abs_sup_sizer.Add(sup_sizer3, 0, wx.BOTTOM, 5)
-        self.abs_sup_sizer.Add(sup_sizer4, 0, wx.BOTTOM, 5)
         self.abs_sup_sizer.Add(sup_sizer5,0)
 
 
@@ -1943,13 +1933,13 @@ class MolWeightFrame(wx.Frame):
         # print q[-1]
 
         #These functions are used to correct the porod volume for the length of the q vector
-        qA=[0.15, 0.19954, 0.25092, 0.30046, 0.40046, 0.45092]
-        AA=[ -9901, -7580, -6863, -5962, -4626, -3768]
-        qB=[0.14908, 0.19969, 0.24939, 0.3, 0.40031, 0.45]
-        BB=[0.5758, 0.6132, 0.6496, 0.6835, 0.7690, 0.8545]
+        #Coefficients were obtained by direct communication with the authors.
+        qc=[0.15, 0.20, 0.25, 0.30, 0.40, 0.45]
+        AA=[-9902.46965, -7597.7562, -6869.49936, -5966.34377, -4641.90536, -3786.71549]
+        BB=[0.57582, 0.61325, 0.64999, 0.68377, 0.76957, 0.85489]
 
-        fA=interp.interp1d(qA,AA)
-        fB=interp.interp1d(qB,BB)
+        fA=interp.interp1d(qc,AA)
+        fB=interp.interp1d(qc,BB)
 
         if q[-1]<0.45 and q[-1]>0.15:
             A=fA(q[-1])
@@ -4621,12 +4611,12 @@ class BIFTControlPanel(wx.Panel):
 
 
         self.infodata = {'dmax'         : ('Dmax :', wx.NewId()),
-                         'alpha'        : ('Alpha :', wx.NewId()),
+                         'alpha'        : ('Log(Alpha) :', wx.NewId()),
                          'guinierI0'    : ('I0 :', wx.NewId()),
                          'guinierRg'    : ('Rg :', wx.NewId()),
                          'biftI0'       : ('I0 :', wx.NewId()),
                          'biftRg'       : ('Rg :', wx.NewId()),
-                         'chisq'        : ('chi^2 (fit) :', wx.NewId())
+                         'chisq'        : ('Reduced chi^2 :', wx.NewId())
                          }
 
         self.statusIds = {  'status'      : wx.NewId(),
@@ -4707,14 +4697,14 @@ class BIFTControlPanel(wx.Panel):
     def createInfoBox(self):
 
         dmaxLabel = wx.StaticText(self, -1, 'Dmax :')
-        self.dmaxWindow = wx.TextCtrl(self, self.infodata['dmax'][1], '-1', size = (60,-1), style = wx.TE_READONLY)
+        self.dmaxWindow = wx.TextCtrl(self, self.infodata['dmax'][1], '', size = (60,-1), style = wx.TE_READONLY)
 
         dmaxSizer = wx.BoxSizer(wx.HORIZONTAL)
         dmaxSizer.Add(dmaxLabel, 0, wx.RIGHT, 5)
         dmaxSizer.Add(self.dmaxWindow, 0, wx.RIGHT, 5)
 
         alphaLabel = wx.StaticText(self, -1, 'Log(Alpha) :')
-        self.alphaWindow = wx.TextCtrl(self, self.infodata['alpha'][1], '-1', size = (60,-1), style = wx.TE_READONLY)
+        self.alphaWindow = wx.TextCtrl(self, self.infodata['alpha'][1], '', size = (60,-1), style = wx.TE_READONLY)
 
         alphaSizer = wx.BoxSizer(wx.HORIZONTAL)
         alphaSizer.Add(alphaLabel, 0, wx.RIGHT, 5)
@@ -4732,16 +4722,16 @@ class BIFTControlPanel(wx.Panel):
         sizer.Add(i0label, 0, wx.ALL, 5)
 
         guinierlabel = wx.StaticText(self, -1, 'Guinier :')
-        self.guinierRg = wx.TextCtrl(self, self.infodata['guinierRg'][1], '0', size = (60,-1), style = wx.TE_READONLY)
-        self.guinierI0 = wx.TextCtrl(self, self.infodata['guinierI0'][1], '0', size = (60,-1), style = wx.TE_READONLY)
+        self.guinierRg = wx.TextCtrl(self, self.infodata['guinierRg'][1], '', size = (60,-1), style = wx.TE_READONLY)
+        self.guinierI0 = wx.TextCtrl(self, self.infodata['guinierI0'][1], '', size = (60,-1), style = wx.TE_READONLY)
 
         sizer.Add(guinierlabel, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 5)
         sizer.Add(self.guinierRg, 0, wx.ALL | wx.ALIGN_CENTER, 5)
         sizer.Add(self.guinierI0, 0, wx.ALL | wx.ALIGN_CENTER, 5)
 
         biftlabel = wx.StaticText(self, -1, 'P(r) :')
-        self.biftRg = wx.TextCtrl(self, self.infodata['biftRg'][1], '0', size = (60,-1), style = wx.TE_READONLY)
-        self.biftI0 = wx.TextCtrl(self, self.infodata['biftI0'][1], '0', size = (60,-1), style = wx.TE_READONLY)
+        self.biftRg = wx.TextCtrl(self, self.infodata['biftRg'][1], '', size = (60,-1), style = wx.TE_READONLY)
+        self.biftI0 = wx.TextCtrl(self, self.infodata['biftI0'][1], '', size = (60,-1), style = wx.TE_READONLY)
 
         sizer.Add(biftlabel, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 5)
         sizer.Add(self.biftRg, 0, wx.ALL, 5)
@@ -4749,7 +4739,7 @@ class BIFTControlPanel(wx.Panel):
 
 
         chisqLabel = wx.StaticText(self, -1, self.infodata['chisq'][0])
-        self.chisq = wx.TextCtrl(self, self.infodata['chisq'][1], '0', size = (60,-1), style = wx.TE_READONLY)
+        self.chisq = wx.TextCtrl(self, self.infodata['chisq'][1], '', size = (60,-1), style = wx.TE_READONLY)
 
         chisqSizer = wx.BoxSizer(wx.HORIZONTAL)
         chisqSizer.Add(chisqLabel, 0, wx.RIGHT, 5)
@@ -4802,7 +4792,7 @@ class BIFTControlPanel(wx.Panel):
         evidenceSizer.Add(evidenceText, 0, wx.RIGHT, 3)
 
 
-        chiLabel = wx.StaticText(self, -1, 'Chi :')
+        chiLabel = wx.StaticText(self, -1, 'Reduced chi^2 :')
         chiText = wx.StaticText(self, self.statusIds['chi'], '')
 
         chiSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -4810,7 +4800,7 @@ class BIFTControlPanel(wx.Panel):
         chiSizer.Add(chiText, 0, wx.RIGHT, 3)
 
 
-        alphaLabel = wx.StaticText(self, -1, 'Alpha :')
+        alphaLabel = wx.StaticText(self, -1, 'Log(Alpha) :')
         alphaText = wx.StaticText(self, self.statusIds['alpha'], '')
 
         alphaSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -4947,7 +4937,7 @@ class BIFTControlPanel(wx.Panel):
             biftI0Window.SetValue(str(self.iftm.getParameter('I0')))
             biftChisqWindow.SetValue(str(self.iftm.getParameter('ChiSquared')))
             biftDmaxWindow.SetValue(str(self.iftm.getParameter('dmax')))
-            biftAlphaWindow.SetValue(str(self.iftm.getParameter('alpha')))
+            biftAlphaWindow.SetValue(str(np.log(self.iftm.getParameter('alpha'))))
 
     def setFilename(self, filename):
         self.filenameTxtCtrl.SetValue(str(filename))
@@ -5009,7 +4999,10 @@ class BIFTControlPanel(wx.Panel):
 
     def updateStatus(self, updates):
         for key in updates:
-            wx.FindWindowById(self.statusIds[key]).SetLabel(str(updates[key]))
+            if key == 'alpha':
+                wx.FindWindowById(self.statusIds[key]).SetLabel(str(np.log(updates[key])))
+            else:
+                wx.FindWindowById(self.statusIds[key]).SetLabel(str(updates[key]))
 
     def clearStatus(self, exception_list):
         for key in self.statusIds:

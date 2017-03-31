@@ -1425,9 +1425,9 @@ def loadAllHeaders(filename, image_type, header_type, raw_settings):
 
     if tbs_mask is not None:
         if isinstance(img, list):
-            roi_counter = img[tbs_mask==1].sum()
+            roi_counter = img[0][tbs_mask==1].sum() #In the case of multiple images in the same file, load the ROI for the first one
         else:
-            roi_counter = img[0][tbs_mask==1].sum() #In the case of multiple images in the same file, load the ROI for the last one
+            roi_counter = img[tbs_mask==1].sum()
 
         if hdr is None:
             hdr = {'roi_counter': roi_counter}
@@ -1848,6 +1848,8 @@ def loadOutFile(filename):
 
     name = os.path.basename(filename)
 
+    chisq = np.sum(np.square(np.array(Jexp)-np.array(Jreg))/np.square(Jerr))/(len(Jexp)-1) #DOF normalied chi squared
+
     results = { 'dmax'      : R[-1],        #Dmax
                 'TE'        : TE_out,       #Total estimate
                 'rg'        : rg,           #Real space Rg
@@ -1858,7 +1860,7 @@ def loadOutFile(filename):
                 'q_i0'      : q_i0,         #Reciprocal space I0
                 'out'       : outfile,      #Full contents of the outfile, for writing later
                 'quality'   : quality,      #Quality of GNOM out file
-                'chisq'     : Actual_DISCRP,#DISCRIP, chi squared
+                'discrp'    : Actual_DISCRP,#DISCRIP, kind of chi squared (normalized by number of points, with a regularization parameter thing thrown in)
                 'oscil'     : Actual_OSCILL,#Oscillation of solution
                 'stabil'    : Actual_STABIL,#Stability of solution
                 'sysdev'    : Actual_SYSDEV,#Systematic deviation of solution
@@ -1866,7 +1868,8 @@ def loadOutFile(filename):
                 'valcen'    : Actual_VALCEN,#Validity of the chosen interval in real space
                 'smooth'    : Actual_SMOOTH,#Smoothness of the chosen interval? -1 indicates no real value, for versions of GNOM < 5.0 (ATSAS <2.8)
                 'filename'  : name,         #GNOM filename
-                'algorithm' : 'GNOM'        #Lets us know what algorithm was used to find the IFT
+                'algorithm' : 'GNOM',       #Lets us know what algorithm was used to find the IFT
+                'chisq'     : chisq         #Actual chi squared value
                     }
 
     iftm = SASM.IFTM(P, R, Perr, Jexp, qshort, Jerr, Jreg, results, Ireg, qfull)

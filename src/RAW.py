@@ -10194,7 +10194,7 @@ class MaskingPanel(wx.Panel):
             for each in masks:
                 masks_copy.append(copy.copy(each))
 
-            if masks == [] or self.image_panel.img == None:
+            if masks == [] or self.image_panel.img is None:
                 wx.MessageBox('No masks has been drawn. Draw a mask before setting it as the current mask.', 'Setting mask failed')
                 return
 
