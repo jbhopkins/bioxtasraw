@@ -1818,8 +1818,14 @@ def loadOutFile(filename):
 
             if p_rg_match:
                 found = p_rg_match.group().split()
-                rg = float(found[-3])
-                rger = float(found[-1])
+                try:
+                    rg = float(found[-3])
+                except:
+                    rg = float(found[-2])
+                try:
+                    rger = float(found[-1])
+                except:
+                    rger = float(found[-1].strip('+-'))
 
             elif q_rg_match:
                 found = q_rg_match.group().split()
