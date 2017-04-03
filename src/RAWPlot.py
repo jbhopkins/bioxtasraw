@@ -1844,7 +1844,6 @@ class PlotPanel(wx.Panel):
 
             elif plottype== 'kratky':
                 sasm.line.set_data(q, i*np.power(q,2))
-                sasm.line.set_data(np.power(q,2), i)
             elif plottype== 'porod':
                 sasm.line.set_data(q, np.power(q,4)*i)
 
