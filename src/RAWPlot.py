@@ -1675,10 +1675,7 @@ class PlotPanel(wx.Panel):
                         self.plotparams['plot1type'] = key[7:]
                         self.updatePlotType(self.subplot1)
 
-                        if key[7:] == 'guinier':
-                            self.plotparams['axesscale1'] = 'loglin'
-                        else:
-                            self.plotparams['axesscale1'] = 'linlin'
+                        self.plotparams['axesscale1'] = 'linlin'
 
                         self.updatePlotAxes()
                         print '1'
@@ -1693,10 +1690,7 @@ class PlotPanel(wx.Panel):
                         self.plotparams['plot2type'] = key[7:]
                         self.updatePlotType(self.subplot2)
 
-                        if key[7:] == 'guinier':
-                            self.plotparams['axesscale2'] = 'loglin'
-                        else:
-                            self.plotparams['axesscale2'] = 'linlin'
+                        self.plotparams['axesscale2'] = 'linlin'
                         self.updatePlotAxes()
 
                         print '3'
@@ -1777,7 +1771,7 @@ class PlotPanel(wx.Panel):
                 each.line.set_ydata(each.i[q_min:q_max] * np.power(each.q[q_min:q_max],2))
                 each.line.set_xdata(each.q[q_min:q_max])
             elif self.plotparams['plot' + c + 'type'] == 'guinier':
-                each.line.set_ydata(each.i[q_min:q_max])
+                each.line.set_ydata(np.log(each.i[q_min:q_max]))
                 each.line.set_xdata(np.power(each.q[q_min:q_max],2))
             elif self.plotparams['plot' + c + 'type'] == 'porod':
                 each.line.set_ydata(np.power(each.q[q_min:q_max],4)*each.i[q_min:q_max])
@@ -1839,13 +1833,13 @@ class PlotPanel(wx.Panel):
             i = sasm.i[q_min:q_max]
 
             if plottype== 'normal' or plottype== 'subtracted':
-                #line, ec, el = a.errorbar(sasm.q, sasm.i, sasm.errorbars, picker = 3)
                 sasm.line.set_data(q, i)
-
             elif plottype== 'kratky':
                 sasm.line.set_data(q, i*np.power(q,2))
             elif plottype== 'porod':
                 sasm.line.set_data(q, np.power(q,4)*i)
+            elif plottype == 'guinier':
+                sasm.line.set_data(np.power(q,2), np.log(i))
 
         if draw:
             self.fitAxis()
@@ -2643,10 +2637,7 @@ class IftPlotPanel(PlotPanel):
                         self.plotparams['plot1type'] = key[7:]
                         self.updatePlotType(self.subplot1)
 
-                        if key[7:] == 'guinier':
-                            self.plotparams['axesscale1'] = 'loglin'
-                        else:
-                            self.plotparams['axesscale1'] = 'linlin'
+                        self.plotparams['axesscale1'] = 'linlin'
 
                         self.updatePlotAxes()
                         print '1'
@@ -2661,10 +2652,7 @@ class IftPlotPanel(PlotPanel):
                         self.plotparams['plot2type'] = key[7:]
                         self.updatePlotType(self.subplot2)
 
-                        if key[7:] == 'guinier':
-                            self.plotparams['axesscale2'] = 'loglin'
-                        else:
-                            self.plotparams['axesscale2'] = 'linlin'
+                        self.plotparams['axesscale2'] = 'linlin'
                         self.updatePlotAxes()
 
                         print '3'
@@ -2746,10 +2734,10 @@ class IftPlotPanel(PlotPanel):
                 each.qf_line.set_xdata(each.q_orig[q_min:q_max])
 
             elif self.plotparams['plot' + c + 'type'] == 'guinier':
-                each.qo_line.set_ydata(each.i_orig[q_min:q_max])
+                each.qo_line.set_ydata(np.log(each.i_orig[q_min:q_max]))
                 each.qo_line.set_xdata(np.power(each.q_orig[q_min:q_max],2))
 
-                each.qf_line.set_ydata(each.i_fit[q_min:q_max])
+                each.qf_line.set_ydata(np.log(each.i_fit[q_min:q_max]))
                 each.qf_line.set_xdata(np.power(each.q_orig[q_min:q_max],2))
 
             elif self.plotparams['plot' + c + 'type'] == 'porod':
@@ -2823,7 +2811,8 @@ class IftPlotPanel(PlotPanel):
             elif type == 'kratky':
                 sasm.line.set_data(q, i*np.power(q,2))
             elif type == 'guinier':
-                sasm.line.set_data(np.power(q,2), i)
+                sasm.line.set_data(np.power(q,2), np.log(i))
+            elif type == 'porod':
                 sasm.line.set_data(q, np.power(q,4)*i)
 
         if draw:
