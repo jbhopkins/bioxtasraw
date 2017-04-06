@@ -116,38 +116,45 @@ def autoRg(sasm):
             yerr = yerr[np.where(np.isinf(y) == False)]
             y = y[np.where(np.isinf(y) == False)]
 
-            # opt, cov = scipy.optimize.curve_fit(f, x, y, sigma = yerr, absolute_sigma = True)
+            
+            try:
+                opt, cov = scipy.optimize.curve_fit(f, x, y)
+                # opt, cov = scipy.optimize.curve_fit(f, x, y, sigma = yerr, absolute_sigma = True)
+                suc_fit = True
+            except TypeError:
+                opt = []
+                cov = []
+                suc_fit = False
 
-            opt, cov = scipy.optimize.curve_fit(f, x, y)
+            if suc_fit:
+                if opt[1] < 0 and np.isreal(opt[1]) and np.isreal(opt[0]):
+                    RG=np.sqrt(-3.*opt[1])
+                    I0=np.exp(opt[0])
 
-            if opt[1] < 0 and np.isreal(opt[1]) and np.isreal(opt[0]):
-                RG=np.sqrt(-3.*opt[1])
-                I0=np.exp(opt[0])
+                    if q[start]*RG < 1 and q[start+w-1]*RG<1.35 and RG>0.1:
 
-                if q[start]*RG < 1 and q[start+w-1]*RG<1.35 and RG>0.1:
+                        #error in rg and i0 is calculated by noting that q(x)+/-Dq has Dq=abs(dq/dx)Dx, where q(x) is your function you're using
+                        #on the quantity x+/-Dx, with Dq and Dx as the uncertainties and dq/dx the derviative of q with respect to x.
+                        RGer=np.absolute(0.5*(np.sqrt(-3./opt[1])))*np.sqrt(np.absolute(cov[1,1,]))
+                        I0er=I0*np.sqrt(np.absolute(cov[0,0]))
 
-                    #error in rg and i0 is calculated by noting that q(x)+/-Dq has Dq=abs(dq/dx)Dx, where q(x) is your function you're using
-                    #on the quantity x+/-Dx, with Dq and Dx as the uncertainties and dq/dx the derviative of q with respect to x.
-                    RGer=np.absolute(0.5*(np.sqrt(-3./opt[1])))*np.sqrt(np.absolute(cov[1,1,]))
-                    I0er=I0*np.sqrt(np.absolute(cov[0,0]))
+                        if RGer/RG <= 1:
 
-                    if RGer/RG <= 1:
+                            a = opt[0]
+                            b = opt[1]
 
-                        a = opt[0]
-                        b = opt[1]
+                            r_sqr = 1 - np.square(il[start:start+w]-f(qs[start:start+w], a, b)).sum()/np.square(il[start:start+w]-il[start:start+w].mean()).sum()
 
-                        r_sqr = 1 - np.square(il[start:start+w]-f(qs[start:start+w], a, b)).sum()/np.square(il[start:start+w]-il[start:start+w].mean()).sum()
+                            if r_sqr > .15:
+                                chi_sqr = np.square((il[start:start+w]-f(qs[start:start+w], a, b))/iler[start:start+w]).sum()
 
-                        if r_sqr > .15:
-                            chi_sqr = np.square((il[start:start+w]-f(qs[start:start+w], a, b))/iler[start:start+w]).sum()
+                                #All of my reduced chi_squared values are too small, so I suspect something isn't right with that.
+                                #Values less than one tend to indicate either a wrong degree of freedom, or a serious overestimate
+                                #of the error bars for the system.
+                                dof = w - 2.
+                                reduced_chi_sqr = chi_sqr/dof
 
-                            #All of my reduced chi_squared values are too small, so I suspect something isn't right with that.
-                            #Values less than one tend to indicate either a wrong degree of freedom, or a serious overestimate
-                            #of the error bars for the system.
-                            dof = w - 2.
-                            reduced_chi_sqr = chi_sqr/dof
-
-                            fit_list.append([start, w, q[start], q[start+w-1], RG, RGer, I0, I0er, q[start]*RG, q[start+w-1]*RG, r_sqr, chi_sqr, reduced_chi_sqr])
+                                fit_list.append([start, w, q[start], q[start+w-1], RG, RGer, I0, I0er, q[start]*RG, q[start+w-1]*RG, r_sqr, chi_sqr, reduced_chi_sqr])
 
     #Extreme cases: may need to relax the parameters.
     if len(fit_list)<1:
