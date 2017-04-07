@@ -775,7 +775,7 @@ class ImagePanel(wx.Panel):
                 new_points.append(new_points[0])
                 patch.set_xy(new_points)
 
-            self.canvas.draw()
+            # self.canvas.draw()
 
             self.fig.gca().draw_artist(patch)
             self.canvas.blit(self.fig.gca().bbox)
