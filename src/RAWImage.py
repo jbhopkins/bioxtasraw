@@ -549,6 +549,7 @@ class ImagePanel(wx.Panel):
                 self._movement_in_progress = False
                 self._first_mouse_pos = None
 
+
         self._toggleMaskSelection()
 
     def _onLeftMouseButtonPress(self, x, y, event):
@@ -746,6 +747,7 @@ class ImagePanel(wx.Panel):
         patch = self._selected_patch
 
         if patch.get_facecolor() == 'yellow' or patch.get_facecolor() == (1.0, 1.0, 0.0, 0.5):
+            self.canvas.restore_region(self.background)
 
             old_points = self._getMaskFromId(patch.id).getPoints()
 
@@ -774,6 +776,9 @@ class ImagePanel(wx.Panel):
                 patch.set_xy(new_points)
 
             self.canvas.draw()
+
+            self.fig.gca().draw_artist(patch)
+            self.canvas.blit(self.fig.gca().bbox)
 
 
     def _toggleMaskSelection(self):
@@ -977,13 +982,16 @@ class ImagePanel(wx.Panel):
 
         #self.canvas.draw()
 
-    def _drawCircle(self, points, id, mask, color):
+    def _drawCircle(self, points, id, mask, color, animated = False):
 
         a = self.fig.gca()
 
         radius_c = abs(points[1][0] - points[0][0])
 
-        cir = matplotlib.patches.Circle( (points[0][0], points[0][1]), color = color, radius = radius_c, alpha = 0.5, picker = True )
+        if animated:
+            cir = matplotlib.patches.Circle( (points[0][0], points[0][1]), color = color, radius = radius_c, alpha = 0.5, picker = True, animated=True)
+        else:
+            cir = matplotlib.patches.Circle( (points[0][0], points[0][1]), color = color, radius = radius_c, alpha = 0.5, picker = True)
         cir.id = id       # Creating a new parameter called id to distingush them!
         cir.mask = mask
         cir.selected = 0
@@ -993,7 +1001,7 @@ class ImagePanel(wx.Panel):
 
         self._circle_guide_line = None
 
-    def _drawRectangle(self, points, id, mask, color):
+    def _drawRectangle(self, points, id, mask, color, animated = False):
 
         a = self.fig.gca()
 
@@ -1005,7 +1013,10 @@ class ImagePanel(wx.Panel):
 
         width = xEnd - xStart
         height = yEnd - yStart
-        rect = matplotlib.patches.Rectangle( (xStart, yStart), width, height, color = color, alpha = 0.5, picker = True )
+        if animated:
+            rect = matplotlib.patches.Rectangle( (xStart, yStart), width, height, color = color, alpha = 0.5, picker = True, animated=True )
+        else:
+            rect = matplotlib.patches.Rectangle( (xStart, yStart), width, height, color = color, alpha = 0.5, picker = True)
         rect.mask = mask
 
         rect.id = id
@@ -1016,11 +1027,14 @@ class ImagePanel(wx.Panel):
 
         self._rectangle_line = None
 
-    def _drawPolygon(self, points, id, mask, color):
+    def _drawPolygon(self, points, id, mask, color, animated = False):
 
         a = self.fig.gca()
 
-        poly = matplotlib.patches.Polygon( points, alpha = 0.5, picker = True , color = color)
+        if animated:
+            poly = matplotlib.patches.Polygon( points, alpha = 0.5, picker = True , color = color, animated=True)
+        else:
+            poly = matplotlib.patches.Polygon( points, alpha = 0.5, picker = True , color = color)
         poly.mask = mask
         a.add_patch(poly)
 
