@@ -924,21 +924,18 @@ class ImagePanel(wx.Panel):
         a = self.fig.gca()             # Get current axis from figure
 
         if tool == 'circle':
-            #if a.lines: del(a.lines[:]) # clear old guide lines
             radius_c = abs(x - self._chosen_points_x[-1])
-
-            circlePoints = SASImage.calcBresenhamCirclePoints(radius_c, self._chosen_points_x[-1], self._chosen_points_y[-1])
-            xPoints, yPoints = zip(*circlePoints)
 
             if self._circle_guide_line:
                 self.canvas.restore_region(self.background)
-                self._circle_guide_line[0].set_ydata(yPoints)
-                self._circle_guide_line[0].set_xdata(xPoints)
 
-                self.fig.gca().draw_artist(self._circle_guide_line[0])
+                self._circle_guide_line.set_radius(radius_c)
+
+                self.fig.gca().draw_artist(self._circle_guide_line)
                 self.canvas.blit(self.fig.gca().bbox)
             else:
-                self._circle_guide_line = a.plot(xPoints, yPoints, 'r.', animated = True)
+                self._circle_guide_line = matplotlib.patches.Circle((self._chosen_points_x[-1], self._chosen_points_y[-1]), radius_c, color = 'r', fill = False, linewidth = 2, animated = True)
+                a.add_patch(self._circle_guide_line)
                 self.canvas.draw()
                 self.background = self.canvas.copy_from_bbox(self.fig.gca().bbox)
 
