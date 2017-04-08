@@ -690,6 +690,7 @@ class ImagePanel(wx.Panel):
                 #If its already selected, set flag
                 #to start moving the patch.
                 self._movement_in_progress = True
+                self.background = self.canvas.copy_from_bbox(self.fig.gca().bbox)
 
     def _onPickRightClick(self, event):
         ''' If a patch (mask) is selected, then set the
@@ -774,8 +775,6 @@ class ImagePanel(wx.Panel):
 
                 new_points.append(new_points[0])
                 patch.set_xy(new_points)
-
-            # self.canvas.draw()
 
             self.fig.gca().draw_artist(patch)
             self.canvas.blit(self.fig.gca().bbox)
