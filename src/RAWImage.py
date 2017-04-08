@@ -30,6 +30,7 @@ from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.widgets import Cursor
 import RAWIcons, RAWGlobals, SASImage, SASCalib
+import time
 
 class ImagePanelToolbar(NavigationToolbar2WxAgg):
     ''' The toolbar under the image in the image panel '''
@@ -198,6 +199,8 @@ class ImagePanel(wx.Panel):
         self.canvas.mpl_connect('key_press_event', self._onKeyPressEvent)
         self.canvas.mpl_connect('scroll_event', self._onMouseScroll)
 
+        self.draw_cid = self.canvas.mpl_connect('draw_event', self.safe_draw)
+
         self.toolbar = ImagePanelToolbar(self, self.canvas)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -277,6 +280,22 @@ class ImagePanel(wx.Panel):
 
     def getTool(self):
         return self.current_tool
+
+    def safe_draw(self, event = None):
+        self.canvas.mpl_disconnect(self.draw_cid)
+        self.canvas.draw()
+        self.draw_cid = self.canvas.mpl_connect('draw_event', self.safe_draw)
+
+        if wx.FindWindowByName('CenteringPanel').IsShown():
+            a = self.fig.gca()
+            self.background = self.canvas.copy_from_bbox(a.bbox)
+
+            self.canvas.restore_region(self.background)
+
+            for patch in a.patches:
+                if patch.get_animated():
+                    a.draw_artist(patch)
+            self.canvas.blit(a.bbox)
 
     def fitAxis(self):
 
@@ -383,9 +402,9 @@ class ImagePanel(wx.Panel):
         ''' Inserts information about the newly displayed image
         into the plot parameters '''
 
-        if not self._canvas_cursor:
-            a = self.fig.gca()
-            self._canvas_cursor = Cursor(a, useblit=True, color='red', linewidth=1 )
+        # if not self._canvas_cursor:
+        #     a = self.fig.gca()
+        #     self._canvas_cursor = Cursor(a, useblit=True, color='red', linewidth=1 )
 
     def _onMouseScroll(self, event):
 
@@ -560,6 +579,7 @@ class ImagePanel(wx.Panel):
         if event.inaxes is None: # If click is outside the canvas area
             return
 
+        centering_panel = wx.FindWindowByName('CenteringPanel')
         a = self.fig.gca()
 
         tool = self.getTool()
@@ -582,8 +602,6 @@ class ImagePanel(wx.Panel):
 
         elif self.pyfai_cent_mode and self.toolbar.getCurrentTool() is None:
 
-            centering_panel = wx.FindWindowByName('CenteringPanel')
-
             points, centering_panel.c.points = SASCalib.new_grp(self.img, [x, y], centering_panel.c.points, 100, self.pyfai_ring_num)
 
             if not points:
@@ -601,7 +619,6 @@ class ImagePanel(wx.Panel):
 
         elif self.center_click_mode == True:
             self.center_click_mode = False
-            centering_panel = wx.FindWindowByName('CenteringPanel')
             wx.CallAfter(centering_panel.setCenter, [int(x),int(y)])
 
     def _onRightMouseButtonPress(self, x, y, event):
@@ -1049,20 +1066,31 @@ class ImagePanel(wx.Panel):
         self._polygon_guide_line = None
 
     def _drawCenteringRings(self, x, r_list):
-
         a = self.fig.gca()
 
-        cir = matplotlib.patches.Circle( x, radius = 3, alpha = 1, facecolor = 'red', edgecolor = 'red')
-        a.add_patch(cir)
+        if len(a.patches)>len(r_list)+1:
+            self.clearPatches()
 
-        for r in r_list:
-            cir = matplotlib.patches.Circle(x, radius = r, alpha = 1, fill = False, linestyle = 'dashed', linewidth = 1.5, edgecolor = 'red')
+        if not a.patches:
+            cir = matplotlib.patches.Circle( x, radius = 3, alpha = 1, facecolor = 'red', edgecolor = 'red', animated=True)
             a.add_patch(cir)
 
-        try:
+            for r in r_list:
+                cir = matplotlib.patches.Circle(x, radius = r, alpha = 1, fill = False, linestyle = 'dashed', linewidth = 1.5, edgecolor = 'red',animated=True)
+                a.add_patch(cir)
+
             self.canvas.draw()
-        except ValueError, e:
-            print 'ValueError in _drawCenteringRings : ' + str(e)
+
+        else:
+            self.canvas.restore_region(self.background)
+
+            for i, patch in enumerate(a.patches):
+                patch.center = x
+                if i>0:
+                    patch.set_radius(r_list[i-1])
+                a.draw_artist(patch)
+
+            self.canvas.blit(self.fig.gca().bbox)
 
     def drawCenteringPoints(self, points):
 

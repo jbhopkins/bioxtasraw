@@ -323,38 +323,87 @@ class MainFrame(wx.Frame):
         return question_return_queue
 
     def showMaskingPane(self):
+        if self._mgr.GetPane(self.centering_panel).IsShown():
+            image_panel = wx.FindWindowByName('ImagePanel')
+            if not RAWGlobals.usepyFAI:
+                image_panel.enableCenterClickMode(False)
+                image_panel.enableRAWAutoCentMode(False)
+                image_panel.agbe_selected_points = []
+
+                button = self.centering_panel.auto_start_button
+                if button.GetLabelText() == 'Done':
+                    button.SetLabel('Start')
+                    self.centering_panel._enableControls(True)
+            else:
+                if self.centering_panel.autocenter:
+                    self.centering_panel._cleanUpAutoCenter()
+
+            self.centering_panel.updateCenterFromSettings()
+
+            image_panel.clearPatches()
+
         self._mgr.GetPane(self.masking_panel).Show(True)
         self._mgr.GetPane(self.centering_panel).Show(False)
         self._mgr.GetPane(self.control_notebook).Show(False)
         self._mgr.Update()
-        self.plot_notebook.SetSelection(2)
-        wx.FindWindowByName('MaskingPanel').updateView()
+
+        page = -1
+
+        for i in range(self.plot_notebook.GetPageCount()):
+            if self.plot_notebook.GetPageText(i) == 'Image':
+                page = i
+                self.plot_notebook.SetSelection(page)
+
+        #This is stupid and shouldn't be necessary!
+        if page > -1:
+            while self.plot_notebook.GetSelection() != page:
+                time.sleep(.001)
+                self.plot_notebook.SetSelection(page)
+
+        self.masking_panel.updateView()
 
     def closeMaskingPane(self):
         self._mgr.GetPane(self.masking_panel).Show(False)
         self._mgr.GetPane(self.control_notebook).Show(True)
         self._mgr.Update()
 
-
-        mainpage = -1
+        page = -1
 
         for i in range(self.plot_notebook.GetPageCount()):
             if self.plot_notebook.GetPageText(i) == 'Main Plot':
-                mainpage = i
-                self.plot_notebook.SetSelection(mainpage)
+                page = i
+                self.plot_notebook.SetSelection(page)
 
         #This is stupid and shouldn't be necessary!
-        if mainpage > -1:
-            while self.plot_notebook.GetSelection() != mainpage:
+        if page > -1:
+            while self.plot_notebook.GetSelection() != page:
                 time.sleep(.001)
-                self.plot_notebook.SetSelection(mainpage)
+                self.plot_notebook.SetSelection(page)
 
     def showCenteringPane(self):
+        if self._mgr.GetPane(self.masking_panel).IsShown():
+            image_panel = wx.FindWindowByName('ImagePanel')
+            image_panel.stopMaskCreation()
+            image_panel.clearAllMasks()
+            image_panel.removeCenterPatch()
+
         self._mgr.GetPane(self.centering_panel).Show(True)
         self._mgr.GetPane(self.control_notebook).Show(False)
         self._mgr.GetPane(self.masking_panel).Show(False)
         self._mgr.Update()
-        self.plot_notebook.SetSelection(2)
+
+        page = -1
+
+        for i in range(self.plot_notebook.GetPageCount()):
+            if self.plot_notebook.GetPageText(i) == 'Image':
+                page = i
+                self.plot_notebook.SetSelection(page)
+
+        #This is stupid and shouldn't be necessary!
+        if page > -1:
+            while self.plot_notebook.GetSelection() != page:
+                time.sleep(.001)
+                self.plot_notebook.SetSelection(page)
 
         self.centering_panel.updateAll()
 
@@ -362,7 +411,18 @@ class MainFrame(wx.Frame):
         self._mgr.GetPane(self.centering_panel).Show(False)
         self._mgr.GetPane(self.control_notebook).Show(True)
         self._mgr.Update()
-        self.plot_notebook.SetSelection(0)
+        page = -1
+
+        for i in range(self.plot_notebook.GetPageCount()):
+            if self.plot_notebook.GetPageText(i) == 'Main Plot':
+                page = i
+                self.plot_notebook.SetSelection(page)
+
+        #This is stupid and shouldn't be necessary!
+        if page > -1:
+            while self.plot_notebook.GetSelection() != page:
+                time.sleep(.001)
+                self.plot_notebook.SetSelection(page)
 
 
     def showQuestionDialogFromThread(self, question, label, button_list, icon = None, filename = None, save_path = None):
@@ -10380,6 +10440,8 @@ class CenteringPanel(wx.Panel):
         if RAWGlobals.usepyFAI:
             self.cal_factory = pyFAI.calibrant.calibrant_factory()
 
+        self.old_calibrant = None
+
         self.autocenter = False
 
         self.manual_widget_list = []
@@ -10949,7 +11011,10 @@ class CenteringPanel(wx.Panel):
                 sample_detec_pixels = SASImage.calcFromSDToAgBePixels(sd_distance, wavelength, pixel_size / 1000.0)
                 agbh_dist_list = [sample_detec_pixels*i for i in range(1,5)]
 
-            wx.CallAfter(self.image_panel.clearPatches)
+            if self.old_calibrant is not None and self.old_calibrant != selection:
+                wx.CallAfter(self.image_panel.clearPatches)
+            self.old_calibrant = selection
+
             if not np.isnan(agbh_dist_list[0]): #If wavelength is too long, can get values for the ring radius that are nans
                 wx.CallAfter(self.image_panel._drawCenteringRings, self._center, agbh_dist_list)
             else:
@@ -11132,7 +11197,7 @@ class CenteringPanel(wx.Panel):
         self._pixel_text.SetValue(str(pixel_size))
 
         self.updateCenterTextCtrls()
-
+        wx.CallAfter(self.image_panel.clearPatches)
         self._cleanUpAutoCenter()
 
     def _enablePyfaiControls(self):
@@ -11183,7 +11248,7 @@ class CenteringPanel(wx.Panel):
         self.updateCenterTextCtrls()
 
         self._pattern_list.Select(1)
-
+        wx.CallAfter(self.image_panel.clearPatches)
         self._updateCenteringRings()
         self.image_panel.agbe_selected_points = []
 
