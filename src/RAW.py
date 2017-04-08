@@ -10296,11 +10296,13 @@ class MaskingPanel(wx.Panel):
         self.image_panel.stopMaskCreation()
         wx.CallAfter(self.image_panel.clearAllMasks)
         wx.CallAfter(self._main_frame.closeMaskingPane)
+        wx.CallAfter(self.image_panel.removeCenterPatch)
 
     def _onCancelButton(self, event):
         self.image_panel.stopMaskCreation()
         wx.CallAfter(self._main_frame.closeMaskingPane)
         wx.CallAfter(self.image_panel.clearAllMasks)
+        wx.CallAfter(self.image_panel.removeCenterPatch)
 
     def updateView(self):
         wx.CallAfter(self.image_panel.clearPatches)
@@ -10952,7 +10954,7 @@ class CenteringPanel(wx.Panel):
                 wx.CallAfter(self.image_panel._drawCenteringRings, self._center, agbh_dist_list)
             else:
                 self._wavelen_text.SetValue('1')
-                wx.MessageBox('Wavelength too long, cannot show silver-behenate rings on the plot. Must be less than 116 angstroms.', 'Invalid Entry', style=wx.ICON_ERROR)
+                wx.MessageBox('Wavelength too long, cannot show centering rings on the plot.', 'Invalid Entry', style=wx.ICON_ERROR)
                 return
 
     def updateCenterTextCtrls(self):

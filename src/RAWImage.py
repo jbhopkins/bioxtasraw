@@ -545,9 +545,10 @@ class ImagePanel(wx.Panel):
 
     def _onLeftMouseButtonRelease(self, x, y, event):
         if self._movement_in_progress == True:
-                self._insertNewCoordsIntoMask()
-                self._movement_in_progress = False
-                self._first_mouse_pos = None
+            self._selected_patch.set_animated(False)
+            self._insertNewCoordsIntoMask()
+            self._movement_in_progress = False
+            self._first_mouse_pos = None
 
 
         self._toggleMaskSelection()
@@ -690,7 +691,11 @@ class ImagePanel(wx.Panel):
                 #If its already selected, set flag
                 #to start moving the patch.
                 self._movement_in_progress = True
+                self._selected_patch.set_animated(True)
+                self.canvas.draw()
                 self.background = self.canvas.copy_from_bbox(self.fig.gca().bbox)
+                self.fig.gca().draw_artist(self._selected_patch)
+                self.canvas.blit(self.fig.gca().bbox)
 
     def _onPickRightClick(self, event):
         ''' If a patch (mask) is selected, then set the
