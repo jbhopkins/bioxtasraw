@@ -116,7 +116,7 @@ def autoRg(sasm):
             yerr = yerr[np.where(np.isinf(y) == False)]
             y = y[np.where(np.isinf(y) == False)]
 
-            
+
             try:
                 opt, cov = scipy.optimize.curve_fit(f, x, y)
                 # opt, cov = scipy.optimize.curve_fit(f, x, y, sigma = yerr, absolute_sigma = True)
@@ -313,7 +313,7 @@ def autoMW(sasm, rg, i0, protein = True, interp = True):
 
 
     #The volume of correlation is the ratio of i0 to $\int q*I dq$
-    tot=integrate.simps(q*i,q)
+    tot=integrate.trapz(q*i,q)
 
     vc=i0/tot
 
@@ -339,7 +339,7 @@ def autoMW(sasm, rg, i0, protein = True, interp = True):
 
 
 def porodInvariant(sasm,start=0,stop=-1):
-    return integrate.simps(sasm.i[start:stop]*np.square(sasm.q[start:stop]),sasm.q[start:stop])
+    return integrate.trapz(sasm.i[start:stop]*np.square(sasm.q[start:stop]),sasm.q[start:stop])
 
 def porodVolume(sasm, rg, i0, start = 0, stop = -1, interp = True):
 

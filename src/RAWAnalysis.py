@@ -1074,7 +1074,6 @@ class MolWeightFrame(wx.Frame):
 
         wx.FindWindowById(self.ids['VC']['sup_plot']).plotSASM(self.sasm)
 
-
         #Initialize Vp MW settings
         vp_rho = self.raw_settings.get('MWVpRho')
 
@@ -1541,6 +1540,8 @@ class MolWeightFrame(wx.Frame):
             wx.FindWindowById(self.ids['conc']['conc']).ChangeValue(conc)
             wx.FindWindowById(self.ids['abs']['conc']).ChangeValue(conc)
 
+        wx.FindWindowById(self.ids['VC']['sup_plot']).plotSASM(self.sasm)
+
         self.calcMW()
 
     def updateMWInfo(self):
@@ -1600,7 +1601,7 @@ class MolWeightFrame(wx.Frame):
         wx.FindWindowById(self.ids['abs']['sup_pm']).ChangeValue('%.2E' %(rho_Mprot))
         wx.FindWindowById(self.ids['abs']['sup_ps']).ChangeValue('%.2E' %(rho_solv))
         wx.FindWindowById(self.ids['abs']['sup_pv']).ChangeValue('%.4f' %(nu_bar))
-        wx.FindWindowById(self.ids['abs']['sup_r0']).ChangeValue('%.2E' %(r0))
+        # wx.FindWindowById(self.ids['abs']['sup_r0']).ChangeValue('%.2E' %(r0))
         wx.FindWindowById(self.ids['abs']['sup_sc']).ChangeValue('%.2E' %(d_rho))
 
 
@@ -2079,47 +2080,37 @@ class MWPlotPanel(wx.Panel):
         for tick in a.yaxis.get_major_ticks():
             tick.label.set_fontsize(font_size)
 
-        # Connect the callback for the draw_event so that window resizing works:
-        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
-
-    def ax_redraw(self, widget=None):
-        ''' Redraw plots on window resize event '''
-
-        a = self.subplots['VC']
-
-        self.background = self.canvas.copy_from_bbox(a.bbox)
-
-        self.canvas.mpl_disconnect(self.cid)
-        self.updateDataPlot(self.orig_i, self.orig_q, (self.orig_qmin, self.orig_qmax), self.orig_analysis)
-        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
-
-    def _calcInt(self, interp=True):
+    def _calcInt(self, sasm, interp=True):
         ''' calculate pointwise integral '''
 
-        analysis = self.orig_analysis
+        q = sasm.q
+        i = sasm.i
+        qmin, qmax = sasm.getQrange()
 
-        q = self.orig_q[self.orig_qmin:self.orig_qmax]
-        i = self.orig_i[self.orig_qmin:self.orig_qmax]
+        q = q[qmin:qmax]
+        i = i[qmin:qmax]
+
+        analysis = sasm.getParameter('analysis')
 
         if interp and q[0] != 0 and 'guinier' in analysis:
             guinier_analysis = analysis['guinier']
-            qmin = float(guinier_analysis['qStart'])
+            guinier_qmin = float(guinier_analysis['qStart'])
             i0 = float(guinier_analysis['I0'])
             rg = float(guinier_analysis['Rg'])
 
             findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
-            closest_qmin = findClosest(qmin, q)
+            closest_qmin = findClosest(guinier_qmin, q)
 
             idx_min = np.where(q == closest_qmin)[0][0]
 
             q = q[idx_min:]
             i = i[idx_min:]
 
-            def f(x):
+            def guinier_interp(x):
                 return i0*np.exp((-1./3.)*np.square(rg)*np.square(x))
 
             q_interp = np.arange(0,q[0],q[1]-q[0])
-            i_interp = f(q_interp)
+            i_interp = guinier_interp(q_interp)
 
             q = np.concatenate((q_interp, q))
             i = np.concatenate((i_interp, i))
@@ -2128,49 +2119,32 @@ class MWPlotPanel(wx.Panel):
         qi = q*i
 
         for a in range(2,len(q)+1):
-            y[a-1] = integrate.simps(qi[:a],q[:a])
+            y[a-1] = integrate.trapz(qi[:a],q[:a])
 
         return q, y
 
     def plotSASM(self, sasm):
-        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
-        self.canvas.mpl_disconnect(self.cid)
-        self.updateDataPlot(sasm.i, sasm.q, sasm.getQrange(), sasm.getParameter('analysis'))
-
-        #Reconnect draw_event
-        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
-
-    def updateDataPlot(self, i, q, qrange, analysis):
-        #Save for resizing:
-        self.orig_i = i
-        self.orig_q = q
-
-        self.orig_qmin = qrange[0]
-        self.orig_qmax = qrange[1]
-
-        self.orig_analysis = analysis
-
-        a = self.subplots['VC']
-
         try:
-            x, y = self._calcInt()
+            q, intI = self._calcInt(sasm)
         except TypeError:
             return
 
-        if not self.data_line:
-            self.data_line, = a.plot(x, y, 'r.')
+        self.updateDataPlot(q, intI)
 
-            self.canvas.draw()
-            self.background = self.canvas.copy_from_bbox(a.bbox)
+
+    def updateDataPlot(self, q, intI):
+        a = self.subplots['VC']
+
+        if self.data_line is None:
+            self.data_line, = a.plot(q, intI, 'r.')
         else:
-            self.data_line.set_ydata(y)
-            self.data_line.set_xdata(x)
+            self.data_line.set_xdata(q)
+            self.data_line.set_ydata(intI)
 
         a.relim()
         a.autoscale_view()
 
         self.canvas.draw()
-
 
 
 class GNOMFrame(wx.Frame):

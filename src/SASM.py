@@ -88,7 +88,7 @@ class SASM:
         #Calculated values
         try:
             if len(self.q)>0:
-                self.total_intensity = integrate.simps(self.i, self.q)
+                self.total_intensity = integrate.trapz(self.i, self.q)
                 self.mean_intensity = self.i.mean()
         except:
             self.total_intensity = -1
