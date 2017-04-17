@@ -4439,6 +4439,8 @@ class FilePanel(wx.Panel):
         self.sec_panel = wx.FindWindowByName('SECPanel')
         self.sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
         self.ift_panel = wx.FindWindowByName('IFTPanel')
+        self.ift_plot_panel = wx.FindWindowByName('IFTPlotPanel')
+
 
         # *************** buttons ****************************
         self.dir_panel = DirCtrlPanel(self)
@@ -4578,10 +4580,11 @@ class FilePanel(wx.Panel):
                 dial2.Destroy()
 
             if answer2 == wx.ID_YES:
-                self.plot_panel.clearAllPlots()
                 self.image_panel.clearFigure()
+                self.plot_panel.clearAllPlots()
                 self.manipulation_panel.clearList()
-                self.ift_panel.ClearData()
+                self.ift_plot_panel.clearAllPlots()
+                self.ift_panel.clearList()
                 self.sec_plot_panel.clearAllPlots()
                 self.sec_panel.clearList()
 
@@ -5561,27 +5564,22 @@ class ManipulationPanel(wx.Panel):
         return self._star_marked_item
 
     def clearList(self):
-        # self.underpanel.Freeze()
+        self._star_marked_item = None
+        self.modified_items = []
+        self.selected_item_list = []
 
         rest_of_items = []
         for each in self.all_manipulation_items:
-
             try:
                 each.Destroy()
             except ValueError:
                 rest_of_items.append(each)
 
-
         self.all_manipulation_items = rest_of_items
-
-        self._star_marked_item = None
-        self.modified_items = []
 
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Layout()
         self.underpanel.Refresh()
-
-        # self.underpanel.Thaw()
 
     def clearBackgroundItem(self):
         self._raw_settings.set('BackgroundSASM', None)
@@ -7249,17 +7247,19 @@ class IFTPanel(wx.Panel):
 
     def clearList(self):
         rest_of_items = []
-        for each in self.all_manipulation_items:
 
+        self._star_marked_item = None
+        self.selected_item_list = []
+        self.modified_items = []
+
+        for each in self.all_manipulation_items:
             try:
                 each.Destroy()
             except ValueError:
                 rest_of_items.append(each)
 
-
         self.all_manipulation_items = rest_of_items
-        self._star_marked_item = None
-
+        
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Layout()
         self.underpanel.Refresh()
@@ -7450,35 +7450,9 @@ class IFTPanel(wx.Panel):
 
         mainworker_cmd_queue.put(['save_iftitems', [save_path, selected_items]])
 
-
-
-#####################################################################################
-
-
     def _onClearList(self, evt):
-        self.ClearData()
-
-    def ClearData(self):
-        rest_of_items = []
-        for each in self.all_manipulation_items:
-
-            try:
-                each.Destroy()
-            except ValueError:
-                rest_of_items.append(each)
-
-        self.all_manipulation_items = rest_of_items
-
-        self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-        self.underpanel.Layout()
-        self.underpanel.Refresh()
-
-        self._star_marked_item = None
         self.iftplot_panel.clearAllPlots()
-
-    def _OnClearAll(self, evt):
-        plotpage = wx.FindWindowByName('BIFTPlotPanel')
-        plotpage.OnClear(0)
+        self.clearList()
 
     def _CreateFileDialog(self, mode):
 
@@ -8588,29 +8562,17 @@ class SECPanel(wx.Panel):
         plotpage.OnClear(0)
 
     def _onClearList(self, evt):
-        rest_of_items = []
-        for each in self.all_manipulation_items:
-
-            try:
-                each.Destroy()
-            except ValueError:
-                rest_of_items.append(each)
-            except AttributeError:
-                each = None
-
-        self.all_manipulation_items = rest_of_items
-        self.modified_items = []
-
-        self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
-        self.underpanel.Layout()
-        self.underpanel.Refresh()
-
         self.sec_plot_panel.clearAllPlots()
-
-        self.sec_control_panel.clearAll()
+        self.clearList()
+        
 
     def clearList(self):
         rest_of_items = []
+
+        self.modified_items = []
+        self.selected_item = []
+        self.starred_item = None
+
         for each in self.all_manipulation_items:
 
             try:
@@ -8620,10 +8582,8 @@ class SECPanel(wx.Panel):
             except AttributeError:
                 each = None
 
-
         self.all_manipulation_items = rest_of_items
-        self.modified_items = []
-
+        
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Layout()
         self.underpanel.Refresh()
@@ -10023,20 +9983,22 @@ class SECControlPanel(wx.Panel):
 
     def clearAll(self):
         for each in self.controlData:
-            type = each[1][1]
-            id = each[1][0]
+            each_type = each[1][1]
+            each_id = each[1][0]
 
-            if type != 'framelist' and type != 'wsize':
-                infobox = wx.FindWindowById(id)
+            if each_type != 'framelist' and each_type != 'wsize':
+                infobox = wx.FindWindowById(each_id)
                 infobox.SetValue('')
-            elif type == 'framelist':
-                self.frame_list=[]
-            elif type == 'wsize':
-                infobox = wx.FindWindowById(id)
+            elif each_type == 'wsize':
+                infobox = wx.FindWindowById(each_id)
                 infobox.SetValue('5')
 
         self.calc_mol_type.SetStringSelection(self._raw_settings.get('MWVcType'))
         self.secm=None
+
+        self.filename = ''
+        self.frame_list = []
+        self.directory = ""
 
         self._updateControlValues
         self._updateCalcValues()

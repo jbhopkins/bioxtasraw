@@ -1908,12 +1908,10 @@ class PlotPanel(wx.Panel):
         else:
             a.title.set_text(title)
             if a == self.subplot1:
-                plottype = self.plotparams['plot1type']
                 a.title.set_fontname(self.plotparams['title_font1'])
                 a.title.set_size(self.plotparams['title_fontsize1'])
 
             elif a == self.subplot2:
-                plottype = self.plotparams['plot2type']
                 a.title.set_fontname(self.plotparams['title_font2'])
                 a.title.set_size(self.plotparams['title_fontsize2'])
 
@@ -2212,6 +2210,7 @@ class IftPlotPanel(PlotPanel):
         except Exception, e:
             print 'Possibly too old matplotlib version: ' + str(e)
             pass
+
     def updateFrameStyle(self, axes):
         if axes == self.subplot1:
             plotnum = '1'
@@ -2882,12 +2881,10 @@ class IftPlotPanel(PlotPanel):
         else:
             a.title.set_text(title)
             if a == self.subplot1:
-                plottype = self.plotparams['plot1type']
                 a.title.set_fontname(self.plotparams['title_font1'])
                 a.title.set_size(self.plotparams['title_fontsize1'])
 
             elif a == self.subplot2:
-                plottype = self.plotparams['plot2type']
                 a.title.set_fontname(self.plotparams['title_font2'])
                 a.title.set_size(self.plotparams['title_fontsize2'])
 
