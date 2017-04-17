@@ -4553,6 +4553,9 @@ class FilePanel(wx.Panel):
         else:
             answer2 = wx.ID_YES
 
+            info_panel = wx.FindWindowByName('InformationPanel')
+            info_panel.clearInfo()
+
             if self.manipulation_panel.modified_items != [] or self.sec_panel.modified_items != [] or self.ift_panel.modified_items !=[]:
 
                 msg_list = []
@@ -4588,8 +4591,7 @@ class FilePanel(wx.Panel):
                 self.sec_plot_panel.clearAllPlots()
                 self.sec_panel.clearList()
 
-        info_panel = wx.FindWindowByName('InformationPanel')
-        info_panel.clearInfo()
+        
 
     def _onReduceButton(self, event):
 
