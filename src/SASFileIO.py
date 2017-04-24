@@ -2241,60 +2241,50 @@ def loadPrimusDatFile(filename):
     with open(filename) as f:
         lines = f.readlines()
 
-    firstLine = lines[0]
-
-    iq_match = iq_pattern.match(firstLine)
-
-    if iq_match:
-        firstLine = ''
-
-    fileHeader = {'comment':firstLine}
-    parameters = {'filename' : os.path.split(filename)[1],
-                  'counters' : fileHeader}
-
     if len(lines) == 0:
         raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file.')
 
-    if lines[1].find('model_intensity') > -1:
+    comment = ''
+    line = lines[0]
+    j=0
+    while line.split() and line.split()[0].strip()[0] == '#':
+        comment = comment+line
+        j = j+1
+        line = lines[j]
+
+    fileHeader = {'comment':comment}
+    parameters = {'filename' : os.path.split(filename)[1],
+                  'counters' : fileHeader}
+
+    if comment.find('model_intensity') > -1:
         #FoXS file with a fit! has four data columns
         is_foxs_fit=True
-        comment = firstLine+'\n'+lines[0]+lines[1]
-        parameters['comment']=comment
-        lines = lines[2:]
         imodel = []
-
     else:
         is_foxs_fit = False
 
-
     for line in lines:
+        iq_match = iq_pattern.match(line)
 
-        if not is_foxs_fit:
-
-            iq_match = iq_pattern.match(line)
-
-            if iq_match:
-                #print line
+        if iq_match:
+            if not is_foxs_fit:
                 found = iq_match.group().split()
                 q.append(float(found[0]))
                 i.append(float(found[1]))
                 err.append(float(found[2]))
-        else:
-            found = line.split()
-            q.append(float(found[0]))
-            i.append(float(found[1]))
-            imodel.append(float(found[2]))
-            err.append(float(found[3]))
+            else:
+                found = line.split()
+                q.append(float(found[0]))
+                i.append(float(found[1]))
+                imodel.append(float(found[2]))
+                err.append(float(found[3]))
 
 
     #Check to see if there is any header from RAW, and if so get that.
-    with open(filename) as f:   #Why does this need to open the file twice? Why did I do this?
-        all_lines = f.readlines()
-
     header = []
-    for j in range(len(all_lines)):
-        if '### HEADER:' in all_lines[j]:
-            header = all_lines[j+1:]
+    for j in range(len(lines)):
+        if '### HEADER:' in lines[j]:
+            header = lines[j+1:]
 
     hdict = None
 
