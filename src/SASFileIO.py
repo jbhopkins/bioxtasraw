@@ -293,6 +293,7 @@ def loadTiffImage(filename):
             img = np.fromstring(im.tostring(), np.uint16)
 
         img = np.reshape(img, im.size)
+        im.close()
     except IOError:
         return None, {}
 
@@ -310,6 +311,7 @@ def load32BitTiffImage(filename):
             img = np.fromstring(im.tostring(), np.uint32)
 
         img = np.reshape(img, im.size)
+        im.close()
     #except IOError:
     except Exception, e:
         print e
@@ -597,12 +599,12 @@ def loadSAXSLAB300Image(filename):
         # reduce negative vals
         newArr = np.where(newArr >= 0, newArr, 0)
         newArr = np.reshape(newArr, (im2.size[1],im2.size[0]))
+
         try:
           tag = im1.tag
         except AttributeError:
           tag = None
-
-
+        im1.close()
     except (IOError, ValueError):
         return None, None
 
