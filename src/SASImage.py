@@ -158,10 +158,10 @@ class CircleMask(Mask):
             q_lr2 = ( Pp[5][1], range( int(Pp[7][0]), int(Pp[5][0]+1)) )
 
             for i in range(0, len(q_ud1[1])):
-                fillPoints.append( (q_ud1[0], q_ud1[1][i]) )
-                fillPoints.append( (q_ud2[0], q_ud2[1][i]) )
-                fillPoints.append( (q_lr1[1][i], q_lr1[0]) )
-                fillPoints.append( (q_lr2[1][i], q_lr2[0]) )
+                fillPoints.append( (int(q_ud1[0]), int(q_ud1[1][i])) )
+                fillPoints.append( (int(q_ud2[0]), int(q_ud2[1][i])) )
+                fillPoints.append( (int(q_lr1[1][i]), int(q_lr1[0])) )
+                fillPoints.append( (int(q_lr2[1][i]), int(q_lr2[0])) )
 
         return fillPoints
 
@@ -219,11 +219,11 @@ class RectangleMask(Mask):
 
                 for c in range(endPointY, startPointY + 1):
                     for i in range(endPointX, startPointX + 1):
-                        fillPoints.append( (i, c) )
+                        fillPoints.append( (int(i), int(c)) )
             else:
                 for c in range(startPointY, endPointY + 1):
                     for i in range(endPointX, startPointX + 1):
-                        fillPoints.append( (i, c) )
+                        fillPoints.append( (int(i), int(c)) )
 
         else:
 
@@ -231,11 +231,11 @@ class RectangleMask(Mask):
 
                 for c in range(endPointY, startPointY + 1):
                     for i in range(startPointX, endPointX + 1):
-                        fillPoints.append( (i, c) )
+                        fillPoints.append( (int(i),int(c)) )
             else:
                 for c in range(startPointY, endPointY + 1):
                     for i in range(startPointX, endPointX + 1):
-                        fillPoints.append( (i, c) )
+                        fillPoints.append( (int(i), int(c)) )
 
         return fillPoints
 
@@ -266,7 +266,7 @@ class PolygonMask(Mask):
 
         p = np.where(inside==True)
 
-        coords = polymask.getCoords(p, (yDim, xDim))
+        coords = polymask.getCoords(p, (int(yDim), int(xDim)))
 
         return coords
 
@@ -710,11 +710,15 @@ def createMaskMatrix(img_dim, masks):
         if each.isNegativeMask() == True:
             for eachp in fillPoints:
                 if eachp[0] < maxx and eachp[0] >= 0 and eachp[1] < maxy and eachp[1] >= 0:
-                    mask[eachp] = 1
+                    y = int(eachp[1])
+                    x = int(eachp[0])
+                    mask[(x,y)] = 1
         else:
             for eachp in fillPoints:
                 if eachp[0] < maxx and eachp[0] >= 0 and eachp[1] < maxy and eachp[1] >= 0:
-                    mask[eachp] = 0
+                    y = int(eachp[1])
+                    x = int(eachp[0])
+                    mask[(x,y)] = 0
 
     #Mask is flipped (older RAW versions had flipped image)
     mask = np.flipud(mask)
