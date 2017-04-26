@@ -41,7 +41,7 @@ from PIL import Image #pillow
 
 #Need to hack PIL to make it work with py2exe/cx_freeze:
 import tifffile
-Image._initialized=2
+# Image._initialized=2 #This now breaks SAXSLAB loading, at least in non-frozen circumstances
 
 try:
     import fabio
@@ -90,17 +90,17 @@ def createSASMFromImage(img_array, parameters = {}, x_c = None, y_c = None, mask
         Load measurement. Loads an image file, does pre-processing:
         masking, radial average and returns a measurement object
     '''
-    if mask != None:
+    if mask is not None:
         if mask.shape != img_array.shape:
             raise SASExceptions.MaskSizeError('Beamstop mask is the wrong size. Please' +
                             ' create a new mask or remove the old to make this plot.')
 
-    if readout_noise_mask != None:
+    if readout_noise_mask is not None:
         if readout_noise_mask.shape != img_array.shape:
             raise SASExceptions.MaskSizeError('Readout-noise mask is the wrong size. Please' +
                             ' create a new mask or remove the old to make this plot.')
 
-    if tbs_mask != None:
+    if tbs_mask is not None:
         if tbs_mask.shape != img_array.shape:
             raise SASExceptions.MaskSizeError('ROI Counter mask is the wrong size. Please' +
                             ' create a new mask or remove the old to make this plot.')
@@ -120,7 +120,7 @@ def createSASMFromImage(img_array, parameters = {}, x_c = None, y_c = None, mask
 
     err_raw_non_nan = np.nan_to_num(err_raw)
 
-    if tbs_mask != None:
+    if tbs_mask is not None:
         roi_counter = img_array[tbs_mask==1].sum()
         parameters['counters']['roi_counter'] = roi_counter
 
@@ -1455,14 +1455,9 @@ def loadHeader(filename, new_filename, header_type):
         hdr = {}
 
     #Clean up headers by removing spaces in header names and non-unicode characters)
-    hdr = {key.replace(' ', '_').translate(None, '()[]') : hdr[key] for key in hdr}
-
-    hdr = { key : unicode(hdr[key], errors='ignore') if type(hdr[key]) == str else hdr[key] for key in hdr}
-
-    try:
-        json.dumps(hdr)
-    except UnicodeDecodeError as e:
-        hdr = { key : unicode(hdr[key], errors='ignore') if type(hdr[key]) == str else hdr[key] for key in hdr}
+    if hdr is not None:
+        hdr = {key.replace(' ', '_').translate(None, '()[]') if isinstance(key, str) else key : hdr[key] for key in hdr}
+        hdr = {key : unicode(hdr[key], errors='ignore') if isinstance(hdr[key], str) else hdr[key] for key in hdr}
 
     return hdr
 
@@ -1481,17 +1476,11 @@ def loadImage(filename, image_type):
     if type(imghdr) != list:
         imghdr = [imghdr]
 
-
     #Clean up headers by removing spaces in header names and non-unicode characters)
     for hdr in imghdr:
-        hdr = {key.replace(' ', '_').translate(None, '()[]') : hdr[key] for key in hdr}
-
-        hdr = { key : unicode(hdr[key], errors='ignore') if type(hdr[key]) == str else hdr[key] for key in hdr}
-
-        try:
-            json.dumps(hdr)
-        except UnicodeDecodeError:
-            hdr = { key : unicode(hdr[key], errors='ignore') if type(hdr[key]) == str else hdr[key] for key in hdr}
+        if hdr is not None:
+            hdr = {key.replace(' ', '_').translate(None, '()[]') if isinstance(key, str) else key: hdr[key] for key in hdr}
+            hdr = { key : unicode(hdr[key], errors='ignore') if isinstance(hdr[key], str) else hdr[key] for key in hdr}
 
     return img, imghdr
 
@@ -1611,7 +1600,7 @@ def loadImageFile(filename, raw_settings):
     #Pre-load the flatfield file, so it's not loaded every time
     if raw_settings.get('NormFlatfieldEnabled'):
         flatfield_filename = raw_settings.get('NormFlatfieldFile')
-        if flatfield_filename != None:
+        if flatfield_filename is not None:
             flatfield_img, flatfield_img_hdr = loadImage(flatfield_filename, img_fmt)
             flatfield_hdr = loadHeader(flatfield_filename, flatfield_filename, hdr_fmt)
             flatfield_img = np.average(flatfield_img, axis=0)
@@ -1652,8 +1641,8 @@ def loadImageFile(filename, raw_settings):
             try:
                 x_y = SASImage.getBindListDataFromHeader(raw_settings, img_hdr, hdrfile_info, keys = ['Beam X Center', 'Beam Y Center'])
 
-                if x_y[0] != None: x_c = x_y[0]
-                if x_y[1] != None: y_c = x_y[1]
+                if x_y[0] is not None: x_c = x_y[0]
+                if x_y[1] is not None: y_c = x_y[1]
             except ValueError:
                 pass
             except TypeError:
@@ -1677,7 +1666,7 @@ def loadImageFile(filename, raw_settings):
                 mask_patches = SASImage.createMaskFromHdr(img, img_hdr, flipped = raw_settings.get('DetectorFlipped90'))
                 bs_mask_patches = masks['BeamStopMask'][1]
 
-                if bs_mask_patches != None:
+                if bs_mask_patches is not None:
                     all_mask_patches = mask_patches + bs_mask_patches
                 else:
                     all_mask_patches = mask_patches
@@ -1704,7 +1693,7 @@ def loadImageFile(filename, raw_settings):
             # print 'Using standard RAW integration'
             ## Flatfield correction.. this part gets moved to a image correction function later
             if raw_settings.get('NormFlatfieldEnabled'):
-                if flatfield_filename != None:
+                if flatfield_filename is not None:
                     img, img_hdr = SASImage.doFlatfieldCorrection(img, img_hdr, flatfield_img, flatfield_hdr)
                 else:
                     pass #Raise some error
@@ -1998,7 +1987,7 @@ def makeSECFile(secm_data):
 
     sasm_data = secm_data['average_buffer_sasm']
 
-    if sasm_data != -1 and sasm_data != None:
+    if sasm_data != -1 and sasm_data is not None:
         new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
         new_sasm.setBinnedI(sasm_data['i_binned'])
         new_sasm.setBinnedQ(sasm_data['q_binned'])
