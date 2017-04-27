@@ -263,6 +263,9 @@ def autoRg(sasm):
         quality = []
         all_scores = []
 
+    idx_min = idx_min + qmin
+    idx_max = idx_max + qmin
+
     #We could add another function here, if not good quality fits are found, either reiterate through the
     #the data and refit with looser criteria, or accept lower scores, possibly with larger error bars.
 

@@ -92,7 +92,6 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
             current_file = self.parent.current_sasm.getParameter('filename')
         except AttributeError:
             current_file = None
-        RAWGlobals.mainworker_cmd_queue = mainframe.getWorkerThreadQueue()
         RAWGlobals.mainworker_cmd_queue.put(['show_nextprev_img', [current_file, -1]])
 
     def onNextImgButton(self, event):
@@ -102,8 +101,6 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
             current_file = self.parent.current_sasm.getParameter('filename')
         except AttributeError:
             current_file = None
-
-        RAWGlobals.mainworker_cmd_queue = mainframe.getWorkerThreadQueue()
         RAWGlobals.mainworker_cmd_queue.put(['show_nextprev_img', [current_file, 1]])
 
     def onImageSettingsButton(self, event):
@@ -325,7 +322,7 @@ class ImagePanel(wx.Panel):
 
         self.fig.clear() #Important! or a memory leak will occur!
 
-        self._initOnNewImage(img, sasm)
+        # self._initOnNewImage(img, sasm)
 
         a = self.fig.gca()
 
@@ -348,7 +345,7 @@ class ImagePanel(wx.Panel):
         a.set_ylabel('y (pixels)')
         a.axis('image')
 
-        self.plotStoredMasks()
+        self.plotStoredMasks(update=False)
 
         self.plot_parameters['maxImgVal'] = self.img.max()
         self.plot_parameters['minImgVal'] = self.img.min()
@@ -893,7 +890,7 @@ class ImagePanel(wx.Panel):
 
         self.canvas.draw()
 
-    def plotStoredMasks(self):
+    def plotStoredMasks(self, update=True):
 
         a = self.fig.gca()        # Get current axis from figure
         stored_masks = self.plot_parameters['storedMasks']
@@ -925,7 +922,8 @@ class ImagePanel(wx.Panel):
         if self.center_patch:
             a.add_patch(self.center_patch)
 
-        self.canvas.draw()
+        if update:
+            self.canvas.draw()
 
     def drawCenterPatch(self, x, style = 'circle'):
         a = self.fig.gca()

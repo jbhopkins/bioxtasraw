@@ -906,6 +906,7 @@ class MainFrame(wx.Frame):
 
                 sasm.scaleBinnedQ(10.0)
                 item._updateQTextCtrl()
+                item.markAsModified()
                 altered.append(sasm)
 
             wx.CallAfter(sasm.plot_panel.updatePlotAfterManipulation, altered)
@@ -925,6 +926,7 @@ class MainFrame(wx.Frame):
 
                 sasm.scaleBinnedQ(0.1)
                 item._updateQTextCtrl()
+                item.markAsModified()
                 altered.append(sasm)
 
             wx.CallAfter(sasm.plot_panel.updatePlotAfterManipulation, altered)
@@ -2391,8 +2393,8 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
 
-        if len(filename_list) == 1 and  img is not None:
-            if type(img) == list:
+        if img is not None:
+            if isinstance(img, list):
                 self._sendImageToDisplay(img[-1], sasm[-1])
             else:
                 self._sendImageToDisplay(img, sasm)
@@ -3035,7 +3037,7 @@ class MainWorkerThread(threading.Thread):
         path = self.dir_panel.file_list_box.path
         dir = sorted(os.listdir(path))
 
-        if current_file == None:
+        if current_file is None:
             idx = 0
         else:
             try:
@@ -3559,7 +3561,7 @@ class MainWorkerThread(threading.Thread):
 
         self._insertSasmFilenamePrefix(avg_sasm, 'A_')
 
-        self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'green', notsaved = True)
+        self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'forest green', notsaved = True)
 
         do_auto_save = self._raw_settings.get('AutoSaveOnAvgFiles')
 
@@ -3592,7 +3594,7 @@ class MainWorkerThread(threading.Thread):
 
         self._insertSasmFilenamePrefix(avg_sasm, 'A_')
 
-        self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'green', notsaved = True)
+        self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'forest green', notsaved = True)
 
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
@@ -3647,7 +3649,7 @@ class MainWorkerThread(threading.Thread):
 
         self._insertSasmFilenamePrefix(avg_sasm, 'A_')
 
-        self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'green', notsaved = True)
+        self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'forest green', notsaved = True)
 
         do_auto_save = self._raw_settings.get('AutoSaveOnAvgFiles')
 
@@ -6690,12 +6692,14 @@ class ManipItemPanel(wx.Panel):
             #A to s
             self.sasm.scaleBinnedQ(10.0)
             self._updateQTextCtrl()
+            self.markAsModified()
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
 
         elif evt.GetId() == 16:
             #s to A
             self.sasm.scaleBinnedQ(0.1)
             self._updateQTextCtrl()
+            self.markAsModified()
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
 
         elif evt.GetId() == 18:

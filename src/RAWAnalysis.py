@@ -175,11 +175,17 @@ class GuinierPlotPanel(wx.Panel):
         return x, y_fit, br, error, newInfo
 
     def plotExpObj(self, ExpObj):
-        xlim = [0, len(ExpObj.i)]
+        qmin, qmax = ExpObj.getQrange()
+
+        i = ExpObj.i[qmin:qmax]
+        q = ExpObj.q[qmin:qmax]
+        err = ExpObj.err[qmin:qmax]
+
+        xlim = [0, len(i)-1]
 
         #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
         self.canvas.mpl_disconnect(self.cid)
-        self.updateDataPlot(ExpObj.i, ExpObj.q, ExpObj.err, xlim)
+        self.updateDataPlot(i, q, err, xlim)
 
         #Reconnect draw_event
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
@@ -394,7 +400,6 @@ class GuinierControlPanel(wx.Panel):
 
 
     def _initSettings(self):
-
         analysis = self.ExpObj.getParameter('analysis')
 
         if 'guinier' in analysis:
@@ -413,6 +418,19 @@ class GuinierControlPanel(wx.Panel):
 
             spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
             spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
+
+            minrange = spinstart.GetRange()
+            maxrange = spinstart.GetRange()
+
+            if idx_min < minrange[0]:
+                idx_min = minrange[0]
+            elif idx_min > minrange[1]:
+                idx_min = minrange[1]
+
+            if idx_max < maxrange[0]:
+                idx_max = maxrange[0]
+            elif idx_max > maxrange[1]:
+                idx_max = maxrange[1]
 
             old_start = spinstart.GetValue()
             old_end = spinend.GetValue()
@@ -511,6 +529,7 @@ class GuinierControlPanel(wx.Panel):
         self.runAutoRg()
 
     def runAutoRg(self):
+
         rg, rger, i0, i0er, idx_min, idx_max = SASCalc.autoRg(self.ExpObj)
 
         spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
@@ -689,15 +708,17 @@ class GuinierControlPanel(wx.Panel):
         wx.CallAfter(self.updatePlot)
 
     def setSpinLimits(self, ExpObj):
-        self.startSpin.SetRange((0, len(ExpObj.q)-1))
-        self.endSpin.SetRange((0, len(ExpObj.q)-1))
+        qmin, qmax = ExpObj.getQrange()
 
-        self.endSpin.SetValue(len(ExpObj.q)-1)
+        self.startSpin.SetRange((qmin, qmax-1))
+        self.endSpin.SetRange((qmin, qmax-1))
+
+        self.startSpin.SetValue(qmin)
+        self.endSpin.SetValue(qmax-1)
         txt = wx.FindWindowById(self.staticTxtIDs['qend'])
-        txt.SetValue(str(round(ExpObj.q[int(len(ExpObj.q)-1)],4)))
+        txt.SetValue(str(round(ExpObj.q[qmax-1],4)))
         txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
-        txt.SetValue(str(round(ExpObj.q[0],4)))
-
+        txt.SetValue(str(round(ExpObj.q[qmin],4)))
 
     def onEnterOnSpinCtrl(self, evt):
         ''' Little workaround to make enter key in spinctrl work on Mac too '''
@@ -750,11 +771,13 @@ class GuinierControlPanel(wx.Panel):
         i = int(spinstart.GetValue())
         i2 = int(spinend.GetValue())
 
-        x = self.ExpObj.q
-        y = self.ExpObj.i
-        err = self.ExpObj.err
+        qmin, qmax = self.ExpObj.getQrange()
 
-        xlim = [i,i2]
+        x = self.ExpObj.q[qmin:qmax]
+        y = self.ExpObj.i[qmin:qmax]
+        err = self.ExpObj.err[qmin:qmax]
+
+        xlim = [i-qmin,i2-qmin]
 
         plotpanel.canvas.mpl_disconnect(plotpanel.cid) #disconnect draw event to avoid recursions
 
@@ -782,7 +805,7 @@ class GuinierControlPanel(wx.Panel):
                 ctrl.SetValue(str(round(newInfo[eachkey][0],5)))
 
     def updateLimits(self, top = None, bottom = None):
-
+        print 'in update limits'
         if bottom:
             spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
             spinend.SetValue(bottom)

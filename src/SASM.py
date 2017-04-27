@@ -78,8 +78,6 @@ class SASM:
         self.item_panel = None
         self.plot_panel = None
         self.line = None
-        self.origline = None
-        self.fitline = None
         self.err_line = None
         self.axes = None
         self.is_plotted = False
@@ -130,6 +128,27 @@ class SASM:
         self.err = ((self._err_binned / self._norm_factor)) * abs(self._scale_factor)
 
         self.q = self._q_binned * self._q_scale_factor
+
+        # print self.err_line
+
+        if self.err_line is not None:
+            #Update errorbar positions
+            caplines = self.err_line[0]
+            barlinecols = self.err_line[1]
+
+            yerr = self.err
+            x = self.q
+            y = self.i
+
+            # Find the ending points of the errorbars
+            error_positions = (x, y-yerr), (x, y+yerr)
+
+            # Update the caplines
+            for i,pos in enumerate(error_positions):
+                caplines[i].set_data(pos)
+
+            # Update the error bars
+            barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr)))
 
         #Calculated values
         try:
@@ -511,7 +530,6 @@ class IFTM(SASM):
         self.qo_origline = None
         self.qf_origline = None
 
-        # self.fitline = None
         self.r_err_line = None
         self.qo_err_line = None
 

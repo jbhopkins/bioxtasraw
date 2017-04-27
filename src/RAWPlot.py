@@ -1098,11 +1098,10 @@ class PlotPanel(wx.Panel):
         if self.default_plot_font is None:
             self.default_plot_font = 'Arial'
 
-        self.plotparams = {         'axesscale1'            : 'linlin',
-                                    'axesscale2'            : 'linlin',
+        self.plotparams = {         'axesscale1'            : 'loglin',
+                                    'axesscale2'            : 'loglin',
                                     'plot1type'             : 'normal',
                                     'plot2type'             : 'subtracted',
-                                    'plot1state'            : 'linlin',
                                     'errorbars_on'          : False,
 
                                     'legend_pos1'           : None,
@@ -1168,6 +1167,8 @@ class PlotPanel(wx.Panel):
         self._setLabels(axes = self.subplot2)
 
         self._updateFrameStylesForAllPlots()
+        self.updatePlotType(self.subplot1)
+        self.updatePlotAxes()
 
         self.canvas.callbacks.connect('pick_event', self._onPickEvent)
         self.canvas.callbacks.connect('key_press_event', self._onKeyPressEvent)
@@ -2107,10 +2108,9 @@ class IftPlotPanel(PlotPanel):
             self.default_plot_font = 'Arial'
 
         self.plotparams = {         'axesscale1'            : 'linlin',
-                                    'axesscale2'            : 'linlin',
+                                    'axesscale2'            : 'loglin',
                                     'plot1type'             : 'normal',
                                     'plot2type'             : 'subtracted',
-                                    'plot1state'            : 'linlin',
                                     'errorbars_on'          : False,
 
                                     'legend_pos1'           : None,
@@ -2174,6 +2174,8 @@ class IftPlotPanel(PlotPanel):
         self._setLabels(axes = self.subplot2)
 
         self._updateFrameStylesForAllPlots()
+        self.updatePlotType(self.subplot1)
+        self.updatePlotAxes()
 
         self.canvas.callbacks.connect('pick_event', self._onPickEvent)
         self.canvas.callbacks.connect('key_press_event', self._onKeyPressEvent)
@@ -3436,7 +3438,6 @@ class SECPlotPanel(wx.Panel):
                                     'axesscale2'            : 'linlin',
                                     'plot1type'             : 'normal',
                                     'plot2type'             : 'subtracted',
-                                    'plot1state'            : 'linlin',
                                     'errorbars_on'          : False,
 
                                     'legend_pos1'           : None,
