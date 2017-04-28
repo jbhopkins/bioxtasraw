@@ -34,14 +34,8 @@ import numpy as np
 import os, sys, re, cPickle, time, binascii, struct, json, copy
 from xml.dom import minidom
 import SASMarHeaderReader #Attempting to remove the reliance on compiled packages. Switchin Mar345 reading to fabio.
-
-#switched from PIL to pillow
 import PIL
 from PIL import Image #pillow
-
-#Need to hack PIL to make it work with py2exe/cx_freeze:
-import tifffile
-# Image._initialized=2 #This now breaks SAXSLAB loading, at least in non-frozen circumstances
 
 try:
     import fabio

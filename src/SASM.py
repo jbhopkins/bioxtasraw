@@ -1475,11 +1475,8 @@ def superimpose(sasm_star, sasm_list):
         each_q_qrange_min, each_q_qrange_max = each_sasm.getQrange()
 
         # resample standard curve on the data q vector
-        min_q_star, min_q_each = q_star[q_star_qrange_min], each_q[each_q_qrange_min]
-        max_q_star, max_q_each = q_star[q_star_qrange_max-1], each_q[each_q_qrange_max-1]
-
-        min_q = min([min_q_star, min_q_each])
-        max_q = min([max_q_star, max_q_each])
+        min_q_each = each_q[each_q_qrange_min]
+        max_q_each = each_q[each_q_qrange_max-1]
 
         min_q_idx = np.where(q_star >= min_q_each)[0][0]
         max_q_idx = np.where(q_star <= max_q_each)[0][-1]

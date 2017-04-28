@@ -28,9 +28,7 @@ import numpy as np
 matplotlib.rcParams['backend'] = 'WxAgg'
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
-from matplotlib.widgets import Cursor
 import RAWIcons, RAWGlobals, SASImage, SASCalib
-import time
 
 class ImagePanelToolbar(NavigationToolbar2WxAgg):
     ''' The toolbar under the image in the image panel '''
@@ -87,7 +85,6 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
         return self._current_tool
 
     def onPreviousImgButton(self, event):
-        mainframe = wx.FindWindowByName('MainFrame')
         try:
             current_file = self.parent.current_sasm.getParameter('filename')
         except AttributeError:
@@ -95,8 +92,6 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
         RAWGlobals.mainworker_cmd_queue.put(['show_nextprev_img', [current_file, -1]])
 
     def onNextImgButton(self, event):
-
-        mainframe = wx.FindWindowByName('MainFrame')
         try:
             current_file = self.parent.current_sasm.getParameter('filename')
         except AttributeError:
@@ -125,7 +120,6 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
             self.ToggleTool(wxid, False)
             NavigationToolbar2WxAgg.zoom(self)
 
-
         if float(matplotlib.__version__[:3]) >= 1.2:
             wxid = self.wx_ids['Pan']
         else:
@@ -147,7 +141,6 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
         masking_panel = wx.FindWindowByName('MaskingPanel')
         if masking_panel.IsShown():
             self._deactivateMaskTools()
-
 
         if float(matplotlib.__version__[:3]) >= 1.2:
             wxid = self.wx_ids['Pan']

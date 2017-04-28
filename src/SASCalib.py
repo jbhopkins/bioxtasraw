@@ -250,8 +250,8 @@ class RAWCalibration():
             self.geoRef.del_ttha()
             self.geoRef.del_dssa()
             self.geoRef.del_chia()
-            tth = self.geoRef.twoThetaArray(self.img.shape)
-            dsa = self.geoRef.solidAngleArray(self.img.shape)
+            # tth = self.geoRef.twoThetaArray(self.img.shape)
+            # dsa = self.geoRef.solidAngleArray(self.img.shape)
 #            self.geoRef.chiArray(self.peakPicker.shape)
 #            self.geoRef.cornerArray(self.peakPicker.shape)
 

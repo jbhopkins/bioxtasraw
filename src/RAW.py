@@ -4593,7 +4593,7 @@ class FilePanel(wx.Panel):
                 self.sec_plot_panel.clearAllPlots()
                 self.sec_panel.clearList()
 
-        
+
 
     def _onReduceButton(self, event):
 
@@ -7265,7 +7265,7 @@ class IFTPanel(wx.Panel):
                 rest_of_items.append(each)
 
         self.all_manipulation_items = rest_of_items
-        
+
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Layout()
         self.underpanel.Refresh()
@@ -8570,7 +8570,7 @@ class SECPanel(wx.Panel):
     def _onClearList(self, evt):
         self.sec_plot_panel.clearAllPlots()
         self.clearList()
-        
+
 
     def clearList(self):
         rest_of_items = []
@@ -8589,7 +8589,7 @@ class SECPanel(wx.Panel):
                 each = None
 
         self.all_manipulation_items = rest_of_items
-        
+
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Layout()
         self.underpanel.Refresh()
