@@ -276,7 +276,7 @@ class ImagePanel(wx.Panel):
         self.canvas.draw()
         self.draw_cid = self.canvas.mpl_connect('draw_event', self.safe_draw)
 
-        if wx.FindWindowByName('CenteringPanel').IsShown():
+        if wx.FindWindowByName('CenteringPanel').IsShown() and self.img is not None:
             a = self.fig.gca()
             self.background = self.canvas.copy_from_bbox(a.bbox)
 
@@ -1059,29 +1059,31 @@ class ImagePanel(wx.Panel):
     def _drawCenteringRings(self, x, r_list):
         a = self.fig.gca()
 
-        if len(a.patches)>len(r_list)+1:
-            self.clearPatches()
+        if self.img is not None:
 
-        if not a.patches:
-            cir = matplotlib.patches.Circle( x, radius = 3, alpha = 1, facecolor = 'red', edgecolor = 'red', animated=True)
-            a.add_patch(cir)
+            if len(a.patches)>len(r_list)+1:
+                self.clearPatches()
 
-            for r in r_list:
-                cir = matplotlib.patches.Circle(x, radius = r, alpha = 1, fill = False, linestyle = 'dashed', linewidth = 1.5, edgecolor = 'red',animated=True)
+            if not a.patches:
+                cir = matplotlib.patches.Circle( x, radius = 3, alpha = 1, facecolor = 'red', edgecolor = 'red', animated=True)
                 a.add_patch(cir)
 
-            self.canvas.draw()
+                for r in r_list:
+                    cir = matplotlib.patches.Circle(x, radius = r, alpha = 1, fill = False, linestyle = 'dashed', linewidth = 1.5, edgecolor = 'red',animated=True)
+                    a.add_patch(cir)
 
-        else:
-            self.canvas.restore_region(self.background)
+                self.canvas.draw()
 
-            for i, patch in enumerate(a.patches):
-                patch.center = x
-                if i>0:
-                    patch.set_radius(r_list[i-1])
-                a.draw_artist(patch)
+            else:
+                self.canvas.restore_region(self.background)
 
-            self.canvas.blit(self.fig.gca().bbox)
+                for i, patch in enumerate(a.patches):
+                    patch.center = x
+                    if i>0:
+                        patch.set_radius(r_list[i-1])
+                    a.draw_artist(patch)
+
+                self.canvas.blit(self.fig.gca().bbox)
 
     def drawCenteringPoints(self, points):
 
