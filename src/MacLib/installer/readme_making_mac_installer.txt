@@ -1,4 +1,4 @@
-Making the mac installer users pyinstaller (tested on 3.2.1). This is vary particular about what version of python it uses. I’ve only been able to get it to work on a conda install, with the packages as listed at the end of this document. With a python build from homebrew or from canopy it doesn’t seem to work. Additionally, it doesn’t seem to work on my home machine with (presumably) the same conda python distribution.
+Making the mac installer users pyinstaller (tested on 3.2.1). This is vary particular about what version of python it uses. I’ve only been able to get it to work on a conda install, with the packages as listed at the end of this document. With a python build from homebrew or from canopy it doesn’t seem to work. Additionally, it doesn’t seem to work on my home machine with (presumably) the same conda python distribution. Finally, conda needs to have the nomkl package installed, numpy/scipy with mkl don't seem to package correctly.
 
 Steps:
 0) Set the appropriate python path, if needed: export PATH=~/miniconda2/bin:$PATH
@@ -10,7 +10,7 @@ Steps:
 7) Open disk utility
 8) Create a new disk image (File->New Image>Blank Image) that is ~12% larger than the .app package. Name it RAW, but save it as untitled.
 9) Open the mounted disk image. Copy the .app file and a shortcut of the applications folder to the disk image. Size and arrange as desired.
-9) In Disk Utility, Image->Convert, select the prepared disk image, and name it RAW-1.2.2-Mac (note, the disk image must be ejected for this to work
+9) In Disk Utility, Image->Convert, select the prepared disk image, and name it RAW-X.Y.Z-mac (note, the disk image must be ejected for this to work
 
 Note: if pyopencl is installed, the build will fail.
 
