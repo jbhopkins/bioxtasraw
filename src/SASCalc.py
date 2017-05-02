@@ -29,7 +29,7 @@ functions, including calculation of rg and molecular weight.
 """
 import numpy as np
 from scipy import integrate as integrate
-import os, time, subprocess, scipy.optimize, wx, threading, Queue, platform
+import os, time, subprocess, scipy.optimize, wx, threading, Queue, platform, re
 
 import SASFileIO, SASExceptions, RAWSettings
 
@@ -388,6 +388,30 @@ def porodVolume(sasm, rg, i0, start = 0, stop = -1, interp = True):
 
     return pVolume
 
+
+def getATSASVersion():
+    #Checks if we have gnom4 or gnom5
+    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+    atsasDir = raw_settings.get('ATSASDir')
+
+    opsys = platform.system()
+
+    if opsys == 'Windows':
+        dammifDir = os.path.join(atsasDir, 'dammif.exe')
+    else:
+        dammifDir = os.path.join(atsasDir, 'dammif')
+
+    if os.path.exists(dammifDir):
+        process=subprocess.Popen('%s -v' %(dammifDir), stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True) #gnom4 doesn't do a proper -v!!! So use something else
+        output, error = process.communicate()
+        output = output.strip()
+        error = error.strip()
+
+        dammif_re = 'ATSAS\s*\d+[.]\d+[.]\d*'
+        version_match = re.search(dammif_re, output)
+        version = version_match.group().split()[-1]
+
+    return version
 
 def runGnom(fname, outname, dmax, args, new_gnom = False):
     #This function runs GNOM from the atsas package. It can do so without writing a GNOM cfg file.
@@ -770,6 +794,20 @@ def runDatgnom(datname, sasm):
         while os.path.isfile(outname):
             outname = 't'+outname
 
+        version = getATSASVersion()
+
+        if int(version.split('.')[0]) > 2 or (int(version.split('.')[0]) == 2 and int(version.split('.')[1]) >=8):
+            new_datgnom = True
+        else:
+            new_datgnom = False
+
+        if new_datgnom:
+            if rg < 0:
+                autorg_output = autoRg(sasm)
+                rg = autorg_output[0]
+                if rg < 0:
+                    rg = 20
+
         if rg <= 0:
             process=subprocess.Popen('%s %s -o %s' %(datgnomDir, datname, outname), stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
         else:
@@ -779,7 +817,7 @@ def runDatgnom(datname, sasm):
 
         error = error.strip()
 
-        if error == 'Cannot define Dmax' or error=='Could not find Rg':
+        if error == 'Cannot define Dmax' or error=='Could not find Rg' and not new_datgnom:
 
             if rg <= 0:
                 rg, rger, i0, i0er, idx_min, idx_max =autoRg(sasm)
@@ -795,8 +833,7 @@ def runDatgnom(datname, sasm):
 
         error = error.strip()
 
-
-        if error == 'Cannot define Dmax' or error=='Could not find Rg' or error=='No intensity values (positive) found' or error == 'LOADATF --E- No data lines recognized.':
+        if error == 'Cannot define Dmax' or error=='Could not find Rg' or error=='No intensity values (positive) found' or error == 'LOADATF --E- No data lines recognized.' or error == 'error: rg not specified':
             print 'Unable to run datgnom successfully'
             datgnom_success = False
         # elif error != None:

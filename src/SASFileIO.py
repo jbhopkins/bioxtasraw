@@ -1739,6 +1739,11 @@ def loadOutFile(filename):
 
     outfile = []
 
+    #In case it returns NaN for either value, and they don't get picked up in the regular expression
+    q_rg=None         #Reciprocal space Rg
+    q_i0=None         #Reciprocal space I0
+
+
     with open(filename) as f:
         for line in f:
             twocol_match = two_col_fit.match(line)
