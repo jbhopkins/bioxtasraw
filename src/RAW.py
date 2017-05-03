@@ -58,74 +58,74 @@ class MainFrame(wx.Frame):
     def __init__(self, title, frame_id):
         wx.Frame.__init__(self, None, frame_id, title, name = 'MainFrame')
 
-        self.MenuIDs = {'exit'                  : wx.NewId(),
-                        'advancedOptions'       : wx.NewId(),
-                        'loadSettings'          : wx.NewId(),
-                        'saveSettings'          : wx.NewId(),
-                        'centering'             : wx.NewId(),
-                        'masking'               : wx.NewId(),
-                        'goOnline'              : wx.NewId(),
-                        'goOffline'             : wx.NewId(),
-                        'changeOnline'          : wx.NewId(),
-                        'plot1tynormal'         : wx.NewId(),
-                        'plot1tyguinier'        : wx.NewId(),
-                        'plot1tykratky'         : wx.NewId(),
-                        'plot1typorod'          : wx.NewId(),
-                        'plot1tysubtracted'     : wx.NewId(),
-                        'plot2tynormal'         : wx.NewId(),
-                        'plot2tyguinier'        : wx.NewId(),
-                        'plot2tykratky'         : wx.NewId(),
-                        'plot2tysubtracted'     : wx.NewId(),
-                        'plot2typorod'          : wx.NewId(),
-                        'plot1sclinlin'         : wx.NewId(),
-                        'plot1scloglog'         : wx.NewId(),
-                        'plot1scloglin'         : wx.NewId(),
-                        'plot1sclinlog'         : wx.NewId(),
-                        'plot2sclinlin'         : wx.NewId(),
-                        'plot2scloglog'         : wx.NewId(),
-                        'plot2scloglin'         : wx.NewId(),
-                        'plot2sclinlog'         : wx.NewId(),
-                        'secplottotal'          : wx.NewId(),
-                        'secplotmean'           : wx.NewId(),
-                        'secplotq'              : wx.NewId(),
-                        'secplotframe'          : wx.NewId(),
-                        'secplottime'           : wx.NewId(),
-                        'secplotrg'             : wx.NewId(),
-                        'secplotmw'             : wx.NewId(),
-                        'secploti0'             : wx.NewId(),
-                        'secplotnone'           : wx.NewId(),
-                        'secplotlylin'          : wx.NewId(),
-                        'secplotlylog'          : wx.NewId(),
-                        'secplotrylin'          : wx.NewId(),
-                        'secplotrylog'          : wx.NewId(),
-                        'secplotxlin'           : wx.NewId(),
-                        'secplotxlog'           : wx.NewId(),
-                        'help'                  : wx.NewId(),
-                        'about'                 : wx.NewId(),
-                        'guinierfit'            : wx.NewId(),
-                        'molweight'             : wx.NewId(),
-                        'saveWorkspace'         : wx.NewId(),
-                        'loadWorkspace'         : wx.NewId(),
-                        'average'               : wx.NewId(),
-                        'subtract'              : wx.NewId(),
-                        'merge'                 : wx.NewId(),
-                        'rebin'                 : wx.NewId(),
-                        'interpolate'           : wx.NewId(),
-                        'q*10'                  : wx.NewId(),
-                        'q/10'                  : wx.NewId(),
-                        'norm_conc'             : wx.NewId(),
-                        'mwstandard'            : wx.NewId(),
-                        'showimage'             : wx.NewId(),
-                        'showdata'              : wx.NewId(),
-                        'showheader'            : wx.NewId(),
-                        'rungnom'               : wx.NewId(),
-                        'rundammif'             : wx.NewId(),
-                        'bift'                  : wx.NewId(),
-                        'runambimeter'          : wx.NewId(),
-                        'runsvd'                : wx.NewId(),
-                        'runefa'                : wx.NewId(),
-                        'showhistory'           : wx.NewId(),
-                        'weightedAverage'       : wx.NewId(),
+        self.MenuIDs = {'exit'                  : self.NewControlId(),
+                        'advancedOptions'       : self.NewControlId(),
+                        'loadSettings'          : self.NewControlId(),
+                        'saveSettings'          : self.NewControlId(),
+                        'centering'             : self.NewControlId(),
+                        'masking'               : self.NewControlId(),
+                        'goOnline'              : self.NewControlId(),
+                        'goOffline'             : self.NewControlId(),
+                        'changeOnline'          : self.NewControlId(),
+                        'plot1tynormal'         : self.NewControlId(),
+                        'plot1tyguinier'        : self.NewControlId(),
+                        'plot1tykratky'         : self.NewControlId(),
+                        'plot1typorod'          : self.NewControlId(),
+                        'plot1tysubtracted'     : self.NewControlId(),
+                        'plot2tynormal'         : self.NewControlId(),
+                        'plot2tyguinier'        : self.NewControlId(),
+                        'plot2tykratky'         : self.NewControlId(),
+                        'plot2tysubtracted'     : self.NewControlId(),
+                        'plot2typorod'          : self.NewControlId(),
+                        'plot1sclinlin'         : self.NewControlId(),
+                        'plot1scloglog'         : self.NewControlId(),
+                        'plot1scloglin'         : self.NewControlId(),
+                        'plot1sclinlog'         : self.NewControlId(),
+                        'plot2sclinlin'         : self.NewControlId(),
+                        'plot2scloglog'         : self.NewControlId(),
+                        'plot2scloglin'         : self.NewControlId(),
+                        'plot2sclinlog'         : self.NewControlId(),
+                        'secplottotal'          : self.NewControlId(),
+                        'secplotmean'           : self.NewControlId(),
+                        'secplotq'              : self.NewControlId(),
+                        'secplotframe'          : self.NewControlId(),
+                        'secplottime'           : self.NewControlId(),
+                        'secplotrg'             : self.NewControlId(),
+                        'secplotmw'             : self.NewControlId(),
+                        'secploti0'             : self.NewControlId(),
+                        'secplotnone'           : self.NewControlId(),
+                        'secplotlylin'          : self.NewControlId(),
+                        'secplotlylog'          : self.NewControlId(),
+                        'secplotrylin'          : self.NewControlId(),
+                        'secplotrylog'          : self.NewControlId(),
+                        'secplotxlin'           : self.NewControlId(),
+                        'secplotxlog'           : self.NewControlId(),
+                        'help'                  : self.NewControlId(),
+                        'about'                 : self.NewControlId(),
+                        'guinierfit'            : self.NewControlId(),
+                        'molweight'             : self.NewControlId(),
+                        'saveWorkspace'         : self.NewControlId(),
+                        'loadWorkspace'         : self.NewControlId(),
+                        'average'               : self.NewControlId(),
+                        'subtract'              : self.NewControlId(),
+                        'merge'                 : self.NewControlId(),
+                        'rebin'                 : self.NewControlId(),
+                        'interpolate'           : self.NewControlId(),
+                        'q*10'                  : self.NewControlId(),
+                        'q/10'                  : self.NewControlId(),
+                        'norm_conc'             : self.NewControlId(),
+                        'mwstandard'            : self.NewControlId(),
+                        'showimage'             : self.NewControlId(),
+                        'showdata'              : self.NewControlId(),
+                        'showheader'            : self.NewControlId(),
+                        'rungnom'               : self.NewControlId(),
+                        'rundammif'             : self.NewControlId(),
+                        'bift'                  : self.NewControlId(),
+                        'runambimeter'          : self.NewControlId(),
+                        'runsvd'                : self.NewControlId(),
+                        'runefa'                : self.NewControlId(),
+                        'showhistory'           : self.NewControlId(),
+                        'weightedAverage'       : self.NewControlId(),
                         }
 
         self.tbIcon = RawTaskbarIcon(self)
@@ -1756,7 +1756,7 @@ class OnlineController:
             self.seek_dir = []
 
             question = "Warning: the online mode directory does not exist.\nWhat do you want to do?"
-            button_list = [('Change Directory', wx.NewId()),('Go Offline', wx.NewId())]
+            button_list = [('Change Directory', self.NewControlId()),('Go Offline', self.NewControlId())]
             label = "Missing Directory"
             icon = wx.ART_WARNING
 
@@ -6062,13 +6062,13 @@ class ManipItemPanel(wx.Panel):
 
         self.qmax = len(self.sasm.q)
 
-        self.spin_controls = (("q Min:", wx.NewId(), wx.NewId(), (1, self.qmax-1), 'nlow'),
-                             ("q Max:", wx.NewId(), wx.NewId(), (2, self.qmax), 'nhigh'))
+        self.spin_controls = (("q Min:", self.NewControlId(), self.NewControlId(), (1, self.qmax-1), 'nlow'),
+                             ("q Max:", self.NewControlId(), self.NewControlId(), (2, self.qmax), 'nhigh'))
 
         self.float_spin_controls = (
-                                   # ("Conc:", wx.NewId(), 'conc', '1.0', self._onScaleOffsetChange),
-                                    ("Scale:", wx.NewId(), 'scale', str(sasm.getScale()), self._onScaleOffsetChange),
-                                    ("Offset:", wx.NewId(), 'offset', str(sasm.getOffset()), self._onScaleOffsetChange))
+                                   # ("Conc:", self.NewControlId(), 'conc', '1.0', self._onScaleOffsetChange),
+                                    ("Scale:", self.NewControlId(), 'scale', str(sasm.getScale()), self._onScaleOffsetChange),
+                                    ("Offset:", self.NewControlId(), 'offset', str(sasm.getOffset()), self._onScaleOffsetChange))
 
         self.SelectedForPlot = RAWCustomCtrl.CustomCheckBox(self, -1, filename)
         self.SelectedForPlot.SetValue(True)
@@ -6611,7 +6611,7 @@ class ManipItemPanel(wx.Panel):
         menu.Append(34, 'SVD')
         menu.Append(35, 'EFA')
 
-        menu.AppendMenu(wx.NewId(), 'Convert q-scale', convertq_menu)
+        menu.AppendMenu(wx.ID_ANY, 'Convert q-scale', convertq_menu)
 
         menu.AppendSeparator()
         img = menu.Append(19, 'Show image')
@@ -8185,18 +8185,18 @@ class SECPanel(wx.Panel):
 
         self.modified_items = []
 
-        self.otherParams={'Frame List' : (wx.NewId(), 'framelist'),
-                        'Manual' : (wx.NewId(), 'manual')}
+        self.otherParams={'Frame List' : (self.NewControlId(), 'framelist'),
+                        'Manual' : (self.NewControlId(), 'manual')}
 
-        self.paramsInGui={'Image Header'           : (wx.NewId(), 'imghdr'),
-                          'Initial Run #'          : (wx.NewId(), 'irunnum'),
-                          'Initial Frame #'        : (wx.NewId(), 'iframenum'),
-                          'Final Frame #'          : (wx.NewId(), 'fframenum'),
-                          'Initial Selected Frame' : (wx.NewId(), 'isframenum'),
-                          'Final Selected Frame'   : (wx.NewId(), 'fsframenum'),
-                          'Initial Buffer Frame'   : (wx.NewId(), 'ibufframe'),
-                          'Final Buffer Frame'     : (wx.NewId(), 'fbufframe'),
-                          'Window Size'            : (wx.NewId(), 'wsize')}
+        self.paramsInGui={'Image Header'           : (self.NewControlId(), 'imghdr'),
+                          'Initial Run #'          : (self.NewControlId(), 'irunnum'),
+                          'Initial Frame #'        : (self.NewControlId(), 'iframenum'),
+                          'Final Frame #'          : (self.NewControlId(), 'fframenum'),
+                          'Initial Selected Frame' : (self.NewControlId(), 'isframenum'),
+                          'Final Selected Frame'   : (self.NewControlId(), 'fsframenum'),
+                          'Initial Buffer Frame'   : (self.NewControlId(), 'ibufframe'),
+                          'Final Buffer Frame'     : (self.NewControlId(), 'fbufframe'),
+                          'Window Size'            : (self.NewControlId(), 'wsize')}
 
         self.buttons = (("Save",self._onSaveButton),
                         ("Remove", self._onRemoveButton),
@@ -10031,7 +10031,7 @@ class MaskingPanel(wx.Panel):
                              'ROI Counter mask' : 'TransparentBSMask',
                              'SAXSLAB BS mask' : 'SaxslabBSMask'}
 
-        self.CIRCLE_ID, self.RECTANGLE_ID, self.POLYGON_ID = wx.NewId(), wx.NewId(), wx.NewId()
+        self.CIRCLE_ID, self.RECTANGLE_ID, self.POLYGON_ID = self.NewControlId(), self.NewControlId(), self.NewControlId()
         self.all_button_ids = [self.CIRCLE_ID, self.RECTANGLE_ID, self.POLYGON_ID]
 
         self._main_frame = wx.FindWindowByName('MainFrame')
@@ -10383,17 +10383,17 @@ class CenteringPanel(wx.Panel):
 
         wx.Panel.__init__(self, parent, id, name = 'CenteringPanel')
 
-        self.ID_UP, self.ID_DOWN, self.ID_RIGHT, self.ID_LEFT, self.ID_TARGET =  ( wx.NewId(), wx.NewId(), wx.NewId(), wx.NewId(), wx.NewId())
+        self.ID_UP, self.ID_DOWN, self.ID_RIGHT, self.ID_LEFT, self.ID_TARGET =  ( self.NewControlId(), self.NewControlId(), self.NewControlId(), self.NewControlId(), self.NewControlId())
 
         self._x_center = None
         self._y_center = None
         self._repeat_timer = wx.Timer()
         self._repeat_timer.Bind(wx.EVT_TIMER, self._onRepeatTimer)
 
-        self._fix_list = [  ('Wavelength', wx.NewId()),
-                            ('S-D Dist.', wx.NewId()),
-                            ('Beam X', wx.NewId()),
-                            ('Beam Y', wx.NewId())
+        self._fix_list = [  ('Wavelength', self.NewControlId()),
+                            ('S-D Dist.', self.NewControlId()),
+                            ('Beam X', self.NewControlId()),
+                            ('Beam Y', self.NewControlId())
                         ]
 
         self._fix_keywords = {self._fix_list[0][1]      : 'wavelength',
@@ -10402,13 +10402,13 @@ class CenteringPanel(wx.Panel):
                                 self._fix_list[3][1]    : 'poni1'
                             }
 
-        self.pyfai_autofit_ids = {  'ring':         wx.NewId(),
-                                    'detector':     wx.NewId(),
-                                    'remove_pts':   wx.NewId(),
-                                    'start':        wx.NewId(),
-                                    'done':         wx.NewId(),
-                                    'cancel':       wx.NewId(),
-                                    'help':         wx.NewId()
+        self.pyfai_autofit_ids = {  'ring':         self.NewControlId(),
+                                    'detector':     self.NewControlId(),
+                                    'remove_pts':   self.NewControlId(),
+                                    'start':        self.NewControlId(),
+                                    'done':         self.NewControlId(),
+                                    'cancel':       self.NewControlId(),
+                                    'help':         self.NewControlId()
                                 }
 
         self.pyfai_enable = ['detector', 'remove_pts', 'start', 'done', 'cancel']
@@ -11248,11 +11248,11 @@ class InformationPanel(wx.Panel):
 
         infoSizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.analysis_data = [('Rg:', 'Rg', wx.NewId()),
-                              ('I0:', 'I0', wx.NewId()),
-                              ('MW:', 'MW', wx.NewId())]
+        self.analysis_data = [('Rg:', 'Rg', self.NewControlId()),
+                              ('I0:', 'I0', self.NewControlId()),
+                              ('MW:', 'MW', self.NewControlId())]
 
-        self.conc_data = ('Conc:', 'Conc', wx.NewId())
+        self.conc_data = ('Conc:', 'Conc', self.NewControlId())
 
         self.analysis_info_sizer = self._createAnalysisInfoSizer()
 
@@ -12703,15 +12703,15 @@ class SyncDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, 'Synchronize', *args, **kwargs)
 
-        self.chkbox_list = [('q min', 'qmin', wx.NewId()),
-                       ('q max', 'qmax', wx.NewId()),
-                       ('n min', 'nmin', wx.NewId()),
-                       ('n max', 'nmax', wx.NewId()),
-                       ('scale', 'scale', wx.NewId()),
-                       ('offset', 'offset', wx.NewId()),
-                       ('line style', 'linestyle', wx.NewId()),
-                       ('line width', 'linewidth', wx.NewId()),
-                       ('line marker', 'linemarker', wx.NewId())]
+        self.chkbox_list = [('q min', 'qmin', self.NewControlId()),
+                       ('q max', 'qmax', self.NewControlId()),
+                       ('n min', 'nmin', self.NewControlId()),
+                       ('n max', 'nmax', self.NewControlId()),
+                       ('scale', 'scale', self.NewControlId()),
+                       ('offset', 'offset', self.NewControlId()),
+                       ('line style', 'linestyle', self.NewControlId()),
+                       ('line width', 'linewidth', self.NewControlId()),
+                       ('line marker', 'linemarker', self.NewControlId())]
 
         self.selected_boxes = []
 
@@ -13479,9 +13479,9 @@ class IFTMLinePropertyDialog(wx.Dialog):
         self.qf_line = iftm.qf_line
         self.legend_label = legend_label
 
-        self.line_ids = {self.r_line : wx.NewId(),
-                        self.qo_line : wx.NewId(),
-                        self.qf_line : wx.NewId()}
+        self.line_ids = {self.r_line : self.NewControlId(),
+                        self.qo_line : self.NewControlId(),
+                        self.qf_line : self.NewControlId()}
 
         self.linewidth_combo_choices = ['1.0', '2.0', '3.0', '4.0', '5.0']
         self.linestyle_list_choices = ['None', '-', '--', '-.', ':']
@@ -15073,10 +15073,10 @@ class MySplashScreen(wx.SplashScreen):
 
 
 class RawTaskbarIcon(wx.TaskBarIcon):
-    TBMENU_RESTORE = wx.NewId()
-    TBMENU_CLOSE   = wx.NewId()
-    TBMENU_CHANGE  = wx.NewId()
-    TBMENU_REMOVE  = wx.NewId()
+    TBMENU_RESTORE = wx.Window.NewControlId()
+    TBMENU_CLOSE   = wx.Window.NewControlId()
+    TBMENU_CHANGE  = wx.Window.NewControlId()
+    TBMENU_REMOVE  = wx.Window.NewControlId()
 
     #----------------------------------------------------------------------
     def __init__(self, frame):

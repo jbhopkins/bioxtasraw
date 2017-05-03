@@ -38,10 +38,10 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
         self.fig_axes = parent.fig.gca()
         self.parent = parent
 
-        self._MTB_HDRINFO   = wx.NewId()
-        self._MTB_IMGSET    = wx.NewId()
-        self._MTB_PREVIMG   = wx.NewId()
-        self._MTB_NEXTIMG   = wx.NewId()
+        self._MTB_HDRINFO   = self.NewControlId()
+        self._MTB_IMGSET    = self.NewControlId()
+        self._MTB_PREVIMG   = self.NewControlId()
+        self._MTB_NEXTIMG   = self.NewControlId()
 
 
         self.allToolButtons = [self._MTB_HDRINFO,
@@ -894,7 +894,7 @@ class ImagePanel(wx.Panel):
             del(a.patches[:])
 
         for each in stored_masks:
-            id = wx.NewId()
+            id = self.NewControlId()
             each.setId(id)
 
             if each.isNegativeMask() == True:
@@ -1375,13 +1375,13 @@ class ImageSettingsDialog(wx.Dialog):
 
         self.sliderinfo = (
                            ################### ctrl,     slider #############
-                           ('Upper limit:', wx.NewId(), wx.NewId(), 'UpperClim'),
-                           ('Lower limit:', wx.NewId(), wx.NewId(), 'LowerClim'))
-                           # ('Brightness:', wx.NewId(), wx.NewId(), 'Brightness'))
+                           ('Upper limit:', self.NewControlId(), self.NewControlId(), 'UpperClim'),
+                           ('Lower limit:', self.NewControlId(), self.NewControlId(), 'LowerClim'))
+                           # ('Brightness:', self.NewControlId(), self.NewControlId(), 'Brightness'))
 
 
-        self.scaleinfo = (('Linear', wx.NewId(), 'ImgScale'),
-                          ('Logarithmic', wx.NewId(), 'ImgScale'))
+        self.scaleinfo = (('Linear', self.NewControlId(), 'ImgScale'),
+                          ('Logarithmic', self.NewControlId(), 'ImgScale'))
 
 
         box = wx.StaticBox(self, -1, 'Image parameters')

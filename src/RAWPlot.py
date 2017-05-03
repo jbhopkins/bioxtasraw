@@ -212,36 +212,36 @@ class PlotOptionsDialog(wx.Dialog):
 
     def _createLabelSettings(self):
 
-        self.labels = [('Title:', 'title', {'text'  : wx.NewId(),
-                                               'size'  : wx.NewId(),
-                                               'weight': wx.NewId(),
-                                               'style' : wx.NewId(),
-                                               'fontname'  : wx.NewId()}),
+        self.labels = [('Title:', 'title', {'text'  : self.NewControlId(),
+                                               'size'  : self.NewControlId(),
+                                               'weight': self.NewControlId(),
+                                               'style' : self.NewControlId(),
+                                               'fontname'  : self.NewControlId()}),
 
-                      ('x-axis label:', 'xlabel',{'text'  : wx.NewId(),
-                                                  'size'  : wx.NewId(),
-                                                  'weight': wx.NewId(),
-                                                  'style' : wx.NewId(),
-                                                  'fontname'  : wx.NewId()}),
+                      ('x-axis label:', 'xlabel',{'text'  : self.NewControlId(),
+                                                  'size'  : self.NewControlId(),
+                                                  'weight': self.NewControlId(),
+                                                  'style' : self.NewControlId(),
+                                                  'fontname'  : self.NewControlId()}),
 
-                      ('y-axis label:', 'ylabel',{'text'  : wx.NewId(),
-                                                  'size'  : wx.NewId(),
-                                                  'weight': wx.NewId(),
-                                                  'style' : wx.NewId(),
-                                                  'fontname'  : wx.NewId()}),
+                      ('y-axis label:', 'ylabel',{'text'  : self.NewControlId(),
+                                                  'size'  : self.NewControlId(),
+                                                  'weight': self.NewControlId(),
+                                                  'style' : self.NewControlId(),
+                                                  'fontname'  : self.NewControlId()}),
 
-                      ('Legend title:', 'legtit',{'text'  : wx.NewId(),
-                                                  'size'  : wx.NewId(),
-                                                  'weight': wx.NewId(),
-                                                  'style' : wx.NewId(),
-                                                  'fontname'  : wx.NewId()})]
+                      ('Legend title:', 'legtit',{'text'  : self.NewControlId(),
+                                                  'size'  : self.NewControlId(),
+                                                  'weight': self.NewControlId(),
+                                                  'style' : self.NewControlId(),
+                                                  'fontname'  : self.NewControlId()})]
 
         if self.is_sec and self.sec_calc != 'None':
-            self.labels.insert(3, ('y-axis (right) label:', 'y2label',{'text'  : wx.NewId(),
-                                                  'size'  : wx.NewId(),
-                                                  'weight': wx.NewId(),
-                                                  'style' : wx.NewId(),
-                                                  'fontname'  : wx.NewId()})
+            self.labels.insert(3, ('y-axis (right) label:', 'y2label',{'text'  : self.NewControlId(),
+                                                  'size'  : self.NewControlId(),
+                                                  'weight': self.NewControlId(),
+                                                  'style' : self.NewControlId(),
+                                                  'fontname'  : self.NewControlId()})
                                 )
 
         box = wx.StaticBox(self, -1, 'Labels')
@@ -338,14 +338,14 @@ class PlotOptionsDialog(wx.Dialog):
         sizer.Add(wx.StaticText(self, -1, 'Auto limits:'), 0, wx.ALIGN_CENTRE_VERTICAL)
         sizer.Add(self.axes_autolimits, 0)
 
-        self.axes_fixed_limits_data = [('xmin', wx.NewId(), self._old_xlimit[0]),
-                                           ('xmax', wx.NewId(), self._old_xlimit[1]),
-                                           ('ymin', wx.NewId(), self._old_ylimit[0]),
-                                           ('ymax', wx.NewId(), self._old_ylimit[1])]
+        self.axes_fixed_limits_data = [('xmin', self.NewControlId(), self._old_xlimit[0]),
+                                           ('xmax', self.NewControlId(), self._old_xlimit[1]),
+                                           ('ymin', self.NewControlId(), self._old_ylimit[0]),
+                                           ('ymax', self.NewControlId(), self._old_ylimit[1])]
 
         if self.is_sec and self.sec_calc != 'None':
-            self.axes_fixed_limits_data = self.axes_fixed_limits_data + [('y2min', wx.NewId(), self._old_y2limit[0]),
-                                           ('y2max', wx.NewId(), self._old_y2limit[1])]
+            self.axes_fixed_limits_data = self.axes_fixed_limits_data + [('y2min', self.NewControlId(), self._old_y2limit[0]),
+                                           ('y2max', self.NewControlId(), self._old_y2limit[1])]
 
         limit_sizer = wx.FlexGridSizer(rows = 2, cols = 2, hgap = 5, vgap = 3)
         for i in range(0, 2):
@@ -386,7 +386,7 @@ class PlotOptionsDialog(wx.Dialog):
 
         border_sizer = wx.FlexGridSizer(rows = 2, cols = 2, hgap = 5, vgap = 3)
 
-        self.axes_borders = [('Left', wx.NewId()), ('Right', wx.NewId()), ('Top', wx.NewId()), ('Bottom', wx.NewId())]
+        self.axes_borders = [('Left', self.NewControlId()), ('Right', self.NewControlId()), ('Top', self.NewControlId()), ('Bottom', self.NewControlId())]
 
         framestyle = self.parent.plotparams['framestyle' + str(self.parent.selected_plot)]
 
@@ -503,16 +503,16 @@ class PlotOptionsDialog(wx.Dialog):
 
     def _createLegendSettings(self):
 
-        self.legend_items = [('visible', 'Visible:', wx.NewId(), self._old_legend_settings['visible'], 'bool'),
-                            ('border', 'Border:', wx.NewId(), self._old_legend_settings['border'], 'bool'),
-                            ('shadow', 'Shadow:', wx.NewId(), self._old_legend_settings['shadow'], 'bool'),
-                            ('alpha', 'Transparency %:', wx.NewId(), self._old_legend_settings['alpha'], 'int'),
-                            ('fontsize', 'Font size:', wx.NewId(), self._old_legend_settings['fontsize'], 'int'),
-                            ('font', 'Font:', wx.NewId(), self._old_legend_settings['font'], 'choice')
+        self.legend_items = [('visible', 'Visible:', self.NewControlId(), self._old_legend_settings['visible'], 'bool'),
+                            ('border', 'Border:', self.NewControlId(), self._old_legend_settings['border'], 'bool'),
+                            ('shadow', 'Shadow:', self.NewControlId(), self._old_legend_settings['shadow'], 'bool'),
+                            ('alpha', 'Transparency %:', self.NewControlId(), self._old_legend_settings['alpha'], 'int'),
+                            ('fontsize', 'Font size:', self.NewControlId(), self._old_legend_settings['fontsize'], 'int'),
+                            ('font', 'Font:', self.NewControlId(), self._old_legend_settings['font'], 'choice')
                             ]
 
         if self.is_sec:
-            self.legend_items.append(('showcalc', 'Show labels for calculated lines:', wx.NewId(), self._old_legend_settings['showcalc'], 'bool'))
+            self.legend_items.append(('showcalc', 'Show labels for calculated lines:', self.NewControlId(), self._old_legend_settings['showcalc'], 'bool'))
 
         self.legend_ids = {item[2] : (item[0], item[-1]) for item in self.legend_items}
 
@@ -937,13 +937,13 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
 
         self.saved_artists = None
 
-        self._MTB_ERRBARS = wx.NewId()
-        self._MTB_LEGEND = wx.NewId()
-        self._MTB_SHOWBOTH = wx.NewId()
-        self._MTB_SHOWTOP = wx.NewId()
-        self._MTB_CLR1 = wx.NewId()
-        self._MTB_CLR2 = wx.NewId()
-        self._MTB_SHOWBOTTOM = wx.NewId()
+        self._MTB_ERRBARS = self.NewControlId()
+        self._MTB_LEGEND = self.NewControlId()
+        self._MTB_SHOWBOTH = self.NewControlId()
+        self._MTB_SHOWTOP = self.NewControlId()
+        self._MTB_CLR1 = self.NewControlId()
+        self._MTB_CLR2 = self.NewControlId()
+        self._MTB_SHOWBOTTOM = self.NewControlId()
 
         NavigationToolbar2WxAgg.__init__(self, canvas)
 
@@ -1639,7 +1639,7 @@ class PlotPanel(wx.Panel):
             menu.AppendSubMenu(plot2SubMenu, 'Axes')
 
         menu.AppendSeparator()
-        plot_options = menu.Append(wx.NewId(), 'Plot Options...')
+        plot_options = menu.Append(wx.ID_ANY, 'Plot Options...')
 
 
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
@@ -2603,7 +2603,7 @@ class IftPlotPanel(PlotPanel):
 
             menu.AppendSeparator()
 
-        plot_options = menu.Append(wx.NewId(), 'Plot Options...')
+        plot_options = menu.Append(wx.ID_ANY, 'Plot Options...')
 
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
 
@@ -3371,7 +3371,7 @@ class CustomSECPlotToolbar(NavigationToolbar2WxAgg):
 
         self.saved_artists = None
 
-        self._MTB_CLR1 = wx.NewId()
+        self._MTB_CLR1 = self.NewControlId()
 
         NavigationToolbar2WxAgg.__init__(self, canvas)
 
@@ -4147,7 +4147,7 @@ class SECPlotPanel(wx.Panel):
 
         menu.AppendSeparator()
 
-        plot_options = menu.Append(wx.NewId(), 'Plot Options...')
+        plot_options = menu.Append(wx.ID_ANY, 'Plot Options...')
 
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
 

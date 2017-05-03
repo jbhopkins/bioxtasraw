@@ -345,17 +345,17 @@ class GuinierControlPanel(wx.Panel):
 
         wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
-        self.spinctrlIDs = {'qstart' : wx.NewId(),
-                            'qend'   : wx.NewId()}
+        self.spinctrlIDs = {'qstart' : self.NewControlId(),
+                            'qend'   : self.NewControlId()}
 
-        self.staticTxtIDs = {'qstart' : wx.NewId(),
-                            'qend'   : wx.NewId()}
+        self.staticTxtIDs = {'qstart' : self.NewControlId(),
+                            'qend'   : self.NewControlId()}
 
-        self.infodata = {'I0' : ('I0 :', wx.NewId(), wx.NewId()),
-                         'Rg' : ('Rg :', wx.NewId(), wx.NewId()),
-                         'qRg_max': ('qRg_max :', wx.NewId()),
-                         'qRg_min': ('qRg :', wx.NewId()),
-                         'rsq': ('r^2 (fit) :', wx.NewId())}
+        self.infodata = {'I0' : ('I0 :', self.NewControlId(), self.NewControlId()),
+                         'Rg' : ('Rg :', self.NewControlId(), self.NewControlId()),
+                         'qRg_max': ('qRg_max :', self.NewControlId()),
+                         'qRg_min': ('qRg :', self.NewControlId()),
+                         'rsq': ('r^2 (fit) :', self.NewControlId())}
 
 
         button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
@@ -922,41 +922,41 @@ class MolWeightFrame(wx.Frame):
         except AttributeError:
             self.raw_settings = RAWSettings.RawGuiSettings()
 
-        self.infodata = {'I0' : ('I0 :', wx.NewId(), wx.NewId()),
-                         'Rg' : ('Rg :', wx.NewId(), wx.NewId())}
+        self.infodata = {'I0' : ('I0 :', self.NewControlId(), self.NewControlId()),
+                         'Rg' : ('Rg :', self.NewControlId(), self.NewControlId())}
 
-        self.ids = {'VC': {'mol_type' : wx.NewId(),
-                           'calc_mw' : wx.NewId(),
-                           'info': wx.NewId(),
-                           'more': wx.NewId(),
-                           'sup_vc': wx.NewId(),
-                           'sup_qr': wx.NewId(),
-                           'sup_a': wx.NewId(),
-                           'sup_b': wx.NewId(),
-                           'sup_plot': wx.NewId()},
-                    'conc': {'calc_mw' : wx.NewId(),
-                             'info': wx.NewId(),
-                             'more': wx.NewId(),
-                             'conc': wx.NewId(),
-                             'sup_i0': wx.NewId(),
-                             'sup_mw': wx.NewId(),
-                             'sup_conc': wx.NewId(),
-                             'sup_file': wx.NewId()},
-                    'VP': {'calc_mw' : wx.NewId(),
-                           'info': wx.NewId(),
-                           'more': wx.NewId(),
-                           'sup_vp': wx.NewId(),
-                           'sup_vpc': wx.NewId(),
-                           'sup_density': wx.NewId()},
-                    'abs': {'calc_mw' : wx.NewId(),
-                              'info': wx.NewId(),
-                              'more': wx.NewId(),
-                              'calib': wx.NewId(),
-                              'conc': wx.NewId(),
-                              'sup_pm': wx.NewId(),
-                              'sup_ps': wx.NewId(),
-                              'sup_pv': wx.NewId(),
-                              'sup_sc': wx.NewId()}
+        self.ids = {'VC': {'mol_type' : self.NewControlId(),
+                           'calc_mw' : self.NewControlId(),
+                           'info': self.NewControlId(),
+                           'more': self.NewControlId(),
+                           'sup_vc': self.NewControlId(),
+                           'sup_qr': self.NewControlId(),
+                           'sup_a': self.NewControlId(),
+                           'sup_b': self.NewControlId(),
+                           'sup_plot': self.NewControlId()},
+                    'conc': {'calc_mw' : self.NewControlId(),
+                             'info': self.NewControlId(),
+                             'more': self.NewControlId(),
+                             'conc': self.NewControlId(),
+                             'sup_i0': self.NewControlId(),
+                             'sup_mw': self.NewControlId(),
+                             'sup_conc': self.NewControlId(),
+                             'sup_file': self.NewControlId()},
+                    'VP': {'calc_mw' : self.NewControlId(),
+                           'info': self.NewControlId(),
+                           'more': self.NewControlId(),
+                           'sup_vp': self.NewControlId(),
+                           'sup_vpc': self.NewControlId(),
+                           'sup_density': self.NewControlId()},
+                    'abs': {'calc_mw' : self.NewControlId(),
+                              'info': self.NewControlId(),
+                              'more': self.NewControlId(),
+                              'calib': self.NewControlId(),
+                              'conc': self.NewControlId(),
+                              'sup_pm': self.NewControlId(),
+                              'sup_ps': self.NewControlId(),
+                              'sup_pv': self.NewControlId(),
+                              'sup_sc': self.NewControlId()}
                               }
 
 
@@ -2552,21 +2552,21 @@ class GNOMControlPanel(wx.Panel):
         self.out_list = {}
 
 
-        self.spinctrlIDs = {'qstart' : wx.NewId(),
-                            'qend'   : wx.NewId(),
-                            'dmax'   : wx.NewId()}
+        self.spinctrlIDs = {'qstart' : self.NewControlId(),
+                            'qend'   : self.NewControlId(),
+                            'dmax'   : self.NewControlId()}
 
-        self.staticTxtIDs = {'qstart' : wx.NewId(),
-                            'qend'   : wx.NewId()}
+        self.staticTxtIDs = {'qstart' : self.NewControlId(),
+                            'qend'   : self.NewControlId()}
 
 
-        self.infodata = {'guinierI0' : ('I0 :', wx.NewId(), wx.NewId()),
-                         'guinierRg' : ('Rg :', wx.NewId(), wx.NewId()),
-                         'gnomI0'    : ('I0 :', wx.NewId(), wx.NewId()),
-                         'gnomRg'    : ('Rg :', wx.NewId(), wx.NewId()),
-                         'TE': ('Total Estimate :', wx.NewId()),
-                         'gnomQuality': ('GNOM says :', wx.NewId()),
-                         'chisq': ('chi^2 (fit) :', wx.NewId())
+        self.infodata = {'guinierI0' : ('I0 :', self.NewControlId(), self.NewControlId()),
+                         'guinierRg' : ('Rg :', self.NewControlId(), self.NewControlId()),
+                         'gnomI0'    : ('I0 :', self.NewControlId(), self.NewControlId()),
+                         'gnomRg'    : ('Rg :', self.NewControlId(), self.NewControlId()),
+                         'TE': ('Total Estimate :', self.NewControlId()),
+                         'gnomQuality': ('GNOM says :', self.NewControlId()),
+                         'chisq': ('chi^2 (fit) :', self.NewControlId())
                          }
 
         self.plotted_iftm = None
@@ -3231,22 +3231,22 @@ class DammifFrame(wx.Frame):
 
         self.infodata = {}
 
-        self.ids = {'runs'          : wx.NewId(),
-                    'procs'         : wx.NewId(),
-                    'mode'          : wx.NewId(),
-                    'sym'           : wx.NewId(),
-                    'anisometry'    : wx.NewId(),
-                    'status'        : wx.NewId(),
-                    'damaver'       : wx.NewId(),
-                    'damclust'      : wx.NewId(),
-                    'save'          : wx.NewId(),
-                    'prefix'        : wx.NewId(),
-                    'logbook'       : wx.NewId(),
-                    'start'         : wx.NewId(),
-                    'abort'         : wx.NewId(),
-                    'changedir'     : wx.NewId(),
-                    'program'       : wx.NewId(),
-                    'refine'        : wx.NewId()
+        self.ids = {'runs'          : self.NewControlId(),
+                    'procs'         : self.NewControlId(),
+                    'mode'          : self.NewControlId(),
+                    'sym'           : self.NewControlId(),
+                    'anisometry'    : self.NewControlId(),
+                    'status'        : self.NewControlId(),
+                    'damaver'       : self.NewControlId(),
+                    'damclust'      : self.NewControlId(),
+                    'save'          : self.NewControlId(),
+                    'prefix'        : self.NewControlId(),
+                    'logbook'       : self.NewControlId(),
+                    'start'         : self.NewControlId(),
+                    'abort'         : self.NewControlId(),
+                    'changedir'     : self.NewControlId(),
+                    'program'       : self.NewControlId(),
+                    'refine'        : self.NewControlId()
                     }
 
         self.threads = []
@@ -3633,7 +3633,7 @@ class DammifFrame(wx.Frame):
                     yes_to_all = True
 
         #Set up the various bits of information the threads will need. Set up the status windows.
-        self.dammif_ids = {key: value for (key, value) in [(str(i), wx.NewId()) for i in range(1, nruns+1)]}
+        self.dammif_ids = {key: value for (key, value) in [(str(i), self.NewControlId()) for i in range(1, nruns+1)]}
 
         self.thread_nums = Queue.Queue()
 
@@ -3666,7 +3666,7 @@ class DammifFrame(wx.Frame):
                     elif result == wx.ID_YESTOALL:
                         yes_to_all = True
 
-            self.dammif_ids['damaver'] = wx.NewId()
+            self.dammif_ids['damaver'] = self.NewControlId()
             text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['damaver'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
             self.logbook.AddPage(text_ctrl, 'Damaver')
 
@@ -3692,12 +3692,12 @@ class DammifFrame(wx.Frame):
                     elif result == wx.ID_YESTOALL:
                         yes_to_all = True
 
-            self.dammif_ids['damclust'] = wx.NewId()
+            self.dammif_ids['damclust'] = self.NewControlId()
             text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['damclust'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
             self.logbook.AddPage(text_ctrl, 'Damclust')
 
         if refine:
-            self.dammif_ids['refine'] = wx.NewId()
+            self.dammif_ids['refine'] = self.NewControlId()
             text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['refine'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
             self.logbook.AddPage(text_ctrl, 'Refine')
 
@@ -4595,26 +4595,26 @@ class BIFTControlPanel(wx.Panel):
                                   self.raw_settings.get('DmaxPoints'))
 
 
-        self.infodata = {'dmax'         : ('Dmax :', wx.NewId()),
-                         'alpha'        : ('Log(Alpha) :', wx.NewId()),
-                         'guinierI0'    : ('I0 :', wx.NewId()),
-                         'guinierRg'    : ('Rg :', wx.NewId()),
-                         'biftI0'       : ('I0 :', wx.NewId()),
-                         'biftRg'       : ('Rg :', wx.NewId()),
-                         'chisq'        : ('Reduced chi^2 :', wx.NewId())
+        self.infodata = {'dmax'         : ('Dmax :', self.NewControlId()),
+                         'alpha'        : ('Log(Alpha) :', self.NewControlId()),
+                         'guinierI0'    : ('I0 :', self.NewControlId()),
+                         'guinierRg'    : ('Rg :', self.NewControlId()),
+                         'biftI0'       : ('I0 :', self.NewControlId()),
+                         'biftRg'       : ('Rg :', self.NewControlId()),
+                         'chisq'        : ('Reduced chi^2 :', self.NewControlId())
                          }
 
-        self.statusIds = {  'status'      : wx.NewId(),
-                            'evidence'  : wx.NewId(),
-                            'chi'       : wx.NewId(),
-                            'alpha'     : wx.NewId(),
-                            'dmax'      : wx.NewId(),
-                            'spoint'    : wx.NewId(),
-                            'tpoint'    : wx.NewId()}
+        self.statusIds = {  'status'      : self.NewControlId(),
+                            'evidence'  : self.NewControlId(),
+                            'chi'       : self.NewControlId(),
+                            'alpha'     : self.NewControlId(),
+                            'dmax'      : self.NewControlId(),
+                            'spoint'    : self.NewControlId(),
+                            'tpoint'    : self.NewControlId()}
 
-        self.buttonIds = {  'abort'     : wx.NewId(),
-                            'settings'  : wx.NewId(),
-                            'run'       : wx.NewId()}
+        self.buttonIds = {  'abort'     : self.NewControlId(),
+                            'settings'  : self.NewControlId(),
+                            'run'       : self.NewControlId()}
 
 
         self.iftm = None
@@ -5063,15 +5063,15 @@ class AmbimeterFrame(wx.Frame):
 
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
-        self.ids = {'input'         : wx.NewId(),
-                    'rg'            : wx.NewId(),
-                    'prefix'        : wx.NewId(),
-                    'files'         : wx.NewId(),
-                    'sRg'           : wx.NewId(),
-                    'save'          : wx.NewId(),
-                    'ambiCats'      : wx.NewId(),
-                    'ambiScore'     : wx.NewId(),
-                    'ambiEval'      : wx.NewId()}
+        self.ids = {'input'         : self.NewControlId(),
+                    'rg'            : self.NewControlId(),
+                    'prefix'        : self.NewControlId(),
+                    'files'         : self.NewControlId(),
+                    'sRg'           : self.NewControlId(),
+                    'save'          : self.NewControlId(),
+                    'ambiCats'      : self.NewControlId(),
+                    'ambiScore'     : self.NewControlId(),
+                    'ambiEval'      : self.NewControlId()}
 
 
         self.ambi_settings = {}
@@ -5711,18 +5711,18 @@ class SVDControlPanel(wx.Panel):
 
         self.raw_settings = self.main_frame.raw_settings
 
-        self.control_ids = {'profile'   : wx.NewId(),
-                            'fstart'    : wx.NewId(),
-                            'fend'      : wx.NewId(),
-                            'svd_start' : wx.NewId(),
-                            'svd_end'   : wx.NewId(),
-                            'norm_data' : wx.NewId()}
+        self.control_ids = {'profile'   : self.NewControlId(),
+                            'fstart'    : self.NewControlId(),
+                            'fend'      : self.NewControlId(),
+                            'svd_start' : self.NewControlId(),
+                            'svd_end'   : self.NewControlId(),
+                            'norm_data' : self.NewControlId()}
 
-        self.field_ids = {'fname'     : wx.NewId()}
+        self.field_ids = {'fname'     : self.NewControlId()}
 
 
-        self.button_ids = {'save_svd'   : wx.NewId(),
-                            'save_all'  : wx.NewId()}
+        self.button_ids = {'save_svd'   : self.NewControlId(),
+                            'save_all'  : self.NewControlId()}
 
         self.ydata_type = 'total'
 
@@ -6243,9 +6243,9 @@ class EFAFrame(wx.Frame):
 
         self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
-        self.splitter_ids = {1  : wx.NewId(),
-                            2   : wx.NewId(),
-                            3   : wx.NewId()}
+        self.splitter_ids = {1  : self.NewControlId(),
+                            2   : self.NewControlId(),
+                            3   : self.NewControlId()}
 
 
         self.panel1_results = {'profile'        : '',
@@ -6653,14 +6653,14 @@ class EFAControlPanel1(wx.Panel):
 
         self.raw_settings = self.main_frame.raw_settings
 
-        self.control_ids = {'profile'   : wx.NewId(),
-                            'fstart'    : wx.NewId(),
-                            'fend'      : wx.NewId(),
-                            'svd_start' : wx.NewId(),
-                            'svd_end'   : wx.NewId(),
-                            'input'     : wx.NewId()}
+        self.control_ids = {'profile'   : self.NewControlId(),
+                            'fstart'    : self.NewControlId(),
+                            'fend'      : self.NewControlId(),
+                            'svd_start' : self.NewControlId(),
+                            'svd_end'   : self.NewControlId(),
+                            'input'     : self.NewControlId()}
 
-        self.field_ids = {'fname'     : wx.NewId()}
+        self.field_ids = {'fname'     : self.NewControlId()}
 
         self.ydata_type = 'total'
 
@@ -7168,8 +7168,8 @@ class EFAControlPanel2(wx.Panel):
 
         nvals = svd_results['input']
 
-        self.forward_ids = [wx.NewId() for i in range(nvals)]
-        self.backward_ids = [wx.NewId() for i in range(nvals)]
+        self.forward_ids = [self.NewControlId() for i in range(nvals)]
+        self.backward_ids = [self.NewControlId() for i in range(nvals)]
 
         self.fsizer = wx.FlexGridSizer(cols = 2, rows = nvals, vgap = 3, hgap = 3)
         self.bsizer = wx.FlexGridSizer(cols = 2, rows = nvals, vgap = 3, hgap = 3)
@@ -7234,8 +7234,8 @@ class EFAControlPanel2(wx.Panel):
 
         nvals = svd_results['input']
 
-        self.forward_ids = [wx.NewId() for i in range(nvals)]
-        self.backward_ids = [wx.NewId() for i in range(nvals)]
+        self.forward_ids = [self.NewControlId() for i in range(nvals)]
+        self.backward_ids = [self.NewControlId() for i in range(nvals)]
 
         self.forward_sizer.Hide(self.fsizer)
         self.forward_sizer.Detach(self.fsizer)
@@ -7647,11 +7647,11 @@ class EFAControlPanel3(wx.Panel):
 
         self.raw_settings = self.main_frame.raw_settings
 
-        self.control_ids = {'n_iter'        : wx.NewId(),
-                            'tol'           : wx.NewId(),
-                            'method'        : wx.NewId(),
-                            'status'        : wx.NewId(),
-                            'save_results'  : wx.NewId()}
+        self.control_ids = {'n_iter'        : self.NewControlId(),
+                            'tol'           : self.NewControlId(),
+                            'method'        : self.NewControlId(),
+                            'status'        : self.NewControlId(),
+                            'save_results'  : self.NewControlId()}
 
         self.control_values = {'n_iter' : 1000,
                                 'tol'   : 1e-12}
@@ -7758,7 +7758,7 @@ class EFAControlPanel3(wx.Panel):
 
         nvals = efa_results['points'].shape[0]
 
-        self.range_ids = [(wx.NewId(), wx.NewId(), wx.NewId()) for i in range(nvals)]
+        self.range_ids = [(self.NewControlId(), self.NewControlId(), self.NewControlId()) for i in range(nvals)]
 
         self.range_sizer = wx.FlexGridSizer(cols = 5, rows = nvals, vgap = 3, hgap = 3)
 
@@ -7846,7 +7846,7 @@ class EFAControlPanel3(wx.Panel):
             self.top_efa.Layout()
             self.Layout()
 
-            self.range_ids = [(wx.NewId(), wx.NewId(), wx.NewId()) for i in range(nvals)]
+            self.range_ids = [(self.NewControlId(), self.NewControlId(), self.NewControlId()) for i in range(nvals)]
 
             self.range_sizer = wx.FlexGridSizer(cols = 5, rows = nvals, vgap = 3, hgap = 3)
 

@@ -240,7 +240,7 @@ class CalibrationOptionsPanel(wx.Panel):
         self.expsettings_spin = (("Binning Size:", (raw_settings.getId('Binsize'),)),
                                  ("Start plots at q-point number:", (raw_settings.getId('StartPoint'),)),
                                  ("Skip n points at the end of the curve:", (raw_settings.getId('EndPoint'),)))
-                                 #("Q-High (pixels):", (raw_settings.getId('QrangeHigh'), wx.NewId())))
+                                 #("Q-High (pixels):", (raw_settings.getId('QrangeHigh'), self.NewControlId())))
 
         box = wx.StaticBox(self, -1, '2D Reduction Parameters')
         reduction_sizer = self.create2DReductionParameters()
@@ -991,8 +991,8 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
                             'NormAbsWaterConst']
 
                               #      label,                  textCtrlId,            buttonId, clrbuttonId,    ButtonText,              BindFunction
-        self.filesData = (("Empty cell:"   , raw_settings.getId('NormAbsWaterEmptyFile'), wx.NewId(), wx.NewId(), "Set", "Clear", self.onSetFile, self.onClrFile),
-                          ("Water sample:" , raw_settings.getId('NormAbsWaterFile'), wx.NewId(), wx.NewId(), "Set", "Clear", self.onSetFile, self.onClrFile))
+        self.filesData = (("Empty cell:"   , raw_settings.getId('NormAbsWaterEmptyFile'), self.NewControlId(), self.NewControlId(), "Set", "Clear", self.onSetFile, self.onClrFile),
+                          ("Water sample:" , raw_settings.getId('NormAbsWaterFile'), self.NewControlId(), self.NewControlId(), "Set", "Clear", self.onSetFile, self.onClrFile))
 
         self.normConstantsData = ( ("Water Temperature [C]:", raw_settings.getId('NormAbsWaterTemp'), None) ,
                                    ("Water I(0):", raw_settings.getId('NormAbsWaterI0'), None),
@@ -1187,8 +1187,8 @@ class ReductionFlatfield(wx.Panel):
                             'NormFlatfieldEnabled']
 
                               #      label,                  textCtrlId,            buttonId, clrbuttonId,    ButtonText,              BindFunction
-        self.filesData = [("Flatfield image:" , raw_settings.getId('NormFlatfieldFile'), wx.NewId(), wx.NewId(), "Set", "Clear", self.onSetFile, self.onClrFile)]
-                          # ("Dark image:" , raw_settings.getId('DarkCorrFilename'), wx.NewId(), wx.NewId(), "Set", "Clear", self.onSetFile, self.onClrFile)]
+        self.filesData = [("Flatfield image:" , raw_settings.getId('NormFlatfieldFile'), self.NewControlId(), self.NewControlId(), "Set", "Clear", self.onSetFile, self.onClrFile)]
+                          # ("Dark image:" , raw_settings.getId('DarkCorrFilename'), self.NewControlId(), self.NewControlId(), "Set", "Clear", self.onSetFile, self.onClrFile)]
 
         self.normConstantsData = ( ("Water Temperature [C]:", raw_settings.getId('NormAbsWaterTemp'), None) ,
                                    ("Water I(0):", raw_settings.getId('NormAbsWaterI0'), None),
@@ -1999,11 +1999,11 @@ class SaveDirectoriesPanel(wx.Panel):
                             'AutoSaveOnImageFiles', 'AutoSaveOnAvgFiles', 'AutoSaveOnSub', 'AutoSaveOnBift', 'AutoSaveOnGnom']
 
                                                                                       #Set button id , clr button id
-        self.directory_data = (('Processed files:', raw_settings.getId('ProcessedFilePath'),  wx.NewId(), wx.NewId()),
-                              ('Averaged files:',  raw_settings.getId('AveragedFilePath'),   wx.NewId(), wx.NewId()),
-                              ('Subtracted files:',raw_settings.getId('SubtractedFilePath'), wx.NewId(), wx.NewId()),
-                              ('BIFT files:', raw_settings.getId('BiftFilePath'), wx.NewId(), wx.NewId()),
-                              ('GNOM files:', raw_settings.getId('GnomFilePath'), wx.NewId(), wx.NewId()))
+        self.directory_data = (('Processed files:', raw_settings.getId('ProcessedFilePath'),  self.NewControlId(), self.NewControlId()),
+                              ('Averaged files:',  raw_settings.getId('AveragedFilePath'),   self.NewControlId(), self.NewControlId()),
+                              ('Subtracted files:',raw_settings.getId('SubtractedFilePath'), self.NewControlId(), self.NewControlId()),
+                              ('BIFT files:', raw_settings.getId('BiftFilePath'), self.NewControlId(), self.NewControlId()),
+                              ('GNOM files:', raw_settings.getId('GnomFilePath'), self.NewControlId(), self.NewControlId()))
 
         self.auto_save_data = (('Save Processed Image Files Automatically', raw_settings.getId('AutoSaveOnImageFiles')),
                               ('Save Averaged Data Files Automatically', raw_settings.getId('AutoSaveOnAvgFiles')),
@@ -2703,9 +2703,9 @@ class ATSASGnomAdvanced(wx.Panel):
                             'gnomRadius56', 'gnomRmin']
                             # 'gnomFWHM', 'gnomAH', 'gnomLH', 'gnomAW', 'gnomLW', 'gnomSpot', 'gnomExp'] #to incorporate later?
 
-        self.button_ids = {'expert' : wx.NewId(),
-                            'form': wx.NewId(),
-                            'spot': wx.NewId()}
+        self.button_ids = {'expert' : self.NewControlId(),
+                            'form': self.NewControlId(),
+                            'spot': self.NewControlId()}
 
 
         options_sizer = self.createGNOMOptions()
@@ -3554,30 +3554,30 @@ def TestAutoBgSubRegExpression(filename, regexp):
 # widgets and insert it into all_options below.
 #################################################################
 
-all_options = [ [ (0,0,0), wx.NewId(), 'Configuration Settings', ConfigRootSettings],
-                [ (1,0,0), wx.NewId(), 'General Settings', GeneralOptionsPanel],
-                [ (2,0,0), wx.NewId(), '2D Reduction', ReductionOptionsPanel],
-                [ (2,1,0), wx.NewId(), 'Image/Header Format', ReductionImgHdrFormatPanel],
-                [ (2,2,0), wx.NewId(), 'Calibration', CalibrationOptionsPanel],
-                [ (2,4,1), wx.NewId(), 'Normalization', ReductionNormalizationPanel] ,
-                [ (2,4,2), wx.NewId(), 'Absolute Scale', ReductionNormalizationAbsScPanel],
-				[ (2,4,3), wx.NewId(), 'Flatfield Correction', ReductionFlatfield],
-                [ (3,0,0), wx.NewId(), 'Molecular Weight', MolecularWeightPanel],
-                [ (4,0,0), wx.NewId(), 'Artifact Removal', ArtifactOptionsPanel],
-                [ (5,0,0), wx.NewId(), 'IFT', IftOptionsPanel],
-                [ (6,0,0), wx.NewId(), "Autosave", SaveDirectoriesPanel],
-                [ (7,0,0), wx.NewId(), 'Online Mode', OnlineModePanel],
-                [ (8,0,0), wx.NewId(), 'SEC-SAXS', SecPanel],
-                # [ (8,0,0), wx.NewId(), "Automation", AutomationOptionsPanel],
-                [ (9,0,0), wx.NewId(), "ATSAS", ATSASGeneralPanel],
-                [ (9,1,1), wx.NewId(), "GNOM", ATSASGnom],
-                [ (9,1,2), wx.NewId(), "GNOM Advanced", ATSASGnomAdvanced],
-                [ (9,5,1), wx.NewId(), "DAMMIF/N", ATSASDammix],
-                [ (9,5,2), wx.NewId(), "DAMMIF/N Advanced", ATSASDammixAdvanced],
-                [ (9,5,2), wx.NewId(), "DAMMIF Advanced", ATSASDammifAdvanced],
-                [ (9,5,2), wx.NewId(), "DAMMIN Advanced", ATSASDamminAdvanced],
-                [ (10,0,0), wx.NewId(), "Weighted Average", WeightedAveragePanel],
-				# [ (10,0,0), wx.NewId(), "SANS", SansOptionsPanel]
+all_options = [ [ (0,0,0), wx.Window.NewControlId(), 'Configuration Settings', ConfigRootSettings],
+                [ (1,0,0), wx.Window.NewControlId(), 'General Settings', GeneralOptionsPanel],
+                [ (2,0,0), wx.Window.NewControlId(), '2D Reduction', ReductionOptionsPanel],
+                [ (2,1,0), wx.Window.NewControlId(), 'Image/Header Format', ReductionImgHdrFormatPanel],
+                [ (2,2,0), wx.Window.NewControlId(), 'Calibration', CalibrationOptionsPanel],
+                [ (2,4,1), wx.Window.NewControlId(), 'Normalization', ReductionNormalizationPanel] ,
+                [ (2,4,2), wx.Window.NewControlId(), 'Absolute Scale', ReductionNormalizationAbsScPanel],
+				[ (2,4,3), wx.Window.NewControlId(), 'Flatfield Correction', ReductionFlatfield],
+                [ (3,0,0), wx.Window.NewControlId(), 'Molecular Weight', MolecularWeightPanel],
+                [ (4,0,0), wx.Window.NewControlId(), 'Artifact Removal', ArtifactOptionsPanel],
+                [ (5,0,0), wx.Window.NewControlId(), 'IFT', IftOptionsPanel],
+                [ (6,0,0), wx.Window.NewControlId(), "Autosave", SaveDirectoriesPanel],
+                [ (7,0,0), wx.Window.NewControlId(), 'Online Mode', OnlineModePanel],
+                [ (8,0,0), wx.Window.NewControlId(), 'SEC-SAXS', SecPanel],
+                # [ (8,0,0), wx.Window.NewControlId(), "Automation", AutomationOptionsPanel],
+                [ (9,0,0), wx.Window.NewControlId(), "ATSAS", ATSASGeneralPanel],
+                [ (9,1,1), wx.Window.NewControlId(), "GNOM", ATSASGnom],
+                [ (9,1,2), wx.Window.NewControlId(), "GNOM Advanced", ATSASGnomAdvanced],
+                [ (9,5,1), wx.Window.NewControlId(), "DAMMIF/N", ATSASDammix],
+                [ (9,5,2), wx.Window.NewControlId(), "DAMMIF/N Advanced", ATSASDammixAdvanced],
+                [ (9,5,2), wx.Window.NewControlId(), "DAMMIF Advanced", ATSASDammifAdvanced],
+                [ (9,5,2), wx.Window.NewControlId(), "DAMMIN Advanced", ATSASDamminAdvanced],
+                [ (10,0,0), wx.Window.NewControlId(), "Weighted Average", WeightedAveragePanel],
+				# [ (10,0,0), wx.Window.NewControlId(), "SANS", SansOptionsPanel]
                 ]
 
 #--- ** TREE BOOK **
