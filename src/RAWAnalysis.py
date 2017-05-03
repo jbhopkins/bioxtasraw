@@ -3800,13 +3800,14 @@ class DammifFrame(wx.Frame):
 
         with self.my_semaphore:
             #Check to see if things have been aborted
+            if not refine:
+                my_num = self.thread_nums.get()
+                damId = self.dammif_ids[my_num]
+            else:
+                damId = self.dammif_ids['refine']
+            damWindow = wx.FindWindowById(damId)
+
             if self.abort_event.isSet():
-                if not refine:
-                    my_num = self.thread_nums.get()
-                    damId = self.dammif_ids[my_num]
-                else:
-                    damId = self.dammif_ids['refine']
-                damWindow = wx.FindWindowById(damId)
                 wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
                 return
 
@@ -3820,17 +3821,9 @@ class DammifFrame(wx.Frame):
                 self.rs.put(int(time.time()))
 
             if not refine:
-                my_num = self.thread_nums.get()
-                damId = self.dammif_ids[my_num]
-            else:
-                damId = self.dammif_ids['refine']
-            damWindow = wx.FindWindowById(damId)
-
-            if not refine:
                 dam_prefix = prefix+'_%s' %(my_num.zfill(2))
             else:
                 dam_prefix = 'refine_' + prefix
-
 
             #Remove old files, so they don't mess up the program
             old_files = [os.path.join(path, dam_prefix+'.log'), os.path.join(path, dam_prefix+'.in'),
@@ -3840,7 +3833,6 @@ class DammifFrame(wx.Frame):
             for item in old_files:
                 if os.path.exists(item):
                     os.remove(item)
-
 
             #Run DAMMIF
             dam_args = self.dammif_settings
@@ -3928,14 +3920,12 @@ class DammifFrame(wx.Frame):
 
         with self.my_semaphore:
             #Check to see if things have been aborted
-            if self.abort_event.isSet():
-                damId = self.dammif_ids['damaver']
-                damWindow = wx.FindWindowById(damId)
-                wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
-                return
-
             damId = self.dammif_ids['damaver']
             damWindow = wx.FindWindowById(damId)
+
+            if self.abort_event.isSet():
+                wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
+                return
 
             #Remove old files, so they don't mess up the program
             old_files = [os.path.join(path, prefix+'_damfilt.pdb'), os.path.join(path, prefix+'_damsel.log'),
@@ -4047,14 +4037,12 @@ class DammifFrame(wx.Frame):
 
         with self.my_semaphore:
             #Check to see if things have been aborted
+            damId = self.dammif_ids['damclust']
+            damWindow = wx.FindWindowById(damId)
+
             if self.abort_event.isSet():
-                damId = self.dammif_ids['damclust']
-                damWindow = wx.FindWindowById(damId)
                 wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
                 return
-
-
-            damWindow = wx.FindWindowById(damId)
 
             #Remove old files, so they don't mess up the program
             old_files = [os.path.join(path, prefix+'_damclust.log')]

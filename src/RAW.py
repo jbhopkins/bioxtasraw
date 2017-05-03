@@ -23,6 +23,7 @@ Created on Sep 31, 2010
 '''
 
 import wx, os, subprocess, time, threading, Queue, cPickle, copy, sys, glob, platform, fnmatch, shutil, json
+import traceback
 import scipy.constants
 
 import numpy as np
@@ -33,6 +34,7 @@ import wx.lib.colourchooser as colorchooser
 import wx.lib.buttons as wxbutton
 import wx.lib.agw.supertooltip as STT
 import wx.aui as aui
+import wx.lib.dialogs
 import matplotlib.colors as mplcol
 
 from collections import OrderedDict, defaultdict
@@ -14840,6 +14842,36 @@ class SECMLinePropertyDialog(wx.Dialog):
 
         self.EndModal(wx.ID_OK)
 
+
+#########################################
+#This gets around not being able to catch errors in threads
+#Code from: https://bugs.python.org/issue1230540
+def setup_thread_excepthook():
+    """
+    Workaround for `sys.excepthook` thread bug from:
+    http://bugs.python.org/issue1230540
+
+    Call once from the main thread before creating any threads.
+    """
+
+    init_original = threading.Thread.__init__
+
+    def init(self, *args, **kwargs):
+
+        init_original(self, *args, **kwargs)
+        run_original = self.run
+
+        def run_with_except_hook(*args2, **kwargs2):
+            try:
+                run_original(*args2, **kwargs2)
+            except Exception:
+                sys.excepthook(*sys.exc_info())
+
+        self.run = run_with_except_hook
+
+    threading.Thread.__init__ = init
+
+
 #--- ** Startup app **
 
 
@@ -14926,6 +14958,8 @@ class MyApp(wx.App):
     def OnInit(self):
         standard_paths = wx.StandardPaths.Get()
 
+        sys.excepthook = self.ExceptionHook
+
         RAWGlobals.RAWWorkDir = standard_paths.GetUserLocalDataDir()
         if not os.path.exists(RAWGlobals.RAWWorkDir):
             os.mkdir(RAWGlobals.RAWWorkDir)
@@ -14949,6 +14983,31 @@ class MyApp(wx.App):
             self.GetTopWindow().Raise()
         except:
             pass
+
+    #########################
+    # Here's some stuff to inform users of unhandled errors, and quit
+    # gracefully. From http://apprize.info/python/wxpython/10.html
+
+    def ExceptionHook(self, errType, value, trace):
+        err = traceback.format_exception(errType, value, trace)
+        errTxt = "\n".join(err)
+        msg = ("An unexpected error has occured, please report it to the "
+                "developers. You will need to restart RAW to continue working"
+                "\n\nError:\n%s" %(errTxt))
+
+        if self and self.IsMainLoopRunning():
+            if not self.HandleError(value):
+                wx.CallAfter(wx.lib.dialogs.scrolledMessageDialog, None, msg, "Unexpected Error")
+        else:
+            sys.stderr.write(msg)
+
+    def HandleError(self, error):
+        """ Override in subclass to handle errors
+        @return: True to allow program to continue running"""
+
+        return False
+
+
 
     # def OnActivate(self, event):
     #     # if this is an activate event, rather than something else, like iconize.
@@ -15067,6 +15126,7 @@ class RawTaskbarIcon(wx.TaskBarIcon):
     #     menu.Destroy()
 
 if __name__ == '__main__':
+    setup_thread_excepthook()
     app = MyApp(0)   #MyApp(redirect = True)
     app.MainLoop()
 
