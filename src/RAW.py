@@ -291,7 +291,13 @@ class MainFrame(wx.Frame):
 
         if len(data)>1:
             files_to_plot = data[1:]
-            mainworker_cmd_queue.put(['plot', files_to_plot])
+            if isinstance(files_to_plot, list):
+                firstfile = files_to_plot[0]
+            else:
+                firstfile = files_to_plot
+
+            if not firstfile.startswith('-psn'):
+                mainworker_cmd_queue.put(['plot', files_to_plot])
 
 
     def getRawSettings(self):
