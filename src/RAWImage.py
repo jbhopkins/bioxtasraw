@@ -591,8 +591,7 @@ class ImagePanel(wx.Panel):
             self.canvas.draw()
 
         elif self.pyfai_cent_mode and self.toolbar.getCurrentTool() is None:
-
-            points, centering_panel.c.points = SASCalib.new_grp(self.img, [x, y], centering_panel.c.points, 100, self.pyfai_ring_num)
+            points, centering_panel.c.points = SASCalib.new_grp(self.img, [int(x), int(y)], centering_panel.c.points, 100, self.pyfai_ring_num)
 
             if not points:
                 if self.canvas.HasCapture():

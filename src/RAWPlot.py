@@ -837,7 +837,7 @@ class PlotOptionsDialog(wx.Dialog):
 
         try:
             self.parent.canvas.draw()
-        except matplotlib.pyparsing.ParseFatalException, e:
+        except (matplotlib.pyparsing.ParseFatalException, ValueError) as e:
             print e
 
         event.Skip()
