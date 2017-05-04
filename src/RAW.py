@@ -12703,15 +12703,15 @@ class SyncDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, 'Synchronize', *args, **kwargs)
 
-        self.chkbox_list = [('q min', 'qmin', self.NewControlId()),
-                       ('q max', 'qmax', self.NewControlId()),
-                       ('n min', 'nmin', self.NewControlId()),
-                       ('n max', 'nmax', self.NewControlId()),
-                       ('scale', 'scale', self.NewControlId()),
-                       ('offset', 'offset', self.NewControlId()),
-                       ('line style', 'linestyle', self.NewControlId()),
-                       ('line width', 'linewidth', self.NewControlId()),
-                       ('line marker', 'linemarker', self.NewControlId())]
+        self.chkbox_list = [('q min', 'qmin', wx.ID_ANY),
+                       ('q max', 'qmax', wx.ID_ANY),
+                       ('n min', 'nmin', wx.ID_ANY),
+                       ('n max', 'nmax', wx.ID_ANY),
+                       ('scale', 'scale', wx.ID_ANY),
+                       ('offset', 'offset', wx.ID_ANY),
+                       ('line style', 'linestyle', wx.ID_ANY),
+                       ('line width', 'linewidth', wx.ID_ANY),
+                       ('line marker', 'linemarker', wx.ID_ANY)]
 
         self.selected_boxes = []
 
@@ -13478,10 +13478,6 @@ class IFTMLinePropertyDialog(wx.Dialog):
         self.qo_line = iftm.qo_line
         self.qf_line = iftm.qf_line
         self.legend_label = legend_label
-
-        self.line_ids = {self.r_line : self.NewControlId(),
-                        self.qo_line : self.NewControlId(),
-                        self.qf_line : self.NewControlId()}
 
         self.linewidth_combo_choices = ['1.0', '2.0', '3.0', '4.0', '5.0']
         self.linestyle_list_choices = ['None', '-', '--', '-.', ':']
@@ -15009,7 +15005,7 @@ class MyApp(wx.App):
 
     def HandleError(self, error):
         """ Override in subclass to handle errors
-        @return: True to allow program to continue running"""
+        @return: True to allow program to continue running withou showing error"""
 
         return False
 
