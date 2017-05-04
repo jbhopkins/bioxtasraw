@@ -416,8 +416,8 @@ class GuinierControlPanel(wx.Panel):
             idx_min = np.where(self.ExpObj.q == closest_qmin)[0][0]
             idx_max = np.where(self.ExpObj.q == closest_qmax)[0][0]
 
-            spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
-            spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
+            spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
+            spinend = wx.FindWindowById(self.spinctrlIDs['qend'], self)
 
             minrange = spinstart.GetRange()
             maxrange = spinstart.GetRange()
@@ -439,10 +439,10 @@ class GuinierControlPanel(wx.Panel):
                 spinstart.SetValue(int(idx_min))
                 spinend.SetValue(int(idx_max))
 
-                txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+                txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(idx_min)],5)))
 
-                txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+                txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(idx_max)],5)))
 
                 self.updatePlot()
@@ -450,10 +450,10 @@ class GuinierControlPanel(wx.Panel):
                 spinstart.SetValue(old_start)
                 spinend.SetValue(old_end)
 
-                txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+                txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(old_start)],5)))
 
-                txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+                txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(old_end)],5)))
 
         else:
@@ -486,16 +486,16 @@ class GuinierControlPanel(wx.Panel):
 
             for key in self.infodata.keys():
                 id = self.infodata[key][1]
-                widget = wx.FindWindowById(id)
+                widget = wx.FindWindowById(id, self)
                 val = widget.GetValue()
 
                 info_dict[key] = val
 
-            nstart_val = wx.FindWindowById(self.spinctrlIDs['qstart']).GetValue()
-            nend_val = wx.FindWindowById(self.spinctrlIDs['qend']).GetValue()
+            nstart_val = wx.FindWindowById(self.spinctrlIDs['qstart'], self).GetValue()
+            nend_val = wx.FindWindowById(self.spinctrlIDs['qend'], self).GetValue()
 
-            qstart_val = wx.FindWindowById(self.staticTxtIDs['qstart']).GetValue()
-            qend_val = wx.FindWindowById(self.staticTxtIDs['qend']).GetValue()
+            qstart_val = wx.FindWindowById(self.staticTxtIDs['qstart'], self).GetValue()
+            qend_val = wx.FindWindowById(self.staticTxtIDs['qend'], self).GetValue()
 
             info_dict['nStart'] = nstart_val
             info_dict['nEnd'] = nend_val
@@ -532,8 +532,8 @@ class GuinierControlPanel(wx.Panel):
 
         rg, rger, i0, i0er, idx_min, idx_max = SASCalc.autoRg(self.ExpObj)
 
-        spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
-        spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
+        spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
+        spinend = wx.FindWindowById(self.spinctrlIDs['qend'], self)
 
         old_start = spinstart.GetValue()
         old_end = spinend.GetValue()
@@ -547,10 +547,10 @@ class GuinierControlPanel(wx.Panel):
                 spinstart.SetValue(int(idx_min))
                 spinend.SetValue(int(idx_max))
 
-                txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+                txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(idx_min)],5)))
 
-                txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+                txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(idx_max)],5)))
 
                 self.updatePlot()
@@ -558,10 +558,10 @@ class GuinierControlPanel(wx.Panel):
                 spinstart.SetValue(old_start)
                 spinend.SetValue(old_end)
 
-                txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+                txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(old_start)],5)))
 
-                txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+                txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(old_end)],5)))
 
                 print 'FAILED AutoRG! resetting controls'
@@ -657,22 +657,22 @@ class GuinierControlPanel(wx.Panel):
 
         findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
 
-        txtctrl = wx.FindWindowById(id)
+        txtctrl = wx.FindWindowById(id, self)
 
         #### If User inputs garbage: ####
         try:
             val = float(txtctrl.GetValue())
         except ValueError:
             if id == self.staticTxtIDs['qstart']:
-                spinctrl = wx.FindWindowById(self.spinctrlIDs['qstart'])
-                txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+                spinctrl = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
+                txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
                 idx = int(spinctrl.GetValue())
                 txt.SetValue(str(round(self.ExpObj.q[idx],5)))
                 return
 
             if id == self.staticTxtIDs['qend']:
-                spinctrl = wx.FindWindowById(self.spinctrlIDs['qend'])
-                txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+                spinctrl = wx.FindWindowById(self.spinctrlIDs['qend'], self)
+                txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 idx = int(spinctrl.GetValue())
                 txt.SetValue(str(round(self.ExpObj.q[idx],5)))
                 return
@@ -682,8 +682,8 @@ class GuinierControlPanel(wx.Panel):
 
         i = np.where(lx == closest)[0][0]
 
-        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'])
-        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'])
+        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
+        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
 
         if id == self.staticTxtIDs['qstart']:
 
@@ -715,9 +715,9 @@ class GuinierControlPanel(wx.Panel):
 
         self.startSpin.SetValue(qmin)
         self.endSpin.SetValue(qmax-1)
-        txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+        txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
         txt.SetValue(str(round(ExpObj.q[qmax-1],4)))
-        txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+        txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
         txt.SetValue(str(round(ExpObj.q[qmin],4)))
 
     def onEnterOnSpinCtrl(self, evt):
@@ -732,17 +732,17 @@ class GuinierControlPanel(wx.Panel):
     def onSpinCtrl(self, evt):
         id = evt.GetId()
 
-        spin = wx.FindWindowById(id)
+        spin = wx.FindWindowById(id, self)
 
-        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'])
-        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'])
+        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
+        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
 
         i = spin.GetValue()
 
         #Make sure the boundaries don't cross:
         if id == self.spinctrlIDs['qstart']:
             max = endSpin.GetValue()
-            txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+            txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
 
             if i > max-2:
                 i = max - 2
@@ -750,7 +750,7 @@ class GuinierControlPanel(wx.Panel):
 
         elif id == self.spinctrlIDs['qend']:
             min = startSpin.GetValue()
-            txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+            txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
 
             if i < min+2:
                 i = min + 2
@@ -765,8 +765,8 @@ class GuinierControlPanel(wx.Panel):
     def updatePlot(self):
         plotpanel = wx.FindWindowByName('GuinierPlotPanel')
 
-        spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
-        spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
+        spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
+        spinend = wx.FindWindowById(self.spinctrlIDs['qend'], self)
 
         i = int(spinstart.GetValue())
         i2 = int(spinend.GetValue())
@@ -798,30 +798,30 @@ class GuinierControlPanel(wx.Panel):
         for eachkey in newInfo.iterkeys():
 
             if len(self.infodata[eachkey]) == 2:
-                ctrl = wx.FindWindowById(self.infodata[eachkey][1])
+                ctrl = wx.FindWindowById(self.infodata[eachkey][1], self)
                 ctrl.SetValue(str(round(newInfo[eachkey],5)))
             else:
-                ctrl = wx.FindWindowById(self.infodata[eachkey][1])
+                ctrl = wx.FindWindowById(self.infodata[eachkey][1], self)
                 ctrl.SetValue(str(round(newInfo[eachkey][0],5)))
 
     def updateLimits(self, top = None, bottom = None):
         print 'in update limits'
         if bottom:
-            spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
+            spinend = wx.FindWindowById(self.spinctrlIDs['qend'], self)
             spinend.SetValue(bottom)
-            txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+            txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
             txt.SetValue(str(round(self.ExpObj.q[int(bottom)],4)))
 
         if top:
-            spinend = wx.FindWindowById(self.spinctrlIDs['qstart'])
+            spinend = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
             spinend.SetValue(top)
-            txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+            txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
             txt.SetValue(str(round(self.ExpObj.q[int(top)],4)))
 
     def getLimits(self):
 
-        spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'])
-        spinend = wx.FindWindowById(self.spinctrlIDs['qend'])
+        spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
+        spinend = wx.FindWindowById(self.spinctrlIDs['qend'], self)
 
         return [int(spinstart.GetValue()), int(spinend.GetValue())]
 
@@ -832,11 +832,11 @@ class GuinierControlPanel(wx.Panel):
         for eachKey in self.infodata.iterkeys():
 
             if len(self.infodata[eachKey]) == 2:
-                ctrl = wx.FindWindowById(self.infodata[eachKey][1])
+                ctrl = wx.FindWindowById(self.infodata[eachKey][1], self)
                 val = ctrl.GetValue()
                 guinierData[eachKey] = val
             else:
-                ctrl1 = wx.FindWindowById(self.infodata[eachKey][1])
+                ctrl1 = wx.FindWindowById(self.infodata[eachKey][1], self)
 
                 val1 = ctrl1.GetValue()
                 guinierData[eachKey] = val1
@@ -1030,7 +1030,7 @@ class MolWeightFrame(wx.Frame):
             guinier = analysis['guinier']
 
             for each_key in self.infodata.iterkeys():
-                window = wx.FindWindowById(self.infodata[each_key][1])
+                window = wx.FindWindowById(self.infodata[each_key][1], self)
                 window.SetValue(guinier[each_key])
 
 
@@ -1041,12 +1041,12 @@ class MolWeightFrame(wx.Frame):
         else:
             conc = ''
 
-        wx.FindWindowById(self.ids['conc']['conc']).ChangeValue(conc)
+        wx.FindWindowById(self.ids['conc']['conc'], self).ChangeValue(conc)
 
-        wx.FindWindowById(self.ids['abs']['conc']).ChangeValue(conc)
+        wx.FindWindowById(self.ids['abs']['conc'], self).ChangeValue(conc)
 
         if self.raw_settings.get('NormAbsWater'):
-            wx.FindWindowById(self.ids['abs']['calib']).SetValue(True)
+            wx.FindWindowById(self.ids['abs']['calib'], self).SetValue(True)
 
 
         ref_mw = self.raw_settings.get('MWStandardMW')
@@ -1055,24 +1055,24 @@ class MolWeightFrame(wx.Frame):
         ref_file = self.raw_settings.get('MWStandardFile')
 
         if ref_mw > 0:
-            wx.FindWindowById(self.ids['conc']['sup_mw']).ChangeValue(str(ref_mw))
+            wx.FindWindowById(self.ids['conc']['sup_mw'], self).ChangeValue(str(ref_mw))
         else:
-            wx.FindWindowById(self.ids['conc']['sup_mw']).ChangeValue('')
+            wx.FindWindowById(self.ids['conc']['sup_mw'], self).ChangeValue('')
         if ref_i0 > 0:
-            wx.FindWindowById(self.ids['conc']['sup_i0']).ChangeValue(str(ref_i0))
+            wx.FindWindowById(self.ids['conc']['sup_i0'], self).ChangeValue(str(ref_i0))
         else:
-            wx.FindWindowById(self.ids['conc']['sup_i0']).ChangeValue('')
+            wx.FindWindowById(self.ids['conc']['sup_i0'], self).ChangeValue('')
         if ref_conc > 0:
-            wx.FindWindowById(self.ids['conc']['sup_conc']).ChangeValue(str(ref_conc))
+            wx.FindWindowById(self.ids['conc']['sup_conc'], self).ChangeValue(str(ref_conc))
         else:
-            wx.FindWindowById(self.ids['conc']['sup_conc']).ChangeValue('')
+            wx.FindWindowById(self.ids['conc']['sup_conc'], self).ChangeValue('')
         wx.FindWindowById(self.ids['conc']['sup_file']).ChangeValue(ref_file)
 
 
         #Initialize VC MW settings
-        aCtrl = wx.FindWindowById(self.ids['VC']['sup_a'])
-        bCtrl = wx.FindWindowById(self.ids['VC']['sup_b'])
-        molCtrl = wx.FindWindowById(self.ids['VC']['mol_type'])
+        aCtrl = wx.FindWindowById(self.ids['VC']['sup_a'], self)
+        bCtrl = wx.FindWindowById(self.ids['VC']['sup_b'], self)
+        molCtrl = wx.FindWindowById(self.ids['VC']['mol_type'], self)
 
         try:
             if 'molecularWeight' in analysis:
@@ -1095,12 +1095,12 @@ class MolWeightFrame(wx.Frame):
         bCtrl.SetValue(str(bval))
         molCtrl.SetStringSelection(vc_type)
 
-        wx.FindWindowById(self.ids['VC']['sup_plot']).plotSASM(self.sasm)
+        wx.FindWindowById(self.ids['VC']['sup_plot'], self).plotSASM(self.sasm)
 
         #Initialize Vp MW settings
         vp_rho = self.raw_settings.get('MWVpRho')
 
-        wx.FindWindowById(self.ids['VP']['sup_density']).ChangeValue(str(vp_rho))
+        wx.FindWindowById(self.ids['VP']['sup_density'], self).ChangeValue(str(vp_rho))
 
 
         #Initialize Absolute scattering MW settings.
@@ -1109,10 +1109,10 @@ class MolWeightFrame(wx.Frame):
         nu_bar = self.raw_settings.get('MWAbsNuBar') # partial specific volume of the protein
         r0 = self.raw_settings.get('MWAbsR0') #scattering lenght of an electron
         d_rho = (rho_Mprot-(rho_solv*nu_bar))*r0
-        wx.FindWindowById(self.ids['abs']['sup_pm']).ChangeValue('%.2E' %(rho_Mprot))
-        wx.FindWindowById(self.ids['abs']['sup_ps']).ChangeValue('%.2E' %(rho_solv))
-        wx.FindWindowById(self.ids['abs']['sup_pv']).ChangeValue('%.4f' %(nu_bar))
-        wx.FindWindowById(self.ids['abs']['sup_sc']).ChangeValue('%.2E' %(d_rho))
+        wx.FindWindowById(self.ids['abs']['sup_pm'], self).ChangeValue('%.2E' %(rho_Mprot))
+        wx.FindWindowById(self.ids['abs']['sup_ps'], self).ChangeValue('%.2E' %(rho_solv))
+        wx.FindWindowById(self.ids['abs']['sup_pv'], self).ChangeValue('%.4f' %(nu_bar))
+        wx.FindWindowById(self.ids['abs']['sup_sc'], self).ChangeValue('%.2E' %(d_rho))
 
 
         self.calcMW()
@@ -1535,7 +1535,7 @@ class MolWeightFrame(wx.Frame):
 
     def onGuinierFit(self,evt):
 
-        strconc = wx.FindWindowById(self.ids['conc']['conc']).GetValue()
+        strconc = wx.FindWindowById(self.ids['conc']['conc'], self).GetValue()
 
         try:
             conc = float(strconc)
@@ -1555,21 +1555,21 @@ class MolWeightFrame(wx.Frame):
             guinier = analysis['guinier']
 
             for each_key in self.infodata.iterkeys():
-                window = wx.FindWindowById(self.infodata[each_key][1])
+                window = wx.FindWindowById(self.infodata[each_key][1], self)
                 window.SetValue(guinier[each_key])
 
         if self.sasm.getAllParameters().has_key('Conc'):
             conc = str(self.sasm.getParameter('Conc'))
-            wx.FindWindowById(self.ids['conc']['conc']).ChangeValue(conc)
-            wx.FindWindowById(self.ids['abs']['conc']).ChangeValue(conc)
+            wx.FindWindowById(self.ids['conc']['conc'], self).ChangeValue(conc)
+            wx.FindWindowById(self.ids['abs']['conc'], self).ChangeValue(conc)
 
-        wx.FindWindowById(self.ids['VC']['sup_plot']).plotSASM(self.sasm)
+        wx.FindWindowById(self.ids['VC']['sup_plot'], self).plotSASM(self.sasm)
 
         self.calcMW()
 
     def updateMWInfo(self):
         if self.raw_settings.get('NormAbsWater'):
-            wx.FindWindowById(self.ids['abs']['calib']).SetValue(True)
+            wx.FindWindowById(self.ids['abs']['calib'], self).SetValue(True)
 
         ref_mw = self.raw_settings.get('MWStandardMW')
         ref_i0 = self.raw_settings.get('MWStandardI0')
@@ -1577,24 +1577,24 @@ class MolWeightFrame(wx.Frame):
         ref_file = self.raw_settings.get('MWStandardFile')
 
         if ref_mw > 0:
-            wx.FindWindowById(self.ids['conc']['sup_mw']).ChangeValue(str(ref_mw))
+            wx.FindWindowById(self.ids['conc']['sup_mw'], self).ChangeValue(str(ref_mw))
         else:
-            wx.FindWindowById(self.ids['conc']['sup_mw']).ChangeValue('')
+            wx.FindWindowById(self.ids['conc']['sup_mw'], self).ChangeValue('')
         if ref_i0 > 0:
-            wx.FindWindowById(self.ids['conc']['sup_i0']).ChangeValue(str(ref_i0))
+            wx.FindWindowById(self.ids['conc']['sup_i0'], self).ChangeValue(str(ref_i0))
         else:
-            wx.FindWindowById(self.ids['conc']['sup_i0']).ChangeValue('')
+            wx.FindWindowById(self.ids['conc']['sup_i0'], self).ChangeValue('')
         if ref_conc > 0:
-            wx.FindWindowById(self.ids['conc']['sup_conc']).ChangeValue(str(ref_conc))
+            wx.FindWindowById(self.ids['conc']['sup_conc'], self).ChangeValue(str(ref_conc))
         else:
-            wx.FindWindowById(self.ids['conc']['sup_conc']).ChangeValue('')
-        wx.FindWindowById(self.ids['conc']['sup_file']).ChangeValue(ref_file)
+            wx.FindWindowById(self.ids['conc']['sup_conc'], self).ChangeValue('')
+        wx.FindWindowById(self.ids['conc']['sup_file'], self).ChangeValue(ref_file)
 
 
         #Initialize VC MW settings
-        aCtrl = wx.FindWindowById(self.ids['VC']['sup_a'])
-        bCtrl = wx.FindWindowById(self.ids['VC']['sup_b'])
-        molCtrl = wx.FindWindowById(self.ids['VC']['mol_type'])
+        aCtrl = wx.FindWindowById(self.ids['VC']['sup_a'], self)
+        bCtrl = wx.FindWindowById(self.ids['VC']['sup_b'], self)
+        molCtrl = wx.FindWindowById(self.ids['VC']['mol_type'], self)
 
         vc_type = molCtrl.GetStringSelection()
 
@@ -1612,7 +1612,7 @@ class MolWeightFrame(wx.Frame):
         #Initialize Vp MW settings
         vp_rho = self.raw_settings.get('MWVpRho')
 
-        wx.FindWindowById(self.ids['VP']['sup_density']).ChangeValue(str(vp_rho))
+        wx.FindWindowById(self.ids['VP']['sup_density'], self).ChangeValue(str(vp_rho))
 
 
         #Initialize Absolute scattering MW settings.
@@ -1621,11 +1621,10 @@ class MolWeightFrame(wx.Frame):
         nu_bar = self.raw_settings.get('MWAbsNuBar') # partial specific volume of the protein
         r0 = self.raw_settings.get('MWAbsR0') #scattering lenght of an electron
         d_rho = (rho_Mprot-(rho_solv*nu_bar))*r0
-        wx.FindWindowById(self.ids['abs']['sup_pm']).ChangeValue('%.2E' %(rho_Mprot))
-        wx.FindWindowById(self.ids['abs']['sup_ps']).ChangeValue('%.2E' %(rho_solv))
-        wx.FindWindowById(self.ids['abs']['sup_pv']).ChangeValue('%.4f' %(nu_bar))
-        # wx.FindWindowById(self.ids['abs']['sup_r0']).ChangeValue('%.2E' %(r0))
-        wx.FindWindowById(self.ids['abs']['sup_sc']).ChangeValue('%.2E' %(d_rho))
+        wx.FindWindowById(self.ids['abs']['sup_pm'], self).ChangeValue('%.2E' %(rho_Mprot))
+        wx.FindWindowById(self.ids['abs']['sup_ps'], self).ChangeValue('%.2E' %(rho_solv))
+        wx.FindWindowById(self.ids['abs']['sup_pv'], self).ChangeValue('%.4f' %(nu_bar))
+        wx.FindWindowById(self.ids['abs']['sup_sc'], self).ChangeValue('%.2E' %(d_rho))
 
 
         self.calcMW()
@@ -1700,47 +1699,47 @@ class MolWeightFrame(wx.Frame):
         if evt_id == self.ids['conc']['more']:
             if self.conc_top_sizer.IsShown(self.conc_sup_sizer):
                 self.conc_top_sizer.Hide(self.conc_sup_sizer,recursive=True)
-                button = wx.FindWindowById(self.ids['conc']['more'])
+                button = wx.FindWindowById(self.ids['conc']['more'], self)
                 button.SetLabel('Show Details')
                 self.panel.Layout()
             else:
                 self.conc_top_sizer.Show(self.conc_sup_sizer,recursive=True)
-                button = wx.FindWindowById(self.ids['conc']['more'])
+                button = wx.FindWindowById(self.ids['conc']['more'], self)
                 button.SetLabel('Hide Details')
                 self.panel.Layout()
 
         elif evt_id == self.ids['VC']['more']:
             if self.vc_top_sizer.IsShown(self.vc_sup_sizer):
                 self.vc_top_sizer.Hide(self.vc_sup_sizer,recursive=True)
-                button = wx.FindWindowById(self.ids['VC']['more'])
+                button = wx.FindWindowById(self.ids['VC']['more'], self)
                 button.SetLabel('Show Details')
                 self.panel.Layout()
             else:
                 self.vc_top_sizer.Show(self.vc_sup_sizer,recursive=True)
-                button = wx.FindWindowById(self.ids['VC']['more'])
+                button = wx.FindWindowById(self.ids['VC']['more'], self)
                 button.SetLabel('Hide Details')
                 self.panel.Layout()
 
         elif evt_id == self.ids['VP']['more']:
             if self.vp_top_sizer.IsShown(self.vp_sup_sizer):
                 self.vp_top_sizer.Hide(self.vp_sup_sizer,recursive=True)
-                button = wx.FindWindowById(self.ids['VP']['more'])
+                button = wx.FindWindowById(self.ids['VP']['more'], self)
                 button.SetLabel('Show Details')
                 self.panel.Layout()
             else:
                 self.vp_top_sizer.Show(self.vp_sup_sizer,recursive=True)
-                button = wx.FindWindowById(self.ids['VP']['more'])
+                button = wx.FindWindowById(self.ids['VP']['more'], self)
                 button.SetLabel('Hide Details')
                 self.panel.Layout()
         else:
             if self.abs_top_sizer.IsShown(self.abs_sup_sizer):
                 self.abs_top_sizer.Hide(self.abs_sup_sizer,recursive=True)
-                button = wx.FindWindowById(self.ids['abs']['more'])
+                button = wx.FindWindowById(self.ids['abs']['more'], self)
                 button.SetLabel('Show Details')
                 self.panel.Layout()
             else:
                 self.abs_top_sizer.Show(self.abs_sup_sizer,recursive=True)
-                button = wx.FindWindowById(self.ids['abs']['more'])
+                button = wx.FindWindowById(self.ids['abs']['more'], self)
                 button.SetLabel('Hide Details')
                 self.panel.Layout()
 
@@ -1748,8 +1747,8 @@ class MolWeightFrame(wx.Frame):
     def _onMoleculeChoice(self,evt):
         vc_ids = self.ids['VC']
 
-        aCtrl = wx.FindWindowById(vc_ids['sup_a'])
-        bCtrl = wx.FindWindowById(vc_ids['sup_b'])
+        aCtrl = wx.FindWindowById(vc_ids['sup_a'], self)
+        bCtrl = wx.FindWindowById(vc_ids['sup_b'], self)
 
         molCtrl = evt.GetEventObject()
         val = molCtrl.GetStringSelection()
@@ -1773,9 +1772,9 @@ class MolWeightFrame(wx.Frame):
         val = concCtrl.GetValue()
 
         if evt_id == self.ids['conc']['conc']:
-            wx.FindWindowById(self.ids['abs']['conc']).ChangeValue(val)
+            wx.FindWindowById(self.ids['abs']['conc'], self).ChangeValue(val)
         else:
-            wx.FindWindowById(self.ids['conc']['conc']).ChangeValue(val)
+            wx.FindWindowById(self.ids['conc']['conc'], self).ChangeValue(val)
 
         self.calcConcMW()
         self.calcAbsMW()
@@ -1787,11 +1786,11 @@ class MolWeightFrame(wx.Frame):
         chkbox = evt.GetEventObject()
 
         if chkbox.GetValue():
-            wx.FindWindowById(self.ids['abs']['conc']).Enable()
+            wx.FindWindowById(self.ids['abs']['conc'], self).Enable()
             self.calcAbsMW()
         else:
-            wx.FindWindowById(self.ids['abs']['conc']).Disable()
-            wx.FindWindowById(self.ids['abs']['calc_mw']).ChangeValue('')
+            wx.FindWindowById(self.ids['abs']['conc'], self).Disable()
+            wx.FindWindowById(self.ids['abs']['calc_mw'], self).ChangeValue('')
 
     def _showVpMWWarning(self, show):
 
@@ -1819,23 +1818,23 @@ class MolWeightFrame(wx.Frame):
                     'Absolute'           : {}}
 
         for eachKey in self.ids.iterkeys():
-            mw = wx.FindWindowById(self.ids[eachKey]['calc_mw']).GetValue()
+            mw = wx.FindWindowById(self.ids[eachKey]['calc_mw'], self).GetValue()
 
             if eachKey == 'conc':
                 calcData['I(0)Concentration']['MW'] = mw
                 self.sasm.setParameter('MW', mw)
 
             elif eachKey == 'VC':
-                mol_type = wx.FindWindowById(self.ids[eachKey]['mol_type']).GetStringSelection()
-                vcor = wx.FindWindowById(self.ids[eachKey]['sup_vc']).GetValue()
+                mol_type = wx.FindWindowById(self.ids[eachKey]['mol_type'], self).GetStringSelection()
+                vcor = wx.FindWindowById(self.ids[eachKey]['sup_vc'], self).GetValue()
 
                 calcData['VolumeOfCorrelation']['MW'] = mw
                 calcData['VolumeOfCorrelation']['Type'] = mol_type
                 calcData['VolumeOfCorrelation']['Vcor'] = vcor
 
             elif eachKey == 'VP':
-                vporod = wx.FindWindowById(self.ids[eachKey]['sup_vp']).GetValue()
-                vpcor = wx.FindWindowById(self.ids[eachKey]['sup_vpc']).GetValue()
+                vporod = wx.FindWindowById(self.ids[eachKey]['sup_vp'], self).GetValue()
+                vpcor = wx.FindWindowById(self.ids[eachKey]['sup_vpc'], self).GetValue()
 
                 calcData['PorodVolume']['MW'] = mw
                 calcData['PorodVolume']['VPorod'] = vporod
@@ -1847,7 +1846,7 @@ class MolWeightFrame(wx.Frame):
         analysis_dict = self.sasm.getParameter('analysis')
         analysis_dict['molecularWeight'] = calcData
 
-        strconc = wx.FindWindowById(self.ids['conc']['conc']).GetValue()
+        strconc = wx.FindWindowById(self.ids['conc']['conc'], self).GetValue()
 
         try:
             conc = float(strconc)
@@ -1876,14 +1875,14 @@ class MolWeightFrame(wx.Frame):
 
     def calcConcMW(self):
         conc_ids = self.ids['conc']
-        i0 = float(wx.FindWindowById(self.infodata['I0'][1]).GetValue())
+        i0 = float(wx.FindWindowById(self.infodata['I0'][1], self).GetValue())
 
         ref_mw = self.raw_settings.get('MWStandardMW')
         ref_I0 = self.raw_settings.get('MWStandardI0')
         ref_conc = self.raw_settings.get('MWStandardConc')
 
         try:
-            conc = float(wx.FindWindowById(conc_ids['conc']).GetValue())
+            conc = float(wx.FindWindowById(conc_ids['conc'], self).GetValue())
         except ValueError:
             conc = -1
 
@@ -1895,16 +1894,16 @@ class MolWeightFrame(wx.Frame):
             if len(mwstr.split('.')[1])>1:
                 mwstr = '%.1E' %(mw)
 
-            mwCtrl = wx.FindWindowById(conc_ids['calc_mw'])
+            mwCtrl = wx.FindWindowById(conc_ids['calc_mw'], self)
             mwCtrl.SetValue(mwstr)
 
     def calcVCMW(self):
 
         vc_ids = self.ids['VC']
-        rg = float(wx.FindWindowById(self.infodata['Rg'][1]).GetValue())
-        i0 = float(wx.FindWindowById(self.infodata['I0'][1]).GetValue())
+        rg = float(wx.FindWindowById(self.infodata['Rg'][1], self).GetValue())
+        i0 = float(wx.FindWindowById(self.infodata['I0'][1], self).GetValue())
 
-        molecule = wx.FindWindowById(vc_ids['mol_type']).GetStringSelection()
+        molecule = wx.FindWindowById(vc_ids['mol_type'], self).GetStringSelection()
 
         if molecule == 'Protein':
             is_protein = True
@@ -1919,7 +1918,7 @@ class MolWeightFrame(wx.Frame):
             if len(mwstr.split('.')[1])>1:
                 mwstr = '%.1E' %(mw)
 
-            mwCtrl = wx.FindWindowById(vc_ids['calc_mw'])
+            mwCtrl = wx.FindWindowById(vc_ids['calc_mw'], self)
             mwCtrl.SetValue(mwstr)
 
 
@@ -1928,7 +1927,7 @@ class MolWeightFrame(wx.Frame):
             if len(vcstr.split('.')[1])>1:
                 vcstr = '%.1E' %(vc)
 
-            wx.FindWindowById(vc_ids['sup_vc']).SetValue(vcstr)
+            wx.FindWindowById(vc_ids['sup_vc'], self).SetValue(vcstr)
 
 
             qrstr = str(np.around(qr,1))
@@ -1936,15 +1935,15 @@ class MolWeightFrame(wx.Frame):
             if len(qrstr.split('.')[1])>1:
                 qrstr = '%.1E' %(qr)
 
-            wx.FindWindowById(vc_ids['sup_qr']).SetValue(qrstr)
+            wx.FindWindowById(vc_ids['sup_qr'], self).SetValue(qrstr)
 
     def calcVpMW(self):
         #This is calculated using the method in Fischer et al. J. App. Crys. 2009
 
         vp_ids = self.ids['VP']
 
-        rg = float(wx.FindWindowById(self.infodata['Rg'][1]).GetValue())
-        i0 = float(wx.FindWindowById(self.infodata['I0'][1]).GetValue())
+        rg = float(wx.FindWindowById(self.infodata['Rg'][1], self).GetValue())
+        i0 = float(wx.FindWindowById(self.infodata['I0'][1], self).GetValue())
 
         q = self.sasm.q
         i = self.sasm.i
@@ -1993,7 +1992,7 @@ class MolWeightFrame(wx.Frame):
             if len(mwstr.split('.')[1])>1:
                 mwstr = '%.1E' %(mw)
 
-            mwCtrl = wx.FindWindowById(vp_ids['calc_mw'])
+            mwCtrl = wx.FindWindowById(vp_ids['calc_mw'], self)
             mwCtrl.SetValue(mwstr)
 
             vpstr = str(np.around(pVolume,1))
@@ -2001,7 +2000,7 @@ class MolWeightFrame(wx.Frame):
             if len(vpstr.split('.')[1])>1:
                 vpstr = '%.1E' %(pVolume)
 
-            vpCtrl = wx.FindWindowById(vp_ids['sup_vp'])
+            vpCtrl = wx.FindWindowById(vp_ids['sup_vp'], self)
             vpCtrl.SetValue(vpstr)
 
             vpcstr = str(np.around(pv_cor,1))
@@ -2009,7 +2008,7 @@ class MolWeightFrame(wx.Frame):
             if len(vpcstr.split('.')[1])>1:
                 vpcstr = '%.1E' %(pv_cor)
 
-            pvcCtrl = wx.FindWindowById(vp_ids['sup_vpc'])
+            pvcCtrl = wx.FindWindowById(vp_ids['sup_vpc'], self)
             pvcCtrl.SetValue(vpcstr)
 
 
@@ -2017,7 +2016,7 @@ class MolWeightFrame(wx.Frame):
     def calcAbsMW(self):
         try:
             abs_ids = self.ids['abs']
-            i0 = float(wx.FindWindowById(self.infodata['I0'][1]).GetValue())
+            i0 = float(wx.FindWindowById(self.infodata['I0'][1], self).GetValue())
 
             #Default values from Mylonas & Svergun, J. App. Crys. 2007.
             rho_Mprot = self.raw_settings.get('MWAbsRhoMprot') #e-/g, # electrons per dry mass of protein
@@ -2026,11 +2025,11 @@ class MolWeightFrame(wx.Frame):
             r0 = self.raw_settings.get('MWAbsR0') #cm, scattering lenght of an electron
 
             try:
-                conc = float(wx.FindWindowById(abs_ids['conc']).GetValue())
+                conc = float(wx.FindWindowById(abs_ids['conc'], self).GetValue())
             except ValueError:
                 conc = -1
 
-            if conc > 0 and i0 > 0 and wx.FindWindowById(abs_ids['calib']).GetValue():
+            if conc > 0 and i0 > 0 and wx.FindWindowById(abs_ids['calib'], self).GetValue():
                 d_rho = (rho_Mprot-(rho_solv*nu_bar))*r0
                 mw = (Avogadro*i0/conc)/np.square(d_rho)
 
@@ -2039,7 +2038,7 @@ class MolWeightFrame(wx.Frame):
                 if len(mwstr.split('.')[1])>1 or len(mwstr.split('.')[0])>4:
                     mwstr = '%.2E' %(mw)
 
-                mwCtrl = wx.FindWindowById(abs_ids['calc_mw'])
+                mwCtrl = wx.FindWindowById(abs_ids['calc_mw'], self)
                 mwCtrl.SetValue(mwstr)
         except Exception, e:
             print e
@@ -2612,9 +2611,9 @@ class GNOMControlPanel(wx.Panel):
     def initDatgnomValues(self, sasm, iftm):
         self.setSpinLimits(sasm)
 
-        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'])
-        guinierRgWindow = wx.FindWindowById(self.infodata['guinierRg'][1])
-        guinierI0Window = wx.FindWindowById(self.infodata['guinierI0'][1])
+        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
+        guinierRgWindow = wx.FindWindowById(self.infodata['guinierRg'][1], self)
+        guinierI0Window = wx.FindWindowById(self.infodata['guinierI0'][1], self)
 
         dmax = int(round(iftm.getParameter('dmax')))
 
@@ -2649,9 +2648,9 @@ class GNOMControlPanel(wx.Panel):
 
     def initGnomValues(self, sasm):
 
-        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'])
-        guinierRgWindow = wx.FindWindowById(self.infodata['guinierRg'][1])
-        guinierI0Window = wx.FindWindowById(self.infodata['guinierI0'][1])
+        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
+        guinierRgWindow = wx.FindWindowById(self.infodata['guinierRg'][1], self)
+        guinierI0Window = wx.FindWindowById(self.infodata['guinierI0'][1], self)
 
         dmax = sasm.getParameter('analysis')['GNOM']['Dmax']
         qmin = sasm.getParameter('analysis')['GNOM']['qStart']
@@ -2669,9 +2668,9 @@ class GNOMControlPanel(wx.Panel):
 
         self.endSpin.SetValue(new_nmax)
         self.startSpin.SetValue(new_nmin)
-        txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+        txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
         txt.SetValue(str(round(sasm.q[new_nmax],4)))
-        txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+        txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
         txt.SetValue(str(round(sasm.q[new_nmin],4)))
 
         self.calcGNOM(dmax)
@@ -2703,11 +2702,11 @@ class GNOMControlPanel(wx.Panel):
 
 
     def updateGNOMInfo(self, iftm):
-        gnomRgWindow = wx.FindWindowById(self.infodata['gnomRg'][1])
-        gnomI0Window = wx.FindWindowById(self.infodata['gnomI0'][1])
-        gnomTEWindow = wx.FindWindowById(self.infodata['TE'][1])
-        gnomQualityWindow = wx.FindWindowById(self.infodata['gnomQuality'][1])
-        gnomChisqWindow = wx.FindWindowById(self.infodata['chisq'][1])
+        gnomRgWindow = wx.FindWindowById(self.infodata['gnomRg'][1], self)
+        gnomI0Window = wx.FindWindowById(self.infodata['gnomI0'][1], self)
+        gnomTEWindow = wx.FindWindowById(self.infodata['TE'][1], self)
+        gnomQualityWindow = wx.FindWindowById(self.infodata['gnomQuality'][1], self)
+        gnomChisqWindow = wx.FindWindowById(self.infodata['chisq'][1], self)
 
         gnomRgWindow.SetValue(str(iftm.getParameter('rg')))
         gnomI0Window.SetValue(str(iftm.getParameter('i0')))
@@ -2734,11 +2733,11 @@ class GNOMControlPanel(wx.Panel):
 
         gnom_results = {}
 
-        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'])
+        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
         dmax = str(dmaxWindow.GetValue())
 
-        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'])
-        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'])
+        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
+        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
         start_idx = startSpin.GetValue()
         end_idx = endSpin.GetValue()
 
@@ -2832,7 +2831,7 @@ class GNOMControlPanel(wx.Panel):
         if restart_timer:
             wx.CallAfter(top.main_frame.controlTimer, True)
 
-        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'])
+        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
 
         dmax = int(round(datgnom.getParameter('dmax')))
 
@@ -2985,22 +2984,22 @@ class GNOMControlPanel(wx.Panel):
 
         findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
 
-        txtctrl = wx.FindWindowById(id)
+        txtctrl = wx.FindWindowById(id, self)
 
         #### If User inputs garbage: ####
         try:
             val = float(txtctrl.GetValue())
         except ValueError:
             if id == self.staticTxtIDs['qstart']:
-                spinctrl = wx.FindWindowById(self.spinctrlIDs['qstart'])
-                txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+                spinctrl = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
+                txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
                 idx = int(spinctrl.GetValue())
                 txt.SetValue(str(round(self.sasm.q[idx],5)))
                 return
 
             if id == self.staticTxtIDs['qend']:
-                spinctrl = wx.FindWindowById(self.spinctrlIDs['qend'])
-                txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+                spinctrl = wx.FindWindowById(self.spinctrlIDs['qend'], self)
+                txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 idx = int(spinctrl.GetValue())
                 txt.SetValue(str(round(self.sasm.q[idx],5)))
                 return
@@ -3010,8 +3009,8 @@ class GNOMControlPanel(wx.Panel):
 
         i = np.where(lx == closest)[0][0]
 
-        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'])
-        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'])
+        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
+        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
 
         if id == self.staticTxtIDs['qstart']:
 
@@ -3043,9 +3042,9 @@ class GNOMControlPanel(wx.Panel):
         self.endSpin.SetRange((0, len(sasm.q)-1))
 
         self.endSpin.SetValue(len(sasm.q)-1)
-        txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+        txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
         txt.SetValue(str(round(sasm.q[int(len(sasm.q)-1)],4)))
-        txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+        txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
         txt.SetValue(str(round(sasm.q[0],4)))
 
 
@@ -3054,17 +3053,17 @@ class GNOMControlPanel(wx.Panel):
         id = evt.GetId()
 
         if id != self.spinctrlIDs['dmax']:
-            spin = wx.FindWindowById(id)
+            spin = wx.FindWindowById(id, self)
 
-            startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'])
-            endSpin = wx.FindWindowById(self.spinctrlIDs['qend'])
+            startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
+            endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
 
             i = spin.GetValue()
 
             #Make sure the boundaries don't cross:
             if id == self.spinctrlIDs['qstart']:
                 max = endSpin.GetValue()
-                txt = wx.FindWindowById(self.staticTxtIDs['qstart'])
+                txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
 
                 if i > max-3:
                     i = max - 3
@@ -3072,7 +3071,7 @@ class GNOMControlPanel(wx.Panel):
 
             elif id == self.spinctrlIDs['qend']:
                 min = startSpin.GetValue()
-                txt = wx.FindWindowById(self.staticTxtIDs['qend'])
+                txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
 
                 if i < min+3:
                     i = min + 3
@@ -3087,7 +3086,7 @@ class GNOMControlPanel(wx.Panel):
 
 
     def updatePlot(self):
-        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'])
+        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
         dmax = dmaxWindow.GetValue()
 
         if dmax not in self.out_list:
@@ -3097,7 +3096,7 @@ class GNOMControlPanel(wx.Panel):
 
         plotpanel = wx.FindWindowByName('GNOMPlotPanel')
 
-        dmax_window = wx.FindWindowById(self.spinctrlIDs['dmax'])
+        dmax_window = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
         dmax = str(dmax_window.GetValue())
 
         a = plotpanel.subplots['P(r)']
@@ -3111,8 +3110,8 @@ class GNOMControlPanel(wx.Panel):
 
 
     def calcGNOM(self, dmax):
-        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'])
-        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'])
+        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
+        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
 
         start = int(startSpin.GetValue())
         end = int(endSpin.GetValue())
@@ -3504,45 +3503,45 @@ class DammifFrame(wx.Frame):
                                 'annealSched'       : self.raw_settings.get('damminAnealSched')
                                 }
 
-        mode = wx.FindWindowById(self.ids['mode'])
+        mode = wx.FindWindowById(self.ids['mode'], self)
         mode.SetStringSelection(self.dammif_settings['mode'])
 
-        sym = wx.FindWindowById(self.ids['sym'])
+        sym = wx.FindWindowById(self.ids['sym'], self)
         sym.SetStringSelection(self.dammif_settings['sym'])
 
-        anisometry = wx.FindWindowById(self.ids['anisometry'])
+        anisometry = wx.FindWindowById(self.ids['anisometry'], self)
         anisometry.SetStringSelection(self.dammif_settings['anisometry'])
 
-        procs = wx.FindWindowById(self.ids['procs'])
+        procs = wx.FindWindowById(self.ids['procs'], self)
         procs.SetSelection(1)
 
-        damaver = wx.FindWindowById(self.ids['damaver'])
+        damaver = wx.FindWindowById(self.ids['damaver'], self)
         damaver.SetValue(self.raw_settings.get('dammifDamaver'))
 
-        damclust = wx.FindWindowById(self.ids['damclust'])
+        damclust = wx.FindWindowById(self.ids['damclust'], self)
         damclust.SetValue(self.raw_settings.get('dammifDamclust'))
 
-        prefix = wx.FindWindowById(self.ids['prefix'])
+        prefix = wx.FindWindowById(self.ids['prefix'], self)
         prefix.SetValue(os.path.splitext(self.filename)[0])
 
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
         path = dirctrl_panel.getDirLabel()
 
-        save = wx.FindWindowById(self.ids['save'])
+        save = wx.FindWindowById(self.ids['save'], self)
         save.SetValue(path)
 
-        nruns = wx.FindWindowById(self.ids['runs'])
+        nruns = wx.FindWindowById(self.ids['runs'], self)
         nruns.SetValue(str(self.raw_settings.get('dammifReconstruct')))
 
-        refine = wx.FindWindowById(self.ids['refine'])
+        refine = wx.FindWindowById(self.ids['refine'], self)
 
         if refine.IsEnabled:
             refine.SetValue(self.raw_settings.get('dammifRefine'))
 
-        program = wx.FindWindowById(self.ids['program'])
+        program = wx.FindWindowById(self.ids['program'], self)
         program.SetStringSelection(self.raw_settings.get('dammifProgram'))
 
-        wx.FindWindowById(self.ids['abort']).Disable()
+        wx.FindWindowById(self.ids['abort'], self).Disable()
 
 
     def onStartButton(self, evt):
@@ -3550,28 +3549,28 @@ class DammifFrame(wx.Frame):
         self.setArgs()
 
         #Get user settings on number of runs, save location, etc
-        damaver_window = wx.FindWindowById(self.ids['damaver'])
+        damaver_window = wx.FindWindowById(self.ids['damaver'], self)
         damaver = damaver_window.GetValue()
 
-        damclust_window = wx.FindWindowById(self.ids['damclust'])
+        damclust_window = wx.FindWindowById(self.ids['damclust'], self)
         damclust = damclust_window.GetValue()
 
-        prefix_window = wx.FindWindowById(self.ids['prefix'])
+        prefix_window = wx.FindWindowById(self.ids['prefix'], self)
         prefix = prefix_window.GetValue()
 
-        path_window = wx.FindWindowById(self.ids['save'])
+        path_window = wx.FindWindowById(self.ids['save'], self)
         path = path_window.GetValue()
 
-        procs_window = wx.FindWindowById(self.ids['procs'])
+        procs_window = wx.FindWindowById(self.ids['procs'], self)
         procs = int(procs_window.GetStringSelection())
 
-        nruns_window = wx.FindWindowById(self.ids['runs'])
+        nruns_window = wx.FindWindowById(self.ids['runs'], self)
         nruns = int(nruns_window.GetValue())
 
-        program_window = wx.FindWindowById(self.ids['program'])
+        program_window = wx.FindWindowById(self.ids['program'], self)
         program = program_window.GetStringSelection()
 
-        refine_window = wx.FindWindowById(self.ids['refine'])
+        refine_window = wx.FindWindowById(self.ids['refine'], self)
         refine = refine_window.GetValue()
 
         outname = os.path.join(path, prefix+'.out')
@@ -3707,9 +3706,9 @@ class DammifFrame(wx.Frame):
 
         for key in self.ids:
             if key != 'logbook' and key != 'abort' and key != 'status':
-                wx.FindWindowById(self.ids[key]).Disable()
+                wx.FindWindowById(self.ids[key], self).Disable()
             elif key == 'abort':
-                wx.FindWindowById(self.ids[key]).Enable()
+                wx.FindWindowById(self.ids[key], self).Enable()
 
 
         self.threads = []
@@ -3752,26 +3751,26 @@ class DammifFrame(wx.Frame):
 
         for key in self.ids:
             if key != 'logbook' and key != 'abort' and key != 'status':
-                wx.FindWindowById(self.ids[key]).Enable()
+                wx.FindWindowById(self.ids[key], self).Enable()
             elif key == 'abort':
-                wx.FindWindowById(self.ids[key]).Disable()
+                wx.FindWindowById(self.ids[key], self).Disable()
 
 
         self.status.AppendText('Processing Aborted!')
 
 
     def onChangeDirectoryButton(self, evt):
-        path = wx.FindWindowById(self.ids['save']).GetValue()
+        path = wx.FindWindowById(self.ids['save'], self).GetValue()
 
         dirdlg = wx.DirDialog(self, "Please select save directory:", defaultPath = path)
 
         if dirdlg.ShowModal() == wx.ID_OK:
             new_path = dirdlg.GetPath()
-            wx.FindWindowById(self.ids['save']).SetValue(new_path)
+            wx.FindWindowById(self.ids['save'], self).SetValue(new_path)
 
 
     def onRunsText(self, evt):
-        nruns_ctrl = wx.FindWindowById(self.ids['runs'])
+        nruns_ctrl = wx.FindWindowById(self.ids['runs'], self)
 
 
         nruns = nruns_ctrl.GetValue()
@@ -3791,7 +3790,7 @@ class DammifFrame(wx.Frame):
     def setArgs(self):
         for key in self.dammif_settings:
             if key in self.ids:
-                window = wx.FindWindowById(self.ids[key])
+                window = wx.FindWindowById(self.ids[key], self)
 
                 self.dammif_settings[key] = window.GetStringSelection()
 
@@ -3805,7 +3804,7 @@ class DammifFrame(wx.Frame):
                 damId = self.dammif_ids[my_num]
             else:
                 damId = self.dammif_ids['refine']
-            damWindow = wx.FindWindowById(damId)
+            damWindow = wx.FindWindowById(damId, self)
 
             if self.abort_event.isSet():
                 wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
@@ -3921,7 +3920,7 @@ class DammifFrame(wx.Frame):
         with self.my_semaphore:
             #Check to see if things have been aborted
             damId = self.dammif_ids['damaver']
-            damWindow = wx.FindWindowById(damId)
+            damWindow = wx.FindWindowById(damId, self)
 
             if self.abort_event.isSet():
                 wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
@@ -3941,7 +3940,7 @@ class DammifFrame(wx.Frame):
             wx.CallAfter(self.status.AppendText, 'Starting DAMAVER\n')
 
 
-            nruns_window = wx.FindWindowById(self.ids['runs'])
+            nruns_window = wx.FindWindowById(self.ids['runs'], self)
             nruns = int(nruns_window.GetValue())
 
             dam_filelist = [prefix+'_%s-1.pdb' %(str(i).zfill(2)) for i in range(1, nruns+1)]
@@ -4000,11 +3999,11 @@ class DammifFrame(wx.Frame):
 
             wx.CallAfter(self.status.AppendText, 'Finished DAMAVER\n')
 
-            refine_window = wx.FindWindowById(self.ids['refine'])
+            refine_window = wx.FindWindowById(self.ids['refine'], self)
             refine = refine_window.GetValue()
 
             if refine:
-                program_window = wx.FindWindowById(self.ids['program'])
+                program_window = wx.FindWindowById(self.ids['program'], self)
                 program = program_window.GetStringSelection()
 
                 outname = os.path.join(path, prefix+'.out')
@@ -4038,7 +4037,7 @@ class DammifFrame(wx.Frame):
         with self.my_semaphore:
             #Check to see if things have been aborted
             damId = self.dammif_ids['damclust']
-            damWindow = wx.FindWindowById(damId)
+            damWindow = wx.FindWindowById(damId, self)
 
             if self.abort_event.isSet():
                 wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
@@ -4054,7 +4053,7 @@ class DammifFrame(wx.Frame):
             wx.CallAfter(self.status.AppendText, 'Starting DAMCLUST\n')
 
 
-            nruns_window = wx.FindWindowById(self.ids['runs'])
+            nruns_window = wx.FindWindowById(self.ids['runs'], self)
             nruns = int(nruns_window.GetValue())
 
             dam_filelist = [prefix+'_%s-1.pdb' %(str(i).zfill(2)) for i in range(1, nruns+1)]
@@ -4127,10 +4126,10 @@ class DammifFrame(wx.Frame):
             self.dammif_timer.Stop()
 
             if 'damaver' in self.dammif_ids:
-                path_window = wx.FindWindowById(self.ids['save'])
+                path_window = wx.FindWindowById(self.ids['save'], self)
                 path = path_window.GetValue()
 
-                prefix_window = wx.FindWindowById(self.ids['prefix'])
+                prefix_window = wx.FindWindowById(self.ids['prefix'], self)
                 prefix = prefix_window.GetValue()
 
 
@@ -4140,10 +4139,10 @@ class DammifFrame(wx.Frame):
                 self.threads.append(t)
 
             elif 'damclust' in self.dammif_ids:
-                path_window = wx.FindWindowById(self.ids['save'])
+                path_window = wx.FindWindowById(self.ids['save'], self)
                 path = path_window.GetValue()
 
-                prefix_window = wx.FindWindowById(self.ids['prefix'])
+                prefix_window = wx.FindWindowById(self.ids['prefix'], self)
                 prefix = prefix_window.GetValue()
 
 
@@ -4159,9 +4158,9 @@ class DammifFrame(wx.Frame):
     def finishedProcessing(self):
         for key in self.ids:
             if key != 'logbook' and key != 'abort' and key != 'status':
-                wx.FindWindowById(self.ids[key]).Enable()
+                wx.FindWindowById(self.ids[key], self).Enable()
             elif key == 'abort':
-                wx.FindWindowById(self.ids[key]).Disable()
+                wx.FindWindowById(self.ids[key], self).Disable()
 
         wx.CallAfter(self.status.AppendText, 'Finished Processing')
 
@@ -4170,10 +4169,10 @@ class DammifFrame(wx.Frame):
         self.main_frame.showOptionsDialog(focusHead='DAMMIF/N')
 
     def onCheckBox(self,evt):
-        refine = wx.FindWindowById(self.ids['refine'])
+        refine = wx.FindWindowById(self.ids['refine'], self)
 
         if evt.GetId() == self.ids['damaver'] and evt.IsChecked():
-            damclust = wx.FindWindowById(self.ids['damclust'])
+            damclust = wx.FindWindowById(self.ids['damclust'], self)
             damclust.SetValue(False)
 
             if not refine.IsEnabled():
@@ -4186,7 +4185,7 @@ class DammifFrame(wx.Frame):
                 refine.SetValue(False)
 
         elif evt.GetId() == self.ids['damclust'] and evt.IsChecked():
-            damaver = wx.FindWindowById(self.ids['damaver'])
+            damaver = wx.FindWindowById(self.ids['damaver'], self)
             damaver.SetValue(False)
 
             if refine.IsEnabled():
@@ -4228,42 +4227,42 @@ class DammifFrame(wx.Frame):
                                 'annealSched'       : self.raw_settings.get('damminAnealSched')
                                 }
 
-        mode = wx.FindWindowById(self.ids['mode'])
+        mode = wx.FindWindowById(self.ids['mode'], self)
         mode.SetStringSelection(self.dammif_settings['mode'])
 
-        sym = wx.FindWindowById(self.ids['sym'])
+        sym = wx.FindWindowById(self.ids['sym'], self)
         sym.SetStringSelection(self.dammif_settings['sym'])
 
-        anisometry = wx.FindWindowById(self.ids['anisometry'])
+        anisometry = wx.FindWindowById(self.ids['anisometry'], self)
         anisometry.SetStringSelection(self.dammif_settings['anisometry'])
 
-        procs = wx.FindWindowById(self.ids['procs'])
+        procs = wx.FindWindowById(self.ids['procs'], self)
         procs.SetSelection(1)
 
-        damaver = wx.FindWindowById(self.ids['damaver'])
+        damaver = wx.FindWindowById(self.ids['damaver'], self)
         damaver.SetValue(self.raw_settings.get('dammifDamaver'))
 
-        damclust = wx.FindWindowById(self.ids['damclust'])
+        damclust = wx.FindWindowById(self.ids['damclust'], self)
         damclust.SetValue(self.raw_settings.get('dammifDamclust'))
 
-        prefix = wx.FindWindowById(self.ids['prefix'])
+        prefix = wx.FindWindowById(self.ids['prefix'], self)
         prefix.SetValue(os.path.splitext(self.filename)[0])
 
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
         path = dirctrl_panel.getDirLabel()
 
-        save = wx.FindWindowById(self.ids['save'])
+        save = wx.FindWindowById(self.ids['save'], self)
         save.SetValue(path)
 
-        nruns = wx.FindWindowById(self.ids['runs'])
+        nruns = wx.FindWindowById(self.ids['runs'], self)
         nruns.SetValue(str(self.raw_settings.get('dammifReconstruct')))
 
-        refine = wx.FindWindowById(self.ids['refine'])
+        refine = wx.FindWindowById(self.ids['refine'], self)
 
         if refine.IsEnabled:
             refine.SetValue(self.raw_settings.get('dammifRefine'))
 
-        program = wx.FindWindowById(self.ids['program'])
+        program = wx.FindWindowById(self.ids['program'], self)
         program.SetStringSelection(self.raw_settings.get('dammifProgram'))
 
 
@@ -4316,9 +4315,9 @@ class DammifFrame(wx.Frame):
 
                 for key in self.ids:
                     if key != 'logbook' and key != 'abort' and key != 'status':
-                        wx.FindWindowById(self.ids[key]).Enable()
+                        wx.FindWindowById(self.ids[key], self).Enable()
                     elif key == 'abort':
-                        wx.FindWindowById(self.ids[key]).Disable()
+                        wx.FindWindowById(self.ids[key], self).Disable()
 
                 self.status.AppendText('Processing Aborted!')
 
@@ -4346,9 +4345,9 @@ class DammifFrame(wx.Frame):
 
             for key in self.ids:
                 if key != 'logbook' and key != 'abort' and key != 'status':
-                    wx.FindWindowById(self.ids[key]).Enable()
+                    wx.FindWindowById(self.ids[key], self).Enable()
                 elif key == 'abort':
-                    wx.FindWindowById(self.ids[key]).Disable()
+                    wx.FindWindowById(self.ids[key], self).Disable()
 
             self.status.AppendText('Processing Aborted!')
 
@@ -4829,8 +4828,8 @@ class BIFTControlPanel(wx.Panel):
 
     def initValues(self):
 
-        guinierRgWindow = wx.FindWindowById(self.infodata['guinierRg'][1])
-        guinierI0Window = wx.FindWindowById(self.infodata['guinierI0'][1])
+        guinierRgWindow = wx.FindWindowById(self.infodata['guinierRg'][1], self)
+        guinierI0Window = wx.FindWindowById(self.infodata['guinierI0'][1], self)
 
         if 'guinier' in self.sasm.getParameter('analysis'):
 
@@ -4910,11 +4909,11 @@ class BIFTControlPanel(wx.Panel):
         wx.MessageBox(str(msg), "How to cite BIFT", style = wx.ICON_INFORMATION | wx.OK)
 
     def updateBIFTInfo(self):
-        biftRgWindow = wx.FindWindowById(self.infodata['biftRg'][1])
-        biftI0Window = wx.FindWindowById(self.infodata['biftI0'][1])
-        biftChisqWindow = wx.FindWindowById(self.infodata['chisq'][1])
-        biftDmaxWindow = wx.FindWindowById(self.infodata['dmax'][1])
-        biftAlphaWindow = wx.FindWindowById(self.infodata['alpha'][1])
+        biftRgWindow = wx.FindWindowById(self.infodata['biftRg'][1], self)
+        biftI0Window = wx.FindWindowById(self.infodata['biftI0'][1], self)
+        biftChisqWindow = wx.FindWindowById(self.infodata['chisq'][1], self)
+        biftDmaxWindow = wx.FindWindowById(self.infodata['dmax'][1], self)
+        biftAlphaWindow = wx.FindWindowById(self.infodata['alpha'][1], self)
 
         if self.iftm != None:
 
@@ -4967,9 +4966,9 @@ class BIFTControlPanel(wx.Panel):
 
         for key in self.buttonIds:
             if key not in ['abort']:
-                wx.FindWindowById(self.buttonIds[key]).Disable()
+                wx.FindWindowById(self.buttonIds[key], self).Disable()
             else:
-                wx.FindWindowById(self.buttonIds[key]).Enable()
+                wx.FindWindowById(self.buttonIds[key], self).Enable()
 
         RAWGlobals.cancel_bift = False
 
@@ -4985,21 +4984,21 @@ class BIFTControlPanel(wx.Panel):
     def updateStatus(self, updates):
         for key in updates:
             if key == 'alpha':
-                wx.FindWindowById(self.statusIds[key]).SetLabel(str(np.log(updates[key])))
+                wx.FindWindowById(self.statusIds[key], self).SetLabel(str(np.log(updates[key])))
             else:
-                wx.FindWindowById(self.statusIds[key]).SetLabel(str(updates[key]))
+                wx.FindWindowById(self.statusIds[key], self).SetLabel(str(updates[key]))
 
     def clearStatus(self, exception_list):
         for key in self.statusIds:
             if key not in exception_list:
-                wx.FindWindowById(self.statusIds[key]).SetLabel('')
+                wx.FindWindowById(self.statusIds[key], self).SetLabel('')
 
     def finishedProcessing(self):
         for key in self.buttonIds:
             if key not in ['abort']:
-                wx.FindWindowById(self.buttonIds[key]).Enable()
+                wx.FindWindowById(self.buttonIds[key], self).Enable()
             else:
-                wx.FindWindowById(self.buttonIds[key]).Disable()
+                wx.FindWindowById(self.buttonIds[key], self).Disable()
 
     def onBIFTTimer(self, evt):
         try:
@@ -5237,33 +5236,33 @@ class AmbimeterFrame(wx.Frame):
         return top_sizer
 
     def _initSettings(self):
-        fname_window = wx.FindWindowById(self.ids['input'])
+        fname_window = wx.FindWindowById(self.ids['input'], self)
         fname_window.SetValue(self.iftm.getParameter('filename').replace(' ','_'))
 
-        rg_window = wx.FindWindowById(self.ids['rg'])
+        rg_window = wx.FindWindowById(self.ids['rg'], self)
         rg_window.SetValue(str(self.iftm.getParameter('rg')))
 
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
         path = dirctrl_panel.getDirLabel()
 
-        outdir_window = wx.FindWindowById(self.ids['save'])
+        outdir_window = wx.FindWindowById(self.ids['save'], self)
         outdir_window.SetValue(path)
 
-        outprefix_window = wx.FindWindowById(self.ids['prefix'])
+        outprefix_window = wx.FindWindowById(self.ids['prefix'], self)
         outprefix_window.SetValue(os.path.splitext(os.path.basename(self.iftm.getParameter('filename')))[0])
 
     def _getSettings(self):
 
-        outdir_window = wx.FindWindowById(self.ids['save'])
+        outdir_window = wx.FindWindowById(self.ids['save'], self)
         self.ambi_settings['path'] = outdir_window.GetValue()
 
-        outprefix_window = wx.FindWindowById(self.ids['prefix'])
+        outprefix_window = wx.FindWindowById(self.ids['prefix'], self)
         self.ambi_settings['prefix'] = outprefix_window.GetValue()
 
-        outsrg_window = wx.FindWindowById(self.ids['sRg'])
+        outsrg_window = wx.FindWindowById(self.ids['sRg'], self)
         self.ambi_settings['sRg'] = outsrg_window.GetValue()
 
-        outfiles_window = wx.FindWindowById(self.ids['files'])
+        outfiles_window = wx.FindWindowById(self.ids['files'], self)
         self.ambi_settings['files'] = outfiles_window.GetStringSelection()
 
 
@@ -5312,30 +5311,30 @@ class AmbimeterFrame(wx.Frame):
 
         os.chdir(cwd)
 
-        cats_window = wx.FindWindowById(self.ids['ambiCats'])
+        cats_window = wx.FindWindowById(self.ids['ambiCats'], self)
         cats_window.SetValue(output[0])
 
-        score_window = wx.FindWindowById(self.ids['ambiScore'])
+        score_window = wx.FindWindowById(self.ids['ambiScore'], self)
         score_window.SetValue(output[1])
 
-        eval_window = wx.FindWindowById(self.ids['ambiEval'])
+        eval_window = wx.FindWindowById(self.ids['ambiEval'], self)
         eval_window.SetValue(output[2])
 
         bi.Destroy()
 
 
     def onChangeDirectoryButton(self, evt):
-        path = wx.FindWindowById(self.ids['save']).GetValue()
+        path = wx.FindWindowById(self.ids['save'], self).GetValue()
 
         dirdlg = wx.DirDialog(self, "Please select save directory:", defaultPath = path)
 
         if dirdlg.ShowModal() == wx.ID_OK:
             new_path = dirdlg.GetPath()
-            wx.FindWindowById(self.ids['save']).SetValue(new_path)
+            wx.FindWindowById(self.ids['save'], self).SetValue(new_path)
 
 
     def onSrgText(self, evt):
-        srg_ctrl = wx.FindWindowById(self.ids['sRg'])
+        srg_ctrl = wx.FindWindowById(self.ids['sRg'], self)
 
 
         srg = srg_ctrl.GetValue()
@@ -5856,7 +5855,7 @@ class SVDControlPanel(wx.Panel):
 
         filename = self.secm.getParameter('filename')
 
-        filename_window = wx.FindWindowById(self.field_ids['fname'])
+        filename_window = wx.FindWindowById(self.field_ids['fname'], self)
         filename_window.SetValue(filename)
 
         analysis_dict = self.secm.getParameter('analysis')
@@ -5867,8 +5866,8 @@ class SVDControlPanel(wx.Panel):
             framef = self.secm.frame_list[-1]
 
 
-            framei_window = wx.FindWindowById(self.control_ids['fstart'])
-            framef_window = wx.FindWindowById(self.control_ids['fend'])
+            framei_window = wx.FindWindowById(self.control_ids['fstart'], self)
+            framef_window = wx.FindWindowById(self.control_ids['fend'], self)
 
             if len(self.secm.subtracted_sasm_list)>0:
                 if not np.all(self.secm.use_subtracted_sasm):
@@ -5886,8 +5885,8 @@ class SVDControlPanel(wx.Panel):
             framef_window.SetRange((framei, framef))
 
 
-            svd_start_window =wx.FindWindowById(self.control_ids['svd_start'])
-            svd_end_window =wx.FindWindowById(self.control_ids['svd_end'])
+            svd_start_window =wx.FindWindowById(self.control_ids['svd_start'], self)
+            svd_end_window =wx.FindWindowById(self.control_ids['svd_end'], self)
 
             svd_start_window.SetValue(0)
             svd_end_window.SetValue(min(framef-framei,10))
@@ -5899,11 +5898,11 @@ class SVDControlPanel(wx.Panel):
             framei = self.secm.frame_list[0]
             framef = self.secm.frame_list[-1]
 
-            framei_window = wx.FindWindowById(self.control_ids['fstart'])
-            framef_window = wx.FindWindowById(self.control_ids['fend'])
+            framei_window = wx.FindWindowById(self.control_ids['fstart'], self)
+            framef_window = wx.FindWindowById(self.control_ids['fend'], self)
 
-            svd_start_window =wx.FindWindowById(self.control_ids['svd_start'])
-            svd_end_window =wx.FindWindowById(self.control_ids['svd_end'])
+            svd_start_window =wx.FindWindowById(self.control_ids['svd_start'], self)
+            svd_end_window =wx.FindWindowById(self.control_ids['svd_end'], self)
 
             framei_window.SetRange((framei, framef))
             framef_window.SetRange((framei, framef))
@@ -5913,9 +5912,9 @@ class SVDControlPanel(wx.Panel):
 
             for key in analysis_dict['svd']:
                 if key != 'profile':
-                    wx.FindWindowById(self.control_ids[key]).SetValue(analysis_dict['svd'][key])
+                    wx.FindWindowById(self.control_ids[key], self).SetValue(analysis_dict['svd'][key])
                 else:
-                    wx.FindWindowById(self.control_ids[key]).SetStringSelection(analysis_dict['svd'][key])
+                    wx.FindWindowById(self.control_ids[key], self).SetStringSelection(analysis_dict['svd'][key])
 
 
         #make a subtracted profile SECM
@@ -5950,7 +5949,7 @@ class SVDControlPanel(wx.Panel):
             dlg.ShowModal()
             dlg.Destroy()
 
-            profile_window = wx.FindWindowById(evt.GetId())
+            profile_window = wx.FindWindowById(evt.GetId(), self)
             profile_window.SetStringSelection('Unsubtracted')
 
 
@@ -5958,15 +5957,15 @@ class SVDControlPanel(wx.Panel):
     def _onChangeFrame(self, evt):
         id = evt.GetId()
 
-        spin = wx.FindWindowById(id)
+        spin = wx.FindWindowById(id, self)
 
         new_val = spin.GetValue()
 
-        fstart_window = wx.FindWindowById(self.control_ids['fstart'])
-        fend_window = wx.FindWindowById(self.control_ids['fend'])
+        fstart_window = wx.FindWindowById(self.control_ids['fstart'], self)
+        fend_window = wx.FindWindowById(self.control_ids['fend'], self)
 
-        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'])
-        svd_end_window =wx.FindWindowById(self.control_ids['svd_end'])
+        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'], self)
+        svd_end_window =wx.FindWindowById(self.control_ids['svd_end'], self)
 
         #Make sure the boundaries don't cross:
         if id == self.control_ids['fstart']:
@@ -6003,15 +6002,15 @@ class SVDControlPanel(wx.Panel):
     def _onChangeSVD(self, evt):
         id = evt.GetId()
 
-        spin = wx.FindWindowById(id)
+        spin = wx.FindWindowById(id, self)
 
         new_val = spin.GetValue()
 
-        fstart_window = wx.FindWindowById(self.control_ids['fstart'])
-        fend_window = wx.FindWindowById(self.control_ids['fend'])
+        fstart_window = wx.FindWindowById(self.control_ids['fstart'], self)
+        fend_window = wx.FindWindowById(self.control_ids['fend'], self)
 
-        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'])
-        svd_end_window = wx.FindWindowById(self.control_ids['svd_end'])
+        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'], self)
+        svd_end_window = wx.FindWindowById(self.control_ids['svd_end'], self)
 
         #Make sure the boundaries don't cross:
         if id == self.control_ids['svd_start']:
@@ -6050,10 +6049,10 @@ class SVDControlPanel(wx.Panel):
 
 
     def runSVD(self):
-        profile_window = wx.FindWindowById(self.control_ids['profile'])
+        profile_window = wx.FindWindowById(self.control_ids['profile'], self)
 
-        framei_window = wx.FindWindowById(self.control_ids['fstart'])
-        framef_window = wx.FindWindowById(self.control_ids['fend'])
+        framei_window = wx.FindWindowById(self.control_ids['fstart'], self)
+        framef_window = wx.FindWindowById(self.control_ids['fend'], self)
 
         framei = framei_window.GetValue()
         framef = framef_window.GetValue()
@@ -6063,7 +6062,7 @@ class SVDControlPanel(wx.Panel):
         else:
             secm = self.subtracted_secm
 
-        norm_data_window = wx.FindWindowById(self.control_ids['norm_data'])
+        norm_data_window = wx.FindWindowById(self.control_ids['norm_data'], self)
         norm_data = norm_data_window.GetValue()
 
         sasm_list = secm.getSASMList(framei, framef)
@@ -6094,13 +6093,13 @@ class SVDControlPanel(wx.Panel):
     def updateSECPlot(self):
 
         plotpanel = wx.FindWindowByName('SVDSECPlotPanel')
-        framei_window = wx.FindWindowById(self.control_ids['fstart'])
-        framef_window = wx.FindWindowById(self.control_ids['fend'])
+        framei_window = wx.FindWindowById(self.control_ids['fstart'], self)
+        framef_window = wx.FindWindowById(self.control_ids['fend'], self)
 
         framei = framei_window.GetValue()
         framef = framef_window.GetValue()
 
-        profile_window = wx.FindWindowById(self.control_ids['profile'])
+        profile_window = wx.FindWindowById(self.control_ids['profile'],self )
 
         if profile_window.GetStringSelection() == 'Unsubtracted':
             plotpanel.plotSECM(self.secm, framei, framef, self.ydata_type)
@@ -6110,8 +6109,8 @@ class SVDControlPanel(wx.Panel):
     def updateSVDPlot(self):
         plotpanel = wx.FindWindowByName('SVDResultsPlotPanel')
 
-        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'])
-        svd_end_window = wx.FindWindowById(self.control_ids['svd_end'])
+        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'], self)
+        svd_end_window = wx.FindWindowById(self.control_ids['svd_end'], self)
 
         svd_start = svd_start_window.GetValue()
         svd_end = svd_end_window.GetValue()
@@ -6128,7 +6127,7 @@ class SVDControlPanel(wx.Panel):
         dirctrl = wx.FindWindowByName('DirCtrlPanel')
         path = str(dirctrl.getDirLabel())
 
-        filename_window = wx.FindWindowById(self.field_ids['fname'])
+        filename_window = wx.FindWindowById(self.field_ids['fname'], self)
         filename = filename_window.GetValue()
 
         name, ext = os.path.splitext(filename)
@@ -6144,8 +6143,8 @@ class SVDControlPanel(wx.Panel):
         else:
             return
 
-        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'])
-        svd_end_window = wx.FindWindowById(self.control_ids['svd_end'])
+        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'], self)
+        svd_end_window = wx.FindWindowById(self.control_ids['svd_end'], self)
 
         svd_start = svd_start_window.GetValue()
         svd_end = svd_end_window.GetValue()
@@ -6160,7 +6159,7 @@ class SVDControlPanel(wx.Panel):
         dirctrl = wx.FindWindowByName('DirCtrlPanel')
         path = str(dirctrl.getDirLabel())
 
-        filename_window = wx.FindWindowById(self.field_ids['fname'])
+        filename_window = wx.FindWindowById(self.field_ids['fname'], self)
         filename = filename_window.GetValue()
 
         name, ext = os.path.splitext(filename)
@@ -6176,8 +6175,8 @@ class SVDControlPanel(wx.Panel):
         else:
             return
 
-        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'])
-        svd_end_window = wx.FindWindowById(self.control_ids['svd_end'])
+        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'], self)
+        svd_end_window = wx.FindWindowById(self.control_ids['svd_end'], self)
 
         svd_start = svd_start_window.GetValue()
         svd_end = svd_end_window.GetValue()
@@ -6198,9 +6197,9 @@ class SVDControlPanel(wx.Panel):
         svd_dict = {}
         for key in self.control_ids:
             if key != 'profile':
-                svd_dict[key] = wx.FindWindowById(self.control_ids[key]).GetValue()
+                svd_dict[key] = wx.FindWindowById(self.control_ids[key], self).GetValue()
             else:
-                svd_dict[key] = wx.FindWindowById(self.control_ids[key]).GetStringSelection()
+                svd_dict[key] = wx.FindWindowById(self.control_ids[key], self).GetStringSelection()
 
 
         analysis_dict = self.secm.getParameter('analysis')
@@ -6401,9 +6400,9 @@ class EFAFrame(wx.Frame):
 
                 if type(self.panel1_results['svd_u']) != None and not np.any(np.isnan(self.panel1_results['svd_u'])):
 
-                    self.top_sizer.Hide(wx.FindWindowById(self.splitter_ids[self.current_panel]), recursive = True)
+                    self.top_sizer.Hide(wx.FindWindowById(self.splitter_ids[self.current_panel], self), recursive = True)
 
-                    self.top_sizer.Show(wx.FindWindowById(self.splitter_ids[self.current_panel+1]), recursive = True)
+                    self.top_sizer.Show(wx.FindWindowById(self.splitter_ids[self.current_panel+1], self), recursive = True)
 
                     self.current_panel = self.current_panel + 1
 
@@ -6440,9 +6439,9 @@ class EFAFrame(wx.Frame):
 
             if correct:
 
-                self.top_sizer.Hide(wx.FindWindowById(self.splitter_ids[self.current_panel]), recursive = True)
+                self.top_sizer.Hide(wx.FindWindowById(self.splitter_ids[self.current_panel], self), recursive = True)
 
-                self.top_sizer.Show(wx.FindWindowById(self.splitter_ids[self.current_panel+1]), recursive = True)
+                self.top_sizer.Show(wx.FindWindowById(self.splitter_ids[self.current_panel+1], self), recursive = True)
 
                 self.current_panel = self.current_panel + 1
 
@@ -6475,18 +6474,18 @@ class EFAFrame(wx.Frame):
     def _onBackButton(self, evt):
 
         if self.current_panel == 2:
-            self.top_sizer.Hide(wx.FindWindowById(self.splitter_ids[self.current_panel]), recursive = True)
+            self.top_sizer.Hide(wx.FindWindowById(self.splitter_ids[self.current_panel], self), recursive = True)
 
-            self.top_sizer.Show(wx.FindWindowById(self.splitter_ids[self.current_panel-1]), recursive = True)
+            self.top_sizer.Show(wx.FindWindowById(self.splitter_ids[self.current_panel-1], self), recursive = True)
 
             self.current_panel = self.current_panel - 1
 
             self.back_button.Disable()
 
         elif self.current_panel == 3:
-            self.top_sizer.Hide(wx.FindWindowById(self.splitter_ids[self.current_panel]), recursive = True)
+            self.top_sizer.Hide(wx.FindWindowById(self.splitter_ids[self.current_panel], self), recursive = True)
 
-            self.top_sizer.Show(wx.FindWindowById(self.splitter_ids[self.current_panel-1]), recursive = True)
+            self.top_sizer.Show(wx.FindWindowById(self.splitter_ids[self.current_panel-1], self), recursive = True)
 
             self.current_panel = self.current_panel - 1
 
@@ -6547,7 +6546,7 @@ class EFAFrame(wx.Frame):
     def getPanel1Values(self):
         for key in self.panel1_results:
             if key in self.controlPanel1.control_ids:
-                window = wx.FindWindowById(self.controlPanel1.control_ids[key])
+                window = wx.FindWindowById(self.controlPanel1.control_ids[key], self.controlPanel1)
 
                 if key != 'profile':
                     value = window.GetValue()
@@ -6574,7 +6573,7 @@ class EFAFrame(wx.Frame):
                 value = self.controlPanel1.svd_a
 
             elif key =='use_sub':
-                profile_window = wx.FindWindowById(self.controlPanel1.control_ids['profile'])
+                profile_window = wx.FindWindowById(self.controlPanel1.control_ids['profile'], self.controlPanel1)
 
                 if profile_window.GetStringSelection() == 'Unsubtracted':
                     value = False
@@ -6588,7 +6587,7 @@ class EFAFrame(wx.Frame):
                 value = self.controlPanel1.ydata_type
 
             elif key == 'filename':
-                filename_window = wx.FindWindowById(self.controlPanel1.field_ids['fname'])
+                filename_window = wx.FindWindowById(self.controlPanel1.field_ids['fname'], self.controlPanel1)
                 value = filename_window.GetValue()
 
             elif key == 'q':
@@ -6599,10 +6598,10 @@ class EFAFrame(wx.Frame):
     def getPanel2Values(self):
         window = wx.FindWindowByName('EFAControlPanel2')
 
-        forward_points = [wx.FindWindowById(my_id).GetValue() for my_id in window.forward_ids]
+        forward_points = [wx.FindWindowById(my_id, window).GetValue() for my_id in window.forward_ids]
         self.panel2_results['forward_points'] = copy.copy(forward_points)
 
-        backward_points = [wx.FindWindowById(my_id).GetValue() for my_id in window.backward_ids]
+        backward_points = [wx.FindWindowById(my_id, window).GetValue() for my_id in window.backward_ids]
         self.panel2_results['backward_points'] = copy.copy(backward_points)
 
         forward_points.sort()
@@ -6779,18 +6778,18 @@ class EFAControlPanel1(wx.Panel):
 
         filename = self.secm.getParameter('filename')
 
-        filename_window = wx.FindWindowById(self.field_ids['fname'])
+        filename_window = wx.FindWindowById(self.field_ids['fname'], self)
         filename_window.SetValue(filename)
 
         analysis_dict = self.secm.getParameter('analysis')
 
-        framei_window = wx.FindWindowById(self.control_ids['fstart'])
-        framef_window = wx.FindWindowById(self.control_ids['fend'])
+        framei_window = wx.FindWindowById(self.control_ids['fstart'], self)
+        framef_window = wx.FindWindowById(self.control_ids['fend'], self)
 
-        svd_start_window =wx.FindWindowById(self.control_ids['svd_start'])
-        svd_end_window =wx.FindWindowById(self.control_ids['svd_end'])
+        svd_start_window =wx.FindWindowById(self.control_ids['svd_start'], self)
+        svd_end_window =wx.FindWindowById(self.control_ids['svd_end'], self)
 
-        user_input_window = wx.FindWindowById(self.control_ids['input'])
+        user_input_window = wx.FindWindowById(self.control_ids['input'], self)
 
 
         framei = self.secm.frame_list[0]
@@ -6824,11 +6823,11 @@ class EFAControlPanel1(wx.Panel):
         else:
             for key in analysis_dict['efa']:
                 if key == 'profile':
-                    wx.FindWindowById(self.control_ids[key]).SetStringSelection(analysis_dict['efa'][key])
+                    wx.FindWindowById(self.control_ids[key], self).SetStringSelection(analysis_dict['efa'][key])
                 elif key == 'nsvs':
-                    wx.FindWindowById(self.control_ids['input']).SetValue(analysis_dict['efa'][key])
+                    wx.FindWindowById(self.control_ids['input'], self).SetValue(analysis_dict['efa'][key])
                 elif key in self.control_ids:
-                     wx.FindWindowById(self.control_ids[key]).SetValue(analysis_dict['efa'][key])
+                     wx.FindWindowById(self.control_ids[key], self).SetValue(analysis_dict['efa'][key])
 
             svd_start_window.SetValue(0)
             svd_end_window.SetValue(min(framef-framei,10))
@@ -6840,7 +6839,7 @@ class EFAControlPanel1(wx.Panel):
         else:
             self.subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.subtracted_sasm_list, [], self.secm.getAllParameters())
 
-            profile_window = wx.FindWindowById(self.control_ids['profile'])
+            profile_window = wx.FindWindowById(self.control_ids['profile'], self)
             profile_window.SetStringSelection('Unsubtracted')
 
         if self.manip_item != None:
@@ -6939,7 +6938,7 @@ class EFAControlPanel1(wx.Panel):
             dlg.ShowModal()
             dlg.Destroy()
 
-            profile_window = wx.FindWindowById(evt.GetId())
+            profile_window = wx.FindWindowById(evt.GetId(), self)
             profile_window.SetStringSelection('Unsubtracted')
 
 
@@ -6947,15 +6946,15 @@ class EFAControlPanel1(wx.Panel):
     def _onChangeFrame(self, evt):
         id = evt.GetId()
 
-        spin = wx.FindWindowById(id)
+        spin = wx.FindWindowById(id, self)
 
         new_val = spin.GetValue()
 
-        fstart_window = wx.FindWindowById(self.control_ids['fstart'])
-        fend_window = wx.FindWindowById(self.control_ids['fend'])
+        fstart_window = wx.FindWindowById(self.control_ids['fstart'], self)
+        fend_window = wx.FindWindowById(self.control_ids['fend'], self)
 
-        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'])
-        svd_end_window =wx.FindWindowById(self.control_ids['svd_end'])
+        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'], self)
+        svd_end_window =wx.FindWindowById(self.control_ids['svd_end'], self)
 
         #Make sure the boundaries don't cross:
         if id == self.control_ids['fstart']:
@@ -6989,15 +6988,15 @@ class EFAControlPanel1(wx.Panel):
     def _onChangeSVD(self, evt):
         id = evt.GetId()
 
-        spin = wx.FindWindowById(id)
+        spin = wx.FindWindowById(id, self)
 
         new_val = spin.GetValue()
 
-        fstart_window = wx.FindWindowById(self.control_ids['fstart'])
-        fend_window = wx.FindWindowById(self.control_ids['fend'])
+        fstart_window = wx.FindWindowById(self.control_ids['fstart'], self)
+        fend_window = wx.FindWindowById(self.control_ids['fend'], self)
 
-        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'])
-        svd_end_window = wx.FindWindowById(self.control_ids['svd_end'])
+        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'], self)
+        svd_end_window = wx.FindWindowById(self.control_ids['svd_end'], self)
 
         #Make sure the boundaries don't cross:
         if id == self.control_ids['svd_start']:
@@ -7029,10 +7028,10 @@ class EFAControlPanel1(wx.Panel):
         wx.CallAfter(self.updateSVDPlot)
 
     def runSVD(self):
-        profile_window = wx.FindWindowById(self.control_ids['profile'])
+        profile_window = wx.FindWindowById(self.control_ids['profile'], self)
 
-        framei_window = wx.FindWindowById(self.control_ids['fstart'])
-        framef_window = wx.FindWindowById(self.control_ids['fend'])
+        framei_window = wx.FindWindowById(self.control_ids['fstart'], self)
+        framef_window = wx.FindWindowById(self.control_ids['fend'], self)
 
         framei = framei_window.GetValue()
         framef = framef_window.GetValue()
@@ -7073,13 +7072,13 @@ class EFAControlPanel1(wx.Panel):
     def updateSECPlot(self):
 
         plotpanel = wx.FindWindowByName('EFASECPlotPanel')
-        framei_window = wx.FindWindowById(self.control_ids['fstart'])
-        framef_window = wx.FindWindowById(self.control_ids['fend'])
+        framei_window = wx.FindWindowById(self.control_ids['fstart'], self)
+        framef_window = wx.FindWindowById(self.control_ids['fend'], self)
 
         framei = framei_window.GetValue()
         framef = framef_window.GetValue()
 
-        profile_window = wx.FindWindowById(self.control_ids['profile'])
+        profile_window = wx.FindWindowById(self.control_ids['profile'], self)
 
         if profile_window.GetStringSelection() == 'Unsubtracted':
             plotpanel.plotSECM(self.secm, framei, framef, self.ydata_type)
@@ -7091,8 +7090,8 @@ class EFAControlPanel1(wx.Panel):
         if self.svd_s is not None and not np.any(np.isnan(self.svd_s)):
             plotpanel = wx.FindWindowByName('EFAResultsPlotPanel1')
 
-            svd_start_window = wx.FindWindowById(self.control_ids['svd_start'])
-            svd_end_window = wx.FindWindowById(self.control_ids['svd_end'])
+            svd_start_window = wx.FindWindowById(self.control_ids['svd_start'], self)
+            svd_end_window = wx.FindWindowById(self.control_ids['svd_end'], self)
 
             svd_start = svd_start_window.GetValue()
             svd_end = svd_end_window.GetValue()
@@ -7316,8 +7315,8 @@ class EFAControlPanel2(wx.Panel):
 
     def setSVs(self, points):
         for i in range(len(points)):
-            forward = wx.FindWindowById(self.forward_ids[i])
-            backward = wx.FindWindowById(self.backward_ids[len(self.backward_ids)-1-i])
+            forward = wx.FindWindowById(self.forward_ids[i], self)
+            backward = wx.FindWindowById(self.backward_ids[len(self.backward_ids)-1-i], self)
 
             forward.SetValue(points[i][0])
             backward.SetValue(points[i][1])
@@ -7326,9 +7325,9 @@ class EFAControlPanel2(wx.Panel):
 
     def _findEFAPoints(self):
 
-        forward_windows = [wx.FindWindowById(my_id) for my_id in self.forward_ids]
+        forward_windows = [wx.FindWindowById(my_id, self) for my_id in self.forward_ids]
 
-        backward_windows = [wx.FindWindowById(my_id) for my_id in self.backward_ids]
+        backward_windows = [wx.FindWindowById(my_id, self) for my_id in self.backward_ids]
 
         start_offset = self.panel1_results['fstart']
 
@@ -7412,9 +7411,9 @@ class EFAControlPanel2(wx.Panel):
 
         nvals = self.panel1_results['input']+1
 
-        forward_points = [wx.FindWindowById(my_id).GetValue() for my_id in self.forward_ids]
+        forward_points = [wx.FindWindowById(my_id, self).GetValue() for my_id in self.forward_ids]
 
-        backward_points = [wx.FindWindowById(my_id).GetValue() for my_id in self.backward_ids]
+        backward_points = [wx.FindWindowById(my_id, self).GetValue() for my_id in self.backward_ids]
 
         forward_data = {'slist' : self.efa_forward[:nvals, :],
                         'index' : np.arange(len(self.efa_forward[0]))+self.panel1_results['fstart'],
@@ -7818,7 +7817,7 @@ class EFAControlPanel3(wx.Panel):
                                 print e
 
         if nvals == 1:
-            window = wx.FindWindowById(self.control_ids['method'])
+            window = wx.FindWindowById(self.control_ids['method'], self)
             window.SetStringSelection('Iterative')
 
         self.initialized = True
@@ -7893,8 +7892,8 @@ class EFAControlPanel3(wx.Panel):
                 my_ids = self.range_ids[i]
                 points = efa_results['points'][i]
 
-                start = wx.FindWindowById(my_ids[0])
-                end = wx.FindWindowById(my_ids[1])
+                start = wx.FindWindowById(my_ids[0], self)
+                end = wx.FindWindowById(my_ids[1], self)
 
                 start.SetValue(points[0])
                 end.SetValue(points[1])
@@ -7912,7 +7911,7 @@ class EFAControlPanel3(wx.Panel):
     def _onIterControl(self, evt):
 
         if evt.GetId() == self.control_ids['method']:
-            window = wx.FindWindowById(self.control_ids['method'])
+            window = wx.FindWindowById(self.control_ids['method'], self)
             method = window.GetStringSelection()
 
             if method == 'Explicit':
@@ -7923,13 +7922,13 @@ class EFAControlPanel3(wx.Panel):
 
             for ids in self.range_ids:
                 my_id = ids[2]
-                window = wx.FindWindowById(my_id)
+                window = wx.FindWindowById(my_id, self)
                 window.Enable(enable)
 
-            window = wx.FindWindowById(self.control_ids['n_iter'])
+            window = wx.FindWindowById(self.control_ids['n_iter'], self)
             window.Enable(enable)
 
-            window = wx.FindWindowById(self.control_ids['tol'])
+            window = wx.FindWindowById(self.control_ids['tol'], self)
             window.Enable(enable)
 
 
@@ -7943,7 +7942,7 @@ class EFAControlPanel3(wx.Panel):
             if myId in ids:
 
                 if myId == ids[0]:
-                    spinctrl = wx.FindWindowById(ids[1])
+                    spinctrl = wx.FindWindowById(ids[1], self)
 
                     current_range = spinctrl.GetRange()
 
@@ -7954,7 +7953,7 @@ class EFAControlPanel3(wx.Panel):
                     wx.CallAfter(self.updateRangePlot)
 
                 elif myId == ids[1]:
-                    spinctrl = wx.FindWindowById(ids[0])
+                    spinctrl = wx.FindWindowById(ids[0], self)
 
                     current_range = spinctrl.GetRange()
 
@@ -7995,7 +7994,7 @@ class EFAControlPanel3(wx.Panel):
 
 
     def _updateStatus(self, in_progress = False):
-        status_window = wx.FindWindowById(self.control_ids['status'])
+        status_window = wx.FindWindowById(self.control_ids['status'], self)
 
         if not in_progress:
             if self.converged:
@@ -8016,7 +8015,7 @@ class EFAControlPanel3(wx.Panel):
         Cnew = np.transpose(np.dot(np.linalg.pinv(S), D))
 
         for i in range(len(self.range_ids)):
-            window = wx.FindWindowById(self.range_ids[i][2])
+            window = wx.FindWindowById(self.range_ids[i][2], self)
             if window.GetValue():
                 Cnew[Cnew[:,i] < 0,i] = 0
 
@@ -8089,8 +8088,8 @@ class EFAControlPanel3(wx.Panel):
         failed = args[2]
         C = args[3]
 
-        niter = int(wx.FindWindowById(self.control_ids['n_iter']).GetValue())
-        tol = float(wx.FindWindowById(self.control_ids['tol']).GetValue())
+        niter = int(wx.FindWindowById(self.control_ids['n_iter'], self).GetValue())
+        tol = float(wx.FindWindowById(self.control_ids['tol'], self).GetValue())
 
         #Carry out the calculation to convergence
         k = 0
@@ -8164,9 +8163,9 @@ class EFAControlPanel3(wx.Panel):
 
         ranges = ranges - start
 
-        niter = int(wx.FindWindowById(self.control_ids['n_iter']).GetValue())
-        tol = float(wx.FindWindowById(self.control_ids['tol']).GetValue())
-        method = wx.FindWindowById(self.control_ids['method']).GetStringSelection()
+        niter = int(wx.FindWindowById(self.control_ids['n_iter'], self).GetValue())
+        tol = float(wx.FindWindowById(self.control_ids['tol'], self).GetValue())
+        method = wx.FindWindowById(self.control_ids['method'], self).GetStringSelection()
 
         init_dict = {'Hybrid'       : self._initHybrid,
                     'Iterative'     : self._initIterative,
@@ -8256,7 +8255,7 @@ class EFAControlPanel3(wx.Panel):
         ranges = []
 
         for my_ids in self.range_ids:
-            ranges.append([wx.FindWindowById(my_ids[0]).GetValue(), wx.FindWindowById(my_ids[1]).GetValue()])
+            ranges.append([wx.FindWindowById(my_ids[0], self).GetValue(), wx.FindWindowById(my_ids[1], self).GetValue()])
 
         ranges = np.array(ranges, dtype = int)
 
