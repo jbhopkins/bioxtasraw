@@ -1073,7 +1073,7 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
         return hSizer
 
     def _onTempChoice(self, event):
-        I0_ctrl = wx.FindWindowById(self.normConstantsData[1][1])
+        I0_ctrl = wx.FindWindowById(self.normConstantsData[1][1], self)
 
         temp_ctrl = event.GetEventObject()
         temp = temp_ctrl.GetStringSelection()
@@ -1096,7 +1096,7 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
                 return_val = thread_return_queue.get(False)
                 thread_return_queue.task_done()
                 dialog.Enable(True)
-                constant_ctrl = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterConst'))
+                constant_ctrl = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterConst'), self)
                 constant_ctrl.SetValue(str(return_val))
                 break
             except Queue.Empty:
@@ -1108,12 +1108,12 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
 
         if self._checkAbsScWaterFiles():
 
-            waterI0 = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterI0')).GetValue()
+            waterI0 = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterI0'), self).GetValue()
 
             try:
                 waterI0 = float(waterI0)
-                empty_cell_file = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterEmptyFile')).GetValue()
-                water_file =  wx.FindWindowById(self.raw_settings.getId('NormAbsWaterFile')).GetValue()
+                empty_cell_file = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterEmptyFile'), self).GetValue()
+                water_file =  wx.FindWindowById(self.raw_settings.getId('NormAbsWaterFile'), self).GetValue()
 
                 mainframe = wx.FindWindowByName('MainFrame')
                 mainframe.queueTaskInWorkerThread('calculate_abs_water_const', [water_file, empty_cell_file, waterI0])
@@ -1138,7 +1138,7 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
 
         for each in self.filesData:
             if each[2] == ID:
-                    textCtrl = wx.FindWindowById(each[1])
+                    textCtrl = wx.FindWindowById(each[1], self)
                     textCtrl.SetValue(str(selectedFile))
 
     def onClrFile(self, event):
@@ -1148,14 +1148,14 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
 
         for each in self.filesData:
                 if each[3] == ID:
-                    textCtrl = wx.FindWindowById(each[1])
+                    textCtrl = wx.FindWindowById(each[1], self)
                     textCtrl.SetValue('None')
 
         self.abssc_chkbox.SetValue(False)
 
     def _checkAbsScWaterFiles(self):
-        empty_cell_file = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterEmptyFile')).GetValue()
-        water_file =  wx.FindWindowById(self.raw_settings.getId('NormAbsWaterFile')).GetValue()
+        empty_cell_file = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterEmptyFile'), self).GetValue()
+        water_file =  wx.FindWindowById(self.raw_settings.getId('NormAbsWaterFile'), self).GetValue()
 
         if os.path.isfile(empty_cell_file) and os.path.isfile(water_file):
             return True
@@ -1167,7 +1167,7 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
         chkbox = event.GetEventObject()
 
         if chkbox.GetValue() == True:
-            const = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterConst')).GetValue()
+            const = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterConst'), self).GetValue()
 
             try:
                 float(const)
@@ -1190,21 +1190,14 @@ class ReductionFlatfield(wx.Panel):
         self.filesData = [("Flatfield image:" , raw_settings.getId('NormFlatfieldFile'), self.NewControlId(), self.NewControlId(), "Set", "Clear", self.onSetFile, self.onClrFile)]
                           # ("Dark image:" , raw_settings.getId('DarkCorrFilename'), self.NewControlId(), self.NewControlId(), "Set", "Clear", self.onSetFile, self.onClrFile)]
 
-        self.normConstantsData = ( ("Water Temperature [C]:", raw_settings.getId('NormAbsWaterTemp'), None) ,
-                                   ("Water I(0):", raw_settings.getId('NormAbsWaterI0'), None),
-                                   ("Absolute Scaling Constant:", raw_settings.getId('NormAbsWaterConst'), True))
-
         box = wx.StaticBox(self, -1, 'Flatfield correction')
 
         self.abssc_chkbox = wx.CheckBox(self, raw_settings.getId('NormFlatfieldEnabled'), 'Enable flatfield correction')
-        self.abssc_chkbox.Bind(wx.EVT_CHECKBOX, self.onChkBox)
 
         file_sizer = self.createFileSettings()
-        #norm_const_sizer = self.createNormConstants()
         chkbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         chkbox_sizer.Add(self.abssc_chkbox, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
         chkbox_sizer.Add(file_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
-        #chkbox_sizer.Add(norm_const_sizer, 0, wx.EXPAND | wx.ALL, 5)
 
         final_sizer = wx.BoxSizer(wx.VERTICAL)
         final_sizer.Add(chkbox_sizer, 0, wx.EXPAND | wx.ALL, 5)
@@ -1236,91 +1229,6 @@ class ReductionFlatfield(wx.Panel):
         hSizer.AddGrowableCol(1)
         return hSizer
 
-    def createNormConstants(self):
-
-        noOfRows = int(len(self.filesData))
-        hSizer = wx.FlexGridSizer(cols = 3, rows = noOfRows, vgap = 3, hgap = 5)
-
-        temps = []
-        for each in RAWSettings.water_scattering_table.keys():
-            temps.append(str(each))
-
-        for eachLabel, id, has_button in self.normConstantsData:
-
-            txt = wx.StaticText(self, -1, eachLabel)
-
-            if id == self.normConstantsData[0][1]:
-                ctrl = wx.Choice(self, id, choices = temps, size = (80, -1))
-                ctrl.Bind(wx.EVT_CHOICE, self._onTempChoice)
-            else:
-                ctrl = wx.TextCtrl(self, id, '0', style = wx.TE_PROCESS_ENTER | wx.TE_RIGHT, size = (80, -1))
-
-            hSizer.Add(txt, 1, wx.ALIGN_CENTER_VERTICAL)
-            hSizer.Add(ctrl, 1)
-
-            if has_button == True:
-                button = wx.Button(self, -1, 'Calculate')
-                button.Bind(wx.EVT_BUTTON, self._onCalculateButton)
-                hSizer.Add(button,1)
-
-            else:
-                hSizer.Add((1,1), 1)
-
-        return hSizer
-
-    def _onTempChoice(self, event):
-        I0_ctrl = wx.FindWindowById(self.normConstantsData[1][1])
-
-        temp_ctrl = event.GetEventObject()
-        temp = temp_ctrl.GetStringSelection()
-
-        I0_ctrl.SetValue(str(RAWSettings.water_scattering_table[int(temp)]))
-
-    def _onCalculateButton(self, event):
-        self._calculateConstant()
-
-    def _waitForWorkerThreadToFinish(self):
-
-        mainframe = wx.FindWindowByName('MainFrame')
-        thread_return_queue = mainframe.getQuestionReturnQueue()
-
-        dialog = wx.FindWindowByName('OptionsDialog')
-        dialog.Enable(False)
-
-        while True:
-            try:
-                return_val = thread_return_queue.get(False)
-                thread_return_queue.task_done()
-                dialog.Enable(True)
-                constant_ctrl = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterConst'))
-                constant_ctrl.SetValue(str(return_val))
-                break
-            except Queue.Empty:
-                wx.Yield()
-                time.sleep(0.5)
-
-
-    def _calculateConstant(self):
-
-        if self._checkAbsScWaterFiles():
-
-            waterI0 = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterI0')).GetValue()
-
-            try:
-                waterI0 = float(waterI0)
-                empty_cell_file = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterEmptyFile')).GetValue()
-                water_file =  wx.FindWindowById(self.raw_settings.getId('NormAbsWaterFile')).GetValue()
-
-                mainframe = wx.FindWindowByName('MainFrame')
-                mainframe.queueTaskInWorkerThread('calculate_abs_water_const', [water_file, empty_cell_file, waterI0])
-                wx.CallAfter(self._waitForWorkerThreadToFinish)
-
-            except TypeError:
-                wx.MessageBox('Water I0 value contains illegal characters', 'Invalid input')
-                return
-        else:
-             wx.MessageBox('Empty cell and/or water sample files could not be found.', 'Invalid input')
-
     def onSetFile(self, event):
         self.abssc_chkbox.SetValue(False)
 
@@ -1334,7 +1242,7 @@ class ReductionFlatfield(wx.Panel):
 
         for each in self.filesData:
             if each[2] == ID:
-                    textCtrl = wx.FindWindowById(each[1])
+                    textCtrl = wx.FindWindowById(each[1], self)
                     textCtrl.SetValue(str(selectedFile))
 
     def onClrFile(self, event):
@@ -1344,32 +1252,10 @@ class ReductionFlatfield(wx.Panel):
 
         for each in self.filesData:
                 if each[3] == ID:
-                    textCtrl = wx.FindWindowById(each[1])
+                    textCtrl = wx.FindWindowById(each[1], self)
                     textCtrl.SetValue('None')
 
         self.abssc_chkbox.SetValue(False)
-
-    def _checkAbsScWaterFiles(self):
-        empty_cell_file = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterEmptyFile')).GetValue()
-        water_file =  wx.FindWindowById(self.raw_settings.getId('NormAbsWaterFile')).GetValue()
-
-        if os.path.isfile(empty_cell_file) and os.path.isfile(water_file):
-            return True
-        else:
-            return False
-
-    def onChkBox(self, event):
-
-        chkbox = event.GetEventObject()
-
-        if chkbox.GetValue() == True:
-            const = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterConst')).GetValue()
-
-            try:
-                float(const)
-            except ValueError:
-                wx.MessageBox('Normalization constant contains illegal characters', 'Invalid input')
-                chkbox.SetValue(False)
 
 
 class SansOptionsPanel(wx.Panel):
@@ -1579,7 +1465,7 @@ class MolecularWeightPanel(wx.Panel):
 
             if reset:
                 val = default_settings.get(key)
-                obj = wx.FindWindowById(id)
+                obj = wx.FindWindowById(id, self)
 
                 if type == 'bool':
                     obj.SetValue(val)
@@ -1933,7 +1819,7 @@ class GeneralOptionsPanel(wx.Panel):
 
         if dirdlg.ShowModal() == wx.ID_OK:
             selected_path = dirdlg.GetPath()
-            ctrl = wx.FindWindowById(self.raw_settings.getId('OnlineStartupDir'))
+            ctrl = wx.FindWindowById(self.raw_settings.getId('OnlineStartupDir'), self)
             ctrl.SetValue(str(selected_path))
 
     def onChkBox(self, event):
@@ -2077,7 +1963,7 @@ class SaveDirectoriesPanel(wx.Panel):
 
             for labtxt, labl_id, set_button_id, clr_button_id in self.directory_data:
                 if set_button_id == id:
-                        text_ctrl = wx.FindWindowById(labl_id)
+                        text_ctrl = wx.FindWindowById(labl_id, self)
                         text_ctrl.SetValue(str(selected_path))
 
     def onClrFile(self, event):
@@ -2091,38 +1977,40 @@ class SaveDirectoriesPanel(wx.Panel):
                     textCtrl.SetValue('None')
 
                     if labl_id == self.raw_settings.getId('ProcessedFilePath'):
-                        wx.FindWindowById(self.raw_settings.getId('AutoSaveOnImageFiles')).SetValue(False)
+                        wx.FindWindowById(self.raw_settings.getId('AutoSaveOnImageFiles'), self).SetValue(False)
                     elif labl_id == self.raw_settings.getId('AveragedFilePath'):
-                        wx.FindWindowById(self.raw_settings.getId('AutoSaveOnAvgFiles')).SetValue(False)
+                        wx.FindWindowById(self.raw_settings.getId('AutoSaveOnAvgFiles'), self).SetValue(False)
                     elif labl_id == self.raw_settings.getId('SubtractedFilePath'):
-                        wx.FindWindowById(self.raw_settings.getId('AutoSaveOnSub')).SetValue(False)
+                        wx.FindWindowById(self.raw_settings.getId('AutoSaveOnSub'), self).SetValue(False)
+                    elif labl_id == self.raw_settings.getId('BiftFilePath'):
+                        wx.FindWindowById(self.raw_settings.getId('AutoSaveOnBift'), self).SetValue(False)
+                    elif labl_id == self.raw_settings.getId('GnomFilePath'):
+                        wx.FindWindowById(self.raw_settings.getId('AutoSaveOnGnom'), self).SetValue(False)
 
     def onSaveCheckbox(self, event):
         my_id = event.GetId()
 
-        checkbox = wx.FindWindowById(my_id)
+        checkbox = wx.FindWindowById(my_id, self)
 
         if checkbox.GetValue():
             if my_id == self.raw_settings.getId('AutoSaveOnImageFiles'):
-                directory = wx.FindWindowById(self.raw_settings.getId('ProcessedFilePath')).GetValue()
+                directory = wx.FindWindowById(self.raw_settings.getId('ProcessedFilePath'), self).GetValue()
 
             elif my_id == self.raw_settings.getId('AutoSaveOnAvgFiles'):
-                directory = wx.FindWindowById(self.raw_settings.getId('AveragedFilePath')).GetValue()
+                directory = wx.FindWindowById(self.raw_settings.getId('AveragedFilePath'), self).GetValue()
 
             elif my_id == self.raw_settings.getId('AutoSaveOnSub'):
-                directory = wx.FindWindowById(self.raw_settings.getId('SubtractedFilePath')).GetValue()
+                directory = wx.FindWindowById(self.raw_settings.getId('SubtractedFilePath'), self).GetValue()
 
             elif my_id == self.raw_settings.getId('AutoSaveOnBift'):
-                directory = wx.FindWindowById(self.raw_settings.getId('BiftFilePath')).GetValue()
+                directory = wx.FindWindowById(self.raw_settings.getId('BiftFilePath'), self).GetValue()
 
             elif my_id == self.raw_settings.getId('AutoSaveOnGnom'):
-                directory = wx.FindWindowById(self.raw_settings.getId('GnomFilePath')).GetValue()
+                directory = wx.FindWindowById(self.raw_settings.getId('GnomFilePath'), self).GetValue()
 
             if not os.path.exists(directory):
                 checkbox.SetValue(False)
                 wx.MessageBox('Save directory "%s" does not exist. Please select a valid save directory to enable automatic saving.' %(directory), 'Directory does not exist', parent = self)
-
-
 
 
 class IftOptionsPanel(wx.Panel):
@@ -2639,7 +2527,7 @@ class ATSASGnom(wx.Panel):
             id, type = self.raw_settings.getIdAndType(key)
 
             val = default_settings.get(key)
-            obj = wx.FindWindowById(id)
+            obj = wx.FindWindowById(id, self)
 
             if type == 'bool':
                 obj.SetValue(val)
@@ -2663,13 +2551,13 @@ class ATSASGnom(wx.Panel):
                 myId = item[1]
 
         if myId != -1:
-            gnomAdvanced = wx.FindWindowById(myId)
+            gnomAdvanced = wx.FindWindowById(myId, self.GetParent())
 
             for key in gnomAdvanced.update_keys:
                 id, type = self.raw_settings.getIdAndType(key)
 
                 val = default_settings.get(key)
-                obj = wx.FindWindowById(id)
+                obj = wx.FindWindowById(id, gnomAdvanced)
 
                 if type == 'bool':
                     obj.SetValue(val)
@@ -2829,9 +2717,9 @@ class ATSASGnomAdvanced(wx.Panel):
         button_id = evt.GetId()
 
         if button_id == self.button_ids['expert']:
-            path = wx.FindWindowById(self.raw_settings.getId('gnomExpertFile')).GetValue()
+            path = wx.FindWindowById(self.raw_settings.getId('gnomExpertFile'), self).GetValue()
         elif button_id == self.button_ids['form']:
-            path = wx.FindWindowById(self.raw_settings.getId('gnomFormFactor')).GetValue()
+            path = wx.FindWindowById(self.raw_settings.getId('gnomFormFactor'), self).GetValue()
         else:
             path = ''
 
@@ -2843,11 +2731,10 @@ class ATSASGnomAdvanced(wx.Panel):
         else:
             path = ''
 
-
         if button_id == self.button_ids['expert']:
-            path = wx.FindWindowById(self.raw_settings.getId('gnomExpertFile')).SetValue(path)
+            path = wx.FindWindowById(self.raw_settings.getId('gnomExpertFile'), self).SetValue(path)
         elif button_id == self.button_ids['form']:
-            path = wx.FindWindowById(self.raw_settings.getId('gnomFormFactor')).SetValue(path)
+            path = wx.FindWindowById(self.raw_settings.getId('gnomFormFactor'), self).SetValue(path)
         else:
             path = ''
 
@@ -2925,7 +2812,7 @@ class ATSASDammix(wx.Panel):
                 ctrl = wx.CheckBox(parent, myId, label)
                 sizer.Add(ctrl, 0, wx.ALL, 2)
 
-                if myId == self.raw_settings.getId('dammifDamaver') or myId == self.raw_settings.getId('dammifDamclust'):
+                if myId == self.raw_settings.getId('dammifDamaver') or myId == self.raw_settings.getId('dammifDamclust') or myId == self.raw_settings.getId('dammifRefine'):
                     ctrl.Bind(wx.EVT_CHECKBOX, self._onCheckBox)
 
             defaultSizer.Add(sizer, 0)
@@ -2984,12 +2871,26 @@ class ATSASDammix(wx.Panel):
 
     def _onCheckBox(self,evt):
         if evt.GetId() == self.raw_settings.getId('dammifDamaver') and evt.IsChecked():
-            damclust = wx.FindWindowById(self.raw_settings.getId('dammifDamclust'))
+            damclust = wx.FindWindowById(self.raw_settings.getId('dammifDamclust'), self)
             damclust.SetValue(False)
 
+        elif evt.GetId() == self.raw_settings.getId('dammifDamaver') and not evt.IsChecked():
+            damrefine = wx.FindWindowById(self.raw_settings.getId('dammifRefine'), self)
+            damrefine.SetValue(False)
+
         elif evt.GetId() == self.raw_settings.getId('dammifDamclust') and evt.IsChecked():
-            damaver = wx.FindWindowById(self.raw_settings.getId('dammifDamaver'))
+            damaver = wx.FindWindowById(self.raw_settings.getId('dammifDamaver'), self)
             damaver.SetValue(False)
+
+            damrefine = wx.FindWindowById(self.raw_settings.getId('dammifRefine'), self)
+            damrefine.SetValue(False)
+
+        elif evt.GetId() == self.raw_settings.getId('dammifRefine') and evt.IsChecked():
+            damaver = wx.FindWindowById(self.raw_settings.getId('dammifDamaver'), self)
+            damaver.SetValue(True)
+
+            damclust = wx.FindWindowById(self.raw_settings.getId('dammifDamclust'), self)
+            damclust.SetValue(False)
 
 
     def _onResetButton(self, evt):
@@ -2999,7 +2900,7 @@ class ATSASDammix(wx.Panel):
             id, type = self.raw_settings.getIdAndType(key)
 
             val = default_settings.get(key)
-            obj = wx.FindWindowById(id)
+            obj = wx.FindWindowById(id, self)
 
             if type == 'bool':
                 obj.SetValue(val)
@@ -3022,13 +2923,13 @@ class ATSASDammix(wx.Panel):
             if item[2] == "DAMMIF Advanced" or item[2] == "DAMMIF/N Advanced" or item[2] == "DAMMIN Advanced":
                 myId = item[1]
 
-                dammifAdvanced = wx.FindWindowById(myId)
+                dammifAdvanced = wx.FindWindowById(myId, self.GetParent())
 
                 for key in dammifAdvanced.update_keys:
                     id, type = self.raw_settings.getIdAndType(key)
 
                     val = default_settings.get(key)
-                    obj = wx.FindWindowById(id)
+                    obj = wx.FindWindowById(id, dammifAdvanced)
 
                     if type == 'bool':
                         obj.SetValue(val)
@@ -3402,15 +3303,15 @@ class WeightedAveragePanel(wx.Panel):
             sizer.Add(short_sizer,0)
 
         if self.raw_settings.get('weightByError'):
-            wx.FindWindowById(self.raw_settings.getId('weightCounter')).Disable()
+            wx.FindWindowById(self.raw_settings.getId('weightCounter'), self).Disable()
 
         return sizer
 
     def _onCheckBox(self, event):
         if not event.GetEventObject().GetValue():
-            wx.FindWindowById(self.raw_settings.getId('weightCounter')).Enable()
+            wx.FindWindowById(self.raw_settings.getId('weightCounter'), self).Enable()
         else:
-            wx.FindWindowById(self.raw_settings.getId('weightCounter')).Disable()
+            wx.FindWindowById(self.raw_settings.getId('weightCounter'), self).Disable()
         event.Skip()
 
 def findATSASDirectory():
@@ -3805,10 +3706,6 @@ class OptionsDialog(wx.Dialog):
         sizer.Add(wx.StaticLine(self, style = wx.LI_HORIZONTAL), 0, wx.EXPAND)
         sizer.Add(self.createButtonPanel(), 0, wx.ALIGN_RIGHT | wx.ALL, 5)
 
-
-
-        #self.Fit()
-
         self.CenterOnParent()
         self.initSettings()
 
@@ -3821,33 +3718,11 @@ class OptionsDialog(wx.Dialog):
         if focusHeader:
             self.treebook.selectPage(focusHeader)
 
-        #self.Update()
-
         self.SendSizeEvent()
-        #self.SendSizeEventToParent()
-        # self.Layout()
-        # self.Update()
-        # self.Refresh()
-        # self.Fit()
-        #What a F!ed way to select an item.. is this really the only way?
 
-        #try:
-        #    if focusIndex != None:
-        #        for i in range(0,self.treebook.tree.GetCount()-1):
-        #            item = self.treebook.tree.GetNext(item)
-        #
-        #            if focusIndex == self.treebook.tree.GetItemText(item):
-        #                self.treebook.tree.SelectItem(item)
-        #except Exception, e:
-        #    pass
-        #self.Fit()
         self.SetSizer(sizer)
         self.SetMinSize((800,600))
         self.SetSize((800,600))
-        # self.Layout()
-        # self.Update()
-        # self.Refresh()
-        # self.Fit()
 
     def createButtonPanel(self):
 
@@ -3899,7 +3774,7 @@ class OptionsDialog(wx.Dialog):
         for key in all_update_keys:
             id, type = self._raw_settings.getIdAndType(key)
             val = self._raw_settings.get(key)
-            obj = wx.FindWindowById(id)
+            obj = wx.FindWindowById(id, self)
 
             if type == 'bool':
                 obj.SetValue(val)
@@ -3923,7 +3798,7 @@ class OptionsDialog(wx.Dialog):
         for key in all_update_keys:
             id, type = self._raw_settings.getIdAndType(key)
 
-            obj = wx.FindWindowById(id)
+            obj = wx.FindWindowById(id, self)
 
             if type == 'bool':
                 val = obj.GetValue()

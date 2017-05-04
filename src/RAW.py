@@ -6062,13 +6062,13 @@ class ManipItemPanel(wx.Panel):
 
         self.qmax = len(self.sasm.q)
 
-        self.spin_controls = (("q Min:", self.NewControlId(), self.NewControlId(), (1, self.qmax-1), 'nlow'),
-                             ("q Max:", self.NewControlId(), self.NewControlId(), (2, self.qmax), 'nhigh'))
+        self.spin_controls = (("q Min:", 100, 101, (1, self.qmax-1), 'nlow'),
+                             ("q Max:", 102, 103, (2, self.qmax), 'nhigh'))
 
         self.float_spin_controls = (
-                                   # ("Conc:", self.NewControlId(), 'conc', '1.0', self._onScaleOffsetChange),
-                                    ("Scale:", self.NewControlId(), 'scale', str(sasm.getScale()), self._onScaleOffsetChange),
-                                    ("Offset:", self.NewControlId(), 'offset', str(sasm.getOffset()), self._onScaleOffsetChange))
+                                   # ("Conc:", 104, 'conc', '1.0', self._onScaleOffsetChange),
+                                    ("Scale:", 105, 'scale', str(sasm.getScale()), self._onScaleOffsetChange),
+                                    ("Offset:", 106, 'offset', str(sasm.getOffset()), self._onScaleOffsetChange))
 
         self.SelectedForPlot = RAWCustomCtrl.CustomCheckBox(self, -1, filename)
         self.SelectedForPlot.SetValue(True)
@@ -6268,18 +6268,18 @@ class ManipItemPanel(wx.Panel):
         offset = self.sasm.getOffset()
         qmin, qmax = self.sasm.getQrange()
 
-        qmin_ctrl = wx.FindWindowById(self.spin_controls[0][1])
-        qmax_ctrl = wx.FindWindowById(self.spin_controls[1][1])
-        qmintxt = wx.FindWindowById(self.spin_controls[0][2])
-        qmaxtxt = wx.FindWindowById(self.spin_controls[1][2])
+        qmin_ctrl = wx.FindWindowById(self.spin_controls[0][1], self)
+        qmax_ctrl = wx.FindWindowById(self.spin_controls[1][1], self)
+        qmintxt = wx.FindWindowById(self.spin_controls[0][2], self)
+        qmaxtxt = wx.FindWindowById(self.spin_controls[1][2], self)
 
         qmin_ctrl.SetValue(str(qmin))
         qmax_ctrl.SetValue(str(qmax-1))
         qmintxt.SetValue(str(round(self.sasm.q[qmin],4)))
         qmaxtxt.SetValue(str(round(self.sasm.q[qmax-1],4)))
 
-        scale_ctrl = wx.FindWindowById(self.float_spin_controls[0][1])
-        offset_ctrl = wx.FindWindowById(self.float_spin_controls[1][1])
+        scale_ctrl = wx.FindWindowById(self.float_spin_controls[0][1], self)
+        offset_ctrl = wx.FindWindowById(self.float_spin_controls[1][1], self)
 
         offset_ctrl.SetValue(str(offset))
         scale_ctrl.SetValue(str(scale))
@@ -6531,8 +6531,8 @@ class ManipItemPanel(wx.Panel):
 
     def _initStartPosition(self):
 
-        qmin_ctrl = wx.FindWindowById(self.spin_controls[0][1])
-        qmax_ctrl = wx.FindWindowById(self.spin_controls[1][1])
+        qmin_ctrl = wx.FindWindowById(self.spin_controls[0][1], self)
+        qmax_ctrl = wx.FindWindowById(self.spin_controls[1][1], self)
 
         qrange = self.sasm.getQrange()
 
@@ -6990,11 +6990,11 @@ class ManipItemPanel(wx.Panel):
         event.Skip()
 
     def _updateQTextCtrl(self):
-        qmin_ctrl = wx.FindWindowById(self.spin_controls[0][1])
-        qmax_ctrl = wx.FindWindowById(self.spin_controls[1][1])
+        qmin_ctrl = wx.FindWindowById(self.spin_controls[0][1], self)
+        qmax_ctrl = wx.FindWindowById(self.spin_controls[1][1], self)
 
-        qmintxt = wx.FindWindowById(self.spin_controls[0][2])
-        qmaxtxt = wx.FindWindowById(self.spin_controls[1][2])
+        qmintxt = wx.FindWindowById(self.spin_controls[0][2], self)
+        qmaxtxt = wx.FindWindowById(self.spin_controls[1][2], self)
 
         try:
             qmin = int(qmin_ctrl.GetValue())
@@ -7030,7 +7030,7 @@ class ManipItemPanel(wx.Panel):
     def _onEnterInQrangeTextCtrl(self, evt):
 
         id = evt.GetId()
-        txtctrl = wx.FindWindowById(id)
+        txtctrl = wx.FindWindowById(id, self)
 
         try:
             val = float(txtctrl.GetValue())
@@ -7039,9 +7039,9 @@ class ManipItemPanel(wx.Panel):
             return
 
         if id == self.spin_controls[0][2]:
-                spinctrl = wx.FindWindowById(self.spin_controls[0][1])
+                spinctrl = wx.FindWindowById(self.spin_controls[0][1], self)
         elif id == self.spin_controls[1][2]:
-                spinctrl = wx.FindWindowById(self.spin_controls[1][1])
+                spinctrl = wx.FindWindowById(self.spin_controls[1][1], self)
 
         q = self.sasm.getBinnedQ()
 
@@ -9735,9 +9735,9 @@ class SECControlPanel(wx.Panel):
         wsizeId = self._findWindowId('wsize')
 
 
-        ibufWindow = wx.FindWindowById(ibufId)
-        fbufWindow = wx.FindWindowById(fbufId)
-        wsizeWindow = wx.FindWindowById(wsizeId)
+        ibufWindow = wx.FindWindowById(ibufId, self)
+        fbufWindow = wx.FindWindowById(fbufId, self)
+        wsizeWindow = wx.FindWindowById(wsizeId, self)
 
         try:
             initial_frame = int(ibufWindow.GetValue())
@@ -9864,7 +9864,7 @@ class SECControlPanel(wx.Panel):
             pid = parameter[1][0]
 
             if ptype != 'framelist':
-                data = wx.FindWindowById(pid)
+                data = wx.FindWindowById(pid, self)
 
                 if ptype == 'imghdr':
                     self.image_prefix = data.GetValue()
@@ -9891,7 +9891,7 @@ class SECControlPanel(wx.Panel):
             pid = parameter[1][0]
 
             if ptype != 'framelist' and ptype !='manual':
-                data = wx.FindWindowById(pid)
+                data = wx.FindWindowById(pid, self)
 
                 if ptype =='ibufframe':
                     self.initial_buffer_frame = data.GetValue()
@@ -10001,10 +10001,10 @@ class SECControlPanel(wx.Panel):
             each_id = each[1][0]
 
             if each_type != 'framelist' and each_type != 'wsize':
-                infobox = wx.FindWindowById(each_id)
+                infobox = wx.FindWindowById(each_id, self)
                 infobox.SetValue('')
             elif each_type == 'wsize':
-                infobox = wx.FindWindowById(each_id)
+                infobox = wx.FindWindowById(each_id, self)
                 infobox.SetValue('5')
 
         self.calc_mol_type.SetStringSelection(self._raw_settings.get('MWVcType'))
@@ -10312,7 +10312,7 @@ class MaskingPanel(wx.Panel):
     def disableDrawButtons(self, id = None):
         for each in self.all_button_ids:
                 if each != id:
-                    wx.FindWindowById(each).SetToggle(False)
+                    wx.FindWindowById(each, self).SetToggle(False)
 
     def _createButtonSizer(self):
         sizer = wx.BoxSizer()
@@ -11057,7 +11057,7 @@ class CenteringPanel(wx.Panel):
         self.image_panel.pyfai_ring_num = value
 
     def _onAutoRingRemoveButton(self, evt):
-        value = wx.FindWindowById(self.pyfai_autofit_ids['ring']).GetValue()
+        value = wx.FindWindowById(self.pyfai_autofit_ids['ring'], self).GetValue()
 
         self.c.points.pop(int(value))
 
@@ -11116,7 +11116,7 @@ class CenteringPanel(wx.Panel):
 
         sd_distance, wavelength, pixel_size = self._getCalibValues()
         cal_selection = self._pattern_list.GetStringSelection()
-        det_selection = wx.FindWindowById(self.pyfai_autofit_ids['detector']).GetStringSelection()
+        det_selection = wx.FindWindowById(self.pyfai_autofit_ids['detector'], self).GetStringSelection()
 
         if cal_selection == 'None':
             wx.MessageBox('You must select a calibration standard to use autocentering.', 'No Calibration Standard Selected', wx.OK)
@@ -11155,7 +11155,7 @@ class CenteringPanel(wx.Panel):
 
         for my_id, keyword in self._fix_keywords.iteritems():
 
-            value = wx.FindWindowById(my_id).GetValue()
+            value = wx.FindWindowById(my_id, self).GetValue()
 
             self.c.fixed.add_or_discard(keyword, value)
 
@@ -11178,7 +11178,7 @@ class CenteringPanel(wx.Panel):
 
     def _enablePyfaiControls(self):
         for key in self.pyfai_enable:
-            window = wx.FindWindowById(self.pyfai_autofit_ids[key])
+            window = wx.FindWindowById(self.pyfai_autofit_ids[key], self)
             status = window.IsEnabled()
             window.Enable(not status)
 
@@ -11473,7 +11473,7 @@ class InformationPanel(wx.Panel):
         for each in self.analysis_data:
             id = each[2]
 
-            label = wx.FindWindowById(id)
+            label = wx.FindWindowById(id, self)
             label.SetValue('N/A')
 
         self.header_txt.SetValue('')
@@ -11508,17 +11508,17 @@ class InformationPanel(wx.Panel):
                     key = each[1]
                     id = each[2]
 
-                    txt = wx.FindWindowById(id)
+                    txt = wx.FindWindowById(id, self)
 
                     if guinier.has_key(key):
                         txt.SetValue(str(guinier[key]))
 
         if self.sasm.getAllParameters().has_key('Conc'):
-            conc_ctrl = wx.FindWindowById(self.conc_data[2])
+            conc_ctrl = wx.FindWindowById(self.conc_data[2], self)
             conc_ctrl.SetValue(str(self.sasm.getParameter('Conc')))
 
         if self.sasm.getAllParameters().has_key('MW'):
-            mw_ctrl = wx.FindWindowById(self.analysis_data[2][2])
+            mw_ctrl = wx.FindWindowById(self.analysis_data[2][2], self)
             mw_ctrl.SetValue(str(self.sasm.getParameter('MW')))
 
         all_choices = []

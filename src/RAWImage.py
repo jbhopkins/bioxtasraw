@@ -1508,7 +1508,6 @@ class ImageSettingsDialog(wx.Dialog):
                 self.ImgObj.changed()
 
                 self.ImgObj.set_clim(minval, maxval)
-                self.resetSliders(maxval, minval)
 
                 self.parent.updateImage()
 
@@ -1534,7 +1533,6 @@ class ImageSettingsDialog(wx.Dialog):
                 self.ImgObj.changed()
 
                 self.ImgObj.set_clim(minval, maxval)
-                self.resetSliders(maxval, minval)
 
                 self.parent.updateImage()
 
@@ -1590,8 +1588,8 @@ class ImageSettingsDialog(wx.Dialog):
     def resetSliders(self, maxval, minval):
 
         for each in self.sliderinfo:
-            txtCtrl = wx.FindWindowById(each[1])
-            slider = wx.FindWindowById(each[2])
+            txtCtrl = wx.FindWindowById(each[1], self)
+            slider = wx.FindWindowById(each[2], self)
             txtCtrl.SetValue(str(self.parent.plot_parameters[each[3]]))
 
             if each[3] == 'Brightness' or each[3] == 'Contrast':
@@ -1615,8 +1613,8 @@ class ImageSettingsDialog(wx.Dialog):
 
         for each in self.sliderinfo:
             if each[1] == id:
-                ctrl = wx.FindWindowById(id)
-                slider = wx.FindWindowById(each[2])
+                ctrl = wx.FindWindowById(id, self)
+                slider = wx.FindWindowById(each[2], self)
 
                 val = ctrl.GetValue()
 
@@ -1644,7 +1642,7 @@ class ImageSettingsDialog(wx.Dialog):
                 slider = event.GetEventObject()
                 val = slider.GetValue()
 
-                wx.FindWindowById(each[1]).ChangeValue(str(val))
+                wx.FindWindowById(each[1], self).ChangeValue(str(val))
                 self.parent.plot_parameters[each[3]] = int(val)
 
                 if each[3] == 'Brightness' or each[3] == 'Contrast':

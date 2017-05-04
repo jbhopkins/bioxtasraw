@@ -351,20 +351,20 @@ class PlotOptionsDialog(wx.Dialog):
         for i in range(0, 2):
             id = self.axes_fixed_limits_data[i][1]
             limit_sizer.Add(wx.TextCtrl(self, id, str(self.axes_fixed_limits_data[i][2]), size = (80, -1)), 0)
-            wx.FindWindowById(id).Bind(wx.EVT_TEXT, self._updateAxesRange)
+            wx.FindWindowById(id, self).Bind(wx.EVT_TEXT, self._updateAxesRange)
 
         limit_sizer2 = wx.FlexGridSizer(rows = 1, cols = 2, hgap = 5, vgap = 3)
         for i in range(2, 4):
             id = self.axes_fixed_limits_data[i][1]
             limit_sizer2.Add(wx.TextCtrl(self, id, str(self.axes_fixed_limits_data[i][2]), size = (80, -1)), 0)
-            wx.FindWindowById(id).Bind(wx.EVT_TEXT, self._updateAxesRange)
+            wx.FindWindowById(id, self).Bind(wx.EVT_TEXT, self._updateAxesRange)
 
         if self.is_sec and self.sec_calc != 'None':
             limit_sizer3 = wx.FlexGridSizer(rows = 1, cols = 2, hgap = 5, vgap = 3)
             for i in range(4, 6):
                 id = self.axes_fixed_limits_data[i][1]
                 limit_sizer3.Add(wx.TextCtrl(self, id, str(self.axes_fixed_limits_data[i][2]), size = (80, -1)), 0)
-                wx.FindWindowById(id).Bind(wx.EVT_TEXT, self._updateAxesRange)
+                wx.FindWindowById(id, self).Bind(wx.EVT_TEXT, self._updateAxesRange)
 
         maxmin_sizer = wx.BoxSizer()
         maxmin_sizer.Add(wx.StaticText(self, -1, 'min'), 1, wx.EXPAND | wx.ALIGN_CENTRE_HORIZONTAL)
@@ -396,16 +396,16 @@ class PlotOptionsDialog(wx.Dialog):
 
         for each, id in self.axes_borders:
             border_sizer.Add(wx.CheckBox(self, id, each), 0, wx.RIGHT, 5)
-            wx.FindWindowById(id).Bind(wx.EVT_CHECKBOX, self._updateAxesSettings)
+            wx.FindWindowById(id, self).Bind(wx.EVT_CHECKBOX, self._updateAxesSettings)
 
             if each == 'Left' and framestyle.find('l')>-1:
-                wx.FindWindowById(id).SetValue(True)
+                wx.FindWindowById(id, self).SetValue(True)
             if each == 'Right' and framestyle.find('r')>-1:
-                wx.FindWindowById(id).SetValue(True)
+                wx.FindWindowById(id, self).SetValue(True)
             if each == 'Top' and framestyle.find('t')>-1:
-                wx.FindWindowById(id).SetValue(True)
+                wx.FindWindowById(id, self).SetValue(True)
             if each == 'Bottom' and framestyle.find('b')>-1:
-                wx.FindWindowById(id).SetValue(True)
+                wx.FindWindowById(id, self).SetValue(True)
 
         sizer.Add(wx.StaticText(self, -1, 'Borders:'), 0)
         sizer.Add(border_sizer, 0, wx.TOP, 5)
@@ -562,7 +562,7 @@ class PlotOptionsDialog(wx.Dialog):
     def _enableLimitsCtrls(self, state):
 
         for each, id, lim in self.axes_fixed_limits_data:
-            ctrl = wx.FindWindowById(id)
+            ctrl = wx.FindWindowById(id, self)
             ctrl.Enable(state)
             ctrl.Refresh()
 
@@ -618,7 +618,7 @@ class PlotOptionsDialog(wx.Dialog):
             framestyle2 = ''
 
         for item in self.axes_borders:
-            value = wx.FindWindowById(item[1]).GetValue()
+            value = wx.FindWindowById(item[1], self).GetValue()
             if value:
                 if item[0] == 'Left':
                     framestyle = framestyle+'l'
@@ -657,9 +657,9 @@ class PlotOptionsDialog(wx.Dialog):
         evt_key, evt_type = self.legend_ids[evt_id]
 
         if evt_type != 'choice':
-            val = wx.FindWindowById(evt_id).GetValue()
+            val = wx.FindWindowById(evt_id, self).GetValue()
         else:
-            val = wx.FindWindowById(evt_id).GetStringSelection()
+            val = wx.FindWindowById(evt_id, self).GetStringSelection()
 
         if evt_key == 'alpha':
             val = abs(100-val)/100.0
@@ -715,11 +715,11 @@ class PlotOptionsDialog(wx.Dialog):
                 ids = self.labels[3][2]
                 idlist = ids.values()
 
-            if not wx.FindWindowById(idlist[0]).IsEnabled():
+            if not wx.FindWindowById(idlist[0], self).IsEnabled():
                 for id in idlist:
-                    wx.FindWindowById(id).Enable(True)
+                    wx.FindWindowById(id, self).Enable(True)
 
-                wx.FindWindowById(ids['size']).Bind(wx.EVT_SPINCTRL, self._updateLabels)
+                wx.FindWindowById(ids['size'], self).Bind(wx.EVT_SPINCTRL, self._updateLabels)
 
         event.Skip()
 
@@ -730,17 +730,17 @@ class PlotOptionsDialog(wx.Dialog):
             try:
 
                 if self.axes_fixed_limits_data[i][0] == 'xmin':
-                    xmin = float(wx.FindWindowById(id).GetValue())
+                    xmin = float(wx.FindWindowById(id, self).GetValue())
                 elif self.axes_fixed_limits_data[i][0] == 'xmax':
-                    xmax = float(wx.FindWindowById(id).GetValue())
+                    xmax = float(wx.FindWindowById(id, self).GetValue())
                 elif self.axes_fixed_limits_data[i][0] == 'ymin':
-                    ymin = float(wx.FindWindowById(id).GetValue())
+                    ymin = float(wx.FindWindowById(id, self).GetValue())
                 elif self.axes_fixed_limits_data[i][0] == 'ymax':
-                    ymax = float(wx.FindWindowById(id).GetValue())
+                    ymax = float(wx.FindWindowById(id, self).GetValue())
                 elif self.axes_fixed_limits_data[i][0] == 'y2min':
-                    y2min = float(wx.FindWindowById(id).GetValue())
+                    y2min = float(wx.FindWindowById(id, self).GetValue())
                 elif self.axes_fixed_limits_data[i][0] == 'y2max':
-                    y2max = float(wx.FindWindowById(id).GetValue())
+                    y2max = float(wx.FindWindowById(id, self).GetValue())
 
             except ValueError:
                 pass
@@ -801,7 +801,7 @@ class PlotOptionsDialog(wx.Dialog):
 
         for key in label_params:
 
-            ctrl = wx.FindWindowById(ids[key])
+            ctrl = wx.FindWindowById(ids[key], self)
             if key != 'fontname':
                 val = ctrl.GetValue()
             else:
