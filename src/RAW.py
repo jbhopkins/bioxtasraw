@@ -14993,7 +14993,7 @@ class MyApp(wx.App):
     def ExceptionHook(self, errType, value, trace):
         err = traceback.format_exception(errType, value, trace)
         errTxt = "\n".join(err)
-        msg = ("An unexpected error has occured, please report it to the "
+        msg = ("An unexpected error has occurred, please report it to the "
                 "developers. You will need to restart RAW to continue working"
                 "\n\nError:\n%s" %(errTxt))
 

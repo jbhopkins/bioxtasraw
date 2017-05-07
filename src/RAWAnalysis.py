@@ -2278,7 +2278,7 @@ class GNOMFrame(wx.Frame):
 
                 try:
                     init_iftm = SASCalc.runGnom(savename, outname, dmax, self.controlPanel.gnom_settings, new_gnom = self.new_gnom)
-                except SASExceptions.NoATSASError as e:
+                except (SASExceptions.NoATSASError, SASExceptions.GNOMError) as e:
                     wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
                     self.cleanupGNOM(path, savename = savename, outname = outname)
                     self.onClose()
@@ -3153,7 +3153,7 @@ class GNOMControlPanel(wx.Panel):
         os.chdir(path)
         try:
             iftm = SASCalc.runGnom(savename, outname, dmax, self.gnom_settings, new_gnom = top.new_gnom)
-        except SASExceptions.NoATSASError as e:
+        except (SASExceptions.NoATSASError, SASExceptions.GNOMError) as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
             top = wx.FindWindowByName('GNOMFrame')
             top.cleanupGNOM(path, savename, outname)

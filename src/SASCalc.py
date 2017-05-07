@@ -742,8 +742,10 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
 
                         previous_line2 = previous_line
                         previous_line = current_line
-
-        iftm=SASFileIO.loadOutFile(outname)[0]
+        try:
+            iftm=SASFileIO.loadOutFile(outname)[0]
+        except IOError:
+            raise SASExceptions.GNOMError('No GNOM output file present. GNOM failed to run correctly')
 
         if cfg:
             try:
