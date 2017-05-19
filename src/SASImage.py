@@ -988,7 +988,7 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
     # print iq
 
     if x_c > 0 and x_c < xlen and y_c > 0 and y_c < ylen:
-        iq[0] = in_image[round(x_c), round(y_c)]  #the center is not included in the radial average, so it is set manually her
+        iq[0] = in_image[int(round(x_c)), int(round(y_c))]  #the center is not included in the radial average, so it is set manually her
 
 
     #Estimated Standard deviation   - equal to the std of pixels in the area / sqrt(N)
