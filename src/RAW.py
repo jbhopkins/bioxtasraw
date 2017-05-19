@@ -1786,7 +1786,10 @@ class OnlineController:
         dir_list_dict = {}
 
         for each_file in dir_list:
-            dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)), os.path.getsize(os.path.join(self.seek_dir, each_file)))
+            try:
+                dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)), os.path.getsize(os.path.join(self.seek_dir, each_file)))
+            except OSError:
+                pass
 
         diff_list = list(set(dir_list_dict.items()) - set(self.old_dir_list_dict.items()))
         diff_list.sort(key = lambda name: name[0])
