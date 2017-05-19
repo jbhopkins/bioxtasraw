@@ -14997,7 +14997,7 @@ class MyApp(wx.App):
         err = traceback.format_exception(errType, value, trace)
         errTxt = "\n".join(err)
         msg = ("An unexpected error has occurred, please report it to the "
-                "developers. You will need to restart RAW to continue working"
+                "developers. You may need to restart RAW to continue working"
                 "\n\nError:\n%s" %(errTxt))
 
         if self and self.IsMainLoopRunning():
