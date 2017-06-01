@@ -6591,7 +6591,13 @@ class EFAFrame(wx.Frame):
                 value = filename_window.GetValue()
 
             elif key == 'q':
-                value = self.secm.getSASM().q
+                profile_window = wx.FindWindowById(self.controlPanel1.control_ids['profile'], self.controlPanel1)
+
+                if profile_window.GetStringSelection() == 'Unsubtracted':
+                    value = self.secm.getSASM().q
+                else:
+                    value = self.controlPanel1.subtracted_secm.getSASM().q
+                
 
             self.panel1_results[key] = value
 
