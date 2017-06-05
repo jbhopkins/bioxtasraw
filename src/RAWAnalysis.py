@@ -799,10 +799,18 @@ class GuinierControlPanel(wx.Panel):
 
             if len(self.infodata[eachkey]) == 2:
                 ctrl = wx.FindWindowById(self.infodata[eachkey][1], self)
-                ctrl.SetValue(str(round(newInfo[eachkey],5)))
+                if np.log10(newInfo[eachkey]) < 0:
+                    mval = int(np.absolute(np.log10(newInfo[eachkey])))+4
+                else:
+                    mval = 5
+                ctrl.SetValue(str(round(newInfo[eachkey],mval)))
             else:
                 ctrl = wx.FindWindowById(self.infodata[eachkey][1], self)
-                ctrl.SetValue(str(round(newInfo[eachkey][0],5)))
+                if np.log10(newInfo[eachkey][0]) < 0:
+                    mval = int(np.absolute(np.log10(newInfo[eachkey][0])))+4
+                else:
+                    mval = 5
+                ctrl.SetValue(str(round(newInfo[eachkey][0],mval)))
 
     def updateLimits(self, top = None, bottom = None):
         print 'in update limits'
@@ -6597,7 +6605,7 @@ class EFAFrame(wx.Frame):
                     value = self.secm.getSASM().q
                 else:
                     value = self.controlPanel1.subtracted_secm.getSASM().q
-                
+
 
             self.panel1_results[key] = value
 
@@ -8737,6 +8745,166 @@ class EFARangePlotPanel(wx.Panel):
         self.canvas.blit(a.bbox)
 
 
+class SimilarityFrame(wx.Frame):
+
+    def __init__(self, parent, title, sasm_list):
+
+        try:
+            wx.Frame.__init__(self, parent, -1, title, name = 'SimilarityFrame', size = (550,300))
+        except:
+            wx.Frame.__init__(self, None, -1, title, name = 'SimilarityFrame', size = (550,300))
+
+        self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        self.sasm_list = sasm_list
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.ids = {
+                    'method'    : self.NewControlId(),
+                    }
+
+        self.pvals = None
+
+        sizer = self._createLayout(self.panel)
+        self._initSettings()
+
+        self.panel.SetSizer(sizer)
+        self.panel.Layout()
+        self.SendSizeEvent()
+        self.panel.Layout()
+
+        self.Layout()
+
+        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+            self.panel.Fit()
+            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+                size = self.GetSize()
+                size[1] = size[1] + 20
+                self.SetSize(size)
+
+        self.CenterOnParent()
+
+        self.Raise()
+
+    def _createLayout(self, parent):
+        method_text = wx.StaticText(parent, -1, 'Method:')
+        method_choice = wx.Choice(parent, self.ids['method'], choices = ['CorMap'])
+        method_choice.Bind(wx.EVT_CHOICE, self._onMethodChange)
+        method_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        method_sizer.Add(method_text, wx.RIGHT, 3)
+        method_sizer.Add(method_choice)
+
+        self.listPanel = similiarityListPanel(parent)
+
+        #Creating the fixed buttons
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.done_button = wx.Button(parent, -1, 'Done')
+        self.done_button.Bind(wx.EVT_BUTTON, self._onDoneButton)
+
+        info_button = wx.Button(parent, -1, 'How To Cite')
+        info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
+
+        button_sizer.Add(self.done_button, 0, wx.RIGHT, 3)
+        button_sizer.Add(info_button, 0)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(method_sizer, 0, wx.TOP | wx.BOTTOM, 5)
+        top_sizer.Add(self.listPanel, 0)
+        top_sizer.Add(button_sizer, 0, wx.BOTTOM, 5)
+
+        return top_sizer
+
+    def _initSettings(self):
+        self._runSimilarityTest()
+
+    def _runSimilarityTest(self):
+        method_window = wx.FindWindowById(self.ids['method'])
+        method = method_window.GetStringSelection()
+
+        if method == 'CorMap':
+            self._calcCorMapPval()
+
+    def _onMethodChange(self, evt):
+        self._runSimilarityTest()
+
+    def _calcCorMapPval(self):
+        self.pvals = np.ones((len(self.sasm_list), len(self.sasm_list)))
+
+        for index1 in range(len(self.sasm_list)):
+            for index2 in range(len(self.sasm_list[index1:])):
+                sasm1 = self.sasm_list[index1]
+                sasm2 = self.sasm_list[index1+index2]
+                qmin1, qmax1 = sasm1.getQrange()
+                qmin2, qmax2 = sasm2.getQrange()
+                i1 = sasm1.i[qmin1:qmax1]
+                i2 = sasm2.i[qmin2:qmax2]
+                n, c, prob = SASCalc.cormap_pval(i1, i2)
+
+                self.pvals[index1, index1+index2] = prob
+                self.pvals[index1+index2, index1] = prob
+
+                self.listPanel.addItem(str(index1), str(index1+index2), sasm1.getParameter('filename'),
+                    sasm2.getParameter('filename'), c, prob)
+
+        self.Refresh()
+
+    def _onDoneButton(self, evt):
+        self._onClose()
+
+    def _onInfoButton(self, evt):
+        msg = ('If you use CorMap in your work, in addition to citing the '
+            'RAW paper please cite this paper:\n'
+            'https://www.nature.com/nmeth/journal/v12/n5/abs/nmeth.3358.html')
+        wx.MessageBox(str(msg), "How to cite Similarity Testing", style = wx.ICON_INFORMATION | wx.OK)
+
+    def _onClose(self):
+        self.OnClose(1)
+
+    def OnClose(self, event):
+        self.Destroy()
+
+class similiarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin):
+    """Makes a sortable list panel for the similarity data. Right now,
+    only has columns for the CorMap test.
+    This is based on:
+    https://www.blog.pythonlibrary.org/2011/01/04/wxpython-wx-listctrl-tips-and-tricks/
+    """
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent, wx.ID_ANY)
+
+        self.list_ctrl = wx.ListCtrl(self, style=wx. LC_REPORT
+                        | wx.LC_SORT_ASCENDING
+                        )
+
+        self.list_ctrl.InsertColumn(0, 'File# 1')
+        self.list_ctrl.InsertColumn(1, 'File# 2')
+        self.list_ctrl.InsertColumn(2, 'Filename 1')
+        self.list_ctrl.InsertColumn(3, 'Filename 2')
+        self.list_ctrl.InsertColumn(4, 'Longest Edge (C)')
+        self.list_ctrl.InsertColumn(5, 'Prob. Same (Pr(>C-1))')
+
+        self.itemDataMap = {}
+        wx.lib.mixins.listctrl.ColumnSorterMixin.__init__(self, 6)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.list_ctrl, 0, wx.ALL | wx.EXPAND, 5)
+        self.SetSizer(sizer)
+
+    def GetListCtrl(self):
+        """Used by the ColumnSorterMixin
+        """
+        return self.list_ctrl
+
+    def addItem(self, fnum1, fnum2, fname1, fname2, c, pval):
+        items = self.list_ctrl.GetItemCount()
+        self.list_ctrl.Append((fnum1, fnum2, fname1, fname2, c, pval))
+        self.itemDataMap[items] = (fnum1, fnum2, fname1, fname2, c, pval)
+
+        self.list_ctrl.SetItemData(items, items)
+
+
 # ----------------------------------------------------------------------------
 # Auto-wrapping static text class
 # ----------------------------------------------------------------------------
@@ -8754,7 +8922,7 @@ class AutoWrapStaticText(StaticText):
         :param Window parent: a subclass of :class:`Window`, must not be ``None``;
         :param string `label`: the :class:`AutoWrapStaticText` text label.
         """
-        StaticText.__init__(self, parent, -1, label, style=wx.ST_NO_AUTORESIZE)
+        StaticText.__init__(self, parent, wx.ID_ANY, label, style=wx.ST_NO_AUTORESIZE)
         self.label = label
         # colBg = wx.SystemSettings.GetColour(wx.SYS_COLOUR_INFOBK)
         # self.SetBackgroundColour(colBg)

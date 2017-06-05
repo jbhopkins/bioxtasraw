@@ -23,6 +23,7 @@ Created on Sep 31, 2010
 '''
 
 import wx, os, subprocess, time, threading, Queue, cPickle, copy, sys, glob, platform, fnmatch, shutil, json
+import itertools
 import traceback
 import scipy.constants
 
@@ -138,6 +139,7 @@ class MainFrame(wx.Frame):
         self.ambimeterframe = None
         self.svdframe = None
         self.efaframe = None
+        self.similarityframe = None
         self.raw_settings = RAWSettings.RawGuiSettings()
 
         self.OnlineControl = OnlineController(self, self.raw_settings)
@@ -640,6 +642,22 @@ class MainFrame(wx.Frame):
         self.efaframe = RAWAnalysis.EFAFrame(self, 'Evolving Factor Analysis', secm, manip_item)
         self.efaframe.SetIcon(self.GetIcon())
         self.efaframe.Show(True)
+
+    def showSimilarityFrame(self, sasm_list):
+
+        if self.similarityframe:
+            self.similarityframe.Destroy()
+
+        if not sasm_list or len(sasm_list) == 1:
+            msg = 'You must select at least 2 profiles to test similarity.'
+            dlg = wx.MessageDialog(self, msg, "Select more profiles", style = wx.ICON_INFORMATION | wx.OK)
+            proceed = dlg.ShowModal()
+            dlg.Destroy()
+            return
+
+        self.similarityframe = RAWAnalysis.SimilarityFrame(self, 'Similarity Testing', sasm_list)
+        self.similarityframe.SetIcon(self.GetIcon())
+        self.similarityframe.Show(True)
 
     def _createSingleMenuBarItem(self, info):
 
@@ -3175,7 +3193,7 @@ class MainWorkerThread(threading.Thread):
             filename2 + ' has ' + str(points2) + ' data points.\n\n' +
             'Subtraction is not possible. Data files must have equal number of points.', 'Subtraction Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
-    def _showAverageError(self, err_no):
+    def _showAverageError(self, err_no, sasm_list=[]):
 
         if err_no == 1:
             wx.CallAfter(wx.MessageBox, 'The selected items must have the same total number of points to be averaged.', 'Average Error')
@@ -3184,6 +3202,21 @@ class MainWorkerThread(threading.Thread):
         elif err_no == 3:
             wx.CallAfter(wx.MessageBox, 'The selected items must have the same q vectors to be averaged.' , 'Average Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
+        elif err_no == 4:
+            test = self._raw_settings.get('similarityTest')
+            threshold = self._raw_settings.get('similarityThreshold')
+            msg = ('One or more of the selected items to be averaged is statistically\n different'
+                    ' from the first item, as found using the %s test\n and a pval threshold of %f.'
+                    '\nThe following profiles were found to be different:\n' %(test, threshold))
+            for sasm in sasm_list:
+                msg = msg + sasm.getParameter('filename') + '\n'
+            msg = msg + ('Please select an action below.')
+            answer = self._displayQuestionDialog(msg, 'Warning: Profiles to average are different',
+                            [('Cancel Average', wx.ID_CANCEL), ('Continue Average', wx.ID_YES)], wx.ART_WARNING)
+            if answer[0] == wx.ID_YES:
+                return True
+            else:
+                return False
     def _showPleaseSelectItemsError(self, type):
 
         if type == 'average':
@@ -3562,6 +3595,25 @@ class MainWorkerThread(threading.Thread):
 
         for each_item in item_list:
             sasm_list.append(each_item.getSASM())
+
+        if self._raw_settings.get('similarityOnAverage'):
+            ref_sasm = sasm_list[0]
+            qi_ref, qf_ref = ref_sasm.getQrange()
+            pvals = np.ones(len(sasm_list), dtype=float)
+            threshold = self._raw_settings.get('similarityThreshold')
+            sim_test = self._raw_settings.get('similarityTest')
+
+            for index, sasm in enumerate(sasm_list[1:]):
+                qi, qf = sasm.getQrange()
+                if sim_test == 'CorMap':
+                    n, c, pval = SASCalc.cormap_pval(ref_sasm.i[qi_ref:qf_ref], sasm.i[qi:qf])
+                pvals[index+1] = pval
+
+            if np.any(pvals<threshold):
+                continue_average = self._showAverageError(4, itertools.compress(sasm_list, pvals<threshold))
+                if not continue_average:
+                    wx.CallAfter(self.main_frame.closeBusyDialog)
+                    return
 
         try:
             avg_sasm = SASM.average(sasm_list)
@@ -6613,6 +6665,7 @@ class ManipItemPanel(wx.Panel):
                 menu.Append(31, 'GNOM (ATSAS)')
         menu.Append(34, 'SVD')
         menu.Append(35, 'EFA')
+        menu.Append(37, 'Similarity Test')
 
         menu.AppendMenu(wx.ID_ANY, 'Convert q-scale', convertq_menu)
 
@@ -6808,6 +6861,18 @@ class ManipItemPanel(wx.Panel):
             #Weighted Average
             selected_items = self.manipulation_panel.getSelectedItems()
             mainworker_cmd_queue.put(['weighted_average_items', selected_items])
+
+        elif evt.GetId() == 37:
+            #Similarity testing
+            Mainframe = wx.FindWindowByName('MainFrame')
+            selected_items = self.manipulation_panel.getSelectedItems()
+
+            if selected_items:
+                selected_sasms = [item.getSASM() for item in selected_items]
+            else:
+                selected_sasms = []
+
+            Mainframe.showSimilarityFrame(selected_sasms)
 
 
     def _saveAllAnalysisInfo(self):

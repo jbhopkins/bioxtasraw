@@ -313,6 +313,11 @@ class RawGuiSettings:
                             #Weighted Average Settings
                             'weightCounter'         : ['', wx.Window.NewControlId(), 'choice'],
                             'weightByError'         : [True, wx.Window.NewControlId(), 'bool'],
+
+                            #Similarity testing settings
+                            'similarityTest'        : ['CorMap', wx.Window.NewControlId(), 'choice'],
+                            'similarityThreshold'   : [0.01, wx.Window.NewControlId(), 'float'],
+                            'similarityOnAverage'   : [True, wx.Window.NewControlId(), 'bool'],
                             }
 
     def get(self, key):
