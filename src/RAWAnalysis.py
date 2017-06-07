@@ -8811,7 +8811,7 @@ class SimilarityFrame(wx.Frame):
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(method_sizer, 0, wx.TOP | wx.BOTTOM, 5)
-        top_sizer.Add(self.listPanel, 0)
+        top_sizer.Add(self.listPanel, 1, wx.EXPAND, 0)
         top_sizer.Add(button_sizer, 0, wx.BOTTOM, 5)
 
         return top_sizer
@@ -8865,7 +8865,8 @@ class SimilarityFrame(wx.Frame):
     def OnClose(self, event):
         self.Destroy()
 
-class similiarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin):
+class similiarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
+    wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin):
     """Makes a sortable list panel for the similarity data. Right now,
     only has columns for the CorMap test.
     This is based on:
@@ -8887,6 +8888,7 @@ class similiarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin):
 
         self.itemDataMap = {}
         wx.lib.mixins.listctrl.ColumnSorterMixin.__init__(self, 6)
+        wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin.__init__(self)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.list_ctrl, 0, wx.ALL | wx.EXPAND, 5)
@@ -8896,6 +8898,31 @@ class similiarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin):
         """Used by the ColumnSorterMixin
         """
         return self.list_ctrl
+
+    def GetColumnCount(self):
+        """Used by the AutoWidthMixin
+        """
+        return self.list_ctrl.GetColumnCount()
+
+    def GetColumnWidth(self, col):
+        """Used by the AutoWidthMixin
+        """
+        return self.list_ctrl.GetColumnWidth(col)
+
+    def GetItemCount(self):
+        """Used by the AutoWidthMixin
+        """
+        return self.list_ctrl.GetItemCount()
+
+    def GetCountPerPage(self):
+        """Used by the AutoWidthMixin
+        """
+        return self.list_ctrl.GetCountPerPage()
+
+    def SetColumnWidth(self, col, width):
+        """Used by the AutoWidthMixin
+        """
+        return self.list_ctrl.SetColumnWidth(col, width)
 
     def addItem(self, fnum1, fnum2, fname1, fname2, c, pval):
         items = self.list_ctrl.GetItemCount()
