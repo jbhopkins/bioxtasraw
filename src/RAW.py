@@ -3599,15 +3599,20 @@ class MainWorkerThread(threading.Thread):
         if self._raw_settings.get('similarityOnAverage'):
             ref_sasm = sasm_list[0]
             qi_ref, qf_ref = ref_sasm.getQrange()
-            pvals = np.ones(len(sasm_list), dtype=float)
+            pvals = np.ones(len(sasm_list[1:]), dtype=float)
             threshold = self._raw_settings.get('similarityThreshold')
             sim_test = self._raw_settings.get('similarityTest')
+            correction = self._raw_settings.get('similarityCorrection')
 
             for index, sasm in enumerate(sasm_list[1:]):
                 qi, qf = sasm.getQrange()
                 if sim_test == 'CorMap':
                     n, c, pval = SASCalc.cormap_pval(ref_sasm.i[qi_ref:qf_ref], sasm.i[qi:qf])
-                pvals[index+1] = pval
+                pvals[index] = pval
+
+            if correction == 'Bonferroni':
+                pvals = pvals*len(sasm_list[1:])
+                pvals[pvals>1] = 1
 
             if np.any(pvals<threshold):
                 continue_average = self._showAverageError(4, itertools.compress(sasm_list, pvals<threshold))

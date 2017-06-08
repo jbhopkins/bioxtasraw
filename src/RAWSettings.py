@@ -316,6 +316,7 @@ class RawGuiSettings:
 
                             #Similarity testing settings
                             'similarityTest'        : ['CorMap', wx.Window.NewControlId(), 'choice'],
+                            'similarityCorrection'  : ['Bonferroni', wx.Window.NewControlId(), 'choice'],
                             'similarityThreshold'   : [0.01, wx.Window.NewControlId(), 'float'],
                             'similarityOnAverage'   : [True, wx.Window.NewControlId(), 'bool'],
                             }

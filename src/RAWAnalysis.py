@@ -8796,7 +8796,7 @@ class SimilarityFrame(wx.Frame):
         method_text = wx.StaticText(parent, -1, 'Method:')
         method_choice = wx.Choice(parent, self.ids['method'], choices = ['CorMap'])
         method_choice.Bind(wx.EVT_CHOICE, self._onMethodChange)
-        correction_text = wx.StaticText(parent, -1, 'Multiple Testing Correction:')
+        correction_text = wx.StaticText(parent, -1, 'Multiple testing correction:')
         correction_choice = wx.Choice(parent, self.ids['correction'], choices=['None', 'Bonferroni'])
         correction_choice.SetStringSelection('Bonferroni')
         correction_choice.Bind(wx.EVT_CHOICE, self._onMethodChange)
