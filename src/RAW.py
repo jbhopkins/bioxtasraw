@@ -3620,7 +3620,7 @@ class MainWorkerThread(threading.Thread):
                 pvals[pvals>1] = 1
 
             if np.any(pvals<threshold):
-                continue_average = self._showAverageError(4, itertools.compress(sasm_list, pvals<threshold))
+                continue_average = self._showAverageError(4, itertools.compress(sasm_list[1:], pvals<threshold))
                 if not continue_average:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                     return
@@ -9907,7 +9907,51 @@ class SECControlPanel(wx.Panel):
         self.mol_type = self.calc_mol_type.GetStringSelection()
         threshold = self._raw_settings.get('secCalcThreshold')
 
-        newParams = secm.setCalcParams(self.initial_buffer_frame, self.final_buffer_frame, self.window_size, self.mol_type, threshold)
+        if (self._raw_settings.get('similarityOnAverage') and
+            self.initial_buffer_frame < self.final_buffer_frame):
+            sasm_list = secm.getSASMList(self.initial_buffer_frame,
+                self.final_buffer_frame)
+            ref_sasm = sasm_list[0]
+            qi_ref, qf_ref = ref_sasm.getQrange()
+            pvals = np.ones(len(sasm_list[1:]), dtype=float)
+            threshold = self._raw_settings.get('similarityThreshold')
+            sim_test = self._raw_settings.get('similarityTest')
+            correction = self._raw_settings.get('similarityCorrection')
+
+            for index, sasm in enumerate(sasm_list[1:]):
+                qi, qf = sasm.getQrange()
+                if not np.all(np.round(sasm.q[qi:qf], 5) == np.round(ref_sasm.q[qi_ref:qf_ref], 5)):
+                    msg = 'The selected items must have the same q vectors to be averaged.'
+                    wx.CallAfter(wx.MessageBox, msg, "Average Error", style = wx.ICON_ERROR | wx.OK)
+                    return
+
+                if sim_test == 'CorMap':
+                    n, c, pval = SASCalc.cormap_pval(ref_sasm.i[qi_ref:qf_ref], sasm.i[qi:qf])
+                pvals[index] = pval
+
+            if correction == 'Bonferroni':
+                pvals = pvals*len(sasm_list[1:])
+                pvals[pvals>1] = 1
+
+            if np.any(pvals<threshold):
+                msg = ('One or more of the selected buffer frames to be averaged is statistically\n'
+                       'different from the first frame in the range, as found using the %s test\n'
+                       'and a p-value threshold of %f.'
+                        '\nThe following frames were found to be different:\n' %(sim_test, threshold))
+                for sasm in itertools.compress(sasm_list[1:], pvals<threshold):
+                    msg = msg + sasm.getParameter('filename') + '\n'
+                msg = msg + ('Please select an action below.')
+                question_dialog = RAWCustomCtrl.CustomQuestionDialog(self, msg,
+                    [('Cancel Calculation', wx.ID_CANCEL), ('Continue Calculation', wx.ID_YES)],
+                    'Warning: Selected buffer frames are different',
+                    wx.ART_WARNING, None, None, style = wx.CAPTION)
+                answer = question_dialog.ShowModal()
+                question_dialog.Destroy()
+                if answer != wx.ID_YES:
+                    return
+
+        newParams = secm.setCalcParams(self.initial_buffer_frame,
+            self.final_buffer_frame, self.window_size, self.mol_type, threshold)
 
         if newParams:
             secm.item_panel.updateInfoTip()
