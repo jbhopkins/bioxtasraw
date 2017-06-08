@@ -3205,8 +3205,8 @@ class MainWorkerThread(threading.Thread):
         elif err_no == 4:
             test = self._raw_settings.get('similarityTest')
             threshold = self._raw_settings.get('similarityThreshold')
-            msg = ('One or more of the selected items to be averaged is statistically\n different'
-                    ' from the first item, as found using the %s test\n and a pval threshold of %f.'
+            msg = ('One or more of the selected items to be averaged is statistically\ndifferent'
+                    ' from the first item, as found using the %s test\nand a pval threshold of %f.'
                     '\nThe following profiles were found to be different:\n' %(test, threshold))
             for sasm in sasm_list:
                 msg = msg + sasm.getParameter('filename') + '\n'

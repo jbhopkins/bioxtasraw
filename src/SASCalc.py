@@ -1642,3 +1642,48 @@ def measure_longest(data):
     else:
         max_len = 0
     return max_len
+
+def run_cormap(sasm_list, correction='None'):
+    pvals = np.ones((len(sasm_list), len(sasm_list)))
+    corrected_pvals = np.ones_like(pvals)
+
+    if correction == 'Bonferroni':
+        m_val = sum(range(len(sasm_list)))
+
+    item_data = []
+
+    for index1 in range(len(sasm_list)):
+        for index2 in range(1, len(sasm_list[index1:])):
+            sasm1 = sasm_list[index1]
+            sasm2 = sasm_list[index1+index2]
+            qmin1, qmax1 = sasm1.getQrange()
+            qmin2, qmax2 = sasm2.getQrange()
+            i1 = sasm1.i[qmin1:qmax1]
+            i2 = sasm2.i[qmin2:qmax2]
+
+            if index2 !=0:
+                n, c, prob = cormap_pval(i1, i2)
+            else:
+                n = len(i1)
+                c = 0
+                prob = 1
+
+            pvals[index1, index1+index2] = prob
+            pvals[index1+index2, index1] = prob
+
+            if correction == 'Bonferroni':
+                c_prob = prob*m_val
+                if c_prob > 1:
+                    c_prob = 1
+                corrected_pvals[index1, index1+index2] = c_prob
+                corrected_pvals[index1+index2, index1] = c_prob
+
+            else:
+                c_prob=1
+
+            item_data.append([str(index1), str(index1+index2),
+                sasm1.getParameter('filename'), sasm2.getParameter('filename'),
+                c, prob, c_prob]
+                )
+
+    return item_data, pvals, corrected_pvals

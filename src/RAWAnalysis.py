@@ -8750,9 +8750,9 @@ class SimilarityFrame(wx.Frame):
     def __init__(self, parent, title, sasm_list):
 
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'SimilarityFrame', size = (550,300))
+            wx.Frame.__init__(self, parent, -1, title, name = 'SimilarityFrame', size = (600,400))
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'SimilarityFrame', size = (550,300))
+            wx.Frame.__init__(self, None, -1, title, name = 'SimilarityFrame', size = (600,400))
 
         self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -8761,7 +8761,12 @@ class SimilarityFrame(wx.Frame):
         self.main_frame = wx.FindWindowByName('MainFrame')
 
         self.ids = {
-                    'method'    : self.NewControlId(),
+                    'method'        : self.NewControlId(),
+                    'correction'    : self.NewControlId(),
+                    'hl_diff_chk'   : self.NewControlId(),
+                    'hl_diff_val'   : self.NewControlId(),
+                    'hl_same_chk'   : self.NewControlId(),
+                    'hl_same_val'   : self.NewControlId(),
                     }
 
         self.pvals = None
@@ -8791,11 +8796,36 @@ class SimilarityFrame(wx.Frame):
         method_text = wx.StaticText(parent, -1, 'Method:')
         method_choice = wx.Choice(parent, self.ids['method'], choices = ['CorMap'])
         method_choice.Bind(wx.EVT_CHOICE, self._onMethodChange)
-        method_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        method_sizer.Add(method_text, wx.RIGHT, 3)
-        method_sizer.Add(method_choice)
+        correction_text = wx.StaticText(parent, -1, 'Multiple Testing Correction:')
+        correction_choice = wx.Choice(parent, self.ids['correction'], choices=['None', 'Bonferroni'])
+        correction_choice.SetStringSelection('Bonferroni')
+        correction_choice.Bind(wx.EVT_CHOICE, self._onMethodChange)
 
-        self.listPanel = similiarityListPanel(parent)
+        method_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        method_sizer.Add(method_text, 0, wx.LEFT | wx.RIGHT, 3)
+        method_sizer.Add(method_choice, 0, wx.RIGHT, 6)
+        method_sizer.Add(correction_text, 0, wx.RIGHT, 3)
+        method_sizer.Add(correction_choice, 0, wx.RIGHT, 3)
+
+        highlight_diff_chkbx = wx.CheckBox(parent, self.ids['hl_diff_chk'], 'Highlight with p-value <')
+        highlight_diff_chkbx.Bind(wx.EVT_CHECKBOX, self._onHighlightChange)
+        highlight_diff_pval = wx.TextCtrl(parent, self.ids['hl_diff_val'], '0.01', size = (65, -1))
+        highlight_diff_pval.SetBackgroundColour(wx.Colour(255,128,96))
+        highlight_diff_pval.Bind(wx.EVT_TEXT, self._onTextEntry)
+
+        highlight_same_chkbx = wx.CheckBox(parent, self.ids['hl_same_chk'], 'Highlight with p-value >')
+        highlight_same_chkbx.Bind(wx.EVT_CHECKBOX, self._onHighlightChange)
+        highlight_same_pval = wx.TextCtrl(parent, self.ids['hl_same_val'], '0.01', size = (65, -1))
+        highlight_same_pval.SetBackgroundColour('LIGHT BLUE')
+        highlight_same_pval.Bind(wx.EVT_TEXT, self._onTextEntry)
+
+        highlight_diff_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        highlight_diff_sizer.Add(highlight_diff_chkbx,0, wx.LEFT, 3)
+        highlight_diff_sizer.Add(highlight_diff_pval, 0, wx.RIGHT, 3)
+        highlight_diff_sizer.Add(highlight_same_chkbx,0, wx.LEFT, 12)
+        highlight_diff_sizer.Add(highlight_same_pval, 0, wx.RIGHT, 3)
+
+        self.listPanel = similiarityListPanel(parent, (-1, 300))
 
         #Creating the fixed buttons
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -8811,6 +8841,7 @@ class SimilarityFrame(wx.Frame):
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(method_sizer, 0, wx.TOP | wx.BOTTOM, 5)
+        top_sizer.Add(highlight_diff_sizer, 0, wx.TOP | wx.BOTTOM, 5)
         top_sizer.Add(self.listPanel, 1, wx.EXPAND, 0)
         top_sizer.Add(button_sizer, 0, wx.BOTTOM, 5)
 
@@ -8829,26 +8860,84 @@ class SimilarityFrame(wx.Frame):
     def _onMethodChange(self, evt):
         self._runSimilarityTest()
 
+    def _onTextEntry(self, evt):
+        ctrl = evt.GetEventObject()
+        pval = ctrl.GetValue()
+        if pval != '' and pval !='-' and pval !='.' and not pval.isdigit():
+            try:
+                pval = float(pval.replace(',', '.'))
+            except ValueError:
+                pval = ''
+                ctrl.ChangeValue(pval)
+            if pval != '':
+                self._highlight()
+        elif pval.isdigit():
+            self._highlight()
+
+    def _onHighlightChange(self, evt):
+        self._highlight()
+
+    def _highlight(self):
+        hl_diff = wx.FindWindowById(self.ids['hl_diff_chk']).GetValue()
+        hl_diff_pval = wx.FindWindowById(self.ids['hl_diff_val']).GetValue()
+        hl_same = wx.FindWindowById(self.ids['hl_same_chk']).GetValue()
+        hl_same_pval = wx.FindWindowById(self.ids['hl_same_val']).GetValue()
+        correction = wx.FindWindowById(self.ids['correction']).GetStringSelection()
+
+        if (hl_diff and hl_diff_pval != '') or (hl_same and hl_same_pval != ''):
+            if hl_diff_pval != '':
+                try:
+                    hl_diff_pval = float(hl_diff_pval)
+                except ValueError:
+                    hl_diff_pval =''
+            if hl_same_pval != '':
+                try:
+                    hl_same_pval = float(hl_same_pval)
+                except ValueError:
+                    hl_diff_pval =''
+
+            for index in range(self.listPanel.GetItemCount()):
+                if correction == 'None':
+                    pval = float(self.listPanel.GetItemText(index,5))
+                else:
+                    pval = float(self.listPanel.GetItemText(index,6))
+
+                if (hl_diff and hl_diff_pval != '') and (hl_same and hl_same_pval != ''):
+                    if pval < hl_diff_pval and pval <= hl_same_pval:
+                        self.listPanel.SetItemBackgroundColour(index, wx.Colour(255,128,96))
+                    elif pval >= hl_diff_pval and pval > hl_same_pval:
+                        self.listPanel.SetItemBackgroundColour(index, 'LIGHT BLUE')
+                    elif pval < hl_diff_pval and pval > hl_same_pval:
+                        self.listPanel.SetItemBackgroundColour(index, wx.Colour(248,124,255))
+                    else:
+                        self.listPanel.SetItemBackgroundColour(index, 'WHITE')
+
+                elif hl_diff and hl_diff_pval != '':
+                    if pval < hl_diff_pval:
+                        self.listPanel.SetItemBackgroundColour(index, wx.Colour(255,128,96))
+                    else:
+                        self.listPanel.SetItemBackgroundColour(index, 'WHITE')
+
+                elif hl_same and hl_same_pval != '':
+                    if pval > hl_same_pval:
+                        self.listPanel.SetItemBackgroundColour(index, 'LIGHT BLUE')
+                    else:
+                        self.listPanel.SetItemBackgroundColour(index, 'WHITE')
+        else:
+            for index in range(self.listPanel.GetItemCount()):
+                self.listPanel.SetItemBackgroundColour(index, 'WHITE')
+
     def _calcCorMapPval(self):
-        self.pvals = np.ones((len(self.sasm_list), len(self.sasm_list)))
+        correction_window = wx.FindWindowById(self.ids['correction'])
+        correction = correction_window.GetStringSelection()
 
-        for index1 in range(len(self.sasm_list)):
-            for index2 in range(len(self.sasm_list[index1:])):
-                sasm1 = self.sasm_list[index1]
-                sasm2 = self.sasm_list[index1+index2]
-                qmin1, qmax1 = sasm1.getQrange()
-                qmin2, qmax2 = sasm2.getQrange()
-                i1 = sasm1.i[qmin1:qmax1]
-                i2 = sasm2.i[qmin2:qmax2]
-                n, c, prob = SASCalc.cormap_pval(i1, i2)
+        item_data, pvals, corrected_pvals = SASCalc.run_cormap(self.sasm_list, correction)
 
-                self.pvals[index1, index1+index2] = prob
-                self.pvals[index1+index2, index1] = prob
+        self.listPanel.DeleteAllItems()
+        for item in item_data:
+            self.listPanel.addItem(*item, correction=correction)
 
-                self.listPanel.addItem(str(index1), str(index1+index2), sasm1.getParameter('filename'),
-                    sasm2.getParameter('filename'), c, prob)
-
-        self.Refresh()
+        self._highlight()
 
     def _onDoneButton(self, evt):
         self._onClose()
@@ -8872,11 +8961,11 @@ class similiarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
     This is based on:
     https://www.blog.pythonlibrary.org/2011/01/04/wxpython-wx-listctrl-tips-and-tricks/
     """
-    def __init__(self, parent):
+    def __init__(self, parent, size):
         wx.Panel.__init__(self, parent, wx.ID_ANY)
 
-        self.list_ctrl = wx.ListCtrl(self, style=wx. LC_REPORT
-                        | wx.LC_SORT_ASCENDING
+        self.list_ctrl = wx.ListCtrl(self, style=wx.LC_REPORT
+                        | wx.LC_SORT_ASCENDING, size=size
                         )
 
         self.list_ctrl.InsertColumn(0, 'File# 1')
@@ -8885,9 +8974,10 @@ class similiarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
         self.list_ctrl.InsertColumn(3, 'Filename 2')
         self.list_ctrl.InsertColumn(4, 'Longest Edge (C)')
         self.list_ctrl.InsertColumn(5, 'Prob. Same (Pr(>C-1))')
+        self.list_ctrl.InsertColumn(6, 'Corrected Prob. Same')
 
         self.itemDataMap = {}
-        wx.lib.mixins.listctrl.ColumnSorterMixin.__init__(self, 6)
+        wx.lib.mixins.listctrl.ColumnSorterMixin.__init__(self, 7)
         wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin.__init__(self)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -8924,10 +9014,30 @@ class similiarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
         """
         return self.list_ctrl.SetColumnWidth(col, width)
 
-    def addItem(self, fnum1, fnum2, fname1, fname2, c, pval):
+    def DeleteAllItems(self):
+        """Makes this call accessible to the main panel
+        """
+        self.list_ctrl.DeleteAllItems()
+
+    def GetItem(self, index):
+        """Makes this call accessible to the main panel1_results
+        """
+        return self.list_ctrl.GetItem(index)
+
+    def GetItemText(self, index, col):
+        """Makes this call accessible to the main panel1_results
+        """
+        return self.list_ctrl.GetItemText(index, col)
+
+    def SetItemBackgroundColour(self, index, color):
+        self.list_ctrl.SetItemBackgroundColour(index, color)
+
+    def addItem(self, fnum1, fnum2, fname1, fname2, c, pval, cor_pval, correction= 'None'):
+        if correction == 'None':
+            cor_pval = ''
         items = self.list_ctrl.GetItemCount()
-        self.list_ctrl.Append((fnum1, fnum2, fname1, fname2, c, pval))
-        self.itemDataMap[items] = (fnum1, fnum2, fname1, fname2, c, pval)
+        self.list_ctrl.Append((fnum1, fnum2, fname1, fname2, c, pval, cor_pval))
+        self.itemDataMap[items] = (fnum1, fnum2, fname1, fname2, c, pval, cor_pval)
 
         self.list_ctrl.SetItemData(items, items)
 
