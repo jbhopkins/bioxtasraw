@@ -8759,6 +8759,7 @@ class SimilarityFrame(wx.Frame):
         self.sasm_list = sasm_list
 
         self.main_frame = wx.FindWindowByName('MainFrame')
+        self.raw_settings = self.main_frame.raw_settings
 
         self.ids = {
                     'method'        : self.NewControlId(),
@@ -8848,6 +8849,15 @@ class SimilarityFrame(wx.Frame):
         return top_sizer
 
     def _initSettings(self):
+        method = self.raw_settings.get('similarityTest')
+        correction = self.raw_settings.get('similarityCorrection')
+        threshold = self.raw_settings.get('similarityThreshold')
+
+        wx.FindWindowById(self.ids['method'], self).SetStringSelection(method)
+        wx.FindWindowById(self.ids['correction'], self).SetStringSelection(correction)
+        wx.FindWindowById(self.ids['hl_diff_val'], self).ChangeValue(str(threshold))
+        wx.FindWindowById(self.ids['hl_same_val'], self).ChangeValue(str(threshold))
+
         self._runSimilarityTest()
 
     def _runSimilarityTest(self):
@@ -8903,41 +8913,54 @@ class SimilarityFrame(wx.Frame):
                     pval = float(self.listPanel.GetItemText(index,6))
 
                 if (hl_diff and hl_diff_pval != '') and (hl_same and hl_same_pval != ''):
-                    if pval < hl_diff_pval and pval <= hl_same_pval:
+                    if pval < hl_diff_pval and pval <= hl_same_pval and pval != -1:
                         self.listPanel.SetItemBackgroundColour(index, wx.Colour(255,128,96))
-                    elif pval >= hl_diff_pval and pval > hl_same_pval:
+                    elif pval >= hl_diff_pval and pval > hl_same_pval and pval != -1:
                         self.listPanel.SetItemBackgroundColour(index, 'LIGHT BLUE')
-                    elif pval < hl_diff_pval and pval > hl_same_pval:
+                    elif pval < hl_diff_pval and pval > hl_same_pval and pval != -1:
                         self.listPanel.SetItemBackgroundColour(index, wx.Colour(248,124,255))
+                    elif pval == -1:
+                        self.listPanel.SetItemBackgroundColour(index, 'YELLOW')
                     else:
                         self.listPanel.SetItemBackgroundColour(index, 'WHITE')
 
                 elif hl_diff and hl_diff_pval != '':
-                    if pval < hl_diff_pval:
+                    if pval < hl_diff_pval and pval != -1:
                         self.listPanel.SetItemBackgroundColour(index, wx.Colour(255,128,96))
+                    elif pval == -1:
+                        self.listPanel.SetItemBackgroundColour(index, 'YELLOW')
                     else:
                         self.listPanel.SetItemBackgroundColour(index, 'WHITE')
 
                 elif hl_same and hl_same_pval != '':
-                    if pval > hl_same_pval:
+                    if pval > hl_same_pval and pval != -1:
                         self.listPanel.SetItemBackgroundColour(index, 'LIGHT BLUE')
+                    elif pval == -1:
+                        self.listPanel.SetItemBackgroundColour(index, 'YELLOW')
                     else:
                         self.listPanel.SetItemBackgroundColour(index, 'WHITE')
         else:
             for index in range(self.listPanel.GetItemCount()):
-                self.listPanel.SetItemBackgroundColour(index, 'WHITE')
+                pval = float(self.listPanel.GetItemText(index,5))
+                if pval == -1:
+                        self.listPanel.SetItemBackgroundColour(index, 'YELLOW')
+                else:
+                    self.listPanel.SetItemBackgroundColour(index, 'WHITE')
 
     def _calcCorMapPval(self):
         correction_window = wx.FindWindowById(self.ids['correction'])
         correction = correction_window.GetStringSelection()
 
-        item_data, pvals, corrected_pvals = SASCalc.run_cormap(self.sasm_list, correction)
+        item_data, pvals, corrected_pvals, failed_comparisons = SASCalc.run_cormap(self.sasm_list, correction)
 
         self.listPanel.DeleteAllItems()
         for item in item_data:
             self.listPanel.addItem(*item, correction=correction)
 
         self._highlight()
+
+        if failed_comparisons:
+            self._showComparisonError(failed_comparisons)
 
     def _onDoneButton(self, evt):
         self._onClose()
@@ -8947,6 +8970,13 @@ class SimilarityFrame(wx.Frame):
             'RAW paper please cite this paper:\n'
             'https://www.nature.com/nmeth/journal/v12/n5/abs/nmeth.3358.html')
         wx.MessageBox(str(msg), "How to cite Similarity Testing", style = wx.ICON_INFORMATION | wx.OK)
+
+    def _showComparisonError(self, failed_comparisons):
+        msg = 'The following comparisons failed due to differences in q vector:\n'
+        for each_pair in failed_comparisons:
+            msg=msg+'%s to %s\n' %(each_pair[0], each_pair[1])
+        wx.MessageBox(str(msg), "Similarity Testing Error", style = wx.ICON_INFORMATION | wx.OK)
+
 
     def _onClose(self):
         self.OnClose(1)

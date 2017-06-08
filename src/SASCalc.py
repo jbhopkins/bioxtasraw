@@ -1597,6 +1597,9 @@ def cormap_pval(data1, data2):
     if data2.ndim == 2 and data2.shape[1] > 1:
         data2 = data2[:, 1]
 
+    if data1.shape != data2.shape:
+        raise SASExceptions.CorMapError
+
     diff_data = data2 - data1
     c = measure_longest(diff_data)
     n = diff_data.size
@@ -1646,6 +1649,7 @@ def measure_longest(data):
 def run_cormap(sasm_list, correction='None'):
     pvals = np.ones((len(sasm_list), len(sasm_list)))
     corrected_pvals = np.ones_like(pvals)
+    failed_comparisons = []
 
     if correction == 'Bonferroni':
         m_val = sum(range(len(sasm_list)))
@@ -1653,20 +1657,28 @@ def run_cormap(sasm_list, correction='None'):
     item_data = []
 
     for index1 in range(len(sasm_list)):
+        sasm1 = sasm_list[index1]
+        qmin1, qmax1 = sasm1.getQrange()
+        i1 = sasm1.i[qmin1:qmax1]
         for index2 in range(1, len(sasm_list[index1:])):
-            sasm1 = sasm_list[index1]
             sasm2 = sasm_list[index1+index2]
-            qmin1, qmax1 = sasm1.getQrange()
             qmin2, qmax2 = sasm2.getQrange()
-            i1 = sasm1.i[qmin1:qmax1]
             i2 = sasm2.i[qmin2:qmax2]
 
-            if index2 !=0:
-                n, c, prob = cormap_pval(i1, i2)
+            if np.all(np.round(sasm1.q[qmin1:qmax1], 5) == np.round(sasm2.q[qmin2:qmax2], 5)):
+                try:
+                    n, c, prob = cormap_pval(i1, i2)
+                except SASExceptions.CorMapError:
+                    n = 0
+                    c = -1
+                    prob = -1
+                    failed_comparisons.append((sasm1.getParameter('filename'), sasm2.getParameter('filename')))
+
             else:
-                n = len(i1)
-                c = 0
-                prob = 1
+                n = 0
+                c = -1
+                prob = -1
+                failed_comparisons.append((sasm1.getParameter('filename'), sasm2.getParameter('filename')))
 
             pvals[index1, index1+index2] = prob
             pvals[index1+index2, index1] = prob
@@ -1675,6 +1687,8 @@ def run_cormap(sasm_list, correction='None'):
                 c_prob = prob*m_val
                 if c_prob > 1:
                     c_prob = 1
+                elif c_prob < -1:
+                    c_prob = -1
                 corrected_pvals[index1, index1+index2] = c_prob
                 corrected_pvals[index1+index2, index1] = c_prob
 
@@ -1686,4 +1700,4 @@ def run_cormap(sasm_list, correction='None'):
                 c, prob, c_prob]
                 )
 
-    return item_data, pvals, corrected_pvals
+    return item_data, pvals, corrected_pvals, failed_comparisons

@@ -3606,6 +3606,11 @@ class MainWorkerThread(threading.Thread):
 
             for index, sasm in enumerate(sasm_list[1:]):
                 qi, qf = sasm.getQrange()
+                if not np.all(np.round(sasm.q[qi:qf], 5) == np.round(ref_sasm.q[qi_ref:qf_ref], 5)):
+                    self._showAverageError(3)
+                    wx.CallAfter(self.main_frame.closeBusyDialog)
+                    return
+
                 if sim_test == 'CorMap':
                     n, c, pval = SASCalc.cormap_pval(ref_sasm.i[qi_ref:qf_ref], sasm.i[qi:qf])
                 pvals[index] = pval
