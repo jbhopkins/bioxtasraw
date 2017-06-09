@@ -8771,6 +8771,8 @@ class SimilarityFrame(wx.Frame):
                     }
 
         self.pvals = None
+        self.item_data = None
+        self.corrected_pvals = None
 
         sizer = self._createLayout(self.panel)
         self._initSettings()
@@ -8837,8 +8839,12 @@ class SimilarityFrame(wx.Frame):
         info_button = wx.Button(parent, -1, 'How To Cite')
         info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
 
-        button_sizer.Add(self.done_button, 0, wx.RIGHT, 3)
-        button_sizer.Add(info_button, 0)
+        save_button = wx.Button(parent, -1, 'Save')
+        save_button.Bind(wx.EVT_BUTTON, self._onSaveButton)
+
+        button_sizer.Add(self.done_button, 0, wx.RIGHT | wx.LEFT, 3)
+        button_sizer.Add(info_button, 0, wx.RIGHT, 3)
+        button_sizer.Add(save_button, 0, wx.RIGHT, 3)
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(method_sizer, 0, wx.TOP | wx.BOTTOM, 5)
@@ -8951,10 +8957,10 @@ class SimilarityFrame(wx.Frame):
         correction_window = wx.FindWindowById(self.ids['correction'])
         correction = correction_window.GetStringSelection()
 
-        item_data, pvals, corrected_pvals, failed_comparisons = SASCalc.run_cormap(self.sasm_list, correction)
+        self.item_data, self.pvals, self.corrected_pvals, failed_comparisons = SASCalc.run_cormap(self.sasm_list, correction)
 
         self.listPanel.DeleteAllItems()
-        for item in item_data:
+        for item in self.item_data:
             self.listPanel.addItem(*item, correction=correction)
 
         self._highlight()
@@ -8971,12 +8977,44 @@ class SimilarityFrame(wx.Frame):
             'https://www.nature.com/nmeth/journal/v12/n5/abs/nmeth.3358.html')
         wx.MessageBox(str(msg), "How to cite Similarity Testing", style = wx.ICON_INFORMATION | wx.OK)
 
+    def _onSaveButton(self, evt):
+        self._save()
+
     def _showComparisonError(self, failed_comparisons):
         msg = 'The following comparisons failed due to differences in q vector:\n'
         for each_pair in failed_comparisons:
             msg=msg+'%s to %s\n' %(each_pair[0], each_pair[1])
         wx.MessageBox(str(msg), "Similarity Testing Error", style = wx.ICON_INFORMATION | wx.OK)
 
+    def _save(self):
+        """Saves the data shown in the list as a csv file.
+        """
+        dirctrl = wx.FindWindowByName('DirCtrlPanel')
+        path = str(dirctrl.getDirLabel())
+
+        filename = 'similarity_test.csv'
+
+        dialog = wx.FileDialog(self, message = "Please select save directory and enter save file name", style = wx.FD_SAVE, defaultDir = path, defaultFile = filename)
+
+        if dialog.ShowModal() == wx.ID_OK:
+            save_path = dialog.GetPath()
+            name, ext = os.path.splitext(save_path)
+            save_path = name + '.csv'
+        else:
+            return
+
+        correction_window = wx.FindWindowById(self.ids['correction'])
+        correction = correction_window.GetStringSelection()
+
+        save_data = copy.copy(self.item_data)
+        if correction == 'None':
+            for item in save_data:
+                item[-1]=''
+
+        header = ('File# 1,File# 2,Filename 1,Filename 2,Longest Edge (C),Prob. '
+            'Same (Pr(>C-1)),Corrected Prob. Same')
+
+        SASFileIO.saveCSVFile(save_path, save_data, header)
 
     def _onClose(self):
         self.OnClose(1)

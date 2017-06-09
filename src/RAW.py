@@ -3452,7 +3452,21 @@ class MainWorkerThread(threading.Thread):
         for each_item in selected_items:
             selected_sasms.append(each_item.getSASM())
 
-        SASM.superimpose(star_item.getSASM(), selected_sasms)
+        button_list = [('Scale', wx.Window.NewControlId()), ('Offset', wx.Window.NewControlId()),
+                        ('Scale and Offset', wx.Window.NewControlId())]
+
+        question = 'Select whether superimpose should scale, offset, or scale and offset the data.'
+        label = 'Select Superimpose Parameters'
+        icon = wx.ART_QUESTION
+
+        answer = self._displayQuestionDialog(question, label, button_list, icon)
+        answer_id = answer[0]
+
+        for param, button_id in button_list:
+            if answer_id == button_id:
+                choice = param
+
+        SASM.superimpose(star_item.getSASM(), selected_sasms, choice)
 
         for each_item in selected_items:
             each_item.updateControlsFromSASM(updatePlot=False)

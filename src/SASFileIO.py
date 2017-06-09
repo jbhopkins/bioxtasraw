@@ -2934,10 +2934,24 @@ def saveWorkspace(sasm_dict, save_path):
 
 
 def saveCSVFile(filename, data, header = ''):
-    if header != '':
-        np.savetxt(filename, data, delimiter = ',', header = header, comments = '')
+    if isinstance(data, list):
+        body_string = ''
+        for item in data:
+            body_string = body_string + ','.join(map(str, item))+'\n'
+
+        if header != '':
+            save_string = header + '\n' + body_string
+        else:
+            save_string = body_string
+
+        with open(filename, 'w') as fsave:
+            fsave.write(save_string)
+
     else:
-        np.savetxt(filename, data, delimiter = ',', comments ='')
+        if header != '':
+            np.savetxt(filename, data, delimiter = ',', header = header, comments = '')
+        else:
+            np.savetxt(filename, data, delimiter = ',', comments ='')
 
 
 def saveSVDData(filename, svd_data, u_data, v_data):

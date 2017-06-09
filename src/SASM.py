@@ -1461,12 +1461,11 @@ def postProcessSasm(sasm, raw_settings):
 
         sasm.removeZingers(start_idx, winlen, std)
 
-def superimpose(sasm_star, sasm_list):
+def superimpose(sasm_star, sasm_list, choice):
     """
-    Find the scale factors for a protein buffer pair that will best match a known standard curve.
-    If I = I_prot - alf*I_buf, then find alf and bet such that
-    ||(I_prot - alf*I_buf) - bet*I_std ||^2 is a minimum. This is a standard vector norm which gives the least squares minimum.
-    The standard curve need not be sampled at the same q-space points.
+    Find the scale and/or offset factor between a reference curve and the
+    curves of interest.
+    The reference curve need not be sampled at the same q-space points.
 
     """
 
@@ -1495,23 +1494,18 @@ def superimpose(sasm_star, sasm_list):
                              each_q[each_q_qrange_min:each_q_qrange_max-1],
                              each_i[each_q_qrange_min:each_q_qrange_max-1])
 
-        I_buf = np.ones(max_q_idx - min_q_idx + 1)
 
-        g2 = np.dot(I_buf, I_buf)
-        s2 = np.dot(i_star[min_q_idx:max_q_idx+1], i_star[min_q_idx:max_q_idx+1])
-
-        gs = sg = np.dot(I_buf, i_star[min_q_idx:max_q_idx+1])
-
-        fg = np.dot(I_resamp, I_buf)
-        fs = np.dot(I_resamp, i_star[min_q_idx:max_q_idx+1])
-
-        determ = g2*s2 - gs*sg
-
-        alf = (fg*s2-fs*sg) / determ
-        bet = (g2*fs-gs*fg) / determ
-
-        offset = -alf
-        scale = 1.0/bet
+        if choice == 'Scale and Offset':
+            A = np.column_stack([I_resamp, np.ones_like(I_resamp)])
+            scale, offset = np.linalg.lstsq(A, i_star)[0]
+        elif choice == 'Scale':
+            A = np.column_stack([I_resamp, np.zeros_like(I_resamp)])
+            scale, offset= np.linalg.lstsq(A, i_star)[0]
+            offset = 0
+        elif choice == 'Offset':
+            A = np.column_stack([np.zeros_like(I_resamp), np.ones_like(I_resamp)])
+            scale, offset= np.linalg.lstsq(A, i_star-I_resamp)[0]
+            scale = 1
 
         each_sasm.scale(scale)
         each_sasm.offset(offset)
