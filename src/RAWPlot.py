@@ -1760,26 +1760,26 @@ class PlotPanel(wx.Panel):
     def updatePlotType(self, axes):
 
         for each in self.plotted_sasms:
+            if each is not None and each.line is not None:
+                q_min, q_max = each.getQrange()
 
-            q_min, q_max = each.getQrange()
+                if each.axes == self.subplot1:
+                    c = '1'
+                else:
+                    c = '2'
 
-            if each.axes == self.subplot1:
-                c = '1'
-            else:
-                c = '2'
-
-            if self.plotparams['plot' + c + 'type'] == 'kratky':
-                each.line.set_ydata(each.i[q_min:q_max] * np.power(each.q[q_min:q_max],2))
-                each.line.set_xdata(each.q[q_min:q_max])
-            elif self.plotparams['plot' + c + 'type'] == 'guinier':
-                each.line.set_ydata(np.log(each.i[q_min:q_max]))
-                each.line.set_xdata(np.power(each.q[q_min:q_max],2))
-            elif self.plotparams['plot' + c + 'type'] == 'porod':
-                each.line.set_ydata(np.power(each.q[q_min:q_max],4)*each.i[q_min:q_max])
-                each.line.set_xdata(each.q[q_min:q_max])
-            elif self.plotparams['plot' + c + 'type'] == 'normal' or self.plotparams['plot' + c+ 'type'] == 'subtracted':
-                each.line.set_ydata(each.i[q_min:q_max])
-                each.line.set_xdata(each.q[q_min:q_max])
+                if self.plotparams['plot' + c + 'type'] == 'kratky':
+                    each.line.set_ydata(each.i[q_min:q_max] * np.power(each.q[q_min:q_max],2))
+                    each.line.set_xdata(each.q[q_min:q_max])
+                elif self.plotparams['plot' + c + 'type'] == 'guinier':
+                    each.line.set_ydata(np.log(each.i[q_min:q_max]))
+                    each.line.set_xdata(np.power(each.q[q_min:q_max],2))
+                elif self.plotparams['plot' + c + 'type'] == 'porod':
+                    each.line.set_ydata(np.power(each.q[q_min:q_max],4)*each.i[q_min:q_max])
+                    each.line.set_xdata(each.q[q_min:q_max])
+                elif self.plotparams['plot' + c + 'type'] == 'normal' or self.plotparams['plot' + c+ 'type'] == 'subtracted':
+                    each.line.set_ydata(each.i[q_min:q_max])
+                    each.line.set_xdata(each.q[q_min:q_max])
 
         self._setLabels(axes = self.subplot1)
         self._setLabels(axes = self.subplot2)
@@ -2722,38 +2722,38 @@ class IftPlotPanel(PlotPanel):
     def updatePlotType(self, axes):
 
         for each in self.plotted_iftms:
+            if each is not None and each.line is not None:
+                q_min, q_max = each.getQrange()
 
-            q_min, q_max = each.getQrange()
+                c = '2'
 
-            c = '2'
+                if self.plotparams['plot' + c + 'type'] == 'kratky':
+                    each.qo_line.set_ydata(each.i_orig[q_min:q_max] * np.power(each.q_orig[q_min:q_max],2))
+                    each.qo_line.set_xdata(each.q_orig[q_min:q_max])
 
-            if self.plotparams['plot' + c + 'type'] == 'kratky':
-                each.qo_line.set_ydata(each.i_orig[q_min:q_max] * np.power(each.q_orig[q_min:q_max],2))
-                each.qo_line.set_xdata(each.q_orig[q_min:q_max])
+                    each.qf_line.set_ydata(each.i_fit[q_min:q_max] * np.power(each.q_orig[q_min:q_max],2))
+                    each.qf_line.set_xdata(each.q_orig[q_min:q_max])
 
-                each.qf_line.set_ydata(each.i_fit[q_min:q_max] * np.power(each.q_orig[q_min:q_max],2))
-                each.qf_line.set_xdata(each.q_orig[q_min:q_max])
+                elif self.plotparams['plot' + c + 'type'] == 'guinier':
+                    each.qo_line.set_ydata(np.log(each.i_orig[q_min:q_max]))
+                    each.qo_line.set_xdata(np.power(each.q_orig[q_min:q_max],2))
 
-            elif self.plotparams['plot' + c + 'type'] == 'guinier':
-                each.qo_line.set_ydata(np.log(each.i_orig[q_min:q_max]))
-                each.qo_line.set_xdata(np.power(each.q_orig[q_min:q_max],2))
+                    each.qf_line.set_ydata(np.log(each.i_fit[q_min:q_max]))
+                    each.qf_line.set_xdata(np.power(each.q_orig[q_min:q_max],2))
 
-                each.qf_line.set_ydata(np.log(each.i_fit[q_min:q_max]))
-                each.qf_line.set_xdata(np.power(each.q_orig[q_min:q_max],2))
+                elif self.plotparams['plot' + c + 'type'] == 'porod':
+                    each.qo_line.set_ydata(np.power(each.q_orig[q_min:q_max],4)*each.i_orig[q_min:q_max])
+                    each.qo_line.set_xdata(each.q_orig[q_min:q_max])
 
-            elif self.plotparams['plot' + c + 'type'] == 'porod':
-                each.qo_line.set_ydata(np.power(each.q_orig[q_min:q_max],4)*each.i_orig[q_min:q_max])
-                each.qo_line.set_xdata(each.q_orig[q_min:q_max])
+                    each.qf_line.set_ydata(np.power(each.q_orig[q_min:q_max],4)*each.i_fit[q_min:q_max])
+                    each.qf_line.set_xdata(each.q_orig[q_min:q_max])
 
-                each.qf_line.set_ydata(np.power(each.q_orig[q_min:q_max],4)*each.i_fit[q_min:q_max])
-                each.qf_line.set_xdata(each.q_orig[q_min:q_max])
+                elif self.plotparams['plot' + c + 'type'] == 'normal' or self.plotparams['plot' + c+ 'type'] == 'subtracted':
+                    each.qo_line.set_ydata(each.i_orig[q_min:q_max])
+                    each.qo_line.set_xdata(each.q_orig[q_min:q_max])
 
-            elif self.plotparams['plot' + c + 'type'] == 'normal' or self.plotparams['plot' + c+ 'type'] == 'subtracted':
-                each.qo_line.set_ydata(each.i_orig[q_min:q_max])
-                each.qo_line.set_xdata(each.q_orig[q_min:q_max])
-
-                each.qf_line.set_ydata(each.i_fit[q_min:q_max])
-                each.qf_line.set_xdata(each.q_orig[q_min:q_max])
+                    each.qf_line.set_ydata(each.i_fit[q_min:q_max])
+                    each.qf_line.set_xdata(each.q_orig[q_min:q_max])
 
         self._setLabels(axes = self.subplot2)
 

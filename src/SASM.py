@@ -244,7 +244,7 @@ class SASM:
         if qrange[0] < 0 or qrange[1] > (len(self._q_binned)):
             raise SASExceptions.InvalidQrange('Qrange: ' + str(qrange) + ' is not a valid q-range for a q-vector of length ' + str(len(self._q_binned)-1))
         else:
-            self._selected_q_range = qrange
+            self._selected_q_range = map(int, qrange)
 
     def getQrange(self):
         return self._selected_q_range
@@ -618,7 +618,8 @@ class IFTM(SASM):
         if qrange[0] < 0 or qrange[1] > (len(self._q_orig_binned)):
             raise SASExceptions.InvalidQrange('Qrange: ' + str(qrange) + ' is not a valid q-range for a q-vector of length ' + str(len(self._q_orig_binned)-1))
         else:
-            self._selected_q_range = qrange
+            self._selected_q_range = map(int, qrange)
+            print self._selected_q_range
 
     def getQrange(self):
         return self._selected_q_range

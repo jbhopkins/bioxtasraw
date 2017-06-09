@@ -1039,7 +1039,7 @@ class MolWeightFrame(wx.Frame):
 
             for each_key in self.infodata.iterkeys():
                 window = wx.FindWindowById(self.infodata[each_key][1], self)
-                window.SetValue(guinier[each_key])
+                window.ChangeValue(guinier[each_key])
 
 
         self.setFilename(os.path.basename(self.sasm.getParameter('filename')))
@@ -1099,8 +1099,8 @@ class MolWeightFrame(wx.Frame):
             aval = self.raw_settings.get('MWVcARna')
             bval = self.raw_settings.get('MWVcBRna')
 
-        aCtrl.SetValue(str(aval))
-        bCtrl.SetValue(str(bval))
+        aCtrl.ChangeValue(str(aval))
+        bCtrl.ChangeValue(str(bval))
         molCtrl.SetStringSelection(vc_type)
 
         wx.FindWindowById(self.ids['VC']['sup_plot'], self).plotSASM(self.sasm)
@@ -1613,8 +1613,8 @@ class MolWeightFrame(wx.Frame):
             aval = self.raw_settings.get('MWVcARna')
             bval = self.raw_settings.get('MWVcBRna')
 
-        aCtrl.SetValue(str(aval))
-        bCtrl.SetValue(str(bval))
+        aCtrl.ChangeValue(str(aval))
+        bCtrl.ChangeValue(str(bval))
         molCtrl.SetStringSelection(vc_type)
 
         #Initialize Vp MW settings
@@ -1768,8 +1768,8 @@ class MolWeightFrame(wx.Frame):
             aval = self.raw_settings.get('MWVcARna')
             bval = self.raw_settings.get('MWVcBRna')
 
-        aCtrl.SetValue(str(aval))
-        bCtrl.SetValue(str(bval))
+        aCtrl.ChangeValue(str(aval))
+        bCtrl.ChangeValue(str(bval))
 
         self.calcVCMW()
 
@@ -1903,7 +1903,7 @@ class MolWeightFrame(wx.Frame):
                 mwstr = '%.1E' %(mw)
 
             mwCtrl = wx.FindWindowById(conc_ids['calc_mw'], self)
-            mwCtrl.SetValue(mwstr)
+            mwCtrl.ChangeValue(mwstr)
 
     def calcVCMW(self):
 
@@ -1927,7 +1927,7 @@ class MolWeightFrame(wx.Frame):
                 mwstr = '%.1E' %(mw)
 
             mwCtrl = wx.FindWindowById(vc_ids['calc_mw'], self)
-            mwCtrl.SetValue(mwstr)
+            mwCtrl.ChangeValue(mwstr)
 
 
             vcstr = str(np.around(vc,1))
@@ -1935,7 +1935,7 @@ class MolWeightFrame(wx.Frame):
             if len(vcstr.split('.')[1])>1:
                 vcstr = '%.1E' %(vc)
 
-            wx.FindWindowById(vc_ids['sup_vc'], self).SetValue(vcstr)
+            wx.FindWindowById(vc_ids['sup_vc'], self).ChangeValue(vcstr)
 
 
             qrstr = str(np.around(qr,1))
@@ -1943,7 +1943,7 @@ class MolWeightFrame(wx.Frame):
             if len(qrstr.split('.')[1])>1:
                 qrstr = '%.1E' %(qr)
 
-            wx.FindWindowById(vc_ids['sup_qr'], self).SetValue(qrstr)
+            wx.FindWindowById(vc_ids['sup_qr'], self).ChangeValue(qrstr)
 
     def calcVpMW(self):
         #This is calculated using the method in Fischer et al. J. App. Crys. 2009

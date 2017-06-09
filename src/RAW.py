@@ -1762,6 +1762,7 @@ class OnlineController:
         return self.seek_dir
 
     def onOnlineTimer(self, evt):
+        print 'in onOnlineTimer'
         ''' This function checks for new files and processes them as they come in '''
         self._filt_list=self._raw_settings.get('OnlineFilterList')
         self._enable_filt=self._raw_settings.get('EnableOnlineFiltering')
@@ -1774,7 +1775,7 @@ class OnlineController:
             self.seek_dir = []
 
             question = "Warning: the online mode directory does not exist.\nWhat do you want to do?"
-            button_list = [('Change Directory', self.NewControlId()),('Go Offline', self.NewControlId())]
+            button_list = [('Change Directory', wx.Window.NewControlId()),('Go Offline', wx.Window.NewControlId())]
             label = "Missing Directory"
             icon = wx.ART_WARNING
 
@@ -1784,7 +1785,6 @@ class OnlineController:
 
             if result == button_list[0][1]:
                 success = self.changeOnline()
-                print success
                 if not success:
                     self.goOffline()
                     self.main_frame.setStatus('Mode: OFFLINE', 2)
