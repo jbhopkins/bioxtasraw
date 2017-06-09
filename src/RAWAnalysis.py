@@ -2566,6 +2566,9 @@ class GNOMControlPanel(wx.Panel):
         self.staticTxtIDs = {'qstart' : self.NewControlId(),
                             'qend'   : self.NewControlId()}
 
+        self.otherctrlIDs = {'force_dmax'   : self.NewControlId(),
+                            }
+
 
         self.infodata = {'guinierI0' : ('I0 :', self.NewControlId(), self.NewControlId()),
                          'guinierRg' : ('Rg :', self.NewControlId(), self.NewControlId()),
@@ -2603,13 +2606,13 @@ class GNOMControlPanel(wx.Panel):
         box = wx.StaticBox(self, -1, 'Parameters')
         infoSizer = self.createInfoBox()
         boxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        boxSizer.Add(infoSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP ,5)
+        boxSizer.Add(infoSizer, 0, wx.EXPAND)
 
 
         bsizer = wx.BoxSizer(wx.VERTICAL)
-        bsizer.Add(self.createFileInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
-        bsizer.Add(boxSizer2, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
-        bsizer.Add(boxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+        bsizer.Add(self.createFileInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 3)
+        bsizer.Add(boxSizer2, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+        bsizer.Add(boxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
         bsizer.AddStretchSpacer(1)
         bsizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
 
@@ -2921,7 +2924,7 @@ class GNOMControlPanel(wx.Panel):
         sizer.AddGrowableCol(2)
         sizer.AddGrowableCol(3)
 
-        sizer.Add(wx.StaticText(self,-1,'q_min'),1, wx.LEFT, 5)
+        sizer.Add(wx.StaticText(self,-1,'q_min'),1, wx.LEFT, 3)
         sizer.Add(wx.StaticText(self,-1,'n_min'),1)
         sizer.Add(wx.StaticText(self,-1,'q_max'),1)
         sizer.Add(wx.StaticText(self,-1,'n_max'),1)
@@ -2944,7 +2947,7 @@ class GNOMControlPanel(wx.Panel):
         sizer.Add(self.qstartTxt, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 3)
         sizer.Add(self.startSpin, 0, wx.EXPAND | wx.RIGHT, 3)
         sizer.Add(self.qendTxt, 0, wx.EXPAND | wx.RIGHT, 3)
-        sizer.Add(self.endSpin, 0, wx.EXPAND | wx.RIGHT, 5)
+        sizer.Add(self.endSpin, 0, wx.EXPAND | wx.RIGHT, 3)
 
 
         dmax_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -2955,8 +2958,16 @@ class GNOMControlPanel(wx.Panel):
         self.dmaxSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
         self.dmaxSpin.Bind(wx.EVT_TEXT, self.onDmaxText)
 
-        dmax_sizer.Add(wx.StaticText(self, -1, 'Dmax :'), 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
-        dmax_sizer.Add(self.dmaxSpin, 0, wx.EXPAND | wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
+        dmax_sizer.Add(wx.StaticText(self, -1, 'Dmax: '), 0, wx.LEFT, 3)
+        dmax_sizer.Add(self.dmaxSpin, 0, wx.EXPAND | wx.RIGHT, 3)
+
+        rmax_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        rmax_text = wx.StaticText(self, -1, 'Force to 0 at Dmax: ')
+        rmax_choice = wx.Choice(self, self.otherctrlIDs['force_dmax'], choices = ['Y', 'N'])
+        rmax_choice.SetStringSelection(self.gnom_settings['rmax_zero'])
+        rmax_choice.Bind(wx.EVT_CHOICE, self.onSettingsChange)
+        rmax_sizer.Add(rmax_text, 0, wx.LEFT, 3)
+        rmax_sizer.Add(rmax_choice, 0, wx.RIGHT, 3)
 
 
         advancedParams = wx.Button(self, -1, 'Change Advanced Parameters')
@@ -2968,9 +2979,10 @@ class GNOMControlPanel(wx.Panel):
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(sizer, 0, wx.EXPAND)
-        top_sizer.Add(dmax_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
+        top_sizer.Add(dmax_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM , 5)
+        top_sizer.Add(rmax_sizer, 0, wx.EXPAND | wx.BOTTOM, 10)
         top_sizer.Add(advancedParams, 0, wx.CENTER | wx.BOTTOM, 10)
-        top_sizer.Add(datgnom, 0, wx.CENTER | wx.BOTTOM, 10)
+        top_sizer.Add(datgnom, 0, wx.CENTER)
 
 
         return top_sizer
@@ -3179,12 +3191,16 @@ class GNOMControlPanel(wx.Panel):
         self.out_list[str(int(iftm.getParameter('dmax')))] = iftm
 
 
+    def onSettingsChange(self, evt):
+        self.updateGNOMSettings()
+
+
     def updateGNOMSettings(self):
         self.old_settings = copy.deepcopy(self.gnom_settings)
 
         self.gnom_settings = {  'expert'        : self.raw_settings.get('gnomExpertFile'),
                                 'rmin_zero'     : self.raw_settings.get('gnomForceRminZero'),
-                                'rmax_zero'     : self.raw_settings.get('gnomForceRmaxZero'),
+                                'rmax_zero'     : wx.FindWindowById(self.otherctrlIDs['force_dmax']).GetStringSelection(),
                                 'npts'          : self.raw_settings.get('gnomNPoints'),
                                 'alpha'         : self.raw_settings.get('gnomInitialAlpha'),
                                 'angular'       : self.raw_settings.get('gnomAngularScale'),

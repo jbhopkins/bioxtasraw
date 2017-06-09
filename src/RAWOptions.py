@@ -2466,7 +2466,7 @@ class ATSASGnom(wx.Panel):
         rmin_sizer.Add(rmin_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
         rmin_sizer.Add(rmin_choice, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
 
-        rmax_text = wx.StaticText(self, -1, 'Force P(r) to 0 at r = Dmax :')
+        rmax_text = wx.StaticText(self, -1, 'Force P(r) to 0 at r = Dmax (sets default for GNOM window):')
         rmax_choice = wx.Choice(self, self.raw_settings.getId('gnomForceRmaxZero'), choices = ['Y', 'N'])
         # rmax_choice.SetStringSelection(self.raw_settings.get('gnomForceRmaxZero'))
 
