@@ -4488,6 +4488,7 @@ class SECPlotPanel(wx.Panel):
 
 
         for each in self.plotted_secms:
+            each.acquireSemaphore()
             if self.plotparams['y_axis_display'] == 'total':
                 each.line.set_ydata(each.total_i)
             elif self.plotparams['y_axis_display'] == 'mean':
@@ -4532,6 +4533,7 @@ class SECPlotPanel(wx.Panel):
                 else:
                     each.calc_line.set_visible(True)
                     each.calc_line.set_picker(True)
+            each.releaseSemaphore()
 
         if self.plotparams['secm_plot_calc'] == 'None':
             self.ryaxis.axis('off')

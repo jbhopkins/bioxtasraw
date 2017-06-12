@@ -438,7 +438,7 @@ class MainFrame(wx.Frame):
     def showQuestionDialogFromThread(self, question, label, button_list, icon = None, filename = None, save_path = None):
         ''' Function to show a question dialog from the thread '''
 
-        question_dialog = RAWCustomCtrl.CustomQuestionDialog(self, question, button_list, label, icon, filename, save_path, style = wx.CAPTION)
+        question_dialog = RAWCustomCtrl.CustomQuestionDialog(self, question, button_list, label, icon, filename, save_path, style = wx.CAPTION | wx.RESIZE_BORDER)
         result = question_dialog.ShowModal()
         path = question_dialog.getPath()
         question_dialog.Destroy()
@@ -1779,7 +1779,7 @@ class OnlineController:
             label = "Missing Directory"
             icon = wx.ART_WARNING
 
-            question_dialog = RAWCustomCtrl.CustomQuestionDialog(self.main_frame, question, button_list, label, icon, None, None, style = wx.CAPTION)
+            question_dialog = RAWCustomCtrl.CustomQuestionDialog(self.main_frame, question, button_list, label, icon, None, None, style = wx.CAPTION | wx.RESIZE_BORDER)
             result = question_dialog.ShowModal()
             question_dialog.Destroy()
 
@@ -2635,6 +2635,7 @@ class MainWorkerThread(threading.Thread):
         # print initial_buffer_frame
         # print final_buffer_frame
         # print window_size
+        secm.acquireSemaphore()
 
         buffer_sasm_list = secm.getSASMList(initial_buffer_frame, final_buffer_frame)
 
@@ -2646,6 +2647,7 @@ class MainWorkerThread(threading.Thread):
             except SASExceptions.DataNotCompatible:
                 self._showAverageError(1)
                 wx.CallAfter(self.main_frame.closeBusyDialog)
+                secm.releaseSemaphore()
                 return
 
         self._insertSasmFilenamePrefix(buffer_avg_sasm, 'A_')
@@ -2714,6 +2716,7 @@ class MainWorkerThread(threading.Thread):
                     yes_to_all = True
                 elif result == wx.ID_CANCEL:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
+                    secm.releaseSemaphore()
                     return
                 try:
                     if result == wx.ID_YES or result == wx.ID_YESTOALL:
@@ -2721,35 +2724,34 @@ class MainWorkerThread(threading.Thread):
                         self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
                         subtracted_sasm_list.append(subtracted_sasm)
-
-
                 except SASExceptions.DataNotCompatible:
                    self._showSubtractionError(sasm, sub_sasm)
                    wx.CallAfter(self.main_frame.closeBusyDialog)
+                   secm.releaseSemaphore()
                    return
+
             elif np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and yes_to_all:
                 try:
                     subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
                     subtracted_sasm_list.append(subtracted_sasm)
-
-
                 except SASExceptions.DataNotCompatible:
                    self._showSubtractionError(sasm, sub_sasm)
                    wx.CallAfter(self.main_frame.closeBusyDialog)
+                   secm.releaseSemaphore()
                    return
+
             else:
                 try:
                     subtracted_sasm = SASM.subtract(sasm, sub_sasm)
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
                     subtracted_sasm_list.append(subtracted_sasm)
-
-
                 except SASExceptions.DataNotCompatible:
                    self._showSubtractionError(sasm, sub_sasm)
                    wx.CallAfter(self.main_frame.closeBusyDialog)
+                   secm.releaseSemaphore()
                    return
 
 
@@ -2794,6 +2796,7 @@ class MainWorkerThread(threading.Thread):
                     except SASExceptions.DataNotCompatible:
                         self._showAverageError(1)
                         wx.CallAfter(self.main_frame.closeBusyDialog)
+                        secm.releaseSemaphore()
                         return
 
                     index = a+(window_size-1)/2
@@ -2825,7 +2828,7 @@ class MainWorkerThread(threading.Thread):
         secm.setMW(mw, mwer)
 
         secm.calc_has_data = True
-
+        secm.releaseSemaphore()
         self._updateSECMPlot(secm)
 
         wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 3)
@@ -2852,8 +2855,10 @@ class MainWorkerThread(threading.Thread):
         last_update_frame = int(frame_list[-1])
 
         initial_buffer_frame, final_buffer_frame, window_size = secm.getCalcParams()
+        secm.acquireSemaphore()
 
         if window_size == -1:
+            secm.releaseSemaphore()
             return
 
         buffer_avg_sasm = secm.getAverageBufferSASM()
@@ -2929,6 +2934,7 @@ class MainWorkerThread(threading.Thread):
                     yes_to_all = True
                 elif result == wx.ID_CANCEL:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
+                    secm.releaseSemaphore()
                     return
                 try:
                     if result == wx.ID_YES or result == wx.ID_YESTOALL:
@@ -2936,11 +2942,10 @@ class MainWorkerThread(threading.Thread):
                         self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
                         subtracted_sasm_list.append(subtracted_sasm)
-
-
                 except SASExceptions.DataNotCompatible:
                    self._showSubtractionError(sasm, sub_sasm)
                    wx.CallAfter(self.main_frame.closeBusyDialog)
+                   secm.releaseSemaphore()
                    return
             elif np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and yes_to_all:
                 try:
@@ -2948,11 +2953,10 @@ class MainWorkerThread(threading.Thread):
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
                     subtracted_sasm_list.append(subtracted_sasm)
-
-
                 except SASExceptions.DataNotCompatible:
                    self._showSubtractionError(sasm, sub_sasm)
                    wx.CallAfter(self.main_frame.closeBusyDialog)
+                   secm.releaseSemaphore()
                    return
             else:
                 try:
@@ -2960,11 +2964,10 @@ class MainWorkerThread(threading.Thread):
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
                     subtracted_sasm_list.append(subtracted_sasm)
-
-
                 except SASExceptions.DataNotCompatible:
                    self._showSubtractionError(sasm, sub_sasm)
                    wx.CallAfter(self.main_frame.closeBusyDialog)
+                   secm.releaseSemaphore()
                    return
 
 
@@ -3007,6 +3010,7 @@ class MainWorkerThread(threading.Thread):
                     except SASExceptions.DataNotCompatible:
                         self._showAverageError(1)
                         wx.CallAfter(self.main_frame.closeBusyDialog)
+                        secm.releaseSemaphore()
                         return
 
                     index = a+(window_size-1)/2
@@ -3037,7 +3041,7 @@ class MainWorkerThread(threading.Thread):
         secm.appendMW(mw, mwer, first_frame, window_size)
 
         secm.calc_has_data = True
-
+        secm.releaseSemaphore()
         self._updateSECMPlot(secm)
 
 
@@ -9969,7 +9973,7 @@ class SECControlPanel(wx.Panel):
                 question_dialog = RAWCustomCtrl.CustomQuestionDialog(self, msg,
                     [('Cancel Calculation', wx.ID_CANCEL), ('Continue Calculation', wx.ID_YES)],
                     'Warning: Selected buffer frames are different',
-                    wx.ART_WARNING, None, None, style = wx.CAPTION)
+                    wx.ART_WARNING, None, None, style = wx.CAPTION | wx.RESIZE_BORDER)
                 answer = question_dialog.ShowModal()
                 question_dialog.Destroy()
                 if answer != wx.ID_YES:

@@ -21,14 +21,18 @@ Created on Jul 5, 2010
 #
 #******************************************************************************
 '''
+import os
+import copy
+import threading
+from math import pi, sin
 
 import numpy as np
 import scipy.interpolate as interp
 from scipy import integrate as integrate
-import os, copy
-import SASCalib, SASExceptions
-from math import pi, sin
 import wx
+
+import SASCalib, SASExceptions
+
 
 class SASM:
     '''
@@ -82,6 +86,7 @@ class SASM:
         self.axes = None
         self.is_plotted = False
         self._selected_q_range = (0, len(self._q_binned))
+
 
         #Calculated values
         try:
@@ -807,6 +812,8 @@ class SECM:
         self.calc_has_data = False
         self.is_visible = True
 
+        self.my_semaphore = threading.Semaphore()
+
 
     def _update(self):
         ''' updates modified intensity after scale, normalization and offset changes '''
@@ -1158,6 +1165,12 @@ class SECM:
 
         self.mw_list = np.concatenate((self.mw_list[:index1], mw[index2:]))
         self.mwer_list = np.concatenate((self.mwer_list[:index1], mwer[index2:]))
+
+    def acquireSemaphore(self):
+        self.my_semaphore.acquire()
+
+    def releaseSemaphore(self):
+        self.my_semaphore.release()
 
 def subtract(sasm1, sasm2, forced = False):
     ''' Subtract one SASM object from another and propagate errors '''
