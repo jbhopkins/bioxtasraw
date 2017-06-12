@@ -2546,6 +2546,7 @@ class ATSASGnom(wx.Panel):
                     obj.SetValue(str(val))
 
         myId = -1
+        all_options = wx.FindWindowByName('OptionsDialog').all_options
         for item in all_options:
             if item[2] == "GNOM Advanced":
                 myId = item[1]
@@ -2919,6 +2920,7 @@ class ATSASDammix(wx.Panel):
                     obj.SetValue(str(val))
 
         myId = -1
+        all_options = wx.FindWindowByName('OptionsDialog').all_options
         for item in all_options:
             if item[2] == "DAMMIF Advanced" or item[2] == "DAMMIF/N Advanced" or item[2] == "DAMMIN Advanced":
                 myId = item[1]
@@ -3509,38 +3511,6 @@ def TestAutoBgSubRegExpression(filename, regexp):
         found = 'No Match'
         return found
 
-#################################################################
-# To append more options make a custom panel class with the
-# widgets and insert it into all_options below.
-#################################################################
-
-all_options = [ [ (0,0,0), wx.Window.NewControlId(), 'Configuration Settings', ConfigRootSettings],
-                [ (1,0,0), wx.Window.NewControlId(), 'General Settings', GeneralOptionsPanel],
-                [ (2,0,0), wx.Window.NewControlId(), '2D Reduction', ReductionOptionsPanel],
-                [ (2,1,0), wx.Window.NewControlId(), 'Image/Header Format', ReductionImgHdrFormatPanel],
-                [ (2,2,0), wx.Window.NewControlId(), 'Calibration', CalibrationOptionsPanel],
-                [ (2,4,1), wx.Window.NewControlId(), 'Normalization', ReductionNormalizationPanel] ,
-                [ (2,4,2), wx.Window.NewControlId(), 'Absolute Scale', ReductionNormalizationAbsScPanel],
-				[ (2,4,3), wx.Window.NewControlId(), 'Flatfield Correction', ReductionFlatfield],
-                [ (3,0,0), wx.Window.NewControlId(), 'Molecular Weight', MolecularWeightPanel],
-                [ (4,0,0), wx.Window.NewControlId(), 'Artifact Removal', ArtifactOptionsPanel],
-                [ (5,0,0), wx.Window.NewControlId(), 'IFT', IftOptionsPanel],
-                [ (6,0,0), wx.Window.NewControlId(), "Autosave", SaveDirectoriesPanel],
-                [ (7,0,0), wx.Window.NewControlId(), 'Online Mode', OnlineModePanel],
-                [ (8,0,0), wx.Window.NewControlId(), 'SEC-SAXS', SecPanel],
-                # [ (8,0,0), wx.Window.NewControlId(), "Automation", AutomationOptionsPanel],
-                [ (9,0,0), wx.Window.NewControlId(), "ATSAS", ATSASGeneralPanel],
-                [ (9,1,1), wx.Window.NewControlId(), "GNOM", ATSASGnom],
-                [ (9,1,2), wx.Window.NewControlId(), "GNOM Advanced", ATSASGnomAdvanced],
-                [ (9,5,1), wx.Window.NewControlId(), "DAMMIF/N", ATSASDammix],
-                [ (9,5,2), wx.Window.NewControlId(), "DAMMIF/N Advanced", ATSASDammixAdvanced],
-                [ (9,5,2), wx.Window.NewControlId(), "DAMMIF Advanced", ATSASDammifAdvanced],
-                [ (9,5,2), wx.Window.NewControlId(), "DAMMIN Advanced", ATSASDamminAdvanced],
-                [ (10,0,0), wx.Window.NewControlId(), "Weighted Average", WeightedAveragePanel],
-                [ (11,0,0), wx.Window.NewControlId(), "Similarity Testing", SimilarityPanel],
-				# [ (10,0,0), wx.Window.NewControlId(), "SANS", SansOptionsPanel]
-                ]
-
 #--- ** TREE BOOK **
 class ConfigTree(CT.CustomTreeCtrl):
     """
@@ -3557,6 +3527,8 @@ class ConfigTree(CT.CustomTreeCtrl):
             CT.CustomTreeCtrl.__init__(self, parent, *args, style = wx.TR_HAS_BUTTONS | CT.TR_HIDE_ROOT | CT.TR_NO_LINES, **kwargs)
 
         self.parent = parent
+
+        all_options = wx.FindWindowByName('OptionsDialog').all_options
 
         self.root = self.AddRoot("Configuration Settings", data=all_options[0][1])
 
@@ -3625,6 +3597,7 @@ class PagePanel(wx.Panel):
         page_sizer.Add(wx.StaticLine(self, style = wx.LI_HORIZONTAL), 0, wx.EXPAND)
 
         # Creating and inserting all panels from all_options
+        all_options = wx.FindWindowByName('OptionsDialog').all_options
 
         for idx, id, label, panelfunc in all_options:
             if panelfunc != None:
@@ -3757,6 +3730,38 @@ class OptionsDialog(wx.Dialog):
     def __init__(self, parent, raw_settings, focusHeader = None, *args, **kwargs):
 
         wx.Dialog.__init__(self, parent, -1, 'Options', *args, name = 'OptionsDialog', style = wx.RESIZE_BORDER | wx.CAPTION, **kwargs)
+
+        #################################################################
+        # To append more options make a custom panel class with theF
+        # widgets and insert it into all_options below.
+        #################################################################
+
+        self.all_options = [ [ (0,0,0), wx.Window.NewControlId(), 'Configuration Settings', ConfigRootSettings],
+                            [ (1,0,0), wx.Window.NewControlId(), 'General Settings', GeneralOptionsPanel],
+                            [ (2,0,0), wx.Window.NewControlId(), '2D Reduction', ReductionOptionsPanel],
+                            [ (2,1,0), wx.Window.NewControlId(), 'Image/Header Format', ReductionImgHdrFormatPanel],
+                            [ (2,2,0), wx.Window.NewControlId(), 'Calibration', CalibrationOptionsPanel],
+                            [ (2,4,1), wx.Window.NewControlId(), 'Normalization', ReductionNormalizationPanel] ,
+                            [ (2,4,2), wx.Window.NewControlId(), 'Absolute Scale', ReductionNormalizationAbsScPanel],
+                            [ (2,4,3), wx.Window.NewControlId(), 'Flatfield Correction', ReductionFlatfield],
+                            [ (3,0,0), wx.Window.NewControlId(), 'Molecular Weight', MolecularWeightPanel],
+                            [ (4,0,0), wx.Window.NewControlId(), 'Artifact Removal', ArtifactOptionsPanel],
+                            [ (5,0,0), wx.Window.NewControlId(), 'IFT', IftOptionsPanel],
+                            [ (6,0,0), wx.Window.NewControlId(), "Autosave", SaveDirectoriesPanel],
+                            [ (7,0,0), wx.Window.NewControlId(), 'Online Mode', OnlineModePanel],
+                            [ (8,0,0), wx.Window.NewControlId(), 'SEC-SAXS', SecPanel],
+                            # [ (8,0,0), wx.Window.NewControlId(), "Automation", AutomationOptionsPanel],
+                            [ (9,0,0), wx.Window.NewControlId(), "ATSAS", ATSASGeneralPanel],
+                            [ (9,1,1), wx.Window.NewControlId(), "GNOM", ATSASGnom],
+                            [ (9,1,2), wx.Window.NewControlId(), "GNOM Advanced", ATSASGnomAdvanced],
+                            [ (9,5,1), wx.Window.NewControlId(), "DAMMIF/N", ATSASDammix],
+                            [ (9,5,2), wx.Window.NewControlId(), "DAMMIF/N Advanced", ATSASDammixAdvanced],
+                            [ (9,5,2), wx.Window.NewControlId(), "DAMMIF Advanced", ATSASDammifAdvanced],
+                            [ (9,5,2), wx.Window.NewControlId(), "DAMMIN Advanced", ATSASDamminAdvanced],
+                            [ (10,0,0), wx.Window.NewControlId(), "Weighted Average", WeightedAveragePanel],
+                            [ (11,0,0), wx.Window.NewControlId(), "Similarity Testing", SimilarityPanel],
+                            # [ (10,0,0), wx.Window.NewControlId(), "SANS", SansOptionsPanel]
+                            ]
 
         self._raw_settings = raw_settings
         self.treebook = OptionsTreebook(self, raw_settings)
