@@ -2629,7 +2629,6 @@ class MainWorkerThread(threading.Thread):
 
         threshold = self._raw_settings.get('secCalcThreshold')
 
-
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait, calculating (may take a while)...')
         initial_buffer_frame, final_buffer_frame, window_size = secm.getCalcParams()
 
@@ -2665,7 +2664,8 @@ class MainWorkerThread(threading.Thread):
             ref_intensity = buffer_avg_sasm.getMeanI()
 
         elif plot_y == 'qspec':
-            q = buffer_avg_sasm.q
+            qmin, qmax = buffer_avg_sasm.getQrange()
+            q = buffer_avg_sasm.q[qmin:qmax]
 
             index = closest(q)
 
@@ -2848,30 +2848,15 @@ class MainWorkerThread(threading.Thread):
 
         threshold = self._raw_settings.get('secCalcThreshold')
 
-
         first_update_frame = int(frame_list[0])
         last_update_frame = int(frame_list[-1])
 
-        if secm.window_size == -1:
-            return
-
         initial_buffer_frame, final_buffer_frame, window_size = secm.getCalcParams()
 
-        buffer_sasm_list = secm.getSASMList(initial_buffer_frame, final_buffer_frame)
+        if window_size == -1:
+            return
 
-        if len(buffer_sasm_list) < 2:
-            buffer_avg_sasm = buffer_sasm_list[0]
-        else:
-            try:
-                buffer_avg_sasm = SASM.average(buffer_sasm_list)
-            except SASExceptions.DataNotCompatible:
-                self._showAverageError(1)
-                wx.CallAfter(self.main_frame.closeBusyDialog)
-                return
-
-        self._insertSasmFilenamePrefix(buffer_avg_sasm, 'A_')
-
-        secm.setAverageBufferSASM(buffer_avg_sasm)
+        buffer_avg_sasm = secm.getAverageBufferSASM()
 
         #Find the reference intensity of the average buffer sasm
         plot_y = self.sec_plot_panel.getParameter('y_axis_display')
@@ -2885,7 +2870,8 @@ class MainWorkerThread(threading.Thread):
             ref_intensity = buffer_avg_sasm.getMeanI()
 
         elif plot_y == 'qspec':
-            q = buffer_avg_sasm.q
+            qmin, qmax = buffer_avg_sasm.getQrange()
+            q = buffer_avg_sasm.q[qmin:qmax]
 
             index = closest(q)
 
@@ -2894,7 +2880,7 @@ class MainWorkerThread(threading.Thread):
         #Now subtract the average buffer from all of the items in the secm list
         sub_sasm = buffer_avg_sasm
 
-        first_frame = first_update_frame - secm.window_size
+        first_frame = first_update_frame - window_size
 
         if first_frame <0:
             first_frame = 0
@@ -2919,7 +2905,8 @@ class MainWorkerThread(threading.Thread):
                 sasm_intensity = sasm.getMeanI()
 
             elif plot_y == 'qspec':
-                q = buffer_avg_sasm.q
+                qmin, qmax = sasm.getQrange()
+                q = sasm.q[qmin:qmax]
 
                 index = closest(q)
 
@@ -2981,7 +2968,7 @@ class MainWorkerThread(threading.Thread):
                    return
 
 
-        secm.appendSubtractedSASMList(subtracted_sasm_list, use_subtracted_sasm)
+        secm.appendSubtractedSASMList(subtracted_sasm_list, use_subtracted_sasm, window_size)
 
         #Now calculate the RG, I0, and MW for each SASM
         rg = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
@@ -5368,13 +5355,11 @@ class DirCtrlPanel(wx.Panel):
         load_path = os.path.join(RAWGlobals.RAWWorkDir, 'backup.ini')
 
         try:
-            file_obj = open(load_path, 'r')
-            data = cPickle.load(file_obj)
-            file_obj.close()
+            with open(load_path, 'r') as file_obj:
+                data = cPickle.load(file_obj)
 
             path = data['workdir']
-        except Exception, e:
-            print e
+        except Exception:
             path = None
 
         if path != None and os.path.exists(path):
@@ -9836,31 +9821,43 @@ class SECControlPanel(wx.Panel):
         except:
             msg = "Invalid value for initial buffer frame."
             wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
+            if self.online_mode_button.IsChecked() and not self._is_online:
+                self._goOnline()
             return
         try:
             final_frame = int(fbufWindow.GetValue())
         except:
             msg = "Invalid value for final buffer frame."
             wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
+            if self.online_mode_button.IsChecked() and not self._is_online:
+                self._goOnline()
             return
         try:
             window = int(wsizeWindow.GetValue())
         except:
             msg = "Invalid value for sliding window size."
             wx.CallAfter(wx.MessageBox, msg, "Invalid window size", style = wx.ICON_ERROR | wx.OK)
+            if self.online_mode_button.IsChecked() and not self._is_online:
+                self._goOnline()
             return
 
         if initial_frame > final_frame:
             msg = "Initial buffer frame cannot be greater than final buffer frame."
             wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
+            if self.online_mode_button.IsChecked() and not self._is_online:
+                self._goOnline()
             return
         elif initial_frame <0:
             msg = "Initial buffer frame cannot be less than zero."
             wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
+            if self.online_mode_button.IsChecked() and not self._is_online:
+                self._goOnline()
             return
         elif window <1:
             msg = "Sliding window size cannot be less than one."
             wx.CallAfter(wx.MessageBox, msg, "Invalid window size", style = wx.ICON_ERROR | wx.OK)
+            if self.online_mode_button.IsChecked() and not self._is_online:
+                self._goOnline()
             return
 
         if self.sec_plot_panel.subplot1.xaxis.get_label_text() == 'Time (s)':
@@ -9879,9 +9876,13 @@ class SECControlPanel(wx.Panel):
 
         if len(self.sec_panel.all_manipulation_items) == 0:
             wx.MessageBox("SEC-SAXS data must be loaded to set parameters.", "No data loaded", style=wx.ICON_ERROR | wx.OK)
+            if self.online_mode_button.IsChecked() and not self._is_online:
+                self._goOnline()
             return
         elif len(self.sec_panel.all_manipulation_items)>1 and selected_item == None:
             wx.MessageBox("Star the SEC-SAXS item for which you wish to set the parameters.", "No item selected", style=wx.ICON_ERROR | wx.OK)
+            if self.online_mode_button.IsChecked() and not self._is_online:
+                self._goOnline()
             return
         elif len(self.sec_panel.all_manipulation_items)>1:
 
@@ -9896,6 +9897,8 @@ class SECControlPanel(wx.Panel):
             if proceed == wx.ID_YES:
                 secm = selected_item.secm
             else:
+                if self.online_mode_button.IsChecked() and not self._is_online:
+                    self._goOnline()
                 return
         else:
             secm = self.sec_panel.all_manipulation_items[0].secm
@@ -9905,14 +9908,20 @@ class SECControlPanel(wx.Panel):
         if len(np.where(initial_frame==frame_list)[0]) == 0:
             msg = "Invalid value for intial buffer frame, it must be in the data set."
             wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
+            if self.online_mode_button.IsChecked() and not self._is_online:
+                self._goOnline()
             return
         elif len(np.where(final_frame==frame_list)[0]) == 0:
             msg = "Invalid value for final buffer frame, it must be in the data set."
             wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
+            if self.online_mode_button.IsChecked() and not self._is_online:
+                self._goOnline()
             return
         elif window > len(frame_list):
             msg = "Invalid value for sliding window size, it must be smaller than the data set."
             wx.CallAfter(wx.MessageBox, msg, "Invalid window size", style = wx.ICON_ERROR | wx.OK)
+            if self.online_mode_button.IsChecked() and not self._is_online:
+                self._goOnline()
             return
 
         self.initial_buffer_frame = initial_frame
@@ -9937,6 +9946,8 @@ class SECControlPanel(wx.Panel):
                 if not np.all(np.round(sasm.q[qi:qf], 5) == np.round(ref_sasm.q[qi_ref:qf_ref], 5)):
                     msg = 'The selected items must have the same q vectors to be averaged.'
                     wx.CallAfter(wx.MessageBox, msg, "Average Error", style = wx.ICON_ERROR | wx.OK)
+                    if self.online_mode_button.IsChecked() and not self._is_online:
+                        self._goOnline()
                     return
 
                 if sim_test == 'CorMap':
@@ -9962,6 +9973,8 @@ class SECControlPanel(wx.Panel):
                 answer = question_dialog.ShowModal()
                 question_dialog.Destroy()
                 if answer != wx.ID_YES:
+                    if self.online_mode_button.IsChecked() and not self._is_online:
+                        self._goOnline()
                     return
 
         newParams = secm.setCalcParams(self.initial_buffer_frame,
@@ -9978,7 +9991,7 @@ class SECControlPanel(wx.Panel):
 
         if self.online_mode_button.IsChecked() and not self._is_online:
             self._goOnline()
-
+        return
 
     def _findWindowId(self,type):
         id=-1

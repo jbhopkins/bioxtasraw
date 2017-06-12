@@ -874,7 +874,8 @@ class SECM:
 
             for sasm in sasm_list:
                 # print 'in sasm_list loop'
-                q = sasm.q
+                qmin, qmax = sasm.getQrange()
+                q = sasm.q[qmin:qmax]
                 index = closest(q)
                 # print index
                 intensity = sasm.i[index]
@@ -1100,19 +1101,16 @@ class SECM:
             self.mol_type = mol_type
             self.threshold = threshold
 
-        # print self.initial_buffer_frame
-        # print self.final_buffer_frame
-        # print self.window_size
-        # print new
-
         return new
 
     def getCalcParams(self):
         return self.initial_buffer_frame, self.final_buffer_frame, self.window_size
 
     def setAverageBufferSASM(self, sasm):
-
         self.average_buffer_sasm = sasm
+
+    def getAverageBufferSASM(self):
+        return self.average_buffer_sasm
 
     def getAllSASMs(self):
         return self._sasm_list
@@ -1121,9 +1119,9 @@ class SECM:
         self.subtracted_sasm_list = sasm_list
         self.use_subtracted_sasm = use_sasm_list
 
-    def appendSubtractedSASMList(self, sasm_list, use_sasm_list):
-        self.subtracted_sasm_list = self.subtracted_sasm_list + sasm_list
-        self.use_subtracted_sasm = self.use_subtracted_sasm + use_sasm_list
+    def appendSubtractedSASMList(self, sasm_list, use_sasm_list, window_size):
+        self.subtracted_sasm_list = self.subtracted_sasm_list[:-window_size] + sasm_list
+        self.use_subtracted_sasm = self.use_subtracted_sasm[:-window_size] + use_sasm_list
 
     def setRgAndI0(self, rg, rger, i0, i0er):
         self.rg_list = rg

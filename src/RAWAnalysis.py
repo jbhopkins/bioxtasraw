@@ -8157,18 +8157,14 @@ class EFAControlPanel3(wx.Panel):
 
         num_sv = M.shape[1]
 
-        if num_sv == 1:
-            I = self.panel1_results['sub_secm'].total_i
-            C = I.reshape(M.shape)*M
-        else:
-            for i in range(num_sv):
-                V_i_0 = V_bar[np.logical_not(M[:,i]),:]
+        for i in range(num_sv):
+            V_i_0 = V_bar[np.logical_not(M[:,i]),:]
 
-                T[i,1:num_sv] = -np.dot(V_i_0[:,0].T, np.linalg.pinv(V_i_0[:,1:num_sv].T))
+            T[i,1:num_sv] = -np.dot(V_i_0[:,0].T, np.linalg.pinv(V_i_0[:,1:num_sv].T))
 
-            C = np.dot(T, V_bar.T)
+        C = np.dot(T, V_bar.T)
 
-            C = C.T
+        C = C.T
 
         if -1*C.min() > C.max():
             C = C*-1
