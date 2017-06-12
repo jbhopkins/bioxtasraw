@@ -6618,9 +6618,11 @@ class EFAFrame(wx.Frame):
                 profile_window = wx.FindWindowById(self.controlPanel1.control_ids['profile'], self.controlPanel1)
 
                 if profile_window.GetStringSelection() == 'Unsubtracted':
-                    value = self.secm.getSASM().q
+                    qmin, qmax = self.secm.getSASM().getQrange()
+                    value = self.secm.getSASM().q[qmin:qmax]
                 else:
-                    value = self.controlPanel1.subtracted_secm.getSASM().q
+                    qmin, qmax = self.secm.getSASM().getQrange()
+                    value = self.controlPanel1.subtracted_secm.getSASM().q[qmin:qmax]
 
 
             self.panel1_results[key] = value
@@ -6837,8 +6839,8 @@ class EFAControlPanel1(wx.Panel):
         if 'efa' not in analysis_dict:
 
             if len(self.secm.subtracted_sasm_list)>0:
-                frame_start = max(np.where(self.secm.use_subtracted_sasm)[0][0]-50, framei)
-                frame_end = min(np.where(self.secm.use_subtracted_sasm)[0][-1]+50, framef)
+                frame_start = max(np.where(self.secm.use_subtracted_sasm)[0][0]-100, framei)
+                frame_end = min(np.where(self.secm.use_subtracted_sasm)[0][-1]+100, framef)
 
             else:
                 frame_start = framei
@@ -7073,8 +7075,8 @@ class EFAControlPanel1(wx.Panel):
 
         sasm_list = secm.getSASMList(framei, framef)
 
-        i = np.array([sasm.i for sasm in sasm_list])
-        err = np.array([sasm.err for sasm in sasm_list])
+        i = np.array([sasm.i[sasm.getQrange()[0]:sasm.getQrange()[1]] for sasm in sasm_list])
+        err = np.array([sasm.err[sasm.getQrange()[0]:sasm.getQrange()[1]] for sasm in sasm_list])
 
         self.i = i.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose
         self.err = err.T
@@ -8103,12 +8105,13 @@ class EFAControlPanel3(wx.Panel):
         return failed, None, V_bar, T
 
     def _initHybrid(self, M, num_sv, D):
-        failed, temp, V_bar, T = self._initExplicit(M, num_sv, D)
 
         if not self.converged:
+            failed, temp, V_bar, T = self._initExplicit(M, num_sv, D)
             C, failed, temp1, temp2, temp3 = self._runExplicit(M, None, None, None, V_bar, T)
         else:
             C = self.rotation_data['C']
+            failed = False
 
         return failed, C, None, None
 
@@ -8215,11 +8218,13 @@ class EFAControlPanel3(wx.Panel):
         for j in range(num_sv):
             M[ranges[j][0]:ranges[j][1]+1, j] = 1
 
+        if self.converged and M.shape[0] != self.rotation_data['C'].shape[0]:
+            self.converged = False
+            self.rotation_data = {}
 
         init_results = init_dict[method](M, num_sv, D) #Init takes M, num_sv, and D, and returns failed, C, V_bar, T in that order. If a method doesn't use a particular variable, then it should return None for that result
 
-
-        C, failed, converged, dc, k = run_dict[method](M, D, init_results[0], init_results[1], init_results[2], init_results[3]) #Takes M, failed, C, D in that order. If a method doesn't use a particular variable, then it should be passed None for that variable.
+        C, failed, converged, dc, k = run_dict[method](M, D, init_results[0], init_results[1], init_results[2], init_results[3]) #Takes M, D, failed, C, V_bar, T in that order. If a method doesn't use a particular variable, then it should be passed None for that variable.
 
 
         if not failed:
