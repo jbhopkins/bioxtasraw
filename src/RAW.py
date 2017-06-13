@@ -127,6 +127,8 @@ class MainFrame(wx.Frame):
                         'runefa'                : self.NewControlId(),
                         'showhistory'           : self.NewControlId(),
                         'weightedAverage'       : self.NewControlId(),
+                        'similarityTest'        : self.NewControlId(),
+                        'normalizedKratky'      : self.NewControlId(),
                         }
 
         self.tbIcon = RawTaskbarIcon(self)
@@ -140,6 +142,7 @@ class MainFrame(wx.Frame):
         self.svdframe = None
         self.efaframe = None
         self.similarityframe = None
+        self.kratkyframe = None
         self.raw_settings = RAWSettings.RawGuiSettings()
 
         self.OnlineControl = OnlineController(self, self.raw_settings)
@@ -651,13 +654,38 @@ class MainFrame(wx.Frame):
         if not sasm_list or len(sasm_list) == 1:
             msg = 'You must select at least 2 profiles to test similarity.'
             dlg = wx.MessageDialog(self, msg, "Select more profiles", style = wx.ICON_INFORMATION | wx.OK)
-            proceed = dlg.ShowModal()
+            dlg.ShowModal()
             dlg.Destroy()
             return
 
         self.similarityframe = RAWAnalysis.SimilarityFrame(self, 'Similarity Testing', sasm_list)
         self.similarityframe.SetIcon(self.GetIcon())
         self.similarityframe.Show(True)
+
+    def showNormKratkyFrame(self, sasm_list):
+
+        if self.kratkyframe:
+            self.kratkyframe.Destroy()
+
+        if not sasm_list or sasm_list is None:
+            msg = 'You must select at least 1 profile.'
+            dlg = wx.MessageDialog(self, msg, "Select more profiles", style = wx.ICON_INFORMATION | wx.OK)
+            dlg.ShowModal()
+            dlg.Destroy()
+            return
+
+        for sasm in sasm_list:
+            analysis_dict = sasm.getParameter('analysis')
+            if 'guinier' not in analysis_dict or 'Rg' not in analysis_dict['guinier'] or 'I0' not in analysis_dict['guinier']:
+                msg = 'One or more of the selected profiles does not have not Guinier analysis data. All selected profiles must have a Rg and I0 from Guinier analysis.'
+                dlg = wx.MessageDialog(self, msg, "Missing Guinier Analysis", style = wx.ICON_INFORMATION | wx.OK)
+                dlg.ShowModal()
+                dlg.Destroy()
+                return
+
+        self.kratkyframe = RAWAnalysis.NormKratkyFrame(self, 'Normalized Kratky Plots', sasm_list)
+        self.kratkyframe.SetIcon(self.GetIcon())
+        self.kratkyframe.Show(True)
 
     def _createSingleMenuBarItem(self, info):
 
@@ -778,6 +806,8 @@ class MainFrame(wx.Frame):
                                ('&ATSAS', None, submenus['atsas'], 'submenu'),
                                ('&SVD', self.MenuIDs['runsvd'], self._onToolsMenu, 'normal'),
                                ('&EFA', self.MenuIDs['runefa'], self._onToolsMenu, 'normal'),
+                               ('&Similarity Test', self.MenuIDs['similarityTest'], self._onToolsMenu, 'normal'),
+                               ('&Normalized Kratky Plots', self.MenuIDs['normalizedKratky'], self._onToolsMenu, 'normal'),
                                (None, None, None, 'separator'),
                                ('&Centering/Calibration', self.MenuIDs['centering'], self._onToolsMenu, 'normal'),
                                ('&Masking', self.MenuIDs['masking'], self._onToolsMenu, 'normal')
@@ -1193,6 +1223,42 @@ class MainFrame(wx.Frame):
                 return
 
             self.showEFAFrame(secm, manip_item)
+
+        elif id == self.MenuIDs['similarityTest']:
+            manippage = wx.FindWindowByName('ManipulationPanel')
+
+            current_page = self.control_notebook.GetSelection()
+            page = self.control_notebook.GetPage(current_page)
+
+            if page !=manippage:
+                wx.MessageBox('The selected operation cannot be performed unless the Manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                return
+
+            selected_items = manippage.getSelectedItems()
+            if selected_items:
+                selected_sasms = [item.getSASM() for item in selected_items]
+            else:
+                selected_sasms = []
+
+            self.showSimilarityFrame(selected_sasms)
+
+        elif id == self.MenuIDs['normalizedKratky']:
+            manippage = wx.FindWindowByName('ManipulationPanel')
+
+            current_page = self.control_notebook.GetSelection()
+            page = self.control_notebook.GetPage(current_page)
+
+            if page !=manippage:
+                wx.MessageBox('The selected operation cannot be performed unless the Manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                return
+
+            selected_items = manippage.getSelectedItems()
+            if selected_items:
+                selected_sasms = [item.getSASM() for item in selected_items]
+            else:
+                selected_sasms = []
+
+            self.showNormKratkyFrame(selected_sasms)
 
     def _onViewMenu(self, evt):
 
@@ -6679,6 +6745,7 @@ class ManipItemPanel(wx.Panel):
         menu.Append(34, 'SVD')
         menu.Append(35, 'EFA')
         menu.Append(37, 'Similarity Test')
+        menu.Append(38, 'Normalized Kratky Plots')
 
         menu.AppendMenu(wx.ID_ANY, 'Convert q-scale', convertq_menu)
 
@@ -6886,6 +6953,18 @@ class ManipItemPanel(wx.Panel):
                 selected_sasms = []
 
             Mainframe.showSimilarityFrame(selected_sasms)
+
+        elif evt.GetId() == 38:
+            #Normalized Kratky Plots
+            Mainframe = wx.FindWindowByName('MainFrame')
+            selected_items = self.manipulation_panel.getSelectedItems()
+
+            if selected_items:
+                selected_sasms = [item.getSASM() for item in selected_items]
+            else:
+                selected_sasms = []
+
+            Mainframe.showNormKratkyFrame(selected_sasms)
 
 
     def _saveAllAnalysisInfo(self):

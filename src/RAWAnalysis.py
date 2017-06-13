@@ -22,14 +22,25 @@ Created on Mar 23, 2010
 #******************************************************************************
 '''
 import matplotlib
+import numpy as np
+import sys
+import os
+import copy
+import multiprocessing
+import threading
+import Queue
+import wx
+import time
+import re
+import platform
+import subprocess
+import collections
 matplotlib.rcParams['backend'] = 'WxAgg'
 matplotlib.rc('image', origin = 'lower')        # turn image upside down.. x,y, starting from lower left
 
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg#,Toolbar, FigureCanvasWx
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.figure import Figure
-import numpy as np
-import sys, os, copy, multiprocessing, threading, Queue, wx, time, re, platform, subprocess
 
 from scipy import polyval, polyfit, integrate
 import scipy.interpolate as interp
@@ -505,7 +516,7 @@ class GuinierControlPanel(wx.Panel):
             analysis_dict = self.ExpObj.getParameter('analysis')
             analysis_dict['guinier'] = info_dict
 
-            if self.manip_item != None:
+            if self.manip_item is not None:
                 wx.CallAfter(self.manip_item.updateInfoTip, analysis_dict, fromGuinierDialog = True)
                 if info_dict != self.old_analysis:
                     wx.CallAfter(self.manip_item.markAsModified)
@@ -1864,7 +1875,7 @@ class MolWeightFrame(wx.Frame):
         if strconc != '' and conc > 0:
             self.sasm.setParameter('Conc', conc)
 
-        if self.manip_item != None:
+        if self.manip_item is not None:
             wx.CallAfter(self.manip_item.updateInfoTip, analysis_dict, fromGuinierDialog = True)
             if self.old_analysis != calcData:
                 wx.CallAfter(self.manip_item.markAsModified)
@@ -2419,7 +2430,7 @@ class GNOMPlotPanel(wx.Panel):
         self.background = self.canvas.copy_from_bbox(a.bbox)
         self.err_background = self.canvas.copy_from_bbox(b.bbox)
 
-        if self.ift != None:
+        if self.ift is not None:
             self.canvas.mpl_disconnect(self.cid) #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
             self.updateDataPlot(self.orig_q, self.orig_i, self.orig_err, self.orig_r, self.orig_p, self.orig_perr, self.orig_qexp, self.orig_jreg)
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) #Reconnect draw_event
@@ -2764,7 +2775,7 @@ class GNOMControlPanel(wx.Panel):
         analysis_dict = self.sasm.getParameter('analysis')
         analysis_dict['GNOM'] = gnom_results
 
-        if self.manip_item != None:
+        if self.manip_item is not None:
             if gnom_results != self.old_analysis:
                 wx.CallAfter(self.manip_item.markAsModified)
 
@@ -4483,7 +4494,7 @@ class BIFTPlotPanel(wx.Panel):
         self.background = self.canvas.copy_from_bbox(a.bbox)
         self.err_background = self.canvas.copy_from_bbox(b.bbox)
 
-        if self.ift != None:
+        if self.ift is not None:
             self.canvas.mpl_disconnect(self.cid)
             self.updateDataPlot(self.orig_q, self.orig_i, self.orig_err, self.orig_r, self.orig_p, self.orig_perr, self.orig_qexp, self.orig_jreg, self.xlim)
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
@@ -4875,7 +4886,7 @@ class BIFTControlPanel(wx.Panel):
 
     def onSaveInfo(self, evt):
 
-        if self.iftm != None:
+        if self.iftm is not None:
 
             results_dict = {}
 
@@ -4889,7 +4900,7 @@ class BIFTControlPanel(wx.Panel):
             analysis_dict = self.sasm.getParameter('analysis')
             analysis_dict['BIFT'] = results_dict
 
-            if self.manip_item != None:
+            if self.manip_item is not None:
                 if results_dict != self.old_analysis:
                     wx.CallAfter(self.manip_item.markAsModified)
 
@@ -4897,14 +4908,14 @@ class BIFTControlPanel(wx.Panel):
             self.BIFT_timer.Stop()
             RAWGlobals.cancel_bift = True
 
-        if self.raw_settings.get('AutoSaveOnBift') and self.iftm != None:
+        if self.raw_settings.get('AutoSaveOnBift') and self.iftm is not None:
             if os.path.isdir(self.raw_settings.get('BiftFilePath')):
                 RAWGlobals.mainworker_cmd_queue.put(['save_iftm', [self.iftm, self.raw_settings.get('BiftFilePath')]])
             else:
                 self.raw_settings.set('AutoSaveOnBift', False)
                 wx.CallAfter(wx.MessageBox, 'The folder:\n' +self.raw_settings.get('BiftFilePath')+ '\ncould not be found. Autosave of BIFT files has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
-        if self.iftm != None:
+        if self.iftm is not None:
             RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [self.iftm, 'blue', None, not self.raw_settings.get('AutoSaveOnBift')]])
 
         diag = wx.FindWindowByName('BIFTFrame')
@@ -4939,7 +4950,7 @@ class BIFTControlPanel(wx.Panel):
         biftDmaxWindow = wx.FindWindowById(self.infodata['dmax'][1], self)
         biftAlphaWindow = wx.FindWindowById(self.infodata['alpha'][1], self)
 
-        if self.iftm != None:
+        if self.iftm is not None:
 
             biftRgWindow.SetValue(str(self.iftm.getParameter('Rg')))
             biftI0Window.SetValue(str(self.iftm.getParameter('I0')))
@@ -5496,7 +5507,7 @@ class SVDResultsPlotPanel(wx.Panel):
         self.background = self.canvas.copy_from_bbox(a.bbox)
         self.err_background = self.canvas.copy_from_bbox(b.bbox)
 
-        if self.svd != None:
+        if self.svd is not None:
             self.canvas.mpl_disconnect(self.cid)
             self.updateDataPlot(self.orig_index, self.orig_svd_s, self.orig_svd_U_autocor, self.orig_svd_V_autocor, self.orig_svd_start, self.orig_svd_end)
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
@@ -5649,7 +5660,7 @@ class SVDSECPlotPanel(wx.Panel):
         self.background = self.canvas.copy_from_bbox(a.bbox)
         # self.err_background = self.canvas.copy_from_bbox(b.bbox)
 
-        if self.secm != None:
+        if self.secm is not None:
             self.canvas.mpl_disconnect(self.cid)
             self.updateDataPlot(self.orig_frame_list, self.orig_intensity, self.orig_framei, self.orig_framef)
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
@@ -5948,7 +5959,7 @@ class SVDControlPanel(wx.Panel):
             self.subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.subtracted_sasm_list, [], self.secm.getAllParameters())
 
 
-        if self.manip_item != None:
+        if self.manip_item is not None:
             sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
 
             self.ydata_type = sec_plot_panel.plotparams['y_axis_display']
@@ -6242,7 +6253,7 @@ class SVDControlPanel(wx.Panel):
 
         self.secm.setParameter('analysis', analysis_dict)
 
-        if self.manip_item != None:
+        if self.manip_item is not None:
             if modified:
                 self.manip_item.markAsModified()
 
@@ -6422,7 +6433,7 @@ class EFAFrame(wx.Frame):
 
             if self.panel1_results['input'] != 0:
 
-                if type(self.panel1_results['svd_u']) != None and not np.any(np.isnan(self.panel1_results['svd_u'])):
+                if type(self.panel1_results['svd_u']) is not None and not np.any(np.isnan(self.panel1_results['svd_u'])):
 
                     self.top_sizer.Hide(wx.FindWindowById(self.splitter_ids[self.current_panel], self), recursive = True)
 
@@ -6874,7 +6885,7 @@ class EFAControlPanel1(wx.Panel):
             profile_window = wx.FindWindowById(self.control_ids['profile'], self)
             profile_window.SetStringSelection('Unsubtracted')
 
-        if self.manip_item != None:
+        if self.manip_item is not None:
             sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
 
             self.ydata_type = sec_plot_panel.plotparams['y_axis_display']
@@ -8646,7 +8657,7 @@ class EFARangePlotPanel(wx.Panel):
         self.background = self.canvas.copy_from_bbox(a.bbox)
         # self.err_background = self.canvas.copy_from_bbox(b.bbox)
 
-        if self.cut_line != None:
+        if self.cut_line is not None:
             self.canvas.mpl_disconnect(self.cid)
             self.updateDataPlot(self.orig_frame_list, self.orig_intensity, self.orig_framei, self.orig_framef, self.orig_ranges)
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
@@ -9125,6 +9136,303 @@ class similiarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
         self.itemDataMap[items] = (fnum1, fnum2, fname1, fname2, c, pval, cor_pval)
 
         self.list_ctrl.SetItemData(items, items)
+
+
+class NormKratkyFrame(wx.Frame):
+
+    def __init__(self, parent, title, sasm_list):
+
+        try:
+            wx.Frame.__init__(self, parent, wx.ID_ANY, title, name = 'NormKratkyFrame', size = (800,600))
+        except:
+            wx.Frame.__init__(self, None, wx.ID_ANY, title, name = 'NormKratkyFrame', size = (800,600))
+
+        self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+
+        self.main_frame = parent
+
+        splitter1 = wx.SplitterWindow(self, wx.ID_ANY)
+
+        self.plotPanel = NormKratkyPlotPanel(splitter1, wx.ID_ANY, 'NormKratkyPlotPanel')
+        self.controlPanel = NormKratkyControlPanel(splitter1, wx.ID_ANY, 'NormKratkyControlPanel', sasm_list)
+
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, 290)
+
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+            splitter1.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
+        else:
+            splitter1.SetMinimumPaneSize(50)
+
+        splitter1.Layout()
+        self.Layout()
+        self.SendSizeEvent()
+        splitter1.Layout()
+        self.Layout()
+
+        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+            splitter1.Fit()
+            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+                size = self.GetSize()
+                size[1] = size[1] + 20
+                self.SetSize(size)
+
+        self.CenterOnParent()
+        self.Raise()
+
+    def OnClose(self):
+
+        self.Destroy()
+
+
+
+class NormKratkyPlotPanel(wx.Panel):
+
+    def __init__(self, parent, panel_id, name, wxEmbedded = False):
+
+        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        main_frame = wx.FindWindowByName('MainFrame')
+
+        try:
+            self.raw_settings = main_frame.raw_settings
+        except AttributeError:
+            self.raw_settings = RAWSettings.RawGuiSettings()
+
+        self.fig = Figure((5,4), 75)
+
+        self.line_dict = {}
+
+        self.DataTuple = collections.namedtuple('PlotItem', ['sasm', 'rg', 'i0', 'vc', 'line', 'label'])
+
+        self.plot_labels = {'Normalized'            : ('Normalized Kratky', 'q', 'q^2*I(q)/I(0)'),
+                            'Dimensionless (Rg)'    : ('Dimensionless Kratky (Rg)', 'qRg', '(qRg)^2*I(q)/I(0)'),
+                            'Dimensionless (Vc)'    : ('Dimensionless Kratky (Vc)', 'qVc', '(qVc)^2*I(q)/I(0)'),
+                            }
+
+        self.plot_type = 'Dimensionless (Rg)'
+
+        self.subplot = self.fig.add_subplot(1,1,1, title = self.plot_labels[self.plot_type][0], label = self.plot_labels[self.plot_type][0])
+        self.subplot.set_xlabel(self.plot_labels[self.plot_type][1])
+        self.subplot.set_ylabel(self.plot_labels[self.plot_type][2])
+
+        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
+        self.fig.set_facecolor('white')
+
+        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
+        self.canvas.SetBackgroundColour('white')
+
+        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        self.toolbar.Realize()
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
+        sizer.Add(self.toolbar, 0, wx.GROW)
+
+        self.SetSizer(sizer)
+
+        # Connect the callback for the draw_event so that window resizing works:
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def ax_redraw(self, widget=None):
+        ''' Redraw plots on window resize event '''
+
+        self.background = self.canvas.copy_from_bbox(self.subplot.bbox)
+
+        if len(self.line_dict) > 0:
+            self.canvas.mpl_disconnect(self.cid) #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
+            self.redrawLines()
+            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) #Reconnect draw_event
+
+    def addSASMToPlot(self, sasm):
+
+        analysis_dict = sasm.getParameter('analysis')
+
+        rg = float(analysis_dict['guinier']['Rg'])
+        i0 = float(analysis_dict['guinier']['I0'])
+        vc = float(analysis_dict['molecularWeight']['VolumeOfCorrelation']['Vcor'])
+        name = sasm.getParameter('filename')
+
+        qmin, qmax = sasm.getQrange()
+        q = sasm.q[qmin:qmax]
+        i = sasm.i[qmin:qmax]
+
+        if self.plot_type == 'Normalized':
+            xdata = q
+            ydata = q**2*i/i0
+        elif self.plot_type == 'Dimensionless (Rg)':
+            xdata = q*rg
+            ydata = (q*rg)**2*i/i0
+        elif self.plot_type == 'Dimensionless (Vc)':
+            xdata = q*vc
+            ydata = (q*vc)**2*i/i0
+
+        data_line, = self.subplot.plot(xdata, ydata, animated=True, label=name)
+
+        self.line_dict[data_line] = self.DataTuple(sasm, rg, i0, vc, data_line, name)
+
+        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
+        self.canvas.mpl_disconnect(self.cid)
+
+        if len(self.line_dict) == 1:
+            self.canvas.draw()
+            self.background = self.canvas.copy_from_bbox(self.subplot.bbox)
+
+        #Reconnect draw_event
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+        return data_line
+
+    def relimPlot(self):
+        oldx = self.subplot.get_xlim()
+        oldy = self.subplot.get_ylim()
+
+        self.subplot.relim()
+        self.subplot.autoscale_view()
+
+        newx = self.subplot.get_xlim()
+        newy = self.subplot.get_ylim()
+
+        if newx != oldx or newy != oldy:
+            self.canvas.draw()
+
+        self.redrawLines()
+
+    def redrawLines(self):
+
+        self.canvas.restore_region(self.background)
+
+        for line in self.line_dict.keys():
+            self.subplot.draw_artist(line)
+
+        self.canvas.blit(self.subplot.bbox)
+
+    def updatePlot(self, plot_type):
+        self.plot_type = plot_type
+
+        self.subplot.set_title(self.plot_labels[self.plot_type][0])
+        self.subplot.set_xlabel(self.plot_labels[self.plot_type][1])
+        self.subplot.set_ylabel(self.plot_labels[self.plot_type][2])
+
+        for line, data in self.line_dict.items():
+            sasm = data.sasm
+            qmin, qmax = sasm.getQrange()
+            q = sasm.q[qmin:qmax]
+            i = sasm.i[qmin:qmax]
+
+            rg = data.rg
+            i0 = data.i0
+            vc = data.vc
+
+            if self.plot_type == 'Normalized':
+                xdata = q
+                ydata = q**2*i/i0
+            elif self.plot_type == 'Dimensionless (Rg)':
+                xdata = q*rg
+                ydata = (q*rg)**2*i/i0
+            elif self.plot_type == 'Dimensionless (Vc)':
+                xdata = q*vc
+                ydata = (q*vc)**2*i/i0
+
+            line.set_xdata(xdata)
+            line.set_ydata(ydata)
+
+        self.relimPlot()
+
+
+class NormKratkyControlPanel(wx.Panel):
+
+    def __init__(self, parent, panel_id, name, sasm_list):
+
+        wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        self.parent = parent
+
+        self.sasm_list = sasm_list
+
+        self.control_ids = {'plot'  : self.NewControlId(),
+                            }
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.raw_settings = self.main_frame.raw_settings
+
+        sizer = self._createLayout()
+
+        self.SetSizer(sizer)
+
+        self._initialize()
+
+    def onCloseButton(self, evt):
+        diag = wx.FindWindowByName('NormKratkyFrame')
+        diag.OnClose()
+
+    def _createLayout(self):
+
+        close_button = wx.Button(self, wx.ID_OK, 'Close')
+        close_button.Bind(wx.EVT_BUTTON, self.onCloseButton)
+
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(close_button, 1, wx.LEFT|wx.RIGHT, 5)
+
+
+        box = wx.StaticBox(self, -1, 'Control')
+        control_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+
+        plt_text = wx.StaticText(self, -1, 'Plot:')
+        plt_ctrl = wx.Choice(self, self.control_ids['plot'], choices=['Normalized', 'Dimensionless (Rg)', 'Dimensionless (Vc)'])
+        plt_ctrl.SetStringSelection('Dimensionless (Rg)')
+        plt_ctrl.Bind(wx.EVT_CHOICE, self._onPlotChoice)
+
+        plt_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        plt_sizer.Add(plt_text, 0, wx.LEFT | wx.RIGHT, 5)
+        plt_sizer.Add(plt_ctrl, 0, wx.RIGHT, 5)
+
+
+        control_sizer.Add(plt_sizer, 0)
+
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(control_sizer,0, wx.TOP, 5)
+        top_sizer.AddStretchSpacer(1)
+        top_sizer.Add(button_sizer,0, wx.BOTTOM, 5)
+
+        return top_sizer
+
+    def _initialize(self):
+        plotpanel = wx.FindWindowByName('NormKratkyPlotPanel')
+
+        for sasm in self.sasm_list:
+            analysis_dict = sasm.getParameter('analysis')
+            i0 = float(analysis_dict['guinier']['I0'])
+
+            qmin, qmax = sasm.getQrange()
+            q = sasm.q[qmin:qmax]
+            i = sasm.i[qmin:qmax]
+
+            vc = SASCalc.volumeOfCorrelation(q, i, i0)
+            if 'molecularWeight' in analysis_dict:
+                analysis_dict['molecularWeight']['VolumeOfCorrelation']['Vcor'] = str(vc)
+            else:
+                analysis_dict['molecularWeight'] = {'VolumeOfCorrelation' :{'Vcor' :vc}}
+
+            line = plotpanel.addSASMToPlot(sasm)
+
+
+    def _onPlotChoice(self, evt):
+        self.updatePlot()
+
+
+    def updatePlot(self):
+        plotWindow = wx.FindWindowById(self.control_ids['plot'], self)
+        plot_type = plotWindow.GetStringSelection()
+
+        plotpanel = wx.FindWindowByName('NormKratkyPlotPanel')
+
+        subplot = plotpanel.subplot
+        if not subplot.get_autoscale_on():
+            subplot.set_autoscale_on(True)
+
+        plotpanel.updatePlot(plot_type)
 
 
 # ----------------------------------------------------------------------------

@@ -316,11 +316,7 @@ def autoMW(sasm, rg, i0, protein = True, interp = True):
         i = np.concatenate((i_interp, i))
         err = np.concatenate((err_interp, err))
 
-
-    #The volume of correlation is the ratio of i0 to $\int q*I dq$
-    tot=integrate.trapz(q*i,q)
-
-    vc=i0/tot
+    vc = volumeOfCorrelation(q, i, i0)
 
     #We then take a ratio of the square of vc to rg
     qr=np.square(vc)/rg
@@ -342,9 +338,15 @@ def autoMW(sasm, rg, i0, protein = True, interp = True):
 
     return mw, np.sqrt(np.absolute(mw)), tot, vc, qr
 
+def volumeOfCorrelation(q, i, i0):
+    """Calculates the volume of correlation as the ratio of i0 to $\int q*I dq$
+    """
+    tot=integrate.trapz(q*i,q)
+    vc=i0/tot
+    return vc
 
-def porodInvariant(sasm,start=0,stop=-1):
-    return integrate.trapz(sasm.i[start:stop]*np.square(sasm.q[start:stop]),sasm.q[start:stop])
+def porodInvariant(q, i,start=0,stop=-1):
+    return integrate.trapz(i[start:stop]*np.square(q[start:stop]),q[start:stop])
 
 def porodVolume(sasm, rg, i0, start = 0, stop = -1, interp = True):
 
@@ -384,7 +386,7 @@ def porodVolume(sasm, rg, i0, start = 0, stop = -1, interp = True):
         i = np.concatenate((i_interp, i))
         err = np.concatenate((err_interp, err))
 
-    pInvar = integrate.simps(i[start:stop]*np.square(q[start:stop]),q[start:stop])
+    pInvar = porodInvariant(q, i, start, stop)
 
     pVolume = 2*np.square(np.pi)*i0/pInvar
 
