@@ -139,7 +139,7 @@ class PlotOptionsDialog(wx.Dialog):
         if self.is_sec:
             self._old_legend_settings ['showcalc'] = self.parent.plotparams['legend_showcalc'+plotnum]
 
-        if self.legend == None:
+        if self.legend is None:
             self.is_legend = False
         else:
             self.is_legend = True
@@ -263,7 +263,7 @@ class PlotOptionsDialog(wx.Dialog):
             elif each_name == 'ylabel': label = self.ylabel
             elif each_name == 'y2label': label = self.y2label
             elif each_name == 'legtit':
-                if self.legend == None:
+                if self.legend is None:
                     label=matplotlib.text.Text()
                 else:
                     label = self.legend.get_title()

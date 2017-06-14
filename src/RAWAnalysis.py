@@ -41,18 +41,27 @@ matplotlib.rc('image', origin = 'lower')        # turn image upside down.. x,y, 
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg#,Toolbar, FigureCanvasWx
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.figure import Figure
+import matplotlib.colors as mplcol
+
+# These are for the AutoWrapStaticText class
+from wx.lib.wordwrap import wordwrap
+from wx.lib.stattext import GenStaticText as StaticText
+import wx.lib.agw.flatnotebook as flatNB
+from wx.lib.agw import ultimatelistctrl as ULC
 
 from scipy import polyval, polyfit, integrate
 import scipy.interpolate as interp
 from scipy.constants import Avogadro
 import scipy.stats as stats
 
-import RAWSettings, RAWCustomCtrl, SASCalc, SASFileIO, SASM, SASExceptions, RAWGlobals
-
-# These are for the AutoWrapStaticText class
-from wx.lib.wordwrap import wordwrap
-from wx.lib.stattext import GenStaticText as StaticText
-import wx.lib.agw.flatnotebook as flatNB
+import RAWSettings
+import RAWCustomCtrl
+import SASCalc
+import SASFileIO
+import SASM
+import SASExceptions
+import RAWGlobals
+import RAWCustomDialogs
 
 class GuinierPlotPanel(wx.Panel):
 
@@ -1930,7 +1939,7 @@ class MolWeightFrame(wx.Frame):
             is_protein = False
 
         if rg > 0 and i0 > 0:
-            mw, mw_error, tot, vc, qr = SASCalc.autoMW(self.sasm, rg, i0, is_protein)
+            mw, mw_error, vc, qr = SASCalc.autoMW(self.sasm, rg, i0, is_protein)
 
             mwstr = str(np.around(mw,1))
 
@@ -9206,7 +9215,7 @@ class NormKratkyPlotPanel(wx.Panel):
 
         self.plot_labels = {'Normalized'            : ('Normalized Kratky', 'q', 'q^2*I(q)/I(0)'),
                             'Dimensionless (Rg)'    : ('Dimensionless Kratky (Rg)', 'qRg', '(qRg)^2*I(q)/I(0)'),
-                            'Dimensionless (Vc)'    : ('Dimensionless Kratky (Vc)', 'qVc', '(qVc)^2*I(q)/I(0)'),
+                            'Dimensionless (Vc)'    : ('Dimensionless Kratky (Vc)', 'q(Vc)^(1/2)', '(q)^2*Vc*I(q)/I(0)'),
                             }
 
         self.plot_type = 'Dimensionless (Rg)'
@@ -9232,6 +9241,8 @@ class NormKratkyPlotPanel(wx.Panel):
 
         # Connect the callback for the draw_event so that window resizing works:
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+        self.canvas.callbacks.connect('button_release_event', self._onMouseButtonReleaseEvent)
+        self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
 
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
@@ -9263,8 +9274,8 @@ class NormKratkyPlotPanel(wx.Panel):
             xdata = q*rg
             ydata = (q*rg)**2*i/i0
         elif self.plot_type == 'Dimensionless (Vc)':
-            xdata = q*vc
-            ydata = (q*vc)**2*i/i0
+            xdata = q*np.sqrt(vc)
+            ydata = (q)**2*vc*i/i0
 
         data_line, = self.subplot.plot(xdata, ydata, animated=True, label=name)
 
@@ -9304,6 +9315,11 @@ class NormKratkyPlotPanel(wx.Panel):
         for line in self.line_dict.keys():
             self.subplot.draw_artist(line)
 
+        legend = self.subplot.get_legend()
+        if legend is not None:
+            if legend.get_visible():
+                self.subplot.draw_artist(legend)
+
         self.canvas.blit(self.subplot.bbox)
 
     def updatePlot(self, plot_type):
@@ -9330,13 +9346,121 @@ class NormKratkyPlotPanel(wx.Panel):
                 xdata = q*rg
                 ydata = (q*rg)**2*i/i0
             elif self.plot_type == 'Dimensionless (Vc)':
-                xdata = q*vc
-                ydata = (q*vc)**2*i/i0
+                xdata = q*np.sqrt(vc)
+                ydata = (q)**2*vc*i/i0
 
             line.set_xdata(xdata)
             line.set_ydata(ydata)
 
         self.relimPlot()
+
+    def _onMouseButtonReleaseEvent(self, event):
+        ''' Find out where the mouse button was released
+        and show a pop up menu to change the settings
+        of the figure the mouse was over '''
+        if event.button == 3:
+            if float(matplotlib.__version__[:3]) >= 1.2:
+                if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
+                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                        wx.CallAfter(self._showPopupMenu)
+                    else:
+                        self._showPopupMenu()
+
+            else:
+                if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
+                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                        wx.CallAfter(self._showPopupMenu)
+                    else:
+                        self._showPopupMenu()
+
+    def _showPopupMenu(self):
+        menu = wx.Menu()
+
+        menu.AppendCheckItem(1, 'Legend')
+        menu.Append(2, 'Export Data As CSV')
+
+        legend = self.subplot.get_legend()
+
+        if legend is not None and legend.get_visible():
+            menu.Check(1, True)
+
+        self.PopupMenu(menu)
+
+        menu.Destroy()
+
+    def _onPopupMenuChoice(self, evt):
+        my_id = evt.GetId()
+
+        if my_id == 1:
+            legend = self.subplot.get_legend()
+
+            if evt.IsChecked():
+                self._updateLegend()
+            else:
+                if legend is not None:
+                    legend.set_visible(False)
+
+        elif my_id == 2:
+            self._exportData(self)
+
+        self.redrawLines()
+
+    def _updateLegend(self):
+        leg_lines = []
+        leg_labels = []
+        self.subplot.legend_ = None
+        for line in self.line_dict.keys():
+            if line.get_visible():
+                leg_lines.append(line)
+                leg_labels.append(line.get_label())
+
+        self.subplot.legend(leg_lines, leg_labels)
+        self.subplot.get_legend().set_animated(True)
+
+    def _exportData(self, evt):
+        title, xlabel, ylabel = self.plot_labels[self.plot_type]
+        data_list = []
+        header = ''
+
+        for line, data in self.line_dict.items():
+            if line.get_visible():
+                xdata = line.get_xdata()
+                ydata = line.get_ydata()
+
+                qmin, qmax = data.sasm.getQrange()
+                errdata = ydata*(data.sasm.err[qmin:qmax]/data.sasm.i[qmin:qmax])
+
+                data_list.append(xdata)
+                data_list.append(ydata)
+                data_list.append(errdata)
+
+                data_xlabel = data.label+'_'+xlabel
+                data_ylabel = data.label+'_'+ylabel
+                data_errlabel = data.label+'_'+ylabel+'_err'
+
+                header = header + '%s,%s,%s,' %(data_xlabel, data_ylabel, data_errlabel)
+
+        header.rstrip(',')
+
+        if len(data_list) == 0:
+            msg = 'Must have data shown on the plot to export it.'
+            wx.CallAfter(wx.MessageBox, str(msg), "No Data Shown", style = wx.ICON_ERROR | wx.OK)
+        else:
+            dirctrl = wx.FindWindowByName('DirCtrlPanel')
+            path = str(dirctrl.getDirLabel())
+
+            filename = title.replace(' ', '_') + '.csv'
+
+            dialog = wx.FileDialog(self, message = "Please select save directory and enter save file name", style = wx.FD_SAVE, defaultDir = path, defaultFile = filename)
+
+            if dialog.ShowModal() == wx.ID_OK:
+                save_path = dialog.GetPath()
+                name, ext = os.path.splitext(save_path)
+                save_path = name + '.csv'
+            else:
+                return
+
+            SASFileIO.saveNormKratkyData(save_path, data_list, header)
 
 
 class NormKratkyControlPanel(wx.Panel):
@@ -9372,7 +9496,7 @@ class NormKratkyControlPanel(wx.Panel):
         close_button.Bind(wx.EVT_BUTTON, self.onCloseButton)
 
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        button_sizer.Add(close_button, 1, wx.LEFT|wx.RIGHT, 5)
+        button_sizer.Add(close_button, 1, wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_HORIZONTAL, 5)
 
 
         box = wx.StaticBox(self, -1, 'Control')
@@ -9387,14 +9511,17 @@ class NormKratkyControlPanel(wx.Panel):
         plt_sizer.Add(plt_text, 0, wx.LEFT | wx.RIGHT, 5)
         plt_sizer.Add(plt_ctrl, 0, wx.RIGHT, 5)
 
+        self.list = normKratkyListPanel(self)
+
 
         control_sizer.Add(plt_sizer, 0)
+        control_sizer.Add(self.list, 1, wx.EXPAND | wx.TOP, 5)
 
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(control_sizer,0, wx.TOP, 5)
+        top_sizer.Add(control_sizer,0, wx.TOP | wx.EXPAND, 5)
         top_sizer.AddStretchSpacer(1)
-        top_sizer.Add(button_sizer,0, wx.BOTTOM, 5)
+        top_sizer.Add(button_sizer,0, wx.BOTTOM|wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         return top_sizer
 
@@ -9417,6 +9544,8 @@ class NormKratkyControlPanel(wx.Panel):
 
             line = plotpanel.addSASMToPlot(sasm)
 
+            self.list.addItem(sasm, line)
+
 
     def _onPlotChoice(self, evt):
         self.updatePlot()
@@ -9433,6 +9562,176 @@ class NormKratkyControlPanel(wx.Panel):
             subplot.set_autoscale_on(True)
 
         plotpanel.updatePlot(plot_type)
+
+
+class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
+    wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin):
+    """Makes a sortable list panel for the normalized kratky data.
+    This is based on:
+    https://www.blog.pythonlibrary.org/2011/01/04/wxpython-wx-listctrl-tips-and-tricks/
+    https://www.blog.pythonlibrary.org/2011/11/02/wxpython-an-intro-to-the-ultimatelistctrl/
+    """
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent, wx.ID_ANY)
+
+        self.list_ctrl = ULC.UltimateListCtrl(self, agwStyle=ULC.ULC_REPORT
+                        | ULC.ULC_SORT_ASCENDING, size=(-1,450)
+                        )
+
+        self.list_ctrl.InsertColumn(0, 'Show')
+        self.list_ctrl.InsertColumn(1, 'Filename')
+        self.list_ctrl.InsertColumn(2, 'Color')
+        self.list_ctrl.InsertColumn(3, 'Rg')
+        self.list_ctrl.InsertColumn(4, 'I(0)')
+        self.list_ctrl.InsertColumn(5, 'Vc')
+
+        self.list_ctrl.Bind(ULC.EVT_LIST_ITEM_CHECKED, self._onItemChecked)
+
+        self.itemDataMap = {}
+        wx.lib.mixins.listctrl.ColumnSorterMixin.__init__(self, 6)
+        wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin.__init__(self)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.list_ctrl, 0, wx.ALL | wx.EXPAND, 5)
+        self.SetSizer(sizer)
+
+    def GetListCtrl(self):
+        """Used by the ColumnSorterMixin
+        """
+        return self.list_ctrl
+
+    def GetColumnCount(self):
+        """Used by the AutoWidthMixin
+        """
+        return self.list_ctrl.GetColumnCount()
+
+    def GetColumnWidth(self, col):
+        """Used by the AutoWidthMixin
+        """
+        return self.list_ctrl.GetColumnWidth(col)
+
+    def GetItemCount(self):
+        """Used by the AutoWidthMixin
+        """
+        return self.list_ctrl.GetItemCount()
+
+    def GetCountPerPage(self):
+        """Used by the AutoWidthMixin
+        """
+        return self.list_ctrl.GetCountPerPage()
+
+    def SetColumnWidth(self, col, width):
+        """Used by the AutoWidthMixin
+        """
+        return self.list_ctrl.SetColumnWidth(col, width)
+
+    def DeleteAllItems(self):
+        """Makes this call accessible to the main panel
+        """
+        self.list_ctrl.DeleteAllItems()
+
+    def GetItem(self, index):
+        """Makes this call accessible to the main panel
+        """
+        return self.list_ctrl.GetItem(index)
+
+    def GetItemText(self, index, col):
+        """Makes this call accessible to the main panel
+        """
+        return self.list_ctrl.GetItemText(index, col)
+
+    def SetItemBackgroundColour(self, index, color):
+        self.list_ctrl.SetItemBackgroundColour(index, color)
+
+    def addItem(self, sasm, line):
+        analysis_dict = sasm.getParameter('analysis')
+        rg = float(analysis_dict['guinier']['Rg'])
+        i0 = float(analysis_dict['guinier']['I0'])
+        vc = float(analysis_dict['molecularWeight']['VolumeOfCorrelation']['Vcor'])
+        name = sasm.getParameter('filename')
+
+        conv = mplcol.ColorConverter()
+        color = conv.to_rgb(line.get_mfc())
+        color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
+
+        index = self.list_ctrl.InsertStringItem(sys.maxint, '', it_kind=1)
+        self.list_ctrl.SetStringItem(index, 1, name)
+        self.list_ctrl.SetStringItem(index, 2, '')
+        self.list_ctrl.SetStringItem(index, 3, str(rg))
+        self.list_ctrl.SetStringItem(index, 4, str(i0))
+        self.list_ctrl.SetStringItem(index, 5, str(vc))
+
+        self.itemDataMap[index] = ('', name, '', rg, i0, vc)
+
+        self.list_ctrl.SetItemData(index, index)
+
+        item = self.list_ctrl.GetItem(index, 0)
+        item.Check(True)
+        self.list_ctrl.SetItem(item)
+
+        colour_indicator = RAWCustomCtrl.ColourIndicator(self.list_ctrl, index, color, size = (30,15))
+        colour_indicator.Bind(wx.EVT_LEFT_DOWN, self._onColorButton)
+
+        item = self.list_ctrl.GetItem(index, 2)
+        item.SetWindow(colour_indicator)
+        item.SetAlign(ULC.ULC_FORMAT_LEFT)
+        self.list_ctrl.SetItem(item)
+
+        item = self.list_ctrl.GetItem(index, 0)
+        item.SetAlign(ULC.ULC_FORMAT_CENTER)
+        self.list_ctrl.SetItem(item)
+
+        item = self.list_ctrl.GetItem(index)
+        itemData = [sasm, line]
+        item.SetPyData(itemData)
+        self.list_ctrl.SetItem(item)
+
+        self.list_ctrl.SetColumnWidth(0, wx.LIST_AUTOSIZE_USEHEADER)
+        self.list_ctrl.SetColumnWidth(1, 130)
+        self.list_ctrl.SetColumnWidth(2, wx.LIST_AUTOSIZE_USEHEADER)
+
+    def _onItemChecked(self, evt):
+        item = evt.GetItem()
+
+        itemData = item.GetPyData()
+        line = itemData[1]
+
+        state = item.IsChecked()
+        line.set_visible(state)
+
+        plotpanel = wx.FindWindowByName('NormKratkyPlotPanel')
+
+        legend =plotpanel.subplot.get_legend()
+        if legend is not None and legend.get_visible():
+            plotpanel._updateLegend()
+        plotpanel.redrawLines()
+
+    def _onColorButton(self, evt):
+        index = evt.GetId()
+        item = self.list_ctrl.GetItem(index)
+        itemData = item.GetPyData()
+        line = itemData[1]
+
+        plotpanel = wx.FindWindowByName('NormKratkyPlotPanel')
+
+        dlg = RAWCustomDialogs.ColourChangeDialog(self, None, 'NormKratky', line, plotpanel)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+        conv = mplcol.ColorConverter()
+        color = line.get_color()
+        color = conv.to_rgb(color)
+        color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
+
+        item = self.list_ctrl.GetItem(index, 2)
+        color_control = item.GetWindow()
+        color_control.updateColour(color)
+        self.list_ctrl.SetItem(item)
+
+        legend =plotpanel.subplot.get_legend()
+        if legend is not None and legend.get_visible():
+            plotpanel._updateLegend()
+            plotpanel.redrawLines()
 
 
 # ----------------------------------------------------------------------------

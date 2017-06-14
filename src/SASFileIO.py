@@ -2953,6 +2953,31 @@ def saveCSVFile(filename, data, header = ''):
         else:
             np.savetxt(filename, data, delimiter = ',', comments ='')
 
+def saveNormKratkyData(filename, data, header = ''):
+    maxlen = max([len(item) for item in data])
+    body_string = ''
+
+    for i in range(maxlen):
+        line = ''
+        for item in data:
+            if i < len(item):
+                item_data = str(item[i])
+            else:
+                item_data = ''
+
+            line = line + '%s,' %(item_data)
+
+        line.strip(',')
+        line = line + '\n'
+        body_string = body_string+line
+
+    if header != '':
+        save_string = header + '\n' + body_string
+    else:
+        save_string = body_string
+
+    with open(filename, 'w') as fsave:
+        fsave.write(save_string)
 
 def saveSVDData(filename, svd_data, u_data, v_data):
 

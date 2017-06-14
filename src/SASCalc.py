@@ -336,7 +336,7 @@ def autoMW(sasm, rg, i0, protein = True, interp = True):
 
     mw = (qr/B)**A/1000.
 
-    return mw, np.sqrt(np.absolute(mw)), tot, vc, qr
+    return mw, np.sqrt(np.absolute(mw)), vc, qr
 
 def volumeOfCorrelation(q, i, i0):
     """Calculates the volume of correlation as the ratio of i0 to $\int q*I dq$
