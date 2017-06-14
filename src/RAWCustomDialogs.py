@@ -1382,6 +1382,11 @@ class ColourChangeDialog(wx.Dialog):
         for each in self.colourchoice.colour_boxs:
             each.GetColourBox().Bind(wx.EVT_LEFT_UP, self.updateLine)
 
+        for each in self.colourchoice.custom_boxs:
+            each.GetColourBox().Bind(wx.EVT_LEFT_UP, self.updateLine)
+
+        self.colourchoice.slider.Bind(wx.EVT_COMMAND_SCROLL, self.updateLine)
+
         sizer.Add(self.colourchoice, 1)
 
         top_sizer.Add(sizer, 0, wx.ALL, 10)

@@ -21,8 +21,24 @@ Created on Sep 31, 2010
 #
 #******************************************************************************
 '''
+import sys
+import os
+#This redirects the ouptut to avoid warning messages on startup. Not great
+#To have on during development, but good for user builds.
+# sys.stdout = os.devnull
+# sys.stderr = os.devnull
 
-import wx, os, subprocess, time, threading, Queue, cPickle, copy, sys, glob, platform, fnmatch, shutil
+import wx
+import subprocess
+import time
+import threading
+import Queue
+import cPickle
+import copy
+import glob
+import platform
+import fnmatch
+import shutil
 import itertools
 import traceback
 import scipy.constants
@@ -12109,6 +12125,8 @@ class RawTaskbarIcon(wx.TaskBarIcon):
     #     menu.Destroy()
 
 if __name__ == '__main__':
+    sys.stdout = sys.__stdout__
+    sys.stderr = sys.__stderr__
     setup_thread_excepthook()
     app = MyApp(0)   #MyApp(redirect = True)
     app.MainLoop()

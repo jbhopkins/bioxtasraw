@@ -1487,6 +1487,9 @@ def superimpose(sasm_star, sasm_list, choice):
 
     q_star_qrange_min, q_star_qrange_max = sasm_star.getQrange()
 
+    q_star = q_star[q_star_qrange_min:q_star_qrange_max]
+    i_star = i_star[q_star_qrange_min:q_star_qrange_max]
+
     for each_sasm in sasm_list:
 
         each_q = each_sasm.getBinnedQ()
@@ -1509,14 +1512,14 @@ def superimpose(sasm_star, sasm_list, choice):
 
         if choice == 'Scale and Offset':
             A = np.column_stack([I_resamp, np.ones_like(I_resamp)])
-            scale, offset = np.linalg.lstsq(A, i_star)[0]
+            scale, offset = np.linalg.lstsq(A, i_star[min_q_idx:max_q_idx+1])[0]
         elif choice == 'Scale':
             A = np.column_stack([I_resamp, np.zeros_like(I_resamp)])
-            scale, offset= np.linalg.lstsq(A, i_star)[0]
+            scale, offset= np.linalg.lstsq(A, i_star[min_q_idx:max_q_idx+1])[0]
             offset = 0
         elif choice == 'Offset':
             A = np.column_stack([np.zeros_like(I_resamp), np.ones_like(I_resamp)])
-            scale, offset= np.linalg.lstsq(A, i_star-I_resamp)[0]
+            scale, offset= np.linalg.lstsq(A, i_star[min_q_idx:max_q_idx+1]-I_resamp)[0]
             scale = 1
 
         each_sasm.scale(scale)
