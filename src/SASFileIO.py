@@ -29,13 +29,26 @@ except ImportError:
     print 'RAW WARNING: hdf5plugin not present, Eiger hdf5 images will not load.'
     use_eiger = False
 
-import RAWGlobals, SASImage, SASM, SASExceptions
 import numpy as np
-import os, sys, re, cPickle, time, binascii, struct, json, copy
+import os
+import sys
+import re
+import cPickle
+import time
+import binascii
+import struct
+import json
+import copy
+import collections
 from xml.dom import minidom
-import SASMarHeaderReader #Attempting to remove the reliance on compiled packages. Switchin Mar345 reading to fabio.
 import PIL
-from PIL import Image #pillow
+from PIL import Image
+
+import RAWGlobals
+import SASImage
+import SASM
+import SASExceptions
+import SASMarHeaderReader #Attempting to remove the reliance on compiled packages. Switchin Mar345 reading to fabio.
 
 try:
     import fabio
@@ -2143,6 +2156,9 @@ def loadFitFile(filename):
             fileHeader = {}
         else:
             fileHeader = {'comment':firstLine}
+            if 'Chi^2' in firstLine:
+                chisq = firstLine.split('Chi^2')[-1].strip('= ').strip()
+                fileHeader['Chi_squared'] = chisq
 
 
         if "Experimental" in firstLine:
@@ -2217,6 +2233,115 @@ def loadFitFile(filename):
 
     return [sasm, fit_sasm]
 
+def loadDamselLogFile(filename):
+    """Loads data from a damsel log file"""
+    with open(filename) as f:
+        process_includes = False
+        result_dict = {}
+        include_list = []
+        discard_list = []
+
+        for line in f:
+            if process_includes:
+                if len(line.strip()) > 0:
+                    rec, nsd, fname = line.strip().split()
+                    result_dict[fname] = [rec, nsd]
+
+                    if rec == 'Include':
+                        include_list.append([fname, rec, nsd])
+                    else:
+                        discard_list.append([fname, rec, nsd])
+
+            if 'Mean' in line and 'Standard' not in line:
+                mean_nsd = line.strip().split()[-1]
+            elif 'Mean' not in line and 'Standard' in line:
+                stdev_nsd = line.strip().split()[-1]
+            elif 'Recommendation' in line:
+                process_includes = True
+
+    return mean_nsd, stdev_nsd, include_list, discard_list, result_dict
+
+def loadDamclustLogFile(filename):
+    """Loads data from a damclust log file"""
+    cluster_pattern = re.compile('\s*Cluster\s*\d')
+    distance_pattern = re.compile('\s*\d\s*\d\s*\d+[.]\d+\s*$')
+
+    cluster_tuple = collections.namedtuple('Clusters', ['num', 'rep_model', 'dev'])
+    distance_tuple = collections.namedtuple('Distances', ['cluster1', 'cluster2', 'cluster_dist'])
+
+    cluster_list = []
+    distance_list = []
+
+    with open(filename) as f:
+        for line in f:
+            cluster_match = cluster_pattern.match(line)
+            distance_match = distance_pattern.match(line)
+
+            if cluster_match:
+                found = line.split()
+                if '.pdb' in found[-1]:
+                    isolated = True
+                else:
+                    isolated = False
+
+                cluster_num = found[1].strip()
+
+                if isolated:
+                    rep_model = found[-1].strip()
+                    cluster_dev = -1
+                else:
+                    cluster_dev = found[-1].strip()
+                    rep_model = found[-2].strip()
+
+                cluster_list.append(cluster_tuple(cluster_num, rep_model, cluster_dev))
+
+            elif distance_match:
+                found = distance_match.group().split()
+                distance_list.append(distance_tuple(*found))
+
+    return cluster_list, distance_list
+
+def loadPDBFile(filename):
+    """
+    Read the PDB file,
+    extract coordinates of each dummy atom,
+    extract the R-factor of the model, coordinates of each dummy atom and pdb file header.
+
+    :param filename: name of the pdb file to read
+
+    This code was modified from the fresas package (https://github.com/kif/freesas)
+    Original license information:
+    __author__ = "Guillaume"
+    __license__ = "MIT"
+    __copyright__ = "2015, ESRF"
+    """
+    header = []
+    atoms = []
+    useful_params = collections.defaultdict(str)
+
+    for line in open(filename):
+        if line.startswith("ATOM"):
+            x = float(line[30:38])
+            y = float(line[38:46])
+            z = float(line[46:54])
+            atoms.append([x, y, z])
+        elif not line.startswith("TER"):
+            header.append(line)
+            if 'atom radius' in line.lower() or 'packing radius' in line.lower():
+                useful_params['atom_radius'] = line.split(':')[-1].strip()
+            elif 'excluded dam volume' in line.lower() or 'average excluded volume' in line.lower():
+                useful_params['excluded_volume'] = str(float(line.split(':')[-1].strip()))
+            elif 'filtered volume' in line.lower():
+                useful_params['excluded_volume'] = str(float(line.split(':')[-1].strip()))
+            elif 'maximum diameter' in line.lower() or 'maximum phase diameter' in line.lower():
+                useful_params['dmax'] = line.split(':')[-1].strip()
+            elif 'radius of gyration' in line.lower():
+                useful_params['rg'] = line.split(':')[-1].strip()
+
+    if 'excluded_volume' in useful_params:
+        useful_params['mw'] = str(float(useful_params['excluded_volume'])/1.66/1000)
+
+    return np.array(atoms), header, useful_params
 
 
 def loadPrimusDatFile(filename):

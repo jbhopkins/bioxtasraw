@@ -2022,10 +2022,11 @@ class IftOptionsPanel(wx.Panel):
         self.raw_settings = raw_settings
 
         self.update_keys = ['maxDmax','minDmax','DmaxPoints','maxAlpha','minAlpha',
-                            'AlphaPoints','PrPoints', 'pygnomMaxAlpha','pygnomMinAlpha',
-                            'pygnomAlphaPoints','pygnomPrPoints','pyOSCILLweight','pyVALCENweight',
-                            'pyPOSITVweight','pySYSDEVweight','pySTABILweight','pyDISCRPweight',
-                            'pygnomFixInitZero' ]
+                            'AlphaPoints','PrPoints', ]
+                            # 'pygnomMaxAlpha','pygnomMinAlpha',
+                            # 'pygnomAlphaPoints','pygnomPrPoints','pyOSCILLweight','pyVALCENweight',
+                            # 'pyPOSITVweight','pySYSDEVweight','pySTABILweight','pyDISCRPweight',
+                            # 'pygnomFixInitZero' ]
 
         self.bift_options_data = (("Dmax Upper Bound: ",   raw_settings.getId('maxDmax')),
                                 ("Dmax Lower Bound: ",   raw_settings.getId('minDmax')),
@@ -2061,20 +2062,20 @@ class IftOptionsPanel(wx.Panel):
         bift_panel.SetSizer(bift_sizer)
 
 
-        gnom_panel = wx.Panel(notebook, -1)
-        box2 = wx.StaticBox(gnom_panel, -1, 'pyGNOM Parameters')
+        # gnom_panel = wx.Panel(notebook, -1)
+        # box2 = wx.StaticBox(gnom_panel, -1, 'pyGNOM Parameters')
 
-        gnom_options_sizer = self.createGnomOptions(gnom_panel)
+        # gnom_options_sizer = self.createGnomOptions(gnom_panel)
 
-        chkbox_sizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
-        chkbox_sizer2.Add(gnom_options_sizer, 1, wx.EXPAND | wx.ALL, 5)
+        # chkbox_sizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
+        # chkbox_sizer2.Add(gnom_options_sizer, 1, wx.EXPAND | wx.ALL, 5)
 
-        gnom_sizer = wx.BoxSizer(wx.VERTICAL)
-        gnom_sizer.Add(chkbox_sizer2, 1, wx.EXPAND | wx.ALL, 5)
-        gnom_panel.SetSizer(gnom_sizer)
+        # gnom_sizer = wx.BoxSizer(wx.VERTICAL)
+        # gnom_sizer.Add(chkbox_sizer2, 1, wx.EXPAND | wx.ALL, 5)
+        # gnom_panel.SetSizer(gnom_sizer)
 
         notebook.AddPage(bift_panel, "BIFT")
-        notebook.AddPage(gnom_panel, "pyGNOM")
+        # notebook.AddPage(gnom_panel, "pyGNOM")
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(notebook, 1, wx.EXPAND | wx.ALL, 5)

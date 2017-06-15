@@ -3256,7 +3256,102 @@ class DammifFrame(wx.Frame):
         except:
             wx.Frame.__init__(self, None, -1, title, name = 'DammifFrame', size = (675,750))
 
-        self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        self.manip_item = manip_item
+        self.iftm = iftm
+        self.ift = iftm.getParameter('out')
+        self.filename = iftm.getParameter('filename')
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+        self.panel = wx.Panel(self)
+        self.notebook = wx.Notebook(self.panel, wx.ID_ANY)
+        self.dammifRunPanel = DammifRunPanel(self.notebook, self.iftm, self.manip_item)
+        self.dammifResultsPanel = DammifResultsPanel(self.notebook, self.iftm, self.manip_item)
+
+        self.notebook.AddPage(self.dammifRunPanel, 'Run')
+        self.notebook.AddPage(self.dammifResultsPanel, 'Results')
+
+        sizer = self._createLayout(self.panel)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(self.notebook, 1, wx.EXPAND)
+        top_sizer.Add(sizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+
+        self.panel.SetSizer(top_sizer)
+
+        self.panel.Layout()
+        self.Layout()
+        self.SendSizeEvent()
+        self.panel.Layout()
+        self.Layout()
+
+        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+            self.notebook.Fit()
+            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+                size = self.GetSize()
+                size[1] = size[1] + 20
+                self.SetSize(size)
+
+        # if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+        #     self.Fit()
+        #     if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+        #         size = self.GetSize()
+        #         size[1] = size[1] + 20
+        #         self.SetSize(size)
+
+        self.CenterOnParent()
+
+        self.Raise()
+
+    def _createLayout(self, parent):
+        close_button = wx.Button(parent, -1, 'Close')
+        close_button.Bind(wx.EVT_BUTTON, self._onCloseButton)
+
+        info_button = wx.Button(parent, -1, 'How To Cite')
+        info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
+
+        button_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(info_button, 0, wx.RIGHT, 5)
+        button_sizer.Add(close_button, 0)
+
+        return button_sizer
+
+    def _onCloseButton(self, evt):
+        self.OnClose(0)
+
+    def _onInfoButton(self, evt):
+        msg = ('In addition to citing the RAW paper:\n If you use DAMMIF '
+        'in your work please cite the paper given here:\n'
+        'https://www.embl-hamburg.de/biosaxs/dammif.html\n\nIf you use '
+        'DAMMIN in your work please cite the paper given here:\n'
+        'https://www.embl-hamburg.de/biosaxs/dammin.html\n\nIIf you use '
+        'DAMAVER in your work, please cite the paper given here:\n'
+        'https://www.embl-hamburg.de/biosaxs/damaver.html\n\nIf you use '
+        'DAMCLUST in your work please cite the paper given here:\n'
+        'https://www.embl-hamburg.de/biosaxs/manuals/damclust.html')
+        wx.MessageBox(str(msg), "How to cite DAMMIF/DAMMIN/DAMAVER/DAMCLUST", style = wx.ICON_INFORMATION | wx.OK)
+
+
+    def OnClose(self, event):
+        dammifrun = wx.FindWindowByName('DammifRunPanel')
+        dammifrun.Close(event)
+
+        self.Destroy()
+
+
+class DammifRunPanel(wx.Panel):
+
+    def __init__(self, parent, iftm, manip_item):
+
+        try:
+            wx.Panel.__init__(self, parent, wx.ID_ANY, name = 'DammifRunPanel')
+        except:
+            wx.Panel.__init__(self, None, wx.ID_ANY, name = 'DammifRunPanel')
+
+        self.parent = parent
 
         self.manip_item = manip_item
 
@@ -3269,8 +3364,6 @@ class DammifFrame(wx.Frame):
         self.main_frame = wx.FindWindowByName('MainFrame')
 
         self.raw_settings = self.main_frame.raw_settings
-
-        self.Bind(wx.EVT_CLOSE, self.OnClose)
 
         self.infodata = {}
 
@@ -3294,26 +3387,10 @@ class DammifFrame(wx.Frame):
 
         self.threads = []
 
-
-        topsizer = self._createLayout(self.panel)
+        topsizer = self._createLayout(self)
         self._initSettings()
 
-        self.panel.SetSizer(topsizer)
-        self.panel.Layout()
-        self.SendSizeEvent()
-        self.panel.Layout()
-
-        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-            self.panel.Fit()
-            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
-                size = self.GetSize()
-                size[1] = size[1] + 20
-                self.SetSize(size)
-
-        self.CenterOnParent()
-
-        self.Raise()
-
+        self.SetSizer(topsizer)
 
     def _createLayout(self, parent):
 
@@ -3321,7 +3398,7 @@ class DammifFrame(wx.Frame):
 
         file_box = wx.StaticBox(parent, -1, 'Filename')
         file_sizer = wx.StaticBoxSizer(file_box, wx.HORIZONTAL)
-        file_sizer.Add(file_ctrl, 2, wx.ALL | wx.EXPAND, 5)
+        file_sizer.Add(file_ctrl, 2, wx.LEFT | wx.RIGHT | wx.EXPAND, 5)
         file_sizer.AddStretchSpacer(1)
 
         savedir_text = wx.StaticText(parent, -1, 'Output directory :')
@@ -3336,17 +3413,17 @@ class DammifFrame(wx.Frame):
         savedir_button.Bind(wx.EVT_BUTTON, self.onChangeDirectoryButton)
 
         savedir_sizer = wx.BoxSizer(wx.VERTICAL)
-        savedir_sizer.Add(savedir_text, 0, wx.ALL, 5)
-        savedir_sizer.Add(savedir_ctrl, 0, wx.ALL | wx.EXPAND, 5)
-        savedir_sizer.Add(savedir_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        savedir_sizer.Add(savedir_text, 0, wx.LEFT | wx.RIGHT, 5)
+        savedir_sizer.Add(savedir_ctrl, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.EXPAND, 5)
+        savedir_sizer.Add(savedir_button, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, 5)
 
 
         prefix_text = wx.StaticText(parent, -1, 'Output prefix :')
         prefix_ctrl = wx.TextCtrl(parent, self.ids['prefix'], '', size = (150, -1))
 
         prefix_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        prefix_sizer.Add(prefix_text, 0, wx.ALL, 5)
-        prefix_sizer.Add(prefix_ctrl, 1, wx.ALL, 5)
+        prefix_sizer.Add(prefix_text, 0, wx.LEFT, 5)
+        prefix_sizer.Add(prefix_ctrl, 1, wx.LEFT | wx.RIGHT, 5)
         prefix_sizer.AddStretchSpacer(1)
 
 
@@ -3355,8 +3432,8 @@ class DammifFrame(wx.Frame):
         nruns_ctrl.Bind(wx.EVT_TEXT, self.onRunsText)
 
         nruns_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        nruns_sizer.Add(nruns_text, 0, wx.ALL, 5)
-        nruns_sizer.Add(nruns_ctrl, 0, wx.ALL, 5)
+        nruns_sizer.Add(nruns_text, 0, wx.LEFT, 5)
+        nruns_sizer.Add(nruns_ctrl, 0, wx.LEFT | wx.RIGHT, 5)
 
 
         nprocs = multiprocessing.cpu_count()
@@ -3365,8 +3442,8 @@ class DammifFrame(wx.Frame):
         nprocs_choice = wx.Choice(parent, self.ids['procs'], choices = nprocs_choices)
 
         nprocs_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        nprocs_sizer.Add(nprocs_text, 0, wx.ALL, 5)
-        nprocs_sizer.Add(nprocs_choice, 0, wx.ALL, 5)
+        nprocs_sizer.Add(nprocs_text, 0, wx.LEFT, 5)
+        nprocs_sizer.Add(nprocs_choice, 0, wx.LEFT | wx.RIGHT, 5)
 
 
         program_text = wx.StaticText(parent, -1, 'Use :')
@@ -3390,7 +3467,7 @@ class DammifFrame(wx.Frame):
         aniso_choice = wx.Choice(parent, self.ids['anisometry'], choices = anisometry_choices)
 
 
-        choices_sizer = wx.FlexGridSizer(2, 4, 5, 10)
+        choices_sizer = wx.FlexGridSizer(2, 4, 5, 5)
         choices_sizer.SetFlexibleDirection(wx.HORIZONTAL)
         choices_sizer.AddGrowableCol(0)
         choices_sizer.AddGrowableCol(1)
@@ -3426,17 +3503,17 @@ class DammifFrame(wx.Frame):
         settings_sizer = wx.StaticBoxSizer(settings_box, wx.VERTICAL)
         settings_sizer.Add(savedir_sizer, 0, wx.EXPAND)
         # settings_sizer.Add(savedir_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-        settings_sizer.Add(prefix_sizer, 0, wx.EXPAND)
-        settings_sizer.Add(nruns_sizer, 0)
-        settings_sizer.Add(nprocs_sizer, 0)
+        settings_sizer.Add(prefix_sizer, 0, wx.EXPAND | wx.TOP, 5)
+        settings_sizer.Add(nruns_sizer, 0, wx.TOP, 5)
+        settings_sizer.Add(nprocs_sizer, 0, wx.TOP, 5)
         # settings_sizer.Add(mode_sizer, 0)
         # settings_sizer.Add(sym_sizer, 0)
         # settings_sizer.Add(aniso_sizer, 0)
-        settings_sizer.Add(choices_sizer, 0, wx.ALL | wx.EXPAND, 5)
-        settings_sizer.Add(damaver_chk, 0, wx.ALL, 5)
-        settings_sizer.Add(refine_sizer, 0, wx.ALL, 5)
-        settings_sizer.Add(damclust_chk, 0, wx.ALL, 5)
-        settings_sizer.Add(advancedButton, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        settings_sizer.Add(choices_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 5)
+        settings_sizer.Add(damaver_chk, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        settings_sizer.Add(refine_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        settings_sizer.Add(damclust_chk, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        settings_sizer.Add(advancedButton, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, 5)
 
 
         start_button = wx.Button(parent, self.ids['start'], 'Start')
@@ -3482,29 +3559,14 @@ class DammifFrame(wx.Frame):
         log_sizer = wx.StaticBoxSizer(log_box, wx.HORIZONTAL)
         log_sizer.Add(self.logbook, 1, wx.ALL | wx.EXPAND, 5)
 
-
-        close_button = wx.Button(parent, -1, 'Close')
-        close_button.Bind(wx.EVT_BUTTON, self._onCloseButton)
-
-        info_button = wx.Button(parent, -1, 'How To Cite')
-        info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
-
-        button_sizer =  wx.BoxSizer(wx.HORIZONTAL)
-        button_sizer.Add(info_button, 0, wx.RIGHT, 5)
-        button_sizer.Add(close_button, 0)
-
-
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:     #compatability for older versions of wxpython
             top_sizer = wx.BoxSizer(wx.VERTICAL)
             top_sizer.Add(half_sizer, 0, wx.EXPAND)
             top_sizer.Add(log_sizer, 1, wx.EXPAND)
-            top_sizer.Add(button_sizer, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
         else:
             top_sizer = wx.BoxSizer(wx.VERTICAL)
             top_sizer.Add(half_sizer, 1, wx.EXPAND)
             top_sizer.Add(log_sizer, 1, wx.EXPAND)
-            top_sizer.Add(button_sizer, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
-
 
         self.dammif_timer = wx.Timer(parent)
         parent.Bind(wx.EVT_TIMER, self.onDammifTimer, self.dammif_timer)
@@ -3586,6 +3648,8 @@ class DammifFrame(wx.Frame):
         program.SetStringSelection(self.raw_settings.get('dammifProgram'))
 
         wx.FindWindowById(self.ids['abort'], self).Disable()
+
+        self.logbook.DeleteAllPages()
 
 
     def onStartButton(self, evt):
@@ -4208,6 +4272,37 @@ class DammifFrame(wx.Frame):
 
         wx.CallAfter(self.status.AppendText, 'Finished Processing')
 
+        #Now tell the
+        #Get user settings on number of runs, save location, etc
+        damaver_window = wx.FindWindowById(self.ids['damaver'], self)
+        damaver = damaver_window.GetValue()
+
+        damclust_window = wx.FindWindowById(self.ids['damclust'], self)
+        damclust = damclust_window.GetValue()
+
+        prefix_window = wx.FindWindowById(self.ids['prefix'], self)
+        prefix = prefix_window.GetValue()
+
+        path_window = wx.FindWindowById(self.ids['save'], self)
+        path = path_window.GetValue()
+
+        nruns_window = wx.FindWindowById(self.ids['runs'], self)
+        nruns = int(nruns_window.GetValue())
+
+        refine_window = wx.FindWindowById(self.ids['refine'], self)
+        refine = refine_window.GetValue()
+
+        settings = {'damaver'   : damaver,
+                    'damclust'  : damclust,
+                    'prefix'    : prefix,
+                    'path'      : path,
+                    'runs'      : nruns,
+                    'refine'    : refine,
+                    }
+
+        results_window = wx.FindWindowByName('DammifResultsPanel')
+        results_window.updateResults(settings)
+
 
     def _onAdvancedButton(self, evt):
         self.main_frame.showOptionsDialog(focusHead='DAMMIF/N')
@@ -4309,15 +4404,7 @@ class DammifFrame(wx.Frame):
         program = wx.FindWindowById(self.ids['program'], self)
         program.SetStringSelection(self.raw_settings.get('dammifProgram'))
 
-
-    def _onCloseButton(self, evt):
-        self.Close()
-
-    def _onInfoButton(self, evt):
-        msg = 'In addition to citing the RAW paper:\n If you use DAMMIF in your work please cite the paper given here:\nhttps://www.embl-hamburg.de/biosaxs/dammif.html\n\nIf you use DAMMIN in your work please cite the paper given here:\nhttps://www.embl-hamburg.de/biosaxs/dammin.html\n\nIIf you use DAMAVER in your work, please cite the paper given here:\nhttps://www.embl-hamburg.de/biosaxs/damaver.html\n\nIf you use DAMCLUST in your work please cite the paper given here:\nhttps://www.embl-hamburg.de/biosaxs/manuals/damclust.html'
-        wx.MessageBox(str(msg), "How to cite DAMMIF/DAMMIN/DAMAVER/DAMCLUST", style = wx.ICON_INFORMATION | wx.OK)
-
-    def OnClose(self, event):
+    def Close(self, event):
 
         process_finished = True
 
@@ -4395,7 +4482,318 @@ class DammifFrame(wx.Frame):
 
             self.status.AppendText('Processing Aborted!')
 
-        self.Destroy()
+class DammifResultsPanel(wx.Panel):
+
+    def __init__(self, parent, iftm, manip_item):
+
+        try:
+            wx.Panel.__init__(self, parent, wx.ID_ANY, name = 'DammifResultsPanel')
+        except:
+            wx.Panel.__init__(self, None, wx.ID_ANY, name = 'DammifResultsPanel')
+
+        self.parent = parent
+
+        self.manip_item = manip_item
+
+        self.iftm = iftm
+
+        self.ift = iftm.getParameter('out')
+
+        self.filename = iftm.getParameter('filename')
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.infodata = {}
+
+        self.ids = {'ambiCats'      : self.NewControlId(),
+                    'ambiScore'     : self.NewControlId(),
+                    'ambiEval'      : self.NewControlId(),
+                    'nsdMean'       : self.NewControlId(),
+                    'nsdStdev'      : self.NewControlId(),
+                    'nsdInc'        : self.NewControlId(),
+                    'nsdTot'        : self.NewControlId(),
+                    'clustNum'      : self.NewControlId(),
+                    'clustDescrip'  : self.NewControlId(),
+                    'clustDist'     : self.NewControlId(),
+                    'models'        : self.NewControlId(),
+                    }
+
+        self.topsizer = self._createLayout(self)
+        self._initSettings()
+
+        self.SetSizer(self.topsizer)
+
+    def _createLayout(self, parent):
+        ambi_box = wx.StaticBox(parent, wx.ID_ANY, 'Ambimeter')
+        self.ambi_sizer = wx.StaticBoxSizer(ambi_box, wx.VERTICAL)
+
+        match_text = wx.StaticText(parent, wx.ID_ANY, 'Compatible shape categories:')
+        match_ctrl = wx.TextCtrl(parent, self.ids['ambiCats'], '', size=(60,-1), style=wx.TE_READONLY)
+
+        score_text = wx.StaticText(parent, -1, 'Ambiguity score:')
+        score_ctrl = wx.TextCtrl(parent, self.ids['ambiScore'], '', size = (60, -1), style = wx.TE_READONLY)
+
+        eval_text = wx.StaticText(parent, -1, 'AMBIMETER says:')
+        eval_ctrl = wx.TextCtrl(parent, self.ids['ambiEval'], '', size = (300, -1), style = wx.TE_READONLY)
+
+        ambi_subsizer1 = wx.BoxSizer(wx.HORIZONTAL)
+        ambi_subsizer1.Add(match_text, 0, wx.ALIGN_CENTER_VERTICAL)
+        ambi_subsizer1.Add(match_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        ambi_subsizer1.Add(score_text, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 8)
+        ambi_subsizer1.Add(score_ctrl, 0, wx.LEFT| wx.ALIGN_CENTER_VERTICAL, 2)
+
+        ambi_subsizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        ambi_subsizer2.Add(eval_text, 0, wx.ALIGN_CENTER_VERTICAL)
+        ambi_subsizer2.Add(eval_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+
+        self.ambi_sizer.Add(ambi_subsizer1, 0)
+        self.ambi_sizer.Add(ambi_subsizer2, 0, wx.TOP, 5)
+
+
+        nsd_box = wx.StaticBox(parent, wx.ID_ANY, 'Normalized Spatial Discrepancy')
+        self.nsd_sizer = wx.StaticBoxSizer(nsd_box, wx.HORIZONTAL)
+
+        mean_text = wx.StaticText(parent, wx.ID_ANY, 'Mean NSD:')
+        mean_ctrl = wx.TextCtrl(parent, self.ids['nsdMean'], '', size=(60,-1), style=wx.TE_READONLY)
+
+        stdev_text = wx.StaticText(parent, wx.ID_ANY, 'Stdev. NSD:')
+        stdev_ctrl = wx.TextCtrl(parent, self.ids['nsdStdev'], '', size=(60,-1), style=wx.TE_READONLY)
+
+        inc_text = wx.StaticText(parent, wx.ID_ANY, 'DAMAVER included:')
+        inc_ctrl = wx.TextCtrl(parent, self.ids['nsdInc'], '', size=(60,-1), style=wx.TE_READONLY)
+        inc_text2 = wx.StaticText(parent, wx.ID_ANY, 'of')
+        total_ctrl = wx.TextCtrl(parent, self.ids['nsdTot'], '', size=(60,-1), style=wx.TE_READONLY)
+
+        self.nsd_sizer.Add(mean_text, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.nsd_sizer.Add(mean_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        self.nsd_sizer.Add(stdev_text, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 8)
+        self.nsd_sizer.Add(stdev_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        self.nsd_sizer.Add(inc_text, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 8)
+        self.nsd_sizer.Add(inc_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        self.nsd_sizer.Add(inc_text2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        self.nsd_sizer.Add(total_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+
+
+        clust_box = wx.StaticBox(parent, wx.ID_ANY, 'Clustering')
+        self.clust_sizer = wx.StaticBoxSizer(clust_box, wx.VERTICAL)
+
+        clust_num_text = wx.StaticText(parent, wx.ID_ANY, 'Number of clusters:')
+        clust_num_ctrl = wx.TextCtrl(parent, self.ids['clustNum'], '', size=(60,-1), style=wx.TE_READONLY)
+
+        clust_num_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        clust_num_sizer.Add(clust_num_text, 0, wx.ALIGN_CENTER_VERTICAL)
+        clust_num_sizer.Add(clust_num_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+
+        clust_list1= wx.ListCtrl(parent, self.ids['clustDescrip'], size=(-1,150), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
+        clust_list1.InsertColumn(0, 'Cluster')
+        clust_list1.InsertColumn(1, 'Isolated')
+        clust_list1.InsertColumn(2, 'Rep. Model')
+        clust_list1.InsertColumn(3, 'Deviation')
+
+        clust_list2= wx.ListCtrl(parent, self.ids['clustDist'], size=(-1,150), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
+        clust_list2.InsertColumn(0, 'Cluster 1')
+        clust_list2.InsertColumn(1, 'Cluster 2')
+        clust_list2.InsertColumn(2, 'Distance')
+
+        clust_list_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        clust_list_sizer.Add(clust_list1, 5, wx.EXPAND)
+        clust_list_sizer.Add(clust_list2, 3, wx.LEFT | wx.EXPAND, 8)
+
+        self.clust_sizer.Add(clust_num_sizer, 0)
+        self.clust_sizer.Add(clust_list_sizer, 0, wx.EXPAND | wx.TOP, 5)
+
+
+        models_box = wx.StaticBox(parent, wx.ID_ANY, 'Models')
+        self.models_sizer = wx.StaticBoxSizer(models_box, wx.VERTICAL)
+
+        models_list = wx.ListCtrl(parent, self.ids['models'], size = (-1,-1), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
+        models_list.InsertColumn(0, 'Model')
+        models_list.InsertColumn(1, 'Chi^2')
+        models_list.InsertColumn(2, 'Rg')
+        models_list.InsertColumn(3, 'Dmax')
+        models_list.InsertColumn(4, 'Excluded Vol.')
+        models_list.InsertColumn(5, 'Est. Protein MW.')
+        models_list.InsertColumn(6, 'Mean NSD')
+
+        self.models_sizer.Add(models_list, 1, wx.EXPAND)
+
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(self.ambi_sizer, 0, wx.EXPAND)
+        top_sizer.Add(self.nsd_sizer, 0, wx.EXPAND)
+        top_sizer.Add(self.clust_sizer,0, wx.EXPAND)
+        top_sizer.Add(self.models_sizer,1,wx.EXPAND)
+
+        return top_sizer
+
+
+    def _initSettings(self):
+        t = threading.Thread(target=self.runAmbimeter)
+        t.daemon = True
+        t.start()
+
+        self.topsizer.Hide(self.nsd_sizer, recursive=True)
+        self.topsizer.Hide(self.clust_sizer, recursive=True)
+        self.topsizer.Hide(self.models_sizer, recursive=True)
+
+    def runAmbimeter(self):
+        cwd = os.getcwd()
+        run_window = wx.FindWindowByName('DammifRunPanel')
+        path_window = wx.FindWindowById(run_window.ids['save'], run_window)
+        path = path_window.GetValue()
+        os.chdir(path)
+
+        outname = 't_ambimeter.out'
+        while os.path.isfile(outname):
+            outname = 't'+outname
+
+        if self.main_frame.OnlineControl.isRunning() and path == self.main_frame.OnlineControl.getTargetDir():
+            self.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
+
+        SASFileIO.writeOutFile(self.iftm, os.path.join(path, outname))
+
+        ambi_settings = {'sRg' :'4',
+                        'files':'None'
+                        }
+
+        try:
+            output = SASCalc.runAmbimeter(outname, 'temp', ambi_settings)
+
+        except SASExceptions.NoATSASError as e:
+            wx.CallAfter(wx.MessageBox, str(e), 'Error running Ambimeter', style = wx.ICON_ERROR | wx.OK)
+            os.remove(outname)
+            os.chdir(cwd)
+            return
+
+        os.remove(outname)
+
+        if restart_timer:
+            wx.CallAfter(self.main_frame.controlTimer, True)
+
+        os.chdir(cwd)
+
+        cats_window = wx.FindWindowById(self.ids['ambiCats'], self)
+        cats_window.SetValue(output[0])
+        score_window = wx.FindWindowById(self.ids['ambiScore'], self)
+        score_window.SetValue(output[1])
+        eval_window = wx.FindWindowById(self.ids['ambiEval'], self)
+        eval_window.SetValue(output[2])
+
+    def getNSD(self, filename):
+        mean_nsd, stdev_nsd, include_list, discard_list, result_dict = SASFileIO.loadDamselLogFile(filename)
+
+        mean_window = wx.FindWindowById(self.ids['nsdMean'], self)
+        mean_window.SetValue(mean_nsd)
+        stdev_window = wx.FindWindowById(self.ids['nsdStdev'], self)
+        stdev_window.SetValue(stdev_nsd)
+        inc_window = wx.FindWindowById(self.ids['nsdInc'], self)
+        inc_window.SetValue(str(len(include_list)))
+        tot_window = wx.FindWindowById(self.ids['nsdTot'], self)
+        tot_window.SetValue(str(len(result_dict)))
+
+    def getClust(self, filename):
+        cluster_list, distance_list = SASFileIO.loadDamclustLogFile(filename)
+
+        num_window = wx.FindWindowById(self.ids['clustNum'], self)
+        num_window.SetValue(str(len(cluster_list)))
+
+        clist = wx.FindWindowById(self.ids['clustDescrip'])
+        clist.DeleteAllItems()
+        for cluster in cluster_list:
+            if cluster.dev == -1:
+                isolated = 'Y'
+                dev = ''
+            else:
+                isolated = 'N'
+                dev = str(cluster.dev)
+
+            clist.Append((str(cluster.num), isolated, cluster.rep_model, dev))
+
+        dlist = wx.FindWindowById(self.ids['clustDist'])
+        dlist.DeleteAllItems()
+        for dist_data in distance_list:
+            dlist.Append(map(str, dist_data))
+
+    def getModels(self, settings):
+        models_window = wx.FindWindowById(self.ids['models'])
+        models_window.DeleteAllItems()
+
+        file_nums = range(1,int(settings['runs'])+1)
+        path = settings['path']
+        prefix = settings['prefix']
+
+        model_list = []
+
+        if settings['damaver']:
+            name = prefix+'_damsel.log'
+            filename = os.path.join(path, name)
+            mean_nsd, stdev_nsd, include_list, discard_list, result_dict = SASFileIO.loadDamselLogFile(filename)
+
+        for num in file_nums:
+            fprefix = '%s_%s' %(prefix, str(num).zfill(2))
+            dam_name = os.path.join(path, fprefix+'-1.pdb')
+            fir_name = os.path.join(path, fprefix+'.fir')
+
+            sasm, fit_sasm = SASFileIO.loadFitFile(fir_name)
+
+            chisq = sasm.getParameter('counters')['Chi_squared']
+
+            atoms, header, model_data = SASFileIO.loadPDBFile(dam_name)
+
+            model_data['chisq'] = chisq
+
+            if settings['damaver']:
+                model_data['nsd'] = result_dict[os.path.basename(dam_name)][-1]
+
+            model_list.append([num, model_data])
+
+        if settings['damaver']:
+            damaver_name = os.path.join(path, prefix+'_damaver.pdb')
+            damfilt_name = os.path.join(path, prefix+'_damfilt.pdb')
+
+            atoms, header, model_data = SASFileIO.loadPDBFile(damaver_name)
+            model_list.append(['damaver', model_data])
+
+            atoms, header, model_data = SASFileIO.loadPDBFile(damfilt_name)
+            model_list.append(['damfilt', model_data])
+
+        if settings['refine']:
+            dam_name = os.path.join(path, 'refine_'+prefix+'-1.pdb')
+            atoms, header, model_data = SASFileIO.loadPDBFile(damaver_name)
+            model_list.append(['refined', model_data])
+
+        for item in model_list:
+            models_window.Append((item[0], item[1]['chisq'], item[1]['rg'],
+                item[1]['dmax'], item[1]['excluded_volume'], item[1]['mw'],
+                item[1]['nsd']))
+
+    def updateResults(self, settings):
+        #In case we ran a different setting a second time, without closing the window
+        self.topsizer.Hide(self.nsd_sizer, recursive=True)
+        self.topsizer.Hide(self.clust_sizer, recursive=True)
+
+        if settings['damaver']:
+            self.topsizer.Show(self.nsd_sizer, recursive=True)
+            name = settings['prefix']+'_damsel.log'
+            filename = os.path.join(settings['path'],name)
+            self.getNSD(filename)
+
+        if settings['damclust']:
+            self.topsizer.Show(self.clust_sizer, recursive=True)
+            name = settings['prefix']+'_damclust.log'
+            filename = os.path.join(settings['path'],name)
+            self.getClust(filename)
+
+        self.getModels(settings)
+        self.topsizer.Show(self.models_sizer, recursive=True)
+
+        self.Layout()
+
 
 class BIFTFrame(wx.Frame):
 
@@ -4444,7 +4842,6 @@ class BIFTFrame(wx.Frame):
     def OnClose(self):
 
         self.Destroy()
-
 
 
 class BIFTPlotPanel(wx.Panel):
