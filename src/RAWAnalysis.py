@@ -3801,7 +3801,7 @@ class DammifRunPanel(wx.Panel):
             text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['damclust'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
             self.logbook.AddPage(text_ctrl, 'Damclust')
 
-        if refine:
+        if nruns > 1 and refine:
             self.dammif_ids['refine'] = self.NewControlId()
             text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['refine'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
             self.logbook.AddPage(text_ctrl, 'Refine')
@@ -4738,10 +4738,9 @@ class DammifResultsPanel(wx.Panel):
             chisq = sasm.getParameter('counters')['Chi_squared']
 
             atoms, header, model_data = SASFileIO.loadPDBFile(dam_name)
-
             model_data['chisq'] = chisq
 
-            if settings['damaver']:
+            if settings['damaver'] and int(settings['runs']) > 1 :
                 model_data['nsd'] = result_dict[os.path.basename(dam_name)][-1]
                 if result_dict[os.path.basename(dam_name)][0].lower() == 'include':
                     include = True
@@ -4752,7 +4751,7 @@ class DammifResultsPanel(wx.Panel):
 
             model_list.append([num, model_data, atoms])
 
-        if settings['damaver']:
+        if settings['damaver'] and int(settings['runs']) > 1:
             damaver_name = os.path.join(path, prefix+'_damaver.pdb')
             damfilt_name = os.path.join(path, prefix+'_damfilt.pdb')
 
@@ -4762,7 +4761,7 @@ class DammifResultsPanel(wx.Panel):
             atoms, header, model_data = SASFileIO.loadPDBFile(damfilt_name)
             model_list.append(['damfilt', model_data, atoms])
 
-        if settings['refine']:
+        if settings['refine']and int(settings['runs']) > 1:
             dam_name = os.path.join(path, 'refine_'+prefix+'-1.pdb')
             sasm, fit_sasm = SASFileIO.loadFitFile(fir_name)
             chisq = sasm.getParameter('counters')['Chi_squared']
@@ -4790,13 +4789,13 @@ class DammifResultsPanel(wx.Panel):
         self.topsizer.Hide(self.clust_sizer, recursive=True)
         # self.topsizer.Show(self.models_sizer, recursive=True)
 
-        if settings['damaver']:
+        if settings['damaver'] and int(settings['runs']) > 1:
             self.topsizer.Show(self.nsd_sizer, recursive=True)
             name = settings['prefix']+'_damsel.log'
             filename = os.path.join(settings['path'],name)
             self.getNSD(filename)
 
-        if settings['damclust']:
+        if settings['damclust'] and int(settings['runs']) > 1:
             self.topsizer.Show(self.clust_sizer, recursive=True)
             name = settings['prefix']+'_damclust.log'
             filename = os.path.join(settings['path'],name)
@@ -4866,22 +4865,21 @@ class DammifViewerPanel(wx.Panel):
 
         return layout_sizer
 
-    def _plotModel(self, atoms):
-        print 'in _plotModel'
+    def _plotModel(self, atoms, radius):
         self.subplot.clear()
         self.subplot.grid(False)
         self.subplot.set_axis_off()
 
-        self.subplot.scatter(atoms[:,0], atoms[:,1], atoms[:,2], s=80, alpha=.9)
+        scale = (float(radius)/1.25)**2
+
+        self.subplot.scatter(atoms[:,0], atoms[:,1], atoms[:,2], s=200*scale, alpha=.9)
 
         self.canvas.draw()
 
     def onChangeModels(self, evt):
-        print 'in onChangeModels'
         model = evt.GetString()
-        print model
 
-        self._plotModel(self.model_dict[model][1])
+        self._plotModel(self.model_dict[model][1], self.model_dict[model][0]['atom_radius'])
 
 
     def updateResults(self, model_list):
@@ -4894,16 +4892,16 @@ class DammifViewerPanel(wx.Panel):
         model_choice.Set(self.model_dict.keys())
 
         if 'refine' in self.model_dict:
-            self._plotModel(self.model_dict['refine'][1])
+            self._plotModel(self.model_dict['refine'][1], self.model_dict['refine'][0]['atom_radius'])
             model_choice.SetStringSelection('refine')
         elif 'damfilt' in self.model_dict:
-            self._plotModel(self.model_dict['damfilt'][1])
+            self._plotModel(self.model_dict['damfilt'][1], self.model_dict['damfilt'][0]['atom_radius'])
             model_choice.SetStringSelection('damfilt')
         elif 'damaver' in self.model_dict:
-            self._plotModel(self.model_dict['damaver'][1])
+            self._plotModel(self.model_dict['damaver'][1], self.model_dict['damaver'][0]['atom_radius'])
             model_choice.SetStringSelection('damaver')
         else:
-            self._plotModel(self.model_dict['1'][1])
+            self._plotModel(self.model_dict['1'][1], self.model_dict['1'][0]['atom_radius'])
             model_choice.SetStringSelection('1')
 
 

@@ -2327,7 +2327,7 @@ def loadPDBFile(filename):
             atoms.append([x, y, z])
         elif not line.startswith("TER"):
             header.append(line)
-            if 'atom radius' in line.lower() or 'packing radius' in line.lower():
+            if 'atom radius' in line.lower() or 'packing radius' in line.lower() or 'atomic radius' in line.lower():
                 useful_params['atom_radius'] = str(float(line.split(':')[-1].strip()))
             elif 'excluded dam volume' in line.lower() or 'average excluded volume' in line.lower():
                 useful_params['excluded_volume'] = str(float(line.split(':')[-1].strip()))
