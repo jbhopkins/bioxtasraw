@@ -42,6 +42,7 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg#,Toolbar, Figure
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.figure import Figure
 import matplotlib.colors as mplcol
+from mpl_toolkits.mplot3d import Axes3D
 
 # These are for the AutoWrapStaticText class
 from wx.lib.wordwrap import wordwrap
@@ -3268,11 +3269,13 @@ class DammifFrame(wx.Frame):
 
         self.panel = wx.Panel(self)
         self.notebook = wx.Notebook(self.panel, wx.ID_ANY)
-        self.dammifRunPanel = DammifRunPanel(self.notebook, self.iftm, self.manip_item)
-        self.dammifResultsPanel = DammifResultsPanel(self.notebook, self.iftm, self.manip_item)
+        self.RunPanel = DammifRunPanel(self.notebook, self.iftm, self.manip_item)
+        self.ResultsPanel = DammifResultsPanel(self.notebook, self.iftm, self.manip_item)
+        self.ViewerPanel = DammifViewerPanel(self.notebook)
 
-        self.notebook.AddPage(self.dammifRunPanel, 'Run')
-        self.notebook.AddPage(self.dammifResultsPanel, 'Results')
+        self.notebook.AddPage(self.RunPanel, 'Run')
+        self.notebook.AddPage(self.ResultsPanel, 'Results')
+        self.notebook.AddPage(self.ViewerPanel, 'Viewer')
 
         sizer = self._createLayout(self.panel)
 
@@ -3294,13 +3297,6 @@ class DammifFrame(wx.Frame):
                 size = self.GetSize()
                 size[1] = size[1] + 20
                 self.SetSize(size)
-
-        # if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-        #     self.Fit()
-        #     if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
-        #         size = self.GetSize()
-        #         size[1] = size[1] + 20
-        #         self.SetSize(size)
 
         self.CenterOnParent()
 
@@ -3331,7 +3327,9 @@ class DammifFrame(wx.Frame):
         'DAMAVER in your work, please cite the paper given here:\n'
         'https://www.embl-hamburg.de/biosaxs/damaver.html\n\nIf you use '
         'DAMCLUST in your work please cite the paper given here:\n'
-        'https://www.embl-hamburg.de/biosaxs/manuals/damclust.html')
+        'https://www.embl-hamburg.de/biosaxs/manuals/damclust.html\n\n'
+        'If you use AMBIMETER in your work please cite:\n'
+        'Petoukhov, M. V. & Svergun, D. I. (2015). Acta Cryst. D71, 1051-1058.')
         wx.MessageBox(str(msg), "How to cite DAMMIF/DAMMIN/DAMAVER/DAMCLUST", style = wx.ICON_INFORMATION | wx.OK)
 
 
@@ -4301,7 +4299,7 @@ class DammifRunPanel(wx.Panel):
                     }
 
         results_window = wx.FindWindowByName('DammifResultsPanel')
-        results_window.updateResults(settings)
+        wx.CallAfter(results_window.updateResults, settings)
 
 
     def _onAdvancedButton(self, evt):
@@ -4505,8 +4503,6 @@ class DammifResultsPanel(wx.Panel):
 
         self.raw_settings = self.main_frame.raw_settings
 
-        self.infodata = {}
-
         self.ids = {'ambiCats'      : self.NewControlId(),
                     'ambiScore'     : self.NewControlId(),
                     'ambiEval'      : self.NewControlId(),
@@ -4630,13 +4626,11 @@ class DammifResultsPanel(wx.Panel):
 
 
     def _initSettings(self):
-        t = threading.Thread(target=self.runAmbimeter)
-        t.daemon = True
-        t.start()
+        wx.CallAfter(self.runAmbimeter)
 
         self.topsizer.Hide(self.nsd_sizer, recursive=True)
         self.topsizer.Hide(self.clust_sizer, recursive=True)
-        self.topsizer.Hide(self.models_sizer, recursive=True)
+        # self.topsizer.Hide(self.models_sizer, recursive=True)
 
     def runAmbimeter(self):
         cwd = os.getcwd()
@@ -4749,33 +4743,52 @@ class DammifResultsPanel(wx.Panel):
 
             if settings['damaver']:
                 model_data['nsd'] = result_dict[os.path.basename(dam_name)][-1]
+                if result_dict[os.path.basename(dam_name)][0].lower() == 'include':
+                    include = True
+                else:
+                    include = False
 
-            model_list.append([num, model_data])
+                model_data['include'] = include
+
+            model_list.append([num, model_data, atoms])
 
         if settings['damaver']:
             damaver_name = os.path.join(path, prefix+'_damaver.pdb')
             damfilt_name = os.path.join(path, prefix+'_damfilt.pdb')
 
             atoms, header, model_data = SASFileIO.loadPDBFile(damaver_name)
-            model_list.append(['damaver', model_data])
+            model_list.append(['damaver', model_data, atoms])
 
             atoms, header, model_data = SASFileIO.loadPDBFile(damfilt_name)
-            model_list.append(['damfilt', model_data])
+            model_list.append(['damfilt', model_data, atoms])
 
         if settings['refine']:
             dam_name = os.path.join(path, 'refine_'+prefix+'-1.pdb')
-            atoms, header, model_data = SASFileIO.loadPDBFile(damaver_name)
-            model_list.append(['refined', model_data])
+            sasm, fit_sasm = SASFileIO.loadFitFile(fir_name)
+            chisq = sasm.getParameter('counters')['Chi_squared']
+
+            atoms, header, model_data = SASFileIO.loadPDBFile(dam_name)
+            model_data['chisq'] = chisq
+
+            model_list.append(['refined', model_data, atoms])
 
         for item in model_list:
             models_window.Append((item[0], item[1]['chisq'], item[1]['rg'],
                 item[1]['dmax'], item[1]['excluded_volume'], item[1]['mw'],
                 item[1]['nsd']))
 
+            if settings['damaver']:
+                if model_data['include']:
+                    index = models_window.GetItemCount()-1
+                    models_window.SetItemTextColour(index, 'red')
+
+        return model_list
+
     def updateResults(self, settings):
         #In case we ran a different setting a second time, without closing the window
         self.topsizer.Hide(self.nsd_sizer, recursive=True)
         self.topsizer.Hide(self.clust_sizer, recursive=True)
+        # self.topsizer.Show(self.models_sizer, recursive=True)
 
         if settings['damaver']:
             self.topsizer.Show(self.nsd_sizer, recursive=True)
@@ -4789,10 +4802,112 @@ class DammifResultsPanel(wx.Panel):
             filename = os.path.join(settings['path'],name)
             self.getClust(filename)
 
-        self.getModels(settings)
-        self.topsizer.Show(self.models_sizer, recursive=True)
+        model_list = self.getModels(settings)
 
         self.Layout()
+
+        viewer_window = wx.FindWindowByName('DammifViewerPanel')
+        viewer_window.updateResults(model_list)
+
+
+
+class DammifViewerPanel(wx.Panel):
+
+    def __init__(self, parent):
+
+        try:
+            wx.Panel.__init__(self, parent, wx.ID_ANY, name = 'DammifViewerPanel')
+        except:
+            wx.Panel.__init__(self, None, wx.ID_ANY, name = 'DammifViewerPanel')
+
+        self.parent = parent
+
+        self.ids = {'models'    : self.NewControlId(),
+                    }
+
+        self.model_dict = None
+
+        top_sizer = self._createLayout(self)
+
+        self.SetSizer(top_sizer)
+
+    def _createLayout(self, parent):
+        model_text = wx.StaticText(parent, wx.ID_ANY, 'Model to display:')
+        model_choice = wx.Choice(parent, self.ids['models'])
+        model_choice.Bind(wx.EVT_CHOICE, self.onChangeModels)
+
+        model_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        model_sizer.Add(model_text, 0)
+        model_sizer.Add(model_choice, 0, wx.LEFT, 3)
+
+        ctrls_box = wx.StaticBox(parent, wx.ID_ANY, 'Viewer Controls')
+        ctrls_sizer = wx.StaticBoxSizer(ctrls_box, wx.VERTICAL)
+
+        ctrls_sizer.Add(model_sizer, 0)
+
+
+        self.fig = Figure((5,4), 75)
+        self.fig.set_facecolor('white')
+
+        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
+        self.canvas.SetBackgroundColour('white')
+
+        self.subplot = self.fig.add_subplot(1,1,1, projection='3d')
+        self.subplot.grid(False)
+        self.subplot.set_axis_off()
+
+        # self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        # self.toolbar.Realize()
+
+        layout_sizer = wx.BoxSizer(wx.VERTICAL)
+        layout_sizer.Add(ctrls_sizer, 0, wx.BOTTOM | wx.EXPAND, 5)
+        layout_sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.EXPAND)
+        # sizer.Add(self.toolbar, 0, wx.GROW)
+
+        return layout_sizer
+
+    def _plotModel(self, atoms):
+        print 'in _plotModel'
+        self.subplot.clear()
+        self.subplot.grid(False)
+        self.subplot.set_axis_off()
+
+        self.subplot.scatter(atoms[:,0], atoms[:,1], atoms[:,2], s=80, alpha=.9)
+
+        self.canvas.draw()
+
+    def onChangeModels(self, evt):
+        print 'in onChangeModels'
+        model = evt.GetString()
+        print model
+
+        self._plotModel(self.model_dict[model][1])
+
+
+    def updateResults(self, model_list):
+        self.model_dict = collections.OrderedDict()
+
+        for item in model_list:
+            self.model_dict[str(item[0])] = [item[1], item[2]]
+
+        model_choice = wx.FindWindowById(self.ids['models'])
+        model_choice.Set(self.model_dict.keys())
+
+        if 'refine' in self.model_dict:
+            self._plotModel(self.model_dict['refine'][1])
+            model_choice.SetStringSelection('refine')
+        elif 'damfilt' in self.model_dict:
+            self._plotModel(self.model_dict['damfilt'][1])
+            model_choice.SetStringSelection('damfilt')
+        elif 'damaver' in self.model_dict:
+            self._plotModel(self.model_dict['damaver'][1])
+            model_choice.SetStringSelection('damaver')
+        else:
+            self._plotModel(self.model_dict['1'][1])
+            model_choice.SetStringSelection('1')
+
+
+
 
 
 class BIFTFrame(wx.Frame):

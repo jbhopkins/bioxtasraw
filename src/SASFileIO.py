@@ -2328,15 +2328,15 @@ def loadPDBFile(filename):
         elif not line.startswith("TER"):
             header.append(line)
             if 'atom radius' in line.lower() or 'packing radius' in line.lower():
-                useful_params['atom_radius'] = line.split(':')[-1].strip()
+                useful_params['atom_radius'] = str(float(line.split(':')[-1].strip()))
             elif 'excluded dam volume' in line.lower() or 'average excluded volume' in line.lower():
                 useful_params['excluded_volume'] = str(float(line.split(':')[-1].strip()))
             elif 'filtered volume' in line.lower():
                 useful_params['excluded_volume'] = str(float(line.split(':')[-1].strip()))
             elif 'maximum diameter' in line.lower() or 'maximum phase diameter' in line.lower():
-                useful_params['dmax'] = line.split(':')[-1].strip()
+                useful_params['dmax'] = str(float(line.split(':')[-1].strip()))
             elif 'radius of gyration' in line.lower():
-                useful_params['rg'] = line.split(':')[-1].strip()
+                useful_params['rg'] = str(float(line.split(':')[-1].strip()))
 
     if 'excluded_volume' in useful_params:
         useful_params['mw'] = str(float(useful_params['excluded_volume'])/1.66/1000)
