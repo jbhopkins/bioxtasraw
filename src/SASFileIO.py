@@ -2235,17 +2235,24 @@ def loadFitFile(filename):
 
 def loadDamselLogFile(filename):
     """Loads data from a damsel log file"""
+    res_pattern = re.compile('\s*Ensemble\s*Resolution\s*=?\s*\d+\.?\d*\s*\+?-?\s*\d+\s*[a-zA-Z]*')
+
     with open(filename) as f:
         process_includes = False
         result_dict = {}
         include_list = []
         discard_list = []
+        res = ''
+        res_err = ''
+        res_unit = ''
 
         for line in f:
+            res_match = res_pattern.match(line)
+
             if process_includes:
                 if len(line.strip()) > 0:
                     rec, nsd, fname = line.strip().split()
-                    result_dict[fname] = [rec, nsd]
+                    result_dict[fname] = [rec.strip(), nsd.strip()]
 
                     if rec == 'Include':
                         include_list.append([fname, rec, nsd])
@@ -2258,8 +2265,16 @@ def loadDamselLogFile(filename):
                 stdev_nsd = line.strip().split()[-1]
             elif 'Recommendation' in line:
                 process_includes = True
+            elif res_match:
+                if '+-' in line:
+                    part1, part2 = line.strip().split('+-')
+                    res = part1.strip().split()[-1]
+                    res_err = part2.strip().split()[0]
 
-    return mean_nsd, stdev_nsd, include_list, discard_list, result_dict
+                    if part2.strip().split()[-1].isalpha():
+                        res_unit = part2.strip().split()[-1]
+
+    return mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err, res_unit
 
 def loadDamclustLogFile(filename):
     """Loads data from a damclust log file"""

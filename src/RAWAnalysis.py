@@ -4514,6 +4514,9 @@ class DammifResultsPanel(wx.Panel):
                     'clustDescrip'  : self.NewControlId(),
                     'clustDist'     : self.NewControlId(),
                     'models'        : self.NewControlId(),
+                    'res'           : self.NewControlId(),
+                    'resErr'        : self.NewControlId(),
+                    'resUnit'       : self.NewControlId(),
                     }
 
         self.topsizer = self._createLayout(self)
@@ -4572,6 +4575,24 @@ class DammifResultsPanel(wx.Panel):
         self.nsd_sizer.Add(total_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
 
 
+        res_box = wx.StaticBox(parent, wx.ID_ANY, 'Reconstruction Resolution')
+        self.res_sizer = wx.StaticBoxSizer(res_box, wx.HORIZONTAL)
+
+        res_text = wx.StaticText(parent, wx.ID_ANY, 'Ensemble Resolution:')
+        res_ctrl = wx.TextCtrl(parent, self.ids['res'], '', size=(60,-1), style=wx.TE_READONLY)
+
+        reserr_text = wx.StaticText(parent, wx.ID_ANY, '+/-')
+        reserr_ctrl = wx.TextCtrl(parent, self.ids['resErr'], '', size=(60,-1), style=wx.TE_READONLY)
+
+        resunit_ctrl = wx.TextCtrl(parent, self.ids['resUnit'], '', size=(100,-1), style=wx.TE_READONLY)
+
+        self.res_sizer.Add(res_text, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.res_sizer.Add(res_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL,2)
+        self.res_sizer.Add(reserr_text, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        self.res_sizer.Add(reserr_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        self.res_sizer.Add(resunit_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 4)
+
+
         clust_box = wx.StaticBox(parent, wx.ID_ANY, 'Clustering')
         self.clust_sizer = wx.StaticBoxSizer(clust_box, wx.VERTICAL)
 
@@ -4619,6 +4640,7 @@ class DammifResultsPanel(wx.Panel):
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(self.ambi_sizer, 0, wx.EXPAND)
         top_sizer.Add(self.nsd_sizer, 0, wx.EXPAND)
+        top_sizer.Add(self.res_sizer, 0, wx.EXPAND)
         top_sizer.Add(self.clust_sizer,0, wx.EXPAND)
         top_sizer.Add(self.models_sizer,1,wx.EXPAND)
 
@@ -4630,6 +4652,7 @@ class DammifResultsPanel(wx.Panel):
 
         self.topsizer.Hide(self.nsd_sizer, recursive=True)
         self.topsizer.Hide(self.clust_sizer, recursive=True)
+        self.topsizer.Hide(self.res_sizer, recursive=True)
         # self.topsizer.Hide(self.models_sizer, recursive=True)
 
     def runAmbimeter(self):
@@ -4679,7 +4702,7 @@ class DammifResultsPanel(wx.Panel):
         eval_window.SetValue(output[2])
 
     def getNSD(self, filename):
-        mean_nsd, stdev_nsd, include_list, discard_list, result_dict = SASFileIO.loadDamselLogFile(filename)
+        mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err, res_unit = SASFileIO.loadDamselLogFile(filename)
 
         mean_window = wx.FindWindowById(self.ids['nsdMean'], self)
         mean_window.SetValue(mean_nsd)
@@ -4687,6 +4710,18 @@ class DammifResultsPanel(wx.Panel):
         stdev_window.SetValue(stdev_nsd)
         inc_window = wx.FindWindowById(self.ids['nsdInc'], self)
         inc_window.SetValue(str(len(include_list)))
+        tot_window = wx.FindWindowById(self.ids['nsdTot'], self)
+        tot_window.SetValue(str(len(result_dict)))
+
+    def getResolution(self, filename):
+        mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err, res_unit = SASFileIO.loadDamselLogFile(filename)
+
+        res_window = wx.FindWindowById(self.ids['res'], self)
+        res_window.SetValue(res)
+        reserr_window = wx.FindWindowById(self.ids['resErr'], self)
+        reserr_window.SetValue(res_err)
+        unit_window = wx.FindWindowById(self.ids['resUnit'], self)
+        unit_window.SetValue(res_unit)
         tot_window = wx.FindWindowById(self.ids['nsdTot'], self)
         tot_window.SetValue(str(len(result_dict)))
 
@@ -4726,7 +4761,7 @@ class DammifResultsPanel(wx.Panel):
         if settings['damaver']:
             name = prefix+'_damsel.log'
             filename = os.path.join(path, name)
-            mean_nsd, stdev_nsd, include_list, discard_list, result_dict = SASFileIO.loadDamselLogFile(filename)
+            mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err, res_unit = SASFileIO.loadDamselLogFile(filename)
 
         for num in file_nums:
             fprefix = '%s_%s' %(prefix, str(num).zfill(2))
@@ -4740,7 +4775,7 @@ class DammifResultsPanel(wx.Panel):
             atoms, header, model_data = SASFileIO.loadPDBFile(dam_name)
             model_data['chisq'] = chisq
 
-            if settings['damaver'] and int(settings['runs']) > 1 :
+            if settings['damaver'] and int(settings['runs']) > 1:
                 model_data['nsd'] = result_dict[os.path.basename(dam_name)][-1]
                 if result_dict[os.path.basename(dam_name)][0].lower() == 'include':
                     include = True
@@ -4769,7 +4804,7 @@ class DammifResultsPanel(wx.Panel):
             atoms, header, model_data = SASFileIO.loadPDBFile(dam_name)
             model_data['chisq'] = chisq
 
-            model_list.append(['refined', model_data, atoms])
+            model_list.append(['refine', model_data, atoms])
 
         for item in model_list:
             models_window.Append((item[0], item[1]['chisq'], item[1]['rg'],
@@ -4777,7 +4812,7 @@ class DammifResultsPanel(wx.Panel):
                 item[1]['nsd']))
 
             if settings['damaver']:
-                if model_data['include']:
+                if not item[1]['include'] and item[0]!='damaver' and item[0]!='damfilt' and item[0]!='refine':
                     index = models_window.GetItemCount()-1
                     models_window.SetItemTextColour(index, 'red')
 
@@ -4786,14 +4821,18 @@ class DammifResultsPanel(wx.Panel):
     def updateResults(self, settings):
         #In case we ran a different setting a second time, without closing the window
         self.topsizer.Hide(self.nsd_sizer, recursive=True)
+        self.topsizer.Hide(self.res_sizer, recursive=True)
         self.topsizer.Hide(self.clust_sizer, recursive=True)
-        # self.topsizer.Show(self.models_sizer, recursive=True)
 
         if settings['damaver'] and int(settings['runs']) > 1:
             self.topsizer.Show(self.nsd_sizer, recursive=True)
             name = settings['prefix']+'_damsel.log'
             filename = os.path.join(settings['path'],name)
             self.getNSD(filename)
+            self.getResolution(filename)
+
+            if wx.FindWindowById(self.ids['res'], self).GetValue():
+                self.topsizer.Show(self.res_sizer, recursive=True)
 
         if settings['damclust'] and int(settings['runs']) > 1:
             self.topsizer.Show(self.clust_sizer, recursive=True)
@@ -4872,7 +4911,7 @@ class DammifViewerPanel(wx.Panel):
 
         scale = (float(radius)/1.25)**2
 
-        self.subplot.scatter(atoms[:,0], atoms[:,1], atoms[:,2], s=200*scale, alpha=.9)
+        self.subplot.scatter(atoms[:,0], atoms[:,1], atoms[:,2], s=200*scale, alpha=.95)
 
         self.canvas.draw()
 
