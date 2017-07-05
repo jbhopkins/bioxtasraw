@@ -3329,7 +3329,9 @@ class DammifFrame(wx.Frame):
         'DAMCLUST in your work please cite the paper given here:\n'
         'https://www.embl-hamburg.de/biosaxs/manuals/damclust.html\n\n'
         'If you use AMBIMETER in your work please cite:\n'
-        'Petoukhov, M. V. & Svergun, D. I. (2015). Acta Cryst. D71, 1051-1058.')
+        'Petoukhov, M. V. & Svergun, D. I. (2015). Acta Cryst. D71, 1051-1058.\n\n'
+        'If you use SASRES in your work please cite the paper given here:\n'
+        'https://www.embl-hamburg.de/biosaxs/manuals/sasres.html')
         wx.MessageBox(str(msg), "How to cite DAMMIF/DAMMIN/DAMAVER/DAMCLUST", style = wx.ICON_INFORMATION | wx.OK)
 
 
@@ -3337,7 +3339,10 @@ class DammifFrame(wx.Frame):
         dammifrun = wx.FindWindowByName('DammifRunPanel')
         dammifrun.Close(event)
 
-        self.Destroy()
+        if event.GetVeto():
+            return
+        else:
+            self.Destroy()
 
 
 class DammifRunPanel(wx.Panel):
@@ -4452,7 +4457,6 @@ class DammifRunPanel(wx.Panel):
 
             else:
                 event.Veto()
-                return
 
         elif not process_finished:
             #Try to gracefully exit
@@ -4575,7 +4579,7 @@ class DammifResultsPanel(wx.Panel):
         self.nsd_sizer.Add(total_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
 
 
-        res_box = wx.StaticBox(parent, wx.ID_ANY, 'Reconstruction Resolution')
+        res_box = wx.StaticBox(parent, wx.ID_ANY, 'Reconstruction Resolution (SASRES)')
         self.res_sizer = wx.StaticBoxSizer(res_box, wx.HORIZONTAL)
 
         res_text = wx.StaticText(parent, wx.ID_ANY, 'Ensemble Resolution:')
