@@ -1106,6 +1106,7 @@ class HistoryDialog(wx.Dialog):
             config = sasm.getParameter('config_file')
             load = sasm.getParameter('load_path')
             params = sasm.getParameter('calibration_params')
+            version = sasm.getParameter('raw_version')
 
             if norm != {} and norm != None:
                 self.text.AppendText('Normalizations:\n%s\n\n' %(json.dumps(norm, indent = 4, sort_keys = True)))
@@ -1115,6 +1116,8 @@ class HistoryDialog(wx.Dialog):
                 self.text.AppendText('Load Path:\n%s\n\n' %(json.dumps(load, indent = 4, sort_keys = True)))
             if params != {} and params != None:
                 self.text.AppendText('Calibration Parameters:\n%s\n\n' %(json.dumps(params, indent = 4, sort_keys = True)))
+            if version != {} and version != None:
+                self.text.AppendText('Created with RAW version:\n%s\n\n' %(json.dumps(version, indent = 4, sort_keys = True)))
 
 
         self.sizer.Add(self.text, 1, wx.ALL | wx.EXPAND, 10)

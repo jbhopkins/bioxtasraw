@@ -377,9 +377,11 @@ def calibrateAndNormalize(sasm_list, img_list, raw_settings):
                         'Wavelength'                    : wavelength,
                         'Beam_Center_X'                 : x_center,
                         'Beam_Center_Y'                 : y_center,
+                        'Radial_Average_Method'         : 'RAW',
                         }
 
         sasm.setParameter('calibration_params', calibrate_dict)
+        sasm.setParameter('raw_version', RAWGlobals.version)
 
         normlist = raw_settings.get('NormalizationList')
         img_hdr = sasm.getParameter('imageHeader')
@@ -1141,9 +1143,11 @@ def pyFAIIntegrateCalibrateNormalize(img, parameters, x_cin, y_cin, raw_settings
                     'Wavelength'                    : wavelength,
                     'Beam_Center_X'                 : x_c,
                     'Beam_Center_Y'                 : y_c,
+                    'Radial_Average_Method'         : 'pyFAI',
                     }
 
     parameters['calibration_params'] = calibrate_dict
+    parameters['raw_version'] = RAWGlobals.version
 
     sasm = SASM.SASM(i_raw, q_raw, err_raw_non_nan, parameters)
 
