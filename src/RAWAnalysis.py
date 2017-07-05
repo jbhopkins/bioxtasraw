@@ -4798,6 +4798,7 @@ class DammifResultsPanel(wx.Panel):
 
         if settings['refine']and int(settings['runs']) > 1:
             dam_name = os.path.join(path, 'refine_'+prefix+'-1.pdb')
+            fir_name = os.path.join(path, 'refine_'+prefix+'.fir')
             sasm, fit_sasm = SASFileIO.loadFitFile(fir_name)
             chisq = sasm.getParameter('counters')['Chi_squared']
 
@@ -4884,7 +4885,7 @@ class DammifViewerPanel(wx.Panel):
         ctrls_sizer.Add(model_sizer, 0)
 
 
-        self.fig = Figure((5,4), 75)
+        self.fig = Figure(dpi=75, tight_layout=True)
         self.fig.set_facecolor('white')
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
