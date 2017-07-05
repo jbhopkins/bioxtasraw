@@ -338,6 +338,8 @@ def calibrateAndNormalize(sasm_list, img_list, raw_settings):
     bin_size = raw_settings.get('Binsize')
     calibrate_check = raw_settings.get('CalibrateMan')
     enable_normalization = raw_settings.get('EnableNormalization')
+    x_center = raw_settings.get('Xcenter')
+    y_center = raw_settings.get('Ycenter')
 
     pixel_size = pixel_size / 1000
 
@@ -353,10 +355,12 @@ def calibrateAndNormalize(sasm_list, img_list, raw_settings):
             img_hdr = sasm.getParameter('imageHeader')
             file_hdr = sasm.getParameter('counters')
 
-            result = getBindListDataFromHeader(raw_settings, img_hdr, file_hdr, keys = ['Sample Detector Distance', 'Detector Pixel Size', 'Wavelength'])
+            result = getBindListDataFromHeader(raw_settings, img_hdr, file_hdr, keys = ['Sample Detector Distance', 'Detector Pixel Size', 'Wavelength', 'Beam X Center', 'Beam Y Center'])
             if result[0] is not None: sd_distance = result[0]
             if result[1] is not None: pixel_size = result[1]
             if result[2] is not None: wavelength = result[2]
+            if result[3] is not None: x_center = result[3]
+            if result[4] is not None: y_center = result[4]
 
         if raw_settings.get('DoSolidAngleCorrection'):
             sc = SASCalib.calcSolidAngleCorrection(sasm, sd_distance, pixel_size)
@@ -368,20 +372,28 @@ def calibrateAndNormalize(sasm_list, img_list, raw_settings):
         if calibrate_check:
             sasm.calibrateQ(sd_distance, pixel_size, wavelength)
 
+        calibrate_dict = {'Sample_Detector_Distance'    : sd_distance,
+                        'Detector_Pixel_Size'           : pixel_size,
+                        'Wavelength'                    : wavelength,
+                        'Beam_Center_X'                 : x_center,
+                        'Beam_Center_Y'                 : y_center,
+                        }
+
+        sasm.setParameter('calibration_params', calibrate_dict)
+
         normlist = raw_settings.get('NormalizationList')
         img_hdr = sasm.getParameter('imageHeader')
         file_hdr = sasm.getParameter('counters')
 
+        if raw_settings.get('DoSolidAngleCorrection'):
+            sasm.setParameter('normalizations', {'Solid_Angle_Correction': 'On'})
+        else:
+            sasm.setParameter('normalizations', {})
+
         if normlist is not None and enable_normalization == True:
-            sasm.setParameter('normalizations', {'Counter_norms':raw_settings.get('NormalizationList')})
-
-            if raw_settings.get('DoSolidAngleCorrection'):
-
-                norm_parameter = sasm.getParameter('normalizations')
-
-                norm_parameter['Solid_Angle_Correction'] = 'On'
-
-                sasm.setParameter('normalizations', norm_parameter)
+            norm_dict = sasm.getParameter('normalizations')
+            norm_dict['Counter_norms'] = normlist
+            sasm.setParameter('normalizations', norm_dict)
 
             for each in normlist:
                 op, expr = each
@@ -419,16 +431,6 @@ def calibrateAndNormalize(sasm_list, img_list, raw_settings):
 
                 elif op == '-':
                     sasm.offsetBinnedIntensity(-val)
-        else:
-            sasm.setParameter('normalizations', {})
-
-            if raw_settings.get('DoSolidAngleCorrection'):
-
-                norm_parameter = sasm.getParameter('normalizations')
-
-                norm_parameter['Solid_Angle_Correction'] = 'On'
-
-                sasm.setParameter('normalizations', norm_parameter)
 
     return sasm_list
 
@@ -1134,13 +1136,24 @@ def pyFAIIntegrateCalibrateNormalize(img, parameters, x_cin, y_cin, raw_settings
     if do_solidangle:
         parameters['normalizations']['Solid_Angle_Correction'] = 'On'
 
+    calibrate_dict = {'Sample_Detector_Distance'    : sd_distance,
+                    'Detector_Pixel_Size'           : pixel_size,
+                    'Wavelength'                    : wavelength,
+                    'Beam_Center_X'                 : x_c,
+                    'Beam_Center_Y'                 : y_c,
+                    }
+
+    parameters['calibration_params'] = calibrate_dict
+
     sasm = SASM.SASM(i_raw, q_raw, err_raw_non_nan, parameters)
 
     img_hdr = sasm.getParameter('imageHeader')
     file_hdr = sasm.getParameter('counters')
 
     if normlist is not None and do_normalization == True:
-        sasm.setParameter('normalizations', {'Counter_norms' : normlist})
+        norm_dict = sasm.getParameter('normalizations')
+        norm_dict['Counter_norms'] = normlist
+        sasm.setParameter('normalizations', norm_dict)
 
         for each in normlist:
             op, expr = each

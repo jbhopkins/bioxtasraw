@@ -1085,7 +1085,7 @@ class HistoryDialog(wx.Dialog):
 
     def __init__(self, parent, sasm = None, *args, **kwargs):
 
-        wx.Dialog.__init__(self, parent, -1, 'History Display', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, size = (-1,500), *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, 'History Display', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, size = (-1,600), *args, **kwargs)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1105,6 +1105,7 @@ class HistoryDialog(wx.Dialog):
             norm = sasm.getParameter('normalizations')
             config = sasm.getParameter('config_file')
             load = sasm.getParameter('load_path')
+            params = sasm.getParameter('calibration_params')
 
             if norm != {} and norm != None:
                 self.text.AppendText('Normalizations:\n%s\n\n' %(json.dumps(norm, indent = 4, sort_keys = True)))
@@ -1112,6 +1113,8 @@ class HistoryDialog(wx.Dialog):
                 self.text.AppendText('Configuration File:\n%s\n\n' %(json.dumps(config, indent = 4, sort_keys = True)))
             if load != {} and load != None:
                 self.text.AppendText('Load Path:\n%s\n\n' %(json.dumps(load, indent = 4, sort_keys = True)))
+            if params != {} and params != None:
+                self.text.AppendText('Calibration Parameters:\n%s\n\n' %(json.dumps(params, indent = 4, sort_keys = True)))
 
 
         self.sizer.Add(self.text, 1, wx.ALL | wx.EXPAND, 10)
