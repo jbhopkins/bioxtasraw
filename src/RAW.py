@@ -152,6 +152,8 @@ class MainFrame(wx.Frame):
                         'weightedAverage'       : self.NewControlId(),
                         'similarityTest'        : self.NewControlId(),
                         'normalizedKratky'      : self.NewControlId(),
+                        'superimpose'           : self.NewControlId(),
+                        'sync'                  : self.NewControlId(),
                         }
 
         self.tbIcon = RawTaskbarIcon(self)
@@ -791,11 +793,14 @@ class MainFrame(wx.Frame):
                                       ('Time', self.MenuIDs['secplottime'], self._onViewMenu, 'radio')],
                     'operations':    [('Subtract', self.MenuIDs['subtract'], self._onToolsMenu, 'normal'),
                                       ('Average', self.MenuIDs['average'], self._onToolsMenu, 'normal'),
-                                      ('Merge', self.MenuIDs['merge'], self._onToolsMenu, 'normal'),
-                                      ('Rebin', self.MenuIDs['rebin'], self._onToolsMenu, 'normal'),
-                                      ('Interpolate', self.MenuIDs['interpolate'], self._onToolsMenu, 'normal'),
                                       ('Weighted Average', self.MenuIDs['weightedAverage'], self._onToolsMenu, 'normal'),
-                                      ('Normalize by concentration', self.MenuIDs['norm_conc'], self._onToolsMenu, 'normal')],
+                                      ('Interpolate', self.MenuIDs['interpolate'], self._onToolsMenu, 'normal'),
+                                      ('Merge', self.MenuIDs['merge'], self._onToolsMenu, 'normal'),
+                                      ('Normalize by concentration', self.MenuIDs['norm_conc'], self._onToolsMenu, 'normal'),
+                                      ('Rebin', self.MenuIDs['rebin'], self._onToolsMenu, 'normal'),
+                                      ('Superimpose', self.MenuIDs['superimpose'], self._onToolsMenu, 'normal'),
+                                      ('Sync', self.MenuIDs['sync'], self._onToolsMenu, 'normal'),
+                                      ],
                     'convertq':      [('q * 10', self.MenuIDs['q*10'], self._onToolsMenu, 'normal'),
                                       ('q / 10', self.MenuIDs['q/10'], self._onToolsMenu, 'normal')],
                     'atsas':         [('GNOM', self.MenuIDs['rungnom'], self._onToolsMenu, 'normal'),
@@ -977,6 +982,26 @@ class MainFrame(wx.Frame):
 
             selected_items = page.getSelectedItems()
             mainworker_cmd_queue.put(['weighted_average_items', selected_items])
+
+        elif id == self.MenuIDs['superimpose']:
+            current_page = self.control_notebook.GetSelection()
+            page = self.control_notebook.GetPage(current_page)
+            # print page_label
+            if page != wx.FindWindowByName('ManipulationPanel'):
+                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                return
+
+            page.Superimpose()
+
+        elif id == self.MenuIDs['sync']:
+            current_page = self.control_notebook.GetSelection()
+            page = self.control_notebook.GetPage(current_page)
+            # print page_label
+            if page != wx.FindWindowByName('ManipulationPanel'):
+                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                return
+
+            page.Sync()
 
         elif id == self.MenuIDs['q*10']:
             current_page = self.control_notebook.GetSelection()
@@ -5962,9 +5987,7 @@ class ManipulationPanel(wx.Panel):
         event.Skip()
 
     def _onSyncButton(self, event):
-        syncdialog = RAWCustomDialogs.SyncDialog(self)
-        syncdialog.ShowModal()
-        syncdialog.Destroy()
+        self.Sync()
         event.Skip()
 
     def _onSubtractButton(self, event):
@@ -5972,8 +5995,16 @@ class ManipulationPanel(wx.Panel):
         event.Skip()
 
     def _onSuperimposeButton(self, event):
-        mainworker_cmd_queue.put(['superimpose_items', (self._star_marked_item, self.getSelectedItems())])
+        self.Superimpose()
         event.Skip()
+
+    def Sync(self):
+        syncdialog = RAWCustomDialogs.SyncDialog(self)
+        syncdialog.ShowModal()
+        syncdialog.Destroy()
+
+    def Superimpose(self):
+        mainworker_cmd_queue.put(['superimpose_items', (self._star_marked_item, self.getSelectedItems())])
 
     def synchronizeSelectedItems(self, sync_parameters):
         star_item = self.getBackgroundItem()
@@ -6756,6 +6787,8 @@ class ManipItemPanel(wx.Panel):
         menu.Append(22, 'Merge')
         menu.Append(23, 'Rebin')
         menu.Append(25, 'Interpolate')
+        menu.Append(39, 'Sync')
+        menu.Append(40, 'Superimpose')
         menu.Append(36, 'Weighted Average')
         menu.AppendSeparator()
         menu.Append(27, 'Use as MW standard')
@@ -6996,6 +7029,12 @@ class ManipItemPanel(wx.Panel):
                 selected_sasms = []
 
             Mainframe.showNormKratkyFrame(selected_sasms)
+
+        elif evt.GetId() == 39:
+            self.manipulation_panel.Sync()
+
+        elif evt.GetId() == 40:
+            self.manipulation_panel.Superimpose()
 
 
     def _saveAllAnalysisInfo(self):
