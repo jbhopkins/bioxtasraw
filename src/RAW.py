@@ -189,8 +189,6 @@ class MainFrame(wx.Frame):
         self._mgr.SetManagedWindow(self)
 
         self.plot_notebook = aui.AuiNotebook(self, style = aui.AUI_NB_TAB_MOVE | aui.AUI_NB_TAB_SPLIT | aui.AUI_NB_SCROLL_BUTTONS)
-    #self.plot_notebook = MyAuiNotebook(self, style = aui.AUI_NB_TAB_MOVE | aui.AUI_NB_TAB_SPLIT | aui.AUI_NB_SCROLL_BUTTONS)
-
 
         plot_panel = RAWPlot.PlotPanel(self.plot_notebook, -1, 'PlotPanel')
         img_panel = RAWImage.ImagePanel(self.plot_notebook, -1, 'ImagePanel')
@@ -347,10 +345,6 @@ class MainFrame(wx.Frame):
             atsas_dir = RAWOptions.findATSASDirectory()
 
             self.raw_settings.set('ATSASDir', atsas_dir)
-
-    def test(self):
-        self._mgr.GetPane(self.info_panel).Show(False)
-        self._mgr.Update()
 
     def queueTaskInWorkerThread(self, taskname, data):
         mainworker_cmd_queue.put([taskname, data])
@@ -1579,7 +1573,7 @@ class MainFrame(wx.Frame):
     def _onFileMenu(self, event):
 
         if event.GetId() == self.MenuIDs['exit'] or event.GetId() == wx.ID_EXIT:
-            self._onCloseWindow(0)
+            self.Close()
 
     def _onLoadMenu(self, event):
         self._onLoadSettings(None)
@@ -1696,31 +1690,56 @@ class MainFrame(wx.Frame):
 
     def _onCloseWindow(self, event):
 
-        manipulation_panel = wx.FindWindowByName('ManipulationPanel')
-        sec_panel = wx.FindWindowByName('SECPanel')
+        if event.CanVeto():
+            manipulation_panel = wx.FindWindowByName('ManipulationPanel')
+            sec_panel = wx.FindWindowByName('SECPanel')
 
-        answer2 = wx.ID_YES
+            exit_without_saving = wx.ID_YES
 
-        if manipulation_panel.modified_items != [] or sec_panel.modified_items != []:
+            if manipulation_panel.modified_items != [] or sec_panel.modified_items != []:
 
-            if manipulation_panel.modified_items !=[] and sec_panel.modified_items != []:
-                message = 'manipulation and SEC '
-            elif manipulation_panel.modified_items !=[] and sec_panel.modified_items == []:
-                message = 'manipulation '
+                if manipulation_panel.modified_items !=[] and sec_panel.modified_items != []:
+                    message = 'manipulation and SEC '
+                elif manipulation_panel.modified_items !=[] and sec_panel.modified_items == []:
+                    message = 'manipulation '
+                else:
+                    message = 'SEC '
+
+                dial2 = wx.MessageDialog(self, 'You have unsaved changes in your ' + message + 'data. Do you want to discard these changes?', 'Discard changes?',
+                                         wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+                exit_without_saving = dial2.ShowModal()
+                dial2.Destroy()
+
+            if exit_without_saving == wx.ID_YES:
+                dammif_window = wx.FindWindowByName('DammifFrame')
+                dammif_closed = True
+                if dammif_window != None:
+                    dammif_closed = dammif_window.Close()
             else:
-                message = 'SEC '
+                event.Veto()
+                return
 
-            dial2 = wx.MessageDialog(self, 'You have unsaved changes in your ' + message + 'data. Do you want to discard these changes?', 'Discard changes?',
-                                     wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
-            answer2 = dial2.ShowModal()
-            dial2.Destroy()
+            if exit_without_saving == wx.ID_YES and dammif_closed:
+                force_quit = wx.ID_YES
+                if RAWGlobals.save_in_progress:
+                    dial = wx.MessageDialog(self, 'RAW is currently saving one or more files. Do you want to force quit (may corrupt files being saved)?', 'Force quit?',
+                                         wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+                    force_quit = dial.ShowModal()
+                    dial.Destroy()
+            else:
+                event.Veto()
+                return
 
-        dammif_window = wx.FindWindowByName('DammifFrame')
-        result = True
-        if dammif_window != None:
-            result = dammif_window.Close()
+            if exit_without_saving == wx.ID_YES and dammif_closed and force_quit == wx.ID_YES:
+                self.saveBackupData()
+                self.tbIcon.RemoveIcon()
+                self.tbIcon.Destroy()
+                self.Destroy()
+            else:
+                event.Veto()
+                return
 
-        if answer2 == wx.ID_YES and result:
+        else:
             self.saveBackupData()
             self.tbIcon.RemoveIcon()
             self.tbIcon.Destroy()
@@ -3954,6 +3973,8 @@ class MainWorkerThread(threading.Thread):
         else:
             restart_timer = False
 
+        RAWGlobals.save_in_progress = True
+        wx.CallAfter(self.main_frame.setStatus, 'Saving dat item(s)', 0)
 
         newext = filetype
 
@@ -3970,6 +3991,9 @@ class MainWorkerThread(threading.Thread):
         except SASExceptions.HeaderSaveError:
             self._showSaveError('header')
 
+        RAWGlobals.save_in_progress = False
+        wx.CallAfter(self.main_frame.setStatus, '', 0)
+
         if restart_timer:
             self.main_frame.OnlineControl.updateSkipList([check_filename])
             wx.CallAfter(self.main_frame.controlTimer, True)
@@ -3985,6 +4009,9 @@ class MainWorkerThread(threading.Thread):
             restart_timer = True
         else:
             restart_timer = False
+
+        RAWGlobals.save_in_progress = True
+        wx.CallAfter(self.main_frame.setStatus, 'Saving ift item(s)', 0)
 
         if sasm.getParameter('algorithm') == 'GNOM':
             newext = '.out'
@@ -4006,6 +4033,9 @@ class MainWorkerThread(threading.Thread):
         except SASExceptions.HeaderSaveError:
             self._showSaveError('header')
 
+        RAWGlobals.save_in_progress = False
+        wx.CallAfter(self.main_frame.setStatus, '', 0)
+
         if restart_timer:
             self.main_frame.OnlineControl.updateSkipList([check_filename])
             wx.CallAfter(self.main_frame.controlTimer, True)
@@ -4023,6 +4053,9 @@ class MainWorkerThread(threading.Thread):
         else:
             restart_timer = False
 
+        RAWGlobals.save_in_progress = True
+        wx.CallAfter(self.main_frame.setStatus, 'Saving analysis info', 0)
+
         selected_sasms = []
 
         check_filename, ext = os.path.splitext(save_path)
@@ -4033,6 +4066,9 @@ class MainWorkerThread(threading.Thread):
             selected_sasms.append(sasm)
 
         SASFileIO.saveAnalysisCsvFile(selected_sasms, include_data, save_path)
+
+        RAWGlobals.save_in_progress = False
+        wx.CallAfter(self.main_frame.setStatus, '', 0)
 
         if restart_timer:
             self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path)[1]])
@@ -4048,7 +4084,13 @@ class MainWorkerThread(threading.Thread):
         else:
             restart_timer = False
 
+        RAWGlobals.save_in_progress = True
+        wx.CallAfter(self.main_frame.setStatus, 'Saving analysis info', 0)
+
         SASFileIO.saveAllAnalysisData(save_path, selected_sasms)
+
+        RAWGlobals.save_in_progress = False
+        wx.CallAfter(self.main_frame.setStatus, '', 0)
 
         if restart_timer:
             self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path)[1]])
@@ -4067,8 +4109,11 @@ class MainWorkerThread(threading.Thread):
         else:
             restart_timer = False
 
+        RAWGlobals.save_in_progress = True
+        wx.CallAfter(self.main_frame.setStatus, 'Saving workspace', 0)
+
+
         save_dict = OrderedDict()
-        # save_dict = {}
 
         for idx in range(0, len(sasm_items)):
 
@@ -4080,6 +4125,10 @@ class MainWorkerThread(threading.Thread):
             sasm_dict['line_style'] = sasm.line.get_linestyle()
             sasm_dict['line_marker'] = sasm.line.get_marker()
             sasm_dict['line_visible'] = sasm.line.get_visible()
+            if sasm.line.get_label() != sasm_dict['parameters']['filename']:
+                sasm_dict['line_legend_label'] = sasm.line.get_label()
+            else:
+                sasm_dict['line_legend_label'] = ''
 
             sasm_dict['item_controls_visible'] = sasm.item_panel.getControlsVisible()
             sasm_dict['item_font_color'] = sasm.item_panel.getFontColour()
@@ -4104,18 +4153,30 @@ class MainWorkerThread(threading.Thread):
             iftm_dict['r_line_style'] = iftm.r_line.get_linestyle()
             iftm_dict['r_line_marker'] = iftm.r_line.get_marker()
             iftm_dict['r_line_visible'] = iftm.r_line.get_visible()
+            if iftm.r_line.get_label() != iftm_dict['parameters']['filename']+'_P(r)':
+                iftm_dict['r_line_legend_label'] = iftm.r_line.get_label()
+            else:
+                iftm_dict['r_line_legend_label'] = ''
 
             iftm_dict['qo_line_color'] = iftm.qo_line.get_color()
             iftm_dict['qo_line_width'] = iftm.qo_line.get_linewidth()
             iftm_dict['qo_line_style'] = iftm.qo_line.get_linestyle()
             iftm_dict['qo_line_marker'] = iftm.qo_line.get_marker()
             iftm_dict['qo_line_visible'] = iftm.qo_line.get_visible()
+            if iftm.qo_line.get_label() != iftm_dict['parameters']['filename']+'_Exp':
+                iftm_dict['qo_line_legend_label'] = iftm.qo_line.get_label()
+            else:
+                iftm_dict['qo_line_legend_label'] = ''
 
             iftm_dict['qf_line_color'] = iftm.qf_line.get_color()
             iftm_dict['qf_line_width'] = iftm.qf_line.get_linewidth()
             iftm_dict['qf_line_style'] = iftm.qf_line.get_linestyle()
             iftm_dict['qf_line_marker'] = iftm.qf_line.get_marker()
             iftm_dict['qf_line_visible'] = iftm.qf_line.get_visible()
+            if iftm.qo_line.get_label() != iftm_dict['parameters']['filename']+'_Fit':
+                iftm_dict['qf_line_legend_label'] = iftm.qf_line.get_label()
+            else:
+                iftm_dict['qf_line_legend_label'] = ''
 
             iftm_dict['item_font_color'] = iftm.item_panel.getFontColour()
             iftm_dict['item_selected_for_plot'] = iftm.item_panel.getSelectedForPlot()
@@ -4133,12 +4194,14 @@ class MainWorkerThread(threading.Thread):
             secm_dict['line_style'] = secm.line.get_linestyle()
             secm_dict['line_marker'] = secm.line.get_marker()
             secm_dict['line_visible'] = secm.line.get_visible()
+            secm_dict['line_legend_label'] = secm.line.get_label()
 
             secm_dict['calc_line_color'] = secm.calc_line.get_color()
             secm_dict['calc_line_width'] = secm.calc_line.get_linewidth()
             secm_dict['calc_line_style'] = secm.calc_line.get_linestyle()
             secm_dict['calc_line_marker'] = secm.calc_line.get_marker()
             secm_dict['calc_line_visible'] = secm.calc_line.get_visible()
+            secm_dict['calc_line_legend_label'] = secm.calc_line.get_label()
 
             secm_dict['item_font_color'] = secm.item_panel.getFontColour()
             secm_dict['item_selected_for_plot'] = secm.item_panel.getSelectedForPlot()
@@ -4149,7 +4212,8 @@ class MainWorkerThread(threading.Thread):
 
         SASFileIO.saveWorkspace(save_dict, save_path)
 
-        RAWGlobals.workspace_saved = True
+        RAWGlobals.save_in_progress = False
+        wx.CallAfter(self.main_frame.setStatus, '', 0)
 
         if restart_timer:
             self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path)[1]])
@@ -4161,7 +4225,12 @@ class MainWorkerThread(threading.Thread):
 
         load_path = data[0]
 
-        item_dict = SASFileIO.loadWorkspace(load_path)
+        try:
+            item_dict = SASFileIO.loadWorkspace(load_path)
+        except SASExceptions.UnrecognizedDataFormat:
+            wx.CallAfter(self.main_frame.closeBusyDialog)
+            wx.CallAfter(wx.MessageBox, 'The workspace could not be loaded. It may be an invalid file type, or the file may be corrupted.', 'Workspace Load Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+            return
 
         if type(item_dict) == OrderedDict:
             keylist = item_dict.keys()
@@ -4175,15 +4244,28 @@ class MainWorkerThread(threading.Thread):
 
                 new_secm, line_data, calc_line_data = SASFileIO.makeSECFile(secm_data)
 
+                new_secm.is_visible = secm_data['line_visible']
+
                 wx.CallAfter(self.sec_plot_panel.plotSECM, new_secm,
                               color = secm_data['line_color'],
                               line_data = line_data,
                               calc_line_data = calc_line_data)
 
+                while new_secm.line is None or new_secm.calc_line is None:
+                    time.sleep(0.001)
+
+                #Backwards compatibility
+                try:
+                    legend_label = {new_secm.line:      secm_data['line_legend_label'],
+                                    new_secm.calc_line: secm_data['calc_line_legend_label']
+                                    }
+                except:
+                    legend_label = defaultdict(str)
+
                 wx.CallAfter(self.sec_item_panel.addItem, new_secm,
                               item_colour = secm_data['item_font_color'],
-                              item_visible = secm_data['item_selected_for_plot'])
-
+                              item_visible = secm_data['item_selected_for_plot'],
+                              legend_label=legend_label)
 
             elif str(each_key).startswith('ift'):
                 iftm_data = item_dict[each_key]
@@ -4221,12 +4303,24 @@ class MainWorkerThread(threading.Thread):
                 line_data['qf_line_marker'] = iftm_data['qf_line_marker']
                 line_data['qf_line_visible'] = iftm_data['qf_line_visible']
 
-
                 wx.CallAfter(self.ift_plot_panel.plotIFTM, new_iftm, line_data = line_data)
+
+                while new_iftm.r_line is None or new_iftm.qo_line is None or new_iftm.qf_line is None:
+                    time.sleep(0.001)
+
+                #Backwards compatibility
+                try:
+                    legend_label = {new_iftm.r_line:    iftm_data['r_line_legend_label'],
+                                    new_iftm.qo_line:   iftm_data['qo_line_legend_label'],
+                                    new_iftm.qf_line:   iftm_data['qf_line_legend_label']
+                                    }
+                except:
+                    legend_label = defaultdict(str)
 
                 wx.CallAfter(self.ift_item_panel.addItem, new_iftm,
                               item_colour = iftm_data['item_font_color'],
-                              item_visible = iftm_data['item_selected_for_plot'])
+                              item_visible = iftm_data['item_selected_for_plot'],
+                              legend_label=legend_label)
 
             else:
                 #Backwards compatability requires us to not test the sasm prefix
@@ -4266,13 +4360,16 @@ class MainWorkerThread(threading.Thread):
                               sasm_data['plot_axes'], color = sasm_data['line_color'],
                               line_data = line_data)
 
+                #Backwards compatibility
+                try:
+                    legend_label = sasm_data['line_legend_label']
+                except KeyError:
+                    legend_label = ''
+
                 wx.CallAfter(self.manipulation_panel.addItem, new_sasm,
                               item_colour = sasm_data['item_font_color'],
-                              item_visible = sasm_data['item_selected_for_plot'])
-
-
-
-
+                              item_visible = sasm_data['item_selected_for_plot'],
+                              legend_label = legend_label)
 
         wx.CallAfter(self.plot_panel.updateLegend, 1, False)
         wx.CallAfter(self.plot_panel.updateLegend, 2, False)
@@ -4298,6 +4395,9 @@ class MainWorkerThread(threading.Thread):
             restart_timer = True
         else:
             restart_timer = False
+
+        RAWGlobals.save_in_progress = True
+        wx.CallAfter(self.main_frame.setStatus, 'Saving SEC data', 0)
 
         overwrite_all = False
         no_to_all = False
@@ -4334,6 +4434,8 @@ class MainWorkerThread(threading.Thread):
             if restart_timer:
                 self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path[b])[1]])
 
+        RAWGlobals.save_in_progress = False
+        wx.CallAfter(self.main_frame.setStatus, '', 0)
 
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
@@ -4346,6 +4448,9 @@ class MainWorkerThread(threading.Thread):
             restart_timer = True
         else:
             restart_timer = False
+
+        RAWGlobals.save_in_progress = True
+        wx.CallAfter(self.main_frame.setStatus, 'Saving SEC item(s)', 0)
 
         overwrite_all = False
         no_to_all = False
@@ -4420,6 +4525,9 @@ class MainWorkerThread(threading.Thread):
 
         wx.CallAfter(secm.plot_panel.updateLegend, 1)
 
+        RAWGlobals.save_in_progress = False
+        wx.CallAfter(self.main_frame.setStatus, '', 0)
+
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
 
@@ -4436,6 +4544,8 @@ class MainWorkerThread(threading.Thread):
         else:
             restart_timer = False
 
+        RAWGlobals.save_in_progress = True
+        wx.CallAfter(self.main_frame.setStatus, 'Saving SEC profile(s)', 0)
 
         overwrite_all = False
         no_to_all = False
@@ -4493,6 +4603,9 @@ class MainWorkerThread(threading.Thread):
             if restart_timer:
                 self.main_frame.OnlineControl.updateSkipList([check_filename])
 
+        RAWGlobals.save_in_progress = False
+        wx.CallAfter(self.main_frame.setStatus, '', 0)
+
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
 
@@ -4528,6 +4641,9 @@ class MainWorkerThread(threading.Thread):
             restart_timer = True
         else:
             restart_timer = False
+
+        RAWGlobals.save_in_progress = True
+        wx.CallAfter(self.main_frame.setStatus, 'Saving item(s)', 0)
 
         if not iftmode:
             axes_update_list = []
@@ -4620,6 +4736,9 @@ class MainWorkerThread(threading.Thread):
 
             for axis in axes_update_list:
                 wx.CallAfter(sasm.item_panel.plot_panel.updateLegend, axis)
+
+        RAWGlobals.save_in_progress = False
+        wx.CallAfter(self.main_frame.setStatus, '', 0)
 
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
@@ -4738,11 +4857,8 @@ class FilePanel(wx.Panel):
 
     def _onClearAllButton(self, event):
 
-        if RAWGlobals.workspace_saved == False:
-            dial = RAWCustomDialogs.SaveDialog(self, -1, 'Workspace not saved', 'The workspace has been modified, do you want to save your changes?')
-        else:
-            dial = wx.MessageDialog(self, 'Are you sure you want to clear everything?', 'Are you sure?',
-                                    wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        dial = wx.MessageDialog(self, 'Are you sure you want to clear everything?', 'Are you sure?',
+                                wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
 
         answer = dial.ShowModal()
         dial.Destroy()
@@ -5720,27 +5836,21 @@ class ManipulationPanel(wx.Panel):
 
         return sizer
 
-    def addItem(self, sasm, item_colour = 'black', item_visible = True, notsaved = False):
+    def addItem(self, sasm, item_colour = 'black', item_visible = True, notsaved = False, legend_label=''):
 
         self.underpanel.Freeze()
 
-        if type(sasm) == list:
+        if not isinstance(sasm, list):
+            sasm = [sasm]
 
-            for item in sasm:
-                newItem = ManipItemPanel(self.underpanel, item, font_colour = item_colour,
-                             item_visible = item_visible, modified = notsaved)
-
-                self.underpanel_sizer.Add(newItem, 0, wx.GROW)
-                self.all_manipulation_items.append(newItem)
-                item.item_panel = newItem
-
-        else:
-            newItem = ManipItemPanel(self.underpanel, sasm, font_colour = item_colour,
-                                     item_visible = item_visible, modified = notsaved)
+        for item in sasm:
+            newItem = ManipItemPanel(self.underpanel, item, font_colour = item_colour,
+                         item_visible = item_visible, modified = notsaved,
+                         legend_label = legend_label)
 
             self.underpanel_sizer.Add(newItem, 0, wx.GROW)
             self.all_manipulation_items.append(newItem)
-            sasm.item_panel = newItem
+            item.item_panel = newItem
 
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Layout()
@@ -6390,6 +6500,7 @@ class ManipItemPanel(wx.Panel):
                 self.manipulation_panel.modified_items.append(self)
 
         self.updateShowItemCheckBox()
+        self._updateLegendLabel(False)
 
 
     def updateInfoTip(self, analysis_dict, fromGuinierDialog = False):
@@ -7240,7 +7351,7 @@ class ManipItemPanel(wx.Panel):
 
         self.sasm.setQrange(qrange)
 
-    def _updateLegendLabel(self):
+    def _updateLegendLabel(self, update_plot=True):
 
         if self._legend_label == '' or self._legend_label == None:
             self.sasm.line.set_label(self.sasm.getParameter('filename'))
@@ -7249,7 +7360,8 @@ class ManipItemPanel(wx.Panel):
             self.sasm.line.set_label(str(self._legend_label))
             self.legend_label_text.SetLabel('[' + str(self._legend_label) + ']')
 
-        wx.CallAfter(self.sasm.plot_panel.updateLegend, self.sasm.axes)
+        if update_plot:
+            wx.CallAfter(self.sasm.plot_panel.updateLegend, self.sasm.axes)
 
 
     def _onQrangeChange(self, event):
@@ -7449,12 +7561,14 @@ class IFTPanel(wx.Panel):
         return sizer
 
 
-    def addItem(self, iftm_list, item_colour = 'black', item_visible = True, notsaved = False):
-        if type(iftm_list) != list:
+    def addItem(self, iftm_list, item_colour = 'black', item_visible = True, notsaved = False, legend_label=defaultdict(str)):
+        if not isinstance(iftm_list, list):
             iftm_list = [iftm_list]
 
         for iftm in iftm_list:
-            newItem = IFTItemPanel(self.underpanel, iftm, font_colour = item_colour, ift_parameters = iftm.getAllParameters(), item_visible = item_visible, modified = notsaved)
+            newItem = IFTItemPanel(self.underpanel, iftm, font_colour = item_colour,
+                ift_parameters = iftm.getAllParameters(), item_visible = item_visible,
+                modified = notsaved, legend_label=legend_label)
             self.underpanel_sizer.Add(newItem, 0, wx.GROW)
 
             iftm.item_panel = newItem
@@ -7855,6 +7969,8 @@ class IFTItemPanel(wx.Panel):
         self.SetBackgroundColour(wx.Colour(250,250,250))
 
         self.updateShowItemCheckBox()
+
+        self._updateLegendLabel(False)
 
         if modified:
             parent = self.GetParent()
@@ -8354,39 +8470,38 @@ class IFTItemPanel(wx.Panel):
         else:
             self.manipulation_panel.setItemAsBackground(self)
 
-    def _updateLegendLabel(self):
+    def _updateLegendLabel(self, update_plot=True):
 
         labels = np.array(self._legend_label.values())
 
-        noupdate = np.all(labels == '')
-
-        if self._legend_label is None or noupdate:
-            self.iftm.r_line.set_label(self.iftm.getParameter('filename'))
-            self.iftm.qo_line.set_label(self.iftm.getParameter('filename'))
-            self.iftm.qf_line.set_label(self.iftm.getParameter('filename'))
+        if self._legend_label is None or len(labels) == 0 or np.all(labels == ''):
+            self.iftm.r_line.set_label(self.iftm.getParameter('filename')+'_P(r)')
+            self.iftm.qo_line.set_label(self.iftm.getParameter('filename')+'_Exp')
+            self.iftm.qf_line.set_label(self.iftm.getParameter('filename')+'_Fit')
 
             self.legend_label_text.SetLabel('')
         else:
             if str(self._legend_label[self.iftm.r_line]) != '':
                 self.iftm.r_line.set_label(str(self._legend_label[self.iftm.r_line]))
             else:
-                self.iftm.r_line.set_label(self.iftm.getParameter('filename'))
+                self.iftm.r_line.set_label(self.iftm.getParameter('filename')+'_P(r)')
             if str(self._legend_label[self.iftm.qo_line]) != '':
                 self.iftm.qo_line.set_label(str(self._legend_label[self.iftm.qo_line]))
             else:
-                self.iftm.qo_line.set_label(self.iftm.getParameter('filename'))
+                self.iftm.qo_line.set_label(self.iftm.getParameter('filename')+'_Exp')
             if str(self._legend_label[self.iftm.qf_line]) != '':
                 self.iftm.qf_line.set_label(str(self._legend_label[self.iftm.qf_line]))
             else:
-                self.iftm.qf_line.set_label(self.iftm.getParameter('filename'))
+                self.iftm.qf_line.set_label(self.iftm.getParameter('filename')+'_Fit')
 
-            if str(self._legend_label[self.iftm.r_line]) != self.iftm.getParameter('filename') and str(self._legend_label[self.iftm.r_line]) != '':
+            if str(self._legend_label[self.iftm.r_line]) != self.iftm.getParameter('filename')+'_P(r)' and str(self._legend_label[self.iftm.r_line]) != '':
                 self.legend_label_text.SetLabel('[' + str(self._legend_label[self.iftm.r_line]) + ']')
             else:
                 self.legend_label_text.SetLabel('')
 
-        wx.CallAfter(self.iftm.plot_panel.updateLegend, 1)
-        wx.CallAfter(self.iftm.plot_panel.updateLegend, 2)
+        if update_plot:
+            wx.CallAfter(self.iftm.plot_panel.updateLegend, 1)
+            wx.CallAfter(self.iftm.plot_panel.updateLegend, 2)
 
     def _onSelectedChkBox(self, event):
         self._selected_for_plot = not self._selected_for_plot
@@ -8664,16 +8779,17 @@ class SECPanel(wx.Panel):
         self.underpanel.Layout()
         self.underpanel.Refresh()
 
-    def addItem(self, secm_list, item_colour = 'black', item_visible = True, notsaved = False):
+    def addItem(self, secm_list, item_colour = 'black', item_visible = True, notsaved = False, legend_label=defaultdict(str)):
         self.underpanel.Freeze()
 
-        if type(secm_list) != list:
+        if not isinstance(secm_list, list):
             secm_list = [secm_list]
 
         for secm in secm_list:
 
             newItem = SECItemPanel(self.underpanel, secm, font_colour = item_colour,
-                                     item_visible = item_visible, modified = notsaved)
+                                     item_visible = item_visible, modified = notsaved,
+                                     legend_label=legend_label)
 
             self.underpanel_sizer.Add(newItem, 0, wx.GROW)
 
@@ -8681,7 +8797,6 @@ class SECPanel(wx.Panel):
             self.all_manipulation_items.append(newItem)
 
             secm.item_panel = newItem
-
 
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Layout()
@@ -9051,6 +9166,8 @@ class SECItemPanel(wx.Panel):
 
         self.updateShowItemCheckBox()
 
+        self._updateLegendLabel(False)
+
 
     def updateInfoTip(self):
 
@@ -9154,6 +9271,8 @@ class SECItemPanel(wx.Panel):
     def updateShowItemCheckBox(self):
         self.SelectedForPlot.SetValue(self._selected_for_plot)
         self.secm.line.set_picker(self._selected_for_plot)
+        if self.sec_plot_panel.plotparams['secm_plot_calc'] != 'None' and self.secm.calc_has_data:
+            self.secm.calc_line.set_picker(self._selected_for_plot)      #Line can't be selected when it's hidden
 
     def markAsModified(self, updateSelf = True, updateParent = True):
         filename = self.secm.getParameter('filename')
@@ -9388,13 +9507,11 @@ class SECItemPanel(wx.Panel):
         else:
             self.sec_panel.setItemAsData(self)
 
-    def _updateLegendLabel(self):
+    def _updateLegendLabel(self, update_plot=True):
 
         labels = np.array(self._legend_label.values())
 
-        noupdate = np.all(labels == '')
-
-        if self._legend_label is None or noupdate:
+        if self._legend_label is None or len(labels) == 0 or np.all(labels == ''):
             self.secm.line.set_label(self.secm.getParameter('filename'))
             self.secm.calc_line.set_label(self.sec_plot_panel.plotparams['secm_plot_calc'])
             self.legend_label_text.SetLabel('')
@@ -9412,7 +9529,8 @@ class SECItemPanel(wx.Panel):
                     elif key == self.secm.calc_line:
                         self.secm.calc_line.set_label(self.sec_plot_panel.plotparams['secm_plot_calc'])
 
-        wx.CallAfter(self.secm.plot_panel.updateLegend, self.secm.axes)
+        if update_plot:
+            wx.CallAfter(self.secm.plot_panel.updateLegend, self.secm.axes)
 
     def _onSelectedChkBox(self, event):
         self._selected_for_plot = not self._selected_for_plot

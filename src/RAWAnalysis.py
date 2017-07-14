@@ -3316,7 +3316,7 @@ class DammifFrame(wx.Frame):
         return button_sizer
 
     def _onCloseButton(self, evt):
-        self.OnClose(0)
+        self.Close()
 
     def _onInfoButton(self, evt):
         msg = ('In addition to citing the RAW paper:\n If you use DAMMIF '
@@ -3332,7 +3332,7 @@ class DammifFrame(wx.Frame):
         'Petoukhov, M. V. & Svergun, D. I. (2015). Acta Cryst. D71, 1051-1058.\n\n'
         'If you use SASRES in your work please cite the paper given here:\n'
         'https://www.embl-hamburg.de/biosaxs/manuals/sasres.html')
-        wx.MessageBox(str(msg), "How to cite DAMMIF/DAMMIN/DAMAVER/DAMCLUST", style = wx.ICON_INFORMATION | wx.OK)
+        wx.MessageBox(str(msg), "How to cite AMBIMETER/DAMMIF/DAMMIN/DAMAVER/DAMCLUST/SASRES", style = wx.ICON_INFORMATION | wx.OK)
 
 
     def OnClose(self, event):

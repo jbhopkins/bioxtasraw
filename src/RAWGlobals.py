@@ -25,8 +25,6 @@ mainworker_cmd_queue = Queue.Queue()
 
 cancel_bift = False
 
-workspace_saved = True
-
 #Checks whether RAW is running in a compiled (frozen) version or a live interpreter
 if getattr(sys, 'frozen', False):
     frozen = True
@@ -40,3 +38,5 @@ RAWResourcesDir = ''
 usepyFAI_integration = False
 
 version = '1.3.0'
+
+save_in_progress = False

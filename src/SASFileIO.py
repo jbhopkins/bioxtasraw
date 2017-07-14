@@ -3265,16 +3265,17 @@ def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
 
 def loadWorkspace(load_path):
 
-    with open(load_path, 'r') as file:
+    with open(load_path, 'r') as f:
 
         try:
-            sasm_dict = cPickle.load(file)
+            sasm_dict = cPickle.load(f)
         except (ImportError, EOFError), e:
-            print e
-            print 'Error loading wsp file, trying different method.'
-            file.close()
-            file = open(load_path, 'rb')
-            sasm_dict = cPickle.load(file)
+            f.close()
+            try:
+                f = open(load_path, 'rb')
+                sasm_dict = cPickle.load(f)
+            except (ImportError, EOFError), e:
+                raise SASExceptions.UnrecognizedDataFormat('Workspace could not be loaded. It may be an invalid file type, or the file may be corrupted.')
 
     return sasm_dict
 

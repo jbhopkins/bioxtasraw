@@ -4090,6 +4090,7 @@ class SECPlotPanel(wx.Panel):
 
             self.updatePlotData(self.subplot1)
 
+
     def showErrorbars(self, state):
 
         for each in self.plotted_secms:
