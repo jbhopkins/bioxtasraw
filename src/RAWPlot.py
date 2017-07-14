@@ -20,6 +20,7 @@ import wx, os, sys, platform, itertools, copy, matplotlib
 import numpy as np
 
 matplotlib.rcParams['backend'] = 'WxAgg'
+matplotlib.rc('mathtext', default='regular')
 if int(matplotlib.__version__.split('.')[0]) >= 2:
     matplotlib.rcParams['errorbar.capsize'] = 3
 
@@ -204,8 +205,20 @@ class PlotOptionsDialog(wx.Dialog):
             except:
                 pass
 
-        names = list(set(names))
+        mpl_font_dir = os.path.join(matplotlib.rcParams['datapath'],'fonts/ttf')
+        font_list2 = fm.list_fonts(mpl_font_dir, '*.ttf')
 
+        for item in font_list2:
+            fp = fm.FontProperties()
+            try:
+                fp.set_file(item)
+                font_name = fp.get_name()
+                if font_name != 'System Font' and not font_name.startswith('.'):
+                    names.append(font_name)
+            except:
+                pass
+
+        names = list(set(names))
         names.sort()
 
         return names
@@ -1066,14 +1079,28 @@ class PlotPanel(wx.Panel):
         self.blink_timer.Bind(wx.EVT_TIMER, self._onBlinkTimer)
 
         #Find the plot font, which is strangely hard!
-        f_list = fm.get_fontconfig_fonts()
+        font_list = fm.get_fontconfig_fonts()
+
         fonts=[]
 
-        for item in f_list:
+        for item in font_list:
             try:
                 font_name = fm.FontProperties(fname=item).get_name()
 
-                if font_name != 'System Font' and not item.startswith('.'):
+                if font_name != 'System Font' and not font_name.startswith('.'):
+                    fonts.append(font_name)
+            except:
+                pass
+
+        mpl_font_dir = os.path.join(matplotlib.rcParams['datapath'],'fonts/ttf')
+        font_list2 = fm.list_fonts(mpl_font_dir, '*.ttf')
+
+        for item in font_list2:
+            fp = fm.FontProperties()
+            try:
+                fp.set_file(item)
+                font_name = fp.get_name()
+                if font_name != 'System Font' and not font_name.startswith('.'):
                     fonts.append(font_name)
             except:
                 pass
@@ -2075,14 +2102,28 @@ class IftPlotPanel(PlotPanel):
         self.blink_timer.Bind(wx.EVT_TIMER, self._onBlinkTimer)
 
         #Find the plot font, which is strangely hard!
-        f_list = fm.get_fontconfig_fonts()
+        font_list = fm.get_fontconfig_fonts()
+
         fonts=[]
 
-        for item in f_list:
+        for item in font_list:
             try:
                 font_name = fm.FontProperties(fname=item).get_name()
 
-                if font_name != 'System Font' and not item.startswith('.'):
+                if font_name != 'System Font' and not font_name.startswith('.'):
+                    fonts.append(font_name)
+            except:
+                pass
+
+        mpl_font_dir = os.path.join(matplotlib.rcParams['datapath'],'fonts/ttf')
+        font_list2 = fm.list_fonts(mpl_font_dir, '*.ttf')
+
+        for item in font_list2:
+            fp = fm.FontProperties()
+            try:
+                fp.set_file(item)
+                font_name = fp.get_name()
+                if font_name != 'System Font' and not font_name.startswith('.'):
                     fonts.append(font_name)
             except:
                 pass
@@ -3402,14 +3443,28 @@ class SECPlotPanel(wx.Panel):
         wx.Panel.__init__(self, parent, id, *args, name = name, **kwargs)
 
         #Find the plot font, which is strangely hard!
-        f_list = fm.get_fontconfig_fonts()
+        font_list = fm.get_fontconfig_fonts()
+
         fonts=[]
 
-        for item in f_list:
+        for item in font_list:
             try:
                 font_name = fm.FontProperties(fname=item).get_name()
 
-                if font_name != 'System Font' and not item.startswith('.'):
+                if font_name != 'System Font' and not font_name.startswith('.'):
+                    fonts.append(font_name)
+            except:
+                pass
+
+        mpl_font_dir = os.path.join(matplotlib.rcParams['datapath'],'fonts/ttf')
+        font_list2 = fm.list_fonts(mpl_font_dir, '*.ttf')
+
+        for item in font_list2:
+            fp = fm.FontProperties()
+            try:
+                fp.set_file(item)
+                font_name = fp.get_name()
+                if font_name != 'System Font' and not font_name.startswith('.'):
                     fonts.append(font_name)
             except:
                 pass
