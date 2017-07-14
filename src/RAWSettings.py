@@ -424,6 +424,10 @@ def postProcess(raw_settings):
     return
 
 def saveSettings(raw_settings, savepath):
+    main_frame = wx.FindWindowByName('MainFrame')
+    RAWGlobals.save_in_progress = True
+    wx.CallAfter(main_frame.setStatus, 'Saving settings', 0)
+
     param_dict = raw_settings.getAllParams()
     keys = param_dict.keys()
 
@@ -443,27 +447,26 @@ def saveSettings(raw_settings, savepath):
     for key in masks.keys():
         masks[key][0] = None
 
-    file_obj = open(savepath, 'wb')
-    try:
-        cPickle.dump(save_dict, file_obj, cPickle.HIGHEST_PROTOCOL)
-    except Exception as e:
-        print '<Error> type: %s, message: %s' %(type(e).__name__, e)
-        file_obj.close()
-        return False
-
-    file_obj.close()
+    with open(savepath, 'wb') as file_obj:
+        try:
+            cPickle.dump(save_dict, file_obj, cPickle.HIGHEST_PROTOCOL)
+        except Exception as e:
+            print '<Error> type: %s, message: %s' %(type(e).__name__, e)
+            RAWGlobals.save_in_progress = False
+            wx.CallAfter(main_frame.setStatus, '', 0)
+            return False
 
     ## Make a backup of the config file in case of crash:
     backup_file = os.path.join(RAWGlobals.RAWWorkDir, 'backup.cfg')
 
-    FileObj = open(backup_file, 'wb')
-    try:
-        cPickle.dump(save_dict, FileObj, cPickle.HIGHEST_PROTOCOL)
-    except Exception as e:
-        print 'Error type: %s, error: %s' %(type(e).__name__, e)
-        FileObj.close()
-        return False
-    FileObj.close()
+    with open(backup_file, 'wb') as FileObj:
+        try:
+            cPickle.dump(save_dict, FileObj, cPickle.HIGHEST_PROTOCOL)
+        except Exception as e:
+            print 'Error type: %s, error: %s' %(type(e).__name__, e)
+            RAWGlobals.save_in_progress = False
+            wx.CallAfter(main_frame.setStatus, '', 0)
+            return False
 
     dummy_settings = RawGuiSettings()
 
@@ -471,6 +474,9 @@ def saveSettings(raw_settings, savepath):
 
     if not test_load:
         os.remove(savepath)
+
+    RAWGlobals.save_in_progress = False
+    wx.CallAfter(main_frame.setStatus, '', 0)
 
     return test_load
 

@@ -6741,6 +6741,9 @@ class SVDControlPanel(wx.Panel):
         else:
             return
 
+        RAWGlobals.save_in_progress = True
+        self.main_frame.setStatus('Saving SVD data', 0)
+
         svd_start_window = wx.FindWindowById(self.control_ids['svd_start'], self)
         svd_end_window = wx.FindWindowById(self.control_ids['svd_end'], self)
 
@@ -6752,6 +6755,9 @@ class SVDControlPanel(wx.Panel):
         header = 'Singular_values,U_Autocorrelation,V_Autocorrelation'
 
         SASFileIO.saveCSVFile(save_path, data, header)
+
+        RAWGlobals.save_in_progress = False
+        self.main_frame.setStatus('', 0)
 
     def saveAll(self):
         dirctrl = wx.FindWindowByName('DirCtrlPanel')
@@ -6773,6 +6779,9 @@ class SVDControlPanel(wx.Panel):
         else:
             return
 
+        RAWGlobals.save_in_progress = True
+        self.main_frame.setStatus('Saving SVD data', 0)
+
         svd_start_window = wx.FindWindowById(self.control_ids['svd_start'], self)
         svd_end_window = wx.FindWindowById(self.control_ids['svd_end'], self)
 
@@ -6785,6 +6794,9 @@ class SVDControlPanel(wx.Panel):
         v_data = self.svd_V[:,svd_start:svd_end+1]
 
         SASFileIO.saveSVDData(save_path, svd_data, u_data, v_data)
+
+        RAWGlobals.save_in_progress = False
+        self.main_frame.setStatus('', 0)
 
 
     def _onCancelButton(self, evt):
@@ -8596,7 +8608,13 @@ class EFAControlPanel3(wx.Panel):
         else:
             return
 
+        RAWGlobals.save_in_progress = True
+        self.main_frame.setStatus('Saving EFA data', 0)
+
         SASFileIO.saveEFAData(save_path, self.panel1_results, self.panel2_results, panel3_results)
+
+        RAWGlobals.save_in_progress = False
+        self.main_frame.setStatus('', 0)
 
 
     def _updateStatus(self, in_progress = False):
@@ -9594,6 +9612,9 @@ class SimilarityFrame(wx.Frame):
         else:
             return
 
+        RAWGlobals.save_in_progress = True
+        self.main_frame.setStatus('Saving similarity data', 0)
+
         correction_window = wx.FindWindowById(self.ids['correction'])
         correction = correction_window.GetStringSelection()
 
@@ -9606,6 +9627,9 @@ class SimilarityFrame(wx.Frame):
             'Same (Pr(>C-1)),Corrected Prob. Same')
 
         SASFileIO.saveCSVFile(save_path, save_data, header)
+
+        RAWGlobals.save_in_progress = False
+        self.main_frame.setStatus('', 0)
 
     def _onClose(self):
         self.OnClose(1)
@@ -9754,12 +9778,9 @@ class NormKratkyPlotPanel(wx.Panel):
 
         wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
-        main_frame = wx.FindWindowByName('MainFrame')
+        self.main_frame = wx.FindWindowByName('MainFrame')
 
-        try:
-            self.raw_settings = main_frame.raw_settings
-        except AttributeError:
-            self.raw_settings = RAWSettings.RawGuiSettings()
+        self.raw_settings = self.main_frame.raw_settings
 
         self.fig = Figure((5,4), 75)
 
@@ -10014,7 +10035,13 @@ class NormKratkyPlotPanel(wx.Panel):
             else:
                 return
 
+            RAWGlobals.save_in_progress = True
+            self.main_frame.setStatus('Saving Kratky data', 0)
+
             SASFileIO.saveNormKratkyData(save_path, data_list, header)
+
+            RAWGlobals.save_in_progress = False
+            self.main_frame.setStatus('', 0)
 
 
 class NormKratkyControlPanel(wx.Panel):

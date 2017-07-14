@@ -2362,9 +2362,15 @@ class MainWorkerThread(threading.Thread):
         if ext != '.msk':
             fullpath_filename = fullpath_filename + '.msk'
 
+        RAWGlobals.save_in_progress = True
+        wx.CallAfter(self.main_frame.setStatus, 'Saving mask', 0)
+
         file_obj = open(fullpath_filename, 'w')
         cPickle.dump(masks, file_obj)
         file_obj.close()
+
+        RAWGlobals.save_in_progress = False
+        wx.CallAfter(self.main_frame.setStatus, '', 0)
 
         #wx.CallAfter(wx.MessageBox, 'The mask has been saved.', 'Mask Saved')
         # img_dim = self.image_panel.img.shape
@@ -4414,6 +4420,11 @@ class MainWorkerThread(threading.Thread):
                     result = self._showOverwritePrompt(os.path.split(filepath)[1], os.path.split(filepath)[0])
 
                 if result[0] == wx.ID_CANCEL:
+                    RAWGlobals.save_in_progress = False
+                    wx.CallAfter(self.main_frame.setStatus, '', 0)
+
+                    if restart_timer:
+                        wx.CallAfter(self.main_frame.controlTimer, True)
                     return
 
                 if result[0] == wx.ID_EDIT:
@@ -4489,6 +4500,14 @@ class MainWorkerThread(threading.Thread):
                     result = self._showOverwritePrompt(os.path.split(filepath)[1], os.path.split(filepath)[0])
 
                 if result[0] == wx.ID_CANCEL:
+                    RAWGlobals.save_in_progress = False
+                    wx.CallAfter(self.main_frame.setStatus, '', 0)
+                    wx.CallAfter(secm.item_panel.parent.Refresh)
+                    wx.CallAfter(secm.item_panel.parent.Layout)
+
+                    wx.CallAfter(secm.plot_panel.updateLegend, 1)
+                    if restart_timer:
+                        wx.CallAfter(self.main_frame.controlTimer, True)
                     return
 
                 if result[0] == wx.ID_EDIT:
@@ -4571,6 +4590,13 @@ class MainWorkerThread(threading.Thread):
                     result = self._showOverwritePrompt(check_filename, save_path)
 
                     if result[0] == wx.ID_CANCEL:
+                        RAWGlobals.save_in_progress = False
+                        wx.CallAfter(self.main_frame.setStatus, '', 0)
+
+                        if restart_timer:
+                            wx.CallAfter(self.main_frame.controlTimer, True)
+
+                        wx.CallAfter(self.main_frame.closeBusyDialog)
                         return
 
                     if result[0] == wx.ID_EDIT: #rename
@@ -4681,6 +4707,23 @@ class MainWorkerThread(threading.Thread):
                     result = self._showOverwritePrompt(check_filename, save_path)
 
                     if result[0] == wx.ID_CANCEL:
+                        wx.CallAfter(sasm.item_panel.parent.Refresh)
+                        wx.CallAfter(sasm.item_panel.parent.Layout)
+
+                        if iftmode:
+                            wx.CallAfter(sasm.item_panel.ift_plot_panel.updateLegend, 1)
+                            wx.CallAfter(sasm.item_panel.ift_plot_panel.updateLegend, 2)
+                        else:
+                            axes_update_list = set(axes_update_list)
+
+                            for axis in axes_update_list:
+                                wx.CallAfter(sasm.item_panel.plot_panel.updateLegend, axis)
+
+                        RAWGlobals.save_in_progress = False
+                        wx.CallAfter(self.main_frame.setStatus, '', 0)
+
+                        if restart_timer:
+                            wx.CallAfter(self.main_frame.controlTimer, True)
                         return
 
                     if result[0] == wx.ID_EDIT: #rename
@@ -4865,9 +4908,6 @@ class FilePanel(wx.Panel):
 
         if answer == wx.ID_CANCEL or answer == wx.ID_NO:
             return
-        elif answer == wx.ID_SAVE:
-            self.main_frame.saveWorkspace()
-
         else:
             answer2 = wx.ID_YES
 
@@ -4936,18 +4976,6 @@ class FilePanel(wx.Panel):
             filename = self.dir_panel.file_list_box.getSelectedFilenames()[0]
             path = os.path.join(self.dir_panel.file_list_box.path, filename)
             mainworker_cmd_queue.put(['show_image', path])
-
-    def _onSubtractButton(self, event):
-
-        pass
-        #dirpanel = wx.FindWindowByName('DirCtrlPanel')
-        #print dirpanel.itemDataMap
-        #wx.CallAfter(self.main_frame.showCenteringPane)
-
-        #RAWSettings.loadSettings(self.main_frame.raw_settings, 'testdat.dat')
-
-        #dlg = SaveAnalysisInfoDialog(self)
-        #dlg.ShowModal()
 
 
 class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.ColumnSorterMixin):
