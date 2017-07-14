@@ -13,7 +13,7 @@ https://sourceforge.net/projects/bioxtasraw/files/
 Some demo videos can be found here:
 http://bit.ly/bioxtast
 
-Example data for the demo vides is here:
+Example data for the demo videos is here:
 http://bit.ly/bioxtasd
 
 More information on the RAW project and the latest updates

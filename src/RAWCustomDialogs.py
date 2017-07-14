@@ -1651,10 +1651,9 @@ class LinePropertyDialog(wx.Dialog):
         err_linestyle_label = wx.StaticText(self, -1, 'Style :')
         err_colour_label = wx.StaticText(self, -1, 'Line Colour :')
 
-        self.err_linewidth = wx.SpinCtrl(self, -1, '1')
-        self.err_linewidth.SetRange(1, 99)
-        self.err_linewidth.SetValue(self._old_errlinewidth)
-        self.err_linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
+        self.err_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+        self.err_linewidth.SetValue(str(self._old_errlinewidth))
+        self.err_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
         self.err_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
         self.err_linestyle_list.Select(self.linestyle_list_choices.index(str(self._old_errlinestyle)))
@@ -1713,11 +1712,9 @@ class LinePropertyDialog(wx.Dialog):
         mar_linemarker_label = wx.StaticText(self, -1, 'Marker :')
         mar_hollow_label = wx.StaticText(self, -1, 'Hollow :')
 
-        #self.mar_size = wx.SpinCtrl(self, -1, '1')
         self.mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
         self.mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
         self.mar_size.SetValue(str(self._old_marsize))
-        #self.mar_size.Bind(wx.EVT_SPINCTRL, self.updateLine)
 
         self.mar_fillcolour = wx.Panel(self, -1, name = 'MarFillColour', style = wx.RAISED_BORDER)
         self.mar_fillcolour.SetBackgroundColour(self._marcolour)
@@ -1779,10 +1776,9 @@ class LinePropertyDialog(wx.Dialog):
         linestyle_label = wx.StaticText(self, -1, 'Style :')
         linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
 
-        self.linewidth = wx.SpinCtrl(self, -1, '1')
-        self.linewidth.SetRange(1,99)
-        self.linewidth.SetValue(self._old_linewidth)
-        self.linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
+        self.linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+        self.linewidth.SetValue(str(self._old_linewidth))
+        self.linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
         self.linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
         self.linestyle_list.Select(self.linestyle_list_choices.index(str(self._linestyle)))
@@ -1814,7 +1810,6 @@ class LinePropertyDialog(wx.Dialog):
             for line in each:
                 func, param = data
                 getattr(line, func)(param)
-
 
     def updateLine(self, event):
         marker =  self.mar_linemarker_list.GetStringSelection()
@@ -2142,9 +2137,8 @@ class IFTMLinePropertyDialog(wx.Dialog):
             err_linestyle_label = wx.StaticText(self, -1, 'Style :')
             err_colour_label = wx.StaticText(self, -1, 'Line Colour :')
 
-            self.r_err_linewidth = wx.SpinCtrl(self, -1, '1')
-            self.r_err_linewidth.SetRange(1, 99)
-            self.r_err_linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
+            self.r_err_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+            self.r_err_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
             self.r_err_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
             self.r_err_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
@@ -2160,7 +2154,7 @@ class IFTMLinePropertyDialog(wx.Dialog):
             sizer.Add(err_colour_label, 0)
             sizer.Add(self.r_err_colour, 0, wx.EXPAND)
 
-            self.r_err_linewidth.SetValue(self._old_r_errlinewidth)
+            self.r_err_linewidth.SetValue(str(self._old_r_errlinewidth))
             self.r_err_linestyle_list.Select(self.linestyle_list_choices.index(str(self._old_r_errlinestyle)))
             self.r_err_colour.SetBackgroundColour(self.r_errcolour)
 
@@ -2169,9 +2163,8 @@ class IFTMLinePropertyDialog(wx.Dialog):
             err_linestyle_label = wx.StaticText(self, -1, 'Style :')
             err_colour_label = wx.StaticText(self, -1, 'Line Colour :')
 
-            self.qo_err_linewidth = wx.SpinCtrl(self, -1, '1')
-            self.qo_err_linewidth.SetRange(1, 99)
-            self.qo_err_linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
+            self.qo_err_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+            self.qo_err_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
             self.qo_err_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
             self.qo_err_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
@@ -2187,7 +2180,7 @@ class IFTMLinePropertyDialog(wx.Dialog):
             sizer.Add(err_colour_label, 0)
             sizer.Add(self.qo_err_colour, 0, wx.EXPAND)
 
-            self.qo_err_linewidth.SetValue(self._old_qo_errlinewidth)
+            self.qo_err_linewidth.SetValue(str(self._old_qo_errlinewidth))
             self.qo_err_linestyle_list.Select(self.linestyle_list_choices.index(str(self._old_qo_errlinestyle)))
             self.qo_err_colour.SetBackgroundColour(self.qo_errcolour)
 
@@ -2251,11 +2244,9 @@ class IFTMLinePropertyDialog(wx.Dialog):
             mar_linemarker_label = wx.StaticText(self, -1, 'Marker :')
             mar_hollow_label = wx.StaticText(self, -1, 'Hollow :')
 
-            #self.r_mar_size = wx.SpinCtrl(self, -1, '1')
             self.r_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
             self.r_mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
             self.r_mar_size.SetValue(str(self._old_r_marsize))
-            #self.r_mar_size.Bind(wx.EVT_SPINCTRL, self.r_updateLine)
 
             self.r_mar_fillcolour = wx.Panel(self, -1, name = 'PrMarFillColour', style = wx.RAISED_BORDER)
             self.r_mar_fillcolour.SetBackgroundColour(self.r_marcolour)
@@ -2300,11 +2291,9 @@ class IFTMLinePropertyDialog(wx.Dialog):
             mar_linemarker_label = wx.StaticText(self, -1, 'Marker :')
             mar_hollow_label = wx.StaticText(self, -1, 'Hollow :')
 
-            #self.qo_mar_size = wx.SpinCtrl(self, -1, '1')
             self.qo_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
             self.qo_mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
             self.qo_mar_size.SetValue(str(self._old_qo_marsize))
-            #self.qo_mar_size.Bind(wx.EVT_SPINCTRL, self.qo_updateLine)
 
             self.qo_mar_fillcolour = wx.Panel(self, -1, name = 'QoMarFillColour', style = wx.RAISED_BORDER)
             self.qo_mar_fillcolour.SetBackgroundColour(self.qo_marcolour)
@@ -2350,11 +2339,9 @@ class IFTMLinePropertyDialog(wx.Dialog):
             mar_linemarker_label = wx.StaticText(self, -1, 'Marker :')
             mar_hollow_label = wx.StaticText(self, -1, 'Hollow :')
 
-            #self.qf_mar_size = wx.SpinCtrl(self, -1, '1')
             self.qf_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
             self.qf_mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
             self.qf_mar_size.SetValue(str(self._old_qf_marsize))
-            #self.qf_mar_size.Bind(wx.EVT_SPINCTRL, self.qf_updateLine)
 
             self.qf_mar_fillcolour = wx.Panel(self, -1, name = 'QfMarFillColour', style = wx.RAISED_BORDER)
             self.qf_mar_fillcolour.SetBackgroundColour(self.qf_marcolour)
@@ -2451,10 +2438,9 @@ class IFTMLinePropertyDialog(wx.Dialog):
             linestyle_label = wx.StaticText(self, -1, 'Style :')
             linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
 
-            self.r_linewidth = wx.SpinCtrl(self, -1, '1')
-            self.r_linewidth.SetRange(1,99)
-            self.r_linewidth.SetValue(self._old_r_linewidth)
-            self.r_linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
+            self.r_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+            self.r_linewidth.SetValue(str(self._old_r_linewidth))
+            self.r_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
             self.r_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
             self.r_linestyle_list.Select(self.linestyle_list_choices.index(str(self.r_linestyle)))
@@ -2483,10 +2469,9 @@ class IFTMLinePropertyDialog(wx.Dialog):
             linestyle_label = wx.StaticText(self, -1, 'Style :')
             linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
 
-            self.qo_linewidth = wx.SpinCtrl(self, -1, '1')
-            self.qo_linewidth.SetRange(1,99)
-            self.qo_linewidth.SetValue(self._old_qo_linewidth)
-            self.qo_linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
+            self.qo_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+            self.qo_linewidth.SetValue(str(self._old_qo_linewidth))
+            self.qo_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
             self.qo_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
             self.qo_linestyle_list.Select(self.linestyle_list_choices.index(str(self.qo_linestyle)))
@@ -2515,10 +2500,9 @@ class IFTMLinePropertyDialog(wx.Dialog):
             linestyle_label = wx.StaticText(self, -1, 'Style :')
             linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
 
-            self.qf_linewidth = wx.SpinCtrl(self, -1, '1')
-            self.qf_linewidth.SetRange(1,99)
-            self.qf_linewidth.SetValue(self._old_qf_linewidth)
-            self.qf_linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
+            self.qf_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+            self.qf_linewidth.SetValue(str(self._old_qf_linewidth))
+            self.qf_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
             self.qf_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
             self.qf_linestyle_list.Select(self.linestyle_list_choices.index(str(self.qf_linestyle)))
@@ -2884,10 +2868,9 @@ class SECMLinePropertyDialog(wx.Dialog):
         err_linestyle_label = wx.StaticText(self, -1, 'Style :')
         err_colour_label = wx.StaticText(self, -1, 'Line Colour :')
 
-        self.err_linewidth = wx.SpinCtrl(self, -1, '1')
-        self.err_linewidth.SetRange(1, 99)
-        self.err_linewidth.SetValue(self._old_errlinewidth)
-        self.err_linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
+        self.err_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+        self.err_linewidth.SetValue(str(self._old_errlinewidth))
+        self.err_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
         self.err_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
         self.err_linestyle_list.Select(self.linestyle_list_choices.index(str(self._old_errlinestyle)))
@@ -3090,10 +3073,9 @@ class SECMLinePropertyDialog(wx.Dialog):
             linestyle_label = wx.StaticText(self, -1, 'Style :')
             linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
 
-            self.linewidth = wx.SpinCtrl(self, -1, '1')
-            self.linewidth.SetRange(1,99)
-            self.linewidth.SetValue(self._old_linewidth)
-            self.linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
+            self.linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+            self.linewidth.SetValue(str(self._old_linewidth))
+            self.linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
             self.linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
             self.linestyle_list.Select(self.linestyle_list_choices.index(str(self._linestyle)))
@@ -3122,10 +3104,9 @@ class SECMLinePropertyDialog(wx.Dialog):
             linestyle_label = wx.StaticText(self, -1, 'Style :')
             linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
 
-            self.calc_linewidth = wx.SpinCtrl(self, -1, '1')
-            self.calc_linewidth.SetRange(1,99)
-            self.calc_linewidth.SetValue(self._old_calclinewidth)
-            self.calc_linewidth.Bind(wx.EVT_SPINCTRL, self.updateLine)
+            self.calc_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+            self.calc_linewidth.SetValue(str(self._old_calclinewidth))
+            self.calc_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
             self.calc_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
             self.calc_linestyle_list.Select(self.linestyle_list_choices.index(str(self._calclinestyle)))

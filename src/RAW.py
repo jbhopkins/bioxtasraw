@@ -5536,11 +5536,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
             file, ext = os.path.splitext(full_dir_filename)
 
             if ext == '.wsp':
-                ret = wx.MessageBox('Are you sure you want to load this workspace?',
-                              'Load workspace?', style = wx.YES_NO | wx.ICON_QUESTION)
-
-                if ret == wx.YES:
-                    mainworker_cmd_queue.put(['load_workspace', [full_dir_filename]])
+                mainworker_cmd_queue.put(['load_workspace', [full_dir_filename]])
 
             elif ext == '.cfg':
                 ret = wx.MessageBox('Are you sure you want to load this config file?',
