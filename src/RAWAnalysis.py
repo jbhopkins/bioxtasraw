@@ -3622,7 +3622,10 @@ class DammifRunPanel(wx.Panel):
         anisometry.SetStringSelection(self.dammif_settings['anisometry'])
 
         procs = wx.FindWindowById(self.ids['procs'], self)
-        procs.SetSelection(1)
+        if procs.GetCount()>1:
+            procs.SetSelection(1)
+        else:
+            procs.SetSelection(0)
 
         damaver = wx.FindWindowById(self.ids['damaver'], self)
         damaver.SetValue(self.raw_settings.get('dammifDamaver'))
