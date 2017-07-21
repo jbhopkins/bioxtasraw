@@ -50,9 +50,7 @@ from wx.lib.stattext import GenStaticText as StaticText
 import wx.lib.agw.flatnotebook as flatNB
 from wx.lib.agw import ultimatelistctrl as ULC
 
-from scipy import polyval, polyfit, integrate
-import scipy.interpolate as interp
-from scipy.constants import Avogadro
+from scipy import integrate
 import scipy.stats as stats
 
 import RAWSettings
@@ -172,8 +170,6 @@ class GuinierPlotPanel(wx.Panel):
         self.x = np.square(self.orig_q)
         self.y = np.log(self.orig_i)
         self.yerr = self.y*np.absolute(self.orig_err/self.orig_i)
-
-        xlim = [0, len(self.orig_i)-1]
 
     def updateDataPlot(self, xlim):
         xmin, xmax = xlim
@@ -1853,20 +1849,15 @@ class MolWeightFrame(wx.Frame):
         conc_ids = self.ids['conc']
         i0 = float(wx.FindWindowById(self.infodata['I0'][1], self).GetValue())
 
-        ref_mw = self.raw_settings.get('MWStandardMW')
-        ref_I0 = self.raw_settings.get('MWStandardI0')
-        ref_conc = self.raw_settings.get('MWStandardConc')
-
         try:
             conc = float(wx.FindWindowById(conc_ids['conc'], self).GetValue())
         except ValueError:
             conc = -1
 
-        if ref_mw > 0 and ref_I0 > 0 and ref_conc > 0 and conc > 0 and i0 > 0:
-            mw = (i0 * (ref_mw/(ref_I0/ref_conc))) / conc
+        mw = SASCalc.calcRefMW(i0, conc)
 
+        if mw > 0:
             mwstr = str(np.around(mw,1))
-
             if len(mwstr.split('.')[1])>1:
                 mwstr = '%.1E' %(mw)
 
@@ -1887,7 +1878,7 @@ class MolWeightFrame(wx.Frame):
             is_protein = False
 
         if rg > 0 and i0 > 0:
-            mw, mw_error, vc, qr = SASCalc.autoMW(self.sasm, rg, i0, is_protein)
+            mw, mw_error, vc, qr = SASCalc.calcVcMW(self.sasm, rg, i0, is_protein)
 
             mwstr = str(np.around(mw,1))
 
@@ -1929,39 +1920,18 @@ class MolWeightFrame(wx.Frame):
         q = q[qmin:qmax]
         i = i[qmin:qmax]
         err = err[qmin:qmax]
-        # print q[-1]
-
-        #These functions are used to correct the porod volume for the length of the q vector
-        #Coefficients were obtained by direct communication with the authors.
-        qc=[0.15, 0.20, 0.25, 0.30, 0.40, 0.45]
-        AA=[-9902.46965, -7597.7562, -6869.49936, -5966.34377, -4641.90536, -3786.71549]
-        BB=[0.57582, 0.61325, 0.64999, 0.68377, 0.76957, 0.85489]
-
-        fA=interp.interp1d(qc,AA)
-        fB=interp.interp1d(qc,BB)
 
         if q[-1]<0.45 and q[-1]>0.15:
-            A=fA(q[-1])
-            B=fB(q[-1])
             self._showVpMWWarning(False)
         else:
             self._showVpMWWarning(True)
 
         if i0 > 0:
-            #Calculate the Porod Volume
-            pVolume = SASCalc.porodVolume(self.sasm, rg, i0, interp = True)
+            analysis = self.sasm.getParameter('analysis')
+            guinier_analysis = analysis['guinier']
+            qmin = float(guinier_analysis['qStart'])
 
-            #Correct for the length of the q vector
-            if q[-1]<0.45 and q[-1]>0.15:
-                pv_cor=(A+B*pVolume)
-            else:
-                pv_cor = pVolume
-
-            #Get the input average protein density in solution (to be implimented in the show more)
-            #0.83*10**(-3) is the average density of protein in solution in kDa/A^3
-            density = self.raw_settings.get('MWVpRho')
-
-            mw = pv_cor*density
+            mw, pVolume, pv_cor = SASCalc.calcVpMW(q, i, err, rg, i0, qmin)
 
             mwstr = str(np.around(mw,1))
 
@@ -1987,38 +1957,25 @@ class MolWeightFrame(wx.Frame):
             pvcCtrl = wx.FindWindowById(vp_ids['sup_vpc'], self)
             pvcCtrl.SetValue(vpcstr)
 
-
-
     def calcAbsMW(self):
+        abs_ids = self.ids['abs']
+        i0 = float(wx.FindWindowById(self.infodata['I0'][1], self).GetValue())
+
         try:
-            abs_ids = self.ids['abs']
-            i0 = float(wx.FindWindowById(self.infodata['I0'][1], self).GetValue())
+            conc = float(wx.FindWindowById(abs_ids['conc'], self).GetValue())
+        except ValueError:
+            conc = -1
 
-            #Default values from Mylonas & Svergun, J. App. Crys. 2007.
-            rho_Mprot = self.raw_settings.get('MWAbsRhoMprot') #e-/g, # electrons per dry mass of protein
-            rho_solv = self.raw_settings.get('MWAbsRhoSolv') #e-/cm^-3, # electrons per volume of aqueous solvent
-            nu_bar = self.raw_settings.get('MWAbsNuBar') #cm^3/g, # partial specific volume of the protein
-            r0 = self.raw_settings.get('MWAbsR0') #cm, scattering lenght of an electron
+        if conc > 0 and i0 > 0 and wx.FindWindowById(abs_ids['calib'], self).GetValue():
+            mw = SASCalc.calcAbsMW(i0, conc)
 
-            try:
-                conc = float(wx.FindWindowById(abs_ids['conc'], self).GetValue())
-            except ValueError:
-                conc = -1
+            mwstr = str(np.around(mw,1))
 
-            if conc > 0 and i0 > 0 and wx.FindWindowById(abs_ids['calib'], self).GetValue():
-                d_rho = (rho_Mprot-(rho_solv*nu_bar))*r0
-                mw = (Avogadro*i0/conc)/np.square(d_rho)
+            if len(mwstr.split('.')[1])>1 or len(mwstr.split('.')[0])>4:
+                mwstr = '%.2E' %(mw)
 
-                mwstr = str(np.around(mw,1))
-
-                if len(mwstr.split('.')[1])>1 or len(mwstr.split('.')[0])>4:
-                    mwstr = '%.2E' %(mw)
-
-                mwCtrl = wx.FindWindowById(abs_ids['calc_mw'], self)
-                mwCtrl.SetValue(mwstr)
-        except Exception, e:
-            print e
-
+            mwCtrl = wx.FindWindowById(abs_ids['calc_mw'], self)
+            mwCtrl.SetValue(mwstr)
 
     def OnClose(self):
 

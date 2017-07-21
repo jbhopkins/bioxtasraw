@@ -32,6 +32,8 @@ It also contains functions for calling outside packages for use in RAW, like DAM
 import numpy as np
 from scipy import integrate as integrate
 import os, time, subprocess, scipy.optimize, wx, threading, Queue, platform, re
+import scipy.interpolate as interp
+from scipy.constants import Avogadro
 
 import SASFileIO, SASExceptions, RAWSettings
 
@@ -46,7 +48,7 @@ def calcRg(q, i, err, transform=True):
         #Start out by transforming as usual.
         x = np.square(q)
         y = np.log(i)
-        yerr = il*np.absolute(err/i)
+        yerr = err*np.absolute(err/i)
     else:
         x = q
         y = i
@@ -79,6 +81,112 @@ def calcRg(q, i, err, transform=True):
         I0er = -1
 
     return RG, I0, RGer, I0er, opt, cov
+
+def calcRefMW(i0, conc):
+    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+    ref_mw = raw_settings.get('MWStandardMW')
+    ref_I0 = raw_settings.get('MWStandardI0')
+    ref_conc = raw_settings.get('MWStandardConc')
+
+    if ref_mw > 0 and ref_I0 > 0 and ref_conc > 0 and conc > 0 and i0 > 0:
+            mw = (i0 * (ref_mw/(ref_I0/ref_conc))) / conc
+    else:
+        mw = -1
+
+    return mw
+
+def calcVpMW(q, i, err, rg, i0, rg_qmin):
+    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+    density = raw_settings.get('MWVpRho')
+    #These functions are used to correct the porod volume for the length of the q vector
+    #Coefficients were obtained by direct communication with the authors.
+    qc=[0.15, 0.20, 0.25, 0.30, 0.40, 0.45]
+    AA=[-9902.46965, -7597.7562, -6869.49936, -5966.34377, -4641.90536, -3786.71549]
+    BB=[0.57582, 0.61325, 0.64999, 0.68377, 0.76957, 0.85489]
+
+    fA=interp.interp1d(qc,AA)
+    fB=interp.interp1d(qc,BB)
+
+    if q[-1]>0.45:
+        A=AA[-1]
+        B=BB[-1]
+    elif q[-1]<0.15:
+        A=AA[0]
+        B=BB[0]
+    else:
+        A=fA(q[-1])
+        B=fB(q[-1])
+
+    if i0 > 0:
+        #Calculate the Porod Volume
+        pVolume = porodVolume(q, i, err, rg, i0, interp = True, rg_qmin=rg_qmin)
+
+        #Correct for the length of the q vector
+        pv_cor=(A+B*pVolume)
+
+        mw = pv_cor*density
+
+    else:
+        mw = -1
+        pVolume = -1
+        pv_cor = -1
+
+    return mw, pVolume, pv_cor
+
+def calcAbsMW(i0, conc):
+    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+    #Default values from Mylonas & Svergun, J. App. Crys. 2007.
+    rho_Mprot = raw_settings.get('MWAbsRhoMprot') #e-/g, # electrons per dry mass of protein
+    rho_solv = raw_settings.get('MWAbsRhoSolv') #e-/cm^-3, # electrons per volume of aqueous solvent
+    nu_bar = raw_settings.get('MWAbsNuBar') #cm^3/g, # partial specific volume of the protein
+    r0 = raw_settings.get('MWAbsR0') #cm, scattering lenght of an electron
+
+    d_rho = (rho_Mprot-(rho_solv*nu_bar))*r0
+    mw = (Avogadro*i0/conc)/np.square(d_rho)
+
+    return mw
+
+
+
+def volumeOfCorrelation(q, i, i0):
+    """Calculates the volume of correlation as the ratio of i0 to $\int q*I dq$
+    """
+    tot=integrate.trapz(q*i,q)
+    vc=i0/tot
+    return vc
+
+def porodInvariant(q, i,start=0,stop=-1):
+    return integrate.trapz(i[start:stop]*np.square(q[start:stop]),q[start:stop])
+
+def porodVolume(q, i, err, rg, i0, start = 0, stop = -1, interp = True, rg_qmin=0):
+    if interp and q[0] != 0:
+        def f(x):
+            return i0*np.exp((-1./3.)*np.square(rg)*np.square(x))
+
+        if rg_qmin>0:
+
+            findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
+            closest_qmin = findClosest(rg_qmin, q)
+
+            idx_min = np.where(q == closest_qmin)[0][0]
+
+            q = q[idx_min:]
+            i = i[idx_min:]
+            err = err[idx_min:]
+
+        q_interp = np.arange(0,q[0],q[1]-q[0])
+        i_interp = f(q_interp)
+        err_interp = np.sqrt(i_interp)
+
+        q = np.concatenate((q_interp, q))
+        i = np.concatenate((i_interp, i))
+        err = np.concatenate((err_interp, err))
+
+    pInvar = porodInvariant(q, i, start, stop)
+
+    pVolume = 2*np.square(np.pi)*i0/pInvar
+
+    return pVolume
 
 def autoRg(sasm):
     #This function automatically calculates the radius of gyration and scattering intensity at zero angle
@@ -298,7 +406,7 @@ def autoRg(sasm):
     return rg, rger, i0, i0er, idx_min, idx_max
 
 
-def autoMW(sasm, rg, i0, protein = True, interp = True):
+def calcVcMW(sasm, rg, i0, protein = True, interp = True):
     #using the rambo tainer 2013 method for molecular mass.
 
     raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -360,60 +468,6 @@ def autoMW(sasm, rg, i0, protein = True, interp = True):
     mw = (qr/B)**A/1000.
 
     return mw, np.sqrt(np.absolute(mw)), vc, qr
-
-def volumeOfCorrelation(q, i, i0):
-    """Calculates the volume of correlation as the ratio of i0 to $\int q*I dq$
-    """
-    tot=integrate.trapz(q*i,q)
-    vc=i0/tot
-    return vc
-
-def porodInvariant(q, i,start=0,stop=-1):
-    return integrate.trapz(i[start:stop]*np.square(q[start:stop]),q[start:stop])
-
-def porodVolume(sasm, rg, i0, start = 0, stop = -1, interp = True):
-
-    q = sasm.q
-    i = sasm.i
-    err = sasm.err
-    qmin, qmax = sasm.getQrange()
-
-    q = q[qmin:qmax]
-    i = i[qmin:qmax]
-    err = err[qmin:qmax]
-
-    analysis = sasm.getParameter('analysis')
-
-    if interp and q[0] != 0:
-        def f(x):
-            return i0*np.exp((-1./3.)*np.square(rg)*np.square(x))
-
-        if 'guinier' in analysis:
-            guinier_analysis = analysis['guinier']
-            qmin = float(guinier_analysis['qStart'])
-
-            findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
-            closest_qmin = findClosest(qmin, q)
-
-            idx_min = np.where(q == closest_qmin)[0][0]
-
-            q = q[idx_min:]
-            i = i[idx_min:]
-            err = err[idx_min:]
-
-        q_interp = np.arange(0,q[0],q[1]-q[0])
-        i_interp = f(q_interp)
-        err_interp = np.sqrt(i_interp)
-
-        q = np.concatenate((q_interp, q))
-        i = np.concatenate((i_interp, i))
-        err = np.concatenate((err_interp, err))
-
-    pInvar = porodInvariant(q, i, start, stop)
-
-    pVolume = 2*np.square(np.pi)*i0/pInvar
-
-    return pVolume
 
 
 def getATSASVersion():

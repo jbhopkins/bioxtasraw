@@ -2923,7 +2923,7 @@ class MainWorkerThread(threading.Thread):
 
                     #Now use the rambo tainer 2013 method to calculate molecular weight
                     if rg[a] > 0:
-                        mw[a], mwer[a], junk1, junk2 = SASCalc.autoMW(current_sasm, rg[a], i0[a], is_protein)
+                        mw[a], mwer[a], junk1, junk2 = SASCalc.calcVcMW(current_sasm, rg[a], i0[a], is_protein)
                     else:
                         mw[a], mwer[a] = -1, -1
 
@@ -2953,7 +2953,7 @@ class MainWorkerThread(threading.Thread):
 
                     #Now use the rambo tainer 2013 method to calculate molecular weight
                     if rg[index] > 0:
-                        mw[index], mwer[index], junk1, junk2 = SASCalc.autoMW(current_sasm, rg[index], i0[index], is_protein)
+                        mw[index], mwer[index], junk1, junk2 = SASCalc.calcVcMW(current_sasm, rg[index], i0[index], is_protein)
                     else:
                         mw[index], mwer[index] = -1, -1
 
@@ -3139,7 +3139,7 @@ class MainWorkerThread(threading.Thread):
 
                     #Now use the rambo tainer 2013 method to calculate molecular weight
                     if rg[a] > 0:
-                        mw[a], mwer[a], junk1, junk2 = SASCalc.autoMW(current_sasm, rg[a], i0[a], is_protein)
+                        mw[a], mwer[a], junk1, junk2 = SASCalc.calcVcMW(current_sasm, rg[a], i0[a], is_protein)
                     else:
                         mw[a], mwer[a] = -1, -1
                 else:
@@ -3167,7 +3167,7 @@ class MainWorkerThread(threading.Thread):
 
                     #Now use the rambo tainer 2013 method to calculate molecular weight
                     if rg[index] > 0:
-                        mw[index], mwer[index], junk1, junk2 = SASCalc.autoMW(current_sasm, rg[index], i0[index], is_protein)
+                        mw[index], mwer[index], junk1, junk2 = SASCalc.calcVcMW(current_sasm, rg[index], i0[index], is_protein)
                     else:
                         mw[index], mwer[index] = -1, -1
                 else:
