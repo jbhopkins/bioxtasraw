@@ -38,12 +38,6 @@ class RawGuiSettings:
 
         if settings == None:
             self._params = {
-                            #'NormalizeConst'    : [1.0,   wx.NewId(), 'float'],
-                            #'NormalizeConstChk' : [False, wx.NewId(),  'bool'],
-                            #'NormalizeM2'       : [False, wx.NewId(),  'bool'],
-                            #'NormalizeTime'     : [False, wx.NewId(),  'bool'],
-                            #'NormalizeM1'       : [False, wx.NewId(),  'bool'],
-
 							'NormFlatfieldEnabled'	: [False,   wx.NewId(),  'bool'],
 
                             'NormAbsWater'      	: [False,   wx.NewId(),  'bool'],
@@ -319,6 +313,9 @@ class RawGuiSettings:
                             'similarityCorrection'  : ['Bonferroni', wx.NewId(), 'choice'],
                             'similarityThreshold'   : [0.01, wx.NewId(), 'float'],
                             'similarityOnAverage'   : [True, wx.NewId(), 'bool'],
+
+                            #Fitting settings
+                            'errorWeight'           : [True, wx.NewId(), 'bool'],
                             }
 
     def get(self, key):

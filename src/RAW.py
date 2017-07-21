@@ -12078,7 +12078,8 @@ class WelcomeDialog(wx.Frame):
         text5 = 'Jesper Nygaard'
         text6 = 'Kurt Andersen'
 
-        text7 = '\nHelp this software become better by reporting bugs to:\n     soren.skou@saxslab.dk and jbh246@cornell.edu\n'
+        text7 = ('\nHelp this software become better by reporting bugs to:\n     http://bit.ly/rawhelp\n'
+                '     or to soren.skou@saxslab.com and hopkins.jesse@gmail.com\n')
 
         text8 = 'If you use this software for your SAXS data processing please cite:    \n'
         text9 = '"BioXTAS RAW, a software program for high-throughput\nautomated small-angle X-ray scattering data reduction\nand preliminary analysis", J. Appl. Cryst. (2009). 42, 959-964\n\n'

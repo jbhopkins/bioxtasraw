@@ -124,107 +124,60 @@ class GuinierPlotPanel(wx.Panel):
 
         self.canvas.mpl_disconnect(self.cid)
 
-        self.updateDataPlot(self.orig_i, self.orig_q, self.orig_err, self.xlim)
+        self.updateDataPlot(self.xlim)
 
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def _calcFit(self):
         ''' calculate fit and statistics '''
-        q_roi = self.q
-        i_roi = self.i
-        err_roi = self.err
+        xmin, xmax = self.xlim
 
-        x = np.power(q_roi, 2)
-        y = np.log(i_roi)
-        err = y*np.absolute(err_roi/i_roi)
+        x = self.x[xmin:xmax+1]
+        y = self.y[xmin:xmax+1]
+        yerr = self.yerr[xmin:xmax+1]
 
         #Remove NaN and Inf values:
         x = x[np.where(np.isnan(y) == False)]
-        err = err[np.where(np.isnan(y) == False)]
+        yerr = yerr[np.where(np.isnan(y) == False)]
         y = y[np.where(np.isnan(y) == False)]
 
         x = x[np.where(np.isinf(y) == False)]
-        err = err[np.where(np.isinf(y) == False)]
+        yerr = yerr[np.where(np.isinf(y) == False)]
         y = y[np.where(np.isinf(y) == False)]
 
-
-        #Get 1.st order fit:
-        ar, br = polyfit(x, y, 1)
-
-        #This uses error weighted points to calculate the Rg. Probably the correct way to do it, but different
-        #from how it has always been done.
-        # f = lambda x, a, b: a+b*x
-        # opt, cov = scipy.optimize.curve_fit(f, x, y, sigma = err, absolute_sigma = True)
-        # ar = opt[1]
-        # br = opt[0]
-
-        #Obtain fit values:
-        y_fit = polyval([ar, br], x)
+        Rg, I0, Rger, I0er, opt, cov = SASCalc.calcRg(x, y, yerr, transform=False)
 
         #Get fit statistics:
+        a = opt[0]
+        b = opt[1]
+        y_fit = SASCalc.linear_func(x, a, b)
         error = y - y_fit
-        SS_tot = np.sum(np.power(y-np.mean(y),2))
-        SS_err = np.sum(np.power(error, 2))
-        rsq = 1 - SS_err / SS_tot
+        r_sqr = 1 - np.square(error).sum()/np.square(y-y.mean()).sum()
 
-        I0 = br
-        Rg = np.sqrt(-3*ar)
+        newInfo = {'I0' : (I0, I0er),
+                   'Rg' : (Rg, Rger),
+                   'qRg_max': Rg*self.orig_q[xmax],
+                   'qRg_min' : Rg*self.orig_q[xmin],
+                   'rsq': r_sqr}
 
-        if np.isnan(Rg):
-            Rg = 0
-
-        ######## CALCULATE ERROR ON PARAMETERS ###############
-
-        N = len(error)
-        stde = SS_err / (N-2)
-        std_slope = stde * np.sqrt( (1/N) +  (np.power(np.mean(x),2)/np.sum(np.power(x-np.mean(x),2))))
-        std_interc = stde * np.sqrt(  1 / np.sum(np.power(x-np.mean(x),2)))
-
-        ######################################################
-
-        if np.isnan(std_slope):
-            std_slope = -1
-        if np.isnan(std_interc):
-            std_interc = -1
-
-        newInfo = {'I0' : (np.exp(I0), std_interc),
-                   'Rg' : (Rg, std_slope),
-                   'qRg_max': Rg * np.sqrt(x[-1]),
-                   'qRg_min' : Rg * np.sqrt(x[0]),
-                   'rsq': rsq}
-
-        return x, y_fit, br, error, newInfo
+        return x, y_fit, a, error, newInfo
 
     def plotExpObj(self, ExpObj):
         qmin, qmax = ExpObj.getQrange()
 
-        i = ExpObj.i[qmin:qmax]
-        q = ExpObj.q[qmin:qmax]
-        err = ExpObj.err[qmin:qmax]
+        self.orig_i = ExpObj.i[qmin:qmax]
+        self.orig_q = ExpObj.q[qmin:qmax]
+        self.orig_err = ExpObj.err[qmin:qmax]
 
-        xlim = [0, len(i)-1]
+        self.x = np.square(self.orig_q)
+        self.y = np.log(self.orig_i)
+        self.yerr = self.y*np.absolute(self.orig_err/self.orig_i)
 
-        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
-        self.canvas.mpl_disconnect(self.cid)
-        self.updateDataPlot(i, q, err, xlim)
+        xlim = [0, len(self.orig_i)-1]
 
-        #Reconnect draw_event
-        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
-
-    def updateDataPlot(self, i, q, err, xlim):
-
+    def updateDataPlot(self, xlim):
         xmin, xmax = xlim
-
-        #Save for resizing:
-        self.orig_i = i
-        self.orig_q = q
-        self.orig_err = err
         self.xlim = xlim
-
-        #Cut out region of interest
-        self.i = i[xmin:xmax+1]
-        self.q = q[xmin:xmax+1]
-        self.err = err[xmin:xmax+1]
 
         ## Plot the (at most) 3 first and last points after fit:
         if xmin < 20:
@@ -232,20 +185,17 @@ class GuinierPlotPanel(wx.Panel):
         else:
             min_offset = 20
 
-        if xmax+1 > len(q)-3:
-            max_offset = len(q) - (xmax+1)
+        if xmax+1 > len(self.orig_q)-3:
+            max_offset = len(self.orig_q) - (xmax+1)
         else:
             max_offset = 3
 
         xmin = xmin - min_offset
         xmax = xmax + 1 + max_offset
 
-        #data containing the 3 first and last points
-        q_offset = q[xmin:xmax]
-        i_offset = i[xmin:xmax]
-
-        x = np.power(q_offset, 2)
-        y = np.log(i_offset)
+        #data containing the extra first and last points
+        x = self.x[xmin:xmax]
+        y = self.y[xmin:xmax]
 
         x = x[np.where(np.isnan(y)==False)]
         y = y[np.where(np.isnan(y)==False)]
@@ -257,7 +207,8 @@ class GuinierPlotPanel(wx.Panel):
 
         try:
             x_fit, y_fit, I0, error, newInfo = self._calcFit()
-        except TypeError:
+        except TypeError as e:
+            print e
             return
 
         controlPanel = wx.FindWindowByName('GuinierControlPanel')
@@ -465,8 +416,6 @@ class GuinierControlPanel(wx.Panel):
 
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(idx_max)],5)))
-
-                self.updatePlot()
             except IndexError:
                 spinstart.SetValue(old_start)
                 spinend.SetValue(old_end)
@@ -476,6 +425,8 @@ class GuinierControlPanel(wx.Panel):
 
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(old_end)],5)))
+
+            self.updatePlot()
 
         else:
             self.runAutoRg()
@@ -574,7 +525,6 @@ class GuinierControlPanel(wx.Panel):
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(idx_max)],5)))
 
-                self.updatePlot()
             except IndexError:
                 spinstart.SetValue(old_start)
                 spinend.SetValue(old_end)
@@ -585,9 +535,10 @@ class GuinierControlPanel(wx.Panel):
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(old_end)],5)))
 
-                print 'FAILED AutoRG! resetting controls'
                 msg = 'AutoRG did not produce a useable result. Please report this to the developers.'
                 wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK)
+
+        self.updatePlot()
 
     def setCurrentExpObj(self, ExpObj):
 
@@ -657,8 +608,8 @@ class GuinierControlPanel(wx.Panel):
         self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
         self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
 
-        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (55, 22), style = wx.PROCESS_ENTER)
-        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (55, 22), style = wx.PROCESS_ENTER)
+        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (60, -1), style = wx.PROCESS_ENTER)
+        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (60, -1), style = wx.PROCESS_ENTER)
 
         self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
         self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
@@ -794,10 +745,6 @@ class GuinierControlPanel(wx.Panel):
 
         qmin, qmax = self.ExpObj.getQrange()
 
-        x = self.ExpObj.q[qmin:qmax]
-        y = self.ExpObj.i[qmin:qmax]
-        err = self.ExpObj.err[qmin:qmax]
-
         xlim = [i-qmin,i2-qmin]
 
         plotpanel.canvas.mpl_disconnect(plotpanel.cid) #disconnect draw event to avoid recursions
@@ -810,7 +757,7 @@ class GuinierControlPanel(wx.Panel):
         if not b.get_autoscale_on():
             b.set_autoscale_on(True)
 
-        plotpanel.updateDataPlot(y, x, err, xlim)
+        plotpanel.updateDataPlot(xlim)
         plotpanel.cid = plotpanel.canvas.mpl_connect('draw_event', plotpanel.ax_redraw) #Reconnect draw_event
 
 

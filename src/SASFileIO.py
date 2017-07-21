@@ -3431,7 +3431,7 @@ def checkFileType(filename):
         return 'image'
     #elif type_tst == 'BI':
     #    return 'bift'
-    elif ext == '.dat' or ext == '.sub':
+    elif ext == '.dat' or ext == '.sub' or ext =='.txt':
         return 'primus'
     elif ext == '.mar1200' or ext == '.mar2400' or ext == '.mar2300' or ext == '.mar3600':
         return 'image'

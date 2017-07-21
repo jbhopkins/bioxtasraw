@@ -1,4 +1,4 @@
-Making the mac installer users pyinstaller (tested on 3.2.1). This is vary particular about what version of python it uses. I’ve only been able to get it to work on a conda install, with the packages as listed at the end of this document. With a python build from homebrew or from canopy it doesn’t seem to work. Additionally, it doesn’t seem to work on my home machine with (presumably) the same conda python distribution. Finally, conda needs to have the nomkl package installed, numpy/scipy with mkl don't seem to package correctly.
+Making the mac installer users pyinstaller (tested on 3.2.1). This is very particular about what version of python it uses. I’ve only been able to get it to work on a conda install, with the packages as listed at the end of this document. With a python build from homebrew or from canopy it doesn’t seem to work. Additionally, it doesn’t seem to work on my home machine with (presumably) the same conda python distribution. Finally, conda needs to have the nomkl package installed, numpy/scipy with mkl don't seem to package correctly.
 
 Steps:
 0) Set the appropriate python path, if needed: export PATH=~/miniconda2/bin:$PATH
