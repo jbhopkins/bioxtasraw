@@ -3376,6 +3376,62 @@ class SimilarityPanel(wx.Panel):
 
         return sizer
 
+class FittingPanel(wx.Panel):
+
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+
+        self.raw_settings = raw_settings
+
+        self.update_keys = ['errorWeight',
+                            ]
+
+        self.settings = [('Use error weighting for fits', raw_settings.getId('errorWeight'), 'bool'),
+                        ]
+
+        sizer = self.createOptions(self)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        top_sizer.Add(sizer, 1, wx.EXPAND | wx.ALL, 5)
+        self.SetSizer(top_sizer)
+
+
+    def createOptions(self, parent):
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        for item in self.settings:
+            label = item[0]
+            myId = item[1]
+            itemType = item[2]
+
+            short_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+            if itemType == 'choice':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.Choice(parent, myId, choices = item[3])
+
+                short_sizer.Add(labeltxt, 0)
+                short_sizer.Add(ctrl, 0)
+
+            elif itemType == 'text' or itemType == 'int' or itemType =='float':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+
+                short_sizer.Add(labeltxt, 0)
+                short_sizer.Add(ctrl, 0)
+
+            elif itemType == 'bool':
+                ctrl = wx.CheckBox(parent, myId, label)
+                short_sizer.Add(ctrl, 0, wx.ALL, 2)
+                short_sizer.AddStretchSpacer(1)
+
+            sizer.Add(short_sizer,0, wx.BOTTOM, 5)
+
+        return sizer
+
 def findATSASDirectory():
     opsys= platform.system()
 
@@ -3761,6 +3817,7 @@ class OptionsDialog(wx.Dialog):
                             [ (9,5,2), wx.Window.NewControlId(), "DAMMIN Advanced", ATSASDamminAdvanced],
                             [ (10,0,0), wx.Window.NewControlId(), "Weighted Average", WeightedAveragePanel],
                             [ (11,0,0), wx.Window.NewControlId(), "Similarity Testing", SimilarityPanel],
+                            [ (12,0,0), wx.Window.NewControlId(), "Fitting", FittingPanel],
                             # [ (10,0,0), wx.Window.NewControlId(), "SANS", SansOptionsPanel]
                             ]
 

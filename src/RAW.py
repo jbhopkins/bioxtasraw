@@ -2779,9 +2779,6 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait, calculating (may take a while)...')
         initial_buffer_frame, final_buffer_frame, window_size = secm.getCalcParams()
 
-        # print initial_buffer_frame
-        # print final_buffer_frame
-        # print window_size
         secm.acquireSemaphore()
 
         buffer_sasm_list = secm.getSASMList(initial_buffer_frame, final_buffer_frame)
