@@ -2385,9 +2385,8 @@ class MainWorkerThread(threading.Thread):
             filenamepath, extension = os.path.splitext(fullpath_filename)
 
             if extension == '.msk':
-                file_obj = open(fullpath_filename, 'r')
-                masks = cPickle.load(file_obj)
-                file_obj.close()
+                with open(fullpath_filename, 'r') as file_obj:
+                    masks = cPickle.load(file_obj)
 
                 i=0
                 for each in masks:
@@ -5628,7 +5627,6 @@ class DirCtrlPanel(wx.Panel):
         if path != None and os.path.exists(path):
             self.setDirLabel(path)
             self.file_list_box.setDir(path)
-            print 'Switched to saved path: ' + str(path)
         else:
             path = wx.StandardPaths.Get().GetDocumentsDir()
             self.setDirLabel(path)
@@ -6684,7 +6682,7 @@ class ManipItemPanel(wx.Panel):
     def showItem(self, state):
         self._selected_for_plot = state
 
-        if self._selected_for_plot == False:
+        if not self._selected_for_plot:
             self._controls_visible = False
             self.showControls(self._controls_visible)
 
@@ -6692,59 +6690,20 @@ class ManipItemPanel(wx.Panel):
         self.sasm.line.set_visible(self._selected_for_plot)
         self.sasm.line.set_picker(self._selected_for_plot)      #Line can't be selected when it's hidden
 
-        if not state:
-            each = self.sasm
+        each = self.sasm
+        item_plot_panel = each.plot_panel
+        err_bars = item_plot_panel.plotparams['errorbars_on']
 
-            item_plot_panel = each.plot_panel
+        if err_bars:
 
-            err_bars = item_plot_panel.plotparams['errorbars_on']
+            for each_err_line in each.err_line[0]:
+                each_err_line.set_visible(state)
 
-            if err_bars:
+            for each_err_line in each.err_line[1]:
+                each_err_line.set_visible(state)
 
-                for each_err_line in each.err_line[0]:
-                    each_err_line.set_visible(state)
-
-                for each_err_line in each.err_line[1]:
-                    each_err_line.set_visible(state)
-
-        else:
-            each = self.sasm
-
-            item_plot_panel = each.plot_panel
-
-            err_bars = item_plot_panel.plotparams['errorbars_on']
-
-            if err_bars:
-
-                for each_err_line in each.err_line[0]:
-                    each_err_line.set_visible(state)
-
-                for each_err_line in each.err_line[1]:
-                    each_err_line.set_visible(state)
-
-                if state == True:
-                    #Update errorbar positions
-
-                    q_min, q_max = each.getQrange()
-                    q = each.q
-                    i = each.i
-
-                    caplines = each.err_line[0]
-                    barlinecols = each.err_line[1]
-
-                    yerr = each.err
-                    x = q
-                    y = i
-
-                    # Find the ending points of the errorbars
-                    error_positions = (x, y-yerr), (x, y+yerr)
-
-                    # Update the caplines
-                    for i,pos in enumerate(error_positions):
-                        caplines[i].set_data(pos)
-
-                    # Update the error bars
-                    barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr)))
+            if self._selected_for_plot:
+                item_plot_panel.updateErrorBars(each)
 
     def updateShowItemCheckBox(self):
         self.SelectedForPlot.SetValue(self._selected_for_plot)
@@ -8122,85 +8081,29 @@ class IFTItemPanel(wx.Panel):
             line.set_picker(state)      #Line can't be selected when it's hidden
 
         each = self.iftm
-
         item_plot_panel = each.plot_panel
-
         err_bars = item_plot_panel.plotparams['errorbars_on']
 
-        if not state:
+        if err_bars:
+            for each_err_line in each.r_err_line[0]:
+                each_err_line.set_visible(state)
 
-            if err_bars:
-                for each_err_line in each.r_err_line[0]:
-                    each_err_line.set_visible(state)
+            for each_err_line in each.r_err_line[1]:
+                each_err_line.set_visible(state)
 
-                for each_err_line in each.r_err_line[1]:
-                    each_err_line.set_visible(state)
+            for each_err_line in each.qo_err_line[0]:
+                each_err_line.set_visible(state)
 
-                for each_err_line in each.qo_err_line[0]:
-                    each_err_line.set_visible(state)
+            for each_err_line in each.qo_err_line[1]:
+                each_err_line.set_visible(state)
 
-                for each_err_line in each.qo_err_line[1]:
-                    each_err_line.set_visible(state)
+            for each_err_line in each.r_err_line[0]:
+                each_err_line.set_visible(state)
 
-        else:
-            if err_bars:
-                for each_err_line in each.r_err_line[0]:
-                    each_err_line.set_visible(state)
+            for each_err_line in each.r_err_line[1]:
+                each_err_line.set_visible(state)
 
-                for each_err_line in each.r_err_line[1]:
-                    each_err_line.set_visible(state)
-
-
-                q_min, q_max = each.getQrange()
-                q = each.r
-                i = each.p
-
-                caplines = each.r_err_line[0]
-                barlinecols = each.r_err_line[1]
-
-                yerr = each.err
-                x = q
-                y = i
-
-                # Find the ending points of the errorbars
-                error_positions = (x, y-yerr), (x, y+yerr)
-
-                # Update the caplines
-                for i,pos in enumerate(error_positions):
-                    caplines[i].set_data(pos)
-
-                # Update the error bars
-                barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr)))
-
-
-
-                for each_err_line in each.qo_err_line[0]:
-                    each_err_line.set_visible(state)
-
-                for each_err_line in each.qo_err_line[1]:
-                    each_err_line.set_visible(state)
-
-
-                q_min, q_max = each.getQrange()
-                q = each.q_orig
-                i = each.i_orig
-
-                caplines = each.qo_err_line[0]
-                barlinecols = each.qo_err_line[1]
-
-                yerr = each.err_orig
-                x = q
-                y = i
-
-                # Find the ending points of the errorbars
-                error_positions = (x, y-yerr), (x, y+yerr)
-
-                # Update the caplines
-                for i,pos in enumerate(error_positions):
-                    caplines[i].set_data(pos)
-
-                # Update the error bars
-                barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr)))
+            item_plot_panel.updateErrorBars(each)
 
     def updateFilenameLabel(self, updateSelf = True, updateParent = True, updateLegend = True):
         filename = self.iftm.getParameter('filename')

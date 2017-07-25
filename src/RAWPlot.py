@@ -1602,6 +1602,8 @@ class PlotPanel(wx.Panel):
             sasm.plot_panel = self
             sasm.is_plotted = True
 
+            self.updateErrorBars(sasm)
+
             self.plotted_sasms.append(sasm)        # Insert the plot into plotted experiments list
 
             if line_data != None:
@@ -1627,27 +1629,7 @@ class PlotPanel(wx.Panel):
                 if state == True:
                     #Update errorbar positions
 
-                    q_min, q_max = each.getQrange()
-                    q = each.q
-                    i = each.i
-
-                    caplines = each.err_line[0]
-                    barlinecols = each.err_line[1]
-
-                    yerr = each.err
-                    x = q
-                    y = i
-
-                    # Find the ending points of the errorbars
-                    error_positions = (x, y-yerr), (x, y+yerr)
-
-                    # Update the caplines
-                    for i,pos in enumerate(error_positions):
-                        caplines[i].set_data(pos)
-
-                    # Update the error bars
-                    barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr)))
-
+                    self.updateErrorBars(each)
 
         self.canvas.draw()
 
@@ -1808,6 +1790,8 @@ class PlotPanel(wx.Panel):
                     each.line.set_ydata(each.i[q_min:q_max])
                     each.line.set_xdata(each.q[q_min:q_max])
 
+                self.updateErrorBars(each)
+
         self._setLabels(axes = self.subplot1)
         self._setLabels(axes = self.subplot2)
 
@@ -1869,8 +1853,43 @@ class PlotPanel(wx.Panel):
             elif plottype == 'guinier':
                 sasm.line.set_data(np.power(q,2), np.log(i))
 
+            self.updateErrorBars(sasm)
+
         if draw:
             self.fitAxis()
+
+    def updateErrorBars(self, sasm):
+        a = sasm.axes
+
+        if a == self.subplot1:
+            plottype= self.plotparams.get('plot1type')
+        elif a == self.subplot2:
+            plottype= self.plotparams.get('plot2type')
+
+        if sasm.err_line is not None:
+            #Update errorbar positions
+            caplines = sasm.err_line[0]
+            barlinecols = sasm.err_line[1]
+
+            yerr = sasm.err
+            x = sasm.q
+            y = sasm.i
+
+            # Find the ending points of the errorbars
+            if plottype== 'normal' or plottype== 'subtracted':
+                error_positions = (x, y-yerr), (x, y+yerr)
+            elif plottype== 'kratky':
+                error_positions = (x, (y-yerr)*np.power(x,2)), (x, (y+yerr)*np.power(x,2))
+            elif plottype== 'porod':
+                error_positions = (x, (y-yerr)*np.power(x,4)), (x, (y+yerr)*np.power(x,4))
+            elif plottype == 'guinier':
+                error_positions = (np.power(x,2), np.log((y-yerr))), (np.power(x,2), np.log((y+yerr)))
+            # Update the caplines
+            for i,pos in enumerate(error_positions):
+                caplines[i].set_data(pos)
+
+            # Update the error bars
+            barlinecols[0].set_segments(zip(zip(*error_positions[0]), zip(*error_positions[1])))
 
     def clearAllPlots(self):
 
@@ -2571,31 +2590,6 @@ class IftPlotPanel(PlotPanel):
                     each_err_line.set_visible(state)
 
 
-                if state == True:
-                    #Update errorbar positions
-
-                    q_min, q_max = each.getQrange()
-                    q = each.r
-                    i = each.p
-
-                    caplines = each.r_err_line[0]
-                    barlinecols = each.r_err_line[1]
-
-                    yerr = each.err
-                    x = q
-                    y = i
-
-                    # Find the ending points of the errorbars
-                    error_positions = (x, y-yerr), (x, y+yerr)
-
-                    # Update the caplines
-                    for i,pos in enumerate(error_positions):
-                        caplines[i].set_data(pos)
-
-                    # Update the error bars
-                    barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr)))
-
-
             if each.qo_line.get_visible():
                 for each_err_line in each.qo_err_line[0]:
                     each_err_line.set_visible(state)
@@ -2603,31 +2597,8 @@ class IftPlotPanel(PlotPanel):
                 for each_err_line in each.qo_err_line[1]:
                     each_err_line.set_visible(state)
 
-
-                if state == True:
-                    #Update errorbar positions
-
-                    q_min, q_max = each.getQrange()
-                    q = each.q_orig
-                    i = each.i_orig
-
-                    caplines = each.qo_err_line[0]
-                    barlinecols = each.qo_err_line[1]
-
-                    yerr = each.err_orig
-                    x = q
-                    y = i
-
-                    # Find the ending points of the errorbars
-                    error_positions = (x, y-yerr), (x, y+yerr)
-
-                    # Update the caplines
-                    for i,pos in enumerate(error_positions):
-                        caplines[i].set_data(pos)
-
-                    # Update the error bars
-                    barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr)))
-
+            if state:
+                self.updateErrorBars(each)
 
         self.canvas.draw()
 
@@ -2763,7 +2734,7 @@ class IftPlotPanel(PlotPanel):
     def updatePlotType(self, axes):
 
         for each in self.plotted_iftms:
-            if each is not None and each.line is not None:
+            if each is not None and each.qo_line is not None and each.qf_line is not None:
                 q_min, q_max = each.getQrange()
 
                 c = '2'
@@ -2795,6 +2766,8 @@ class IftPlotPanel(PlotPanel):
 
                     each.qf_line.set_ydata(each.i_fit[q_min:q_max])
                     each.qf_line.set_xdata(each.q_orig[q_min:q_max])
+
+                self.updateErrorBars(each)
 
         self._setLabels(axes = self.subplot2)
 
@@ -2857,8 +2830,75 @@ class IftPlotPanel(PlotPanel):
             elif type == 'porod':
                 sasm.line.set_data(q, np.power(q,4)*i)
 
+            self.updateErrorBars(sasm)
+
         if draw:
             self.fitAxis()
+
+    def updateErrorBars(self, iftm):
+
+        if iftm.r_err_line is not None:
+            a = iftm.r_axes
+
+            if a == self.subplot1:
+                plottype= self.plotparams.get('plot1type')
+            elif a == self.subplot2:
+                plottype= self.plotparams.get('plot2type')
+            #Update errorbar positions
+            caplines = iftm.r_err_line[0]
+            barlinecols = iftm.r_err_line[1]
+
+            yerr = iftm.err
+            x = iftm.r
+            y = iftm.p
+
+            # Find the ending points of the errorbars
+            if plottype== 'normal' or plottype== 'subtracted':
+                error_positions = (x, y-yerr), (x, y+yerr)
+            elif plottype== 'kratky':
+                error_positions = (x, (y-yerr)*np.power(x,2)), (x, (y+yerr)*np.power(x,2))
+            elif plottype== 'porod':
+                error_positions = (x, (y-yerr)*np.power(x,4)), (x, (y+yerr)*np.power(x,4))
+            elif plottype == 'guinier':
+                error_positions = (np.power(x,2), np.log((y-yerr))), (np.power(x,2), np.log((y+yerr)))
+            # Update the caplines
+            for i,pos in enumerate(error_positions):
+                caplines[i].set_data(pos)
+
+            # Update the error bars
+            barlinecols[0].set_segments(zip(zip(*error_positions[0]), zip(*error_positions[1])))
+
+
+        if iftm.qo_err_line is not None:
+            a = iftm.qo_axes
+
+            if a == self.subplot1:
+                plottype= self.plotparams.get('plot1type')
+            elif a == self.subplot2:
+                plottype= self.plotparams.get('plot2type')
+            #Update errorbar positions
+            caplines = iftm.qo_err_line[0]
+            barlinecols = iftm.qo_err_line[1]
+
+            yerr = iftm.err_orig
+            x = iftm.q_orig
+            y = iftm.i_orig
+
+            # Find the ending points of the errorbars
+            if plottype== 'normal' or plottype== 'subtracted':
+                error_positions = (x, y-yerr), (x, y+yerr)
+            elif plottype== 'kratky':
+                error_positions = (x, (y-yerr)*np.power(x,2)), (x, (y+yerr)*np.power(x,2))
+            elif plottype== 'porod':
+                error_positions = (x, (y-yerr)*np.power(x,4)), (x, (y+yerr)*np.power(x,4))
+            elif plottype == 'guinier':
+                error_positions = (np.power(x,2), np.log((y-yerr))), (np.power(x,2), np.log((y+yerr)))
+            # Update the caplines
+            for i,pos in enumerate(error_positions):
+                caplines[i].set_data(pos)
+
+            # Update the error bars
+            barlinecols[0].set_segments(zip(zip(*error_positions[0]), zip(*error_positions[1])))
 
     def clearAllPlots(self):
 
