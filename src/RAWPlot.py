@@ -1613,6 +1613,17 @@ class PlotPanel(wx.Panel):
                 line.set_marker(line_data['line_marker'])
                 line.set_visible(line_data['line_visible'])
 
+                try:
+                    line.set_markerfacecolor(line_data['line_marker_face_color'])
+                    line.set_markeredgecolor(line_data['line_marker_edge_color'])
+
+                    for each in sasm.err_line:
+                        for line in each:
+                            line.set_color(line_data['line_errorbar_color'])
+
+                except KeyError:
+                    pass #Version <1.3.0 doesn't have these keys
+
 
     def showErrorbars(self, state):
 
@@ -3174,23 +3185,45 @@ class IftPlotPanel(PlotPanel):
             self.plotted_iftms.append(iftm)        # Insert the plot into plotted experiments list
 
             if line_data != None:
-                pr_line.set_linewidth(line_data['r_line_width'])
-                pr_line.set_linestyle(line_data['r_line_style'])
-                pr_line.set_color(line_data['r_line_color'])
-                pr_line.set_marker(line_data['r_line_marker'])
-                pr_line.set_visible(line_data['r_line_visible'])
+                iftm.r_line.set_linewidth(line_data['r_line_width'])
+                iftm.r_line.set_linestyle(line_data['r_line_style'])
+                iftm.r_line.set_color(line_data['r_line_color'])
+                iftm.r_line.set_marker(line_data['r_line_marker'])
+                iftm.r_line.set_visible(line_data['r_line_visible'])
 
-                orig_line.set_linewidth(line_data['qo_line_width'])
-                orig_line.set_linestyle(line_data['qo_line_style'])
-                orig_line.set_color(line_data['qo_line_color'])
-                orig_line.set_marker(line_data['qo_line_marker'])
-                orig_line.set_visible(line_data['qo_line_visible'])
+                iftm.qo_line.set_linewidth(line_data['qo_line_width'])
+                iftm.qo_line.set_linestyle(line_data['qo_line_style'])
+                iftm.qo_line.set_color(line_data['qo_line_color'])
+                iftm.qo_line.set_marker(line_data['qo_line_marker'])
+                iftm.qo_line.set_visible(line_data['qo_line_visible'])
 
-                fit_line[0].set_linewidth(line_data['qf_line_width'])
-                fit_line[0].set_linestyle(line_data['qf_line_style'])
-                fit_line[0].set_color(line_data['qf_line_color'])
-                fit_line[0].set_marker(line_data['qf_line_marker'])
-                fit_line[0].set_visible(line_data['qf_line_visible'])
+                iftm.qf_line.set_linewidth(line_data['qf_line_width'])
+                iftm.qf_line.set_linestyle(line_data['qf_line_style'])
+                iftm.qf_line.set_color(line_data['qf_line_color'])
+                iftm.qf_line.set_marker(line_data['qf_line_marker'])
+                iftm.qf_line.set_visible(line_data['qf_line_visible'])
+
+                try:
+                    iftm.r_line.set_markerfacecolor(line_data['r_line_marker_face_color'])
+                    iftm.r_line.set_markeredgecolor(line_data['r_line_marker_edge_color'])
+
+                    for each in iftm.r_err_line:
+                        for line in each:
+                            line.set_color(line_data['r_line_errorbar_color'])
+
+                    iftm.qo_line.set_markerfacecolor(line_data['qo_line_marker_face_color'])
+                    iftm.qo_line.set_markeredgecolor(line_data['qo_line_marker_edge_color'])
+
+                    for each in iftm.qo_err_line:
+                        for line in each:
+                            line.set_color(line_data['qo_line_errorbar_color'])
+
+                    iftm.qf_line.set_markerfacecolor(line_data['qf_line_marker_face_color'])
+                    iftm.qf_line.set_markeredgecolor(line_data['qf_line_marker_edge_color'])
+
+                except KeyError:
+                    pass #Version <1.3.0 doesn't have these keys
+
 
     def _onMouseMotionEvent(self, event):
 
@@ -3602,7 +3635,7 @@ class SECPlotPanel(wx.Panel):
         self.selected_line_orig_width = 1
         self._plot_shown = 1
 
-        self.markers = itertools.cycle(('o', 'v', 's', 'p', 'h', 'D', '^', '<', '<',))
+        self.markers = itertools.cycle(('o', 'v', 's', 'p', 'h', 'D', '^', '<', '>',))
 
         #Timer to automatically restore line width after selection
         self.blink_timer = wx.Timer()
@@ -4176,12 +4209,24 @@ class SECPlotPanel(wx.Panel):
                 secm.line.set_marker(line_data['line_marker'])
                 secm.line.set_visible(line_data['line_visible'])
 
+                try:
+                    secm.line.set_markerfacecolor(line_data['line_marker_face_color'])
+                    secm.line.set_markeredgecolor(line_data['line_marker_edge_color'])
+                except KeyError:
+                    pass #Version <1.3.0 doesn't have these keys
+
             if calc_line_data != None:
                 secm.calc_line.set_linewidth(calc_line_data['line_width'])
                 secm.calc_line.set_linestyle(calc_line_data['line_style'])
                 secm.calc_line.set_color(calc_line_data['line_color'])
                 secm.calc_line.set_marker(calc_line_data['line_marker'])
                 secm.calc_line.set_visible(calc_line_data['line_visible'])
+
+                try:
+                    secm.calc_line.set_markerfacecolor(calc_line_data['line_marker_face_color'])
+                    secm.calc_line.set_markeredgecolor(calc_line_data['line_marker_edge_color'])
+                except KeyError:
+                    pass #Version <1.3.0 doesn't have these key
 
             self.updatePlotData(self.subplot1)
 

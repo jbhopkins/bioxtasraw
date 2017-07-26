@@ -2037,9 +2037,19 @@ def makeSECFile(secm_data):
                      'line_style' : secm_data['calc_line_style'],
                      'line_marker': secm_data['calc_line_marker'],
                      'line_visible' :secm_data['calc_line_visible']}
+
+        try:
+            line_data['line_marker_face_color'] = secm_data['line_marker_face_color']
+            line_data['line_marker_edge_color'] = secm_data['line_marker_edge_color']
+
+            calc_line_data['line_marker_face_color'] = secm_data['calc_line_marker_face_color']
+            calc_line_data['line_marker_edge_color'] = secm_data['calc_line_marker_edge_color']
+        except KeyError:
+            pass #Version <1.3.0 doesn't have these keys
+
     except KeyError:
         line_data = None    #Backwards compatibility
-        secm_data['line_visible'] = True
+        calc_line_data = None
 
     return new_secm, line_data, calc_line_data
 

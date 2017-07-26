@@ -4126,6 +4126,9 @@ class MainWorkerThread(threading.Thread):
             sasm_dict['line_width'] = sasm.line.get_linewidth()
             sasm_dict['line_style'] = sasm.line.get_linestyle()
             sasm_dict['line_marker'] = sasm.line.get_marker()
+            sasm_dict['line_marker_face_color'] = sasm.line.get_markerfacecolor()
+            sasm_dict['line_marker_edge_color'] = sasm.line.get_markeredgecolor()
+            sasm_dict['line_errorbar_color'] = sasm.err_line[0][0].get_color()
             sasm_dict['line_visible'] = sasm.line.get_visible()
             if sasm.line.get_label() != sasm_dict['parameters']['filename']:
                 sasm_dict['line_legend_label'] = sasm.line.get_label()
@@ -4154,6 +4157,9 @@ class MainWorkerThread(threading.Thread):
             iftm_dict['r_line_width'] = iftm.r_line.get_linewidth()
             iftm_dict['r_line_style'] = iftm.r_line.get_linestyle()
             iftm_dict['r_line_marker'] = iftm.r_line.get_marker()
+            iftm_dict['r_line_marker_face_color'] = iftm.r_line.get_markerfacecolor()
+            iftm_dict['r_line_marker_edge_color'] = iftm.r_line.get_markeredgecolor()
+            iftm_dict['r_line_errorbar_color'] = iftm.r_err_line[0][0].get_color()
             iftm_dict['r_line_visible'] = iftm.r_line.get_visible()
             if iftm.r_line.get_label() != iftm_dict['parameters']['filename']+'_P(r)':
                 iftm_dict['r_line_legend_label'] = iftm.r_line.get_label()
@@ -4164,6 +4170,9 @@ class MainWorkerThread(threading.Thread):
             iftm_dict['qo_line_width'] = iftm.qo_line.get_linewidth()
             iftm_dict['qo_line_style'] = iftm.qo_line.get_linestyle()
             iftm_dict['qo_line_marker'] = iftm.qo_line.get_marker()
+            iftm_dict['qo_line_marker_face_color'] = iftm.qo_line.get_markerfacecolor()
+            iftm_dict['qo_line_marker_edge_color'] = iftm.qo_line.get_markeredgecolor()
+            iftm_dict['qo_line_errorbar_color'] = iftm.qo_err_line[0][0].get_color()
             iftm_dict['qo_line_visible'] = iftm.qo_line.get_visible()
             if iftm.qo_line.get_label() != iftm_dict['parameters']['filename']+'_Exp':
                 iftm_dict['qo_line_legend_label'] = iftm.qo_line.get_label()
@@ -4174,6 +4183,8 @@ class MainWorkerThread(threading.Thread):
             iftm_dict['qf_line_width'] = iftm.qf_line.get_linewidth()
             iftm_dict['qf_line_style'] = iftm.qf_line.get_linestyle()
             iftm_dict['qf_line_marker'] = iftm.qf_line.get_marker()
+            iftm_dict['qf_line_marker_face_color'] = iftm.qf_line.get_markerfacecolor()
+            iftm_dict['qf_line_marker_edge_color'] = iftm.qf_line.get_markeredgecolor()
             iftm_dict['qf_line_visible'] = iftm.qf_line.get_visible()
             if iftm.qo_line.get_label() != iftm_dict['parameters']['filename']+'_Fit':
                 iftm_dict['qf_line_legend_label'] = iftm.qf_line.get_label()
@@ -4195,6 +4206,8 @@ class MainWorkerThread(threading.Thread):
             secm_dict['line_width'] = secm.line.get_linewidth()
             secm_dict['line_style'] = secm.line.get_linestyle()
             secm_dict['line_marker'] = secm.line.get_marker()
+            secm_dict['line_marker_face_color'] = secm.line.get_markerfacecolor()
+            secm_dict['line_marker_edge_color'] = secm.line.get_markeredgecolor()
             secm_dict['line_visible'] = secm.line.get_visible()
             secm_dict['line_legend_label'] = secm.line.get_label()
 
@@ -4202,6 +4215,8 @@ class MainWorkerThread(threading.Thread):
             secm_dict['calc_line_width'] = secm.calc_line.get_linewidth()
             secm_dict['calc_line_style'] = secm.calc_line.get_linestyle()
             secm_dict['calc_line_marker'] = secm.calc_line.get_marker()
+            secm_dict['calc_line_marker_face_color'] = secm.calc_line.get_markerfacecolor()
+            secm_dict['calc_line_marker_edge_color'] = secm.calc_line.get_markeredgecolor()
             secm_dict['calc_line_visible'] = secm.calc_line.get_visible()
             secm_dict['calc_line_legend_label'] = secm.calc_line.get_label()
 
@@ -4305,6 +4320,19 @@ class MainWorkerThread(threading.Thread):
                 line_data['qf_line_marker'] = iftm_data['qf_line_marker']
                 line_data['qf_line_visible'] = iftm_data['qf_line_visible']
 
+                try:
+                    line_data['r_line_marker_edge_color'] = iftm_data['r_line_marker_edge_color']
+                    line_data['r_line_marker_face_color'] = iftm_data['r_line_marker_face_color']
+                    line_data['r_line_errorbar_color'] = iftm_data['r_line_errorbar_color']
+                    line_data['qo_line_marker_edge_color'] = iftm_data['qo_line_marker_edge_color']
+                    line_data['qo_line_marker_face_color'] = iftm_data['qo_line_marker_face_color']
+                    line_data['qo_line_errorbar_color'] = iftm_data['qo_line_errorbar_color']
+                    line_data['qf_line_marker_edge_color'] = iftm_data['qf_line_marker_edge_color']
+                    line_data['qf_line_marker_face_color'] = iftm_data['qf_line_marker_face_color']
+
+                except KeyError:
+                    pass #Workspaces <1.3.0 won't have these keys
+
                 wx.CallAfter(self.ift_plot_panel.plotIFTM, new_iftm, line_data = line_data)
 
                 while new_iftm.r_line is None or new_iftm.qo_line is None or new_iftm.qf_line is None:
@@ -4346,8 +4374,6 @@ class MainWorkerThread(threading.Thread):
 
                 new_sasm._update()
 
-                #### THIS HAS TO BE UPDATED TO ACCOUNT FOR LINESTYLES AND VISIBILITY
-
                 try:
                     line_data = {'line_color' : sasm_data['line_color'],
                                  'line_width' : sasm_data['line_width'],
@@ -4357,6 +4383,13 @@ class MainWorkerThread(threading.Thread):
                 except KeyError:
                     line_data = None    #Backwards compatibility
                     sasm_data['line_visible'] = True
+
+                try:
+                    line_data['line_marker_edge_color'] = sasm_data['line_marker_edge_color']
+                    line_data['line_marker_face_color'] = sasm_data['line_marker_face_color']
+                    line_data['line_errorbar_color'] = sasm_data['line_errorbar_color']
+                except KeyError:
+                    pass #Workspaces <1.3.0 won't have these keys
 
                 wx.CallAfter(self.plot_panel.plotSASM, new_sasm,
                               sasm_data['plot_axes'], color = sasm_data['line_color'],
