@@ -679,8 +679,8 @@ class MainFrame(wx.Frame):
             self.similarityframe.Destroy()
 
         if not sasm_list or len(sasm_list) == 1:
-            msg = 'You must select at least 2 profiles to test similarity.'
-            dlg = wx.MessageDialog(self, msg, "Select more profiles", style = wx.ICON_INFORMATION | wx.OK)
+            msg = 'You must select at least 2 items to test similarity.'
+            dlg = wx.MessageDialog(self, msg, "Select more items", style = wx.ICON_INFORMATION | wx.OK)
             dlg.ShowModal()
             dlg.Destroy()
             return
@@ -1276,19 +1276,38 @@ class MainFrame(wx.Frame):
 
         elif id == self.MenuIDs['similarityTest']:
             manippage = wx.FindWindowByName('ManipulationPanel')
+            secpage = wx.FindWindowByName('SECPanel')
+            iftpage = wx.FindWindowByName('IFTPanel')
 
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
 
-            if page !=manippage:
-                wx.MessageBox('The selected operation cannot be performed unless the Manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+            if page !=manippage and page != secpage and page != iftpage:
+                wx.MessageBox('The selected operation cannot be performed unless the Manipulation, IFT, or SEC control panel is selected.', 'Select Appropriate Control Panel', style = wx.ICON_INFORMATION)
                 return
 
-            selected_items = manippage.getSelectedItems()
+            selected_items = page.getSelectedItems()
             if selected_items:
-                selected_sasms = [item.getSASM() for item in selected_items]
-            else:
-                selected_sasms = []
+                if page == manippage:
+                    selected_sasms = [item.getSASM() for item in selected_items]
+                elif page == iftpage:
+                    selected_iftms = [item.getIFTM() for item in selected_items]
+                    selected_sasms = [SASM.SASM(iftm.p, iftm.r, iftm.err, iftm.getAllParameters()) for iftm in selected_iftms]
+                elif page == secpage:
+                    selected_secms = [item.getSECM() for item in selected_items]
+                    selected_sasms = []
+                    sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
+                    ydata_type = sec_plot_panel.plotparams['y_axis_display']
+
+                    for secm in selected_secms:
+                        if ydata_type == 'qspec':
+                            intensity = secm.I_of_q
+                        elif ydata_type == 'mean':
+                            intensity = secm.mean_i
+                        else:
+                            intensity = secm.total_i
+
+                        selected_sasms.append(SASM.SASM(intensity, secm.frame_list, np.sqrt(intensity), secm.getAllParameters()))
 
             self.showSimilarityFrame(selected_sasms)
 
@@ -1299,7 +1318,7 @@ class MainFrame(wx.Frame):
             page = self.control_notebook.GetPage(current_page)
 
             if page !=manippage:
-                wx.MessageBox('The selected operation cannot be performed unless the Manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Manipulation control panel is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
 
             selected_items = manippage.getSelectedItems()
@@ -8218,6 +8237,7 @@ class IFTItemPanel(wx.Panel):
                     menu.Append(24, 'Run AMBIMETER')
         menu.Append(25, 'SVD')
         menu.Append(26, 'EFA')
+        menu.Append(27, 'Similarity Test')
 
         menu.AppendSeparator()
         menu.Append(20, 'Show data')
@@ -8282,6 +8302,18 @@ class IFTItemPanel(wx.Panel):
         elif evt.GetId() == 26:
             #EFA
             self._runEFA()
+
+        elif evt.GetId() == 27:
+            #Similarity testing
+            selected_items = self.ift_panel.getSelectedItems()
+
+            if selected_items:
+                selected_iftms = [item.getIFTM() for item in selected_items]
+                selected_sasms = [SASM.SASM(iftm.p, iftm.r, iftm.err, iftm.getAllParameters()) for iftm in selected_iftms]
+            else:
+                selected_sasms = []
+
+            self.main_frame.showSimilarityFrame(selected_sasms)
 
     def _toMainPlot(self):
         selected_items = self.manipulation_panel.getSelectedItems()
@@ -9331,6 +9363,7 @@ class SECItemPanel(wx.Panel):
         menu.AppendSeparator()
         menu.Append(7, 'SVD')
         menu.Append(8, 'EFA')
+        menu.Append(9, 'Similarity Test')
         menu.AppendSeparator()
 
         menu.Append(4, 'Show data')
@@ -9391,6 +9424,29 @@ class SECItemPanel(wx.Panel):
 
             secm = selectedSECMList[0].getSECM()
             Mainframe.showEFAFrame(secm, selectedSECMList[0])
+
+        elif evt.GetId() == 9:
+            #Similarity testing
+            selected_items = self.sec_panel.getSelectedItems()
+
+            if selected_items:
+                selected_secms = [item.getSECM() for item in selected_items]
+                selected_sasms = []
+                ydata_type = self.sec_plot_panel.plotparams['y_axis_display']
+
+                for secm in selected_secms:
+                    if ydata_type == 'qspec':
+                        intensity = secm.I_of_q
+                    elif ydata_type == 'mean':
+                        intensity = secm.mean_i
+                    else:
+                        intensity = secm.total_i
+
+                    selected_sasms.append(SASM.SASM(intensity, secm.frame_list, np.sqrt(intensity), secm.getAllParameters()))
+            else:
+                selected_sasms = []
+
+            self.main_frame.showSimilarityFrame(selected_sasms)
 
     def _onKeyPress(self, evt):
 

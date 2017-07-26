@@ -1833,11 +1833,72 @@ class ConfigRootSettings(wx.Panel):
 
         self.raw_settings = raw_settings
 
-        panelsizer = wx.BoxSizer(wx.VERTICAL)
+        panelsizer = self._createLayout()
         self.SetSizer(panelsizer)
 
+    def _createLayout(self):
+        reset_button = wx.Button(self, wx.ID_ANY, 'Reset ALL settings to default values')
+        reset_button.Bind(wx.EVT_BUTTON, self._onResetButton)
 
+    def _onResetButton(self, evt):
+        dial = wx.MessageDialog(self, 'Are you sure you want to reset ALL settings to default values?', 'Are you sure?',
+                                wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
 
+        answer = dial.ShowModal()
+        dial.Destroy()
+
+        if answer == wx.ID_CANCEL or answer == wx.ID_NO:
+            return
+
+        default_settings = RAWSettings.RawGuiSettings()
+        default_params = default_settings.getAllParams()
+
+        for key, value in default_params.iteritems():
+            self.raw_settings.set(key, value[0])
+
+        all_update_keys = wx.FindWindowByName('OptionsDialog').treebook.getAllUpdateKeys()
+
+        for key in all_update_keys:
+            val_id, val_type = self.raw_settings.getIdAndType(key)
+            val = self.raw_settings.get(key)
+            obj = wx.FindWindowById(val_id)
+
+            if val_type == 'bool':
+                obj.SetValue(val)
+            elif val_type == 'list':
+                obj.SetValue(val)
+
+            elif val_type == 'choice':
+                choice_list = obj.GetStrings()
+                idx = choice_list.index(val)
+                obj.Select(idx)
+
+            elif val_type == 'text' or val_type == 'int' or val_type == 'float':
+                try:
+                    obj.SetValue(val)
+                except TypeError:
+                    obj.SetValue(str(val))
+
+        if self.raw_settings.get('autoFindATSAS'):
+            myId = -1
+            all_options = wx.FindWindowByName('OptionsDialog').all_options
+            for item in all_options:
+                if item[2] == "ATSAS":
+                    myId = item[1]
+
+            if myId != -1:
+                atsasPanel = wx.FindWindowById(myId, self.GetParent())
+                atsasPanel.setATSASDir()
+
+        myId = -1
+        all_options = wx.FindWindowByName('OptionsDialog').all_options
+        for item in all_options:
+            if item[2] == "Image/Header Format":
+                myId = item[1]
+
+        if myId != -1:
+            Panel = wx.FindWindowById(myId, self.GetParent())
+            Panel.onClearAllButton(-1)
 
 class ReductionOptionsPanel(wx.Panel):
 
@@ -1847,7 +1908,7 @@ class ReductionOptionsPanel(wx.Panel):
 
         self.raw_settings = raw_settings
 
-        self.update_keys = ['DoSolidAngleCorrection']# 'PromptConfigLoad']
+        self.update_keys = ['DoSolidAngleCorrection']
 
         self.chkboxdata = [('Correct for the change in the solid angle of the pixels', raw_settings.getId('DoSolidAngleCorrection'))]
 
@@ -2417,10 +2478,11 @@ class ATSASGeneralPanel(wx.Panel):
         else:
             self.datadir.SetEditable(False)
             self.dirButton.Disable()
-            atsasDirectory = findATSASDirectory()
+            self.setATSASDir()
 
-            self.datadir.SetValue(atsasDirectory)
-
+    def setATSASDir(self):
+        atsasDirectory = findATSASDirectory()
+        self.datadir.SetValue(atsasDirectory)
 
     def onDirButton(self, evt):
         path = self.datadir.GetValue()
@@ -2678,14 +2740,6 @@ class ATSASGnomAdvanced(wx.Panel):
         comb_sizer1.Add(radius_sizer)
         comb_sizer1.Add(radmin_sizer)
 
-
-        # bfwhm_text = wx.StaticText(self, -1, 'Beam FWHM (exp. setup 1/2) :')
-        # bfwhm_text = wx.TextCtrl(self, self.raw_settings.getId('gnomFWHM'), size = (60, -1), style = wx.TE_PROCESS_ENTER)
-
-        # bfwhm_text = wx.StaticText(self, -1, 'Beam AH (exp. setup 1) :')
-        # bfwhm_text = wx.TextCtrl(self, self.raw_settings.getId('gnomFWHM'), size = (60, -1), style = wx.TE_PROCESS_ENTER)
-
-
         advanced_text = wx.StaticText(self, -1, 'This panel allows you to set the less common advanced settings used by the ATSAS software GNOM.')
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -2698,21 +2752,6 @@ class ATSASGnomAdvanced(wx.Panel):
         top_sizer.Add(comb_sizer1, 0)
 
         return top_sizer
-
-    # def onAutoFind(self, evt):
-    #     findsas = evt.GetEventObject().GetValue()
-
-    #     if not findsas:
-    #         self.datadir.SetEditable(True)
-    #         self.dirButton.Enable()
-
-    #     else:
-    #         self.datadir.SetEditable(False)
-    #         self.dirButton.Disable()
-    #         atsasDirectory = findATSASDirectory()
-
-    #         self.datadir.SetValue(atsasDirectory)
-
 
     def onSelectButton(self, evt):
 
