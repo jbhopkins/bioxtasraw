@@ -1017,7 +1017,7 @@ class MolWeightFrame(wx.Frame):
 
         wx.FindWindowById(self.ids['abs']['conc'], self).ChangeValue(conc)
 
-        if self.raw_settings.get('NormAbsWater'):
+        if self.raw_settings.get('NormAbsWater') or self.raw_settings.get('NormAbsCarbon'):
             wx.FindWindowById(self.ids['abs']['calib'], self).SetValue(True)
 
 
@@ -1540,7 +1540,7 @@ class MolWeightFrame(wx.Frame):
         self.calcMW()
 
     def updateMWInfo(self):
-        if self.raw_settings.get('NormAbsWater'):
+        if self.raw_settings.get('NormAbsWater') or self.raw_settings.get('NormAbsCarbon'):
             wx.FindWindowById(self.ids['abs']['calib'], self).SetValue(True)
 
         ref_mw = self.raw_settings.get('MWStandardMW')

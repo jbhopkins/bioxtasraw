@@ -21,8 +21,16 @@ Created on Jul 16, 2010
 #
 #******************************************************************************
 '''
-import wx, cPickle, copy, os
-import RAWGlobals, SASFileIO
+import cPickle
+import copy
+import os
+
+import wx
+import numpy as np
+
+import RAWGlobals
+import SASFileIO
+import SASM
 
 class RawGuiSettings:
     '''
@@ -44,6 +52,23 @@ class RawGuiSettings:
                             'NormAbsWaterI0'    	: [0.01632, wx.NewId(),  'float'],
                             'NormAbsWaterTemp'  	: ['25',    wx.NewId(),  'choice'],
                             'NormAbsWaterConst' 	: [1.0,     wx.NewId(),  'float'],
+                            'NormAbsWaterFile'      : [None, wx.NewId(), 'text'],
+                            'NormAbsWaterEmptyFile' : [None, wx.NewId(), 'text'],
+                            'NormFlatfieldFile'     : [None, wx.NewId(), 'text'],
+
+                            'NormAbsCarbon'             : [False, wx.NewId(), 'bool'],
+                            'NormAbsCarbonIgnoreBkg'    : [True, wx.NewId(), 'bool'],
+                            'NormAbsCarbonFile'         : [None, wx.NewId(), 'text'],
+                            'NormAbsCarbonEmptyFile'    : [None, wx.NewId(), 'text'],
+                            'NormAbsCarbonSamEmptyFile' : [None, wx.NewId(), 'text'],
+                            'NormAbsCarbonCalFile'      : [None, wx.NewId(), 'text'],
+                            'NormAbsCarbonThick'        : [1.055, wx.NewId(), 'float'],
+                            'NormAbsCarbonSamThick'     : [1.0, wx.NewId(), 'float'],
+                            'NormAbsCarbonUpstreamCtr'  : [None, wx.NewId(), 'choice'],
+                            'NormAbsCarbonDownstreamCtr': [None, wx.NewId(), 'choice'],
+                            'NormAbsCarbonConst'        : [1.0, wx.NewId(), 'float'],
+                            'NormAbsCarbonSamEmptySASM' : [None],
+
 
                             'NormalizeTrans'    : [False, wx.NewId(),  'bool'],
                             'Calibrate'         : [False, wx.NewId(),  'bool'],  # Calibrate AgBe
@@ -82,10 +107,6 @@ class RawGuiSettings:
                             'BackgroundSASM'          : [None, wx.NewId(), 'text'],
 
                             'DataSECM'                : [None, wx.NewId(), 'text'],
-
-                            'NormAbsWaterFile'        : [None, wx.NewId(), 'text'],
-                            'NormAbsWaterEmptyFile'   : [None, wx.NewId(), 'text'],
-							'NormFlatfieldFile'		  : [None, wx.NewId(), 'text'],
 
                             'TransparentBSMask'       : [None],
                             'TransparentBSMaskParams' : [None],
@@ -428,7 +449,7 @@ def saveSettings(raw_settings, savepath):
     param_dict = raw_settings.getAllParams()
     keys = param_dict.keys()
 
-    exclude_keys = ['ImageFormatList', 'ImageHdrFormatList', 'BackgroundSASM', 'CurrentCfg', 'csvIncludeData', 'CompatibleFormats', 'DataSECM']
+    exclude_keys = ['ImageFormatList', 'ImageHdrFormatList', 'BackgroundSASM', 'CurrentCfg', 'csvIncludeData', 'CompatibleFormats', 'DataSECM', 'NormAbsCarbonSamEmptySASM']
 
     save_dict = {}
 
@@ -582,3 +603,193 @@ water_scattering_table = {0 : 0.01692,
                         99 : 0.02015,
                         100 : 0.02023}
 
+"""Data follows for glassy carbon calibration. It is taken from the
+"3600_DataFile_2016-05016.xlsx" file that can be downloaded from NIST
+as material for the SRM 3600 - Absolute Intensity Calibration Standard
+for Small-Angle X-ray Scattering:
+https://nemo.nist.gov/srmors/view_detail.cfm?srm=3600
+or
+https://www.nist.gov/srm
+"""
+carbon_cal_q = np.array([0.00827568,
+                0.00888450,
+                0.00954735,
+                0.01026900,
+                0.01105780,
+                0.01191830,
+                0.01286110,
+                0.01389340,
+                0.01502510,
+                0.01626850,
+                0.01763650,
+                0.01914320,
+                0.02080510,
+                0.02264220,
+                0.02467500,
+                0.02692890,
+                0.02943170,
+                0.03221560,
+                0.03531810,
+                0.03878270,
+                0.04265880,
+                0.04700390,
+                0.05188580,
+                0.05738140,
+                0.06358290,
+                0.07059620,
+                0.07854840,
+                0.08758630,
+                0.09788540,
+                0.10965500,
+                0.11431200,
+                0.11839500,
+                0.12262400,
+                0.12314200,
+                0.12700400,
+                0.13154000,
+                0.13623900,
+                0.13864300,
+                0.14110500,
+                0.14614500,
+                0.15136500,
+                0.15651300,
+                0.15677100,
+                0.16237100,
+                0.16817000,
+                0.17417700,
+                0.17718100,
+                0.18039800,
+                0.18684100,
+                0.19351500,
+                0.20042700,
+                0.20116500,
+                0.20758600,
+                0.21500000,
+                0.22267900,
+                0.22909500,
+                0.23063300,
+                0.23887100,
+                0.24740200,
+                ])
+
+carbon_cal_i = np.array([34.933380,
+                34.427156,
+                34.042170,
+                33.698553,
+                33.352529,
+                33.027533,
+                32.665045,
+                32.306665,
+                31.970485,
+                31.559099,
+                31.183763,
+                30.861805,
+                30.514300,
+                30.084982,
+                29.690414,
+                29.249965,
+                28.889970,
+                28.449341,
+                28.065980,
+                27.704965,
+                27.331304,
+                26.974065,
+                26.676952,
+                26.401158,
+                26.177427,
+                25.904683,
+                25.528734,
+                24.917743,
+                23.946472,
+                22.472101,
+                21.777228,
+                21.112938,
+                20.401110,
+                20.287060,
+                19.685107,
+                18.909809,
+                18.089242,
+                17.679572,
+                17.264117,
+                16.372848,
+                15.458350,
+                14.587700,
+                14.563071,
+                13.616671,
+                12.668549,
+                11.752287,
+                11.311460,
+                10.862157,
+                9.961979,
+                9.116906,
+                8.325578,
+                8.224897,
+                7.541931,
+                6.854391,
+                6.216070,
+                5.715911,
+                5.582366,
+                4.999113,
+                4.463604,])
+
+carbon_cal_err = np.array([0.398241,
+                0.392470,
+                0.388081,
+                0.384164,
+                0.380219,
+                0.376514,
+                0.372382,
+                0.368296,
+                0.364464,
+                0.359774,
+                0.355495,
+                0.351825,
+                0.347863,
+                0.342969,
+                0.338471,
+                0.333450,
+                0.329346,
+                0.324322,
+                0.319952,
+                0.315837,
+                0.311577,
+                0.307504,
+                0.304117,
+                0.300973,
+                0.298423,
+                0.295313,
+                0.291028,
+                0.284062,
+                0.272990,
+                0.256182,
+                0.248260,
+                0.240687,
+                0.232573,
+                0.231272,
+                0.224410,
+                0.215572,
+                0.206217,
+                0.201547,
+                0.196811,
+                0.186650,
+                0.176225,
+                0.166300,
+                0.166019,
+                0.155230,
+                0.144421,
+                0.133976,
+                0.128951,
+                0.123829,
+                0.113567,
+                0.103933,
+                0.094912,
+                0.093764,
+                0.085978,
+                0.078140,
+                0.070863,
+                0.065161,
+                0.063639,
+                0.056990,
+                0.050885,])
+
+glassy_carbon_cal = [carbon_cal_q, carbon_cal_i, carbon_cal_err]

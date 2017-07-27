@@ -245,7 +245,6 @@ class SASM:
         self._q_scale_factor = 1
 
     def setQrange(self, qrange):
-
         if qrange[0] < 0 or qrange[1] > (len(self._q_binned)):
             raise SASExceptions.InvalidQrange('Qrange: ' + str(qrange) + ' is not a valid q-range for a q-vector of length ' + str(len(self._q_binned)-1))
         else:
@@ -1172,11 +1171,16 @@ class SECM:
     def releaseSemaphore(self):
         self.my_semaphore.release()
 
-def subtract(sasm1, sasm2, forced = False):
+def subtract(sasm1, sasm2, forced = False, full = False):
     ''' Subtract one SASM object from another and propagate errors '''
-
-    q1_min, q1_max = sasm1.getQrange()
-    q2_min, q2_max = sasm2.getQrange()
+    if not full:
+        q1_min, q1_max = sasm1.getQrange()
+        q2_min, q2_max = sasm2.getQrange()
+    else:
+        q1_min = 0
+        q1_max = len(sasm1.q)+1
+        q2_min = 0
+        q2_max = len(sasm2.q)+1
 
     if not np.all(np.round(sasm1.q[q1_min:q1_max],5) == np.round(sasm2.q[q2_min:q2_max],5)) and not forced:
         raise SASExceptions.DataNotCompatible('The curves does not have the same q vectors.')
@@ -1184,10 +1188,10 @@ def subtract(sasm1, sasm2, forced = False):
     elif not np.all(np.round(sasm1.q[q1_min:q1_max],5) == np.round(sasm2.q[q2_min:q2_max],5)) and forced:
         q1 = np.round(sasm1.q[q1_min:q1_max],5)
         q2 = np.round(sasm2.q[q2_min:q2_max],5)
-        i1 = np.round(sasm1.i[q1_min:q1_max],5)
-        i2 = np.round(sasm2.i[q2_min:q2_max],5)
-        err1 = np.round(sasm1.err[q1_min:q1_max],5)
-        err2 = np.round(sasm2.err[q2_min:q2_max],5)
+        i1 = sasm1.i[q1_min:q1_max]
+        i2 = sasm2.i[q2_min:q2_max]
+        err1 = sasm1.err[q1_min:q1_max]
+        err2 = sasm2.err[q2_min:q2_max]
 
         if q1[0]>q2[0]:
             start=np.round(q1[0],5)
@@ -1212,15 +1216,11 @@ def subtract(sasm1, sasm2, forced = False):
             if np.all(q1[q1_idx1:q1_idx2]==q2[q2_idx1:q2_idx2]):
                 shifted = True
 
-
         if shifted:
             i = i1[q1_idx1:q1_idx2] - i2[q2_idx1:q2_idx2]
             err = np.sqrt( np.power(err1[q1_idx1:q1_idx2], 2) + np.power(err2[q2_idx1:q2_idx2],2))
 
-            q = copy.deepcopy(q1[q1_idx1:q1_idx2])
-
-            # print i
-            # print q
+            q = copy.deepcopy(sasm1.q[q1_idx1:q1_idx2])
 
         else:
             q1space=q1[1]-q1[0]
@@ -1238,8 +1238,8 @@ def subtract(sasm1, sasm2, forced = False):
             q2_idx1 = np.argmin(np.absolute(q2-start))
             q2_idx2 = np.argmin(np.absolute(q2-end))+1
 
-            q1b, i1b, err1b=binfixed(q1[q1_idx1:q1_idx2], i1[q1_idx1:q1_idx2], err1[q1_idx1:q1_idx2], refq=refq)
-            q2b, i2b, err2b=binfixed(q2[q2_idx1:q2_idx2], i2[q2_idx1:q2_idx2], err2[q2_idx1:q2_idx2], refq=refq)
+            q1b, i1b, err1b=binfixed(sasm1.q[q1_idx1:q1_idx2], i1[q1_idx1:q1_idx2], err1[q1_idx1:q1_idx2], refq=refq)
+            q2b, i2b, err2b=binfixed(sasm2.q[q2_idx1:q2_idx2], i2[q2_idx1:q2_idx2], err2[q2_idx1:q2_idx2], refq=refq)
 
             i = i1b - i2b
             err=np.sqrt(np.square(err1b)+np.square(err2b))
@@ -1444,6 +1444,45 @@ def calcAbsoluteScaleWaterConst(water_sasm, emptycell_sasm, I0_water, raw_settin
 
     return abs_scale_constant
 
+def calcAbsoluteScaleCarbonConst(carbon_sasm, carbon_thickness,
+                        _raw_settings, cal_q, cal_i, cal_err, ignore_bkg, bkg_sasm,
+                        carbon_ctr_ups_val, carbon_ctr_dns_val, bkg_ctr_ups_val,
+                        bkg_ctr_dns_val):
+
+    def closest(qlist, qref):
+        return np.argmin(np.absolute(qlist-qref))
+
+    if ignore_bkg:
+        qmin, qmax = carbon_sasm.getQrange()
+        exp_q = carbon_sasm.q[qmin:qmax]
+        exp_i = carbon_sasm.i[qmin:qmax]
+
+    else:
+        carbon_trans = (carbon_ctr_dns_val/carbon_ctr_ups_val)/(bkg_ctr_dns_val/bkg_ctr_ups_val)
+        carbon_sasm.scale(1./carbon_ctr_ups_val)
+        bkg_sasm.scale((1./bkg_ctr_ups_val)*carbon_trans)
+
+        exp_sasm = subtract(carbon_sasm, bkg_sasm)
+
+        exp_sasm.scale(1./(carbon_trans)/carbon_thickness)
+
+        qmin, qmax = exp_sasm.getQrange()
+        exp_q = exp_sasm.q[qmin:qmax]
+        exp_i = exp_sasm.i[qmin:qmax]
+
+
+    min_qval = max(cal_q[0], exp_q[0])
+    max_qval = min(cal_q[-1], exp_q[-1])
+
+    cal_min_idx = closest(cal_q, min_qval)
+    cal_max_idx = closest(cal_q, max_qval)
+
+    I_resamp = np.interp(cal_q[cal_min_idx:cal_max_idx+1], exp_q, exp_i)
+    A = np.column_stack([I_resamp, np.zeros_like(I_resamp)])
+    abs_scale_const, offset= np.linalg.lstsq(A, cal_i[cal_min_idx:cal_max_idx+1])[0]
+
+    return abs_scale_const
+
 def normalizeAbsoluteScaleWater(sasm, raw_settings):
     abs_scale_constant = raw_settings.get('NormAbsWaterConst')
     sasm.scaleBinnedIntensity(abs_scale_constant)
@@ -1456,13 +1495,87 @@ def normalizeAbsoluteScaleWater(sasm, raw_settings):
 
     return sasm, abs_scale_constant
 
-def postProcessImageSasm(sasm, raw_settings):
+def normalizeAbsoluteScaleCarbon(sasm, raw_settings):
+    abs_scale_constant = float(raw_settings.get('NormAbsCarbonConst'))
+    sam_thick = float(raw_settings.get('NormAbsCarbonSamThick'))
+    ignore_bkg = raw_settings.get('NormAbsCarbonIgnoreBkg')
 
+    if ignore_bkg:
+        sasm.scaleBinnedIntensity(abs_scale_constant/sam_thick)
+    else:
+        bkg_sasm = raw_settings.get('NormAbsCarbonSamEmptySASM')
+
+        ctr_ups = raw_settings.get('NormAbsCarbonUpstreamCtr')
+        ctr_dns = raw_settings.get('NormAbsCarbonDownstreamCtr')
+
+        sample_ctrs = sasm.getParameter('imageHeader')
+        sample_file_hdr = sasm.getParameter('counters')
+        sample_ctrs.update(sample_file_hdr)
+
+        bkg_ctrs = bkg_sasm.getParameter('imageHeader')
+        bkg_file_hdr = bkg_sasm.getParameter('counters')
+        bkg_ctrs.update(bkg_file_hdr)
+
+        sample_ctr_ups_val = float(sample_ctrs[ctr_ups])
+        sample_ctr_dns_val = float(sample_ctrs[ctr_dns])
+        bkg_ctr_ups_val = float(bkg_ctrs[ctr_ups])
+        bkg_ctr_dns_val = float(bkg_ctrs[ctr_dns])
+
+        sample_trans = (sample_ctr_dns_val/sample_ctr_ups_val)/(bkg_ctr_dns_val/bkg_ctr_ups_val)
+        sasm.scaleBinnedIntensity(1./sample_ctr_ups_val)
+        bkg_sasm.scale((1./bkg_ctr_ups_val)*sample_trans)
+
+        # print sample_trans
+        # print sample_ctr_ups_val
+        # print sample_ctr_dns_val
+        # print bkg_ctr_ups_val
+        # print bkg_ctr_dns_val
+
+        sub_sasm = subtract(sasm, bkg_sasm, forced = True, full = True)
+
+        sub_sasm.scaleBinnedIntensity(1./(sample_trans)/sam_thick)
+        sub_sasm.scaleBinnedIntensity(abs_scale_constant)
+
+        sasm.setBinnedQ(sub_sasm.getBinnedQ())
+        sasm.setBinnedI(sub_sasm.getBinnedI())
+        sasm.setBinnedErr(sub_sasm.getBinnedErr())
+        sasm.scale(1.)
+        sasm.setQrange((0,len(sasm.q)))
+
+        bkg_sasm.scale(1.)
+
+    abs_scale_params = {'Absolute_scale_factor': abs_scale_constant,
+                        'Sample_thickness_[mm]': sam_thick,
+                        'Ignore_background': ignore_bkg,
+                        }
+
+    if not ignore_bkg:
+        abs_scale_params['Background_file'] = raw_settings.get('NormAbsCarbonEmptyFile')
+        abs_scale_params['Upstream_counter_name'] = ctr_ups
+        abs_scale_params['Downstream_counter_name'] = ctr_dns
+        abs_scale_params['Upstream_counter_value_sample'] = sample_ctr_ups_val
+        abs_scale_params['Downstream_counter_value_sample'] = sample_ctr_dns_val
+        abs_scale_params['Upstream_counter_value_background'] = bkg_ctr_ups_val
+        abs_scale_params['Downstream_counter_value_background'] = bkg_ctr_dns_val
+        abs_scale_params['Sample_transmission'] = sample_trans
+
+    norm_parameter = sasm.getParameter('normalizations')
+
+    norm_parameter['Absolute_scale'] = abs_scale_params
+
+    sasm.setParameter('normalizations', norm_parameter)
+
+    return sasm, abs_scale_constant
+
+def postProcessImageSasm(sasm, raw_settings):
     if raw_settings.get('NormAbsWater'):
         try:
             normalizeAbsoluteScaleWater(sasm, raw_settings)
         except SASExceptions.AbsScaleNormFailed, e:
             print e
+
+    elif raw_settings.get('NormAbsCarbon'):
+        normalizeAbsoluteScaleCarbon(sasm, raw_settings)
 
 def postProcessSasm(sasm, raw_settings):
 
@@ -1506,8 +1619,8 @@ def superimpose(sasm_star, sasm_list, choice):
         max_q_idx = np.where(q_star <= max_q_each)[0][-1]
 
         I_resamp = np.interp(q_star[min_q_idx:max_q_idx+1],
-                             each_q[each_q_qrange_min:each_q_qrange_max-1],
-                             each_i[each_q_qrange_min:each_q_qrange_max-1])
+                             each_q[each_q_qrange_min:each_q_qrange_max],
+                             each_i[each_q_qrange_min:each_q_qrange_max])
 
 
         if choice == 'Scale and Offset':

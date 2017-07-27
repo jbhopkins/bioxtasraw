@@ -1526,22 +1526,22 @@ def loadFile(filename, raw_settings, no_processing = False):
                 print msg
 
         #Always do some post processing for image files
-        if type(sasm) == list:
-            for current_sasm in sasm:
-
-                current_sasm.setParameter('config_file', raw_settings.get('CurrentCfg'))
-
-                SASM.postProcessSasm(current_sasm, raw_settings)
-
-                if not no_processing:
-                    SASM.postProcessImageSasm(current_sasm, raw_settings)
-        else:
-            sasm.setParameter('config_file', raw_settings.get('CurrentCfg'))
-
-            SASM.postProcessSasm(sasm, raw_settings)
+        if not isinstance(sasm, list):
+            sasm = [sasm]
+        for current_sasm in sasm:
+            current_sasm.setParameter('config_file', raw_settings.get('CurrentCfg'))
+            SASM.postProcessSasm(current_sasm, raw_settings)
 
             if not no_processing:
-                SASM.postProcessImageSasm(sasm, raw_settings)
+                #Need to do a little work before we can do glassy carbon normalization
+                if raw_settings.get('NormAbsCarbon') and not raw_settings.get('NormAbsCarbonIgnoreBkg'):
+                    bkg_filename = raw_settings.get('NormAbsCarbonEmptyFile')
+                    bkg_sasm = raw_settings.get('NormAbsCarbonSamEmptySASM')
+                    if bkg_sasm is None or bkg_sasm.getParameter('filename') != os.path.split(bkg_filename)[1]:
+                        bkg_sasm, junk_img = loadFile(bkg_filename, raw_settings, no_processing=True)
+                        raw_settings.set('NormAbsCarbonSamEmptySASM', bkg_sasm)
+
+                SASM.postProcessImageSasm(current_sasm, raw_settings)
 
     else:
         sasm = loadAsciiFile(filename, file_type)
@@ -1551,7 +1551,7 @@ def loadFile(filename, raw_settings, no_processing = False):
         if type(sasm) != list:
             SASM.postProcessSasm(sasm, raw_settings)
 
-    if type(sasm) != list and (sasm is None or len(sasm.i) == 0):
+    if not isinstance(sasm, list) and (sasm is None or len(sasm.i) == 0):
         raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
 
     return sasm, img
@@ -2620,7 +2620,7 @@ def loadCsvFile(filename):
     ''' Loads a comma separated file, ignores everything except a three column line'''
 
 
-    iq_pattern = re.compile('\s*\d*[.]?\d*[+eE-]*\d+[,]\s*-?\d*[.]?\d*[+eE-]*\d+[,]\s*-?\d*[.]?\d*[+eE-]*\d*\s*\n')
+    iq_pattern = re.compile('\s*\d*[.]?\d*[+eE-]*\d+[,]\s*-?\d*[.]?\d*[+eE-]*\d+[,]\s*-?\d*[.]?\d*[+eE-]*\d*\s*')
     param_pattern = re.compile('[a-zA-Z0-9_]*\s*[=].*')
 
     i = []
@@ -2645,11 +2645,7 @@ def loadCsvFile(filename):
 
                 err.append(float(found[2].rstrip('\r\n')))
 
-            else:
-                print 'No match:'
-                print line
-
-            if param_match:
+            elif param_match:
                 found = param_match.group().split('=')
 
                 if len(found) == 2:
@@ -2672,26 +2668,42 @@ def load2ColFile(filename):
     ''' Loads a two column file (q I) separated by whitespaces '''
 
     iq_pattern = re.compile('\s*\d*[.]\d*\s+-?\d*[.]\d*.*\n')
+    param_pattern = re.compile('[a-zA-Z0-9_]*\s*[=].*')
 
     i = []
     q = []
     err = []
-    parameters = {'filename' : os.path.split(filename)[1]}
+    fileheader = {}
 
     with open(filename) as f:
 
         for line in f:
             iq_match = iq_pattern.match(line)
+            param_match = param_pattern.match(line)
 
             if iq_match:
                 found = iq_match.group().split()
                 q.append(float(found[0]))
                 i.append(float(found[1]))
+
+            elif param_match:
+                found = param_match.group().split('=')
+
+                if len(found) == 2:
+                    try:
+                        val = float(found[1].rstrip('\r\n'))
+                    except ValueError:
+                        val = found[1].rstrip('\r\n')
+
+                    fileheader[found[0]] = val
 #
 
     i = np.array(i)
     q = np.array(q)
     err = np.sqrt(abs(i))
+
+    parameters = {'filename' : os.path.split(filename)[1],
+                  'counters' : fileheader}
 
     return SASM.SASM(i, q, err, parameters)
 

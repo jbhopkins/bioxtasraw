@@ -988,34 +988,138 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
                             'NormAbsWaterTemp',
                             'NormAbsWaterI0',
                             'NormAbsWater',
-                            'NormAbsWaterConst']
+                            'NormAbsWaterConst',
+                            'NormAbsCarbon',
+                            'NormAbsCarbonIgnoreBkg',
+                            'NormAbsCarbonFile',
+                            'NormAbsCarbonEmptyFile',
+                            'NormAbsCarbonSamEmptyFile',
+                            'NormAbsCarbonCalFile',
+                            'NormAbsCarbonThick',
+                            'NormAbsCarbonSamThick',
+                            'NormAbsCarbonUpstreamCtr',
+                            'NormAbsCarbonDownstreamCtr',
+                            'NormAbsCarbonConst',
+                            ]
 
                               #      label,                  textCtrlId,            buttonId, clrbuttonId,    ButtonText,              BindFunction
         self.filesData = (("Empty cell:"   , raw_settings.getId('NormAbsWaterEmptyFile'), self.NewControlId(), self.NewControlId(), "Set", "Clear", self.onSetFile, self.onClrFile),
                           ("Water sample:" , raw_settings.getId('NormAbsWaterFile'), self.NewControlId(), self.NewControlId(), "Set", "Clear", self.onSetFile, self.onClrFile))
 
-        self.normConstantsData = ( ("Water Temperature [C]:", raw_settings.getId('NormAbsWaterTemp'), None) ,
-                                   ("Water I(0):", raw_settings.getId('NormAbsWaterI0'), None),
-                                   ("Absolute Scaling Constant:", raw_settings.getId('NormAbsWaterConst'), True))
+        self.normConstantsData = ( ("Water temperature [C]:", raw_settings.getId('NormAbsWaterTemp'), False) ,
+                                   ("Water I(0):", raw_settings.getId('NormAbsWaterI0'), False),
+                                   ("Absolute scaling constant:", raw_settings.getId('NormAbsWaterConst'), True))
 
+        self.carbonFilesData = (("Glassy carbon:"   , raw_settings.getId('NormAbsCarbonFile'), self.NewControlId(), self.NewControlId(), "Set", "Clear", self.onSetFile, self.onClrFile),
+                                ("Glassy carbon calibration (optional):" , raw_settings.getId('NormAbsCarbonCalFile'), self.NewControlId(), self.NewControlId(), "Set", "Clear", self.onSetFile, self.onClrFile),
+                                ("Glassy carbon background:" , raw_settings.getId('NormAbsCarbonEmptyFile'), self.NewControlId(), self.NewControlId(), "Set", "Clear", self.onSetFile, self.onClrFile),
+                                ("Sample background:" , raw_settings.getId('NormAbsCarbonSamEmptyFile'), self.NewControlId(), self.NewControlId(), "Set", "Clear", self.onSetFile, self.onClrFile),
+                                )
+
+        self.carbonNormConstantsData = (("Glassy carbon thickness [mm]:", raw_settings.getId('NormAbsCarbonThick'), 'float', False),
+                                        ("Sample thickness [mm]:", raw_settings.getId('NormAbsCarbonSamThick'), 'float', False),
+                                        ("Upstream counter:", raw_settings.getId('NormAbsCarbonUpstreamCtr'), 'choice', False),
+                                        ("Downstream counter:", raw_settings.getId('NormAbsCarbonDownstreamCtr'), 'choice', False),
+                                        ("Absolute scaling constant:", raw_settings.getId('NormAbsCarbonConst'), 'float', True),
+                                        )
+
+        top_sizer = self._createLayout()
+
+        self._initialize()
+
+        self.SetSizer(top_sizer)
+
+    def _createLayout(self):
+        water_sizer = self._createWaterLayout()
+        carbon_sizer = self._createCarbonLayout()
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(water_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        top_sizer.Add(carbon_sizer, 0, wx.EXPAND | wx.ALL, 5)
+
+        return top_sizer
+
+    def _createWaterLayout(self):
         box = wx.StaticBox(self, -1, 'Absolute scaling using water')
 
-        self.abssc_chkbox = wx.CheckBox(self, raw_settings.getId('NormAbsWater'), 'Normalize processed data to absolute scale')
+        self.abssc_chkbox = wx.CheckBox(self, self.raw_settings.getId('NormAbsWater'), 'Normalize processed data to absolute scale using water')
         self.abssc_chkbox.Bind(wx.EVT_CHECKBOX, self.onChkBox)
 
-        file_sizer = self.createFileSettings()
-        norm_const_sizer = self.createNormConstants()
+        file_sizer = self.createWaterFileSettings()
+        norm_const_sizer = self.createWaterNormConstants()
         chkbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         chkbox_sizer.Add(self.abssc_chkbox, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
         chkbox_sizer.Add(file_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
         chkbox_sizer.Add(norm_const_sizer, 0, wx.EXPAND | wx.ALL, 5)
 
-        final_sizer = wx.BoxSizer(wx.VERTICAL)
-        final_sizer.Add(chkbox_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        return chkbox_sizer
 
-        self.SetSizer(final_sizer)
+    def _createCarbonLayout(self):
+        noOfRows = int(len(self.carbonFilesData))
+        file_sizer = wx.FlexGridSizer(cols = 4, rows = noOfRows, vgap = 3, hgap = 3)
 
-    def createFileSettings(self):
+        for labtxt, labl_ID, setButton_ID, clrButton_ID, setButtonTxt, clrButtonTxt, setBindFunc, clrBindFunc in self.carbonFilesData:
+
+            setButton = wx.Button(self, setButton_ID, setButtonTxt)
+            setButton.Bind(wx.EVT_BUTTON, setBindFunc)
+            clrButton = wx.Button(self, clrButton_ID, clrButtonTxt)
+            clrButton.Bind(wx.EVT_BUTTON, clrBindFunc)
+
+            label = wx.StaticText(self, -1, labtxt)
+
+            filenameLabel = wx.TextCtrl(self, labl_ID, "None", style = wx.TE_PROCESS_ENTER)
+            filenameLabel.SetEditable(False)
+
+            file_sizer.Add(label, 1, wx.ALIGN_CENTER_VERTICAL)
+            file_sizer.Add(filenameLabel, 1, wx.EXPAND)
+            file_sizer.Add(setButton, 1)
+            file_sizer.Add(clrButton, 1)
+
+        file_sizer.AddGrowableCol(1)
+
+
+        noOfRows = int(len(self.carbonNormConstantsData))
+        norm_const_sizer = wx.FlexGridSizer(cols = 3, rows = noOfRows, vgap = 3, hgap = 5)
+
+        counter_choices = self._getCounters()
+
+        for eachLabel, item_id, item_type, has_button in self.carbonNormConstantsData:
+
+            txt = wx.StaticText(self, -1, eachLabel)
+
+            if item_type == 'choice':
+                ctrl = wx.Choice(self, item_id, choices = counter_choices, size = (80, -1))
+            else:
+                ctrl = wx.TextCtrl(self, item_id, '0', style = wx.TE_PROCESS_ENTER | wx.TE_RIGHT, size = (80, -1))
+
+            norm_const_sizer.Add(txt, 1, wx.ALIGN_CENTER_VERTICAL)
+            norm_const_sizer.Add(ctrl, 1)
+
+            if has_button == True:
+                button = wx.Button(self, -1, 'Calculate')
+                button.Bind(wx.EVT_BUTTON, self._onCalculateCarbonButton)
+                norm_const_sizer.Add(button,1)
+
+            else:
+                norm_const_sizer.Add((1,1), 1)
+
+
+        box = wx.StaticBox(self, -1, 'Absolute scaling using glassy carbon')
+
+        abscar_chkbox = wx.CheckBox(self, self.raw_settings.getId('NormAbsCarbon'), 'Normalize processed data to absolute scale using glassy carbon')
+        abscar_chkbox.Bind(wx.EVT_CHECKBOX, self.onChkBox)
+        abscarig_chkbox = wx.CheckBox(self, self.raw_settings.getId('NormAbsCarbonIgnoreBkg'), 'Ignore background')
+        abscarig_chkbox.Bind(wx.EVT_CHECKBOX, self.onIgnoreBackground)
+
+        carbon_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        carbon_sizer.Add(abscar_chkbox, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        carbon_sizer.Add(abscarig_chkbox, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        carbon_sizer.Add(file_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        carbon_sizer.Add(norm_const_sizer, 0, wx.EXPAND | wx.ALL, 5)
+
+        return carbon_sizer
+
+    def createWaterFileSettings(self):
 
         noOfRows = int(len(self.filesData))
         hSizer = wx.FlexGridSizer(cols = 4, rows = noOfRows, vgap = 3, hgap = 3)
@@ -1040,7 +1144,7 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
         hSizer.AddGrowableCol(1)
         return hSizer
 
-    def createNormConstants(self):
+    def createWaterNormConstants(self):
 
         noOfRows = int(len(self.normConstantsData))
         hSizer = wx.FlexGridSizer(cols = 3, rows = noOfRows, vgap = 3, hgap = 5)
@@ -1054,7 +1158,7 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
             txt = wx.StaticText(self, -1, eachLabel)
 
             if id == self.normConstantsData[0][1]:
-                ctrl = wx.Choice(self, id, choices = temps, size = (80, -1))
+                ctrl = wx.Choice(self, id, choices = sorted(temps), size = (80, -1))
                 ctrl.Bind(wx.EVT_CHOICE, self._onTempChoice)
             else:
                 ctrl = wx.TextCtrl(self, id, '0', style = wx.TE_PROCESS_ENTER | wx.TE_RIGHT, size = (80, -1))
@@ -1064,13 +1168,27 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
 
             if has_button == True:
                 button = wx.Button(self, -1, 'Calculate')
-                button.Bind(wx.EVT_BUTTON, self._onCalculateButton)
+                button.Bind(wx.EVT_BUTTON, self._onCalculateWaterButton)
                 hSizer.Add(button,1)
 
             else:
                 hSizer.Add((1,1), 1)
 
         return hSizer
+
+    def _getCounters(self):
+        img_hdr = self.raw_settings.get('ImageHdrList')
+        file_hdr = self.raw_settings.get('FileHdrList')
+
+        try:
+            counter_list = sorted(img_hdr.keys() + file_hdr.keys())
+        except AttributeError:
+            counter_list = ['']
+
+        return counter_list
+
+    def _initialize(self):
+        self.ignoreBackground(not self.raw_settings.get('NormAbsCarbonIgnoreBkg'))
 
     def _onTempChoice(self, event):
         I0_ctrl = wx.FindWindowById(self.normConstantsData[1][1], self)
@@ -1080,11 +1198,13 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
 
         I0_ctrl.SetValue(str(RAWSettings.water_scattering_table[int(temp)]))
 
-    def _onCalculateButton(self, event):
-        self._calculateConstant()
+    def _onCalculateWaterButton(self, event):
+        self._calculateWaterConstant()
 
-    def _waitForWorkerThreadToFinish(self):
+    def _onCalculateCarbonButton(self, event):
+        self._calculateCarbonConstant()
 
+    def _waitForWorkerThreadToFinish(self, const_name):
         mainframe = wx.FindWindowByName('MainFrame')
         thread_return_queue = mainframe.getQuestionReturnQueue()
 
@@ -1096,34 +1216,68 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
                 return_val = thread_return_queue.get(False)
                 thread_return_queue.task_done()
                 dialog.Enable(True)
-                constant_ctrl = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterConst'), self)
+                constant_ctrl = wx.FindWindowById(self.raw_settings.getId(const_name), self)
                 constant_ctrl.SetValue(str(return_val))
                 break
             except Queue.Empty:
                 wx.Yield()
-                time.sleep(0.5)
+                time.sleep(0.1)
 
-
-    def _calculateConstant(self):
-
+    def _calculateWaterConstant(self):
         if self._checkAbsScWaterFiles():
-
             waterI0 = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterI0'), self).GetValue()
-
             try:
                 waterI0 = float(waterI0)
-                empty_cell_file = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterEmptyFile'), self).GetValue()
-                water_file =  wx.FindWindowById(self.raw_settings.getId('NormAbsWaterFile'), self).GetValue()
-
-                mainframe = wx.FindWindowByName('MainFrame')
-                mainframe.queueTaskInWorkerThread('calculate_abs_water_const', [water_file, empty_cell_file, waterI0])
-                wx.CallAfter(self._waitForWorkerThreadToFinish)
-
             except TypeError:
                 wx.MessageBox('Water I0 value contains illegal characters', 'Invalid input')
                 return
+
+            empty_cell_file = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterEmptyFile'), self).GetValue()
+            water_file =  wx.FindWindowById(self.raw_settings.getId('NormAbsWaterFile'), self).GetValue()
+
+            mainframe = wx.FindWindowByName('MainFrame')
+            mainframe.queueTaskInWorkerThread('calculate_abs_water_const', [water_file, empty_cell_file, waterI0])
+            wx.CallAfter(self._waitForWorkerThreadToFinish, 'NormAbsWaterConst')
         else:
              wx.MessageBox('Empty cell and/or water sample files could not be found.', 'Invalid input')
+
+    def _calculateCarbonConstant(self):
+        if self._checkCarbonFiles():
+            carbon_bkg_file = wx.FindWindowById(self.raw_settings.getId('NormAbsCarbonEmptyFile'), self).GetValue()
+            carbon_file =  wx.FindWindowById(self.raw_settings.getId('NormAbsCarbonFile'), self).GetValue()
+            sample_bkg_file =  wx.FindWindowById(self.raw_settings.getId('NormAbsCarbonSamEmptyFile'), self).GetValue()
+            carbon_cal_file =  wx.FindWindowById(self.raw_settings.getId('NormAbsCarbonCalFile'), self).GetValue()
+            carbon_thickness =  wx.FindWindowById(self.raw_settings.getId('NormAbsCarbonThick'), self).GetValue()
+            sample_thickness =  wx.FindWindowById(self.raw_settings.getId('NormAbsCarbonSamThick'), self).GetValue()
+            ctr_upstream =  wx.FindWindowById(self.raw_settings.getId('NormAbsCarbonUpstreamCtr'), self).GetStringSelection()
+            ctr_downstream =  wx.FindWindowById(self.raw_settings.getId('NormAbsCarbonDownstreamCtr'), self).GetStringSelection()
+            ignore_background = wx.FindWindowById(self.raw_settings.getId('NormAbsCarbonIgnoreBkg'), self).IsChecked()
+
+            try:
+                carbon_thickness = float(carbon_thickness)
+                sample_thickness = float(sample_thickness)
+            except TypeError:
+                wx.MessageBox('Carbon or sample thickness value contains non-numeric characters', 'Invalid input')
+                return
+
+            param_dict = {'carbon_bkg_file' : carbon_bkg_file,
+                        'carbon_file'       : carbon_file,
+                        'sample_bkg_file'   : sample_bkg_file,
+                        'carbon_cal_file'   : carbon_cal_file,
+                        'carbon_thickness'  : carbon_thickness,
+                        'sample_thickness'  : sample_thickness,
+                        'ctr_upstream'      : ctr_upstream,
+                        'ctr_downstream'    : ctr_downstream,
+                        'ignore_background' : ignore_background,
+                        }
+
+            mainframe = wx.FindWindowByName('MainFrame')
+            mainframe.queueTaskInWorkerThread('calculate_abs_carbon_const', param_dict)
+            wx.CallAfter(self._waitForWorkerThreadToFinish, 'NormAbsCarbonConst')
+
+        else:
+             wx.MessageBox('Selected reference files could not be found.', 'Invalid input')
+
 
     def onSetFile(self, event):
         self.abssc_chkbox.SetValue(False)
@@ -1141,17 +1295,26 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
                     textCtrl = wx.FindWindowById(each[1], self)
                     textCtrl.SetValue(str(selectedFile))
 
+        for each in self.carbonFilesData:
+            if each[2] == ID:
+                    textCtrl = wx.FindWindowById(each[1], self)
+                    textCtrl.SetValue(str(selectedFile))
+
     def onClrFile(self, event):
 
         buttonObj = event.GetEventObject()
         ID = buttonObj.GetId()            # Button ID
 
         for each in self.filesData:
+            if each[3] == ID:
+                textCtrl = wx.FindWindowById(each[1], self)
+                textCtrl.SetValue('None')
+
+        for each in self.carbonFilesData:
                 if each[3] == ID:
                     textCtrl = wx.FindWindowById(each[1], self)
                     textCtrl.SetValue('None')
 
-        self.abssc_chkbox.SetValue(False)
 
     def _checkAbsScWaterFiles(self):
         empty_cell_file = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterEmptyFile'), self).GetValue()
@@ -1162,15 +1325,77 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
         else:
             return False
 
+    def _checkCarbonFiles(self):
+        carbon_bkg_file = wx.FindWindowById(self.raw_settings.getId('NormAbsCarbonEmptyFile'), self).GetValue()
+        carbon_file =  wx.FindWindowById(self.raw_settings.getId('NormAbsCarbonFile'), self).GetValue()
+        sample_bkg_file =  wx.FindWindowById(self.raw_settings.getId('NormAbsCarbonSamEmptyFile'), self).GetValue()
+        carbon_calibration_file =  wx.FindWindowById(self.raw_settings.getId('NormAbsCarbonCalFile'), self).GetValue()
+
+        if carbon_calibration_file == 'None' or carbon_calibration_file is None:
+            if wx.FindWindowById(self.raw_settings.getId('NormAbsCarbonIgnoreBkg'), self).IsChecked():
+                if os.path.isfile(carbon_file):
+                    files_exist = True
+                else:
+                    files_exist = False
+            else:
+                if os.path.isfile(carbon_bkg_file) and os.path.isfile(carbon_file) and os.path.isfile(sample_bkg_file):
+                    files_exist = True
+                else:
+                    files_exist = False
+        else:
+            if wx.FindWindowById(self.raw_settings.getId('NormAbsCarbonIgnoreBkg'), self).IsChecked():
+                if os.path.isfile(carbon_file) and os.path.isfile(carbon_calibration_file):
+                    files_exist = True
+                else:
+                    files_exist = False
+            else:
+                if os.path.isfile(carbon_bkg_file) and os.path.isfile(carbon_file) and os.path.isfile(sample_bkg_file) and os.path.isfile(carbon_calibration_file):
+                    files_exist = True
+                else:
+                    files_exist = False
+
+        return files_exist
+
+    def onIgnoreBackground(self, event):
+        is_on = not event.IsChecked()
+        self.ignoreBackground(is_on)
+
+    def ignoreBackground(self, is_on):
+        ignore_list =   ['NormAbsCarbonEmptyFile',
+                        'NormAbsCarbonSamEmptyFile',
+                        'NormAbsCarbonUpstreamCtr',
+                        'NormAbsCarbonDownstreamCtr',
+                        ]
+
+        for item in ignore_list:
+            item_id = self.raw_settings.getId(item)
+            wx.FindWindowById(item_id).Enable(is_on)
+            for each in self.carbonFilesData:
+                if each[1] == item_id:
+                    wx.FindWindowById(each[2]).Enable(is_on)
+                    wx.FindWindowById(each[3]).Enable(is_on)
+
     def onChkBox(self, event):
 
         chkbox = event.GetEventObject()
+        my_id = event.GetId()
 
-        if chkbox.GetValue() == True:
+        if my_id == self.raw_settings.getId('NormAbsWater') and chkbox.GetValue() == True:
             const = wx.FindWindowById(self.raw_settings.getId('NormAbsWaterConst'), self).GetValue()
-
+            other_chkbox = wx.FindWindowById(self.raw_settings.getId('NormAbsCarbon'), self)
             try:
                 float(const)
+                other_chkbox.SetValue(False)
+            except ValueError:
+                wx.MessageBox('Normalization constant contains illegal characters', 'Invalid input')
+                chkbox.SetValue(False)
+
+        elif my_id == self.raw_settings.getId('NormAbsCarbon') and chkbox.GetValue() == True:
+            const = wx.FindWindowById(self.raw_settings.getId('NormAbsCarbonConst'), self).GetValue()
+            other_chkbox = wx.FindWindowById(self.raw_settings.getId('NormAbsWater'), self)
+            try:
+                float(const)
+                other_chkbox.SetValue(False)
             except ValueError:
                 wx.MessageBox('Normalization constant contains illegal characters', 'Invalid input')
                 chkbox.SetValue(False)
@@ -1870,7 +2095,10 @@ class ConfigRootSettings(wx.Panel):
 
             elif val_type == 'choice':
                 choice_list = obj.GetStrings()
-                idx = choice_list.index(val)
+                if val is not None:
+                    idx = choice_list.index(val)
+                else:
+                    idx=0
                 obj.Select(idx)
 
             elif val_type == 'text' or val_type == 'int' or val_type == 'float':
@@ -3945,7 +4173,10 @@ class OptionsDialog(wx.Dialog):
 
             elif type == 'choice':
                 choice_list = obj.GetStrings()
-                idx = choice_list.index(val)
+                if val is not None:
+                    idx = choice_list.index(val)
+                else:
+                    idx=0
                 obj.Select(idx)
 
             elif type == 'text' or type == 'int' or type == 'float':

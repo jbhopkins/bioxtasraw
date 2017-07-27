@@ -2128,46 +2128,47 @@ class MainWorkerThread(threading.Thread):
         self.ift_plot_panel = wx.FindWindowByName('IFTPlotPanel')
         self.ift_item_panel = wx.FindWindowByName('IFTPanel')
 
-        self._commands = {'plot' : self._loadAndPlot,
-                                    'online_mode_update_data' : self._onlineModeUpdate,
-                                    'show_nextprev_img'     : self._loadAndShowNextImage,
-                                    'show_image'            : self._loadAndShowImage,
-                                    'subtract_filenames'    : self._subtractFilenames,
-                                    'subtract_items'        : self._subtractItems,
-                                    'average_items'         : self._averageItems,
-                                    'save_items'            : self._saveItems,
-                                    'save_iftitems'         : self._saveIftItems,
-                                    'quick_reduce'          : self._quickReduce,
-                                    'load_mask'             : self._loadMaskFile,
-                                    'save_mask'             : self._saveMaskFile,
-                                    'create_mask'           : self._createMask,
-                                    'recreate_all_masks'    : self._recreateAllMasks,
-                                    'calculate_abs_water_const' : self._calcAbsScWaterConst,
-                                    'save_workspace'        : self._saveWorkspace,
-                                    'load_workspace'        : self._loadWorkspace,
-                                    'superimpose_items'     : self._superimposeItems,
-                                    'save_analysis_info'    : self._saveAnalysisInfo,
-                                    'save_all_analysis_info': self._saveAllAnalysisInfo,
-                                    'merge_items'           : self._mergeItems,
-                                    'rebin_items'           : self._rebinItems,
-                                    'ift'                   : self._runIft,
-                                    'interpolate_items'     : self._interpolateItems,
-                                    'plot_iftfit'           : self._plotIftFit,
-                                    'normalize_conc'        : self._normalizeByConc,
-                                    'sec_plot'              : self._loadAndPlotSEC,
-                                    'update_secm'           : self._updateSECM,
-                                    'to_plot'               : self._sendSASMToPlot,
-                                    'to_plot_ift'           : self._plotIFTM,
-                                    'to_plot_SEC'           : self._sendSASMToPlotSEC,
-                                    'average_items_sec'     : self._averageItemsSEC,
-                                    'save_sec_data'         : self._saveSECData,
-                                    'save_sec_item'         : self._saveSECItem,
-                                    'save_sec_profiles'     : self._saveSECProfiles,
-                                    'calculate_params_sec'  : self._calculateSECParams,
-                                    'save_iftm'             : self._saveIFTM,
-                                    'to_plot_sasm'          : self._plotSASM,
-                                    'weighted_average_items': self._weightedAverageItems,
-                                    }
+        self._commands = {'plot'                        : self._loadAndPlot,
+                        'online_mode_update_data'       : self._onlineModeUpdate,
+                        'show_nextprev_img'             : self._loadAndShowNextImage,
+                        'show_image'                    : self._loadAndShowImage,
+                        'subtract_filenames'            : self._subtractFilenames,
+                        'subtract_items'                : self._subtractItems,
+                        'average_items'                 : self._averageItems,
+                        'save_items'                    : self._saveItems,
+                        'save_iftitems'                 : self._saveIftItems,
+                        'quick_reduce'                  : self._quickReduce,
+                        'load_mask'                     : self._loadMaskFile,
+                        'save_mask'                     : self._saveMaskFile,
+                        'create_mask'                   : self._createMask,
+                        'recreate_all_masks'            : self._recreateAllMasks,
+                        'calculate_abs_water_const'     : self._calcAbsScWaterConst,
+                        'save_workspace'                : self._saveWorkspace,
+                        'load_workspace'                : self._loadWorkspace,
+                        'superimpose_items'             : self._superimposeItems,
+                        'save_analysis_info'            : self._saveAnalysisInfo,
+                        'save_all_analysis_info'        : self._saveAllAnalysisInfo,
+                        'merge_items'                   : self._mergeItems,
+                        'rebin_items'                   : self._rebinItems,
+                        'ift'                           : self._runIft,
+                        'interpolate_items'             : self._interpolateItems,
+                        'plot_iftfit'                   : self._plotIftFit,
+                        'normalize_conc'                : self._normalizeByConc,
+                        'sec_plot'                      : self._loadAndPlotSEC,
+                        'update_secm'                   : self._updateSECM,
+                        'to_plot'                       : self._sendSASMToPlot,
+                        'to_plot_ift'                   : self._plotIFTM,
+                        'to_plot_SEC'                   : self._sendSASMToPlotSEC,
+                        'average_items_sec'             : self._averageItemsSEC,
+                        'save_sec_data'                 : self._saveSECData,
+                        'save_sec_item'                 : self._saveSECItem,
+                        'save_sec_profiles'             : self._saveSECProfiles,
+                        'calculate_params_sec'          : self._calculateSECParams,
+                        'save_iftm'                     : self._saveIFTM,
+                        'to_plot_sasm'                  : self._plotSASM,
+                        'weighted_average_items'        : self._weightedAverageItems,
+                        'calculate_abs_carbon_const'    : self._calcAbsScCarbonConst,
+                        }
 
 
     def run(self):
@@ -2323,6 +2324,84 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.main_frame.closeBusyDialog)
         question_return_queue.put(abs_scale_constant)
 
+    def _calcAbsScCarbonConst(self, data):
+        ignore_bkg = data['ignore_background']
+        carbon_file = data['carbon_file']
+        carbon_cal_file = data['carbon_cal_file']
+        carbon_bkg_file = data['carbon_bkg_file']
+        carbon_thickness = data['carbon_thickness']
+        ctr_ups = data['ctr_upstream']
+        ctr_dns = data['ctr_downstream']
+
+        if carbon_cal_file is not None and carbon_cal_file != 'None':
+            try:
+                cal_q, cal_i, cal_err = np.loadtxt(carbon_cal_file, unpack=True)
+            except Exception:
+                try:
+                    cal_q, cal_i, cal_err = np.loadtxt(carbon_cal_file, unpack=True, delimiter=',')
+                except Exception:
+                    cal_q = RAWSettings.glassy_carbon_cal[0]
+                    cal_i = RAWSettings.glassy_carbon_cal[1]
+                    cal_err = RAWSettings.glassy_carbon_cal[2]
+                    msg = ('Cannot read data in selected calibration file, will'
+                        ' use default calibration curve instead.')
+                    wx.CallAfter(wx.MessageBox, msg, 'Invalid Calibration File')
+        else:
+            cal_q = RAWSettings.glassy_carbon_cal[0]
+            cal_i = RAWSettings.glassy_carbon_cal[1]
+            cal_err = RAWSettings.glassy_carbon_cal[2]
+
+
+        if ignore_bkg:
+            carbon_sasm, img = SASFileIO.loadFile(carbon_file, self._raw_settings, no_processing=True)
+
+            if isinstance(carbon_sasm, list):
+                if len(carbon_sasm) == 1:
+                    carbon_sasm = carbon_sasm[0]
+                else:
+                    carbon_sasm = SASM.average(carbon_sasm)
+
+            carbon_ctr_ups_val = -1
+            carbon_ctr_dns_val = -1
+            bkg_ctr_ups_val = -1
+            bkg_ctr_dns_val = -1
+            bkg_sasm = None
+
+        else:
+            carbon_sasm, img = SASFileIO.loadFile(carbon_file, self._raw_settings, no_processing=True)
+            bkg_sasm, img = SASFileIO.loadFile(carbon_bkg_file, self._raw_settings, no_processing=True)
+
+            if isinstance(carbon_sasm, list):
+                if len(carbon_sasm) == 1:
+                    carbon_sasm = carbon_sasm[0]
+                else:
+                    carbon_sasm = SASM.average(carbon_sasm)
+
+            if isinstance(bkg_sasm, list):
+                if len(bkg_sasm) == 1:
+                    bkg_sasm = bkg_sasm[0]
+                else:
+                    bkg_sasm = SASM.average(bkg_sasm)
+
+            carbon_ctrs = carbon_sasm.getParameter('imageHeader')
+            carbon_file_hdr = carbon_sasm.getParameter('counters')
+            carbon_ctrs.update(carbon_file_hdr)
+
+            bkg_ctrs = bkg_sasm.getParameter('imageHeader')
+            bkg_file_hdr = bkg_sasm.getParameter('counters')
+            bkg_ctrs.update(bkg_file_hdr)
+
+            carbon_ctr_ups_val = float(carbon_ctrs[ctr_ups])
+            carbon_ctr_dns_val = float(carbon_ctrs[ctr_dns])
+            bkg_ctr_ups_val = float(bkg_ctrs[ctr_ups])
+            bkg_ctr_dns_val = float(bkg_ctrs[ctr_dns])
+
+        abs_scale_const = SASM.calcAbsoluteScaleCarbonConst(carbon_sasm, carbon_thickness,
+                        self._raw_settings, cal_q, cal_i, cal_err, ignore_bkg, bkg_sasm,
+                        carbon_ctr_ups_val, carbon_ctr_dns_val, bkg_ctr_ups_val,
+                        bkg_ctr_dns_val)
+
+        question_return_queue.put(abs_scale_const)
 
     def _runBIFT(self, sasm, bift_queue, parameters):
         ift_sasm = BIFT.doBift(sasm, bift_queue, *parameters)
@@ -2515,13 +2594,10 @@ class MainWorkerThread(threading.Thread):
                     loaded_sasm = True
 
                     if img is not None:
-                        # qrange = sasm.getQrange()
                         start_point = self._raw_settings.get('StartPoint')
-                        # print start_point
                         end_point = self._raw_settings.get('EndPoint')
-                        # print end_point
 
-                        if type(sasm) != list:
+                        if not isinstance(sasm, list):
                             qrange = (start_point, len(sasm.getBinnedQ())-end_point)
                             sasm.setQrange(qrange)
                         else:
@@ -6180,6 +6256,16 @@ class ManipulationPanel(wx.Panel):
         event.Skip()
 
     def Sync(self):
+        star_item = self.getBackgroundItem()
+        selected_items = self.getSelectedItems()
+
+        if star_item is None or not selected_items or len(selected_items) == 0:
+            msg = ('In order to synchronize (sync) items, you must star the item '
+                'that all others will be synchronized with. You must also select'
+                ' one or more items to synchronize with the starred item.')
+            wx.MessageBox(msg, 'Cannot sync items', wx.OK | wx.ICON_INFORMATION)
+            return
+
         syncdialog = RAWCustomDialogs.SyncDialog(self)
         syncdialog.ShowModal()
         syncdialog.Destroy()
@@ -6869,7 +6955,6 @@ class ManipItemPanel(wx.Panel):
         self.info_png = RAWIcons.info_16_2.GetBitmap()
 
     def _initStartPosition(self):
-
         qmin_ctrl = wx.FindWindowById(self.spin_controls[0][1], self)
         qmax_ctrl = wx.FindWindowById(self.spin_controls[1][1], self)
 
