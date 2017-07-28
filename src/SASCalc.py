@@ -1688,37 +1688,45 @@ def cormap_pval(data1, data2):
         prob = 1
     return n, c, round(prob,6)
 
-#This code to find the contiguous regions of the data was taken from stack overflow:
+#This code to find the contiguous regions of the data is based on these
+#questions from stack overflow:
 #https://stackoverflow.com/questions/4494404/find-large-number-of-consecutive-values-fulfilling-condition-in-a-numpy-array
-def contiguous_regions(condition):
-    """Finds contiguous True regions of the boolean array "condition". Returns
-    a 2D array where the first column is the start index of the region and the
-    second column is the end index."""
+#https://stackoverflow.com/questions/12427146/combine-two-arrays-and-sort
+def contiguous_regions(data):
+    """Finds contiguous regions of the difference data. Returns
+    a 1D array where each value represents a change in the condition."""
 
-    # Find the indicies of changes in "condition"
-    d = np.ediff1d(condition.astype(int))
-    idx, = d.nonzero()
+    if np.all(data==0):
+        idx = np.array([])
+    elif np.all(data>0) or np.all(data<0):
+        idx = np.array([0, data.size])
+    else:
+        condition = data>0
+        # Find the indicies of changes in "condition"
+        d = np.ediff1d(condition.astype(int))
+        idx, = d.nonzero()
+        idx = idx+1
 
-    # We need to start things after the change in "condition". Therefore,
-    # we'll shift the index by 1 to the right.
-    idx += 1
+        if np.any(data==0):
+            print 'here'
+            condition2 = data<0
+            # Find the indicies of changes in "condition"
+            d2 = np.ediff1d(condition2.astype(int))
+            idx2, = d.nonzero()
+            idx2 = idx2+1
+            #Combines the two conditions into a sorted array, no need to remove duplicates
+            idx = np.concatenate((idx, idx2))
+            idx.sort(kind='mergesort')
 
-    if condition[0]:
-        # If the start of condition is True prepend a 0
+        #first and last indices are always in this matrix
         idx = np.r_[0, idx]
-
-    if condition[-1]:
-        # If the end of condition is True, append the length of the array
         idx = np.r_[idx, condition.size]
-
-    # Reshape the result into two columns
-    idx.shape = (-1,2)
     return idx
 
 def measure_longest(data):
     """Find the longest consecutive region of positive or negative values"""
-    regions = contiguous_regions(data>0)
-    lengths = np.diff(regions)
+    regions = contiguous_regions(data)
+    lengths = np.ediff1d(regions)
     if lengths.size > 0:
         max_len = lengths.max()
     else:
