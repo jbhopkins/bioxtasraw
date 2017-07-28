@@ -1216,8 +1216,9 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
                 return_val = thread_return_queue.get(False)
                 thread_return_queue.task_done()
                 dialog.Enable(True)
-                constant_ctrl = wx.FindWindowById(self.raw_settings.getId(const_name), self)
-                constant_ctrl.SetValue(str(return_val))
+                if return_val is not None:
+                    constant_ctrl = wx.FindWindowById(self.raw_settings.getId(const_name), self)
+                    constant_ctrl.SetValue(str(return_val))
                 break
             except Queue.Empty:
                 wx.Yield()

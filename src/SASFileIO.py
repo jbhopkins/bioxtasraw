@@ -43,6 +43,7 @@ import collections
 from xml.dom import minidom
 import PIL
 from PIL import Image
+import wx
 
 import RAWGlobals
 import SASImage
@@ -1532,17 +1533,26 @@ def loadFile(filename, raw_settings, no_processing = False):
             current_sasm.setParameter('config_file', raw_settings.get('CurrentCfg'))
             SASM.postProcessSasm(current_sasm, raw_settings)
 
+            abs_scale_fail = []
+
             if not no_processing:
                 #Need to do a little work before we can do glassy carbon normalization
                 if raw_settings.get('NormAbsCarbon') and not raw_settings.get('NormAbsCarbonIgnoreBkg'):
-                    bkg_filename = raw_settings.get('NormAbsCarbonEmptyFile')
+                    bkg_filename = raw_settings.get('NormAbsCarbonSamEmptyFile')
                     bkg_sasm = raw_settings.get('NormAbsCarbonSamEmptySASM')
                     if bkg_sasm is None or bkg_sasm.getParameter('filename') != os.path.split(bkg_filename)[1]:
                         bkg_sasm, junk_img = loadFile(bkg_filename, raw_settings, no_processing=True)
+                        if isinstance(bkg_sasm,list):
+                            if len(bkg_sasm) > 1:
+                                bkg_sasm = SASM.average(bkg_sasm)
+                            else:
+                                bkg_sasm = bkg_sasm[0]
                         raw_settings.set('NormAbsCarbonSamEmptySASM', bkg_sasm)
 
-                SASM.postProcessImageSasm(current_sasm, raw_settings)
-
+                try:
+                    SASM.postProcessImageSasm(current_sasm, raw_settings)
+                except SASExceptions.AbsScaleNormFailed:
+                    raise
     else:
         sasm = loadAsciiFile(filename, file_type)
         img = None

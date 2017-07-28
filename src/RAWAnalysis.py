@@ -9571,7 +9571,7 @@ class similiarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
         wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin.__init__(self)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.list_ctrl, 0, wx.ALL | wx.EXPAND, 5)
+        sizer.Add(self.list_ctrl, 1, wx.ALL | wx.EXPAND, 5)
         self.SetSizer(sizer)
 
     def GetListCtrl(self):

@@ -704,7 +704,7 @@ class MainFrame(wx.Frame):
         for sasm in sasm_list:
             analysis_dict = sasm.getParameter('analysis')
             if 'guinier' not in analysis_dict or 'Rg' not in analysis_dict['guinier'] or 'I0' not in analysis_dict['guinier']:
-                msg = 'One or more of the selected profiles does not have not Guinier analysis data. All selected profiles must have a Rg and I0 from Guinier analysis.'
+                msg = 'One or more of the selected profiles does not have not Guinier analysis data. All selected profiles must have Rg and I0 from Guinier analysis.'
                 dlg = wx.MessageDialog(self, msg, "Missing Guinier Analysis", style = wx.ICON_INFORMATION | wx.OK)
                 dlg.ShowModal()
                 dlg.Destroy()
@@ -2302,27 +2302,34 @@ class MainWorkerThread(threading.Thread):
             water_sasm, img = SASFileIO.loadFile(filename, self._raw_settings, no_processing = True)
             filename = empty_filename
             empty_sasm, img = SASFileIO.loadFile(filename, self._raw_settings, no_processing = True)
-
-            if type(water_sasm) == list:
-                if len(water_sasm) == 1:
-                    water_sasm = water_sasm[0]
-                else:
-                    water_sasm = SASM.average(water_sasm)
-
-            if type(empty_sasm) == list:
-                if len(empty_sasm) == 1:
-                    empty_sasm = empty_sasm[0]
-                else:
-                    empty_sasm = SASM.average(empty_sasm)
-
-            abs_scale_constant = SASM.calcAbsoluteScaleWaterConst(water_sasm, empty_sasm, waterI0, self._raw_settings)
         except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat):
             self._showDataFormatError(os.path.split(filename)[1])
+            wx.CallAfter(self.main_frame.closeBusyDialog)
+            question_return_queue.put(None)
+            return
+
+        if isinstance(water_sasm, list):
+            if len(water_sasm) == 1:
+                water_sasm = water_sasm[0]
+            else:
+                water_sasm = SASM.average(water_sasm)
+
+        if isinstance(empty_sasm, list):
+            if len(empty_sasm) == 1:
+                empty_sasm = empty_sasm[0]
+            else:
+                empty_sasm = SASM.average(empty_sasm)
+        try:
+            abs_scale_constant = SASM.calcAbsoluteScaleWaterConst(water_sasm, empty_sasm, waterI0, self._raw_settings)
         except SASExceptions.DataNotCompatible:
+            wx.CallAfter(self.main_frame.closeBusyDialog)
             self._showSubtractionError(water_sasm, empty_sasm)
+            question_return_queue.put(None)
+            return
 
         wx.CallAfter(self.main_frame.closeBusyDialog)
         question_return_queue.put(abs_scale_constant)
+        return
 
     def _calcAbsScCarbonConst(self, data):
         ignore_bkg = data['ignore_background']
@@ -2353,7 +2360,12 @@ class MainWorkerThread(threading.Thread):
 
 
         if ignore_bkg:
-            carbon_sasm, img = SASFileIO.loadFile(carbon_file, self._raw_settings, no_processing=True)
+            try:
+                carbon_sasm, img = SASFileIO.loadFile(carbon_file, self._raw_settings, no_processing=True)
+            except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat):
+                self._showDataFormatError(os.path.split(carbon_file)[1])
+                question_return_queue.put(None)
+                return
 
             if isinstance(carbon_sasm, list):
                 if len(carbon_sasm) == 1:
@@ -2368,8 +2380,13 @@ class MainWorkerThread(threading.Thread):
             bkg_sasm = None
 
         else:
-            carbon_sasm, img = SASFileIO.loadFile(carbon_file, self._raw_settings, no_processing=True)
-            bkg_sasm, img = SASFileIO.loadFile(carbon_bkg_file, self._raw_settings, no_processing=True)
+            try:
+                carbon_sasm, img = SASFileIO.loadFile(carbon_file, self._raw_settings, no_processing=True)
+                bkg_sasm, img = SASFileIO.loadFile(carbon_bkg_file, self._raw_settings, no_processing=True)
+            except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat):
+                self._showDataFormatError(os.path.split(carbon_file)[1] + ' or ' + os.path.split(carbon_bkg_file)[1])
+                question_return_queue.put(None)
+                return
 
             if isinstance(carbon_sasm, list):
                 if len(carbon_sasm) == 1:
@@ -2396,10 +2413,15 @@ class MainWorkerThread(threading.Thread):
             bkg_ctr_ups_val = float(bkg_ctrs[ctr_ups])
             bkg_ctr_dns_val = float(bkg_ctrs[ctr_dns])
 
-        abs_scale_const = SASM.calcAbsoluteScaleCarbonConst(carbon_sasm, carbon_thickness,
-                        self._raw_settings, cal_q, cal_i, cal_err, ignore_bkg, bkg_sasm,
-                        carbon_ctr_ups_val, carbon_ctr_dns_val, bkg_ctr_ups_val,
-                        bkg_ctr_dns_val)
+        try:
+            abs_scale_const = SASM.calcAbsoluteScaleCarbonConst(carbon_sasm, carbon_thickness,
+                            self._raw_settings, cal_q, cal_i, cal_err, ignore_bkg, bkg_sasm,
+                            carbon_ctr_ups_val, carbon_ctr_dns_val, bkg_ctr_ups_val,
+                            bkg_ctr_dns_val)
+        except SASExceptions.DataNotCompatible:
+            self._showSubtractionError(carbon_sasm, bkg_sasm)
+            question_return_queue.put(None)
+            return
 
         question_return_queue.put(abs_scale_const)
 
@@ -2560,14 +2582,12 @@ class MainWorkerThread(threading.Thread):
             for i in range(len(filename_list)):
 
                 each_filename = filename_list[i]
-
                 file_ext = os.path.splitext(each_filename)[1]
 
                 if file_ext == '.sec':
                     try:
                         secm = SASFileIO.loadSECFile(each_filename)
                     except Exception as e:
-                        print 'Error type: %s, error: %s' %(type(e).__name__, e)
                         self._showDataFormatError(os.path.split(each_filename)[1], include_sec = True)
                         wx.CallAfter(self.main_frame.closeBusyDialog)
                         return
@@ -2620,7 +2640,6 @@ class MainWorkerThread(threading.Thread):
                             do_auto_save = False
                             wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutosave of processed images has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
-
                 if np.mod(i,20) == 0:
                     if loaded_sasm:
                         self._sendSASMToPlot(sasm_list, no_update = True, update_legend = False)
@@ -2636,7 +2655,6 @@ class MainWorkerThread(threading.Thread):
                     iftm_list = []
                     secm_list = []
 
-
             if len(sasm_list) > 0:
                 self._sendSASMToPlot(sasm_list, no_update = True, update_legend = False)
 
@@ -2651,7 +2669,7 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
         except SASExceptions.HeaderLoadError, msg:
-            wx.CallAfter(wx.MessageBox, str(msg)+' Please check that the header file is in the directory with the data.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
+            wx.CallAfter(wx.MessageBox, str(msg)+'\n\nPlease check that the header file is in the directory with the data.', 'Error Loading Header File', style = wx.ICON_ERROR | wx.OK)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
         except SASExceptions.MaskSizeError, msg:
@@ -2660,6 +2678,15 @@ class MainWorkerThread(threading.Thread):
             return
         except SASExceptions.HeaderMaskLoadError, msg:
             wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header', style = wx.ICON_ERROR)
+            wx.CallAfter(self.main_frame.closeBusyDialog)
+            return
+        except SASExceptions.AbsScaleNormFailed:
+            msg = ('Failed to apply absolute scale. The most '
+                    'likely cause is a mismatch between the q vector of the '
+                    'loaded file and the selected sample background file. '
+                    'It failed on the following file:\n')
+            msg = msg + os.path.split(each_filename)[1]
+            wx.CallAfter(wx.MessageBox, msg, 'Absolute scale failed', style = wx.ICON_ERROR)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
 
@@ -2768,6 +2795,15 @@ class MainWorkerThread(threading.Thread):
                 wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header', style = wx.ICON_ERROR)
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
+            except SASExceptions.AbsScaleNormFailed:
+                msg = ('Failed to apply absolute scale. The most '
+                        'likely cause is a mismatch between the q vector of the '
+                        'loaded file and the selected sample background file. '
+                        'It failed on the following file:\n')
+                msg = msg + os.path.split(each_filename)[1]
+                wx.CallAfter(wx.MessageBox, msg, 'Absolute scale failed', style = wx.ICON_ERROR)
+                wx.CallAfter(self.main_frame.closeBusyDialog)
+                return
 
             secm = SASM.SECM(filename_list, sasm_list, frame_list, {})
 
@@ -2845,6 +2881,15 @@ class MainWorkerThread(threading.Thread):
                 # wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header', style = wx.ICON_ERROR)
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'mask_header', msg)
+                return
+            except SASExceptions.AbsScaleNormFailed:
+                msg = ('Failed to apply absolute scale. The most '
+                        'likely cause is a mismatch between the q vector of the '
+                        'loaded file and the selected sample background file. '
+                        'It failed on the following file:\n')
+                msg = msg + os.path.split(each_filename)[1]
+                wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'abs_scale', msg)
+                wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
 
         secm.append(filename_list, sasm_list, frame_list)
@@ -3628,6 +3673,13 @@ class MainWorkerThread(threading.Thread):
                         self._showDataFormatError(os.path.split(each_filename)[1], include_ascii = False)
                     except SASExceptions.HeaderLoadError, msg:
                         wx.CallAfter(wx.MessageBox, str(msg)+' Could not find the header file. Skipping this file and proceeding.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
+                    except SASExceptions.AbsScaleNormFailed:
+                        msg = ('Failed to apply absolute scale. The most '
+                                'likely cause is a mismatch between the q vector of the '
+                                'loaded file and the selected sample background file. '
+                                'It failed on the following file:\n%s\n'
+                                'Skipping this file and proceeding.') %(os.path.split(each_filename)[1])
+                        wx.CallAfter(wx.MessageBox, msg, 'Absolute scale failed', style = wx.ICON_ERROR | wx.OK)
 
             else:
                 try:
@@ -3656,7 +3708,14 @@ class MainWorkerThread(threading.Thread):
                 except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat):
                     self._showDataFormatError(os.path.split(each_filename)[1], include_ascii = False)
                 except SASExceptions.HeaderLoadError, msg:
-                        wx.CallAfter(wx.MessageBox, str(msg)+' Could not find the header file. Skipping this file and proceeding.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
+                    wx.CallAfter(wx.MessageBox, str(msg)+' Could not find the header file. Skipping this file and proceeding.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
+                except SASExceptions.AbsScaleNormFailed:
+                    msg = ('Failed to apply absolute scale. The most '
+                            'likely cause is a mismatch between the q vector of the '
+                            'loaded file and the selected sample background file. '
+                            'It failed on the following file:\n%s\n'
+                            'Skipping this file and proceeding.') %(os.path.split(each_filename)[1])
+                    wx.CallAfter(wx.MessageBox, msg, 'Absolute scale failed', style = wx.ICON_ERROR | wx.OK)
 
         self._showQuickReduceFinished(processed_files, len(filename_list))
 
@@ -9923,13 +9982,9 @@ class SECControlPanel(wx.Panel):
 
             try:
                 sasm, img = SASFileIO.loadFile(fname, self.parent._raw_settings)
-
             except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
                 img_fmt = self._raw_settings.get('ImageFormat')
-
                 ascii = ' or any of the supported ASCII formats'
-
-
                 wx.CallAfter(wx.MessageBox, 'The selected file: ' + fname + '\ncould not be recognized as a '   + str(img_fmt) +
                                  ' image format' + ascii + '.\n\nYou can change the image format under Advanced Options in the Options menu.' ,
                                   'Error loading file', style = wx.ICON_ERROR | wx.OK)
@@ -9944,17 +9999,22 @@ class SECControlPanel(wx.Panel):
                 wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header', style = wx.ICON_ERROR)
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
+            except SASExceptions.AbsScaleNormFailed:
+                msg = ('Failed to apply absolute scale. The most '
+                        'likely cause is a mismatch between the q vector of the '
+                        'loaded file and the selected sample background file. '
+                        'It failed on the following file:\n%s') %(os.path.split(each_filename)[1])
+                wx.CallAfter(wx.MessageBox, msg, 'Absolute scale failed', style = wx.ICON_ERROR | wx.OK)
+                wx.CallAfter(self.main_frame.closeBusyDialog)
+                return
 
             if fname != None:
                 self.directory, self.filename = os.path.split(fname)
                 self._fillBoxes()
-
                 self._onLoad()
-
         else:
              wx.CallAfter(wx.MessageBox, 'The "%s" header format is not supported for automated SEC-SAXS file loading. You can use the "Plot SEC" button in the file window to plot any SEC-SAXS data. Please contact the RAW developers if you want to add automated loading support for a particular header format.' %(hdr_format) ,
                                       'Error loading file', style = wx.ICON_ERROR | wx.OK)
-
 
     def _onLoad(self):
         if self._is_online:
@@ -10020,6 +10080,8 @@ class SECControlPanel(wx.Panel):
                  wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic SEC updating turned off.', 'Saved mask does not fit loaded image', style = wx.ICON_ERROR)
             elif error == 'mask_header':
                 wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic SEC updating turned off.', 'Mask information was not found in header', style = wx.ICON_ERROR)
+            elif error == 'abs_scale':
+                wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic SEC updating turned off.', 'Absolute scale failed', style = wx.ICON_ERROR)
 
     def updateSucceeded(self):
         if self.online_mode_button.IsChecked() and not self._is_online:

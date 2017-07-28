@@ -400,10 +400,12 @@ def postProcess(raw_settings):
 
     dir_check_list = [('AutoSaveOnImageFiles', 'ProcessedFilePath'), ('AutoSaveOnAvgFiles', 'AveragedFilePath'),
                     ('AutoSaveOnSub', 'SubtractedFilePath'), ('AutoSaveOnBift', 'BiftFilePath'),
-                    ('AutoSaveOnGnom', 'GnomFilePath'), ('OnlineModeOnStartup', 'OnlineStartupDir')
+                    ('AutoSaveOnGnom', 'GnomFilePath'), ('OnlineModeOnStartup', 'OnlineStartupDir'),
                     ]
 
-    file_check_list = [('NormFlatfieldEnabled', 'NormFlatfieldFile')]
+    file_check_list = [('NormFlatfieldEnabled', 'NormFlatfieldFile'),]
+
+    file_check_list_inverted = [('NormAbsCarbonIgnoreBkg', 'NormAbsCarbonSamEmptyFile'),]
 
     change_list = []
 
@@ -413,7 +415,8 @@ def postProcess(raw_settings):
                     'AutoSaveOnBift'        : '- AutoSave BIFT files',
                     'AutoSaveOnGnom'        : '- AutoSave GNOM files',
                     'OnlineModeOnStartup'   : '- Start online mode when RAW starts',
-                    'NormFlatfieldEnabled'  : '- Apply a flatfield correction'
+                    'NormFlatfieldEnabled'  : '- Apply a flatfield correction',
+                    'NormAbsCarbonIgnoreBkg': '- Full (background subtracted) absolute scale using glassy carbon',
                     }
 
     for item in dir_check_list:
@@ -426,6 +429,12 @@ def postProcess(raw_settings):
         if raw_settings.get(item[0]):
             if not os.path.isfile(raw_settings.get(item[1])):
                 raw_settings.set(item[0], False)
+                change_list.append(item[0])
+
+    for item in file_check_list_inverted:
+        if not raw_settings.get(item[0]):
+            if not os.path.isfile(raw_settings.get(item[1])):
+                raw_settings.set(item[0], True)
                 change_list.append(item[0])
 
     text = ''

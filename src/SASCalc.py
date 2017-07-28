@@ -1708,7 +1708,6 @@ def contiguous_regions(data):
         idx = idx+1
 
         if np.any(data==0):
-            print 'here'
             condition2 = data<0
             # Find the indicies of changes in "condition"
             d2 = np.ediff1d(condition2.astype(int))

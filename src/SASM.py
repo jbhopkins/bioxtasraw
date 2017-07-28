@@ -1525,13 +1525,11 @@ def normalizeAbsoluteScaleCarbon(sasm, raw_settings):
         sasm.scaleBinnedIntensity(1./sample_ctr_ups_val)
         bkg_sasm.scale((1./bkg_ctr_ups_val)*sample_trans)
 
-        # print sample_trans
-        # print sample_ctr_ups_val
-        # print sample_ctr_dns_val
-        # print bkg_ctr_ups_val
-        # print bkg_ctr_dns_val
-
-        sub_sasm = subtract(sasm, bkg_sasm, forced = True, full = True)
+        try:
+            sub_sasm = subtract(sasm, bkg_sasm, forced = True, full = True)
+        except SASExceptions.DataNotCompatible:
+            sasm.scaleBinnedIntensity(sample_ctr_ups_val)
+            raise SASExceptions.AbsScaleNormFailed('Absolute scale failed because empty scattering could not be subtracted')
 
         sub_sasm.scaleBinnedIntensity(1./(sample_trans)/sam_thick)
         sub_sasm.scaleBinnedIntensity(abs_scale_constant)
@@ -1550,7 +1548,7 @@ def normalizeAbsoluteScaleCarbon(sasm, raw_settings):
                         }
 
     if not ignore_bkg:
-        abs_scale_params['Background_file'] = raw_settings.get('NormAbsCarbonEmptyFile')
+        abs_scale_params['Background_file'] = raw_settings.get('NormAbsCarbonSamEmptyFile')
         abs_scale_params['Upstream_counter_name'] = ctr_ups
         abs_scale_params['Downstream_counter_name'] = ctr_dns
         abs_scale_params['Upstream_counter_value_sample'] = sample_ctr_ups_val
@@ -1569,10 +1567,7 @@ def normalizeAbsoluteScaleCarbon(sasm, raw_settings):
 
 def postProcessImageSasm(sasm, raw_settings):
     if raw_settings.get('NormAbsWater'):
-        try:
-            normalizeAbsoluteScaleWater(sasm, raw_settings)
-        except SASExceptions.AbsScaleNormFailed, e:
-            print e
+        normalizeAbsoluteScaleWater(sasm, raw_settings)
 
     elif raw_settings.get('NormAbsCarbon'):
         normalizeAbsoluteScaleCarbon(sasm, raw_settings)
