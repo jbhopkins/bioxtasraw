@@ -3640,7 +3640,7 @@ class DammifRunPanel(wx.Panel):
                 label = 'Overwrite existing files?'
                 icon = wx.ART_WARNING
 
-                question_dialog = RAWCustomCtrl.CustomQuestionDialog(self.main_frame, question, button_list, label, icon, style = wx.CAPTION | wx.RESIZE_BORDER)
+                question_dialog = RAWCustomDialogs.CustomQuestionDialog(self.main_frame, question, button_list, label, icon, style = wx.CAPTION | wx.RESIZE_BORDER)
                 result = question_dialog.ShowModal()
                 question_dialog.Destroy()
 
@@ -3674,7 +3674,7 @@ class DammifRunPanel(wx.Panel):
                     label = 'Overwrite existing files?'
                     icon = wx.ART_WARNING
 
-                    question_dialog = RAWCustomCtrl.CustomQuestionDialog(self.main_frame, question, button_list, label, icon, style = wx.CAPTION | wx.RESIZE_BORDER)
+                    question_dialog = RAWCustomDialogs.CustomQuestionDialog(self.main_frame, question, button_list, label, icon, style = wx.CAPTION | wx.RESIZE_BORDER)
                     result = question_dialog.ShowModal()
                     question_dialog.Destroy()
 
@@ -3700,7 +3700,7 @@ class DammifRunPanel(wx.Panel):
                     label = 'Overwrite existing files?'
                     icon = wx.ART_WARNING
 
-                    question_dialog = RAWCustomCtrl.CustomQuestionDialog(self.main_frame, question, button_list, label, icon, style = wx.CAPTION | wx.RESIZE_BORDER)
+                    question_dialog = RAWCustomDialogs.CustomQuestionDialog(self.main_frame, question, button_list, label, icon, style = wx.CAPTION | wx.RESIZE_BORDER)
                     result = question_dialog.ShowModal()
                     question_dialog.Destroy()
 

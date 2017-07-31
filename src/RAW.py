@@ -468,7 +468,7 @@ class MainFrame(wx.Frame):
     def showQuestionDialogFromThread(self, question, label, button_list, icon = None, filename = None, save_path = None):
         ''' Function to show a question dialog from the thread '''
 
-        question_dialog = RAWCustomCtrl.CustomQuestionDialog(self, question, button_list, label, icon, filename, save_path, style = wx.CAPTION | wx.RESIZE_BORDER)
+        question_dialog = RAWCustomDialogs.CustomQuestionDialog(self, question, button_list, label, icon, filename, save_path, style = wx.CAPTION | wx.RESIZE_BORDER)
         result = question_dialog.ShowModal()
         path = question_dialog.getPath()
         question_dialog.Destroy()
@@ -701,13 +701,63 @@ class MainFrame(wx.Frame):
             dlg.Destroy()
             return
 
+        missing_rg = []
         for sasm in sasm_list:
             analysis_dict = sasm.getParameter('analysis')
             if 'guinier' not in analysis_dict or 'Rg' not in analysis_dict['guinier'] or 'I0' not in analysis_dict['guinier']:
-                msg = 'One or more of the selected profiles does not have not Guinier analysis data. All selected profiles must have Rg and I0 from Guinier analysis.'
-                dlg = wx.MessageDialog(self, msg, "Missing Guinier Analysis", style = wx.ICON_INFORMATION | wx.OK)
-                dlg.ShowModal()
-                dlg.Destroy()
+                missing_rg.append(sasm)
+
+        if len(missing_rg) > 0:
+            question = ('One or more of the selected profiles does not have\n'
+                'Guinier analysis data. All selected profiles must '
+                'have Rg\nand I0 from Guinier analysis. Select an action below.')
+            button_list = [('Cancel', wx.ID_CANCEL),('Proceed using AutoRg', wx.ID_YES)]
+            label = "Missing Guinier Analysis"
+            icon = wx.ART_WARNING
+
+            question_dialog = RAWCustomDialogs.CustomQuestionDialog(self, question, button_list, label, icon, None, None, style = wx.CAPTION | wx.RESIZE_BORDER)
+            result = question_dialog.ShowModal()
+            question_dialog.Destroy()
+
+            if result == wx.ID_CANCEL:
+                return
+            else:
+                failed_autorg = []
+                for sasm in missing_rg:
+                    rg, rger, i0, i0er, idx_min, idx_max = SASCalc.autoRg(sasm, single_fit=True)
+                    if rg > 0:
+                        qs = np.square(sasm.q)
+                        il = np.log(sasm.i)
+                        iler = il*np.absolute(sasm.err/sasm.i)
+                        a = np.log(i0)
+                        b = np.square(rg)/-3.
+                        r_sqr = 1 - np.square(il[idx_min:idx_max]-SASCalc.linear_func(qs[idx_min:idx_max], a, b)).sum()/np.square(il[idx_min:idx_max]-il[idx_min:idx_max].mean()).sum()
+
+                        guinier_data = {'I0'        : str(i0),
+                                        'Rg'        : str(rg),
+                                        'nStart'    : str(idx_min),
+                                        'nEnd'      : str(idx_max),
+                                        'qStart'    : str(sasm.q[idx_min]),
+                                        'qEnd'      : str(sasm.q[idx_max]),
+                                        'qRg_min'   : str(sasm.q[idx_min]*rg),
+                                        'qRg_max'   : str(sasm.q[idx_max]*rg),
+                                        'rsq'       : str(r_sqr),
+                                        }
+
+                        analysis_dict = sasm.getParameter('analysis')
+                        analysis_dict['guinier'] = guinier_data
+
+                    else:
+                        failed_autorg.append(sasm)
+
+            if len(failed_autorg) > 0:
+                msg = ('AutoRg failed for one or more of the files, so the '
+                        'normalized Kratky plot cannot be shown. Autorg failed on:')
+                for sasm in failed_autorg:
+                    msg = msg + '\n%s' %(sasm.getParameter('filename'))
+
+                wx.MessageBox(msg, 'AutoRg Failed', style=wx.ICON_ERROR|wx.OK)
+
                 return
 
         self.kratkyframe = RAWAnalysis.NormKratkyFrame(self, 'Normalized Kratky Plots', sasm_list)
@@ -1938,7 +1988,7 @@ class OnlineController:
             label = "Missing Directory"
             icon = wx.ART_WARNING
 
-            question_dialog = RAWCustomCtrl.CustomQuestionDialog(self.main_frame, question, button_list, label, icon, None, None, style = wx.CAPTION | wx.RESIZE_BORDER)
+            question_dialog = RAWCustomDialogs.CustomQuestionDialog(self.main_frame, question, button_list, label, icon, None, None, style = wx.CAPTION | wx.RESIZE_BORDER)
             result = question_dialog.ShowModal()
             question_dialog.Destroy()
 
@@ -2689,7 +2739,8 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
 
-        self._sendImageToDisplay(img, sasm)
+        if img is not None:
+            self._sendImageToDisplay(img, sasm)
 
         if loaded_secm and not loaded_sasm and not loaded_iftm:
             wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 3)
@@ -3467,7 +3518,6 @@ class MainWorkerThread(threading.Thread):
             'Subtraction is not possible. Data files must have equal number of points.', 'Subtraction Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
     def _showAverageError(self, err_no, sasm_list=[]):
-
         if err_no == 1:
             wx.CallAfter(wx.MessageBox, 'The selected items must have the same total number of points to be averaged.', 'Average Error')
         elif err_no == 2:
@@ -3485,11 +3535,10 @@ class MainWorkerThread(threading.Thread):
                 msg = msg + sasm.getParameter('filename') + '\n'
             msg = msg + ('Please select an action below.')
             answer = self._displayQuestionDialog(msg, 'Warning: Profiles to average are different',
-                            [('Cancel Average', wx.ID_CANCEL), ('Continue Average', wx.ID_YES)], wx.ART_WARNING)
-            if answer[0] == wx.ID_YES:
-                return True
-            else:
-                return False
+                            [('Cancel Average', wx.ID_CANCEL), ('Average All Files', wx.ID_YESTOALL),
+                            ('Average Only Similar Files', wx.ID_YES)], wx.ART_WARNING)
+            return answer[0]
+
     def _showPleaseSelectItemsError(self, type):
 
         if type == 'average':
@@ -3889,6 +3938,8 @@ class MainWorkerThread(threading.Thread):
 
         sasm_list = []
 
+        profiles_to_use = wx.ID_YESTOALL
+
         if len(item_list) < 2:
             self._showAverageError(2)
             wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -3921,13 +3972,25 @@ class MainWorkerThread(threading.Thread):
                 pvals[pvals>1] = 1
 
             if np.any(pvals<threshold):
-                continue_average = self._showAverageError(4, itertools.compress(sasm_list[1:], pvals<threshold))
-                if not continue_average:
+                profiles_to_use = self._showAverageError(4, itertools.compress(sasm_list[1:], pvals<threshold))
+                if profiles_to_use == wx.ID_CANCEL:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                     return
 
         try:
-            avg_sasm = SASM.average(sasm_list)
+            if profiles_to_use == wx.ID_YESTOALL:
+                avg_sasm = SASM.average(sasm_list)
+
+            elif profiles_to_use == wx.ID_YES:
+                reduced_sasm_list = [sasm_list[0]]
+                print len(sasm_list)
+                print len(pvals)
+                for i, sasm in enumerate(sasm_list[1:]):
+                    if pvals[i] >= threshold:
+                        reduced_sasm_list.append(sasm)
+
+                avg_sasm = SASM.average(reduced_sasm_list)
+
         except SASExceptions.DataNotCompatible:
             self._showAverageError(3)
             wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -10389,7 +10452,7 @@ class SECControlPanel(wx.Panel):
                 for sasm in itertools.compress(sasm_list[1:], pvals<threshold):
                     msg = msg + sasm.getParameter('filename') + '\n'
                 msg = msg + ('Please select an action below.')
-                question_dialog = RAWCustomCtrl.CustomQuestionDialog(self, msg,
+                question_dialog = RAWCustomDialogs.CustomQuestionDialog(self, msg,
                     [('Cancel Calculation', wx.ID_CANCEL), ('Continue Calculation', wx.ID_YES)],
                     'Warning: Selected buffer frames are different',
                     wx.ART_WARNING, None, None, style = wx.CAPTION | wx.RESIZE_BORDER)

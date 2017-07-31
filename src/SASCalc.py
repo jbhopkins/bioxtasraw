@@ -188,7 +188,7 @@ def porodVolume(q, i, err, rg, i0, start = 0, stop = -1, interp = True, rg_qmin=
 
     return pVolume
 
-def autoRg(sasm):
+def autoRg(sasm, single_fit=False):
     #This function automatically calculates the radius of gyration and scattering intensity at zero angle
     #from a given scattering profile. It roughly follows the method used by the autorg function in the atsas package
 
@@ -360,15 +360,25 @@ def autoRg(sasm):
             #     rger = rger1 + rger2
             # except:
             #     rger = rger1
-            try:
-                idx = quality.argmax()
-                rg = fit_list[:,4][quality>quality[idx]-.1].mean()
-                rger = fit_list[:,5][quality>quality[idx]-.1].std()
-                i0 = fit_list[:,6][quality>quality[idx]-.1].mean()
-                i0er = fit_list[:,7][quality>quality[idx]-.1].std()
-                idx_min = int(fit_list[idx,0])
-                idx_max = int(fit_list[idx,0]+fit_list[idx,1]-1)
-            except:
+
+            if not single_fit:
+                try:
+                    idx = quality.argmax()
+                    rg = fit_list[:,4][quality>quality[idx]-.1].mean()
+                    rger = fit_list[:,5][quality>quality[idx]-.1].std()
+                    i0 = fit_list[:,6][quality>quality[idx]-.1].mean()
+                    i0er = fit_list[:,7][quality>quality[idx]-.1].std()
+                    idx_min = int(fit_list[idx,0])
+                    idx_max = int(fit_list[idx,0]+fit_list[idx,1]-1)
+                except:
+                    idx = quality.argmax()
+                    rg = fit_list[idx,4]
+                    rger = fit_list[idx,5]
+                    i0 = fit_list[idx,6]
+                    i0er = fit_list[idx,7]
+                    idx_min = int(fit_list[idx,0])
+                    idx_max = int(fit_list[idx,0]+fit_list[idx,1]-1)
+            else:
                 idx = quality.argmax()
                 rg = fit_list[idx,4]
                 rger = fit_list[idx,5]
@@ -376,7 +386,6 @@ def autoRg(sasm):
                 i0er = fit_list[idx,7]
                 idx_min = int(fit_list[idx,0])
                 idx_max = int(fit_list[idx,0]+fit_list[idx,1]-1)
-
 
         else:
             rg = -1

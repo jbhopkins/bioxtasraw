@@ -3238,3 +3238,110 @@ class SECMLinePropertyDialog(wx.Dialog):
         self.updateLine(None)
 
         self.EndModal(wx.ID_OK)
+
+class CustomQuestionDialog(wx.Dialog):
+
+    def __init__(self, parent,
+                 question_text,
+                 button_list,
+                 title,
+                 icon = None,
+                 filename = None,
+                 current_dir = None,
+                 *args, **kwargs):
+
+        wx.Dialog.__init__(self, parent, -1, title, *args, **kwargs)
+
+        self.icon = icon
+        self._path = None
+        self._filename = filename
+        self._current_directory = current_dir
+
+        self.question_text = question_text
+        self.button_list = button_list
+
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        button_panel = self._createButtonPanel()
+        question_panel = self._createQuestionPanel()
+
+        self.main_sizer.Add(question_panel, 0, wx.ALL, 20)
+        self.main_sizer.Add(button_panel, 0, wx.ALL | wx.ALIGN_CENTER, 10)
+
+        self.SetSizer(self.main_sizer)
+
+        self.Fit()
+
+    def _createQuestionPanel(self):
+
+        question_panel = wx.BoxSizer()
+
+        question_label = wx.StaticText(self, -1, self.question_text)
+
+        if self.icon:
+            cbmp = wx.ArtProvider.GetBitmap(self.icon,  wx.ART_MESSAGE_BOX)
+            bitmap = wx.StaticBitmap(self, -1, cbmp)
+            question_panel.Add(bitmap, 0,  wx.RIGHT, 15)
+
+        question_panel.Add(question_label, 0)
+
+        return question_panel
+
+    def _createButtonPanel(self):
+
+        button_panel = wx.BoxSizer()
+
+        for button_label, id in self.button_list:
+            button = wx.Button(self, id, button_label)
+
+            if (button_label, id) != self.button_list[-1]:
+                button_panel.Add(button, 0, wx.RIGHT, 5)
+            else:
+                button_panel.Add(button, 0)
+
+            button.Bind(wx.EVT_BUTTON, self._onButton)
+
+        return button_panel
+
+    def _onButton(self, event):
+        id = event.GetId()
+
+        if id == wx.ID_EDIT:
+            self._onRenameButton()
+        else:
+            self.EndModal(id)
+
+    def _onRenameButton(self):
+        ok = self._openFileDialog(self._filename)
+
+        if ok:
+            self.EndModal(wx.ID_EDIT)
+
+    def _openFileDialog(self, filename):
+        """
+        Create and show the Open FileDialog
+        """
+        dlg = wx.FileDialog(
+            self, message="Choose filename and location.",
+            defaultDir=self._current_directory,
+            defaultFile=filename,
+            wildcard = "All files (*.*)|*.*",
+
+            style=wx.FD_OVERWRITE_PROMPT | wx.FD_SAVE)
+
+        dlg.SetDirectory(self._current_directory)
+
+        result = dlg.ShowModal()
+
+        if result == wx.ID_OK:
+            self._path = dlg.GetPath()
+
+        dlg.Destroy()
+
+        if self._path:
+            return True
+        else:
+            return False
+
+    def getPath(self):
+        return self._path
