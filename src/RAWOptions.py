@@ -4175,7 +4175,10 @@ class OptionsDialog(wx.Dialog):
             elif type == 'choice':
                 choice_list = obj.GetStrings()
                 if val is not None:
-                    idx = choice_list.index(val)
+                    try:
+                        idx = choice_list.index(val)
+                    except ValueError:
+                        idx = 0
                 else:
                     idx=0
                 obj.Select(idx)

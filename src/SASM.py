@@ -737,7 +737,7 @@ class SECM:
 
         if len(self._sasm_list) != len(self._frame_list_raw):
             self._frame_list_raw=np.arange(len(self._sasm_list))
-            print 'Warning: Incorrect frame number input to SECM object. Using default frame numbers.'
+            self._file_list=[sasm.getParameter('filename') for sasm in self._sasm_list]
 
         self.frame_list = self._frame_list_raw.copy()
 

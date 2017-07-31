@@ -278,7 +278,7 @@ def loadFabio(filename):
         data = fabio_img.data
         hdr = fabio_img.getheader()
 
-        img[0] = data
+        img[0] = np.fliplr(data)
         img_hdr[0] = hdr
 
         for i in range(1,fabio_img.nframes):
@@ -1311,7 +1311,7 @@ def parseBL19U2HeaderFile(filename):
 
 def parsePetraIIIP12EigerFile(filename, new_filename = None):
     if new_filename:
-        fnum = int(new_filename.split('_')[-1].split('.')[0])+1
+        fnum = int(new_filename.split('_')[-1].split('.')[0])
     else:
         fnum = 1
 
@@ -1417,9 +1417,9 @@ def loadAllHeaders(filename, image_type, header_type, raw_settings):
     if len(img) > 1:
         temp_filename = os.path.split(filename)[1].split('.')
         if len(temp_filename) > 1:
-            temp_filename[-2] = temp_filename[-2] + '_%05i' %(0)
+            temp_filename[-2] = temp_filename[-2] + '_%05i' %(1)
         else:
-            temp_filename[0] = temp_filename[0] + '_%05i' %(0)
+            temp_filename[0] = temp_filename[0] + '_%05i' %(1)
 
         new_filename = '.'.join(temp_filename)
     else:
@@ -1533,8 +1533,6 @@ def loadFile(filename, raw_settings, no_processing = False):
             current_sasm.setParameter('config_file', raw_settings.get('CurrentCfg'))
             SASM.postProcessSasm(current_sasm, raw_settings)
 
-            abs_scale_fail = []
-
             if not no_processing:
                 #Need to do a little work before we can do glassy carbon normalization
                 if raw_settings.get('NormAbsCarbon') and not raw_settings.get('NormAbsCarbonIgnoreBkg'):
@@ -1632,9 +1630,9 @@ def loadImageFile(filename, raw_settings):
         if len(loaded_data) > 1:
             temp_filename = os.path.split(filename)[1].split('.')
             if len(temp_filename) > 1:
-                temp_filename[-2] = temp_filename[-2] + '_%05i' %(i)
+                temp_filename[-2] = temp_filename[-2] + '_%05i' %(i+1)
             else:
-                temp_filename[0] = temp_filename[0] + '_%05i' %(i)
+                temp_filename[0] = temp_filename[0] + '_%05i' %(i+1)
 
             new_filename = '.'.join(temp_filename)
         else:

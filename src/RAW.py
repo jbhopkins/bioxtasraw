@@ -1922,7 +1922,6 @@ class OnlineController:
         return self.seek_dir
 
     def onOnlineTimer(self, evt):
-        print 'in onOnlineTimer'
         ''' This function checks for new files and processes them as they come in '''
         self._filt_list=self._raw_settings.get('OnlineFilterList')
         self._enable_filt=self._raw_settings.get('EnableOnlineFiltering')
@@ -2213,7 +2212,7 @@ class MainWorkerThread(threading.Thread):
 
         bogus_sasm = SASM.SASM([0,1], [0,1], [0,1], parameters)
 
-        self._sendImageToDisplay(img[-1], bogus_sasm)
+        self._sendImageToDisplay(img, bogus_sasm)
 
 
     def _sendIFTMToPlot(self, iftm, item_colour = 'black', line_color = None, no_update = False, update_legend = False, notsaved = False):
@@ -2282,8 +2281,8 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.sec_plot_panel.fitAxis)
 
 
-    def _sendImageToDisplay(self, img, sasm):
-        wx.CallAfter(self.image_panel.showImage, img, sasm)
+    def _sendImageToDisplay(self, img, sasm, fnum=0):
+        wx.CallAfter(self.image_panel.showImage, img, sasm, fnum)
 
     ################################
     # COMMANDS:
@@ -2690,11 +2689,7 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
 
-        if img is not None:
-            if isinstance(img, list):
-                self._sendImageToDisplay(img[-1], sasm[-1])
-            else:
-                self._sendImageToDisplay(img, sasm)
+        self._sendImageToDisplay(img, sasm)
 
         if loaded_secm and not loaded_sasm and not loaded_iftm:
             wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 3)
@@ -2753,7 +2748,7 @@ class MainWorkerThread(threading.Thread):
             self._sendSECMToPlot(secm_list, no_update = True, update_legend = False)
 
         else:
-            sasm_list=[[] for i in range(len(filename_list))]
+            sasm_list=[]
 
             try:
                 for j in range(len(filename_list)):
@@ -2764,20 +2759,17 @@ class MainWorkerThread(threading.Thread):
                         start_point = self._raw_settings.get('StartPoint')
                         end_point = self._raw_settings.get('EndPoint')
 
-                        if type(sasm) != list:
+                        if not isinstance(sasm, list):
                             qrange = (start_point, len(sasm.getBinnedQ())-end_point)
                             sasm.setQrange(qrange)
                         else:
                             qrange = (start_point, len(sasm[0].getBinnedQ())-end_point)
                             for each_sasm in sasm:
                                 each_sasm.setQrange(qrange)
-
-                            if len(sasm) == 1:
-                                sasm = sasm[0]
-                            else:
-                                sasm = SASM.average(sasm) #If load sec loads a file with multiple sasms, it averages them into one sasm
-
-                    sasm_list[j]=sasm
+                    if isinstance(sasm, list):
+                        sasm_list.extend(sasm)
+                    else:
+                        sasm_list.append(sasm)
 
             except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
                 self._showSECFormatError(os.path.split(each_filename)[1])
@@ -3370,7 +3362,12 @@ class MainWorkerThread(threading.Thread):
 
                     bogus_sasm = SASM.SASM([0,1], [0,1], [0,1], parameters)
 
-                    self._sendImageToDisplay(img[-1], bogus_sasm)
+                    if isinstance(img, list) and len(img) > 1 and direction == -1:
+                        fnum = len(img) - 1
+                    else:
+                        fnum = 0
+
+                    self._sendImageToDisplay(img, bogus_sasm, fnum)
                     break
             except Exception:
                 pass
@@ -3387,7 +3384,9 @@ class MainWorkerThread(threading.Thread):
         else:
             return False
 
-    def _loadAndShowImage(self, filename):
+    def _loadAndShowImage(self, data):
+        filename = data[0]
+        fnum = data[1]
 
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while loading image...')
 
@@ -3399,7 +3398,7 @@ class MainWorkerThread(threading.Thread):
 
             img, imghdr = SASFileIO.loadImage(filename, img_fmt)
 
-            if img == None:
+            if img is None:
                 raise SASExceptions.WrongImageFormat('not a valid file!')
 
         except SASExceptions.WrongImageFormat:
@@ -3412,7 +3411,7 @@ class MainWorkerThread(threading.Thread):
 
         bogus_sasm = SASM.SASM([0,1], [0,1], [0,1], parameters)
 
-        self._sendImageToDisplay(img[-1], bogus_sasm)
+        self._sendImageToDisplay(img, bogus_sasm, fnum)
         wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 2)
         file_list = wx.FindWindowByName('FileListCtrl')
         wx.CallAfter(file_list.SetFocus)
@@ -5158,7 +5157,7 @@ class FilePanel(wx.Panel):
         if len(self.dir_panel.file_list_box.getSelectedFilenames()) > 0:
             filename = self.dir_panel.file_list_box.getSelectedFilenames()[0]
             path = os.path.join(self.dir_panel.file_list_box.path, filename)
-            mainworker_cmd_queue.put(['show_image', path])
+            mainworker_cmd_queue.put(['show_image', [path, 0]])
 
 
 class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.ColumnSorterMixin):
@@ -7128,7 +7127,8 @@ class ManipItemPanel(wx.Panel):
 
         if self.sasm.getAllParameters().has_key('load_path'):
             path = self.sasm.getParameter('load_path')
-            mainworker_cmd_queue.put(['show_image', path])
+            fnum = int(self.sasm.getParameter('filename').split('_')[-1].split('.')[0])-1
+            mainworker_cmd_queue.put(['show_image', [path, fnum]])
 
     def _onPopupMenuChoice(self, evt):
 
@@ -8397,11 +8397,6 @@ class IFTItemPanel(wx.Panel):
 
         menu.Destroy()
 
-    def _onShowImage(self):
-        if self.iftm.getAllParameters().has_key('load_path'):
-            path = self.iftm.getParameter('load_path')
-            mainworker_cmd_queue.put(['show_image', path])
-
     def _onPopupMenuChoice(self, evt):
 
         if evt.GetId() == 5:
@@ -8535,9 +8530,6 @@ class IFTItemPanel(wx.Panel):
 
         if ((key == wx.WXK_DELETE) or (key == wx.WXK_BACK and evt.CmdDown())) and self._selected == True:
             self.removeSelf()
-
-        elif key == 83: #S
-            self._onShowImage()
 
         elif key == 65 and evt.CmdDown(): #A
             self.manipulation_panel.selectAll()

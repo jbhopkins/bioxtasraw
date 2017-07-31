@@ -388,6 +388,12 @@ def loadSettings(raw_settings, loadpath):
         else:
             print 'WARNING: ' + str(each_key) + " not found in RAWSettings."
 
+    default_settings =RawGuiSettings().getAllParams()
+
+    for key in default_settings.keys():
+        if key not in loaded_param:
+            all_params[key]=default_settings[key]
+
     main_frame = wx.FindWindowByName('MainFrame')
     main_frame.queueTaskInWorkerThread('recreate_all_masks', None)
 

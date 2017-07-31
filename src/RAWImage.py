@@ -85,18 +85,26 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
         return self._current_tool
 
     def onPreviousImgButton(self, event):
-        try:
-            current_file = self.parent.current_sasm.getParameter('filename')
-        except AttributeError:
-            current_file = None
-        RAWGlobals.mainworker_cmd_queue.put(['show_nextprev_img', [current_file, -1]])
+        if self.parent.multi_image_file and self.parent.current_index > 0:
+            self.parent.current_index = self.parent.current_index - 1
+            self.parent.showNewImage(self.parent.img_list[self.parent.current_index])
+        else:
+            try:
+                current_file = self.parent.current_sasm.getParameter('filename')
+            except AttributeError:
+                current_file = None
+            RAWGlobals.mainworker_cmd_queue.put(['show_nextprev_img', [current_file, -1]])
 
     def onNextImgButton(self, event):
-        try:
-            current_file = self.parent.current_sasm.getParameter('filename')
-        except AttributeError:
-            current_file = None
-        RAWGlobals.mainworker_cmd_queue.put(['show_nextprev_img', [current_file, 1]])
+        if self.parent.multi_image_file and self.parent.current_index < len(self.parent.img_list)-1:
+            self.parent.current_index = self.parent.current_index + 1
+            self.parent.showNewImage(self.parent.img_list[self.parent.current_index])
+        else:
+            try:
+                current_file = self.parent.current_sasm.getParameter('filename')
+            except AttributeError:
+                current_file = None
+            RAWGlobals.mainworker_cmd_queue.put(['show_nextprev_img', [current_file, 1]])
 
     def onImageSettingsButton(self, event):
         self.parent.showImageSetDialog()
@@ -205,6 +213,10 @@ class ImagePanel(wx.Panel):
 
         self.img = None
         self.current_sasm = None
+        self.multi_image_file = False
+        self.current_index = 0
+        self.img_list = None
+
         self._canvas_cursor = None
         self._selected_patch = None
         self._first_mouse_pos = None      # Used to keep the mouse position at the same place
@@ -305,17 +317,34 @@ class ImagePanel(wx.Panel):
         self.masking_panel.disableDrawButtons()
         self.setTool(None)
 
-    def showImage(self, img, sasm):
+    def showImage(self, img, sasm, fnum=0):
         ''' This function is the one that gets called when a new
         image is to be displayed '''
 
-        self.img = np.flipud(img)
+        if isinstance(img, list) and len(img) > 1:
+            self.multi_image_file = True
+            self.current_index = fnum
+            self.img_list = img
+        else:
+            self.multi_image_file = False
+            self.current_index = 0
+            self.img_list = None
+            if isinstance(img, list):
+                img = img[0]
 
+        if isinstance(sasm, list):
+            sasm = sasm[0]
         self.current_sasm = sasm
 
-        self.fig.clear() #Important! or a memory leak will occur!
+        if self.multi_image_file:
+            self.showNewImage(self.img_list[self.current_index])
+        else:
+            self.showNewImage(img)
 
-        # self._initOnNewImage(img, sasm)
+    def showNewImage(self, img):
+        self.img = np.flipud(img)
+
+        self.fig.clear() #Important! or a memory leak will occur!
 
         a = self.fig.gca()
 
@@ -326,14 +355,20 @@ class ImagePanel(wx.Panel):
         self.imgobj.cmap = self.plot_parameters['ColorMap']
 
 
-        img_hdr = sasm.getParameter('imageHeader')
+        img_hdr = self.current_sasm.getParameter('imageHeader')
 
         if img_hdr.has_key('Meas.Description'):
             title_str = img_hdr['Meas.Description'] + '\n'
         else:
             title_str = ''
+        if self.current_sasm.getAllParameters().has_key('load_path'):
+            title_str = title_str + os.path.split(self.current_sasm.getParameter('load_path'))[-1]
+        else:
+            title_str = title_str + self.current_sasm.getParameter('filename')
+        if self.multi_image_file:
+            title_str = title_str + '  Image: %i of %i' %(self.current_index+1, len(self.img_list))
 
-        a.set_title(title_str + sasm.getParameter('filename'))
+        a.set_title(title_str)
         a.set_xlabel('x (pixels)')
         a.set_ylabel('y (pixels)')
         a.axis('image')
