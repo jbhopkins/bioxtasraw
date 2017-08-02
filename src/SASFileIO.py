@@ -43,7 +43,6 @@ import collections
 from xml.dom import minidom
 import PIL
 from PIL import Image
-import wx
 
 import RAWGlobals
 import SASImage
@@ -2372,7 +2371,7 @@ def loadPDBFile(filename):
                 useful_params['rg'] = str(float(line.split(':')[-1].strip()))
 
     if 'excluded_volume' in useful_params:
-        useful_params['mw'] = str(float(useful_params['excluded_volume'])/1.66/1000)
+        useful_params['mw'] = str(round(float(useful_params['excluded_volume'])/1.66/1000.,2))
 
     return np.array(atoms), header, useful_params
 
@@ -3288,6 +3287,52 @@ def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
 
     save_string = header_string + body_string
 
+
+    with open(filename, 'w') as fsave:
+        fsave.write(save_string)
+
+
+def saveDammixData(filename, ambi_data, nsd_data, res_data, clust_num, clist_data,
+                dlist_data, model_data, setup_data):
+
+    header_string = '# DAMMIF/N results summary\n'
+    for item in setup_data:
+        header_string = header_string + '# %s\n' %(' '.join(map(str, item)))
+
+    body_string = '\n# AMBIMETER results\n'
+
+    for item in ambi_data:
+        body_string = body_string + '# %s\n' %(' '.join(map(str, item)))
+
+    if len(nsd_data) > 0:
+        body_string = body_string + '\n# Normalized spatial discrepancy results\n'
+        for item in nsd_data:
+            body_string =  body_string + '# %s\n' %(' '.join(map(str, item)))
+
+    if len(res_data) > 0:
+        body_string = body_string + '\n# Reconstruction resolution (SASRES) results\n'
+        for item in res_data:
+            body_string =  body_string + '# %s\n' %(' '.join(map(str, item)))
+
+    if len(clist_data) > 0:
+        body_string = body_string + '\n# Clustering results\n'
+        body_string = body_string + '# %s\n' %(' '.join(map(str, clust_num)))
+
+        body_string = body_string+'Cluster,Isolated,Rep_Model,Deviation\n'
+        for item in clist_data:
+            body_string =  body_string + '%s\n' %(','.join(map(str, item)))
+
+        body_string = body_string+'\nCluster1,Cluster2,Distance\n'
+        for item in dlist_data:
+            body_string =  body_string + '%s\n' %(','.join(map(str, item)))
+
+
+    body_string = body_string + '\n# Individual model results\n'
+    body_string = body_string + 'Model,Chi^2,Rg,Dmax,Excluded_Vol,Est_Protein_MW,Mean_NSD\n'
+    for item in model_data:
+        body_string =  body_string + '%s\n' %(','.join(map(str, item)))
+
+    save_string = header_string + body_string
 
     with open(filename, 'w') as fsave:
         fsave.write(save_string)

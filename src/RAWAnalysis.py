@@ -3289,7 +3289,8 @@ class DammifRunPanel(wx.Panel):
                     'abort'         : self.NewControlId(),
                     'changedir'     : self.NewControlId(),
                     'program'       : self.NewControlId(),
-                    'refine'        : self.NewControlId()
+                    'refine'        : self.NewControlId(),
+                    'fname'         : self.NewControlId(),
                     }
 
         self.threads = []
@@ -3301,7 +3302,7 @@ class DammifRunPanel(wx.Panel):
 
     def _createLayout(self, parent):
 
-        file_ctrl = wx.TextCtrl(parent, -1, self.filename, size = (150, -1), style = wx.TE_READONLY)
+        file_ctrl = wx.TextCtrl(parent, self.ids['fname'], self.filename, size = (150, -1), style = wx.TE_READONLY)
 
         file_box = wx.StaticBox(parent, -1, 'Filename')
         file_sizer = wx.StaticBoxSizer(file_box, wx.HORIZONTAL)
@@ -4548,12 +4549,17 @@ class DammifResultsPanel(wx.Panel):
         self.models_sizer.Add(models_list, 1, wx.EXPAND)
 
 
+        save_button = wx.Button(parent, wx.ID_ANY, 'Save Results Summary')
+        save_button.Bind(wx.EVT_BUTTON, self._saveResults)
+
+
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(self.ambi_sizer, 0, wx.EXPAND)
         top_sizer.Add(self.nsd_sizer, 0, wx.EXPAND)
         top_sizer.Add(self.res_sizer, 0, wx.EXPAND)
         top_sizer.Add(self.clust_sizer,0, wx.EXPAND)
         top_sizer.Add(self.models_sizer,1,wx.EXPAND)
+        top_sizer.Add(save_button, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
 
         return top_sizer
 
@@ -4759,6 +4765,116 @@ class DammifResultsPanel(wx.Panel):
         viewer_window = wx.FindWindowByName('DammifViewerPanel')
         viewer_window.updateResults(model_list)
 
+    def _saveResults(self, evt):
+        nsd_data = []
+        res_data = []
+        clust_num = 0
+        clist_data = []
+        dlist_data = []
+
+        if self.topsizer.IsShown(self.nsd_sizer):
+            nsd_mean = wx.FindWindowById(self.ids['nsdMean']).GetValue()
+            nsd_stdev = wx.FindWindowById(self.ids['nsdStdev']).GetValue()
+            nsd_inc = wx.FindWindowById(self.ids['nsdInc']).GetValue()
+            nsd_tot = wx.FindWindowById(self.ids['nsdTot']).GetValue()
+            nsd_data = [('Mean NSD:', nsd_mean), ('Stdev. NSD', nsd_stdev),
+                        ('DAMAVER Included:', nsd_inc, 'of', nsd_tot)]
+
+        if self.topsizer.IsShown(self.res_sizer):
+            res = wx.FindWindowById(self.ids['res']).GetValue()
+            res_err = wx.FindWindowById(self.ids['resErr']).GetValue()
+            res_unit = wx.FindWindowById(self.ids['resUnit']).GetValue()
+            res_data = [('Ensemble resolution:', res, '+/-', res_err, res_unit)]
+
+        if self.topsizer.IsShown(self.clust_sizer):
+            clust_num = ('Number of clusters:', wx.FindWindowById(self.ids['clustNum']).GetValue())
+            clust_list = wx.FindWindowById(self.ids['clustDescrip'])
+            dist_list = wx.FindWindowById(self.ids['clustDist'])
+
+
+            clist_data = [[] for k in range(clust_list.GetItemCount())]
+            for i in range(clust_list.GetItemCount()):
+                item_data = [[] for k in range(clust_list.GetColumnCount())]
+                for j in range(clust_list.GetColumnCount()):
+                    item = clust_list.GetItem(i, j)
+                    data = item.GetText()
+                    item_data[j] = data
+
+                clist_data[i] = item_data
+
+            dlist_data = [[] for k in range(dist_list.GetItemCount())]
+            for i in range(dist_list.GetItemCount()):
+                item_data = [[] for k in range(dist_list.GetColumnCount())]
+                for j in range(dist_list.GetColumnCount()):
+                    item = dist_list.GetItem(i, j)
+                    data = item.GetText()
+                    item_data[j] = data
+
+                dlist_data[i] = item_data
+
+
+        models_list = wx.FindWindowById(self.ids['models'])
+
+        model_data = [[] for k in range(models_list.GetItemCount())]
+        for i in range(models_list.GetItemCount()):
+            item_data = [[] for k in range(models_list.GetColumnCount())]
+            for j in range(models_list.GetColumnCount()):
+                item = models_list.GetItem(i, j)
+                data = item.GetText()
+                item_data[j] = data
+
+            model_data[i] = item_data
+
+        ambi_cats = wx.FindWindowById(self.ids['ambiCats']).GetValue()
+        ambi_score = wx.FindWindowById(self.ids['ambiScore']).GetValue()
+        ambi_eval = wx.FindWindowById(self.ids['ambiEval']).GetValue()
+        ambi_data = [('Compatible shape categories:', ambi_cats),
+                    ('Ambiguity score:', ambi_score), ('AMBIMETER says:', ambi_eval)]
+
+        input_file = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['fname']).GetValue()
+        output_prefix = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['prefix']).GetValue()
+        output_directory = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['save']).GetValue()
+        reconst_prog = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['program']).GetStringSelection()
+        mode = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['mode']).GetStringSelection()
+        symmetry = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['sym']).GetStringSelection()
+        anisometry = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['anisometry']).GetStringSelection()
+        tot_recons = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['runs']).GetValue()
+        damaver = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['damaver']).IsChecked()
+        refine = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['refine']).IsChecked()
+        damclust = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['damclust']).IsChecked()
+
+        setup_data = [('Input file:', input_file), ('Output prefix:', output_prefix),
+                    ('Output directory:', output_directory), ('Program used:', reconst_prog),
+                    ('Mode:', mode), ('Symmetry:', symmetry), ('Anisometry:', anisometry),
+                    ('Total number of reconstructions:', tot_recons),
+                    ('Used DAMAVER:', damaver), ('Refined with DAMMIN:', refine),
+                    ('Used DAMCLUST:', damclust),
+                    ]
+
+        dirctrl = wx.FindWindowByName('DirCtrlPanel')
+        path = str(dirctrl.getDirLabel())
+
+        name = output_prefix
+
+        filename = name + '_dammif_results.csv'
+
+        dialog = wx.FileDialog(self, message = "Please select save directory and enter save file name", style = wx.FD_SAVE, defaultDir = path, defaultFile = filename)
+
+        if dialog.ShowModal() == wx.ID_OK:
+            save_path = dialog.GetPath()
+            name, ext = os.path.splitext(save_path)
+            save_path = name+'.csv'
+        else:
+            return
+
+        RAWGlobals.save_in_progress = True
+        self.main_frame.setStatus('Saving DAMMIF/N data', 0)
+
+        SASFileIO.saveDammixData(save_path, ambi_data, nsd_data, res_data, clust_num,
+                                clist_data, dlist_data, model_data, setup_data)
+
+        RAWGlobals.save_in_progress = False
+        self.main_frame.setStatus('', 0)
 
 
 class DammifViewerPanel(wx.Panel):
@@ -4839,7 +4955,7 @@ class DammifViewerPanel(wx.Panel):
         for item in model_list:
             self.model_dict[str(item[0])] = [item[1], item[2]]
 
-        model_choice = wx.FindWindowById(self.ids['models'])
+        model_choice = wx.FindWindowById(self.ids['models'], self)
         model_choice.Set(self.model_dict.keys())
 
         if 'refine' in self.model_dict:
