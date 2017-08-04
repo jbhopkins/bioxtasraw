@@ -1413,11 +1413,6 @@ class ImageSettingsDialog(wx.Dialog):
                            ('Lower limit:', self.NewControlId(), self.NewControlId(), 'LowerClim'))
                            # ('Brightness:', self.NewControlId(), self.NewControlId(), 'Brightness'))
 
-
-        self.scaleinfo = (('Linear', self.NewControlId(), 'ImgScale'),
-                          ('Logarithmic', self.NewControlId(), 'ImgScale'))
-
-
         box = wx.StaticBox(self, -1, 'Image parameters')
         finalfinal_sizer = wx.BoxSizer()
 
@@ -1509,9 +1504,6 @@ class ImageSettingsDialog(wx.Dialog):
         else:
             rb.SetSelection(1)
 
-        ## Disabled for now:
-        # rb.Enable(False)
-
         sizer.Add(rb,1,wx.EXPAND)
 
         return sizer
@@ -1520,17 +1512,28 @@ class ImageSettingsDialog(wx.Dialog):
 
         selection = event.GetSelection()
 
+        upper_val = wx.FindWindowById(self.sliderinfo[0][1])
+        upper_slider = wx.FindWindowById(self.sliderinfo[0][2])
+        lower_val = wx.FindWindowById(self.sliderinfo[1][1])
+        lower_slider = wx.FindWindowById(self.sliderinfo[1][2])
+
         if selection == 0:
             if self.parent.plot_parameters['ImgScale'] != 'linear':
 
                 self.parent.plot_parameters['ImgScale'] = 'linear'
 
-                if self.parent.plot_parameters['ClimLocked'] == False:
+                if not self.parent.plot_parameters['ClimLocked']:
                     minval = self.parent.img.min()
                     maxval = self.parent.img.max()
 
                     self.parent.plot_parameters['UpperClim'] = maxval
                     self.parent.plot_parameters['LowerClim'] = minval
+
+                    upper_slider.SetValue(min(2147483647,int(maxval)))
+                    lower_slider.SetValue(min(2147483647,int(minval)))
+
+                    upper_val.ChangeValue(str(maxval))
+                    lower_val.ChangeValue(str(minval))
 
                 else:
                     maxval = self.parent.plot_parameters['UpperClim']
@@ -1550,12 +1553,18 @@ class ImageSettingsDialog(wx.Dialog):
 
                 self.parent.plot_parameters['ImgScale'] = 'logarithmic'
 
-                if self.parent.plot_parameters['ClimLocked'] == False:
+                if not self.parent.plot_parameters['ClimLocked']:
                     minval = self.parent.img.min()
                     maxval = self.parent.img.max()
 
                     self.parent.plot_parameters['UpperClim'] = maxval
                     self.parent.plot_parameters['LowerClim'] = minval
+
+                    upper_slider.SetValue(min(2147483647,int(maxval)))
+                    lower_slider.SetValue(min(2147483647,int(minval)))
+
+                    upper_val.ChangeValue(str(maxval))
+                    lower_val.ChangeValue(str(minval))
 
                 else:
                     maxval = self.parent.plot_parameters['UpperClim']
@@ -1569,7 +1578,6 @@ class ImageSettingsDialog(wx.Dialog):
                 self.ImgObj.set_clim(minval, maxval)
 
                 self.parent.updateImage()
-
 
     def createSettingsWindow(self):
 
@@ -1585,7 +1593,6 @@ class ImageSettingsDialog(wx.Dialog):
             slider = wx.Slider(self, each[2], style = wx.HORIZONTAL)
 
             if platform.system() == 'Darwin':
-                #slider.Bind(wx.EVT_SLIDER, self.OnSlider)
                 slider.Bind(wx.EVT_SCROLL_THUMBRELEASE, self.OnSlider)
             else:
                 slider.Bind(wx.EVT_SCROLL_CHANGED, self.OnSlider)
@@ -1669,6 +1676,7 @@ class ImageSettingsDialog(wx.Dialog):
         event.Skip()
 
     def OnSlider(self, event):
+        print 'in onslider'
         id = event.GetId()
 
         for each in self.sliderinfo:
