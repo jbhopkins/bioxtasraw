@@ -4214,6 +4214,7 @@ class DammifRunPanel(wx.Panel):
         results_window = wx.FindWindowByName('DammifResultsPanel')
         wx.CallAfter(results_window.updateResults, settings)
 
+        self.parent.SetSelection(1)
 
     def _onAdvancedButton(self, evt):
         self.main_frame.showOptionsDialog(focusHead='DAMMIF/N')
@@ -4546,6 +4547,11 @@ class DammifResultsPanel(wx.Panel):
         models_list.InsertColumn(5, 'Est. Protein MW.')
         models_list.InsertColumn(6, 'Mean NSD')
 
+        if platform.system() == 'Windows':
+            models_list.SetColumnWidth(5, -2)
+        else:
+            models_list.SetColumnWidth(5, 100)
+
         self.models_sizer.Add(models_list, 1, wx.EXPAND)
 
 
@@ -4851,14 +4857,11 @@ class DammifResultsPanel(wx.Panel):
                     ('Used DAMCLUST:', damclust),
                     ]
 
-        dirctrl = wx.FindWindowByName('DirCtrlPanel')
-        path = str(dirctrl.getDirLabel())
-
         name = output_prefix
 
         filename = name + '_dammif_results.csv'
 
-        dialog = wx.FileDialog(self, message = "Please select save directory and enter save file name", style = wx.FD_SAVE, defaultDir = path, defaultFile = filename)
+        dialog = wx.FileDialog(self, message = "Please select save directory and enter save file name", style = wx.FD_SAVE, defaultDir = output_directory, defaultFile = filename)
 
         if dialog.ShowModal() == wx.ID_OK:
             save_path = dialog.GetPath()
@@ -4939,7 +4942,7 @@ class DammifViewerPanel(wx.Panel):
 
         scale = (float(radius)/1.25)**2
 
-        self.subplot.scatter(atoms[:,0], atoms[:,1], atoms[:,2], s=200*scale, alpha=.95)
+        self.subplot.scatter(atoms[:,0], atoms[:,1], atoms[:,2], s=250*scale, alpha=.95)
 
         self.canvas.draw()
 
