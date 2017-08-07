@@ -25,8 +25,8 @@ import sys
 import os
 #This redirects the ouptut to avoid warning messages on startup. Not great
 #To have on during development, but good for user builds.
-sys.stdout = os.devnull
-sys.stderr = os.devnull
+# sys.stdout = os.devnull
+# sys.stderr = os.devnull
 
 import wx
 import subprocess
