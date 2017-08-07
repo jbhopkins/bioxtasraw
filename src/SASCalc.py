@@ -48,7 +48,7 @@ def calcRg(q, i, err, transform=True):
         #Start out by transforming as usual.
         x = np.square(q)
         y = np.log(i)
-        yerr = err*np.absolute(err/i)
+        yerr = np.absolute(err/i)
     else:
         x = q
         y = i
@@ -226,7 +226,7 @@ def autoRg(sasm, single_fit=False):
     #Start out by transforming as usual.
     qs = np.square(q)
     il = np.log(i)
-    iler = il*np.absolute(err/i)
+    iler = np.absolute(err/i)
 
     #Pick a minimum fitting window size. 10 is consistent with atsas autorg.
     min_window = 10

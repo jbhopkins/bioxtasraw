@@ -169,7 +169,7 @@ class GuinierPlotPanel(wx.Panel):
 
         self.x = np.square(self.orig_q)
         self.y = np.log(self.orig_i)
-        self.yerr = self.y*np.absolute(self.orig_err/self.orig_i)
+        self.yerr = np.absolute(self.orig_err/self.orig_i)
 
     def updateDataPlot(self, xlim):
         xmin, xmax = xlim
