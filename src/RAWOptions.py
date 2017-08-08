@@ -1078,8 +1078,8 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
         file_sizer.AddGrowableCol(1)
 
 
-        noOfRows = int(len(self.carbonNormConstantsData))
-        norm_const_sizer = wx.FlexGridSizer(cols = 3, rows = noOfRows, vgap = 3, hgap = 5)
+        noOfRows = int(ceil(float(len(self.carbonNormConstantsData))/2))
+        norm_const_sizer = wx.FlexGridSizer(cols = 4, rows = noOfRows, vgap = 3, hgap = 5)
 
         counter_choices = self._getCounters()
 
@@ -1099,9 +1099,6 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
                 button = wx.Button(self, -1, 'Calculate')
                 button.Bind(wx.EVT_BUTTON, self._onCalculateCarbonButton)
                 norm_const_sizer.Add(button,1)
-
-            else:
-                norm_const_sizer.Add((1,1), 1)
 
 
         box = wx.StaticBox(self, -1, 'Absolute scaling using glassy carbon')
@@ -1158,7 +1155,7 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
             txt = wx.StaticText(self, -1, eachLabel)
 
             if id == self.normConstantsData[0][1]:
-                ctrl = wx.Choice(self, id, choices = sorted(temps), size = (80, -1))
+                ctrl = wx.Choice(self, id, choices = sorted(temps, key=int), size = (80, -1))
                 ctrl.Bind(wx.EVT_CHOICE, self._onTempChoice)
             else:
                 ctrl = wx.TextCtrl(self, id, '0', style = wx.TE_PROCESS_ENTER | wx.TE_RIGHT, size = (80, -1))
@@ -4097,9 +4094,7 @@ class OptionsDialog(wx.Dialog):
         sizer.Add(wx.StaticLine(self, style = wx.LI_HORIZONTAL), 0, wx.EXPAND)
         sizer.Add(self.createButtonPanel(), 0, wx.ALIGN_RIGHT | wx.ALL, 5)
 
-        self.CenterOnParent()
         self.initSettings()
-
 
         item = self.treebook.tree.GetFirstVisibleItem()
 
@@ -4114,6 +4109,7 @@ class OptionsDialog(wx.Dialog):
         self.SetSizer(sizer)
         self.SetMinSize((800,600))
         self.SetSize((800,600))
+        self.CenterOnParent()
 
     def createButtonPanel(self):
 

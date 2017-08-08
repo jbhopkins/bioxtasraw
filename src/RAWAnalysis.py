@@ -4516,13 +4516,13 @@ class DammifResultsPanel(wx.Panel):
         clust_num_sizer.Add(clust_num_text, 0, wx.ALIGN_CENTER_VERTICAL)
         clust_num_sizer.Add(clust_num_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
 
-        clust_list1= wx.ListCtrl(parent, self.ids['clustDescrip'], size=(-1,150), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
+        clust_list1= wx.ListCtrl(parent, self.ids['clustDescrip'], size=(-1,150), style=wx.LC_REPORT)
         clust_list1.InsertColumn(0, 'Cluster')
         clust_list1.InsertColumn(1, 'Isolated')
         clust_list1.InsertColumn(2, 'Rep. Model')
         clust_list1.InsertColumn(3, 'Deviation')
 
-        clust_list2= wx.ListCtrl(parent, self.ids['clustDist'], size=(-1,150), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
+        clust_list2= wx.ListCtrl(parent, self.ids['clustDist'], size=(-1,150), style=wx.LC_REPORT)
         clust_list2.InsertColumn(0, 'Cluster 1')
         clust_list2.InsertColumn(1, 'Cluster 2')
         clust_list2.InsertColumn(2, 'Distance')
@@ -4538,7 +4538,7 @@ class DammifResultsPanel(wx.Panel):
         models_box = wx.StaticBox(parent, wx.ID_ANY, 'Models')
         self.models_sizer = wx.StaticBoxSizer(models_box, wx.VERTICAL)
 
-        models_list = wx.ListCtrl(parent, self.ids['models'], size = (-1,-1), style=wx.LC_REPORT | wx.LC_SORT_ASCENDING)
+        models_list = wx.ListCtrl(parent, self.ids['models'], size = (-1,-1), style=wx.LC_REPORT)
         models_list.InsertColumn(0, 'Model')
         models_list.InsertColumn(1, 'Chi^2')
         models_list.InsertColumn(2, 'Rg')
@@ -6380,6 +6380,7 @@ class SVDControlPanel(wx.Panel):
         #control if you're using unsubtracted or subtracted curves
         label = wx.StaticText(self, -1, 'Use :')
         profile_type = wx.Choice(self, self.control_ids['profile'], choices = ['Unsubtracted', 'Subtracted'])
+        profile_type.SetStringSelection('Unsubtracted')
         profile_type.Bind(wx.EVT_CHOICE, self._onProfileChoice)
 
         profile_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -9673,8 +9674,7 @@ class similiarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
     def __init__(self, parent, size):
         wx.Panel.__init__(self, parent, wx.ID_ANY)
 
-        self.list_ctrl = wx.ListCtrl(self, style=wx.LC_REPORT
-                        | wx.LC_SORT_ASCENDING, size=size
+        self.list_ctrl = wx.ListCtrl(self, style=wx.LC_REPORT, size=size
                         )
 
         self.list_ctrl.InsertColumn(0, 'File# 1')
