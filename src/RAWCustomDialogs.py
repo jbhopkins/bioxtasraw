@@ -1863,6 +1863,8 @@ class LinePropertyDialog(wx.Dialog):
             each.set_linewidth(self._old_errlinewidth)
             each.set_color(self._old_errcolour)
 
+        self.sasm.plot_panel.canvas.draw()
+
         self.EndModal(wx.ID_CANCEL)
 
     def _onOkButton(self, event):
@@ -2673,6 +2675,8 @@ class IFTMLinePropertyDialog(wx.Dialog):
             each.set_linewidth(self._old_qo_errlinewidth)
             each.set_color(self._old_qo_errcolour)
 
+        self.iftm.plot_panel.canvas.draw()
+
         self.EndModal(wx.ID_CANCEL)
 
     def _onOkButton(self, event):
@@ -3149,25 +3153,15 @@ class SECMLinePropertyDialog(wx.Dialog):
         style =  self.linestyle_list.GetStringSelection()
 
         mar_size = self.mar_size.GetValue()
-        # err_linewidth = self.err_linewidth.GetValue()
-        # err_linestyle = self.err_linestyle_list.GetStringSelection()
 
         self.line.set_marker(marker)
 
         colour =  self.mar_linecolour.GetBackgroundColour()
         colour =  (colour[0]/255.0, colour[1]/255.0, colour[2]/255.0)
 
-        # self.updateErrorLines(['set_linewidth', err_linewidth])
-
-        # each = self.secm.err_line[1]
-        # if err_linestyle != "None":
-        #     for line in each:
-        #         line.set_linestyle(err_linestyle)
-
         self.line.set_markeredgecolor(colour)
         self.line.set_linewidth(float(width))
         self.line.set_linestyle(style)
-        #self.line.set_color(colour)
         self.line.set_markersize(float(mar_size))
 
 
@@ -3176,25 +3170,15 @@ class SECMLinePropertyDialog(wx.Dialog):
         calc_style =  self.calc_linestyle_list.GetStringSelection()
 
         calc_mar_size = self.calc_mar_size.GetValue()
-        # err_linewidth = self.err_linewidth.GetValue()
-        # err_linestyle = self.err_linestyle_list.GetStringSelection()
 
         self.calc_line.set_marker(calc_marker)
 
         calc_colour =  self.calc_mar_linecolour.GetBackgroundColour()
         calc_colour =  (calc_colour[0]/255.0, calc_colour[1]/255.0, calc_colour[2]/255.0)
 
-        # self.updateErrorLines(['set_linewidth', err_linewidth])
-
-        # each = self.secm.err_line[1]
-        # if err_linestyle != "None":
-        #     for line in each:
-        #         line.set_linestyle(err_linestyle)
-
         self.calc_line.set_markeredgecolor(calc_colour)
         self.calc_line.set_linewidth(float(calc_width))
         self.calc_line.set_linestyle(calc_style)
-        #self.line.set_color(colour)
         self.calc_line.set_markersize(float(calc_mar_size))
 
         self.secm.plot_panel.canvas.draw()
@@ -3217,20 +3201,12 @@ class SECMLinePropertyDialog(wx.Dialog):
         self.calc_line.set_linestyle(self._old_calclinestyle)
         self.calc_line.set_color(self._old_calclinecolour)
 
-        self.calc_line.set_marker(self._old_linemarker)
+        self.calc_line.set_marker(self._old_calclinemarker)
         self.calc_line.set_markeredgecolor(self._old_calcmarlinecolour)
         self.calc_line.set_markerfacecolor(self._old_calcmarcolour)
         self.calc_line.set_markersize(self._old_calcmarsize)
 
-        #Stupid errorbars:
-        # line1, line2 = self.secm.err_line
-        # for each in line2:
-        #     each.set_linestyle(self._old_errlinestyle)
-        #     each.set_linewidth(self._old_errlinewidth)
-        #     each.set_color(self._old_errcolour)
-        # for each in line1:
-        #     each.set_linewidth(self._old_errlinewidth)
-        #     each.set_color(self._old_errcolour)
+        self.secm.plot_panel.canvas.draw()
 
         self.EndModal(wx.ID_CANCEL)
 
@@ -3263,43 +3239,49 @@ class CustomQuestionDialog(wx.Dialog):
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
 
         button_panel = self._createButtonPanel()
-        question_panel = self._createQuestionPanel()
+        question_panel = CustomQuestionPanel(self, question_text, icon)
 
-        self.main_sizer.Add(question_panel, 0, wx.ALL, 20)
+        self.main_sizer.Add(question_panel, 1, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 15)
         self.main_sizer.Add(button_panel, 0, wx.ALL | wx.ALIGN_CENTER, 10)
 
         self.SetSizer(self.main_sizer)
 
-        self.Fit()
+        self.Layout()
 
-    def _createQuestionPanel(self):
+        bp_size = self.button.GetBestSize()
+        qp_size = question_panel.question_label.GetBestSize()
+        icn_size = question_panel.bitmap.GetBestSize()
 
-        question_panel = wx.BoxSizer()
+        total_width = qp_size[0]+icn_size[0]+45
+        total_height = qp_size[1]+bp_size[1]+65
 
-        question_label = wx.StaticText(self, -1, self.question_text)
+        self.SetMaxSize((800,600))
 
-        if self.icon:
-            cbmp = wx.ArtProvider.GetBitmap(self.icon,  wx.ART_MESSAGE_BOX)
-            bitmap = wx.StaticBitmap(self, -1, cbmp)
-            question_panel.Add(bitmap, 0,  wx.RIGHT, 15)
+        panel_size = self.GetBestSize()
 
-        question_panel.Add(question_label, 0)
+        best_width = min(800, max(total_width, panel_size[0]))
+        best_height = min(600, max(total_height, panel_size[1]))
 
-        return question_panel
+        if best_width == 800 and best_height<600:
+            best_height = min(600, best_height+20)
+        if best_height == 600 and best_width < 800:
+            best_width = min(800, best_width+20)
+
+        self.SetSize((best_width, best_height))
 
     def _createButtonPanel(self):
 
         button_panel = wx.BoxSizer()
 
         for button_label, id in self.button_list:
-            button = wx.Button(self, id, button_label)
+            self.button = wx.Button(self, id, button_label)
 
             if (button_label, id) != self.button_list[-1]:
-                button_panel.Add(button, 0, wx.RIGHT, 5)
+                button_panel.Add(self.button, 0, wx.RIGHT, 5)
             else:
-                button_panel.Add(button, 0)
+                button_panel.Add(self.button, 0)
 
-            button.Bind(wx.EVT_BUTTON, self._onButton)
+            self.button.Bind(wx.EVT_BUTTON, self._onButton)
 
         return button_panel
 
@@ -3345,3 +3327,24 @@ class CustomQuestionDialog(wx.Dialog):
 
     def getPath(self):
         return self._path
+
+class CustomQuestionPanel(wx.lib.scrolledpanel.ScrolledPanel):
+
+    def __init__(self, parent, question_text, icon):
+
+        wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent, wx.ID_ANY)
+
+        vbox = wx.BoxSizer(wx.HORIZONTAL)
+        self.question_label = wx.StaticText(self, -1, question_text)
+
+        if icon:
+            cbmp = wx.ArtProvider.GetBitmap(icon,  wx.ART_MESSAGE_BOX)
+            self.bitmap = wx.StaticBitmap(self, -1, cbmp)
+            vbox.Add(self.bitmap, 0,  wx.RIGHT, 15)
+
+        vbox.Add(self.question_label, 1, wx.EXPAND)
+
+        self.SetSizer(vbox)
+        self.SetupScrolling()
+        self.Layout()
+        self.SetMinSize((200,100))

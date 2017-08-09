@@ -3529,11 +3529,11 @@ class MainWorkerThread(threading.Thread):
             test = self._raw_settings.get('similarityTest')
             threshold = self._raw_settings.get('similarityThreshold')
             msg = ('One or more of the selected items to be averaged is statistically\ndifferent'
-                    ' from the first item, as found using the %s test\nand a pval threshold of %f.'
+                    ' from the first item, as found using the %s test\nand a pval threshold of %f.\n'
                     '\nThe following profiles were found to be different:\n' %(test, threshold))
             for sasm in sasm_list:
                 msg = msg + sasm.getParameter('filename') + '\n'
-            msg = msg + ('Please select an action below.')
+            msg = msg + ('\nPlease select an action below.')
             answer = self._displayQuestionDialog(msg, 'Warning: Profiles to average are different',
                             [('Cancel Average', wx.ID_CANCEL), ('Average All Files', wx.ID_YESTOALL),
                             ('Average Only Similar Files', wx.ID_YES)], wx.ART_WARNING)
