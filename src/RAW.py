@@ -11048,9 +11048,6 @@ class CenteringPanel(wx.Panel):
 
         self.pyfai_enable = ['detector', 'remove_pts', 'start', 'done', 'cancel']
 
-        if RAWGlobals.usepyFAI:
-            self.cal_factory = pyFAI.calibrant.calibrant_factory()
-
         self.old_calibrant = None
 
         self.autocenter = False
@@ -11250,7 +11247,7 @@ class CenteringPanel(wx.Panel):
         step_list= ['0.1', '1', '2', '5', '10', '20', '50', '100', '500']
 
         if RAWGlobals.usepyFAI:
-            pattern_list = ['None'] + sorted(self.cal_factory.keys(), key = str.lower)
+            pattern_list = ['None'] + sorted(pyFAI.calibrant.names(), key = str.lower)
         else:
             pattern_list = ['None', 'Silver-Behenate']
 
@@ -11275,7 +11272,7 @@ class CenteringPanel(wx.Panel):
         self._energy_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onEnergyChange)
 
         self._pattern_list = wx.Choice(self, -1, choices = pattern_list)
-        if RAWGlobals.usepyFAI and 'AgBh' in self.cal_factory.keys():
+        if 'AgBh' in pattern_list:
             self._pattern_list.SetStringSelection('AgBh')
         else:
             self._pattern_list.Select(1)
@@ -11607,7 +11604,7 @@ class CenteringPanel(wx.Panel):
         if selection != 'None':
 
             if RAWGlobals.usepyFAI:
-                self.calibrant = self.cal_factory(selection)
+                self.calibrant = pyFAI.calibrant.get_calibrant(selection)
                 self.calibrant.set_wavelength(wavelength*1e-10) #set the wavelength in m
 
                 #Calculate pixel position of the calibrant rings
@@ -11762,7 +11759,7 @@ class CenteringPanel(wx.Panel):
         self._enableControls(False)
         self._enablePyfaiControls()
 
-        calibrant = self.cal_factory(cal_selection)
+        calibrant = pyFAI.calibrant.get_calibrant(cal_selection)
         calibrant.set_wavelength(wavelength*1e-10)
 
         if det_selection != 'Other':
