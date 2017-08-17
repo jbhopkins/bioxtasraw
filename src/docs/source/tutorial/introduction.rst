@@ -34,9 +34,9 @@ Requirements
     *   Install instructions are available from:
         `https://sourceforge.net/projects/bioxtasraw/ <https://sourceforge.net/projects/bioxtasraw/>`_
 
-*   Tutorial data.
-
 .. _tutorialdata:
+
+*   Tutorial data.
 
     *   Available from:
         `https://sourceforge.net/projects/bioxtasraw/files/?source=navbar <https://sourceforge.net/projects/bioxtasraw/files/?source=navbar>`_
