@@ -12,8 +12,12 @@ RAW demo for SBGrid
     <iframe width="560" height="315" src="https://www.youtube.com/embed/XGnJDs3N2MI" frameborder="0" allowfullscreen></iframe>
 
 
+RAW tutorial videos from MacCHESS
+----------------------------------
+For these videos, tutorial data is available from `http://bit.ly/bioxtasd <http://bit.ly/bioxtasd>`_
+
 Loading and plotting profiles
-------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
@@ -21,7 +25,7 @@ Loading and plotting profiles
 
 
 Collecting and processing data
-------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
@@ -29,7 +33,7 @@ Collecting and processing data
 
 
 Creating a config file
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
@@ -37,7 +41,7 @@ Creating a config file
 
 
 Combining SAXS and WAXS data
------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
@@ -45,7 +49,7 @@ Combining SAXS and WAXS data
 
 
 Radiation damage
------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
@@ -53,7 +57,7 @@ Radiation damage
 
 
 Aggregation
-------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
@@ -61,7 +65,7 @@ Aggregation
 
 
 Concentration Effects
-----------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
