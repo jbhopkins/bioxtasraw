@@ -36,6 +36,8 @@ Requirements
 
 *   Tutorial data.
 
+.. _tutorialdata:
+
     *   Available from:
         `https://sourceforge.net/projects/bioxtasraw/files/?source=navbar <https://sourceforge.net/projects/bioxtasraw/files/?source=navbar>`_
 

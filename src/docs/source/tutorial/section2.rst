@@ -1,6 +1,13 @@
 Section 2: Advanced processing
 ------------------------------
+
 .. _section2:
+
+This section will guide you through advanded processing of files in RAW. It includes:
+pair-distance distribution analysis using GNOM and BIFT methods, ambiguity assessment
+for shape reconstructions, 3D reconstructions using bead models, and data deconvolution using
+singular value decomposition (SVD) and evolving factor analysis (EFA). It refers to the
+:ref:`RAW tutorial data <tutorialdata>`.
 
 Part 1. Pair-distance distribution analysis – GNOM in RAW
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

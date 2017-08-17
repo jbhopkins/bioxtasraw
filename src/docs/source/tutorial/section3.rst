@@ -2,7 +2,7 @@ Section 3: Creating a configuration file
 ----------------------------------------
 .. _section3:
 
-This section will guide you through creating a configuration file for RAW that allows you to integrate 2D images into 1D scattering profiles.
+This section will guide you through creating a configuration file for RAW that allows you to integrate 2D images into 1D scattering profiles. It refers to the :ref:`RAW tutorial data <tutorialdata>`.
 
 
 Part 1. Centering and calibration – Automated method
