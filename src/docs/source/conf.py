@@ -16,7 +16,8 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
+import os
+on_rtd = os.environ.get('READTHEDOCS') == 'True'
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
@@ -84,7 +85,11 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+
+if on_rtd:
+    html_theme = 'default'
+else:
+    html_theme = 'alabaster'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -92,19 +97,21 @@ html_theme = 'alabaster'
 #
 html_theme_options = {
     'description':'SAXS data analysis software',
-    'fixed_sidebar': True,
-    'sidebar_collapse':True,
 }
+if html_theme == 'alabaster':
+    html_theme_options['fixed_sidebar'] = False
+    html_theme_options['sidebar_collapse'] = True
 
-html_sidebars = {
-    '**': [
-        'about.html',
-        'navigation.html',
-        # 'relations.html',
-        'searchbox.html',
-        # 'donate.html',
-    ]
-}
+if html_theme == 'alabaster':
+    html_sidebars = {
+        '**': [
+            'about.html',
+            'navigation.html',
+            # 'relations.html',
+            'searchbox.html',
+            # 'donate.html',
+        ]
+    }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -141,14 +148,20 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
-latex_documents = [
-    # (master_doc, 'BioXTASRAW.tex', u'BioXTAS RAW Documentation',
-    #     u'Jesse B. Hopkins', 'manual'),
-    (tutorial, 'raw_tutorial.tex', u'BioXTAS RAW Tutorial',
-        u'Jesse B. Hopkins', 'howto'),
-    (manual, 'raw_manual.tex', u'BioXTAS RAW Manual',
-        u'Jesse B. Hopkins', 'manual'),
-]
+if on_rtd:
+    latex_documents = [
+        (master_doc, 'BioXTASRAW.tex', u'BioXTAS RAW Documentation',
+            u'Jesse B. Hopkins', 'manual'),
+    ]
+else:
+    latex_documents = [
+        # (master_doc, 'BioXTASRAW.tex', u'BioXTAS RAW Documentation',
+        #     u'Jesse B. Hopkins', 'manual'),
+        (tutorial, 'raw_tutorial.tex', u'BioXTAS RAW Tutorial',
+            u'Jesse B. Hopkins', 'howto'),
+        (manual, 'raw_manual.tex', u'BioXTAS RAW Manual',
+            u'Jesse B. Hopkins', 'manual'),
+    ]
 
 
 # -- Options for manual page output ---------------------------------------
