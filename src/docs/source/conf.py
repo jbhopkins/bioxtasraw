@@ -46,6 +46,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 tutorial = 'tutorial'
 manual = 'manual'
+win_install = 'install/win_install'
+mac_install = 'install/mac_install'
+linux_install = 'install/linux_install'
 
 # General information about the project.
 project = u'BioXTAS RAW'
@@ -127,22 +130,66 @@ htmlhelp_basename = 'BioXTASRAWdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
+preamble = r"""
+\makeatletter
+\renewcommand{\maketitle}{
+  \let\spx@tempa\relax
+  \ifHy@pageanchor\def\spx@tempa{\Hy@pageanchortrue}\fi
+  \hypersetup{pageanchor=false}% avoid duplicate destination warnings
+  \begin{titlepage}%
+    \let\footnotesize\small
+    \let\footnoterule\relax
+    \noindent\rule{\textwidth}{1pt}\ifsphinxpdfoutput\newline\null\fi\par
+    \ifsphinxpdfoutput
+      \begingroup
+       %\pdfstringdefDisableCommands{\def\\{, }\def\endgraf{ }\def\and{, }}%
+       %\hypersetup{pdfauthor={\@author}, pdftitle={\@title}}%
+      \endgroup
+    \fi
+    \begin{flushright}%
+      \sphinxlogo
+      \py@HeaderFamily
+      {\Huge \@title \par}
+      \vfill
+      {\LARGE
+        \begin{tabular}[t]{c}
+          \@author
+        \end{tabular}
+        \par}
+      \vfill\vfill
+      {\large
+       \@date \par
+       \vfill
+       \py@authoraddress \par
+      }%
+    \end{flushright}%\par
+    \@thanks
+  \end{titlepage}%
+  \setcounter{footnote}{0}%
+  \let\thanks\relax\let\maketitle\relax
+  %\gdef\@thanks{}\gdef\@author{}\gdef\@title{}
+  \clearpage
+  \spx@tempa
+}
+
+\renewcommand{\sphinxtableofcontents}{
+  \pagenumbering{roman}%
+  \pagestyle{plain}%
+  \begingroup
+    \parskip \z@skip
+    \tableofcontents
+  \endgroup
+  % before resetting page counter, let's do the right thing.
+  \clearpage
+  \pagenumbering{arabic}%
+  \ifdefined\fancyhf\pagestyle{normal}\fi
+}
+\makeatother"""
+
+
 latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    #
-    # 'papersize': 'letterpaper',
-
-    # The font size ('10pt', '11pt' or '12pt').
-    #
-    # 'pointsize': '10pt',
-
-    # Additional stuff for the LaTeX preamble.
-    #
-    # 'preamble': '',
-
-    # Latex figure (float) alignment
-    #
-    # 'figure_align': 'htbp',
+    'classoptions': ',openany,oneside',
+    'preamble': preamble,
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
@@ -161,6 +208,12 @@ else:
             u'Jesse B. Hopkins', 'howto'),
         (manual, 'raw_manual.tex', u'BioXTAS RAW Manual',
             u'Jesse B. Hopkins', 'manual'),
+        (win_install, 'win_install.tex', u'BioXTAS RAW Windows Install Instructions',
+            u'Jesse B. Hopkins', 'howto' ),
+        (mac_install, 'mac_install.tex', u'BioXTAS RAW Mac Install Instructions',
+            u'Jesse B. Hopkins', 'howto'),
+        (linux_install, 'linux_install.tex', u'BioXTAS RAW Linux Install Instructions',
+            u'Jesse B. Hopkins', 'howto'),
     ]
 
 
@@ -177,7 +230,8 @@ man_pages = [
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
 #
-latex_logo = 'tutorial/images/raw_mainplot.png'
+# latex_logo = 'tutorial/images/raw_mainplot.png'
+latex_logo = ''
 
 
 # -- Options for Texinfo output -------------------------------------------
