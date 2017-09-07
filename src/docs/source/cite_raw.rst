@@ -4,7 +4,16 @@ Cite
 RAW
 ----
 
-If you use RAW in your research, please cite the RAW paper:
+If you use RAW in your research, please cite the newest RAW paper:
+
+*BioXTAS RAW: improvements to a free open-source program for small-angle X-ray
+scattering data reduction and analysis.* J. B. Hopkins, R. E. Gillilan, and S. Skou.
+Journal of Applied Crystallography (2017). 50.
+
+DOI: `10.1107/S1600576717011438 <https://doi.org/10.1107/S1600576717011438>`_
+
+
+You can also cite the previous RAW paper if you like:
 
 *BioXTAS RAW, a software program for high-throughput automated small-angle X-ray scattering data reduction and preliminary analysis.* S. S. Nielsen, K. Noergaard Toft, D. Snakenborg, M. G. Jeppesen, J. K. Jacobsen, B. Vestergaard, J. P. Kutteraand L. Arleth. Journal of Applied Crystallography (2009). 42, 959-964.
 

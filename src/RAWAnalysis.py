@@ -1632,7 +1632,7 @@ class MolWeightFrame(wx.Frame):
                    "- You have a protein-nucleic acid complex.")
         elif evt_id == self.ids['VP']['info']:
             msg = ("This method uses the approach described in: Fischer, H., de Oliveira Neto, M., Napolitano, "
-                  "H. B., Polikarpov, I., & Craievich, A. F. (2009). J. Appl. Crystallogr. 43, 101-109, "
+                  "H. B., Polikarpov, I., & Craievich, A. F. (2010). J. Appl. Crystallogr. 43, 101-109, "
                   "please cite this paper in addition to the RAW paper if you use this method.  It applies "
                   "a correction to the Porod volume, which has only been calculated for 0.15 < q_max < 0.45 1/A. "
                   "For scattering profiles with a maximum q outside this range, no correction is applied by RAW. "

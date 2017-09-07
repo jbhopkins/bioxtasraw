@@ -633,54 +633,53 @@ def loadSAXSLAB300Image(filename):
 
 
 def loadMPAFile(filename):
-
     header_prefix = ''
-    data_prefix = ''
 
     header = {"None" : {}}
     data ={}
 
     with open(filename, 'r') as fo:
-        lines = fo.readlines()
+        for line in fo:
+            if line.find('=') > -1:
+                key = line.strip().split('=')[0]
+                value = '='.join(line.strip().split('=')[1:])
+                value = value.strip()
 
+                if header_prefix == '':
+                    header["None"][key] = value
 
-    for i in range(len(lines)):
-        line = lines[i]
-        if line.find('=') > -1:
-            key = line.strip().split('=')[0]
-            value = '='.join(line.strip().split('=')[1:])
+                else:
+                    header[header_prefix][key] = value
 
-            if header_prefix == '':
-                header["None"][key] = value
 
             else:
-                header[header_prefix][key] = value
+                if line.startswith('[DATA') or line.startswith('[CDAT'):
+                    break
+
+                else:
+                    header_prefix = line.strip().strip('[]')
+                    header[header_prefix] = {}
 
 
-        else:
-            if line.startswith('[DATA') or line.startswith('[CDAT'):
-                pos = i
-                break
-
-            else:
-                header_prefix = line.strip().strip('[]')
-                header[header_prefix] = {}
+    if 'ADC1' not in header.keys() or 'ADC2' not in header.keys() or 'mpafmt' not in header['None'].keys():
+        print 'badly formatted mpa file'
+        raise IOError
 
     if header['None']['mpafmt'] == 'asc':
-        while pos<len(lines):
-            line = lines[pos]
-
-            data_prefix, num = line.strip().strip('[]').split(',')
-            # data_lines = np.array([float(fo.readline().strip()) for i in range(int(num))])
-
-            data[data_prefix] = np.array(lines[pos+1:pos+int(num)+1],dtype=float)
-            # data[data_prefix] = np.array([float(j.strip()) for j in lines[i+1:i+int(num)+1]])
-            pos = pos+int(num)+1
+        with open(filename, 'r') as fo:
+            lines = fo.readlines()
     else:
-        print 'cannot recognize the mpa format %s' %(header['None']['mpafmt'])
-        return
+        with open(filename, 'rb') as fo:
+            lines = fo.readlines()
 
-    img = data['CDAT0'].reshape((int(header['ADC1']['range']), int(header['ADC2']['range'])))
+    for i, line in enumerate(lines):
+        if line.startswith('[CDAT'):
+            pos = i
+            break
+
+    data = np.array(lines[pos+1:],dtype=float)
+
+    img = data.reshape((int(header['ADC1']['range']), int(header['ADC2']['range'])))
 
     img_hdr = {}
     for key in header:

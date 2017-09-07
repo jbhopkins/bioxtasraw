@@ -10057,8 +10057,7 @@ class SECControlPanel(wx.Panel):
             except SASExceptions.AbsScaleNormFailed:
                 msg = ('Failed to apply absolute scale. The most '
                         'likely cause is a mismatch between the q vector of the '
-                        'loaded file and the selected sample background file. '
-                        'It failed on the following file:\n%s') %(os.path.split(each_filename)[1])
+                        'loaded file and the selected sample background file.')
                 wx.CallAfter(wx.MessageBox, msg, 'Absolute scale failed', style = wx.ICON_ERROR | wx.OK)
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
