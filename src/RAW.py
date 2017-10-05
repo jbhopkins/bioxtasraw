@@ -1734,11 +1734,30 @@ class MainFrame(wx.Frame):
         info.Name = "RAW"
         info.Version = RAWGlobals.version
         info.Copyright = "Copyright(C) 2009 RAW"
-        info.Description = "RAW is a software package primarily for SAXS 2D data reduction and 1D data analysis.\nIt provides an easy GUI for handling multiple files fast, and a\ngood alternative to commercial or protected software packages for finding\nthe Pair Distance Distribution Function\n\nPlease cite:\nBioXTAS RAW, a software program for high-throughput automated small-angle\nX-ray scattering data reduction and preliminary analysis, J. Appl. Cryst. (2009). 42, 959-964"
+        info.Description = ('RAW is a software package primarily for SAXS 2D data '
+                            'reduction and 1D data analysis.\nIt provides an easy '
+                            'GUI for handling multiple files fast, and a\ngood '
+                            'alternative to commercial or protected software packages '
+                            'for finding\nthe Pair Distance Distribution Function\n\n'
+                            'Please cite:\n"BioXTAS RAW: improvements to a free open-source program for\n'
+                            'small-angle X-ray scattering data reduction and analysis."\n'
+                            'J. B. Hopkins, R. E. Gillilan, and S. Skou. Journal of Applied\n'
+                            'Crystallography (2017). 50, 1545-1553')
 
         info.WebSite = ("http://bioxtasraw.sourceforge.net/", "The RAW Project Homepage")
         info.Developers = [u"Soren Skou", u"Jesse B. Hopkins", u"Richard E. Gillilan", u"Jesper Nygaard"]
-        info.License = "This program is free software: you can redistribute it and/or modify it under the terms of the\nGNU General Public License as published by the Free Software Foundation, either version 3\n of the License, or (at your option) any later version.\n\nThis program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;\nwithout even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\nSee the GNU General Public License for more details.\n\nYou should have received a copy of the GNU General Public License along with this program.\nIf not, see http://www.gnu.org/licenses/"
+        info.License = ('This program is free software: you can redistribute it '
+                        'and/or modify it under the terms of the\nGNU General '
+                        'Public License as published by the Free Software '
+                        'Foundation, either version 3\n of the License, or (at '
+                        'your option) any later version.\n\nThis program is '
+                        'distributed in the hope that it will be useful, but '
+                        'WITHOUT ANY WARRANTY;\nwithout even the implied warranty '
+                        'of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n'
+                        'See the GNU General Public License for more details.\n\n'
+                        'You should have received a copy of the GNU General Public '
+                        'License along with this program.\nIf not, see '
+                        'http://www.gnu.org/licenses/')
 
         # Show the wx.AboutBox
         wx.AboutBox(info)
@@ -12269,7 +12288,10 @@ class WelcomeDialog(wx.Frame):
                 '     or to soren.skou@saxslab.com and hopkins.jesse@gmail.com\n')
 
         text8 = 'If you use this software for your SAXS data processing please cite:    \n'
-        text9 = '"BioXTAS RAW, a software program for high-throughput\nautomated small-angle X-ray scattering data reduction\nand preliminary analysis", J. Appl. Cryst. (2009). 42, 959-964\n\n'
+        text9 = ('"BioXTAS RAW: improvements to a free open-source program for\n'
+                'small-angle X-ray scattering data reduction and analysis."\n'
+                'J. B. Hopkins, R. E. Gillilan, and S. Skou. Journal of Applied\n'
+                'Crystallography (2017). 50, 1545-1553\n\n')
 
         all_text = [text1, text2, text3, text4, text5, text6, text7, text8, text9]
 
