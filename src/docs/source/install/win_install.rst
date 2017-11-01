@@ -54,7 +54,7 @@ tab on the sourceforge project website to find the latest **.msi** installer.
     as a threat (it will usually be in the ‘general malware’ category). If this happens,
     please do the following:
 
-    *   Upload the file to `https://www.virustotal.com/ <https://www.virustotal.com/>`
+    *   Upload the file to `https://www.virustotal.com/ <https://www.virustotal.com/>`_
         and see if any other virus scanners identify it as a virus (it is always possible
         someone hijacked the installer somehow!).
 

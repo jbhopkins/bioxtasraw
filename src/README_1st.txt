@@ -3,23 +3,28 @@ README for BioXTAS RAW
 
 You have downloaded the source code for BioXTAS RAW.
 
-Information on how to install the program can be found
-in the installation guides here:
-https://sourceforge.net/projects/bioxtasraw/files/
+All documentation for RAW can be found here:
+https://bioxtas-raw.readthedocs.io/en/latest/index.html
 
-Documentation and tutorials can be found here:
-https://sourceforge.net/projects/bioxtasraw/files/
+Install instructions are available:
+https://bioxtas-raw.readthedocs.io/en/latest/install.html
 
-Some demo videos can be found here:
-http://bit.ly/bioxtast
+A written tutorial is also available:
+https://bioxtas-raw.readthedocs.io/en/latest/tutorial.html
 
-Example data for the demo videos is here:
-http://bit.ly/bioxtasd
+As are tutorial videos:
+https://bioxtas-raw.readthedocs.io/en/latest/videos.html
+
+And a manual:
+https://bioxtas-raw.readthedocs.io/en/latest/manual.html
 
 More information on the RAW project and the latest updates
 can be found here:
 https://sourceforge.net/projects/bioxtasraw/
 
 If you have questions, please contact:
-Soren Nielsen, soren.skou.nielsen (at) gmail (dot) com
-Jesse Hopkins, hopkins.jesse (at) gmail (dot) com
+The RAW mailing list: https://groups.google.com/forum/#!forum/bioxtas_raw
+or
+Soren Skou: soren.skou (at) saxslab (dot) com
+and
+Jesse Hopkins: hopkins.jesse (at) gmail (dot) com
