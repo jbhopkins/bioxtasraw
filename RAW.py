@@ -1467,42 +1467,37 @@ class MainFrame(wx.Frame):
             if key[0:7] == 'plot2sc':
                 plotpanel.plotparams['axesscale2'] = key[-6:]
                 plotpanel.plotparams['plot2type'] = 'subtracted'
-                plotpanel.updatePlotAxes()
+
                 plotpanel.updatePlotType(plotpanel.subplot2)
+                plotpanel.updatePlotAxes()
 
             elif key[0:7] == 'plot1sc':
                 plotpanel.plotparams['axesscale1'] = key[-6:]
                 plotpanel.plotparams['plot1type'] = 'normal'
-                plotpanel.updatePlotAxes()
+
                 plotpanel.updatePlotType(plotpanel.subplot1)
+                plotpanel.updatePlotAxes()
 
             elif key[0:7] == 'plot1ty':
                 plotpanel.plotparams['plot1type'] = key[7:]
-
                 if key[7:] == 'guinier':
                     plotpanel.plotparams['axesscale1'] = 'loglin'
-                    plotpanel.updatePlotAxes()
-
                 elif key[7:] == 'kratky' or key[7:] == 'porod':
                     plotpanel.plotparams['axesscale1'] = 'linlin'
-                    plotpanel.updatePlotAxes()
 
                 plotpanel.updatePlotType(plotpanel.subplot1)
+                plotpanel.updatePlotAxes()
 
 
             elif key[0:7] == 'plot2ty':
                 plotpanel.plotparams['plot2type'] = key[7:]
-
-
                 if key[7:] == 'guinier':
                     plotpanel.plotparams['axesscale2'] = 'loglin'
-                    plotpanel.updatePlotAxes()
-
                 elif key[7:] == 'kratky' or key[7:] == 'porod':
                     plotpanel.plotparams['axesscale2'] = 'linlin'
-                    plotpanel.updatePlotAxes()
 
                 plotpanel.updatePlotType(plotpanel.subplot2)
+                plotpanel.updatePlotAxes()
 
             if key == 'secplottotal':
                 secplotpanel.plotparams['y_axis_display'] = 'total'

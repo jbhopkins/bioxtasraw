@@ -18,6 +18,7 @@
 
 import wx, os, sys, platform, itertools, copy, matplotlib
 import numpy as np
+import traceback
 
 matplotlib.rcParams['backend'] = 'WxAgg'
 matplotlib.rc('mathtext', default='regular')
@@ -1278,16 +1279,35 @@ class PlotPanel(wx.Panel):
         for eachsubplot in plots:
             if eachsubplot.lines:
 
+                if eachsubplot == self.subplot1:
+                    plotnum = '1'
+                else:
+                    plotnum = '2'
+
                 maxq = None
                 maxi = None
 
                 minq = None
                 mini = None
 
-                if eachsubplot == self.subplot1:
-                    plotnum = '1'
-                else:
-                    plotnum = '2'
+                is_logy = False
+                is_logx = False
+
+                if (self.plotparams['plot' + plotnum + 'type'] == 'normal'
+                        or self.plotparams['plot' + plotnum + 'type'] ==
+                        'subtracted'):
+                    if (self.plotparams['axesscale' + plotnum + ''] ==
+                            'loglog' or self.plotparams['axesscale' + plotnum
+                            + ''] == 'loglin'):
+                        is_logy = True
+
+                if (self.plotparams['plot' + plotnum + 'type'] == 'normal'
+                        or self.plotparams['plot' + plotnum + 'type'] ==
+                        'subtracted'):
+                    if (self.plotparams['axesscale' + plotnum + ''] ==
+                            'loglog' or self.plotparams['axesscale' + plotnum
+                            + ''] == 'linlog'):
+                        is_logx = True
 
                 if self.plotparams['auto_fitaxes' + plotnum] == False and forced == False:
                     print 'Not fitting axes due to plot settings'
@@ -1300,38 +1320,72 @@ class PlotPanel(wx.Panel):
                 for each in eachsubplot.lines:
                     if each._label != '_nolegend_' and each._label != '_zero_' and each._label != '_cursor_' and each.get_visible() == True:
 
-                        if maxq == None:
-                            maxq = max(each.get_xdata())
-                            maxi = max(each.get_ydata())
+                        if not is_logx:
+                            xdata = each.get_xdata()
+                        else:
+                            xdata = each.get_xdata()
+                            xdata = xdata[xdata>0]
 
-                            minq = min(each.get_xdata())
-                            mini = min(each.get_ydata())
+                        if not is_logy:
+                            ydata = each.get_ydata()
+                        else:
+                            ydata = each.get_ydata()
+                            ydata = ydata[ydata>0]
 
-                        xmax = max(each.get_xdata())
-                        ymax = max(each.get_ydata())
+                        if len(xdata)>0:
+                            if maxq is None:
+                                maxq = max(xdata)
+                                minq = min(xdata)
 
-                        xmin = min(each.get_xdata())
-                        ymin = min(each.get_ydata())
+                            xmax = max(xdata)
+                            xmin = min(xdata)
 
-                        if xmax > maxq:
-                            maxq = xmax
-                        if xmin < minq:
-                            minq = xmin
-                        if ymax > maxi:
-                            maxi = ymax
-                        if ymin < mini:
-                            mini = ymin
+                            if xmax > maxq:
+                                maxq = xmax
+                            if xmin < minq:
+                                minq = xmin
+
+                        if len(ydata)>0:
+                            if maxi is None:
+                                maxi = max(ydata)
+                                mini = min(ydata)
+
+                            ymax = max(ydata)
+                            ymin = min(ydata)
+
+                            if ymax > maxi:
+                                maxi = ymax
+                            if ymin < mini:
+                                mini = ymin
 
                 if mini is not None and maxi is not None:
+                    print mini
+                    print maxi
                     eachsubplot.set_ylim(mini, maxi)
+                else:
+                    eachsubplot.set_ylim(0.1, 1)
 
                 if minq is not None and maxq is not None:
+                    print minq
+                    print maxq
                     eachsubplot.set_xlim(minq, maxq)
+                else:
+                    eachsubplot.set_xlim(0.1, 1)
+
+                #This is supposed to fix the value error bug
+                #But it doesn't seem to. See, for example:
+                #http://www.cloudypoint.com/Tutorials/discussion/python-solved-python-matplotlib-valueerror-for-logit-scale-axis-label/
+                eachsubplot.spines['left']._adjust_location()
+                eachsubplot.spines['bottom']._adjust_location()
+                eachsubplot.spines['right']._adjust_location()
+                eachsubplot.spines['top']._adjust_location()
 
         try:
+
             self.canvas.draw()
         except ValueError, e:
             print 'ValueError in fitaxis() : ' + str(e)
+            traceback.print_exc()
 
 
     def _onBlinkTimer(self, event):
@@ -1694,24 +1748,24 @@ class PlotPanel(wx.Panel):
 
                     if key[5:7] == 'ty':
                         self.plotparams['plot1type'] = key[7:]
-                        self.updatePlotType(self.subplot1)
-
                         self.plotparams['axesscale1'] = 'linlin'
 
+                        self.updatePlotType(self.subplot1)
                         self.updatePlotAxes()
                         print '1'
                     else:
                         self.plotparams['axesscale1'] = key[7:]
                         self.plotparams['plot1type'] = 'normal'
+
                         self.updatePlotType(self.subplot1)
                         self.updatePlotAxes()
                         print '2'
                 else:
                     if key[5:7] == 'ty':
                         self.plotparams['plot2type'] = key[7:]
-                        self.updatePlotType(self.subplot2)
-
                         self.plotparams['axesscale2'] = 'linlin'
+
+                        self.updatePlotType(self.subplot2)
                         self.updatePlotAxes()
 
                         print '3'
@@ -1719,12 +1773,10 @@ class PlotPanel(wx.Panel):
                     else:
                         self.plotparams['axesscale2'] = key[7:]
                         self.plotparams['plot2type'] = 'subtracted'
+
                         self.updatePlotType(self.subplot2)
-                        try:
-                            self.updatePlotAxes()
-                        except ValueError, e:
-                            print e
-                        print '4'
+                        self.updatePlotAxes()
+
 
         #Update plot settings in menu bar:
         mainframe.setViewMenuScale(id)
@@ -1806,7 +1858,7 @@ class PlotPanel(wx.Panel):
         self._setLabels(axes = self.subplot1)
         self._setLabels(axes = self.subplot2)
 
-        self.fitAxis()
+        # self.fitAxis()
 
     def updatePlotAxes(self):
 
@@ -1828,15 +1880,18 @@ class PlotPanel(wx.Panel):
 
                 a.set_ylim(1, 99999)
                 a.set_yscale('log')
-                a.set_ylim(1, 99999)
-                #a.limit_range_for_scale(1, 99999)
 
             if self.plotparams.get('axesscale'+ str(c)) == 'loglog':
+                a.set_xlim(1, 99999)
                 a.set_xscale('log')
+
+                a.set_ylim(1, 99999)
                 a.set_yscale('log')
 
             if self.plotparams.get('axesscale'+ str(c)) == 'linlog':
+                a.set_xlim(1, 99999)
                 a.set_xscale('log')
+
                 a.set_yscale('linear')
 
         self.fitAxis()

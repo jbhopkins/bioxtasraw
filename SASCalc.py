@@ -27,7 +27,6 @@ functions, including calculation of rg and molecular weight.
 
 It also contains functions for calling outside packages for use in RAW, like DAMMIF.
 
-
 """
 import numpy as np
 from scipy import integrate as integrate
