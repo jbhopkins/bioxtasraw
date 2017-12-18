@@ -30,9 +30,20 @@ It also contains functions for calling outside packages for use in RAW, like DAM
 """
 import numpy as np
 from scipy import integrate as integrate
-import os, time, subprocess, scipy.optimize, wx, threading, Queue, platform, re
+import scipy.optimize
 import scipy.interpolate as interp
 from scipy.constants import Avogadro
+
+import os
+import time
+import subprocess
+import threading
+import Queue
+import platform
+import re
+import math
+
+import wx
 
 import SASFileIO, SASExceptions, RAWSettings
 
@@ -1642,6 +1653,7 @@ class LongestRunOfHeads(object):
         if c >= n:
             return 0
         delta = 2 ** n - self.A(n, c)
+        print delta
         if delta <= 0:
             return 0
         return 2.0 ** (np.log2(np.array([delta],dtype=np.float64)) - n)
@@ -1661,10 +1673,10 @@ class LongestRunOfHeads(object):
         c=c-1
         if c >= n:
             return 0
-        delta = 2 ** n - self.B(n, c)
+        delta = 2**n - self.B(n, c)
         if delta <= 0:
             return 0
-        return 2.0 ** (np.log2(np.array([delta],dtype=np.float64)) - n)
+        return 2.0**(math.log(delta, 2) - n)
 
 LROH = LongestRunOfHeads()
 
@@ -1690,8 +1702,9 @@ def cormap_pval(data1, data2):
     diff_data = data2 - data1
     c = measure_longest(diff_data)
     n = diff_data.size
+
     if c>0:
-        prob = LROH.probaB(n, c)[0]
+        prob = LROH.probaB(n, c)
     else:
         prob = 1
     return n, c, round(prob,6)
