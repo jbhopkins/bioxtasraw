@@ -1271,8 +1271,11 @@ class PlotPanel(wx.Panel):
 
     def fitAxis(self, axes = None, forced = False):
 
-        if axes:
-            plots = axes
+        if axes is not None:
+            if not isinstance(axes, list):
+                plots = [axes]
+            else:
+                plots = axes
         else:
             plots = [self.subplot1, self.subplot2]
 
@@ -1359,15 +1362,11 @@ class PlotPanel(wx.Panel):
                                 mini = ymin
 
                 if mini is not None and maxi is not None:
-                    print mini
-                    print maxi
                     eachsubplot.set_ylim(mini, maxi)
                 else:
                     eachsubplot.set_ylim(0.1, 1)
 
                 if minq is not None and maxq is not None:
-                    print minq
-                    print maxq
                     eachsubplot.set_xlim(minq, maxq)
                 else:
                     eachsubplot.set_xlim(0.1, 1)
@@ -1381,7 +1380,6 @@ class PlotPanel(wx.Panel):
                 eachsubplot.spines['top']._adjust_location()
 
         try:
-
             self.canvas.draw()
         except ValueError, e:
             print 'ValueError in fitaxis() : ' + str(e)
@@ -1751,31 +1749,29 @@ class PlotPanel(wx.Panel):
                         self.plotparams['axesscale1'] = 'linlin'
 
                         self.updatePlotType(self.subplot1)
-                        self.updatePlotAxes()
-                        print '1'
+                        self.updatePlotAxes(self.subplot1)
+
                     else:
                         self.plotparams['axesscale1'] = key[7:]
                         self.plotparams['plot1type'] = 'normal'
 
                         self.updatePlotType(self.subplot1)
-                        self.updatePlotAxes()
-                        print '2'
+                        self.updatePlotAxes(self.subplot1)
+
                 else:
                     if key[5:7] == 'ty':
                         self.plotparams['plot2type'] = key[7:]
                         self.plotparams['axesscale2'] = 'linlin'
 
                         self.updatePlotType(self.subplot2)
-                        self.updatePlotAxes()
-
-                        print '3'
+                        self.updatePlotAxes(self.subplot2)
 
                     else:
                         self.plotparams['axesscale2'] = key[7:]
                         self.plotparams['plot2type'] = 'subtracted'
 
                         self.updatePlotType(self.subplot2)
-                        self.updatePlotAxes()
+                        self.updatePlotAxes(self.subplot2)
 
 
         #Update plot settings in menu bar:
@@ -1830,15 +1826,14 @@ class PlotPanel(wx.Panel):
                 item_list[6].Check(True)
 
     def updatePlotType(self, axes):
+        if axes == self.subplot1:
+            c = '1'
+        else:
+            c = '2'
 
         for each in self.plotted_sasms:
-            if each is not None and each.line is not None:
+            if each is not None and each.line is not None and each.axes == axes:
                 q_min, q_max = each.getQrange()
-
-                if each.axes == self.subplot1:
-                    c = '1'
-                else:
-                    c = '2'
 
                 if self.plotparams['plot' + c + 'type'] == 'kratky':
                     each.line.set_ydata(each.i[q_min:q_max] * np.power(each.q[q_min:q_max],2))
@@ -1855,14 +1850,14 @@ class PlotPanel(wx.Panel):
 
                 self.updateErrorBars(each)
 
-        self._setLabels(axes = self.subplot1)
-        self._setLabels(axes = self.subplot2)
+        self._setLabels(axes=axes)
 
-        # self.fitAxis()
+    def updatePlotAxes(self, axes=None):
 
-    def updatePlotAxes(self):
-
-        axes = [self.subplot1, self.subplot2]
+        if axes is None:
+            axes = [self.subplot1, self.subplot2]
+        elif not isinstance(axes, list):
+            axes = [axes]
 
         for a in axes:
 
@@ -1894,7 +1889,7 @@ class PlotPanel(wx.Panel):
 
                 a.set_yscale('linear')
 
-        self.fitAxis()
+        self.fitAxis(axes)
 
     def updatePlotAfterManipulation(self, sasm_list, draw = True):
 
