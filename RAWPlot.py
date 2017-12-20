@@ -77,8 +77,9 @@ class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
         y = self.figure.bbox.height - evt.GetY()
 
         evt.Skip()
+        if self.HasCapture():
+            self.ReleaseMouse()
 
-        if self.HasCapture(): self.ReleaseMouse()
         try:
             FigureCanvasWxAgg.button_release_event(self, x, y, 1, guiEvent=evt)
         except Exception as e:
@@ -1400,9 +1401,9 @@ class PlotPanel(wx.Panel):
     def _onPickEvent(self, event):
 
         mouseevent = event.mouseevent
-        if mouseevent.button == 'up' or mouseevent.button == 'down':
-            return
 
+        if mouseevent.button == 'up' or mouseevent.button == 'down' or mouseevent.button == 3:
+            return
 
         self.manipulation_panel = wx.FindWindowByName('ManipulationPanel')
 
@@ -1423,135 +1424,13 @@ class PlotPanel(wx.Panel):
 
         self.blink_timer.Start(500)
 
+        return
+
     def _onKeyPressEvent(self, event):
         pass
 
-
     def _onMouseScrollEvent(self, event):
-
-        return
-
-        x_size,y_size = self.canvas.get_width_height()
-        half_y = y_size / 2
-
-        if self._plot_shown == 1:
-            selected_plot = 1
-        elif self._plot_shown == 2:
-            selected_plot = 2
-        elif event.y <= half_y:
-            selected_plot = 2
-        else:
-            selected_plot = 1
-
-        if selected_plot == 1:
-            ax = self.subplot1
-        else:
-            ax = self.subplot2
-
-        cur_xlim = ax.get_xlim()
-        cur_ylim = ax.get_ylim()
-
-        cur_xrange = (cur_xlim[1] - cur_xlim[0])
-        cur_yrange = (cur_ylim[1] - cur_ylim[0])
-
-        xdata = event.xdata # get event x location
-        ydata = event.ydata # get event y location
-
-        if event.button == 'up':
-            # zoom in
-            scale_factor = 1.15
-        elif event.button == 'down':
-            # zoom out
-            scale_factor = 0.85
-        else:
-            # deal with something that should never happen
-            scale_factor = 1
-            print event.button
-
-        # MOVE AXIS
-        zx_pix, zy_pix = ax.transAxes.transform((0,0))
-        cx_pix, cy_pix = ax.transAxes.transform((0.5,0.5))
-
-        xy = np.array([(xdata,ydata), (xdata, ydata)])
-
-        mx_pix, my_pix = ax.transData.transform(xy)
-        mx_pix = mx_pix[0]
-        my_pix = my_pix[1]
-
-
-        dx = cx_pix - mx_pix
-        dy = cy_pix - my_pix
-
-        dist = np.sqrt(np.power(abs(dx),2)+np.power(abs(dy),2))
-
-        step = 0.15
-        new_dist = dist * step   #step = 0..1
-
-        tanA = abs(dy) / abs(dx)
-        A = np.arctan(tanA)
-
-        new_dx = np.cos(A) * new_dist
-        new_dy = tanA * new_dx
-
-        zdx = zx_pix + new_dx
-        zdy = zy_pix + new_dy
-
-        inv = ax.transData.inverted()
-
-
-        zxdata, zydata = inv.transform((zx_pix, zy_pix))
-
-
-        zstpx, zstpy = inv.transform((zdx, zdy))
-
-
-        dx_move = zstpx - zxdata
-        dy_move = zstpy - zydata
-
-
-        if dx >= 0:
-            newxmin = cur_xlim[0] - dx_move
-            newxmax = cur_xlim[1] - dx_move
-        if dx < 0:
-            newxmin = cur_xlim[0] + dx_move
-            newxmax = cur_xlim[1] + dx_move
-
-        try:
-            newxlim = (newxmin, newxmax)
-        except UnboundLocalError:
-            return
-
-        if dy >= 0:
-            newymin = cur_ylim[0] - dy_move
-            newymax = cur_ylim[1] - dy_move
-        if dy < 0:
-            newymin = cur_ylim[0] + dy_move
-            newymax = cur_ylim[1] + dy_move
-
-        newylim = (newymin, newymax)
-
-
-        #ZOOM
-        cur_xrange = (cur_xlim[1] - cur_xlim[0])
-        cur_yrange = (cur_ylim[1] - cur_ylim[0])
-
-        new_xrange = scale_factor * cur_xrange
-        new_yrange = scale_factor * cur_yrange
-
-        dxrange = cur_xrange - new_xrange
-        dyrange = cur_yrange - new_yrange
-
-        xmin, xmax = newxlim
-        newxlim_zoom = (xmin - (dxrange/2.0), xmax + (dxrange/2.0))
-
-        ymin,ymax = newylim
-        newylim_zoom = (ymin - (dyrange/2.0), ymax + (dyrange/2.0))
-
-        ax.set_xlim(newxlim_zoom)
-        ax.set_ylim(newylim_zoom)
-
-        self.canvas.draw() # force re-draw
-
+        pass
 
     def _onMouseMotionEvent(self, event):
 
@@ -1594,7 +1473,8 @@ class PlotPanel(wx.Panel):
 
 #--- ** Popup Menu ***
 
-    def plotSASM(self, sasm_list, axes_no = 1, color = None, legend_label_in = None, line_data = None, *args, **kwargs):
+    def plotSASM(self, sasm_list, axes_no = 1, color = None, legend_label_in = None,
+        line_data = None, *args, **kwargs):
         if axes_no == 1:
             a = self.subplot1
         elif axes_no == 2:
@@ -1602,7 +1482,7 @@ class PlotPanel(wx.Panel):
         else:
             a = axes_no
 
-        if type(sasm_list) != list:
+        if not isinstance(sasm_list, list):
             sasm_list = [sasm_list]
 
         #plot with errorbars

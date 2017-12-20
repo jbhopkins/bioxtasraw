@@ -3986,19 +3986,17 @@ class MainWorkerThread(threading.Thread):
                 pvals[pvals>1] = 1
 
             if np.any(pvals<threshold):
+                wx.CallAfter(self.main_frame.closeBusyDialog)
                 profiles_to_use = self._showAverageError(4, itertools.compress(sasm_list[1:], pvals<threshold))
                 if profiles_to_use == wx.ID_CANCEL:
-                    wx.CallAfter(self.main_frame.closeBusyDialog)
                     return
-
+                wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while averaging and plotting...')
         try:
             if profiles_to_use == wx.ID_YESTOALL:
                 avg_sasm = SASM.average(sasm_list)
 
             elif profiles_to_use == wx.ID_YES:
                 reduced_sasm_list = [sasm_list[0]]
-                print len(sasm_list)
-                print len(pvals)
                 for i, sasm in enumerate(sasm_list[1:]):
                     if pvals[i] >= threshold:
                         reduced_sasm_list.append(sasm)

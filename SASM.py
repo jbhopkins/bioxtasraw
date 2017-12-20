@@ -1278,57 +1278,84 @@ def subtract(sasm1, sasm2, forced = False, full = False):
 def average(sasm_list, forced = False):
     ''' Average the intensity of a list of sasm objects '''
 
-    #Check average is possible with provided curves:
-    first_sasm = sasm_list[0]
-    first_q_min, first_q_max = first_sasm.getQrange()
+    if len(sasm_list) == 1:
+        #Useful for where all but the first profile are rejected due to similarity
+        #testing. Otherwise we should never have less than one profile to average
+        sasm = sasm_list[0]
+        q_min, q_max = sasm.getQrange()
 
-    for each in sasm_list:
-        each_q_min, each_q_max = each.getQrange()
-        if not np.all(np.round(each.q[each_q_min:each_q_max], 5) == np.round(first_sasm.q[first_q_min:first_q_max], 5)) and not forced:
-            raise SASExceptions.DataNotCompatible('Average list contains data sets with different q vectors.')
+        avg_q = copy.deepcopy(sasm.q[q_min:q_max])
+        avg_i = copy.deepcopy(sasm.i[q_min:q_max])
+        avg_err = copy.deepcopy(sasm.err[q_min:q_max])
+        avg_parameters = copy.deepcopy(sasm.getAllParameters())
 
-    all_i = first_sasm.i[first_q_min : first_q_max]
+        avgSASM = SASM(avg_i, avg_q, avg_err, avg_parameters)
 
-    all_err = first_sasm.err[first_q_min : first_q_max]
+        history = {}
+        history_list = []
+        for eachsasm in sasm_list:
+            each_history = []
+            each_history.append(copy.deepcopy(eachsasm.getParameter('filename')))
 
-    avg_filelist = []
-    avg_filelist.append(first_sasm.getParameter('filename'))
+            for key in eachsasm.getParameter('history'):
+                each_history.append({key : copy.deepcopy(eachsasm.getParameter('history')[key])})
 
-    for idx in range(1, len(sasm_list)):
-        each_q_min, each_q_max = sasm_list[idx].getQrange()
-        all_i = np.vstack((all_i, sasm_list[idx].i[each_q_min:each_q_max]))
-        all_err = np.vstack((all_err, sasm_list[idx].err[each_q_min:each_q_max]))
-        avg_filelist.append(sasm_list[idx].getParameter('filename'))
-
-    avg_i = np.mean(all_i, 0)
-
-    avg_err = np.sqrt( np.sum( np.power(all_err,2), 0 ) ) / len(all_err)  #np.sqrt(len(all_err))
-
-    avg_i = copy.deepcopy(avg_i)
-    avg_err = copy.deepcopy(avg_err)
-
-    avg_q = copy.deepcopy(first_sasm.q)[first_q_min:first_q_max]
-    avg_parameters = copy.deepcopy(sasm_list[0].getAllParameters())
-
-    avgSASM = SASM(avg_i, avg_q, avg_err, avg_parameters)
-    history = avgSASM.getParameter('history')
-
-    history = {}
-
-    history_list = []
-
-    for eachsasm in sasm_list:
-        each_history = []
-        each_history.append(copy.deepcopy(eachsasm.getParameter('filename')))
-
-        for key in eachsasm.getParameter('history'):
-            each_history.append({key : copy.deepcopy(eachsasm.getParameter('history')[key])})
-
-        history_list.append(each_history)
+            history_list.append(each_history)
 
 
-    history['averaged_files'] = history_list
-    avgSASM.setParameter('history', history)
+        history['averaged_files'] = history_list
+        avgSASM.setParameter('history', history)
+
+    else:
+        #Check average is possible with provided curves:
+        first_sasm = sasm_list[0]
+        first_q_min, first_q_max = first_sasm.getQrange()
+
+        for each in sasm_list:
+            each_q_min, each_q_max = each.getQrange()
+            if not np.all(np.round(each.q[each_q_min:each_q_max], 5) == np.round(first_sasm.q[first_q_min:first_q_max], 5)) and not forced:
+                raise SASExceptions.DataNotCompatible('Average list contains data sets with different q vectors.')
+
+        all_i = first_sasm.i[first_q_min : first_q_max]
+
+        all_err = first_sasm.err[first_q_min : first_q_max]
+
+        avg_filelist = []
+        avg_filelist.append(first_sasm.getParameter('filename'))
+
+        for idx in range(1, len(sasm_list)):
+            each_q_min, each_q_max = sasm_list[idx].getQrange()
+            all_i = np.vstack((all_i, sasm_list[idx].i[each_q_min:each_q_max]))
+            all_err = np.vstack((all_err, sasm_list[idx].err[each_q_min:each_q_max]))
+            avg_filelist.append(sasm_list[idx].getParameter('filename'))
+
+        avg_i = np.mean(all_i, 0)
+
+        avg_err = np.sqrt( np.sum( np.power(all_err,2), 0 ) ) / len(all_err)  #np.sqrt(len(all_err))
+
+        avg_i = copy.deepcopy(avg_i)
+        avg_err = copy.deepcopy(avg_err)
+
+        avg_q = copy.deepcopy(first_sasm.q)[first_q_min:first_q_max]
+        avg_parameters = copy.deepcopy(sasm_list[0].getAllParameters())
+
+        avgSASM = SASM(avg_i, avg_q, avg_err, avg_parameters)
+
+        history = {}
+
+        history_list = []
+
+        for eachsasm in sasm_list:
+            each_history = []
+            each_history.append(copy.deepcopy(eachsasm.getParameter('filename')))
+
+            for key in eachsasm.getParameter('history'):
+                each_history.append({key : copy.deepcopy(eachsasm.getParameter('history')[key])})
+
+            history_list.append(each_history)
+
+        history['averaged_files'] = history_list
+        avgSASM.setParameter('history', history)
 
     return avgSASM
 
