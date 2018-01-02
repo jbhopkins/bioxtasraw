@@ -1676,7 +1676,6 @@ class ImageSettingsDialog(wx.Dialog):
         event.Skip()
 
     def OnSlider(self, event):
-        print 'in onslider'
         id = event.GetId()
 
         for each in self.sliderinfo:

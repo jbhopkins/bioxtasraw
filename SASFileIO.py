@@ -929,7 +929,7 @@ def parseCHESSF2CTSfile(filename):
     datePattern = re.compile('#D\s.*\n')
 
 
-    with open(filename[:-3] + 'cts') as f:
+    with open(filename[:-3] + 'cts', 'rU') as f:
 
         mon1, mon2, exposure_time, closed_shutter_count = None, None, None, None
 
@@ -985,7 +985,7 @@ def parseCHESSG1CountFile(filename):
 
     countFilename = os.path.join(dir, countFile)
 
-    with open(countFilename,'r') as f:
+    with open(countFilename,'rU') as f:
         allLines = f.readlines()
 
     line_num = 0
@@ -1051,7 +1051,7 @@ def parseCHESSG1CountFileWAXS(filename):
 
     countFilename = os.path.join(dir, countFile)
 
-    with open(countFilename,'r') as f:
+    with open(countFilename,'rU') as f:
         allLines = f.readlines()
 
     line_num = 0
@@ -1120,7 +1120,7 @@ def parseCHESSG1CountFileEiger(filename):
 
     countFilename = os.path.join(dir, countFile)
 
-    with open(countFilename,'r') as f:
+    with open(countFilename,'rU') as f:
         allLines = f.readlines()
 
     line_num = 0
@@ -1169,7 +1169,7 @@ def parseMAXLABI911HeaderFile(filename):
     filepath, ext = os.path.splitext(filename)
     hdr_file = filename + '.hdr'
 
-    with open(hdr_file,'r') as f:
+    with open(hdr_file,'rU') as f:
         all_lines = f.readlines()
 
     counters = {}
@@ -1187,7 +1187,7 @@ def parseMAXLABI77HeaderFile(filename):
     filepath, ext = os.path.splitext(filename)
     hdr_file = filename + '.hdr'
 
-    with open(hdr_file,'r') as f:
+    with open(hdr_file,'rU') as f:
         all_lines = f.readlines()
 
     counters = {}
@@ -1239,7 +1239,7 @@ def parseBioCATlogfile(filename):
 
     countFilename=os.path.join(datadir, '_'.join(fname.split('_')[:-1])+'.log')
 
-    with open(countFilename,'r') as f:
+    with open(countFilename,'rU') as f:
         allLines=f.readlines()
 
     searchName='.'.join(fname.split('.')[:-1])
@@ -1298,7 +1298,7 @@ def parseBL19U2HeaderFile(filename):
 
     counters = {}
 
-    with open(countFilename, 'r') as f:
+    with open(countFilename, 'rU') as f:
         for line in f:
             name = line.split(':')[0]
             value = ':'.join(line.split(':')[1:])
@@ -1323,7 +1323,7 @@ def parsePetraIIIP12EigerFile(filename, new_filename = None):
 
     counters = {}
 
-    with open(countFilename, 'r') as f:
+    with open(countFilename, 'rU') as f:
         for line in f:
             name = line.split(':')[0]
             value = ':'.join(line.split(':')[1:])
@@ -1763,7 +1763,7 @@ def loadOutFile(filename):
     q_i0=None         #Reciprocal space I0
 
 
-    with open(filename) as f:
+    with open(filename, 'rU') as f:
         for line in f:
             twocol_match = two_col_fit.match(line)
             threecol_match = three_col_fit.match(line)
@@ -2069,7 +2069,7 @@ def loadIftFile(filename):
     r = []
     err = []
 
-    with open(filename) as f:
+    with open(filename, 'rU') as f:
 
         path_noext, ext = os.path.splitext(filename)
 
@@ -2095,7 +2095,7 @@ def loadIftFile(filename):
     err_orig = []
     fit = []
 
-    with open(filename) as f:
+    with open(filename, 'rU') as f:
 
         try:
             for line in f:
@@ -2123,7 +2123,7 @@ def loadIftFile(filename):
 
 
     #Check to see if there is any header from RAW, and if so get that.
-    with open(filename) as f:
+    with open(filename, 'rU') as f:
         all_lines = f.readlines()
 
     header = []
@@ -2163,7 +2163,7 @@ def loadFitFile(filename):
     err = []
     fit = []
 
-    with open(filename) as f:
+    with open(filename, 'rU') as f:
 
         firstLine = f.readline()
 
@@ -2253,7 +2253,7 @@ def loadDamselLogFile(filename):
     """Loads data from a damsel log file"""
     res_pattern = re.compile('\s*Ensemble\s*Resolution\s*=?\s*\d+\.?\d*\s*\+?-?\s*\d+\s*[a-zA-Z]*')
 
-    with open(filename) as f:
+    with open(filename, 'rU') as f:
         process_includes = False
         result_dict = {}
         include_list = []
@@ -2303,7 +2303,7 @@ def loadDamclustLogFile(filename):
     cluster_list = []
     distance_list = []
 
-    with open(filename) as f:
+    with open(filename, 'rU') as f:
         for line in f:
             cluster_match = cluster_pattern.match(line)
             distance_match = distance_pattern.match(line)
@@ -2350,7 +2350,7 @@ def loadPDBFile(filename):
     atoms = []
     useful_params = collections.defaultdict(str)
 
-    for line in open(filename):
+    for line in open(filename, 'rU'):
         if line.startswith("ATOM"):
             x = float(line[30:38])
             y = float(line[38:46])
@@ -2384,7 +2384,7 @@ def loadPrimusDatFile(filename):
     q = []
     err = []
 
-    with open(filename) as f:
+    with open(filename, 'rU') as f:
         lines = f.readlines()
 
     if len(lines) == 0:
@@ -2481,7 +2481,7 @@ def loadRadFile(filename):
 
     fileheader = {}
 
-    with open(filename) as f:
+    with open(filename, 'rU') as f:
 
         for line in f:
 
@@ -2546,7 +2546,7 @@ def loadNewRadFile(filename):
 
     fileheader = {}
 
-    with open(filename) as f:
+    with open(filename, 'rU') as f:
 
         for line in f:
 
@@ -2605,7 +2605,7 @@ def loadIntFile(filename):
     err = []
     parameters = {'filename' : os.path.split(filename)[1]}
 
-    with open(filename) as f:
+    with open(filename, 'rU') as f:
         all_lines = f.readlines()
 
     for each_line in all_lines:
@@ -2635,7 +2635,7 @@ def loadCsvFile(filename):
 
     fileheader = {}
 
-    with open(filename) as f:
+    with open(filename, 'rU') as f:
 
         for line in f:
 
@@ -2681,7 +2681,7 @@ def load2ColFile(filename):
     err = []
     fileheader = {}
 
-    with open(filename) as f:
+    with open(filename, 'rU') as f:
 
         for line in f:
             iq_match = iq_pattern.match(line)
