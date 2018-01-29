@@ -5607,14 +5607,11 @@ class DenssRunPanel(wx.Panel):
         cwd = os.getcwd()
         os.chdir(path)
 
-        print 'got to here'
-
-        eman_proc, out1, out2 = SASCalc.runEman2Aver(den_filelist, procs, prefix, grid)
+        eman_proc, out1 = SASCalc.runEman2Aver(den_filelist, procs, prefix, grid)
 
         os.chdir(cwd)
 
         wx.CallAfter(averWindow.AppendText, out1)
-        wx.CallAfter(averWindow.AppendText, out2)
 
         eman_q = Queue.Queue()
         readout_t = threading.Thread(target=enqueue_output, args=(eman_proc.stdout, eman_q))
@@ -5708,7 +5705,8 @@ class DenssRunPanel(wx.Panel):
                     self.results[i].get()
             except Exception as e:
                 self.abort_event.set()
-                raise e
+                print e
+                raise
 
 
     def finishedProcessing(self):
@@ -5763,7 +5761,7 @@ class DenssRunPanel(wx.Panel):
                             'limitDmax'     : self.raw_settings.get('denssLimitDmax'),
                             'dmaxStep'      : self.raw_settings.get('denssDmaxStartStep'),
                             'recenter'      : self.raw_settings.get('denssRecenter'),
-                            'recenterStep'  : self.raw_settings.get('denssRecenterMaxStep'),
+                            'recenterStep'  : self.raw_settings.get('denssRecenterStep'),
                             'positivity'    : self.raw_settings.get('denssPositivity'),
                             'extrapolate'   : self.raw_settings.get('denssExtrapolate'),
                             'shrinkwrap'    : self.raw_settings.get('denssShrinkwrap'),
@@ -5779,6 +5777,8 @@ class DenssRunPanel(wx.Panel):
                             'plotOutput'    : self.raw_settings.get('denssPlotOutput'),
                             'average'       : self.raw_settings.get('denssEman2Average'),
                             'runs'          : self.raw_settings.get('denssReconstruct'),
+                            'cutOutput'     : self.raw_settings.get('denssCutOut'),
+                            'writeXplor'    : self.raw_settings.get('denssWriteXplor'),
                             }
 
         aver = wx.FindWindowById(self.ids['average'], self)

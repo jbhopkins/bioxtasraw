@@ -40,6 +40,7 @@ import threading
 import Queue
 import platform
 import re
+import ast
 import logging
 import scipy.interpolate
 from scipy.constants import Avogadro
@@ -1862,7 +1863,7 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     limit_dmax = denss_settings['limitDmax']
     dmax_start_step = int(denss_settings['dmaxStep'])
     recenter = denss_settings['recenter']
-    recenter_maxstep = int(denss_settings['recenterStep'])
+    recenter_steps = ast.literal_eval(denss_settings['recenterStep'])
     positivity = denss_settings['positivity']
     extrapolate = denss_settings['extrapolate']
     steps = int(denss_settings['steps'])
@@ -1877,6 +1878,10 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     enforce_connectivity = denss_settings['connected']
     enforce_connectivity_steps = [int(step.strip()) for step in denss_settings['conSteps'].split(',')]
     plot = denss_settings['plotOutput']
+    cutout = denss_settings['cutOutput']
+    writeXplor = denss_settings['writeXplor']
+
+
     write = True
     write_freq = 100
     seed = None
@@ -1908,9 +1913,10 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     side = oversampling*D
     halfside = side/2
     n = int(side/voxel)
-    #want odd n so that there exists an F[0,0,0] in the center that equals the number of electrons for easy scaling
-    if n%2==0:
+    #want n to be even for speed/memory optimization with the FFT, ideally a power of 2, but wont enforce that
+    if n%2==1:
         n += 1
+    nbox = n
     dx = side/n
     dV = dx**3
     V = side**3
@@ -1928,11 +1934,10 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     qbins = np.linspace(0,nbins*qstep,nbins+1)
     #create modified qbins and put qbins in center of bin rather than at left edge of bin.
     qbinsc = np.copy(qbins)
-    #only move the non-zero terms, since the zeroth term should be at q=0.
-    qbinsc[1:] += qstep/2.
+    qbinsc += qstep/2.
 
     #create an array labeling each voxel according to which qbin it belongs
-    qbin_labels = np.digitize(qr, qbins)
+    qbin_labels = np.searchsorted(qbins, qr, 'right')
     qbin_labels -= 1
 
     #allow for any range of q data
@@ -2005,6 +2010,7 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
 
     my_logger.debug("Step  Chi2      Rg      Support Volume")
     my_logger.debug("----- --------- ------- --------------")
+
     for j in range(steps):
         if abort_event.is_set():
             my_logger.info('Aborted!')
@@ -2016,10 +2022,6 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
         #calculate spherical average of intensities from 3D Fs
         I3D = np.abs(F)**2
         Imean[j] = ndimage.mean(I3D, labels=qbin_labels, index=np.arange(0,qbin_labels.max()+1))
-
-        if j==0 and write:
-            np.savetxt(file_prefix+'_step0_saxs.dat', np.vstack((qbinsc,Imean[j],Imean[j]*.05)).T, delimiter=" ", fmt="%.5e")
-            SASFileIO.saveDensityXplor(file_prefix+"_original.xplor", rho, side)
 
         #scale Fs to match data
         factors = np.ones((len(qbins)))
@@ -2047,12 +2049,13 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
                 newrho *= netmp / np.sum(newrho)
 
         #update support using shrinkwrap method
-        if j%shrinkwrap_iter==0:
-            if recenter:
-                if recenter_maxstep is None:
-                    newrho = center_rho(newrho)
-                elif j <= recenter_maxstep:
-                    newrho = center_rho(newrho, centering="max")
+        if recenter and j in recenter_steps:
+            rhocom = np.array(ndimage.measurements.center_of_mass(newrho))
+            gridcenter = np.array(rho.shape)/2.
+            shift = gridcenter-rhocom
+            shift = shift.astype(int)
+            newrho = np.roll(np.roll(np.roll(newrho, shift[0], axis=0), shift[1], axis=1), shift[2], axis=2)
+            support = np.roll(np.roll(np.roll(support, shift[0], axis=0), shift[1], axis=1), shift[2], axis=2)
 
         if shrinkwrap and j >= shrinkwrap_minstep and j%shrinkwrap_iter==0:
             rho_blurred = ndimage.filters.gaussian_filter(newrho, sigma=sigma, mode='wrap')
@@ -2105,21 +2108,44 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     rho = np.fft.ifftn(F, rho.shape)
     rho = rho.real
 
-    #recenter rho
-    if write:
-        SASFileIO.saveDensityXplor(file_prefix+"_precentered.xplor", rho, side)
-
-    rho = center_rho(rho)
     if ne is not None:
         rho *= ne/np.sum(rho)
 
     rg[j+1] = rho2rg(rho, r, support, dx)
     supportV[j+1] = supportV[j]
 
+    if cutout:
+        #here were going to cut rho out of the large real space box
+        #to the voxels that contain the particle
+        #use D to estimate particle size
+        #assume the particle is in the center of the box
+        #calculate how many voxels needed to contain particle of size D
+        #use bigger than D to make sure we don't crop actual particle in case its larger than expected
+        #EMAN2 manual suggests minimum of 1.5, so lets use that
+        nD = int(1.5*D/dx)+1
+        #make sure final box will still have even samples
+        if nD%2==1:
+            nD += 1
+
+        min = nbox/2 - nD/2
+        max = nbox/2 + nD/2 + 2
+        #create new rho array containing only the particle
+        newrho = rho[min:max,min:max,min:max]
+        rho = newrho
+        #do the same for the support
+        newsupport = support[min:max,min:max,min:max]
+        support = newsupport
+        #update side to new size of box
+        side = dx * (max-min)
+
     if write:
-        SASFileIO.saveDensityXplor(file_prefix+".xplor", rho, side)
         SASFileIO.saveDensityMrc(file_prefix+".mrc", rho, side)
-        SASFileIO.saveDensityXplor(file_prefix+"_support.xplor", np.ones_like(rho)*support, side)
+        SASFileIO.saveDensityMrc(file_prefix+"_support.mrc", np.ones_like(rho)*support, side)
+
+        if writeXplor:
+            SASFileIO.saveDensityXplor(file_prefix+".xplor", rho, side)
+            SASFileIO.saveDensityXplor(file_prefix+"_support.xplor", np.ones_like(rho)*support, side)
+
 
         #Write some more output files
         fit = np.zeros(( len(qbinsc),5 ))
@@ -2128,14 +2154,15 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
         fit[:len(sigqdata),2] = sigqdata
         fit[:len(qbinsc),3] = qbinsc
         fit[:len(Imean[j+1]),4] = Imean[j+1]
-        np.savetxt(file_prefix+'_map.fit', fit, delimiter=' ', fmt='%.5e')
+        np.savetxt(file_prefix+'_map.fit', fit, delimiter=' ', fmt='%.5e',
+            header='q(data),I(data),error(data),q(density),I(density)')
 
         np.savetxt(file_prefix+'_stats_by_step.txt', np.vstack((chi, rg, supportV)).T, delimiter=" ", fmt="%.5e")
 
     # #Final output logging and write the log to a file
     my_logger.info('FINISHED DENSITY REFINEMENT')
     my_logger.info('Number of steps: %i', j)
-    my_logger.info('Final Chi2: %3.3f', chi[j+1])
+    my_logger.info('Final Chi2: %.3e', chi[j+1])
     my_logger.info('Final Rg: %3.3f', rg[j+1])
     my_logger.info('Final Support Volume: %3.3f', supportV[j+1])
     my_logger.info('END')
@@ -2259,23 +2286,14 @@ def runEman2Aver(flist, procs, prefix, grid):
     else:
         return
 
-    #Then we clip
-    clip_py = os.path.join(emanDir, 'e2proc3d.py')
-
-    if os.path.exists(clip_py):
-        clip_cmd = '%s %s_stack.hdf %s_stack_resized.hdf --clip %i' %(clip_py, prefix, prefix, grid)
-
-        process=subprocess.Popen(clip_cmd, shell= True, stdout = subprocess.PIPE)
-        clip_output, error = process.communicate()
-    else:
-        return
-
     #Then we average
     average_py = os.path.join(emanDir, 'e2spt_classaverage.py')
 
     if os.path.exists(average_py):
-        average_cmd = '%s --input %s_stack_resized.hdf --path %s_aver --parallel thread:%i --saveali' %(average_py, prefix, prefix, procs)
+        average_cmd = '%s --input %s_stack.hdf --path %s_aver --parallel thread:%i --saveali' %(average_py, prefix, prefix, procs)
         if len(flist) < 4:
             average_cmd = average_cmd + ' --goldstandardoff'
         process=subprocess.Popen(average_cmd, shell= True, stdout = subprocess.PIPE)
-        return process, stacks_output, clip_output
+        return process, stacks_output
+    else:
+        return

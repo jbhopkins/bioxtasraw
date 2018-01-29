@@ -346,7 +346,7 @@ class RawGuiSettings:
                             'denssLimitDmax'        : [False, wx.NewId(), 'bool'],
                             'denssDmaxStartStep'    : [500, wx.NewId(), 'int'],
                             'denssRecenter'         : [True, wx.NewId(), 'bool'],
-                            'denssRecenterMaxStep'  : [1000, wx.NewId(), 'int'],
+                            'denssRecenterStep'     : ['[501, 601, 701, 801, 901]', wx.NewId(), 'text'],
                             'denssPositivity'       : [True, wx.NewId(), 'bool'],
                             'denssExtrapolate'      : [True, wx.NewId(), 'bool'],
                             'denssShrinkwrap'       : [True, wx.NewId(), 'bool'],
@@ -364,6 +364,9 @@ class RawGuiSettings:
                             'denssReconstruct'      : [20, wx.NewId(), 'int'],
                             'EMAN2Dir'              : ['', wx.NewId(), 'str'],
                             'autoFindEMAN2'         : [True, wx.NewId(), 'bool'],
+                            'denssCutOut'           : [True, wx.NewId(), 'bool'],
+                            'denssWriteXplor'       : [True, wx.NewId(), 'bool'],
+
                             }
 
     def get(self, key):

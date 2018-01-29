@@ -315,7 +315,6 @@ class MainFrame(wx.Frame):
         if find_eman2:
             eman_dir = RAWOptions.findEMANDirectory()
             self.raw_settings.set('EMAN2Dir', eman_dir)
-            print eman_dir
 
         start_online_mode = self.raw_settings.get('OnlineModeOnStartup')
         online_path = self.raw_settings.get('OnlineStartupDir')
