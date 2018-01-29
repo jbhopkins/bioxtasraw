@@ -3723,7 +3723,6 @@ def findATSASDirectory():
     if is_atsas:
         return default_path
 
-
     if opsys != 'Windows':
         which = subprocess.Popen('which dammif', stdout=subprocess.PIPE,shell=True)
         output = which.communicate()
@@ -3732,7 +3731,6 @@ def findATSASDirectory():
 
         if atsas_path != '':
             return os.path.dirname(atsas_path)
-
 
     try:
         path = os.environ['PATH']
@@ -3764,6 +3762,45 @@ def findATSASDirectory():
             else:
                 if os.path.exists(os.path.join(atsas_path, 'bin')):
                     return os.path.join(atsas_path, 'bin')
+
+    return ''
+
+def findEMANDirectory():
+    opsys= platform.system()
+
+    if opsys== 'Windows':
+        default_path = 'C:\\EMAN2\\bin'
+    else:
+        default_path = '~/EMAN2/bin'
+
+    is_atsas = os.path.exists(default_path)
+
+    if is_atsas:
+        return default_path
+
+    if opsys != 'Windows':
+        which = subprocess.Popen('which e2version.py', stdout=subprocess.PIPE,shell=True)
+        output = which.communicate()
+
+        atsas_path = output[0].strip()
+
+        if atsas_path != '':
+            return os.path.dirname(atsas_path)
+
+    try:
+        path = os.environ['PATH']
+    except Exception:
+        path = None
+
+    if path is not None:
+        if opsys == 'Windows':
+            split_path = path.split(';')
+        else:
+            split_path = path.split(':')
+
+        for item in split_path:
+            if item.lower().find('eman2') > -1 and item.lower().find('bin') > -1:
+                return item
 
     return ''
 
@@ -4227,19 +4264,20 @@ class OptionsDialog(wx.Dialog):
         self.treebook.updateAllNonGuiChanges()
 
         mw_window = wx.FindWindowByName('MolWeightFrame')
-
         if mw_window:
             mw_window.updateMWInfo()
 
         gnom_window = wx.FindWindowByName('GNOMFrame')
-
         if gnom_window:
             gnom_window.updateGNOMSettings()
 
         dammif_window = wx.FindWindowByName('DammifFrame')
-
         if dammif_window:
             dammif_window.updateDAMMIFSettings()
+
+        denss_window = wx.FindWindowByName('DenssFrame')
+        if denss_window:
+            denss_window.updateDenssSettings()
 
 
 #--- ** FOR TESTING **

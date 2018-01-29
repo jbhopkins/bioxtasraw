@@ -27,25 +27,31 @@ functions, including calculation of rg and molecular weight.
 
 It also contains functions for calling outside packages for use in RAW, like DAMMIF.
 
+
 """
 import numpy as np
 from scipy import integrate as integrate
-import scipy.optimize
-import scipy.interpolate as interp
-from scipy.constants import Avogadro
-
 import os
 import time
 import subprocess
+import scipy.optimize
+import wx
 import threading
 import Queue
 import platform
 import re
-import math
+import logging
+import scipy.interpolate
+from scipy.constants import Avogadro
+from scipy import ndimage
 
-import wx
+import matplotlib
+from  matplotlib.colors import colorConverter as cc
 
-import SASFileIO, SASExceptions, RAWSettings
+import SASFileIO
+import SASExceptions
+import RAWSettings
+import RAWCustomCtrl
 
 #Define the rg fit function
 def linear_func(x, a, b):
@@ -114,8 +120,8 @@ def calcVpMW(q, i, err, rg, i0, rg_qmin):
     AA=[-9902.46965, -7597.7562, -6869.49936, -5966.34377, -4641.90536, -3786.71549]
     BB=[0.57582, 0.61325, 0.64999, 0.68377, 0.76957, 0.85489]
 
-    fA=interp.interp1d(qc,AA)
-    fB=interp.interp1d(qc,BB)
+    fA=scipy.interpolate.interp1d(qc,AA)
+    fB=scipy.interpolate.interp1d(qc,BB)
 
     if q[-1]>0.45:
         A=AA[-1]
@@ -1408,8 +1414,6 @@ def runDammin(fname, prefix, args):
             dammif_t = threading.Thread(target=enqueue_output, args=(proc.stdout, dammif_q))
             dammif_t.daemon = True
             dammif_t.start()
-            previous_line = ''
-
 
 
             while proc.poll() == None and not dammifStarted:
@@ -1426,10 +1430,7 @@ def runDammin(fname, prefix, args):
                 except Queue.Empty:
                     pass
 
-                if data != None:
-                    current_line = data
-                    # print 'Previous line: %s' %(previous_line)
-
+                if data is not None:
                     if data.find('[E]xpert') > -1:
                         if args['mode'] == 'Refine':
                             proc.stdin.write('S\r\n') #Dammif run mode
@@ -1579,8 +1580,6 @@ def runDammin(fname, prefix, args):
 
                     elif data.find('annealing procedure started') > -1:
                         dammifStarted = True
-
-                    previous_line = current_line
 
             proc.stdout.close()
             proc.stdin.close()
@@ -1808,3 +1807,475 @@ def run_cormap(sasm_list, correction='None'):
                 )
 
     return item_data, pvals, corrected_pvals, failed_comparisons
+
+def chi2(exp, calc, sig):
+    """Return the chi2 discrepancy between experimental and calculated data"""
+    return np.sum(np.square(exp - calc) / np.square(sig))
+
+def center_rho(rho, centering="com"):
+    """Move electron density map so its center of mass aligns with the center of the grid
+    centering - which part of the density to center on. By default, center on the
+    center of mass ("com"). Can also center on maximum density value ("max").
+
+    This function is modified from that in the DENSS source code, released here:
+    https://github.com/tdgrant1/denss
+    That code was released under GPL V3. The original author is Thomas Grant.
+    """
+    if centering == "max":
+        rhocom = np.unravel_index(rho.argmax(), rho.shape)
+    else:
+        rhocom = np.array(ndimage.measurements.center_of_mass(rho))
+
+    gridcenter = np.array(rho.shape)/2.
+    shift = gridcenter-rhocom
+    rho = ndimage.interpolation.shift(rho,shift,order=3,mode='wrap')
+
+    return rho
+
+def rho2rg(rho, r, support, dx):
+    """Calculate radius of gyration from an electron density map.
+
+    This function is modified from that in the DENSS source code, released here:
+    https://github.com/tdgrant1/denss
+    That code was released under GPL V3. The original author is Thomas Grant."""
+
+    rhocom = (np.array(ndimage.measurements.center_of_mass(rho))-np.array(rho.shape)/2.)*dx
+
+    rg2 = np.sum(r[support]**2*rho[support])/np.sum(rho[support])
+    rg2 = rg2 - np.linalg.norm(rhocom)**2
+
+    rg = np.sign(rg2)*np.abs(rg2)**0.5
+
+    return rg
+
+def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue):
+    """Calculates electron density from scattering data.
+
+    This function is modified from that in the DENSS source code, released here:
+    https://github.com/tdgrant1/denss
+    That code was released under GPL V3. The original author is Thomas Grant."""
+
+    #Get settings
+    ne = int(denss_settings['electrons'])
+    voxel = float(denss_settings['voxel'])
+    oversampling = float(denss_settings['oversample'])
+    limit_dmax = denss_settings['limitDmax']
+    dmax_start_step = int(denss_settings['dmaxStep'])
+    recenter = denss_settings['recenter']
+    recenter_maxstep = int(denss_settings['recenterStep'])
+    positivity = denss_settings['positivity']
+    extrapolate = denss_settings['extrapolate']
+    steps = int(denss_settings['steps'])
+    shrinkwrap = denss_settings['shrinkwrap']
+    shrinkwrap_sigma_start = float(denss_settings['swSigmaStart'])
+    shrinkwrap_sigma_end = float(denss_settings['swSigmaEnd'])
+    shrinkwrap_sigma_decay = float(denss_settings['swSigmaDecay'])
+    shrinkwrap_threshold_fraction = float(denss_settings['swThresFrac'])
+    shrinkwrap_iter = int(denss_settings['swIter'])
+    shrinkwrap_minstep = int(denss_settings['swMinStep'])
+    chi_end_fraction = float(denss_settings['chiEndFrac'])
+    enforce_connectivity = denss_settings['connected']
+    enforce_connectivity_steps = [int(step.strip()) for step in denss_settings['conSteps'].split(',')]
+    plot = denss_settings['plotOutput']
+    write = True
+    write_freq = 100
+    seed = None
+    file_prefix = os.path.join(path, prefix)
+
+    #Set up a logger
+    my_logger = logging.getLogger(prefix)
+    my_logger.setLevel(logging.DEBUG)
+    my_logger.propagate = False
+    my_logger.handlers = []
+
+    my_fh = logging.FileHandler(file_prefix+'.log', mode = 'w')
+    my_fh.setLevel(logging.INFO)
+    my_fh_formatter = logging.Formatter('%(asctime)s %(message)s', '%Y-%m-%d %I:%M:%S %p')
+    my_fh.setFormatter(my_fh_formatter)
+
+    my_sh = RAWCustomCtrl.CustomConsoleHandler(denns_queue)
+    my_sh.setLevel(logging.DEBUG)
+
+    my_logger.addHandler(my_fh)
+    my_logger.addHandler(my_sh)
+
+    if abort_event.is_set():
+        my_logger.info('Aborted!')
+        my_fh.close()
+        return []
+
+    #Initialize variables
+    side = oversampling*D
+    halfside = side/2
+    n = int(side/voxel)
+    #want odd n so that there exists an F[0,0,0] in the center that equals the number of electrons for easy scaling
+    if n%2==0:
+        n += 1
+    dx = side/n
+    dV = dx**3
+    V = side**3
+    x_ = np.linspace(-halfside, halfside, n)
+    x,y,z = np.meshgrid(x_, x_, x_, indexing='ij')
+    r = np.sqrt(x**2 + y**2 + z**2)
+    df = 1/side
+
+    qx_ = np.fft.fftfreq(x_.size)*n*df*2*np.pi
+    qx, qy, qz = np.meshgrid(qx_, qx_, qx_, indexing='ij')
+    qr = np.sqrt(qx**2+qy**2+qz**2)
+    qmax = np.max(qr)
+    qstep = np.min(qr[qr>0])
+    nbins = int(qmax/qstep)
+    qbins = np.linspace(0,nbins*qstep,nbins+1)
+    #create modified qbins and put qbins in center of bin rather than at left edge of bin.
+    qbinsc = np.copy(qbins)
+    #only move the non-zero terms, since the zeroth term should be at q=0.
+    qbinsc[1:] += qstep/2.
+
+    #create an array labeling each voxel according to which qbin it belongs
+    qbin_labels = np.digitize(qr, qbins)
+    qbin_labels -= 1
+
+    #allow for any range of q data
+    qdata = qbinsc[np.where( (qbinsc>=q.min()) & (qbinsc<=q.max()) )]
+    Idata = np.interp(qdata,q,I)
+    if extrapolate:
+        qextend = qbinsc[np.where(qbinsc>=qdata.max())]
+        Iextend = qextend**-4
+        Iextend = Iextend/Iextend[0] * Idata[-1]
+        qdata = np.concatenate((qdata,qextend[1:]))
+        Idata = np.concatenate((Idata,Iextend[1:]))
+
+    #create list of qbin indices just in region of data for later F scaling
+    qbin_args = np.in1d(qbinsc, qdata, assume_unique=True)
+    sigqdata = np.interp(qdata, q, sigq)
+    Imean = np.zeros((steps+1, len(qbins)))
+    chi = np.zeros((steps+1))
+    rg = np.zeros((steps+1))
+    supportV = np.zeros((steps+1))
+    support = np.ones(x.shape, dtype=bool)
+
+    if seed is None:
+        #Have to reset the random seed to get a random in different from other processes
+        prng = np.random.RandomState()
+        seed = prng.randint(2**32-1)
+    else:
+        seed = int(seed)
+
+    prng = np.random.RandomState(seed)
+    rho = prng.random_sample(size=x.shape)
+
+    sigma = shrinkwrap_sigma_start
+
+    #Do some initial logging
+    my_logger.info('BEGIN')
+    my_logger.info('Output prefix: %s', prefix)
+    my_logger.info('Maximum number of steps: %i', steps)
+    my_logger.info('q range of input data: %3.3f < q < %3.3f', q.min(), q.max())
+    my_logger.info('Maximum dimension: %3.3f', D)
+    my_logger.info('Sampling ratio: %3.3f', oversampling)
+    my_logger.info('Requested real space voxel size: %3.3f', voxel)
+    my_logger.info('Number of electrons: %3.3f', ne)
+    my_logger.info('Limit Dmax: %s', limit_dmax)
+    my_logger.info('Recenter: %s', recenter)
+    my_logger.info('Positivity: %s', positivity)
+    my_logger.info('Extrapolate high q: %s', extrapolate)
+    my_logger.info('Shrinkwrap: %s', shrinkwrap)
+    my_logger.info('Shrinkwrap sigma start: %s', shrinkwrap_sigma_start)
+    my_logger.info('Shrinkwrap sigma end: %s', shrinkwrap_sigma_end)
+    my_logger.info('Shrinkwrap sigma decay: %s', shrinkwrap_sigma_decay)
+    my_logger.info('Shrinkwrap threshold fraction: %s', shrinkwrap_threshold_fraction)
+    my_logger.info('Shrinkwrap iterations: %s', shrinkwrap_iter)
+    my_logger.info('Shrinkwrap starting step: %s', shrinkwrap_minstep)
+    my_logger.info('Enforce connectivity: %s', enforce_connectivity)
+    my_logger.info('Enforce connectivity steps: %s', enforce_connectivity_steps)
+    my_logger.info('Chi2 end fraction: %3.3e', chi_end_fraction)
+    my_logger.info('Grid size (voxels): %i x %i x %i', n, n, n)
+    my_logger.info('Real space box width (angstroms): %3.3f', side)
+    my_logger.info('Real space box range (angstroms): %3.3f < x < %3.3f', x_.min(), x_.max())
+    my_logger.info('Real space box volume (angstroms^3): %3.3f', V)
+    my_logger.info('Real space voxel size (angstroms): %3.3f', dx)
+    my_logger.info('Real space voxel volume (angstroms^3): %3.3f', dV)
+    my_logger.info('Reciprocal space box width (angstroms^(-1)): %3.3f', qx_.max()-qx_.min())
+    my_logger.info('Reciprocal space box range (angstroms^(-1)): %3.3f < qx < %3.3f', qx_.min(), qx_.max())
+    my_logger.info('Maximum q vector (diagonal) (angstroms^(-1)): %3.3f', qr.max())
+    my_logger.info('Number of q shells: %i', nbins)
+    my_logger.info('Width of q shells (angstroms^(-1)): %3.3f', qstep)
+    my_logger.info('Random seed: %i', seed)
+    my_logger.info('STARTING DENSITY REFINEMENT')
+
+    my_logger.debug("Step  Chi2      Rg      Support Volume")
+    my_logger.debug("----- --------- ------- --------------")
+    for j in range(steps):
+        if abort_event.is_set():
+            my_logger.info('Aborted!')
+            my_fh.close()
+            return []
+
+        F = np.fft.fftn(rho)
+        #APPLY RECIPROCAL SPACE RESTRAINTS
+        #calculate spherical average of intensities from 3D Fs
+        I3D = np.abs(F)**2
+        Imean[j] = ndimage.mean(I3D, labels=qbin_labels, index=np.arange(0,qbin_labels.max()+1))
+
+        if j==0 and write:
+            np.savetxt(file_prefix+'_step0_saxs.dat', np.vstack((qbinsc,Imean[j],Imean[j]*.05)).T, delimiter=" ", fmt="%.5e")
+            SASFileIO.saveDensityXplor(file_prefix+"_original.xplor", rho, side)
+
+        #scale Fs to match data
+        factors = np.ones((len(qbins)))
+        factors[qbin_args] = np.sqrt(Idata/Imean[j,qbin_args])
+        F *= factors[qbin_labels]
+        chi[j] = np.sum(((Imean[j,qbin_args]-Idata)/sigqdata)**2)/qbin_args.size
+
+        #APPLY REAL SPACE RESTRAINTS
+        rhoprime = np.fft.ifftn(F, rho.shape)
+        rhoprime = rhoprime.real
+        if write and j%write_freq == 0:
+            SASFileIO.saveDensityXplor(file_prefix+"_current.xplor", rhoprime, side)
+        rg[j] = rho2rg(rhoprime, r, support, dx)
+        newrho = np.zeros_like(rho)
+
+        #Error Reduction
+        newrho[support] = rhoprime[support]
+        newrho[~support] = 0.0
+
+        #enforce positivity by making all negative density points zero.
+        if positivity:
+            netmp = np.sum(newrho)
+            newrho[newrho<0] = 0.0
+            if np.sum(newrho) != 0:
+                newrho *= netmp / np.sum(newrho)
+
+        #update support using shrinkwrap method
+        if j%shrinkwrap_iter==0:
+            if recenter:
+                if recenter_maxstep is None:
+                    newrho = center_rho(newrho)
+                elif j <= recenter_maxstep:
+                    newrho = center_rho(newrho, centering="max")
+
+        if shrinkwrap and j >= shrinkwrap_minstep and j%shrinkwrap_iter==0:
+            rho_blurred = ndimage.filters.gaussian_filter(newrho, sigma=sigma, mode='wrap')
+            support = np.zeros(rho.shape, dtype=bool)
+            support[rho_blurred >= shrinkwrap_threshold_fraction*rho_blurred.max()] = True
+
+            if sigma > shrinkwrap_sigma_end:
+                sigma = shrinkwrap_sigma_decay*sigma
+
+            if enforce_connectivity and j in enforce_connectivity_steps:
+                #label the support into separate segments based on a 3x3x3 grid
+                struct = ndimage.generate_binary_structure(3, 3)
+                labeled_support, num_features = ndimage.label(support, structure=struct)
+                sums = np.zeros((num_features))
+
+                #find the feature with the greatest number of electrons
+                for feature in range(num_features):
+                    sums[feature-1] = np.sum(newrho[labeled_support==feature])
+
+                big_feature = np.argmax(sums)+1
+                #remove features from the support that are not the primary feature
+                support[labeled_support != big_feature] = False
+
+        if limit_dmax and j > dmax_start_step:
+            support[r>0.6*D] = False
+
+            if np.sum(support) <= 0:
+                support = np.ones(rho.shape, dtype=bool)
+
+        supportV[j] = np.sum(support)*dV
+
+        my_logger.debug("% 5i % 4.2e % 3.2f       % 5i          " %(j, chi[j], rg[j], supportV[j]))
+
+        if j > 101 + shrinkwrap_minstep and np.std(chi[j-100:j]) < chi_end_fraction * np.median(chi[j-100:j]):
+            rho = newrho
+            F = np.fft.fftn(rho)
+            break
+        else:
+            rho = newrho
+            F = np.fft.fftn(rho)
+
+    #calculate spherical average intensity from 3D Fs
+    Imean[j+1] = ndimage.mean(np.abs(F)**2, labels=qbin_labels, index=np.arange(0, qbin_labels.max()+1))
+    chi[j+1] = np.sum(((Imean[j+1,qbin_args]-Idata)/sigqdata)**2)/qbin_args.size
+
+    #scale Fs to match data
+    factors = np.ones((len(qbins)))
+    factors[qbin_args] = np.sqrt(Idata/Imean[j+1,qbin_args])
+    F *= factors[qbin_labels]
+    rho = np.fft.ifftn(F, rho.shape)
+    rho = rho.real
+
+    #recenter rho
+    if write:
+        SASFileIO.saveDensityXplor(file_prefix+"_precentered.xplor", rho, side)
+
+    rho = center_rho(rho)
+    if ne is not None:
+        rho *= ne/np.sum(rho)
+
+    rg[j+1] = rho2rg(rho, r, support, dx)
+    supportV[j+1] = supportV[j]
+
+    if write:
+        SASFileIO.saveDensityXplor(file_prefix+".xplor", rho, side)
+        SASFileIO.saveDensityMrc(file_prefix+".mrc", rho, side)
+        SASFileIO.saveDensityXplor(file_prefix+"_support.xplor", np.ones_like(rho)*support, side)
+
+        #Write some more output files
+        fit = np.zeros(( len(qbinsc),5 ))
+        fit[:len(qdata),0] = qdata
+        fit[:len(Idata),1] = Idata
+        fit[:len(sigqdata),2] = sigqdata
+        fit[:len(qbinsc),3] = qbinsc
+        fit[:len(Imean[j+1]),4] = Imean[j+1]
+        np.savetxt(file_prefix+'_map.fit', fit, delimiter=' ', fmt='%.5e')
+
+        np.savetxt(file_prefix+'_stats_by_step.txt', np.vstack((chi, rg, supportV)).T, delimiter=" ", fmt="%.5e")
+
+    # #Final output logging and write the log to a file
+    my_logger.info('FINISHED DENSITY REFINEMENT')
+    my_logger.info('Number of steps: %i', j)
+    my_logger.info('Final Chi2: %3.3f', chi[j+1])
+    my_logger.info('Final Rg: %3.3f', rg[j+1])
+    my_logger.info('Final Support Volume: %3.3f', supportV[j+1])
+    my_logger.info('END')
+    my_fh.close()
+
+    if plot:
+        fig = matplotlib.figure.Figure()
+        ax = fig.add_subplot(111)
+
+        ax.errorbar(q, I, fmt='k-', yerr=sigq, capsize=0, elinewidth=0.1, ecolor=cc.to_rgba('0',alpha=0.5),label='Raw Data')
+        ax.plot(qdata, Idata, 'bo', alpha=0.5, label='Interpolated Data')
+        ax.plot(qbinsc, Imean[j+1],'r.', label='Scattering from Density')
+        handles,labels = ax.get_legend_handles_labels()
+        handles = [handles[2], handles[0], handles[1]]
+        labels = [labels[2], labels[0], labels[1]]
+        ax.legend(handles,labels)
+        ax.semilogy()
+        ax.set_ylabel('I(q)')
+        ax.set_xlabel(r'q ($\mathrm{\AA^{-1}}$)')
+        fig.tight_layout()
+        fig.savefig(file_prefix+'_fit', ext='png', dpi=150)
+        ax.cla()
+
+        ax.plot(chi[chi>0])
+        ax.set_xlabel('Step')
+        ax.set_ylabel('$\chi^2$')
+        ax.semilogy()
+        fig.tight_layout()
+        fig.savefig(file_prefix+'_chis', ext='png', dpi=150)
+        ax.cla()
+
+        ax.plot(rg[rg!=0])
+        ax.set_xlabel('Step')
+        ax.set_ylabel('Rg')
+        fig.tight_layout()
+        fig.savefig(file_prefix+'_rgs', ext='png', dpi=150)
+        ax.cla()
+
+        ax.plot(supportV[supportV>0])
+        ax.set_xlabel('Step')
+        ax.set_ylabel('Support Volume ($\mathrm{\AA^{3}}$)')
+        fig.tight_layout()
+        fig.savefig(file_prefix+'_supportV', ext='png', dpi=150)
+        ax.cla()
+
+    return qdata, Idata, sigqdata, qbinsc, Imean[j+1], chi, rg, supportV
+
+def runDenss(q, I, sigq, D, prefix, path, comm_list, my_lock, thread_num_q,
+    wx_queue, abort_event, denss_settings):
+    my_lock.acquire()
+    my_num = thread_num_q.get()
+    den_queue, stop_event = comm_list[int(my_num)-1]
+    my_lock.release()
+
+    #Check to see if things have been aborted
+    if abort_event.is_set():
+        stop_event.set()
+        my_lock.acquire()
+        wx_queue.put_nowait(['window %s'%(str(my_num)), 'Aborted!\n'])
+        wx_queue.put_nowait(['finished', int(my_num)-1])
+        my_lock.release()
+        return
+
+    den_prefix = prefix+'_%s' %(my_num.zfill(2))
+
+    #Remove old files, so they don't mess up the program
+    log_name = den_prefix+'.log'
+    xplor_names = [den_prefix+'_current.xplor', den_prefix+'.xplor',
+        den_prefix+'_original.xplor', den_prefix+'_precentered.xplor',
+        den_prefix+'_support.xplor']
+    fit_name = den_prefix+'_map.fit'
+    stats_name = den_prefix+'_stats_by_step.txt'
+    saxs_name = den_prefix+'_step0_saxs.dat'
+    image_names = [den_prefix+'_chis.png', den_prefix+'_fit.png',
+        den_prefix+'_rgs.png', den_prefix+'_supportV.png']
+    mrc_name = den_prefix+'.mrc'
+
+    names = [log_name, fit_name, stats_name, saxs_name, mrc_name] + xplor_names + image_names
+
+    old_files = [os.path.join(path, name) for name in names]
+
+    for item in old_files:
+        if os.path.exists(item):
+            os.remove(item)
+
+    #Run DENSS
+    my_lock.acquire()
+    wx_queue.put_nowait(['status', 'Starting DENSS run %s\n' %(my_num)])
+    my_lock.release()
+
+    data = denss(q, I, sigq, D, den_prefix, path, denss_settings,
+        abort_event, den_queue)
+
+    stop_event.set()
+
+    if not abort_event.is_set():
+        qdata, Idata, sigqdata, qbinsc, Imean, chi, rg, supportV = data
+        my_lock.acquire()
+        wx_queue.put_nowait(['status', 'Finished run %s\n' %(my_num)])
+        my_lock.release()
+
+    my_lock.acquire()
+    wx_queue.put_nowait(['finished', int(my_num)-1])
+    my_lock.release()
+
+def runEman2Aver(flist, procs, prefix, grid):
+    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+    emanDir = raw_settings.get('EMAN2Dir')
+
+    #First we stack
+    stacks_py = os.path.join(emanDir, 'e2buildstacks.py')
+
+    if os.path.exists(stacks_py):
+        stacks_cmd = '%s --stackname %s_stack.hdf' %(stacks_py, prefix)
+
+        for item in flist:
+            stacks_cmd = stacks_cmd + ' %s' %(item)
+
+        process=subprocess.Popen(stacks_cmd, shell= True, stdout = subprocess.PIPE)
+        stacks_output, error = process.communicate()
+    else:
+        return
+
+    #Then we clip
+    clip_py = os.path.join(emanDir, 'e2proc3d.py')
+
+    if os.path.exists(clip_py):
+        clip_cmd = '%s %s_stack.hdf %s_stack_resized.hdf --clip %i' %(clip_py, prefix, prefix, grid)
+
+        process=subprocess.Popen(clip_cmd, shell= True, stdout = subprocess.PIPE)
+        clip_output, error = process.communicate()
+    else:
+        return
+
+    #Then we average
+    average_py = os.path.join(emanDir, 'e2spt_classaverage.py')
+
+    if os.path.exists(average_py):
+        average_cmd = '%s --input %s_stack_resized.hdf --path %s_aver --parallel thread:%i --saveali' %(average_py, prefix, prefix, procs)
+        if len(flist) < 4:
+            average_cmd = average_cmd + ' --goldstandardoff'
+        process=subprocess.Popen(average_cmd, shell= True, stdout = subprocess.PIPE)
+        return process, stacks_output, clip_output

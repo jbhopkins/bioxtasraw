@@ -337,6 +337,33 @@ class RawGuiSettings:
 
                             #Fitting settings
                             'errorWeight'           : [True, wx.NewId(), 'bool'],
+
+                            #Denss settings
+                            'denssVoxel'            : [5, wx.NewId(), 'float'],
+                            'denssOversampling'     : [3, wx.NewId(), 'float'],
+                            'denssNElectrons'       : [10000, wx.NewId(), 'int'],
+                            'denssSteps'            : [3000, wx.NewId(), 'int'],
+                            'denssLimitDmax'        : [False, wx.NewId(), 'bool'],
+                            'denssDmaxStartStep'    : [500, wx.NewId(), 'int'],
+                            'denssRecenter'         : [True, wx.NewId(), 'bool'],
+                            'denssRecenterMaxStep'  : [1000, wx.NewId(), 'int'],
+                            'denssPositivity'       : [True, wx.NewId(), 'bool'],
+                            'denssExtrapolate'      : [True, wx.NewId(), 'bool'],
+                            'denssShrinkwrap'       : [True, wx.NewId(), 'bool'],
+                            'denssShrinkwrapSigmaStart' : [3, wx.NewId(), 'float'],
+                            'denssShrinkwrapSigmaEnd'   : [1.5, wx.NewId(), 'float'],
+                            'denssShrinkwrapSigmaDecay' : [0.99, wx.NewId(), 'float'],
+                            'denssShrinkwrapThresFrac'  : [0.20, wx.NewId(), 'float'],
+                            'denssShrinkwrapIter'   : [20, wx.NewId(), 'int'],
+                            'denssShrinkwrapMinStep'    : [0, wx.NewId(), 'int'],
+                            'denssConnected'        : [True, wx.NewId(), 'bool'],
+                            'denssConnectivitySteps'    : ['500', wx.NewId(), 'text'],
+                            'denssChiEndFrac'       : [0.001, wx.NewId(), 'float'],
+                            'denssPlotOutput'       : [True, wx.NewId(), 'bool'],
+                            'denssEman2Average'     : [True, wx.NewId(), 'bool'],
+                            'denssReconstruct'      : [20, wx.NewId(), 'int'],
+                            'EMAN2Dir'              : ['', wx.NewId(), 'str'],
+                            'autoFindEMAN2'         : [True, wx.NewId(), 'bool'],
                             }
 
     def get(self, key):

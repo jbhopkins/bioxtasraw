@@ -154,6 +154,7 @@ class MainFrame(wx.Frame):
                         'normalizedKratky'      : self.NewControlId(),
                         'superimpose'           : self.NewControlId(),
                         'sync'                  : self.NewControlId(),
+                        'rundenss'                 : self.NewControlId(),
                         }
 
         self.tbIcon = RawTaskbarIcon(self)
@@ -168,6 +169,8 @@ class MainFrame(wx.Frame):
         self.efaframe = None
         self.similarityframe = None
         self.kratkyframe = None
+        self.denssframe = None
+
         self.raw_settings = RAWSettings.RawGuiSettings()
 
         self.OnlineControl = OnlineController(self, self.raw_settings)
@@ -302,16 +305,19 @@ class MainFrame(wx.Frame):
         dirctrl = wx.FindWindowByName('DirCtrlPanel')
         dirctrl._useSavedPathIfExisits()
 
-
         find_atsas = self.raw_settings.get('autoFindATSAS')
+        find_eman2 = self.raw_settings.get('autoFindEMAN2')
 
         if find_atsas:
             atsas_dir = RAWOptions.findATSASDirectory()
-
             self.raw_settings.set('ATSASDir', atsas_dir)
 
-        start_online_mode = self.raw_settings.get('OnlineModeOnStartup')
+        if find_eman2:
+            eman_dir = RAWOptions.findEMANDirectory()
+            self.raw_settings.set('EMAN2Dir', eman_dir)
+            print eman_dir
 
+        start_online_mode = self.raw_settings.get('OnlineModeOnStartup')
         online_path = self.raw_settings.get('OnlineStartupDir')
 
         if start_online_mode and os.path.isdir(online_path):
@@ -764,6 +770,21 @@ class MainFrame(wx.Frame):
         self.kratkyframe.SetIcon(self.GetIcon())
         self.kratkyframe.Show(True)
 
+    def showDenssFrame(self, iftm, manip_item):
+
+        if iftm.getParameter('algorithm') != 'GNOM':
+            msg = 'Denss can only process IFTs produced by GNOM. This was produced using %s.' %(iftm.getParameter('algorithm'))
+            dial2 = wx.MessageDialog(self, msg, "Wrong IFT type",
+                                    wx.OK | wx.ICON_ERROR)
+            dial2.ShowModal()
+            dial2.Destroy()
+
+            return
+
+        self.denssframe = RAWAnalysis.DenssFrame(self, 'DENSS', iftm, manip_item)
+        self.denssframe.SetIcon(self.GetIcon())
+        self.denssframe.Show(True)
+
     def _createSingleMenuBarItem(self, info):
 
         menu = wx.Menu()
@@ -884,6 +905,7 @@ class MainFrame(wx.Frame):
                                ('&Molecular weight', self.MenuIDs['molweight'], self._onToolsMenu, 'normal'),
                                ('&BIFT', self.MenuIDs['bift'], self._onToolsMenu, 'normal'),
                                ('&ATSAS', None, submenus['atsas'], 'submenu'),
+                               ('&DENSS', self.MenuIDs['rundenss'], self._onToolsMenu, 'normal'),
                                ('&SVD', self.MenuIDs['runsvd'], self._onToolsMenu, 'normal'),
                                ('&EFA', self.MenuIDs['runefa'], self._onToolsMenu, 'normal'),
                                ('&Similarity Test', self.MenuIDs['similarityTest'], self._onToolsMenu, 'normal'),
@@ -1379,6 +1401,22 @@ class MainFrame(wx.Frame):
 
             self.showNormKratkyFrame(selected_sasms)
 
+        elif id == self.MenuIDs['rundenss']:
+            manippage = wx.FindWindowByName('IFTPanel')
+
+            current_page = self.control_notebook.GetSelection()
+            page = self.control_notebook.GetPage(current_page)
+            # print page_label
+            if page !=manippage:
+                wx.MessageBox('The selected operation cannot be performed unless the IFT window is selected.', 'Select IFT Window', style = wx.ICON_INFORMATION)
+                return
+
+            if len(manippage.getSelectedItems()) > 0:
+                iftm = manippage.getSelectedItems()[0].getIFTM()
+                self.showDenssFrame(iftm, manippage.getSelectedItems()[0])
+            else:
+                wx.MessageBox("Please select an IFT from the list on the IFT page.", "No IFT selected")
+
     def _onViewMenu(self, evt):
 
         val = evt.GetId()
@@ -1803,6 +1841,15 @@ class MainFrame(wx.Frame):
                 return
 
             if exit_without_saving == wx.ID_YES and dammif_closed:
+                denss_window = wx.FindWindowByName('DenssFrame')
+                denss_closed = True
+                if denss_window != None:
+                    denss_closed = denss_window.Close()
+            else:
+                event.Veto()
+                return
+
+            if exit_without_saving == wx.ID_YES and dammif_closed and denss_closed:
                 force_quit = wx.ID_YES
                 if RAWGlobals.save_in_progress:
                     dial = wx.MessageDialog(self, 'RAW is currently saving one or more files. Do you want to force quit (may corrupt files being saved)?', 'Force quit?',
@@ -1813,7 +1860,7 @@ class MainFrame(wx.Frame):
                 event.Veto()
                 return
 
-            if exit_without_saving == wx.ID_YES and dammif_closed and force_quit == wx.ID_YES:
+            if exit_without_saving == wx.ID_YES and dammif_closed and denss_closed and force_quit == wx.ID_YES:
                 self.saveBackupData()
                 self.tbIcon.RemoveIcon()
                 self.tbIcon.Destroy()
@@ -1830,7 +1877,7 @@ class MainFrame(wx.Frame):
 
     def _createFileDialog(self, mode, name = 'Config files', ext = '*.cfg'):
 
-        file = None
+        f = None
 
         path = wx.FindWindowByName('FileListCtrl').path
 
@@ -1843,12 +1890,12 @@ class MainFrame(wx.Frame):
 
         # Show the dialog and get user input
         if dialog.ShowModal() == wx.ID_OK:
-            file = dialog.GetPath()
+            f = dialog.GetPath()
 
         # Destroy the dialog
         dialog.Destroy()
 
-        return file
+        return f
 
     def controlTimer(self, state):
         if state:
@@ -8454,6 +8501,7 @@ class IFTItemPanel(wx.Panel):
                     menu.Append(23, 'Run DAMMIF/N')
                 if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter')):
                     menu.Append(24, 'Run AMBIMETER')
+        menu.Append(28, 'Run DENSS')
         menu.Append(25, 'SVD')
         menu.Append(26, 'EFA')
         menu.Append(27, 'Similarity Test')
@@ -8528,6 +8576,10 @@ class IFTItemPanel(wx.Panel):
                 selected_sasms = []
 
             self.main_frame.showSimilarityFrame(selected_sasms)
+
+        elif evt.GetId() == 28:
+            #DENSS
+            self.main_frame.showDenssFrame(self.iftm, self)
 
     def _toMainPlot(self):
         selected_items = self.manipulation_panel.getSelectedItems()

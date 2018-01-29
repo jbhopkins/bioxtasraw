@@ -35,6 +35,7 @@ import re
 import platform
 import subprocess
 import collections
+import shutil
 matplotlib.rcParams['backend'] = 'WxAgg'
 matplotlib.rc('image', origin = 'lower')        # turn image upside down.. x,y, starting from lower left
 
@@ -3606,21 +3607,15 @@ class DammifRunPanel(wx.Panel):
                 dlg.Destroy()
 
                 if proceed == wx.ID_YES:
-                    f = open(outname, 'w')
-
-                    for line in self.ift:
-                        f.write(line)
-
-                    f.close()
+                    with open(outname, 'w') as f:
+                        for line in self.ift:
+                            f.write(line)
                 else:
                     return
         else:
-            f = open(outname, 'w')
-
-            for line in self.ift:
-                f.write(line)
-
-            f.close()
+            with open(outname, 'w') as f:
+                for line in self.ift:
+                    f.write(line)
 
         dammif_names = {key: value for (key, value) in [(str(i), prefix+'_%s' %(str(i).zfill(2))) for i in range(1, nruns+1)]}
         if refine:
@@ -3891,23 +3886,19 @@ class DammifRunPanel(wx.Panel):
                     wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
                     return
 
-                logfile = open(logname, 'rb')
-                logfile.seek(pos)
-
-                newtext = logfile.read()
+                with open(logname, 'rb') as logfile:
+                    logfile.seek(pos)
+                    newtext = logfile.read()
+                    pos = logfile.tell()
 
                 if newtext != '':
                     wx.CallAfter(damWindow.AppendText, newtext)
 
-                pos = logfile.tell()
-                logfile.close()
-
                 time.sleep(.1)
 
-            logfile = open(os.path.join(path,dam_prefix)+'.log', 'rb')
-            logfile.seek(pos)
-            final_status = logfile.read()
-            logfile.close()
+            with open(logname, 'rb') as logfile:
+                logfile.seek(pos)
+                final_status = logfile.read()
 
             wx.CallAfter(damWindow.AppendText, final_status)
 
@@ -4331,7 +4322,7 @@ class DammifRunPanel(wx.Panel):
                     if not self.threads[i].is_alive():
                         done_list[i] = True
                 if not np.all(done_list):
-                    process_finished = True
+                    process_finished = False
 
         if not process_finished and event.CanVeto():
             msg = "Warning: DAMMIF/N, DAMAVER, or DAMCLUST is still running. Closing this window will abort the currently running processes. Do you want to continue closing the window?"
@@ -4975,7 +4966,1460 @@ class DammifViewerPanel(wx.Panel):
             model_choice.SetStringSelection('1')
 
 
+class DenssFrame(wx.Frame):
 
+    def __init__(self, parent, title, iftm, manip_item):
+
+        try:
+            wx.Frame.__init__(self, parent, -1, title, name = 'DenssFrame', size = (675,750))
+        except:
+            wx.Frame.__init__(self, None, -1, title, name = 'DenssFrame', size = (675,750))
+
+        self.manip_item = manip_item
+        self.iftm = iftm
+        self.filename = iftm.getParameter('filename')
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+        self.panel = wx.Panel(self)
+        self.notebook = wx.Notebook(self.panel, wx.ID_ANY)
+        self.RunPanel = DenssRunPanel(self.notebook, self.iftm, self.manip_item)
+        # self.ResultsPanel = DenssResultsPanel(self.notebook, self.iftm, self.manip_item)
+        # self.ViewerPanel = DenssViewerPanel(self.notebook)
+
+        self.notebook.AddPage(self.RunPanel, 'Run')
+        # self.notebook.AddPage(self.ResultsPanel, 'Results')
+        # self.notebook.AddPage(self.ViewerPanel, 'Viewer')
+
+        sizer = self._createLayout(self.panel)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(self.notebook, 1, wx.EXPAND)
+        top_sizer.Add(sizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+
+        self.panel.SetSizer(top_sizer)
+
+        self.panel.Layout()
+        self.Layout()
+        self.SendSizeEvent()
+        self.panel.Layout()
+        self.Layout()
+
+        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+            self.notebook.Fit()
+            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+                size = self.GetSize()
+                size[1] = size[1] + 20
+                self.SetSize(size)
+
+        self.CenterOnParent()
+
+        self.Raise()
+
+    def _createLayout(self, parent):
+        close_button = wx.Button(parent, -1, 'Close')
+        close_button.Bind(wx.EVT_BUTTON, self._onCloseButton)
+
+        info_button = wx.Button(parent, -1, 'How To Cite')
+        info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
+
+        button_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(info_button, 0, wx.RIGHT, 5)
+        button_sizer.Add(close_button, 0)
+
+        return button_sizer
+
+    def _onCloseButton(self, evt):
+        self.Close()
+
+    def _onInfoButton(self, evt):
+        msg = ('In addition to citing the RAW paper:\n If you use Denss '
+        'in your work please cite the paper given here:\n'
+        ''
+        'If you use EMAN2 (density alignment) in your work, please cite '
+        'both the main EMAN2 and the single particle tomography paper given '
+        'here:\n'
+        'http://blake.bcm.edu/emanwiki/EMAN2/'
+        )
+        wx.MessageBox(str(msg), "How to cite Denss and EMAN2", style = wx.ICON_INFORMATION | wx.OK)
+
+    def OnClose(self, event):
+        dammifrun = wx.FindWindowByName('DenssRunPanel')
+        dammifrun.Close(event)
+
+        if event.GetVeto():
+            return
+        else:
+            self.Destroy()
+
+
+class DenssRunPanel(wx.Panel):
+
+    def __init__(self, parent, iftm, manip_item):
+
+        try:
+            wx.Panel.__init__(self, parent, wx.ID_ANY, name = 'DenssRunPanel')
+        except:
+            wx.Panel.__init__(self, None, wx.ID_ANY, name = 'DenssRunPanel')
+
+        self.parent = parent
+
+        self.manip_item = manip_item
+
+        self.iftm = iftm
+
+        self.ift = iftm.getParameter('out')
+
+        self.filename = iftm.getParameter('filename')
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.infodata = {}
+
+        self.ids = {'runs'          : self.NewControlId(),
+                    'procs'         : self.NewControlId(),
+                    'status'        : self.NewControlId(),
+                    'average'       : self.NewControlId(),
+                    'save'          : self.NewControlId(),
+                    'prefix'        : self.NewControlId(),
+                    'logbook'       : self.NewControlId(),
+                    'start'         : self.NewControlId(),
+                    'abort'         : self.NewControlId(),
+                    'changedir'     : self.NewControlId(),
+                    'fname'         : self.NewControlId(),
+                    'voxel'         : self.NewControlId(),
+                    'steps'         : self.NewControlId(),
+                    }
+
+        self.threads_finished = []
+
+        topsizer = self._createLayout(self)
+        self._initSettings()
+
+        self.SetSizer(topsizer)
+
+    def _createLayout(self, parent):
+
+        file_ctrl = wx.TextCtrl(parent, self.ids['fname'], self.filename, size = (150, -1), style = wx.TE_READONLY)
+
+        file_box = wx.StaticBox(parent, -1, 'Filename')
+        file_sizer = wx.StaticBoxSizer(file_box, wx.HORIZONTAL)
+        file_sizer.Add(file_ctrl, 2, wx.LEFT | wx.RIGHT | wx.EXPAND, 5)
+        file_sizer.AddStretchSpacer(1)
+
+        savedir_text = wx.StaticText(parent, -1, 'Output directory :')
+        savedir_ctrl = wx.TextCtrl(parent, self.ids['save'], '', size = (350, -1))
+
+        try:
+            savedir_ctrl.AutoCompleteDirectories() #compatability for older versions of wxpython
+        except AttributeError:
+            pass
+
+        savedir_button = wx.Button(parent, self.ids['changedir'], 'Select/Change Directory')
+        savedir_button.Bind(wx.EVT_BUTTON, self.onChangeDirectoryButton)
+
+        savedir_sizer = wx.BoxSizer(wx.VERTICAL)
+        savedir_sizer.Add(savedir_text, 0, wx.LEFT | wx.RIGHT, 5)
+        savedir_sizer.Add(savedir_ctrl, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.EXPAND, 5)
+        savedir_sizer.Add(savedir_button, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, 5)
+
+
+        prefix_text = wx.StaticText(parent, -1, 'Output prefix :')
+        prefix_ctrl = wx.TextCtrl(parent, self.ids['prefix'], '', size = (150, -1))
+
+        prefix_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        prefix_sizer.Add(prefix_text, 0, wx.LEFT, 5)
+        prefix_sizer.Add(prefix_ctrl, 1, wx.LEFT | wx.RIGHT, 5)
+        prefix_sizer.AddStretchSpacer(1)
+
+
+        nruns_text = wx.StaticText(parent, -1, 'Number of reconstructions :')
+        nruns_ctrl = wx.TextCtrl(parent, self.ids['runs'], '', size = (60, -1))
+        nruns_ctrl.Bind(wx.EVT_TEXT, self.onRunsText)
+
+        nruns_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        nruns_sizer.Add(nruns_text, 0, wx.LEFT, 5)
+        nruns_sizer.Add(nruns_ctrl, 0, wx.LEFT | wx.RIGHT, 5)
+
+
+        nprocs = multiprocessing.cpu_count()
+        nprocs_choices = [str(i) for i in range(nprocs, 0, -1)]
+        nprocs_text = wx.StaticText(parent, -1, 'Number of simultaneous runs :')
+        nprocs_choice = wx.Choice(parent, self.ids['procs'], choices = nprocs_choices)
+
+        nprocs_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        nprocs_sizer.Add(nprocs_text, 0, wx.LEFT, 5)
+        nprocs_sizer.Add(nprocs_choice, 0, wx.LEFT | wx.RIGHT, 5)
+
+
+        voxel_text = wx.StaticText(parent, wx.ID_ANY, 'Voxel size [A] :')
+        voxel_ctrl = wx.TextCtrl(parent, self.ids['voxel'], '', size=(60,-1))
+
+        voxel_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        voxel_sizer.Add(voxel_text, 0, wx.LEFT, 5)
+        voxel_sizer.Add(voxel_ctrl, 0, wx.LEFT | wx.RIGHT, 5)
+
+
+        steps_text = wx.StaticText(parent, wx.ID_ANY, 'Maximum convergence steps :')
+        steps_ctrl = wx.TextCtrl(parent, self.ids['steps'], '', size=(60,-1))
+
+        steps_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        steps_sizer.Add(steps_text, 0, wx.LEFT, 5)
+        steps_sizer.Add(steps_ctrl, 0, wx.LEFT | wx.RIGHT, 5)
+
+
+        average_chk = wx.CheckBox(parent, self.ids['average'], 'Align and average densities (EMAN2)')
+
+        advancedButton = wx.Button(parent, -1, 'Change Advanced Settings')
+        advancedButton.Bind(wx.EVT_BUTTON, self._onAdvancedButton)
+
+
+        settings_box = wx.StaticBox(parent, -1, 'Settings')
+        settings_sizer = wx.StaticBoxSizer(settings_box, wx.VERTICAL)
+        settings_sizer.Add(savedir_sizer, 0, wx.EXPAND)
+        settings_sizer.Add(prefix_sizer, 0, wx.EXPAND | wx.TOP, 5)
+        settings_sizer.Add(nruns_sizer, 0, wx.TOP, 5)
+        settings_sizer.Add(nprocs_sizer, 0, wx.TOP, 5)
+        settings_sizer.Add(voxel_sizer, 0, wx.TOP, 5)
+        settings_sizer.Add(steps_sizer, 0, wx.TOP, 5)
+        settings_sizer.Add(average_chk, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        settings_sizer.Add(advancedButton, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, 5)
+
+
+        start_button = wx.Button(parent, self.ids['start'], 'Start')
+        start_button.Bind(wx.EVT_BUTTON, self.onStartButton)
+
+        abort_button = wx.Button(parent, self.ids['abort'], 'Abort')
+        abort_button.Bind(wx.EVT_BUTTON, self.onAbortButton)
+
+        button_box = wx.StaticBox(parent, -1, 'Controls')
+        button_sizer = wx.StaticBoxSizer(button_box, wx.HORIZONTAL)
+        button_sizer.AddStretchSpacer(1)
+        button_sizer.Add(start_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        button_sizer.Add(abort_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        button_sizer.AddStretchSpacer(1)
+
+        control_sizer = wx.BoxSizer(wx.VERTICAL)
+        control_sizer.Add(file_sizer, 0, wx.EXPAND)
+        control_sizer.Add(settings_sizer, 0, wx.EXPAND)
+        control_sizer.Add(button_sizer, 0, wx.ALIGN_CENTER | wx.EXPAND)
+
+
+        self.status = wx.TextCtrl(parent, self.ids['status'], '', style = wx.TE_MULTILINE | wx.TE_READONLY, size = (100,200))
+        status_box = wx.StaticBox(parent, -1, 'Status')
+        status_sizer = wx.StaticBoxSizer(status_box, wx.VERTICAL)
+        status_sizer.Add(self.status, 1, wx.EXPAND | wx.ALL, 5)
+
+
+        half_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        half_sizer.Add(control_sizer, 2, wx.EXPAND)
+        half_sizer.Add(status_sizer, 1, wx.EXPAND)
+
+
+        try:
+            self.logbook = flatNB.FlatNotebook(parent, self.ids['logbook'], agwStyle = flatNB.FNB_NAV_BUTTONS_WHEN_NEEDED | flatNB.FNB_NO_X_BUTTON)
+        except AttributeError as e:
+            print e
+            self.logbook = flatNB.FlatNotebook(parent, self.ids['logbook'])     #compatability for older versions of wxpython
+            self.logbook.SetWindowStyleFlag(flatNB.FNB_NO_X_BUTTON)
+
+        self.logbook.DeleteAllPages()
+
+        log_box = wx.StaticBox(parent, -1, 'Log')
+        log_sizer = wx.StaticBoxSizer(log_box, wx.HORIZONTAL)
+        log_sizer.Add(self.logbook, 1, wx.ALL | wx.EXPAND, 5)
+
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:     #compatability for older versions of wxpython
+            top_sizer = wx.BoxSizer(wx.VERTICAL)
+            top_sizer.Add(half_sizer, 0, wx.EXPAND)
+            top_sizer.Add(log_sizer, 1, wx.EXPAND)
+        else:
+            top_sizer = wx.BoxSizer(wx.VERTICAL)
+            top_sizer.Add(half_sizer, 1, wx.EXPAND)
+            top_sizer.Add(log_sizer, 1, wx.EXPAND)
+
+        self.denss_timer = wx.Timer(parent)
+        parent.Bind(wx.EVT_TIMER, self.onDenssTimer, self.denss_timer)
+
+        self.msg_timer = wx.Timer(parent)
+        parent.Bind(wx.EVT_TIMER, self.onMessageTimer, self.msg_timer)
+
+        self.my_manager = multiprocessing.Manager()
+        self.wx_queue = self.my_manager.Queue()
+
+        return top_sizer
+
+
+    def _initSettings(self):
+        self.updateDenssSettings()
+
+        procs = wx.FindWindowById(self.ids['procs'], self)
+        if procs.GetCount()>1:
+            procs.SetSelection(1)
+        else:
+            procs.SetSelection(0)
+
+        prefix = wx.FindWindowById(self.ids['prefix'], self)
+        prefix.SetValue(os.path.splitext(self.filename)[0])
+
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        path = dirctrl_panel.getDirLabel()
+        save = wx.FindWindowById(self.ids['save'], self)
+        save.SetValue(path)
+
+        wx.FindWindowById(self.ids['abort'], self).Disable()
+
+        self.logbook.DeleteAllPages()
+
+
+    def onStartButton(self, evt):
+        #Set the denss settings
+        self.setArgs()
+
+        #Get user settings on number of runs, save location, etc
+        average_window = wx.FindWindowById(self.ids['average'], self)
+        average = average_window.GetValue()
+
+        prefix_window = wx.FindWindowById(self.ids['prefix'], self)
+        prefix = prefix_window.GetValue()
+
+        path_window = wx.FindWindowById(self.ids['save'], self)
+        path = path_window.GetValue()
+
+        procs_window = wx.FindWindowById(self.ids['procs'], self)
+        procs = int(procs_window.GetStringSelection())
+
+        nruns_window = wx.FindWindowById(self.ids['runs'], self)
+        nruns = int(nruns_window.GetValue())
+
+        denss_names = collections.OrderedDict()
+        for (key, value) in [(str(i), prefix+'_%s' %(str(i).zfill(2))) for i in range(1, nruns+1)]:
+            denss_names[key] = value
+
+        yes_to_all = False
+        for key in denss_names:
+            log_name = denss_names[key]+'.log'
+            xplor_names = [denss_names[key]+'_current.xplor', denss_names[key]+'.xplor',
+                denss_names[key]+'_original.xplor', denss_names[key]+'_precentered.xplor',
+                denss_names[key]+'_support.xplor']
+            fit_name = denss_names[key]+'_map.fit'
+            stats_name = denss_names[key]+'_stats_by_step.txt'
+            saxs_name = denss_names[key]+'_step0_saxs.dat'
+            image_names = [denss_names[key]+'_chis.png', denss_names[key]+'_fit.png',
+                denss_names[key]+'_rgs.png', denss_names[key]+'_supportV.png']
+            mrc_name = denss_names[key]+'.mrc'
+
+            names = [log_name, fit_name, stats_name, saxs_name, mrc_name] + xplor_names + image_names
+
+            file_names = [os.path.join(path, name) for name in names]
+
+            file_exists = False
+
+            for f in file_names:
+                if os.path.exists(f):
+                    file_exists = True
+                    break
+
+            if file_exists and not yes_to_all:
+                button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
+                question = ('Warning: selected directory contains Denss output '
+                        'files with the prefix:\n"%s".\nRunning Denss will '
+                        'overwrite these files.\nDo you wish to continue?'
+                        %(denss_names[key])
+                        )
+                label = 'Overwrite existing files?'
+                icon = wx.ART_WARNING
+
+                question_dialog = RAWCustomDialogs.CustomQuestionDialog(self.main_frame,
+                    question, button_list, label, icon, style=wx.CAPTION|wx.RESIZE_BORDER)
+                result = question_dialog.ShowModal()
+                question_dialog.Destroy()
+
+                if result == wx.ID_NO:
+                    return
+                elif result == wx.ID_YESTOALL:
+                    yes_to_all = True
+
+        #Set up the various bits of information the threads will need. Set up the status windows.
+        self.denss_ids = collections.OrderedDict()
+        for (key, value) in [(str(i), self.NewControlId()) for i in range(1, nruns+1)]:
+            self.denss_ids[key] = value
+
+        self.thread_nums = self.my_manager.Queue()
+
+        self.logbook.DeleteAllPages()
+
+        for i in range(1, nruns+1):
+            text_ctrl = wx.TextCtrl(self.logbook, self.denss_ids[str(i)], '',
+                style = wx.TE_MULTILINE | wx.TE_READONLY)
+            self.logbook.AddPage(text_ctrl, str(i))
+            self.thread_nums.put_nowait(str(i))
+
+        if nruns > 1 and average:
+
+            average_names = [prefix+'_stack.hdf', prefix+'_stack_resized.hdf']
+            names = average_names
+            file_names = [os.path.join(path, name) for name in names]
+            aver_folder = os.path.join(path, prefix+'_aver')
+
+            file_exists = False
+
+            for f in file_names:
+                if os.path.exists(f):
+                    file_exists = True
+                    break
+
+            if file_exists and not yes_to_all:
+                button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
+                question = ('Warning: selected directory contains an EMAN2 average '
+                    'output file(\n. Running the average will overwrite this '
+                    'file.\nDo you wish to continue?')
+                label = 'Overwrite existing files?'
+                icon = wx.ART_WARNING
+
+                question_dialog = RAWCustomDialogs.CustomQuestionDialog(self.main_frame,
+                    question, button_list, label, icon, style=wx.CAPTION | wx.RESIZE_BORDER)
+                result = question_dialog.ShowModal()
+                question_dialog.Destroy()
+
+                if result == wx.ID_NO:
+                    return
+                elif result == wx.ID_YESTOALL:
+                    yes_to_all = True
+            if os.path.exists(aver_folder) and os.path.isdir(aver_folder) and not yes_to_all:
+                button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
+                question = ('Warning: selected directory contains EMAN2 average '
+                    'output folder\n. Running the average will remove all '
+                    'contents in this folder.\nDo you wish to continue?')
+                label = 'Overwrite existing files?'
+                icon = wx.ART_WARNING
+
+                question_dialog = RAWCustomDialogs.CustomQuestionDialog(self.main_frame,
+                    question, button_list, label, icon, style=wx.CAPTION | wx.RESIZE_BORDER)
+                result = question_dialog.ShowModal()
+                question_dialog.Destroy()
+
+                if result == wx.ID_NO:
+                    return
+                elif result == wx.ID_YESTOALL:
+                    yes_to_all = True
+
+            self.denss_ids['average'] = self.NewControlId()
+            text_ctrl = wx.TextCtrl(self.logbook, self.denss_ids['average'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
+            self.logbook.AddPage(text_ctrl, 'Average')
+
+
+        self.status.SetValue('Starting processing\n')
+
+
+        for key in self.ids:
+            if key != 'logbook' and key != 'abort' and key != 'status':
+                wx.FindWindowById(self.ids[key], self).Disable()
+            elif key == 'abort':
+                wx.FindWindowById(self.ids[key], self).Enable()
+
+        self.stop_events = []
+        self.threads_finished = []
+        self.results = []
+
+        self.my_lock = self.my_manager.Lock()
+
+        self.abort_event = self.my_manager.Event()
+        self.abort_event.clear()
+
+        comm_list = []
+
+        my_pool = multiprocessing.Pool(procs)
+
+        q = self.iftm.q_extrap
+        I = self.iftm.i_extrap
+        sigq = np.sqrt(I) #Artificially generate noise for the data assuming poisson. Should be a better way
+        D = self.iftm.getParameter('dmax')
+
+        for key in self.denss_ids:
+            if key != 'average':
+                den_queue = self.my_manager.Queue()
+                stop_event = self.my_manager.Event()
+                stop_event.clear()
+                comm_list.append([den_queue, stop_event])
+
+                den_window = wx.FindWindowById(self.denss_ids[key])
+
+                comm_t = threading.Thread(target=self.get_multi_output,
+                    args=(den_queue, den_window, stop_event))
+                comm_t.daemon = True
+                comm_t.start()
+
+                result = my_pool.apply_async(SASCalc.runDenss, args=(q, I, sigq,
+                    D, prefix, path, comm_list, self.my_lock, self.thread_nums,
+                    self.wx_queue, self.abort_event, self.denss_settings))
+
+                self.stop_events.append(stop_event)
+                self.threads_finished.append(False)
+                self.results.append(result)
+
+        my_pool.close()
+
+        self.denss_timer.Start(1000)
+        self.msg_timer.Start(10)
+
+    def onAbortButton(self, evt):
+        self.abort_event.set()
+
+        for stop_event in self.stop_events:
+            stop_event.set()
+
+        if self.denss_timer.IsRunning():
+            self.denss_timer.Stop()
+
+        abort_thread = threading.Thread(target=self.abort)
+        abort_thread.daemon = True
+        abort_thread.start()
+
+    def abort(self):
+        aborted = False
+
+        while not aborted:
+            self.my_lock.acquire()
+            if np.all(self.threads_finished):
+                aborted = True
+            self.my_lock.release()
+            time.sleep(.1)
+
+        for key in self.ids:
+            if key != 'logbook' and key != 'abort' and key != 'status':
+                wx.CallAfter(wx.FindWindowById(self.ids[key], self).Enable)
+            elif key == 'abort':
+                wx.CallAfter(wx.FindWindowById(self.ids[key], self).Disable)
+
+        wx.CallAfter(self.status.AppendText, 'Processing Aborted!')
+
+        wx.CallAfter(self.msg_timer.Stop)
+
+
+    def onChangeDirectoryButton(self, evt):
+        path = wx.FindWindowById(self.ids['save'], self).GetValue()
+
+        dirdlg = wx.DirDialog(self, "Please select save directory:", defaultPath = path)
+
+        if dirdlg.ShowModal() == wx.ID_OK:
+            new_path = dirdlg.GetPath()
+            wx.FindWindowById(self.ids['save'], self).SetValue(new_path)
+
+
+    def onRunsText(self, evt):
+        nruns_ctrl = wx.FindWindowById(self.ids['runs'], self)
+        nruns = nruns_ctrl.GetValue()
+
+        if nruns != '' and not nruns.isdigit():
+
+            try:
+                nruns = float(nruns.replace(',', '.'))
+            except ValueError:
+                nruns = ''
+            if nruns != '':
+                nruns = str(int(nruns))
+
+            nruns_ctrl.ChangeValue(nruns) #Use changevalue instead of setvalue to avoid having to unbind and rebind
+
+
+    def setArgs(self):
+        for key in self.denss_settings:
+            if key in self.ids:
+                window = wx.FindWindowById(self.ids[key], self)
+                if key == 'runs':
+                    self.denss_settings[key] = window.GetStringSelection()
+                else:
+                    self.denss_settings[key] = window.GetValue()
+
+
+    def get_multi_output(self, queue, den_window, stop_event):
+        num_msg = 0
+        full_msg = ''
+        while True:
+            if stop_event.wait(0.001):
+                wx.CallAfter(den_window.AppendText, full_msg)
+                break
+            try:
+                msg = queue.get_nowait()
+                num_msg = num_msg + 1
+                full_msg = full_msg + msg
+            except Queue.Empty:
+                pass
+
+            if num_msg == 100:
+                wx.CallAfter(den_window.AppendText, full_msg)
+                num_msg = 0
+                full_msg = ''
+
+    def runAverage(self, prefix, path, nruns, procs):
+
+        read_semaphore = threading.BoundedSemaphore(1)
+        #Solution for non-blocking reads adapted from stack overflow
+        #http://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
+        def enqueue_output(out, queue):
+            with read_semaphore:
+                line = 'test'
+                line2=''
+                while line != '':
+                    line = out.read(1)
+                    line2+=line
+                    if line == '\n':
+                        queue.put_nowait([line2])
+                        line2=''
+                    time.sleep(0.0001)
+
+        #Check to see if things have been aborted
+        myId = self.denss_ids['average']
+        averWindow = wx.FindWindowById(myId, self)
+
+        if self.abort_event.is_set():
+            wx.CallAfter(averWindow.AppendText, 'Aborted!\n')
+            return
+
+        #Remove old files, so they don't mess up the program
+        old_folder = os.path.join(path, prefix+'_aver')
+
+        if os.path.exists(old_folder) and os.path.isdir(old_folder):
+            shutil.rmtree(old_folder)
+
+        wx.CallAfter(self.status.AppendText, 'Starting Average\n')
+
+        den_filelist = [prefix+'_%s.mrc' %(str(i).zfill(2)) for i in range(1, nruns+1)]
+
+        dmax = self.iftm.getParameter('dmax')
+        voxel = float(self.denss_settings['voxel'])
+        oversampling = float(self.denss_settings['oversample'])
+
+        side = oversampling*dmax
+        n = int(side/voxel)
+
+        if n%2==1:
+            grid = n-1
+        else:
+            grid = n
+
+        cwd = os.getcwd()
+        os.chdir(path)
+
+        print 'got to here'
+
+        eman_proc, out1, out2 = SASCalc.runEman2Aver(den_filelist, procs, prefix, grid)
+
+        os.chdir(cwd)
+
+        wx.CallAfter(averWindow.AppendText, out1)
+        wx.CallAfter(averWindow.AppendText, out2)
+
+        eman_q = Queue.Queue()
+        readout_t = threading.Thread(target=enqueue_output, args=(eman_proc.stdout, eman_q))
+        readout_t.daemon = True
+        readout_t.start()
+
+        #Send the eman2 output to the screen.
+        while eman_proc.poll() is None:
+            if self.abort_event.is_set():
+                eman_proc.terminate()
+                wx.CallAfter(averWindow.AppendText, 'Aborted!\n')
+                return
+
+            try:
+                new_text = eman_q.get_nowait()
+                new_text = new_text[0]
+                wx.CallAfter(averWindow.AppendText, new_text)
+            except Queue.Empty:
+                pass
+            time.sleep(0.001)
+
+        time.sleep(2)
+        with read_semaphore: #see if there's any last data that we missed
+            try:
+                new_text = eman_q.get_nowait()
+                new_text = new_text[0]
+
+                wx.CallAfter(averWindow.AppendText, new_text)
+            except Queue.Empty:
+                pass
+
+        wx.CallAfter(self.status.AppendText, 'Finished Average\n')
+
+        self.threads_finished[-1] = True
+
+        self.finishedProcessing()
+
+
+    def onDenssTimer(self, evt):
+        denss_finished = False
+
+        if np.all(self.threads_finished):
+            denss_finished = True
+
+        if denss_finished:
+            self.denss_timer.Stop()
+            self.msg_timer.Stop()
+
+            if 'average' in self.denss_ids:
+                path_window = wx.FindWindowById(self.ids['save'], self)
+                path = path_window.GetValue()
+
+                prefix_window = wx.FindWindowById(self.ids['prefix'], self)
+                prefix = prefix_window.GetValue()
+
+                procs_window = wx.FindWindowById(self.ids['procs'], self)
+                procs = int(procs_window.GetStringSelection())
+
+                nruns_window = wx.FindWindowById(self.ids['runs'], self)
+                nruns = int(nruns_window.GetValue())
+
+                t = threading.Thread(target = self.runAverage, args = (prefix, path, nruns, procs))
+                t.daemon = True
+                t.start()
+                self.threads_finished.append(False)
+
+            else:
+                self.finishedProcessing()
+
+    def onMessageTimer(self, evt):
+        for i in range(len(self.threads_finished)):
+            try:
+                self.my_lock.acquire()
+                msg = self.wx_queue.get_nowait()
+                if msg[0].startswith('status'):
+                    wx.CallAfter(self.status.AppendText, msg[1])
+                elif msg[0] == 'finished':
+                    self.threads_finished[msg[1]] = True
+                else:
+                    my_num = msg[0].split()[-1]
+                    my_id = self.denss_ids[my_num]
+                    denssWindow = wx.FindWindowById(my_id, self)
+                    wx.CallAfter(denssWindow.AppendText, msg[1])
+            except Queue.Empty:
+                pass
+            finally:
+                self.my_lock.release()
+
+            try:
+                if self.results[i].ready():
+                    self.results[i].get()
+            except Exception as e:
+                self.abort_event.set()
+                raise e
+
+
+    def finishedProcessing(self):
+        for key in self.ids:
+            if key != 'logbook' and key != 'abort' and key != 'status':
+                wx.FindWindowById(self.ids[key], self).Enable()
+            elif key == 'abort':
+                wx.FindWindowById(self.ids[key], self).Disable()
+
+        wx.CallAfter(self.status.AppendText, 'Finished Processing')
+
+        # #Get user settings on number of runs, save location, etc
+        # damaver_window = wx.FindWindowById(self.ids['damaver'], self)
+        # damaver = damaver_window.GetValue()
+
+        # damclust_window = wx.FindWindowById(self.ids['damclust'], self)
+        # damclust = damclust_window.GetValue()
+
+        # prefix_window = wx.FindWindowById(self.ids['prefix'], self)
+        # prefix = prefix_window.GetValue()
+
+        # path_window = wx.FindWindowById(self.ids['save'], self)
+        # path = path_window.GetValue()
+
+        # nruns_window = wx.FindWindowById(self.ids['runs'], self)
+        # nruns = int(nruns_window.GetValue())
+
+        # refine_window = wx.FindWindowById(self.ids['refine'], self)
+        # refine = refine_window.GetValue()
+
+        # settings = {'damaver'   : damaver,
+        #             'damclust'  : damclust,
+        #             'prefix'    : prefix,
+        #             'path'      : path,
+        #             'runs'      : nruns,
+        #             'refine'    : refine,
+        #             }
+
+        # results_window = wx.FindWindowByName('DammifResultsPanel')
+        # wx.CallAfter(results_window.updateResults, settings)
+
+        # self.parent.SetSelection(1)
+
+    def _onAdvancedButton(self, evt):
+        self.main_frame.showOptionsDialog(focusHead='DENSS')
+
+    def updateDenssSettings(self):
+        self.denss_settings = {'voxel'      : self.raw_settings.get('denssVoxel'),
+                            'oversample'    : self.raw_settings.get('denssOversampling'),
+                            'electrons'     : self.raw_settings.get('denssNElectrons'),
+                            'steps'         : self.raw_settings.get('denssSteps'),
+                            'limitDmax'     : self.raw_settings.get('denssLimitDmax'),
+                            'dmaxStep'      : self.raw_settings.get('denssDmaxStartStep'),
+                            'recenter'      : self.raw_settings.get('denssRecenter'),
+                            'recenterStep'  : self.raw_settings.get('denssRecenterMaxStep'),
+                            'positivity'    : self.raw_settings.get('denssPositivity'),
+                            'extrapolate'   : self.raw_settings.get('denssExtrapolate'),
+                            'shrinkwrap'    : self.raw_settings.get('denssShrinkwrap'),
+                            'swSigmaStart'  : self.raw_settings.get('denssShrinkwrapSigmaStart'),
+                            'swSigmaEnd'    : self.raw_settings.get('denssShrinkwrapSigmaEnd'),
+                            'swSigmaDecay'  : self.raw_settings.get('denssShrinkwrapSigmaDecay'),
+                            'swThresFrac'   : self.raw_settings.get('denssShrinkwrapThresFrac'),
+                            'swIter'        : self.raw_settings.get('denssShrinkwrapIter'),
+                            'swMinStep'     : self.raw_settings.get('denssShrinkwrapMinStep'),
+                            'connected'     : self.raw_settings.get('denssConnected'),
+                            'conSteps'      : self.raw_settings.get('denssConnectivitySteps'),
+                            'chiEndFrac'    : self.raw_settings.get('denssChiEndFrac'),
+                            'plotOutput'    : self.raw_settings.get('denssPlotOutput'),
+                            'average'       : self.raw_settings.get('denssEman2Average'),
+                            'runs'          : self.raw_settings.get('denssReconstruct'),
+                            }
+
+        aver = wx.FindWindowById(self.ids['average'], self)
+        aver.SetValue(self.denss_settings['average'])
+
+        nruns = wx.FindWindowById(self.ids['runs'], self)
+        nruns.SetValue(str(self.denss_settings['runs']))
+
+        steps = wx.FindWindowById(self.ids['steps'], self)
+        steps.SetValue(str(self.denss_settings['steps']))
+
+        voxel = wx.FindWindowById(self.ids['voxel'], self)
+        voxel.SetValue(str(self.denss_settings['voxel']))
+
+    def Close(self, event):
+
+        process_finished = True
+
+        if self.denss_timer.IsRunning():
+            process_finished = False
+
+        if process_finished and len(self.threads_finished)>0:
+            if not np.all(self.threads_finished):
+                process_finished = False
+
+        if not process_finished and event.CanVeto():
+            msg = "Warning: DENSS or EMAN2 is still running. Closing this window will abort the currently running processes. Do you want to continue closing the window?"
+            dlg = wx.MessageDialog(self.main_frame, msg, "Abort DENSS/EMAN2?", style = wx.ICON_WARNING | wx.YES_NO)
+            proceed = dlg.ShowModal()
+            dlg.Destroy()
+
+            if proceed == wx.ID_YES:
+                self.abort_event.set()
+
+                for stop_event in self.stop_events:
+                    stop_event.set()
+
+                if self.denss_timer.IsRunning():
+                    self.denss_timer.Stop()
+
+                if self.msg_timer.IsRunning():
+                    self.msg_timer.Stop()
+
+            else:
+                event.Veto()
+
+        elif not process_finished:
+            #Try to gracefully exit
+            self.abort_event.set()
+
+            for stop_event in self.stop_events:
+                stop_event.set()
+
+            if self.denss_timer.IsRunning():
+                self.denss_timer.Stop()
+
+            if self.msg_timer.IsRunning():
+                    self.msg_timer.Stop()
+
+
+
+class DenssResultsPanel(wx.Panel):
+
+    def __init__(self, parent, iftm, manip_item):
+
+        try:
+            wx.Panel.__init__(self, parent, wx.ID_ANY, name = 'DenssResultsPanel')
+        except:
+            wx.Panel.__init__(self, None, wx.ID_ANY, name = 'DenssResultsPanel')
+
+        self.parent = parent
+
+        self.manip_item = manip_item
+
+        self.iftm = iftm
+
+        self.ift = iftm.getParameter('out')
+
+        self.filename = iftm.getParameter('filename')
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.ids = {'ambiCats'      : self.NewControlId(),
+                    'ambiScore'     : self.NewControlId(),
+                    'ambiEval'      : self.NewControlId(),
+                    'nsdMean'       : self.NewControlId(),
+                    'nsdStdev'      : self.NewControlId(),
+                    'nsdInc'        : self.NewControlId(),
+                    'nsdTot'        : self.NewControlId(),
+                    'clustNum'      : self.NewControlId(),
+                    'clustDescrip'  : self.NewControlId(),
+                    'clustDist'     : self.NewControlId(),
+                    'models'        : self.NewControlId(),
+                    'res'           : self.NewControlId(),
+                    'resErr'        : self.NewControlId(),
+                    'resUnit'       : self.NewControlId(),
+                    }
+
+        self.topsizer = self._createLayout(self)
+        self._initSettings()
+
+        self.SetSizer(self.topsizer)
+
+    def _createLayout(self, parent):
+        ambi_box = wx.StaticBox(parent, wx.ID_ANY, 'Ambimeter')
+        self.ambi_sizer = wx.StaticBoxSizer(ambi_box, wx.VERTICAL)
+
+        match_text = wx.StaticText(parent, wx.ID_ANY, 'Compatible shape categories:')
+        match_ctrl = wx.TextCtrl(parent, self.ids['ambiCats'], '', size=(60,-1), style=wx.TE_READONLY)
+
+        score_text = wx.StaticText(parent, -1, 'Ambiguity score:')
+        score_ctrl = wx.TextCtrl(parent, self.ids['ambiScore'], '', size = (60, -1), style = wx.TE_READONLY)
+
+        eval_text = wx.StaticText(parent, -1, 'AMBIMETER says:')
+        eval_ctrl = wx.TextCtrl(parent, self.ids['ambiEval'], '', size = (300, -1), style = wx.TE_READONLY)
+
+        ambi_subsizer1 = wx.BoxSizer(wx.HORIZONTAL)
+        ambi_subsizer1.Add(match_text, 0, wx.ALIGN_CENTER_VERTICAL)
+        ambi_subsizer1.Add(match_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        ambi_subsizer1.Add(score_text, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 8)
+        ambi_subsizer1.Add(score_ctrl, 0, wx.LEFT| wx.ALIGN_CENTER_VERTICAL, 2)
+
+        ambi_subsizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        ambi_subsizer2.Add(eval_text, 0, wx.ALIGN_CENTER_VERTICAL)
+        ambi_subsizer2.Add(eval_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+
+        self.ambi_sizer.Add(ambi_subsizer1, 0)
+        self.ambi_sizer.Add(ambi_subsizer2, 0, wx.TOP, 5)
+
+
+        nsd_box = wx.StaticBox(parent, wx.ID_ANY, 'Normalized Spatial Discrepancy')
+        self.nsd_sizer = wx.StaticBoxSizer(nsd_box, wx.HORIZONTAL)
+
+        mean_text = wx.StaticText(parent, wx.ID_ANY, 'Mean NSD:')
+        mean_ctrl = wx.TextCtrl(parent, self.ids['nsdMean'], '', size=(60,-1), style=wx.TE_READONLY)
+
+        stdev_text = wx.StaticText(parent, wx.ID_ANY, 'Stdev. NSD:')
+        stdev_ctrl = wx.TextCtrl(parent, self.ids['nsdStdev'], '', size=(60,-1), style=wx.TE_READONLY)
+
+        inc_text = wx.StaticText(parent, wx.ID_ANY, 'DAMAVER included:')
+        inc_ctrl = wx.TextCtrl(parent, self.ids['nsdInc'], '', size=(60,-1), style=wx.TE_READONLY)
+        inc_text2 = wx.StaticText(parent, wx.ID_ANY, 'of')
+        total_ctrl = wx.TextCtrl(parent, self.ids['nsdTot'], '', size=(60,-1), style=wx.TE_READONLY)
+
+        self.nsd_sizer.Add(mean_text, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.nsd_sizer.Add(mean_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        self.nsd_sizer.Add(stdev_text, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 8)
+        self.nsd_sizer.Add(stdev_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        self.nsd_sizer.Add(inc_text, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 8)
+        self.nsd_sizer.Add(inc_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        self.nsd_sizer.Add(inc_text2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        self.nsd_sizer.Add(total_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+
+
+        res_box = wx.StaticBox(parent, wx.ID_ANY, 'Reconstruction Resolution (SASRES)')
+        self.res_sizer = wx.StaticBoxSizer(res_box, wx.HORIZONTAL)
+
+        res_text = wx.StaticText(parent, wx.ID_ANY, 'Ensemble Resolution:')
+        res_ctrl = wx.TextCtrl(parent, self.ids['res'], '', size=(60,-1), style=wx.TE_READONLY)
+
+        reserr_text = wx.StaticText(parent, wx.ID_ANY, '+/-')
+        reserr_ctrl = wx.TextCtrl(parent, self.ids['resErr'], '', size=(60,-1), style=wx.TE_READONLY)
+
+        resunit_ctrl = wx.TextCtrl(parent, self.ids['resUnit'], '', size=(100,-1), style=wx.TE_READONLY)
+
+        self.res_sizer.Add(res_text, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.res_sizer.Add(res_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL,2)
+        self.res_sizer.Add(reserr_text, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        self.res_sizer.Add(reserr_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        self.res_sizer.Add(resunit_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 4)
+
+
+        clust_box = wx.StaticBox(parent, wx.ID_ANY, 'Clustering')
+        self.clust_sizer = wx.StaticBoxSizer(clust_box, wx.VERTICAL)
+
+        clust_num_text = wx.StaticText(parent, wx.ID_ANY, 'Number of clusters:')
+        clust_num_ctrl = wx.TextCtrl(parent, self.ids['clustNum'], '', size=(60,-1), style=wx.TE_READONLY)
+
+        clust_num_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        clust_num_sizer.Add(clust_num_text, 0, wx.ALIGN_CENTER_VERTICAL)
+        clust_num_sizer.Add(clust_num_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+
+        clust_list1= wx.ListCtrl(parent, self.ids['clustDescrip'], size=(-1,150), style=wx.LC_REPORT)
+        clust_list1.InsertColumn(0, 'Cluster')
+        clust_list1.InsertColumn(1, 'Isolated')
+        clust_list1.InsertColumn(2, 'Rep. Model')
+        clust_list1.InsertColumn(3, 'Deviation')
+
+        clust_list2= wx.ListCtrl(parent, self.ids['clustDist'], size=(-1,150), style=wx.LC_REPORT)
+        clust_list2.InsertColumn(0, 'Cluster 1')
+        clust_list2.InsertColumn(1, 'Cluster 2')
+        clust_list2.InsertColumn(2, 'Distance')
+
+        clust_list_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        clust_list_sizer.Add(clust_list1, 5, wx.EXPAND)
+        clust_list_sizer.Add(clust_list2, 3, wx.LEFT | wx.EXPAND, 8)
+
+        self.clust_sizer.Add(clust_num_sizer, 0)
+        self.clust_sizer.Add(clust_list_sizer, 0, wx.EXPAND | wx.TOP, 5)
+
+
+        models_box = wx.StaticBox(parent, wx.ID_ANY, 'Models')
+        self.models_sizer = wx.StaticBoxSizer(models_box, wx.VERTICAL)
+
+        models_list = wx.ListCtrl(parent, self.ids['models'], size = (-1,-1), style=wx.LC_REPORT)
+        models_list.InsertColumn(0, 'Model')
+        models_list.InsertColumn(1, 'Chi^2')
+        models_list.InsertColumn(2, 'Rg')
+        models_list.InsertColumn(3, 'Dmax')
+        models_list.InsertColumn(4, 'Excluded Vol.')
+        models_list.InsertColumn(5, 'Est. Protein MW.')
+        models_list.InsertColumn(6, 'Mean NSD')
+
+        if platform.system() == 'Windows':
+            models_list.SetColumnWidth(5, -2)
+        else:
+            models_list.SetColumnWidth(5, 100)
+
+        self.models_sizer.Add(models_list, 1, wx.EXPAND)
+
+
+        save_button = wx.Button(parent, wx.ID_ANY, 'Save Results Summary')
+        save_button.Bind(wx.EVT_BUTTON, self._saveResults)
+
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(self.ambi_sizer, 0, wx.EXPAND)
+        top_sizer.Add(self.nsd_sizer, 0, wx.EXPAND)
+        top_sizer.Add(self.res_sizer, 0, wx.EXPAND)
+        top_sizer.Add(self.clust_sizer,0, wx.EXPAND)
+        top_sizer.Add(self.models_sizer,1,wx.EXPAND)
+        top_sizer.Add(save_button, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+
+        return top_sizer
+
+
+    def _initSettings(self):
+        wx.CallAfter(self.runAmbimeter)
+
+        self.topsizer.Hide(self.nsd_sizer, recursive=True)
+        self.topsizer.Hide(self.clust_sizer, recursive=True)
+        self.topsizer.Hide(self.res_sizer, recursive=True)
+        # self.topsizer.Hide(self.models_sizer, recursive=True)
+
+    def runAmbimeter(self):
+        cwd = os.getcwd()
+        run_window = wx.FindWindowByName('DammifRunPanel')
+        path_window = wx.FindWindowById(run_window.ids['save'], run_window)
+        path = path_window.GetValue()
+        os.chdir(path)
+
+        outname = 't_ambimeter.out'
+        while os.path.isfile(outname):
+            outname = 't'+outname
+
+        if self.main_frame.OnlineControl.isRunning() and path == self.main_frame.OnlineControl.getTargetDir():
+            self.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
+
+        SASFileIO.writeOutFile(self.iftm, os.path.join(path, outname))
+
+        ambi_settings = {'sRg' :'4',
+                        'files':'None'
+                        }
+
+        try:
+            output = SASCalc.runAmbimeter(outname, 'temp', ambi_settings)
+
+        except SASExceptions.NoATSASError as e:
+            wx.CallAfter(wx.MessageBox, str(e), 'Error running Ambimeter', style = wx.ICON_ERROR | wx.OK)
+            os.remove(outname)
+            os.chdir(cwd)
+            return
+
+        os.remove(outname)
+
+        if restart_timer:
+            wx.CallAfter(self.main_frame.controlTimer, True)
+
+        os.chdir(cwd)
+
+        cats_window = wx.FindWindowById(self.ids['ambiCats'], self)
+        cats_window.SetValue(output[0])
+        score_window = wx.FindWindowById(self.ids['ambiScore'], self)
+        score_window.SetValue(output[1])
+        eval_window = wx.FindWindowById(self.ids['ambiEval'], self)
+        eval_window.SetValue(output[2])
+
+    def getNSD(self, filename):
+        mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err, res_unit = SASFileIO.loadDamselLogFile(filename)
+
+        mean_window = wx.FindWindowById(self.ids['nsdMean'], self)
+        mean_window.SetValue(mean_nsd)
+        stdev_window = wx.FindWindowById(self.ids['nsdStdev'], self)
+        stdev_window.SetValue(stdev_nsd)
+        inc_window = wx.FindWindowById(self.ids['nsdInc'], self)
+        inc_window.SetValue(str(len(include_list)))
+        tot_window = wx.FindWindowById(self.ids['nsdTot'], self)
+        tot_window.SetValue(str(len(result_dict)))
+
+    def getResolution(self, filename):
+        mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err, res_unit = SASFileIO.loadDamselLogFile(filename)
+
+        res_window = wx.FindWindowById(self.ids['res'], self)
+        res_window.SetValue(res)
+        reserr_window = wx.FindWindowById(self.ids['resErr'], self)
+        reserr_window.SetValue(res_err)
+        unit_window = wx.FindWindowById(self.ids['resUnit'], self)
+        unit_window.SetValue(res_unit)
+        tot_window = wx.FindWindowById(self.ids['nsdTot'], self)
+        tot_window.SetValue(str(len(result_dict)))
+
+    def getClust(self, filename):
+        cluster_list, distance_list = SASFileIO.loadDamclustLogFile(filename)
+
+        num_window = wx.FindWindowById(self.ids['clustNum'], self)
+        num_window.SetValue(str(len(cluster_list)))
+
+        clist = wx.FindWindowById(self.ids['clustDescrip'])
+        clist.DeleteAllItems()
+        for cluster in cluster_list:
+            if cluster.dev == -1:
+                isolated = 'Y'
+                dev = ''
+            else:
+                isolated = 'N'
+                dev = str(cluster.dev)
+
+            clist.Append((str(cluster.num), isolated, cluster.rep_model, dev))
+
+        dlist = wx.FindWindowById(self.ids['clustDist'])
+        dlist.DeleteAllItems()
+        for dist_data in distance_list:
+            dlist.Append(map(str, dist_data))
+
+    def getModels(self, settings):
+        models_window = wx.FindWindowById(self.ids['models'])
+        models_window.DeleteAllItems()
+
+        file_nums = range(1,int(settings['runs'])+1)
+        path = settings['path']
+        prefix = settings['prefix']
+
+        model_list = []
+
+        if settings['damaver']:
+            name = prefix+'_damsel.log'
+            filename = os.path.join(path, name)
+            mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err, res_unit = SASFileIO.loadDamselLogFile(filename)
+
+        for num in file_nums:
+            fprefix = '%s_%s' %(prefix, str(num).zfill(2))
+            dam_name = os.path.join(path, fprefix+'-1.pdb')
+            fir_name = os.path.join(path, fprefix+'.fir')
+
+            sasm, fit_sasm = SASFileIO.loadFitFile(fir_name)
+
+            chisq = sasm.getParameter('counters')['Chi_squared']
+
+            atoms, header, model_data = SASFileIO.loadPDBFile(dam_name)
+            model_data['chisq'] = chisq
+
+            if settings['damaver'] and int(settings['runs']) > 1:
+                model_data['nsd'] = result_dict[os.path.basename(dam_name)][-1]
+                if result_dict[os.path.basename(dam_name)][0].lower() == 'include':
+                    include = True
+                else:
+                    include = False
+
+                model_data['include'] = include
+
+            model_list.append([num, model_data, atoms])
+
+        if settings['damaver'] and int(settings['runs']) > 1:
+            damaver_name = os.path.join(path, prefix+'_damaver.pdb')
+            damfilt_name = os.path.join(path, prefix+'_damfilt.pdb')
+
+            atoms, header, model_data = SASFileIO.loadPDBFile(damaver_name)
+            model_list.append(['damaver', model_data, atoms])
+
+            atoms, header, model_data = SASFileIO.loadPDBFile(damfilt_name)
+            model_list.append(['damfilt', model_data, atoms])
+
+        if settings['refine']and int(settings['runs']) > 1:
+            dam_name = os.path.join(path, 'refine_'+prefix+'-1.pdb')
+            fir_name = os.path.join(path, 'refine_'+prefix+'.fir')
+            sasm, fit_sasm = SASFileIO.loadFitFile(fir_name)
+            chisq = sasm.getParameter('counters')['Chi_squared']
+
+            atoms, header, model_data = SASFileIO.loadPDBFile(dam_name)
+            model_data['chisq'] = chisq
+
+            model_list.append(['refine', model_data, atoms])
+
+        for item in model_list:
+            models_window.Append((item[0], item[1]['chisq'], item[1]['rg'],
+                item[1]['dmax'], item[1]['excluded_volume'], item[1]['mw'],
+                item[1]['nsd']))
+
+            if settings['damaver']:
+                if not item[1]['include'] and item[0]!='damaver' and item[0]!='damfilt' and item[0]!='refine':
+                    index = models_window.GetItemCount()-1
+                    models_window.SetItemTextColour(index, 'red')
+
+        return model_list
+
+    def updateResults(self, settings):
+        #In case we ran a different setting a second time, without closing the window
+        self.topsizer.Hide(self.nsd_sizer, recursive=True)
+        self.topsizer.Hide(self.res_sizer, recursive=True)
+        self.topsizer.Hide(self.clust_sizer, recursive=True)
+
+        if settings['damaver'] and int(settings['runs']) > 1:
+            self.topsizer.Show(self.nsd_sizer, recursive=True)
+            name = settings['prefix']+'_damsel.log'
+            filename = os.path.join(settings['path'],name)
+            self.getNSD(filename)
+            self.getResolution(filename)
+
+            if wx.FindWindowById(self.ids['res'], self).GetValue():
+                self.topsizer.Show(self.res_sizer, recursive=True)
+
+        if settings['damclust'] and int(settings['runs']) > 1:
+            self.topsizer.Show(self.clust_sizer, recursive=True)
+            name = settings['prefix']+'_damclust.log'
+            filename = os.path.join(settings['path'],name)
+            self.getClust(filename)
+
+        model_list = self.getModels(settings)
+
+        self.Layout()
+
+        viewer_window = wx.FindWindowByName('DammifViewerPanel')
+        viewer_window.updateResults(model_list)
+
+    def _saveResults(self, evt):
+        nsd_data = []
+        res_data = []
+        clust_num = 0
+        clist_data = []
+        dlist_data = []
+
+        if self.topsizer.IsShown(self.nsd_sizer):
+            nsd_mean = wx.FindWindowById(self.ids['nsdMean']).GetValue()
+            nsd_stdev = wx.FindWindowById(self.ids['nsdStdev']).GetValue()
+            nsd_inc = wx.FindWindowById(self.ids['nsdInc']).GetValue()
+            nsd_tot = wx.FindWindowById(self.ids['nsdTot']).GetValue()
+            nsd_data = [('Mean NSD:', nsd_mean), ('Stdev. NSD', nsd_stdev),
+                        ('DAMAVER Included:', nsd_inc, 'of', nsd_tot)]
+
+        if self.topsizer.IsShown(self.res_sizer):
+            res = wx.FindWindowById(self.ids['res']).GetValue()
+            res_err = wx.FindWindowById(self.ids['resErr']).GetValue()
+            res_unit = wx.FindWindowById(self.ids['resUnit']).GetValue()
+            res_data = [('Ensemble resolution:', res, '+/-', res_err, res_unit)]
+
+        if self.topsizer.IsShown(self.clust_sizer):
+            clust_num = ('Number of clusters:', wx.FindWindowById(self.ids['clustNum']).GetValue())
+            clust_list = wx.FindWindowById(self.ids['clustDescrip'])
+            dist_list = wx.FindWindowById(self.ids['clustDist'])
+
+
+            clist_data = [[] for k in range(clust_list.GetItemCount())]
+            for i in range(clust_list.GetItemCount()):
+                item_data = [[] for k in range(clust_list.GetColumnCount())]
+                for j in range(clust_list.GetColumnCount()):
+                    item = clust_list.GetItem(i, j)
+                    data = item.GetText()
+                    item_data[j] = data
+
+                clist_data[i] = item_data
+
+            dlist_data = [[] for k in range(dist_list.GetItemCount())]
+            for i in range(dist_list.GetItemCount()):
+                item_data = [[] for k in range(dist_list.GetColumnCount())]
+                for j in range(dist_list.GetColumnCount()):
+                    item = dist_list.GetItem(i, j)
+                    data = item.GetText()
+                    item_data[j] = data
+
+                dlist_data[i] = item_data
+
+
+        models_list = wx.FindWindowById(self.ids['models'])
+
+        model_data = [[] for k in range(models_list.GetItemCount())]
+        for i in range(models_list.GetItemCount()):
+            item_data = [[] for k in range(models_list.GetColumnCount())]
+            for j in range(models_list.GetColumnCount()):
+                item = models_list.GetItem(i, j)
+                data = item.GetText()
+                item_data[j] = data
+
+            model_data[i] = item_data
+
+        ambi_cats = wx.FindWindowById(self.ids['ambiCats']).GetValue()
+        ambi_score = wx.FindWindowById(self.ids['ambiScore']).GetValue()
+        ambi_eval = wx.FindWindowById(self.ids['ambiEval']).GetValue()
+        ambi_data = [('Compatible shape categories:', ambi_cats),
+                    ('Ambiguity score:', ambi_score), ('AMBIMETER says:', ambi_eval)]
+
+        input_file = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['fname']).GetValue()
+        output_prefix = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['prefix']).GetValue()
+        output_directory = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['save']).GetValue()
+        reconst_prog = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['program']).GetStringSelection()
+        mode = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['mode']).GetStringSelection()
+        symmetry = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['sym']).GetStringSelection()
+        anisometry = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['anisometry']).GetStringSelection()
+        tot_recons = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['runs']).GetValue()
+        damaver = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['damaver']).IsChecked()
+        refine = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['refine']).IsChecked()
+        damclust = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['damclust']).IsChecked()
+
+        setup_data = [('Input file:', input_file), ('Output prefix:', output_prefix),
+                    ('Output directory:', output_directory), ('Program used:', reconst_prog),
+                    ('Mode:', mode), ('Symmetry:', symmetry), ('Anisometry:', anisometry),
+                    ('Total number of reconstructions:', tot_recons),
+                    ('Used DAMAVER:', damaver), ('Refined with DAMMIN:', refine),
+                    ('Used DAMCLUST:', damclust),
+                    ]
+
+        name = output_prefix
+
+        filename = name + '_dammif_results.csv'
+
+        dialog = wx.FileDialog(self, message = "Please select save directory and enter save file name", style = wx.FD_SAVE, defaultDir = output_directory, defaultFile = filename)
+
+        if dialog.ShowModal() == wx.ID_OK:
+            save_path = dialog.GetPath()
+            name, ext = os.path.splitext(save_path)
+            save_path = name+'.csv'
+        else:
+            return
+
+        RAWGlobals.save_in_progress = True
+        self.main_frame.setStatus('Saving DAMMIF/N data', 0)
+
+        SASFileIO.saveDammixData(save_path, ambi_data, nsd_data, res_data, clust_num,
+                                clist_data, dlist_data, model_data, setup_data)
+
+        RAWGlobals.save_in_progress = False
+        self.main_frame.setStatus('', 0)
+
+
+class DenssViewerPanel(wx.Panel):
+
+    def __init__(self, parent):
+
+        try:
+            wx.Panel.__init__(self, parent, wx.ID_ANY, name = 'DenssViewerPanel')
+        except:
+            wx.Panel.__init__(self, None, wx.ID_ANY, name = 'DenssViewerPanel')
+
+        self.parent = parent
+
+        self.ids = {'models'    : self.NewControlId(),
+                    }
+
+        self.model_dict = None
+
+        top_sizer = self._createLayout(self)
+
+        self.SetSizer(top_sizer)
+
+    def _createLayout(self, parent):
+        model_text = wx.StaticText(parent, wx.ID_ANY, 'Model to display:')
+        model_choice = wx.Choice(parent, self.ids['models'])
+        model_choice.Bind(wx.EVT_CHOICE, self.onChangeModels)
+
+        model_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        model_sizer.Add(model_text, 0)
+        model_sizer.Add(model_choice, 0, wx.LEFT, 3)
+
+        ctrls_box = wx.StaticBox(parent, wx.ID_ANY, 'Viewer Controls')
+        ctrls_sizer = wx.StaticBoxSizer(ctrls_box, wx.VERTICAL)
+
+        ctrls_sizer.Add(model_sizer, 0)
+
+
+        self.fig = Figure(dpi=75, tight_layout=True)
+        self.fig.set_facecolor('white')
+
+        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
+        self.canvas.SetBackgroundColour('white')
+
+        self.subplot = self.fig.add_subplot(1,1,1, projection='3d')
+        self.subplot.grid(False)
+        self.subplot.set_axis_off()
+
+        # self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        # self.toolbar.Realize()
+
+        layout_sizer = wx.BoxSizer(wx.VERTICAL)
+        layout_sizer.Add(ctrls_sizer, 0, wx.BOTTOM | wx.EXPAND, 5)
+        layout_sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.EXPAND)
+        # sizer.Add(self.toolbar, 0, wx.GROW)
+
+        return layout_sizer
+
+    def _plotModel(self, atoms, radius):
+        self.subplot.clear()
+        self.subplot.grid(False)
+        self.subplot.set_axis_off()
+
+        scale = (float(radius)/1.25)**2
+
+        self.subplot.scatter(atoms[:,0], atoms[:,1], atoms[:,2], s=250*scale, alpha=.95)
+
+        self.canvas.draw()
+
+    def onChangeModels(self, evt):
+        model = evt.GetString()
+
+        self._plotModel(self.model_dict[model][1], self.model_dict[model][0]['atom_radius'])
+
+
+    def updateResults(self, model_list):
+        self.model_dict = collections.OrderedDict()
+
+        for item in model_list:
+            self.model_dict[str(item[0])] = [item[1], item[2]]
+
+        model_choice = wx.FindWindowById(self.ids['models'], self)
+        model_choice.Set(self.model_dict.keys())
+
+        if 'refine' in self.model_dict:
+            self._plotModel(self.model_dict['refine'][1], self.model_dict['refine'][0]['atom_radius'])
+            model_choice.SetStringSelection('refine')
+        elif 'damfilt' in self.model_dict:
+            self._plotModel(self.model_dict['damfilt'][1], self.model_dict['damfilt'][0]['atom_radius'])
+            model_choice.SetStringSelection('damfilt')
+        elif 'damaver' in self.model_dict:
+            self._plotModel(self.model_dict['damaver'][1], self.model_dict['damaver'][0]['atom_radius'])
+            model_choice.SetStringSelection('damaver')
+        else:
+            self._plotModel(self.model_dict['1'][1], self.model_dict['1'][0]['atom_radius'])
+            model_choice.SetStringSelection('1')
 
 
 class BIFTFrame(wx.Frame):

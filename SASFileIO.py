@@ -40,6 +40,7 @@ import struct
 import json
 import copy
 import collections
+import datetime
 from xml.dom import minidom
 import PIL
 from PIL import Image
@@ -3337,19 +3338,94 @@ def saveDammixData(filename, ambi_data, nsd_data, res_data, clust_num, clist_dat
         fsave.write(save_string)
 
 
+def saveDensityMrc(filename, rho,side):
+    """Write an MRC formatted electron density map.
+       See here: http://www2.mrc-lmb.cam.ac.uk/research/locally-developed-software/image-processing-software/#image
+    """
+    xs, ys, zs = rho.shape
+    nxstart = -xs/2+1
+    nystart = -ys/2+1
+    nzstart = -zs/2+1
+    with open(filename, "wb") as fout:
+        # NC, NR, NS, MODE = 2 (image : 32-bit reals)
+        fout.write(struct.pack('<iiii', xs, ys, zs, 2))
+        # NCSTART, NRSTART, NSSTART
+        fout.write(struct.pack('<iii', nxstart, nystart, nzstart))
+        # MX, MY, MZ
+        fout.write(struct.pack('<iii', xs, ys, zs))
+        # X length, Y, length, Z length
+        fout.write(struct.pack('<fff', side, side, side))
+        # Alpha, Beta, Gamma
+        fout.write(struct.pack('<fff', 90.0, 90.0, 90.0))
+        # MAPC, MAPR, MAPS
+        fout.write(struct.pack('<iii', 1, 2, 3))
+        # DMIN, DMAX, DMEAN
+        fout.write(struct.pack('<fff', np.min(rho), np.max(rho), np.average(rho)))
+        # ISPG, NSYMBT, LSKFLG
+        fout.write(struct.pack('<iii', 1, 0, 0))
+        # EXTRA
+        fout.write(struct.pack('<'+'f'*12, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0))
+        for i in range(0, 12):
+            fout.write(struct.pack('<f', 0.0))
+
+        # XORIGIN, YORIGIN, ZORIGIN
+        fout.write(struct.pack('<fff', nxstart*(side/xs), nystart*(side/ys), nzstart*(side/zs)))
+        # MAP
+        fout.write('MAP ')
+        # MACHST (little endian)
+        fout.write(struct.pack('<BBBB', 0x44, 0x41, 0x00, 0x00))
+        # RMS (std)
+        fout.write(struct.pack('<f', np.std(rho)))
+        # NLABL
+        fout.write(struct.pack('<i', 0))
+        # LABEL(20,10) 10 80-character text labels
+        for i in xrange(0, 800):
+            fout.write(struct.pack('<B', 0x00))
+
+        # Write out data
+        for k in range(zs):
+            for j in range(ys):
+                for i in range(xs):
+                    s = struct.pack('<f', rho[i,j,k])
+                    fout.write(s)
+
+
+def saveDensityXplor(filename, rho,side):
+    """Write an XPLOR formatted electron density map."""
+    xs, ys, zs = rho.shape
+    title_lines = ['REMARK FILENAME="'+os.path.split(filename)[-1]+'"','REMARK DATE= '+str(datetime.datetime.today())]
+    with open(filename,'wb') as f:
+        f.write("\n")
+        f.write("%8d !NTITLE\n" % len(title_lines))
+        for line in title_lines:
+            f.write("%-264s\n" % line)
+        #f.write("%8d%8d%8d%8d%8d%8d%8d%8d%8d\n" % (xs,0,xs-1,ys,0,ys-1,zs,0,zs-1))
+        f.write("%8d%8d%8d%8d%8d%8d%8d%8d%8d\n" % (xs,-xs/2+1,xs/2,ys,-ys/2+1,ys/2,zs,-zs/2+1,zs/2))
+        f.write("% -.5E% -.5E% -.5E% -.5E% -.5E% -.5E\n" % (side,side,side,90,90,90))
+        f.write("ZYX\n")
+        for k in range(zs):
+            f.write("%8s\n" % k)
+            for j in range(ys):
+                for i in range(xs):
+                    if (i+j*ys) % 6 == 5:
+                        f.write("% -.5E\n" % rho[i,j,k])
+                    else:
+                        f.write("% -.5E" % rho[i,j,k])
+            f.write("\n")
+        f.write("    -9999\n")
+        f.write("  %.4E  %.4E" % (np.average(rho), np.std(rho)))
+
+
 def loadWorkspace(load_path):
-
-    with open(load_path, 'r') as f:
-
-        try:
+    try:
+        with open(load_path, 'r') as f:
             sasm_dict = cPickle.load(f)
-        except (ImportError, EOFError), e:
-            f.close()
-            try:
-                f = open(load_path, 'rb')
+    except (ImportError, EOFError):
+        try:
+            with open(load_path, 'rb') as f:
                 sasm_dict = cPickle.load(f)
-            except (ImportError, EOFError), e:
-                raise SASExceptions.UnrecognizedDataFormat('Workspace could not be loaded. It may be an invalid file type, or the file may be corrupted.')
+        except (ImportError, EOFError):
+            raise SASExceptions.UnrecognizedDataFormat('Workspace could not be loaded. It may be an invalid file type, or the file may be corrupted.')
 
     return sasm_dict
 

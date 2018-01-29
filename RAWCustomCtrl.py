@@ -16,7 +16,10 @@
 #
 #******************************************************************************
 
-import wx, math, platform
+import wx
+import math
+import platform
+import logging
 import RAWIcons
 # import time
 
@@ -1061,3 +1064,21 @@ class DraggableLegend:
 
 
 
+class CustomConsoleHandler(logging.Handler):
+    """Sends logger output to a wxpython TextCtrl
+    Original code from:
+    https://www.blog.pythonlibrary.org/2013/08/09/wxpython-how-to-redirect-pythons-logging-module-to-a-textctrl/
+    """
+
+    #----------------------------------------------------------------------
+    def __init__(self, queue):
+        """"""
+        logging.Handler.__init__(self)
+        self.queue = queue
+
+    #----------------------------------------------------------------------
+    def emit(self, record):
+        """Constructor"""
+        msg = self.format(record)
+        self.queue.put_nowait(msg + "\n")
+        self.flush()
