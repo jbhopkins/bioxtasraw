@@ -10092,7 +10092,7 @@ class SECControlPanel(wx.Panel):
 
         hdr_format = self._raw_settings.get('ImageHdrFormat')
 
-        if hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS':
+        if hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS' or hdr_format == 'BioCAT, APS':
             fname = self.parent._CreateFileDialog(wx.OPEN)
 
             if fname == None:
@@ -10615,10 +10615,24 @@ class SECControlPanel(wx.Panel):
         hdr_format = self._raw_settings.get('ImageHdrFormat')
 
         if hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS':
-
             if self.image_prefix != '' or self.filename != '':
                 for frame in modified_frame_list:
                     name = os.path.join(self.directory, '%s_%s_%s' %(self.image_prefix, self.initial_run_number, frame))
+                    if os.path.isfile(name+'.dat'):
+                        file_list.append(name+'.dat')
+                    elif os.path.isfile(name+'.tiff'):
+                        file_list.append(name+'.tiff')
+                    else:
+                        files = glob.glob(name+'.*')
+                        if files:
+                            file_list.append(files[0])
+                        else:
+                            bad_file_list.append(frame)
+
+        elif hdr_format == 'BioCAT, APS':
+            if self.image_prefix != '' or self.filename != '':
+                for frame in modified_frame_list:
+                    name = os.path.join(self.directory, '%s_%s' %(self.image_prefix, frame))
                     if os.path.isfile(name+'.dat'):
                         file_list.append(name+'.dat')
                     elif os.path.isfile(name+'.tiff'):
@@ -10654,21 +10668,33 @@ class SECControlPanel(wx.Panel):
                 junk, self.image_prefix = os.path.split(count_filename)
 
                 self.image_prefix_box.SetValue(self.image_prefix)
-
                 self.initial_run_number = run_number
-
                 self.initial_run_number_box.SetValue(run_number)
-
                 self.initial_frame_number = self.frame_list[0]
-
                 self.initial_frame_number_box.SetValue(self.initial_frame_number)
-
                 self.final_selected_frame = self.frame_list[-1]
-
                 self.final_frame_number_box.SetValue(self.final_selected_frame)
 
                 self._updateControlValues
+        
+        elif hdr_format == 'BioCAT, APS':
 
+            count_filename, frame_number = SASFileIO.parseBiocatFilename(os.path.join(self.directory, self.filename))
+
+            filelist=glob.glob(count_filename + '_*')
+
+            self.frame_list = self._getFrameList(filelist)
+
+            junk, self.image_prefix = os.path.split(count_filename)
+            self.image_prefix_box.SetValue(self.image_prefix)
+
+            self.initial_frame_number = self.frame_list[0]
+            self.initial_frame_number_box.SetValue(self.initial_frame_number)
+
+            self.final_selected_frame = self.frame_list[-1]
+            self.final_frame_number_box.SetValue(self.final_selected_frame)
+
+            self._updateControlValues
 
     def _getFrameList(self, filelist):
 
@@ -10680,14 +10706,23 @@ class SECControlPanel(wx.Panel):
 
             for f in filelist:
                 frame=SASFileIO.parseCHESSG1Filename(f)[2]
-                # print frame
+                try:
+                    int(frame)
+                    framelist.append(frame)
+                except ValueError:
+                    pass
 
-                framelist.append(frame)
+        elif hdr_format == 'BioCAT, APS':
+            for f in filelist:
+                frame=SASFileIO.parseBiocatFilename(f)[1]
+                try:
+                    int(frame)
+                    framelist.append(frame)
+                except ValueError:
+                    pass
 
-            framelist=list(set(framelist))
-
-            framelist.sort(key=lambda frame: int(frame))
-
+        framelist = list(set(framelist))
+        framelist.sort(key=lambda frame: int(frame))
 
         return framelist
 
