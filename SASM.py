@@ -740,6 +740,7 @@ class SECM:
             self._file_list=[sasm.getParameter('filename') for sasm in self._sasm_list]
 
         self.frame_list = self._frame_list_raw.copy()
+        self.plot_frame_list = np.arange(len(self.frame_list))
 
         self._scale_factor = 1
         self._offset_value = 0
@@ -892,6 +893,8 @@ class SECM:
 
         # print self.time
 
+        self.plot_frame_list = np.arange(len(self.frame_list))
+
         self._update()
 
 
@@ -929,22 +932,14 @@ class SECM:
             wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
             return sasms
 
-        elif len(np.where(self.frame_list == initial_frame)[0]) == 0:
+        elif len(np.where(self.plot_frame_list == initial_frame)[0]) == 0:
+            print np.where(self.plot_frame_list == initial_frame)
             msg = "To send data to the main plot, enter a valid frame range (initial frame not in data set)."
             wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
             return sasms
 
         else:
-            index1 = np.where(self.frame_list == initial_frame)[0][0]
-
-            if len(np.where(self.frame_list == final_frame)[0]) == 0:
-                index2 = len(self.frame_list)
-                print 'Warning: Final frame not in data set'
-            else:
-                index2 = np.where(self.frame_list == final_frame)[0][0]
-
-            sasms = self._sasm_list[index1 : index2+1]
-
+            sasms = self._sasm_list[initial_frame : final_frame+1]
             return sasms
 
     def getTime(self):

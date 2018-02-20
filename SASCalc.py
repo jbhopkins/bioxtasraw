@@ -45,6 +45,7 @@ import logging
 import scipy.interpolate
 from scipy.constants import Avogadro
 from scipy import ndimage
+import math
 
 import matplotlib
 from  matplotlib.colors import colorConverter as cc

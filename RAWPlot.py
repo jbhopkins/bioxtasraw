@@ -4058,7 +4058,7 @@ class SECPlotPanel(wx.Panel):
                 return
 
             if self.plotparams.get('x_axis_display') == 'frame':
-                xdata = secm.frame_list
+                xdata = secm.plot_frame_list
 
             elif self.plotparams.get('x_axis_display') == 'time':
                 time= secm.getTime()
@@ -4066,15 +4066,15 @@ class SECPlotPanel(wx.Panel):
                 if len(time) == 0:
                     wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
                     self.plotparams['x_axis_display'] = 'frame'
-                    xdata = secm.frame_list
+                    xdata = secm.plot_frame_list
                 elif time[0] == -1:
                     wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
                     self.plotparams['x_axis_display'] = 'frame'
-                    xdata = secm.frame_list
+                    xdata = secm.plot_frame_list
                 elif len(time) != len(ydata):
                     wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
                     self.plotparams['x_axis_display'] = 'frame'
-                    xdata = secm.frame_list
+                    xdata = secm.plot_frame_list
                 else:
                     xdata = time
             else:
@@ -4589,9 +4589,9 @@ class SECPlotPanel(wx.Panel):
                         each.calc_line.set_label('I0')
 
             if self.plotparams['x_axis_display'] == 'frame':
-                each.line.set_xdata(each.frame_list)
+                each.line.set_xdata(each.plot_frame_list)
                 if each.calc_is_plotted:
-                    each.calc_line.set_xdata(each.frame_list)
+                    each.calc_line.set_xdata(each.plot_frame_list)
             elif self.plotparams['x_axis_display'] == 'time':
                 each.line.set_xdata(each.getTime())
                 if each.calc_is_plotted:
@@ -4720,9 +4720,9 @@ class SECPlotPanel(wx.Panel):
                 each.calc_line.set_ydata(np.zeros_like(each.line.get_ydata))
 
             if self.plotparams['x_axis_display'] == 'frame':
-                each.line.set_xdata(each.frame_list)
+                each.line.set_xdata(each.plot_frame_list)
                 if each.calc_is_plotted:
-                    each.calc_line.set_xdata(each.frame_list)
+                    each.calc_line.set_xdata(each.plot_frame_list)
             elif self.plotparams['x_axis_display'] == 'time':
                 each.line.set_xdata(each.getTime())
                 if each.calc_is_plotted:

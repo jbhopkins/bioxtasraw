@@ -2995,11 +2995,13 @@ class MainWorkerThread(threading.Thread):
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
 
+        largest_frame = secm.plot_frame_list[-1]
+
         secm.append(filename_list, sasm_list, frame_list)
 
 
         if secm.calc_has_data:
-            self._updateCalcSECParams(secm, frame_list)
+            self._updateCalcSECParams(secm, range(len(frame_list))+largest_frame+1)
 
         self._updateSECMPlot(secm)
 
@@ -3226,7 +3228,7 @@ class MainWorkerThread(threading.Thread):
 
 
     def _updateCalcSECParams(self, secm, frame_list):
-
+        print frame_list
         molecule = secm.mol_type
 
         if molecule == 'Protein':
@@ -8492,15 +8494,15 @@ class IFTItemPanel(wx.Panel):
         if self.is_gnom:
             if opsys == 'Windows':
                 if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'dammif.exe')):
-                    menu.Append(23, 'Run DAMMIF/N')
+                    menu.Append(23, 'Bead Model (DAMMIF/N)')
                 if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter.exe')):
-                    menu.Append(24, 'Run AMBIMETER')
+                    menu.Append(24, 'AMBIMETER')
             else:
                 if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'dammif')):
-                    menu.Append(23, 'Run DAMMIF/N')
+                    menu.Append(23, 'Bead Model (DAMMIF/N)')
                 if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter')):
-                    menu.Append(24, 'Run AMBIMETER')
-        menu.Append(28, 'Run DENSS')
+                    menu.Append(24, 'AMBIMETER')
+        # menu.Append(28, 'Electron Density (DENSS)')
         menu.Append(25, 'SVD')
         menu.Append(26, 'EFA')
         menu.Append(27, 'Similarity Test')
@@ -10482,6 +10484,7 @@ class SECControlPanel(wx.Panel):
             self.initial_buffer_frame < self.final_buffer_frame):
             sasm_list = secm.getSASMList(self.initial_buffer_frame,
                 self.final_buffer_frame)
+            print sasm_list
             ref_sasm = sasm_list[0]
             qi_ref, qf_ref = ref_sasm.getQrange()
             pvals = np.ones(len(sasm_list[1:]), dtype=float)
