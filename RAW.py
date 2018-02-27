@@ -201,7 +201,7 @@ class MainFrame(wx.Frame):
         self.plot_notebook.AddPage(plot_panel, "Main Plot", True)
         self.plot_notebook.AddPage(iftplot_panel, "IFT Plot", False)
         self.plot_notebook.AddPage(img_panel, "Image", False)
-        self.plot_notebook.AddPage(sec_panel, "SEC", False)
+        self.plot_notebook.AddPage(sec_panel, "Series", False)
 
 
         self.control_notebook = aui.AuiNotebook(self, style = aui.AUI_NB_TAB_MOVE)
@@ -216,7 +216,7 @@ class MainFrame(wx.Frame):
         self.control_notebook.AddPage(page1, "Files", True)
         self.control_notebook.AddPage(page2, "Manipulation", False)
         self.control_notebook.AddPage(page3, "IFT", False)
-        self.control_notebook.AddPage(page4, "SEC",False)
+        self.control_notebook.AddPage(page4, "Series",False)
 
         self.info_panel = InformationPanel(self)
         self.centering_panel = CenteringPanel(self, -1)
@@ -666,7 +666,7 @@ class MainFrame(wx.Frame):
 
         #make a subtracted profile SECM
         if len(secm.subtracted_sasm_list) == 0 and manip_item != None:
-            msg = 'No subtracted files are available for this SEC curve. It is recommended that you run EFA on subtracted profiles. You can create subtracted curves by setting a buffer range in the SEC Control Panel and calculating the parameter values. Click OK to continue with the EFA without subtracted files.'
+            msg = 'No subtracted files are available for this series curve. It is recommended that you run EFA on subtracted profiles. You can create subtracted curves by setting a buffer range in the series Control Panel and calculating the parameter values. Click OK to continue with the EFA without subtracted files.'
             dlg = wx.MessageDialog(self, msg, "No subtracted files", style = wx.ICON_INFORMATION | wx.CANCEL | wx.OK)
             proceed = dlg.ShowModal()
             dlg.Destroy()
@@ -891,9 +891,9 @@ class MainFrame(wx.Frame):
                                (None, None, None, 'separator'),
                                ('&Main Plot Top Axes', None, submenus['viewPlot1Scale'], 'submenu'),
                                ('&Main Plot Bottom Axes', None, submenus['viewPlot2Scale'], 'submenu'),
-                               ('&SEC Plot Left Y Axis', None, submenus['viewSECLeft'], 'submenu'),
-                               ('&SEC Plot Right Y Axis', None, submenus['viewSECRight'], 'submenu'),
-                               ('&SEC Plot X Axis', None, submenus['viewSECX'], 'submenu')
+                               ('&Series Plot Left Y Axis', None, submenus['viewSECLeft'], 'submenu'),
+                               ('&Series Plot Right Y Axis', None, submenus['viewSECRight'], 'submenu'),
+                               ('&Series Plot X Axis', None, submenus['viewSECX'], 'submenu')
                                ]),
 
                  ('&Tools',   [('&Operations', None, submenus['operations'], 'submenu'),
@@ -1263,7 +1263,7 @@ class MainFrame(wx.Frame):
                     secm = selected_items[0].getSECM()
                     manip_item = selected_items[0]
                 else:
-                    wx.MessageBox("Please select a SEC curve from the list on the SEC page.", "No SEC curve selected")
+                    wx.MessageBox("Please select a series curve from the list on the series page.", "No series curve selected")
                     return
 
             elif page == filepage:
@@ -1336,7 +1336,7 @@ class MainFrame(wx.Frame):
                     secm = selected_items[0].getSECM()
                     manip_item = selected_items[0]
                 else:
-                    wx.MessageBox("Please select a SEC curve from the list on the SEC page.", "No SEC curve selected")
+                    wx.MessageBox("Please select a series curve from the list on the series page.", "No series curve selected")
                     return
 
             elif page == filepage:
@@ -1354,7 +1354,7 @@ class MainFrame(wx.Frame):
             page = self.control_notebook.GetPage(current_page)
 
             if page !=manippage and page != secpage and page != iftpage:
-                wx.MessageBox('The selected operation cannot be performed unless the Manipulation, IFT, or SEC control panel is selected.', 'Select Appropriate Control Panel', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Manipulation, IFT, or Series control panel is selected.', 'Select Appropriate Control Panel', style = wx.ICON_INFORMATION)
                 return
 
             selected_items = page.getSelectedItems()
@@ -1819,11 +1819,11 @@ class MainFrame(wx.Frame):
             if manipulation_panel.modified_items != [] or sec_panel.modified_items != []:
 
                 if manipulation_panel.modified_items !=[] and sec_panel.modified_items != []:
-                    message = 'manipulation and SEC '
+                    message = 'manipulation and series '
                 elif manipulation_panel.modified_items !=[] and sec_panel.modified_items == []:
                     message = 'manipulation '
                 else:
-                    message = 'SEC '
+                    message = 'series '
 
                 dial2 = wx.MessageDialog(self, 'You have unsaved changes in your ' + message + 'data. Do you want to discard these changes?', 'Discard changes?',
                                          wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
@@ -1905,7 +1905,7 @@ class MainFrame(wx.Frame):
     def onControlTabChange(self, evt):
         page = self.control_notebook.GetPageText(evt.GetSelection())
 
-        if page == 'IFT' or page == 'SEC':
+        if page == 'IFT' or page == 'Series':
             self.info_panel.clearInfo()
 
         elif page == 'Manipulation':
@@ -2837,7 +2837,7 @@ class MainWorkerThread(threading.Thread):
             update_sec_object = data[2]
         else:
             update_sec_object = False
-        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while SEC data loads\n(may take a while)...')
+        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while series data loads\n(may take a while)...')
 
         all_secm = True
         for name in filename_list:
@@ -2922,7 +2922,7 @@ class MainWorkerThread(threading.Thread):
         secpage = -1
 
         for i in range(self.main_frame.plot_notebook.GetPageCount()):
-            if self.main_frame.plot_notebook.GetPageText(i) == 'SEC':
+            if self.main_frame.plot_notebook.GetPageText(i) == 'Series':
                 secpage = i
                 wx.CallAfter(self.main_frame.plot_notebook.SetSelection, secpage)
 
@@ -2937,7 +2937,7 @@ class MainWorkerThread(threading.Thread):
         filename_list = data[0]
         frame_list = data[1]
         secm = data[2]
-        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while SEC data loads\n(may take a while)...')
+        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while series data loads\n(may take a while)...')
 
         sasm_list=[[] for i in range(len(filename_list))]
 
@@ -3548,7 +3548,7 @@ class MainWorkerThread(threading.Thread):
             ascii = ''
 
         if include_sec:
-            sec = ' or the RAW SEC format'
+            sec = ' or the RAW series format'
         else:
             sec = ''
 
@@ -3565,7 +3565,7 @@ class MainWorkerThread(threading.Thread):
             ascii = ''
 
         wx.CallAfter(wx.MessageBox, 'The selected file: ' + filename + '\ncould not be recognized as a '   + str(img_fmt) +
-                         ' image format' + ascii + '. This can be caused by failing to load the correct configuration file. \n\nIf you are loading a set of files as a SEC curve, make sure the selection contains only individual scattering profiles (no .sec files).\n\nYou can change the image format under Advanced Options in the Options menu.' ,
+                         ' image format' + ascii + '. This can be caused by failing to load the correct configuration file. \n\nIf you are loading a set of files as a series curve, make sure the selection contains only individual scattering profiles (no .sec files).\n\nYou can change the image format under Advanced Options in the Options menu.' ,
                           'Error loading file', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
     def _showSubtractionError(self, sasm, sub_sasm):
@@ -4708,7 +4708,7 @@ class MainWorkerThread(threading.Thread):
             restart_timer = False
 
         RAWGlobals.save_in_progress = True
-        wx.CallAfter(self.main_frame.setStatus, 'Saving SEC data', 0)
+        wx.CallAfter(self.main_frame.setStatus, 'Saving series data', 0)
 
         overwrite_all = False
         no_to_all = False
@@ -4766,7 +4766,7 @@ class MainWorkerThread(threading.Thread):
             restart_timer = False
 
         RAWGlobals.save_in_progress = True
-        wx.CallAfter(self.main_frame.setStatus, 'Saving SEC item(s)', 0)
+        wx.CallAfter(self.main_frame.setStatus, 'Saving series item(s)', 0)
 
         overwrite_all = False
         no_to_all = False
@@ -4869,7 +4869,7 @@ class MainWorkerThread(threading.Thread):
             restart_timer = False
 
         RAWGlobals.save_in_progress = True
-        wx.CallAfter(self.main_frame.setStatus, 'Saving SEC profile(s)', 0)
+        wx.CallAfter(self.main_frame.setStatus, 'Saving series profile(s)', 0)
 
         overwrite_all = False
         no_to_all = False
@@ -5226,7 +5226,7 @@ class FilePanel(wx.Panel):
                     msg_list.append('Manipulation')
 
                 if self.sec_panel.modified_items != []:
-                    msg_list.append('SEC')
+                    msg_list.append('Series')
 
                 if self.ift_panel.modified_items != []:
                     msg_list.append('IFT')
@@ -8798,7 +8798,7 @@ class SECPanel(wx.Panel):
 
         self.buttons = (("Save",self._onSaveButton),
                         ("Remove", self._onRemoveButton),
-                        ("Clear SEC Data", self._onClearList))
+                        ("Clear Series Data", self._onClearList))
 
         # /* INSERT WIDGETS */
 
@@ -9940,7 +9940,7 @@ class SECControlPanel(wx.Panel):
         load_sizer.Add(run_sizer, 0, flag = wx.EXPAND | wx.ALIGN_LEFT | wx.TOP | wx.LEFT | wx.RIGHT, border = 2)
 
 
-        select_button = wx.Button(self, -1, 'Select file in SEC run')
+        select_button = wx.Button(self, -1, 'Select file in series')
         select_button.Bind(wx.EVT_BUTTON, self._onSelectButton)
 
 
@@ -10194,13 +10194,13 @@ class SECControlPanel(wx.Panel):
             if error == 'file':
                 self._showDataFormatError(os.path.split(name)[1])
             elif error == 'header':
-                wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic SEC updating turned off.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
+                wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic series updating turned off.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
             elif error == 'mask':
-                 wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic SEC updating turned off.', 'Saved mask does not fit loaded image', style = wx.ICON_ERROR)
+                 wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic series updating turned off.', 'Saved mask does not fit loaded image', style = wx.ICON_ERROR)
             elif error == 'mask_header':
-                wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic SEC updating turned off.', 'Mask information was not found in header', style = wx.ICON_ERROR)
+                wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic series updating turned off.', 'Mask information was not found in header', style = wx.ICON_ERROR)
             elif error == 'abs_scale':
-                wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic SEC updating turned off.', 'Absolute scale failed', style = wx.ICON_ERROR)
+                wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic series updating turned off.', 'Absolute scale failed', style = wx.ICON_ERROR)
 
     def updateSucceeded(self):
         if self.online_mode_button.IsChecked() and not self._is_online:
@@ -10217,13 +10217,13 @@ class SECControlPanel(wx.Panel):
             ascii = ''
 
         if include_sec:
-            sec = ' or the RAW SEC format'
+            sec = ' or the RAW series format'
         else:
             sec = ''
 
         wx.CallAfter(wx.MessageBox, 'The selected file: ' + filename + '\ncould not be recognized as a '   + str(img_fmt) +
                          ' image format' + ascii + sec + '.\n\nYou can change the image format under Advanced Options in the Options menu.\n'+
-                         'Automatic SEC updating turned off.' ,
+                         'Automatic series updating turned off.' ,
                           'Error loading file', style = wx.ICON_ERROR | wx.OK)
 
     def _onFramesToMainPlot(self,evt):
@@ -10250,7 +10250,7 @@ class SECControlPanel(wx.Panel):
                 if selected_item != None:
 
                     if not selected_item.SelectedForPlot.GetValue():
-                        msg = "Warning: The selected SEC curve is not shown on the plot. Send frames to main plot anyways?\nNote: You can select a different SEC curve by starring it."
+                        msg = "Warning: The selected series curve is not shown on the plot. Send frames to main plot anyways?\nNote: You can select a different series curve by starring it."
                         dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection", style = wx.ICON_QUESTION | wx.YES_NO)
                         proceed = dlg.ShowModal()
                         dlg.Destroy()
@@ -10264,8 +10264,8 @@ class SECControlPanel(wx.Panel):
                         return
 
                 else:
-                    msg = "To send data to the main plot, select a SEC curve by starring it."
-                    wx.CallAfter(wx.MessageBox, msg, "No SEC curve selected", style = wx.ICON_ERROR | wx.OK)
+                    msg = "To send data to the main plot, select a series curve by starring it."
+                    wx.CallAfter(wx.MessageBox, msg, "No series curve selected", style = wx.ICON_ERROR | wx.OK)
                 # print 'test'
 
         elif len(self.sec_panel.all_manipulation_items) > 0:
@@ -10314,7 +10314,7 @@ class SECControlPanel(wx.Panel):
                 if selected_item != None:
 
                     if not selected_item.SelectedForPlot.GetValue():
-                        msg = "Warning: The selected SEC curve is not shown on the plot. Send average to main plot anyways?\nNote: You can select a different SEC curve by starring it."
+                        msg = "Warning: The selected series curve is not shown on the plot. Send average to main plot anyways?\nNote: You can select a different series curve by starring it."
                         dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection", style = wx.ICON_QUESTION | wx.YES_NO)
                         proceed = dlg.ShowModal()
                         dlg.Destroy()
@@ -10328,8 +10328,8 @@ class SECControlPanel(wx.Panel):
                         return
 
                 else:
-                    msg = "To send data to the main plot, select a SEC curve by starring it."
-                    wx.CallAfter(wx.MessageBox, msg, "No SEC curve selected", style = wx.ICON_ERROR | wx.OK)
+                    msg = "To send data to the main plot, select a series curve by starring it."
+                    wx.CallAfter(wx.MessageBox, msg, "No series curve selected", style = wx.ICON_ERROR | wx.OK)
                 # print 'test'
 
         elif len(self.sec_panel.all_manipulation_items) > 0:
@@ -10437,7 +10437,7 @@ class SECControlPanel(wx.Panel):
         elif len(self.sec_panel.all_manipulation_items)>1:
 
             if not selected_item.SelectedForPlot.GetValue():
-                msg = "Warning: The selected SEC curve is not shown on the plot. Set/Update parameters anyways?\nNote: You can select a different SEC curve by starring it."
+                msg = "Warning: The selected series curve is not shown on the plot. Set/Update parameters anyways?\nNote: You can select a different series curve by starring it."
                 dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection", style = wx.ICON_QUESTION | wx.YES_NO)
                 proceed = dlg.ShowModal()
                 dlg.Destroy()

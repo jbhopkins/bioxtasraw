@@ -3197,9 +3197,9 @@ def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
 
     header_string = ''
 
-    header_string = header_string + '# SEC data name: %s\n' %(panel1_results['filename'])
-    header_string = header_string + '# Started at SEC frame: %s\n' %(str(framei))
-    header_string = header_string + '# Ended at SEC frame: %s\n' %(str(framef))
+    header_string = header_string + '# Series data name: %s\n' %(panel1_results['filename'])
+    header_string = header_string + '# Started at series frame: %s\n' %(str(framei))
+    header_string = header_string + '# Ended at series frame: %s\n' %(str(framef))
     header_string = header_string + '# Used: %s\n' %(panel1_results['profile'])
     header_string = header_string + '# Number of significant singular values: %s\n' %(str(nvals))
     header_string = header_string + '# Component Ranges:\n'

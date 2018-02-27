@@ -818,7 +818,7 @@ class SECDataDialog(wx.Dialog):
 
     def __init__(self, parent, secm = None, *args, **kwargs):
 
-        wx.Dialog.__init__(self, parent, -1, 'SEC Data Display', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, 'Series Data Display', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -833,7 +833,7 @@ class SECDataDialog(wx.Dialog):
 
         time = self.secm.getTime()
 
-        if len(time)>0 and time[0] != -1 and len(time) == len(self.secm.frame_list):
+        if len(time)>0 and time[0] != -1 and len(time) == len(self.secm.plot_frame_list):
             self.showtime = True
         else:
             self.showtime = False
@@ -919,7 +919,7 @@ class SECDataDialog(wx.Dialog):
         data_len = len(self.secm.total_i)
 
         for i in range(data_len):
-            self.data_grid.SetCellValue(i, 0, str(self.secm.frame_list[i]))
+            self.data_grid.SetCellValue(i, 0, str(self.secm.plot_frame_list[i]))
             self.data_grid.SetCellValue(i, 1, str(self.secm.total_i[i]))
             self.data_grid.SetCellValue(i, 2, str(self.secm.mean_i[i]))
 
@@ -2694,7 +2694,7 @@ class SECMLinePropertyDialog(wx.Dialog):
             return
 
 
-        wx.Dialog.__init__(self, parent, -1, "SEC Line Properties", size = size, style = style, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, "Series Line Properties", size = size, style = style, *args, **kwargs)
 
         self.secm = secm
         self.line = secm.line
@@ -2773,7 +2773,7 @@ class SECMLinePropertyDialog(wx.Dialog):
         self.Bind( wx.EVT_BUTTON, self._onOkButton, id=wx.ID_OK )
         self.Bind( wx.EVT_BUTTON, self._onCancelButton, id=wx.ID_CANCEL )
 
-        sec_box = wx.StaticBox(self, -1, 'SEC Line')
+        sec_box = wx.StaticBox(self, -1, 'Series Line')
         secline_sizer = wx.StaticBoxSizer(sec_box, wx.VERTICAL)
 
         line_legend = self._createLegendLabelControls(self.line)

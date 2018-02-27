@@ -8063,7 +8063,7 @@ class SVDControlPanel(wx.Panel):
             wx.CallAfter(self.updateSECPlot)
             wx.CallAfter(self.runSVD)
         else:
-            msg = 'No subtracted files are available for this SEC curve. You can create subtracted curves by setting a buffer range in the SEC Control Panel and calculating the parameter values. You will have to reopen the SVD window after doing this.'
+            msg = 'No subtracted files are available for this series curve. You can create subtracted curves by setting a buffer range in the Series Control Panel and calculating the parameter values. You will have to reopen the SVD window after doing this.'
             dlg = wx.MessageDialog(self, msg, "No subtracted files", style = wx.ICON_INFORMATION | wx.OK)
             dlg.ShowModal()
             dlg.Destroy()
@@ -9072,7 +9072,7 @@ class EFAControlPanel1(wx.Panel):
             self.runSVD()
 
         else:
-            msg = 'No subtracted files are available for this SEC curve. You can create subtracted curves by setting a buffer range in the SEC Control Panel and calculating the parameter values. You will have to reopen the EFA window after doing this.'
+            msg = 'No subtracted files are available for this series curve. You can create subtracted curves by setting a buffer range in the Sries Control Panel and calculating the parameter values. You will have to reopen the EFA window after doing this.'
             dlg = wx.MessageDialog(self, msg, "No subtracted files", style = wx.ICON_INFORMATION | wx.OK)
             dlg.ShowModal()
             dlg.Destroy()

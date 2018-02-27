@@ -3536,11 +3536,11 @@ class SECPlotPanel(wx.Panel):
 
         self.frame_styles = ['Full', 'XY', 'X', 'Y', 'None']
 
-        self.default_subplot_labels = { 'total'      : ['SEC Plot', 'Frame #', 'Integrated Intensity'],
-                                        'mean'       : ['SEC Plot', 'Frame #', 'Mean Intensity'],
-                                        'qspec'      : ['SEC Plot', 'Frame #', 'Intensity at q = '],
-                                        'frame'     : ['SEC Plot', 'Frame #', 'Integrated Intensity'],
-                                        'time'       : ['SEC Plot', 'Time (s)', 'Integrated Intensity']}
+        self.default_subplot_labels = { 'total'      : ['Series Plot', 'Frame #', 'Integrated Intensity'],
+                                        'mean'       : ['Series Plot', 'Frame #', 'Mean Intensity'],
+                                        'qspec'      : ['Series Plot', 'Frame #', 'Intensity at q = '],
+                                        'frame'     : ['Series Plot', 'Frame #', 'Integrated Intensity'],
+                                        'time'       : ['Series Plot', 'Time (s)', 'Integrated Intensity']}
 
         self.subplot_labels = copy.copy(self.default_subplot_labels)
 
