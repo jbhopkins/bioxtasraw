@@ -351,8 +351,6 @@ def autoRg(sasm, single_fit=False):
             scores = np.array([qmaxrg_score, qminrg_score, rg_frac_err_score, i0_frac_err_score, r_sqr_score,
                                reduced_chi_sqr_score, window_size_score])
 
-            # print scores
-
             total_score = (weights*scores).sum()/weights.sum()
 
             quality[a] = total_score
@@ -936,7 +934,6 @@ def runDatgnom(datname, sasm):
 
                     output, error = process.communicate()
             else:
-                # print 'No Dmax found, trying datgnom without an rg input'
                 process=subprocess.Popen('%s %s -o %s' %(datgnomDir, datname, outname), stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
 
                 output, error = process.communicate()
@@ -950,9 +947,6 @@ def runDatgnom(datname, sasm):
         #     datgnom_success = False
         else:
             datgnom_success = True
-
-        # print 'DATGNOM output:'
-        # print output
 
         if datgnom_success:
             iftm=SASFileIO.loadOutFile(outname)[0]
@@ -1122,18 +1116,12 @@ def runDammif(fname, prefix, args):
                 try:
                     data = dammif_q.get_nowait()
                     data = data[0]
-                    # print 'New Line of Data!!!!!!!!!!!!!!!!!!!'
-                    # print data
                     dammif_q.task_done()
-                    # err = q2.get_nowait()
-                    # print data[0],
-                    # print err
                 except Queue.Empty:
                     pass
 
                 if data != None:
                     current_line = data
-                    # print 'Previous line: %s' %(previous_line)
                     if data.find('GNOM output file to read?') > -1:
                         proc.stdin.write('%s\r\n' %(fname)) #Dammif input file, no default
 
@@ -1423,12 +1411,7 @@ def runDammin(fname, prefix, args):
                 try:
                     data = dammif_q.get_nowait()
                     data = data[0]
-                    # print 'New Line of Data!!!!!!!!!!!!!!!!!!!'
-                    # print data
                     dammif_q.task_done()
-                    # err = q2.get_nowait()
-                    # print data[0],
-                    # print err
                 except Queue.Empty:
                     pass
 
@@ -1482,7 +1465,6 @@ def runDammin(fname, prefix, args):
 
                     elif data.find('automatic subtraction') > -1:
                         if 'damminConstant' in args:
-                            print 'setting constant to %f' %(args['damminConstant'])
                             proc.stdin.write('%f\r\n' %(args['damminConstant'])) #Subtract constant offset, default automatic
                         else:
                             proc.stdin.write('\r\n')
@@ -1654,7 +1636,6 @@ class LongestRunOfHeads(object):
         if c >= n:
             return 0
         delta = 2 ** n - self.A(n, c)
-        print delta
         if delta <= 0:
             return 0
         return 2.0 ** (np.log2(np.array([delta],dtype=np.float64)) - n)
@@ -1877,7 +1858,7 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     shrinkwrap_minstep = int(denss_settings['swMinStep'])
     chi_end_fraction = float(denss_settings['chiEndFrac'])
     enforce_connectivity = denss_settings['connected']
-    enforce_connectivity_steps = [int(step.strip()) for step in denss_settings['conSteps'].split(',')]
+    enforce_connectivity_steps = ast.literal_eval(denss_settings['conSteps'])
     plot = denss_settings['plotOutput']
     cutout = denss_settings['cutOutput']
     writeXplor = denss_settings['writeXplor']
@@ -2109,8 +2090,13 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     rho = np.fft.ifftn(F, rho.shape)
     rho = rho.real
 
+    #scale total number of electrons
     if ne is not None:
         rho *= ne/np.sum(rho)
+        #change rho to be the electron density in e-/angstroms^3, rather
+        #than number of electrons,
+        #which is what the FFT assumes
+        rho /= dV
 
     rg[j+1] = rho2rg(rho, r, support, dx)
     supportV[j+1] = supportV[j]
@@ -2169,45 +2155,45 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     my_logger.info('END')
     my_fh.close()
 
-    if plot:
-        fig = matplotlib.figure.Figure()
-        ax = fig.add_subplot(111)
+    # if plot:
+    #     fig = matplotlib.figure.Figure()
+    #     ax = fig.add_subplot(111)
 
-        ax.errorbar(q, I, fmt='k-', yerr=sigq, capsize=0, elinewidth=0.1, ecolor=cc.to_rgba('0',alpha=0.5),label='Raw Data')
-        ax.plot(qdata, Idata, 'bo', alpha=0.5, label='Interpolated Data')
-        ax.plot(qbinsc, Imean[j+1],'r.', label='Scattering from Density')
-        handles,labels = ax.get_legend_handles_labels()
-        handles = [handles[2], handles[0], handles[1]]
-        labels = [labels[2], labels[0], labels[1]]
-        ax.legend(handles,labels)
-        ax.semilogy()
-        ax.set_ylabel('I(q)')
-        ax.set_xlabel(r'q ($\mathrm{\AA^{-1}}$)')
-        fig.tight_layout()
-        fig.savefig(file_prefix+'_fit', ext='png', dpi=150)
-        ax.cla()
+    #     ax.errorbar(q, I, fmt='k-', yerr=sigq, capsize=0, elinewidth=0.1, ecolor=cc.to_rgba('0',alpha=0.5),label='Raw Data')
+    #     ax.plot(qdata, Idata, 'bo', alpha=0.5, label='Interpolated Data')
+    #     ax.plot(qbinsc, Imean[j+1],'r.', label='Scattering from Density')
+    #     handles,labels = ax.get_legend_handles_labels()
+    #     handles = [handles[2], handles[0], handles[1]]
+    #     labels = [labels[2], labels[0], labels[1]]
+    #     ax.legend(handles,labels)
+    #     ax.semilogy()
+    #     ax.set_ylabel('I(q)')
+    #     ax.set_xlabel(r'q ($\mathrm{\AA^{-1}}$)')
+    #     fig.tight_layout()
+    #     fig.savefig(file_prefix+'_fit', ext='png', dpi=150)
+    #     ax.cla()
 
-        ax.plot(chi[chi>0])
-        ax.set_xlabel('Step')
-        ax.set_ylabel('$\chi^2$')
-        ax.semilogy()
-        fig.tight_layout()
-        fig.savefig(file_prefix+'_chis', ext='png', dpi=150)
-        ax.cla()
+    #     ax.plot(chi[chi>0])
+    #     ax.set_xlabel('Step')
+    #     ax.set_ylabel('$\chi^2$')
+    #     ax.semilogy()
+    #     fig.tight_layout()
+    #     fig.savefig(file_prefix+'_chis', ext='png', dpi=150)
+    #     ax.cla()
 
-        ax.plot(rg[rg!=0])
-        ax.set_xlabel('Step')
-        ax.set_ylabel('Rg')
-        fig.tight_layout()
-        fig.savefig(file_prefix+'_rgs', ext='png', dpi=150)
-        ax.cla()
+    #     ax.plot(rg[rg!=0])
+    #     ax.set_xlabel('Step')
+    #     ax.set_ylabel('Rg')
+    #     fig.tight_layout()
+    #     fig.savefig(file_prefix+'_rgs', ext='png', dpi=150)
+    #     ax.cla()
 
-        ax.plot(supportV[supportV>0])
-        ax.set_xlabel('Step')
-        ax.set_ylabel('Support Volume ($\mathrm{\AA^{3}}$)')
-        fig.tight_layout()
-        fig.savefig(file_prefix+'_supportV', ext='png', dpi=150)
-        ax.cla()
+    #     ax.plot(supportV[supportV>0])
+    #     ax.set_xlabel('Step')
+    #     ax.set_ylabel('Support Volume ($\mathrm{\AA^{3}}$)')
+    #     fig.tight_layout()
+    #     fig.savefig(file_prefix+'_supportV', ext='png', dpi=150)
+    #     ax.cla()
 
     return qdata, Idata, sigqdata, qbinsc, Imean[j+1], chi, rg, supportV
 
@@ -2269,20 +2255,20 @@ def runDenss(q, I, sigq, D, prefix, path, comm_list, my_lock, thread_num_q,
     wx_queue.put_nowait(['finished', int(my_num)-1])
     my_lock.release()
 
-def runEman2Aver(flist, procs, prefix, grid):
+def runEman2Aver(flist, procs, prefix):
     raw_settings = wx.FindWindowByName('MainFrame').raw_settings
     emanDir = raw_settings.get('EMAN2Dir')
 
     #First we stack
     stacks_py = os.path.join(emanDir, 'e2buildstacks.py')
+    eman_python = os.path.join(emanDir, 'python')
 
     if os.path.exists(stacks_py):
-        stacks_cmd = '%s --stackname %s_stack.hdf' %(stacks_py, prefix)
+        stacks_cmd = '%s %s --stackname %s_stack.hdf' %(eman_python, stacks_py, prefix)
 
         for item in flist:
             stacks_cmd = stacks_cmd + ' %s' %(item)
-
-        process=subprocess.Popen(stacks_cmd, shell= True, stdout = subprocess.PIPE)
+        process=subprocess.Popen(stacks_cmd, shell=True, stdout=subprocess.PIPE)
         stacks_output, error = process.communicate()
     else:
         return
@@ -2291,10 +2277,10 @@ def runEman2Aver(flist, procs, prefix, grid):
     average_py = os.path.join(emanDir, 'e2spt_classaverage.py')
 
     if os.path.exists(average_py):
-        average_cmd = '%s --input %s_stack.hdf --path %s_aver --parallel thread:%i --saveali' %(average_py, prefix, prefix, procs)
+        average_cmd = '%s %s --input %s_stack.hdf --path %s_aver --parallel thread:%i --saveali' %(eman_python, average_py, prefix, prefix, procs)
         if len(flist) < 4:
             average_cmd = average_cmd + ' --goldstandardoff'
-        process=subprocess.Popen(average_cmd, shell= True, stdout = subprocess.PIPE)
+        process=subprocess.Popen(average_cmd, shell=True, stdout=subprocess.PIPE)
         return process, stacks_output
     else:
         return

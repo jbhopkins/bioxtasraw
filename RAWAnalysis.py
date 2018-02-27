@@ -778,7 +778,6 @@ class GuinierControlPanel(wx.Panel):
                 ctrl.SetValue(str(round(newInfo[eachkey][0],mval)))
 
     def updateLimits(self, top = None, bottom = None):
-        print 'in update limits'
         if bottom:
             spinend = wx.FindWindowById(self.spinctrlIDs['qend'], self)
             spinend.SetValue(bottom)
@@ -4103,7 +4102,6 @@ class DammifRunPanel(wx.Panel):
             with read_semaphore: #see if there's any last data that we missed
                 try:
                     new_text = damclust_q.get_nowait()
-                    print new_text
                     new_text = new_text[0]
 
                     wx.CallAfter(damWindow.AppendText, new_text)
@@ -5038,13 +5036,18 @@ class DenssFrame(wx.Frame):
     def _onInfoButton(self, evt):
         msg = ('In addition to citing the RAW paper:\n If you use Denss '
         'in your work please cite the paper given here:\n'
-        ''
+        'https://www.nature.com/articles/nmeth.4581\n\n'
+        'For more information about DENSS see:\n'
+        'https://www.tdgrant.com/denss/\n\n'
         'If you use EMAN2 (density alignment) in your work, please cite '
         'both the main EMAN2 and the single particle tomography paper given '
         'here:\n'
         'http://blake.bcm.edu/emanwiki/EMAN2/'
         )
         wx.MessageBox(str(msg), "How to cite Denss and EMAN2", style = wx.ICON_INFORMATION | wx.OK)
+
+    def updateDenssSettings(self):
+        self.RunPanel.updateDenssSettings()
 
     def OnClose(self, event):
         dammifrun = wx.FindWindowByName('DenssRunPanel')
@@ -5092,9 +5095,14 @@ class DenssRunPanel(wx.Panel):
                     'abort'         : self.NewControlId(),
                     'changedir'     : self.NewControlId(),
                     'fname'         : self.NewControlId(),
-                    'voxel'         : self.NewControlId(),
-                    'steps'         : self.NewControlId(),
+                    'mode'          : self.NewControlId(),
+                    'electrons'            : self.NewControlId(),
                     }
+
+        if self.raw_settings.get('EMAN2Dir') != '':
+            self.eman_present = True
+        else:
+            self.eman_present = False
 
         self.threads_finished = []
 
@@ -5157,23 +5165,23 @@ class DenssRunPanel(wx.Panel):
         nprocs_sizer.Add(nprocs_choice, 0, wx.LEFT | wx.RIGHT, 5)
 
 
-        voxel_text = wx.StaticText(parent, wx.ID_ANY, 'Voxel size [A] :')
-        voxel_ctrl = wx.TextCtrl(parent, self.ids['voxel'], '', size=(60,-1))
+        mode_text = wx.StaticText(parent, wx.ID_ANY, 'Mode :')
+        mode_ctrl = wx.Choice(parent, self.ids['mode'], choices=['Fast', 'Slow', 'Custom'])
 
-        voxel_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        voxel_sizer.Add(voxel_text, 0, wx.LEFT, 5)
-        voxel_sizer.Add(voxel_ctrl, 0, wx.LEFT | wx.RIGHT, 5)
-
-
-        steps_text = wx.StaticText(parent, wx.ID_ANY, 'Maximum convergence steps :')
-        steps_ctrl = wx.TextCtrl(parent, self.ids['steps'], '', size=(60,-1))
-
-        steps_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        steps_sizer.Add(steps_text, 0, wx.LEFT, 5)
-        steps_sizer.Add(steps_ctrl, 0, wx.LEFT | wx.RIGHT, 5)
+        mode_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        mode_sizer.Add(mode_text, 0, wx.LEFT, 5)
+        mode_sizer.Add(mode_ctrl, 0, wx.LEFT | wx.RIGHT, 5)
 
 
-        average_chk = wx.CheckBox(parent, self.ids['average'], 'Align and average densities (EMAN2)')
+        ne_text = wx.StaticText(parent, wx.ID_ANY, 'Total number of electrons :')
+        ne_ctrl = wx.TextCtrl(parent, self.ids['electrons'], '', size=(60,-1))
+
+        ne_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        ne_sizer.Add(ne_text, 0, wx.LEFT, 5)
+        ne_sizer.Add(ne_ctrl, 0, wx.LEFT | wx.RIGHT, 5)
+
+        if self.eman_present:
+            average_chk = wx.CheckBox(parent, self.ids['average'], 'Align and average densities (EMAN2)')
 
         advancedButton = wx.Button(parent, -1, 'Change Advanced Settings')
         advancedButton.Bind(wx.EVT_BUTTON, self._onAdvancedButton)
@@ -5185,9 +5193,10 @@ class DenssRunPanel(wx.Panel):
         settings_sizer.Add(prefix_sizer, 0, wx.EXPAND | wx.TOP, 5)
         settings_sizer.Add(nruns_sizer, 0, wx.TOP, 5)
         settings_sizer.Add(nprocs_sizer, 0, wx.TOP, 5)
-        settings_sizer.Add(voxel_sizer, 0, wx.TOP, 5)
-        settings_sizer.Add(steps_sizer, 0, wx.TOP, 5)
-        settings_sizer.Add(average_chk, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        settings_sizer.Add(mode_sizer, 0, wx.TOP, 5)
+        settings_sizer.Add(ne_sizer, 0, wx.TOP, 5)
+        if self.eman_present:
+            settings_sizer.Add(average_chk, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
         settings_sizer.Add(advancedButton, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, 5)
 
 
@@ -5258,6 +5267,19 @@ class DenssRunPanel(wx.Panel):
     def _initSettings(self):
         self.updateDenssSettings()
 
+        if self.eman_present:
+            aver = wx.FindWindowById(self.ids['average'], self)
+            aver.SetValue(self.denss_settings['average'])
+
+        nruns = wx.FindWindowById(self.ids['runs'], self)
+        nruns.SetValue(str(self.denss_settings['runs']))
+
+        electrons = wx.FindWindowById(self.ids['electrons'], self)
+        electrons.SetValue(str(self.denss_settings['electrons']))
+
+        mode = wx.FindWindowById(self.ids['mode'], self)
+        mode.SetStringSelection(str(self.denss_settings['mode']))
+
         procs = wx.FindWindowById(self.ids['procs'], self)
         if procs.GetCount()>1:
             procs.SetSelection(1)
@@ -5282,8 +5304,11 @@ class DenssRunPanel(wx.Panel):
         self.setArgs()
 
         #Get user settings on number of runs, save location, etc
-        average_window = wx.FindWindowById(self.ids['average'], self)
-        average = average_window.GetValue()
+        if self.eman_present:
+            average_window = wx.FindWindowById(self.ids['average'], self)
+            average = average_window.GetValue()
+        else:
+            average = False
 
         prefix_window = wx.FindWindowById(self.ids['prefix'], self)
         prefix = prefix_window.GetValue()
@@ -5419,7 +5444,10 @@ class DenssRunPanel(wx.Panel):
 
         for key in self.ids:
             if key != 'logbook' and key != 'abort' and key != 'status':
-                wx.FindWindowById(self.ids[key], self).Disable()
+                try:
+                    wx.FindWindowById(self.ids[key], self).Disable()
+                except AttributeError:
+                    pass
             elif key == 'abort':
                 wx.FindWindowById(self.ids[key], self).Enable()
 
@@ -5466,7 +5494,7 @@ class DenssRunPanel(wx.Panel):
         my_pool.close()
 
         self.denss_timer.Start(1000)
-        self.msg_timer.Start(10)
+        self.msg_timer.Start(100)
 
     def onAbortButton(self, evt):
         self.abort_event.set()
@@ -5493,7 +5521,10 @@ class DenssRunPanel(wx.Panel):
 
         for key in self.ids:
             if key != 'logbook' and key != 'abort' and key != 'status':
-                wx.CallAfter(wx.FindWindowById(self.ids[key], self).Enable)
+                try:
+                    wx.CallAfter(wx.FindWindowById(self.ids[key], self).Enable)
+                except AttributeError:
+                    pass
             elif key == 'abort':
                 wx.CallAfter(wx.FindWindowById(self.ids[key], self).Disable)
 
@@ -5532,11 +5563,52 @@ class DenssRunPanel(wx.Panel):
         for key in self.denss_settings:
             if key in self.ids:
                 window = wx.FindWindowById(self.ids[key], self)
-                if key == 'runs':
-                    self.denss_settings[key] = window.GetStringSelection()
-                else:
-                    self.denss_settings[key] = window.GetValue()
+                if window is not None:
+                    if key == 'runs' or key == 'mode':
+                        self.denss_settings[key] = window.GetStringSelection()
+                    else:
+                        self.denss_settings[key] = window.GetValue()
 
+        if self.denss_settings['mode'] != 'Custom':
+            #reset settings to default
+            temp_settings = RAWSettings.RawGuiSettings()
+            self.denss_settings['voxel'] = temp_settings.get('denssVoxel')
+            self.denss_settings['oversample'] = temp_settings.get('denssOversampling')
+            self.denss_settings['steps'] = temp_settings.get('denssSteps')
+            self.denss_settings['limitDmax'] = temp_settings.get('denssLimitDmax')
+            self.denss_settings['dmaxStep'] = temp_settings.get('denssDmaxStartStep')
+            self.denss_settings['recenter'] = temp_settings.get('denssRecenter')
+            self.denss_settings['recenterStep'] = temp_settings.get('denssRecenterStep')
+            self.denss_settings['positivity'] = temp_settings.get('denssPositivity')
+            self.denss_settings['extrapolate'] = temp_settings.get('denssExtrapolate')
+            self.denss_settings['shrinkwrap'] = temp_settings.get('denssShrinkwrap')
+            self.denss_settings['swSigmaStart'] = temp_settings.get('denssShrinkwrapSigmaStart')
+            self.denss_settings['swSigmaEnd'] = temp_settings.get('denssShrinkwrapSigmaEnd')
+            self.denss_settings['swSigmaDecay'] = temp_settings.get('denssShrinkwrapSigmaDecay')
+            self.denss_settings['swThresFrac'] = temp_settings.get('denssShrinkwrapThresFrac')
+            self.denss_settings['swIter'] = temp_settings.get('denssShrinkwrapIter')
+            self.denss_settings['swMinStep'] = temp_settings.get('denssShrinkwrapMinStep')
+            self.denss_settings['connected'] = temp_settings.get('denssConnected')
+            self.denss_settings['conSteps'] = temp_settings.get('denssConnectivitySteps')
+            self.denss_settings['chiEndFrac'] = temp_settings.get('denssChiEndFrac')
+            self.denss_settings['cutOutput'] = temp_settings.get('denssCutOut')
+            self.denss_settings['writeXplor'] = temp_settings.get('denssWriteXplor')
+
+        if self.denss_settings['mode'] == 'Fast':
+            self.denss_settings['swMinStep'] = 1000
+            self.denss_settings['conSteps'] = '[2000]'
+            self.denss_settings['recenterStep'] = '[501,1001,1501,2001,2501]'
+            self.denss_settings['steps'] = 5000
+            D = float(self.iftm.getParameter('dmax'))
+            self.denss_settings['voxel'] = D*self.denss_settings['oversample']/32.
+
+        elif self.denss_settings['mode'] == 'Slow':
+            self.denss_settings['swMinStep'] = 5000
+            self.denss_settings['conSteps'] = '[7500]'
+            self.denss_settings['recenterStep'] = '[1001,1501,3001,7501,8501]'
+            self.denss_settings['steps'] = 10000
+            D = float(self.iftm.getParameter('dmax'))
+            self.denss_settings['voxel'] = D*self.denss_settings['oversample']/64.
 
     def get_multi_output(self, queue, den_window, stop_event):
         num_msg = 0
@@ -5592,22 +5664,10 @@ class DenssRunPanel(wx.Panel):
 
         den_filelist = [prefix+'_%s.mrc' %(str(i).zfill(2)) for i in range(1, nruns+1)]
 
-        dmax = self.iftm.getParameter('dmax')
-        voxel = float(self.denss_settings['voxel'])
-        oversampling = float(self.denss_settings['oversample'])
-
-        side = oversampling*dmax
-        n = int(side/voxel)
-
-        if n%2==1:
-            grid = n-1
-        else:
-            grid = n
-
         cwd = os.getcwd()
         os.chdir(path)
 
-        eman_proc, out1 = SASCalc.runEman2Aver(den_filelist, procs, prefix, grid)
+        eman_proc, out1 = SASCalc.runEman2Aver(den_filelist, procs, prefix)
 
         os.chdir(cwd)
 
@@ -5712,7 +5772,10 @@ class DenssRunPanel(wx.Panel):
     def finishedProcessing(self):
         for key in self.ids:
             if key != 'logbook' and key != 'abort' and key != 'status':
-                wx.FindWindowById(self.ids[key], self).Enable()
+                try:
+                    wx.FindWindowById(self.ids[key], self).Enable()
+                except AttributeError:
+                    pass
             elif key == 'abort':
                 wx.FindWindowById(self.ids[key], self).Disable()
 
@@ -5779,19 +5842,9 @@ class DenssRunPanel(wx.Panel):
                             'runs'          : self.raw_settings.get('denssReconstruct'),
                             'cutOutput'     : self.raw_settings.get('denssCutOut'),
                             'writeXplor'    : self.raw_settings.get('denssWriteXplor'),
+                            'mode'          : self.raw_settings.get('denssMode'),
                             }
 
-        aver = wx.FindWindowById(self.ids['average'], self)
-        aver.SetValue(self.denss_settings['average'])
-
-        nruns = wx.FindWindowById(self.ids['runs'], self)
-        nruns.SetValue(str(self.denss_settings['runs']))
-
-        steps = wx.FindWindowById(self.ids['steps'], self)
-        steps.SetValue(str(self.denss_settings['steps']))
-
-        voxel = wx.FindWindowById(self.ids['voxel'], self)
-        voxel.SetValue(str(self.denss_settings['voxel']))
 
     def Close(self, event):
 
@@ -7573,9 +7626,6 @@ class SVDResultsPlotPanel(wx.Panel):
         ydata1 = svd_s[svd_start:svd_end+1]
         ydata2 = svd_U_autocor[svd_start:svd_end+1]
         ydata3 = svd_V_autocor[svd_start:svd_end+1]
-
-        # print ydata2
-        # print ydata3
 
         if not self.svd:
             self.svd, = a.semilogy(xdata, ydata1, 'r.-', animated = True)

@@ -8502,7 +8502,7 @@ class IFTItemPanel(wx.Panel):
                     menu.Append(23, 'Bead Model (DAMMIF/N)')
                 if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter')):
                     menu.Append(24, 'AMBIMETER')
-        # menu.Append(28, 'Electron Density (DENSS)')
+        menu.Append(28, 'Electron Density (DENSS)')
         menu.Append(25, 'SVD')
         menu.Append(26, 'EFA')
         menu.Append(27, 'Similarity Test')
@@ -10679,7 +10679,7 @@ class SECControlPanel(wx.Panel):
                 self.final_frame_number_box.SetValue(self.final_selected_frame)
 
                 self._updateControlValues
-        
+
         elif hdr_format == 'BioCAT, APS':
 
             count_filename, frame_number = SASFileIO.parseBiocatFilename(os.path.join(self.directory, self.filename))

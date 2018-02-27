@@ -21,7 +21,15 @@ Created on Aug 2, 2010
 #
 #******************************************************************************
 '''
-import wx, re, sys, os, time, math, Queue, copy, subprocess
+import wx
+import re
+import sys
+import os
+import time
+import math
+import Queue
+import copy
+import subprocess
 import wx.lib.agw.customtreectrl as CT
 #import wx.lib.agw.floatspin as FS
 import RAWSettings, RAWCustomCtrl
@@ -29,7 +37,9 @@ from numpy import ceil
 import platform
 import glob
 
-import SASFileIO, SASParser, SASExceptions
+import SASFileIO
+import SASParser
+import SASExceptions
 
 
 #--- ** TREE BOOK PANELS **
@@ -3697,6 +3707,189 @@ class FittingPanel(wx.Panel):
 
         return sizer
 
+class DenssPanel(wx.Panel):
+
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+
+        self.raw_settings = raw_settings
+
+        self.update_keys = ['denssExtrapolate', 'denssShrinkwrapSigmaStart',
+            'denssShrinkwrapSigmaEnd', 'denssShrinkwrapSigmaDecay',
+            'denssShrinkwrapThresFrac', 'denssShrinkwrapIter', 'denssChiEndFrac',
+            'denssMode', 'denssSteps', 'denssVoxel', 'denssOversampling',
+            'denssLimitDmax', 'denssDmaxStartStep', 'denssRecenter',
+            'denssRecenterStep', 'denssPositivity', 'denssShrinkwrap',
+            'denssShrinkwrapMinStep', 'denssConnected', 'denssConnectivitySteps',
+            'denssWriteXplor', 'denssCutOut', 'autoFindEMAN2', 'EMAN2Dir',
+            ]
+
+        modeChoices = ['Fast', 'Slow', 'Custom']
+
+        self.default_options = (('Automatically find the EMAN2 directory', raw_settings.getId('autoFindEMAN2'), 'bool'),
+            ('EMAN2 location:', raw_settings.getId('EMAN2Dir'), 'text'),
+            ('Default mode:', raw_settings.getId('denssMode'), 'choice', modeChoices)
+            )
+
+        self.custom_options_long = (("Extrapolate data using Porod's law to voxel resolution limit", raw_settings.getId('denssExtrapolate'), 'bool'),
+            ("Starting sigma for Gaussian blurring, in voxels:", raw_settings.getId('denssShrinkwrapSigmaStart'), 'float'),
+            ("Ending sigma for Gaussian blurring, in voxels:", raw_settings.getId('denssShrinkwrapSigmaEnd'), 'float'),
+            ("Rate of decay of sigma, fraction (default 0.99):", raw_settings.getId('denssShrinkwrapSigmaDecay'), 'float'),
+            ("Minimum threshold defining support, in fraction of maximum density (default 0.20):", raw_settings.getId('denssShrinkwrapThresFrac'), 'float'),
+            ("Number of iterations between updating support with shrinkwrap (default 20):", raw_settings.getId('denssShrinkwrapIter'), 'int'),
+            ("Convergence criterion. Minimum threshold of chi2 std dev, as a fraction \nof the median chi2 of last 100 steps. (default 0.001):", raw_settings.getId('denssChiEndFrac'), 'float'),
+            )
+
+        self.custom_options_short = (('Number of iterations:', raw_settings.getId('denssSteps'), 'int'),
+            ('Voxel size [A]:', raw_settings.getId('denssVoxel'), 'float'),
+            ('Oversampling:', raw_settings.getId('denssOversampling'), 'float'),
+            ("Limit vol. to 0.6*Dmax", raw_settings.getId('denssLimitDmax'), 'bool'),
+            ('Dmax limit starts at step:', raw_settings.getId('denssDmaxStartStep'), 'int'),
+            ('Recenter density', raw_settings.getId('denssRecenter'), 'bool'),
+            ('Recenter density at steps:', raw_settings.getId('denssRecenterStep'), 'text'),
+            ('Enforce positivity', raw_settings.getId('denssPositivity'), 'bool'),
+            ('Shrinkwrap', raw_settings.getId('denssShrinkwrap'), 'bool'),
+            ('Shrinkwrap first step:', raw_settings.getId('denssShrinkwrapMinStep'), 'int'),
+            ('Enforce conectivity', raw_settings.getId('denssConnected'), 'bool'),
+            ('Enforce connectivity at steps:', raw_settings.getId('denssConnectivitySteps'), 'text'),
+            ('Write xplor files', raw_settings.getId('denssWriteXplor'), 'bool'),
+            ('Reduce size of output map', raw_settings.getId('denssCutOut'), 'bool'),
+            )
+
+        layoutSizer = self._createLayout(self)
+
+        self.SetSizer(layoutSizer)
+
+    def _createLayout(self, parent):
+
+        box = wx.StaticBox(parent, wx.ID_ANY, 'Default settings')
+        default_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+
+        for item in self.default_options:
+            label = item[0]
+            myId = item[1]
+            itemType = item[2]
+
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+            if itemType == 'choice':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.Choice(parent, myId, choices = item[3])
+
+                sizer.Add(labeltxt, 0, wx.ALL, 2)
+                sizer.Add(ctrl, 0, wx.ALL, 2)
+
+            elif itemType == 'text' or itemType == 'int' or itemType =='float':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.TextCtrl(parent, myId, '', size=(475,-1), style = wx.TE_PROCESS_ENTER)
+
+                sizer.Add(labeltxt, 0, wx.ALL, 2)
+                sizer.Add(ctrl, 1, wx.ALL | wx.EXPAND, 2)
+
+                if myId == self.raw_settings.getId('EMAN2Dir'):
+                    self.datadir = ctrl
+                    self.dirButton = wx.Button(self, wx.ID_ANY, 'Select Directory')
+                    sizer.Add(self.dirButton, 0, wx.RIGHT | wx.TOP | wx.BOTTOM, 2)
+
+            elif itemType == 'bool':
+                ctrl = wx.CheckBox(parent, myId, label)
+                sizer.Add(ctrl, 0, wx.ALL, 2)
+
+                if myId == self.raw_settings.getId('autoFindEMAN2'):
+                    self.autoFind = ctrl
+                    self.autoFind.Bind(wx.EVT_CHECKBOX, self.onAutoFind)
+
+            default_sizer.Add(sizer, 0)
+
+        box = wx.StaticBox(parent, wx.ID_ANY, 'Custom settings (only used in custom mode)')
+        customSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+
+        for item in self.custom_options_long:
+            label = item[0]
+            myId = item[1]
+            itemType = item[2]
+
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+            if itemType == 'choice':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.Choice(parent, myId, choices = item[3])
+
+                sizer.Add(labeltxt, 0, wx.ALL, 2)
+                sizer.Add(ctrl, 0, wx.ALL, 2)
+
+            elif itemType == 'text' or itemType == 'int' or itemType =='float':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+
+                sizer.Add(labeltxt, 0, wx.ALL, 2)
+                sizer.Add(ctrl, 0, wx.ALL, 2)
+
+            elif itemType == 'bool':
+                ctrl = wx.CheckBox(parent, myId, label)
+                sizer.Add(ctrl, 0, wx.ALL, 2)
+
+            customSizer.Add(sizer, 0)
+
+        short_sizer = wx.FlexGridSizer(rows = int(len(self.custom_options_short)/2.+.5), cols =4, hgap =2, vgap =2)
+
+        for item in self.custom_options_short:
+            label = item[0]
+            myId = item[1]
+            itemType = item[2]
+
+            if itemType == 'choice':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.Choice(parent, myId, choices = item[3])
+
+                short_sizer.Add(labeltxt, 0)
+                short_sizer.Add(ctrl, 0)
+
+            elif itemType == 'text' or itemType == 'int' or itemType =='float':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+
+                short_sizer.Add(labeltxt, 0)
+                short_sizer.Add(ctrl, 0)
+
+            elif itemType == 'bool':
+                ctrl = wx.CheckBox(parent, myId, label)
+                short_sizer.Add(ctrl, 0, wx.ALL, 2)
+                short_sizer.AddStretchSpacer(1)
+
+        customSizer.Add(short_sizer,0)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(default_sizer)
+        top_sizer.Add(customSizer)
+
+        if not self.autoFind.GetValue():
+            self.datadir.SetEditable(True)
+            self.dirButton.Enable()
+
+        else:
+            self.datadir.SetEditable(False)
+            self.dirButton.Disable()
+
+        return top_sizer
+
+    def onAutoFind(self, evt):
+        findeman = evt.GetEventObject().GetValue()
+
+        if not findeman:
+            self.datadir.SetEditable(True)
+            self.dirButton.Enable()
+
+        else:
+            self.datadir.SetEditable(False)
+            self.dirButton.Disable()
+            self.setEMANDir()
+
+    def setEMANDir(self):
+        emanDir = findEMANDirectory()
+        self.datadir.SetValue(emanDir)
+
 def findATSASDirectory():
     opsys= platform.system()
 
@@ -3768,10 +3961,10 @@ def findATSASDirectory():
 def findEMANDirectory():
     opsys= platform.system()
 
-    if opsys== 'Windows':
+    if opsys == 'Windows':
         default_path = 'C:\\EMAN2\\bin'
     else:
-        default_path = '~/EMAN2/bin'
+        default_path = os.path.expanduser('~/EMAN2/bin')
 
     is_atsas = os.path.exists(default_path)
 
@@ -4120,6 +4313,7 @@ class OptionsDialog(wx.Dialog):
                             [ (10,0,0), wx.Window.NewControlId(), "Weighted Average", WeightedAveragePanel],
                             [ (11,0,0), wx.Window.NewControlId(), "Similarity Testing", SimilarityPanel],
                             [ (12,0,0), wx.Window.NewControlId(), "Fitting", FittingPanel],
+                            [ (13,0,0), wx.Window.NewControlId(), "DENSS", DenssPanel],
                             # [ (10,0,0), wx.Window.NewControlId(), "SANS", SansOptionsPanel]
                             ]
 
