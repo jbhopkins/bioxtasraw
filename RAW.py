@@ -7191,36 +7191,41 @@ class ManipItemPanel(wx.Panel):
         convertq_menu.Append(15, 'q * 10')
         convertq_menu.Append(16, 'q / 10')
 
+        other_ops_menu = wx.Menu()
+        other_ops_menu.AppendMenu(wx.ID_ANY, 'Convert q-scale', convertq_menu)
+        other_ops_menu.Append(25, 'Interpolate')
+        other_ops_menu.Append(22, 'Merge')
+        other_ops_menu.Append(28, 'Normalize by conc.')
+        other_ops_menu.Append(23, 'Rebin')
+        other_ops_menu.Append(39, 'Sync')
+        other_ops_menu.Append(40, 'Superimpose')
+        other_ops_menu.Append(27, 'Use as MW standard')
+
+        other_an_menu = wx.Menu()
+        other_an_menu.Append(34, 'SVD')
+        other_an_menu.Append(35, 'EFA')
+
         menu.Append(4, 'Subtract')
         menu.Append(6, 'Average' )
-        menu.Append(22, 'Merge')
-        menu.Append(23, 'Rebin')
-        menu.Append(25, 'Interpolate')
-        menu.Append(39, 'Sync')
-        menu.Append(40, 'Superimpose')
         menu.Append(36, 'Weighted Average')
+        menu.AppendMenu(wx.ID_ANY, 'Other Operations', other_ops_menu)
         menu.AppendSeparator()
-        menu.Append(27, 'Use as MW standard')
-        menu.Append(28, 'Normalize by conc')
 
-        menu.AppendSeparator()
         menu.Append(5, 'Remove' )
         menu.AppendSeparator()
         menu.Append(13, 'Guinier fit')
         menu.Append(29, 'Molecular weight')
-        menu.Append(32, 'BIFT')
+        menu.Append(32, 'IFT (BIFT)')
         if opsys == 'Windows':
             if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'gnom.exe')):
-                menu.Append(31, 'GNOM (ATSAS)')
+                menu.Append(31, 'IFT (GNOM)')
         else:
             if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'gnom')):
-                menu.Append(31, 'GNOM (ATSAS)')
-        menu.Append(34, 'SVD')
-        menu.Append(35, 'EFA')
+                menu.Append(31, 'IFT (GNOM)')
+
         menu.Append(37, 'Similarity Test')
         menu.Append(38, 'Normalized Kratky Plots')
-
-        menu.AppendMenu(wx.ID_ANY, 'Convert q-scale', convertq_menu)
+        menu.AppendMenu(wx.ID_ANY, 'Other Analysis', other_an_menu)
 
         menu.AppendSeparator()
         img = menu.Append(19, 'Show image')

@@ -123,11 +123,11 @@ class GuinierPlotPanel(wx.Panel):
 
         self.canvas.mpl_disconnect(self.cid)
 
-        self.updateDataPlot(self.xlim)
+        self.updateDataPlot(self.xlim, is_autorg=True)
 
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
-    def _calcFit(self):
+    def _calcFit(self, is_autorg=False):
         ''' calculate fit and statistics '''
         xmin, xmax = self.xlim
 
@@ -146,6 +146,12 @@ class GuinierPlotPanel(wx.Panel):
 
         Rg, I0, Rger, I0er, opt, cov = SASCalc.calcRg(x, y, yerr, transform=False)
 
+        if is_autorg:
+            est_rg_err = None
+            est_i0_err = None
+        else:
+            est_rg_err, est_i0_err = self._estimateError(x, y, yerr)
+
         #Get fit statistics:
         a = opt[0]
         b = opt[1]
@@ -153,13 +159,46 @@ class GuinierPlotPanel(wx.Panel):
         error = y - y_fit
         r_sqr = 1 - np.square(error).sum()/np.square(y-y.mean()).sum()
 
-        newInfo = {'I0' : (I0, I0er),
-                   'Rg' : (Rg, Rger),
+        newInfo = {'I0' : I0,
+                   'Rg' : Rg,
                    'qRg_max': Rg*self.orig_q[xmax],
                    'qRg_min' : Rg*self.orig_q[xmin],
-                   'rsq': r_sqr}
+                   'rsq': r_sqr,
+                   'err_fsigma_rg'  : Rger,
+                   'err_fsigma_i0'  : I0er,
+                   'err_est_rg'     : est_rg_err,
+                   'err_est_i0'     : est_i0_err,
+                   }
 
         return x, y_fit, a, error, newInfo
+
+    def _estimateError(self, x, y, yerr):
+        win_size = len(x)
+
+        if win_size < 10:
+            est_rg_err = None
+            est_i0_err = None
+        else:
+            var = win_size/10
+            rg_list = np.empty((var+1)**2, dtype=np.float64)
+            i0_list = np.empty((var+1)**2, dtype=np.float64)
+            index = 0
+
+            for li in range(0, var+1):
+                for ri in range(0,var+1):
+                    if ri == 0:
+                        Rg, I0, Rger, I0er, opt, cov = SASCalc.calcRg(x[li:], y[li:], yerr[li:], transform=False)
+                    else:
+                        Rg, I0, Rger, I0er, opt, cov = SASCalc.calcRg(x[li:-ri], y[li:-ri], yerr[li:-ri], transform=False)
+                    rg_list[index] = Rg
+                    i0_list[index] = I0
+                    index = index+1
+
+            est_rg_err = rg_list.std()
+            est_i0_err = i0_list.std()
+
+
+        return est_rg_err, est_i0_err
 
     def plotExpObj(self, ExpObj):
         qmin, qmax = ExpObj.getQrange()
@@ -172,7 +211,7 @@ class GuinierPlotPanel(wx.Panel):
         self.y = np.log(self.orig_i)
         self.yerr = np.absolute(self.orig_err/self.orig_i)
 
-    def updateDataPlot(self, xlim):
+    def updateDataPlot(self, xlim, is_autorg=False):
         xmin, xmax = xlim
         self.xlim = xlim
 
@@ -203,7 +242,7 @@ class GuinierPlotPanel(wx.Panel):
         b = self.subplots['Residual']
 
         try:
-            x_fit, y_fit, I0, error, newInfo = self._calcFit()
+            x_fit, y_fit, I0, error, newInfo = self._calcFit(is_autorg)
         except TypeError as e:
             print e
             return
@@ -321,10 +360,25 @@ class GuinierControlPanel(wx.Panel):
                             'qend'   : self.NewControlId()}
 
         self.infodata = {'I0' : ('I0 :', self.NewControlId(), self.NewControlId()),
-                         'Rg' : ('Rg :', self.NewControlId(), self.NewControlId()),
-                         'qRg_max': ('qRg_max :', self.NewControlId()),
-                         'qRg_min': ('qRg :', self.NewControlId()),
-                         'rsq': ('r^2 (fit) :', self.NewControlId())}
+                        'Rg' : ('Rg :', self.NewControlId(), self.NewControlId()),
+                        'qRg_max': ('qRg_max :', self.NewControlId()),
+                        'qRg_min': ('qRg :', self.NewControlId()),
+                        'rsq': ('r^2 (fit) :', self.NewControlId()),
+                         }
+
+        self.error_data = {'fsigma_rg'  : self.NewControlId(),
+                        'fsigma_i0'     : self.NewControlId(),
+                        'autorg_rg'     : self.NewControlId(),
+                        'autorg_i0'     : self.NewControlId(),
+                        'est_rg'        : self.NewControlId(),
+                        'est_i0'        : self.NewControlId(),
+                        'sum_rg'        : self.NewControlId(),
+                        'sum_i0'        : self.NewControlId(),
+                        }
+
+        self.button_ids = {'show'   : self.NewControlId(),
+                            'info'  : self.NewControlId(),
+                            }
 
 
         button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
@@ -347,6 +401,7 @@ class GuinierControlPanel(wx.Panel):
         qrgsizer = self.createQRgInfo()
         boxSizer.Add(qrgsizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 5)
 
+        error_sizer = self.createErrorSizer()
 
         box2 = wx.StaticBox(self, -1, 'Control')
         controlSizer = self.createControls()
@@ -356,14 +411,15 @@ class GuinierControlPanel(wx.Panel):
         boxSizer2.Add(line_sizer, 0, flag = wx.EXPAND | wx.ALL, border = 10)
         boxSizer2.Add(autorg_button, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 5)
 
-        bsizer = wx.BoxSizer(wx.VERTICAL)
-        bsizer.Add(self.createFileInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
-        # bsizer.Add(self.createConcInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
-        bsizer.Add(boxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
-        bsizer.Add(boxSizer2, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
-        bsizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT| wx.TOP, 5)
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(self.createFileInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
+        # top_sizer.Add(self.createConcInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+        top_sizer.Add(boxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+        top_sizer.Add(error_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+        top_sizer.Add(boxSizer2, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
+        top_sizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT| wx.TOP, 5)
 
-        self.SetSizer(bsizer)
+        self.SetSizer(top_sizer)
 
         self.setFilename(os.path.basename(ExpObj.getParameter('filename')))
 
@@ -522,6 +578,18 @@ class GuinierControlPanel(wx.Panel):
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(idx_max)],5)))
 
+                txt = wx.FindWindowById(self.error_data['autorg_rg'], self)
+                if abs(rger) > 1e3 or abs(rger) < 1e-2:
+                    txt.SetValue('%.3E' %(rger))
+                else:
+                    txt.SetValue('%.4f' %(round(rger, 4)))
+
+                txt = wx.FindWindowById(self.error_data['autorg_i0'], self)
+                if abs(i0er) > 1e3 or abs(i0er) < 1e-2:
+                    txt.SetValue('%.3E' %(i0er))
+                else:
+                    txt.SetValue('%.4f' %(round(i0er, 4)))
+
             except IndexError:
                 spinstart.SetValue(old_start)
                 spinend.SetValue(old_end)
@@ -532,10 +600,16 @@ class GuinierControlPanel(wx.Panel):
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(old_end)],5)))
 
+                txt = wx.FindWindowById(self.error_data['autorg_rg'], self)
+                txt.SetValue('')
+
+                txt = wx.FindWindowById(self.error_data['autorg_i0'], self)
+                txt.SetValue('')
+
                 msg = 'AutoRG did not produce a useable result. Please report this to the developers.'
                 wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK)
 
-        self.updatePlot()
+        self.updatePlot(is_autorg=True)
 
     def setCurrentExpObj(self, ExpObj):
 
@@ -617,6 +691,107 @@ class GuinierControlPanel(wx.Panel):
         sizer.Add(self.endSpin, 0, wx.EXPAND | wx.RIGHT, 5)
 
         return sizer
+
+    def createErrorSizer(self):
+        box = wx.StaticBox(self, wx.ID_ANY, 'Uncertainty')
+
+        sum_sizer = wx.FlexGridSizer(1, 4, 3, 3)
+        sum_sizer.AddGrowableCol(1)
+        sum_sizer.AddGrowableCol(3)
+        rg_sum_lbl = wx.StaticText(self, wx.ID_ANY, 'Rg : ')
+        i0_sum_lbl = wx.StaticText(self, wx.ID_ANY, 'I0 : ')
+        rg_sum_txt = wx.TextCtrl(self, self.error_data['sum_rg'], '', size = (60, -1))
+        i0_sum_txt = wx.TextCtrl(self, self.error_data['sum_i0'], '', size = (60, -1))
+
+        sum_sizer.AddMany([(rg_sum_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
+            (rg_sum_txt, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
+            (i0_sum_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
+            (i0_sum_txt, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
+            ])
+
+        self.err_sizer = wx.FlexGridSizer(3, 4, 3, 3)
+        self.err_sizer.AddGrowableCol(1)
+        self.err_sizer.AddGrowableCol(2)
+        self.err_sizer.AddGrowableCol(3)
+
+        std_text = wx.StaticText(self, wx.ID_ANY, 'Fit')
+        auto_text = wx.StaticText(self, wx.ID_ANY, 'AutoRg')
+        est_text = wx.StaticText(self, wx.ID_ANY, 'Est.')
+
+        self.err_sizer.AddMany([(wx.StaticText(self, wx.ID_ANY, ''), 0,),
+            (std_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
+            (auto_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
+            (est_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
+            ])
+
+        rg_text = wx.StaticText(self, wx.ID_ANY, 'Rg :')
+        rg_fit = wx.TextCtrl(self, self.error_data['fsigma_rg'], '', size=(60,-1))
+        rg_auto = wx.TextCtrl(self, self.error_data['autorg_rg'], '', size=(60,-1))
+        rg_est = wx.TextCtrl(self, self.error_data['est_rg'], '', size=(60,-1))
+
+        self.err_sizer.AddMany([(rg_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
+            (rg_fit, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
+            (rg_auto, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
+            (rg_est, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
+            ])
+
+        i0_text = wx.StaticText(self, wx.ID_ANY, 'I0 :')
+        i0_fit = wx.TextCtrl(self, self.error_data['fsigma_i0'], '', size=(60,-1))
+        i0_auto = wx.TextCtrl(self, self.error_data['autorg_i0'], '', size=(60,-1))
+        i0_est = wx.TextCtrl(self, self.error_data['est_i0'], '', size=(60,-1))
+
+        self.err_sizer.AddMany([(i0_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
+            (i0_fit, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
+            (i0_auto, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
+            (i0_est, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
+            ])
+
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        show_btn = wx.Button(self, self.button_ids['show'], 'Show Details')
+        show_btn.Bind(wx.EVT_BUTTON, self._onShowButton)
+
+        info_btn = wx.Button(self, self.button_ids['info'], 'More Info')
+        info_btn.Bind(wx.EVT_BUTTON, self._onInfoButton)
+
+        button_sizer.Add(show_btn, 0, wx.ALL, 5)
+        button_sizer.Add(info_btn, 0, wx.ALL, 5)
+
+        self.err_top_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        self.err_top_sizer.Add(sum_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        self.err_top_sizer.Add(self.err_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        self.err_top_sizer.Add(button_sizer, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL, 5)
+
+        self.err_top_sizer.Hide(self.err_sizer, recursive=True)
+
+        return self.err_top_sizer
+
+    def _onShowButton(self, evt):
+        if self.err_top_sizer.IsShown(self.err_sizer):
+            self.err_top_sizer.Hide(self.err_sizer, recursive=True)
+            button = wx.FindWindowById(self.button_ids['show'], self)
+            button.SetLabel('Show Details')
+            self.Layout()
+        else:
+            self.err_top_sizer.Show(self.err_sizer, recursive=True)
+            button = wx.FindWindowById(self.button_ids['show'], self)
+            button.SetLabel('Hide Details')
+            self.Layout()
+
+    def _onInfoButton(self, evt):
+        msg = ("RAW currently estimates the error in Rg and I0 as the largest "
+        "of three possible sources.\n\n1) Fit - the standard deviation of the "
+        "coefficients found by the fit (sqrt of the covariance matrix diagonal "
+        "elements).\n\n2) Autorg - If the autorg position is used, RAW reports "
+        "the standard deviation of the Rg and I0 values from all 'good' fitting "
+        "regions found during the search.\n\n3) Est. - An estimated error similar "
+        "to that reported from the autorg function. When manual limits are set, RAW "
+        "reports the standard deviation in Rg and I0 obtained from the set of intervals "
+        "where n_min is varied bewteen n_min to n_min+(n_max-n_min)*.1 and "
+        "n_max varied between n_max-(n_max-n_min)*.1 to n_max.")
+
+        dlg = wx.MessageDialog(self, msg, "Estimate Rg and I0 Error", style = wx.ICON_INFORMATION | wx.OK)
+        dlg.ShowModal()
+        dlg.Destroy()
 
     def onEnterInQlimits(self, evt):
 
@@ -731,7 +906,13 @@ class GuinierControlPanel(wx.Panel):
         wx.CallAfter(self.updatePlot)
 
 
-    def updatePlot(self):
+    def updatePlot(self, is_autorg=False):
+        if not is_autorg:
+            txt = wx.FindWindowById(self.error_data['autorg_rg'], self)
+            txt.SetValue('')
+            txt = wx.FindWindowById(self.error_data['autorg_i0'], self)
+            txt.SetValue('')
+
         plotpanel = wx.FindWindowByName('GuinierPlotPanel')
 
         spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
@@ -754,28 +935,44 @@ class GuinierControlPanel(wx.Panel):
         if not b.get_autoscale_on():
             b.set_autoscale_on(True)
 
-        plotpanel.updateDataPlot(xlim)
+        plotpanel.updateDataPlot(xlim, is_autorg)
         plotpanel.cid = plotpanel.canvas.mpl_connect('draw_event', plotpanel.ax_redraw) #Reconnect draw_event
 
 
     def updateInfo(self, newInfo):
 
         for eachkey in newInfo.iterkeys():
+            val = newInfo[eachkey]
 
-            if len(self.infodata[eachkey]) == 2:
-                ctrl = wx.FindWindowById(self.infodata[eachkey][1], self)
-                if np.log10(newInfo[eachkey]) < 0:
-                    mval = int(np.absolute(np.log10(newInfo[eachkey])))+4
-                else:
-                    mval = 5
-                ctrl.SetValue(str(round(newInfo[eachkey],mval)))
+            if eachkey.startswith('err'):
+                key = '_'.join(eachkey.split('_')[1:])
+                ctrl = wx.FindWindowById(self.error_data[key], self)
             else:
                 ctrl = wx.FindWindowById(self.infodata[eachkey][1], self)
-                if np.log10(newInfo[eachkey][0]) < 0:
-                    mval = int(np.absolute(np.log10(newInfo[eachkey][0])))+4
-                else:
-                    mval = 5
-                ctrl.SetValue(str(round(newInfo[eachkey][0],mval)))
+
+            if val is None:
+                ctrl.SetValue('')
+            elif abs(val) > 1e3 or abs(val) < 1e-2:
+                ctrl.SetValue('%.3E' %(val))
+            else:
+                ctrl.SetValue('%.4f' %(round(val, 4)))
+
+        i0_list = []
+        rg_list = []
+        for key in self.error_data:
+            if 'sum' not in key:
+                ctrl = wx.FindWindowById(self.error_data[key])
+                val = ctrl.GetValue()
+                if 'i0' in key and val != '':
+                    i0_list.append(float(val))
+                if 'rg' in key and 'i0' not in key and val != '':
+                    rg_list.append(float(val))
+
+        ctrl = wx.FindWindowById(self.error_data['sum_rg'])
+        ctrl.SetValue(str(max(rg_list)))
+
+        ctrl = wx.FindWindowById(self.error_data['sum_i0'])
+        ctrl.SetValue(str(max(i0_list)))
 
     def updateLimits(self, top = None, bottom = None):
         if bottom:
@@ -831,7 +1028,7 @@ class GuinierFrame(wx.Frame):
         plotPanel = GuinierPlotPanel(splitter1, -1, 'GuinierPlotPanel')
         self.controlPanel = GuinierControlPanel(splitter1, -1, 'GuinierControlPanel', ExpObj, manip_item)
 
-        splitter1.SplitVertically(self.controlPanel, plotPanel, 290)
+        splitter1.SplitVertically(self.controlPanel, plotPanel, 300)
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
             splitter1.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
