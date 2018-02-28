@@ -163,6 +163,8 @@ class GuinierPlotPanel(wx.Panel):
                    'Rg' : Rg,
                    'qRg_max': Rg*self.orig_q[xmax],
                    'qRg_min' : Rg*self.orig_q[xmin],
+                   'qmin'   : self.orig_q[xmin],
+                   'qmax'   : self.orig_q[xmax],
                    'rsq': r_sqr,
                    'err_fsigma_rg'  : Rger,
                    'err_fsigma_i0'  : I0er,
@@ -618,6 +620,18 @@ class GuinierControlPanel(wx.Panel):
 
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(idx_max)],5)))
+
+                if 'Rg_autorg_err' in guinier:
+                    txt = wx.FindWindowById(self.error_data['autorg_rg'], self)
+                    txt.SetValue(guinier['Rg_autorg_err'])
+
+                    txt = wx.FindWindowById(self.error_data['autorg_i0'], self)
+                    txt.SetValue(guinier['I0_autorg_err'])
+
+                    self.updatePlot(is_autorg=True)
+                else:
+                    self.updatePlot()
+
             except IndexError:
                 spinstart.SetValue(old_start)
                 spinend.SetValue(old_end)
@@ -628,7 +642,7 @@ class GuinierControlPanel(wx.Panel):
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(old_end)],5)))
 
-            self.updatePlot()
+                self.updatePlot()
 
         else:
             self.runAutoRg()
@@ -658,12 +672,9 @@ class GuinierControlPanel(wx.Panel):
 
             info_dict = {}
 
-            for key in self.infodata.keys():
-                id = self.infodata[key][1]
-                widget = wx.FindWindowById(id, self)
-                val = widget.GetValue()
-
-                info_dict[key] = val
+            for key in newInfo.keys():
+                if key in self.infodata.keys():
+                    info_dict[key] = str(newInfo[key])
 
             nstart_val = wx.FindWindowById(self.spinctrlIDs['qstart'], self).GetValue()
             nend_val = wx.FindWindowById(self.spinctrlIDs['qend'], self).GetValue()
@@ -675,6 +686,23 @@ class GuinierControlPanel(wx.Panel):
             info_dict['nEnd'] = nend_val
             info_dict['qStart'] = qstart_val
             info_dict['qEnd'] = qend_val
+
+            info_dict['Rg_fit_err'] = newInfo['err_fsigma_rg']
+            info_dict['I0_fit_err'] = newInfo['err_fsigma_i0']
+
+            autorg_rg_err = wx.FindWindowById(self.error_data['autorg_rg'], self).GetValue()
+            autorg_i0_err = wx.FindWindowById(self.error_data['autorg_i0'], self).GetValue()
+
+            if autorg_rg_err != '':
+                info_dict['Rg_autorg_err'] = autorg_rg_err
+                info_dict['I0_autorg_err'] = autorg_i0_err
+                info_dict['Rg_err'] = max(float(autorg_rg_err), float(newInfo['err_fsigma_rg']))
+                info_dict['I0_err'] = max(float(autorg_i0_err), float(newInfo['err_fsigma_i0']))
+            else:
+                info_dict['Rg_est_err'] = newInfo['err_est_rg']
+                info_dict['I0_est_err'] = newInfo['err_est_i0']
+                info_dict['Rg_err'] = max(float(newInfo['err_est_rg']), float(newInfo['err_fsigma_rg']))
+                info_dict['I0_err'] = max(float(newInfo['err_est_i0']), float(newInfo['err_fsigma_i0']))
 
             analysis_dict = self.ExpObj.getParameter('analysis')
             analysis_dict['guinier'] = info_dict
@@ -764,8 +792,6 @@ class GuinierControlPanel(wx.Panel):
 
         self.ExpObj = ExpObj
 
-
-
     def _onShowButton(self, evt):
         if self.err_top_sizer.IsShown(self.err_sizer):
             self.err_top_sizer.Hide(self.err_sizer, recursive=True)
@@ -779,18 +805,18 @@ class GuinierControlPanel(wx.Panel):
             self.Layout()
 
     def _onInfoButton(self, evt):
-        msg = ("RAW currently estimates the error in Rg and I0 as the largest "
+        msg = ("RAW currently estimates the uncertainty in Rg and I0 as the largest "
         "of three possible sources.\n\n1) Fit - the standard deviation of the "
         "coefficients found by the fit (sqrt of the covariance matrix diagonal "
         "elements).\n\n2) Autorg - If the autorg position is used, RAW reports "
         "the standard deviation of the Rg and I0 values from all 'good' fitting "
-        "regions found during the search.\n\n3) Est. - An estimated error similar "
+        "regions found during the search.\n\n3) Est. - An estimated uncertainty similar "
         "to that reported from the autorg function. When manual limits are set, RAW "
         "reports the standard deviation in Rg and I0 obtained from the set of intervals "
         "where n_min is varied bewteen n_min to n_min+(n_max-n_min)*.1 and "
         "n_max varied between n_max-(n_max-n_min)*.1 to n_max.")
 
-        dlg = wx.MessageDialog(self, msg, "Estimate Rg and I0 Error", style = wx.ICON_INFORMATION | wx.OK)
+        dlg = wx.MessageDialog(self, msg, "Estimate Rg and I0 Uncertainty", style = wx.ICON_INFORMATION | wx.OK)
         dlg.ShowModal()
         dlg.Destroy()
 
@@ -941,22 +967,24 @@ class GuinierControlPanel(wx.Panel):
 
 
     def updateInfo(self, newInfo):
-
         for eachkey in newInfo.iterkeys():
             val = newInfo[eachkey]
 
             if eachkey.startswith('err'):
                 key = '_'.join(eachkey.split('_')[1:])
                 ctrl = wx.FindWindowById(self.error_data[key], self)
-            else:
+            elif eachkey in self.infodata:
                 ctrl = wx.FindWindowById(self.infodata[eachkey][1], self)
-
-            if val is None:
-                ctrl.SetValue('')
-            elif abs(val) > 1e3 or abs(val) < 1e-2:
-                ctrl.SetValue('%.3E' %(val))
             else:
-                ctrl.SetValue('%.4f' %(round(val, 4)))
+                ctrl = None
+
+            if ctrl is not None:
+                if val is None:
+                    ctrl.SetValue('')
+                elif abs(val) > 1e3 or abs(val) < 1e-2:
+                    ctrl.SetValue('%.3E' %(val))
+                else:
+                    ctrl.SetValue('%.4f' %(round(val, 4)))
 
         i0_list = []
         rg_list = []
@@ -1041,7 +1069,6 @@ class GuinierFrame(wx.Frame):
 
         self.controlPanel.setSpinLimits(ExpObj)
         self.controlPanel.setCurrentExpObj(ExpObj)
-        self.controlPanel._initSettings()
 
         splitter1.Layout()
         self.Layout()
@@ -1056,6 +1083,7 @@ class GuinierFrame(wx.Frame):
                 size[1] = size[1] + 20
                 self.SetSize(size)
 
+        self.controlPanel._initSettings()
 
         self.CenterOnParent()
         self.Raise()
