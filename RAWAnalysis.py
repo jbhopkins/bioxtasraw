@@ -423,6 +423,155 @@ class GuinierControlPanel(wx.Panel):
 
         self.setFilename(os.path.basename(ExpObj.getParameter('filename')))
 
+    def createQRgInfo(self):
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        txt = wx.StaticText(self, -1, self.infodata['qRg_min'][0])
+        ctrl1 = wx.TextCtrl(self, self.infodata['qRg_min'][1], '0')
+        ctrl2 = wx.TextCtrl(self, self.infodata['qRg_max'][1], '0')
+
+        sizer.Add(txt, 0, wx.RIGHT, 7)
+        sizer.Add(ctrl1,0, wx.RIGHT, 5)
+        sizer.Add(ctrl2,0)
+
+        return sizer
+
+    def createInfoBox(self):
+
+        sizer = wx.FlexGridSizer(rows = len(self.infodata), cols = 2)
+
+        for key in self.infodata.iterkeys():
+
+
+            if key == 'qRg_min' or key == 'qRg_max':
+                continue
+
+            if len(self.infodata[key]) == 2:
+                txt = wx.StaticText(self, -1, self.infodata[key][0])
+                ctrl = wx.TextCtrl(self, self.infodata[key][1], '0')
+                sizer.Add(txt, 0)
+                sizer.Add(ctrl,0)
+
+            else:
+                txt = wx.StaticText(self, -1, self.infodata[key][0])
+                ctrl1 = wx.TextCtrl(self, self.infodata[key][1], '0')
+
+                bsizer = wx.BoxSizer()
+                bsizer.Add(ctrl1,0,wx.EXPAND)
+
+                sizer.Add(txt,0)
+                sizer.Add(bsizer,0)
+
+        return sizer
+
+    def createControls(self):
+
+        sizer = wx.FlexGridSizer(rows = 2, cols = 4)
+        sizer.AddGrowableCol(0)
+        sizer.AddGrowableCol(1)
+        sizer.AddGrowableCol(2)
+        sizer.AddGrowableCol(3)
+
+        sizer.Add(wx.StaticText(self,-1,'q_min'),1, wx.LEFT, 5)
+        sizer.Add(wx.StaticText(self,-1,'n_min'),1)
+        sizer.Add(wx.StaticText(self,-1,'q_max'),1)
+        sizer.Add(wx.StaticText(self,-1,'n_max'),1)
+
+        self.startSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qstart'], size = (60,-1))
+        self.endSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1))
+
+        self.startSpin.SetValue(0)
+        self.endSpin.SetValue(0)
+
+        self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
+        self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
+
+        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (60, -1), style = wx.PROCESS_ENTER)
+        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (60, -1), style = wx.PROCESS_ENTER)
+
+        self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
+        self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
+
+        sizer.Add(self.qstartTxt, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 3)
+        sizer.Add(self.startSpin, 0, wx.EXPAND | wx.RIGHT, 3)
+        sizer.Add(self.qendTxt, 0, wx.EXPAND | wx.RIGHT, 3)
+        sizer.Add(self.endSpin, 0, wx.EXPAND | wx.RIGHT, 5)
+
+        return sizer
+
+    def createErrorSizer(self):
+        box = wx.StaticBox(self, wx.ID_ANY, 'Uncertainty')
+
+        sum_sizer = wx.FlexGridSizer(1, 4, 3, 3)
+        sum_sizer.AddGrowableCol(1)
+        sum_sizer.AddGrowableCol(3)
+        rg_sum_lbl = wx.StaticText(self, wx.ID_ANY, 'Rg : ')
+        i0_sum_lbl = wx.StaticText(self, wx.ID_ANY, 'I0 : ')
+        rg_sum_txt = wx.TextCtrl(self, self.error_data['sum_rg'], '', size = (60, -1))
+        i0_sum_txt = wx.TextCtrl(self, self.error_data['sum_i0'], '', size = (60, -1))
+
+        sum_sizer.AddMany([(rg_sum_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
+            (rg_sum_txt, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
+            (i0_sum_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
+            (i0_sum_txt, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
+            ])
+
+        self.err_sizer = wx.FlexGridSizer(3, 4, 3, 3)
+        self.err_sizer.AddGrowableCol(1)
+        self.err_sizer.AddGrowableCol(2)
+        self.err_sizer.AddGrowableCol(3)
+
+        std_text = wx.StaticText(self, wx.ID_ANY, 'Fit')
+        auto_text = wx.StaticText(self, wx.ID_ANY, 'AutoRg')
+        est_text = wx.StaticText(self, wx.ID_ANY, 'Est.')
+
+        self.err_sizer.AddMany([(wx.StaticText(self, wx.ID_ANY, ''), 0,),
+            (std_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
+            (auto_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
+            (est_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
+            ])
+
+        rg_text = wx.StaticText(self, wx.ID_ANY, 'Rg :')
+        rg_fit = wx.TextCtrl(self, self.error_data['fsigma_rg'], '', size=(60,-1))
+        rg_auto = wx.TextCtrl(self, self.error_data['autorg_rg'], '', size=(60,-1))
+        rg_est = wx.TextCtrl(self, self.error_data['est_rg'], '', size=(60,-1))
+
+        self.err_sizer.AddMany([(rg_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
+            (rg_fit, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
+            (rg_auto, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
+            (rg_est, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
+            ])
+
+        i0_text = wx.StaticText(self, wx.ID_ANY, 'I0 :')
+        i0_fit = wx.TextCtrl(self, self.error_data['fsigma_i0'], '', size=(60,-1))
+        i0_auto = wx.TextCtrl(self, self.error_data['autorg_i0'], '', size=(60,-1))
+        i0_est = wx.TextCtrl(self, self.error_data['est_i0'], '', size=(60,-1))
+
+        self.err_sizer.AddMany([(i0_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
+            (i0_fit, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
+            (i0_auto, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
+            (i0_est, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
+            ])
+
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        show_btn = wx.Button(self, self.button_ids['show'], 'Show Details')
+        show_btn.Bind(wx.EVT_BUTTON, self._onShowButton)
+
+        info_btn = wx.Button(self, self.button_ids['info'], 'More Info')
+        info_btn.Bind(wx.EVT_BUTTON, self._onInfoButton)
+
+        button_sizer.Add(show_btn, 0, wx.ALL, 5)
+        button_sizer.Add(info_btn, 0, wx.ALL, 5)
+
+        self.err_top_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        self.err_top_sizer.Add(sum_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        self.err_top_sizer.Add(self.err_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        self.err_top_sizer.Add(button_sizer, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL, 5)
+
+        self.err_top_sizer.Hide(self.err_sizer, recursive=True)
+
+        return self.err_top_sizer
 
     def _initSettings(self):
         analysis = self.ExpObj.getParameter('analysis')
@@ -615,155 +764,7 @@ class GuinierControlPanel(wx.Panel):
 
         self.ExpObj = ExpObj
 
-    def createQRgInfo(self):
 
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        txt = wx.StaticText(self, -1, self.infodata['qRg_min'][0])
-        ctrl1 = wx.TextCtrl(self, self.infodata['qRg_min'][1], '0')
-        ctrl2 = wx.TextCtrl(self, self.infodata['qRg_max'][1], '0')
-
-        sizer.Add(txt, 0, wx.RIGHT, 7)
-        sizer.Add(ctrl1,0, wx.RIGHT, 5)
-        sizer.Add(ctrl2,0)
-
-        return sizer
-
-    def createInfoBox(self):
-
-        sizer = wx.FlexGridSizer(rows = len(self.infodata), cols = 2)
-
-        for key in self.infodata.iterkeys():
-
-
-            if key == 'qRg_min' or key == 'qRg_max':
-                continue
-
-            if len(self.infodata[key]) == 2:
-                txt = wx.StaticText(self, -1, self.infodata[key][0])
-                ctrl = wx.TextCtrl(self, self.infodata[key][1], '0')
-                sizer.Add(txt, 0)
-                sizer.Add(ctrl,0)
-
-            else:
-                txt = wx.StaticText(self, -1, self.infodata[key][0])
-                ctrl1 = wx.TextCtrl(self, self.infodata[key][1], '0')
-
-                bsizer = wx.BoxSizer()
-                bsizer.Add(ctrl1,0,wx.EXPAND)
-
-                sizer.Add(txt,0)
-                sizer.Add(bsizer,0)
-
-        return sizer
-
-    def createControls(self):
-
-        sizer = wx.FlexGridSizer(rows = 2, cols = 4)
-        sizer.AddGrowableCol(0)
-        sizer.AddGrowableCol(1)
-        sizer.AddGrowableCol(2)
-        sizer.AddGrowableCol(3)
-
-        sizer.Add(wx.StaticText(self,-1,'q_min'),1, wx.LEFT, 5)
-        sizer.Add(wx.StaticText(self,-1,'n_min'),1)
-        sizer.Add(wx.StaticText(self,-1,'q_max'),1)
-        sizer.Add(wx.StaticText(self,-1,'n_max'),1)
-
-        self.startSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qstart'], size = (60,-1))
-        self.endSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1))
-
-        self.startSpin.SetValue(0)
-        self.endSpin.SetValue(0)
-
-        self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
-        self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
-
-        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (60, -1), style = wx.PROCESS_ENTER)
-        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (60, -1), style = wx.PROCESS_ENTER)
-
-        self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
-        self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
-
-        sizer.Add(self.qstartTxt, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 3)
-        sizer.Add(self.startSpin, 0, wx.EXPAND | wx.RIGHT, 3)
-        sizer.Add(self.qendTxt, 0, wx.EXPAND | wx.RIGHT, 3)
-        sizer.Add(self.endSpin, 0, wx.EXPAND | wx.RIGHT, 5)
-
-        return sizer
-
-    def createErrorSizer(self):
-        box = wx.StaticBox(self, wx.ID_ANY, 'Uncertainty')
-
-        sum_sizer = wx.FlexGridSizer(1, 4, 3, 3)
-        sum_sizer.AddGrowableCol(1)
-        sum_sizer.AddGrowableCol(3)
-        rg_sum_lbl = wx.StaticText(self, wx.ID_ANY, 'Rg : ')
-        i0_sum_lbl = wx.StaticText(self, wx.ID_ANY, 'I0 : ')
-        rg_sum_txt = wx.TextCtrl(self, self.error_data['sum_rg'], '', size = (60, -1))
-        i0_sum_txt = wx.TextCtrl(self, self.error_data['sum_i0'], '', size = (60, -1))
-
-        sum_sizer.AddMany([(rg_sum_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
-            (rg_sum_txt, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
-            (i0_sum_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
-            (i0_sum_txt, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
-            ])
-
-        self.err_sizer = wx.FlexGridSizer(3, 4, 3, 3)
-        self.err_sizer.AddGrowableCol(1)
-        self.err_sizer.AddGrowableCol(2)
-        self.err_sizer.AddGrowableCol(3)
-
-        std_text = wx.StaticText(self, wx.ID_ANY, 'Fit')
-        auto_text = wx.StaticText(self, wx.ID_ANY, 'AutoRg')
-        est_text = wx.StaticText(self, wx.ID_ANY, 'Est.')
-
-        self.err_sizer.AddMany([(wx.StaticText(self, wx.ID_ANY, ''), 0,),
-            (std_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
-            (auto_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
-            (est_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
-            ])
-
-        rg_text = wx.StaticText(self, wx.ID_ANY, 'Rg :')
-        rg_fit = wx.TextCtrl(self, self.error_data['fsigma_rg'], '', size=(60,-1))
-        rg_auto = wx.TextCtrl(self, self.error_data['autorg_rg'], '', size=(60,-1))
-        rg_est = wx.TextCtrl(self, self.error_data['est_rg'], '', size=(60,-1))
-
-        self.err_sizer.AddMany([(rg_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
-            (rg_fit, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
-            (rg_auto, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
-            (rg_est, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
-            ])
-
-        i0_text = wx.StaticText(self, wx.ID_ANY, 'I0 :')
-        i0_fit = wx.TextCtrl(self, self.error_data['fsigma_i0'], '', size=(60,-1))
-        i0_auto = wx.TextCtrl(self, self.error_data['autorg_i0'], '', size=(60,-1))
-        i0_est = wx.TextCtrl(self, self.error_data['est_i0'], '', size=(60,-1))
-
-        self.err_sizer.AddMany([(i0_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL),
-            (i0_fit, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
-            (i0_auto, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
-            (i0_est, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.EXPAND),
-            ])
-
-        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        show_btn = wx.Button(self, self.button_ids['show'], 'Show Details')
-        show_btn.Bind(wx.EVT_BUTTON, self._onShowButton)
-
-        info_btn = wx.Button(self, self.button_ids['info'], 'More Info')
-        info_btn.Bind(wx.EVT_BUTTON, self._onInfoButton)
-
-        button_sizer.Add(show_btn, 0, wx.ALL, 5)
-        button_sizer.Add(info_btn, 0, wx.ALL, 5)
-
-        self.err_top_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        self.err_top_sizer.Add(sum_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-        self.err_top_sizer.Add(self.err_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-        self.err_top_sizer.Add(button_sizer, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL, 5)
-
-        self.err_top_sizer.Hide(self.err_sizer, recursive=True)
-
-        return self.err_top_sizer
 
     def _onShowButton(self, evt):
         if self.err_top_sizer.IsShown(self.err_sizer):
