@@ -1099,9 +1099,9 @@ class MolWeightFrame(wx.Frame):
     def __init__(self, parent, title, sasm, manip_item):
 
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'MolWeightFrame', size = (960,630))
+            wx.Frame.__init__(self, parent, -1, title, name = 'MolWeightFrame', size = (475,525))
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'MolWeightFrame', size = (960,630))
+            wx.Frame.__init__(self, None, -1, title, name = 'MolWeightFrame', size = (475,525))
 
         self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -1157,6 +1157,11 @@ class MolWeightFrame(wx.Frame):
                               'sup_sc': self.NewControlId()}
                               }
 
+        self.mws = {'conc'  : {},
+                    'vc'    : {},
+                    'vp'    : {},
+                    'abs'   : {},
+                    }
 
         topsizer = self._createLayout(self.panel)
         self._initSettings()
@@ -1192,21 +1197,14 @@ class MolWeightFrame(wx.Frame):
         self.button_panel = self._createButtonLayout(parent)
 
 
-        mw_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        mw_sizer = wx.FlexGridSizer(2, 2, 5, 5)
+        mw_sizer.AddGrowableCol(0)
+        mw_sizer.AddGrowableCol(1)
+
         mw_sizer.Add(self.conc_panel, 0, wx.EXPAND)
-        mw_sizer.AddStretchSpacer(1)
-        mw_sizer.Add(wx.StaticLine(parent = self.top_mw, style = wx.LI_VERTICAL), 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
-        mw_sizer.AddStretchSpacer(1)
-        mw_sizer.Add(self.vc_panel, 0, wx.EXPAND)
-        mw_sizer.AddStretchSpacer(1)
-        mw_sizer.Add(wx.StaticLine(parent = self.top_mw, style = wx.LI_VERTICAL), 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
-        mw_sizer.AddStretchSpacer(1)
-        mw_sizer.Add(self.vp_panel, 0, wx.EXPAND)
-        mw_sizer.AddStretchSpacer(1)
-        mw_sizer.Add(wx.StaticLine(parent = self.top_mw, style = wx.LI_VERTICAL), 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
-        mw_sizer.AddStretchSpacer(1)
         mw_sizer.Add(self.abs_panel, 0, wx.EXPAND)
-        mw_sizer.AddStretchSpacer(1)
+        mw_sizer.Add(self.vc_panel, 0, wx.EXPAND)
+        mw_sizer.Add(self.vp_panel, 0, wx.EXPAND)
 
         self.top_mw.SetSizer(mw_sizer)
 
@@ -1214,6 +1212,7 @@ class MolWeightFrame(wx.Frame):
         top_sizer.Add(self.info_panel, 0, wx.EXPAND)
         top_sizer.Add(wx.StaticLine(parent = parent, style = wx.LI_HORIZONTAL), 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
         top_sizer.Add(self.top_mw, 10, wx.EXPAND)
+        top_sizer.AddStretchSpacer(1)
         top_sizer.Add(wx.StaticLine(parent = parent, style = wx.LI_HORIZONTAL), 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
         top_sizer.Add(self.button_panel, 0, wx.ALIGN_RIGHT | wx.TOP | wx.BOTTOM | wx.LEFT, 5)
 
@@ -1229,8 +1228,10 @@ class MolWeightFrame(wx.Frame):
 
             for each_key in self.infodata.iterkeys():
                 window = wx.FindWindowById(self.infodata[each_key][1], self)
-                window.ChangeValue(guinier[each_key])
-
+                if abs(float(guinier[each_key])) > 1e3 or abs(float(guinier[each_key])) < 1e-2:
+                    window.ChangeValue('%.3E' %(guinier[each_key]))
+                else:
+                    window.ChangeValue('%.4f' %(round(float(guinier[each_key]), 4)))
 
         self.setFilename(os.path.basename(self.sasm.getParameter('filename')))
 
@@ -1321,62 +1322,31 @@ class MolWeightFrame(wx.Frame):
         box1 = wx.StaticBox(parent, -1, 'Filename')
         boxSizer1 = wx.StaticBoxSizer(box1, wx.HORIZONTAL)
         self.filenameTxtCtrl = wx.TextCtrl(parent, -1, '', style = wx.TE_READONLY)
-        boxSizer1.Add(self.filenameTxtCtrl, 1, wx.EXPAND)
-
-        intro_text = ("This panel has four different methods for determining molecular weight from a scattering "
-                        "profile. All of them rely on the I(0) and/or Rg determined by the Guinier fit.\n"
-                        "The methods used (panels from left to right):\n"
-                        "1) Compare I(0) to a known standard (must have MW standard set).\n"
-                        "2) Using the volume of correlation (Vc).\n"
-                        "3) Using the Porod volume (Vp).\n"
-                        "4) Using absolute calibrated intensity (If your data is calibrated, but absolute "
-                        "scale is not enabled in the RAW settings use the checkbox to manually enable).\n"
-                        "'Show Details' provides calculation details and advanced options. 'More Info' "
-                        "gives a citation (if appropriate), a brief description of each method, and "
-                        "discusses when they may fail.")
-
-        intro = AutoWrapStaticText(parent, label = intro_text)
+        boxSizer1.Add(self.filenameTxtCtrl, 1)
 
         # Guinier parameters box
-        infoSizer = wx.FlexGridSizer(rows = len(self.infodata), cols = 2)
+        infoSizer = wx.BoxSizer(wx.HORIZONTAL)
 
         for key in self.infodata.iterkeys():
+            txt = wx.StaticText(parent, -1, self.infodata[key][0])
+            ctrl1 = wx.TextCtrl(parent, self.infodata[key][1], '0', style = wx.TE_READONLY)
 
-            if len(self.infodata[key]) == 2:
-                txt = wx.StaticText(parent, -1, self.infodata[key][0])
-                ctrl = wx.TextCtrl(parent, self.infodata[key][1], '0', style = wx.TE_READONLY)
-                infoSizer.Add(txt, 0)
-                infoSizer.Add(ctrl,0)
-
-            else:
-                txt = wx.StaticText(parent, -1, self.infodata[key][0])
-                ctrl1 = wx.TextCtrl(parent, self.infodata[key][1], '0', style = wx.TE_READONLY)
-
-                bsizer = wx.BoxSizer()
-                bsizer.Add(ctrl1,0,wx.EXPAND)
-
-                infoSizer.Add(txt,0)
-                infoSizer.Add(bsizer,0)
+            infoSizer.Add(txt,0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 2)
+            infoSizer.Add(ctrl1,0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 2)
+            infoSizer.AddSpacer(5)
 
         guinierfitbutton = wx.Button(parent, -1, 'Guinier Fit')
         guinierfitbutton.Bind(wx.EVT_BUTTON, self.onGuinierFit)
 
         box2 = wx.StaticBox(parent, -1, 'Guinier Parameters')
-        boxSizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
-        boxSizer2.Add(infoSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP ,5)
-        boxSizer2.Add(guinierfitbutton, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT| wx.TOP, 5)
+        boxSizer2 = wx.StaticBoxSizer(box2, wx.HORIZONTAL)
+        boxSizer2.Add(infoSizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL ,5)
+        boxSizer2.Add(guinierfitbutton, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT| wx.TOP, 5)
 
-        fileSizer = wx.BoxSizer(wx.VERTICAL)
-        fileSizer.Add(boxSizer1, 0, wx.EXPAND | wx.ALL, 2)
-        fileSizer.AddStretchSpacer(1)
-        fileSizer.Add(boxSizer2, 0, wx.EXPAND | wx.ALL, 2)
-
-
-        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        top_sizer.Add(intro, 12, wx.EXPAND | wx.ALL, 5)
-        top_sizer.AddStretchSpacer(1)
-        top_sizer.Add(fileSizer, 6, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
-        top_sizer.AddStretchSpacer(1)
+        box = wx.StaticBox(parent, wx.ID_ANY, 'Info')
+        top_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        top_sizer.Add(boxSizer1, 1, wx.EXPAND | wx.TOP | wx.BOTTOM , 5)
+        top_sizer.Add(boxSizer2, 0, wx.TOP | wx.BOTTOM , 5)
 
         return top_sizer
 
@@ -1404,19 +1374,19 @@ class MolWeightFrame(wx.Frame):
 
         conc.Bind(wx.EVT_TEXT, self._onUpdateConc)
 
-        concsizer.Add(conc_txt,0, wx.LEFT, 2)
-        concsizer.Add(conc, 1, wx.EXPAND)
-        concsizer.Add(conc_txt2, 0, wx.LEFT, 1)
+        concsizer.Add(conc_txt,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        concsizer.Add(conc, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        concsizer.Add(conc_txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
 
         mwsizer = wx.BoxSizer(wx.HORIZONTAL)
-        conc_mw = wx.TextCtrl(parent, conc_ids['calc_mw'], '', size = (60, -1), style = wx.TE_READONLY)
+        conc_mw = wx.TextCtrl(parent, conc_ids['calc_mw'], '', size = (80, -1), style = wx.TE_READONLY)
         mw_txt = wx.StaticText(parent, -1, 'MW :')
         mw_txt2 = wx.StaticText(parent, -1,  'kDa')
 
-        mwsizer.Add(mw_txt,0, wx.LEFT, 2)
-        mwsizer.Add(conc_mw, 1, wx.EXPAND)
-        mwsizer.Add(mw_txt2, 0, wx.LEFT, 1)
+        mwsizer.Add(mw_txt,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        mwsizer.Add(conc_mw, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        mwsizer.Add(mw_txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
 
         sup_txt1 = wx.StaticText(parent, -1, 'Ref. I(0) :')
@@ -1432,22 +1402,22 @@ class MolWeightFrame(wx.Frame):
         sup_file = wx.TextCtrl(parent, conc_ids['sup_file'], '', size = (200, -1), style = wx.TE_READONLY)
 
         sup_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer1.Add(sup_txt1, 0)
-        sup_sizer1.Add(sup_i0, 1, wx.EXPAND)
+        sup_sizer1.Add(sup_txt1, 0, wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer1.Add(sup_i0, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
 
         sup_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer2.Add(sup_txt2,0)
-        sup_sizer2.Add(sup_mw,1,wx.EXPAND)
-        sup_sizer2.Add(sup_txt3,0, wx.LEFT, 1)
+        sup_sizer2.Add(sup_txt2,0, wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer2.Add(sup_mw,1,wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer2.Add(sup_txt3,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
         sup_sizer3 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer3.Add(sup_txt4,0)
-        sup_sizer3.Add(sup_conc,1, wx.EXPAND)
-        sup_sizer3.Add(sup_txt5,0, wx.LEFT, 1)
+        sup_sizer3.Add(sup_txt4,0, wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer3.Add(sup_conc,1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer3.Add(sup_txt5,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
         sup_sizer4 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer4.Add(sup_txt6, 0)
-        sup_sizer4.Add(sup_file, 1, wx.EXPAND)
+        sup_sizer4.Add(sup_txt6, 0, wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer4.Add(sup_file, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
 
         self.conc_sup_sizer = wx.BoxSizer(wx.VERTICAL)
         self.conc_sup_sizer.Add(sup_sizer1, 0, wx.BOTTOM, 5)
@@ -1489,13 +1459,13 @@ class MolWeightFrame(wx.Frame):
 
         mwsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        VCmw = wx.TextCtrl(parent, vc_ids['calc_mw'], '', size = (60, -1), style = wx.TE_READONLY)
+        VCmw = wx.TextCtrl(parent, vc_ids['calc_mw'], '', size = (80, -1), style = wx.TE_READONLY)
         txt = wx.StaticText(parent, -1, 'MW :')
         txt2 = wx.StaticText(parent, -1,  'kDa')
 
-        mwsizer.Add(txt,0, wx.LEFT, 2)
-        mwsizer.Add(VCmw, 1, wx.EXPAND)
-        mwsizer.Add(txt2, 0, wx.LEFT, 1)
+        mwsizer.Add(txt,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        mwsizer.Add(VCmw, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        mwsizer.Add(txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
 
         sup_txt1 = wx.StaticText(parent, -1, 'Vc :')
@@ -1511,19 +1481,19 @@ class MolWeightFrame(wx.Frame):
         sup_b = wx.TextCtrl(parent, vc_ids['sup_b'], '', size = (60, -1), style = wx.TE_READONLY)
 
         sup_sizer = wx.FlexGridSizer(rows = 2, cols = 5, hgap =0, vgap=5)
-        sup_sizer.Add(sup_txt1, 0)
-        sup_sizer.Add(sup_vc, 1, wx.EXPAND)
-        sup_sizer.Add(sup_txt2, 0, wx.LEFT, 1)
+        sup_sizer.Add(sup_txt1, 0, wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer.Add(sup_vc, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer.Add(sup_txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
-        sup_sizer.Add(sup_txt5, 0, wx.LEFT, 10)
-        sup_sizer.Add(sup_a, 1, wx.EXPAND)
+        sup_sizer.Add(sup_txt5, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
+        sup_sizer.Add(sup_a, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
 
-        sup_sizer.Add(sup_txt3, 0)
-        sup_sizer.Add(sup_qr, 1, wx.EXPAND)
-        sup_sizer.Add(sup_txt4, 0, wx.LEFT, 1)
+        sup_sizer.Add(sup_txt3, 0, wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer.Add(sup_qr, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer.Add(sup_txt4, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
-        sup_sizer.Add(sup_txt6, 0, wx.LEFT, 10)
-        sup_sizer.Add(sup_b, 1, wx.EXPAND)
+        sup_sizer.Add(sup_txt6, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
+        sup_sizer.Add(sup_b, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
 
         vc_plot = MWPlotPanel(parent, vc_ids['sup_plot'], '')
 
@@ -1559,13 +1529,13 @@ class MolWeightFrame(wx.Frame):
 
         mwsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        VpMW = wx.TextCtrl(parent, vp_ids['calc_mw'], '', size = (60, -1), style = wx.TE_READONLY)
+        VpMW = wx.TextCtrl(parent, vp_ids['calc_mw'], '', size = (80, -1), style = wx.TE_READONLY)
         txt = wx.StaticText(parent, -1, 'MW :')
         txt2 = wx.StaticText(parent, -1,  'kDa')
 
-        mwsizer.Add(txt,0, wx.LEFT, 2)
-        mwsizer.Add(VpMW, 1, wx.EXPAND)
-        mwsizer.Add(txt2, 0, wx.LEFT, 1)
+        mwsizer.Add(txt,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        mwsizer.Add(VpMW, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        mwsizer.Add(txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
         mw_warning = AutoWrapStaticText(parent, 'Warning: final q point is outside the extrapolation region (0.15 < q < 0.45 1/A), no correction has been applied!')
 
@@ -1585,19 +1555,19 @@ class MolWeightFrame(wx.Frame):
         sup_density = wx.TextCtrl(parent, vp_ids['sup_density'], '', size = (60, -1), style = wx.TE_READONLY)
 
         sup_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer1.Add(sup_txt1, 0)
-        sup_sizer1.Add(sup_vp, 1, wx.EXPAND)
-        sup_sizer1.Add(sup_txt2, 0, wx.LEFT, 1)
+        sup_sizer1.Add(sup_txt1, 0, wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer1.Add(sup_vp, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer1.Add(sup_txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
         sup_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer2.Add(sup_txt3, 0)
-        sup_sizer2.Add(sup_vpc, 1, wx.EXPAND)
-        sup_sizer2.Add(sup_txt4, 0, wx.LEFT, 1)
+        sup_sizer2.Add(sup_txt3, 0, wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer2.Add(sup_vpc, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer2.Add(sup_txt4, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
         sup_sizer3 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer3.Add(sup_txt5,0)
-        sup_sizer3.Add(sup_density,1,wx.EXPAND)
-        sup_sizer3.Add(sup_txt6,0, wx.LEFT, 1)
+        sup_sizer3.Add(sup_txt5,0, wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer3.Add(sup_density,1,wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer3.Add(sup_txt6,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
         self.vp_sup_sizer = wx.BoxSizer(wx.VERTICAL)
         self.vp_sup_sizer.Add(sup_sizer1, 0, wx.BOTTOM, 5)
@@ -1644,19 +1614,19 @@ class MolWeightFrame(wx.Frame):
 
         conc.Bind(wx.EVT_TEXT, self._onUpdateConc)
 
-        concsizer.Add(conc_txt,0, wx.LEFT, 2)
-        concsizer.Add(conc, 1, wx.EXPAND)
-        concsizer.Add(conc_txt2, 0, wx.LEFT, 1)
+        concsizer.Add(conc_txt,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        concsizer.Add(conc, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        concsizer.Add(conc_txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
         mwsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        absMW = wx.TextCtrl(parent, abs_ids['calc_mw'], '', size = (65, -1), style = wx.TE_READONLY)
+        absMW = wx.TextCtrl(parent, abs_ids['calc_mw'], '', size = (80, -1), style = wx.TE_READONLY)
         txt = wx.StaticText(parent, -1, 'MW :')
         txt2 = wx.StaticText(parent, -1,  'kDa')
 
-        mwsizer.Add(txt,0, wx.LEFT, 2)
-        mwsizer.Add(absMW, 1, wx.EXPAND)
-        mwsizer.Add(txt2, 0, wx.LEFT, 1)
+        mwsizer.Add(txt,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
+        mwsizer.Add(absMW, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        mwsizer.Add(txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
 
         sup_txt1 = wx.StaticText(parent, -1, '# electrons per mass dry macromolecule :')
@@ -1674,24 +1644,24 @@ class MolWeightFrame(wx.Frame):
         sup_sc = wx.TextCtrl(parent, abs_ids['sup_sc'], '', size = (70, -1), style = wx.TE_READONLY)
 
         sup_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer1.Add(sup_txt1, 0)
-        sup_sizer1.Add(sup_pm, 1, wx.EXPAND)
-        sup_sizer1.Add(sup_txt2, 0, wx.LEFT, 1)
+        sup_sizer1.Add(sup_txt1, 0, wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer1.Add(sup_pm, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer1.Add(sup_txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
         sup_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer2.Add(sup_txt3, 0)
-        sup_sizer2.Add(sup_ps, 1, wx.EXPAND)
-        sup_sizer2.Add(sup_txt4, 0, wx.LEFT, 1)
+        sup_sizer2.Add(sup_txt3, 0, wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer2.Add(sup_ps, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer2.Add(sup_txt4, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
         sup_sizer3 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer3.Add(sup_txt5, 0)
-        sup_sizer3.Add(sup_pv, 1, wx.EXPAND)
-        sup_sizer3.Add(sup_txt6, 0, wx.LEFT, 1)
+        sup_sizer3.Add(sup_txt5, 0, wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer3.Add(sup_pv, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer3.Add(sup_txt6, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
         sup_sizer5 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer5.Add(sup_txt9, 0)
-        sup_sizer5.Add(sup_sc, 1, wx.EXPAND)
-        sup_sizer5.Add(sup_txt10, 0, wx.LEFT, 1)
+        sup_sizer5.Add(sup_txt9, 0, wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer5.Add(sup_sc, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer5.Add(sup_txt10, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
         self.abs_sup_sizer = wx.BoxSizer(wx.VERTICAL)
         self.abs_sup_sizer.Add(sup_sizer1, 0, wx.BOTTOM, 5)
@@ -1754,7 +1724,10 @@ class MolWeightFrame(wx.Frame):
 
             for each_key in self.infodata.iterkeys():
                 window = wx.FindWindowById(self.infodata[each_key][1], self)
-                window.SetValue(guinier[each_key])
+                if abs(float(guinier[each_key])) > 1e3 or abs(float(guinier[each_key])) < 1e-2:
+                    window.SetValue('%.3E' %(guinier[each_key]))
+                else:
+                    window.SetValue('%.4f' %(round(float(guinier[each_key]), 4)))
 
         if self.sasm.getAllParameters().has_key('Conc'):
             conc = str(self.sasm.getParameter('Conc'))
@@ -2015,31 +1988,44 @@ class MolWeightFrame(wx.Frame):
                     'PorodVolume'        : {},
                     'Absolute'           : {}}
 
-        for eachKey in self.ids.iterkeys():
-            mw = wx.FindWindowById(self.ids[eachKey]['calc_mw'], self).GetValue()
+        # for eachKey in self.ids.iterkeys():
+        #     mw = wx.FindWindowById(self.ids[eachKey]['calc_mw'], self).GetValue()
 
-            if eachKey == 'conc':
-                calcData['I(0)Concentration']['MW'] = mw
-                self.sasm.setParameter('MW', mw)
+        #     if eachKey == 'conc':
+        #         calcData['I(0)Concentration']['MW'] = mw
+        #         self.sasm.setParameter('MW', mw)
 
-            elif eachKey == 'VC':
-                mol_type = wx.FindWindowById(self.ids[eachKey]['mol_type'], self).GetStringSelection()
-                vcor = wx.FindWindowById(self.ids[eachKey]['sup_vc'], self).GetValue()
+        #     elif eachKey == 'VC':
+        #         mol_type = wx.FindWindowById(self.ids[eachKey]['mol_type'], self).GetStringSelection()
+        #         vcor = wx.FindWindowById(self.ids[eachKey]['sup_vc'], self).GetValue()
 
-                calcData['VolumeOfCorrelation']['MW'] = mw
-                calcData['VolumeOfCorrelation']['Type'] = mol_type
-                calcData['VolumeOfCorrelation']['Vcor'] = vcor
+        #         calcData['VolumeOfCorrelation']['MW'] = mw
+        #         calcData['VolumeOfCorrelation']['Type'] = mol_type
+        #         calcData['VolumeOfCorrelation']['Vcor'] = vcor
 
-            elif eachKey == 'VP':
-                vporod = wx.FindWindowById(self.ids[eachKey]['sup_vp'], self).GetValue()
-                vpcor = wx.FindWindowById(self.ids[eachKey]['sup_vpc'], self).GetValue()
+        #     elif eachKey == 'VP':
+        #         vporod = wx.FindWindowById(self.ids[eachKey]['sup_vp'], self).GetValue()
+        #         vpcor = wx.FindWindowById(self.ids[eachKey]['sup_vpc'], self).GetValue()
 
-                calcData['PorodVolume']['MW'] = mw
-                calcData['PorodVolume']['VPorod'] = vporod
-                calcData['PorodVolume']['VPorod_Corrected'] = vpcor
+        #         calcData['PorodVolume']['MW'] = mw
+        #         calcData['PorodVolume']['VPorod'] = vporod
+        #         calcData['PorodVolume']['VPorod_Corrected'] = vpcor
 
-            elif eachKey == 'abs':
-                calcData['Absolute']['MW'] = mw
+        #     elif eachKey == 'abs':
+        #         calcData['Absolute']['MW'] = mw
+
+        calcData['I(0)Concentration']['MW'] = self.mws['conc']['mw']
+        self.sasm.setParameter('MW', self.mws['conc']['mw'])
+
+        calcData['VolumeOfCorrelation']['MW'] = self.mws['vc']['mw']
+        calcData['VolumeOfCorrelation']['Type'] = self.mws['vc']['type']
+        calcData['VolumeOfCorrelation']['Vcor'] = self.mws['vc']['vc']
+
+        calcData['PorodVolume']['MW'] = self.mws['vp']['mw']
+        calcData['PorodVolume']['VPorod'] = self.mws['vp']['pVolume']
+        calcData['PorodVolume']['VPorod_Corrected'] = self.mws['vp']['pv_cor']
+
+        calcData['Absolute']['MW'] = self.mws['abs']['mw']
 
         analysis_dict = self.sasm.getParameter('analysis')
         analysis_dict['molecularWeight'] = calcData
@@ -2073,30 +2059,50 @@ class MolWeightFrame(wx.Frame):
 
     def calcConcMW(self):
         conc_ids = self.ids['conc']
-        i0 = float(wx.FindWindowById(self.infodata['I0'][1], self).GetValue())
-
         try:
             conc = float(wx.FindWindowById(conc_ids['conc'], self).GetValue())
         except ValueError:
             conc = -1
 
+        analysis = self.sasm.getParameter('analysis')
+
+        if 'guinier' in analysis:
+            guinier = analysis['guinier']
+            i0 = float(guinier['I0'])
+        else:
+            i0 = 0
+
         mw = SASCalc.calcRefMW(i0, conc)
 
         if mw > 0:
-            mwstr = str(np.around(mw,1))
-            if len(mwstr.split('.')[1])>1:
-                mwstr = '%.1E' %(mw)
+            self.mws['conc']['mw'] = str(mw)
+
+            val = round(mw,1)
+
+            if val > 1e3 or val < 1e-2:
+                mwstr = '%.2E' %(val)
+            else:
+                mwstr = '%.1f' %(val)
 
             mwCtrl = wx.FindWindowById(conc_ids['calc_mw'], self)
             mwCtrl.ChangeValue(mwstr)
+        else:
+            self.mws['conc']['mw'] = ''
 
     def calcVCMW(self):
 
         vc_ids = self.ids['VC']
-        rg = float(wx.FindWindowById(self.infodata['Rg'][1], self).GetValue())
-        i0 = float(wx.FindWindowById(self.infodata['I0'][1], self).GetValue())
-
         molecule = wx.FindWindowById(vc_ids['mol_type'], self).GetStringSelection()
+
+        analysis = self.sasm.getParameter('analysis')
+
+        if 'guinier' in analysis:
+            guinier = analysis['guinier']
+            i0 = float(guinier['I0'])
+            rg = float(guinier['Rg'])
+        else:
+            i0 = 0
+            rg = 0
 
         if molecule == 'Protein':
             is_protein = True
@@ -2106,37 +2112,56 @@ class MolWeightFrame(wx.Frame):
         if rg > 0 and i0 > 0:
             mw, mw_error, vc, qr = SASCalc.calcVcMW(self.sasm, rg, i0, is_protein)
 
-            mwstr = str(np.around(mw,1))
+            self.mws['vc']['mw'] = str(mw)
+            self.mws['vc']['vc'] = str(vc)
+            self.mws['vc']['qr'] = str(qr)
+            self.mws['vc']['type'] = molecule
 
-            if len(mwstr.split('.')[1])>1:
-                mwstr = '%.1E' %(mw)
+            mw_val = round(mw,1)
+            vc_val = round(vc,1)
+            qr_val = round(qr,1)
+
+            if mw_val > 1e3 or mw_val < 1e-2:
+                mwstr = '%.2E' %(mw_val)
+            else:
+                mwstr = '%.1f' %(mw_val)
+
+            if vc_val > 1e3 or vc_val < 1e-2:
+                vcstr = '%.2E' %(vc_val)
+            else:
+                vcstr = '%.1f' %(vc_val)
+
+            if qr_val > 1e3 or qr_val < 1e-2:
+                qrstr = '%.2E' %(qr_val)
+            else:
+                qrstr = '%.1f' %(qr_val)
 
             mwCtrl = wx.FindWindowById(vc_ids['calc_mw'], self)
             mwCtrl.ChangeValue(mwstr)
 
-
-            vcstr = str(np.around(vc,1))
-
-            if len(vcstr.split('.')[1])>1:
-                vcstr = '%.1E' %(vc)
-
             wx.FindWindowById(vc_ids['sup_vc'], self).ChangeValue(vcstr)
 
-
-            qrstr = str(np.around(qr,1))
-
-            if len(qrstr.split('.')[1])>1:
-                qrstr = '%.1E' %(qr)
-
             wx.FindWindowById(vc_ids['sup_qr'], self).ChangeValue(qrstr)
+        else:
+            self.mws['vc']['mw'] = ''
+            self.mws['vc']['vc'] = ''
+            self.mws['vc']['qr'] = ''
+            self.mws['vc']['type'] = molecule
 
     def calcVpMW(self):
         #This is calculated using the method in Fischer et al. J. App. Crys. 2009
 
         vp_ids = self.ids['VP']
 
-        rg = float(wx.FindWindowById(self.infodata['Rg'][1], self).GetValue())
-        i0 = float(wx.FindWindowById(self.infodata['I0'][1], self).GetValue())
+        analysis = self.sasm.getParameter('analysis')
+
+        if 'guinier' in analysis:
+            guinier = analysis['guinier']
+            i0 = float(guinier['I0'])
+            rg = float(guinier['Rg'])
+        else:
+            i0 = 0
+            rg = 0
 
         q = self.sasm.q
         i = self.sasm.i
@@ -2159,49 +2184,76 @@ class MolWeightFrame(wx.Frame):
 
             mw, pVolume, pv_cor = SASCalc.calcVpMW(q, i, err, rg, i0, qmin)
 
-            mwstr = str(np.around(mw,1))
+            self.mws['vp']['mw'] = str(mw)
+            self.mws['vp']['pVolume'] = str(pVolume)
+            self.mws['vp']['pv_cor'] = str(pv_cor)
 
-            if len(mwstr.split('.')[1])>1:
-                mwstr = '%.1E' %(mw)
+            mw_val = round(mw,1)
+            pv_val = round(pVolume,1)
+            pvc_val = round(pv_cor,1)
+
+            if mw_val > 1e3 or mw_val < 1e-2:
+                mwstr = '%.2E' %(mw_val)
+            else:
+                mwstr = '%.1f' %(mw_val)
+
+            if pv_val > 1e3 or pv_val < 1e-2:
+                pvstr = '%.2E' %(pv_val)
+            else:
+                pvstr = '%.1f' %(pv_val)
+
+            if pvc_val > 1e3 or pvc_val < 1e-2:
+                pvcstr = '%.2E' %(pvc_val)
+            else:
+                pvcstr = '%.1f' %(pvc_val)
 
             mwCtrl = wx.FindWindowById(vp_ids['calc_mw'], self)
             mwCtrl.SetValue(mwstr)
 
-            vpstr = str(np.around(pVolume,1))
-
-            if len(vpstr.split('.')[1])>1:
-                vpstr = '%.1E' %(pVolume)
-
             vpCtrl = wx.FindWindowById(vp_ids['sup_vp'], self)
-            vpCtrl.SetValue(vpstr)
-
-            vpcstr = str(np.around(pv_cor,1))
-
-            if len(vpcstr.split('.')[1])>1:
-                vpcstr = '%.1E' %(pv_cor)
+            vpCtrl.SetValue(pvstr)
 
             pvcCtrl = wx.FindWindowById(vp_ids['sup_vpc'], self)
-            pvcCtrl.SetValue(vpcstr)
+            pvcCtrl.SetValue(pvcstr)
+
+        else:
+            self.mws['vp']['mw'] = ''
+            self.mws['vp']['pVolume'] = ''
+            self.mws['vp']['pv_cor'] = ''
 
     def calcAbsMW(self):
         abs_ids = self.ids['abs']
-        i0 = float(wx.FindWindowById(self.infodata['I0'][1], self).GetValue())
 
         try:
             conc = float(wx.FindWindowById(abs_ids['conc'], self).GetValue())
         except ValueError:
             conc = -1
 
+        analysis = self.sasm.getParameter('analysis')
+
+        if 'guinier' in analysis:
+            guinier = analysis['guinier']
+            i0 = float(guinier['I0'])
+        else:
+            i0 = 0
+
         if conc > 0 and i0 > 0 and wx.FindWindowById(abs_ids['calib'], self).GetValue():
             mw = SASCalc.calcAbsMW(i0, conc)
 
-            mwstr = str(np.around(mw,1))
+            self.mws['abs']['mw'] = str(mw)
 
-            if len(mwstr.split('.')[1])>1 or len(mwstr.split('.')[0])>4:
-                mwstr = '%.2E' %(mw)
+            val = round(mw,1)
+
+            if val > 1e3 or val < 1e-2:
+                mwstr = '%.2E' %(val)
+            else:
+                mwstr = '%.1f' %(val)
 
             mwCtrl = wx.FindWindowById(abs_ids['calc_mw'], self)
             mwCtrl.SetValue(mwstr)
+
+        else:
+            self.mws['abs']['mw'] = ''
 
     def OnClose(self):
 
