@@ -2773,10 +2773,14 @@ class GNOMControlPanel(wx.Panel):
                             }
 
 
-        self.infodata = {'guinierI0' : ('I0 :', self.NewControlId(), self.NewControlId()),
-                         'guinierRg' : ('Rg :', self.NewControlId(), self.NewControlId()),
-                         'gnomI0'    : ('I0 :', self.NewControlId(), self.NewControlId()),
-                         'gnomRg'    : ('Rg :', self.NewControlId(), self.NewControlId()),
+        self.infodata = {'guinierI0' : ('I0 :', self.NewControlId()),
+                         'guinierRg' : ('Rg :', self.NewControlId()),
+                         'guinierRg_err'    :('Rg Err. :', self.NewControlId()),
+                         'guinierI0_err'    :('I0 Err. :', self.NewControlId()),
+                         'gnomRg_err'    :('Rg Err. :', self.NewControlId()),
+                         'gnomI0_err'    :('I0 Err. :', self.NewControlId()),
+                         'gnomI0'    : ('I0 :', self.NewControlId()),
+                         'gnomRg'    : ('Rg :', self.NewControlId()),
                          'TE': ('Total Estimate :', self.NewControlId()),
                          'gnomQuality': ('GNOM says :', self.NewControlId()),
                          'chisq': ('chi^2 (fit) :', self.NewControlId())
@@ -2823,11 +2827,11 @@ class GNOMControlPanel(wx.Panel):
 
 
     def initDatgnomValues(self, sasm, iftm):
+        self.setGuinierInfo(sasm)
+
         self.setSpinLimits(sasm)
 
         dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-        guinierRgWindow = wx.FindWindowById(self.infodata['guinierRg'][1], self)
-        guinierI0Window = wx.FindWindowById(self.infodata['guinierI0'][1], self)
 
         dmax = int(round(iftm.getParameter('dmax')))
 
@@ -2840,31 +2844,14 @@ class GNOMControlPanel(wx.Panel):
 
         self.updateGNOMInfo(self.out_list[str(dmax)])
 
-        if 'guinier' in sasm.getParameter('analysis'):
-
-            guinier = sasm.getParameter('analysis')['guinier']
-
-            try:
-                guinierRgWindow.SetValue(str(guinier['Rg']))
-            except Exception as e:
-                print e
-                guinierRgWindow.SetValue('')
-
-            try:
-                guinierI0Window.SetValue(str(guinier['I0']))
-            except Exception as e:
-                print e
-                guinierI0Window.SetValue('')
-
         self.setFilename(os.path.basename(sasm.getParameter('filename')))
 
         return self.out_list[str(dmax)]
 
     def initGnomValues(self, sasm):
+        self.setGuinierInfo(sasm)
 
         dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-        guinierRgWindow = wx.FindWindowById(self.infodata['guinierRg'][1], self)
-        guinierI0Window = wx.FindWindowById(self.infodata['guinierI0'][1], self)
 
         dmax = sasm.getParameter('analysis')['GNOM']['Dmax']
         qmin = sasm.getParameter('analysis')['GNOM']['qStart']
@@ -2893,39 +2880,69 @@ class GNOMControlPanel(wx.Panel):
 
         self.updateGNOMInfo(self.out_list[str(dmax)])
 
+        self.setFilename(os.path.basename(sasm.getParameter('filename')))
+
+        return self.out_list[str(dmax)]
+
+    def setGuinierInfo(self, sasm):
+        guinierRgWindow = wx.FindWindowById(self.infodata['guinierRg'][1], self)
+        guinierI0Window = wx.FindWindowById(self.infodata['guinierI0'][1], self)
+        guinierRgerrWindow = wx.FindWindowById(self.infodata['guinierRg_err'][1], self)
+        guinierI0errWindow = wx.FindWindowById(self.infodata['guinierI0_err'][1], self)
+
         if 'guinier' in sasm.getParameter('analysis'):
 
             guinier = sasm.getParameter('analysis')['guinier']
 
             try:
-                guinierRgWindow.SetValue(str(guinier['Rg']))
+                guinierRgWindow.SetValue(self.formatNumStr(guinier['Rg']))
             except Exception as e:
                 print e
                 guinierRgWindow.SetValue('')
 
             try:
-                guinierI0Window.SetValue(str(guinier['I0']))
+                guinierI0Window.SetValue(self.formatNumStr(guinier['I0']))
             except Exception as e:
                 print e
                 guinierI0Window.SetValue('')
 
-        self.setFilename(os.path.basename(sasm.getParameter('filename')))
+            try:
+                guinierRgerrWindow.SetValue(self.formatNumStr(guinier['Rg_err']))
+            except Exception as e:
+                print e
+                guinierRgerrWindow.SetValue('')
 
-        return self.out_list[str(dmax)]
+            try:
+                guinierI0errWindow.SetValue(self.formatNumStr(guinier['I0_err']))
+            except Exception as e:
+                print e
+                guinierI0errWindow.SetValue('')
 
+    def formatNumStr(self, val):
+        val = float(val)
 
+        if val > 1e3 or val < 1e-2:
+            my_str = '%.2E' %(val)
+        else:
+            my_str = '%.4f' %(round(val,4))
+
+        return my_str
 
     def updateGNOMInfo(self, iftm):
         gnomRgWindow = wx.FindWindowById(self.infodata['gnomRg'][1], self)
         gnomI0Window = wx.FindWindowById(self.infodata['gnomI0'][1], self)
+        gnomRgerrWindow = wx.FindWindowById(self.infodata['gnomRg_err'][1], self)
+        gnomI0errWindow = wx.FindWindowById(self.infodata['gnomI0_err'][1], self)
         gnomTEWindow = wx.FindWindowById(self.infodata['TE'][1], self)
         gnomQualityWindow = wx.FindWindowById(self.infodata['gnomQuality'][1], self)
         gnomChisqWindow = wx.FindWindowById(self.infodata['chisq'][1], self)
 
-        gnomRgWindow.SetValue(str(iftm.getParameter('rg')))
-        gnomI0Window.SetValue(str(iftm.getParameter('i0')))
+        gnomRgWindow.SetValue(self.formatNumStr(iftm.getParameter('rg')))
+        gnomI0Window.SetValue(self.formatNumStr(iftm.getParameter('i0')))
+        gnomRgerrWindow.SetValue(self.formatNumStr(iftm.getParameter('rger')))
+        gnomI0errWindow.SetValue(self.formatNumStr(iftm.getParameter('i0er')))
         gnomTEWindow.SetValue(str(iftm.getParameter('TE')))
-        gnomChisqWindow.SetValue(str(iftm.getParameter('chisq')))
+        gnomChisqWindow.SetValue(self.formatNumStr(iftm.getParameter('chisq')))
         gnomQualityWindow.SetValue(str(iftm.getParameter('quality')))
 
 
@@ -3062,7 +3079,7 @@ class GNOMControlPanel(wx.Panel):
 
     def createInfoBox(self):
 
-        sizer = wx.FlexGridSizer(rows = 3, cols = 3)
+        sizer = wx.FlexGridSizer(5, 3, 2, 5)
 
         sizer.Add((0,0))
 
@@ -3073,49 +3090,65 @@ class GNOMControlPanel(wx.Panel):
         sizer.Add(i0label, 0, wx.ALL, 5)
 
         guinierlabel = wx.StaticText(self, -1, 'Guinier :')
-        self.guinierRg = wx.TextCtrl(self, self.infodata['guinierRg'][1], '0', size = (60,-1), style = wx.TE_READONLY)
-        self.guinierI0 = wx.TextCtrl(self, self.infodata['guinierI0'][1], '0', size = (60,-1), style = wx.TE_READONLY)
+        self.guinierRg = wx.TextCtrl(self, self.infodata['guinierRg'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+        self.guinierI0 = wx.TextCtrl(self, self.infodata['guinierI0'][1], '0', size = (80,-1), style = wx.TE_READONLY)
 
-        sizer.Add(guinierlabel, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 5)
-        sizer.Add(self.guinierRg, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-        sizer.Add(self.guinierI0, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        sizer.Add(guinierlabel, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.guinierRg, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.guinierI0, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        guinierlabel = wx.StaticText(self, -1, 'Guinier Err. :')
+        self.guinierRg = wx.TextCtrl(self, self.infodata['guinierRg_err'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+        self.guinierI0 = wx.TextCtrl(self, self.infodata['guinierI0_err'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+
+        sizer.Add(guinierlabel, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.guinierRg, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.guinierI0, 0, wx.ALIGN_CENTER_VERTICAL)
 
         gnomlabel = wx.StaticText(self, -1, 'P(r) :')
-        self.gnomRg = wx.TextCtrl(self, self.infodata['gnomRg'][1], '0', size = (60,-1), style = wx.TE_READONLY)
-        self.gnomI0 = wx.TextCtrl(self, self.infodata['gnomI0'][1], '0', size = (60,-1), style = wx.TE_READONLY)
+        self.gnomRg = wx.TextCtrl(self, self.infodata['gnomRg'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+        self.gnomI0 = wx.TextCtrl(self, self.infodata['gnomI0'][1], '0', size = (80,-1), style = wx.TE_READONLY)
 
-        sizer.Add(gnomlabel, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 5)
-        sizer.Add(self.gnomRg, 0, wx.ALL, 5)
-        sizer.Add(self.gnomI0, 0, wx.ALL, 5)
+        sizer.Add(gnomlabel, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.gnomRg, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.gnomI0, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        gnomlabel = wx.StaticText(self, -1, 'P(r) Err. :')
+        self.gnomRg = wx.TextCtrl(self, self.infodata['gnomRg_err'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+        self.gnomI0 = wx.TextCtrl(self, self.infodata['gnomI0_err'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+
+        sizer.Add(gnomlabel, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.gnomRg, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.gnomI0, 0, wx.ALIGN_CENTER_VERTICAL)
 
 
         teLabel = wx.StaticText(self, -1, self.infodata['TE'][0])
-        self.totalEstimate = wx.TextCtrl(self, self.infodata['TE'][1], '0', size = (60,-1), style = wx.TE_READONLY)
+        self.totalEstimate = wx.TextCtrl(self, self.infodata['TE'][1], '0', size = (80,-1), style = wx.TE_READONLY)
 
         teSizer = wx.BoxSizer(wx.HORIZONTAL)
-        teSizer.Add(teLabel, 0, wx.RIGHT, 5)
-        teSizer.Add(self.totalEstimate, 0, wx.RIGHT, 5)
+        teSizer.Add(teLabel, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+        teSizer.Add(self.totalEstimate, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
         chisqLabel = wx.StaticText(self, -1, self.infodata['chisq'][0])
-        self.chisq = wx.TextCtrl(self, self.infodata['chisq'][1], '0', size = (60,-1), style = wx.TE_READONLY)
+        self.chisq = wx.TextCtrl(self, self.infodata['chisq'][1], '0', size = (80,-1), style = wx.TE_READONLY)
 
         chisqSizer = wx.BoxSizer(wx.HORIZONTAL)
-        chisqSizer.Add(chisqLabel, 0, wx.RIGHT, 5)
-        chisqSizer.Add(self.chisq, 0, wx.RIGHT, 5)
+        chisqSizer.Add(chisqLabel, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+        chisqSizer.Add(self.chisq, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
         qualityLabel = wx.StaticText(self, -1, self.infodata['gnomQuality'][0])
         self.quality = wx.TextCtrl(self, self.infodata['gnomQuality'][1], '', style = wx.TE_READONLY)
 
         qualitySizer = wx.BoxSizer(wx.HORIZONTAL)
-        qualitySizer.Add(qualityLabel, 0, wx.RIGHT, 5)
-        qualitySizer.Add(self.quality, 1)
+        qualitySizer.Add(qualityLabel, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+        qualitySizer.Add(self.quality, 1, wx.ALIGN_CENTER_VERTICAL)
 
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(sizer,0)
-        top_sizer.Add(teSizer,0, wx.BOTTOM, 5)
-        top_sizer.Add(chisqSizer,0, wx.BOTTOM, 5)
-        top_sizer.Add(qualitySizer,0, wx.BOTTOM | wx.EXPAND, 5)
+        top_sizer.Add(sizer,0,wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 5)
+        top_sizer.Add(teSizer,0, wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 5)
+        top_sizer.Add(chisqSizer,0, wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 5)
+        top_sizer.Add(qualitySizer,0, wx.BOTTOM | wx.EXPAND | wx.ALIGN_CENTER_VERTICAL, 5)
 
         return top_sizer
 
@@ -3161,16 +3194,16 @@ class GNOMControlPanel(wx.Panel):
         self.dmaxSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
         self.dmaxSpin.Bind(wx.EVT_TEXT, self.onDmaxText)
 
-        dmax_sizer.Add(wx.StaticText(self, -1, 'Dmax: '), 0, wx.LEFT, 3)
-        dmax_sizer.Add(self.dmaxSpin, 0, wx.EXPAND | wx.RIGHT, 3)
+        dmax_sizer.Add(wx.StaticText(self, -1, 'Dmax: '), 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 3)
+        dmax_sizer.Add(self.dmaxSpin, 0, wx.EXPAND | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
 
         rmax_sizer = wx.BoxSizer(wx.HORIZONTAL)
         rmax_text = wx.StaticText(self, -1, 'Force to 0 at Dmax: ')
         rmax_choice = wx.Choice(self, self.otherctrlIDs['force_dmax'], choices = ['Y', 'N'])
         rmax_choice.SetStringSelection(self.gnom_settings['rmax_zero'])
         rmax_choice.Bind(wx.EVT_CHOICE, self.onSettingsChange)
-        rmax_sizer.Add(rmax_text, 0, wx.LEFT, 3)
-        rmax_sizer.Add(rmax_choice, 0, wx.RIGHT, 3)
+        rmax_sizer.Add(rmax_text, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 3)
+        rmax_sizer.Add(rmax_choice, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
 
 
         advancedParams = wx.Button(self, -1, 'Change Advanced Parameters')
@@ -3182,10 +3215,10 @@ class GNOMControlPanel(wx.Panel):
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(sizer, 0, wx.EXPAND)
-        top_sizer.Add(dmax_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM , 5)
-        top_sizer.Add(rmax_sizer, 0, wx.EXPAND | wx.BOTTOM, 10)
-        top_sizer.Add(advancedParams, 0, wx.CENTER | wx.BOTTOM, 10)
-        top_sizer.Add(datgnom, 0, wx.CENTER)
+        top_sizer.Add(dmax_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL , 5)
+        top_sizer.Add(rmax_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 10)
+        top_sizer.Add(advancedParams, 0, wx.CENTER | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 10)
+        top_sizer.Add(datgnom, 0, wx.CENTER | wx.ALIGN_CENTER_VERTICAL)
 
 
         return top_sizer
@@ -3193,9 +3226,13 @@ class GNOMControlPanel(wx.Panel):
     def onDmaxText(self,evt):
         self.dmaxSpin.Unbind(wx.EVT_TEXT) #Avoid infinite recursion
 
+
         dmax = str(self.dmaxSpin.GetValue())
-        dmax = float(dmax.replace(',', '.'))
-        self.dmaxSpin.SetValue(int(dmax))
+        try:
+            dmax = float(dmax.replace(',', '.'))
+            self.dmaxSpin.SetValue(int(dmax))
+        except ValueError:
+            pass
 
         self.dmaxSpin.Bind(wx.EVT_TEXT, self.onDmaxText)
 

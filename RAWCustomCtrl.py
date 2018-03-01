@@ -938,16 +938,15 @@ class IntSpinCtrl(wx.Panel):
 
         val = self.Scale.GetValue()
 
-        if self.max != None:
+        try:
+            float(val)
+        except ValueError:
+            return
 
-            try:
-                float(val)
-            except ValueError:
-                return
-
+        if self.max is not None:
             if float(val) > self.max:
                 self.Scale.SetValue(str(self.max))
-        if self.min != None:
+        if self.min is not None:
             if float(val) < self.min:
                 self.Scale.SetValue(str(self.min))
 
@@ -961,6 +960,15 @@ class IntSpinCtrl(wx.Panel):
         self.ScalerButton.SetFocus()    # Just to remove focus from the bgscaler to throw kill_focus event and update
 
         val = self.Scale.GetValue()
+        try:
+            float(val)
+        except ValueError:
+            if self.min is not None:
+                val = self.min -1
+            elif self.max is not None:
+                val = self.max -1
+            else:
+                return
 
         newval = int(val) + 1
 
@@ -970,7 +978,7 @@ class IntSpinCtrl(wx.Panel):
 
         #print self.min, self.max, val, self.ScalerButton.GetMax(), self.ScalerButton.GetValue()
 
-        if self.max != None:
+        if self.max is not None:
             if newval > self.max:
                 self.Scale.SetValue(str(self.max))
             else:
@@ -986,13 +994,24 @@ class IntSpinCtrl(wx.Panel):
         self.ScalerButton.SetFocus()    # Just to remove focus from the bgscaler to throw kill_focus event and update
 
         val = self.Scale.GetValue()
+
+        try:
+            float(val)
+        except ValueError:
+            if self.max is not None:
+                val = self.max +1
+            elif self.min is not None:
+                val = self.min +1
+            else:
+                return
+
         newval = int(val) - 1
 
         # Reset spinbutton counter. Fixes bug on MAC
         if self.ScalerButton.GetValue() < -90000:
             self.ScalerButton.SetValue(0)
 
-        if self.min != None:
+        if self.min is not None:
             if newval < self.min:
                 self.Scale.SetValue(str(self.min))
             else:
