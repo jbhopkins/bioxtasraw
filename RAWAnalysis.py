@@ -2976,6 +2976,8 @@ class GNOMControlPanel(wx.Panel):
         gnom_results['Total_Estimate'] = self.out_list[dmax].getParameter('TE')
         gnom_results['Real_Space_Rg'] = self.out_list[dmax].getParameter('rg')
         gnom_results['Real_Space_I0'] = self.out_list[dmax].getParameter('i0')
+        gnom_results['Real_Space_Rg_Err'] = self.out_list[dmax].getParameter('rger')
+        gnom_results['Real_Space_I0_Err'] = self.out_list[dmax].getParameter('i0er')
         gnom_results['qStart'] = self.sasm.q[start_idx]
         gnom_results['qEnd'] = self.sasm.q[end_idx]
         # gnom_results['GNOM_ChiSquared'] = self.out_list[dmax]['chisq']
