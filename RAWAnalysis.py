@@ -4877,18 +4877,21 @@ class DammifResultsPanel(wx.Panel):
 
 
     def _initSettings(self):
-        wx.CallAfter(self.runAmbimeter)
+        run_window = wx.FindWindowByName('DammifRunPanel')
+        path_window = wx.FindWindowById(run_window.ids['save'], run_window)
+        path = path_window.GetValue()
+
+        t = threading.Thread(target=self.runAmbimeter, args=(path,))
+        t.daemon = True
+        t.start()
 
         self.topsizer.Hide(self.nsd_sizer, recursive=True)
         self.topsizer.Hide(self.clust_sizer, recursive=True)
         self.topsizer.Hide(self.res_sizer, recursive=True)
         # self.topsizer.Hide(self.models_sizer, recursive=True)
 
-    def runAmbimeter(self):
+    def runAmbimeter(self, path):
         cwd = os.getcwd()
-        run_window = wx.FindWindowByName('DammifRunPanel')
-        path_window = wx.FindWindowById(run_window.ids['save'], run_window)
-        path = path_window.GetValue()
         os.chdir(path)
 
         outname = 't_ambimeter.out'
@@ -4924,11 +4927,11 @@ class DammifResultsPanel(wx.Panel):
         os.chdir(cwd)
 
         cats_window = wx.FindWindowById(self.ids['ambiCats'], self)
-        cats_window.SetValue(output[0])
+        wx.CallAfter(cats_window.SetValue, output[0])
         score_window = wx.FindWindowById(self.ids['ambiScore'], self)
-        score_window.SetValue(output[1])
+        wx.CallAfter(score_window.SetValue, output[1])
         eval_window = wx.FindWindowById(self.ids['ambiEval'], self)
-        eval_window.SetValue(output[2])
+        wx.CallAfter(eval_window.SetValue, output[2])
 
     def getNSD(self, filename):
         mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err, res_unit = SASFileIO.loadDamselLogFile(filename)
@@ -7539,7 +7542,10 @@ class AmbimeterFrame(wx.Frame):
 
         self.Raise()
 
-        wx.FutureCall(50,self.runAmbimeter)
+        self.showBusy()
+        t = threading.Thread(target=self.runAmbimeter)
+        t.daemon = True
+        t.start()
 
 
     def _createLayout(self, parent):
@@ -7706,12 +7712,13 @@ class AmbimeterFrame(wx.Frame):
 
     def onStartButton(self, evt):
         self._getSettings()
-        self.runAmbimeter()
+        self.showBusy()
+        t = threading.Thread(target=self.runAmbimeter)
+        t.daemon = True
+        t.start()
 
 
     def runAmbimeter(self):
-        bi = wx.BusyInfo('Running AMBIMETER, pleae wait.', self)
-
         cwd = os.getcwd()
         os.chdir(self.ambi_settings['path'])
 
@@ -7736,7 +7743,7 @@ class AmbimeterFrame(wx.Frame):
             wx.CallAfter(wx.MessageBox, str(e), 'Error running Ambimeter', style = wx.ICON_ERROR | wx.OK)
             os.remove(outname)
             os.chdir(cwd)
-            bi.Destroy()
+            wx.CallAfter(self.showBusy, False)
             self.Close()
             return
 
@@ -7750,15 +7757,22 @@ class AmbimeterFrame(wx.Frame):
         os.chdir(cwd)
 
         cats_window = wx.FindWindowById(self.ids['ambiCats'], self)
-        cats_window.SetValue(output[0])
+        wx.CallAfter(cats_window.SetValue, output[0])
 
         score_window = wx.FindWindowById(self.ids['ambiScore'], self)
-        score_window.SetValue(output[1])
+        wx.CallAfter(score_window.SetValue, output[1])
 
         eval_window = wx.FindWindowById(self.ids['ambiEval'], self)
-        eval_window.SetValue(output[2])
+        wx.CallAfter(eval_window.SetValue, output[2])
 
-        bi.Destroy()
+        wx.CallAfter(self.showBusy, False)
+
+    def showBusy(self, show=True):
+        if show:
+            self.bi = wx.BusyInfo('Running AMBIMETER, pleae wait.', self)
+        else:
+            self.bi.Destroy()
+            self.bi = None
 
 
     def onChangeDirectoryButton(self, evt):
