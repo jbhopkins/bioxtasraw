@@ -1247,22 +1247,22 @@ def parseBioCATlogfile(filename):
 
     line_num=0
 
-    for a in range(1,len(allLines)):
-        if searchName in allLines[a]:
-            line_num=a
+    test_idx = int(searchName.split('_')[-1])
 
-    counters={}
+    if searchName in allLines[test_idx]:
+        line_num = test_idx
+    else:
+        for a in range(1,len(allLines)):
+            if searchName in allLines[a]:
+                line_num=a
 
     if line_num>0:
         labels=allLines[0].split('\t')
         vals=allLines[line_num].split('\t')
 
-        for a in range(len(labels)):
-            counters[labels[a].strip()]=vals[a].strip()
-
+        counters = {labels[a]:vals[a] for a in range(len(labels))}
     else:
         print 'Error loading BioCAT header'
-
 
     return counters
 
