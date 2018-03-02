@@ -2418,23 +2418,25 @@ class GNOMFrame(wx.Frame):
                 size[1] = size[1] + 20
                 self.SetSize(size)
 
-        self.initGNOM(self.plotPanel, self.controlPanel, sasm)
-
         self.CenterOnParent()
         self.Raise()
 
-    def initGNOM(self, plotPanel, controlPanel, sasm):
-
         self.getGnomVersion()
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        path = dirctrl_panel.getDirLabel()
+
+        self.showBusy()
+        t = threading.Thread(target=self.initGNOM, args=(sasm, path))
+        t.daemon=True
+        t.start()
+
+    def initGNOM(self, sasm, path):
 
         analysis_dict = sasm.getParameter('analysis')
         if 'GNOM' in analysis_dict:
-            iftm = self.controlPanel.initGnomValues(sasm)
+            wx.CallAfter(self.controlPanel.initGnomValues, sasm)
 
         else:
-            dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
-            path = dirctrl_panel.getDirLabel()
-
             cwd = os.getcwd()
 
             savename = 't_dat.dat'
@@ -2505,13 +2507,12 @@ class GNOMFrame(wx.Frame):
             if restart_timer:
                 wx.CallAfter(self.main_frame.controlTimer, True)
 
+            wx.CallAfter(self.controlPanel.initDatgnomValues, sasm, init_iftm)
 
-            iftm = controlPanel.initDatgnomValues(sasm, init_iftm)
+        wx.CallAfter(self.showBusy, False)
 
-        plotPanel.plotPr(iftm)
-
-    def updateGNOMSettings(self):
-        self.controlPanel.updateGNOMSettings()
+    def initGnomVals(self, sasm):
+        self.controlPanel.initGnomValues(sasm)
 
     def cleanupGNOM(self, path, savename = '', outname = ''):
         savefile = os.path.join(path, savename)
@@ -2559,6 +2560,13 @@ class GNOMFrame(wx.Frame):
                 self.new_gnom = True
             else:
                 self.new_gnom = False
+
+    def showBusy(self, show=True):
+        if show:
+            self.bi = wx.BusyInfo('Initializing GNOM, pleae wait.', self)
+        else:
+            self.bi.Destroy()
+            self.bi = None
 
     def OnClose(self):
 
@@ -2846,7 +2854,7 @@ class GNOMControlPanel(wx.Panel):
 
         self.setFilename(os.path.basename(sasm.getParameter('filename')))
 
-        return self.out_list[str(dmax)]
+        self.updatePlot()
 
     def initGnomValues(self, sasm):
         self.setGuinierInfo(sasm)
@@ -2882,7 +2890,7 @@ class GNOMControlPanel(wx.Panel):
 
         self.setFilename(os.path.basename(sasm.getParameter('filename')))
 
-        return self.out_list[str(dmax)]
+        self.updatePlot()
 
     def setGuinierInfo(self, sasm):
         guinierRgWindow = wx.FindWindowById(self.infodata['guinierRg'][1], self)
