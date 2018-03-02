@@ -1262,7 +1262,7 @@ def parseBioCATlogfile(filename):
 
         counters = {labels[a]:vals[a] for a in range(len(labels))}
     else:
-        print 'Error loading BioCAT header'
+        counters = {}
 
     return counters
 
