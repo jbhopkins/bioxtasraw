@@ -14,6 +14,8 @@ Steps:
 
 Note: if pyopencl is installed, the build will fail.
 
+Note2: I've now gotten this to work with stock unthought canopy, with the extra raw packages installed through pip (Fabio, pyfai, hdf5plugin) and uninstalling pyside.
+
 More info on disk images here:
 https://el-tramo.be/blog/fancy-dmg/
 

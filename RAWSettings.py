@@ -346,7 +346,7 @@ class RawGuiSettings:
                             'denssLimitDmax'        : [False, wx.NewId(), 'bool'],
                             'denssDmaxStartStep'    : [500, wx.NewId(), 'int'],
                             'denssRecenter'         : [True, wx.NewId(), 'bool'],
-                            'denssRecenterStep'     : ['[1001,1501,3001,5001,7501,8501]', wx.NewId(), 'text'],
+                            'denssRecenterStep'     : ['[1001,1501,3001,5001,6001,7001,8001]', wx.NewId(), 'text'],
                             'denssPositivity'       : [True, wx.NewId(), 'bool'],
                             'denssExtrapolate'      : [True, wx.NewId(), 'bool'],
                             'denssShrinkwrap'       : [True, wx.NewId(), 'bool'],
@@ -366,7 +366,8 @@ class RawGuiSettings:
                             'autoFindEMAN2'         : [True, wx.NewId(), 'bool'],
                             'denssCutOut'           : [False, wx.NewId(), 'bool'],
                             'denssWriteXplor'       : [True, wx.NewId(), 'bool'],
-                            'denssMode'             : ['Slow', wx.NewId(), 'choice']
+                            'denssMode'             : ['Slow', wx.NewId(), 'choice'],
+                            'denssRecenterMode'     : ['com', wx.NewId(), 'choice'],
 
                             }
 

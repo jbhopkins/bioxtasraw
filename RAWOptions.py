@@ -3723,9 +3723,11 @@ class DenssPanel(wx.Panel):
             'denssRecenterStep', 'denssPositivity', 'denssShrinkwrap',
             'denssShrinkwrapMinStep', 'denssConnected', 'denssConnectivitySteps',
             'denssWriteXplor', 'denssCutOut', 'autoFindEMAN2', 'EMAN2Dir',
+            'denssRecenterMode',
             ]
 
         modeChoices = ['Fast', 'Slow', 'Custom']
+        recenterChoices = ['com', 'max']
 
         self.default_options = (('Automatically find the EMAN2 directory', raw_settings.getId('autoFindEMAN2'), 'bool'),
             ('EMAN2 location:', raw_settings.getId('EMAN2Dir'), 'text'),
@@ -3739,6 +3741,7 @@ class DenssPanel(wx.Panel):
             ("Minimum threshold defining support, in fraction of maximum density (default 0.20):", raw_settings.getId('denssShrinkwrapThresFrac'), 'float'),
             ("Number of iterations between updating support with shrinkwrap (default 20):", raw_settings.getId('denssShrinkwrapIter'), 'int'),
             ("Convergence criterion. Minimum threshold of chi2 std dev, as a fraction \nof the median chi2 of last 100 steps. (default 0.001):", raw_settings.getId('denssChiEndFrac'), 'float'),
+            ('Recenter mode (center of mass - com; maximum density - max)', raw_settings.getId('denssRecenterMode'), 'choice', recenterChoices),
             )
 
         self.custom_options_short = (('Number of iterations:', raw_settings.getId('denssSteps'), 'int'),

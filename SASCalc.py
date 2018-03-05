@@ -1862,6 +1862,7 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     plot = denss_settings['plotOutput']
     cutout = denss_settings['cutOutput']
     writeXplor = denss_settings['writeXplor']
+    recenter_mode = denss_settings['recenterMode']
 
 
     write = True
@@ -2032,7 +2033,10 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
 
         #update support using shrinkwrap method
         if recenter and j in recenter_steps:
-            rhocom = np.array(ndimage.measurements.center_of_mass(newrho))
+            if recenter_mode == "max":
+                rhocom = np.unravel_index(newrho.argmax(), newrho.shape)
+            else:
+                rhocom = np.array(ndimage.measurements.center_of_mass(newrho))
             gridcenter = np.array(rho.shape)/2.
             shift = gridcenter-rhocom
             shift = shift.astype(int)
@@ -2255,7 +2259,7 @@ def runDenss(q, I, sigq, D, prefix, path, comm_list, my_lock, thread_num_q,
     wx_queue.put_nowait(['finished', int(my_num)-1])
     my_lock.release()
 
-def runEman2Aver(flist, procs, prefix):
+def runEman2Aver(flist, procs, prefix, path):
     raw_settings = wx.FindWindowByName('MainFrame').raw_settings
     emanDir = raw_settings.get('EMAN2Dir')
 
@@ -2263,12 +2267,15 @@ def runEman2Aver(flist, procs, prefix):
     stacks_py = os.path.join(emanDir, 'e2buildstacks.py')
     eman_python = os.path.join(emanDir, 'python')
 
+    my_env = os.environ.copy()
+    my_env["PATH"] = emanDir+':'+my_env["PATH"]
+
     if os.path.exists(stacks_py):
         stacks_cmd = '%s %s --stackname %s_stack.hdf' %(eman_python, stacks_py, prefix)
 
         for item in flist:
             stacks_cmd = stacks_cmd + ' %s' %(item)
-        process=subprocess.Popen(stacks_cmd, shell=True, stdout=subprocess.PIPE)
+        process=subprocess.Popen(stacks_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
         stacks_output, error = process.communicate()
     else:
         return
@@ -2278,9 +2285,10 @@ def runEman2Aver(flist, procs, prefix):
 
     if os.path.exists(average_py):
         average_cmd = '%s %s --input %s_stack.hdf --path %s_aver --parallel thread:%i --saveali' %(eman_python, average_py, prefix, prefix, procs)
+
         if len(flist) < 4:
             average_cmd = average_cmd + ' --goldstandardoff'
-        process=subprocess.Popen(average_cmd, shell=True, stdout=subprocess.PIPE)
+        process=subprocess.Popen(average_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
         return process, stacks_output
     else:
         return

@@ -1229,7 +1229,7 @@ class MolWeightFrame(wx.Frame):
             for each_key in self.infodata.iterkeys():
                 window = wx.FindWindowById(self.infodata[each_key][1], self)
                 if abs(float(guinier[each_key])) > 1e3 or abs(float(guinier[each_key])) < 1e-2:
-                    window.ChangeValue('%.3E' %(guinier[each_key]))
+                    window.ChangeValue('%.3E' %(float(guinier[each_key])))
                 else:
                     window.ChangeValue('%.4f' %(round(float(guinier[each_key]), 4)))
 
@@ -1725,7 +1725,7 @@ class MolWeightFrame(wx.Frame):
             for each_key in self.infodata.iterkeys():
                 window = wx.FindWindowById(self.infodata[each_key][1], self)
                 if abs(float(guinier[each_key])) > 1e3 or abs(float(guinier[each_key])) < 1e-2:
-                    window.SetValue('%.3E' %(guinier[each_key]))
+                    window.SetValue('%.3E' %(float(guinier[each_key])))
                 else:
                     window.SetValue('%.4f' %(round(float(guinier[each_key]), 4)))
 
@@ -2904,26 +2904,22 @@ class GNOMControlPanel(wx.Panel):
 
             try:
                 guinierRgWindow.SetValue(self.formatNumStr(guinier['Rg']))
-            except Exception as e:
-                print e
+            except Exception:
                 guinierRgWindow.SetValue('')
 
             try:
                 guinierI0Window.SetValue(self.formatNumStr(guinier['I0']))
-            except Exception as e:
-                print e
+            except Exception:
                 guinierI0Window.SetValue('')
 
             try:
                 guinierRgerrWindow.SetValue(self.formatNumStr(guinier['Rg_err']))
-            except Exception as e:
-                print e
+            except Exception:
                 guinierRgerrWindow.SetValue('')
 
             try:
                 guinierI0errWindow.SetValue(self.formatNumStr(guinier['I0_err']))
-            except Exception as e:
-                print e
+            except Exception:
                 guinierI0errWindow.SetValue('')
 
     def formatNumStr(self, val):
@@ -5921,6 +5917,7 @@ class DenssRunPanel(wx.Panel):
             self.denss_settings['chiEndFrac'] = temp_settings.get('denssChiEndFrac')
             self.denss_settings['cutOutput'] = temp_settings.get('denssCutOut')
             self.denss_settings['writeXplor'] = temp_settings.get('denssWriteXplor')
+            self.denss_settings['recenterMode'] = temp_settings.get('denssRecenterMode')
 
         if self.denss_settings['mode'] == 'Fast':
             self.denss_settings['swMinStep'] = 1000
@@ -5932,8 +5929,8 @@ class DenssRunPanel(wx.Panel):
 
         elif self.denss_settings['mode'] == 'Slow':
             self.denss_settings['swMinStep'] = 5000
-            self.denss_settings['conSteps'] = '[7500]'
-            self.denss_settings['recenterStep'] = '[1001,1501,3001,7501,8501]'
+            self.denss_settings['conSteps'] = '[6000]'
+            self.denss_settings['recenterStep'] = '[1001,1501,3001,5001,6001,7001,8001]'
             self.denss_settings['steps'] = 10000
             D = float(self.iftm.getParameter('dmax'))
             self.denss_settings['voxel'] = D*self.denss_settings['oversample']/64.
@@ -5992,12 +5989,7 @@ class DenssRunPanel(wx.Panel):
 
         den_filelist = [prefix+'_%s.mrc' %(str(i).zfill(2)) for i in range(1, nruns+1)]
 
-        cwd = os.getcwd()
-        os.chdir(path)
-
-        eman_proc, out1 = SASCalc.runEman2Aver(den_filelist, procs, prefix)
-
-        os.chdir(cwd)
+        eman_proc, out1 = SASCalc.runEman2Aver(den_filelist, procs, prefix, path)
 
         wx.CallAfter(averWindow.AppendText, out1)
 
@@ -6171,6 +6163,7 @@ class DenssRunPanel(wx.Panel):
                             'cutOutput'     : self.raw_settings.get('denssCutOut'),
                             'writeXplor'    : self.raw_settings.get('denssWriteXplor'),
                             'mode'          : self.raw_settings.get('denssMode'),
+                            'recenterMode'  : self.raw_settings.get('denssRecenterMode'),
                             }
 
 
