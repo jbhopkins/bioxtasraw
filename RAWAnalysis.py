@@ -182,22 +182,24 @@ class GuinierPlotPanel(wx.Panel):
             est_i0_err = None
         else:
             var = win_size/10
-            rg_list = np.empty((var+1)**2, dtype=np.float64)
-            i0_list = np.empty((var+1)**2, dtype=np.float64)
-            index = 0
+            if var > 12:
+                step = int(np.ceil(var/12.))
+            else:
+                step = 1
+            rg_list = []
+            i0_list = []
 
-            for li in range(0, var+1):
-                for ri in range(0,var+1):
+            for li in range(0, var+1, step):
+                for ri in range(0,var+1, step):
                     if ri == 0:
                         Rg, I0, Rger, I0er, opt, cov = SASCalc.calcRg(x[li:], y[li:], yerr[li:], transform=False)
                     else:
                         Rg, I0, Rger, I0er, opt, cov = SASCalc.calcRg(x[li:-ri], y[li:-ri], yerr[li:-ri], transform=False)
-                    rg_list[index] = Rg
-                    i0_list[index] = I0
-                    index = index+1
+                    rg_list.append(Rg)
+                    i0_list.append(I0)
 
-            est_rg_err = rg_list.std()
-            est_i0_err = i0_list.std()
+            est_rg_err = np.std(rg_list)
+            est_i0_err = np.std(i0_list)
 
 
         return est_rg_err, est_i0_err
@@ -744,6 +746,8 @@ class GuinierControlPanel(wx.Panel):
             msg = 'AutoRG could not find a suitable interval to calculate Rg.'
             wx.CallAfter(wx.MessageBox, str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK)
 
+            self.updatePlot()
+
         else:
             try:
                 spinstart.SetValue(int(idx_min))
@@ -767,6 +771,8 @@ class GuinierControlPanel(wx.Panel):
                 else:
                     txt.SetValue('%.4f' %(round(i0er, 4)))
 
+                self.updatePlot(is_autorg=True)
+
             except IndexError:
                 spinstart.SetValue(old_start)
                 spinend.SetValue(old_end)
@@ -786,7 +792,9 @@ class GuinierControlPanel(wx.Panel):
                 msg = 'AutoRG did not produce a useable result. Please report this to the developers.'
                 wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK)
 
-        self.updatePlot(is_autorg=True)
+                self.updatePlot()
+
+
 
     def setCurrentExpObj(self, ExpObj):
 
