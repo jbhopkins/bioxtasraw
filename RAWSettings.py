@@ -341,7 +341,7 @@ class RawGuiSettings:
                             #Denss settings
                             'denssVoxel'            : [5, wx.NewId(), 'float'],
                             'denssOversampling'     : [3, wx.NewId(), 'float'],
-                            'denssNElectrons'       : [10000, wx.NewId(), 'int'],
+                            'denssNElectrons'       : ['', wx.NewId(), 'text'],
                             'denssSteps'            : [10000, wx.NewId(), 'int'],
                             'denssLimitDmax'        : [False, wx.NewId(), 'bool'],
                             'denssDmaxStartStep'    : [500, wx.NewId(), 'int'],

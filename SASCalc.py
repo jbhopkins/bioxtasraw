@@ -42,6 +42,8 @@ import platform
 import re
 import ast
 import logging
+import glob
+import shutil
 import scipy.interpolate
 from scipy.constants import Avogadro
 from scipy import ndimage
@@ -1839,7 +1841,13 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     That code was released under GPL V3. The original author is Thomas Grant."""
 
     #Get settings
-    ne = int(denss_settings['electrons'])
+    if denss_settings['electrons'] != '':
+        try:
+            ne = int(denss_settings['electrons'])
+        except Exception:
+            ne = None
+    else:
+        ne = None
     voxel = float(denss_settings['voxel'])
     oversampling = float(denss_settings['oversample'])
     limit_dmax = denss_settings['limitDmax']
@@ -1962,7 +1970,10 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     my_logger.info('Maximum dimension: %3.3f', D)
     my_logger.info('Sampling ratio: %3.3f', oversampling)
     my_logger.info('Requested real space voxel size: %3.3f', voxel)
-    my_logger.info('Number of electrons: %3.3f', ne)
+    if ne is not None:
+        my_logger.info('Number of electrons: %3.3f', ne)
+    else:
+        my_logger.info('Number of electrons: ')
     my_logger.info('Limit Dmax: %s', limit_dmax)
     my_logger.info('Recenter: %s', recenter)
     my_logger.info('Positivity: %s', positivity)
@@ -2100,10 +2111,11 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
         #change rho to be the electron density in e-/angstroms^3, rather
         #than number of electrons,
         #which is what the FFT assumes
-        rho /= dV
 
     rg[j+1] = rho2rg(rho, r, support, dx)
     supportV[j+1] = supportV[j]
+
+    rho /= dV
 
     if cutout:
         #here were going to cut rho out of the large real space box
@@ -2158,46 +2170,6 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     my_logger.info('Final Support Volume: %3.3f', supportV[j+1])
     my_logger.info('END')
     my_fh.close()
-
-    # if plot:
-    #     fig = matplotlib.figure.Figure()
-    #     ax = fig.add_subplot(111)
-
-    #     ax.errorbar(q, I, fmt='k-', yerr=sigq, capsize=0, elinewidth=0.1, ecolor=cc.to_rgba('0',alpha=0.5),label='Raw Data')
-    #     ax.plot(qdata, Idata, 'bo', alpha=0.5, label='Interpolated Data')
-    #     ax.plot(qbinsc, Imean[j+1],'r.', label='Scattering from Density')
-    #     handles,labels = ax.get_legend_handles_labels()
-    #     handles = [handles[2], handles[0], handles[1]]
-    #     labels = [labels[2], labels[0], labels[1]]
-    #     ax.legend(handles,labels)
-    #     ax.semilogy()
-    #     ax.set_ylabel('I(q)')
-    #     ax.set_xlabel(r'q ($\mathrm{\AA^{-1}}$)')
-    #     fig.tight_layout()
-    #     fig.savefig(file_prefix+'_fit', ext='png', dpi=150)
-    #     ax.cla()
-
-    #     ax.plot(chi[chi>0])
-    #     ax.set_xlabel('Step')
-    #     ax.set_ylabel('$\chi^2$')
-    #     ax.semilogy()
-    #     fig.tight_layout()
-    #     fig.savefig(file_prefix+'_chis', ext='png', dpi=150)
-    #     ax.cla()
-
-    #     ax.plot(rg[rg!=0])
-    #     ax.set_xlabel('Step')
-    #     ax.set_ylabel('Rg')
-    #     fig.tight_layout()
-    #     fig.savefig(file_prefix+'_rgs', ext='png', dpi=150)
-    #     ax.cla()
-
-    #     ax.plot(supportV[supportV>0])
-    #     ax.set_xlabel('Step')
-    #     ax.set_ylabel('Support Volume ($\mathrm{\AA^{3}}$)')
-    #     fig.tight_layout()
-    #     fig.savefig(file_prefix+'_supportV', ext='png', dpi=150)
-    #     ax.cla()
 
     return qdata, Idata, sigqdata, qbinsc, Imean[j+1], chi, rg, supportV
 
@@ -2259,10 +2231,9 @@ def runDenss(q, I, sigq, D, prefix, path, comm_list, my_lock, thread_num_q,
     wx_queue.put_nowait(['finished', int(my_num)-1])
     my_lock.release()
 
-def runEman2Aver(flist, procs, prefix, path):
-    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
-    emanDir = raw_settings.get('EMAN2Dir')
+    return data
 
+def runEman2Aver(flist, procs, prefix, path, emanDir):
     #First we stack
     stacks_py = os.path.join(emanDir, 'e2buildstacks.py')
     eman_python = os.path.join(emanDir, 'python')
@@ -2292,3 +2263,31 @@ def runEman2Aver(flist, procs, prefix, path):
         return process, stacks_output
     else:
         return
+
+def runEman2Convert(prefix, path, emanDir):
+    eman_python = os.path.join(emanDir, 'python')
+
+    my_env = os.environ.copy()
+    my_env["PATH"] = emanDir+':'+my_env["PATH"]
+
+    convert_py = os.path.join(emanDir, 'e2proc3d.py')
+
+    aver_dir = glob.glob(os.path.join(path, '%s_aver_*' %(prefix)))[-1]
+
+    if os.path.exists(convert_py):
+        convert_cmd = '%s %s final_avg_ali2ref.hdf %s_aver.mrc' %(eman_python, convert_py, prefix)
+
+        process=subprocess.Popen(convert_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=aver_dir)
+        stacks_output, error = process.communicate()
+
+        if os.path.exists(os.path.join(path, '%s_avg.mrc' %(prefix))):
+            os.remove(os.path.join(path, '%s_avg.mrc' %(prefix)))
+
+        shutil.move(os.path.join(aver_dir, '%s_aver.mrc' %(prefix)), os.path.join(path, '%s_aver.mrc' %(prefix)))
+
+        return stacks_output, error
+
+    else:
+        return
+
+

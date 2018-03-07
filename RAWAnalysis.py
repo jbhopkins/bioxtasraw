@@ -53,6 +53,8 @@ from wx.lib.agw import ultimatelistctrl as ULC
 
 from scipy import integrate
 import scipy.stats as stats
+from scipy.interpolate import interp1d
+import scipy.optimize
 
 import RAWSettings
 import RAWCustomCtrl
@@ -5317,11 +5319,11 @@ class DenssFrame(wx.Frame):
         self.panel = wx.Panel(self)
         self.notebook = wx.Notebook(self.panel, wx.ID_ANY)
         self.RunPanel = DenssRunPanel(self.notebook, self.iftm, self.manip_item)
-        # self.ResultsPanel = DenssResultsPanel(self.notebook, self.iftm, self.manip_item)
+        self.ResultsPanel = DenssResultsPanel(self.notebook, self.iftm, self.manip_item)
         # self.ViewerPanel = DenssViewerPanel(self.notebook)
 
         self.notebook.AddPage(self.RunPanel, 'Run')
-        # self.notebook.AddPage(self.ResultsPanel, 'Results')
+        self.notebook.AddPage(self.ResultsPanel, 'Results')
         # self.notebook.AddPage(self.ViewerPanel, 'Viewer')
 
         sizer = self._createLayout(self.panel)
@@ -5505,7 +5507,7 @@ class DenssRunPanel(wx.Panel):
         mode_sizer.Add(mode_ctrl, 0, wx.LEFT | wx.RIGHT, 5)
 
 
-        ne_text = wx.StaticText(parent, wx.ID_ANY, 'Total number of electrons :')
+        ne_text = wx.StaticText(parent, wx.ID_ANY, 'Total number of electrons (optional) :')
         ne_ctrl = wx.TextCtrl(parent, self.ids['electrons'], '', size=(60,-1))
 
         ne_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -5669,9 +5671,9 @@ class DenssRunPanel(wx.Panel):
             saxs_name = denss_names[key]+'_step0_saxs.dat'
             image_names = [denss_names[key]+'_chis.png', denss_names[key]+'_fit.png',
                 denss_names[key]+'_rgs.png', denss_names[key]+'_supportV.png']
-            mrc_name = denss_names[key]+'.mrc'
+            mrc_name = [denss_names[key]+'.mrc', denss_names[key]+'_support.mrc']
 
-            names = [log_name, fit_name, stats_name, saxs_name, mrc_name] + xplor_names + image_names
+            names = [log_name, fit_name, stats_name, saxs_name] + mrc_name + xplor_names + image_names
 
             file_names = [os.path.join(path, name) for name in names]
 
@@ -5702,6 +5704,10 @@ class DenssRunPanel(wx.Panel):
                 elif result == wx.ID_YESTOALL:
                     yes_to_all = True
 
+            for f in file_names:
+                if os.path.exists(f):
+                    os.remove(f)
+
         #Set up the various bits of information the threads will need. Set up the status windows.
         self.denss_ids = collections.OrderedDict()
         for (key, value) in [(str(i), self.NewControlId()) for i in range(1, nruns+1)]:
@@ -5719,10 +5725,10 @@ class DenssRunPanel(wx.Panel):
 
         if nruns > 1 and average:
 
-            average_names = [prefix+'_stack.hdf', prefix+'_stack_resized.hdf']
+            average_names = [prefix+'_stack.hdf', prefix+'_aver.mrc']
             names = average_names
             file_names = [os.path.join(path, name) for name in names]
-            aver_folder = os.path.join(path, prefix+'_aver')
+            aver_folder = os.path.join(path, prefix+'_aver_01')
 
             file_exists = False
 
@@ -5733,9 +5739,9 @@ class DenssRunPanel(wx.Panel):
 
             if file_exists and not yes_to_all:
                 button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
-                question = ('Warning: selected directory contains an EMAN2 average '
-                    'output file(\n. Running the average will overwrite this '
-                    'file.\nDo you wish to continue?')
+                question = ('Warning: selected directory contains EMAN2 average '
+                    'output files\n. Running the average will overwrite these '
+                    'files.\nDo you wish to continue?')
                 label = 'Overwrite existing files?'
                 icon = wx.ART_WARNING
 
@@ -5770,6 +5776,13 @@ class DenssRunPanel(wx.Panel):
             text_ctrl = wx.TextCtrl(self.logbook, self.denss_ids['average'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
             self.logbook.AddPage(text_ctrl, 'Average')
 
+            for f in file_names:
+                if os.path.exists(f):
+                    os.remove(f)
+
+            if os.path.exists(aver_folder) and os.path.isdir(aver_folder):
+                shutil.rmtree(aver_folder, ignore_errors=True)
+
 
         self.status.SetValue('Starting processing\n')
 
@@ -5798,7 +5811,7 @@ class DenssRunPanel(wx.Panel):
 
         q = self.iftm.q_extrap
         I = self.iftm.i_extrap
-        sigq = np.sqrt(I) #Artificially generate noise for the data assuming poisson. Should be a better way
+        sigq = I*np.mean((self.iftm.err_orig/self.iftm.i_orig))
         D = self.iftm.getParameter('dmax')
 
         for key in self.denss_ids:
@@ -5997,7 +6010,7 @@ class DenssRunPanel(wx.Panel):
 
         den_filelist = [prefix+'_%s.mrc' %(str(i).zfill(2)) for i in range(1, nruns+1)]
 
-        eman_proc, out1 = SASCalc.runEman2Aver(den_filelist, procs, prefix, path)
+        eman_proc, out1 = SASCalc.runEman2Aver(den_filelist, procs, prefix, path, self.raw_settings.get('EMAN2Dir'))
 
         wx.CallAfter(averWindow.AppendText, out1)
 
@@ -6031,11 +6044,15 @@ class DenssRunPanel(wx.Panel):
             except Queue.Empty:
                 pass
 
+        convert_out, convert_err = SASCalc.runEman2Convert(prefix, path, self.raw_settings.get('EMAN2Dir'))
+
+        wx.CallAfter(averWindow.AppendText, convert_out)
+
         wx.CallAfter(self.status.AppendText, 'Finished Average\n')
 
         self.threads_finished[-1] = True
 
-        self.finishedProcessing()
+        wx.CallAfter(self.finishedProcessing)
 
 
     def onDenssTimer(self, evt):
@@ -6109,37 +6126,29 @@ class DenssRunPanel(wx.Panel):
 
         wx.CallAfter(self.status.AppendText, 'Finished Processing')
 
-        # #Get user settings on number of runs, save location, etc
-        # damaver_window = wx.FindWindowById(self.ids['damaver'], self)
-        # damaver = damaver_window.GetValue()
+        denss_results = [result.get() for result in self.results]
 
-        # damclust_window = wx.FindWindowById(self.ids['damclust'], self)
-        # damclust = damclust_window.GetValue()
+        #Get user settings on number of runs, save location, etc
+        average_window = wx.FindWindowById(self.ids['average'], self)
+        average = average_window.GetValue()
 
-        # prefix_window = wx.FindWindowById(self.ids['prefix'], self)
-        # prefix = prefix_window.GetValue()
+        prefix_window = wx.FindWindowById(self.ids['prefix'], self)
+        prefix = prefix_window.GetValue()
 
-        # path_window = wx.FindWindowById(self.ids['save'], self)
-        # path = path_window.GetValue()
+        path_window = wx.FindWindowById(self.ids['save'], self)
+        path = path_window.GetValue()
 
-        # nruns_window = wx.FindWindowById(self.ids['runs'], self)
-        # nruns = int(nruns_window.GetValue())
+        nruns_window = wx.FindWindowById(self.ids['runs'], self)
+        nruns = int(nruns_window.GetValue())
 
-        # refine_window = wx.FindWindowById(self.ids['refine'], self)
-        # refine = refine_window.GetValue()
+        settings = {'average'   : average,
+                    'prefix'    : prefix,
+                    'path'      : path,
+                    'runs'      : nruns,
+                    }
 
-        # settings = {'damaver'   : damaver,
-        #             'damclust'  : damclust,
-        #             'prefix'    : prefix,
-        #             'path'      : path,
-        #             'runs'      : nruns,
-        #             'refine'    : refine,
-        #             }
-
-        # results_window = wx.FindWindowByName('DammifResultsPanel')
-        # wx.CallAfter(results_window.updateResults, settings)
-
-        # self.parent.SetSelection(1)
+        results_window = wx.FindWindowByName('DenssResultsPanel')
+        wx.CallAfter(results_window.updateResults, settings, denss_results)
 
     def _onAdvancedButton(self, evt):
         self.main_frame.showOptionsDialog(focusHead='DENSS')
@@ -6221,7 +6230,6 @@ class DenssRunPanel(wx.Panel):
                     self.msg_timer.Stop()
 
 
-
 class DenssResultsPanel(wx.Panel):
 
     def __init__(self, parent, iftm, manip_item):
@@ -6248,17 +6256,9 @@ class DenssResultsPanel(wx.Panel):
         self.ids = {'ambiCats'      : self.NewControlId(),
                     'ambiScore'     : self.NewControlId(),
                     'ambiEval'      : self.NewControlId(),
-                    'nsdMean'       : self.NewControlId(),
-                    'nsdStdev'      : self.NewControlId(),
-                    'nsdInc'        : self.NewControlId(),
-                    'nsdTot'        : self.NewControlId(),
-                    'clustNum'      : self.NewControlId(),
-                    'clustDescrip'  : self.NewControlId(),
-                    'clustDist'     : self.NewControlId(),
-                    'models'        : self.NewControlId(),
                     'res'           : self.NewControlId(),
-                    'resErr'        : self.NewControlId(),
                     'resUnit'       : self.NewControlId(),
+                    'models'        : self.NewControlId(),
                     }
 
         self.topsizer = self._createLayout(self)
@@ -6293,95 +6293,30 @@ class DenssResultsPanel(wx.Panel):
         self.ambi_sizer.Add(ambi_subsizer2, 0, wx.TOP, 5)
 
 
-        nsd_box = wx.StaticBox(parent, wx.ID_ANY, 'Normalized Spatial Discrepancy')
-        self.nsd_sizer = wx.StaticBoxSizer(nsd_box, wx.HORIZONTAL)
-
-        mean_text = wx.StaticText(parent, wx.ID_ANY, 'Mean NSD:')
-        mean_ctrl = wx.TextCtrl(parent, self.ids['nsdMean'], '', size=(60,-1), style=wx.TE_READONLY)
-
-        stdev_text = wx.StaticText(parent, wx.ID_ANY, 'Stdev. NSD:')
-        stdev_ctrl = wx.TextCtrl(parent, self.ids['nsdStdev'], '', size=(60,-1), style=wx.TE_READONLY)
-
-        inc_text = wx.StaticText(parent, wx.ID_ANY, 'DAMAVER included:')
-        inc_ctrl = wx.TextCtrl(parent, self.ids['nsdInc'], '', size=(60,-1), style=wx.TE_READONLY)
-        inc_text2 = wx.StaticText(parent, wx.ID_ANY, 'of')
-        total_ctrl = wx.TextCtrl(parent, self.ids['nsdTot'], '', size=(60,-1), style=wx.TE_READONLY)
-
-        self.nsd_sizer.Add(mean_text, 0, wx.ALIGN_CENTER_VERTICAL)
-        self.nsd_sizer.Add(mean_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
-        self.nsd_sizer.Add(stdev_text, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 8)
-        self.nsd_sizer.Add(stdev_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
-        self.nsd_sizer.Add(inc_text, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 8)
-        self.nsd_sizer.Add(inc_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
-        self.nsd_sizer.Add(inc_text2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
-        self.nsd_sizer.Add(total_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
-
-
-        res_box = wx.StaticBox(parent, wx.ID_ANY, 'Reconstruction Resolution (SASRES)')
+        res_box = wx.StaticBox(parent, wx.ID_ANY, 'Reconstruction Resolution (FSC)')
         self.res_sizer = wx.StaticBoxSizer(res_box, wx.HORIZONTAL)
 
-        res_text = wx.StaticText(parent, wx.ID_ANY, 'Ensemble Resolution:')
+        res_text = wx.StaticText(parent, wx.ID_ANY, 'Fourier Shell Correlation Resolution:')
         res_ctrl = wx.TextCtrl(parent, self.ids['res'], '', size=(60,-1), style=wx.TE_READONLY)
-
-        reserr_text = wx.StaticText(parent, wx.ID_ANY, '+/-')
-        reserr_ctrl = wx.TextCtrl(parent, self.ids['resErr'], '', size=(60,-1), style=wx.TE_READONLY)
 
         resunit_ctrl = wx.TextCtrl(parent, self.ids['resUnit'], '', size=(100,-1), style=wx.TE_READONLY)
 
         self.res_sizer.Add(res_text, 0, wx.ALIGN_CENTER_VERTICAL)
         self.res_sizer.Add(res_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL,2)
-        self.res_sizer.Add(reserr_text, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
-        self.res_sizer.Add(reserr_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
         self.res_sizer.Add(resunit_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 4)
 
 
-        clust_box = wx.StaticBox(parent, wx.ID_ANY, 'Clustering')
-        self.clust_sizer = wx.StaticBoxSizer(clust_box, wx.VERTICAL)
+        try:
+            self.models = flatNB.FlatNotebook(parent, self.ids['models'], agwStyle = flatNB.FNB_NAV_BUTTONS_WHEN_NEEDED | flatNB.FNB_NO_X_BUTTON)
+        except AttributeError:
+            self.models = flatNB.FlatNotebook(parent, self.ids['models'])     #compatability for older versions of wxpython
+            self.models.SetWindowStyleFlag(flatNB.FNB_NO_X_BUTTON)
 
-        clust_num_text = wx.StaticText(parent, wx.ID_ANY, 'Number of clusters:')
-        clust_num_ctrl = wx.TextCtrl(parent, self.ids['clustNum'], '', size=(60,-1), style=wx.TE_READONLY)
+        self.models.DeleteAllPages()
 
-        clust_num_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        clust_num_sizer.Add(clust_num_text, 0, wx.ALIGN_CENTER_VERTICAL)
-        clust_num_sizer.Add(clust_num_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
-
-        clust_list1= wx.ListCtrl(parent, self.ids['clustDescrip'], size=(-1,150), style=wx.LC_REPORT)
-        clust_list1.InsertColumn(0, 'Cluster')
-        clust_list1.InsertColumn(1, 'Isolated')
-        clust_list1.InsertColumn(2, 'Rep. Model')
-        clust_list1.InsertColumn(3, 'Deviation')
-
-        clust_list2= wx.ListCtrl(parent, self.ids['clustDist'], size=(-1,150), style=wx.LC_REPORT)
-        clust_list2.InsertColumn(0, 'Cluster 1')
-        clust_list2.InsertColumn(1, 'Cluster 2')
-        clust_list2.InsertColumn(2, 'Distance')
-
-        clust_list_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        clust_list_sizer.Add(clust_list1, 5, wx.EXPAND)
-        clust_list_sizer.Add(clust_list2, 3, wx.LEFT | wx.EXPAND, 8)
-
-        self.clust_sizer.Add(clust_num_sizer, 0)
-        self.clust_sizer.Add(clust_list_sizer, 0, wx.EXPAND | wx.TOP, 5)
-
-
-        models_box = wx.StaticBox(parent, wx.ID_ANY, 'Models')
-        self.models_sizer = wx.StaticBoxSizer(models_box, wx.VERTICAL)
-
-        models_list = wx.ListCtrl(parent, self.ids['models'], size = (-1,-1), style=wx.LC_REPORT)
-        models_list.InsertColumn(0, 'Model')
-        models_list.InsertColumn(1, 'Chi^2')
-        models_list.InsertColumn(2, 'Rg')
-        models_list.InsertColumn(3, 'Dmax')
-        models_list.InsertColumn(4, 'Excluded Vol.')
-        models_list.InsertColumn(5, 'Est. Protein MW.')
-        models_list.InsertColumn(6, 'Mean NSD')
-
-        if platform.system() == 'Windows':
-            models_list.SetColumnWidth(5, -2)
-        else:
-            models_list.SetColumnWidth(5, 100)
-
-        self.models_sizer.Add(models_list, 1, wx.EXPAND)
+        model_box = wx.StaticBox(parent, -1, 'Models')
+        self.model_sizer = wx.StaticBoxSizer(model_box, wx.HORIZONTAL)
+        self.model_sizer.Add(self.models, 1, wx.ALL | wx.EXPAND, 5)
 
 
         save_button = wx.Button(parent, wx.ID_ANY, 'Save Results Summary')
@@ -6390,28 +6325,26 @@ class DenssResultsPanel(wx.Panel):
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(self.ambi_sizer, 0, wx.EXPAND)
-        top_sizer.Add(self.nsd_sizer, 0, wx.EXPAND)
         top_sizer.Add(self.res_sizer, 0, wx.EXPAND)
-        top_sizer.Add(self.clust_sizer,0, wx.EXPAND)
-        top_sizer.Add(self.models_sizer,1,wx.EXPAND)
+        top_sizer.Add(self.model_sizer, 1, wx.EXPAND)
         top_sizer.Add(save_button, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
 
         return top_sizer
 
 
     def _initSettings(self):
-        wx.CallAfter(self.runAmbimeter)
-
-        self.topsizer.Hide(self.nsd_sizer, recursive=True)
-        self.topsizer.Hide(self.clust_sizer, recursive=True)
-        self.topsizer.Hide(self.res_sizer, recursive=True)
-        # self.topsizer.Hide(self.models_sizer, recursive=True)
-
-    def runAmbimeter(self):
-        cwd = os.getcwd()
-        run_window = wx.FindWindowByName('DammifRunPanel')
+        run_window = wx.FindWindowByName('DenssRunPanel')
         path_window = wx.FindWindowById(run_window.ids['save'], run_window)
         path = path_window.GetValue()
+
+        t = threading.Thread(target=self.runAmbimeter, args=(path,))
+        t.daemon = True
+        t.start()
+
+        self.topsizer.Hide(self.res_sizer, recursive=True)
+
+    def runAmbimeter(self, path):
+        cwd = os.getcwd()
         os.chdir(path)
 
         outname = 't_ambimeter.out'
@@ -6447,158 +6380,59 @@ class DenssResultsPanel(wx.Panel):
         os.chdir(cwd)
 
         cats_window = wx.FindWindowById(self.ids['ambiCats'], self)
-        cats_window.SetValue(output[0])
+        wx.CallAfter(cats_window.SetValue, output[0])
         score_window = wx.FindWindowById(self.ids['ambiScore'], self)
-        score_window.SetValue(output[1])
+        wx.CallAfter(score_window.SetValue, output[1])
         eval_window = wx.FindWindowById(self.ids['ambiEval'], self)
-        eval_window.SetValue(output[2])
-
-    def getNSD(self, filename):
-        mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err, res_unit = SASFileIO.loadDamselLogFile(filename)
-
-        mean_window = wx.FindWindowById(self.ids['nsdMean'], self)
-        mean_window.SetValue(mean_nsd)
-        stdev_window = wx.FindWindowById(self.ids['nsdStdev'], self)
-        stdev_window.SetValue(stdev_nsd)
-        inc_window = wx.FindWindowById(self.ids['nsdInc'], self)
-        inc_window.SetValue(str(len(include_list)))
-        tot_window = wx.FindWindowById(self.ids['nsdTot'], self)
-        tot_window.SetValue(str(len(result_dict)))
+        wx.CallAfter(eval_window.SetValue, output[2])
 
     def getResolution(self, filename):
-        mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err, res_unit = SASFileIO.loadDamselLogFile(filename)
+        res, fsc = np.loadtxt(filename, unpack=True)
 
+        f = interp1d(res, fsc-.5)
+
+        b_idx = np.where(fsc<0.5)[0][0]
+        a_idx = b_idx-1
+
+        #This is way more than we need for a linear interpolation, but I suppose
+        #If we ever want to do more, it's here . . .
+        root = scipy.optimize.brentq(f, res[a_idx], res[b_idx])
+        res = 1./root
         res_window = wx.FindWindowById(self.ids['res'], self)
-        res_window.SetValue(res)
-        reserr_window = wx.FindWindowById(self.ids['resErr'], self)
-        reserr_window.SetValue(res_err)
+        res_window.SetValue(str(round(res,1)))
         unit_window = wx.FindWindowById(self.ids['resUnit'], self)
-        unit_window.SetValue(res_unit)
-        tot_window = wx.FindWindowById(self.ids['nsdTot'], self)
-        tot_window.SetValue(str(len(result_dict)))
+        unit_window.SetValue('Angstroms')
 
-    def getClust(self, filename):
-        cluster_list, distance_list = SASFileIO.loadDamclustLogFile(filename)
+    def getModels(self, settings, denss_results):
+        nruns = settings['runs']
 
-        num_window = wx.FindWindowById(self.ids['clustNum'], self)
-        num_window.SetValue(str(len(cluster_list)))
+        self.models.DeleteAllPages()
 
-        clist = wx.FindWindowById(self.ids['clustDescrip'])
-        clist.DeleteAllItems()
-        for cluster in cluster_list:
-            if cluster.dev == -1:
-                isolated = 'Y'
-                dev = ''
-            else:
-                isolated = 'N'
-                dev = str(cluster.dev)
+        for i in range(1, nruns+1):
+            plot_panel = DenssPlotPanel(self.models, denss_results[i-1], self.iftm)
+            self.models.AddPage(plot_panel, str(i))
 
-            clist.Append((str(cluster.num), isolated, cluster.rep_model, dev))
+        if nruns > 3 and settings['average']:
+            plot_panel = DenssAveragePlotPanel(self.models, settings)
+            self.models.AddPage(plot_panel, 'Average')
 
-        dlist = wx.FindWindowById(self.ids['clustDist'])
-        dlist.DeleteAllItems()
-        for dist_data in distance_list:
-            dlist.Append(map(str, dist_data))
-
-    def getModels(self, settings):
-        models_window = wx.FindWindowById(self.ids['models'])
-        models_window.DeleteAllItems()
-
-        file_nums = range(1,int(settings['runs'])+1)
-        path = settings['path']
-        prefix = settings['prefix']
-
-        model_list = []
-
-        if settings['damaver']:
-            name = prefix+'_damsel.log'
-            filename = os.path.join(path, name)
-            mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err, res_unit = SASFileIO.loadDamselLogFile(filename)
-
-        for num in file_nums:
-            fprefix = '%s_%s' %(prefix, str(num).zfill(2))
-            dam_name = os.path.join(path, fprefix+'-1.pdb')
-            fir_name = os.path.join(path, fprefix+'.fir')
-
-            sasm, fit_sasm = SASFileIO.loadFitFile(fir_name)
-
-            chisq = sasm.getParameter('counters')['Chi_squared']
-
-            atoms, header, model_data = SASFileIO.loadPDBFile(dam_name)
-            model_data['chisq'] = chisq
-
-            if settings['damaver'] and int(settings['runs']) > 1:
-                model_data['nsd'] = result_dict[os.path.basename(dam_name)][-1]
-                if result_dict[os.path.basename(dam_name)][0].lower() == 'include':
-                    include = True
-                else:
-                    include = False
-
-                model_data['include'] = include
-
-            model_list.append([num, model_data, atoms])
-
-        if settings['damaver'] and int(settings['runs']) > 1:
-            damaver_name = os.path.join(path, prefix+'_damaver.pdb')
-            damfilt_name = os.path.join(path, prefix+'_damfilt.pdb')
-
-            atoms, header, model_data = SASFileIO.loadPDBFile(damaver_name)
-            model_list.append(['damaver', model_data, atoms])
-
-            atoms, header, model_data = SASFileIO.loadPDBFile(damfilt_name)
-            model_list.append(['damfilt', model_data, atoms])
-
-        if settings['refine']and int(settings['runs']) > 1:
-            dam_name = os.path.join(path, 'refine_'+prefix+'-1.pdb')
-            fir_name = os.path.join(path, 'refine_'+prefix+'.fir')
-            sasm, fit_sasm = SASFileIO.loadFitFile(fir_name)
-            chisq = sasm.getParameter('counters')['Chi_squared']
-
-            atoms, header, model_data = SASFileIO.loadPDBFile(dam_name)
-            model_data['chisq'] = chisq
-
-            model_list.append(['refine', model_data, atoms])
-
-        for item in model_list:
-            models_window.Append((item[0], item[1]['chisq'], item[1]['rg'],
-                item[1]['dmax'], item[1]['excluded_volume'], item[1]['mw'],
-                item[1]['nsd']))
-
-            if settings['damaver']:
-                if not item[1]['include'] and item[0]!='damaver' and item[0]!='damfilt' and item[0]!='refine':
-                    index = models_window.GetItemCount()-1
-                    models_window.SetItemTextColour(index, 'red')
-
-        return model_list
-
-    def updateResults(self, settings):
+    def updateResults(self, settings, denss_results):
         #In case we ran a different setting a second time, without closing the window
-        self.topsizer.Hide(self.nsd_sizer, recursive=True)
         self.topsizer.Hide(self.res_sizer, recursive=True)
-        self.topsizer.Hide(self.clust_sizer, recursive=True)
 
-        if settings['damaver'] and int(settings['runs']) > 1:
-            self.topsizer.Show(self.nsd_sizer, recursive=True)
-            name = settings['prefix']+'_damsel.log'
-            filename = os.path.join(settings['path'],name)
-            self.getNSD(filename)
-            self.getResolution(filename)
+        if settings['runs'] > 3 and settings['average']:
+            fsc_filename = os.path.join(os.path.join(settings['path'], settings['prefix']+'_aver_01'), 'fsc_0.txt')
+            self.getResolution(fsc_filename)
+            self.topsizer.Show(self.res_sizer, recursive=True)
 
-            if wx.FindWindowById(self.ids['res'], self).GetValue():
-                self.topsizer.Show(self.res_sizer, recursive=True)
-
-        if settings['damclust'] and int(settings['runs']) > 1:
-            self.topsizer.Show(self.clust_sizer, recursive=True)
-            name = settings['prefix']+'_damclust.log'
-            filename = os.path.join(settings['path'],name)
-            self.getClust(filename)
-
-        model_list = self.getModels(settings)
+        model_list = self.getModels(settings, denss_results)
 
         self.Layout()
 
-        viewer_window = wx.FindWindowByName('DammifViewerPanel')
-        viewer_window.updateResults(model_list)
+        self.parent.SetSelection(1)
+
+        # viewer_window = wx.FindWindowByName('DammifViewerPanel')
+        # viewer_window.updateResults(model_list)
 
     def _saveResults(self, evt):
         nsd_data = []
@@ -6803,6 +6637,170 @@ class DenssViewerPanel(wx.Panel):
             self._plotModel(self.model_dict['1'][1], self.model_dict['1'][0]['atom_radius'])
             model_choice.SetStringSelection('1')
 
+
+class DenssPlotPanel(wx.Panel):
+
+    def __init__(self, parent, denss_results, iftm):
+
+        wx.Panel.__init__(self, parent, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        self.denss_results = denss_results
+        self.iftm = iftm
+
+        sc_canvas = self.createScatteringPlot()
+        stats_canvas = self.createStatsPlot()
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(sc_canvas, 1, wx.GROW)
+        sizer.Add(stats_canvas, 1, wx.GROW)
+
+        self.SetSizer(sizer)
+
+    def createScatteringPlot(self):
+        fig = Figure((3.25,2.5))
+        canvas = FigureCanvasWxAgg(self, -1, fig)
+
+        q = self.iftm.q_extrap
+        I = self.iftm.i_extrap
+        sigq = I*np.mean((self.iftm.err_orig/self.iftm.i_orig))
+        #handle sigq values whose error bounds would go negative and be missing on the log scale
+        sigq2 = np.copy(sigq)
+        sigq2[sigq>I] = I[sigq>I]*.999
+
+        qdata = self.denss_results[0]
+        Idata = self.denss_results[1]
+        qbinsc = self.denss_results[3]
+        Imean = self.denss_results[4]
+
+        gs = matplotlib.gridspec.GridSpec(2, 1, height_ratios=[3,1])
+
+        ax0 = fig.add_subplot(gs[0])
+        ax0.errorbar(q[q<=qdata[-1]], I[q<=qdata[-1]], fmt='k-',
+            yerr=[sigq2[q<=qdata[-1]],sigq[q<=qdata[-1]]], capsize=0,
+            elinewidth=0.1, ecolor=matplotlib.colors.colorConverter.to_rgba('0',alpha=0.5),
+            label='Smoothed Exp. Data')
+        ax0.plot(qdata, Idata, 'bo',alpha=0.5,label='Interpolated Data')
+        ax0.plot(qbinsc,Imean,'r.',label='Scattering from Density')
+        handles,labels = ax0.get_legend_handles_labels()
+        handles = [handles[2], handles[0], handles[1]]
+        labels = [labels[2], labels[0], labels[1]]
+        ymin = np.min(np.hstack((I,Idata,Imean)))
+        ymax = np.max(np.hstack((I,Idata,Imean)))
+        ax0.set_ylim([0.5*ymin,1.5*ymax])
+        ax0.legend(handles,labels, fontsize='small')
+        ax0.semilogy()
+        ax0.set_ylabel('log I(q)', fontsize='small')
+        ax0.tick_params(labelbottom='off', labelsize='x-small')
+
+        ax1 = fig.add_subplot(gs[1])
+        ax1.plot(qdata, qdata*0, 'k--')
+        ax1.plot(qdata, np.log10(Imean[qbinsc==qdata])-np.log10(Idata), 'ro-')
+        ylim = ax1.get_ylim()
+        ymax = np.max(np.abs(ylim))
+        ax1.set_ylim([-ymax,ymax])
+        ax1.yaxis.major.locator.set_params(nbins=5)
+        xlim = ax0.get_xlim()
+        ax1.set_xlim(xlim)
+        ax1.set_ylabel('Residuals', fontsize='small')
+        ax1.set_xlabel(r'q ($\mathrm{\AA^{-1}}$)', fontsize='small')
+        ax1.tick_params(labelsize='x-small')
+
+
+        canvas.SetBackgroundColour('white')
+        fig.subplots_adjust(left = 0.2, bottom = 0.1, right = 0.95, top = 0.95)
+        fig.set_facecolor('white')
+
+        canvas.draw()
+
+        # font_size = 10
+        # a = self.subplots['VC']
+
+        # a.locator_params(tight = True)
+        # a.locator_params(axis='x', nbins = 6)
+
+        # a.title.set_size(font_size)
+        # a.yaxis.get_label().set_size(font_size)
+        # a.xaxis.get_label().set_size(font_size)
+
+        # for tick in a.xaxis.get_major_ticks():
+        #     tick.label.set_fontsize(font_size)
+
+        # for tick in a.yaxis.get_major_ticks():
+        #     tick.label.set_fontsize(font_size)
+
+        return canvas
+
+    def createStatsPlot(self):
+        fig = Figure((3.25,2.5))
+        canvas = FigureCanvasWxAgg(self, -1, fig)
+
+        chi = self.denss_results[5]
+        rg = self.denss_results[6]
+        vol = self.denss_results[7]
+
+        ax0 = fig.add_subplot(311)
+        ax0.plot(chi[chi>0])
+        # ax0.set_xlabel('Step')
+        ax0.set_ylabel('$\chi^2$', fontsize='small')
+        ax0.semilogy()
+        ax0.tick_params(labelbottom='off', labelsize='x-small')
+
+        ax1 = fig.add_subplot(312)
+        ax1.plot(rg[rg>0])
+        # ax1.set_xlabel('Step')
+        ax1.set_ylabel('Rg', fontsize='small')
+        ax1.tick_params(labelbottom='off', labelsize='x-small')
+
+        ax2 = fig.add_subplot(313)
+        ax2.plot(vol[vol>0])
+        ax2.set_xlabel('Step', fontsize='small')
+        ax2.set_ylabel('Support Volume ($\mathrm{\AA^{3}}$)', fontsize='small')
+        ax2.semilogy()
+        ax2.tick_params(labelsize='x-small')
+
+        canvas.SetBackgroundColour('white')
+        fig.subplots_adjust(left = 0.2, bottom = 0.1, right = 0.95, top = 0.95)
+        fig.set_facecolor('white')
+
+        canvas.draw()
+
+        return canvas
+
+class DenssAveragePlotPanel(wx.Panel):
+
+    def __init__(self, parent, settings):
+
+        wx.Panel.__init__(self, parent, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        self.denss_settings = settings
+
+        fsc_canvas = self.createFSCPlot()
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(fsc_canvas, 1, wx.GROW)
+
+        self.SetSizer(sizer)
+
+    def createFSCPlot(self):
+        fig = Figure((3.25,2.5))
+        canvas = FigureCanvasWxAgg(self, -1, fig)
+
+        fsc_filename = os.path.join(os.path.join(self.denss_settings['path'], self.denss_settings['prefix']+'_aver_01'), 'fsc_0.txt')
+        res, fsc = np.loadtxt(fsc_filename, unpack=True)
+
+        ax0 = fig.add_subplot(111)
+        ax0.plot(res, fsc, 'bo-')
+        ax0.set_xlabel('Resolution ($\\AA^{-1}$)', fontsize='small')
+        ax0.set_ylabel('Fourier Shell Correlation', fontsize='small')
+        ax0.tick_params(labelsize='x-small')
+
+        canvas.SetBackgroundColour('white')
+        fig.subplots_adjust(left = 0.1, bottom = 0.12, right = 0.95, top = 0.95)
+        fig.set_facecolor('white')
+
+        canvas.draw()
+
+        return canvas
 
 class BIFTFrame(wx.Frame):
 

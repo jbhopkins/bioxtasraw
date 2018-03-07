@@ -244,12 +244,12 @@ components from overlapping SEC-SAXS peaks.
 
 #.  Clear all of the data in RAW. Load the **phehc_sec.sec** file in the **sec_data** folder.
 
-    *   *Note:* This data was provided by Dr. Steve Meisburger and is some of the data used
-        in the paper: *Domain Movements upon Activation of Phenylalanine Hydroxylase
-        Characterized by Crystallography and Chromatography-Coupled Small-Angle X-ray
-        Scattering*\ . Steve P. Meisburger, Alexander B. Taylor, Crystal A. Khan, Shengnan
-        Zhang, Paul F. Fitzpatrick, and Nozomi Ando. Journal of the American Chemical Society
-        2016 138 (20), 6506-6516. DOI: 10.1021/jacs.6b01563
+    *   *Note:* The data were provided by the Ando group at Princeton University
+        and is some of the data used in the paper: *Domain Movements upon Activation of
+        Phenylalanine Hydroxylase Characterized by Crystallography and Chromatography-Coupled
+        Small-Angle X-ray Scattering*\ . Steve P. Meisburger, Alexander B. Taylor, Crystal
+        A. Khan, Shengnan Zhang, Paul F. Fitzpatrick, and Nozomi Ando. Journal of the
+        American Chemical Society 2016 138 (20), 6506-6516. DOI: 10.1021/jacs.6b01563
 
     |10000201000003FF000002FD2470C58A1E0F85A8_png|
 
