@@ -44,6 +44,7 @@ import datetime
 from xml.dom import minidom
 import PIL
 from PIL import Image
+import matplotlib.backends.backend_pdf
 
 import RAWGlobals
 import SASImage
@@ -3353,6 +3354,38 @@ def saveDammixData(filename, ambi_data, nsd_data, res_data, clust_num, clist_dat
 
     with open(filename, 'w') as fsave:
         fsave.write(save_string)
+
+
+def saveDenssData(filename, ambi_data, res_data, model_data, setup_data):
+
+    header_string = '# DENSS results summary\n'
+    for item in setup_data:
+        header_string = header_string + '# %s\n' %(' '.join(map(str, item)))
+
+    body_string = '\n# AMBIMETER results\n'
+
+    for item in ambi_data:
+        body_string = body_string + '# %s\n' %(' '.join(map(str, item)))
+
+    if len(res_data) > 0:
+        body_string = body_string + '\n# Reconstruction resolution (FSC) results\n'
+        for item in res_data:
+            body_string =  body_string + '# %s\n' %(' '.join(map(str, item)))
+
+    save_string = header_string + body_string
+
+    with open(filename, 'w') as fsave:
+        fsave.write(save_string)
+
+    pdf = matplotlib.backends.backend_pdf.PdfPages(os.path.splitext(filename)[0]+'.pdf')
+
+    for data in model_data:
+        for fig in data[1]:
+            fig.suptitle('Model: %s' %(data[0]))
+            pdf.savefig(fig)
+            fig.suptitle('')
+
+    pdf.close()
 
 
 def saveDensityMrc(filename, rho,side):

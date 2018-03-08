@@ -2126,6 +2126,17 @@ class ConfigRootSettings(wx.Panel):
                 atsasPanel = wx.FindWindowById(myId, self.GetParent())
                 atsasPanel.setATSASDir()
 
+        if self.raw_settings.get('autoFindEMAN2'):
+            myId = -1
+            all_options = wx.FindWindowByName('OptionsDialog').all_options
+            for item in all_options:
+                if item[2] == "DENSS":
+                    myId = item[1]
+
+            if myId != -1:
+                atsasPanel = wx.FindWindowById(myId, self.GetParent())
+                atsasPanel.setATSASDir()
+
         myId = -1
         all_options = wx.FindWindowByName('OptionsDialog').all_options
         for item in all_options:
@@ -3804,6 +3815,17 @@ class DenssPanel(wx.Panel):
                     self.autoFind.Bind(wx.EVT_CHECKBOX, self.onAutoFind)
 
             default_sizer.Add(sizer, 0)
+
+        self.datadir.SetValue(self.raw_settings.get('EMAN2Dir'))
+        self.autoFind.SetValue(self.raw_settings.get('autoFindEMAN2'))
+
+        if not self.autoFind.GetValue():
+            self.datadir.SetEditable(True)
+            self.dirButton.Enable()
+
+        else:
+            self.datadir.SetEditable(False)
+            self.dirButton.Disable()
 
         box = wx.StaticBox(parent, wx.ID_ANY, 'Custom settings (only used in custom mode)')
         customSizer = wx.StaticBoxSizer(box, wx.VERTICAL)

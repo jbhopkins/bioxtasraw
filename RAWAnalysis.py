@@ -4234,7 +4234,7 @@ class DammifRunPanel(wx.Panel):
 
             if refine:
                 wx.CallAfter(self.status.AppendText, 'Finished Refinement\n')
-                self.finishedProcessing()
+                wx.CallAfter(self.finishedProcessing)
             else:
                 wx.CallAfter(self.status.AppendText, 'Finished %s run %s\n' %(program, my_num))
 
@@ -4353,7 +4353,7 @@ class DammifRunPanel(wx.Panel):
                 t.start()
                 self.threads.append(t)
             else:
-                self.finishedProcessing()
+                wx.CallAfter(self.finishedProcessing)
 
 
     def runDamclust(self, prefix, path):
@@ -4447,7 +4447,7 @@ class DammifRunPanel(wx.Panel):
 
             wx.CallAfter(self.status.AppendText, 'Finished DAMCLUST\n')
 
-            self.finishedProcessing()
+            wx.CallAfter(self.finishedProcessing)
 
 
     def onDammifTimer(self, evt):
@@ -4491,7 +4491,7 @@ class DammifRunPanel(wx.Panel):
                 self.threads.append(t)
 
             else:
-                self.finishedProcessing()
+                wx.CallAfter(self.finishedProcessing)
 
 
     def finishedProcessing(self):
@@ -4533,8 +4533,6 @@ class DammifRunPanel(wx.Panel):
 
         results_window = wx.FindWindowByName('DammifResultsPanel')
         wx.CallAfter(results_window.updateResults, settings)
-
-        self.parent.SetSelection(1)
 
     def _onAdvancedButton(self, evt):
         self.main_frame.showOptionsDialog(focusHead='DAMMIF/N')
@@ -5090,6 +5088,8 @@ class DammifResultsPanel(wx.Panel):
         model_list = self.getModels(settings)
 
         self.Layout()
+
+        self.parent.SetSelection(1)
 
         viewer_window = wx.FindWindowByName('DammifViewerPanel')
         viewer_window.updateResults(model_list)
@@ -6084,7 +6084,7 @@ class DenssRunPanel(wx.Panel):
                 self.threads_finished.append(False)
 
             else:
-                self.finishedProcessing()
+                wx.CallAfter(self.finishedProcessing)
 
     def onMessageTimer(self, evt):
         for i in range(len(self.threads_finished)):
@@ -6429,70 +6429,35 @@ class DenssResultsPanel(wx.Panel):
 
         self.Layout()
 
+        models_nb = wx.FindWindowById(self.ids['models'])
+        models_nb.DoGetBestSize()
+        for i in range(models_nb.GetPageCount()):
+            models_nb.SetSelection(i)
+
+        models_nb.SetSelection(0)
+
         self.parent.SetSelection(1)
 
         # viewer_window = wx.FindWindowByName('DammifViewerPanel')
         # viewer_window.updateResults(model_list)
 
     def _saveResults(self, evt):
-        nsd_data = []
         res_data = []
-        clust_num = 0
-        clist_data = []
-        dlist_data = []
-
-        if self.topsizer.IsShown(self.nsd_sizer):
-            nsd_mean = wx.FindWindowById(self.ids['nsdMean']).GetValue()
-            nsd_stdev = wx.FindWindowById(self.ids['nsdStdev']).GetValue()
-            nsd_inc = wx.FindWindowById(self.ids['nsdInc']).GetValue()
-            nsd_tot = wx.FindWindowById(self.ids['nsdTot']).GetValue()
-            nsd_data = [('Mean NSD:', nsd_mean), ('Stdev. NSD', nsd_stdev),
-                        ('DAMAVER Included:', nsd_inc, 'of', nsd_tot)]
 
         if self.topsizer.IsShown(self.res_sizer):
             res = wx.FindWindowById(self.ids['res']).GetValue()
-            res_err = wx.FindWindowById(self.ids['resErr']).GetValue()
             res_unit = wx.FindWindowById(self.ids['resUnit']).GetValue()
-            res_data = [('Ensemble resolution:', res, '+/-', res_err, res_unit)]
+            res_data = [('Fourier Shell Correlation Resolution:', res, res_unit)]
 
-        if self.topsizer.IsShown(self.clust_sizer):
-            clust_num = ('Number of clusters:', wx.FindWindowById(self.ids['clustNum']).GetValue())
-            clust_list = wx.FindWindowById(self.ids['clustDescrip'])
-            dist_list = wx.FindWindowById(self.ids['clustDist'])
+        models_nb = wx.FindWindowById(self.ids['models'])
 
+        model_data = []
 
-            clist_data = [[] for k in range(clust_list.GetItemCount())]
-            for i in range(clust_list.GetItemCount()):
-                item_data = [[] for k in range(clust_list.GetColumnCount())]
-                for j in range(clust_list.GetColumnCount()):
-                    item = clust_list.GetItem(i, j)
-                    data = item.GetText()
-                    item_data[j] = data
-
-                clist_data[i] = item_data
-
-            dlist_data = [[] for k in range(dist_list.GetItemCount())]
-            for i in range(dist_list.GetItemCount()):
-                item_data = [[] for k in range(dist_list.GetColumnCount())]
-                for j in range(dist_list.GetColumnCount()):
-                    item = dist_list.GetItem(i, j)
-                    data = item.GetText()
-                    item_data[j] = data
-
-                dlist_data[i] = item_data
-
-
-        models_list = wx.FindWindowById(self.ids['models'])
-
-        model_data = [[] for k in range(models_list.GetItemCount())]
-        for i in range(models_list.GetItemCount()):
-            item_data = [[] for k in range(models_list.GetColumnCount())]
-            for j in range(models_list.GetColumnCount()):
-                item = models_list.GetItem(i, j)
-                data = item.GetText()
-                item_data[j] = data
-
-            model_data[i] = item_data
+        for i in range(models_nb.GetPageCount()):
+            page = models_nb.GetPage(i)
+            figures = page.figures
+            model = models_nb.GetPageText(i)
+            model_data.append((model, figures))
 
         ambi_cats = wx.FindWindowById(self.ids['ambiCats']).GetValue()
         ambi_score = wx.FindWindowById(self.ids['ambiScore']).GetValue()
@@ -6500,29 +6465,24 @@ class DenssResultsPanel(wx.Panel):
         ambi_data = [('Compatible shape categories:', ambi_cats),
                     ('Ambiguity score:', ambi_score), ('AMBIMETER says:', ambi_eval)]
 
-        input_file = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['fname']).GetValue()
-        output_prefix = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['prefix']).GetValue()
-        output_directory = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['save']).GetValue()
-        reconst_prog = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['program']).GetStringSelection()
-        mode = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['mode']).GetStringSelection()
-        symmetry = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['sym']).GetStringSelection()
-        anisometry = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['anisometry']).GetStringSelection()
-        tot_recons = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['runs']).GetValue()
-        damaver = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['damaver']).IsChecked()
-        refine = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['refine']).IsChecked()
-        damclust = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['damclust']).IsChecked()
+        input_file = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['fname']).GetValue()
+        output_prefix = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['prefix']).GetValue()
+        output_directory = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['save']).GetValue()
+        mode = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['mode']).GetStringSelection()
+        tot_recons = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['runs']).GetValue()
+        electrons = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['electrons']).GetValue()
+        eman2 = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['average']).IsChecked()
 
         setup_data = [('Input file:', input_file), ('Output prefix:', output_prefix),
-                    ('Output directory:', output_directory), ('Program used:', reconst_prog),
-                    ('Mode:', mode), ('Symmetry:', symmetry), ('Anisometry:', anisometry),
+                    ('Output directory:', output_directory), ('Mode:', mode),
                     ('Total number of reconstructions:', tot_recons),
-                    ('Used DAMAVER:', damaver), ('Refined with DAMMIN:', refine),
-                    ('Used DAMCLUST:', damclust),
+                    ('Number of electrons in molecule:', electrons),
+                    ('Used EMAN2:', eman2),
                     ]
 
         name = output_prefix
 
-        filename = name + '_dammif_results.csv'
+        filename = name + '_denss_results.csv'
 
         dialog = wx.FileDialog(self, message = "Please select save directory and enter save file name", style = wx.FD_SAVE, defaultDir = output_directory, defaultFile = filename)
 
@@ -6534,13 +6494,14 @@ class DenssResultsPanel(wx.Panel):
             return
 
         RAWGlobals.save_in_progress = True
-        self.main_frame.setStatus('Saving DAMMIF/N data', 0)
+        self.main_frame.setStatus('Saving DENSS data', 0)
 
-        SASFileIO.saveDammixData(save_path, ambi_data, nsd_data, res_data, clust_num,
-                                clist_data, dlist_data, model_data, setup_data)
+        SASFileIO.saveDenssData(save_path, ambi_data, res_data, model_data, setup_data)
 
         RAWGlobals.save_in_progress = False
         self.main_frame.setStatus('', 0)
+
+        self.Layout()
 
 
 class DenssViewerPanel(wx.Panel):
@@ -6647,6 +6608,8 @@ class DenssPlotPanel(wx.Panel):
         self.denss_results = denss_results
         self.iftm = iftm
 
+        self.figures = []
+
         sc_canvas = self.createScatteringPlot()
         stats_canvas = self.createStatsPlot()
 
@@ -6659,6 +6622,8 @@ class DenssPlotPanel(wx.Panel):
     def createScatteringPlot(self):
         fig = Figure((3.25,2.5))
         canvas = FigureCanvasWxAgg(self, -1, fig)
+
+        self.figures.append(fig)
 
         q = self.iftm.q_extrap
         I = self.iftm.i_extrap
@@ -6712,27 +6677,13 @@ class DenssPlotPanel(wx.Panel):
 
         canvas.draw()
 
-        # font_size = 10
-        # a = self.subplots['VC']
-
-        # a.locator_params(tight = True)
-        # a.locator_params(axis='x', nbins = 6)
-
-        # a.title.set_size(font_size)
-        # a.yaxis.get_label().set_size(font_size)
-        # a.xaxis.get_label().set_size(font_size)
-
-        # for tick in a.xaxis.get_major_ticks():
-        #     tick.label.set_fontsize(font_size)
-
-        # for tick in a.yaxis.get_major_ticks():
-        #     tick.label.set_fontsize(font_size)
-
         return canvas
 
     def createStatsPlot(self):
         fig = Figure((3.25,2.5))
         canvas = FigureCanvasWxAgg(self, -1, fig)
+
+        self.figures.append(fig)
 
         chi = self.denss_results[5]
         rg = self.denss_results[6]
@@ -6740,14 +6691,12 @@ class DenssPlotPanel(wx.Panel):
 
         ax0 = fig.add_subplot(311)
         ax0.plot(chi[chi>0])
-        # ax0.set_xlabel('Step')
         ax0.set_ylabel('$\chi^2$', fontsize='small')
         ax0.semilogy()
         ax0.tick_params(labelbottom='off', labelsize='x-small')
 
         ax1 = fig.add_subplot(312)
         ax1.plot(rg[rg>0])
-        # ax1.set_xlabel('Step')
         ax1.set_ylabel('Rg', fontsize='small')
         ax1.tick_params(labelbottom='off', labelsize='x-small')
 
@@ -6774,6 +6723,8 @@ class DenssAveragePlotPanel(wx.Panel):
 
         self.denss_settings = settings
 
+        self.figures = []
+
         fsc_canvas = self.createFSCPlot()
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -6784,6 +6735,8 @@ class DenssAveragePlotPanel(wx.Panel):
     def createFSCPlot(self):
         fig = Figure((3.25,2.5))
         canvas = FigureCanvasWxAgg(self, -1, fig)
+
+        self.figures.append(fig)
 
         fsc_filename = os.path.join(os.path.join(self.denss_settings['path'], self.denss_settings['prefix']+'_aver_01'), 'fsc_0.txt')
         res, fsc = np.loadtxt(fsc_filename, unpack=True)
