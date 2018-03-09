@@ -36,6 +36,9 @@ import platform
 import subprocess
 import collections
 import shutil
+import glob
+import json
+import ast
 matplotlib.rcParams['backend'] = 'WxAgg'
 matplotlib.rc('image', origin = 'lower')        # turn image upside down.. x,y, starting from lower left
 
@@ -5430,7 +5433,8 @@ class DenssRunPanel(wx.Panel):
                     'changedir'     : self.NewControlId(),
                     'fname'         : self.NewControlId(),
                     'mode'          : self.NewControlId(),
-                    'electrons'            : self.NewControlId(),
+                    'electrons'     : self.NewControlId(),
+                    'enant'         : self.NewControlId(),
                     }
 
         if self.raw_settings.get('EMAN2Dir') != '':
@@ -5517,6 +5521,8 @@ class DenssRunPanel(wx.Panel):
         if self.eman_present:
             average_chk = wx.CheckBox(parent, self.ids['average'], 'Align and average densities (EMAN2)')
 
+            enant_chk = wx.CheckBox(parent, self.ids['enant'], 'Filter enantiomers (EMAN2)')
+
         advancedButton = wx.Button(parent, -1, 'Change Advanced Settings')
         advancedButton.Bind(wx.EVT_BUTTON, self._onAdvancedButton)
 
@@ -5531,6 +5537,7 @@ class DenssRunPanel(wx.Panel):
         settings_sizer.Add(ne_sizer, 0, wx.TOP, 5)
         if self.eman_present:
             settings_sizer.Add(average_chk, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
+            settings_sizer.Add(enant_chk, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
         settings_sizer.Add(advancedButton, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, 5)
 
 
@@ -5605,6 +5612,9 @@ class DenssRunPanel(wx.Panel):
             aver = wx.FindWindowById(self.ids['average'], self)
             aver.SetValue(self.denss_settings['average'])
 
+            enant = wx.FindWindowById(self.ids['enant'], self)
+            enant.SetValue(self.denss_settings['enant'])
+
         nruns = wx.FindWindowById(self.ids['runs'], self)
         nruns.SetValue(str(self.denss_settings['runs']))
 
@@ -5641,8 +5651,12 @@ class DenssRunPanel(wx.Panel):
         if self.eman_present:
             average_window = wx.FindWindowById(self.ids['average'], self)
             average = average_window.GetValue()
+
+            enant_window = wx.FindWindowById(self.ids['enant'], self)
+            enant = enant_window.GetValue()
         else:
             average = False
+            enant = False
 
         prefix_window = wx.FindWindowById(self.ids['prefix'], self)
         prefix = prefix_window.GetValue()
@@ -5672,8 +5686,9 @@ class DenssRunPanel(wx.Panel):
             image_names = [denss_names[key]+'_chis.png', denss_names[key]+'_fit.png',
                 denss_names[key]+'_rgs.png', denss_names[key]+'_supportV.png']
             mrc_name = [denss_names[key]+'.mrc', denss_names[key]+'_support.mrc']
+            hdf_name = denss_names[key]+'_enant.hdf'
 
-            names = [log_name, fit_name, stats_name, saxs_name] + mrc_name + xplor_names + image_names
+            names = [log_name, fit_name, stats_name, saxs_name, hdf_name] + mrc_name + xplor_names + image_names
 
             file_names = [os.path.join(path, name) for name in names]
 
@@ -5723,14 +5738,20 @@ class DenssRunPanel(wx.Panel):
             self.logbook.AddPage(text_ctrl, str(i))
             self.thread_nums.put_nowait(str(i))
 
+        if nruns > 1 and enant:
+            self.denss_ids['enant'] = self.NewControlId()
+            text_ctrl = wx.TextCtrl(self.logbook, self.denss_ids['enant'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
+            self.logbook.AddPage(text_ctrl, 'Enantiomer')
+
         if nruns > 1 and average:
 
-            average_names = [prefix+'_stack.hdf', prefix+'_aver.mrc']
+            average_names = [prefix+'_stack.hdf', prefix+'_aver.mrc', prefix+'_reference.hdf']
             names = average_names
             file_names = [os.path.join(path, name) for name in names]
-            aver_folder = os.path.join(path, prefix+'_aver_01')
+            folder_names = [os.path.join(path, prefix+'_aver_01'), os.path.join(path, prefix+'_bt_ref_01')]
 
             file_exists = False
+            folder_exists = False
 
             for f in file_names:
                 if os.path.exists(f):
@@ -5754,10 +5775,16 @@ class DenssRunPanel(wx.Panel):
                     return
                 elif result == wx.ID_YESTOALL:
                     yes_to_all = True
-            if os.path.exists(aver_folder) and os.path.isdir(aver_folder) and not yes_to_all:
+
+            for f in folder_names:
+                if os.path.exists(f) and os.path.isdir(f):
+                    folder_exists = True
+                    break
+
+            if  folder_exists and not yes_to_all:
                 button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
                 question = ('Warning: selected directory contains EMAN2 average '
-                    'output folder\n. Running the average will remove all '
+                    'output folders\n. Running the average will remove all '
                     'contents in this folder.\nDo you wish to continue?')
                 label = 'Overwrite existing files?'
                 icon = wx.ART_WARNING
@@ -5780,9 +5807,9 @@ class DenssRunPanel(wx.Panel):
                 if os.path.exists(f):
                     os.remove(f)
 
-            if os.path.exists(aver_folder) and os.path.isdir(aver_folder):
-                shutil.rmtree(aver_folder, ignore_errors=True)
-
+            for aver_folder in folder_names:
+                if os.path.exists(aver_folder) and os.path.isdir(aver_folder):
+                    shutil.rmtree(aver_folder, ignore_errors=True)
 
         self.status.SetValue('Starting processing\n')
 
@@ -5815,7 +5842,7 @@ class DenssRunPanel(wx.Panel):
         D = self.iftm.getParameter('dmax')
 
         for key in self.denss_ids:
-            if key != 'average':
+            if key != 'average' and key != 'enant':
                 den_queue = self.my_manager.Queue()
                 stop_event = self.my_manager.Event()
                 stop_event.clear()
@@ -6000,19 +6027,54 @@ class DenssRunPanel(wx.Panel):
             wx.CallAfter(averWindow.AppendText, 'Aborted!\n')
             return
 
-        #Remove old files, so they don't mess up the program
-        old_folder = os.path.join(path, prefix+'_aver')
-
-        if os.path.exists(old_folder) and os.path.isdir(old_folder):
-            shutil.rmtree(old_folder)
+        enant_window = wx.FindWindowById(self.ids['enant'], self)
+        enant = enant_window.GetValue()
 
         wx.CallAfter(self.status.AppendText, 'Starting Average\n')
 
-        den_filelist = [prefix+'_%s.mrc' %(str(i).zfill(2)) for i in range(1, nruns+1)]
+        if enant:
+            den_filelist = [prefix+'_%s_enant.hdf' %(str(i).zfill(2)) for i in range(1, nruns+1)]
+        else:
+            den_filelist = [prefix+'_%s.mrc' %(str(i).zfill(2)) for i in range(1, nruns+1)]
 
-        eman_proc, out1 = SASCalc.runEman2Aver(den_filelist, procs, prefix, path, self.raw_settings.get('EMAN2Dir'))
+        eman_proc, out1 = SASCalc.runEman2PreAver(den_filelist, procs, prefix, path, self.raw_settings.get('EMAN2Dir'))
 
         wx.CallAfter(averWindow.AppendText, out1)
+
+        eman_q = Queue.Queue()
+        readout_t = threading.Thread(target=enqueue_output, args=(eman_proc.stdout, eman_q))
+        readout_t.daemon = True
+        readout_t.start()
+
+        #Send the eman2 output to the screen.
+        while eman_proc.poll() is None:
+            if self.abort_event.is_set():
+                eman_proc.terminate()
+                wx.CallAfter(averWindow.AppendText, 'Aborted!\n')
+                return
+
+            try:
+                new_text = eman_q.get_nowait()
+                new_text = new_text[0]
+                wx.CallAfter(averWindow.AppendText, new_text)
+            except Queue.Empty:
+                pass
+            time.sleep(0.001)
+
+        time.sleep(2)
+        with read_semaphore: #see if there's any last data that we missed
+            try:
+                new_text = eman_q.get_nowait()
+                new_text = new_text[0]
+
+                wx.CallAfter(averWindow.AppendText, new_text)
+            except Queue.Empty:
+                pass
+
+        bt_dir = glob.glob(os.path.join(path, '%s_bt_ref_*' %(prefix)))[-1]
+        shutil.move(os.path.join(bt_dir, 'final_avg.hdf'), os.path.join(path, prefix+'_reference.hdf'))
+
+        eman_proc = SASCalc.runEman2Aver(den_filelist, procs, prefix, path, self.raw_settings.get('EMAN2Dir'))
 
         eman_q = Queue.Queue()
         readout_t = threading.Thread(target=enqueue_output, args=(eman_proc.stdout, eman_q))
@@ -6055,6 +6117,158 @@ class DenssRunPanel(wx.Panel):
         wx.CallAfter(self.finishedProcessing)
 
 
+    def runEnantiomer(self, prefix, path, nruns, procs):
+
+        read_semaphore = threading.BoundedSemaphore(1)
+        #Solution for non-blocking reads adapted from stack overflow
+        #http://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
+        def enqueue_output(out, queue):
+            with read_semaphore:
+                line = 'test'
+                line2=''
+                while line != '':
+                    line = out.read(1)
+                    line2+=line
+                    if line == '\n':
+                        queue.put_nowait([line2])
+                        line2=''
+                    time.sleep(0.0001)
+
+        #Check to see if things have been aborted
+        myId = self.denss_ids['enant']
+        enantWindow = wx.FindWindowById(myId, self)
+
+        if self.abort_event.is_set():
+            wx.CallAfter(enantWindow.AppendText, 'Aborted!\n')
+            return
+
+        wx.CallAfter(self.status.AppendText, 'Starting Enantiomer Filtering\n')
+
+        den_filelist = [prefix+'_%s.mrc' %(str(i).zfill(2)) for i in range(1, nruns+1)]
+
+        eman_proc, out1 = SASCalc.runEman2PreAver(den_filelist, procs, prefix, path, self.raw_settings.get('EMAN2Dir'))
+
+        wx.CallAfter(enantWindow.AppendText, out1)
+
+        eman_q = Queue.Queue()
+        readout_t = threading.Thread(target=enqueue_output, args=(eman_proc.stdout, eman_q))
+        readout_t.daemon = True
+        readout_t.start()
+
+        #Send the eman2 output to the screen.
+        while eman_proc.poll() is None:
+            if self.abort_event.is_set():
+                eman_proc.terminate()
+                wx.CallAfter(enantWindow.AppendText, 'Aborted!\n')
+                return
+
+            try:
+                new_text = eman_q.get_nowait()
+                new_text = new_text[0]
+                wx.CallAfter(enantWindow.AppendText, new_text)
+            except Queue.Empty:
+                pass
+            time.sleep(0.001)
+
+        time.sleep(2)
+        with read_semaphore: #see if there's any last data that we missed
+            try:
+                new_text = eman_q.get_nowait()
+                new_text = new_text[0]
+
+                wx.CallAfter(enantWindow.AppendText, new_text)
+            except Queue.Empty:
+                pass
+
+        bt_dir = glob.glob(os.path.join(path, '%s_bt_ref_*' %(prefix)))[-1]
+        shutil.move(os.path.join(bt_dir, 'final_avg.hdf'), os.path.join(path, '%s_reference.hdf' %(prefix)))
+        shutil.rmtree(bt_dir)
+
+        for den_file in den_filelist:
+
+            xyz_output, rot_output, stacks_output, rot_names = SASCalc.runEman2xyz(den_file, procs, prefix, path, self.raw_settings.get('EMAN2Dir'))
+
+            out_str=xyz_output + ''.join(rot_output) + stacks_output
+            wx.CallAfter(enantWindow.AppendText, out_str)
+
+            sort_params = {}
+            tries = 0
+            while not sort_params and tries<5:
+                eman_proc = SASCalc.runEman2Align(den_file, procs, prefix, path, self.raw_settings.get('EMAN2Dir'))
+
+                eman_q = Queue.Queue()
+                readout_t = threading.Thread(target=enqueue_output, args=(eman_proc.stdout, eman_q))
+                readout_t.daemon = True
+                readout_t.start()
+
+                #Send the eman2 output to the screen.
+                while eman_proc.poll() is None:
+                    if self.abort_event.is_set():
+                        eman_proc.terminate()
+                        wx.CallAfter(enantWindow.AppendText, 'Aborted!\n')
+                        return
+
+                    try:
+                        new_text = eman_q.get_nowait()
+                        new_text = new_text[0]
+                        wx.CallAfter(enantWindow.AppendText, new_text)
+                    except Queue.Empty:
+                        pass
+                    time.sleep(0.001)
+
+                time.sleep(2)
+                with read_semaphore: #see if there's any last data that we missed
+                    try:
+                        new_text = eman_q.get_nowait()
+                        new_text = new_text[0]
+
+                        wx.CallAfter(enantWindow.AppendText, new_text)
+                    except Queue.Empty:
+                        pass
+
+                with open(os.path.join(os.path.join(path, '%s_enant_ali' %(prefix)), 'particle_parms_01.json')) as f:
+                    sort_params = json.load(f)
+
+                tries = tries+1
+
+                if not sort_params:
+                    wx.CallAfter(enantWindow.AppendText, 'Enantiomer alignment failed, trying again\n')
+
+            #Find and rename the best enantiomer
+            sort_list = [(ast.literal_eval(key)[1], sort_params[key]['score']) for key in sort_params]
+            best_idx = int(sorted(sort_list, key=lambda score: abs(float(score[1])))[-1][0])
+            best_enant = rot_names[best_idx]
+
+            df_prefix = os.path.splitext(os.path.split(den_file)[1])[0]
+            shutil.copy(os.path.join(path, best_enant), os.path.join(path, '%s_enant.hdf' %(df_prefix)))
+
+            #Clean up all the files we made
+            for fname in rot_names:
+                os.remove(os.path.join(path, fname))
+
+            os.remove(os.path.join(path, '%s_ali2xyz.hdf' %(df_prefix)))
+            os.remove(os.path.join(path, '%s_xyzstack.hdf' %(df_prefix)))
+
+            if os.path.exists(os.path.join(path, '%s_enant_ali' %(prefix))) and os.path.isdir(os.path.join(path, '%s_enant_ali' %(prefix))):
+                shutil.rmtree(os.path.join(path, '%s_enant_ali' %(prefix)), ignore_errors=True)
+
+        os.remove(os.path.join(path, '%s_reference.hdf' %(prefix)))
+        os.remove(os.path.join(path, '%s_stack.hdf' %(prefix)))
+
+        wx.CallAfter(self.status.AppendText, 'Finished Enantiomer Filtering\n')
+
+        self.threads_finished[-1] = True
+
+        if 'average' in self.denss_ids:
+            t = threading.Thread(target = self.runAverage, args = (prefix, path, nruns, procs))
+            t.daemon = True
+            t.start()
+            self.threads_finished.append(False)
+
+        else:
+            wx.CallAfter(self.finishedProcessing)
+
+
     def onDenssTimer(self, evt):
         denss_finished = False
 
@@ -6065,19 +6279,25 @@ class DenssRunPanel(wx.Panel):
             self.denss_timer.Stop()
             self.msg_timer.Stop()
 
-            if 'average' in self.denss_ids:
-                path_window = wx.FindWindowById(self.ids['save'], self)
-                path = path_window.GetValue()
+            path_window = wx.FindWindowById(self.ids['save'], self)
+            path = path_window.GetValue()
 
-                prefix_window = wx.FindWindowById(self.ids['prefix'], self)
-                prefix = prefix_window.GetValue()
+            prefix_window = wx.FindWindowById(self.ids['prefix'], self)
+            prefix = prefix_window.GetValue()
 
-                procs_window = wx.FindWindowById(self.ids['procs'], self)
-                procs = int(procs_window.GetStringSelection())
+            procs_window = wx.FindWindowById(self.ids['procs'], self)
+            procs = int(procs_window.GetStringSelection())
 
-                nruns_window = wx.FindWindowById(self.ids['runs'], self)
-                nruns = int(nruns_window.GetValue())
+            nruns_window = wx.FindWindowById(self.ids['runs'], self)
+            nruns = int(nruns_window.GetValue())
 
+            if 'enant' in self.denss_ids:
+                t = threading.Thread(target = self.runEnantiomer, args = (prefix, path, nruns, procs))
+                t.daemon = True
+                t.start()
+                self.threads_finished.append(False)
+
+            elif 'average' in self.denss_ids:
                 t = threading.Thread(target = self.runAverage, args = (prefix, path, nruns, procs))
                 t.daemon = True
                 t.start()
@@ -6181,6 +6401,7 @@ class DenssRunPanel(wx.Panel):
                             'writeXplor'    : self.raw_settings.get('denssWriteXplor'),
                             'mode'          : self.raw_settings.get('denssMode'),
                             'recenterMode'  : self.raw_settings.get('denssRecenterMode'),
+                            'enant'         : self.raw_settings.get('denssEnantiomer'),
                             }
 
 

@@ -368,6 +368,7 @@ class RawGuiSettings:
                             'denssWriteXplor'       : [True, wx.NewId(), 'bool'],
                             'denssMode'             : ['Slow', wx.NewId(), 'choice'],
                             'denssRecenterMode'     : ['com', wx.NewId(), 'choice'],
+                            'denssEnantiomer'       : [True, wx.NewId(), 'bool'],
 
                             }
 

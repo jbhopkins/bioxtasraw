@@ -3734,7 +3734,7 @@ class DenssPanel(wx.Panel):
             'denssRecenterStep', 'denssPositivity', 'denssShrinkwrap',
             'denssShrinkwrapMinStep', 'denssConnected', 'denssConnectivitySteps',
             'denssWriteXplor', 'denssCutOut', 'autoFindEMAN2', 'EMAN2Dir',
-            'denssRecenterMode',
+            'denssRecenterMode', 'denssEnantiomer',
             ]
 
         modeChoices = ['Fast', 'Slow', 'Custom']
@@ -3742,7 +3742,8 @@ class DenssPanel(wx.Panel):
 
         self.default_options = (('Automatically find the EMAN2 directory', raw_settings.getId('autoFindEMAN2'), 'bool'),
             ('EMAN2 location:', raw_settings.getId('EMAN2Dir'), 'text'),
-            ('Default mode:', raw_settings.getId('denssMode'), 'choice', modeChoices)
+            ('Default mode:', raw_settings.getId('denssMode'), 'choice', modeChoices),
+            ('Filter enantiomers:', raw_settings.getId('denssEnantiomer', 'bool')),
             )
 
         self.custom_options_long = (("Extrapolate data using Porod's law to voxel resolution limit", raw_settings.getId('denssExtrapolate'), 'bool'),
