@@ -154,7 +154,7 @@ class MainFrame(wx.Frame):
                         'normalizedKratky'      : self.NewControlId(),
                         'superimpose'           : self.NewControlId(),
                         'sync'                  : self.NewControlId(),
-                        'rundenss'                 : self.NewControlId(),
+                        'rundenss'              : self.NewControlId(),
                         }
 
         self.tbIcon = RawTaskbarIcon(self)
@@ -771,15 +771,6 @@ class MainFrame(wx.Frame):
 
     def showDenssFrame(self, iftm, manip_item):
 
-        if iftm.getParameter('algorithm') != 'GNOM':
-            msg = 'Denss can only process IFTs produced by GNOM. This was produced using %s.' %(iftm.getParameter('algorithm'))
-            dial2 = wx.MessageDialog(self, msg, "Wrong IFT type",
-                                    wx.OK | wx.ICON_ERROR)
-            dial2.ShowModal()
-            dial2.Destroy()
-
-            return
-
         self.denssframe = RAWAnalysis.DenssFrame(self, 'DENSS', iftm, manip_item)
         self.denssframe.SetIcon(self.GetIcon())
         self.denssframe.Show(True)
@@ -904,7 +895,7 @@ class MainFrame(wx.Frame):
                                ('&Molecular weight', self.MenuIDs['molweight'], self._onToolsMenu, 'normal'),
                                ('&BIFT', self.MenuIDs['bift'], self._onToolsMenu, 'normal'),
                                ('&ATSAS', None, submenus['atsas'], 'submenu'),
-                               ('&DENSS', self.MenuIDs['rundenss'], self._onToolsMenu, 'normal'),
+                               ('&Electron Density (DENSS)', self.MenuIDs['rundenss'], self._onToolsMenu, 'normal'),
                                ('&SVD', self.MenuIDs['runsvd'], self._onToolsMenu, 'normal'),
                                ('&EFA', self.MenuIDs['runefa'], self._onToolsMenu, 'normal'),
                                ('&Similarity Test', self.MenuIDs['similarityTest'], self._onToolsMenu, 'normal'),
@@ -8498,15 +8489,16 @@ class IFTItemPanel(wx.Panel):
 
         if self.is_gnom:
             if opsys == 'Windows':
-                if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'dammif.exe')):
-                    menu.Append(23, 'Bead Model (DAMMIF/N)')
                 if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter.exe')):
                     menu.Append(24, 'AMBIMETER')
-            else:
-                if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'dammif')):
+                if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'dammif.exe')):
                     menu.Append(23, 'Bead Model (DAMMIF/N)')
+            else:
                 if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter')):
                     menu.Append(24, 'AMBIMETER')
+                if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'dammif')):
+                    menu.Append(23, 'Bead Model (DAMMIF/N)')
+
         menu.Append(28, 'Electron Density (DENSS)')
         menu.Append(25, 'SVD')
         menu.Append(26, 'EFA')

@@ -3497,7 +3497,6 @@ class DammifFrame(wx.Frame):
 
         self.manip_item = manip_item
         self.iftm = iftm
-        self.ift = iftm.getParameter('out')
         self.filename = iftm.getParameter('filename')
 
         self.main_frame = wx.FindWindowByName('MainFrame')
@@ -4729,8 +4728,6 @@ class DammifResultsPanel(wx.Panel):
 
         self.iftm = iftm
 
-        self.ift = iftm.getParameter('out')
-
         self.filename = iftm.getParameter('filename')
 
         self.main_frame = wx.FindWindowByName('MainFrame')
@@ -5387,8 +5384,8 @@ class DenssFrame(wx.Frame):
         self.RunPanel.updateDenssSettings()
 
     def OnClose(self, event):
-        dammifrun = wx.FindWindowByName('DenssRunPanel')
-        dammifrun.Close(event)
+        denssrun = wx.FindWindowByName('DenssRunPanel')
+        denssrun.Close(event)
 
         if event.GetVeto():
             return
@@ -5410,8 +5407,6 @@ class DenssRunPanel(wx.Panel):
         self.manip_item = manip_item
 
         self.iftm = iftm
-
-        self.ift = iftm.getParameter('out')
 
         self.filename = iftm.getParameter('filename')
 
@@ -5836,8 +5831,12 @@ class DenssRunPanel(wx.Panel):
 
         my_pool = multiprocessing.Pool(procs)
 
-        q = self.iftm.q_extrap
-        I = self.iftm.i_extrap
+        if self.iftm.getParameter('algorithm') == 'GNOM':
+            q = self.iftm.q_extrap
+            I = self.iftm.i_extrap
+        else:
+            q = self.iftm.q_orig
+            I = self.iftm.i_fit
         sigq = I*np.mean((self.iftm.err_orig/self.iftm.i_orig))
         D = self.iftm.getParameter('dmax')
 
@@ -6466,8 +6465,6 @@ class DenssResultsPanel(wx.Panel):
 
         self.iftm = iftm
 
-        self.ift = iftm.getParameter('out')
-
         self.filename = iftm.getParameter('filename')
 
         self.main_frame = wx.FindWindowByName('MainFrame')
@@ -6554,13 +6551,16 @@ class DenssResultsPanel(wx.Panel):
 
 
     def _initSettings(self):
-        run_window = wx.FindWindowByName('DenssRunPanel')
-        path_window = wx.FindWindowById(run_window.ids['save'], run_window)
-        path = path_window.GetValue()
+        if self.iftm.getParameter('algorithm') == 'GNOM':
+            run_window = wx.FindWindowByName('DenssRunPanel')
+            path_window = wx.FindWindowById(run_window.ids['save'], run_window)
+            path = path_window.GetValue()
 
-        t = threading.Thread(target=self.runAmbimeter, args=(path,))
-        t.daemon = True
-        t.start()
+            t = threading.Thread(target=self.runAmbimeter, args=(path,))
+            t.daemon = True
+            t.start()
+        else:
+            self.topsizer.Hide(self.ambi_sizer, recursive=True)
 
         self.topsizer.Hide(self.res_sizer, recursive=True)
 
@@ -6846,8 +6846,12 @@ class DenssPlotPanel(wx.Panel):
 
         self.figures.append(fig)
 
-        q = self.iftm.q_extrap
-        I = self.iftm.i_extrap
+        if self.iftm.getParameter('algorithm') == 'GNOM':
+            q = self.iftm.q_extrap
+            I = self.iftm.i_extrap
+        else:
+            q = self.iftm.q_orig
+            I = self.iftm.i_fit
         sigq = I*np.mean((self.iftm.err_orig/self.iftm.i_orig))
         #handle sigq values whose error bounds would go negative and be missing on the log scale
         sigq2 = np.copy(sigq)
