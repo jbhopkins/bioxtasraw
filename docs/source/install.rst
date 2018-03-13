@@ -18,6 +18,7 @@ Detailed installation instructions
 -----------------------------------
 .. toctree::
    :maxdepth: 2
+   :includehidden:
 
    install/win_install
    install/mac_install
