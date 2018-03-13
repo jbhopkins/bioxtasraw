@@ -2,8 +2,11 @@ Section 1: Basic processing
 ---------------------------
 .. _section1:
 
-This section will guide you through basic processing of files in RAW. It includes: integrating images into scattering profiles, averaging and subtracting scattering profiles, doing Guinier fits, MW analysis, processing SEC-SAXS data, processing data from 2 detectors (SAXS and WAXS data), and a few other things.
-It refers to the :ref:`RAW tutorial data <tutorialdata>`.
+This section will guide you through basic processing of files in RAW. It includes:
+integrating images into scattering profiles, averaging and subtracting scattering
+profiles, doing Guinier fits, MW analysis, processing SEC-SAXS data, processing
+data from 2 detectors (SAXS and WAXS data), and a few other things. It refers to
+the :ref:`RAW tutorial data <tutorialdata>`.
 
 
 Part 1. Loading configuration files and images, creating subtracted scattering profiles, saving profiles
@@ -13,18 +16,18 @@ Part 1. Loading configuration files and images, creating subtracted scattering p
 #.  Open RAW. The install instructions contain information on installing and running RAW.
 
 #.  In the files tab, click on the folder button and navigate to the
-    **Tutorial_Data/standards_data**
-    folder. Click the open button to show that folder in the RAW file browser.
+    **Tutorial_Data/standards_data** folder. Click the open button to show that
+    folder in the RAW file browser.
 
     |100002010000018F000000558E072296495A065F_png|
 
-#.  At the bottom of the File tab in the Control Panel, use the dropdown menu to set the file type filter to “CFG files (\*.cfg)”.
+#.  At the bottom of the File tab in the Control Panel, use the dropdown menu to
+    set the file type filter to “CFG files (\*.cfg)”.
 
     |100002010000018900000120F1FE156CD1C06C32_png|
 
-#.  Double click on the
-    **SAXS.cfg**
-    file to load the SAXS configuration. This loads the beamline configuration into the program.
+#.  Double click on the **SAXS.cfg** file to load the SAXS configuration.
+    This loads the beamline configuration into the program.
 
     *   *Note:* Any time you are going to process images, you need to load the appropriate configuration!
 
@@ -32,13 +35,14 @@ Part 1. Loading configuration files and images, creating subtracted scattering p
 
 #.  At the CHESS G1 station, typically ~10 images are collected from a given sample. To load in the 10 images
     for the glucose isomerase (GI) sample, start by selecting the files
-    **GI2_A9_19_001_xxxx.tiff**, where **xxxx** will range from **0000** to **0009**\ . These files are measured scattering from 0.47 mg/ml GI.
+    **GI2_A9_19_001_xxxx.tiff**, where **xxxx** will range from **0000** to **0009**\ .
+    These files are measured scattering from 0.47 mg/ml GI.
 
     *   *Tip:* you can hold down the ctrl key (apple key on macs) while clicking to select multiple files
         individually. You can also click on a file, and then shift click on another file to select those
         files and everything between them.
-    *   *Warning:*
-        Don’t load the files with **PIL3** in their name. Those are the wide-angle
+
+    *   *Warning:* Don’t load the files with **PIL3** in their name. Those are the wide-angle
         scattering (WAXS) data, which we will process separately later.
 
 #.  Click the plot button to integrate all of the images and plot the integrated scattering profiles on the Main Plot.
@@ -54,8 +58,7 @@ Part 1. Loading configuration files and images, creating subtracted scattering p
 #.  Click on the Manipulation tab. This is where you can see what scattering
     profiles are loaded into RAW, and manipulate/analyze them.
 
-    *   *Checkpoint:*
-        If you’ve successfully loaded the images given, you should see twenty
+    *   *Checkpoint:* If you’ve successfully loaded the images given, you should see twenty
         scattering profiles in the manipulation list, with names like **GI2_A9_19_001_0000.tiff**
         or **GIbuf2_A9_18_001_0000.tif**.
 
@@ -69,6 +72,7 @@ Part 1. Loading configuration files and images, creating subtracted scattering p
 
     *   *Tip:* Again, the ctrl(/apple) key or the shift key can be used
         to select multiple scattering profiles.
+
     *   *Warning:* Select only the GI profiles, not the GI buffer profiles.
 
     |1000020100000191000002168932F455C75660D5_png|
@@ -81,7 +85,11 @@ Part 1. Loading configuration files and images, creating subtracted scattering p
 
 #.  Average all of the GI buffer scattering profiles.
 
-#.  In order to see the averaged scattering profiles, you will need to hide the individual profiles from the plot. Clicking on the check box to the left of the filename will show/hide a scattering profile. When the box is checked, the profile is shown on the plot, when it is unchecked, the profile is hidden. Hide all of the profiles except the two averaged curves.
+#.  In order to see the averaged scattering profiles, you will need to hide the
+    individual profiles from the plot. Clicking on the check box to the left of
+    the filename will show/hide a scattering profile. When the box is checked,
+    the profile is shown on the plot, when it is unchecked, the profile is hidden.
+    Hide all of the profiles except the two averaged curves.
 
     *   *Tip:* The eye and eye with the x through it at the top of the manipulation panel
         can be used to show/hide sets of loaded profiles at once. If no profiles are selected,
@@ -91,13 +99,14 @@ Part 1. Loading configuration files and images, creating subtracted scattering p
 
     |1000020100000191000000A5B7B91A3F7EF281FE_png|
 
-#.  Next you need to subtract the buffer scattering profile from the measured protein scattering (which is really the scattering of the protein plus the scattering of the buffer).
-    Star the averaged buffer file, and select the averaged protein file, then click the subtract button.
+#.  Next you need to subtract the buffer scattering profile from the measured
+    protein scattering (which is really the scattering of the protein plus the
+    scattering of the buffer). Star the averaged buffer file, and select the
+    averaged protein file, then click the subtract button.
 
     |100002010000018E0000009086C0F8001DCF0519_png|
 
-    *   *Checkpoint:*
-        The subtracted scattering profile should be shown in the lower plot. A new manipulation
+    *   *Checkpoint:* The subtracted scattering profile should be shown in the lower plot. A new manipulation
         item should be shown in the manipulation menu, with the name in red and a **S_** prefix
         indicating it is a subtracted file.
 
@@ -151,16 +160,23 @@ Recall Guinier’s approximation at low-*q*\ : :math:`I(q)\approx I(0) \exp(-R_g
 for globular proteins. This fitting region is called the “Guinier region.”
 
 
-#.  In RAW, right click (ctrl click on macs without a right mouse button) on the subtracted GI scattering profile in the Manipulation list and select “Guinier fit”. In the plots on the right, the top plot shows you the Guinier plot and the fit, while the bottom plot shows you the residual of the fit.
+#.  In RAW, right click (ctrl click on macs without a right mouse button) on the
+    subtracted GI scattering profile in the Manipulation list and select “Guinier fit”.
+    In the plots on the right, the top plot shows you the Guinier plot and the fit,
+    while the bottom plot shows you the residual of the fit.
 
-    *   *Note:* RAW automatically tries to find the best Guinier region for you when the Guinier window is opened for the first time.
+    *   *Note:* RAW automatically tries to find the best Guinier region for you
+        when the Guinier window is opened for the first time.
 
     *   *Note:* The |Rg| value is in Angstroms, while the two :math:`qR_g` boxes give, left to right,
         :math:`q_{min}R_g` and :math:`q_{max}R_g` respectively.
 
     |gi_guinier_png|
 
-#.  In the “Control” panel, you’ll see that n_min is now 6. This means RAW has cut off the first six points of the scattering profile in the fit. Use the arrow buttons next to the n_min box to adjust that to zero. Check whether the |Rg| changes.
+#.  In the “Control” panel, you’ll see that n_min is now 6. This means RAW has
+    cut off the first six points of the scattering profile in the fit. Use the
+    arrow buttons next to the n_min box to adjust that to zero. Check whether
+    the |Rg| changes.
 
 #.  In the “Parameters” panel, note that :math:`q_{max}R_g` is only ~1.26. Recall that for globular
     proteins like GI, it is typical to have :math:`q_{max}R_g` ~1.3. Adjust n_max until that is
@@ -709,16 +725,12 @@ Here are some additional tricks that may make your life easier while using RAW:
 
 
 .. |10000201000002560000018C615B7EB8DE916C34_png| image:: images/10000201000002560000018C615B7EB8DE916C34.png
-    :width: 6in
-    :height: 3.9728in
 
 
 .. |100002010000013700000037882DFA03691018C8_png| image:: images/100002010000013700000037882DFA03691018C8.png
 
 
 .. |raw_mainplot_png| image:: images/raw_mainplot.png
-    :width: 5.9665in
-    :height: 4.4791in
 
 
 .. |series_color_png| image:: images/series_color.png
@@ -735,8 +747,6 @@ Here are some additional tricks that may make your life easier while using RAW:
 
 
 .. |10000201000003FD000002FEC6ABABA160C40969_png| image:: images/10000201000003FD000002FEC6ABABA160C40969.png
-    :width: 6in
-    :height: 4.5016in
 
 
 .. |100002010000018E00000212F5ECF2E1F283E9BE_png| image:: images/100002010000018E00000212F5ECF2E1F283E9BE.png
@@ -755,16 +765,12 @@ Here are some additional tricks that may make your life easier while using RAW:
 
 
 .. |10000201000002C900000115B88F915CDDC779D3_png| image:: images/10000201000002C900000115B88F915CDDC779D3.png
-    :width: 6in
-    :height: 2.3311in
 
 
 .. |series_plot2_png| image:: images/series_plot2.png
 
 
 .. |1000020100000401000002FEBFCA80422CC6B9F5_png| image:: images/1000020100000401000002FEBFCA80422CC6B9F5.png
-    :width: 3.75in
-    :height: 2.802in
 
 
 .. |1000020100000191000000A5B7B91A3F7EF281FE_png| image:: images/1000020100000191000000A5B7B91A3F7EF281FE.png
@@ -777,8 +783,6 @@ Here are some additional tricks that may make your life easier while using RAW:
 
 
 .. |100002010000010E0000005F5824E2A36886EADC_png| image:: images/100002010000010E0000005F5824E2A36886EADC.png
-    :width: 2.7445in
-    :height: 0.9661in
 
 
 .. |series_rg_png| image:: images/series_rg.png
@@ -791,13 +795,9 @@ Here are some additional tricks that may make your life easier while using RAW:
 
 
 .. |100002010000031E000002558ABF7E7941F525B1_png| image:: images/100002010000031E000002558ABF7E7941F525B1.png
-    :width: 6in
-    :height: 4.489in
 
 
 .. |100002010000034C00000049FD162E82EB78E7ED_png| image:: images/100002010000034C00000049FD162E82EB78E7ED.png
-    :width: 6in
-    :height: 0.5189in
 
 
 .. |100002010000018D000000E6174D733C1F4E44CD_png| image:: images/100002010000018D000000E6174D733C1F4E44CD.png
@@ -822,16 +822,12 @@ Here are some additional tricks that may make your life easier while using RAW:
 
 
 .. |10000201000001A40000009714A5986ACDCF0485_png| image:: images/10000201000001A40000009714A5986ACDCF0485.png
-    :width: 3.6193in
-    :height: 1.3016in
 
 
 .. |100002010000026300000034957322C176A93588_png| image:: images/100002010000026300000034957322C176A93588.png
 
 
 .. |10000201000001D2000000EA0EBB8DE8A90AF844_png| image:: images/10000201000001D2000000EA0EBB8DE8A90AF844.png
-    :width: 4.1193in
-    :height: 2.0689in
 
 
 .. |100002010000023300000136897A226F6B626581_png| image:: images/100002010000023300000136897A226F6B626581.png

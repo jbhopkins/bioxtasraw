@@ -509,8 +509,8 @@ components from overlapping SEC-SAXS peaks.
         increasingly sharply (as seen from right to left), it indicates that there is a new
         scattering component in the scattering profile measured at that point.
 
-    *   *Note:*
-        The algorithm for determining the start and end points is not particularly advanced. For some datasets you may need to do significantly more adjustment of these values
+    *   *Note:* The algorithm for determining the start and end points is not particularly
+        advanced. For some datasets you may need to do significantly more adjustment of these values
 
     |10000201000000C0000000F27D3BE3AA11912468_png|
 
@@ -633,18 +633,12 @@ components from overlapping SEC-SAXS peaks.
 
 
 .. |10000201000001200000006C3B50236567420D74_png| image:: images/10000201000001200000006C3B50236567420D74.png
-    :width: 2.8693in
-    :height: 1.0756in
 
 
 .. |10000201000000C0000000F27D3BE3AA11912468_png| image:: images/10000201000000C0000000F27D3BE3AA11912468.png
-    :width: 1.8839in
-    :height: 2.3752in
 
 
 .. |10000201000003B3000002EB8E792276E0CD8D88_png| image:: images/10000201000003B3000002EB8E792276E0CD8D88.png
-    :width: 6in
-    :height: 4.7327in
 
 
 .. |10000201000003B6000002EBE2BBC8749420E175_png| image:: images/10000201000003B6000002EBE2BBC8749420E175.png
@@ -665,7 +659,6 @@ components from overlapping SEC-SAXS peaks.
 .. |dammif_viewer_png| image:: images/dammif_viewer.png
 
 
-
 .. |100002010000031F000002A41245FE3782B26A6C_png| image:: images/100002010000031F000002A41245FE3782B26A6C.png
 
 
@@ -673,8 +666,6 @@ components from overlapping SEC-SAXS peaks.
 
 
 .. |100002010000031E00000257E806280132469D47_png| image:: images/100002010000031E00000257E806280132469D47.png
-    :width: 6.0004in
-    :height: 4.5004in
 
 
 .. |10000201000003B3000002ECA374DC717C28A0DA_png| image:: images/10000201000003B3000002ECA374DC717C28A0DA.png

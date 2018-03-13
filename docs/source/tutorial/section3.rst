@@ -2,7 +2,9 @@ Section 3: Creating a configuration file
 ----------------------------------------
 .. _section3:
 
-This section will guide you through creating a configuration file for RAW that allows you to integrate 2D images into 1D scattering profiles. It refers to the :ref:`RAW tutorial data <tutorialdata>`.
+This section will guide you through creating a configuration file for RAW that
+allows you to integrate 2D images into 1D scattering profiles. It refers to
+the :ref:`RAW tutorial data <tutorialdata>`.
 
 
 Part 1. Centering and calibration – Automated method
@@ -20,8 +22,6 @@ method in RAW.
     system bar, depending on your OS) and selecting “Advanced Options”
 
 #.  In the options window, select the Image/Header Format section on the left.
-
-
 
 #.  In the area on the right, set the Image format dropdown menu to “Pilatus” and the
     Header file format to “G1, CHESS”.
@@ -228,8 +228,7 @@ If the automated method fails, you can also carry out centering and calibration
         menu. You can either pick a value from the dropdown menu, or enter your own value
         in the box.
 
-    *   *Tip:*
-        The spin controls adjust the last digit of the value in the box. So if you want
+    *   *Tip:* The spin controls adjust the last digit of the value in the box. So if you want
         to adjust the sample-detector distance more finely than 1 mm, set the distance to
         (for example) 1500.0 and then the spin controls will change the distance in steps
         of 0.1 mm.
@@ -656,74 +655,47 @@ standard in RAW.
 #.  Save the settings for future use.
 
 
+
 .. |1000020100000189000001206B620B7F6AC688A3_png| image:: images/1000020100000189000001206B620B7F6AC688A3.png
-    :width: 3.7445in
-    :height: 2.7437in
 
 
 .. |1000020100000219000000FFE668DA920110965A_png| image:: images/1000020100000219000000FFE668DA920110965A.png
-    :width: 6in
-    :height: 2.8492in
 
 
 .. |100002010000031F00000254EC8C0C5D987D9510_png| image:: images/100002010000031F00000254EC8C0C5D987D9510.png
-    :width: 6in
-    :height: 4.4756in
 
 
 .. |100002010000024A0000010255684CF81FEA93EF_png| image:: images/100002010000024A0000010255684CF81FEA93EF.png
-    :width: 5.5016in
-    :height: 2.422in
 
 
 .. |1000020100000311000000E79A17725090A964FF_png| image:: images/1000020100000311000000E79A17725090A964FF.png
-    :width: 6in
-    :height: 1.7654in
 
 
 .. |10000201000001590000023F0706EE751FB36A8E_png| image:: images/10000201000001590000023F0706EE751FB36A8E.png
-    :width: 3.9665in
-    :height: 6.611in
 
 
 .. |10000201000003FD000002FD63F3FE9B954A53E3_png| image:: images/10000201000003FD000002FD63F3FE9B954A53E3.png
-    :width: 6in
-    :height: 4.4957in
 
 
 .. |100002010000021E0000021365526F4D184B1EAD_png| image:: images/100002010000021E0000021365526F4D184B1EAD.png
-    :width: 4.4945in
-    :height: 4.4035in
 
 
 .. |10000201000003FC000002FB4AC9E9FB85B6D0CA_png| image:: images/10000201000003FC000002FB4AC9E9FB85B6D0CA.png
-    :width: 6in
-    :height: 4.4882in
 
 
 .. |10000201000001C00000011359B0899F361B50F4_png| image:: images/10000201000001C00000011359B0899F361B50F4.png
-    :width: 3.9945in
-    :height: 2.452in
 
 
 .. |10000201000003DE0000018D073F6458E51E1527_png| image:: images/10000201000003DE0000018D073F6458E51E1527.png
-    :width: 6in
-    :height: 2.4063in
 
 
 .. |10000201000003FD000002FDF405DABE73178919_png| image:: images/10000201000003FD000002FDF405DABE73178919.png
-    :width: 6in
-    :height: 4.4957in
 
 
 .. |10000201000001AA0000008AAFBCA8CD7629BDC4_png| image:: images/10000201000001AA0000008AAFBCA8CD7629BDC4.png
-    :width: 4.1583in
-    :height: 1.3472in
 
 
 .. |100002010000017C0000002239FE4A9099163120_png| image:: images/100002010000017C0000002239FE4A9099163120.png
-    :width: 3.3693in
-    :height: 0.3016in
 
 
 .. |1000020100000261000000FF99D0DAD279E9E046_png| image:: images/1000020100000261000000FF99D0DAD279E9E046.png
@@ -739,48 +711,30 @@ standard in RAW.
 
 
 .. |100002010000031E000002572EF4280A9EB5D279_png| image:: images/100002010000031E000002572EF4280A9EB5D279.png
-    :width: 6in
-    :height: 4.5035in
 
 
 .. |10000201000003FE000002FDF08DF625AA9EDF08_png| image:: images/10000201000003FE000002FDF08DF625AA9EDF08.png
-    :width: 6in
-    :height: 4.4909in
 
 
 .. |10000201000002110000010213AF4EFB79D01E09_png| image:: images/10000201000002110000010213AF4EFB79D01E09.png
-    :width: 6in
-    :height: 2.9264in
 
 
 .. |10000201000003CC0000011ECF61130B2786D9DE_png| image:: images/10000201000003CC0000011ECF61130B2786D9DE.png
-    :width: 6in
-    :height: 1.7654in
 
 
 .. |10000201000003FA00000193060E3A3AD503E41B_png| image:: images/10000201000003FA00000193060E3A3AD503E41B.png
-    :width: 6in
-    :height: 2.3752in
 
 
 .. |100002010000031F0000025307BE652194AFBF84_png| image:: images/100002010000031F0000025307BE652194AFBF84.png
-    :width: 6in
-    :height: 4.4681in
 
 
 .. |100002010000022C00000107FBA2AABC2D5731D2_png| image:: images/100002010000022C00000107FBA2AABC2D5731D2.png
-    :width: 6in
-    :height: 2.8382in
 
 
 .. |10000201000003FF000002FFA1373650FAC1BA86_png| image:: images/10000201000003FF000002FFA1373650FAC1BA86.png
-    :width: 6in
-    :height: 4.4984in
 
 
 .. |10000201000003D30000011DBB83199F9986606D_png| image:: images/10000201000003D30000011DBB83199F9986606D.png
-    :width: 6in
-    :height: 1.7465in
 
 
 .. |100002010000031F0000025747B53F96A563D942_png| image:: images/100002010000031F0000025747B53F96A563D942.png
@@ -790,8 +744,6 @@ standard in RAW.
 
 
 .. |10000201000003FC000002FC22DAF6DB760BD07E_png| image:: images/10000201000003FC000002FC22DAF6DB760BD07E.png
-    :width: 6in
-    :height: 4.4945in
 
 
 .. |100002010000018F000000558E072296495A065F_png| image:: images/100002010000018F000000558E072296495A065F.png
@@ -801,46 +753,31 @@ standard in RAW.
 
 
 .. |100002010000031B0000025153E03F7B64A2BA9D_png| image:: images/100002010000031B0000025153E03F7B64A2BA9D.png
-    :width: 6in
-    :height: 4.4756in
 
 
 .. |100002010000032000000255A94EE51014E73548_png| image:: images/100002010000032000000255A94EE51014E73548.png
-    :width: 4.8693in
-    :height: 3.6339in
 
 
 .. |1000020100000319000000E3F41DC6D4D282F31B_png| image:: images/1000020100000319000000E3F41DC6D4D282F31B.png
-    :width: 6in
-    :height: 1.7173in
 
 
 .. |10000201000003FB000002FE1BF1DE5761FDD9F7_png| image:: images/10000201000003FB000002FE1BF1DE5761FDD9F7.png
-    :width: 6in
-    :height: 4.5102in
 
 
 .. |1000020100000262000002D49D3E5CCAB5D20DEE_png| image:: images/1000020100000262000002D49D3E5CCAB5D20DEE.png
-    :width: 4.9945in
-    :height: 5.928in
 
 
 .. |100002010000031E000002533D65082AC93CE448_png| image:: images/100002010000031E000002533D65082AC93CE448.png
-    :width: 5.3693in
-    :height: 4.0035in
 
 
 .. |100002010000022A000001076346850D87A66EB7_png| image:: images/100002010000022A000001076346850D87A66EB7.png
-    :width: 5.1307in
-    :height: 2.4362in
 
 
 .. |10000201000003200000025782A90D7B63DA90C9_png| image:: images/10000201000003200000025782A90D7B63DA90C9.png
 
 
 .. |100002010000024C000000B45B6C3F21D0977D19_png| image:: images/100002010000024C000000B45B6C3F21D0977D19.png
-    :width: 5.3807in
-    :height: 1.6472in
+
 
 .. |Rg| replace:: R\ :sub:`g`
 
