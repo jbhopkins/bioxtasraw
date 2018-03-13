@@ -104,13 +104,14 @@ html_theme_options = {
 if html_theme == 'alabaster':
     html_theme_options['fixed_sidebar'] = False
     html_theme_options['sidebar_collapse'] = True
+    html_theme_options['show_related'] = True
 
 if html_theme == 'alabaster':
     html_sidebars = {
         '**': [
             'about.html',
             'navigation.html',
-            # 'relations.html',
+            'relations.html',
             'searchbox.html',
             # 'donate.html',
         ]
