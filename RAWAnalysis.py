@@ -265,9 +265,6 @@ class GuinierPlotPanel(wx.Panel):
 
         zeros = np.zeros((1,len(x_fit)))[0]
 
-        x_lim_front = x[0]
-        x_lim_back = x[-1]
-
         if not self.data_line:
             self.data_line, = a.plot(x, y, 'b.', animated = True)
             self.fit_line, = a.plot(x_fit, y_fit, 'r', animated = True)
@@ -276,8 +273,8 @@ class GuinierPlotPanel(wx.Panel):
             self.error_line, = b.plot(x_fit, error, 'b', animated = True)
             self.zero_line, = b.plot(x_fit, zeros, 'r', animated = True)
 
-            self.lim_front_line = a.axvline(x=x_lim_front, color = 'r', linestyle = '--', animated = True)
-            self.lim_back_line = a.axvline(x=x_lim_back, color = 'r', linestyle = '--', animated = True)
+            self.lim_front_line = a.axvline(x=x_fit[0], color = 'r', linestyle = '--', animated = True)
+            self.lim_back_line = a.axvline(x=x_fit[-1], color = 'r', linestyle = '--', animated = True)
 
             self.canvas.draw()
             self.background = self.canvas.copy_from_bbox(a.bbox)
