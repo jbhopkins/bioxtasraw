@@ -5374,9 +5374,10 @@ class DenssFrame(wx.Frame):
         'For more information about DENSS see:\n'
         'https://www.tdgrant.com/denss/\n\n'
         'If you use EMAN2 (density alignment) in your work, please cite '
-        'both the main EMAN2 and the single particle tomography paper given '
-        'here:\n'
-        'http://blake.bcm.edu/emanwiki/EMAN2/'
+        'both the main EMAN2 paper here:\n'
+        'http://blake.bcm.edu/emanwiki/EMAN2/\n'
+        'and the single particle tomography paper here:\n'
+        'http://blake.bcm.edu/emanwiki/SPT/Spt'
         )
         wx.MessageBox(str(msg), "How to cite Denss and EMAN2", style = wx.ICON_INFORMATION | wx.OK)
 

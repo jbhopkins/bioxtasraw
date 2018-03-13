@@ -24,10 +24,11 @@ Features
 
 *   Analysis of radius of gyration (|Rg|) and I(0) via Guinier fit.
 *   Analysis of molecular weight via I(0) comparison to standards, absolute
-    calibration, correlation volume (Vc) and corrected Porod volume methods.
+    calibration, correlation volume (V\ :sub:`c`) and corrected Porod volume (V\ :sub:`p`) methods.
 *   Calculation of inverse Fourier transforms (IFTs) via GNOM and a Bayesian
     indirect Fourier transform (BIFT).
 *   Calculation of envelopes (dummy atom models) using DAMMIF, DAMMIN, DAMAVER, and DAMCLUST.
+*   Calculation of electron density using the DENSS algorithm
 *   Easy processing of in-line chromatography coupled SAXS data, including size-exclusions
     coupled SAXS (SEC-SAXS) data.
 *   Deconvolution of SEC-SAXS data using singular value decomposition (SVD) and
@@ -47,7 +48,7 @@ RAW is actively used as the primary analysis software at the
 `MacCHESS G1 BioSAXS Beamline. <http://www.macchess.cornell.edu/MacCHESS/biosaxs.html>`_
 It is also used at various other beamlines, including:
 
-*   `BioCAT <http://www.bio.aps.anl.gov/>`_  (ID-18) beamline at the APS
+*   `BioCAT <http://www.bio.aps.anl.gov/>`_  (18-ID) beamline at the APS
 *   BL19U2 (SSRF)
 *   `I911-4 <https://www.maxlab.lu.se/node/35>`_ (aka I911-SAXS) beamline at MAX-LAB
 

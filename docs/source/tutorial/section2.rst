@@ -5,23 +5,23 @@ Section 2: Advanced processing
 
 This section will guide you through advanded processing of files in RAW. It includes:
 pair-distance distribution analysis using GNOM and BIFT methods, ambiguity assessment
-for shape reconstructions, 3D reconstructions using bead models, and data deconvolution using
-singular value decomposition (SVD) and evolving factor analysis (EFA). It refers to the
-:ref:`RAW tutorial data <tutorialdata>`.
+for shape reconstructions, 3D reconstructions with bead models and electron density,
+and data deconvolution using singular value decomposition (SVD) and evolving factor
+analysis (EFA). It refers to the :ref:`RAW tutorial data <tutorialdata>`.
 
 Part 1. Pair-distance distribution analysis – GNOM in RAW
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The first step in most advanced data processing is to calculate the P(r) function, the inverse
 Fourier transform of I(q). This cannot be calculated directly from the scattering profile, so
 indirect Fourier transform methods are typically used. The most common such method is implemented
-in the GNOM program from the ATSAS package. We will use RAW to run GNOM. Note that you need ATSAS
-installed to do this part of the tutorial (see page 1).
+in the GNOM program from the ATSAS package. We will use RAW to run GNOM. Note that you need
+:ref:`ATSAS installed <atsas>` to do this part of the tutorial.
 
 #.  Open RAW. The install instructions contain information on installing and running RAW.
 
 #.  Open the **lysozyme.dat** file in the **Tutorial_Data/atsas_data** folder.
 
-#.  Right click on the lysozyme profile in the Manipulation list and select “GNOM (ATSAS)”.
+#.  Right click on the lysozyme profile in the Manipulation list and select “IFT (GNOM)”.
 
     *   *Note:* RAW will automatically try to find an appropriate maximum dimension (|Dmax|)
         by running the DATGNOM program from the ATSAS software package.
@@ -33,7 +33,7 @@ installed to do this part of the tutorial (see page 1).
         Uncheck the option to “Automatically find the ATSAS bin location”, and specify the location
         manually.
 
-    |100002010000031E00000256B12CDF409139F785_png|
+    |gnom_panel_png|
 
 #.  The GNOM panel has plots on the right. These show the P(r) function (top panel), the data
     (bottom panel, blue points) and the fit line (bottom panel, red line).
@@ -104,6 +104,7 @@ be found in the RAW paper and manual and references therein.
     Save the **lysozyme.ift** item in the **standards_data** folder.
 
 *Note:* As of now, BIFT output from RAW is not compatible with DAMMIF or other ATSAS programs.
+However, it is compatible with electron density determination via DENSS.
 
 
 Part 3. Assessing ambiguity of 3D shape information - AMBIMETER in RAW
@@ -113,7 +114,8 @@ profile. This makes it important to determine what degree of ambiguity might be 
 in our reconstructions. The program AMBIMETER from the ATSAS package does this by comparing
 the measured scattering profile to a library of scattering profiles from relatively simple
 shapes. The more possible shapes that could have generated the scattering profile, the greater
-ambiguity there will be in the reconstruction. We will use RAW to run AMBIMETER.
+ambiguity there will be in the reconstruction. We will use RAW to run AMBIMETER. Note that you need
+:ref:`ATSAS installed <atsas>` to do this part of the tutorial.
 
 #.  Clear all of the data in RAW. Load the **lysozyme.out** file that you saved in the
     **atsas_data** folder in a previous part of the tutorial.
@@ -122,14 +124,20 @@ ambiguity there will be in the reconstruction. We will use RAW to run AMBIMETER.
         the results, you can find the **lysozyme.out** file in the **atsas_data/lysozyme_complete**
         folder.
 
-    |10000201000003FE000002FDB0AAA2A1C8FE8A78_png|
+    |ift_panel_png|
 
 #.  Right click on the **lysozyme.out** item in the IFT list. Select the “Run AMBIMETER” option.
 
 #.  The new window will show the results of AMBIMETER. It includes the number of shape categories
-    that are compatible with the scattering profile, the ambiguity score (log base 10 of the
+    that are compatible with the scattering profile, the ambiguity score (a-score) (log base 10 of the
     number of shape categories), and the AMBIMETER interpretation of whether or not you can
     obtain a unique 3D reconstruction.
+
+    *   According to the `original paper <https://doi.org/10.1107/S1399004715002576>`_,
+        "an a-score below 1.5 practically guarantees a unique ab initio shape determination,
+        whereas when the a-score is in the range 1.5–2.5 care should be taken, perhaps involving
+        cluster analysis, and for a-scores exceeding 2.5 unambiguous reconstruction without
+        restrictions (for example, on symmetry and/or anisometry) is highly unlikely."
 
     *   *Note:* AMBIMETER can also save the compatible shapes (either all or just the best
         fit). You can do that by selecting the output shapes to save, giving it a save
@@ -140,26 +148,25 @@ ambiguity there will be in the reconstruction. We will use RAW to run AMBIMETER.
 #.  Click “OK” to exit the AMBIMETER window.
 
 
-Part 4. 3D reconstruction by bead models – DAMMIF/N and DAMAVER in RAW
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Part 4. 3D reconstruction with bead models – DAMMIF/N and DAMAVER in RAW
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Shape reconstruction in SAXS is typically done using bead models (also called dummy atom models,
 or DAMs). The most common program used to generate these shapes is DAMMIF (and, to a lesser
 degree, DAMMIN) from the ATSAS package. We will use RAW to run DAMMIF/N. Because the shape
 reconstruction is not unique, a number of distinct reconstructions are generated, and then a
 consensus shape is made from the average of these reconstructions. The program DAMAVER from
-the ATSAS package is the most commonly used program for building consensus shapes.
+the ATSAS package is the most commonly used program for building consensus shapes. Note that you need
+:ref:`ATSAS installed <atsas>` to do this part of the tutorial.
 
 
 #.  Clear all of the data in RAW. Load the **lysozyme.out** file that you saved in the
     **atsas_data** folder in a previous part of the tutorial.
 
-
-
     *   *Note:* If you haven’t done the previous part of the tutorial, or forgot to save
         the results, you can find the **lysozyme.out** file in the
         **atsas_data/lysozyme_complete** folder.
 
-#.  Right click on the **lysozyme.out** item in the IFT list. Select the “Run DAMMIF/N” option.
+#.  Right click on the **lysozyme.out** item in the IFT list. Select the “Bead Model (DAMMIF/N)” option.
 
 #.  Running DAMMIF generates a lot of files. Click the “Select/Change Directory” button,
     make a new folder in the **atsas_data** directory called **lysozyme_dammif** and select
@@ -173,7 +180,12 @@ the ATSAS package is the most commonly used program for building consensus shape
     *   *Note:* For final reconstructions for a paper, DAMMIF should be run in Slow mode.
         For this tutorial, or for obtaining an initial quick look at results, Fast mode is fine.
 
-    |10000201000002A1000002ECE5BA55E24E8AE493_png|
+#. Uncheck the "Refine average with dammin" checkbox.
+
+    *   *Note:* For final reconstructions for a paper, DAMMIN refinement should be done. However, it
+        is quite slow, so for the purposes of this tutorial we won't do it.
+
+    |dammif_run_tab_png|
 
 #.  Click the “Start” button.
 
@@ -187,13 +199,13 @@ the ATSAS package is the most commonly used program for building consensus shape
     *   Some settings are accessible in the panel, and all settings can be changed in the
         advanced settings panel.
 
-#.  Wait for all of the DAMMIF runs, DAMAVER, and DAMMIN refinement to finish. Depending
-    on the speed of your computer this could take a bit.
+#.  Wait for all of the DAMMIF runs and DAMAVER to finish. Depending on the speed of your
+    computer this could take a bit.
 
 #.  Once the reconstructions are finished, the window should automatically switch to the
     results tab. If it doesn’t, click on the results tab.
 
-    |10000201000002A1000002EB2DC2393D9C13F386_png|
+    |dammif_results_png|
 
 #.  The results panel summarizes the results of the reconstruction run. At the top of the
     panel there is the ambimeter evaluation of how ambiguous the reconstructions might be
@@ -203,7 +215,7 @@ the ATSAS package is the most commonly used program for building consensus shape
     more reconstructions, and ATSAS >=2.8.0 is installed, there will be the output of SASRES
     which provides information on the resolution of the reconstruction. If DAMCLUST was run
     (not shown) there will be information on the clustering. Finally, there will be information
-    on each individual model, including the model chi squared, Rg, Dmax, excluded volume,
+    on each individual model, including the model chi squared, |Rg|, |Dmax|, excluded volume,
     molecular weight estimated from the excluded volume, and, if appropriate, mean NSD
     of the model.
 
@@ -217,7 +229,7 @@ the ATSAS package is the most commonly used program for building consensus shape
     *   *Note:* The model viewer is intended for a fast first look at the results. It is
         not currently up to the standards of a program like pyMOL.
 
-    |10000201000002A1000002EE0AD13F21436E8204_png|
+    |dammif_viewer_png|
 
 #.  Click and drag the model to spin it.
 
@@ -230,9 +242,142 @@ the ATSAS package is the most commonly used program for building consensus shape
 
 #.  Click the “Close” button when you are finished looking at the results and reconstructions.
 
+#.  The results from individual DAMMIF runs are saved in the selected output folder
+    with the name **<prefix>_xx**, where *xx* is the run number: 01, 02, etc. For
+    this tutorial, that would be **lysozyme_01**, **lysozyme_02**, and so on. The
+    different files produced are described in the `DAMMIF manual <https://www.embl-hamburg.de/biosaxs/manuals/dammif.html#output>`_.
+
+    *   *Note:* Generally, the file of interest is the **-1.pdb** file, in this case
+        **lysozyme_01-1.pdb**, **lysozyme_02-1.pdb**, etc.
+
+#.  If averaging was done with DAMAVER, the results are saved in the selected output
+    folder with the given prefix, in this case **lysozyme**. The output
+    files generated are described in the `DAMAVER manual <https://www.embl-hamburg.de/biosaxs/manuals/damaver.html>`_.
+
+    *   *Note:* Generally, the files of interest are the generated pdbs:
+        **<prefix>_damaver.pdb** and **<prefix>_damfilt.pdb**. For this tutorial, those
+        would be **lysozyme_damaver.pdb** and **lysozyme_damfilt.pdb**.
+
+#.  If clustering was done with DAMCLUST, the results are saved in the selected output
+    folder with the given prefix (for this tutorial, lysozyme). The files generated
+    are described in the `DAMCLUST manual <https://www.embl-hamburg.de/biosaxs/manuals/damclust.html#output>`_.
+
+#.  If refinement was done with DAMMIN, the results are saved in the selected otuput
+    folder as **refine_<prefix>**, e.g. for this tutorial **refine_lysozyme**. The files
+    generated are described in the `DAMMIN manual <https://www.embl-hamburg.de/biosaxs/manuals/dammin.html#output>`_.
+
+    *   *Note:* Generally, the file of interest is the **-1.pdb** file, in this case
+        **refine_lysozyme-1.pdb**.
 
 
-Part 5. Advanced SEC-SAXS processing – Singular value decomposition (SVD) and evolving factor analysis (EFA)
+Part 5. 3D reconstruction with electron density – DENSS and EMAN2 in RAW
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+A new, exciting method for doing 3D shape reconstructions in SAXS yields actual
+electron density, rather than bead models. There are many potential advantages to this,
+but one significant one is easy handling of systems like RNA-Protein complexes or
+membrane proteins surrounded by lipids or detergents, which have more than one electron
+density. Bead models typically only have two (molecule and solvent) or three bead densities,
+and so typically fail to reconstruct these complex objects. `DENSS <http://denss.org>`_ has
+been fully implemented in RAW and will be used to recontruct these electron densities.
+In order to align and average these densities, EMAN2 will be used. Note that you need
+:ref:`EMAN2 installed <eman2>` to do this part of the tutorial.
+
+
+#.  Clear all of the data in RAW. Load the **lysozyme.out** file that you saved in the
+    **atsas_data** folder in a previous part of the tutorial.
+
+    *   *Note:* If you haven’t done the previous part of the tutorial, or forgot to save
+        the results, you can find the **lysozyme.out** file in the
+        **atsas_data/lysozyme_complete** folder.
+
+#.  Right click on the **lysozyme.out** item in the IFT list. Select the “Electron Density (DENSS)” option.
+
+#.  Running DAMMIF generates a lot of files. Click the “Select/Change Directory” button,
+    make a new folder in the **atsas_data** directory called **lysozyme_denss** and select
+    that folder.
+
+#.  Change the number of reconstructions to 5 and the mode to Fast.
+
+    *   *Note:* It is generally recommended that you do at least 20 reconstructions. However,
+        for the purposes of this tutorial, 5 are enough.
+
+    *   *Note:* For final reconstructions for a paper, DENSS should be run in Slow mode.
+        For this tutorial, or for obtaining an initial quick look at results, Fast mode is fine.
+
+#. Uncheck the "Filter enantiomers (EMAN2)" checkbox.
+
+    *   *Note:* For final reconstructions for a paper, you should filter enantiomers.  However, it
+        is quite slow, so for the purposes of this tutorial we won't do it.
+
+    *   *Note:* SAXS data can't determine between enantiomers, so all this does is ensure that
+        the reconstructions and averaging are done on the most similar enantiomers. There
+        is not guarantee that this matches the enantiomer in solution.
+
+    |denss_run_tab_png|
+
+#.  Click the “Start” button.
+
+    *   *Note:* The status panel will show you the overall status of the reconstructions.
+        You can look at the detailed status of each run by clicking the appropriate tab in
+        the log panel.
+
+#.  Note that by default the envelopes are aligned and averaged using EMAN2.
+
+    *   Some settings are accessible in the panel, and all settings can be changed in the
+        advanced settings panel.
+
+#.  Wait for all of the DENSS runs and EMAN2 averaging to finish. Depending
+    on the speed of your computer this could take a bit.
+
+#.  Once the reconstructions are finished, the window should automatically switch to the
+    results tab. If it doesn’t, click on the results tab.
+
+    |denss_results_png|
+
+#.  The results panel summarizes the results of the reconstruction runs. At the top of the
+    panel there is the ambimeter evaluation of how ambiguous the reconstructions might be
+    (see previous tutorial section). If EMAN2 averaging was run there is an estimate of the
+    reconstruction resolution based on the Fourier shell correlation.
+
+#.  For each individual model there are plots of: the original data and the model data (scattering from density);
+    the residual between the original data and the model data; and chi squared, |Rg| and support volume
+    vs. refinement step.
+
+    *   Verify that the residual between the actual data and the model data is small.
+
+    *   Check that the chi squared, |Rg|, and support volume have all plateaued (converged)
+        by the final steps.
+
+#.  If the plots were averaged, the average tab will display the Fourier shell correlation
+    vs. resolution.
+
+    *   *Note:* The reconstruction resolution is taken as the resolution in angstrom where the
+        correlation first crosses 0.5.
+
+    |denss_fsc_png|
+
+#.  Click the “Save Results Summary” button to save the results summary as a **.csv** file and
+    save the summary plots as a multi-page pdf file.
+
+#.  Click the “Close” button when you are finished looking at the results and reconstructions.
+
+#.  The results from the individual DENSS runs are saved in the selected output folder as
+    **<prefix>_xx.mrc** where *xx* corresponds to the run number: 01, 02, etc. For this
+    tutorial that would be **lysozyme_01.mrc**, **lysozyme_02.mrc**, etc.
+
+#.  If averaging was done, final average density is saved in the selected output
+    folder as **<prefix>_aver.mrc**. For this turotial, that would be **lysozyme_aver.mrc**
+
+    *   *Note:* **.mrc** files can be opened in Chimera and pyMOL. For tips about how to
+        visualize the density and align it with known structures see the appropriate
+        sections here: `http://www.tdgrant.com/denss/tips/ <http://www.tdgrant.com/denss/tips/>`_.
+        When looking at this page, please note that RAW does the conversion from hdf5 to mrc
+        for you, so there's no need to do this, i.e. you can skip the first paragraph of the
+        evaluating the results section.
+
+
+
+Part 6. Advanced SEC-SAXS processing – Singular value decomposition (SVD) and evolving factor analysis (EFA)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Sometimes SEC fails to fully separate out different species, and you end up with overlapping
 peaks in your SEC-SAXS curve. It is possible to apply more advanced mathematical techniques
@@ -251,7 +396,7 @@ components from overlapping SEC-SAXS peaks.
         A. Khan, Shengnan Zhang, Paul F. Fitzpatrick, and Nozomi Ando. Journal of the
         American Chemical Society 2016 138 (20), 6506-6516. DOI: 10.1021/jacs.6b01563
 
-    |10000201000003FF000002FD2470C58A1E0F85A8_png|
+    |efa_series_plot_png|
 
 #.  Right click on the **phehc_sec.sec** item in the SEC list. Select the “SVD” option.
 
@@ -289,7 +434,7 @@ components from overlapping SEC-SAXS peaks.
 
     *   *Note:* Normally, changing between Unsubtracted and Subtracted SEC-SAXS profiles
         should remove one significant singular value component, corresponding to the buffer
-        scattering. In this data, you will not see any difference, as the profiles used to
+        scattering. In this data, you will see almost no difference, as the profiles used to
         produce the SEC-SAXS curve were already background subtracted.
 
     *   *Note:* You can save the SVD plots by clicking the Save button, as with the plots
@@ -318,6 +463,10 @@ components from overlapping SEC-SAXS peaks.
 
     *   *Note:* You should convince yourself of this by looking at the SVD results in
         the plots on this page, using the same approach as in Steps 3-5 above.
+
+    *   *Note:* There is a hint of a fourth component, likely related to imperfect background
+        subtraction (possibly indicating a little capillary fouling). You can rerun this exercise
+        using four components and see if that changes the results.
 
 #.  Click the “Next” button in the lower right-hand corner of the window to advance to
     the second stage of the EFA analysis.
@@ -352,7 +501,7 @@ components from overlapping SEC-SAXS peaks.
 #.  In the User Input panel, tweak the “Backward” value start frames so that the frame
     number, as indicated by the open circle on the plot, aligns with where the singular
     value first starts to increase quickly, reading the plot left to right (i.e. where
-    it drops back to near the baseline). This should be values 380, 324, and 190.
+    it drops back to near the baseline). This should be around 380, 324, and 190.
 
     *   *Note:* For the Backward EFA plot, SVD is run on just the last two frames, then the
         last three, and so on, until all frames in the range are included. As more frames are
@@ -390,7 +539,7 @@ components from overlapping SEC-SAXS peaks.
 
 #.  Adjust the starts and ends of Range 0 and the start of Range 1 by a few points
     until the spikes in the chi-squared plot go away. After these adjustments, Range 0
-    should be from 147 to 197, Range 1 from 161 to 324, and Range 2 from 323 to 380.
+    should be about 147 to 197, Range 1 from 161 to 324, and Range 2 from 323 to 380.
 
     |10000201000001200000006C3B50236567420D74_png|
 
@@ -463,23 +612,24 @@ components from overlapping SEC-SAXS peaks.
 
 
 .. |10000201000001C00000020ABF9AC84A21364E29_png| image:: images/10000201000001C00000020ABF9AC84A21364E29.png
-    :width: 4.1602in
-    :height: 4.8472in
 
 
-.. |10000201000003FE000002FDB0AAA2A1C8FE8A78_png| image:: images/10000201000003FE000002FDB0AAA2A1C8FE8A78.png
-    :width: 6in
-    :height: 4.4909in
+.. |ift_panel_png| image:: images/ift_panel.png
 
 
-.. |10000201000002A1000002ECE5BA55E24E8AE493_png| image:: images/10000201000002A1000002ECE5BA55E24E8AE493.png
-    :width: 5.1193in
-    :height: 5.6902in
+.. |dammif_run_tab_png| image:: images/dammif_run_tab.png
 
 
-.. |10000201000002A1000002EB2DC2393D9C13F386_png| image:: images/10000201000002A1000002EB2DC2393D9C13F386.png
-    :width: 4.8693in
-    :height: 5.4047in
+.. |dammif_results_png| image:: images/dammif_results.png
+
+
+.. |denss_run_tab_png| image:: images/denss_run_tab.png
+
+
+.. |denss_results_png| image:: images/denss_results_tab.png
+
+
+.. |denss_fsc_png| image:: images/denss_fsc.png
 
 
 .. |10000201000001200000006C3B50236567420D74_png| image:: images/10000201000001200000006C3B50236567420D74.png
@@ -500,9 +650,7 @@ components from overlapping SEC-SAXS peaks.
 .. |10000201000003B6000002EBE2BBC8749420E175_png| image:: images/10000201000003B6000002EBE2BBC8749420E175.png
 
 
-.. |100002010000031E00000256B12CDF409139F785_png| image:: images/100002010000031E00000256B12CDF409139F785.png
-    :width: 5.6193in
-    :height: 4.211in
+.. |gnom_panel_png| image:: images/gnom_panel.png
 
 
 .. |1000020100000320000002A2D123A77E23D67C60_png| image:: images/1000020100000320000002A2D123A77E23D67C60.png
@@ -511,12 +659,11 @@ components from overlapping SEC-SAXS peaks.
 .. |1000020100000401000002FFB79B21A115149137_png| image:: images/1000020100000401000002FFB79B21A115149137.png
 
 
-.. |10000201000003FF000002FD2470C58A1E0F85A8_png| image:: images/10000201000003FF000002FD2470C58A1E0F85A8.png
+.. |efa_series_plot_png| image:: images/efa_series_plot.png
 
 
-.. |10000201000002A1000002EE0AD13F21436E8204_png| image:: images/10000201000002A1000002EE0AD13F21436E8204.png
-    :width: 4.6193in
-    :height: 5.148in
+.. |dammif_viewer_png| image:: images/dammif_viewer.png
+
 
 
 .. |100002010000031F000002A41245FE3782B26A6C_png| image:: images/100002010000031F000002A41245FE3782B26A6C.png

@@ -153,13 +153,12 @@ for globular proteins. This fitting region is called the “Guinier region.”
 
 #.  In RAW, right click (ctrl click on macs without a right mouse button) on the subtracted GI scattering profile in the Manipulation list and select “Guinier fit”. In the plots on the right, the top plot shows you the Guinier plot and the fit, while the bottom plot shows you the residual of the fit.
 
-    *   *Note:*
-        RAW automatically tries to find the best Guinier region for you when the Guinier window is opened for the first time.
+    *   *Note:* RAW automatically tries to find the best Guinier region for you when the Guinier window is opened for the first time.
 
     *   *Note:* The |Rg| value is in Angstroms, while the two :math:`qR_g` boxes give, left to right,
         :math:`q_{min}R_g` and :math:`q_{max}R_g` respectively.
 
-    |100002010000031C0000025244EB39E736EBB0E0_png|
+    |gi_guinier_png|
 
 #.  In the “Control” panel, you’ll see that n_min is now 6. This means RAW has cut off the first six points of the scattering profile in the fit. Use the arrow buttons next to the n_min box to adjust that to zero. Check whether the |Rg| changes.
 
@@ -168,6 +167,15 @@ for globular proteins. This fitting region is called the “Guinier region.”
     the case, watching what happens to the |Rg| and the residual.
 
     *   *Question:* The literature radius of gyration for GI is 32.7 Å. How does yours compare?
+
+#.  RAW also provides an estimate of the uncertainty in both the |Rg| and I0 values for
+    the Guinier fit, shown in the Uncertainty section.
+
+    *   *Note:* This is the largest of the uncertainties from the fit (standard deviation
+        of fit values calculated from the covariance matrix), and either the standard deviation of
+        |Rg| and I(0) across all acceptable intervals found by the autorg function
+        or an estimated uncertainty in |Rg| and I(0) based on variation of the selected
+        interval start and end points.
 
 #.  Click the “OK” button to keep the results.
 
@@ -184,7 +192,7 @@ for globular proteins. This fitting region is called the “Guinier region.”
     *   *Tip:* If you hover your mouse cursor over the info icon (just left of the target icon)
         for a given scattering profile it should show you the |Rg| and I(0) of your Guinier analysis.
 
-    |10000201000003170000025609F0B5A71EB02877_png|
+    |lys_guinier_png|
 
 
 Part 3. Molecular weight analysis
@@ -204,7 +212,7 @@ RAW provides four forms of molecular weight analysis:
 
     *   *Note:* Neither the I(0) Ref. MW panel nor the Abs. MW panel should be reporting a MW.
 
-    |10000201000003BF00000272D9D567CD186C9FBD_png|
+    |mw_png|
 
 #.  In either concentration box, enter the sample concentration of 0.47 mg/ml. Notice that you
     now get results from all four methods of MW calculation.
@@ -215,7 +223,7 @@ RAW provides four forms of molecular weight analysis:
     the integrated area of :math:`qI(q)` vs. *q*\ . For this method to be accurate,
     this value needs to converge at high *q*\ .
 
-    |1000020100000158000001ADB566AD45FB7FB26E_png|
+    |mw_vc_png|
 
 #.  Click the “OK” button to save your analysis.
 
@@ -223,6 +231,8 @@ RAW provides four forms of molecular weight analysis:
 
 #.  Repeat the MW analysis for the lysozyme sample, which had a concentration of 4.27 mg/ml.
     The expected MW of lysozyme is 14.3 kDa.
+
+    *   *Question:* Does the Vc method work for the lysozyme data?
 
 
 Part 4. Saving analysis information
@@ -274,6 +284,8 @@ be found here and references therein: `http://www.bioisis.net/tutorial/21 <http:
 
 #.  Put the top plot on Kratky axes.
 
+    * *Tip:* Right click on the plot to change the plot type.
+
 #.  Show only the top plot by clicking on the 1 in the plot control bar below the plots.
 
     |1000020100000261000002D198EA0F5B06DFE72F_png|
@@ -317,14 +329,16 @@ be found here and references therein: `http://www.bioisis.net/tutorial/21 <http:
 #.  Click the Proceed using AutoRg button to proceed to the Normalized Kratky Plot window using
     RAW’s automatic fitting for |Rg|.
 
-    |100002010000031E000002558ABF7E7941F525B1_png|
-
 #.  By default, the plot is the Dimensionless |Rg| plot. Use the dropdown “Plot” menu at the top to
     select the Normalized (by I(0) and Dimensionless Vc plots.
+
+    |100002010000031E000002558ABF7E7941F525B1_png|
 
 #.  Return to the Dimensionless |Rg| plot. Use the check boxes to hide the partially_folded and
     unfolded data sets on the plot. Note that both the lysozyme and GI data look very similar
     on this plot, showing they have similar shapes and (lack of) flexibility.
+
+    *   *Tip:* You can click on the colored line in the Color column to change the color of an item on the plot.
 
     |100002010000010E0000005F5824E2A36886EADC_png|
 
@@ -339,7 +353,7 @@ Part 6. Similarity Testing
 .. _s1p6:
 
 RAW has the ability to test scattering profiles for statistical similarity. Currently, only one
-test is available, the Correlation Map test. This can be done manually, and is also done
+test is available: the Correlation Map test. This can be done manually, and is also done
 automatically when scattering profiles are averaged. This can be useful when you’re dealing
 with data that may show changes in scattering from radiation damage or other possible sources.
 
@@ -371,8 +385,8 @@ with data that may show changes in scattering from radiation damage or other pos
     *   Note: This averages only those profiles found to the same as the first file,
         for the given statistical test.
 
-    *   If necessary, select all of the profiles except the new averaged one, and right
-        click and select “Similarity Testing”.
+#.  Select all of the profiles except the new averaged one, and right click and
+    select “Similarity Test”.
 
     |10000201000002560000018C615B7EB8DE916C34_png|
 
@@ -419,27 +433,34 @@ of the SEC system. RAW includes the capability to do routine processing of SEC-S
 This includes creating the SAXS chromatograph from the data, plotting |Rg|, MW, and I(0)
 across the peaks, and extracting specific frames for further analysis.
 
-#.  Clear any data loaded into RAW. Click on the SEC tab in the control panel. Click the
-    “Select file in SEC run” button. Navigate to the **Tutorial_Data/sec_data/sec_sample_1**
+*Note:* In RAW, this is called Series analysis, as the same tools  can be used for other
+sequentially sampled data sets.
+
+#.  Clear any data loaded into RAW. Click on the Series tab in the control panel. Click the
+    “Select file in series” button. Navigate to the **Tutorial_Data/sec_data/sec_sample_1**
     folder and select any of the **.dat** files in the folder.
 
     *   *Tip:* In the Files tab, click the “Clear All” button.
 
-    |10000201000001930000009F689D4B1828760317_png|
+    *   *Troubleshooting:* If you get an error message, it means you don't have
+        a configuration file loaded. Load the SAXS.cfg file referenced :ref:`earlier <s1p1>`.
 
-#.  The SEC run will automatically load. RAW should automatically show you the SEC
-    plot panel. If not, click on the SEC tab in the plot panel.
+    |series_panel_png|
 
-    |10000201000003FD000002FEDE6BB7418D5B843F_png|
+#.  The SEC run will automatically load. RAW should automatically show you the Series
+    plot panel. If not, click on the Series tab in the plot panel.
+
+    |series_plot_png|
 
     *   *Try:* Each point on this curve is the integrated intensity of a scattering profile.
-        You can figure out which one by right clicking on the filename in the SEC list and
+        You can figure out which one by right clicking on the filename in the Series list and
         selecting ‘Show data’. This will show you the frame number and integrated intensity
         displayed on the plot, and the filename corresponding to the displayed frame number.
 
 #.  Drag the plot so that you can clearly the see the first frame. You’ll notice it has a
     significantly lower intensity than the rest of the frames. This happens occasionally
-    at the MacCHESS G1 beamline. It can make it harder to tell what the data is doing.
+    at the MacCHESS G1 beamline (where the data was taken). It can make it harder to tell
+    what the data is doing.
 
     *   *Tip:* Select the crossed arrows in the plot control bar, and then click and drag on
         the plot to move the curve around on the screen.
@@ -449,11 +470,11 @@ across the peaks, and extracting specific frames for further analysis.
     file list, and shift click on the last file, **profile_001_0964.dat**\ . This should
     highlight all of the files in between, as well as the two you clicked on.
 
-#.  Click on the “Plot SEC” button. You will see the same curve plotted as before, but
+#.  Click on the “Plot Series” button. You will see the same curve plotted as before, but
     without the very first scattering profile. Remove the other loaded data set. Now
     you should have a curve where the baseline is very close to the bottom of the plot.
 
-    |100002010000025D000002D64E4459037AAD8B08_png|
+    |series_plot2_png|
 
 #.  In some cases it is more useful to look at the mean intensity or the intensity at a
     specific *q* value than the total intensity. Right click on the plot and select mean
@@ -471,17 +492,17 @@ across the peaks, and extracting specific frames for further analysis.
     *   *Tip:* Click on the magnifying glass at the bottom of the plot, then click
         and drag on the plot to select a region to zoom in on.
 
-    |1000020100000264000002ABE62E7F19055CF5F4_png|
+    |series_plot3_png|
 
 #.  Zoom back out to the full plot.
 
     *   *Tip:* Click the Home (house) button at the bottom of the plot.
 
-    *   In order to determine if we really have a single species across the peak, we will
-        calculate the |Rg| and MW as a function of frame number. In the “Calculate/Plot
-        Structural Parameters” section, enter a “Buffer Range” of 400 to 500 and a “Window Size”
-        of 5. Star the SEC curve of interest and click the “Set/Update Parameters” button.
-        This may take a while to calculate.
+#.  In order to determine if we really have a single species across the peak, we will
+    calculate the |Rg| and MW as a function of frame number. In the “Calculate/Plot
+    Structural Parameters” section, enter a “Buffer Range” of 400 to 500 and a “Window Size”
+    of 5. Star the SEC curve of interest and click the “Set/Update Parameters” button.
+    This may take a while to calculate.
 
     |100002010000018800000095A9F99A4566D6E540_png|
 
@@ -500,23 +521,26 @@ across the peaks, and extracting specific frames for further analysis.
 
 #.  Once the calculation is finished, you should see a set of markers, matching the color
     of the original curve. These points are plotted on the right Y axis. Click on the green
-    line next to the star in the SEC control panel. In the line properties control panel this
+    line next to the star in the Series control panel. In the line properties control panel this
     brings up, change the Calc Marker color to something different. Add a line to the Calc
     Markers by selecting line style ‘-’ (solid), and adjust the line color to your liking.
 
     *   *Tip:* You can do the same thing to adjust the colors of the scattering profiles in
         the Manipulation and IFT control tabs.
 
-    |100002010000018A000000254B8937DB590D8868_png|
+    |series_color_png|
 
-    |10000201000001CF000001FB83814B1CEA11D684_png|
+    |series_line_props_png|
 
 #.  Zoom in on the peak region. You’ll notice a region of roughly constant |Rg| across the
-    peak. To either side there are several spikes with higher |Rg| values. These spikes
-    are from scattering profiles near the edge of the peak with lower concentrations of
-    sample, leading to more noise in determining the |Rg| values.
+    peak. To either side there are regions with higher or lower |Rg| values. These variations,
+    particularly on the right side, are from scattering profiles near the edge of the peak
+    with lower concentrations of sample, leading to more noise in determining the |Rg| values.
 
-    |10000201000002580000027F43C0AFBAA2C995AF_png|
+    *   *Note:* There may also be some effects from the small peaks on the leading (left)
+        side of the peak, and from the baseline mismatch between left and right sides of the peak.
+
+    |series_rg_png|
 
 #.  You can move your mouse cursor across the |Rg| values on the plot, and the frame number
     and intensity and |Rg| at your cursor position are read out in the bar at the bottom
@@ -541,7 +565,7 @@ across the peaks, and extracting specific frames for further analysis.
     |100002010000013700000037882DFA03691018C8_png|
 
 #.  Enter the range over which you found the |Rg| and MW to be constant (should be
-    ~695-715) in the “Select Data Frames” section and click the “Average to Main Plot”
+    ~700-715) in the “Select Data Frames” section and click the “Average to Main Plot”
     button.
 
 #.  Click on the Main Plot tab and the Manipulation tab. You should see two scattering
@@ -595,7 +619,7 @@ across the peaks, and extracting specific frames for further analysis.
     *   *Try:* As with the previous sample, take a few smaller regions along the peak
         and see if the subtracted scattering profile varies.
 
-#.  In the SEC control tab, right click on the name of BSA curve in the list. Select export
+#.  In the Series control tab, right click on the name of BSA curve in the list. Select export
     data and save it in an appropriate location. This will save a CSV file with the frame
     number, integrated intensity, radius of gyration, molecular weight, filename for each
     frame number, and a few other items. This allows you to plot that data for publications,
@@ -603,11 +627,11 @@ across the peaks, and extracting specific frames for further analysis.
 
     *   *Try:* Open the **.csv** file you just saved in Excel or Libre/Open Office Calc.
 
-#.  Select both items in the SEC control panel list, and save them in the **sec_data**
-    folder. This saves the SEC plot data in a form that can be quickly loaded by RAW.
+#.  Select both items in the Series control panel list, and save them in the **sec_data**
+    folder. This saves the Series plot data in a form that can be quickly loaded by RAW.
 
-    *   *Try:* Clear the SEC data and then open one of your saved files from the Files tab
-        using either the “Plot” or “Plot SEC” button.
+    *   *Try:* Clear the Series data and then open one of your saved files from the Files tab
+        using either the “Plot” or “Plot Series” button.
 
 
 Part 8. WAXS processing and merging
@@ -658,7 +682,7 @@ Here are some additional tricks that may make your life easier while using RAW:
     list item will be highlighted.
 
 #.  You can save the workspace by going to File->Save Workspace. This will save all
-    of the scattering profiles, IFT curves, and SEC curves. These will all be loaded
+    of the scattering profiles, IFT curves, and Series curves. These will all be loaded
     again when you load the workspace.
 
     *   *Note:* This does not save the settings!
@@ -697,21 +721,17 @@ Here are some additional tricks that may make your life easier while using RAW:
     :height: 4.4791in
 
 
-.. |100002010000018A000000254B8937DB590D8868_png| image:: images/100002010000018A000000254B8937DB590D8868.png
+.. |series_color_png| image:: images/series_color.png
 
 
 .. |100002010000018800000095A9F99A4566D6E540_png| image:: images/100002010000018800000095A9F99A4566D6E540.png
-    :width: 3.1193in
-    :height: 1.1862in
 
 
 .. |10000201000001880000007454FA55D402257E07_png| image:: images/10000201000001880000007454FA55D402257E07.png
 
 
 
-.. |1000020100000158000001ADB566AD45FB7FB26E_png| image:: images/1000020100000158000001ADB566AD45FB7FB26E.png
-    :width: 3.4075in
-    :height: 4.25in
+.. |mw_vc_png| image:: images/mw_vc.png
 
 
 .. |10000201000003FD000002FEC6ABABA160C40969_png| image:: images/10000201000003FD000002FEC6ABABA160C40969.png
@@ -728,12 +748,10 @@ Here are some additional tricks that may make your life easier while using RAW:
 .. |1000020100000187000001E62B30741A90D8AB28_png| image:: images/1000020100000187000001E62B30741A90D8AB28.png
 
 
-.. |10000201000001CF000001FB83814B1CEA11D684_png| image:: images/10000201000001CF000001FB83814B1CEA11D684.png
+.. |series_line_props_png| image:: images/series_line_props.png
 
 
-.. |10000201000001930000009F689D4B1828760317_png| image:: images/10000201000001930000009F689D4B1828760317.png
-    :width: 3.4945in
-    :height: 1.3783in
+.. |series_panel_png| image:: images/series_panel.png
 
 
 .. |10000201000002C900000115B88F915CDDC779D3_png| image:: images/10000201000002C900000115B88F915CDDC779D3.png
@@ -741,7 +759,7 @@ Here are some additional tricks that may make your life easier while using RAW:
     :height: 2.3311in
 
 
-.. |100002010000025D000002D64E4459037AAD8B08_png| image:: images/100002010000025D000002D64E4459037AAD8B08.png
+.. |series_plot2_png| image:: images/series_plot2.png
 
 
 .. |1000020100000401000002FEBFCA80422CC6B9F5_png| image:: images/1000020100000401000002FEBFCA80422CC6B9F5.png
@@ -755,7 +773,7 @@ Here are some additional tricks that may make your life easier while using RAW:
 .. |1000020100000191000002168932F455C75660D5_png| image:: images/1000020100000191000002168932F455C75660D5.png
 
 
-.. |100002010000031C0000025244EB39E736EBB0E0_png| image:: images/100002010000031C0000025244EB39E736EBB0E0.png
+.. |gi_guinier_png| image:: images/guinier_gi.png
 
 
 .. |100002010000010E0000005F5824E2A36886EADC_png| image:: images/100002010000010E0000005F5824E2A36886EADC.png
@@ -763,15 +781,13 @@ Here are some additional tricks that may make your life easier while using RAW:
     :height: 0.9661in
 
 
-.. |10000201000002580000027F43C0AFBAA2C995AF_png| image:: images/10000201000002580000027F43C0AFBAA2C995AF.png
+.. |series_rg_png| image:: images/series_rg.png
 
 
 .. |10000201000003FD000002FDBECFEBC4BFFF1C27_png| image:: images/10000201000003FD000002FDBECFEBC4BFFF1C27.png
 
 
-.. |10000201000003BF00000272D9D567CD186C9FBD_png| image:: images/10000201000003BF00000272D9D567CD186C9FBD.png
-    :width: 6in
-    :height: 3.9165in
+.. |mw_png| image:: images/mw.png
 
 
 .. |100002010000031E000002558ABF7E7941F525B1_png| image:: images/100002010000031E000002558ABF7E7941F525B1.png
@@ -787,18 +803,16 @@ Here are some additional tricks that may make your life easier while using RAW:
 .. |100002010000018D000000E6174D733C1F4E44CD_png| image:: images/100002010000018D000000E6174D733C1F4E44CD.png
 
 
-.. |10000201000003170000025609F0B5A71EB02877_png| image:: images/10000201000003170000025609F0B5A71EB02877.png
+.. |lys_guinier_png| image:: images/guinier_lys.png
 
 
 .. |100002010000018F000000558E072296495A065F_png| image:: images/100002010000018F000000558E072296495A065F.png
 
 
-.. |1000020100000264000002ABE62E7F19055CF5F4_png| image:: images/1000020100000264000002ABE62E7F19055CF5F4.png
+.. |series_plot3_png| image:: images/series_plot3.png
 
 
-.. |10000201000003FD000002FEDE6BB7418D5B843F_png| image:: images/10000201000003FD000002FEDE6BB7418D5B843F.png
-    :width: 5.6193in
-    :height: 4.2161in
+.. |series_plot_png| image:: images/series_plot.png
 
 
 .. |1000020100000189000000C42B4CCF42641BC35E_png| image:: images/1000020100000189000000C42B4CCF42641BC35E.png

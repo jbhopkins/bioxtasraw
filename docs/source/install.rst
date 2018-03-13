@@ -11,6 +11,9 @@ RAW is also available through `SBGrid <https://sbgrid.org/software/titles/bioxta
 Some features in RAW require a separate installation of the
 `ATSAS <https://www.embl-hamburg.de/biosaxs/software.html>`_ package.
 
+Some features in RAW require a separate installation of the
+`EMAN2 <http://blake.bcm.edu/emanwiki/EMAN2/Install>`_ package.
+
 Detailed installation instructions
 -----------------------------------
 .. toctree::

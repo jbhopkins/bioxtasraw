@@ -13,9 +13,10 @@ This tutorial covers SAXS data processing with RAW. You will learn how to:
 *   Load and process SEC-SAXS data
 *   Carry out singular value decomposition (SVD) and evolving factor analysis (EFA) to evaluate and analyze SEC-SAXS data
 *   Merge SAXS/WAXS data from two detectors
-*   Carry out Pair-distance distribution analysis – BIFT and GNOM
-*   Evaluate ambiguity of 3D shape reconstructions - AMBIMETER
-*   Do 3D reconstructions of bead models - DAMMIF and DAMAVER
+*   Carry out Pair-distance distribution analysis (BIFT and GNOM)
+*   Evaluate ambiguity of 3D shape reconstructions (AMBIMETER)
+*   3D reconstructions with bead models (DAMMIF/N and DAMAVER)
+*   3D reconstructions with electron density (DENSS)
 *   Calibrate RAW for integrating images
 *   Mask images for integration
 *   Set up normalization and save processing settings
@@ -29,10 +30,9 @@ This tutorial covers SAXS data processing with RAW. You will learn how to:
 
 Requirements
 ^^^^^^^^^^^^
-*  BioXTAS RAW >= v1.3.0 (most recent is best).
+*  BioXTAS RAW >= v1.4.0 (most recent is best).
 
-    *   Install instructions are available from:
-        `https://sourceforge.net/projects/bioxtasraw/ <https://sourceforge.net/projects/bioxtasraw/>`_
+    *   :ref:`Install instructions <install>`
 
 .. _tutorialdata:
 
@@ -41,12 +41,21 @@ Requirements
     *   Available from:
         `https://sourceforge.net/projects/bioxtasraw/files/?source=navbar <https://sourceforge.net/projects/bioxtasraw/files/?source=navbar>`_
 
+.. _atsas:
+
 *   ATSAS programs, >= v2.8.0 (for :ref:`Section 2 <section2>` of the tutorial only).
 
     *   Download and installation instructions are available from:
         `http://www.embl-hamburg.de/biosaxs/download.html <http://www.embl-hamburg.de/biosaxs/download.html>`_
 
     *   Requires a free registration for academic users. Industrial users must pay to use.
+
+.. _eman2:
+
+*   EMAN2, >=2.2 (for :ref:`Section 2 <section2>` of the tutorial only)
+    *   Download and installation instructions are available from: `http://blake.bcm.edu/emanwiki/EMAN2/Install <http://blake.bcm.edu/emanwiki/EMAN2/Install>`_
+
+    *   Free for all, optional registration for user tracking purposes.
 
 
 Other useful materials
@@ -72,6 +81,10 @@ Other useful materials
 
     *   Manuals: `http://www.embl-hamburg.de/biosaxs/manuals/ <http://www.embl-hamburg.de/biosaxs/manuals/>`_
     *   User forum: `http://www.saxier.org/forum/ <http://www.saxier.org/forum/>`_
+
+#.  Electron density (DENSS) resources available at `DENSS.org <denss.org>`_
+
+    *   Particularly useful is the section on `visualizing the results and aligning with known structures <https://www.tdgrant.com/denss/tips/>`_.
 
 Notes
 ^^^^^^

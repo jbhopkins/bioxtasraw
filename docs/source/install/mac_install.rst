@@ -71,7 +71,7 @@ General instructions for installing from source (advanced users)
 
     *   pillow
 
-    *   wxpython
+    *   wxpython < 4.0
 
     *   fabio
 
@@ -85,7 +85,7 @@ General instructions for installing from source (advanced users)
 
     *   hdf5plugin
 
-    *   weave
+    *   weave < 0.16
 
 #.  Download RAW from sourceforge (
     `http://sourceforge.net/projects/bioxtasraw <http://sourceforge.net/projects/bioxtasraw>`_)

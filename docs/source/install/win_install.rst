@@ -85,7 +85,7 @@ General instructions for installing from source (advanced users)
 
     *   pillow
 
-    *   wxpython
+    *   wxpython < 4.0
 
     *   fabio
 
@@ -101,7 +101,7 @@ General instructions for installing from source (advanced users)
 
     *   pyFAI
 
-    *   weave
+    *   weave < 0.16
 
 #.  Download the RAW source file (RAW-x.y.z-Source where x.y.z is the version number)
     from sourceforge (

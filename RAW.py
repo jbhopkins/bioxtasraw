@@ -770,7 +770,6 @@ class MainFrame(wx.Frame):
         self.kratkyframe.Show(True)
 
     def showDenssFrame(self, iftm, manip_item):
-
         self.denssframe = RAWAnalysis.DenssFrame(self, 'DENSS', iftm, manip_item)
         self.denssframe.SetIcon(self.GetIcon())
         self.denssframe.Show(True)
@@ -930,7 +929,6 @@ class MainFrame(wx.Frame):
 
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
-            # print page_label
             if page !=manippage:
                 wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
@@ -946,7 +944,6 @@ class MainFrame(wx.Frame):
 
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
-            # print page_label
             if page !=manippage:
                 wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
@@ -966,7 +963,6 @@ class MainFrame(wx.Frame):
         elif id == self.MenuIDs['subtract']:
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
-            # print page_label
             if page != wx.FindWindowByName('ManipulationPanel'):
                 wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
@@ -978,7 +974,6 @@ class MainFrame(wx.Frame):
         elif id == self.MenuIDs['average']:
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
-            # print page_label
             if page != wx.FindWindowByName('ManipulationPanel'):
                 wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
@@ -989,7 +984,6 @@ class MainFrame(wx.Frame):
         elif id == self.MenuIDs['merge']:
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
-            # print page_label
             if page != wx.FindWindowByName('ManipulationPanel'):
                 wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
@@ -1001,7 +995,6 @@ class MainFrame(wx.Frame):
         elif id == self.MenuIDs['rebin']:
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
-            # print page_label
             if page != wx.FindWindowByName('ManipulationPanel'):
                 wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
@@ -1019,7 +1012,6 @@ class MainFrame(wx.Frame):
         elif id == self.MenuIDs['interpolate']:
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
-            # print page_label
             if page != wx.FindWindowByName('ManipulationPanel'):
                 wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
@@ -1031,7 +1023,6 @@ class MainFrame(wx.Frame):
         elif id == self.MenuIDs['weightedAverage']:
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
-            # print page_label
             if page != wx.FindWindowByName('ManipulationPanel'):
                 wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
@@ -1042,7 +1033,6 @@ class MainFrame(wx.Frame):
         elif id == self.MenuIDs['superimpose']:
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
-            # print page_label
             if page != wx.FindWindowByName('ManipulationPanel'):
                 wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
@@ -1052,7 +1042,6 @@ class MainFrame(wx.Frame):
         elif id == self.MenuIDs['sync']:
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
-            # print page_label
             if page != wx.FindWindowByName('ManipulationPanel'):
                 wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
@@ -1131,7 +1120,6 @@ class MainFrame(wx.Frame):
 
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
-            # print page_label
             if page !=manippage:
                 wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
@@ -1147,7 +1135,6 @@ class MainFrame(wx.Frame):
 
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
-            # print page_label
             if page !=manippage:
                 wx.MessageBox('The selected operation cannot be performed unless the IFT window is selected.', 'Select IFT Window', style = wx.ICON_INFORMATION)
                 return
@@ -1163,7 +1150,6 @@ class MainFrame(wx.Frame):
 
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
-            # print page_label
             if page !=manippage:
                 wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
@@ -1179,7 +1165,6 @@ class MainFrame(wx.Frame):
 
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
-            # print page_label
             if page !=manippage:
                 wx.MessageBox('The selected operation cannot be performed unless the IFT window is selected.', 'Select IFT Window', style = wx.ICON_INFORMATION)
                 return
@@ -1396,7 +1381,6 @@ class MainFrame(wx.Frame):
 
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
-            # print page_label
             if page !=manippage:
                 wx.MessageBox('The selected operation cannot be performed unless the IFT window is selected.', 'Select IFT Window', style = wx.ICON_INFORMATION)
                 return
@@ -1537,7 +1521,6 @@ class MainFrame(wx.Frame):
 
             elif key == 'secplotq':
                 secplotpanel.plotparams['y_axis_display'] = 'qspec'
-                # print 'Calling updatePlotData'
                 secplotpanel._getQValue()
                 secplotpanel.updatePlotData(secplotpanel.subplot1)
 
@@ -2156,10 +2139,7 @@ class OnlineController:
 
     def _fileTypeIsCompatible(self, path):
         root, ext = os.path.splitext(path)
-        #print ext
         compatible_formats = self.main_frame.getRawSettings().get('CompatibleFormats')
-        #print compatible_formats
-        #print self.main_frame.getRawSettings().getAllParams()['CompatibleFormats']
 
         if str(ext) in compatible_formats:
             return True
@@ -3219,7 +3199,6 @@ class MainWorkerThread(threading.Thread):
 
 
     def _updateCalcSECParams(self, secm, frame_list):
-        print frame_list
         molecule = secm.mol_type
 
         if molecule == 'Protein':
@@ -4851,7 +4830,6 @@ class MainWorkerThread(threading.Thread):
 
         save_path = data[0]
         item_list = data[1]
-        # print len(item_list)
 
         if self.main_frame.OnlineControl.isRunning() and save_path == self.main_frame.OnlineControl.getTargetDir():
             self.main_frame.controlTimer(False)
@@ -4865,7 +4843,6 @@ class MainWorkerThread(threading.Thread):
         overwrite_all = False
         no_to_all = False
         for item in item_list:
-            # print item
             sasm = item
 
             filename = sasm.getParameter('filename')
@@ -5110,7 +5087,7 @@ class FilePanel(wx.Panel):
                            ("Clear All", self._onClearAllButton),
                            ("System Viewer", self._onViewButton),
                            ("Show Image", self._onShowImageButton),
-                           ("Plot SEC", self._onPlotSECButton))
+                           ("Plot Series", self._onPlotSECButton))
 
         self.NO_OF_BUTTONS_IN_EACH_ROW = 3
 
@@ -7521,8 +7498,6 @@ class ManipItemPanel(wx.Panel):
 
         key = evt.GetKeyCode()
 
-        # print key
-
         if ((key == wx.WXK_DELETE) or (key == wx.WXK_BACK and evt.CmdDown())) and self._selected == True:
             self.removeSelf()
 
@@ -9090,8 +9065,6 @@ class SECPanel(wx.Panel):
             save_path=[]
 
             for item in selected_items:
-                # print item.secm.getParameter('filename')
-                # print item.secm.line.get_label()
                 name=os.path.splitext(os.path.basename(item.secm.getParameter('filename')))[0]+'_sec_data.csv'
                 save_path.append(os.path.join(path, name))
 
@@ -9137,8 +9110,6 @@ class SECPanel(wx.Panel):
             save_path=[]
 
             for item in selected_items:
-                # print item.secm.getParameter('filename')
-                # print item.secm.line.get_label()
                 name=os.path.splitext(os.path.split(item.secm.getParameter('filename'))[1])[0]+'.sec'
                 save_path.append(os.path.join(path, name))
 
@@ -10172,8 +10143,6 @@ class SECControlPanel(wx.Panel):
             else:
                 file_list=[]
 
-            # print file_list
-
             if len(file_list) > 0:
                 mainworker_cmd_queue.put(['update_secm', [file_list, modified_frame_list, self.secm]])
 
@@ -10263,7 +10232,6 @@ class SECControlPanel(wx.Panel):
                 else:
                     msg = "To send data to the main plot, select a series curve by starring it."
                     wx.CallAfter(wx.MessageBox, msg, "No series curve selected", style = wx.ICON_ERROR | wx.OK)
-                # print 'test'
 
         elif len(self.sec_panel.all_manipulation_items) > 0:
             msg = "To send data to the main plot, enter a valid frame range (missing start or end frame)."
@@ -10327,7 +10295,6 @@ class SECControlPanel(wx.Panel):
                 else:
                     msg = "To send data to the main plot, select a series curve by starring it."
                     wx.CallAfter(wx.MessageBox, msg, "No series curve selected", style = wx.ICON_ERROR | wx.OK)
-                # print 'test'
 
         elif len(self.sec_panel.all_manipulation_items) > 0:
             msg = "To send data to the main plot, enter a valid frame range (missing start or end frame)."
@@ -10481,7 +10448,7 @@ class SECControlPanel(wx.Panel):
             self.initial_buffer_frame < self.final_buffer_frame):
             sasm_list = secm.getSASMList(self.initial_buffer_frame,
                 self.final_buffer_frame)
-            print sasm_list
+
             ref_sasm = sasm_list[0]
             qi_ref, qf_ref = ref_sasm.getQrange()
             pvals = np.ones(len(sasm_list[1:]), dtype=float)
@@ -10905,9 +10872,6 @@ class MaskingPanel(wx.Panel):
         else:
             wx.MessageBox('The image does not have a SAXSLAB Beamstop Mask in the header.', 'No mask available.', style = wx.ICON_EXCLAMATION)
 
-        print mask_params
-        print mask_params[0]._points
-        print mask_params[0]._radius
         #mask_params contains the mask and the individual maskshapes
 
         return [None, mask_params]
