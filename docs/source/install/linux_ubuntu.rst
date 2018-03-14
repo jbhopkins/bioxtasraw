@@ -15,8 +15,6 @@ Tested on Ubuntu 16.04, Linux Mint 18.1.
 
     *   *sudo apt-get install build-essential*
 
-    *   *sudo apt-get install python-dev*
-
     *   *sudo apt-get install python-numpy python-scipy python-matplotlib python-wxgtk3.0
         python-pillow python-fabio python-pip cython python-pyfai*
 

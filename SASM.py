@@ -1248,7 +1248,8 @@ def subtract(sasm1, sasm2, forced = False, full = False):
         err = np.sqrt( np.power(sasm1.err[q1_min:q1_max], 2) + np.power(sasm2.err[q2_min:q2_max],2))
 
     parameters = copy.deepcopy(sasm1.getAllParameters())
-    newSASM = SASM(i, q, err, parameters)
+    newSASM = SASM(i, q, err, {})
+    newSASM.setParameter('filename', parameters['filename'])
 
     history = newSASM.getParameter('history')
 
@@ -1334,7 +1335,8 @@ def average(sasm_list, forced = False):
         avg_q = copy.deepcopy(first_sasm.q)[first_q_min:first_q_max]
         avg_parameters = copy.deepcopy(sasm_list[0].getAllParameters())
 
-        avgSASM = SASM(avg_i, avg_q, avg_err, avg_parameters)
+        avgSASM = SASM(avg_i, avg_q, avg_err, {})
+        avgSASM.setParameter('filename', avg_parameters['filename'])
 
         history = {}
 
@@ -1428,7 +1430,8 @@ def weightedAverage(sasm_list, weightByError, weightCounter, forced = False):
     avg_q = copy.deepcopy(first_sasm.q)[first_q_min:first_q_max]
     avg_parameters = copy.deepcopy(sasm_list[0].getAllParameters())
 
-    avgSASM = SASM(avg_i, avg_q, avg_err, avg_parameters)
+    avgSASM = SASM(avg_i, avg_q, avg_err, {})
+    avgSASM.setParameter('filename', avg_parameters['filename'])
     history = avgSASM.getParameter('history')
 
     history = {}
