@@ -3777,7 +3777,6 @@ class DenssPanel(wx.Panel):
         self.SetSizer(layoutSizer)
 
     def _createLayout(self, parent):
-
         box = wx.StaticBox(parent, wx.ID_ANY, 'Default settings')
         default_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
@@ -4416,16 +4415,16 @@ class OptionsDialog(wx.Dialog):
         all_update_keys = self.treebook.getAllUpdateKeys()
 
         for key in all_update_keys:
-            id, type = self._raw_settings.getIdAndType(key)
+            myId, myType = self._raw_settings.getIdAndType(key)
             val = self._raw_settings.get(key)
-            obj = wx.FindWindowById(id, self)
+            obj = wx.FindWindowById(myId, self)
 
-            if type == 'bool':
+            if myType == 'bool':
                 obj.SetValue(val)
-            elif type == 'list':
+            elif myType == 'list':
                 obj.SetValue(val)
 
-            elif type == 'choice':
+            elif myType == 'choice':
                 choice_list = obj.GetStrings()
                 if val is not None:
                     try:
@@ -4436,7 +4435,7 @@ class OptionsDialog(wx.Dialog):
                     idx=0
                 obj.Select(idx)
 
-            elif type == 'text' or type == 'int' or type == 'float':
+            elif myType == 'text' or myType == 'int' or myType == 'float':
                 try:
                     obj.SetValue(val)
                 except TypeError:
@@ -4446,27 +4445,27 @@ class OptionsDialog(wx.Dialog):
         all_update_keys = self.treebook.getAllUpdateKeys()
 
         for key in all_update_keys:
-            id, type = self._raw_settings.getIdAndType(key)
+            myId, myType = self._raw_settings.getIdAndType(key)
 
-            obj = wx.FindWindowById(id, self)
+            obj = wx.FindWindowById(myId, self)
 
-            if type == 'bool':
+            if myType == 'bool':
                 val = obj.GetValue()
 
-            elif type == 'text':
+            elif myType == 'text':
                 val = obj.GetValue()
 
-            elif type == 'choice':
+            elif myType == 'choice':
                 val = obj.GetStringSelection()
 
-            elif type == 'int':
+            elif myType == 'int':
                 val = obj.GetValue()
                 val = int(val)
 
                 if math.isinf(val) or math.isnan(val):
                     raise ValueError
 
-            elif type == 'float':
+            elif myType == 'float':
                 val = obj.GetValue()
                 val = float(val)
 

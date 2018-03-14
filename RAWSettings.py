@@ -362,7 +362,7 @@ class RawGuiSettings:
                             'denssPlotOutput'       : [True, wx.NewId(), 'bool'],
                             'denssEman2Average'     : [True, wx.NewId(), 'bool'],
                             'denssReconstruct'      : [20, wx.NewId(), 'int'],
-                            'EMAN2Dir'              : ['', wx.NewId(), 'str'],
+                            'EMAN2Dir'              : ['', wx.NewId(), 'text'],
                             'autoFindEMAN2'         : [True, wx.NewId(), 'bool'],
                             'denssCutOut'           : [False, wx.NewId(), 'bool'],
                             'denssWriteXplor'       : [True, wx.NewId(), 'bool'],
