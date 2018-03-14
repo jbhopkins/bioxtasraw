@@ -23,12 +23,18 @@ Created on Aug 16, 2010
 
 '''
 
-import matplotlib, wx, os, platform
+import matplotlib
+import wx
+import os
+import platform
 import numpy as np
 matplotlib.rcParams['backend'] = 'WxAgg'
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
-import RAWIcons, RAWGlobals, SASImage, SASCalib
+import RAWIcons
+import RAWGlobals
+import SASImage
+import SASCalib
 
 class ImagePanelToolbar(NavigationToolbar2WxAgg):
     ''' The toolbar under the image in the image panel '''
@@ -1458,7 +1464,7 @@ class ImageSettingsDialog(wx.Dialog):
                           matplotlib.cm.gist_heat,
                           matplotlib.cm.gist_rainbow,
                           matplotlib.cm.jet,
-                          matplotlib.cm.spectral]
+                          matplotlib.cm.nipy_spectral]
 
         rb = wx.RadioBox(self, label="Colormaps", choices=self.colorRadioList, style=wx.RA_SPECIFY_COLS)
         rb.Bind(wx.EVT_RADIOBOX, self.onColorMapsRadioBox)
@@ -1484,7 +1490,7 @@ class ImageSettingsDialog(wx.Dialog):
         elif self.colorRadioList[selection] == 'Bone':
             self.parent.plot_parameters['ColorMap'] = matplotlib.cm.bone
         elif self.colorRadioList[selection] == 'Spectral':
-            self.parent.plot_parameters['ColorMap'] = matplotlib.cm.spectral
+            self.parent.plot_parameters['ColorMap'] = matplotlib.cm.nipy_spectral
 
         if self.ImgObj is not None:
             self.ImgObj.cmap = self.parent.plot_parameters['ColorMap']

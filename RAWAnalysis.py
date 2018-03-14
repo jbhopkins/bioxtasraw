@@ -4890,6 +4890,7 @@ class DammifResultsPanel(wx.Panel):
         path_window = wx.FindWindowById(run_window.ids['save'], run_window)
         path = path_window.GetValue()
 
+        opsys = platform.system()
         if opsys == 'Windows':
             if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter.exe')):
                 run_ambi = True
@@ -6570,6 +6571,7 @@ class DenssResultsPanel(wx.Panel):
             path_window = wx.FindWindowById(run_window.ids['save'], run_window)
             path = path_window.GetValue()
 
+            opsys = platform.system()
             if opsys == 'Windows':
                 if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter.exe')):
                     run_ambi = True
