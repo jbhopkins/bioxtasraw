@@ -4,10 +4,8 @@ OS X and macOS install from source instructions
 
 #.  Install Enthought Canopy python distribution
 
-    *   Download the free canopy installer from:
+    *   Download the free Canopy installer from:
         `https://store.enthought.com/downloads/#default <https://store.enthought.com/downloads/#default>`_
-
-        *   Academics are encouraged to create an account with their .edu e-mail, log in, and download the full version for free. This gets you more packages, and better support/updates.
 
         *   We recommend the 64-bit version, unless you know you need the 32-bit version.
 
@@ -18,7 +16,7 @@ OS X and macOS install from source instructions
         *   Canopy may not open, depending on user security settings. You have two
             options if it doesn’t open:
 
-            *   Open canopy by right clicking on it in the applications folder and selecting ‘open’.
+            *   Open canopy by right clicking on it in the applications folder and selecting :menuselection:`Open`.
 
             *   Change security settings by going to System Settings -> Security and Privacy,
                 and selecting Allow apps downloaded from ‘Anywhere’.
@@ -29,6 +27,10 @@ OS X and macOS install from source instructions
         default environment. Select Yes and Start using Canopy
 
     |10000201000001D70000010F57B2663BC0211A98_png|
+
+        *   *Note:* In recent installation attempts I haven't seen this dialog. In that case you
+            have to add the following to your :file:`.bash_profile`:
+            ``source /Users/<username>/Library/Enthought/Canopy/edm/envs/User/bin/activate``
 
     *   More detailed install instructions are available here:
         `http://docs.enthought.com/canopy/quick-start/install_macos.html <http://docs.enthought.com/canopy/quick-start/install_macos.html>`_
@@ -45,7 +47,7 @@ OS X and macOS install from source instructions
 
         *   Browsing the Applications folder in Finder, Terminal is in the Utilities folder.
 
-    *   In the terminal window type *xcode-select --install*
+    *   In the terminal window type ``xcode-select --install``
 
     |10000201000002370000016C05BA7C6C2536380E_png|
 
@@ -61,11 +63,11 @@ OS X and macOS install from source instructions
 
     *   Open a terminal window as in step 2.
 
-    *   Type *pip install --upgrade pip*
+    *   Type ``pip install --upgrade pip``
 
     *   Hit enter
 
-    *   Once that installs, type *pip install fabio pyFAI hdf5plugin weave*
+    *   Once that installs, type ``pip install fabio pyFAI hdf5plugin weave``
 
     |100002010000023A0000016E415256FEF0DBA0B3_png|
 
@@ -77,9 +79,9 @@ OS X and macOS install from source instructions
 
     *   `http://sourceforge.net/projects/bioxtasraw <http://sourceforge.net/projects/bioxtasraw>`_
 
-    *   The sourceforge download button should automatically default to the correct download for OS X.
-
-    |1000020100000284000001108B20DFADFD732978_png|
+    *   Navigate to the :guilabel:`Files` tab and download the latest source code,
+        :file:`RAW-{x}.{y}.{z}-Source.zip`. Or download the latest development version
+        from the git by navigating to the :guilabel:`Code` tab.
 
 #.  Expand the downloaded zip file in the Downloads folder by double clicking on it.
 
@@ -92,27 +94,27 @@ OS X and macOS install from source instructions
     *   If you see only a single folder, navigate down through the folders until you find
         a folder with all of the files in it, as in the above image.
 
-        *   An example of this is shown below, where the expanded files has an **src**
+        *   An example of this is shown below, where the expanded files has an :file:`src`
             directory in it, which contains all of the downloaded files.
 
         |1000020100000273000001C472F5D3F5C469CFE2_png|
 
 #.  Move these files to Applications folder
 
-    *   Move the folder that contains all of the RAW files to the **Applications** folder.
-        In the above image, this would be the **src** folder.
+    *   Move the folder that contains all of the RAW files to the :file:`Applications` folder.
+        In the above image, this would be the :file:`src` folder.
 
-    *   Rename the folder that you just moved to **raw**.
+    *   Rename the folder that you just moved to :file:`raw`.
 
 #.  Run RAW from the terminal.
 
     *   Open a terminal window as in step 2.
 
-    *   Type *cd /Applications/raw*
+    *   Type ``cd /Applications/raw``
 
     *   Hit enter
 
-    *   Type *python RAW.py*
+    *   Type ``python RAW.py``
 
     *   Hit enter
 
@@ -132,28 +134,29 @@ OS X and macOS install from source instructions
 
 .. _macshrt:
 
-The easiest way to set up a RAW shortcut is to expand the **RunRAW.zip** file in the RAW
-**MacLib** folder, and move the **RunRAW** app to wherever you want to have it. Start raw
-by double clicking on the **RunRAW** app.
+The easiest way to set up a RAW shortcut is to expand the :file:`RunRAW.zip` file in the RAW
+:file:`MacLib` folder, and move the :file:`RunRAW` app to wherever you want to have it. Start raw
+by double clicking on the :file:`RunRAW` app.
 
     *   Note: since this is an application from an unknown developer (the RAW team!),
         you may have to give it permission to run. You can do this by right clicking on
-        it and selecting ‘Open’ or by changing your security settings by going to System
+        it and selecting :guilabel:`Open` or by changing your security settings by going to System
         Settings -> Security and Privacy, and selecting Allow apps downloaded from ‘Anywhere’.
 
-If the shortcut doesn’t work, and/or you would rather not change your security settings, you can follow these instructions to make your own shortcut:
+If the shortcut doesn’t work, and/or you would rather not change your security settings,
+you can follow these instructions to make your own shortcut:
 
-#.  Expand the **RunRAW.zip** file as above.
+#.  Expand the :file:`RunRAW.zip` file as above.
 
 #.  Open the Automator app
 
     *   Automator is located in Applications folder.
 
-#.  Select Open an Existing Document
+#.  Select :guilabeL:`Open an Existing Document`
 
     |100002010000021F0000020B846426B3BC1F1FB4_png|
 
-#.  Open the **RunRAW** app (located in Applications/raw/MacLib
+#.  Open the :file:`RunRAW` app (located in :file:`Applications/raw/MacLib`)
 
     |10000201000002C30000022C28B14ADDA1B8FC97_png|
 
@@ -162,14 +165,14 @@ If the shortcut doesn’t work, and/or you would rather not change your security
     |10000201000003E40000036173138DAB0B7BE00D_png|
 
     *   Note: If you didn’t install RAW in the recommended location, you will need to
-        change the line *do script “python /Applications/raw/RAW.py”* to have the appropriate
+        change the line ``do script “python /Applications/raw/RAW.py”`` to have the appropriate
         path.
 
-#.  Go to the File menu and select Duplicate
+#.  Select :menuselection:`File --> Duplicate` from the menu.
 
-#.  In the duplicate window (should be named RunRAW copy or Untitled), go to the File menu and select Save.
+#.  In the duplicate window (should be named RunRAW copy or Untitled), select :menuselection:`File --> Save`.
 
-#.  Save the file as **RunRAW** (**.app**, if you are showing extensions) wherever
+#.  Save the file as :file:`RunRAW` (:file:`.app`, if you are showing extensions) wherever
     you want to have the shortcut.
 
     *   Note: you can name it whatever you want. RunRAW is just the default name.
@@ -196,9 +199,6 @@ If the shortcut doesn’t work, and/or you would rather not change your security
 
 
 .. |1000020100000273000001C472F5D3F5C469CFE2_png| image:: images/mac_install/1000020100000273000001C472F5D3F5C469CFE2.png
-
-
-.. |1000020100000284000001108B20DFADFD732978_png| image:: images/mac_install/1000020100000284000001108B20DFADFD732978.png
 
 
 .. |10000201000001CB000000BFFCB4D40B510BC3CE_png| image:: images/mac_install/10000201000001CB000000BFFCB4D40B510BC3CE.png

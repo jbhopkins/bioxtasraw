@@ -30,14 +30,14 @@ General instructions for installing from source (advanced users)
 
     *   hdf5plugin
 
-    *   weave < 0.16
+    *   weave
 
 #.  Download RAW from sourceforge (
     `http://sourceforge.net/projects/bioxtasraw <http://sourceforge.net/projects/bioxtasraw>`_)
 
-#.  Extract RAW to a directory of your choice, and run **RAW.py** using python.
+#.  Extract RAW to a directory of your choice, and run :file:`RAW.py` using python.
 
-    *   Note: the first time you run RAW.py it may need to be run from the command line
+    *   Note: the first time you run :file:`RAW.py` it may need to be run from the command line
         in order to successfully compile various extensions. It may take some time to
         compile the extensions, be patient.
 

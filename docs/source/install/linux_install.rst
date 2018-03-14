@@ -10,12 +10,7 @@ Here you can find information on:
 
    linux_gen
    linux_ubuntu
-   linux_debian
    linux_opensuse
    linux_sl
    linux_shortcut
    linux_troubleshooting
-
-
-Conventions: things to type are in *italics* , file paths and file names are in
-**bold**.

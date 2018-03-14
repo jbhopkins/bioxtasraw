@@ -3,11 +3,10 @@ Using a prebuilt installer
 .. _winprebuilt:
 
 The recommend way to install RAW on Windows is using a prebuilt installer. To install
-from a prebuilt installer, simply download the **RAW-X.Y.Z-win32.msi** (where X.Y.Z is the
-version number) file from sourceforge (
+from a prebuilt installer, simply download the :file:`RAW-{x}.{y}.{z}-win32.msi` (where
+:file:`{x}.{y}.{z}` is the version number) file from sourceforge (
 `http://sourceforge.net/projects/bioxtasraw <http://sourceforge.net/projects/bioxtasraw>`_),
-and double click it to run the installer. You may need to navigate to the ‘Files’
-tab on the sourceforge project website to find the latest **.msi** installer.
+and double click it to run the installer.
 
 **Important Notes:**
 
@@ -16,7 +15,7 @@ tab on the sourceforge project website to find the latest **.msi** installer.
     permission to run on your computer.
 
 *   RAW is used by (relatively) few people, which means many virus scanners have not seen
-    the RAW software before. Occasionally virus scanners will mark a file (typically RAW.exe)
+    the RAW software before. Occasionally virus scanners will mark a file (typically :file:`RAW.exe`)
     as a threat (it will usually be in the ‘general malware’ category). If this happens,
     please do the following:
 

@@ -4890,9 +4890,23 @@ class DammifResultsPanel(wx.Panel):
         path_window = wx.FindWindowById(run_window.ids['save'], run_window)
         path = path_window.GetValue()
 
-        t = threading.Thread(target=self.runAmbimeter, args=(path,))
-        t.daemon = True
-        t.start()
+        if opsys == 'Windows':
+            if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter.exe')):
+                run_ambi = True
+            else:
+                run_ambi = False
+        else:
+            if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter')):
+                run_ambi = True
+            else:
+                run_ambi = False
+
+        if run_ambi:
+            t = threading.Thread(target=self.runAmbimeter, args=(path,))
+            t.daemon = True
+            t.start()
+        else:
+            self.topsizer.Hide(self.ambi_sizer, recursive=True)
 
         self.topsizer.Hide(self.nsd_sizer, recursive=True)
         self.topsizer.Hide(self.clust_sizer, recursive=True)
@@ -5097,6 +5111,7 @@ class DammifResultsPanel(wx.Panel):
         clust_num = 0
         clist_data = []
         dlist_data = []
+        ambi_data = []
 
         if self.topsizer.IsShown(self.nsd_sizer):
             nsd_mean = wx.FindWindowById(self.ids['nsdMean']).GetValue()
@@ -5151,11 +5166,12 @@ class DammifResultsPanel(wx.Panel):
 
             model_data[i] = item_data
 
-        ambi_cats = wx.FindWindowById(self.ids['ambiCats']).GetValue()
-        ambi_score = wx.FindWindowById(self.ids['ambiScore']).GetValue()
-        ambi_eval = wx.FindWindowById(self.ids['ambiEval']).GetValue()
-        ambi_data = [('Compatible shape categories:', ambi_cats),
-                    ('Ambiguity score:', ambi_score), ('AMBIMETER says:', ambi_eval)]
+        if self.topsizer.IsShown(self.clust_sizer):
+            ambi_cats = wx.FindWindowById(self.ids['ambiCats']).GetValue()
+            ambi_score = wx.FindWindowById(self.ids['ambiScore']).GetValue()
+            ambi_eval = wx.FindWindowById(self.ids['ambiEval']).GetValue()
+            ambi_data = [('Compatible shape categories:', ambi_cats),
+                        ('Ambiguity score:', ambi_score), ('AMBIMETER says:', ambi_eval)]
 
         input_file = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['fname']).GetValue()
         output_prefix = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['prefix']).GetValue()
@@ -6554,9 +6570,24 @@ class DenssResultsPanel(wx.Panel):
             path_window = wx.FindWindowById(run_window.ids['save'], run_window)
             path = path_window.GetValue()
 
-            t = threading.Thread(target=self.runAmbimeter, args=(path,))
-            t.daemon = True
-            t.start()
+            if opsys == 'Windows':
+                if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter.exe')):
+                    run_ambi = True
+                else:
+                    run_ambi = False
+            else:
+                if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter')):
+                    run_ambi = True
+                else:
+                    run_ambi = False
+
+            if run_ambi:
+                t = threading.Thread(target=self.runAmbimeter, args=(path,))
+                t.daemon = True
+                t.start()
+            else:
+                self.topsizer.Hide(self.ambi_sizer, recursive=True)
+
         else:
             self.topsizer.Hide(self.ambi_sizer, recursive=True)
 
@@ -6662,6 +6693,7 @@ class DenssResultsPanel(wx.Panel):
 
     def _saveResults(self, evt):
         res_data = []
+        ambi_data = []
 
         if self.topsizer.IsShown(self.res_sizer):
             res = wx.FindWindowById(self.ids['res']).GetValue()
@@ -6678,11 +6710,12 @@ class DenssResultsPanel(wx.Panel):
             model = models_nb.GetPageText(i)
             model_data.append((model, figures))
 
-        ambi_cats = wx.FindWindowById(self.ids['ambiCats']).GetValue()
-        ambi_score = wx.FindWindowById(self.ids['ambiScore']).GetValue()
-        ambi_eval = wx.FindWindowById(self.ids['ambiEval']).GetValue()
-        ambi_data = [('Compatible shape categories:', ambi_cats),
-                    ('Ambiguity score:', ambi_score), ('AMBIMETER says:', ambi_eval)]
+        if self.topsizer.IsShown(self.ambi_sizer):
+            ambi_cats = wx.FindWindowById(self.ids['ambiCats']).GetValue()
+            ambi_score = wx.FindWindowById(self.ids['ambiScore']).GetValue()
+            ambi_eval = wx.FindWindowById(self.ids['ambiEval']).GetValue()
+            ambi_data = [('Compatible shape categories:', ambi_cats),
+                        ('Ambiguity score:', ambi_score), ('AMBIMETER says:', ambi_eval)]
 
         input_file = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['fname']).GetValue()
         output_prefix = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['prefix']).GetValue()
