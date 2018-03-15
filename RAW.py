@@ -340,8 +340,6 @@ class MainFrame(wx.Frame):
             if not firstfile.startswith('-psn'):
                 mainworker_cmd_queue.put(['plot', files_to_plot])
 
-        wx.MessageBox(RAWGlobals.RAWResourcesDir)
-
     def getRawSettings(self):
         return self.raw_settings
 
