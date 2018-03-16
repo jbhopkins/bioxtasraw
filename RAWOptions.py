@@ -3804,6 +3804,7 @@ class DenssPanel(wx.Panel):
                 if myId == self.raw_settings.getId('EMAN2Dir'):
                     self.datadir = ctrl
                     self.dirButton = wx.Button(self, wx.ID_ANY, 'Select Directory')
+                    self.dirButton.Bind(wx.EVT_BUTTON, self.onDirButton)
                     sizer.Add(self.dirButton, 0, wx.RIGHT | wx.TOP | wx.BOTTOM, 2)
 
             elif itemType == 'bool':
@@ -3915,6 +3916,17 @@ class DenssPanel(wx.Panel):
         emanDir = findEMANDirectory()
         self.datadir.SetValue(emanDir)
 
+    def onDirButton(self, evt):
+        path = self.datadir.GetValue()
+        dirdlg = wx.DirDialog(self, "Please select EMAN2 bin directory (.../EMAN2/bin):", defaultPath = path,)
+
+        if dirdlg.ShowModal() == wx.ID_OK:
+            path = dirdlg.GetPath()
+        else:
+            path = ''
+
+        self.datadir.SetValue(path)
+
 def findATSASDirectory():
     opsys= platform.system()
 
@@ -3936,19 +3948,25 @@ def findATSASDirectory():
 
             default_path = os.path.join(default_path, 'bin')
 
-    is_atsas = os.path.exists(default_path)
+    is_path = os.path.exists(default_path)
 
-    if is_atsas:
+    if is_path:
         return default_path
 
-    if opsys != 'Windows':
+    if opsys == 'Windows':
+        which = subprocess.Popen('where dammif', stdout=subprocess.PIPE,shell=True)
+        output = which.communicate()
+
+        atsas_path = output[0].strip()
+
+    else:
         which = subprocess.Popen('which dammif', stdout=subprocess.PIPE,shell=True)
         output = which.communicate()
 
         atsas_path = output[0].strip()
 
-        if atsas_path != '':
-            return os.path.dirname(atsas_path)
+    if atsas_path != '':
+        return os.path.dirname(atsas_path)
 
     try:
         path = os.environ['PATH']
@@ -3987,23 +4005,33 @@ def findEMANDirectory():
     opsys= platform.system()
 
     if opsys == 'Windows':
-        default_path = 'C:\\EMAN2\\bin'
+        default_path = 'C:\\EMAN2\\Library\\bin'
     else:
         default_path = os.path.expanduser('~/EMAN2/bin')
 
-    is_atsas = os.path.exists(default_path)
+    is_path = os.path.exists(default_path)
 
-    if is_atsas:
+    if is_path:
         return default_path
 
-    if opsys != 'Windows':
+    if opsys == 'Windows':
+        default_path = os.path.expand('~\\EMAN2\\Library\\bin')
+        print default_path
+        is_path = os.path.exists(default_path)
+        if is_path:
+            return default_path
+
+    if opsys == 'Windows':
+        which = subprocess.Popen('where e2version.py', stdout=subprocess.PIPE,shell=True)
+        output = which.communicate()
+        program_path = output[0].strip()
+    else:
         which = subprocess.Popen('which e2version.py', stdout=subprocess.PIPE,shell=True)
         output = which.communicate()
+        program_path = output[0].strip()
 
-        atsas_path = output[0].strip()
-
-        if atsas_path != '':
-            return os.path.dirname(atsas_path)
+    if program_path != '':
+        return os.path.dirname(program_path)
 
     try:
         path = os.environ['PATH']

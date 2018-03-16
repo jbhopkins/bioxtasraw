@@ -66,6 +66,7 @@ except Exception, e:
             read_mar345=True
 
         except Exception, e1:
+                print e1
                 import SASbuild_Clibs
                 try:
                     SASbuild_Clibs.buildAll()

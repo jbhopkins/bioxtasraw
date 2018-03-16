@@ -16,6 +16,9 @@
 #
 #******************************************************************************
 
+#import setuptools
+#from setuptools import setup
+#from setuptools import Extension
 
 try:
     from weave import ext_tools, converters, build_tools

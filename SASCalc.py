@@ -48,9 +48,7 @@ import scipy.interpolate
 from scipy.constants import Avogadro
 from scipy import ndimage
 import math
-
-import matplotlib
-from  matplotlib.colors import colorConverter as cc
+import sys
 
 import SASFileIO
 import SASExceptions
@@ -1868,7 +1866,6 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     chi_end_fraction = float(denss_settings['chiEndFrac'])
     enforce_connectivity = denss_settings['connected']
     enforce_connectivity_steps = ast.literal_eval(denss_settings['conSteps'])
-    plot = denss_settings['plotOutput']
     cutout = denss_settings['cutOutput']
     writeXplor = denss_settings['writeXplor']
     recenter_mode = denss_settings['recenterMode']
@@ -1954,7 +1951,7 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     if seed is None:
         #Have to reset the random seed to get a random in different from other processes
         prng = np.random.RandomState()
-        seed = prng.randint(2**32-1)
+        seed = prng.randint(sys.maxsize)
     else:
         seed = int(seed)
 
@@ -2236,7 +2233,11 @@ def runDenss(q, I, sigq, D, prefix, path, comm_list, my_lock, thread_num_q,
 
 def runEman2Aver(flist, procs, prefix, path, emanDir):
     #First we stack
-    eman_python = os.path.join(emanDir, 'python')
+    if platform.system() == 'Windows':
+        t_dir = os.path.dirname(os.path.dirname(emanDir))
+        eman_python = os.path.join(t_dir, 'python.exe')
+    else:
+        eman_python = os.path.join(emanDir, 'python')
 
     my_env = os.environ.copy()
     my_env["PATH"] = emanDir+':'+my_env["PATH"]
@@ -2259,7 +2260,11 @@ def runEman2Aver(flist, procs, prefix, path, emanDir):
 
 def runEman2xyz(denss_file, procs, prefix, path, emanDir):
     #First we stack
-    eman_python = os.path.join(emanDir, 'python')
+    if platform.system() == 'Windows':
+        t_dir = os.path.dirname(os.path.dirname(emanDir))
+        eman_python = os.path.join(t_dir, 'python.exe')
+    else:
+        eman_python = os.path.join(emanDir, 'python')
 
     my_env = os.environ.copy()
     my_env["PATH"] = emanDir+':'+my_env["PATH"]
@@ -2338,7 +2343,11 @@ def runEman2xyz(denss_file, procs, prefix, path, emanDir):
     return xyz_output, rot_output, stacks_output, rot_fnames
 
 def runEman2Align(denss_file, procs, prefix, path, emanDir):
-    eman_python = os.path.join(emanDir, 'python')
+    if platform.system() == 'Windows':
+        t_dir = os.path.dirname(os.path.dirname(emanDir))
+        eman_python = os.path.join(t_dir, 'python.exe')
+    else:
+        eman_python = os.path.join(emanDir, 'python')
 
     my_env = os.environ.copy()
     my_env["PATH"] = emanDir+':'+my_env["PATH"]
@@ -2364,7 +2373,11 @@ def runEman2Align(denss_file, procs, prefix, path, emanDir):
 def runEman2PreAver(flist, procs, prefix, path, emanDir):
     #First we stack
     stacks_py = os.path.join(emanDir, 'e2buildstacks.py')
-    eman_python = os.path.join(emanDir, 'python')
+    if platform.system() == 'Windows':
+        t_dir = os.path.dirname(os.path.dirname(emanDir))
+        eman_python = os.path.join(t_dir, 'python.exe')
+    else:
+        eman_python = os.path.join(emanDir, 'python')
 
     my_env = os.environ.copy()
     my_env["PATH"] = emanDir+':'+my_env["PATH"]
@@ -2391,7 +2404,11 @@ def runEman2PreAver(flist, procs, prefix, path, emanDir):
         return
 
 def runEman2Convert(prefix, path, emanDir):
-    eman_python = os.path.join(emanDir, 'python')
+    if platform.system() == 'Windows':
+        t_dir = os.path.dirname(os.path.dirname(emanDir))
+        eman_python = os.path.join(t_dir, 'python.exe')
+    else:
+        eman_python = os.path.join(emanDir, 'python')
 
     my_env = os.environ.copy()
     my_env["PATH"] = emanDir+':'+my_env["PATH"]

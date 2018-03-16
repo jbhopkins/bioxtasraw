@@ -39,7 +39,8 @@ if RAWGlobals.compiled_extensions:
     try:
         import bift_ext
 
-    except ImportError:
+    except ImportError as e:
+        print e
         import SASbuild_Clibs
         try:
             SASbuild_Clibs.buildAll()
