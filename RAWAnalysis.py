@@ -6248,6 +6248,11 @@ class DenssRunPanel(wx.Panel):
                 if not sort_params:
                     wx.CallAfter(enantWindow.AppendText, 'Enantiomer alignment failed, trying again\n')
 
+            if not sort_params:
+                wx.CallAfter(enantWindow.AppendText, 'Enantiomer alignment failed too many times, aborting\n')
+                self.threads_finished[-1] = True
+                wx.CallAfter(self.onAbortButton, None)
+                return
             #Find and rename the best enantiomer
             sort_list = [(ast.literal_eval(key)[1], sort_params[key]['score']) for key in sort_params]
             best_idx = int(sorted(sort_list, key=lambda score: abs(float(score[1])))[-1][0])
