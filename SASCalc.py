@@ -2329,7 +2329,7 @@ def runEman2xyz(denss_file, procs, prefix, path, emanDir):
         rotxz_output, rotyz_output, rotxyz_output]
 
     #Then we stack the rotated files into a single stack
-    rot_fnames = [rotx_file, roty_file, '%s_z.hdf' %(xyz_fnp), rotxy_file,
+    rot_fnames = [xyz_file, rotx_file, roty_file, '%s_z.hdf' %(xyz_fnp), rotxy_file,
         '%s_xz.hdf' %(xyz_fnp), '%s_yz.hdf' %(xyz_fnp), '%s_xyz.hdf' %(xyz_fnp)]
 
     stack_cmd = '%s %s --stackname %s_xyzstack.hdf' %(eman_python, stacks_py, df_prefix)

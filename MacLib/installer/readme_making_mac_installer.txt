@@ -1,20 +1,34 @@
 Making the mac installer users pyinstaller (tested on 3.2.1). This is very particular about what version of python it uses. I’ve only been able to get it to work on a conda install, with the packages as listed at the end of this document. With a python build from homebrew or from canopy it doesn’t seem to work. Additionally, it doesn’t seem to work on my home machine with (presumably) the same conda python distribution. Finally, conda needs to have the nomkl package installed, numpy/scipy with mkl don't seem to package correctly.
 
 Steps:
-0) Set the appropriate python path, if needed: export PATH=~/miniconda2/bin:$PATH
-1) Copy the RAW_mac.spec file into the main RAW directory.
-2) Run “pyinstaller -y RAW_mac.spec”
-3) Copy the RAW.app file from the MacLib/installer folder to the main RAW folder. Show the contents in finder, and copy the contents of the dist/RAW directory to the MacOS folder in the .app file.
-4) Copy the info.plist into top level Contents folder in the RAW.app package 
-5) Update the version number in the info.plist file that you copied.
-7) Open disk utility
-8) Create a new disk image (File->New Image>Blank Image) that is ~12% larger than the .app package. Name it RAW, but save it as untitled.
-9) Open the mounted disk image. Copy the .app file and a shortcut of the applications folder to the disk image. Size and arrange as desired.
-9) In Disk Utility, Image->Convert, select the prepared disk image, and name it RAW-X.Y.Z-mac (note, the disk image must be ejected for this to work
+-2) Make a fresh git-free folder for RAW: git archive master | tar -x -C /somewhere/else
+-1) Run RAW in that new folder to compile the extensions.
+0)  Set the appropriate python path, if needed.    Note: this no longer uses conda.
+    Currently using enthought, which requires pyside be uinstalled!#: export PATH=~/miniconda2/bin:$PATH
+1)  Copy the RAW_mac.spec file into the main RAW directory.
+2)  Run “pyinstaller -y RAW_mac.spec”
+3)  Copy the RAW.app file from the MacLib/installer folder to the main RAW folder.
+    Show the contents in finder, and copy the contents of the dist/RAW directory to the
+    Contents/MacOS folder in the .app file. #Note: may need to create the MacOS folder!
+4)  Copy the latest version of the ali2xyz.py file from the src/resources direcotry into
+    the Contents/Resources directory.
+5)  Update the version number in the info.plist file in the top level of the .app folder.
+7)  Open disk utility
+8)  Create a new disk image (File->New Image>Blank Image) that is ~12% larger than the
+    .app package. Name it RAW, but save it as untitled.
+9)  Open the mounted disk image. Copy the .app file and a shortcut of the applications
+    folder to the disk image. Size and arrange as desired.
+9)  In Disk Utility, Image->Convert, select the prepared disk image, and name it RAW-x.y.z-mac
+    (note, the disk image must be ejected for this to work
 
 Note: if pyopencl is installed, the build will fail.
 
-Note2: I've now gotten this to work with stock unthought canopy, with the extra raw packages installed through pip (Fabio, pyfai, hdf5plugin) and uninstalling pyside.
+Note2: I've now gotten this to work with stock unthought canopy, with the extra
+raw packages installed through pip (Fabio, pyfai, hdf5plugin) and uninstalling pyside.
+
+Note3: pyinstaller (3.3.1) currently can't handle scipy 1.0. It seems to be a problem with a hidden import
+that will hopefully be fixed soon (https://github.com/pyinstaller/pyinstaller/issues/2987), it looks like
+in pyinstaller 3.4 (https://github.com/pyinstaller/pyinstaller/pull/3048)
 
 More info on disk images here:
 https://el-tramo.be/blog/fancy-dmg/

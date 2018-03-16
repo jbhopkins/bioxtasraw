@@ -340,7 +340,6 @@ class MainFrame(wx.Frame):
             if not firstfile.startswith('-psn'):
                 mainworker_cmd_queue.put(['plot', files_to_plot])
 
-
     def getRawSettings(self):
         return self.raw_settings
 
@@ -12404,7 +12403,6 @@ class MyApp(wx.App):
                 RAWGlobals.RAWResourcesDir = standard_paths.GetResourcesDir()
         else:
             RAWGlobals.RAWResourcesDir = os.path.join(sys.path[0], 'resources')
-
 
         MySplash = MySplashScreen()
         MySplash.Show()
