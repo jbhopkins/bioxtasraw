@@ -4364,7 +4364,7 @@ class OptionsDialog(wx.Dialog):
 
         self.SetSizer(sizer)
         self.SetMinSize((800,600))
-        self.SetSize((800,600))
+        self.SetSize((800,700))
         self.CenterOnParent()
 
     def createButtonPanel(self):
@@ -4486,15 +4486,15 @@ class OptionsDialog(wx.Dialog):
         if mw_window:
             mw_window.updateMWInfo()
 
-        gnom_window = wx.FindWindowByName('GNOMFrame')
+        gnom_window = wx.FindWindowByName('GNOMControlPanel')
         if gnom_window:
             gnom_window.updateGNOMSettings()
 
-        dammif_window = wx.FindWindowByName('DammifFrame')
+        dammif_window = wx.FindWindowByName('DammifRunPanel')
         if dammif_window:
             dammif_window.updateDAMMIFSettings()
 
-        denss_window = wx.FindWindowByName('DenssFrame')
+        denss_window = wx.FindWindowByName('DenssRunPanel')
         if denss_window:
             denss_window.updateDenssSettings()
 
