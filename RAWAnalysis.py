@@ -6309,7 +6309,6 @@ class DenssRunPanel(wx.Panel):
             for fname in rot_names:
                 os.remove(os.path.join(path, fname))
 
-            os.remove(os.path.join(path, '%s_ali2xyz.hdf' %(df_prefix)))
             os.remove(os.path.join(path, '%s_xyzstack.hdf' %(df_prefix)))
 
             if os.path.exists(os.path.join(path, '%s_enant_ali' %(prefix))) and os.path.isdir(os.path.join(path, '%s_enant_ali' %(prefix))):
