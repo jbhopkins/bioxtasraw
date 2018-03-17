@@ -2236,11 +2236,15 @@ def runEman2Aver(flist, procs, prefix, path, emanDir):
     if platform.system() == 'Windows':
         t_dir = os.path.dirname(os.path.dirname(emanDir))
         eman_python = os.path.join(t_dir, 'python.exe')
+
+        my_env = os.environ.copy()
+        my_env["PATH"] = (t_dir+';' + os.path.join(t_dir, 'Scripts')+';'
+            +emanDir+';'+my_env["PATH"])
     else:
         eman_python = os.path.join(emanDir, 'python')
 
-    my_env = os.environ.copy()
-    my_env["PATH"] = emanDir+':'+my_env["PATH"]
+        my_env = os.environ.copy()
+        my_env["PATH"] = emanDir+':'+my_env["PATH"]
 
 
     average_py = os.path.join(emanDir, 'e2spt_classaverage.py')
@@ -2263,11 +2267,15 @@ def runEman2xyz(denss_file, procs, prefix, path, emanDir):
     if platform.system() == 'Windows':
         t_dir = os.path.dirname(os.path.dirname(emanDir))
         eman_python = os.path.join(t_dir, 'python.exe')
+
+        my_env = os.environ.copy()
+        my_env["PATH"] = (t_dir+';' + os.path.join(t_dir, 'Scripts')+';'
+            +emanDir+';'+my_env["PATH"])
     else:
         eman_python = os.path.join(emanDir, 'python')
 
-    my_env = os.environ.copy()
-    my_env["PATH"] = emanDir+':'+my_env["PATH"]
+        my_env = os.environ.copy()
+        my_env["PATH"] = emanDir+':'+my_env["PATH"]
 
 
     xyz_py = os.path.join(RAWGlobals.RAWResourcesDir, 'ali2xyz.py')
@@ -2346,11 +2354,17 @@ def runEman2Align(denss_file, procs, prefix, path, emanDir):
     if platform.system() == 'Windows':
         t_dir = os.path.dirname(os.path.dirname(emanDir))
         eman_python = os.path.join(t_dir, 'python.exe')
+
+        my_env = os.environ.copy()
+        my_env["PATH"] = (t_dir+';' + os.path.join(t_dir, 'Scripts')+';'
+            +emanDir+';'+my_env["PATH"])
     else:
         eman_python = os.path.join(emanDir, 'python')
 
-    my_env = os.environ.copy()
-    my_env["PATH"] = emanDir+':'+my_env["PATH"]
+        my_env = os.environ.copy()
+        my_env["PATH"] = emanDir+':'+my_env["PATH"]
+
+    print my_env["PATH"]
 
     align_py = os.path.join(emanDir, 'e2spt_align.py')
 
@@ -2376,11 +2390,15 @@ def runEman2PreAver(flist, procs, prefix, path, emanDir):
     if platform.system() == 'Windows':
         t_dir = os.path.dirname(os.path.dirname(emanDir))
         eman_python = os.path.join(t_dir, 'python.exe')
+
+        my_env = os.environ.copy()
+        my_env["PATH"] = (t_dir+';' + os.path.join(t_dir, 'Scripts')+';'
+            +emanDir+';'+my_env["PATH"])
     else:
         eman_python = os.path.join(emanDir, 'python')
 
-    my_env = os.environ.copy()
-    my_env["PATH"] = emanDir+':'+my_env["PATH"]
+        my_env = os.environ.copy()
+        my_env["PATH"] = emanDir+':'+my_env["PATH"]
 
     if os.path.exists(stacks_py):
         stacks_cmd = '%s %s --stackname %s_stack.hdf' %(eman_python, stacks_py, prefix)
@@ -2397,7 +2415,7 @@ def runEman2PreAver(flist, procs, prefix, path, emanDir):
 
     if os.path.exists(bt_py):
         bt_cmd = '%s %s --input %s_stack.hdf --path %s_bt_ref --parallel thread:%i' %(eman_python, bt_py, prefix, prefix, procs)
-
+        print bt_cmd
         process=subprocess.Popen(bt_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
         return process, stacks_output
     else:
@@ -2407,11 +2425,15 @@ def runEman2Convert(prefix, path, emanDir):
     if platform.system() == 'Windows':
         t_dir = os.path.dirname(os.path.dirname(emanDir))
         eman_python = os.path.join(t_dir, 'python.exe')
+
+        my_env = os.environ.copy()
+        my_env["PATH"] = (t_dir+';' + os.path.join(t_dir, 'Scripts')+';'
+            +emanDir+';'+my_env["PATH"])
     else:
         eman_python = os.path.join(emanDir, 'python')
 
-    my_env = os.environ.copy()
-    my_env["PATH"] = emanDir+':'+my_env["PATH"]
+        my_env = os.environ.copy()
+        my_env["PATH"] = emanDir+':'+my_env["PATH"]
 
     convert_py = os.path.join(emanDir, 'e2proc3d.py')
 

@@ -791,7 +791,8 @@ class GuinierControlPanel(wx.Panel):
                 txt = wx.FindWindowById(self.error_data['autorg_i0'], self)
                 txt.SetValue('')
 
-                msg = 'AutoRG did not produce a useable result. Please report this to the developers.'
+                msg = ('AutoRG did not produce a useable result. '
+                    'Please report this to the developers.')
                 wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK)
 
                 self.updatePlot()
@@ -1814,46 +1815,66 @@ class MolWeightFrame(wx.Frame):
         evt_id = evt.GetId()
 
         if evt_id == self.ids['conc']['info']:
-            msg = ("The scattering at zero angle, I(0) is proportional to the molecular weight of the "
-                  "macromolecule, and the concentration and contrast of the macromolecule in solution. If a reference "
-                  "sample of known molecular weight and concentration is measured, it can be used to calibrate the "
-                  "molecular weight of any other scattering profile with known concentration (assuming constant "
-                  "contrast between reference and sample, and a monodisperse sample). Molecular weight is calculated "
-                  "as:\n\n"
-                  "MW_m = (I(0)_m / c_m) * (MM_st)/(I(0)_st / c_st)\n\n"
-                  "where MW is the molecular weight, c is the concentration, and '_m' and '_st' designates quantities "
-                  "from the macromolecule of interest and the standard respectively. For a reference see, among many, "
-                  "Mylonas, E. & Svergun, D. I. (2007). J. Appl. Crystallogr. 40, s245-s249.\n\n"
-                  "This method can yield inaccurate results if:\n"
-                  "- The reference is not properly calibrated (concentration, I(0) measurement).\n"
-                  "- I(0) is poorly determined.\n"
-                  "- Sample concentration is poorly determined.\n"
-                  "- The contrast between the macromolecule and buffer is significantly different between the reference and sample.")
+            msg = ("The scattering at zero angle, I(0) is proportional "
+                "to the molecular weight of the macromolecule, and the "
+                "concentration and contrast of the macromolecule in solution. "
+                "If a reference sample of known molecular weight and "
+                "concentration is measured, it can be used to calibrate the "
+                "molecular weight of any other scattering profile with known "
+                "concentration (assuming constant contrast between reference "
+                "and sample, and a monodisperse sample). Molecular weight is "
+                "calculated as:\n\n"
+                "MW_m = (I(0)_m / c_m) * (MM_st)/(I(0)_st / c_st)\n\n"
+                "where MW is the molecular weight, c is the concentration, "
+                "and '_m' and '_st' designates quantities from the "
+                "macromolecule of interest and the standard respectively. "
+                "For a reference see, among many, Mylonas, E. & Svergun, "
+                "D. I. (2007). J. Appl. Crystallogr. 40, s245-s249.\n\n"
+                "This method can yield inaccurate results if:\n"
+                "- The reference is not properly calibrated (concentration, "
+                "I(0) measurement).\n"
+                "- I(0) is poorly determined.\n"
+                "- Sample concentration is poorly determined.\n"
+                "- The contrast between the macromolecule and buffer is "
+                "significantly different between the reference and sample.")
         elif evt_id == self.ids['VC']['info']:
-            msg = ("This method uses the approach described in: Rambo, R. P. & Tainer, J. A. (2013). Nature. "
-                   "496, 477-481, please cite this paper in addition to the RAW paper if you use this method. "
-                   "This method should work for both compact and flexible macromolecules. "
-                   "The authors claim the error in MW determination is ~5-10%.\n\n"
-                   "This method can yield inaccurate results if:\n"
-                   "- The integral of q*I(q) doesn't converge (click 'Show Details' to see), which can indicate "
-                   "the scattering profile is not measured to high enough q or that there is a bad buffer match.\n"
-                   "- I(0) and/or Rg are poorly determined.\n"
-                   "- You have a protein-nucleic acid complex.")
+            msg = ("This method uses the approach described in: Rambo, R. "
+                "P. & Tainer, J. A. (2013). Nature. 496, 477-481, please "
+                "cite this paper in addition to the RAW paper if you use "
+                "this method. This method should work for both compact and "
+                "flexible macromolecules. The authors claim the error in "
+                "MW determination is ~5-10%.\n\n"
+                "This method can yield inaccurate results if:\n"
+                "- The integral of q*I(q) doesn't converge (click 'Show "
+                "Details' to see), which can indicate the scattering profile "
+                "is not measured to high enough q or that there is a bad "
+                "buffer match.\n"
+                "- I(0) and/or Rg are poorly determined.\n"
+                "- You have a protein-nucleic acid complex.\n"
+                "- Your molecule is less than ~15-20 kDa.")
         elif evt_id == self.ids['VP']['info']:
-            msg = ("This method uses the approach described in: Fischer, H., de Oliveira Neto, M., Napolitano, "
-                  "H. B., Polikarpov, I., & Craievich, A. F. (2010). J. Appl. Crystallogr. 43, 101-109, "
-                  "please cite this paper in addition to the RAW paper if you use this method.  It applies "
-                  "a correction to the Porod volume, which has only been calculated for 0.15 < q_max < 0.45 1/A. "
-                  "For scattering profiles with a maximum q outside this range, no correction is applied by RAW. "
-                  "The authors report a maximum of 10% uncertainty for calculated molecular weight from globular proteins.\n\n"
-                  "This method can yield inaccurate results if:\n"
-                  "- The molecule is not globular (i.e. is flexible or extended).\n"
-                  "- I(0) is poorly determined.\n"
-                  "- The protein density used is inaccurate (can be changed in advanced settings).\n"
-                  "- Your molecule is not a protein.\n\n"
-                  "Note: To do the integration, RAW extrapolates the scattering profile to I(0) using the Guinier fit (if necessary). "
-                  "The authors of the original paper used smoothed and extrapolated scattering profiles generated by "
-                  "GNOM. This extrapolation method is currently used in their online calculator: http://saxs.ifsc.usp.br/).")
+            msg = ("This method uses the approach described in: Fischer, "
+                "H., de Oliveira Neto, M., Napolitano, H. B., Polikarpov, "
+                "I., & Craievich, A. F. (2010). J. Appl. Crystallogr. 43, "
+                "101-109, please cite this paper in addition to the RAW "
+                "paper if you use this method. It applies a correction to "
+                "the Porod volume, which has only been calculated for 0.15 "
+                "< q_max < 0.45 1/A. For scattering profiles with a maximum "
+                "q outside this range, no correction is applied by RAW. The "
+                "authors report a maximum of 10% uncertainty for calculated "
+                "molecular weight from globular proteins.\n\n"
+                "This method can yield inaccurate results if:\n"
+                "- The molecule is not globular (i.e. is flexible or extended).\n"
+                "- I(0) is poorly determined.\n"
+                "- The protein density used is inaccurate (can be changed in "
+                "advanced settings).\n"
+                "- Your molecule is not a protein.\n\n"
+                "Note: To do the integration, RAW extrapolates the scattering "
+                "profile to I(0) using the Guinier fit (if necessary). "
+                "The authors of the original paper used smoothed and "
+                "extrapolated scattering profiles generated by GNOM. This "
+                "extrapolation method is currently used in their online "
+                "calculator: http://saxs.ifsc.usp.br/).")
         else:
             msg = ("This uses the absolute calibration of the scattering profile to determine the molecular weight, "
                    "as described in Orthaber, D., Bergmann, A., & Glatter, O. (2000). J. Appl. Crystallogr. 33, "
@@ -1869,7 +1890,8 @@ class MolWeightFrame(wx.Frame):
                    "- Sample concentration is poorly determined."
                    "- Scattering contrast is wrong, either from buffer changes or macromolecule type "
                    "(default settings are for protein).")
-
+        if platform.system() == 'Windows':
+            msg = '\n' + msg
         dlg = wx.MessageDialog(self, msg, "Calculating Molecular Weight", style = wx.ICON_INFORMATION | wx.OK)
         dlg.ShowModal()
         dlg.Destroy()
@@ -3026,7 +3048,9 @@ class GNOMControlPanel(wx.Panel):
         diag.OnClose()
 
     def _onInfoButton(self, evt):
-        msg = 'If you use GNOM in your work, in addition to citing the RAW paper please cite the paper given here:\nhttps://www.embl-hamburg.de/biosaxs/gnom.html'
+        msg = ('If you use GNOM in your work, in addition to citing '
+            'the RAW paper please cite the paper given here:'
+            '\nhttps://www.embl-hamburg.de/biosaxs/gnom.html')
         wx.MessageBox(str(msg), "How to cite GNOM", style = wx.ICON_INFORMATION | wx.OK)
 
     def onDatgnomButton(self, evt):
@@ -3930,7 +3954,10 @@ class DammifRunPanel(wx.Panel):
             existingOut = SASFileIO.loadOutFile(outname)[0].getParameter('out')
             if existingOut != self.ift:
 
-                msg = "Warning: the file %s already exists in the specified directory, and is not identical to the P(r) dammif will use. To continue, RAW must overwrite this file. Do you wish to continue?" %(prefix+'.out')
+                msg = ("Warning: the file %s already exists in the specified "
+                    "directory, and is not identical to the P(r) dammif will "
+                    "use. To continue, RAW must overwrite this file. Do you "
+                    "wish to continue?" %(prefix+'.out'))
                 dlg = wx.MessageDialog(self.main_frame, msg, "Overwrite existing file?", style = wx.ICON_WARNING | wx.YES_NO)
                 proceed = dlg.ShowModal()
                 dlg.Destroy()
@@ -4651,7 +4678,10 @@ class DammifRunPanel(wx.Panel):
                     process_finished = False
 
         if not process_finished and event.CanVeto():
-            msg = "Warning: DAMMIF/N, DAMAVER, or DAMCLUST is still running. Closing this window will abort the currently running processes. Do you want to continue closing the window?"
+            msg = ("Warning: DAMMIF/N, DAMAVER, or DAMCLUST is still "
+                "running. Closing this window will abort the currently "
+                "running processes. Do you want to continue closing the "
+                "window?")
             dlg = wx.MessageDialog(self.main_frame, msg, "Abort DAMMIF/DAMMIN/DAMAVER/DAMCLUST?", style = wx.ICON_WARNING | wx.YES_NO)
             proceed = dlg.ShowModal()
             dlg.Destroy()
@@ -5652,6 +5682,20 @@ class DenssRunPanel(wx.Panel):
 
         self.logbook.DeleteAllPages()
 
+        if  platform.system() == 'Windows' and self.eman_present:
+            aver.SetValue(False)
+            aver.Disable()
+            enant.SetValue(False)
+            enant.Disable()
+
+            msg = ("The EMAN2 package functions needed to filter enantiomers "
+                "and average densities don't work on Windows. The RAW team "
+                "appologies, but since it's not our software theres not a "
+                "lot we can do. You can still create the individual recontructions "
+                "with DENSS. You can do the full reconstruction, including "
+                "enantiomer filtering and averaging, on Linux or Mac OS.")
+
+            wx.CallAfter(wx.MessageBox, msg, "Can't use EMAN2 on windows", style = wx.ICON_ERROR | wx.OK)
 
     def onStartButton(self, evt):
         #Set the denss settings
@@ -6436,7 +6480,9 @@ class DenssRunPanel(wx.Panel):
                 process_finished = False
 
         if not process_finished and event.CanVeto():
-            msg = "Warning: DENSS or EMAN2 is still running. Closing this window will abort the currently running processes. Do you want to continue closing the window?"
+            msg = ("Warning: DENSS or EMAN2 is still running. "
+                "Closing this window will abort the currently running "
+                "processes. Do you want to continue closing the window?")
             dlg = wx.MessageDialog(self.main_frame, msg, "Abort DENSS/EMAN2?", style = wx.ICON_WARNING | wx.YES_NO)
             proceed = dlg.ShowModal()
             dlg.Destroy()
@@ -7569,7 +7615,9 @@ class BIFTControlPanel(wx.Panel):
         RAWGlobals.cancel_bift = True
 
     def _onInfoButton(self, evt):
-        msg = 'If you use BIFT in your work, in addition to citing the RAW paper please cite:\nHansen, S. (2000). J. Appl. Cryst. 33, 1415-1421.'
+        msg = ('If you use BIFT in your work, in addition to citing '
+            'the RAW paper please cite:\nHansen, S. (2000). J. Appl. '
+            'Cryst. 33, 1415-1421.')
         wx.MessageBox(str(msg), "How to cite BIFT", style = wx.ICON_INFORMATION | wx.OK)
 
     def updateBIFTInfo(self):
@@ -8030,7 +8078,10 @@ class AmbimeterFrame(wx.Frame):
         self.Close()
 
     def _onInfoButton(self, evt):
-        msg = 'If you use AMBIMETER in your work, in addition to citing the RAW paper please cite:\nPetoukhov, M. V. & Svergun, D. I. (2015). Acta Cryst. D71, 1051-1058.'
+        msg = ('If you use AMBIMETER in your work, in addition '
+            'to citing the RAW paper please cite:\nPetoukhov, '
+            'M. V. & Svergun, D. I. (2015). Acta Cryst. D71, '
+            '1051-1058.')
         wx.MessageBox(str(msg), "How to cite AMBIMETER", style = wx.ICON_INFORMATION | wx.OK)
 
     def onSaveInfo(self, evt):
@@ -8617,7 +8668,11 @@ class SVDControlPanel(wx.Panel):
             wx.CallAfter(self.updateSECPlot)
             wx.CallAfter(self.runSVD)
         else:
-            msg = 'No subtracted files are available for this series curve. You can create subtracted curves by setting a buffer range in the Series Control Panel and calculating the parameter values. You will have to reopen the SVD window after doing this.'
+            msg = ('No subtracted files are available for this series '
+                'curve. You can create subtracted curves by setting a '
+                'buffer range in the Series Control Panel and calculating '
+                'the parameter values. You will have to reopen the SVD '
+                'window after doing this.')
             dlg = wx.MessageDialog(self, msg, "No subtracted files", style = wx.ICON_INFORMATION | wx.OK)
             dlg.ShowModal()
             dlg.Destroy()
@@ -9105,13 +9160,16 @@ class EFAFrame(wx.Frame):
                         efa_panel2.reinitialize(self.panel1_results, efa = False)
 
                 else:
-                    msg = 'SVD not successful. Either change data range or type, or select a new data set.'
+                    msg = ('SVD not successful. Either change data range '
+                        'or type, or select a new data set.')
                     dlg = wx.MessageDialog(self, msg, "No Singular Values Found", style = wx.ICON_INFORMATION | wx.OK)
                     dlg.ShowModal()
                     dlg.Destroy()
 
             else:
-                msg = 'Please enter the number of significant singular values to use for the evolving factor analysis in the User Input area.'
+                msg = ('Please enter the number of significant singular '
+                    'values to use for the evolving factor analysis in '
+                    'the User Input area.')
                 dlg = wx.MessageDialog(self, msg, "No Singular Values Selected", style = wx.ICON_INFORMATION | wx.OK)
                 dlg.ShowModal()
                 dlg.Destroy()
@@ -9146,7 +9204,11 @@ class EFAFrame(wx.Frame):
                     efa_panel3.reinitialize(self.panel1_results, self.panel2_results, rebuild = False)
 
             else:
-                msg = 'The smallest start value must be less than the smallest end value, the second smallest start value must be less than the second smallest end value, and so on. Please change start and end values according (if necessary, you can further adjust these ranges on the next page).'
+                msg = ('The smallest start value must be less than the smallest '
+                    'end value, the second smallest start value must be less '
+                    'than the second smallest end value, and so on. Please '
+                    'change start and end values according (if necessary, you '
+                    'can further adjust these ranges on the next page).')
                 dlg = wx.MessageDialog(self, msg, "Start and End Values Incorrect", style = wx.ICON_INFORMATION | wx.OK)
                 dlg.ShowModal()
                 dlg.Destroy()
@@ -9225,7 +9287,12 @@ class EFAFrame(wx.Frame):
         self.OnClose()
 
     def _onInfoButton(self, evt):
-        msg = 'If you use evolving factor analysis (EFA) in your work, in addition to citing the RAW paper please cite:\nSteve P. Meisburger, Alexander B. Taylor, Crystal A. Khan, Shengnan Zhang, Paul F. Fitzpatrick, and Nozomi Ando. Journal of the American Chemical Society 2016 138 (20), 6506-6516.'
+        msg = ('If you use evolving factor analysis (EFA) in your '
+            'work, in addition to citing the RAW paper please cite:'
+            '\nSteve P. Meisburger, Alexander B. Taylor, Crystal A. '
+            'Khan, Shengnan Zhang, Paul F. Fitzpatrick, and Nozomi '
+            'Ando. Journal of the American Chemical Society 2016 138 '
+            '(20), 6506-6516.')
         wx.MessageBox(str(msg), "How to cite EFA", style = wx.ICON_INFORMATION | wx.OK)
 
     def getPanel1Values(self):
@@ -9626,7 +9693,11 @@ class EFAControlPanel1(wx.Panel):
             self.runSVD()
 
         else:
-            msg = 'No subtracted files are available for this series curve. You can create subtracted curves by setting a buffer range in the Sries Control Panel and calculating the parameter values. You will have to reopen the EFA window after doing this.'
+            msg = ('No subtracted files are available for this series '
+                'curve. You can create subtracted curves by setting '
+                'a buffer range in the Sries Control Panel and '
+                'calculating the parameter values. You will have to '
+                'reopen the EFA window after doing this.')
             dlg = wx.MessageDialog(self, msg, "No subtracted files", style = wx.ICON_INFORMATION | wx.OK)
             dlg.ShowModal()
             dlg.Destroy()
