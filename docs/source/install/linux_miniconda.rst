@@ -24,7 +24,7 @@
 
     *   ``conda update conda setuptools wheel pip``
 
-    *   ``conda install numpy scipy matplotlib pillow h5py lxml cython numexpr``
+    *   ``conda install numpy scipy matplotlib pillow h5py lxml numexpr``
 
     *   ``conda install 'wxpython<4'``
 

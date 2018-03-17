@@ -67,8 +67,8 @@ Common problems/troubleshooting
 *   In recent numpy builds (I think it's numpy, might be scipy) I've found that
     the compiler needs msvcr90d.dll This is the debug dll, which means someone built it wrong,
     that is, in a debug environment. The only solution to this is to use the numpy and scipy
-    packages from https://www.lfd.uci.edu/~gohlke/pythonlibs/ instead of pip
+    packages from https://www.lfd.uci.edu/~gohlke/pythonlibs/ instead of the pip archive.
 
 *   The latest version of the gcc compiler that seems to work is 5.3. The 6.3 compiler
     from MinGW fails. Downgrade with the following commands from a command prompt:
-    ``mingw-get upgrade "gcc<7"`` and ``mingw-get upgrade "g++<6"``.
+    ``mingw-get upgrade "gcc<6"`` and ``mingw-get upgrade "g++<6"``.

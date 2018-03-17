@@ -22,11 +22,9 @@ Windows 7, 8.1, and 10 install from source instructions
     *   Download the 32 bit python 2.7 installer for windows from
         `https://www.python.org/downloads/windows/ <https://www.python.org/downloads/windows/>`_
 
-        *   Select the latest release (2.7.13 as of 3/13/17).
+        *   Select the latest release (2.7.14 as of 3/16/18).
 
         *   Download the **Windows x86 MSI Installer** (NOT the x86-64 MSI Installer).
-
-        *   Also available in the **RAW-Windows-Source-Install-Essentials** file.
 
     *   Run the installer
 
@@ -41,41 +39,12 @@ Windows 7, 8.1, and 10 install from source instructions
     |10000201000001F3000001AC231A6A61FD1E38C9_png|
 
 
-#.  Download and install wxpython 3.0 for 32-bit python 2.7.
-
-    *   Download from
-        `http://www.wxpython.org/download.php#msw <http://www.wxpython.org/download.php#msw>`_
-
-        *   Download the **wxPython3.0-win32-3.0.2.00-py27.exe** file
-
-        *   Make sure you download win32/py27 file!
-
-        *   Also available in the **RAW-Windows-Source-Install-Essentials** file.
-
-    *   Run the installer
-
-    |10000201000001F700000184FEB70AD63B64E70A_png|
-
-    *   Accept the default install location
-
-    |10000201000001F7000001845E44643D152C855F_png|
-
-    *   Accept the default components
-
-    |10000201000001F700000184CC1269CE94FF045C_png|
-
-    *   Make sure to compile Python .py files to .pyc when the installation is finished.
-
-    |10000201000001F70000018474C33F656AA9623C_png|
-
 #.  Download and install the MinGW compiler
 
-    *   Download **mingw-get-setup.exe** from
+    *   Download :file:`mingw-get-setup.exe` from
         `https://sourceforge.net/projects/mingw/ <https://sourceforge.net/projects/mingw/>`_
 
         *   The download button should default to the correct file for windows.
-
-        *   Also available in the **RAW-Windows-Source-Install-Essentials** file.
 
     *   Run the installer.
 
@@ -93,7 +62,7 @@ Windows 7, 8.1, and 10 install from source instructions
 
     |10000201000005A0000002F8958D1763BA7D6A5F_png|
 
-    *   Click the boxes for **mingw32-base** and **mingw32-gcc-g++** and select mark
+    *   Click the boxes for ``mingw32-base`` and ``mingw32-gcc-g++`` and select mark
         for installation.
 
     |100002010000038200000107CA2FEA23D76FEFFA_png|
@@ -112,7 +81,7 @@ Windows 7, 8.1, and 10 install from source instructions
 
     *   Close the MinGW installer.
 
-#.  Add mingw and mingw\\bin to the start of the global path variable. Use part a
+#.  Add ``mingw`` and ``mingw\bin`` to the start of the global path variable. Use part a
     for Windows 7, part b for Windows 8.1, and part c for Windows 10.
 
     *   Windows 7:
@@ -137,7 +106,7 @@ Windows 7, 8.1, and 10 install from source instructions
             |100002010000018A000001B44A97BA7F3822CD71_png|
 
         #.  In the window that opens, add the following to the start of the path:
-            *C:\MinGW;C:\MinGW\bin;*
+            ``C:\MinGW;C:\MinGW\bin;``
 
             |10000201000001650000009960C7066D18E91A52_png|
 
@@ -184,9 +153,9 @@ Windows 7, 8.1, and 10 install from source instructions
 
         #.  In the window that opens, use the New button to add these items to the path:
 
-            *   *C:\MinGW*
+            *   ``C:\MinGW``
 
-            *   *C:\MinGW\bin;*
+            *   ``C:\MinGW\bin;``
 
             |100002010000020F000001F513FE0A5C8F181099_png|
 
@@ -205,129 +174,76 @@ Windows 7, 8.1, and 10 install from source instructions
 
 #.  Restart your computer.
 
-#.  Install numpy, maptlotlib, pillow, fabio using pip
-
+#. Downgrade the gcc compilers.
     *   Open a command prompt
 
-        *   Windows 7: Click on the start menu, search for *cmd* and running the
-            **cmd** program.
-
-        *   Windows 8: Click on the windows tile and search for *cmd*, then run the
-            **Command Prompt** program.
-
+        *   Windows 7: Click on the start menu, search for ``cmd``, then run the
+            ``cmd`` program.
+        *   Windows 8: Click on the windows tile and search for ``cmd``, then run the
+            ``Command Prompt`` program.
         *   Windows 10: Click on the windows/start menu, select All Files, select
-            Windows System, and click on **Command Prompt**.
+            Windows System, and click on ``Command Prompt``.
 
-    *   Type *python -m pip install --upgrade pip*
+    *   Type ``mingw-get upgrade "gcc<6"`` and hit enter.
+    *   Type ``mingw-get upgrade "g++<6"`` and hit enter.
 
+#. Upgrade pip, setuptools, and wheel.
+    *   Open a command prompt window as in the previous step (if necessary).
+    *   Type ``python -m pip install --upgrade pip``
     *   Hit enter
-
-    *   Once that finishes, type *pip install --upgrade setuptools wheel*
-
+    *   Once that finishes, type ``pip install --upgrade setuptools wheel``
     *   Hit enter
 
     |10000201000002A5000001562A234A434AEB65B5_png|
 
-
-    *   Once that finishes, type *pip install numpy*
-
-    *   Hit enter
-
-    *   Once that finishes, type *pip install matplotlib pillow fabio*
-
-    |10000201000002A5000001560499E4F7F72D933B_png|
-
-    *   Hit enter
-
-    *   Once that finishes, close the command prompt window
-
-#.  Install scipy for 32bit python 2.7 from binary
-
-    *   Download scipy from
-        `https://sourceforge.net/projects/scipy/files/scipy/0.16.1/ <https://sourceforge.net/projects/scipy/files/scipy/0.16.1/>`_
-
-        *   Download **scipy-0.16.1-win32-superpack-python2.7.exe**
-
-        *   Make sure it is the python2.7 file!
-
-        *   Also available in the **RAW-Windows-Source-Install-Essentials** file.
-
-    *   Run the installer, accepting the default options.
-
-#.  Download and install the lxml, h5py, and rfoo packages.
+#.  Download and install numpy+mkl, scipy, and wxpython prebuilt versions.
 
     *   Go to
         `http://www.lfd.uci.edu/~gohlke/pythonlibs/ <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_
         and download:
 
-        *   lxml-x.y.z-cp27-cp27m-win32.whl (where x.y.z is the version number).
+        *   :file:`numpy-{x}.{y}.{z}+mkl-cp27-cp27m-win32.whl` (where :file:`{x}.{y}.{z}` is the version number).
+        *   :file:`scipy-{x}.{y}.{z}-cp27-cp27m-win32.whl` (where :file:`{x}.{y}.{z}` is the version number).
+        *   :file:`wxPython_common‑3.0.2.0‑py2‑none‑any.whl`
+        *   :file:`wxPython‑3.0.2.0‑cp27‑none‑win32.whl`
 
-        *   h5py-x.y.z-cp27-cp27m-win32.whl (where x.y.z is the version number).
+    *   Note: It is important to download the cp27 win32 version, otherwise installation will fail!
 
-        *   rfoo-x.y.z-cp27-non-win32.whl (where x.y.z is the version number).
-
-        *   Note: These are available in the RAW windows install essentials zip file.
-
-        *   Note: It is important to download the cp27 win32 version, otherwise installation will fail!
-
-        *   Also available in the
-            **RAW-Windows-Source-Install-Essentials**
-            file.
-
-    *   Open a command prompt window as in Step 6.
+    *   Open a command prompt window as in the previous step (if necessary).
 
     *   Navigate to the folder where you downloaded these files.
 
-        *   The easiest way to do this is to type “cd” followed by a space, then drag
-            the folder from the desktop into the command prompt window. You should see
+        *   The easiest way to do this is to type ``cd`` followed by a space, then drag
+            the folder from the Explorer window into the command prompt window. You should see
             the path to the folder appear in the command prompt. Hit enter after that.
 
-    *   Install the files using pip.
+        *   Alternatively, in Explorer right click on the folder in the title bar and
+            select :menuselection:`Copy address`. Then right click on the command prompt
+            and select :menuselection:`Paste`.
 
-        *   Type *pip install lxml-x.y.z-cp27-cp27m-win32.whl* and hit enter (where
-            x.y.z is the version number).
+    *   Type :file:`pip install numpy-{x}.{y}.{z}+mkl-cp27-cp27m-win32.whl`, replacing
+        the :file:`{x}.{y}.{z}` with the appropriate version number. Hit enter.
 
-        *   Type *pip install h5py-x.y.z-cp27-cp27m-win32.whl* and hit enter (where
-            x.y.z is the version number).
+    *   Type :file:`pip install scipy-{x}.{y}.{z}-cp27-cp27m-win32.whl`, replacing
+        the :file:`{x}.{y}.{z}` with the appropriate version number. Hit enter.
 
+    *   Type ``pip install wxPython_common‑3.0.2.0‑py2‑none‑any.whl`` and hit enter.
+    *   Type ``pip install wxPython‑3.0.2.0‑cp27‑none‑win32.whl`` and hit enter.
 
+#   Install matplotlib, pillow, lxml, h5py, fabio, weave, hdf5plugin, and pyfai using pip.
 
-        *   Type *pip install rfoo-x.y.z-cp27-non-win32.whl* and hit enter (where
-            x.y.z is the version number).
-
-    |10000201000002A500000156ACFF07324D3BB21D_png|
-
-#.  Install the weave, cython, hdf5plugin, and pyFAI packages.
-
-    *   If it is not already open from the previous step, open a command prompt
-        window as in Step 6.
-
-    *   Install cython
-
-        *   Type *pip install weave cython hdf5plugin* and hit enter.
-
-    *   Install pyFAI
-
-        *   Type *pip install pyFAI* and hit enter.
-
-        *   On Windows 8 and 10, two windows may pop up, one saying that “mt.exe has
-            topped working” and anther that “an app on your PC needs the following
-            Windows feature: .Net Framework 3.5”. If that happens, in the mt.exe
-            window click “Close Program” and in the other window click “Download and
-            install this feature.” Once the download and installation is done, rerun
-            the pyfai installation using the *pip install pyFAI* command.
-
-    |10000201000002A5000001563C5CC4C2C8CB2F0A_png|
-
+    *   Type ``pip install matplotlib pillow lxml h5py fabio weave hdf5plugin pyfai``
+        and hit enter.
 
 #.  Download RAW from sourceforge (
     `http://sourceforge.net/projects/bioxtasraw <http://sourceforge.net/projects/bioxtasraw>`_)
 
-    *   Go to the Files tab on the linked website and download the ‘RAW-x.y.z-Source file, where x.y.z is the version number (for example, 1.0.0).
+    *   Go to the Files tab on the linked website and download the :file:`RAW-{x}.y.z-Source.zip`
+        file, where :file:`{x}.{y}.{z}` is the version number (for example, 1.0.0).
 
 #.  Expand the downloaded zip file into the downloads folder
 
-    *   Right click on the download and select ‘Extract All’
+    *   Right click on the download and select :menuselection:`Extract All`
 
     *   Accept the default location for files to be extracted.
 
@@ -341,26 +257,26 @@ Windows 7, 8.1, and 10 install from source instructions
 
     |10000201000004B0000002A34A8866D873399BD8_png|
 
-    *   You may have only a single subfolders, named something like **raw** or **src**.
+    *   You may have only a single subfolders, named something like :file:`raw` or :file:`src`.
 
     |10000201000004B0000002A3554A1F12D8C7CB87_png|
 
     *   If so, browse down levels until you find the directory containing files that
         look like the top image on this page, and copy everything in that folder to
-        the top level **raw** directory.
+        the top level :file:`raw` directory.
 
     |10000201000004B0000002A3E91BB88ED0783D2A_png|
 
 
-#.  Run **RAW.py** from the command line
+#.  Run :file:`RAW.py` from the command line
 
     *   Open a command prompt as in Step 6 of these instructions.
 
-    *   Type *cd C:\raw*
+    *   Type ``cd C:\raw``
 
     *   Hit enter
 
-    *   Type *python RAW.py*
+    *   Type ``python RAW.py``
 
     |10000201000002A50000015664F52DDA0E80AA97_png|
 
@@ -372,10 +288,10 @@ Windows 7, 8.1, and 10 install from source instructions
 #.  Enjoy!
 
     *   After running RAW for the first time, you can start it without using the command
-        line simply by double clicking on **RAW.py** in the **C:\raw** folder.
+        line simply by double clicking on :file:`RAW.py` in the :file:`C:\raw` folder.
 
-    *   If you want to create a desktop shortcut, right click on **RAW.py** and select
-        Send To -> Desktop.
+    *   If you want to create a desktop shortcut, right click on :file:`RAW.py` and select
+        :menuselection:`Send To --> Desktop`.
 
     *   If you have trouble with the installation, please see the
         :ref:`solutions to common problems <wintrb>` section below.
@@ -386,110 +302,60 @@ Windows 7, 8.1, and 10 install from source instructions
 
 .. |100002010000026A00000249E225CEB83B942F92_png| image:: images/win_install/100002010000026A00000249E225CEB83B942F92.png
 
-
-.. |10000201000001F70000018474C33F656AA9623C_png| image:: images/win_install/10000201000001F70000018474C33F656AA9623C.png
-
-
 .. |10000201000004B0000002A34A8866D873399BD8_png| image:: images/win_install/10000201000004B0000002A34A8866D873399BD8.png
-
 
 .. |100002010000025E000001D2F3CB403BD4DC21F4_png| image:: images/win_install/100002010000025E000001D2F3CB403BD4DC21F4.png
 
-
 .. |10000201000001C90000012EB288A64B1B2F0AA5_png| image:: images/win_install/10000201000001C90000012EB288A64B1B2F0AA5.png
-
 
 .. |10000201000005A0000002F8958D1763BA7D6A5F_png| image:: images/win_install/10000201000005A0000002F8958D1763BA7D6A5F.png
 
-
-.. |10000201000001F700000184CC1269CE94FF045C_png| image:: images/win_install/10000201000001F700000184CC1269CE94FF045C.png
-
-
 .. |10000201000004B0000002A3554A1F12D8C7CB87_png| image:: images/win_install/10000201000004B0000002A3554A1F12D8C7CB87.png
-
 
 .. |1000020100000274000001CAC03003E6F7E944B5_png| image:: images/win_install/1000020100000274000001CAC03003E6F7E944B5.png
 
-
 .. |100002010000038200000107CA2FEA23D76FEFFA_png| image:: images/win_install/100002010000038200000107CA2FEA23D76FEFFA.png
-
-
-.. |10000201000002A5000001560499E4F7F72D933B_png| image:: images/win_install/10000201000002A5000001560499E4F7F72D933B.png
-
 
 .. |100002010000026A0000019A18D1DBE0E7432884_png| image:: images/win_install/100002010000026A0000019A18D1DBE0E7432884.png
 
-
 .. |10000201000001F3000001ACD121D31605B42F38_png| image:: images/win_install/10000201000001F3000001ACD121D31605B42F38.png
-
 
 .. |10000201000002A50000015664F52DDA0E80AA97_png| image:: images/win_install/10000201000002A50000015664F52DDA0E80AA97.png
 
-
-.. |10000201000001F7000001845E44643D152C855F_png| image:: images/win_install/10000201000001F7000001845E44643D152C855F.png
-
-
 .. |100002010000047A000000C3630704E775D3E787_png| image:: images/win_install/100002010000047A000000C3630704E775D3E787.png
-
 
 .. |100002010000025E000001D2A77894BD5D8E3872_png| image:: images/win_install/100002010000025E000001D2A77894BD5D8E3872.png
 
-
-.. |10000201000001F700000184FEB70AD63B64E70A_png| image:: images/win_install/10000201000001F700000184FEB70AD63B64E70A.png
-
-
 .. |10000201000001F3000001AC231A6A61FD1E38C9_png| image:: images/win_install/10000201000001F3000001AC231A6A61FD1E38C9.png
-
 
 .. |10000201000001F3000001AC19F9C4CBF3C8339D_png| image:: images/win_install/10000201000001F3000001AC19F9C4CBF3C8339D.png
 
-
-.. |10000201000002A5000001563C5CC4C2C8CB2F0A_png| image:: images/win_install/10000201000002A5000001563C5CC4C2C8CB2F0A.png
-
-
 .. |10000201000001AA000001DA530895693A9AFBFA_png| image:: images/win_install/10000201000001AA000001DA530895693A9AFBFA.png
-
-
-.. |10000201000002A500000156ACFF07324D3BB21D_png| image:: images/win_install/10000201000002A500000156ACFF07324D3BB21D.png
-
 
 .. |100002010000018A000001B44A97BA7F3822CD71_png| image:: images/win_install/100002010000018A000001B44A97BA7F3822CD71.png
 
-
 .. |10000201000001650000009960C7066D18E91A52_png| image:: images/win_install/10000201000001650000009960C7066D18E91A52.png
-
 
 .. |100002010000020F000001F5824FFFD405BF36E6_png| image:: images/win_install/100002010000020F000001F5824FFFD405BF36E6.png
 
-
 .. |100002010000020F000001F513FE0A5C8F181099_png| image:: images/win_install/100002010000020F000001F513FE0A5C8F181099.png
-
 
 .. |10000201000004B0000002A399479280B2C14985_png| image:: images/win_install/10000201000004B0000002A399479280B2C14985.png
 
-
 .. |10000201000004650000027A03BF18E020461FAE_png| image:: images/win_install/10000201000004650000027A03BF18E020461FAE.png
-
 
 .. |10000201000004B0000002A3E91BB88ED0783D2A_png| image:: images/win_install/10000201000004B0000002A3E91BB88ED0783D2A.png
 
-
 .. |10000201000004B0000002A39D9F7B9AAF7199ED_png| image:: images/win_install/10000201000004B0000002A39D9F7B9AAF7199ED.png
-
 
 .. |100002010000020F000001F51F1D34081877255E_png| image:: images/win_install/100002010000020F000001F51F1D34081877255E.png
 
-
 .. |1000020100000400000002A3DABD211FEEECB79E_png| image:: images/win_install/1000020100000400000002A3DABD211FEEECB79E.png
-
 
 .. |100002010000025E000001D2E196E75CF8A1C879_png| image:: images/win_install/100002010000025E000001D2E196E75CF8A1C879.png
 
-
 .. |10000201000004650000027AD3998AF9790FC983_png| image:: images/win_install/10000201000004650000027AD3998AF9790FC983.png
 
-
 .. |10000201000002A5000001562A234A434AEB65B5_png| image:: images/win_install/10000201000002A5000001562A234A434AEB65B5.png
-
 
 .. |10000201000004650000027AE2E290525DBD0B1C_png| image:: images/win_install/10000201000004650000027AE2E290525DBD0B1C.png

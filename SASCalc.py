@@ -1951,7 +1951,7 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     if seed is None:
         #Have to reset the random seed to get a random in different from other processes
         prng = np.random.RandomState()
-        seed = prng.randint(sys.maxsize)
+        seed = prng.randint(2**31-1)
     else:
         seed = int(seed)
 
@@ -2364,8 +2364,6 @@ def runEman2Align(denss_file, procs, prefix, path, emanDir):
         my_env = os.environ.copy()
         my_env["PATH"] = emanDir+':'+my_env["PATH"]
 
-    print my_env["PATH"]
-
     align_py = os.path.join(emanDir, 'e2spt_align.py')
 
     df_prefix = os.path.splitext(os.path.split(denss_file)[1])[0]
@@ -2415,7 +2413,6 @@ def runEman2PreAver(flist, procs, prefix, path, emanDir):
 
     if os.path.exists(bt_py):
         bt_cmd = '%s %s --input %s_stack.hdf --path %s_bt_ref --parallel thread:%i' %(eman_python, bt_py, prefix, prefix, procs)
-        print bt_cmd
         process=subprocess.Popen(bt_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
         return process, stacks_output
     else:

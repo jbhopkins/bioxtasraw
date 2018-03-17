@@ -26,15 +26,11 @@ General instructions for installing from source (advanced users)
 
     *   h5py
 
-    *   rfoo
-
-    *   cython
-
     *   hdf5plugin
 
     *   pyFAI
 
-    *   weave < 0.16
+    *   weave
 
 #.  Download the RAW source file (:file:`RAW-{x}.{y}.{z}-Source` where :file:`{x}.{y}.{z}` is the version number)
     from sourceforge (

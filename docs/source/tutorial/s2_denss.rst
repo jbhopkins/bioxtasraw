@@ -10,6 +10,11 @@ been fully implemented in RAW and will be used to recontruct these electron dens
 In order to align and average these densities, EMAN2 will be used. Note that you need
 :ref:`EMAN2 installed <eman2>` to do this part of the tutorial.
 
+**IMPORTANT NOTE:** Unfortunately, the EMAN2 package doesn't work properly on Windows.
+Windows users can still use RAW to generate electron densities, but they cannot
+create a consensus average or filter out enantiomers. Mac OS (or OS X) and Linux
+users can do everything described in this tutorial.
+
 
 #.  Clear all of the data in RAW. Load the **lysozyme.out** file that you saved in the
     **atsas_data** folder in a previous part of the tutorial.

@@ -24,8 +24,6 @@ General instructions for installing from source (advanced users)
 
     *   h5py
 
-    *   cython
-
     *   pyFAI
 
     *   hdf5plugin
