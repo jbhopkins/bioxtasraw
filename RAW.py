@@ -42,6 +42,7 @@ import shutil
 import itertools
 import traceback
 import scipy.constants
+import multiprocessing
 
 import numpy as np
 import wx.lib.scrolledpanel as scrolled
