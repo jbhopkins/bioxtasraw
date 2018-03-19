@@ -284,7 +284,7 @@ class RawGuiSettings:
                             'gnomExpt'              : [0, wx.NewId(), 'int'],
 
                             #DAMMIF settings
-                            'dammifMode'            : ['Fast', wx.NewId(), 'choice'],
+                            'dammifMode'            : ['Slow', wx.NewId(), 'choice'],
                             'dammifSymmetry'        : ['P1', wx.NewId(), 'choice'],
                             'dammifAnisometry'      : ['Unknown', wx.NewId(), 'choice'],
                             'dammifUnit'            : ['Unknown', wx.NewId(), 'choice'],

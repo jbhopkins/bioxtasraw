@@ -2135,7 +2135,7 @@ class ConfigRootSettings(wx.Panel):
 
             if myId != -1:
                 atsasPanel = wx.FindWindowById(myId, self.GetParent())
-                atsasPanel.setATSASDir()
+                atsasPanel.setEMANDir()
 
         myId = -1
         all_options = wx.FindWindowByName('OptionsDialog').all_options

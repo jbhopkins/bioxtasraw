@@ -1,5 +1,5 @@
 Scientific Linux/Red Hat/CentOS install from source instructions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _lnxsl:
 
 Tested on SL 6.8 and SL 7.4.

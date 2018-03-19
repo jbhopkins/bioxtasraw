@@ -2997,7 +2997,6 @@ class GNOMControlPanel(wx.Panel):
         return boxsizer
 
     def onSaveInfo(self, evt):
-
         gnom_results = {}
 
         dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
@@ -3007,6 +3006,9 @@ class GNOMControlPanel(wx.Panel):
         startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
         start_idx = startSpin.GetValue()
         end_idx = endSpin.GetValue()
+
+        if not self.out_list or dmax not in self.out_list:
+            self.calcGNOM(dmax)
 
         gnom_results['Dmax'] = dmax
         gnom_results['Total_Estimate'] = self.out_list[dmax].getParameter('TE')
@@ -3332,7 +3334,6 @@ class GNOMControlPanel(wx.Panel):
 
         txtctrl.SetValue(str(round(self.sasm.q[int(i)],5)))
 
-
         self.out_list = {}
 
         wx.CallAfter(self.updatePlot)
@@ -3469,7 +3470,6 @@ class GNOMControlPanel(wx.Panel):
             wx.CallAfter(top.main_frame.controlTimer, True)
 
         self.out_list[str(int(iftm.getParameter('dmax')))] = iftm
-
 
     def onSettingsChange(self, evt):
         self.updateGNOMSettings()
