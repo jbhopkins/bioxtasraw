@@ -6948,10 +6948,7 @@ class DenssPlotPanel(wx.Panel):
         gs = matplotlib.gridspec.GridSpec(2, 1, height_ratios=[3,1])
 
         ax0 = fig.add_subplot(gs[0])
-        ax0.errorbar(q[q<=qdata[-1]], I[q<=qdata[-1]], fmt='k-',
-            yerr=[sigq2[q<=qdata[-1]],sigq[q<=qdata[-1]]], capsize=0,
-            elinewidth=0.1, ecolor=matplotlib.colors.colorConverter.to_rgba('0',alpha=0.5),
-            label='Smoothed Exp. Data')
+        ax0.plot(q[q<=qdata[-1]], I[q<=qdata[-1]], fmt='k-', label='Smoothed Exp. Data')
         ax0.plot(qdata, Idata, 'bo',alpha=0.5,label='Interpolated Data')
         ax0.plot(qbinsc,Imean,'r.',label='Scattering from Density')
         handles,labels = ax0.get_legend_handles_labels()

@@ -123,3 +123,6 @@ venv.bak/
                 item_list[5].Check(True)
             elif self.plotparams['plot' + plot_number + 'type'] == 'porod':
                 item_list[6].Check(True)
+
+# Mac stuff
+*.DS_Store

@@ -27,3 +27,5 @@ Common problems/troubleshooting
     the case, go through the process of creating a new shortcut, and make sure you change
     the line in the script mentioned in that section.
 
+*   Because of some weirdness with the anaconda/miniconda framework pythonw, it can't run
+    EMAN2. Every other variant I've tried (enthought and homebrew) have been fine.
