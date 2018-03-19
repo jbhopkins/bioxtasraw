@@ -2807,7 +2807,8 @@ class MainWorkerThread(threading.Thread):
             update_sec_object = data[2]
         else:
             update_sec_object = False
-        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while series data loads\n(may take a while)...')
+
+        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while series data loads')
 
         all_secm = True
         for name in filename_list:
@@ -2907,7 +2908,9 @@ class MainWorkerThread(threading.Thread):
         filename_list = data[0]
         frame_list = data[1]
         secm = data[2]
-        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while series data loads\n(may take a while)...')
+
+        if len(filename_list)>5:
+            wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while series data loads')
 
         sasm_list=[[] for i in range(len(filename_list))]
 
@@ -2936,23 +2939,23 @@ class MainWorkerThread(threading.Thread):
                 sasm_list[j]=sasm
 
             except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
-                # self._showDataFormatError(os.path.split(each_filename)[1])
-                wx.CallAfter(self.main_frame.closeBusyDialog)
+                if len(filename_list)>5:
+                    wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'file', msg)
                 return
             except SASExceptions.HeaderLoadError, msg:
-                # wx.CallAfter(wx.MessageBox, str(msg), 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
-                wx.CallAfter(self.main_frame.closeBusyDialog)
+                if len(filename_list)>5:
+                    wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'header', msg)
                 return
             except SASExceptions.MaskSizeError, msg:
-                # wx.CallAfter(wx.MessageBox, str(msg), 'Saved mask does not fit loaded image', style = wx.ICON_ERROR)
-                wx.CallAfter(self.main_frame.closeBusyDialog)
+                if len(filename_list)>5:
+                    wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'mask', msg)
                 return
             except SASExceptions.HeaderMaskLoadError, msg:
-                # wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header', style = wx.ICON_ERROR)
-                wx.CallAfter(self.main_frame.closeBusyDialog)
+                if len(filename_list)>5:
+                    wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'mask_header', msg)
                 return
             except SASExceptions.AbsScaleNormFailed:
@@ -2962,7 +2965,8 @@ class MainWorkerThread(threading.Thread):
                         'It failed on the following file:\n')
                 msg = msg + os.path.split(each_filename)[1]
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'abs_scale', msg)
-                wx.CallAfter(self.main_frame.closeBusyDialog)
+                if len(filename_list)>5:
+                    wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
 
         largest_frame = secm.plot_frame_list[-1]
@@ -2976,7 +2980,8 @@ class MainWorkerThread(threading.Thread):
         self._updateSECMPlot(secm)
 
         wx.CallAfter(self.sec_control_panel.updateSucceeded)
-        wx.CallAfter(self.main_frame.closeBusyDialog)
+        if len(filename_list)>5:
+            wx.CallAfter(self.main_frame.closeBusyDialog)
 
 
     def _calculateSECParams(self, secm):
@@ -2990,7 +2995,7 @@ class MainWorkerThread(threading.Thread):
 
         threshold = self._raw_settings.get('secCalcThreshold')
 
-        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait, calculating (may take a while)...')
+        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait, calculating')
         initial_buffer_frame, final_buffer_frame, window_size = secm.getCalcParams()
 
         secm.acquireSemaphore()
@@ -3290,7 +3295,10 @@ class MainWorkerThread(threading.Thread):
                 if result == wx.ID_YESTOALL:
                     yes_to_all = True
                 elif result == wx.ID_CANCEL:
-                    wx.CallAfter(self.main_frame.closeBusyDialog)
+                    try:
+                        wx.CallAfter(self.main_frame.closeBusyDialog)
+                    except Exception:
+                        pass
                     secm.releaseSemaphore()
                     return
                 try:
@@ -3300,10 +3308,13 @@ class MainWorkerThread(threading.Thread):
 
                         subtracted_sasm_list.append(subtracted_sasm)
                 except SASExceptions.DataNotCompatible:
-                   self._showSubtractionError(sasm, sub_sasm)
-                   wx.CallAfter(self.main_frame.closeBusyDialog)
-                   secm.releaseSemaphore()
-                   return
+                    self._showSubtractionError(sasm, sub_sasm)
+                    try:
+                        wx.CallAfter(self.main_frame.closeBusyDialog)
+                    except Exception:
+                        pass
+                    secm.releaseSemaphore()
+                    return
             elif np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and yes_to_all:
                 try:
                     subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
@@ -3311,10 +3322,13 @@ class MainWorkerThread(threading.Thread):
 
                     subtracted_sasm_list.append(subtracted_sasm)
                 except SASExceptions.DataNotCompatible:
-                   self._showSubtractionError(sasm, sub_sasm)
-                   wx.CallAfter(self.main_frame.closeBusyDialog)
-                   secm.releaseSemaphore()
-                   return
+                    self._showSubtractionError(sasm, sub_sasm)
+                    try:
+                        wx.CallAfter(self.main_frame.closeBusyDialog)
+                    except Exception:
+                        pass
+                    secm.releaseSemaphore()
+                    return
             else:
                 try:
                     subtracted_sasm = SASM.subtract(sasm, sub_sasm)
@@ -3322,10 +3336,13 @@ class MainWorkerThread(threading.Thread):
 
                     subtracted_sasm_list.append(subtracted_sasm)
                 except SASExceptions.DataNotCompatible:
-                   self._showSubtractionError(sasm, sub_sasm)
-                   wx.CallAfter(self.main_frame.closeBusyDialog)
-                   secm.releaseSemaphore()
-                   return
+                    self._showSubtractionError(sasm, sub_sasm)
+                    try:
+                        wx.CallAfter(self.main_frame.closeBusyDialog)
+                    except Exception:
+                        pass
+                    secm.releaseSemaphore()
+                    return
 
 
         secm.appendSubtractedSASMList(subtracted_sasm_list, use_subtracted_sasm, window_size)
@@ -3366,7 +3383,10 @@ class MainWorkerThread(threading.Thread):
                         current_sasm = SASM.average(current_sasm_list)
                     except SASExceptions.DataNotCompatible:
                         self._showAverageError(1)
-                        wx.CallAfter(self.main_frame.closeBusyDialog)
+                        try:
+                            wx.CallAfter(self.main_frame.closeBusyDialog)
+                        except Exception:
+                            pass
                         secm.releaseSemaphore()
                         return
 
