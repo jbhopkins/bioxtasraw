@@ -25,7 +25,7 @@ users can do everything described in this tutorial.
 
 #.  Right click on the **lysozyme.out** item in the IFT list. Select the “Electron Density (DENSS)” option.
 
-#.  Running DAMMIF generates a lot of files. Click the “Select/Change Directory” button,
+#.  Running DENSS generates a lot of files. Click the “Select/Change Directory” button,
     make a new folder in the **atsas_data** directory called **lysozyme_denss** and select
     that folder.
 
