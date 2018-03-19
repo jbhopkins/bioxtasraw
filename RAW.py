@@ -12577,6 +12577,7 @@ class RawTaskbarIcon(wx.TaskBarIcon):
     #     menu.Destroy()
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
     sys.stdout = sys.__stdout__
     sys.stderr = sys.__stderr__
     setup_thread_excepthook()
