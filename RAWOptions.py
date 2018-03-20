@@ -4015,7 +4015,7 @@ def findEMANDirectory():
         return default_path
 
     if opsys == 'Windows':
-        default_path = os.path.expand('~\\EMAN2\\Library\\bin')
+        default_path = os.path.expanduser('~\\EMAN2\\Library\\bin')
         print default_path
         is_path = os.path.exists(default_path)
         if is_path:
