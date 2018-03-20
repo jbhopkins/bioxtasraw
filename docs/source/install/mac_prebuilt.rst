@@ -9,6 +9,10 @@ version number) file from sourceforge (
 double click it to open the dmg, and drag the :file:`RAW.app` file to your Applications folder
 (or wherever you want to install RAW).
 
+.. raw:: html
+
+    <a href="https://sourceforge.net/projects/bioxtasraw/files/latest/download"><img alt="Download BioXTAS RAW" src="https://a.fsdn.com/con/app/sf-download-button" width=276 height=48 srcset="https://a.fsdn.com/con/app/sf-download-button?button_size=2x 2x"></a>
+
 
 **Important Notes:**
 

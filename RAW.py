@@ -23,11 +23,6 @@ Created on Sep 31, 2010
 '''
 import sys
 import os
-#This redirects the ouptut to avoid warning messages on startup. Not great
-#To have on during development, but good for user builds.
-# sys.stdout = os.devnull
-# sys.stderr = os.devnull
-
 import wx
 import subprocess
 import time
@@ -55,7 +50,12 @@ import matplotlib.colors as mplcol
 
 from collections import OrderedDict, defaultdict
 
-import SASFileIO, SASM, SASExceptions, SASImage, SASCalc, SASCalib
+import SASFileIO
+import SASM
+import SASExceptions
+import SASImage
+import SASCalc
+import SASCalib
 import RAWPlot
 import RAWImage
 import RAWOptions

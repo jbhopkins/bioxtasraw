@@ -8,6 +8,10 @@ from a prebuilt installer, simply download the :file:`RAW-{x}.{y}.{z}-win32.msi`
 `http://sourceforge.net/projects/bioxtasraw <http://sourceforge.net/projects/bioxtasraw>`_),
 and double click it to run the installer.
 
+.. raw:: html
+
+    <a href="https://sourceforge.net/projects/bioxtasraw/files/latest/download"><img alt="Download BioXTAS RAW" src="https://a.fsdn.com/con/app/sf-download-button" width=276 height=48 srcset="https://a.fsdn.com/con/app/sf-download-button?button_size=2x 2x"></a>
+
 **Important Notes:**
 
 *   Because the RAW team is an ‘unknown’ developer, you will probably see some security

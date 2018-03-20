@@ -509,7 +509,7 @@ def getATSASVersion():
         dammifDir = os.path.join(atsasDir, 'dammif')
 
     if os.path.exists(dammifDir):
-        process=subprocess.Popen('%s -v' %(dammifDir), stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True) #gnom4 doesn't do a proper -v!!! So use something else
+        process=subprocess.Popen('"%s" -v' %(dammifDir), stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True) #gnom4 doesn't do a proper -v!!! So use something else
         output, error = process.communicate()
         output = output.strip()
         error = error.strip()
@@ -599,7 +599,7 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
         if cfg:
             writeGnomCFG(fname, outname, dmax, args)
 
-            proc = subprocess.Popen('%s' %(gnomDir), shell=True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+            proc = subprocess.Popen('"%s"' %(gnomDir), shell=True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
             proc.communicate('\r\n')
 
         else:
@@ -607,7 +607,7 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
                 os.remove(os.path.join(datadir, 'gnom.cfg'))
 
             if new_gnom and use_cmd_line:
-                cmd = '%s --rmax=%s --output=%s --nr=%s' %(gnomDir, str(dmax), outname, str(args['npts']))
+                cmd = '"%s" --rmax=%s --output="%s" --nr=%s' %(gnomDir, str(dmax), outname, str(args['npts']))
 
                 if 'system' in changed:
                     cmd = cmd+' --system=%s' %(str(args['system']))
@@ -627,7 +627,7 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
                 if 'alpha' in changed:
                     cmd = cmd + ' --alpha=%s' %(str(args['alpha']))
 
-                cmd = cmd + ' %s' %(fname)
+                cmd = cmd + ' "%s"' %(fname)
 
                 proc = subprocess.Popen(cmd, shell=True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
 
@@ -637,7 +637,7 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
 
                 gnom_q = Queue.Queue()
 
-                proc = subprocess.Popen('%s' %(gnomDir), shell=True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+                proc = subprocess.Popen('"%s"' %(gnomDir), shell=True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
                 gnom_t = threading.Thread(target=enqueue_output, args=(proc.stdout, gnom_q))
                 gnom_t.daemon = True
                 gnom_t.start()
@@ -918,9 +918,9 @@ def runDatgnom(datname, sasm):
                     rg = 20
 
         if rg <= 0:
-            process=subprocess.Popen('%s %s -o %s' %(datgnomDir, datname, outname), stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+            process=subprocess.Popen('"%s" "%s" -o "%s"' %(datgnomDir, datname, outname), stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
         else:
-            process=subprocess.Popen('%s %s -o %s -r %f' %(datgnomDir, datname, outname, rg),stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+            process=subprocess.Popen('"%s" "%s" -o "%s" -r %f' %(datgnomDir, datname, outname, rg),stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
 
         output, error = process.communicate()
 
@@ -931,11 +931,11 @@ def runDatgnom(datname, sasm):
             if rg <= 0:
                 rg, rger, i0, i0er, idx_min, idx_max =autoRg(sasm)
                 if rg>10:
-                    process=subprocess.Popen('%s %s -o %s -r %f' %(datgnomDir, datname, outname, rg),stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+                    process=subprocess.Popen('"%s" "%s" -o "%s" -r %f' %(datgnomDir, datname, outname, rg),stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
 
                     output, error = process.communicate()
             else:
-                process=subprocess.Popen('%s %s -o %s' %(datgnomDir, datname, outname), stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+                process=subprocess.Popen('"%s" "%s" -o "%s"' %(datgnomDir, datname, outname), stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
 
                 output, error = process.communicate()
 
@@ -1070,7 +1070,7 @@ def runDammif(fname, prefix, args):
     if os.path.exists(dammifDir):
         if args['mode'].lower() == 'fast' or args['mode'].lower() == 'slow':
 
-            command = '%s --quiet --mode=%s --prefix=%s --unit=%s --symmetry=%s --anisometry=%s' %(dammifDir, args['mode'], prefix, args['unit'], args['sym'], args['anisometry'])
+            command = '"%s" --quiet --mode=%s --prefix="%s" --unit=%s --symmetry=%s --anisometry=%s' %(dammifDir, args['mode'], prefix, args['unit'], args['sym'], args['anisometry'])
             if args['omitSolvent']:
                 command = command + ' --omit-solvent'
             if args['chained']:
@@ -1078,8 +1078,7 @@ def runDammif(fname, prefix, args):
             if args['constant'] != '':
                 command = command + ' --constant=%s' %(args['constant'])
 
-            command = command + ' %s' %(fname)
-
+            command = command + ' "%s"' %(fname)
             process=subprocess.Popen(command, shell= True)
 
             return process
@@ -1104,7 +1103,7 @@ def runDammif(fname, prefix, args):
 
             dammifStarted = False
 
-            proc = subprocess.Popen('%s' %(dammifDir), shell = True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+            proc = subprocess.Popen('"%s"' %(dammifDir), shell = True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
             dammif_t = threading.Thread(target=enqueue_output, args=(proc.stdout, dammif_q))
             dammif_t.daemon = True
             dammif_t.start()
@@ -1271,11 +1270,10 @@ def runDamaver(flist):
 
 
     if os.path.exists(damaverDir):
-        command = '%s --automatic' %(damaverDir)
+        command = '"%s" --automatic' %(damaverDir)
 
         for item in flist:
-            command = command + ' %s' %(item)
-
+            command = command + ' "%s"' %(item)
         process=subprocess.Popen(command, shell= True, stdout = subprocess.PIPE)
 
         return process
@@ -1292,7 +1290,7 @@ def runAmbimeter(fname, prefix, args):
         ambimeterDir = os.path.join(atsasDir, 'ambimeter')
 
     if os.path.exists(ambimeterDir):
-        command = '%s --srg=%s --prefix=%s --files=%s %s' %(ambimeterDir, args['sRg'], prefix, args['files'], fname)
+        command = '"%s" --srg=%s --prefix="%s" --files=%s "%s"' %(ambimeterDir, args['sRg'], prefix, args['files'], fname)
         process=subprocess.Popen(command, shell= True, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 
         start = time.time()
@@ -1329,11 +1327,10 @@ def runDamclust(flist):
 
 
     if os.path.exists(damclustDir):
-        command = '%s' %(damclustDir)
+        command = '"%s"' %(damclustDir)
 
         for item in flist:
-            command = command + ' %s' %(item)
-
+            command = command + ' "%s"' %(item)
         process=subprocess.Popen(command, shell= True, stdout = subprocess.PIPE)
 
         return process
@@ -1366,12 +1363,12 @@ def runDammin(fname, prefix, args):
             else:
                 unit = '1'
 
-            command = '%s --mo=%s --lo=%s --un=%s --sy=%s' %(dammifDir, args['mode'], prefix, unit, args['sym'])
+            command = '"%s" --mo=%s --lo="%s" --un=%s --sy=%s' %(dammifDir, args['mode'], prefix, unit, args['sym'])
 
             if args['anisometry'] != 'Unknown':
                 command = command + ' --an=%s' %(args['anisometry'])
 
-            command = command + ' %s' %(fname)
+            command = command + ' "%s"' %(fname)
 
             process=subprocess.Popen(command, shell= True, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
 
@@ -2232,25 +2229,12 @@ def runDenss(q, I, sigq, D, prefix, path, comm_list, my_lock, thread_num_q,
     return data
 
 def runEman2Aver(flist, procs, prefix, path, emanDir):
-    #First we stack
-    if platform.system() == 'Windows':
-        t_dir = os.path.dirname(os.path.dirname(emanDir))
-        eman_python = os.path.join(t_dir, 'python.exe')
-
-        my_env = os.environ.copy()
-        my_env["PATH"] = (t_dir+';' + os.path.join(t_dir, 'Scripts')+';'
-            +emanDir+';'+my_env["PATH"])
-    else:
-        eman_python = os.path.join(emanDir, 'python')
-
-        my_env = os.environ.copy()
-        my_env["PATH"] = emanDir+':'+my_env["PATH"]
-
+    eman_python, my_env = getEman2Paths(emanDir)
 
     average_py = os.path.join(emanDir, 'e2spt_classaverage.py')
 
     if os.path.exists(average_py):
-        average_cmd = ('%s %s --input %s_stack.hdf --ref %s_reference.hdf '
+        average_cmd = ('"%s" "%s" --input %s_stack.hdf --ref %s_reference.hdf '
             '--path %s_aver --parallel thread:%i --saveali --savesteps '
             '--keep 3.0 --keepsig' %(eman_python, average_py, prefix, prefix,
                 prefix, procs))
@@ -2263,27 +2247,14 @@ def runEman2Aver(flist, procs, prefix, path, emanDir):
         return
 
 def runEman2xyz(denss_file, procs, prefix, path, emanDir):
-    #First we stack
-    if platform.system() == 'Windows':
-        t_dir = os.path.dirname(os.path.dirname(emanDir))
-        eman_python = os.path.join(t_dir, 'python.exe')
-
-        my_env = os.environ.copy()
-        my_env["PATH"] = (t_dir+';' + os.path.join(t_dir, 'Scripts')+';'
-            +emanDir+';'+my_env["PATH"])
-    else:
-        eman_python = os.path.join(emanDir, 'python')
-
-        my_env = os.environ.copy()
-        my_env["PATH"] = emanDir+':'+my_env["PATH"]
-
+    eman_python, my_env = getEman2Paths(emanDir)
 
     xyz_py = os.path.join(RAWGlobals.RAWResourcesDir, 'ali2xyz.py')
     rotate_py = os.path.join(emanDir, 'e2proc3d.py')
     stacks_py = os.path.join(emanDir, 'e2buildstacks.py')
 
     #First, align the primary file to cardinal axes
-    xyz_cmd = '%s %s %s' %(eman_python, xyz_py, denss_file)
+    xyz_cmd = '"%s" "%s" %s' %(eman_python, xyz_py, denss_file)
     xyz_proc = subprocess.Popen(xyz_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
     xyz_output, error = xyz_proc.communicate()
 
@@ -2292,43 +2263,43 @@ def runEman2xyz(denss_file, procs, prefix, path, emanDir):
     xyz_fnp = os.path.splitext(xyz_file)[0]
 
     #Then we create the set of rotations
-    rotx_cmd = ('%s %s %s %s_ali2xyz_x.hdf --process xform.flip:axis=x'
+    rotx_cmd = ('"%s" "%s" %s %s_ali2xyz_x.hdf --process xform.flip:axis=x'
         %(eman_python, rotate_py, xyz_file, df_prefix))
     rotx_proc = subprocess.Popen(rotx_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
     rotx_output, error = rotx_proc.communicate()
 
-    roty_cmd = ('%s %s %s %s_ali2xyz_y.hdf --process xform.flip:axis=y'
+    roty_cmd = ('"%s" "%s" %s %s_ali2xyz_y.hdf --process xform.flip:axis=y'
         %(eman_python, rotate_py, xyz_file, df_prefix))
     roty_proc = subprocess.Popen(roty_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
     roty_output, error = roty_proc.communicate()
 
-    rotz_cmd = ('%s %s %s %s_ali2xyz_z.hdf --process xform.flip:axis=z'
+    rotz_cmd = ('"%s" "%s" %s %s_ali2xyz_z.hdf --process xform.flip:axis=z'
         %(eman_python, rotate_py, xyz_file, df_prefix))
     rotz_proc = subprocess.Popen(rotz_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
     rotz_output, error = rotz_proc.communicate()
 
     rotx_file = '%s_x.hdf' %(xyz_fnp)
 
-    rotxy_cmd = ('%s %s %s %s_ali2xyz_xy.hdf --process xform.flip:axis=y'
+    rotxy_cmd = ('"%s" "%s" %s %s_ali2xyz_xy.hdf --process xform.flip:axis=y'
         %(eman_python, rotate_py, rotx_file, df_prefix))
     rotxy_proc = subprocess.Popen(rotxy_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
     rotxy_output, error = rotxy_proc.communicate()
 
-    rotxz_cmd = ('%s %s %s %s_ali2xyz_xz.hdf --process xform.flip:axis=z'
+    rotxz_cmd = ('"%s" "%s" %s %s_ali2xyz_xz.hdf --process xform.flip:axis=z'
         %(eman_python, rotate_py, rotx_file, df_prefix))
     rotxz_proc = subprocess.Popen(rotxz_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
     rotxz_output, error = rotxz_proc.communicate()
 
     roty_file = '%s_y.hdf' %(xyz_fnp)
 
-    rotyz_cmd = ('%s %s %s %s_ali2xyz_yz.hdf --process xform.flip:axis=z'
+    rotyz_cmd = ('"%s" "%s" %s %s_ali2xyz_yz.hdf --process xform.flip:axis=z'
         %(eman_python, rotate_py, roty_file, df_prefix))
     rotyz_proc = subprocess.Popen(rotyz_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
     rotyz_output, error = rotyz_proc.communicate()
 
     rotxy_file = '%s_xy.hdf' %(xyz_fnp)
 
-    rotxyz_cmd = ('%s %s %s %s_ali2xyz_xyz.hdf --process xform.flip:axis=z'
+    rotxyz_cmd = ('"%s" "%s" %s %s_ali2xyz_xyz.hdf --process xform.flip:axis=z'
         %(eman_python, rotate_py, rotxy_file, df_prefix))
     rotxyz_proc = subprocess.Popen(rotxyz_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
     rotxyz_output, error = rotxyz_proc.communicate()
@@ -2340,7 +2311,7 @@ def runEman2xyz(denss_file, procs, prefix, path, emanDir):
     rot_fnames = [xyz_file, rotx_file, roty_file, '%s_z.hdf' %(xyz_fnp), rotxy_file,
         '%s_xz.hdf' %(xyz_fnp), '%s_yz.hdf' %(xyz_fnp), '%s_xyz.hdf' %(xyz_fnp)]
 
-    stack_cmd = '%s %s --stackname %s_xyzstack.hdf' %(eman_python, stacks_py, df_prefix)
+    stack_cmd = '"%s" "%s" --stackname %s_xyzstack.hdf' %(eman_python, stacks_py, df_prefix)
 
     for fname in rot_fnames:
         stack_cmd = stack_cmd + ' %s' %(fname)
@@ -2351,18 +2322,7 @@ def runEman2xyz(denss_file, procs, prefix, path, emanDir):
     return xyz_output, rot_output, stacks_output, rot_fnames
 
 def runEman2Align(denss_file, procs, prefix, path, emanDir):
-    if platform.system() == 'Windows':
-        t_dir = os.path.dirname(os.path.dirname(emanDir))
-        eman_python = os.path.join(t_dir, 'python.exe')
-
-        my_env = os.environ.copy()
-        my_env["PATH"] = (t_dir+';' + os.path.join(t_dir, 'Scripts')+';'
-            +emanDir+';'+my_env["PATH"])
-    else:
-        eman_python = os.path.join(emanDir, 'python')
-
-        my_env = os.environ.copy()
-        my_env["PATH"] = emanDir+':'+my_env["PATH"]
+    eman_python, my_env = getEman2Paths(emanDir)
 
     align_py = os.path.join(emanDir, 'e2spt_align.py')
 
@@ -2375,31 +2335,20 @@ def runEman2Align(denss_file, procs, prefix, path, emanDir):
 
     os.mkdir(align_dir)
 
-    align_cmd = ('%s %s --path=%s --threads %s -v 5 %s_xyzstack.hdf %s_reference.hdf'
+    align_cmd = ('"%s" "%s" --path="%s" --threads %s -v 5 %s_xyzstack.hdf %s_reference.hdf'
         %(eman_python, align_py, align_dir, procs, df_prefix, prefix))
-
     align_process = subprocess.Popen(align_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
 
     return align_process
 
 def runEman2PreAver(flist, procs, prefix, path, emanDir):
+    eman_python, my_env = getEman2Paths(emanDir)
+
     #First we stack
     stacks_py = os.path.join(emanDir, 'e2buildstacks.py')
-    if platform.system() == 'Windows':
-        t_dir = os.path.dirname(os.path.dirname(emanDir))
-        eman_python = os.path.join(t_dir, 'python.exe')
-
-        my_env = os.environ.copy()
-        my_env["PATH"] = (t_dir+';' + os.path.join(t_dir, 'Scripts')+';'
-            +emanDir+';'+my_env["PATH"])
-    else:
-        eman_python = os.path.join(emanDir, 'python')
-
-        my_env = os.environ.copy()
-        my_env["PATH"] = emanDir+':'+my_env["PATH"]
 
     if os.path.exists(stacks_py):
-        stacks_cmd = '%s %s --stackname %s_stack.hdf' %(eman_python, stacks_py, prefix)
+        stacks_cmd = '"%s" "%s" --stackname %s_stack.hdf' %(eman_python, stacks_py, prefix)
 
         for item in flist:
             stacks_cmd = stacks_cmd + ' %s' %(item)
@@ -2412,32 +2361,21 @@ def runEman2PreAver(flist, procs, prefix, path, emanDir):
     bt_py = os.path.join(emanDir, 'e2spt_binarytree.py')
 
     if os.path.exists(bt_py):
-        bt_cmd = '%s %s --input %s_stack.hdf --path %s_bt_ref --parallel thread:%i' %(eman_python, bt_py, prefix, prefix, procs)
+        bt_cmd = '"%s" "%s" --input %s_stack.hdf --path %s_bt_ref --parallel thread:%i' %(eman_python, bt_py, prefix, prefix, procs)
         process=subprocess.Popen(bt_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
         return process, stacks_output
     else:
         return
 
 def runEman2Convert(prefix, path, emanDir):
-    if platform.system() == 'Windows':
-        t_dir = os.path.dirname(os.path.dirname(emanDir))
-        eman_python = os.path.join(t_dir, 'python.exe')
-
-        my_env = os.environ.copy()
-        my_env["PATH"] = (t_dir+';' + os.path.join(t_dir, 'Scripts')+';'
-            +emanDir+';'+my_env["PATH"])
-    else:
-        eman_python = os.path.join(emanDir, 'python')
-
-        my_env = os.environ.copy()
-        my_env["PATH"] = emanDir+':'+my_env["PATH"]
+    eman_python, my_env = getEman2Paths(emanDir)
 
     convert_py = os.path.join(emanDir, 'e2proc3d.py')
 
     aver_dir = glob.glob(os.path.join(path, '%s_aver_*' %(prefix)))[-1]
 
     if os.path.exists(convert_py):
-        convert_cmd = '%s %s final_avg_ali2ref.hdf %s_aver.mrc' %(eman_python, convert_py, prefix)
+        convert_cmd = '"%s" "%s" final_avg_ali2ref.hdf %s_aver.mrc' %(eman_python, convert_py, prefix)
 
         process=subprocess.Popen(convert_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=aver_dir)
         stacks_output, error = process.communicate()
@@ -2452,4 +2390,32 @@ def runEman2Convert(prefix, path, emanDir):
     else:
         return
 
+def getEman2Paths(emanDir):
+    #First we find a python file and get the #!
+    version_py = os.path.join(emanDir, 'e2version.py')
 
+    with open(version_py) as f:
+        eman_python=f.readline()
+
+    if eman_python.find('/') > -1:
+        eman_python = eman_python[eman_python.find('/'):].strip()
+    else:
+        eman_python = ''
+
+    my_env = os.environ.copy()
+
+    if platform.system() == 'Windows':
+        t_dir = os.path.dirname(os.path.dirname(emanDir))
+
+        my_env["PATH"] = (t_dir+';' + os.path.join(t_dir, 'Scripts')+';'
+            +emanDir+';'+my_env["PATH"])
+
+        if eman_python == '':
+            eman_python = os.path.join(t_dir, 'python.exe')
+    else:
+        my_env["PATH"] = emanDir+':'+my_env["PATH"]
+
+        if eman_python == '':
+            eman_python = os.path.join(emanDir, 'python')
+
+    return eman_python, my_env

@@ -44,7 +44,7 @@ users can do everything described in this tutorial.
 
     *   *Note:* SAXS data can't determine between enantiomers, so all this does is ensure that
         the reconstructions and averaging are done on the most similar enantiomers. There
-        is not guarantee that this matches the enantiomer in solution.
+        is no guarantee that this matches the enantiomer in solution.
 
     |denss_run_tab_png|
 

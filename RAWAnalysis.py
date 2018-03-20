@@ -2568,30 +2568,12 @@ class GNOMFrame(wx.Frame):
 
     def getGnomVersion(self):
         #Checks if we have gnom4 or gnom5
-        raw_settings = wx.FindWindowByName('MainFrame').raw_settings
-        atsasDir = raw_settings.get('ATSASDir')
+        version = SASCalc.getATSASVersion()
 
-        opsys = platform.system()
-
-        if opsys == 'Windows':
-            dammifDir = os.path.join(atsasDir, 'dammif.exe')
+        if int(version.split('.')[0]) > 2 or (int(version.split('.')[0]) == 2 and int(version.split('.')[1]) >=8):
+            self.new_gnom = True
         else:
-            dammifDir = os.path.join(atsasDir, 'dammif')
-
-        if os.path.exists(dammifDir):
-            process=subprocess.Popen('%s -v' %(dammifDir), stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True) #gnom4 doesn't do a proper -v!!! So use something else
-            output, error = process.communicate()
-            output = output.strip()
-            error = error.strip()
-
-            dammif_re = 'ATSAS\s*\d+[.]\d+[.]\d*'
-            version_match = re.search(dammif_re, output)
-            version = version_match.group().split()[-1]
-
-            if int(version.split('.')[0]) > 2 or (int(version.split('.')[0]) == 2 and int(version.split('.')[1]) >=8):
-                self.new_gnom = True
-            else:
-                self.new_gnom = False
+            self.new_gnom = False
 
     def showBusy(self, show=True):
         if show:
@@ -3930,6 +3912,7 @@ class DammifRunPanel(wx.Panel):
 
         prefix_window = wx.FindWindowById(self.ids['prefix'], self)
         prefix = prefix_window.GetValue()
+        prefix = prefix.replace(' ', '_')
 
         path_window = wx.FindWindowById(self.ids['save'], self)
         path = path_window.GetValue()
@@ -4266,7 +4249,7 @@ class DammifRunPanel(wx.Panel):
 
 
     def runDamaver(self, prefix, path):
-
+        print prefix
         read_semaphore = threading.BoundedSemaphore(1)
         #Solution for non-blocking reads adapted from stack overflow
         #http://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
@@ -4496,7 +4479,7 @@ class DammifRunPanel(wx.Panel):
 
                 prefix_window = wx.FindWindowById(self.ids['prefix'], self)
                 prefix = prefix_window.GetValue()
-
+                prefix = prefix.replace(' ', '_')
 
                 t = threading.Thread(target = self.runDamaver, args = (prefix, path))
                 t.daemon = True
@@ -4509,7 +4492,7 @@ class DammifRunPanel(wx.Panel):
 
                 prefix_window = wx.FindWindowById(self.ids['prefix'], self)
                 prefix = prefix_window.GetValue()
-
+                prefix = prefix.replace(' ', '_')
 
                 t = threading.Thread(target = self.runDamclust, args = (prefix, path))
                 t.daemon = True
@@ -4539,6 +4522,7 @@ class DammifRunPanel(wx.Panel):
 
         prefix_window = wx.FindWindowById(self.ids['prefix'], self)
         prefix = prefix_window.GetValue()
+        prefix = prefix.replace(' ', '_')
 
         path_window = wx.FindWindowById(self.ids['save'], self)
         path = path_window.GetValue()

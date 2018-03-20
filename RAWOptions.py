@@ -3951,6 +3951,7 @@ def findATSASDirectory():
     is_path = os.path.exists(default_path)
 
     if is_path:
+        print 'here'
         return default_path
 
     if opsys == 'Windows':
@@ -3966,6 +3967,7 @@ def findATSASDirectory():
         atsas_path = output[0].strip()
 
     if atsas_path != '':
+        print 'here2'
         return os.path.dirname(atsas_path)
 
     try:
@@ -3981,7 +3983,8 @@ def findATSASDirectory():
 
         for item in split_path:
             if item.lower().find('atsas') > -1 and item.lower().find('bin') > -1:
-                return item
+                if os.path.exists(item):
+                    return item
 
 
     try:
@@ -3997,7 +4000,6 @@ def findATSASDirectory():
                 return atsas_path
             else:
                 if os.path.exists(os.path.join(atsas_path, 'bin')):
-                    if os.path.exists(item):
                         return os.path.join(atsas_path, 'bin')
 
     return ''
@@ -4013,14 +4015,12 @@ def findEMANDirectory():
     is_path = os.path.exists(default_path)
 
     if is_path:
-        print 'returning here'
         return default_path
 
     if opsys == 'Windows':
         default_path = os.path.expanduser('~\\EMAN2\\Library\\bin')
         is_path = os.path.exists(default_path)
         if is_path:
-            print 'here2'
             return default_path
 
     if opsys == 'Windows':
@@ -4033,7 +4033,6 @@ def findEMANDirectory():
         program_path = output[0].strip()
 
     if program_path != '':
-        print 'here3'
         return os.path.dirname(program_path)
 
     try:
