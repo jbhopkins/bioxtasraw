@@ -2383,7 +2383,7 @@ class MainWorkerThread(threading.Thread):
             filename = empty_filename
             empty_sasm, img = SASFileIO.loadFile(filename, self._raw_settings, no_processing = True)
         except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat):
-            self._showDataFormatError(os.path.split(filename)[1])
+            wx.CallAfter(self._showDataFormatError, os.path.split(filename)[1])
             wx.CallAfter(self.main_frame.closeBusyDialog)
             question_return_queue.put(None)
             return
@@ -2443,7 +2443,7 @@ class MainWorkerThread(threading.Thread):
             try:
                 carbon_sasm, img = SASFileIO.loadFile(carbon_file, self._raw_settings, no_processing=True)
             except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat):
-                self._showDataFormatError(os.path.split(carbon_file)[1])
+                wx.CallAfter(self._showDataFormatError, os.path.split(carbon_file)[1])
                 question_return_queue.put(None)
                 return
 
@@ -2464,7 +2464,7 @@ class MainWorkerThread(threading.Thread):
                 carbon_sasm, img = SASFileIO.loadFile(carbon_file, self._raw_settings, no_processing=True)
                 bkg_sasm, img = SASFileIO.loadFile(carbon_bkg_file, self._raw_settings, no_processing=True)
             except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat):
-                self._showDataFormatError(os.path.split(carbon_file)[1] + ' or ' + os.path.split(carbon_bkg_file)[1])
+                wx.CallAfter(self._showDataFormatError, os.path.split(carbon_file)[1] + ' or ' + os.path.split(carbon_bkg_file)[1])
                 question_return_queue.put(None)
                 return
 
@@ -2668,7 +2668,7 @@ class MainWorkerThread(threading.Thread):
                     try:
                         secm = SASFileIO.loadSECFile(each_filename)
                     except Exception as e:
-                        self._showDataFormatError(os.path.split(each_filename)[1], include_sec = True)
+                        wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_sec = True)
                         wx.CallAfter(self.main_frame.closeBusyDialog)
                         return
                     secm_list.append(secm)
@@ -2745,7 +2745,7 @@ class MainWorkerThread(threading.Thread):
                 self._sendSECMToPlot(secm_list, no_update = True, update_legend = False)
 
         except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
-            self._showDataFormatError(os.path.split(each_filename)[1])
+            wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1])
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
         except SASExceptions.HeaderLoadError, msg:
@@ -2822,7 +2822,7 @@ class MainWorkerThread(threading.Thread):
                 try:
                     secm = SASFileIO.loadSECFile(each_filename)
                 except:
-                    self._showDataFormatError(os.path.split(each_filename)[1],include_sec=True)
+                    wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1],include_sec=True)
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                     return
 
@@ -2855,7 +2855,7 @@ class MainWorkerThread(threading.Thread):
                         sasm_list.append(sasm)
 
             except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
-                self._showSECFormatError(os.path.split(each_filename)[1])
+                wx.CallAfter(self._showSECFormatError, os.path.split(each_filename)[1])
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
             except SASExceptions.HeaderLoadError, msg:
@@ -3505,7 +3505,7 @@ class MainWorkerThread(threading.Thread):
                 raise SASExceptions.WrongImageFormat('not a valid file!')
 
         except SASExceptions.WrongImageFormat:
-            self._showDataFormatError(os.path.split(filename)[1], include_ascii = False)
+            wx.CallAfter(self._showDataFormatError, os.path.split(filename)[1], include_ascii = False)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
 
@@ -3768,9 +3768,9 @@ class MainWorkerThread(threading.Thread):
 
                             processed_files += 1
                         else:
-                            self._showDataFormatError(os.path.split(each_filename)[1], include_ascii = False)
+                            wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_ascii = False)
                     except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat):
-                        self._showDataFormatError(os.path.split(each_filename)[1], include_ascii = False)
+                        wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_ascii = False)
                     except SASExceptions.HeaderLoadError, msg:
                         wx.CallAfter(wx.MessageBox, str(msg)+' Could not find the header file. Skipping this file and proceeding.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
                     except SASExceptions.AbsScaleNormFailed:
@@ -3804,9 +3804,9 @@ class MainWorkerThread(threading.Thread):
 
                         processed_files += 1
                     else:
-                        self._showDataFormatError(os.path.split(each_filename)[1], include_ascii = False)
+                        wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_ascii = False)
                 except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat):
-                    self._showDataFormatError(os.path.split(each_filename)[1], include_ascii = False)
+                    wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_ascii = False)
                 except SASExceptions.HeaderLoadError, msg:
                     wx.CallAfter(wx.MessageBox, str(msg)+' Could not find the header file. Skipping this file and proceeding.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
                 except SASExceptions.AbsScaleNormFailed:
@@ -10178,7 +10178,7 @@ class SECControlPanel(wx.Panel):
             self._goOffline()
             self.online_mode_button.SetValue(False)
             if error == 'file':
-                self._showDataFormatError(os.path.split(name)[1])
+                wx.CallAfter(self._showDataFormatError, os.path.split(name)[1])
             elif error == 'header':
                 wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic series updating turned off.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
             elif error == 'mask':
