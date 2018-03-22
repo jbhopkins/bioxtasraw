@@ -2229,15 +2229,19 @@ def runDenss(q, I, sigq, D, prefix, path, comm_list, my_lock, thread_num_q,
     return data
 
 def runEman2Aver(flist, procs, prefix, path, emanDir):
-    eman_python, my_env = getEman2Paths(emanDir)
+    eman_python, my_env, shebang_env = getEman2Paths(emanDir)
+
+    if shebang_env:
+        py_cmd = '%s ' %(eman_python)
+    else:
+        py_cmd = '"%s" ' %(eman_python)
 
     average_py = os.path.join(emanDir, 'e2spt_classaverage.py')
 
     if os.path.exists(average_py):
-        average_cmd = ('"%s" "%s" --input "%s_stack.hdf" --ref "%s_reference.hdf" '
+        average_cmd = py_cmd + ('"%s" --input "%s_stack.hdf" --ref "%s_reference.hdf" '
             '--path "%s_aver" --parallel thread:%i --saveali --savesteps '
-            '--keep 3.0 --keepsig' %(eman_python, average_py, prefix, prefix,
-                prefix, procs))
+            '--keep 3.0 --keepsig' %(average_py, prefix, prefix, prefix, procs))
 
         if len(flist) < 4:
             average_cmd = average_cmd + ' --goldstandardoff'
@@ -2247,14 +2251,19 @@ def runEman2Aver(flist, procs, prefix, path, emanDir):
         return
 
 def runEman2xyz(denss_file, procs, prefix, path, emanDir):
-    eman_python, my_env = getEman2Paths(emanDir)
+    eman_python, my_env, shebang_env = getEman2Paths(emanDir)
+
+    if shebang_env:
+        py_cmd = '%s ' %(eman_python)
+    else:
+        py_cmd = '"%s" ' %(eman_python)
 
     xyz_py = os.path.join(RAWGlobals.RAWResourcesDir, 'ali2xyz.py')
     rotate_py = os.path.join(emanDir, 'e2proc3d.py')
     stacks_py = os.path.join(emanDir, 'e2buildstacks.py')
 
     #First, align the primary file to cardinal axes
-    xyz_cmd = '"%s" "%s" "%s"' %(eman_python, xyz_py, denss_file)
+    xyz_cmd = py_cmd + '"%s" "%s"' %(xyz_py, denss_file)
     xyz_proc = subprocess.Popen(xyz_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
     xyz_output, error = xyz_proc.communicate()
 
@@ -2263,44 +2272,44 @@ def runEman2xyz(denss_file, procs, prefix, path, emanDir):
     xyz_fnp = os.path.splitext(xyz_file)[0]
 
     #Then we create the set of rotations
-    rotx_cmd = ('"%s" "%s" "%s" "%s_ali2xyz_x.hdf" --process xform.flip:axis=x'
-        %(eman_python, rotate_py, xyz_file, df_prefix))
+    rotx_cmd = py_cmd + ('"%s" "%s" "%s_ali2xyz_x.hdf" --process xform.flip:axis=x'
+        %(rotate_py, xyz_file, df_prefix))
     rotx_proc = subprocess.Popen(rotx_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
     rotx_output, error = rotx_proc.communicate()
 
-    roty_cmd = ('"%s" "%s" "%s" "%s_ali2xyz_y.hdf" --process xform.flip:axis=y'
-        %(eman_python, rotate_py, xyz_file, df_prefix))
+    roty_cmd = py_cmd + ('"%s" "%s" "%s_ali2xyz_y.hdf" --process xform.flip:axis=y'
+        %(rotate_py, xyz_file, df_prefix))
     roty_proc = subprocess.Popen(roty_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
     roty_output, error = roty_proc.communicate()
 
-    rotz_cmd = ('"%s" "%s" "%s" "%s_ali2xyz_z.hdf" --process xform.flip:axis=z'
-        %(eman_python, rotate_py, xyz_file, df_prefix))
+    rotz_cmd = py_cmd + ('"%s" "%s" "%s_ali2xyz_z.hdf" --process xform.flip:axis=z'
+        %(rotate_py, xyz_file, df_prefix))
     rotz_proc = subprocess.Popen(rotz_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
     rotz_output, error = rotz_proc.communicate()
 
     rotx_file = '%s_x.hdf' %(xyz_fnp)
 
-    rotxy_cmd = ('"%s" "%s" "%s" "%s_ali2xyz_xy.hdf" --process xform.flip:axis=y'
-        %(eman_python, rotate_py, rotx_file, df_prefix))
+    rotxy_cmd = py_cmd + ('"%s" "%s" "%s_ali2xyz_xy.hdf" --process xform.flip:axis=y'
+        %(rotate_py, rotx_file, df_prefix))
     rotxy_proc = subprocess.Popen(rotxy_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
     rotxy_output, error = rotxy_proc.communicate()
 
-    rotxz_cmd = ('"%s" "%s" "%s" "%s_ali2xyz_xz.hdf" --process xform.flip:axis=z'
-        %(eman_python, rotate_py, rotx_file, df_prefix))
+    rotxz_cmd = py_cmd + ('"%s" "%s" "%s_ali2xyz_xz.hdf" --process xform.flip:axis=z'
+        %(rotate_py, rotx_file, df_prefix))
     rotxz_proc = subprocess.Popen(rotxz_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
     rotxz_output, error = rotxz_proc.communicate()
 
     roty_file = '%s_y.hdf' %(xyz_fnp)
 
-    rotyz_cmd = ('"%s" "%s" "%s" "%s_ali2xyz_yz.hdf" --process xform.flip:axis=z'
-        %(eman_python, rotate_py, roty_file, df_prefix))
+    rotyz_cmd = py_cmd + ('"%s" "%s" "%s_ali2xyz_yz.hdf" --process xform.flip:axis=z'
+        %(rotate_py, roty_file, df_prefix))
     rotyz_proc = subprocess.Popen(rotyz_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
     rotyz_output, error = rotyz_proc.communicate()
 
     rotxy_file = '%s_xy.hdf' %(xyz_fnp)
 
-    rotxyz_cmd = ('"%s" "%s" "%s" "%s_ali2xyz_xyz.hdf" --process xform.flip:axis=z'
-        %(eman_python, rotate_py, rotxy_file, df_prefix))
+    rotxyz_cmd = py_cmd + ('"%s" "%s" "%s_ali2xyz_xyz.hdf" --process xform.flip:axis=z'
+        %(rotate_py, rotxy_file, df_prefix))
     rotxyz_proc = subprocess.Popen(rotxyz_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
     rotxyz_output, error = rotxyz_proc.communicate()
 
@@ -2311,7 +2320,7 @@ def runEman2xyz(denss_file, procs, prefix, path, emanDir):
     rot_fnames = [xyz_file, rotx_file, roty_file, '%s_z.hdf' %(xyz_fnp), rotxy_file,
         '%s_xz.hdf' %(xyz_fnp), '%s_yz.hdf' %(xyz_fnp), '%s_xyz.hdf' %(xyz_fnp)]
 
-    stack_cmd = '"%s" "%s" --stackname "%s_xyzstack.hdf"' %(eman_python, stacks_py, df_prefix)
+    stack_cmd = py_cmd + '"%s" --stackname "%s_xyzstack.hdf"' %(stacks_py, df_prefix)
 
     for fname in rot_fnames:
         stack_cmd = stack_cmd + ' "%s"' %(fname)
@@ -2322,7 +2331,12 @@ def runEman2xyz(denss_file, procs, prefix, path, emanDir):
     return xyz_output, rot_output, stacks_output, rot_fnames
 
 def runEman2Align(denss_file, procs, prefix, path, emanDir):
-    eman_python, my_env = getEman2Paths(emanDir)
+    eman_python, my_env, shebang_env = getEman2Paths(emanDir)
+
+    if shebang_env:
+        py_cmd = '%s ' %(eman_python)
+    else:
+        py_cmd = '"%s" ' %(eman_python)
 
     align_py = os.path.join(emanDir, 'e2spt_align.py')
 
@@ -2335,23 +2349,29 @@ def runEman2Align(denss_file, procs, prefix, path, emanDir):
 
     os.mkdir(align_dir)
 
-    align_cmd = ('"%s" "%s" --path="%s" --threads %s -v 5 "%s_xyzstack.hdf" "%s_reference.hdf"'
-        %(eman_python, align_py, align_dir, procs, df_prefix, prefix))
+    align_cmd = py_cmd + ('"%s" --path="%s" --threads %s -v 5 "%s_xyzstack.hdf" "%s_reference.hdf"'
+        %(align_py, align_dir, procs, df_prefix, prefix))
     align_process = subprocess.Popen(align_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
 
     return align_process
 
 def runEman2PreAver(flist, procs, prefix, path, emanDir):
-    eman_python, my_env = getEman2Paths(emanDir)
+    eman_python, my_env, shebang_env = getEman2Paths(emanDir)
 
     #First we stack
     stacks_py = os.path.join(emanDir, 'e2buildstacks.py')
 
+    if shebang_env:
+        py_cmd = '%s ' %(eman_python)
+    else:
+        py_cmd = '"%s" ' %(eman_python)
+
     if os.path.exists(stacks_py):
-        stacks_cmd = '"%s" "%s" --stackname "%s_stack.hdf"' %(eman_python, stacks_py, prefix)
+        stacks_cmd = py_cmd + '"%s" --stackname "%s_stack.hdf"' %(stacks_py, prefix)
 
         for item in flist:
             stacks_cmd = stacks_cmd + ' "%s"' %(item)
+
         process=subprocess.Popen(stacks_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
         stacks_output, error = process.communicate()
     else:
@@ -2361,21 +2381,27 @@ def runEman2PreAver(flist, procs, prefix, path, emanDir):
     bt_py = os.path.join(emanDir, 'e2spt_binarytree.py')
 
     if os.path.exists(bt_py):
-        bt_cmd = '"%s" "%s" --input "%s_stack.hdf" --path "%s_bt_ref" --parallel thread:%i' %(eman_python, bt_py, prefix, prefix, procs)
+        bt_cmd = py_cmd + '"%s" --input "%s_stack.hdf" --path "%s_bt_ref" --parallel thread:%i' %(bt_py, prefix, prefix, procs)
+
         process=subprocess.Popen(bt_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
         return process, stacks_output
     else:
         return
 
 def runEman2Convert(prefix, path, emanDir):
-    eman_python, my_env = getEman2Paths(emanDir)
+    eman_python, my_env, shebang_env = getEman2Paths(emanDir)
 
     convert_py = os.path.join(emanDir, 'e2proc3d.py')
 
     aver_dir = glob.glob(os.path.join(path, '%s_aver_*' %(prefix)))[-1]
 
+    if shebang_env:
+        py_cmd = '%s ' %(eman_python)
+    else:
+        py_cmd = '"%s" ' %(eman_python)
+
     if os.path.exists(convert_py):
-        convert_cmd = '"%s" "%s" final_avg_ali2ref.hdf "%s_aver.mrc"' %(eman_python, convert_py, prefix)
+        convert_cmd = py_cmd + '"%s" final_avg_ali2ref.hdf "%s_aver.mrc"' %(convert_py, prefix)
 
         process=subprocess.Popen(convert_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=aver_dir)
         stacks_output, error = process.communicate()
@@ -2418,4 +2444,12 @@ def getEman2Paths(emanDir):
         if eman_python == '':
             eman_python = os.path.join(emanDir, 'python')
 
-    return eman_python, my_env
+    if eman_python.find(' ') > -1:
+        if eman_python.split()[0].find('/env') > -1 and eman_python.split()[-1].find('python') > -1:
+            shebang_env = True
+        else:
+            shebang_env = False
+    else:
+        shebang_env = False
+
+    return eman_python, my_env, shebang_env
