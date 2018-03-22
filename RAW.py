@@ -2403,7 +2403,7 @@ class MainWorkerThread(threading.Thread):
             abs_scale_constant = SASM.calcAbsoluteScaleWaterConst(water_sasm, empty_sasm, waterI0, self._raw_settings)
         except SASExceptions.DataNotCompatible:
             wx.CallAfter(self.main_frame.closeBusyDialog)
-            self._showSubtractionError(water_sasm, empty_sasm)
+            wx.CallAfter(self._showSubtractionError, water_sasm, empty_sasm)
             question_return_queue.put(None)
             return
 
@@ -2499,7 +2499,7 @@ class MainWorkerThread(threading.Thread):
                             carbon_ctr_ups_val, carbon_ctr_dns_val, bkg_ctr_ups_val,
                             bkg_ctr_dns_val)
         except SASExceptions.DataNotCompatible:
-            self._showSubtractionError(carbon_sasm, bkg_sasm)
+            wx.CallAfter(self._showSubtractionError, carbon_sasm, bkg_sasm)
             question_return_queue.put(None)
             return
 
@@ -2565,9 +2565,8 @@ class MainWorkerThread(threading.Thread):
         RAWGlobals.save_in_progress = True
         wx.CallAfter(self.main_frame.setStatus, 'Saving mask', 0)
 
-        file_obj = open(fullpath_filename, 'w')
-        cPickle.dump(masks, file_obj)
-        file_obj.close()
+        with open(fullpath_filename, 'w') as file_obj:
+            cPickle.dump(masks, file_obj)
 
         RAWGlobals.save_in_progress = False
         wx.CallAfter(self.main_frame.setStatus, '', 0)
@@ -2595,7 +2594,7 @@ class MainWorkerThread(threading.Thread):
 
                 plot_param = self.image_panel.getPlotParameters()
                 plot_param['storedMasks'].extend(masks)
-                self.image_panel.setPlotParameters(plot_param)
+                wx.CallAfter(self.image_panel.setPlotParameters, plot_param)
 
                 #Plot mask on load:
 #                parameters = {'filename' : os.path.split(filenamepath)[1],
@@ -3009,7 +3008,7 @@ class MainWorkerThread(threading.Thread):
             try:
                 buffer_avg_sasm = SASM.average(buffer_sasm_list)
             except SASExceptions.DataNotCompatible:
-                self._showAverageError(1)
+                wx.CallAfter(self._showAverageError, 1)
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 secm.releaseSemaphore()
                 return
@@ -3089,7 +3088,7 @@ class MainWorkerThread(threading.Thread):
 
                         subtracted_sasm_list.append(subtracted_sasm)
                 except SASExceptions.DataNotCompatible:
-                   self._showSubtractionError(sasm, sub_sasm)
+                   wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
                    wx.CallAfter(self.main_frame.closeBusyDialog)
                    secm.releaseSemaphore()
                    return
@@ -3101,7 +3100,7 @@ class MainWorkerThread(threading.Thread):
 
                     subtracted_sasm_list.append(subtracted_sasm)
                 except SASExceptions.DataNotCompatible:
-                   self._showSubtractionError(sasm, sub_sasm)
+                   wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
                    wx.CallAfter(self.main_frame.closeBusyDialog)
                    secm.releaseSemaphore()
                    return
@@ -3113,7 +3112,7 @@ class MainWorkerThread(threading.Thread):
 
                     subtracted_sasm_list.append(subtracted_sasm)
                 except SASExceptions.DataNotCompatible:
-                   self._showSubtractionError(sasm, sub_sasm)
+                   wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
                    wx.CallAfter(self.main_frame.closeBusyDialog)
                    secm.releaseSemaphore()
                    return
@@ -3158,7 +3157,7 @@ class MainWorkerThread(threading.Thread):
                     try:
                         current_sasm = SASM.average(current_sasm_list)
                     except SASExceptions.DataNotCompatible:
-                        self._showAverageError(1)
+                        wx.CallAfter(self._showAverageError, 1)
                         wx.CallAfter(self.main_frame.closeBusyDialog)
                         secm.releaseSemaphore()
                         return
@@ -3309,7 +3308,7 @@ class MainWorkerThread(threading.Thread):
 
                         subtracted_sasm_list.append(subtracted_sasm)
                 except SASExceptions.DataNotCompatible:
-                    self._showSubtractionError(sasm, sub_sasm)
+                    wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
                     try:
                         wx.CallAfter(self.main_frame.closeBusyDialog)
                     except Exception:
@@ -3323,7 +3322,7 @@ class MainWorkerThread(threading.Thread):
 
                     subtracted_sasm_list.append(subtracted_sasm)
                 except SASExceptions.DataNotCompatible:
-                    self._showSubtractionError(sasm, sub_sasm)
+                    wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
                     try:
                         wx.CallAfter(self.main_frame.closeBusyDialog)
                     except Exception:
@@ -3337,7 +3336,7 @@ class MainWorkerThread(threading.Thread):
 
                     subtracted_sasm_list.append(subtracted_sasm)
                 except SASExceptions.DataNotCompatible:
-                    self._showSubtractionError(sasm, sub_sasm)
+                    wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
                     try:
                         wx.CallAfter(self.main_frame.closeBusyDialog)
                     except Exception:
@@ -3383,7 +3382,7 @@ class MainWorkerThread(threading.Thread):
                     try:
                         current_sasm = SASM.average(current_sasm_list)
                     except SASExceptions.DataNotCompatible:
-                        self._showAverageError(1)
+                        wx.CallAfter(self._showAverageError, 1)
                         try:
                             wx.CallAfter(self.main_frame.closeBusyDialog)
                         except Exception:
@@ -3764,7 +3763,7 @@ class MainWorkerThread(threading.Thread):
                             try:
                                 SASFileIO.saveMeasurement(sasm, final_save_path, self._raw_settings)
                             except SASExceptions.HeaderSaveError:
-                                self._showSaveError('header')
+                                wx.CallAfter(self._showSaveError, 'header')
 
                             processed_files += 1
                         else:
@@ -3800,7 +3799,7 @@ class MainWorkerThread(threading.Thread):
                         try:
                             SASFileIO.saveMeasurement(sasm, save_path, self._raw_settings)
                         except SASExceptions.HeaderSaveError:
-                            self._showSaveError('header')
+                            wx.CallAfter(self._showSaveError, 'header')
 
                         processed_files += 1
                     else:
@@ -3817,7 +3816,7 @@ class MainWorkerThread(threading.Thread):
                             'Skipping this file and proceeding.') %(os.path.split(each_filename)[1])
                     wx.CallAfter(wx.MessageBox, msg, 'Absolute scale failed', style = wx.ICON_ERROR | wx.OK)
 
-        self._showQuickReduceFinished(processed_files, len(filename_list))
+        wx.CallAfter(self._showQuickReduceFinished, processed_files, len(filename_list))
 
 
     def _superimposeItems(self, data):
@@ -3857,7 +3856,7 @@ class MainWorkerThread(threading.Thread):
         SASM.superimpose(star_item.getSASM(), selected_sasms, choice)
 
         for each_item in selected_items:
-            each_item.updateControlsFromSASM(updatePlot=False)
+            wx.CallAfter(each_item.updateControlsFromSASM, updatePlot=False)
 
         wx.CallAfter(self.plot_panel.updatePlotAfterManipulation, selected_sasms)
 
@@ -3876,11 +3875,11 @@ class MainWorkerThread(threading.Thread):
             selected_items.remove(marked_item)
 
         if marked_item == None:
-            self._showPleaseMarkItemError('subtract')
+            wx.CallAfter(self._showPleaseMarkItemError, 'subtract')
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
         elif len(selected_items) == 0:
-            self._showPleaseSelectItemsError('subtract')
+            wx.CallAfter(self._showPleaseSelectItemsError, 'subtract')
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
 
@@ -3926,7 +3925,7 @@ class MainWorkerThread(threading.Thread):
                                 wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutosave of subtracted images has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
                 except SASExceptions.DataNotCompatible:
-                   self._showSubtractionError(sasm, sub_sasm)
+                   wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
                    wx.CallAfter(self.main_frame.closeBusyDialog)
                    return
             elif np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and yes_to_all:
@@ -3947,7 +3946,7 @@ class MainWorkerThread(threading.Thread):
                             wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutosave of subtracted images has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
                 except SASExceptions.DataNotCompatible:
-                   self._showSubtractionError(sasm, sub_sasm)
+                   wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
                    wx.CallAfter(self.main_frame.closeBusyDialog)
                    return
             else:
@@ -3968,7 +3967,7 @@ class MainWorkerThread(threading.Thread):
                             wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutosave of subtracted images has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
                 except SASExceptions.DataNotCompatible:
-                   self._showSubtractionError(sasm, sub_sasm)
+                   wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
                    wx.CallAfter(self.main_frame.closeBusyDialog)
                    return
 
@@ -3993,7 +3992,7 @@ class MainWorkerThread(threading.Thread):
         profiles_to_use = wx.ID_YESTOALL
 
         if len(item_list) < 2:
-            self._showAverageError(2)
+            wx.CallAfter(self._showAverageError, 2)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
 
@@ -4011,7 +4010,7 @@ class MainWorkerThread(threading.Thread):
             for index, sasm in enumerate(sasm_list[1:]):
                 qi, qf = sasm.getQrange()
                 if not np.all(np.round(sasm.q[qi:qf], 5) == np.round(ref_sasm.q[qi_ref:qf_ref], 5)):
-                    self._showAverageError(3)
+                    wx.CallAfter(self._showAverageError, 3)
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                     return
 
@@ -4042,7 +4041,7 @@ class MainWorkerThread(threading.Thread):
                 avg_sasm = SASM.average(reduced_sasm_list)
 
         except SASExceptions.DataNotCompatible:
-            self._showAverageError(3)
+            wx.CallAfter(self._showAverageError, 3)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
 
@@ -4068,14 +4067,14 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while averaging and sending to main plot...')
 
         if len(sasm_list) < 2:
-            self._showAverageError(2)
+            wx.CallAfter(self._showAverageError, 2)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
 
         try:
             avg_sasm = SASM.average(sasm_list)
         except SASExceptions.DataNotCompatible:
-            self._showAverageError(1)
+            wx.CallAfter(self._showAverageError, 1)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
 
@@ -4130,7 +4129,7 @@ class MainWorkerThread(threading.Thread):
         try:
             avg_sasm = SASM.weightedAverage(sasm_list, weightByError, weightCounter)
         except SASExceptions.DataNotCompatible:
-            self._showAverageError(3)
+            wx.CallAfter(self._showAverageError, 3)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
 
@@ -4187,7 +4186,7 @@ class MainWorkerThread(threading.Thread):
             selected_items.pop(idx)
 
         if marked_item == None:
-            self._showPleaseMarkItemError('merge')
+            wx.CallAfter(self._showPleaseMarkItemError, 'merge')
             return
 
         marked_sasm = marked_item.getSASM()
@@ -4212,7 +4211,7 @@ class MainWorkerThread(threading.Thread):
             selected_items.pop(idx)
 
         if marked_item == None:
-            self._showPleaseMarkItemError('interpolate')
+            wx.CallAfter(self._showPleaseMarkItemError, 'interpolate')
             return
 
         marked_sasm = marked_item.getSASM()
@@ -4257,13 +4256,13 @@ class MainWorkerThread(threading.Thread):
         try:
             SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
         except SASExceptions.HeaderSaveError:
-            self._showSaveError('header')
+            wx.CallAfter(self._showSaveError, 'header')
 
         RAWGlobals.save_in_progress = False
         wx.CallAfter(self.main_frame.setStatus, '', 0)
 
         if restart_timer:
-            self.main_frame.OnlineControl.updateSkipList([check_filename])
+            wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [check_filename])
             wx.CallAfter(self.main_frame.controlTimer, True)
 
 
@@ -4299,13 +4298,13 @@ class MainWorkerThread(threading.Thread):
         try:
             SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
         except SASExceptions.HeaderSaveError:
-            self._showSaveError('header')
+            wx.CallAfter(self._showSaveError, 'header')
 
         RAWGlobals.save_in_progress = False
         wx.CallAfter(self.main_frame.setStatus, '', 0)
 
         if restart_timer:
-            self.main_frame.OnlineControl.updateSkipList([check_filename])
+            wx.CallAFter(self.main_frame.OnlineControl.updateSkipList, [check_filename])
             wx.CallAfter(self.main_frame.controlTimer, True)
 
 
@@ -4339,7 +4338,7 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.main_frame.setStatus, '', 0)
 
         if restart_timer:
-            self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path)[1]])
+            wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [os.path.split(save_path)[1]])
             wx.CallAfter(self.main_frame.controlTimer, True)
 
     def _saveAllAnalysisInfo(self, data):
@@ -4361,7 +4360,7 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.main_frame.setStatus, '', 0)
 
         if restart_timer:
-            self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path)[1]])
+            wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [os.path.split(save_path)[1]])
             wx.CallAfter(self.main_frame.controlTimer, True)
 
 
@@ -4499,7 +4498,7 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.main_frame.setStatus, '', 0)
 
         if restart_timer:
-            self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path)[1]])
+            wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [os.path.split(save_path)[1]])
             wx.CallAfter(self.main_frame.controlTimer, True)
 
     def _loadWorkspace(self, data):
@@ -4832,7 +4831,7 @@ class MainWorkerThread(threading.Thread):
 
 
             if restart_timer:
-                self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path[b])[1]])
+                wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [os.path.split(save_path[b])[1]])
 
         wx.CallAfter(secm.item_panel.parent.Refresh)
         wx.CallAfter(secm.item_panel.parent.Layout)
@@ -4901,7 +4900,7 @@ class MainWorkerThread(threading.Thread):
                         try:
                             SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
                         except SASExceptions.HeaderSaveError:
-                            self._showSaveError('header')
+                            wx.CallAfter(self._showSaveError, 'header')
                         filename, ext = os.path.splitext(sasm.getParameter('filename'))
                         sasm.setParameter('filename', filename + newext)
 
@@ -4915,12 +4914,12 @@ class MainWorkerThread(threading.Thread):
                 try:
                     SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
                 except SASExceptions.HeaderSaveError:
-                    self._showSaveError('header')
+                    wx.CAllAfter(self._showSaveError, 'header')
                 filename, ext = os.path.splitext(sasm.getParameter('filename'))
                 sasm.setParameter('filename', filename + newext)
 
             if restart_timer:
-                self.main_frame.OnlineControl.updateSkipList([check_filename])
+                wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [check_filename])
 
         RAWGlobals.save_in_progress = False
         wx.CallAfter(self.main_frame.setStatus, '', 0)
@@ -5059,7 +5058,7 @@ class MainWorkerThread(threading.Thread):
                     axes_update_list.append(sasm.axes)
 
             if restart_timer:
-                self.main_frame.OnlineControl.updateSkipList([check_filename])
+                wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [check_filename])
 
         wx.CallAfter(sasm.item_panel.parent.Refresh)
         wx.CallAfter(sasm.item_panel.parent.Layout)
@@ -10633,7 +10632,7 @@ class SECControlPanel(wx.Panel):
 
         if bad_file_list:
             for frame in bad_file_list:
-                modified_frame_list.pop(self.modified_frame_list.index(frame))
+                modified_frame_list.pop(modified_frame_list.index(frame))
 
         return file_list, modified_frame_list
 

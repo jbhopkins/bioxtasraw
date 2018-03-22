@@ -3951,7 +3951,6 @@ def findATSASDirectory():
     is_path = os.path.exists(default_path)
 
     if is_path:
-        print 'here'
         return default_path
 
     if opsys == 'Windows':
@@ -3967,7 +3966,6 @@ def findATSASDirectory():
         atsas_path = output[0].strip()
 
     if atsas_path != '':
-        print 'here2'
         return os.path.dirname(atsas_path)
 
     try:
