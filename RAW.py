@@ -2432,7 +2432,7 @@ class MainWorkerThread(threading.Thread):
                     cal_err = RAWSettings.glassy_carbon_cal[2]
                     msg = ('Cannot read data in selected calibration file, will'
                         ' use default calibration curve instead.')
-                    wx.CallAfter(wx.MessageBox, msg, 'Invalid Calibration File')
+                    wx.CallAfter(self._showGenericError, msg, 'Invalid Calibration File')
         else:
             cal_q = RAWSettings.glassy_carbon_cal[0]
             cal_i = RAWSettings.glassy_carbon_cal[1]
@@ -2571,10 +2571,6 @@ class MainWorkerThread(threading.Thread):
         RAWGlobals.save_in_progress = False
         wx.CallAfter(self.main_frame.setStatus, '', 0)
 
-        #wx.CallAfter(wx.MessageBox, 'The mask has been saved.', 'Mask Saved')
-        # img_dim = self.image_panel.img.shape
-        #wx.CallAfter(RAWImage.showUseMaskDialog, fullpath_filename, img_dim)
-
 
     def _loadMaskFile(self, data):
             wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while loading and creating mask...')
@@ -2642,11 +2638,11 @@ class MainWorkerThread(threading.Thread):
         mask_param[1] = masks
 
         wx.CallAfter(self.main_frame.closeBusyDialog)
-        wx.CallAfter(wx.MessageBox, 'The mask has been created and enabled.', 'Mask creation finished', style = wx.ICON_INFORMATION)
+        wx.CallAfter(self._showGenericMsg, 'The mask has been created and enabled.', 'Mask creation finished')
 
     def _loadAndPlot(self, filename_list):
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while plotting...')
-        print 'in loadandplot'
+
         loaded_secm = False
         loaded_sasm = False
         loaded_iftm = False
@@ -2717,7 +2713,13 @@ class MainWorkerThread(threading.Thread):
                         except IOError, e:
                             self._raw_settings.set('AutoSaveOnImageFiles', False)
                             do_auto_save = False
-                            wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutosave of processed images has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+                            msg = (str(e) + '\n\nAutosave of processed images '
+                                'has been disabled. If you are using a config '
+                                'file from a different computer please go into '
+                                'Advanced Options/Autosave to change the save '
+                                'folders, or save you config file to avoid this '
+                                'message next time.')
+                            wx.CallAfter(wx._showGenericError, msg, 'Autosave Error')
 
                 if np.mod(i,20) == 0:
                     if loaded_sasm:
@@ -2752,11 +2754,11 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
         except SASExceptions.MaskSizeError, msg:
-            wx.CallAfter(wx.MessageBox, str(msg), 'Saved mask does not fit loaded image', style = wx.ICON_ERROR)
+            wx.CallAfter(self._showGenericError, str(msg), 'Saved mask does not fit loaded image')
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
         except SASExceptions.HeaderMaskLoadError, msg:
-            wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header', style = wx.ICON_ERROR)
+            wx.CallAfter(self._showGenericError, str(msg), 'Mask information was not found in header')
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
         except SASExceptions.AbsScaleNormFailed:
@@ -2765,7 +2767,7 @@ class MainWorkerThread(threading.Thread):
                     'loaded file and the selected sample background file. '
                     'It failed on the following file:\n')
             msg = msg + os.path.split(each_filename)[1]
-            wx.CallAfter(wx.MessageBox, msg, 'Absolute scale failed', style = wx.ICON_ERROR)
+            wx.CallAfter(self._showGenericError, msg, 'Absolute scale failed')
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
 
@@ -2858,15 +2860,15 @@ class MainWorkerThread(threading.Thread):
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
             except SASExceptions.HeaderLoadError, msg:
-                wx.CallAfter(wx.MessageBox, str(msg)+' Please check that the header file is in the directory with the data.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
+                wx.CallAfter(self._showHeaderError, str(msg))
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
             except SASExceptions.MaskSizeError, msg:
-                wx.CallAfter(wx.MessageBox, str(msg), 'Saved mask does not fit loaded image', style = wx.ICON_ERROR)
+                wx.CallAfter(self._showGenericError, str(msg), 'Saved mask does not fit loaded image')
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
             except SASExceptions.HeaderMaskLoadError, msg:
-                wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header', style = wx.ICON_ERROR)
+                wx.CallAfter(self._showGenericError, str(msg), 'Mask information was not found in header')
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
             except SASExceptions.AbsScaleNormFailed:
@@ -2875,7 +2877,7 @@ class MainWorkerThread(threading.Thread):
                         'loaded file and the selected sample background file. '
                         'It failed on the following file:\n')
                 msg = msg + os.path.split(each_filename)[1]
-                wx.CallAfter(wx.MessageBox, msg, 'Absolute scale failed', style = wx.ICON_ERROR)
+                wx.CallAfter(wx._showGenericError, msg, 'Absolute scale failed')
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
 
@@ -3441,7 +3443,11 @@ class MainWorkerThread(threading.Thread):
                 idx = dir.index(current_file)
             except ValueError:
                 idx = 0
-                wx.CallAfter(wx.MessageBox, 'Could not find the current image file in the active directory. Defaulting to the first file in the active directory (if possible). Please check the active directory in the Files control tab.', 'Error Loading Image', style = wx.ICON_ERROR | wx.OK)
+                msg = ('Could not find the current image file in the active '
+                    'directory. Defaulting to the first file in the active '
+                    'directory (if possible). Please check the active directory '
+                    'in the Files control tab.')
+                wx.CallAfter(self._showGenericError, msg, 'Error Loading Image')
 
 
         while True:
@@ -3540,10 +3546,12 @@ class MainWorkerThread(threading.Thread):
             sec = ' or the RAW series format'
         else:
             sec = ''
-
-        wx.CallAfter(wx.MessageBox, 'The selected file: ' + filename + '\ncould not be recognized as a '   + str(img_fmt) +
-                         ' image format' + ascii + sec + '. This can be caused by failing to load the correct configuration file.\n\nYou can change the image format under Advanced Options in the Options menu.' ,
-                          'Error loading file', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+        msg = ('The selected file: ' + filename + '\ncould not be recognized as a '
+            + str(img_fmt) + ' image format' + ascii + sec + '. This can be '
+            'caused by failing to load the correct configuration file.\n\n'
+            'You can change the image format under Advanced Options in the '
+            'Options menu.')
+        wx.CallAfter(wx.MessageBox, msg , 'Error loading file', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
     def _showSECFormatError(self, filename, include_ascii = True):
         img_fmt = self._raw_settings.get('ImageFormat')
@@ -3553,9 +3561,14 @@ class MainWorkerThread(threading.Thread):
         else:
             ascii = ''
 
-        wx.CallAfter(wx.MessageBox, 'The selected file: ' + filename + '\ncould not be recognized as a '   + str(img_fmt) +
-                         ' image format' + ascii + '. This can be caused by failing to load the correct configuration file. \n\nIf you are loading a set of files as a series curve, make sure the selection contains only individual scattering profiles (no .sec files).\n\nYou can change the image format under Advanced Options in the Options menu.' ,
-                          'Error loading file', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+        msg = ('The selected file: ' + filename + '\ncould not be recognized as '
+            'a '   + str(img_fmt) + ' image format' + ascii + '. This can be '
+            'caused by failing to load the correct configuration file. \n\n'
+            'If you are loading a set of files as a series curve, make sure the '
+            'selection contains only individual scattering profiles (no .sec files).'
+            '\n\nYou can change the image format under Advanced Options in the '
+            'Options menu.')
+        wx.CallAfter(wx.MessageBox, msg , 'Error loading file', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
     def _showSubtractionError(self, sasm, sub_sasm):
         filename1 = sasm.getParameter('filename')
@@ -3564,24 +3577,33 @@ class MainWorkerThread(threading.Thread):
         filename2 = sub_sasm.getParameter('filename')
         q2_min, q2_max = sub_sasm.getQrange()
         points2 = len(sub_sasm.i[q2_min:q2_max])
-        wx.CallAfter(wx.MessageBox, filename1 + ' has ' + str(points1) + ' data points.\n'  +
+
+        msg = (filename1 + ' has ' + str(points1) + ' data points.\n'  +
             filename2 + ' has ' + str(points2) + ' data points.\n\n' +
-            'Subtraction is not possible. Data files must have equal number of points.', 'Subtraction Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+            'Subtraction is not possible. Data files must have equal number of points.')
+
+        wx.CallAfter(wx.MessageBox, msg, 'Subtraction Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
     def _showAverageError(self, err_no, sasm_list=[]):
         if err_no == 1:
-            wx.CallAfter(wx.MessageBox, 'The selected items must have the same total number of points to be averaged.', 'Average Error')
+            msg = ('The selected items must have the same total number of '
+                'points to be averaged.')
+            wx.CallAfter(wx.MessageBox, msg, 'Average Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         elif err_no == 2:
-            wx.CallAfter(wx.MessageBox, 'Please select at least two items to be averaged.' , 'Average Error')
+            msg = 'Please select at least two items to be averaged.'
+            wx.CallAfter(wx.MessageBox, msg, 'Average Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         elif err_no == 3:
-            wx.CallAfter(wx.MessageBox, 'The selected items must have the same q vectors to be averaged.' , 'Average Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+            msg = 'The selected items must have the same q vectors to be averaged.'
+            wx.CallAfter(wx.MessageBox, msg, 'Average Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
         elif err_no == 4:
             test = self._raw_settings.get('similarityTest')
             threshold = self._raw_settings.get('similarityThreshold')
-            msg = ('One or more of the selected items to be averaged is statistically\ndifferent'
-                    ' from the first item, as found using the %s test\nand a pval threshold of %f.\n'
-                    '\nThe following profiles were found to be different:\n' %(test, threshold))
+            msg = ('One or more of the selected items to be averaged is '
+                'statistically\ndifferent from the first item, as found '
+                'using the %s test\nand a pval threshold of %f.\n\nThe '
+                'following profiles were found to be different:\n'
+                %(test, threshold))
             for sasm in sasm_list:
                 msg = msg + sasm.getParameter('filename') + '\n'
             msg = msg + ('\nPlease select an action below.')
@@ -3590,30 +3612,39 @@ class MainWorkerThread(threading.Thread):
                             ('Average Only Similar Files', wx.ID_YES)], wx.ART_WARNING)
             return answer[0]
 
-    def _showPleaseSelectItemsError(self, type):
+    def _showPleaseSelectItemsError(self, err_type):
 
-        if type == 'average':
-            wx.CallAfter(wx.MessageBox, 'Please select the items you want to average.\n\nYou can select multiple items by holding down the CTRL or SHIFT key.' , 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
-        elif type == 'subtract':
-            wx.CallAfter(wx.MessageBox, 'Please select the items you want the marked (star) item subtracted from.'+
-                              '\nUse CTRL or SHIFT to select multiple items.', 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
-        elif type == 'superimpose':
-            wx.CallAfter(wx.MessageBox, 'Please select the items you want to superimpose.\n\nYou can select multiple items by holding down the CTRL or SHIFT key.' , 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+        if err_type == 'average':
+            msg = ('Please select the items you want to average.\n\nYou can '
+                'select multiple items by holding down the CTRL or SHIFT key.')
+            wx.CallAfter(wx.MessageBox, msg, 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+        elif err_type == 'subtract':
+            msg = ('Please select the items you want the marked (star) item '
+                'subtracted from.\nUse CTRL or SHIFT to select multiple items.')
+            wx.CallAfter(wx.MessageBox, msg, 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+        elif err_type == 'superimpose':
+            msg = ('Please select the items you want to superimpose.\n\nYou '
+            'can select multiple items by holding down the CTRL or SHIFT key.')
+            wx.CallAfter(wx.MessageBox, msg, 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
-    def _showPleaseMarkItemError(self, type):
+    def _showPleaseMarkItemError(self, err_type):
 
-        if type == 'subtract':
-            wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you are using for subtraction', 'No item marked', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
-        elif type == 'merge':
-            wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you are using as the main curve for merging', 'No item marked', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
-        elif type == 'superimpose':
-            wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you want to superimpose to.', 'No item marked', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
-        elif type == 'interpolate':
-            wx.CallAfter(wx.MessageBox, 'Please mark (star) the item you are using as the main curve for interpolation', 'No item marked', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+        if err_type == 'subtract':
+            msg = 'Please mark (star) the item you are using for subtraction'
+        elif err_type == 'merge':
+            msg = ('Please mark (star) the item you are using as the main '
+                'curve for merging')
+        elif err_type == 'superimpose':
+            msg = 'Please mark (star) the item you want to superimpose to.'
+        elif err_type == 'interpolate':
+            msg = 'Please mark (star) the item you are using as the main curve for interpolation'
+
+        wx.CallAfter(wx.MessageBox, msg, 'No item marked', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
     def _showSaveError(self, err_type):
         if err_type == 'header':
-            wx.CallAfter(wx.MessageBox, 'Header values could not be saved, file was saved without them.', 'Invalid Header Values', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+            msg = 'Header values could not be saved, file was saved without them.'
+            wx.CallAfter(wx.MessageBox, msg, 'Invalid Header Values', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
     def _showQvectorsNotEqualWarning(self, sasm, sub_sasm):
 
@@ -3621,7 +3652,10 @@ class MainWorkerThread(threading.Thread):
         filename = sasm.getParameter('filename')
 
         button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO), ('Cancel', wx.ID_CANCEL)]
-        question = 'Q vectors for ' + str(filename) + ' and ' + str(sub_filename) + ' are not the same. \nContinuing subtraction will attempt to find matching q regions in or create matching q regions by binning.\nDo you wish to continue?'
+        question = ('Q vectors for ' + str(filename) + ' and ' + str(sub_filename) +
+            ' are not the same. \nContinuing subtraction will attempt to find '
+            'matching q regions in or create matching q regions by binning.\n'
+            'Do you wish to continue?')
         label = 'Q vectors do not match'
         icon = wx.ART_WARNING
 
@@ -3630,7 +3664,9 @@ class MainWorkerThread(threading.Thread):
         return answer
 
     def _showQuickReduceFinished(self, processed_files, number_of_files):
-        wx.CallAfter(wx.MessageBox, 'Quick reduction finished. Processed ' + str(processed_files) + ' out of ' + str(number_of_files) + ' files.', 'Quick reduction finished', style = wx.ICON_INFORMATION | wx.STAY_ON_TOP)
+        msg = ('Quick reduction finished. Processed ' + str(processed_files) +
+            ' out of ' + str(number_of_files) + ' files.')
+        wx.CallAfter(wx.MessageBox, msg, 'Quick reduction finished', style = wx.ICON_INFORMATION | wx.STAY_ON_TOP)
 
     def _showOverwritePrompt(self, filename, save_path):
 
@@ -3639,7 +3675,8 @@ class MainWorkerThread(threading.Thread):
 
         path = os.path.join(save_path, filename)
 
-        question = 'Filename: ' + str(path) + '\nalready exists. Do you wish to overwrite the existing file?'
+        question = ('Filename: ' + str(path) + '\nalready exists. Do you '
+            'wish to overwrite the existing file?')
         label = 'File exists'
         icon = wx.ART_WARNING
 
@@ -3647,8 +3684,16 @@ class MainWorkerThread(threading.Thread):
 
         return answer
 
-    def _showHeaderError(self, msg):
-        wx.CallAfter(wx.MessageBox, str(msg)+'\n\nPlease check that the header file is in the directory with the data.', 'Error Loading Header File', style = wx.ICON_ERROR | wx.OK)
+    def _showHeaderError(self, err_msg):
+        msg = (str(err_msg)+'\n\nPlease check that the header file is in '
+            'the directory with the data.')
+        wx.CallAfter(wx.MessageBox, msg, 'Error Loading Header File', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+
+    def _showGenericError(self, msg, title):
+        wx.CallAfter(wx.MessageBox, msg, title, style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+
+    def _showGenericMsg(self, msg, title):
+        wx.CallAfter(wx.MessageBox, msg, title, style = wx.ICON_INFORMATION | wx.STAY_ON_TOP)
 
     def _displayQuestionDialog(self, question, label, button_list, icon = None, filename = None, save_path = None):
 
@@ -3774,14 +3819,14 @@ class MainWorkerThread(threading.Thread):
                     except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat):
                         wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_ascii = False)
                     except SASExceptions.HeaderLoadError, msg:
-                        wx.CallAfter(wx.MessageBox, str(msg)+' Could not find the header file. Skipping this file and proceeding.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
+                        wx.CallAfter(self._showHeaderError, str(msg))
                     except SASExceptions.AbsScaleNormFailed:
                         msg = ('Failed to apply absolute scale. The most '
                                 'likely cause is a mismatch between the q vector of the '
                                 'loaded file and the selected sample background file. '
                                 'It failed on the following file:\n%s\n'
                                 'Skipping this file and proceeding.') %(os.path.split(each_filename)[1])
-                        wx.CallAfter(wx.MessageBox, msg, 'Absolute scale failed', style = wx.ICON_ERROR | wx.OK)
+                        wx.CallAfter(self._showGenericError, msg, 'Absolute scale failed')
 
             else:
                 try:
@@ -3810,14 +3855,14 @@ class MainWorkerThread(threading.Thread):
                 except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat):
                     wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_ascii = False)
                 except SASExceptions.HeaderLoadError, msg:
-                    wx.CallAfter(wx.MessageBox, str(msg)+' Could not find the header file. Skipping this file and proceeding.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
+                    wx.CallAfter(self._showHeaderError, str(msg))
                 except SASExceptions.AbsScaleNormFailed:
                     msg = ('Failed to apply absolute scale. The most '
                             'likely cause is a mismatch between the q vector of the '
                             'loaded file and the selected sample background file. '
                             'It failed on the following file:\n%s\n'
                             'Skipping this file and proceeding.') %(os.path.split(each_filename)[1])
-                    wx.CallAfter(wx.MessageBox, msg, 'Absolute scale failed', style = wx.ICON_ERROR | wx.OK)
+                    wx.CallAfter(self._showGenericError, msg, 'Absolute scale failed')
 
         wx.CallAfter(self._showQuickReduceFinished, processed_files, len(filename_list))
 
@@ -3925,7 +3970,14 @@ class MainWorkerThread(threading.Thread):
                             except IOError, e:
                                 self._raw_settings.set('AutoSaveOnSub', False)
                                 do_auto_save = False
-                                wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutosave of subtracted images has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+                                msg = (str(e) + '\n\nAutosave of subtracted '
+                                    'images has been disabled. If you are '
+                                    'using a config file from a different '
+                                    'computer please go into Advanced '
+                                    'Options/Autosave to change the save '
+                                    'folders, or save you config file to '
+                                    'avoid this message next time.')
+                                wx.CallAfter(self._showGenericError, msg, 'Autosave Error')
 
                 except SASExceptions.DataNotCompatible:
                    wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
@@ -3946,7 +3998,14 @@ class MainWorkerThread(threading.Thread):
                         except IOError, e:
                             self._raw_settings.set('AutoSaveOnSub', False)
                             do_auto_save = False
-                            wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutosave of subtracted images has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+                            msg = (str(e) + '\n\nAutosave of subtracted '
+                                'images has been disabled. If you are '
+                                'using a config file from a different '
+                                'computer please go into Advanced '
+                                'Options/Autosave to change the save '
+                                'folders, or save you config file to '
+                                'avoid this message next time.')
+                            wx.CallAfter(self._showGenericError, msg, 'Autosave Error')
 
                 except SASExceptions.DataNotCompatible:
                    wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
@@ -3967,7 +4026,14 @@ class MainWorkerThread(threading.Thread):
                         except IOError, e:
                             self._raw_settings.set('AutoSaveOnSub', False)
                             do_auto_save = False
-                            wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutosave of subtracted images has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+                            msg = (str(e) + '\n\nAutosave of subtracted '
+                                'images has been disabled. If you are '
+                                'using a config file from a different '
+                                'computer please go into Advanced '
+                                'Options/Autosave to change the save '
+                                'folders, or save you config file to '
+                                'avoid this message next time.')
+                            wx.CallAfter(self._showGenericError, msg, 'Autosave Error')
 
                 except SASExceptions.DataNotCompatible:
                    wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
@@ -4061,8 +4127,12 @@ class MainWorkerThread(threading.Thread):
                 self._saveSASM(avg_sasm, '.dat', save_path)
             except IOError as e:
                 self._raw_settings.set('AutoSaveOnAvgFiles', False)
-
-                wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutosave of averaged images has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+                msg = (str(e) + '\n\nAutosave of averaged images has been '
+                    'disabled. If you are using a config file from a '
+                    'different computer please go into Advanced '
+                    'Options/Autosave to change the save folders, or '
+                    'save you config file to avoid this message next time.')
+                wx.CallAfter(self._showGenericError, msg, 'Autosave Error')
 
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
@@ -4105,7 +4175,10 @@ class MainWorkerThread(threading.Thread):
         weightCounter = self._raw_settings.get('weightCounter')
 
         if not weightByError and weightCounter == '':
-            wx.CallAfter(wx.MessageBox, 'An appropriate counter to weight the data is not selected and error weighting is not enabled. Weighted average aborted.', 'Weighted Average Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+            msg = ('An appropriate counter to weight the data is not '
+                'selected and error weighting is not enabled. Weighted '
+                'average aborted.')
+            wx.CallAfter(self._showGenericError, msg, 'Weighted Average Error')
             return
 
         if not weightByError:
@@ -4126,7 +4199,9 @@ class MainWorkerThread(threading.Thread):
                     has_header.append(False)
 
             if not np.all(has_header):
-                wx.CallAfter(wx.MessageBox, 'Not all selected items had the counter value selected as the weight. Weighted average aborted.', 'Weighted Average Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+                msg = ('Not all selected items had the counter value '
+                    'selected as the weight. Weighted average aborted.')
+                wx.CallAfter(self._showGenericError, msg, 'Weighted Average Error')
                 return
 
         try:
@@ -4149,8 +4224,12 @@ class MainWorkerThread(threading.Thread):
                 self._saveSASM(avg_sasm, '.dat', save_path)
             except IOError as e:
                 self._raw_settings.set('AutoSaveOnAvgFiles', False)
-
-                wx.CallAfter(wx.MessageBox, str(e) + '\n\nAutosave of averaged images has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+                msg = (str(e) + '\n\nAutosave of averaged images has been '
+                    'disabled. If you are using a config file from a '
+                    'different computer please go into Advanced '
+                    'Options/Autosave to change the save folders, or '
+                    'save you config file to avoid this message next time.')
+                wx.CallAfter(self._showGenericError, msg, 'Autosave Error')
 
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
@@ -4514,7 +4593,9 @@ class MainWorkerThread(threading.Thread):
             item_dict = SASFileIO.loadWorkspace(load_path)
         except SASExceptions.UnrecognizedDataFormat:
             wx.CallAfter(self.main_frame.closeBusyDialog)
-            wx.CallAfter(wx.MessageBox, 'The workspace could not be loaded. It may be an invalid file type, or the file may be corrupted.', 'Workspace Load Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+            msg = ('The workspace could not be loaded. It may be an invalid '
+                'file type, or the file may be corrupted.')
+            wx.CallAfter(wx._showGenericError, msg, 'Workspace Load Error')
             return
 
         if type(item_dict) == OrderedDict:
