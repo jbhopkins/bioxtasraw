@@ -4204,8 +4204,50 @@ class MainWorkerThread(threading.Thread):
                 wx.CallAfter(self._showGenericError, msg, 'Weighted Average Error')
                 return
 
+        profiles_to_use = wx.ID_YESTOALL
+
+        if self._raw_settings.get('similarityOnAverage'):
+            ref_sasm = sasm_list[0]
+            qi_ref, qf_ref = ref_sasm.getQrange()
+            pvals = np.ones(len(sasm_list[1:]), dtype=float)
+            threshold = self._raw_settings.get('similarityThreshold')
+            sim_test = self._raw_settings.get('similarityTest')
+            correction = self._raw_settings.get('similarityCorrection')
+
+            for index, sasm in enumerate(sasm_list[1:]):
+                qi, qf = sasm.getQrange()
+                if not np.all(np.round(sasm.q[qi:qf], 5) == np.round(ref_sasm.q[qi_ref:qf_ref], 5)):
+                    wx.CallAfter(self._showAverageError, 3)
+                    wx.CallAfter(self.main_frame.closeBusyDialog)
+                    return
+
+                if sim_test == 'CorMap':
+                    n, c, pval = SASCalc.cormap_pval(ref_sasm.i[qi_ref:qf_ref], sasm.i[qi:qf])
+                pvals[index] = pval
+
+            if correction == 'Bonferroni':
+                pvals = pvals*len(sasm_list[1:])
+                pvals[pvals>1] = 1
+
+            if np.any(pvals<threshold):
+                wx.CallAfter(self.main_frame.closeBusyDialog)
+                profiles_to_use = self._showAverageError(4, itertools.compress(sasm_list[1:], pvals<threshold))
+                if profiles_to_use == wx.ID_CANCEL:
+                    return
+                wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while averaging and plotting...')
+
         try:
-            avg_sasm = SASM.weightedAverage(sasm_list, weightByError, weightCounter)
+            if profiles_to_use == wx.ID_YESTOALL:
+                avg_sasm = SASM.weightedAverage(sasm_list, weightByError, weightCounter)
+
+            elif profiles_to_use == wx.ID_YES:
+                reduced_sasm_list = [sasm_list[0]]
+                for i, sasm in enumerate(sasm_list[1:]):
+                    if pvals[i] >= threshold:
+                        reduced_sasm_list.append(sasm)
+
+                avg_sasm = SASM.weightedAverage(reduced_sasm_list, weightByError, weightCounter)
+
         except SASExceptions.DataNotCompatible:
             wx.CallAfter(self._showAverageError, 3)
             wx.CallAfter(self.main_frame.closeBusyDialog)
