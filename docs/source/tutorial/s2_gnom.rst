@@ -70,70 +70,7 @@ in the GNOM program from the ATSAS package. We will use RAW to run GNOM. Note th
 
 
 
-
-
-
-
-
-
-.. |10000201000001C00000020ABF9AC84A21364E29_png| image:: images/10000201000001C00000020ABF9AC84A21364E29.png
-
-
-.. |ift_panel_png| image:: images/ift_panel.png
-
-
-.. |dammif_run_tab_png| image:: images/dammif_run_tab.png
-
-
-.. |dammif_results_png| image:: images/dammif_results.png
-
-
-.. |denss_run_tab_png| image:: images/denss_run_tab.png
-
-
-.. |denss_results_png| image:: images/denss_results_tab.png
-
-
-.. |denss_fsc_png| image:: images/denss_fsc.png
-
-
-.. |10000201000001200000006C3B50236567420D74_png| image:: images/10000201000001200000006C3B50236567420D74.png
-
-
-.. |10000201000000C0000000F27D3BE3AA11912468_png| image:: images/10000201000000C0000000F27D3BE3AA11912468.png
-
-
-.. |10000201000003B3000002EB8E792276E0CD8D88_png| image:: images/10000201000003B3000002EB8E792276E0CD8D88.png
-
-
-.. |10000201000003B6000002EBE2BBC8749420E175_png| image:: images/10000201000003B6000002EBE2BBC8749420E175.png
-
-
 .. |gnom_panel_png| image:: images/gnom_panel.png
-
-
-.. |1000020100000320000002A2D123A77E23D67C60_png| image:: images/1000020100000320000002A2D123A77E23D67C60.png
-
-
-.. |1000020100000401000002FFB79B21A115149137_png| image:: images/1000020100000401000002FFB79B21A115149137.png
-
-
-.. |efa_series_plot_png| image:: images/efa_series_plot.png
-
-
-.. |dammif_viewer_png| image:: images/dammif_viewer.png
-
-
-.. |100002010000031F000002A41245FE3782B26A6C_png| image:: images/100002010000031F000002A41245FE3782B26A6C.png
-
-
-.. |10000201000001E00000025F31616EF70FB0318B_png| image:: images/10000201000001E00000025F31616EF70FB0318B.png
-
-
-.. |100002010000031E00000257E806280132469D47_png| image:: images/100002010000031E00000257E806280132469D47.png
-
-
-.. |10000201000003B3000002ECA374DC717C28A0DA_png| image:: images/10000201000003B3000002ECA374DC717C28A0DA.png
 
 
 .. |Rg| replace:: R\ :sub:`g`

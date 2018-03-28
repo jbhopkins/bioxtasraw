@@ -6,7 +6,7 @@ but one significant one is easy handling of systems like RNA-Protein complexes o
 membrane proteins surrounded by lipids or detergents, which have more than one electron
 density. Bead models typically only have two (molecule and solvent) or three bead densities,
 and so typically fail to reconstruct these complex objects. `DENSS <http://denss.org>`_ has
-been fully implemented in RAW and will be used to recontruct these electron densities.
+been fully implemented in RAW and will be used to reconstruct these electron densities.
 In order to align and average these densities, EMAN2 will be used. Note that you need
 :ref:`EMAN2 installed <eman2>` to do this part of the tutorial.
 
@@ -46,6 +46,14 @@ users can do everything described in this tutorial.
         the reconstructions and averaging are done on the most similar enantiomers. There
         is no guarantee that this matches the enantiomer in solution.
 
+    *   *Note:* Windows users will not see this option. If you are on mac or linux
+        and don't see this option it means RAW was unable to find EMAN2 on your computer.
+        Make sure EMAN2 is :ref:`properly installed <eman2>`. If you installed EMAN2
+        after starting RAW, restart RAW and it will attempt to automatically find
+        it. If that has failed, go to the Options->Advanced Options menu and choose
+        the DENSS settings (DENSS). Uncheck the option to “Automatically find
+        the EMAN2 bin location”, and specify the location manually.
+
     |denss_run_tab_png|
 
 #.  Click the “Start” button.
@@ -54,7 +62,7 @@ users can do everything described in this tutorial.
         You can look at the detailed status of each run by clicking the appropriate tab in
         the log panel.
 
-#.  Note that by default the envelopes are aligned and averaged using EMAN2.
+#.  Note that by default the densities are aligned and averaged using EMAN2.
 
     *   Some settings are accessible in the panel, and all settings can be changed in the
         advanced settings panel.
@@ -81,10 +89,10 @@ users can do everything described in this tutorial.
     *   Check that the chi squared, |Rg|, and support volume have all plateaued (converged)
         by the final steps.
 
-#.  If the plots were averaged, the average tab will display the Fourier shell correlation
+#.  If the densities were averaged, the average tab will display the Fourier shell correlation
     vs. resolution.
 
-    *   *Note:* The reconstruction resolution is taken as the resolution in angstrom where the
+    *   *Note:* The reconstruction resolution is taken as the resolution in angstroms where the
         correlation first crosses 0.5.
 
     |denss_fsc_png|
@@ -99,7 +107,7 @@ users can do everything described in this tutorial.
     tutorial that would be **lysozyme_01.mrc**, **lysozyme_02.mrc**, etc.
 
 #.  If averaging was done, final average density is saved in the selected output
-    folder as **<prefix>_aver.mrc**. For this turotial, that would be **lysozyme_aver.mrc**
+    folder as **<prefix>_aver.mrc**. For this tutorial, that would be **lysozyme_aver.mrc**.
 
     *   *Note:* **.mrc** files can be opened in Chimera and pyMOL. For tips about how to
         visualize the density and align it with known structures see the appropriate

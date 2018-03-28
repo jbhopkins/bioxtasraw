@@ -19,7 +19,7 @@ components from overlapping SEC-SAXS peaks.
 
     |efa_series_plot_png|
 
-#.  Right click on the **phehc_sec.sec** item in the SEC list. Select the “SVD” option.
+#.  Right click on the **phehc_sec.sec** item in the Series list. Select the “SVD” option.
 
 #.  The SVD window will be displayed. On the left are controls, on the right are plots of
     the value of the singular values and the first autocorrelation of the left and right
@@ -67,7 +67,7 @@ components from overlapping SEC-SAXS peaks.
 #.  Close the SVD window by clicking the OK button.
 
 #.  We will now use EFA to attempt to extract out the two scattering components in the
-    main peak in this data. Right click on the **phehc_sec.sec** item in the SEC list.
+    main peak in this data. Right click on the **phehc_sec.sec** item in the Series list.
     Select the “EFA” option.
 
     |10000201000003B3000002ECA374DC717C28A0DA_png|
@@ -78,7 +78,7 @@ components from overlapping SEC-SAXS peaks.
     change the frame range to, for example, remove other, well separated, peaks from the
     analysis.
 
-#.  RAW attempt to automatically determine how many significant singular values (SVs) there
+#.  RAW attempts to automatically determine how many significant singular values (SVs) there
     are in the selected range. At the bottom of the control panel, you should see that
     RAW thinks there are three significant SVs in our data. For this data set, that is accurate.
 
@@ -162,7 +162,7 @@ components from overlapping SEC-SAXS peaks.
     until the spikes in the chi-squared plot go away. After these adjustments, Range 0
     should be about 147 to 197, Range 1 from 161 to 324, and Range 2 from 323 to 380.
 
-    |10000201000001200000006C3B50236567420D74_png|
+    |efa_comp_range_png|
 
 #.  To see these changes on the Forward and Backward EFA plots, click the “Back” button
     at the bottom right of the page. Verify that all of your start and end values are
@@ -229,7 +229,7 @@ components from overlapping SEC-SAXS peaks.
 
 
 
-.. |10000201000001200000006C3B50236567420D74_png| image:: images/10000201000001200000006C3B50236567420D74.png
+.. |efa_comp_range_png| image:: images/efa_comp_range.png
 
 .. |10000201000000C0000000F27D3BE3AA11912468_png| image:: images/10000201000000C0000000F27D3BE3AA11912468.png
 
