@@ -33,7 +33,7 @@ for globular proteins. This fitting region is called the “Guinier region.”
 
     *   *Question:* The literature radius of gyration for GI is 32.7 Å. How does yours compare?
 
-#.  RAW also provides an estimate of the uncertainty in both the |Rg| and I0 values for
+#.  RAW also provides an estimate of the uncertainty in both the |Rg| and I(0) values for
     the Guinier fit, shown in the Uncertainty section.
 
     *   *Note:* This is the largest of the uncertainties from the fit (standard deviation

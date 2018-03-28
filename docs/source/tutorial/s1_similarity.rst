@@ -28,7 +28,7 @@ with data that may show changes in scattering from radiation damage or other pos
         threshold selected. In the advanced options panel you can select the test, whether
         or not it is corrected for multiple testing, and the threshold used.
 
-    |10000201000001D2000000EA0EBB8DE8A90AF844_png|
+    |similarity_warning_png|
 
 #.  Click the “Average Only Similar Files” button.
 
@@ -38,18 +38,18 @@ with data that may show changes in scattering from radiation damage or other pos
 #.  Select all of the profiles except the new averaged one, and right click and
     select “Similarity Test”.
 
-    |10000201000002560000018C615B7EB8DE916C34_png|
+    |similarity_window_png|
 
 #.  The similarity testing window (above) shows the results of the pairwise tests
     done using the CorMap method. Expand the window and the Filename columns
     to allow you to see the full filenames along with the probabilities.
 
-    |100002010000034C00000049FD162E82EB78E7ED_png|
+    |similarity_window2_png|
 
 #.  Using the menu at the top, turn off multiple testing correction. Change the
     highlight less than value to 0.15, and highlight those pairs.
 
-    |10000201000002C900000115B88F915CDDC779D3_png|
+    |similarity_highlight_png|
 
 #.  Without multiple testing correction, and using a less stringent threshold for similarity,
     we see that more profiles are selected here (profiles 6-10) than were excluded from the
@@ -77,16 +77,16 @@ with data that may show changes in scattering from radiation damage or other pos
 .. |10000201000003FD000002FEC6ABABA160C40969_png| image:: images/10000201000003FD000002FEC6ABABA160C40969.png
 
 
-.. |10000201000001D2000000EA0EBB8DE8A90AF844_png| image:: images/10000201000001D2000000EA0EBB8DE8A90AF844.png
+.. |similarity_warning_png| image:: images/similarity_warning.png
 
 
-.. |10000201000002560000018C615B7EB8DE916C34_png| image:: images/10000201000002560000018C615B7EB8DE916C34.png
+.. |similarity_window_png| image:: images/similarity_window.png
 
 
-.. |100002010000034C00000049FD162E82EB78E7ED_png| image:: images/100002010000034C00000049FD162E82EB78E7ED.png
+.. |similarity_window2_png| image:: images/similarity_window2.png
 
 
-.. |10000201000002C900000115B88F915CDDC779D3_png| image:: images/10000201000002C900000115B88F915CDDC779D3.png
+.. |similarity_highlight_png| image:: images/similarity_highlight.png
 
 
 .. |Rg| replace:: R\ :sub:`g`

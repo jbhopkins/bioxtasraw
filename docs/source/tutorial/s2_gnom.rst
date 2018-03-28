@@ -53,11 +53,11 @@ in the GNOM program from the ATSAS package. We will use RAW to run GNOM. Note th
 #.  Return the |Dmax| value to that found by DATGNOM by clicking the “DATGNOM” button.
     |Dmax| should be 40. By default, GNOM forces the P(r) function to zero at |Dmax|.
     For a high quality data set and a good choice of |Dmax|, P(r) should go to zero
-    naturally. Change the “Force to 0 Dmax” option to “N”.
+    naturally. Change the “Force to 0 at Dmax” option to “N”.
 
     *   *Try:* Vary |Dmax| with this option turned off.
 
-#.  Change the advanced parameters so that the P(r) function is again being forced to zero
+#.  Reset it so that the P(r) function is again being forced to zero
     at |Dmax|.
 
 #.  Set the |Dmax| back to 40, and click OK. This saves the results into the RAW IFT panel.

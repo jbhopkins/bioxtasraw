@@ -44,7 +44,6 @@ be found here and references therein: `http://www.bioisis.net/tutorial/21 <http:
 
     |100002010000018D000000E6174D733C1F4E44CD_png|
 
-    |10000201000003FD000002FDBECFEBC4BFFF1C27_png|
 
 #.  Kratky analysis can also be done on normalized or dimensionless data. RAW supports normalization
     by I(0), and non-dimensionalization by |Rg| and Vc (the volume of correlation).
@@ -55,13 +54,13 @@ be found here and references therein: `http://www.bioisis.net/tutorial/21 <http:
     this information, RAW will show the following window. You can either cancel, and do the fits manually,
     or you can proceed with RAW’s automatic determination.
 
-    |10000201000001A40000009714A5986ACDCF0485_png|
+    |kratky_norm_autorg|
 
 #.  Click the Proceed using AutoRg button to proceed to the Normalized Kratky Plot window using
     RAW’s automatic fitting for |Rg|.
 
 #.  By default, the plot is the Dimensionless |Rg| plot. Use the dropdown “Plot” menu at the top to
-    select the Normalized (by I(0) and Dimensionless Vc plots.
+    select the Normalized (by I(0)) and Dimensionless Vc plots.
 
     |100002010000031E000002558ABF7E7941F525B1_png|
 
@@ -87,16 +86,13 @@ be found here and references therein: `http://www.bioisis.net/tutorial/21 <http:
 .. |100002010000010E0000005F5824E2A36886EADC_png| image:: images/100002010000010E0000005F5824E2A36886EADC.png
 
 
-.. |10000201000003FD000002FDBECFEBC4BFFF1C27_png| image:: images/10000201000003FD000002FDBECFEBC4BFFF1C27.png
-
-
 .. |100002010000031E000002558ABF7E7941F525B1_png| image:: images/100002010000031E000002558ABF7E7941F525B1.png
 
 
 .. |100002010000018D000000E6174D733C1F4E44CD_png| image:: images/100002010000018D000000E6174D733C1F4E44CD.png
 
 
-.. |10000201000001A40000009714A5986ACDCF0485_png| image:: images/10000201000001A40000009714A5986ACDCF0485.png
+.. |kratky_norm_autorg| image:: images/kratky_norm_autorg.png
 
 
 .. |Rg| replace:: R\ :sub:`g`

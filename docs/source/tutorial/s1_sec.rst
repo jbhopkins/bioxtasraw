@@ -8,7 +8,7 @@ of the SEC system. RAW includes the capability to do routine processing of SEC-S
 This includes creating the SAXS chromatograph from the data, plotting |Rg|, MW, and I(0)
 across the peaks, and extracting specific frames for further analysis.
 
-*Note:* In RAW, this is called Series analysis, as the same tools  can be used for other
+*Note:* In RAW, this is called Series analysis, as the same tools can be used for other
 sequentially sampled data sets.
 
 #.  Clear any data loaded into RAW. Click on the Series tab in the control panel. Click the
@@ -40,7 +40,7 @@ sequentially sampled data sets.
     *   *Tip:* Select the crossed arrows in the plot control bar, and then click and drag on
         the plot to move the curve around on the screen.
 
-#.  Go to the files tab and navigate to the **sec_sample_1** data directory. Click on
+#.  Go to the Files control tab and navigate to the **sec_sample_1** data directory. Click on
     the second data file, **profile_001_0001.dat**\ . Scroll down to the bottom of the
     file list, and shift click on the last file, **profile_001_0964.dat**\ . This should
     highlight all of the files in between, as well as the two you clicked on.
@@ -95,7 +95,7 @@ sequentially sampled data sets.
         we made sure to not include the small peaks before the main peak.
 
 #.  Once the calculation is finished, you should see a set of markers, matching the color
-    of the original curve. These points are plotted on the right Y axis. Click on the green
+    of the original curve. These points are plotted on the right Y axis. Click on the colored
     line next to the star in the Series control panel. In the line properties control panel this
     brings up, change the Calc Marker color to something different. Add a line to the Calc
     Markers by selecting line style ‘-’ (solid), and adjust the line color to your liking.

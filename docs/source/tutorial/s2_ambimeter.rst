@@ -17,7 +17,7 @@ ambiguity there will be in the reconstruction. We will use RAW to run AMBIMETER.
 
     |ift_panel_png|
 
-#.  Right click on the **lysozyme.out** item in the IFT list. Select the “Run AMBIMETER” option.
+#.  Right click on the **lysozyme.out** item in the IFT list. Select the “AMBIMETER” option.
 
 #.  The new window will show the results of AMBIMETER. It includes the number of shape categories
     that are compatible with the scattering profile, the ambiguity score (a-score) (log base 10 of the

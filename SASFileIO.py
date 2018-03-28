@@ -82,18 +82,6 @@ except Exception, e:
         print 'Unable to import fabio or pack_ext, Mar345 files cannot be opened.'
         read_mar345 = False
 
-
-#Could use dectris albula library to read eiger files. Shouldn't be necessary, but won't remove capability in comments
-# try:
-#     import dectris.albula as albula
-# except:
-#     print "Couldn't find albula library!"
-
-# try:
-#     import nxs
-# except Exception:
-#     print 'ERROR Loading NeXus Library!'
-
 def createSASMFromImage(img_array, parameters = {}, x_c = None, y_c = None, mask = None,
                         readout_noise_mask = None, tbs_mask = None, dezingering = 0, dezing_sensitivity = 4):
     '''
@@ -1492,7 +1480,6 @@ def loadHeader(filename, new_filename, header_type):
 def loadImage(filename, image_type):
     ''' returns the loaded image based on the image filename
     and image type. '''
-
     try:
         img, imghdr = all_image_types[image_type](filename)
     except (ValueError, TypeError, KeyError, fabio.fabioutils.NotGoodReader, Exception) as msg:
@@ -1624,7 +1611,6 @@ def loadAsciiFile(filename, file_type):
 
 
 def loadImageFile(filename, raw_settings):
-
     img_fmt = raw_settings.get('ImageFormat')
     hdr_fmt = raw_settings.get('ImageHdrFormat')
 

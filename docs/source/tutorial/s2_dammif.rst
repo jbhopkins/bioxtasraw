@@ -69,12 +69,12 @@ the ATSAS package is the most commonly used program for building consensus shape
     molecular weight estimated from the excluded volume, and, if appropriate, mean NSD
     of the model.
 
-    *   *Tip:* Any models are rejected from the average by DAMAVER will be shown in red in
+    *   *Tip:* Any models rejected from the average by DAMAVER will be shown in red in
         the models list.
 
 #.  Click the “Save Results Summary” button to save the results summary as a **.csv** file.
 
-#.  Click on the Viewer tab to open the model viewer
+#.  Click on the Viewer tab to open the model viewer.
 
     *   *Note:* The model viewer is intended for a fast first look at the results. It is
         not currently up to the standards of a program like pyMOL.
@@ -109,7 +109,7 @@ the ATSAS package is the most commonly used program for building consensus shape
         would be **lysozyme_damaver.pdb** and **lysozyme_damfilt.pdb**.
 
 #.  If clustering was done with DAMCLUST, the results are saved in the selected output
-    folder with the given prefix (for this tutorial, lysozyme). The files generated
+    folder with the given prefix (for this tutorial, **lysozyme**). The files generated
     are described in the `DAMCLUST manual <https://www.embl-hamburg.de/biosaxs/manuals/damclust.html#output>`_.
 
 #.  If refinement was done with DAMMIN, the results are saved in the selected otuput
