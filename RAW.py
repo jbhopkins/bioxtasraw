@@ -2646,7 +2646,7 @@ class MainWorkerThread(threading.Thread):
 
     def _loadAndPlot(self, filename_list):
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while plotting...')
-
+        print 'in loadandplot'
         loaded_secm = False
         loaded_sasm = False
         loaded_iftm = False
@@ -2748,7 +2748,7 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
         except SASExceptions.HeaderLoadError, msg:
-            wx.CallAfter(wx.MessageBox, str(msg)+'\n\nPlease check that the header file is in the directory with the data.', 'Error Loading Header File', style = wx.ICON_ERROR | wx.OK)
+            wx.CallAfter(self._showHeaderError, msg)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
         except SASExceptions.MaskSizeError, msg:
@@ -3646,6 +3646,9 @@ class MainWorkerThread(threading.Thread):
         answer = self._displayQuestionDialog(question, label, button_list, icon, filename, save_path)
 
         return answer
+
+    def _showHeaderError(self, msg):
+        wx.CallAfter(wx.MessageBox, str(msg)+'\n\nPlease check that the header file is in the directory with the data.', 'Error Loading Header File', style = wx.ICON_ERROR | wx.OK)
 
     def _displayQuestionDialog(self, question, label, button_list, icon = None, filename = None, save_path = None):
 
