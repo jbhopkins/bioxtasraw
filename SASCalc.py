@@ -1079,7 +1079,11 @@ def runDammif(fname, prefix, args):
                 command = command + ' --constant=%s' %(args['constant'])
 
             command = command + ' "%s"' %(fname)
-            process=subprocess.Popen(command, shell= True)
+
+            if opsys == 'Windows':
+                process=subprocess.Popen(command)
+            else:
+                process=subprocess.Popen(command, shell= True)
 
             return process
 
@@ -1370,7 +1374,10 @@ def runDammin(fname, prefix, args):
 
             command = command + ' "%s"' %(fname)
 
-            process=subprocess.Popen(command, shell= True, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+            if opsys == 'Windows':
+                process=subprocess.Popen(command)
+            else:
+                process=subprocess.Popen(command, shell=True, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
 
             return process
 
