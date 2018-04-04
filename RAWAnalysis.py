@@ -3850,7 +3850,8 @@ class DammifRunPanel(wx.Panel):
                                 'disconWeight'      : self.raw_settings.get('damminDisconPen'),
                                 'periphWeight'      : self.raw_settings.get('damminPeriphPen'),
                                 'damminCurveWeight' : self.raw_settings.get('damminCurveWeight'),
-                                'annealSched'       : self.raw_settings.get('damminAnealSched')
+                                'annealSched'       : self.raw_settings.get('damminAnealSched'),
+                                'shape'             : self.raw_settings.get('dammifExpectedShape')
                                 }
 
         mode = wx.FindWindowById(self.ids['mode'], self)
@@ -4603,7 +4604,8 @@ class DammifRunPanel(wx.Panel):
                                 'disconWeight'      : self.raw_settings.get('damminDisconPen'),
                                 'periphWeight'      : self.raw_settings.get('damminPeriphPen'),
                                 'damminCurveWeight' : self.raw_settings.get('damminCurveWeight'),
-                                'annealSched'       : self.raw_settings.get('damminAnealSched')
+                                'annealSched'       : self.raw_settings.get('damminAnealSched'),
+                                'shape'             : self.raw_settings.get('dammifExpectedShape'),
                                 }
 
         mode = wx.FindWindowById(self.ids['mode'], self)

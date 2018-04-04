@@ -1171,6 +1171,9 @@ def runDammif(fname, prefix, args):
                         else:
                             proc.stdin.write('\r\n')
 
+                    elif previous_line.find('(rc) random-chain (default:') > -1:
+                        proc.stdin.write('%s\r\n' %(args['shape'])) #Particle expected shape, default Unknown
+
                     elif previous_line.find('Dummy atom radius?') > -1:
                         if args['radius'] > -1:
                             proc.stdin.write('%f\r\n' %(args['radius'])) #Dummy atom radius, default 1.0

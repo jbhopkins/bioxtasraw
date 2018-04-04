@@ -3337,18 +3337,23 @@ class ATSASDammifAdvanced(wx.Panel):
 
         self.raw_settings = raw_settings
 
-        self.update_keys = ['dammifDummyRadius', 'dammifKnots', 'dammifCurveWeight', 'dammifRandomSeed', 'dammifTFactor', 'dammifRgPen',
-                            'dammifCenPen', 'dammifAnisPen', 'dammifMaxBeadCount', 'dammifChained', 'dammifConstant', 'dammifOmitSolvent'
+        self.update_keys = ['dammifDummyRadius', 'dammifKnots', 'dammifCurveWeight',
+                            'dammifRandomSeed', 'dammifTFactor', 'dammifRgPen',
+                            'dammifCenPen', 'dammifAnisPen', 'dammifMaxBeadCount',
+                            'dammifChained', 'dammifConstant', 'dammifOmitSolvent',
+                            'dammifExpectedShape',
                             ]
 
         weightChoices = ['l', 'p', 'e', 'n']
+        shapeChoices = ['u', 'c', 'e', 'f', 'r', 'h', 'hs', 'rc']
 
         self.custom_options_long = (("Dummy atom radius (1.0-?, Angstrom):", raw_settings.getId('dammifDummyRadius'), 'float'),
                                 ("Number of knots in the curve to fit (1-?):", raw_settings.getId('dammifKnots'), 'int'),
                                 ("Curve weighting function ([l]log, [p]orod, [e]mphasized porod, [n]one):", raw_settings.getId('dammifCurveWeight'), 'choice', weightChoices),
                                 ("Initial Random Seed (blank to automatically generate):", raw_settings.getId('dammifRandomSeed'), 'text'),
                                 ('Constant offset (blank to automatically set):', raw_settings.getId('dammifConstant'), 'text'),
-                                ('Create Pseudo-Chains in PDB output', raw_settings.getId('dammifChained'), 'bool')
+                                ('Create Pseudo-Chains in PDB output:', raw_settings.getId('dammifChained'), 'bool'),
+                                ('Expected/assumed shape ((u)nknown, (c)ompact, (e)xtended,\n(f)lat, (r)ing, (h) compact-hollow, (hs) hollow-sphere, (rc) random-chain:', raw_settings.getId('dammifExpectedShape'), 'choice', shapeChoices)
                                 )
 
         self.custom_options_short = (("Temperature schedule factor (0.0-1.0):", raw_settings.getId('dammifTFactor'), 'float'),
@@ -3356,7 +3361,7 @@ class ATSASDammifAdvanced(wx.Panel):
                                 ("Center penalty weight (0.0-...):", raw_settings.getId('dammifCenPen'), 'float'),
                                 ("Anisometry penalty weight (0.0-...):", raw_settings.getId('dammifAnisPen'), 'float'),
                                 ("Maximum bead count:", raw_settings.getId('dammifMaxBeadCount'), 'int'),
-                                ('Omit solvent PDB file', raw_settings.getId('dammifOmitSolvent'), 'bool')
+                                ('Omit solvent PDB file:', raw_settings.getId('dammifOmitSolvent'), 'bool'),
                                 )
 
         layoutSizer = self._createLayout(self)

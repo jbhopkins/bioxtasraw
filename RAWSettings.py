@@ -312,6 +312,7 @@ class RawGuiSettings:
                             'dammifDamclust'        : [False, wx.NewId(), 'bool'],
                             'dammifRefine'          : [True, wx.NewId(), 'bool'],
                             'dammifProgram'         : ['DAMMIF', wx.NewId(), 'choice'],
+                            'dammifExpectedShape'   : ['u', wx.NewId(), 'choice'],
 
                             #DAMMIN settings that are not included in DAMMIF settings
                             'damminInitial'         : ['S', wx.NewId(), 'choice'], #Initial DAM
