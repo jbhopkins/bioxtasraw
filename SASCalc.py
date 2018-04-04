@@ -1107,7 +1107,10 @@ def runDammif(fname, prefix, args):
 
             dammifStarted = False
 
-            proc = subprocess.Popen('"%s"' %(dammifDir), shell = True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+            if opsys == 'Windows':
+                proc = subprocess.Popen('"%s"' %(dammifDir), stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+            else:
+                proc = subprocess.Popen('"%s"' %(dammifDir), shell = True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
             dammif_t = threading.Thread(target=enqueue_output, args=(proc.stdout, dammif_q))
             dammif_t.daemon = True
             dammif_t.start()
@@ -1278,7 +1281,11 @@ def runDamaver(flist):
 
         for item in flist:
             command = command + ' "%s"' %(item)
-        process=subprocess.Popen(command, shell= True, stdout = subprocess.PIPE)
+
+        if opsys == 'Windows':
+            process=subprocess.Popen(command, stdout = subprocess.PIPE)
+        else:
+            process=subprocess.Popen(command, shell= True, stdout = subprocess.PIPE)
 
         return process
 
@@ -1335,7 +1342,11 @@ def runDamclust(flist):
 
         for item in flist:
             command = command + ' "%s"' %(item)
-        process=subprocess.Popen(command, shell= True, stdout = subprocess.PIPE)
+
+        if opsys == 'Windows':
+            process=subprocess.Popen(command, stdout = subprocess.PIPE)
+        else:
+            process=subprocess.Popen(command, shell= True, stdout = subprocess.PIPE)
 
         return process
 
@@ -1405,7 +1416,10 @@ def runDammin(fname, prefix, args):
 
             dammifStarted = False
 
-            proc = subprocess.Popen('%s' %(dammifDir), shell = True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+            if opsys == 'Windows':
+                proc = subprocess.Popen('%s' %(dammifDir), stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+            else:
+                proc = subprocess.Popen('%s' %(dammifDir), shell = True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
             dammif_t = threading.Thread(target=enqueue_output, args=(proc.stdout, dammif_q))
             dammif_t.daemon = True
             dammif_t.start()
