@@ -5028,7 +5028,7 @@ class DammifResultsPanel(wx.Panel):
 
         model_list = []
 
-        if settings['damaver']:
+        if settings['damaver'] and int(settings['runs']) > 1:
             name = prefix+'_damsel.log'
             filename = os.path.join(path, name)
             mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err, res_unit = SASFileIO.loadDamselLogFile(filename)
@@ -5066,7 +5066,7 @@ class DammifResultsPanel(wx.Panel):
             atoms, header, model_data = SASFileIO.loadPDBFile(damfilt_name)
             model_list.append(['damfilt', model_data, atoms])
 
-        if settings['refine']and int(settings['runs']) > 1:
+        if settings['refine'] and int(settings['runs']) > 1:
             dam_name = os.path.join(path, 'refine_'+prefix+'-1.pdb')
             fir_name = os.path.join(path, 'refine_'+prefix+'.fir')
             sasm, fit_sasm = SASFileIO.loadFitFile(fir_name)
@@ -5082,7 +5082,7 @@ class DammifResultsPanel(wx.Panel):
                 item[1]['dmax'], item[1]['excluded_volume'], item[1]['mw'],
                 item[1]['nsd']))
 
-            if settings['damaver']:
+            if settings['damaver'] and int(settings['runs']) > 1:
                 if not item[1]['include'] and item[0]!='damaver' and item[0]!='damfilt' and item[0]!='refine':
                     index = models_window.GetItemCount()-1
                     models_window.SetItemTextColour(index, 'red')
@@ -6395,8 +6395,11 @@ class DenssRunPanel(wx.Panel):
         denss_results = [result.get() for result in self.results]
 
         #Get user settings on number of runs, save location, etc
-        average_window = wx.FindWindowById(self.ids['average'], self)
-        average = average_window.GetValue()
+        if self.eman_present:
+            average_window = wx.FindWindowById(self.ids['average'], self)
+            average = average_window.GetValue()
+        else:
+            average = False
 
         prefix_window = wx.FindWindowById(self.ids['prefix'], self)
         prefix = prefix_window.GetValue()
