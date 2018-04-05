@@ -56,7 +56,7 @@ Do you use RAW? :ref:`Let us know! <contactus>`
 Licensing
 -----------------
 RAW source code is released under a GPLv3 license. Both the source code and the
-prebuilt versions of RAW are free to download and use by any user.
+prebuilt versions of RAW are free to download and use for anyone.
 
 .. toctree::
    :hidden:
