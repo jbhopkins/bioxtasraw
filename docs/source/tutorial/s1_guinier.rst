@@ -6,11 +6,11 @@ Recall Guinier’s approximation at low-*q*\ : :math:`I(q)\approx I(0) \exp(-R_g
 
 |Rg| and I(0) can be determined by performing a linear fit in the Guinier plot (a plot of
 :math:`\ln(I)` vs. :math:`q^2`). The fitting region should normally have :math:`q_{max}R_g<1.3`
-for globular proteins. This fitting region is called the “Guinier region.”
+for globular proteins. This fitting region is called the "Guinier region."
 
 
 #.  In RAW, right click (ctrl click on macs without a right mouse button) on the
-    subtracted GI scattering profile in the Manipulation list and select “Guinier fit”.
+    subtracted GI scattering profile in the Manipulation list and select "Guinier fit".
     In the plots on the right, the top plot shows you the Guinier plot and the fit,
     while the bottom plot shows you the residual of the fit.
 
@@ -22,12 +22,12 @@ for globular proteins. This fitting region is called the “Guinier region.”
 
     |gi_guinier_png|
 
-#.  In the “Control” panel, you’ll see that n_min is now 6. This means RAW has
+#.  In the "Control" panel, you’ll see that n_min is now 6. This means RAW has
     cut off the first six points of the scattering profile in the fit. Use the
     arrow buttons next to the n_min box to adjust that to zero. Check whether
     the |Rg| changes.
 
-#.  In the “Parameters” panel, note that :math:`q_{max}R_g` is only ~1.26. Recall that for globular
+#.  In the "Parameters" panel, note that :math:`q_{max}R_g` is only ~1.26. Recall that for globular
     proteins like GI, it is typical to have :math:`q_{max}R_g` ~1.3. Adjust n_max until that is
     the case, watching what happens to the |Rg| and the residual.
 
@@ -42,12 +42,12 @@ for globular proteins. This fitting region is called the “Guinier region.”
         or an estimated uncertainty in |Rg| and I(0) based on variation of the selected
         interval start and end points.
 
-#.  Click the “OK” button to keep the results.
+#.  Click the "OK" button to keep the results.
 
     *   *Checkpoint:* If you now select the GI scattering profile, in the information panel
         at the top you should see the |Rg| and I(0) that you just found.
 
-    *   *Note:* Clicking the “Cancel button will discard the results.
+    *   *Note:* Clicking the "Cancel" button will discard the results.
 
 #.  Repeat the Guinier analysis for lysozyme.
 

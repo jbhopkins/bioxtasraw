@@ -29,9 +29,9 @@ tutorial you will learn the basics of processing it.
         by the pixels on the SAXS and WAXS detectors, plus any scale factor for absolute
         calibration and normalization included for one curve but not the other.
 
-#.  Star the WAXS data. Right click on the SAXS data and select merge. This will create a
-    new merged scattering profile. The new file will have the prefix **M_** to indicate it
-    is a merged file.
+#.  Star the WAXS data. Right click on the SAXS data and select Other Operations -> Merge.
+    This will create a new merged scattering profile. The new file will have the
+    prefix **M_** to indicate it is a merged file.
 
     *   *Tip:* If you can’t see it, that’s probably because it appeared on the upper plot,
         and is hidden by the very large intensities of the averaged WAXS files. Either try
