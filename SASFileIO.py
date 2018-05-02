@@ -22,12 +22,7 @@ Created on Jul 11, 2010
 #******************************************************************************
 '''
 
-try:
-    import hdf5plugin #This has to be imported before fabio, and h5py (and, I think, PIL/pillow) . . .
-    use_eiger = True
-except ImportError:
-    print 'RAW WARNING: hdf5plugin not present, Eiger hdf5 images will not load.'
-    use_eiger = False
+import hdf5plugin #This has to be imported before fabio, and h5py (and, I think, PIL/pillow) . . .
 
 import numpy as np
 import os
@@ -46,41 +41,14 @@ import PIL
 from PIL import Image
 import matplotlib.backends.backend_pdf
 
+import fabio
+
 import RAWGlobals
 import SASImage
 import SASM
 import SASExceptions
 import SASMarHeaderReader #Attempting to remove the reliance on compiled packages. Switchin Mar345 reading to fabio.
 
-try:
-    import fabio
-    use_fabio = True
-
-except Exception, e:
-    print e
-    use_fabio = False
-
-    if RAWGlobals.compiled_extensions:
-        try:
-            import packc_ext
-            read_mar345=True
-
-        except Exception, e1:
-                print e1
-                import SASbuild_Clibs
-                try:
-                    SASbuild_Clibs.buildAll()
-                    import packc_ext
-                    read_mar345=True
-
-                except Exception, e1:
-                    print e1
-                    RAWGlobals.compiled_extensions = False
-                    print 'Unable to import fabio or pack_ext, Mar345 files cannot be opened.'
-                    read_mar345 = False
-    else:
-        print 'Unable to import fabio or pack_ext, Mar345 files cannot be opened.'
-        read_mar345 = False
 
 def createSASMFromImage(img_array, parameters = {}, x_c = None, y_c = None, mask = None,
                         readout_noise_mask = None, tbs_mask = None, dezingering = 0, dezing_sensitivity = 4):
@@ -144,110 +112,6 @@ def loadMask(filename):
 ############################
 #--- ## Load image files: ##
 ############################
-
-def parseTiffTags(filename):
-    tag_dict = {}
-
-    try:
-        with open(filename, 'rb') as image:
-
-            #read the first 2 bytes to know "endian"
-            start = image.read(2)
-            endian = binascii.hexlify(start).upper()
-
-            if endian == "4949":
-                symbol = "<"
-            elif endian == "4D4D":
-                symbol = ">"
-            else:
-                print "ERROR!"
-                return None
-
-            the_answer = image.read(2)
-            the_answer = struct.unpack(symbol+'H',the_answer)[0]
-
-            if the_answer != 42:
-                print 'answer is not 42!!'
-                return None
-
-            #Figure out where the Image File Directory is. It can be
-            #anywhere in the file believe it or not.
-            dir_loc = image.read( 4 )
-            dir_loc = struct.unpack( symbol+'L', dir_loc )[0]
-
-            #goto that section of the file
-            image.seek(dir_loc)
-
-            #figure out how many tags there are
-            directory_data = image.read(2)
-            num_entries = struct.unpack(symbol+'H',directory_data)[0]
-
-            #loop through the Image File Directory and look for the tags we care about
-            #Width, Height, SamplesPerPixel, and ColorProfile
-            for i in range( num_entries ):
-                a_tag = image.read( 12 )
-                tag = struct.unpack( symbol+'HHLL', a_tag )
-
-                #catch in case the type is SHORT
-                if tag[1] == 3:
-                    tag = struct.unpack( symbol+'HHLHH', a_tag )
-
-                #set the class attributes if the tag is one we care about
-                if tag[0] == 256:
-                    print tag
-                    tag_dict['ImageWidth'] = tag[3]
-
-                if tag[0] == 257:
-                    tag_dict['ImageLength'] = tag[3]
-
-                if tag[0] == 258:
-                    tag_dict['ColorsPerSample'] = tag[2]
-
-                if tag[0] == 315:
-                    metadata_loc = tag[3]
-                    metadata_length = tag[2]
-
-                    image.seek( metadata_loc )
-                    metadata_bytes = image.read( metadata_length )
-
-                    struct_format = '%s%s%s' % ( symbol, metadata_length, 's' )
-                    metadata_string = struct.unpack( struct_format, metadata_bytes )[0]
-
-                    tag_dict['Artist'] = metadata_string
-
-                if tag[0] == 34675:
-                    tag_dict['ColorProfile'] = True
-                    if tag_dict['ColorProfile'] == True:
-                        icc_loc = tag[3]
-                        icc_length = tag[2]
-
-                        image.seek( icc_loc )
-                        icc_data = image.read( icc_length )
-                        struct_format = '%s%s%s' % ( symbol, icc_length, 's' )
-                        icc_string = struct.unpack( struct_format, icc_data )[0]
-
-                        if "Adobe RGB (1998)" in icc_string:
-                            tag_dict['ColorProfile'] = "Adobe RGB (1998)"
-                        elif "sRGB IEC61966-2-1" in icc_string:
-                            tag_dict['ColorProfile'] = "sRGB IEC61966-2-1"
-                        elif "ProPhoto RGB" in icc_string:
-                            tag_dict['ColorProfile'] = "Kodak ProPhoto RGB"
-                        elif "eciRGB" in icc_string:
-                            tag_dict['ColorProfile'] = "eciRGB v2"
-                        elif "e\0c\0i\0R\0G\0B\0" in icc_string:
-                            tag_dict['ColorProfile'] = "eciRGB v4"
-                        else:
-                            tag_dict['ColorProfile'] = "Other"
-                else:
-                    tag_dict['ColorProfile'] = "None"
-
-    except Exception, e:
-        print e
-        print filename
-        print 'Error opening tiff file!'
-        return None
-
-    return tag_dict
 
 def loadFabio(filename):
     fabio_img = fabio.open(filename)
@@ -319,101 +183,6 @@ def load32BitTiffImage(filename):
 
     return img, img_hdr
 
-def loadQuantumImage(filename):
-    ''' Load image from quantum detectors (512 byte header)
-    and also obtains the image header '''
-
-    with open(filename, 'rb') as f:
-        f.seek(512)                            # Jump over header
-
-        Img = np.fromfile(f, dtype=np.uint16)
-
-    xydim = int(np.sqrt(np.shape(Img))[0])    #assuming square image
-
-    Img = Img.reshape((xydim,xydim))
-
-    img_hdr = parseQuantumFileHeader(filename)
-
-    return Img, img_hdr
-
-
-def loadMarCCD165Image(filename):
-    ''' Loads a MarCCD 165 format image (tif) file and extracts the
-    information in the header '''
-
-    img, img_hdr = loadTiffImage(filename)
-
-    try:
-        img_hdr = SASMarHeaderReader.readHeader(filename)
-    except:
-        pass
-
-    return img, img_hdr
-
-def loadPilatusImage(filename):
-    ''' Loads a Pilatus format image (tif) file and extracts the
-    information in the header '''
-
-    img, img_hdr = load32BitTiffImage(filename)
-    img = np.fliplr(img)
-
-    try:
-        img_hdr = parsePilatusHeader(filename)
-    except:
-        img_hdr = {}
-        pass
-
-    return img, img_hdr
-
-def loadMar345Image(filename):
-
-    dim = getMar345ImgDim(filename)
-
-    try:
-        SizeOfImage = dim[0]
-    except TypeError:
-        raise SASExceptions.WrongImageFormat("Could not get the dimensions out of the image..")
-
-
-    img_ = np.zeros((SizeOfImage*SizeOfImage), dtype= np.int16)
-
-    filename_ = filename.encode('utf8')
-
-    img = packc_ext.packc(filename_,SizeOfImage,img_)
-    img = img_.astype(np.uint16) #transform 2byte array to uint16 array
-    img_ = np.reshape(img,(SizeOfImage, SizeOfImage))
-    img = np.flipud(img_)
-
-    #transform image array to matrix and mirror it.
-    del img_ # kill img_ and tempimg to free memory
-
-    try:
-        img_hdr = parseMar345FileHeader(filename)
-    except:
-        img_hdr = {}
-
-    return img, img_hdr
-
-def getMar345ImgDim(filename):
-
-    with open(filename, 'r') as mar_file:
-        mar_file.seek(4096)
-
-        dim = None
-
-        for i in range(0, 5):            # search 5 lines from starting point
-            line = mar_file.readline()
-
-            if 'CCP' in line:
-                splitline = line.split()
-
-                x = int(splitline[4].strip(','))
-                y = int(splitline[6].strip(','))
-
-                dim = x,y
-                break
-
-    return dim
 
 
 def loadFrelonImage(filename):
@@ -532,53 +301,6 @@ def loadIllSANSImage(filename):
 
     return img, hdr
 
-def loadEdfImage(filename):
-
-    with open(filename, 'rb') as fo:
-
-        ############## FIND HEADER LENGTH AND READ IMAGE ###########
-        fo.seek(0, 2)
-        eof = fo.tell()
-        fo.seek(0)
-
-        hdr_size = 1
-        byte = None
-        while byte != '}' and hdr_size !=eof:
-            byte = fo.read(1)
-            hdr_size = hdr_size + 1
-            if hdr_size > 10000:
-                raise ValueError
-
-        ######################## PARSE HEADER ###################
-        fo.seek(0)
-        header = fo.read(hdr_size)
-        header = header.split('\n')
-
-        header_dict = {}
-        for each in header:
-            sp_line = each.split('=')
-
-            if sp_line[0].strip() == '{' or sp_line[0].strip() == '}' or sp_line[0].strip() == '':
-                continue
-
-            if len(sp_line) == 2:
-                header_dict[sp_line[0].strip()] = sp_line[1].strip()[:-2]
-            elif len>2:
-                header_dict[sp_line[0].strip()] = each[each.find('=')+2:-2]
-
-        #print header_dict
-
-        fo.seek(hdr_size)
-
-        dim1 = int(header_dict['Dim_1'])
-        dim2 = int(header_dict['Dim_2'])
-
-        img = np.fromfile(fo, dtype='<f4')
-        img = np.reshape(img, (dim1, dim2))
-
-    img_hdr = header_dict
-
-    return img, img_hdr
 
 def loadSAXSLAB300Image(filename):
 
@@ -623,68 +345,6 @@ def loadSAXSLAB300Image(filename):
     return img, img_hdr
 
 
-def loadMPAFile(filename):
-    header_prefix = ''
-
-    header = {"None" : {}}
-    data ={}
-
-    with open(filename, 'r') as fo:
-        for line in fo:
-            if line.find('=') > -1:
-                key = line.strip().split('=')[0]
-                value = '='.join(line.strip().split('=')[1:])
-                value = value.strip()
-
-                if header_prefix == '':
-                    header["None"][key] = value
-
-                else:
-                    header[header_prefix][key] = value
-
-
-            else:
-                if line.startswith('[DATA') or line.startswith('[CDAT'):
-                    break
-
-                else:
-                    header_prefix = line.strip().strip('[]')
-                    header[header_prefix] = {}
-
-
-    if 'ADC1' not in header.keys() or 'ADC2' not in header.keys() or 'mpafmt' not in header['None'].keys():
-        print 'badly formatted mpa file'
-        raise IOError
-
-    if header['None']['mpafmt'] == 'asc':
-        with open(filename, 'r') as fo:
-            lines = fo.readlines()
-    else:
-        with open(filename, 'rb') as fo:
-            lines = fo.readlines()
-
-    for i, line in enumerate(lines):
-        if line.startswith('[CDAT'):
-            pos = i
-            break
-
-    data = np.array(lines[pos+1:],dtype=float)
-
-    img = data.reshape((int(header['ADC1']['range']), int(header['ADC2']['range'])))
-
-    img_hdr = {}
-    for key in header:
-        for subkey in header[key]:
-            if key == 'None':
-                img_hdr[subkey] = header[key][subkey]
-            else:
-                img_hdr[key+'_'+subkey] = header[key][subkey]
-
-    return img, img_hdr
-
-
-
-
 
 ##########################################
 #--- ## Parse Counter Files and Headers ##
@@ -694,20 +354,6 @@ def parseCSVHeaderFile(filename):
     counters = {}
 
     return counters
-
-
-def parseGaneshaHeader(filename):
-
-        tiff_tags = parseTiffTags( filename )
-
-        xml_header = tiff_tags[ 'Artist' ]
-
-        DOMTree = minidom.parseString( xml_header )
-        params = DOMTree.getElementsByTagName( 'param' )
-
-        print params
-
-        return {}
 
 
 def parseSAXSLAB300Header(tag_with_data):
@@ -783,134 +429,6 @@ def parseSAXSLAB300Header(tag_with_data):
 
     return d
 
-def parsePilatusHeader(filename):
-
-    param_pattern = re.compile('\d*[:]\d*[:]\d*\D\d*[:]\d*[:]\d*')
-
-    try:
-        with open(filename, 'r') as f:
-            header = f.read(4096)
-        hdr = {}
-    except:
-        print 'Reading Pilatus header failed'
-        return {}
-
-    for line in header:
-        date_found = param_pattern.search(line)
-
-        if date_found:
-            hdr['Exposure_date'] = date_found.group()
-            f.seek(580)
-
-        try:
-            if line.find('#') == 0:
-                if line.split()[1] == 'Exposure_time':
-                    hdr['Exposure_time'] = float(line.split()[2])
-        except:
-            print '** error reading the exposure time **'
-            break
-
-    return hdr
-
-
-def parseMar345FileHeader(filename):
-
-    with open(filename, 'r') as mar_file:
-
-        mar_file.seek(128)
-
-        hdr = {}
-
-        line = ''
-
-        split_hdr = []
-
-
-        while 'END OF HEADER' not in line:
-            line = mar_file.readline().strip('/n')
-
-            if len(line.split()) > 1:
-                split_hdr.append(line.split())
-
-    for each_line in split_hdr:
-
-        if each_line[0] == 'DATE':
-            hdr['DATE'] = each_line[1] + ' ' + each_line[2] + ' ' + each_line[3] + ' ' + each_line[4] + ' ' + each_line[5]
-
-        elif each_line[0] == 'GENERATOR':
-            hdr['GENERATOR'] = each_line[1] + ' ' + each_line[2]
-            hdr['GENERATOR_kV'] =  each_line[4]
-            hdr['GENERATOR_mA'] =  each_line[6]
-
-        elif each_line[0] == 'GAPS':
-            c=1
-            for i in range(1, len(each_line)):
-                hdr['GAPS' + '_' + str(c)] = each_line[i]
-                c+=1
-
-        elif each_line[0] == 'END':
-            break
-
-        elif len(each_line) == 2:
-            hdr[each_line[0]] = each_line[1]
-
-        elif len(each_line) == 4:
-            hdr[each_line[0]] = each_line[1]
-            hdr[each_line[0] + '_' + each_line[2]] = each_line[3]
-
-        elif len(each_line) == 5:
-            hdr[each_line[0] + '_' + each_line[1]] = each_line[2]
-            hdr[each_line[0] + '_' + each_line[3]] = each_line[4]
-
-        elif len(each_line) == 7:
-            hdr[each_line[0] + '_' + each_line[1]] = each_line[2]
-            hdr[each_line[0] + '_' + each_line[3]] = each_line[4]
-            hdr[each_line[0] + '_' + each_line[5]] = each_line[6]
-
-        elif len(each_line) == 9:
-            hdr[each_line[0] + '_' + each_line[1]] = each_line[2]
-            hdr[each_line[0] + '_' + each_line[3]] = each_line[4]
-            hdr[each_line[0] + '_' + each_line[5]] = each_line[6]
-            hdr[each_line[0] + '_' + each_line[7]] = each_line[8]
-
-    return hdr
-
-def parseQuantumFileHeader(filename):
-    ''' parses the header in a Quantum detector image '''
-
-    param_pattern = re.compile('[a-zA-Z0-9_]*[=].*\n')
-
-    try:
-        f = open(filename)
-        hdr = {}
-    except:
-        print 'Reading Quantum header failed'
-        return {}
-
-    lineNum = 0
-
-    try:
-        for line in f:
-
-            match_found = param_pattern.match(line)
-
-            if match_found:
-                found = match_found.group().split('=')
-                hdr[found[0]] = found[1].strip(';\n')
-
-            lineNum = lineNum + 1
-
-            if lineNum > 30: #header ends after line 27.. but just making sure
-                break
-
-    except:
-        print 'Reading Quantum header failed'
-        return {}
-
-    finally:
-        f.close()
-
-    return hdr
 
 
 def parseCHESSF2CTSfile(filename):
@@ -1360,60 +878,38 @@ all_header_types = {'None'                  : None,
                     'BL19U2, SSRF'          : parseBL19U2HeaderFile,
                     'P12 Eiger, Petra III'  : parsePetraIIIP12EigerFile}
 
-if use_fabio:
-    all_image_types = {
-                       'Pilatus'       : loadFabio,
-                       'CBF'                : loadFabio,
-                       'SAXSLab300'         : loadSAXSLAB300Image,
-                       'ADSC Quantum'       : loadFabio,
-                       'Bruker'             : loadFabio,
-                       'Gatan Digital Micrograph' : loadFabio,
-                       'EDNA-XML'           : loadFabio,
-                       'ESRF EDF'           : loadFabio,
-                       'FReLoN'             : loadFrelonImage,
-                       'Nonius KappaCCD'    : loadFabio,
-                       'Fit2D spreadsheet'  : loadFabio,
-                       'FLICAM'             : loadTiffImage,
-                       'General Electric'   : loadFabio,
-                       'Hamamatsu CCD'      : loadFabio,
-                       'HDF5 (Hierarchical data format)'  : loadFabio,
-                       'ILL SANS D11'       : loadIllSANSImage,
-                       'MarCCD 165'         : loadFabio,
-                       'Mar345'             : loadFabio,
-                       'Medoptics'          : loadTiffImage,
-                       'Numpy 2D Array'     : loadFabio,
-                       'Oxford Diffraction' : loadFabio,
-                       'Pixi'               : loadFabio,
-                       'Portable aNy Map'   : loadFabio,
-                       'Rigaku SAXS format' : loadFabio,
-                       '16 bit TIF'         : loadFabio,
-                       '32 bit TIF'         : load32BitTiffImage,
-                       'MPA (multiwire)'    : loadMPAFile
-                       # 'NeXus'           : loadNeXusFile,
-                                          }
+all_image_types = {
+                   'Pilatus'       : loadFabio,
+                   'CBF'                : loadFabio,
+                   'SAXSLab300'         : loadSAXSLAB300Image,
+                   'ADSC Quantum'       : loadFabio,
+                   'Bruker'             : loadFabio,
+                   'Gatan Digital Micrograph' : loadFabio,
+                   'EDNA-XML'           : loadFabio,
+                   'ESRF EDF'           : loadFabio,
+                   'FReLoN'             : loadFrelonImage,
+                   'Nonius KappaCCD'    : loadFabio,
+                   'Fit2D spreadsheet'  : loadFabio,
+                   'FLICAM'             : loadTiffImage,
+                   'General Electric'   : loadFabio,
+                   'Hamamatsu CCD'      : loadFabio,
+                   'HDF5 (Hierarchical data format)'  : loadFabio,
+                   'ILL SANS D11'       : loadIllSANSImage,
+                   'MarCCD 165'         : loadFabio,
+                   'Mar345'             : loadFabio,
+                   'Medoptics'          : loadTiffImage,
+                   'Numpy 2D Array'     : loadFabio,
+                   'Oxford Diffraction' : loadFabio,
+                   'Pixi'               : loadFabio,
+                   'Portable aNy Map'   : loadFabio,
+                   'Rigaku SAXS format' : loadFabio,
+                   '16 bit TIF'         : loadFabio,
+                   '32 bit TIF'         : load32BitTiffImage,
+                   'MPA (multiwire)'    : loadFabio,
+                   'Eiger'              : loadFabio,
+                   # 'NeXus'           : loadNeXusFile,
+                                      }
 
-    if use_eiger:
-        # all_image_types['Eiger'] =  loadEiger
-        all_image_types['Eiger'] = loadFabio
-
-else:
-    all_image_types = {'Quantum'            : loadQuantumImage,
-                       'MarCCD 165'             : loadMarCCD165Image,
-                       'Medoptics'              : loadTiffImage,
-                       'FLICAM'                 : loadTiffImage,
-                       'Pilatus'                : loadPilatusImage,
-                       'SAXSLab300'             : loadSAXSLAB300Image,
-                       'ESRF EDF'               : loadEdfImage,
-                       'FReLoN'                 : loadFrelonImage,
-                       '16 bit TIF'             : loadTiffImage,
-                       '32 bit TIF'             : load32BitTiffImage,
-                       # 'NeXus'                : loadNeXusFile,
-                       'ILL SANS D11'           : loadIllSANSImage,
-                       'MPA (multiwire)'        : loadMPAFile
-                       }
-
-    if read_mar345:
-        all_image_types['Mar345'] = loadMar345Image
 
 def loadAllHeaders(filename, image_type, header_type, raw_settings):
     ''' returns the image header and the info from the header file only. '''
