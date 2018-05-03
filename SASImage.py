@@ -24,7 +24,6 @@ Created on Jul 7, 2010
 
 import sys
 import math
-import time
 
 import numpy as np
 from scipy import optimize
@@ -704,12 +703,7 @@ def createMaskMatrix(img_dim, masks):
     maxx = mask.shape[0]
 
     for each in masks:
-        if isinstance(each, CircleMask):
-            start = time.time()
-            fillPoints = each.getFillPoints()
-            print time.time() - start
-        else:
-            fillPoints = each.getFillPoints()
+        fillPoints = each.getFillPoints()
 
         if each.isNegativeMask() == True:
             for eachp in fillPoints:
