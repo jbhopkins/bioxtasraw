@@ -29,30 +29,10 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
 IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 """
+import sys
 
 import numpy as np
-import sys
-import RAWGlobals
-
-
 from numba import jit
-
-#Check for compiled extensions. If compilation hasn't already failed, try to
-#compile them if they are missing
-if RAWGlobals.compiled_extensions:
-    try:
-        import polygonmask_ext
-
-    except ImportError as e:
-        print e
-        import SASbuild_Clibs
-        try:
-            SASbuild_Clibs.buildAll()
-            import polygonmask_ext
-
-        except Exception, e:
-            RAWGlobals.compiled_extensions = False
-            print e
 
 @jit
 def npnpoly(verts,points):
@@ -62,7 +42,7 @@ def npnpoly(verts,points):
 
     See http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
     """
-    out = np.empty_like(points[:,0], dtype=np.uinit8)
+    out = np.empty_like(points[:,0], dtype=np.bool)
 
     xpi = verts[:,0]
     ypi = verts[:,1]
