@@ -22,11 +22,14 @@ Created on Jul 7, 2010
 #******************************************************************************
 '''
 
+import sys
+import math
+import time
+
 import numpy as np
 from scipy import optimize
 import wx
-import sys
-import math
+from numba import jit
 
 import SASExceptions
 import SASParser
@@ -39,22 +42,6 @@ try:
     RAWGlobals.usepyFAI = True
 except:
     RAWGlobals.usepyFAI = False
-
-# If C extensions have not been built, build them:
-if RAWGlobals.compiled_extensions:
-    try:
-        import ravg_ext
-
-    except ImportError as e:
-        print e
-        import SASbuild_Clibs
-        try:
-            SASbuild_Clibs.buildAll()
-            import ravg_ext
-
-        except Exception, e:
-            RAWGlobals.compiled_extensions = False
-            print e
 
 import polygonMasking as polymask
 
@@ -149,23 +136,22 @@ class CircleMask(Mask):
     def getFillPoints(self):
         ''' Really Clumsy! Can be optimized alot! triplicates the points in the middle!'''
 
-        radiusC = abs(self._points[1][0] - self._points[0][0])
+        radiusC = np.abs(self._points[1][0] - self._points[0][0])
 
-        #P = bresenhamCirclePoints(radiusC, imgDim[0] - self._points[0][1], self._points[0][0])
         P = calcBresenhamCirclePoints(radiusC, self._points[0][1], self._points[0][0])
 
         fillPoints = []
 
-        for i in range(0, int(len(P)/8) ):
+        for i in xrange(0, int(len(P)/8) ):
             Pp = P[i*8 : i*8 + 8]
 
-            q_ud1 = ( Pp[0][0], range( int(Pp[1][1]), int(Pp[0][1]+1)) )
-            q_ud2 = ( Pp[2][0], range( int(Pp[3][1]), int(Pp[2][1]+1)) )
+            q_ud1 = ( Pp[0][0], xrange( int(Pp[1][1]), int(Pp[0][1]+1)) )
+            q_ud2 = ( Pp[2][0], xrange( int(Pp[3][1]), int(Pp[2][1]+1)) )
 
-            q_lr1 = ( Pp[4][1], range( int(Pp[6][0]), int(Pp[4][0]+1)) )
-            q_lr2 = ( Pp[5][1], range( int(Pp[7][0]), int(Pp[5][0]+1)) )
+            q_lr1 = ( Pp[4][1], xrange( int(Pp[6][0]), int(Pp[4][0]+1)) )
+            q_lr2 = ( Pp[5][1], xrange( int(Pp[7][0]), int(Pp[5][0]+1)) )
 
-            for i in range(0, len(q_ud1[1])):
+            for i in xrange(0, len(q_ud1[1])):
                 fillPoints.append( (int(q_ud1[0]), int(q_ud1[1][i])) )
                 fillPoints.append( (int(q_ud2[0]), int(q_ud2[1][i])) )
                 fillPoints.append( (int(q_lr1[1][i]), int(q_lr1[0])) )
@@ -717,7 +703,12 @@ def createMaskMatrix(img_dim, masks):
     maxx = mask.shape[0]
 
     for each in masks:
-        fillPoints = each.getFillPoints()
+        if isinstance(each, CircleMask):
+            start = time.time()
+            fillPoints = each.getFillPoints()
+            print time.time() - start
+        else:
+            fillPoints = each.getFillPoints()
 
         if each.isNegativeMask() == True:
             for eachp in fillPoints:
@@ -956,36 +947,13 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
     xlen_1 = ylen
     ylen_1 = xlen
 
-    # print np.any(hist<0)
-    # print np.any(hist<0)
-
     print 'Radial averaging in progress...',
 
-    if RAWGlobals.compiled_extensions:
-        ravg_ext.ravg(readoutNoiseFound,
-                       readoutN,
-                       readoutNoise_mask,
-                       xlen_1, ylen_1,
-                       x_c, y_c,
-                       hist,
-                       low_q, high_q,
-                       in_image,
-                       hist_count, mask, qmatrix, dezingering, dezing_sensitivity)
-    else:
-        ravg_python(readoutNoiseFound,
-                       readoutN,
-                       readoutNoise_mask,
-                       xlen_1, ylen_1,
-                       x_c, y_c,
-                       hist,
-                       low_q, high_q,
-                       in_image,
-                       hist_count, mask, qmatrix, dezingering, dezing_sensitivity)
+    ravg(readoutNoiseFound, readoutN, readoutNoise_mask, xlen_1, ylen_1, x_c, y_c,
+        hist, low_q, high_q, in_image, hist_count, mask, qmatrix, dezingering,
+        dezing_sensitivity)
 
-    print 'done'
-
-    # print np.any(hist<0)
-    # print np.any(hist_count<0)
+    print "Done!"
 
     hist_cnt = hist_count[2,:]    #contains x-mean
 
@@ -1203,44 +1171,29 @@ def pyFAIIntegrateCalibrateNormalize(img, parameters, x_cin, y_cin, raw_settings
     return sasm
 
 
-
-def ravg_python(readoutNoiseFound, readoutN, readoutNoise_mask, xlen, ylen, x_c,
+@jit(nopython=True)
+def ravg(readoutNoiseFound, readoutN, readoutNoise_mask, xlen, ylen, x_c,
                 y_c, hist, low_q, high_q, in_image, hist_count, mask, qmatrix,
                 dezingering, dezing_sensitivity):
 
     WINDOW_LENGTH=30
 
-    # double rel_x, rel_y, r, delta, deltaN, qmat_cnt, std;
-    # int i, x, y, half_window_size, window_start_idx, q_idx, point_idx;
-
     window = np.empty(WINDOW_LENGTH)
-    # double median;
-    # double *window_ptr, *data;
-    # int half_win_len;
-    # int hist_length;
 
     hist_length = len(hist)
 
-    data = qmatrix            #/* Pointer to the numpy array version of qmatrix */
-
-    half_window_size = (WINDOW_LENGTH / 2.0)
+    half_window_size = int(WINDOW_LENGTH / 2.0)
     win_len = WINDOW_LENGTH
 
     for x in range(xlen):
             for y in range(ylen):
-           # {
                 rel_x = x-x_c
                 rel_y = y_c-y
 
                 r = int(((rel_y)**2. + (rel_x)**2.)**0.5)
 
-                # //res(x,y) = r;
-
-                if r < high_q and r > low_q and mask[x,y] == 1: #// && in_image(x,y) > 0)
-                # {
+                if r < high_q and r > low_q and mask[x,y] == 1:
                     q_idx = r
-
-                    # /* res2(x,y) = r; */                                  /*  A test image, gives the included range image */
 
                     hist[r] = hist[r] + in_image[x,y]                    #/* Integration of pixel values */
 
@@ -1262,35 +1215,18 @@ def ravg_python(readoutNoiseFound, readoutN, readoutNoise_mask, xlen, ylen, x_c,
                         point_idx = int(hist_count[0, q_idx])
                         window_start_idx = point_idx - win_len
 
-                        data = qmatrix[q_idx, window_start_idx:point_idx]
-
-                        window = data
-
-                        # window.sort()
-
-                        # moveDataToWindow(window_ptr, data, win_len)
-                        # quicksort(window, 0, WINDOW_LENGTH-1)
+                        window = qmatrix[q_idx, window_start_idx:point_idx]
 
                         std = np.std(window)
-                        # window_ptr = window                                                        #/* Reset pointers */
                         median = np.median(window)
-
-                        # //printf("median: %f\\n", median);
 
                         half_win_len = point_idx - half_window_size
 
 
                         if qmatrix[q_idx, half_win_len] > (median + (dezing_sensitivity * std)): #{
                             qmatrix[q_idx, half_win_len] = median
-                        # }
-
-                    # } // end dezinger if case
-
-
-                # }
 
                 if readoutNoiseFound == 1 and r < high_q-1 and r > low_q and readoutNoise_mask[x,y] == 0:
-                # {
                     readoutN[0,0] = readoutN[0,0] + 1
                     readoutN[0,1] = readoutN[0,1] + in_image[x,y]
 
@@ -1298,185 +1234,26 @@ def ravg_python(readoutNoiseFound, readoutN, readoutNoise_mask, xlen, ylen, x_c,
                     readoutN[0,2] = readoutN[0,2] + (deltaN / readoutN[0,0]) #Running average
                     readoutN[0,3] = readoutN[0,3] + (deltaN * (in_image[x,y]-readoutN[0,2]))
 
-                # }
-            # }
-
     # /* *********************************************  */
     # /* Remove zingers at the first (window/2) points  */
     # /* *********************************************  */
 
     if dezingering == 1:
-
         half_window_size = int(WINDOW_LENGTH / 2.0)
         win_len = WINDOW_LENGTH
 
         for q_idx in range(hist_length):
-            # {
-
             if hist_count[0, q_idx] > (win_len + half_window_size):
-                # {
-
                 for i in range(win_len+half_window_size, win_len, -1):
-                    # {
-
                     point_idx = i
                     window_start_idx = point_idx - win_len
 
-                    data = qmatrix[q_idx, window_start_idx:point_idx]
-
-                    window = data
-
-                    # moveDataToWindow(window_ptr, data, win_len)
-                    # quicksort(window, 0, WINDOW_LENGTH-1)
+                    window = qmatrix[q_idx, window_start_idx:point_idx]
 
                     std = np.std(window)
-                    # window_ptr = window                      #/* Reset pointers */
                     median = np.median(window)
 
                     half_win_len = point_idx - win_len
 
                     if qmatrix[q_idx, half_win_len] > (median + (dezing_sensitivity * std)):
-                    # {
                         qmatrix[q_idx, half_win_len] = median
-
-                    # }
-                # }
-            # }
-        # }
-    # }
-
-    print "\n\n********* Radial Averaging and dezingering ********\n"
-    print "Done!"
-
-    # """
-
-    # code2 = """
-
-# def getStd(window_ptr, win_len):
-# # {
-#     # int half_win_len;
-#     # double mean, variance, M2, n, delta;
-
-#     M2 = 0.;
-#     n = 0.0;
-#     mean = 0.;
-#     variance = 1.;
-#     delta = 0.;
-
-#     half_win_len = int(win_len / 2)
-
-#     while(half_win_len--)
-#     {
-#         ++n;
-#         delta = ((double) *window_ptr) - mean;
-#         mean = mean + (delta/n);
-
-#         M2 = M2 + (delta * (((double) *window_ptr) - mean));
-
-#         ++window_ptr;
-#     }
-
-#     if(n > 1)
-#             variance = M2/(n - 1);     /* To avoid devide by zero */
-
-#     return sqrt(variance);
-# }
-
-# def moveDataToWindow(double *window_ptr, double *data, int win_len)
-# # {
-#     data++;                                        /* Pointers needs to be moved back/forward since */
-#     window_ptr--;                                  /* *data++ doesn't work, but *++data does.. strange! */
-
-#     while(win_len--)
-#     {
-#         *++window_ptr = *--data;                  /* Move values from data array to the window array */
-#     }
-
-# # }
-
-# void swap(double *x, double *y)
-# {
-#    long temp;
-#    temp = *x;
-#    *x = *y;
-#    *y = temp;
-# }
-
-# long choose_pivot(long i, long j)
-# {
-#    return((i+j) /2);
-# }
-
-# void quicksort(double list[], long m, long n)
-# {
-#    long key,i,j,k;
-#    if( m < n)
-#    {
-#       k = choose_pivot(m, n);
-#       swap(&list[m], &list[k]);
-#       key = list[m];
-#       i = m+1;
-#       j = n;
-
-#       while(i <= j)
-#       {
-#          while((i <= n) && (list[i] <= key))
-#             i++;
-#          while((j >= m) && (list[j] > key))
-#             j--;
-#          if( i < j)
-#             swap(&list[i], &list[j]);
-#         }
-
-#       // swap two elements
-#       swap(&list[m], &list[j]);
-
-#       // recursively sort the lesser list
-#       quicksort(list, m, j-1);
-#       quicksort(list, j+1, n);
-#    }
-# }
-
-# """
-#
-#    stdwin = np.sort(window)
-#    std = np.std(stdwin[:-half_window])
-#    median = np.median(window)
-#
-#    plus_threshold = median + (std * sensitivity)
-#    minus_threshold = median - (std * sensitivity)
-#
-#    if intensity_array[i] > plus_threshold or intensity_array[i] < minus_threshold:
-#        intensity_array[i] = median
-
-
-    # ravg = ext_tools.ext_function('ravg', code,
-    #                               ['readoutNoiseFound', 'readoutN',
-    #                                'readoutNoise_mask', 'xlen',
-    #                                'ylen','x_c','y_c', 'hist',
-    #                                'low_q', 'high_q', 'in_image',
-    #                                'hist_count', 'mask', 'qmatrix',
-    #                                'dezingering', 'dezing_sensitivity'],
-    #                                type_converters = converters.blitz)
-
-    # ravg.customize.add_support_code(code2)
-
-    # mod.add_function(ravg)
-
-    # #SYSTEM TEMP DIR MIGHT NOT HAVE WRITE PERMISSION OR HAS SPACES IN IT => FAIL!
-    # #EXTREMELY ANNOYING THAT THE TEMP DIR CAN'T BE SET FROM mod.compile()! .. This is a work around:
-
-    # kw, file = mod.build_kw_and_file('.', {})
-
-    # success = build_tools.build_extension(file, temp_dir = temp_dir,
-    #                                           compiler_name = 'gcc',
-    #                                           verbose = 0, **kw)
-
-    # if success:
-    #     print '\n\n****** ravg_ext module compiled succesfully! *********'
-
-
-
-
-
-
