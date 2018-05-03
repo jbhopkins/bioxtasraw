@@ -29,7 +29,7 @@ import time
 import numpy as np
 from scipy import optimize
 import wx
-from numba import jit
+from numba import jit, prange
 
 import SASExceptions
 import SASParser
@@ -133,25 +133,26 @@ class CircleMask(Mask):
         self._points = points
         self.radius = abs(points[1][0] - points[0][0])
 
+
     def getFillPoints(self):
         ''' Really Clumsy! Can be optimized alot! triplicates the points in the middle!'''
 
-        radiusC = np.abs(self._points[1][0] - self._points[0][0])
+        radiusC = abs(self._points[1][0] - self._points[0][0])
 
         P = calcBresenhamCirclePoints(radiusC, self._points[0][1], self._points[0][0])
 
         fillPoints = []
 
-        for i in xrange(0, int(len(P)/8) ):
+        for i in range(0, int(len(P)/8) ):
             Pp = P[i*8 : i*8 + 8]
 
-            q_ud1 = ( Pp[0][0], xrange( int(Pp[1][1]), int(Pp[0][1]+1)) )
-            q_ud2 = ( Pp[2][0], xrange( int(Pp[3][1]), int(Pp[2][1]+1)) )
+            q_ud1 = ( Pp[0][0], range( int(Pp[1][1]), int(Pp[0][1]+1)) )
+            q_ud2 = ( Pp[2][0], range( int(Pp[3][1]), int(Pp[2][1]+1)) )
 
-            q_lr1 = ( Pp[4][1], xrange( int(Pp[6][0]), int(Pp[4][0]+1)) )
-            q_lr2 = ( Pp[5][1], xrange( int(Pp[7][0]), int(Pp[5][0]+1)) )
+            q_lr1 = ( Pp[4][1], range( int(Pp[6][0]), int(Pp[4][0]+1)) )
+            q_lr2 = ( Pp[5][1], range( int(Pp[7][0]), int(Pp[5][0]+1)) )
 
-            for i in xrange(0, len(q_ud1[1])):
+            for i in range(0, len(q_ud1[1])):
                 fillPoints.append( (int(q_ud1[0]), int(q_ud1[1][i])) )
                 fillPoints.append( (int(q_ud2[0]), int(q_ud2[1][i])) )
                 fillPoints.append( (int(q_lr1[1][i]), int(q_lr1[0])) )
@@ -1171,7 +1172,7 @@ def pyFAIIntegrateCalibrateNormalize(img, parameters, x_cin, y_cin, raw_settings
     return sasm
 
 
-@jit(nopython=True)
+@jit(nopython=True, cache=True, parallel=True)
 def ravg(readoutNoiseFound, readoutN, readoutNoise_mask, xlen, ylen, x_c,
                 y_c, hist, low_q, high_q, in_image, hist_count, mask, qmatrix,
                 dezingering, dezing_sensitivity):
@@ -1185,54 +1186,54 @@ def ravg(readoutNoiseFound, readoutN, readoutNoise_mask, xlen, ylen, x_c,
     half_window_size = int(WINDOW_LENGTH / 2.0)
     win_len = WINDOW_LENGTH
 
-    for x in range(xlen):
-            for y in range(ylen):
-                rel_x = x-x_c
-                rel_y = y_c-y
+    for x in prange(xlen):
+        for y in prange(ylen):
+            rel_x = x-x_c
+            rel_y = y_c-y
 
-                r = int(((rel_y)**2. + (rel_x)**2.)**0.5)
+            r = int(((rel_y)**2. + (rel_x)**2.)**0.5)
 
-                if r < high_q and r > low_q and mask[x,y] == 1:
-                    q_idx = r
+            if r < high_q and r > low_q and mask[x,y] == 1:
+                q_idx = r
 
-                    hist[r] = hist[r] + in_image[x,y]                    #/* Integration of pixel values */
+                hist[r] = hist[r] + in_image[x,y]                    #/* Integration of pixel values */
 
-                    qmat_cnt = hist_count[0, q_idx]                      #/* Number of pixels in a bin */
-                    qmatrix[q_idx, int(qmat_cnt)] = in_image[x,y]        #/* Save pixel value for later analysis */
+                qmat_cnt = hist_count[0, q_idx]                      #/* Number of pixels in a bin */
+                qmatrix[q_idx, int(qmat_cnt)] = in_image[x,y]        #/* Save pixel value for later analysis */
 
-                    hist_count[0, q_idx] = hist_count[0, q_idx] + 1      #/* Number of pixels in a bin */
+                hist_count[0, q_idx] = hist_count[0, q_idx] + 1      #/* Number of pixels in a bin */
 
-                    delta = in_image[x,y] - hist_count[1, q_idx]         #/* Calculation of variance start */
+                delta = in_image[x,y] - hist_count[1, q_idx]         #/* Calculation of variance start */
 
-                    hist_count[1, q_idx] = hist_count[1, q_idx] + (delta / hist_count[0, q_idx])
-                    hist_count[2, q_idx] = hist_count[2, q_idx] + (delta * (in_image[x,y]-hist_count[1, q_idx]))
-
-
-                    # /* *******************   Dezingering   ******************** */
-
-                    if hist_count[0, r] >= WINDOW_LENGTH and dezingering == 1:
-                    # {
-                        point_idx = int(hist_count[0, q_idx])
-                        window_start_idx = point_idx - win_len
-
-                        window = qmatrix[q_idx, window_start_idx:point_idx]
-
-                        std = np.std(window)
-                        median = np.median(window)
-
-                        half_win_len = point_idx - half_window_size
+                hist_count[1, q_idx] = hist_count[1, q_idx] + (delta / hist_count[0, q_idx])
+                hist_count[2, q_idx] = hist_count[2, q_idx] + (delta * (in_image[x,y]-hist_count[1, q_idx]))
 
 
-                        if qmatrix[q_idx, half_win_len] > (median + (dezing_sensitivity * std)): #{
-                            qmatrix[q_idx, half_win_len] = median
+                # /* *******************   Dezingering   ******************** */
 
-                if readoutNoiseFound == 1 and r < high_q-1 and r > low_q and readoutNoise_mask[x,y] == 0:
-                    readoutN[0,0] = readoutN[0,0] + 1
-                    readoutN[0,1] = readoutN[0,1] + in_image[x,y]
+                if hist_count[0, r] >= WINDOW_LENGTH and dezingering == 1:
+                # {
+                    point_idx = int(hist_count[0, q_idx])
+                    window_start_idx = point_idx - win_len
 
-                    deltaN = in_image[x,y] - readoutN[0,2]
-                    readoutN[0,2] = readoutN[0,2] + (deltaN / readoutN[0,0]) #Running average
-                    readoutN[0,3] = readoutN[0,3] + (deltaN * (in_image[x,y]-readoutN[0,2]))
+                    window = qmatrix[q_idx, window_start_idx:point_idx]
+
+                    std = np.std(window)
+                    median = np.median(window)
+
+                    half_win_len = point_idx - half_window_size
+
+
+                    if qmatrix[q_idx, half_win_len] > (median + (dezing_sensitivity * std)): #{
+                        qmatrix[q_idx, half_win_len] = median
+
+            if readoutNoiseFound == 1 and r < high_q-1 and r > low_q and readoutNoise_mask[x,y] == 0:
+                readoutN[0,0] = readoutN[0,0] + 1
+                readoutN[0,1] = readoutN[0,1] + in_image[x,y]
+
+                deltaN = in_image[x,y] - readoutN[0,2]
+                readoutN[0,2] = readoutN[0,2] + (deltaN / readoutN[0,0]) #Running average
+                readoutN[0,3] = readoutN[0,3] + (deltaN * (in_image[x,y]-readoutN[0,2]))
 
     # /* *********************************************  */
     # /* Remove zingers at the first (window/2) points  */
@@ -1242,7 +1243,7 @@ def ravg(readoutNoiseFound, readoutN, readoutNoise_mask, xlen, ylen, x_c,
         half_window_size = int(WINDOW_LENGTH / 2.0)
         win_len = WINDOW_LENGTH
 
-        for q_idx in range(hist_length):
+        for q_idx in prange(hist_length):
             if hist_count[0, q_idx] > (win_len + half_window_size):
                 for i in range(win_len+half_window_size, win_len, -1):
                     point_idx = i

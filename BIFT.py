@@ -18,11 +18,11 @@
 from __future__ import division
 
 import os
-import time
+import math
 
 from scipy.linalg import det
 import numpy as np
-from numba import jit
+from numba import jit, prange
 
 import RAWGlobals
 import SASM
@@ -281,10 +281,9 @@ def C_seeksol(I_exp, m, q, sigma, alpha, dmax, T):
     alpha = float(alpha)              # Important! otherwise C code will crash
 
     s = bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold)
-
     I_m = np.dot( P, np.transpose(T) )
 
-    difftst = np.power( (I_exp[0] - I_m[0]), 2) / np.power(sigma, 2)
+    difftst = pow( (I_exp[0] - I_m[0]), 2) / pow(sigma, 2)
 
     #Chi Squared:
     c = sum( np.array(difftst) )
@@ -658,7 +657,7 @@ def distDistribution_Sphere(N, scale_factor, dmax):
  #   P = ones(N)
     return P, R_axis_vector
 
-@jit
+@jit(nopython=True, cache=True)
 def shiftLeft(a,shift):
     ''' makes a left circular shift of array '''
     sh = a.shape
@@ -669,7 +668,7 @@ def shiftLeft(a,shift):
     res = np.zeros(array_length)
 
     # SLOW! lets make it in C!
-    for i in range(0,array_length):
+    for i in prange(0,array_length):
 
         if i < (array_length - shift):
             res[i] = b[0, shift + i]
@@ -678,7 +677,7 @@ def shiftLeft(a,shift):
 
     return res.reshape(sh)
 
-@jit
+@jit(nopython=True, cache=True)
 def shiftRight(a, shift):
     ''' makes a right circular shift of array '''
 
@@ -690,7 +689,7 @@ def shiftRight(a, shift):
     res = np.zeros(array_length)
 
     # SLOW! lets make it in C!
-    for i in range(0,array_length):
+    for i in prange(0,array_length):
 
         res[i] = b[0, i - shift]
 
@@ -706,7 +705,7 @@ def sphereForm(R, N, qmax):
 
     return pow(abs(I),2), q
 
-@jit
+@jit(nopython=True, cache=True)
 def createTransMatrix(q, r):
     ''' Creates the Transformation Matrix T   I_m = sum( T[i,j] * p[j] + e )'''
 
@@ -715,17 +714,17 @@ def createTransMatrix(q, r):
     qlen = len(q)
     rlen = len(r)
 
-    q = np.array(q)
-    r = np.array(r)
+    # q = np.array(q)
+    # r = np.array(r)
 
     # Leaving out 4 * pi * dr! That means the solution will include these three factors!
     c = 1 # 4 * pi * dr
 
-    for i in range(qlen):
-        for j in range(rlen):
+    for i in prange(qlen):
+        for j in prange(rlen):
             qr = q[i]*r[j]
             if qr != 0:
-                chk = c*np.sin(qr)/qr
+                chk = c*math.sin(qr)/qr
                 if chk != chk:      #Checks for nan values?
                     T[i, j] = 1
                 else:
@@ -824,7 +823,7 @@ def calcPosterior(alpha, dmax, s, Chi, B):
 #%                       saa den har en konstant sandsynlighed, derfor
 #%                       bidrager den ikke til evidensen.
 
-@jit
+@jit(nopython=True, cache=True)
 def bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold):
 
 
@@ -843,7 +842,7 @@ def bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction,
 
             # Calculating smoothness constraint vector m
 
-            for k in range(1,N-1):
+            for k in prange(1,N-1):
                 m[0, k] =  ((P[0,k-1] + P[0,k+1]) / 2.0)
 
 
@@ -853,13 +852,13 @@ def bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction,
 
             # This calculates the Matrix Psumi
 
-            for j in range(N):
-                for k in range(N):
+            for j in prange(N):
+                for k in prange(N):
                     Psumi[0,j] = Psumi[0,j] + P[0,k] * Bmat[k,j]
 
            # Now calculating dP, and updating P
 
-            for k in range(N):
+            for k in prange(N):
                 dP[0,k] = (m[0,k]*alpha + sum_dia[0,k] - Psumi[0,k])/(bkk[0,k] + alpha)      # ATTENTION! remember C division!, if its all int's then it will be a int result! .. maybe cast it to float()?
 
                 Psumi[0,k] = 0    # Reset values in Psumi for next iteration..otherwise Psumi = Psumi + blah will be wrong!
@@ -878,7 +877,7 @@ def bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction,
         wgrads = 0.
         wgradc = 0.
         s = 0.
-        for k in range(N):
+        for k in prange(N):
             s = s - pow(P[0,k] - m[0,k], 2)                        # sum(-power((P-m),2))
 
             gradsi = -2*(P[0,k] - m[0,k])                           # gradsi = (-2*(P-m))
@@ -886,7 +885,7 @@ def bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction,
 
             gradci = 0
 
-            for j in range(N):
+            for j in prange(N):
                 gradci = gradci + 2*(P[0,j] * B[j,k])
 
             gradci = gradci - 2*sum_dia[0,k]
@@ -901,7 +900,7 @@ def bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction,
 
             # Updating P
 
-            for k in range(N):
+            for k in prange(N):
                 P[0,k] = (1-omega)*Pold[0,k] + omega*dP[0,k]
 
             # Calculating Dotsp
@@ -911,14 +910,14 @@ def bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction,
             wgradc = 0.
             s = 0.
 
-            for k in range(N):
+            for k in prange(N):
                 s = s - pow(P[0,k]-m[0,k], 2)                        # sum(-power((P-m),2))
                 gradsi = -2*(P[0,k]-m[0,k])                            # gradsi = (-2*(P-m))
                 wgrads = wgrads + pow(gradsi, 2)
 
                 gradci = 0
 
-                for j in range(N):
+                for j in prange(N):
                     gradci = gradci + 2*(P[0,j]*B[j,k])
 
                 gradci = gradci - 2*sum_dia[0,k]
