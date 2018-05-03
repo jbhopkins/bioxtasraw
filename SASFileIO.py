@@ -24,7 +24,6 @@ Created on Jul 11, 2010
 
 import hdf5plugin #This has to be imported before fabio, and h5py (and, I think, PIL/pillow) . . .
 
-import numpy as np
 import os
 import sys
 import re
@@ -36,11 +35,12 @@ import copy
 import collections
 import datetime
 from xml.dom import minidom
+
+import numpy as np
+import fabio
 import PIL
 from PIL import Image
 import matplotlib.backends.backend_pdf
-
-import fabio
 
 import RAWGlobals
 import SASImage
