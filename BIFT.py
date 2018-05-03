@@ -27,29 +27,6 @@ from numba import jit
 import RAWGlobals
 import SASM
 
-if not RAWGlobals.frozen:
-    try:
-        import weave
-        from weave import converters
-    except ImportError:
-        from scipy import weave
-        from scipy.weave import converters
-
-if RAWGlobals.compiled_extensions:
-    try:
-        import bift_ext
-
-    except ImportError as e:
-        print e
-        import SASbuild_Clibs
-        try:
-            SASbuild_Clibs.buildAll()
-            import bift_ext
-
-        except Exception, e:
-            print e
-            RAWGlobals.compiled_extensions = False
-
 #################################################################################
 ################# Taken from numpy to add cancel function #######################
 #################################################################################
@@ -327,9 +304,6 @@ def GetEvidence(alpha, dmax, Ep, N):
     T = createTransMatrix(Ep.q[qmin:qmax], r)
     P = makePriorDistDistribution(Ep, N, dmax, T, 'sphere', Ep.q[qmin:qmax])
 
-    # print 'Alpha : ' ,alpha
-    # print 'Dmax  : ' , dmax
-
     Pout, evd, c  = C_seeksol(Ep.i[qmin:qmax], P, Ep.q[qmin:qmax], Ep.err[qmin:qmax], alpha, dmax, T)
 
     return -evd, c, Pout
@@ -519,12 +493,6 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
 
         dmax_idx = dmax_idx + 1
 
-    # print "final alpha: ", alphafin
-    # print "final dmax: ", dmaxfin
-    # print "c_alpha: ", alphac
-    # print "c_dmax: ", dmaxc
-
-    # print 'Search took %9.6f Seconds' % dt
     if alphafin == -1 and dmaxfin == -1:
         queue.put({'failed':True})
         return
@@ -537,11 +505,8 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
                    'tpoint'     : total_points,
                    'status'     : 'Running a fine search'}
 
-    # wx.CallAfter(statusdlg.updateData, bift_status, True)
-
     queue.put({'update' : bift_status})
 
-    # print "Making fine search..."
     src_result = fineSearch(Ep, N, np.log(alphafin), dmaxfin)
 
     if src_result is not None:
@@ -644,9 +609,6 @@ def fineSearch(Ep, N, alpha, dmax):
     if opt is None:
         return
 
-    # print "Optimum found: "
-    # print exp(opt[0]), opt[1]
-
     return np.exp(opt[0]), opt[1]
 
 def distDistribution_Sphere(N, scale_factor, dmax):
@@ -696,6 +658,7 @@ def distDistribution_Sphere(N, scale_factor, dmax):
  #   P = ones(N)
     return P, R_axis_vector
 
+@jit
 def shiftLeft(a,shift):
     ''' makes a left circular shift of array '''
     sh = a.shape
@@ -715,6 +678,7 @@ def shiftLeft(a,shift):
 
     return res.reshape(sh)
 
+@jit
 def shiftRight(a, shift):
     ''' makes a right circular shift of array '''
 
@@ -817,6 +781,7 @@ def calcPosterior(alpha, dmax, s, Chi, B):
     sizeA = max(B.shape)
 
     eyeMat = np.eye(sizeA)
+
     mat1 = shiftLeft(eyeMat,1)
     mat2 = shiftRight(eyeMat, 1)
 
