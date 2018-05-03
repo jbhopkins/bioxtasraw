@@ -24,8 +24,15 @@ Created on Jul 7, 2010
 
 import numpy as np
 from scipy import optimize
-import SASExceptions, SASParser, SASCalib, SASM, RAWGlobals
-import wx, sys, math
+import wx
+import sys
+import math
+
+import SASExceptions
+import SASParser
+import SASCalib
+import SASM
+import RAWGlobals
 
 try:
     import pyFAI

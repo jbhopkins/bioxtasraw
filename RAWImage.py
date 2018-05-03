@@ -27,6 +27,7 @@ import matplotlib
 import wx
 import os
 import platform
+import time
 import numpy as np
 matplotlib.rcParams['backend'] = 'WxAgg'
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
@@ -679,8 +680,10 @@ class ImagePanel(wx.Panel):
                 else:
                     start_negative = False
 
-                self.plot_parameters['storedMasks'].append( SASImage.PolygonMask(points, self._createNewMaskNumber(), self.img.shape, negative = start_negative) )
-
+                start = time.time()
+                mask = SASImage.PolygonMask(points, self._createNewMaskNumber(), self.img.shape, negative = start_negative)
+                print time.time() - start
+                self.plot_parameters['storedMasks'].append(mask)
             self.stopMaskCreation()
             self.untoggleAllToolButtons()
 

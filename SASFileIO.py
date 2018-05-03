@@ -30,7 +30,6 @@ import sys
 import re
 import cPickle
 import time
-import binascii
 import struct
 import json
 import copy
