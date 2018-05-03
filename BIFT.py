@@ -303,7 +303,7 @@ def C_seeksol(I_exp, m, q, sigma, alpha, dmax, T):
 
     alpha = float(alpha)              # Important! otherwise C code will crash
 
-    s = bift_python(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold)
+    s = bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold)
 
     I_m = np.dot( P, np.transpose(T) )
 
@@ -742,69 +742,32 @@ def sphereForm(R, N, qmax):
 
     return pow(abs(I),2), q
 
+@jit
 def createTransMatrix(q, r):
     ''' Creates the Transformation Matrix T   I_m = sum( T[i,j] * p[j] + e )'''
 
     #Reserve memory
     T = np.zeros((len(q), len(r)))
-
     qlen = len(q)
     rlen = len(r)
 
     q = np.array(q)
     r = np.array(r)
 
-    #Stepsize in r
-    dr = r[1]
-
     # Leaving out 4 * pi * dr! That means the solution will include these three factors!
     c = 1 # 4 * pi * dr
-   #================================================
-   #                C++ CODE
-   #================================================
- #   transmatrix_ext.trans_matrix(qlen, rlen, T, r, q, c)
 
-#    mod = ext_tools.ext_module('transmatrix_ext')
-#
-    code = """
-
-    float chk, qr;
-    int i, j;
-
-    for( i = 0; i < qlen; i++)
-           for( j = 0; j < rlen; j++)
-           {
-
-                 qr = q(i) * r(j);
-                 chk = float(c) * sin(qr) / qr ;
-
-                  if(chk != chk) {
-                      T(i,j) = 1;
-                  }
-                  else {
-                      T(i,j) = chk;
-                  }
-
-           }
-
-    """
-
-    if not RAWGlobals.frozen and RAWGlobals.compiled_extensions:
-        weave.inline(code,['qlen', 'rlen', 'T', 'r', 'q', 'c'], type_converters = converters.blitz, compiler = "gcc")
-
-    else:
-        for i in range(qlen):
-            for j in range(rlen):
-                qr = q[i]*r[j]
-                chk = c*math.sin(qr)/qr
-
+    for i in range(qlen):
+        for j in range(rlen):
+            qr = q[i]*r[j]
+            if qr != 0:
+                chk = c*np.sin(qr)/qr
                 if chk != chk:      #Checks for nan values?
                     T[i, j] = 1
                 else:
                     T[i,j] = chk
-#    transext = ext_tools.ext_function('trans_matrix', code, ['qlen', 'rlen', 'T', 'r', 'q', 'c'], type_converters = converters.blitz)
-#    mod.add_function(transext)
-#    mod.compile(compiler = 'gcc')
+            else:
+                T[i, j] = 1
 
     return T
 
@@ -897,7 +860,7 @@ def calcPosterior(alpha, dmax, s, Chi, B):
 #%                       bidrager den ikke til evidensen.
 
 @jit
-def bift_python(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold):
+def bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold):
 
 
     # Initialize Variables
