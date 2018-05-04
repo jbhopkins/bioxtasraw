@@ -737,7 +737,6 @@ class GuinierControlPanel(wx.Panel):
         self.runAutoRg()
 
     def runAutoRg(self):
-
         rg, rger, i0, i0er, idx_min, idx_max = SASCalc.autoRg(self.ExpObj)
 
         spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'], self)

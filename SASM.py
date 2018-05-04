@@ -34,7 +34,7 @@ import wx
 import SASCalib, SASExceptions
 
 
-class SASM:
+class SASM(object):
     '''
         Small Angle Scattering Measurement (SASM) Object.
         Contains all information extracted from a SAS data file.
@@ -696,7 +696,7 @@ class IFTM(SASM):
         return SASM(copy.copy(self.i), copy.copy(self.q), copy.copy(self.err), copy.copy(self._parameters))
 
 
-class SECM:
+class SECM(object):
     '''
         SEC-SAS Measurement (SECM) Object.
     '''
