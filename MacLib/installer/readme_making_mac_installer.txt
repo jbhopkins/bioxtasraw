@@ -4,7 +4,7 @@ Steps:
 -2) Make a fresh git-free folder for RAW: git archive master | tar -x -C /somewhere/else
 -1) Run RAW in that new folder to compile the extensions.
 0)  Set the appropriate python path, if needed.    Note: this no longer uses conda.
-    Currently using enthought, which requires pyside be uninstalled!#: export PATH=~/miniconda2/bin:$PATH
+    Currently using enthought, which requires pyside and pyqt be uninstalled!#: export PATH=~/miniconda2/bin:$PATH
 1)  Copy the RAW_mac.spec file into the main RAW directory.
 2)  Run “pyinstaller -y RAW_mac.spec”
 3)  Copy the RAW.app file from the MacLib/installer folder to the main RAW folder.

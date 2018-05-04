@@ -59,6 +59,8 @@ import scipy.stats as stats
 from scipy.interpolate import interp1d
 import scipy.optimize
 
+from numba import jit
+
 import RAWSettings
 import RAWCustomCtrl
 import SASCalc
@@ -9951,8 +9953,10 @@ class EFAControlPanel2(wx.Panel):
 
         busy_dialog = wx.BusyInfo('Running EFA', self.efa_frame)
 
-        self.efa_forward = self.runEFA('forward')
-        self.efa_backward = self.runEFA('backward')
+        start = time.time()
+        self.efa_forward = SASCalc.runEFA(self.panel1_results['svd_int_norm'])
+        self.efa_backward = SASCalc.runEFA(self.panel1_results['svd_int_norm'], False)
+        print time.time() - start
 
         busy_dialog.Destroy()
         busy_dialog = None
@@ -10043,8 +10047,8 @@ class EFAControlPanel2(wx.Panel):
         if efa:
             busy_dialog = wx.BusyInfo('Running EFA', self.efa_frame)
 
-            self.efa_forward = self.runEFA('forward')
-            self.efa_backward = self.runEFA('backward')
+            self.efa_forward = SASCalc.runEFA(self.panel1_results['svd_int_norm'])
+            self.efa_backward = SASCalc.runEFA(self.panel1_results['svd_int_norm'], False)
 
             busy_dialog.Destroy()
             busy_dialog = None
@@ -10138,22 +10142,6 @@ class EFAControlPanel2(wx.Panel):
                     print e
 
 
-
-    def runEFA(self, mode):
-        A = self.panel1_results['svd_int_norm']
-
-        slist = np.zeros_like(A)
-
-        jmax = A.shape[1]
-
-        if mode.lower() == 'backward':
-            A = A[:,::-1]
-
-        for j in range(jmax):
-            s = np.linalg.svd(A[:, :j+1], full_matrices = False, compute_uv = False)
-            slist[:s.size, j] = s
-
-        return slist
 
     def updateEFAPlot(self):
         plotpanel = wx.FindWindowByName('EFAResultsPlotPanel2')
@@ -10764,145 +10752,7 @@ class EFAControlPanel3(wx.Panel):
         self.Layout()
 
 
-    def updateRotation(self, M,C,D):
-        S = np.dot(D, np.linalg.pinv(np.transpose(M*C)))
 
-        Cnew = np.transpose(np.dot(np.linalg.pinv(S), D))
-
-        for i in range(len(self.range_ids)):
-            window = wx.FindWindowById(self.range_ids[i][2], self)
-            if window.GetValue():
-                Cnew[Cnew[:,i] < 0,i] = 0
-
-        csum = np.sum(M*Cnew, axis = 0)
-        if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
-            Cnew = Cnew/np.broadcast_to(csum, Cnew.shape) #normalizes by the sum of each column
-        else:
-            norm = np.array([csum for i in range(Cnew.shape[0])])
-
-            Cnew = Cnew/norm #normalizes by the sum of each column
-
-        return Cnew
-
-    def firstRotation(self, M,C,D):
-        #Have to run an initial rotation without forcing C>=0 or things typically fail to converge (usually the SVD fails)
-        S = np.dot(D, np.linalg.pinv(np.transpose(M*C)))
-
-        Cnew = np.transpose(np.dot(np.linalg.pinv(S), D))
-
-        csum = np.sum(M*Cnew, axis = 0)
-        if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
-            Cnew = Cnew/np.broadcast_to(csum, Cnew.shape) #normalizes by the sum of each column
-        else:
-            norm = np.array([csum for i in range(Cnew.shape[0])])
-
-            Cnew = Cnew/norm #normalizes by the sum of each column
-
-        return Cnew
-
-    def _initIterative(self, M, num_sv, D):
-
-        #Set a variable to test whether the rotation fails for a numerical reason
-        failed = False
-
-        if not self.converged:
-            C = self.panel1_results['svd_v'][:,:num_sv]
-        else:
-            C = self.rotation_data['C']
-
-        #Do an initial rotation
-        try:
-            C = self.firstRotation(M, C, D)
-        except np.linalg.linalg.LinAlgError:
-            failed = True
-
-        return failed, C, None, None
-
-    def _initExplicit(self, M, num_sv, D):
-        V_bar = self.panel1_results['svd_v'][:,:num_sv]
-
-        T = np.ones((num_sv, num_sv))
-
-        failed = False
-
-        return failed, None, V_bar, T
-
-    def _initHybrid(self, M, num_sv, D):
-
-        if not self.converged:
-            failed, temp, V_bar, T = self._initExplicit(M, num_sv, D)
-            C, failed, temp1, temp2, temp3 = self._runExplicit(M, None, None, None, V_bar, T)
-        else:
-            C = self.rotation_data['C']
-            failed = False
-
-        return failed, C, None, None
-
-    def _runIterative(self, *args):
-        M = args[0]
-        D = args[1]
-        failed = args[2]
-        C = args[3]
-
-        niter = int(wx.FindWindowById(self.control_ids['n_iter'], self).GetValue())
-        tol = float(wx.FindWindowById(self.control_ids['tol'], self).GetValue())
-
-        #Carry out the calculation to convergence
-        k = 0
-        converged = False
-
-        dc = []
-
-        while k < niter and not converged and not failed:
-            k = k+1
-            try:
-                Cnew = self.updateRotation(M, C, D)
-            except np.linalg.linalg.LinAlgError:
-               failed = True
-
-            dck = np.sum(np.abs(Cnew - C))
-
-            dc.append(dck)
-
-            C = Cnew
-
-            if dck < tol:
-                converged = True
-
-        return C, failed, converged, dc, k
-
-    def _runExplicit(self, *args):
-        M = args[0]
-        # D = args[1]
-        failed = args[2]
-        V_bar = args[4]
-        T = args[5]
-
-        num_sv = M.shape[1]
-
-        for i in range(num_sv):
-            V_i_0 = V_bar[np.logical_not(M[:,i]),:]
-
-            T[i,1:num_sv] = -np.dot(V_i_0[:,0].T, np.linalg.pinv(V_i_0[:,1:num_sv].T))
-
-        C = np.dot(T, V_bar.T)
-
-        C = C.T
-
-        if -1*C.min() > C.max():
-            C = C*-1
-
-        converged = True
-
-        csum = np.sum(M*C, axis = 0)
-        if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
-            C = C/np.broadcast_to(csum, C.shape) #normalizes by the sum of each column
-        else:
-            norm = np.array([csum for i in range(C.shape[0])])
-
-            C = C/norm #normalizes by the sum of each column
-
-        return C, failed, converged, None, None
 
 
     def runRotation(self):
@@ -10919,13 +10769,18 @@ class EFAControlPanel3(wx.Panel):
         tol = float(wx.FindWindowById(self.control_ids['tol'], self).GetValue())
         method = wx.FindWindowById(self.control_ids['method'], self).GetStringSelection()
 
-        init_dict = {'Hybrid'       : self._initHybrid,
-                    'Iterative'     : self._initIterative,
-                    'Explicit'      : self._initExplicit}
+        force_positive = []
+        for i in range(len(self.range_ids)):
+            window = wx.FindWindowById(self.range_ids[i][2], self)
+            force_positive.append(window.GetValue())
 
-        run_dict = {'Hybrid'        : self._runIterative,
-                    'Iterative'     : self._runIterative,
-                    'Explicit'      : self._runExplicit}
+        init_dict = {'Hybrid'       : SASCalc.initHybridEFA,
+                    'Iterative'     : SASCalc.initIterativeEFA,
+                    'Explicit'      : SASCalc.initExplicitEFA}
+
+        run_dict = {'Hybrid'        : SASCalc.runIterativeEFARotation,
+                    'Iterative'     : SASCalc.runIterativeEFARotation,
+                    'Explicit'      : SASCalc.runExplicitEFARotation}
 
         #Calculate the initial matrices
         num_sv = ranges.shape[0]
@@ -10941,10 +10796,19 @@ class EFAControlPanel3(wx.Panel):
             self.converged = False
             self.rotation_data = {}
 
-        init_results = init_dict[method](M, num_sv, D) #Init takes M, num_sv, and D, and returns failed, C, V_bar, T in that order. If a method doesn't use a particular variable, then it should return None for that result
+        if self.converged:
+            C_init = self.rotation_data['C']
+        else:
+            C_init = self.panel1_results['svd_v'][:,:num_sv]
 
-        C, failed, converged, dc, k = run_dict[method](M, D, init_results[0], init_results[1], init_results[2], init_results[3]) #Takes M, D, failed, C, V_bar, T in that order. If a method doesn't use a particular variable, then it should be passed None for that variable.
+        V_bar = self.panel1_results['svd_v'][:,:num_sv]
 
+        start = time.time()
+        failed, C, T = init_dict[method](M, num_sv, D, C_init, self.converged, V_bar) #Init takes M, num_sv, and D, C_init, and converged and returns failed, C, and T in that order. If a method doesn't use a particular variable, then it should return None for that result
+        print time.time() - start
+        start = time.time()
+        C, failed, converged, dc, k = run_dict[method](M, D, failed, C, V_bar, T, niter, tol, force_positive) #Takes M, D, failed, C, V_bar, T in that order. If a method doesn't use a particular variable, then it should be passed None for that variable.
+        print time.time() - start
 
         if not failed:
             if method != 'Explicit':
