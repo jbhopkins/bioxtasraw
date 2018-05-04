@@ -2478,7 +2478,7 @@ def getEman2Paths(emanDir):
     return eman_python, my_env, shebang_env
 
 def runEFA(A, forward=True):
-
+    wx.Yield()
     slist = np.zeros_like(A)
 
     jmax = A.shape[1]

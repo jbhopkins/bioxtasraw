@@ -9146,6 +9146,8 @@ class EFAFrame(wx.Frame):
                     elif  self.panel1_results['input'] != efa_panel2.panel1_results['input']:
                         efa_panel2.reinitialize(self.panel1_results, efa = False)
 
+                    self.Layout()
+
                 else:
                     msg = ('SVD not successful. Either change data range '
                         'or type, or select a new data set.')
@@ -9914,8 +9916,6 @@ class EFAControlPanel2(wx.Panel):
     def initialize(self, svd_results):
         self.panel1_results = copy.copy(svd_results)
 
-        analysis_dict = self.secm.getParameter('analysis')
-
         nvals = svd_results['input']
 
         self.forward_ids = [self.NewControlId() for i in range(nvals)]
@@ -9951,35 +9951,16 @@ class EFAControlPanel2(wx.Panel):
         self.forward_sizer.Add(self.fsizer, 0, wx.TOP, 3)
         self.backward_sizer.Add(self.bsizer, 0, wx.TOP, 3)
 
-        busy_dialog = wx.BusyInfo('Running EFA', self.efa_frame)
+        self.forward_sizer.Layout()
+        self.backward_sizer.Layout()
+        self.top_efa.Layout()
+        self.Layout()
 
-        start = time.time()
-        self.efa_forward = SASCalc.runEFA(self.panel1_results['svd_int_norm'])
-        self.efa_backward = SASCalc.runEFA(self.panel1_results['svd_int_norm'], False)
-        print time.time() - start
+        self.busy_dialog = wx.BusyInfo('Running EFA', self.efa_frame)
 
-        busy_dialog.Destroy()
-        busy_dialog = None
-
-        if 'efa' in analysis_dict:
-            if nvals == analysis_dict['efa']['nsvs'] and self.panel1_results['fstart'] == analysis_dict['efa']['fstart'] and self.panel1_results['fend'] == analysis_dict['efa']['fend'] and self.panel1_results['profile'] == analysis_dict['efa']['profile']:
-                points = analysis_dict['efa']['ranges']
-
-                forward_sv = points[:,0]
-                backward_sv = points[:,1]
-
-                if np.all(np.sort(forward_sv) == forward_sv) and np.all(np.sort(backward_sv) == backward_sv):
-                    self.setSVs(points)
-                else:
-                    self._findEFAPoints()
-            else:
-                self._findEFAPoints()
-        else:
-            self._findEFAPoints()
-
-        self.initialized = True
-
-        wx.CallAfter(self.updateEFAPlot)
+        efa_thread = threading.Thread(target=self._runEFA, args=(self.panel1_results['svd_int_norm'],))
+        efa_thread.daemon = True
+        efa_thread.start()
 
     def reinitialize(self, svd_results, efa):
         self.panel1_results = copy.copy(svd_results)
@@ -10045,20 +10026,19 @@ class EFAControlPanel2(wx.Panel):
         self.Layout()
 
         if efa:
-            busy_dialog = wx.BusyInfo('Running EFA', self.efa_frame)
+            self.busy_dialog = wx.BusyInfo('Running EFA', self.efa_frame)
 
-            self.efa_forward = SASCalc.runEFA(self.panel1_results['svd_int_norm'])
-            self.efa_backward = SASCalc.runEFA(self.panel1_results['svd_int_norm'], False)
+            efa_thread = threading.Thread(target=self._runEFA, args=(self.panel1_results['svd_int_norm'],))
+            efa_thread.daemon = True
+            efa_thread.start()
 
-            busy_dialog.Destroy()
-            busy_dialog = None
+        else:
+            self._findEFAPoints()
 
-        self._findEFAPoints()
+            plotpanel = wx.FindWindowByName('EFAResultsPlotPanel2')
+            plotpanel.refresh()
 
-        plotpanel = wx.FindWindowByName('EFAResultsPlotPanel2')
-        plotpanel.refresh()
-
-        wx.CallAfter(self.updateEFAPlot)
+            wx.CallAfter(self.updateEFAPlot)
 
     def _onForwardControl(self, evt):
         self.updateEFAPlot()
@@ -10075,6 +10055,50 @@ class EFAControlPanel2(wx.Panel):
             backward.SetValue(points[i][1])
 
         wx.CallAfter(self.updateEFAPlot)
+
+    def _runEFA(self, A):
+        wx.Yield()
+        f_slist = SASCalc.runEFA(A)
+        b_slist = SASCalc.runEFA(A, False)
+
+        wx.CallAfter(self._processEFAResults, f_slist, b_slist)
+
+    def _processEFAResults(self, f_slist, b_slist):
+        self.efa_forward = f_slist
+        self.efa_backward = b_slist
+
+        if not self.initialized:
+            analysis_dict = self.secm.getParameter('analysis')
+            nvals = self.panel1_results['input']
+
+            if 'efa' in analysis_dict:
+                if nvals == analysis_dict['efa']['nsvs'] and self.panel1_results['fstart'] == analysis_dict['efa']['fstart'] and self.panel1_results['fend'] == analysis_dict['efa']['fend'] and self.panel1_results['profile'] == analysis_dict['efa']['profile']:
+                    points = analysis_dict['efa']['ranges']
+
+                    forward_sv = points[:,0]
+                    backward_sv = points[:,1]
+
+                    if np.all(np.sort(forward_sv) == forward_sv) and np.all(np.sort(backward_sv) == backward_sv):
+                        self.setSVs(points)
+                    else:
+                        self._findEFAPoints()
+                else:
+                    self._findEFAPoints()
+            else:
+                self._findEFAPoints()
+
+            self.initialized = True
+        else:
+            self._findEFAPoints()
+
+        self.busy_dialog.Destroy()
+        self.busy_dialog = None
+
+        plotpanel = wx.FindWindowByName('EFAResultsPlotPanel2')
+        plotpanel.refresh()
+
+        wx.CallAfter(self.updateEFAPlot)
+
 
     def _findEFAPoints(self):
 
@@ -10140,8 +10164,6 @@ class EFAControlPanel2(wx.Panel):
 
                 except Exception as e:
                     print e
-
-
 
     def updateEFAPlot(self):
         plotpanel = wx.FindWindowByName('EFAResultsPlotPanel2')
@@ -10735,7 +10757,6 @@ class EFAControlPanel3(wx.Panel):
         RAWGlobals.save_in_progress = False
         self.main_frame.setStatus('', 0)
 
-
     def _updateStatus(self, in_progress = False):
         status_window = wx.FindWindowById(self.control_ids['status'], self)
 
@@ -10750,10 +10771,6 @@ class EFAControlPanel3(wx.Panel):
         status_window.SetLabel(status)
 
         self.Layout()
-
-
-
-
 
     def runRotation(self):
         #Get component ranges and iteration control values
@@ -10803,12 +10820,8 @@ class EFAControlPanel3(wx.Panel):
 
         V_bar = self.panel1_results['svd_v'][:,:num_sv]
 
-        start = time.time()
         failed, C, T = init_dict[method](M, num_sv, D, C_init, self.converged, V_bar) #Init takes M, num_sv, and D, C_init, and converged and returns failed, C, and T in that order. If a method doesn't use a particular variable, then it should return None for that result
-        print time.time() - start
-        start = time.time()
         C, failed, converged, dc, k = run_dict[method](M, D, failed, C, V_bar, T, niter, tol, force_positive) #Takes M, D, failed, C, V_bar, T in that order. If a method doesn't use a particular variable, then it should be passed None for that variable.
-        print time.time() - start
 
         if not failed:
             if method != 'Explicit':
