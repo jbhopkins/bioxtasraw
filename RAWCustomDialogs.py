@@ -36,7 +36,9 @@ import wx
 import wx.lib.dialogs
 import wx.lib.colourchooser as colorchooser
 import wx.grid as gridlib
+import matplotlib
 import matplotlib.colors as mplcol
+import matplotlib.font_manager as fm
 
 import RAWCustomCtrl
 import RAWGlobals
@@ -3349,3 +3351,847 @@ class CustomQuestionPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.SetupScrolling()
         self.Layout()
         self.SetMinSize((200,100))
+
+class PlotOptionsDialog(wx.Dialog):
+    def __init__(self, parent, plotparams, axes, *args, **kwargs):
+
+        wx.Dialog.__init__(self, parent, -1, 'Plot Options' , size = (575,522),
+            style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, *args, **kwargs)
+
+        self.axes = axes
+        self.plotparams = plotparams
+        self.parent = parent
+
+        if self.parent == wx.FindWindowByName('SECPlotPanel'):
+            self.is_sec = True
+            self.sec_calc = self.plotparams['secm_plot_calc']
+            self.axes = self.parent.subplot1
+            self.axes2 = self.parent.ryaxis
+        else:
+            self.is_sec = False
+
+
+        plotnum = str(self.parent.selected_plot)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.legend = self.axes.get_legend()
+
+        self._old_xlimit = self.axes.get_xlim()
+        self._old_ylimit = self.axes.get_ylim()
+
+        if self.is_sec:
+            self._old_y2limit = self.axes2.get_ylim()
+
+        self._old_legend_settings = {'fontsize'     : self.parent.plotparams['legend_fontsize'+plotnum],
+                                        'font'      : self.parent.plotparams['legend_font' + plotnum],
+                                        'alpha'     : self.parent.plotparams['legend_alpha'+plotnum],
+                                        'border'    : self.parent.plotparams['legend_border'+plotnum],
+                                        'shadow'    : self.parent.plotparams['legend_shadow'+plotnum],
+                                        'visible'   : self.parent.plotparams['legend_visible'+plotnum]}
+
+        if self.is_sec:
+            self._old_legend_settings ['showcalc'] = self.parent.plotparams['legend_showcalc'+plotnum]
+
+        if self.legend is None:
+            self.is_legend = False
+        else:
+            self.is_legend = True
+
+        self._old_settings = {'title' : {},
+                                'xlabel' : {},
+                                'ylabel' : {},
+                                'legtit' : {}}
+
+        if self.is_sec and self.sec_calc != 'None':
+            self._old_settings['y2label'] = {}
+
+        self.font_list = self._getFonts()
+
+        self.title = self.axes.title
+        self.xlabel = self.axes.xaxis.get_label()
+        self.ylabel = self.axes.yaxis.get_label()
+
+        if self.is_sec and self.sec_calc != 'None':
+            self.y2label = self.axes2.yaxis.get_label()
+
+        legax_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        legax_sizer.Add(self._createLegendSettings(), 0, wx.EXPAND)
+        legax_sizer.AddStretchSpacer(1)
+        legax_sizer.Add(self._createAxesSettings(), 0, wx.LEFT | wx.EXPAND, 10)
+
+        sizer.Add(self._createLabelSettings(), 0, wx.EXPAND)
+        sizer.Add(legax_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+
+        buttons = self.CreateButtonSizer(wx.OK | wx.CANCEL)
+        self.Bind(wx.EVT_BUTTON, self._onOk, id = wx.ID_OK)
+        self.Bind(wx.EVT_BUTTON, self._onCancel, id=wx.ID_CANCEL)
+
+        sizer.Add(buttons, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+
+        top_sizer = wx.BoxSizer()
+        top_sizer.Add(sizer,1, wx.ALL, 10)
+
+        self.SetSizer(top_sizer)
+        self.Layout()
+
+        if platform.system() != 'Linux' or int(wx.__version__.split('.')[0]) <3:
+            self.Fit()
+        else:
+            if self.is_sec:
+                self.SetSize((650,608))
+
+        self.CenterOnParent()
+
+
+    def _getFonts(self):
+        font_list = fm.get_fontconfig_fonts()
+
+        names=[]
+
+        for item in font_list:
+            try:
+                font_name = fm.FontProperties(fname=item).get_name()
+
+                if font_name != 'System Font' and not font_name.startswith('.'):
+                    names.append(font_name)
+            except:
+                pass
+
+        mpl_font_dir = os.path.join(matplotlib.rcParams['datapath'],'fonts/ttf')
+        font_list2 = fm.list_fonts(mpl_font_dir, '*.ttf')
+
+        for item in font_list2:
+            fp = fm.FontProperties()
+            try:
+                fp.set_file(item)
+                font_name = fp.get_name()
+                if font_name != 'System Font' and not font_name.startswith('.'):
+                    names.append(font_name)
+            except:
+                pass
+
+        names = list(set(names))
+        names.sort()
+
+        return names
+
+    def _createLabelSettings(self):
+
+        self.labels = [('Title:', 'title', {'text'  : self.NewControlId(),
+                                               'size'  : self.NewControlId(),
+                                               'weight': self.NewControlId(),
+                                               'style' : self.NewControlId(),
+                                               'fontname'  : self.NewControlId()}),
+
+                      ('x-axis label:', 'xlabel',{'text'  : self.NewControlId(),
+                                                  'size'  : self.NewControlId(),
+                                                  'weight': self.NewControlId(),
+                                                  'style' : self.NewControlId(),
+                                                  'fontname'  : self.NewControlId()}),
+
+                      ('y-axis label:', 'ylabel',{'text'  : self.NewControlId(),
+                                                  'size'  : self.NewControlId(),
+                                                  'weight': self.NewControlId(),
+                                                  'style' : self.NewControlId(),
+                                                  'fontname'  : self.NewControlId()}),
+
+                      ('Legend title:', 'legtit',{'text'  : self.NewControlId(),
+                                                  'size'  : self.NewControlId(),
+                                                  'weight': self.NewControlId(),
+                                                  'style' : self.NewControlId(),
+                                                  'fontname'  : self.NewControlId()})]
+
+        if self.is_sec and self.sec_calc != 'None':
+            self.labels.insert(3, ('y-axis (right) label:', 'y2label',{'text'  : self.NewControlId(),
+                                                  'size'  : self.NewControlId(),
+                                                  'weight': self.NewControlId(),
+                                                  'style' : self.NewControlId(),
+                                                  'fontname'  : self.NewControlId()})
+                                )
+
+        box = wx.StaticBox(self, -1, 'Labels')
+        box_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+
+        nrows = len(self.labels)+1
+        sizer = wx.FlexGridSizer(cols = 6, rows = nrows, vgap = 5, hgap = 5)
+
+        sizer.Add((5,5),0)
+        sizer.Add((5,5),0)
+        sizer.Add(wx.StaticText(self, -1, 'Font'),1)
+        sizer.Add(wx.StaticText(self, -1, 'Size'),1)
+        sizer.Add(wx.StaticText(self, -1, 'Bold'),1)
+        sizer.Add(wx.StaticText(self, -1, 'Italic'),1)
+
+        for each_label, each_name, id in self.labels:
+            if each_name == 'title': label = self.title
+            elif each_name == 'xlabel': label = self.xlabel
+            elif each_name == 'ylabel': label = self.ylabel
+            elif each_name == 'y2label': label = self.y2label
+            elif each_name == 'legtit':
+                if self.legend is None:
+                    label=matplotlib.text.Text()
+                else:
+                    label = self.legend.get_title()
+
+            txt = wx.StaticText(self, -1, each_label)
+
+            labtxt = label.get_text()
+
+            if each_name == 'legtit':
+                 if labtxt == 'None': labtxt = ''
+
+            txt_ctrl = wx.TextCtrl(self, id['text'], labtxt, name = each_name)
+
+            font_ctrl = wx.Choice(self, id['fontname'], choices = self.font_list ,name = each_name)
+            if each_name == 'legtit' and not self.is_legend:
+                font_ctrl.SetStringSelection(self._old_legend_settings['font'])
+            else:
+                font_ctrl.SetStringSelection(label.get_fontname())
+
+            font_size = wx.SpinCtrl(self, id['size'], str(label.get_size()), name = each_name)
+            font_size.SetValue(int(label.get_size()))
+
+            bold = wx.CheckBox(self, id['weight'], name = each_name)
+            italic = wx.CheckBox(self, id['style'], name = each_name)
+
+            bold.Bind(wx.EVT_CHECKBOX, self._updateLabels)
+            italic.Bind(wx.EVT_CHECKBOX, self._updateLabels)
+            txt_ctrl.Bind(wx.EVT_KEY_UP, self._updateLabels)
+            font_ctrl.Bind(wx.EVT_CHOICE, self._updateLabels)
+            font_size.Bind(wx.EVT_SPINCTRL, self._updateLabels)
+
+            if label.get_weight() == 'bold':
+                bold.SetValue(True)
+            if label.get_style() == 'italic':
+                italic.SetValue(True)
+
+            self._old_settings[each_name]['text'] = label.get_text()
+            self._old_settings[each_name]['weight'] = label.get_weight()
+            self._old_settings[each_name]['size'] = label.get_size()
+            self._old_settings[each_name]['style'] = label.get_style()
+            self._old_settings[each_name]['fontname'] = label.get_fontname()
+
+            if each_name == 'legtit' and not self.is_legend:
+                txt_ctrl.Enable(False)
+                font_ctrl.Enable(False)
+                font_size.Enable(False)
+                bold.Enable(False)
+                italic.Enable(False)
+
+            sizer.Add(txt, 0)
+            sizer.Add(txt_ctrl, 0)
+            sizer.Add(font_ctrl, 0)
+            sizer.Add(font_size, 0)
+            sizer.Add(bold, 0)
+            sizer.Add(italic, 0)
+
+        box_sizer.Add(sizer, 1, wx.ALL, 5)
+        return box_sizer
+
+
+    def _createAxesSettings(self):
+        box = wx.StaticBox(self, -1, 'Axes')
+        topbox = wx.StaticBoxSizer(box, wx.VERTICAL)
+        sizer = wx.FlexGridSizer(rows = 7, cols = 2, hgap = 5, vgap = 3)
+
+        self.axes_autolimits = wx.CheckBox(self, -1)
+        self.axes_autolimits.Bind(wx.EVT_CHECKBOX, self._updateAxesSettings)
+
+        val = self.parent.plotparams['auto_fitaxes' + str(self.parent.selected_plot)]
+        self.axes_autolimits.SetValue(val)
+
+        sizer.Add(wx.StaticText(self, -1, 'Auto limits:'), 0, wx.ALIGN_CENTRE_VERTICAL)
+        sizer.Add(self.axes_autolimits, 0)
+
+        self.axes_fixed_limits_data = [('xmin', self.NewControlId(), self._old_xlimit[0]),
+                                           ('xmax', self.NewControlId(), self._old_xlimit[1]),
+                                           ('ymin', self.NewControlId(), self._old_ylimit[0]),
+                                           ('ymax', self.NewControlId(), self._old_ylimit[1])]
+
+        if self.is_sec and self.sec_calc != 'None':
+            self.axes_fixed_limits_data = self.axes_fixed_limits_data + [('y2min', self.NewControlId(), self._old_y2limit[0]),
+                                           ('y2max', self.NewControlId(), self._old_y2limit[1])]
+
+        limit_sizer = wx.FlexGridSizer(rows = 2, cols = 2, hgap = 5, vgap = 3)
+        for i in range(0, 2):
+            id = self.axes_fixed_limits_data[i][1]
+            limit_sizer.Add(wx.TextCtrl(self, id, str(self.axes_fixed_limits_data[i][2]), size = (80, -1)), 0)
+            wx.FindWindowById(id, self).Bind(wx.EVT_TEXT, self._updateAxesRange)
+
+        limit_sizer2 = wx.FlexGridSizer(rows = 1, cols = 2, hgap = 5, vgap = 3)
+        for i in range(2, 4):
+            id = self.axes_fixed_limits_data[i][1]
+            limit_sizer2.Add(wx.TextCtrl(self, id, str(self.axes_fixed_limits_data[i][2]), size = (80, -1)), 0)
+            wx.FindWindowById(id, self).Bind(wx.EVT_TEXT, self._updateAxesRange)
+
+        if self.is_sec and self.sec_calc != 'None':
+            limit_sizer3 = wx.FlexGridSizer(rows = 1, cols = 2, hgap = 5, vgap = 3)
+            for i in range(4, 6):
+                id = self.axes_fixed_limits_data[i][1]
+                limit_sizer3.Add(wx.TextCtrl(self, id, str(self.axes_fixed_limits_data[i][2]), size = (80, -1)), 0)
+                wx.FindWindowById(id, self).Bind(wx.EVT_TEXT, self._updateAxesRange)
+
+        maxmin_sizer = wx.BoxSizer()
+        maxmin_sizer.Add(wx.StaticText(self, -1, 'min'), 1, wx.EXPAND | wx.ALIGN_CENTRE_HORIZONTAL)
+        maxmin_sizer.Add(wx.StaticText(self, -1, 'max'), 1, wx.EXPAND | wx.LEFT, 5)
+
+        sizer.Add((5,5))
+        sizer.Add(maxmin_sizer, 0, wx.EXPAND)
+        sizer.Add(wx.StaticText(self, -1, 'x-limits'), 0)
+        sizer.Add(limit_sizer, 0)
+        if self.is_sec and self.sec_calc != 'None':
+            sizer.Add(wx.StaticText(self, -1, 'y-limits (left)'), 0)
+            sizer.Add(limit_sizer2, 0)
+            sizer.Add(wx.StaticText(self, -1, 'y-limits (right)'), 0)
+            sizer.Add(limit_sizer3, 0)
+
+        else:
+            sizer.Add(wx.StaticText(self, -1, 'y-limits'), 0)
+            sizer.Add(limit_sizer2, 0)
+
+        border_sizer = wx.FlexGridSizer(rows = 2, cols = 2, hgap = 5, vgap = 3)
+
+        self.axes_borders = [('Left', self.NewControlId()), ('Right', self.NewControlId()), ('Top', self.NewControlId()), ('Bottom', self.NewControlId())]
+
+        framestyle = self.parent.plotparams['framestyle' + str(self.parent.selected_plot)]
+
+        if self.is_sec and self.sec_calc != 'None':
+            framestyle2 = self.parent.plotparams['framestyle2']
+            framestyle = framestyle+framestyle2
+
+        for each, id in self.axes_borders:
+            border_sizer.Add(wx.CheckBox(self, id, each), 0, wx.RIGHT, 5)
+            wx.FindWindowById(id, self).Bind(wx.EVT_CHECKBOX, self._updateAxesSettings)
+
+            if each == 'Left' and framestyle.find('l')>-1:
+                wx.FindWindowById(id, self).SetValue(True)
+            if each == 'Right' and framestyle.find('r')>-1:
+                wx.FindWindowById(id, self).SetValue(True)
+            if each == 'Top' and framestyle.find('t')>-1:
+                wx.FindWindowById(id, self).SetValue(True)
+            if each == 'Bottom' and framestyle.find('b')>-1:
+                wx.FindWindowById(id, self).SetValue(True)
+
+        sizer.Add(wx.StaticText(self, -1, 'Borders:'), 0)
+        sizer.Add(border_sizer, 0, wx.TOP, 5)
+
+        topbox.Add(sizer, 0, wx.ALL | wx.EXPAND, 5)
+
+        self._enableLimitsCtrls(not self.parent.plotparams['auto_fitaxes' + str(self.parent.selected_plot)])
+
+
+        self.zero_line = wx.CheckBox(self, -1)
+        self.zero_line.Bind(wx.EVT_CHECKBOX, self._updateAxesSettings)
+
+        zval = self.parent.plotparams['zero_line'+ str(self.parent.selected_plot)]
+        self.zero_line.SetValue(zval)
+
+        sizer.Add(wx.StaticText(self, -1, 'Zero Line:'), 0, wx.ALIGN_CENTRE_VERTICAL)
+        sizer.Add(self.zero_line, 0)
+
+
+        x_tick_label = wx.StaticText(self, -1, 'X-tick label font size:')
+
+
+        if self.is_sec and self.sec_calc != 'None':
+            y_tick_label = wx.StaticText(self, -1, 'Y-tick (left) label font size:')
+            y2_tick_label = wx.StaticText(self, -1, 'Y-tick (right) label font size:')
+        else:
+            y_tick_label = wx.StaticText(self, -1, 'Y-tick label font size:')
+
+        for tick in self.axes.xaxis.get_major_ticks():
+            x_tick_size = tick.label.get_fontsize()
+            break
+
+        for tick in self.axes.yaxis.get_major_ticks():
+            y_tick_size = tick.label.get_fontsize()
+            break
+
+        if self.is_sec and self.sec_calc != 'None':
+            for tick in self.axes2.yaxis.get_major_ticks():
+                y2_tick_size = tick.label.get_fontsize()
+                break
+
+
+        x_tick_font_size = wx.SpinCtrl(self, -1, str(x_tick_size), name = 'xticksize')
+        x_tick_font_size.SetValue(int(x_tick_size))
+
+        y_tick_font_size = wx.SpinCtrl(self, -1, str(y_tick_size), name = 'yticksize')
+        y_tick_font_size.SetValue(int(y_tick_size))
+
+        if self.is_sec and self.sec_calc != 'None':
+            y2_tick_font_size = wx.SpinCtrl(self, -1, str(y2_tick_size), name = 'y2ticksize')
+            y2_tick_font_size.SetValue(int(y2_tick_size))
+
+        x_tick_font_size.Bind(wx.EVT_SPINCTRL, self._updateAxesSettings)
+        y_tick_font_size.Bind(wx.EVT_SPINCTRL, self._updateAxesSettings)
+
+        if self.is_sec and self.sec_calc != 'None':
+            y2_tick_font_size.Bind(wx.EVT_SPINCTRL, self._updateAxesSettings)
+
+        x_tick_sizer = wx.BoxSizer()
+        x_tick_sizer.Add(x_tick_label, 0)
+        x_tick_sizer.Add(x_tick_font_size, 0)
+
+        y_tick_sizer = wx.BoxSizer()
+        y_tick_sizer.Add(y_tick_label, 0)
+        y_tick_sizer.Add(y_tick_font_size, 0)
+
+        if self.is_sec and self.sec_calc != 'None':
+            y2_tick_sizer = wx.BoxSizer()
+            y2_tick_sizer.Add(y2_tick_label, 0)
+            y2_tick_sizer.Add(y2_tick_font_size, 0)
+
+        topbox.Add(x_tick_sizer, 0)
+        topbox.Add(y_tick_sizer, 0)
+
+        if self.is_sec and self.sec_calc != 'None':
+            topbox.Add(y2_tick_sizer, 0)
+
+
+        self.old_axes_settings = {'auto_fitaxes'    : self.parent.plotparams['auto_fitaxes' + str(self.parent.selected_plot)],
+                                'zero_line'         : self.parent.plotparams['zero_line'+ str(self.parent.selected_plot)],
+                                'framestyle'        : self.parent.plotparams['framestyle' + str(self.parent.selected_plot)],
+                                'xrange'            : (self._old_xlimit[0], self._old_xlimit[1]),
+                                'yrange'            : (self._old_ylimit[0], self._old_ylimit[1]),
+                                'xticksize'         : x_tick_size,
+                                'yticksize'         : y_tick_size
+                                }
+
+        if self.is_sec and self.sec_calc != 'None':
+            self.old_axes_settings['framestyle2'] = self.parent.plotparams['framestyle2']
+            self.old_axes_settings['y2range'] = (self._old_y2limit[0], self._old_y2limit[1])
+            self.old_axes_settings['y2ticksize'] = y2_tick_size
+
+        return topbox
+
+
+    def _createLegendSettings(self):
+
+        self.legend_items = [('visible', 'Visible:', self.NewControlId(), self._old_legend_settings['visible'], 'bool'),
+                            ('border', 'Border:', self.NewControlId(), self._old_legend_settings['border'], 'bool'),
+                            ('shadow', 'Shadow:', self.NewControlId(), self._old_legend_settings['shadow'], 'bool'),
+                            ('alpha', 'Transparency %:', self.NewControlId(), self._old_legend_settings['alpha'], 'int'),
+                            ('fontsize', 'Font size:', self.NewControlId(), self._old_legend_settings['fontsize'], 'int'),
+                            ('font', 'Font:', self.NewControlId(), self._old_legend_settings['font'], 'choice')
+                            ]
+
+        if self.is_sec:
+            self.legend_items.append(('showcalc', 'Show labels for calculated lines:', self.NewControlId(), self._old_legend_settings['showcalc'], 'bool'))
+
+        self.legend_ids = {item[2] : (item[0], item[-1]) for item in self.legend_items}
+
+        box = wx.StaticBox(self, -1, 'Legend')
+        topbox = wx.StaticBoxSizer(box, wx.VERTICAL)
+
+        sizer = wx.FlexGridSizer(rows = len(self.legend_ids.keys()), cols = 2, hgap = 5, vgap = 3)
+
+        for item in self.legend_items:
+            each_key = item[0]
+            label = item[1]
+            my_id = item[2]
+            val = item[3]
+            my_type = item[4]
+
+            lbl_txt = wx.StaticText(self, -1, label)
+
+            if my_type == 'bool':
+                ctrl = wx.CheckBox(self, my_id)
+                ctrl.SetValue(val)
+                ctrl.Bind(wx.EVT_CHECKBOX, self._updateLegendSettings)
+
+            elif my_type == 'int':
+                ctrl = wx.SpinCtrl(self, my_id, '')
+                if each_key == 'alpha':
+                    ctrl.SetValue(int(abs(val*100-100)))
+                else:
+                    ctrl.SetValue(int(val))
+                ctrl.Bind(wx.EVT_SPINCTRL, self._updateLegendSettings)
+
+            elif my_type == 'choice':
+                if each_key == 'font':
+                    choices = self.font_list
+
+                ctrl = wx.Choice(self, my_id, choices = choices)
+                ctrl.SetStringSelection(val)
+                ctrl.Bind(wx.EVT_CHOICE, self._updateLegendSettings)
+
+            sizer.Add(lbl_txt, 0)
+            sizer.Add(ctrl, 0)
+
+        topbox.Add(sizer, 0, wx.ALL, 5)
+
+        return topbox
+
+
+    def _enableLimitsCtrls(self, state):
+
+        for each, id, lim in self.axes_fixed_limits_data:
+            ctrl = wx.FindWindowById(id, self)
+            ctrl.Enable(state)
+            ctrl.Refresh()
+
+    def _updateAxesSettings(self, event):
+
+        autolimits = self.axes_autolimits.GetValue()
+
+        if autolimits:
+            self._enableLimitsCtrls(False)
+            self.parent.fitAxis(forced = True)
+        else:
+            self._enableLimitsCtrls(True)
+
+        self.parent.plotparams['auto_fitaxes' + str(self.parent.selected_plot)] = autolimits
+
+        iszline = self.parent.plotparams['zero_line' + str(self.parent.selected_plot)]
+
+        wantzline = self.zero_line.GetValue()
+
+        if iszline and not wantzline:
+            index=-1
+            lines=self.axes.get_lines()
+
+            for a in range(len(lines)):
+                if lines[a].get_label()=='_zero_':
+                    index=a
+
+            if index>-1:
+                self.axes.lines[index].remove()
+
+
+        if not iszline and wantzline:
+            zero = self.axes.axhline(color='k')
+            zero.set_label('_zero_')
+
+        self.parent.plotparams['zero_line' + str(self.parent.selected_plot)]= wantzline
+
+        obj = event.GetEventObject()
+
+        if obj.GetName() == 'xticksize':
+            self.axes.tick_params(axis='x', labelsize=int(obj.GetValue()))
+
+        elif obj.GetName() == 'yticksize':
+            self.axes.tick_params(axis='y', labelsize=int(obj.GetValue()))
+
+        elif obj.GetName() == 'y2ticksize':
+            self.axes2.tick_params(axis='y', labelsize=int(obj.GetValue()))
+
+
+        framestyle = ''
+
+        if self.is_sec and self.sec_calc != 'None':
+            framestyle2 = ''
+
+        for item in self.axes_borders:
+            value = wx.FindWindowById(item[1], self).GetValue()
+            if value:
+                if item[0] == 'Left':
+                    framestyle = framestyle+'l'
+                elif item[0] == 'Right':
+                    if self.is_sec and self.sec_calc != 'None':
+                        framestyle2 = framestyle2+'r'
+                    else:
+                        framestyle = framestyle+'r'
+                elif item[0] == 'Top':
+                    framestyle = framestyle+'t'
+                elif item[0] == 'Bottom':
+                    framestyle = framestyle+'b'
+
+
+        self.parent.plotparams['framestyle' + str(self.parent.selected_plot)]= framestyle
+
+        if self.is_sec and self.sec_calc != 'None':
+            self.parent.plotparams['framestyle2'] = framestyle2
+            self.parent._updateFrameStylesForAllPlots()
+
+        else:
+            self.parent.updateFrameStyle(self.axes)
+
+        try:
+            self.parent.canvas.draw()
+        except matplotlib.pyparsing.ParseFatalException, e:
+            print e
+
+        event.Skip()
+
+
+    def _updateLegendSettings(self, event):
+        plotnum = str(self.parent.selected_plot)
+
+        evt_id = event.GetId()
+        evt_key, evt_type = self.legend_ids[evt_id]
+
+        if evt_type != 'choice':
+            val = wx.FindWindowById(evt_id, self).GetValue()
+        else:
+            val = wx.FindWindowById(evt_id, self).GetStringSelection()
+
+        if evt_key == 'alpha':
+            val = abs(100-val)/100.0
+
+        self.parent.plotparams['legend_%s%s' %(evt_key, plotnum)] = val
+
+        if not self.is_legend:
+            self.parent.updateLegend(int(plotnum))
+
+        self.legend = self.axes.get_legend()
+
+
+        #It's painful, but faster to list out the choices by hand and update the legend properties
+        #than to redraw the legend
+        if self.legend is not None:
+            if evt_key == 'visible':
+                self.legend.set_visible(val)
+            elif evt_key == 'border':
+                if val:
+                    self.legend.get_frame().set_linewidth(1)
+                else:
+                    self.legend.get_frame().set_linewidth(0)
+            elif evt_key == 'shadow':
+                self.legend.shadow = val
+            elif evt_key == 'alpha':
+                self.legend.get_frame().set_alpha(val)
+            elif evt_key == 'fontsize':
+                for each in self.legend.get_texts():
+                    each.set_size(val)
+            elif evt_key == 'font':
+                for each in self.legend.get_texts():
+                    each.set_fontname(val)
+            elif evt_key == 'showcalc':
+                self.parent.updateLegend(int(plotnum))
+
+            if self.parent.plotparams['legend_visible%s' %(plotnum)] or evt_key == 'visible':
+                self.parent.canvas.draw()
+
+
+        #This is some stupid stuff that's necessary to prevent errors in the title part when there is
+        #legend on the plot
+
+        if self.legend is None:
+            self.is_legend = False
+        else:
+            self.is_legend = True
+
+        if self.is_legend:
+            if self.is_sec and self.sec_calc != 'None':
+                ids = self.labels[4][2]
+                idlist = ids.values()
+            else:
+                ids = self.labels[3][2]
+                idlist = ids.values()
+
+            if not wx.FindWindowById(idlist[0], self).IsEnabled():
+                for id in idlist:
+                    wx.FindWindowById(id, self).Enable(True)
+
+                wx.FindWindowById(ids['size'], self).Bind(wx.EVT_SPINCTRL, self._updateLabels)
+
+        event.Skip()
+
+    def _updateAxesRange(self, event):
+        for i in range(0, len(self.axes_fixed_limits_data)):
+            id = self.axes_fixed_limits_data[i][1]
+
+            try:
+
+                if self.axes_fixed_limits_data[i][0] == 'xmin':
+                    xmin = float(wx.FindWindowById(id, self).GetValue())
+                elif self.axes_fixed_limits_data[i][0] == 'xmax':
+                    xmax = float(wx.FindWindowById(id, self).GetValue())
+                elif self.axes_fixed_limits_data[i][0] == 'ymin':
+                    ymin = float(wx.FindWindowById(id, self).GetValue())
+                elif self.axes_fixed_limits_data[i][0] == 'ymax':
+                    ymax = float(wx.FindWindowById(id, self).GetValue())
+                elif self.axes_fixed_limits_data[i][0] == 'y2min':
+                    y2min = float(wx.FindWindowById(id, self).GetValue())
+                elif self.axes_fixed_limits_data[i][0] == 'y2max':
+                    y2max = float(wx.FindWindowById(id, self).GetValue())
+
+            except ValueError:
+                pass
+        try:
+            self.axes.set_xlim((xmin, xmax))
+            self.axes.set_ylim((ymin, ymax))
+        except UnboundLocalError:
+            pass
+            #Catches the error when an axis range is blank or has just a period
+
+
+        if self.is_sec and self.sec_calc != 'None':
+            try:
+                self.axes2.set_xlim((xmin, xmax))
+                self.axes2.set_ylim((y2min, y2max))
+            except UnboundLocalError:
+                pass
+
+        event.Skip()
+
+    def _updateLabels(self, event):
+
+        plotnum = str(self.parent.selected_plot)
+
+        label_params = ['text', 'size', 'weight', 'style', 'fontname']
+        obj = event.GetEventObject()
+
+        if self.is_sec and self.sec_calc != 'None':
+            if obj.GetName() == 'title':
+                label = self.title
+                ids = self.labels[0][2]
+            elif obj.GetName() == 'xlabel':
+                label = self.xlabel
+                ids = self.labels[1][2]
+            elif obj.GetName() == 'ylabel':
+                label = self.ylabel
+                ids = self.labels[2][2]
+            elif obj.GetName() == 'y2label':
+                label = self.y2label
+                ids = self.labels[3][2]
+            elif obj.GetName() == 'legtit':
+                label = self.legend.get_title()
+                ids = self.labels[4][2]
+
+        else:
+            if obj.GetName() == 'title':
+                label = self.title
+                ids = self.labels[0][2]
+            elif obj.GetName() == 'xlabel':
+                label = self.xlabel
+                ids = self.labels[1][2]
+            elif obj.GetName() == 'ylabel':
+                label = self.ylabel
+                ids = self.labels[2][2]
+            elif obj.GetName() == 'legtit':
+                label = self.legend.get_title()
+                ids = self.labels[3][2]
+
+        for key in label_params:
+
+            ctrl = wx.FindWindowById(ids[key], self)
+            if key != 'fontname':
+                val = ctrl.GetValue()
+            else:
+                val = ctrl.GetStringSelection()
+
+            if key == 'weight':
+                if val:
+                    value = 'bold'
+                else:
+                    value = 'normal'
+                label.set_weight(value)
+
+            elif key == 'style':
+                if val:
+                    value = 'italic'
+                else:
+                    value = 'normal'
+                label.set_style(value)
+
+            elif key == 'size':
+                label.set_size(val)
+                self.parent.plotparams['%s_fontsize%s' %(obj.GetName(), plotnum)] = val
+
+            elif key == 'text':
+                label.set_text(val)
+
+            elif key == 'fontname':
+                label.set_fontname(val)
+                self.parent.plotparams['%s_font%s' %(obj.GetName(), plotnum)] = val
+
+        if obj.GetName() == 'legtit':
+            self.legend.set_title(label.get_text())
+
+        try:
+            self.parent.canvas.draw()
+        except (matplotlib.pyparsing.ParseFatalException, ValueError) as e:
+            print e
+
+        event.Skip()
+
+
+    def _restoreOldSettings(self):
+        plotnum = str(self.parent.selected_plot)
+
+        for each in self._old_settings.keys():
+            for each_key in self._old_settings[each].keys():
+                if each == 'title':
+                    expr = 'self.title.set_' + each_key + '("' + str(self._old_settings[each][each_key]) + '")'
+                    exec expr
+                elif each == 'xlabel':
+                    expr = 'self.xlabel.set_' + each_key + '("' + str(self._old_settings[each][each_key]) + '")'
+                    exec expr
+                elif each == 'ylabel':
+                    expr = 'self.ylabel.set_' + each_key + '("' + str(self._old_settings[each][each_key]) + '")'
+                    exec expr
+                elif each == 'y2label':
+                    expr = 'self.y2label.set_' + each_key + '("' + str(self._old_settings[each][each_key]) + '")'
+                    exec expr
+                elif each == 'legtit' and self.is_legend:
+                    expr = 'self.legend.get_title().set_' + each_key + '("' + str(self._old_settings[each][each_key]) + '")'
+                    exec expr
+
+                if each_key == 'size':
+                    self.parent.plotparams['%s_fontsize%s' %(each, plotnum)] = self._old_settings[each][each_key]
+
+                if each_key == 'fontname':
+                    self.parent.plotparams['%s_font%s' %(each, plotnum)] = self._old_settings[each][each_key]
+
+
+        if self.is_legend:
+            for key in self._old_legend_settings:
+                self.parent.plotparams['legend_%s%s' %(key, plotnum)] = self._old_legend_settings[key]
+
+            self.parent.updateLegend(int(plotnum))
+
+        for key, value in self.old_axes_settings.items():
+            if key == 'xticksize':
+                self.axes.tick_params(axis='x', labelsize=int(value))
+
+            elif key == 'yticksize':
+                self.axes.tick_params(axis='y', labelsize=int(value))
+
+            elif key == 'y2ticksize':
+                self.axes2.tick_params(axis='y', labelsize=int(value))
+
+            elif key == 'xrange':
+                self.axes.set_xlim(value)
+
+            elif key == 'yrange':
+                self.axes.set_ylim(value)
+
+            elif key == 'y2range':
+                self.axes2.set_xlim(self.old_axes_settings['xrange'])
+                self.axes2.set_ylim(value)
+            elif key == 'framestyle2':
+                self.parent.plotparams[key] = value
+            else:
+                self.parent.plotparams[key + plotnum] = value
+
+        if self.is_sec and self.sec_calc != 'None':
+            self.parent._updateFrameStylesForAllPlots()
+
+        else:
+            self.parent.updateFrameStyle(self.axes)
+
+        self.parent.canvas.draw()
+
+    def _onOk(self, event):
+
+        if self.axes == self.parent.subplot1:
+            type = self.parent.plotparams['plot1type']
+        else:
+            type = self.parent.plotparams['plot2type']
+
+        self.parent.subplot_labels[type] = [self.title.get_text(), self.xlabel.get_text(), self.ylabel.get_text()]
+
+        if self.parent.plotparams['auto_fitaxes' + str(self.parent.selected_plot)]:
+            self.parent.fitAxis(forced = True)
+        else:
+            self.parent.canvas.draw()
+
+
+        self.EndModal(wx.ID_OK)
+
+    def _onCancel(self, event):
+        self._restoreOldSettings()
+        self.EndModal(wx.ID_CANCEL)
