@@ -105,7 +105,8 @@ class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
 class PlotOptionsDialog(wx.Dialog):
     def __init__(self, parent, plotparams, axes, *args, **kwargs):
 
-        wx.Dialog.__init__(self, parent, -1, 'Plot Options' , size = (575,522), *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, 'Plot Options' , size = (575,522),
+            style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, *args, **kwargs)
 
         self.axes = axes
         self.plotparams = plotparams
