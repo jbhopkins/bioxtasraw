@@ -31,9 +31,7 @@ import threading
 import Queue
 import wx
 import time
-import re
 import platform
-import subprocess
 import collections
 import shutil
 import glob
@@ -3932,6 +3930,19 @@ class DammifRunPanel(wx.Panel):
 
         outname = os.path.join(path, prefix+'.out')
 
+        if len(prefix)>30:
+            msg = ("Warning: The file prefix '{}'' is too long (>30 characters). It "
+                "will be truncated to '{}'. Proceed?".format(prefix, prefix[:30]))
+            dlg = wx.MessageDialog(self.main_frame, msg, "Overwrite existing file?",
+                style=wx.ICON_WARNING|wx.YES_NO)
+            proceed = dlg.ShowModal()
+            dlg.Destroy()
+
+            if proceed == wx.ID_YES:
+                prefix = prefix[:30]
+                prefix_window.SetValue(prefix)
+            else:
+                return
 
         #Check to see if any files will be overwritten. Prompt use if that is the case. Write the .out file for dammif to use
         if os.path.exists(outname):
