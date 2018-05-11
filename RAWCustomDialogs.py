@@ -1354,11 +1354,9 @@ class RebinDialog(wx.Dialog):
 
 
 class ColourChangeDialog(wx.Dialog):
-
     def __init__(self, parent, sasm, linename, line=None, plotpanel=None ,style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
 
         wx.Dialog.__init__(self, parent, -1, 'Pick a Colour', *args, **kwargs)
-
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -1380,6 +1378,7 @@ class ColourChangeDialog(wx.Dialog):
 
         buttonsizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
         self.Bind( wx.EVT_BUTTON, self._onOkClicked, id=wx.ID_OK )
+        self.Bind( wx.EVT_BUTTON, self._onCancelButton, id=wx.ID_CANCEL )
 
         self.colourchoice = colorchooser.PyColourChooser(self, -1)
         self.colourchoice.SetValue(self._linecolour)
@@ -1448,12 +1447,15 @@ class ColourChangeDialog(wx.Dialog):
         elif self.linename == 'NormKratky':
             return self.line.get_color()
 
-
-
     def updateLine(self, event):
         colour =  self.colourchoice.GetValue().Get(False)
         colour =  (colour[0]/255.0, colour[1]/255.0, colour[2]/255.0)
 
+        self._setLineColor(colour)
+
+        event.Skip()
+
+    def _setLineColor(self, colour):
         if self.linename == 'MarFillColour':
             self.sasm.line.set_markerfacecolor(colour)
         elif self.linename == 'MarLineColour':
@@ -1515,13 +1517,12 @@ class ColourChangeDialog(wx.Dialog):
             if self.linename == 'NormKratky':
                 self.plotpanel.redrawLines()
 
-        event.Skip()
-
     def _onOkClicked(self, event):
         self.EndModal(wx.ID_OK)
 
-    def _onCancel(self, event):
-        pass
+    def _onCancelButton(self, event):
+        self._setLineColor(self._old_linecolour)
+        self.EndModal(wx.ID_CANCEL)
 
 
 class LinePropertyDialog(wx.Dialog):
