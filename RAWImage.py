@@ -27,6 +27,7 @@ import matplotlib
 import wx
 import os
 import platform
+import time
 import numpy as np
 matplotlib.rcParams['backend'] = 'WxAgg'
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
@@ -679,8 +680,10 @@ class ImagePanel(wx.Panel):
                 else:
                     start_negative = False
 
-                self.plot_parameters['storedMasks'].append( SASImage.PolygonMask(points, self._createNewMaskNumber(), self.img.shape, negative = start_negative) )
-
+                start = time.time()
+                mask = SASImage.PolygonMask(points, self._createNewMaskNumber(), self.img.shape, negative = start_negative)
+                print time.time() - start
+                self.plot_parameters['storedMasks'].append(mask)
             self.stopMaskCreation()
             self.untoggleAllToolButtons()
 
@@ -769,6 +772,9 @@ class ImagePanel(wx.Panel):
         menu.AppendRadioItem(1, 'Normal Mask')
         i2 = menu.AppendRadioItem(2, 'Inverted Mask')
 
+        if not isinstance(self._selected_patch.mask, SASImage.PolygonMask):
+            menu.Append(3, 'Resize')
+
         if self._selected_patch.mask.isNegativeMask() == True:
             i2.Check(True)
 
@@ -783,12 +789,35 @@ class ImagePanel(wx.Panel):
     def _onPopupMenuChoice(self, evt):
         id = evt.GetId()
 
-        if id == 2:
-            self._selected_patch.mask.setAsNegativeMask()
-        else:
+        if id == 1:
             self._selected_patch.mask.setAsPositiveMask()
+        elif id == 2:
+            self._selected_patch.mask.setAsNegativeMask()
+        elif id == 3:
+            self._resizeMask()
+
 
     #--- ** Mask Creation **
+
+    def _resizeMask(self):
+        points = self._selected_patch.mask.getPoints()
+
+        if isinstance(self._selected_patch.mask, SASImage.CircleMask):
+            self.current_tool = 'circle'
+            self._addCirclePoint(points[0][0], points[0][1], None)
+
+        elif isinstance(self._selected_patch.mask, SASImage.RectangleMask):
+            self.current_tool = 'rectangle'
+            self._addRectanglePoint(points[0][0], points[0][1], None)
+
+        for each in self._plotted_patches:
+            if each.selected == 1:
+                for idx in range(0, len(self.plot_parameters['storedMasks'])):
+                    if each.id == self.plot_parameters['storedMasks'][idx].getId():
+                        self.plot_parameters['storedMasks'].pop(idx)
+
+        self.plotStoredMasks()
+        self._drawMaskGuideLine(points[1][0], points[1][1])
 
     def _getMaskFromId(self, id):
 
@@ -991,10 +1020,13 @@ class ImagePanel(wx.Panel):
                 self.fig.gca().draw_artist(self._circle_guide_line)
                 self.canvas.blit(self.fig.gca().bbox)
             else:
+                print 'here'
                 self._circle_guide_line = matplotlib.patches.Circle((self._chosen_points_x[-1], self._chosen_points_y[-1]), radius_c, color = 'r', fill = False, linewidth = 2, animated = True)
                 a.add_patch(self._circle_guide_line)
                 self.canvas.draw()
                 self.background = self.canvas.copy_from_bbox(self.fig.gca().bbox)
+                self.fig.gca().draw_artist(self._circle_guide_line)
+                self.canvas.blit(self.fig.gca().bbox)
 
         elif tool == 'rectangle':
             xPoints = [self._chosen_points_x[-1], x, x, self._chosen_points_x[-1], self._chosen_points_x[-1]]
@@ -1011,6 +1043,8 @@ class ImagePanel(wx.Panel):
                 self._rectangle_line = a.plot(xPoints, yPoints, 'r', animated = True)
                 self.canvas.draw()
                 self.background = self.canvas.copy_from_bbox(self.fig.gca().bbox)
+                self.fig.gca().draw_artist(self._rectangle_line[0])
+                self.canvas.blit(self.fig.gca().bbox)
 
 
         elif tool == 'polygon':

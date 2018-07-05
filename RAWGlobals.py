@@ -19,8 +19,6 @@
 import Queue
 import sys
 
-compiled_extensions = True
-
 mainworker_cmd_queue = Queue.Queue()
 
 cancel_bift = False
@@ -37,6 +35,6 @@ RAWResourcesDir = ''
 
 usepyFAI_integration = False
 
-version = '1.4.0'
+version = '1.4.1'
 
 save_in_progress = False

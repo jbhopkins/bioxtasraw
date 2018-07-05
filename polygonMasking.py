@@ -29,122 +29,44 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
 IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 """
+import sys
 
 import numpy as np
-import sys
-import RAWGlobals
-#from scipy.weave import ext_tools
-#from scipy.weave import converters
+from numba import jit
 
-#Check for compiled extensions. If compilation hasn't already failed, try to
-#compile them if they are missing
-if RAWGlobals.compiled_extensions:
-    try:
-        import polygonmask_ext
-
-    except ImportError as e:
-        print e
-        import SASbuild_Clibs
-        try:
-            SASbuild_Clibs.buildAll()
-            import polygonmask_ext
-
-        except Exception, e:
-            RAWGlobals.compiled_extensions = False
-            print e
-
+@jit
 def npnpoly(verts,points):
-    if RAWGlobals.compiled_extensions:
-        verts = verts.astype(np.float64)
-        points = points.astype(np.float64)
+    """Check whether given points are in the polygon.
 
-        xp = np.ascontiguousarray(verts[:,0])
-        yp = np.ascontiguousarray(verts[:,1])
-        x = np.ascontiguousarray(points[:,0])
-        y = np.ascontiguousarray(points[:,1])
-        out = np.empty(len(points),dtype=np.uint8)
+    points - Nx2 array
 
-#        mod = ext_tools.ext_module('polygonmask_ext')
-#
-        code = """
-        /* Code from:
-           http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+    See http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+    """
+    out = np.empty_like(points[:,0], dtype=np.bool)
 
-           Copyright (c) 1970-2003, Wm. Randolph Franklin
+    xpi = verts[:,0]
+    ypi = verts[:,1]
 
-           Permission is hereby granted, free of charge, to any person
-           obtaining a copy of this software and associated documentation
-           files (the "Software"), to deal in the Software without
-           restriction, including without limitation the rights to use, copy,
-           modify, merge, publish, distribute, sublicense, and/or sell copies
-           of the Software, and to permit persons to whom the Software is
-           furnished to do so, subject to the following conditions:
+    xmin = min(xpi)
+    xmax = max(xpi)
+    ymin = min(ypi)
+    ymax = max(ypi)
+    # shift
+    xpj = xpi[np.arange(xpi.size)-1]
+    ypj = ypi[np.arange(ypi.size)-1]
+    maybe = np.empty(len(xpi),dtype=np.bool)
+    for i in xrange(points.shape[0]):
+        x,y = points[i]
 
-        1. Redistributions of source code must retain the above
-                 copyright notice, this list of conditions and the following
-                 disclaimers.
-        2. Redistributions in binary form must reproduce the above
-                 copyright notice in the documentation and/or other materials
-                 provided with the distribution.
-        3. The name of W. Randolph Franklin may not be used to endorse
-                 or promote products derived from this Software without
-                 specific prior written permission.
-
-           THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-           EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-           MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-           NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
-           BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
-           ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-           CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-           SOFTWARE. */
-
-        int i,j,n;
-        unsigned int c;
-        int nr_verts = Nxp[0];
-        for (n = 0; n < Nx[0]; n++) {
-            c = 0;
-        for (i = 0, j = nr_verts-1; i < nr_verts; j = i++) {
-                if ((((yp(i)<=y(n)) && (y(n)<yp(j))) ||
-                  ((yp(j)<=y(n)) && (y(n)<yp(i)))) &&
-                (x(n) < (xp(j) - xp(i)) * (y(n) - yp(i)) / (yp(j) - yp(i)) + xp(i)))
-
-        c = !c;
-        }
-    out(n) = c;
-        }
-        """
-        #weave.inline(code, ['xp','yp','x','y','out'], type_converters=weave.converters.blitz)
-
-#        polymsk = ext_tools.ext_function('polymsk', code, ['xp','yp','x','y','out'], type_converters = converters.blitz)
-#        mod.add_function(polymsk)
-#        mod.compile(compiler = 'gcc')
-
-        polygonmask_ext.polymsk(xp, yp, x, y, out)
-
-        return out
-
-    else:
-        """Check whether given points are in the polygon.
-
-        points - Nx2 array
-
-        See http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
-        """
-        out = []
-
-        xpi = verts[:,0]
-        ypi = verts[:,1]
-        # shift
-        xpj = xpi[np.arange(xpi.size)-1]
-        ypj = ypi[np.arange(ypi.size)-1]
-        maybe = np.empty(len(xpi),dtype=bool)
-        for x,y in points:
+        if (x<xmin or xmax<x) or (y<ymin or ymax<y):
+            out[i] = 0
+        else:
             maybe[:] = ((ypi <= y) & (y < ypj)) | ((ypj <= y) & (y < ypi))
-            out.append(sum(x < (xpj[maybe]-xpi[maybe])*(y - ypi[maybe]) \
-                           / (ypj[maybe] - ypi[maybe]) + xpi[maybe]) % 2)
 
-        return np.asarray(out,dtype=bool)
+            out[i] = np.sum(x < (xpj[maybe]-xpi[maybe])*(y - ypi[maybe]) \
+                           / (ypj[maybe] - ypi[maybe]) + xpi[maybe]) % 2
+
+    return out
 
 
 

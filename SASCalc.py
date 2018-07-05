@@ -48,7 +48,6 @@ import scipy.interpolate
 from scipy.constants import Avogadro
 from scipy import ndimage
 import math
-import sys
 
 import SASFileIO
 import SASExceptions
@@ -2477,3 +2476,136 @@ def getEman2Paths(emanDir):
         shebang_env = False
 
     return eman_python, my_env, shebang_env
+
+def runEFA(A, forward=True):
+    wx.Yield()
+    slist = np.zeros_like(A)
+
+    jmax = A.shape[1]
+
+    if not forward:
+        A = A[:,::-1]
+
+    for j in range(jmax):
+        s = np.linalg.svd(A[:, :j+1], full_matrices = False, compute_uv = False)
+        slist[:s.size, j] = s
+
+    return slist
+
+def runExplicitEFARotation(M, D, failed, C, V_bar, T, niter, tol, force_pos):
+    num_sv = M.shape[1]
+
+    for i in range(num_sv):
+        V_i_0 = V_bar[np.logical_not(M[:,i]),:]
+
+        T[i,1:num_sv] = -np.dot(V_i_0[:,0].T, np.linalg.pinv(V_i_0[:,1:num_sv].T))
+
+    C = np.dot(T, V_bar.T)
+
+    C = C.T
+
+    if -1*C.min() > C.max():
+        C = C*-1
+
+    converged = True
+
+    csum = np.sum(M*C, axis = 0)
+    if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
+        C = C/np.broadcast_to(csum, C.shape) #normalizes by the sum of each column
+    else:
+        norm = np.array([csum for i in range(C.shape[0])])
+
+        C = C/norm #normalizes by the sum of each column
+
+    return C, failed, converged, None, None
+
+def runIterativeEFARotation(M, D, failed, C, V_bar, T, niter, tol, force_pos):
+    #Carry out the calculation to convergence
+    k = 0
+    converged = False
+
+    dc = []
+
+    while k < niter and not converged and not failed:
+        k = k+1
+        try:
+            Cnew = EFAUpdateRotation(M, C, D, force_pos)
+        except np.linalg.linalg.LinAlgError:
+           failed = True
+
+        dck = np.sum(np.abs(Cnew - C))
+
+        dc.append(dck)
+
+        C = Cnew
+
+        if dck < tol:
+            converged = True
+
+    return C, failed, converged, dc, k
+
+def EFAUpdateRotation(M,C,D, force_pos):
+    S = np.dot(D, np.linalg.pinv(np.transpose(M*C)))
+
+    Cnew = np.transpose(np.dot(np.linalg.pinv(S), D))
+
+    for i, fp in enumerate(force_pos):
+        if fp:
+            Cnew[Cnew[:,i] < 0,i] = 0
+
+    csum = np.sum(M*Cnew, axis = 0)
+
+    if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
+        Cnew = Cnew/np.broadcast_to(csum, Cnew.shape) #normalizes by the sum of each column
+    else:
+        norm = np.array([csum for i in range(Cnew.shape[0])])
+
+        Cnew = Cnew/norm #normalizes by the sum of each column
+
+    return Cnew
+
+def EFAFirstRotation(M,C,D):
+    #Have to run an initial rotation without forcing C>=0 or things typically fail to converge (usually the SVD fails)
+    S = np.dot(D, np.linalg.pinv(np.transpose(M*C)))
+
+    Cnew = np.transpose(np.dot(np.linalg.pinv(S), D))
+
+    csum = np.sum(M*Cnew, axis = 0)
+    if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
+        Cnew = Cnew/np.broadcast_to(csum, Cnew.shape) #normalizes by the sum of each column
+    else:
+        norm = np.array([csum for i in range(Cnew.shape[0])])
+
+        Cnew = Cnew/norm #normalizes by the sum of each column
+
+    return Cnew
+
+def initIterativeEFA(M, num_sv, D, C, converged, V_bar):
+
+    #Set a variable to test whether the rotation fails for a numerical reason
+    failed = False
+
+    #Do an initial rotation
+    try:
+        C = EFAFirstRotation(M, C, D)
+    except np.linalg.linalg.LinAlgError:
+        failed = True
+
+    return failed, C, None
+
+def initExplicitEFA(M, num_sv, D, C, converged, V_bar):
+
+    T = np.ones((num_sv, num_sv))
+
+    failed = False
+
+    return failed, None, T
+
+def initHybridEFA(M, num_sv, D, C, converged, V_bar):
+    failed = False
+
+    if not converged:
+        failed, temp, T = initExplicitEFA(M, num_sv, D, C, converged, V_bar)
+        C, failed, temp1, temp2, temp3 = runExplicitEFARotation(M, None, None, None, V_bar, T, None, None, None)
+
+    return failed, C, None

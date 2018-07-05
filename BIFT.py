@@ -15,40 +15,17 @@
 #    along with BioXTAS RAW.  If not, see <http://www.gnu.org/licenses/>.
 #
 #******************************************************************************
-
 from __future__ import division
-from scipy import *
-from scipy import optimize
-from scipy.linalg import det
-from numpy import *
-import numpy
-import RAWGlobals
 
 import os
+import math
+
+from scipy.linalg import det
+import numpy as np
+from numba import jit, prange
+
+import RAWGlobals
 import SASM
-
-if not RAWGlobals.frozen:
-    try:
-        import weave
-        from weave import converters
-    except ImportError:
-        from scipy import weave
-        from scipy.weave import converters
-
-if RAWGlobals.compiled_extensions:
-    try:
-        import bift_ext
-
-    except ImportError as e:
-        print e
-        import SASbuild_Clibs
-        try:
-            SASbuild_Clibs.buildAll()
-            import bift_ext
-
-        except Exception, e:
-            print e
-            RAWGlobals.compiled_extensions = False
 
 #################################################################################
 ################# Taken from numpy to add cancel function #######################
@@ -118,7 +95,7 @@ def fmin(func, x0, args=(), xtol=1e-4, ftol=1e-4, maxiter=None, maxfun=None,
     """
 
     fcalls, func = wrap_function(func, args)
-    x0 = asfarray(x0).flatten()
+    x0 = np.asfarray(x0).flatten()
     N = len(x0)
     rank = len(x0.shape)
     if not -1 < rank < 2:
@@ -132,10 +109,10 @@ def fmin(func, x0, args=(), xtol=1e-4, ftol=1e-4, maxiter=None, maxfun=None,
     one2np1 = range(1,N+1)
 
     if rank == 0:
-        sim = numpy.zeros((N+1,), dtype=x0.dtype)
+        sim = np.zeros((N+1,), dtype=x0.dtype)
     else:
-        sim = numpy.zeros((N+1,N), dtype=x0.dtype)
-    fsim = numpy.zeros((N+1,), float)
+        sim = np.zeros((N+1,N), dtype=x0.dtype)
+    fsim = np.zeros((N+1,), float)
     sim[0] = x0
     if retall:
         allvecs = [sim[0]]
@@ -143,7 +120,7 @@ def fmin(func, x0, args=(), xtol=1e-4, ftol=1e-4, maxiter=None, maxfun=None,
     nonzdelt = 0.05
     zdelt = 0.00025
     for k in range(0,N):
-        y = numpy.array(x0,copy=True)
+        y = np.array(x0,copy=True)
         if y[k] != 0:
             y[k] = (1+nonzdelt)*y[k]
         else:
@@ -153,10 +130,10 @@ def fmin(func, x0, args=(), xtol=1e-4, ftol=1e-4, maxiter=None, maxfun=None,
         f = func(y)
         fsim[k+1] = f
 
-    ind = numpy.argsort(fsim)
-    fsim = numpy.take(fsim,ind,0)
+    ind = np.argsort(fsim)
+    fsim = np.take(fsim,ind,0)
     # sort so sim[0,:] has the lowest function value
-    sim = numpy.take(sim,ind,0)
+    sim = np.take(sim,ind,0)
 
     iterations = 1
 
@@ -165,11 +142,11 @@ def fmin(func, x0, args=(), xtol=1e-4, ftol=1e-4, maxiter=None, maxfun=None,
         if RAWGlobals.cancel_bift:
             return
 
-        if (max(numpy.ravel(abs(sim[1:]-sim[0]))) <= xtol \
+        if (max(np.ravel(abs(sim[1:]-sim[0]))) <= xtol \
             and max(abs(fsim[0]-fsim[1:])) <= ftol):
             break
 
-        xbar = numpy.add.reduce(sim[:-1],0) / N
+        xbar = np.add.reduce(sim[:-1],0) / N
         xr = (1+rho)*xbar - rho*sim[-1]
         fxr = func(xr)
         doshrink = 0
@@ -215,9 +192,9 @@ def fmin(func, x0, args=(), xtol=1e-4, ftol=1e-4, maxiter=None, maxfun=None,
                         sim[j] = sim[0] + sigma*(sim[j] - sim[0])
                         fsim[j] = func(sim[j])
 
-        ind = numpy.argsort(fsim)
-        sim = numpy.take(sim,ind,0)
-        fsim = numpy.take(fsim,ind,0)
+        ind = np.argsort(fsim)
+        sim = np.take(sim,ind,0)
+        fsim = np.take(fsim,ind,0)
         if callback is not None:
             callback(sim[0])
         iterations += 1
@@ -258,52 +235,36 @@ def fmin(func, x0, args=(), xtol=1e-4, ftol=1e-4, maxiter=None, maxfun=None,
 
 
 def C_seeksol(I_exp, m, q, sigma, alpha, dmax, T):
-    # print 'In C_seeksol'
-    # RAWGlobals.compiled_extensions = False
-    # print 'RAWGlobals.compiled_extensions: ' + str(RAWGlobals.compiled_extensions)
 
- #   beg = time.time()
+    N = max(m.shape)
 
-    N = max(shape(m))
-
-    m = matrix(m)                #m is the prior distribution
+    m = np.matrix(m)                #m is the prior distribution
 
     P = m.copy()                        #multiply(m, 1.0005) # first guess is set equal to priror distribution
 
-    m2 = m.copy()
-
-    I_exp = matrix(I_exp)
-
-    sigma_sq = matrix(sigma)            # std to variance
+    I_exp = np.matrix(I_exp)
+    sigma_sq = np.matrix(sigma)            # std to variance
 
     # Calculate factors for the gradient:
-    sum_dia = matrix(sum( multiply(T, transpose(I_exp) / transpose(sigma_sq)) , 0))    # works!  makes sum( (d_i * a_ik) / s^2_i) over i, giver f_k vektor
+    sum_dia = np.matrix(sum( np.multiply(T, np.transpose(I_exp) / np.transpose(sigma_sq)) , 0))    # works!  makes sum( (d_i * a_ik) / s^2_i) over i, giver f_k vektor
 
-    B = dot(transpose(T),( T / transpose(sigma_sq)))     # this one was a bitch!  this is b_kj
-
-    Bdiag = matrix(multiply(B,eye(len(B))))              # The diagonal of B
-
+    B = np.dot(np.transpose(T),( T / np.transpose(sigma_sq)))     # this one was a bitch!  this is b_kj
+    Bdiag = np.matrix(np.multiply(B, np.eye(len(B))))              # The diagonal of B
     bkk = sum(Bdiag, 0)                                  # k col-vektor
 
     Bmat = B-Bdiag
 
 
-
-
     # ************  convert before C++  *************************
-    Psumi = zeros((1,N))                   ## all should be arrays!         NB matrix and array dont mix in weave C!!!!
-    sum_dia = array(sum_dia,'float64')
-    bkk = array(bkk)
-    dP = array(zeros((1,N)), 'float64')
-    #m = array(m, 'float64')
-    #m = zeros((1,N))
-    m = array(m, 'float64')            # important! otherwise C will only make an Int array, and kill floats!
-
-    Pold = array(zeros((1,N)),'float64')
-
-    I_exp = array(I_exp,'float64')
-    Bmat = array(Bmat,'float64')
-    B = array(B,'float64')
+    Psumi = np.zeros((1,N))                   ## all should be arrays!         NB matrix and array dont mix in weave C!!!!
+    sum_dia = np.array(sum_dia,'float64')
+    bkk = np.array(bkk)
+    dP = np.array(np.zeros((1,N)), 'float64')
+    m = np.array(m, 'float64')            # important! otherwise C will only make an Int array, and kill floats!
+    Pold = np.array(np.zeros((1,N)),'float64')
+    I_exp = np.array(I_exp,'float64')
+    Bmat = np.array(Bmat,'float64')
+    B = np.array(B,'float64')
 
     omegareduction = 2.0
     omega = 0.5
@@ -314,215 +275,18 @@ def C_seeksol(I_exp, m, q, sigma, alpha, dmax, T):
 
     bkkmax = bkk.max() * 10
 
-    P = array(P,'float64')            # important! otherwise C will only make an Int array, and kill floats!
-
+    P = np.array(P,'float64')            # important! otherwise C will only make an Int array, and kill floats!
     dotsp = 0.0
 
     alpha = float(alpha)              # Important! otherwise C code will crash
 
-    if RAWGlobals.compiled_extensions:
-        s = bift_ext.bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold)
-    else:
-        #Warning, slower!
-        s = bift_python(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold)
+    s = bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold)
+    I_m = np.dot( P, np.transpose(T) )
 
-    # s_ext = bift_ext.bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold)
-    # s_python = bift_python(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold)
-
-    # print 's from bift_ext is ' + str(s_ext)
-    # print 's from bift_python is ' + str(s_python)
-
-    # ********************** C++ CODE *******************************
-
-#    mod = ext_tools.ext_module('bift_ext')
-#
-#    code = """
-#    #include <iostream.h>
-#    #include <math.h>
-#
-#    py::object sout;
-#
-#    // Initiate Variables
-#    int ite = 0;
-#
-#    double s = 0,
-#          wgrads = 0,
-#          wgradc = 0,
-#          gradci = 0,
-#          gradsi = 0;
-#
-#    while( ite < maxit && omega > omegamin && fabs(1-dotsp) > dotsptol || (ite < minit) )
-#    {
-#            if (ite != 0)
-#            {
-#                /* Calculating smoothness constraint vector m */
-#
-#                for(int k = 1; k < N-1; k++)
-#                {
-#                     m(0, k) =  ((P(0,k-1) + P(0,k+1)) / 2.0);
-#                }
-#
-#                m(0,0) =  P(0,1) / 2.0;
-#                m(0,N-1) =  P(0,N-2) /2.0;
-#
-#
-#                /* This calculates the Matrix Psumi */
-#
-#                for(int j = 0; j < N; j++)
-#                    for(int k = 0; k < N; k++)
-#                        Psumi(0,j) = Psumi(0,j) + P(0,k) * Bmat(k,j);
-#
-#               // cout << "    " << Psumi(0,50);
-#
-#               /* Now calculating dP, and updating P */
-#
-#                for(int k = 0; k < N; k++)
-#                {
-#                    dP(0,k) = ( m(0,k) * alpha + sum_dia(0,k) - Psumi(0,k) ) / (bkk(0,k) + alpha);      /* ATTENTION! remember C division!, if its all int's then it will be a int result! .. maybe cast it to float()? */
-#
-#                    Psumi(0,k) = 0;    // Reset values in Psumi for next iteration..otherwise Psumi = Psumi + blah will be wrong!
-#
-#                    Pold(0,k) = P(0,k);
-#
-#                    P(0,k) = (1-omega) * P(0,k) + omega * dP(0,k);
-#
-#                    /* Pin first and last point to zero! */
-#
-#                    //P(0,0) = 0.0;
-#                    //P(0,N-1) = 0.0;
-#                }
-#
-#                //cout << "    " << m(0,50);
-#                //cout << "    " << P(0,50);
-#                //cout << "    " << dP(0,50);
-#                //cout << " | ";
-#
-#            } // end if ite != 0
-#
-#
-#
-#       ite = ite + 1;
-#
-#       /* Calculating Dotsp */
-#
-#       dotsp = 0;
-#       wgrads = 0;
-#       wgradc = 0;
-#       s = 0;
-#       for(int k = 0; k < N; k++)
-#       {
-#             s = s - pow( P(0,k) - m(0,k) , 2);                        // sum(-power((P-m),2))
-#
-#             gradsi = -2*( P(0,k) - m(0,k) );                            // gradsi = (-2*(P-m))
-#             wgrads = wgrads + pow(gradsi, 2);
-#
-#             gradci = 0;
-#             for(int j = 0; j < N; j++)
-#             {
-#                 gradci = gradci + 2*( P(0,j) * B(j,k) );
-#             }
-#             gradci = gradci - 2*sum_dia(0,k);
-#
-#             wgradc = wgradc + pow(gradci , 2);
-#             dotsp = dotsp + (gradci * gradsi);
-#       }
-#
-#//      cout << dotsp;
-#//      cout << "    " << wgrads;
-#//      cout << "    " << wgradc;
-#//      cout << "    " << s;
-#//      cout << " | ";
-#
-#
-#       /* internal loop to reduce search step (omega) when it's too large */
-#
-#       while( dotsp < 0 && double(alpha) < double(bkkmax) && ite > 1 && omega > omegamin)
-#       {
-#                omega = omega / omegareduction;
-#
-#                /* Updating P */
-#
-#                for(int k = 0; k < N; k++)
-#                {
-#                    P(0,k) = (1-omega) * Pold(0,k) + omega * dP(0,k);
-#                }
-#
-#                /* Calculating Dotsp */
-#
-#                dotsp = 0;
-#                wgrads = 0;
-#                wgradc = 0;
-#                s = 0;
-#                for(int k = 0; k < N; k++)
-#                {
-#                    s = s - pow( P(0,k)-m(0,k) , 2);                        // sum(-power((P-m),2))
-#                    gradsi = -2*(P(0,k)-m(0,k));                            // gradsi = (-2*(P-m))
-#                    wgrads = wgrads + pow(gradsi, 2);
-#
-#                    gradci = 0;
-#                    for(int j = 0; j < N; j++)
-#                    {
-#                        gradci = gradci + 2*( P(0,j) * B(j,k));
-#                    }
-#                    gradci = gradci - 2*sum_dia(0,k);
-#
-#                    wgradc = wgradc + pow(gradci , 2);
-#                    dotsp = dotsp + (gradci * gradsi);
-#                }
-#
-#       } // end inner whileloop
-#
-#
-#       if(wgrads == 0 || wgradc == 0)
-#       {
-#            dotsp = 1;
-#       }
-#       else
-#       {
-#            wgrads = std::sqrt(wgrads);
-#            wgradc = std::sqrt(wgradc);
-#            dotsp = dotsp / (wgrads * wgradc);
-#       }
-#
-#
-#    } // end Outer while loop
-#
-#
-#    // cout << "ite C: " << ite;
-#    // cout << "alpha: " << double(alpha);
-#    // cout << "omega: " << omega;
-#    //cout << ",   m: " << m(0,20);
-#    //cout << ",   dotsp C: " << dotsp;
-#    //cout << ",   dP:" << dP(0,20);
-#    //cout << "cnt:" << cnt;
-#    //cout << ",   wgrads C: " << wgrads;
-#    //cout << ",   wgradc C: " << wgradc;
-#
-#
-#    //tst(0,1) = wgradc;
-#    sout = s;
-#    return_val = sout;
-#    """
-#
-#    s = weave.inline(code,['dotsp', 'dotsptol', 'maxit', 'minit', 'bkkmax', 'omega', 'omegamin', 'omegareduction', 'B', 'N', 'm', 'P', 'Psumi', 'Bmat', 'alpha', 'sum_dia', 'bkk', 'dP', 'Pold'], type_converters = converters.blitz, compiler = "gcc")
-#    # ***************************************************************
-
-    #biftext = ext_tools.ext_function('bift', code, ['dotsp', 'dotsptol', 'maxit', 'minit', 'bkkmax', 'omega', 'omegamin', 'omegareduction', 'B', 'N', 'm', 'P', 'Psumi', 'Bmat', 'alpha', 'sum_dia', 'bkk', 'dP', 'Pold'], type_converters = converters.blitz)
-    #mod.add_function(biftext)
-    #mod.compile(compiler = 'gcc')
-
-
-    #Forcing negative values to zero:
-    #P[nonzero(P<0)] = 0
-
-    I_m = dot( P, transpose(T) )
-
-    difftst = power( (I_exp[0] - I_m[0]), 2) / power(sigma, 2)
+    difftst = pow( (I_exp[0] - I_m[0]), 2) / pow(sigma, 2)
 
     #Chi Squared:
-    c = sum( array(difftst) )
-
-
+    c = sum( np.array(difftst) )
 
     post = calcPosterior( alpha, dmax, s, c, B )
 
@@ -531,18 +295,15 @@ def C_seeksol(I_exp, m, q, sigma, alpha, dmax, T):
 
 def GetEvidence(alpha, dmax, Ep, N):
 
-    alpha = exp(alpha)    # alpha is log(alpha)!!! to improve search
+    alpha = np.exp(alpha)    # alpha is log(alpha)!!! to improve search
 
-    min, max = Ep.getQrange()
+    qmin, qmax = Ep.getQrange()
 
-    r = linspace(0, dmax, N)
-    T = createTransMatrix(Ep.q[min:max], r)
-    P = makePriorDistDistribution(Ep, N, dmax, T, 'sphere', Ep.q[min:max])
+    r = np.linspace(0, dmax, N)
+    T = createTransMatrix(Ep.q[qmin:qmax], r)
+    P = makePriorDistDistribution(Ep, N, dmax, T, 'sphere', Ep.q[qmin:qmax])
 
-    # print 'Alpha : ' ,alpha
-    # print 'Dmax  : ' , dmax
-
-    Pout, evd, c  = C_seeksol(Ep.i[min:max], P, Ep.q[min:max], Ep.err[min:max], alpha, dmax, T)
+    Pout, evd, c  = C_seeksol(Ep.i[qmin:qmax], P, Ep.q[qmin:qmax], Ep.err[qmin:qmax], alpha, dmax, T)
 
     return -evd, c, Pout
 
@@ -551,25 +312,25 @@ def SingleSolve(alpha, dmax, Ep, N):
 
     alphafin = float(alpha)
     dmaxfin = float(dmax)
-    min, max = Ep.getQrange()
+    qmin, qmax = Ep.getQrange()
 
     print dmaxfin, N
 
-    r = linspace(0, dmaxfin, int(N))
-    T = createTransMatrix(Ep.q[min:max], r)
-    P = makePriorDistDistribution(Ep, N, dmaxfin, T, 'sphere', Ep.q[min:max])
+    r = np.linspace(0, dmaxfin, int(N))
+    T = createTransMatrix(Ep.q[qmin:qmax], r)
+    P = makePriorDistDistribution(Ep, N, dmaxfin, T, 'sphere', Ep.q[qmin:qmax])
 
-    Pr, post, c = C_seeksol(Ep.i[min:max], P, Ep.q[min:max], Ep.err[min:max], alphafin, dmaxfin, T)
+    Pr, post, c = C_seeksol(Ep.i[qmin:qmax], P, Ep.q[qmin:qmax], Ep.err[qmin:qmax], alphafin, dmaxfin, T)
 
     # Reconstructed Fit line
-    Fit = dot(Pr, transpose(T))
+    Fit = np.dot(Pr, np.transpose(T))
 
     #Create the r vector
-    r = linspace(0, dmaxfin, len(transpose(Pr))+2)  # + 2 since we add a zero in each end
+    r = np.linspace(0, dmaxfin, len(np.transpose(Pr))+2)  # + 2 since we add a zero in each end
     dr = r[2]-r[1]
 
     # Insert 0 in the beginning and the end (Pinning the result to Zero!)
-    Pr = transpose(Pr)
+    Pr = np.transpose(Pr)
     Pr = list(Pr)
 
     #Pr = Pr[0]
@@ -579,7 +340,6 @@ def SingleSolve(alpha, dmax, Ep, N):
     #Calc I0 and Rg:
     area = 0
     area2 = 0
-    area3 = 0
 
     for x in range(1, len(Pr)):                        # watch out! Pr = Pr * dr !!
         #area = area + dr * Pr[x]
@@ -591,27 +351,27 @@ def SingleSolve(alpha, dmax, Ep, N):
 
     RgSq = area2 / (2 * area)
 
-    Rg = sqrt(abs(RgSq))[0]
+    Rg = np.sqrt(abs(RgSq))[0]
 
     # print 'Rg : ', Rg
     # print 'dr : ', dr
     # print 'Area2 : ', area2
 
-    I0 = mean(Fit[0, 0:5])
+    I0 = np.mean(Fit[0, 0:5])
     # print Fit[0, 0:5]
     # print 'I(0) from avg of 5 first points :', I0
     # print 'I(0) from area under P(r) : ', area
 
     I0 = area
 
-    Pr = array(Pr)
+    Pr = np.array(Pr)
 
-    Pr = Pr / (4*pi*dr)   # Since what we got from the optimization is 4*pi*dr * p(r)
+    Pr = Pr / (4*np.pi*dr)   # Since what we got from the optimization is 4*pi*dr * p(r)
                           #(we excluded 4*pi*dr in the trans matrix!)
 
     #Pr = Pr[0]  ## ..need this if we dont add zeros
 
-    Pr = transpose(Pr)
+    Pr = np.transpose(Pr)
 
     #alphafin = exp(alphafin)
 
@@ -627,7 +387,7 @@ def SingleSolve(alpha, dmax, Ep, N):
 
     #ExpObj = cartToPol.BIFTMeasurement(transpose(Pr), r, ones((len(transpose(Pr)),1)), Ep.param, Fit, plotinfo)
 
-    ift_sasm = SASM.IFTM(transpose(Pr), r, ones(len(transpose(Pr))), Ep.i[min:max], Ep.q[min:max], Ep.err[min:max], Fit[0], bift_info)
+    ift_sasm = SASM.IFTM(np.transpose(Pr), r, np.ones(len(np.transpose(Pr))), Ep.i[qmin:qmax], Ep.q[qmin:qmax], Ep.err[qmin:qmax], Fit[0], bift_info)
 
     return ift_sasm
 
@@ -637,35 +397,16 @@ def fineGetEvidence(data, Ep, N):
     alpha = data[0]
     dmax = data[1]
 
-    min, max = Ep.getQrange()
+    qmin, qmax = Ep.getQrange()
 
 
-    alpha = exp(alpha)
+    alpha = np.exp(alpha)
 
-    r = linspace(0, dmax, N)
-    T = createTransMatrix(Ep.q[min:max], r)
-    P = makePriorDistDistribution(Ep, N, dmax, T, 'sphere', Ep.q[min:max])
+    r = np.linspace(0, dmax, N)
+    T = createTransMatrix(Ep.q[qmin:qmax], r)
+    P = makePriorDistDistribution(Ep, N, dmax, T, 'sphere', Ep.q[qmin:qmax])
 
-    # print alpha
-    # print dmax
-
-    ########################################################################
-    # THIS IS A BIG NO NO!.. need to change it later.
-    ########################################################################
-    bift_status = {'alpha'    : alpha,
-                   'evidence' : '',
-                   'chi'      : '',
-                   'dmax'     : dmax,
-                   'spoint': '',
-                   'tpoint': '',
-                   'filename' : Ep.getParameter('filename')}
-
-    # statusdlg = wx.FindWindowByName('BIFTStatusDlg')
-    # if statusdlg != None:
-    #     wx.CallAfter(statusdlg.updateData, bift_status)
-    #########################################################################
-
-    Pout, evd, c  = C_seeksol(Ep.i[min:max], P, Ep.q[min:max], Ep.err[min:max], alpha, dmax, T)
+    Pout, evd, c  = C_seeksol(Ep.i[qmin:qmax], P, Ep.q[qmin:qmax], Ep.err[qmin:qmax], alpha, dmax, T)
 
     return -evd
 
@@ -685,15 +426,15 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
 
     Ep = Exp
 
-    min, max = Exp.getQrange()
+    qmin, qmax = Exp.getQrange()
     # NB!!! ALPHA MUST BE DECIMAL NUMBER OTHERWISE C CODE WILL CRASH!!!!!!!
     # alpha/dmax points to cycle though:
 
-    alphamin = log(alphamin)
-    alphamax = log(alphamax)
+    alphamin = np.log(alphamin)
+    alphamax = np.log(alphamax)
 
-    alpha_points = linspace(alphamin, alphamax, alphaN)          # alpha points are log(alpha) for better search
-    dmax_points = linspace(minDmax, maxDmax, dmaxN)
+    alpha_points = np.linspace(alphamin, alphamax, alphaN)          # alpha points are log(alpha) for better search
+    dmax_points = np.linspace(minDmax, maxDmax, dmaxN)
 
     #dmax_points = array(range(minDmax, maxDmax, dmaxN))
     # Set inital error to infinity:
@@ -701,7 +442,7 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
     bestc = 1e22
 
     # Cycle though dmax/alpha points and find best posterior / evidence
-    all_posteriors = zeros((len(dmax_points), len(alpha_points)))
+    all_posteriors = np.zeros((len(dmax_points), len(alpha_points)))
     dmax_idx = 0
 
     total_points = len(dmax_points) * len(alpha_points)
@@ -724,11 +465,6 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
             if c == '1.#QNAN':
                 print 'ERROR !! GOT #QNAN!'
 
-            # print ''
-            # print "alphaC =", exp(each_alpha)
-            # print "evdC =", post
-            # print "C = ", str(c)
-            # print "Dmax =", each_dmax
 
             bift_status = {'alpha'    : each_alpha,
                            'evidence' : post,
@@ -739,26 +475,15 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
 
             queue.put({'update' : bift_status})
 
-            # ########################################################################
-            # # THIS IS A BIG NO NO!.. need to change it later.
-            # ########################################################################
-            # statusdlg = wx.FindWindowByName('BIFTStatusDlg')
-            # if statusdlg != None:
-            #     # wx.CallAfter(statusdlg.updateData, bift_status)
-            #     pass
-            # ########################################################################
 
             if post < finalpost:
                 finalpost = post
 
-                alphafin = exp(each_alpha)
+                alphafin = np.exp(each_alpha)
                 dmaxfin = each_dmax
-                best_result = result
 
             if c < bestc:
                 bestc = c
-                alphac = exp(each_alpha)
-                dmaxc = each_dmax
 
             all_posteriors[dmax_idx, alpha_idx] = post
             alpha_idx = alpha_idx + 1
@@ -767,12 +492,6 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
 
         dmax_idx = dmax_idx + 1
 
-    # print "final alpha: ", alphafin
-    # print "final dmax: ", dmaxfin
-    # print "c_alpha: ", alphac
-    # print "c_dmax: ", dmaxc
-
-    # print 'Search took %9.6f Seconds' % dt
     if alphafin == -1 and dmaxfin == -1:
         queue.put({'failed':True})
         return
@@ -785,12 +504,9 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
                    'tpoint'     : total_points,
                    'status'     : 'Running a fine search'}
 
-    # wx.CallAfter(statusdlg.updateData, bift_status, True)
-
     queue.put({'update' : bift_status})
 
-    # print "Making fine search..."
-    src_result = fineSearch(Ep, N, log(alphafin), dmaxfin)
+    src_result = fineSearch(Ep, N, np.log(alphafin), dmaxfin)
 
     if src_result is not None:
         alphafin, dmaxfin = src_result
@@ -802,21 +518,21 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
     # Pr = P(r) function, Fit = Fitted curve
     ###########################################
 
-    r = linspace(0, dmaxfin, N)
-    T = createTransMatrix(Ep.q[min:max], r)
-    P = makePriorDistDistribution(Ep, N, dmaxfin, T, 'sphere', Ep.q[min:max])
+    r = np.linspace(0, dmaxfin, N)
+    T = createTransMatrix(Ep.q[qmin:qmax], r)
+    P = makePriorDistDistribution(Ep, N, dmaxfin, T, 'sphere', Ep.q[qmin:qmax])
 
-    Pr, post, c = C_seeksol(Ep.i[min:max], P, Ep.q[min:max], Ep.err[min:max], alphafin, dmaxfin, T)
+    Pr, post, c = C_seeksol(Ep.i[qmin:qmax], P, Ep.q[qmin:qmax], Ep.err[qmin:qmax], alphafin, dmaxfin, T)
 
     # Reconstructed Fit line
-    Fit = dot(Pr, transpose(T))
+    Fit = np.dot(Pr, np.transpose(T))
 
     #Create the r vector
-    r = linspace(0, dmaxfin, len(transpose(Pr))+2)  # + 2 since we add a zero in each end
+    r = np.linspace(0, dmaxfin, len(np.transpose(Pr))+2)  # + 2 since we add a zero in each end
     dr = r[2]-r[1]
 
     # Insert 0 in the beginning and the end (Pinning the result to Zero!)
-    Pr = transpose(Pr)
+    Pr = np.transpose(Pr)
     Pr = list(Pr)
 
     #Pr = Pr[0]
@@ -826,7 +542,6 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
     #Normalize P(r) funcion so that the area is equal to I0
     area = 0
     area2 = 0
-    area3 = 0
 
     for x in range(1, len(Pr)):                        # watch out! Pr = Pr * dr !!
         #area = area + dr * Pr[x]
@@ -838,25 +553,25 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
 
     RgSq = area2 / (2 * area)
 
-    Rg = sqrt(abs(RgSq))[0]
+    Rg = np.sqrt(abs(RgSq))[0]
 
     # print 'Rg : ', Rg
     # print 'dr : ', dr
     # print 'Area2 : ', area2
 
-    I0 = mean(Fit[0, 0:5])
+    I0 = np.mean(Fit[0, 0:5])
     # print Fit[0, 0:5]
     # print 'I(0) from avg of 5 first points :', I0
     # print 'I(0) from area under P(r) : ', area
 
     I0 = area
 
-    Pr = array(Pr)    # Since what we got from the optimization is 4*pi*dr * p(r)
+    Pr = np.array(Pr)    # Since what we got from the optimization is 4*pi*dr * p(r)
                       #(we excluded 4*pi*dr in the trans matrix!)
 
-    Pr = Pr / (4*pi*dr)
+    Pr = Pr / (4*np.pi*dr)
 
-    Pr = transpose(Pr)
+    Pr = np.transpose(Pr)
 
     # Save all information from the search
     bift_info = {'dmax_points' : dmax_points,
@@ -870,7 +585,7 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
                 'filename': os.path.splitext(Ep.getParameter('filename'))[0]+'.ift',
                 'algorithm' : 'BIFT'}
 
-    ift_sasm = SASM.IFTM(transpose(Pr), r, ones(len(transpose(Pr))), Ep.i[min:max], Ep.q[min:max], Ep.err[min:max], Fit[0], bift_info)
+    ift_sasm = SASM.IFTM(np.transpose(Pr), r, np.ones(len(np.transpose(Pr))), Ep.i[qmin:qmax], Ep.q[qmin:qmax], Ep.err[qmin:qmax], Fit[0], bift_info)
 
     bift_status = {'alpha'      : alphafin,
                    'evidence'   : post,
@@ -884,31 +599,16 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
 
     return ift_sasm
 
-def pinnedFineSearch(Ep, N, alpha, dmax):
-
-    arg = (Ep, N)
-
-    opt = optimize.fmin(fineGetEvidence, [alpha, dmax], args = arg)
-
-    print "Optimum found: "
-    print exp(opt[0]), opt[1]
-
-    return exp(opt[0]), opt[1]
-
 def fineSearch(Ep, N, alpha, dmax):
 
     arg = (Ep, N)
 
-    #opt = optimize.fmin(fineGetEvidence, [alpha, dmax], args = arg)
     opt = fmin(fineGetEvidence, [alpha, dmax], args = arg, disp = False)
 
     if opt is None:
         return
 
-    # print "Optimum found: "
-    # print exp(opt[0]), opt[1]
-
-    return exp(opt[0]), opt[1]
+    return np.exp(opt[0]), opt[1]
 
 def distDistribution_Sphere(N, scale_factor, dmax):
     '''
@@ -918,7 +618,7 @@ def distDistribution_Sphere(N, scale_factor, dmax):
         scale_factor = I_exp(0) (Just the first value in I_exp)
     '''
 
-    R_axis_vector = linspace(0, dmax, N)                  # the r-axis in P(r)
+    R_axis_vector = np.linspace(0, dmax, N)                  # the r-axis in P(r)
     delta_R = R_axis_vector[1]                            # stepsize in R
 
     pmin = 0.005
@@ -947,8 +647,6 @@ def distDistribution_Sphere(N, scale_factor, dmax):
 #     The following makes sure that the values below pmin are not zero???
 #===============================================================================
 
-    av = pmin * max(P)
-    #M = M * (R<=dmax)
     sum1 = sum(P)
     avm = pmin * max(P)
     P = P * (P > avm) + avm * (P <= avm)
@@ -959,19 +657,18 @@ def distDistribution_Sphere(N, scale_factor, dmax):
  #   P = ones(N)
     return P, R_axis_vector
 
+@jit(nopython=True, cache=True)
 def shiftLeft(a,shift):
     ''' makes a left circular shift of array '''
-    sh = shape(a)
+    sh = a.shape
     array_length = sh[0] * sh[1]
 
     b = a.reshape(1, array_length)
 
-    res = zeros(array_length)
-
-    start_idx = shift
+    res = np.zeros(array_length)
 
     # SLOW! lets make it in C!
-    for i in range(0,array_length):
+    for i in prange(0,array_length):
 
         if i < (array_length - shift):
             res[i] = b[0, shift + i]
@@ -980,20 +677,19 @@ def shiftLeft(a,shift):
 
     return res.reshape(sh)
 
+@jit(nopython=True, cache=True)
 def shiftRight(a, shift):
     ''' makes a right circular shift of array '''
 
-    sh = shape(a)
+    sh = a.shape
     array_length = sh[0] * sh[1]
 
     b = a.reshape(1,array_length)
 
-    res = zeros(array_length)
-
-    start_idx = shift
+    res = np.zeros(array_length)
 
     # SLOW! lets make it in C!
-    for i in range(0,array_length):
+    for i in prange(0,array_length):
 
         res[i] = b[0, i - shift]
 
@@ -1001,81 +697,44 @@ def shiftRight(a, shift):
 
 def sphereForm(R, N, qmax):
 
-    q = linspace(0.01, qmax, N)
+    q = np.linspace(0.01, qmax, N)
 
     qR = q*R
 
-    I = (4/3) * pi * pow(R, 3) * ( (3* ( sin(qR) - qR * cos(qR))) / pow(qR,3))
+    I = (4/3) * np.pi * pow(R, 3) * ( (3* ( np.sin(qR) - qR * np.cos(qR))) / pow(qR,3))
 
     return pow(abs(I),2), q
 
+@jit(nopython=True, cache=True)
 def createTransMatrix(q, r):
     ''' Creates the Transformation Matrix T   I_m = sum( T[i,j] * p[j] + e )'''
 
     #Reserve memory
-    T = zeros((len(q), len(r)))
-
+    T = np.zeros((len(q), len(r)))
     qlen = len(q)
     rlen = len(r)
 
-    q = array(q)
-    r = array(r)
-
-    #Stepsize in r
-    dr = r[1]
+    # q = np.array(q)
+    # r = np.array(r)
 
     # Leaving out 4 * pi * dr! That means the solution will include these three factors!
     c = 1 # 4 * pi * dr
-   #================================================
-   #                C++ CODE
-   #================================================
- #   transmatrix_ext.trans_matrix(qlen, rlen, T, r, q, c)
 
-#    mod = ext_tools.ext_module('transmatrix_ext')
-#
-    code = """
-
-    float chk, qr;
-    int i, j;
-
-    for( i = 0; i < qlen; i++)
-           for( j = 0; j < rlen; j++)
-           {
-
-                 qr = q(i) * r(j);
-                 chk = float(c) * sin(qr) / qr ;
-
-                  if(chk != chk) {
-                      T(i,j) = 1;
-                  }
-                  else {
-                      T(i,j) = chk;
-                  }
-
-           }
-
-    """
-
-    if not RAWGlobals.frozen and RAWGlobals.compiled_extensions:
-        weave.inline(code,['qlen', 'rlen', 'T', 'r', 'q', 'c'], type_converters = converters.blitz, compiler = "gcc")
-
-    else:
-        for i in range(qlen):
-            for j in range(rlen):
-                qr = q[i]*r[j]
+    for i in prange(qlen):
+        for j in prange(rlen):
+            qr = q[i]*r[j]
+            if qr != 0:
                 chk = c*math.sin(qr)/qr
-
                 if chk != chk:      #Checks for nan values?
                     T[i, j] = 1
                 else:
                     T[i,j] = chk
-#    transext = ext_tools.ext_function('trans_matrix', code, ['qlen', 'rlen', 'T', 'r', 'q', 'c'], type_converters = converters.blitz)
-#    mod.add_function(transext)
-#    mod.compile(compiler = 'gcc')
+            else:
+                T[i, j] = 1
 
     return T
 
-def makePriorDistDistribution(E, N, dmax, T, type = 'sphere', q = None):
+def makePriorDistDistribution(E, N, dmax, T, dist_type = 'sphere', q = None):
 
 #    if isinstance(E, cartToPol.Measurement):
 #        scale_factor = E.i[0]
@@ -1084,7 +743,7 @@ def makePriorDistDistribution(E, N, dmax, T, type = 'sphere', q = None):
 
     priorTypes = {'sphere' : distDistribution_Sphere}
 
-    P, R = priorTypes.get(type, distDistribution_Sphere)(N, scale_factor, dmax)     # A python switch, default is distDistribution_Sphere(). return is P(R) R is nm
+    P, R = priorTypes.get(dist_type, distDistribution_Sphere)(N, scale_factor, dmax)     # A python switch, default is distDistribution_Sphere(). return is P(R) R is nm
 
     return P
 
@@ -1118,30 +777,31 @@ def calcPosterior(alpha, dmax, s, Chi, B):
     #* But it's a constant for constant N! .. seems pretty stupid to include it then.. but for constant
     #* N the posterior is really only Q! = chi + s! ... since P(a) = 1/alpha = constant!
 
-    sizeA = max(shape(B))
+    sizeA = max(B.shape)
 
-    eyeMat = eye(sizeA)
+    eyeMat = np.eye(sizeA)
+
     mat1 = shiftLeft(eyeMat,1)
     mat2 = shiftRight(eyeMat, 1)
 
     mat2[0,0] = 0                 #Remove the 1 in the wrong place (in the corner)
-    sh = shape(mat1)
+    sh = mat1.shape
     mat1[sh[0]-1, sh[1]-1] = 0    #Remove the 1 in the wrong place (in the corner)
 
-    A = (mat1 + mat2) * -0.5 + eye(shape(mat1)[0])
+    A = (mat1 + mat2) * -0.5 + np.eye(mat1.shape[0])
     #* ****************************************************************************** *#
 
     detAB = det(B / alpha + A)
 
-    N = max(shape(B))
+    N = max(B.shape)
 
-    logdetA = log(N+1) - log(2) * N
+    logdetA = np.log(N+1) - np.log(2) * N
 
     alphaPrior = 1/alpha                                       # a uniform prior P(alpha)
 
     Q = alpha * s - 0.5 * Chi
 
-    Evidence = 0.5 * logdetA + Q - 0.5 * log(detAB) - log(alphaPrior)         #- log(dmaxPrior)
+    Evidence = 0.5 * logdetA + Q - 0.5 * np.log(detAB) - np.log(alphaPrior)         #- log(dmaxPrior)
 
     return Evidence
 
@@ -1163,10 +823,11 @@ def calcPosterior(alpha, dmax, s, Chi, B):
 #%                       saa den har en konstant sandsynlighed, derfor
 #%                       bidrager den ikke til evidensen.
 
-def bift_python(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold):
+@jit(nopython=True, cache=True)
+def bift(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegareduction, B, N, m, P, Psumi, Bmat, alpha, sum_dia, bkk, dP, Pold):
 
 
-    # // Initiate Variables
+    # Initialize Variables
     ite = 0
 
     s = 0.
@@ -1179,9 +840,9 @@ def bift_python(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegared
 
         if ite != 0:
 
-            #/* Calculating smoothness constraint vector m */
+            # Calculating smoothness constraint vector m
 
-            for k in range(1,N-1):
+            for k in prange(1,N-1):
                 m[0, k] =  ((P[0,k-1] + P[0,k+1]) / 2.0)
 
 
@@ -1189,54 +850,42 @@ def bift_python(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegared
             m[0,N-1] =  P[0,N-2] /2.0
 
 
-            # /* This calculates the Matrix Psumi */
+            # This calculates the Matrix Psumi
 
-            for j in range(N):
-                for k in range(N):
+            for j in prange(N):
+                for k in prange(N):
                     Psumi[0,j] = Psumi[0,j] + P[0,k] * Bmat[k,j]
 
-           # // cout << "    " << Psumi(0,50);
+           # Now calculating dP, and updating P
 
-           # /* Now calculating dP, and updating P */
+            for k in prange(N):
+                dP[0,k] = (m[0,k]*alpha + sum_dia[0,k] - Psumi[0,k])/(bkk[0,k] + alpha)      # ATTENTION! remember C division!, if its all int's then it will be a int result! .. maybe cast it to float()?
 
-            for k in range(N):
-                dP[0,k] = (m[0,k]*alpha + sum_dia[0,k] - Psumi[0,k])/(bkk[0,k] + alpha)      #/* ATTENTION! remember C division!, if its all int's then it will be a int result! .. maybe cast it to float()? */
-
-                Psumi[0,k] = 0    #// Reset values in Psumi for next iteration..otherwise Psumi = Psumi + blah will be wrong!
+                Psumi[0,k] = 0    # Reset values in Psumi for next iteration..otherwise Psumi = Psumi + blah will be wrong!
 
                 Pold[0,k] = P[0,k]
 
                 P[0,k] = (1-omega)*P[0,k] + omega*dP[0,k]
 
-                # /* Pin first and last point to zero! */
-
-                # //P(0,0) = 0.0;
-                # //P(0,N-1) = 0.0;
-
-            # //cout << "    " << m(0,50);
-            # //cout << "    " << P(0,50);
-            # //cout << "    " << dP(0,50);
-            # //cout << " | ";
-
-        # // end if ite != 0
+        # end if ite != 0
 
         ite = ite + 1
 
-       # /* Calculating Dotsp */
+       # Calculating Dotsp
 
         dotsp = 0.
         wgrads = 0.
         wgradc = 0.
         s = 0.
-        for k in range(N):
-            s = s - pow(P[0,k] - m[0,k], 2)                        #// sum(-power((P-m),2))
+        for k in prange(N):
+            s = s - pow(P[0,k] - m[0,k], 2)                        # sum(-power((P-m),2))
 
-            gradsi = -2*(P[0,k] - m[0,k])                           # // gradsi = (-2*(P-m))
+            gradsi = -2*(P[0,k] - m[0,k])                           # gradsi = (-2*(P-m))
             wgrads = wgrads + pow(gradsi, 2)
 
             gradci = 0
 
-            for j in range(N):
+            for j in prange(N):
                 gradci = gradci + 2*(P[0,j] * B[j,k])
 
             gradci = gradci - 2*sum_dia[0,k]
@@ -1244,39 +893,31 @@ def bift_python(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegared
             wgradc = wgradc + pow(gradci, 2)
             dotsp = dotsp + (gradci * gradsi)
 
-
-    # //      cout << dotsp;
-    # //      cout << "    " << wgrads;
-    # //      cout << "    " << wgradc;
-    # //      cout << "    " << s;
-    # //      cout << " | ";
-
-
-       # /* internal loop to reduce search step (omega) when it's too large */
+       # internal loop to reduce search step (omega) when it's too large
 
         while dotsp < 0 and float(alpha) < float(bkkmax) and ite > 1 and omega > omegamin:
             omega = omega / omegareduction
 
-            # /* Updating P */
+            # Updating P
 
-            for k in range(N):
+            for k in prange(N):
                 P[0,k] = (1-omega)*Pold[0,k] + omega*dP[0,k]
 
-            # /* Calculating Dotsp */
+            # Calculating Dotsp
 
             dotsp = 0.
             wgrads = 0.
             wgradc = 0.
             s = 0.
 
-            for k in range(N):
-                s = s - pow(P[0,k]-m[0,k], 2)                        #// sum(-power((P-m),2))
-                gradsi = -2*(P[0,k]-m[0,k])                            #// gradsi = (-2*(P-m))
+            for k in prange(N):
+                s = s - pow(P[0,k]-m[0,k], 2)                        # sum(-power((P-m),2))
+                gradsi = -2*(P[0,k]-m[0,k])                            # gradsi = (-2*(P-m))
                 wgrads = wgrads + pow(gradsi, 2)
 
                 gradci = 0
 
-                for j in range(N):
+                for j in prange(N):
                     gradci = gradci + 2*(P[0,j]*B[j,k])
 
                 gradci = gradci - 2*sum_dia[0,k]
@@ -1284,60 +925,14 @@ def bift_python(dotsp, dotsptol, maxit, minit, bkkmax, omega, omegamin, omegared
                 wgradc = wgradc + pow(gradci, 2)
                 dotsp = dotsp + (gradci * gradsi)
 
-
-        # // end inner whileloop
-
-
         if wgrads == 0 or wgradc == 0:
-            dotsp = 1.
+            dotsp = 1
         else:
             wgrads = pow(wgrads, 0.5)
             wgradc = pow(wgradc, 0.5)
             dotsp = dotsp / (wgrads * wgradc)
 
-
-    # } // end Outer while loop
-
-    # // cout << "ite C: " << ite;
-    # // cout << "alpha: " << double(alpha);
-    # // cout << "omega: " << omega;
-    # //cout << ",   m: " << m(0,20);
-    # //cout << ",   dotsp C: " << dotsp;
-    # //cout << ",   dP:" << dP(0,20);
-    # //cout << "cnt:" << cnt;
-    # //cout << ",   wgrads C: " << wgrads;
-    # //cout << ",   wgradc C: " << wgradc;
-
-
-    # //tst(0,1) = wgradc;
-    sout = s
-
-    return sout
-
-
-def MonteCarloErrorbars(BiftObj, iterations, std_dmax, std_alpha):
-
-    dmax_mean = 206.81
-    alpha_mean = 642214.43
-
-    posteriors = zeros(iterations)
-    I0 = zeros(iterations)
-    Rg = zeros(iterations)
-
-    for i in range(0, iterations):
-
-        random_dmax = random.gauss(dmax_mean, std_dmax)
-        random_alpha = random.gauss(alpha_mean, std_alpha)
-
-        ExpObj = SingleSolve(random_alpha, random_dmax, BiftObj, 50)
-
-        posteriors[i] = ExpObj.allData['post']
-        I0[i] = ExpObj.allData['I0']
-        Rg[i] = ExpObj.allData['Rg']
-
-
-    print std(I0)
-    print std(Rg)
+    return s
 
 
 class test:
@@ -1381,7 +976,6 @@ if __name__ == "__main__":
 
     # Create ExpObject: (doBift only takes experiment objects)
     #tst = test(q, I, err)
-    #MonteCarloErrorbars(tst, 500, 100, 10000)
 
     E = doBift(tst, 50, 1e10, 10.0, 16, 400, 10, 20)
     print '****************************'
@@ -1403,7 +997,7 @@ if __name__ == "__main__":
     p.rc('image', origin = 'lower')
     p.figure(1)
 
-    a = p.imshow(log(post), interpolation = 'nearest')
+    a = p.imshow(np.log(post), interpolation = 'nearest')
     p.colorbar()
     p.axis('equal')
 

@@ -277,12 +277,6 @@ class MainFrame(wx.Frame):
         self.Show(True)
 
     def _onStartup(self, data):
-        if not RAWGlobals.compiled_extensions:
-            msg = 'Warning: failed to compile extensions. Loading/integrating images, creating masks, and running BIFT will be slower than normal. If you want to compile the extensions, please see the RAW install guide or contact the developers.'
-            dlg = wx.MessageDialog(parent = self, message = msg, caption = 'Failed to compile extensions', style=wx.OK|wx.ICON_EXCLAMATION)
-            dlg.ShowModal()
-            dlg.Destroy()
-
         file = os.path.join(RAWGlobals.RAWWorkDir, 'backup.cfg')
 
         if os.path.exists(file):

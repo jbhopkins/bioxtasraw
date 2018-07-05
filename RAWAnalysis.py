@@ -57,6 +57,8 @@ import scipy.stats as stats
 from scipy.interpolate import interp1d
 import scipy.optimize
 
+from numba import jit
+
 import RAWSettings
 import RAWCustomCtrl
 import SASCalc
@@ -733,7 +735,6 @@ class GuinierControlPanel(wx.Panel):
         self.runAutoRg()
 
     def runAutoRg(self):
-
         rg, rger, i0, i0er, idx_min, idx_max = SASCalc.autoRg(self.ExpObj)
 
         spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
@@ -9154,6 +9155,8 @@ class EFAFrame(wx.Frame):
                     elif  self.panel1_results['input'] != efa_panel2.panel1_results['input']:
                         efa_panel2.reinitialize(self.panel1_results, efa = False)
 
+                    self.Layout()
+
                 else:
                     msg = ('SVD not successful. Either change data range '
                         'or type, or select a new data set.')
@@ -9922,8 +9925,6 @@ class EFAControlPanel2(wx.Panel):
     def initialize(self, svd_results):
         self.panel1_results = copy.copy(svd_results)
 
-        analysis_dict = self.secm.getParameter('analysis')
-
         nvals = svd_results['input']
 
         self.forward_ids = [self.NewControlId() for i in range(nvals)]
@@ -9959,33 +9960,16 @@ class EFAControlPanel2(wx.Panel):
         self.forward_sizer.Add(self.fsizer, 0, wx.TOP, 3)
         self.backward_sizer.Add(self.bsizer, 0, wx.TOP, 3)
 
-        busy_dialog = wx.BusyInfo('Running EFA', self.efa_frame)
+        self.forward_sizer.Layout()
+        self.backward_sizer.Layout()
+        self.top_efa.Layout()
+        self.Layout()
 
-        self.efa_forward = self.runEFA('forward')
-        self.efa_backward = self.runEFA('backward')
+        self.busy_dialog = wx.BusyInfo('Running EFA', self.efa_frame)
 
-        busy_dialog.Destroy()
-        busy_dialog = None
-
-        if 'efa' in analysis_dict:
-            if nvals == analysis_dict['efa']['nsvs'] and self.panel1_results['fstart'] == analysis_dict['efa']['fstart'] and self.panel1_results['fend'] == analysis_dict['efa']['fend'] and self.panel1_results['profile'] == analysis_dict['efa']['profile']:
-                points = analysis_dict['efa']['ranges']
-
-                forward_sv = points[:,0]
-                backward_sv = points[:,1]
-
-                if np.all(np.sort(forward_sv) == forward_sv) and np.all(np.sort(backward_sv) == backward_sv):
-                    self.setSVs(points)
-                else:
-                    self._findEFAPoints()
-            else:
-                self._findEFAPoints()
-        else:
-            self._findEFAPoints()
-
-        self.initialized = True
-
-        wx.CallAfter(self.updateEFAPlot)
+        efa_thread = threading.Thread(target=self._runEFA, args=(self.panel1_results['svd_int_norm'],))
+        efa_thread.daemon = True
+        efa_thread.start()
 
     def reinitialize(self, svd_results, efa):
         self.panel1_results = copy.copy(svd_results)
@@ -10051,20 +10035,19 @@ class EFAControlPanel2(wx.Panel):
         self.Layout()
 
         if efa:
-            busy_dialog = wx.BusyInfo('Running EFA', self.efa_frame)
+            self.busy_dialog = wx.BusyInfo('Running EFA', self.efa_frame)
 
-            self.efa_forward = self.runEFA('forward')
-            self.efa_backward = self.runEFA('backward')
+            efa_thread = threading.Thread(target=self._runEFA, args=(self.panel1_results['svd_int_norm'],))
+            efa_thread.daemon = True
+            efa_thread.start()
 
-            busy_dialog.Destroy()
-            busy_dialog = None
+        else:
+            self._findEFAPoints()
 
-        self._findEFAPoints()
+            plotpanel = wx.FindWindowByName('EFAResultsPlotPanel2')
+            plotpanel.refresh()
 
-        plotpanel = wx.FindWindowByName('EFAResultsPlotPanel2')
-        plotpanel.refresh()
-
-        wx.CallAfter(self.updateEFAPlot)
+            wx.CallAfter(self.updateEFAPlot)
 
     def _onForwardControl(self, evt):
         self.updateEFAPlot()
@@ -10081,6 +10064,50 @@ class EFAControlPanel2(wx.Panel):
             backward.SetValue(points[i][1])
 
         wx.CallAfter(self.updateEFAPlot)
+
+    def _runEFA(self, A):
+        wx.Yield()
+        f_slist = SASCalc.runEFA(A)
+        b_slist = SASCalc.runEFA(A, False)
+
+        wx.CallAfter(self._processEFAResults, f_slist, b_slist)
+
+    def _processEFAResults(self, f_slist, b_slist):
+        self.efa_forward = f_slist
+        self.efa_backward = b_slist
+
+        if not self.initialized:
+            analysis_dict = self.secm.getParameter('analysis')
+            nvals = self.panel1_results['input']
+
+            if 'efa' in analysis_dict:
+                if nvals == analysis_dict['efa']['nsvs'] and self.panel1_results['fstart'] == analysis_dict['efa']['fstart'] and self.panel1_results['fend'] == analysis_dict['efa']['fend'] and self.panel1_results['profile'] == analysis_dict['efa']['profile']:
+                    points = analysis_dict['efa']['ranges']
+
+                    forward_sv = points[:,0]
+                    backward_sv = points[:,1]
+
+                    if np.all(np.sort(forward_sv) == forward_sv) and np.all(np.sort(backward_sv) == backward_sv):
+                        self.setSVs(points)
+                    else:
+                        self._findEFAPoints()
+                else:
+                    self._findEFAPoints()
+            else:
+                self._findEFAPoints()
+
+            self.initialized = True
+        else:
+            self._findEFAPoints()
+
+        self.busy_dialog.Destroy()
+        self.busy_dialog = None
+
+        plotpanel = wx.FindWindowByName('EFAResultsPlotPanel2')
+        plotpanel.refresh()
+
+        wx.CallAfter(self.updateEFAPlot)
+
 
     def _findEFAPoints(self):
 
@@ -10146,24 +10173,6 @@ class EFAControlPanel2(wx.Panel):
 
                 except Exception as e:
                     print e
-
-
-
-    def runEFA(self, mode):
-        A = self.panel1_results['svd_int_norm']
-
-        slist = np.zeros_like(A)
-
-        jmax = A.shape[1]
-
-        if mode.lower() == 'backward':
-            A = A[:,::-1]
-
-        for j in range(jmax):
-            s = np.linalg.svd(A[:, :j+1], full_matrices = False, compute_uv = False)
-            slist[:s.size, j] = s
-
-        return slist
 
     def updateEFAPlot(self):
         plotpanel = wx.FindWindowByName('EFAResultsPlotPanel2')
@@ -10757,7 +10766,6 @@ class EFAControlPanel3(wx.Panel):
         RAWGlobals.save_in_progress = False
         self.main_frame.setStatus('', 0)
 
-
     def _updateStatus(self, in_progress = False):
         status_window = wx.FindWindowById(self.control_ids['status'], self)
 
@@ -10773,148 +10781,6 @@ class EFAControlPanel3(wx.Panel):
 
         self.Layout()
 
-
-    def updateRotation(self, M,C,D):
-        S = np.dot(D, np.linalg.pinv(np.transpose(M*C)))
-
-        Cnew = np.transpose(np.dot(np.linalg.pinv(S), D))
-
-        for i in range(len(self.range_ids)):
-            window = wx.FindWindowById(self.range_ids[i][2], self)
-            if window.GetValue():
-                Cnew[Cnew[:,i] < 0,i] = 0
-
-        csum = np.sum(M*Cnew, axis = 0)
-        if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
-            Cnew = Cnew/np.broadcast_to(csum, Cnew.shape) #normalizes by the sum of each column
-        else:
-            norm = np.array([csum for i in range(Cnew.shape[0])])
-
-            Cnew = Cnew/norm #normalizes by the sum of each column
-
-        return Cnew
-
-    def firstRotation(self, M,C,D):
-        #Have to run an initial rotation without forcing C>=0 or things typically fail to converge (usually the SVD fails)
-        S = np.dot(D, np.linalg.pinv(np.transpose(M*C)))
-
-        Cnew = np.transpose(np.dot(np.linalg.pinv(S), D))
-
-        csum = np.sum(M*Cnew, axis = 0)
-        if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
-            Cnew = Cnew/np.broadcast_to(csum, Cnew.shape) #normalizes by the sum of each column
-        else:
-            norm = np.array([csum for i in range(Cnew.shape[0])])
-
-            Cnew = Cnew/norm #normalizes by the sum of each column
-
-        return Cnew
-
-    def _initIterative(self, M, num_sv, D):
-
-        #Set a variable to test whether the rotation fails for a numerical reason
-        failed = False
-
-        if not self.converged:
-            C = self.panel1_results['svd_v'][:,:num_sv]
-        else:
-            C = self.rotation_data['C']
-
-        #Do an initial rotation
-        try:
-            C = self.firstRotation(M, C, D)
-        except np.linalg.linalg.LinAlgError:
-            failed = True
-
-        return failed, C, None, None
-
-    def _initExplicit(self, M, num_sv, D):
-        V_bar = self.panel1_results['svd_v'][:,:num_sv]
-
-        T = np.ones((num_sv, num_sv))
-
-        failed = False
-
-        return failed, None, V_bar, T
-
-    def _initHybrid(self, M, num_sv, D):
-
-        if not self.converged:
-            failed, temp, V_bar, T = self._initExplicit(M, num_sv, D)
-            C, failed, temp1, temp2, temp3 = self._runExplicit(M, None, None, None, V_bar, T)
-        else:
-            C = self.rotation_data['C']
-            failed = False
-
-        return failed, C, None, None
-
-    def _runIterative(self, *args):
-        M = args[0]
-        D = args[1]
-        failed = args[2]
-        C = args[3]
-
-        niter = int(wx.FindWindowById(self.control_ids['n_iter'], self).GetValue())
-        tol = float(wx.FindWindowById(self.control_ids['tol'], self).GetValue())
-
-        #Carry out the calculation to convergence
-        k = 0
-        converged = False
-
-        dc = []
-
-        while k < niter and not converged and not failed:
-            k = k+1
-            try:
-                Cnew = self.updateRotation(M, C, D)
-            except np.linalg.linalg.LinAlgError:
-               failed = True
-
-            dck = np.sum(np.abs(Cnew - C))
-
-            dc.append(dck)
-
-            C = Cnew
-
-            if dck < tol:
-                converged = True
-
-        return C, failed, converged, dc, k
-
-    def _runExplicit(self, *args):
-        M = args[0]
-        # D = args[1]
-        failed = args[2]
-        V_bar = args[4]
-        T = args[5]
-
-        num_sv = M.shape[1]
-
-        for i in range(num_sv):
-            V_i_0 = V_bar[np.logical_not(M[:,i]),:]
-
-            T[i,1:num_sv] = -np.dot(V_i_0[:,0].T, np.linalg.pinv(V_i_0[:,1:num_sv].T))
-
-        C = np.dot(T, V_bar.T)
-
-        C = C.T
-
-        if -1*C.min() > C.max():
-            C = C*-1
-
-        converged = True
-
-        csum = np.sum(M*C, axis = 0)
-        if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
-            C = C/np.broadcast_to(csum, C.shape) #normalizes by the sum of each column
-        else:
-            norm = np.array([csum for i in range(C.shape[0])])
-
-            C = C/norm #normalizes by the sum of each column
-
-        return C, failed, converged, None, None
-
-
     def runRotation(self):
         #Get component ranges and iteration control values
         self._updateStatus(True)
@@ -10929,13 +10795,18 @@ class EFAControlPanel3(wx.Panel):
         tol = float(wx.FindWindowById(self.control_ids['tol'], self).GetValue())
         method = wx.FindWindowById(self.control_ids['method'], self).GetStringSelection()
 
-        init_dict = {'Hybrid'       : self._initHybrid,
-                    'Iterative'     : self._initIterative,
-                    'Explicit'      : self._initExplicit}
+        force_positive = []
+        for i in range(len(self.range_ids)):
+            window = wx.FindWindowById(self.range_ids[i][2], self)
+            force_positive.append(window.GetValue())
 
-        run_dict = {'Hybrid'        : self._runIterative,
-                    'Iterative'     : self._runIterative,
-                    'Explicit'      : self._runExplicit}
+        init_dict = {'Hybrid'       : SASCalc.initHybridEFA,
+                    'Iterative'     : SASCalc.initIterativeEFA,
+                    'Explicit'      : SASCalc.initExplicitEFA}
+
+        run_dict = {'Hybrid'        : SASCalc.runIterativeEFARotation,
+                    'Iterative'     : SASCalc.runIterativeEFARotation,
+                    'Explicit'      : SASCalc.runExplicitEFARotation}
 
         #Calculate the initial matrices
         num_sv = ranges.shape[0]
@@ -10951,10 +10822,15 @@ class EFAControlPanel3(wx.Panel):
             self.converged = False
             self.rotation_data = {}
 
-        init_results = init_dict[method](M, num_sv, D) #Init takes M, num_sv, and D, and returns failed, C, V_bar, T in that order. If a method doesn't use a particular variable, then it should return None for that result
+        if self.converged:
+            C_init = self.rotation_data['C']
+        else:
+            C_init = self.panel1_results['svd_v'][:,:num_sv]
 
-        C, failed, converged, dc, k = run_dict[method](M, D, init_results[0], init_results[1], init_results[2], init_results[3]) #Takes M, D, failed, C, V_bar, T in that order. If a method doesn't use a particular variable, then it should be passed None for that variable.
+        V_bar = self.panel1_results['svd_v'][:,:num_sv]
 
+        failed, C, T = init_dict[method](M, num_sv, D, C_init, self.converged, V_bar) #Init takes M, num_sv, and D, C_init, and converged and returns failed, C, and T in that order. If a method doesn't use a particular variable, then it should return None for that result
+        C, failed, converged, dc, k = run_dict[method](M, D, failed, C, V_bar, T, niter, tol, force_positive) #Takes M, D, failed, C, V_bar, T in that order. If a method doesn't use a particular variable, then it should be passed None for that variable.
 
         if not failed:
             if method != 'Explicit':
