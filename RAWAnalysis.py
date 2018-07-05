@@ -1884,8 +1884,8 @@ class MolWeightFrame(wx.Frame):
                    "J. Appl. Crystallogr. 40, s245-s249, and for most proteins is <~10%.\n\n"
                    "This method can yield inaccurate results if:\n"
                    "- The absolute calibration is not accurate.\n"
-                   "- I(0) is poorly determined."
-                   "- Sample concentration is poorly determined."
+                   "- I(0) is poorly determined.\n"
+                   "- Sample concentration is poorly determined.\n"
                    "- Scattering contrast is wrong, either from buffer changes or macromolecule type "
                    "(default settings are for protein).")
         if platform.system() == 'Windows':
@@ -4261,7 +4261,6 @@ class DammifRunPanel(wx.Panel):
 
 
     def runDamaver(self, prefix, path):
-        print prefix
         read_semaphore = threading.BoundedSemaphore(1)
         #Solution for non-blocking reads adapted from stack overflow
         #http://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
