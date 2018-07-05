@@ -46,8 +46,6 @@ import RAWGlobals
 import SASImage
 import SASM
 import SASExceptions
-import SASMarHeaderReader #Attempting to remove the reliance on compiled packages. Switchin Mar345 reading to fabio.
-
 
 def createSASMFromImage(img_array, parameters = {}, x_c = None, y_c = None, mask = None,
                         readout_noise_mask = None, tbs_mask = None, dezingering = 0, dezing_sensitivity = 4):
@@ -3076,18 +3074,8 @@ def writeOutFile(m, filename):
             f.write(line)
 
 
-
 def checkFileType(filename):
     ''' Tries to find out what file type it is and reports it back '''
-
-    try:
-        with open(filename, "rb") as f:           # Open in binary mode for portability
-            try:
-                type_tst = SASMarHeaderReader.stringvar(SASMarHeaderReader.fread(f,'cc'))
-            except:
-                raise Exception('Reading a byte of file ' + filename + ' failed..')
-    except IOError:
-        raise Exception('Reading file ' + filename + ' failed..')
 
     path, ext = os.path.splitext(filename)
 
