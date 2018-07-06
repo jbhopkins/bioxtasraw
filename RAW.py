@@ -39,6 +39,7 @@ import traceback
 import scipy.constants
 import multiprocessing
 
+import hdf5plugin #HAS TO BE FIRST
 import numpy as np
 import wx.lib.scrolledpanel as scrolled
 import wx.lib.mixins.listctrl as listmix
@@ -47,6 +48,7 @@ import wx.lib.agw.supertooltip as STT
 import wx.aui as aui
 import wx.lib.dialogs
 import matplotlib.colors as mplcol
+import pyFAI, pyFAI.calibrant, pyFAI.peak_picker
 
 from collections import OrderedDict, defaultdict
 
@@ -67,12 +69,6 @@ import RAWIcons
 import RAWGlobals
 import RAWCustomDialogs
 from RAWGlobals import mainworker_cmd_queue
-
-try:
-    import pyFAI, pyFAI.calibrant, pyFAI.peak_picker
-    RAWGlobals.usepyFAI = True
-except:
-    RAWGlobals.usepyFAI = False
 
 thread_wait_event = threading.Event()
 question_return_queue = Queue.Queue()
@@ -364,18 +360,11 @@ class MainFrame(wx.Frame):
     def showMaskingPane(self):
         if self._mgr.GetPane(self.centering_panel).IsShown():
             image_panel = wx.FindWindowByName('ImagePanel')
-            if not RAWGlobals.usepyFAI:
-                image_panel.enableCenterClickMode(False)
-                image_panel.enableRAWAutoCentMode(False)
-                image_panel.agbe_selected_points = []
 
-                button = self.centering_panel.auto_start_button
-                if button.GetLabelText() == 'Done':
-                    button.SetLabel('Start')
-                    self.centering_panel._enableControls(True)
-            else:
-                if self.centering_panel.autocenter:
-                    self.centering_panel._cleanUpAutoCenter()
+            if self.centering_panel.autocenter:
+                self.centering_panel._cleanUpAutoCenter()
+
+            image_panel.enableCenterClickMode(False)
 
             self.centering_panel.updateCenterFromSettings()
 
@@ -11381,97 +11370,74 @@ class CenteringPanel(wx.Panel):
 
     def _createAutoCenteringSizer(self):
 
-        if RAWGlobals.usepyFAI:
-            top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
 
-            fix_ctrl_sizer = wx.FlexGridSizer(cols = 4, rows = int(len(self._fix_list)/4. + .5), hgap = 3, vgap = 3)
+        fix_ctrl_sizer = wx.FlexGridSizer(cols = 4, rows = int(len(self._fix_list)/4. + .5), hgap = 3, vgap = 3)
 
-            for label, newid in self._fix_list:
-                chkbox = wx.CheckBox(self, newid, label)
-                if label == 'Wavelength':
-                    chkbox.SetValue(True)
-                else:
-                    chkbox.SetValue(False)
+        for label, newid in self._fix_list:
+            chkbox = wx.CheckBox(self, newid, label)
+            if label == 'Wavelength':
+                chkbox.SetValue(True)
+            else:
+                chkbox.SetValue(False)
 
-                fix_ctrl_sizer.Add(chkbox)
+            fix_ctrl_sizer.Add(chkbox)
 
-            fix_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        fix_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-            fix_text = wx.StaticText(self, -1, 'Fix:')
-            fix_sizer.Add(fix_text, 0, wx.LEFT | wx.RIGHT, 3)
-            fix_sizer.Add(fix_ctrl_sizer, 1, wx.RIGHT, 3)
+        fix_text = wx.StaticText(self, -1, 'Fix:')
+        fix_sizer.Add(fix_text, 0, wx.LEFT | wx.RIGHT, 3)
+        fix_sizer.Add(fix_ctrl_sizer, 1, wx.RIGHT, 3)
 
 
-            ring_text = wx.StaticText(self, -1, 'Ring #:')
-            ring_ctrl = RAWCustomCtrl.IntSpinCtrl(self, self.pyfai_autofit_ids['ring'], min = 0, max = 100, TextLength = 43)
-            ring_ctrl.SetValue(0)
-            ring_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onAutoRingSpinner)
+        ring_text = wx.StaticText(self, -1, 'Ring #:')
+        ring_ctrl = RAWCustomCtrl.IntSpinCtrl(self, self.pyfai_autofit_ids['ring'], min = 0, max = 100, TextLength = 43)
+        ring_ctrl.SetValue(0)
+        ring_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onAutoRingSpinner)
 
-            ring_remove_btn = wx.Button(self, self.pyfai_autofit_ids['remove_pts'], 'Clear All Points In Ring')
-            ring_remove_btn.Bind(wx.EVT_BUTTON, self._onAutoRingRemoveButton)
-            ring_remove_btn.Enable(False)
+        ring_remove_btn = wx.Button(self, self.pyfai_autofit_ids['remove_pts'], 'Clear All Points In Ring')
+        ring_remove_btn.Bind(wx.EVT_BUTTON, self._onAutoRingRemoveButton)
+        ring_remove_btn.Enable(False)
 
-            ring_sizer = wx.BoxSizer(wx.HORIZONTAL)
-            ring_sizer.Add(ring_text, 0, wx.LEFT | wx.RIGHT, 3)
-            ring_sizer.Add(ring_ctrl, 0, wx.RIGHT, 3)
-            ring_sizer.Add(ring_remove_btn, 0, wx.RIGHT, 3)
+        ring_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        ring_sizer.Add(ring_text, 0, wx.LEFT | wx.RIGHT, 3)
+        ring_sizer.Add(ring_ctrl, 0, wx.RIGHT, 3)
+        ring_sizer.Add(ring_remove_btn, 0, wx.RIGHT, 3)
 
-            det_list = self._getDetList()
+        det_list = self._getDetList()
 
-            det_text = wx.StaticText(self, -1, 'Detector: ')
-            det_choice = wx.Choice(self, self.pyfai_autofit_ids['detector'], choices = det_list)
-            det_choice.SetStringSelection('pilatus100k')
+        det_text = wx.StaticText(self, -1, 'Detector: ')
+        det_choice = wx.Choice(self, self.pyfai_autofit_ids['detector'], choices = det_list)
+        det_choice.SetStringSelection('pilatus100k')
 
-            det_sizer = wx.BoxSizer(wx.HORIZONTAL)
-            det_sizer.Add(det_text, 0, wx.LEFT | wx.RIGHT, 3)
-            det_sizer.Add(det_choice, 0, wx.RIGHT, 3)
+        det_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        det_sizer.Add(det_text, 0, wx.LEFT | wx.RIGHT, 3)
+        det_sizer.Add(det_choice, 0, wx.RIGHT, 3)
 
-            start_btn = wx.Button(self, self.pyfai_autofit_ids['start'], 'Start')
-            start_btn.Bind(wx.EVT_BUTTON, self._onAutoCenterStartButton)
+        start_btn = wx.Button(self, self.pyfai_autofit_ids['start'], 'Start')
+        start_btn.Bind(wx.EVT_BUTTON, self._onAutoCenterStartButton)
 
-            done_btn = wx.Button(self, self.pyfai_autofit_ids['done'], 'Done')
-            done_btn.Bind(wx.EVT_BUTTON, self._onAutoCenterDoneButton)
-            done_btn.Enable(False)
+        done_btn = wx.Button(self, self.pyfai_autofit_ids['done'], 'Done')
+        done_btn.Bind(wx.EVT_BUTTON, self._onAutoCenterDoneButton)
+        done_btn.Enable(False)
 
-            cancel_btn = wx.Button(self, self.pyfai_autofit_ids['cancel'], 'Cancel')
-            cancel_btn.Bind(wx.EVT_BUTTON, self._onAutoCenterCancelButton)
-            cancel_btn.Enable(False)
+        cancel_btn = wx.Button(self, self.pyfai_autofit_ids['cancel'], 'Cancel')
+        cancel_btn.Bind(wx.EVT_BUTTON, self._onAutoCenterCancelButton)
+        cancel_btn.Enable(False)
 
-            help_btn = wx.Button(self, self.pyfai_autofit_ids['help'], 'How To Use')
-            help_btn.Bind(wx.EVT_BUTTON, self._onAutoCenterHelpButton)
+        help_btn = wx.Button(self, self.pyfai_autofit_ids['help'], 'How To Use')
+        help_btn.Bind(wx.EVT_BUTTON, self._onAutoCenterHelpButton)
 
-            ctrl_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-            ctrl_button_sizer.Add(start_btn, 0, wx.LEFT | wx.RIGHT, 3)
-            ctrl_button_sizer.Add(done_btn, 0, wx.RIGHT, 3)
-            ctrl_button_sizer.Add(cancel_btn, 0, wx.RIGHT, 3)
-            ctrl_button_sizer.Add(help_btn, 0, wx.RIGHT, 3)
+        ctrl_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        ctrl_button_sizer.Add(start_btn, 0, wx.LEFT | wx.RIGHT, 3)
+        ctrl_button_sizer.Add(done_btn, 0, wx.RIGHT, 3)
+        ctrl_button_sizer.Add(cancel_btn, 0, wx.RIGHT, 3)
+        ctrl_button_sizer.Add(help_btn, 0, wx.RIGHT, 3)
 
-            top_sizer.Add(fix_sizer, 0, wx.BOTTOM, 3)
-            top_sizer.Add(ring_sizer, 0, wx.BOTTOM, 3)
-            top_sizer.Add(det_sizer, 0, wx.BOTTOM, 3)
-            top_sizer.Add(ctrl_button_sizer, 0, wx.TOP, 3)
-
-        else:
-            top_sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-            choices = ['Silver-Behenate']
-
-            self.method_text = wx.StaticText(self, -1, 'Method:')
-
-            self.auto_method_choice = wx.Choice(self, -1, choices = choices)
-            self.auto_method_choice.Select(0)
-
-            method_sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-            method_sizer.Add(self.method_text,0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
-            method_sizer.Add(self.auto_method_choice, 0)
-
-            self.auto_start_button = wx.Button(self, -1, 'Start')
-            self.auto_start_button.Bind(wx.EVT_BUTTON, self._onAutoCenterStartButton)
-
-            top_sizer.Add(method_sizer,0, wx.RIGHT, 10)
-            top_sizer.Add((1,1), 1, wx.EXPAND)
-            top_sizer.Add(self.auto_start_button,0)
+        top_sizer.Add(fix_sizer, 0, wx.BOTTOM, 3)
+        top_sizer.Add(ring_sizer, 0, wx.BOTTOM, 3)
+        top_sizer.Add(det_sizer, 0, wx.BOTTOM, 3)
+        top_sizer.Add(ctrl_button_sizer, 0, wx.TOP, 3)
 
         return top_sizer
 
@@ -11525,10 +11491,7 @@ class CenteringPanel(wx.Panel):
 
         step_list= ['0.1', '1', '2', '5', '10', '20', '50', '100', '500']
 
-        if RAWGlobals.usepyFAI:
-            pattern_list = ['None'] + sorted(pyFAI.calibrant.names(), key = str.lower)
-        else:
-            pattern_list = ['None', 'Silver-Behenate']
+        pattern_list = ['None'] + sorted(pyFAI.calibrant.names(), key = str.lower)
 
         self._x_cent_text = wx.TextCtrl(self, -1, '0', size = (65, -1), style = wx.TE_PROCESS_ENTER)
         self._y_cent_text = wx.TextCtrl(self, -1, '0', size = (65, -1), style = wx.TE_PROCESS_ENTER)
@@ -11729,19 +11692,9 @@ class CenteringPanel(wx.Panel):
         event.Skip()
 
     def _onOkButton(self, event):
-        if not RAWGlobals.usepyFAI:
-            self.image_panel.enableCenterClickMode(False)
-            self.image_panel.enableRAWAutoCentMode(False)
-            self.image_panel.agbe_selected_points = []
-
-            button = self.auto_start_button
-            if button.GetLabelText() == 'Done':
-                button.SetLabel('Start')
-                self._enableControls(True)
-
-        else:
-            if self.autocenter:
-                self._cleanUpAutoCenter()
+        if self.autocenter:
+            self._cleanUpAutoCenter()
+        self.image_panel.enableCenterClickMode(False)
 
         wx.CallAfter(self._main_frame.closeCenteringPane)
         wx.CallAfter(self.image_panel.clearPatches)
@@ -11755,10 +11708,6 @@ class CenteringPanel(wx.Panel):
         self._main_frame.raw_settings.set('WaveLength', wavelength)
         self._main_frame.raw_settings.set('DetectorPixelSize', pixel_size)
 
-        # sd_pixels = round(SASImage.calcFromSDToAgBePixels(sd, wavelength, pixel_size / 1000.0),0)
-
-        # self._main_frame.raw_settings.set('PixelCalX', sd_pixels)
-
     def _getCalibValues(self):
 
         sd = float(self._sd_text.GetValue())
@@ -11768,19 +11717,10 @@ class CenteringPanel(wx.Panel):
         return sd, wavelength, pixel_size
 
     def _onCancelButton(self, event):
-        if not RAWGlobals.usepyFAI:
-            self.image_panel.enableCenterClickMode(False)
-            self.image_panel.enableRAWAutoCentMode(False)
-            self.image_panel.agbe_selected_points = []
+        if self.autocenter:
+            self._cleanUpAutoCenter()
 
-            button = self.auto_start_button
-            if button.GetLabelText() == 'Done':
-                button.SetLabel('Start')
-                self._enableControls(True)
-
-        else:
-            if self.autocenter:
-                self._cleanUpAutoCenter()
+        self.image_panel.enableCenterClickMode(False)
 
 
         self.updateCenterFromSettings()
@@ -11882,21 +11822,16 @@ class CenteringPanel(wx.Panel):
 
         if selection != 'None':
 
-            if RAWGlobals.usepyFAI:
-                self.calibrant = pyFAI.calibrant.get_calibrant(selection)
-                self.calibrant.set_wavelength(wavelength*1e-10) #set the wavelength in m
+            self.calibrant = pyFAI.calibrant.get_calibrant(selection)
+            self.calibrant.set_wavelength(wavelength*1e-10) #set the wavelength in m
 
-                #Calculate pixel position of the calibrant rings
-                two_thetas = np.array(self.calibrant.get_2th())
-                if len(two_thetas) > 0:
-                    opposite = np.tan(two_thetas) * sd_distance
-                    agbh_dist_list = list(opposite / (pixel_size/1000.))
-                else:
-                    agbh_dist_list = [np.nan]
-
+            #Calculate pixel position of the calibrant rings
+            two_thetas = np.array(self.calibrant.get_2th())
+            if len(two_thetas) > 0:
+                opposite = np.tan(two_thetas) * sd_distance
+                agbh_dist_list = list(opposite / (pixel_size/1000.))
             else:
-                sample_detec_pixels = SASImage.calcFromSDToAgBePixels(sd_distance, wavelength, pixel_size / 1000.0)
-                agbh_dist_list = [sample_detec_pixels*i for i in range(1,5)]
+                agbh_dist_list = [np.nan]
 
             if self.old_calibrant is not None and self.old_calibrant != selection:
                 wx.CallAfter(self.image_panel.clearPatches)
@@ -11941,18 +11876,6 @@ class CenteringPanel(wx.Panel):
         self._center = [x_center, y_center]
         self.updateCenterTextCtrls()
 
-    def _updateSampleDetectorDist(self):
-
-        wavelength = float(self._wavelen_text.GetValue())
-        pixel_size = float(self._pixel_text.GetValue())
-        samp_dist = float(self._sd_text.GetValue())
-
-        samp_dist_in_pixels = SASImage.calcFromSDToAgBePixels(samp_dist, wavelength, pixel_size)
-
-        samp_dist_in_mm = round(SASImage.calcAgBeSampleDetectorDist(samp_dist_in_pixels, wavelength, pixel_size),1)
-
-        self._sd_text.SetValue(str(samp_dist_in_mm))
-
     def updateAll(self):
         self.updateCenterFromSettings()
         self._updatePlots()
@@ -11977,20 +11900,8 @@ class CenteringPanel(wx.Panel):
         wx.CallAfter(self.image_panel.drawCenteringPoints, self.c.points.getList())
 
     def _onAutoCenterStartButton(self, event):
-
-        if not RAWGlobals.usepyFAI:
-            button = event.GetEventObject()
-
-            if button.GetLabelText() == 'Start':
-                button.SetLabel('Done')
-                self._startAgbeAutoCentering()
-            elif button.GetLabelText() == 'Done':
-                button.SetLabel('Start')
-                self._endAgbeAutoCentering()
-
-        else:
-            self.autocenter = True
-            self._startAutoCentering()
+        self.autocenter = True
+        self._startAutoCentering()
 
     def _onAutoCenterDoneButton(self, evt):
         self._stopAutoCentering()
@@ -12099,45 +12010,6 @@ class CenteringPanel(wx.Panel):
         self._enablePyfaiControls()
         self.image_panel.enableAutoCentMode(False)
         self.autocenter = False
-
-    #Autocenter the old RAW way
-    def _startAgbeAutoCentering(self):
-
-        self._enableControls(False)
-
-        wx.CallAfter(self.image_panel.clearPatches)
-        wx.MessageBox('Please select at least 3 points just outside the inner circle of the AgBe image and then press the "Done" button', 'AgBe Center Calibration', wx.OK | wx.CANCEL)
-
-        self.image_panel.enableRAWAutoCentMode()
-
-    def _endAgbeAutoCentering(self):
-
-        self._enableControls(True)
-
-        self.image_panel.enableRAWAutoCentMode(False)
-        points = self.image_panel.getSelectedAgbePoints()
-        img = self.image_panel.img
-
-        try:
-            x, r = SASImage.calcCenterCoords(img, points, tune = True)  # x = (x_c,y_c)
-        except SASExceptions.CenterNotFound:
-            self.image_panel.agbe_selected_points = []
-            wx.MessageBox('The center could not be found.\nPlease try again or use the manual settings.', 'Center was not found')
-            return
-
-        self._center = [x[0], x[1]]
-
-        wavelength = float(self._wavelen_text.GetValue())
-        pixel_size = float(self._pixel_text.GetValue())
-
-        sd_dist = round(SASImage.calcAgBeSampleDetectorDist(r, wavelength, pixel_size / 1000.0),1)
-        self._sd_text.SetValue(str(sd_dist))
-        self.updateCenterTextCtrls()
-
-        self._pattern_list.Select(1)
-        wx.CallAfter(self.image_panel.clearPatches)
-        self._updateCenteringRings()
-        self.image_panel.agbe_selected_points = []
 
 #----- **** InformationPanel ****
 

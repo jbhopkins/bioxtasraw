@@ -242,13 +242,11 @@ class ImagePanel(wx.Panel):
         self._chosen_points_x = []
         self._chosen_points_y = []
         self._plotted_patches = []
-        self.agbe_selected_points = []
         self.center_patch = None
 
         self.next_mask_number = 0
 
         self.center_click_mode = False
-        self.raw_cent_mode = False
         self.pyfai_cent_mode = False
         self.pyfai_ring_num = 0
 
@@ -418,14 +416,8 @@ class ImagePanel(wx.Panel):
     def getPlotParameters(self):
         return self.plot_parameters
 
-    def getSelectedAgbePoints(self):
-        return self.agbe_selected_points
-
     def enableCenterClickMode(self, state = True):
         self.center_click_mode = state
-
-    def enableRAWAutoCentMode(self, state = True):
-        self.raw_cent_mode = state
 
     def enableAutoCentMode(self, state = True):
         self.pyfai_cent_mode = state
@@ -624,13 +616,6 @@ class ImagePanel(wx.Panel):
 
         elif tool == 'rectangle':
             self._addRectanglePoint(x, y, event)
-
-        elif self.raw_cent_mode == True:
-            self.agbe_selected_points.append( (x, y) )
-
-            cir = matplotlib.patches.Circle( (int(x), int(y)), radius = 3, alpha = 1, facecolor = 'yellow', edgecolor = 'yellow')
-            a.add_patch(cir)
-            self.canvas.draw()
 
         elif self.pyfai_cent_mode and self.toolbar.getCurrentTool() is None:
             points, centering_panel.c.points = SASCalib.new_grp(self.img, [int(x), int(y)], centering_panel.c.points, 100, self.pyfai_ring_num)

@@ -3079,11 +3079,7 @@ def checkFileType(filename):
 
     path, ext = os.path.splitext(filename)
 
-    if type_tst == 'RR':
-        return 'image'
-    elif type_tst == 'II':   # Test if file is a TIFF file (first two bytes are "II")
-        return 'image'
-    elif ext == '.fit':
+    if ext == '.fit':
         return 'fit'
     elif ext == '.fir':
         return 'fir'
@@ -3099,8 +3095,6 @@ def checkFileType(filename):
         return 'int'
     elif ext == '.img' or ext == '.imx_0' or ext == '.dkx_0' or ext == '.dkx_1' or ext == '.png' or ext == '.mpa':
         return 'image'
-    #elif type_tst == 'BI':
-    #    return 'bift'
     elif ext == '.dat' or ext == '.sub' or ext =='.txt':
         return 'primus'
     elif ext == '.mar1200' or ext == '.mar2400' or ext == '.mar2300' or ext == '.mar3600':
@@ -3123,6 +3117,3 @@ def checkFileType(filename):
             except Exception:
                 return 'rad'
             return 'csv'
-
-
-

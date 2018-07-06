@@ -21,16 +21,12 @@ Created on Jul 11, 2010
 #
 #******************************************************************************
 '''
-import numpy as np
+
 from math import pi, asin, tan, atan, cos
 import sys
-import RAWGlobals
 
-try:
-    import pyFAI, pyFAI.geometryRefinement
-    RAWGlobals.usepyFAI = True
-except:
-    RAWGlobals.usepyFAI = False
+import numpy as np
+import pyFAI, pyFAI.geometryRefinement
 
 def calcAbsScaleConstWater(water_sasm, start_idx, end_idx):
     '''

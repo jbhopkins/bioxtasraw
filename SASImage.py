@@ -26,22 +26,13 @@ import sys
 import math
 
 import numpy as np
-from scipy import optimize
-import wx
 from numba import jit, prange
+import pyFAI
 
-import SASExceptions
 import SASParser
 import SASCalib
 import SASM
 import RAWGlobals
-
-try:
-    import pyFAI
-    RAWGlobals.usepyFAI = True
-except:
-    RAWGlobals.usepyFAI = False
-
 import polygonMasking as polymask
 
 class Mask():
@@ -430,168 +421,6 @@ def calibrateAndNormalize(sasm_list, img_list, raw_settings):
 
     return sasm_list
 
-
-def finetuneAgbePoints(img, x_c, y_c, x1, y1, r):
-        points, xpoints, ypoints = calcBresenhamLinePoints(x_c, y_c, x1, y1)
-
-        try:
-            line = img[ypoints, xpoints]
-        except IndexError:
-            return False
-
-        #Cut a
-        cutlen = int(len(line)/2)
-        line2 = line[cutlen:]
-
-        img_panel = wx.FindWindowByName('ImagePanel')
-        img_panel.addLine(xpoints[cutlen:], ypoints[cutlen:], 'green')
-
-        idx = line2.argmax()        #index of max value in the array
-
-        limit_percent = 0.2
-        limitidx = int((limit_percent*r)/2)
-
-        gaussx = xpoints[cutlen + idx - limitidx : cutlen + idx + limitidx]
-        gaussy = ypoints[cutlen + idx - limitidx : cutlen + idx + limitidx]
-
-        gaussline = img[gaussy, gaussx]
-
-        #print gaussy, gaussx
-        img_panel = wx.FindWindowByName('ImagePanel')
-        img_panel.addLine(gaussx, gaussy)
-
-        fitfunc = lambda p, x: p[0] * np.exp(-(x-p[1])**2/(2.0*p[2]**2))
-
-        # Cauchy
-        #fitfunc = lambda p, x: p[0] * (1/(1+((x-p[1])/p[2])**2 ))
-        errfunc = lambda p, x, y: fitfunc(p,x)-y
-
-        # guess some fit parameters
-        p0 = [max(gaussline), np.mean(range(0,len(gaussline))), np.std(range(0,len(gaussline)))]
-        x = range(0, len(gaussline))
-
-        # guess for cauchy distribution
-        #p0 = [max(gaussline), median(x), 1/(max(gaussline)*pi)]
-
-        # fit a gaussian
-        p1, success = optimize.leastsq(errfunc, p0, args=(x, gaussline))
-
-        idx = idx + cutlen - limitidx + (int(p1[1]))
-
-        try:
-            return (xpoints[idx] + (p1[1] % 1), ypoints[idx]+ (p1[1] % 1))
-        except IndexError:
-            return False
-
-def calcAgBeSampleDetectorDist(agbe_dist, wavelength_in_A, pixel_size_in_mm):
-    ''' Calculates the distance between sample and detector based on
-     the distance to the 1st circle in the AgBe measurement in pixels
-
-     Input:
-     agbeDist = Distance to 1st circle in AgBe measurement in pixels
-     wavelength = lambda in q formula
-
-     q = ( 4 * pi * sin(theta)) / lambda
-
-     tan(theta) = opposite / adjacent
-
-     Ouput:
-     SD_Distance = Sample Detector Distance
-    '''
-
-    q = 0.107625  # Q for 1st cirle in AgBe
-
-    sin_theta = (q * wavelength_in_A) / (4 * np.pi)
-
-    theta = np.arcsin(sin_theta)
-
-    opposite = agbe_dist * pixel_size_in_mm
-    adjacent = opposite / np.tan(2*theta)
-
-    SD_Distance = adjacent
-
-    return SD_Distance
-
-def calcFromSDToAgBePixels(sd_distance, wavelength_in_A, pixel_size_in_mm):
-
-    q = 0.107625  # Q for 1st cirle in AgBe
-
-    sin_theta = (q * wavelength_in_A) / (4 * np.pi)
-
-    theta = np.arcsin(sin_theta)
-
-    adjacent = sd_distance
-    opposite = np.tan(2*theta) * adjacent
-    agbe_dist = opposite / pixel_size_in_mm
-
-    return agbe_dist
-
-def calcCenterCoords(img, selected_points, tune = True):
-        ''' Determine center from coordinates on circle peferie.
-
-            Article:
-              I.D.Coope,
-              "Circle Fitting by Linear and Nonlinear Least Squares",
-              Journal of Optimization Theory and Applications vol 76, 2, Feb 1993
-        '''
-
-        numOfPoints = len(selected_points)
-
-        B = []
-        d = []
-
-        for each in selected_points:
-            x = each[0]
-            y = each[1]
-
-            B.append(x)                   # Build B matrix as vector
-            B.append(y)
-            B.append(1)
-
-            d.append(x**2 + y**2)
-
-        B = np.matrix(B)                  # Convert to numpy matrix
-        d = np.matrix(d)
-
-        B = B.reshape((numOfPoints, 3))   # Convert 1D vector to matrix
-        d = d.reshape((numOfPoints, 1))
-
-        Y = np.linalg.inv(B.T*B) * B.T * d   # Solve linear system of equations
-
-        x_c = Y[0] / 2                    # Get x and r from transformation variables
-        y_c = Y[1] / 2
-        r = np.sqrt(Y[2] + x_c**2 + y_c**2)
-
-        x_c = x_c.item()
-        y_c = y_c.item()
-        r = r.item()
-        finetune_success = True
-
-        if tune:
-            newPoints = []
-
-            for each in selected_points:
-                x = each[0]
-                y = each[1]
-
-                optimPoint = finetuneAgbePoints(img, int(x_c), int(y_c), int(x), int(y), r)
-
-                if optimPoint == False:
-                    optimPoint = (x,y)
-                    finetune_success = False
-
-                newPoints.append(optimPoint)
-
-            selected_points = newPoints
-            xy, r = calcCenterCoords(img, selected_points, tune = False)
-            x_c = xy[0]
-            y_c = xy[1]
-
-        if finetune_success == False:
-#            wx.MessageBox('Remember to set the points "outside" the AgBe ring, a circle will then be fitted to the first found ring behind them.', 'Center search failed', wx.OK | wx.ICON_ERROR)
-            raise SASExceptions.CenterNotFound('Fine tune center search failed')
-
-        return ( (x_c, y_c), r )
 
 def calcBresenhamLinePoints(x0, y0, x1, y1):
 
