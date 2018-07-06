@@ -864,8 +864,11 @@ class ImagePanel(wx.Panel):
     def _toggleMaskSelection(self):
         ''' Changes the colour of the patch when the patch is selected
         or deselected. '''
+        print 'in _toggleMaskSelection'
 
         if self._selected_patch is not None:
+            print self._selected_patch
+            print self._selected_patch.selected
 
             if self._selected_patch.selected == 1:
                 self._selected_patch.set_facecolor('yellow')
