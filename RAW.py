@@ -10876,6 +10876,16 @@ class MaskingPanel(wx.Panel):
         self.image_panel = wx.FindWindowByName('ImagePanel')
 
         self._initBitmaps()
+
+        self._create_layout()
+
+        self._center = [0,0]
+        self.show_center = False
+
+    def setTool(self, tool):
+        self.image_panel.setTool(tool)
+
+    def _create_layout(self):
         manual_box = wx.StaticBox(self, -1, 'Mask Drawing')
         self.manual_boxsizer = wx.StaticBoxSizer(manual_box)
         self.manual_boxsizer.Add((1,1), 1, wx.EXPAND)
@@ -10900,16 +10910,10 @@ class MaskingPanel(wx.Panel):
 
         self.SetSizer(self.sizer)
 
-        self._center = [0,0]
-        self.show_center = False
-        #self.updateCenterFromSettings()
-
-    def setTool(self, tool):
-        self.image_panel.setTool(tool)
-
     def _createDrawButtons(self):
 
-        sizer = wx.BoxSizer()
+        man_box = wx.StaticBox(self, label='Manual')
+        man_sizer = wx.StaticBoxSizer(man_box)
 
         self.circle_button = wxbutton.GenBitmapToggleButton(self, self.CIRCLE_ID, self.circle_bmp, size = (80,80))
         self.rectangle_button = wxbutton.GenBitmapToggleButton(self, self.RECTANGLE_ID, self.rectangle_bmp, size = (80,80))
@@ -10919,12 +10923,24 @@ class MaskingPanel(wx.Panel):
         self.rectangle_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
         self.polygon_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
 
-        self.circle_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
-        self.rectangle_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
-        self.polygon_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
-        sizer.Add(self.circle_button, 0)
-        sizer.Add(self.rectangle_button,0)
-        sizer.Add(self.polygon_button,0)
+        man_sizer.Add(self.circle_button, 0)
+        man_sizer.Add(self.rectangle_button,0)
+        man_sizer.Add(self.polygon_button,0)
+
+
+        self.auto_type = wx.Choice(self, choices=['>', '<','='])
+        self.auto_type.SetSelection(2)
+        self.auto_val = wx.TextCtrl(self, value='-1', size=(65,-1))
+        auto_btn = wx.Button(self, label='Create')
+        auto_btn.Bind(wx.EVT_BUTTON, self._on_automask)
+
+        auto_box = wx.StaticBox(self, label='Automatic')
+        auto_sizer = wx.StaticBoxSizer(auto_box)
+        auto_sizer.Add(wx.StaticText(self, label='Mask all pixels'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        auto_sizer.Add(self.auto_type, border=2, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+        auto_sizer.Add(self.auto_val, border=2, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+        auto_sizer.Add(auto_btn, border=15, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
 
 
         save_button= wx.Button(self, -1, "Save")
@@ -10944,7 +10960,8 @@ class MaskingPanel(wx.Panel):
 
         final_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        final_sizer.Add(sizer,0)
+        final_sizer.Add(man_sizer,0, flag=wx.ALIGN_CENTER_HORIZONTAL)
+        final_sizer.Add(auto_sizer, border=10, flag=wx.TOP)
         final_sizer.Add(button_sizer,0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 10)
 
         return final_sizer
@@ -11015,6 +11032,64 @@ class MaskingPanel(wx.Panel):
 
         return [None, mask_params]
 
+    def _on_automask(self, event):
+        img = self.image_panel.img
+
+        selected_mask = self.selector_choice.GetStringSelection()
+        mask_key = self.mask_choices[selected_mask]
+        if mask_key == 'TransparentBSMask':
+            negative = True
+        else:
+            negative = False
+
+        conditional = self.auto_type.GetStringSelection()
+        comp_val = float(self.auto_val.GetValue())
+
+        if conditional == '<':
+            comp = img < comp_val
+        elif conditional == '>':
+           comp = img > comp_val
+        elif conditional == '=':
+            comp = img == comp_val
+
+        idx_x = np.unique(SASCalc.contiguous_regions(comp[0,:]))
+        idx_y = np.unique(SASCalc.contiguous_regions(comp[:,0]))
+
+        x_regions = []
+        y_regions = []
+
+        for i in range(len(idx_x)):
+            if i < len(idx_x)-1:
+                idx1 = idx_x[i]
+                idx2 = idx_x[i+1]
+
+                if np.all(comp[:,idx1:idx2]):
+                    x_regions.append((idx1, idx2))
+
+        for i in range(len(idx_y)):
+            if i < len(idx_y)-1:
+                idx1 = idx_y[i]
+                idx2 = idx_y[i+1]
+
+                if np.all(comp[idx1:idx2,:]):
+                    y_regions.append((idx1, idx2))
+
+        y_extent = (0, comp.shape[0])
+        x_extent = (0, comp.shape[1])
+
+        for pts in x_regions:
+            comp[:,pts[0]:pts[1]] = False
+            self.image_panel.create_rect_mask(pts, y_extent, negative)
+
+        for pts in y_regions:
+            comp[pts[0]:pts[1],:] = False
+            self.image_panel.create_rect_mask(x_extent, pts, negative)
+
+        points = np.transpose(np.nonzero(comp))
+
+        self.image_panel.create_list_mask(points, negative)
+
+
     def _onShowButton(self, event):
         selected_mask = self.selector_choice.GetStringSelection()
         mask_key = self.mask_choices[selected_mask]
@@ -11050,9 +11125,9 @@ class MaskingPanel(wx.Panel):
 
             mask_dict = self._main_frame.raw_settings.get('Masks')
 
-            if mask_dict[mask_key][1] != None:
+            if mask_dict[mask_key][1] is not None:
                 dial = wx.MessageDialog(None, 'Do you want to overwrite the existing mask?', 'Overwrite exisiting mask?',
-                                        wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+                    wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
                 answer = dial.ShowModal()
 
                 if answer == wx.ID_NO:

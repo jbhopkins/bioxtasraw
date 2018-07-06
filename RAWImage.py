@@ -946,6 +946,8 @@ class ImagePanel(wx.Panel):
             del(a.lines[:])     # delete plotted masks
         if a.patches:
             del(a.patches[:])
+        if a.collections:
+            del(a.collections[:])
 
         if self.center_patch:
             a.add_patch(self.center_patch)
@@ -961,6 +963,8 @@ class ImagePanel(wx.Panel):
             del(a.lines[:])     # delete plotted masks
         if a.patches:
             del(a.patches[:])
+        if a.collections:
+            del(a.collections[:])
 
         for each in stored_masks:
             id = self.NewControlId()
@@ -972,13 +976,16 @@ class ImagePanel(wx.Panel):
                 col = 'red'
 
             if each.getType() == 'circle':
-                self._drawCircle(each.getPoints(), id, each, color = col)
+                self._drawCircle(each.getPoints(), id, each, color=col)
 
             elif each.getType() == 'rectangle':
-                self._drawRectangle(each.getPoints(), id, each, color = col)
+                self._drawRectangle(each.getPoints(), id, each, color=col)
 
             elif each.getType() == 'polygon':
-                self._drawPolygon(each.getPoints(), id, each, color = col)
+                self._drawPolygon(each.getPoints(), id, each, color=col)
+
+            elif each.getType() == 'list':
+                self._draw_list(each.getPoints(), id, each, color=col)
 
 
         if self.center_patch:
@@ -1088,7 +1095,6 @@ class ImagePanel(wx.Panel):
         self._circle_guide_line = None
 
     def _drawRectangle(self, points, id, mask, color, animated = False):
-
         a = self.fig.gca()
 
         xStart = points[0][0]
@@ -1114,13 +1120,12 @@ class ImagePanel(wx.Panel):
         self._rectangle_line = None
 
     def _drawPolygon(self, points, id, mask, color, animated = False):
-
         a = self.fig.gca()
 
         if animated:
-            poly = matplotlib.patches.Polygon( points, alpha = 0.5, picker = True , color = color, animated=True)
+            poly = matplotlib.patches.Polygon(points, alpha = 0.5, picker = True , color = color, animated=True)
         else:
-            poly = matplotlib.patches.Polygon( points, alpha = 0.5, picker = True , color = color)
+            poly = matplotlib.patches.Polygon(points, alpha = 0.5, picker = True , color = color)
         poly.mask = mask
         a.add_patch(poly)
 
@@ -1129,6 +1134,34 @@ class ImagePanel(wx.Panel):
         self._plotted_patches.append(poly)
 
         self._polygon_guide_line = None
+
+    def _draw_list(self, points, id, mask, color, animated = False):
+        a = self.fig.gca()
+        patches = []
+
+        for point in points:
+            width = 1
+            height = 1
+
+            rect = matplotlib.patches.Rectangle(point[::-1], width, height, color=color,
+                alpha=0.5, picker=True, animated=animated)
+
+            rect.mask = mask
+            rect.id = id
+            rect.selected = 0
+
+            patches.append(rect)
+
+        list_patch = matplotlib.collections.PatchCollection(patches, match_original=True)
+        list_patch.set_alpha(0.5)
+
+        list_patch.mask = mask
+        list_patch.id = id
+        list_patch.selected = 0
+
+        self._plotted_patches.append(list_patch)
+
+        a.add_collection(list_patch)
 
     def _drawCenteringRings(self, x, r_list):
         a = self.fig.gca()
@@ -1214,10 +1247,11 @@ class ImagePanel(wx.Panel):
             else:
                 start_negative = False
 
-            if (self._chosen_points_x[1]-self._chosen_points_x[0])**2 > 0 and (self._chosen_points_y[1]-self._chosen_points_y[0])**2 > 0:
-                self.plot_parameters['storedMasks'].append( SASImage.RectangleMask( (self._chosen_points_x[0], self._chosen_points_y[0]),
-                                                                                    (self._chosen_points_x[1], self._chosen_points_y[1]),
-                                                                                     self._createNewMaskNumber(), self.img.shape, negative = start_negative ))
+            if ((self._chosen_points_x[1]-self._chosen_points_x[0])**2 > 0 and
+                (self._chosen_points_y[1]-self._chosen_points_y[0])**2 > 0):
+                self.create_rect_mask(self._chosen_points_x, self._chosen_points_y,
+                    start_negative, False)
+
             self.untoggleAllToolButtons()
             self.stopMaskCreation()
 
@@ -1244,6 +1278,25 @@ class ImagePanel(wx.Panel):
             self._chosen_points_x.append(round(x))
             self._chosen_points_y.append(round(y))
             self._plotting_in_progress = True
+
+    def create_list_mask(self, points, negative, plot=True):
+        new_mask = SASImage.ListMask(points, self._createNewMaskNumber(),
+            self.img.shape, negative = negative)
+
+        self.plot_parameters['storedMasks'].append(new_mask)
+
+        if plot:
+            self.plotStoredMasks()
+
+    def create_rect_mask(self, x_points, y_points, negative, plot=True):
+        new_mask = SASImage.RectangleMask((x_points[0], y_points[0]),
+            (x_points[1], y_points[1]), self._createNewMaskNumber(),
+            self.img.shape, negative=negative)
+
+        self.plot_parameters['storedMasks'].append(new_mask)
+
+        if plot:
+            self.plotStoredMasks()
 
     def _createNewMaskNumber(self):
 

@@ -44,16 +44,16 @@ except:
 
 import polygonMasking as polymask
 
-class Mask:
+class Mask():
     ''' Mask super class. Masking is used for masking out unwanted regions
     of an image '''
 
-    def __init__(self, id, img_dim, type, negative = False):
+    def __init__(self, mask_id, img_dim, mask_type, negative = False):
 
         self._is_negative_mask = negative
         self._img_dimension = img_dim            # need image Dimentions to get the correct fill points
-        self._mask_id = id
-        self._type = type
+        self._mask_id = mask_id
+        self._type = mask_type
         self._points = None
 
     def setAsNegativeMask(self):
@@ -264,6 +264,19 @@ class PolygonMask(Mask):
 
         return coords
 
+class ListMask(Mask):
+    """
+    Creates a mask that consists of simply a list of points in the mask. Used
+    for automatic masking of points with certain values.
+    """
+    def __init__(self, points, id, img_dim, negative = False):
+
+        Mask.__init__(self, id, img_dim, 'list', negative)
+
+        self._points = points
+
+    def getFillPoints(self):
+        return self._points
 
 def calcExpression(expr, img_hdr, file_hdr):
 
