@@ -601,8 +601,8 @@ class ImagePanel(wx.Panel):
             self._movement_in_progress = False
             self._first_mouse_pos = None
 
-
-        self._toggleMaskSelection()
+        if self.getTool() is None and self.toolbar.getCurrentTool() is None:
+            self._toggleMaskSelection()
 
     def _onLeftMouseButtonPress(self, x, y, event):
         ''' take action on the click based on what tool is
@@ -680,9 +680,7 @@ class ImagePanel(wx.Panel):
                 else:
                     start_negative = False
 
-                start = time.time()
                 mask = SASImage.PolygonMask(points, self._createNewMaskNumber(), self.img.shape, negative = start_negative)
-                print time.time() - start
                 self.plot_parameters['storedMasks'].append(mask)
             self.stopMaskCreation()
             self.untoggleAllToolButtons()
@@ -754,12 +752,12 @@ class ImagePanel(wx.Panel):
         select the patch and then set the flag.  '''
 
         self._selected_patch = event.artist
-        event.artist.selected = 1
+        if not event.artist.selected:
+            event.artist.selected = 1
+            self._toggleMaskSelection()
+            self._selected_patch = event.artist
 
-        self._toggleMaskSelection()
         self._right_click_on_patch = True
-        self._selected_patch = event.artist   #toggleMaskSelection sets it to None
-
 
     def _showPopupMenu(self):
         ''' Show a popup menu that gives the user the
@@ -814,6 +812,7 @@ class ImagePanel(wx.Panel):
                 for idx in range(0, len(self.plot_parameters['storedMasks'])):
                     if each.id == self.plot_parameters['storedMasks'][idx].getId():
                         self.plot_parameters['storedMasks'].pop(idx)
+                        break
 
         self.plotStoredMasks()
         self._drawMaskGuideLine(points[1][0], points[1][1])
@@ -863,42 +862,58 @@ class ImagePanel(wx.Panel):
     def _toggleMaskSelection(self):
         ''' Changes the colour of the patch when the patch is selected
         or deselected. '''
-        print 'in _toggleMaskSelection'
+        update = False
 
         if self._selected_patch is not None:
-            print self._selected_patch
-            print self._selected_patch.selected
 
             if self._selected_patch.selected == 1:
-                self._selected_patch.set_facecolor('yellow')
+                if not self._selected_patch.get_facecolor()[:3] == matplotlib.colors.to_rgb('yellow'):
+                    self._selected_patch.set_facecolor('yellow')
+                    update = True
 
                 id = self._selected_patch.id
 
                 for each in self._plotted_patches:
                     if id != each.id:
-
-                        if each.mask.isNegativeMask() == False:
-                            each.set_facecolor('red')
-                            each.set_edgecolor('red')
+                        if not each.mask.isNegativeMask():
+                            if not each.get_facecolor()[:3] == matplotlib.colors.to_rgb('red'):
+                                each.set_facecolor('red')
+                                update = True
+                            if not each.get_edgecolor()[:3] ==  matplotlib.colors.to_rgb('red'):
+                                each.set_edgecolor('red')
+                                update = True
                         else:
-                            each.set_facecolor('green')
-                            each.set_edgecolor('green')
+                            if not each.get_facecolor()[:3] == matplotlib.colors.to_rgb('green'):
+                                each.set_facecolor('green')
+                                update = True
+                            if not each.get_edgecolor()[:3] ==  matplotlib.colors.to_rgb('green'):
+                                each.set_edgecolor('green')
+                                update = True
                         each.selected = 0
 
                 self._selected_patch = None
-                self.canvas.draw()
 
         else:
             for each in self._plotted_patches:
-                if each.mask.isNegativeMask() == False:
-                    each.set_facecolor('red')
-                    each.set_edgecolor('red')
+                if not each.mask.isNegativeMask():
+                    if not each.get_facecolor()[:3] == matplotlib.colors.to_rgb('red'):
+                        each.set_facecolor('red')
+                        update = True
+                    if not each.get_edgecolor()[:3] ==  matplotlib.colors.to_rgb('red'):
+                        each.set_edgecolor('red')
+                        update = True
                 else:
-                    each.set_facecolor('green')
-                    each.set_edgecolor('green')
+                    if not each.get_facecolor()[:3] == matplotlib.colors.to_rgb('green'):
+                        each.set_facecolor('green')
+                        update = True
+                    if not each.get_edgecolor()[:3] ==  matplotlib.colors.to_rgb('green'):
+                        each.set_edgecolor('green')
+                        update = True
                 each.selected = 0
 
             self._selected_patch = None
+
+        if update:
             self.canvas.draw()
 
     def _insertNewCoordsIntoMask(self):
@@ -1025,7 +1040,6 @@ class ImagePanel(wx.Panel):
                 self.fig.gca().draw_artist(self._circle_guide_line)
                 self.canvas.blit(self.fig.gca().bbox)
             else:
-                print 'here'
                 self._circle_guide_line = matplotlib.patches.Circle((self._chosen_points_x[-1], self._chosen_points_y[-1]), radius_c, color = 'r', fill = False, linewidth = 2, animated = True)
                 a.add_patch(self._circle_guide_line)
                 self.canvas.draw()
