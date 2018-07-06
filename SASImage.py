@@ -264,19 +264,6 @@ class PolygonMask(Mask):
 
         return coords
 
-class ListMask(Mask):
-    """
-    Creates a mask that consists of simply a list of points in the mask. Used
-    for automatic masking of points with certain values.
-    """
-    def __init__(self, points, id, img_dim, negative = False):
-
-        Mask.__init__(self, id, img_dim, 'list', negative)
-
-        self._points = points
-
-    def getFillPoints(self):
-        return self._points
 
 def calcExpression(expr, img_hdr, file_hdr):
 

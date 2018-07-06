@@ -11079,16 +11079,20 @@ class MaskingPanel(wx.Panel):
 
         for pts in x_regions:
             comp[:,pts[0]:pts[1]] = False
-            self.image_panel.create_rect_mask(pts, y_extent, negative)
+            self.image_panel.create_rect_mask(pts, y_extent, negative, False)
 
         for pts in y_regions:
             comp[pts[0]:pts[1],:] = False
-            self.image_panel.create_rect_mask(x_extent, pts, negative)
+            self.image_panel.create_rect_mask(x_extent, pts, negative, False)
 
         points = np.transpose(np.nonzero(comp))
 
-        self.image_panel.create_list_mask(points, negative)
+        for pt in points:
+            x = pt[1]
+            y = pt[0]
+            self.image_panel.create_rect_mask((x, x+1), (y, y+1), negative, False)
 
+        self.image_panel.plotStoredMasks()
 
     def _onShowButton(self, event):
         selected_mask = self.selector_choice.GetStringSelection()
