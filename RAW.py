@@ -10878,7 +10878,7 @@ class MaskingPanel(wx.Panel):
         manual_box = wx.StaticBox(self, -1, 'Mask Drawing')
         self.manual_boxsizer = wx.StaticBoxSizer(manual_box)
         self.manual_boxsizer.Add((1,1), 1, wx.EXPAND)
-        self.manual_boxsizer.Add(self._createDrawButtons(), 0, wx.EXPAND | wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+        self.manual_boxsizer.Add(self._createDrawCtrls(), 0, wx.EXPAND | wx.ALIGN_CENTER_HORIZONTAL)
         self.manual_boxsizer.Add((1,1), 1, wx.EXPAND)
 
         auto_box = wx.StaticBox(self, -1, 'Mask Creation')
@@ -10899,7 +10899,7 @@ class MaskingPanel(wx.Panel):
 
         self.SetSizer(self.sizer)
 
-    def _createDrawButtons(self):
+    def _createDrawCtrls(self):
 
         man_box = wx.StaticBox(self, label='Manual')
         man_sizer = wx.StaticBoxSizer(man_box)
@@ -10917,19 +10917,34 @@ class MaskingPanel(wx.Panel):
         man_sizer.Add(self.polygon_button,0)
 
 
-        self.auto_type = wx.Choice(self, choices=['>', '<','='])
+        self.auto_type = wx.Choice(self, choices=['>', '<','=', '>=', '<='])
         self.auto_type.SetSelection(2)
-        self.auto_val = wx.TextCtrl(self, value='-1', size=(65,-1))
-        auto_btn = wx.Button(self, label='Create')
-        auto_btn.Bind(wx.EVT_BUTTON, self._on_automask)
+        self.auto_val = wx.TextCtrl(self, value='-2', size=(65,-1))
+        auto_pixel_btn = wx.Button(self, label='Create')
+        auto_pixel_btn.Bind(wx.EVT_BUTTON, self._on_auto_pixel_mask)
+
+        pixel_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        pixel_sizer.Add(wx.StaticText(self, label='Mask all pixels'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        pixel_sizer.Add(self.auto_type, border=3, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+        pixel_sizer.Add(self.auto_val, border=3, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+        pixel_sizer.Add(auto_pixel_btn, border=15, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+
+        self.auto_det_type = wx.Choice(self, choices=self._getDetList(), size=(150,-1))
+        self.auto_det_type.SetStringSelection('pilatus1m')
+        auto_det_btn = wx.Button(self, label='Create')
+        auto_det_btn.Bind(wx.EVT_BUTTON, self._on_auto_det_mask)
+
+        det_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        det_sizer.Add(wx.StaticText(self, label='Mask detector:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        det_sizer.Add(self.auto_det_type, border=3, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+        det_sizer.Add(auto_det_btn, border = 15, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
 
         auto_box = wx.StaticBox(self, label='Automatic')
-        auto_sizer = wx.StaticBoxSizer(auto_box)
-        auto_sizer.Add(wx.StaticText(self, label='Mask all pixels'),
-            flag=wx.ALIGN_CENTER_VERTICAL)
-        auto_sizer.Add(self.auto_type, border=2, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
-        auto_sizer.Add(self.auto_val, border=2, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
-        auto_sizer.Add(auto_btn, border=15, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+        auto_sizer = wx.StaticBoxSizer(auto_box, wx.VERTICAL)
+        auto_sizer.Add(pixel_sizer)
+        auto_sizer.Add(det_sizer, border=5, flag=wx.TOP)
 
 
         save_button= wx.Button(self, -1, "Save")
@@ -10950,7 +10965,7 @@ class MaskingPanel(wx.Panel):
         final_sizer = wx.BoxSizer(wx.VERTICAL)
 
         final_sizer.Add(man_sizer,0, flag=wx.ALIGN_CENTER_HORIZONTAL)
-        final_sizer.Add(auto_sizer, border=10, flag=wx.TOP)
+        final_sizer.Add(auto_sizer, border=10, flag=wx.TOP|wx.EXPAND)
         final_sizer.Add(button_sizer,0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 10)
 
         return final_sizer
@@ -11021,15 +11036,8 @@ class MaskingPanel(wx.Panel):
 
         return [None, mask_params]
 
-    def _on_automask(self, event):
+    def _on_auto_pixel_mask(self, event):
         img = self.image_panel.img
-
-        selected_mask = self.selector_choice.GetStringSelection()
-        mask_key = self.mask_choices[selected_mask]
-        if mask_key == 'TransparentBSMask':
-            negative = True
-        else:
-            negative = False
 
         conditional = self.auto_type.GetStringSelection()
         comp_val = float(self.auto_val.GetValue())
@@ -11040,6 +11048,27 @@ class MaskingPanel(wx.Panel):
            comp = img > comp_val
         elif conditional == '=':
             comp = img == comp_val
+        elif conditional == '>=':
+            comp = img >= comp_val
+        elif conditional == '<=':
+            comp = img <= comp_val
+
+        self._maskConditional(comp)
+
+    def _on_auto_det_mask(self,event):
+        det_sel = self.auto_det_type.GetStringSelection()
+        det = pyFAI.detector_factory(det_sel)
+        comp = det.get_mask()
+
+        self._maskConditional(comp)
+
+    def _maskConditional(self, comp):
+        selected_mask = self.selector_choice.GetStringSelection()
+        mask_key = self.mask_choices[selected_mask]
+        if mask_key == 'TransparentBSMask':
+            negative = True
+        else:
+            negative = False
 
         idx_x = np.unique(SASCalc.contiguous_regions(comp[0,:]))
         idx_y = np.unique(SASCalc.contiguous_regions(comp[:,0]))
@@ -11082,6 +11111,20 @@ class MaskingPanel(wx.Panel):
             self.image_panel.create_rect_mask((x, x+1), (y, y+1), negative, False)
 
         self.image_panel.plotStoredMasks()
+
+    def _getDetList(self):
+
+        extra_det_list = ['detector']
+
+        final_dets = pyFAI.detectors.ALL_DETECTORS
+
+        for key in extra_det_list:
+            if final_dets.has_key(key):
+                final_dets.pop(key)
+
+        det_list = sorted(final_dets.keys(), key = str.lower)
+
+        return det_list
 
     def _onShowButton(self, event):
         selected_mask = self.selector_choice.GetStringSelection()
@@ -11408,7 +11451,7 @@ class CenteringPanel(wx.Panel):
 
         det_text = wx.StaticText(self, -1, 'Detector: ')
         det_choice = wx.Choice(self, self.pyfai_autofit_ids['detector'], choices = det_list)
-        det_choice.SetStringSelection('pilatus100k')
+        det_choice.SetStringSelection('pilatus1m')
 
         det_sizer = wx.BoxSizer(wx.HORIZONTAL)
         det_sizer.Add(det_text, 0, wx.LEFT | wx.RIGHT, 3)
