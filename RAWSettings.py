@@ -268,7 +268,7 @@ class RawGuiSettings:
                             'gnomExpertFile'        : ['', wx.NewId(), 'text'],
                             'gnomForceRminZero'     : ['Y', wx.NewId(), 'choice'],
                             'gnomForceRmaxZero'     : ['Y', wx.NewId(), 'choice'],
-                            'gnomNPoints'           : [171, wx.NewId(), 'int'],
+                            'gnomNPoints'           : [100, wx.NewId(), 'int'],
                             'gnomInitialAlpha'      : [0.0, wx.NewId(), 'float'],
                             'gnomAngularScale'      : [1, wx.NewId(), 'int'],
                             'gnomSystem'            : [0, wx.NewId(), 'int'],

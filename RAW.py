@@ -10871,39 +10871,30 @@ class MaskingPanel(wx.Panel):
         self._center = [0,0]
         self.show_center = False
 
+        self.mask_modified = False
+
     def setTool(self, tool):
         self.image_panel.setTool(tool)
 
     def _create_layout(self):
         manual_box = wx.StaticBox(self, -1, 'Mask Drawing')
         self.manual_boxsizer = wx.StaticBoxSizer(manual_box)
-        self.manual_boxsizer.Add((1,1), 1, wx.EXPAND)
-        self.manual_boxsizer.Add(self._createDrawCtrls(), 0, wx.EXPAND | wx.ALIGN_CENTER_HORIZONTAL)
-        self.manual_boxsizer.Add((1,1), 1, wx.EXPAND)
+        self.manual_boxsizer.Add(self._createDrawCtrls(), 1)
 
         auto_box = wx.StaticBox(self, -1, 'Mask Creation')
         auto_boxsizer = wx.StaticBoxSizer(auto_box)
-        auto_boxsizer.Add(self._createMaskSelector(), 1, wx.EXPAND |wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
-
-        option_box = wx.StaticBox(self, -1, 'Mask Drawing Options')
-        option_boxsizer = wx.StaticBoxSizer(option_box)
-        option_boxsizer.Add(self._createMaskOptions(), 1, wx.EXPAND |wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+        auto_boxsizer.Add(self._createMaskSelector(), 0)
 
         button_sizer = self._createButtonSizer()
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(self.manual_boxsizer, 0, wx.EXPAND | wx.ALL, 5)
-        self.sizer.Add(option_boxsizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
-        self.sizer.Add(auto_boxsizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
-        self.sizer.Add(button_sizer, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        self.sizer.Add(self.manual_boxsizer, flag=wx.EXPAND)
+        self.sizer.Add(auto_boxsizer, flag=wx.EXPAND)
+        self.sizer.Add(button_sizer, border=3, flag=wx.ALL|wx.ALIGN_CENTER)
 
         self.SetSizer(self.sizer)
 
     def _createDrawCtrls(self):
-
-        man_box = wx.StaticBox(self, label='Manual')
-        man_sizer = wx.StaticBoxSizer(man_box)
-
         self.circle_button = wxbutton.GenBitmapToggleButton(self, self.CIRCLE_ID, self.circle_bmp, size = (80,80))
         self.rectangle_button = wxbutton.GenBitmapToggleButton(self, self.RECTANGLE_ID, self.rectangle_bmp, size = (80,80))
         self.polygon_button = wxbutton.GenBitmapToggleButton(self, self.POLYGON_ID, self.polygon_bmp, size = (80,80))
@@ -10912,9 +10903,85 @@ class MaskingPanel(wx.Panel):
         self.rectangle_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
         self.polygon_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
 
-        man_sizer.Add(self.circle_button, 0)
-        man_sizer.Add(self.rectangle_button,0)
-        man_sizer.Add(self.polygon_button,0)
+        draw_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        draw_sizer.Add(self.circle_button, 0)
+        draw_sizer.Add(self.rectangle_button,0)
+        draw_sizer.Add(self.polygon_button,0)
+
+        self.circ_radius = wx.TextCtrl(self, size=(50,-1))
+        self.circ_x = wx.TextCtrl(self, size=(50,-1))
+        self.circ_y = wx.TextCtrl(self, size=(50,-1))
+        circ_btn2 = wx.Button(self, label='Create')
+        circ_btn2.Bind(wx.EVT_BUTTON, self._on_create_circle)
+
+        circ_sub_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
+        circ_sub_sizer1.Add(wx.StaticText(self, label='Circle'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        circ_sub_sizer1.Add(circ_btn2, border=15,
+            flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+
+        circ_sub_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        circ_sub_sizer2.AddSpacer((15,-1))
+        circ_sub_sizer2.Add(wx.StaticText(self, label='Radius:'),
+            flag=wx.ALIGN_CENTER_HORIZONTAL)
+        circ_sub_sizer2.Add(self.circ_radius, border=3,
+            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+        circ_sub_sizer2.Add(wx.StaticText(self, label='X cen.:'), border=3,
+            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+        circ_sub_sizer2.Add(self.circ_x, border=3,
+            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+        circ_sub_sizer2.Add(wx.StaticText(self, label='Y cen.:'), border=3,
+            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+        circ_sub_sizer2.Add(self.circ_y, border=3,
+            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+
+        circ_sizer = wx.BoxSizer(wx.VERTICAL)
+        circ_sizer.Add(circ_sub_sizer1)
+        circ_sizer.Add(circ_sub_sizer2, border=3, flag=wx.TOP)
+
+        self.rect_width = wx.TextCtrl(self, size=(50,-1))
+        self.rect_height = wx.TextCtrl(self, size=(50,-1))
+        self.rect_x = wx.TextCtrl(self, size=(50,-1))
+        self.rect_y = wx.TextCtrl(self, size=(50,-1))
+        rect_btn2 = wx.Button(self, label='Create')
+        rect_btn2.Bind(wx.EVT_BUTTON, self._on_create_rectangle)
+
+        rect_sub_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
+        rect_sub_sizer1.Add(wx.StaticText(self, label='Rectangle'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        rect_sub_sizer1.Add(rect_btn2, border=15,
+            flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+
+        rect_sub_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        rect_sub_sizer2.AddSpacer((15,-1))
+        rect_sub_sizer2.Add(wx.StaticText(self, label='X1:'), border=3,
+            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+        rect_sub_sizer2.Add(self.rect_x, border=3,
+            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+        rect_sub_sizer2.Add(wx.StaticText(self, label='Y1:'), border=3,
+            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+        rect_sub_sizer2.Add(self.rect_y, border=3,
+            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+        rect_sub_sizer2.Add(wx.StaticText(self, label='W.:'), border=3,
+            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+        rect_sub_sizer2.Add(self.rect_width, border=3,
+            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+        rect_sub_sizer2.Add(wx.StaticText(self, label='H.:'), border=3,
+            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+        rect_sub_sizer2.Add(self.rect_height, border=3,
+            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+
+        rect_sizer = wx.BoxSizer(wx.VERTICAL)
+        rect_sizer.Add(rect_sub_sizer1)
+        rect_sizer.Add(rect_sub_sizer2, border=3, flag=wx.TOP)
+
+        man_box = wx.StaticBox(self, label='Manual')
+        man_sizer = wx.StaticBoxSizer(man_box, wx.VERTICAL)
+        man_sizer.Add(draw_sizer, border=3, flag=wx.ALIGN_CENTER_HORIZONTAL|wx.BOTTOM)
+        man_sizer.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), border=10,
+            flag=wx.LEFT|wx.RIGHT|wx.EXPAND)
+        man_sizer.Add(circ_sizer, border=3, flag=wx.TOP)
+        man_sizer.Add(rect_sizer, border=3, flag=wx.TOP)
 
 
         self.auto_type = wx.Choice(self, choices=['>', '<','=', '>=', '<='])
@@ -10938,21 +11005,24 @@ class MaskingPanel(wx.Panel):
         det_sizer = wx.BoxSizer(wx.HORIZONTAL)
         det_sizer.Add(wx.StaticText(self, label='Mask detector:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
-        det_sizer.Add(self.auto_det_type, border=3, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+        det_sizer.Add(self.auto_det_type, proportion=1, border=3,
+            flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
         det_sizer.Add(auto_det_btn, border = 15, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
 
         auto_box = wx.StaticBox(self, label='Automatic')
         auto_sizer = wx.StaticBoxSizer(auto_box, wx.VERTICAL)
         auto_sizer.Add(pixel_sizer)
-        auto_sizer.Add(det_sizer, border=5, flag=wx.TOP)
+        auto_sizer.Add(det_sizer, border=3, flag=wx.TOP|wx.EXPAND)
 
 
-        save_button= wx.Button(self, -1, "Save")
+        options = self._createMaskOptions()
+        options_sizer = wx.StaticBoxSizer(wx.StaticBox(self, label='Options'))
+        options_sizer.Add(options)
+
+        save_button= wx.Button(self, -1, "Save to file")
         save_button.Bind(wx.EVT_BUTTON, self._onSaveMaskToFile)
-
-        load_button= wx.Button(self, -1, "Load")
+        load_button= wx.Button(self, -1, "Load from file")
         load_button.Bind(wx.EVT_BUTTON, self._onLoadMaskFromFile)
-
         clear_button= wx.Button(self, -1, "Clear")
         clear_button.Bind(wx.EVT_BUTTON, self._onClearDrawnMasks)
 
@@ -10964,21 +11034,19 @@ class MaskingPanel(wx.Panel):
 
         final_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        final_sizer.Add(man_sizer,0, flag=wx.ALIGN_CENTER_HORIZONTAL)
-        final_sizer.Add(auto_sizer, border=10, flag=wx.TOP|wx.EXPAND)
-        final_sizer.Add(button_sizer,0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 10)
+        final_sizer.Add(man_sizer, flag=wx.EXPAND)
+        final_sizer.Add(auto_sizer, border=3, flag=wx.TOP|wx.EXPAND)
+        final_sizer.Add(options_sizer, border=3, flag=wx.TOP|wx.EXPAND)
+        final_sizer.Add(button_sizer, border=3, flag=wx.ALIGN_CENTER_HORIZONTAL|wx.TOP)
 
         return final_sizer
 
     def _createMaskOptions(self):
 
         sizer = wx.BoxSizer(wx.VERTICAL)
-
         center_chkbox = wx.CheckBox(self, -1, 'Show Beam Center')
         center_chkbox.Bind(wx.EVT_CHECKBOX, self._onShowCenterChkbox)
-
-        sizer.Add(center_chkbox, 0)
-        #sizer.Add(button_sizer,0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 5)
+        sizer.Add(center_chkbox)
 
         return sizer
 
@@ -11035,6 +11103,35 @@ class MaskingPanel(wx.Panel):
         #mask_params contains the mask and the individual maskshapes
 
         return [None, mask_params]
+
+    def _on_create_circle(self, event):
+        selected_mask = self.selector_choice.GetStringSelection()
+        mask_key = self.mask_choices[selected_mask]
+        if mask_key == 'TransparentBSMask':
+            negative = True
+        else:
+            negative = False
+
+        r = float(self.circ_radius.GetValue())
+        x = float(self.circ_x.GetValue())
+        y = float(self.circ_y.GetValue())
+
+        self.image_panel.create_circ_mask((x, x+r), (y, y), negative)
+
+    def _on_create_rectangle(self, event):
+        selected_mask = self.selector_choice.GetStringSelection()
+        mask_key = self.mask_choices[selected_mask]
+        if mask_key == 'TransparentBSMask':
+            negative = True
+        else:
+            negative = False
+
+        x = float(self.rect_x.GetValue())
+        y = float(self.rect_y.GetValue())
+        w = float(self.rect_width.GetValue())
+        h = float(self.rect_height.GetValue())
+
+        self.image_panel.create_rect_mask((x, x+w), (y, y+h), negative)
 
     def _on_auto_pixel_mask(self, event):
         img = self.image_panel.img
@@ -11191,6 +11288,7 @@ class MaskingPanel(wx.Panel):
             wx.OK | wx.ICON_WARNING)
             dial.ShowModal()
 
+        self.mask_modified = False
 
     def _onClearButton(self, event):
 
@@ -11215,6 +11313,7 @@ class MaskingPanel(wx.Panel):
             wx.OK | wx.ICON_WARNING)
             dial.ShowModal()
 
+        self.mask_modified = True
 
     def _onClearDrawnMasks(self, event):
         wx.CallAfter(self.image_panel.clearAllMasks)
@@ -11262,29 +11361,33 @@ class MaskingPanel(wx.Panel):
 
     def _createButtonSizer(self):
         sizer = wx.BoxSizer()
-
         ok_button = wx.Button(self, wx.ID_OK, 'OK')
-        #cancel_button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
-
-        sizer.Add(ok_button, 0, wx.RIGHT, 10)
-        #sizer.Add(cancel_button, 0)
-
+        sizer.Add(ok_button)
         ok_button.Bind(wx.EVT_BUTTON, self._onOkButton)
-        #cancel_button.Bind(wx.EVT_BUTTON, self._onCancelButton)
 
         return sizer
 
     def _onOkButton(self, event):
-        self.image_panel.stopMaskCreation()
-        wx.CallAfter(self.image_panel.clearAllMasks)
-        wx.CallAfter(self._main_frame.closeMaskingPane)
-        wx.CallAfter(self.image_panel.removeCenterPatch)
 
-    def _onCancelButton(self, event):
+        if self.mask_modified:
+            msg = ('Warning: There are unsaved changes to your mask. If you proceed, '
+                'these will be discarded. To save changes to your mask, use the Set '
+                'button in the Mask Creation section. Are you sure you want to '
+                'exit the masking panel?')
+            dlg = wx.MessageDialog(self, msg, 'Unsaved Mask Changes',
+                style=wx.YES_NO|wx.NO_DEFAULT|wx.ICON_EXCLAMATION)
+
+            result = dlg.ShowModal()
+
+            if result == wx.ID_NO:
+                return
+
         self.image_panel.stopMaskCreation()
-        wx.CallAfter(self._main_frame.closeMaskingPane)
         wx.CallAfter(self.image_panel.clearAllMasks)
+        wx.CallAfter(self._main_frame.closeMaskingPane)
         wx.CallAfter(self.image_panel.removeCenterPatch)
+        self.mask_modified = False
+        return
 
     def updateView(self):
         wx.CallAfter(self.image_panel.clearPatches)

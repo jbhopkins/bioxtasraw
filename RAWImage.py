@@ -659,6 +659,7 @@ class ImagePanel(wx.Panel):
                 masking_panel = wx.FindWindowByName('MaskingPanel')
                 selected_mask = masking_panel.selector_choice.GetStringSelection()
                 mask_key = masking_panel.mask_choices[selected_mask]
+                masking_panel.mask_modified = True
 
                 if mask_key == 'TransparentBSMask':
                     start_negative = True
@@ -690,6 +691,9 @@ class ImagePanel(wx.Panel):
                         if each.id == self.plot_parameters['storedMasks'][idx].getId():
                             self.plot_parameters['storedMasks'].pop(idx)
                             break
+
+                    masking_panel = wx.FindWindowByName('MaskingPanel')
+                    masking_panel.mask_modified = True
 
             self.plotStoredMasks()
 
@@ -773,8 +777,12 @@ class ImagePanel(wx.Panel):
 
         if id == 1:
             self._selected_patch.mask.setAsPositiveMask()
+            masking_panel = wx.FindWindowByName('MaskingPanel')
+            masking_panel.mask_modified = True
         elif id == 2:
             self._selected_patch.mask.setAsNegativeMask()
+            masking_panel = wx.FindWindowByName('MaskingPanel')
+            masking_panel.mask_modified = True
         elif id == 3:
             self._resizeMask()
 
@@ -839,6 +847,9 @@ class ImagePanel(wx.Panel):
 
                 new_points.append(new_points[0])
                 patch.set_xy(new_points)
+
+            masking_panel = wx.FindWindowByName('MaskingPanel')
+            masking_panel.mask_modified = True
 
             self.fig.gca().draw_artist(patch)
             self.canvas.blit(self.fig.gca().bbox)
@@ -1190,10 +1201,11 @@ class ImagePanel(wx.Panel):
             else:
                 start_negative = False
 
-            if (self._chosen_points_x[1]-self._chosen_points_x[0])**2+(self._chosen_points_y[1]-self._chosen_points_y[0])**2 > 0:
-                self.plot_parameters['storedMasks'].append( SASImage.CircleMask(  (self._chosen_points_x[0], self._chosen_points_y[0]),
-                                                                                  (self._chosen_points_x[1], self._chosen_points_y[1]),
-                                                                                   self._createNewMaskNumber(), self.img.shape, negative = start_negative))
+            if ((self._chosen_points_x[1]-self._chosen_points_x[0])**2+
+                (self._chosen_points_y[1]-self._chosen_points_y[0])**2 > 0):
+                self.create_circ_mask(self._chosen_points_x, self._chosen_points_y,
+                    start_negative, False)
+
             self.untoggleAllToolButtons()
             self.stopMaskCreation()
 
@@ -1254,6 +1266,22 @@ class ImagePanel(wx.Panel):
             self.img.shape, negative=negative)
 
         self.plot_parameters['storedMasks'].append(new_mask)
+
+        masking_panel = wx.FindWindowByName('MaskingPanel')
+        masking_panel.mask_modified = True
+
+        if plot:
+            self.plotStoredMasks()
+
+    def create_circ_mask(self, x_points, y_points, negative, plot=True):
+        new_mask = SASImage.CircleMask((x_points[0], y_points[0]),
+            (x_points[1], y_points[1]), self._createNewMaskNumber(),
+            self.img.shape, negative=negative)
+
+        self.plot_parameters['storedMasks'].append(new_mask)
+
+        masking_panel = wx.FindWindowByName('MaskingPanel')
+        masking_panel.mask_modified = True
 
         if plot:
             self.plotStoredMasks()
