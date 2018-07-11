@@ -11112,11 +11112,18 @@ class MaskingPanel(wx.Panel):
         else:
             negative = False
 
-        r = float(self.circ_radius.GetValue())
-        x = float(self.circ_x.GetValue())
-        y = float(self.circ_y.GetValue())
+        try:
+            r = float(self.circ_radius.GetValue())
+            x = float(self.circ_x.GetValue())
+            y = float(self.circ_y.GetValue())
+        except Exception:
+            msg = ('Cannot create a circle mask. The radius and center x and '
+                'y positions must be numbers.')
+            wx.MessageBox(msg, 'Failed to create mask', style=wx.ICON_EXCLAMATION)
+            return
 
         self.image_panel.create_circ_mask((x, x+r), (y, y), negative)
+        return
 
     def _on_create_rectangle(self, event):
         selected_mask = self.selector_choice.GetStringSelection()
@@ -11126,12 +11133,19 @@ class MaskingPanel(wx.Panel):
         else:
             negative = False
 
-        x = float(self.rect_x.GetValue())
-        y = float(self.rect_y.GetValue())
-        w = float(self.rect_width.GetValue())
-        h = float(self.rect_height.GetValue())
+        try:
+            x = float(self.rect_x.GetValue())
+            y = float(self.rect_y.GetValue())
+            w = float(self.rect_width.GetValue())
+            h = float(self.rect_height.GetValue())
+        except Exception:
+            msg = ('Cannot create a rectangle mask. The corner x and y '
+                'positions and the width and height must be numbers.')
+            wx.MessageBox(msg, 'Failed to create mask', style=wx.ICON_EXCLAMATION)
+            return
 
         self.image_panel.create_rect_mask((x, x+w), (y, y+h), negative)
+        return
 
     def _on_auto_pixel_mask(self, event):
         img = self.image_panel.img
