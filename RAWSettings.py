@@ -345,9 +345,9 @@ class RawGuiSettings:
                             'denssNElectrons'       : ['', wx.NewId(), 'text'],
                             'denssSteps'            : [10000, wx.NewId(), 'int'],
                             'denssLimitDmax'        : [False, wx.NewId(), 'bool'],
-                            'denssDmaxStartStep'    : [500, wx.NewId(), 'int'],
+                            'denssLimitDmaxStep'    : ['[500]', wx.NewId(), 'text'],
                             'denssRecenter'         : [True, wx.NewId(), 'bool'],
-                            'denssRecenterStep'     : ['[1001,1501,3001,5001,6001,7001,8001]', wx.NewId(), 'text'],
+                            'denssRecenterStep'     : ['%s' %(range(1001, 8002, 500)), wx.NewId(), 'text'],
                             'denssPositivity'       : [True, wx.NewId(), 'bool'],
                             'denssExtrapolate'      : [True, wx.NewId(), 'bool'],
                             'denssShrinkwrap'       : [True, wx.NewId(), 'bool'],
@@ -370,6 +370,8 @@ class RawGuiSettings:
                             'denssMode'             : ['Slow', wx.NewId(), 'choice'],
                             'denssRecenterMode'     : ['com', wx.NewId(), 'choice'],
                             'denssEnantiomer'       : [True, wx.NewId(), 'bool'],
+                            'denssMinDensity'       : ['None', wx.NewId(), 'text'],
+                            'denssMaxDensity'       : ['None', wx.NewId(), 'text'],
 
                             }
 

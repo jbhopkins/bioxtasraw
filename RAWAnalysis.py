@@ -5890,10 +5890,16 @@ class DenssRunPanel(wx.Panel):
         if self.iftm.getParameter('algorithm') == 'GNOM':
             q = self.iftm.q_extrap
             I = self.iftm.i_extrap
+
+            ext_pts = len(I)-len(self.iftm.i_orig)
+            sigq =np.empty_like(I)
+            sigq[:ext_pts] = I[:ext_pts]*np.mean((self.iftm.err_orig[:10]/self.iftm.i_orig[:10]))
+            sigq[ext_pts:] = I[ext_pts:]*(self.iftm.err_orig/self.iftm.i_orig)
         else:
             q = self.iftm.q_orig
             I = self.iftm.i_fit
-        sigq = I*np.mean((self.iftm.err_orig/self.iftm.i_orig))
+            sigq = I*(self.iftm.err_orig/self.iftm.i_orig)
+
         D = self.iftm.getParameter('dmax')
 
         for key in self.denss_ids:
@@ -6003,7 +6009,7 @@ class DenssRunPanel(wx.Panel):
             self.denss_settings['oversample'] = temp_settings.get('denssOversampling')
             self.denss_settings['steps'] = temp_settings.get('denssSteps')
             self.denss_settings['limitDmax'] = temp_settings.get('denssLimitDmax')
-            self.denss_settings['dmaxStep'] = temp_settings.get('denssDmaxStartStep')
+            self.denss_settings['dmaxStep'] = temp_settings.get('denssLimitDmaxStep')
             self.denss_settings['recenter'] = temp_settings.get('denssRecenter')
             self.denss_settings['recenterStep'] = temp_settings.get('denssRecenterStep')
             self.denss_settings['positivity'] = temp_settings.get('denssPositivity')
@@ -6021,11 +6027,13 @@ class DenssRunPanel(wx.Panel):
             self.denss_settings['cutOutput'] = temp_settings.get('denssCutOut')
             self.denss_settings['writeXplor'] = temp_settings.get('denssWriteXplor')
             self.denss_settings['recenterMode'] = temp_settings.get('denssRecenterMode')
+            self.denss_settings['minRho'] = temp_settings.get('denssMinDensity')
+            self.denss_settings['maxRho'] = temp_settings.get('denssMaxDensity')
 
         if self.denss_settings['mode'] == 'Fast':
             self.denss_settings['swMinStep'] = 1000
             self.denss_settings['conSteps'] = '[2000]'
-            self.denss_settings['recenterStep'] = '[501,1001,1501,2001,2501]'
+            self.denss_settings['recenterStep'] = '%s' %(range(501,2502,500))
             self.denss_settings['steps'] = 5000
             D = float(self.iftm.getParameter('dmax'))
             self.denss_settings['voxel'] = D*self.denss_settings['oversample']/32.
@@ -6033,7 +6041,7 @@ class DenssRunPanel(wx.Panel):
         elif self.denss_settings['mode'] == 'Slow':
             self.denss_settings['swMinStep'] = 5000
             self.denss_settings['conSteps'] = '[6000]'
-            self.denss_settings['recenterStep'] = '[1001,1501,3001,5001,6001,7001,8001]'
+            self.denss_settings['recenterStep'] = '%s' %(range(501,2502,500))
             self.denss_settings['steps'] = 10000
             D = float(self.iftm.getParameter('dmax'))
             self.denss_settings['voxel'] = D*self.denss_settings['oversample']/64.
@@ -6201,43 +6209,10 @@ class DenssRunPanel(wx.Panel):
 
         den_filelist = [prefix+'_%s.mrc' %(str(i).zfill(2)) for i in range(1, nruns+1)]
 
-        eman_proc, out1 = SASCalc.runEman2PreAver(den_filelist, procs, prefix, path, self.raw_settings.get('EMAN2Dir'))
+        stacks_output, conv_output = SASCalc.runEman2PreEnant(den_filelist, procs, prefix, path, self.raw_settings.get('EMAN2Dir'))
 
-        wx.CallAfter(enantWindow.AppendText, out1)
-
-        eman_q = Queue.Queue()
-        readout_t = threading.Thread(target=enqueue_output, args=(eman_proc.stdout, eman_q))
-        readout_t.daemon = True
-        readout_t.start()
-
-        #Send the eman2 output to the screen.
-        while eman_proc.poll() is None:
-            if self.abort_event.is_set():
-                eman_proc.terminate()
-                wx.CallAfter(enantWindow.AppendText, 'Aborted!\n')
-                return
-
-            try:
-                new_text = eman_q.get_nowait()
-                new_text = new_text[0]
-                wx.CallAfter(enantWindow.AppendText, new_text)
-            except Queue.Empty:
-                pass
-            time.sleep(0.001)
-
-        time.sleep(2)
-        with read_semaphore: #see if there's any last data that we missed
-            try:
-                new_text = eman_q.get_nowait()
-                new_text = new_text[0]
-
-                wx.CallAfter(enantWindow.AppendText, new_text)
-            except Queue.Empty:
-                pass
-
-        bt_dir = glob.glob(os.path.join(path, '%s_bt_ref_*' %(prefix)))[-1]
-        shutil.move(os.path.join(bt_dir, 'final_avg.hdf'), os.path.join(path, '%s_reference.hdf' %(prefix)))
-        shutil.rmtree(bt_dir)
+        wx.CallAfter(enantWindow.AppendText, stacks_output)
+        wx.CallAfter(enantWindow.AppendText, conv_output)
 
         for den_file in den_filelist:
 
@@ -6306,7 +6281,7 @@ class DenssRunPanel(wx.Panel):
             for fname in rot_names:
                 os.remove(os.path.join(path, fname))
 
-            os.remove(os.path.join(path, '%s_xyzstack.hdf' %(df_prefix)))
+            os.remove(os.path.join(path, '%s_ali2xyz_all.hdf' %(df_prefix)))
 
             if os.path.exists(os.path.join(path, '%s_enant_ali' %(prefix))) and os.path.isdir(os.path.join(path, '%s_enant_ali' %(prefix))):
                 shutil.rmtree(os.path.join(path, '%s_enant_ali' %(prefix)), ignore_errors=True)
@@ -6441,7 +6416,7 @@ class DenssRunPanel(wx.Panel):
                             'electrons'     : self.raw_settings.get('denssNElectrons'),
                             'steps'         : self.raw_settings.get('denssSteps'),
                             'limitDmax'     : self.raw_settings.get('denssLimitDmax'),
-                            'dmaxStep'      : self.raw_settings.get('denssDmaxStartStep'),
+                            'dmaxStep'      : self.raw_settings.get('denssLimitDmaxStep'),
                             'recenter'      : self.raw_settings.get('denssRecenter'),
                             'recenterStep'  : self.raw_settings.get('denssRecenterStep'),
                             'positivity'    : self.raw_settings.get('denssPositivity'),
@@ -6464,6 +6439,8 @@ class DenssRunPanel(wx.Panel):
                             'mode'          : self.raw_settings.get('denssMode'),
                             'recenterMode'  : self.raw_settings.get('denssRecenterMode'),
                             'enant'         : self.raw_settings.get('denssEnantiomer'),
+                            'minRho'        : self.raw_settings.get('denssMinDensity'),
+                            'maxRho'        : self.raw_settings.get('denssMaxDensity'),
                             }
 
 
@@ -6932,10 +6909,15 @@ class DenssPlotPanel(wx.Panel):
         if self.iftm.getParameter('algorithm') == 'GNOM':
             q = self.iftm.q_extrap
             I = self.iftm.i_extrap
+
+            ext_pts = len(I)-len(self.iftm.i_orig)
+            sigq = np.empty_like(I)
+            sigq[:ext_pts] = I[:ext_pts]*np.mean((self.iftm.err_orig[:10]/self.iftm.i_orig[:10]))
+            sigq[ext_pts:] = I[ext_pts:]*(self.iftm.err_orig/self.iftm.i_orig)
         else:
             q = self.iftm.q_orig
             I = self.iftm.i_fit
-        sigq = I*np.mean((self.iftm.err_orig/self.iftm.i_orig))
+            sigq = I*(self.iftm.err_orig/self.iftm.i_orig)
         #handle sigq values whose error bounds would go negative and be missing on the log scale
         sigq2 = np.copy(sigq)
         sigq2[sigq>I] = I[sigq>I]*.999
@@ -6959,7 +6941,7 @@ class DenssPlotPanel(wx.Panel):
         ax0.set_ylim([0.5*ymin,1.5*ymax])
         ax0.legend(handles,labels, fontsize='small')
         ax0.semilogy()
-        ax0.set_ylabel('log I(q)', fontsize='small')
+        ax0.set_ylabel('I(q)', fontsize='small')
         ax0.tick_params(labelbottom='off', labelsize='x-small')
 
         ax1 = fig.add_subplot(gs[1])

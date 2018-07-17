@@ -1857,7 +1857,10 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
 
     This function is modified from that in the DENSS source code, released here:
     https://github.com/tdgrant1/denss
-    That code was released under GPL V3. The original author is Thomas Grant."""
+    That code was released under GPL V3. The original author is Thomas Grant.
+
+    Updated to commit 0d4f1db on 7/12/18
+    """
 
     #Get settings
     if denss_settings['electrons'] != '':
@@ -1870,7 +1873,7 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     voxel = float(denss_settings['voxel'])
     oversampling = float(denss_settings['oversample'])
     limit_dmax = denss_settings['limitDmax']
-    dmax_start_step = int(denss_settings['dmaxStep'])
+    dmax_step = ast.literal_eval(denss_settings['dmaxStep'])
     recenter = denss_settings['recenter']
     recenter_steps = ast.literal_eval(denss_settings['recenterStep'])
     positivity = denss_settings['positivity']
@@ -1889,6 +1892,14 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     cutout = denss_settings['cutOutput']
     writeXplor = denss_settings['writeXplor']
     recenter_mode = denss_settings['recenterMode']
+    try:
+        rho_min = float(denss_settings['minRho'])
+    except Exception:
+        rho_min = None
+    try:
+        rho_max = float(denss_settings['maxRho'])
+    except Exception:
+        rho_max = None
 
 
     write = True
@@ -1943,7 +1954,7 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     qbins = np.linspace(0,nbins*qstep,nbins+1)
     #create modified qbins and put qbins in center of bin rather than at left edge of bin.
     qbinsc = np.copy(qbins)
-    qbinsc += qstep/2.
+    qbinsc[1:] += qstep/2.
 
     #create an array labeling each voxel according to which qbin it belongs
     qbin_labels = np.searchsorted(qbins, qr, 'right')
@@ -1953,7 +1964,7 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     qdata = qbinsc[np.where( (qbinsc>=q.min()) & (qbinsc<=q.max()) )]
     Idata = np.interp(qdata,q,I)
     if extrapolate:
-        qextend = qbinsc[np.where(qbinsc>=qdata.max())]
+        qextend = qbinsc[qbinsc>=qdata.max()]
         Iextend = qextend**-4
         Iextend = Iextend/Iextend[0] * Idata[-1]
         qdata = np.concatenate((qdata,qextend[1:]))
@@ -1962,6 +1973,13 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     #create list of qbin indices just in region of data for later F scaling
     qbin_args = np.in1d(qbinsc, qdata, assume_unique=True)
     sigqdata = np.interp(qdata, q, sigq)
+
+    if ne is not None:
+        scale_factor = ne**2/Idata[0]
+    else:
+        scale_factor = 1
+    Idata = Idata*scale_factor
+    sigqdata = sigqdata*scale_factor
     Imean = np.zeros((steps+1, len(qbins)))
     chi = np.zeros((steps+1))
     rg = np.zeros((steps+1))
@@ -1979,6 +1997,14 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     rho = prng.random_sample(size=x.shape)
 
     sigma = shrinkwrap_sigma_start
+    #convert density values to absolute number of electrons
+    #since FFT and rho given in electrons, not density, until converted at the end
+    if rho_min is not None:
+        rho_min *= dV
+        #print rho_min
+    if rho_max is not None:
+        rho_max *= dV
+        #print rho_max
 
     #Do some initial logging
     my_logger.info('BEGIN')
@@ -2060,6 +2086,19 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
             if np.sum(newrho) != 0:
                 newrho *= netmp / np.sum(newrho)
 
+        #allow further bounds on density, rather than just positivity
+        if rho_min is not None:
+            netmp = np.sum(newrho)
+            newrho[newrho<rho_min] = rho_min
+            if np.sum(newrho) != 0:
+                newrho *= netmp / np.sum(newrho)
+
+        if rho_max is not None:
+            netmp = np.sum(newrho)
+            newrho[newrho>rho_max] = rho_max
+            if np.sum(newrho) != 0:
+                newrho *= netmp / np.sum(newrho)
+
         #update support using shrinkwrap method
         if recenter and j in recenter_steps:
             if recenter_mode == "max":
@@ -2094,7 +2133,7 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
                 #remove features from the support that are not the primary feature
                 support[labeled_support != big_feature] = False
 
-        if limit_dmax and j > dmax_start_step:
+        if limit_dmax and j > dmax_step:
             support[r>0.6*D] = False
 
             if np.sum(support) <= 0:
@@ -2108,13 +2147,13 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
             rho = newrho
             F = np.fft.fftn(rho)
             break
-        else:
-            rho = newrho
-            F = np.fft.fftn(rho)
 
+        rho = newrho
+
+    F = np.fft.fftn(rho)
     #calculate spherical average intensity from 3D Fs
     Imean[j+1] = ndimage.mean(np.abs(F)**2, labels=qbin_labels, index=np.arange(0, qbin_labels.max()+1))
-    chi[j+1] = np.sum(((Imean[j+1,qbin_args]-Idata)/sigqdata)**2)/qbin_args.size
+    #chi[j+1] = np.sum(((Imean[j+1,qbin_args]-Idata)/sigqdata)**2)/qbin_args.size
 
     #scale Fs to match data
     factors = np.ones((len(qbins)))
@@ -2183,13 +2222,18 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     # #Final output logging and write the log to a file
     my_logger.info('FINISHED DENSITY REFINEMENT')
     my_logger.info('Number of steps: %i', j)
-    my_logger.info('Final Chi2: %.3e', chi[j+1])
+    my_logger.info('Final Chi2: %.3e', chi[j])
     my_logger.info('Final Rg: %3.3f', rg[j+1])
     my_logger.info('Final Support Volume: %3.3f', supportV[j+1])
     my_logger.info('END')
     my_fh.close()
 
-    return qdata, Idata, sigqdata, qbinsc, Imean[j+1], chi, rg, supportV
+    #return original unscaled values of Idata (and therefore Imean) for comparison with real data
+    Idata /= scale_factor
+    sigqdata /= scale_factor
+    Imean /= scale_factor
+
+    return qdata, Idata, sigqdata, qbinsc, Imean[j], chi, rg, supportV
 
 def runDenss(q, I, sigq, D, prefix, path, comm_list, my_lock, thread_num_q,
     wx_queue, abort_event, denss_settings):
@@ -2343,7 +2387,7 @@ def runEman2xyz(denss_file, procs, prefix, path, emanDir):
     rot_fnames = [xyz_file, rotx_file, roty_file, '%s_z.hdf' %(xyz_fnp), rotxy_file,
         '%s_xz.hdf' %(xyz_fnp), '%s_yz.hdf' %(xyz_fnp), '%s_xyz.hdf' %(xyz_fnp)]
 
-    stack_cmd = py_cmd + '"%s" --stackname "%s_xyzstack.hdf"' %(stacks_py, df_prefix)
+    stack_cmd = py_cmd + '"%s" --stackname "%s_ali2xyz_all.hdf"' %(stacks_py, df_prefix)
 
     for fname in rot_fnames:
         stack_cmd = stack_cmd + ' "%s"' %(fname)
@@ -2372,8 +2416,9 @@ def runEman2Align(denss_file, procs, prefix, path, emanDir):
 
     os.mkdir(align_dir)
 
-    align_cmd = py_cmd + ('"%s" --path="%s" --threads %s -v 5 "%s_xyzstack.hdf" "%s_reference.hdf"'
+    align_cmd = py_cmd + ('"%s" --path="%s" --threads %s -v 5 "%s_ali2xyz_all.hdf" "%s_reference.hdf"'
         %(align_py, align_dir, procs, df_prefix, prefix))
+
     align_process = subprocess.Popen(align_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
 
     return align_process
@@ -2400,6 +2445,9 @@ def runEman2PreAver(flist, procs, prefix, path, emanDir):
     else:
         return
 
+    if error is not None:
+        stacks_output = stacks_output + error
+
     #Then we generate a first guess model
     bt_py = os.path.join(emanDir, 'e2spt_binarytree.py')
 
@@ -2410,6 +2458,52 @@ def runEman2PreAver(flist, procs, prefix, path, emanDir):
         return process, stacks_output
     else:
         return
+
+def runEman2PreEnant(flist, procs, prefix, path, emanDir):
+    eman_python, my_env, shebang_env = getEman2Paths(emanDir)
+
+    #First we stack
+    stacks_py = os.path.join(emanDir, 'e2buildstacks.py')
+
+    if shebang_env:
+        py_cmd = '%s ' %(eman_python)
+    else:
+        py_cmd = '"%s" ' %(eman_python)
+
+    if os.path.exists(stacks_py):
+        stacks_cmd = py_cmd + '"%s" --stackname "%s_stack.hdf"' %(stacks_py, prefix)
+
+        for item in flist:
+            stacks_cmd = stacks_cmd + ' "%s"' %(item)
+
+        process = subprocess.Popen(stacks_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
+        stacks_output, stacks_error = process.communicate()
+
+    else:
+        return
+
+    #Then convert the first density to be used as a reference:
+    convert_py = os.path.join(emanDir, 'e2proc3d.py')
+
+    if os.path.exists(convert_py):
+        convert_cmd = convert_py + ' "%s" %s_reference.hdf' %(flist[0], prefix)
+        process = subprocess.Popen(convert_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
+        conv_output, conv_error = process.communicate()
+
+    else:
+        return
+
+    if stacks_error is not None:
+        st_out = stacks_output + stacks_error
+    else:
+        st_out = stacks_output
+
+    if conv_error is not None:
+        st_out = conv_output + conv_error
+    else:
+        conv_out = conv_output
+
+    return st_out, conv_out
 
 def runEman2Convert(prefix, path, emanDir):
     eman_python, my_env, shebang_env = getEman2Paths(emanDir)
@@ -2426,7 +2520,7 @@ def runEman2Convert(prefix, path, emanDir):
     if os.path.exists(convert_py):
         convert_cmd = py_cmd + '"%s" final_avg_ali2ref.hdf "%s_aver.mrc"' %(convert_py, prefix)
 
-        process=subprocess.Popen(convert_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=aver_dir)
+        process = subprocess.Popen(convert_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=aver_dir)
         stacks_output, error = process.communicate()
 
         if os.path.exists(os.path.join(path, '%s_avg.mrc' %(prefix))):
