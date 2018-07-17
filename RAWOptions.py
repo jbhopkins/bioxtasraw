@@ -3735,11 +3735,12 @@ class DenssPanel(wx.Panel):
             'denssShrinkwrapSigmaEnd', 'denssShrinkwrapSigmaDecay',
             'denssShrinkwrapThresFrac', 'denssShrinkwrapIter', 'denssChiEndFrac',
             'denssMode', 'denssSteps', 'denssVoxel', 'denssOversampling',
-            'denssLimitDmax', 'denssDmaxStartStep', 'denssRecenter',
+            'denssLimitDmax', 'denssLimitDmaxStep', 'denssRecenter',
             'denssRecenterStep', 'denssPositivity', 'denssShrinkwrap',
             'denssShrinkwrapMinStep', 'denssConnected', 'denssConnectivitySteps',
             'denssWriteXplor', 'denssCutOut', 'autoFindEMAN2', 'EMAN2Dir',
-            'denssRecenterMode', 'denssEnantiomer',
+            'denssRecenterMode', 'denssEnantiomer', 'denssMinDensity',
+            'denssMaxDensity',
             ]
 
         modeChoices = ['Fast', 'Slow', 'Custom']
@@ -3758,14 +3759,16 @@ class DenssPanel(wx.Panel):
             ("Minimum threshold defining support, in fraction of maximum density (default 0.20):", raw_settings.getId('denssShrinkwrapThresFrac'), 'float'),
             ("Number of iterations between updating support with shrinkwrap (default 20):", raw_settings.getId('denssShrinkwrapIter'), 'int'),
             ("Convergence criterion. Minimum threshold of chi2 std dev, as a fraction \nof the median chi2 of last 100 steps. (default 0.001):", raw_settings.getId('denssChiEndFrac'), 'float'),
-            ('Recenter mode (center of mass - com; maximum density - max)', raw_settings.getId('denssRecenterMode'), 'choice', recenterChoices),
+            ('Recenter mode (center of mass - com; maximum density - max):', raw_settings.getId('denssRecenterMode'), 'choice', recenterChoices),
+            ('Minimum density (e-/angstrom^3, must also set number of electrons):', raw_settings.getId('denssMinDensity'), 'text'),
+            ('Maximum density (e-/angstrom^3, must also set number of electrons):', raw_settings.getId('denssMaxDensity'), 'text'),
             )
 
         self.custom_options_short = (('Number of iterations:', raw_settings.getId('denssSteps'), 'int'),
             ('Voxel size [A]:', raw_settings.getId('denssVoxel'), 'float'),
             ('Oversampling:', raw_settings.getId('denssOversampling'), 'float'),
             ("Limit vol. to 0.6*Dmax", raw_settings.getId('denssLimitDmax'), 'bool'),
-            ('Dmax limit starts at step:', raw_settings.getId('denssDmaxStartStep'), 'int'),
+            ('Dmax limit at steps:', raw_settings.getId('denssLimitDmaxStep'), 'text'),
             ('Recenter density', raw_settings.getId('denssRecenter'), 'bool'),
             ('Recenter density at steps:', raw_settings.getId('denssRecenterStep'), 'text'),
             ('Enforce positivity', raw_settings.getId('denssPositivity'), 'bool'),
