@@ -2256,13 +2256,11 @@ class MainWorkerThread(threading.Thread):
     def _onlineModeUpdate(self, data):
         filename = data[0]
 
-        img_fmt = self._raw_settings.get('ImageFormat')
-
         try:
             if not os.path.isfile(filename):
                 raise SASExceptions.WrongImageFormat('not a valid file!')
 
-            img, imghdr = SASFileIO.loadImage(filename, img_fmt)
+            img, imghdr = SASFileIO.loadImage(filename, self._raw_settings)
 
             if img[-1] == None:
                 raise SASExceptions.WrongImageFormat('not a valid file!')
@@ -3414,8 +3412,6 @@ class MainWorkerThread(threading.Thread):
 
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while loading image...')
 
-        img_fmt = self._raw_settings.get('ImageFormat')
-
         path = self.dir_panel.file_list_box.path
         dir = sorted(os.listdir(path))
 
@@ -3445,7 +3441,7 @@ class MainWorkerThread(threading.Thread):
             try:
                 img = None
                 if self._fileTypeIsCompatible(next_file_path):
-                    img, imghdr = SASFileIO.loadImage(next_file_path, img_fmt)
+                    img, imghdr = SASFileIO.loadImage(next_file_path, self._raw_settings)
 
                 if img is not None:
                     parameters = {'filename' : os.path.split(next_file_path)[1],
@@ -3481,13 +3477,12 @@ class MainWorkerThread(threading.Thread):
 
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while loading image...')
 
-        img_fmt = self._raw_settings.get('ImageFormat')
         print filename
         try:
             if not os.path.isfile(filename):
                 raise SASExceptions.WrongImageFormat('not a valid file!')
 
-            img, imghdr = SASFileIO.loadImage(filename, img_fmt)
+            img, imghdr = SASFileIO.loadImage(filename, self._raw_settings)
 
             if img is None:
                 raise SASExceptions.WrongImageFormat('not a valid file!')

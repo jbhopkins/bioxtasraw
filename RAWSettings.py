@@ -87,6 +87,8 @@ class RawGuiSettings:
 
                             'UseHeaderForMask': [False, wx.NewId(), 'bool'],
                             'DetectorFlipped90':[False, wx.NewId(), 'bool'],
+                            'DetectorFlipLR' : [True, wx.NewId(), 'bool'],
+                            'DetectorFlipUD' : [False, wx.NewId(), 'bool'],
 
                             #CORRECTIONS
                             'DoSolidAngleCorrection' : [True, wx.NewId(), 'bool'],

@@ -117,8 +117,6 @@ def loadFabio(filename):
         data = fabio_img.data
         hdr = fabio_img.getheader()
 
-        data = np.fliplr(data)
-
         img = [data]
         img_hdr = [hdr]
 
@@ -126,19 +124,13 @@ def loadFabio(filename):
         img = [None for i in range(fabio_img.nframes)]
         img_hdr = [None for i in range(fabio_img.nframes)]
 
-        data = fabio_img.data
-        hdr = fabio_img.getheader()
-
-        img[0] = np.fliplr(data)
-        img_hdr[0] = hdr
+        img[0] = fabio_img.data
+        img_hdr[0] = fabio_img.getheader()
 
         for i in range(1,fabio_img.nframes):
             fabio_img = fabio_img.next()
-            data = fabio_img.data
-            hdr = fabio_img.getheader()
-
-            img[i] = np.fliplr(data)
-            img_hdr[i] = hdr
+            img[i] = fabio_img.data
+            img_hdr[i] = fabio_img.getheader()
 
     return img, img_hdr
 
@@ -911,7 +903,7 @@ all_image_types = {
 def loadAllHeaders(filename, image_type, header_type, raw_settings):
     ''' returns the image header and the info from the header file only. '''
 
-    img, imghdr = loadImage(filename, image_type)
+    img, imghdr = loadImage(filename, raw_settings)
 
     if len(img) > 1:
         temp_filename = os.path.split(filename)[1].split('.')
@@ -970,9 +962,13 @@ def loadHeader(filename, new_filename, header_type):
 
     return hdr
 
-def loadImage(filename, image_type):
+def loadImage(filename, raw_settings):
     ''' returns the loaded image based on the image filename
     and image type. '''
+    image_type = raw_settings.get('ImageFormat')
+    fliplr = raw_settings.get('DetectorFlipLR')
+    flipud = raw_settings.get('DetectorFlipUD')
+
     try:
         img, imghdr = all_image_types[image_type](filename)
     except (ValueError, TypeError, KeyError, fabio.fabioutils.NotGoodReader, Exception) as msg:
@@ -990,6 +986,13 @@ def loadImage(filename, image_type):
             hdr = {key.replace(' ', '_').translate(None, '()[]') if isinstance(key, str) else key: hdr[key] for key in hdr}
             hdr = { key : unicode(hdr[key], errors='ignore') if isinstance(hdr[key], str) else hdr[key] for key in hdr}
 
+
+    if image_type != 'SASLab300':
+        for i in range(len(img)):
+            if fliplr:
+                img[i] = np.fliplr(img[i])
+            if flipud:
+                img[i] = np.flipud(img[i])
     return img, imghdr
 
 #################################
@@ -1107,7 +1110,7 @@ def loadImageFile(filename, raw_settings):
     img_fmt = raw_settings.get('ImageFormat')
     hdr_fmt = raw_settings.get('ImageHdrFormat')
 
-    loaded_data, loaded_hdr = loadImage(filename, img_fmt)
+    loaded_data, loaded_hdr = loadImage(filename, raw_settings)
 
     sasm_list = [None for i in range(len(loaded_data))]
 
@@ -1115,7 +1118,7 @@ def loadImageFile(filename, raw_settings):
     if raw_settings.get('NormFlatfieldEnabled'):
         flatfield_filename = raw_settings.get('NormFlatfieldFile')
         if flatfield_filename is not None:
-            flatfield_img, flatfield_img_hdr = loadImage(flatfield_filename, img_fmt)
+            flatfield_img, flatfield_img_hdr = loadImage(flatfield_filename, raw_settings)
             flatfield_hdr = loadHeader(flatfield_filename, flatfield_filename, hdr_fmt)
             flatfield_img = np.average(flatfield_img, axis=0)
 

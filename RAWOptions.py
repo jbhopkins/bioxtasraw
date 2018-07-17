@@ -2002,12 +2002,17 @@ class GeneralOptionsPanel(wx.Panel):
 
         self.raw_settings = raw_settings
 
-        self.update_keys = ['ManipItemCollapsed', 'DatHeaderOnTop', 'UseHeaderForMask', 'DetectorFlipped90', 'OnlineModeOnStartup', 'OnlineStartupDir']# 'PromptConfigLoad']
+        self.update_keys = ['ManipItemCollapsed', 'DatHeaderOnTop',
+            'UseHeaderForMask', 'DetectorFlipped90', 'OnlineModeOnStartup',
+            'OnlineStartupDir', 'DetectorFlipLR', 'DetectorFlipUD',
+            ]# 'PromptConfigLoad']
 
         self.chkboxdata = [('Hide controls on manipulation items for new plots', raw_settings.getId('ManipItemCollapsed')),
                            ('Write header on top of dat files', raw_settings.getId('DatHeaderOnTop')),
                            ('Use header for mask creation (SAXSLAB instruments)', raw_settings.getId('UseHeaderForMask')),
                            ('Detector is rotated 90 degrees (SAXSLAB instruments)', raw_settings.getId('DetectorFlipped90')),
+                           ('Flip detector image left-right (non-SAXSLAB)', raw_settings.getId('DetectorFlipLR')),
+                           ('Flip detector image up-down (non-SAXSLAB)', raw_settings.getId('DetectorFlipUD')),
                            #('Prompt for config load on startup', raw_settings.getId('PromptConfigLoad')),
                            ('Start online mode on startup', raw_settings.getId('OnlineModeOnStartup'))]
 
