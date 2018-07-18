@@ -57,8 +57,6 @@ import scipy.stats as stats
 from scipy.interpolate import interp1d
 import scipy.optimize
 
-from numba import jit
-
 import RAWSettings
 import RAWCustomCtrl
 import SASCalc

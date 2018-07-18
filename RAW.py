@@ -38,6 +38,7 @@ import itertools
 import traceback
 import scipy.constants
 import multiprocessing
+from collections import OrderedDict, defaultdict
 
 import hdf5plugin #HAS TO BE FIRST
 import numpy as np
@@ -49,8 +50,6 @@ import wx.aui as aui
 import wx.lib.dialogs
 import matplotlib.colors as mplcol
 import pyFAI, pyFAI.calibrant, pyFAI.peak_picker
-
-from collections import OrderedDict, defaultdict
 
 import SASFileIO
 import SASM

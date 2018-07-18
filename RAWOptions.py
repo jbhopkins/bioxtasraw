@@ -21,7 +21,7 @@ Created on Aug 2, 2010
 #
 #******************************************************************************
 '''
-import wx
+
 import re
 import sys
 import os
@@ -30,13 +30,16 @@ import math
 import Queue
 import copy
 import subprocess
-import wx.lib.agw.customtreectrl as CT
-#import wx.lib.agw.floatspin as FS
-import RAWSettings, RAWCustomCtrl
-from numpy import ceil
 import platform
 import glob
 
+import wx
+import wx.lib.agw.customtreectrl as CT
+from numpy import ceil
+
+
+import RAWSettings
+import RAWCustomCtrl
 import SASFileIO
 import SASParser
 import SASExceptions
