@@ -197,24 +197,6 @@ class ArtifactOptionsPanel(wx.Panel):
 
         return chkbox_sizer
 
-    def createChkBoxSettings(self):
-
-        box = wx.StaticBox(self, -1, 'Automation')
-        chkbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        chkboxgrid_sizer = wx.GridSizer(rows = len(self.chkboxData), cols = 1)
-
-        for each_label, id in self.chkboxData:
-
-            if each_label != None:
-                chkBox = wx.CheckBox(self, id, each_label)
-                chkBox.Bind(wx.EVT_CHECKBOX, self.onChkBox)
-                chkboxgrid_sizer.Add(chkBox, 1, wx.EXPAND)
-
-
-        chkbox_sizer.Add(chkboxgrid_sizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
-
-        return chkbox_sizer
-
     def onChkBox(self, event):
         pass
 
@@ -1784,7 +1766,7 @@ class ReductionNormalizationPanel(wx.Panel):
         calc_button.Bind(wx.EVT_BUTTON, self.onCalcButton)
 
         #ud_button_sizer = wx.BoxSizer(wx.VERTICAL)
-        ud_button_sizer = wx.FlexGridSizer(cols = 1, rows = 4, vgap = 3)
+        ud_button_sizer = wx.FlexGridSizer(cols=1, rows=4, vgap=3, hgap=0)
         ud_button_sizer.Add(self.up_button,1, wx.EXPAND)
         ud_button_sizer.Add(self.down_button, 1, wx.EXPAND)
         ud_button_sizer.Add(self.delete_button, 1, wx.EXPAND)
@@ -1944,7 +1926,7 @@ class OnlineModePanel(wx.Panel):
         add_button.Bind(wx.EVT_BUTTON, self.onAddButton)
 
         #ud_button_sizer = wx.BoxSizer(wx.VERTICAL)
-        ud_button_sizer = wx.FlexGridSizer(cols = 1, rows = 4, vgap = 3)
+        ud_button_sizer = wx.FlexGridSizer(cols=1, rows=4, vgap=3, hgap=0)
         ud_button_sizer.Add(self.up_button,1, wx.EXPAND)
         ud_button_sizer.Add(self.down_button, 1, wx.EXPAND)
         ud_button_sizer.Add(self.delete_button, 1, wx.EXPAND)
@@ -4212,7 +4194,8 @@ class PagePanel(wx.Panel):
 
         page_sizer = wx.BoxSizer(wx.VERTICAL)
         self.title_string = wx.StaticText(self, -1, '')
-        font = wx.Font(12, wx.DEFAULT, wx.NORMAL, wx.FONTWEIGHT_BOLD)
+        font = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL,
+            wx.FONTWEIGHT_BOLD)
         self.title_string.SetFont(font)
 
         page_sizer.Add(self.title_string, 0, wx.EXPAND | wx.ALL, 5)

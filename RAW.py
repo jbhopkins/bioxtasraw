@@ -23,7 +23,6 @@ Created on Sep 31, 2010
 '''
 import sys
 import os
-import wx
 import subprocess
 import time
 import threading
@@ -42,14 +41,24 @@ from collections import OrderedDict, defaultdict
 
 import hdf5plugin #HAS TO BE FIRST
 import numpy as np
+import matplotlib.colors as mplcol
+import pyFAI, pyFAI.calibrant, pyFAI.peak_picker
+import wx
 import wx.lib.scrolledpanel as scrolled
 import wx.lib.mixins.listctrl as listmix
 import wx.lib.buttons as wxbutton
 import wx.lib.agw.supertooltip as STT
 import wx.aui as aui
 import wx.lib.dialogs
-import matplotlib.colors as mplcol
-import pyFAI, pyFAI.calibrant, pyFAI.peak_picker
+
+if wx.version().split()[0].strip()[0] == '4':
+    import wx.adv
+    SplashScreen = wx.adv.SplashScreen
+    TaskBarIcon = wx.adv.TaskBarIcon
+else:
+    SplashScreen = wx.SplashScreen
+    TaskBarIcon = wx.TaskBarIcon
+
 
 import SASFileIO
 import SASM
@@ -5413,7 +5422,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
 
         a={"sm_up":"GO_UP","sm_dn":"GO_DOWN","w_idx":"WARNING","e_idx":"ERROR","i_idx":"QUESTION"}
         for k,v in a.items():
-            s="self.%s= self.il.Add(wx.ArtProvider_GetBitmap(wx.ART_%s,wx.ART_TOOLBAR,(16,16)))" % (k,v)
+            s="self.%s= self.il.Add(wx.ArtProvider.GetBitmap(wx.ART_%s,wx.ART_TOOLBAR,(16,16)))" % (k,v)
             exec(s)
 
         self.documentimg = self.il.Add(RAWIcons.document.GetBitmap())
@@ -6066,8 +6075,8 @@ class DirCtrlPanel(wx.Panel):
         self.bg_filename = []
 
     def _createExtentionBox(self):
-        self.dropdown = wx.ComboBox(self, style = wx.TE_PROCESS_ENTER)
-        self.dropdown.AppendItems(strings = self.file_extension_list)
+        self.dropdown = wx.ComboBox(self, style=wx.TE_PROCESS_ENTER,
+            choices=self.file_extension_list)
         self.dropdown.Select(n=0)
         self.dropdown.Bind(wx.EVT_COMBOBOX, self._onExtensionComboChoice)
         self.dropdown.Bind(wx.EVT_TEXT_ENTER, self._onExtensionComboEnterKey)
@@ -8229,7 +8238,7 @@ class IFTPanel(wx.Panel):
 
     def createButtons(self, panelsizer):
 
-        sizer = wx.GridSizer(cols = 3, rows = np.ceil(len(self.buttons)/3))
+        sizer = wx.GridSizer(cols=3, rows=np.ceil(len(self.buttons)/3), hgap=3, vgap=3)
 
         #sizer.Add((10,10) ,1 , wx.EXPAND)
         for each in self.buttons:
@@ -9317,7 +9326,7 @@ class SECPanel(wx.Panel):
 
     def createButtons(self, panelsizer):
 
-        sizer = wx.GridSizer(cols = 3, rows = np.ceil(len(self.buttons)/3))
+        sizer = wx.GridSizer(cols=3, rows=np.ceil(len(self.buttons)/3), hgap=3, vgap=3)
 
         #sizer.Add((10,10) ,1 , wx.EXPAND)
         for each in self.buttons:
@@ -10044,9 +10053,7 @@ class SECControlPanel(wx.Panel):
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         button_sizer.Add(select_button, 0, flag = wx.ALIGN_CENTER | wx.LEFT, border = 2)
-        button_sizer.AddSpacer((9,0))
-        button_sizer.Add(update_button, 0, flag = wx.ALIGN_CENTER)
-        button_sizer.AddSpacer((9,0))
+        button_sizer.Add(update_button, 0, border=9, flag=wx.ALIGN_CENTER|wx.LEFT|wx.RIGHT)
         button_sizer.Add(self.online_mode_button, 0, flag = wx.ALIGN_CENTER | wx.RIGHT, border = 2)
 
         load_sizer.Add(button_sizer, 1, wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, 2)
@@ -10090,8 +10097,7 @@ class SECControlPanel(wx.Panel):
         average_plot_button.Bind(wx.EVT_BUTTON, self._onAverageToMainPlot)
 
 
-        button_sizer.Add(frames_plot_button, 0, flag = wx.ALIGN_CENTER)
-        button_sizer.AddSpacer((9,0))
+        button_sizer.Add(frames_plot_button, 0, border=9, flag=wx.ALIGN_CENTER|wx.RIGHT)
         button_sizer.Add(average_plot_button, 0, flag = wx.ALIGN_CENTER)
 
         send_box = wx.StaticBox(self, -1, 'Data to main plot')
@@ -10915,9 +10921,8 @@ class MaskingPanel(wx.Panel):
             flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
 
         circ_sub_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        circ_sub_sizer2.AddSpacer((15,-1))
-        circ_sub_sizer2.Add(wx.StaticText(self, label='Radius:'),
-            flag=wx.ALIGN_CENTER_HORIZONTAL)
+        circ_sub_sizer2.Add(wx.StaticText(self, label='Radius:'), border=15,
+            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
         circ_sub_sizer2.Add(self.circ_radius, border=3,
             flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
         circ_sub_sizer2.Add(wx.StaticText(self, label='X cen.:'), border=3,
@@ -10947,8 +10952,7 @@ class MaskingPanel(wx.Panel):
             flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
 
         rect_sub_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        rect_sub_sizer2.AddSpacer((15,-1))
-        rect_sub_sizer2.Add(wx.StaticText(self, label='X1:'), border=3,
+        rect_sub_sizer2.Add(wx.StaticText(self, label='X1:'), border=15,
             flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
         rect_sub_sizer2.Add(self.rect_x, border=3,
             flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
@@ -11597,7 +11601,7 @@ class CenteringPanel(wx.Panel):
 
     def _createCenteringButtonsSizer(self):
 
-        buttonsizer = wx.FlexGridSizer(rows = 3, cols = 3)
+        buttonsizer = wx.FlexGridSizer(rows=3, cols=3, hgap=0, vgap=0)
 
         up_button = wx.BitmapButton(self, self.ID_UP, self.up_arrow_bmp)
         down_button = wx.BitmapButton(self,self.ID_DOWN, self.down_arrow_bmp)
@@ -12178,8 +12182,8 @@ class InformationPanel(wx.Panel):
             self.font_size1 = 8
             self.font_size2 = 10
 
-        self.used_font1 = wx.Font(self.font_size1, wx.SWISS, wx.NORMAL, wx.NORMAL)
-        self.used_font2 = wx.Font(self.font_size2, wx.SWISS, wx.NORMAL, wx.NORMAL)
+        self.used_font1 = wx.Font(self.font_size1, wx.FONTFAMILY_SWISS,
+            wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
 
         wx.Panel.__init__(self, parent, name = 'InformationPanel')
 
@@ -12707,7 +12711,7 @@ class MyApp(wx.App):
     #     self.BringWindowToFront().Raise()
 
 
-class MySplashScreen(wx.SplashScreen):
+class MySplashScreen(SplashScreen):
     """
         Create a splash screen widget.
     """
@@ -12716,10 +12720,13 @@ class MySplashScreen(wx.SplashScreen):
 
         aBitmap = RAWIcons.logo_atom.GetBitmap()
 
-        splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
+        if wx.version().split()[0].strip()[0] == '4':
+            splashStyle = wx.adv.SPLASH_CENTRE_ON_SCREEN | wx.adv.SPLASH_TIMEOUT
+        else:
+            splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
         splashDuration = 2000 # milliseconds
 
-        wx.SplashScreen.__init__(self, aBitmap, splashStyle, splashDuration, parent)
+        SplashScreen.__init__(self, aBitmap, splashStyle, splashDuration, parent)
 
         self.Bind(wx.EVT_CLOSE, self.OnExit)
 
@@ -12742,7 +12749,7 @@ class MySplashScreen(wx.SplashScreen):
         dlg.Show(True)
 
 
-class RawTaskbarIcon(wx.TaskBarIcon):
+class RawTaskbarIcon(TaskBarIcon):
     TBMENU_RESTORE = wx.Window.NewControlId()
     TBMENU_CLOSE   = wx.Window.NewControlId()
     TBMENU_CHANGE  = wx.Window.NewControlId()
@@ -12751,9 +12758,13 @@ class RawTaskbarIcon(wx.TaskBarIcon):
     #----------------------------------------------------------------------
     def __init__(self, frame):
         if platform.system() == 'Darwin':
-            wx.TaskBarIcon.__init__(self, iconType=wx.TBI_DOCK)
+            if wx.version().split()[0].strip()[0] == '4':
+                icontype = wx.adv.TBI_DOCK
+            else:
+                icontype = wx.TBI_DOCK
+            TaskBarIcon.__init__(self, iconType=icontype)
         else:
-            wx.TaskBarIcon.__init__(self)
+            TaskBarIcon.__init__(self)
         self.frame = frame
 
         # Set the image

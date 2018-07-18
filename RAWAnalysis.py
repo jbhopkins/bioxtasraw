@@ -443,7 +443,7 @@ class GuinierControlPanel(wx.Panel):
 
     def createInfoBox(self):
 
-        sizer = wx.FlexGridSizer(rows = len(self.infodata), cols = 2)
+        sizer = wx.FlexGridSizer(rows=len(self.infodata), cols=2, hgap=3, vgap=3)
 
         for key in self.infodata.iterkeys():
 
@@ -471,7 +471,7 @@ class GuinierControlPanel(wx.Panel):
 
     def createControls(self):
 
-        sizer = wx.FlexGridSizer(rows = 2, cols = 4)
+        sizer = wx.FlexGridSizer(rows=2, cols=4, hgap=0, vgap=2)
         sizer.AddGrowableCol(0)
         sizer.AddGrowableCol(1)
         sizer.AddGrowableCol(2)
@@ -3175,7 +3175,7 @@ class GNOMControlPanel(wx.Panel):
 
     def createControls(self):
 
-        sizer = wx.FlexGridSizer(rows = 2, cols = 4)
+        sizer = wx.FlexGridSizer(rows=2, cols=4, hgap=0, vgap=2)
         sizer.AddGrowableCol(0)
         sizer.AddGrowableCol(1)
         sizer.AddGrowableCol(2)
@@ -7381,7 +7381,7 @@ class BIFTControlPanel(wx.Panel):
         alphaSizer.Add(self.alphaWindow, 0, wx.RIGHT, 5)
 
 
-        sizer = wx.FlexGridSizer(rows = 3, cols = 3)
+        sizer = wx.FlexGridSizer(rows=3, cols=3, hgap=0, vgap=0)
 
         sizer.Add((0,0))
 

@@ -61,8 +61,8 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
         hdrInfoIcon   = RAWIcons.hdr.GetBitmap()
         ImgSetIcon    = RAWIcons.imgctrl.GetBitmap()
 
-        prevImgIcon = wx.ArtProvider_GetBitmap(wx.ART_GO_BACK,wx.ART_TOOLBAR,(32,32))
-        nextImgIcon = wx.ArtProvider_GetBitmap(wx.ART_GO_FORWARD,wx.ART_TOOLBAR,(32,32))
+        prevImgIcon = wx.ArtProvider.GetBitmap(wx.ART_GO_BACK,wx.ART_TOOLBAR,(32,32))
+        nextImgIcon = wx.ArtProvider.GetBitmap(wx.ART_GO_FORWARD,wx.ART_TOOLBAR,(32,32))
 
 
         self.AddSeparator()
