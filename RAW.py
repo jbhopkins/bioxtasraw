@@ -353,7 +353,7 @@ class MainFrame(wx.Frame):
         mainworker_cmd_queue.put([taskname, data])
 
     def closeBusyDialog(self):
-        self._busyDialog.Destroy()
+        del self._busyDialog
         self._busyDialog = None
 
     def showBusyDialog(self, text):
