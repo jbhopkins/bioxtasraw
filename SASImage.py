@@ -995,7 +995,7 @@ def pyFAIIntegrateCalibrateNormalize(img, parameters, x_cin, y_cin, raw_settings
     return sasm
 
 
-@jit(nopython=True, cache=True, parallel=True)
+@jit(nopython=True, cache=True, parallel=False)
 def ravg(readoutNoiseFound, readoutN, readoutNoise_mask, xlen, ylen, x_c,
                 y_c, hist, low_q, high_q, in_image, hist_count, mask, qmatrix,
                 dezingering, dezing_sensitivity):

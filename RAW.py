@@ -68,6 +68,7 @@ import BIFT
 import RAWIcons
 import RAWGlobals
 import RAWCustomDialogs
+import RAWPyMOL
 from RAWGlobals import mainworker_cmd_queue
 
 thread_wait_event = threading.Event()
@@ -152,6 +153,7 @@ class MainFrame(wx.Frame):
                         'superimpose'           : self.NewControlId(),
                         'sync'                  : self.NewControlId(),
                         'rundenss'              : self.NewControlId(),
+                        'calcUVconc'            : self.NewControlId()
                         }
 
         self.tbIcon = RawTaskbarIcon(self)
@@ -194,11 +196,14 @@ class MainFrame(wx.Frame):
         img_panel = RAWImage.ImagePanel(self.plot_notebook, -1, 'ImagePanel')
         iftplot_panel = RAWPlot.IftPlotPanel(self.plot_notebook, -1, 'IFTPlotPanel')
         sec_panel = RAWPlot.SECPlotPanel(self.plot_notebook,-1, 'SECPlotPanel')
+        #pymol_panel = RAWPyMOL.PyMOLPanel(self.plot_notebook, -1, 'PyMOLPanel')
 
         self.plot_notebook.AddPage(plot_panel, "Main Plot", True)
         self.plot_notebook.AddPage(iftplot_panel, "IFT Plot", False)
+
         self.plot_notebook.AddPage(img_panel, "Image", False)
         self.plot_notebook.AddPage(sec_panel, "Series", False)
+        #self.plot_notebook.AddPage(pymol_panel, "3D Viewer", False)
 
 
         self.control_notebook = aui.AuiNotebook(self, style = aui.AUI_NB_TAB_MOVE)
@@ -872,6 +877,7 @@ class MainFrame(wx.Frame):
                  ('&Tools',   [('&Operations', None, submenus['operations'], 'submenu'),
                                ('&Convert q-scale', None, submenus['convertq'], 'submenu'),
                                ('&Use as MW standard', self.MenuIDs['mwstandard'], self._onToolsMenu, 'normal'),
+                               ('&Calculate conc. from UV', self.MenuIDs['calcUVconc'], self._onToolsMenu, 'normal'),
                                (None, None, None, 'separator'),
                                ('&Guinier fit', self.MenuIDs['guinierfit'], self._onToolsMenu, 'normal'),
                                ('&Molecular weight', self.MenuIDs['molweight'], self._onToolsMenu, 'normal'),
@@ -1373,6 +1379,46 @@ class MainFrame(wx.Frame):
                 self.showDenssFrame(iftm, manippage.getSelectedItems()[0])
             else:
                 wx.MessageBox("Please select an IFT from the list on the IFT page.", "No IFT selected")
+
+        elif id == self.MenuIDs['calcUVconc']:
+            manippage = wx.FindWindowByName('ManipulationPanel')
+
+            current_page = self.control_notebook.GetSelection()
+            page = self.control_notebook.GetPage(current_page)
+
+            if page !=manippage:
+                wx.MessageBox('The selected operation cannot be performed unless the Manipulation control panel is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                return
+
+            selected_items = manippage.getSelectedItems()
+            marked_item = manippage.getBackgroundItem()
+
+            if marked_item == None:
+                wx.MessageBox('The background file needs to be selected by clicking the star icon.', 'Select background first', style = wx.ICON_INFORMATION)
+                return
+            else:
+                try:
+                    selected_items.pop(selected_items.index(marked_item))
+                except ValueError:
+                    pass
+
+            if selected_items:
+                selected_sasms = [item.getSASM() for item in selected_items]
+            else:
+                wx.MessageBox('No items were selected. For unsubtracted files you need to select at least a background and a sample.', 'No selected items', style = wx.ICON_INFORMATION)
+                return
+                #selected_sasms = []
+
+            for each in selected_sasms + [marked_item.getSASM()]:
+                if not each.getParameter('analysis').has_key('uvvis'):
+                    wx.MessageBox('The file ' + str(each.getParameter('filename')) + ' does not have UV-VIS data stored in the header', 'UV-VIS data not found', style = wx.ICON_EXCLAMATION)
+                    return
+                print each.getParameter('analysis')['uvvis']
+
+            dlg = RAWAnalysis.UVConcentrationDialog(self, 'Concentration from UV transmission', selected_sasms, marked_item.getSASM())
+            retval = dlg.ShowModal()
+            #ret, logbin = dlg.getValues()
+            dlg.Destroy()
 
     def _onViewMenu(self, evt):
 
@@ -4346,6 +4392,9 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.main_frame.setStatus, 'Saving dat item(s)', 0)
 
         newext = filetype
+
+        if isinstance(sasm, list):
+            sasm = sasm[0]
 
         filename = sasm.getParameter('filename')
         check_filename, ext = os.path.splitext(filename)
