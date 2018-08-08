@@ -193,7 +193,10 @@ def GrayOut(anImage):
     else:
         maskColor = None
 
-    data = map(ord, list(anImage.GetData()))
+    if wx.version().split()[0].strip()[0] == '4':
+        data = list(anImage.GetData())
+    else:
+        data = map(ord, list(anImage.GetData()))
 
     for i in range(0, len(data), 3):
 

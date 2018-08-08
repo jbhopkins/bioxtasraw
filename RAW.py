@@ -7073,25 +7073,11 @@ class ManipItemPanel(wx.Panel):
         if state == False:
             self.expand_collapse.SetBitmap(self.expand_png)
             self._controls_visible = False
-            self.controlSizer.Hide(0, True)
-            self.controlSizer.Hide(1, True)
-            self.controlSizer.Hide(2, True)
-            self.controlSizer.Hide(3, True)
-            self.controlSizer.Hide(4, True)
-            self.controlSizer.Hide(5, True)
-            self.controlSizer.Hide(6, True)
-            self.controlSizer.Hide(7, True)
+            self.topsizer.Hide(self.controlSizer, recursive=True)
         else:
             self.expand_collapse.SetBitmap(self.collapse_png)
             self._controls_visible = True
-            self.controlSizer.Show(0, True)
-            self.controlSizer.Show(1, True)
-            self.controlSizer.Show(2, True)
-            self.controlSizer.Show(3, True)
-            self.controlSizer.Show(4, True)
-            self.controlSizer.Show(5, True)
-            self.controlSizer.Show(6, True)
-            self.controlSizer.Show(7, True)
+            self.topsizer.Show(self.controlSizer, recursive=True)
 
         self.expand_collapse.Refresh()
         self.topsizer.Layout()
@@ -7862,7 +7848,7 @@ class ManipItemPanel(wx.Panel):
 
                 spin_control.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onQrangeChange)
 
-                q_ctrl = wx.TextCtrl(self, qtxtId, '', size = (55,-1), style = wx.PROCESS_ENTER)
+                q_ctrl = wx.TextCtrl(self, qtxtId, '', size = (55,-1), style = wx.TE_PROCESS_ENTER)
                 q_ctrl.Bind(wx.EVT_TEXT_ENTER, self._onEnterInQrangeTextCtrl)
 
                 spin_sizer = wx.BoxSizer()
