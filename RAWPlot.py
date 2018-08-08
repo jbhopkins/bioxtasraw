@@ -2559,7 +2559,7 @@ class FigureSaveDialog(wx.Dialog):
 
         dlg = wx.FileDialog(self.parent, "Save to file", "", default_file,
                             wildcard = filters,
-                            style = wx.SAVE | wx.OVERWRITE_PROMPT)
+                            style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
 
         if dlg.ShowModal() == wx.ID_OK:
             dirname  = dlg.GetDirectory()

@@ -124,7 +124,7 @@ class SaveAnalysisInfoDialog(wx.Dialog):
 
         filters = 'Comma Separated Files (*.csv)|*.csv'
 
-        dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
+        dialog = wx.FileDialog( None, style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
 
         if dialog.ShowModal() == wx.ID_OK:
             save_path = dialog.GetPath()
@@ -204,7 +204,10 @@ class SaveAnalysisInfoPanel(wx.Panel):
             all_items.append(data)
 
             idx = self.include_listctrl.GetItemCount()
-            self.include_listctrl.InsertStringItem(idx, txt)
+            if wx.version().split()[0].strip()[0] == '4':
+                self.include_listctrl.InsertItem(idx, txt)
+            else:
+                self.include_listctrl.InsertStringItem(idx, txt)
 
             self.included_data[idx] = data
 
@@ -347,7 +350,10 @@ class SaveAnalysisInfoPanel(wx.Panel):
 
         idx = 0
         for each in general_data:
-            self.variable_listctrl.InsertStringItem(idx, each[0])
+            if wx.version().split()[0].strip()[0] == '4':
+                self.variable_listctrl.InsertItem(idx, each[0])
+            else:
+                self.variable_listctrl.InsertStringItem(idx, each[0])
             self.variable_data[idx] = ['general' , each[1], each[0]]
 
             idx = idx + 1
@@ -361,14 +367,19 @@ class SaveAnalysisInfoPanel(wx.Panel):
             return
 
         idx = self.variable_listctrl.GetItemCount()
-
-        self.variable_listctrl.InsertStringItem(idx, 'Guinier Analysis')
+        if wx.version().split()[0].strip()[0] == '4':
+            self.variable_listctrl.InsertItem(idx, 'Guinier Analysis')
+        else:
+            self.variable_listctrl.InsertStringItem(idx, 'Guinier Analysis')
         self.variable_data[idx] = ['guinier', None]
 
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
         for each in keys:
-            self.variable_listctrl.InsertStringItem(idx, '\t'+each)
+            if wx.version().split()[0].strip()[0] == '4':
+                self.variable_listctrl.InsertItem(idx, '\t'+each)
+            else:
+                self.variable_listctrl.InsertStringItem(idx, '\t'+each)
             self.variable_data[idx] = ['guinier', each, each]
             idx = idx + 1
 
@@ -382,13 +393,19 @@ class SaveAnalysisInfoPanel(wx.Panel):
 
         idx = self.variable_listctrl.GetItemCount()
 
-        self.variable_listctrl.InsertStringItem(idx, 'MW Analysis')
+        if wx.version().split()[0].strip()[0] == '4':
+            self.variable_listctrl.InsertItem(idx, 'MW Analysis')
+        else:
+            self.variable_listctrl.InsertStringItem(idx, 'MW Analysis')
         self.variable_data[idx] = ['molecularWeight', None]
 
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
         for each in keys:
-            self.variable_listctrl.InsertStringItem(idx, '\t%s_%s' %(each[0], each[1]))
+            if wx.version().split()[0].strip()[0] == '4':
+                self.variable_listctrl.InsertItem(idx, '\t%s_%s' %(each[0], each[1]))
+            else:
+                self.variable_listctrl.InsertStringItem(idx, '\t%s_%s' %(each[0], each[1]))
             self.variable_data[idx] = ['molecularWeight', each[0], each[1]]
             idx = idx + 1
 
@@ -401,13 +418,19 @@ class SaveAnalysisInfoPanel(wx.Panel):
 
         idx = self.variable_listctrl.GetItemCount()
 
-        self.variable_listctrl.InsertStringItem(idx, 'GNOM Analysis')
+        if wx.version().split()[0].strip()[0] == '4':
+            self.variable_listctrl.InsertItem(idx, 'GNOM Analysis')
+        else:
+            self.variable_listctrl.InsertStringItem(idx, 'GNOM Analysis')
         self.variable_data[idx] = ['GNOM', None]
 
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
         for each in keys:
-            self.variable_listctrl.InsertStringItem(idx, '\t'+each)
+            if wx.version().split()[0].strip()[0] == '4':
+                self.variable_listctrl.InsertItem(idx, '\t'+each)
+            else:
+                self.variable_listctrl.InsertStringItem(idx, '\t'+each)
             self.variable_data[idx] = ['GNOM', each, each]
             idx = idx + 1
 
@@ -419,13 +442,19 @@ class SaveAnalysisInfoPanel(wx.Panel):
 
         idx = self.variable_listctrl.GetItemCount()
 
-        self.variable_listctrl.InsertStringItem(idx, 'BIFT Analysis')
+        if wx.version().split()[0].strip()[0] == '4':
+            self.variable_listctrl.InsertItem(idx, 'BIFT Analysis')
+        else:
+            self.variable_listctrl.InsertStringItem(idx, 'BIFT Analysis')
         self.variable_data[idx] = ['BIFT', None]
 
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
         for each in keys:
-            self.variable_listctrl.InsertStringItem(idx, '\t'+each)
+            if wx.version().split()[0].strip()[0] == '4':
+                self.variable_listctrl.InsertItem(idx, '\t'+each)
+            else:
+                self.variable_listctrl.InsertStringItem(idx, '\t'+each)
             self.variable_data[idx] = ['BIFT', each, each]
             idx = idx + 1
 
@@ -437,12 +466,18 @@ class SaveAnalysisInfoPanel(wx.Panel):
 
         idx = self.variable_listctrl.GetItemCount()
 
-        self.variable_listctrl.InsertStringItem(idx, 'Header File')
+        if wx.version().split()[0].strip()[0] == '4':
+            self.variable_listctrl.InsertItem(idx, 'Header File')
+        else:
+            self.variable_listctrl.InsertStringItem(idx, 'Header File')
         self.variable_data[idx] = ['Header File', None]
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
         for each in keys:
-            self.variable_listctrl.InsertStringItem(idx, '\t'+each)
+            if wx.version().split()[0].strip()[0] == '4':
+                self.variable_listctrl.InsertItem(idx, '\t'+each)
+            else:
+                self.variable_listctrl.InsertStringItem(idx, '\t'+each)
             self.variable_data[idx] = ['counters', each, each]
             idx = idx + 1
 
@@ -454,12 +489,18 @@ class SaveAnalysisInfoPanel(wx.Panel):
 
         idx = self.variable_listctrl.GetItemCount()
 
-        self.variable_listctrl.InsertStringItem(idx, 'Image Header')
+        if wx.version().split()[0].strip()[0] == '4':
+            self.variable_listctrl.InsertItem(idx, 'Image Header')
+        else:
+            self.variable_listctrl.InsertStringItem(idx, 'Image Header')
         self.variable_data[idx] = ['Image Header', None]
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
         for each in keys:
-            self.variable_listctrl.InsertStringItem(idx, '\t'+each)
+            if wx.version().split()[0].strip()[0] == '4':
+                self.variable_listctrl.InsertItem(idx, '\t'+each)
+            else:
+                self.variable_listctrl.InsertStringItem(idx, '\t'+each)
             self.variable_data[idx] = ['imageHeader', each, each]
             idx = idx + 1
 
@@ -472,7 +513,10 @@ class SaveAnalysisInfoPanel(wx.Panel):
 
         for each in sorted(include_data.keys()):
             idx = self.include_listctrl.GetItemCount()
-            self.include_listctrl.InsertStringItem(idx, include_data[each][2])
+            if wx.version().split()[0].strip()[0] == '4':
+                self.include_listctrl.InsertItem(idx, include_data[each][2])
+            else:
+                self.include_listctrl.InsertStringItem(idx, include_data[each][2])
 
             self.included_data[idx] = include_data[each]
 
@@ -490,22 +534,33 @@ class SaveAnalysisListCtrl(wx.ListCtrl):
 
     def add(self, expr):
         no_of_items = self.GetItemCount()
-        self.SetStringItem(no_of_items, 0, expr)
+        if wx.version().split()[0].strip()[0] == '4':
+            self.SetItem(no_of_items, 0, expr)
+        else:
+            self.SetStringItem(no_of_items, 0, expr)
 
     def moveItemUp(self, idx):
         if idx > 0:
             data = self.getItemData(idx)
             self.DeleteItem(idx)
-            self.InsertStringItem(idx-1, data[0])
-            self.SetStringItem(idx-1, 1, data[1])
+            if wx.version().split()[0].strip()[0] == '4':
+                self.InsertItem(idx-1, data[0])
+                self.SetItem(idx-1, 1, data[1])
+            else:
+                self.InsertStringItem(idx-1, data[0])
+                self.SetStringItem(idx-1, 1, data[1])
             self.Select(idx-1, True)
 
     def moveItemDown(self, idx):
         if idx < self.GetItemCount()-1:
             data = self.getItemData(idx)
             self.DeleteItem(idx)
-            self.InsertStringItem(idx+1, data[0])
-            self.SetStringItem(idx+1, 1, data[1])
+            if wx.version().split()[0].strip()[0] == '4':
+                self.InsertItem(idx+1, data[0])
+                self.SetItem(idx+1, 1, data[1])
+            else:
+                self.InsertStringItem(idx+1, data[0])
+                self.SetStringItem(idx+1, 1, data[1])
             self.Select(idx+1, True)
 
     def getItemData(self, idx):
@@ -591,11 +646,11 @@ class HdrDataDialog(wx.Dialog):
 
         self.sizer.Add(filename_label, 0, wx.TOP | wx.LEFT, 10)
         self.sizer.Add(self.data_grid, 1, wx.ALL | wx.EXPAND, 10)
-        self.sizer.Add(self._CreateButtonSizer(wx.OK | wx.CANCEL), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
+        self.sizer.Add(self.CreateButtonSizer(wx.OK | wx.CANCEL), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
 
         self.Bind(wx.EVT_BUTTON, self._onOk, id=wx.ID_OK)
         self.Bind(wx.EVT_BUTTON, self._onCancel, id=wx.ID_CANCEL)
-        self.Bind(gridlib.EVT_GRID_CELL_CHANGE, self._onChange)
+        self.Bind(gridlib.EVT_GRID_CELL_CHANGED, self._onChange)
         self.Bind(gridlib.EVT_GRID_EDITOR_SHOWN, self._onEditCell)
 
         self.SetSizer(self.sizer)
@@ -731,11 +786,11 @@ class DataDialog(wx.Dialog):
 
         self.sizer.Add(filename_label, 0, wx.TOP | wx.LEFT, 10)
         self.sizer.Add(self.data_grid, 1, wx.ALL | wx.EXPAND, 10)
-        self.sizer.Add(self._CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
+        self.sizer.Add(self.CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
 
         # self.Bind(wx.EVT_BUTTON, self._onOk, id=wx.ID_OK)
         # self.Bind(wx.EVT_BUTTON, self._onCancel, id=wx.ID_CANCEL)
-        # self.Bind(gridlib.EVT_GRID_CELL_CHANGE, self._onChange)
+        # self.Bind(gridlib.EVT_GRID_CELL_CHANGED, self._onChange)
         # self.Bind(gridlib.EVT_GRID_EDITOR_SHOWN, self._onEditCell)
 
         self.SetSizer(self.sizer)
@@ -894,7 +949,7 @@ class SECDataDialog(wx.Dialog):
 
         self.sizer.Add(filename_label, 0, wx.TOP | wx.LEFT, 10)
         self.sizer.Add(self.data_grid, 1, wx.ALL | wx.EXPAND, 10)
-        self.sizer.Add(self._CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
+        self.sizer.Add(self.CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
 
         self.Bind(wx.EVT_BUTTON, self._onOk, id=wx.ID_OK)
 
@@ -1017,7 +1072,7 @@ class IFTDataDialog(wx.Dialog):
 
         self.sizer.Add(filename_label, 0, wx.TOP | wx.LEFT, 10)
         self.sizer.Add(self.data_grid, 1, wx.ALL | wx.EXPAND, 10)
-        self.sizer.Add(self._CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
+        self.sizer.Add(self.CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
 
         self.Bind(wx.EVT_BUTTON, self._onOk, id=wx.ID_OK)
 
@@ -1124,7 +1179,7 @@ class HistoryDialog(wx.Dialog):
 
         self.sizer.Add(self.text, 1, wx.ALL | wx.EXPAND, 10)
 
-        self.sizer.Add(self._CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
+        self.sizer.Add(self.CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
 
         self.Bind(wx.EVT_BUTTON, self._onOk, id=wx.ID_OK)
 

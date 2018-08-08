@@ -65,15 +65,20 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
         nextImgIcon = wx.ArtProvider.GetBitmap(wx.ART_GO_FORWARD,wx.ART_TOOLBAR,(32,32))
 
 
-        self.AddSeparator()
-
-        self.AddSimpleTool(self._MTB_HDRINFO, hdrInfoIcon, 'Show Header Information')
-        self.AddSimpleTool(self._MTB_IMGSET, ImgSetIcon, 'Image Display Settings')
-
-        self.AddSeparator()
-
-        self.AddSimpleTool(self._MTB_PREVIMG, prevImgIcon, 'Previous Image')
-        self.AddSimpleTool(self._MTB_NEXTIMG, nextImgIcon, 'Next Image')
+        if wx.version().split()[0].strip()[0] == '4':
+            self.AddSeparator()
+            self.AddTool(self._MTB_HDRINFO, '', hdrInfoIcon, shortHelp='Show Header Information')
+            self.AddTool(self._MTB_IMGSET, '', ImgSetIcon, shortHelp='Image Display Settings')
+            self.AddSeparator()
+            self.AddTool(self._MTB_PREVIMG, '', prevImgIcon, shortHelp='Previous Image')
+            self.AddTool(self._MTB_NEXTIMG, '', nextImgIcon, shortHelp='Next Image')
+        else:
+            self.AddSeparator()
+            self.AddSimpleTool(self._MTB_HDRINFO, hdrInfoIcon, 'Show Header Information')
+            self.AddSimpleTool(self._MTB_IMGSET, ImgSetIcon, 'Image Display Settings')
+            self.AddSeparator()
+            self.AddSimpleTool(self._MTB_PREVIMG, prevImgIcon, 'Previous Image')
+            self.AddSimpleTool(self._MTB_NEXTIMG, nextImgIcon, 'Next Image')
 
 
         self.Bind(wx.EVT_TOOL, self.onHeaderInfoButton, id = self._MTB_HDRINFO)
@@ -1393,12 +1398,12 @@ def createMaskFileDialog(mode):
 
         file = None
 
-        if mode == wx.OPEN:
+        if mode == wx.FD_OPEN:
             filters = 'Mask files (*.msk)|*.msk|All files (*.*)|*.*'
             dialog = wx.FileDialog( None, style = mode, wildcard = filters)
-        if mode == wx.SAVE:
+        if mode == wx.FD_SAVE:
             filters = 'Mask files (*.msk)|*.msk'
-            dialog = wx.FileDialog( None, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters)
+            dialog = wx.FileDialog( None, style = mode | wx.FD_OVERWRITE_PROMPT, wildcard = filters)
 
         # Show the dialog and get user input
         if dialog.ShowModal() == wx.ID_OK:
@@ -1411,7 +1416,7 @@ def createMaskFileDialog(mode):
 
 def loadMask(img_dim):
 
-        file = createMaskFileDialog(wx.OPEN)
+        file = createMaskFileDialog(wx.FD_OPEN)
 
         if file:
             answer = wx.MessageBox('Do you want set this mask as the current "Beam Stop" mask?', 'Use as beamstop mask?', wx.YES_NO | wx.ICON_QUESTION)
@@ -1438,7 +1443,7 @@ def saveMask():
 
         if masks != []:
 
-            file = createMaskFileDialog(wx.SAVE)
+            file = createMaskFileDialog(wx.FD_SAVE)
 
             if file:
                 main_frame = wx.FindWindowByName('MainFrame')
@@ -1521,7 +1526,10 @@ class ImageSettingsDialog(wx.Dialog):
         try:
             file_list_ctrl = wx.FindWindowByName('FilePanel')
             pos = file_list_ctrl.GetScreenPosition()
-            self.MoveXY(pos[0], pos[1])
+            if wx.version().split()[0].strip()[0] == '4':
+                self.Move(pos[0], pos[1])
+            else:
+                self.MoveXY(pos[0], pos[1])
         except:
             pass
 

@@ -2576,7 +2576,7 @@ class GNOMFrame(wx.Frame):
         if show:
             self.bi = wx.BusyInfo('Initializing GNOM, pleae wait.', self)
         else:
-            self.bi.Destroy()
+            del self.bi
             self.bi = None
 
     def OnClose(self):
@@ -7079,7 +7079,7 @@ class BIFTFrame(wx.Frame):
         self.CenterOnParent()
         self.Raise()
 
-        wx.FutureCall(50, self.initBIFT)
+        wx.CallLater(50, self.initBIFT)
 
     def initBIFT(self):
         self.controlPanel.runBIFT()
@@ -8018,7 +8018,7 @@ class AmbimeterFrame(wx.Frame):
         if show:
             self.bi = wx.BusyInfo('Running AMBIMETER, pleae wait.', self)
         else:
-            self.bi.Destroy()
+            del self.bi
             self.bi = None
 
 
@@ -10080,7 +10080,7 @@ class EFAControlPanel2(wx.Panel):
         else:
             self._findEFAPoints()
 
-        self.busy_dialog.Destroy()
+        del self.busy_dialog
         self.busy_dialog = None
 
         plotpanel = wx.FindWindowByName('EFAResultsPlotPanel2')
