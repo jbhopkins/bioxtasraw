@@ -443,7 +443,7 @@ class GuinierControlPanel(wx.Panel):
 
     def createInfoBox(self):
 
-        sizer = wx.FlexGridSizer(rows = len(self.infodata), cols = 2)
+        sizer = wx.FlexGridSizer(rows=len(self.infodata), cols=2, hgap=3, vgap=3)
 
         for key in self.infodata.iterkeys():
 
@@ -471,7 +471,7 @@ class GuinierControlPanel(wx.Panel):
 
     def createControls(self):
 
-        sizer = wx.FlexGridSizer(rows = 2, cols = 4)
+        sizer = wx.FlexGridSizer(rows=2, cols=4, hgap=0, vgap=2)
         sizer.AddGrowableCol(0)
         sizer.AddGrowableCol(1)
         sizer.AddGrowableCol(2)
@@ -491,8 +491,8 @@ class GuinierControlPanel(wx.Panel):
         self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
         self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
 
-        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (60, -1), style = wx.PROCESS_ENTER)
-        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (60, -1), style = wx.PROCESS_ENTER)
+        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (60, -1), style = wx.TE_PROCESS_ENTER)
+        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (60, -1), style = wx.TE_PROCESS_ENTER)
 
         self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
         self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
@@ -2580,7 +2580,7 @@ class GNOMFrame(wx.Frame):
         if show:
             self.bi = wx.BusyInfo('Initializing GNOM, pleae wait.', self)
         else:
-            self.bi.Destroy()
+            del self.bi
             self.bi = None
 
     def OnClose(self):
@@ -3179,7 +3179,7 @@ class GNOMControlPanel(wx.Panel):
 
     def createControls(self):
 
-        sizer = wx.FlexGridSizer(rows = 2, cols = 4)
+        sizer = wx.FlexGridSizer(rows=2, cols=4, hgap=0, vgap=2)
         sizer.AddGrowableCol(0)
         sizer.AddGrowableCol(1)
         sizer.AddGrowableCol(2)
@@ -3199,8 +3199,8 @@ class GNOMControlPanel(wx.Panel):
         self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
         self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
 
-        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (55, 22), style = wx.PROCESS_ENTER)
-        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (55, 22), style = wx.PROCESS_ENTER)
+        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (55, 22), style = wx.TE_PROCESS_ENTER)
+        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (55, 22), style = wx.TE_PROCESS_ENTER)
 
         self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
         self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
@@ -7083,7 +7083,7 @@ class BIFTFrame(wx.Frame):
         self.CenterOnParent()
         self.Raise()
 
-        wx.FutureCall(50, self.initBIFT)
+        wx.CallLater(50, self.initBIFT)
 
     def initBIFT(self):
         self.controlPanel.runBIFT()
@@ -7385,7 +7385,7 @@ class BIFTControlPanel(wx.Panel):
         alphaSizer.Add(self.alphaWindow, 0, wx.RIGHT, 5)
 
 
-        sizer = wx.FlexGridSizer(rows = 3, cols = 3)
+        sizer = wx.FlexGridSizer(rows=3, cols=3, hgap=0, vgap=0)
 
         sizer.Add((0,0))
 
@@ -8022,7 +8022,7 @@ class AmbimeterFrame(wx.Frame):
         if show:
             self.bi = wx.BusyInfo('Running AMBIMETER, pleae wait.', self)
         else:
-            self.bi.Destroy()
+            del self.bi
             self.bi = None
 
 
@@ -10084,7 +10084,7 @@ class EFAControlPanel2(wx.Panel):
         else:
             self._findEFAPoints()
 
-        self.busy_dialog.Destroy()
+        del self.busy_dialog
         self.busy_dialog = None
 
         plotpanel = wx.FindWindowByName('EFAResultsPlotPanel2')

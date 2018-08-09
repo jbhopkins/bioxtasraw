@@ -23,7 +23,6 @@ Created on Sep 31, 2010
 '''
 import sys
 import os
-import wx
 import subprocess
 import time
 import threading
@@ -42,14 +41,24 @@ from collections import OrderedDict, defaultdict
 
 import hdf5plugin #HAS TO BE FIRST
 import numpy as np
+import matplotlib.colors as mplcol
+import pyFAI, pyFAI.calibrant, pyFAI.peak_picker
+import wx
 import wx.lib.scrolledpanel as scrolled
 import wx.lib.mixins.listctrl as listmix
 import wx.lib.buttons as wxbutton
 import wx.lib.agw.supertooltip as STT
 import wx.aui as aui
 import wx.lib.dialogs
-import matplotlib.colors as mplcol
-import pyFAI, pyFAI.calibrant, pyFAI.peak_picker
+
+if wx.version().split()[0].strip()[0] == '4':
+    import wx.adv
+    SplashScreen = wx.adv.SplashScreen
+    TaskBarIcon = wx.adv.TaskBarIcon
+else:
+    SplashScreen = wx.SplashScreen
+    TaskBarIcon = wx.TaskBarIcon
+
 
 import SASFileIO
 import SASM
@@ -344,7 +353,7 @@ class MainFrame(wx.Frame):
         mainworker_cmd_queue.put([taskname, data])
 
     def closeBusyDialog(self):
-        self._busyDialog.Destroy()
+        del self._busyDialog
         self._busyDialog = None
 
     def showBusyDialog(self, text):
@@ -1637,7 +1646,7 @@ class MainFrame(wx.Frame):
 
     def _onLoadSettings(self, evt):
 
-        file = self._createFileDialog(wx.OPEN)
+        file = self._createFileDialog(wx.FD_OPEN)
 
         if file:
             success = RAWSettings.loadSettings(self.raw_settings, file)
@@ -1651,7 +1660,7 @@ class MainFrame(wx.Frame):
 
 
     def _onSaveSettings(self, evt):
-        file = self._createFileDialog(wx.SAVE)
+        file = self._createFileDialog(wx.FD_SAVE)
 
         if file:
 
@@ -1667,7 +1676,7 @@ class MainFrame(wx.Frame):
                 wx.MessageBox('Your settings failed to save! Please try again.', 'Save failed!', style = wx.ICON_ERROR | wx.OK)
 
     def _onLoadWorkspaceMenu(self, evt):
-        file = self._createFileDialog(wx.OPEN, 'Workspace files', '*.wsp')
+        file = self._createFileDialog(wx.FD_OPEN, 'Workspace files', '*.wsp')
 
         if file:
             if os.path.splitext(file)[1] != '.wsp':
@@ -1688,7 +1697,7 @@ class MainFrame(wx.Frame):
         ift_items = ift_panel.getItems()
         secm_items = sec_panel.getItems()
 
-        file = self._createFileDialog(wx.SAVE, 'Workspace files', '*.wsp')
+        file = self._createFileDialog(wx.FD_SAVE, 'Workspace files', '*.wsp')
 
         if file:
             if os.path.splitext(file)[1] != '.wsp':
@@ -1836,12 +1845,12 @@ class MainFrame(wx.Frame):
 
         path = wx.FindWindowByName('FileListCtrl').path
 
-        if mode == wx.OPEN:
+        if mode == wx.FD_OPEN:
             filters = name + ' (' + ext + ')|' + ext + '|All files (*.*)|*.*'
             dialog = wx.FileDialog( None, style = mode, wildcard = filters, defaultDir = path)
-        if mode == wx.SAVE:
+        if mode == wx.FD_SAVE:
             filters = name + ' ('+ext+')|'+ext
-            dialog = wx.FileDialog( None, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = path)
+            dialog = wx.FileDialog( None, style = mode | wx.FD_OVERWRITE_PROMPT, wildcard = filters, defaultDir = path)
 
         # Show the dialog and get user input
         if dialog.ShowModal() == wx.ID_OK:
@@ -5413,7 +5422,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
 
         a={"sm_up":"GO_UP","sm_dn":"GO_DOWN","w_idx":"WARNING","e_idx":"ERROR","i_idx":"QUESTION"}
         for k,v in a.items():
-            s="self.%s= self.il.Add(wx.ArtProvider_GetBitmap(wx.ART_%s,wx.ART_TOOLBAR,(16,16)))" % (k,v)
+            s="self.%s= self.il.Add(wx.ArtProvider.GetBitmap(wx.ART_%s,wx.ART_TOOLBAR,(16,16)))" % (k,v)
             exec(s)
 
         self.documentimg = self.il.Add(RAWIcons.document.GetBitmap())
@@ -6045,11 +6054,12 @@ class DirCtrlPanel(wx.Panel):
 
         self.dir_button = wx.BitmapButton(self, -1, dir_bitmap)
         self.dir_button.Bind(wx.EVT_BUTTON, self._onSetDirButton)
-        self.dir_button.SetToolTipString('Open Folder')
 
         self.refresh_button = wx.BitmapButton(self, -1, refresh_bitmap)
         self.refresh_button.Bind(wx.EVT_BUTTON, self._onRefreshButton)
-        self.refresh_button.SetToolTipString('Refresh')
+
+        self.dir_button.SetToolTip(wx.ToolTip('Open Folder'))
+        self.refresh_button.SetToolTip(wx.ToolTip('Refresh'))
 
         dir_label_sizer.Add(self.dir_label, 1, wx.EXPAND | wx.RIGHT, 2)
         dir_label_sizer.Add(self.dir_button,0)
@@ -6066,8 +6076,8 @@ class DirCtrlPanel(wx.Panel):
         self.bg_filename = []
 
     def _createExtentionBox(self):
-        self.dropdown = wx.ComboBox(self, style = wx.TE_PROCESS_ENTER)
-        self.dropdown.AppendItems(strings = self.file_extension_list)
+        self.dropdown = wx.ComboBox(self, style=wx.TE_PROCESS_ENTER,
+            choices=self.file_extension_list)
         self.dropdown.Select(n=0)
         self.dropdown.Bind(wx.EVT_COMBOBOX, self._onExtensionComboChoice)
         self.dropdown.Bind(wx.EVT_TEXT_ENTER, self._onExtensionComboEnterKey)
@@ -6194,6 +6204,7 @@ class ManipulationPanel(wx.Panel):
         show_all.Bind(wx.EVT_BUTTON, self._onShowAllButton)
         hide_all.Bind(wx.EVT_BUTTON, self._onHideAllButton)
 
+
         if platform.system() == 'Darwin':
             show_tip = STT.SuperToolTip(" ", header = "Show", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(show_all)
@@ -6216,11 +6227,11 @@ class ManipulationPanel(wx.Panel):
             expand_tip.ApplyStyle('Blue Glass')
 
         else:
-            select_all.SetToolTipString('Select All')
+            select_all.SetToolTip(wx.ToolTip('Select All'))
             show_all.SetToolTip(wx.ToolTip('Show'))
-            hide_all.SetToolTipString('Hide')
-            collapse_all.SetToolTipString('Collapse')
-            expand_all.SetToolTipString('Expand')
+            hide_all.SetToolTip(wx.ToolTip('Hide'))
+            collapse_all.SetToolTip(wx.ToolTip('Collapse'))
+            expand_all.SetToolTip(wx.ToolTip('Expand'))
 
         sizer.Add(show_all, 0, wx.LEFT, 5)
         sizer.Add(hide_all, 0, wx.LEFT, 5)
@@ -6721,7 +6732,7 @@ class ManipulationPanel(wx.Panel):
 
             # filters = 'Comma Separated Files (*.csv)|*.csv'
 
-            # dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
+            # dialog = wx.FileDialog( None, style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
             fname = os.path.splitext(os.path.basename(selected_items[0].sasm.getParameter('filename')))[0]+'.dat'
             msg = "Please select save directory and enter save file name"
             dialog = wx.FileDialog(self, message = msg, style = wx.FD_SAVE, defaultDir = path, defaultFile = fname)
@@ -6865,13 +6876,12 @@ class ManipItemPanel(wx.Panel):
             self.info_tip.ApplyStyle('Blue Glass')
 
         else:
-            self.SelectedForPlot.SetToolTipString('Show Plot')
-            self.colour_indicator.SetToolTipString('Line Properties')
-            self.bg_star.SetToolTipString('Mark')
-            self.expand_collapse.SetToolTipString('Collapse/Expand')
-            self.target_icon.SetToolTipString('Locate Line')
-            self.info_icon.SetToolTipString('Extended Info\n--------------------------------\nRg: N/A\nI(0): N/A')
-
+            self.SelectedForPlot.SetToolTip(wx.ToolTip('Show Plot'))
+            self.colour_indicator.SetToolTip(wx.ToolTip('Line Properties'))
+            self.bg_star.SetToolTip(wx.ToolTip('Mark'))
+            self.expand_collapse.SetToolTip(wx.ToolTip('Collapse/Expand'))
+            self.target_icon.SetToolTip(wx.ToolTip('Locate Line'))
+            self.info_icon.SetToolTip(wx.ToolTip('Extended Info\n--------------------------------\nRg: N/A\nI(0): N/A'))
 
         self.locator_on = False
         self.locator_old_width = 1
@@ -6967,7 +6977,7 @@ class ManipItemPanel(wx.Panel):
             if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
                 self.info_tip.SetMessage(string)
             else:
-                self.info_icon.SetToolTipString(string)
+                self.info_icon.SetToolTip(wx.ToolTip(string))
 
         if fromGuinierDialog:
             self.info_panel.updateInfoFromItem(self)
@@ -7064,25 +7074,11 @@ class ManipItemPanel(wx.Panel):
         if state == False:
             self.expand_collapse.SetBitmap(self.expand_png)
             self._controls_visible = False
-            self.controlSizer.Hide(0, True)
-            self.controlSizer.Hide(1, True)
-            self.controlSizer.Hide(2, True)
-            self.controlSizer.Hide(3, True)
-            self.controlSizer.Hide(4, True)
-            self.controlSizer.Hide(5, True)
-            self.controlSizer.Hide(6, True)
-            self.controlSizer.Hide(7, True)
+            self.topsizer.Hide(self.controlSizer, recursive=True)
         else:
             self.expand_collapse.SetBitmap(self.collapse_png)
             self._controls_visible = True
-            self.controlSizer.Show(0, True)
-            self.controlSizer.Show(1, True)
-            self.controlSizer.Show(2, True)
-            self.controlSizer.Show(3, True)
-            self.controlSizer.Show(4, True)
-            self.controlSizer.Show(5, True)
-            self.controlSizer.Show(6, True)
-            self.controlSizer.Show(7, True)
+            self.topsizer.Show(self.controlSizer, recursive=True)
 
         self.expand_collapse.Refresh()
         self.topsizer.Layout()
@@ -7282,7 +7278,10 @@ class ManipItemPanel(wx.Panel):
         convertq_menu.Append(16, 'q / 10')
 
         other_ops_menu = wx.Menu()
-        other_ops_menu.AppendMenu(wx.ID_ANY, 'Convert q-scale', convertq_menu)
+        if wx.version().split()[0].strip()[0] == '4':
+            other_ops_menu.Append(wx.ID_ANY, 'Convert q-scale', convertq_menu)
+        else:
+            other_ops_menu.AppendMenu(wx.ID_ANY, 'Convert q-scale', convertq_menu)
         other_ops_menu.Append(25, 'Interpolate')
         other_ops_menu.Append(22, 'Merge')
         other_ops_menu.Append(28, 'Normalize by conc.')
@@ -7298,7 +7297,10 @@ class ManipItemPanel(wx.Panel):
         menu.Append(4, 'Subtract')
         menu.Append(6, 'Average' )
         menu.Append(36, 'Weighted Average')
-        menu.AppendMenu(wx.ID_ANY, 'Other Operations', other_ops_menu)
+        if wx.version().split()[0].strip()[0] == '4':
+            menu.Append(wx.ID_ANY, 'Other Operations', other_ops_menu)
+        else:
+            menu.AppendMenu(wx.ID_ANY, 'Other Operations', other_ops_menu)
         menu.AppendSeparator()
 
         menu.Append(5, 'Remove' )
@@ -7315,7 +7317,10 @@ class ManipItemPanel(wx.Panel):
 
         menu.Append(37, 'Similarity Test')
         menu.Append(38, 'Normalized Kratky Plots')
-        menu.AppendMenu(wx.ID_ANY, 'Other Analysis', other_an_menu)
+        if wx.version().split()[0].strip()[0] == '4':
+            menu.Append(wx.ID_ANY, 'Other Analysis', other_an_menu)
+        else:
+            menu.AppendMenu(wx.ID_ANY, 'Other Analysis', other_an_menu)
 
         menu.AppendSeparator()
         img = menu.Append(19, 'Show image')
@@ -7554,10 +7559,10 @@ class ManipItemPanel(wx.Panel):
 
             filters = 'Comma Separated Files (*.csv)|*.csv'
 
-            # dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
+            # dialog = wx.FileDialog( None, style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
             fname = 'RAW_analysis.csv'
             msg = "Please select save directory and enter save file name"
-            dialog = wx.FileDialog( None, message = msg, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = path, defaultFile = fname)
+            dialog = wx.FileDialog( None, message = msg, style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, wildcard = filters, defaultDir = path, defaultFile = fname)
 
             if dialog.ShowModal() == wx.ID_OK:
                 path = dialog.GetPath()
@@ -7853,7 +7858,7 @@ class ManipItemPanel(wx.Panel):
 
                 spin_control.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onQrangeChange)
 
-                q_ctrl = wx.TextCtrl(self, qtxtId, '', size = (55,-1), style = wx.PROCESS_ENTER)
+                q_ctrl = wx.TextCtrl(self, qtxtId, '', size = (55,-1), style = wx.TE_PROCESS_ENTER)
                 q_ctrl.Bind(wx.EVT_TEXT_ENTER, self._onEnterInQrangeTextCtrl)
 
                 spin_sizer = wx.BoxSizer()
@@ -7936,9 +7941,9 @@ class IFTPanel(wx.Panel):
             select_tip.ApplyStyle('Blue Glass')
 
         else:
-            select_all.SetToolTipString('Select All')
+            select_all.SetToolTip(wx.ToolTip('Select All'))
             show_all.SetToolTip(wx.ToolTip('Show'))
-            hide_all.SetToolTipString('Hide')
+            hide_all.SetToolTip(wx.ToolTip('Hide'))
 
         show_all.Bind(wx.EVT_BUTTON, self._onShowAllButton)
         hide_all.Bind(wx.EVT_BUTTON, self._onHideAllButton)
@@ -8169,7 +8174,7 @@ class IFTPanel(wx.Panel):
 
             # filters = 'Comma Separated Files (*.csv)|*.csv'
 
-            # dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
+            # dialog = wx.FileDialog( None, style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
             fname = os.path.splitext(os.path.basename(selected_items[0].iftm.getParameter('filename')))[0]+file_ext
             msg = "Please select save directory and enter save file name"
             dialog = wx.FileDialog(self, message = msg, style = wx.FD_SAVE, defaultDir = path, defaultFile = fname)
@@ -8211,12 +8216,12 @@ class IFTPanel(wx.Panel):
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
         load_path = dirctrl_panel.getDirLabel()
 
-        if mode == wx.OPEN:
+        if mode == wx.FD_OPEN:
             filters = 'All files (*.*)|*.*|Rad files (*.rad)|*.rad|Dat files (*.dat)|*.dat|Txt files (*.txt)|*.txt'
             dialog = wx.FileDialog( None, 'Select a file', load_path, style = mode, wildcard = filters)
-        if mode == wx.SAVE:
+        if mode == wx.FD_SAVE:
             filters = 'Dat files (*.dat)|*.dat'
-            dialog = wx.FileDialog( None, 'Name file and location', load_path, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters)
+            dialog = wx.FileDialog( None, 'Name file and location', load_path, style = mode | wx.FD_OVERWRITE_PROMPT, wildcard = filters)
 
         # Show the dialog and get user input
         if dialog.ShowModal() == wx.ID_OK:
@@ -8229,7 +8234,7 @@ class IFTPanel(wx.Panel):
 
     def createButtons(self, panelsizer):
 
-        sizer = wx.GridSizer(cols = 3, rows = np.ceil(len(self.buttons)/3))
+        sizer = wx.GridSizer(cols=3, rows=np.ceil(len(self.buttons)/3), hgap=3, vgap=3)
 
         #sizer.Add((10,10) ,1 , wx.EXPAND)
         for each in self.buttons:
@@ -8336,9 +8341,9 @@ class IFTItemPanel(wx.Panel):
             target_tip.ApplyStyle('Blue Glass')
 
         else:
-            self.SelectedForPlot.SetToolTipString('Show Plot')
-            self.colour_indicator.SetToolTipString('Line Properties')
-            self.target_icon.SetToolTipString('Locate Line')
+            self.SelectedForPlot.SetToolTip(wx.ToolTip('Show Plot'))
+            self.colour_indicator.SetToolTip(wx.ToolTip('Line Properties'))
+            self.target_icon.SetToolTip(wx.ToolTip('Locate Line'))
 
         self.locator_on = False
         self.locator_old_width = {}
@@ -8966,9 +8971,9 @@ class SECPanel(wx.Panel):
             select_tip.ApplyStyle('Blue Glass')
 
         else:
-            select_all.SetToolTipString('Select All')
+            select_all.SetToolTip(wx.ToolTip('Select All'))
             show_all.SetToolTip(wx.ToolTip('Show'))
-            hide_all.SetToolTipString('Hide')
+            hide_all.SetToolTip(wx.ToolTip('Hide'))
 
 
         # collapse_all.Bind(wx.EVT_BUTTON, self._onCollapseAllButton)
@@ -9161,10 +9166,10 @@ class SECPanel(wx.Panel):
 
             filters = 'Comma Separated Files (*.csv)|*.csv'
 
-            # dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
+            # dialog = wx.FileDialog( None, style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
             fname = os.path.splitext(os.path.basename(selected_items[0].secm.getParameter('filename')))[0]+'.csv'
             msg = "Please select save directory and enter save file name"
-            dialog = wx.FileDialog( None, message = msg, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = path, defaultFile = fname)
+            dialog = wx.FileDialog( None, message = msg, style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, wildcard = filters, defaultDir = path, defaultFile = fname)
 
             if dialog.ShowModal() == wx.ID_OK:
                 path = dialog.GetPath()
@@ -9203,7 +9208,7 @@ class SECPanel(wx.Panel):
 
             # filters = 'Comma Separated Files (*.csv)|*.csv'
 
-            # dialog = wx.FileDialog( None, style = wx.SAVE | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
+            # dialog = wx.FileDialog( None, style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
             fname = os.path.splitext(os.path.basename(selected_items[0].secm.getParameter('filename')))[0]+'.sec'
             msg = "Please select save directory and enter save file name"
             dialog = wx.FileDialog(self, message = msg, style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, defaultDir = path, defaultFile = fname)
@@ -9299,12 +9304,12 @@ class SECPanel(wx.Panel):
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
         load_path = dirctrl_panel.getDirLabel()
 
-        if mode == wx.OPEN:
+        if mode == wx.FD_OPEN:
             filters = 'All files (*.*)|*.*|Rad files (*.rad)|*.rad|Dat files (*.dat)|*.dat|Txt files (*.txt)|*.txt'
             dialog = wx.FileDialog( None, 'Select a file', load_path, style = mode, wildcard = filters)
-        if mode == wx.SAVE:
+        if mode == wx.FD_SAVE:
             filters = 'Dat files (*.dat)|*.dat'
-            dialog = wx.FileDialog( None, 'Name file and location', load_path, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters)
+            dialog = wx.FileDialog( None, 'Name file and location', load_path, style = mode | wx.FD_OVERWRITE_PROMPT, wildcard = filters)
 
         # Show the dialog and get user input
         if dialog.ShowModal() == wx.ID_OK:
@@ -9317,7 +9322,7 @@ class SECPanel(wx.Panel):
 
     def createButtons(self, panelsizer):
 
-        sizer = wx.GridSizer(cols = 3, rows = np.ceil(len(self.buttons)/3))
+        sizer = wx.GridSizer(cols=3, rows=np.ceil(len(self.buttons)/3), hgap=3, vgap=3)
 
         #sizer.Add((10,10) ,1 , wx.EXPAND)
         for each in self.buttons:
@@ -9463,11 +9468,11 @@ class SECItemPanel(wx.Panel):
             self.info_tip.ApplyStyle('Blue Glass')
 
         else:
-            self.SelectedForPlot.SetToolTipString('Show Plot')
-            self.colour_indicator.SetToolTipString('Line Properties')
-            self.bg_star.SetToolTipString('Mark')
-            self.target_icon.SetToolTipString('Locate Line')
-            self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nFirst buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A\nMol. type: N/A')
+            self.SelectedForPlot.SetToolTip(wx.ToolTip('Show Plot'))
+            self.colour_indicator.SetToolTip(wx.ToolTip('Line Properties'))
+            self.bg_star.SetToolTip(wx.ToolTip('Mark'))
+            self.target_icon.SetToolTip(wx.ToolTip('Locate Line'))
+            self.info_icon.SetToolTip(wx.ToolTip('Show Extended Info\n--------------------------------\nFirst buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A\nMol. type: N/A'))
 
         self.locator_on = False
         self.locator_old_width = 1
@@ -9523,12 +9528,12 @@ class SECItemPanel(wx.Panel):
             if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
                 self.info_tip.SetMessage('First buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A\nMol. type: N/A')
             else:
-                self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nFirst buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A\nMol. type: N/A')
+                self.info_icon.SetToolTip(wx.ToolTip('Show Extended Info\n--------------------------------\nFirst buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A\nMol. type: N/A'))
         else:
             if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
                 self.info_tip.SetMessage('First buffer frame: %i\nLast buffer frame: %i\nAverage window size: %i\nMol. type: %s' %(initial, final, window, mol_type))
             else:
-                self.info_icon.SetToolTipString('Show Extended Info\n--------------------------------\nFirst buffer frame: %i\nLast buffer frame: %i\nAverage window size: %i\nMol. Type: %s' %(initial, final, window, mol_type))
+                self.info_icon.SetToolTip(wx.ToolTip('Show Extended Info\n--------------------------------\nFirst buffer frame: %i\nLast buffer frame: %i\nAverage window size: %i\nMol. Type: %s' %(initial, final, window, mol_type)))
 
     def enableStar(self, state):
         if state == True:
@@ -10044,9 +10049,7 @@ class SECControlPanel(wx.Panel):
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         button_sizer.Add(select_button, 0, flag = wx.ALIGN_CENTER | wx.LEFT, border = 2)
-        button_sizer.AddSpacer((9,0))
-        button_sizer.Add(update_button, 0, flag = wx.ALIGN_CENTER)
-        button_sizer.AddSpacer((9,0))
+        button_sizer.Add(update_button, 0, border=9, flag=wx.ALIGN_CENTER|wx.LEFT|wx.RIGHT)
         button_sizer.Add(self.online_mode_button, 0, flag = wx.ALIGN_CENTER | wx.RIGHT, border = 2)
 
         load_sizer.Add(button_sizer, 1, wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, 2)
@@ -10090,8 +10093,7 @@ class SECControlPanel(wx.Panel):
         average_plot_button.Bind(wx.EVT_BUTTON, self._onAverageToMainPlot)
 
 
-        button_sizer.Add(frames_plot_button, 0, flag = wx.ALIGN_CENTER)
-        button_sizer.AddSpacer((9,0))
+        button_sizer.Add(frames_plot_button, 0, border=9, flag=wx.ALIGN_CENTER|wx.RIGHT)
         button_sizer.Add(average_plot_button, 0, flag = wx.ALIGN_CENTER)
 
         send_box = wx.StaticBox(self, -1, 'Data to main plot')
@@ -10185,7 +10187,7 @@ class SECControlPanel(wx.Panel):
         hdr_format = self._raw_settings.get('ImageHdrFormat')
 
         if hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS' or hdr_format == 'BioCAT, APS':
-            fname = self.parent._CreateFileDialog(wx.OPEN)
+            fname = self.parent._CreateFileDialog(wx.FD_OPEN)
 
             if fname == None:
                 return
@@ -10915,9 +10917,8 @@ class MaskingPanel(wx.Panel):
             flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
 
         circ_sub_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        circ_sub_sizer2.AddSpacer((15,-1))
-        circ_sub_sizer2.Add(wx.StaticText(self, label='Radius:'),
-            flag=wx.ALIGN_CENTER_HORIZONTAL)
+        circ_sub_sizer2.Add(wx.StaticText(self, label='Radius:'), border=15,
+            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
         circ_sub_sizer2.Add(self.circ_radius, border=3,
             flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
         circ_sub_sizer2.Add(wx.StaticText(self, label='X cen.:'), border=3,
@@ -10947,8 +10948,7 @@ class MaskingPanel(wx.Panel):
             flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
 
         rect_sub_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        rect_sub_sizer2.AddSpacer((15,-1))
-        rect_sub_sizer2.Add(wx.StaticText(self, label='X1:'), border=3,
+        rect_sub_sizer2.Add(wx.StaticText(self, label='X1:'), border=15,
             flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
         rect_sub_sizer2.Add(self.rect_x, border=3,
             flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
@@ -11327,7 +11327,7 @@ class MaskingPanel(wx.Panel):
         wx.CallAfter(self.image_panel.clearAllMasks)
 
     def _onLoadMaskFromFile(self, event):
-        file = self._createFileDialog(wx.OPEN)
+        file = self._createFileDialog(wx.FD_OPEN)
 
         if file:
             queue = self._main_frame.getWorkerThreadQueue()
@@ -11335,7 +11335,7 @@ class MaskingPanel(wx.Panel):
 
     def _onSaveMaskToFile(self, event):
 
-        file = self._createFileDialog(wx.SAVE)
+        file = self._createFileDialog(wx.FD_SAVE)
 
         if file:
             plot_parameters = self.image_panel.getPlotParameters()
@@ -11412,12 +11412,12 @@ class MaskingPanel(wx.Panel):
 
         path = wx.FindWindowByName('FileListCtrl').path
 
-        if mode == wx.OPEN:
+        if mode == wx.FD_OPEN:
             filters = 'Mask files (*.msk)|*.msk|All files (*.*)|*.*'
             dialog = wx.FileDialog( None, style = mode, wildcard = filters, defaultDir = path)
-        if mode == wx.SAVE:
+        if mode == wx.FD_SAVE:
             filters = 'Mask files (*.msk)|*.msk'
-            dialog = wx.FileDialog( None, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = path)
+            dialog = wx.FileDialog( None, style = mode | wx.FD_OVERWRITE_PROMPT, wildcard = filters, defaultDir = path)
 
         # Show the dialog and get user input
         if dialog.ShowModal() == wx.ID_OK:
@@ -11597,7 +11597,7 @@ class CenteringPanel(wx.Panel):
 
     def _createCenteringButtonsSizer(self):
 
-        buttonsizer = wx.FlexGridSizer(rows = 3, cols = 3)
+        buttonsizer = wx.FlexGridSizer(rows=3, cols=3, hgap=0, vgap=0)
 
         up_button = wx.BitmapButton(self, self.ID_UP, self.up_arrow_bmp)
         down_button = wx.BitmapButton(self,self.ID_DOWN, self.down_arrow_bmp)
@@ -12178,8 +12178,8 @@ class InformationPanel(wx.Panel):
             self.font_size1 = 8
             self.font_size2 = 10
 
-        self.used_font1 = wx.Font(self.font_size1, wx.SWISS, wx.NORMAL, wx.NORMAL)
-        self.used_font2 = wx.Font(self.font_size2, wx.SWISS, wx.NORMAL, wx.NORMAL)
+        self.used_font1 = wx.Font(self.font_size1, wx.FONTFAMILY_SWISS,
+            wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
 
         wx.Panel.__init__(self, parent, name = 'InformationPanel')
 
@@ -12608,7 +12608,7 @@ class WelcomeDialog(wx.Frame):
 
     def _onOKButton(self, event):
         # mainworker_cmd_queue.put(['startup', sys.argv])
-        wx.FutureCall(1, wx.FindWindowByName("MainFrame")._onStartup, sys.argv)
+        wx.CallLater(1, wx.FindWindowByName("MainFrame")._onStartup, sys.argv)
         self.OnClose()
 
     def _onKeyDown(self, event):
@@ -12707,7 +12707,7 @@ class MyApp(wx.App):
     #     self.BringWindowToFront().Raise()
 
 
-class MySplashScreen(wx.SplashScreen):
+class MySplashScreen(SplashScreen):
     """
         Create a splash screen widget.
     """
@@ -12716,16 +12716,19 @@ class MySplashScreen(wx.SplashScreen):
 
         aBitmap = RAWIcons.logo_atom.GetBitmap()
 
-        splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
+        if wx.version().split()[0].strip()[0] == '4':
+            splashStyle = wx.adv.SPLASH_CENTRE_ON_SCREEN | wx.adv.SPLASH_TIMEOUT
+        else:
+            splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
         splashDuration = 2000 # milliseconds
 
-        wx.SplashScreen.__init__(self, aBitmap, splashStyle, splashDuration, parent)
+        SplashScreen.__init__(self, aBitmap, splashStyle, splashDuration, parent)
 
         self.Bind(wx.EVT_CLOSE, self.OnExit)
 
         wx.Yield()
 
-        self.fc = wx.FutureCall(1, self.ShowMain)
+        self.fc = wx.CallLater(1, self.ShowMain)
 
     def OnExit(self, evt):
         if self.fc.IsRunning():
@@ -12742,7 +12745,7 @@ class MySplashScreen(wx.SplashScreen):
         dlg.Show(True)
 
 
-class RawTaskbarIcon(wx.TaskBarIcon):
+class RawTaskbarIcon(TaskBarIcon):
     TBMENU_RESTORE = wx.Window.NewControlId()
     TBMENU_CLOSE   = wx.Window.NewControlId()
     TBMENU_CHANGE  = wx.Window.NewControlId()
@@ -12751,9 +12754,13 @@ class RawTaskbarIcon(wx.TaskBarIcon):
     #----------------------------------------------------------------------
     def __init__(self, frame):
         if platform.system() == 'Darwin':
-            wx.TaskBarIcon.__init__(self, iconType=wx.TBI_DOCK)
+            if wx.version().split()[0].strip()[0] == '4':
+                icontype = wx.adv.TBI_DOCK
+            else:
+                icontype = wx.TBI_DOCK
+            TaskBarIcon.__init__(self, iconType=icontype)
         else:
-            wx.TaskBarIcon.__init__(self)
+            TaskBarIcon.__init__(self)
         self.frame = frame
 
         # Set the image

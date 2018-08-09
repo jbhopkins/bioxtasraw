@@ -56,12 +56,12 @@ def CreateFileDialog(mode):
         except:
             path = os.getcwd()
 
-        if mode == wx.OPEN:
+        if mode == wx.FD_OPEN:
             filters = 'All files (*.*)|*.*'
             dialog = wx.FileDialog( None, style = mode, wildcard = filters, defaultDir = path)
-        if mode == wx.SAVE:
+        if mode == wx.FD_SAVE:
             filters = 'All files (*.*)|*.*'
-            dialog = wx.FileDialog( None, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters, defaultDir = path)
+            dialog = wx.FileDialog( None, style = mode | wx.FD_OVERWRITE_PROMPT, wildcard = filters, defaultDir = path)
 
         # Show the dialog and get user input
         if dialog.ShowModal() == wx.ID_OK:
@@ -197,24 +197,6 @@ class ArtifactOptionsPanel(wx.Panel):
 
         return chkbox_sizer
 
-    def createChkBoxSettings(self):
-
-        box = wx.StaticBox(self, -1, 'Automation')
-        chkbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        chkboxgrid_sizer = wx.GridSizer(rows = len(self.chkboxData), cols = 1)
-
-        for each_label, id in self.chkboxData:
-
-            if each_label != None:
-                chkBox = wx.CheckBox(self, id, each_label)
-                chkBox.Bind(wx.EVT_CHECKBOX, self.onChkBox)
-                chkboxgrid_sizer.Add(chkBox, 1, wx.EXPAND)
-
-
-        chkbox_sizer.Add(chkboxgrid_sizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
-
-        return chkbox_sizer
-
     def onChkBox(self, event):
         pass
 
@@ -320,7 +302,7 @@ class CalibrationOptionsPanel(wx.Panel):
 
         box = wx.StaticBox(self, -1, 'Calibration Parameters')
         noOfRows = int(len(self.calibConstantsData))
-        calibSizer = wx.FlexGridSizer(cols = 3, rows = noOfRows, vgap = 3)
+        calibSizer = wx.FlexGridSizer(cols = 3, rows = noOfRows, vgap = 5, hgap=3)
 
 
         for eachText, id, unitTxt in self.calibConstantsData:
@@ -657,17 +639,24 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         self.img_hdr_list_dict = {}
 
         if filehdr != None:
-
-            self.lc.InsertStringItem(0, 'Header File:')
-            self.lc.SetItemBackgroundColour(0, wx.NamedColour('STEEL BLUE'))
+            if wx.version().split()[0].strip()[0] == '4':
+                self.lc.InsertItem(0, 'Header File:')
+                self.lc.SetItemBackgroundColour(0, wx.Colour('STEEL BLUE'))
+            else:
+                self.lc.InsertStringItem(0, 'Header File:')
+                self.lc.SetItemBackgroundColour(0, wx.NamedColour('STEEL BLUE'))
             item = self.lc.GetItem(0, 0)
             item.SetTextColour(wx.WHITE)
             self.lc.SetItem(item)
 
             for key in sorted(filehdr.iterkeys()):
                 num_items = self.lc.GetItemCount()
-                self.lc.InsertStringItem(num_items, key)
-                self.lc.SetStringItem(num_items, 1, str(filehdr[key]))
+                if wx.version().split()[0].strip()[0] == '4':
+                    self.lc.InsertItem(num_items, key)
+                    self.lc.SetItem(num_items, 1, str(filehdr[key]))
+                else:
+                    self.lc.InsertStringItem(num_items, key)
+                    self.lc.SetStringItem(num_items, 1, str(filehdr[key]))
                 self.file_hdr_list_dict[key] = num_items
 
 
@@ -679,16 +668,24 @@ class ReductionImgHdrFormatPanel(wx.Panel):
 
         if imghdr != None:
             num_items = self.lc.GetItemCount()
-            self.lc.InsertStringItem(num_items, 'Image Header:')
-            self.lc.SetItemBackgroundColour(num_items, wx.NamedColour('STEEL BLUE'))
+            if wx.version().split()[0].strip()[0] == '4':
+                self.lc.InsertItem(num_items, 'Image Header:')
+                self.lc.SetItemBackgroundColour(num_items, wx.Colour('STEEL BLUE'))
+            else:
+                self.lc.InsertStringItem(num_items, 'Image Header:')
+                self.lc.SetItemBackgroundColour(num_items, wx.NamedColour('STEEL BLUE'))
             item = self.lc.GetItem(num_items, 0)
             item.SetTextColour(wx.WHITE)
             self.lc.SetItem(item)
 
             for key in sorted(imghdr.iterkeys()):
                 num_items = self.lc.GetItemCount()
-                self.lc.InsertStringItem(num_items, key)
-                self.lc.SetStringItem(num_items, 1, str(imghdr[key]))
+                if wx.version().split()[0].strip()[0] == '4':
+                    self.lc.InsertItem(num_items, key)
+                    self.lc.SetItem(num_items, 1, str(imghdr[key]))
+                else:
+                    self.lc.InsertStringItem(num_items, key)
+                    self.lc.SetStringItem(num_items, 1, str(imghdr[key]))
                 self.img_hdr_list_dict[key] = num_items
 
             self.lc.SetColumnWidth(0, wx.LIST_AUTOSIZE)
@@ -719,7 +716,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         and add each header item to the list.
         '''
 
-        filename = CreateFileDialog(wx.OPEN)
+        filename = CreateFileDialog(wx.FD_OPEN)
         if filename == None:
             return
 
@@ -824,8 +821,12 @@ class NormListCtrl(wx.ListCtrl):
 
     def add(self, op, expr):
         no_of_items = self.GetItemCount()
-        self.InsertStringItem(no_of_items, op)
-        self.SetStringItem(no_of_items, 1, expr)
+        if wx.version().split()[0].strip()[0] == '4':
+            self.InsertItem(no_of_items, op)
+            self.SetItem(no_of_items, 1, expr)
+        else:
+            self.InsertStringItem(no_of_items, op)
+            self.SetStringItem(no_of_items, 1, expr)
 
     def moveItemUp(self, idx):
         if idx > 0:
@@ -911,9 +912,14 @@ class OnlineListCtrl(wx.ListCtrl):
 
     def add(self, filt, expr, pos):
         no_of_items = self.GetItemCount()
-        self.InsertStringItem(no_of_items, filt)
-        self.SetStringItem(no_of_items, 1, expr)
-        self.SetStringItem(no_of_items, 2, pos)
+        if wx.version().split()[0].strip()[0] == '4':
+            self.InsertItem(no_of_items, filt)
+            self.SetItem(no_of_items, 1, expr)
+            self.SetItem(no_of_items, 2, pos)
+        else:
+            self.InsertStringItem(no_of_items, filt)
+            self.SetStringItem(no_of_items, 1, expr)
+            self.SetStringItem(no_of_items, 2, pos)
 
     def moveItemUp(self, idx):
         if idx > 0:
@@ -1296,7 +1302,7 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
         buttonObj = event.GetEventObject()
         ID = buttonObj.GetId()            # Button ID
 
-        selectedFile = CreateFileDialog(wx.OPEN)
+        selectedFile = CreateFileDialog(wx.FD_OPEN)
 
         if selectedFile == None:
             return
@@ -1471,7 +1477,7 @@ class ReductionFlatfield(wx.Panel):
         buttonObj = event.GetEventObject()
         ID = buttonObj.GetId()            # Button ID
 
-        selectedFile = CreateFileDialog(wx.OPEN)
+        selectedFile = CreateFileDialog(wx.FD_OPEN)
 
         if selectedFile == None:
             return
@@ -1784,7 +1790,7 @@ class ReductionNormalizationPanel(wx.Panel):
         calc_button.Bind(wx.EVT_BUTTON, self.onCalcButton)
 
         #ud_button_sizer = wx.BoxSizer(wx.VERTICAL)
-        ud_button_sizer = wx.FlexGridSizer(cols = 1, rows = 4, vgap = 3)
+        ud_button_sizer = wx.FlexGridSizer(cols=1, rows=4, vgap=3, hgap=0)
         ud_button_sizer.Add(self.up_button,1, wx.EXPAND)
         ud_button_sizer.Add(self.down_button, 1, wx.EXPAND)
         ud_button_sizer.Add(self.delete_button, 1, wx.EXPAND)
@@ -1944,7 +1950,7 @@ class OnlineModePanel(wx.Panel):
         add_button.Bind(wx.EVT_BUTTON, self.onAddButton)
 
         #ud_button_sizer = wx.BoxSizer(wx.VERTICAL)
-        ud_button_sizer = wx.FlexGridSizer(cols = 1, rows = 4, vgap = 3)
+        ud_button_sizer = wx.FlexGridSizer(cols=1, rows=4, vgap=3, hgap=0)
         ud_button_sizer.Add(self.up_button,1, wx.EXPAND)
         ud_button_sizer.Add(self.down_button, 1, wx.EXPAND)
         ud_button_sizer.Add(self.delete_button, 1, wx.EXPAND)
@@ -4212,7 +4218,8 @@ class PagePanel(wx.Panel):
 
         page_sizer = wx.BoxSizer(wx.VERTICAL)
         self.title_string = wx.StaticText(self, -1, '')
-        font = wx.Font(12, wx.DEFAULT, wx.NORMAL, wx.FONTWEIGHT_BOLD)
+        font = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL,
+            wx.FONTWEIGHT_BOLD)
         self.title_string.SetFont(font)
 
         page_sizer.Add(self.title_string, 0, wx.EXPAND | wx.ALL, 5)
