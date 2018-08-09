@@ -913,30 +913,30 @@ class GuinierControlPanel(wx.Panel):
         spin.SetFocus()
 
     def onSpinCtrl(self, evt):
-        id = evt.GetId()
+        ctrl_id = evt.GetId()
 
-        spin = wx.FindWindowById(id, self)
+        spin = wx.FindWindowById(ctrl_id, self)
 
         startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
         endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
 
-        i = spin.GetValue()
+        i = int(spin.GetValue())
 
         #Make sure the boundaries don't cross:
-        if id == self.spinctrlIDs['qstart']:
-            max = endSpin.GetValue()
+        if ctrl_id == self.spinctrlIDs['qstart']:
+            max_val = int(endSpin.GetValue())
             txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
 
-            if i > max-2:
-                i = max - 2
+            if i > max_val-2:
+                i = max_val - 2
                 spin.SetValue(i)
 
-        elif id == self.spinctrlIDs['qend']:
-            min = startSpin.GetValue()
+        elif ctrl_id == self.spinctrlIDs['qend']:
+            min_val = int(startSpin.GetValue())
             txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
 
-            if i < min+2:
-                i = min + 2
+            if i < min_val+2:
+                i = min_val + 2
                 spin.SetValue(i)
 
         txt.SetValue(str(round(self.ExpObj.q[int(i)],5)))
