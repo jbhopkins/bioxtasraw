@@ -623,7 +623,7 @@ class GuinierControlPanel(wx.Panel):
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(idx_max)],5)))
 
-                if 'Rg_autorg_err' in guinier:
+                if 'Rg_autorg_err' in guinier and guinier['Rg_autorg_err'] != -1:
                     txt = wx.FindWindowById(self.error_data['autorg_rg'], self)
                     txt.SetValue(guinier['Rg_autorg_err'])
 
@@ -700,11 +700,15 @@ class GuinierControlPanel(wx.Panel):
                 info_dict['I0_autorg_err'] = autorg_i0_err
                 info_dict['Rg_err'] = max(float(autorg_rg_err), float(newInfo['err_fsigma_rg']))
                 info_dict['I0_err'] = max(float(autorg_i0_err), float(newInfo['err_fsigma_i0']))
+                info_dict['Rg_est_err'] = -1
+                info_dict['I0_est_err'] = -1
             else:
                 info_dict['Rg_est_err'] = newInfo['err_est_rg']
                 info_dict['I0_est_err'] = newInfo['err_est_i0']
                 info_dict['Rg_err'] = max(float(newInfo['err_est_rg']), float(newInfo['err_fsigma_rg']))
                 info_dict['I0_err'] = max(float(newInfo['err_est_i0']), float(newInfo['err_fsigma_i0']))
+                info_dict['Rg_autorg_err'] = -1
+                info_dict['I0_autorg_err'] = -1
 
             analysis_dict = self.ExpObj.getParameter('analysis')
             analysis_dict['guinier'] = info_dict
