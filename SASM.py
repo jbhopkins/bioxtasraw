@@ -1358,98 +1358,127 @@ def average(sasm_list, forced = False):
 
 def weightedAverage(sasm_list, weightByError, weightCounter, forced = False):
     ''' Weighted average of the intensity of a list of sasm objects '''
-    #Check average is possible with provided curves:
-    first_sasm = sasm_list[0]
-    first_q_min, first_q_max = first_sasm.getQrange()
+    if len(sasm_list) == 1:
+        #Useful for where all but the first profile are rejected due to similarity
+        #testing. Otherwise we should never have less than one profile to average
+        sasm = sasm_list[0]
+        q_min, q_max = sasm.getQrange()
 
-    for each in sasm_list:
-        each_q_min, each_q_max = each.getQrange()
-        if not np.all(np.round(each.q[each_q_min:each_q_max], 5) == np.round(first_sasm.q[first_q_min:first_q_max], 5)) and not forced:
-            raise SASExceptions.DataNotCompatible('Average list contains data sets with different q vectors.')
+        avg_q = copy.deepcopy(sasm.q[q_min:q_max])
+        avg_i = copy.deepcopy(sasm.i[q_min:q_max])
+        avg_err = copy.deepcopy(sasm.err[q_min:q_max])
+        avg_parameters = copy.deepcopy(sasm.getAllParameters())
 
-    all_i = first_sasm.i[first_q_min : first_q_max]
-    all_err = first_sasm.err[first_q_min : first_q_max]
+        avgSASM = SASM(avg_i, avg_q, avg_err, avg_parameters)
 
-    if not weightByError:
-        if first_sasm.getAllParameters().has_key('counters'):
-            file_hdr = first_sasm.getParameter('counters')
-        if first_sasm.getAllParameters().has_key('imageHeader'):
-            img_hdr = first_sasm.getParameter('imageHeader')
+        history = {}
+        history_list = []
+        for eachsasm in sasm_list:
+            each_history = []
+            each_history.append(copy.deepcopy(eachsasm.getParameter('filename')))
 
-        if weightCounter in file_hdr:
-            all_weight = float(file_hdr[weightCounter])
-        else:
-            all_weight = float(img_hdr[weightCounter])
+            for key in eachsasm.getParameter('history'):
+                each_history.append({key : copy.deepcopy(eachsasm.getParameter('history')[key])})
 
-    avg_filelist = []
-    if not weightByError:
-        avg_filelist.append([first_sasm.getParameter('filename'), all_weight])
+            history_list.append(each_history)
+
+
+        history['averaged_files'] = history_list
+        avgSASM.setParameter('history', history)
+
     else:
-        avg_filelist.append([first_sasm.getParameter('filename'), 'error'])
+        #Check average is possible with provided curves:
+        first_sasm = sasm_list[0]
+        first_q_min, first_q_max = first_sasm.getQrange()
 
-    for idx in range(1, len(sasm_list)):
-        each_q_min, each_q_max = sasm_list[idx].getQrange()
-        all_i = np.vstack((all_i, sasm_list[idx].i[each_q_min:each_q_max]))
-        all_err = np.vstack((all_err, sasm_list[idx].err[each_q_min:each_q_max]))
+        for each in sasm_list:
+            each_q_min, each_q_max = each.getQrange()
+            if not np.all(np.round(each.q[each_q_min:each_q_max], 5) == np.round(first_sasm.q[first_q_min:first_q_max], 5)) and not forced:
+                raise SASExceptions.DataNotCompatible('Average list contains data sets with different q vectors.')
+
+        all_i = first_sasm.i[first_q_min : first_q_max]
+        all_err = first_sasm.err[first_q_min : first_q_max]
 
         if not weightByError:
-            if sasm_list[idx].getAllParameters().has_key('counters'):
-                file_hdr = sasm_list[idx].getParameter('counters')
-            if sasm_list[idx].getAllParameters().has_key('imageHeader'):
-                img_hdr = sasm_list[idx].getParameter('imageHeader')
+            if first_sasm.getAllParameters().has_key('counters'):
+                file_hdr = first_sasm.getParameter('counters')
+            if first_sasm.getAllParameters().has_key('imageHeader'):
+                img_hdr = first_sasm.getParameter('imageHeader')
 
             if weightCounter in file_hdr:
-                try:
-                    all_weight = np.vstack((all_weight, float(file_hdr[weightCounter])))
-                except ValueError:
-                    raise SASExceptions.DataNotCompatible('Not all weight counter values were numbers.')
-
+                all_weight = float(file_hdr[weightCounter])
             else:
-                try:
-                    all_weight = np.vstack((all_weight, float(img_hdr[weightCounter])))
-                except ValueError:
-                    raise SASExceptions.DataNotCompatible('Not all weight counter values were numbers.')
+                all_weight = float(img_hdr[weightCounter])
+
+        avg_filelist = []
+        if not weightByError:
+            avg_filelist.append([first_sasm.getParameter('filename'), all_weight])
+        else:
+            avg_filelist.append([first_sasm.getParameter('filename'), 'error'])
+
+        for idx in range(1, len(sasm_list)):
+            each_q_min, each_q_max = sasm_list[idx].getQrange()
+            all_i = np.vstack((all_i, sasm_list[idx].i[each_q_min:each_q_max]))
+            all_err = np.vstack((all_err, sasm_list[idx].err[each_q_min:each_q_max]))
+
+            if not weightByError:
+                if sasm_list[idx].getAllParameters().has_key('counters'):
+                    file_hdr = sasm_list[idx].getParameter('counters')
+                if sasm_list[idx].getAllParameters().has_key('imageHeader'):
+                    img_hdr = sasm_list[idx].getParameter('imageHeader')
+
+                if weightCounter in file_hdr:
+                    try:
+                        all_weight = np.vstack((all_weight, float(file_hdr[weightCounter])))
+                    except ValueError:
+                        raise SASExceptions.DataNotCompatible('Not all weight counter values were numbers.')
+
+                else:
+                    try:
+                        all_weight = np.vstack((all_weight, float(img_hdr[weightCounter])))
+                    except ValueError:
+                        raise SASExceptions.DataNotCompatible('Not all weight counter values were numbers.')
+
+            if not weightByError:
+                avg_filelist.append([sasm_list[idx].getParameter('filename'), all_weight])
+            else:
+                avg_filelist.append([sasm_list[idx].getParameter('filename'), 'error'])
 
         if not weightByError:
-            avg_filelist.append([sasm_list[idx].getParameter('filename'), all_weight])
+            weight = all_weight.flatten()
+            avg_i = np.average(all_i, axis=0, weights=weight)
+            avg_err = np.sqrt(np.average(np.square(all_err), axis=0, weights=np.square(weight)))
         else:
-            avg_filelist.append([sasm_list[idx].getParameter('filename'), 'error'])
+            all_err = 1/(np.square(all_err))
+            avg_i = np.average(all_i, axis=0, weights = all_err)
+            avg_err = np.sqrt(1/np.sum(all_err,0))
 
-    if not weightByError:
-        weight = all_weight.flatten()
-        avg_i = np.average(all_i, axis=0, weights=weight)
-        avg_err = np.sqrt(np.average(np.square(all_err), axis=0, weights=np.square(weight)))
-    else:
-        all_err = 1/(np.square(all_err))
-        avg_i = np.average(all_i, axis=0, weights = all_err)
-        avg_err = np.sqrt(1/np.sum(all_err,0))
+        avg_i = copy.deepcopy(avg_i)
+        avg_err = copy.deepcopy(avg_err)
 
-    avg_i = copy.deepcopy(avg_i)
-    avg_err = copy.deepcopy(avg_err)
+        avg_q = copy.deepcopy(first_sasm.q)[first_q_min:first_q_max]
+        avg_parameters = copy.deepcopy(sasm_list[0].getAllParameters())
 
-    avg_q = copy.deepcopy(first_sasm.q)[first_q_min:first_q_max]
-    avg_parameters = copy.deepcopy(sasm_list[0].getAllParameters())
+        avgSASM = SASM(avg_i, avg_q, avg_err, {})
+        avgSASM.setParameter('filename', avg_parameters['filename'])
+        history = avgSASM.getParameter('history')
 
-    avgSASM = SASM(avg_i, avg_q, avg_err, {})
-    avgSASM.setParameter('filename', avg_parameters['filename'])
-    history = avgSASM.getParameter('history')
+        history = {}
 
-    history = {}
+        history_list = []
 
-    history_list = []
+        for eachsasm in sasm_list:
+            each_history = []
+            each_history.append(copy.deepcopy(eachsasm.getParameter('filename')))
 
-    for eachsasm in sasm_list:
-        each_history = []
-        each_history.append(copy.deepcopy(eachsasm.getParameter('filename')))
+            for key in eachsasm.getParameter('history'):
+                each_history.append({key : copy.deepcopy(eachsasm.getParameter('history')[key])})
 
-        for key in eachsasm.getParameter('history'):
-            each_history.append({key : copy.deepcopy(eachsasm.getParameter('history')[key])})
-
-        history_list.append(each_history)
+            history_list.append(each_history)
 
 
-    history['weighted_averaged_files'] = history_list
-    avgSASM.setParameter('history', history)
+        history['weighted_averaged_files'] = history_list
+        avgSASM.setParameter('history', history)
 
     return avgSASM
 
