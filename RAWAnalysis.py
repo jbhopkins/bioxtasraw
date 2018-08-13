@@ -3106,9 +3106,9 @@ class GNOMControlPanel(wx.Panel):
 
         dmax = int(round(datgnom.getParameter('dmax')))
 
-        if dmax != datgnom.getParameter('dmax') and dmax not in self.out_list:
+        if dmax != datgnom.getParameter('dmax') and str(dmax) not in self.out_list:
             self.calcGNOM(dmax)
-        elif dmax == datgnom.getParameter('dmax') and dmax not in self.out_list:
+        elif dmax == datgnom.getParameter('dmax') and str(dmax) not in self.out_list:
             self.out_list[str(dmax)] = datgnom
 
         dmaxWindow.SetValue(dmax)
@@ -3395,15 +3395,12 @@ class GNOMControlPanel(wx.Panel):
         dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
         dmax = dmaxWindow.GetValue()
 
-        if dmax not in self.out_list:
+        if str(dmax) not in self.out_list:
             self.calcGNOM(dmax)
 
         self.updateGNOMInfo(self.out_list[str(dmax)])
 
         plotpanel = wx.FindWindowByName('GNOMPlotPanel')
-
-        dmax_window = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-        dmax = str(dmax_window.GetValue())
 
         a = plotpanel.subplots['P(r)']
         b = plotpanel.subplots['Data/Fit']
@@ -3412,7 +3409,7 @@ class GNOMControlPanel(wx.Panel):
         if not b.get_autoscale_on():
             b.set_autoscale_on(True)
 
-        plotpanel.plotPr(self.out_list[dmax])
+        plotpanel.plotPr(self.out_list[str(dmax)])
 
 
     def calcGNOM(self, dmax):
