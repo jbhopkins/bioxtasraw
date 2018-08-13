@@ -2839,7 +2839,8 @@ def saveDammixData(filename, ambi_data, nsd_data, res_data, clust_num, clist_dat
         fsave.write(save_string)
 
 
-def saveDenssData(filename, ambi_data, res_data, model_data, setup_data):
+def saveDenssData(filename, ambi_data, res_data, model_plots, setup_data,
+    rsc_data, model_data):
 
     header_string = '# DENSS results summary\n'
     for item in setup_data:
@@ -2850,10 +2851,20 @@ def saveDenssData(filename, ambi_data, res_data, model_data, setup_data):
     for item in ambi_data:
         body_string = body_string + '# %s\n' %(' '.join(map(str, item)))
 
+    if len(rsc_data)>0:
+        body_string = '\n# RSC results\n'
+        for item in rsc_data:
+            body_string =  body_string + '# %s\n' %(' '.join(map(str, item)))
+
     if len(res_data) > 0:
         body_string = body_string + '\n# Reconstruction resolution (FSC) results\n'
         for item in res_data:
             body_string =  body_string + '# %s\n' %(' '.join(map(str, item)))
+
+    body_string = body_string + '\n# Individual model results\n'
+    body_string = body_string + 'Model,Chi^2,Rg,Support_Volume,Mean_RSC\n'
+    for item in model_data:
+        body_string =  body_string + '%s\n' %(','.join(map(str, item)))
 
     save_string = header_string + body_string
 
@@ -2862,16 +2873,18 @@ def saveDenssData(filename, ambi_data, res_data, model_data, setup_data):
 
     pdf = matplotlib.backends.backend_pdf.PdfPages(os.path.splitext(filename)[0]+'.pdf')
 
-    for data in model_data:
+    for data in model_plots:
         for fig in data[1]:
             fig.suptitle('Model: %s' %(data[0]))
+            fig.subplots_adjust(top=0.9)
             pdf.savefig(fig)
             fig.suptitle('')
+            fig.subplots_adjust(top=0.95)
 
     pdf.close()
 
 
-def saveDensityMrc(filename, rho,side):
+def saveDensityMrc(filename, rho, side):
     """Write an MRC formatted electron density map.
        See here: http://www2.mrc-lmb.cam.ac.uk/research/locally-developed-software/image-processing-software/#image
     """
@@ -2894,7 +2907,7 @@ def saveDensityMrc(filename, rho,side):
         fout.write(struct.pack('<iii', 1, 2, 3))
         # DMIN, DMAX, DMEAN
         fout.write(struct.pack('<fff', np.min(rho), np.max(rho), np.average(rho)))
-        # ISPG, NSYMBT, LSKFLG
+        # ISPG, NSYMBT, mlLSKFLG
         fout.write(struct.pack('<iii', 1, 0, 0))
         # EXTRA
         fout.write(struct.pack('<'+'f'*12, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0))

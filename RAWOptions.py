@@ -2140,17 +2140,6 @@ class ConfigRootSettings(wx.Panel):
                 atsasPanel = wx.FindWindowById(myId, self.GetParent())
                 atsasPanel.setATSASDir()
 
-        if self.raw_settings.get('autoFindEMAN2'):
-            myId = -1
-            all_options = wx.FindWindowByName('OptionsDialog').all_options
-            for item in all_options:
-                if item[2] == "DENSS":
-                    myId = item[1]
-
-            if myId != -1:
-                atsasPanel = wx.FindWindowById(myId, self.GetParent())
-                atsasPanel.setEMANDir()
-
         myId = -1
         all_options = wx.FindWindowByName('OptionsDialog').all_options
         for item in all_options:
@@ -3752,18 +3741,15 @@ class DenssPanel(wx.Panel):
             'denssLimitDmax', 'denssLimitDmaxStep', 'denssRecenter',
             'denssRecenterStep', 'denssPositivity', 'denssShrinkwrap',
             'denssShrinkwrapMinStep', 'denssConnected', 'denssConnectivitySteps',
-            'denssWriteXplor', 'denssCutOut', 'autoFindEMAN2', 'EMAN2Dir',
-            'denssRecenterMode', 'denssEnantiomer', 'denssMinDensity',
-            'denssMaxDensity',
+            'denssWriteXplor', 'denssCutOut', 'denssRecenterMode',
+            'denssMinDensity', 'denssMaxDensity', 'denssAverage'
             ]
 
         modeChoices = ['Fast', 'Slow', 'Custom']
         recenterChoices = ['com', 'max']
 
-        self.default_options = (('Automatically find the EMAN2 directory', raw_settings.getId('autoFindEMAN2'), 'bool'),
-            ('EMAN2 location:', raw_settings.getId('EMAN2Dir'), 'text'),
-            ('Default mode:', raw_settings.getId('denssMode'), 'choice', modeChoices),
-            ('Filter enantiomers:', raw_settings.getId('denssEnantiomer'), 'bool'),
+        self.default_options = (('Default mode:', raw_settings.getId('denssMode'), 'choice', modeChoices),
+            ('Align and Average:', raw_settings.getId('denssAverage'), 'bool'),
             )
 
         self.custom_options_long = (("Extrapolate data using Porod's law to voxel resolution limit", raw_settings.getId('denssExtrapolate'), 'bool'),
@@ -3823,32 +3809,11 @@ class DenssPanel(wx.Panel):
                 sizer.Add(labeltxt, 0, wx.ALL, 2)
                 sizer.Add(ctrl, 1, wx.ALL | wx.EXPAND, 2)
 
-                if myId == self.raw_settings.getId('EMAN2Dir'):
-                    self.datadir = ctrl
-                    self.dirButton = wx.Button(self, wx.ID_ANY, 'Select Directory')
-                    self.dirButton.Bind(wx.EVT_BUTTON, self.onDirButton)
-                    sizer.Add(self.dirButton, 0, wx.RIGHT | wx.TOP | wx.BOTTOM, 2)
-
             elif itemType == 'bool':
                 ctrl = wx.CheckBox(parent, myId, label)
                 sizer.Add(ctrl, 0, wx.ALL, 2)
 
-                if myId == self.raw_settings.getId('autoFindEMAN2'):
-                    self.autoFind = ctrl
-                    self.autoFind.Bind(wx.EVT_CHECKBOX, self.onAutoFind)
-
             default_sizer.Add(sizer, 0)
-
-        self.datadir.SetValue(self.raw_settings.get('EMAN2Dir'))
-        self.autoFind.SetValue(self.raw_settings.get('autoFindEMAN2'))
-
-        if not self.autoFind.GetValue():
-            self.datadir.SetEditable(True)
-            self.dirButton.Enable()
-
-        else:
-            self.datadir.SetEditable(False)
-            self.dirButton.Disable()
 
         box = wx.StaticBox(parent, wx.ID_ANY, 'Custom settings (only used in custom mode)')
         customSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
@@ -3912,42 +3877,8 @@ class DenssPanel(wx.Panel):
         top_sizer.Add(default_sizer)
         top_sizer.Add(customSizer)
 
-        if not self.autoFind.GetValue():
-            self.datadir.SetEditable(True)
-            self.dirButton.Enable()
-
-        else:
-            self.datadir.SetEditable(False)
-            self.dirButton.Disable()
-
         return top_sizer
 
-    def onAutoFind(self, evt):
-        findeman = evt.GetEventObject().GetValue()
-
-        if not findeman:
-            self.datadir.SetEditable(True)
-            self.dirButton.Enable()
-
-        else:
-            self.datadir.SetEditable(False)
-            self.dirButton.Disable()
-            self.setEMANDir()
-
-    def setEMANDir(self):
-        emanDir = findEMANDirectory()
-        self.datadir.SetValue(emanDir)
-
-    def onDirButton(self, evt):
-        path = self.datadir.GetValue()
-        dirdlg = wx.DirDialog(self, "Please select EMAN2 bin directory (.../EMAN2/bin):", defaultPath = path,)
-
-        if dirdlg.ShowModal() == wx.ID_OK:
-            path = dirdlg.GetPath()
-        else:
-            path = ''
-
-        self.datadir.SetValue(path)
 
 def findATSASDirectory():
     opsys= platform.system()
@@ -4021,55 +3952,6 @@ def findATSASDirectory():
             else:
                 if os.path.exists(os.path.join(atsas_path, 'bin')):
                         return os.path.join(atsas_path, 'bin')
-
-    return ''
-
-def findEMANDirectory():
-    opsys= platform.system()
-
-    if opsys == 'Windows':
-        default_path = 'C:\\EMAN2\\Library\\bin'
-    else:
-        default_path = os.path.expanduser('~/EMAN2/bin')
-
-    is_path = os.path.exists(default_path)
-
-    if is_path:
-        return default_path
-
-    if opsys == 'Windows':
-        default_path = os.path.expanduser('~\\EMAN2\\Library\\bin')
-        is_path = os.path.exists(default_path)
-        if is_path:
-            return default_path
-
-    if opsys == 'Windows':
-        which = subprocess.Popen('where e2version.py', stdout=subprocess.PIPE,shell=True)
-        output = which.communicate()
-        program_path = output[0].strip()
-    else:
-        which = subprocess.Popen('which e2version.py', stdout=subprocess.PIPE,shell=True)
-        output = which.communicate()
-        program_path = output[0].strip()
-
-    if program_path != '':
-        return os.path.dirname(program_path)
-
-    try:
-        path = os.environ['PATH']
-    except Exception:
-        path = None
-
-    if path is not None:
-        if opsys == 'Windows':
-            split_path = path.split(';')
-        else:
-            split_path = path.split(':')
-
-        for item in split_path:
-            if item.lower().find('eman2') > -1 and item.lower().find('bin') > -1:
-                if os.path.exists(item):
-                    return item
 
     return ''
 

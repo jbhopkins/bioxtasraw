@@ -1099,8 +1099,8 @@ class DraggableLegend:
 
 
 class CustomConsoleHandler(logging.Handler):
-    """Sends logger output to a wxpython TextCtrl
-    Original code from:
+    """Sends logger output to a queue
+    Based on code from:
     https://www.blog.pythonlibrary.org/2013/08/09/wxpython-how-to-redirect-pythons-logging-module-to-a-textctrl/
     """
 

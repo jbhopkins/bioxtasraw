@@ -305,15 +305,10 @@ class MainFrame(wx.Frame):
         dirctrl._useSavedPathIfExisits()
 
         find_atsas = self.raw_settings.get('autoFindATSAS')
-        find_eman2 = self.raw_settings.get('autoFindEMAN2')
 
         if find_atsas:
             atsas_dir = RAWOptions.findATSASDirectory()
             self.raw_settings.set('ATSASDir', atsas_dir)
-
-        if find_eman2:
-            eman_dir = RAWOptions.findEMANDirectory()
-            self.raw_settings.set('EMAN2Dir', eman_dir)
 
         start_online_mode = self.raw_settings.get('OnlineModeOnStartup')
         online_path = self.raw_settings.get('OnlineStartupDir')

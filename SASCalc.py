@@ -34,7 +34,6 @@ from scipy import integrate as integrate
 import os
 import time
 import subprocess
-import scipy.optimize
 import wx
 import threading
 import Queue
@@ -46,8 +45,10 @@ import glob
 import shutil
 import scipy.interpolate
 from scipy.constants import Avogadro
-from scipy import ndimage
+from scipy import optimize, ndimage
 import math
+from functools import partial
+from multiprocessing import Pool
 
 import SASFileIO
 import SASExceptions
@@ -74,9 +75,9 @@ def calcRg(q, i, err, transform=True):
 
     try:
         if error_weight:
-            opt, cov = scipy.optimize.curve_fit(linear_func, x, y, sigma=yerr, absolute_sigma=True)
+            opt, cov = optimize.curve_fit(linear_func, x, y, sigma=yerr, absolute_sigma=True)
         else:
-            opt, cov = scipy.optimize.curve_fit(linear_func, x, y)
+            opt, cov = optimize.curve_fit(linear_func, x, y)
         suc_fit = True
     except TypeError:
         opt = []
@@ -1812,6 +1813,9 @@ def run_cormap(sasm_list, correction='None'):
 
     return item_data, pvals, corrected_pvals, failed_comparisons
 
+###############################################################################
+#DENSS below here
+
 def chi2(exp, calc, sig):
     """Return the chi2 discrepancy between experimental and calculated data"""
     return np.sum(np.square(exp - calc) / np.square(sig))
@@ -1825,6 +1829,7 @@ def center_rho(rho, centering="com"):
     https://github.com/tdgrant1/denss
     That code was released under GPL V3. The original author is Thomas Grant.
     """
+    ne_rho= np.sum((rho))
     if centering == "max":
         rhocom = np.unravel_index(rho.argmax(), rho.shape)
     else:
@@ -1833,7 +1838,7 @@ def center_rho(rho, centering="com"):
     gridcenter = np.array(rho.shape)/2.
     shift = gridcenter-rhocom
     rho = ndimage.interpolation.shift(rho,shift,order=3,mode='wrap')
-
+    rho = rho*ne_rho/np.sum(rho)
     return rho
 
 def rho2rg(rho, r, support, dx):
@@ -1852,7 +1857,7 @@ def rho2rg(rho, r, support, dx):
 
     return rg
 
-def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue):
+def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denss_queue):
     """Calculates electron density from scattering data.
 
     This function is modified from that in the DENSS source code, released here:
@@ -1918,7 +1923,7 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     my_fh_formatter = logging.Formatter('%(asctime)s %(message)s', '%Y-%m-%d %I:%M:%S %p')
     my_fh.setFormatter(my_fh_formatter)
 
-    my_sh = RAWCustomCtrl.CustomConsoleHandler(denns_queue)
+    my_sh = RAWCustomCtrl.CustomConsoleHandler(denss_queue)
     my_sh.setLevel(logging.DEBUG)
 
     my_logger.addHandler(my_fh)
@@ -2233,7 +2238,7 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denns_queue)
     sigqdata /= scale_factor
     Imean /= scale_factor
 
-    return qdata, Idata, sigqdata, qbinsc, Imean[j], chi, rg, supportV
+    return qdata, Idata, sigqdata, qbinsc, Imean[j], chi, rg, supportV, rho, side
 
 def runDenss(q, I, sigq, D, prefix, path, comm_list, my_lock, thread_num_q,
     wx_queue, abort_event, denss_settings):
@@ -2284,7 +2289,6 @@ def runDenss(q, I, sigq, D, prefix, path, comm_list, my_lock, thread_num_q,
     stop_event.set()
 
     if not abort_event.is_set():
-        qdata, Idata, sigqdata, qbinsc, Imean, chi, rg, supportV = data
         my_lock.acquire()
         wx_queue.put_nowait(['status', 'Finished run %s\n' %(my_num)])
         my_lock.release()
@@ -2295,281 +2299,359 @@ def runDenss(q, I, sigq, D, prefix, path, comm_list, my_lock, thread_num_q,
 
     return data
 
-def runEman2Aver(flist, procs, prefix, path, emanDir):
-    eman_python, my_env, shebang_env = getEman2Paths(emanDir)
+def run_enantiomers(refrho, rhos, cores, num, avg_q, my_lock, wx_queue,
+    abort_event):
+    #Check to see if things have been aborted
+    if abort_event.is_set():
+        my_lock.acquire()
+        wx_queue.put_nowait(['average', 'Aborted!\n'])
+        wx_queue.put_nowait(['finished', num])
+        my_lock.release()
+        return None, None
 
-    if shebang_env:
-        py_cmd = '%s ' %(eman_python)
+    best_enans, scores = select_best_enantiomers(refrho, rhos, cores, avg_q,
+        abort_event)
+
+    if abort_event.is_set():
+        my_lock.acquire()
+        wx_queue.put_nowait(['average', 'Aborted!\n'])
+        wx_queue.put_nowait(['finished', num])
+        my_lock.release()
+        return None, None
+
+    return best_enans, scores
+
+def minimize_rho(refrho, movrho, T = np.zeros(6)):
+    """Optimize superposition of electron density maps. Move movrho to refrho."""
+    #print "initial score: ", 1/rho_overlap_score(refrho,movrho)
+    bounds = np.zeros(12).reshape(6,2)
+    bounds[:3,0] = -20*np.pi
+    bounds[:3,1] = 20*np.pi
+    bounds[3:,0] = -5
+    bounds[3:,1] = 5
+    save_movrho = np.copy(movrho)
+    save_refrho = np.copy(refrho)
+    result = optimize.fmin_l_bfgs_b(minimize_rho_score, T, factr= 0.1, maxiter=100, maxfun=200, epsilon=0.05, args=(refrho,movrho),bounds=bounds, approx_grad=True)
+    Topt = result[0]
+    newrho = transform_rho(save_movrho, Topt, order=2)
+    finalscore = 1/rho_overlap_score(save_refrho,newrho)
+    return newrho, finalscore
+
+def minimize_rho_score(T, refrho, movrho):
+    """Scoring function for superposition of electron density maps.
+
+        refrho - fixed, reference rho
+        movrho - moving rho
+        T - 6-element list containing alpha, beta, gamma, Tx, Ty, Tz in that order
+        to move movrho by.
+        """
+    newrho=transform_rho(movrho, T)
+    score = rho_overlap_score(refrho,newrho)
+    return score
+
+def rho_overlap_score(rho1,rho2):
+    """Scoring function for superposition of electron density maps."""
+    n=2*np.sum(np.abs(rho1*rho2))
+    d=(2*np.sum(rho1**2)**0.5*np.sum(rho2**2)**0.5)
+    score = n/d
+    #1/score for least squares minimization, i.e. want to minimize, not maximize score
+    return 1/score
+
+def transform_rho(rho, T, order=1):
+    """ Rotate and translate electron density map by T vector.
+
+        T = [alpha, beta, gamma, x, y, z], angles in radians
+        order = interpolation order (0-5)
+    """
+    ne_rho= np.sum((rho))
+    R = euler2matrix(T[0],T[1],T[2])
+    coordinates=np.array(ndimage.measurements.center_of_mass(rho))
+    offset=coordinates-np.dot(coordinates,R)
+    newrho = ndimage.interpolation.affine_transform(rho,R.T,order=order,offset=offset,output=np.float64,mode='wrap')
+    newrho = ndimage.interpolation.shift(newrho,T[3:],order=order,mode='wrap',output=np.float64)
+    newrho = newrho*ne_rho/np.sum(newrho)
+    return newrho
+
+def euler2matrix(alpha=0.0,beta=0.0,gamma=0.0):
+    """Convert Euler angles alpha, beta, gamma to a standard rotation matrix.
+
+        alpha - yaw, counterclockwise rotation about z-axis, upper-left quadrant
+        beta - pitch, counterclockwise rotation about y-axis, four-corners
+        gamma - roll, counterclockwise rotation about x-axis, lower-right quadrant
+        all angles given in radians
+
+        """
+    R = []
+    cosa = np.cos(alpha)
+    sina = np.sin(alpha)
+    cosb = np.cos(beta)
+    sinb = np.sin(beta)
+    cosg = np.cos(gamma)
+    sing = np.sin(gamma)
+    R.append(np.array(
+        [[cosa, -sina, 0],
+        [sina, cosa, 0],
+        [0, 0, 1]]))
+    R.append(np.array(
+        [[cosb, 0, sinb],
+        [0, 1, 0],
+        [-sinb, 0, cosb]]))
+    R.append(np.array(
+        [[1, 0, 0],
+        [0, cosg, -sing],
+        [0, sing, cosg]]))
+    return reduce(np.dot,R[::-1])
+
+def inertia_tensor(rho,side):
+    """Calculate the moment of inertia tensor for the given electron density map."""
+    halfside = side/2.
+    n = rho.shape[0]
+    x_ = np.linspace(-halfside,halfside,n)
+    x,y,z = np.meshgrid(x_,x_,x_,indexing='ij')
+    Ixx = np.sum((y**2 + z**2)*rho)
+    Iyy = np.sum((x**2 + z**2)*rho)
+    Izz = np.sum((x**2 + y**2)*rho)
+    Ixy = -np.sum(x*y*rho)
+    Iyz = -np.sum(y*z*rho)
+    Ixz = -np.sum(x*z*rho)
+    I = np.array([[Ixx, Ixy, Ixz],
+                  [Ixy, Iyy, Iyz],
+                  [Ixz, Iyz, Izz]])
+    return I
+
+def principal_axes(I):
+    """Calculate the principal inertia axes and order them Ia < Ib < Ic."""
+    w,v = np.linalg.eigh(I)
+    return w,v
+
+def principal_axis_alignment(refrho,movrho):
+    """ Align movrho principal axes to refrho."""
+    side = 1.0
+    ne_movrho = np.sum((movrho))
+    #first center refrho and movrho, save refrho shift
+    rhocom = np.array(ndimage.measurements.center_of_mass(refrho))
+    gridcenter = np.array(refrho.shape)/2.
+    shift = gridcenter-rhocom
+    refrho = ndimage.interpolation.shift(refrho,shift,order=3,mode='wrap')
+    #calculate, save and perform rotation of refrho to xyz for later
+    refI = inertia_tensor(refrho, side)
+    refw,refv = principal_axes(refI)
+    refR = refv.T
+    refrho = align2xyz(refrho)
+    #align movrho to xyz too
+    #check for best enantiomer, eigh is ambiguous in sign
+    movrho = center_rho(movrho)
+    enans = generate_enantiomers(movrho) #explicitly performs align2xyz()
+    scores = np.zeros(enans.shape[0])
+    for i in range(enans.shape[0]):
+        scores[i] = 1./rho_overlap_score(refrho,enans[i])
+    movrho = enans[np.argmax(scores)]
+    #now rotate movrho by the inverse of the refrho rotation
+    R = np.linalg.inv(refR)
+    c_in = np.array(ndimage.measurements.center_of_mass(movrho))
+    c_out = np.array(movrho.shape)/2.
+    offset=c_in-c_out.dot(R)
+    movrho = ndimage.interpolation.affine_transform(movrho,R.T,order=3,offset=offset,mode='wrap')
+    #now shift it back to where refrho was originally
+    movrho = ndimage.interpolation.shift(movrho,-shift,order=3,mode='wrap')
+    movrho *= ne_movrho/np.sum(movrho)
+    return movrho
+
+def align2xyz(rho):
+    """ Align rho such that principal axes align with XYZ axes."""
+    side = 1.0
+    ne_rho = np.sum(rho)
+    rho = center_rho(rho)
+    #apparently need to run this a few times to get good alignment
+    #maybe due to interpolation artifacts?
+    for i in range(3):
+        I = inertia_tensor(rho, side)
+        w,v = np.linalg.eigh(I) #principal axes
+        R = v.T #rotation matrix
+        c_in = np.array(ndimage.measurements.center_of_mass(rho))
+        c_out = np.array(rho.shape)/2.
+        offset=c_in-c_out.dot(R)
+        rho = ndimage.interpolation.affine_transform(rho,R.T,order=3,offset=offset,mode='wrap')
+    rho *= ne_rho/np.sum(rho)
+    return rho
+
+def generate_enantiomers(rho):
+    """ Generate all enantiomers of given density map.
+        Output maps are flipped over x,y,z,xy,yz,zx, and xyz, respectively
+        """
+
+    rho = align2xyz(rho)
+    rho_xflip = rho[::-1,:,:]
+    rho_yflip = rho[:,::-1,:]
+    rho_zflip = rho[:,:,::-1]
+    rho_xyflip = rho_xflip[:,::-1,:]
+    rho_yzflip = rho_yflip[:,:,::-1]
+    rho_zxflip = rho_zflip[::-1,:,:]
+    rho_xyzflip = rho_xyflip[:,:,::-1]
+    enans = np.array([rho,rho_xflip,rho_yflip,rho_zflip,
+                      rho_xyflip,rho_yzflip,rho_zxflip,
+                      rho_xyzflip])
+    return enans
+
+
+def align(refrho, movrho, avg_q, abort_event):
+    """ Align second electron density map to the first."""
+    if abort_event.is_set():
+        return None, None
+
+    ne_rho= np.sum((movrho))
+    movrho = center_rho(movrho)
+    rhocom = np.array(ndimage.measurements.center_of_mass(refrho))
+    gridcenter = np.array(refrho.shape)/2.
+    shift = gridcenter-rhocom
+    refrho = ndimage.interpolation.shift(refrho,shift,order=1,mode='wrap')
+
+    if abort_event.is_set():
+        return None, None
+
+    movrho = principal_axis_alignment(refrho, movrho)
+
+    if abort_event.is_set():
+        return None, None
+
+    movrho = ndimage.interpolation.shift(movrho,-shift,order=1,mode='wrap')
+    movrho, score = minimize_rho(refrho, movrho)
+    movrho = movrho*ne_rho/np.sum(movrho)
+    return movrho, score
+
+def multi_align(niter, **kwargs):
+    """ Wrapper script for alignment for multiprocessing."""
+    kwargs['refrho']=kwargs['refrho'][niter]
+    if niter >= kwargs['movrho'].shape[0]-1:
+        kwargs['avg_q'].put_nowait( "Finishing alignment: %i / %i\n" % (niter+1, kwargs['movrho'].shape[0]))
     else:
-        py_cmd = '"%s" ' %(eman_python)
-
-    average_py = os.path.join(emanDir, 'e2spt_classaverage.py')
-
-    if os.path.exists(average_py):
-        average_cmd = py_cmd + ('"%s" --input "%s_stack.hdf" --ref "%s_reference.hdf" '
-            '--path "%s_aver" --parallel thread:%i --saveali --savesteps '
-            '--keep 3.0 --keepsig' %(average_py, prefix, prefix, prefix, procs))
-
-        if len(flist) < 4:
-            average_cmd = average_cmd + ' --goldstandardoff'
-        process=subprocess.Popen(average_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
-        return process
-    else:
-        return
-
-def runEman2xyz(denss_file, procs, prefix, path, emanDir):
-    eman_python, my_env, shebang_env = getEman2Paths(emanDir)
-
-    if shebang_env:
-        py_cmd = '%s ' %(eman_python)
-    else:
-        py_cmd = '"%s" ' %(eman_python)
-
-    xyz_py = os.path.join(RAWGlobals.RAWResourcesDir, 'ali2xyz.py')
-    rotate_py = os.path.join(emanDir, 'e2proc3d.py')
-    stacks_py = os.path.join(emanDir, 'e2buildstacks.py')
-
-    #First, align the primary file to cardinal axes
-    xyz_cmd = py_cmd + '"%s" "%s"' %(xyz_py, denss_file)
-    xyz_proc = subprocess.Popen(xyz_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
-    xyz_output, error = xyz_proc.communicate()
-
-    df_prefix = os.path.splitext(os.path.split(denss_file)[1])[0]
-    xyz_file = '%s_ali2xyz.hdf' %(df_prefix)
-    xyz_fnp = os.path.splitext(xyz_file)[0]
-
-    #Then we create the set of rotations
-    rotx_cmd = py_cmd + ('"%s" "%s" "%s_ali2xyz_x.hdf" --process xform.flip:axis=x'
-        %(rotate_py, xyz_file, df_prefix))
-    rotx_proc = subprocess.Popen(rotx_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
-    rotx_output, error = rotx_proc.communicate()
-
-    roty_cmd = py_cmd + ('"%s" "%s" "%s_ali2xyz_y.hdf" --process xform.flip:axis=y'
-        %(rotate_py, xyz_file, df_prefix))
-    roty_proc = subprocess.Popen(roty_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
-    roty_output, error = roty_proc.communicate()
-
-    rotz_cmd = py_cmd + ('"%s" "%s" "%s_ali2xyz_z.hdf" --process xform.flip:axis=z'
-        %(rotate_py, xyz_file, df_prefix))
-    rotz_proc = subprocess.Popen(rotz_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
-    rotz_output, error = rotz_proc.communicate()
-
-    rotx_file = '%s_x.hdf' %(xyz_fnp)
-
-    rotxy_cmd = py_cmd + ('"%s" "%s" "%s_ali2xyz_xy.hdf" --process xform.flip:axis=y'
-        %(rotate_py, rotx_file, df_prefix))
-    rotxy_proc = subprocess.Popen(rotxy_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
-    rotxy_output, error = rotxy_proc.communicate()
-
-    rotxz_cmd = py_cmd + ('"%s" "%s" "%s_ali2xyz_xz.hdf" --process xform.flip:axis=z'
-        %(rotate_py, rotx_file, df_prefix))
-    rotxz_proc = subprocess.Popen(rotxz_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
-    rotxz_output, error = rotxz_proc.communicate()
-
-    roty_file = '%s_y.hdf' %(xyz_fnp)
-
-    rotyz_cmd = py_cmd + ('"%s" "%s" "%s_ali2xyz_yz.hdf" --process xform.flip:axis=z'
-        %(rotate_py, roty_file, df_prefix))
-    rotyz_proc = subprocess.Popen(rotyz_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
-    rotyz_output, error = rotyz_proc.communicate()
-
-    rotxy_file = '%s_xy.hdf' %(xyz_fnp)
-
-    rotxyz_cmd = py_cmd + ('"%s" "%s" "%s_ali2xyz_xyz.hdf" --process xform.flip:axis=z'
-        %(rotate_py, rotxy_file, df_prefix))
-    rotxyz_proc = subprocess.Popen(rotxyz_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
-    rotxyz_output, error = rotxyz_proc.communicate()
-
-    rot_output = [rotx_output, roty_output, rotz_output, rotxy_output,
-        rotxz_output, rotyz_output, rotxyz_output]
-
-    #Then we stack the rotated files into a single stack
-    rot_fnames = [xyz_file, rotx_file, roty_file, '%s_z.hdf' %(xyz_fnp), rotxy_file,
-        '%s_xz.hdf' %(xyz_fnp), '%s_yz.hdf' %(xyz_fnp), '%s_xyz.hdf' %(xyz_fnp)]
-
-    stack_cmd = py_cmd + '"%s" --stackname "%s_ali2xyz_all.hdf"' %(stacks_py, df_prefix)
-
-    for fname in rot_fnames:
-        stack_cmd = stack_cmd + ' "%s"' %(fname)
-
-    stacks_process = subprocess.Popen(stack_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
-    stacks_output, error = stacks_process.communicate()
-
-    return xyz_output, rot_output, stacks_output, rot_fnames
-
-def runEman2Align(denss_file, procs, prefix, path, emanDir):
-    eman_python, my_env, shebang_env = getEman2Paths(emanDir)
-
-    if shebang_env:
-        py_cmd = '%s ' %(eman_python)
-    else:
-        py_cmd = '"%s" ' %(eman_python)
-
-    align_py = os.path.join(emanDir, 'e2spt_align.py')
-
-    df_prefix = os.path.splitext(os.path.split(denss_file)[1])[0]
-
-    #Then we align the enantiomers in the stack with the reference
-    align_dir = os.path.join(path,'%s_enant_ali' %(prefix))
-    if os.path.exists(align_dir) and os.path.isdir(align_dir):
-        shutil.rmtree(align_dir, ignore_errors=True)
-
-    os.mkdir(align_dir)
-
-    align_cmd = py_cmd + ('"%s" --path="%s" --threads %s -v 5 "%s_ali2xyz_all.hdf" "%s_reference.hdf"'
-        %(align_py, align_dir, procs, df_prefix, prefix))
-
-    align_process = subprocess.Popen(align_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
-
-    return align_process
-
-def runEman2PreAver(flist, procs, prefix, path, emanDir):
-    eman_python, my_env, shebang_env = getEman2Paths(emanDir)
-
-    #First we stack
-    stacks_py = os.path.join(emanDir, 'e2buildstacks.py')
-
-    if shebang_env:
-        py_cmd = '%s ' %(eman_python)
-    else:
-        py_cmd = '"%s" ' %(eman_python)
-
-    if os.path.exists(stacks_py):
-        stacks_cmd = py_cmd + '"%s" --stackname "%s_stack.hdf"' %(stacks_py, prefix)
-
-        for item in flist:
-            stacks_cmd = stacks_cmd + ' "%s"' %(item)
-
-        process=subprocess.Popen(stacks_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
-        stacks_output, error = process.communicate()
-    else:
-        return
-
-    if error is not None:
-        stacks_output = stacks_output + error
-
-    #Then we generate a first guess model
-    bt_py = os.path.join(emanDir, 'e2spt_binarytree.py')
-
-    if os.path.exists(bt_py):
-        bt_cmd = py_cmd + '"%s" --input "%s_stack.hdf" --path "%s_bt_ref" --parallel thread:%i' %(bt_py, prefix, prefix, procs)
-
-        process=subprocess.Popen(bt_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
-        return process, stacks_output
-    else:
-        return
-
-def runEman2PreEnant(flist, procs, prefix, path, emanDir):
-    eman_python, my_env, shebang_env = getEman2Paths(emanDir)
-
-    #First we stack
-    stacks_py = os.path.join(emanDir, 'e2buildstacks.py')
-
-    if shebang_env:
-        py_cmd = '%s ' %(eman_python)
-    else:
-        py_cmd = '"%s" ' %(eman_python)
-
-    if os.path.exists(stacks_py):
-        stacks_cmd = py_cmd + '"%s" --stackname "%s_stack.hdf"' %(stacks_py, prefix)
-
-        for item in flist:
-            stacks_cmd = stacks_cmd + ' "%s"' %(item)
-
-        process = subprocess.Popen(stacks_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
-        stacks_output, stacks_error = process.communicate()
-
-    else:
-        return
-
-    #Then convert the first density to be used as a reference:
-    convert_py = os.path.join(emanDir, 'e2proc3d.py')
-
-    if os.path.exists(convert_py):
-        convert_cmd = convert_py + ' "%s" %s_reference.hdf' %(flist[0], prefix)
-        process = subprocess.Popen(convert_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=path)
-        conv_output, conv_error = process.communicate()
-
-    else:
-        return
-
-    if stacks_error is not None:
-        st_out = stacks_output + stacks_error
-    else:
-        st_out = stacks_output
-
-    if conv_error is not None:
-        st_out = conv_output + conv_error
-    else:
-        conv_out = conv_output
-
-    return st_out, conv_out
-
-def runEman2Convert(prefix, path, emanDir):
-    eman_python, my_env, shebang_env = getEman2Paths(emanDir)
-
-    convert_py = os.path.join(emanDir, 'e2proc3d.py')
-
-    aver_dir = glob.glob(os.path.join(path, '%s_aver_*' %(prefix)))[-1]
-
-    if shebang_env:
-        py_cmd = '%s ' %(eman_python)
-    else:
-        py_cmd = '"%s" ' %(eman_python)
-
-    if os.path.exists(convert_py):
-        convert_cmd = py_cmd + '"%s" final_avg_ali2ref.hdf "%s_aver.mrc"' %(convert_py, prefix)
-
-        process = subprocess.Popen(convert_cmd, shell=True, stdout=subprocess.PIPE, env=my_env, cwd=aver_dir)
-        stacks_output, error = process.communicate()
-
-        if os.path.exists(os.path.join(path, '%s_avg.mrc' %(prefix))):
-            os.remove(os.path.join(path, '%s_avg.mrc' %(prefix)))
-
-        shutil.move(os.path.join(aver_dir, '%s_aver.mrc' %(prefix)), os.path.join(path, '%s_aver.mrc' %(prefix)))
-
-        return stacks_output, error
-
-    else:
-        return
-
-def getEman2Paths(emanDir):
-    #First we find a python file and get the #!
-    version_py = os.path.join(emanDir, 'e2version.py')
-
-    with open(version_py) as f:
-        eman_python=f.readline()
-
-    if eman_python.find('/') > -1:
-        eman_python = eman_python[eman_python.find('/'):].strip()
-    else:
-        eman_python = ''
-
-    my_env = os.environ.copy()
-
-    if platform.system() == 'Windows':
-        t_dir = os.path.dirname(os.path.dirname(emanDir))
-
-        my_env["PATH"] = (t_dir+';' + os.path.join(t_dir, 'Scripts')+';'
-            +emanDir+';'+my_env["PATH"])
-
-        if eman_python == '':
-            eman_python = os.path.join(t_dir, 'python.exe')
-    else:
-        my_env["PATH"] = emanDir+':'+my_env["PATH"]
-
-        if eman_python == '':
-            eman_python = os.path.join(emanDir, 'python')
-
-    if eman_python.find(' ') > -1:
-        if eman_python.split()[0].find('/env') > -1 and eman_python.split()[-1].find('python') > -1:
-            shebang_env = True
-        else:
-            shebang_env = False
-    else:
-        shebang_env = False
-
-    return eman_python, my_env, shebang_env
+        kwargs['avg_q'].put_nowait( "Running alignment: %i / %i\n" % (niter+1, kwargs['movrho'].shape[0]))
+    kwargs['movrho']=kwargs['movrho'][niter]
+    time.sleep(1)
+    return align(**kwargs)
+
+def average_two(rho1, rho2, avg_q, abort_event):
+    """ Align and average two electron density maps and return the average."""
+    rho2, score = align(rho1, rho2, avg_q, abort_event)
+    average_rho = (rho1+rho2)/2
+    return average_rho
+
+def multi_average_two(niter, **kwargs):
+    """ Wrapper script for averaging two maps for multiprocessing."""
+    try:
+        kwargs['rho1']=kwargs['rho1'][niter]
+        kwargs['rho2']=kwargs['rho2'][niter]
+        time.sleep(1)
+        return average_two(**kwargs)
+    except KeyboardInterrupt:
+        pass
+
+def average_pairs(rhos, cores, avg_q, abort_event):
+    """ Average pairs of electron density maps, second half to first half."""
+    #create even/odd pairs, odds are the references
+    rho_args = {'rho1':rhos[::2], 'rho2':rhos[1::2], 'avg_q':avg_q,
+        'abort_event':abort_event}
+    pool = Pool(cores)
+    try:
+        mapfunc = partial(multi_average_two, **rho_args)
+        average_rhos = pool.map(mapfunc, range(rhos.shape[0]/2))
+        pool.close()
+        pool.join()
+    except KeyboardInterrupt:
+        pool.terminate()
+        pool.close()
+        sys.exit(1)
+    return np.array(average_rhos)
+
+def binary_average(rhos, cores, avg_q, abort_event):
+    """ Generate a reference electron density map using binary averaging."""
+    twos = 2**np.arange(20)
+    nmaps = np.max(twos[twos<=rhos.shape[0]])
+    levels = int(np.log2(nmaps))-1
+    rhos = rhos[:nmaps]
+    for level in range(levels):
+         rhos = average_pairs(rhos,cores, avg_q, abort_event)
+    refrho = center_rho(rhos[0])
+    return refrho
+
+def align_multiple(refrho, rhos, cores, avg_q, abort_event):
+    """ Align each map in the set to the reference."""
+    #need to make a duplicate of refrho nmaps times to feed as separate
+    #arguments to pool.map
+    rho_args = {'refrho':np.array([refrho for i in range(rhos.shape[0])]),
+        'movrho':rhos, 'avg_q': avg_q, 'abort_event': abort_event}
+    pool = Pool(cores)
+
+    mapfunc = partial(multi_align, **rho_args)
+    results = pool.map(mapfunc, range(rhos.shape[0]))
+    pool.close()
+    pool.join()
+
+    aligned_rhos = np.array([results[i][0] for i in range(len(results))])
+    scores = np.array([results[i][1] for i in range(len(results))])
+    return aligned_rhos, scores
+
+def select_best_enantiomer(refrho, rho, cores, avg_q, abort_event):
+    """ Generate, align and select the best enantiomer. """
+    enans = generate_enantiomers(rho)
+
+    if abort_event.is_set():
+        return None, None
+
+    aligned, scores = align_multiple(refrho, enans, cores, avg_q, abort_event)
+
+    if abort_event.is_set():
+        return None, None
+
+    best_i = np.argmax(scores)
+    best_enan, score = aligned[best_i], scores[best_i]
+    return best_enan, score
+
+def select_best_enantiomers(refrho, rhos, cores, avg_q, abort_event):
+    """ Generate, align and select the best enantiomer for each map in the set."""
+    best_enans = []
+    scores = []
+    for i in range(rhos.shape[0]):
+        if abort_event.is_set():
+            return None, None
+        avg_q.put_nowait('Selecting enantiomer for model {}\n'.format(i+1))
+        best_enan, score = select_best_enantiomer(refrho, rhos[i], cores, avg_q, abort_event)
+        best_enans.append(best_enan)
+        scores.append(score)
+    best_enans = np.array(best_enans)
+    scores = np.array(scores)
+    return best_enans, scores
+
+def calc_fsc(rho1, rho2, side):
+    """ Calculate the Fourier Shell Correlation between two electron density maps."""
+    df = 1.0/side
+    n = rho1.shape[0]
+    qx_ = np.fft.fftfreq(n)*n*df
+    qx, qy, qz = np.meshgrid(qx_,qx_,qx_,indexing='ij')
+    qx_max = qx.max()
+    qr = np.sqrt(qx**2+qy**2+qz**2)
+    qmax = np.max(qr)
+    qstep = np.min(qr[qr>0])
+    nbins = int(qmax/qstep)
+    qbins = np.linspace(0,nbins*qstep,nbins+1)
+    #create an array labeling each voxel according to which qbin it belongs
+    qbin_labels = np.searchsorted(qbins, qr, "right")
+    qbin_labels -= 1
+    F1 = np.fft.fftn(rho1)
+    F2 = np.fft.fftn(rho2)
+    numerator = ndimage.sum(np.real(F1*np.conj(F2)), labels=qbin_labels, index = np.arange(0,qbin_labels.max()+1))
+    term1 = ndimage.sum(np.abs(F1)**2, labels=qbin_labels, index = np.arange(0,qbin_labels.max()+1))
+    term2 = ndimage.sum(np.abs(F2)**2, labels=qbin_labels, index = np.arange(0,qbin_labels.max()+1))
+    denominator = (term1*term2)**0.5
+    #print "numerator ", numerator
+    #print "denominator ", denominator
+    FSC = numerator/denominator
+    qidx = np.where(qbins<qx_max)
+    return  np.vstack((qbins[qidx],FSC[qidx])).T
+
+
+###############################################################################
+#EFA below here
 
 def runEFA(A, forward=True):
     wx.Yield()
