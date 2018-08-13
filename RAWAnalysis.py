@@ -2693,8 +2693,8 @@ class GNOMPlotPanel(wx.Panel):
 
             self.zero_line  = a.axhline(color = 'k', animated = True)
 
-            self.data_line, = b.plot(q, i, 'b.', animated = True)
-            self.gnom_line, = b.plot(qexp, jreg, 'r', animated = True)
+            self.data_line, = b.semilogy(q, i, 'b.', animated = True)
+            self.gnom_line, = b.semilogy(qexp, jreg, 'r', animated = True)
 
             self.canvas.draw()
             self.background = self.canvas.copy_from_bbox(a.bbox)
@@ -7145,8 +7145,8 @@ class BIFTPlotPanel(wx.Panel):
 
             self.zero_line = a.axhline(color = 'k', animated = True)
 
-            self.data_line, = b.plot(self.q, self.i, 'b.', animated = True)
-            self.gnom_line, = b.plot(qexp, jreg, 'r', animated = True)
+            self.data_line, = b.semilogy(self.q, self.i, 'b.', animated = True)
+            self.gnom_line, = b.semilogy(qexp, jreg, 'r', animated = True)
 
             #self.lim_back_line, = a.plot([x_lim_back, x_lim_back], [y_lim_back-0.2, y_lim_back+0.2], transform=a.transAxes, animated = True)
 
