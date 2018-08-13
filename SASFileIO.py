@@ -1247,6 +1247,8 @@ def loadOutFile(filename):
     p_i0_fit = re.compile('\s*Real\s+space\s*\:?[A-Za-z0-9\s\.,+-=]*\(0\)\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*\+-\s*\d*[.]\d+[+eE-]*\d*')
     q_i0_fit = re.compile('\s*Reciprocal\s+space\s*\:?[A-Za-z0-9\s\.,+-=]*\(0\)\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*')
 
+    alpha_fit = re.compile('\s*Current\s+ALPHA\s*\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*')
+
     qfull = []
     qshort = []
     Jexp = []
@@ -1276,6 +1278,7 @@ def loadOutFile(filename):
             q_rg_match = q_rg_fit.match(line)
             p_i0_match = p_i0_fit.match(line)
             q_i0_match = q_i0_fit.match(line)
+            alpha_match = alpha_fit.match(line)
 
             outfile.append(line)
 
@@ -1351,6 +1354,9 @@ def loadOutFile(filename):
                 found = q_i0_match.group().split()
                 q_i0 = float(found[-1])
 
+            if alpha_match:
+                found = alpha_match.group().split()
+                alpha = float(found[-1])
 
     # Output variables not in the results file:
     #             'r'         : R,            #R, note R[-1] == Dmax
@@ -1386,7 +1392,8 @@ def loadOutFile(filename):
                 'smooth'    : Actual_SMOOTH,#Smoothness of the chosen interval? -1 indicates no real value, for versions of GNOM < 5.0 (ATSAS <2.8)
                 'filename'  : name,         #GNOM filename
                 'algorithm' : 'GNOM',       #Lets us know what algorithm was used to find the IFT
-                'chisq'     : chisq         #Actual chi squared value
+                'chisq'     : chisq,        #Actual chi squared value
+                'alpha'     : alpha,        #Alpha used for the IFT
                     }
 
     iftm = SASM.IFTM(P, R, Perr, Jexp, qshort, Jerr, Jreg, results, Ireg, qfull)

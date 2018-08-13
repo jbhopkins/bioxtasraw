@@ -2796,7 +2796,7 @@ class ATSASGnom(wx.Panel):
         npts_sizer.Add(npts_ctrl, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
 
 
-        alpha_text = wx.StaticText(self, -1, 'Initial Alpha :')
+        alpha_text = wx.StaticText(self, -1, 'Initial Alpha (0=auto, value sets default):')
         alpha_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomInitialAlpha'), '', size = (60, -1), style = wx.TE_PROCESS_ENTER)
 
         alpha_sizer = wx.BoxSizer(wx.HORIZONTAL)

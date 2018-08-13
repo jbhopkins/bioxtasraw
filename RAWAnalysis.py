@@ -2508,7 +2508,7 @@ class GNOMFrame(wx.Frame):
             os.chdir(cwd)
 
 
-            if init_iftm == None:
+            if init_iftm is None:
                 outname = 't_datgnom.out'
                 while os.path.isfile(outname):
                     outname = 't'+outname
@@ -2543,9 +2543,6 @@ class GNOMFrame(wx.Frame):
             wx.CallAfter(self.controlPanel.initDatgnomValues, sasm, init_iftm)
 
         wx.CallAfter(self.showBusy, False)
-
-    def initGnomVals(self, sasm):
-        self.controlPanel.initGnomValues(sasm)
 
     def cleanupGNOM(self, path, savename = '', outname = ''):
         savefile = os.path.join(path, savename)
@@ -2779,7 +2776,7 @@ class GNOMControlPanel(wx.Panel):
                                 'aw'            : self.raw_settings.get('gnomAW'),
                                 'lw'            : self.raw_settings.get('gnomLW'),
                                 'spot'          : self.raw_settings.get('gnomSpot'),
-                                'expt'          : self.raw_settings.get('gnomExpt')
+                                'expt'          : self.raw_settings.get('gnomExpt'),
                                 }
 
         self.out_list = {}
@@ -2787,10 +2784,13 @@ class GNOMControlPanel(wx.Panel):
 
         self.spinctrlIDs = {'qstart' : self.NewControlId(),
                             'qend'   : self.NewControlId(),
-                            'dmax'   : self.NewControlId()}
+                            'dmax'   : self.NewControlId(),
+                            }
 
-        self.staticTxtIDs = {'qstart' : self.NewControlId(),
-                            'qend'   : self.NewControlId()}
+        self.staticTxtIDs = {'qstart'   : self.NewControlId(),
+                            'qend'      : self.NewControlId(),
+                            'alpha'     : self.NewControlId(),
+                            }
 
         self.otherctrlIDs = {'force_dmax'   : self.NewControlId(),
                             }
@@ -2806,7 +2806,8 @@ class GNOMControlPanel(wx.Panel):
                          'gnomRg'    : ('Rg :', self.NewControlId()),
                          'TE': ('Total Estimate :', self.NewControlId()),
                          'gnomQuality': ('GNOM says :', self.NewControlId()),
-                         'chisq': ('chi^2 (fit) :', self.NewControlId())
+                         'chisq': ('Chi^2 (fit) :', self.NewControlId()),
+                         'alpha':   ('Alpha', self.NewControlId()),
                          }
 
         self.plotted_iftm = None
@@ -2868,6 +2869,7 @@ class GNOMControlPanel(wx.Panel):
         self.updateGNOMInfo(self.out_list[str(dmax)])
 
         self.setFilename(os.path.basename(sasm.getParameter('filename')))
+        self.alpha_ctrl.SetValue(str(self.gnom_settings['alpha']))
 
         self.updatePlot()
 
@@ -2904,6 +2906,7 @@ class GNOMControlPanel(wx.Panel):
         self.updateGNOMInfo(self.out_list[str(dmax)])
 
         self.setFilename(os.path.basename(sasm.getParameter('filename')))
+        self.alpha_ctrl.SetValue(str(self.gnom_settings['alpha']))
 
         self.updatePlot()
 
@@ -2955,6 +2958,7 @@ class GNOMControlPanel(wx.Panel):
         gnomTEWindow = wx.FindWindowById(self.infodata['TE'][1], self)
         gnomQualityWindow = wx.FindWindowById(self.infodata['gnomQuality'][1], self)
         gnomChisqWindow = wx.FindWindowById(self.infodata['chisq'][1], self)
+        gnomAlphaWindow = wx.FindWindowById(self.infodata['alpha'][1], self)
 
         gnomRgWindow.SetValue(self.formatNumStr(iftm.getParameter('rg')))
         gnomI0Window.SetValue(self.formatNumStr(iftm.getParameter('i0')))
@@ -2963,6 +2967,7 @@ class GNOMControlPanel(wx.Panel):
         gnomTEWindow.SetValue(str(iftm.getParameter('TE')))
         gnomChisqWindow.SetValue(self.formatNumStr(iftm.getParameter('chisq')))
         gnomQualityWindow.SetValue(str(iftm.getParameter('quality')))
+        gnomAlphaWindow.SetValue(str(iftm.getParameter('alpha')))
 
 
     def setFilename(self, filename):
@@ -3146,34 +3151,31 @@ class GNOMControlPanel(wx.Panel):
         sizer.Add(self.gnomRg, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.gnomI0, 0, wx.ALIGN_CENTER_VERTICAL)
 
+        self.alpha = wx.TextCtrl(self, self.infodata['alpha'][1], '', size=(80,-1), style=wx.TE_READONLY)
 
         teLabel = wx.StaticText(self, -1, self.infodata['TE'][0])
         self.totalEstimate = wx.TextCtrl(self, self.infodata['TE'][1], '0', size = (80,-1), style = wx.TE_READONLY)
 
-        teSizer = wx.BoxSizer(wx.HORIZONTAL)
-        teSizer.Add(teLabel, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
-        teSizer.Add(self.totalEstimate, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
-
         chisqLabel = wx.StaticText(self, -1, self.infodata['chisq'][0])
         self.chisq = wx.TextCtrl(self, self.infodata['chisq'][1], '0', size = (80,-1), style = wx.TE_READONLY)
-
-        chisqSizer = wx.BoxSizer(wx.HORIZONTAL)
-        chisqSizer.Add(chisqLabel, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
-        chisqSizer.Add(self.chisq, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
         qualityLabel = wx.StaticText(self, -1, self.infodata['gnomQuality'][0])
         self.quality = wx.TextCtrl(self, self.infodata['gnomQuality'][1], '', style = wx.TE_READONLY)
 
-        qualitySizer = wx.BoxSizer(wx.HORIZONTAL)
-        qualitySizer.Add(qualityLabel, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
-        qualitySizer.Add(self.quality, 1, wx.ALIGN_CENTER_VERTICAL)
-
+        res_sizer2 = wx.FlexGridSizer(rows=4, cols=2, vgap=3, hgap=3)
+        res_sizer2.Add(teLabel)
+        res_sizer2.Add(self.totalEstimate)
+        res_sizer2.Add(chisqLabel)
+        res_sizer2.Add(self.chisq)
+        res_sizer2.Add(qualityLabel)
+        res_sizer2.Add(self.quality, flag=wx.EXPAND)
+        res_sizer2.Add(wx.StaticText(self, label=self.infodata['alpha'][0]))
+        res_sizer2.Add(self.alpha)
+        res_sizer2.AddGrowableCol(1)
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(sizer,0,wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 5)
-        top_sizer.Add(teSizer,0, wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 5)
-        top_sizer.Add(chisqSizer,0, wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 5)
-        top_sizer.Add(qualitySizer,0, wx.BOTTOM | wx.EXPAND | wx.ALIGN_CENTER_VERTICAL, 5)
+        top_sizer.Add(res_sizer2, flag=wx.BOTTOM|wx.EXPAND, border=5)
 
         return top_sizer
 
@@ -3211,16 +3213,21 @@ class GNOMControlPanel(wx.Panel):
         sizer.Add(self.endSpin, 0, wx.EXPAND | wx.RIGHT, 3)
 
 
-        dmax_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        ctrl2_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.dmaxSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['dmax'], size = (60,-1), min = 1)
-
         self.dmaxSpin.SetValue(0)
         self.dmaxSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
         self.dmaxSpin.Bind(wx.EVT_TEXT, self.onDmaxText)
 
-        dmax_sizer.Add(wx.StaticText(self, -1, 'Dmax: '), 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 3)
-        dmax_sizer.Add(self.dmaxSpin, 0, wx.EXPAND | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
+        self.alpha_ctrl = wx.TextCtrl(self, self.staticTxtIDs['alpha'], size=(40,-1), style=wx.TE_PROCESS_ENTER)
+        self.alpha_ctrl.Bind(wx.EVT_TEXT_ENTER, self.onAlpha)
+
+        ctrl2_sizer.Add(wx.StaticText(self, -1, 'Dmax: '), 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 3)
+        ctrl2_sizer.Add(self.dmaxSpin, 0, wx.EXPAND | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
+        ctrl2_sizer.Add(wx.StaticText(self, label='Alpha (0=auto):'), border=3,
+            flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        ctrl2_sizer.Add(self.alpha_ctrl, border=3, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
 
         rmax_sizer = wx.BoxSizer(wx.HORIZONTAL)
         rmax_text = wx.StaticText(self, -1, 'Force to 0 at Dmax: ')
@@ -3240,7 +3247,7 @@ class GNOMControlPanel(wx.Panel):
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(sizer, 0, wx.EXPAND)
-        top_sizer.Add(dmax_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL , 5)
+        top_sizer.Add(ctrl2_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL , 5)
         top_sizer.Add(rmax_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 10)
         top_sizer.Add(advancedParams, 0, wx.CENTER | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 10)
         top_sizer.Add(datgnom, 0, wx.CENTER | wx.ALIGN_CENTER_VERTICAL)
@@ -3260,6 +3267,21 @@ class GNOMControlPanel(wx.Panel):
             pass
 
         self.dmaxSpin.Bind(wx.EVT_TEXT, self.onDmaxText)
+
+    def onAlpha(self, evt):
+        alpha = str(self.alpha_ctrl.GetValue())
+
+        try:
+            alpha = float(alpha.replace(',', '.'))
+            self.alpha_ctrl.ChangeValue(str(alpha))
+
+            old_alpha = float(self.gnom_settings['alpha'])
+
+            if old_alpha != alpha:
+                self.onSettingsChange(None)
+
+        except ValueError:
+            pass
 
     def onEnterInQlimits(self, evt):
 
@@ -3465,7 +3487,7 @@ class GNOMControlPanel(wx.Panel):
                                 'rmin_zero'     : self.raw_settings.get('gnomForceRminZero'),
                                 'rmax_zero'     : wx.FindWindowById(self.otherctrlIDs['force_dmax']).GetStringSelection(),
                                 'npts'          : self.raw_settings.get('gnomNPoints'),
-                                'alpha'         : self.raw_settings.get('gnomInitialAlpha'),
+                                'alpha'         : wx.FindWindowById(self.staticTxtIDs['alpha']).GetValue(),
                                 'angular'       : self.raw_settings.get('gnomAngularScale'),
                                 'system'        : self.raw_settings.get('gnomSystem'),
                                 'form'          : self.raw_settings.get('gnomFormFactor'),
