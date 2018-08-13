@@ -2853,7 +2853,17 @@ class GNOMControlPanel(wx.Panel):
     def initDatgnomValues(self, sasm, iftm):
         self.setGuinierInfo(sasm)
 
-        self.setSpinLimits(sasm)
+        self.startSpin.SetRange((0, len(sasm.q)-1))
+        self.endSpin.SetRange((0, len(sasm.q)-1))
+
+        nmin, nmax = sasm.getQrange()
+
+        self.endSpin.SetValue(nmax-1)
+        self.startSpin.SetValue(nmin)
+        txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
+        txt.SetValue(str(round(sasm.q[nmax-1],4)))
+        txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
+        txt.SetValue(str(round(sasm.q[nmin],4)))
 
         dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
 
@@ -3342,16 +3352,6 @@ class GNOMControlPanel(wx.Panel):
         self.out_list = {}
 
         wx.CallAfter(self.updatePlot)
-
-    def setSpinLimits(self, sasm):
-        self.startSpin.SetRange((0, len(sasm.q)-1))
-        self.endSpin.SetRange((0, len(sasm.q)-1))
-
-        self.endSpin.SetValue(len(sasm.q)-1)
-        txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
-        txt.SetValue(str(round(sasm.q[int(len(sasm.q)-1)],4)))
-        txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
-        txt.SetValue(str(round(sasm.q[0],4)))
 
 
     def onSpinCtrl(self, evt):
