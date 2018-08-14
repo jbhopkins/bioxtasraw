@@ -69,12 +69,8 @@ class RawGuiSettings:
                             'NormAbsCarbonConst'        : [1.0, wx.NewId(), 'float'],
                             'NormAbsCarbonSamEmptySASM' : [None],
 
-
-                            'NormalizeTrans'    : [False, wx.NewId(),  'bool'],
-                            'Calibrate'         : [False, wx.NewId(),  'bool'],  # Calibrate AgBe
                             'CalibrateMan'      : [True, wx.NewId(),  'bool'],  # Calibrate manual (wavelength / distance)
                             'AutoBgSubtract'    : [False, wx.NewId(),  'bool'],
-                            'CountNormalize'    : [1.0,   wx.NewId(), 'float'],
 
                             'AutoBIFT'          : [False, wx.NewId(), 'bool'],
                             'AutoAvg'           : [False, wx.NewId(), 'bool'],
@@ -98,24 +94,15 @@ class RawGuiSettings:
                             'Binsize'    : [1,     wx.NewId(), 'int'],
                             'Xcenter'    : [512.0, wx.NewId(), 'float'],
                             'Ycenter'    : [512.0, wx.NewId(), 'float'],
-                            'QrangeLow'  : [25,    wx.NewId(), 'int'],
-                            'QrangeHigh' : [9999,  wx.NewId(), 'int'],
                             'StartPoint' : [0,     wx.NewId(), 'int'],
                             'EndPoint'   : [0,     wx.NewId(), 'int'],
                             'ImageDim'   : [[1024,1024]],
 
                             #MASKING
-                            'SampleFile'              : [None, wx.NewId(), 'text'],
                             'BackgroundSASM'          : [None, wx.NewId(), 'text'],
 
                             'DataSECM'                : [None, wx.NewId(), 'text'],
 
-                            'TransparentBSMask'       : [None],
-                            'TransparentBSMaskParams' : [None],
-                            'BeamStopMask'            : [None],
-                            'BeamStopMaskParams'      : [None],
-                            'ReadOutNoiseMask'        : [None],
-                            'ReadOutNoiseMaskParams'  : [None],
                                                                                 #mask, mask_patches
                             'Masks'                   : [{'BeamStopMask'     : [None, None],
                                                           'ReadOutNoiseMask' : [None, None],
@@ -127,12 +114,7 @@ class RawGuiSettings:
                             #Q-CALIBRATION
                             'WaveLength'          : [1.0,  wx.NewId(), 'float'],
                             'SampleDistance'      : [1000, wx.NewId(), 'float'],
-                            'ReferenceQ'          : [0.0, wx.NewId(), 'float'],
-                            'ReferenceDistPixel'  : [0,   wx.NewId(), 'int'],
-                            'ReferenceDistMm'     : [0.0, wx.NewId(), 'float'],
                             'DetectorPixelSize'   : [70.5, wx.NewId(), 'float'],
-                            'SmpDetectOffsetDist' : [0.0, wx.NewId(), 'float'],
-
 
 							#SANS Parameters
 							'SampleThickness'		: [0.1,  wx.NewId(), 'float'],
@@ -256,8 +238,6 @@ class RawGuiSettings:
                             #GUI Settings:
                             'csvIncludeData'      : [None],
                             'ManipItemCollapsed'  : [False, wx.NewId(), 'bool'] ,
-                            'CurrentFilePath'     : [None],
-
 
                             'DatHeaderOnTop'      : [False, wx.NewId(), 'bool'],
                             'PromptConfigLoad'    : [True, wx.NewId(), 'bool'],

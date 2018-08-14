@@ -215,16 +215,12 @@ class CalibrationOptionsPanel(wx.Panel):
                             'Binsize',
                             'StartPoint',
                             'EndPoint']
-                            #'QrangeLow',
-                            #'QrangeHigh']
 
         self.raw_settings = raw_settings
 
         self.calibConstantsData = (("Sample-Detector Distance:" , raw_settings.getId('SampleDistance') , 'mm'),
-                                   #("Sample-Detector Offset:"   , raw_settings.getId('SmpDetectOffsetDist'), 'mm'),
                                    ("Wavelength:"               , raw_settings.getId('WaveLength') , 'A'),
                                    #("Sample thickness:", raw_settings.getId('SampleThickness'), 'mm'),
-
                                    ("Detector Pixel Size:",            raw_settings.getId('DetectorPixelSize'), 'um'))
 
         self.treatmentdata = [("Calibrate Q-range",  raw_settings.getId('CalibrateMan'))]
@@ -235,7 +231,6 @@ class CalibrationOptionsPanel(wx.Panel):
         self.expsettings_spin = (("Binning Size:", (raw_settings.getId('Binsize'),)),
                                  ("Start plots at q-point number:", (raw_settings.getId('StartPoint'),)),
                                  ("Skip n points at the end of the curve:", (raw_settings.getId('EndPoint'),)))
-                                 #("Q-High (pixels):", (raw_settings.getId('QrangeHigh'), self.NewControlId())))
 
         box = wx.StaticBox(self, -1, '2D Reduction Parameters')
         reduction_sizer = self.create2DReductionParameters()
