@@ -2865,6 +2865,9 @@ class GNOMControlPanel(wx.Panel):
         txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
         txt.SetValue(str(round(sasm.q[nmin],4)))
 
+        self.old_nstart = nmin
+        self.old_nend = nmax-1
+
         dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
 
         dmax = int(round(iftm.getParameter('dmax')))
@@ -2908,6 +2911,9 @@ class GNOMControlPanel(wx.Panel):
         txt.SetValue(str(round(sasm.q[new_nmax],4)))
         txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
         txt.SetValue(str(round(sasm.q[new_nmin],4)))
+
+        self.old_nstart = new_nmin
+        self.old_nend = new_nmax
 
         self.calcGNOM(dmax)
 
@@ -3318,7 +3324,7 @@ class GNOMControlPanel(wx.Panel):
                 spinctrl = wx.FindWindowById(self.spinctrlIDs['qend'], self)
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 idx = int(spinctrl.GetValue())
-                txt.SetValue(str(round(self.sasm.q[idx],5)))
+                txt.SetValue(str(round(self.sasm.q[idx],4)))
                 return
         #################################
 
@@ -3331,35 +3337,49 @@ class GNOMControlPanel(wx.Panel):
 
         if id == self.staticTxtIDs['qstart']:
 
-            max = endSpin.GetValue()
+            n_max = endSpin.GetValue()
 
-            if i > max-3:
-                i = max - 3
+            if i > n_max-3:
+                i = n_max - 3
 
             startSpin.SetValue(i)
 
         elif id == self.staticTxtIDs['qend']:
-            minq = startSpin.GetValue()
+            n_min = startSpin.GetValue()
 
 
-            if i < minq+3:
-                i = minq + 3
+            if i < n_min+3:
+                i = n_min + 3
 
             endSpin.SetValue(i)
 
-        txtctrl.SetValue(str(round(self.sasm.q[int(i)],5)))
+        txtctrl.SetValue(str(round(self.sasm.q[int(i)],4)))
 
-        self.out_list = {}
+        update_plot = False
 
-        wx.CallAfter(self.updatePlot)
+        if id == self.spinctrlIDs['qstart']:
+            if i != self.old_nstart:
+                self.out_list = {}
+                update_plot = True
+            self.old_nstart = i
+        elif id == self.spinctrlIDs['qend']:
+            if i != self.old_nend:
+                self.out_list = {}
+                update_plot = True
+            self.old_nend = i
+
+        if update_plot:
+            wx.CallAfter(self.updatePlot)
 
 
     def onSpinCtrl(self, evt):
 
-        id = evt.GetId()
+        myid = evt.GetId()
 
-        if id != self.spinctrlIDs['dmax']:
-            spin = wx.FindWindowById(id, self)
+        update_plot = False
+
+        if myid != self.spinctrlIDs['dmax']:
+            spin = wx.FindWindowById(myid, self)
 
             startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
             endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
@@ -3367,28 +3387,44 @@ class GNOMControlPanel(wx.Panel):
             i = spin.GetValue()
 
             #Make sure the boundaries don't cross:
-            if id == self.spinctrlIDs['qstart']:
-                max = endSpin.GetValue()
+            if myid == self.spinctrlIDs['qstart']:
+                max_val = endSpin.GetValue()
                 txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
 
-                if i > max-3:
-                    i = max - 3
+                if i > max_val-3:
+                    i = max_val - 3
                     spin.SetValue(i)
 
-            elif id == self.spinctrlIDs['qend']:
-                min = startSpin.GetValue()
+            elif myid == self.spinctrlIDs['qend']:
+                min_val = startSpin.GetValue()
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
 
-                if i < min+3:
-                    i = min + 3
+                if i < min_val+3:
+                    i = min_val + 3
                     spin.SetValue(i)
 
-            txt.SetValue(str(round(self.sasm.q[int(i)],5)))
+            txt.SetValue(str(round(self.sasm.q[int(i)],4)))
 
-            self.out_list = {}
+            if myid == self.spinctrlIDs['qstart']:
+                if i != self.old_nstart:
+                    self.out_list = {}
+                    update_plot = True
+                self.old_nstart = i
+            elif myid == self.spinctrlIDs['qend']:
+                print self.old_nend
+                print i
+                if i != self.old_nend:
+                    self.out_list = {}
+                    update_plot = True
+                self.old_nend = i
 
-        #Important, since it's a slow function to update (could do it in a timer instead) otherwise this spin event might loop!
-        wx.CallAfter(self.updatePlot)
+        else:
+            update_plot = True
+
+        if update_plot:
+            #Important, since it's a slow function to update (could do it in a
+            #timer instead) otherwise this spin event might loop!
+            wx.CallAfter(self.updatePlot)
 
 
     def updatePlot(self):
