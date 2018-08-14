@@ -21,7 +21,6 @@ Created on Jul 16, 2010
 #
 #******************************************************************************
 '''
-import cPickle
 import copy
 import os
 
@@ -31,6 +30,7 @@ import numpy as np
 import RAWGlobals
 import SASFileIO
 import SASM
+import SASImage
 
 class RawGuiSettings:
     '''
@@ -385,14 +385,19 @@ def fixBackwardsCompatibility(raw_settings):
 
 def loadSettings(raw_settings, loadpath):
 
-    file_obj = open(loadpath, 'rb')
-    try:
-        loaded_param = cPickle.load(file_obj)
-    except (KeyError, EOFError, ImportError, IndexError, AttributeError, cPickle.UnpicklingError) as e:
-        print 'Error type: %s, error: %s' %(type(e).__name__, e)
-        file_obj.close()
+    # file_obj = open(loadpath, 'rb')
+    # try:
+    #     loaded_param = cPickle.load(file_obj)
+    # except (KeyError, EOFError, ImportError, IndexError, AttributeError, cPickle.UnpicklingError) as e:
+    #     print 'Error type: %s, error: %s' %(type(e).__name__, e)
+    #     file_obj.close()
+    #     return False
+    # file_obj.close()
+
+    loaded_param = SASFileIO.readSettings(loadpath)
+
+    if loaded_param is None:
         return False
-    file_obj.close()
 
     keys = loaded_param.keys()
     all_params = raw_settings.getAllParams()
@@ -403,21 +408,45 @@ def loadSettings(raw_settings, loadpath):
         else:
             print 'WARNING: ' + str(each_key) + " not found in RAWSettings."
 
-    default_settings =RawGuiSettings().getAllParams()
+    default_settings = RawGuiSettings().getAllParams()
 
     for key in default_settings.keys():
         if key not in loaded_param:
-            all_params[key]=default_settings[key]
+            all_params[key] = default_settings[key]
+
+    postProcess(raw_settings)
 
     main_frame = wx.FindWindowByName('MainFrame')
     main_frame.queueTaskInWorkerThread('recreate_all_masks', None)
-
-    postProcess(raw_settings)
 
     return True
 
 def postProcess(raw_settings):
     fixBackwardsCompatibility(raw_settings)
+
+    masks = copy.copy(raw_settings.get('Masks'))
+
+    for mask_type in masks.keys():
+        mask_list = masks[mask_type][1]
+        if mask_list is not None:
+            img_dim = raw_settings.get('MaskDimension')
+
+            for i, mask in enumerate(mask_list):
+                if isinstance(mask, dict):
+                    if mask['type'] == 'circle':
+                        mask = SASImage.CircleMask(mask['center_point'],
+                            mask['radius_point'], i, img_dim, mask['negative'])
+                    elif mask['type'] == 'rectangle':
+                        mask = SASImage.RectangleMask(mask['first_point'],
+                            mask['second_point'], i, img_dim, mask['negative'])
+                    elif mask['type'] == 'polygon':
+                        mask = SASImage.PolygonMask(mask['vertices'], i, img_dim,
+                            mask['negative'])
+                mask_list[i] = mask
+
+            masks[mask_type][1] = mask_list
+
+    raw_settings.set('Masks', masks)
 
     dir_check_list = [('AutoSaveOnImageFiles', 'ProcessedFilePath'), ('AutoSaveOnAvgFiles', 'AveragedFilePath'),
                     ('AutoSaveOnSub', 'SubtractedFilePath'), ('AutoSaveOnBift', 'BiftFilePath'),
@@ -494,27 +523,25 @@ def saveSettings(raw_settings, savepath):
 
     for key in masks.keys():
         masks[key][0] = None
+        if masks[key][1] is not None:
+            masks[key][1] = [mask.getSaveFormat() for mask in masks[key][1]]
 
-    with open(savepath, 'wb') as file_obj:
-        try:
-            cPickle.dump(save_dict, file_obj, cPickle.HIGHEST_PROTOCOL)
-        except Exception as e:
-            print '<Error> type: %s, message: %s' %(type(e).__name__, e)
-            RAWGlobals.save_in_progress = False
-            wx.CallAfter(main_frame.setStatus, '', 0)
-            return False
+    success = SASFileIO.writeSettings(savepath, save_dict)
+
+    if not success:
+        RAWGlobals.save_in_progress = False
+        wx.CallAfter(main_frame.setStatus, '', 0)
+        return False
 
     ## Make a backup of the config file in case of crash:
     backup_file = os.path.join(RAWGlobals.RAWWorkDir, 'backup.cfg')
 
-    with open(backup_file, 'wb') as FileObj:
-        try:
-            cPickle.dump(save_dict, FileObj, cPickle.HIGHEST_PROTOCOL)
-        except Exception as e:
-            print 'Error type: %s, error: %s' %(type(e).__name__, e)
-            RAWGlobals.save_in_progress = False
-            wx.CallAfter(main_frame.setStatus, '', 0)
-            return False
+    success = SASFileIO.writeSettings(backup_file, save_dict)
+
+    if not success:
+        RAWGlobals.save_in_progress = False
+        wx.CallAfter(main_frame.setStatus, '', 0)
+        return False
 
     dummy_settings = RawGuiSettings()
 

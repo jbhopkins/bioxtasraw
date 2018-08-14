@@ -2982,6 +2982,31 @@ def loadWorkspace(load_path):
 
     return sasm_dict
 
+def writeSettings(filename, settings):
+    try:
+        with open(filename, 'w') as f:
+            f.write(json.dumps(settings, indent = 4, sort_keys = True, cls = MyEncoder))
+        return True
+    except Exception as e:
+        print e
+        return False
+
+def readSettings(filename):
+
+    try:
+        with open(filename, 'r') as f:
+            settings = f.read()
+        settings = dict(json.loads(settings))
+    except Exception as e:
+        print e
+        try:
+            with open(filename, 'rb') as f:
+                settings = cPickle.load(f)
+        except (KeyError, EOFError, ImportError, IndexError, AttributeError, cPickle.UnpicklingError) as e:
+            print 'Error type: %s, error: %s' %(type(e).__name__, e)
+            return None
+
+    return settings
 
 def writeHeader(d, f2, ignore_list = []):
     f2.write('### HEADER:\n\n')
@@ -2993,7 +3018,7 @@ def writeHeader(d, f2, ignore_list = []):
         if ignored_key in d.keys():
             del d[ignored_key]
 
-    f2.write(json.dumps(d,indent = 4, sort_keys = True, cls = MyEncoder))
+    f2.write(json.dumps(d, indent = 4, sort_keys = True, cls = MyEncoder))
 
     f2.write('\n\n')
 
@@ -3039,13 +3064,6 @@ def writeRadFile(m, filename, header_on_top = True, use_header = True):
         if header_on_top == False:
             f2.write('\n')
             writeHeader(d, f2)
-
-
-def printDict(d, each):
-
-    tmpline = each + ' '+ json.dumps(d[each], indent = 4, sort_keys=True)+'\n'
-
-    return tmpline
 
 def writeIftFile(m, filename, use_header = True):
     ''' Writes an ASCII file from an IFT measurement object created by BIFT'''
