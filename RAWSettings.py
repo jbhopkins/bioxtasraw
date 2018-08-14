@@ -46,6 +46,7 @@ class RawGuiSettings:
 
         if settings == None:
             self._params = {
+                            'RequiredVersion'       : ['1.5.0', wx.NewId(), 'text'],
 							'NormFlatfieldEnabled'	: [False,   wx.NewId(),  'bool'],
 
                             'NormAbsWater'      	: [False,   wx.NewId(),  'bool'],
@@ -418,6 +419,35 @@ def loadSettings(raw_settings, loadpath):
 
     main_frame = wx.FindWindowByName('MainFrame')
     main_frame.queueTaskInWorkerThread('recreate_all_masks', None)
+
+    if 'RequiredVersion' in all_params:
+        rv = raw_settings.get('RequiredVersion')
+
+        rv_maj, rv_min, rv_pt = map(int, rv.split('.'))
+
+        v_maj, v_min, v_pt = map(int, RAWGlobals.version.split('.'))
+
+        update = False
+
+        if rv_maj > v_maj:
+            update = True
+        else:
+            if rv_min > v_min:
+                update = True
+            else:
+                if rv_pt > v_pt:
+                    update = True
+
+        if update:
+            msg = ('Some settings in this configuration file require '
+                'a newer version of RAW: version %s (you are using version %s). '
+                'Please update RAW now. If you use these settings with an older '
+                'version of RAW, certain functions, including radial averaging of images, '
+                'may not work correctly. You can find the newest version of RAW at '
+                'http://bioxtas-raw.rftm.io/' %(rv, RAWGlobals.version))
+
+            wx.CallAfter(wx.MessageBox, msg, 'Warning: incompatible version of RAW',
+                style = wx.ICON_ERROR | wx.OK)
 
     return True
 
