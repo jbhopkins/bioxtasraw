@@ -55,9 +55,13 @@ if wx.version().split()[0].strip()[0] == '4':
     import wx.adv
     SplashScreen = wx.adv.SplashScreen
     TaskBarIcon = wx.adv.TaskBarIcon
+    AboutDialogInfo = wx.adv.AboutDialogInfo
+    AboutBox = wx.adv.AboutBox
 else:
     SplashScreen = wx.SplashScreen
     TaskBarIcon = wx.TaskBarIcon
+    AboutDialogInfo = wx.AboutDialogInfo
+    Aboutbox = wx.AboutBox
 
 
 import SASFileIO
@@ -1722,23 +1726,22 @@ class MainFrame(wx.Frame):
         self.MenuBar.FindItemById(id).Check(True)
 
     def _onAboutDlg(self, event):
-        info = wx.AboutDialogInfo()
-        info.Name = "RAW"
-        info.Version = RAWGlobals.version
-        info.Copyright = "Copyright(C) 2009 RAW"
-        info.Description = ('RAW is a software package primarily for SAXS 2D data '
+        info = AboutDialogInfo()
+        info.SetName("RAW")
+        info.SetVersion(RAWGlobals.version)
+        info.SetCopyright("Copyright(C) 2009 RAW")
+        info.SetDescription(('RAW is a software package primarily for SAXS 2D data '
                             'reduction and 1D data analysis.\nIt provides an easy '
                             'GUI for handling multiple files fast, and a\ngood '
-                            'alternative to commercial or protected software packages '
-                            'for finding\nthe Pair Distance Distribution Function\n\n'
+                            'alternative to commercial or protected software packages\n\n'
                             'Please cite:\n"BioXTAS RAW: improvements to a free open-source program for\n'
                             'small-angle X-ray scattering data reduction and analysis."\n'
                             'J. B. Hopkins, R. E. Gillilan, and S. Skou. Journal of Applied\n'
-                            'Crystallography (2017). 50, 1545-1553')
+                            'Crystallography (2017). 50, 1545-1553'))
 
-        info.WebSite = ("http://bioxtasraw.sourceforge.net/", "The RAW Project Homepage")
-        info.Developers = [u"Soren Skou", u"Jesse B. Hopkins", u"Richard E. Gillilan", u"Jesper Nygaard"]
-        info.License = ('This program is free software: you can redistribute it '
+        info.SetWebSite("http://bioxtas-raw.readthedocs.io/", "The RAW Project Homepage")
+        info.SetDevelopers([u"Soren Skou", u"Jesse B. Hopkins", u"Richard E. Gillilan", u"Jesper Nygaard"])
+        info.SetLicense(('This program is free software: you can redistribute it '
                         'and/or modify it under the terms of the\nGNU General '
                         'Public License as published by the Free Software '
                         'Foundation, either version 3\n of the License, or (at '
@@ -1749,10 +1752,10 @@ class MainFrame(wx.Frame):
                         'See the GNU General Public License for more details.\n\n'
                         'You should have received a copy of the GNU General Public '
                         'License along with this program.\nIf not, see '
-                        'http://www.gnu.org/licenses/')
+                        'http://www.gnu.org/licenses/'))
 
         # Show the wx.AboutBox
-        wx.AboutBox(info)
+        AboutBox(info)
 
     def saveBackupData(self):
         file = os.path.join(RAWGlobals.RAWWorkDir,'backup.ini')
@@ -2301,7 +2304,7 @@ class MainWorkerThread(threading.Thread):
         if update_legend:
             wx.CallAfter(self.plot_panel.updateLegend, axes_num, False)
 
-        if no_update == False:
+        if not no_update:
             wx.CallAfter(self.plot_panel.fitAxis)
 
 
@@ -2328,7 +2331,7 @@ class MainWorkerThread(threading.Thread):
         if update_legend:
             wx.CallAfter(self.sec_plot_panel.updateLegend, 1, False)
 
-        if no_update == False:
+        if not no_update:
             wx.CallAfter(self.sec_plot_panel.fitAxis)
 
 
@@ -2713,16 +2716,26 @@ class MainWorkerThread(threading.Thread):
                                 'message next time.')
                             wx.CallAfter(wx._showGenericError, msg, 'Autosave Error')
 
-                if np.mod(i,20) == 0:
+                if np.mod(i,20) == 0 and i != 0:
+                    if i == 20:
+                        no_update = False
+                    else:
+                        no_update = True
+
+                    print no_update
+
                     if loaded_sasm:
-                        self._sendSASMToPlot(sasm_list, axes_num=axes_num, no_update=True, update_legend=False)
-                        wx.CallAfter(self.plot_panel.canvas.draw)
+                        self._sendSASMToPlot(sasm_list, axes_num=axes_num, no_update=no_update, update_legend=False)
+                        wx.CallAfter(self.plot_panel.canvas.draw_idle)
+                        wx.Yield()
                     if loaded_secm:
-                        self._sendSECMToPlot(secm_list, no_update = True, update_legend = False)
-                        wx.CallAfter(self.sec_plot_panel.canvas.draw)
+                        self._sendSECMToPlot(secm_list, no_update=no_update, update_legend = False)
+                        wx.CallAfter(self.sec_plot_panel.canvas.draw_idle)
+                        wx.Yield()
                     if loaded_iftm:
-                        self._sendIFTMToPlot(iftm_list, item_colour = item_colour, no_update = True, update_legend = False)
-                        wx.CallAfter(self.ift_plot_panel.canvas.draw)
+                        self._sendIFTMToPlot(iftm_list, item_colour = item_colour, no_update=no_update, update_legend = False)
+                        wx.CallAfter(self.ift_plot_panel.canvas.draw_idle)
+                        wx.Yield()
 
                     sasm_list = []
                     iftm_list = []
