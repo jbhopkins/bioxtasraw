@@ -23,19 +23,22 @@ Created on Aug 16, 2010
 
 '''
 
-import matplotlib
-import wx
 import os
 import platform
 import time
-import numpy as np
+
+import matplotlib
 matplotlib.rcParams['backend'] = 'WxAgg'
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
+import wx
+import numpy as np
+
 import RAWIcons
 import RAWGlobals
 import SASImage
 import SASCalib
+import RAWCustomCtrl
 
 class ImagePanelToolbar(NavigationToolbar2WxAgg):
     ''' The toolbar under the image in the image panel '''
@@ -198,6 +201,9 @@ class ImagePanel(wx.Panel):
     def __init__(self, parent, panel_id, name, *args, **kwargs):
 
         wx.Panel.__init__(self, parent, panel_id, *args, name = name, **kwargs)
+
+        file_drop_target = RAWCustomCtrl.RawPlotFileDropTarget(self, 'image')
+        self.SetDropTarget(file_drop_target)
 
         self.fig = matplotlib.figure.Figure((5,4), 75)
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)

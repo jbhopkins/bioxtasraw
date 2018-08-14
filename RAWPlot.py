@@ -233,6 +233,9 @@ class PlotPanel(wx.Panel):
 
         wx.Panel.__init__(self, parent, id, *args, name = name, **kwargs)
 
+        file_drop_target = RAWCustomCtrl.RawPlotFileDropTarget(self, 'main')
+        self.SetDropTarget(file_drop_target)
+
         self._initFigure()
 
         self.toolbar = CustomPlotToolbar(self, self.canvas)
@@ -1213,6 +1216,9 @@ class IftPlotPanel(PlotPanel):
     def __init__(self, parent, id, name, *args, **kwargs):
 
         wx.Panel.__init__(self, parent, id, *args, name = name, **kwargs)
+
+        file_drop_target = RAWCustomCtrl.RawPlotFileDropTarget(self, 'ift')
+        self.SetDropTarget(file_drop_target)
 
         self._initFigure()
 
@@ -2621,6 +2627,9 @@ class SECPlotPanel(wx.Panel):
     def __init__(self, parent, id, name, *args, **kwargs):
 
         wx.Panel.__init__(self, parent, id, *args, name = name, **kwargs)
+
+        file_drop_target = RAWCustomCtrl.RawPlotFileDropTarget(self, 'sec')
+        self.SetDropTarget(file_drop_target)
 
         #Find the plot font, which is strangely hard!
         font_list = fm.get_fontconfig_fonts()

@@ -27,6 +27,7 @@ else:
     control_super = wx.PyControl
 
 import RAWIcons
+import RAWGlobals
 # import time
 
 
@@ -1097,7 +1098,6 @@ class DraggableLegend:
             self.gotLegend = False
 
 
-
 class CustomConsoleHandler(logging.Handler):
     """Sends logger output to a queue
     Based on code from:
@@ -1116,3 +1116,78 @@ class CustomConsoleHandler(logging.Handler):
         msg = self.format(record)
         self.queue.put_nowait(msg + "\n")
         self.flush()
+
+
+class RawPanelFileDropTarget(wx.FileDropTarget):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self, window, style):
+        """Constructor"""
+        wx.FileDropTarget.__init__(self)
+        self.window = window
+        self.style = style
+
+    #----------------------------------------------------------------------
+    def OnDropFiles(self, x, y, filenames):
+        """
+        When files are dropped, write where they were dropped and then
+        the file paths themselves
+        """
+        print filenames
+        if self.style == 'main' or self.style == 'ift':
+            RAWGlobals.mainworker_cmd_queue.put(['plot', filenames])
+        elif self.style == 'sec':
+            frame_list = range(len(filenames))
+            RAWGlobals.mainworker_cmd_queue.put(['sec_plot', [filenames, frame_list]])
+
+        return True
+
+class RawPlotFileDropTarget(wx.FileDropTarget):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self, window, style):
+        """Constructor"""
+        wx.FileDropTarget.__init__(self)
+        self.window = window
+        self.style = style
+
+    #----------------------------------------------------------------------
+    def OnDropFiles(self, x, y, filenames):
+        """
+        When files are dropped, write where they were dropped and then
+        the file paths themselves
+        """
+        print filenames
+        print y
+        if self.style == 'main':
+            if self.window.subplot1.get_visible() and self.window.subplot2.get_visible():
+                #both plots shown
+                x1, y1 = self.window.fig.transFigure.transform((0,0))
+                x2, y2 = self.window.fig.transFigure.transform((1,1))
+                print y1
+                print y2
+
+                if y < (y2-y1)/2.:
+                    RAWGlobals.mainworker_cmd_queue.put(['plot_specific', [filenames, 1]])
+                elif y > (y2-y1)/2.:
+                    RAWGlobals.mainworker_cmd_queue.put(['plot_specific', [filenames, 2]])
+                else:
+                    RAWGlobals.mainworker_cmd_queue.put(['plot_specific', [filenames, 1]])
+
+            elif self.window.subplot1.get_visible() and not self.window.subplot2.get_visible():
+                #only plot one shown
+                RAWGlobals.mainworker_cmd_queue.put(['plot_specific', [filenames, 1]])
+            elif not self.window.subplot1.get_visible() and self.window.subplot2.get_visible():
+                #only plot two shown
+                RAWGlobals.mainworker_cmd_queue.put(['plot_specific', [filenames, 2]])
+        elif self.style == 'ift':
+            RAWGlobals.mainworker_cmd_queue.put(['plot', filenames])
+        elif self.style == 'sec':
+            frame_list = range(len(filenames))
+            RAWGlobals.mainworker_cmd_queue.put(['sec_plot', [filenames, frame_list]])
+        elif self.style == 'image':
+            RAWGlobals.mainworker_cmd_queue.put(['show_image', [filenames[0], 0]])
+
+        return True

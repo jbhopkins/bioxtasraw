@@ -2234,6 +2234,7 @@ class MainWorkerThread(threading.Thread):
                         'to_plot_sasm'                  : self._plotSASM,
                         'weighted_average_items'        : self._weightedAverageItems,
                         'calculate_abs_carbon_const'    : self._calcAbsScCarbonConst,
+                        'plot_specific'                 : self._loadAndPlotWrapper,
                         }
 
 
@@ -2624,7 +2625,14 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.main_frame.closeBusyDialog)
         wx.CallAfter(self._showGenericMsg, 'The mask has been created and enabled.', 'Mask creation finished')
 
-    def _loadAndPlot(self, filename_list):
+    def _loadAndPlotWrapper(self, data):
+        #In order to specify axes_num, but not break loadAndPlot everywhere, I have
+        #to have a wrapper
+        filename_list, axes_num = data
+
+        self._loadAndPlot(filename_list, axes_num)
+
+    def _loadAndPlot(self, filename_list, axes_num=1):
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while plotting...')
 
         loaded_secm = False
@@ -2707,7 +2715,7 @@ class MainWorkerThread(threading.Thread):
 
                 if np.mod(i,20) == 0:
                     if loaded_sasm:
-                        self._sendSASMToPlot(sasm_list, no_update = True, update_legend = False)
+                        self._sendSASMToPlot(sasm_list, axes_num=axes_num, no_update=True, update_legend=False)
                         wx.CallAfter(self.plot_panel.canvas.draw)
                     if loaded_secm:
                         self._sendSECMToPlot(secm_list, no_update = True, update_legend = False)
@@ -2721,7 +2729,7 @@ class MainWorkerThread(threading.Thread):
                     secm_list = []
 
             if len(sasm_list) > 0:
-                self._sendSASMToPlot(sasm_list, no_update = True, update_legend = False)
+                self._sendSASMToPlot(sasm_list, axes_num=axes_num, no_update=True, update_legend=False)
 
             if len(iftm_list) > 0:
                 self._sendIFTMToPlot(iftm_list, item_colour = item_colour, no_update = True, update_legend = False)
@@ -2865,7 +2873,14 @@ class MainWorkerThread(threading.Thread):
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
 
-            secm = SASM.SECM(filename_list, sasm_list, frame_list, {})
+            try:
+                secm = SASM.SECM(filename_list, sasm_list, frame_list, {})
+            except AttributeError:
+                msg = ('Some or all of the selected files were not scattering '
+                    'profiles or images, so a series dataset could not be generated.')
+                wx.CallAfter(self._showGenericError, msg, 'Could not make series')
+                wx.CallAfter(self.main_frame.closeBusyDialog)
+                return
 
             self._sendSECMToPlot(secm, notsaved = True, no_update = True, update_legend = False)
 
@@ -6153,6 +6168,9 @@ class ManipulationPanel(wx.Panel):
         self.underpanel.SetVirtualSize((200, 200))
         self.underpanel.SetScrollRate(20,20)
 
+        file_drop_target = RAWCustomCtrl.RawPanelFileDropTarget(self.underpanel, 'main')
+        self.underpanel.SetDropTarget(file_drop_target)
+
         self.underpanel.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
 
         self.all_manipulation_items = []
@@ -7888,6 +7906,9 @@ class IFTPanel(wx.Panel):
         self.underpanel.SetVirtualSize((200, 200))
         self.underpanel.SetScrollRate(20,20)
 
+        file_drop_target = RAWCustomCtrl.RawPanelFileDropTarget(self.underpanel, 'ift')
+        self.underpanel.SetDropTarget(file_drop_target)
+
         self.underpanel.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
 
         self.all_manipulation_items = []
@@ -8904,6 +8925,9 @@ class SECPanel(wx.Panel):
         self.underpanel = scrolled.ScrolledPanel(self, -1, style = wx.BORDER_SUNKEN)
         self.underpanel.SetVirtualSize((200, 200))
         self.underpanel.SetScrollRate(20,20)
+
+        file_drop_target = RAWCustomCtrl.RawPanelFileDropTarget(self.underpanel, 'sec')
+        self.underpanel.SetDropTarget(file_drop_target)
 
         self.underpanel.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
 
