@@ -6076,32 +6076,37 @@ class DenssRunPanel(wx.Panel):
         comm_t.start()
 
         #START CONTENTS OF denss.all.py from Tom Grant's code. Up to date
-        #as of 8/9/18, commit 62108c8
+        #as of 8/15/18, commit 51c45e7
         #Has interjections of my code in a few places, mostly for outputs
         allrhos = np.array([denss_outputs[i][8] for i in np.arange(nruns)])
         sides = np.array([denss_outputs[i][9] for i in np.arange(nruns)])
 
-        set1 = np.random.choice(range(allrhos.shape[0]), allrhos.shape[0]/2, replace=False)
-        set2 = np.setdiff1d(np.arange(allrhos.shape[0]), set1)
-        index = np.concatenate((set1,set2))
-
-        allrhos = np.array([allrhos[i] for i in index])
-        sides = np.array([sides[i] for i in index])
-
-        irefrho = allrhos[0]
-
         wx.CallAfter(averWindow.AppendText, 'Filtering enantiomers\n')
-        allrhos, scores = SASCalc.run_enantiomers(irefrho, allrhos, procs, nruns,
+        allrhos, scores = SASCalc.run_enantiomers(allrhos, procs, nruns,
             avg_q, self.my_lock, self.wx_queue, self.abort_event)
 
         if self.abort_event.is_set():
             stop_event.set()
             return
 
+        wx.CallAfter(averWindow.AppendText, 'Generating alignment reference\n')
         refrho = SASCalc.binary_average(allrhos, procs, avg_q, self.abort_event)
 
+        if self.abort_event.is_set():
+            stop_event.set()
+            self.threads_finished[-1] = True
+            wx.CallAfter(averWindow.AppendText, 'Aborted!\n')
+            return
+
+        wx.CallAfter(averWindow.AppendText, 'Aligning and averaging models\n')
         aligned, scores = SASCalc.align_multiple(refrho, allrhos, procs, avg_q,
             self.abort_event)
+
+        if self.abort_event.is_set():
+            stop_event.set()
+            self.threads_finished[-1] = True
+            wx.CallAfter(averWindow.AppendText, 'Aborted!\n')
+            return
 
         #filter rhos with scores below the mean - 2*standard deviation.
         mean = np.mean(scores)
@@ -6109,12 +6114,12 @@ class DenssRunPanel(wx.Panel):
         threshold = mean - 2*std
         filtered = np.empty(len(scores),dtype=str)
 
-        for i, idx in enumerate(index):
+        for i in range(nruns):
             if scores[i] < threshold:
                 filtered[i] = 'Filtered'
             else:
                 filtered[i] = ' '
-            ioutput = prefix+"_"+str(idx+1)+"_aligned"
+            ioutput = prefix+"_"+str(i+1)+"_aligned"
             SASFileIO.saveDensityMrc(os.path.join(path, ioutput+".mrc"), aligned[i], sides[0])
             wx.CallAfter(averWindow.AppendText, "%s.mrc written. Score = %0.3f %s\n" % (ioutput,scores[i],filtered[i]))
             wx.CallAfter(averWindow.AppendText,'Correlation score to reference: %s.mrc %.3f %s\n' %(ioutput, scores[i], filtered[i]))
@@ -6157,13 +6162,12 @@ class DenssRunPanel(wx.Panel):
         self.msg_timer.Stop()
         stop_event.set()
 
-        sorted_scores = np.empty_like(scores)
-        for i, idx in enumerate(index):
-            sorted_scores[idx] = scores[i]
-
-        self.average_results = {'mean': mean, 'std': std,'res': resn, 'scores': sorted_scores,
+        self.average_results = {'mean': mean, 'std': std,'res': resn, 'scores': scores,
             'fsc': fsc, 'total': allrhos.shape[0], 'inc': aligned.shape[0],
             'thresh': threshold}
+
+        if self.abort_event.is_set():
+            return
 
         wx.CallAfter(self.finishedProcessing)
 
