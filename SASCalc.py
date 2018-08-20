@@ -29,27 +29,26 @@ It also contains functions for calling outside packages for use in RAW, like DAM
 
 
 """
-import numpy as np
-from scipy import integrate as integrate
 import os
 import time
 import subprocess
-import wx
 import threading
 import Queue
 import platform
 import re
 import ast
 import logging
-import glob
-import shutil
-import scipy.interpolate
-from scipy.constants import Avogadro
-from scipy import optimize, ndimage
 import math
 from functools import partial
 from multiprocessing import Pool
-import numba
+
+import numpy as np
+from scipy import integrate as integrate
+import wx
+import scipy.interpolate
+from scipy.constants import Avogadro
+from scipy import optimize, ndimage
+
 
 import SASFileIO
 import SASExceptions
