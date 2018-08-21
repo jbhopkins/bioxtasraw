@@ -57,8 +57,6 @@ import scipy.stats as stats
 from scipy.interpolate import interp1d
 import scipy.optimize
 
-from numba import jit
-
 import RAWSettings
 import RAWCustomCtrl
 import RAWPyMOL
@@ -703,7 +701,7 @@ class GuinierControlPanel(wx.Panel):
 
     def createInfoBox(self):
 
-        sizer = wx.FlexGridSizer(rows = len(self.infodata), cols = 2)
+        sizer = wx.FlexGridSizer(rows=len(self.infodata), cols=2, hgap=3, vgap=3)
 
         for key in self.infodata.iterkeys():
 
@@ -731,7 +729,7 @@ class GuinierControlPanel(wx.Panel):
 
     def createControls(self):
 
-        sizer = wx.FlexGridSizer(rows = 2, cols = 4)
+        sizer = wx.FlexGridSizer(rows=2, cols=4, hgap=0, vgap=2)
         sizer.AddGrowableCol(0)
         sizer.AddGrowableCol(1)
         sizer.AddGrowableCol(2)
@@ -751,8 +749,8 @@ class GuinierControlPanel(wx.Panel):
         self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
         self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
 
-        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (60, -1), style = wx.PROCESS_ENTER)
-        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (60, -1), style = wx.PROCESS_ENTER)
+        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (60, -1), style = wx.TE_PROCESS_ENTER)
+        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (60, -1), style = wx.TE_PROCESS_ENTER)
 
         self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
         self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
@@ -883,7 +881,7 @@ class GuinierControlPanel(wx.Panel):
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(idx_max)],5)))
 
-                if 'Rg_autorg_err' in guinier:
+                if 'Rg_autorg_err' in guinier and guinier['Rg_autorg_err'] != -1:
                     txt = wx.FindWindowById(self.error_data['autorg_rg'], self)
                     txt.SetValue(guinier['Rg_autorg_err'])
 
@@ -960,11 +958,15 @@ class GuinierControlPanel(wx.Panel):
                 info_dict['I0_autorg_err'] = autorg_i0_err
                 info_dict['Rg_err'] = max(float(autorg_rg_err), float(newInfo['err_fsigma_rg']))
                 info_dict['I0_err'] = max(float(autorg_i0_err), float(newInfo['err_fsigma_i0']))
+                info_dict['Rg_est_err'] = -1
+                info_dict['I0_est_err'] = -1
             else:
                 info_dict['Rg_est_err'] = newInfo['err_est_rg']
                 info_dict['I0_est_err'] = newInfo['err_est_i0']
                 info_dict['Rg_err'] = max(float(newInfo['err_est_rg']), float(newInfo['err_fsigma_rg']))
                 info_dict['I0_err'] = max(float(newInfo['err_est_i0']), float(newInfo['err_fsigma_i0']))
+                info_dict['Rg_autorg_err'] = -1
+                info_dict['I0_autorg_err'] = -1
 
             analysis_dict = self.ExpObj.getParameter('analysis')
             analysis_dict['guinier'] = info_dict
@@ -1169,30 +1171,30 @@ class GuinierControlPanel(wx.Panel):
         spin.SetFocus()
 
     def onSpinCtrl(self, evt):
-        id = evt.GetId()
+        ctrl_id = evt.GetId()
 
-        spin = wx.FindWindowById(id, self)
+        spin = wx.FindWindowById(ctrl_id, self)
 
         startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
         endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
 
-        i = spin.GetValue()
+        i = int(spin.GetValue())
 
         #Make sure the boundaries don't cross:
-        if id == self.spinctrlIDs['qstart']:
-            max = endSpin.GetValue()
+        if ctrl_id == self.spinctrlIDs['qstart']:
+            max_val = int(endSpin.GetValue())
             txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
 
-            if i > max-2:
-                i = max - 2
+            if i > max_val-2:
+                i = max_val - 2
                 spin.SetValue(i)
 
-        elif id == self.spinctrlIDs['qend']:
-            min = startSpin.GetValue()
+        elif ctrl_id == self.spinctrlIDs['qend']:
+            min_val = int(startSpin.GetValue())
             txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
 
-            if i < min+2:
-                i = min + 2
+            if i < min_val+2:
+                i = min_val + 2
                 spin.SetValue(i)
 
         txt.SetValue(str(round(self.ExpObj.q[int(i)],5)))
@@ -2764,7 +2766,7 @@ class GNOMFrame(wx.Frame):
             os.chdir(cwd)
 
 
-            if init_iftm == None:
+            if init_iftm is None:
                 outname = 't_datgnom.out'
                 while os.path.isfile(outname):
                     outname = 't'+outname
@@ -2800,9 +2802,6 @@ class GNOMFrame(wx.Frame):
 
         wx.CallAfter(self.showBusy, False)
 
-    def initGnomVals(self, sasm):
-        self.controlPanel.initGnomValues(sasm)
-
     def cleanupGNOM(self, path, savename = '', outname = ''):
         savefile = os.path.join(path, savename)
         outfile = os.path.join(path, outname)
@@ -2836,7 +2835,7 @@ class GNOMFrame(wx.Frame):
         if show:
             self.bi = wx.BusyInfo('Initializing GNOM, pleae wait.', self)
         else:
-            self.bi.Destroy()
+            del self.bi
             self.bi = None
 
     def OnClose(self):
@@ -2949,8 +2948,8 @@ class GNOMPlotPanel(wx.Panel):
 
             self.zero_line  = a.axhline(color = 'k', animated = True)
 
-            self.data_line, = b.plot(q, i, 'b.', animated = True)
-            self.gnom_line, = b.plot(qexp, jreg, 'r', animated = True)
+            self.data_line, = b.semilogy(q, i, 'b.', animated = True)
+            self.gnom_line, = b.semilogy(qexp, jreg, 'r', animated = True)
 
             self.canvas.draw()
             self.background = self.canvas.copy_from_bbox(a.bbox)
@@ -3035,7 +3034,7 @@ class GNOMControlPanel(wx.Panel):
                                 'aw'            : self.raw_settings.get('gnomAW'),
                                 'lw'            : self.raw_settings.get('gnomLW'),
                                 'spot'          : self.raw_settings.get('gnomSpot'),
-                                'expt'          : self.raw_settings.get('gnomExpt')
+                                'expt'          : self.raw_settings.get('gnomExpt'),
                                 }
 
         self.out_list = {}
@@ -3043,10 +3042,13 @@ class GNOMControlPanel(wx.Panel):
 
         self.spinctrlIDs = {'qstart' : self.NewControlId(),
                             'qend'   : self.NewControlId(),
-                            'dmax'   : self.NewControlId()}
+                            'dmax'   : self.NewControlId(),
+                            }
 
-        self.staticTxtIDs = {'qstart' : self.NewControlId(),
-                            'qend'   : self.NewControlId()}
+        self.staticTxtIDs = {'qstart'   : self.NewControlId(),
+                            'qend'      : self.NewControlId(),
+                            'alpha'     : self.NewControlId(),
+                            }
 
         self.otherctrlIDs = {'force_dmax'   : self.NewControlId(),
                             }
@@ -3062,7 +3064,8 @@ class GNOMControlPanel(wx.Panel):
                          'gnomRg'    : ('Rg :', self.NewControlId()),
                          'TE': ('Total Estimate :', self.NewControlId()),
                          'gnomQuality': ('GNOM says :', self.NewControlId()),
-                         'chisq': ('chi^2 (fit) :', self.NewControlId())
+                         'chisq': ('Chi^2 (fit) :', self.NewControlId()),
+                         'alpha':   ('Alpha', self.NewControlId()),
                          }
 
         self.plotted_iftm = None
@@ -3108,7 +3111,20 @@ class GNOMControlPanel(wx.Panel):
     def initDatgnomValues(self, sasm, iftm):
         self.setGuinierInfo(sasm)
 
-        self.setSpinLimits(sasm)
+        self.startSpin.SetRange((0, len(sasm.q)-1))
+        self.endSpin.SetRange((0, len(sasm.q)-1))
+
+        nmin, nmax = sasm.getQrange()
+
+        self.endSpin.SetValue(nmax-1)
+        self.startSpin.SetValue(nmin)
+        txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
+        txt.SetValue(str(round(sasm.q[nmax-1],4)))
+        txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
+        txt.SetValue(str(round(sasm.q[nmin],4)))
+
+        self.old_nstart = nmin
+        self.old_nend = nmax-1
 
         dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
 
@@ -3124,6 +3140,7 @@ class GNOMControlPanel(wx.Panel):
         self.updateGNOMInfo(self.out_list[str(dmax)])
 
         self.setFilename(os.path.basename(sasm.getParameter('filename')))
+        self.alpha_ctrl.SetValue(str(self.gnom_settings['alpha']))
 
         self.updatePlot()
 
@@ -3153,6 +3170,9 @@ class GNOMControlPanel(wx.Panel):
         txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
         txt.SetValue(str(round(sasm.q[new_nmin],4)))
 
+        self.old_nstart = new_nmin
+        self.old_nend = new_nmax
+
         self.calcGNOM(dmax)
 
         dmaxWindow.SetValue(dmax)
@@ -3160,6 +3180,7 @@ class GNOMControlPanel(wx.Panel):
         self.updateGNOMInfo(self.out_list[str(dmax)])
 
         self.setFilename(os.path.basename(sasm.getParameter('filename')))
+        self.alpha_ctrl.SetValue(str(self.gnom_settings['alpha']))
 
         self.updatePlot()
 
@@ -3211,6 +3232,7 @@ class GNOMControlPanel(wx.Panel):
         gnomTEWindow = wx.FindWindowById(self.infodata['TE'][1], self)
         gnomQualityWindow = wx.FindWindowById(self.infodata['gnomQuality'][1], self)
         gnomChisqWindow = wx.FindWindowById(self.infodata['chisq'][1], self)
+        gnomAlphaWindow = wx.FindWindowById(self.infodata['alpha'][1], self)
 
         gnomRgWindow.SetValue(self.formatNumStr(iftm.getParameter('rg')))
         gnomI0Window.SetValue(self.formatNumStr(iftm.getParameter('i0')))
@@ -3219,6 +3241,7 @@ class GNOMControlPanel(wx.Panel):
         gnomTEWindow.SetValue(str(iftm.getParameter('TE')))
         gnomChisqWindow.SetValue(self.formatNumStr(iftm.getParameter('chisq')))
         gnomQualityWindow.SetValue(str(iftm.getParameter('quality')))
+        gnomAlphaWindow.SetValue(str(iftm.getParameter('alpha')))
 
 
     def setFilename(self, filename):
@@ -3347,9 +3370,9 @@ class GNOMControlPanel(wx.Panel):
 
         dmax = int(round(datgnom.getParameter('dmax')))
 
-        if dmax != datgnom.getParameter('dmax') and dmax not in self.out_list:
+        if dmax != datgnom.getParameter('dmax') and str(dmax) not in self.out_list:
             self.calcGNOM(dmax)
-        elif dmax == datgnom.getParameter('dmax') and dmax not in self.out_list:
+        elif dmax == datgnom.getParameter('dmax') and str(dmax) not in self.out_list:
             self.out_list[str(dmax)] = datgnom
 
         dmaxWindow.SetValue(dmax)
@@ -3402,40 +3425,37 @@ class GNOMControlPanel(wx.Panel):
         sizer.Add(self.gnomRg, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.gnomI0, 0, wx.ALIGN_CENTER_VERTICAL)
 
+        self.alpha = wx.TextCtrl(self, self.infodata['alpha'][1], '', size=(80,-1), style=wx.TE_READONLY)
 
         teLabel = wx.StaticText(self, -1, self.infodata['TE'][0])
         self.totalEstimate = wx.TextCtrl(self, self.infodata['TE'][1], '0', size = (80,-1), style = wx.TE_READONLY)
 
-        teSizer = wx.BoxSizer(wx.HORIZONTAL)
-        teSizer.Add(teLabel, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
-        teSizer.Add(self.totalEstimate, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
-
         chisqLabel = wx.StaticText(self, -1, self.infodata['chisq'][0])
         self.chisq = wx.TextCtrl(self, self.infodata['chisq'][1], '0', size = (80,-1), style = wx.TE_READONLY)
-
-        chisqSizer = wx.BoxSizer(wx.HORIZONTAL)
-        chisqSizer.Add(chisqLabel, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
-        chisqSizer.Add(self.chisq, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
         qualityLabel = wx.StaticText(self, -1, self.infodata['gnomQuality'][0])
         self.quality = wx.TextCtrl(self, self.infodata['gnomQuality'][1], '', style = wx.TE_READONLY)
 
-        qualitySizer = wx.BoxSizer(wx.HORIZONTAL)
-        qualitySizer.Add(qualityLabel, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
-        qualitySizer.Add(self.quality, 1, wx.ALIGN_CENTER_VERTICAL)
-
+        res_sizer2 = wx.FlexGridSizer(rows=4, cols=2, vgap=3, hgap=3)
+        res_sizer2.Add(teLabel)
+        res_sizer2.Add(self.totalEstimate)
+        res_sizer2.Add(chisqLabel)
+        res_sizer2.Add(self.chisq)
+        res_sizer2.Add(qualityLabel)
+        res_sizer2.Add(self.quality, flag=wx.EXPAND)
+        res_sizer2.Add(wx.StaticText(self, label=self.infodata['alpha'][0]))
+        res_sizer2.Add(self.alpha)
+        res_sizer2.AddGrowableCol(1)
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(sizer,0,wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 5)
-        top_sizer.Add(teSizer,0, wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 5)
-        top_sizer.Add(chisqSizer,0, wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 5)
-        top_sizer.Add(qualitySizer,0, wx.BOTTOM | wx.EXPAND | wx.ALIGN_CENTER_VERTICAL, 5)
+        top_sizer.Add(res_sizer2, flag=wx.BOTTOM|wx.EXPAND, border=5)
 
         return top_sizer
 
     def createControls(self):
 
-        sizer = wx.FlexGridSizer(rows = 2, cols = 4)
+        sizer = wx.FlexGridSizer(rows=2, cols=4, hgap=0, vgap=2)
         sizer.AddGrowableCol(0)
         sizer.AddGrowableCol(1)
         sizer.AddGrowableCol(2)
@@ -3455,8 +3475,8 @@ class GNOMControlPanel(wx.Panel):
         self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
         self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
 
-        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (55, 22), style = wx.PROCESS_ENTER)
-        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (55, 22), style = wx.PROCESS_ENTER)
+        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (55, 22), style = wx.TE_PROCESS_ENTER)
+        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (55, 22), style = wx.TE_PROCESS_ENTER)
 
         self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
         self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
@@ -3467,16 +3487,21 @@ class GNOMControlPanel(wx.Panel):
         sizer.Add(self.endSpin, 0, wx.EXPAND | wx.RIGHT, 3)
 
 
-        dmax_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        ctrl2_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.dmaxSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['dmax'], size = (60,-1), min = 1)
-
         self.dmaxSpin.SetValue(0)
         self.dmaxSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
         self.dmaxSpin.Bind(wx.EVT_TEXT, self.onDmaxText)
 
-        dmax_sizer.Add(wx.StaticText(self, -1, 'Dmax: '), 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 3)
-        dmax_sizer.Add(self.dmaxSpin, 0, wx.EXPAND | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
+        self.alpha_ctrl = wx.TextCtrl(self, self.staticTxtIDs['alpha'], size=(40,-1), style=wx.TE_PROCESS_ENTER)
+        self.alpha_ctrl.Bind(wx.EVT_TEXT_ENTER, self.onAlpha)
+
+        ctrl2_sizer.Add(wx.StaticText(self, -1, 'Dmax: '), 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 3)
+        ctrl2_sizer.Add(self.dmaxSpin, 0, wx.EXPAND | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
+        ctrl2_sizer.Add(wx.StaticText(self, label='Alpha (0=auto):'), border=3,
+            flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        ctrl2_sizer.Add(self.alpha_ctrl, border=3, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
 
         rmax_sizer = wx.BoxSizer(wx.HORIZONTAL)
         rmax_text = wx.StaticText(self, -1, 'Force to 0 at Dmax: ')
@@ -3496,7 +3521,7 @@ class GNOMControlPanel(wx.Panel):
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(sizer, 0, wx.EXPAND)
-        top_sizer.Add(dmax_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL , 5)
+        top_sizer.Add(ctrl2_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL , 5)
         top_sizer.Add(rmax_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 10)
         top_sizer.Add(advancedParams, 0, wx.CENTER | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 10)
         top_sizer.Add(datgnom, 0, wx.CENTER | wx.ALIGN_CENTER_VERTICAL)
@@ -3516,6 +3541,21 @@ class GNOMControlPanel(wx.Panel):
             pass
 
         self.dmaxSpin.Bind(wx.EVT_TEXT, self.onDmaxText)
+
+    def onAlpha(self, evt):
+        alpha = str(self.alpha_ctrl.GetValue())
+
+        try:
+            alpha = float(alpha.replace(',', '.'))
+            self.alpha_ctrl.ChangeValue(str(alpha))
+
+            old_alpha = float(self.gnom_settings['alpha'])
+
+            if old_alpha != alpha:
+                self.onSettingsChange(None)
+
+        except ValueError:
+            pass
 
     def onEnterInQlimits(self, evt):
 
@@ -3542,7 +3582,7 @@ class GNOMControlPanel(wx.Panel):
                 spinctrl = wx.FindWindowById(self.spinctrlIDs['qend'], self)
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 idx = int(spinctrl.GetValue())
-                txt.SetValue(str(round(self.sasm.q[idx],5)))
+                txt.SetValue(str(round(self.sasm.q[idx],4)))
                 return
         #################################
 
@@ -3555,45 +3595,49 @@ class GNOMControlPanel(wx.Panel):
 
         if id == self.staticTxtIDs['qstart']:
 
-            max = endSpin.GetValue()
+            n_max = endSpin.GetValue()
 
-            if i > max-3:
-                i = max - 3
+            if i > n_max-3:
+                i = n_max - 3
 
             startSpin.SetValue(i)
 
         elif id == self.staticTxtIDs['qend']:
-            minq = startSpin.GetValue()
+            n_min = startSpin.GetValue()
 
 
-            if i < minq+3:
-                i = minq + 3
+            if i < n_min+3:
+                i = n_min + 3
 
             endSpin.SetValue(i)
 
-        txtctrl.SetValue(str(round(self.sasm.q[int(i)],5)))
+        txtctrl.SetValue(str(round(self.sasm.q[int(i)],4)))
 
-        self.out_list = {}
+        update_plot = False
 
-        wx.CallAfter(self.updatePlot)
+        if id == self.spinctrlIDs['qstart']:
+            if i != self.old_nstart:
+                self.out_list = {}
+                update_plot = True
+            self.old_nstart = i
+        elif id == self.spinctrlIDs['qend']:
+            if i != self.old_nend:
+                self.out_list = {}
+                update_plot = True
+            self.old_nend = i
 
-    def setSpinLimits(self, sasm):
-        self.startSpin.SetRange((0, len(sasm.q)-1))
-        self.endSpin.SetRange((0, len(sasm.q)-1))
-
-        self.endSpin.SetValue(len(sasm.q)-1)
-        txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
-        txt.SetValue(str(round(sasm.q[int(len(sasm.q)-1)],4)))
-        txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
-        txt.SetValue(str(round(sasm.q[0],4)))
+        if update_plot:
+            wx.CallAfter(self.updatePlot)
 
 
     def onSpinCtrl(self, evt):
 
-        id = evt.GetId()
+        myid = evt.GetId()
 
-        if id != self.spinctrlIDs['dmax']:
-            spin = wx.FindWindowById(id, self)
+        update_plot = False
+
+        if myid != self.spinctrlIDs['dmax']:
+            spin = wx.FindWindowById(myid, self)
 
             startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
             endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
@@ -3601,43 +3645,56 @@ class GNOMControlPanel(wx.Panel):
             i = spin.GetValue()
 
             #Make sure the boundaries don't cross:
-            if id == self.spinctrlIDs['qstart']:
-                max = endSpin.GetValue()
+            if myid == self.spinctrlIDs['qstart']:
+                max_val = endSpin.GetValue()
                 txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
 
-                if i > max-3:
-                    i = max - 3
+                if i > max_val-3:
+                    i = max_val - 3
                     spin.SetValue(i)
 
-            elif id == self.spinctrlIDs['qend']:
-                min = startSpin.GetValue()
+            elif myid == self.spinctrlIDs['qend']:
+                min_val = startSpin.GetValue()
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
 
-                if i < min+3:
-                    i = min + 3
+                if i < min_val+3:
+                    i = min_val + 3
                     spin.SetValue(i)
 
-            txt.SetValue(str(round(self.sasm.q[int(i)],5)))
+            txt.SetValue(str(round(self.sasm.q[int(i)],4)))
 
-            self.out_list = {}
+            if myid == self.spinctrlIDs['qstart']:
+                if i != self.old_nstart:
+                    self.out_list = {}
+                    update_plot = True
+                self.old_nstart = i
+            elif myid == self.spinctrlIDs['qend']:
+                print self.old_nend
+                print i
+                if i != self.old_nend:
+                    self.out_list = {}
+                    update_plot = True
+                self.old_nend = i
 
-        #Important, since it's a slow function to update (could do it in a timer instead) otherwise this spin event might loop!
-        wx.CallAfter(self.updatePlot)
+        else:
+            update_plot = True
+
+        if update_plot:
+            #Important, since it's a slow function to update (could do it in a
+            #timer instead) otherwise this spin event might loop!
+            wx.CallAfter(self.updatePlot)
 
 
     def updatePlot(self):
         dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
         dmax = dmaxWindow.GetValue()
 
-        if dmax not in self.out_list:
+        if str(dmax) not in self.out_list:
             self.calcGNOM(dmax)
 
         self.updateGNOMInfo(self.out_list[str(dmax)])
 
         plotpanel = wx.FindWindowByName('GNOMPlotPanel')
-
-        dmax_window = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-        dmax = str(dmax_window.GetValue())
 
         a = plotpanel.subplots['P(r)']
         b = plotpanel.subplots['Data/Fit']
@@ -3646,7 +3703,7 @@ class GNOMControlPanel(wx.Panel):
         if not b.get_autoscale_on():
             b.set_autoscale_on(True)
 
-        plotpanel.plotPr(self.out_list[dmax])
+        plotpanel.plotPr(self.out_list[str(dmax)])
 
 
     def calcGNOM(self, dmax):
@@ -3721,7 +3778,7 @@ class GNOMControlPanel(wx.Panel):
                                 'rmin_zero'     : self.raw_settings.get('gnomForceRminZero'),
                                 'rmax_zero'     : wx.FindWindowById(self.otherctrlIDs['force_dmax']).GetStringSelection(),
                                 'npts'          : self.raw_settings.get('gnomNPoints'),
-                                'alpha'         : self.raw_settings.get('gnomInitialAlpha'),
+                                'alpha'         : wx.FindWindowById(self.staticTxtIDs['alpha']).GetValue(),
                                 'angular'       : self.raw_settings.get('gnomAngularScale'),
                                 'system'        : self.raw_settings.get('gnomSystem'),
                                 'form'          : self.raw_settings.get('gnomFormFactor'),
@@ -5752,14 +5809,8 @@ class DenssFrame(wx.Frame):
         'in your work please cite the paper given here:\n'
         'https://www.nature.com/articles/nmeth.4581\n\n'
         'For more information about DENSS see:\n'
-        'https://www.tdgrant.com/denss/\n\n'
-        'If you use EMAN2 (density alignment) in your work, please cite '
-        'both the main EMAN2 paper here:\n'
-        'http://blake.bcm.edu/emanwiki/EMAN2/\n'
-        'and the single particle tomography paper here:\n'
-        'http://blake.bcm.edu/emanwiki/SPT/Spt'
-        )
-        wx.MessageBox(str(msg), "How to cite Denss and EMAN2", style = wx.ICON_INFORMATION | wx.OK)
+        'https://www.tdgrant.com/denss/')
+        wx.MessageBox(str(msg), "How to cite Denss", style = wx.ICON_INFORMATION | wx.OK)
 
     def updateDenssSettings(self):
         self.RunPanel.updateDenssSettings()
@@ -5810,13 +5861,7 @@ class DenssRunPanel(wx.Panel):
                     'fname'         : self.NewControlId(),
                     'mode'          : self.NewControlId(),
                     'electrons'     : self.NewControlId(),
-                    'enant'         : self.NewControlId(),
                     }
-
-        if self.raw_settings.get('EMAN2Dir') != '':
-            self.eman_present = True
-        else:
-            self.eman_present = False
 
         self.threads_finished = []
 
@@ -5894,10 +5939,7 @@ class DenssRunPanel(wx.Panel):
         ne_sizer.Add(ne_text, 0, wx.LEFT, 5)
         ne_sizer.Add(ne_ctrl, 0, wx.LEFT | wx.RIGHT, 5)
 
-        if self.eman_present:
-            average_chk = wx.CheckBox(parent, self.ids['average'], 'Align and average densities (EMAN2)')
-
-            enant_chk = wx.CheckBox(parent, self.ids['enant'], 'Filter enantiomers (EMAN2)')
+        average_chk = wx.CheckBox(parent, self.ids['average'], 'Align and average densities')
 
         advancedButton = wx.Button(parent, -1, 'Change Advanced Settings')
         advancedButton.Bind(wx.EVT_BUTTON, self._onAdvancedButton)
@@ -5911,9 +5953,7 @@ class DenssRunPanel(wx.Panel):
         settings_sizer.Add(nprocs_sizer, 0, wx.TOP, 5)
         settings_sizer.Add(mode_sizer, 0, wx.TOP, 5)
         settings_sizer.Add(ne_sizer, 0, wx.TOP, 5)
-        if self.eman_present:
-            settings_sizer.Add(average_chk, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
-            settings_sizer.Add(enant_chk, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        settings_sizer.Add(average_chk, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
         settings_sizer.Add(advancedButton, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, 5)
 
 
@@ -5984,12 +6024,9 @@ class DenssRunPanel(wx.Panel):
     def _initSettings(self):
         self.updateDenssSettings()
 
-        if self.eman_present:
-            aver = wx.FindWindowById(self.ids['average'], self)
-            aver.SetValue(self.denss_settings['average'])
+        aver = wx.FindWindowById(self.ids['average'], self)
+        aver.SetValue(self.denss_settings['average'])
 
-            enant = wx.FindWindowById(self.ids['enant'], self)
-            enant.SetValue(self.denss_settings['enant'])
 
         nruns = wx.FindWindowById(self.ids['runs'], self)
         nruns.SetValue(str(self.denss_settings['runs']))
@@ -6018,35 +6055,14 @@ class DenssRunPanel(wx.Panel):
 
         self.logbook.DeleteAllPages()
 
-        if  platform.system() == 'Windows' and self.eman_present:
-            aver.SetValue(False)
-            aver.Disable()
-            enant.SetValue(False)
-            enant.Disable()
-
-            msg = ("The EMAN2 package functions needed to filter enantiomers "
-                "and average densities don't work on Windows. The RAW team "
-                "appologies, but since it's not our software theres not a "
-                "lot we can do. You can still create the individual recontructions "
-                "with DENSS. You can do the full reconstruction, including "
-                "enantiomer filtering and averaging, on Linux or Mac OS.")
-
-            wx.CallAfter(wx.MessageBox, msg, "Can't use EMAN2 on windows", style = wx.ICON_ERROR | wx.OK)
 
     def onStartButton(self, evt):
         #Set the denss settings
         self.setArgs()
 
         #Get user settings on number of runs, save location, etc
-        if self.eman_present:
-            average_window = wx.FindWindowById(self.ids['average'], self)
-            average = average_window.GetValue()
-
-            enant_window = wx.FindWindowById(self.ids['enant'], self)
-            enant = enant_window.GetValue()
-        else:
-            average = False
-            enant = False
+        average_window = wx.FindWindowById(self.ids['average'], self)
+        average = average_window.GetValue()
 
         prefix_window = wx.FindWindowById(self.ids['prefix'], self)
         prefix = prefix_window.GetValue()
@@ -6128,20 +6144,16 @@ class DenssRunPanel(wx.Panel):
             self.logbook.AddPage(text_ctrl, str(i))
             self.thread_nums.put_nowait(str(i))
 
-        if nruns > 1 and enant:
-            self.denss_ids['enant'] = self.NewControlId()
-            text_ctrl = wx.TextCtrl(self.logbook, self.denss_ids['enant'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
-            self.logbook.AddPage(text_ctrl, 'Enantiomer')
-
         if nruns > 1 and average:
+            average_names = [prefix+'_average.log', prefix+'_average.mrc',
+                prefix+'_chis_by_step.fit', prefix+'_fsc.dat', prefix+'_map.fit',
+                prefix+'_rg_by_step.fit', prefix+'_supportV_by_step.fit']
 
-            average_names = [prefix+'_stack.hdf', prefix+'_aver.mrc', prefix+'_reference.hdf']
-            names = average_names
-            file_names = [os.path.join(path, name) for name in names]
-            folder_names = [os.path.join(path, prefix+'_aver_01'), os.path.join(path, prefix+'_bt_ref_01')]
+            average_names = average_names + [prefix+'_%i_aligned.mrc' %(i+1) for i in range(nruns)]
+
+            file_names = [os.path.join(path, name) for name in average_names]
 
             file_exists = False
-            folder_exists = False
 
             for f in file_names:
                 if os.path.exists(f):
@@ -6150,32 +6162,9 @@ class DenssRunPanel(wx.Panel):
 
             if file_exists and not yes_to_all:
                 button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
-                question = ('Warning: selected directory contains EMAN2 average '
+                question = ('Warning: selected directory contains DENSS average '
                     'output files\n. Running the average will overwrite these '
                     'files.\nDo you wish to continue?')
-                label = 'Overwrite existing files?'
-                icon = wx.ART_WARNING
-
-                question_dialog = RAWCustomDialogs.CustomQuestionDialog(self.main_frame,
-                    question, button_list, label, icon, style=wx.CAPTION | wx.RESIZE_BORDER)
-                result = question_dialog.ShowModal()
-                question_dialog.Destroy()
-
-                if result == wx.ID_NO:
-                    return
-                elif result == wx.ID_YESTOALL:
-                    yes_to_all = True
-
-            for f in folder_names:
-                if os.path.exists(f) and os.path.isdir(f):
-                    folder_exists = True
-                    break
-
-            if  folder_exists and not yes_to_all:
-                button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
-                question = ('Warning: selected directory contains EMAN2 average '
-                    'output folders\n. Running the average will remove all '
-                    'contents in this folder.\nDo you wish to continue?')
                 label = 'Overwrite existing files?'
                 icon = wx.ART_WARNING
 
@@ -6197,10 +6186,6 @@ class DenssRunPanel(wx.Panel):
                 if os.path.exists(f):
                     os.remove(f)
 
-            for aver_folder in folder_names:
-                if os.path.exists(aver_folder) and os.path.isdir(aver_folder):
-                    shutil.rmtree(aver_folder, ignore_errors=True)
-
         self.status.SetValue('Starting processing\n')
 
 
@@ -6213,60 +6198,7 @@ class DenssRunPanel(wx.Panel):
             elif key == 'abort':
                 wx.FindWindowById(self.ids[key], self).Enable()
 
-        self.stop_events = []
-        self.threads_finished = []
-        self.results = []
-
-        self.my_lock = self.my_manager.Lock()
-
-        self.abort_event = self.my_manager.Event()
-        self.abort_event.clear()
-
-        comm_list = []
-
-        my_pool = multiprocessing.Pool(procs)
-
-        if self.iftm.getParameter('algorithm') == 'GNOM':
-            q = self.iftm.q_extrap
-            I = self.iftm.i_extrap
-
-            ext_pts = len(I)-len(self.iftm.i_orig)
-            sigq =np.empty_like(I)
-            sigq[:ext_pts] = I[:ext_pts]*np.mean((self.iftm.err_orig[:10]/self.iftm.i_orig[:10]))
-            sigq[ext_pts:] = I[ext_pts:]*(self.iftm.err_orig/self.iftm.i_orig)
-        else:
-            q = self.iftm.q_orig
-            I = self.iftm.i_fit
-            sigq = I*(self.iftm.err_orig/self.iftm.i_orig)
-
-        D = self.iftm.getParameter('dmax')
-
-        for key in self.denss_ids:
-            if key != 'average' and key != 'enant':
-                den_queue = self.my_manager.Queue()
-                stop_event = self.my_manager.Event()
-                stop_event.clear()
-                comm_list.append([den_queue, stop_event])
-
-                den_window = wx.FindWindowById(self.denss_ids[key])
-
-                comm_t = threading.Thread(target=self.get_multi_output,
-                    args=(den_queue, den_window, stop_event))
-                comm_t.daemon = True
-                comm_t.start()
-
-                result = my_pool.apply_async(SASCalc.runDenss, args=(q, I, sigq,
-                    D, prefix, path, comm_list, self.my_lock, self.thread_nums,
-                    self.wx_queue, self.abort_event, self.denss_settings))
-
-                self.stop_events.append(stop_event)
-                self.threads_finished.append(False)
-                self.results.append(result)
-
-        my_pool.close()
-
-        self.denss_timer.Start(1000)
-        self.msg_timer.Start(100)
+        self.startDenss(path, prefix, procs)
 
     def onAbortButton(self, evt):
         self.abort_event.set()
@@ -6385,7 +6317,7 @@ class DenssRunPanel(wx.Panel):
             D = float(self.iftm.getParameter('dmax'))
             self.denss_settings['voxel'] = D*self.denss_settings['oversample']/64.
 
-    def get_multi_output(self, queue, den_window, stop_event):
+    def get_multi_output(self, queue, den_window, stop_event, nmsg=100):
         num_msg = 0
         full_msg = ''
         while True:
@@ -6399,27 +6331,68 @@ class DenssRunPanel(wx.Panel):
             except Queue.Empty:
                 pass
 
-            if num_msg == 100:
+            if num_msg == nmsg:
                 wx.CallAfter(den_window.AppendText, full_msg)
                 num_msg = 0
                 full_msg = ''
 
-    def runAverage(self, prefix, path, nruns, procs):
+    def startDenss(self, path, prefix, procs):
+        self.stop_events = []
+        self.threads_finished = []
+        self.results = []
 
-        read_semaphore = threading.BoundedSemaphore(1)
-        #Solution for non-blocking reads adapted from stack overflow
-        #http://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
-        def enqueue_output(out, queue):
-            with read_semaphore:
-                line = 'test'
-                line2=''
-                while line != '':
-                    line = out.read(1)
-                    line2+=line
-                    if line == '\n':
-                        queue.put_nowait([line2])
-                        line2=''
-                    time.sleep(0.0001)
+        self.my_lock = self.my_manager.Lock()
+
+        self.abort_event = self.my_manager.Event()
+        self.abort_event.clear()
+
+        comm_list = []
+
+        my_pool = multiprocessing.Pool(procs)
+
+        if self.iftm.getParameter('algorithm') == 'GNOM':
+            q = self.iftm.q_extrap
+            I = self.iftm.i_extrap
+
+            ext_pts = len(I)-len(self.iftm.i_orig)
+            sigq =np.empty_like(I)
+            sigq[:ext_pts] = I[:ext_pts]*np.mean((self.iftm.err_orig[:10]/self.iftm.i_orig[:10]))
+            sigq[ext_pts:] = I[ext_pts:]*(self.iftm.err_orig/self.iftm.i_orig)
+        else:
+            q = self.iftm.q_orig
+            I = self.iftm.i_fit
+            sigq = I*(self.iftm.err_orig/self.iftm.i_orig)
+
+        D = self.iftm.getParameter('dmax')
+
+        for key in self.denss_ids:
+            if key != 'average':
+                den_queue = self.my_manager.Queue()
+                stop_event = self.my_manager.Event()
+                stop_event.clear()
+                comm_list.append([den_queue, stop_event])
+
+                den_window = wx.FindWindowById(self.denss_ids[key])
+
+                comm_t = threading.Thread(target=self.get_multi_output,
+                    args=(den_queue, den_window, stop_event))
+                comm_t.daemon = True
+                comm_t.start()
+
+                result = my_pool.apply_async(SASCalc.runDenss, args=(q, I, sigq,
+                    D, prefix, path, comm_list, self.my_lock, self.thread_nums,
+                    self.wx_queue, self.abort_event, self.denss_settings))
+
+                self.stop_events.append(stop_event)
+                self.threads_finished.append(False)
+                self.results.append(result)
+
+        my_pool.close()
+
+        self.denss_timer.Start(1000)
+        self.msg_timer.Start(100)
+
+    def runAverage(self, prefix, path, nruns, procs):
 
         #Check to see if things have been aborted
         myId = self.denss_ids['average']
@@ -6429,217 +6402,113 @@ class DenssRunPanel(wx.Panel):
             wx.CallAfter(averWindow.AppendText, 'Aborted!\n')
             return
 
-        enant_window = wx.FindWindowById(self.ids['enant'], self)
-        enant = enant_window.GetValue()
-
         wx.CallAfter(self.status.AppendText, 'Starting Average\n')
 
-        if enant:
-            den_filelist = [prefix+'_%s_enant.hdf' %(str(i).zfill(2)) for i in range(1, nruns+1)]
-        else:
-            den_filelist = [prefix+'_%s.mrc' %(str(i).zfill(2)) for i in range(1, nruns+1)]
+        denss_outputs = [result.get() for result in self.results]
+        avg_q = self.my_manager.Queue()
+        stop_event = self.my_manager.Event()
+        stop_event.clear()
 
-        eman_proc, out1 = SASCalc.runEman2PreAver(den_filelist, procs, prefix, path, self.raw_settings.get('EMAN2Dir'))
+        comm_t = threading.Thread(target=self.get_multi_output,
+            args=(avg_q, averWindow, stop_event, 1))
+        comm_t.daemon = True
+        comm_t.start()
 
-        wx.CallAfter(averWindow.AppendText, out1)
+        #START CONTENTS OF denss.all.py from Tom Grant's code. Up to date
+        #as of 8/15/18, commit 51c45e7
+        #Has interjections of my code in a few places, mostly for outputs
+        allrhos = np.array([denss_outputs[i][8] for i in np.arange(nruns)])
+        sides = np.array([denss_outputs[i][9] for i in np.arange(nruns)])
 
-        eman_q = Queue.Queue()
-        readout_t = threading.Thread(target=enqueue_output, args=(eman_proc.stdout, eman_q))
-        readout_t.daemon = True
-        readout_t.start()
+        wx.CallAfter(averWindow.AppendText, 'Filtering enantiomers\n')
+        allrhos, scores = SASCalc.run_enantiomers(allrhos, procs, nruns,
+            avg_q, self.my_lock, self.wx_queue, self.abort_event)
 
-        #Send the eman2 output to the screen.
-        while eman_proc.poll() is None:
-            if self.abort_event.is_set():
-                eman_proc.terminate()
-                wx.CallAfter(averWindow.AppendText, 'Aborted!\n')
-                return
+        if self.abort_event.is_set():
+            stop_event.set()
+            return
 
-            try:
-                new_text = eman_q.get_nowait()
-                new_text = new_text[0]
-                wx.CallAfter(averWindow.AppendText, new_text)
-            except Queue.Empty:
-                pass
-            time.sleep(0.001)
+        wx.CallAfter(averWindow.AppendText, 'Generating alignment reference\n')
+        refrho = SASCalc.binary_average(allrhos, procs, avg_q, self.abort_event)
 
-        time.sleep(2)
-        with read_semaphore: #see if there's any last data that we missed
-            try:
-                new_text = eman_q.get_nowait()
-                new_text = new_text[0]
+        if self.abort_event.is_set():
+            stop_event.set()
+            self.threads_finished[-1] = True
+            wx.CallAfter(averWindow.AppendText, 'Aborted!\n')
+            return
 
-                wx.CallAfter(averWindow.AppendText, new_text)
-            except Queue.Empty:
-                pass
+        wx.CallAfter(averWindow.AppendText, 'Aligning and averaging models\n')
+        aligned, scores = SASCalc.align_multiple(refrho, allrhos, procs, avg_q,
+            self.abort_event)
 
-        bt_dir = glob.glob(os.path.join(path, '%s_bt_ref_*' %(prefix)))[-1]
-        shutil.move(os.path.join(bt_dir, 'final_avg.hdf'), os.path.join(path, prefix+'_reference.hdf'))
+        if self.abort_event.is_set():
+            stop_event.set()
+            self.threads_finished[-1] = True
+            wx.CallAfter(averWindow.AppendText, 'Aborted!\n')
+            return
 
-        eman_proc = SASCalc.runEman2Aver(den_filelist, procs, prefix, path, self.raw_settings.get('EMAN2Dir'))
+        #filter rhos with scores below the mean - 2*standard deviation.
+        mean = np.mean(scores)
+        std = np.std(scores)
+        threshold = mean - 2*std
+        filtered = np.empty(len(scores),dtype=str)
 
-        eman_q = Queue.Queue()
-        readout_t = threading.Thread(target=enqueue_output, args=(eman_proc.stdout, eman_q))
-        readout_t.daemon = True
-        readout_t.start()
+        for i in range(nruns):
+            if scores[i] < threshold:
+                filtered[i] = 'Filtered'
+            else:
+                filtered[i] = ' '
+            ioutput = prefix+"_"+str(i+1)+"_aligned"
+            SASFileIO.saveDensityMrc(os.path.join(path, ioutput+".mrc"), aligned[i], sides[0])
+            wx.CallAfter(averWindow.AppendText, "%s.mrc written. Score = %0.3f %s\n" % (ioutput,scores[i],filtered[i]))
+            wx.CallAfter(averWindow.AppendText,'Correlation score to reference: %s.mrc %.3f %s\n' %(ioutput, scores[i], filtered[i]))
 
-        #Send the eman2 output to the screen.
-        while eman_proc.poll() is None:
-            if self.abort_event.is_set():
-                eman_proc.terminate()
-                wx.CallAfter(averWindow.AppendText, 'Aborted!\n')
-                return
+        aligned = aligned[scores>threshold]
 
-            try:
-                new_text = eman_q.get_nowait()
-                new_text = new_text[0]
-                wx.CallAfter(averWindow.AppendText, new_text)
-            except Queue.Empty:
-                pass
-            time.sleep(0.001)
+        average_rho = np.mean(aligned,axis=0)
+        wx.CallAfter(averWindow.AppendText, "Mean of correlation scores: %.3f\n" % mean)
+        wx.CallAfter(averWindow.AppendText, "Standard deviation of scores: %.3f\n" % std)
+        wx.CallAfter(averWindow.AppendText,'Total number of input maps for alignment: %i\n' % allrhos.shape[0])
+        wx.CallAfter(averWindow.AppendText,'Number of aligned maps accepted: %i\n' % aligned.shape[0])
+        wx.CallAfter(averWindow.AppendText,'Correlation score between average and reference: %.3f\n' % (1/SASCalc.rho_overlap_score(average_rho, refrho)))
+        SASFileIO.saveDensityMrc(os.path.join(path, prefix+'_average.mrc'), average_rho, sides[0])
 
-        time.sleep(2)
-        with read_semaphore: #see if there's any last data that we missed
-            try:
-                new_text = eman_q.get_nowait()
-                new_text = new_text[0]
+        #split maps into 2 halves--> enan, align, average independently with same refrho
+        avg_rho1 = np.mean(aligned[::2],axis=0)
+        avg_rho2 = np.mean(aligned[1::2],axis=0)
+        fsc = SASCalc.calc_fsc(avg_rho1,avg_rho2,sides[0])
+        np.savetxt(os.path.join(path, prefix+'_fsc.dat'),fsc,delimiter=" ",fmt="%.5e",header="qbins, FSC")
+        x = np.linspace(fsc[0,0],fsc[-1,0],100)
+        y = np.interp(x, fsc[:,0], fsc[:,1])
+        resi = np.argmin(y>=0.5)
+        resx = np.interp(0.5,[y[resi+1],y[resi]],[x[resi+1],x[resi]])
+        resn = round(float(1./resx),1)
 
-                wx.CallAfter(averWindow.AppendText, new_text)
-            except Queue.Empty:
-                pass
+        res_str = "Resolution: %.1f " % resn + u'\u212B'.encode('utf-8') + '\n'
+        wx.CallAfter(averWindow.AppendText, res_str)
+        wx.CallAfter(averWindow.AppendText,'END')
 
-        convert_out, convert_err = SASCalc.runEman2Convert(prefix, path, self.raw_settings.get('EMAN2Dir'))
-
-        wx.CallAfter(averWindow.AppendText, convert_out)
+        #END CONTENTS OF denss.all.py
 
         wx.CallAfter(self.status.AppendText, 'Finished Average\n')
 
+        log_text = averWindow.GetValue()
+
+        with open(os.path.join(path, '{}_average.log'.format(prefix)), 'w') as f:
+            f.write(log_text)
+
         self.threads_finished[-1] = True
+        self.msg_timer.Stop()
+        stop_event.set()
 
-        wx.CallAfter(self.finishedProcessing)
-
-
-    def runEnantiomer(self, prefix, path, nruns, procs):
-
-        read_semaphore = threading.BoundedSemaphore(1)
-        #Solution for non-blocking reads adapted from stack overflow
-        #http://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
-        def enqueue_output(out, queue):
-            with read_semaphore:
-                line = 'test'
-                line2=''
-                while line != '':
-                    line = out.read(1)
-                    line2+=line
-                    if line == '\n':
-                        queue.put_nowait([line2])
-                        line2=''
-                    time.sleep(0.0001)
-
-        #Check to see if things have been aborted
-        myId = self.denss_ids['enant']
-        enantWindow = wx.FindWindowById(myId, self)
+        self.average_results = {'mean': mean, 'std': std,'res': resn, 'scores': scores,
+            'fsc': fsc, 'total': allrhos.shape[0], 'inc': aligned.shape[0],
+            'thresh': threshold}
 
         if self.abort_event.is_set():
-            wx.CallAfter(enantWindow.AppendText, 'Aborted!\n')
             return
 
-        wx.CallAfter(self.status.AppendText, 'Starting Enantiomer Filtering\n')
-
-        den_filelist = [prefix+'_%s.mrc' %(str(i).zfill(2)) for i in range(1, nruns+1)]
-
-        stacks_output, conv_output = SASCalc.runEman2PreEnant(den_filelist, procs, prefix, path, self.raw_settings.get('EMAN2Dir'))
-
-        wx.CallAfter(enantWindow.AppendText, stacks_output)
-        wx.CallAfter(enantWindow.AppendText, conv_output)
-
-        for den_file in den_filelist:
-
-            xyz_output, rot_output, stacks_output, rot_names = SASCalc.runEman2xyz(den_file, procs, prefix, path, self.raw_settings.get('EMAN2Dir'))
-
-            out_str=xyz_output + ''.join(rot_output) + stacks_output
-            wx.CallAfter(enantWindow.AppendText, out_str)
-
-            sort_params = {}
-            tries = 0
-            while not sort_params and tries<5:
-                eman_proc = SASCalc.runEman2Align(den_file, procs, prefix, path, self.raw_settings.get('EMAN2Dir'))
-
-                eman_q = Queue.Queue()
-                readout_t = threading.Thread(target=enqueue_output, args=(eman_proc.stdout, eman_q))
-                readout_t.daemon = True
-                readout_t.start()
-
-                #Send the eman2 output to the screen.
-                while eman_proc.poll() is None:
-                    if self.abort_event.is_set():
-                        eman_proc.terminate()
-                        wx.CallAfter(enantWindow.AppendText, 'Aborted!\n')
-                        return
-
-                    try:
-                        new_text = eman_q.get_nowait()
-                        new_text = new_text[0]
-                        wx.CallAfter(enantWindow.AppendText, new_text)
-                    except Queue.Empty:
-                        pass
-                    time.sleep(0.001)
-
-                time.sleep(2)
-                with read_semaphore: #see if there's any last data that we missed
-                    try:
-                        new_text = eman_q.get_nowait()
-                        new_text = new_text[0]
-
-                        wx.CallAfter(enantWindow.AppendText, new_text)
-                    except Queue.Empty:
-                        pass
-
-                with open(os.path.join(os.path.join(path, '%s_enant_ali' %(prefix)), 'particle_parms_01.json')) as f:
-                    sort_params = json.load(f)
-
-                tries = tries+1
-
-                if not sort_params:
-                    wx.CallAfter(enantWindow.AppendText, 'Enantiomer alignment failed, trying again\n')
-
-            if not sort_params:
-                wx.CallAfter(enantWindow.AppendText, 'Enantiomer alignment failed too many times, aborting\n')
-                self.threads_finished[-1] = True
-                wx.CallAfter(self.onAbortButton, None)
-                return
-            #Find and rename the best enantiomer
-            sort_list = [(ast.literal_eval(key)[1], sort_params[key]['score']) for key in sort_params]
-            best_idx = int(sorted(sort_list, key=lambda score: abs(float(score[1])))[-1][0])
-            best_enant = rot_names[best_idx]
-
-            df_prefix = os.path.splitext(os.path.split(den_file)[1])[0]
-            shutil.copy(os.path.join(path, best_enant), os.path.join(path, '%s_enant.hdf' %(df_prefix)))
-
-            #Clean up all the files we made
-            for fname in rot_names:
-                os.remove(os.path.join(path, fname))
-
-            os.remove(os.path.join(path, '%s_ali2xyz_all.hdf' %(df_prefix)))
-
-            if os.path.exists(os.path.join(path, '%s_enant_ali' %(prefix))) and os.path.isdir(os.path.join(path, '%s_enant_ali' %(prefix))):
-                shutil.rmtree(os.path.join(path, '%s_enant_ali' %(prefix)), ignore_errors=True)
-
-        os.remove(os.path.join(path, '%s_reference.hdf' %(prefix)))
-        os.remove(os.path.join(path, '%s_stack.hdf' %(prefix)))
-
-        wx.CallAfter(self.status.AppendText, 'Finished Enantiomer Filtering\n')
-
-        self.threads_finished[-1] = True
-
-        if 'average' in self.denss_ids:
-            t = threading.Thread(target = self.runAverage, args = (prefix, path, nruns, procs))
-            t.daemon = True
-            t.start()
-            self.threads_finished.append(False)
-
-        else:
-            wx.CallAfter(self.finishedProcessing)
+        wx.CallAfter(self.finishedProcessing)
 
 
     def onDenssTimer(self, evt):
@@ -6650,7 +6519,6 @@ class DenssRunPanel(wx.Panel):
 
         if denss_finished:
             self.denss_timer.Stop()
-            self.msg_timer.Stop()
 
             path_window = wx.FindWindowById(self.ids['save'], self)
             path = path_window.GetValue()
@@ -6664,19 +6532,53 @@ class DenssRunPanel(wx.Panel):
             nruns_window = wx.FindWindowById(self.ids['runs'], self)
             nruns = int(nruns_window.GetValue())
 
-            if 'enant' in self.denss_ids:
-                t = threading.Thread(target = self.runEnantiomer, args = (prefix, path, nruns, procs))
-                t.daemon = True
-                t.start()
-                self.threads_finished.append(False)
+            denss_outputs = [result.get() for result in self.results]
 
-            elif 'average' in self.denss_ids:
+            qdata = denss_outputs[0][0]
+            Idata = denss_outputs[0][1]
+            sigqdata = denss_outputs[0][2]
+            qbinsc = denss_outputs[0][3]
+            all_Imean = [denss_outputs[i][4] for i in np.arange(nruns)]
+            header = ['q','I','error']
+            fit = np.zeros(( len(qbinsc),nruns+3 ))
+            fit[:len(qdata),0] = qdata
+            fit[:len(Idata),1] = Idata
+            fit[:len(sigqdata),2] = sigqdata
+
+            for edmap in range(nruns):
+                fit[:len(all_Imean[0]),edmap+3] = all_Imean[edmap]
+                header.append("I_fit_"+str(edmap))
+
+            np.savetxt(os.path.join(path, prefix+'_map.fit'),fit,delimiter=" ",fmt="%.5e", header=" ".join(header))
+            chi_header, rg_header, supportV_header = zip(*[('chi_'+str(i), 'rg_'+str(i),'supportV_'+str(i)) for i in range(nruns)])
+            all_chis = np.array([denss_outputs[i][5] for i in np.arange(nruns)])
+            all_rg = np.array([denss_outputs[i][6] for i in np.arange(nruns)])
+            all_supportV = np.array([denss_outputs[i][7] for i in np.arange(nruns)])
+
+            np.savetxt(os.path.join(path, prefix+'_chis_by_step.fit'),all_chis.T,delimiter=" ",fmt="%.5e",header=",".join(chi_header))
+            np.savetxt(os.path.join(path, prefix+'_rg_by_step.fit'),all_rg.T,delimiter=" ",fmt="%.5e",header=",".join(rg_header))
+            np.savetxt(os.path.join(path, prefix+'_supportV_by_step.fit'),all_supportV.T,delimiter=" ",fmt="%.5e",header=",".join(supportV_header))
+
+            chis = []
+            rgs = []
+            svs = []
+            for i in range(nruns):
+                last_index = max(np.where(denss_outputs[i][5] !=0)[0])
+                chis.append(denss_outputs[i][5][last_index])
+                rgs.append(denss_outputs[i][6][last_index])
+                svs.append(denss_outputs[i][7][last_index])
+
+            self.denss_stats = {'rg': rgs, 'chi': chis, 'sv': svs}
+
+            if 'average' in self.denss_ids:
                 t = threading.Thread(target = self.runAverage, args = (prefix, path, nruns, procs))
                 t.daemon = True
                 t.start()
                 self.threads_finished.append(False)
 
             else:
+                self.msg_timer.Stop()
+                self.average_results = {}
                 wx.CallAfter(self.finishedProcessing)
 
     def onMessageTimer(self, evt):
@@ -6688,6 +6590,9 @@ class DenssRunPanel(wx.Panel):
                     wx.CallAfter(self.status.AppendText, msg[1])
                 elif msg[0] == 'finished':
                     self.threads_finished[msg[1]] = True
+                elif msg[0] == 'average':
+                    averWindow = wx.FindWindowById(self.denss_ids['average'], self)
+                    wx.CallAfter(averWindow.AppendText, msg[1])
                 else:
                     my_num = msg[0].split()[-1]
                     my_id = self.denss_ids[my_num]
@@ -6699,8 +6604,9 @@ class DenssRunPanel(wx.Panel):
                 self.my_lock.release()
 
             try:
-                if self.results[i].ready():
-                    self.results[i].get()
+                if i<len(self.results):
+                    if self.results[i].ready():
+                        self.results[i].get()
             except Exception as e:
                 self.abort_event.set()
                 print e
@@ -6722,11 +6628,8 @@ class DenssRunPanel(wx.Panel):
         denss_results = [result.get() for result in self.results]
 
         #Get user settings on number of runs, save location, etc
-        if self.eman_present:
-            average_window = wx.FindWindowById(self.ids['average'], self)
-            average = average_window.GetValue()
-        else:
-            average = False
+        average_window = wx.FindWindowById(self.ids['average'], self)
+        average = average_window.GetValue()
 
         prefix_window = wx.FindWindowById(self.ids['prefix'], self)
         prefix = prefix_window.GetValue()
@@ -6744,7 +6647,9 @@ class DenssRunPanel(wx.Panel):
                     }
 
         results_window = wx.FindWindowByName('DenssResultsPanel')
-        wx.CallAfter(results_window.updateResults, settings, denss_results)
+        wx.CallAfter(results_window.updateResults, settings, denss_results,
+            self.denss_stats, self.average_results)
+
 
     def _onAdvancedButton(self, evt):
         self.main_frame.showOptionsDialog(focusHead='DENSS')
@@ -6771,13 +6676,12 @@ class DenssRunPanel(wx.Panel):
                             'conSteps'      : self.raw_settings.get('denssConnectivitySteps'),
                             'chiEndFrac'    : self.raw_settings.get('denssChiEndFrac'),
                             'plotOutput'    : self.raw_settings.get('denssPlotOutput'),
-                            'average'       : self.raw_settings.get('denssEman2Average'),
+                            'average'       : self.raw_settings.get('denssAverage'),
                             'runs'          : self.raw_settings.get('denssReconstruct'),
                             'cutOutput'     : self.raw_settings.get('denssCutOut'),
                             'writeXplor'    : self.raw_settings.get('denssWriteXplor'),
                             'mode'          : self.raw_settings.get('denssMode'),
                             'recenterMode'  : self.raw_settings.get('denssRecenterMode'),
-                            'enant'         : self.raw_settings.get('denssEnantiomer'),
                             'minRho'        : self.raw_settings.get('denssMinDensity'),
                             'maxRho'        : self.raw_settings.get('denssMaxDensity'),
                             }
@@ -6795,10 +6699,10 @@ class DenssRunPanel(wx.Panel):
                 process_finished = False
 
         if not process_finished and event.CanVeto():
-            msg = ("Warning: DENSS or EMAN2 is still running. "
+            msg = ("Warning: DENSS is still running. "
                 "Closing this window will abort the currently running "
                 "processes. Do you want to continue closing the window?")
-            dlg = wx.MessageDialog(self.main_frame, msg, "Abort DENSS/EMAN2?", style = wx.ICON_WARNING | wx.YES_NO)
+            dlg = wx.MessageDialog(self.main_frame, msg, "Abort DENSS?", style = wx.ICON_WARNING | wx.YES_NO)
             proceed = dlg.ShowModal()
             dlg.Destroy()
 
@@ -6856,8 +6760,12 @@ class DenssResultsPanel(wx.Panel):
                     'ambiScore'     : self.NewControlId(),
                     'ambiEval'      : self.NewControlId(),
                     'res'           : self.NewControlId(),
-                    'resUnit'       : self.NewControlId(),
                     'models'        : self.NewControlId(),
+                    'rscorMean'     : self.NewControlId(),
+                    'rscorStd'      : self.NewControlId(),
+                    'rscorInc'      : self.NewControlId(),
+                    'rscorTot'      : self.NewControlId(),
+                    'model_sum'     : self.NewControlId(),
                     }
 
         self.topsizer = self._createLayout(self)
@@ -6892,17 +6800,38 @@ class DenssResultsPanel(wx.Panel):
         self.ambi_sizer.Add(ambi_subsizer2, 0, wx.TOP, 5)
 
 
+        rscor_box = wx.StaticBox(parent, wx.ID_ANY, 'Real Space Correlation (RSC)')
+        self.rscor_sizer = wx.StaticBoxSizer(rscor_box, wx.HORIZONTAL)
+
+        corm_text = wx.StaticText(parent, label='Mean RSC:')
+        corm_ctrl = wx.TextCtrl(parent, self.ids['rscorMean'], '', size=(60,-1), style=wx.TE_READONLY)
+        cors_text = wx.StaticText(parent, label='Stdev. RSC:')
+        cors_ctrl = wx.TextCtrl(parent, self.ids['rscorStd'], '', size=(60,-1), style=wx.TE_READONLY)
+        cori1_text = wx.StaticText(parent, label='Average included:')
+        cori1_ctrl = wx.TextCtrl(parent, self.ids['rscorInc'], '', size=(60,-1), style=wx.TE_READONLY)
+        cori2_text = wx.StaticText(parent, label='of')
+        cori2_ctrl = wx.TextCtrl(parent, self.ids['rscorTot'], '', size=(60,-1), style=wx.TE_READONLY)
+
+        self.rscor_sizer.Add(corm_text, flag=wx.ALIGN_CENTER_VERTICAL)
+        self.rscor_sizer.Add(corm_ctrl, border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+        self.rscor_sizer.Add(cors_text, border=4, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+        self.rscor_sizer.Add(cors_ctrl, border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+        self.rscor_sizer.Add(cori1_text, border=4, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+        self.rscor_sizer.Add(cori1_ctrl, border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+        self.rscor_sizer.Add(cori2_text, border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+        self.rscor_sizer.Add(cori2_ctrl, border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+
         res_box = wx.StaticBox(parent, wx.ID_ANY, 'Reconstruction Resolution (FSC)')
         self.res_sizer = wx.StaticBoxSizer(res_box, wx.HORIZONTAL)
 
         res_text = wx.StaticText(parent, wx.ID_ANY, 'Fourier Shell Correlation Resolution:')
         res_ctrl = wx.TextCtrl(parent, self.ids['res'], '', size=(60,-1), style=wx.TE_READONLY)
 
-        resunit_ctrl = wx.TextCtrl(parent, self.ids['resUnit'], '', size=(100,-1), style=wx.TE_READONLY)
+        resunit_text = wx.StaticText(parent, label='Angstrom')
 
         self.res_sizer.Add(res_text, 0, wx.ALIGN_CENTER_VERTICAL)
         self.res_sizer.Add(res_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL,2)
-        self.res_sizer.Add(resunit_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 4)
+        self.res_sizer.Add(resunit_text, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 4)
 
 
         try:
@@ -6924,6 +6853,7 @@ class DenssResultsPanel(wx.Panel):
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(self.ambi_sizer, 0, wx.EXPAND)
+        top_sizer.Add(self.rscor_sizer, 0, wx.EXPAND)
         top_sizer.Add(self.res_sizer, 0, wx.EXPAND)
         top_sizer.Add(self.model_sizer, 1, wx.EXPAND)
         top_sizer.Add(save_button, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
@@ -6959,6 +6889,7 @@ class DenssResultsPanel(wx.Panel):
         else:
             self.topsizer.Hide(self.ambi_sizer, recursive=True)
 
+        self.topsizer.Hide(self.rscor_sizer, recursive=True)
         self.topsizer.Hide(self.res_sizer, recursive=True)
 
     def runAmbimeter(self, path):
@@ -7004,46 +6935,89 @@ class DenssResultsPanel(wx.Panel):
         eval_window = wx.FindWindowById(self.ids['ambiEval'], self)
         wx.CallAfter(eval_window.SetValue, output[2])
 
-    def getResolution(self, filename):
-        res, fsc = np.loadtxt(filename, unpack=True)
-
-        f = interp1d(res, fsc-.5)
-
-        b_idx = np.where(fsc<0.5)[0][0]
-        a_idx = b_idx-1
-
-        #This is way more than we need for a linear interpolation, but I suppose
-        #If we ever want to do more, it's here . . .
-        root = scipy.optimize.brentq(f, res[a_idx], res[b_idx])
-        res = 1./root
+    def getResolution(self, resolution):
         res_window = wx.FindWindowById(self.ids['res'], self)
-        res_window.SetValue(str(round(res,1)))
-        unit_window = wx.FindWindowById(self.ids['resUnit'], self)
-        unit_window.SetValue('Angstroms')
+        res_window.SetValue(str(resolution))
 
-    def getModels(self, settings, denss_results):
+    def getModels(self, settings, denss_results, denss_stats, average_results):
         nruns = settings['runs']
 
         self.models.DeleteAllPages()
+
+        summary_panel = self.modelSummary(settings, denss_results, denss_stats,
+            average_results)
+        self.models.AddPage(summary_panel, 'Summary')
 
         for i in range(1, nruns+1):
             plot_panel = DenssPlotPanel(self.models, denss_results[i-1], self.iftm)
             self.models.AddPage(plot_panel, str(i))
 
-        if nruns > 3 and settings['average']:
-            plot_panel = DenssAveragePlotPanel(self.models, settings)
+        if nruns > 1 and settings['average']:
+            plot_panel = DenssAveragePlotPanel(self.models, settings, average_results)
             self.models.AddPage(plot_panel, 'Average')
 
-    def updateResults(self, settings, denss_results):
+    def modelSummary(self, settings, denss_results, denss_stats, average_results):
+        models_panel = wx.Panel(self.models)
+
+        models_list = wx.ListCtrl(models_panel, id=self.ids['model_sum'], size=(-1,-1), style=wx.LC_REPORT)
+        models_list.InsertColumn(0, 'Model')
+        models_list.InsertColumn(1, 'Chi^2')
+        models_list.InsertColumn(2, 'Rg')
+        models_list.InsertColumn(3, 'Support Vol.')
+        models_list.InsertColumn(4, 'Mean RSC')
+
+        nruns = settings['runs']
+
+        for i in range(nruns):
+            model = str(i+1)
+            chisq = str(round(denss_stats['chi'][i], 5))
+            rg = str(round(denss_stats['rg'][i],2))
+            sv = str(round(denss_stats['sv'][i], 2))
+
+            if average_results:
+                mrsc = str(round(average_results['scores'][i],4))
+            else:
+                mrsc = ''
+
+            models_list.Append((model, chisq, rg, sv, mrsc))
+
+            if mrsc != '' and float(mrsc) < average_results['thresh']:
+                models_list.SetItemTextColour(i, 'red') #Not working?!
+
+        mp_sizer = wx.BoxSizer()
+        mp_sizer.Add(models_list, 1, flag=wx.EXPAND)
+        models_panel.SetSizer(mp_sizer)
+
+        return models_panel
+
+    def getAverage(self, avg_results):
+        mean = str(round(avg_results['mean'],4))
+        std = str(round(avg_results['std'],4))
+        total = str(avg_results['total'])
+        inc = str(avg_results['inc'])
+
+        mean_window = wx.FindWindowById(self.ids['rscorMean'], self)
+        wx.CallAfter(mean_window.SetValue, mean)
+        std_window = wx.FindWindowById(self.ids['rscorStd'], self)
+        wx.CallAfter(std_window.SetValue, std)
+        inc_window = wx.FindWindowById(self.ids['rscorInc'], self)
+        wx.CallAfter(inc_window.SetValue, inc)
+        total_window = wx.FindWindowById(self.ids['rscorTot'], self)
+        wx.CallAfter(total_window.SetValue, total)
+
+    def updateResults(self, settings, denss_results, denss_stats, average_results):
         #In case we ran a different setting a second time, without closing the window
         self.topsizer.Hide(self.res_sizer, recursive=True)
+        self.topsizer.Hide(self.rscor_sizer, recursive=True)
 
-        if settings['runs'] > 3 and settings['average']:
-            fsc_filename = os.path.join(os.path.join(settings['path'], settings['prefix']+'_aver_01'), 'fsc_0.txt')
-            self.getResolution(fsc_filename)
+        if settings['runs'] > 1 and settings['average']:
+            self.getResolution(average_results['res'])
+            self.getAverage(average_results)
+
+            self.topsizer.Show(self.rscor_sizer, recursive=True)
             self.topsizer.Show(self.res_sizer, recursive=True)
 
-        model_list = self.getModels(settings, denss_results)
+        self.getModels(settings, denss_results, denss_stats, average_results)
 
         self.Layout()
 
@@ -7062,21 +7036,47 @@ class DenssResultsPanel(wx.Panel):
     def _saveResults(self, evt):
         res_data = []
         ambi_data = []
+        rsc_data = []
+
+        if self.topsizer.IsShown(self.rscor_sizer):
+            mean = wx.FindWindowById(self.ids['rscorMean'], self).GetValue()
+            std = wx.FindWindowById(self.ids['rscorStd'], self).GetValue()
+            inc = wx.FindWindowById(self.ids['rscorInc'], self).GetValue()
+            total = wx.FindWindowById(self.ids['rscorTot'], self).GetValue()
+
+            rsc_data.append(('Mean RSC:', mean))
+            rsc_data.append(('Stdev. RSC:', std))
+            rsc_data.append(('Number of models included:', inc))
+            rsc_data.append(('Total number of models:', total))
+
 
         if self.topsizer.IsShown(self.res_sizer):
             res = wx.FindWindowById(self.ids['res']).GetValue()
-            res_unit = wx.FindWindowById(self.ids['resUnit']).GetValue()
-            res_data = [('Fourier Shell Correlation Resolution:', res, res_unit)]
+            res_data = [('Fourier Shell Correlation Resolution (Angstrom):', res)]
 
         models_nb = wx.FindWindowById(self.ids['models'])
 
-        model_data = []
+        model_plots = []
 
         for i in range(models_nb.GetPageCount()):
             page = models_nb.GetPage(i)
-            figures = page.figures
-            model = models_nb.GetPageText(i)
-            model_data.append((model, figures))
+            if models_nb.GetPageText(i) != 'Summary':
+                figures = page.figures
+                model = models_nb.GetPageText(i)
+                model_plots.append((model, figures))
+
+        models_list = wx.FindWindowById(self.ids['model_sum'])
+
+        model_data = [[] for k in range(models_list.GetItemCount())]
+
+        for i in range(models_list.GetItemCount()):
+            item_data = [[] for k in range(models_list.GetColumnCount())]
+            for j in range(models_list.GetColumnCount()):
+                item = models_list.GetItem(i, j)
+                data = item.GetText()
+                item_data[j] = data
+
+            model_data[i] = item_data
 
         if self.topsizer.IsShown(self.ambi_sizer):
             ambi_cats = wx.FindWindowById(self.ids['ambiCats']).GetValue()
@@ -7091,13 +7091,13 @@ class DenssResultsPanel(wx.Panel):
         mode = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['mode']).GetStringSelection()
         tot_recons = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['runs']).GetValue()
         electrons = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['electrons']).GetValue()
-        eman2 = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['average']).IsChecked()
+        average = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['average']).IsChecked()
 
         setup_data = [('Input file:', input_file), ('Output prefix:', output_prefix),
                     ('Output directory:', output_directory), ('Mode:', mode),
                     ('Total number of reconstructions:', tot_recons),
                     ('Number of electrons in molecule:', electrons),
-                    ('Used EMAN2:', eman2),
+                    ('Averaged:', average),
                     ]
 
         name = output_prefix
@@ -7116,7 +7116,8 @@ class DenssResultsPanel(wx.Panel):
         RAWGlobals.save_in_progress = True
         self.main_frame.setStatus('Saving DENSS data', 0)
 
-        SASFileIO.saveDenssData(save_path, ambi_data, res_data, model_data, setup_data)
+        SASFileIO.saveDenssData(save_path, ambi_data, res_data, model_plots,
+            setup_data, rsc_data, model_data)
 
         RAWGlobals.save_in_progress = False
         self.main_frame.setStatus('', 0)
@@ -7298,7 +7299,7 @@ class DenssPlotPanel(wx.Panel):
 
 
         canvas.SetBackgroundColour('white')
-        fig.subplots_adjust(left = 0.2, bottom = 0.1, right = 0.95, top = 0.95)
+        fig.subplots_adjust(left = 0.2, bottom = 0.15, right = 0.95, top = 0.95)
         fig.set_facecolor('white')
 
         canvas.draw()
@@ -7334,7 +7335,7 @@ class DenssPlotPanel(wx.Panel):
         ax2.tick_params(labelsize='x-small')
 
         canvas.SetBackgroundColour('white')
-        fig.subplots_adjust(left = 0.2, bottom = 0.1, right = 0.95, top = 0.95)
+        fig.subplots_adjust(left = 0.2, bottom = 0.15, right = 0.95, top = 0.95)
         fig.set_facecolor('white')
 
         canvas.draw()
@@ -7343,11 +7344,12 @@ class DenssPlotPanel(wx.Panel):
 
 class DenssAveragePlotPanel(wx.Panel):
 
-    def __init__(self, parent, settings):
+    def __init__(self, parent, settings, average_results):
 
         wx.Panel.__init__(self, parent, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
         self.denss_settings = settings
+        self.avg_results = average_results
 
         self.figures = []
 
@@ -7364,8 +7366,8 @@ class DenssAveragePlotPanel(wx.Panel):
 
         self.figures.append(fig)
 
-        fsc_filename = os.path.join(os.path.join(self.denss_settings['path'], self.denss_settings['prefix']+'_aver_01'), 'fsc_0.txt')
-        res, fsc = np.loadtxt(fsc_filename, unpack=True)
+        res = self.avg_results['fsc'][:, 0]
+        fsc = self.avg_results['fsc'][:, 1]
 
         ax0 = fig.add_subplot(111)
         ax0.plot(res, fsc, 'bo-')
@@ -7420,7 +7422,7 @@ class BIFTFrame(wx.Frame):
         self.CenterOnParent()
         self.Raise()
 
-        wx.FutureCall(50, self.initBIFT)
+        wx.CallLater(50, self.initBIFT)
 
     def initBIFT(self):
         self.controlPanel.runBIFT()
@@ -7541,8 +7543,8 @@ class BIFTPlotPanel(wx.Panel):
 
             self.zero_line = a.axhline(color = 'k', animated = True)
 
-            self.data_line, = b.plot(self.q, self.i, 'b.', animated = True)
-            self.gnom_line, = b.plot(qexp, jreg, 'r', animated = True)
+            self.data_line, = b.semilogy(self.q, self.i, 'b.', animated = True)
+            self.gnom_line, = b.semilogy(qexp, jreg, 'r', animated = True)
 
             #self.lim_back_line, = a.plot([x_lim_back, x_lim_back], [y_lim_back-0.2, y_lim_back+0.2], transform=a.transAxes, animated = True)
 
@@ -7722,7 +7724,7 @@ class BIFTControlPanel(wx.Panel):
         alphaSizer.Add(self.alphaWindow, 0, wx.RIGHT, 5)
 
 
-        sizer = wx.FlexGridSizer(rows = 3, cols = 3)
+        sizer = wx.FlexGridSizer(rows=3, cols=3, hgap=0, vgap=0)
 
         sizer.Add((0,0))
 
@@ -8359,7 +8361,7 @@ class AmbimeterFrame(wx.Frame):
         if show:
             self.bi = wx.BusyInfo('Running AMBIMETER, pleae wait.', self)
         else:
-            self.bi.Destroy()
+            del self.bi
             self.bi = None
 
 
@@ -10421,7 +10423,7 @@ class EFAControlPanel2(wx.Panel):
         else:
             self._findEFAPoints()
 
-        self.busy_dialog.Destroy()
+        del self.busy_dialog
         self.busy_dialog = None
 
         plotpanel = wx.FindWindowByName('EFAResultsPlotPanel2')

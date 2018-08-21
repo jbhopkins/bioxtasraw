@@ -138,12 +138,20 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         showtop_icon = RAWIcons.showtop.GetBitmap()
         showbottom_icon = RAWIcons.showbottom.GetBitmap()
 
-        self.AddSeparator()
-        self.AddCheckTool(self._MTB_ERRBARS, errbars_icon, shortHelp='Show Errorbars')
-        self.AddSeparator()
-        self.AddCheckTool(self._MTB_SHOWBOTH, showboth_icon, shortHelp='Show Both Plots')
-        self.AddCheckTool(self._MTB_SHOWTOP, showtop_icon,  shortHelp='Show Top Plot')
-        self.AddCheckTool(self._MTB_SHOWBOTTOM, showbottom_icon, shortHelp='Show Bottom Plot')
+        if wx.version().split()[0].strip()[0] == '4':
+            self.AddSeparator()
+            self.AddCheckTool(self._MTB_ERRBARS, '', errbars_icon, shortHelp='Show Errorbars')
+            self.AddSeparator()
+            self.AddCheckTool(self._MTB_SHOWBOTH, '', showboth_icon, shortHelp='Show Both Plots')
+            self.AddCheckTool(self._MTB_SHOWTOP, '', showtop_icon,  shortHelp='Show Top Plot')
+            self.AddCheckTool(self._MTB_SHOWBOTTOM, '', showbottom_icon, shortHelp='Show Bottom Plot')
+        else:
+            self.AddSeparator()
+            self.AddCheckTool(self._MTB_ERRBARS, errbars_icon, shortHelp='Show Errorbars')
+            self.AddSeparator()
+            self.AddCheckTool(self._MTB_SHOWBOTH, showboth_icon, shortHelp='Show Both Plots')
+            self.AddCheckTool(self._MTB_SHOWTOP, showtop_icon,  shortHelp='Show Top Plot')
+            self.AddCheckTool(self._MTB_SHOWBOTTOM, showbottom_icon, shortHelp='Show Bottom Plot')
 
         self.Bind(wx.EVT_TOOL, self.errbars, id = self._MTB_ERRBARS)
         self.Bind(wx.EVT_TOOL, self.showboth, id = self._MTB_SHOWBOTH)
@@ -224,6 +232,9 @@ class PlotPanel(wx.Panel):
     def __init__(self, parent, id, name, *args, **kwargs):
 
         wx.Panel.__init__(self, parent, id, *args, name = name, **kwargs)
+
+        file_drop_target = RAWCustomCtrl.RawPlotFileDropTarget(self, 'main')
+        self.SetDropTarget(file_drop_target)
 
         self._initFigure()
 
@@ -1205,6 +1216,9 @@ class IftPlotPanel(PlotPanel):
     def __init__(self, parent, id, name, *args, **kwargs):
 
         wx.Panel.__init__(self, parent, id, *args, name = name, **kwargs)
+
+        file_drop_target = RAWCustomCtrl.RawPlotFileDropTarget(self, 'ift')
+        self.SetDropTarget(file_drop_target)
 
         self._initFigure()
 
@@ -2551,7 +2565,7 @@ class FigureSaveDialog(wx.Dialog):
 
         dlg = wx.FileDialog(self.parent, "Save to file", "", default_file,
                             wildcard = filters,
-                            style = wx.SAVE | wx.OVERWRITE_PROMPT)
+                            style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
 
         if dlg.ShowModal() == wx.ID_OK:
             dirname  = dlg.GetDirectory()
@@ -2613,6 +2627,9 @@ class SECPlotPanel(wx.Panel):
     def __init__(self, parent, id, name, *args, **kwargs):
 
         wx.Panel.__init__(self, parent, id, *args, name = name, **kwargs)
+
+        file_drop_target = RAWCustomCtrl.RawPlotFileDropTarget(self, 'sec')
+        self.SetDropTarget(file_drop_target)
 
         #Find the plot font, which is strangely hard!
         font_list = fm.get_fontconfig_fonts()

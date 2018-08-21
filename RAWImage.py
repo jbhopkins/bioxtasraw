@@ -23,19 +23,22 @@ Created on Aug 16, 2010
 
 '''
 
-import matplotlib
-import wx
 import os
 import platform
 import time
-import numpy as np
+
+import matplotlib
 matplotlib.rcParams['backend'] = 'WxAgg'
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
+import wx
+import numpy as np
+
 import RAWIcons
 import RAWGlobals
 import SASImage
 import SASCalib
+import RAWCustomCtrl
 
 class ImagePanelToolbar(NavigationToolbar2WxAgg):
     ''' The toolbar under the image in the image panel '''
@@ -61,19 +64,24 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
         hdrInfoIcon   = RAWIcons.hdr.GetBitmap()
         ImgSetIcon    = RAWIcons.imgctrl.GetBitmap()
 
-        prevImgIcon = wx.ArtProvider_GetBitmap(wx.ART_GO_BACK,wx.ART_TOOLBAR,(32,32))
-        nextImgIcon = wx.ArtProvider_GetBitmap(wx.ART_GO_FORWARD,wx.ART_TOOLBAR,(32,32))
+        prevImgIcon = wx.ArtProvider.GetBitmap(wx.ART_GO_BACK,wx.ART_TOOLBAR,(32,32))
+        nextImgIcon = wx.ArtProvider.GetBitmap(wx.ART_GO_FORWARD,wx.ART_TOOLBAR,(32,32))
 
 
-        self.AddSeparator()
-
-        self.AddSimpleTool(self._MTB_HDRINFO, hdrInfoIcon, 'Show Header Information')
-        self.AddSimpleTool(self._MTB_IMGSET, ImgSetIcon, 'Image Display Settings')
-
-        self.AddSeparator()
-
-        self.AddSimpleTool(self._MTB_PREVIMG, prevImgIcon, 'Previous Image')
-        self.AddSimpleTool(self._MTB_NEXTIMG, nextImgIcon, 'Next Image')
+        if wx.version().split()[0].strip()[0] == '4':
+            self.AddSeparator()
+            self.AddTool(self._MTB_HDRINFO, '', hdrInfoIcon, shortHelp='Show Header Information')
+            self.AddTool(self._MTB_IMGSET, '', ImgSetIcon, shortHelp='Image Display Settings')
+            self.AddSeparator()
+            self.AddTool(self._MTB_PREVIMG, '', prevImgIcon, shortHelp='Previous Image')
+            self.AddTool(self._MTB_NEXTIMG, '', nextImgIcon, shortHelp='Next Image')
+        else:
+            self.AddSeparator()
+            self.AddSimpleTool(self._MTB_HDRINFO, hdrInfoIcon, 'Show Header Information')
+            self.AddSimpleTool(self._MTB_IMGSET, ImgSetIcon, 'Image Display Settings')
+            self.AddSeparator()
+            self.AddSimpleTool(self._MTB_PREVIMG, prevImgIcon, 'Previous Image')
+            self.AddSimpleTool(self._MTB_NEXTIMG, nextImgIcon, 'Next Image')
 
 
         self.Bind(wx.EVT_TOOL, self.onHeaderInfoButton, id = self._MTB_HDRINFO)
@@ -193,6 +201,9 @@ class ImagePanel(wx.Panel):
     def __init__(self, parent, panel_id, name, *args, **kwargs):
 
         wx.Panel.__init__(self, parent, panel_id, *args, name = name, **kwargs)
+
+        file_drop_target = RAWCustomCtrl.RawPlotFileDropTarget(self, 'image')
+        self.SetDropTarget(file_drop_target)
 
         self.fig = matplotlib.figure.Figure((5,4), 75)
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
@@ -349,6 +360,10 @@ class ImagePanel(wx.Panel):
     def showNewImage(self, img):
         self.img = np.flipud(img)
 
+        a = self.fig.gca()
+        xlims = a.get_xlim()
+        ylims = a.get_ylim()
+
         self.fig.clear() #Important! or a memory leak will occur!
 
         a = self.fig.gca()
@@ -400,8 +415,12 @@ class ImagePanel(wx.Panel):
 
         #Update figure:
         self.fig.gca().set_visible(True)
-        a.set_xlim(0, img_xdim)
-        a.set_ylim(0, img_ydim)
+        if xlims[0] == 0 and xlims[1] == 1:     #Assume this means no previously loaded image
+            a.set_xlim(0, img_xdim)
+            a.set_ylim(0, img_ydim)
+        else:
+            a.set_xlim(xlims[0], xlims[1])
+            a.set_ylim(ylims[0], ylims[1])
         self.canvas.draw()
 
     def showImageSetDialog(self):
@@ -1393,12 +1412,12 @@ def createMaskFileDialog(mode):
 
         file = None
 
-        if mode == wx.OPEN:
+        if mode == wx.FD_OPEN:
             filters = 'Mask files (*.msk)|*.msk|All files (*.*)|*.*'
             dialog = wx.FileDialog( None, style = mode, wildcard = filters)
-        if mode == wx.SAVE:
+        if mode == wx.FD_SAVE:
             filters = 'Mask files (*.msk)|*.msk'
-            dialog = wx.FileDialog( None, style = mode | wx.OVERWRITE_PROMPT, wildcard = filters)
+            dialog = wx.FileDialog( None, style = mode | wx.FD_OVERWRITE_PROMPT, wildcard = filters)
 
         # Show the dialog and get user input
         if dialog.ShowModal() == wx.ID_OK:
@@ -1411,7 +1430,7 @@ def createMaskFileDialog(mode):
 
 def loadMask(img_dim):
 
-        file = createMaskFileDialog(wx.OPEN)
+        file = createMaskFileDialog(wx.FD_OPEN)
 
         if file:
             answer = wx.MessageBox('Do you want set this mask as the current "Beam Stop" mask?', 'Use as beamstop mask?', wx.YES_NO | wx.ICON_QUESTION)
@@ -1438,7 +1457,7 @@ def saveMask():
 
         if masks != []:
 
-            file = createMaskFileDialog(wx.SAVE)
+            file = createMaskFileDialog(wx.FD_SAVE)
 
             if file:
                 main_frame = wx.FindWindowByName('MainFrame')
@@ -1521,7 +1540,10 @@ class ImageSettingsDialog(wx.Dialog):
         try:
             file_list_ctrl = wx.FindWindowByName('FilePanel')
             pos = file_list_ctrl.GetScreenPosition()
-            self.MoveXY(pos[0], pos[1])
+            if wx.version().split()[0].strip()[0] == '4':
+                self.Move(pos[0], pos[1])
+            else:
+                self.MoveXY(pos[0], pos[1])
         except:
             pass
 

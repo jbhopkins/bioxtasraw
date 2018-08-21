@@ -16,14 +16,23 @@
 #
 #******************************************************************************
 
-import wx
 import math
 import platform
 import logging
+
+import wx
+if wx.version().split()[0].strip()[0] == '4':
+    control_super = wx.Control
+else:
+    control_super = wx.PyControl
+
 import RAWIcons
+import RAWGlobals
 # import time
 
-class ColourIndicator(wx.PyControl):
+
+
+class ColourIndicator(control_super):
     """
     A custom class that shows the colour of the line plot.
     """
@@ -32,7 +41,7 @@ class ColourIndicator(wx.PyControl):
                  size=wx.DefaultSize, style=wx.NO_BORDER, validator=wx.DefaultValidator,
                  name="ColourIndicator"):
 
-        wx.PyControl.__init__(self, parent, id, pos, size, style, validator, name)
+        control_super.__init__(self, parent, id, pos, size, style, validator, name)
 
         self.parent = parent
 
@@ -161,20 +170,24 @@ class ColourIndicator(wx.PyControl):
 
 #----------------------------------------------------------------------
 def GetCheckedBitmap():
-    return wx.BitmapFromImage(GetCheckedImage())
+    if wx.version().split()[0].strip()[0] == '4':
+        return wx.Bitmap(GetCheckedImage())
+    else:
+        return wx.BitmapFromImage(GetCheckedImage())
 
 def GetCheckedImage():
-
     image = RAWIcons.checked.GetImage()
     return image
 
 #----------------------------------------------------------------------
 
 def GetNotCheckedBitmap():
-    return wx.BitmapFromImage(GetNotCheckedImage())
+    if wx.version().split()[0].strip()[0] == '4':
+        return wx.Bitmap(GetNotCheckedImage())
+    else:
+        return wx.BitmapFromImage(GetNotCheckedImage())
 
 def GetNotCheckedImage():
-
     image = RAWIcons.notchecked.GetImage()
     return image
 
@@ -193,7 +206,10 @@ def GrayOut(anImage):
     else:
         maskColor = None
 
-    data = map(ord, list(anImage.GetData()))
+    if wx.version().split()[0].strip()[0] == '4':
+        data = list(anImage.GetData())
+    else:
+        data = map(ord, list(anImage.GetData()))
 
     for i in range(0, len(data), 3):
 
@@ -220,7 +236,7 @@ def MakeGray((r,g,b), factor, maskColor):
         return (r,g,b)
 
 
-class CustomCheckBox(wx.PyControl):
+class CustomCheckBox(control_super):
     """
     A custom class that replicates some of the functionalities of wx.CheckBox,
     while being completely owner-drawn with a nice check bitmaps.
@@ -250,7 +266,7 @@ class CustomCheckBox(wx.PyControl):
         # to be overridden in Python derived class. For CustomCheckBox, we
         # basically need to override DoGetBestSize and AcceptsFocusFromKeyboard
 
-        wx.PyControl.__init__(self, parent, id, pos, size, style, validator, name)
+        control_super.__init__(self, parent, id, pos, size, style, validator, name)
 
         # Initialize our cool bitmaps
         self.InitializeBitmaps()
@@ -350,7 +366,7 @@ class CustomCheckBox(wx.PyControl):
         exactly fit the label plus the bitmap.
         """
 
-        wx.PyControl.SetLabel(self, label)
+        control_super.SetLabel(self, label)
 
         # The text label has changed, so we must recalculate our best size
         # and refresh ourselves.
@@ -364,7 +380,7 @@ class CustomCheckBox(wx.PyControl):
         exactly fit the label plus the bitmap.
         """
 
-        wx.PyControl.SetFont(self, font)
+        control_super.SetFont(self, font)
 
         # The font for text label has changed, so we must recalculate our best
         # size and refresh ourselves.
@@ -445,7 +461,7 @@ class CustomCheckBox(wx.PyControl):
     def SetForegroundColour(self, colour):
         """ Overridden base class virtual. """
 
-        wx.PyControl.SetForegroundColour(self, colour)
+        control_super.SetForegroundColour(self, colour)
 
         # We have to re-initialize the focus indicator per colour as it should
         # always be the same as the foreground colour
@@ -456,7 +472,7 @@ class CustomCheckBox(wx.PyControl):
     def SetBackgroundColour(self, colour):
         """ Overridden base class virtual. """
 
-        wx.PyControl.SetBackgroundColour(self, colour)
+        control_super.SetBackgroundColour(self, colour)
 
         # We have to refresh ourselves
         self.Refresh()
@@ -465,7 +481,7 @@ class CustomCheckBox(wx.PyControl):
     def Enable(self, enable=True):
         """ Enables/Disables CustomCheckBox. """
 
-        wx.PyControl.Enable(self, enable)
+        control_super.Enable(self, enable)
 
         # We have to refresh ourselves, as our state changed
         self.Refresh()
@@ -1082,10 +1098,9 @@ class DraggableLegend:
             self.gotLegend = False
 
 
-
 class CustomConsoleHandler(logging.Handler):
-    """Sends logger output to a wxpython TextCtrl
-    Original code from:
+    """Sends logger output to a queue
+    Based on code from:
     https://www.blog.pythonlibrary.org/2013/08/09/wxpython-how-to-redirect-pythons-logging-module-to-a-textctrl/
     """
 
@@ -1101,3 +1116,78 @@ class CustomConsoleHandler(logging.Handler):
         msg = self.format(record)
         self.queue.put_nowait(msg + "\n")
         self.flush()
+
+
+class RawPanelFileDropTarget(wx.FileDropTarget):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self, window, style):
+        """Constructor"""
+        wx.FileDropTarget.__init__(self)
+        self.window = window
+        self.style = style
+
+    #----------------------------------------------------------------------
+    def OnDropFiles(self, x, y, filenames):
+        """
+        When files are dropped, write where they were dropped and then
+        the file paths themselves
+        """
+        print filenames
+        if self.style == 'main' or self.style == 'ift':
+            RAWGlobals.mainworker_cmd_queue.put(['plot', filenames])
+        elif self.style == 'sec':
+            frame_list = range(len(filenames))
+            RAWGlobals.mainworker_cmd_queue.put(['sec_plot', [filenames, frame_list]])
+
+        return True
+
+class RawPlotFileDropTarget(wx.FileDropTarget):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self, window, style):
+        """Constructor"""
+        wx.FileDropTarget.__init__(self)
+        self.window = window
+        self.style = style
+
+    #----------------------------------------------------------------------
+    def OnDropFiles(self, x, y, filenames):
+        """
+        When files are dropped, write where they were dropped and then
+        the file paths themselves
+        """
+        print filenames
+        print y
+        if self.style == 'main':
+            if self.window.subplot1.get_visible() and self.window.subplot2.get_visible():
+                #both plots shown
+                x1, y1 = self.window.fig.transFigure.transform((0,0))
+                x2, y2 = self.window.fig.transFigure.transform((1,1))
+                print y1
+                print y2
+
+                if y < (y2-y1)/2.:
+                    RAWGlobals.mainworker_cmd_queue.put(['plot_specific', [filenames, 1]])
+                elif y > (y2-y1)/2.:
+                    RAWGlobals.mainworker_cmd_queue.put(['plot_specific', [filenames, 2]])
+                else:
+                    RAWGlobals.mainworker_cmd_queue.put(['plot_specific', [filenames, 1]])
+
+            elif self.window.subplot1.get_visible() and not self.window.subplot2.get_visible():
+                #only plot one shown
+                RAWGlobals.mainworker_cmd_queue.put(['plot_specific', [filenames, 1]])
+            elif not self.window.subplot1.get_visible() and self.window.subplot2.get_visible():
+                #only plot two shown
+                RAWGlobals.mainworker_cmd_queue.put(['plot_specific', [filenames, 2]])
+        elif self.style == 'ift':
+            RAWGlobals.mainworker_cmd_queue.put(['plot', filenames])
+        elif self.style == 'sec':
+            frame_list = range(len(filenames))
+            RAWGlobals.mainworker_cmd_queue.put(['sec_plot', [filenames, frame_list]])
+        elif self.style == 'image':
+            RAWGlobals.mainworker_cmd_queue.put(['show_image', [filenames[0], 0]])
+
+        return True

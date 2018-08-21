@@ -21,7 +21,6 @@ Created on Jul 16, 2010
 #
 #******************************************************************************
 '''
-import cPickle
 import copy
 import os
 
@@ -31,6 +30,7 @@ import numpy as np
 import RAWGlobals
 import SASFileIO
 import SASM
+import SASImage
 
 class RawGuiSettings:
     '''
@@ -46,6 +46,7 @@ class RawGuiSettings:
 
         if settings == None:
             self._params = {
+                            'RequiredVersion'       : ['1.5.0', wx.NewId(), 'text'],
 							'NormFlatfieldEnabled'	: [False,   wx.NewId(),  'bool'],
 
                             'NormAbsWater'      	: [False,   wx.NewId(),  'bool'],
@@ -69,12 +70,8 @@ class RawGuiSettings:
                             'NormAbsCarbonConst'        : [1.0, wx.NewId(), 'float'],
                             'NormAbsCarbonSamEmptySASM' : [None],
 
-
-                            'NormalizeTrans'    : [False, wx.NewId(),  'bool'],
-                            'Calibrate'         : [False, wx.NewId(),  'bool'],  # Calibrate AgBe
                             'CalibrateMan'      : [True, wx.NewId(),  'bool'],  # Calibrate manual (wavelength / distance)
                             'AutoBgSubtract'    : [False, wx.NewId(),  'bool'],
-                            'CountNormalize'    : [1.0,   wx.NewId(), 'float'],
 
                             'AutoBIFT'          : [False, wx.NewId(), 'bool'],
                             'AutoAvg'           : [False, wx.NewId(), 'bool'],
@@ -98,24 +95,15 @@ class RawGuiSettings:
                             'Binsize'    : [1,     wx.NewId(), 'int'],
                             'Xcenter'    : [512.0, wx.NewId(), 'float'],
                             'Ycenter'    : [512.0, wx.NewId(), 'float'],
-                            'QrangeLow'  : [25,    wx.NewId(), 'int'],
-                            'QrangeHigh' : [9999,  wx.NewId(), 'int'],
                             'StartPoint' : [0,     wx.NewId(), 'int'],
                             'EndPoint'   : [0,     wx.NewId(), 'int'],
                             'ImageDim'   : [[1024,1024]],
 
                             #MASKING
-                            'SampleFile'              : [None, wx.NewId(), 'text'],
                             'BackgroundSASM'          : [None, wx.NewId(), 'text'],
 
                             'DataSECM'                : [None, wx.NewId(), 'text'],
 
-                            'TransparentBSMask'       : [None],
-                            'TransparentBSMaskParams' : [None],
-                            'BeamStopMask'            : [None],
-                            'BeamStopMaskParams'      : [None],
-                            'ReadOutNoiseMask'        : [None],
-                            'ReadOutNoiseMaskParams'  : [None],
                                                                                 #mask, mask_patches
                             'Masks'                   : [{'BeamStopMask'     : [None, None],
                                                           'ReadOutNoiseMask' : [None, None],
@@ -127,12 +115,7 @@ class RawGuiSettings:
                             #Q-CALIBRATION
                             'WaveLength'          : [1.0,  wx.NewId(), 'float'],
                             'SampleDistance'      : [1000, wx.NewId(), 'float'],
-                            'ReferenceQ'          : [0.0, wx.NewId(), 'float'],
-                            'ReferenceDistPixel'  : [0,   wx.NewId(), 'int'],
-                            'ReferenceDistMm'     : [0.0, wx.NewId(), 'float'],
                             'DetectorPixelSize'   : [70.5, wx.NewId(), 'float'],
-                            'SmpDetectOffsetDist' : [0.0, wx.NewId(), 'float'],
-
 
 							#SANS Parameters
 							'SampleThickness'		: [0.1,  wx.NewId(), 'float'],
@@ -256,8 +239,6 @@ class RawGuiSettings:
                             #GUI Settings:
                             'csvIncludeData'      : [None],
                             'ManipItemCollapsed'  : [False, wx.NewId(), 'bool'] ,
-                            'CurrentFilePath'     : [None],
-
 
                             'DatHeaderOnTop'      : [False, wx.NewId(), 'bool'],
                             'PromptConfigLoad'    : [True, wx.NewId(), 'bool'],
@@ -363,15 +344,12 @@ class RawGuiSettings:
                             'denssConnectivitySteps'    : ['[7500]', wx.NewId(), 'text'],
                             'denssChiEndFrac'       : [0.001, wx.NewId(), 'float'],
                             'denssPlotOutput'       : [True, wx.NewId(), 'bool'],
-                            'denssEman2Average'     : [True, wx.NewId(), 'bool'],
+                            'denssAverage'          : [True, wx.NewId(), 'bool'],
                             'denssReconstruct'      : [20, wx.NewId(), 'int'],
-                            'EMAN2Dir'              : ['', wx.NewId(), 'text'],
-                            'autoFindEMAN2'         : [True, wx.NewId(), 'bool'],
                             'denssCutOut'           : [False, wx.NewId(), 'bool'],
                             'denssWriteXplor'       : [True, wx.NewId(), 'bool'],
                             'denssMode'             : ['Slow', wx.NewId(), 'choice'],
                             'denssRecenterMode'     : ['com', wx.NewId(), 'choice'],
-                            'denssEnantiomer'       : [True, wx.NewId(), 'bool'],
                             'denssMinDensity'       : ['None', wx.NewId(), 'text'],
                             'denssMaxDensity'       : ['None', wx.NewId(), 'text'],
 
@@ -408,14 +386,19 @@ def fixBackwardsCompatibility(raw_settings):
 
 def loadSettings(raw_settings, loadpath):
 
-    file_obj = open(loadpath, 'rb')
-    try:
-        loaded_param = cPickle.load(file_obj)
-    except (KeyError, EOFError, ImportError, IndexError, AttributeError, cPickle.UnpicklingError) as e:
-        print 'Error type: %s, error: %s' %(type(e).__name__, e)
-        file_obj.close()
+    # file_obj = open(loadpath, 'rb')
+    # try:
+    #     loaded_param = cPickle.load(file_obj)
+    # except (KeyError, EOFError, ImportError, IndexError, AttributeError, cPickle.UnpicklingError) as e:
+    #     print 'Error type: %s, error: %s' %(type(e).__name__, e)
+    #     file_obj.close()
+    #     return False
+    # file_obj.close()
+
+    loaded_param = SASFileIO.readSettings(loadpath)
+
+    if loaded_param is None:
         return False
-    file_obj.close()
 
     keys = loaded_param.keys()
     all_params = raw_settings.getAllParams()
@@ -426,21 +409,74 @@ def loadSettings(raw_settings, loadpath):
         else:
             print 'WARNING: ' + str(each_key) + " not found in RAWSettings."
 
-    default_settings =RawGuiSettings().getAllParams()
+    default_settings = RawGuiSettings().getAllParams()
 
     for key in default_settings.keys():
         if key not in loaded_param:
-            all_params[key]=default_settings[key]
+            all_params[key] = default_settings[key]
+
+    postProcess(raw_settings)
 
     main_frame = wx.FindWindowByName('MainFrame')
     main_frame.queueTaskInWorkerThread('recreate_all_masks', None)
 
-    postProcess(raw_settings)
+    if 'RequiredVersion' in all_params:
+        rv = raw_settings.get('RequiredVersion')
+
+        rv_maj, rv_min, rv_pt = map(int, rv.split('.'))
+
+        v_maj, v_min, v_pt = map(int, RAWGlobals.version.split('.'))
+
+        update = False
+
+        if rv_maj > v_maj:
+            update = True
+        else:
+            if rv_min > v_min:
+                update = True
+            else:
+                if rv_pt > v_pt:
+                    update = True
+
+        if update:
+            msg = ('Some settings in this configuration file require '
+                'a newer version of RAW: version %s (you are using version %s). '
+                'Please update RAW now. If you use these settings with an older '
+                'version of RAW, certain functions, including radial averaging of images, '
+                'may not work correctly. You can find the newest version of RAW at '
+                'http://bioxtas-raw.rftm.io/' %(rv, RAWGlobals.version))
+
+            wx.CallAfter(wx.MessageBox, msg, 'Warning: incompatible version of RAW',
+                style = wx.ICON_ERROR | wx.OK)
 
     return True
 
 def postProcess(raw_settings):
     fixBackwardsCompatibility(raw_settings)
+
+    masks = copy.copy(raw_settings.get('Masks'))
+
+    for mask_type in masks.keys():
+        mask_list = masks[mask_type][1]
+        if mask_list is not None:
+            img_dim = raw_settings.get('MaskDimension')
+
+            for i, mask in enumerate(mask_list):
+                if isinstance(mask, dict):
+                    if mask['type'] == 'circle':
+                        mask = SASImage.CircleMask(mask['center_point'],
+                            mask['radius_point'], i, img_dim, mask['negative'])
+                    elif mask['type'] == 'rectangle':
+                        mask = SASImage.RectangleMask(mask['first_point'],
+                            mask['second_point'], i, img_dim, mask['negative'])
+                    elif mask['type'] == 'polygon':
+                        mask = SASImage.PolygonMask(mask['vertices'], i, img_dim,
+                            mask['negative'])
+                mask_list[i] = mask
+
+            masks[mask_type][1] = mask_list
+
+    raw_settings.set('Masks', masks)
 
     dir_check_list = [('AutoSaveOnImageFiles', 'ProcessedFilePath'), ('AutoSaveOnAvgFiles', 'AveragedFilePath'),
                     ('AutoSaveOnSub', 'SubtractedFilePath'), ('AutoSaveOnBift', 'BiftFilePath'),
@@ -517,27 +553,25 @@ def saveSettings(raw_settings, savepath):
 
     for key in masks.keys():
         masks[key][0] = None
+        if masks[key][1] is not None:
+            masks[key][1] = [mask.getSaveFormat() for mask in masks[key][1]]
 
-    with open(savepath, 'wb') as file_obj:
-        try:
-            cPickle.dump(save_dict, file_obj, cPickle.HIGHEST_PROTOCOL)
-        except Exception as e:
-            print '<Error> type: %s, message: %s' %(type(e).__name__, e)
-            RAWGlobals.save_in_progress = False
-            wx.CallAfter(main_frame.setStatus, '', 0)
-            return False
+    success = SASFileIO.writeSettings(savepath, save_dict)
+
+    if not success:
+        RAWGlobals.save_in_progress = False
+        wx.CallAfter(main_frame.setStatus, '', 0)
+        return False
 
     ## Make a backup of the config file in case of crash:
     backup_file = os.path.join(RAWGlobals.RAWWorkDir, 'backup.cfg')
 
-    with open(backup_file, 'wb') as FileObj:
-        try:
-            cPickle.dump(save_dict, FileObj, cPickle.HIGHEST_PROTOCOL)
-        except Exception as e:
-            print 'Error type: %s, error: %s' %(type(e).__name__, e)
-            RAWGlobals.save_in_progress = False
-            wx.CallAfter(main_frame.setStatus, '', 0)
-            return False
+    success = SASFileIO.writeSettings(backup_file, save_dict)
+
+    if not success:
+        RAWGlobals.save_in_progress = False
+        wx.CallAfter(main_frame.setStatus, '', 0)
+        return False
 
     dummy_settings = RawGuiSettings()
 

@@ -1247,6 +1247,8 @@ def loadOutFile(filename):
     p_i0_fit = re.compile('\s*Real\s+space\s*\:?[A-Za-z0-9\s\.,+-=]*\(0\)\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*\+-\s*\d*[.]\d+[+eE-]*\d*')
     q_i0_fit = re.compile('\s*Reciprocal\s+space\s*\:?[A-Za-z0-9\s\.,+-=]*\(0\)\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*')
 
+    alpha_fit = re.compile('\s*Current\s+ALPHA\s*\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*')
+
     qfull = []
     qshort = []
     Jexp = []
@@ -1276,6 +1278,7 @@ def loadOutFile(filename):
             q_rg_match = q_rg_fit.match(line)
             p_i0_match = p_i0_fit.match(line)
             q_i0_match = q_i0_fit.match(line)
+            alpha_match = alpha_fit.match(line)
 
             outfile.append(line)
 
@@ -1351,6 +1354,9 @@ def loadOutFile(filename):
                 found = q_i0_match.group().split()
                 q_i0 = float(found[-1])
 
+            if alpha_match:
+                found = alpha_match.group().split()
+                alpha = float(found[-1])
 
     # Output variables not in the results file:
     #             'r'         : R,            #R, note R[-1] == Dmax
@@ -1386,7 +1392,8 @@ def loadOutFile(filename):
                 'smooth'    : Actual_SMOOTH,#Smoothness of the chosen interval? -1 indicates no real value, for versions of GNOM < 5.0 (ATSAS <2.8)
                 'filename'  : name,         #GNOM filename
                 'algorithm' : 'GNOM',       #Lets us know what algorithm was used to find the IFT
-                'chisq'     : chisq         #Actual chi squared value
+                'chisq'     : chisq,        #Actual chi squared value
+                'alpha'     : alpha,        #Alpha used for the IFT
                     }
 
     iftm = SASM.IFTM(P, R, Perr, Jexp, qshort, Jerr, Jreg, results, Ireg, qfull)
@@ -2839,7 +2846,8 @@ def saveDammixData(filename, ambi_data, nsd_data, res_data, clust_num, clist_dat
         fsave.write(save_string)
 
 
-def saveDenssData(filename, ambi_data, res_data, model_data, setup_data):
+def saveDenssData(filename, ambi_data, res_data, model_plots, setup_data,
+    rsc_data, model_data):
 
     header_string = '# DENSS results summary\n'
     for item in setup_data:
@@ -2850,10 +2858,20 @@ def saveDenssData(filename, ambi_data, res_data, model_data, setup_data):
     for item in ambi_data:
         body_string = body_string + '# %s\n' %(' '.join(map(str, item)))
 
+    if len(rsc_data)>0:
+        body_string = '\n# RSC results\n'
+        for item in rsc_data:
+            body_string =  body_string + '# %s\n' %(' '.join(map(str, item)))
+
     if len(res_data) > 0:
         body_string = body_string + '\n# Reconstruction resolution (FSC) results\n'
         for item in res_data:
             body_string =  body_string + '# %s\n' %(' '.join(map(str, item)))
+
+    body_string = body_string + '\n# Individual model results\n'
+    body_string = body_string + 'Model,Chi^2,Rg,Support_Volume,Mean_RSC\n'
+    for item in model_data:
+        body_string =  body_string + '%s\n' %(','.join(map(str, item)))
 
     save_string = header_string + body_string
 
@@ -2862,16 +2880,18 @@ def saveDenssData(filename, ambi_data, res_data, model_data, setup_data):
 
     pdf = matplotlib.backends.backend_pdf.PdfPages(os.path.splitext(filename)[0]+'.pdf')
 
-    for data in model_data:
+    for data in model_plots:
         for fig in data[1]:
             fig.suptitle('Model: %s' %(data[0]))
+            fig.subplots_adjust(top=0.9)
             pdf.savefig(fig)
             fig.suptitle('')
+            fig.subplots_adjust(top=0.95)
 
     pdf.close()
 
 
-def saveDensityMrc(filename, rho,side):
+def saveDensityMrc(filename, rho, side):
     """Write an MRC formatted electron density map.
        See here: http://www2.mrc-lmb.cam.ac.uk/research/locally-developed-software/image-processing-software/#image
     """
@@ -2894,7 +2914,7 @@ def saveDensityMrc(filename, rho,side):
         fout.write(struct.pack('<iii', 1, 2, 3))
         # DMIN, DMAX, DMEAN
         fout.write(struct.pack('<fff', np.min(rho), np.max(rho), np.average(rho)))
-        # ISPG, NSYMBT, LSKFLG
+        # ISPG, NSYMBT, mlLSKFLG
         fout.write(struct.pack('<iii', 1, 0, 0))
         # EXTRA
         fout.write(struct.pack('<'+'f'*12, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0))
@@ -2962,6 +2982,31 @@ def loadWorkspace(load_path):
 
     return sasm_dict
 
+def writeSettings(filename, settings):
+    try:
+        with open(filename, 'w') as f:
+            f.write(json.dumps(settings, indent = 4, sort_keys = True, cls = MyEncoder))
+        return True
+    except Exception as e:
+        print e
+        return False
+
+def readSettings(filename):
+
+    try:
+        with open(filename, 'r') as f:
+            settings = f.read()
+        settings = dict(json.loads(settings))
+    except Exception as e:
+        print e
+        try:
+            with open(filename, 'rb') as f:
+                settings = cPickle.load(f)
+        except (KeyError, EOFError, ImportError, IndexError, AttributeError, cPickle.UnpicklingError) as e:
+            print 'Error type: %s, error: %s' %(type(e).__name__, e)
+            return None
+
+    return settings
 
 def writeHeader(d, f2, ignore_list = []):
     f2.write('### HEADER:\n\n')
@@ -2973,7 +3018,7 @@ def writeHeader(d, f2, ignore_list = []):
         if ignored_key in d.keys():
             del d[ignored_key]
 
-    f2.write(json.dumps(d,indent = 4, sort_keys = True, cls = MyEncoder))
+    f2.write(json.dumps(d, indent = 4, sort_keys = True, cls = MyEncoder))
 
     f2.write('\n\n')
 
@@ -3019,13 +3064,6 @@ def writeRadFile(m, filename, header_on_top = True, use_header = True):
         if header_on_top == False:
             f2.write('\n')
             writeHeader(d, f2)
-
-
-def printDict(d, each):
-
-    tmpline = each + ' '+ json.dumps(d[each], indent = 4, sort_keys=True)+'\n'
-
-    return tmpline
 
 def writeIftFile(m, filename, use_header = True):
     ''' Writes an ASCII file from an IFT measurement object created by BIFT'''

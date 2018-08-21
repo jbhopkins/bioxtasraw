@@ -74,6 +74,9 @@ class Mask():
     def getFillPoints(self):
         pass    # overridden when inherited
 
+    def getSaveFormat(self):
+        pass   # overridden when inherited
+
 class CircleMask(Mask):
     ''' Create a circular mask '''
 
@@ -150,6 +153,14 @@ class CircleMask(Mask):
 
         return fillPoints
 
+    def getSaveFormat(self):
+        save = {'type'          :   self._type,
+                'center_point'  :   self._points[0],
+                'radius_point'  :   self._points[1],
+                'negative'      :   self._is_negative_mask,
+                }
+        return save
+
 class RectangleMask(Mask):
     ''' create a retangular mask '''
 
@@ -224,6 +235,14 @@ class RectangleMask(Mask):
 
         return fillPoints
 
+    def getSaveFormat(self):
+        save = {'type'          :   self._type,
+                'first_point'   :   self._points[0],
+                'second_point'  :   self._points[1],
+                'negative'      :   self._is_negative_mask,
+                }
+        return save
+
 class PolygonMask(Mask):
     ''' create a polygon mask '''
 
@@ -254,6 +273,13 @@ class PolygonMask(Mask):
         coords = polymask.getCoords(p, (int(yDim), int(xDim)))
 
         return coords
+
+    def getSaveFormat(self):
+        save = {'type'      :   self._type,
+                'vertices'  :   self._points,
+                'negative'  :   self._is_negative_mask,
+                }
+        return save
 
 
 def calcExpression(expr, img_hdr, file_hdr):
