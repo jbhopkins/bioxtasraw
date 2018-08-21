@@ -360,6 +360,10 @@ class ImagePanel(wx.Panel):
     def showNewImage(self, img):
         self.img = np.flipud(img)
 
+        a = self.fig.gca()
+        xlims = a.get_xlim()
+        ylims = a.get_ylim()
+
         self.fig.clear() #Important! or a memory leak will occur!
 
         a = self.fig.gca()
@@ -411,8 +415,12 @@ class ImagePanel(wx.Panel):
 
         #Update figure:
         self.fig.gca().set_visible(True)
-        a.set_xlim(0, img_xdim)
-        a.set_ylim(0, img_ydim)
+        if xlims[0] == 0 and xlims[1] == 1:     #Assume this means no previously loaded image
+            a.set_xlim(0, img_xdim)
+            a.set_ylim(0, img_ydim)
+        else:
+            a.set_xlim(xlims[0], xlims[1])
+            a.set_ylim(ylims[0], ylims[1])
         self.canvas.draw()
 
     def showImageSetDialog(self):

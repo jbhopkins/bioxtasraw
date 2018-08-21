@@ -37,6 +37,8 @@ import shutil
 import glob
 import json
 import ast
+import traceback
+
 matplotlib.rcParams['backend'] = 'WxAgg'
 matplotlib.rc('image', origin = 'lower')        # turn image upside down.. x,y, starting from lower left
 
@@ -8575,8 +8577,11 @@ class SVDControlPanel(wx.Panel):
 
             if len(self.secm.subtracted_sasm_list)>0:
                 if not np.all(self.secm.use_subtracted_sasm):
-                    frame_start = max(np.where(self.secm.use_subtracted_sasm)[0][0], framei)
-                    frame_end = min(np.where(self.secm.use_subtracted_sasm)[0][-1], framef)
+                    frame_start = max(np.where(self.secm.use_subtracted_sasm)[0][0]-100, framei)
+                    frame_end = min(np.where(self.secm.use_subtracted_sasm)[0][-1]+100, framef)
+                else:
+                    frame_start = framei
+                    frame_end = framef
 
             else:
                 frame_start = framei
@@ -8770,31 +8775,35 @@ class SVDControlPanel(wx.Panel):
         else:
             secm = self.subtracted_secm
 
-        norm_data_window = wx.FindWindowById(self.control_ids['norm_data'], self)
-        norm_data = norm_data_window.GetValue()
-
         sasm_list = secm.getSASMList(framei, framef)
 
-        svd_a = np.array([sasm.i for sasm in sasm_list])
-        svd_a = svd_a.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose svd_a
+        i = np.array([sasm.i[sasm.getQrange()[0]:sasm.getQrange()[1]] for sasm in sasm_list])
+        err = np.array([sasm.err[sasm.getQrange()[0]:sasm.getQrange()[1]] for sasm in sasm_list])
 
-        if norm_data:
-            err = np.array([sasm.err for sasm in sasm_list])
-            err = err.T
+        self.i = i.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose
+        self.err = err.T
 
-            err_mean = np.mean(err, axis = 1)
-            if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
-                err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), err.shape)
-            else:
-                err_avg = np.array([err_mean for i in range(err.shape[1])]).T
+        err_mean = np.mean(self.err, axis = 1)
+        if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
+            self.err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), self.err.shape)
+        else:
+            self.err_avg = np.array([err_mean for k in range(self.i.shape[1])]).T
 
-            svd_a = svd_a/err_avg
+        self.svd_a = self.i/self.err_avg
 
+        if not np.all(np.isfinite(self.svd_a)):
+            wx.CallAfter(wx.MessageBox, 'Initial SVD matrix contained nans or infinities. SVD could not be carried out', 'SVD Failed', style = wx.ICON_ERROR | wx.OK)
+            return
 
-        self.svd_U, self.svd_s, svd_Vt = np.linalg.svd(svd_a, full_matrices = True)
+        try:
+            self.svd_U, self.svd_s, svd_Vt = np.linalg.svd(self.svd_a, full_matrices = True)
+        except Exception:
+            wx.CallAfter(wx.MessageBox, 'Initial SVD did not converge.', 'SVD Failed', style = wx.ICON_ERROR | wx.OK)
+            return
+
         self.svd_V = svd_Vt.T
-        self.svd_U_autocor = np.abs(np.array([np.correlate(self.svd_U[:,i], self.svd_U[:,i], mode = 'full')[-self.svd_U.shape[0]+1] for i in range(self.svd_U.shape[1])]))
-        self.svd_V_autocor = np.abs(np.array([np.correlate(self.svd_V[:,i], self.svd_V[:,i], mode = 'full')[-self.svd_V.shape[0]+1] for i in range(self.svd_V.shape[1])]))
+        self.svd_U_autocor = np.abs(np.array([np.correlate(self.svd_U[:,k], self.svd_U[:,k], mode = 'full')[-self.svd_U.shape[0]+1] for k in range(self.svd_U.shape[1])]))
+        self.svd_V_autocor = np.abs(np.array([np.correlate(self.svd_V[:,k], self.svd_V[:,k], mode = 'full')[-self.svd_V.shape[0]+1] for k in range(self.svd_V.shape[1])]))
 
         wx.CallAfter(self.updateSVDPlot)
 
@@ -9803,9 +9812,14 @@ class EFAControlPanel1(wx.Panel):
 
         self.svd_a = self.i/self.err_avg
 
+        if not np.all(np.isfinite(self.svd_a)):
+            wx.CallAfter(wx.MessageBox, 'Initial SVD matrix contained nans or infinities. SVD could not be carried out', 'SVD Failed', style = wx.ICON_ERROR | wx.OK)
+            return
+
         try:
             self.svd_U, self.svd_s, svd_Vt = np.linalg.svd(self.svd_a, full_matrices = True)
-        except:
+        except Exception as e:
+            traceback.print_exc()
             wx.CallAfter(wx.MessageBox, 'Initial SVD did not converge, so EFA cannot proceed.', 'SVD Failed', style = wx.ICON_ERROR | wx.OK)
             return
 
