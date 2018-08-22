@@ -28,9 +28,11 @@ OS X and macOS install from source instructions
     *   More detailed install instructions are available here:
         `https://conda.io/docs/user-guide/install/macos.html <https://conda.io/docs/user-guide/install/macos.html>`_
 
+    *   Close the terminal window.
+
 #.  Install  numpy scipy matplotlib pillow wxpython numba h5py lxml cython numexpr using conda.
 
-    *   Open a terminal window as in the previous step
+    *   Open a new terminal window as in the previous step
 
     *   Type ``conda upgrade conda pip wheel setuptools`` and hit enter. Agree to all the prompts.
 
@@ -40,8 +42,6 @@ OS X and macOS install from source instructions
 #.  Install the hdf5plugin, silx, fabio, and pyFAI packages using pip
 
     *   In the terminal window type ``pip install hdf5plugin silx fabio pyfai``
-
-    |100002010000023A0000016E415256FEF0DBA0B3_png|
 
     *   Hit enter
 
@@ -167,22 +167,10 @@ you can follow these instructions to make your own shortcut:
 .. |10000201000003E40000036173138DAB0B7BE00D_png| image:: images/mac_install/10000201000003E40000036173138DAB0B7BE00D.png
 
 
-.. |10000201000002370000016C05BA7C6C2536380E_png| image:: images/mac_install/10000201000002370000016C05BA7C6C2536380E.png
-
-
 .. |1000020100000273000001C472F5D3F5C469CFE2_png| image:: images/mac_install/1000020100000273000001C472F5D3F5C469CFE2.png
-
-
-.. |10000201000001CB000000BFFCB4D40B510BC3CE_png| image:: images/mac_install/10000201000001CB000000BFFCB4D40B510BC3CE.png
 
 
 .. |10000201000006900000041A52DBF3453A0EEDE9_png| image:: images/mac_install/10000201000006900000041A52DBF3453A0EEDE9.png
 
 
 .. |10000201000002880000025725B5A3369B69462C_png| image:: images/mac_install/10000201000002880000025725B5A3369B69462C.png
-
-
-.. |10000201000001D70000010F57B2663BC0211A98_png| image:: images/mac_install/10000201000001D70000010F57B2663BC0211A98.png
-
-
-.. |100002010000023A0000016E415256FEF0DBA0B3_png| image:: images/mac_install/100002010000023A0000016E415256FEF0DBA0B3.png

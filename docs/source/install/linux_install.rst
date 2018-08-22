@@ -9,8 +9,6 @@ Here you can find information on:
    :maxdepth: 1
 
    linux_gen
-   linux_ubuntu
-   linux_opensuse
-   linux_sl
+   linux_miniconda
    linux_shortcut
    linux_troubleshooting

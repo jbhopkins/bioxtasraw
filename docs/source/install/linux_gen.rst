@@ -4,10 +4,6 @@ General instructions for installing from source (advanced users)
 
 #.  Install python 2.7 (if it isn’t already installed).
 
-#.  Install the python development tools.
-
-#.  Install the gcc c++ compiler.
-
 #.  Install the following python packages (version indicated if less than most recent):
 
     *   numpy
@@ -18,19 +14,21 @@ General instructions for installing from source (advanced users)
 
     *   pillow
 
-    *   wxpython < 4.0
+    *   wxpython
 
-    *   fabio
+    *   lxml
 
     *   h5py
 
-    *   lxml
+    *   cython
+
+    *   fabio
 
     *   pyFAI
 
     *   hdf5plugin
 
-    *   weave
+    *   numba
 
 #.  Download RAW from sourceforge (
     `http://sourceforge.net/projects/bioxtasraw <http://sourceforge.net/projects/bioxtasraw>`_)
@@ -40,10 +38,6 @@ General instructions for installing from source (advanced users)
         <a href="https://sourceforge.net/projects/bioxtasraw/files/latest/download"><img alt="Download BioXTAS RAW" src="https://a.fsdn.com/con/app/sf-download-button" width=276 height=48 srcset="https://a.fsdn.com/con/app/sf-download-button?button_size=2x 2x"></a>
 
 #.  Extract RAW to a directory of your choice, and run :file:`RAW.py` using python.
-
-    *   Note: the first time you run :file:`RAW.py` it may need to be run from the command line
-        in order to successfully compile various extensions. It may take some time to
-        compile the extensions, be patient.
 
 #.  Enjoy!
 

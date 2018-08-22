@@ -1,18 +1,18 @@
-Making the mac installer users pyinstaller (tested on 3.2.1). This is very particular about what version of python it uses. I’ve only been able to get it to work on a conda install, with the packages as listed at the end of this document. With a python build from homebrew or from canopy it doesn’t seem to work. Additionally, it doesn’t seem to work on my home machine with (presumably) the same conda python distribution. Finally, conda needs to have the nomkl package installed, numpy/scipy with mkl don't seem to package correctly.
+Making the mac installer users pyinstaller (tested on 3.3.1). This must be done with
+miniconda to properly package the LLVMLite package for numba. In order to set up the
+proper build environment, simply install from source as in the RAW documentation, then
+additionally install pyinstaller through pip: pip install pyinstaller.
 
 Steps:
--2) Make a fresh git-free folder for RAW: git archive master | tar -x -C /somewhere/else
--1) Run RAW in that new folder to compile the extensions.
-0)  Set the appropriate python path, if needed.    Note: this no longer uses conda.
-    Currently using enthought, which requires pyside and pyqt be uninstalled!#: export PATH=~/miniconda2/bin:$PATH
-1)  Copy the RAW_mac.spec file into the main RAW directory.
-2)  Run “pyinstaller -y RAW_mac.spec”
-3)  Copy the RAW.app file from the MacLib/installer folder to the main RAW folder.
+0) Make a fresh git-free folder for RAW: git archive master | tar -x -C /somewhere/else
+1) Run RAW in that new folder to compile the extensions.
+2)  Set the appropriate python path, if needed: export PATH=~/miniconda2/bin:$PATH
+3)  Copy the RAW_mac.spec file into the main RAW directory.
+4)  Run “pyinstaller -y RAW_mac.spec”
+5)  Copy the RAW.app file from the MacLib/installer folder to the main RAW folder.
     Show the contents in finder, and copy the contents of the dist/RAW directory to the
-    Contents/MacOS folder in the .app file. #Note: may need to create the MacOS folder!
-4)  Copy the latest version of the ali2xyz.py file from the src/resources directory into
-    the Contents/Resources directory.
-5)  Update the version number in the info.plist file in the top level of the .app folder.
+    Contents/MacOS folder in the .app file.
+6)  Update the version number in the info.plist file in the top level of the .app folder.
 7)  Open disk utility
 8)  Create a new disk image (File->New Image>Blank Image) that is ~12% larger than the
     .app package. Name it RAW, but save it as untitled.
@@ -23,124 +23,19 @@ Steps:
 
 Note: if pyopencl is installed, the build will fail.
 
-Note2: I've now gotten this to work with stock enthought canopy, with the extra
+Note 2: Without numba, I've now gotten this to work with stock enthought canopy, with the extra
 raw packages installed through pip (Fabio, pyfai, hdf5plugin) and uninstalling pyside.
 
-Note3: pyinstaller (3.3.1) currently can't handle scipy 1.0. It seems to be a problem with a hidden import
+Note 3: pyinstaller (3.3.1) currently can't handle scipy 1.0. It seems to be a problem with a hidden import
 that will hopefully be fixed soon (https://github.com/pyinstaller/pyinstaller/issues/2987), it looks like
-in pyinstaller 3.4 (https://github.com/pyinstaller/pyinstaller/pull/3048)
+in pyinstaller 3.4 (https://github.com/pyinstaller/pyinstaller/pull/3048). I have patched
+this by adding a hidden import, but that can be removed once they release the new version.
 
-Note4: It looks like when the intel mkl library is linked to bumpy, the Mac build gets really big (~550 MB). I've used that build for 1.4.0, if people complain could go back to the unlinked version.
+Note 4: It looks like when the intel mkl library is linked to numpy, the Mac build
+gets really big (~750 MB). Can unlink it by install conda package nomkl if desired.
+
+Note 5: In order to refresh the size of the RAW.app package you need to first delete the .DS_store file
+that is in the folder it is in, then relaunch Finder from the force quit menu.
 
 More info on disk images here:
 https://el-tramo.be/blog/fancy-dmg/
-
-Conda packages:
-# This file may be used to create an environment using:
-# $ conda create --name <env> --file <this file>
-# platform: osx-64
-cffi=1.9.1=py27_0
-conda=4.3.14=py27_0
-conda-env=2.6.0=0
-cryptography=1.7.1=py27_0
-cycler=0.10.0=py27_0
-cython=0.25.2=py27_0
-enum34=1.1.6=py27_0
-fftw=3.3.4=0
-freetype=2.5.5=1
-functools32=3.2.3.2=py27_0
-h5py=2.6.0=np112py27_2
-hdf5=1.8.17=1
-icu=54.1=0
-idna=2.2=py27_0
-ipaddress=1.0.18=py27_0
-jbig=2.1=0
-jpeg=9b=0
-libiconv=1.14=0
-libpng=1.6.27=0
-libtiff=4.0.6=3
-libxml2=2.9.4=0
-libxslt=1.1.29=0
-lxml=3.7.3=py27_0
-matplotlib=2.0.0=np112py27_0
-mkl=2017.0.1=0
-nomkl=1.0=0
-numpy=1.12.0=py27_nomkl_0
-olefile=0.44=py27_0
-openssl=1.0.2h=1
-pillow=4.0.0=py27_1
-pip=9.0.1=py27_1
-pyasn1=0.1.9=py27_0
-pycosat=0.6.1=py27_1
-pycparser=2.17=py27_0
-pycrypto=2.6.1=py27_4
-pyopenssl=16.2.0=py27_0
-pyparsing=2.0.3=py27_0
-pyqt=5.6.0=py27_0
-python=2.7.12=1
-python-dateutil=2.5.3=py27_0
-python.app=1.2=py27_4
-pytz=2016.6.1=py27_0
-pyyaml=3.11=py27_4
-qt=5.6.0=0
-readline=6.2=2
-requests=2.13.0=py27_0
-ruamel_yaml=0.11.14=py27_0
-scipy=0.19.0=np112py27_nomkl_0
-setuptools=27.2.0=py27_0
-sip=4.18=py27_0
-six=1.10.0=py27_0
-sqlite=3.13.0=0
-subprocess32=3.2.7=py27_0
-tk=8.5.18=0
-wheel=0.29.0=py27_0
-wxpython=3.0=py27_0
-xz=5.2.2=0
-yaml=0.1.6=0
-zlib=1.2.8=3
-
-
-Pip packages (some packages installed via pip: fabio, pyFAI, hdf5plugin, weave, pyflakes, pyinstaller):
-cffi==1.9.1
-conda==4.3.14
-cryptography==1.7.1
-cycler==0.10.0
-Cython==0.25.2
-enum34==1.1.6
-fabio==0.4.0
-fisx==1.1.2
-funcsigs==1.0.2
-functools32==3.2.3.post2
-h5py==2.6.0
-hdf5plugin==1.3.0
-idna==2.2
-ipaddress==1.0.18
-lxml==3.7.3
-matplotlib==1.5.3
-mock==2.0.0
-nose==1.3.7
-numpy==1.12.0
-olefile==0.44
-pbr==1.10.0
-Pillow==4.0.0
-pyasn1==0.1.9
-pycosat==0.6.1
-pycparser==2.17
-pycrypto==2.6.1
-pyFAI==0.13.1
-PyInstaller==3.2.1
-pymca==5.1.3
-PyMca5==5.1.3
-pyOpenSSL==16.2.0
-pyparsing==2.0.3
-python-dateutil==2.5.3
-pytz==2016.6.1
-PyYAML==3.11
-requests==2.13.0
-ruamel-yaml===-VERSION
-scipy==0.19.0
-six==1.10.0
-subprocess32==3.2.7
-weave==0.15.0
-wxPython==3.0.0.0
-wxPython-common==3.0.0.0

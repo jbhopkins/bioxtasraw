@@ -1,3 +1,9 @@
+Linux install from source instructions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Tested on: Ubuntu 16.04, Linux Mint 18.3, Debian 9.4, Scientific Linux 6.8 7.4
+\(which should be equivalent to Redhat and CentOS), and OpenSUSE Leap 42.3.
+
 #.  Open a new terminal window (in many distros you can right click on the desktop
     and select :menuselection:`New Terminal` or :menuselection:`Open in terminal`).
 
@@ -20,13 +26,15 @@
 
     *   At the end, say “yes” to have the conda python install put in your system path.
 
-#.  Install python packages. Open a new terminal window and run the following commands.
+    *   Close the terminal window.
 
-    *   ``conda update conda setuptools wheel pip``
+#.  Install python packages. Open a new terminal window and run the following commands
+    (in many distros you can right click on the desktop and select :menuselection:`New Terminal`
+    or :menuselection:`Open in terminal`).
 
-    *   ``conda install numpy scipy matplotlib pillow h5py lxml numexpr``
+    *   ``conda upgrade conda pip wheel setuptools``
 
-    *   ``conda install 'wxpython<4'``
+    *   ``conda install numpy scipy matplotlib pillow wxpython numba h5py lxml cython numexpr``
 
     *   ``pip install fabio pyFAI hdf5plugin weave``
 
@@ -59,9 +67,6 @@
 #.  Run RAW
 
     *   ``python RAW,py``
-
-    *   The first time RAW runs, it may take a little while to load, as it has to
-        compile various extensions.
 
 #.  RAW is now installed. Enjoy!
 

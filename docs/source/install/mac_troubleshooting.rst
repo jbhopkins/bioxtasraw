@@ -16,16 +16,6 @@ Common problems/troubleshooting
 
 **Installing from source:**
 
-*   The compiler can fail if there are any spaces in the directory paths. Make sure that the
-    :file:`RAW.py` file is installed in a directory path without any spaces.
-
-*   If the extensions won’t compile properly (you’ll get a popup message when you start
-    RAW warning you of this), try copying the appropriate precompiled extensions (:file:`.so`
-    files) from the :file:`MacLib` folder into the main :file:`raw` folder.
-
 *   The shortcut can fail if you didn’t install raw in the recommended location. If that’s
     the case, go through the process of creating a new shortcut, and make sure you change
     the line in the script mentioned in that section.
-
-*   Because of some weirdness with the anaconda/miniconda framework pythonw, it can't run
-    EMAN2. Every other variant I've tried (enthought and homebrew) have been fine.

@@ -7,14 +7,6 @@ membrane proteins surrounded by lipids or detergents, which have more than one e
 density. Bead models typically only have two (molecule and solvent) or three bead densities,
 and so typically fail to reconstruct these complex objects. `DENSS <http://denss.org>`_ has
 been fully implemented in RAW and will be used to reconstruct these electron densities.
-In order to align and average these densities, EMAN2 will be used. Note that you need
-:ref:`EMAN2 installed <eman2>` to do this part of the tutorial.
-
-**IMPORTANT NOTE:** Unfortunately, the EMAN2 package doesn't work properly on Windows.
-Windows users can still use RAW to generate electron densities, but they cannot
-create a consensus average or filter out enantiomers. Mac OS (or OS X) and Linux
-users can do everything described in this tutorial.
-
 
 #.  Clear all of the data in RAW. Load the **lysozyme.out** file that you saved in the
     **atsas_data** folder in a previous part of the tutorial.
@@ -37,23 +29,6 @@ users can do everything described in this tutorial.
     *   *Note:* For final reconstructions for a paper, DENSS should be run in Slow mode.
         For this tutorial, or for obtaining an initial quick look at results, Fast mode is fine.
 
-#. Uncheck the "Filter enantiomers (EMAN2)" checkbox.
-
-    *   *Note:* For final reconstructions for a paper, you should filter enantiomers.  However, it
-        is quite slow, so for the purposes of this tutorial we won't do it.
-
-    *   *Note:* SAXS data can't determine between enantiomers, so all this does is ensure that
-        the reconstructions and averaging are done on the most similar enantiomers. There
-        is no guarantee that this matches the enantiomer in solution.
-
-    *   *Note:* Windows users will not see this option. If you are on mac or linux
-        and don't see this option it means RAW was unable to find EMAN2 on your computer.
-        Make sure EMAN2 is :ref:`properly installed <eman2>`. If you installed EMAN2
-        after starting RAW, restart RAW and it will attempt to automatically find
-        it. If that has failed, go to the Options->Advanced Options menu and choose
-        the DENSS settings (DENSS). Uncheck the option to “Automatically find
-        the EMAN2 bin location”, and specify the location manually.
-
     |denss_run_tab_png|
 
 #.  Click the “Start” button.
@@ -62,12 +37,10 @@ users can do everything described in this tutorial.
         You can look at the detailed status of each run by clicking the appropriate tab in
         the log panel.
 
-#.  Note that by default the densities are aligned and averaged using EMAN2.
+#.  Note that by default the densities are aligned and averaged, including enantiomer
+    filtering.
 
-    *   Some settings are accessible in the panel, and all settings can be changed in the
-        advanced settings panel.
-
-#.  Wait for all of the DENSS runs and EMAN2 averaging to finish. Depending
+#.  Wait for all of the DENSS runs and averaging to finish. Depending
     on the speed of your computer this could take a bit.
 
 #.  Once the reconstructions are finished, the window should automatically switch to the
@@ -77,10 +50,17 @@ users can do everything described in this tutorial.
 
 #.  The results panel summarizes the results of the reconstruction runs. At the top of the
     panel there is the ambimeter evaluation of how ambiguous the reconstructions might be
-    (see previous tutorial section). If EMAN2 averaging was run there is an estimate of the
-    reconstruction resolution based on the Fourier shell correlation.
+    (see previous tutorial section). If averaging was run there is an estimate of the
+    reconstruction resolution based on the Fourier shell correlation. In the models
+    section there are several tabs. The summary tab shows the chi^2, Rg, support volume,
+    and RSC to the reference model. If any model was not included in the averaging it
+    is highlighted in red.
 
-#.  For each individual model there are plots of: the original data and the model data (scattering from density);
+    *   Verify that the Rg is close to the expected value,a nd that the chi^2 and support
+        volumes are relatively consistent between models.
+
+#.  Individual model results are displayed in the numbered tabs. For each individual
+    model there are plots of: the original data and the model data (scattering from density);
     the residual between the original data and the model data; and chi squared, |Rg| and support volume
     vs. refinement step.
 
@@ -88,6 +68,8 @@ users can do everything described in this tutorial.
 
     *   Check that the chi squared, |Rg|, and support volume have all plateaued (converged)
         by the final steps.
+
+    |denss_model_png|
 
 #.  If the densities were averaged, the average tab will display the Fourier shell correlation
     vs. resolution.
@@ -121,6 +103,8 @@ users can do everything described in this tutorial.
 .. |denss_run_tab_png| image:: images/denss_run_tab.png
 
 .. |denss_results_png| image:: images/denss_results_tab.png
+
+.. |denss_model_png| image:: images/denss_model_tab.png
 
 .. |denss_fsc_png| image:: images/denss_fsc.png
 

@@ -8,7 +8,7 @@ Common problems/troubleshooting
     *   If RAW completely doesn’t start, check and make sure you have wxpython 2.8
         installed. This requires that you have matplotlib<=1.4.
 
-    *   In general, RAW should work with wxpython 3.0.
+    *   In general, RAW should work with wxpython 3 and 4.
 
 *   Sometimes, compilers can have trouble if there are spaces in the filepath. Try
     installing RAW so that there are no spaces in the file path (navigate the folder
@@ -27,13 +27,6 @@ Common problems/troubleshooting
 
     *   You can also specify the full path to the version of python you want to use in
         the command, such as ``~/miniconda2/bin/python``
-
-*   In some cases it is necessary to run RAW as an administrator, in order to compile
-    (we’ve observed this on Scientific Linux 6). If RAW runs but doesn’t compile, and
-    you’re sure you’ve got the gcc c++ compiler installed, try running it using ``sudo``.
-
-    *   Warning: the python used for ``sudo`` may not be the python for the regular user
-        (particularly if you ``su`` and then ``sudo``).
 
 *   Note that when you change environmental variables in one terminal window, you need to
     restart other windows for this to take effect. If you aren’t using the right python

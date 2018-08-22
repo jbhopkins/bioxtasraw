@@ -68,6 +68,7 @@ prebuilt versions of RAW are free for anyone to download and use.
    videos
    cite_raw
    manual
+   changes
 
 
 .. |Rg| replace:: R\ :sub:`g`
