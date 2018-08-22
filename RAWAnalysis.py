@@ -6147,7 +6147,7 @@ class DenssRunPanel(wx.Panel):
         resx = np.interp(0.5,[y[resi+1],y[resi]],[x[resi+1],x[resi]])
         resn = round(float(1./resx),1)
 
-        res_str = "Resolution: %.1f " % resn + 'Angstrom \n'
+        res_str = "Resolution: %.1f " % resn + 'Angstrom\n'
         wx.CallAfter(averWindow.AppendText, res_str)
         wx.CallAfter(averWindow.AppendText,'END')
 
