@@ -4,8 +4,6 @@ General instructions for installing from source (advanced users)
 
 #.  Install a standalone version of python 2.7 (recommended, not required).
 
-#.  Install a gcc c++ compiler (for example the Xcode command line tools) and add it to your system path.
-
 #.  Install the following python packages (most recent version of each recommended):
 
     *   numpy
@@ -16,19 +14,21 @@ General instructions for installing from source (advanced users)
 
     *   pillow
 
-    *   wxpython < 4.0
-
-    *   fabio
+    *   wxpython
 
     *   lxml
 
     *   h5py
 
+    *   cython
+
+    *   fabio
+
     *   pyFAI
 
     *   hdf5plugin
 
-    *   weave < 0.16
+    *   numba
 
 #.  Download the latest RAW sourcecode from sourceforge (
     `http://sourceforge.net/projects/bioxtasraw <http://sourceforge.net/projects/bioxtasraw>`_)
