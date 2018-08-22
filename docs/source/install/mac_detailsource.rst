@@ -2,42 +2,14 @@ OS X and macOS install from source instructions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _macsource:
 
-#.  Install Enthought Canopy python distribution
+#.  Install Miniconda python distribution
 
-    *   Download the free Canopy installer from:
-        `https://store.enthought.com/downloads/#default <https://store.enthought.com/downloads/#default>`_
+    *   Download the free miniconda python 2.7 installer from:
+        `https://conda.io/miniconda.html <https://conda.io/miniconda.html>`_
 
-        *   We recommend the 64-bit version, unless you know you need the 32-bit version.
+        *   Make sure you get the python 2.7 version!
 
-    *   Open the downloaded disk image, and drag the Canopy application into the Applications folder
-
-    *   Start the Canopy application (for example, double click on it in the Applications folder).
-
-        *   Canopy may not open, depending on user security settings. You have two
-            options if it doesn’t open:
-
-            *   Open canopy by right clicking on it in the applications folder and selecting :menuselection:`Open`.
-
-            *   Change security settings by going to System Settings -> Security and Privacy,
-                and selecting Allow apps downloaded from ‘Anywhere’.
-
-        *   Accept the default environment install location
-
-    *   The first time you run Canopy, it will ask you if you want to make it the
-        default environment. Select Yes and Start using Canopy
-
-    |10000201000001D70000010F57B2663BC0211A98_png|
-
-        *   *Note:* In recent installation attempts I haven't seen this dialog. In that case you
-            have to add the following to your :file:`.bash_profile`:
-            ``source /Users/<username>/Library/Enthought/Canopy/edm/envs/User/bin/activate``
-
-    *   More detailed install instructions are available here:
-        `http://docs.enthought.com/canopy/quick-start/install_macos.html <http://docs.enthought.com/canopy/quick-start/install_macos.html>`_
-
-#.  Install xcode command lines tools
-
-    *   Opening a Terminal window by starting the Terminal app.
+    *   Open a Terminal window by starting the Terminal app.
 
         *   Using the Launcher, it is located in the Other section.
 
@@ -47,27 +19,27 @@ OS X and macOS install from source instructions
 
         *   Browsing the Applications folder in Finder, Terminal is in the Utilities folder.
 
-    *   In the terminal window type ``xcode-select --install``
+    *   In the terminal window type ``cd ~\Downloads`` and hit enter.
 
-    |10000201000002370000016C05BA7C6C2536380E_png|
+    *   In the terminal window type ``bash Miniconda2-latest-MacOSX-x86_64.sh`` and hit enter.
 
-    *   Hit enter
+    *   Agree to all of the prompts.
 
-    *   In the popup window, select install (you don’t need the whole xcode installation)
+    *   More detailed install instructions are available here:
+        `https://conda.io/docs/user-guide/install/macos.html <https://conda.io/docs/user-guide/install/macos.html>`_
 
-    |10000201000001CB000000BFFCB4D40B510BC3CE_png|
+#.  Install  numpy scipy matplotlib pillow wxpython numba h5py lxml cython numexpr using conda.
 
-    *   Close the terminal window.
+    *   Open a terminal window as in the previous step
 
-#.  Install the fabio, pyFAI, hdf5plugin, and weave python packages using pip
+    *   Type ``conda upgrade conda pip wheel setuptools`` and hit enter. Agree to all the prompts.
 
-    *   Open a terminal window as in step 2.
+    *   Type ``conda install numpy scipy matplotlib pillow wxpython numba h5py lxml cython numexpr`` and hit enter.
+        Agree to all the prompts.
 
-    *   Type ``pip install --upgrade pip``
+#.  Install the hdf5plugin, silx, fabio, and pyFAI packages using pip
 
-    *   Hit enter
-
-    *   Once that installs, type ``pip install fabio pyFAI hdf5plugin weave``
+    *   In the terminal window type ``pip install hdf5plugin silx fabio pyfai``
 
     |100002010000023A0000016E415256FEF0DBA0B3_png|
 
@@ -108,13 +80,13 @@ OS X and macOS install from source instructions
 
 #.  Run RAW from the terminal.
 
-    *   Open a terminal window as in step 2.
+    *   Open a terminal window as in step 1.
 
     *   Type ``cd /Applications/raw``
 
     *   Hit enter
 
-    *   Type ``python RAW.py``
+    *   Type ``pythonw RAW.py``
 
     *   Hit enter
 
@@ -165,7 +137,7 @@ you can follow these instructions to make your own shortcut:
     |10000201000003E40000036173138DAB0B7BE00D_png|
 
     *   Note: If you didn’t install RAW in the recommended location, you will need to
-        change the line ``do script “python /Applications/raw/RAW.py”`` to have the appropriate
+        change the line ``do script “pythonw /Applications/raw/RAW.py”`` to have the appropriate
         path.
 
 #.  Select :menuselection:`File --> Duplicate` from the menu.

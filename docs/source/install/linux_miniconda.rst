@@ -24,11 +24,9 @@
 
     *   ``conda update conda setuptools wheel pip``
 
-    *   ``conda install numpy scipy matplotlib pillow h5py lxml numexpr``
+    *   ``conda install numpy scipy matplotlib pillow wxpython numba h5py lxml cython numexpr``
 
-    *   ``conda install 'wxpython<4'``
-
-    *   ``pip install fabio pyFAI hdf5plugin weave``
+    *   ``pip install hdf5plugin silx fabio pyfai``
 
 #.  Download RAW from sourceforge
 
@@ -59,9 +57,6 @@
 #.  Run RAW
 
     *   ``python RAW,py``
-
-    *   The first time RAW runs, it may take a little while to load, as it has to
-        compile various extensions.
 
 #.  RAW is now installed. Enjoy!
 
