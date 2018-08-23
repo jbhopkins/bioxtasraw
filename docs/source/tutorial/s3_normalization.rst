@@ -2,7 +2,9 @@ Setting normalization and other options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _s3p4:
 
-This section teaches you how to set up normalization by a beamstop counter, and other options. It assumes you have completed :ref:`Parts 1 <s3p1>` (or :ref:`2 <s3p2>`\ ) and :ref:`3 <s3p3>`.
+This section teaches you how to set up normalization by a beamstop counter, and
+other options. It assumes you have completed :ref:`Parts 1 <s3p1>` (or :ref:`2 <s3p2>`\ )
+and :ref:`3 <s3p3>`.
 
 #.  Open the Options window by selecting “Advanced Options” in the Options menu.
 

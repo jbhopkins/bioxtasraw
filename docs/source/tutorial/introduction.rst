@@ -30,7 +30,7 @@ This tutorial covers SAXS data processing with RAW. You will learn how to:
 
 Requirements
 ^^^^^^^^^^^^
-*  BioXTAS RAW >= v1.4.0 (most recent is best).
+*  BioXTAS RAW >= v1.5.0 (most recent is best).
 
     *   :ref:`Install instructions <install>`
 
@@ -49,14 +49,6 @@ Requirements
         `http://www.embl-hamburg.de/biosaxs/download.html <http://www.embl-hamburg.de/biosaxs/download.html>`_
 
     *   Requires a free registration for academic users. Industrial users must pay to use.
-
-.. _eman2:
-
-*   EMAN2, >=2.2 (for :ref:`Section 2 <section2>` of the tutorial only)
-    *   Download and installation instructions are available from: `http://blake.bcm.edu/emanwiki/EMAN2/Install <http://blake.bcm.edu/emanwiki/EMAN2/Install>`_
-
-    *   Free for all, optional registration for user tracking purposes.
-
 
 Other useful materials
 ^^^^^^^^^^^^^^^^^^^^^^^

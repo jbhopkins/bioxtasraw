@@ -20,6 +20,6 @@ If that doesn't work for you, you can contact Soren and Jesse directly:
 soren (dot) skou (at) saxslab (dot) com and hopkins (dot) jesse (at) gmail (dot) com.
 
 If you have a bug report, please include: operating system, RAW version number, installation type
-(package or from source), what you were doing when the bug occured, the appropriate error
+(package or from source), what you were doing when the bug occurred, the appropriate error
 message(s) and sample data so we can recreate the bug. That will enable us to find and solve
 the problem as quickly as possible.

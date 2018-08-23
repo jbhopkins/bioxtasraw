@@ -112,7 +112,7 @@ the ATSAS package is the most commonly used program for building consensus shape
     folder with the given prefix (for this tutorial, **lysozyme**). The files generated
     are described in the `DAMCLUST manual <https://www.embl-hamburg.de/biosaxs/manuals/damclust.html#output>`_.
 
-#.  If refinement was done with DAMMIN, the results are saved in the selected otuput
+#.  If refinement was done with DAMMIN, the results are saved in the selected output
     folder as **refine_<prefix>**, e.g. for this tutorial **refine_lysozyme**. The files
     generated are described in the `DAMMIN manual <https://www.embl-hamburg.de/biosaxs/manuals/dammin.html#output>`_.
 

@@ -114,8 +114,8 @@ components from overlapping SEC-SAXS peaks.
         values starts increasingly sharply, it indicates that there is a new scattering
         component in the scattering profile measured at that point. So, for the first ~150
         frames, there are no new scattering components (i.e. just buffer scattering). At
-        frame ~151, we see the first singular value (the singular value with index 0, l
-        abeled SV 0 on the plot) start to strongly increase, showing that we have gained
+        frame ~151, we see the first singular value (the singular value with index 0,
+        labeled SV 0 on the plot) start to strongly increase, showing that we have gained
         a scattering component. We see SV 1 start to increase at ~167, indicating another
         scattering component starting to be present in the scattering profile.
 

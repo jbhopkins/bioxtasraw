@@ -41,9 +41,9 @@ work being done by Jesse Hopkins.
 
 RAW is actively used as the primary analysis software at the
 `MacCHESS G1 BioSAXS Beamline. <http://www.macchess.cornell.edu/MacCHESS/biosaxs.html>`_
-It is also used at various other beamlines, including:
+and the `BioCAT <http://www.bio.aps.anl.gov/>`_  (18-ID) beamline at the APS. It is
+also used at various other beamlines, including:
 
-*   `BioCAT <http://www.bio.aps.anl.gov/>`_  (18-ID) beamline at the APS
 *   BL19U2 (SSRF)
 *   `I911-4 <https://www.maxlab.lu.se/node/35>`_ (aka I911-SAXS) beamline at MAX-LAB
 

@@ -1,4 +1,4 @@
-3D reconstruction with electron density – DENSS and EMAN2 in RAW
+3D reconstruction with electron density – DENSS in RAW
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 A new, exciting method for doing 3D shape reconstructions in SAXS yields actual
 electron density, rather than bead models. There are many potential advantages to this,
@@ -56,7 +56,7 @@ been fully implemented in RAW and will be used to reconstruct these electron den
     and RSC to the reference model. If any model was not included in the averaging it
     is highlighted in red.
 
-    *   Verify that the Rg is close to the expected value,a nd that the chi^2 and support
+    *   Verify that the Rg is close to the expected value, and that the chi^2 and support
         volumes are relatively consistent between models.
 
 #.  Individual model results are displayed in the numbered tabs. For each individual

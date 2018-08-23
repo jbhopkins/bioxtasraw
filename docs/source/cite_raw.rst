@@ -63,13 +63,6 @@ T. D. Grant. Nature Methods (2018) volume 15, pages 191–193.
 
 DOI: `10.1038/nmeth.4581 <https://doi.org/10.1038/nmeth.4581>`_
 
-EMAN2
-^^^^^^^^
-If in addition to using DENSS to create electron density, you used EMAN2 to do
-enantiomer selection and/or create an average electron density, please cite both the `primary
-EMAN2 paper <http://blake.bcm.edu/emanwiki/EMAN2#Please_Cite>`_ and the `single
-particle tomography paper <http://blake.bcm.edu/emanwiki/SPT/Spt>`_.
-
 
 Molecular weight
 -------------------------------
