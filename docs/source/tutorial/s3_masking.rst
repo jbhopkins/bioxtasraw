@@ -20,7 +20,7 @@ in Step 6 of :ref:`Part 1 <s3p1>`.
 #.  Select the Pan tool and left click and drag the image to the right until you can
     see a blank (white) canvas to the left of the beamstop.
 
-    |10000201000003FF000002FFA1373650FAC1BA86_png|
+    |masking1_png|
 
 #.  Click on the rectangle mask drawing button and click on a point in the white
     part of the canvas just above the edge of the beamstop.
@@ -34,6 +34,9 @@ in Step 6 of :ref:`Part 1 <s3p1>`.
 
     *   *Tip:* If you mess up drawing the mask, click on the masked region (shaded red)
         and click your backspace/delete key to remove it.
+
+    *   *Tip:* You can also resize a rectangle (or circle) mask my right clicking on
+        it and selecting resize.
 
     |10000201000001590000023F0706EE751FB36A8E_png|
 
@@ -52,26 +55,16 @@ in Step 6 of :ref:`Part 1 <s3p1>`.
 
 #.  Zoom back out to the full extent of the image.
 
-#.  Set the image upper limit to 0, and the lower limit to -2 (should be the default lower limit).
+#.  Next you need to mask out the bad pixels on the detector. On a Pilatus detector,
+    bad pixels usually have a value of -2.
 
-#.  Look for any pixels that are blue, these are bad pixels. You should find one at (189, 80)
+#.  In the automatic section of the Mask Drawing controls, set Mask All Pixels = -2
+    and click 'Create'.
 
-    *   *Note:* On this detector, bad pixels have values of -2.
+    *   This control allows you to mask pixels at, above, or below a given threshold.
+        It is particularly useful for things like bad pixels, where the value is known.
 
-    *   *Tip:* Finding a single pixel, even when you are looking for a blue on red, can
-        be quite tricky. You might try a couple of ways to look for it. First, you can
-        zoom in on the image, and use the Pan tool to drag the image around and look for
-        bad pixels. Second, you can try changing the colormap in the Image Display Settings
-        to Gray. Then the bad pixel will look like a black pixel on a white background,
-        which might be easier to see.
-
-#.  Zoom in on the bad pixel and apply a rectangular mask over the pixel.
-
-    *   *Note:* Due to how the image displays, you may see a bit of blue edge beyond the
-        pixel mask. Don’t worry, as the pixel is actually masked. If you want to be sure,
-        you can mask a few pixels around it as well.
-
-    |100002010000021E0000021365526F4D184B1EAD_png|
+    |masking_thresh_png|
 
 #.  In the masking panel, make sure that “Beamstop mask” is selected in the Mask Creation
     dropdown menu. Click the set button to set the mask you just made as the beamstop mask.
@@ -81,11 +74,25 @@ in Step 6 of :ref:`Part 1 <s3p1>`.
 #.  Click the OK button to exit the masking panel.
 
 
+**Additional Tips**
 
-.. |10000201000003FF000002FFA1373650FAC1BA86_png| image:: images/10000201000003FF000002FFA1373650FAC1BA86.png
+#.  If you have a larger detector with panel gaps, the Mask detector function in
+    the Automatic section of the Mask Drawing tools will generate a gap mask for many
+    different detectors.
+
+#.  You can resize rectangle and circle masks by right clicking on them and selecting resize.
+
+#.  You can 'invert' a mask, which for a beamstop mask means it will only include pixels
+    in the mask. This can be useful if, for example, you have a circular shadow from
+    your flight tube on your detector.
+
+#.  If you know the mask parameters, you can put in coordinates for a circle or rectangle
+    and create a mask with a known position and size.
+
+.. |masking1_png| image:: images/masking1.png
 
 .. |10000201000001590000023F0706EE751FB36A8E_png| image:: images/10000201000001590000023F0706EE751FB36A8E.png
 
-.. |100002010000021E0000021365526F4D184B1EAD_png| image:: images/100002010000021E0000021365526F4D184B1EAD.png
+.. |masking_thresh_png| image:: images/masking_thresh.png
 
 .. |100002010000018500000048B4CFC92D12B1F018_png| image:: images/100002010000018500000048B4CFC92D12B1F018.png
