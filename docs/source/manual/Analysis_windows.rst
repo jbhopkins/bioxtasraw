@@ -61,8 +61,8 @@ nearest point. Second, you can adjust the n_min and n_max values either by typin
 value in the appropriate box or using the spin controls. The n_min and n_max controls change
 the minimum and maximum points of the q vector used (zero indexed), and the q_min and q_max
 are updated to match. For example if n_min is set to 5 and n_max is set to 130, the 5th
-indexed point through the 130th indexed point in the q vector (so points 6-131, because of the z
-ero indexing) will be used in the Guinier fit.
+indexed point through the 130th indexed point in the q vector (so points 6-131, because of the
+zero indexing) will be used in the Guinier fit.
 
 The AutoRG button calls a function that attempts to automatically determine the best range of
 data to use for the Guinier fit. It considers the following criteria: q_min*Rg as small as possible,
@@ -780,7 +780,7 @@ DAMMIF (ATSAS)
 RAW allows you to run certain analyses using the ATSAS software package from within RAW.
 One of the programs that can be run from RAW is DAMMIF and the accompanying programs DAMAVER
 and DAMCLUST, which carry out 3D shape reconstructions based on the P(r) function and scattering
-profile. Using the ATSAS programs requires equires a :ref:`separate installation <atsas>` and
+profile. Using the ATSAS programs requires a :ref:`separate installation <atsas>` and
 (possibly) some additional configuration of RAW.
 
 
@@ -955,13 +955,13 @@ SVD
 
 Singular value decomposition (SVD) is a mathematical technique that is a model independent
 approach that provides information on the number of unique elements in a data set. Formally,
-singular value decomposition of a mxn matrix M is a factorization of into three matrices such that
+singular value decomposition of a m x n matrix M is a factorization of into three matrices such that
 
 .. math:: M=U\Sigma V^*
 
-where U is an mxm unitary matrix, called the left singular values; :math:`\Sigma` is a diagonal
-mxn matrix, where the diagonal values are the singular values, and :math:`V^*` is the conjugate
-transpose of an nxn unitary matrix V, the right singular vectors. A typical interpretation of
+where U is an m x m unitary matrix, called the left singular values; :math:`\Sigma` is a diagonal
+m x n matrix, where the diagonal values are the singular values, and :math:`V^*` is the conjugate
+transpose of an n x n unitary matrix V, the right singular vectors. A typical interpretation of
 singular value decompositions is that the number of singular values significantly above the baseline
 level represents the number of significant distinct components in the data set.
 
@@ -1174,7 +1174,7 @@ If the rotation has failed it will provide a message with some on the failure, t
 *Save EFA Data (not profiles)*
 
 This button saves the EFA data, including the SVD data, the number of significant values,
-the ranges Forward and Backward EFA data, the ranges and concentration contraints for each
+the ranges Forward and Backward EFA data, the ranges and concentration constraints for each
 component, the rotation method and other parameters used, and the mean error weighted χ\ :sup:`2`
 and concentration data. This is all saved as a .csv file.
 

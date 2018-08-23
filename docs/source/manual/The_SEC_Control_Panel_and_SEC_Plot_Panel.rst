@@ -90,7 +90,7 @@ be orange instead of grey.
 The colored line button has two purposes. First, the color matches the current color of the Intensity
 curve in the SEC Plot. Second, when pressed it opens a :ref:`line properties dialog <lineproperties>`
 which allows you to set the legend label; the line style, width, and color; the data point
-marker style, size, line color, andfill color; and the error bar line style, width, and
+marker style, size, line color, and fill color; and the error bar line style, width, and
 color for each line associated with the SEC data item.
 
 *Mark*

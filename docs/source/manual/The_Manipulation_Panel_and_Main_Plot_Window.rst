@@ -256,8 +256,8 @@ All scattering profiles can be saved to a standard 3 column ASCII format with a 
 
 Items are saved in a standard format with three columns of data. These columns have listed headers,
 and are Q, I, and Error in I respectively. Depending on your settings, at the bottom (default) or
-top of the file there will be a “Header”. This header contains any information loaded as ‘Header’ i
-nformation from the image or separate header file, the normalization factor, any notes you made in
+top of the file there will be a “Header”. This header contains any information loaded as ‘Header’
+information from the image or separate header file, the normalization factor, any notes you made in
 the Notes section of the information box, any analysis results (such as Rg, MW), and the manipulation
 history saved by the averaging, subtracting, merging, rebinning, and interpolating functions (see
 following sections).

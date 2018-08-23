@@ -535,7 +535,7 @@ standard deviations away from the median are discarded.
 IFT panel
 ---------
 
-RAW currently supports one built-in method for determining the inverse fourier transform (IFT)
+RAW currently supports one built-in method for determining the inverse Fourier transform (IFT)
 of a scattering profile, the Bayesian IFT (BIFT) method. In the future we anticipate supporting
 a python based implementation of the GNOM algorithm called pyGNOM, but currently that is not available.
 

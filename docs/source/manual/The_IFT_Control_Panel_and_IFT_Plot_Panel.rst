@@ -363,7 +363,7 @@ IFT plot has the following buttons:
 
 |100000000000002200000021727FD1590D192861_png|
 
-Toggle errorbars. Shows the errorbars on the plotted curves.
+Toggle errorbars. Shows the error bars on the plotted curves.
 
 |100000000000001F00000021D9FCD008A5DADBD2_png|
 
