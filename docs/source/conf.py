@@ -132,65 +132,27 @@ htmlhelp_basename = 'BioXTASRAWdoc'
 # -- Options for LaTeX output ---------------------------------------------
 
 preamble = r"""
-\makeatletter
-\renewcommand{\maketitle}{
-  \let\spx@tempa\relax
-  \ifHy@pageanchor\def\spx@tempa{\Hy@pageanchortrue}\fi
-  \hypersetup{pageanchor=false}% avoid duplicate destination warnings
-  \begin{titlepage}%
-    \let\footnotesize\small
-    \let\footnoterule\relax
-    \noindent\rule{\textwidth}{1pt}\ifsphinxpdfoutput\newline\null\fi\par
-    \ifsphinxpdfoutput
-      \begingroup
-       %\pdfstringdefDisableCommands{\def\\{, }\def\endgraf{ }\def\and{, }}%
-       %\hypersetup{pdfauthor={\@author}, pdftitle={\@title}}%
-      \endgroup
-    \fi
-    \begin{flushright}%
-      \sphinxlogo
-      \py@HeaderFamily
-      {\Huge \@title \par}
-      \vfill
-      {\LARGE
-        \begin{tabular}[t]{c}
-          \@author
-        \end{tabular}
-        \par}
-      \vfill\vfill
-      {\large
-       \@date \par
-       \vfill
-       \py@authoraddress \par
-      }%
-    \end{flushright}%\par
-    \@thanks
-  \end{titlepage}%
-  \setcounter{footnote}{0}%
-  \let\thanks\relax\let\maketitle\relax
-  %\gdef\@thanks{}\gdef\@author{}\gdef\@title{}
-  \clearpage
-  \spx@tempa
-}
 
-\renewcommand{\sphinxtableofcontents}{
-  \pagenumbering{roman}%
-  \pagestyle{plain}%
-  \begingroup
-    \parskip \z@skip
-    \tableofcontents
-  \endgroup
-  % before resetting page counter, let's do the right thing.
-  \clearpage
-  \pagenumbering{arabic}%
-  \ifdefined\fancyhf\pagestyle{normal}\fi
-}
-\makeatother"""
+\ifdefined\fancyhf\pagestyle{normal}\fi
 
+"""
+
+tableofcontents = r"""
+\pagenumbering{roman}%
+\pagestyle{plain}%
+\begingroup
+  \tableofcontents
+\endgroup
+% before resetting page counter, let's do the right thing.
+\clearpage
+\pagenumbering{arabic}%
+
+"""
 
 latex_elements = {
     'classoptions': ',openany,oneside',
     'preamble': preamble,
+    'tableofcontents': tableofcontents,
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
