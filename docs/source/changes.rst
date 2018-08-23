@@ -1,6 +1,83 @@
 Changes
 ============
 
+1.5.0
+------
+
+Overview
+^^^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 1.5.0. This version focused on
+several significant updates that will be invisible to most users. Namely:
+*   RAW is now compatible with wxpython4
+*   RAW no longer uses weave, which has been essentially unsupported for years, to
+    compile code. It now uses the numba just-in-time compiler.
+
+This will make it much easier for us to support RAW, and should make it easier for
+users to install RAW from source on any platform. It also prepares us for the
+inevitable transition to Python 3 that has to happen in the next several years.
+
+In addition to a range of bug fixes and small enhancements detailed below, RAW
+also now incorporates the new DENSS alignment code. This is all done in python,
+in RAW. This removes the dependency on EMAN2, and means that all parts of density
+reconstructions work on Windows!
+
+Finally, RAW is now saving configuration files in JSON format. This is human
+readable, and makes the RAW configuration files more open and accessible for other
+programs to use. However, this does mean that earlier versions of RAW will not be
+able to open configuration files created with version 1.5.0 or later. However,
+configuration files created in earlier versions of RAW ARE compatible with version 1.5.0.
+
+
+All changes:
+^^^^^^^^^^^^
+
+*   Fixed a bug where if atsas is in the path but not installed RAW will still find the directory from the path.
+*   ATSAS filepaths and filenames should be able to deal with spaces.
+*   Fixed various strange threadsafe bugs on debian 8.
+*   Weighted average now checks for similarity
+*   Fixed a bug where the dammif results window wouldn't work when you did only one dammif run and had damaver checked.
+*   Fixed a bug where dammin in normal mode wouldn't work on windows.
+*   Fixed a bug where dammif/n wouldn't abort on windows.
+*   Added in new expected shape parameter for dammif in custom mode.
+*   Fabio, hdf5plugin, and pyfai are now required dependencies, rather than optional dependencies
+*   Mode all previously compiled code into using the numba just-in-time compiler.
+    This is important because the previous code was compiled with weave, which
+    has been unsupported for years.
+*   Fixed a bug where users could give dammif/n file prefixes that were too long for damaver.
+*   Fixed a bug where canceling out of the color change dialog didn't cancel the color change.
+*   Made the plot options box resizable (important for computers with large font size).
+*   Fixed a bug where the sec plot right axis framestyle wouldn't properly restore
+    if you canceled out of the plot options dialog.
+*   Significant code restructuring and cleanup.
+*   EFA calculations are now in a thread, so it might not freeze the whole GUI.
+*   Circle and rectangle masks are now resizable.
+*   Added ability to automatically mask pixels at/above/below a given threshold.
+*   Added ability to automatically mask images based on known detector panel gaps.
+*   Added ability to create predefined size/location circle and rectangle masks.
+*   Added ability to control detector image left-right flip and up-down flip.
+*   Fixed a bug where RAW could crash under certain conditions when exporting analysis info.
+*   Fixed a bug where the Guinier window would give an error under certain circumstances.
+*   GNOM and BIFT windows now show scattering profiles on log-lin axes.
+*   RAW is now wxpython4 compatible.
+*   Added alpha as an available setting in the GNOM window.
+*   Fixed several bugs in the GNOM window that caused RAW to unnecessarily calculate
+    the P(r) function, slowing down the program.
+*   Added drag and drop file loading for both the plot and control panels.
+*   Settings are now saved in JSON format, which is human readable, to increase
+    compatibility and ease of use by other programs. This means that settings
+    saved from RAW 1.5.0 are not compatible with previous versions of RAW. Settings
+    saved from previous version of RAW ARE compatible with RAW 1.5.0.
+*   DENSS now uses custom python code for aligning and averaging density. This
+    removes the requirement on EMAN2, which means all parts of DENNS will work on Windows.
+*   The image plot now maintains the same zoom when you change images. Previously
+    it would zoom back out to the full image whenever you showed a new image.
+*   Fixed a bug where the SVD would sometimes not open correctly.
+*   Fixed a bug where if there was one pixel in the q bin during integration the
+    error would be set to 0 instead of the square root of the value
+*   Fixed a bug where nans or infinities in the SVD matrix would break SVD/EFA
+    without an appropriate error message.
+
 1.4.0
 -------
 
