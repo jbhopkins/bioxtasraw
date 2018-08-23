@@ -9,6 +9,7 @@ Overview
 
 The RAW team is pleased to announce the release of RAW version 1.5.0. This version focused on
 several significant updates that will be invisible to most users. Namely:
+
 *   RAW is now compatible with wxpython4
 *   RAW no longer uses weave, which has been essentially unsupported for years, to
     compile code. It now uses the numba just-in-time compiler.

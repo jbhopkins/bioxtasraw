@@ -3413,8 +3413,6 @@ class GNOMControlPanel(wx.Panel):
                     update_plot = True
                 self.old_nstart = i
             elif myid == self.spinctrlIDs['qend']:
-                print self.old_nend
-                print i
                 if i != self.old_nend:
                     self.out_list = {}
                     update_plot = True
