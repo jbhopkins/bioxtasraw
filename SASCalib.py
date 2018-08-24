@@ -129,7 +129,7 @@ def new_grp(img, loc, gpt, defaultNbPoints, ring):
     return points, gpt
 
 
-class RAWCalibration():
+class RAWCalibration(object):
     # A mash up of the pyFAI.calibration AbstractCalibration and Calibration classes
 
     PARAMETERS = ["dist", "poni1", "poni2", "rot1", "rot2", "rot3", "wavelength"]

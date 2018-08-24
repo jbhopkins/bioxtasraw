@@ -32,7 +32,7 @@ import SASFileIO
 import SASM
 import SASImage
 
-class RawGuiSettings:
+class RawGuiSettings(object):
     '''
     This object contains all the settings nessecary for the GUI.
 

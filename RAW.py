@@ -1884,7 +1884,7 @@ class MainFrame(wx.Frame):
 
 
 
-class OnlineController:
+class OnlineController(object):
     def __init__(self, parent, raw_settings):
 
         self.parent = parent
@@ -2147,7 +2147,7 @@ class OnlineController:
 
         self.old_dir_list_dict.update(diff_list)
 
-class OnlineSECController:
+class OnlineSECController(object):
     def __init__(self, parent, raw_settings):
 
         self.parent = parent
