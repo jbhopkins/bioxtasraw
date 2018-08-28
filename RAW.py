@@ -2722,8 +2722,6 @@ class MainWorkerThread(threading.Thread):
                     else:
                         no_update = True
 
-                    print no_update
-
                     if loaded_sasm:
                         self._sendSASMToPlot(sasm_list, axes_num=axes_num, no_update=no_update, update_legend=False)
                         wx.CallAfter(self.plot_panel.canvas.draw_idle)
