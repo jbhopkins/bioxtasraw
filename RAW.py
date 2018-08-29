@@ -181,7 +181,7 @@ class MainFrame(wx.Frame):
         self.denssframe = None
 
         self.raw_settings = RAWSettings.RawGuiSettings()
-
+ 
         self.OnlineControl = OnlineController(self, self.raw_settings)
         self.OnlineSECControl = OnlineSECController(self, self.raw_settings)
 
@@ -2650,7 +2650,6 @@ class MainWorkerThread(threading.Thread):
 
         try:
             for i in range(len(filename_list)):
-
                 each_filename = filename_list[i]
                 file_ext = os.path.splitext(each_filename)[1]
 
@@ -2722,20 +2721,15 @@ class MainWorkerThread(threading.Thread):
                     else:
                         no_update = True
 
-                    print no_update
-
                     if loaded_sasm:
                         self._sendSASMToPlot(sasm_list, axes_num=axes_num, no_update=no_update, update_legend=False)
                         wx.CallAfter(self.plot_panel.canvas.draw_idle)
-                        wx.Yield()
                     if loaded_secm:
                         self._sendSECMToPlot(secm_list, no_update=no_update, update_legend = False)
                         wx.CallAfter(self.sec_plot_panel.canvas.draw_idle)
-                        wx.Yield()
                     if loaded_iftm:
                         self._sendIFTMToPlot(iftm_list, item_colour = item_colour, no_update=no_update, update_legend = False)
                         wx.CallAfter(self.ift_plot_panel.canvas.draw_idle)
-                        wx.Yield()
 
                     sasm_list = []
                     iftm_list = []
