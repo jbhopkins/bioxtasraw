@@ -8,10 +8,10 @@ Windows 7, 8.1, and 10 install from source instructions
 #.  Download and install the Microsoft Visual C++ 2008 SP1 Redistributable Package.
 
     *   Download the 64 bit version from:
-        `https://www.microsoft.com/en-us/download/details.aspx?id=29 <https://www.microsoft.com/en-us/download/details.aspx?id=29>`_
+        `https://www.microsoft.com/en-us/download/details.aspx?id=2092 <https://www.microsoft.com/en-us/download/details.aspx?id=2092>`_
 
     *   Download the 32  bit version from:
-        `https://www.microsoft.com/en-us/download/details.aspx?id=2092 <https://www.microsoft.com/en-us/download/details.aspx?id=2092>`_
+        `https://www.microsoft.com/en-us/download/details.aspx?id=29 <https://www.microsoft.com/en-us/download/details.aspx?id=29>`_
 
     *   Run the installer with the default options.
 
