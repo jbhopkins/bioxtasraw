@@ -794,12 +794,8 @@ def parseBiocatFilename(filename):
     directory, filename = os.path.split(filename)
     underscores = filename.split('_')
 
-    fprefix = underscores[0]
+    fprefix = '_'.join(underscores[:-1])
     frame_number = underscores[-1].split('.')[0]
-
-    if len(underscores)>2:
-        for each in underscores[1:-2]:
-            fprefix += '_' + each
 
     countFilename = os.path.join(directory, fprefix)
 

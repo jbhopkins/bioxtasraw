@@ -10750,10 +10750,13 @@ class SECControlPanel(wx.Panel):
             if self.image_prefix != '' or self.filename != '':
                 for frame in modified_frame_list:
                     name = os.path.join(self.directory, '%s_%s' %(self.image_prefix, frame))
+
                     if os.path.isfile(name+'.dat'):
                         file_list.append(name+'.dat')
                     elif os.path.isfile(name+'.tiff'):
                         file_list.append(name+'.tiff')
+                    elif os.path.isfile(name+'.tif'):
+                        file_list.append(name+'.tif')
                     else:
                         files = glob.glob(name+'.*')
                         if files:
