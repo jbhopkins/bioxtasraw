@@ -575,7 +575,6 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
                 if fresh_settings[key][0] != args[key_ref[key]]:
                     changed.append((key_ref[key]))
 
-
         if set(changed) <= cmd_line_keys:
             use_cmd_line = True
         else:
@@ -605,7 +604,10 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
                 os.remove(os.path.join(datadir, 'gnom.cfg'))
 
             if new_gnom and use_cmd_line:
-                cmd = '"%s" --rmax=%s --output="%s" --nr=%s' %(gnomDir, str(dmax), outname, str(args['npts']))
+                cmd = '"%s" --rmax=%s --output="%s"' %(gnomDir, str(dmax), outname)
+
+                if args['npts'] > 0:
+                    cmd = cmd + ' --nr=%s'%(str(args['npts']))
 
                 if 'system' in changed:
                     cmd = cmd+' --system=%s' %(str(args['system']))

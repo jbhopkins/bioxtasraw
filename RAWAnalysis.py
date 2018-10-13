@@ -2514,7 +2514,7 @@ class GNOMFrame(wx.Frame):
                 wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
                 self.cleanupGNOM(path, savename = savename)
                 os.chdir(cwd)
-                self.onClose()
+                # self.onClose()
                 return
 
             os.chdir(cwd)
@@ -2539,7 +2539,7 @@ class GNOMFrame(wx.Frame):
                 except (SASExceptions.NoATSASError, SASExceptions.GNOMError) as e:
                     wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
                     self.cleanupGNOM(path, savename = savename, outname = outname)
-                    self.onClose()
+                    # self.onClose()
                     os.chdir(cwd)
                     return
 
@@ -2720,6 +2720,11 @@ class GNOMPlotPanel(wx.Panel):
             self.gnom_line.set_xdata(qexp)
             self.gnom_line.set_ydata(jreg)
 
+            if not self.ift.get_visible():
+                self.ift.set_visible(True)
+                self.data_line.set_visible(True)
+                self.gnom_line.set_visible(True)
+
         a_oldx = a.get_xlim()
         a_oldy = a.get_ylim()
         b_oldx = b.get_xlim()
@@ -2750,6 +2755,28 @@ class GNOMPlotPanel(wx.Panel):
 
         self.canvas.blit(a.bbox)
         self.canvas.blit(b.bbox)
+
+    def clearDataPlot(self):
+        if self.ift:
+            self.ift.set_visible(False)
+            self.data_line.set_visible(False)
+            self.gnom_line.set_visible(False)
+
+            a = self.subplots['P(r)']
+            b = self.subplots['Data/Fit']
+
+            self.canvas.restore_region(self.background)
+            a.draw_artist(self.ift)
+            a.draw_artist(self.zero_line)
+
+            #restore white background in error plot and draw new error:
+            self.canvas.restore_region(self.err_background)
+            b.draw_artist(self.data_line)
+            b.draw_artist(self.gnom_line)
+
+            self.canvas.blit(a.bbox)
+            self.canvas.blit(b.bbox)
+
 
 
 class GNOMControlPanel(wx.Panel):
@@ -2884,6 +2911,8 @@ class GNOMControlPanel(wx.Panel):
 
         dmax = int(round(iftm.getParameter('dmax')))
 
+        self.old_dmax = dmax
+
         if dmax != iftm.getParameter('dmax'):
             self.calcGNOM(dmax)
         else:
@@ -2926,6 +2955,7 @@ class GNOMControlPanel(wx.Panel):
 
         self.old_nstart = new_nmin
         self.old_nend = new_nmax
+        self.old_dmax = dmax
 
         self.calcGNOM(dmax)
 
@@ -3110,7 +3140,8 @@ class GNOMControlPanel(wx.Panel):
             top = wx.FindWindowByName('GNOMFrame')
             top.cleanupGNOM(path, savename = savename)
             os.chdir(cwd)
-            top.OnClose()
+            self.SetFocusIgnoringChildren()
+            # top.OnClose()
             return
 
         os.chdir(cwd)
@@ -3429,7 +3460,10 @@ class GNOMControlPanel(wx.Panel):
                 self.old_nend = i
 
         else:
-            update_plot = True
+            dmax = float(wx.FindWindowById(self.spinctrlIDs['dmax'], self).GetValue())
+            if self.old_dmax != dmax:
+                update_plot = True
+            self.old_dmax = dmax
 
         if update_plot:
             #Important, since it's a slow function to update (could do it in a
@@ -3441,21 +3475,24 @@ class GNOMControlPanel(wx.Panel):
         dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
         dmax = dmaxWindow.GetValue()
 
+        plotpanel = wx.FindWindowByName('GNOMPlotPanel')
+
         if str(dmax) not in self.out_list:
             self.calcGNOM(dmax)
 
-        self.updateGNOMInfo(self.out_list[str(dmax)])
+        if str(dmax) in self.out_list:
+            self.updateGNOMInfo(self.out_list[str(dmax)])
 
-        plotpanel = wx.FindWindowByName('GNOMPlotPanel')
+            a = plotpanel.subplots['P(r)']
+            b = plotpanel.subplots['Data/Fit']
+            if not a.get_autoscale_on():
+                a.set_autoscale_on(True)
+            if not b.get_autoscale_on():
+                b.set_autoscale_on(True)
 
-        a = plotpanel.subplots['P(r)']
-        b = plotpanel.subplots['Data/Fit']
-        if not a.get_autoscale_on():
-            a.set_autoscale_on(True)
-        if not b.get_autoscale_on():
-            b.set_autoscale_on(True)
-
-        plotpanel.plotPr(self.out_list[str(dmax)])
+            plotpanel.plotPr(self.out_list[str(dmax)])
+        else:
+            plotpanel.clearDataPlot()
 
 
     def calcGNOM(self, dmax):
@@ -3507,7 +3544,8 @@ class GNOMControlPanel(wx.Panel):
             top = wx.FindWindowByName('GNOMFrame')
             top.cleanupGNOM(path, savename, outname)
             os.chdir(cwd)
-            top.OnClose()
+            self.SetFocusIgnoringChildren()
+            # top.OnClose()
             return
 
         os.chdir(cwd)
@@ -3521,7 +3559,6 @@ class GNOMControlPanel(wx.Panel):
 
     def onSettingsChange(self, evt):
         self.updateGNOMSettings()
-
 
     def updateGNOMSettings(self):
         self.old_settings = copy.deepcopy(self.gnom_settings)
@@ -6537,17 +6574,11 @@ class DenssResultsPanel(wx.Panel):
         self.model_sizer = wx.StaticBoxSizer(model_box, wx.HORIZONTAL)
         self.model_sizer.Add(self.models, 1, wx.ALL | wx.EXPAND, 5)
 
-
-        save_button = wx.Button(parent, wx.ID_ANY, 'Save Results Summary')
-        save_button.Bind(wx.EVT_BUTTON, self._saveResults)
-
-
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(self.ambi_sizer, 0, wx.EXPAND)
         top_sizer.Add(self.rscor_sizer, 0, wx.EXPAND)
         top_sizer.Add(self.res_sizer, 0, wx.EXPAND)
         top_sizer.Add(self.model_sizer, 1, wx.EXPAND)
-        top_sizer.Add(save_button, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
 
         return top_sizer
 
@@ -6724,7 +6755,9 @@ class DenssResultsPanel(wx.Panel):
         # viewer_window = wx.FindWindowByName('DammifViewerPanel')
         # viewer_window.updateResults(model_list)
 
-    def _saveResults(self, evt):
+        self._saveResults()
+
+    def _saveResults(self):
         res_data = []
         ambi_data = []
         rsc_data = []
@@ -6791,18 +6824,9 @@ class DenssResultsPanel(wx.Panel):
                     ('Averaged:', average),
                     ]
 
-        name = output_prefix
 
-        filename = name + '_denss_results.csv'
-
-        dialog = wx.FileDialog(self, message = "Please select save directory and enter save file name", style = wx.FD_SAVE, defaultDir = output_directory, defaultFile = filename)
-
-        if dialog.ShowModal() == wx.ID_OK:
-            save_path = dialog.GetPath()
-            name, ext = os.path.splitext(save_path)
-            save_path = name+'.csv'
-        else:
-            return
+        filename = output_prefix + '_denss_results.csv'
+        save_path = os.path.join(output_directory, filename)
 
         RAWGlobals.save_in_progress = True
         self.main_frame.setStatus('Saving DENSS data', 0)

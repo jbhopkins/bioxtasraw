@@ -2783,7 +2783,7 @@ class ATSASGnom(wx.Panel):
         rmax_sizer.Add(rmax_choice, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
 
 
-        npts_text = wx.StaticText(self, -1, 'Number of points in real space :')
+        npts_text = wx.StaticText(self, -1, 'Number of points in real space (0=auto, value sets to default):')
         npts_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomNPoints'), '', size = (60, -1), style = wx.TE_PROCESS_ENTER)
 
         npts_sizer = wx.BoxSizer(wx.HORIZONTAL)
