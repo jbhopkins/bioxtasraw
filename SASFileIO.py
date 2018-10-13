@@ -1797,6 +1797,27 @@ def loadDamselLogFile(filename):
 
     return mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err, res_unit
 
+def loadDamsupLogFile(filename):
+    model_data = []
+    representative_model = ''
+
+    with open(filename, 'rU') as f:
+        for line in f:
+            results = line.strip().split()
+
+            try:
+                nsd = float(results[0])
+            except Exception:
+                nsd = -1
+
+            if nsd >= 0:
+                model_data.append([nsd, results[1]])
+
+            if nsd == 0:
+                representative_model = results[1]
+
+    return model_data, representative_model
+
 def loadDamclustLogFile(filename):
     """Loads data from a damclust log file"""
     cluster_pattern = re.compile('\s*Cluster\s*\d')

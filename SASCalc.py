@@ -60,9 +60,7 @@ import RAWGlobals
 def linear_func(x, a, b):
     return a+b*x
 
-def calcRg(q, i, err, transform=True):
-    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
-    error_weight = raw_settings.get('errorWeight')
+def calcRg(q, i, err, transform=True, error_weight=True):
     if transform:
         #Start out by transforming as usual.
         x = np.square(q)
@@ -207,7 +205,7 @@ def porodVolume(q, i, err, rg, i0, start = 0, stop = -1, interp = True, rg_qmin=
 
     return pVolume
 
-def autoRg(sasm, single_fit=False):
+def autoRg(sasm, single_fit=False, error_weight=True):
     #This function automatically calculates the radius of gyration and scattering intensity at zero angle
     #from a given scattering profile. It roughly follows the method used by the autorg function in the atsas package
 
@@ -288,7 +286,7 @@ def autoRg(sasm, single_fit=False):
             y = y[np.where(np.isinf(y) == False)]
 
 
-            RG, I0, RGer, I0er, opt, cov = calcRg(x, y, yerr, transform=False)
+            RG, I0, RGer, I0er, opt, cov = calcRg(x, y, yerr, transform=False, error_weight=error_weight)
 
             if RG>0.1 and q[start]*RG<1 and q[start+w-1]*RG<1.35 and RGer/RG <= 1:
 
@@ -887,6 +885,7 @@ def runDatgnom(datname, sasm):
 
 
     raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+    error_weight = raw_settings.get('errorWeight')
     atsasDir = raw_settings.get('ATSASDir')
 
     opsys = platform.system()
@@ -912,7 +911,7 @@ def runDatgnom(datname, sasm):
 
         if new_datgnom:
             if rg < 0:
-                autorg_output = autoRg(sasm)
+                autorg_output = autoRg(sasm, error_weight=error_weight)
                 rg = autorg_output[0]
                 if rg < 0:
                     rg = 20
@@ -929,7 +928,7 @@ def runDatgnom(datname, sasm):
         if error == 'Cannot define Dmax' or error=='Could not find Rg' and not new_datgnom:
 
             if rg <= 0:
-                rg, rger, i0, i0er, idx_min, idx_max =autoRg(sasm)
+                rg, rger, i0, i0er, idx_min, idx_max =autoRg(sasm, error_weight=error_weight)
                 if rg>10:
                     process=subprocess.Popen('"%s" "%s" -o "%s" -r %f' %(datgnomDir, datname, outname, rg),stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
 

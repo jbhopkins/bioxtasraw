@@ -149,7 +149,10 @@ class GuinierPlotPanel(wx.Panel):
         yerr = yerr[np.where(np.isinf(y) == False)]
         y = y[np.where(np.isinf(y) == False)]
 
-        Rg, I0, Rger, I0er, opt, cov = SASCalc.calcRg(x, y, yerr, transform=False)
+        error_weight = self.raw_settings.get('errorWeight')
+
+        Rg, I0, Rger, I0er, opt, cov = SASCalc.calcRg(x, y, yerr, transform=False,
+            error_weight=error_weight)
 
         if is_autorg:
             est_rg_err = None
@@ -180,6 +183,8 @@ class GuinierPlotPanel(wx.Panel):
         return x, y_fit, a, error, newInfo
 
     def _estimateError(self, x, y, yerr):
+        error_weight = self.raw_settings.get('errorWeight')
+
         win_size = len(x)
 
         if win_size < 10:
@@ -197,9 +202,12 @@ class GuinierPlotPanel(wx.Panel):
             for li in range(0, var+1, step):
                 for ri in range(0,var+1, step):
                     if ri == 0:
-                        Rg, I0, Rger, I0er, opt, cov = SASCalc.calcRg(x[li:], y[li:], yerr[li:], transform=False)
+                        Rg, I0, Rger, I0er, opt, cov = SASCalc.calcRg(x[li:],
+                            y[li:], yerr[li:], transform=False, error_weight=error_weight)
                     else:
-                        Rg, I0, Rger, I0er, opt, cov = SASCalc.calcRg(x[li:-ri], y[li:-ri], yerr[li:-ri], transform=False)
+                        Rg, I0, Rger, I0er, opt, cov = SASCalc.calcRg(x[li:-ri],
+                            y[li:-ri], yerr[li:-ri], transform=False, error_weight=error_weight)
+
                     rg_list.append(Rg)
                     i0_list.append(I0)
 
@@ -739,7 +747,9 @@ class GuinierControlPanel(wx.Panel):
         self.runAutoRg()
 
     def runAutoRg(self):
-        rg, rger, i0, i0er, idx_min, idx_max = SASCalc.autoRg(self.ExpObj)
+        error_weight = self.raw_settings.get('errorWeight')
+        rg, rger, i0, i0er, idx_min, idx_max = SASCalc.autoRg(self.ExpObj,
+            error_weight=error_weight)
 
         spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
         spinend = wx.FindWindowById(self.spinctrlIDs['qend'], self)
@@ -4953,18 +4963,12 @@ class DammifResultsPanel(wx.Panel):
 
         self.models_sizer.Add(models_list, 1, wx.EXPAND)
 
-
-        save_button = wx.Button(parent, wx.ID_ANY, 'Save Results Summary')
-        save_button.Bind(wx.EVT_BUTTON, self._saveResults)
-
-
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(self.ambi_sizer, 0, wx.EXPAND)
         top_sizer.Add(self.nsd_sizer, 0, wx.EXPAND)
         top_sizer.Add(self.res_sizer, 0, wx.EXPAND)
         top_sizer.Add(self.clust_sizer,0, wx.EXPAND)
         top_sizer.Add(self.models_sizer,1,wx.EXPAND)
-        top_sizer.Add(save_button, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
 
         return top_sizer
 
@@ -5103,6 +5107,10 @@ class DammifResultsPanel(wx.Panel):
             filename = os.path.join(path, name)
             mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err, res_unit = SASFileIO.loadDamselLogFile(filename)
 
+            name = prefix+'_damsup.log'
+            filename = os.path.join(path, name)
+            model_data, rep_model = SASFileIO.loadDamsupLogFile(filename)
+
         for num in file_nums:
             fprefix = '%s_%s' %(prefix, str(num).zfill(2))
             dam_name = os.path.join(path, fprefix+'-1.pdb')
@@ -5157,6 +5165,10 @@ class DammifResultsPanel(wx.Panel):
                     index = models_window.GetItemCount()-1
                     models_window.SetItemTextColour(index, 'red')
 
+                if item[0] == int('-'.join(rep_model.split('_')[-1].split('-')[:-1])):
+                    index = models_window.GetItemCount()-1
+                    models_window.SetItemTextColour(index, 'blue')
+
         return model_list
 
     def updateResults(self, settings):
@@ -5190,7 +5202,9 @@ class DammifResultsPanel(wx.Panel):
         viewer_window = wx.FindWindowByName('DammifViewerPanel')
         viewer_window.updateResults(model_list)
 
-    def _saveResults(self, evt):
+        self._saveResults()
+
+    def _saveResults(self):
         nsd_data = []
         res_data = []
         clust_num = 0
@@ -5198,13 +5212,32 @@ class DammifResultsPanel(wx.Panel):
         dlist_data = []
         ambi_data = []
 
+        models_list = wx.FindWindowById(self.ids['models'])
+        cdb = wx.ColourDatabase()
+
         if self.topsizer.IsShown(self.nsd_sizer):
             nsd_mean = wx.FindWindowById(self.ids['nsdMean']).GetValue()
             nsd_stdev = wx.FindWindowById(self.ids['nsdStdev']).GetValue()
             nsd_inc = wx.FindWindowById(self.ids['nsdInc']).GetValue()
             nsd_tot = wx.FindWindowById(self.ids['nsdTot']).GetValue()
-            nsd_data = [('Mean NSD:', nsd_mean), ('Stdev. NSD', nsd_stdev),
-                        ('DAMAVER Included:', nsd_inc, 'of', nsd_tot)]
+
+            rep_item = ''
+            ex_items = []
+            for i in range(models_list.GetItemCount()):
+                if cdb.FindName(models_list.GetItemTextColour(i)).lower() == 'blue':
+                    rep_item = models_list.GetItem(i, 0).GetText()
+                if cdb.FindName(models_list.GetItemTextColour(i)).lower() == 'red':
+                    ex_items.append(models_list.GetItem(i, 0).GetText())
+
+
+            nsd_data = [('Mean NSD:', nsd_mean),
+                ('Stdev. NSD:', nsd_stdev),
+                ('DAMAVER Included:', nsd_inc, 'of', nsd_tot),
+                ('Representative model:', rep_item),
+                ]
+
+            if ex_items:
+                nsd_data.append(('Excluded Models:', ' ,'.join(ex_items)))
 
         if self.topsizer.IsShown(self.res_sizer):
             res = wx.FindWindowById(self.ids['res']).GetValue()
@@ -5237,9 +5270,6 @@ class DammifResultsPanel(wx.Panel):
                     item_data[j] = data
 
                 dlist_data[i] = item_data
-
-
-        models_list = wx.FindWindowById(self.ids['models'])
 
         model_data = [[] for k in range(models_list.GetItemCount())]
         for i in range(models_list.GetItemCount()):
@@ -5280,16 +5310,16 @@ class DammifResultsPanel(wx.Panel):
 
         name = output_prefix
 
-        filename = name + '_dammif_results.csv'
+        save_path = os.path.join(output_directory, name + '_dammif_results.csv')
 
-        dialog = wx.FileDialog(self, message = "Please select save directory and enter save file name", style = wx.FD_SAVE, defaultDir = output_directory, defaultFile = filename)
+        # dialog = wx.FileDialog(self, message = "Please select save directory and enter save file name", style = wx.FD_SAVE, defaultDir = output_directory, defaultFile = filename)
 
-        if dialog.ShowModal() == wx.ID_OK:
-            save_path = dialog.GetPath()
-            name, ext = os.path.splitext(save_path)
-            save_path = name+'.csv'
-        else:
-            return
+        # if dialog.ShowModal() == wx.ID_OK:
+        #     save_path = dialog.GetPath()
+        #     name, ext = os.path.splitext(save_path)
+        #     save_path = name+'.csv'
+        # else:
+        #     return
 
         RAWGlobals.save_in_progress = True
         self.main_frame.setStatus('Saving DAMMIF/N data', 0)

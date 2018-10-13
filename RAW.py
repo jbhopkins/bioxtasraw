@@ -181,7 +181,7 @@ class MainFrame(wx.Frame):
         self.denssframe = None
 
         self.raw_settings = RAWSettings.RawGuiSettings()
- 
+
         self.OnlineControl = OnlineController(self, self.raw_settings)
         self.OnlineSECControl = OnlineSECController(self, self.raw_settings)
 
@@ -718,8 +718,10 @@ class MainFrame(wx.Frame):
                 return
             else:
                 failed_autorg = []
+                error_weight = self.raw_settings.get('errorWeight')
                 for sasm in missing_rg:
-                    rg, rger, i0, i0er, idx_min, idx_max = SASCalc.autoRg(sasm, single_fit=True)
+                    rg, rger, i0, i0er, idx_min, idx_max = SASCalc.autoRg(sasm,
+                        single_fit=True, error_weight=error_weight)
                     if rg > 0:
                         qs = np.square(sasm.q)
                         il = np.log(sasm.i)
@@ -3002,6 +3004,7 @@ class MainWorkerThread(threading.Thread):
 
 
         threshold = self._raw_settings.get('secCalcThreshold')
+        error_weight = self._raw_settings.get('errorWeight')
 
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait, calculating')
         initial_buffer_frame, final_buffer_frame, window_size = secm.getCalcParams()
@@ -3143,7 +3146,8 @@ class MainWorkerThread(threading.Thread):
 
                 if use_current_sasm:
                     #use autorg to find the Rg and I0
-                    rg[a], rger[a], i0[a], i0er[a], indx_min, indx_max = SASCalc.autoRg(current_sasm)
+                    rg[a], rger[a], i0[a], i0er[a], indx_min, indx_max = SASCalc.autoRg(current_sasm,
+                        error_weight=error_weight)
 
                     #Now use the rambo tainer 2013 method to calculate molecular weight
                     if rg[a] > 0:
@@ -3173,7 +3177,7 @@ class MainWorkerThread(threading.Thread):
                     index = a+(window_size-1)/2
 
                     #use autorg to find the Rg and I0
-                    rg[index], rger[index], i0[index], i0er[index], idx_min, idx_max = SASCalc.autoRg(current_sasm)
+                    rg[index], rger[index], i0[index], i0er[index], idx_min, idx_max = SASCalc.autoRg(current_sasm, error_weight=error_weight)
 
                     #Now use the rambo tainer 2013 method to calculate molecular weight
                     if rg[index] > 0:
@@ -3220,6 +3224,7 @@ class MainWorkerThread(threading.Thread):
 
 
         threshold = self._raw_settings.get('secCalcThreshold')
+        error_weight = self._raw_settings.get('errorWeight')
 
         first_update_frame = int(frame_list[0])
         last_update_frame = int(frame_list[-1])
@@ -3370,7 +3375,7 @@ class MainWorkerThread(threading.Thread):
 
                 if use_current_sasm:
                     #use autorg to find the Rg and I0
-                    rg[a], rger[a], i0[a], i0er[a], indx_min, indx_max = SASCalc.autoRg(current_sasm)
+                    rg[a], rger[a], i0[a], i0er[a], indx_min, indx_max = SASCalc.autoRg(current_sasm, error_weight=error_weight)
 
                     #Now use the rambo tainer 2013 method to calculate molecular weight
                     if rg[a] > 0:
@@ -3401,7 +3406,7 @@ class MainWorkerThread(threading.Thread):
                     index = a+(window_size-1)/2
 
                     #use autorg to find the Rg and I0
-                    rg[index], rger[index], i0[index], i0er[index], indx_min, indx_max = SASCalc.autoRg(current_sasm)
+                    rg[index], rger[index], i0[index], i0er[index], indx_min, indx_max = SASCalc.autoRg(current_sasm, error_weight=error_weight)
 
                     #Now use the rambo tainer 2013 method to calculate molecular weight
                     if rg[index] > 0:
