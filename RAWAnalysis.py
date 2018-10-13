@@ -6719,13 +6719,13 @@ class DenssResultsPanel(wx.Panel):
         inc = str(avg_results['inc'])
 
         mean_window = wx.FindWindowById(self.ids['rscorMean'], self)
-        wx.CallAfter(mean_window.SetValue, mean)
+        mean_window.SetValue(mean)
         std_window = wx.FindWindowById(self.ids['rscorStd'], self)
-        wx.CallAfter(std_window.SetValue, std)
+        std_window.SetValue(std)
         inc_window = wx.FindWindowById(self.ids['rscorInc'], self)
-        wx.CallAfter(inc_window.SetValue, inc)
+        inc_window.SetValue(inc)
         total_window = wx.FindWindowById(self.ids['rscorTot'], self)
-        wx.CallAfter(total_window.SetValue, total)
+        total_window.SetValue(total)
 
     def updateResults(self, settings, denss_results, denss_stats, average_results):
         #In case we ran a different setting a second time, without closing the window
@@ -6762,6 +6762,10 @@ class DenssResultsPanel(wx.Panel):
         ambi_data = []
         rsc_data = []
 
+        models_list = wx.FindWindowById(self.ids['model_sum'], self)
+
+        cdb = wx.ColourDatabase()
+
         if self.topsizer.IsShown(self.rscor_sizer):
             mean = wx.FindWindowById(self.ids['rscorMean'], self).GetValue()
             std = wx.FindWindowById(self.ids['rscorStd'], self).GetValue()
@@ -6773,12 +6777,19 @@ class DenssResultsPanel(wx.Panel):
             rsc_data.append(('Number of models included:', inc))
             rsc_data.append(('Total number of models:', total))
 
+            ex_items = []
+            for i in range(models_list.GetItemCount()):
+                if cdb.FindName(models_list.GetItemTextColour(i)).lower() == 'red':
+                    ex_items.append(models_list.GetItem(i, 0).GetText())
+
+            if ex_items:
+                rsc_data.append(('Excluded Models:', ' ,'.join(ex_items)))
 
         if self.topsizer.IsShown(self.res_sizer):
             res = wx.FindWindowById(self.ids['res']).GetValue()
             res_data = [('Fourier Shell Correlation Resolution (Angstrom):', res)]
 
-        models_nb = wx.FindWindowById(self.ids['models'])
+        models_nb = wx.FindWindowById(self.ids['models'], self)
 
         model_plots = []
 
@@ -6788,8 +6799,6 @@ class DenssResultsPanel(wx.Panel):
                 figures = page.figures
                 model = models_nb.GetPageText(i)
                 model_plots.append((model, figures))
-
-        models_list = wx.FindWindowById(self.ids['model_sum'])
 
         model_data = [[] for k in range(models_list.GetItemCount())]
 
