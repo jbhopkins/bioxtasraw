@@ -10746,7 +10746,7 @@ class SECControlPanel(wx.Panel):
                         file_list.append(name+'.tiff')
                     else:
                         files = glob.glob(name+'.*')
-                        if files:
+                        if files and not files[0].endswith('.tmp'):
                             file_list.append(files[0])
                         else:
                             bad_file_list.append(frame)
@@ -10764,7 +10764,7 @@ class SECControlPanel(wx.Panel):
                         file_list.append(name+'.tif')
                     else:
                         files = glob.glob(name+'.*')
-                        if files:
+                        if files and not files[0].endswith('.tmp'):
                             file_list.append(files[0])
                         else:
                             bad_file_list.append(frame)
