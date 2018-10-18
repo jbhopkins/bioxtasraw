@@ -19,6 +19,7 @@ from __future__ import division
 
 import os
 import math
+import time
 
 from scipy.linalg import det
 import numpy as np
@@ -337,43 +338,17 @@ def SingleSolve(alpha, dmax, Ep, N):
     Pr.insert(0,0)
     Pr.append(0)
 
-    #Calc I0 and Rg:
-    area = 0
-    area2 = 0
+    Pr = Pr / (4*np.pi*dr) # watch out! From the optimization Pr = Pr*4* pi*dr !!
 
-    for x in range(1, len(Pr)):                        # watch out! Pr = Pr * dr !!
-        #area = area + dr * Pr[x]
-        area = area + dr * ((Pr[x-1]+Pr[x])/2)                   # Trapez integration
-        area2 = area2 + dr * ((Pr[x-1]+Pr[x])/2) * pow(r[x], 2)  # For Rg^2 calc
-
-    area = area / dr         # watch out! Pr = Pr 4 * pi * dr !!
-    area2 = area2 / dr
+    area = np.trapz(Pr, r)
+    area2 = np.trapz(np.array(Pr)*np.array(r)**2, r)
 
     RgSq = area2 / (2 * area)
+    Rg = np.sqrt(abs(RgSq))
 
-    Rg = np.sqrt(abs(RgSq))[0]
-
-    # print 'Rg : ', Rg
-    # print 'dr : ', dr
-    # print 'Area2 : ', area2
-
-    I0 = np.mean(Fit[0, 0:5])
-    # print Fit[0, 0:5]
-    # print 'I(0) from avg of 5 first points :', I0
-    # print 'I(0) from area under P(r) : ', area
-
-    I0 = area
+    I0 = area*4*np.pi
 
     Pr = np.array(Pr)
-
-    Pr = Pr / (4*np.pi*dr)   # Since what we got from the optimization is 4*pi*dr * p(r)
-                          #(we excluded 4*pi*dr in the trans matrix!)
-
-    #Pr = Pr[0]  ## ..need this if we dont add zeros
-
-    Pr = np.transpose(Pr)
-
-    #alphafin = exp(alphafin)
 
     # Save all information from the search
     bift_info = {'alpha' : alphafin,
@@ -387,7 +362,7 @@ def SingleSolve(alpha, dmax, Ep, N):
 
     #ExpObj = cartToPol.BIFTMeasurement(transpose(Pr), r, ones((len(transpose(Pr)),1)), Ep.param, Fit, plotinfo)
 
-    ift_sasm = SASM.IFTM(np.transpose(Pr), r, np.ones(len(np.transpose(Pr))), Ep.i[qmin:qmax], Ep.q[qmin:qmax], Ep.err[qmin:qmax], Fit[0], bift_info)
+    ift_sasm = SASM.IFTM(Pr, r, np.ones(len(Pr)), Ep.i[qmin:qmax], Ep.q[qmin:qmax], Ep.err[qmin:qmax], Fit[0], bift_info)
 
     return ift_sasm
 
@@ -539,39 +514,17 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
     Pr.insert(0,0)
     Pr.append(0)
 
-    #Normalize P(r) funcion so that the area is equal to I0
-    area = 0
-    area2 = 0
+    Pr = Pr / (4*np.pi*dr) # watch out! From the optimization Pr = Pr*4* pi*dr !!
 
-    for x in range(1, len(Pr)):                        # watch out! Pr = Pr * dr !!
-        #area = area + dr * Pr[x]
-        area = area + dr * ((Pr[x-1]+Pr[x])/2)                   # Trapez integration
-        area2 = area2 + dr * ((Pr[x-1]+Pr[x])/2) * pow(r[x], 2)  # For Rg^2 calc
-
-    area = area / dr   # watch out! Pr = Pr 4 * pi * dr !!
-    area2 = area2 / dr
+    area = np.trapz(Pr, r)
+    area2 = np.trapz(np.array(Pr)*np.array(r)**2, r)
 
     RgSq = area2 / (2 * area)
+    Rg = np.sqrt(abs(RgSq))
 
-    Rg = np.sqrt(abs(RgSq))[0]
+    I0 = area*4*np.pi
 
-    # print 'Rg : ', Rg
-    # print 'dr : ', dr
-    # print 'Area2 : ', area2
-
-    I0 = np.mean(Fit[0, 0:5])
-    # print Fit[0, 0:5]
-    # print 'I(0) from avg of 5 first points :', I0
-    # print 'I(0) from area under P(r) : ', area
-
-    I0 = area
-
-    Pr = np.array(Pr)    # Since what we got from the optimization is 4*pi*dr * p(r)
-                      #(we excluded 4*pi*dr in the trans matrix!)
-
-    Pr = Pr / (4*np.pi*dr)
-
-    Pr = np.transpose(Pr)
+    Pr = np.array(Pr)
 
     # Save all information from the search
     bift_info = {'dmax_points' : dmax_points,
@@ -579,13 +532,13 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
                 'all_posteriors' : all_posteriors,
                 'alpha' : alphafin,
                 'dmax' : dmaxfin,
-                'I0' : I0[0],
+                'I0' : I0,
                 'ChiSquared' : c,
                 'Rg' : Rg,
                 'filename': os.path.splitext(Ep.getParameter('filename'))[0]+'.ift',
                 'algorithm' : 'BIFT'}
 
-    ift_sasm = SASM.IFTM(np.transpose(Pr), r, np.ones(len(np.transpose(Pr))), Ep.i[qmin:qmax], Ep.q[qmin:qmax], Ep.err[qmin:qmax], Fit[0], bift_info)
+    ift_sasm = SASM.IFTM(Pr, r, np.ones(len(Pr)), Ep.i[qmin:qmax], Ep.q[qmin:qmax], Ep.err[qmin:qmax], Fit[0], bift_info)
 
     bift_status = {'alpha'      : alphafin,
                    'evidence'   : post,

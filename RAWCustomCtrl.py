@@ -25,6 +25,9 @@ if wx.version().split()[0].strip()[0] == '4':
     control_super = wx.Control
 else:
     control_super = wx.PyControl
+import wx.lib.agw.flatnotebook as flatNB
+from wx.lib.agw import ultimatelistctrl as ULC
+import wx.lib.agw.supertooltip as STT
 
 import RAWIcons
 import RAWGlobals
@@ -594,7 +597,11 @@ class CustomCheckBox(control_super):
 
         # If you want to reduce flicker, a good starting point is to
         # use wx.BufferedPaintDC.
-        dc = wx.BufferedPaintDC(self)
+
+        if self.GetContentScaleFactor() > 1:
+            dc = wx.PaintDC(self)
+        else:
+            dc = wx.BufferedPaintDC(self)
 
         # Is is advisable that you don't overcrowd the OnPaint event
         # (or any other event) with a lot of code, so let's do the
@@ -628,7 +635,7 @@ class CustomCheckBox(control_super):
         else:
             dc.SetTextForeground(wx.SystemSettings.GetColour(wx.SYS_COLOUR_GRAYTEXT))
 
-        dc.SetFont(self.GetFont())
+        dc.SetFont(self.GetParent().GetFont())
 
         # Get the text label for the checkbox, the associated check bitmap
         # and the spacing between the check bitmap and the text
@@ -1150,3 +1157,523 @@ class RawPlotFileDropTarget(wx.FileDropTarget):
             RAWGlobals.mainworker_cmd_queue.put(['show_image', [filenames[0], 0]])
 
         return True
+
+#Monkey patch flatNB.PageContainer
+def OnPaintFNB(self, event):
+    """
+    Handles the ``wx.EVT_PAINT`` event for :class:`PageContainer`.
+
+    :param `event`: a :class:`PaintEvent` event to be processed.
+    """
+
+    if self.GetContentScaleFactor() > 1:
+        dc = wx.PaintDC(self)
+    else:
+        dc = wx.BufferedPaintDC(self)
+
+    parent = self.GetParent()
+
+    renderer = self._mgr.GetRenderer(parent.GetAGWWindowStyleFlag())
+    renderer.DrawTabs(self, dc)
+
+    if self.HasAGWFlag(flatNB.FNB_HIDE_ON_SINGLE_TAB) and len(self._pagesInfoVec) <= 1 or \
+       self.HasAGWFlag(flatNB.FNB_HIDE_TABS) or parent._orientation or \
+       (parent._customPanel and len(self._pagesInfoVec) == 0):
+        self.Hide()
+        self.GetParent()._mainSizer.Layout()
+        self.Refresh()
+
+flatNB.PageContainer.OnPaint = OnPaintFNB
+
+
+#Monkey patch ULC.UltimateListHeaderWindow
+
+def OnPaintULCHeader(self, event):
+    """
+    Handles the ``wx.EVT_PAINT`` event for :class:`UltimateListHeaderWindow`.
+    :param `event`: a :class:`PaintEvent` event to be processed.
+    """
+
+    if self.GetContentScaleFactor() > 1:
+        dc = wx.PaintDC(self)
+    else:
+        dc = wx.BufferedPaintDC(self)
+    # width and height of the entire header window
+    w, h = self.GetClientSize()
+    w, dummy = self._owner.CalcUnscrolledPosition(w, 0)
+    dc.SetBrush(wx.Brush(wx.SystemSettings.GetColour(wx.SYS_COLOUR_BTNFACE)))
+    dc.SetPen(wx.TRANSPARENT_PEN)
+    dc.DrawRectangle(0, -1, w, h+2)
+
+    self.AdjustDC(dc)
+
+    dc.SetBackgroundMode(wx.TRANSPARENT)
+    dc.SetTextForeground(self.GetForegroundColour())
+
+    x = ULC.HEADER_OFFSET_X
+
+    numColumns = self._owner.GetColumnCount()
+    item = ULC.UltimateListItem()
+    renderer = wx.RendererNative.Get()
+    enabled = self.GetParent().IsEnabled()
+    virtual = self._owner.IsVirtual()
+    isFooter = self._isFooter
+
+    for i in range(numColumns):
+
+        # Reset anything in the dc that a custom renderer might have changed
+        dc.SetTextForeground(self.GetForegroundColour())
+
+        if x >= w:
+            break
+
+        if not self.IsColumnShown(i):
+            continue # do next column if not shown
+
+        item = self._owner.GetColumn(i)
+        wCol = item._width
+
+        cw = wCol
+        ch = h
+
+        flags = 0
+        if not enabled:
+            flags |= wx.CONTROL_DISABLED
+
+        # NB: The code below is not really Mac-specific, but since we are close
+        # to 2.8 release and I don't have time to test on other platforms, I
+        # defined this only for wxMac. If this behavior is desired on
+        # other platforms, please go ahead and revise or remove the #ifdef.
+
+        if "__WXMAC__" in wx.PlatformInfo:
+            if not virtual and item._mask & ULC.ULC_MASK_STATE and item._state & ULC.ULC_STATE_SELECTED:
+                flags |= wx.CONTROL_SELECTED
+
+        if i == 0:
+           flags |= wx.CONTROL_SPECIAL # mark as first column
+
+        if i == self._currentColumn:
+            if self._leftDown:
+                flags |= wx.CONTROL_PRESSED
+            else:
+                if self._enter:
+                    flags |= wx.CONTROL_CURRENT
+
+        # the width of the rect to draw: make it smaller to fit entirely
+        # inside the column rect
+        header_rect = wx.Rect(x-1, ULC.HEADER_OFFSET_Y-1, cw-1, ch)
+
+        if self._headerCustomRenderer != None:
+           self._headerCustomRenderer.DrawHeaderButton(dc, header_rect, flags)
+
+           # The custom renderer will specify the color to draw the header text and buttons
+           dc.SetTextForeground(self._headerCustomRenderer.GetForegroundColour())
+
+        elif item._mask & ULC.ULC_MASK_RENDERER:
+           item.GetCustomRenderer().DrawHeaderButton(dc, header_rect, flags)
+
+           # The custom renderer will specify the color to draw the header text and buttons
+           dc.SetTextForeground(item.GetCustomRenderer().GetForegroundColour())
+        else:
+            renderer.DrawHeaderButton(self, dc, header_rect, flags)
+
+
+        # see if we have enough space for the column label
+        if isFooter:
+            if item.GetFooterFont().IsOk():
+                dc.SetFont(item.GetFooterFont())
+            else:
+                dc.SetFont(self.GetFont())
+        else:
+            if item.GetFont().IsOk():
+                dc.SetFont(item.GetFont())
+            else:
+                dc.SetFont(self.GetFont())
+
+        wcheck = hcheck = 0
+        kind = (isFooter and [item.GetFooterKind()] or [item.GetKind()])[0]
+        checked = (isFooter and [item.IsFooterChecked()] or [item.IsChecked()])[0]
+
+        if kind in [1, 2]:
+            # We got a checkbox-type item
+            ix, iy = self._owner.GetCheckboxImageSize()
+            # We draw it on the left, always
+            self._owner.DrawCheckbox(dc, x + ULC.HEADER_OFFSET_X, ULC.HEADER_OFFSET_Y + (h - 4 - iy)/2, kind, checked, enabled)
+            wcheck += ix + ULC.HEADER_IMAGE_MARGIN_IN_REPORT_MODE
+            cw -= ix + ULC.HEADER_IMAGE_MARGIN_IN_REPORT_MODE
+
+        # for this we need the width of the text
+        text = (isFooter and [item.GetFooterText()] or [item.GetText()])[0]
+        wLabel, hLabel, dummy = dc.GetFullMultiLineTextExtent(text)
+        wLabel += 2*ULC.EXTRA_WIDTH
+
+        # and the width of the icon, if any
+        image = (isFooter and [item._footerImage] or [item._image])[0]
+
+        if image:
+            imageList = self._owner._small_image_list
+            if imageList:
+                for img in image:
+                    if img >= 0:
+                        ix, iy = imageList.GetSize(img)
+                        wLabel += ix + ULC.HEADER_IMAGE_MARGIN_IN_REPORT_MODE
+
+        else:
+
+            imageList = None
+
+        # ignore alignment if there is not enough space anyhow
+        align = (isFooter and [item.GetFooterAlign()] or [item.GetAlign()])[0]
+        align = (wLabel < cw and [align] or [ULC.ULC_FORMAT_LEFT])[0]
+
+        if align == ULC.ULC_FORMAT_LEFT:
+            xAligned = x + wcheck
+
+        elif align == ULC.ULC_FORMAT_RIGHT:
+            xAligned = x + cw - wLabel - ULC.HEADER_OFFSET_X
+
+        elif align == ULC.ULC_FORMAT_CENTER:
+            xAligned = x + wcheck + (cw - wLabel)/2
+
+        # if we have an image, draw it on the right of the label
+        if imageList:
+            for indx, img in enumerate(image):
+                if img >= 0:
+                    imageList.Draw(img, dc,
+                                   xAligned + wLabel - (ix + ULC.HEADER_IMAGE_MARGIN_IN_REPORT_MODE)*(indx+1),
+                                   ULC.HEADER_OFFSET_Y + (h - 4 - iy)/2,
+                                   wx.IMAGELIST_DRAW_TRANSPARENT)
+
+                    cw -= ix + ULC.HEADER_IMAGE_MARGIN_IN_REPORT_MODE
+
+        # draw the text clipping it so that it doesn't overwrite the column
+        # boundary
+        dc.SetClippingRegion(x, ULC.HEADER_OFFSET_Y, cw, h - 4)
+        self.DrawTextFormatted(dc, text, wx.Rect(xAligned+ULC.EXTRA_WIDTH, ULC.HEADER_OFFSET_Y, cw-ULC.EXTRA_WIDTH, h-4))
+
+        x += wCol
+        dc.DestroyClippingRegion()
+
+    # Fill in what's missing to the right of the columns, otherwise we will
+    # leave an unpainted area when columns are removed (and it looks better)
+    if x < w:
+        header_rect = wx.Rect(x, ULC.HEADER_OFFSET_Y, w - x, h)
+        if self._headerCustomRenderer != None:
+            # Why does the custom renderer need this adjustment??
+            header_rect.x = header_rect.x - 1
+            header_rect.y = header_rect.y - 1
+            self._headerCustomRenderer.DrawHeaderButton(dc, header_rect, wx.CONTROL_SPECIAL)
+        else:
+            renderer.DrawHeaderButton(self, dc, header_rect, wx.CONTROL_SPECIAL) # mark as last column
+
+ULC.UltimateListHeaderWindow.OnPaint = OnPaintULCHeader
+
+#Monkey patch ULC.UltimateListMainWindow
+
+def OnPaintULCMain(self, event):
+    """
+    Handles the ``wx.EVT_PAINT`` event for :class:`UltimateListMainWindow`.
+
+    :param `event`: a :class:`PaintEvent` event to be processed.
+    """
+
+    # Note: a wxPaintDC must be constructed even if no drawing is
+    # done (a Windows requirement).
+    if self.GetContentScaleFactor() > 1:
+        dc = wx.PaintDC(self)
+    else:
+        dc = wx.BufferedPaintDC(self)
+
+    dc.SetBackgroundMode(wx.TRANSPARENT)
+
+    self.PrepareDC(dc)
+
+    dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
+    dc.SetPen(wx.TRANSPARENT_PEN)
+    dc.Clear()
+
+    self.TileBackground(dc)
+    self.PaintWaterMark(dc)
+
+    if self.IsEmpty():
+        # nothing to draw or not the moment to draw it
+        return
+
+    if self._dirty:
+        # delay the repainting until we calculate all the items positions
+        self.RecalculatePositions(False)
+
+    useVista, useGradient = self._vistaselection, self._usegradients
+    dev_x, dev_y = self.CalcScrolledPosition(0, 0)
+
+    dc.SetFont(self.GetFont())
+
+    if self.InReportView():
+        visibleFrom, visibleTo = self.GetVisibleLinesRange()
+
+        # mrcs: draw additional items
+        if visibleFrom > 0:
+            visibleFrom -= 1
+
+        if visibleTo < self.GetItemCount() - 1:
+            visibleTo += 1
+
+        xOrig = dc.LogicalToDeviceX(0)
+        yOrig = dc.LogicalToDeviceY(0)
+
+        # tell the caller cache to cache the data
+        if self.IsVirtual():
+
+            evCache = ULC.UltimateListEvent(ULC.wxEVT_COMMAND_LIST_CACHE_HINT, self.GetParent().GetId())
+            evCache.SetEventObject(self.GetParent())
+            evCache.m_oldItemIndex = visibleFrom
+            evCache.m_itemIndex = visibleTo
+            self.GetParent().GetEventHandler().ProcessEvent(evCache)
+
+        no_highlight = self.HasAGWFlag(ULC.ULC_NO_HIGHLIGHT)
+
+        for line in range(visibleFrom, visibleTo+1):
+            rectLine = self.GetLineRect(line)
+
+            if not self.IsExposed(rectLine.x + xOrig, rectLine.y + yOrig, rectLine.width, rectLine.height):
+                # don't redraw unaffected lines to avoid flicker
+                continue
+
+            theLine = self.GetLine(line)
+            enabled = theLine.GetItem(0, ULC.CreateListItem(line, 0)).IsEnabled()
+            oldPN, oldBR = dc.GetPen(), dc.GetBrush()
+            theLine.DrawInReportMode(dc, line, rectLine,
+                                     self.GetLineHighlightRect(line),
+                                     self.IsHighlighted(line) and not no_highlight,
+                                     line==self._current, enabled, oldPN, oldBR)
+
+        if self.HasAGWFlag(ULC.ULC_HRULES):
+            pen = wx.Pen(self.GetRuleColour(), 1, wx.PENSTYLE_SOLID)
+            clientSize = self.GetClientSize()
+
+            # Don't draw the first one
+            start = (visibleFrom > 0 and [visibleFrom] or [1])[0]
+
+            dc.SetPen(pen)
+            dc.SetBrush(wx.TRANSPARENT_BRUSH)
+            for i in range(start, visibleTo+1):
+                lineY = self.GetLineY(i)
+                dc.DrawLine(0 - dev_x, lineY, clientSize.x - dev_x, lineY)
+
+            # Draw last horizontal rule
+            if visibleTo == self.GetItemCount() - 1:
+                lineY = self.GetLineY(visibleTo) + self.GetLineHeight(visibleTo)
+                dc.SetPen(pen)
+                dc.SetBrush(wx.TRANSPARENT_BRUSH)
+                dc.DrawLine(0 - dev_x, lineY, clientSize.x - dev_x , lineY)
+
+        # Draw vertical rules if required
+        if self.HasAGWFlag(ULC.ULC_VRULES) and not self.IsEmpty():
+            pen = wx.Pen(self.GetRuleColour(), 1, wx.PENSTYLE_SOLID)
+
+            firstItemRect = self.GetItemRect(visibleFrom)
+            lastItemRect = self.GetItemRect(visibleTo)
+            x = firstItemRect.GetX()
+            dc.SetPen(pen)
+            dc.SetBrush(wx.TRANSPARENT_BRUSH)
+            for col in range(self.GetColumnCount()):
+
+                if not self.IsColumnShown(col):
+                    continue
+
+                colWidth = self.GetColumnWidth(col)
+                x += colWidth
+
+                x_pos = x - dev_x
+                if col < self.GetColumnCount()-1:
+                    x_pos -= 2
+
+                dc.DrawLine(x_pos, firstItemRect.GetY() - 1 - dev_y, x_pos, lastItemRect.GetBottom() + 1 - dev_y)
+
+
+    else: # !report
+
+        for i in range(self.GetItemCount()):
+            self.GetLine(i).Draw(i, dc)
+
+    if wx.Platform not in ["__WXMAC__", "__WXGTK__"]:
+        # Don't draw rect outline under Mac at all.
+        # Draw it elsewhere on GTK
+        if self.HasCurrent():
+            if self._hasFocus and not self.HasAGWFlag(ULC.ULC_NO_HIGHLIGHT) and not useVista and not useGradient \
+               and not self.HasAGWFlag(ULC.ULC_BORDER_SELECT) and not self.HasAGWFlag(ULC.ULC_NO_FULL_ROW_SELECT):
+                dc.SetPen(wx.BLACK_PEN)
+                dc.SetBrush(wx.TRANSPARENT_BRUSH)
+                dc.DrawRectangle(self.GetLineHighlightRect(self._current))
+
+ULC.UltimateListMainWindow.OnPaint = OnPaintULCMain
+
+
+#Monkey patch agw supertooltip.ToolTipWindowBase
+
+def OnPaintSTT(self, event):
+    """
+    Handles the ``wx.EVT_PAINT`` event for :class:`SuperToolTip`.
+    If the `event` parameter is ``None``, calculates best size and returns it.
+    :param `event`: a :class:`PaintEvent` event to be processed or ``None``.
+    """
+
+    maxWidth = 0
+    if event is None:
+        dc = wx.ClientDC(self)
+    else:
+        # Go with double buffering...
+        if self.GetContentScaleFactor() > 1:
+            dc = wx.PaintDC(self)
+        else:
+            dc = wx.BufferedPaintDC(self)
+
+    frameRect = self.GetClientRect()
+    x, y, width, _height = frameRect
+    # Store the rects for the hyperlink lines
+    self._hyperlinkRect, self._hyperlinkWeb = [], []
+    classParent = self._classParent
+
+    # Retrieve the colours for the blended triple-gradient background
+    topColour, middleColour, bottomColour = classParent.GetTopGradientColour(), \
+                                            classParent.GetMiddleGradientColour(), \
+                                            classParent.GetBottomGradientColour()
+
+    # Get the user options for header, bitmaps etc...
+    drawHeader, drawFooter = classParent.GetDrawHeaderLine(), classParent.GetDrawFooterLine()
+    topRect = wx.Rect(frameRect.x, frameRect.y, frameRect.width, frameRect.height/2)
+    bottomRect = wx.Rect(frameRect.x, frameRect.y+frameRect.height/2, frameRect.width, frameRect.height/2+1)
+    # Fill the triple-gradient
+    dc.GradientFillLinear(topRect, topColour, middleColour, wx.SOUTH)
+    dc.GradientFillLinear(bottomRect, middleColour, bottomColour, wx.SOUTH)
+
+    header, headerBmp = classParent.GetHeader(), classParent.GetHeaderBitmap()
+    headerFont, messageFont, footerFont, hyperlinkFont = classParent.GetHeaderFont(), classParent.GetMessageFont(), \
+                                                         classParent.GetFooterFont(), classParent.GetHyperlinkFont()
+
+    yPos = 0
+    bmpXPos = 0
+    bmpHeight = textHeight = bmpWidth = 0
+
+    if headerBmp and headerBmp.IsOk():
+        # We got the header bitmap
+        bmpHeight, bmpWidth = headerBmp.GetHeight(), headerBmp.GetWidth()
+        bmpXPos = self._spacing
+
+    if header:
+        # We got the header text
+        dc.SetFont(headerFont)
+        textWidth, textHeight = dc.GetTextExtent(header)
+        maxWidth = max(bmpWidth+(textWidth+self._spacing*3), maxWidth)
+    # Calculate the header height
+    height = max(textHeight, bmpHeight)
+    if header:
+        dc.DrawText(header, bmpXPos+bmpWidth+self._spacing, (height-textHeight+self._spacing)/2)
+    if headerBmp and headerBmp.IsOk():
+        dc.DrawBitmap(headerBmp, bmpXPos, (height-bmpHeight+self._spacing)/2, True)
+
+    if header or (headerBmp and headerBmp.IsOk()):
+        yPos += height
+        if drawHeader:
+            # Draw the separator line after the header
+            dc.SetPen(wx.GREY_PEN)
+            dc.DrawLine(self._spacing, yPos+self._spacing, width-self._spacing, yPos+self._spacing)
+            yPos += self._spacing
+
+    maxWidth = max(bmpXPos + bmpWidth + self._spacing, maxWidth)
+    # Get the big body image (if any)
+    embeddedImage = classParent.GetBodyImage()
+    bmpWidth = bmpHeight = -1
+    if embeddedImage and embeddedImage.IsOk():
+        bmpWidth, bmpHeight = embeddedImage.GetWidth(), embeddedImage.GetHeight()
+
+    # A bunch of calculations to draw the main body message
+    messageHeight = 0
+    lines = classParent.GetMessage().split("\n")
+    yText = yPos
+    embImgPos = yPos
+    normalText = wx.SystemSettings.GetColour(wx.SYS_COLOUR_MENUTEXT)
+    hyperLinkText = wx.BLUE
+    messagePos = self._getTextExtent(dc, lines[0] if lines else "")[1] // 2 + self._spacing
+    for line in lines:
+        # Loop over all the lines in the message
+        if line.startswith("<hr>"):     # draw a line
+            yText += self._spacing * 2
+            dc.DrawLine(self._spacing, yText+self._spacing, width-self._spacing, yText+self._spacing)
+        else:
+            isLink = False
+            dc.SetTextForeground(normalText)
+            if line.startswith("</b>"):      # is a bold line
+                line = line[4:]
+                font = STT.MakeBold(messageFont)
+                dc.SetFont(font)
+            elif line.startswith("</l>"):    # is a link
+                dc.SetFont(hyperlinkFont)
+                isLink = True
+                line, hl = STT.ExtractLink(line)
+                dc.SetTextForeground(hyperLinkText)
+            else:
+                # Is a normal line
+                dc.SetFont(messageFont)
+
+            textWidth, textHeight = self._getTextExtent(dc, line)
+
+            messageHeight += textHeight
+
+            xText = (bmpWidth + 2 * self._spacing) if bmpWidth > 0 else self._spacing
+            yText += textHeight/2+self._spacing
+            maxWidth = max(xText + textWidth + self._spacing, maxWidth)
+            dc.DrawText(line, xText, yText)
+            if isLink:
+                self._storeHyperLinkInfo(xText, yText, textWidth, textHeight, hl)
+
+    toAdd = 0
+    if bmpHeight > messageHeight:
+        yPos += 2*self._spacing + bmpHeight
+        toAdd = self._spacing
+    else:
+        yPos += messageHeight + 2*self._spacing
+
+    yText = max(messageHeight, bmpHeight+2*self._spacing)
+    if embeddedImage and embeddedImage.IsOk():
+        # Draw the main body image
+        dc.DrawBitmap(embeddedImage, self._spacing, embImgPos + (self._spacing * 2), True)
+
+    footer, footerBmp = classParent.GetFooter(), classParent.GetFooterBitmap()
+    bmpHeight = bmpWidth = textHeight = textWidth = 0
+    bmpXPos = 0
+
+    if footerBmp and footerBmp.IsOk():
+        # Got the footer bitmap
+        bmpHeight, bmpWidth = footerBmp.GetHeight(), footerBmp.GetWidth()
+        bmpXPos = self._spacing
+
+    if footer:
+        # Got the footer text
+        dc.SetFont(footerFont)
+        textWidth, textHeight = dc.GetTextExtent(footer)
+
+    if textHeight or bmpHeight:
+        if drawFooter:
+            # Draw the separator line before the footer
+            dc.SetPen(wx.GREY_PEN)
+            dc.DrawLine(self._spacing, yPos-self._spacing/2+toAdd,
+                        width-self._spacing, yPos-self._spacing/2+toAdd)
+    # Draw the footer and footer bitmap (if any)
+    dc.SetTextForeground(normalText)
+    height = max(textHeight, bmpHeight)
+    yPos += toAdd
+    if footer:
+        toAdd = (height - textHeight + self._spacing) // 2
+        dc.DrawText(footer, bmpXPos + bmpWidth + self._spacing, yPos + toAdd)
+        maxWidth = max(bmpXPos + bmpWidth + (self._spacing*2) + textWidth, maxWidth)
+    if footerBmp and footerBmp.IsOk():
+        toAdd = (height - bmpHeight + self._spacing) / 2
+        dc.DrawBitmap(footerBmp, bmpXPos, yPos + toAdd, True)
+        maxWidth = max(footerBmp.GetSize().GetWidth() + bmpXPos, maxWidth)
+
+    maxHeight = yPos + height + toAdd
+    if event is None:
+        return maxWidth, maxHeight
+
+STT.ToolTipWindowBase.OnPaint = OnPaintSTT
