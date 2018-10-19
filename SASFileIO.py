@@ -1730,11 +1730,9 @@ def loadFitFile(filename):
             else:
 
                 iq_match = iq_pattern.match(line)
-                print iq_match
 
                 if iq_match:
                     found = iq_match.group().split()
-                    print found
                     q.append(float(found[0]))
                     i.append(float(found[1]))
                     err.append(float(found[2]))
