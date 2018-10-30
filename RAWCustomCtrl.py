@@ -598,7 +598,7 @@ class CustomCheckBox(control_super):
         # If you want to reduce flicker, a good starting point is to
         # use wx.BufferedPaintDC.
 
-        if self.GetContentScaleFactor() > 1:
+        if wx.version().split()[0].strip()[0] == '4' and self.GetContentScaleFactor() > 1:
             dc = wx.PaintDC(self)
         else:
             dc = wx.BufferedPaintDC(self)
@@ -1100,7 +1100,6 @@ class RawPanelFileDropTarget(wx.FileDropTarget):
         When files are dropped, write where they were dropped and then
         the file paths themselves
         """
-        print filenames
         if self.style == 'main' or self.style == 'ift':
             RAWGlobals.mainworker_cmd_queue.put(['plot', filenames])
         elif self.style == 'sec':
@@ -1125,15 +1124,11 @@ class RawPlotFileDropTarget(wx.FileDropTarget):
         When files are dropped, write where they were dropped and then
         the file paths themselves
         """
-        print filenames
-        print y
         if self.style == 'main':
             if self.window.subplot1.get_visible() and self.window.subplot2.get_visible():
                 #both plots shown
                 x1, y1 = self.window.fig.transFigure.transform((0,0))
                 x2, y2 = self.window.fig.transFigure.transform((1,1))
-                print y1
-                print y2
 
                 if y < (y2-y1)/2.:
                     RAWGlobals.mainworker_cmd_queue.put(['plot_specific', [filenames, 1]])
@@ -1166,7 +1161,7 @@ def OnPaintFNB(self, event):
     :param `event`: a :class:`PaintEvent` event to be processed.
     """
 
-    if self.GetContentScaleFactor() > 1:
+    if wx.version().split()[0].strip()[0] == '4' and self.GetContentScaleFactor() > 1:
         dc = wx.PaintDC(self)
     else:
         dc = wx.BufferedPaintDC(self)
@@ -1194,7 +1189,7 @@ def OnPaintULCHeader(self, event):
     :param `event`: a :class:`PaintEvent` event to be processed.
     """
 
-    if self.GetContentScaleFactor() > 1:
+    if wx.version().split()[0].strip()[0] == '4' and self.GetContentScaleFactor() > 1:
         dc = wx.PaintDC(self)
     else:
         dc = wx.BufferedPaintDC(self)
@@ -1379,7 +1374,7 @@ def OnPaintULCMain(self, event):
 
     # Note: a wxPaintDC must be constructed even if no drawing is
     # done (a Windows requirement).
-    if self.GetContentScaleFactor() > 1:
+    if wx.version().split()[0].strip()[0] == '4' and self.GetContentScaleFactor() > 1:
         dc = wx.PaintDC(self)
     else:
         dc = wx.BufferedPaintDC(self)
@@ -1523,7 +1518,7 @@ def OnPaintSTT(self, event):
         dc = wx.ClientDC(self)
     else:
         # Go with double buffering...
-        if self.GetContentScaleFactor() > 1:
+        if wx.version().split()[0].strip()[0] == '4' and self.GetContentScaleFactor() > 1:
             dc = wx.PaintDC(self)
         else:
             dc = wx.BufferedPaintDC(self)
