@@ -1879,6 +1879,9 @@ def denss(q, I, sigq, D, prefix, path, denss_settings, abort_event, denss_queue)
             ne = None
     else:
         ne = None
+
+    if ne is None:
+        ne = 10000
     voxel = float(denss_settings['voxel'])
     oversampling = float(denss_settings['oversample'])
     limit_dmax = denss_settings['limitDmax']

@@ -6570,6 +6570,21 @@ class DenssResultsPanel(wx.Panel):
 
         self.models.DeleteAllPages()
 
+        summary_panel = wx.Panel(self.models)
+
+        models_list = wx.ListCtrl(summary_panel, id=self.ids['model_sum'], size=(-1,-1), style=wx.LC_REPORT)
+        models_list.InsertColumn(0, 'Model')
+        models_list.InsertColumn(1, 'Chi^2')
+        models_list.InsertColumn(2, 'Rg')
+        models_list.InsertColumn(3, 'Support Vol.')
+        models_list.InsertColumn(4, 'Mean RSC')
+
+        mp_sizer = wx.BoxSizer()
+        mp_sizer.Add(models_list, 1, flag=wx.EXPAND)
+        summary_panel.SetSizer(mp_sizer)
+
+        self.models.AddPage(summary_panel, 'Summary')
+
         model_box = wx.StaticBox(parent, -1, 'Models')
         self.model_sizer = wx.StaticBoxSizer(model_box, wx.HORIZONTAL)
         self.model_sizer.Add(self.models, 1, wx.ALL | wx.EXPAND, 5)
@@ -6664,11 +6679,14 @@ class DenssResultsPanel(wx.Panel):
     def getModels(self, settings, denss_results, denss_stats, average_results):
         nruns = settings['runs']
 
-        self.models.DeleteAllPages()
+        while self.models.GetPageCount() > 1:
+            last_page = self.models.GetPageText(self.models.GetPage(self.models.GetPageCount()-1))
+            if last_page != 'Summary':
+                self.models.DeletePage(self.models.GetPageCount()-1)
+            else:
+                self.models.DeletePage(self.models.GetPageCount()-2)
 
-        summary_panel = self.modelSummary(settings, denss_results, denss_stats,
-            average_results)
-        self.models.AddPage(summary_panel, 'Summary')
+        self.modelSummary(settings, denss_results, denss_stats, average_results)
 
         for i in range(1, nruns+1):
             plot_panel = DenssPlotPanel(self.models, denss_results[i-1], self.iftm)
@@ -6679,16 +6697,10 @@ class DenssResultsPanel(wx.Panel):
             self.models.AddPage(plot_panel, 'Average')
 
     def modelSummary(self, settings, denss_results, denss_stats, average_results):
-        models_panel = wx.Panel(self.models)
-
-        models_list = wx.ListCtrl(models_panel, id=self.ids['model_sum'], size=(-1,-1), style=wx.LC_REPORT)
-        models_list.InsertColumn(0, 'Model')
-        models_list.InsertColumn(1, 'Chi^2')
-        models_list.InsertColumn(2, 'Rg')
-        models_list.InsertColumn(3, 'Support Vol.')
-        models_list.InsertColumn(4, 'Mean RSC')
 
         nruns = settings['runs']
+        models_list = wx.FindWindowById(self.ids['model_sum'], self)
+        models_list.DeleteAllItems()
 
         for i in range(nruns):
             model = str(i+1)
@@ -6706,11 +6718,6 @@ class DenssResultsPanel(wx.Panel):
             if mrsc != '' and float(mrsc) < average_results['thresh']:
                 models_list.SetItemTextColour(i, 'red') #Not working?!
 
-        mp_sizer = wx.BoxSizer()
-        mp_sizer.Add(models_list, 1, flag=wx.EXPAND)
-        models_panel.SetSizer(mp_sizer)
-
-        return models_panel
 
     def getAverage(self, avg_results):
         mean = str(round(avg_results['mean'],4))
