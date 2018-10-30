@@ -4139,8 +4139,12 @@ class DammifRunPanel(wx.Panel):
             text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['damaver'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
             self.logbook.AddPage(text_ctrl, 'Damaver')
 
+        if nruns > 1 and refine:
+            self.dammif_ids['refine'] = self.NewControlId()
+            text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['refine'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
+            self.logbook.AddPage(text_ctrl, 'Refine')
 
-        elif nruns > 1 and damclust:
+        if nruns > 1 and damclust:
 
             damclust_names = [prefix+'_damclust.log']
 
@@ -4164,11 +4168,6 @@ class DammifRunPanel(wx.Panel):
             self.dammif_ids['damclust'] = self.NewControlId()
             text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['damclust'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
             self.logbook.AddPage(text_ctrl, 'Damclust')
-
-        if nruns > 1 and refine:
-            self.dammif_ids['refine'] = self.NewControlId()
-            text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['refine'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
-            self.logbook.AddPage(text_ctrl, 'Refine')
 
 
         self.status.SetValue('Starting processing\n')
@@ -4360,7 +4359,17 @@ class DammifRunPanel(wx.Panel):
 
             if refine:
                 wx.CallAfter(self.status.AppendText, 'Finished Refinement\n')
-                wx.CallAfter(self.finishedProcessing)
+
+                damclust_window = wx.FindWindowById(self.ids['damclust'])
+                damclust = damclust_window.GetValue()
+
+                if damclust:
+                    t = threading.Thread(target = self.runDamclust, args = (prefix, path))
+                    t.daemon = True
+                    t.start()
+                    self.threads.append(t)
+                else:
+                    wx.CallAfter(self.finishedProcessing)
             else:
                 wx.CallAfter(self.status.AppendText, 'Finished %s run %s\n' %(program, my_num))
 
@@ -4467,6 +4476,9 @@ class DammifRunPanel(wx.Panel):
             refine_window = wx.FindWindowById(self.ids['refine'], self)
             refine = refine_window.GetValue()
 
+            damclust_window = wx.FindWindowById(self.ids['damclust'])
+            damclust = damclust_window.GetValue()
+
             if refine:
                 program_window = wx.FindWindowById(self.ids['program'], self)
                 program = program_window.GetStringSelection()
@@ -4474,6 +4486,11 @@ class DammifRunPanel(wx.Panel):
                 outname = os.path.join(path, prefix+'.out')
 
                 t = threading.Thread(target = self.runDammif, args = (outname, prefix, path, program, refine))
+                t.daemon = True
+                t.start()
+                self.threads.append(t)
+            elif damclust:
+                t = threading.Thread(target = self.runDamclust, args = (prefix, path))
                 t.daemon = True
                 t.start()
                 self.threads.append(t)
@@ -4666,26 +4683,27 @@ class DammifRunPanel(wx.Panel):
     def onCheckBox(self,evt):
         refine = wx.FindWindowById(self.ids['refine'], self)
 
-        if evt.GetId() == self.ids['damaver'] and evt.IsChecked():
-            damclust = wx.FindWindowById(self.ids['damclust'], self)
-            damclust.SetValue(False)
+        # if evt.GetId() == self.ids['damaver'] and evt.IsChecked():
+        #     damclust = wx.FindWindowById(self.ids['damclust'], self)
+        #     damclust.SetValue(False)
 
-            if not refine.IsEnabled():
-                refine.Enable()
-                refine.SetValue(self.raw_settings.get('dammifRefine'))
+        #     if not refine.IsEnabled():
+        #         refine.Enable()
+        #         refine.SetValue(self.raw_settings.get('dammifRefine'))
 
-        elif evt.GetId() == self.ids['damaver'] and not evt.IsChecked():
+        if evt.GetId() == self.ids['damaver'] and not evt.IsChecked():
             if refine.IsEnabled():
                 refine.Disable()
                 refine.SetValue(False)
 
-        elif evt.GetId() == self.ids['damclust'] and evt.IsChecked():
-            damaver = wx.FindWindowById(self.ids['damaver'], self)
-            damaver.SetValue(False)
+        # elif evt.GetId() == self.ids['damclust'] and evt.IsChecked():
+        #     damaver = wx.FindWindowById(self.ids['damaver'], self)
+        #     damaver.SetValue(False)
 
-            if refine.IsEnabled():
-                refine.Disable()
-                refine.SetValue(False)
+        #     if refine.IsEnabled():
+        #         refine.Disable()
+        #         refine.SetValue(False)
+
 
 
     def updateDAMMIFSettings(self):

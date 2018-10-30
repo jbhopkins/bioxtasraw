@@ -72,6 +72,9 @@ the ATSAS package is the most commonly used program for building consensus shape
     *   *Tip:* Any models rejected from the average by DAMAVER will be shown in red in
         the models list.
 
+    *   *Tip:* The model highlighted in blue is the 'most probable' model, this can
+        be used as your final bead model instead of doing a dammif refinement.
+
 #.  Click the “Save Results Summary” button to save the results summary as a **.csv** file.
 
 #.  Click on the Viewer tab to open the model viewer.

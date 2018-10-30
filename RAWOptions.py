@@ -3157,26 +3157,29 @@ class ATSASDammix(wx.Panel):
 
     def _onCheckBox(self,evt):
         if evt.GetId() == self.raw_settings.getId('dammifDamaver') and evt.IsChecked():
-            damclust = wx.FindWindowById(self.raw_settings.getId('dammifDamclust'), self)
-            damclust.SetValue(False)
+            damrefine = wx.FindWindowById(self.raw_settings.getId('dammifRefine'), self)
+            damrefine.Enable()
+        #     damclust = wx.FindWindowById(self.raw_settings.getId('dammifDamclust'), self)
+        #     damclust.SetValue(False)
 
-        elif evt.GetId() == self.raw_settings.getId('dammifDamaver') and not evt.IsChecked():
+        if evt.GetId() == self.raw_settings.getId('dammifDamaver') and not evt.IsChecked():
             damrefine = wx.FindWindowById(self.raw_settings.getId('dammifRefine'), self)
             damrefine.SetValue(False)
+            damrefine.Disable()
 
-        elif evt.GetId() == self.raw_settings.getId('dammifDamclust') and evt.IsChecked():
-            damaver = wx.FindWindowById(self.raw_settings.getId('dammifDamaver'), self)
-            damaver.SetValue(False)
+        # elif evt.GetId() == self.raw_settings.getId('dammifDamclust') and evt.IsChecked():
+        #     damaver = wx.FindWindowById(self.raw_settings.getId('dammifDamaver'), self)
+        #     damaver.SetValue(False)
 
-            damrefine = wx.FindWindowById(self.raw_settings.getId('dammifRefine'), self)
-            damrefine.SetValue(False)
+        #     damrefine = wx.FindWindowById(self.raw_settings.getId('dammifRefine'), self)
+        #     damrefine.SetValue(False)
 
-        elif evt.GetId() == self.raw_settings.getId('dammifRefine') and evt.IsChecked():
-            damaver = wx.FindWindowById(self.raw_settings.getId('dammifDamaver'), self)
-            damaver.SetValue(True)
+        # elif evt.GetId() == self.raw_settings.getId('dammifRefine') and evt.IsChecked():
+        #     damaver = wx.FindWindowById(self.raw_settings.getId('dammifDamaver'), self)
+        #     damaver.SetValue(True)
 
-            damclust = wx.FindWindowById(self.raw_settings.getId('dammifDamclust'), self)
-            damclust.SetValue(False)
+        #     damclust = wx.FindWindowById(self.raw_settings.getId('dammifDamclust'), self)
+        #     damclust.SetValue(False)
 
 
     def _onResetButton(self, evt):

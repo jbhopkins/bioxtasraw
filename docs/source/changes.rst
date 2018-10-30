@@ -1,6 +1,48 @@
 Changes
 ============
 
+1.5.1
+------
+
+Overview
+^^^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 1.5.1. This version
+contains several small bug fixes. Normally we might wait to release these until
+more major changes had happened, but there is a workshop using RAW soon and
+we wanted these bugs fixed before then. Significant issues that have been eliminated:
+
+*   An issue where the electron density output from DENSS could fail to load into pymol
+    correctly because the default scaling was too small (still loaded into Chimera fine).
+    Strictly speaking I think this is a workaround for a bug in pymol . . .
+*   Several bugs with running GNOM, including using data with minimal sampling (<100 points).
+
+You can see the full set of changes below.
+
+All changes:
+^^^^^^^^^^^^^^
+
+*   Fixed a bug where automatic loading of BioCAT SEC data wouldn't work if there was
+    more than one underscore in the filename.
+*   Fixed a bug where automatic loading of BioCAT SEC data wouldn't work if there existed
+    another file with the same name but different extension as one of the image files.
+*   Added parsing of damsup.log file for bead models, which allows highlighting of
+    the representative model in the dammif summary.
+*   Dammif results summary now saved by default.
+*   DENSS results summary now saved by default.
+*   Fixed serveral bugs in the GNOM interface that could cause it to fail.
+*   Fixed a bug that prevented some .fit files from being loaded.
+*   Fixed a bug where the Rg for BIFT was being calculated incorrectly.
+*   Fixed a bug where temporary files (with a .tmp prefix) would mess up SEC autoupdates.
+*   Fixed an issue where you couldn't run DENSS twice without closing the panel
+    between each run.
+*   Fixed an issue where the default scaling for DENSS was too small, and caused issues loading
+    the electron densities into pymol.
+*   Fixed a bug text in some items and list controls would display 'fuzzy' on high dpi
+    monitors. This is still an issue for the plot labels.
+*   Added the ability to run damaver and damclust on the same set of reconstructions.
+
+
 1.5.0
 ------
 
