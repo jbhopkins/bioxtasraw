@@ -5,14 +5,13 @@ block_cipher = None
 add_files = [('/raw/resources', 'resources'), ('/raw/gpl-3.0.txt', '.')]
 
 a = Analysis(['RAW.py'],
-             pathex=['C:\\Python27\\lib\\site-packages\\scipy\\extra-dll',
-             'C:\\raw'],
+             pathex=['.'],
              binaries=None,
              datas=add_files,
              hiddenimports=[],
              hookspath=['./WinLib/installer'],
              runtime_hooks=[],
-             excludes=[],
+             excludes=['PyQt5', 'tk', 'ipython'],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
              cipher=block_cipher)
