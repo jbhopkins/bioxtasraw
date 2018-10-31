@@ -16,6 +16,8 @@ we wanted these bugs fixed before then. Significant issues that have been elimin
     correctly because the default scaling was too small (still loaded into Chimera fine).
     Strictly speaking I think this is a workaround for a bug in pymol . . .
 *   Several bugs with running GNOM, including using data with minimal sampling (<100 points).
+*   Fixed a bug where the .app package for Mac wasn't displaying natively on retina displays,
+    so the text was fuzzy.
 
 You can see the full set of changes below.
 
@@ -41,6 +43,18 @@ All changes:
 *   Fixed a bug text in some items and list controls would display 'fuzzy' on high dpi
     monitors. This is still an issue for the plot labels.
 *   Added the ability to run damaver and damclust on the same set of reconstructions.
+*   Fixed a bug where the .app package for Mac wasn't displaying natively on retina displays,
+    so the text was fuzzy. Note that in order to fix this, even after you install the new
+    version you may have to do the following:
+
+    #.  Enter the following commands in your terminal: ::
+
+        /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f /Applications/RAW.app
+        /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -seed
+        /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f /Applications -all local,user
+
+    #.  You may then have to right click on RAW.app, select 'Get Info' and uncheck the box
+        'Open in low resolution mode'
 
 
 1.5.0
