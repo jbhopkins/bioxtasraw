@@ -3,23 +3,33 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleIdentifier</key>
-	<string>RAW</string>
+	<string>edu.bioxtas.raw</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.2.2</string>
+	<string>1.5.1</string>
 	<key>CFBundleExecutable</key>
-	<string>MacOS/RAW</string>
+	<string>RAW</string>
 	<key>CFBundleName</key>
+	<string>RAW</string>
+	<key>CFBundleDisplayName</key>
 	<string>RAW</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
-	<key>CFBundleDisplayName</key>
-	<string>RAW</string>
 	<key>CFBundleIconFile</key>
 	<string>raw.icns</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>LSBackgroundOnly</key>
 	<string>0</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en_US</string>
+	<key>LSHasLocalizedDisplayName</key>
+	<false/>
+	<key>CFBundleVersion</key>
+	<string>1.5.1</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
