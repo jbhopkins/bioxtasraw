@@ -1,4 +1,4 @@
-Making the mac installer users pyinstaller (tested on 3.3.1). This must be done with
+Making the mac installer users pyinstaller (tested on 3.4.0). This must be done with
 miniconda to properly package the LLVMLite package for numba. In order to set up the
 proper build environment, simply install from source as in the RAW documentation, then
 additionally install pyinstaller through pip: pip install pyinstaller.
@@ -26,15 +26,10 @@ Note: if pyopencl is installed, the build will fail.
 Note 2: Without numba, I've now gotten this to work with stock enthought canopy, with the extra
 raw packages installed through pip (Fabio, pyfai, hdf5plugin) and uninstalling pyside.
 
-Note 3: pyinstaller (3.3.1) currently can't handle scipy 1.0. It seems to be a problem with a hidden import
-that will hopefully be fixed soon (https://github.com/pyinstaller/pyinstaller/issues/2987), it looks like
-in pyinstaller 3.4 (https://github.com/pyinstaller/pyinstaller/pull/3048). I have patched
-this by adding a hidden import, but that can be removed once they release the new version.
-
-Note 4: It looks like when the intel mkl library is linked to numpy, the Mac build
+Note 3: It looks like when the intel mkl library is linked to numpy, the Mac build
 gets really big (~750 MB). Can unlink it by install conda package nomkl if desired.
 
-Note 5: In order to refresh the size of the RAW.app package you need to first delete the .DS_store file
+Note 4: In order to refresh the size of the RAW.app package you need to first delete the .DS_store file
 that is in the folder it is in, then relaunch Finder from the force quit menu.
 
 More info on disk images here:
