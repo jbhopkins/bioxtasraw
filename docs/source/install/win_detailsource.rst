@@ -40,7 +40,7 @@ Windows 7, 8.1, and 10 install from source instructions
 
     *   ``conda install numpy scipy matplotlib pillow wxpython numba h5py lxml cython numexpr``
 
-    *   ``pip install hdf5plugin silx fabio pyfai``
+    *   ``pip install hdf5plugin silx fabio "pyfai<0.16"``
 
 #.  Download RAW from sourceforge (
     `http://sourceforge.net/projects/bioxtasraw <http://sourceforge.net/projects/bioxtasraw>`_)

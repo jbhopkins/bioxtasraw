@@ -24,7 +24,7 @@ General instructions for installing from source (advanced users)
 
     *   fabio
 
-    *   pyFAI
+    *   pyFAI < 0.16
 
     *   hdf5plugin
 

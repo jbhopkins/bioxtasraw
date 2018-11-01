@@ -41,7 +41,7 @@ OS X and macOS install from source instructions
 
 #.  Install the hdf5plugin, silx, fabio, and pyFAI packages using pip
 
-    *   In the terminal window type ``pip install hdf5plugin silx fabio pyfai``
+    *   In the terminal window type ``pip install hdf5plugin silx fabio "pyfai<0.16"``
 
     *   Hit enter
 
