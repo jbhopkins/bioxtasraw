@@ -32,7 +32,7 @@ All changes:
     the representative model in the dammif summary.
 *   Dammif results summary now saved by default.
 *   DENSS results summary now saved by default.
-*   Fixed serveral bugs in the GNOM interface that could cause it to fail.
+*   Fixed several bugs in the GNOM interface that could cause it to fail.
 *   Fixed a bug that prevented some .fit files from being loaded.
 *   Fixed a bug where the Rg for BIFT was being calculated incorrectly.
 *   Fixed a bug where temporary files (with a .tmp prefix) would mess up SEC autoupdates.
