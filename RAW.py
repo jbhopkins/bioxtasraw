@@ -270,7 +270,7 @@ class MainFrame(wx.Frame):
         self.main_worker_thread.setDaemon(True)
         self.main_worker_thread.start()
 
-        icon = RAWIcons.raw_icon_embed.GetIcon()
+        icon = RAWIcons.raw.GetIcon()
         self.SetIcon(icon)
         app.SetTopWindow(self)
 
@@ -12593,7 +12593,7 @@ class WelcomeDialog(wx.Frame):
         self.ok_button.Bind(wx.EVT_BUTTON, self._onOKButton)
         self.ok_button.SetDefault()
 
-        raw_bitmap = RAWIcons.raw_icon_embed.GetBitmap()
+        raw_bitmap = RAWIcons.raw.GetBitmap()
         rawimg = wx.StaticBitmap(self.panel, -1, raw_bitmap)
 
         headline = wx.StaticText(self.panel, -1, 'Welcome to RAW %s!' %(RAWGlobals.version))
@@ -12798,7 +12798,7 @@ class RawTaskbarIcon(TaskBarIcon):
         self.frame = frame
 
         # Set the image
-        self.tbIcon = RAWIcons.raw_icon_embed.GetIcon()
+        self.tbIcon = RAWIcons.raw.GetIcon()
 
         self.SetIcon(self.tbIcon, "Test")
 
