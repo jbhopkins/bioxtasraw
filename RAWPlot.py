@@ -37,7 +37,6 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 import matplotlib.font_manager as fm
 
 import RAWCustomCtrl
-import RAWIcons
 import RAWGlobals
 import RAWCustomDialogs
 
@@ -133,10 +132,17 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
 
         self.workdir = RAWGlobals.RAWWorkDir
 
-        errbars_icon = RAWIcons.errbars.GetBitmap()
-        showboth_icon = RAWIcons.showboth.GetBitmap()
-        showtop_icon = RAWIcons.showtop.GetBitmap()
-        showbottom_icon = RAWIcons.showbottom.GetBitmap()
+        #Icon made by Freepik from www.flaticon.com
+        errbars = os.path.join(RAWGlobals.RAWResourcesDir, 'box-plot-graphic-24.png')
+
+        showboth = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-showboth-24.png')
+        showtop = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-1-24.png')
+        showbottom = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-two-24.png')
+
+        errbars_icon = wx.Bitmap(errbars, wx.BITMAP_TYPE_PNG)
+        showboth_icon = wx.Bitmap(showboth, wx.BITMAP_TYPE_PNG)
+        showtop_icon = wx.Bitmap(showtop, wx.BITMAP_TYPE_PNG)
+        showbottom_icon = wx.Bitmap(showbottom, wx.BITMAP_TYPE_PNG)
 
         if wx.version().split()[0].strip()[0] == '4':
             self.AddSeparator()

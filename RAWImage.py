@@ -34,7 +34,6 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 import wx
 import numpy as np
 
-import RAWIcons
 import RAWGlobals
 import SASImage
 import SASCalib
@@ -61,11 +60,15 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
 
         NavigationToolbar2WxAgg.__init__(self, canvas)
 
-        hdrInfoIcon   = RAWIcons.hdr.GetBitmap()
-        ImgSetIcon    = RAWIcons.imgctrl.GetBitmap()
+        hdrinfo = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-view-details-24.png')
+        imgctrl = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-control-of-level-filled-24.png')
+        back = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-green-pointing-left-24.png')
+        forward = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-green-pointing-right-24.png')
 
-        prevImgIcon = wx.ArtProvider.GetBitmap(wx.ART_GO_BACK,wx.ART_TOOLBAR,(32,32))
-        nextImgIcon = wx.ArtProvider.GetBitmap(wx.ART_GO_FORWARD,wx.ART_TOOLBAR,(32,32))
+        hdrInfoIcon   = wx.Bitmap(hdrinfo, wx.BITMAP_TYPE_PNG)
+        ImgSetIcon    = wx.Bitmap(imgctrl, wx.BITMAP_TYPE_PNG)
+        prevImgIcon = wx.Bitmap(back, wx.BITMAP_TYPE_PNG)
+        nextImgIcon = wx.Bitmap(forward, wx.BITMAP_TYPE_PNG)
 
 
         if wx.version().split()[0].strip()[0] == '4':

@@ -5442,14 +5442,17 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         ### Prepare list images:
         self.il = wx.ImageList(16, 16)
 
-        a={"sm_up":"GO_UP","sm_dn":"GO_DOWN","w_idx":"WARNING","e_idx":"ERROR","i_idx":"QUESTION"}
-        for k,v in a.items():
-            s="self.%s= self.il.Add(wx.ArtProvider.GetBitmap(wx.ART_%s,wx.ART_TOOLBAR,(16,16)))" % (k,v)
-            exec(s)
+        dir_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-folder-16.png')
+        doc_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-document-16.png')
+        up_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-blue-pointing-up-16.png')
+        sort_up_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-up-filled-16.png')
+        sort_down_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-down-filled-16.png')
 
-        self.documentimg = self.il.Add(RAWIcons.document.GetBitmap())
-        self.folderimg = self.il.Add(RAWIcons.Folder.GetBitmap())
-        self.upimg = self.il.Add(RAWIcons.Up.GetBitmap())
+        self.documentimg = self.il.Add(wx.Bitmap(doc_png, wx.BITMAP_TYPE_PNG))
+        self.folderimg = self.il.Add(wx.Bitmap(dir_png, wx.BITMAP_TYPE_PNG))
+        self.upimg = self.il.Add(wx.Bitmap(up_png, wx.BITMAP_TYPE_PNG))
+        self.sm_up = self.il.Add(wx.Bitmap(sort_up_png, wx.BITMAP_TYPE_PNG))
+        self.sm_dn = self.il.Add(wx.Bitmap(sort_down_png, wx.BITMAP_TYPE_PNG))
         self.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
 
         #Init the list:
@@ -6071,8 +6074,11 @@ class DirCtrlPanel(wx.Panel):
         self.dir_label.Bind(wx.EVT_KILL_FOCUS, self._onEnterOrFocusShiftInDirLabel)
         self.dir_label.Bind(wx.EVT_TEXT_ENTER, self._onEnterOrFocusShiftInDirLabel)
 
-        dir_bitmap = RAWIcons.folder_search.GetBitmap()
-        refresh_bitmap = RAWIcons.refreshlist2.GetBitmap()
+        dir_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-opened-folder-16.png')
+        refresh_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-synchronize-16.png')
+
+        dir_bitmap = wx.Bitmap(dir_png, wx.BITMAP_TYPE_PNG)
+        refresh_bitmap = wx.Bitmap(refresh_png, wx.BITMAP_TYPE_PNG)
 
         self.dir_button = wx.BitmapButton(self, -1, dir_bitmap)
         self.dir_button.Bind(wx.EVT_BUTTON, self._onSetDirButton)
@@ -6205,13 +6211,18 @@ class ManipulationPanel(wx.Panel):
         self._raw_settings = raw_settings
 
     def _initializeIcons(self):
-        self.collapse_all_png = RAWIcons.collapse_all.GetBitmap()
-        self.expand_all_png = RAWIcons.expand_all.GetBitmap()
 
-        self.show_all_png = RAWIcons.open_eye.GetBitmap()
-        self.hide_all_png = RAWIcons.close_eye.GetBitmap()
+        collapse_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-collapse-filled-16.png')
+        expand_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-expand-filled-16.png')
+        show_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-eye-16.png')
+        hide_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-hide-16.png')
+        select_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-select-all-16.png')
 
-        self.select_all_png = RAWIcons.select_all.GetBitmap()
+        self.collapse_all_png = wx.Bitmap(collapse_all, wx.BITMAP_TYPE_PNG)
+        self.expand_all_png = wx.Bitmap(expand_all, wx.BITMAP_TYPE_PNG)
+        self.show_all_png = wx.Bitmap(show_all, wx.BITMAP_TYPE_PNG)
+        self.hide_all_png = wx.Bitmap(hide_all, wx.BITMAP_TYPE_PNG)
+        self.select_all_png = wx.Bitmap(select_all, wx.BITMAP_TYPE_PNG)
 
     def _createToolbar(self):
 
@@ -7235,16 +7246,22 @@ class ManipItemPanel(wx.Panel):
 
     def _initializeIcons(self):
 
-        self.gray_png = RAWIcons.Star_icon_notenabled.GetBitmap()
-        self.star_png = RAWIcons.Star_icon_org.GetBitmap()
+        gray_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-gray-16.png')
+        orange_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-orange-16.png')
+        target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-16.png')
+        target_on = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-red-16.png')
+        info = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-info-16.png')
+        expand = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-down-filled-16.png')
+        collapse = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-up-filled-16.png')
 
-        self.collapse_png = RAWIcons.collapse.GetBitmap()
-        self.expand_png = RAWIcons.expand.GetBitmap()
+        self.gray_png = wx.Bitmap(gray_star, wx.BITMAP_TYPE_PNG)
+        self.star_png = wx.Bitmap(orange_star, wx.BITMAP_TYPE_PNG)
+        self.target_png = wx.Bitmap(target, wx.BITMAP_TYPE_PNG)
+        self.target_on_png = wx.Bitmap(target_on, wx.BITMAP_TYPE_PNG)
+        self.info_png = wx.Bitmap(info, wx.BITMAP_TYPE_PNG)
+        self.expand_png = wx.Bitmap(expand, wx.BITMAP_TYPE_PNG)
+        self.collapse_png = wx.Bitmap(collapse, wx.BITMAP_TYPE_PNG)
 
-        self.target_png = RAWIcons.target.GetBitmap()
-        self.target_on_png = RAWIcons.target_orange.GetBitmap()
-
-        self.info_png = RAWIcons.info_16_2.GetBitmap()
 
     def _initStartPosition(self):
         qmin_ctrl = wx.FindWindowById(self.spin_controls[0][1], self)
@@ -7941,10 +7958,14 @@ class IFTPanel(wx.Panel):
         self._raw_settings = raw_settings
 
     def _initializeIcons(self):
-        self.show_all_png = RAWIcons.open_eye.GetBitmap()
-        self.hide_all_png = RAWIcons.close_eye.GetBitmap()
 
-        self.select_all_png = RAWIcons.select_all.GetBitmap()
+        show_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-eye-16.png')
+        hide_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-hide-16.png')
+        select_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-select-all-16.png')
+
+        self.show_all_png = wx.Bitmap(show_all, wx.BITMAP_TYPE_PNG)
+        self.hide_all_png = wx.Bitmap(hide_all, wx.BITMAP_TYPE_PNG)
+        self.select_all_png = wx.Bitmap(select_all, wx.BITMAP_TYPE_PNG)
 
     def _createToolbar(self):
 
@@ -8575,11 +8596,15 @@ class IFTItemPanel(wx.Panel):
 
     def _initializeIcons(self):
 
-        self.gray_png = RAWIcons.Star_icon_notenabled.GetBitmap()
-        self.star_png = RAWIcons.Star_icon_org.GetBitmap()
+        gray_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-gray-16.png')
+        orange_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-orange-16.png')
+        target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-16.png')
+        target_on = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-red-16.png')
 
-        self.target_png = RAWIcons.target.GetBitmap()
-        self.target_on_png = RAWIcons.target_orange.GetBitmap()
+        self.gray_png = wx.Bitmap(gray_star, wx.BITMAP_TYPE_PNG)
+        self.star_png = wx.Bitmap(orange_star, wx.BITMAP_TYPE_PNG)
+        self.target_png = wx.Bitmap(target, wx.BITMAP_TYPE_PNG)
+        self.target_on_png = wx.Bitmap(target_on, wx.BITMAP_TYPE_PNG)
 
     def _updateColourIndicator(self):
         conv = mplcol.ColorConverter()
@@ -8969,13 +8994,14 @@ class SECPanel(wx.Panel):
         self._saveItems()
 
     def _initializeIcons(self):
-        # self.collapse_all_png = RAWIcons.collapse_all.GetBitmap()
-        # self.expand_all_png = RAWIcons.expand_all.GetBitmap()
 
-        self.show_all_png = RAWIcons.open_eye.GetBitmap()
-        self.hide_all_png = RAWIcons.close_eye.GetBitmap()
+        show_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-eye-16.png')
+        hide_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-hide-16.png')
+        select_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-select-all-16.png')
 
-        self.select_all_png = RAWIcons.select_all.GetBitmap()
+        self.show_all_png = wx.Bitmap(show_all, wx.BITMAP_TYPE_PNG)
+        self.hide_all_png = wx.Bitmap(hide_all, wx.BITMAP_TYPE_PNG)
+        self.select_all_png = wx.Bitmap(select_all, wx.BITMAP_TYPE_PNG)
 
 
     def _createToolbar(self):
@@ -9704,13 +9730,18 @@ class SECItemPanel(wx.Panel):
             self.parent.Refresh()
 
     def _initializeIcons(self):
-        self.gray_png = RAWIcons.Star_icon_notenabled.GetBitmap()
-        self.star_png = RAWIcons.Star_icon_org.GetBitmap()
 
-        self.target_png = RAWIcons.target.GetBitmap()
-        self.target_on_png = RAWIcons.target_orange.GetBitmap()
+        gray_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-gray-16.png')
+        orange_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-orange-16.png')
+        target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-16.png')
+        target_on = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-red-16.png')
+        info = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-info-16.png')
 
-        self.info_png = RAWIcons.info_16_2.GetBitmap()
+        self.gray_png = wx.Bitmap(gray_star, wx.BITMAP_TYPE_PNG)
+        self.star_png = wx.Bitmap(orange_star, wx.BITMAP_TYPE_PNG)
+        self.target_png = wx.Bitmap(target, wx.BITMAP_TYPE_PNG)
+        self.target_on_png = wx.Bitmap(target_on, wx.BITMAP_TYPE_PNG)
+        self.info_png = wx.Bitmap(info, wx.BITMAP_TYPE_PNG)
 
     def _updateColourIndicator(self):
         conv = mplcol.ColorConverter()
@@ -10925,18 +10956,21 @@ class MaskingPanel(wx.Panel):
         self.SetSizer(self.sizer)
 
     def _createDrawCtrls(self):
-        self.circle_button = wxbutton.GenBitmapToggleButton(self, self.CIRCLE_ID, self.circle_bmp, size = (80,80))
-        self.rectangle_button = wxbutton.GenBitmapToggleButton(self, self.RECTANGLE_ID, self.rectangle_bmp, size = (80,80))
-        self.polygon_button = wxbutton.GenBitmapToggleButton(self, self.POLYGON_ID, self.polygon_bmp, size = (80,80))
+        self.circle_button = wx.BitmapToggleButton(self, self.CIRCLE_ID, self.circle_bmp, size = (60,60))
+        self.rectangle_button = wx.BitmapToggleButton(self, self.RECTANGLE_ID, self.rectangle_bmp, size = (60,60))
+        self.polygon_button = wx.BitmapToggleButton(self, self.POLYGON_ID, self.polygon_bmp, size = (60,60))
 
-        self.circle_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
-        self.rectangle_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
-        self.polygon_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
+        self.circle_button.Bind(wx.EVT_TOGGLEBUTTON, self._onDrawButton)
+        self.rectangle_button.Bind(wx.EVT_TOGGLEBUTTON, self._onDrawButton)
+        self.polygon_button.Bind(wx.EVT_TOGGLEBUTTON, self._onDrawButton)
 
-        draw_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        draw_sizer.Add(self.circle_button, 0)
-        draw_sizer.Add(self.rectangle_button,0)
-        draw_sizer.Add(self.polygon_button,0)
+        draw_sizer = wx.FlexGridSizer(rows=2, cols=3, vgap=2, hgap=5)
+        draw_sizer.Add(self.circle_button, flag=wx.ALIGN_CENTER_HORIZONTAL)
+        draw_sizer.Add(self.rectangle_button, flag=wx.ALIGN_CENTER_HORIZONTAL)
+        draw_sizer.Add(self.polygon_button, flag=wx.ALIGN_CENTER_HORIZONTAL)
+        draw_sizer.Add(wx.StaticText(self, label='Circle'), flag=wx.ALIGN_CENTER_HORIZONTAL)
+        draw_sizer.Add(wx.StaticText(self, label='Rectangle'), flag=wx.ALIGN_CENTER_HORIZONTAL)
+        draw_sizer.Add(wx.StaticText(self, label='Polygon'), flag=wx.ALIGN_CENTER_HORIZONTAL)
 
         self.circ_radius = wx.TextCtrl(self, size=(50,-1))
         self.circ_x = wx.TextCtrl(self, size=(50,-1))
@@ -11386,7 +11420,7 @@ class MaskingPanel(wx.Panel):
         button = event.GetEventObject()
         id = button.GetId()
 
-        if button.GetToggle():
+        if button.GetValue():
             self.disableDrawButtons(id)
 
             if self.CIRCLE_ID == id:
@@ -11398,8 +11432,8 @@ class MaskingPanel(wx.Panel):
 
     def disableDrawButtons(self, id = None):
         for each in self.all_button_ids:
-                if each != id:
-                    wx.FindWindowById(each, self).SetToggle(False)
+            if each != id:
+                wx.FindWindowById(each, self).SetValue(False)
 
     def _createButtonSizer(self):
         sizer = wx.BoxSizer()
@@ -11463,9 +11497,15 @@ class MaskingPanel(wx.Panel):
         return file
 
     def _initBitmaps(self):
-        self.circle_bmp = RAWIcons.CircleIcon.GetBitmap()
-        self.rectangle_bmp = RAWIcons.RectangleIcon.GetBitmap()
-        self.polygon_bmp = RAWIcons.PolygonIcon3.GetBitmap()
+        circle_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-full-moon-48.png')
+        rectangle_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-rectangular-48.png')
+        polygon_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-polygon-48.png')
+
+        self.circle_bmp = wx.Bitmap(circle_png, wx.BITMAP_TYPE_PNG)
+        self.rectangle_bmp = wx.Bitmap(rectangle_png, wx.BITMAP_TYPE_PNG)
+        self.polygon_bmp = wx.Bitmap(polygon_png, wx.BITMAP_TYPE_PNG)
+
+
 
 class CenteringPanel(wx.Panel):
 
@@ -11544,17 +11584,17 @@ class CenteringPanel(wx.Panel):
         wx.CallAfter(self._updateCenteringRings)
 
     def _initBitmaps(self):
-        self.up_arrow_img = RAWIcons.center_arrow_up.GetImage()
-        self.right_arrow_img = self.up_arrow_img.Rotate90()
-        self.down_arrow_img = self.right_arrow_img.Rotate90()
-        self.left_arrow_img = self.down_arrow_img.Rotate90()
+        up = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-pointing-up-32.png')
+        right = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-pointing-right-32.png')
+        down = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-pointing-down-32.png')
+        left = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-pointing-left-32.png')
+        target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-32.png')
 
-        self.up_arrow_bmp = self.up_arrow_img.ConvertToBitmap()
-        self.right_arrow_bmp = self.right_arrow_img.ConvertToBitmap()
-        self.down_arrow_bmp = self.down_arrow_img.ConvertToBitmap()
-        self.left_arrow_bmp = self.left_arrow_img.ConvertToBitmap()
-
-        self.target_bmp = RAWIcons.center_target.GetBitmap()
+        self.up_arrow_bmp = wx.Bitmap(up, wx.BITMAP_TYPE_PNG)
+        self.right_arrow_bmp = wx.Bitmap(right, wx.BITMAP_TYPE_PNG)
+        self.down_arrow_bmp = wx.Bitmap(down, wx.BITMAP_TYPE_PNG)
+        self.left_arrow_bmp = wx.Bitmap(left, wx.BITMAP_TYPE_PNG)
+        self.target_bmp = wx.Bitmap(target, wx.BITMAP_TYPE_PNG)
 
     def _createAutoCenteringSizer(self):
 
