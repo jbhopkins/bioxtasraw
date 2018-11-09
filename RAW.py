@@ -6212,6 +6212,7 @@ class ManipulationPanel(wx.Panel):
 
     def _initializeIcons(self):
 
+        #Icons for ManipulationPanel (some shared with ManipItemPanel)
         collapse_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-collapse-filled-16.png')
         expand_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-expand-filled-16.png')
         show_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-eye-16.png')
@@ -6223,6 +6224,23 @@ class ManipulationPanel(wx.Panel):
         self.show_all_png = wx.Bitmap(show_all, wx.BITMAP_TYPE_PNG)
         self.hide_all_png = wx.Bitmap(hide_all, wx.BITMAP_TYPE_PNG)
         self.select_all_png = wx.Bitmap(select_all, wx.BITMAP_TYPE_PNG)
+
+        #Items for ManipItemPanel
+        gray_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-gray-16.png')
+        orange_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-orange-16.png')
+        target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-16.png')
+        target_on = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-red-16.png')
+        info = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-info-16.png')
+        expand = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-down-filled-16.png')
+        collapse = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-up-filled-16.png')
+
+        self.gray_png = wx.Bitmap(gray_star, wx.BITMAP_TYPE_PNG)
+        self.star_png = wx.Bitmap(orange_star, wx.BITMAP_TYPE_PNG)
+        self.target_png = wx.Bitmap(target, wx.BITMAP_TYPE_PNG)
+        self.target_on_png = wx.Bitmap(target_on, wx.BITMAP_TYPE_PNG)
+        self.info_png = wx.Bitmap(info, wx.BITMAP_TYPE_PNG)
+        self.expand_png = wx.Bitmap(expand, wx.BITMAP_TYPE_PNG)
+        self.collapse_png = wx.Bitmap(collapse, wx.BITMAP_TYPE_PNG)
 
     def _createToolbar(self):
 
@@ -6837,7 +6855,6 @@ class ManipItemPanel(wx.Panel):
         self.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
         self.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
         self.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-        #Label, TextCtrl_ID, SPIN_ID
 
         self._initializeIcons()
 
@@ -6846,25 +6863,16 @@ class ManipItemPanel(wx.Panel):
         self.spin_controls = (("q Min:", 100, 101, (1, self.qmax-1), 'nlow'),
                              ("q Max:", 102, 103, (2, self.qmax), 'nhigh'))
 
-        self.float_spin_controls = (
-                                   # ("Conc:", 104, 'conc', '1.0', self._onScaleOffsetChange),
-                                    ("Scale:", 105, 'scale', str(sasm.getScale()), self._onScaleOffsetChange),
+        self.float_spin_controls = (("Scale:", 105, 'scale', str(sasm.getScale()), self._onScaleOffsetChange),
                                     ("Offset:", 106, 'offset', str(sasm.getOffset()), self._onScaleOffsetChange))
 
-        self.SelectedForPlot = RAWCustomCtrl.CustomCheckBox(self, -1, filename)
-        self.SelectedForPlot.SetValue(True)
-        self.SelectedForPlot.Bind(wx.EVT_CHECKBOX, self._onSelectedChkBox)
-        self.SelectedForPlot.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
-        self.SelectedForPlot.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-        self.SelectedForPlot.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
+        self.showitem_icon = wx.StaticBitmap(self, wx.ID_ANY, self.show_png)
+        self.showitem_icon.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
 
-        self.SelectedForPlot.SetForegroundColour(font_colour)
+        self.item_name = wx.StaticText(self, wx.ID_ANY, filename)
+        self.item_name.SetForegroundColour(font_colour)
 
         self.legend_label_text = wx.StaticText(self, -1, '')
-
-        self.legend_label_text.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
-        self.legend_label_text.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
-        self.legend_label_text.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
 
         conv = mplcol.ColorConverter()
         color = conv.to_rgb(self.sasm.line.get_mfc())
@@ -6887,7 +6895,7 @@ class ManipItemPanel(wx.Panel):
 
         if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
             show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
-            show_tip.SetTarget(self.SelectedForPlot)
+            show_tip.SetTarget(self.showitem_icon)
             show_tip.ApplyStyle('Blue Glass')
 
             line_tip = STT.SuperToolTip(" ", header = "Line Properties", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
@@ -6912,7 +6920,7 @@ class ManipItemPanel(wx.Panel):
             self.info_tip.ApplyStyle('Blue Glass')
 
         else:
-            self.SelectedForPlot.SetToolTip(wx.ToolTip('Show Plot'))
+            self.showitem_icon.SetToolTip(wx.ToolTip('Show Plot'))
             self.colour_indicator.SetToolTip(wx.ToolTip('Line Properties'))
             self.bg_star.SetToolTip(wx.ToolTip('Mark'))
             self.expand_collapse.SetToolTip(wx.ToolTip('Collapse/Expand'))
@@ -6923,14 +6931,15 @@ class ManipItemPanel(wx.Panel):
         self.locator_old_width = 1
 
         panelsizer = wx.BoxSizer()
-        panelsizer.Add(self.SelectedForPlot, 0, wx.LEFT | wx.TOP, 3)
-        panelsizer.Add(self.legend_label_text, 0, wx.LEFT | wx.TOP, 3)
+        panelsizer.Add(self.showitem_icon, 0, wx.LEFT|wx.TOP|wx.ALIGN_BOTTOM, 3)
+        panelsizer.Add(self.item_name, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
+        panelsizer.Add(self.legend_label_text, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
         panelsizer.Add((1,1), 1, wx.EXPAND)
-        panelsizer.Add(self.expand_collapse, 0, wx.RIGHT | wx.TOP, 5)
-        panelsizer.Add(self.info_icon, 0, wx.RIGHT | wx.TOP, 5)
-        panelsizer.Add(self.target_icon, 0, wx.RIGHT | wx.TOP, 4)
-        panelsizer.Add(self.colour_indicator, 0, wx.RIGHT | wx.TOP, 5)
-        panelsizer.Add(self.bg_star, 0, wx.LEFT | wx.RIGHT | wx.TOP, 3)
+        panelsizer.Add(self.expand_collapse, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 5)
+        panelsizer.Add(self.info_icon, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 5)
+        panelsizer.Add(self.target_icon, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 4)
+        panelsizer.Add(self.colour_indicator, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 5)
+        panelsizer.Add(self.bg_star, 0, wx.LEFT|wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
 
 
         self.topsizer = wx.BoxSizer(wx.VERTICAL)
@@ -6967,13 +6976,13 @@ class ManipItemPanel(wx.Panel):
             parent = self.GetParent()
 
             filename = self.sasm.getParameter('filename')
-            self.SelectedForPlot.SetLabel('* ' + str(filename))
-            self.SelectedForPlot.Refresh()
+            self.item_name.SetLabel('* ' + str(filename))
+            self.item_name.Refresh()
 
             if self not in self.manipulation_panel.modified_items:
                 self.manipulation_panel.modified_items.append(self)
 
-        self.updateShowItemCheckBox()
+        self.updateShowItem()
         self._updateLegendLabel(False)
 
 
@@ -7069,7 +7078,6 @@ class ManipItemPanel(wx.Panel):
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
 
     def toggleSelect(self, set_focus = False, update_info = True):
-
         if self._selected:
             self._selected = False
             self.SetBackgroundColour(wx.Colour(250,250,250))
@@ -7126,8 +7134,10 @@ class ManipItemPanel(wx.Panel):
         if not self._selected_for_plot:
             self._controls_visible = False
             self.showControls(self._controls_visible)
+            self.showitem_icon.SetBitmap(self.hide_png)
+        else:
+            self.showitem_icon.SetBitmap(self.show_png)
 
-        self.SelectedForPlot.SetValue(self._selected_for_plot)
         self.sasm.line.set_visible(self._selected_for_plot)
         self.sasm.line.set_picker(self._selected_for_plot)      #Line can't be selected when it's hidden
 
@@ -7146,16 +7156,20 @@ class ManipItemPanel(wx.Panel):
             if self._selected_for_plot:
                 item_plot_panel.updateErrorBars(each)
 
-    def updateShowItemCheckBox(self):
-        self.SelectedForPlot.SetValue(self._selected_for_plot)
+    def updateShowItem(self):
+        if not self._selected_for_plot:
+            self.showitem_icon.SetBitmap(self.hide_png)
+        else:
+            self.showitem_icon.SetBitmap(self.show_png)
+
         self.sasm.line.set_picker(self._selected_for_plot)
 
     def markAsModified(self, updateSelf = True, updateParent = True):
         filename = self.sasm.getParameter('filename')
-        self.SelectedForPlot.SetLabel('* ' + str(filename))
+        self.item_name.SetLabel('* ' + str(filename))
 
         if updateSelf:
-            self.SelectedForPlot.Refresh()
+            self.item_name.Refresh()
             self.topsizer.Layout()
 
         if updateParent:
@@ -7168,9 +7182,9 @@ class ManipItemPanel(wx.Panel):
     def unmarkAsModified(self, updateSelf = True, updateParent = True):
         filename = self.sasm.getParameter('filename')
 
-        self.SelectedForPlot.SetLabel(str(filename))
+        self.item_name.SetLabel(str(filename))
         if updateSelf:
-            self.SelectedForPlot.Refresh()
+            self.item_name.Refresh()
             self.topsizer.Layout()
 
         if updateParent:
@@ -7190,10 +7204,10 @@ class ManipItemPanel(wx.Panel):
         if updateLegend:
             self.plot_panel.updateLegend(self.sasm.axes)
 
-        self.SelectedForPlot.SetLabel(str(filename))
+        self.item_name.SetLabel(str(filename))
 
         if updateSelf:
-            self.SelectedForPlot.Refresh()
+            self.item_name.Refresh()
             self.topsizer.Layout()
 
         if updateParent:
@@ -7246,21 +7260,15 @@ class ManipItemPanel(wx.Panel):
 
     def _initializeIcons(self):
 
-        gray_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-gray-16.png')
-        orange_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-orange-16.png')
-        target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-16.png')
-        target_on = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-red-16.png')
-        info = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-info-16.png')
-        expand = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-down-filled-16.png')
-        collapse = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-up-filled-16.png')
-
-        self.gray_png = wx.Bitmap(gray_star, wx.BITMAP_TYPE_PNG)
-        self.star_png = wx.Bitmap(orange_star, wx.BITMAP_TYPE_PNG)
-        self.target_png = wx.Bitmap(target, wx.BITMAP_TYPE_PNG)
-        self.target_on_png = wx.Bitmap(target_on, wx.BITMAP_TYPE_PNG)
-        self.info_png = wx.Bitmap(info, wx.BITMAP_TYPE_PNG)
-        self.expand_png = wx.Bitmap(expand, wx.BITMAP_TYPE_PNG)
-        self.collapse_png = wx.Bitmap(collapse, wx.BITMAP_TYPE_PNG)
+        self.gray_png = self.manipulation_panel.gray_png
+        self.star_png = self.manipulation_panel.star_png
+        self.target_png = self.manipulation_panel.target_png
+        self.target_on_png = self.manipulation_panel.target_on_png
+        self.info_png = self.manipulation_panel.info_png
+        self.expand_png = self.manipulation_panel.expand_png
+        self.collapse_png = self.manipulation_panel.collapse_png
+        self.show_png = self.manipulation_panel.show_all_png
+        self.hide_png = self.manipulation_panel.hide_all_png
 
 
     def _initStartPosition(self):
@@ -7601,7 +7609,6 @@ class ManipItemPanel(wx.Panel):
 
             filters = 'Comma Separated Files (*.csv)|*.csv'
 
-            # dialog = wx.FileDialog( None, style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
             fname = 'RAW_analysis.csv'
             msg = "Please select save directory and enter save file name"
             dialog = wx.FileDialog( None, message = msg, style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, wildcard = filters, defaultDir = path, defaultFile = fname)
@@ -7836,7 +7843,7 @@ class ManipItemPanel(wx.Panel):
         txtctrl.SelectAll()
         evt.Skip()
 
-    def _onSelectedChkBox(self, event):
+    def _onShowItem(self, event):
         self._selected_for_plot = not self._selected_for_plot
 
         self.showItem(self._selected_for_plot)
@@ -7855,10 +7862,6 @@ class ManipItemPanel(wx.Panel):
         for label, id, name, initValue, bindfunc in self.float_spin_controls:
 
             label = wx.StaticText(self, -1, label)
-
-            label.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
-            label.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
-            label.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
 
             if initValue.find('.') == -1:
                 initValue = initValue + '.0'
@@ -7887,9 +7890,6 @@ class ManipItemPanel(wx.Panel):
                 nlow, nhigh = 0, (len(self.sasm.getBinnedQ())-1)
 
                 spin_label = wx.StaticText(self, -1, spin_label_text)
-                spin_label.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
-                spin_label.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
-                spin_label.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
 
                 spin_control = RAWCustomCtrl.IntSpinCtrl(self, spin_id, min = nlow, max = nhigh, TextLength = 43)
 
@@ -7959,6 +7959,7 @@ class IFTPanel(wx.Panel):
 
     def _initializeIcons(self):
 
+        #Icons for the IFTPanel and IFTItemPanel
         show_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-eye-16.png')
         hide_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-hide-16.png')
         select_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-select-all-16.png')
@@ -7966,6 +7967,13 @@ class IFTPanel(wx.Panel):
         self.show_all_png = wx.Bitmap(show_all, wx.BITMAP_TYPE_PNG)
         self.hide_all_png = wx.Bitmap(hide_all, wx.BITMAP_TYPE_PNG)
         self.select_all_png = wx.Bitmap(select_all, wx.BITMAP_TYPE_PNG)
+
+        #Icons for the IFTItemPanel
+        target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-16.png')
+        target_on = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-red-16.png')
+
+        self.target_png = wx.Bitmap(target, wx.BITMAP_TYPE_PNG)
+        self.target_on_png = wx.Bitmap(target_on, wx.BITMAP_TYPE_PNG)
 
     def _createToolbar(self):
 
@@ -8596,15 +8604,8 @@ class IFTItemPanel(wx.Panel):
 
     def _initializeIcons(self):
 
-        gray_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-gray-16.png')
-        orange_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-orange-16.png')
-        target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-16.png')
-        target_on = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-red-16.png')
-
-        self.gray_png = wx.Bitmap(gray_star, wx.BITMAP_TYPE_PNG)
-        self.star_png = wx.Bitmap(orange_star, wx.BITMAP_TYPE_PNG)
-        self.target_png = wx.Bitmap(target, wx.BITMAP_TYPE_PNG)
-        self.target_on_png = wx.Bitmap(target_on, wx.BITMAP_TYPE_PNG)
+        self.target_png = self.ift_panel.target_png
+        self.target_on_png = self.ift_panel.target_on_png
 
     def _updateColourIndicator(self):
         conv = mplcol.ColorConverter()
@@ -8995,6 +8996,7 @@ class SECPanel(wx.Panel):
 
     def _initializeIcons(self):
 
+        #Icons for the SECPanel
         show_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-eye-16.png')
         hide_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-hide-16.png')
         select_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-select-all-16.png')
@@ -9002,6 +9004,19 @@ class SECPanel(wx.Panel):
         self.show_all_png = wx.Bitmap(show_all, wx.BITMAP_TYPE_PNG)
         self.hide_all_png = wx.Bitmap(hide_all, wx.BITMAP_TYPE_PNG)
         self.select_all_png = wx.Bitmap(select_all, wx.BITMAP_TYPE_PNG)
+
+        #Icons for the SECItemPanel
+        gray_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-gray-16.png')
+        orange_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-orange-16.png')
+        target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-16.png')
+        target_on = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-red-16.png')
+        info = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-info-16.png')
+
+        self.gray_png = wx.Bitmap(gray_star, wx.BITMAP_TYPE_PNG)
+        self.star_png = wx.Bitmap(orange_star, wx.BITMAP_TYPE_PNG)
+        self.target_png = wx.Bitmap(target, wx.BITMAP_TYPE_PNG)
+        self.target_on_png = wx.Bitmap(target_on, wx.BITMAP_TYPE_PNG)
+        self.info_png = wx.Bitmap(info, wx.BITMAP_TYPE_PNG)
 
 
     def _createToolbar(self):
@@ -9731,17 +9746,11 @@ class SECItemPanel(wx.Panel):
 
     def _initializeIcons(self):
 
-        gray_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-gray-16.png')
-        orange_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-orange-16.png')
-        target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-16.png')
-        target_on = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-red-16.png')
-        info = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-info-16.png')
-
-        self.gray_png = wx.Bitmap(gray_star, wx.BITMAP_TYPE_PNG)
-        self.star_png = wx.Bitmap(orange_star, wx.BITMAP_TYPE_PNG)
-        self.target_png = wx.Bitmap(target, wx.BITMAP_TYPE_PNG)
-        self.target_on_png = wx.Bitmap(target_on, wx.BITMAP_TYPE_PNG)
-        self.info_png = wx.Bitmap(info, wx.BITMAP_TYPE_PNG)
+        self.gray_png = self.sec_panel.gray_png
+        self.star_png = self.sec_panel.star_png
+        self.target_png = self.sec_panel.target_png
+        self.target_on_png = self.sec_panel.target_on_png
+        self.info_png = self.sec_panel.info_png
 
     def _updateColourIndicator(self):
         conv = mplcol.ColorConverter()
