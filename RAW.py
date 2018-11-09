@@ -6931,7 +6931,7 @@ class ManipItemPanel(wx.Panel):
         self.locator_old_width = 1
 
         panelsizer = wx.BoxSizer()
-        panelsizer.Add(self.showitem_icon, 0, wx.LEFT|wx.TOP|wx.ALIGN_BOTTOM, 3)
+        panelsizer.Add(self.showitem_icon, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
         panelsizer.Add(self.item_name, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
         panelsizer.Add(self.legend_label_text, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
         panelsizer.Add((1,1), 1, wx.EXPAND)
