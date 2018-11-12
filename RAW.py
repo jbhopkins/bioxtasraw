@@ -6874,7 +6874,7 @@ class ManipItemPanel(wx.Panel):
         self.item_name = wx.StaticText(self, wx.ID_ANY, filename)
         self.item_name.SetForegroundColour(font_colour)
 
-        if opsys == 'Linux':
+        if opsys == 'Darwin':
             self.showitem_icon.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
             self.showitem_icon.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
             self.showitem_icon.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
@@ -7874,7 +7874,7 @@ class ManipItemPanel(wx.Panel):
 
             label = wx.StaticText(self, -1, label)
 
-            if platform.system() == 'Linux':
+            if platform.system() != 'Darwin':
                 label.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
                 label.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
                 label.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
@@ -7907,7 +7907,7 @@ class ManipItemPanel(wx.Panel):
 
             spin_label = wx.StaticText(self, -1, spin_label_text)
 
-            if platform.system() == 'Linux':
+            if platform.system() != 'Darwin':
                 spin_label.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
                 spin_label.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
                 spin_label.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
@@ -8392,7 +8392,7 @@ class IFTItemPanel(wx.Panel):
 
         self.legend_label_text = wx.StaticText(self, -1, '')
 
-        if opsys == 'Linux':
+        if opsys == 'Darwin':
             self.showitem_icon.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
             self.showitem_icon.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
             self.showitem_icon.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
@@ -9531,7 +9531,7 @@ class SECItemPanel(wx.Panel):
 
         self.legend_label_text = wx.StaticText(self, -1, '')
 
-        if opsys == 'Linux':
+        if opsys != 'Darwin':
             self.showitem_icon.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
             self.showitem_icon.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
             self.showitem_icon.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
