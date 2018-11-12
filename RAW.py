@@ -6874,11 +6874,7 @@ class ManipItemPanel(wx.Panel):
         self.item_name = wx.StaticText(self, wx.ID_ANY, filename)
         self.item_name.SetForegroundColour(font_colour)
 
-        if opsys == 'Darwin':
-            self.showitem_icon.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
-            self.showitem_icon.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
-            self.showitem_icon.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-
+        if opsys != 'Darwin':
             self.item_name.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
             self.item_name.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
             self.item_name.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
@@ -8392,11 +8388,7 @@ class IFTItemPanel(wx.Panel):
 
         self.legend_label_text = wx.StaticText(self, -1, '')
 
-        if opsys == 'Darwin':
-            self.showitem_icon.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
-            self.showitem_icon.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
-            self.showitem_icon.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-
+        if opsys != 'Darwin':
             self.item_name.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
             self.item_name.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
             self.item_name.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
@@ -9532,10 +9524,6 @@ class SECItemPanel(wx.Panel):
         self.legend_label_text = wx.StaticText(self, -1, '')
 
         if opsys != 'Darwin':
-            self.showitem_icon.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
-            self.showitem_icon.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
-            self.showitem_icon.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-
             self.item_name.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
             self.item_name.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
             self.item_name.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
