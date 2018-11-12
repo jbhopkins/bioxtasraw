@@ -8317,7 +8317,8 @@ class IFTPanel(wx.Panel):
 
 
 class IFTItemPanel(wx.Panel):
-    def __init__(self, parent, iftm, font_colour = 'BLACK', legend_label = defaultdict(str), ift_parameters = {}, item_visible = True, modified = False):
+    def __init__(self, parent, iftm, font_colour = 'BLACK', legend_label = defaultdict(str),
+        ift_parameters = {}, item_visible = True, modified = False):
 
         wx.Panel.__init__(self, parent, style = wx.BORDER_RAISED)
 
@@ -8328,7 +8329,6 @@ class IFTItemPanel(wx.Panel):
 
         self.lines = [self.iftm.r_line, self.iftm.qo_line, self.iftm.qf_line]
 
-        self.manipulation_panel = wx.FindWindowByName('IFTPanel')
         self.plot_panel = wx.FindWindowByName('PlotPanel')
         self.main_frame = wx.FindWindowByName('MainFrame')
         self.ift_panel = wx.FindWindowByName('IFTPanel')
@@ -8442,8 +8442,8 @@ class IFTItemPanel(wx.Panel):
             self.item_name.SetLabel('* ' + str(filename))
             self.item_name.Refresh()
 
-            if self not in self.manipulation_panel.modified_items:
-                self.manipulation_panel.modified_items.append(self)
+            if self not in self.ift_panel.modified_items:
+                self.ift_panel.modified_items.append(self)
 
 
     def setCurrentIFTParameters(self, ift_parameters):
@@ -8474,8 +8474,8 @@ class IFTItemPanel(wx.Panel):
             self.parent.Layout()
             self.parent.Refresh()
 
-        if self not in self.manipulation_panel.modified_items:
-            self.manipulation_panel.modified_items.append(self)
+        if self not in self.ift_panel.modified_items:
+            self.ift_panel.modified_items.append(self)
 
     def unmarkAsModified(self, updateSelf = True, updateParent = True):
         filename = self.iftm.getParameter('filename')
@@ -8489,13 +8489,13 @@ class IFTItemPanel(wx.Panel):
             self.parent.Layout()
             self.parent.Refresh()
         try:
-            self.manipulation_panel.modified_items.remove(self)
+            self.ift_panel.modified_items.remove(self)
         except:
             pass
 
     def removeSelf(self):
         #Has to be callafter under Linux.. or it'll crash
-        wx.CallAfter(self.manipulation_panel.removeSelectedItems)
+        wx.CallAfter(self.ift_panel.removeSelectedItems)
 
     def getIFTM(self):
         return self.iftm
@@ -8686,10 +8686,10 @@ class IFTItemPanel(wx.Panel):
 
         if evt.GetId() == 5:
             #Delete
-            wx.CallAfter(self.manipulation_panel.removeSelectedItems)
+            wx.CallAfter(self.ift_panel.removeSelectedItems)
 
         elif evt.GetId() == 7:
-            self.manipulation_panel.saveItems()
+            self.ift_panel.saveItems()
 
         elif evt.GetId() == 14:
             dlg = RAWCustomDialogs.FilenameChangeDialog(self, self.iftm.getParameter('filename'))
@@ -8744,7 +8744,7 @@ class IFTItemPanel(wx.Panel):
             self.main_frame.showDenssFrame(self.iftm, self)
 
     def _toMainPlot(self):
-        selected_items = self.manipulation_panel.getSelectedItems()
+        selected_items = self.ift_panel.getSelectedItems()
 
         sasm_list=[]
 
@@ -8766,7 +8766,7 @@ class IFTItemPanel(wx.Panel):
     def _runSVD(self):
         Mainframe = wx.FindWindowByName('MainFrame')
 
-        selected_items = self.manipulation_panel.getSelectedItems()
+        selected_items = self.ift_panel.getSelectedItems()
 
         if len(selected_items) > 1:
 
@@ -8791,7 +8791,7 @@ class IFTItemPanel(wx.Panel):
     def _runEFA(self):
         Mainframe = wx.FindWindowByName('MainFrame')
 
-        selected_items = self.manipulation_panel.getSelectedItems()
+        selected_items = self.ift_panel.getSelectedItems()
 
         if len(selected_items) > 1:
 
@@ -8821,12 +8821,12 @@ class IFTItemPanel(wx.Panel):
             self.removeSelf()
 
         elif key == 65 and evt.CmdDown(): #A
-            self.manipulation_panel.selectAll()
+            self.ift_panel.selectAll()
 
     def _onRightMouseButton(self, evt):
         if not self._selected:
             self.toggleSelect()
-            self.manipulation_panel.deselectAllExceptOne(self)
+            self.ift_panel.deselectAllExceptOne(self)
 
         if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
             wx.CallAfter(self._showPopupMenu)
@@ -8837,16 +8837,16 @@ class IFTItemPanel(wx.Panel):
         ctrl_is_down = evt.CmdDown()
         shift_is_down = evt.ShiftDown()
 
-        manipulation_panel = wx.FindWindowByName('IFTPanel')
+        ift_panel = wx.FindWindowByName('IFTPanel')
 
         if shift_is_down:
             try:
 
-                first_marked_item_idx = manipulation_panel.all_manipulation_items.index(manipulation_panel.getSelectedItems()[0])
-                last_marked_item = manipulation_panel.getSelectedItems()[-1]
-                last_marked_item_idx = manipulation_panel.all_manipulation_items.index(last_marked_item)
+                first_marked_item_idx = ift_panel.all_manipulation_items.index(ift_panel.getSelectedItems()[0])
+                last_marked_item = ift_panel.getSelectedItems()[-1]
+                last_marked_item_idx = ift_panel.all_manipulation_items.index(last_marked_item)
 
-                this_item_idx = manipulation_panel.all_manipulation_items.index(self)
+                this_item_idx = ift_panel.all_manipulation_items.index(self)
 
                 if last_marked_item_idx > this_item_idx:
                     adj = 0
@@ -8858,7 +8858,7 @@ class IFTItemPanel(wx.Panel):
                 top_item = max(idxs)
                 bottom_item = min(idxs)
 
-                item_list = manipulation_panel.all_manipulation_items[bottom_item+adj:top_item+adj]
+                item_list = ift_panel.all_manipulation_items[bottom_item+adj:top_item+adj]
                 for i in range(len(item_list)):
                     each = item_list[i]
                     if i != len(item_list)-1:
@@ -8871,7 +8871,7 @@ class IFTItemPanel(wx.Panel):
         elif ctrl_is_down:
             self.toggleSelect()
         else:
-            manipulation_panel.deselectAllExceptOne(self)
+            ift_panel.deselectAllExceptOne(self)
             self.toggleSelect()
 
         evt.Skip()
@@ -8880,9 +8880,9 @@ class IFTItemPanel(wx.Panel):
 
         if self._selected_as_bg == True:
             self.enableStar(False)
-            self.manipulation_panel.clearBackgroundItem()
+            self.ift_panel.clearBackgroundItem()
         else:
-            self.manipulation_panel.setItemAsBackground(self)
+            self.ift_panel.setItemAsBackground(self)
 
     def _updateLegendLabel(self, update_plot=True):
 
