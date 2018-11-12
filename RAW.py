@@ -7971,7 +7971,9 @@ class IFTPanel(wx.Panel):
         #Icons for the IFTItemPanel
         target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-16.png')
         target_on = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-red-16.png')
+        info = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-info-16.png')
 
+        self.info_png = wx.Bitmap(info, wx.BITMAP_TYPE_PNG)
         self.target_png = wx.Bitmap(target, wx.BITMAP_TYPE_PNG)
         self.target_on_png = wx.Bitmap(target_on, wx.BITMAP_TYPE_PNG)
 
@@ -8359,14 +8361,11 @@ class IFTItemPanel(wx.Panel):
 
         self._initializeIcons()
 
-        self.SelectedForPlot = RAWCustomCtrl.CustomCheckBox(self, -1, filename)
-        self.SelectedForPlot.SetValue(True)
-        self.SelectedForPlot.Bind(wx.EVT_CHECKBOX, self._onSelectedChkBox)
-        self.SelectedForPlot.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
-        self.SelectedForPlot.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-        self.SelectedForPlot.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
+        self.showitem_icon = wx.StaticBitmap(self, wx.ID_ANY, self.show_png)
+        self.showitem_icon.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
 
-        self.SelectedForPlot.SetForegroundColour(font_colour)
+        self.item_name = wx.StaticText(self, wx.ID_ANY, filename)
+        self.item_name.SetForegroundColour(font_colour)
 
         self.legend_label_text = wx.StaticText(self, -1, '')
 
@@ -8383,10 +8382,11 @@ class IFTItemPanel(wx.Panel):
         self.target_icon = wx.StaticBitmap(self, -1, self.target_png)
         self.target_icon.Bind(wx.EVT_LEFT_DOWN, self._onTargetButton)
 
+        self.info_icon = wx.StaticBitmap(self, -1, self.info_png)
 
         if platform.system() == 'Darwin':
             show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
-            show_tip.SetTarget(self.SelectedForPlot)
+            show_tip.SetTarget(self.showitem_icon)
             show_tip.ApplyStyle('Blue Glass')
 
             line_tip = STT.SuperToolTip(" ", header = "Line Properties", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
@@ -8397,18 +8397,27 @@ class IFTItemPanel(wx.Panel):
             target_tip.SetTarget(self.target_icon)
             target_tip.ApplyStyle('Blue Glass')
 
+            info_str = "Dmax: {}\nMethod: {}".format(self.iftm.getParameter('dmax'), self.iftm.getParameter('algorithm'))
+            info_tip = STT.SuperToolTip(info_str, header="Extended Info", footer="")
+            info_tip.SetTarget(self.info_icon)
+            info_tip.ApplyStyle("Blue Glass")
+
         else:
-            self.SelectedForPlot.SetToolTip(wx.ToolTip('Show Plot'))
+            self.showitem_icon.SetToolTip(wx.ToolTip('Show Plot'))
             self.colour_indicator.SetToolTip(wx.ToolTip('Line Properties'))
             self.target_icon.SetToolTip(wx.ToolTip('Locate Line'))
+            info_str = "Extended Info\n--------------------------------\nDmax: {}\nMethod: {}".format(self.iftm.getParameter('dmax'), self.iftm.getParameter('algorithm'))
+            self.info_icon.SetToolTip(wx.ToolTip(info_str))
 
         self.locator_on = False
         self.locator_old_width = {}
 
         panelsizer = wx.BoxSizer()
-        panelsizer.Add(self.SelectedForPlot, 0, wx.LEFT | wx.TOP, 3)
+        panelsizer.Add(self.showitem_icon, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
+        panelsizer.Add(self.item_name, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
         panelsizer.Add(self.legend_label_text, 0, wx.LEFT | wx.TOP, 3)
         panelsizer.Add((1,1), 1, wx.EXPAND)
+        panelsizer.Add(self.info_icon, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 5)
         panelsizer.Add(self.target_icon, 0, wx.RIGHT | wx.TOP, 4)
         panelsizer.Add(self.colour_indicator, 0, wx.RIGHT | wx.TOP, 5)
 
@@ -8422,7 +8431,7 @@ class IFTItemPanel(wx.Panel):
 
         self.SetBackgroundColour(wx.Colour(250,250,250))
 
-        self.updateShowItemCheckBox()
+        self.updateShowItem()
 
         self._updateLegendLabel(False)
 
@@ -8430,8 +8439,8 @@ class IFTItemPanel(wx.Panel):
             parent = self.GetParent()
 
             filename = self.iftm.getParameter('filename')
-            self.SelectedForPlot.SetLabel('* ' + str(filename))
-            self.SelectedForPlot.Refresh()
+            self.item_name.SetLabel('* ' + str(filename))
+            self.item_name.Refresh()
 
             if self not in self.manipulation_panel.modified_items:
                 self.manipulation_panel.modified_items.append(self)
@@ -8443,18 +8452,11 @@ class IFTItemPanel(wx.Panel):
     def getIftParameters(self):
         return self.ift_parameters
 
-    def enableStar(self, state):
-        if state == True:
-            self.bg_star.SetBitmap(self.star_png)
-            self._selected_as_bg = True
+    def updateShowItem(self):
+        if not self._selected_for_plot:
+            self.showitem_icon.SetBitmap(self.hide_png)
         else:
-            self.bg_star.SetBitmap(self.gray_png)
-            self._selected_as_bg = False
-
-        self.bg_star.Refresh()
-
-    def updateShowItemCheckBox(self):
-        self.SelectedForPlot.SetValue(self._selected_for_plot)
+            self.showitem_icon.SetBitmap(self.show_png)
 
         for line in self.lines:
             line.set_picker(self._selected_for_plot)
@@ -8462,10 +8464,10 @@ class IFTItemPanel(wx.Panel):
     def markAsModified(self, updateSelf = True, updateParent = True):
         filename = self.iftm.getParameter('filename')
 
-        self.SelectedForPlot.SetLabel('* ' + str(filename))
+        self.item_name.SetLabel('* ' + str(filename))
 
         if updateSelf:
-            self.SelectedForPlot.Refresh()
+            self.item_name.Refresh()
             self.topsizer.Layout()
 
         if updateParent:
@@ -8478,9 +8480,9 @@ class IFTItemPanel(wx.Panel):
     def unmarkAsModified(self, updateSelf = True, updateParent = True):
         filename = self.iftm.getParameter('filename')
 
-        self.SelectedForPlot.SetLabel(str(filename))
+        self.item_name.SetLabel(str(filename))
         if updateSelf:
-            self.SelectedForPlot.Refresh()
+            self.item_name.Refresh()
             self.topsizer.Layout()
 
         if updateParent:
@@ -8548,7 +8550,10 @@ class IFTItemPanel(wx.Panel):
     def showItem(self, state):
         self._selected_for_plot = state
 
-        self.SelectedForPlot.SetValue(state)
+        if not self._selected_for_plot:
+            self.showitem_icon.SetBitmap(self.hide_png)
+        else:
+            self.showitem_icon.SetBitmap(self.show_png)
 
         for line in self.lines:
             line.set_visible(state)
@@ -8592,10 +8597,10 @@ class IFTItemPanel(wx.Panel):
             self.ift_plot_panel.updateLegend(1)
             self.ift_plot_panel.updateLegend(2)
 
-        self.SelectedForPlot.SetLabel(str(filename))
+        self.item_name.SetLabel(str(filename))
 
         if updateSelf:
-            self.SelectedForPlot.Refresh()
+            self.item_name.Refresh()
             self.topsizer.Layout()
 
         if updateParent:
@@ -8606,6 +8611,9 @@ class IFTItemPanel(wx.Panel):
 
         self.target_png = self.ift_panel.target_png
         self.target_on_png = self.ift_panel.target_on_png
+        self.info_png = self.ift_panel.info_png
+        self.show_png = self.ift_panel.show_all_png
+        self.hide_png = self.ift_panel.hide_all_png
 
     def _updateColourIndicator(self):
         conv = mplcol.ColorConverter()
@@ -8909,7 +8917,7 @@ class IFTItemPanel(wx.Panel):
             wx.CallAfter(self.iftm.plot_panel.updateLegend, 1)
             wx.CallAfter(self.iftm.plot_panel.updateLegend, 2)
 
-    def _onSelectedChkBox(self, event):
+    def _onShowItem(self, event):
         self._selected_for_plot = not self._selected_for_plot
 
         self.showItem(self._selected_for_plot)
