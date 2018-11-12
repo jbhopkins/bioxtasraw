@@ -6852,6 +6852,8 @@ class ManipItemPanel(wx.Panel):
 
         filename = sasm.getParameter('filename')
 
+        opsys = platform.system()
+
         self.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
         self.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
         self.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
@@ -6871,6 +6873,15 @@ class ManipItemPanel(wx.Panel):
 
         self.item_name = wx.StaticText(self, wx.ID_ANY, filename)
         self.item_name.SetForegroundColour(font_colour)
+
+        if opsys == 'Linux':
+            self.showitem_icon.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
+            self.showitem_icon.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
+            self.showitem_icon.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
+
+            self.item_name.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
+            self.item_name.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
+            self.item_name.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
 
         self.legend_label_text = wx.StaticText(self, -1, '')
 
@@ -6893,7 +6904,7 @@ class ManipItemPanel(wx.Panel):
 
         self.info_icon = wx.StaticBitmap(self, -1, self.info_png)
 
-        if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+        if int(wx.__version__.split('.')[0]) >= 3 and opsys == 'Darwin':
             show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(self.showitem_icon)
             show_tip.ApplyStyle('Blue Glass')
@@ -7863,6 +7874,11 @@ class ManipItemPanel(wx.Panel):
 
             label = wx.StaticText(self, -1, label)
 
+            if platform.system() == 'Linux':
+                label.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
+                label.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
+                label.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
+
             if initValue.find('.') == -1:
                 initValue = initValue + '.0'
 
@@ -7881,34 +7897,39 @@ class ManipItemPanel(wx.Panel):
 
 
         for each_spinctrl in self.spin_controls:
-                spin_id = each_spinctrl[1]
-                spin_label_text = each_spinctrl[0]
-                qtxtId = each_spinctrl[2]
-                # spin_range = each_spinctrl[3]
-                spin_name = each_spinctrl[4]
+            spin_id = each_spinctrl[1]
+            spin_label_text = each_spinctrl[0]
+            qtxtId = each_spinctrl[2]
+            # spin_range = each_spinctrl[3]
+            spin_name = each_spinctrl[4]
 
-                nlow, nhigh = 0, (len(self.sasm.getBinnedQ())-1)
+            nlow, nhigh = 0, (len(self.sasm.getBinnedQ())-1)
 
-                spin_label = wx.StaticText(self, -1, spin_label_text)
+            spin_label = wx.StaticText(self, -1, spin_label_text)
 
-                spin_control = RAWCustomCtrl.IntSpinCtrl(self, spin_id, min = nlow, max = nhigh, TextLength = 43)
+            if platform.system() == 'Linux':
+                spin_label.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
+                spin_label.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
+                spin_label.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
 
-                if spin_name == 'nlow':
-                    spin_control.SetValue(nlow)
-                elif spin_name == 'nhigh':
-                    spin_control.SetValue(nhigh)
+            spin_control = RAWCustomCtrl.IntSpinCtrl(self, spin_id, min = nlow, max = nhigh, TextLength = 43)
 
-                spin_control.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onQrangeChange)
+            if spin_name == 'nlow':
+                spin_control.SetValue(nlow)
+            elif spin_name == 'nhigh':
+                spin_control.SetValue(nhigh)
 
-                q_ctrl = wx.TextCtrl(self, qtxtId, '', size = (55,-1), style = wx.TE_PROCESS_ENTER)
-                q_ctrl.Bind(wx.EVT_TEXT_ENTER, self._onEnterInQrangeTextCtrl)
+            spin_control.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onQrangeChange)
 
-                spin_sizer = wx.BoxSizer()
-                spin_sizer.Add(q_ctrl, 0, wx.RIGHT, 3)
-                spin_sizer.Add(spin_control, 0)
+            q_ctrl = wx.TextCtrl(self, qtxtId, '', size = (55,-1), style = wx.TE_PROCESS_ENTER)
+            q_ctrl.Bind(wx.EVT_TEXT_ENTER, self._onEnterInQrangeTextCtrl)
 
-                control_sizer.Add(spin_label, 0)
-                control_sizer.Add(spin_sizer, 0)
+            spin_sizer = wx.BoxSizer()
+            spin_sizer.Add(q_ctrl, 0, wx.RIGHT, 3)
+            spin_sizer.Add(spin_control, 0)
+
+            control_sizer.Add(spin_label, 0)
+            control_sizer.Add(spin_sizer, 0)
 
 #--- ** IFT Panel **
 
@@ -8348,6 +8369,8 @@ class IFTItemPanel(wx.Panel):
 
         filename = iftm.getParameter('filename')
 
+        opsys = platform.system()
+
         if self.iftm.getParameter('algorithm') == 'GNOM':
             self.is_gnom = True
         else:
@@ -8369,9 +8392,14 @@ class IFTItemPanel(wx.Panel):
 
         self.legend_label_text = wx.StaticText(self, -1, '')
 
-        self.legend_label_text.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
-        self.legend_label_text.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
-        self.legend_label_text.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
+        if opsys == 'Linux':
+            self.showitem_icon.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
+            self.showitem_icon.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
+            self.showitem_icon.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
+
+            self.item_name.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
+            self.item_name.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
+            self.item_name.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
 
         color = [1,1,1]
         color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
@@ -8384,7 +8412,7 @@ class IFTItemPanel(wx.Panel):
 
         self.info_icon = wx.StaticBitmap(self, -1, self.info_png)
 
-        if platform.system() == 'Darwin':
+        if opsys == 'Darwin':
             show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(self.showitem_icon)
             show_tip.ApplyStyle('Blue Glass')
@@ -9487,6 +9515,8 @@ class SECItemPanel(wx.Panel):
 
         filename = secm.getParameter('filename')
 
+        opsys = platform.system()
+
         self.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
         self.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
         self.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
@@ -9501,9 +9531,14 @@ class SECItemPanel(wx.Panel):
 
         self.legend_label_text = wx.StaticText(self, -1, '')
 
-        self.legend_label_text.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
-        self.legend_label_text.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
-        self.legend_label_text.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
+        if opsys == 'Linux':
+            self.showitem_icon.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
+            self.showitem_icon.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
+            self.showitem_icon.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
+
+            self.item_name.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
+            self.item_name.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
+            self.item_name.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
 
         conv = mplcol.ColorConverter()
         color = conv.to_rgb(self.secm.line.get_mfc())
@@ -9522,7 +9557,7 @@ class SECItemPanel(wx.Panel):
 
         self.info_icon = wx.StaticBitmap(self, -1, self.info_png)
 
-        if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+        if int(wx.__version__.split('.')[0]) >= 3 and opsys == 'Darwin':
             show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(self.showitem_icon)
             show_tip.ApplyStyle('Blue Glass')
