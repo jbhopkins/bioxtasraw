@@ -9493,14 +9493,11 @@ class SECItemPanel(wx.Panel):
 
         self._initializeIcons()
 
-        self.SelectedForPlot = RAWCustomCtrl.CustomCheckBox(self, -1, filename)
-        self.SelectedForPlot.SetValue(True)
-        self.SelectedForPlot.Bind(wx.EVT_CHECKBOX, self._onSelectedChkBox)
-        self.SelectedForPlot.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
-        self.SelectedForPlot.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
-        self.SelectedForPlot.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
+        self.showitem_icon = wx.StaticBitmap(self, wx.ID_ANY, self.show_png)
+        self.showitem_icon.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
 
-        self.SelectedForPlot.SetForegroundColour(font_colour)
+        self.item_name = wx.StaticText(self, wx.ID_ANY, filename)
+        self.item_name.SetForegroundColour(font_colour)
 
         self.legend_label_text = wx.StaticText(self, -1, '')
 
@@ -9527,7 +9524,7 @@ class SECItemPanel(wx.Panel):
 
         if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
             show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
-            show_tip.SetTarget(self.SelectedForPlot)
+            show_tip.SetTarget(self.showitem_icon)
             show_tip.ApplyStyle('Blue Glass')
 
             line_tip = STT.SuperToolTip(" ", header = "Line Properties", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
@@ -9548,7 +9545,7 @@ class SECItemPanel(wx.Panel):
             self.info_tip.ApplyStyle('Blue Glass')
 
         else:
-            self.SelectedForPlot.SetToolTip(wx.ToolTip('Show Plot'))
+            self.showitem_icon.SetToolTip(wx.ToolTip('Show Plot'))
             self.colour_indicator.SetToolTip(wx.ToolTip('Line Properties'))
             self.bg_star.SetToolTip(wx.ToolTip('Mark'))
             self.target_icon.SetToolTip(wx.ToolTip('Locate Line'))
@@ -9558,7 +9555,8 @@ class SECItemPanel(wx.Panel):
         self.locator_old_width = 1
 
         panelsizer = wx.BoxSizer()
-        panelsizer.Add(self.SelectedForPlot, 0, wx.LEFT | wx.TOP, 3)
+        panelsizer.Add(self.showitem_icon, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
+        panelsizer.Add(self.item_name, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
         panelsizer.Add(self.legend_label_text, 0, wx.LEFT | wx.TOP, 3)
         panelsizer.Add((1,1), 1, wx.EXPAND)
         panelsizer.Add(self.info_icon, 0, wx.RIGHT | wx.TOP, 5)
@@ -9586,13 +9584,13 @@ class SECItemPanel(wx.Panel):
             parent = self.GetParent()
 
             filename = self.secm.getParameter('filename')
-            self.SelectedForPlot.SetLabel('* ' + str(filename))
-            self.SelectedForPlot.Refresh()
+            self.item_name.SetLabel('* ' + str(filename))
+            self.item_name.Refresh()
 
             if self not in self.sec_panel.modified_items:
                 self.sec_panel.modified_items.append(self)
 
-        self.updateShowItemCheckBox()
+        self.updateShowItem()
 
         self._updateLegendLabel(False)
 
@@ -9685,9 +9683,10 @@ class SECItemPanel(wx.Panel):
         self._selected_for_plot = state
 
         if self._selected_for_plot == False:
-            self._controls_visible = False
+            self.showitem_icon.SetBitmap(self.hide_png)
+        else:
+            self.showitem_icon.SetBitmap(self.show_png)
 
-        self.SelectedForPlot.SetValue(self._selected_for_plot)
         self.secm.line.set_visible(self._selected_for_plot)
         self.secm.line.set_picker(self._selected_for_plot)      #Line can't be selected when it's hidden
 
@@ -9696,18 +9695,22 @@ class SECItemPanel(wx.Panel):
             self.secm.calc_line.set_picker(self._selected_for_plot)      #Line can't be selected when it's hidden
         self.secm.is_visible = self._selected_for_plot
 
-    def updateShowItemCheckBox(self):
-        self.SelectedForPlot.SetValue(self._selected_for_plot)
+    def updateShowItem(self):
+        if not self._selected_for_plot:
+            self.showitem_icon.SetBitmap(self.hide_png)
+        else:
+            self.showitem_icon.SetBitmap(self.show_png)
+
         self.secm.line.set_picker(self._selected_for_plot)
         if self.sec_plot_panel.plotparams['secm_plot_calc'] != 'None' and self.secm.calc_has_data:
             self.secm.calc_line.set_picker(self._selected_for_plot)      #Line can't be selected when it's hidden
 
     def markAsModified(self, updateSelf = True, updateParent = True):
         filename = self.secm.getParameter('filename')
-        self.SelectedForPlot.SetLabel('* ' + str(filename))
+        self.item_name.SetLabel('* ' + str(filename))
 
         if updateSelf:
-            self.SelectedForPlot.Refresh()
+            self.item_name.Refresh()
             self.topsizer.Layout()
 
         if updateParent:
@@ -9719,10 +9722,10 @@ class SECItemPanel(wx.Panel):
 
     def unmarkAsModified(self, updateSelf = True, updateParent = True):
         filename = self.secm.getParameter('filename')
-        self.SelectedForPlot.SetLabel(str(filename))
+        self.item_name.SetLabel(str(filename))
 
         if updateSelf:
-            self.SelectedForPlot.Refresh()
+            self.item_name.Refresh()
             self.topsizer.Layout()
 
         if updateParent:
@@ -9742,10 +9745,10 @@ class SECItemPanel(wx.Panel):
         if updateLegend:
             self.sec_plot_panel.updateLegend(self.secm.axes)
 
-        self.SelectedForPlot.SetLabel(str(filename))
+        self.item_name.SetLabel(str(filename))
 
         if updateSelf:
-            self.SelectedForPlot.Refresh()
+            self.item_name.Refresh()
             self.topsizer.Layout()
 
         if updateParent:
@@ -9759,6 +9762,8 @@ class SECItemPanel(wx.Panel):
         self.target_png = self.sec_panel.target_png
         self.target_on_png = self.sec_panel.target_on_png
         self.info_png = self.sec_panel.info_png
+        self.show_png = self.sec_panel.show_all_png
+        self.hide_png = self.sec_panel.hide_all_png
 
     def _updateColourIndicator(self):
         conv = mplcol.ColorConverter()
@@ -9983,7 +9988,7 @@ class SECItemPanel(wx.Panel):
         if update_plot:
             wx.CallAfter(self.secm.plot_panel.updateLegend, self.secm.axes)
 
-    def _onSelectedChkBox(self, event):
+    def _onShowItem(self, event):
         self._selected_for_plot = not self._selected_for_plot
 
         self.showItem(self._selected_for_plot)
@@ -10417,8 +10422,7 @@ class SECControlPanel(wx.Panel):
             elif len(self.sec_panel.all_manipulation_items)>1:
 
                 if selected_item != None:
-
-                    if not selected_item.SelectedForPlot.GetValue():
+                    if not selected_item.getSelectedForPlot():
                         msg = "Warning: The selected series curve is not shown on the plot. Send frames to main plot anyways?\nNote: You can select a different series curve by starring it."
                         dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection", style = wx.ICON_QUESTION | wx.YES_NO)
                         proceed = dlg.ShowModal()
@@ -10481,7 +10485,7 @@ class SECControlPanel(wx.Panel):
 
                 if selected_item != None:
 
-                    if not selected_item.SelectedForPlot.GetValue():
+                    if not selected_item.getSelectedForPlot():
                         msg = "Warning: The selected series curve is not shown on the plot. Send average to main plot anyways?\nNote: You can select a different series curve by starring it."
                         dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection", style = wx.ICON_QUESTION | wx.YES_NO)
                         proceed = dlg.ShowModal()
