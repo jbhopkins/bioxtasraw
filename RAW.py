@@ -11012,9 +11012,16 @@ class MaskingPanel(wx.Panel):
         self.SetSizer(self.sizer)
 
     def _createDrawCtrls(self):
-        self.circle_button = wx.BitmapToggleButton(self, self.CIRCLE_ID, self.circle_bmp, size = (60,60))
-        self.rectangle_button = wx.BitmapToggleButton(self, self.RECTANGLE_ID, self.rectangle_bmp, size = (60,60))
-        self.polygon_button = wx.BitmapToggleButton(self, self.POLYGON_ID, self.polygon_bmp, size = (60,60))
+
+        if int(wx.__version__.split('.')[0]) < 4:
+            self.circle_button = wxbutton.GenBitmapToggleButton(self, self.CIRCLE_ID, self.circle_bmp, size = (60,60))
+            self.rectangle_button = wxbutton.GenBitmapToggleButton(self, self.RECTANGLE_ID, self.rectangle_bmp, size = (60,60))
+            self.polygon_button = wxbutton.GenBitmapToggleButton(self, self.POLYGON_ID, self.polygon_bmp, size = (60,60))
+
+        else:
+            self.circle_button = wx.BitmapToggleButton(self, self.CIRCLE_ID, self.circle_bmp, size = (60,60))
+            self.rectangle_button = wx.BitmapToggleButton(self, self.RECTANGLE_ID, self.rectangle_bmp, size = (60,60))
+            self.polygon_button = wx.BitmapToggleButton(self, self.POLYGON_ID, self.polygon_bmp, size = (60,60))
 
         self.circle_button.Bind(wx.EVT_TOGGLEBUTTON, self._onDrawButton)
         self.rectangle_button.Bind(wx.EVT_TOGGLEBUTTON, self._onDrawButton)
