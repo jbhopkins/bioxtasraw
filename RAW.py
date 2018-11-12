@@ -6874,12 +6874,16 @@ class ManipItemPanel(wx.Panel):
         self.item_name = wx.StaticText(self, wx.ID_ANY, filename)
         self.item_name.SetForegroundColour(font_colour)
 
+        self.legend_label_text = wx.StaticText(self, -1, '')
+
         if opsys != 'Darwin':
             self.item_name.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
             self.item_name.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
             self.item_name.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
 
-        self.legend_label_text = wx.StaticText(self, -1, '')
+            self.legend_label_text.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
+            self.legend_label_text.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
+            self.legend_label_text.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
 
         conv = mplcol.ColorConverter()
         color = conv.to_rgb(self.sasm.line.get_mfc())
@@ -8393,6 +8397,10 @@ class IFTItemPanel(wx.Panel):
             self.item_name.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
             self.item_name.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
 
+            self.legend_label_text.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
+            self.legend_label_text.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
+            self.legend_label_text.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
+
         color = [1,1,1]
         color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
 
@@ -9527,6 +9535,10 @@ class SECItemPanel(wx.Panel):
             self.item_name.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
             self.item_name.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
             self.item_name.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
+
+            self.legend_label_text.Bind(wx.EVT_LEFT_DOWN, self._onLeftMouseButton)
+            self.legend_label_text.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
+            self.legend_label_text.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
 
         conv = mplcol.ColorConverter()
         color = conv.to_rgb(self.secm.line.get_mfc())
