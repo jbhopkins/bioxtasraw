@@ -11013,19 +11013,13 @@ class MaskingPanel(wx.Panel):
 
     def _createDrawCtrls(self):
 
-        if int(wx.__version__.split('.')[0]) < 4:
-            self.circle_button = wxbutton.GenBitmapToggleButton(self, self.CIRCLE_ID, self.circle_bmp, size = (60,60))
-            self.rectangle_button = wxbutton.GenBitmapToggleButton(self, self.RECTANGLE_ID, self.rectangle_bmp, size = (60,60))
-            self.polygon_button = wxbutton.GenBitmapToggleButton(self, self.POLYGON_ID, self.polygon_bmp, size = (60,60))
+        self.circle_button = wxbutton.GenBitmapToggleButton(self, self.CIRCLE_ID, self.circle_bmp, size = (60,60))
+        self.rectangle_button = wxbutton.GenBitmapToggleButton(self, self.RECTANGLE_ID, self.rectangle_bmp, size = (60,60))
+        self.polygon_button = wxbutton.GenBitmapToggleButton(self, self.POLYGON_ID, self.polygon_bmp, size = (60,60))
 
-        else:
-            self.circle_button = wx.BitmapToggleButton(self, self.CIRCLE_ID, self.circle_bmp, size = (60,60))
-            self.rectangle_button = wx.BitmapToggleButton(self, self.RECTANGLE_ID, self.rectangle_bmp, size = (60,60))
-            self.polygon_button = wx.BitmapToggleButton(self, self.POLYGON_ID, self.polygon_bmp, size = (60,60))
-
-        self.circle_button.Bind(wx.EVT_TOGGLEBUTTON, self._onDrawButton)
-        self.rectangle_button.Bind(wx.EVT_TOGGLEBUTTON, self._onDrawButton)
-        self.polygon_button.Bind(wx.EVT_TOGGLEBUTTON, self._onDrawButton)
+        self.circle_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
+        self.rectangle_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
+        self.polygon_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
 
         draw_sizer = wx.FlexGridSizer(rows=2, cols=3, vgap=2, hgap=5)
         draw_sizer.Add(self.circle_button, flag=wx.ALIGN_CENTER_HORIZONTAL)
@@ -11483,7 +11477,7 @@ class MaskingPanel(wx.Panel):
         button = event.GetEventObject()
         id = button.GetId()
 
-        if button.GetValue():
+        if button.GetToggle():
             self.disableDrawButtons(id)
 
             if self.CIRCLE_ID == id:
@@ -11496,7 +11490,7 @@ class MaskingPanel(wx.Panel):
     def disableDrawButtons(self, id = None):
         for each in self.all_button_ids:
             if each != id:
-                wx.FindWindowById(each, self).SetValue(False)
+                wx.FindWindowById(each, self).SetToggle(False)
 
     def _createButtonSizer(self):
         sizer = wx.BoxSizer()
