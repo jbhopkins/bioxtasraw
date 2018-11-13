@@ -6246,10 +6246,15 @@ class ManipulationPanel(wx.Panel):
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
 
+        if platform.system() == 'Darwin':
+            size = (28, -1)
+        else:
+            size = (-1, -1)
+
         collapse_all = wx.BitmapButton(self, -1, self.collapse_all_png)
         expand_all = wx.BitmapButton(self, -1, self.expand_all_png)
-        show_all = wx.BitmapButton(self, -1, self.show_all_png)
-        hide_all = wx.BitmapButton(self, -1, self.hide_all_png)
+        show_all = wx.BitmapButton(self, -1, self.show_all_png, size=size)
+        hide_all = wx.BitmapButton(self, -1, self.hide_all_png, size=size)
         select_all= wx.BitmapButton(self, -1, self.select_all_png)
 
         select_all.Bind(wx.EVT_BUTTON, self._onSelectAllButton)
@@ -8002,8 +8007,13 @@ class IFTPanel(wx.Panel):
 
         sizer = wx.BoxSizer()
 
-        show_all = wx.BitmapButton(self, -1, self.show_all_png)
-        hide_all = wx.BitmapButton(self, -1, self.hide_all_png)
+        if platform.system() == 'Darwin':
+            size = (28, -1)
+        else:
+            size = (-1, -1)
+
+        show_all = wx.BitmapButton(self, -1, self.show_all_png, size=size)
+        hide_all = wx.BitmapButton(self, -1, self.hide_all_png, size=size)
         select_all= wx.BitmapButton(self, -1, self.select_all_png)
 
 
@@ -9059,11 +9069,14 @@ class SECPanel(wx.Panel):
 
         sizer = wx.BoxSizer()
 
+        if platform.system() == 'Darwin':
+            size = (28, -1)
+        else:
+            size = (-1, -1)
+
         select_all= wx.BitmapButton(self, -1, self.select_all_png)
-        # collapse_all = wx.BitmapButton(self, -1, self.collapse_all_png)
-        # expand_all = wx.BitmapButton(self, -1, self.expand_all_png)
-        show_all = wx.BitmapButton(self, -1, self.show_all_png)
-        hide_all = wx.BitmapButton(self, -1, self.hide_all_png)
+        show_all = wx.BitmapButton(self, -1, self.show_all_png, size=size)
+        hide_all = wx.BitmapButton(self, -1, self.hide_all_png,size=size)
 
         if platform.system() == 'Darwin':
             show_tip = STT.SuperToolTip(" ", header = "Show", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
