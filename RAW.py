@@ -10655,7 +10655,7 @@ class SECControlPanel(wx.Panel):
             return
         elif len(self.sec_panel.all_manipulation_items)>1:
 
-            if not selected_item.SelectedForPlot.GetValue():
+            if not selected_item.getSelectedForPlot():
                 msg = "Warning: The selected series curve is not shown on the plot. Set/Update parameters anyways?\nNote: You can select a different series curve by starring it."
                 dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection", style = wx.ICON_QUESTION | wx.YES_NO)
                 proceed = dlg.ShowModal()
