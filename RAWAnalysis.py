@@ -33,10 +33,6 @@ import wx
 import time
 import platform
 import collections
-import shutil
-import glob
-import json
-import ast
 import traceback
 
 matplotlib.rcParams['backend'] = 'WxAgg'
@@ -48,16 +44,11 @@ from matplotlib.figure import Figure
 import matplotlib.colors as mplcol
 from mpl_toolkits.mplot3d import Axes3D
 
-# These are for the AutoWrapStaticText class
-from wx.lib.wordwrap import wordwrap
-from wx.lib.stattext import GenStaticText as StaticText
 import wx.lib.agw.flatnotebook as flatNB
 from wx.lib.agw import ultimatelistctrl as ULC
 
 from scipy import integrate
 import scipy.stats as stats
-from scipy.interpolate import interp1d
-import scipy.optimize
 
 import RAWSettings
 import RAWCustomCtrl
@@ -70,7 +61,7 @@ import RAWCustomDialogs
 
 class GuinierPlotPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name, wxEmbedded = False):
+    def __init__(self, parent, panel_id, name):
 
         wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -1561,7 +1552,7 @@ class MolWeightFrame(wx.Frame):
         mwsizer.Add(VpMW, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
         mwsizer.Add(txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
-        mw_warning = AutoWrapStaticText(parent, 'Warning: final q point is outside the extrapolation region (0.15 < q < 0.45 1/A), no correction has been applied!')
+        mw_warning = RAWCustomCtrl.AutoWrapStaticText(parent, 'Warning: final q point is outside the extrapolation region (0.15 < q < 0.45 1/A), no correction has been applied!')
 
         self.mw_warning_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.mw_warning_sizer.Add(mw_warning, wx.EXPAND)
@@ -2307,7 +2298,7 @@ class MolWeightFrame(wx.Frame):
 
 class MWPlotPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name, wxEmbedded = False):
+    def __init__(self, parent, panel_id, name):
 
         wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -2600,7 +2591,7 @@ class GNOMFrame(wx.Frame):
 
 class GNOMPlotPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name, wxEmbedded = False):
+    def __init__(self, parent, panel_id, name):
 
         wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -7183,7 +7174,7 @@ class BIFTFrame(wx.Frame):
 
 class BIFTPlotPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name, wxEmbedded = False):
+    def __init__(self, parent, panel_id, name):
 
         wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -8212,7 +8203,7 @@ class SVDFrame(wx.Frame):
 
 class SVDResultsPlotPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name, wxEmbedded = False):
+    def __init__(self, parent, panel_id, name):
 
         wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -8356,7 +8347,7 @@ class SVDResultsPlotPanel(wx.Panel):
 
 class SVDSECPlotPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name, svd = False, wxEmbedded = False):
+    def __init__(self, parent, panel_id, name, svd = False):
 
         wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -10280,7 +10271,7 @@ class EFAControlPanel2(wx.Panel):
 
 class EFAResultsPlotPanel2(wx.Panel):
 
-    def __init__(self, parent, panel_id, name, wxEmbedded = False):
+    def __init__(self, parent, panel_id, name):
 
         wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -11068,7 +11059,7 @@ class EFAControlPanel3(wx.Panel):
 
 class EFAResultsPlotPanel3(wx.Panel):
 
-    def __init__(self, parent, panel_id, name, wxEmbedded = False):
+    def __init__(self, parent, panel_id, name):
 
         wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -11280,7 +11271,7 @@ class EFAResultsPlotPanel3(wx.Panel):
 
 class EFARangePlotPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name, wxEmbedded = False):
+    def __init__(self, parent, panel_id, name):
 
         wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER, size = (275,300))
 
@@ -11874,7 +11865,7 @@ class NormKratkyFrame(wx.Frame):
 
 class NormKratkyPlotPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name, wxEmbedded = False):
+    def __init__(self, parent, panel_id, name):
 
         wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -12415,79 +12406,774 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
             plotpanel.redrawLines()
 
 
-# ----------------------------------------------------------------------------
-# Auto-wrapping static text class
-# ----------------------------------------------------------------------------
-class AutoWrapStaticText(StaticText):
-    """
-    A simple class derived from :mod:`lib.stattext` that implements auto-wrapping
-    behaviour depending on the parent size.
-    .. versionadded:: 0.9.5
-    Code from: https://github.com/wxWidgets/Phoenix/blob/master/wx/lib/agw/infobar.py
-    Original author: Andrea Gavana
-    """
-    def __init__(self, parent, label):
-        """
-        Defsult class constructor.
-        :param Window parent: a subclass of :class:`Window`, must not be ``None``;
-        :param string `label`: the :class:`AutoWrapStaticText` text label.
-        """
-        StaticText.__init__(self, parent, wx.ID_ANY, label, style=wx.ST_NO_AUTORESIZE)
-        self.label = label
-        # colBg = wx.SystemSettings.GetColour(wx.SYS_COLOUR_INFOBK)
-        # self.SetBackgroundColour(colBg)
-        # self.SetOwnForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_INFOTEXT))
+class SeriesFrame(wx.Frame):
 
-        self.Bind(wx.EVT_SIZE, self.OnSize)
-        self.Bind(wx.EVT_SPLITTER_SASH_POS_CHANGED, self.OnSize)
-        self.Bind(wx.EVT_SPLITTER_SASH_POS_CHANGING, self.OnSize)
+    def __init__(self, parent, title, secm, manip_item):
 
-    def OnSize(self, event):
-        """
-        Handles the ``wx.EVT_SIZE`` event for :class:`AutoWrapStaticText`.
-        :param `event`: a :class:`SizeEvent` event to be processed.
-        """
-        event.Skip()
-        self.Wrap(event.GetSize().width)
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, name = 'SeriesFrame', size = (900,600))
 
-    def Wrap(self, width):
-        """
-        This functions wraps the controls label so that each of its lines becomes at
-        most `width` pixels wide if possible (the lines are broken at words boundaries
-        so it might not be the case if words are too long).
-        If `width` is negative, no wrapping is done.
-        :param integer `width`: the maximum available width for the text, in pixels.
-        :note: Note that this `width` is not necessarily the total width of the control,
-        since a few pixels for the border (depending on the controls border style) may be added.
-        """
-        if width < 0:
-           return
-        self.Freeze()
+        splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE|wx.SP_3D)
 
-        dc = wx.ClientDC(self)
-        dc.SetFont(self.GetFont())
-        text = wordwrap(self.label, width, dc)
-        self.SetLabel(text, wrapped=True)
+        self.secm = secm
+        self.manip_item = manip_item
 
-        self.Thaw()
+        self.plotPanel = SeriesPlotPage(splitter, 'SeriesPlotPage', secm)
+        self.controlPanel = SeriesControlPanel(splitter, 'SeriesControlPanel', secm)
 
-    def SetLabel(self, label, wrapped=False):
-        """
-        Sets the :class:`AutoWrapStaticText` label.
-        All "&" characters in the label are special and indicate that the following character is
-        a mnemonic for this control and can be used to activate it from the keyboard (typically
-        by using ``Alt`` key in combination with it). To insert a literal ampersand character, you
-        need to double it, i.e. use "&&". If this behaviour is undesirable, use `SetLabelText` instead.
-        :param string `label`: the new :class:`AutoWrapStaticText` text label;
-        :param bool `wrapped`: ``True`` if this method was called by the developer using :meth:`~AutoWrapStaticText.SetLabel`,
-        ``False`` if it comes from the :meth:`~AutoWrapStaticText.OnSize` event handler.
-        :note: Reimplemented from :class:`PyControl`.
-        """
+        splitter.SplitVertically(self.controlPanel, self.plotPanel, 325)
 
-        if not wrapped:
-            self.label = label
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+            splitter.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
+        else:
+            splitter.SetMinimumPaneSize(50)
 
-        StaticText.SetLabel(self, label)
+        splitter.Layout()
+        self.Layout()
+        self.SendSizeEvent()
+        splitter.Layout()
+        self.Layout()
+
+        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+            splitter.Fit()
+            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+                size = self.GetSize()
+                size[1] = size[1] + 20
+                self.SetSize(size)
+
+        self.CenterOnParent()
+        self.Raise()
+
+    def OnClose(self):
+            self.Destroy()
+
+
+class SeriesPlotPanel(wx.Panel):
+
+    def __init__(self, parent, plot_type):
+
+        wx.Panel.__init__(self, parent)
+
+        self.all_plot_types = {'unsub'  : {'left': 'Intensity', 'right' : '',
+                        'title': 'Unsubtracted Series', 'bottom': 'Frame #'},
+            'sub'       : {'left': 'Intensity', 'right': ['Rg', 'MW (Vc)', 'MW (Vp)', 'I0'],
+                        'title': 'Subtracted Series', 'bottom': 'Frame #'},
+            'baseline'  : {'left': 'Intensity', 'right': ['Rg', 'MW (Vc)', 'MW (Vp)', 'I0'],
+                        'title': 'Baseline Corrected Series', 'bottom': 'Frame #'},
+            'uv'        : {'left': 'Intensity', 'right': 'UV',
+                        'title': 'SAXS and UV', 'bottom': 'Frame #'},
+            }
+
+        self.plot_type = plot_type
+
+        self.plot_lines = {}
+        self.r_plot_lines = {}
+        self.plot_ranges = []
+
+        self.range_pick = False
+
+        self.create_layout()
+
+        # Connect the callback for the draw_event so that window resizing works:
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+        self.canvas.mpl_connect('motion_notify_event', self._onMouseMotionEvent)
+        self.canvas.mpl_connect('button_press_event', self._onMousePressEvent)
+
+    def create_layout(self):
+        self.fig = Figure((5,4), 75)
+
+        self.subplot = self.fig.add_subplot(1,1,1,
+            title=self.all_plot_types[self.plot_type]['title'])
+        self.subplot.set_xlabel(self.all_plot_types[self.plot_type]['bottom'])
+        self.subplot.set_ylabel(self.all_plot_types[self.plot_type]['left'])
+
+        if self.plot_type != 'unsub':
+            self.ryaxis = self.subplot.twinx()
+            self.ryaxis.set_ylabel(self.all_plot_types[self.plot_type]['right'][0])
+
+        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
+
+        self.fig.set_facecolor('white')
+
+        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
+        self.canvas.SetBackgroundColour('white')
+
+        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        self.toolbar.Realize()
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
+        sizer.Add(self.toolbar, 0, wx.GROW)
+
+        self.SetSizer(sizer)
+
+    def plot_data(self, xdata, ydata, label, axis):
+        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
+        self.canvas.mpl_disconnect(self.cid)
+
+        if axis == 'left':
+            try:
+                line = self.plot_lines[label]
+            except Exception:
+                line = None
+        else:
+            try:
+                line = self.r_plot_lines[label]
+            except Exception:
+                line = None
+
+        if line is None:
+            if axis == 'left':
+                line, = self.subplot.plot(xdata, ydata, animated=True)
+                self.canvas.draw()
+                self.background = self.canvas.copy_from_bbox(self.subplot.bbox)
+                self.plot_lines[label] = line
+            else:
+                line, = self.ryaxis.plot(xdata, ydata, animated=True)
+                self.canvas.draw()
+                self.r_background = self.canvas.copy_from_bbox(self.ryaxs.bbox)
+                self.r_plot_lines[label] = line
+        else:
+            line.set_xdata(xdata)
+            line.set_ydata(ydata)
+
+        self.updatePlot()
+
+        #Reconnect draw_event
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def plot_range(self, start, end, index):
+        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
+        self.canvas.mpl_disconnect(self.cid)
+
+        if index < len(self.plot_ranges):
+            line = self.plot_ranges[index]
+        else:
+            line = None
+
+        if line is None:
+            line = self.subplot.axvspan(start, end, animated=True, facecolor='g',
+                alpha=0.5)
+            self.canvas.draw()
+            self.background = self.canvas.copy_from_bbox(self.subplot.bbox)
+            self.plot_ranges.append(line)
+        else:
+            pts = line.get_xy()
+            pts[:,0] = [start, start, end, end, start]
+            line.set_xy(pts)
+
+        self.redrawLines()
+
+        #Reconnect draw_event
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def remove_range(self, index):
+        if index > len(self.plot_ranges) - 1:
+            return
+
+        line = self.plot_ranges[index]
+        line.remove()
+
+        del self.plot_ranges[index]
+
+        self.redrawLines()
+
+    def pick_range(self, start_item, end_item, index):
+        self.start_range = -1
+        self.end_range = -1
+        self.range_pick = True
+        self.range_pick_line = self.plot_ranges[index]
+
+        self.range_pick_line.set_visible(False)
+
+        low_x, high_x = self.subplot.get_xlim()
+
+        self.canvas.mpl_disconnect(self.cid)
+        self.range_line = self.subplot.axvline(low_x, color='g', alpha=0.5, animated=True)
+        self.range_line.set_visible(False)
+        self.canvas.draw()
+        self.background = self.canvas.copy_from_bbox(self.subplot.bbox)
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+        self.redrawLines()
+
+        self.range_line.set_visible(True)
+
+    def _onMouseMotionEvent(self, event):
+
+        if event.inaxes:
+            x, y = event.xdata, event.ydata
+            # wx.FindWindowByName('MainFrame').SetStatusText('q = ' +  str(round(x,5)) + ', I = ' + str(round(y,5)), 1)
+            if self.range_pick:
+                if self.start_range == -1:
+                    x = int(round(x))
+                    self.range_line.set_xdata([x, x])
+                else:
+                    x = int(round(x))
+                    pts = self.range_pick_line.get_xy()
+                    pts[:,0] = [self.start_range, self.start_range, x, x, self.start_range]
+                    self.range_pick_line.set_xy(pts)
+
+                self.redrawLines()
+
+    def _onMousePressEvent(self, event):
+        if self.range_pick and event.inaxes and event.button == 1:
+            x, y = event.xdata, event.ydata
+
+            if self.start_range == -1:
+                self.start_range = int(round(x))
+                pts = self.range_pick_line.get_xy()
+                pts[:,0] = [self.start_range, self.start_range, self.start_range+1,
+                    self.start_range+1, self.start_range]
+                self.range_pick_line.set_xy(pts)
+
+                self.range_line.set_visible(False)
+                self.range_pick_line.set_visible(True)
+            else:
+                self.end_range = int(round(x))
+                pts = self.range_pick_line.get_xy()
+                pts[:,0] = [self.start_range, self.start_range, self.end_range,
+                    self.end_range, self.start_range]
+                self.range_pick_line.set_xy(pts)
+
+                self.range_pick = False
+                self.range_line.remove()
+                del self.range_line
+
+            self.redrawLines()
+
+
+    def ax_redraw(self, widget=None):
+        ''' Redraw plots on window resize event '''
+        self.background = self.canvas.copy_from_bbox(self.subplot.bbox)
+
+        self.canvas.mpl_disconnect(self.cid)
+        self.updatePlot()
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def relimPlot(self):
+        oldx = self.subplot.get_xlim()
+        oldy = self.subplot.get_ylim()
+
+        self.subplot.relim()
+        self.subplot.autoscale_view()
+
+        newx = self.subplot.get_xlim()
+        newy = self.subplot.get_ylim()
+
+        if newx != oldx or newy != oldy:
+            self.canvas.draw()
+
+        self.redrawLines()
+
+    def redrawLines(self):
+        self.canvas.restore_region(self.background)
+
+        for line in self.plot_lines.values():
+            self.subplot.draw_artist(line)
+
+        for line in self.plot_ranges:
+            self.subplot.draw_artist(line)
+
+        if self.range_pick:
+            self.subplot.draw_artist(self.range_line)
+
+        self.canvas.blit(self.subplot.bbox)
+
+    def updatePlot(self):
+        self.relimPlot()
+
+
+class SeriesPlotPage(wx.Panel):
+
+    def __init__(self, parent, name, secm):
+
+        wx.Panel.__init__(self, parent, wx.ID_ANY, name=name, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
+
+        self.secm = secm
+
+        self.create_layout()
+
+    def create_layout(self):
+        self.notebook = wx.Notebook(self)
+
+        self.unsub_panel = SeriesPlotPanel(self.notebook, 'unsub')
+        self.sub_panel = SeriesPlotPanel(self.notebook, 'sub')
+        self.baseline_panel = SeriesPlotPanel(self.notebook, 'baseline')
+        self.uv_panel = SeriesPlotPanel(self.notebook, 'uv')
+
+        self.notebook.AddPage(self.unsub_panel, 'Unsubtracted')
+        self.notebook.AddPage(self.sub_panel, 'Subtracted')
+        self.notebook.AddPage(self.baseline_panel, 'Baseline Corrected')
+        self.notebook.AddPage(self.uv_panel, 'UV')
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(self.notebook, 1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
+
+    def update_plot_data(self, xdata, ydata, label, axis, plot):
+        if plot == 'gen_sub':
+            if self.baseline_panel.IsShown():
+                plot = 'baseline'
+            else:
+                plot = 'sub'
+
+        if plot == 'unsub':
+            self.unsub_panel.plot_data(xdata, ydata, label, axis)
+        elif plot == 'sub':
+            self.sub_panel.plot_data(xdata, ydata, label, axis)
+        elif plot == 'baseline':
+            self.baseline_panel.plot_data(xdata, ydata, label, axis)
+        elif plot == 'uv':
+            self.uv_panel.plot_data(xdata, ydata, label, axis)
+
+    def update_plot_range(self, start, end, index, plot):
+        if plot == 'gen_sub':
+            if self.baseline_panel.IsShown():
+                plot = 'baseline'
+            else:
+                plot = 'sub'
+
+        if plot == 'unsub':
+            self.unsub_panel.plot_range(start, end, index)
+        elif plot == 'sub':
+            self.sub_panel.plot_range(start, end, index)
+        elif plot == 'baseline':
+            self.baseline_panel.plot_range(start, end, index)
+        elif plot == 'uv':
+            self.uv_panel.plot_range(start, end, index)
+
+    def remove_plot_range(self, index, plot):
+        if plot == 'gen_sub':
+            if self.baseline_panel.IsShown():
+                plot = 'baseline'
+            else:
+                plot = 'sub'
+
+        if plot == 'unsub':
+            self.unsub_panel.remove_range(index)
+        elif plot == 'sub':
+            self.sub_panel.remove_range(index)
+        elif plot == 'baseline':
+            self.baseline_panel.remove_range(index)
+        elif plot == 'uv':
+            self.uv_panel.remove_range(index)
+
+    def pick_plot_range(self, start_item, end_item, index, plot):
+        if plot == 'gen_sub':
+            if self.baseline_panel.IsShown():
+                plot = 'baseline'
+            else:
+                plot = 'sub'
+
+        if plot == 'unsub':
+            self.unsub_panel.pick_range(start_item, end_item, index)
+        elif plot == 'sub':
+            self.sub_panel.pick_range(start_item, end_item, index)
+        elif plot == 'baseline':
+            self.baseline_panel.pick_range(start_item, end_item, index)
+        elif plot == 'uv':
+            self.uv_panel.pick_range(start_item, end_item, index)
+
+
+class SeriesControlPanel(wx.ScrolledWindow):
+
+    def __init__(self, parent, name, secm):
+
+        wx.ScrolledWindow.__init__(self, parent, name=name, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER|wx.VSCROLL)
+        self.SetScrollRate(20,20)
+
+        self.secm = secm
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.plot_page = wx.FindWindowByName('SeriesPlotPage')
+
+        self._createLayout()
+
+        self._initialize()
+
+        self.processing_order = ['buffer', 'baseline', 'uv', 'calc']
+
+        self.process = {'buffer': self.processBuffer,
+            'baseline'  : self.processBaseline,
+            'uv'        : self.processUV,
+            'calc'      : self.calcParams,
+            }
+
+    def onCloseButton(self, evt):
+        diag = wx.FindWindowByName('SeriesFrame')
+        diag.OnClose()
+
+    def _createLayout(self):
+
+        frames = self.secm.getFrames()
+
+        close_button = wx.Button(self, wx.ID_OK, 'Close')
+        close_button.Bind(wx.EVT_BUTTON, self.onCloseButton)
+
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(close_button, 1, wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_HORIZONTAL, 5)
+
+        box = wx.StaticBox(self, -1, 'Control')
+        control_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+
+
+        info_pane = wx.CollapsiblePane(self, label="Series Type")
+        info_pane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
+        info_win = info_pane.GetPane()
+
+        self.series_type = wx.Choice(info_win, choices=['SEC-SAXS', 'TR-SAXS'])
+        self.series_type.SetStringSelection('SEC-SAXS')
+        self.series_type.Bind(wx.EVT_CHOICE, self.onUpdateProc)
+
+        type_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        type_sizer.Add(wx.StaticText(info_win, label='Series type:'), flag=wx.LEFT,
+            border=2)
+        type_sizer.Add(self.series_type, flag=wx.LEFT|wx.RIGHT, border=2)
+
+        info_sizer = wx.BoxSizer(wx.VERTICAL)
+        info_sizer.Add(type_sizer)
+        info_win.SetSizer(info_sizer)
+
+
+        buffer_pane = wx.CollapsiblePane(self, label="Buffer")
+        buffer_pane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
+        buffer_win = buffer_pane.GetPane()
+
+        self.subtracted = wx.CheckBox(buffer_win, label='Series is already subtracted')
+        self.subtracted.SetValue(False)
+        self.subtracted.Bind(wx.EVT_CHECKBOX, self._onSubtracted)
+
+        self.buffer_range_list = SeriesRangeItemList(self, 'buffer', buffer_win)
+        self.buffer_range_list.SetMinSize((-1,125))
+
+        self.buffer_auto_btn = wx.Button(buffer_win, label='Auto')
+        self.buffer_auto_btn.Bind(wx.EVT_BUTTON, self._onBufferAuto)
+
+        self.buffer_add_btn = wx.Button(buffer_win, label='Add region')
+        self.buffer_add_btn.Bind(wx.EVT_BUTTON, self._onSeriesAdd)
+
+        self.buffer_remove_btn = wx.Button(buffer_win, label='Remove region')
+        self.buffer_remove_btn.Bind(wx.EVT_BUTTON, self._onSeriesRemove)
+
+        self.buffer_calc = wx.Button(buffer_win, label='Set buffer and calculate')
+        self.buffer_calc.Bind(wx.EVT_BUTTON, self.onUpdateProc)
+
+        buffer_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buffer_button_sizer.Add(self.buffer_auto_btn)
+        buffer_button_sizer.Add(self.buffer_add_btn, flag=wx.LEFT, border=2)
+        buffer_button_sizer.Add(self.buffer_remove_btn, flag=wx.LEFT, border=2)
+
+        buffer_sizer = wx.BoxSizer(wx.VERTICAL)
+        buffer_sizer.Add(self.subtracted, flag=wx.LEFT|wx.RIGHT, border=2)
+        buffer_sizer.Add(self.buffer_range_list, flag=wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND,
+            border=2)
+        buffer_sizer.Add(buffer_button_sizer, flag=wx.LEFT|wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_HORIZONTAL,
+            border=2)
+        buffer_sizer.Add(self.buffer_calc, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
+        buffer_win.SetSizer(buffer_sizer)
+
+
+        baseline_pane = wx.CollapsiblePane(self, label="Baseline Correction")
+        baseline_pane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
+        baseline_win = baseline_pane.GetPane()
+
+        self.baseline_cor = wx.Choice(baseline_win, choices=['None', 'Linear', 'Integral'])
+        self.baseline_cor.SetStringSelection('None')
+        self.baseline_cor.Bind(wx.EVT_CHOICE, self.onUpdateProc)
+
+        type_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        type_sizer.Add(wx.StaticText(baseline_win, label='Baseline correction:'), flag=wx.LEFT,
+            border=2)
+        type_sizer.Add(self.baseline_cor, flag=wx.LEFT|wx.RIGHT, border=2)
+
+        self.baseline_start = RAWCustomCtrl.IntSpinCtrl(baseline_win,
+            wx.ID_ANY, min=frames[0], max=frames[-1], size=(60,-1))
+        self.baseline_end = RAWCustomCtrl.IntSpinCtrl(baseline_win,
+            wx.ID_ANY, min=frames[0], max=frames[-1], size=(60,-1))
+        self.baseline_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaseline)
+        self.baseline_end.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaseline)
+
+        baseline_ctrl_sizer = wx.FlexGridSizer(rows=2, cols=2, hgap=2, vgap=2)
+        baseline_ctrl_sizer.Add(wx.StaticText(baseline_win, label='Start:'))
+        baseline_ctrl_sizer.Add(self.baseline_start)
+        baseline_ctrl_sizer.Add(wx.StaticText(baseline_win, label='End:'))
+        baseline_ctrl_sizer.Add(self.baseline_end)
+
+        self.baseline_calc = wx.Button(baseline_win, label='Set baseline and calculate')
+        self.baseline_calc.Bind(wx.EVT_BUTTON, self.onUpdateProc)
+
+        baseline_sizer = wx.BoxSizer(wx.VERTICAL)
+        baseline_sizer.Add(type_sizer, flag=wx.LEFT|wx.RIGHT, border=2)
+        baseline_sizer.Add(baseline_ctrl_sizer, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
+        baseline_sizer.Add(self.baseline_calc, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
+        baseline_win.SetSizer(baseline_sizer)
+
+
+        uv_pane = wx.CollapsiblePane(self, label="UV")
+        uv_pane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
+        # uv_win = uv_pane.GetPane()
+
+        # uv_sizer = wx.BoxSizer(wx.VERTICAL)
+        # uv_win.SetSizer(uv_sizer)
+
+
+        sample_pane = wx.CollapsiblePane(self, label="Sample")
+        sample_pane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
+        sample_win = sample_pane.GetPane()
+
+        self.sample_range_list = SeriesRangeList(sample_win, agwStyle=ULC.ULC_REPORT|ULC.ULC_USER_ROW_HEIGHT)
+        self.sample_range_list.InsertColumn(0, 'Start')
+        self.sample_range_list.InsertColumn(1, 'End')
+        self.sample_range_list.InsertColumn(2, '')
+        self.sample_range_list.SetUserLineHeight(30)
+        self.sample_range_list.SetMinSize((-1,125))
+
+        self.sample_auto_btn = wx.Button(sample_win, label='Auto')
+        self.sample_auto_btn.Bind(wx.EVT_BUTTON, self._onSampleAuto)
+
+        self.sample_add_btn = wx.Button(sample_win, label='Add region')
+        self.sample_add_btn.Bind(wx.EVT_BUTTON, self._onSeriesAdd)
+
+        self.sample_remove_btn = wx.Button(sample_win, label='Remove region')
+        self.sample_remove_btn.Bind(wx.EVT_BUTTON, self._onSeriesRemove)
+
+        to_mainplot = wx.Button(sample_win, label='To Main Plot')
+        to_mainplot.Bind(wx.EVT_BUTTON, self._onToMainPlot)
+
+        sample_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sample_button_sizer.Add(self.sample_auto_btn)
+        sample_button_sizer.Add(self.sample_add_btn, flag=wx.LEFT, border=2)
+        sample_button_sizer.Add(self.sample_remove_btn, flag=wx.LEFT, border=2)
+
+        sample_sizer = wx.BoxSizer(wx.VERTICAL)
+        sample_sizer.Add(self.sample_range_list, flag=wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND,
+            border=2)
+        sample_sizer.Add(sample_button_sizer, flag=wx.LEFT|wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_HORIZONTAL,
+            border=2)
+        sample_sizer.Add(to_mainplot, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
+        sample_win.SetSizer(sample_sizer)
+
+
+        control_sizer.Add(info_pane, flag=wx.TOP, border=5)
+        control_sizer.Add(buffer_pane, flag=wx.EXPAND|wx.TOP, border=5)
+        control_sizer.Add(baseline_pane, flag=wx.TOP, border=5)
+        control_sizer.Add(uv_pane, flag=wx.TOP, border=5)
+        control_sizer.Add(sample_pane, flag=wx.TOP, border=5)
+        control_sizer.AddStretchSpacer(1)
+
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(control_sizer,1, wx.TOP | wx.EXPAND, 5)
+        top_sizer.Add(button_sizer,0, wx.BOTTOM|wx.ALIGN_CENTER_HORIZONTAL, 5)
+
+        self.SetSizer(top_sizer)
+
+    def _initialize(self):
+        print 'In _initialize'
+        frames = self.secm.getFrames()
+        intensity = self.secm.getIntI()
+
+        self.plot_page.update_plot_data(frames, intensity, 'intensity', 'left', 'unsub')
+
+
+    def onUpdateProc(self, event):
+        event_object = event.GetEventObject()
+
+        if event_object is self.buffer_calc:
+            start = 'buffer'
+        elif event_object is self.baseline_calc:
+            start = 'baseline'
+
+        self.updateProcessing(start)
+
+    def updateProcessing(self, start):
+        start_idx = self.processing_order.index(start)
+
+        processing_steps = self.processing_order[start_idx:]
+
+        for step in processing_steps:
+            self.process[step]()
+
+    def updateSeriesRange(self, event):
+        event_object = event.GetEventObject()
+        event_item = event_object.GetParent()
+        value = event_object.GetValue()
+
+        start, end = event_item.get_range()
+        index = event_item.item_list.get_item_index(event_item)
+
+        if event_object is event_item.start_ctrl:
+            current_range = event_item.end_ctrl.GetRange()
+            event_item.end_ctrl.SetRange((value+1, current_range[-1]))
+        else:
+            current_range = event_item.start_ctrl.GetRange()
+            event_item.start_ctrl.SetRange((current_range[0], value-1))
+
+        if event_item.item_type == 'buffer':
+            self.plot_page.update_plot_range(start, end, index, 'unsub')
+        else:
+            self.plot_page.update_plot_range(start, end, index, 'gen_sub')
+
+    def updateBaseline(self, event):
+        pass
+
+    def onCollapse(self, event):
+        self.Layout()
+        self.SendSizeEvent()
+
+    def _onSubtracted(self, event):
+        is_not_sub = not event.IsChecked()
+        self.buffer_range_list.Enable(is_not_sub)
+        self.buffer_add_btn.Enable(is_not_sub)
+        self.buffer_remove_btn.Enable(is_not_sub)
+        self.buffer_auto_btn.Enable(is_not_sub)
+
+    def _onBufferAuto(self, event):
+        pass
+
+    def _onSampleAuto(self, event):
+        pass
+
+    def _onSeriesAdd(self, evt):
+        """Called when the Add control buttion is used."""
+        ctrl = evt.GetEventObject()
+        if ctrl is self.buffer_add_btn:
+            parent_list = self.buffer_range_list
+        elif ctrl is self.sample_add_btn:
+            parent_list = self.sample_range_list
+
+        index, start, end = self._addSeriesRange(parent_list)
+
+        if parent_list is self.buffer_range_list:
+            self.plot_page.update_plot_range(start, end, index, 'unsub')
+        else:
+            self.plot_page.update_plot_range(start, end, index, 'gen_sub')
+
+    def _addSeriesRange(self, parent_list):
+        range_item = parent_list.create_items()
+
+        start, end = range_item.get_range()
+        index = parent_list.get_item_index(range_item)
+
+        self.Layout()
+
+        return index, start, end
+
+    def _onSeriesRemove(self, evt):
+        """Called by the Remove control button, removes a control."""
+
+        ctrl = evt.GetEventObject()
+        if ctrl is self.buffer_remove_btn:
+            parent_list = self.buffer_range_list
+        elif ctrl is self.sample_remove_btn:
+            parent_list = self.sample_range_list
+
+        selected = parent_list.get_selected_items()
+
+        for item in selected:
+            idx = parent_list.get_item_index(item)
+            if parent_list is self.buffer_range_list:
+                self.plot_page.remove_plot_range(idx, 'unsub')
+            else:
+                self.plot_page.remove_plot_range(idx, 'gen_sub')
+
+        parent_list.remove_selected_items()
+
+    def onSeriesPick(self, event):
+        event_object = event.GetEventObject()
+        event_item = event_object.GetParent()
+        parent_list = event_item.item_list
+
+        index = parent_list.get_item_index(event_item)
+
+        start_item = event_item.start_ctrl
+        end_item = event_item.end_ctrl
+
+        if parent_list is self.buffer_range_list:
+            wx.CallAfter(self.plot_page.pick_plot_range, start_item, end_item, index, 'unsub')
+        else:
+            wx.CallAfter(self.plot_page.pick_plot_range, start_item, end_item, index, 'gen_sub')
+
+    def processBuffer(self):
+        pass
+
+    def processBaseline(self):
+        pass
+
+    def processUV(self):
+        pass
+
+    def calcParams(self):
+        pass
+
+    def _onCalcParams(self, evt):
+        pass
+
+    def _onToMainPlot(self, evt):
+        pass
+
+class SeriesRangeItemList(RAWCustomCtrl.ItemList):
+
+    def __init__(self, series_panel, item_type, *args, **kwargs):
+        self.series_panel = series_panel
+        self.item_type = item_type
+
+        RAWCustomCtrl.ItemList.__init__(self, *args, **kwargs)
+
+    def _create_toolbar(self):
+        toolbar_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        toolbar_sizer.Add(wx.StaticText(self, label='Start'), border=3,
+            flag=wx.LEFT)
+        toolbar_sizer.Add(wx.StaticText(self, label='End'), border=35,
+            flag=wx.LEFT)
+
+        toolbar_sizer.AddStretchSpacer(1)
+
+        return toolbar_sizer
+
+    def create_items(self):
+        item = SeriesRangeItem(self.series_panel, self.item_type, self, self.list_panel)
+        self.add_items([item])
+
+        return item
+
+class SeriesRangeItem(RAWCustomCtrl.ListItem):
+
+    def __init__(self, series_panel, item_type, *args, **kwargs):
+        self.series_panel = series_panel
+        self.item_type = item_type
+
+        RAWCustomCtrl.ListItem.__init__(self, *args, **kwargs)
+
+    def _create_layout(self):
+        frames = self.series_panel.secm.getFrames()
+
+        self.start_ctrl = RAWCustomCtrl.IntSpinCtrl(self, wx.ID_ANY,
+            min=frames[0], max=frames[-1]-1, size=(60,-1))
+        self.end_ctrl = RAWCustomCtrl.IntSpinCtrl(self, wx.ID_ANY,
+            min=frames[0]+1, max=frames[-1], size=(60,-1))
+
+        self.start_ctrl.SetValue(frames[0])
+        self.end_ctrl.SetValue(frames[-1])
+
+        self.start_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.series_panel.updateSeriesRange)
+        self.end_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.series_panel.updateSeriesRange)
+
+        pick = wx.Button(self, label='Pick')
+        pick.Bind(wx.EVT_BUTTON, self.series_panel.onSeriesPick)
+
+        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        top_sizer.Add(self.start_ctrl, border=5, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+        top_sizer.Add(self.end_ctrl, border=5, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+        top_sizer.Add(pick, border=5, flag=wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        top_sizer.AddStretchSpacer(1)
+
+        self.SetSizer(top_sizer)
+
+    def get_range(self):
+        return self.start_ctrl.GetValue(), self.end_ctrl.GetValue()
 
 
 class GuinierTestApp(wx.App):

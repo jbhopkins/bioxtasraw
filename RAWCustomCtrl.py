@@ -28,6 +28,9 @@ else:
 import wx.lib.agw.flatnotebook as flatNB
 from wx.lib.agw import ultimatelistctrl as ULC
 import wx.lib.agw.supertooltip as STT
+# These are for the AutoWrapStaticText class
+from wx.lib.wordwrap import wordwrap
+from wx.lib.stattext import GenStaticText as StaticText
 
 import RAWIcons
 import RAWGlobals
@@ -747,16 +750,20 @@ class CustomCheckBox(control_super):
 
 class FloatSpinEvent(wx.PyCommandEvent):
 
-    def __init__(self, evtType, id):
+    def __init__(self, evtType, id, object):
 
         wx.PyCommandEvent.__init__(self, evtType, id)
         self.value = 0
+        self.object = object
 
     def GetValue(self):
         return self.value
 
     def SetValue(self, value):
         self.value = value
+
+    def GetEventObject(self):
+        return self.object
 
 myEVT_MY_SPIN = wx.NewEventType()
 EVT_MY_SPIN = wx.PyEventBinder(myEVT_MY_SPIN, 1)
@@ -805,7 +812,7 @@ class FloatSpinCtrl(wx.Panel):
         self.ScalerButton.SetValue(0)
 
     def CastFloatSpinEvent(self):
-        event = FloatSpinEvent(myEVT_MY_SPIN, self.GetId())
+        event = FloatSpinEvent(myEVT_MY_SPIN, self.GetId(), self)
         event.SetValue( self.Scale.GetValue() )
         self.GetEventHandler().ProcessEvent(event)
 
@@ -952,7 +959,7 @@ class IntSpinCtrl(wx.Panel):
         self.ScalerButton.SetValue(0)
 
     def CastFloatSpinEvent(self):
-        event = FloatSpinEvent(myEVT_MY_SPIN, self.GetId())
+        event = FloatSpinEvent(myEVT_MY_SPIN, self.GetId(), self)
         event.SetValue( self.Scale.GetValue() )
         self.GetEventHandler().ProcessEvent(event)
 
@@ -1152,6 +1159,217 @@ class RawPlotFileDropTarget(wx.FileDropTarget):
             RAWGlobals.mainworker_cmd_queue.put(['show_image', [filenames[0], 0]])
 
         return True
+
+class ItemList(wx.Panel):
+    def __init__(self, *args, **kwargs):
+        wx.Panel.__init__(self, *args, **kwargs)
+
+        self._create_layout()
+
+        self.all_items = []
+        self.selected_items = []
+        self.modified_items = []
+        self._marked_item = None
+
+    def _create_layout(self):
+        self.list_panel = wx.ScrolledWindow(self, style=wx.BORDER_SUNKEN)
+        self.list_panel.SetScrollRate(20,20)
+
+        self.list_panel.SetBackgroundColour('white')
+
+        self.list_panel_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.list_panel.SetSizer(self.list_panel_sizer)
+
+        toolbar_sizer = self._create_toolbar()
+        button_sizer = self._create_buttons()
+
+        panel_sizer = wx.BoxSizer(wx.VERTICAL)
+        if toolbar_sizer is not None:
+            panel_sizer.Add(toolbar_sizer, border=5, flag=wx.LEFT|wx.RIGHT|wx.EXPAND)
+        panel_sizer.Add(self.list_panel, proportion=1, border=3,
+            flag=wx.TOP|wx.LEFT|wx.RIGHT|wx.EXPAND)
+        if button_sizer is not None:
+            panel_sizer.Add(button_sizer, border=10, flag=wx.EXPAND|wx.ALIGN_CENTER|wx.ALL)
+
+        self.SetSizer(panel_sizer)
+
+    def _create_toolbar(self):
+        return None
+
+    def _create_buttons(self):
+        return None
+
+    def create_items(self):
+        pass
+
+    def resize_list(self):
+        self.list_panel.SetVirtualSize(self.list_panel.GetBestVirtualSize())
+        self.list_panel.Layout()
+        self.list_panel.Refresh()
+
+    def add_items(self, items):
+        for item in items:
+            self.list_panel_sizer.Add(item, flag=wx.EXPAND)
+            self.all_items.append(item)
+
+        self.resize_list
+
+    def mark_item(self, item):
+        self._marked_item = item
+
+    def get_marked_item(self):
+        return self._marked_item
+
+    def clear_marked_item(self):
+        self._marked_item = None
+
+    def clear_list(self):
+        self._marked_item = None
+        self.selected_items = []
+        self.modified_items = []
+
+        remaining_items = []
+
+        for item in self.all_items:
+            try:
+                item.Destroy()
+            except Exception:
+                remaining_items.append(item)
+
+        self.all_items = remaining_items
+
+        self.resize_list()
+
+    def get_selected_items(self):
+        self.selected_items = []
+
+        for item in self.all_items:
+            if item.get_selected():
+                self.selected_items.append(item)
+
+        return self.selected_items
+
+    def select_all(self):
+        for item in self.all_items:
+            item.set_selected(True)
+
+    def deselect_all_but_one(self, sel_item):
+        selected_items = self.get_selected_items()
+
+        for item in selected_items:
+            if item is not sel_item:
+                item.set_selected(False)
+
+    def select_to_item(self, sel_item):
+        selected_items = self.get_selected_items()
+
+        sel_idx = self.get_item_index(sel_item)
+
+        first_idx = self.get_item_index(selected_items[0])
+
+        if sel_item in selected_items:
+            for item in self.all_items[first_idx:sel_idx]:
+                item.set_selected(False)
+        else:
+            if sel_idx < first_idx:
+                for item in self.all_items[sel_idx:first_idx]:
+                    item.set_selected(True)
+            else:
+                last_idx = self.get_item_index(selected_items[-1])
+                for item in self.all_items[last_idx+1:sel_idx+1]:
+                    item.set_selected(True)
+
+    def remove_items(self, items):
+        for item in items:
+            item.remove()
+
+            if item in self.modified_items:
+                self.modified_items.remove(item)
+
+            if item in self.selected_items:
+                self.selected_items.remove(item)
+
+            self.all_items.remove(item)
+
+            item.Destroy()
+
+        self.resize_list()
+
+    def remove_selected_items(self):
+        selected_items = self.get_selected_items()
+
+        if len(selected_items) > 0:
+            self.remove_items(selected_items)
+
+    def get_items(self):
+        return self.all_items
+
+    def get_item_index(self, item):
+        return self.all_items.index(item)
+
+class ListItem(wx.Panel):
+    def __init__(self, item_list, *args, **kwargs):
+        wx.Panel.__init__(self, *args, style=wx.BORDER_RAISED, **kwargs)
+
+        self._selected = False
+
+        self.item_list = item_list
+
+        self.text_list = []
+
+        self._create_layout()
+
+        self.Bind(wx.EVT_LEFT_DOWN, self._on_left_mouse_btn)
+        self.Bind(wx.EVT_RIGHT_DOWN, self._on_right_mouse_btn)
+        self.Bind(wx.EVT_KEY_DOWN, self._on_key_press)
+
+    def _create_layout(self):
+        pass
+
+    def get_selected(self):
+        return self._selected
+
+    def set_selected(self, selected):
+        self._selected = selected
+
+        if self._selected:
+            text_color = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHTTEXT)
+            bkg_color = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
+            self.SetBackgroundColour(bkg_color)
+
+            for text_item in self.text_list:
+                text_item.SetForegroundColour(text_color)
+
+        else:
+            self.SetBackgroundColour(wx.Colour(250,250,250))
+            for text_item in self.text_list:
+                text_item.SetForegroundColour('black')
+
+        self.Refresh()
+
+    def toggle_selected(self):
+        self.set_selected(not self._selected)
+
+    def remove(self):
+        pass
+
+    def _on_left_mouse_btn(self, event):
+        ctrl_is_down = event.CmdDown()
+        shift_is_down = event.ShiftDown()
+
+        if shift_is_down:
+            self.item_list.select_to_item(self)
+        elif ctrl_is_down:
+            self.toggle_selected()
+        else:
+            self.item_list.deselect_all_but_one(self)
+            self.toggle_selected()
+
+    def _on_right_mouse_btn(self, event):
+        pass
+
+    def _on_key_press(self, event):
+        pass
 
 #Monkey patch flatNB.PageContainer
 def OnPaintFNB(self, event):
@@ -1672,3 +1890,78 @@ def OnPaintSTT(self, event):
         return maxWidth, maxHeight
 
 STT.ToolTipWindowBase.OnPaint = OnPaintSTT
+
+
+# ----------------------------------------------------------------------------
+# Auto-wrapping static text class
+# ----------------------------------------------------------------------------
+class AutoWrapStaticText(StaticText):
+    """
+    A simple class derived from :mod:`lib.stattext` that implements auto-wrapping
+    behaviour depending on the parent size.
+    .. versionadded:: 0.9.5
+    Code from: https://github.com/wxWidgets/Phoenix/blob/master/wx/lib/agw/infobar.py
+    Original author: Andrea Gavana
+    """
+    def __init__(self, parent, label):
+        """
+        Defsult class constructor.
+        :param Window parent: a subclass of :class:`Window`, must not be ``None``;
+        :param string `label`: the :class:`AutoWrapStaticText` text label.
+        """
+        StaticText.__init__(self, parent, wx.ID_ANY, label, style=wx.ST_NO_AUTORESIZE)
+        self.label = label
+        # colBg = wx.SystemSettings.GetColour(wx.SYS_COLOUR_INFOBK)
+        # self.SetBackgroundColour(colBg)
+        # self.SetOwnForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_INFOTEXT))
+
+        self.Bind(wx.EVT_SIZE, self.OnSize)
+        self.Bind(wx.EVT_SPLITTER_SASH_POS_CHANGED, self.OnSize)
+        self.Bind(wx.EVT_SPLITTER_SASH_POS_CHANGING, self.OnSize)
+
+    def OnSize(self, event):
+        """
+        Handles the ``wx.EVT_SIZE`` event for :class:`AutoWrapStaticText`.
+        :param `event`: a :class:`SizeEvent` event to be processed.
+        """
+        event.Skip()
+        self.Wrap(event.GetSize().width)
+
+    def Wrap(self, width):
+        """
+        This functions wraps the controls label so that each of its lines becomes at
+        most `width` pixels wide if possible (the lines are broken at words boundaries
+        so it might not be the case if words are too long).
+        If `width` is negative, no wrapping is done.
+        :param integer `width`: the maximum available width for the text, in pixels.
+        :note: Note that this `width` is not necessarily the total width of the control,
+        since a few pixels for the border (depending on the controls border style) may be added.
+        """
+        if width < 0:
+           return
+        self.Freeze()
+
+        dc = wx.ClientDC(self)
+        dc.SetFont(self.GetFont())
+        text = wordwrap(self.label, width, dc)
+        self.SetLabel(text, wrapped=True)
+
+        self.Thaw()
+
+    def SetLabel(self, label, wrapped=False):
+        """
+        Sets the :class:`AutoWrapStaticText` label.
+        All "&" characters in the label are special and indicate that the following character is
+        a mnemonic for this control and can be used to activate it from the keyboard (typically
+        by using ``Alt`` key in combination with it). To insert a literal ampersand character, you
+        need to double it, i.e. use "&&". If this behaviour is undesirable, use `SetLabelText` instead.
+        :param string `label`: the new :class:`AutoWrapStaticText` text label;
+        :param bool `wrapped`: ``True`` if this method was called by the developer using :meth:`~AutoWrapStaticText.SetLabel`,
+        ``False`` if it comes from the :meth:`~AutoWrapStaticText.OnSize` event handler.
+        :note: Reimplemented from :class:`PyControl`.
+        """
+
+        if not wrapped:
+            self.label = label
+
+        StaticText.SetLabel(self, label)

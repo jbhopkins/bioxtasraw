@@ -822,7 +822,7 @@ class SECM(object):
         self.mean_i = ((self.mean_i) * self._scale_factor) + self._offset_value
         self.total_i = ((self.total_i) * self._scale_factor) + self._offset_value
 
-        self.frame_list = self.frame_list * self._frame_scale_factor
+        self.plot_frame_list = self.plot_frame_list * self._frame_scale_factor
 
 
     def append(self, filename_list, sasm_list, frame_list):
@@ -1142,6 +1142,15 @@ class SECM(object):
 
     def getI0(self):
         return self.i0_list, self.i0er_list
+
+    def getIntI(self):
+        return self.total_i
+
+    def getMeanI(self):
+        return self.mean_i
+
+    def getFrames(self):
+        return self.plot_frame_list
 
     def appendRgAndI0(self, rg, rger, i0, i0er, first_frame, window_size):
         index1 = first_frame+(window_size-1)/2

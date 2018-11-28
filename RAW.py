@@ -179,6 +179,7 @@ class MainFrame(wx.Frame):
         self.similarityframe = None
         self.kratkyframe = None
         self.denssframe = None
+        self.seriesframe = None
 
         self.raw_settings = RAWSettings.RawGuiSettings()
 
@@ -762,9 +763,21 @@ class MainFrame(wx.Frame):
         self.kratkyframe.Show(True)
 
     def showDenssFrame(self, iftm, manip_item):
+        if self.denssframe:
+            self.denssframe.Destroy()
+
         self.denssframe = RAWAnalysis.DenssFrame(self, 'DENSS', iftm, manip_item)
         self.denssframe.SetIcon(self.GetIcon())
         self.denssframe.Show(True)
+
+    def showSeriesFrame(self, secm, manip_item):
+
+        if self.seriesframe:
+            self.seriesframe.Destroy()
+
+        self.seriesframe = RAWAnalysis.SeriesFrame(self, 'Series Analysis', secm, manip_item)
+        self.seriesframe.SetIcon(self.GetIcon())
+        self.seriesframe.Show(True)
 
     def _createSingleMenuBarItem(self, info):
 
@@ -9852,6 +9865,7 @@ class SECItemPanel(wx.Panel):
         menu.Append(6, 'Save all profiles as .dats')
         menu.Append(3, 'Save')
         menu.AppendSeparator()
+        menu.Append(10, 'Series analysis')
         menu.Append(7, 'SVD')
         menu.Append(8, 'EFA')
         menu.Append(9, 'Similarity Test')
@@ -9938,6 +9952,14 @@ class SECItemPanel(wx.Panel):
                 selected_sasms = []
 
             self.main_frame.showSimilarityFrame(selected_sasms)
+
+        elif evt.GetId() == 10:
+            #Series analysis
+            mainframe = wx.FindWindowByName('MainFrame')
+            selectedSECMList = self.sec_panel.getSelectedItems()
+
+            secm = selectedSECMList[0].getSECM()
+            mainframe.showSeriesFrame(secm, selectedSECMList[0])
 
     def _onKeyPress(self, evt):
 
