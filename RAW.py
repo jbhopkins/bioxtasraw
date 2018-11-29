@@ -775,7 +775,7 @@ class MainFrame(wx.Frame):
         if self.seriesframe:
             self.seriesframe.Destroy()
 
-        self.seriesframe = RAWAnalysis.SeriesFrame(self, 'Series Analysis', secm, manip_item)
+        self.seriesframe = RAWAnalysis.SeriesFrame(self, 'Series Analysis', secm, manip_item, self.raw_settings)
         self.seriesframe.SetIcon(self.GetIcon())
         self.seriesframe.Show(True)
 

@@ -25,13 +25,16 @@ import os
 import copy
 import threading
 from math import pi, sin
+import itertools
 
 import numpy as np
 import scipy.interpolate as interp
 from scipy import integrate as integrate
 import wx
 
-import SASCalib, SASExceptions
+import SASCalib
+import SASExceptions
+import SASCalc
 
 
 class SASM(object):
@@ -467,6 +470,23 @@ class SASM(object):
     def getTotalI(self):
         return self.total_intensity
 
+    def getIofQ(self, qref):
+        q = self.getQ()
+        index = self.closest(q, qref)
+        i = self.getI()
+        intensity = i[index]
+
+        return intensity
+
+    def closest(self, qlist, q):
+        return np.argmin(np.absolute(qlist-q))
+
+    def getQ(self):
+        return self.q[self._selected_q_range[0], self._selected_q_range[1]]
+
+    def getI(self):
+        return self.i[self._selected_q_range[0], self._selected_q_range[1]]
+
 
 class IFTM(SASM):
     '''
@@ -756,7 +776,7 @@ class SECM(object):
         self.is_plotted = False
 
         self.qref=0
-        self.I_of_q=[]
+        self.I_of_q=np.zeros_like(self.mean_i)
 
         self.time=[]
         main_frame = wx.FindWindowByName('MainFrame')
@@ -795,9 +815,20 @@ class SECM(object):
         self.window_size = -1
         self.threshold = -1
         self.mol_type = ''
+
         self.average_buffer_sasm = None
         self.subtracted_sasm_list = []
         self.use_subtracted_sasm = []
+        self.mean_i_sub = np.zeros_like(self.mean_i)
+        self.total_i_sub = np.zeros_like(self.total_i)
+        self.I_of_q_sub = np.zeros_like(self.I_of_q)
+
+        self.baseline_subtracted_sasm_list = []
+        self.use_baseline_subtracted_sasm = []
+        self.mean_i_bcsub = np.zeros_like(self.mean_i)
+        self.total_i_bcsub = np.zeros_like(self.total_i)
+        self.I_of_q_bcsub = np.zeros_like(self.I_of_q)
+
         self.rg_list = []
         self.rger_list = []
         self.i0_list = []
@@ -818,9 +849,17 @@ class SECM(object):
     def _update(self):
         ''' updates modified intensity after scale, normalization and offset changes '''
 
-        #self.i = ((self._i_binned / self._norm_factor) + self._offset_value) * self._scale_factor
         self.mean_i = ((self.mean_i) * self._scale_factor) + self._offset_value
         self.total_i = ((self.total_i) * self._scale_factor) + self._offset_value
+        self.I_of_q = ((self.I_of_q) * self._scale_factor) + self._offset_value
+
+        self.mean_i_sub = ((self.mean_i_sub) * self._scale_factor) + self._offset_value
+        self.total_i_sub = ((self.total_i_sub) * self._scale_factor) + self._offset_value
+        self.I_of_q_sub = ((self.I_of_q_sub) * self._scale_factor) + self._offset_value
+
+        self.mean_i_bcsub = ((self.mean_i_bcsub) * self._scale_factor) + self._offset_value
+        self.total_i_bcsub = ((self.total_i_bcsub) * self._scale_factor) + self._offset_value
+        self.I_of_q_bcsub = ((self.I_of_q_bcsub) * self._scale_factor) + self._offset_value
 
         self.plot_frame_list = self.plot_frame_list * self._frame_scale_factor
 
@@ -1077,15 +1116,8 @@ class SECM(object):
         self.qref=float(qref)
         self.I_of_q = []
 
-        closest = lambda qlist: np.argmin(np.absolute(qlist-self.qref))
-
         for sasm in self._sasm_list:
-            # print 'in sasm_list loop'
-            q = sasm.q
-            index = closest(q)
-            # print index
-            intensity = sasm.i[index]
-            # print intensity
+            intensity = sasm.getIofQ(qref)
             self.I_of_q.append(intensity)
 
         return self.I_of_q
@@ -1152,6 +1184,18 @@ class SECM(object):
     def getFrames(self):
         return self.plot_frame_list
 
+    def getIntISub(self):
+        return self.total_i_sub
+
+    def getMeanISub(self):
+        return self.mean_i_sub
+
+    def getIntIBCSub(self):
+        return self.total_i_bcsub
+
+    def getMeanIBCSub(self):
+        return self.mean_i_bcsub
+
     def appendRgAndI0(self, rg, rger, i0, i0er, first_frame, window_size):
         index1 = first_frame+(window_size-1)/2
         index2 = (window_size-1)/2
@@ -1174,6 +1218,111 @@ class SECM(object):
 
     def releaseSemaphore(self):
         self.my_semaphore.release()
+
+    def averageFrames(self, range_list, series_type, sim_test, sim_thresh, sim_cor, forced=False):
+        frame_idx = []
+        for item in range_list:
+            frame_idx = frame_idx + range(item[0], item[1]+1)
+
+        frame_idx = list(set(frame_idx))
+        frame_idx.sort()
+
+        if series_type == 'unsub':
+            sasm_list = [self._sasm_list[idx] for idx in frame_idx]
+
+        if not forced:
+            ref_sasm = sasm_list[0]
+            qi_ref, qf_ref = ref_sasm.getQrange()
+            pvals = np.ones(len(sasm_list[1:]), dtype=float)
+
+            for index, sasm in enumerate(sasm_list[1:]):
+                qi, qf = sasm.getQrange()
+                if not np.all(np.round(sasm.q[qi:qf], 5) == np.round(ref_sasm.q[qi_ref:qf_ref], 5)):
+                    return None, False, ('q_vector', '')
+
+                if sim_test == 'CorMap':
+                    n, c, pval = SASCalc.cormap_pval(ref_sasm.i[qi_ref:qf_ref], sasm.i[qi:qf])
+                pvals[index] = pval
+
+            if sim_cor == 'Bonferroni':
+                pvals = pvals*len(sasm_list[1:])
+                pvals[pvals>1] = 1
+
+            if np.any(pvals<sim_thresh):
+                dif_idx = itertools.compress(frame_idx[1:], pvals<sim_thresh)
+                dif_idx = map(str, dif_idx)
+                profile_str = ", ".join(dif_idx)
+                find = profile_str.find(', ')
+                i=1
+                while find !=-1:
+                    if i == 20:
+                        profile_str = profile_str[:find]+',\n'+profile_str[find+len(', '):]
+                        i=0
+                    find = profile_str.find(', ', find+len(', ')+1)
+                    i +=1
+
+                return None, False, ('sim', profile_str)
+
+        average_sasm = average(sasm_list, forced=True)
+        average_sasm.setParameter('filename', 'A_{}'.format(average_sasm.getParameter('filename')))
+
+        return average_sasm, True, ''
+
+    def subtractSASMs(self, buffer_sasm, int_type, threshold, qref=None):
+        subtracted_sasms = []
+        use_subtracted_sasms = []
+
+        if int_type == 'total':
+            ref_intensity = buffer_sasm.getTotalI()
+
+        elif int_type == 'mean':
+            ref_intensity = buffer_sasm.getMeanI()
+
+        elif int_type == 'qspec':
+           ref_intensity = buffer_sasm.getIofQ(qref)
+
+           ref_intensity = float(ref_intensity)
+
+        for sasm in self.getAllSASMs():
+            subtracted_sasm = subtract(sasm, buffer_sasm, forced = True)
+            subtracted_sasm.setParameter('filename', 'A_{}'.format(subtracted_sasm.getParameter('filename')))
+
+            subtracted_sasms.append(subtracted_sasm)
+
+            #check to see whether we actually need to subtract this curve
+            if int_type == 'total':
+                sasm_intensity = sasm.getTotalI()
+
+            elif int_type == 'mean':
+                sasm_intensity = sasm.getMeanI()
+
+            elif int_type == 'qspec':
+                sasm_intensity = sasm.getIofQ(qref)
+
+            if sasm_intensity/ref_intensity > threshold:
+                use_subtracted_sasms.append(True)
+            else:
+                use_subtracted_sasms.append(False)
+
+        return subtracted_sasms, use_subtracted_sasms
+
+    def setSubtractedSASMs(self, buffer_sasm, sub_sasm_list, use_sub_sasm):
+
+        self.average_buffer_sasm = buffer_sasm
+        self.subtracted_sasm_list = sub_sasm_list
+        self.use_subtracted_sasm = use_sub_sasm
+
+        self.mean_i_sub = np.array([sasm.getMeanI() for sasm in self._sasm_list])
+        self.total_i_sub = np.array([sasm.getTotalI() for sasm in self._sasm_list])
+
+    def setBCSubtractedSASMs(self, sub_sasm_list, use_sub_sasm):
+
+        self.baseline_subtracted_sasm_list = sub_sasm_list
+        self.use_baseline_subtracted_sasm = use_sub_sasm
+
+        self.mean_i_bcsub = np.array([sasm.getMeanI() for sasm in self._sasm_list])
+        self.total_i_bcsub = np.array([sasm.getTotalI() for sasm in self._sasm_list])
+
 
 def subtract(sasm1, sasm2, forced = False, full = False):
     ''' Subtract one SASM object from another and propagate errors '''

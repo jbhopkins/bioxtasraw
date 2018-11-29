@@ -1354,16 +1354,17 @@ class ListItem(wx.Panel):
         pass
 
     def _on_left_mouse_btn(self, event):
-        ctrl_is_down = event.CmdDown()
-        shift_is_down = event.ShiftDown()
+        if self.IsEnabled():
+            ctrl_is_down = event.CmdDown()
+            shift_is_down = event.ShiftDown()
 
-        if shift_is_down:
-            self.item_list.select_to_item(self)
-        elif ctrl_is_down:
-            self.toggle_selected()
-        else:
-            self.item_list.deselect_all_but_one(self)
-            self.toggle_selected()
+            if shift_is_down:
+                self.item_list.select_to_item(self)
+            elif ctrl_is_down:
+                self.toggle_selected()
+            else:
+                self.item_list.deselect_all_but_one(self)
+                self.toggle_selected()
 
     def _on_right_mouse_btn(self, event):
         pass

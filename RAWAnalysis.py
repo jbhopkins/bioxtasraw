@@ -12408,7 +12408,7 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
 
 class SeriesFrame(wx.Frame):
 
-    def __init__(self, parent, title, secm, manip_item):
+    def __init__(self, parent, title, secm, manip_item, raw_settings):
 
         wx.Frame.__init__(self, parent, wx.ID_ANY, title, name = 'SeriesFrame', size = (900,600))
 
@@ -12416,6 +12416,7 @@ class SeriesFrame(wx.Frame):
 
         self.secm = secm
         self.manip_item = manip_item
+        self._raw_settings = raw_settings
 
         self.plotPanel = SeriesPlotPage(splitter, 'SeriesPlotPage', secm)
         self.controlPanel = SeriesControlPanel(splitter, 'SeriesControlPanel', secm)
@@ -12542,8 +12543,6 @@ class SeriesPlotPanel(wx.Panel):
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def plot_range(self, start, end, index):
-        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
-        self.canvas.mpl_disconnect(self.cid)
 
         if index < len(self.plot_ranges):
             line = self.plot_ranges[index]
@@ -12551,20 +12550,27 @@ class SeriesPlotPanel(wx.Panel):
             line = None
 
         if line is None:
-            line = self.subplot.axvspan(start, end, animated=True, facecolor='g',
-                alpha=0.5)
+            self.canvas.mpl_disconnect(self.cid)
+            if start<end:
+                line = self.subplot.axvspan(start, end, animated=True, facecolor='g',
+                    alpha=0.5)
+            else:
+                line = self.subplot.axvline(start, color='g', alpha=0.5, animated=True)
             self.canvas.draw()
             self.background = self.canvas.copy_from_bbox(self.subplot.bbox)
             self.plot_ranges.append(line)
+            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
         else:
-            pts = line.get_xy()
-            pts[:,0] = [start, start, end, end, start]
-            line.set_xy(pts)
+            if start<end:
+                pts = line.get_xy()
+                pts[:,0] = [start, start, end, end, start]
+                line.set_xy(pts)
+            else:
+                pts = line.get_xy()
+                pts[:,0] = [start-0.5, start-0.5, end+0.5, end+0.5, start-0.5]
+                line.set_xy(pts)
 
         self.redrawLines()
-
-        #Reconnect draw_event
-        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def remove_range(self, index):
         if index > len(self.plot_ranges) - 1:
@@ -12577,26 +12583,32 @@ class SeriesPlotPanel(wx.Panel):
 
         self.redrawLines()
 
-    def pick_range(self, start_item, end_item, index):
+    def pick_range(self, start, end, index):
         self.start_range = -1
         self.end_range = -1
         self.range_pick = True
-        self.range_pick_line = self.plot_ranges[index]
-
-        self.range_pick_line.set_visible(False)
+        self.range_index = index
 
         low_x, high_x = self.subplot.get_xlim()
 
         self.canvas.mpl_disconnect(self.cid)
         self.range_line = self.subplot.axvline(low_x, color='g', alpha=0.5, animated=True)
-        self.range_line.set_visible(False)
         self.canvas.draw()
         self.background = self.canvas.copy_from_bbox(self.subplot.bbox)
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
+        self.plot_ranges[index].set_visible(False)
+        self.range_line.set_visible(False)
+
         self.redrawLines()
 
         self.range_line.set_visible(True)
+
+    def show_range(self, index, show):
+        line = self.plot_ranges[index]
+        line.set_visible(show)
+
+        self.redrawLines()
 
     def _onMouseMotionEvent(self, event):
 
@@ -12609,9 +12621,9 @@ class SeriesPlotPanel(wx.Panel):
                     self.range_line.set_xdata([x, x])
                 else:
                     x = int(round(x))
-                    pts = self.range_pick_line.get_xy()
+                    pts = self.plot_ranges[self.range_index].get_xy()
                     pts[:,0] = [self.start_range, self.start_range, x, x, self.start_range]
-                    self.range_pick_line.set_xy(pts)
+                    self.plot_ranges[self.range_index].set_xy(pts)
 
                 self.redrawLines()
 
@@ -12621,23 +12633,28 @@ class SeriesPlotPanel(wx.Panel):
 
             if self.start_range == -1:
                 self.start_range = int(round(x))
-                pts = self.range_pick_line.get_xy()
+                pts = self.plot_ranges[self.range_index].get_xy()
                 pts[:,0] = [self.start_range, self.start_range, self.start_range+1,
                     self.start_range+1, self.start_range]
-                self.range_pick_line.set_xy(pts)
+                self.plot_ranges[self.range_index].set_xy(pts)
 
                 self.range_line.set_visible(False)
-                self.range_pick_line.set_visible(True)
+                self.plot_ranges[self.range_index].set_visible(True)
+
             else:
                 self.end_range = int(round(x))
-                pts = self.range_pick_line.get_xy()
+                pts = self.plot_ranges[self.range_index].get_xy()
                 pts[:,0] = [self.start_range, self.start_range, self.end_range,
                     self.end_range, self.start_range]
-                self.range_pick_line.set_xy(pts)
+                self.plot_ranges[self.range_index].set_xy(pts)
 
                 self.range_pick = False
                 self.range_line.remove()
                 del self.range_line
+
+                control_page = wx.FindWindowByName('SeriesControlPanel')
+                control_page.setPickRange(self.range_index, [self.start_range, self.end_range],
+                    self.plot_type)
 
             self.redrawLines()
 
@@ -12690,6 +12707,8 @@ class SeriesPlotPage(wx.Panel):
         wx.Panel.__init__(self, parent, wx.ID_ANY, name=name, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         self.secm = secm
+
+        self.intensity = 'total'
 
         self.create_layout()
 
@@ -12774,6 +12793,22 @@ class SeriesPlotPage(wx.Panel):
         elif plot == 'uv':
             self.uv_panel.pick_range(start_item, end_item, index)
 
+    def show_plot_range(self, index, plot, show):
+        if plot == 'gen_sub':
+            if self.baseline_panel.IsShown():
+                plot = 'baseline'
+            else:
+                plot = 'sub'
+
+        if plot == 'unsub':
+            self.unsub_panel.show_range(index, show)
+        elif plot == 'sub':
+            self.sub_panel.show_range(index, show)
+        elif plot == 'baseline':
+            self.baseline_panel.show_range(index, show)
+        elif plot == 'uv':
+            self.uv_panel.show_range(index, show)
+
 
 class SeriesControlPanel(wx.ScrolledWindow):
 
@@ -12800,6 +12835,10 @@ class SeriesControlPanel(wx.ScrolledWindow):
             'uv'        : self.processUV,
             'calc'      : self.calcParams,
             }
+
+        self.continue_processing = True
+
+        self.results = {}
 
     def onCloseButton(self, evt):
         diag = wx.FindWindowByName('SeriesFrame')
@@ -12923,11 +12962,7 @@ class SeriesControlPanel(wx.ScrolledWindow):
         sample_pane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
         sample_win = sample_pane.GetPane()
 
-        self.sample_range_list = SeriesRangeList(sample_win, agwStyle=ULC.ULC_REPORT|ULC.ULC_USER_ROW_HEIGHT)
-        self.sample_range_list.InsertColumn(0, 'Start')
-        self.sample_range_list.InsertColumn(1, 'End')
-        self.sample_range_list.InsertColumn(2, '')
-        self.sample_range_list.SetUserLineHeight(30)
+        self.sample_range_list = SeriesRangeItemList(self, 'sample', sample_win)
         self.sample_range_list.SetMinSize((-1,125))
 
         self.sample_auto_btn = wx.Button(sample_win, label='Auto')
@@ -12971,12 +13006,24 @@ class SeriesControlPanel(wx.ScrolledWindow):
         self.SetSizer(top_sizer)
 
     def _initialize(self):
-        print 'In _initialize'
         frames = self.secm.getFrames()
         intensity = self.secm.getIntI()
 
         self.plot_page.update_plot_data(frames, intensity, 'intensity', 'left', 'unsub')
 
+        if self.secm.subtracted_sasm_list:
+            self.plot_page.update_plot_data(frames, self.secm.getIntISub(),
+                'intensity', 'left', 'sub')
+
+        if self.secm.baseline_subtracted_sasm_list:
+            self.plot_page.update_plot_data(frames, self.secm.getIntIBCSub(),
+                'intensity', 'left', 'baseline')
+    def showBusy(self, show=True, msg=''):
+        if show:
+            self.bi = wx.BusyInfo(msg, self)
+        else:
+            del self.bi
+            self.bi = None
 
     def onUpdateProc(self, event):
         event_object = event.GetEventObject()
@@ -12986,15 +13033,24 @@ class SeriesControlPanel(wx.ScrolledWindow):
         elif event_object is self.baseline_calc:
             start = 'baseline'
 
-        self.updateProcessing(start)
+        t = threading.Thread(target=self.updateProcessing, args=(start,))
+        t.daemon = True
+        t.start()
 
     def updateProcessing(self, start):
+        wx.CallAfter(self.showBusy, True, 'Please wait, processing.')
+        self.continue_processing = True
+
         start_idx = self.processing_order.index(start)
 
         processing_steps = self.processing_order[start_idx:]
 
         for step in processing_steps:
             self.process[step]()
+            if not self.continue_processing:
+                break
+
+        wx.CallAfter(self.showBusy, False)
 
     def updateSeriesRange(self, event):
         event_object = event.GetEventObject()
@@ -13006,10 +13062,10 @@ class SeriesControlPanel(wx.ScrolledWindow):
 
         if event_object is event_item.start_ctrl:
             current_range = event_item.end_ctrl.GetRange()
-            event_item.end_ctrl.SetRange((value+1, current_range[-1]))
+            event_item.end_ctrl.SetRange((value, current_range[-1]))
         else:
             current_range = event_item.start_ctrl.GetRange()
-            event_item.start_ctrl.SetRange((current_range[0], value-1))
+            event_item.start_ctrl.SetRange((current_range[0], value))
 
         if event_item.item_type == 'buffer':
             self.plot_page.update_plot_range(start, end, index, 'unsub')
@@ -13029,6 +13085,9 @@ class SeriesControlPanel(wx.ScrolledWindow):
         self.buffer_add_btn.Enable(is_not_sub)
         self.buffer_remove_btn.Enable(is_not_sub)
         self.buffer_auto_btn.Enable(is_not_sub)
+
+        for i in range(len(self.buffer_range_list.get_items())):
+            self.plot_page.show_plot_range(i, 'unsub', is_not_sub)
 
     def _onBufferAuto(self, event):
         pass
@@ -13096,8 +13155,139 @@ class SeriesControlPanel(wx.ScrolledWindow):
         else:
             wx.CallAfter(self.plot_page.pick_plot_range, start_item, end_item, index, 'gen_sub')
 
+    def setPickRange(self, index, pick_range, plot_type):
+        pick_range.sort()
+
+        if plot_type == 'unsub':
+            item_list = self.buffer_range_list
+        elif plot_type == 'sub' or plot_type == 'baseline':
+            item_list = self.sample_range_list
+
+        item = item_list.get_items()[index]
+
+        current_start_range = item.start_ctrl.GetRange()
+        current_end_range = item.end_ctrl.GetRange()
+
+        new_start = max(pick_range[0], current_start_range[0])
+        new_end = min(pick_range[1], current_end_range[1])
+
+        item.start_ctrl.SetValue(new_start)
+        item.end_ctrl.SetValue(new_end)
+
+        item.start_ctrl.SetRange((current_start_range[0], new_end))
+
+        current_end_range = item.end_ctrl.GetRange()
+        item.end_ctrl.SetRange((new_start, current_end_range[1]))
+
+        if item.item_type == 'buffer':
+            self.plot_page.update_plot_range(new_start, new_end, index, 'unsub')
+        else:
+            self.plot_page.update_plot_range(new_start, new_end, index, 'gen_sub')
+
+    def _validateBuffer(self):
+        valid = True
+
+        if not self.subtracted.IsChecked():
+            buffer_items = self.buffer_range_list.get_items()
+
+            if len(buffer_items) == 0:
+                valid = False
+                msg = ("You must specify at least one buffer range.")
+            else:
+                buffer_range_list = [item.get_range() for item in buffer_items]
+
+                for i in range(len(buffer_range_list)):
+                    start, end = buffer_range_list[i]
+
+                    for j in range(len(buffer_range_list)):
+                        if j != i:
+                            jstart, jend = buffer_range_list[j]
+                            if jstart < start and start < jend:
+                                valid = False
+                            elif jstart < end and end < jend:
+                                valid = False
+
+                        if not valid:
+                            break
+
+                    if not valid:
+                        break
+
+                msg = ("Buffer ranges should be non-overlapping.")
+
+        if not valid:
+            wx.CallAfter(wx.MessageBox, msg, "Buffer range invalid", style=wx.ICON_ERROR|wx.OK)
+
+
+        return valid
+
     def processBuffer(self):
-        pass
+
+        sim_threshold = self.raw_settings.get('similarityThreshold')
+        sim_test = self.raw_settings.get('similarityTest')
+        correction = self.raw_settings.get('similarityCorrection')
+        calc_threshold = self.raw_settings.get('secCalcThreshold')
+
+        valid = self._validateBuffer()
+
+        if not valid:
+            self.continue_processing = False
+            return
+
+        if not self.subtracted.IsChecked():
+
+            buffer_items = self.buffer_range_list.get_items()
+            buffer_range_list = [item.get_range() for item in buffer_items]
+
+            avg_sasm, success, err = self.secm.averageFrames(buffer_range_list,
+                'unsub', sim_test, sim_threshold, correction)
+
+            if not success:
+                if err[0] == 'q_vector':
+                    msg = 'The selected items must have the same q vectors to be averaged.'
+                    wx.CallAfter(wx.MessageBox, msg, "Average Error", style = wx.ICON_ERROR | wx.OK)
+                    self.continue_processing = False
+                    return
+                elif err[0] == 'sim':
+                    msg = ('One or more of the selected buffer frames to be averaged is statistically\n'
+                       'different from the first frame in the range, as found using the %s test\n'
+                       'and a p-value threshold of %f.'
+                        '\nThe following frames were found to be different:\n' %(sim_test, sim_threshold))
+                    msg = msg + err[1]
+
+                    question_dialog = RAWCustomDialogs.CustomQuestionDialog(self, msg,
+                    [('Cancel Calculation', wx.ID_CANCEL), ('Continue Calculation', wx.ID_YES)],
+                    'Warning: Selected buffer frames are different',
+                    wx.ART_WARNING, None, None, style = wx.CAPTION | wx.RESIZE_BORDER)
+                    answer = question_dialog.ShowModal()
+                    question_dialog.Destroy()
+
+                    if answer != wx.ID_YES:
+                        self.continue_processing = False
+                        return
+                    else:
+                        avg_sasm, success, err = self.secm.averageFrames(buffer_range_list,
+                        'unsub', sim_test, sim_threshold, correction, True)
+
+            subtracted_sasms, use_subtracted_sasm = self.secm.subtractSASMs(avg_sasm,
+                self.plot_page.intensity, calc_threshold)
+
+        else:
+            subtracted_sasms = self.secm.getAllSASMs()
+            use_subtracted_sasm = [True for i in range(len(subtracted_sasms))]
+            buffer_range_list = []
+
+        results = {'buffer_range': buffer_range_list,
+            'sub_sasms':            subtracted_sasms,
+            'use_sub_sasms':        use_subtracted_sasm,
+            'similarity_test':      sim_test,
+            'similarity_corr':      correction,
+            'similarity_thresh':    sim_threshold,
+            'calc_thresh':          calc_threshold,
+            'already_subtracted':   self.subtracted.IsChecked()
+            }
+
+        self.results['buffer'] = results
 
     def processBaseline(self):
         pass
@@ -13106,9 +13296,6 @@ class SeriesControlPanel(wx.ScrolledWindow):
         pass
 
     def calcParams(self):
-        pass
-
-    def _onCalcParams(self, evt):
         pass
 
     def _onToMainPlot(self, evt):
@@ -13151,9 +13338,9 @@ class SeriesRangeItem(RAWCustomCtrl.ListItem):
         frames = self.series_panel.secm.getFrames()
 
         self.start_ctrl = RAWCustomCtrl.IntSpinCtrl(self, wx.ID_ANY,
-            min=frames[0], max=frames[-1]-1, size=(60,-1))
+            min=frames[0], max=frames[-1], size=(60,-1))
         self.end_ctrl = RAWCustomCtrl.IntSpinCtrl(self, wx.ID_ANY,
-            min=frames[0]+1, max=frames[-1], size=(60,-1))
+            min=frames[0], max=frames[-1], size=(60,-1))
 
         self.start_ctrl.SetValue(frames[0])
         self.end_ctrl.SetValue(frames[-1])
