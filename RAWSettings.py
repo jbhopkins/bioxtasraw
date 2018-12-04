@@ -386,15 +386,6 @@ def fixBackwardsCompatibility(raw_settings):
 
 def loadSettings(raw_settings, loadpath):
 
-    # file_obj = open(loadpath, 'rb')
-    # try:
-    #     loaded_param = cPickle.load(file_obj)
-    # except (KeyError, EOFError, ImportError, IndexError, AttributeError, cPickle.UnpicklingError) as e:
-    #     print 'Error type: %s, error: %s' %(type(e).__name__, e)
-    #     file_obj.close()
-    #     return False
-    # file_obj.close()
-
     loaded_param = SASFileIO.readSettings(loadpath)
 
     if loaded_param is None:

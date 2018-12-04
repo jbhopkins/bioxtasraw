@@ -55,6 +55,8 @@ import SASExceptions
 import RAWSettings
 import RAWCustomCtrl
 import RAWGlobals
+import SASProc
+
 
 #Define the rg fit function
 def linear_func(x, a, b):
@@ -112,9 +114,7 @@ def calcRefMW(i0, conc):
 
     return mw
 
-def calcVpMW(q, i, err, rg, i0, rg_qmin):
-    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
-    density = raw_settings.get('MWVpRho')
+def calcVpMW(q, i, err, rg, i0, rg_qmin, vp_density):
     #These functions are used to correct the porod volume for the length of the q vector
     #Coefficients were obtained by direct communication with the authors.
     qc=[0.15, 0.20, 0.25, 0.30, 0.40, 0.45]
@@ -141,7 +141,7 @@ def calcVpMW(q, i, err, rg, i0, rg_qmin):
         #Correct for the length of the q vector
         pv_cor=(A+B*pVolume)
 
-        mw = pv_cor*density
+        mw = pv_cor*vp_density
 
     else:
         mw = -1
@@ -1813,6 +1813,108 @@ def run_cormap(sasm_list, correction='None'):
                 )
 
     return item_data, pvals, corrected_pvals, failed_comparisons
+
+
+def run_secm_calcs(self, subtracted_sasm_list, use_subtracted_sasm, window_size,
+    is_protein, error_weight, vp_density):
+
+    #Now calculate the RG, I0, and MW for each SASM
+    rg = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+    rger = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+    i0 = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+    i0er = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+    vcmw = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+    vcmwer = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+    vpmw = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+    vp = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+    vpcor = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+
+    if window_size == 1:
+        for a in range(len(subtracted_sasm_list)):
+            current_sasm = subtracted_sasm_list[a]
+            use_current_sasm = use_subtracted_sasm[a]
+
+            if use_current_sasm:
+                #use autorg to find the Rg and I0
+                rg[a], rger[a], i0[a], i0er[a], idx_min, idx_max = autoRg(current_sasm,
+                    error_weight=error_weight)
+
+                #Now use the rambo tainer 2013 method to calculate molecular weight
+                if rg[a] > 0:
+                    vcmw[a], vcmwer[a], junk1, junk2 = calcVcMW(current_sasm, rg[a],
+                        i0[a], is_protein)
+                    vpmw[a], vp[a], vpcor[a] = calcVpMW(current_sasm.getQ(),
+                        current_sasm.getI(), current_sasm.getErr(), rg[a], i0[a],
+                        current_sasm.q[idx_min], vp_density)
+                else:
+                    vcmw[a], vcmwer[a] = -1, -1
+                    vpmw[a], vp[a], vpcor[a] = -1, -1, -1
+
+            else:
+                rg[a], rger[a], i0[a], i0er[a] = -1, -1, -1, -1
+                vcmw[a], vcmwer[a] = -1, -1,
+                vpmw[a], vp[a], vpcor[a] = -1, -1, -1
+
+    else:
+        for a in range(len(subtracted_sasm_list)-(window_size-1)):
+
+            current_sasm_list = subtracted_sasm_list[a:a+window_size]
+
+            truth_test = use_subtracted_sasm[a:a+window_size]
+
+            index = a+(window_size-1)/2
+
+            if np.all(truth_test):
+                try:
+                    current_sasm = SASProc.average(current_sasm_list)
+                except SASExceptions.DataNotCompatible:
+                    return False, {}
+
+                #use autorg to find the Rg and I0
+                rg[index], rger[index], i0[index], i0er[index], idx_min, idx_max = autoRg(current_sasm, error_weight=error_weight)
+
+                #Now use the rambo tainer 2013 method to calculate molecular weight
+                if rg[index] > 0:
+                    vcmw[index], vcmwer[index], junk1, junk2 = calcVcMW(current_sasm, rg[index], i0[index], is_protein)
+                    vpmw[index], vp[index], vpcor[index] = calcVpMW(current_sasm.getQ(),
+                        current_sasm.getI(), current_sasm.getErr(), rg[index], i0[index],
+                        current_sasm.q[idx_min], vp_density)
+                else:
+                    vcmw[index], vcmwer[index] = -1, -1
+                    vpmw[index], vp[index], vpcor[index] = -1, -1, -1
+            else:
+                rg[index], rger[index], i0[index], i0er[index] = -1, -1, -1, -1
+                vcmw[index], vcmwer[index] = -1, -1,
+                vpmw[index], vp[index], vpcor[index] = -1, -1, -1
+
+    #Set everything that's nonsense to -1
+    rg[rg<=0] = -1
+    rger[rg==-1] = -1
+    i0[i0<=0] = -1
+    i0er[i0==-1] = -1
+
+    vcmw[vcmw<=0] = -1
+    vcmw[rg<=0] = -1
+    vcmw[i0<=0] = -1
+    vcmwer[vcmw==-1] = -1
+
+    vpmw[vpmw<=0] = -1
+    vpmw[vcmw==-1] = -1
+    vp[vp<=0] = -1
+    vp[vcmw==-1] = -1
+    vpcor[vpcor<=0] = -1
+    vpcor[vcmw==-1] = -1
+
+    results = {'rg': rg,
+        'rger':     rger,
+        'i0':       i0,
+        'i0er':     i0er,
+        'vcmw':     vcmw,
+        'vcmwer':   vcmwer,
+        'vpmw':     vpmw,
+        }
+
+    return True, results
 
 ###############################################################################
 #DENSS below here

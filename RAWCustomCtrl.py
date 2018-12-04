@@ -28,14 +28,12 @@ else:
 import wx.lib.agw.flatnotebook as flatNB
 from wx.lib.agw import ultimatelistctrl as ULC
 import wx.lib.agw.supertooltip as STT
-# These are for the AutoWrapStaticText class
 from wx.lib.wordwrap import wordwrap
 from wx.lib.stattext import GenStaticText as StaticText
+from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 
 import RAWIcons
 import RAWGlobals
-# import time
-
 
 
 class ColourIndicator(control_super):
@@ -1371,6 +1369,31 @@ class ListItem(wx.Panel):
 
     def _on_key_press(self, event):
         pass
+
+class CustomPlotToolbar(NavigationToolbar2WxAgg):
+    """
+    A custom plot toolbar that displays the cursor position (or other text)
+    in addition to the usual controls.
+    """
+    def __init__(self, canvas):
+        """
+        Initializes the toolbar.
+
+        :param wx.Window parent: The parent window
+        :param matplotlib.Canvas: The canvas associated with the toolbar.
+        """
+        NavigationToolbar2WxAgg.__init__(self, canvas)
+
+        self.status = wx.StaticText(self, label='')
+
+        self.AddControl(self.status)
+
+    def set_status(self, status):
+        """
+        Called to set the status text in the toolbar, i.e. the cursor position
+        on the plot.
+        """
+        self.status.SetLabel(status)
 
 #Monkey patch flatNB.PageContainer
 def OnPaintFNB(self, event):

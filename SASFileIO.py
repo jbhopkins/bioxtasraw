@@ -46,6 +46,7 @@ import RAWGlobals
 import SASImage
 import SASM
 import SASExceptions
+import SASProc
 
 def createSASMFromImage(img_array, parameters = {}, x_c = None, y_c = None, mask = None,
                         readout_noise_mask = None, tbs_mask = None, dezingering = 0, dezing_sensitivity = 4):
@@ -1039,7 +1040,7 @@ def loadFile(filename, raw_settings, no_processing = False):
                         bkg_sasm, junk_img = loadFile(bkg_filename, raw_settings, no_processing=True)
                         if isinstance(bkg_sasm,list):
                             if len(bkg_sasm) > 1:
-                                bkg_sasm = SASM.average(bkg_sasm)
+                                bkg_sasm = SASProc.average(bkg_sasm)
                             else:
                                 bkg_sasm = bkg_sasm[0]
                         raw_settings.set('NormAbsCarbonSamEmptySASM', bkg_sasm)

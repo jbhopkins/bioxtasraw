@@ -81,6 +81,7 @@ import RAWIcons
 import RAWGlobals
 import RAWCustomDialogs
 from RAWGlobals import mainworker_cmd_queue
+import SASProc
 
 thread_wait_event = threading.Event()
 question_return_queue = Queue.Queue()
@@ -179,7 +180,7 @@ class MainFrame(wx.Frame):
         self.similarityframe = None
         self.kratkyframe = None
         self.denssframe = None
-        self.seriesframe = None
+        self.lc_series_frame = None
 
         self.raw_settings = RAWSettings.RawGuiSettings()
 
@@ -770,14 +771,14 @@ class MainFrame(wx.Frame):
         self.denssframe.SetIcon(self.GetIcon())
         self.denssframe.Show(True)
 
-    def showSeriesFrame(self, secm, manip_item):
+    def showLCSeriesFrame(self, secm, manip_item):
 
-        if self.seriesframe:
-            self.seriesframe.Destroy()
+        if self.lc_series_frame:
+            self.lc_series_frame.Destroy()
 
-        self.seriesframe = RAWAnalysis.SeriesFrame(self, 'Series Analysis', secm, manip_item, self.raw_settings)
-        self.seriesframe.SetIcon(self.GetIcon())
-        self.seriesframe.Show(True)
+        self.lc_series_frame = RAWAnalysis.LCSeriesFrame(self, 'Liquid Chromatography Series Analysis', secm, manip_item, self.raw_settings)
+        self.lc_series_frame.SetIcon(self.GetIcon())
+        self.lc_series_frame.Show(True)
 
     def _createSingleMenuBarItem(self, info):
 
@@ -2395,13 +2396,13 @@ class MainWorkerThread(threading.Thread):
             if len(water_sasm) == 1:
                 water_sasm = water_sasm[0]
             else:
-                water_sasm = SASM.average(water_sasm)
+                water_sasm = SASProc.average(water_sasm)
 
         if isinstance(empty_sasm, list):
             if len(empty_sasm) == 1:
                 empty_sasm = empty_sasm[0]
             else:
-                empty_sasm = SASM.average(empty_sasm)
+                empty_sasm = SASProc.average(empty_sasm)
         try:
             abs_scale_constant = SASM.calcAbsoluteScaleWaterConst(water_sasm, empty_sasm, waterI0, self._raw_settings)
         except SASExceptions.DataNotCompatible:
@@ -2454,7 +2455,7 @@ class MainWorkerThread(threading.Thread):
                 if len(carbon_sasm) == 1:
                     carbon_sasm = carbon_sasm[0]
                 else:
-                    carbon_sasm = SASM.average(carbon_sasm)
+                    carbon_sasm = SASProc.average(carbon_sasm)
 
             carbon_ctr_ups_val = -1
             carbon_ctr_dns_val = -1
@@ -2475,13 +2476,13 @@ class MainWorkerThread(threading.Thread):
                 if len(carbon_sasm) == 1:
                     carbon_sasm = carbon_sasm[0]
                 else:
-                    carbon_sasm = SASM.average(carbon_sasm)
+                    carbon_sasm = SASProc.average(carbon_sasm)
 
             if isinstance(bkg_sasm, list):
                 if len(bkg_sasm) == 1:
                     bkg_sasm = bkg_sasm[0]
                 else:
-                    bkg_sasm = SASM.average(bkg_sasm)
+                    bkg_sasm = SASProc.average(bkg_sasm)
 
             carbon_ctrs = carbon_sasm.getParameter('imageHeader')
             carbon_file_hdr = carbon_sasm.getParameter('counters')
@@ -2957,7 +2958,7 @@ class MainWorkerThread(threading.Thread):
                         if len(sasm) == 1:
                             sasm = sasm[0]
                         else:
-                            sasm = SASM.average(sasm) #If load sec loads a file with multiple sasms, it averages them into one sasm
+                            sasm = SASProc.average(sasm) #If load sec loads a file with multiple sasms, it averages them into one sasm
 
                 sasm_list[j]=sasm
 
@@ -3030,7 +3031,7 @@ class MainWorkerThread(threading.Thread):
             buffer_avg_sasm = buffer_sasm_list[0]
         else:
             try:
-                buffer_avg_sasm = SASM.average(buffer_sasm_list)
+                buffer_avg_sasm = SASProc.average(buffer_sasm_list)
             except SASExceptions.DataNotCompatible:
                 wx.CallAfter(self._showAverageError, 1)
                 wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -3107,7 +3108,7 @@ class MainWorkerThread(threading.Thread):
                     return
                 try:
                     if result == wx.ID_YES or result == wx.ID_YESTOALL:
-                        subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
+                        subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
                         self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
                         subtracted_sasm_list.append(subtracted_sasm)
@@ -3119,7 +3120,7 @@ class MainWorkerThread(threading.Thread):
 
             elif np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and yes_to_all:
                 try:
-                    subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
+                    subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
                     subtracted_sasm_list.append(subtracted_sasm)
@@ -3131,7 +3132,7 @@ class MainWorkerThread(threading.Thread):
 
             else:
                 try:
-                    subtracted_sasm = SASM.subtract(sasm, sub_sasm)
+                    subtracted_sasm = SASProc.subtract(sasm, sub_sasm)
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
                     subtracted_sasm_list.append(subtracted_sasm)
@@ -3180,7 +3181,7 @@ class MainWorkerThread(threading.Thread):
 
                 if np.all(truth_test):
                     try:
-                        current_sasm = SASM.average(current_sasm_list)
+                        current_sasm = SASProc.average(current_sasm_list)
                     except SASExceptions.DataNotCompatible:
                         wx.CallAfter(self._showAverageError, 1)
                         wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -3329,7 +3330,7 @@ class MainWorkerThread(threading.Thread):
                     return
                 try:
                     if result == wx.ID_YES or result == wx.ID_YESTOALL:
-                        subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
+                        subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
                         self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
                         subtracted_sasm_list.append(subtracted_sasm)
@@ -3343,7 +3344,7 @@ class MainWorkerThread(threading.Thread):
                     return
             elif np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and yes_to_all:
                 try:
-                    subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
+                    subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
                     subtracted_sasm_list.append(subtracted_sasm)
@@ -3357,7 +3358,7 @@ class MainWorkerThread(threading.Thread):
                     return
             else:
                 try:
-                    subtracted_sasm = SASM.subtract(sasm, sub_sasm)
+                    subtracted_sasm = SASProc.subtract(sasm, sub_sasm)
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
                     subtracted_sasm_list.append(subtracted_sasm)
@@ -3406,7 +3407,7 @@ class MainWorkerThread(threading.Thread):
 
                 if np.all(truth_test):
                     try:
-                        current_sasm = SASM.average(current_sasm_list)
+                        current_sasm = SASProc.average(current_sasm_list)
                     except SASExceptions.DataNotCompatible:
                         wx.CallAfter(self._showAverageError, 1)
                         try:
@@ -3922,7 +3923,7 @@ class MainWorkerThread(threading.Thread):
             if answer_id == button_id:
                 choice = param
 
-        SASM.superimpose(star_item.getSASM(), selected_sasms, choice)
+        SASProc.superimpose(star_item.getSASM(), selected_sasms, choice)
 
         for each_item in selected_items:
             wx.CallAfter(each_item.updateControlsFromSASM, updatePlot=False)
@@ -3978,7 +3979,7 @@ class MainWorkerThread(threading.Thread):
                     return
                 try:
                     if result == wx.ID_YES or result == wx.ID_YESTOALL:
-                        subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
+                        subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
                         self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
                         subtracted_list.append(subtracted_sasm)
@@ -4006,7 +4007,7 @@ class MainWorkerThread(threading.Thread):
                    return
             elif np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and yes_to_all:
                 try:
-                    subtracted_sasm = SASM.subtract(sasm, sub_sasm, forced = True)
+                    subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
                     subtracted_list.append(subtracted_sasm)
@@ -4034,7 +4035,7 @@ class MainWorkerThread(threading.Thread):
                    return
             else:
                 try:
-                    subtracted_sasm = SASM.subtract(sasm, sub_sasm)
+                    subtracted_sasm = SASProc.subtract(sasm, sub_sasm)
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
                     subtracted_list.append(subtracted_sasm)
@@ -4120,7 +4121,7 @@ class MainWorkerThread(threading.Thread):
                 wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while averaging and plotting...')
         try:
             if profiles_to_use == wx.ID_YESTOALL:
-                avg_sasm = SASM.average(sasm_list)
+                avg_sasm = SASProc.average(sasm_list)
 
             elif profiles_to_use == wx.ID_YES:
                 reduced_sasm_list = [sasm_list[0]]
@@ -4128,7 +4129,7 @@ class MainWorkerThread(threading.Thread):
                     if pvals[i] >= threshold:
                         reduced_sasm_list.append(sasm)
 
-                avg_sasm = SASM.average(reduced_sasm_list)
+                avg_sasm = SASProc.average(reduced_sasm_list)
 
         except SASExceptions.DataNotCompatible:
             wx.CallAfter(self._showAverageError, 3)
@@ -4166,7 +4167,7 @@ class MainWorkerThread(threading.Thread):
             return
 
         try:
-            avg_sasm = SASM.average(sasm_list)
+            avg_sasm = SASProc.average(sasm_list)
         except SASExceptions.DataNotCompatible:
             wx.CallAfter(self._showAverageError, 1)
             wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -4259,7 +4260,7 @@ class MainWorkerThread(threading.Thread):
 
         try:
             if profiles_to_use == wx.ID_YESTOALL:
-                avg_sasm = SASM.weightedAverage(sasm_list, weightByError, weightCounter)
+                avg_sasm = SASProc.weightedAverage(sasm_list, weightByError, weightCounter)
 
             elif profiles_to_use == wx.ID_YES:
                 reduced_sasm_list = [sasm_list[0]]
@@ -4267,7 +4268,7 @@ class MainWorkerThread(threading.Thread):
                     if pvals[i] >= threshold:
                         reduced_sasm_list.append(sasm)
 
-                avg_sasm = SASM.weightedAverage(reduced_sasm_list, weightByError, weightCounter)
+                avg_sasm = SASProc.weightedAverage(reduced_sasm_list, weightByError, weightCounter)
 
         except SASExceptions.DataNotCompatible:
             wx.CallAfter(self._showAverageError, 3)
@@ -4308,9 +4309,9 @@ class MainWorkerThread(threading.Thread):
             points = np.floor(len(sasm.q) / rebin_factor)
 
             if log_rebin:
-                rebin_sasm = SASM.logBinning(sasm, points)
+                rebin_sasm = SASProc.logBinning(sasm, points)
             else:
-                rebin_sasm = SASM.rebin(sasm, rebin_factor)
+                rebin_sasm = SASProc.rebin(sasm, rebin_factor)
 
             self._insertSasmFilenamePrefix(rebin_sasm, 'R_')
 
@@ -4339,7 +4340,7 @@ class MainWorkerThread(threading.Thread):
         for each_item in selected_items:
             sasm_list.append(each_item.getSASM())
 
-        merged_sasm = SASM.merge(marked_sasm, sasm_list)
+        merged_sasm = SASProc.merge(marked_sasm, sasm_list)
 
         filename = marked_sasm.getParameter('filename')
         merged_sasm.setParameter('filename', filename)
@@ -4365,7 +4366,7 @@ class MainWorkerThread(threading.Thread):
         for each_item in selected_items:
             sasm = each_item.getSASM()
 
-            interpolate_sasm = SASM.interpolateToFit(marked_sasm, sasm)
+            interpolate_sasm = SASProc.interpolateToFit(marked_sasm, sasm)
 
             filename = sasm.getParameter('filename')
             interpolate_sasm.setParameter('filename', filename)
@@ -9865,7 +9866,7 @@ class SECItemPanel(wx.Panel):
         menu.Append(6, 'Save all profiles as .dats')
         menu.Append(3, 'Save')
         menu.AppendSeparator()
-        menu.Append(10, 'Series analysis')
+        menu.Append(10, 'LC Series analysis')
         menu.Append(7, 'SVD')
         menu.Append(8, 'EFA')
         menu.Append(9, 'Similarity Test')
@@ -9959,7 +9960,7 @@ class SECItemPanel(wx.Panel):
             selectedSECMList = self.sec_panel.getSelectedItems()
 
             secm = selectedSECMList[0].getSECM()
-            mainframe.showSeriesFrame(secm, selectedSECMList[0])
+            mainframe.showLCSeriesFrame(secm, selectedSECMList[0])
 
     def _onKeyPress(self, evt):
 

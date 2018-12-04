@@ -3162,27 +3162,28 @@ class SECPlotPanel(wx.Panel):
             if event.inaxes == self.ryaxis:
                 trans1 = self.ryaxis.transData
                 trans2 = self.subplot1.transData.inverted()
-                main = False
+                x2, y2 = x, y
+                x, y = trans2.transform(trans1.transform((x,y)))
             else:
                 trans1 = self.subplot1.transData
                 trans2 = self.ryaxis.transData.inverted()
-                main = True
+                x2, y2 = trans2.transform(trans1.transform((x,y)))
 
-            xdisp, ydisp = trans1.transform((x,y))
-            x2, y2 = trans2.transform((xdisp, ydisp))
+            if abs(y) > 0.001 and abs(y) < 1000:
+                y_val = '{}'.format(round(y, 3))
+            else:
+                y_val = '{:.3E}'.format(y)
 
-            if not main:
-                if calced != 'None':
-                    wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I = %.6f, %s = %.2f' %(xaxis, x, y2, calced, y), 1)
+            if abs(y2) > 0.001 and abs(y2) < 1000:
+                y2_val = '{}'.format(round(y2, 3))
+            else:
+                y2_val = '{:.3E}'.format(y2)
 
-                else:
-                    wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I = %.6f' %(xaxis, x, y2), 1)
+            if calced != 'None':
+                wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I = %s, %s = %s' %(xaxis, x, y_val, calced, y2_val), 1)
 
             else:
-                if calced != 'None':
-                    wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I = %.6f, %s = %.2f' %(xaxis, x, y, calced, y2), 1)
-                else:
-                    wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I = %.6f' %(xaxis, x, y), 1)
+                wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I = %s' %(xaxis, x, y_val), 1)
 
     def _onMouseButtonReleaseEvent(self, event):
         ''' Find out where the mouse button was released

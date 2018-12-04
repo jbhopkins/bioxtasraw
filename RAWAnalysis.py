@@ -2199,6 +2199,8 @@ class MolWeightFrame(wx.Frame):
             i0 = 0
             rg = 0
 
+        density = self.raw_settings.get('MWVpRho')
+
         q = self.sasm.q
         i = self.sasm.i
         err = self.sasm.err
@@ -2218,7 +2220,7 @@ class MolWeightFrame(wx.Frame):
             guinier_analysis = analysis['guinier']
             qmin = float(guinier_analysis['qStart'])
 
-            mw, pVolume, pv_cor = SASCalc.calcVpMW(q, i, err, rg, i0, qmin)
+            mw, pVolume, pv_cor = SASCalc.calcVpMW(q, i, err, rg, i0, qmin, density)
 
             self.mws['vp']['mw'] = str(mw)
             self.mws['vp']['pVolume'] = str(pVolume)
@@ -12406,11 +12408,11 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
             plotpanel.redrawLines()
 
 
-class SeriesFrame(wx.Frame):
+class LCSeriesFrame(wx.Frame):
 
     def __init__(self, parent, title, secm, manip_item, raw_settings):
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, name = 'SeriesFrame', size = (900,600))
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, name = 'LCSeriesFrame', size = (900,650))
 
         splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE|wx.SP_3D)
 
@@ -12418,8 +12420,8 @@ class SeriesFrame(wx.Frame):
         self.manip_item = manip_item
         self._raw_settings = raw_settings
 
-        self.plotPanel = SeriesPlotPage(splitter, 'SeriesPlotPage', secm)
-        self.controlPanel = SeriesControlPanel(splitter, 'SeriesControlPanel', secm)
+        self.plotPanel = LCSeriesPlotPage(splitter, 'LCSeriesPlotPage', secm)
+        self.controlPanel = LCSeriesControlPanel(splitter, 'LCSeriesControlPanel', secm)
 
         splitter.SplitVertically(self.controlPanel, self.plotPanel, 325)
 
@@ -12454,13 +12456,13 @@ class SeriesPlotPanel(wx.Panel):
 
         wx.Panel.__init__(self, parent)
 
-        self.all_plot_types = {'unsub'  : {'left': 'Intensity', 'right' : '',
+        self.all_plot_types = {'unsub'  : {'left': 'Total Intensity', 'right' : '',
                         'title': 'Unsubtracted Series', 'bottom': 'Frame #'},
-            'sub'       : {'left': 'Intensity', 'right': ['Rg', 'MW (Vc)', 'MW (Vp)', 'I0'],
+            'sub'       : {'left': 'Total Intensity', 'right': ['Rg', 'MW (Vc)', 'MW (Vp)', 'I0'],
                         'title': 'Subtracted Series', 'bottom': 'Frame #'},
-            'baseline'  : {'left': 'Intensity', 'right': ['Rg', 'MW (Vc)', 'MW (Vp)', 'I0'],
+            'baseline'  : {'left': 'Total Intensity', 'right': ['Rg', 'MW (Vc)', 'MW (Vp)', 'I0'],
                         'title': 'Baseline Corrected Series', 'bottom': 'Frame #'},
-            'uv'        : {'left': 'Intensity', 'right': 'UV',
+            'uv'        : {'left': 'Total Intensity', 'right': ['UV'],
                         'title': 'SAXS and UV', 'bottom': 'Frame #'},
             }
 
@@ -12471,6 +12473,9 @@ class SeriesPlotPanel(wx.Panel):
         self.plot_ranges = []
 
         self.range_pick = False
+
+        self.subplot = None
+        self.ryaxis = None
 
         self.create_layout()
 
@@ -12498,12 +12503,12 @@ class SeriesPlotPanel(wx.Panel):
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         self.canvas.SetBackgroundColour('white')
 
-        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self.canvas)
         self.toolbar.Realize()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
-        sizer.Add(self.toolbar, 0, wx.GROW)
+        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.EXPAND)
+        sizer.Add(self.toolbar, 0, wx.EXPAND)
 
         self.SetSizer(sizer)
 
@@ -12614,7 +12619,38 @@ class SeriesPlotPanel(wx.Panel):
 
         if event.inaxes:
             x, y = event.xdata, event.ydata
-            # wx.FindWindowByName('MainFrame').SetStatusText('q = ' +  str(round(x,5)) + ', I = ' + str(round(y,5)), 1)
+            xlabel = self.subplot.xaxis.get_label().get_text()
+            ylabel = self.subplot.yaxis.get_label().get_text()
+
+            if self.ryaxis is not None:
+                if event.inaxes == self.ryaxis:
+                    trans1 = self.ryaxis.transData
+                    trans2 = self.subplot.transData.inverted()
+                    x2, y2 = x, y
+                    x, y = trans2.transform(trans1.transform((x,y)))
+                else:
+                    trans1 = self.subplot.transData
+                    trans2 = self.ryaxis.transData.inverted()
+                    x2, y2 = trans2.transform(trans1.transform((x,y)))
+
+            if abs(y) > 0.001 and abs(y) < 1000:
+                y_val = '{:.3f}'.format(round(y, 3))
+            else:
+                y_val = '{:.3E}'.format(y)
+
+            if self.ryaxis is not None:
+                if abs(y2) > 0.001 and abs(y2) < 1000:
+                    y2_val = '{:.3f}'.format(round(y2, 3))
+                else:
+                    y2_val = '{:.3E}'.format(y2)
+
+            if 'Frame' in xlabel:
+                x_val = int(x)
+            else:
+                x_val = x
+
+            self.toolbar.set_status('{} = {}, {} = {}'.format(xlabel, x_val, ylabel, y_val))
+
             if self.range_pick:
                 if self.start_range == -1:
                     x = int(round(x))
@@ -12626,6 +12662,8 @@ class SeriesPlotPanel(wx.Panel):
                     self.plot_ranges[self.range_index].set_xy(pts)
 
                 self.redrawLines()
+        else:
+            self.toolbar.set_status('')
 
     def _onMousePressEvent(self, event):
         if self.range_pick and event.inaxes and event.button == 1:
@@ -12652,12 +12690,11 @@ class SeriesPlotPanel(wx.Panel):
                 self.range_line.remove()
                 del self.range_line
 
-                control_page = wx.FindWindowByName('SeriesControlPanel')
+                control_page = wx.FindWindowByName('LCSeriesControlPanel')
                 control_page.setPickRange(self.range_index, [self.start_range, self.end_range],
                     self.plot_type)
 
             self.redrawLines()
-
 
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
@@ -12700,7 +12737,7 @@ class SeriesPlotPanel(wx.Panel):
         self.relimPlot()
 
 
-class SeriesPlotPage(wx.Panel):
+class LCSeriesPlotPage(wx.Panel):
 
     def __init__(self, parent, name, secm):
 
@@ -12810,7 +12847,7 @@ class SeriesPlotPage(wx.Panel):
             self.uv_panel.show_range(index, show)
 
 
-class SeriesControlPanel(wx.ScrolledWindow):
+class LCSeriesControlPanel(wx.ScrolledWindow):
 
     def __init__(self, parent, name, secm):
 
@@ -12822,7 +12859,10 @@ class SeriesControlPanel(wx.ScrolledWindow):
         self.main_frame = wx.FindWindowByName('MainFrame')
         self.raw_settings = self.main_frame.raw_settings
 
-        self.plot_page = wx.FindWindowByName('SeriesPlotPage')
+        self.plot_page = wx.FindWindowByName('LCSeriesPlotPage')
+
+        self.question_thread_wait_event = threading.Event()
+        self.question_return_queue = Queue.Queue()
 
         self._createLayout()
 
@@ -12833,7 +12873,19 @@ class SeriesControlPanel(wx.ScrolledWindow):
         self.process = {'buffer': self.processBuffer,
             'baseline'  : self.processBaseline,
             'uv'        : self.processUV,
-            'calc'      : self.calcParams,
+            'calc'      : self.processCalcs,
+            }
+
+        self.processing_done = {'buffer':   False,
+            'baseline'  : False,
+            'uv'        : False,
+            'calc'      : False,
+            }
+
+        self.should_process = {'buffer':   True,
+            'baseline'  : False,
+            'uv'        : False,
+            'calc'      : True,
             }
 
         self.continue_processing = True
@@ -12841,7 +12893,7 @@ class SeriesControlPanel(wx.ScrolledWindow):
         self.results = {}
 
     def onCloseButton(self, evt):
-        diag = wx.FindWindowByName('SeriesFrame')
+        diag = wx.FindWindowByName('LCSeriesFrame')
         diag.OnClose()
 
     def _createLayout(self):
@@ -12858,22 +12910,46 @@ class SeriesControlPanel(wx.ScrolledWindow):
         control_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
 
-        info_pane = wx.CollapsiblePane(self, label="Series Type")
+        info_pane = wx.CollapsiblePane(self, label="Series Info")
         info_pane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
         info_win = info_pane.GetPane()
 
-        self.series_type = wx.Choice(info_win, choices=['SEC-SAXS', 'TR-SAXS'])
+        self.series_type = wx.Choice(info_win, choices=['SEC-SAXS', 'IEC-SAXS'])
         self.series_type.SetStringSelection('SEC-SAXS')
         self.series_type.Bind(wx.EVT_CHOICE, self.onUpdateProc)
 
         type_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        type_sizer.Add(wx.StaticText(info_win, label='Series type:'), flag=wx.LEFT,
+        type_sizer.Add(wx.StaticText(info_win, label='Series type:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        type_sizer.Add(self.series_type, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL,
             border=2)
-        type_sizer.Add(self.series_type, flag=wx.LEFT|wx.RIGHT, border=2)
+
+        vp_density = self.raw_settings.get('MWVpRho')
+        self.vc_mol_type = wx.Choice(info_win, choices=['Protein', 'RNA'])
+        self.vc_mol_type.SetStringSelection('Protein')
+        self.vc_mol_type.Bind(wx.EVT_CHOICE, self.onUpdateProc)
+
+        self.vp_density = wx.TextCtrl(info_win, value=str(vp_density), size=(60,-1),
+            style=wx.TE_PROCESS_ENTER)
+        self.avg_window = wx.TextCtrl(info_win, value='5', size=(60,-1),
+            style=wx.TE_PROCESS_ENTER)
+        self.vp_density.Bind(wx.EVT_TEXT_ENTER, self.onUpdateProc)
+        self.avg_window.Bind(wx.EVT_TEXT_ENTER, self.onUpdateProc)
+
+        settings_sizer = wx.FlexGridSizer(rows=3, cols=2, hgap=2, vgap=2)
+        settings_sizer.Add(wx.StaticText(info_win, label='Vc Mol. type:'))
+        settings_sizer.Add(self.vc_mol_type)
+        settings_sizer.Add(wx.StaticText(info_win, label='Vp density (kDa/A^3):'))
+        settings_sizer.Add(self.vp_density)
+        settings_sizer.Add(wx.StaticText(info_win, label='Averaging window size:'))
+        settings_sizer.Add(self.avg_window)
 
         info_sizer = wx.BoxSizer(wx.VERTICAL)
-        info_sizer.Add(type_sizer)
+        info_sizer.Add(type_sizer, border=2, flag=wx.LEFT|wx.RIGHT)
+        info_sizer.Add(settings_sizer, border=2, flag=wx.LEFT|wx.RIGHT|wx.TOP)
         info_win.SetSizer(info_sizer)
+
+        info_pane.Expand()
 
 
         buffer_pane = wx.CollapsiblePane(self, label="Buffer")
@@ -12885,7 +12961,7 @@ class SeriesControlPanel(wx.ScrolledWindow):
         self.subtracted.Bind(wx.EVT_CHECKBOX, self._onSubtracted)
 
         self.buffer_range_list = SeriesRangeItemList(self, 'buffer', buffer_win)
-        self.buffer_range_list.SetMinSize((-1,125))
+        self.buffer_range_list.SetMinSize((-1,115))
 
         self.buffer_auto_btn = wx.Button(buffer_win, label='Auto')
         self.buffer_auto_btn.Bind(wx.EVT_BUTTON, self._onBufferAuto)
@@ -12912,6 +12988,8 @@ class SeriesControlPanel(wx.ScrolledWindow):
             border=2)
         buffer_sizer.Add(self.buffer_calc, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
         buffer_win.SetSizer(buffer_sizer)
+
+        buffer_pane.Expand()
 
 
         baseline_pane = wx.CollapsiblePane(self, label="Baseline Correction")
@@ -12963,7 +13041,7 @@ class SeriesControlPanel(wx.ScrolledWindow):
         sample_win = sample_pane.GetPane()
 
         self.sample_range_list = SeriesRangeItemList(self, 'sample', sample_win)
-        self.sample_range_list.SetMinSize((-1,125))
+        self.sample_range_list.SetMinSize((-1,85))
 
         self.sample_auto_btn = wx.Button(sample_win, label='Auto')
         self.sample_auto_btn.Bind(wx.EVT_BUTTON, self._onSampleAuto)
@@ -12990,6 +13068,8 @@ class SeriesControlPanel(wx.ScrolledWindow):
         sample_sizer.Add(to_mainplot, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
         sample_win.SetSizer(sample_sizer)
 
+        sample_pane.Expand()
+
 
         control_sizer.Add(info_pane, flag=wx.TOP, border=5)
         control_sizer.Add(buffer_pane, flag=wx.EXPAND|wx.TOP, border=5)
@@ -13007,7 +13087,13 @@ class SeriesControlPanel(wx.ScrolledWindow):
 
     def _initialize(self):
         frames = self.secm.getFrames()
-        intensity = self.secm.getIntI()
+
+        if self.plot_page.intensity == 'total':
+            intensity = self.secm.getIntI()
+        elif self.plot_page.intensity == 'mean':
+            intensity = self.secm.getMeanI()
+        else:
+            intensity = self.secm.getIofQ()
 
         self.plot_page.update_plot_data(frames, intensity, 'intensity', 'left', 'unsub')
 
@@ -13018,6 +13104,17 @@ class SeriesControlPanel(wx.ScrolledWindow):
         if self.secm.baseline_subtracted_sasm_list:
             self.plot_page.update_plot_data(frames, self.secm.getIntIBCSub(),
                 'intensity', 'left', 'baseline')
+
+        if self.secm.mol_type != '':
+            self.vc_mol_type.SetStringSelection(self.secm.mol_type)
+
+        if self.secm.window_size != -1:
+            self.avg_window.ChangeValue(str(self.secm.window_size))
+
+        if self.secm.mol_density != -1:
+            self.vp_density.ChangeValue(str(self.secm.mol_density))
+
+
     def showBusy(self, show=True, msg=''):
         if show:
             self.bi = wx.BusyInfo(msg, self)
@@ -13032,23 +13129,35 @@ class SeriesControlPanel(wx.ScrolledWindow):
             start = 'buffer'
         elif event_object is self.baseline_calc:
             start = 'baseline'
+        elif (event_object is self.vc_mol_type or event_object is self.vp_density
+            or event_object is self.avg_window):
+            start = 'calc'
 
         t = threading.Thread(target=self.updateProcessing, args=(start,))
         t.daemon = True
         t.start()
 
     def updateProcessing(self, start):
-        wx.CallAfter(self.showBusy, True, 'Please wait, processing.')
+
         self.continue_processing = True
 
         start_idx = self.processing_order.index(start)
-
         processing_steps = self.processing_order[start_idx:]
 
+        if self.continue_processing:
+            wx.CallAfter(self.showBusy, True, 'Please wait, processing.')
+
+        for step in self.processing_order[:start_idx]:
+            if self.should_process[step] and not self.processing_done[step]:
+                self.continue_processing = False
+
         for step in processing_steps:
-            self.process[step]()
             if not self.continue_processing:
                 break
+
+            elif self.should_process[step]:
+                self.process[step]()
+
 
         wx.CallAfter(self.showBusy, False)
 
@@ -13255,14 +13364,12 @@ class SeriesControlPanel(wx.ScrolledWindow):
                         '\nThe following frames were found to be different:\n' %(sim_test, sim_threshold))
                     msg = msg + err[1]
 
-                    question_dialog = RAWCustomDialogs.CustomQuestionDialog(self, msg,
+                    answer = self._displayQuestionDialog(msg,
+                        'Warning: Selected buffer frames are different',
                     [('Cancel Calculation', wx.ID_CANCEL), ('Continue Calculation', wx.ID_YES)],
-                    'Warning: Selected buffer frames are different',
-                    wx.ART_WARNING, None, None, style = wx.CAPTION | wx.RESIZE_BORDER)
-                    answer = question_dialog.ShowModal()
-                    question_dialog.Destroy()
+                    wx.ART_WARNING)
 
-                    if answer != wx.ID_YES:
+                    if answer[0] != wx.ID_YES:
                         self.continue_processing = False
                         return
                     else:
@@ -13277,6 +13384,14 @@ class SeriesControlPanel(wx.ScrolledWindow):
             use_subtracted_sasm = [True for i in range(len(subtracted_sasms))]
             buffer_range_list = []
 
+        sub_mean_i = np.array([sasm.getMeanI() for sasm in subtracted_sasms])
+        sub_total_i = np.array([sasm.getTotalI() for sasm in subtracted_sasms])
+
+        if self.secm.qref != 0:
+            sub_i_of_q = np.array([sasm.getIofQ(self.secm.qref) for sasm in subtracted_sasms])
+        else:
+            sub_i_of_q = np.zeros_like(sub_total_i)
+
         results = {'buffer_range': buffer_range_list,
             'sub_sasms':            subtracted_sasms,
             'use_sub_sasms':        use_subtracted_sasm,
@@ -13284,10 +13399,29 @@ class SeriesControlPanel(wx.ScrolledWindow):
             'similarity_corr':      correction,
             'similarity_thresh':    sim_threshold,
             'calc_thresh':          calc_threshold,
-            'already_subtracted':   self.subtracted.IsChecked()
+            'already_subtracted':   self.subtracted.IsChecked(),
+            'sub_mean_i':           sub_mean_i,
+            'sub_total_i':          sub_total_i,
+            'sub_i_of_q':           sub_i_of_q,
             }
 
         self.results['buffer'] = results
+
+        self.processing_done['buffer'] = True
+
+        wx.CallAfter(self.plotSubtracted)
+
+    def plotSubtracted(self):
+        frames = self.secm.getFrames()
+
+        if self.plot_page.intensity == 'total':
+            intensity = self.results['buffer']['sub_total_i']
+        elif self.plot_page.intensity == 'mean':
+            intensity = self.results['buffer']['sub_mean_i']
+        else:
+            intensity = self.results['buffer']['sub_i_of_q']
+
+        self.plot_page.update_plot_data(frames, intensity, 'intensity', 'left', 'sub')
 
     def processBaseline(self):
         pass
@@ -13295,11 +13429,107 @@ class SeriesControlPanel(wx.ScrolledWindow):
     def processUV(self):
         pass
 
-    def calcParams(self):
+    def _validateCalc(self):
+        valid = True
+
+        window_size = self.avg_window.GetValue()
+        vp_density = self.vp_density.GetValue()
+
+        try:
+            window_size = int(window_size)
+        except Exception:
+            msg = ("The averaging window size must be an integer.")
+            valid = False
+            wx.CallAfter(wx.MessageBox, msg, "Averaging window size invalid",
+                style=wx.ICON_ERROR|wx.OK)
+            return valid
+
+        if window_size <= 0:
+            msg = ("The window size must be larger than 0.")
+            valid = False
+            wx.CallAfter(wx.MessageBox, msg, "Averaging window size invalid",
+                style=wx.ICON_ERROR|wx.OK)
+            return valid
+
+        try:
+            vp_density = float(vp_density)
+        except Exception:
+            msg = ("The density for the Vp MW estimate must be a number.")
+            valid = False
+            wx.CallAfter(wx.MessageBox, msg, "Vp MW density invalid",
+                style=wx.ICON_ERROR|wx.OK)
+            return valid
+
+        if vp_density < 0:
+            msg = ("The density for the Vp MW estimate must be greater than 0.")
+            valid = False
+            wx.CallAfter(wx.MessageBox, msg, "Vp MW density invalid",
+                style=wx.ICON_ERROR|wx.OK)
+            return valid
+
+        return valid
+
+    def processCalcs(self):
+        valid = self._validateCalc()
+
+        if not valid:
+            self.continue_processing = False
+            return
+
+        sub_sasms = self.results['buffer']['sub_sasms']
+        use_sub_sasms = self.results['buffer']['use_sub_sasms']
+
+        mol_type = self.vc_mol_type.GetStringSelection()
+
+        if mol_type == 'Protein':
+            is_protein = True
+        else:
+            is_protein = False
+
+        error_weight = self.raw_settings.get('errorWeight')
+
+        window_size = int(self.avg_window.GetValue())
+        vp_density = float(self.vp_density.GetValue())
+
+        success, results = SASCalc.run_secm_calcs(self, sub_sasms,
+            use_sub_sasms, window_size, is_protein, error_weight, vp_density)
+
+        if success:
+            self.results['calc'] = results
+            wx.CallAfter(self.plotCalc)
+
+    def plotCalc(self):
         pass
 
     def _onToMainPlot(self, evt):
         pass
+
+    def _displayQuestionDialog(self, question, label, button_list, icon = None, filename = None, save_path = None):
+
+        wx.CallAfter(self._showQuestionDialogFromThread, question, label, button_list, icon, filename, save_path)
+
+        self.question_thread_wait_event.wait()
+        self.question_thread_wait_event.clear()
+
+        answer = self.question_return_queue.get()
+        self.question_return_queue.task_done()
+
+        return answer
+
+    def _showQuestionDialogFromThread(self, question, label, button_list, icon = None, filename = None, save_path = None):
+        ''' Function to show a question dialog from the thread '''
+
+        question_dialog = RAWCustomDialogs.CustomQuestionDialog(self, question, button_list, label, icon, filename, save_path, style = wx.CAPTION | wx.RESIZE_BORDER)
+        result = question_dialog.ShowModal()
+        path = question_dialog.getPath()
+        question_dialog.Destroy()
+
+        if path:
+            self.question_return_queue.put([result, path])
+        else:
+            self.question_return_queue.put([result])  # put answer in thread safe queue
+
+        self.question_thread_wait_event.set()                 # Release thread from its waiting state
 
 class SeriesRangeItemList(RAWCustomCtrl.ItemList):
 
