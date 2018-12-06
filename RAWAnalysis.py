@@ -58,6 +58,7 @@ import SASM
 import SASExceptions
 import RAWGlobals
 import RAWCustomDialogs
+import SASProc
 
 class GuinierPlotPanel(wx.Panel):
 
@@ -9335,7 +9336,7 @@ class EFAFrame(wx.Frame):
         self.getPanel3Values()
 
         if self.panel3_results['converged']:
-            RAWGlobals.mainworker_cmd_queue.put(['to_plot_sasm', [self.panel3_results['profiles'], 'black', None, True]])
+            RAWGlobals.mainworker_cmd_queue.put(['to_plot_sasm', [self.panel3_results['profiles'], 'black', None, True, 2]])
 
 
         if self.manip_item is not None:
@@ -11660,7 +11661,7 @@ class SimilarityFrame(wx.Frame):
         correction_window = wx.FindWindowById(self.ids['correction'])
         correction = correction_window.GetStringSelection()
 
-        self.item_data, self.pvals, self.corrected_pvals, failed_comparisons = SASCalc.run_cormap(self.sasm_list, correction)
+        self.item_data, self.pvals, self.corrected_pvals, failed_comparisons = SASCalc.run_cormap_all(self.sasm_list, correction)
 
         self.listPanel.DeleteAllItems()
         for item in self.item_data:
@@ -12534,9 +12535,14 @@ class SeriesPlotPanel(wx.Panel):
                 self.background = self.canvas.copy_from_bbox(self.subplot.bbox)
                 self.plot_lines[label] = line
             else:
-                line, = self.ryaxis.plot(xdata, ydata, animated=True)
+                if self.plot_type != 'uv':
+                    line, = self.ryaxis.plot(xdata, ydata, animated=True,
+                        linestyle='', marker='o', color='r')
+                else:
+                    line, = self.ryaxis.plot(xdata, ydata, animated=True,
+                        linestyle='-', color='r')
                 self.canvas.draw()
-                self.r_background = self.canvas.copy_from_bbox(self.ryaxs.bbox)
+                self.r_background = self.canvas.copy_from_bbox(self.ryaxis.bbox)
                 self.r_plot_lines[label] = line
         else:
             line.set_xdata(xdata)
@@ -12621,6 +12627,8 @@ class SeriesPlotPanel(wx.Panel):
             x, y = event.xdata, event.ydata
             xlabel = self.subplot.xaxis.get_label().get_text()
             ylabel = self.subplot.yaxis.get_label().get_text()
+            if self.ryaxis is not None:
+                y2label = self.ryaxis.yaxis.get_label().get_text()
 
             if self.ryaxis is not None:
                 if event.inaxes == self.ryaxis:
@@ -12649,7 +12657,11 @@ class SeriesPlotPanel(wx.Panel):
             else:
                 x_val = x
 
-            self.toolbar.set_status('{} = {}, {} = {}'.format(xlabel, x_val, ylabel, y_val))
+            if self.ryaxis is not None:
+                self.toolbar.set_status('{} = {}, {} = {}, {} = {}'.format(xlabel,
+                    x_val, ylabel, y_val, y2label, y2_val))
+            else:
+                self.toolbar.set_status('{} = {}, {} = {}'.format(xlabel, x_val, ylabel, y_val))
 
             if self.range_pick:
                 if self.start_range == -1:
@@ -12705,6 +12717,8 @@ class SeriesPlotPanel(wx.Panel):
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def relimPlot(self):
+        redraw = False
+
         oldx = self.subplot.get_xlim()
         oldy = self.subplot.get_ylim()
 
@@ -12715,6 +12729,22 @@ class SeriesPlotPanel(wx.Panel):
         newy = self.subplot.get_ylim()
 
         if newx != oldx or newy != oldy:
+            redraw = True
+
+        if self.ryaxis is not None and not redraw:
+            oldrx = self.ryaxis.get_xlim()
+            oldry = self.ryaxis.get_ylim()
+
+            self.ryaxis.relim()
+            self.ryaxis.autoscale_view()
+
+            newrx = self.ryaxis.get_xlim()
+            newry = self.ryaxis.get_ylim()
+
+            if newrx != oldrx or newry != oldry:
+                redraw = True
+
+        if redraw:
             self.canvas.draw()
 
         self.redrawLines()
@@ -12731,6 +12761,10 @@ class SeriesPlotPanel(wx.Panel):
         if self.range_pick:
             self.subplot.draw_artist(self.range_line)
 
+        if self.ryaxis is not None:
+            for line in self.r_plot_lines.values():
+                self.ryaxis.draw_artist(line)
+
         self.canvas.blit(self.subplot.bbox)
 
     def updatePlot(self):
@@ -12746,6 +12780,7 @@ class LCSeriesPlotPage(wx.Panel):
         self.secm = secm
 
         self.intensity = 'total'
+        self.calc = 'Rg'
 
         self.create_layout()
 
@@ -12768,7 +12803,8 @@ class LCSeriesPlotPage(wx.Panel):
 
     def update_plot_data(self, xdata, ydata, label, axis, plot):
         if plot == 'gen_sub':
-            if self.baseline_panel.IsShown():
+            control_page = wx.FindWindowByName('LCSeriesControlPanel')
+            if control_page.processing_done['baseline']:
                 plot = 'baseline'
             else:
                 plot = 'sub'
@@ -12784,7 +12820,8 @@ class LCSeriesPlotPage(wx.Panel):
 
     def update_plot_range(self, start, end, index, plot):
         if plot == 'gen_sub':
-            if self.baseline_panel.IsShown():
+            control_page = wx.FindWindowByName('LCSeriesControlPanel')
+            if control_page.processing_done['baseline']:
                 plot = 'baseline'
             else:
                 plot = 'sub'
@@ -12800,7 +12837,8 @@ class LCSeriesPlotPage(wx.Panel):
 
     def remove_plot_range(self, index, plot):
         if plot == 'gen_sub':
-            if self.baseline_panel.IsShown():
+            control_page = wx.FindWindowByName('LCSeriesControlPanel')
+            if control_page.processing_done['baseline']:
                 plot = 'baseline'
             else:
                 plot = 'sub'
@@ -12816,7 +12854,8 @@ class LCSeriesPlotPage(wx.Panel):
 
     def pick_plot_range(self, start_item, end_item, index, plot):
         if plot == 'gen_sub':
-            if self.baseline_panel.IsShown():
+            control_page = wx.FindWindowByName('LCSeriesControlPanel')
+            if control_page.processing_done['baseline']:
                 plot = 'baseline'
             else:
                 plot = 'sub'
@@ -12832,7 +12871,8 @@ class LCSeriesPlotPage(wx.Panel):
 
     def show_plot_range(self, index, plot, show):
         if plot == 'gen_sub':
-            if self.baseline_panel.IsShown():
+            control_page = wx.FindWindowByName('LCSeriesControlPanel')
+            if control_page.processing_done['baseline']:
                 plot = 'baseline'
             else:
                 plot = 'sub'
@@ -12845,6 +12885,15 @@ class LCSeriesPlotPage(wx.Panel):
             self.baseline_panel.show_range(index, show)
         elif plot == 'uv':
             self.uv_panel.show_range(index, show)
+
+    def show_plot(self, plot):
+        for i in range(self.notebook.GetPageCount()):
+            if self.notebook.GetPageText(i) == plot:
+                self.notebook.ChangeSelection(i)
+                break
+
+    def get_plot(self):
+        return self.notebook.GetPageText(self.notebook.GetSelection())
 
 
 class LCSeriesControlPanel(wx.ScrolledWindow):
@@ -12972,7 +13021,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.buffer_remove_btn = wx.Button(buffer_win, label='Remove region')
         self.buffer_remove_btn.Bind(wx.EVT_BUTTON, self._onSeriesRemove)
 
-        self.buffer_calc = wx.Button(buffer_win, label='Set buffer and calculate')
+        self.buffer_calc = wx.Button(buffer_win, label='Set buffer')
         self.buffer_calc.Bind(wx.EVT_BUTTON, self.onUpdateProc)
 
         buffer_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -13075,7 +13124,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         control_sizer.Add(buffer_pane, flag=wx.EXPAND|wx.TOP, border=5)
         control_sizer.Add(baseline_pane, flag=wx.TOP, border=5)
         control_sizer.Add(uv_pane, flag=wx.TOP, border=5)
-        control_sizer.Add(sample_pane, flag=wx.TOP, border=5)
+        control_sizer.Add(sample_pane, flag=wx.EXPAND|wx.TOP, border=5)
         control_sizer.AddStretchSpacer(1)
 
 
@@ -13144,12 +13193,12 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         start_idx = self.processing_order.index(start)
         processing_steps = self.processing_order[start_idx:]
 
-        if self.continue_processing:
-            wx.CallAfter(self.showBusy, True, 'Please wait, processing.')
-
         for step in self.processing_order[:start_idx]:
             if self.should_process[step] and not self.processing_done[step]:
                 self.continue_processing = False
+
+        if self.continue_processing:
+            wx.CallAfter(self.showBusy, True, 'Please wait, processing.')
 
         for step in processing_steps:
             if not self.continue_processing:
@@ -13348,13 +13397,23 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             buffer_items = self.buffer_range_list.get_items()
             buffer_range_list = [item.get_range() for item in buffer_items]
 
+            if 'buffer' in self.results:
+                if self.results['buffer']['buffer_range']:
+                    cur_br = set(buffer_range_list)
+                    old_br = set(self.results['buffer']['buffer_range'])
+                    if cur_br == old_br:
+                        self.continue_processing = False
+                        msg = ("This buffer region is already set.")
+                        wx.CallAfter(wx.MessageBox, msg, "Buffer already set", style=wx.ICON_INFORMATION|wx.OK)
+                        return #No change in buffer range, no need to do anything
+
             avg_sasm, success, err = self.secm.averageFrames(buffer_range_list,
                 'unsub', sim_test, sim_threshold, correction)
 
             if not success:
                 if err[0] == 'q_vector':
                     msg = 'The selected items must have the same q vectors to be averaged.'
-                    wx.CallAfter(wx.MessageBox, msg, "Average Error", style = wx.ICON_ERROR | wx.OK)
+                    wx.CallAfter(wx.MessageBox, msg, "Average Error", style=wx.ICON_ERROR|wx.OK)
                     self.continue_processing = False
                     return
                 elif err[0] == 'sim':
@@ -13383,6 +13442,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             subtracted_sasms = self.secm.getAllSASMs()
             use_subtracted_sasm = [True for i in range(len(subtracted_sasms))]
             buffer_range_list = []
+            avg_sasm = None
 
         sub_mean_i = np.array([sasm.getMeanI() for sasm in subtracted_sasms])
         sub_total_i = np.array([sasm.getTotalI() for sasm in subtracted_sasms])
@@ -13403,11 +13463,18 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             'sub_mean_i':           sub_mean_i,
             'sub_total_i':          sub_total_i,
             'sub_i_of_q':           sub_i_of_q,
+            'buffer_sasm':       avg_sasm,
             }
 
         self.results['buffer'] = results
 
         self.processing_done['buffer'] = True
+
+        if self.plot_page.get_plot() == 'Unsubtracted':
+            if not self.should_process['baseline']:
+                wx.CallAfter(self.plot_page.show_plot, 'Subtracted')
+            else:
+                wx.CallAfter(self.plot_page.show_plot, 'Baseline Corrected')
 
         wx.CallAfter(self.plotSubtracted)
 
@@ -13476,8 +13543,12 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             self.continue_processing = False
             return
 
-        sub_sasms = self.results['buffer']['sub_sasms']
-        use_sub_sasms = self.results['buffer']['use_sub_sasms']
+        if self.processing_done['baseline']:
+            sub_sasms = self.results['baseline']['sub_sasms']
+            use_sub_sasms = self.results['baseline']['use_sub_sasms']
+        else:
+            sub_sasms = self.results['buffer']['sub_sasms']
+            use_sub_sasms = self.results['buffer']['use_sub_sasms']
 
         mol_type = self.vc_mol_type.GetStringSelection()
 
@@ -13496,17 +13567,394 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         if success:
             self.results['calc'] = results
+            self.processing_done['calc'] = True
             wx.CallAfter(self.plotCalc)
 
     def plotCalc(self):
-        pass
+        frames = self.secm.getFrames()
+
+        if self.plot_page.calc == 'Rg':
+            data = self.results['calc']['rg']
+        elif self.plot_page.calc == 'MW (Vc)':
+            data = self.results['calc']['vcmw']
+        elif self.plot_page.calc == 'MW (Vp)':
+            data = self.results['calc']['vpmw']
+        elif self.plot_page.calc == 'I0':
+            data = self.results['calc']['i0']
+
+        frames = frames[data>0]
+        data = data[data>0]
+
+        self.plot_page.update_plot_data(frames, data, 'calc', 'right', 'gen_sub')
+
+    def _validateSampleRange(self):
+        valid = True
+
+        sample_items = self.sample_range_list.get_items()
+
+        if not self.processing_done['calc']:
+            valid = False
+            msg = ("You must first specify a buffer region.")
+            wx.CallAfter(wx.MessageBox, msg, "Specify buffer range", style=wx.ICON_ERROR|wx.OK)
+        else:
+            if len(sample_items) == 0:
+                valid = False
+                msg = ("You must specify at least one sample range.")
+            else:
+                sample_range_list = [item.get_range() for item in sample_items]
+
+                for i in range(len(sample_range_list)):
+                    start, end = sample_range_list[i]
+
+                    for j in range(len(sample_range_list)):
+                        if j != i:
+                            jstart, jend = sample_range_list[j]
+                            if jstart < start and start < jend:
+                                valid = False
+                            elif jstart < end and end < jend:
+                                valid = False
+
+                        if not valid:
+                            break
+
+                    if not valid:
+                        break
+
+                msg = ("Sample ranges should be non-overlapping.")
+
+            if not valid:
+                wx.CallAfter(wx.MessageBox, msg, "Sample range invalid", style=wx.ICON_ERROR|wx.OK)
+
+        return valid
+
+    def _validateSample(self, sub_sasms):
+        total_i = [sasm.getTotalI() for sasm in sub_sasms]
+        max_i_idx = np.argmax(total_i)
+
+        ref_sasm = copy.deepcopy(sub_sasms[max_i_idx])
+        superimpose_sub_sasms = copy.deepcopy(sub_sasms)
+        superimpose_sub_sasms.pop(max_i_idx)
+        SASProc.superimpose(ref_sasm, superimpose_sub_sasms, 'Scale')
+
+        #Test for frame similarity
+        all_similar, all_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
+
+        qi, qf = ref_sasm.getQrange()
+
+        if qf-qi>200:
+            ref_sasm.setQrange((qi, qi+100))
+            for sasm in superimpose_sub_sasms:
+                sasm.setQrange((qi, qi+100))
+            low_q_similar, low_q_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
+
+
+            ref_sasm.setQrange((qf-100, qf))
+            for sasm in superimpose_sub_sasms:
+                sasm.setQrange((qf-100, qf))
+            high_q_similar, high_q_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
+
+            ref_sasm.setQrange((qi, qf))
+            for sasm in superimpose_sub_sasms:
+                sasm.setQrange((qi, qf))
+        else:
+            low_q_similar = True
+            high_q_similar = True
+            low_q_outliers = []
+            high_q_outliers = []
+
+        similarity_results = {'all_similar'     : all_similar,
+            'low_q_similar'     : low_q_similar,
+            'high_q_similar'    : high_q_similar,
+            'max_idx'           : max_i_idx,
+            'all_outliers'      : all_outliers,
+            'low_q_outliers'    : low_q_outliers,
+            'high_q_outliers'   : high_q_outliers,
+            }
+
+
+        #Test for calc param similarity
+
+
+        #Test for more than one significant singular value
+
+        i = np.array([sasm.i[sasm.getQrange()[0]:sasm.getQrange()[1]] for sasm in sub_sasms])
+        err = np.array([sasm.err[sasm.getQrange()[0]:sasm.getQrange()[1]] for sasm in sub_sasms])
+
+        i = i.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose
+        err = err.T
+
+        err_mean = np.mean(err, axis = 1)
+        if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
+            err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), err.shape)
+        else:
+            err_avg = np.array([err_mean for k in range(i.shape[1])]).T
+
+        svd_a = i/err_avg
+
+        if np.all(np.isfinite(svd_a)):
+            try:
+                svd_U, svd_s, svd_Vt = np.linalg.svd(svd_a, full_matrices = True)
+                continue_svd_analysis = True
+            except Exception:
+                continue_svd_analysis = False
+
+            if continue_svd_analysis:
+                svd_V = svd_Vt.T
+                svd_U_autocor = np.abs(np.array([np.correlate(svd_U[:,k], svd_U[:,k], mode = 'full')[-svd_U.shape[0]+1] for k in range(svd_U.shape[1])]))
+                svd_V_autocor = np.abs(np.array([np.correlate(svd_V[:,k], svd_V[:,k], mode = 'full')[-svd_V.shape[0]+1] for k in range(svd_V.shape[1])]))
+            else:
+                svd_U = []
+                svd_s = []
+                svd_V = []
+                svd_U_autocor = []
+                svd_V_autocor = []
+        else:
+            svd_U = []
+            svd_s = []
+            svd_V = []
+            svd_U_autocor = []
+            svd_V_autocor = []
+            continue_svd_analysis = False
+
+        if continue_svd_analysis:
+            #Attempts to figure out the significant number of singular values
+            point1 = 0
+            point2 = 0
+            point3 = 0
+
+            i = 0
+            ratio_found = False
+
+            while i < svd_s.shape[0]-1 and not ratio_found:
+                ratio = svd_s/svd_s[i]
+
+                if ratio[i+1] > 0.75:
+                    point1 = i
+                    ratio_found = True
+
+                i = i +1
+
+            if not ratio_found:
+                point1 = svd_s.shape[0]
+
+            u_points = np.where(svd_U_autocor > 0.6)[0]
+            index_list = []
+
+            if len(u_points) > 0:
+
+                for i in range(1,len(u_points)):
+                    if u_points[i-1] +1 == u_points[i]:
+                        index_list.append(i)
+
+                point2 = len(index_list)
+
+                if point2 == 0:
+                    if u_points[0] == 0:
+                        point2 =1
+                else:
+                    point2 = point2 + 1
+
+            v_points = np.where(svd_V_autocor > 0.6)[0]
+            index_list = []
+
+            if len(v_points) > 0:
+
+                for i in range(1,len(v_points)):
+                    if v_points[i-1] +1 == v_points[i]:
+                        index_list.append(i)
+
+                point3 = len(index_list)
+
+                if point3 == 0:
+                    if v_points[0] == 0:
+                        point3 =1
+                else:
+                    point3 = point3 + 1
+
+            plist = [point1, point2, point3]
+
+            mode, count = stats.mode(plist)
+
+            mode = mode[0]
+            count = count[0]
+
+            if count > 1:
+                svals = mode
+
+            elif np.mean(plist) > np.std(plist):
+                svals = int(round(np.mean(plist)))
+
+            svd_results = {'svals'  : svals,
+                'U'             : svd_U,
+                'V'             : svd_V,
+                'u_autocor'     : svd_U_autocor,
+                'v_autocor'     : svd_V_autocor,
+                }
+
+
+        # Test whether averaging all selected frames is helping signal to noise,
+        # or if inclusion of some are hurting because they're too noisy
+
+        valid = (all_similar and low_q_similar and high_q_similar and svals==1)
+
+        return valid, similarity_results, svd_results
+
+    def _similarity(self, ref_sasm, sasm_list):
+        sim_thresh = self.raw_settings.get('similarityThreshold')
+        sim_test = self.raw_settings.get('similarityTest')
+        sim_cor = self.raw_settings.get('similarityCorrection')
+
+        if sim_test == 'CorMap':
+            pvals, corrected_pvals, failed_comparisons = SASCalc.run_cormap_ref(sasm_list, ref_sasm, sim_cor)
+
+        if np.any(pvals<sim_thresh):
+            similar = False
+        else:
+            similar = True
+
+        return similar, np.argwhere(pvals<sim_thresh).flatten()
 
     def _onToMainPlot(self, evt):
-        pass
+        t = threading.Thread(target=self._toMainPlot)
+        t.daemon = True
+        t.start()
 
-    def _displayQuestionDialog(self, question, label, button_list, icon = None, filename = None, save_path = None):
+    def _toMainPlot(self):
+        sim_thresh = self.raw_settings.get('similarityThreshold')
+        sim_test = self.raw_settings.get('similarityTest')
 
-        wx.CallAfter(self._showQuestionDialogFromThread, question, label, button_list, icon, filename, save_path)
+        valid = self._validateSampleRange()
+
+        if not valid:
+            return
+
+        wx.CallAfter(self.showBusy, True, 'Please wait, processing.')
+
+        sample_items = self.sample_range_list.get_items()
+        sample_range_list = [item.get_range() for item in sample_items]
+
+        if self.processing_done['baseline']:
+            sub_sasms = self.results['baseline']['sub_sasms']
+        else:
+            sub_sasms = self.results['buffer']['sub_sasms']
+            buffer_sasm = self.results['buffer']['buffer_sasm']
+
+        frame_idx = []
+        for item in sample_range_list:
+            frame_idx = frame_idx + range(item[0], item[1]+1)
+
+        frame_idx = list(set(frame_idx))
+        frame_idx.sort()
+        frame_idx = np.array(frame_idx)
+
+        valid, similarity_results, svd_results = self._validateSample([sub_sasms[idx] for idx in frame_idx])
+
+        if not valid:
+            msg = ('RAW found potential differences between selected sample frames.\n'
+                'Frame {} was chosen as the reference frame.\n\n'.format(frame_idx[similarity_results['max_idx']]))
+
+            if (not similarity_results['all_similar'] or not similarity_results['low_q_similar']
+                or not similarity_results['high_q_similar']):
+                msg = msg + ('Statistical tests were performed using the {} test '
+                    'and a p-value\nthreshold of {}. '.format(sim_test, sim_thresh))
+
+                all_outlier_set = set(frame_idx[similarity_results['all_outliers']])
+                low_outlier_set = set(frame_idx[similarity_results['low_q_outliers']])
+                high_outlier_set = set(frame_idx[similarity_results['high_q_outliers']])
+
+            if not similarity_results['all_similar']:
+                msg = msg + ('Using the whole q range, the following frames\n'
+                    'were found to be different:\n')
+                msg = msg + ', '.join(map(str, frame_idx[similarity_results['all_outliers']]))
+                msg = msg + '\n'
+
+            if (not similarity_results['low_q_similar'] and
+                all_outlier_set != low_outlier_set and
+                not all_outlier_set.issuperset(low_outlier_set)):
+                qi, qf = sub_sasms[0].getQrange()
+                q = sub_sasms[0].getQ()
+
+                if abs(q[0]) > 0.0001 and abs(q[0]) < 10:
+                    qi_val = '{:.4f}'.format(round(q[0], 4))
+                else:
+                    qi_val = '{:.3E}'.format(q[0])
+
+                if abs(q[100]) > 0.0001 and abs(q[100]) < 10:
+                    qf_val = '{:.4f}'.format(round(q[100], 4))
+                else:
+                    qf_val = '{:.3E}'.format(q[100])
+
+                msg = msg + ('Using a low q range of q={} to {}, the following frames\n'
+                    'were found to be different:\n'.format(qi_val, qf_val))
+                msg = msg + ', '.join(map(str, frame_idx[similarity_results['low_q_outliers']]))
+                msg = msg + '\n'
+
+            if (not similarity_results['high_q_similar'] and
+                all_outlier_set != high_outlier_set and
+                not all_outlier_set.issuperset(high_outlier_set)):
+                qi, qf = sub_sasms[0].getQrange()
+                q = sub_sasms[0].getQ()
+
+                if abs(q[-100]) > 0.0001 and abs(q[-100]) < 10:
+                    qi_val = '{:.4f}'.format(round(q[-100], 4))
+                else:
+                    qi_val = '{:.3E}'.format(q[-100])
+
+                if abs(q[-1]) > 0.0001 and abs(q[-1]) < 10:
+                    qf_val = '{:.4f}'.format(round(q[-1], 4))
+                else:
+                    qf_val = '{:.3E}'.format(q[-1])
+
+                msg = msg + ('Using a high q range of q={} to {}, the following frames\n'
+                    'were found to be different:\n'.format(qi_val, qf_val))
+                msg = msg + ', '.join(map(str, frame_idx[similarity_results['high_q_outliers']]))
+                msg = msg + '\n'
+
+            if svd_results['svals'] > 1:
+                msg = msg+('\nAutomated singular value decomposition found {} '
+                    'significant\nsingular values in the selected region.\n'.format(svd_results['svals']))
+
+            wx.CallAfter(self.showBusy, False)
+            answer = self._displayQuestionDialog(msg,
+                'Warning: Selected sample frames are different',
+            [('Cancel', wx.ID_CANCEL), ('Continue', wx.ID_YES)],
+            wx.ART_WARNING)
+
+            if answer[0] != wx.ID_YES:
+                return
+            else:
+                wx.CallAfter(self.showBusy, True, 'Please wait, processing.')
+
+
+        if (not self.processing_done['baseline'] and
+            not self.results['buffer']['already_subtracted']):
+
+            sasms = self.secm.getAllSASMs()
+            sasm_list = [sasms[idx] for idx in frame_idx]
+
+            average_sasm = SASProc.average(sasm_list, forced=True)
+            average_sasm.setParameter('filename', 'A_{}'.format(average_sasm.getParameter('filename')))
+
+            final_sasm = SASProc.subtract(average_sasm, buffer_sasm, forced=True)
+            final_sasm.setParameter('filename', 'S_{}'.format(final_sasm.getParameter('filename')))
+            color = 'red'
+
+        else:
+            sasm_list = [sub_sasms[idx] for idx in frame_idx]
+
+            final_sasm = SASProc.average(sasm_list, forced=True)
+            final_sasm.setParameter('filename', 'A_{}'.format(final_sasm.getParameter('filename')))
+            color = 'green'
+
+        RAWGlobals.mainworker_cmd_queue.put(['to_plot_sasm', [[final_sasm], color, None, True, 2]])
+
+        wx.CallAfter(self.showBusy, False)
+
+    def _displayQuestionDialog(self, question, label, button_list, icon=None,
+        filename=None, save_path=None):
+
+        wx.CallAfter(self._showQuestionDialogFromThread, question, label,
+            button_list, icon, filename, save_path)
 
         self.question_thread_wait_event.wait()
         self.question_thread_wait_event.clear()
@@ -13516,10 +13964,12 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         return answer
 
-    def _showQuestionDialogFromThread(self, question, label, button_list, icon = None, filename = None, save_path = None):
+    def _showQuestionDialogFromThread(self, question, label, button_list, icon=None,
+        filename=None, save_path=None):
         ''' Function to show a question dialog from the thread '''
 
-        question_dialog = RAWCustomDialogs.CustomQuestionDialog(self, question, button_list, label, icon, filename, save_path, style = wx.CAPTION | wx.RESIZE_BORDER)
+        question_dialog = RAWCustomDialogs.CustomQuestionDialog(self, question,
+            button_list, label, icon, filename, save_path, style=wx.CAPTION|wx.RESIZE_BORDER)
         result = question_dialog.ShowModal()
         path = question_dialog.getPath()
         question_dialog.Destroy()

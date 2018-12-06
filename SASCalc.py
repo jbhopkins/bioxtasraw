@@ -1758,7 +1758,7 @@ def measure_longest(data):
         max_len = 0
     return max_len
 
-def run_cormap(sasm_list, correction='None'):
+def run_cormap_all(sasm_list, correction='None'):
     pvals = np.ones((len(sasm_list), len(sasm_list)))
     corrected_pvals = np.ones_like(pvals)
     failed_comparisons = []
@@ -1813,6 +1813,38 @@ def run_cormap(sasm_list, correction='None'):
                 )
 
     return item_data, pvals, corrected_pvals, failed_comparisons
+
+def run_cormap_ref(sasm_list, ref_sasm, correction='None'):
+    pvals = np.ones(len(sasm_list), dtype=float)
+    failed_comparisons = []
+
+    for index, sasm in enumerate(sasm_list[1:]):
+        if np.all(np.round(sasm.getQ(), 5) == np.round(ref_sasm.getQ(), 5)):
+            try:
+                n, c, prob = cormap_pval(ref_sasm.getI(), sasm.getI())
+            except SASExceptions.CorMapError:
+                n = 0
+                c = -1
+                prob = -1
+                failed_comparisons.append((ref_sasm.getParameter('filename'),
+                    sasm.getParameter('filename')))
+        else:
+            n = 0
+            c = -1
+            prob = -1
+            failed_comparisons.append((ref_sasm.getParameter('filename'),
+                sasm.getParameter('filename')))
+
+        pvals[index] = prob
+
+    if correction == 'Bonferroni':
+        corrected_pvals = pvals*len(sasm_list)
+        corrected_pvals[corrected_pvals>1] = 1
+        corrected_pvals[corrected_pvals<-1] = -1
+    else:
+        corrected_pvals = np.ones_like(pvals)
+
+    return pvals, corrected_pvals, failed_comparisons
 
 
 def run_secm_calcs(self, subtracted_sasm_list, use_subtracted_sasm, window_size,

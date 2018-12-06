@@ -3739,7 +3739,8 @@ class MainWorkerThread(threading.Thread):
         line_color = data[2]
         notsaved = data[3]
 
-        self._sendIFTMToPlot(iftm, item_colour = item_colour, line_color = line_color, notsaved = notsaved)
+        self._sendIFTMToPlot(iftm, item_colour=item_colour, line_color=line_color,
+            notsaved=notsaved)
 
     def _plotSASM(self, data):
 
@@ -3747,8 +3748,10 @@ class MainWorkerThread(threading.Thread):
         item_colour = data[1]
         line_color = data[2]
         notsaved = data[3]
+        plot = data[4]
 
-        self._sendSASMToPlot(sasm, item_colour = item_colour, line_color = line_color, notsaved = notsaved)
+        self._sendSASMToPlot(sasm, axes_num=plot, item_colour=item_colour,
+            line_color=line_color, notsaved=notsaved)
 
     def _plotIftFit(self, data):
 
