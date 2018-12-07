@@ -13247,12 +13247,6 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         for i in range(len(self.buffer_range_list.get_items())):
             self.plot_page.show_plot_range(i, 'unsub', is_not_sub)
 
-    def _onBufferAuto(self, event):
-        pass
-
-    def _onSampleAuto(self, event):
-        pass
-
     def _onSeriesAdd(self, evt):
         """Called when the Add control buttion is used."""
         ctrl = evt.GetEventObject()
@@ -13321,7 +13315,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         elif plot_type == 'sub' or plot_type == 'baseline':
             item_list = self.sample_range_list
 
-        item = item_list.get_items()[index]
+        item = item_list.get_item(index)
 
         current_start_range = item.start_ctrl.GetRange()
         current_end_range = item.end_ctrl.GetRange()
@@ -13962,7 +13956,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                     msg = msg + ('- Radius of gyration\n')
                 if param_results['vcmw_pval'] < 0.05:
                     msg = msg + ('- Mol. weight from volume of correlation method\n')
-                if param_results['vcmw_pval'] < 0.05:
+                if param_results['vpmw_pval'] < 0.05:
                     msg = msg + ('- Mol. weight from adjusted Porod volume method\n')
 
             if svd_results['svals'] > 1:
@@ -14012,6 +14006,108 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         RAWGlobals.mainworker_cmd_queue.put(['to_plot_sasm', [[final_sasm], color, None, True, 2]])
 
         wx.CallAfter(self.showBusy, False)
+
+    def _onBufferAuto(self, event):
+        pass
+
+    def _onSampleAuto(self, event):
+
+        if self.processing_done['calc']:
+            t = threading.Thread(target=self._findSampleRange)
+            t.daemon = True
+            t.start()
+        else:
+            msg = ("You must first set a buffer region before you can run the"
+                "automated determination of the sample region.")
+            wx.CallAfter(wx.MessageBox, msg, "Requires buffer region", style=wx.ICON_ERROR|wx.OK)
+
+    def _findSampleRange(self):
+        wx.CallAfter(self.showBusy, True, 'Please wait, processing.')
+
+        if self.processing_done['baseline']:
+            sub_sasms = self.results['baseline']['sub_sasms']
+            total_i = self.results['baseline']['sub_total_i']
+        else:
+            sub_sasms = self.results['buffer']['sub_sasms']
+            total_i = self.results['buffer']['sub_total_i']
+
+
+        smoothed_data = SASCalc.smooth_data(total_i)
+        norm_sdata = smoothed_data/np.max(smoothed_data)
+        peaks, peak_params = SASCalc.find_peaks(norm_sdata)
+
+        max_peak_idx = np.argmax(peak_params['peak_heights'])
+
+        main_peak_pos = peaks[max_peak_idx]
+        main_peak_width = int(round(peak_params['widths'][max_peak_idx]))
+
+        avg_window = int(self.avg_window.GetValue())
+        min_window_width = max(3, int(round(avg_window/2.)))
+        search_region = main_peak_width*2
+
+        window_size = main_peak_width
+        mid_point = main_peak_pos-int(round(window_size/2.))
+
+        start_point = main_peak_pos - int(round(search_region/2))
+
+        found_region = False
+        failed = False
+
+        while not found_region and not failed:
+            step_size = max(1, int(round(window_size/8.)))
+
+            end_point = main_peak_pos + int(round(search_region/2)) - window_size
+            num_pts_gen = int(round((end_point-start_point)/step_size/2))
+
+            region_starts = []
+
+            for i in range(num_pts_gen+1):
+                if i == 0:
+                    region_starts.append(mid_point)
+                else:
+                    region_starts.append(mid_point+i*step_size)
+                    region_starts.append(mid_point-i*step_size)
+
+            for idx in region_starts:
+                print idx
+                region_sasms = sub_sasms[idx:idx+window_size+1]
+                valid, similarity_results, param_results, svd_results, sn_results = self._validateSample(region_sasms, range(idx, idx+window_size+1))
+                found_region = valid
+
+                if found_region:
+                    region_start = idx
+                    region_end = idx+window_size
+                    break
+
+            window_size = int(round(window_size/2.))
+
+            if window_size < min_window_width and not found_region:
+                failed = True
+
+        if not failed:
+            wx.CallAfter(self._addAutoSeriesRange, region_start, region_end)
+        else:
+            msg = ("Failed to find a valid sample range.")
+            wx.CallAfter(wx.MessageBox, msg, "Sample range not found", style=wx.ICON_ERROR|wx.OK)
+
+
+        wx.CallAfter(self.showBusy, False)
+
+    def _addAutoSeriesRange(self, region_start, region_end):
+        index, j1, j2 = self._addSeriesRange(self.sample_range_list)
+
+        item = self.sample_range_list.get_item(index)
+
+        current_start_range = item.start_ctrl.GetRange()
+        current_end_range = item.end_ctrl.GetRange()
+
+        item.start_ctrl.SetValue(region_start)
+        item.end_ctrl.SetValue(region_end)
+
+        item.start_ctrl.SetRange((current_start_range[0], region_end))
+        item.end_ctrl.SetRange((region_start, current_end_range[1]))
+
+        self.plot_page.update_plot_range(region_start, region_end, index, 'gen_sub')
 
     def _displayQuestionDialog(self, question, label, button_list, icon=None,
         filename=None, save_path=None):

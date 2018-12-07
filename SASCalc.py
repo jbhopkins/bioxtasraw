@@ -46,6 +46,7 @@ import numpy as np
 from scipy import integrate as integrate
 import wx
 import scipy.interpolate
+import scipy.signal
 from scipy.constants import Avogadro
 from scipy import optimize, ndimage
 
@@ -1947,6 +1948,15 @@ def run_secm_calcs(self, subtracted_sasm_list, use_subtracted_sasm, window_size,
         }
 
     return True, results
+
+def smooth_data(data, window_length=51, order=5):
+    smoothed_data = scipy.signal.savgol_filter(data, window_length, order)
+    return smoothed_data
+
+def find_peaks(data, height=0.4, width=10):
+    """Finds peaks, expects normalized to max=1 smoothed data as input."""
+    peaks = scipy.signal.find_peaks(data, height=height, width=width)
+    return peaks
 
 ###############################################################################
 #DENSS below here

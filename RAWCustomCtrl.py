@@ -1305,6 +1305,9 @@ class ItemList(wx.Panel):
     def get_item_index(self, item):
         return self.all_items.index(item)
 
+    def get_item(self, index):
+        return self.all_items[index]
+
 class ListItem(wx.Panel):
     def __init__(self, item_list, *args, **kwargs):
         wx.Panel.__init__(self, *args, style=wx.BORDER_RAISED, **kwargs)
