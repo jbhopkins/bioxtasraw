@@ -13627,8 +13627,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         return valid
 
-    def _validateSample(self, sub_sasms):
-        total_i = [sasm.getTotalI() for sasm in sub_sasms]
+    def _validateSample(self, sub_sasms, frame_idx):
+        total_i = np.array([sasm.getTotalI() for sasm in sub_sasms])
         max_i_idx = np.argmax(total_i)
 
         ref_sasm = copy.deepcopy(sub_sasms[max_i_idx])
@@ -13671,12 +13671,31 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             'high_q_outliers'   : high_q_outliers,
             }
 
+        similar_valid = (all_similar and low_q_similar and high_q_similar)
+
 
         #Test for calc param similarity
+        rg = self.results['calc']['rg'][frame_idx]
+        vcmw = self.results['calc']['vcmw'][frame_idx]
+        vpmw = self.results['calc']['vpmw'][frame_idx]
+
+        rg_test = stats.spearmanr(rg, frame_idx)
+        vcmw_test = stats.spearmanr(vcmw, frame_idx)
+        vpmw_test = stats.spearmanr(vpmw, frame_idx)
+
+        param_valid = (rg_test[1]>0.05 and vcmw_test[1]>0.05 and vpmw_test[1]>0.05)
+
+        param_results = {'rg_r' : rg_test[0],
+            'rg_pval'       : rg_test[1],
+            'vcmw_r'        : vcmw_test[0],
+            'vcmw_pval'     : vcmw_test[1],
+            'vpmw_r'        : vpmw_test[0],
+            'vpmw_pval'     : vpmw_test[1],
+            'param_valid'   : param_valid,
+            }
 
 
         #Test for more than one significant singular value
-
         i = np.array([sasm.i[sasm.getQrange()[0]:sasm.getQrange()[1]] for sasm in sub_sasms])
         err = np.array([sasm.err[sasm.getQrange()[0]:sasm.getQrange()[1]] for sasm in sub_sasms])
 
@@ -13794,10 +13813,34 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         # Test whether averaging all selected frames is helping signal to noise,
         # or if inclusion of some are hurting because they're too noisy
+        sort_idx = np.argsort(total_i)[::-1]
+        old_s_to_n = 0
+        sn_valid = True
+        i = 0
 
-        valid = (all_similar and low_q_similar and high_q_similar and svals==1)
+        while sn_valid and i < len(sort_idx):
+            idxs = sort_idx[:i+1]
+            avg_list = [sub_sasms[idx] for idx in idxs]
 
-        return valid, similarity_results, svd_results
+            average_sasm = SASProc.average(avg_list, forced=True)
+            avg_i = average_sasm.getI()
+            avg_err = average_sasm.getErr()
+
+            s_to_n = np.abs(avg_i/avg_err).mean()
+
+            if s_to_n >= old_s_to_n:
+                old_s_to_n = s_to_n
+                i = i+1
+            else:
+                sn_valid = False
+
+        sn_results = {'low_sn'  : sort_idx[i:],
+            'sn_valid'  : sn_valid,
+            }
+
+        valid = (similar_valid and param_valid and svals==1 and sn_valid)
+
+        return valid, similarity_results, param_results, svd_results, sn_results
 
     def _similarity(self, ref_sasm, sasm_list):
         sim_thresh = self.raw_settings.get('similarityThreshold')
@@ -13847,72 +13890,92 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         frame_idx.sort()
         frame_idx = np.array(frame_idx)
 
-        valid, similarity_results, svd_results = self._validateSample([sub_sasms[idx] for idx in frame_idx])
+        valid, similarity_results, param_results, svd_results, sn_results = self._validateSample([sub_sasms[idx] for idx in frame_idx], frame_idx)
 
         if not valid:
-            msg = ('RAW found potential differences between selected sample frames.\n'
-                'Frame {} was chosen as the reference frame.\n\n'.format(frame_idx[similarity_results['max_idx']]))
+            msg = ('RAW found potential differences between selected sample frames.\n')
 
             if (not similarity_results['all_similar'] or not similarity_results['low_q_similar']
                 or not similarity_results['high_q_similar']):
-                msg = msg + ('Statistical tests were performed using the {} test '
-                    'and a p-value\nthreshold of {}. '.format(sim_test, sim_thresh))
+                msg = msg + ('\nStatistical tests were performed using the {} test '
+                    'and a p-value\nthreshold of {}. Frame {} was chosen as the '
+                    'reference frame.\n'.format(sim_test, sim_thresh, frame_idx[similarity_results['max_idx']]))
 
                 all_outlier_set = set(frame_idx[similarity_results['all_outliers']])
                 low_outlier_set = set(frame_idx[similarity_results['low_q_outliers']])
                 high_outlier_set = set(frame_idx[similarity_results['high_q_outliers']])
 
-            if not similarity_results['all_similar']:
-                msg = msg + ('Using the whole q range, the following frames\n'
-                    'were found to be different:\n')
-                msg = msg + ', '.join(map(str, frame_idx[similarity_results['all_outliers']]))
-                msg = msg + '\n'
+                if not similarity_results['all_similar']:
+                    msg = msg + ('Using the whole q range, the following frames\n'
+                        'were found to be different:\n')
+                    msg = msg + ', '.join(map(str, frame_idx[similarity_results['all_outliers']]))
+                    msg = msg + '\n'
 
-            if (not similarity_results['low_q_similar'] and
-                all_outlier_set != low_outlier_set and
-                not all_outlier_set.issuperset(low_outlier_set)):
-                qi, qf = sub_sasms[0].getQrange()
-                q = sub_sasms[0].getQ()
+                if (not similarity_results['low_q_similar'] and
+                    all_outlier_set != low_outlier_set and
+                    not all_outlier_set.issuperset(low_outlier_set)):
+                    qi, qf = sub_sasms[0].getQrange()
+                    q = sub_sasms[0].getQ()
 
-                if abs(q[0]) > 0.0001 and abs(q[0]) < 10:
-                    qi_val = '{:.4f}'.format(round(q[0], 4))
-                else:
-                    qi_val = '{:.3E}'.format(q[0])
+                    if abs(q[0]) > 0.0001 and abs(q[0]) < 10:
+                        qi_val = '{:.4f}'.format(round(q[0], 4))
+                    else:
+                        qi_val = '{:.3E}'.format(q[0])
 
-                if abs(q[100]) > 0.0001 and abs(q[100]) < 10:
-                    qf_val = '{:.4f}'.format(round(q[100], 4))
-                else:
-                    qf_val = '{:.3E}'.format(q[100])
+                    if abs(q[100]) > 0.0001 and abs(q[100]) < 10:
+                        qf_val = '{:.4f}'.format(round(q[100], 4))
+                    else:
+                        qf_val = '{:.3E}'.format(q[100])
 
-                msg = msg + ('Using a low q range of q={} to {}, the following frames\n'
-                    'were found to be different:\n'.format(qi_val, qf_val))
-                msg = msg + ', '.join(map(str, frame_idx[similarity_results['low_q_outliers']]))
-                msg = msg + '\n'
+                    msg = msg + ('Using a low q range of q={} to {}, the following frames\n'
+                        'were found to be different:\n'.format(qi_val, qf_val))
+                    msg = msg + ', '.join(map(str, frame_idx[similarity_results['low_q_outliers']]))
+                    msg = msg + '\n'
 
-            if (not similarity_results['high_q_similar'] and
-                all_outlier_set != high_outlier_set and
-                not all_outlier_set.issuperset(high_outlier_set)):
-                qi, qf = sub_sasms[0].getQrange()
-                q = sub_sasms[0].getQ()
+                if (not similarity_results['high_q_similar'] and
+                    all_outlier_set != high_outlier_set and
+                    not all_outlier_set.issuperset(high_outlier_set)):
+                    qi, qf = sub_sasms[0].getQrange()
+                    q = sub_sasms[0].getQ()
 
-                if abs(q[-100]) > 0.0001 and abs(q[-100]) < 10:
-                    qi_val = '{:.4f}'.format(round(q[-100], 4))
-                else:
-                    qi_val = '{:.3E}'.format(q[-100])
+                    if abs(q[-100]) > 0.0001 and abs(q[-100]) < 10:
+                        qi_val = '{:.4f}'.format(round(q[-100], 4))
+                    else:
+                        qi_val = '{:.3E}'.format(q[-100])
 
-                if abs(q[-1]) > 0.0001 and abs(q[-1]) < 10:
-                    qf_val = '{:.4f}'.format(round(q[-1], 4))
-                else:
-                    qf_val = '{:.3E}'.format(q[-1])
+                    if abs(q[-1]) > 0.0001 and abs(q[-1]) < 10:
+                        qf_val = '{:.4f}'.format(round(q[-1], 4))
+                    else:
+                        qf_val = '{:.3E}'.format(q[-1])
 
-                msg = msg + ('Using a high q range of q={} to {}, the following frames\n'
-                    'were found to be different:\n'.format(qi_val, qf_val))
-                msg = msg + ', '.join(map(str, frame_idx[similarity_results['high_q_outliers']]))
-                msg = msg + '\n'
+                    msg = msg + ('Using a high q range of q={} to {}, the following frames\n'
+                        'were found to be different:\n'.format(qi_val, qf_val))
+                    msg = msg + ', '.join(map(str, frame_idx[similarity_results['high_q_outliers']]))
+                    msg = msg + '\n'
+
+            if not param_results['param_valid']:
+                msg = msg+('\nPossible correlations with frame number were detected '
+                    'in the\nfollowing parameters (no correlation is expected for '
+                    'well-subtracted\nsingle-species data):\n')
+
+                if param_results['rg_pval'] < 0.05:
+                    msg = msg + ('- Radius of gyration\n')
+                if param_results['vcmw_pval'] < 0.05:
+                    msg = msg + ('- Mol. weight from volume of correlation method\n')
+                if param_results['vcmw_pval'] < 0.05:
+                    msg = msg + ('- Mol. weight from adjusted Porod volume method\n')
 
             if svd_results['svals'] > 1:
                 msg = msg+('\nAutomated singular value decomposition found {} '
                     'significant\nsingular values in the selected region.\n'.format(svd_results['svals']))
+                msg = msg + '\n'
+
+            if not sn_results['sn_valid']:
+                msg = msg + ("\nAveraging some of the selected frames decreases signal to "
+                "noise in the\nfinal profile. For the best overall signal to noise the "
+                "following frames should not\nbe included:\n")
+                msg = msg + ', '.join(map(str, frame_idx[sn_results['low_sn']]))
+                msg = msg + '\n'
 
             wx.CallAfter(self.showBusy, False)
             answer = self._displayQuestionDialog(msg,
