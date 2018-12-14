@@ -1953,9 +1953,10 @@ def smooth_data(data, window_length=51, order=5):
     smoothed_data = scipy.signal.savgol_filter(data, window_length, order)
     return smoothed_data
 
-def find_peaks(data, height=0.4, width=10):
+def find_peaks(data, height=0.4, width=10, rel_height=0.5):
     """Finds peaks, expects normalized to max=1 smoothed data as input."""
-    peaks = scipy.signal.find_peaks(data, height=height, width=width)
+    peaks = scipy.signal.find_peaks(data, height=height, width=width,
+        rel_height=rel_height)
     return peaks
 
 ###############################################################################
