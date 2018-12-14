@@ -1508,8 +1508,7 @@ def makeSECFile(secm_data):
 
         subtracted_sasm_list.append(new_sasm)
 
-    new_secm.setSubtractedSASMList(subtracted_sasm_list, secm_data['use_subtracted_sasm'])
-
+    new_secm.setSubtractedSASMs(subtracted_sasm_list, secm_data['use_subtracted_sasm'])
 
     sasm_data = secm_data['average_buffer_sasm']
 

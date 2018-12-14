@@ -1151,14 +1151,6 @@ class SECM(object):
     def getAllSASMs(self):
         return self._sasm_list
 
-    def setSubtractedSASMList(self, sasm_list, use_sasm_list):
-        self.subtracted_sasm_list = sasm_list
-        self.use_subtracted_sasm = use_sasm_list
-
-    def appendSubtractedSASMList(self, sasm_list, use_sasm_list, window_size):
-        self.subtracted_sasm_list = self.subtracted_sasm_list[:-window_size] + sasm_list
-        self.use_subtracted_sasm = self.use_subtracted_sasm[:-window_size] + use_sasm_list
-
     def setRgAndI0(self, rg, rger, i0, i0er):
         self.rg_list = rg
         self.rger_list = rger
@@ -1312,22 +1304,28 @@ class SECM(object):
 
         return subtracted_sasms, use_subtracted_sasms
 
-    def setSubtractedSASMs(self, buffer_sasm, sub_sasm_list, use_sub_sasm):
+    def setSubtractedSASMs(self, sub_sasm_list, use_sub_sasm):
 
-        self.average_buffer_sasm = buffer_sasm
         self.subtracted_sasm_list = sub_sasm_list
         self.use_subtracted_sasm = use_sub_sasm
 
-        self.mean_i_sub = np.array([sasm.getMeanI() for sasm in self._sasm_list])
-        self.total_i_sub = np.array([sasm.getTotalI() for sasm in self._sasm_list])
+        self.mean_i_sub = np.array([sasm.getMeanI() for sasm in sub_sasm_list])
+        self.total_i_sub = np.array([sasm.getTotalI() for sasm in sub_sasm_list])
+
+    def appendSubtractedSASMs(self, sasm_list, use_sasm_list, window_size):
+        self.subtracted_sasm_list = self.subtracted_sasm_list[:-window_size] + sasm_list
+        self.use_subtracted_sasm = self.use_subtracted_sasm[:-window_size] + use_sasm_list
+
+        self.mean_i_sub = np.array([sasm.getMeanI() for sasm in sub_sasm_list])
+        self.total_i_sub = np.array([sasm.getTotalI() for sasm in sub_sasm_list])
 
     def setBCSubtractedSASMs(self, sub_sasm_list, use_sub_sasm):
 
         self.baseline_subtracted_sasm_list = sub_sasm_list
         self.use_baseline_subtracted_sasm = use_sub_sasm
 
-        self.mean_i_bcsub = np.array([sasm.getMeanI() for sasm in self._sasm_list])
-        self.total_i_bcsub = np.array([sasm.getTotalI() for sasm in self._sasm_list])
+        self.mean_i_bcsub = np.array([sasm.getMeanI() for sasm in sub_sasm_list])
+        self.total_i_bcsub = np.array([sasm.getTotalI() for sasm in sub_sasm_list])
 
 
 

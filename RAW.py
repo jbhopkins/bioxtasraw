@@ -3143,7 +3143,7 @@ class MainWorkerThread(threading.Thread):
                    return
 
 
-        secm.setSubtractedSASMList(subtracted_sasm_list, use_subtracted_sasm)
+        secm.setSubtractedSASMs(subtracted_sasm_list, use_subtracted_sasm)
 
         #Now calculate the RG, I0, and MW for each SASM
         rg = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
@@ -3372,7 +3372,7 @@ class MainWorkerThread(threading.Thread):
                     return
 
 
-        secm.appendSubtractedSASMList(subtracted_sasm_list, use_subtracted_sasm, window_size)
+        secm.appendSubtractedSASMs(subtracted_sasm_list, use_subtracted_sasm, window_size)
 
         #Now calculate the RG, I0, and MW for each SASM
         rg = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
