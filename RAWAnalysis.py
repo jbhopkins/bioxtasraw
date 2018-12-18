@@ -13564,6 +13564,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         diag = wx.FindWindowByName('LCSeriesFrame')
         wx.CallAfter(diag.manip_item.updateInfoTip)
+        wx.CallAfter(diag.manip_item.markAsModified)
         diag.OnClose()
 
     def onCancelButton(self, evt):

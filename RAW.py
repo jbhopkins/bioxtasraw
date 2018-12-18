@@ -2250,7 +2250,7 @@ class MainWorkerThread(threading.Thread):
                         'save_sec_data'                 : self._saveSECData,
                         'save_sec_item'                 : self._saveSECItem,
                         'save_sec_profiles'             : self._saveSECProfiles,
-                        'calculate_params_sec'          : self._calculateSECParams,
+                        # 'calculate_params_sec'          : self._calculateSECParams, #Maybe can remove?
                         'save_iftm'                     : self._saveIFTM,
                         'to_plot_sasm'                  : self._plotSASM,
                         'weighted_average_items'        : self._weightedAverageItems,
@@ -10117,20 +10117,13 @@ class SECControlPanel(wx.Panel):
         self.final_selected_frame = ""
         self.secm = None
 
-        self.initial_buffer_frame=""
-        self.final_buffer_frame=""
-        self.window_size = "5"
-        self.mol_type = "Protein"
-
         self.controlData = (  ('Image Prefix :', parent.paramsInGui['Image Header'], self.image_prefix),
                               ('Initial Run # :', parent.paramsInGui['Initial Run #'], self.initial_run_number),
                               ('Initial Frame # :', parent.paramsInGui['Initial Frame #'], self.initial_frame_number),
                               ('Final Frame # :',parent.paramsInGui['Final Frame #'], self.final_frame_number),
                               ('Initial Selected Frame :', parent.paramsInGui['Initial Selected Frame'], self.initial_selected_frame),
                               ('Final Selected Frame :', parent.paramsInGui['Final Selected Frame'], self.final_selected_frame),
-                              ('Initial Buffer Frame', parent.paramsInGui['Initial Buffer Frame'], self.initial_buffer_frame),
-                              ('Final Buffer Frame', parent.paramsInGui['Final Buffer Frame'], self.final_buffer_frame),
-                              ('Window Size :', parent.paramsInGui['Window Size'], self.window_size))
+                              )
 
 
         topsizer = self.createControls()
@@ -10274,64 +10267,7 @@ class SECControlPanel(wx.Panel):
 
         sizer.Add(send_sizer, 0, flag = wx.EXPAND | wx.BOTTOM, border = 5)
 
-        #######
-        average_sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        for each in self.controlData:
-
-            label = each[0]
-            type = each[1][1]
-            id = each[1][0]
-
-            if type =='ibufframe':
-                labelbox = wx.StaticText(self, -1, "Buffer Range : ")
-                labelbox2=wx.StaticText(self,-1," To ")
-
-                self.initial_buffer_box = wx.TextCtrl(self, id=id, value=self.initial_buffer_frame, size = (50,20))
-
-                average_sizer.Add(labelbox,0)
-                average_sizer.Add(self.initial_buffer_box,2, wx.EXPAND)
-                average_sizer.Add(labelbox2,0)
-
-            elif type =='fbufframe':
-                self.final_buffer_box = wx.TextCtrl(self, id=id, value=self.final_buffer_frame, size = (50,20))
-
-                average_sizer.Add(self.final_buffer_box,2, wx.EXPAND)
-                average_sizer.AddStretchSpacer(1)
-
-            elif type == 'wsize':
-                labelbox3 = wx.StaticText(self, -1, label)
-
-                self.window_size_box = wx.TextCtrl(self, id=id, value=self.window_size, size = (50,20))
-
-                average_sizer.Add(labelbox3,0)
-                average_sizer.Add(self.window_size_box,2, wx.EXPAND)
-
-        ####
-        calc_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        calc_mol_label = wx.StaticText(self, -1, 'Mol. Type : ')
-        self.calc_mol_type = wx.Choice(self, -1, choices=['Protein', 'RNA'])
-        self.calc_mol_type.SetStringSelection(self._raw_settings.get('MWVcType'))
-
-        calc_parameters_button = wx.Button(self, -1, 'Set/Update Parameters')
-        calc_parameters_button.Bind(wx.EVT_BUTTON, self._onSetCalcParams)
-
-        calc_button_sizer.Add(calc_mol_label, 0)
-        calc_button_sizer.Add(self.calc_mol_type, 1, flag = wx.ALIGN_RIGHT | wx.EXPAND| wx.RIGHT, border = 4)
-        calc_button_sizer.AddStretchSpacer(1)
-        calc_button_sizer.Add(calc_parameters_button, 0, flag = wx.ALIGN_LEFT)
-
-        calc_box = wx.StaticBox(self, -1, 'Calculate/plot params')
-        calc_sizer = wx.StaticBoxSizer(calc_box, wx.VERTICAL)
-
-        calc_sizer.Add(average_sizer,0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, border = 2)
-        calc_sizer.Add(calc_button_sizer, 0, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
-
-        sizer.Add(calc_sizer, 0, wx.EXPAND)
-
         return sizer
-
 
     def updateSECItem(self,secm):
         self.secm = secm
@@ -10609,209 +10545,19 @@ class SECControlPanel(wx.Panel):
         if self.online_mode_button.IsChecked() and not self._is_online:
             self._goOnline()
 
-    def _onSetCalcParams(self, event):
 
-        if self._is_online:
-            self._goOffline()
-
-        ibufId = self._findWindowId('ibufframe')
-        fbufId = self._findWindowId('fbufframe')
-        wsizeId = self._findWindowId('wsize')
-
-
-        ibufWindow = wx.FindWindowById(ibufId, self)
-        fbufWindow = wx.FindWindowById(fbufId, self)
-        wsizeWindow = wx.FindWindowById(wsizeId, self)
-
-        try:
-            initial_frame = int(ibufWindow.GetValue())
-        except:
-            msg = "Invalid value for initial buffer frame."
-            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
-            if self.online_mode_button.IsChecked() and not self._is_online:
-                self._goOnline()
-            return
-        try:
-            final_frame = int(fbufWindow.GetValue())
-        except:
-            msg = "Invalid value for final buffer frame."
-            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
-            if self.online_mode_button.IsChecked() and not self._is_online:
-                self._goOnline()
-            return
-        try:
-            window = int(wsizeWindow.GetValue())
-        except:
-            msg = "Invalid value for sliding window size."
-            wx.CallAfter(wx.MessageBox, msg, "Invalid window size", style = wx.ICON_ERROR | wx.OK)
-            if self.online_mode_button.IsChecked() and not self._is_online:
-                self._goOnline()
-            return
-
-        if initial_frame > final_frame:
-            msg = "Initial buffer frame cannot be greater than final buffer frame."
-            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
-            if self.online_mode_button.IsChecked() and not self._is_online:
-                self._goOnline()
-            return
-        elif initial_frame <0:
-            msg = "Initial buffer frame cannot be less than zero."
-            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
-            if self.online_mode_button.IsChecked() and not self._is_online:
-                self._goOnline()
-            return
-        elif window <1:
-            msg = "Sliding window size cannot be less than one."
-            wx.CallAfter(wx.MessageBox, msg, "Invalid window size", style = wx.ICON_ERROR | wx.OK)
-            if self.online_mode_button.IsChecked() and not self._is_online:
-                self._goOnline()
-            return
-
-        if self.sec_plot_panel.subplot1.xaxis.get_label_text() == 'Time (s)':
-            msg = "Warning: Plot is displaying time. Make sure frame #s, not time, are selected to use as buffer. Set values anyways?"
-            dlg = wx.MessageDialog(self.main_frame, msg, "Verify Frame Range", style = wx.ICON_QUESTION | wx.YES_NO)
-            proceed = dlg.ShowModal()
-            dlg.Destroy()
-        else:
-            proceed = wx.ID_YES
-
-        if proceed == wx.ID_NO:
-            return
-
-
-        selected_item = self.sec_panel.getDataItem()
-
-        if len(self.sec_panel.all_manipulation_items) == 0:
-            wx.MessageBox("SEC-SAXS data must be loaded to set parameters.", "No data loaded", style=wx.ICON_ERROR | wx.OK)
-            if self.online_mode_button.IsChecked() and not self._is_online:
-                self._goOnline()
-            return
-        elif len(self.sec_panel.all_manipulation_items)>1 and selected_item == None:
-            wx.MessageBox("Star the SEC-SAXS item for which you wish to set the parameters.", "No item selected", style=wx.ICON_ERROR | wx.OK)
-            if self.online_mode_button.IsChecked() and not self._is_online:
-                self._goOnline()
-            return
-        elif len(self.sec_panel.all_manipulation_items)>1:
-
-            if not selected_item.getSelectedForPlot():
-                msg = "Warning: The selected series curve is not shown on the plot. Set/Update parameters anyways?\nNote: You can select a different series curve by starring it."
-                dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection", style = wx.ICON_QUESTION | wx.YES_NO)
-                proceed = dlg.ShowModal()
-                dlg.Destroy()
-            else:
-                proceed = wx.ID_YES
-
-            if proceed == wx.ID_YES:
-                secm = selected_item.secm
-            else:
-                if self.online_mode_button.IsChecked() and not self._is_online:
-                    self._goOnline()
-                return
-        else:
-            secm = self.sec_panel.all_manipulation_items[0].secm
-
-        frame_list = secm.frame_list
-
-        if len(np.where(initial_frame==frame_list)[0]) == 0:
-            msg = "Invalid value for intial buffer frame, it must be in the data set."
-            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
-            if self.online_mode_button.IsChecked() and not self._is_online:
-                self._goOnline()
-            return
-        elif len(np.where(final_frame==frame_list)[0]) == 0:
-            msg = "Invalid value for final buffer frame, it must be in the data set."
-            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
-            if self.online_mode_button.IsChecked() and not self._is_online:
-                self._goOnline()
-            return
-        elif window > len(frame_list):
-            msg = "Invalid value for sliding window size, it must be smaller than the data set."
-            wx.CallAfter(wx.MessageBox, msg, "Invalid window size", style = wx.ICON_ERROR | wx.OK)
-            if self.online_mode_button.IsChecked() and not self._is_online:
-                self._goOnline()
-            return
-
-        self.initial_buffer_frame = initial_frame
-        self.final_buffer_frame = final_frame
-        self.window_size = window
-        self.mol_type = self.calc_mol_type.GetStringSelection()
-        threshold = self._raw_settings.get('secCalcThreshold')
-
-        if (self._raw_settings.get('similarityOnAverage') and
-            self.initial_buffer_frame < self.final_buffer_frame):
-            sasm_list = secm.getSASMList(self.initial_buffer_frame,
-                self.final_buffer_frame)
-
-            ref_sasm = sasm_list[0]
-            qi_ref, qf_ref = ref_sasm.getQrange()
-            pvals = np.ones(len(sasm_list[1:]), dtype=float)
-            threshold = self._raw_settings.get('similarityThreshold')
-            sim_test = self._raw_settings.get('similarityTest')
-            correction = self._raw_settings.get('similarityCorrection')
-
-            for index, sasm in enumerate(sasm_list[1:]):
-                qi, qf = sasm.getQrange()
-                if not np.all(np.round(sasm.q[qi:qf], 5) == np.round(ref_sasm.q[qi_ref:qf_ref], 5)):
-                    msg = 'The selected items must have the same q vectors to be averaged.'
-                    wx.CallAfter(wx.MessageBox, msg, "Average Error", style = wx.ICON_ERROR | wx.OK)
-                    if self.online_mode_button.IsChecked() and not self._is_online:
-                        self._goOnline()
-                    return
-
-                if sim_test == 'CorMap':
-                    n, c, pval = SASCalc.cormap_pval(ref_sasm.i[qi_ref:qf_ref], sasm.i[qi:qf])
-                pvals[index] = pval
-
-            if correction == 'Bonferroni':
-                pvals = pvals*len(sasm_list[1:])
-                pvals[pvals>1] = 1
-
-            if np.any(pvals<threshold):
-                msg = ('One or more of the selected buffer frames to be averaged is statistically\n'
-                       'different from the first frame in the range, as found using the %s test\n'
-                       'and a p-value threshold of %f.'
-                        '\nThe following frames were found to be different:\n' %(sim_test, threshold))
-                for sasm in itertools.compress(sasm_list[1:], pvals<threshold):
-                    msg = msg + sasm.getParameter('filename') + '\n'
-                msg = msg + ('Please select an action below.')
-                question_dialog = RAWCustomDialogs.CustomQuestionDialog(self, msg,
-                    [('Cancel Calculation', wx.ID_CANCEL), ('Continue Calculation', wx.ID_YES)],
-                    'Warning: Selected buffer frames are different',
-                    wx.ART_WARNING, None, None, style = wx.CAPTION | wx.RESIZE_BORDER)
-                answer = question_dialog.ShowModal()
-                question_dialog.Destroy()
-                if answer != wx.ID_YES:
-                    if self.online_mode_button.IsChecked() and not self._is_online:
-                        self._goOnline()
-                    return
-
-        newParams = secm.setCalcParams(self.initial_buffer_frame,
-            self.final_buffer_frame, self.window_size, self.mol_type, threshold)
-
-        if newParams:
-            secm.item_panel.updateInfoTip()
-            secm.item_panel.markAsModified()
-
-            if self._is_online:
-                self._goOffline()
-
-            mainworker_cmd_queue.put(['calculate_params_sec', secm])
-
-        if self.online_mode_button.IsChecked() and not self._is_online:
-            self._goOnline()
-        return
 
     def _findWindowId(self,type):
-        id=-1
+        my_id=-1
 
         for item in self.controlData:
             item_type = item[1][1]
             item_id = item[1][0]
 
             if type == item_type:
-                id = item_id
+                my_id = item_id
 
-        return id
+        return my_id
 
 
     def _updateControlValues(self):
@@ -10840,26 +10586,6 @@ class SECControlPanel(wx.Panel):
 
                 elif ptype == 'fsframenum':
                     self.final_selected_frame = data.GetValue()
-
-
-    def _updateCalcValues(self):
-        for parameter in self.controlData:
-            ptype = parameter[1][1]
-            pid = parameter[1][0]
-
-            if ptype != 'framelist' and ptype !='manual':
-                data = wx.FindWindowById(pid, self)
-
-                if ptype =='ibufframe':
-                    self.initial_buffer_frame = data.GetValue()
-
-                elif ptype == 'fbufframe':
-                    self.final_buffer_frame = data.GetValue()
-
-                elif ptype == 'wsize':
-                    self.window_size = data.GetValue()
-
-        self.mol_type = self.calc_mol_type.GetStringSelection()
 
 
     def _makeFileList(self,modified_frame_list=[]):
@@ -11010,7 +10736,6 @@ class SECControlPanel(wx.Panel):
         self.directory = ""
 
         self._updateControlValues
-        self._updateCalcValues()
 
 
 #--- ** Masking Panel **
