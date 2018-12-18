@@ -12875,7 +12875,7 @@ class LCSeriesPlotPage(wx.Panel):
     def initialize(self):
 
         if self.secm.qref != 0:
-            self.qval.SetValue(self.secm.qref)
+            self.q_val.SetValue(self.secm.qref)
 
         if self.secm.qrange[0] !=0 and self.secm.qrange[1] !=0:
             self.q_range_start.SetValue(self.secm.qrange[0])
