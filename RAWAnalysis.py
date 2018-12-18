@@ -12417,7 +12417,8 @@ class LCSeriesFrame(wx.Frame):
 
         splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE|wx.SP_3D)
 
-        self.secm = secm
+        self.secm = copy.deepcopy(secm)
+        self.original_secm = secm
         self.manip_item = manip_item
         self._raw_settings = raw_settings
 
@@ -12786,7 +12787,7 @@ class LCSeriesPlotPage(wx.Panel):
         wx.Panel.__init__(self, parent, wx.ID_ANY, name=name,
             style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
-        self.secm = secm
+        self.secm = copy.deepcopy(secm)
 
         self.intensity = 'total'
         self.calc = 'Rg'
@@ -13127,7 +13128,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         wx.ScrolledWindow.__init__(self, parent, name=name, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER|wx.VSCROLL)
         self.SetScrollRate(20,20)
 
-        self.secm = secm
+        self.secm = copy.deepcopy(secm)
+        self.original_secm = secm
 
         self.main_frame = wx.FindWindowByName('MainFrame')
         self.raw_settings = self.main_frame.raw_settings
@@ -13138,8 +13140,6 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.question_return_queue = Queue.Queue()
 
         self._createLayout()
-
-        self._initialize()
 
         self.processing_order = ['buffer', 'baseline', 'uv', 'calc']
 
@@ -13153,6 +13153,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             'baseline'  : False,
             'uv'        : False,
             'calc'      : False,
+            'sample'    : False,
             }
 
         self.should_process = {'buffer':   True,
@@ -13165,18 +13166,20 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         self.results = {}
 
-    def onCloseButton(self, evt):
-        diag = wx.FindWindowByName('LCSeriesFrame')
-        diag.OnClose()
+        self._initialize()
 
     def _createLayout(self):
 
         frames = self.secm.getFrames()
 
-        close_button = wx.Button(self, wx.ID_OK, 'Close')
+        close_button = wx.Button(self, wx.ID_OK, 'OK')
         close_button.Bind(wx.EVT_BUTTON, self.onCloseButton)
 
+        cancel_button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
+        cancel_button.Bind(wx.EVT_BUTTON, self.onCancelButton)
+
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(cancel_button, 1, wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_HORIZONTAL, 5)
         button_sizer.Add(close_button, 1, wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         box = wx.StaticBox(self, -1, 'Control')
@@ -13372,18 +13375,46 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         self.plot_page.update_plot_data(frames, intensity, 'intensity', 'left', 'unsub')
 
-        if self.secm.subtracted_sasm_list:
-            if self.plot_page.intensity == 'total':
-                intensity = self.secm.getIntISub()
-            elif self.plot_page.intensity == 'mean':
-                intensity = self.secm.getMeanISub()
-            elif self.plot_page.intensity == 'q_val':
-                intensity = self.secm.getIofQSub()
-            elif self.plot_page.intensity == 'q_range':
-                intensity = self.secm.getIofQRangeSub()
+        if self.secm.mol_type != '':
+            self.vc_mol_type.SetStringSelection(self.secm.mol_type)
 
-            self.plot_page.update_plot_data(frames, intensity,
-                'intensity', 'left', 'sub')
+        if self.secm.window_size != -1:
+            self.avg_window.ChangeValue(str(self.secm.window_size))
+
+        if self.secm.mol_density != -1:
+            self.vp_density.ChangeValue(str(self.secm.mol_density))
+
+        if self.secm.already_subtracted:
+            self.subtracted.SetValue(True)
+
+        if self.secm.buffer_range:
+            for region in self.secm.buffer_range:
+                self._addAutoBufferRange(region[0], region[1])
+
+        if self.secm.subtracted_sasm_list:
+
+            sim_threshold = self.raw_settings.get('similarityThreshold')
+            sim_test = self.raw_settings.get('similarityTest')
+            correction = self.raw_settings.get('similarityCorrection')
+            calc_threshold = self.raw_settings.get('secCalcThreshold')
+
+            results = {'buffer_range': self.secm.buffer_range,
+                'sub_sasms':            self.secm.subtracted_sasm_list,
+                'use_sub_sasms':        self.secm.use_subtracted_sasm,
+                'similarity_test':      sim_test,
+                'similarity_corr':      correction,
+                'similarity_thresh':    sim_threshold,
+                'calc_thresh':          calc_threshold,
+                'already_subtracted':   self.subtracted.IsChecked(),
+                'sub_mean_i':           self.secm.mean_i_sub,
+                'sub_total_i':          self.secm.total_i_sub,
+                'buffer_sasm':          self.secm.average_buffer_sasm,
+                }
+
+            self.results['buffer'] = results
+            self.processing_done['buffer'] = True
+            self.plotSubtracted()
+
 
         if self.secm.baseline_subtracted_sasm_list:
             if self.plot_page.intensity == 'total':
@@ -13398,15 +13429,146 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             self.plot_page.update_plot_data(frames, self.secm.getIntIBCSub(),
                 'intensity', 'left', 'baseline')
 
-        if self.secm.mol_type != '':
-            self.vc_mol_type.SetStringSelection(self.secm.mol_type)
+        if ((isinstance(self.secm.vpmw_list, np.ndarray) and not np.all(self.secm.vpmw_list == -1)) or
+            (isinstance(self.secm.vpmw_list, list) and self.secm.vpmw_list)):
+            if self.secm.mol_type == 'Protein':
+                is_protein = True
+            else:
+                is_protein = False
 
-        if self.secm.window_size != -1:
-            self.avg_window.ChangeValue(str(self.secm.window_size))
+            results = {'rg':    self.secm.rg_list,
+                'rger':         self.secm.rger_list,
+                'i0':           self.secm.i0_list,
+                'i0er':         self.secm.i0er_list,
+                'vcmw':         self.secm.vcmw_list,
+                'vcmwer':       self.secm.vcmwer_list,
+                'vpmw':         self.secm.vpmw_list,
+                'window_size':  self.secm.window_size,
+                'is_protein':   is_protein,
+                'vp_density':   self.secm.mol_density,
+                }
 
-        if self.secm.mol_density != -1:
-            self.vp_density.ChangeValue(str(self.secm.mol_density))
+            self.results['calc'] = results
+            self.processing_done['calc'] = True
+            self.plotCalc()
 
+        else:
+            if self.processing_done['buffer']:
+                t = threading.Thread(target=self.updateProcessing, args=('calc',))
+                t.daemon = True
+                t.start()
+
+        if self.secm.sample_range:
+            for region in self.secm.sample_range:
+                self._addAutoSampleRange(region[0], region[1])
+
+        if self.processing_done['baseline']:
+            self.plot_page.show_plot('Baseline Corrected')
+        elif self.processing_done['buffer']:
+            self.plot_page.show_plot('Subtracted')
+
+    def onCloseButton(self, evt):
+        self.original_secm.acquireSemaphore()
+
+        if self.processing_done['buffer']:
+            buffer_sasm = self.results['buffer']['buffer_sasm']
+            buffer_range = self.results['buffer']['buffer_range']
+            already_subtracted = self.results['buffer']['already_subtracted']
+
+            self.original_secm.buffer_range = buffer_range
+            self.original_secm.already_subtracted = already_subtracted
+            self.original_secm.average_buffer_sasm = buffer_sasm
+
+            if len(self.secm.getAllSASMs()) == len(self.original_secm.getAllSASMs()):
+                sub_sasms = self.results['buffer']['sub_sasms']
+                use_sub_sasms = self.results['buffer']['sub_sasms']
+
+            else:
+                calc_threshold = self.raw_settings.get('secCalcThreshold')
+                qref = None
+                qrange = None
+                if self.plot_page.intensity == 'q_val':
+                    qref = float(self.plot_page.q_val.GetValue())
+                elif self.plot_page.intensity == 'q_range':
+                    q1 = float(self.plot_page.q_range_start.GetValue())
+                    q2 = float(self.plot_page.q_range_end.GetValue())
+
+                    qrange = (q1, q2)
+
+                sub_sasms, use_sub_sasms = self.original_secm.subtractSASMS(buffer_sasm,
+                    self.plot_page.intensity, calc_threshold, qref, qrange)
+
+            self.original_secm.setSubtractedSASMs(sub_sasms, use_sub_sasms)
+
+        if self.processing_done['calc']:
+            if self.results['calc']['is_protein']:
+                mol_type = 'Protein'
+            else:
+                mol_type = 'RNA'
+
+            self.original_secm.window_size = self.results['calc']['window_size']
+            self.original_secm.mol_type = mol_type
+            self.original_secm.mol_density = self.results['calc']['vp_density']
+
+            if len(self.secm.getAllSASMs()) == len(self.original_secm.getAllSASMs()):
+                rg = self.results['calc']['rg']
+                rger = self.results['calc']['rger']
+                i0 = self.results['calc']['i0']
+                i0er = self.results['calc']['i0er']
+                vcmw = self.results['calc']['vcmw']
+                vcmwer = self.results['calc']['vcmwer']
+                vpmw = self.results['calc']['vpmw']
+            else:
+                if self.processing_done['baseline']:
+                    sub_sasms = self.results['baseline']['sub_sasms']
+                    use_sub_sasms = self.results['baseline']['use_sub_sasms']
+                else:
+                    sub_sasms = self.results['buffer']['sub_sasms']
+                    use_sub_sasms = self.results['buffer']['use_sub_sasms']
+
+                    mol_type = self.vc_mol_type.GetStringSelection()
+
+                    if mol_type == 'Protein':
+                        is_protein = True
+                    else:
+                        is_protein = False
+
+                    error_weight = self.raw_settings.get('errorWeight')
+
+                    window_size = int(self.avg_window.GetValue())
+                    vp_density = float(self.vp_density.GetValue())
+
+                    success, results = SASCalc.run_secm_calcs(self, sub_sasms,
+                        use_sub_sasms, window_size, is_protein, error_weight,
+                        vp_density)
+
+                    if success:
+                        rg = results['rg']
+                        rger = results['rger']
+                        i0 = results['i0']
+                        i0er = results['i0er']
+                        vcmw = results['vcmw']
+                        vcmwer = results['vcmwer']
+                        vpmw = results['vpmw']
+
+            if rg.size>0:
+                self.original_secm.setCalcValues(rg, rger, i0, i0er, vcmw, vcmwer, vpmw)
+                self.original_secm.calc_has_data = True
+
+        if self.processing_done['sample']:
+            self.original_secm.sample_range = self.results['sample']['sample_range']
+
+        self.original_secm.releaseSemaphore()
+
+        RAWGlobals.mainworker_cmd_queue.put(['update_secm_plot', self.original_secm])
+
+        diag = wx.FindWindowByName('LCSeriesFrame')
+        wx.CallAfter(diag.manip_item.updateInfoTip)
+        diag.OnClose()
+
+    def onCancelButton(self, evt):
+        diag = wx.FindWindowByName('LCSeriesFrame')
+        diag.OnClose()
 
     def showBusy(self, show=True, msg=''):
         if show:
@@ -13881,6 +14043,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 wx.CallAfter(self.plot_page.show_plot, 'Baseline Corrected')
 
         wx.CallAfter(self.plotSubtracted)
+        return
 
     def plotSubtracted(self):
         frames = self.secm.getFrames()
@@ -14083,7 +14246,6 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             }
 
         similar_valid = (all_similar and low_q_similar and high_q_similar)
-
 
         #Test for calc param similarity
         rg = self.results['calc']['rg'][frame_idx]
@@ -14424,7 +14586,13 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         RAWGlobals.mainworker_cmd_queue.put(['to_plot_sasm', [[final_sasm], color, None, True, 2]])
 
+        self.processing_done['sample'] = True
+        self.results['sample'] = {'sample_range'    : sample_range_list,
+            }
+
         wx.CallAfter(self.showBusy, False)
+
+        return
 
     def _onBufferAuto(self, event):
         t = threading.Thread(target=self._findBufferRange)
@@ -14449,9 +14617,6 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         norm_sdata = smoothed_data/np.max(smoothed_data)
         peaks, peak_params = SASCalc.find_peaks(norm_sdata, height=0.4)
-
-        print peaks
-        print peak_params
 
         max_peak_idx = np.argmax(peak_params['peak_heights'])
         main_peak_width = int(round(peak_params['widths'][max_peak_idx]))

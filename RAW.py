@@ -125,7 +125,8 @@ class MainFrame(wx.Frame):
                         'secplotframe'          : self.NewControlId(),
                         'secplottime'           : self.NewControlId(),
                         'secplotrg'             : self.NewControlId(),
-                        'secplotmw'             : self.NewControlId(),
+                        'secplotvcmw'           : self.NewControlId(),
+                        'secplotvpmw'           : self.NewControlId(),
                         'secploti0'             : self.NewControlId(),
                         'secplotnone'           : self.NewControlId(),
                         'secplotlylin'          : self.NewControlId(),
@@ -845,7 +846,8 @@ class MainFrame(wx.Frame):
                                       ('Intensity at q = . .', self.MenuIDs['secplotq'], self._onViewMenu, 'radio')],
 
                     'viewSECRight':  [('RG', self.MenuIDs['secplotrg'], self._onViewMenu, 'radio'),
-                                      ('MW', self.MenuIDs['secplotmw'], self._onViewMenu, 'radio'),
+                                      ('MW (Vc)', self.MenuIDs['secplotvcmw'], self._onViewMenu, 'radio'),
+                                      ('MW (Vp)', self.MenuIDs['secplotvpmw'], self._onViewMenu, 'radio'),
                                       ('I0', self.MenuIDs['secploti0'], self._onViewMenu, 'radio'),
                                       ('None', self.MenuIDs['secplotnone'], self._onViewMenu, 'radio')],
 
@@ -2254,6 +2256,7 @@ class MainWorkerThread(threading.Thread):
                         'weighted_average_items'        : self._weightedAverageItems,
                         'calculate_abs_carbon_const'    : self._calcAbsScCarbonConst,
                         'plot_specific'                 : self._loadAndPlotWrapper,
+                        'update_secm_plot'              : self._updateSECMPlot,
                         }
 
 
@@ -2352,7 +2355,6 @@ class MainWorkerThread(threading.Thread):
 
 
     def _updateSECMPlot(self, secm, item_colour = 'black', line_color = None, no_update = False, notsaved = False):
-
         if type(secm) == list:
             wx.CallAfter(self.sec_plot_panel.updatePlotAfterManipulation, secm, draw = False)
 
@@ -2362,7 +2364,7 @@ class MainWorkerThread(threading.Thread):
 
         wx.CallAfter(self.sec_plot_panel.updateLegend, 1, draw = False)
 
-        if no_update == False:
+        if not no_update:
             wx.CallAfter(self.sec_plot_panel.fitAxis)
 
 
@@ -2673,6 +2675,7 @@ class MainWorkerThread(threading.Thread):
                     try:
                         secm = SASFileIO.loadSECFile(each_filename)
                     except Exception as e:
+                        print e
                         wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_sec = True)
                         wx.CallAfter(self.main_frame.closeBusyDialog)
                         return
@@ -9642,7 +9645,7 @@ class SECItemPanel(wx.Panel):
 
         self.SetBackgroundColour(wx.Colour(250,250,250))
 
-        if self.secm.initial_buffer_frame != -1:
+        if self.secm.buffer_range:
             self.updateInfoTip()
 
         if modified:
@@ -9662,21 +9665,30 @@ class SECItemPanel(wx.Panel):
 
     def updateInfoTip(self):
 
-        initial = self.secm.initial_buffer_frame
-        final = self.secm.final_buffer_frame
+        buffer_range = self.secm.buffer_range
         window = self.secm.window_size
         mol_type = self.secm.mol_type
+        mol_density = self.secm.mol_density
 
-        if initial == -1 or final == -1 or window == -1:
+        if window == -1:
             if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
                 self.info_tip.SetMessage('First buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A\nMol. type: N/A')
             else:
                 self.info_icon.SetToolTip(wx.ToolTip('Show Extended Info\n--------------------------------\nFirst buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A\nMol. type: N/A'))
         else:
-            if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
-                self.info_tip.SetMessage('First buffer frame: %i\nLast buffer frame: %i\nAverage window size: %i\nMol. type: %s' %(initial, final, window, mol_type))
+            if not self.secm.already_subtracted:
+                buffer_str = ',\n   '.join(['{} to {}'.format(r1, r2) for (r1, r2) in buffer_range])
+                buffer_str = 'Buffer range:\n   {}\n'.format(buffer_str)
             else:
-                self.info_icon.SetToolTip(wx.ToolTip('Show Extended Info\n--------------------------------\nFirst buffer frame: %i\nLast buffer frame: %i\nAverage window size: %i\nMol. Type: %s' %(initial, final, window, mol_type)))
+                buffer_str = 'Already subtracted\n'
+
+            tip = ('{}Average window size: {}\nMol. type: {}\n'
+                'Mol. density: {}'.format(buffer_str, window, mol_type, mol_density))
+
+            if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                self.info_tip.SetMessage(tip)
+            else:
+                self.info_icon.SetToolTip(wx.ToolTip('Show Extended Info\n--------------------------------\n{}'.format(tip)))
 
     def enableStar(self, state):
         if state == True:

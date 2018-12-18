@@ -823,12 +823,11 @@ class SECM(object):
 
 
         ####### Parameters for autocalculating rg, MW for SEC plot
-        self.initial_buffer_frame = -1
-        self.final_buffer_frame = -1
+        self.buffer_range = []
         self.window_size = -1
-        self.threshold = -1
         self.mol_type = ''
         self.mol_density = -1
+        self.already_subtracted = False
 
         self.average_buffer_sasm = None
         self.subtracted_sasm_list = []
@@ -845,12 +844,15 @@ class SECM(object):
         self.I_of_q_bcsub = np.zeros_like(self.I_of_q)
         self.qrange_I_bcsub = np.zeros_like(self.qrange_I)
 
+        self.sample_range = []
+
         self.rg_list = []
         self.rger_list = []
         self.i0_list = []
         self.i0er_list = []
-        self.mw_list = []
-        self.mwer_list = []
+        self.vpmw_list = []
+        self.vcmw_list = []
+        self.vcmwer_list = []
 
         self.calc_line = None
         self.calc_err_line = None
@@ -1075,6 +1077,8 @@ class SECM(object):
         all_data['i_of_q'] = self.I_of_q
         all_data['time'] = self.time
         all_data['qref'] = self.qref
+        all_data['qrange'] = self.qrange
+        all_data['qrange_I'] = self.qrange_I
 
         all_data['scale_factor'] = self._scale_factor
         all_data['offset_value'] = self._offset_value
@@ -1082,21 +1086,37 @@ class SECM(object):
 
         all_data['parameters'] = self._parameters
 
-        all_data['intial_buffer_frame'] = self.initial_buffer_frame
-        all_data['final_buffer_frame'] = self.final_buffer_frame
+        all_data['buffer_range'] = self.buffer_range
         all_data['window_size'] = self.window_size
         all_data['mol_type'] = self.mol_type
-        all_data['threshold'] = self.threshold
+        all_data['mol_density'] = self.mol_density
+        all_data['already_subtracted'] = self.already_subtracted
+
+        all_data['mean_i_sub'] = self.mean_i_sub
+        all_data['total_i_sub'] = self.total_i_sub
+        all_data['I_of_q_sub'] = self.I_of_q_sub
+        all_data['qrange_I_sub'] = self.qrange_I_sub
+
+        all_data['mean_i_bcsub'] = self.mean_i_bcsub
+        all_data['total_i_bcsub'] = self.total_i_bcsub
+        all_data['I_of_q_bcsub'] = self.I_of_q_bcsub
+        all_data['qrange_I_bcsub'] = self.qrange_I_bcsub
+
         all_data['rg'] = self.rg_list
         all_data['rger'] = self.rger_list
         all_data['i0'] = self.i0_list
         all_data['i0er'] = self.i0er_list
-        all_data['mw'] = self.mw_list
-        all_data['mwer'] = self.mwer_list
+        all_data['vcmw'] = self.vcmw_list
+        all_data['vcmwer'] = self.vcmwer_list
+        all_data['vpmw'] = self.vpmw_list
+
+        all_data['sample_range'] = self.sample_range
+
         all_data['calc_has_data'] = self.calc_has_data
         all_data['is_visible'] = self.is_visible
 
         all_data['use_subtracted_sasm'] = self.use_subtracted_sasm
+        all_data['use_baseline_subtracted_sasm'] = self.use_baseline_subtracted_sasm
 
 
         all_data['sasm_list'] = []
@@ -1116,13 +1136,61 @@ class SECM(object):
             else:
                 all_data['subtracted_sasm_list'].append(-1)
 
+        all_data['baseline_subtracted_sasm_list'] = []
+        for idx in range(len(self.baseline_subtracted_sasm_list)):
+            if self.baseline_subtracted_sasm_list[idx] != -1:
+                all_data['baseline_subtracted_sasm_list'].append(self.baseline_subtracted_sasm_list[idx].extractAll())
+            else:
+                all_data['baseline_subtracted_sasm_list'].append(-1)
 
         return all_data
 
-    def copy(self):
+    def __deepcopy__(self, memo):
         ''' return a copy of the object '''
 
-        return SECM(copy.copy(self.mean_i), copy.copy(self.total_i), copy.copy(self.frame_list), copy.copy(self._parameters))
+        copy_secm = SECM(copy.deepcopy(self._file_list), copy.deepcopy(self._sasm_list),
+            copy.deepcopy(self._frame_list_raw), copy.deepcopy(self._parameters))
+
+        copy_secm.qref = copy.deepcopy(self.qref)
+        copy_secm.I_of_q = copy.deepcopy(self.I_of_q)
+        copy_secm.qrange = copy.deepcopy(self.qrange)
+        copy_secm.qrange_I = copy.deepcopy(self.qrange_I)
+
+        copy_secm.time = copy.deepcopy(self.time)
+
+        ####### Parameters for autocalculating rg, MW for SEC plot
+        copy_secm.buffer_range = copy.deepcopy(self.buffer_range)
+        copy_secm.window_size = copy.deepcopy(self.window_size)
+        copy_secm.mol_type = copy.deepcopy(self.mol_type)
+        copy_secm.mol_density = copy.deepcopy(self.mol_density)
+        copy_secm.already_subtracted = copy.deepcopy(self.already_subtracted)
+
+        copy_secm.average_buffer_sasm = copy.deepcopy(self.average_buffer_sasm)
+        copy_secm.subtracted_sasm_list = copy.deepcopy(self.subtracted_sasm_list)
+        copy_secm.use_subtracted_sasm = copy.deepcopy(self.use_subtracted_sasm)
+        copy_secm.mean_i_sub = copy.deepcopy(self.mean_i_sub)
+        copy_secm.total_i_sub = copy.deepcopy(self.total_i_sub)
+        copy_secm.I_of_q_sub = copy.deepcopy(self.I_of_q_sub)
+        copy_secm.qrange_I_sub = copy.deepcopy(self.qrange_I_sub)
+
+        copy_secm.baseline_subtracted_sasm_list = copy.deepcopy(self.baseline_subtracted_sasm_list)
+        copy_secm.use_baseline_subtracted_sasm = copy.deepcopy(self.use_baseline_subtracted_sasm)
+        copy_secm.mean_i_bcsub = copy.deepcopy(self.mean_i_bcsub)
+        copy_secm.total_i_bcsub = copy.deepcopy(self.total_i_bcsub)
+        copy_secm.I_of_q_bcsub = copy.deepcopy(self.I_of_q_bcsub)
+        copy_secm.qrange_I_bcsub = copy.deepcopy(self.qrange_I_bcsub)
+
+        copy_secm.sample_range = copy.deepcopy(self.sample_range)
+
+        copy_secm.rg_list = copy.deepcopy(self.rg_list)
+        copy_secm.rger_list = copy.deepcopy(self.rger_list)
+        copy_secm.i0_list = copy.deepcopy(self.i0_list)
+        copy_secm.i0er_list = copy.deepcopy(self.i0er_list)
+        copy_secm.vpmw_list = copy.deepcopy(self.vpmw_list)
+        copy_secm.vcmw_list = copy.deepcopy(self.vcmw_list)
+        copy_secm.vcmwer_list = copy.deepcopy(self.vcmwer_list)
+
+        return copy_secm
 
     def getSASM(self, index=0):
         return self._sasm_list[index]
@@ -1137,29 +1205,6 @@ class SECM(object):
 
         return self.I_of_q
 
-    def setCalcParams(self, initial, final, window, mol_type, threshold):
-        new = False
-
-        if initial != self.initial_buffer_frame or final != self.final_buffer_frame or window != self.window_size or self.mol_type != mol_type or threshold != self.threshold:
-            new = True
-
-            self.initial_buffer_frame = initial
-            self.final_buffer_frame = final
-            self.window_size = window
-            self.mol_type = mol_type
-            self.threshold = threshold
-
-        return new
-
-    def getCalcParams(self):
-        return self.initial_buffer_frame, self.final_buffer_frame, self.window_size
-
-    def setAverageBufferSASM(self, sasm):
-        self.average_buffer_sasm = sasm
-
-    def getAverageBufferSASM(self):
-        return self.average_buffer_sasm
-
     def getAllSASMs(self):
         return self._sasm_list
 
@@ -1173,11 +1218,23 @@ class SECM(object):
         self.mw_list = mw
         self.mwer_list = mwer
 
+    def setCalcValues(self, rg, rger, i0, i0er, vcmw, vcmwer, vpmw):
+        self.rg_list = rg
+        self.rger_list = rger
+        self.i0_list = i0
+        self.i0er_list = i0er
+        self.vpmw_list = vpmw
+        self.vcmw_list = vcmw
+        self.vcmwer_list = vcmwer
+
     def getRg(self):
         return self.rg_list, self.rger_list
 
-    def getMW(self):
-        return self.mw_list, self.mwer_list
+    def getVcMW(self):
+        return self.vcmw_list, self.vcmwer_list
+
+    def getVpMW(self):
+        return self.vpmw_list, np.zeros_like(self.vpmw_list)
 
     def getI0(self):
         return self.i0_list, self.i0er_list

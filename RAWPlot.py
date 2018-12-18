@@ -3291,8 +3291,10 @@ class SECPlotPanel(wx.Panel):
                 ydata, ydataer = secm.getRg()
             elif param == 'I0':
                 ydata, ydataer = secm.getI0()
-            elif param == 'MW':
-                ydata, ydataer = secm.getMW()
+            elif param == 'MW (Vc)':
+                ydata, ydataer = secm.getVcMW()
+            elif param == 'MW (Vp)':
+                ydata, ydataer = secm.getVpMW()
             else:
                 ydata = []
                 ydataer = []
@@ -3477,8 +3479,17 @@ class SECPlotPanel(wx.Panel):
                             self._updateFrameStylesForAllPlots()
                         self.updatePlotData(self.ryaxis)
 
-                    elif key == 'secplotmw':
-                        self.plotparams['secm_plot_calc'] = 'MW'
+                    elif key == 'secplotvcmw':
+                        self.plotparams['secm_plot_calc'] = 'MW (Vc)'
+                        raxis_on = self.plotparams['framestyle1'].find('r')
+                        if raxis_on>-1:
+                            self.plotparams['framestyle1'] = self.plotparams['framestyle1'].replace('r','')
+                            self.plotparams['framestyle2'] = self.plotparams['framestyle2']+'r'
+                            self._updateFrameStylesForAllPlots()
+                        self.updatePlotData(self.ryaxis)
+
+                    elif key == 'secplotvpmw':
+                        self.plotparams['secm_plot_calc'] = 'MW (Vp)'
                         raxis_on = self.plotparams['framestyle1'].find('r')
                         if raxis_on>-1:
                             self.plotparams['framestyle1'] = self.plotparams['framestyle1'].replace('r','')
@@ -3624,7 +3635,8 @@ class SECPlotPanel(wx.Panel):
             pop_menu = wx.Menu()
 
             axes_list = [('secplotrg',    'RG'),
-                             ('secplotmw',    'MW'),
+                             ('secplotvcmw',    'MW (Vc)'),
+                             ('secplotvpmw',    'MW (Vp)'),
                              ('secploti0',   'I0'),
                              ('secplotnone', 'None')]
 
@@ -3706,12 +3718,14 @@ class SECPlotPanel(wx.Panel):
         elif plot_number == '2':
             if self.plotparams['secm_plot_calc'] == 'RG':
                 item_list[0].Check(True)
-            elif self.plotparams['secm_plot_calc'] == 'MW':
+            elif self.plotparams['secm_plot_calc'] == 'MW (Vc)':
                 item_list[1].Check(True)
-            elif self.plotparams['secm_plot_calc'] == 'I0':
+            elif self.plotparams['secm_plot_calc'] == 'MW (Vp)':
                 item_list[2].Check(True)
-            elif self.plotparams['secm_plot_calc'] == 'None':
+            elif self.plotparams['secm_plot_calc'] == 'I0':
                 item_list[3].Check(True)
+            elif self.plotparams['secm_plot_calc'] == 'None':
+                item_list[4].Check(True)
 
     def _markCurrentXSelection(self, item_list, plot_number):
         ''' Set the current axes selection on the newly created
@@ -3768,17 +3782,37 @@ class SECPlotPanel(wx.Panel):
                 if self.plotparams['secm_plot_calc'] =='RG':
                     rg = each.rg_list
                     each.calc_line.set_ydata(rg)
-                    if each.calc_line.get_label() == 'RG' or each.calc_line.get_label() == 'MW' or each.calc_line.get_label() == 'I0':
+                    if (each.calc_line.get_label() == 'RG' or
+                        each.calc_line.get_label() == 'MW (Vc)' or
+                        each.calc_line.get_label() == 'MW (Vp)' or
+                        each.calc_line.get_label() == 'I0'):
                         each.calc_line.set_label('RG')
-                elif self.plotparams['secm_plot_calc'] == 'MW':
-                    mw =  each.mw_list
+
+                elif self.plotparams['secm_plot_calc'] == 'MW (Vc)':
+                    mw =  each.vcmw_list
                     each.calc_line.set_ydata(mw)
-                    if each.calc_line.get_label() == 'RG' or each.calc_line.get_label() == 'MW' or each.calc_line.get_label() == 'I0':
-                        each.calc_line.set_label('MW')
+                    if (each.calc_line.get_label() == 'RG' or
+                        each.calc_line.get_label() == 'MW (Vc)' or
+                        each.calc_line.get_label() == 'MW (Vp)' or
+                        each.calc_line.get_label() == 'I0'):
+                        each.calc_line.set_label('MW (Vc)')
+
+                elif self.plotparams['secm_plot_calc'] == 'MW (Vp)':
+                    mw =  each.vpmw_list
+                    each.calc_line.set_ydata(mw)
+                    if (each.calc_line.get_label() == 'RG' or
+                        each.calc_line.get_label() == 'MW (Vc)' or
+                        each.calc_line.get_label() == 'MW (Vp)' or
+                        each.calc_line.get_label() == 'I0'):
+                        each.calc_line.set_label('MW (Vp)')
+
                 elif self.plotparams['secm_plot_calc'] == 'I0':
                     i0 =  each.i0_list
                     each.calc_line.set_ydata(i0)
-                    if each.calc_line.get_label() == 'RG' or each.calc_line.get_label() == 'MW' or each.calc_line.get_label() == 'I0':
+                    if (each.calc_line.get_label() == 'RG' or
+                        each.calc_line.get_label() == 'MW (Vc)' or
+                        each.calc_line.get_label() == 'MW (Vp)' or
+                        each.calc_line.get_label() == 'I0'):
                         each.calc_line.set_label('I0')
 
             if self.plotparams['x_axis_display'] == 'frame':
@@ -3880,7 +3914,6 @@ class SECPlotPanel(wx.Panel):
                     self.plotparams['x_axis_display'] = 'frame'
 
 
-        for each in self.plotted_secms:
             if self.plotparams['y_axis_display'] == 'total':
                 each.line.set_ydata(each.total_i)
             elif self.plotparams['y_axis_display'] == 'mean':
@@ -3896,17 +3929,37 @@ class SECPlotPanel(wx.Panel):
                 if self.plotparams['secm_plot_calc'] =='RG':
                     rg = each.rg_list
                     each.calc_line.set_ydata(rg)
-                    if each.calc_line.get_label() == 'RG' or each.calc_line.get_label() == 'MW' or each.calc_line.get_label() == 'I0':
+                    if (each.calc_line.get_label() == 'RG' or
+                        each.calc_line.get_label() == 'MW (Vc)' or
+                        each.calc_line.get_label() == 'MW (Vp)' or
+                        each.calc_line.get_label() == 'I0'):
                         each.calc_line.set_label('RG')
-                elif self.plotparams['secm_plot_calc'] == 'MW':
-                    mw =  each.mw_list
+
+                elif self.plotparams['secm_plot_calc'] == 'MW (Vc)':
+                    mw =  each.vcmw_list
                     each.calc_line.set_ydata(mw)
-                    if each.calc_line.get_label() == 'RG' or each.calc_line.get_label() == 'MW' or each.calc_line.get_label() == 'I0':
-                        each.calc_line.set_label('MW')
+                    if (each.calc_line.get_label() == 'RG' or
+                        each.calc_line.get_label() == 'MW (Vc)' or
+                        each.calc_line.get_label() == 'MW (Vp)' or
+                        each.calc_line.get_label() == 'I0'):
+                        each.calc_line.set_label('MW (Vc)')
+
+                elif self.plotparams['secm_plot_calc'] == 'MW (Vc)':
+                    mw =  each.vpmw_list
+                    each.calc_line.set_ydata(mw)
+                    if (each.calc_line.get_label() == 'RG' or
+                        each.calc_line.get_label() == 'MW (Vc)' or
+                        each.calc_line.get_label() == 'MW (Vp)' or
+                        each.calc_line.get_label() == 'I0'):
+                        each.calc_line.set_label('MW (Vp)')
+
                 elif self.plotparams['secm_plot_calc'] == 'I0':
                     i0 =  each.i0_list
                     each.calc_line.set_ydata(i0)
-                    if each.calc_line.get_label() == 'RG' or each.calc_line.get_label() == 'MW' or each.calc_line.get_label() == 'I0':
+                    if (each.calc_line.get_label() == 'RG' or
+                        each.calc_line.get_label() == 'MW (Vc)' or
+                        each.calc_line.get_label() == 'MW (Vp)' or
+                        each.calc_line.get_label() == 'I0'):
                         each.calc_line.set_label('I0')
 
             else:
@@ -4018,8 +4071,10 @@ class SECPlotPanel(wx.Panel):
                 calctype = self.plotparams['secm_plot_calc']
                 if calctype == 'RG':
                     a.set_ylabel('Rg')
-                elif calctype == 'MW':
-                    a.set_ylabel('Molecular Weight (kDa)')
+                elif calctype == 'MW (Vc)':
+                    a.set_ylabel('Molecular Weight, Vc (kDa)')
+                elif calctype == 'MW (Vp)':
+                    a.set_ylabel('Molecular Weight, Vp (kDa)')
                 elif calctype == 'I0':
                     a.set_ylabel('I0')
 

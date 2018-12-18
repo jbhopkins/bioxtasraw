@@ -1425,8 +1425,6 @@ def makeSECFile(secm_data):
                         'file_list'             : [],
                         'frame_list'            : [],
                         'parameters'            : {},
-                        'initial_buffer_frame'  : -1,
-                        'final_buffer_frame'    : -1,
                         'window_size'           : -1,
                         'mol_type'              : '',
                         'threshold'             : -1,
@@ -1434,12 +1432,16 @@ def makeSECFile(secm_data):
                         'rger'                  : [],
                         'i0'                    : [],
                         'i0er'                  : [],
-                        'mw'                    : [],
-                        'mwer'                  : [],
                         'calc_has_data'         : False,
                         'subtracted_sasm_list'  : [],
                         'use_subtracted_sasm'   : [],
-                        'average_buffer_sasm'   : None
+                        'average_buffer_sasm'   : None,
+                        'mol_density'           : -1,
+                        'already_subtracted'    : False,
+                        'baseline_subtracted_sasm_list' : [],
+                        'use_baseline_subtracted_sasm' : [],
+                        'buffer_range'          : [],
+                        'sample_range'          : [],
                         }
 
     for key in default_dict:
@@ -1471,14 +1473,32 @@ def makeSECFile(secm_data):
 
         sasm_list.append(new_sasm)
 
-    # print sasm_list
 
     new_secm = SASM.SECM(secm_data['file_list'], sasm_list, secm_data['frame_list'], secm_data['parameters'])
 
-    new_secm.setCalcParams(secm_data['intial_buffer_frame'], secm_data['final_buffer_frame'], secm_data['window_size'], secm_data['mol_type'], secm_data['threshold'])
-    new_secm.setRgAndI0(secm_data['rg'], secm_data['rger'], secm_data['i0'], secm_data['i0er'])
-    new_secm.setMW(secm_data['mw'], secm_data['mwer'])
+    new_secm.window_size = secm_data['window_size']
+    new_secm.mol_type = secm_data['mol_type']
     new_secm.calc_has_data = secm_data['calc_has_data']
+    new_secm.mol_density = secm_data['mol_density']
+    new_secm.already_subtracted = secm_data['already_subtracted']
+    new_secm.sample_range = secm_data['sample_range']
+
+    if 'intial_buffer_frame' in secm_data:     #Old style secm, complete with typo!
+        if secm_data['intial_buffer_frame'] != -1:
+            new_secm.buffer_range = [(secm_data['intial_buffer_frame'],
+                secm_data['final_buffer_frame'])]
+    else:
+        new_secm.buffer_range = secm_data['buffer_range']
+
+    if 'mw' in secm_data:       #Old style secm
+        new_secm.setCalcValues(secm_data['rg'], secm_data['rger'], secm_data['i0'],
+            secm_data['i0er'], secm_data['mw'], secm_data['mwer'],
+            np.zeros_like(secm_data['mw'])-1)
+    else:
+        new_secm.setCalcValues(secm_data['rg'], secm_data['rger'], secm_data['i0'],
+            secm_data['i0er'], secm_data['vcmw'], secm_data['vcmwer'],
+            secm_data['vpmw'])
+
 
     subtracted_sasm_list = []
 
@@ -1510,6 +1530,38 @@ def makeSECFile(secm_data):
 
     new_secm.setSubtractedSASMs(subtracted_sasm_list, secm_data['use_subtracted_sasm'])
 
+
+    baseline_subtracted_sasm_list = []
+
+    for item in secm_data['baseline_subtracted_sasm_list']:
+        sasm_data = item
+
+        if sasm_data != -1:
+            new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
+            new_sasm.setBinnedI(sasm_data['i_binned'])
+            new_sasm.setBinnedQ(sasm_data['q_binned'])
+            new_sasm.setBinnedErr(sasm_data['err_binned'])
+
+            new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
+                                    sasm_data['norm_factor'], sasm_data['q_scale_factor'],
+                                    sasm_data['bin_size'])
+
+            new_sasm.setQrange(sasm_data['selected_qrange'])
+
+            try:
+                new_sasm.setParameter('analysis', sasm_data['parameters_analysis'])
+            except KeyError:
+                pass
+
+            new_sasm._update()
+        else:
+            new_sasm = -1
+
+        baseline_subtracted_sasm_list.append(new_sasm)
+
+    new_secm.setBCSubtractedSASMs(baseline_subtracted_sasm_list, secm_data['use_baseline_subtracted_sasm'])
+
+
     sasm_data = secm_data['average_buffer_sasm']
 
     if sasm_data != -1 and sasm_data is not None:
@@ -1533,7 +1585,7 @@ def makeSECFile(secm_data):
     else:
         new_sasm = -1
 
-    new_secm.setAverageBufferSASM(new_sasm)
+    new_secm.average_buffer_sasm = new_sasm
 
 
     try:

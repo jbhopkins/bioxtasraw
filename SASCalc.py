@@ -1938,13 +1938,16 @@ def run_secm_calcs(self, subtracted_sasm_list, use_subtracted_sasm, window_size,
     vpcor[vpcor<=0] = -1
     vpcor[vcmw==-1] = -1
 
-    results = {'rg': rg,
-        'rger':     rger,
-        'i0':       i0,
-        'i0er':     i0er,
-        'vcmw':     vcmw,
-        'vcmwer':   vcmwer,
-        'vpmw':     vpmw,
+    results = {'rg':    rg,
+        'rger':         rger,
+        'i0':           i0,
+        'i0er':         i0er,
+        'vcmw':         vcmw,
+        'vcmwer':       vcmwer,
+        'vpmw':         vpmw,
+        'window_size':  window_size,
+        'is_protein':   is_protein,
+        'vp_density':   vp_density,
         }
 
     return True, results
