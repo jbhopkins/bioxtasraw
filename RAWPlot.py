@@ -2730,7 +2730,8 @@ class SECPlotPanel(wx.Panel):
 
         self.default_subplot_labels = { 'total'      : ['Series Plot', 'Frame #', 'Integrated Intensity'],
                                         'mean'       : ['Series Plot', 'Frame #', 'Mean Intensity'],
-                                        'qspec'      : ['Series Plot', 'Frame #', 'Intensity at q = '],
+                                        'q_val'      : ['Series Plot', 'Frame #', 'Intensity at q = '],
+                                        'q_range'    : ['Series Plot', 'Frame #', 'Intensity from q = '],
                                         'frame'     : ['Series Plot', 'Frame #', 'Integrated Intensity'],
                                         'time'       : ['Series Plot', 'Time (s)', 'Integrated Intensity']}
 
@@ -3228,7 +3229,7 @@ class SECPlotPanel(wx.Panel):
             elif self.plotparams.get('y_axis_display') == 'mean':
                 ydata = secm.mean_i
 
-            elif self.plotparams.get('y_axis_display') == 'qspec':
+            elif self.plotparams.get('y_axis_display') == 'q_val':
                 q=float(self.plotparams['secm_plot_q'])
                 sasm = secm.getSASM()
                 qrange = sasm.getQrange()
@@ -3245,6 +3246,24 @@ class SECPlotPanel(wx.Panel):
                         ydata = secm.I_of_q
                     else:
                         ydata = secm.I(q)
+
+            elif self.plotparams.get('y_axis_display') == 'q_range':
+                qrange = self.plotparams['secm_plot_qrange']
+                sasm = secm.getSASM()
+                q = sasm.getQ()
+                qmin = q[0]
+                qmax = q[-1]
+
+                if qrange[1] > qmax or qrange[0] < qmin:
+                    wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
+                    self.plotparams['y_axis_display'] = 'total'
+                    ydata = secm.total_i
+
+                else:
+                    if secm.qrange == qrange:
+                        ydata = secm.getIofQRange()
+                    else:
+                        ydata = secm.calc_qrange_I(qrange)
 
             else:
                 print 'no y data selected!'
@@ -3459,8 +3478,13 @@ class SECPlotPanel(wx.Panel):
                         self.updatePlotData(self.subplot1)
 
                     elif key == 'secplotq':
-                        self.plotparams['y_axis_display'] = 'qspec'
+                        self.plotparams['y_axis_display'] = 'q_val'
                         self._getQValue()
+                        self.updatePlotData(self.subplot1)
+
+                    elif key == 'secplotqr':
+                        self.plotparams['y_axis_display'] = 'q_range'
+                        self._getQRange()
                         self.updatePlotData(self.subplot1)
 
                     elif key == 'secplotframe':
@@ -3620,7 +3644,9 @@ class SECPlotPanel(wx.Panel):
 
             axes_list = [('secplottotal',    'Integrated Intensity'),
                              ('secplotmean',    'Mean Intensity'),
-                             ('secplotq',   'Intensity at q = . .')]
+                             ('secplotq',   'Intensity at specific q'),
+                             ('secplotqr',  'Intensity in q range')
+                             ]
 
             for key, label in axes_list:
                 item = pop_menu.AppendRadioItem(MenuIDs[key], label)
@@ -3712,8 +3738,10 @@ class SECPlotPanel(wx.Panel):
                 item_list[0].Check(True)
             elif self.plotparams['y_axis_display'] == 'mean':
                 item_list[1].Check(True)
-            elif self.plotparams['y_axis_display'] == 'qspec':
+            elif self.plotparams['y_axis_display'] == 'q_val':
                 item_list[2].Check(True)
+            elif self.plotparams['y_axis_display'] == 'q_range':
+                item_list[3].Check(True)
 
         elif plot_number == '2':
             if self.plotparams['secm_plot_calc'] == 'RG':
@@ -3738,7 +3766,7 @@ class SECPlotPanel(wx.Panel):
 
     def updatePlotData(self, axes, fit=True):
         for each in self.plotted_secms:
-            if self.plotparams['y_axis_display'] == 'qspec':
+            if self.plotparams['y_axis_display'] == 'q_val':
                 q=float(self.plotparams['secm_plot_q'])
                 sasm = each.getSASM()
                 qrange = sasm.getQrange()
@@ -3748,6 +3776,18 @@ class SECPlotPanel(wx.Panel):
                 if q > qmax or q < qmin:
                     wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
                     self.plotparams['y_axis_display'] = 'total'
+
+            elif self.plotparams['y_axis_display'] == 'q_range':
+                qrange = self.plotparams['secm_plot_qrange']
+                sasm = each.getSASM()
+                q = sasm.getQ()
+                qmin = q[0]
+                qmax = q[-1]
+
+                if qrange[1] > qmax or qrange[0] < qmin:
+                    wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
+                    self.plotparams['y_axis_display'] = 'total'
+
 
             if self.plotparams['x_axis_display'] == 'time':
                 time= each.getTime()
@@ -3771,12 +3811,19 @@ class SECPlotPanel(wx.Panel):
                 each.line.set_ydata(each.total_i)
             elif self.plotparams['y_axis_display'] == 'mean':
                 each.line.set_ydata(each.mean_i)
-            elif self.plotparams['y_axis_display'] == 'qspec':
+            elif self.plotparams['y_axis_display'] == 'q_val':
                 q = float(self.plotparams['secm_plot_q'])
                 if each.qref == q:
                     each.line.set_ydata(each.I_of_q)
                 else:
                     each.line.set_ydata(each.I(q))
+            elif self.plotparams['y_axis_display'] == 'q_range':
+                qrange = self.plotparams['secm_plot_qrange']
+                print qrange
+                if each.qrange == qrange:
+                    each.line.set_ydata(each.getIofQRange())
+                else:
+                    each.line.set_ydata(each.calc_qrange_I(qrange))
 
             if each.calc_has_data:
                 if self.plotparams['secm_plot_calc'] =='RG':
@@ -3887,7 +3934,7 @@ class SECPlotPanel(wx.Panel):
 
     def updatePlotAfterManipulation(self, secm_list, draw = True):
         for each in self.plotted_secms:
-            if self.plotparams['y_axis_display'] == 'qspec':
+            if self.plotparams['y_axis_display'] == 'q_val':
                 q=float(self.plotparams['secm_plot_q'])
                 sasm = each.getSASM()
                 qrange = sasm.getQrange()
@@ -3895,6 +3942,17 @@ class SECPlotPanel(wx.Panel):
                 qmax = sasm.q[qrange[-1]-1]
 
                 if q > qmax or q < qmin:
+                    wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
+                    self.plotparams['y_axis_display'] = 'total'
+
+            elif self.plotparams['y_axis_display'] == 'q_range':
+                qrange = self.plotparams['secm_plot_qrange']
+                sasm = each.getSASM()
+                q = sasm.getQ()
+                qmin = q[0]
+                qmax = q[-1]
+
+                if qrange[1] > qmax or qrange[0] < qmin:
                     wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
                     self.plotparams['y_axis_display'] = 'total'
 
@@ -3918,12 +3976,18 @@ class SECPlotPanel(wx.Panel):
                 each.line.set_ydata(each.total_i)
             elif self.plotparams['y_axis_display'] == 'mean':
                 each.line.set_ydata(each.mean_i)
-            elif self.plotparams['y_axis_display'] == 'qspec':
+            elif self.plotparams['y_axis_display'] == 'q_val':
                 q = float(self.plotparams['secm_plot_q'])
                 if each.qref == q:
                     each.line.set_ydata(each.I_of_q)
                 else:
                     each.line.set_ydata(each.I(q))
+            elif self.plotparams['y_axis_display'] == 'q_range':
+                qrange = self.plotparams['secm_plot_qrange']
+                if each.qrange == qrange:
+                    each.line.set_ydata(each.getIofQRange())
+                else:
+                    each.line.set_ydata(each.calc_qrange_I(qrange))
 
             if each.calc_has_data:
                 if self.plotparams['secm_plot_calc'] =='RG':
@@ -4031,6 +4095,22 @@ class SECPlotPanel(wx.Panel):
             wx.MessageBox("Specified q value is not a number! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
             self.plotparams['y_axis_display'] = 'total'
 
+    def _getQRange(self):
+        msg = 'Enter q range at which to plot I(q) vs. frame as q1, q2 (e.g. 0.1, 0.25).'
+        dlg = wx.TextEntryDialog(self, message=msg, caption = 'Pick q Value')
+        dlg.ShowModal()
+        result = dlg.GetValue()
+        dlg.Destroy()
+
+        try:
+            q1, q2 = result.split(',')
+            q1 = float(q1)
+            q2 = float(q2)
+            self.plotparams['secm_plot_qrange'] = (q1, q2)
+        except:
+            wx.MessageBox("Specified q value is not a number! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
+            self.plotparams['y_axis_display'] = 'total'
+
     def _setLabels(self, sasm = None, title = None, xlabel = None, ylabel = None, axes = None):
         if axes == None:
             a = self.fig.gca()
@@ -4048,8 +4128,11 @@ class SECPlotPanel(wx.Panel):
 
                 if plottype == 'total' or plottype == 'mean':
                     a.yaxis.get_label().set_text(self.subplot_labels[plottype][2])
-                elif plottype == 'qspec':
+                elif plottype == 'q_val':
                     a.yaxis.get_label().set_text(self.subplot_labels[plottype][2]+self.plotparams['secm_plot_q'])
+                elif plottype == 'q_range':
+                    qrange = self.plotparams['secm_plot_qrange']
+                    a.yaxis.get_label().set_text(self.subplot_labels[plottype][2]+'{} to {}'.format(qrange[0], qrange[1]))
                 else:
                     a.yaxis.get_label().set_text(self.subplot_labels('Y'))
 

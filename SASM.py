@@ -1205,6 +1205,12 @@ class SECM(object):
 
         return self.I_of_q
 
+    def calc_qrange_I(self, qrange):
+        self.qrange = qrange
+        self.qrange_I = [sasm.getIofQRange(qrange[0], qrange[1]) for sasm in self.getAllSASMs()]
+
+        return self.qrange_I
+
     def getAllSASMs(self):
         return self._sasm_list
 

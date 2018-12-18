@@ -1073,7 +1073,10 @@ class FloatSpinCtrlList(wx.Panel):
         return value
 
     def SetValue(self, value):
-        self.Scale.ChangeValue(value)
+        value = float(value)
+        self.current_index, closest = self.findClosest(value)
+
+        self.Scale.ChangeValue(str(closest))
 
         self.Scale.SetInsertionPoint(0)
 

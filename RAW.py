@@ -122,6 +122,7 @@ class MainFrame(wx.Frame):
                         'secplottotal'          : self.NewControlId(),
                         'secplotmean'           : self.NewControlId(),
                         'secplotq'              : self.NewControlId(),
+                        'secplotqr'             : self.NewControlId(),
                         'secplotframe'          : self.NewControlId(),
                         'secplottime'           : self.NewControlId(),
                         'secplotrg'             : self.NewControlId(),
@@ -843,7 +844,8 @@ class MainFrame(wx.Frame):
 
                     'viewSECLeft':   [('Integrated Intensity', self.MenuIDs['secplottotal'], self._onViewMenu, 'radio'),
                                       ('Mean Intensity', self.MenuIDs['secplotmean'], self._onViewMenu, 'radio'),
-                                      ('Intensity at q = . .', self.MenuIDs['secplotq'], self._onViewMenu, 'radio')],
+                                      ('Intensity a specific q', self.MenuIDs['secplotq'], self._onViewMenu, 'radio'),
+                                      ('Intensity in q range', self.MenuIDs['secplotqr'], self._onViewMenu, 'radio')],
 
                     'viewSECRight':  [('RG', self.MenuIDs['secplotrg'], self._onViewMenu, 'radio'),
                                       ('MW (Vc)', self.MenuIDs['secplotvcmw'], self._onViewMenu, 'radio'),
@@ -1355,10 +1357,12 @@ class MainFrame(wx.Frame):
                     ydata_type = sec_plot_panel.plotparams['y_axis_display']
 
                     for secm in selected_secms:
-                        if ydata_type == 'qspec':
+                        if ydata_type == 'q_val':
                             intensity = secm.I_of_q
                         elif ydata_type == 'mean':
                             intensity = secm.mean_i
+                        elif ydata_type == 'q_range':
+                            intensity = secm.qrange_I
                         else:
                             intensity = secm.total_i
 
@@ -1519,7 +1523,7 @@ class MainFrame(wx.Frame):
                 plotpanel.updatePlotType(plotpanel.subplot2)
                 plotpanel.updatePlotAxes()
 
-            if key == 'secplottotal':
+            elif key == 'secplottotal':
                 secplotpanel.plotparams['y_axis_display'] = 'total'
                 secplotpanel.updatePlotData(secplotpanel.subplot1)
 
@@ -1528,8 +1532,13 @@ class MainFrame(wx.Frame):
                 secplotpanel.updatePlotData(secplotpanel.subplot1)
 
             elif key == 'secplotq':
-                secplotpanel.plotparams['y_axis_display'] = 'qspec'
+                secplotpanel.plotparams['y_axis_display'] = 'q_val'
                 secplotpanel._getQValue()
+                secplotpanel.updatePlotData(secplotpanel.subplot1)
+
+            elif key == 'secplotqr':
+                secplotpanel.plotparams['y_axis_display'] = 'q_range'
+                secplotpanel._getQRange()
                 secplotpanel.updatePlotData(secplotpanel.subplot1)
 
             elif key == 'secplotframe':
@@ -3056,13 +3065,12 @@ class MainWorkerThread(threading.Thread):
         elif plot_y == 'mean':
             ref_intensity = buffer_avg_sasm.getMeanI()
 
-        elif plot_y == 'qspec':
-            qmin, qmax = buffer_avg_sasm.getQrange()
-            q = buffer_avg_sasm.q[qmin:qmax]
+        elif plot_y == 'q_val':
+            ref_intensity = buffer_avg_sasm.getIofQ(secm.qref)
 
-            index = closest(q)
+        elif plot_y == 'q_range':
+            ref_intensity = buffer_avg_sasm.getIofQRange(secm.qrange[0], secm.qrange[1])
 
-            ref_intensity = buffer_avg_sasm.i[index]
 
         #Now subtract the average buffer from all of the items in the secm list
         sub_sasm = buffer_avg_sasm
@@ -3083,12 +3091,11 @@ class MainWorkerThread(threading.Thread):
             elif plot_y == 'mean':
                 sasm_intensity = sasm.getMeanI()
 
-            elif plot_y == 'qspec':
-                q = buffer_avg_sasm.q
+            elif plot_y == 'q_val':
+                sasm_intensity = buffer_avg_sasm.getIofQ(secm.qref)
 
-                index = closest(q)
-
-                sasm_intensity = sasm.i[index]
+            elif plot_y == 'q_range':
+                sasm_intensity = buffer_avg_sasm.getIofQRange(secm.qrange[0], secm.qrange[1])
 
             if sasm_intensity/ref_intensity > threshold:
                 use_subtracted_sasm.append(True)
@@ -3266,13 +3273,11 @@ class MainWorkerThread(threading.Thread):
         elif plot_y == 'mean':
             ref_intensity = buffer_avg_sasm.getMeanI()
 
-        elif plot_y == 'qspec':
-            qmin, qmax = buffer_avg_sasm.getQrange()
-            q = buffer_avg_sasm.q[qmin:qmax]
+        elif plot_y == 'q_val':
+            ref_intensity = buffer_avg_sasm.getIofQ(secm.qref)
 
-            index = closest(q)
-
-            ref_intensity = buffer_avg_sasm.i[index]
+        elif plot_y == 'q_range':
+            ref_intensity = buffer_avg_sasm.getIofQRange(secm.qrange[0], secm.qrange[1])
 
         #Now subtract the average buffer from all of the items in the secm list
         sub_sasm = buffer_avg_sasm
@@ -3301,13 +3306,11 @@ class MainWorkerThread(threading.Thread):
             elif plot_y == 'mean':
                 sasm_intensity = sasm.getMeanI()
 
-            elif plot_y == 'qspec':
-                qmin, qmax = sasm.getQrange()
-                q = sasm.q[qmin:qmax]
+            elif plot_y == 'q_val':
+                sasm_intensity = buffer_avg_sasm.getIofQ(secm.qref)
 
-                index = closest(q)
-
-                sasm_intensity = sasm.i[index]
+            elif plot_y == 'q_range':
+                sasm_intensity = buffer_avg_sasm.getIofQRange(secm.qrange[0], secm.qrange[1])
 
             if sasm_intensity/ref_intensity > threshold:
                 use_subtracted_sasm.append(True)
@@ -9956,10 +9959,12 @@ class SECItemPanel(wx.Panel):
                 ydata_type = self.sec_plot_panel.plotparams['y_axis_display']
 
                 for secm in selected_secms:
-                    if ydata_type == 'qspec':
+                    if ydata_type == 'q_val':
                         intensity = secm.I_of_q
                     elif ydata_type == 'mean':
                         intensity = secm.mean_i
+                    elif ydata_type == 'q_range':
+                        intensity = secm.qrange_I
                     else:
                         intensity = secm.total_i
 

@@ -8418,10 +8418,12 @@ class SVDSECPlotPanel(wx.Panel):
     def plotSECM(self, secm, framei, framef, ydata_type):
         frame_list = secm.frame_list
 
-        if ydata_type == 'qspec':
+        if ydata_type == 'q_val':
             intensity = secm.I_of_q
         elif ydata_type == 'mean':
             intensity = secm.mean_i
+        elif ydata_type == 'q_range':
+            intensity = secm.qrange_I
         else:
             intensity = secm.total_i
 
@@ -8718,9 +8720,12 @@ class SVDControlPanel(wx.Panel):
 
             self.ydata_type = sec_plot_panel.plotparams['y_axis_display']
 
-            if self.ydata_type == 'qspec':
+            if self.ydata_type == 'q_val':
                 q=float(sec_plot_panel.plotparams['secm_plot_q'])
                 self.subtracted_secm.I(q)
+            elif self.ydata_type == 'q_range':
+                qrange = sec_plot_panel.plotparams['secm_plot_qrange']
+                self.subtracted_secm.calc_qrange_I(qrange)
 
         self.updateSECPlot()
 
@@ -9678,9 +9683,12 @@ class EFAControlPanel1(wx.Panel):
 
             self.ydata_type = sec_plot_panel.plotparams['y_axis_display']
 
-            if self.ydata_type == 'qspec':
+            if self.ydata_type == 'q_val':
                 q=float(sec_plot_panel.plotparams['secm_plot_q'])
                 self.subtracted_secm.I(q)
+            elif self.ydata_type == 'q_range':
+                qrange = sec_plot_panel.plotparams['secm_plot_qrange']
+                self.subtracted_secm.calc_qrange_I(qrange)
 
         self.updateSECPlot()
 
@@ -11356,10 +11364,12 @@ class EFARangePlotPanel(wx.Panel):
     def plotRange(self, secm, framei, framef, ydata_type, ranges):
         frame_list = secm.frame_list
 
-        if ydata_type == 'qspec':
+        if ydata_type == 'q_val':
             intensity = secm.I_of_q
         elif ydata_type == 'mean':
             intensity = secm.mean_i
+        elif ydata_type == 'q_range':
+            intensity = secm.qrange_I
         else:
             intensity = secm.total_i
 
@@ -12793,6 +12803,7 @@ class LCSeriesPlotPage(wx.Panel):
         self.calc = 'Rg'
 
         self.create_layout()
+        self.initialize()
 
     def create_layout(self):
 
@@ -12860,6 +12871,77 @@ class LCSeriesPlotPage(wx.Panel):
         top_sizer.Add(control_sizer, flag=wx.EXPAND)
         top_sizer.Add(self.notebook, 1, flag=wx.EXPAND|wx.TOP, border=5)
         self.SetSizer(top_sizer)
+
+    def initialize(self):
+
+        if self.secm.qref != 0:
+            self.qval.SetValue(self.secm.qref)
+
+        if self.secm.qrange[0] !=0 and self.secm.qrange[1] !=0:
+            self.q_range_start.SetValue(self.secm.qrange[0])
+            self.q_range_end.SetValue(self.secm.qrange[1])
+
+        sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
+        data_type = sec_plot_panel.plotparams['y_axis_display']
+        calc_type = sec_plot_panel.plotparams['secm_plot_calc']
+
+        if data_type == 'total':
+            self.intensity = 'total'
+            self.intensity_type.SetStringSelection('Total Intensity')
+            label = 'Total Intensity'
+            self.q_point_sizer.Show(self.qval_sizer, show=False, recursive=True)
+            self.q_point_sizer.Show(self.qrange_sizer, show=False, recursive=True)
+
+        elif data_type == 'mean':
+            self.intensity = 'mean'
+            self.intensity_type.SetStringSelection('Mean Intensity')
+            label = 'Mean Intensity'
+            self.q_point_sizer.Show(self.qval_sizer, show=False, recursive=True)
+            self.q_point_sizer.Show(self.qrange_sizer, show=False, recursive=True)
+
+        elif data_type == 'q_val':
+            self.intensity = 'q_val'
+            self.intensity_type.SetStringSelection('Intensity at specific q')
+
+            qref = float(self.q_val.GetValue())
+            label = 'Intensity at q={:.5f}'.format(qref)
+
+            self.q_point_sizer.Show(self.qval_sizer, show=True, recursive=True)
+            self.q_point_sizer.Show(self.qrange_sizer, show=False, recursive=True)
+
+        elif data_type == 'q_range':
+            self.intensity = 'q_range'
+            self.intensity_type.SetStringSelection('Intensity in q range')
+
+            q1 = float(self.q_range_start.GetValue())
+            q2 = float(self.q_range_end.GetValue())
+            label = 'Intensity from q={:.5f} to {:.5f}'.format(q1, q2)
+
+            self.q_point_sizer.Show(self.qval_sizer, show=False, recursive=True)
+            self.q_point_sizer.Show(self.qrange_sizer, show=True, recursive=True)
+
+        self.Layout()
+        self.Refresh()
+
+        self.update_plot_label(label, 'left', 'unsub')
+        self.update_plot_label(label, 'left', 'sub')
+        self.update_plot_label(label, 'left', 'baseline')
+        self.update_plot_label(label, 'left', 'uv')
+
+        if calc_type == 'RG':
+            self.calc = 'Rg'
+        elif calc_type == 'MW (Vc)':
+            self.calc = 'MW (Vc)'
+        elif calc_type == 'MW (Vp)':
+            self.calc = 'MW (Vp)'
+        elif calc_type == 'I0':
+            self.calc = 'I0'
+
+        self.calc_type.SetStringSelection(self.calc)
+
+        self.update_plot_label(self.calc, 'right', 'sub')
+        self.update_plot_label(self.calc, 'right', 'baseline')
+
 
     def update_plot_data(self, xdata, ydata, label, axis, plot):
         if plot == 'gen_sub':
