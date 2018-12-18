@@ -20,6 +20,7 @@ import math
 import platform
 import logging
 
+import numpy as np
 import wx
 if wx.version().split()[0].strip()[0] == '4':
     control_super = wx.Control
@@ -917,6 +918,179 @@ class FloatSpinCtrl(wx.Panel):
 
     def SetValue(self, value):
         self.Scale.SetValue(value)
+
+
+class FloatSpinCtrlList(wx.Panel):
+
+    def __init__(self, parent, value_list, id=wx.ID_ANY, initIndex=None,
+        button_style=wx.SP_VERTICAL, TextLength=40, min_idx=0, max_idx=-1,
+         **kwargs):
+
+        wx.Panel.__init__(self, parent, id, **kwargs)
+
+        self.value_list = np.array(value_list)
+
+        if max_idx == -1:
+            max_idx = len(self.value_list)-1
+
+        self.min_idx = min_idx
+        self.max_idx = max_idx
+
+        if initIndex == None:
+            initIndex = 0
+        elif initIndex == -1:
+            initIndex = self.max_idx
+
+        if initIndex < self.min_idx:
+            initIndex = self.min_idx
+        elif initIndex > self.max_idx:
+            initIndex = self.max_idx
+
+        self.current_index = initIndex
+
+        if platform.system() != 'Windows':
+            self.ScalerButton = wx.SpinButton(self, style=button_style)
+        else:
+            self.ScalerButton = wx.SpinButton(self, size=(-1, 22),
+                style=button_style)
+
+        # self.ScalerButton.Bind(wx.EVT_SET_FOCUS, self.OnFocusChange)
+        self.ScalerButton.Bind(wx.EVT_SPIN_UP, self.OnSpinUpScale)
+        self.ScalerButton.Bind(wx.EVT_SPIN_DOWN, self.OnSpinDownScale)
+        self.ScalerButton.SetRange(-99999, 99999)   #Needed for proper function of button on Linux
+
+        if platform.system() != 'Windows':
+            self.Scale = wx.TextCtrl(self, -1, str(value_list[initIndex]),
+                size=(TextLength,-1), style=wx.TE_PROCESS_ENTER)
+        else:
+            self.Scale = wx.TextCtrl(self, -1, str(value_list[initIndex]),
+                size=(TextLength,22), style=wx.TE_PROCESS_ENTER)
+
+        self.Scale.Bind(wx.EVT_KILL_FOCUS, self.OnFocusChange)
+        self.Scale.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
+
+        sizer = wx.BoxSizer()
+
+        sizer.Add(self.Scale, 0, wx.RIGHT, 1)
+        sizer.Add(self.ScalerButton, 0)
+
+        self.SetSizer(sizer)
+
+        self.ScalerButton.SetValue(0)
+
+    def CastFloatSpinEvent(self):
+        event = FloatSpinEvent(myEVT_MY_SPIN, self.GetId(), self)
+        event.SetValue( self.Scale.GetValue() )
+        self.GetEventHandler().ProcessEvent(event)
+
+    def OnFocusChange(self, event):
+
+        self.setNearest()
+        self.CastFloatSpinEvent()
+
+        self.Scale.SetInsertionPoint(0)
+        event.Skip()
+
+    def OnEnter(self, event):
+        self.setNearest()
+        self.CastFloatSpinEvent()
+
+        self.Scale.SetInsertionPoint(0)
+
+        event.Skip()
+
+    def setNearest(self):
+        val = self.Scale.GetValue()
+        val = val.replace(',', '.')
+
+        try:
+            val = float(val)
+        except ValueError:
+            self._showInvalidNumberError()
+            return
+
+        self.current_index, closest = self.findClosest(val)
+
+        self.Scale.ChangeValue(str(closest))
+
+
+    def findClosest(self, val):
+        argmin = np.argmin(np.absolute(self.value_list[self.min_idx:self.max_idx+1]-val))
+
+        argmin = argmin+self.min_idx
+
+        return argmin, self.value_list[argmin]
+
+    def OnSpinUpScale(self, event):
+
+        val = self.Scale.GetValue()
+        val = val.replace(',', '.')
+
+        try:
+            val = float(val)
+        except ValueError:
+            self._showInvalidNumberError()
+            return
+
+        if self.current_index + 1 <= self.max_idx:
+            newval = str(self.value_list[self.current_index+1])
+            self.current_index = self.current_index + 1
+        else:
+            newval = str(val)
+
+        self.Scale.ChangeValue(newval)
+        self.CastFloatSpinEvent()
+
+        self.Scale.SetInsertionPoint(0)
+
+    def _showInvalidNumberError(self):
+        wx.CallAfter(wx.MessageBox, 'The entered value is invalid. Please remove non-numeric characters.', 'Invalid Value Error', style = wx.ICON_ERROR)
+
+    def OnSpinDownScale(self, event):
+
+        val = self.Scale.GetValue()
+        val = val.replace(',', '.')
+
+        try:
+            val = float(val)
+        except ValueError:
+            self._showInvalidNumberError()
+            return
+
+        if self.current_index - 1 >= self.min_idx:
+            newval = str(self.value_list[self.current_index - 1])
+            self.current_index = self.current_index - 1
+        else:
+            newval = str(val)
+
+        self.Scale.ChangeValue(newval)
+        self.CastFloatSpinEvent()
+
+        self.Scale.SetInsertionPoint(0)
+
+    def GetValue(self):
+        value = self.Scale.GetValue()
+        return value
+
+    def SetValue(self, value):
+        self.Scale.ChangeValue(value)
+
+        self.Scale.SetInsertionPoint(0)
+
+    def GetRange(self):
+        return (self.min_idx, self.max_idx)
+
+    def SetRange(self, ctrl_range):
+        self.min_idx = ctrl_range[0]
+        self.max_idx = ctrl_range[1]
+
+    def GetIndex(self):
+        return self.current_index
+
+    def SetIndex(self, index):
+        if index >= self.min_idx and index <= self.max_idx:
+            self.current_index = index
+            self.Scale.ChangeValue(str(self.value_list[self.current_index]))
 
 
 class IntSpinCtrl(wx.Panel):

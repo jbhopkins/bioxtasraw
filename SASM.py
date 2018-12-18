@@ -478,6 +478,14 @@ class SASM(object):
 
         return intensity
 
+    def getIofQRange(self, q1, q2):
+        q = self.getQ()
+        index1 = self.closest(q, q1)
+        index2 = self.closest(q, q2)
+        i = self.getI()
+
+        return integrate.trapz(i[index1:index2+1], q[index1:index2+1])
+
     def closest(self, qlist, q):
         return np.argmin(np.absolute(qlist-q))
 
@@ -779,7 +787,9 @@ class SECM(object):
         self.is_plotted = False
 
         self.qref=0
-        self.I_of_q=np.zeros_like(self.mean_i)
+        self.I_of_q = np.zeros_like(self.mean_i)
+        self.qrange = (0,0)
+        self.qrange_I = np.zeros_like(self.mean_i)
 
         self.time=[]
         main_frame = wx.FindWindowByName('MainFrame')
@@ -826,12 +836,14 @@ class SECM(object):
         self.mean_i_sub = np.zeros_like(self.mean_i)
         self.total_i_sub = np.zeros_like(self.total_i)
         self.I_of_q_sub = np.zeros_like(self.I_of_q)
+        self.qrange_I_sub = np.zeros_like(self.qrange_I)
 
         self.baseline_subtracted_sasm_list = []
         self.use_baseline_subtracted_sasm = []
         self.mean_i_bcsub = np.zeros_like(self.mean_i)
         self.total_i_bcsub = np.zeros_like(self.total_i)
         self.I_of_q_bcsub = np.zeros_like(self.I_of_q)
+        self.qrange_I_bcsub = np.zeros_like(self.qrange_I)
 
         self.rg_list = []
         self.rger_list = []
@@ -1179,6 +1191,9 @@ class SECM(object):
     def getIofQ(self):
         return self.I_of_q
 
+    def getIofQRange(self):
+        return self.qrange_I
+
     def getFrames(self):
         return self.plot_frame_list
 
@@ -1188,11 +1203,20 @@ class SECM(object):
     def getMeanISub(self):
         return self.mean_i_sub
 
+    def getIofQSub(self):
+        return self.I_of_q_sub
+
+    def getIofQRangeSub(self):
+        return self.qrange_I_sub
+
     def getIntIBCSub(self):
         return self.total_i_bcsub
 
     def getMeanIBCSub(self):
         return self.mean_i_bcsub
+
+    def getIofQRangeBCSub(self):
+        return self.qrange_I_bcsub
 
     def appendRgAndI0(self, rg, rger, i0, i0er, first_frame, window_size):
         index1 = first_frame+(window_size-1)/2
@@ -1266,7 +1290,7 @@ class SECM(object):
 
         return average_sasm, True, ''
 
-    def subtractSASMs(self, buffer_sasm, int_type, threshold, qref=None):
+    def subtractSASMs(self, buffer_sasm, int_type, threshold, qref=None, qrange=None):
         subtracted_sasms = []
         use_subtracted_sasms = []
 
@@ -1276,10 +1300,10 @@ class SECM(object):
         elif int_type == 'mean':
             ref_intensity = buffer_sasm.getMeanI()
 
-        elif int_type == 'qspec':
+        elif int_type == 'q_val':
            ref_intensity = buffer_sasm.getIofQ(qref)
-
-           ref_intensity = float(ref_intensity)
+        elif int_type == 'q_range':
+            ref_intensity = buffer_sasm.getIofQRange(qrange[0], qrange[1])
 
         for sasm in self.getAllSASMs():
             subtracted_sasm = SASProc.subtract(sasm, buffer_sasm, forced = True)
@@ -1294,8 +1318,10 @@ class SECM(object):
             elif int_type == 'mean':
                 sasm_intensity = sasm.getMeanI()
 
-            elif int_type == 'qspec':
+            elif int_type == 'q_val':
                 sasm_intensity = sasm.getIofQ(qref)
+            elif int_type == 'q_range':
+                sasm_intensity = sasm.getIofQRange(qrange[0], qrange[1])
 
             if sasm_intensity/ref_intensity > threshold:
                 use_subtracted_sasms.append(True)

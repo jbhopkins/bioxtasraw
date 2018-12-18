@@ -12459,11 +12459,11 @@ class SeriesPlotPanel(wx.Panel):
 
         self.all_plot_types = {'unsub'  : {'left': 'Total Intensity', 'right' : '',
                         'title': 'Unsubtracted Series', 'bottom': 'Frame #'},
-            'sub'       : {'left': 'Total Intensity', 'right': ['Rg', 'MW (Vc)', 'MW (Vp)', 'I0'],
+            'sub'       : {'left': 'Total Intensity', 'right': 'Rg',
                         'title': 'Subtracted Series', 'bottom': 'Frame #'},
-            'baseline'  : {'left': 'Total Intensity', 'right': ['Rg', 'MW (Vc)', 'MW (Vp)', 'I0'],
+            'baseline'  : {'left': 'Total Intensity', 'right': 'Rg',
                         'title': 'Baseline Corrected Series', 'bottom': 'Frame #'},
-            'uv'        : {'left': 'Total Intensity', 'right': ['UV'],
+            'uv'        : {'left': 'Total Intensity', 'right': 'UV',
                         'title': 'SAXS and UV', 'bottom': 'Frame #'},
             }
 
@@ -12495,7 +12495,7 @@ class SeriesPlotPanel(wx.Panel):
 
         if self.plot_type != 'unsub':
             self.ryaxis = self.subplot.twinx()
-            self.ryaxis.set_ylabel(self.all_plot_types[self.plot_type]['right'][0])
+            self.ryaxis.set_ylabel(self.all_plot_types[self.plot_type]['right'])
 
         self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
 
@@ -12582,6 +12582,14 @@ class SeriesPlotPanel(wx.Panel):
                 line.set_xy(pts)
 
         self.redrawLines()
+
+    def plot_label(self, label, axis):
+        if axis == 'left':
+            self.subplot.set_ylabel(label)
+        else:
+            self.ryaxis.set_ylabel(label)
+
+        self.canvas.draw()
 
     def remove_range(self, index):
         if index > len(self.plot_ranges) - 1:
@@ -12775,7 +12783,8 @@ class LCSeriesPlotPage(wx.Panel):
 
     def __init__(self, parent, name, secm):
 
-        wx.Panel.__init__(self, parent, wx.ID_ANY, name=name, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, wx.ID_ANY, name=name,
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         self.secm = secm
 
@@ -12785,6 +12794,55 @@ class LCSeriesPlotPage(wx.Panel):
         self.create_layout()
 
     def create_layout(self):
+
+        self.intensity_type = wx.Choice(self, choices=['Total Intensity',
+            'Mean Intensity', 'Intensity at specific q', 'Intensity in q range'])
+        self.intensity_type.Bind(wx.EVT_CHOICE, self._on_intensity_change)
+
+        self.calc_type = wx.Choice(self, choices=['Rg', 'MW (Vc)', 'MW (Vp)',
+            'I0'])
+        self.calc_type.Bind(wx.EVT_CHOICE, self._on_calc_change)
+
+        self.q_val = RAWCustomCtrl.FloatSpinCtrlList(self, TextLength=60,
+            value_list=self.secm.getSASM().getQ())
+        self.q_val.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_qval_change)
+
+        self.q_range_start = RAWCustomCtrl.FloatSpinCtrlList(self, TextLength=60,
+            value_list=self.secm.getSASM().getQ(),
+            max_idx=len(self.secm.getSASM().getQ())-2)
+        self.q_range_end = RAWCustomCtrl.FloatSpinCtrlList(self, TextLength=60,
+            value_list=self.secm.getSASM().getQ(), initIndex=-1, min_idx=1)
+        self.q_range_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_qrange_change)
+        self.q_range_end.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_qrange_change)
+
+        self.qval_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.qval_sizer.Add(wx.StaticText(self, label='q ='), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.qval_sizer.Add(self.q_val, border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+
+        self.qrange_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.qrange_sizer.Add(wx.StaticText(self, label='q ='), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.qrange_sizer.Add(self.q_range_start, border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+        self.qrange_sizer.Add(wx.StaticText(self, label='to'), border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+        self.qrange_sizer.Add(self.q_range_end, border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+
+        self.q_point_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.q_point_sizer.Add(self.qval_sizer)
+        self.q_point_sizer.Add(self.qrange_sizer)
+        self.q_point_sizer.Show(self.qval_sizer, show=False, recursive=True)
+        self.q_point_sizer.Show(self.qrange_sizer, show=False, recursive=True)
+
+        controls = wx.FlexGridSizer(cols=3, rows=2, vgap=2, hgap=2)
+        controls.Add(wx.StaticText(self, label='Intensity:'))
+        controls.Add(self.intensity_type)
+        controls.Add(self.q_point_sizer)
+        controls.Add(wx.StaticText(self, label='Calculated value:'))
+        controls.Add(self.calc_type)
+
+        control_sizer = wx.StaticBoxSizer(wx.StaticBox(self, -1, 'Plot Controls'), wx.HORIZONTAL)
+        control_sizer.Add(controls)
+        control_sizer.AddStretchSpacer(1)
+
         self.notebook = wx.Notebook(self)
 
         self.unsub_panel = SeriesPlotPanel(self.notebook, 'unsub')
@@ -12798,7 +12856,8 @@ class LCSeriesPlotPage(wx.Panel):
         self.notebook.AddPage(self.uv_panel, 'UV')
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(self.notebook, 1, flag=wx.EXPAND)
+        top_sizer.Add(control_sizer, flag=wx.EXPAND)
+        top_sizer.Add(self.notebook, 1, flag=wx.EXPAND|wx.TOP, border=5)
         self.SetSizer(top_sizer)
 
     def update_plot_data(self, xdata, ydata, label, axis, plot):
@@ -12834,6 +12893,23 @@ class LCSeriesPlotPage(wx.Panel):
             self.baseline_panel.plot_range(start, end, index)
         elif plot == 'uv':
             self.uv_panel.plot_range(start, end, index)
+
+    def update_plot_label(self, label, axis, plot):
+        if plot == 'gen_sub':
+            control_page = wx.FindWindowByName('LCSeriesControlPanel')
+            if control_page.processing_done['baseline']:
+                plot = 'baseline'
+            else:
+                plot = 'sub'
+
+        if plot == 'unsub':
+            self.unsub_panel.plot_label(label, axis)
+        elif plot == 'sub':
+            self.sub_panel.plot_label(label, axis)
+        elif plot == 'baseline':
+            self.baseline_panel.plot_label(label, axis)
+        elif plot == 'uv':
+            self.uv_panel.plot_label(label, axis)
 
     def remove_plot_range(self, index, plot):
         if plot == 'gen_sub':
@@ -12895,6 +12971,154 @@ class LCSeriesPlotPage(wx.Panel):
     def get_plot(self):
         return self.notebook.GetPageText(self.notebook.GetSelection())
 
+    def _on_intensity_change(self, event):
+        int_type = event.GetString()
+
+        if int_type == 'Total Intensity':
+            self.intensity = 'total'
+            label = int_type
+            self.q_point_sizer.Show(self.qval_sizer, show=False, recursive=True)
+            self.q_point_sizer.Show(self.qrange_sizer, show=False, recursive=True)
+
+        elif int_type == 'Mean Intensity':
+            self.intensity = 'mean'
+            label = int_type
+            self.q_point_sizer.Show(self.qval_sizer, show=False, recursive=True)
+            self.q_point_sizer.Show(self.qrange_sizer, show=False, recursive=True)
+
+        elif int_type == 'Intensity at specific q':
+            self.intensity = 'q_val'
+
+            qref = float(self.q_val.GetValue())
+            label = 'Intensity at q={:.5f}'.format(qref)
+
+            self.q_point_sizer.Show(self.qval_sizer, show=True, recursive=True)
+            self.q_point_sizer.Show(self.qrange_sizer, show=False, recursive=True)
+
+        elif int_type == 'Intensity in q range':
+            self.intensity = 'q_range'
+
+            q1 = float(self.q_range_start.GetValue())
+            q2 = float(self.q_range_end.GetValue())
+            label = 'Intensity from q={:.5f} to {:.5f}'.format(q1, q2)
+
+            self.q_point_sizer.Show(self.qval_sizer, show=False, recursive=True)
+            self.q_point_sizer.Show(self.qrange_sizer, show=True, recursive=True)
+
+
+        self.Layout()
+        self.Refresh()
+
+        self.update_plot_label(label, 'left', 'unsub')
+        self.update_plot_label(label, 'left', 'sub')
+        self.update_plot_label(label, 'left', 'baseline')
+        self.update_plot_label(label, 'left', 'uv')
+
+        control_page = wx.FindWindowByName('LCSeriesControlPanel')
+
+        frames = self.secm.getFrames()
+
+        if self.intensity == 'total':
+            intensity = self.secm.getIntI()
+        elif self.intensity == 'mean':
+            intensity = self.secm.getMeanI()
+        elif self.intensity == 'q_val':
+            intensity = np.array([sasm.getIofQ(qref) for sasm in self.secm.getAllSASMs()])
+        elif self.intensity =='q_range':
+            intensity = np.array([sasm.getIofQRange(q1, q2) for sasm in self.secm.getAllSASMs()])
+
+        self.update_plot_data(frames, intensity, 'intensity', 'left', 'unsub')
+
+        if control_page.processing_done['buffer']:
+            if self.intensity == 'total':
+                intensity = control_page.results['buffer']['sub_total_i']
+            elif self.intensity == 'mean':
+                intensity = control_page.results['buffer']['sub_mean_i']
+            elif self.intensity == 'q_val':
+                sasms = control_page.results['buffer']['sub_sasms']
+                np.array([sasm.getIofQ(qref) for sasm in sasms])
+            else:
+                sasms = control_page.results['buffer']['sub_sasms']
+                np.array([sasm.getIofQRange(q1, q2) for sasm in sasms])
+
+            self.update_plot_data(frames, intensity, 'intensity', 'left', 'sub')
+
+    def _on_calc_change(self, event):
+        calc_type = event.GetString()
+
+        self.calc = calc_type
+
+        control_page = wx.FindWindowByName('LCSeriesControlPanel')
+
+        frames = self.secm.getFrames()
+
+        self.update_plot_label(self.calc, 'right', 'sub')
+        self.update_plot_label(self.calc, 'right', 'baseline')
+
+        if control_page.processing_done['buffer']:
+
+            if self.calc == 'Rg':
+                data = control_page.results['calc']['rg']
+            elif self.calc == 'MW (Vc)':
+                data = control_page.results['calc']['vcmw']
+            elif self.calc == 'MW (Vp)':
+                data = control_page.results['calc']['vpmw']
+            elif self.calc == 'I0':
+                data = control_page.results['calc']['i0']
+
+            frames = frames[data>0]
+            data = data[data>0]
+
+            self.update_plot_data(frames, data, 'calc', 'right', 'sub')
+
+    def _on_qval_change(self, event):
+        control_page = wx.FindWindowByName('LCSeriesControlPanel')
+
+        frames = self.secm.getFrames()
+
+        qref = float(self.q_val.GetValue())
+
+        intensity = np.array([sasm.getIofQ(qref) for sasm in self.secm.getAllSASMs()])
+        self.update_plot_data(frames, intensity, 'intensity', 'left', 'unsub')
+
+        label = 'Intensity at q={:.5f}'.format(qref)
+
+        self.update_plot_label(label, 'left', 'unsub')
+        self.update_plot_label(label, 'left', 'sub')
+        self.update_plot_label(label, 'left', 'baseline')
+        self.update_plot_label(label, 'left', 'uv')
+
+        if control_page.processing_done['buffer']:
+            sasms = control_page.results['buffer']['sub_sasms']
+            intensity = np.array([sasm.getIofQ(qref) for sasm in sasms])
+            self.update_plot_data(frames, intensity, 'intensity', 'left', 'sub')
+
+    def _on_qrange_change(self, event):
+        control_page = wx.FindWindowByName('LCSeriesControlPanel')
+
+        frames = self.secm.getFrames()
+
+        q1 = float(self.q_range_start.GetValue())
+        q2 = float(self.q_range_end.GetValue())
+
+        label = 'Intensity from q={:.5f} to {:.5f}'.format(q1, q2)
+
+        self.update_plot_label(label, 'left', 'unsub')
+        self.update_plot_label(label, 'left', 'sub')
+        self.update_plot_label(label, 'left', 'baseline')
+        self.update_plot_label(label, 'left', 'uv')
+
+        _, end = self.q_range_end.GetRange()
+        self.q_range_start.SetRange((0, self.q_range_end.GetIndex()-1))
+        self.q_range_end.SetRange((self.q_range_start.GetIndex()+1, end))
+
+        intensity = np.array([sasm.getIofQRange(q1, q2) for sasm in self.secm.getAllSASMs()])
+        self.update_plot_data(frames, intensity, 'intensity', 'left', 'unsub')
+
+        if control_page.processing_done['buffer']:
+            sasms = control_page.results['buffer']['sub_sasms']
+            intensity = np.array([sasm.getIofQRange(q1, q2) for sasm in sasms])
+            self.update_plot_data(frames, intensity, 'intensity', 'left', 'sub')
 
 class LCSeriesControlPanel(wx.ScrolledWindow):
 
@@ -12963,7 +13187,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         info_pane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
         info_win = info_pane.GetPane()
 
-        self.series_type = wx.Choice(info_win, choices=['SEC-SAXS', 'IEC-SAXS'])
+        self.series_type = wx.Choice(info_win, choices=['SEC-SAXS'])
         self.series_type.SetStringSelection('SEC-SAXS')
         self.series_type.Bind(wx.EVT_CHOICE, self.onUpdateProc)
 
@@ -13141,16 +13365,36 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             intensity = self.secm.getIntI()
         elif self.plot_page.intensity == 'mean':
             intensity = self.secm.getMeanI()
-        else:
+        elif self.plot_page.intensity == 'q_val':
             intensity = self.secm.getIofQ()
+        elif self.plot_page.intensity == 'q_range':
+            intensity = self.secm.getIofQRange()
 
         self.plot_page.update_plot_data(frames, intensity, 'intensity', 'left', 'unsub')
 
         if self.secm.subtracted_sasm_list:
-            self.plot_page.update_plot_data(frames, self.secm.getIntISub(),
+            if self.plot_page.intensity == 'total':
+                intensity = self.secm.getIntISub()
+            elif self.plot_page.intensity == 'mean':
+                intensity = self.secm.getMeanISub()
+            elif self.plot_page.intensity == 'q_val':
+                intensity = self.secm.getIofQSub()
+            elif self.plot_page.intensity == 'q_range':
+                intensity = self.secm.getIofQRangeSub()
+
+            self.plot_page.update_plot_data(frames, intensity,
                 'intensity', 'left', 'sub')
 
         if self.secm.baseline_subtracted_sasm_list:
+            if self.plot_page.intensity == 'total':
+                intensity = self.secm.getIntIBCSub()
+            elif self.plot_page.intensity == 'mean':
+                intensity = self.secm.getMeanIBCSub()
+            elif self.plot_page.intensity == 'q_val':
+                intensity = self.secm.getIofQBCSub()
+            elif self.plot_page.intensity == 'q_range':
+                intensity = self.secm.getIofQRangeBCSub()
+
             self.plot_page.update_plot_data(frames, self.secm.getIntIBCSub(),
                 'intensity', 'left', 'baseline')
 
@@ -13591,8 +13835,18 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                     self.continue_processing = False
                     return
 
+            qref = None
+            qrange = None
+            if self.plot_page.intensity == 'q_val':
+                qref = float(self.plot_page.q_val.GetValue())
+            elif self.plot_page.intensity == 'q_range':
+                q1 = float(self.plot_page.q_range_start.GetValue())
+                q2 = float(self.plot_page.q_range_end.GetValue())
+
+                qrange = (q1, q2)
+
             subtracted_sasms, use_subtracted_sasm = self.secm.subtractSASMs(avg_sasm,
-                self.plot_page.intensity, calc_threshold)
+                self.plot_page.intensity, calc_threshold, qref, qrange)
 
         else:
             subtracted_sasms = self.secm.getAllSASMs()
@@ -13602,11 +13856,6 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         sub_mean_i = np.array([sasm.getMeanI() for sasm in subtracted_sasms])
         sub_total_i = np.array([sasm.getTotalI() for sasm in subtracted_sasms])
-
-        if self.secm.qref != 0:
-            sub_i_of_q = np.array([sasm.getIofQ(self.secm.qref) for sasm in subtracted_sasms])
-        else:
-            sub_i_of_q = np.zeros_like(sub_total_i)
 
         results = {'buffer_range': buffer_range_list,
             'sub_sasms':            subtracted_sasms,
@@ -13618,7 +13867,6 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             'already_subtracted':   self.subtracted.IsChecked(),
             'sub_mean_i':           sub_mean_i,
             'sub_total_i':          sub_total_i,
-            'sub_i_of_q':           sub_i_of_q,
             'buffer_sasm':       avg_sasm,
             }
 
@@ -13641,8 +13889,15 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             intensity = self.results['buffer']['sub_total_i']
         elif self.plot_page.intensity == 'mean':
             intensity = self.results['buffer']['sub_mean_i']
-        else:
-            intensity = self.results['buffer']['sub_i_of_q']
+        elif self.plot_page.intensity == 'q_val':
+            qref = float(self.plot_page.q_val.GetValue())
+            sasms = self.results['buffer']['sub_sasms']
+            intensity = np.array([sasm.getIofQ(qref) for sasm in sasms])
+        elif self.plot_page.intensity == 'q_range':
+            q1 = float(self.plot_page.q_range_start.GetValue())
+            q2 = float(self.plot_page.q_range_end.GetValue())
+            sasms = self.results['buffer']['sub_sasms']
+            intensity = np.array([sasm.getIofQRange(q1, q2) for sasm in sasms])
 
         self.plot_page.update_plot_data(frames, intensity, 'intensity', 'left', 'sub')
 
