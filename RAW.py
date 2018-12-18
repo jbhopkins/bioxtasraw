@@ -5330,22 +5330,30 @@ class FilePanel(wx.Panel):
         files = []
 
         for each_filename in self.dir_panel.file_list_box.getSelectedFilenames():
-            path = os.path.join(self.dir_panel.file_list_box.path, each_filename)
-            files.append(path)
+            if each_filename != '..':
+                path = os.path.join(self.dir_panel.file_list_box.path, each_filename)
 
-        mainworker_cmd_queue.put(['plot', files])
+                if not os.path.isdir(path):
+                    files.append(path)
+
+        if files:
+            mainworker_cmd_queue.put(['plot', files])
 
     def _onPlotSECButton(self, event):
 
         files = []
 
         for each_filename in self.dir_panel.file_list_box.getSelectedFilenames():
-            path = os.path.join(self.dir_panel.file_list_box.path, each_filename)
-            files.append(path)
+            if each_filename != '..':
+                path = os.path.join(self.dir_panel.file_list_box.path, each_filename)
 
-        frame_list = range(len(files))
+                if not os.path.isdir(path):
+                    files.append(path)
 
-        mainworker_cmd_queue.put(['sec_plot', [files, frame_list]])
+        if files:
+            frame_list = range(len(files))
+
+            mainworker_cmd_queue.put(['sec_plot', [files, frame_list]])
 
     def _onClearAllButton(self, event):
 

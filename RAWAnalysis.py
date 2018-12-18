@@ -12423,7 +12423,7 @@ class LCSeriesFrame(wx.Frame):
 
     def __init__(self, parent, title, secm, manip_item, raw_settings):
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, name = 'LCSeriesFrame', size = (900,650))
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, name = 'LCSeriesFrame', size = (1000,650))
 
         splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE|wx.SP_3D)
 
@@ -12832,15 +12832,18 @@ class LCSeriesPlotPage(wx.Panel):
         self.qval_sizer.Add(self.q_val, border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
 
         self.qrange_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.qrange_sizer.Add(wx.StaticText(self, label='q ='), flag=wx.ALIGN_CENTER_VERTICAL)
-        self.qrange_sizer.Add(self.q_range_start, border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+        self.qrange_sizer.Add(wx.StaticText(self, label='q ='),
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+        self.qrange_sizer.Add(self.q_range_start, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
         self.qrange_sizer.Add(wx.StaticText(self, label='to'), border=2,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
-        self.qrange_sizer.Add(self.q_range_end, border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+        self.qrange_sizer.Add(self.q_range_end, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
 
         self.q_point_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.q_point_sizer.Add(self.qval_sizer)
-        self.q_point_sizer.Add(self.qrange_sizer)
+        self.q_point_sizer.Add(self.qrange_sizer, flag=wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
         self.q_point_sizer.Show(self.qval_sizer, show=False, recursive=True)
         self.q_point_sizer.Show(self.qrange_sizer, show=False, recursive=True)
 
@@ -12921,7 +12924,6 @@ class LCSeriesPlotPage(wx.Panel):
             self.q_point_sizer.Show(self.qrange_sizer, show=True, recursive=True)
 
         self.Layout()
-        self.Refresh()
 
         self.update_plot_label(label, 'left', 'unsub')
         self.update_plot_label(label, 'left', 'sub')
@@ -13088,9 +13090,7 @@ class LCSeriesPlotPage(wx.Panel):
             self.q_point_sizer.Show(self.qval_sizer, show=False, recursive=True)
             self.q_point_sizer.Show(self.qrange_sizer, show=True, recursive=True)
 
-
         self.Layout()
-        self.Refresh()
 
         self.update_plot_label(label, 'left', 'unsub')
         self.update_plot_label(label, 'left', 'sub')
