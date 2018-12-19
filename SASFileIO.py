@@ -2642,6 +2642,11 @@ def saveSECData(save_path, selected_secm, delim=','):
         else:
             saveq=False
 
+        if selected_secm.qrange[0] != 0 and selected_secm.qrange[1] != 0:
+            save_qrange = True
+        else:
+            save_qrange = False
+
         time = selected_secm.getTime()
 
         if len(time)>0 and time[0] != -1 and len(time) == len(selected_secm.frame_list):
@@ -2655,20 +2660,29 @@ def saveSECData(save_path, selected_secm, delim=','):
         f.write('Frame_#%sIntegrated_Intensity%sMean_Intensity%s' %(delim, delim, delim))
         if saveq:
             f.write('I_at_q=%f%s' %(selected_secm.qref, delim))
+        if save_qrange:
+            f.write('I_from_q=%f_to_q=%f%s' %(selected_secm.qrange[0], selected_secm.qrange[1], delim))
         if savetime:
             f.write('Time_(s)%s' %(delim))
         if savecalc:
-            f.write('Rg_(A)%sRger_(A)%sI0%sI0er%sMW_(kDa)%s' %(delim, delim, delim, delim, delim))
+            f.write('Rg_(A)%sRger_(A)%sI0%sI0er%sMW_Vc_(kDa)%sMWer_Vc_(kDa)%sMW_Vp_(kDa)%s' %(delim, delim, delim, delim, delim, delim, delim))
         f.write('File_Name\n')
 
         for a in range(len(selected_secm._sasm_list)):
             f.write('%i%s%f%s%f%s' %(selected_secm.frame_list[a], delim, selected_secm.total_i[a], delim, selected_secm.mean_i[a], delim))
             if saveq:
                 f.write('%f%s' %(selected_secm.I_of_q[a], delim))
+            if save_qrange:
+                f.write('%f%s' %(selected_secm.qrange_I[a], delim))
             if savetime:
                 f.write('%f%s' %(time[a], delim))
             if savecalc:
-                f.write('%f%s%f%s%f%s%f%s%f%s' %(selected_secm.rg_list[a], delim, selected_secm.rger_list[a], delim, selected_secm.i0_list[a], delim, selected_secm.i0er_list[a], delim, selected_secm.mw_list[a], delim))
+                calc_str = ('%f%s%f%s%f%s%f%s%f%s%f%s%f%s' %(selected_secm.rg_list[a],
+                    delim, selected_secm.rger_list[a], delim, selected_secm.i0_list[a],
+                    delim, selected_secm.i0er_list[a], delim, selected_secm.vcmw_list[a],
+                    delim, selected_secm.vcmwer_list[a], delim, selected_secm.vpmw_list[a],
+                    delim))
+                f.write(calc_str)
             f.write('%s\n' %(selected_secm._file_list[a].split('/')[-1]))
 
 

@@ -884,9 +884,14 @@ class SECDataDialog(wx.Dialog):
         self.secm = secm
 
         if self.secm.qref != 0:
-            self.showq=True
+            self.show_qval=True
         else:
-            self.showq=False
+            self.show_qval=False
+
+        if self.secm.qrange[0] != 0 and self.secm.qrange[1] != 0:
+            self.show_qrange = True
+        else:
+            self.show_qrange = False
 
         time = self.secm.getTime()
 
@@ -897,12 +902,24 @@ class SECDataDialog(wx.Dialog):
 
         self.showcalc = self.secm.calc_has_data
 
-        if self.secm == None:
+        self.create_layout()
+
+        if self.secm != None:
+            self._insertData()
+
+
+        self.data_grid.AutoSizeColumns()
+        self.Fit()
+
+        self.CenterOnParent()
+
+    def create_layout(self):
+        if self.secm is None:
             data_len = 100
             filename_label = wx.StaticText(self, -1, 'Filename :')
         else:
             data_len = len(self.secm.total_i)
-            filename_label = wx.StaticText(self, -1, 'Filename : ' + secm.getParameter('filename'))
+            filename_label = wx.StaticText(self, -1, 'Filename : ' + self.secm.getParameter('filename'))
 
         self.data_grid = gridlib.Grid(self)
         self.data_grid.EnableEditing(False)
@@ -910,12 +927,14 @@ class SECDataDialog(wx.Dialog):
 
         columns = 4
 
-        if self.showq:
+        if self.show_qval:
+            columns = columns + 1
+        if self.show_qrange:
             columns = columns + 1
         if self.showtime:
             columns = columns + 1
         if self.showcalc:
-            columns = columns + 5
+            columns = columns + 7
 
         self.data_grid.CreateGrid(data_len, columns)
         self.data_grid.SetColLabelValue(0, 'Frame Number')
@@ -923,8 +942,12 @@ class SECDataDialog(wx.Dialog):
         self.data_grid.SetColLabelValue(2, 'Mean Intensity')
 
         index = 3
-        if self.showq:
-            self.data_grid.SetColLabelValue(index, 'Intensity at q = %f' %(self.secm.qref))
+        if self.show_qval:
+            self.data_grid.SetColLabelValue(index, 'Intensity at q={}'.format(self.secm.qref))
+            index = index +1
+        if self.show_qrange:
+            label = 'Intensity from q={} to {}'.format(self.secm.qrange[0], self.secm.qrange[1])
+            self.data_grid.SetColLabelValue(index, label)
             index = index +1
         if self.showtime:
             self.data_grid.SetColLabelValue(index, 'Time (s)')
@@ -938,12 +961,14 @@ class SECDataDialog(wx.Dialog):
             index = index +1
             self.data_grid.SetColLabelValue(index, 'I0 error')
             index = index +1
-            self.data_grid.SetColLabelValue(index, 'MW (kDa)')
+            self.data_grid.SetColLabelValue(index, 'MW, Vc (kDa)')
+            index = index +1
+            self.data_grid.SetColLabelValue(index, 'MW, Vc error (kDa)')
+            index = index +1
+            self.data_grid.SetColLabelValue(index, 'MW, Vp (kDa)')
             index = index +1
 
         self.data_grid.SetColLabelValue(index, 'File Name')
-
-
 
         self.data_grid.SetMinSize((600,400))
 
@@ -955,22 +980,6 @@ class SECDataDialog(wx.Dialog):
 
         self.SetSizer(self.sizer)
 
-        if self.secm != None:
-            self._insertData()
-
-
-        self.data_grid.AutoSizeColumns()
-        self.Fit()
-
-#        try:
-#            file_list_ctrl = wx.FindWindowByName('PlotPanel')
-#            pos = file_list_ctrl.GetScreenPosition()
-#            self.MoveXY(pos[0], pos[1])
-#        except:
-#            pass
-
-        self.CenterOnParent()
-
     def _insertData(self):
 
         data_len = len(self.secm.total_i)
@@ -981,8 +990,11 @@ class SECDataDialog(wx.Dialog):
             self.data_grid.SetCellValue(i, 2, str(self.secm.mean_i[i]))
 
             index = 3
-            if self.showq:
+            if self.show_qval:
                 self.data_grid.SetCellValue(i, index, str(self.secm.I_of_q[i]))
+                index = index +1
+            if self.show_qrange:
+                self.data_grid.SetCellValue(i, index, str(self.secm.qrange_I[i]))
                 index = index +1
             if self.showtime:
                 self.data_grid.SetCellValue(i, index, str(self.secm.time[i]))
@@ -996,28 +1008,14 @@ class SECDataDialog(wx.Dialog):
                 index = index +1
                 self.data_grid.SetCellValue(i, index, str(self.secm.i0er_list[i]))
                 index = index +1
-                self.data_grid.SetCellValue(i, index, str(self.secm.mw_list[i]))
+                self.data_grid.SetCellValue(i, index, str(self.secm.vcmw_list[i]))
+                index = index +1
+                self.data_grid.SetCellValue(i, index, str(self.secm.vcmwer_list[i]))
+                index = index +1
+                self.data_grid.SetCellValue(i, index, str(self.secm.vpmw_list[i]))
                 index = index +1
 
             self.data_grid.SetCellValue(i, index, os.path.split(self.secm._file_list[i])[1])
-
-    def _writeData(self):
-        data_len = len(self.secm.getBinnedI())
-
-        new_I = []
-        new_Q = []
-        new_Err = []
-
-        for i in range(0, data_len):
-            new_Q.append(float(self.data_grid.GetCellValue(i, 0)))
-            new_I.append(float(self.data_grid.GetCellValue(i, 1)))
-            new_Err.append(float(self.data_grid.GetCellValue(i, 2)))
-
-        self.secm.setBinnedI(np.array(new_I))
-        self.secm.setBinnedQ(np.array(new_Q))
-        self.secm.setBinnedErr(np.array(new_Err))
-
-        self.secm._update()
 
     def _onOk(self, event):
         self.EndModal(wx.ID_OK)
