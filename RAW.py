@@ -3020,231 +3020,232 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.main_frame.closeBusyDialog)
 
 
-    def _calculateSECParams(self, secm):
-        molecule = secm.mol_type
+    # def _calculateSECParams(self, secm):
+    #     molecule = secm.mol_type
 
-        if molecule == 'Protein':
-            is_protein = True
-        else:
-            is_protein = False
-
-
-        threshold = self._raw_settings.get('secCalcThreshold')
-        error_weight = self._raw_settings.get('errorWeight')
-
-        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait, calculating')
-        initial_buffer_frame, final_buffer_frame, window_size = secm.getCalcParams()
-
-        secm.acquireSemaphore()
-
-        buffer_sasm_list = secm.getSASMList(initial_buffer_frame, final_buffer_frame)
-
-        if len(buffer_sasm_list) < 2:
-            buffer_avg_sasm = buffer_sasm_list[0]
-        else:
-            try:
-                buffer_avg_sasm = SASProc.average(buffer_sasm_list)
-            except SASExceptions.DataNotCompatible:
-                wx.CallAfter(self._showAverageError, 1)
-                wx.CallAfter(self.main_frame.closeBusyDialog)
-                secm.releaseSemaphore()
-                return
-
-        self._insertSasmFilenamePrefix(buffer_avg_sasm, 'A_')
-
-        secm.setAverageBufferSASM(buffer_avg_sasm)
-
-        #Find the reference intensity of the average buffer sasm
-        plot_y = self.sec_plot_panel.getParameter('y_axis_display')
-
-        closest = lambda qlist: np.argmin(np.absolute(qlist-secm.qref))
-
-        if plot_y == 'total':
-            ref_intensity = buffer_avg_sasm.getTotalI()
-
-        elif plot_y == 'mean':
-            ref_intensity = buffer_avg_sasm.getMeanI()
-
-        elif plot_y == 'q_val':
-            ref_intensity = buffer_avg_sasm.getIofQ(secm.qref)
-
-        elif plot_y == 'q_range':
-            ref_intensity = buffer_avg_sasm.getIofQRange(secm.qrange[0], secm.qrange[1])
+    #     if molecule == 'Protein':
+    #         is_protein = True
+    #     else:
+    #         is_protein = False
 
 
-        #Now subtract the average buffer from all of the items in the secm list
-        sub_sasm = buffer_avg_sasm
-        full_sasm_list = secm.getAllSASMs()
+    #     threshold = self._raw_settings.get('secCalcThreshold')
+    #     error_weight = self._raw_settings.get('errorWeight')
 
-        subtracted_sasm_list = []
+    #     wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait, calculating')
+    #     initial_buffer_frame, final_buffer_frame, window_size = secm.getCalcParams()
 
-        use_subtracted_sasm = []
+    #     secm.acquireSemaphore()
 
-        yes_to_all = False
+    #     buffer_sasm_list = secm.getSASMList(initial_buffer_frame, final_buffer_frame)
 
-        for sasm in full_sasm_list:
+    #     if len(buffer_sasm_list) < 2:
+    #         buffer_avg_sasm = buffer_sasm_list[0]
+    #     else:
+    #         try:
+    #             buffer_avg_sasm = SASProc.average(buffer_sasm_list)
+    #         except SASExceptions.DataNotCompatible:
+    #             wx.CallAfter(self._showAverageError, 1)
+    #             wx.CallAfter(self.main_frame.closeBusyDialog)
+    #             secm.releaseSemaphore()
+    #             return
 
-            #check to see whether we actually need to subtract this curve
-            if plot_y == 'total':
-                sasm_intensity = sasm.getTotalI()
+    #     self._insertSasmFilenamePrefix(buffer_avg_sasm, 'A_')
 
-            elif plot_y == 'mean':
-                sasm_intensity = sasm.getMeanI()
+    #     secm.setAverageBufferSASM(buffer_avg_sasm)
 
-            elif plot_y == 'q_val':
-                sasm_intensity = buffer_avg_sasm.getIofQ(secm.qref)
+    #     #Find the reference intensity of the average buffer sasm
+    #     plot_y = self.sec_plot_panel.getParameter('y_axis_display')
 
-            elif plot_y == 'q_range':
-                sasm_intensity = buffer_avg_sasm.getIofQRange(secm.qrange[0], secm.qrange[1])
+    #     closest = lambda qlist: np.argmin(np.absolute(qlist-secm.qref))
 
-            if sasm_intensity/ref_intensity > threshold:
-                use_subtracted_sasm.append(True)
-            else:
-                use_subtracted_sasm.append(False)
+    #     if plot_y == 'total':
+    #         ref_intensity = buffer_avg_sasm.getTotalI()
 
-            result = wx.ID_YES
+    #     elif plot_y == 'mean':
+    #         ref_intensity = buffer_avg_sasm.getMeanI()
 
-            qmin, qmax = sasm.getQrange()
-            sub_qmin, sub_qmax = sub_sasm.getQrange()
+    #     elif plot_y == 'q_val':
+    #         ref_intensity = buffer_avg_sasm.getIofQ(secm.qref)
 
-            if np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and not yes_to_all:
-                result = self._showQvectorsNotEqualWarning(sasm, sub_sasm)[0]
-
-                if result == wx.ID_YESTOALL:
-                    yes_to_all = True
-                elif result == wx.ID_CANCEL:
-                    wx.CallAfter(self.main_frame.closeBusyDialog)
-                    secm.releaseSemaphore()
-                    return
-                try:
-                    if result == wx.ID_YES or result == wx.ID_YESTOALL:
-                        subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
-                        self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-
-                        subtracted_sasm_list.append(subtracted_sasm)
-                except SASExceptions.DataNotCompatible:
-                   wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
-                   wx.CallAfter(self.main_frame.closeBusyDialog)
-                   secm.releaseSemaphore()
-                   return
-
-            elif np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and yes_to_all:
-                try:
-                    subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
-                    self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-
-                    subtracted_sasm_list.append(subtracted_sasm)
-                except SASExceptions.DataNotCompatible:
-                   wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
-                   wx.CallAfter(self.main_frame.closeBusyDialog)
-                   secm.releaseSemaphore()
-                   return
-
-            else:
-                try:
-                    subtracted_sasm = SASProc.subtract(sasm, sub_sasm)
-                    self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-
-                    subtracted_sasm_list.append(subtracted_sasm)
-                except SASExceptions.DataNotCompatible:
-                   wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
-                   wx.CallAfter(self.main_frame.closeBusyDialog)
-                   secm.releaseSemaphore()
-                   return
+    #     elif plot_y == 'q_range':
+    #         ref_intensity = buffer_avg_sasm.getIofQRange(secm.qrange[0], secm.qrange[1])
 
 
-        secm.setSubtractedSASMs(subtracted_sasm_list, use_subtracted_sasm)
+    #     #Now subtract the average buffer from all of the items in the secm list
+    #     sub_sasm = buffer_avg_sasm
+    #     full_sasm_list = secm.getAllSASMs()
 
-        #Now calculate the RG, I0, and MW for each SASM
-        rg = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        rger = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        i0 = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        i0er = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        mw = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        mwer = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+    #     subtracted_sasm_list = []
 
-        if window_size == 1:
-            for a in range(len(subtracted_sasm_list)):
-                current_sasm = subtracted_sasm_list[a]
-                use_current_sasm = use_subtracted_sasm[a]
+    #     use_subtracted_sasm = []
 
-                if use_current_sasm:
-                    #use autorg to find the Rg and I0
-                    rg[a], rger[a], i0[a], i0er[a], indx_min, indx_max = SASCalc.autoRg(current_sasm,
-                        error_weight=error_weight)
+    #     yes_to_all = False
 
-                    #Now use the rambo tainer 2013 method to calculate molecular weight
-                    if rg[a] > 0:
-                        mw[a], mwer[a], junk1, junk2 = SASCalc.calcVcMW(current_sasm, rg[a], i0[a], is_protein)
-                    else:
-                        mw[a], mwer[a] = -1, -1
+    #     for sasm in full_sasm_list:
 
-                else:
-                    rg[a], rger[a], i0[a], i0er[a], mw[a], mwer[a] = -1, -1, -1, -1, -1, -1
+    #         #check to see whether we actually need to subtract this curve
+    #         if plot_y == 'total':
+    #             sasm_intensity = sasm.getTotalI()
 
-        else:
-            for a in range(len(subtracted_sasm_list)-(window_size-1)):
+    #         elif plot_y == 'mean':
+    #             sasm_intensity = sasm.getMeanI()
 
-                current_sasm_list = subtracted_sasm_list[a:a+window_size]
+    #         elif plot_y == 'q_val':
+    #             sasm_intensity = buffer_avg_sasm.getIofQ(secm.qref)
 
-                truth_test = use_subtracted_sasm[a:a+window_size]
+    #         elif plot_y == 'q_range':
+    #             sasm_intensity = buffer_avg_sasm.getIofQRange(secm.qrange[0], secm.qrange[1])
 
-                if np.all(truth_test):
-                    try:
-                        current_sasm = SASProc.average(current_sasm_list)
-                    except SASExceptions.DataNotCompatible:
-                        wx.CallAfter(self._showAverageError, 1)
-                        wx.CallAfter(self.main_frame.closeBusyDialog)
-                        secm.releaseSemaphore()
-                        return
+    #         if sasm_intensity/ref_intensity > threshold:
+    #             use_subtracted_sasm.append(True)
+    #         else:
+    #             use_subtracted_sasm.append(False)
 
-                    index = a+(window_size-1)/2
+    #         result = wx.ID_YES
 
-                    #use autorg to find the Rg and I0
-                    rg[index], rger[index], i0[index], i0er[index], idx_min, idx_max = SASCalc.autoRg(current_sasm, error_weight=error_weight)
+    #         qmin, qmax = sasm.getQrange()
+    #         sub_qmin, sub_qmax = sub_sasm.getQrange()
 
-                    #Now use the rambo tainer 2013 method to calculate molecular weight
-                    if rg[index] > 0:
-                        mw[index], mwer[index], junk1, junk2 = SASCalc.calcVcMW(current_sasm, rg[index], i0[index], is_protein)
-                    else:
-                        mw[index], mwer[index] = -1, -1
+    #         if np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and not yes_to_all:
+    #             result = self._showQvectorsNotEqualWarning(sasm, sub_sasm)[0]
 
-                else:
-                    rg[a], rger[a], i0[a], i0er[a], mw[a], mwer[a] = -1, -1, -1, -1, -1, -1
+    #             if result == wx.ID_YESTOALL:
+    #                 yes_to_all = True
+    #             elif result == wx.ID_CANCEL:
+    #                 wx.CallAfter(self.main_frame.closeBusyDialog)
+    #                 secm.releaseSemaphore()
+    #                 return
+    #             try:
+    #                 if result == wx.ID_YES or result == wx.ID_YESTOALL:
+    #                     subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
+    #                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
-        #Set everything that's nonsense to -1
-        rg[rg<=0] = -1
-        rger[rg==-1] = -1
-        i0[i0<=0] = -1
-        i0er[i0==-1] = -1
+    #                     subtracted_sasm_list.append(subtracted_sasm)
+    #             except SASExceptions.DataNotCompatible:
+    #                wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
+    #                wx.CallAfter(self.main_frame.closeBusyDialog)
+    #                secm.releaseSemaphore()
+    #                return
 
-        mw[mw<=0] = -1
-        mw[rg<=0] = -1
-        mw[i0<=0] = -1
-        mwer[mw==-1] = -1
+    #         elif np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and yes_to_all:
+    #             try:
+    #                 subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
+    #                 self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
-        secm.setRgAndI0(rg, rger, i0, i0er)
-        secm.setMW(mw, mwer)
+    #                 subtracted_sasm_list.append(subtracted_sasm)
+    #             except SASExceptions.DataNotCompatible:
+    #                wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
+    #                wx.CallAfter(self.main_frame.closeBusyDialog)
+    #                secm.releaseSemaphore()
+    #                return
 
-        secm.calc_has_data = True
-        secm.releaseSemaphore()
-        self._updateSECMPlot(secm)
+    #         else:
+    #             try:
+    #                 subtracted_sasm = SASProc.subtract(sasm, sub_sasm)
+    #                 self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
-        wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 3)
-        sec_controls = wx.FindWindowByName('SECPanel')
-        wx.CallAfter(sec_controls.SetFocus)
-        wx.CallAfter(self.sec_control_panel.updateSucceeded)
+    #                 subtracted_sasm_list.append(subtracted_sasm)
+    #             except SASExceptions.DataNotCompatible:
+    #                wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
+    #                wx.CallAfter(self.main_frame.closeBusyDialog)
+    #                secm.releaseSemaphore()
+    #                return
 
-        wx.CallAfter(self.main_frame.closeBusyDialog)
+
+    #     secm.setSubtractedSASMs(subtracted_sasm_list, use_subtracted_sasm)
+
+    #     #Now calculate the RG, I0, and MW for each SASM
+    #     rg = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+    #     rger = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+    #     i0 = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+    #     i0er = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+    #     mw = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+    #     mwer = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+
+    #     if window_size == 1:
+    #         for a in range(len(subtracted_sasm_list)):
+    #             current_sasm = subtracted_sasm_list[a]
+    #             use_current_sasm = use_subtracted_sasm[a]
+
+    #             if use_current_sasm:
+    #                 #use autorg to find the Rg and I0
+    #                 rg[a], rger[a], i0[a], i0er[a], indx_min, indx_max = SASCalc.autoRg(current_sasm,
+    #                     error_weight=error_weight)
+
+    #                 #Now use the rambo tainer 2013 method to calculate molecular weight
+    #                 if rg[a] > 0:
+    #                     mw[a], mwer[a], junk1, junk2 = SASCalc.calcVcMW(current_sasm, rg[a], i0[a], is_protein)
+    #                 else:
+    #                     mw[a], mwer[a] = -1, -1
+
+    #             else:
+    #                 rg[a], rger[a], i0[a], i0er[a], mw[a], mwer[a] = -1, -1, -1, -1, -1, -1
+
+    #     else:
+    #         for a in range(len(subtracted_sasm_list)-(window_size-1)):
+
+    #             current_sasm_list = subtracted_sasm_list[a:a+window_size]
+
+    #             truth_test = use_subtracted_sasm[a:a+window_size]
+
+    #             if np.all(truth_test):
+    #                 try:
+    #                     current_sasm = SASProc.average(current_sasm_list)
+    #                 except SASExceptions.DataNotCompatible:
+    #                     wx.CallAfter(self._showAverageError, 1)
+    #                     wx.CallAfter(self.main_frame.closeBusyDialog)
+    #                     secm.releaseSemaphore()
+    #                     return
+
+    #                 index = a+(window_size-1)/2
+
+    #                 #use autorg to find the Rg and I0
+    #                 rg[index], rger[index], i0[index], i0er[index], idx_min, idx_max = SASCalc.autoRg(current_sasm, error_weight=error_weight)
+
+    #                 #Now use the rambo tainer 2013 method to calculate molecular weight
+    #                 if rg[index] > 0:
+    #                     mw[index], mwer[index], junk1, junk2 = SASCalc.calcVcMW(current_sasm, rg[index], i0[index], is_protein)
+    #                 else:
+    #                     mw[index], mwer[index] = -1, -1
+
+    #             else:
+    #                 rg[a], rger[a], i0[a], i0er[a], mw[a], mwer[a] = -1, -1, -1, -1, -1, -1
+
+    #     #Set everything that's nonsense to -1
+    #     rg[rg<=0] = -1
+    #     rger[rg==-1] = -1
+    #     i0[i0<=0] = -1
+    #     i0er[i0==-1] = -1
+
+    #     mw[mw<=0] = -1
+    #     mw[rg<=0] = -1
+    #     mw[i0<=0] = -1
+    #     mwer[mw==-1] = -1
+
+    #     secm.setRgAndI0(rg, rger, i0, i0er)
+    #     secm.setMW(mw, mwer)
+
+    #     secm.calc_has_data = True
+    #     secm.releaseSemaphore()
+    #     self._updateSECMPlot(secm)
+
+    #     wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 3)
+    #     sec_controls = wx.FindWindowByName('SECPanel')
+    #     wx.CallAfter(sec_controls.SetFocus)
+    #     wx.CallAfter(self.sec_control_panel.updateSucceeded)
+
+    #     wx.CallAfter(self.main_frame.closeBusyDialog)
 
 
     def _updateCalcSECParams(self, secm, frame_list):
         molecule = secm.mol_type
-
         if molecule == 'Protein':
             is_protein = True
         else:
             is_protein = False
+
+        vp_density = secm.mol_density
 
 
         threshold = self._raw_settings.get('secCalcThreshold')
@@ -3253,19 +3254,18 @@ class MainWorkerThread(threading.Thread):
         first_update_frame = int(frame_list[0])
         last_update_frame = int(frame_list[-1])
 
-        initial_buffer_frame, final_buffer_frame, window_size = secm.getCalcParams()
+        window_size = secm.window_size
+
         secm.acquireSemaphore()
 
         if window_size == -1:
             secm.releaseSemaphore()
             return
 
-        buffer_avg_sasm = secm.getAverageBufferSASM()
+        buffer_avg_sasm = secm.average_buffer_sasm
 
         #Find the reference intensity of the average buffer sasm
         plot_y = self.sec_plot_panel.getParameter('y_axis_display')
-
-        closest = lambda qlist: np.argmin(np.absolute(qlist-secm.qref))
 
         if plot_y == 'total':
             ref_intensity = buffer_avg_sasm.getTotalI()
@@ -3380,80 +3380,30 @@ class MainWorkerThread(threading.Thread):
 
         secm.appendSubtractedSASMs(subtracted_sasm_list, use_subtracted_sasm, window_size)
 
-        #Now calculate the RG, I0, and MW for each SASM
-        rg = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        rger = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        i0 = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        i0er = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        mw = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-        mwer = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+        success, results = SASCalc.run_secm_calcs(subtracted_sasm_list,
+            use_subtracted_sasm, window_size, is_protein, error_weight,
+            vp_density)
 
-        if window_size == 1:
-            for a in range(len(subtracted_sasm_list)):
-                current_sasm = subtracted_sasm_list[a]
-                use_current_sasm = use_subtracted_sasm[a]
+        if not success:
+            secm.releaseSemaphore()
+            wx.CallAfter(self._showAverageError, 1)
+            return
 
-                if use_current_sasm:
-                    #use autorg to find the Rg and I0
-                    rg[a], rger[a], i0[a], i0er[a], indx_min, indx_max = SASCalc.autoRg(current_sasm, error_weight=error_weight)
+        rg = results['rg']
+        rger = results['rger']
+        i0 = results['i0']
+        i0er = results['i0er']
+        vcmw = results['vcmw']
+        vcmwer = results['vcmwer']
+        vpmw = results['vpmw']
 
-                    #Now use the rambo tainer 2013 method to calculate molecular weight
-                    if rg[a] > 0:
-                        mw[a], mwer[a], junk1, junk2 = SASCalc.calcVcMW(current_sasm, rg[a], i0[a], is_protein)
-                    else:
-                        mw[a], mwer[a] = -1, -1
-                else:
-                    rg[a], rger[a], i0[a], i0er[a], mw[a], mwer[a] = -1, -1, -1, -1, -1, -1
-
-        else:
-            for a in range(len(subtracted_sasm_list)-(window_size-1)):
-                current_sasm_list = subtracted_sasm_list[a:a+window_size]
-
-                truth_test = use_subtracted_sasm[a:a+window_size]
-
-                if np.all(truth_test):
-                    try:
-                        current_sasm = SASProc.average(current_sasm_list)
-                    except SASExceptions.DataNotCompatible:
-                        wx.CallAfter(self._showAverageError, 1)
-                        try:
-                            wx.CallAfter(self.main_frame.closeBusyDialog)
-                        except Exception:
-                            pass
-                        secm.releaseSemaphore()
-                        return
-
-                    index = a+(window_size-1)/2
-
-                    #use autorg to find the Rg and I0
-                    rg[index], rger[index], i0[index], i0er[index], indx_min, indx_max = SASCalc.autoRg(current_sasm, error_weight=error_weight)
-
-                    #Now use the rambo tainer 2013 method to calculate molecular weight
-                    if rg[index] > 0:
-                        mw[index], mwer[index], junk1, junk2 = SASCalc.calcVcMW(current_sasm, rg[index], i0[index], is_protein)
-                    else:
-                        mw[index], mwer[index] = -1, -1
-                else:
-                    rg[a], rger[a], i0[a], i0er[a], mw[a], mwer[a] = -1, -1, -1, -1, -1, -1
-
-        #Set everything that's nonsense to -1
-        rg[rg<=0] = -1
-        rger[rg==-1] = -1
-        i0[i0<=0] = -1
-        i0er[i0==-1] = -1
-
-        mw[mw<=0] = -1
-        mw[rg<=0] = -1
-        mw[i0<=0] = -1
-        mwer[mw==-1] = -1
-
-        secm.appendRgAndI0(rg, rger, i0, i0er, first_frame, window_size)
-        secm.appendMW(mw, mwer, first_frame, window_size)
+        secm.appendCalcValues(rg, rger, i0, i0er, vcmw, vcmwer, vpmw,
+            first_frame, window_size)
 
         secm.calc_has_data = True
         secm.releaseSemaphore()
-        self._updateSECMPlot(secm)
 
+        return
 
     def _loadAndShowNextImage(self, data):
 

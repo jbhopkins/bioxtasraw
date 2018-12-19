@@ -1848,7 +1848,7 @@ def run_cormap_ref(sasm_list, ref_sasm, correction='None'):
     return pvals, corrected_pvals, failed_comparisons
 
 
-def run_secm_calcs(self, subtracted_sasm_list, use_subtracted_sasm, window_size,
+def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
     is_protein, error_weight, vp_density):
 
     #Now calculate the RG, I0, and MW for each SASM

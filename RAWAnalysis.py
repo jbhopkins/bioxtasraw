@@ -13484,7 +13484,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 self._addAutoBufferRange(region[0], region[1])
 
         if self.secm.subtracted_sasm_list:
-
+            print len(self.secm.subtracted_sasm_list)
             sim_threshold = self.raw_settings.get('similarityThreshold')
             sim_test = self.raw_settings.get('similarityTest')
             correction = self.raw_settings.get('similarityCorrection')
@@ -13521,8 +13521,10 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             self.plot_page.update_plot_data(frames, self.secm.getIntIBCSub(),
                 'intensity', 'left', 'baseline')
 
-        if ((isinstance(self.secm.vpmw_list, np.ndarray) and not np.all(self.secm.vpmw_list == -1)) or
-            (isinstance(self.secm.vpmw_list, list) and self.secm.vpmw_list)):
+        array_test = isinstance(self.secm.vpmw_list, np.ndarray) and (not np.all(self.secm.vpmw_list == -1)
+            or np.all(self.secm.rg_list == -1))
+        list_test = isinstance(self.secm.vpmw_list, list) and self.secm.vpmw_list
+        if array_test or list_test:
             if self.secm.mol_type == 'Protein':
                 is_protein = True
             else:
@@ -13587,7 +13589,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
                     qrange = (q1, q2)
 
-                sub_sasms, use_sub_sasms = self.original_secm.subtractSASMS(buffer_sasm,
+                sub_sasms, use_sub_sasms = self.original_secm.subtractSASMs(buffer_sasm,
                     self.plot_page.intensity, calc_threshold, qref, qrange)
 
             self.original_secm.setSubtractedSASMs(sub_sasms, use_sub_sasms)
@@ -13630,7 +13632,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                     window_size = int(self.avg_window.GetValue())
                     vp_density = float(self.vp_density.GetValue())
 
-                    success, results = SASCalc.run_secm_calcs(self, sub_sasms,
+                    success, results = SASCalc.run_secm_calcs(sub_sasms,
                         use_sub_sasms, window_size, is_protein, error_weight,
                         vp_density)
 
@@ -13938,8 +13940,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         svd_results = self._singularValue(sasms)
 
 
-        intI = np.array([sasm.getTotalI() for sasm in sasms])
-        intI_test = stats.spearmanr(intI, frame_idx)
+        intI_test = stats.spearmanr(total_i, frame_idx)
         intI_valid = intI_test[1]>0.05
 
         win_len = len(total_i)/2
@@ -14245,7 +14246,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         window_size = int(self.avg_window.GetValue())
         vp_density = float(self.vp_density.GetValue())
 
-        success, results = SASCalc.run_secm_calcs(self, sub_sasms,
+        success, results = SASCalc.run_secm_calcs(sub_sasms,
             use_sub_sasms, window_size, is_protein, error_weight, vp_density)
 
         if success:
@@ -14355,6 +14356,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             }
 
         similar_valid = (all_similar and low_q_similar and high_q_similar)
+
 
         #Test for calc param similarity
         rg = self.results['calc']['rg'][frame_idx]
@@ -14727,15 +14729,24 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         norm_sdata = smoothed_data/np.max(smoothed_data)
         peaks, peak_params = SASCalc.find_peaks(norm_sdata, height=0.4)
 
-        max_peak_idx = np.argmax(peak_params['peak_heights'])
-        main_peak_width = int(round(peak_params['widths'][max_peak_idx]))
-
         avg_window = int(self.avg_window.GetValue())
         min_window_width = max(10, int(round(avg_window/2.)))
 
-        window_size = main_peak_width
-        end_point = int(round(peak_params['left_ips'][max_peak_idx]))
-        start_point = 0
+        if len(peaks) == 0:
+            window_size =  min_window_width
+            start_point = 0
+            end_point = len(total_i) - 1 - window_size
+        else:
+
+            max_peak_idx = np.argmax(peak_params['peak_heights'])
+            main_peak_width = int(round(peak_params['widths'][max_peak_idx]))
+
+            window_size = max(main_peak_width, min_window_width)
+            start_point = 0
+
+            end_point = int(round(peak_params['left_ips'][max_peak_idx]))
+            if end_point + window_size > len(total_i) - 1 - window_size:
+                end_point = len(total_i) - 1 - window_size
 
         found_region = False
         failed = False
@@ -14811,6 +14822,12 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         norm_sdata = smoothed_data/np.max(smoothed_data)
         peaks, peak_params = SASCalc.find_peaks(norm_sdata)
 
+        if len(peaks) == 0:
+            wx.CallAfter(self.showBusy, False)
+            msg = ("Failed to find a valid sample range.")
+            wx.CallAfter(wx.MessageBox, msg, "Sample range not found", style=wx.ICON_ERROR|wx.OK)
+            return
+
         max_peak_idx = np.argmax(peak_params['peak_heights'])
 
         main_peak_pos = peaks[max_peak_idx]
@@ -14840,8 +14857,10 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 if i == 0:
                     region_starts.append(mid_point)
                 else:
-                    region_starts.append(mid_point+i*step_size)
-                    region_starts.append(mid_point-i*step_size)
+                    if mid_point+ i*step_size + window_size < len(total_i):
+                        region_starts.append(mid_point+i*step_size)
+                    if mid_point - i*step_size > 0:
+                        region_starts.append(mid_point-i*step_size)
 
             for idx in region_starts:
                 region_sasms = sub_sasms[idx:idx+window_size+1]

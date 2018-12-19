@@ -1281,7 +1281,8 @@ class SECM(object):
     def getIofQRangeBCSub(self):
         return self.qrange_I_bcsub
 
-    def appendRgAndI0(self, rg, rger, i0, i0er, first_frame, window_size):
+    def appendCalcValues(self, rg, rger, i0, i0er, vcmw, vcmwer, vpmw,
+        first_frame, window_size):
         index1 = first_frame+(window_size-1)/2
         index2 = (window_size-1)/2
 
@@ -1289,14 +1290,9 @@ class SECM(object):
         self.rger_list = np.concatenate((self.rger_list[:index1],rger[index2:]))
         self.i0_list = np.concatenate((self.i0_list[:index1],i0[index2:]))
         self.i0er_list = np.concatenate((self.i0er_list[:index1],i0er[index2:]))
-
-
-    def appendMW(self, mw, mwer, first_frame, window_size):
-        index1 = first_frame+(window_size-1)/2
-        index2 = (window_size-1)/2
-
-        self.mw_list = np.concatenate((self.mw_list[:index1], mw[index2:]))
-        self.mwer_list = np.concatenate((self.mwer_list[:index1], mwer[index2:]))
+        self.vcmw_list = np.concatenate((self.vcmw_list[:index1], vcmw[index2:]))
+        self.vcmwer_list = np.concatenate((self.vcmwer_list[:index1], vcmwer[index2:]))
+        self.vcmw_list = np.concatenate((self.vcmw_list[:index1], vcmw[index2:]))
 
     def acquireSemaphore(self):
         self.my_semaphore.acquire()
@@ -1370,7 +1366,7 @@ class SECM(object):
 
         for sasm in self.getAllSASMs():
             subtracted_sasm = SASProc.subtract(sasm, buffer_sasm, forced = True)
-            subtracted_sasm.setParameter('filename', 'A_{}'.format(subtracted_sasm.getParameter('filename')))
+            subtracted_sasm.setParameter('filename', 'S_{}'.format(subtracted_sasm.getParameter('filename')))
 
             subtracted_sasms.append(subtracted_sasm)
 
@@ -1401,12 +1397,14 @@ class SECM(object):
         self.mean_i_sub = np.array([sasm.getMeanI() for sasm in sub_sasm_list])
         self.total_i_sub = np.array([sasm.getTotalI() for sasm in sub_sasm_list])
 
-    def appendSubtractedSASMs(self, sasm_list, use_sasm_list, window_size):
-        self.subtracted_sasm_list = self.subtracted_sasm_list[:-window_size] + sasm_list
+    def appendSubtractedSASMs(self, sub_sasm_list, use_sasm_list, window_size):
+        self.subtracted_sasm_list = self.subtracted_sasm_list[:-window_size] + sub_sasm_list
         self.use_subtracted_sasm = self.use_subtracted_sasm[:-window_size] + use_sasm_list
 
-        self.mean_i_sub = np.array([sasm.getMeanI() for sasm in sub_sasm_list])
-        self.total_i_sub = np.array([sasm.getTotalI() for sasm in sub_sasm_list])
+        self.mean_i_sub = np.concatenate((self.mean_i_sub[:-window_size],
+            np.array([sasm.getMeanI() for sasm in sub_sasm_list])))
+        self.total_i_sub = np.concatenate((self.total_i_sub[:-window_size],
+            np.array([sasm.getTotalI() for sasm in sub_sasm_list])))
 
     def setBCSubtractedSASMs(self, sub_sasm_list, use_sub_sasm):
 
