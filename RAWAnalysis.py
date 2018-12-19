@@ -12423,7 +12423,7 @@ class LCSeriesFrame(wx.Frame):
 
     def __init__(self, parent, title, secm, manip_item, raw_settings):
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, name = 'LCSeriesFrame', size = (1000,650))
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, name = 'LCSeriesFrame', size = (1000,675))
 
         splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE|wx.SP_3D)
 
@@ -12855,7 +12855,7 @@ class LCSeriesPlotPage(wx.Panel):
         controls.Add(self.calc_type)
 
         control_sizer = wx.StaticBoxSizer(wx.StaticBox(self, -1, 'Plot Controls'), wx.HORIZONTAL)
-        control_sizer.Add(controls)
+        control_sizer.Add(controls, border=2, flag=wx.BOTTOM|wx.LEFT|wx.TOP)
         control_sizer.AddStretchSpacer(1)
 
         self.notebook = wx.Notebook(self)
@@ -13438,8 +13438,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(control_sizer,1, wx.TOP | wx.EXPAND, 5)
-        top_sizer.Add(button_sizer,0, wx.BOTTOM|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        top_sizer.Add(control_sizer,1, wx.TOP |wx.EXPAND, 5)
+        top_sizer.Add(button_sizer,0, wx.TOP|wx.BOTTOM|wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         self.SetSizer(top_sizer)
 
