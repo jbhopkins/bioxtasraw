@@ -13159,7 +13159,10 @@ class LCSeriesPlotPage(wx.Panel):
 
         frames = self.secm.getFrames()
 
-        qref = float(self.q_val.GetValue())
+        try:
+            qref = float(self.q_val.GetValue())
+        except ValueError:
+            return
 
         intensity = np.array([sasm.getIofQ(qref) for sasm in self.secm.getAllSASMs()])
         self.update_plot_data(frames, intensity, 'intensity', 'left', 'unsub')
@@ -13176,13 +13179,18 @@ class LCSeriesPlotPage(wx.Panel):
             intensity = np.array([sasm.getIofQ(qref) for sasm in sasms])
             self.update_plot_data(frames, intensity, 'intensity', 'left', 'sub')
 
+        return
+
     def _on_qrange_change(self, event):
         control_page = wx.FindWindowByName('LCSeriesControlPanel')
 
         frames = self.secm.getFrames()
 
-        q1 = float(self.q_range_start.GetValue())
-        q2 = float(self.q_range_end.GetValue())
+        try:
+            q1 = float(self.q_range_start.GetValue())
+            q2 = float(self.q_range_end.GetValue())
+        except ValueError:
+            return
 
         label = 'Intensity from q={:.5f} to {:.5f}'.format(q1, q2)
 
@@ -13202,6 +13210,8 @@ class LCSeriesPlotPage(wx.Panel):
             sasms = control_page.results['buffer']['sub_sasms']
             intensity = np.array([sasm.getIofQRange(q1, q2) for sasm in sasms])
             self.update_plot_data(frames, intensity, 'intensity', 'left', 'sub')
+
+        return
 
 class LCSeriesControlPanel(wx.ScrolledWindow):
 
@@ -13719,6 +13729,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         else:
             self.plot_page.update_plot_range(start, end, index, 'gen_sub')
 
+
     def updateBaseline(self, event):
         pass
 
@@ -13748,8 +13759,13 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         if parent_list is self.buffer_range_list:
             self.plot_page.update_plot_range(start, end, index, 'unsub')
+            self.plot_page.show_plot('Unsubtracted')
         else:
             self.plot_page.update_plot_range(start, end, index, 'gen_sub')
+            if self.processing_done['baseline']:
+                self.plot_page.show_plot('Baseline Corrected')
+            elif self.processing_done['buffer']:
+                self.plot_page.show_plot('Subtracted')
 
     def _addSeriesRange(self, parent_list):
         range_item = parent_list.create_items()
@@ -13772,14 +13788,19 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         selected = parent_list.get_selected_items()
 
-        for item in selected:
+        while len(selected) > 0:
+            item = selected[0]
             idx = parent_list.get_item_index(item)
+
             if parent_list is self.buffer_range_list:
                 self.plot_page.remove_plot_range(idx, 'unsub')
             else:
                 self.plot_page.remove_plot_range(idx, 'gen_sub')
 
-        parent_list.remove_selected_items()
+            if len(selected) > 1:
+                parent_list.remove_item(item, resize=False)
+            else:
+                parent_list.remove_item(item, resize=True)
 
     def onSeriesPick(self, event):
         event_object = event.GetEventObject()
@@ -13793,8 +13814,13 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         if parent_list is self.buffer_range_list:
             wx.CallAfter(self.plot_page.pick_plot_range, start_item, end_item, index, 'unsub')
+            wx.CallAfter(self.plot_page.show_plot, 'Unsubtracted')
         else:
             wx.CallAfter(self.plot_page.pick_plot_range, start_item, end_item, index, 'gen_sub')
+            if self.processing_done['baseline']:
+                wx.CallAfter(self.plot_page.show_plot, 'Baseline Corrected')
+            elif self.processing_done['buffer']:
+                wx.CallAfter(self.plot_page.show_plot, 'Subtracted')
 
     def setPickRange(self, index, pick_range, plot_type):
         pick_range.sort()

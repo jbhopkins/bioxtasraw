@@ -1006,6 +1006,8 @@ class FloatSpinCtrlList(wx.Panel):
         try:
             val = float(val)
         except ValueError:
+            current_value = str(self.value_list[self.current_index])
+            self.Scale.ChangeValue(current_value)
             self._showInvalidNumberError()
             return
 
@@ -1023,20 +1025,11 @@ class FloatSpinCtrlList(wx.Panel):
 
     def OnSpinUpScale(self, event):
 
-        val = self.Scale.GetValue()
-        val = val.replace(',', '.')
-
-        try:
-            val = float(val)
-        except ValueError:
-            self._showInvalidNumberError()
-            return
-
         if self.current_index + 1 <= self.max_idx:
             newval = str(self.value_list[self.current_index+1])
             self.current_index = self.current_index + 1
         else:
-            newval = str(val)
+            newval = str(self.value_list[self.current_index])
 
         self.Scale.ChangeValue(newval)
         self.CastFloatSpinEvent()
@@ -1048,20 +1041,11 @@ class FloatSpinCtrlList(wx.Panel):
 
     def OnSpinDownScale(self, event):
 
-        val = self.Scale.GetValue()
-        val = val.replace(',', '.')
-
-        try:
-            val = float(val)
-        except ValueError:
-            self._showInvalidNumberError()
-            return
-
         if self.current_index - 1 >= self.min_idx:
             newval = str(self.value_list[self.current_index - 1])
             self.current_index = self.current_index - 1
         else:
-            newval = str(val)
+            newval = str(self.value_list[self.current_index])
 
         self.Scale.ChangeValue(newval)
         self.CastFloatSpinEvent()
@@ -1456,17 +1440,7 @@ class ItemList(wx.Panel):
 
     def remove_items(self, items):
         for item in items:
-            item.remove()
-
-            if item in self.modified_items:
-                self.modified_items.remove(item)
-
-            if item in self.selected_items:
-                self.selected_items.remove(item)
-
-            self.all_items.remove(item)
-
-            item.Destroy()
+            self.remove_item(item, resize=False)
 
         self.resize_list()
 
@@ -1475,6 +1449,21 @@ class ItemList(wx.Panel):
 
         if len(selected_items) > 0:
             self.remove_items(selected_items)
+
+    def remove_item(self, item, resize=True):
+        item.remove()
+
+        if item in self.modified_items:
+            self.modified_items.remove(item)
+
+        if item in self.selected_items:
+            self.selected_items.remove(item)
+
+        self.all_items.remove(item)
+
+        item.Destroy()
+
+        self.resize_list()
 
     def get_items(self):
         return self.all_items
