@@ -143,7 +143,7 @@ class GuinierPlotPanel(wx.Panel):
 
         error_weight = self.raw_settings.get('errorWeight')
 
-        Rg, I0, Rger, I0er, opt, cov = SASCalc.calcRg(x, y, yerr, transform=False,
+        Rg, I0, Rger, I0er, a, b = SASCalc.calcRg(x, y, yerr, transform=False,
             error_weight=error_weight)
 
         if is_autorg:
@@ -153,8 +153,6 @@ class GuinierPlotPanel(wx.Panel):
             est_rg_err, est_i0_err = self._estimateError(x, y, yerr)
 
         #Get fit statistics:
-        a = opt[0]
-        b = opt[1]
         y_fit = SASCalc.linear_func(x, a, b)
         error = y - y_fit
         r_sqr = 1 - np.square(error).sum()/np.square(y-y.mean()).sum()
@@ -194,10 +192,10 @@ class GuinierPlotPanel(wx.Panel):
             for li in range(0, var+1, step):
                 for ri in range(0,var+1, step):
                     if ri == 0:
-                        Rg, I0, Rger, I0er, opt, cov = SASCalc.calcRg(x[li:],
+                        Rg, I0, Rger, I0er, a, b = SASCalc.calcRg(x[li:],
                             y[li:], yerr[li:], transform=False, error_weight=error_weight)
                     else:
-                        Rg, I0, Rger, I0er, opt, cov = SASCalc.calcRg(x[li:-ri],
+                        Rg, I0, Rger, I0er, a, b = SASCalc.calcRg(x[li:-ri],
                             y[li:-ri], yerr[li:-ri], transform=False, error_weight=error_weight)
 
                     rg_list.append(Rg)

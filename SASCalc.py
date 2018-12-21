@@ -41,6 +41,7 @@ import logging
 import math
 from functools import partial
 from multiprocessing import Pool
+import traceback
 
 import numpy as np
 from scipy import integrate as integrate
@@ -49,6 +50,7 @@ import scipy.interpolate
 import scipy.signal
 from scipy.constants import Avogadro
 from scipy import optimize, ndimage
+from numba import jit
 
 
 import SASFileIO
@@ -60,9 +62,62 @@ import SASProc
 
 
 #Define the rg fit function
+@jit(nopython=True, cache=True, parallel=False)
 def linear_func(x, a, b):
     return a+b*x
 
+@jit(nopython=True, cache=True, parallel=False)
+def weighted_lin_reg(x, y, err):
+    weights = 1./(err)**2.
+
+    w_sum = weights.sum()
+    wy_sum = (weights*y).sum()
+    wx_sum = (weights*x).sum()
+    wxsq_sum = (weights*x**2.).sum()
+    wxy_sum = (weights*x*y).sum()
+
+    delta = weights.sum()*wxsq_sum-(wx_sum)**2.
+
+    if delta != 0:
+        a = (wxsq_sum*wy_sum - wx_sum*wxy_sum)/delta
+        b = (w_sum*wxy_sum - wx_sum*wy_sum)/delta
+
+        cov_a = wxsq_sum/delta
+        cov_b = w_sum/delta
+    else:
+        a = -1
+        b = -1
+        cov_a = -1
+        cov_b = -1
+
+    return a, b, cov_a, cov_b
+
+@jit(nopython=True, cache=True, parallel=False)
+def lin_reg(x, y):
+    x_sum = x.sum()
+    xsq_sum = (x**2).sum()
+    y_sum = y.sum()
+    xy_sum = (x*y).sum()
+    n = len(x)
+
+    delta = n*xsq_sum - x_sum**2.
+
+    if delta !=0:
+        a = (xsq_sum*y_sum - x_sum*xy_sum)/delta
+        b = (n*xy_sum-x_sum*y_sum)/delta
+
+        cov_y = (1./(n-2.))*((y-a-b*x)**2.).sum()
+        cov_a = cov_y*(xsq_sum/delta)
+        cov_b = cov_y*(n/delta)
+    else:
+        a = -1
+        b = -1
+        cov_a = -1
+        cov_b = -1
+
+    return a, b, cov_a, cov_b
+
+@jit(nopython=True, cache=True, parallel=False)
 def calcRg(q, i, err, transform=True, error_weight=True):
     if transform:
         #Start out by transforming as usual.
@@ -74,25 +129,19 @@ def calcRg(q, i, err, transform=True, error_weight=True):
         y = i
         yerr = err
 
-    try:
-        if error_weight:
-            opt, cov = optimize.curve_fit(linear_func, x, y, sigma=yerr, absolute_sigma=True)
-        else:
-            opt, cov = optimize.curve_fit(linear_func, x, y)
-        suc_fit = True
-    except TypeError:
-        opt = []
-        cov = []
-        suc_fit = False
+    if error_weight:
+        a, b, cov_a, cov_b = weighted_lin_reg(x, y, yerr)
+    else:
+        a, b, cov_a, cov_b = lin_reg(x, y)
 
-    if suc_fit and opt[1] < 0 and np.isreal(opt[1]) and np.isreal(opt[0]):
-        RG=np.sqrt(-3.*opt[1])
-        I0=np.exp(opt[0])
+    if b < 0:
+        RG=np.sqrt(-3.*b)
+        I0=np.exp(a)
 
         #error in rg and i0 is calculated by noting that q(x)+/-Dq has Dq=abs(dq/dx)Dx, where q(x) is your function you're using
         #on the quantity x+/-Dx, with Dq and Dx as the uncertainties and dq/dx the derviative of q with respect to x.
-        RGer=np.absolute(0.5*(np.sqrt(-3./opt[1])))*np.sqrt(np.absolute(cov[1,1,]))
-        I0er=I0*np.sqrt(np.absolute(cov[0,0]))
+        RGer=np.absolute(0.5*(np.sqrt(-3./b)))*np.sqrt(np.absolute(cov_b))
+        I0er=I0*np.sqrt(np.absolute(cov_a))
 
     else:
         RG = -1
@@ -100,7 +149,7 @@ def calcRg(q, i, err, transform=True, error_weight=True):
         RGer = -1
         I0er = -1
 
-    return RG, I0, RGer, I0er, opt, cov
+    return RG, I0, RGer, I0er, a, b
 
 def calcRefMW(i0, conc):
     raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -219,10 +268,30 @@ def autoRg(sasm, single_fit=False, error_weight=True):
     i = i[qmin:qmax]
     err = err[qmin:qmax]
 
+    try:
+        rg, rger, i0, i0er, idx_min, idx_max = autoRg_inner(q, i, err, qmin, single_fit, error_weight)
+    except Exception: #Catches unexpected numba errors, I hope
+        traceback.print_exc()
+        rg = -1
+        rger = -1
+        i0 = -1
+        i0er = -1
+        idx_min = -1
+        idx_max = -1
+
+    return rg, rger, i0, i0er, idx_min, idx_max
+
+@jit(nopython=True, cache=True, parallel=False)
+def autoRg_inner(q, i, err, qmin, single_fit, error_weight):
     #Pick the start of the RG fitting range. Note that in autorg, this is done
     #by looking for strong deviations at low q from aggregation or structure factor
     #or instrumental scattering, and ignoring those. This function isn't that advanced
     #so we start at 0.
+
+    # Note, in order to speed this up using numba, I had to do some unpythonic things
+    # with declaring lists ahead of time, and making sure lists didn't have multiple
+    # object types in them. It makes the code a bit more messy than the original
+    # version, but numba provides a significant speedup.
     data_start = 0
 
     #Following the atsas package, the end point of our search space is the q value
@@ -251,7 +320,8 @@ def autoRg(sasm, single_fit=False, error_weight=True):
 
     max_window = data_end-data_start
 
-    fit_list = []
+    if max_window<min_window:
+        max_window = min_window
 
     #It is very time consuming to search every possible window size and every possible starting point.
     #Here we define a subset to search.
@@ -264,10 +334,38 @@ def autoRg(sasm, single_fit=False, error_weight=True):
     if data_step ==0:
         data_step =1
 
-    window_list = range(min_window,max_window, window_step)
-    window_list.append(max_window)
+    window_list = [0 for k in range(int(math.ceil((max_window-min_window)/float(window_step)))+1)]
 
+    for k in range(int(math.ceil((max_window-min_window)/float(window_step)))):
+        window_list[k] = min_window+k*window_step
 
+    window_list[-1] = max_window
+
+    num_fits = 0
+
+    for w in window_list:
+        num_fits = num_fits + int(math.ceil((data_end-w-data_start)/float(data_step)))
+
+    if num_fits < 0:
+        num_fits = 1
+
+    start_list = [0 for k in range(num_fits)]
+    w_list = [0 for k in range(num_fits)]
+    q_start_list = [0. for k in range(num_fits)]
+    q_end_list = [0. for k in range(num_fits)]
+    rg_list = [0. for k in range(num_fits)]
+    rger_list = [0. for k in range(num_fits)]
+    i0_list = [0. for k in range(num_fits)]
+    i0er_list = [0. for k in range(num_fits)]
+    qrg_start_list = [0. for k in range(num_fits)]
+    qrg_end_list = [0. for k in range(num_fits)]
+    rsqr_list = [0. for k in range(num_fits)]
+    chi_sqr_list = [0. for k in range(num_fits)]
+    reduced_chi_sqr_list = [0. for k in range(num_fits)]
+
+    success = np.zeros(num_fits)
+
+    current_fit = 0
     #This function takes every window size in the window list, stepts it through the data range, and
     #fits it to get the RG and I0. If basic conditions are met, qmin*RG<1 and qmax*RG<1.35, and RG>0.1,
     #We keep the fit.
@@ -287,12 +385,9 @@ def autoRg(sasm, single_fit=False, error_weight=True):
             y = y[np.where(np.isinf(y) == False)]
 
 
-            RG, I0, RGer, I0er, opt, cov = calcRg(x, y, yerr, transform=False, error_weight=error_weight)
+            RG, I0, RGer, I0er, a, b = calcRg(x, y, yerr, transform=False, error_weight=error_weight)
 
             if RG>0.1 and q[start]*RG<1 and q[start+w-1]*RG<1.35 and RGer/RG <= 1:
-
-                a = opt[0]
-                b = opt[1]
 
                 r_sqr = 1 - np.square(il[start:start+w]-linear_func(qs[start:start+w], a, b)).sum()/np.square(il[start:start+w]-il[start:start+w].mean()).sum()
 
@@ -305,15 +400,35 @@ def autoRg(sasm, single_fit=False, error_weight=True):
                     dof = w - 2.
                     reduced_chi_sqr = chi_sqr/dof
 
-                    fit_list.append([start, w, q[start], q[start+w-1], RG, RGer, I0, I0er, q[start]*RG, q[start+w-1]*RG, r_sqr, chi_sqr, reduced_chi_sqr])
+                    start_list[current_fit] = start
+                    w_list[current_fit] = w
+                    q_start_list[current_fit] = q[start]
+                    q_end_list[current_fit] = q[start+w-1]
+                    rg_list[current_fit] = RG
+                    rger_list[current_fit] = RGer
+                    i0_list[current_fit] = I0
+                    i0er_list[current_fit] = I0er
+                    qrg_start_list[current_fit] = q[start]*RG
+                    qrg_end_list[current_fit] = q[start+w-1]*RG
+                    rsqr_list[current_fit] = r_sqr
+                    chi_sqr_list[current_fit] = chi_sqr
+                    reduced_chi_sqr_list[current_fit] = reduced_chi_sqr
 
+                    # fit_list[current_fit] = [start, w, q[start], q[start+w-1], RG, RGer, I0, I0er, q[start]*RG, q[start+w-1]*RG, r_sqr, chi_sqr, reduced_chi_sqr]
+                    success[current_fit] = 1
+
+            current_fit = current_fit + 1
     #Extreme cases: may need to relax the parameters.
-    if len(fit_list)<1:
+    if np.sum(success) == 0:
         #Stuff goes here
         pass
 
-    if len(fit_list)>0:
-        fit_list = np.array(fit_list)
+    if np.sum(success) > 0:
+
+        fit_array = np.array([[start_list[k], w_list[k], q_start_list[k],
+            q_end_list[k], rg_list[k], rger_list[k], i0_list[k], i0er_list[k],
+            qrg_start_list[k], qrg_end_list[k], rsqr_list[k], chi_sqr_list[k],
+            reduced_chi_sqr_list[k]] for k in range(num_fits) if success[k]==1])
 
         #Now we evaluate the quality of the fits based both on fitting data and on other criteria.
 
@@ -330,78 +445,54 @@ def autoRg(sasm, single_fit=False, error_weight=True):
         weights = np.array([qmaxrg_weight, qminrg_weight, rg_frac_err_weight, i0_frac_err_weight, r_sqr_weight,
                             reduced_chi_sqr_weight, window_size_weight])
 
-        quality = np.zeros(len(fit_list))
+        quality = np.zeros(len(fit_array))
 
         max_window_real = float(window_list[-1])
 
-        all_scores = []
+        # all_scores = [np.array([]) for k in range(len(fit_array))]
 
         #This iterates through all the fits, and calculates a score. The score is out of 1, 1 being the best, 0 being the worst.
-        for a in range(len(fit_list)):
-            #Scores all should be 1 based. Reduced chi_square score is not, hence it not being weighted.
+        indices = range(len(fit_array))
+        for a in indices:
+            k=int(a) #This is stupid and should not be necessary. Numba bug?
 
-            qmaxrg_score = 1-np.absolute((fit_list[a,9]-1.3)/1.3)
-            qminrg_score = 1-fit_list[a,8]
-            rg_frac_err_score = 1-fit_list[a,5]/fit_list[a,4]
-            i0_frac_err_score = 1 - fit_list[a,7]/fit_list[a,6]
-            r_sqr_score = fit_list[a,10]
-            reduced_chi_sqr_score = 1/fit_list[a,12] #Not right
-            window_size_score = fit_list[a,1]/max_window_real
+            #Scores all should be 1 based. Reduced chi_square score is not, hence it not being weighted.
+            qmaxrg_score = 1-abs((fit_array[k,9]-1.3)/1.3)
+            qminrg_score = 1-fit_array[k,8]
+            rg_frac_err_score = 1-fit_array[k,5]/fit_array[k,4]
+            i0_frac_err_score = 1 - fit_array[k,7]/fit_array[k,6]
+            r_sqr_score = fit_array[k,10]
+            reduced_chi_sqr_score = 1/fit_array[k,12] #Not right
+            window_size_score = fit_array[k,1]/max_window_real
 
             scores = np.array([qmaxrg_score, qminrg_score, rg_frac_err_score, i0_frac_err_score, r_sqr_score,
                                reduced_chi_sqr_score, window_size_score])
 
             total_score = (weights*scores).sum()/weights.sum()
 
-            quality[a] = total_score
+            quality[k] = total_score
 
-            all_scores.append(scores)
+            # all_scores[k] = scores
 
 
         #I have picked an aribtrary threshold here. Not sure if 0.6 is a good quality cutoff or not.
         if quality.max() > 0.6:
-            # idx = quality.argmax()
-            # rg = fit_list[idx,4]
-            # rger1 = fit_list[idx,5]
-            # i0 = fit_list[idx,6]
-            # i0er = fit_list[idx,7]
-            # idx_min = fit_list[idx,0]
-            # idx_max = fit_list[idx,0]+fit_list[idx,1]
-
-            # try:
-            #     #This adds in uncertainty based on the standard deviation of values with high quality scores
-            #     #again, the range of the quality score is fairly aribtrary. It should be refined against real
-            #     #data at some point.
-            #     rger2 = fit_list[:,4][quality>quality[idx]-.1].std()
-            #     rger = rger1 + rger2
-            # except:
-            #     rger = rger1
-
             if not single_fit:
-                try:
-                    idx = quality.argmax()
-                    rg = fit_list[:,4][quality>quality[idx]-.1].mean()
-                    rger = fit_list[:,5][quality>quality[idx]-.1].std()
-                    i0 = fit_list[:,6][quality>quality[idx]-.1].mean()
-                    i0er = fit_list[:,7][quality>quality[idx]-.1].std()
-                    idx_min = int(fit_list[idx,0])
-                    idx_max = int(fit_list[idx,0]+fit_list[idx,1]-1)
-                except:
-                    idx = quality.argmax()
-                    rg = fit_list[idx,4]
-                    rger = fit_list[idx,5]
-                    i0 = fit_list[idx,6]
-                    i0er = fit_list[idx,7]
-                    idx_min = int(fit_list[idx,0])
-                    idx_max = int(fit_list[idx,0]+fit_list[idx,1]-1)
+                idx = quality.argmax()
+                rg = fit_array[:,4][quality>quality[idx]-.1].mean()
+                rger = fit_array[:,5][quality>quality[idx]-.1].std()
+                i0 = fit_array[:,6][quality>quality[idx]-.1].mean()
+                i0er = fit_array[:,7][quality>quality[idx]-.1].std()
+                idx_min = int(fit_array[idx,0])
+                idx_max = int(fit_array[idx,0]+fit_array[idx,1]-1)
             else:
                 idx = quality.argmax()
-                rg = fit_list[idx,4]
-                rger = fit_list[idx,5]
-                i0 = fit_list[idx,6]
-                i0er = fit_list[idx,7]
-                idx_min = int(fit_list[idx,0])
-                idx_max = int(fit_list[idx,0]+fit_list[idx,1]-1)
+                rg = fit_array[idx,4]
+                rger = fit_array[idx,5]
+                i0 = fit_array[idx,6]
+                i0er = fit_array[idx,7]
+                idx_min = int(fit_array[idx,0])
+                idx_max = int(fit_array[idx,0]+fit_array[idx,1]-1)
 
         else:
             rg = -1
@@ -418,8 +509,8 @@ def autoRg(sasm, single_fit=False, error_weight=True):
         i0er = -1
         idx_min = -1
         idx_max = -1
-        quality = []
-        all_scores = []
+        # quality = []
+        # all_scores = []
 
     idx_min = idx_min + qmin
     idx_max = idx_max + qmin
@@ -429,6 +520,7 @@ def autoRg(sasm, single_fit=False, error_weight=True):
 
     #returns Rg, Rg error, I0, I0 error, the index of the first q point of the fit and the index of the last q point of the fit
     return rg, rger, i0, i0er, idx_min, idx_max
+
 
 
 def calcVcMW(sasm, rg, i0, protein = True, interp = True):
@@ -1908,7 +2000,9 @@ def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
 
                 #Now use the rambo tainer 2013 method to calculate molecular weight
                 if rg[index] > 0:
+
                     vcmw[index], vcmwer[index], junk1, junk2 = calcVcMW(current_sasm, rg[index], i0[index], is_protein)
+
                     vpmw[index], vp[index], vpcor[index] = calcVpMW(current_sasm.getQ(),
                         current_sasm.getI(), current_sasm.getErr(), rg[index], i0[index],
                         current_sasm.q[idx_min], vp_density)
