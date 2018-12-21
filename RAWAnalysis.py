@@ -2581,7 +2581,7 @@ class GNOMFrame(wx.Frame):
 
     def showBusy(self, show=True):
         if show:
-            self.bi = wx.BusyInfo('Initializing GNOM, pleae wait.', self)
+            self.bi = wx.BusyInfo('Initializing GNOM, please wait.', self)
         else:
             del self.bi
             self.bi = None
@@ -8102,7 +8102,7 @@ class AmbimeterFrame(wx.Frame):
 
     def showBusy(self, show=True):
         if show:
-            self.bi = wx.BusyInfo('Running AMBIMETER, pleae wait.', self)
+            self.bi = wx.BusyInfo('Running AMBIMETER, please wait.', self)
         else:
             del self.bi
             self.bi = None
@@ -12455,11 +12455,27 @@ class LCSeriesFrame(wx.Frame):
                 size[1] = size[1] + 20
                 self.SetSize(size)
 
+        self.Bind(wx.EVT_CLOSE, self.OnCloseEvt)
+
         self.CenterOnParent()
         self.Raise()
 
+    def showBusy(self, show=True, msg=''):
+        if show:
+            self.bi = wx.BusyInfo(msg, self)
+        else:
+            try:
+                del self.bi
+                self.bi = None
+            except Exception:
+                pass
+
+    def OnCloseEvt(self, evt):
+        self.OnClose()
+
     def OnClose(self):
-            self.Destroy()
+        self.showBusy(show=False)
+        self.Destroy()
 
 
 class SeriesPlotPanel(wx.Panel):
@@ -13227,6 +13243,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.raw_settings = self.main_frame.raw_settings
 
         self.plot_page = wx.FindWindowByName('LCSeriesPlotPage')
+        self.series_frame = wx.FindWindowByName('LCSeriesFrame')
 
         self.question_thread_wait_event = threading.Event()
         self.question_return_queue = Queue.Queue()
@@ -13265,7 +13282,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         frames = self.secm.getFrames()
 
         close_button = wx.Button(self, wx.ID_OK, 'OK')
-        close_button.Bind(wx.EVT_BUTTON, self.onCloseButton)
+        close_button.Bind(wx.EVT_BUTTON, self.onOkButton)
 
         cancel_button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
         cancel_button.Bind(wx.EVT_BUTTON, self.onCancelButton)
@@ -13561,7 +13578,12 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         elif self.processing_done['buffer']:
             self.plot_page.show_plot('Subtracted')
 
-    def onCloseButton(self, evt):
+    def onOkButton(self, evt):
+        t = threading.Thread(target=self.saveResults)
+        t.daemon = True
+        t.start()
+
+    def saveResults(self):
         self.original_secm.acquireSemaphore()
 
         if self.processing_done['buffer']:
@@ -13575,7 +13597,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
             if len(self.secm.getAllSASMs()) == len(self.original_secm.getAllSASMs()):
                 sub_sasms = self.results['buffer']['sub_sasms']
-                use_sub_sasms = self.results['buffer']['sub_sasms']
+                use_sub_sasms = self.results['buffer']['use_sub_sasms']
 
             else:
                 calc_threshold = self.raw_settings.get('secCalcThreshold')
@@ -13589,8 +13611,13 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
                     qrange = (q1, q2)
 
-                sub_sasms, use_sub_sasms = self.original_secm.subtractSASMs(buffer_sasm,
-                    self.plot_page.intensity, calc_threshold, qref, qrange)
+                new_sasms = self.original_secm.getAllSASMs()[len(self.secm.getAllSASMs()):]
+
+                new_sub_sasms, new_use_sub_sasms = self.original_secm.subtractSASMs(buffer_sasm,
+                    new_sasms, self.plot_page.intensity, calc_threshold, qref, qrange)
+
+                sub_sasms = self.results['buffer']['sub_sasms'] + new_sub_sasms
+                use_sub_sasms = self.results['buffer']['use_sub_sasms'] + new_use_sub_sasms
 
             self.original_secm.setSubtractedSASMs(sub_sasms, use_sub_sasms)
 
@@ -13613,37 +13640,63 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 vcmwer = self.results['calc']['vcmwer']
                 vpmw = self.results['calc']['vpmw']
             else:
-                if self.processing_done['baseline']:
-                    sub_sasms = self.results['baseline']['sub_sasms']
-                    use_sub_sasms = self.results['baseline']['use_sub_sasms']
+                mol_type = self.vc_mol_type.GetStringSelection()
+
+                if mol_type == 'Protein':
+                    is_protein = True
                 else:
-                    sub_sasms = self.results['buffer']['sub_sasms']
-                    use_sub_sasms = self.results['buffer']['use_sub_sasms']
+                    is_protein = False
 
-                    mol_type = self.vc_mol_type.GetStringSelection()
+                error_weight = self.raw_settings.get('errorWeight')
+                window_size = int(self.avg_window.GetValue())
+                vp_density = float(self.vp_density.GetValue())
 
-                    if mol_type == 'Protein':
-                        is_protein = True
-                    else:
-                        is_protein = False
+                first_update_frame = int(self.original_secm.plot_frame_list[len(self.secm.getAllSASMs())])
+                last_frame = int(self.original_secm.plot_frame_list[-1])
 
-                    error_weight = self.raw_settings.get('errorWeight')
+                first_frame = first_update_frame - window_size
 
-                    window_size = int(self.avg_window.GetValue())
-                    vp_density = float(self.vp_density.GetValue())
+                if first_frame <0:
+                    first_frame = 0
 
-                    success, results = SASCalc.run_secm_calcs(sub_sasms,
-                        use_sub_sasms, window_size, is_protein, error_weight,
-                        vp_density)
+                if self.processing_done['baseline']:
+                    sub_sasms = self.original_secm.baseline_subtracted_sasm_list[first_frame:last_frame+1]
+                    use_sub_sasms = self.original_secm.use_baseline_subtracted_sasm[first_frame:last_frame+1]
+                else:
+                    sub_sasms = self.original_secm.subtracted_sasm_list[first_frame:last_frame+1]
+                    use_sub_sasms = self.original_secm.use_subtracted_sasm[first_frame:last_frame+1]
 
-                    if success:
-                        rg = results['rg']
-                        rger = results['rger']
-                        i0 = results['i0']
-                        i0er = results['i0er']
-                        vcmw = results['vcmw']
-                        vcmwer = results['vcmwer']
-                        vpmw = results['vpmw']
+                success, results = SASCalc.run_secm_calcs(sub_sasms,
+                    use_sub_sasms, window_size, is_protein, error_weight,
+                    vp_density)
+
+                if success:
+                    new_rg = results['rg']
+                    new_rger = results['rger']
+                    new_i0 = results['i0']
+                    new_i0er = results['i0er']
+                    new_vcmw = results['vcmw']
+                    new_vcmwer = results['vcmwer']
+                    new_vpmw = results['vpmw']
+
+                    rg = self.results['calc']['rg']
+                    rger = self.results['calc']['rger']
+                    i0 = self.results['calc']['i0']
+                    i0er = self.results['calc']['i0er']
+                    vcmw = self.results['calc']['vcmw']
+                    vcmwer = self.results['calc']['vcmwer']
+                    vpmw = self.results['calc']['vpmw']
+
+                    index1 = first_frame+(window_size-1)/2
+                    index2 = (window_size-1)/2
+
+                    rg = np.concatenate((rg[:index1], new_rg[index2:]))
+                    rger = np.concatenate((rger[:index1], new_rger[index2:]))
+                    i0 = np.concatenate((i0[:index1], new_i0[index2:]))
+                    i0er = np.concatenate((i0er[:index1], new_i0er[index2:]))
+                    vcmw = np.concatenate((vcmw[:index1], new_vcmw[index2:]))
+                    vcmwer = np.concatenate((vcmwer[:index1], new_vcmwer[index2:]))
+                    vpmw = np.concatenate((vpmw[:index1], new_vpmw[index2:]))
 
             if rg.size>0:
                 self.original_secm.setCalcValues(rg, rger, i0, i0er, vcmw, vcmwer, vpmw)
@@ -13659,18 +13712,11 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         diag = wx.FindWindowByName('LCSeriesFrame')
         wx.CallAfter(diag.manip_item.updateInfoTip)
         wx.CallAfter(diag.manip_item.markAsModified)
-        diag.OnClose()
+        wx.CallAfter(diag.OnClose)
 
     def onCancelButton(self, evt):
         diag = wx.FindWindowByName('LCSeriesFrame')
         diag.OnClose()
-
-    def showBusy(self, show=True, msg=''):
-        if show:
-            self.bi = wx.BusyInfo(msg, self)
-        else:
-            del self.bi
-            self.bi = None
 
     def onUpdateProc(self, event):
         event_object = event.GetEventObject()
@@ -13699,7 +13745,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 self.continue_processing = False
 
         if self.continue_processing:
-            wx.CallAfter(self.showBusy, True, 'Please wait, processing.')
+            wx.CallAfter(self.series_frame.showBusy, True, 'Please wait, processing.')
 
         for step in processing_steps:
             if not self.continue_processing:
@@ -13709,7 +13755,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 self.process[step]()
 
 
-        wx.CallAfter(self.showBusy, False)
+        wx.CallAfter(self.series_frame.showBusy, False)
 
     def updateSeriesRange(self, event):
         event_object = event.GetEventObject()
@@ -14087,7 +14133,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 #     msg = msg + ', '.join(map(str, frame_idx[sn_results['low_sn']]))
                 #     msg = msg + '\n'
 
-                wx.CallAfter(self.showBusy, False)
+                wx.CallAfter(self.series_frame.showBusy, False)
                 answer = self._displayQuestionDialog(msg,
                     'Warning: Selected buffer frames are different',
                 [('Cancel', wx.ID_CANCEL), ('Continue', wx.ID_YES)],
@@ -14117,7 +14163,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
                 qrange = (q1, q2)
 
-            subtracted_sasms, use_subtracted_sasm = self.secm.subtractSASMs(avg_sasm,
+            subtracted_sasms, use_subtracted_sasm = self.secm.subtractAllSASMs(avg_sasm,
                 self.plot_page.intensity, calc_threshold, qref, qrange)
 
         else:
@@ -14558,7 +14604,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         if not valid:
             return
 
-        wx.CallAfter(self.showBusy, True, 'Please wait, processing.')
+        wx.CallAfter(self.series_frame.showBusy, True, 'Please wait, processing.')
 
         sample_items = self.sample_range_list.get_items()
         sample_range_list = [item.get_range() for item in sample_items]
@@ -14663,7 +14709,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 msg = msg + ', '.join(map(str, frame_idx[sn_results['low_sn']]))
                 msg = msg + '\n'
 
-            wx.CallAfter(self.showBusy, False)
+            wx.CallAfter(self.series_frame.showBusy, False)
             answer = self._displayQuestionDialog(msg,
                 'Warning: Selected sample frames are different',
             [('Cancel', wx.ID_CANCEL), ('Continue', wx.ID_YES)],
@@ -14672,7 +14718,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             if answer[0] != wx.ID_YES:
                 return
             else:
-                wx.CallAfter(self.showBusy, True, 'Please wait, processing.')
+                wx.CallAfter(self.series_frame.showBusy, True, 'Please wait, processing.')
 
 
         if (not self.processing_done['baseline'] and
@@ -14701,7 +14747,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.results['sample'] = {'sample_range'    : sample_range_list,
             }
 
-        wx.CallAfter(self.showBusy, False)
+        wx.CallAfter(self.series_frame.showBusy, False)
 
         return
 
@@ -14711,7 +14757,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         t.start()
 
     def _findBufferRange(self):
-        wx.CallAfter(self.showBusy, True, 'Please wait, processing.')
+        wx.CallAfter(self.series_frame.showBusy, True, 'Please wait, processing.')
 
         total_i = self.secm.getIntI()
         buffer_sasms = self.secm.getAllSASMs()
@@ -14784,7 +14830,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             msg = ("Failed to find a valid buffer range.")
             wx.CallAfter(wx.MessageBox, msg, "Buffer range not found", style=wx.ICON_ERROR|wx.OK)
 
-        wx.CallAfter(self.showBusy, False)
+        wx.CallAfter(self.series_frame.showBusy, False)
 
 
     def _onSampleAuto(self, event):
@@ -14799,7 +14845,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             wx.CallAfter(wx.MessageBox, msg, "Requires buffer region", style=wx.ICON_ERROR|wx.OK)
 
     def _findSampleRange(self):
-        wx.CallAfter(self.showBusy, True, 'Please wait, processing.')
+        wx.CallAfter(self.series_frame.showBusy, True, 'Please wait, processing.')
 
         if self.processing_done['baseline']:
             sub_sasms = self.results['baseline']['sub_sasms']
@@ -14823,7 +14869,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         peaks, peak_params = SASCalc.find_peaks(norm_sdata)
 
         if len(peaks) == 0:
-            wx.CallAfter(self.showBusy, False)
+            wx.CallAfter(self.series_frame.showBusy, False)
             msg = ("Failed to find a valid sample range.")
             wx.CallAfter(wx.MessageBox, msg, "Sample range not found", style=wx.ICON_ERROR|wx.OK)
             return
@@ -14884,7 +14930,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             wx.CallAfter(wx.MessageBox, msg, "Sample range not found", style=wx.ICON_ERROR|wx.OK)
 
 
-        wx.CallAfter(self.showBusy, False)
+        wx.CallAfter(self.series_frame.showBusy, False)
 
     def _addAutoSampleRange(self, region_start, region_end):
         index, j1, j2 = self._addSeriesRange(self.sample_range_list)

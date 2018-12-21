@@ -1292,7 +1292,7 @@ class SECM(object):
         self.i0er_list = np.concatenate((self.i0er_list[:index1],i0er[index2:]))
         self.vcmw_list = np.concatenate((self.vcmw_list[:index1], vcmw[index2:]))
         self.vcmwer_list = np.concatenate((self.vcmwer_list[:index1], vcmwer[index2:]))
-        self.vcmw_list = np.concatenate((self.vcmw_list[:index1], vcmw[index2:]))
+        self.vpmw_list = np.concatenate((self.vpmw_list[:index1], vpmw[index2:]))
 
     def acquireSemaphore(self):
         self.my_semaphore.acquire()
@@ -1349,7 +1349,7 @@ class SECM(object):
 
         return average_sasm, True, ''
 
-    def subtractSASMs(self, buffer_sasm, int_type, threshold, qref=None, qrange=None):
+    def subtractAllSASMs(self, buffer_sasm, int_type, threshold, qref=None, qrange=None):
         subtracted_sasms = []
         use_subtracted_sasms = []
 
@@ -1365,6 +1365,48 @@ class SECM(object):
             ref_intensity = buffer_sasm.getIofQRange(qrange[0], qrange[1])
 
         for sasm in self.getAllSASMs():
+            subtracted_sasm = SASProc.subtract(sasm, buffer_sasm, forced = True)
+            subtracted_sasm.setParameter('filename', 'S_{}'.format(subtracted_sasm.getParameter('filename')))
+
+            subtracted_sasms.append(subtracted_sasm)
+
+            #check to see whether we actually need to subtract this curve
+            if int_type == 'total':
+                sasm_intensity = sasm.getTotalI()
+
+            elif int_type == 'mean':
+                sasm_intensity = sasm.getMeanI()
+
+            elif int_type == 'q_val':
+                sasm_intensity = sasm.getIofQ(qref)
+            elif int_type == 'q_range':
+                sasm_intensity = sasm.getIofQRange(qrange[0], qrange[1])
+
+            if sasm_intensity/ref_intensity > threshold:
+                use_subtracted_sasms.append(True)
+            else:
+                use_subtracted_sasms.append(False)
+
+        return subtracted_sasms, use_subtracted_sasms
+
+    @staticmethod
+    def subtractSASMs(buffer_sasm, sasms, int_type, threshold, qref=None,
+        qrange=None):
+        subtracted_sasms = []
+        use_subtracted_sasms = []
+
+        if int_type == 'total':
+            ref_intensity = buffer_sasm.getTotalI()
+
+        elif int_type == 'mean':
+            ref_intensity = buffer_sasm.getMeanI()
+
+        elif int_type == 'q_val':
+           ref_intensity = buffer_sasm.getIofQ(qref)
+        elif int_type == 'q_range':
+            ref_intensity = buffer_sasm.getIofQRange(qrange[0], qrange[1])
+
+        for sasm in sasms:
             subtracted_sasm = SASProc.subtract(sasm, buffer_sasm, forced = True)
             subtracted_sasm.setParameter('filename', 'S_{}'.format(subtracted_sasm.getParameter('filename')))
 

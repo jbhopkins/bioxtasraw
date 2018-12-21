@@ -3009,7 +3009,6 @@ class MainWorkerThread(threading.Thread):
 
         secm.append(filename_list, sasm_list, frame_list)
 
-
         if secm.calc_has_data:
             self._updateCalcSECParams(secm, range(len(frame_list))+largest_frame+1)
 
@@ -3246,7 +3245,6 @@ class MainWorkerThread(threading.Thread):
             is_protein = False
 
         vp_density = secm.mol_density
-
 
         threshold = self._raw_settings.get('secCalcThreshold')
         error_weight = self._raw_settings.get('errorWeight')
@@ -5360,29 +5358,40 @@ class FilePanel(wx.Panel):
 
     def _onReduceButton(self, event):
 
-        selected_files = self.dir_panel.file_list_box.getSelectedFilenames()
+        files = []
 
-        load_path = self.dir_panel.getDirLabel()
+        for each_filename in self.dir_panel.file_list_box.getSelectedFilenames():
+            if each_filename != '..':
+                path = os.path.join(self.dir_panel.file_list_box.path, each_filename)
 
-        dlg = RAWCustomDialogs.QuickReduceDialog(self, load_path, selected_files)
-        result = dlg.ShowModal()
+                if not os.path.isdir(path):
+                    files.append(path)
 
-        if result == wx.ID_OK:
-            save_path = dlg.getPath()
-        else:
-            return
+        if files:
 
-        dlg.Destroy()
+            load_path = self.dir_panel.getDirLabel()
 
-        mainworker_cmd_queue.put(['quick_reduce', [save_path, load_path, selected_files, '.dat']])
+            dlg = RAWCustomDialogs.QuickReduceDialog(self, load_path, files)
+            result = dlg.ShowModal()
+
+            if result == wx.ID_OK:
+                save_path = dlg.getPath()
+            else:
+                return
+
+            dlg.Destroy()
+
+            mainworker_cmd_queue.put(['quick_reduce', [save_path, load_path, files, '.dat']])
 
 
     def _onShowImageButton(self, event):
 
         if len(self.dir_panel.file_list_box.getSelectedFilenames()) > 0:
             filename = self.dir_panel.file_list_box.getSelectedFilenames()[0]
-            path = os.path.join(self.dir_panel.file_list_box.path, filename)
-            mainworker_cmd_queue.put(['show_image', [path, 0]])
+            if filename != '..':
+                path = os.path.join(self.dir_panel.file_list_box.path, filename)
+                if not os.path.isdir(path):
+                    mainworker_cmd_queue.put(['show_image', [path, 0]])
 
 
 class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.ColumnSorterMixin):
@@ -10691,7 +10700,6 @@ class SECControlPanel(wx.Panel):
                 infobox = wx.FindWindowById(each_id, self)
                 infobox.SetValue('5')
 
-        self.calc_mol_type.SetStringSelection(self._raw_settings.get('MWVcType'))
         self.secm=None
 
         self.filename = ''
