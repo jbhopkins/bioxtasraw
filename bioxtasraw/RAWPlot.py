@@ -433,28 +433,28 @@ class PlotPanel(wx.Panel):
 
         if style.find('l')>-1:
             axes.spines['left'].set_color('black')
-            axes.tick_params(left='on', which = 'both')
+            axes.tick_params(left=True, which = 'both')
         else:
             axes.spines['left'].set_color('none')
-            axes.tick_params(left='off', which = 'both')
+            axes.tick_params(left=False, which = 'both')
         if style.find('r')>-1:
             axes.spines['right'].set_color('black')
-            axes.tick_params(right='on', which = 'both')
+            axes.tick_params(right=True, which = 'both')
         else:
             axes.spines['right'].set_color('none')
-            axes.tick_params(right='off', which = 'both')
+            axes.tick_params(right=False, which = 'both')
         if style.find('t')>-1:
             axes.spines['top'].set_color('black')
-            axes.tick_params(top='on', which = 'both')
+            axes.tick_params(top=True, which = 'both')
         else:
             axes.spines['top'].set_color('none')
-            axes.tick_params(top='off', which = 'both')
+            axes.tick_params(top=False, which = 'both')
         if style.find('b')>-1:
             axes.spines['bottom'].set_color('black')
-            axes.tick_params(bottom='on', which = 'both')
+            axes.tick_params(bottom=True, which = 'both')
         else:
             axes.spines['bottom'].set_color('none')
-            axes.tick_params(bottom='off', which = 'both')
+            axes.tick_params(bottom=False, which = 'both')
 
     def fitAxis(self, axes = None, forced = False):
 
@@ -1417,28 +1417,28 @@ class IftPlotPanel(PlotPanel):
 
         if style.find('l')>-1:
             axes.spines['left'].set_color('black')
-            axes.tick_params(left='on', which = 'both')
+            axes.tick_params(left=True, which = 'both')
         else:
             axes.spines['left'].set_color('none')
-            axes.tick_params(left='off', which = 'both')
+            axes.tick_params(left=False, which = 'both')
         if style.find('r')>-1:
             axes.spines['right'].set_color('black')
-            axes.tick_params(right='on', which = 'both')
+            axes.tick_params(right=True, which = 'both')
         else:
             axes.spines['right'].set_color('none')
-            axes.tick_params(right='off', which = 'both')
+            axes.tick_params(right=False, which = 'both')
         if style.find('t')>-1:
             axes.spines['top'].set_color('black')
-            axes.tick_params(top='on', which = 'both')
+            axes.tick_params(top=True, which = 'both')
         else:
             axes.spines['top'].set_color('none')
-            axes.tick_params(top='off', which = 'both')
+            axes.tick_params(top=False, which = 'both')
         if style.find('b')>-1:
             axes.spines['bottom'].set_color('black')
-            axes.tick_params(bottom='on', which = 'both')
+            axes.tick_params(bottom=True, which = 'both')
         else:
             axes.spines['bottom'].set_color('none')
-            axes.tick_params(bottom='off', which = 'both')
+            axes.tick_params(bottom=False, which = 'both')
 
 
     def fitAxis(self, axes = None, forced = False):
@@ -2819,45 +2819,45 @@ class SECPlotPanel(wx.Panel):
         if axes == self.subplot1:
             if style.find('l')>-1:
                 axes.spines['left'].set_color('black')
-                axes.tick_params(left='on', which = 'both')
+                axes.tick_params(left=True, which = 'both')
             else:
                 axes.spines['left'].set_color('none')
-                axes.tick_params(left='off', which = 'both')
+                axes.tick_params(left=False, which = 'both')
             if style.find('r')>-1:
                 axes.spines['right'].set_color('black')
-                axes.tick_params(right='on', which = 'both')
+                axes.tick_params(right=True, which = 'both')
             else:
                 axes.spines['right'].set_color('none')
-                axes.tick_params(right='off', which = 'both')
+                axes.tick_params(right=False, which = 'both')
             if style.find('t')>-1:
                 axes.spines['top'].set_color('black')
-                axes.tick_params(top='on', which = 'both')
+                axes.tick_params(top=True, which = 'both')
             else:
                 axes.spines['top'].set_color('none')
-                axes.tick_params(top='off', which = 'both')
+                axes.tick_params(top=False, which = 'both')
             if style.find('b')>-1:
                 axes.spines['bottom'].set_color('black')
-                axes.tick_params(bottom='on', which = 'both')
+                axes.tick_params(bottom=True, which = 'both')
             else:
                 axes.spines['bottom'].set_color('none')
-                axes.tick_params(bottom='off', which = 'both')
+                axes.tick_params(bottom=False, which = 'both')
 
         elif axes == self.ryaxis:
             axes.spines['left'].set_color('none')
-            axes.tick_params(left='off', which = 'both')
+            axes.tick_params(left=False, which = 'both')
 
             axes.spines['top'].set_color('none')
-            axes.tick_params(top='off', which = 'both')
+            axes.tick_params(top=False, which = 'both')
 
             axes.spines['bottom'].set_color('none')
-            axes.tick_params(bottom='off', which = 'both')
+            axes.tick_params(bottom=False, which = 'both')
 
             if style.find('r')>-1:
                 axes.spines['right'].set_color('black')
-                axes.tick_params(right='on', which = 'both')
+                axes.tick_params(right=True, which = 'both')
             else:
                 axes.spines['right'].set_color('none')
-                axes.tick_params(right='off', which = 'both')
+                axes.tick_params(right=False, which = 'both')
 
 
     def fitAxis(self, axes = None, forced = False):

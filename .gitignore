@@ -15,11 +15,11 @@ if self.plotparams['plot' + plot_number + 'type'] == 'normal' or self.plotparams
         else:
             # Byte-compiled / optimized / DLL files
 __pycache__/
-/*.py[cod]
+*.py[cod]
 *$py.class
 
 # C extensions
-/*.so
+*.so
 *.cpp
 
 # Distribution / packaging
@@ -126,3 +126,6 @@ venv.bak/
 
 # Mac stuff
 *.DS_Store
+
+# Compiled cython files
+*.c

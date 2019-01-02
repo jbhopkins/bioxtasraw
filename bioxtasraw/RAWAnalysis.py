@@ -7023,7 +7023,7 @@ class DenssPlotPanel(wx.Panel):
         ax0.legend(handles,labels, fontsize='small')
         ax0.semilogy()
         ax0.set_ylabel('I(q)', fontsize='small')
-        ax0.tick_params(labelbottom='off', labelsize='x-small')
+        ax0.tick_params(labelbottom=False, labelsize='x-small')
 
         ax1 = fig.add_subplot(gs[1])
         ax1.plot(qdata, qdata*0, 'k--')
@@ -7061,12 +7061,12 @@ class DenssPlotPanel(wx.Panel):
         ax0.plot(chi[chi>0])
         ax0.set_ylabel('$\chi^2$', fontsize='small')
         ax0.semilogy()
-        ax0.tick_params(labelbottom='off', labelsize='x-small')
+        ax0.tick_params(labelbottom=False, labelsize='x-small')
 
         ax1 = fig.add_subplot(312)
         ax1.plot(rg[rg>0])
         ax1.set_ylabel('Rg', fontsize='small')
-        ax1.tick_params(labelbottom='off', labelsize='x-small')
+        ax1.tick_params(labelbottom=False, labelsize='x-small')
 
         ax2 = fig.add_subplot(313)
         ax2.plot(vol[vol>0])
@@ -13934,67 +13934,38 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         return valid
 
-    def _validateBuffer(self, sasms, frame_idx):
-        total_i = np.array([sasm.getTotalI() for sasm in sasms])
-        max_i_idx = np.argmax(total_i)
+    def _validateBuffer(self, sasms, frame_idx, fast=False):
+        """
+        Note: Test order is by time it takes for large data point frames
+        (>2000). Put the fastest ones first, and if you're doing the automated
+        test it makes it much faster.
+        """
+
+        intensity = self._getRegionIntensity(sasms)
+        max_i_idx = np.argmax(intensity)
 
         ref_sasm = copy.deepcopy(sasms[max_i_idx])
         superimpose_sub_sasms = copy.deepcopy(sasms)
         superimpose_sub_sasms.pop(max_i_idx)
         SASProc.superimpose(ref_sasm, superimpose_sub_sasms, 'Scale')
-
-        #Test for frame similarity
-        all_similar, all_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
-
         qi, qf = ref_sasm.getQrange()
 
-        if qf-qi>200:
-            ref_sasm.setQrange((qi, qi+100))
-            for sasm in superimpose_sub_sasms:
-                sasm.setQrange((qi, qi+100))
-            low_q_similar, low_q_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
 
-
-            ref_sasm.setQrange((qf-100, qf))
-            for sasm in superimpose_sub_sasms:
-                sasm.setQrange((qf-100, qf))
-            high_q_similar, high_q_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
-
-            ref_sasm.setQrange((qi, qf))
-            for sasm in superimpose_sub_sasms:
-                sasm.setQrange((qi, qf))
-        else:
-            low_q_similar = True
-            high_q_similar = True
-            low_q_outliers = []
-            high_q_outliers = []
-
-        similarity_results = {'all_similar'     : all_similar,
-            'low_q_similar'     : low_q_similar,
-            'high_q_similar'    : high_q_similar,
-            'max_idx'           : max_i_idx,
-            'all_outliers'      : all_outliers,
-            'low_q_outliers'    : low_q_outliers,
-            'high_q_outliers'   : high_q_outliers,
-            }
-
-        similar_valid = (all_similar and low_q_similar and high_q_similar)
-
-        #Test for more than one significant singular value
-        svd_results = self._singularValue(sasms)
-
-
-        intI_test = stats.spearmanr(total_i, frame_idx)
+        #Test for frame correlation
+        intI_test = stats.spearmanr(intensity, frame_idx)
         intI_valid = intI_test[1]>0.05
 
-        win_len = len(total_i)/2
+        if fast and not intI_valid:
+            return False, {}, {}, {}
+
+        win_len = len(intensity)/2
         if win_len % 2 == 0:
             win_len = win_len+1
         win_len = min(51, win_len)
 
         order = min(5, win_len-1)
 
-        smoothed_intI = SASCalc.smooth_data(total_i, window_length=win_len,
+        smoothed_intI = SASCalc.smooth_data(intensity, window_length=win_len,
             order=order)
 
         smoothed_intI_test = stats.spearmanr(smoothed_intI, frame_idx)
@@ -14007,6 +13978,63 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             'smoothed_intI_pval'    : smoothed_intI_test[1],
             'smoothed_intI_valid'   : smoothed_intI_valid,
             }
+
+        if fast and not smoothed_intI_valid:
+            return False, {}, {}, intI_results
+
+
+        #Test for regional frame similarity
+        if qf-qi>200:
+            ref_sasm.setQrange((qi, qi+100))
+            for sasm in superimpose_sub_sasms:
+                sasm.setQrange((qi, qi+100))
+            low_q_similar, low_q_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
+
+            if fast and not low_q_similar:
+                ref_sasm.setQrange((qi, qf))
+                for sasm in superimpose_sub_sasms:
+                    sasm.setQrange((qi, qf))
+                return False, {}, {}, intI_results
+
+            ref_sasm.setQrange((qf-100, qf))
+            for sasm in superimpose_sub_sasms:
+                sasm.setQrange((qf-100, qf))
+            high_q_similar, high_q_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
+
+            ref_sasm.setQrange((qi, qf))
+            for sasm in superimpose_sub_sasms:
+                sasm.setQrange((qi, qf))
+
+            if fast and not high_q_similar:
+                return False, {}, {}, intI_results
+
+        else:
+            low_q_similar = True
+            high_q_similar = True
+            low_q_outliers = []
+            high_q_outliers = []
+
+
+        #Test for more than one significant singular value
+        svd_results = self._singularValue(sasms)
+
+        if fast and not svd_results['svals']==1:
+            return False, {}, svd_results, intI_results
+
+
+        #Test for all frame similarity
+        all_similar, all_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
+
+        similarity_results = {'all_similar'     : all_similar,
+            'low_q_similar'     : low_q_similar,
+            'high_q_similar'    : high_q_similar,
+            'max_idx'           : max_i_idx,
+            'all_outliers'      : all_outliers,
+            'low_q_outliers'    : low_q_outliers,
+            'high_q_outliers'   : high_q_outliers,
+            }
+
+        similar_valid = (all_similar and low_q_similar and high_q_similar)
 
         valid = similar_valid and svd_results['svals']==1 and intI_valid and smoothed_intI_valid
 
@@ -14116,8 +14144,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                         msg = msg + '\n'
 
                 if not intI_results['intI_valid']:
-                    msg = msg+('\nPossible correlations between integrated intensity '
-                        'and frame number\nwere detected (no correlation is expected for '
+                    msg = msg+('\nPossible correlations between intensity and frame '
+                        'number were detected\n(no correlation is expected for '
                         'buffer regions)\n')
 
                 if svd_results['svals'] > 1:
@@ -14136,6 +14164,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                     'Warning: Selected buffer frames are different',
                 [('Cancel', wx.ID_CANCEL), ('Continue', wx.ID_YES)],
                 wx.ART_WARNING)
+
+                wx.CallAfter(self.series_frame.showBusy, True)
 
                 if answer[0] != wx.ID_YES:
                     self.continue_processing = False
@@ -14202,21 +14232,58 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
     def plotSubtracted(self):
         frames = self.secm.getFrames()
 
+        intensity = self._getIntensity('buffer')
+
+        self.plot_page.update_plot_data(frames, intensity, 'intensity', 'left', 'sub')
+
+    def _getIntensity(self, int_type):
+
+        if int_type == 'unsub':
+            if self.plot_page.intensity == 'total':
+                intensity = self.secm.getIntI()
+            elif self.plot_page.intensity == 'mean':
+                intensity = self.secm.getMeanI()
+            elif self.plot_page.intensity == 'q_val':
+                qref = float(self.plot_page.q_val.GetValue())
+                sasms = self.secm.getAllSASMs()
+                intensity = np.array([sasm.getIofQ(qref) for sasm in sasms])
+            elif self.plot_page.intensity == 'q_range':
+                q1 = float(self.plot_page.q_range_start.GetValue())
+                q2 = float(self.plot_page.q_range_end.GetValue())
+                sasms = self.secm.getAllSASMs()
+                intensity = np.array([sasm.getIofQRange(q1, q2) for sasm in sasms])
+
+        else:
+            if self.plot_page.intensity == 'total':
+                intensity = self.results[int_type]['sub_total_i']
+            elif self.plot_page.intensity == 'mean':
+                intensity = self.results[int_type]['sub_mean_i']
+            elif self.plot_page.intensity == 'q_val':
+                qref = float(self.plot_page.q_val.GetValue())
+                sasms = self.results[int_type]['sub_sasms']
+                intensity = np.array([sasm.getIofQ(qref) for sasm in sasms])
+            elif self.plot_page.intensity == 'q_range':
+                q1 = float(self.plot_page.q_range_start.GetValue())
+                q2 = float(self.plot_page.q_range_end.GetValue())
+                sasms = self.results[int_type]['sub_sasms']
+                intensity = np.array([sasm.getIofQRange(q1, q2) for sasm in sasms])
+
+        return intensity
+
+    def _getRegionIntensity(self, sasms):
         if self.plot_page.intensity == 'total':
-            intensity = self.results['buffer']['sub_total_i']
+            intensity = np.array([sasm.getTotalI() for sasm in sasms])
         elif self.plot_page.intensity == 'mean':
-            intensity = self.results['buffer']['sub_mean_i']
+            intensity = np.array([sasm.getMeanI() for sasm in sasms])
         elif self.plot_page.intensity == 'q_val':
             qref = float(self.plot_page.q_val.GetValue())
-            sasms = self.results['buffer']['sub_sasms']
             intensity = np.array([sasm.getIofQ(qref) for sasm in sasms])
         elif self.plot_page.intensity == 'q_range':
             q1 = float(self.plot_page.q_range_start.GetValue())
             q2 = float(self.plot_page.q_range_end.GetValue())
-            sasms = self.results['buffer']['sub_sasms']
             intensity = np.array([sasm.getIofQRange(q1, q2) for sasm in sasms])
 
-        self.plot_page.update_plot_data(frames, intensity, 'intensity', 'left', 'sub')
+        return intensity
 
     def processBaseline(self):
         pass
@@ -14355,51 +14422,15 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         return valid
 
-    def _validateSample(self, sub_sasms, frame_idx):
-        total_i = np.array([sasm.getTotalI() for sasm in sub_sasms])
-        max_i_idx = np.argmax(total_i)
+    def _validateSample(self, sub_sasms, frame_idx, fast=False):
+        intensity = self._getRegionIntensity(sub_sasms)
+        max_i_idx = np.argmax(intensity)
 
         ref_sasm = copy.deepcopy(sub_sasms[max_i_idx])
         superimpose_sub_sasms = copy.deepcopy(sub_sasms)
         superimpose_sub_sasms.pop(max_i_idx)
         SASProc.superimpose(ref_sasm, superimpose_sub_sasms, 'Scale')
-
-        #Test for frame similarity
-        all_similar, all_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
-
         qi, qf = ref_sasm.getQrange()
-
-        if qf-qi>200:
-            ref_sasm.setQrange((qi, qi+100))
-            for sasm in superimpose_sub_sasms:
-                sasm.setQrange((qi, qi+100))
-            low_q_similar, low_q_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
-
-
-            ref_sasm.setQrange((qf-100, qf))
-            for sasm in superimpose_sub_sasms:
-                sasm.setQrange((qf-100, qf))
-            high_q_similar, high_q_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
-
-            ref_sasm.setQrange((qi, qf))
-            for sasm in superimpose_sub_sasms:
-                sasm.setQrange((qi, qf))
-        else:
-            low_q_similar = True
-            high_q_similar = True
-            low_q_outliers = []
-            high_q_outliers = []
-
-        similarity_results = {'all_similar'     : all_similar,
-            'low_q_similar'     : low_q_similar,
-            'high_q_similar'    : high_q_similar,
-            'max_idx'           : max_i_idx,
-            'all_outliers'      : all_outliers,
-            'low_q_outliers'    : low_q_outliers,
-            'high_q_outliers'   : high_q_outliers,
-            }
-
-        similar_valid = (all_similar and low_q_similar and high_q_similar)
 
 
         #Test for calc param similarity
@@ -14408,10 +14439,20 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         vpmw = self.results['calc']['vpmw'][frame_idx]
 
         rg_test = stats.spearmanr(rg, frame_idx)
+        rg_valid = rg_test[1]>0.05
+
+        if fast and not rg_valid:
+            return False, {}, {}, {}, {}
+
         vcmw_test = stats.spearmanr(vcmw, frame_idx)
+        vcmw_valid = vcmw_test[1]>0.05
+
+        if fast and not vcmw_valid:
+            return False, {}, {}, {}, {}
+
         vpmw_test = stats.spearmanr(vpmw, frame_idx)
 
-        param_valid = (rg_test[1]>0.05 and vcmw_test[1]>0.05 and vpmw_test[1]>0.05)
+        param_valid = (rg_valid and vcmw_valid and vpmw_test[1]>0.05)
 
         param_results = {'rg_r' : rg_test[0],
             'rg_pval'       : rg_test[1],
@@ -14422,12 +14463,53 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             'param_valid'   : param_valid,
             }
 
+        if fast and not param_valid:
+            return False, {}, param_results, {}, {}
+
+
+        #Test for regional frame similarity
+        if qf-qi>200:
+            ref_sasm.setQrange((qi, qi+100))
+            for sasm in superimpose_sub_sasms:
+                sasm.setQrange((qi, qi+100))
+            low_q_similar, low_q_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
+
+            if fast and not low_q_similar:
+                ref_sasm.setQrange((qi, qf))
+                for sasm in superimpose_sub_sasms:
+                    sasm.setQrange((qi, qf))
+                return False, {}, param_results, {}, {}
+
+            ref_sasm.setQrange((qf-100, qf))
+            for sasm in superimpose_sub_sasms:
+                sasm.setQrange((qf-100, qf))
+
+            high_q_similar, high_q_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
+
+            ref_sasm.setQrange((qi, qf))
+            for sasm in superimpose_sub_sasms:
+                sasm.setQrange((qi, qf))
+
+            if fast and not high_q_similar:
+                return False, {}, param_results, {}, {}
+
+        else:
+            low_q_similar = True
+            high_q_similar = True
+            low_q_outliers = []
+            high_q_outliers = []
+
+
         #Test for more than one significant singular value
         svd_results = self._singularValue(sub_sasms)
 
+        if fast and not svd_results['svals']==1:
+            return False, {}, param_results, svd_results, {}
+
+
         # Test whether averaging all selected frames is helping signal to noise,
         # or if inclusion of some are hurting because they're too noisy
-        sort_idx = np.argsort(total_i)[::-1]
+        sort_idx = np.argsort(intensity)[::-1]
         old_s_to_n = 0
         sn_valid = True
         i = 0
@@ -14451,6 +14533,24 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         sn_results = {'low_sn'  : sort_idx[i:],
             'sn_valid'  : sn_valid,
             }
+
+        if fast and not sn_valid:
+            return False, {}, param_results, svd_results, sn_results
+
+
+        #Test for all frame similarity
+        all_similar, all_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
+
+        similarity_results = {'all_similar'     : all_similar,
+            'low_q_similar'     : low_q_similar,
+            'high_q_similar'    : high_q_similar,
+            'max_idx'           : max_i_idx,
+            'all_outliers'      : all_outliers,
+            'low_q_outliers'    : low_q_outliers,
+            'high_q_outliers'   : high_q_outliers,
+            }
+
+        similar_valid = (all_similar and low_q_similar and high_q_similar)
 
         valid = (similar_valid and param_valid and svd_results['svals']==1 and sn_valid)
 
@@ -14757,17 +14857,17 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
     def _findBufferRange(self):
         wx.CallAfter(self.series_frame.showBusy, True, 'Please wait, processing.')
 
-        total_i = self.secm.getIntI()
+        intensity = self._getIntensity('unsub')
         buffer_sasms = self.secm.getAllSASMs()
 
-        win_len = len(total_i/2)
+        win_len = len(intensity/2)
         if win_len % 2 == 0:
             win_len = win_len+1
         win_len = min(51, win_len)
 
         order = min(5, win_len-1)
 
-        smoothed_data = SASCalc.smooth_data(total_i, window_length=win_len,
+        smoothed_data = SASCalc.smooth_data(intensity, window_length=win_len,
             order=order)
 
         norm_sdata = smoothed_data/np.max(smoothed_data)
@@ -14779,7 +14879,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         if len(peaks) == 0:
             window_size =  min_window_width
             start_point = 0
-            end_point = len(total_i) - 1 - window_size
+            end_point = len(intensity) - 1 - window_size
         else:
 
             max_peak_idx = np.argmax(peak_params['peak_heights'])
@@ -14789,8 +14889,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             start_point = 0
 
             end_point = int(round(peak_params['left_ips'][max_peak_idx]))
-            if end_point + window_size > len(total_i) - 1 - window_size:
-                end_point = len(total_i) - 1 - window_size
+            if end_point + window_size > len(intensity) - 1 - window_size:
+                end_point = len(intensity) - 1 - window_size
 
         found_region = False
         failed = False
@@ -14805,7 +14905,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             for idx in region_starts:
                 region_sasms = buffer_sasms[idx:idx+window_size+1]
                 frame_idx = range(idx, idx+window_size+1)
-                valid, similarity_results, svd_results, intI_results = self._validateBuffer(region_sasms, frame_idx)
+                valid, similarity_results, svd_results, intI_results = self._validateBuffer(region_sasms,
+                    frame_idx, True)
 
                 if np.all([peak not in frame_idx for peak in peaks]) and valid:
                     found_region = True
@@ -14847,20 +14948,20 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         if self.processing_done['baseline']:
             sub_sasms = self.results['baseline']['sub_sasms']
-            total_i = self.results['baseline']['sub_total_i']
+            intensity = self._getIntensity('baseline')
         else:
             sub_sasms = self.results['buffer']['sub_sasms']
-            total_i = self.results['buffer']['sub_total_i']
+            intensity = self._getIntensity('buffer')
 
 
-        win_len = len(total_i/2)
+        win_len = len(intensity/2)
         if win_len % 2 == 0:
             win_len = win_len+1
         win_len = min(51, win_len)
 
         order = min(5, win_len-1)
 
-        smoothed_data = SASCalc.smooth_data(total_i, window_length=win_len,
+        smoothed_data = SASCalc.smooth_data(intensity, window_length=win_len,
             order=order)
 
         norm_sdata = smoothed_data/np.max(smoothed_data)
@@ -14901,14 +15002,15 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 if i == 0:
                     region_starts.append(mid_point)
                 else:
-                    if mid_point+ i*step_size + window_size < len(total_i):
+                    if mid_point+ i*step_size + window_size < len(intensity):
                         region_starts.append(mid_point+i*step_size)
                     if mid_point - i*step_size > 0:
                         region_starts.append(mid_point-i*step_size)
 
             for idx in region_starts:
                 region_sasms = sub_sasms[idx:idx+window_size+1]
-                valid, similarity_results, param_results, svd_results, sn_results = self._validateSample(region_sasms, range(idx, idx+window_size+1))
+                valid, similarity_results, param_results, svd_results, sn_results = self._validateSample(region_sasms,
+                    range(idx, idx+window_size+1), True)
                 found_region = valid
 
                 if found_region:
