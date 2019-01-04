@@ -1710,7 +1710,10 @@ def OnPaintULCHeader(self, event):
 
         # for this we need the width of the text
         text = (isFooter and [item.GetFooterText()] or [item.GetText()])[0]
-        wLabel, hLabel, dummy = dc.GetFullMultiLineTextExtent(text)
+        if wx.version().split()[0].strip()[0] == '4':
+            wLabel, hLabel, dummy = dc.GetFullMultiLineTextExtent(text)
+        else:
+            wLabel, hLabel, dummy = dc.GetMultiLineTextExtent(text)
         wLabel += 2*ULC.EXTRA_WIDTH
 
         # and the width of the icon, if any

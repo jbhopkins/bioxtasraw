@@ -42,6 +42,7 @@ import math
 from functools import partial
 from multiprocessing import Pool
 import traceback
+import copy
 
 
 import numpy as np
@@ -1970,6 +1971,52 @@ def find_peaks(data, height=0.4, width=10, rel_height=0.5):
     peaks = scipy.signal.find_peaks(data, height=height, width=width,
         rel_height=rel_height)
     return peaks
+
+def integral_baseline(sasms, start_range, end_range, max_iter, min_iter):
+    end_frames = range(end_range[0], end_range[1]+1)
+    end_sasms = [sasms[j] for j in end_frames]
+
+    sasm_bl = SASProc.average(end_sasms, forced=True)
+    i_bl = sasm_bl.getI()
+
+    intensity = np.array([sasm.getI() for sasm in sasms[start_range[-1]:end_range[0]+1]])
+    intensity = np.apply_along_axis(smooth_data, 0, intensity)
+
+    b = np.zeros_like(intensity)
+
+    j = 0
+    tols = []
+    converged = False
+
+    while j<max_iter and not converged:
+        i_diff = intensity - b
+        i_tot = i_diff.sum(axis=0)
+
+        gamma = i_bl/i_tot
+
+        d = gamma*i_diff
+
+        b[1:] = d[1:].cumsum(axis=0)
+        b[0, :] = 0
+
+        if j > 0:
+            tol = np.sum(np.abs(b-old_b))
+            tols.append(tol)
+
+        if j > min_iter:
+            if tol <= min(tols[-100:]):
+                converged=True
+
+        old_b = copy.copy(b)
+
+        j = j+1
+
+    idx = np.where(b[-1,:] < 0)
+    b[:,idx]=0
+
+    return  b
+
+
 
 ###############################################################################
 #DENSS below here

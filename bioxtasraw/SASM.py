@@ -1360,7 +1360,7 @@ class SECM(object):
             ref_intensity = buffer_sasm.getMeanI()
 
         elif int_type == 'q_val':
-           ref_intensity = buffer_sasm.getIofQ(qref)
+            ref_intensity = buffer_sasm.getIofQ(qref)
         elif int_type == 'q_range':
             ref_intensity = buffer_sasm.getIofQRange(qrange[0], qrange[1])
 
