@@ -12473,6 +12473,11 @@ class LCSeriesFrame(wx.Frame):
 
     def OnClose(self):
         self.showBusy(show=False)
+
+        for t in self.controlPanel.threads:
+            if t.is_alive():
+                t.join()
+
         self.Destroy()
 
 
@@ -12907,12 +12912,12 @@ class LCSeriesPlotPage(wx.Panel):
         self.unsub_panel = SeriesPlotPanel(self.notebook, 'unsub')
         self.sub_panel = SeriesPlotPanel(self.notebook, 'sub')
         self.baseline_panel = SeriesPlotPanel(self.notebook, 'baseline')
-        self.uv_panel = SeriesPlotPanel(self.notebook, 'uv')
+        # self.uv_panel = SeriesPlotPanel(self.notebook, 'uv')
 
         self.notebook.AddPage(self.unsub_panel, 'Unsubtracted')
         self.notebook.AddPage(self.sub_panel, 'Subtracted')
         self.notebook.AddPage(self.baseline_panel, 'Baseline Corrected')
-        self.notebook.AddPage(self.uv_panel, 'UV')
+        # self.notebook.AddPage(self.uv_panel, 'UV')
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(control_sizer, flag=wx.EXPAND)
@@ -12972,7 +12977,7 @@ class LCSeriesPlotPage(wx.Panel):
         self.update_plot_label(label, 'left', 'unsub')
         self.update_plot_label(label, 'left', 'sub')
         self.update_plot_label(label, 'left', 'baseline')
-        self.update_plot_label(label, 'left', 'uv')
+        # self.update_plot_label(label, 'left', 'uv')
 
         if calc_type == 'RG':
             self.calc = 'Rg'
@@ -13156,7 +13161,7 @@ class LCSeriesPlotPage(wx.Panel):
         self.update_plot_label(label, 'left', 'unsub')
         self.update_plot_label(label, 'left', 'sub')
         self.update_plot_label(label, 'left', 'baseline')
-        self.update_plot_label(label, 'left', 'uv')
+        # self.update_plot_label(label, 'left', 'uv')
 
         control_page = wx.FindWindowByName('LCSeriesControlPanel')
 
@@ -13261,7 +13266,7 @@ class LCSeriesPlotPage(wx.Panel):
         self.update_plot_label(label, 'left', 'unsub')
         self.update_plot_label(label, 'left', 'sub')
         self.update_plot_label(label, 'left', 'baseline')
-        self.update_plot_label(label, 'left', 'uv')
+        # self.update_plot_label(label, 'left', 'uv')
 
         if control_page.processing_done['buffer']:
             sasms = control_page.results['buffer']['sub_sasms']
@@ -13300,7 +13305,7 @@ class LCSeriesPlotPage(wx.Panel):
         self.update_plot_label(label, 'left', 'unsub')
         self.update_plot_label(label, 'left', 'sub')
         self.update_plot_label(label, 'left', 'baseline')
-        self.update_plot_label(label, 'left', 'uv')
+        # self.update_plot_label(label, 'left', 'uv')
 
         _, end = self.q_range_end.GetRange()
         self.q_range_start.SetRange((0, self.q_range_end.GetIndex()-1))
@@ -13348,6 +13353,9 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         self.question_thread_wait_event = threading.Event()
         self.question_return_queue = Queue.Queue()
+
+        self.proc_lock = threading.Lock()
+        self.threads = []
 
         self._createLayout()
 
@@ -13525,18 +13533,23 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         baseline_ctrl_sizer.Add(self.bl_r2_end)
         baseline_ctrl_sizer.Add(self.bl_r2_pick)
 
+        self.baseline_auto = wx.Button(baseline_win, label='Auto')
+        self.baseline_auto.Bind(wx.EVT_BUTTON, self._onBaselineAuto)
+
         self.baseline_calc = wx.Button(baseline_win, label='Set baseline and calculate')
         self.baseline_calc.Bind(wx.EVT_BUTTON, self.onUpdateProc)
 
-        baseline_sizer = wx.BoxSizer(wx.VERTICAL)
-        baseline_sizer.Add(type_sizer, flag=wx.LEFT|wx.RIGHT, border=2)
-        baseline_sizer.Add(baseline_ctrl_sizer, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
-        baseline_sizer.Add(self.baseline_calc, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
-        baseline_win.SetSizer(baseline_sizer)
+        self.baseline_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.baseline_sizer.Add(type_sizer, flag=wx.LEFT|wx.RIGHT, border=2)
+        self.baseline_sizer.Add(baseline_ctrl_sizer, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
+        self.baseline_sizer.Add(self.baseline_auto,
+            flag=wx.LEFT|wx.RIGHT|wx.TOP|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, border=2)
+        self.baseline_sizer.Add(self.baseline_calc, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
+        baseline_win.SetSizer(self.baseline_sizer)
 
 
-        uv_pane = wx.CollapsiblePane(self, label="UV")
-        uv_pane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
+        # uv_pane = wx.CollapsiblePane(self, label="UV")
+        # uv_pane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
         # uv_win = uv_pane.GetPane()
 
         # uv_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -13581,7 +13594,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         control_sizer.Add(info_pane, flag=wx.TOP, border=5)
         control_sizer.Add(buffer_pane, flag=wx.EXPAND|wx.TOP, border=5)
         control_sizer.Add(baseline_pane, flag=wx.TOP, border=5)
-        control_sizer.Add(uv_pane, flag=wx.TOP, border=5)
+        # control_sizer.Add(uv_pane, flag=wx.TOP, border=5)
         control_sizer.Add(sample_pane, flag=wx.EXPAND|wx.TOP, border=5)
         control_sizer.AddStretchSpacer(1)
 
@@ -13647,17 +13660,43 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
 
         if self.secm.baseline_subtracted_sasm_list:
-            if self.plot_page.intensity == 'total':
-                intensity = self.secm.getIntIBCSub()
-            elif self.plot_page.intensity == 'mean':
-                intensity = self.secm.getMeanIBCSub()
-            elif self.plot_page.intensity == 'q_val':
-                intensity = self.secm.getIofQBCSub()
-            elif self.plot_page.intensity == 'q_range':
-                intensity = self.secm.getIofQRangeBCSub()
+            self.baseline_cor.SetStringSelection(self.secm.baseline_type)
 
-            self.plot_page.update_plot_data(frames, self.secm.getIntIBCSub(),
-                'intensity', 'left', 'baseline')
+            self.bl_r1_start.SetValue(self.secm.baseline_start_range[0])
+            self.bl_r1_end.SetValue(self.secm.baseline_start_range[1])
+            self.bl_r2_start.SetValue(self.secm.baseline_end_range[0])
+            self.bl_r2_end.SetValue(self.secm.baseline_end_range[1])
+
+            if self.secm.baseline_type != 'Integral':
+                self.baseline_auto.Disable()
+                self.baseline_sizer.Hide(self.baseline_auto)
+
+            self.plot_page.update_plot_range(self.secm.baseline_start_range[0],
+                self.secm.baseline_start_range[1], 'bl_start', 'sub')
+            self.plot_page.update_plot_range(self.secm.baseline_end_range[0],
+                self.secm.baseline_end_range[1], 'bl_end', 'sub')
+
+            bl_sub_mean_i = np.array([sasm.getMeanI() for sasm in self.secm.baseline_corr])
+            bl_sub_total_i = np.array([sasm.getTotalI() for sasm in self.secm.baseline_corr])
+
+            results = {'baseline_start_range'   : self.secm.baseline_start_range,
+                'baseline_end_range'            : self.secm.baseline_end_range,
+                'sub_sasms'                     : self.secm.baseline_subtracted_sasm_list,
+                'use_sub_sasms'                 : self.secm.use_baseline_subtracted_sasm,
+                'baseline_corr'                 : self.secm.baseline_corr,
+                'similarity_test'               : sim_test,
+                'similarity_thresh'             : sim_threshold,
+                'calc_thresh'                   : calc_threshold,
+                'sub_mean_i'                    : self.secm.mean_i_bcsub,
+                'sub_total_i'                   : self.secm.total_i_bcsub,
+                'bl_sub_mean_i'                 : bl_sub_mean_i,
+                'bl_sub_total_i'                : bl_sub_total_i,
+                }
+
+            self.results['baseline'] = results
+            self.processing_done['baseline'] = True
+
+            self._plotBaseline()
 
         else:
             self.bl_r1_start.Disable()
@@ -13667,10 +13706,14 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             self.bl_r1_pick.Disable()
             self.bl_r2_pick.Disable()
             self.baseline_calc.Disable()
+            self.baseline_auto.Disable()
+            self.baseline_sizer.Hide(self.baseline_auto)
+
 
         array_test = isinstance(self.secm.vpmw_list, np.ndarray) and (not np.all(self.secm.vpmw_list == -1)
             or np.all(self.secm.rg_list == -1))
         list_test = isinstance(self.secm.vpmw_list, list) and self.secm.vpmw_list
+
         if array_test or list_test:
             if self.secm.mol_type == 'Protein':
                 is_protein = True
@@ -13698,10 +13741,13 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 t = threading.Thread(target=self.updateProcessing, args=('calc',))
                 t.daemon = True
                 t.start()
+                self.threads.append(t)
+
 
         if self.secm.sample_range:
             for region in self.secm.sample_range:
                 self._addAutoSampleRange(region[0], region[1])
+
 
         if self.processing_done['baseline']:
             self.plot_page.show_plot('Baseline Corrected')
@@ -13712,8 +13758,11 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         t = threading.Thread(target=self.saveResults)
         t.daemon = True
         t.start()
+        self.threads.append(t)
 
     def saveResults(self):
+        self.proc_lock.acquire()
+
         self.original_secm.acquireSemaphore()
 
         if self.processing_done['buffer']:
@@ -13750,6 +13799,118 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 use_sub_sasms = self.results['buffer']['use_sub_sasms'] + new_use_sub_sasms
 
             self.original_secm.setSubtractedSASMs(sub_sasms, use_sub_sasms)
+
+
+        if self.processing_done['baseline']:
+            bl_type = self.baseline_cor.GetStringSelection()
+
+            self.original_secm.baseline_start_range = self.results['baseline']['baseline_start_range']
+            self.original_secm.baseline_end_range = self.results['baseline']['baseline_end_range']
+            self.original_secm.baseline_corr = self.results['baseline']['baseline_corr']
+            self.original_secm.baseline_type = bl_type
+
+            if len(self.secm.getAllSASMs()) == len(self.original_secm.getAllSASMs()):
+                baseline_sub_sasms = self.results['baseline']['sub_sasms']
+                baseline_use_sub_sasms = self.results['baseline']['use_sub_sasms']
+
+            else:
+                calc_threshold = self.raw_settings.get('secCalcThreshold')
+                qref = None
+                qrange = None
+                if self.plot_page.intensity == 'q_val':
+                    qref = float(self.plot_page.q_val.GetValue())
+                elif self.plot_page.intensity == 'q_range':
+                    q1 = float(self.plot_page.q_range_start.GetValue())
+                    q2 = float(self.plot_page.q_range_end.GetValue())
+
+                    qrange = (q1, q2)
+
+                r1_start = self.results['baseline']['baseline_start_range'][0]
+                r1_end = self.results['baseline']['baseline_start_range'][1]
+                r2_start = self.results['baseline']['baseline_end_range'][0]
+
+                new_sasms = self.subtracted_sasm_list[len(self.secm.getAllSASMs()):]
+
+                bl_sasms = []
+                baselines = self.results['baseline']['baseline_corr']
+
+                for j, sasm in enumerate(new_sasms):
+                    idx = j + len(self.secm.getAllSASMs())
+                    q = copy.deepcopy(sasm.getQ())
+
+                    if idx < r1_start:
+                        baseline = baselines[0].getI()
+                        i = copy.deepcopy(sasm.getI())
+                        err = copy.deepcopy(sasm.getErr())
+                    elif idx >= r1_end and idx < r2_start:
+                        baseline = baselines[idx-r1_end].getI()
+                        i = sasm.getI() - baseline
+                        err = sasm.getErr() * i/sasm.getI()
+                    else:
+                        baseline = baselines[-1].getI()
+                        i = sasm.getI() - baseline
+                        err = sasm.getErr() * i/sasm.getI()
+
+
+                    parameters = copy.deepcopy(sasm.getAllParameters())
+                    newSASM = SASM.SASM(i, q, err, {})
+                    newSASM.setParameter('filename', parameters['filename'])
+
+                    history = newSASM.getParameter('history')
+
+                    history = {}
+
+                    history1 = []
+                    history1.append(copy.deepcopy(sasm.getParameter('filename')))
+                    for key in sasm.getParameter('history'):
+                        history1.append({ key : copy.deepcopy(sasm.getParameter('history')[key])})
+
+                    history['baseline_correction'] = {'initial_file':history1, 'baseline':list(baseline)}
+
+                    newSASM.setParameter('history', history)
+
+                    bl_sasms.append(newSASM)
+
+                use_subtracted_sasms = []
+
+                buffer_sub_sasms = self.results['buffer']['sub_sasms']
+                start_frames = range(r1_start, r1_end+1)
+                start_sasms = [buffer_sub_sasms[k] for k in start_frames]
+
+                start_avg_sasm = SASProc.average(start_sasms, forced=True)
+                int_type = self.plot_page.intensity
+                if  int_type == 'total':
+                    ref_intensity = start_avg_sasm.getTotalI()
+                elif int_type == 'mean':
+                    ref_intensity = start_avg_sasm.getMeanI()
+                elif int_type == 'q_val':
+                    qref = float(self.plot_page.q_val.GetValue())
+                    ref_intensity = start_avg_sasm.getIofQ(qref)
+                elif int_type == 'q_range':
+                    q1 = float(self.plot_page.q_range_start.GetValue())
+                    q2 = float(self.plot_page.q_range_end.GetValue())
+                    ref_intensity = start_avg_sasm.getIofQRange(q1, q2)
+
+                for sasm in bl_sasms:
+                    if int_type == 'total':
+                        sasm_intensity = sasm.getTotalI()
+                    elif int_type == 'mean':
+                        sasm_intensity = sasm.getMeanI()
+                    elif int_type == 'q_val':
+                        sasm_intensity = sasm.getIofQ(qref)
+                    elif int_type == 'q_range':
+                        sasm_intensity = sasm.getIofQRange(q1, q2)
+
+                    if abs(sasm_intensity/ref_intensity) > calc_threshold:
+                        use_subtracted_sasms.append(True)
+                    else:
+                        use_subtracted_sasms.append(False)
+
+                baseline_sub_sasms = self.results['baseline']['sub_sasms'] + bl_sasms
+                baseline_use_sub_sasms = self.results['baseline']['use_sub_sasms'] + use_subtracted_sasms
+
+            self.original_secm.setBCSubtractedSASMs(baseline_sub_sasms, baseline_use_sub_sasms)
+
 
         if self.processing_done['calc']:
             if self.results['calc']['is_protein']:
@@ -13844,6 +14005,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         wx.CallAfter(diag.manip_item.markAsModified)
         wx.CallAfter(diag.OnClose)
 
+        self.proc_lock.release()
+
     def onCancelButton(self, evt):
         diag = wx.FindWindowByName('LCSeriesFrame')
         diag.OnClose()
@@ -13866,8 +14029,10 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         t = threading.Thread(target=self.updateProcessing, args=(start,))
         t.daemon = True
         t.start()
+        self.threads.append(t)
 
     def updateProcessing(self, start):
+        self.proc_lock.acquire()
 
         self.continue_processing = True
 
@@ -13891,8 +14056,9 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 else:
                     self.process[step]()
 
-
         wx.CallAfter(self.series_frame.showBusy, False)
+
+        self.proc_lock.release()
 
     def updateSeriesRange(self, event):
         event_object = event.GetEventObject()
@@ -13925,6 +14091,9 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             self.bl_r1_pick.Disable()
             self.bl_r2_pick.Disable()
             self.baseline_calc.Disable()
+            self.baseline_auto.Disable()
+            self.baseline_sizer.Hide(self.baseline_auto)
+
             try:
                 self.plot_page.remove_plot_range('bl_start', 'sub')
             except KeyError:
@@ -13960,6 +14129,13 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             self.bl_r1_pick.Enable()
             self.bl_r2_pick.Enable()
             self.baseline_calc.Enable()
+
+            if baseline == 'Integral':
+                self.baseline_auto.Enable()
+                self.baseline_sizer.Show(self.baseline_auto)
+            else:
+                self.baseline_auto.Disable()
+                self.baseline_sizer.Hide(self.baseline_auto)
 
             r1_start = self.bl_r1_start.GetValue()
             r1_end = self.bl_r1_end.GetValue()
@@ -14593,34 +14769,35 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             return valid, similarity_results, svd_results, intI_results, {}
 
         if bl_type == 'Integral':
+            other_results = {}
 
-            if start and frames[0] != 0:
-                full_frames = range(0, frames[-1]+1)
-                full_sasms = [all_sasms[i] for i in full_frames]
+            # if start and frames[0] != 0:
+            #     full_frames = range(0, frames[-1]+1)
+            #     full_sasms = [all_sasms[i] for i in full_frames]
 
-                f_valid, f_similarity_results, f_svd_results, f_intI_results = self._validateBuffer(full_sasms,
-                full_frames, True)
+            #     f_valid, f_similarity_results, f_svd_results, f_intI_results = self._validateBuffer(full_sasms,
+            #     full_frames, True)
 
-                valid = valid and f_valid
+            #     valid = valid and f_valid
 
-                other_results = {'range_valid' : f_valid}
+            #     other_results['range_valid'] = f_valid
 
-            elif not start and frames[-1] != len(all_sasms)-1:
-                full_frames = range(frames[0], len(all_sasms))
-                full_sasms = [all_sasms[i] for i in full_frames]
+            # elif not start and frames[-1] != len(all_sasms)-1:
+            #     full_frames = range(frames[0], len(all_sasms))
+            #     full_sasms = [all_sasms[i] for i in full_frames]
 
-                f_valid, f_similarity_results, f_svd_results, f_intI_results = self._validateBuffer(full_sasms,
-                full_frames, True)
+            #     f_valid, f_similarity_results, f_svd_results, f_intI_results = self._validateBuffer(full_sasms,
+            #     full_frames, True)
 
-                valid = valid and f_valid
+            #     valid = valid and f_valid
 
-                other_results = {'range_valid' : f_valid}
+            #     other_results['range_valid'] = f_valid
 
-            else:
-                other_results = {'range_valid': True}
+            # else:
+            #     other_results['range_valid'] = True
 
-            if fast and not valid:
-                return valid, similarity_results, svd_results, intI_results, other_results
+            # if fast and not valid:
+            #     return valid, similarity_results, svd_results, intI_results, other_results
 
             if not start:
                 start_avg_sasm = SASProc.average(ref_sasms, forced=True)
@@ -14660,17 +14837,17 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                     intI_results, sim_test, sim_threshold, frame_idx, buffer_sasms)
 
         if bl_type == 'Integral':
-            if not other_results['range_valid']:
-                if start:
-                    msg = msg+('\nProfiles prior to the selected start region were '
-                        'found to be different from those in the\nselected start '
-                        'region. This may indicate that the baseline is already '
-                        'changing in\nthe selected start region.\n')
-                else:
-                    msg = msg+('\nProfiles after to the selected end region were '
-                        'found to be different from those in the\nselected end '
-                        'region. This may indicate that the baseline is still '
-                        'changing in\nthe selected end region.\n')
+            # if not other_results['range_valid']:
+            #     if start:
+            #         msg = msg+('\nProfiles prior to the selected start region were '
+            #             'found to be different from those in the\nselected start '
+            #             'region. This may indicate that the baseline is already '
+            #             'changing in\nthe selected start region.\n')
+            #     else:
+            #         msg = msg+('\nProfiles after to the selected end region were '
+            #             'found to be different from those in the\nselected end '
+            #             'region. This may indicate that the baseline is still '
+            #             'changing in\nthe selected end region.\n')
 
             if not start:
                 if not other_results['zero_valid']:
@@ -14876,12 +15053,12 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         if self.plot_page.get_plot() == 'Subtracted':
             wx.CallAfter(self.plot_page.show_plot, 'Baseline Corrected')
 
-        wx.CallAfter(self.plotBaseline)
+        wx.CallAfter(self._plotBaseline)
         wx.CallAfter(self.switchSampleRange, 'sub', 'baseline')
 
         return
 
-    def plotBaseline(self):
+    def _plotBaseline(self):
         frames = self.secm.getFrames()
         intensity = self._getIntensity('baseline')
 
@@ -15334,14 +15511,18 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         t = threading.Thread(target=self._toMainPlot)
         t.daemon = True
         t.start()
+        self.threads.append(t)
 
     def _toMainPlot(self):
+        self.proc_lock.acquire()
+
         sim_thresh = self.raw_settings.get('similarityThreshold')
         sim_test = self.raw_settings.get('similarityTest')
 
         valid = self._validateSampleRange()
 
         if not valid:
+            self.proc_lock.release()
             return
 
         wx.CallAfter(self.series_frame.showBusy, True, 'Please wait, processing.')
@@ -15457,6 +15638,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             wx.ART_WARNING)
 
             if answer[0] != wx.ID_YES:
+                self.proc_lock.release()
                 return
             else:
                 wx.CallAfter(self.series_frame.showBusy, True, 'Please wait, processing.')
@@ -15489,6 +15671,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             }
 
         wx.CallAfter(self.series_frame.showBusy, False)
+        self.proc_lock.release()
 
         return
 
@@ -15496,14 +15679,17 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         t = threading.Thread(target=self._findBufferRange)
         t.daemon = True
         t.start()
+        self.threads.append(t)
 
     def _findBufferRange(self):
+        self.proc_lock.acquire()
+
         wx.CallAfter(self.series_frame.showBusy, True, 'Please wait, processing.')
 
         intensity = self._getIntensity('unsub')
         buffer_sasms = self.secm.getAllSASMs()
 
-        win_len = len(intensity/2)
+        win_len = len(intensity)/2
         if win_len % 2 == 0:
             win_len = win_len+1
         win_len = min(51, win_len)
@@ -15574,6 +15760,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         wx.CallAfter(self.series_frame.showBusy, False)
 
+        self.proc_lock.release()
 
     def _onSampleAuto(self, event):
 
@@ -15581,12 +15768,15 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             t = threading.Thread(target=self._findSampleRange)
             t.daemon = True
             t.start()
+            self.threads.append(t)
         else:
             msg = ("You must first set a buffer region before you can run the"
                 "automated determination of the sample region.")
             wx.CallAfter(wx.MessageBox, msg, "Requires buffer region", style=wx.ICON_ERROR|wx.OK)
 
     def _findSampleRange(self):
+        self.proc_lock.acquire()
+
         wx.CallAfter(self.series_frame.showBusy, True, 'Please wait, processing.')
 
         if self.processing_done['baseline']:
@@ -15597,7 +15787,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             intensity = self._getIntensity('buffer')
 
 
-        win_len = len(intensity/2)
+        win_len = len(intensity)/2
         if win_len % 2 == 0:
             win_len = win_len+1
         win_len = min(51, win_len)
@@ -15614,6 +15804,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             wx.CallAfter(self.series_frame.showBusy, False)
             msg = ("Failed to find a valid sample range.")
             wx.CallAfter(wx.MessageBox, msg, "Sample range not found", style=wx.ICON_ERROR|wx.OK)
+            self.proc_lock.release()
             return
 
         max_peak_idx = np.argmax(peak_params['peak_heights'])
@@ -15672,8 +15863,205 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             msg = ("Failed to find a valid sample range.")
             wx.CallAfter(wx.MessageBox, msg, "Sample range not found", style=wx.ICON_ERROR|wx.OK)
 
+        wx.CallAfter(self.series_frame.showBusy, False)
+
+        self.proc_lock.release()
+
+        return
+
+    def _onBaselineAuto(self, event):
+        if self.processing_done['buffer']:
+            t = threading.Thread(target=self._findBaselineRange)
+            t.daemon = True
+            t.start()
+            self.threads.append(t)
+        else:
+            msg = ("You must first set a buffer region before you can run the"
+                "automated determination of the sample region.")
+            wx.CallAfter(wx.MessageBox, msg, "Requires buffer region", style=wx.ICON_ERROR|wx.OK)
+
+    def _findBaselineRange(self):
+        self.proc_lock.acquire()
+
+        wx.CallAfter(self.series_frame.showBusy, True, 'Please wait, processing.')
+
+        sub_sasms = self.results['buffer']['sub_sasms']
+        intensity = self._getIntensity('buffer')
+
+        bl_type = self.baseline_cor.GetStringSelection()
+
+        win_len = len(intensity)/2
+        if win_len % 2 == 0:
+            win_len = win_len+1
+        win_len = min(51, win_len)
+
+        order = min(5, win_len-1)
+
+        smoothed_data = SASCalc.smooth_data(intensity, window_length=win_len,
+            order=order)
+
+        norm_sdata = smoothed_data/np.max(smoothed_data)
+        peaks, peak_params = SASCalc.find_peaks(norm_sdata, height=0.4)
+
+        avg_window = int(self.avg_window.GetValue())
+        min_window_width = max(10, int(round(avg_window/2.)))
+
+        # Start region
+        if len(peaks) == 0:
+            window_size =  min_window_width
+            start_point = 0
+            end_point = len(intensity) - 1 - window_size
+        else:
+            max_peak_idx = np.argmax(peak_params['peak_heights'])
+            main_peak_width = int(round(peak_params['widths'][max_peak_idx]))
+
+            window_size = max(main_peak_width, min_window_width)
+            start_point = 0
+
+            end_point = int(round(peak_params['left_ips'][max_peak_idx]))
+            if end_point + window_size > len(intensity) - 1 - window_size:
+                end_point = len(intensity) - 1 - window_size
+
+        found_region = False
+        start_failed = False
+
+        if not self.results['buffer']['already_subtracted'] and len(self.results['buffer']['buffer_range'])==1:
+            region1_start = self.results['buffer']['buffer_range'][0][0]
+            region1_end = self.results['buffer']['buffer_range'][0][1]
+
+            region_sasms = sub_sasms[region1_start:region1_end+1]
+            frame_idx = range(region1_start, region1_end+1)
+            (valid,
+            similarity_results,
+            svd_results,
+            intI_results,
+            other_results) = self._validateBaseline(region_sasms, frame_idx,
+                None, sub_sasms, bl_type, True, True)
+
+            if np.all([peak not in frame_idx for peak in peaks]) and valid:
+                found_region = True
+            else:
+                found_region = False
+
+
+        while not found_region and not start_failed:
+            step_size = max(1, int(round(window_size/4.)))
+
+            region_starts = range(start_point, end_point, step_size)
+
+            region_starts = region_starts[::-1]
+
+            for idx in region_starts:
+                region_sasms = sub_sasms[idx:idx+window_size+1]
+                frame_idx = range(idx, idx+window_size+1)
+                (valid,
+                similarity_results,
+                svd_results,
+                intI_results,
+                other_results) = self._validateBaseline(region_sasms, frame_idx,
+                    None, sub_sasms, bl_type, True, True)
+
+                if np.all([peak not in frame_idx for peak in peaks]) and valid:
+                    found_region = True
+                else:
+                    found_region = False
+
+                if found_region:
+                    region1_start = idx
+                    region1_end = idx+window_size
+                    break
+
+            window_size = int(round(window_size/2.))
+
+            if window_size < min_window_width and not found_region:
+                start_failed = True
+
+        if not start_failed:
+            start_sasms = sub_sasms[region1_start:region1_end+1]
+
+
+        # End region
+        if len(peaks) == 0:
+            window_size =  min_window_width
+            start_point = 0
+            end_point = len(intensity) - 1 - window_size
+        else:
+            max_peak_idx = np.argmax(peak_params['peak_heights'])
+            main_peak_width = int(round(peak_params['widths'][max_peak_idx]))
+
+            window_size = max(main_peak_width, min_window_width)
+
+            start_point = int(round(peak_params['left_ips'][max_peak_idx]))
+            if start_point + window_size > len(intensity) - 1 - window_size:
+                start_point = len(intensity) - 1 - window_size
+
+            end_point = len(intensity) - 1 - window_size
+
+        found_region = False
+        end_failed = False
+
+        while not found_region and not end_failed:
+            step_size = max(1, int(round(window_size/4.)))
+
+            region_starts = range(start_point, end_point, step_size)
+
+            for idx in region_starts:
+                region_sasms = sub_sasms[idx:idx+window_size+1]
+                frame_idx = range(idx, idx+window_size+1)
+
+                if not start_failed:
+                    (valid,
+                    similarity_results,
+                    svd_results,
+                    intI_results,
+                    other_results) = self._validateBaseline(region_sasms, frame_idx,
+                        start_sasms, sub_sasms, bl_type, False, True)
+                else:
+                    (valid,
+                    similarity_results,
+                    svd_results,
+                    intI_results,
+                    other_results) = self._validateBaseline(region_sasms, frame_idx,
+                        None, sub_sasms, bl_type, True, True)
+
+                if np.all([peak not in frame_idx for peak in peaks]) and valid:
+                    found_region = True
+                else:
+                    found_region = False
+
+                if found_region:
+                    region2_start = idx
+                    region2_end = idx+window_size
+                    break
+
+            window_size = int(round(window_size/2.))
+
+            if window_size < min_window_width and not found_region:
+                end_failed = True
+
+
+        if not start_failed and not end_failed:
+            wx.CallAfter(self._updateAutoBaselineRange, region1_start, region1_end,
+                region2_start, region2_end)
+        else:
+            if not start_failed:
+                wx.CallAfter(self._updateAutoBaselineRange, region1_start, region1_end,
+                    -1, -1)
+                msg = ("Failed to find a valid baseline end region.")
+
+            elif not end_failed:
+                wx.CallAfter(self._updateAutoBaselineRange, -1, -1, region2_start,
+                    region2_end)
+                msg = ("Failed to find a valid baseline start region.")
+
+            else:
+                msg = ("Failed to find valid baseline start and end regions.")
+
+            wx.CallAfter(wx.MessageBox, msg, "Baseline range not found", style=wx.ICON_ERROR|wx.OK)
 
         wx.CallAfter(self.series_frame.showBusy, False)
+
+        self.proc_lock.release()
 
     def _addAutoSampleRange(self, region_start, region_end):
         index, j1, j2 = self._addSeriesRange(self.sample_range_list)
@@ -15711,6 +16099,21 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         item.end_ctrl.SetRange((region_start, current_end_range[1]))
 
         self.plot_page.update_plot_range(region_start, region_end, index, 'unsub')
+
+        self.plot_page.show_plot('Unsubtracted')
+
+    def _updateAutoBaselineRange(self, r1_start, r1_end, r2_start, r2_end):
+
+        if r1_start != -1:
+            self.bl_r1_start.SetValue(r1_start)
+            self.bl_r1_end.SetValue(r1_end)
+            self.plot_page.update_plot_range(r1_start, r1_end, 'bl_start', 'sub')
+        if r2_start != -1:
+            self.bl_r2_start.SetValue(r2_start)
+            self.bl_r2_end.SetValue(r2_end)
+            self.plot_page.update_plot_range(r2_start, r2_end, 'bl_end', 'sub')
+
+        self.plot_page.show_plot('Subtracted')
 
     def _displayQuestionDialog(self, question, label, button_list, icon=None,
         filename=None, save_path=None):

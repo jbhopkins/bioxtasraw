@@ -3378,9 +3378,100 @@ class MainWorkerThread(threading.Thread):
 
         secm.appendSubtractedSASMs(subtracted_sasm_list, use_subtracted_sasm, window_size)
 
-        success, results = SASCalc.run_secm_calcs(subtracted_sasm_list,
-            use_subtracted_sasm, window_size, is_protein, error_weight,
-            vp_density)
+
+        if secm.baseline_subtracted_sasm_list:
+            r1_start = secm.baseline_start_range[0]
+            r1_end = secm.baseline_start_range[1]
+            r2_start = secm.baseline_end_range[0]
+
+            new_sasms = secm.subtracted_sasm_list[first_frame:]
+
+            bl_sasms = []
+            baselines = secm.baseline_corr
+
+            for j, sasm in enumerate(new_sasms):
+                idx = j + first_frame
+                q = copy.deepcopy(sasm.getQ())
+
+                if idx < r1_start:
+                    baseline = baselines[0].getI()
+                    i = copy.deepcopy(sasm.getI())
+                    err = copy.deepcopy(sasm.getErr())
+                elif idx >= r1_end and idx < r2_start:
+                    baseline = baselines[idx-r1_end].getI()
+                    i = sasm.getI() - baseline
+                    err = sasm.getErr() * i/sasm.getI()
+                else:
+                    baseline = baselines[-1].getI()
+                    i = sasm.getI() - baseline
+                    err = sasm.getErr() * i/sasm.getI()
+
+
+                parameters = copy.deepcopy(sasm.getAllParameters())
+                newSASM = SASM.SASM(i, q, err, {})
+                newSASM.setParameter('filename', parameters['filename'])
+
+                history = newSASM.getParameter('history')
+
+                history = {}
+
+                history1 = []
+                history1.append(copy.deepcopy(sasm.getParameter('filename')))
+                for key in sasm.getParameter('history'):
+                    history1.append({ key : copy.deepcopy(sasm.getParameter('history')[key])})
+
+                history['baseline_correction'] = {'initial_file':history1, 'baseline':list(baseline)}
+
+                newSASM.setParameter('history', history)
+
+                bl_sasms.append(newSASM)
+
+            baseline_use_subtracted_sasms = []
+
+            buffer_sub_sasms = secm.subtracted_sasm_list
+            start_frames = range(r1_start, r1_end+1)
+            start_sasms = [buffer_sub_sasms[k] for k in start_frames]
+
+            start_avg_sasm = SASProc.average(start_sasms, forced=True)
+
+            if  plot_y == 'total':
+                ref_intensity = start_avg_sasm.getTotalI()
+            elif plot_y == 'mean':
+                ref_intensity = start_avg_sasm.getMeanI()
+            elif plot_y == 'q_val':
+                qref = float(self.plot_page.q_val.GetValue())
+                ref_intensity = start_avg_sasm.getIofQ(qref)
+            elif plot_y == 'q_range':
+                q1 = float(self.plot_page.q_range_start.GetValue())
+                q2 = float(self.plot_page.q_range_end.GetValue())
+                ref_intensity = start_avg_sasm.getIofQRange(q1, q2)
+
+            for sasm in bl_sasms:
+                if plot_y == 'total':
+                    sasm_intensity = sasm.getTotalI()
+                elif plot_y == 'mean':
+                    sasm_intensity = sasm.getMeanI()
+                elif plot_y == 'q_val':
+                    sasm_intensity = sasm.getIofQ(qref)
+                elif plot_y == 'q_range':
+                    sasm_intensity = sasm.getIofQRange(q1, q2)
+
+                if abs(sasm_intensity/ref_intensity) > threshold:
+                    baseline_use_subtracted_sasms.append(True)
+                else:
+                    baseline_use_subtracted_sasms.append(False)
+
+            secm.appendBCSubtractedSASMs(bl_sasms, baseline_use_subtracted_sasms,
+                window_size)
+
+            success, results = SASCalc.run_secm_calcs(bl_sasms,
+                baseline_use_subtracted_sasms, window_size, is_protein, error_weight,
+                vp_density)
+
+        else:
+            success, results = SASCalc.run_secm_calcs(subtracted_sasm_list,
+                use_subtracted_sasm, window_size, is_protein, error_weight,
+                vp_density)
 
         if not success:
             secm.releaseSemaphore()

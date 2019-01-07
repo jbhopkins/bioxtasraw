@@ -1979,8 +1979,15 @@ def integral_baseline(sasms, start_range, end_range, max_iter, min_iter):
     sasm_bl = SASProc.average(end_sasms, forced=True)
     i_bl = sasm_bl.getI()
 
+    win_len = len(sasms)/2
+    if win_len % 2 == 0:
+        win_len = win_len+1
+    win_len = min(51, win_len)
+
+    order = min(5, win_len-1)
+
     intensity = np.array([sasm.getI() for sasm in sasms[start_range[-1]:end_range[0]+1]])
-    intensity = np.apply_along_axis(smooth_data, 0, intensity)
+    intensity = np.apply_along_axis(smooth_data, 0, intensity, win_len, order)
 
     b = np.zeros_like(intensity)
 

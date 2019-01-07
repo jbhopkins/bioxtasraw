@@ -837,6 +837,11 @@ class SECM(object):
         self.I_of_q_sub = np.zeros_like(self.I_of_q)
         self.qrange_I_sub = np.zeros_like(self.qrange_I)
 
+        self.baseline_start_range = (-1, -1)
+        self.baseline_end_range = (-1, -1)
+        self.baseline_corr = []
+        self.baseline_type = ''
+
         self.baseline_subtracted_sasm_list = []
         self.use_baseline_subtracted_sasm = []
         self.mean_i_bcsub = np.zeros_like(self.mean_i)
@@ -1097,6 +1102,10 @@ class SECM(object):
         all_data['I_of_q_sub'] = self.I_of_q_sub
         all_data['qrange_I_sub'] = self.qrange_I_sub
 
+        all_data['baseline_start_range'] = self.baseline_start_range
+        all_data['baseline_end_range'] = self.baseline_end_range
+        all_data['baseline_type'] = self.baseline_type
+
         all_data['mean_i_bcsub'] = self.mean_i_bcsub
         all_data['total_i_bcsub'] = self.total_i_bcsub
         all_data['I_of_q_bcsub'] = self.I_of_q_bcsub
@@ -1143,6 +1152,13 @@ class SECM(object):
             else:
                 all_data['baseline_subtracted_sasm_list'].append(-1)
 
+        all_data['baseline_corr'] = []
+        for idx in range(len(self.baseline_corr)):
+            if self.baseline_corr[idx] != -1:
+                all_data['baseline_corr'].append(self.baseline_corr[idx].extractAll())
+            else:
+                all_data['baseline_corr'].append(-1)
+
         return all_data
 
     def __deepcopy__(self, memo):
@@ -1172,6 +1188,11 @@ class SECM(object):
         copy_secm.total_i_sub = copy.deepcopy(self.total_i_sub)
         copy_secm.I_of_q_sub = copy.deepcopy(self.I_of_q_sub)
         copy_secm.qrange_I_sub = copy.deepcopy(self.qrange_I_sub)
+
+        copy_secm.baseline_start_range = copy.deepcopy(self.baseline_start_range)
+        copy_secm.baseline_end_range = copy.deepcopy(self.baseline_end_range)
+        copy_secm.baseline_corr = copy.deepcopy(self.baseline_corr)
+        copy_secm.baseline_type = copy.deepcopy(self.baseline_type)
 
         copy_secm.baseline_subtracted_sasm_list = copy.deepcopy(self.baseline_subtracted_sasm_list)
         copy_secm.use_baseline_subtracted_sasm = copy.deepcopy(self.use_baseline_subtracted_sasm)
@@ -1455,6 +1476,15 @@ class SECM(object):
 
         self.mean_i_bcsub = np.array([sasm.getMeanI() for sasm in sub_sasm_list])
         self.total_i_bcsub = np.array([sasm.getTotalI() for sasm in sub_sasm_list])
+
+    def appendBCSubtractedSASMs(self, sub_sasm_list, use_sasm_list, window_size):
+        self.baseline_subtracted_sasm_list = self.baseline_subtracted_sasm_list[:-window_size] + sub_sasm_list
+        self.use_baseline_subtracted_sasm = self.use_baseline_subtracted_sasm[:-window_size] + use_sasm_list
+
+        self.mean_i_bcsub = np.concatenate((self.mean_i_bcsub[:-window_size],
+            np.array([sasm.getMeanI() for sasm in sub_sasm_list])))
+        self.total_i_bcsub = np.concatenate((self.total_i_bcsub[:-window_size],
+            np.array([sasm.getTotalI() for sasm in sub_sasm_list])))
 
 
 

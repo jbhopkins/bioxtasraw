@@ -1442,6 +1442,10 @@ def makeSECFile(secm_data):
                         'use_baseline_subtracted_sasm' : [],
                         'buffer_range'          : [],
                         'sample_range'          : [],
+                        'baseline_start_range'  : (-1, -1),
+                        'baseline_end_range'    : (-1, -1),
+                        'baseline_corr'         : [],
+                        'baseline_type'         : '',
                         }
 
     for key in default_dict:
@@ -1530,6 +1534,9 @@ def makeSECFile(secm_data):
 
     new_secm.setSubtractedSASMs(subtracted_sasm_list, secm_data['use_subtracted_sasm'])
 
+    new_secm.baseline_start_range = secm_data['baseline_start_range']
+    new_secm.baseline_end_range = secm_data['baseline_end_range']
+    new_secm.baseline_type = secm_data['baseline_type']
 
     baseline_subtracted_sasm_list = []
 
@@ -1560,6 +1567,36 @@ def makeSECFile(secm_data):
         baseline_subtracted_sasm_list.append(new_sasm)
 
     new_secm.setBCSubtractedSASMs(baseline_subtracted_sasm_list, secm_data['use_baseline_subtracted_sasm'])
+
+    baseline_corr = []
+
+    for item in secm_data['baseline_corr']:
+        sasm_data = item
+
+        if sasm_data != -1:
+            new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
+            new_sasm.setBinnedI(sasm_data['i_binned'])
+            new_sasm.setBinnedQ(sasm_data['q_binned'])
+            new_sasm.setBinnedErr(sasm_data['err_binned'])
+
+            new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
+                                    sasm_data['norm_factor'], sasm_data['q_scale_factor'],
+                                    sasm_data['bin_size'])
+
+            new_sasm.setQrange(sasm_data['selected_qrange'])
+
+            try:
+                new_sasm.setParameter('analysis', sasm_data['parameters_analysis'])
+            except KeyError:
+                pass
+
+            new_sasm._update()
+        else:
+            new_sasm = -1
+
+        baseline_corr.append(new_sasm)
+
+    new_secm.baseline_corr = baseline_corr
 
 
     sasm_data = secm_data['average_buffer_sasm']
