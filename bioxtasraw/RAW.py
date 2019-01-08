@@ -9491,7 +9491,7 @@ class SECPanel(wx.Panel):
 
         mainworker_cmd_queue.put(['save_sec_item', [save_path, selected_items]])
 
-    def _saveProfiles(self):
+    def _saveProfiles(self, profile_type):
         selected_items = self.getSelectedItems()
 
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
@@ -9510,7 +9510,14 @@ class SECPanel(wx.Panel):
 
             for item in selected_items:
 
-                mainworker_cmd_queue.put(['save_sec_profiles', [save_path, item.secm._sasm_list]])
+                if profile_type == 'unsub':
+                    sasms = item.secm._sasm_list
+                elif profile_type == 'sub':
+                    sasms = item.secm.subtracted_sasm_list
+                elif profile_type == 'baseline':
+                    sasms = item.secm.baseline_subtracted_sasm_list
+
+                mainworker_cmd_queue.put(['save_sec_profiles', [save_path, sasms]])
 
     def _OnClearAll(self, evt):
         plotpage = wx.FindWindowByName('SECPlotPanel')
@@ -9986,6 +9993,10 @@ class SECItemPanel(wx.Panel):
         menu.Append(1, 'Remove' )
         menu.Append(2, 'Export data')
         menu.Append(6, 'Save all profiles as .dats')
+        if self.secm.subtracted_sasm_list:
+            menu.Append(11, 'Save all subtracted profiles as .dats')
+        if self.secm.baseline_subtracted_sasm_list:
+            menu.Append(12, 'Save all baseline corrected profiles as .dats')
         menu.Append(3, 'Save')
         menu.AppendSeparator()
         menu.Append(10, 'LC Series analysis')
@@ -10037,7 +10048,7 @@ class SECItemPanel(wx.Panel):
                 self.markAsModified()
 
         elif evt.GetId() ==6:
-            self.sec_panel._saveProfiles()
+            self.sec_panel._saveProfiles('unsub')
 
         elif evt.GetId() == 7:
             Mainframe = wx.FindWindowByName('MainFrame')
@@ -10085,6 +10096,12 @@ class SECItemPanel(wx.Panel):
 
             secm = selectedSECMList[0].getSECM()
             mainframe.showLCSeriesFrame(secm, selectedSECMList[0])
+
+        elif evt.GetId() == 11:
+            self.sec_panel._saveProfiles('sub')
+
+        elif evt.GetId() == 12:
+            self.sec_panel._saveProfiles('baseline')
 
     def _onKeyPress(self, evt):
 

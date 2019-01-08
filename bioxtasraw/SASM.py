@@ -754,7 +754,12 @@ class SECM(object):
         if 'history' not in self._parameters:
             self._parameters['history'] = {}
         if 'filename' not in self._parameters:
-            self._parameters['filename'] = os.path.splitext(os.path.basename(self._file_list[0]))[0]
+            files = [os.path.basename(f) for f in self._file_list]
+            files = ['_'.join(f.split('_')[:-1]) for f in files]
+            filename = os.path.commonprefix(files)
+            if filename == '':
+                filename =  os.path.splitext(os.path.basename(self._file_list[0]))[0]
+            self._parameters['filename'] = filename
 
         #Extract initial mean and total intensity variables
         self._mean_i_raw = np.array([sasm.getMeanI() for sasm in self._sasm_list])
