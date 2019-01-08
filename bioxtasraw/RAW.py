@@ -2682,7 +2682,7 @@ class MainWorkerThread(threading.Thread):
 
                 if file_ext == '.sec':
                     try:
-                        secm = SASFileIO.loadSECFile(each_filename)
+                        secm = SASFileIO.loadSeriesFile(each_filename)
                     except Exception as e:
                         print e
                         wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_sec = True)
@@ -2848,7 +2848,7 @@ class MainWorkerThread(threading.Thread):
         if all_secm:
             for each_filename in filename_list:
                 try:
-                    secm = SASFileIO.loadSECFile(each_filename)
+                    secm = SASFileIO.loadSeriesFile(each_filename)
                 except:
                     wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1],include_sec=True)
                     wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -3383,29 +3383,61 @@ class MainWorkerThread(threading.Thread):
             r1_start = secm.baseline_start_range[0]
             r1_end = secm.baseline_start_range[1]
             r2_start = secm.baseline_end_range[0]
+            r2_end = secm.baseline_end_range[1]
+
+            bl_type = secm.baseline_type
+            bl_extrap = secm.baseline_extrap
 
             new_sasms = secm.subtracted_sasm_list[first_frame:]
 
             bl_sasms = []
             baselines = secm.baseline_corr
+            fit_results = secm.baseline_fit_results
+
+            bl_q = copy.deepcopy(new_sasms[0].getQ())
+            bl_err = np.zeros_like(new_sasms[0].getQ())
+            new_baselines = []
 
             for j, sasm in enumerate(new_sasms):
                 idx = j + first_frame
                 q = copy.deepcopy(sasm.getQ())
 
-                if idx < r1_start:
-                    baseline = baselines[0].getI()
-                    i = copy.deepcopy(sasm.getI())
-                    err = copy.deepcopy(sasm.getErr())
-                elif idx >= r1_end and idx < r2_start:
-                    baseline = baselines[idx-r1_end].getI()
-                    i = sasm.getI() - baseline
-                    err = sasm.getErr() * i/sasm.getI()
-                else:
-                    baseline = baselines[-1].getI()
-                    i = sasm.getI() - baseline
-                    err = sasm.getErr() * i/sasm.getI()
+                if bl_type == 'Integral':
+                    if idx < r1_start:
+                        baseline = baselines[0].getI()
+                        i = copy.deepcopy(sasm.getI())
+                        err = copy.deepcopy(sasm.getErr())
+                    elif idx >= r1_end and idx < r2_start:
+                        baseline = baselines[idx-r1_end].getI()
+                        i = sasm.getI() - baseline
+                        err = sasm.getErr() * i/sasm.getI()
+                    else:
+                        baseline = baselines[-1].getI()
+                        i = sasm.getI() - baseline
+                        err = sasm.getErr() * i/sasm.getI()
 
+                elif bl_type == 'Linear':
+
+                    if bl_extrap:
+                        baseline = np.array([SASCalc.linear_func(idx, fit[0], fit[1]) for fit in fit_results])
+                        i = sasm.getI() - baseline
+                        err = sasm.getErr() * i/sasm.getI()
+
+                        bl_newSASM = SASM.SASM(baseline, bl_q, bl_err, {})
+                        new_baselines.append(bl_newSASM)
+
+                    else:
+                        if idx >= r1_start and idx <= r2_end:
+                            baseline = np.array([SASCalc.linear_func(idx, fit[0], fit[1]) for fit in fit_results])
+                            i = sasm.getI() - baseline
+                            err = sasm.getErr() * i/sasm.getI()
+
+                            bl_newSASM = SASM.SASM(baseline, bl_q, bl_err, {})
+                            new_baselines.append(bl_newSASM)
+                        else:
+                            i = copy.deepcopy(sasm.getI())
+                            err = copy.deepcopy(sasm.getErr())
+                            baseline = np.zeros_like(i)
 
                 parameters = copy.deepcopy(sasm.getAllParameters())
                 newSASM = SASM.SASM(i, q, err, {})
@@ -3425,6 +3457,14 @@ class MainWorkerThread(threading.Thread):
                 newSASM.setParameter('history', history)
 
                 bl_sasms.append(newSASM)
+
+            if bl_type == 'Linear':
+                if bl_extrap:
+                    baselines = baselines[:-window_size]+new_baselines
+                else:
+                    if first_frame <= r2_end:
+                        bl_idx = min(r2_end-first_frame, window_size)
+                        baselines = baselines[:-bl_idx] + new_baselines
 
             baseline_use_subtracted_sasms = []
 
@@ -3463,6 +3503,7 @@ class MainWorkerThread(threading.Thread):
 
             secm.appendBCSubtractedSASMs(bl_sasms, baseline_use_subtracted_sasms,
                 window_size)
+            secm.baseline_corr = baselines
 
             success, results = SASCalc.run_secm_calcs(bl_sasms,
                 baseline_use_subtracted_sasms, window_size, is_protein, error_weight,
@@ -4720,7 +4761,7 @@ class MainWorkerThread(threading.Thread):
 
                 secm_data = item_dict[each_key]
 
-                new_secm, line_data, calc_line_data = SASFileIO.makeSECFile(secm_data)
+                new_secm, line_data, calc_line_data = SASFileIO.makeSeriesFile(secm_data)
 
                 new_secm.is_visible = secm_data['line_visible']
 

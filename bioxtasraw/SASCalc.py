@@ -2024,6 +2024,29 @@ def integral_baseline(sasms, start_range, end_range, max_iter, min_iter):
     return  b
 
 
+def linear_baseline(sasms, start_range, end_range):
+    start_frames = range(start_range[0], start_range[1]+1)
+    start_sasms = [sasms[j] for j in start_frames]
+
+    end_frames = range(end_range[0], end_range[1]+1)
+    end_sasms = [sasms[j] for j in end_frames]
+
+    frames = np.array(start_frames + end_frames)
+    fit_sasms = start_sasms + end_sasms
+
+    intensity = np.array([sasm.getI() for sasm in fit_sasms])
+    err = np.array([sasm.getErr() for sasm in fit_sasms])
+
+    fit_results = []
+
+    for j in range(intensity.shape[1]):
+
+        a, b, cov_a, cov_b = weighted_lin_reg(frames, intensity[:, j], err[:, j])
+        fit_results.append((a, b, cov_a, cov_b))
+
+    return fit_results
+
+
 
 ###############################################################################
 #DENSS below here

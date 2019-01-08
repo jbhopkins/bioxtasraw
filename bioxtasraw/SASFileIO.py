@@ -1398,7 +1398,7 @@ def loadOutFile(filename):
     return [iftm]
 
 
-def loadSECFile(filename):
+def loadSeriesFile(filename):
     file = open(filename, 'r')
 
     try:
@@ -1412,14 +1412,14 @@ def loadSECFile(filename):
     finally:
         file.close()
 
-    new_secm, line_data, calc_line_data = makeSECFile(secm_data)
+    new_secm, line_data, calc_line_data = makeSeriesFile(secm_data)
 
     new_secm.setParameter('filename', os.path.split(filename)[1])
 
     return new_secm
 
 
-def makeSECFile(secm_data):
+def makeSeriesFile(secm_data):
 
     default_dict =     {'sasm_list'             : [],
                         'file_list'             : [],
@@ -1446,6 +1446,8 @@ def makeSECFile(secm_data):
                         'baseline_end_range'    : (-1, -1),
                         'baseline_corr'         : [],
                         'baseline_type'         : '',
+                        'baseline_extrap'       : True,
+                        'baseline_fit_results'  : [],
                         }
 
     for key in default_dict:
@@ -1537,6 +1539,8 @@ def makeSECFile(secm_data):
     new_secm.baseline_start_range = secm_data['baseline_start_range']
     new_secm.baseline_end_range = secm_data['baseline_end_range']
     new_secm.baseline_type = secm_data['baseline_type']
+    new_secm.baseline_extrap = secm_data['baseline_extrap']
+    new_secm.baseline_fit_results = secm_data['baseline_fit_results']
 
     baseline_subtracted_sasm_list = []
 

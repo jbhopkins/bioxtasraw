@@ -841,6 +841,8 @@ class SECM(object):
         self.baseline_end_range = (-1, -1)
         self.baseline_corr = []
         self.baseline_type = ''
+        self.baseline_extrap = True
+        self.baseline_fit_results = []
 
         self.baseline_subtracted_sasm_list = []
         self.use_baseline_subtracted_sasm = []
@@ -1105,6 +1107,8 @@ class SECM(object):
         all_data['baseline_start_range'] = self.baseline_start_range
         all_data['baseline_end_range'] = self.baseline_end_range
         all_data['baseline_type'] = self.baseline_type
+        all_data['baseline_extrap'] = self.baseline_extrap
+        all_data['baseline_fit_results'] = self.baseline_fit_results
 
         all_data['mean_i_bcsub'] = self.mean_i_bcsub
         all_data['total_i_bcsub'] = self.total_i_bcsub
@@ -1193,6 +1197,8 @@ class SECM(object):
         copy_secm.baseline_end_range = copy.deepcopy(self.baseline_end_range)
         copy_secm.baseline_corr = copy.deepcopy(self.baseline_corr)
         copy_secm.baseline_type = copy.deepcopy(self.baseline_type)
+        copy_secm.baseline_extrap = copy.deepcopy(self.baseline_extrap)
+        copy_secm.baseline_fit_results = copy.deepcopy(self.baseline_fit_results)
 
         copy_secm.baseline_subtracted_sasm_list = copy.deepcopy(self.baseline_subtracted_sasm_list)
         copy_secm.use_baseline_subtracted_sasm = copy.deepcopy(self.use_baseline_subtracted_sasm)

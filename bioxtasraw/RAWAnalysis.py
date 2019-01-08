@@ -13171,22 +13171,10 @@ class LCSeriesPlotPage(wx.Panel):
         self.update_plot_data(frames, intensity, 'intensity', 'left', 'unsub')
 
         if control_page.processing_done['buffer']:
-            intensity = control_page._getIntensity('buffer')
-            self.update_plot_data(frames, intensity, 'intensity', 'left', 'sub')
+            control_page.plotSubtracted()
 
         if control_page.processing_done['baseline']:
-
-            intensity = control_page._getIntensity('unsub')
-            self.update_plot_data(frames, intensity, 'intensity', 'left', 'baseline')
-
-            r1 = control_page.results['baseline']['baseline_start_range']
-            r2 = control_page.results['baseline']['baseline_end_range']
-            bl_region = np.arange(r1[-1], r2[0]+1)
-
-            bl_corr = control_page.results['baseline']['baseline_corr']
-            bl_intensity = control_page._getRegionIntensity(bl_corr)
-
-            self.update_plot_data(bl_region, bl_intensity, 'baseline', 'left', 'sub')
+            control_page.plotBaseline()
 
     def _on_calc_change(self, event):
         calc_type = event.GetString()
@@ -13269,23 +13257,10 @@ class LCSeriesPlotPage(wx.Panel):
         # self.update_plot_label(label, 'left', 'uv')
 
         if control_page.processing_done['buffer']:
-            sasms = control_page.results['buffer']['sub_sasms']
-            intensity = np.array([sasm.getIofQ(qref) for sasm in sasms])
-            self.update_plot_data(frames, intensity, 'intensity', 'left', 'sub')
+            control_page.plotSubtracted()
 
         if control_page.processing_done['baseline']:
-            sasms = control_page.results['baseline']['sub_sasms']
-            intensity = np.array([sasm.getIofQ(qref) for sasm in sasms])
-
-            bl_corr = control_page.results['baseline']['baseline_corr']
-            bl_intensity = np.array([sasm.getIofQ(qref) for sasm in bl_corr])
-
-            r1 = control_page.results['baseline']['baseline_start_range']
-            r2 = control_page.results['baseline']['baseline_end_range']
-            bl_region = np.arange(r1[-1], r2[0]+1)
-
-            self.update_plot_data(frames, intensity, 'intensity', 'left', 'baseline')
-            self.update_plot_data(bl_region, bl_intensity, 'baseline', 'left', 'sub')
+            control_page.plotBaseline()
 
         return
 
@@ -13315,23 +13290,10 @@ class LCSeriesPlotPage(wx.Panel):
         self.update_plot_data(frames, intensity, 'intensity', 'left', 'unsub')
 
         if control_page.processing_done['buffer']:
-            sasms = control_page.results['buffer']['sub_sasms']
-            intensity = np.array([sasm.getIofQRange(q1, q2) for sasm in sasms])
-            self.update_plot_data(frames, intensity, 'intensity', 'left', 'sub')
+            control_page.plotSubtracted()
 
         if control_page.processing_done['baseline']:
-            sasms = control_page.results['baseline']['sub_sasms']
-            intensity = np.array([sasm.getIofQRange(q1, q2) for sasm in sasms])
-
-            bl_corr = control_page.results['baseline']['baseline_corr']
-            bl_intensity = np.array([sasm.getIofQRange(q1, q2) for sasm in bl_corr])
-
-            r1 = control_page.results['baseline']['baseline_start_range']
-            r2 = control_page.results['baseline']['baseline_end_range']
-            bl_region = np.arange(r1[-1], r2[0]+1)
-
-            self.update_plot_data(frames, intensity, 'intensity', 'left', 'baseline')
-            self.update_plot_data(bl_region, bl_intensity, 'baseline', 'left', 'sub')
+            control_page.plotBaseline()
 
         return
 
@@ -13536,16 +13498,23 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.baseline_auto = wx.Button(baseline_win, label='Auto')
         self.baseline_auto.Bind(wx.EVT_BUTTON, self._onBaselineAuto)
 
+        self.baseline_extrap = wx.CheckBox(baseline_win, label='Extrapolate to all frames')
+        self.baseline_extrap.SetValue(True)
+
+        self.baseline_options_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.baseline_options_sizer.Add(self.baseline_extrap, flag=wx.RIGHT, border=2)
+        self.baseline_options_sizer.Add(self.baseline_auto, flag=wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+
         self.baseline_calc = wx.Button(baseline_win, label='Set baseline and calculate')
         self.baseline_calc.Bind(wx.EVT_BUTTON, self.onUpdateProc)
 
-        self.baseline_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.baseline_sizer.Add(type_sizer, flag=wx.LEFT|wx.RIGHT, border=2)
-        self.baseline_sizer.Add(baseline_ctrl_sizer, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
-        self.baseline_sizer.Add(self.baseline_auto,
-            flag=wx.LEFT|wx.RIGHT|wx.TOP|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, border=2)
-        self.baseline_sizer.Add(self.baseline_calc, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
-        baseline_win.SetSizer(self.baseline_sizer)
+        baseline_sizer = wx.BoxSizer(wx.VERTICAL)
+        baseline_sizer.Add(type_sizer, flag=wx.LEFT|wx.RIGHT, border=2)
+        baseline_sizer.Add(baseline_ctrl_sizer, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
+        baseline_sizer.Add(self.baseline_options_sizer,
+            flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
+        baseline_sizer.Add(self.baseline_calc, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
+        baseline_win.SetSizer(baseline_sizer)
 
 
         # uv_pane = wx.CollapsiblePane(self, label="UV")
@@ -13667,9 +13636,15 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             self.bl_r2_start.SetValue(self.secm.baseline_end_range[0])
             self.bl_r2_end.SetValue(self.secm.baseline_end_range[1])
 
+            self.baseline_extrap.SetValue(self.secm.baseline_extrap)
+
             if self.secm.baseline_type != 'Integral':
                 self.baseline_auto.Disable()
-                self.baseline_sizer.Hide(self.baseline_auto)
+                self.baseline_options_sizer.Hide(self.baseline_auto)
+
+            if self.secm.baseline_type != 'Linear':
+                self.baseline_extrap.Disable()
+                self.baseline_options_sizer.Hide(self.baseline_extrap)
 
             self.plot_page.update_plot_range(self.secm.baseline_start_range[0],
                 self.secm.baseline_start_range[1], 'bl_start', 'sub')
@@ -13691,12 +13666,15 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 'sub_total_i'                   : self.secm.total_i_bcsub,
                 'bl_sub_mean_i'                 : bl_sub_mean_i,
                 'bl_sub_total_i'                : bl_sub_total_i,
+                'baseline_extrap'               : self.secm.baseline_extrap,
+                'fit_results'                   : self.secm.baseline_fit_results,
+                'baseline_type'                 : self.secm.baseline_type,
                 }
 
             self.results['baseline'] = results
             self.processing_done['baseline'] = True
 
-            self._plotBaseline()
+            self.plotBaseline()
 
         else:
             self.bl_r1_start.Disable()
@@ -13707,7 +13685,9 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             self.bl_r2_pick.Disable()
             self.baseline_calc.Disable()
             self.baseline_auto.Disable()
-            self.baseline_sizer.Hide(self.baseline_auto)
+            self.baseline_extrap.Disable()
+            self.baseline_options_sizer.Hide(self.baseline_auto)
+            self.baseline_options_sizer.Hide(self.baseline_extrap)
 
 
         array_test = isinstance(self.secm.vpmw_list, np.ndarray) and (not np.all(self.secm.vpmw_list == -1)
@@ -13802,16 +13782,11 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
 
         if self.processing_done['baseline']:
-            bl_type = self.baseline_cor.GetStringSelection()
-
-            self.original_secm.baseline_start_range = self.results['baseline']['baseline_start_range']
-            self.original_secm.baseline_end_range = self.results['baseline']['baseline_end_range']
-            self.original_secm.baseline_corr = self.results['baseline']['baseline_corr']
-            self.original_secm.baseline_type = bl_type
 
             if len(self.secm.getAllSASMs()) == len(self.original_secm.getAllSASMs()):
                 baseline_sub_sasms = self.results['baseline']['sub_sasms']
                 baseline_use_sub_sasms = self.results['baseline']['use_sub_sasms']
+                baselines = self.results['baseline']['baseline_corr']
 
             else:
                 calc_threshold = self.raw_settings.get('secCalcThreshold')
@@ -13828,28 +13803,61 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 r1_start = self.results['baseline']['baseline_start_range'][0]
                 r1_end = self.results['baseline']['baseline_start_range'][1]
                 r2_start = self.results['baseline']['baseline_end_range'][0]
+                r2_end = self.results['baseline']['baseline_end_range'][1]
 
-                new_sasms = self.subtracted_sasm_list[len(self.secm.getAllSASMs()):]
+                bl_type = self.results['baseline']['baseline_type']
+                bl_extrap = self.results['baseline']['baseline_extrap']
+
+                new_sasms = self.original_secm.subtracted_sasm_list[len(self.secm.getAllSASMs()):]
 
                 bl_sasms = []
+
                 baselines = self.results['baseline']['baseline_corr']
+                fit_results = self.results['baseline']['fit_results']
+
+                bl_q = copy.deepcopy(new_sasms[0].getQ())
+                bl_err = np.zeros_like(new_sasms[0].getQ())
 
                 for j, sasm in enumerate(new_sasms):
                     idx = j + len(self.secm.getAllSASMs())
                     q = copy.deepcopy(sasm.getQ())
 
-                    if idx < r1_start:
-                        baseline = baselines[0].getI()
-                        i = copy.deepcopy(sasm.getI())
-                        err = copy.deepcopy(sasm.getErr())
-                    elif idx >= r1_end and idx < r2_start:
-                        baseline = baselines[idx-r1_end].getI()
-                        i = sasm.getI() - baseline
-                        err = sasm.getErr() * i/sasm.getI()
-                    else:
-                        baseline = baselines[-1].getI()
-                        i = sasm.getI() - baseline
-                        err = sasm.getErr() * i/sasm.getI()
+                    if bl_type == 'Integral':
+                        if idx < r1_start:
+                            baseline = baselines[0].getI()
+                            i = copy.deepcopy(sasm.getI())
+                            err = copy.deepcopy(sasm.getErr())
+                        elif idx >= r1_end and idx < r2_start:
+                            baseline = baselines[idx-r1_end].getI()
+                            i = sasm.getI() - baseline
+                            err = sasm.getErr() * i/sasm.getI()
+                        else:
+                            baseline = baselines[-1].getI()
+                            i = sasm.getI() - baseline
+                            err = sasm.getErr() * i/sasm.getI()
+
+                    elif bl_type == 'Linear':
+
+                        if bl_extrap:
+                            baseline = np.array([SASCalc.linear_func(idx, fit[0], fit[1]) for fit in fit_results])
+                            i = sasm.getI() - baseline
+                            err = sasm.getErr() * i/sasm.getI()
+
+                            bl_newSASM = SASM.SASM(baseline, bl_q, bl_err, {})
+                            baselines.append(bl_newSASM)
+
+                        else:
+                            if idx >= r1_start and idx <= r2_end:
+                                baseline = np.array([SASCalc.linear_func(idx, fit[0], fit[1]) for fit in fit_results])
+                                i = sasm.getI() - baseline
+                                err = sasm.getErr() * i/sasm.getI()
+
+                                bl_newSASM = SASM.SASM(baseline, bl_q, bl_err, {})
+                                baselines.append(bl_newSASM)
+                            else:
+                                i = copy.deepcopy(sasm.getI())
+                                err = copy.deepcopy(sasm.getErr())
+                                baseline = np.zeros_like(i)
 
 
                     parameters = copy.deepcopy(sasm.getAllParameters())
@@ -13910,6 +13918,13 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 baseline_use_sub_sasms = self.results['baseline']['use_sub_sasms'] + use_subtracted_sasms
 
             self.original_secm.setBCSubtractedSASMs(baseline_sub_sasms, baseline_use_sub_sasms)
+
+            self.original_secm.baseline_start_range = self.results['baseline']['baseline_start_range']
+            self.original_secm.baseline_end_range = self.results['baseline']['baseline_end_range']
+            self.original_secm.baseline_corr = baselines
+            self.original_secm.baseline_type = self.results['baseline']['baseline_type']
+            self.original_secm.baseline_extrap = self.results['baseline']['baseline_extrap']
+            self.original_secm.baseline_fit_results = self.results['baseline']['fit_results']
 
 
         if self.processing_done['calc']:
@@ -14092,7 +14107,9 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             self.bl_r2_pick.Disable()
             self.baseline_calc.Disable()
             self.baseline_auto.Disable()
-            self.baseline_sizer.Hide(self.baseline_auto)
+            self.baseline_extrap.Disable()
+            self.baseline_options_sizer.Hide(self.baseline_auto)
+            self.baseline_options_sizer.Hide(self.baseline_extrap)
 
             try:
                 self.plot_page.remove_plot_range('bl_start', 'sub')
@@ -14132,16 +14149,25 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
             if baseline == 'Integral':
                 self.baseline_auto.Enable()
-                self.baseline_sizer.Show(self.baseline_auto)
+                self.baseline_options_sizer.Show(self.baseline_auto)
             else:
                 self.baseline_auto.Disable()
-                self.baseline_sizer.Hide(self.baseline_auto)
+                self.baseline_options_sizer.Hide(self.baseline_auto)
+
+            if baseline == 'Linear':
+                self.baseline_extrap.Enable()
+                self.baseline_options_sizer.Show(self.baseline_extrap)
+            else:
+                self.baseline_extrap.Disable()
+                self.baseline_options_sizer.Hide(self.baseline_extrap)
 
             r1_start = self.bl_r1_start.GetValue()
             r1_end = self.bl_r1_end.GetValue()
 
             r2_start = self.bl_r2_start.GetValue()
             r2_end = self.bl_r2_end.GetValue()
+
+            self.Layout()
 
             self.plot_page.update_plot_range(r1_start, r1_end, 'bl_start', 'sub')
             self.plot_page.update_plot_range(r2_start, r2_end, 'bl_end', 'sub')
@@ -14762,15 +14788,22 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         return valid
 
     def _validateBaseline(self, sasms, frames, ref_sasms, all_sasms, bl_type, start, fast=False):
-        valid, similarity_results, svd_results, intI_results = self._validateBuffer(sasms,
-            frames, fast)
-
-        if fast and not valid:
-            return valid, similarity_results, svd_results, intI_results, {}
+        other_results = {}
 
         if bl_type == 'Integral':
-            other_results = {}
+            valid, similarity_results, svd_results, intI_results = self._validateBuffer(sasms,
+                frames, fast)
 
+            if fast and not valid:
+                return valid, similarity_results, svd_results, intI_results, other_results
+        else:
+            valid = True
+            similarity_results = {}
+            svd_results = {}
+            intI_results = {}
+
+
+        if bl_type == 'Integral':
             # if start and frames[0] != 0:
             #     full_frames = range(0, frames[-1]+1)
             #     full_sasms = [all_sasms[i] for i in full_frames]
@@ -14825,8 +14858,51 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             if fast and not valid:
                 return valid, similarity_results, svd_results, intI_results, other_results
 
-        else:
-            other_results = {}
+        elif bl_type == 'Linear':
+            if not start:
+                start_ints = np.array([sasm.getI() for sasm in ref_sasms])
+                end_ints = np.array([sasm.getI() for sasm in sasms])
+
+                start_ints_err = np.array([sasm.getErr() for sasm in ref_sasms])
+                end_ints_err = np.array([sasm.getErr() for sasm in sasms])
+
+                start_fit_results = []
+                end_fit_results = []
+
+                j = 0
+                fit_valid = True
+
+                while fit_valid and j < end_ints.shape[1]-1:
+
+                    s_a, s_b, s_cov_a, s_cov_b = SASCalc.weighted_lin_reg(np.arange(start_ints.shape[0]),
+                        start_ints[:, j], start_ints_err[:, j])
+                    start_fit_results.append((s_a, s_b, s_cov_a, s_cov_b))
+
+                    e_a, e_b, e_cov_a, e_cov_b = SASCalc.weighted_lin_reg(np.arange(end_ints.shape[0]),
+                        end_ints[:, j], end_ints_err[:, j])
+                    end_fit_results.append((e_a, e_b, e_cov_a, e_cov_b))
+
+
+                    if s_a != -1 and e_a != -1:
+                        a_diff = abs(s_a - e_a)
+                        b_diff = abs(s_b - e_b)
+
+                        a_delta = 2*s_cov_a + 2*e_cov_a
+                        b_delta = 2*s_cov_b + 2*e_cov_b
+
+                        if a_diff > a_delta or b_diff > b_delta:
+                            fit_valid = False
+
+                    j = j + 1
+
+                other_results['fit_valid'] = fit_valid
+                # other_results['start_fits'] = start_fit_results
+                # other_results['end_fits'] = end_fit_results
+
+                valid = valid and other_results['fit_valid']
+
+            if fast and not valid:
+                return valid, similarity_results, svd_results, intI_results, other_results
 
         return valid, similarity_results, svd_results, intI_results, other_results
 
@@ -14861,12 +14937,11 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
     def processBaseline(self):
         bl_type = self.baseline_cor.GetStringSelection()
+        bl_extrap = self.baseline_extrap.IsChecked()
 
         sim_threshold = self.raw_settings.get('similarityThreshold')
         sim_test = self.raw_settings.get('similarityTest')
         calc_threshold = self.raw_settings.get('secCalcThreshold')
-
-        # print bl_type
 
         valid = self._validateBaselineRange()
 
@@ -14884,6 +14959,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         start_sasms = [sub_sasms[i] for i in start_frames]
         end_sasms = [sub_sasms[i] for i in end_frames]
+
+        fit_results = [] #Need to declare here for integral baselines which don't return fit_results
 
         if bl_type == 'Integral':
             (s_valid,
@@ -14947,6 +15024,10 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
             bl_sasms = []
 
+            bl_corr = []
+            bl_q = copy.deepcopy(sub_sasms[0].getQ())
+            bl_err = np.zeros_like(baselines[0])
+
             for j, sasm in enumerate(sub_sasms):
                 q = copy.deepcopy(sasm.getQ())
 
@@ -14954,10 +15035,13 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                     baseline = baselines[0]
                     i = copy.deepcopy(sasm.getI())
                     err = copy.deepcopy(sasm.getErr())
-                elif j >= r1[1] and j < r2[0]:
+                elif j >= r1[1] and j <= r2[0]:
                     baseline = baselines[j-r1[1]]
                     i = sasm.getI() - baseline
                     err = sasm.getErr() * i/sasm.getI()
+
+                    newSASM = SASM.SASM(baseline, bl_q, bl_err, {})
+                    bl_corr.append(newSASM)
                 else:
                     baseline = baselines[-1]
                     i = sasm.getI() - baseline
@@ -14982,6 +15066,91 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 newSASM.setParameter('history', history)
 
                 bl_sasms.append(newSASM)
+
+        elif bl_type == 'Linear':
+            (valid,
+            similarity_results,
+            svd_results,
+            intI_results,
+            other_results) = self._validateBaseline(end_sasms, end_frames,
+                start_sasms, sub_sasms, bl_type, False)
+
+            if not valid:
+                msg = ('RAW found potential issues with the selected baseline '
+                    'start/end regions(s).\n')
+
+                if not other_results['fit_valid']:
+                    msg = msg + ('\nThe linear fit of the selected start region '
+                        'does not match the linear fit of the\nselected end region '
+                        'at all q values. This may indicate that a linear baseline\n'
+                        'is not an appropriate correction over the selected '
+                        'ranges.')
+
+                wx.CallAfter(self.series_frame.showBusy, False)
+
+                answer = self._displayQuestionDialog(msg,
+                    'Warning: Selected baseline ranges may be invalid',
+                [('Cancel', wx.ID_CANCEL), ('Continue', wx.ID_YES)],
+                wx.ART_WARNING)
+
+                wx.CallAfter(self.series_frame.showBusy, True)
+
+                if answer[0] != wx.ID_YES:
+                    self.continue_processing = False
+                    return
+
+            fit_results = SASCalc.linear_baseline(sub_sasms, r1, r2)
+
+            bl_sasms = []
+            bl_corr = []
+
+            bl_q = copy.deepcopy(sub_sasms[0].getQ())
+            bl_err = np.zeros_like(sub_sasms[0].getQ())
+
+            for j, sasm in enumerate(sub_sasms):
+                q = copy.deepcopy(sasm.getQ())
+
+                if bl_extrap:
+                    baseline = np.array([SASCalc.linear_func(j, fit[0], fit[1]) for fit in fit_results])
+                    i = sasm.getI() - baseline
+                    err = sasm.getErr() * i/sasm.getI()
+
+                    bl_newSASM = SASM.SASM(baseline, bl_q, bl_err, {})
+                    bl_corr.append(bl_newSASM)
+
+                else:
+                    if j >= r1[0] and j <= r2[1]:
+                        baseline = np.array([SASCalc.linear_func(j, fit[0], fit[1]) for fit in fit_results])
+                        i = sasm.getI() - baseline
+                        err = sasm.getErr() * i/sasm.getI()
+
+                        bl_newSASM = SASM.SASM(baseline, bl_q, bl_err, {})
+                        bl_corr.append(bl_newSASM)
+                    else:
+                        i = copy.deepcopy(sasm.getI())
+                        err = copy.deepcopy(sasm.getErr())
+                        baseline = np.zeros_like(i)
+
+
+                parameters = copy.deepcopy(sasm.getAllParameters())
+                newSASM = SASM.SASM(i, q, err, {})
+                newSASM.setParameter('filename', parameters['filename'])
+
+                history = newSASM.getParameter('history')
+
+                history = {}
+
+                history1 = []
+                history1.append(copy.deepcopy(sasm.getParameter('filename')))
+                for key in sasm.getParameter('history'):
+                    history1.append({ key : copy.deepcopy(sasm.getParameter('history')[key])})
+
+                history['baseline_correction'] = {'initial_file':history1, 'baseline':list(baseline)}
+
+                newSASM.setParameter('history', history)
+
+                bl_sasms.append(newSASM)
+
 
         sub_mean_i = np.array([sasm.getMeanI() for sasm in bl_sasms])
         sub_total_i = np.array([sasm.getTotalI() for sasm in bl_sasms])
@@ -15018,16 +15187,6 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             else:
                 use_subtracted_sasms.append(False)
 
-        bl_corr = []
-
-        bl_q = sub_sasms[0].getQ()
-        bl_err = np.zeros_like(baselines[0])
-
-        for j in range(baselines.shape[0]):
-            intensity = baselines[j]
-
-            newSASM = SASM.SASM(intensity, bl_q, bl_err, {})
-            bl_corr.append(newSASM)
 
         bl_sub_mean_i = np.array([sasm.getMeanI() for sasm in bl_corr])
         bl_sub_total_i = np.array([sasm.getTotalI() for sasm in bl_corr])
@@ -15044,6 +15203,9 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             'sub_total_i'                   : sub_total_i,
             'bl_sub_mean_i'                 : bl_sub_mean_i,
             'bl_sub_total_i'                : bl_sub_total_i,
+            'baseline_extrap'               : bl_extrap,
+            'fit_results'                   : fit_results,
+            'baseline_type'                 : bl_type,
             }
 
         self.results['baseline'] = results
@@ -15053,20 +15215,29 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         if self.plot_page.get_plot() == 'Subtracted':
             wx.CallAfter(self.plot_page.show_plot, 'Baseline Corrected')
 
-        wx.CallAfter(self._plotBaseline)
+        wx.CallAfter(self.plotBaseline)
         wx.CallAfter(self.switchSampleRange, 'sub', 'baseline')
 
         return
 
-    def _plotBaseline(self):
+    def plotBaseline(self):
         frames = self.secm.getFrames()
         intensity = self._getIntensity('baseline')
+
+        bl_type = self.results['baseline']['baseline_type']
+        bl_extrap = self.results['baseline']['baseline_extrap']
 
         r1 = self.results['baseline']['baseline_start_range']
         r2 = self.results['baseline']['baseline_end_range']
         bl_corr = self.results['baseline']['baseline_corr']
 
-        bl_region = np.arange(r1[-1], r2[0]+1)
+        if bl_type == 'Integral':
+            bl_region = np.arange(r1[-1], r2[0]+1)
+        elif bl_type == 'Linear' and not bl_extrap:
+            bl_region = np.arange(r1[0], r2[1]+1)
+        elif bl_type == 'Linear' and bl_extrap:
+            bl_region = frames
+
         bl_intensity = self._getRegionIntensity(bl_corr)
 
         self.plot_page.update_plot_data(bl_region, bl_intensity, 'baseline', 'left', 'sub')
@@ -15147,7 +15318,10 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             self.results['calc'] = results
             self.processing_done['calc'] = True
 
-        if self.processing_done['baseline'] and (start == 'calc' or start == 'buffer'):
+        if not self.processing_done['baseline']:
+            self.results['buffer']['calc'] = results
+
+        elif self.processing_done['baseline'] and (start == 'calc' or start == 'buffer'):
             sub_sasms = self.results['buffer']['sub_sasms']
             use_sub_sasms = self.results['buffer']['use_sub_sasms']
 
