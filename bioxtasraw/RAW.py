@@ -660,7 +660,12 @@ class MainFrame(wx.Frame):
 
         #make a subtracted profile SECM
         if len(secm.subtracted_sasm_list) == 0 and manip_item != None:
-            msg = 'No subtracted files are available for this series curve. It is recommended that you run EFA on subtracted profiles. You can create subtracted curves by setting a buffer range in the series Control Panel and calculating the parameter values. Click OK to continue with the EFA without subtracted files.'
+            msg = ('No subtracted files are available for this series curve. '
+                'It is recommended that you run EFA on subtracted profiles. '
+                'You can create subtracted profiles using the LC Series analysis '
+                'panel, accessible by right clicking on the item in the Series '
+                'panel. Click OK to continue with the EFA without subtracted files.'
+                )
             dlg = wx.MessageDialog(self, msg, "No subtracted files", style = wx.ICON_INFORMATION | wx.CANCEL | wx.OK)
             proceed = dlg.ShowModal()
             dlg.Destroy()

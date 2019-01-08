@@ -2623,7 +2623,7 @@ class AutomationOptionsPanel(wx.Panel):
 
         return chkboxSizer
 
-class SecPanel(wx.Panel):
+class SeriesPanel(wx.Panel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
@@ -2631,10 +2631,14 @@ class SecPanel(wx.Panel):
 
         self.raw_settings = raw_settings
 
-        self.update_keys = ['secCalcThreshold']
+        self.update_keys = ['secCalcThreshold', 'IBaselineMinIter', 'IBaselineMaxIter']
 
 
-        self.settings = [('Intensity ratio (to background) threshold for calculating Rg, MW, I0:', raw_settings.getId('secCalcThreshold'))]
+        self.settings = [('Intensity ratio (to background) threshold for calculating Rg, MW, I0:',
+            raw_settings.getId('secCalcThreshold')),
+            ('Integral baseline minimum iterations:', raw_settings.getId('IBaselineMinIter')),
+            ('Integral baseline maximum iterations:', raw_settings.getId('IBaselineMaxIter')),
+        ]
 
         sizer = self.createOptions()
 
@@ -2646,17 +2650,20 @@ class SecPanel(wx.Panel):
 
     def createOptions(self):
 
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
 
         for item in self.settings:
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
             label = wx.StaticText(self, -1, item[0])
-            value = wx.TextCtrl(self, item[1], '', size = (60, -1), style = wx.TE_PROCESS_ENTER )
+            value = wx.TextCtrl(self, item[1], '', size = (60, -1))
 
-            sizer.Add(label, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
-            sizer.Add(value, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+            sizer.Add(label, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.ALIGN_CENTER_VERTICAL, 5)
+            sizer.Add(value, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.ALIGN_CENTER_VERTICAL, 5)
+
+            top_sizer.Add(sizer, flag=wx.TOP, border=5)
 
 
-        return sizer
+        return top_sizer
 
 
 
@@ -4258,7 +4265,7 @@ class OptionsDialog(wx.Dialog):
                             [ (5,0,0), wx.Window.NewControlId(), 'IFT', IftOptionsPanel],
                             [ (6,0,0), wx.Window.NewControlId(), "Autosave", SaveDirectoriesPanel],
                             [ (7,0,0), wx.Window.NewControlId(), 'Online Mode', OnlineModePanel],
-                            [ (8,0,0), wx.Window.NewControlId(), 'SEC-SAXS', SecPanel],
+                            [ (8,0,0), wx.Window.NewControlId(), 'Series', SeriesPanel],
                             # [ (8,0,0), wx.Window.NewControlId(), "Automation", AutomationOptionsPanel],
                             [ (9,0,0), wx.Window.NewControlId(), "ATSAS", ATSASGeneralPanel],
                             [ (9,1,1), wx.Window.NewControlId(), "GNOM", ATSASGnom],

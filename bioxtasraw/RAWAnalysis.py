@@ -8540,7 +8540,7 @@ class SVDControlPanel(wx.Panel):
 
         #control if you're using unsubtracted or subtracted curves
         label = wx.StaticText(self, -1, 'Use :')
-        profile_type = wx.Choice(self, self.control_ids['profile'], choices = ['Unsubtracted', 'Subtracted'])
+        profile_type = wx.Choice(self, self.control_ids['profile'], choices = ['Unsubtracted', 'Subtracted', 'Baseline Corrected'])
         profile_type.SetStringSelection('Unsubtracted')
         profile_type.Bind(wx.EVT_CHOICE, self._onProfileChoice)
 
@@ -8712,6 +8712,16 @@ class SVDControlPanel(wx.Panel):
         else:
             self.subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.subtracted_sasm_list, [], self.secm.getAllParameters())
 
+            profile_window = wx.FindWindowById(self.control_ids['profile'], self)
+            profile_window.SetStringSelection('Unsubtracted')
+
+        if self.secm.baseline_subtracted_sasm_list:
+            self.bl_subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.baseline_subtracted_sasm_list, self.secm.frame_list, self.secm.getAllParameters())
+        else:
+            self.bl_subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.baseline_subtracted_sasm_list, [], self.secm.getAllParameters())
+
+            profile_window = wx.FindWindowById(self.control_ids['profile'], self)
+            profile_window.SetStringSelection('Unsubtracted')
 
         if self.manip_item is not None:
             sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
@@ -8721,9 +8731,11 @@ class SVDControlPanel(wx.Panel):
             if self.ydata_type == 'q_val':
                 q=float(sec_plot_panel.plotparams['secm_plot_q'])
                 self.subtracted_secm.I(q)
+                self.bl_subtracted_secm.I(q)
             elif self.ydata_type == 'q_range':
                 qrange = sec_plot_panel.plotparams['secm_plot_qrange']
                 self.subtracted_secm.calc_qrange_I(qrange)
+                self.bl_subtracted_secm.calc_qrange_I(qrange)
 
         self.updateSECPlot()
 
@@ -8732,16 +8744,25 @@ class SVDControlPanel(wx.Panel):
 
     #This function is called when the profiles used are changed between subtracted and unsubtracted.
     def _onProfileChoice(self, evt):
-        if len(self.subtracted_secm.getAllSASMs()) > 0:
+        profile_window = wx.FindWindowById(self.control_ids['profile'], self)
+        choice = profile_window.GetStringSelection()
+
+        if choice == 'Unsubtracted':
             wx.CallAfter(self.updateSECPlot)
-            wx.CallAfter(self.runSVD)
+            self.runSVD()
+        elif choice == 'Subtracted' and len(self.subtracted_secm.getAllSASMs()) > 0:
+            wx.CallAfter(self.updateSECPlot)
+            self.runSVD()
+        elif choice =='Baseline Corrected' and len(self.bl_subtracted_secm.getAllSASMs()) > 0:
+            wx.CallAfter(self.updateSECPlot)
+            self.runSVD()
         else:
-            msg = ('No subtracted files are available for this series '
-                'curve. You can create subtracted curves by setting a '
-                'buffer range in the Series Control Panel and calculating '
-                'the parameter values. You will have to reopen the SVD '
-                'window after doing this.')
-            dlg = wx.MessageDialog(self, msg, "No subtracted files", style = wx.ICON_INFORMATION | wx.OK)
+            msg = ('No {0} files are available for this series '
+                'curve. You can create {0} curves using the LC Series '
+                'analysis panel, accessible by right clicking on the item in '
+                'the Series panel. You will have to reopen the SVD window '
+                'after doing this.'.format(choice.lower()))
+            dlg = wx.MessageDialog(self, msg, "No %s files" %(choice.lower()), style = wx.ICON_INFORMATION | wx.OK)
             dlg.ShowModal()
             dlg.Destroy()
 
@@ -8853,10 +8874,14 @@ class SVDControlPanel(wx.Panel):
         framei = framei_window.GetValue()
         framef = framef_window.GetValue()
 
+        norm_data = wx.FindWindowById(self.control_ids['norm_data']).GetValue()
+
         if profile_window.GetStringSelection() == 'Unsubtracted':
             secm = self.secm
-        else:
+        elif profile_window.GetStringSelection() == 'Subtracted':
             secm = self.subtracted_secm
+        elif profile_window.GetStringSelection() == 'Baseline Corrected':
+            secm = self.bl_subtracted_secm
 
         sasm_list = secm.getSASMList(framei, framef)
 
@@ -8866,13 +8891,16 @@ class SVDControlPanel(wx.Panel):
         self.i = i.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose
         self.err = err.T
 
-        err_mean = np.mean(self.err, axis = 1)
-        if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
-            self.err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), self.err.shape)
-        else:
-            self.err_avg = np.array([err_mean for k in range(self.i.shape[1])]).T
+        if norm_data:
+            err_mean = np.mean(self.err, axis = 1)
+            if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
+                self.err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), self.err.shape)
+            else:
+                self.err_avg = np.array([err_mean for k in range(self.i.shape[1])]).T
 
-        self.svd_a = self.i/self.err_avg
+            self.svd_a = self.i/self.err_avg
+        else:
+            self.svd_a = self.i
 
         if not np.all(np.isfinite(self.svd_a)):
             wx.CallAfter(wx.MessageBox, 'Initial SVD matrix contained nans or infinities. SVD could not be carried out', 'SVD Failed', style = wx.ICON_ERROR | wx.OK)
@@ -8899,12 +8927,14 @@ class SVDControlPanel(wx.Panel):
         framei = framei_window.GetValue()
         framef = framef_window.GetValue()
 
-        profile_window = wx.FindWindowById(self.control_ids['profile'],self )
+        profile_window = wx.FindWindowById(self.control_ids['profile'], self)
 
         if profile_window.GetStringSelection() == 'Unsubtracted':
             plotpanel.plotSECM(self.secm, framei, framef, self.ydata_type)
-        else:
+        elif profile_window.GetStringSelection() == 'Subtracted':
             plotpanel.plotSECM(self.subtracted_secm, framei, framef, self.ydata_type)
+        elif profile_window.GetStringSelection() == 'Baseline Corrected':
+            plotpanel.plotSECM(self.bl_subtracted_secm, framei, framef, self.ydata_type)
 
     def updateSVDPlot(self):
         plotpanel = wx.FindWindowByName('SVDResultsPlotPanel')
@@ -9527,7 +9557,7 @@ class EFAControlPanel1(wx.Panel):
 
         #control if you're using unsubtracted or subtracted curves
         label = wx.StaticText(self, -1, 'Use :')
-        profile_type = wx.Choice(self, self.control_ids['profile'], choices = ['Unsubtracted', 'Subtracted'])
+        profile_type = wx.Choice(self, self.control_ids['profile'], choices = ['Unsubtracted', 'Subtracted', 'Baseline Corrected'])
         profile_type.Bind(wx.EVT_CHOICE, self._onProfileChoice)
         profile_type.SetStringSelection('Subtracted')
 
@@ -9676,6 +9706,14 @@ class EFAControlPanel1(wx.Panel):
             profile_window = wx.FindWindowById(self.control_ids['profile'], self)
             profile_window.SetStringSelection('Unsubtracted')
 
+        if self.secm.baseline_subtracted_sasm_list:
+            self.bl_subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.baseline_subtracted_sasm_list, self.secm.frame_list, self.secm.getAllParameters())
+        else:
+            self.bl_subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.baseline_subtracted_sasm_list, [], self.secm.getAllParameters())
+
+            profile_window = wx.FindWindowById(self.control_ids['profile'], self)
+            profile_window.SetStringSelection('Unsubtracted')
+
         if self.manip_item is not None:
             sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
 
@@ -9684,9 +9722,11 @@ class EFAControlPanel1(wx.Panel):
             if self.ydata_type == 'q_val':
                 q=float(sec_plot_panel.plotparams['secm_plot_q'])
                 self.subtracted_secm.I(q)
+                self.bl_subtracted_secm.I(q)
             elif self.ydata_type == 'q_range':
                 qrange = sec_plot_panel.plotparams['secm_plot_qrange']
                 self.subtracted_secm.calc_qrange_I(qrange)
+                self.bl_subtracted_secm.calc_qrange_I(qrange)
 
         self.updateSECPlot()
 
@@ -9765,17 +9805,25 @@ class EFAControlPanel1(wx.Panel):
 
     #This function is called when the profiles used are changed between subtracted and unsubtracted.
     def _onProfileChoice(self, evt):
-        if len(self.subtracted_secm.getAllSASMs()) > 0:
+        profile_window = wx.FindWindowById(self.control_ids['profile'], self)
+        choice = profile_window.GetStringSelection()
+
+        if choice == 'Unsubtracted':
             wx.CallAfter(self.updateSECPlot)
             self.runSVD()
-
+        elif choice == 'Subtracted' and len(self.subtracted_secm.getAllSASMs()) > 0:
+            wx.CallAfter(self.updateSECPlot)
+            self.runSVD()
+        elif choice =='Baseline Corrected' and len(self.bl_subtracted_secm.getAllSASMs()) > 0:
+            wx.CallAfter(self.updateSECPlot)
+            self.runSVD()
         else:
-            msg = ('No subtracted files are available for this series '
-                'curve. You can create subtracted curves by setting '
-                'a buffer range in the Sries Control Panel and '
-                'calculating the parameter values. You will have to '
-                'reopen the EFA window after doing this.')
-            dlg = wx.MessageDialog(self, msg, "No subtracted files", style = wx.ICON_INFORMATION | wx.OK)
+            msg = ('No {0} files are available for this series '
+                'curve. You can create {0} curves using the LC Series '
+                'analysis panel, accessible by right clicking on the item in '
+                'the Series panel. You will have to reopen the EFA window '
+                'after doing this.'.format(choice.lower()))
+            dlg = wx.MessageDialog(self, msg, "No %s files" %(choice.lower()), style = wx.ICON_INFORMATION | wx.OK)
             dlg.ShowModal()
             dlg.Destroy()
 
@@ -9879,8 +9927,10 @@ class EFAControlPanel1(wx.Panel):
 
         if profile_window.GetStringSelection() == 'Unsubtracted':
             secm = self.secm
-        else:
+        elif profile_window.GetStringSelection() == 'Subtracted':
             secm = self.subtracted_secm
+        elif profile_window.GetStringSelection() == 'Baseline Corrected':
+            secm = self.bl_subtracted_secm
 
         sasm_list = secm.getSASMList(framei, framef)
 
@@ -9928,8 +9978,10 @@ class EFAControlPanel1(wx.Panel):
 
         if profile_window.GetStringSelection() == 'Unsubtracted':
             plotpanel.plotSECM(self.secm, framei, framef, self.ydata_type)
-        else:
+        elif profile_window.GetStringSelection() == 'Subtracted':
             plotpanel.plotSECM(self.subtracted_secm, framei, framef, self.ydata_type)
+        elif profile_window.GetStringSelection() == 'Baseline Corrected':
+            plotpanel.plotSECM(self.bl_subtracted_secm, framei, framef, self.ydata_type)
 
     def updateSVDPlot(self):
 
@@ -12526,6 +12578,7 @@ class SeriesPlotPanel(wx.Panel):
         if self.plot_type != 'unsub':
             self.ryaxis = self.subplot.twinx()
             self.ryaxis.set_ylabel(self.all_plot_types[self.plot_type]['right'])
+            self.subplot.axhline(0, color='k', linewidth=1.0)
 
         self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
 
@@ -13358,9 +13411,13 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         cancel_button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
         cancel_button.Bind(wx.EVT_BUTTON, self.onCancelButton)
 
+        cite_button = wx.Button(self, label='How to Cite')
+        cite_button.Bind(wx.EVT_BUTTON, self.onCiteButton)
+
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
         button_sizer.Add(cancel_button, 1, wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_HORIZONTAL, 5)
         button_sizer.Add(close_button, 1, wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        button_sizer.Add(cite_button, 1, wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         box = wx.StaticBox(self, -1, 'Control')
         control_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
@@ -14645,7 +14702,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 [('Cancel', wx.ID_CANCEL), ('Continue', wx.ID_YES)],
                 wx.ART_WARNING)
 
-                wx.CallAfter(self.series_frame.showBusy, True)
+                wx.CallAfter(self.series_frame.showBusy, True, 'Please wait, processing.')
 
                 if answer[0] != wx.ID_YES:
                     self.continue_processing = False
@@ -14942,6 +14999,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         sim_threshold = self.raw_settings.get('similarityThreshold')
         sim_test = self.raw_settings.get('similarityTest')
         calc_threshold = self.raw_settings.get('secCalcThreshold')
+        max_iter = self.raw_settings.get('IBaselineMaxIter')
+        min_iter = self.raw_settings.get('IBaselineMinIter')
 
         valid = self._validateBaselineRange()
 
@@ -15010,15 +15069,14 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 [('Cancel', wx.ID_CANCEL), ('Continue', wx.ID_YES)],
                 wx.ART_WARNING)
 
-                wx.CallAfter(self.series_frame.showBusy, True)
+                wx.CallAfter(self.series_frame.showBusy, True, 'Please wait, processing.')
 
                 if answer[0] != wx.ID_YES:
                     self.continue_processing = False
                     return
 
             #Ready to actually do the baseline correction. Goes here.
-            max_iter = 2000
-            min_iter = 100
+
             baselines = SASCalc.integral_baseline(sub_sasms, r1, r2, max_iter,
                 min_iter)
 
@@ -15093,7 +15151,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 [('Cancel', wx.ID_CANCEL), ('Continue', wx.ID_YES)],
                 wx.ART_WARNING)
 
-                wx.CallAfter(self.series_frame.showBusy, True)
+                wx.CallAfter(self.series_frame.showBusy, True, 'Please wait, processing.')
 
                 if answer[0] != wx.ID_YES:
                     self.continue_processing = False
@@ -16254,7 +16312,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.plot_page.update_plot_range(region_start, region_end, index, 'gen_sub')
 
         if self.processing_done['baseline']:
-            self.plot_page.show_plot('Baseline')
+            self.plot_page.show_plot('Baseline Corrected')
         else:
             self.plot_page.show_plot('Subtracted')
 
@@ -16319,6 +16377,14 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             self.question_return_queue.put([result])  # put answer in thread safe queue
 
         self.question_thread_wait_event.set()                 # Release thread from its waiting state
+
+    def onCiteButton(self, event):
+        msg = ('In addition to citing the RAW paper:\nIf you use the '
+            'integral baseline correction in your work please cite the '
+            'following paper:\nhttps://doi.org/10.1107/S1600576716011201\n'
+            'Brookes et al. (2016). J. Appl. Cryst. 49, 1827-1841.\n\n'
+            )
+        wx.MessageBox(str(msg), "How to cite integral baseline correction", style = wx.ICON_INFORMATION | wx.OK)
 
 class SeriesRangeItemList(RAWCustomCtrl.ItemList):
 

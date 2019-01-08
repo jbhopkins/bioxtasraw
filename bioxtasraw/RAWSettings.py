@@ -233,8 +233,10 @@ class RawGuiSettings(object):
                                                       '.out', '.mar1200', '.mar2400', '.mar2300', '.mar3600', '.int', '.ccdraw'], None],
 
 
-                            #SEC Settings:
+                            #Series Settings:
                             'secCalcThreshold'      : [1.02, wx.NewId(), 'float'],
+                            'IBaselineMinIter'    : [100, wx.NewId(), 'int'],
+                            'IBaselineMaxIter'    : [2000, wx.NewId(), 'int'],
 
                             #GUI Settings:
                             'csvIncludeData'      : [None],
