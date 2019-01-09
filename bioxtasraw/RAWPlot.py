@@ -2596,7 +2596,7 @@ class FigureSaveDialog(wx.Dialog):
         self.EndModal(wx.OK)
 
 
-class CustomSECPlotToolbar(NavigationToolbar2WxAgg):
+class CustomSeriesPlotToolbar(NavigationToolbar2WxAgg):
     def __init__(self, parent, canvas):
 
         self.fig_axes = parent.fig.gca()
@@ -2626,9 +2626,7 @@ class CustomSECPlotToolbar(NavigationToolbar2WxAgg):
         self.parent.clearSubplot(self.parent.subplot1)
 
 
-
-
-class SECPlotPanel(wx.Panel):
+class SeriesPlotPanel(wx.Panel):
 
     def __init__(self, parent, id, name, *args, **kwargs):
 
@@ -2742,7 +2740,7 @@ class SECPlotPanel(wx.Panel):
 
         self._initFigure()
 
-        self.toolbar = CustomSECPlotToolbar(self, self.canvas)
+        self.toolbar = CustomSeriesPlotToolbar(self, self.canvas)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.canvas, 1, wx.LEFT | wx.TOP | wx.GROW)
@@ -3819,7 +3817,6 @@ class SECPlotPanel(wx.Panel):
                     each.line.set_ydata(each.I(q))
             elif self.plotparams['y_axis_display'] == 'q_range':
                 qrange = self.plotparams['secm_plot_qrange']
-                print qrange
                 if each.qrange == qrange:
                     each.line.set_ydata(each.getIofQRange())
                 else:

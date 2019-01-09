@@ -8539,8 +8539,13 @@ class SVDControlPanel(wx.Panel):
         control_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
         #control if you're using unsubtracted or subtracted curves
+        choices = ['Unsubtracted']
+        if self.secm.subtracted_sasm_list:
+            choices.append('Subtracted')
+        if self.secm.baseline_subtracted_sasm_list:
+            choices.append('Baseline Corrected')
         label = wx.StaticText(self, -1, 'Use :')
-        profile_type = wx.Choice(self, self.control_ids['profile'], choices = ['Unsubtracted', 'Subtracted', 'Baseline Corrected'])
+        profile_type = wx.Choice(self, self.control_ids['profile'], choices = choices)
         profile_type.SetStringSelection('Unsubtracted')
         profile_type.Bind(wx.EVT_CHOICE, self._onProfileChoice)
 
@@ -8744,31 +8749,8 @@ class SVDControlPanel(wx.Panel):
 
     #This function is called when the profiles used are changed between subtracted and unsubtracted.
     def _onProfileChoice(self, evt):
-        profile_window = wx.FindWindowById(self.control_ids['profile'], self)
-        choice = profile_window.GetStringSelection()
-
-        if choice == 'Unsubtracted':
-            wx.CallAfter(self.updateSECPlot)
-            self.runSVD()
-        elif choice == 'Subtracted' and len(self.subtracted_secm.getAllSASMs()) > 0:
-            wx.CallAfter(self.updateSECPlot)
-            self.runSVD()
-        elif choice =='Baseline Corrected' and len(self.bl_subtracted_secm.getAllSASMs()) > 0:
-            wx.CallAfter(self.updateSECPlot)
-            self.runSVD()
-        else:
-            msg = ('No {0} files are available for this series '
-                'curve. You can create {0} curves using the LC Series '
-                'analysis panel, accessible by right clicking on the item in '
-                'the Series panel. You will have to reopen the SVD window '
-                'after doing this.'.format(choice.lower()))
-            dlg = wx.MessageDialog(self, msg, "No %s files" %(choice.lower()), style = wx.ICON_INFORMATION | wx.OK)
-            dlg.ShowModal()
-            dlg.Destroy()
-
-            profile_window = wx.FindWindowById(evt.GetId(), self)
-            profile_window.SetStringSelection('Unsubtracted')
-
+        wx.CallAfter(self.updateSECPlot)
+        self.runSVD()
 
     #This function is called when the start and end frame range spin controls are modified
     def _onChangeFrame(self, evt):
@@ -9556,8 +9538,13 @@ class EFAControlPanel1(wx.Panel):
         control_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
         #control if you're using unsubtracted or subtracted curves
+        choices = ['Unsubtracted']
+        if self.secm.subtracted_sasm_list:
+            choices.append('Subtracted')
+        if self.secm.baseline_subtracted_sasm_list:
+            choices.append('Baseline Corrected')
         label = wx.StaticText(self, -1, 'Use :')
-        profile_type = wx.Choice(self, self.control_ids['profile'], choices = ['Unsubtracted', 'Subtracted', 'Baseline Corrected'])
+        profile_type = wx.Choice(self, self.control_ids['profile'], choices = choices)
         profile_type.Bind(wx.EVT_CHOICE, self._onProfileChoice)
         profile_type.SetStringSelection('Subtracted')
 
@@ -9805,31 +9792,8 @@ class EFAControlPanel1(wx.Panel):
 
     #This function is called when the profiles used are changed between subtracted and unsubtracted.
     def _onProfileChoice(self, evt):
-        profile_window = wx.FindWindowById(self.control_ids['profile'], self)
-        choice = profile_window.GetStringSelection()
-
-        if choice == 'Unsubtracted':
-            wx.CallAfter(self.updateSECPlot)
-            self.runSVD()
-        elif choice == 'Subtracted' and len(self.subtracted_secm.getAllSASMs()) > 0:
-            wx.CallAfter(self.updateSECPlot)
-            self.runSVD()
-        elif choice =='Baseline Corrected' and len(self.bl_subtracted_secm.getAllSASMs()) > 0:
-            wx.CallAfter(self.updateSECPlot)
-            self.runSVD()
-        else:
-            msg = ('No {0} files are available for this series '
-                'curve. You can create {0} curves using the LC Series '
-                'analysis panel, accessible by right clicking on the item in '
-                'the Series panel. You will have to reopen the EFA window '
-                'after doing this.'.format(choice.lower()))
-            dlg = wx.MessageDialog(self, msg, "No %s files" %(choice.lower()), style = wx.ICON_INFORMATION | wx.OK)
-            dlg.ShowModal()
-            dlg.Destroy()
-
-            profile_window = wx.FindWindowById(evt.GetId(), self)
-            profile_window.SetStringSelection('Unsubtracted')
-
+        wx.CallAfter(self.updateSECPlot)
+        self.runSVD()
 
     #This function is called when the start and end frame range spin controls are modified
     def _onChangeFrame(self, evt):

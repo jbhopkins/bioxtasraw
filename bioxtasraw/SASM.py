@@ -1229,17 +1229,25 @@ class SECM(object):
 
     def I(self, qref):
         self.qref=float(qref)
-        self.I_of_q = []
+        self.I_of_q = [sasm.getIofQ(qref) for sasm in self.getAllSASMs()]
 
-        for sasm in self._sasm_list:
-            intensity = sasm.getIofQ(qref)
-            self.I_of_q.append(intensity)
+        if self.subtracted_sasm_list:
+            self.I_of_q_sub = [sasm.getIofQ(qref) for sasm in self.subtracted_sasm_list]
+
+        if self.baseline_subtracted_sasm_list:
+            self.I_of_q_bcsub = [sasm.getIofQ(qref) for sasm in self.baseline_subtracted_sasm_list]
 
         return self.I_of_q
 
     def calc_qrange_I(self, qrange):
         self.qrange = qrange
         self.qrange_I = [sasm.getIofQRange(qrange[0], qrange[1]) for sasm in self.getAllSASMs()]
+
+        if self.subtracted_sasm_list:
+            self.qrange_I_sub = [sasm.getIofQRange(qrange[0], qrange[1]) for sasm in self.subtracted_sasm_list]
+
+        if self.baseline_subtracted_sasm_list:
+            self.qrange_I_bcsub = [sasm.getIofQRange(qrange[0], qrange[1]) for sasm in self.baseline_subtracted_sasm_list]
 
         return self.qrange_I
 

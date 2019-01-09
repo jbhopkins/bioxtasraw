@@ -2674,7 +2674,7 @@ def saveAllAnalysisData(save_path, sasm_list, delim=','):
 
             f.write(delim.join(data_list)+'\n')
 
-def saveSECData(save_path, selected_secm, delim=','):
+def saveSeriesData(save_path, selected_secm, delim=','):
     #Exports the data from a SEC object into delimited form. Default is space delimited
     with open(save_path, 'w') as f:
 
@@ -2697,12 +2697,44 @@ def saveSECData(save_path, selected_secm, delim=','):
 
         savecalc = selected_secm.calc_has_data
 
+        if selected_secm.subtracted_sasm_list:
+            if selected_secm.already_subtracted:
+                f.write('# Initial profiles were already subtracted\n')
+            else:
+                f.write('# Buffer range for subtraction:\n')
+                for (r1, r2) in selected_secm.buffer_range:
+                    f.write('    {} to {}\n'.format(r1, r2))
+
+            f.write('# Average window size: {}\n'.format(selected_secm.window_size))
+            f.write('# Molecule type (Vc MW): {}\n'.format(selected_secm.mol_type))
+            f.write('# Molecule density (Vp MW): {}\n#\n'.format(selected_secm.mol_density))
+
+        if selected_secm.baseline_subtracted_sasm_list:
+            f.write('# Baseline type: {}\n'.format(selected_secm.baseline_type))
+
+            if selected_secm.baseline_type == 'Linear':
+                f.write('# Extrapolate baseline to all frames: {}\n'.format(selected_secm.baseline_extrap))
+
+            f.write('# Baseline start range: {} to {}\n'.format(selected_secm.baseline_start_range[0], selected_secm.baseline_start_range[1]))
+            f.write('# Baseline end range: {} to {}\n#\n'.format(selected_secm.baseline_end_range[0], selected_secm.baseline_end_range[1]))
 
         f.write('Frame_#%sIntegrated_Intensity%sMean_Intensity%s' %(delim, delim, delim))
         if saveq:
             f.write('I_at_q=%f%s' %(selected_secm.qref, delim))
         if save_qrange:
             f.write('I_from_q=%f_to_q=%f%s' %(selected_secm.qrange[0], selected_secm.qrange[1], delim))
+        if selected_secm.subtracted_sasm_list:
+            f.write('Subtracted_Integrated_Intensity%sSubtracted_Mean_Intensity%s' %(delim, delim))
+            if saveq:
+                f.write('Subtracted_I_at_q=%f%s' %(selected_secm.qref, delim))
+            if save_qrange:
+                f.write('Subtracted_I_from_q=%f_to_q=%f%s' %(selected_secm.qrange[0], selected_secm.qrange[1], delim))
+        if selected_secm.baseline_subtracted_sasm_list:
+            f.write('Baseline_Corrected_Integrated_Intensity%sBaseline_Corrected_Mean_Intensity%s' %(delim, delim))
+            if saveq:
+                f.write('Baseline_Corrected_I_at_q=%f%s' %(selected_secm.qref, delim))
+            if save_qrange:
+                f.write('Baseline_Corrected_I_from_q=%f_to_q=%f%s' %(selected_secm.qrange[0], selected_secm.qrange[1], delim))
         if savetime:
             f.write('Time_(s)%s' %(delim))
         if savecalc:
@@ -2710,15 +2742,27 @@ def saveSECData(save_path, selected_secm, delim=','):
         f.write('File_Name\n')
 
         for a in range(len(selected_secm._sasm_list)):
-            f.write('%i%s%f%s%f%s' %(selected_secm.frame_list[a], delim, selected_secm.total_i[a], delim, selected_secm.mean_i[a], delim))
+            f.write('%i%s%.4E%s%.4E%s' %(selected_secm.frame_list[a], delim, selected_secm.total_i[a], delim, selected_secm.mean_i[a], delim))
             if saveq:
-                f.write('%f%s' %(selected_secm.I_of_q[a], delim))
+                f.write('%.4E%s' %(selected_secm.I_of_q[a], delim))
             if save_qrange:
-                f.write('%f%s' %(selected_secm.qrange_I[a], delim))
+                f.write('%.4E%s' %(selected_secm.qrange_I[a], delim))
+            if selected_secm.subtracted_sasm_list:
+                f.write('%.4E%s%.4E%s' %(selected_secm.total_i_sub[a], delim, selected_secm.mean_i_sub[a], delim))
+                if saveq:
+                    f.write('%.4E%s' %(selected_secm.I_of_q_sub[a], delim))
+                if save_qrange:
+                    f.write('%.4E%s' %(selected_secm.qrange_I_sub[a], delim))
+            if selected_secm.baseline_subtracted_sasm_list:
+                f.write('%.4E%s%.4E%s' %(selected_secm.total_i_bcsub[a], delim, selected_secm.mean_i_bcsub[a], delim))
+                if saveq:
+                    f.write('%.4E%s' %(selected_secm.I_of_q_bcsub[a], delim))
+                if save_qrange:
+                    f.write('%.4E%s' %(selected_secm.qrange_I_bcsub[a], delim))
             if savetime:
-                f.write('%f%s' %(time[a], delim))
+                f.write('%.4E%s' %(time[a], delim))
             if savecalc:
-                calc_str = ('%f%s%f%s%f%s%f%s%f%s%f%s%f%s' %(selected_secm.rg_list[a],
+                calc_str = ('%.4E%s%.4E%s%.4E%s%.4E%s%.4E%s%.4E%s%.4E%s' %(selected_secm.rg_list[a],
                     delim, selected_secm.rger_list[a], delim, selected_secm.i0_list[a],
                     delim, selected_secm.i0er_list[a], delim, selected_secm.vcmw_list[a],
                     delim, selected_secm.vcmwer_list[a], delim, selected_secm.vpmw_list[a],

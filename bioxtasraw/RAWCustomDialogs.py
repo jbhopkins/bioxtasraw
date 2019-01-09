@@ -871,7 +871,7 @@ class DataDialog(wx.Dialog):
         self.EndModal(wx.ID_CANCEL)
 
 
-class SECDataDialog(wx.Dialog):
+class SeriesDataDialog(wx.Dialog):
 
     def __init__(self, parent, secm = None, *args, **kwargs):
 
@@ -927,10 +927,18 @@ class SECDataDialog(wx.Dialog):
 
         columns = 4
 
+        mult = 1
+        if self.secm.subtracted_sasm_list:
+            columns = columns+2
+            mult = mult+1
+        if self.secm.baseline_subtracted_sasm_list:
+            columns = columns+2
+            mult = mult+1
+
         if self.show_qval:
-            columns = columns + 1
+            columns = columns + 1*mult
         if self.show_qrange:
-            columns = columns + 1
+            columns = columns + 1*mult
         if self.showtime:
             columns = columns + 1
         if self.showcalc:
@@ -949,6 +957,30 @@ class SECDataDialog(wx.Dialog):
             label = 'Intensity from q={} to {}'.format(self.secm.qrange[0], self.secm.qrange[1])
             self.data_grid.SetColLabelValue(index, label)
             index = index +1
+        if self.secm.subtracted_sasm_list:
+            self.data_grid.SetColLabelValue(index, 'Subtracted Integrated Intensity')
+            index=index+1
+            self.data_grid.SetColLabelValue(index, 'Subtracted Mean Intensity')
+            index=index+1
+            if self.show_qval:
+                self.data_grid.SetColLabelValue(index, 'Subtracted Intensity at q={}'.format(self.secm.qref))
+                index = index +1
+            if self.show_qrange:
+                label = 'Subtracted Intensity from q={} to {}'.format(self.secm.qrange[0], self.secm.qrange[1])
+                self.data_grid.SetColLabelValue(index, label)
+                index = index +1
+        if self.secm.baseline_subtracted_sasm_list:
+            self.data_grid.SetColLabelValue(index, 'Baseline Corrected Integrated Intensity')
+            index=index+1
+            self.data_grid.SetColLabelValue(index, 'Baseline Corrected Mean Intensity')
+            index=index+1
+            if self.show_qval:
+                self.data_grid.SetColLabelValue(index, 'Baseline Corrected Intensity at q={}'.format(self.secm.qref))
+                index = index +1
+            if self.show_qrange:
+                label = 'Baseline Corrected Intensity from q={} to {}'.format(self.secm.qrange[0], self.secm.qrange[1])
+                self.data_grid.SetColLabelValue(index, label)
+                index = index +1
         if self.showtime:
             self.data_grid.SetColLabelValue(index, 'Time (s)')
             index = index +1
@@ -996,6 +1028,28 @@ class SECDataDialog(wx.Dialog):
             if self.show_qrange:
                 self.data_grid.SetCellValue(i, index, str(self.secm.qrange_I[i]))
                 index = index +1
+            if self.secm.subtracted_sasm_list:
+                self.data_grid.SetCellValue(i, index, str(self.secm.total_i_sub[i]))
+                index=index+1
+                self.data_grid.SetCellValue(i, index, str(self.secm.mean_i_sub[i]))
+                index=index+1
+                if self.show_qval:
+                    self.data_grid.SetCellValue(i, index, str(self.secm.I_of_q_sub[i]))
+                    index = index +1
+                if self.show_qrange:
+                    self.data_grid.SetCellValue(i, index, str(self.secm.qrange_I_sub[i]))
+                    index = index +1
+            if self.secm.baseline_subtracted_sasm_list:
+                self.data_grid.SetCellValue(i, index, str(self.secm.total_i_bcsub[i]))
+                index=index+1
+                self.data_grid.SetCellValue(i, index, str(self.secm.mean_i_bcsub[i]))
+                index=index+1
+                if self.show_qval:
+                    self.data_grid.SetCellValue(i, index, str(self.secm.I_of_q_bcsub[i]))
+                    index = index +1
+                if self.show_qrange:
+                    self.data_grid.SetCellValue(i, index, str(self.secm.qrange_I_bcsub[i]))
+                    index = index +1
             if self.showtime:
                 self.data_grid.SetCellValue(i, index, str(self.secm.time[i]))
                 index = index +1

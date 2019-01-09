@@ -209,7 +209,7 @@ class MainFrame(wx.Frame):
         plot_panel = RAWPlot.PlotPanel(self.plot_notebook, -1, 'PlotPanel')
         img_panel = RAWImage.ImagePanel(self.plot_notebook, -1, 'ImagePanel')
         iftplot_panel = RAWPlot.IftPlotPanel(self.plot_notebook, -1, 'IFTPlotPanel')
-        sec_panel = RAWPlot.SECPlotPanel(self.plot_notebook,-1, 'SECPlotPanel')
+        sec_panel = RAWPlot.SeriesPlotPanel(self.plot_notebook,-1, 'SECPlotPanel')
 
         self.plot_notebook.AddPage(plot_panel, "Main Plot", True)
         self.plot_notebook.AddPage(iftplot_panel, "IFT Plot", False)
@@ -1445,7 +1445,7 @@ class MainFrame(wx.Frame):
                 wx.MessageBox('Please select one (and only one) item to view the data.', 'Select Item', style = wx.ICON_INFORMATION)
                 return
             if page == wx.FindWindowByName('SECPanel'):
-                dlg = RAWCustomDialogs.SECDataDialog(self, selected_items[0].secm)
+                dlg = RAWCustomDialogs.SeriesDataDialog(self, selected_items[0].secm)
             elif page == wx.FindWindowByName('IFTPanel'):
                 dlg = RAWCustomDialogs.IFTDataDialog(self, selected_items[0].iftm)
             else:
@@ -2261,7 +2261,7 @@ class MainWorkerThread(threading.Thread):
                         'to_plot_ift'                   : self._plotIFTM,
                         'to_plot_SEC'                   : self._sendSASMToPlotSEC,
                         'average_items_sec'             : self._averageItemsSEC,
-                        'save_sec_data'                 : self._saveSECData,
+                        'save_sec_data'                 : self._saveSeriesData,
                         'save_sec_item'                 : self._saveSECItem,
                         'save_sec_profiles'             : self._saveSECProfiles,
                         # 'calculate_params_sec'          : self._calculateSECParams, #Maybe can remove?
@@ -4929,7 +4929,7 @@ class MainWorkerThread(threading.Thread):
     def _saveIftItems(self, data):
         self._saveItems(data, iftmode=True)
 
-    def _saveSECData(self,data):
+    def _saveSeriesData(self,data):
         save_path, selected_items = data[0], data[1]
 
         if self.main_frame.OnlineControl.isRunning() and os.path.split(save_path[0])[0] == self.main_frame.OnlineControl.getTargetDir():
@@ -4967,7 +4967,7 @@ class MainWorkerThread(threading.Thread):
                     filepath = result[1][0]
 
                 if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
-                    SASFileIO.saveSECData(save_path[b], selected_secm)
+                    SASFileIO.saveSeriesData(save_path[b], selected_secm)
 
                 if result[0] == wx.ID_YESTOALL:
                     overwrite_all = True
@@ -4976,7 +4976,7 @@ class MainWorkerThread(threading.Thread):
                     no_to_all = True
 
             else:
-                SASFileIO.saveSECData(save_path[b], selected_secm)
+                SASFileIO.saveSeriesData(save_path[b], selected_secm)
 
             if restart_timer:
                 self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path[b])[1]])
@@ -9517,7 +9517,8 @@ class SECPanel(wx.Panel):
                 elif profile_type == 'baseline':
                     sasms = item.secm.baseline_subtracted_sasm_list
 
-                mainworker_cmd_queue.put(['save_sec_profiles', [save_path, sasms]])
+                if sasms:
+                    mainworker_cmd_queue.put(['save_sec_profiles', [save_path, sasms]])
 
     def _OnClearAll(self, evt):
         plotpage = wx.FindWindowByName('SECPlotPanel')
@@ -10032,7 +10033,7 @@ class SECItemPanel(wx.Panel):
             self.sec_panel._saveItems()
 
         elif evt.GetId() == 4:
-            dlg = RAWCustomDialogs.SECDataDialog(self, self.secm)
+            dlg = RAWCustomDialogs.SeriesDataDialog(self, self.secm)
             dlg.ShowModal()
             dlg.Destroy()
 
