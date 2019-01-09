@@ -834,6 +834,10 @@ class SECM(object):
         self.mol_density = -1
         self.already_subtracted = False
 
+        # Use this to signal if the intensity on plots changes, and so things
+        # like use_subtracted_sasm need to be recalculated
+        self.intensity_change = False
+
         self.average_buffer_sasm = None
         self.subtracted_sasm_list = []
         self.use_subtracted_sasm = []
@@ -1198,6 +1202,8 @@ class SECM(object):
         copy_secm.mol_type = copy.deepcopy(self.mol_type)
         copy_secm.mol_density = copy.deepcopy(self.mol_density)
         copy_secm.already_subtracted = copy.deepcopy(self.already_subtracted)
+
+        copy_secm.intensity_change = copy.deepcopy(self.intensity_change)
 
         copy_secm.average_buffer_sasm = copy.deepcopy(self.average_buffer_sasm)
         copy_secm.subtracted_sasm_list = copy.deepcopy(self.subtracted_sasm_list)

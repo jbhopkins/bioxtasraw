@@ -13193,6 +13193,8 @@ class LCSeriesPlotPage(wx.Panel):
         if control_page.processing_done['baseline']:
             control_page.plotBaseline()
 
+        control_page.secm.intensity_change = True
+
     def _on_calc_change(self, event):
         calc_type = event.GetString()
 
@@ -13279,6 +13281,8 @@ class LCSeriesPlotPage(wx.Panel):
         if control_page.processing_done['baseline']:
             control_page.plotBaseline()
 
+        control_page.secm.intensity_change = True
+
         return
 
     def _on_qrange_change(self, event):
@@ -13311,6 +13315,8 @@ class LCSeriesPlotPage(wx.Panel):
 
         if control_page.processing_done['baseline']:
             control_page.plotBaseline()
+
+        control_page.secm.intensity_change = True
 
         return
 
@@ -14032,6 +14038,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         if self.processing_done['sample']:
             self.original_secm.sample_range = self.results['sample']['sample_range']
 
+        self.original_secm.intensity_change = False
+
         self.original_secm.releaseSemaphore()
 
         RAWGlobals.mainworker_cmd_queue.put(['update_secm_plot', self.original_secm])
@@ -14634,7 +14642,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 if self.results['buffer']['buffer_range']:
                     cur_br = set(buffer_range_list)
                     old_br = set(self.results['buffer']['buffer_range'])
-                    if cur_br == old_br:
+                    if cur_br == old_br and not self.secm.intensity_change:
                         self.continue_processing = False
                         msg = ("This buffer region is already set.")
                         wx.CallAfter(wx.MessageBox, msg, "Buffer already set", style=wx.ICON_INFORMATION|wx.OK)
@@ -14720,6 +14728,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.results['buffer'] = results
 
         self.processing_done['buffer'] = True
+
+        self.secm.intensity_change = False
 
         if self.plot_page.get_plot() == 'Unsubtracted':
             if not self.should_process['baseline']:
@@ -15039,8 +15049,6 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                     self.continue_processing = False
                     return
 
-            #Ready to actually do the baseline correction. Goes here.
-
             baselines = SASCalc.integral_baseline(sub_sasms, r1, r2, max_iter,
                 min_iter)
 
@@ -15179,22 +15187,46 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
 
         use_subtracted_sasms = []
+        zeroSASM = SASM.SASM(np.zeros_like(sub_sasms[0].getQ()), sub_sasms[0].getQ(), sub_sasms[0].getErr(), {})
+        unsub_sasms = self.secm.getAllSASMs()
+        bl_unsub_sasms = []
 
-        start_avg_sasm = SASProc.average(start_sasms, forced=True)
+        for j in range(len(unsub_sasms)):
+            if bl_type == 'Integral':
+                if j < r1[1]:
+                    bkg_sasm = zeroSASM
+                elif j >= r1[1] and j <= r2[0]:
+                    bkg_sasm = bl_corr[j-r1[1]]
+                else:
+                    bkg_sasm = bl_corr[-1]
+
+            elif bl_type == 'Linear':
+                if bl_extrap:
+                    bkg_sasm = bl_corr[j]
+                else:
+                    if j >= r1[0] or j <= r2[1]:
+                        bkg_sasm = bl_corr[j-r1[0]]
+                    else:
+                        bkg_sasm = zeroSASM
+
+            bl_unsub_sasms.append(SASProc.subtract(unsub_sasms[j], bkg_sasm, forced = True))
+
+        bl_unsub_ref_sasm = SASProc.average([bl_unsub_sasms[j] for j in start_frames], forced=True)
+
         int_type = self.plot_page.intensity
         if  int_type == 'total':
-            ref_intensity = start_avg_sasm.getTotalI()
+            ref_intensity = bl_unsub_ref_sasm.getTotalI()
         elif int_type == 'mean':
-            ref_intensity = start_avg_sasm.getMeanI()
+            ref_intensity = bl_unsub_ref_sasm.getMeanI()
         elif int_type == 'q_val':
             qref = float(self.plot_page.q_val.GetValue())
-            ref_intensity = start_avg_sasm.getIofQ(qref)
+            ref_intensity = bl_unsub_ref_sasm.getIofQ(qref)
         elif int_type == 'q_range':
             q1 = float(self.plot_page.q_range_start.GetValue())
             q2 = float(self.plot_page.q_range_end.GetValue())
-            ref_intensity = start_avg_sasm.getIofQRange(q1, q2)
+            ref_intensity = bl_unsub_ref_sasm.getIofQRange(q1, q2)
 
-        for sasm in bl_sasms:
+        for sasm in bl_unsub_sasms:
             if int_type == 'total':
                 sasm_intensity = sasm.getTotalI()
             elif int_type == 'mean':
@@ -15204,11 +15236,10 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             elif int_type == 'q_range':
                 sasm_intensity = sasm.getIofQRange(q1, q2)
 
-            if abs(sasm_intensity/ref_intensity) > calc_threshold:
+            if sasm_intensity/ref_intensity > calc_threshold:
                 use_subtracted_sasms.append(True)
             else:
                 use_subtracted_sasms.append(False)
-
 
         bl_sub_mean_i = np.array([sasm.getMeanI() for sasm in bl_corr])
         bl_sub_total_i = np.array([sasm.getTotalI() for sasm in bl_corr])
@@ -15325,6 +15356,83 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         error_weight = self.raw_settings.get('errorWeight')
         window_size = int(self.avg_window.GetValue())
         vp_density = float(self.vp_density.GetValue())
+
+        if self.secm.intensity_change:
+            calc_threshold = self.raw_settings.get('secCalcThreshold')
+
+            intensity = self._getIntensity('unsub')
+            ref_sub = self._getRegionIntensity([self.results['buffer']['buffer_sasm']])
+
+            self.results['buffer']['use_sub_sasms'] = (intensity/ref_sub[0])>calc_threshold
+
+            if self.processing_done['baseline']:
+                bl_type = self.results['baseline']['baseline_type']
+                bl_corr = self.results['baseline']['baseline_corr']
+                bl_extrap = self.results['baseline']['baseline_extrap']
+                r1 = self.results['baseline']['baseline_start_range']
+                r2 = self.results['baseline']['baseline_end_range']
+                sub_sasms = self.results['buffer']['sub_sasms']
+
+                start_frames = range(r1[0], r1[1]+1)
+
+                use_subtracted_sasms = []
+                zeroSASM = SASM.SASM(np.zeros_like(sub_sasms[0].getQ()), sub_sasms[0].getQ(), sub_sasms[0].getErr(), {})
+                unsub_sasms = self.secm.getAllSASMs()
+                bl_unsub_sasms = []
+
+                for j in range(len(unsub_sasms)):
+                    if bl_type == 'Integral':
+                        if j < r1[1]:
+                            bkg_sasm = zeroSASM
+                        elif j >= r1[1] and j <= r2[0]:
+                            bkg_sasm = bl_corr[j-r1[1]]
+                        else:
+                            bkg_sasm = bl_corr[-1]
+
+                    elif bl_type == 'Linear':
+                        if bl_extrap:
+                            bkg_sasm = bl_corr[j]
+                        else:
+                            if j >= r1[0] or j <= r2[1]:
+                                bkg_sasm = bl_corr[j-r1[0]]
+                            else:
+                                bkg_sasm = zeroSASM
+
+                    bl_unsub_sasms.append(SASProc.subtract(unsub_sasms[j], bkg_sasm, forced = True))
+
+                bl_unsub_ref_sasm = SASProc.average([bl_unsub_sasms[j] for j in start_frames], forced=True)
+
+                int_type = self.plot_page.intensity
+                if  int_type == 'total':
+                    ref_intensity = bl_unsub_ref_sasm.getTotalI()
+                elif int_type == 'mean':
+                    ref_intensity = bl_unsub_ref_sasm.getMeanI()
+                elif int_type == 'q_val':
+                    qref = float(self.plot_page.q_val.GetValue())
+                    ref_intensity = bl_unsub_ref_sasm.getIofQ(qref)
+                elif int_type == 'q_range':
+                    q1 = float(self.plot_page.q_range_start.GetValue())
+                    q2 = float(self.plot_page.q_range_end.GetValue())
+                    ref_intensity = bl_unsub_ref_sasm.getIofQRange(q1, q2)
+
+                for sasm in bl_unsub_sasms:
+                    if int_type == 'total':
+                        sasm_intensity = sasm.getTotalI()
+                    elif int_type == 'mean':
+                        sasm_intensity = sasm.getMeanI()
+                    elif int_type == 'q_val':
+                        sasm_intensity = sasm.getIofQ(qref)
+                    elif int_type == 'q_range':
+                        sasm_intensity = sasm.getIofQRange(q1, q2)
+
+                    if sasm_intensity/ref_intensity > calc_threshold:
+                        use_subtracted_sasms.append(True)
+                    else:
+                        use_subtracted_sasms.append(False)
+
+                self.results['baseline']['use_sub_sasms'] = use_subtracted_sasms
+
+            self.secm.intensity_change = False
 
         if self.processing_done['baseline']:
             sub_sasms = self.results['baseline']['sub_sasms']

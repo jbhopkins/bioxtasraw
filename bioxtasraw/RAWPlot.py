@@ -3429,6 +3429,15 @@ class SeriesPlotPanel(wx.Panel):
                     elif key == 'secplotbaseline':
                         self.plotparams['plot_intensity'] = 'baseline'
 
+                if (key == 'secplotrg' or key == 'secplotvcmw' or 
+                    key == 'secplotvpmw' or key == 'secploti0'):
+                    intensity_flag = False
+                else:
+                    intensity_flag = True
+
+                for secm in self.plotted_secms:
+                    secm.intensity_change = secm.intensity_change or intensity_flag
+
                 #Update plot settings in menu bar:
                 mainframe.setViewMenuScale(choice_id)
 
