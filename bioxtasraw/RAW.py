@@ -8924,7 +8924,7 @@ class SECPanel(wx.Panel):
         self.hide_all_png = wx.Bitmap(hide_all, wx.BITMAP_TYPE_PNG)
         self.select_all_png = wx.Bitmap(select_all, wx.BITMAP_TYPE_PNG)
 
-        #Icons for the SECItemPanel
+        #Icons for the SeriesItemPanel
         gray_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-gray-16.png')
         orange_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-orange-16.png')
         target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-16.png')
@@ -9133,7 +9133,7 @@ class SECPanel(wx.Panel):
 
         for secm in secm_list:
 
-            newItem = SECItemPanel(self.underpanel, secm, font_colour = item_colour,
+            newItem = SeriesItemPanel(self.underpanel, secm, font_colour = item_colour,
                                      item_visible = item_visible, modified = notsaved,
                                      legend_label=legend_label)
 
@@ -9380,7 +9380,7 @@ class SECPanel(wx.Panel):
             self.selectAll()
 
 
-class SECItemPanel(wx.Panel):
+class SeriesItemPanel(wx.Panel):
     def __init__(self, parent, secm, font_colour = 'BLACK', legend_label = defaultdict(str), item_visible = True, modified = False):
 
         wx.Panel.__init__(self, parent, style = wx.BORDER_RAISED)
@@ -9468,7 +9468,9 @@ class SECItemPanel(wx.Panel):
             target_tip.SetTarget(self.target_icon)
             target_tip.ApplyStyle('Blue Glass')
 
-            self.info_tip = STT.SuperToolTip("First buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A\nMol. type: N/A", header = "Extended Info", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+            msg = ("First buffer frame: N/A\nLast buffer frame: N/A\nAverage "
+                "window size: N/A\nMol. type: N/A\nBaseline: N/A")
+            self.info_tip = STT.SuperToolTip(msg, header = "Extended Info", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             self.info_tip.SetDrawHeaderLine(True)
             self.info_tip.SetTarget(self.info_icon)
             self.info_tip.ApplyStyle('Blue Glass')
@@ -9478,7 +9480,10 @@ class SECItemPanel(wx.Panel):
             self.colour_indicator.SetToolTip(wx.ToolTip('Line Properties'))
             self.bg_star.SetToolTip(wx.ToolTip('Mark'))
             self.target_icon.SetToolTip(wx.ToolTip('Locate Line'))
-            self.info_icon.SetToolTip(wx.ToolTip('Show Extended Info\n--------------------------------\nFirst buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A\nMol. type: N/A'))
+            tip = ('Show Extended Info\n--------------------------------\n'
+                'First buffer frame: N/A\nLast buffer frame: N/A\nAverage '
+                'window size: N/A\nMol. type: N/A\nBaseline: N/A')
+            self.info_icon.SetToolTip(wx.ToolTip(tip))
 
         self.locator_on = False
         self.locator_old_width = 1
@@ -9537,12 +9542,12 @@ class SECItemPanel(wx.Panel):
         if window == -1:
             if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
                 msg = ('First buffer frame: N/A\nLast buffer frame: N/A\n'
-                    'Average window size: N/A\nMol. type: N/A')
+                    'Average window size: N/A\nMol. type: N/A\nBaseline: N/A')
                 self.info_tip.SetMessage(msg)
             else:
                 msg = ('Show Extended Info\n--------------------------------\n'
                     'First buffer frame: N/A\nLast buffer frame: N/A\n'
-                    'Average window size: N/A\nMol. type: N/A')
+                    'Average window size: N/A\nMol. type: N/A\nBaseline: N/A')
                 self.info_icon.SetToolTip(wx.ToolTip(msg))
         else:
             if not self.secm.already_subtracted:
@@ -9551,16 +9556,21 @@ class SECItemPanel(wx.Panel):
             else:
                 buffer_str = 'Already subtracted\n'
 
+            if self.secm.baseline_type != '':
+                baseline = self.secm.baseline_type
+            else:
+                baseline = 'N/A'
+
             tip = ('{}Average window size: {}\nMol. type: {}\n'
-                'Mol. density: {}'.format(buffer_str, window, mol_type, mol_density))
+                'Mol. density: {}\nBaseline: {}'.format(buffer_str, window,
+                    mol_type, mol_density, baseline))
 
             if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
                 self.info_tip.SetMessage(tip)
             else:
                 msg = ('Show Extended Info\n--------------------------------\n'
                     '{}'.format(tip))
-                tip = wx.ToolTip(msg)
-                self.info_icon.SetToolTip()
+                self.info_icon.SetToolTip(wx.ToolTip(msg))
 
     def enableStar(self, state):
         if state == True:
