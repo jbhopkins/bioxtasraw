@@ -9968,15 +9968,13 @@ class SECControlPanel(wx.Panel):
         self.frame_list = []
         self.image_prefix = ""
         self.directory = ""
-        self.initial_run_number = ""
         self.initial_frame_number = ""
         self.final_frame_number = ""
         self.initial_selected_frame = ""
         self.final_selected_frame = ""
         self.secm = None
 
-        self.controlData = (  ('Image Prefix :', parent.paramsInGui['Image Header'], self.image_prefix),
-                              ('Initial Run # :', parent.paramsInGui['Initial Run #'], self.initial_run_number),
+        self.controlData = (  ('Series:', parent.paramsInGui['Image Header'], self.image_prefix),
                               ('Initial Frame # :', parent.paramsInGui['Initial Frame #'], self.initial_frame_number),
                               ('Final Frame # :',parent.paramsInGui['Final Frame #'], self.final_frame_number),
                               ('Initial Selected Frame :', parent.paramsInGui['Initial Selected Frame'], self.initial_selected_frame),
@@ -9994,14 +9992,15 @@ class SECControlPanel(wx.Panel):
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        cols = 6
-        rows = 2
-        fnum_sizer = wx.FlexGridSizer(cols = cols, rows = rows, vgap = 4, hgap = 4)
-        fnum_sizer.SetFlexibleDirection(wx.HORIZONTAL)
-        fnum_sizer.AddGrowableCol(0)
-        fnum_sizer.AddGrowableCol(2)
-        fnum_sizer.AddGrowableCol(4)
-        fnum_sizer.AddGrowableCol(5)
+        select_button = wx.Button(self, -1, 'Select')
+        select_button.Bind(wx.EVT_BUTTON, self._onSelectButton)
+
+        update_button = wx.Button(self, -1, 'Update')
+        update_button.Bind(wx.EVT_BUTTON, self._onUpdateButton)
+
+        self.online_mode_button = wx.CheckBox(self, -1, "AutoUpdate")
+        self.online_mode_button.SetValue(self._is_online)
+        self.online_mode_button.Bind(wx.EVT_CHECKBOX, self._onOnlineButton)
 
 
         for each in self.controlData:
@@ -10014,66 +10013,51 @@ class SECControlPanel(wx.Panel):
 
                 labelbox = wx.StaticText(self, -1, label)
 
-                self.image_prefix_box=wx.TextCtrl(self, id=id, value=self.image_prefix, style = wx.TE_READONLY)
+                self.image_prefix_box=wx.TextCtrl(self, id=id,
+                    value=self.image_prefix, style=wx.TE_READONLY)
 
                 img_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-                img_sizer.Add(labelbox, 0, wx.ALIGN_RIGHT | wx.RIGHT, border = 2)
-                img_sizer.Add(self.image_prefix_box, 2, wx.ALIGN_LEFT | wx.LEFT, border = 2)
-                img_sizer.AddStretchSpacer(1)
+                img_sizer.Add(labelbox, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
+                    border = 2)
+                img_sizer.Add(self.image_prefix_box, 1,
+                    flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=5)
+                img_sizer.Add(select_button, flag=wx.ALIGN_CENTER_VERTICAL)
 
-            elif type == 'irunnum':
-                labelbox = wx.StaticText(self, -1, "Run : ")
+            elif type == 'iframenum':
+                labelbox = wx.StaticText(self, -1, "Frames:")
+                labelbox2=wx.StaticText(self,-1,"to")
 
-                self.initial_run_number_box = wx.TextCtrl(self, id=id, value=self.initial_run_number, size = (50,20), style = wx.TE_READONLY)
+                self.initial_frame_number_box = wx.TextCtrl(self, id=id,
+                    value=self.initial_frame_number, size=(45,-1), style=wx.TE_READONLY)
 
                 run_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-                run_sizer.AddStretchSpacer(0)
-                run_sizer.Add(labelbox,0)
-                run_sizer.Add(self.initial_run_number_box,2, wx.EXPAND)
-                run_sizer.AddStretchSpacer(1)
-
-            elif type == 'iframenum':
-                labelbox = wx.StaticText(self, -1, "Frames : ")
-                labelbox2=wx.StaticText(self,-1," to ")
-
-                self.initial_frame_number_box = wx.TextCtrl(self, id=id, value=self.initial_frame_number, size = (50,20), style = wx.TE_READONLY)
-
-                run_sizer.Add(labelbox,0)
-                run_sizer.Add(self.initial_frame_number_box,2, wx.EXPAND)
-                run_sizer.Add(labelbox2,0)
+                run_sizer.Add(labelbox, 0, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
+                    border=2)
+                run_sizer.Add(self.initial_frame_number_box, 1,
+                    flag=wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, border=2)
+                run_sizer.Add(labelbox2, 0, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
+                    border=2)
 
             elif type == 'fframenum':
-                self.final_frame_number_box = wx.TextCtrl(self, id=id, value=self.final_frame_number, size = (50,20), style = wx.TE_READONLY)
+                self.final_frame_number_box = wx.TextCtrl(self, id=id,
+                    value=self.final_frame_number, size=(45,-1), style=wx.TE_READONLY)
 
-                run_sizer.Add(self.final_frame_number_box,2, wx.EXPAND)
+                run_sizer.Add(self.final_frame_number_box, 1,
+                    flag=wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, border=5)
+
+        run_sizer.Add(update_button, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
+            border=2)
+        run_sizer.Add(self.online_mode_button, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
+            border=2)
 
 
-        load_box = wx.StaticBox(self, -1, 'Load')
+        load_box = wx.StaticBox(self, -1, 'Load/Online Mode')
         load_sizer = wx.StaticBoxSizer(load_box, wx.VERTICAL)
-        load_sizer.Add(img_sizer, 0, flag = wx.EXPAND | wx.ALIGN_LEFT | wx.TOP | wx.LEFT | wx.RIGHT | wx.BOTTOM, border = 2)
-        load_sizer.Add(run_sizer, 0, flag = wx.EXPAND | wx.ALIGN_LEFT | wx.TOP | wx.LEFT | wx.RIGHT, border = 2)
+        load_sizer.Add(img_sizer, 0, flag = wx.EXPAND|wx.ALL, border=2)
+        load_sizer.Add(run_sizer, 0, flag = wx.EXPAND|wx.ALL, border=2)
 
-
-        select_button = wx.Button(self, -1, 'Select file in series')
-        select_button.Bind(wx.EVT_BUTTON, self._onSelectButton)
-
-
-        update_button = wx.Button(self, -1, 'Update')
-        update_button.Bind(wx.EVT_BUTTON, self._onUpdateButton)
-
-        self.online_mode_button = wx.CheckBox(self, -1, "AutoUpdate")
-        self.online_mode_button.SetValue(self._is_online)
-        self.online_mode_button.Bind(wx.EVT_CHECKBOX, self._onOnlineButton)
-
-        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        button_sizer.Add(select_button, 0, flag = wx.ALIGN_CENTER | wx.LEFT, border = 2)
-        button_sizer.Add(update_button, 0, border=9, flag=wx.ALIGN_CENTER|wx.LEFT|wx.RIGHT)
-        button_sizer.Add(self.online_mode_button, 0, flag = wx.ALIGN_CENTER | wx.RIGHT, border = 2)
-
-        load_sizer.Add(button_sizer, 1, wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, 2)
         sizer.Add(load_sizer, 0, wx.EXPAND | wx.BOTTOM, 5)
 
 
@@ -10425,9 +10409,6 @@ class SECControlPanel(wx.Panel):
                 if ptype == 'imghdr':
                     self.image_prefix = data.GetValue()
 
-                elif ptype == 'irunnum':
-                    self.initial_run_number = data.GetValue()
-
                 elif ptype == 'iframenum':
                     self.initial_frame_number = data.GetValue()
 
@@ -10456,7 +10437,7 @@ class SECControlPanel(wx.Panel):
         if hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS':
             if self.image_prefix != '' or self.filename != '':
                 for frame in modified_frame_list:
-                    name = os.path.join(self.directory, '%s_%s_%s' %(self.image_prefix, self.initial_run_number, frame))
+                    name = os.path.join(self.directory, '{}_{}'.format(self.image_prefix, frame))
                     if os.path.isfile(name+'.dat'):
                         file_list.append(name+'.dat')
                     elif os.path.isfile(name+'.tiff'):
@@ -10507,11 +10488,9 @@ class SECControlPanel(wx.Panel):
 
                 self.frame_list = self._getFrameList(filelist)
 
-                junk, self.image_prefix = os.path.split(count_filename)
+                self.image_prefix = '{}_{}'.format(os.path.basename(count_filename), run_number)
 
                 self.image_prefix_box.SetValue(self.image_prefix)
-                self.initial_run_number = run_number
-                self.initial_run_number_box.SetValue(run_number)
                 self.initial_frame_number = self.frame_list[0]
                 self.initial_frame_number_box.SetValue(self.initial_frame_number)
                 self.final_selected_frame = self.frame_list[-1]
