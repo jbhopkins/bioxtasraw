@@ -6803,6 +6803,7 @@ class ManipItemPanel(wx.Panel):
 
         self.locator_on = False
         self.locator_old_width = 1
+        self.locator_old_marker = 1
 
         panelsizer = wx.BoxSizer()
         panelsizer.Add(self.showitem_icon, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
@@ -6971,15 +6972,21 @@ class ManipItemPanel(wx.Panel):
 
         self.locator_on = not self.locator_on
 
-        if self.locator_on == True:
+        if self.locator_on:
             self.target_icon.SetBitmap(self.target_on_png)
             self.locator_old_width = self.sasm.line.get_linewidth()
+            self.locator_old_marker = self.sasm.line.get_markersize()
+
             new_width = self.locator_old_width + 2.0
+            new_marker = self.locator_old_marker + 2.0
+
             self.sasm.line.set_linewidth(new_width)
+            self.sasm.line.set_markersize(new_marker)
             wx.CallAfter(self.sasm.plot_panel.canvas.draw)
         else:
             self.target_icon.SetBitmap(self.target_png)
             self.sasm.line.set_linewidth(self.locator_old_width)
+            self.sasm.line.set_markersize(self.locator_old_marker)
             wx.CallAfter(self.sasm.plot_panel.canvas.draw)
 
         self.target_icon.Refresh()
@@ -8002,7 +8009,7 @@ class IFTPanel(wx.Panel):
                     each.toggleSelect(update_info=False)
         else:
             for each in self.all_manipulation_items:
-                if each.sasm.getLine() == line:
+                if line in each.lines:
                     each._selected = False
                     each.toggleSelect(update_info = False)
                 else:
@@ -8307,6 +8314,7 @@ class IFTItemPanel(wx.Panel):
 
         self.locator_on = False
         self.locator_old_width = {}
+        self.locator_old_marker = {}
 
         panelsizer = wx.BoxSizer()
         panelsizer.Add(self.showitem_icon, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
@@ -8426,19 +8434,26 @@ class IFTItemPanel(wx.Panel):
 
         self.locator_on = not self.locator_on
 
-        if self.locator_on == True:
+        if self.locator_on:
             self.target_icon.SetBitmap(self.target_on_png)
         else:
             self.target_icon.SetBitmap(self.target_png)
 
         for line in self.lines:
-            if self.locator_on == True:
+            if self.locator_on:
                 self.locator_old_width[line] = line.get_linewidth()
+                self.locator_old_marker[line] = line.get_markersize()
+
                 new_width = self.locator_old_width[line] + 2.0
+                new_marker = self.locator_old_marker[line] + 2.0
+
                 line.set_linewidth(new_width)
+                line.set_markersize(new_marker)
+
                 wx.CallAfter(self.iftm.plot_panel.canvas.draw)
             else:
                 line.set_linewidth(self.locator_old_width[line])
+                line.set_markersize(self.locator_old_marker[line])
                 wx.CallAfter(self.iftm.plot_panel.canvas.draw)
 
         self.target_icon.Refresh()
@@ -9467,6 +9482,9 @@ class SECItemPanel(wx.Panel):
 
         self.locator_on = False
         self.locator_old_width = 1
+        self.locator_old_marker = 1
+        self.locator_old_width_calc = 1
+        self.locator_old_marker_calc = 1
 
         panelsizer = wx.BoxSizer()
         panelsizer.Add(self.showitem_icon, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
@@ -9518,9 +9536,14 @@ class SECItemPanel(wx.Panel):
 
         if window == -1:
             if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
-                self.info_tip.SetMessage('First buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A\nMol. type: N/A')
+                msg = ('First buffer frame: N/A\nLast buffer frame: N/A\n'
+                    'Average window size: N/A\nMol. type: N/A')
+                self.info_tip.SetMessage(msg)
             else:
-                self.info_icon.SetToolTip(wx.ToolTip('Show Extended Info\n--------------------------------\nFirst buffer frame: N/A\nLast buffer frame: N/A\nAverage window size: N/A\nMol. type: N/A'))
+                msg = ('Show Extended Info\n--------------------------------\n'
+                    'First buffer frame: N/A\nLast buffer frame: N/A\n'
+                    'Average window size: N/A\nMol. type: N/A')
+                self.info_icon.SetToolTip(wx.ToolTip(msg))
         else:
             if not self.secm.already_subtracted:
                 buffer_str = ',\n   '.join(['{} to {}'.format(r1, r2) for (r1, r2) in buffer_range])
@@ -9534,7 +9557,10 @@ class SECItemPanel(wx.Panel):
             if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
                 self.info_tip.SetMessage(tip)
             else:
-                self.info_icon.SetToolTip(wx.ToolTip('Show Extended Info\n--------------------------------\n{}'.format(tip)))
+                msg = ('Show Extended Info\n--------------------------------\n'
+                    '{}'.format(tip))
+                tip = wx.ToolTip(msg)
+                self.info_icon.SetToolTip()
 
     def enableStar(self, state):
         if state == True:
@@ -9567,15 +9593,11 @@ class SECItemPanel(wx.Panel):
         if self._selected:
             self._selected = False
             self.SetBackgroundColour(wx.Colour(250,250,250))
-            # if update_info:
-            #     self.info_panel.clearInfo()
         else:
             self._selected = True
             self.SetBackgroundColour(wx.Colour(200,200,200))
             if set_focus:
                 self.SetFocusIgnoringChildren()
-            # if update_info:
-            #     self.info_panel.updateInfoFromItem(self)
 
         self.Refresh()
 
@@ -9583,20 +9605,33 @@ class SECItemPanel(wx.Panel):
 
         self.locator_on = not self.locator_on
 
-        if self.locator_on == True:
+        if self.locator_on:
             self.target_icon.SetBitmap(self.target_on_png)
             self.locator_old_width = self.secm.line.get_linewidth()
+            self.locator_old_marker = self.secm.line.get_markersize()
             new_width = self.locator_old_width + 2.0
+            new_marker = self.locator_old_marker + 2.0
             self.secm.line.set_linewidth(new_width)
+            self.secm.line.set_markersize(new_marker)
 
             if self.secm.calc_has_data and self.secm.calc_is_plotted:
+                self.locator_old_width_calc = self.secm.calc_line.get_linewidth()
+                self.locator_old_marker_calc = self.secm.calc_line.get_markersize()
+                new_width = self.locator_old_width_calc + 2.0
+                new_marker = self.locator_old_marker_calc + 2.0
                 self.secm.calc_line.set_linewidth(new_width)
+                self.secm.calc_line.set_markersize(new_marker)
+
             wx.CallAfter(self.secm.plot_panel.canvas.draw)
         else:
             self.target_icon.SetBitmap(self.target_png)
             self.secm.line.set_linewidth(self.locator_old_width)
+            self.secm.line.set_markersize(self.locator_old_marker)
+
             if self.secm.calc_has_data and self.secm.calc_is_plotted:
-                self.secm.calc_line.set_linewidth(self.locator_old_width)
+                self.secm.calc_line.set_linewidth(self.locator_old_width_calc)
+                self.secm.calc_line.set_markersize(self.locator_old_marker_calc)
+
             wx.CallAfter(self.secm.plot_panel.canvas.draw)
 
         self.target_icon.Refresh()

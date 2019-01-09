@@ -577,6 +577,7 @@ class PlotPanel(wx.Panel):
 
         try:
             self.selected_line.set_linewidth(self.selected_line_orig_width)
+            self.selected_line.set_markersize(self.selected_line_orig_marker)
             self.canvas.draw()
         except:
             pass
@@ -585,22 +586,25 @@ class PlotPanel(wx.Panel):
         self.blink_timer.Stop()
 
     def _onPickEvent(self, event):
-
         mouseevent = event.mouseevent
-
-        if mouseevent.button == 'up' or mouseevent.button == 'down' or mouseevent.button == 3:
+        if mouseevent.button == 'up' or mouseevent.button == 'down':
             return
+
 
         self.manipulation_panel = wx.FindWindowByName('ManipulationPanel')
 
         if self.selected_line != None:
             self.selected_line.set_linewidth(self.selected_line_orig_width)
+            self.selected_line.set_markersize(self.selected_line_orig_marker)
 
         self.selected_line = event.artist
 
         try:
             self.selected_line_orig_width = self.selected_line.get_linewidth()
+            self.selected_line_orig_marker = self.selected_line.get_markersize()
+
             self.selected_line.set_linewidth(self.selected_line_orig_width + 2)
+            self.selected_line.set_markersize(self.selected_line_orig_marker + 2)
         except AttributeError:
             self.selected_line = None
             return
@@ -609,8 +613,6 @@ class PlotPanel(wx.Panel):
         self.canvas.draw()
 
         self.blink_timer.Start(500)
-
-        return
 
     def _onKeyPressEvent(self, event):
         pass
@@ -1510,6 +1512,7 @@ class IftPlotPanel(PlotPanel):
 
         try:
             self.selected_line.set_linewidth(self.selected_line_orig_width)
+            self.selected_line.set_markersize(self.selected_line_orig_marker)
             self.canvas.draw()
         except:
             pass
@@ -1518,22 +1521,25 @@ class IftPlotPanel(PlotPanel):
         self.blink_timer.Stop()
 
     def _onPickEvent(self, event):
-
         mouseevent = event.mouseevent
         if mouseevent.button == 'up' or mouseevent.button == 'down':
             return
 
 
-        self.manipulation_panel = wx.FindWindowByName('ManipulationPanel')
+        self.manipulation_panel = wx.FindWindowByName('IFTPanel')
 
         if self.selected_line != None:
             self.selected_line.set_linewidth(self.selected_line_orig_width)
+            self.selected_line.set_markersize(self.selected_line_orig_marker)
 
         self.selected_line = event.artist
 
         try:
             self.selected_line_orig_width = self.selected_line.get_linewidth()
+            self.selected_line_orig_marker = self.selected_line.get_markersize()
+
             self.selected_line.set_linewidth(self.selected_line_orig_width + 2)
+            self.selected_line.set_markersize(self.selected_line_orig_marker + 2)
         except AttributeError:
             self.selected_line = None
             return
@@ -2997,6 +3003,7 @@ class SeriesPlotPanel(wx.Panel):
 
         try:
             self.selected_line.set_linewidth(self.selected_line_orig_width)
+            self.selected_line.set_markersize(self.selected_line_orig_marker)
             self.canvas.draw()
         except:
             pass
@@ -3014,12 +3021,16 @@ class SeriesPlotPanel(wx.Panel):
 
         if self.selected_line != None:
             self.selected_line.set_linewidth(self.selected_line_orig_width)
+            self.selected_line.set_markersize(self.selected_line_orig_marker)
 
         self.selected_line = event.artist
 
         try:
             self.selected_line_orig_width = self.selected_line.get_linewidth()
+            self.selected_line_orig_marker = self.selected_line.get_markersize()
+
             self.selected_line.set_linewidth(self.selected_line_orig_width + 2)
+            self.selected_line.set_markersize(self.selected_line_orig_marker + 2)
         except AttributeError:
             self.selected_line = None
             return
