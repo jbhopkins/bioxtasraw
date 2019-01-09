@@ -979,7 +979,7 @@ class SECM(object):
     def getCalcLine(self):
         return self.calc_line
 
-    def getSASMList(self, initial_frame, final_frame):
+    def getSASMList(self, initial_frame, final_frame, int_type='unsub'):
         sasms = []
 
         try:
@@ -1002,14 +1002,23 @@ class SECM(object):
             return sasms
 
         elif len(np.where(self.plot_frame_list == initial_frame)[0]) == 0:
-            print np.where(self.plot_frame_list == initial_frame)
             msg = "To send data to the main plot, enter a valid frame range (initial frame not in data set)."
             wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
             return sasms
 
-        else:
-            sasms = self._sasm_list[initial_frame : final_frame+1]
+        if int_type == 'sub' and not self.subtracted_sasm_list:
             return sasms
+        elif int_type == 'baseline' and not self.baseline_subtracted_sasm_list:
+            return sasms
+
+        if int_type == 'unsub':
+            sasms = self._sasm_list[initial_frame : final_frame+1]
+        elif int_type == 'sub':
+            sasms = self.subtracted_sasm_list[initial_frame : final_frame+1]
+        elif int_type == 'baseline':
+            sasms = self.baseline_subtracted_sasm_list[initial_frame : final_frame+1]
+
+        return sasms
 
     def getTime(self):
         if len(self.time)==0:

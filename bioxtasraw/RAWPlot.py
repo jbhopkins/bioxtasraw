@@ -2722,18 +2722,27 @@ class SeriesPlotPanel(wx.Panel):
                                     'x_axis_display'        : 'frame',
                                     'intensity_q'           : '0',
                                     'secm_plot_q'           : '0',
-                                    'secm_plot_calc'        : 'RG'}
+                                    'secm_plot_calc'        : 'RG',
+                                    'plot_intensity'        : 'unsub',
+                                    }
 
         self.frame_styles = ['Full', 'XY', 'X', 'Y', 'None']
 
-        self.default_subplot_labels = { 'total'      : ['Series Plot', 'Frame #', 'Integrated Intensity'],
-                                        'mean'       : ['Series Plot', 'Frame #', 'Mean Intensity'],
-                                        'q_val'      : ['Series Plot', 'Frame #', 'Intensity at q = '],
-                                        'q_range'    : ['Series Plot', 'Frame #', 'Intensity from q = '],
-                                        'frame'     : ['Series Plot', 'Frame #', 'Integrated Intensity'],
-                                        'time'       : ['Series Plot', 'Time (s)', 'Integrated Intensity']}
+        self.default_subplot_labels = { 'total'      : ['Frame #', 'Integrated Intensity'],
+                                        'mean'       : ['Frame #', 'Mean Intensity'],
+                                        'q_val'      : ['Frame #', 'Intensity at q = '],
+                                        'q_range'    : ['Frame #', 'Intensity from q = '],
+                                        'frame'      : ['Frame #', 'Integrated Intensity'],
+                                        'time'       : ['Time (s)', 'Integrated Intensity']}
+
+        self.default_subplot_titles = {'unsub'      : 'Series Plot',
+                                        'sub'       : 'Subtracted Series Plot',
+                                        'baseline'  : 'Baseline Corrected Series Plot',
+                                        }
+
 
         self.subplot_labels = copy.copy(self.default_subplot_labels)
+        self.subplot_titles = copy.copy(self.default_subplot_titles)
 
         self.save_parameters ={'dpi' : 100,
                                'format' : 'png'}
@@ -3205,122 +3214,49 @@ class SeriesPlotPanel(wx.Panel):
                     else:
                         self._showPopupMenu(selected_plot)
 
-#--- ** Popup Menu ***
+    def plotSECM(self, secm_list, color=None, legend_label_in=None,
+        line_data=None, calc_line_data=None, *args, **kwargs):
 
-    def plotSECM(self, secm_list, color = None, legend_label_in = None, line_data = None, calc_line_data = None, *args, **kwargs):
-
-        a = self.subplot1
-
-        if type(secm_list) != list:
+        if not isinstance(secm_list, list):
             secm_list = [secm_list]
+
+        for secm in secm_list:
+            self._validatePlotSettings(secm)
 
         for secm in secm_list:
             if legend_label_in == None:
                 legend_label = secm.getParameter('filename')
-
             else:
                 legend_label = legend_label_in
 
-            if self.plotparams.get('y_axis_display') == 'total':
-                ydata = secm.total_i
+            ydata = self._getIntensityData(secm)
+            xdata = self._getXData(secm)
 
-            elif self.plotparams.get('y_axis_display') == 'mean':
-                ydata = secm.mean_i
-
-            elif self.plotparams.get('y_axis_display') == 'q_val':
-                q=float(self.plotparams['secm_plot_q'])
-                sasm = secm.getSASM()
-                qrange = sasm.getQrange()
-                qmin = sasm.q[qrange[0]]
-                qmax = sasm.q[qrange[-1]-1]
-
-                if q > qmax or q < qmin:
-                    wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
-                    self.plotparams['y_axis_display'] = 'total'
-                    ydata = secm.total_i
-
-                else:
-                    if secm.qref == q:
-                        ydata = secm.I_of_q
-                    else:
-                        ydata = secm.I(q)
-
-            elif self.plotparams.get('y_axis_display') == 'q_range':
-                qrange = self.plotparams['secm_plot_qrange']
-                sasm = secm.getSASM()
-                q = sasm.getQ()
-                qmin = q[0]
-                qmax = q[-1]
-
-                if qrange[1] > qmax or qrange[0] < qmin:
-                    wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
-                    self.plotparams['y_axis_display'] = 'total'
-                    ydata = secm.total_i
-
-                else:
-                    if secm.qrange == qrange:
-                        ydata = secm.getIofQRange()
-                    else:
-                        ydata = secm.calc_qrange_I(qrange)
-
-            else:
-                print 'no y data selected!'
+            if xdata is None or ydata is None:
                 return
 
-            if self.plotparams.get('x_axis_display') == 'frame':
-                xdata = secm.plot_frame_list
-
-            elif self.plotparams.get('x_axis_display') == 'time':
-                time= secm.getTime()
-
-                if len(time) == 0:
-                    wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
-                    self.plotparams['x_axis_display'] = 'frame'
-                    xdata = secm.plot_frame_list
-                elif time[0] == -1:
-                    wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
-                    self.plotparams['x_axis_display'] = 'frame'
-                    xdata = secm.plot_frame_list
-                elif len(time) != len(ydata):
-                    wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
-                    self.plotparams['x_axis_display'] = 'frame'
-                    xdata = secm.plot_frame_list
-                else:
-                    xdata = time
-            else:
-                print 'no x data selected!'
-                return
-
-            line = a.plot(xdata, ydata, picker = 3, label = legend_label, **kwargs)[0]
-
+            line = self.subplot1.plot(xdata, ydata, picker=3, label=legend_label, **kwargs)[0]
             line.set_label(legend_label)
 
             secm.line = line
-            secm.axes = a
+            secm.axes = self.subplot1
             secm.canvas = self.canvas
             secm.plot_panel = self
             secm.is_plotted = True
 
             #######If the secm object has calculated structural parameters, plot those
-            param = self.plotparams['secm_plot_calc']
-
-            if param == 'RG':
-                ydata, ydataer = secm.getRg()
-            elif param == 'I0':
-                ydata, ydataer = secm.getI0()
-            elif param == 'MW (Vc)':
-                ydata, ydataer = secm.getVcMW()
-            elif param == 'MW (Vp)':
-                ydata, ydataer = secm.getVpMW()
+            if secm.calc_has_data:
+                calc_data = self._getCalcData(secm)
             else:
-                ydata = []
-                ydataer = []
+                calc_data = None
 
-            if len(ydata)== 0:
-                ydata = np.zeros_like(xdata)-1
+            if calc_data is None:
+                calc_data = np.zeros_like(xdata)-1
 
-            calc_line = self.ryaxis.plot(xdata, ydata, marker = self.markers.next(), linestyle = '', picker = 3, label = param, **kwargs)[0]
-            calc_line.set_label(param)
+            calc_line = self.ryaxis.plot(xdata, calc_data,
+                marker=self.markers.next(), linestyle ='', picker=3,
+                label=self.plotparams['secm_plot_calc'], **kwargs)[0]
+            calc_line.set_label(self.plotparams['secm_plot_calc'])
 
             secm.calc_line = calc_line
             secm.cacl_axes = self.ryaxis
@@ -3370,47 +3306,8 @@ class SeriesPlotPanel(wx.Panel):
                 except KeyError:
                     pass #Version <1.3.0 doesn't have these key
 
-            self.updatePlotData(self.subplot1)
+            self.updatePlotData()
 
-
-    def showErrorbars(self, state):
-
-        for each in self.plotted_secms:
-
-            if each.line.get_visible():
-                for each_err_line in each.err_line[0]:
-                    each_err_line.set_visible(state)
-
-                for each_err_line in each.err_line[1]:
-                    each_err_line.set_visible(state)
-
-
-                if state == True:
-                    #Update errorbar positions
-
-                    q_min, q_max = each.getQrange()
-                    q = each.q
-                    i = each.i
-
-                    caplines = each.err_line[0]
-                    barlinecols = each.err_line[1]
-
-                    yerr = each.err
-                    x = q
-                    y = i
-
-                    # Find the ending points of the errorbars
-                    error_positions = (x, y-yerr), (x, y+yerr)
-
-                    # Update the caplines
-                    for i,pos in enumerate(error_positions):
-                        caplines[i].set_data(pos)
-
-                    # Update the error bars
-                    barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr)))
-
-
-        self.canvas.draw()
 
     def _showPopupMenu(self, selected_plot):
 
@@ -3421,12 +3318,14 @@ class SeriesPlotPanel(wx.Panel):
         # plot1SubMenu = self._createPopupAxesMenu('1')
         plotSubMenu2 = self._createPopupYdataMenu('1')
         plotSubMenu3 = self._createPopupYdataMenu('2')
-        plotSubMenu4 = self._createPopupXdataMenu('1')
+        plotSubMenu4 = self._createPopupIntensityMenu('1')
+        plotSubMenu5 = self._createPopupXdataMenu('1')
 
         # menu.AppendSubMenu(plot1SubMenu, 'Axes')
         menu.AppendSubMenu(plotSubMenu2, 'Y Data (Left Axis)')
         menu.AppendSubMenu(plotSubMenu3, 'Y Data (Right Axis)')
-        menu.AppendSubMenu(plotSubMenu4, 'X Data')
+        menu.AppendSubMenu(plotSubMenu4, 'Intensity Type')
+        menu.AppendSubMenu(plotSubMenu5, 'X Data')
 
         menu.AppendSeparator()
 
@@ -3452,13 +3351,13 @@ class SeriesPlotPanel(wx.Panel):
         mainframe = wx.FindWindowByName('MainFrame')
         seccontrol = wx.FindWindowByName('SECControlPanel')
         MenuIDs = mainframe.getMenuIds()
-        id = evt.GetId()
+        choice_id = evt.GetId()
 
         if seccontrol._is_online:
             mainframe.OnlineSECControl.goOffline()
 
         for key in MenuIDs.iterkeys():
-            if MenuIDs[key] == id:
+            if MenuIDs[key] == choice_id:
 
                 if key[4] == '1':
 
@@ -3469,28 +3368,22 @@ class SeriesPlotPanel(wx.Panel):
                 elif key.startswith('sec'):
                     if key == 'secplottotal':
                         self.plotparams['y_axis_display'] = 'total'
-                        self.updatePlotData(self.subplot1)
 
                     elif key == 'secplotmean':
                         self.plotparams['y_axis_display'] = 'mean'
-                        self.updatePlotData(self.subplot1)
 
                     elif key == 'secplotq':
                         self.plotparams['y_axis_display'] = 'q_val'
                         self._getQValue()
-                        self.updatePlotData(self.subplot1)
 
                     elif key == 'secplotqr':
                         self.plotparams['y_axis_display'] = 'q_range'
                         self._getQRange()
-                        self.updatePlotData(self.subplot1)
 
                     elif key == 'secplotframe':
                         self.plotparams['x_axis_display'] = 'frame'
-                        self.updatePlotData(self.subplot1)
                     elif key == 'secplottime':
                         self.plotparams['x_axis_display'] = 'time'
-                        self.updatePlotData(self.subplot1)
 
                     elif key == 'secplotrg':
                         self.plotparams['secm_plot_calc'] = 'RG'
@@ -3499,7 +3392,6 @@ class SeriesPlotPanel(wx.Panel):
                             self.plotparams['framestyle1'] = self.plotparams['framestyle1'].replace('r','')
                             self.plotparams['framestyle2'] = self.plotparams['framestyle2']+'r'
                             self._updateFrameStylesForAllPlots()
-                        self.updatePlotData(self.ryaxis)
 
                     elif key == 'secplotvcmw':
                         self.plotparams['secm_plot_calc'] = 'MW (Vc)'
@@ -3508,7 +3400,6 @@ class SeriesPlotPanel(wx.Panel):
                             self.plotparams['framestyle1'] = self.plotparams['framestyle1'].replace('r','')
                             self.plotparams['framestyle2'] = self.plotparams['framestyle2']+'r'
                             self._updateFrameStylesForAllPlots()
-                        self.updatePlotData(self.ryaxis)
 
                     elif key == 'secplotvpmw':
                         self.plotparams['secm_plot_calc'] = 'MW (Vp)'
@@ -3517,7 +3408,6 @@ class SeriesPlotPanel(wx.Panel):
                             self.plotparams['framestyle1'] = self.plotparams['framestyle1'].replace('r','')
                             self.plotparams['framestyle2'] = self.plotparams['framestyle2']+'r'
                             self._updateFrameStylesForAllPlots()
-                        self.updatePlotData(self.ryaxis)
 
                     elif key == 'secploti0':
                         self.plotparams['secm_plot_calc'] = 'I0'
@@ -3526,64 +3416,23 @@ class SeriesPlotPanel(wx.Panel):
                             self.plotparams['framestyle1'] = self.plotparams['framestyle1'].replace('r','')
                             self.plotparams['framestyle2'] = self.plotparams['framestyle2']+'r'
                             self._updateFrameStylesForAllPlots()
-                        self.updatePlotData(self.ryaxis)
 
                     elif key == 'secplotnone':
                         self.plotparams['secm_plot_calc'] = 'None'
-                        self.updatePlotData(self.ryaxis)
 
-                    elif key == 'secplotlylin':
-                        param = self.plotparams['axesscale1']
-                        param = 'lin'+param[3:]
-                        self.plotparams['axesscale1'] = param
+                    elif key == 'secplotunsub':
+                        self.plotparams['plot_intensity'] = 'unsub'
 
-                        self.updatePlotAxes()
+                    elif key == 'secplotsub':
+                        self.plotparams['plot_intensity'] = 'sub'
 
-                    elif key == 'secplotlylog':
-                        param = self.plotparams['axesscale1']
-                        param = 'log'+param[3:]
-                        self.plotparams['axesscale1'] = param
-
-                        self.updatePlotAxes()
-
-                    elif key == 'secplotrylog':
-                        param = self.plotparams['axesscale2']
-                        param = 'log'+param[3:]
-                        self.plotparams['axesscale2'] = param
-
-                        self.updatePlotAxes()
-
-                    elif key == 'secplotrylin':
-                        param = self.plotparams['axesscale2']
-                        param = 'lin'+ param[3:]
-                        self.plotparams['axesscale2'] = param
-
-                        self.updatePlotAxes()
-
-                    elif key == 'secplotxlin':
-                        param = self.plotparams['axesscale1']
-                        param = param[:3]+'lin'
-                        self.plotparams['axesscale1'] = param
-
-                        param = self.plotparams['axesscale2']
-                        param = param[:3]+'lin'
-                        self.plotparams['axesscale2'] = param
-
-                        self.updatePlotAxes()
-
-                    elif key == 'secplotxlog':
-                        param = self.plotparams['axesscale1']
-                        param = param[:3]+'log'
-                        self.plotparams['axesscale1'] = param
-
-                        param = self.plotparams['axesscale2']
-                        param = param[:3]+'log'
-                        self.plotparams['axesscale2'] = param
-
-                        self.updatePlotAxes()
+                    elif key == 'secplotbaseline':
+                        self.plotparams['plot_intensity'] = 'baseline'
 
                 #Update plot settings in menu bar:
-                mainframe.setViewMenuScale(id)
+                mainframe.setViewMenuScale(choice_id)
+
+                self.updatePlotData()
 
 
                 #evt.Skip()
@@ -3662,7 +3511,8 @@ class SeriesPlotPanel(wx.Panel):
                              ('secplotvcmw',    'MW (Vc)'),
                              ('secplotvpmw',    'MW (Vp)'),
                              ('secploti0',   'I0'),
-                             ('secplotnone', 'None')]
+                             ('secplotnone', 'None'),
+                             ]
 
             for key, label in axes_list:
                 item = pop_menu.AppendRadioItem(MenuIDs[key], label)
@@ -3680,13 +3530,39 @@ class SeriesPlotPanel(wx.Panel):
         pop_menu = wx.Menu()
 
         axes_list = [('secplotframe',    'Frame Number'),
-                         ('secplottime',    'Time')]
+                         ('secplottime',    'Time'),
+                         ]
 
         for key, label in axes_list:
             item = pop_menu.AppendRadioItem(MenuIDs[key], label)
             item_list.append(item)
 
         self._markCurrentXSelection(item_list, plot_number)
+
+        return pop_menu
+
+    def _createPopupIntensityMenu(self, plot_number):
+
+        mainframe = wx.FindWindowByName('MainFrame')
+        MenuIDs = mainframe.getMenuIds()
+        item_list = []
+        pop_menu = wx.Menu()
+
+        axes_list = [('secplotunsub',       'Unsubtracted'),
+                        ('secplotsub',      'Subtracted'),
+                        ('secplotbaseline', 'Baseline Corrected'),
+                        ]
+
+        for key, label in axes_list:
+            item = pop_menu.AppendRadioItem(MenuIDs[key], label)
+            item_list.append(item)
+
+        if self.plotparams['plot_intensity'] == 'unsub':
+            item_list[0].Check(True)
+        elif self.plotparams['plot_intensity'] == 'sub':
+            item_list[1].Check(True)
+        elif self.plotparams['plot_intensity'] == 'baseline':
+            item_list[2].Check(True)
 
         return pop_menu
 
@@ -3762,111 +3638,174 @@ class SeriesPlotPanel(wx.Panel):
         elif self.plotparams['x_axis_display'] == 'time':
             item_list[1].Check(True)
 
-    def updatePlotData(self, axes, fit=True):
-        for each in self.plotted_secms:
-            if self.plotparams['y_axis_display'] == 'q_val':
-                q=float(self.plotparams['secm_plot_q'])
-                sasm = each.getSASM()
-                qrange = sasm.getQrange()
-                qmin = sasm.q[qrange[0]]
-                qmax = sasm.q[qrange[-1]-1]
+    def _validatePlotSettings(self, secm):
+        mainframe = wx.FindWindowByName('MainFrame')
+        menu_ids = mainframe.getMenuIds()
 
-                if q > qmax or q < qmin:
-                    wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
-                    self.plotparams['y_axis_display'] = 'total'
+        if self.plotparams['y_axis_display'] == 'q_val':
+            q=float(self.plotparams['secm_plot_q'])
+            sasm = secm.getSASM()
+            qrange = sasm.getQrange()
+            qmin = sasm.q[qrange[0]]
+            qmax = sasm.q[qrange[-1]-1]
 
-            elif self.plotparams['y_axis_display'] == 'q_range':
-                qrange = self.plotparams['secm_plot_qrange']
-                sasm = each.getSASM()
-                q = sasm.getQ()
-                qmin = q[0]
-                qmax = q[-1]
+            if q > qmax or q < qmin:
+                wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
+                self.plotparams['y_axis_display'] = 'total'
+                mainframe.setViewMenuScale(menu_ids['secplottotal'])
 
-                if qrange[1] > qmax or qrange[0] < qmin:
-                    wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
-                    self.plotparams['y_axis_display'] = 'total'
+        elif self.plotparams['y_axis_display'] == 'q_range':
+            qrange = self.plotparams['secm_plot_qrange']
+            sasm = secm.getSASM()
+            q = sasm.getQ()
+            qmin = q[0]
+            qmax = q[-1]
 
-
-            if self.plotparams['x_axis_display'] == 'time':
-                time= each.getTime()
-
-                ydata = each.line.get_ydata()
-
-                if len(time) == 0:
-                    wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
-                    self.plotparams['x_axis_display'] = 'frame'
-                elif time[0] == -1:
-                    wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
-                    self.plotparams['x_axis_display'] = 'frame'
-                elif len(time) != len(ydata):
-                    wx.CallAfter(wx.MessageBox, "Time data not available for every frame in this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
-                    self.plotparams['x_axis_display'] = 'frame'
+            if qrange[1] > qmax or qrange[0] < qmin:
+                wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
+                self.plotparams['y_axis_display'] = 'total'
+                mainframe.setViewMenuScale(menu_ids['secplottotal'])
 
 
-        for each in self.plotted_secms:
+        if self.plotparams['x_axis_display'] == 'time':
+            time= secm.getTime()
+
+            ydata = secm.line.get_ydata()
+
+            if len(time) == 0:
+                wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
+                self.plotparams['x_axis_display'] = 'frame'
+                mainframe.setViewMenuScale(menu_ids['secplotframe'])
+            elif time[0] == -1:
+                wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
+                self.plotparams['x_axis_display'] = 'frame'
+                mainframe.setViewMenuScale(menu_ids['secplotframe'])
+            elif len(time) != len(ydata):
+                wx.CallAfter(wx.MessageBox, "Time data not available for every frame in this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
+                self.plotparams['x_axis_display'] = 'frame'
+                mainframe.setViewMenuScale(menu_ids['secplotframe'])
+
+        if self.plotparams['plot_intensity'] == 'sub':
+            if not secm.subtracted_sasm_list:
+                msg = ('Not all Series items have subtracted intensity '
+                    'profiles. Reverting to unsubtracted intensity.')
+                wx.CallAfter(wx.MessageBox, msg, style=wx.ICON_ERROR|wx.OK)
+                self.plotparams['plot_intensity'] = 'unsub'
+                mainframe.setViewMenuScale(menu_ids['secplotunsub'])
+
+        if self.plotparams['plot_intensity'] == 'baseline':
+            if not secm.baseline_subtracted_sasm_list:
+                msg = ('Not all Series items have baseline corrected intensity '
+                    'profiles. Reverting to unsubtracted intensity.')
+                wx.CallAfter(wx.MessageBox, msg, style=wx.ICON_ERROR|wx.OK)
+                self.plotparams['plot_intensity'] = 'unsub'
+                mainframe.setViewMenuScale(menu_ids['secplotunsub'])
+
+    def _getIntensityData(self, secm):
+        if self.plotparams['y_axis_display'] == 'total':
+            if self.plotparams['plot_intensity'] == 'unsub':
+                intensity = secm.total_i
+            elif self.plotparams['plot_intensity'] == 'sub':
+                intensity = secm.total_i_sub
+            elif self.plotparams['plot_intensity'] == 'baseline':
+                intensity = secm.total_i_bcsub
+
+        elif self.plotparams['y_axis_display'] == 'mean':
+            if self.plotparams['plot_intensity'] == 'unsub':
+                intensity = secm.mean_i
+            elif self.plotparams['plot_intensity'] == 'sub':
+                intensity = secm.mean_i_sub
+            elif self.plotparams['plot_intensity'] == 'baseline':
+                intensity = secm.mean_i_bcsub
+
+        elif self.plotparams['y_axis_display'] == 'q_val':
+            q = float(self.plotparams['secm_plot_q'])
+            if secm.qref != q:
+                secm.I(q)
+
+            if self.plotparams['plot_intensity'] == 'unsub':
+                intensity = secm.I_of_q
+            elif self.plotparams['plot_intensity'] == 'sub':
+                intensity = secm.I_of_q_sub
+            elif self.plotparams['plot_intensity'] == 'baseline':
+                intensity = secm.I_of_q_bcsub
+
+        elif self.plotparams['y_axis_display'] == 'q_range':
+            qrange = self.plotparams['secm_plot_qrange']
+            if secm.qrange != qrange:
+                secm.calc_qrange_I(qrange)
+
+            if self.plotparams['plot_intensity'] == 'unsub':
+                intensity = secm.qrange_I
+            elif self.plotparams['plot_intensity'] == 'sub':
+                intensity = secm.qrange_I_sub
+            elif self.plotparams['plot_intensity'] == 'baseline':
+                intensity = secm.qrange_I_bcsub
+
+        else:
+            intensity = None #Should never happen
+
+        return intensity
+
+    def _getCalcData(self, secm):
+        if self.plotparams['secm_plot_calc'] =='RG':
+            calc_data, err = secm.getRg()
+
+        elif self.plotparams['secm_plot_calc'] == 'MW (Vc)':
+            calc_data, err =  secm.getVcMW()
+
+        elif self.plotparams['secm_plot_calc'] == 'MW (Vp)':
+            calc_data, err =  secm.getVpMW()
+
+        elif self.plotparams['secm_plot_calc'] == 'I0':
+            calc_data, err =  secm.getI0()
+
+        else:
+            calc_data = None
+
+        return calc_data
+
+    def _getXData(self, secm):
+        if self.plotparams['x_axis_display'] == 'frame':
+           xdata = secm.plot_frame_list
+        elif self.plotparams['x_axis_display'] == 'time':
+            xdata = secm.getTime()
+        else:
+            xdata = None
+
+        return xdata
+
+    def updatePlotData(self, secm_list=[], draw=True):
+        if not secm_list:
+            secm_list = self.plotted_secms
+
+        for each in secm_list:
+            self._validatePlotSettings(each)
+
+        for each in secm_list:
             each.acquireSemaphore()
-            if self.plotparams['y_axis_display'] == 'total':
-                each.line.set_ydata(each.total_i)
-            elif self.plotparams['y_axis_display'] == 'mean':
-                each.line.set_ydata(each.mean_i)
-            elif self.plotparams['y_axis_display'] == 'q_val':
-                q = float(self.plotparams['secm_plot_q'])
-                if each.qref == q:
-                    each.line.set_ydata(each.I_of_q)
-                else:
-                    each.line.set_ydata(each.I(q))
-            elif self.plotparams['y_axis_display'] == 'q_range':
-                qrange = self.plotparams['secm_plot_qrange']
-                if each.qrange == qrange:
-                    each.line.set_ydata(each.getIofQRange())
-                else:
-                    each.line.set_ydata(each.calc_qrange_I(qrange))
+
+            intensity = self._getIntensityData(each)
+
+            each.line.set_ydata(intensity)
 
             if each.calc_has_data:
-                if self.plotparams['secm_plot_calc'] =='RG':
-                    rg = each.rg_list
-                    each.calc_line.set_ydata(rg)
-                    if (each.calc_line.get_label() == 'RG' or
-                        each.calc_line.get_label() == 'MW (Vc)' or
-                        each.calc_line.get_label() == 'MW (Vp)' or
-                        each.calc_line.get_label() == 'I0'):
-                        each.calc_line.set_label('RG')
 
-                elif self.plotparams['secm_plot_calc'] == 'MW (Vc)':
-                    mw =  each.vcmw_list
-                    each.calc_line.set_ydata(mw)
-                    if (each.calc_line.get_label() == 'RG' or
-                        each.calc_line.get_label() == 'MW (Vc)' or
-                        each.calc_line.get_label() == 'MW (Vp)' or
-                        each.calc_line.get_label() == 'I0'):
-                        each.calc_line.set_label('MW (Vc)')
+                calc_data = self._getCalcData(each)
 
-                elif self.plotparams['secm_plot_calc'] == 'MW (Vp)':
-                    mw =  each.vpmw_list
-                    each.calc_line.set_ydata(mw)
-                    if (each.calc_line.get_label() == 'RG' or
-                        each.calc_line.get_label() == 'MW (Vc)' or
-                        each.calc_line.get_label() == 'MW (Vp)' or
-                        each.calc_line.get_label() == 'I0'):
-                        each.calc_line.set_label('MW (Vp)')
+                each.calc_line.set_ydata(calc_data)
 
-                elif self.plotparams['secm_plot_calc'] == 'I0':
-                    i0 =  each.i0_list
-                    each.calc_line.set_ydata(i0)
-                    if (each.calc_line.get_label() == 'RG' or
-                        each.calc_line.get_label() == 'MW (Vc)' or
-                        each.calc_line.get_label() == 'MW (Vp)' or
-                        each.calc_line.get_label() == 'I0'):
-                        each.calc_line.set_label('I0')
+                if (each.calc_line.get_label() == 'RG' or
+                    each.calc_line.get_label() == 'MW (Vc)' or
+                    each.calc_line.get_label() == 'MW (Vp)' or
+                    each.calc_line.get_label() == 'I0'):
+                    each.calc_line.set_label(self.plotparams['secm_plot_calc'])
 
-            if self.plotparams['x_axis_display'] == 'frame':
-                each.line.set_xdata(each.plot_frame_list)
-                if each.calc_is_plotted:
-                    each.calc_line.set_xdata(each.plot_frame_list)
-            elif self.plotparams['x_axis_display'] == 'time':
-                each.line.set_xdata(each.getTime())
-                if each.calc_is_plotted:
-                    each.calc_line.set_xdata(each.getTime())
+            xdata = self._getXData(each)
+
+            each.line.set_xdata(xdata)
+            if each.calc_is_plotted:
+                each.calc_line.set_xdata(xdata)
 
             if each.calc_has_data and each.is_visible:
                 if self.plotparams['secm_plot_calc'] == 'None':
@@ -3888,10 +3827,8 @@ class SeriesPlotPanel(wx.Panel):
         self._setLabels(axes = self.subplot1)
         self._setLabels(axes = self.ryaxis)
 
-        if fit:
+        if draw:
             self.fitAxis()
-        else:
-            self.canvas.draw()
 
     def updatePlotAxes(self):
 
@@ -3929,137 +3866,10 @@ class SeriesPlotPanel(wx.Panel):
 
         self.fitAxis()
 
-    def updatePlotAfterManipulation(self, secm_list, draw = True):
-        for each in self.plotted_secms:
-            if self.plotparams['y_axis_display'] == 'q_val':
-                q=float(self.plotparams['secm_plot_q'])
-                sasm = each.getSASM()
-                qrange = sasm.getQrange()
-                qmin = sasm.q[qrange[0]]
-                qmax = sasm.q[qrange[-1]-1]
-
-                if q > qmax or q < qmin:
-                    wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
-                    self.plotparams['y_axis_display'] = 'total'
-
-            elif self.plotparams['y_axis_display'] == 'q_range':
-                qrange = self.plotparams['secm_plot_qrange']
-                sasm = each.getSASM()
-                q = sasm.getQ()
-                qmin = q[0]
-                qmax = q[-1]
-
-                if qrange[1] > qmax or qrange[0] < qmin:
-                    wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
-                    self.plotparams['y_axis_display'] = 'total'
-
-            if self.plotparams['x_axis_display'] == 'time':
-                time= each.getTime()
-
-                ydata = each.line.get_ydata()
-
-                if len(time) == 0:
-                    wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
-                    self.plotparams['x_axis_display'] = 'frame'
-                elif time[0] == -1:
-                    wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
-                    self.plotparams['x_axis_display'] = 'frame'
-                elif len(time) != len(ydata):
-                    wx.CallAfter(wx.MessageBox, "Time data not available for every frame in this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
-                    self.plotparams['x_axis_display'] = 'frame'
-
-
-            if self.plotparams['y_axis_display'] == 'total':
-                each.line.set_ydata(each.total_i)
-            elif self.plotparams['y_axis_display'] == 'mean':
-                each.line.set_ydata(each.mean_i)
-            elif self.plotparams['y_axis_display'] == 'q_val':
-                q = float(self.plotparams['secm_plot_q'])
-                if each.qref == q:
-                    each.line.set_ydata(each.I_of_q)
-                else:
-                    each.line.set_ydata(each.I(q))
-            elif self.plotparams['y_axis_display'] == 'q_range':
-                qrange = self.plotparams['secm_plot_qrange']
-                if each.qrange == qrange:
-                    each.line.set_ydata(each.getIofQRange())
-                else:
-                    each.line.set_ydata(each.calc_qrange_I(qrange))
-
-            if each.calc_has_data:
-                if self.plotparams['secm_plot_calc'] =='RG':
-                    rg = each.rg_list
-                    each.calc_line.set_ydata(rg)
-                    if (each.calc_line.get_label() == 'RG' or
-                        each.calc_line.get_label() == 'MW (Vc)' or
-                        each.calc_line.get_label() == 'MW (Vp)' or
-                        each.calc_line.get_label() == 'I0'):
-                        each.calc_line.set_label('RG')
-
-                elif self.plotparams['secm_plot_calc'] == 'MW (Vc)':
-                    mw =  each.vcmw_list
-                    each.calc_line.set_ydata(mw)
-                    if (each.calc_line.get_label() == 'RG' or
-                        each.calc_line.get_label() == 'MW (Vc)' or
-                        each.calc_line.get_label() == 'MW (Vp)' or
-                        each.calc_line.get_label() == 'I0'):
-                        each.calc_line.set_label('MW (Vc)')
-
-                elif self.plotparams['secm_plot_calc'] == 'MW (Vc)':
-                    mw =  each.vpmw_list
-                    each.calc_line.set_ydata(mw)
-                    if (each.calc_line.get_label() == 'RG' or
-                        each.calc_line.get_label() == 'MW (Vc)' or
-                        each.calc_line.get_label() == 'MW (Vp)' or
-                        each.calc_line.get_label() == 'I0'):
-                        each.calc_line.set_label('MW (Vp)')
-
-                elif self.plotparams['secm_plot_calc'] == 'I0':
-                    i0 =  each.i0_list
-                    each.calc_line.set_ydata(i0)
-                    if (each.calc_line.get_label() == 'RG' or
-                        each.calc_line.get_label() == 'MW (Vc)' or
-                        each.calc_line.get_label() == 'MW (Vp)' or
-                        each.calc_line.get_label() == 'I0'):
-                        each.calc_line.set_label('I0')
-
-            else:
-                each.calc_line.set_ydata(np.zeros_like(each.line.get_ydata))
-
-            if self.plotparams['x_axis_display'] == 'frame':
-                each.line.set_xdata(each.plot_frame_list)
-                if each.calc_is_plotted:
-                    each.calc_line.set_xdata(each.plot_frame_list)
-            elif self.plotparams['x_axis_display'] == 'time':
-                each.line.set_xdata(each.getTime())
-                if each.calc_is_plotted:
-                    each.calc_line.set_xdata(each.getTime())
-
-            if each.calc_has_data and each.is_visible:
-                if self.plotparams['secm_plot_calc'] == 'None':
-                    each.calc_line.set_visible(False)
-                    each.calc_line.set_picker(False)
-                else:
-                    each.calc_line.set_visible(True)
-                    each.calc_line.set_picker(True)
-
-        if self.plotparams['secm_plot_calc'] == 'None':
-            self.ryaxis.axis('off')
-        else:
-            self.ryaxis.axis('on')
-
-        if self.plotparams['legend_visible1'] == True:
-            self.updateLegend(1, draw=False)
-
-        self._setLabels(axes = self.subplot1)
-        self._setLabels(axes = self.ryaxis)
-
-        if draw:
-            self.fitAxis()
-
     def clearAllPlots(self):
 
         self.subplot_labels = copy.copy(self.default_subplot_labels)
+        self.subplot_titles = copy.copy(self.default_subplot_titles)
 
         self.subplot1.cla()
         self._setLabels(axes = self.subplot1)
@@ -4118,18 +3928,19 @@ class SeriesPlotPanel(wx.Panel):
         if title == None:
             if a ==self.subplot1:
                 plottype = self.plotparams['y_axis_display']
+                plot_intensity = self.plotparams['plot_intensity']
 
-                a.title.set_text(self.subplot_labels[plottype][0])
+                a.title.set_text(self.subplot_titles[plot_intensity])
                 a.title.set_size(self.plotparams['title_fontsize1'])
                 a.title.set_fontname(self.plotparams['title_font1'])
 
                 if plottype == 'total' or plottype == 'mean':
-                    a.yaxis.get_label().set_text(self.subplot_labels[plottype][2])
+                    a.yaxis.get_label().set_text(self.subplot_labels[plottype][1])
                 elif plottype == 'q_val':
-                    a.yaxis.get_label().set_text(self.subplot_labels[plottype][2]+self.plotparams['secm_plot_q'])
+                    a.yaxis.get_label().set_text(self.subplot_labels[plottype][1]+self.plotparams['secm_plot_q'])
                 elif plottype == 'q_range':
                     qrange = self.plotparams['secm_plot_qrange']
-                    a.yaxis.get_label().set_text(self.subplot_labels[plottype][2]+'{} to {}'.format(qrange[0], qrange[1]))
+                    a.yaxis.get_label().set_text(self.subplot_labels[plottype][1]+'{} to {}'.format(qrange[0], qrange[1]))
                 else:
                     a.yaxis.get_label().set_text(self.subplot_labels('Y'))
 
@@ -4140,7 +3951,7 @@ class SeriesPlotPanel(wx.Panel):
                 xaxistype = self.plotparams['x_axis_display']
 
                 if xaxistype == 'frame' or xaxistype == 'time':
-                    a.xaxis.get_label().set_text(self.subplot_labels[xaxistype][1])
+                    a.xaxis.get_label().set_text(self.subplot_labels[xaxistype][0])
                 else:
                     a.xaxis.get_label().set_text('X')
 

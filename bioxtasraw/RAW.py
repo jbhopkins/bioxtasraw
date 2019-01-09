@@ -130,12 +130,9 @@ class MainFrame(wx.Frame):
                         'secplotvpmw'           : self.NewControlId(),
                         'secploti0'             : self.NewControlId(),
                         'secplotnone'           : self.NewControlId(),
-                        'secplotlylin'          : self.NewControlId(),
-                        'secplotlylog'          : self.NewControlId(),
-                        'secplotrylin'          : self.NewControlId(),
-                        'secplotrylog'          : self.NewControlId(),
-                        'secplotxlin'           : self.NewControlId(),
-                        'secplotxlog'           : self.NewControlId(),
+                        'secplotunsub'          : self.NewControlId(),
+                        'secplotsub'            : self.NewControlId(),
+                        'secplotbaseline'       : self.NewControlId(),
                         'help'                  : self.NewControlId(),
                         'about'                 : self.NewControlId(),
                         'guinierfit'            : self.NewControlId(),
@@ -852,6 +849,11 @@ class MainFrame(wx.Frame):
                                       ('Intensity a specific q', self.MenuIDs['secplotq'], self._onViewMenu, 'radio'),
                                       ('Intensity in q range', self.MenuIDs['secplotqr'], self._onViewMenu, 'radio')],
 
+                    'viewSECInt':   [('Unsubtracted', self.MenuIDs['secplotunsub'], self._onViewMenu, 'radio'),
+                                        ('Subtracted', self.MenuIDs['secplotsub'], self._onViewMenu, 'radio'),
+                                        ('Baseline Corrected', self.MenuIDs['secplotbaseline'], self._onViewMenu, 'radio'),
+                                        ],
+
                     'viewSECRight':  [('RG', self.MenuIDs['secplotrg'], self._onViewMenu, 'radio'),
                                       ('MW (Vc)', self.MenuIDs['secplotvcmw'], self._onViewMenu, 'radio'),
                                       ('MW (Vp)', self.MenuIDs['secplotvpmw'], self._onViewMenu, 'radio'),
@@ -898,6 +900,7 @@ class MainFrame(wx.Frame):
                                ('&Main Plot Bottom Axes', None, submenus['viewPlot2Scale'], 'submenu'),
                                ('&Series Plot Left Y Axis', None, submenus['viewSECLeft'], 'submenu'),
                                ('&Series Plot Right Y Axis', None, submenus['viewSECRight'], 'submenu'),
+                               ('&Series Plot Intensity Type', None, submenus['viewSECInt'], 'submenu'),
                                ('&Series Plot X Axis', None, submenus['viewSECX'], 'submenu')
                                ]),
 
@@ -1530,28 +1533,28 @@ class MainFrame(wx.Frame):
 
             elif key == 'secplottotal':
                 secplotpanel.plotparams['y_axis_display'] = 'total'
-                secplotpanel.updatePlotData(secplotpanel.subplot1)
+                secplotpanel.updatePlotData()
 
             elif key == 'secplotmean':
                 secplotpanel.plotparams['y_axis_display'] = 'mean'
-                secplotpanel.updatePlotData(secplotpanel.subplot1)
+                secplotpanel.updatePlotData()
 
             elif key == 'secplotq':
                 secplotpanel.plotparams['y_axis_display'] = 'q_val'
                 secplotpanel._getQValue()
-                secplotpanel.updatePlotData(secplotpanel.subplot1)
+                secplotpanel.updatePlotData()
 
             elif key == 'secplotqr':
                 secplotpanel.plotparams['y_axis_display'] = 'q_range'
                 secplotpanel._getQRange()
-                secplotpanel.updatePlotData(secplotpanel.subplot1)
+                secplotpanel.updatePlotData()
 
             elif key == 'secplotframe':
                 secplotpanel.plotparams['x_axis_display'] = 'frame'
-                secplotpanel.updatePlotData(secplotpanel.subplot1)
+                secplotpanel.updatePlotData()
             elif key == 'secplottime':
                 secplotpanel.plotparams['x_axis_display'] = 'time'
-                secplotpanel.updatePlotData(secplotpanel.subplot1)
+                secplotpanel.updatePlotData()
 
             elif key == 'secplotrg':
                 secplotpanel.plotparams['secm_plot_calc'] = 'RG'
@@ -1560,7 +1563,7 @@ class MainFrame(wx.Frame):
                     secplotpanel.plotparams['framestyle1'] = secplotpanel.plotparams['framestyle1'].replace('r','')
                     secplotpanel.plotparams['framestyle2'] = secplotpanel.plotparams['framestyle2']+'r'
                     secplotpanel._updateFrameStylesForAllPlots()
-                secplotpanel.updatePlotData(secplotpanel.ryaxis)
+                secplotpanel.updatePlotData()
 
             elif key == 'secplotmw':
                 secplotpanel.plotparams['secm_plot_calc'] = 'MW'
@@ -1569,7 +1572,7 @@ class MainFrame(wx.Frame):
                     secplotpanel.plotparams['framestyle1'] = secplotpanel.plotparams['framestyle1'].replace('r','')
                     secplotpanel.plotparams['framestyle2'] = secplotpanel.plotparams['framestyle2']+'r'
                     secplotpanel._updateFrameStylesForAllPlots()
-                secplotpanel.updatePlotData(secplotpanel.ryaxis)
+                secplotpanel.updatePlotData()
 
             elif key == 'secploti0':
                 secplotpanel.plotparams['secm_plot_calc'] = 'I0'
@@ -1578,61 +1581,29 @@ class MainFrame(wx.Frame):
                     secplotpanel.plotparams['framestyle1'] = secplotpanel.plotparams['framestyle1'].replace('r','')
                     secplotpanel.plotparams['framestyle2'] = secplotpanel.plotparams['framestyle2']+'r'
                     secplotpanel._updateFrameStylesForAllPlots()
-                secplotpanel.updatePlotData(secplotpanel.ryaxis)
+                secplotpanel.updatePlotData()
 
             elif key == 'secplotnone':
                 secplotpanel.plotparams['secm_plot_calc'] = 'None'
-                secplotpanel.updatePlotData(secplotpanel.ryaxis)
+                secplotpanel.updatePlotData()
 
-            elif key == 'secplotlylin':
-                param = secplotpanel.plotparams['axesscale1']
-                param = 'lin'+param[3:]
-                secplotpanel.plotparams['axesscale1'] = param
+            elif key == 'secplotunsub':
+                secplotpanel.plotparams['plot_intensity'] = 'unsub'
+                secplotpanel.updatePlotData()
 
-                secplotpanel.updatePlotAxes()
+            elif key == 'secplotunsub':
+                secplotpanel.plotparams['plot_intensity'] = 'unsub'
+                secplotpanel.updatePlotData()
 
-            elif key == 'secplotlylog':
-                param = secplotpanel.plotparams['axesscale1']
-                param = 'log'+param[3:]
-                secplotpanel.plotparams['axesscale1'] = param
+            elif key == 'secplotsub':
+                secplotpanel.plotparams['plot_intensity'] = 'sub'
+                secplotpanel.updatePlotData()
 
-                secplotpanel.updatePlotAxes()
+            elif key == 'secplotbaseline':
+                secplotpanel.plotparams['plot_intensity'] = 'baseline'
+                secplotpanel.updatePlotData()
 
-            elif key == 'secplotrylog':
-                param = secplotpanel.plotparams['axesscale2']
-                param = 'log'+param[3:]
-                secplotpanel.plotparams['axesscale2'] = param
 
-                secplotpanel.updatePlotAxes()
-
-            elif key == 'secplotrylin':
-                param = secplotpanel.plotparams['axesscale2']
-                param = 'lin'+ param[3:]
-                secplotpanel.plotparams['axesscale2'] = param
-
-                secplotpanel.updatePlotAxes()
-
-            elif key == 'secplotxlin':
-                param = secplotpanel.plotparams['axesscale1']
-                param = param[:3]+'lin'
-                secplotpanel.plotparams['axesscale1'] = param
-
-                param = secplotpanel.plotparams['axesscale2']
-                param = param[:3]+'lin'
-                secplotpanel.plotparams['axesscale2'] = param
-
-                secplotpanel.updatePlotAxes()
-
-            elif key == 'secplotxlog':
-                param = secplotpanel.plotparams['axesscale1']
-                param = param[:3]+'log'
-                secplotpanel.plotparams['axesscale1'] = param
-
-                param = secplotpanel.plotparams['axesscale2']
-                param = param[:3]+'log'
-                secplotpanel.plotparams['axesscale2'] = param
-
-                secplotpanel.updatePlotAxes()
 
     def _onSaveMenu(self, event):
         self._onSaveSettings(None)
@@ -1754,8 +1725,8 @@ class MainFrame(wx.Frame):
 
         self.statusbar.SetStatusText(statustxt,idx)
 
-    def setViewMenuScale(self, id):
-        self.MenuBar.FindItemById(id).Check(True)
+    def setViewMenuScale(self, my_id):
+        self.MenuBar.FindItemById(my_id).Check(True)
 
     def _onAboutDlg(self, event):
         info = AboutDialogInfo()
@@ -2260,13 +2231,13 @@ class MainWorkerThread(threading.Thread):
                         'to_plot'                       : self._sendSASMToPlot,
                         'to_plot_ift'                   : self._plotIFTM,
                         'to_plot_SEC'                   : self._sendSASMToPlotSEC,
-                        'average_items_sec'             : self._averageItemsSEC,
                         'save_sec_data'                 : self._saveSeriesData,
                         'save_sec_item'                 : self._saveSECItem,
                         'save_sec_profiles'             : self._saveSECProfiles,
                         # 'calculate_params_sec'          : self._calculateSECParams, #Maybe can remove?
                         'save_iftm'                     : self._saveIFTM,
                         'to_plot_sasm'                  : self._plotSASM,
+                        'secm_average_sasms'            : self._averageItemSeries,
                         'weighted_average_items'        : self._weightedAverageItems,
                         'calculate_abs_carbon_const'    : self._calcAbsScCarbonConst,
                         'plot_specific'                 : self._loadAndPlotWrapper,
@@ -2369,12 +2340,12 @@ class MainWorkerThread(threading.Thread):
 
 
     def _updateSECMPlot(self, secm, item_colour = 'black', line_color = None, no_update = False, notsaved = False):
-        if type(secm) == list:
-            wx.CallAfter(self.sec_plot_panel.updatePlotAfterManipulation, secm, draw = False)
+        if isinstance(secm, list):
+            wx.CallAfter(self.sec_plot_panel.updatePlotData, secm, draw=False)
 
         else:
             secm_list=[secm]
-            wx.CallAfter(self.sec_plot_panel.updatePlotAfterManipulation, secm_list, draw = False)
+            wx.CallAfter(self.sec_plot_panel.updatePlotData, secm_list, draw=False)
 
         wx.CallAfter(self.sec_plot_panel.updateLegend, 1, draw = False)
 
@@ -3022,224 +2993,6 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.sec_control_panel.updateSucceeded)
         if len(filename_list)>5:
             wx.CallAfter(self.main_frame.closeBusyDialog)
-
-
-    # def _calculateSECParams(self, secm):
-    #     molecule = secm.mol_type
-
-    #     if molecule == 'Protein':
-    #         is_protein = True
-    #     else:
-    #         is_protein = False
-
-
-    #     threshold = self._raw_settings.get('secCalcThreshold')
-    #     error_weight = self._raw_settings.get('errorWeight')
-
-    #     wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait, calculating')
-    #     initial_buffer_frame, final_buffer_frame, window_size = secm.getCalcParams()
-
-    #     secm.acquireSemaphore()
-
-    #     buffer_sasm_list = secm.getSASMList(initial_buffer_frame, final_buffer_frame)
-
-    #     if len(buffer_sasm_list) < 2:
-    #         buffer_avg_sasm = buffer_sasm_list[0]
-    #     else:
-    #         try:
-    #             buffer_avg_sasm = SASProc.average(buffer_sasm_list)
-    #         except SASExceptions.DataNotCompatible:
-    #             wx.CallAfter(self._showAverageError, 1)
-    #             wx.CallAfter(self.main_frame.closeBusyDialog)
-    #             secm.releaseSemaphore()
-    #             return
-
-    #     self._insertSasmFilenamePrefix(buffer_avg_sasm, 'A_')
-
-    #     secm.setAverageBufferSASM(buffer_avg_sasm)
-
-    #     #Find the reference intensity of the average buffer sasm
-    #     plot_y = self.sec_plot_panel.getParameter('y_axis_display')
-
-    #     closest = lambda qlist: np.argmin(np.absolute(qlist-secm.qref))
-
-    #     if plot_y == 'total':
-    #         ref_intensity = buffer_avg_sasm.getTotalI()
-
-    #     elif plot_y == 'mean':
-    #         ref_intensity = buffer_avg_sasm.getMeanI()
-
-    #     elif plot_y == 'q_val':
-    #         ref_intensity = buffer_avg_sasm.getIofQ(secm.qref)
-
-    #     elif plot_y == 'q_range':
-    #         ref_intensity = buffer_avg_sasm.getIofQRange(secm.qrange[0], secm.qrange[1])
-
-
-    #     #Now subtract the average buffer from all of the items in the secm list
-    #     sub_sasm = buffer_avg_sasm
-    #     full_sasm_list = secm.getAllSASMs()
-
-    #     subtracted_sasm_list = []
-
-    #     use_subtracted_sasm = []
-
-    #     yes_to_all = False
-
-    #     for sasm in full_sasm_list:
-
-    #         #check to see whether we actually need to subtract this curve
-    #         if plot_y == 'total':
-    #             sasm_intensity = sasm.getTotalI()
-
-    #         elif plot_y == 'mean':
-    #             sasm_intensity = sasm.getMeanI()
-
-    #         elif plot_y == 'q_val':
-    #             sasm_intensity = buffer_avg_sasm.getIofQ(secm.qref)
-
-    #         elif plot_y == 'q_range':
-    #             sasm_intensity = buffer_avg_sasm.getIofQRange(secm.qrange[0], secm.qrange[1])
-
-    #         if sasm_intensity/ref_intensity > threshold:
-    #             use_subtracted_sasm.append(True)
-    #         else:
-    #             use_subtracted_sasm.append(False)
-
-    #         result = wx.ID_YES
-
-    #         qmin, qmax = sasm.getQrange()
-    #         sub_qmin, sub_qmax = sub_sasm.getQrange()
-
-    #         if np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and not yes_to_all:
-    #             result = self._showQvectorsNotEqualWarning(sasm, sub_sasm)[0]
-
-    #             if result == wx.ID_YESTOALL:
-    #                 yes_to_all = True
-    #             elif result == wx.ID_CANCEL:
-    #                 wx.CallAfter(self.main_frame.closeBusyDialog)
-    #                 secm.releaseSemaphore()
-    #                 return
-    #             try:
-    #                 if result == wx.ID_YES or result == wx.ID_YESTOALL:
-    #                     subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
-    #                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-
-    #                     subtracted_sasm_list.append(subtracted_sasm)
-    #             except SASExceptions.DataNotCompatible:
-    #                wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
-    #                wx.CallAfter(self.main_frame.closeBusyDialog)
-    #                secm.releaseSemaphore()
-    #                return
-
-    #         elif np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and yes_to_all:
-    #             try:
-    #                 subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
-    #                 self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-
-    #                 subtracted_sasm_list.append(subtracted_sasm)
-    #             except SASExceptions.DataNotCompatible:
-    #                wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
-    #                wx.CallAfter(self.main_frame.closeBusyDialog)
-    #                secm.releaseSemaphore()
-    #                return
-
-    #         else:
-    #             try:
-    #                 subtracted_sasm = SASProc.subtract(sasm, sub_sasm)
-    #                 self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-
-    #                 subtracted_sasm_list.append(subtracted_sasm)
-    #             except SASExceptions.DataNotCompatible:
-    #                wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
-    #                wx.CallAfter(self.main_frame.closeBusyDialog)
-    #                secm.releaseSemaphore()
-    #                return
-
-
-    #     secm.setSubtractedSASMs(subtracted_sasm_list, use_subtracted_sasm)
-
-    #     #Now calculate the RG, I0, and MW for each SASM
-    #     rg = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-    #     rger = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-    #     i0 = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-    #     i0er = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-    #     mw = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-    #     mwer = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-
-    #     if window_size == 1:
-    #         for a in range(len(subtracted_sasm_list)):
-    #             current_sasm = subtracted_sasm_list[a]
-    #             use_current_sasm = use_subtracted_sasm[a]
-
-    #             if use_current_sasm:
-    #                 #use autorg to find the Rg and I0
-    #                 rg[a], rger[a], i0[a], i0er[a], indx_min, indx_max = SASCalc.autoRg(current_sasm,
-    #                     error_weight=error_weight)
-
-    #                 #Now use the rambo tainer 2013 method to calculate molecular weight
-    #                 if rg[a] > 0:
-    #                     mw[a], mwer[a], junk1, junk2 = SASCalc.calcVcMW(current_sasm, rg[a], i0[a], is_protein)
-    #                 else:
-    #                     mw[a], mwer[a] = -1, -1
-
-    #             else:
-    #                 rg[a], rger[a], i0[a], i0er[a], mw[a], mwer[a] = -1, -1, -1, -1, -1, -1
-
-    #     else:
-    #         for a in range(len(subtracted_sasm_list)-(window_size-1)):
-
-    #             current_sasm_list = subtracted_sasm_list[a:a+window_size]
-
-    #             truth_test = use_subtracted_sasm[a:a+window_size]
-
-    #             if np.all(truth_test):
-    #                 try:
-    #                     current_sasm = SASProc.average(current_sasm_list)
-    #                 except SASExceptions.DataNotCompatible:
-    #                     wx.CallAfter(self._showAverageError, 1)
-    #                     wx.CallAfter(self.main_frame.closeBusyDialog)
-    #                     secm.releaseSemaphore()
-    #                     return
-
-    #                 index = a+(window_size-1)/2
-
-    #                 #use autorg to find the Rg and I0
-    #                 rg[index], rger[index], i0[index], i0er[index], idx_min, idx_max = SASCalc.autoRg(current_sasm, error_weight=error_weight)
-
-    #                 #Now use the rambo tainer 2013 method to calculate molecular weight
-    #                 if rg[index] > 0:
-    #                     mw[index], mwer[index], junk1, junk2 = SASCalc.calcVcMW(current_sasm, rg[index], i0[index], is_protein)
-    #                 else:
-    #                     mw[index], mwer[index] = -1, -1
-
-    #             else:
-    #                 rg[a], rger[a], i0[a], i0er[a], mw[a], mwer[a] = -1, -1, -1, -1, -1, -1
-
-    #     #Set everything that's nonsense to -1
-    #     rg[rg<=0] = -1
-    #     rger[rg==-1] = -1
-    #     i0[i0<=0] = -1
-    #     i0er[i0==-1] = -1
-
-    #     mw[mw<=0] = -1
-    #     mw[rg<=0] = -1
-    #     mw[i0<=0] = -1
-    #     mwer[mw==-1] = -1
-
-    #     secm.setRgAndI0(rg, rger, i0, i0er)
-    #     secm.setMW(mw, mwer)
-
-    #     secm.calc_has_data = True
-    #     secm.releaseSemaphore()
-    #     self._updateSECMPlot(secm)
-
-    #     wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 3)
-    #     sec_controls = wx.FindWindowByName('SECPanel')
-    #     wx.CallAfter(sec_controls.SetFocus)
-    #     wx.CallAfter(self.sec_control_panel.updateSucceeded)
-
-    #     wx.CallAfter(self.main_frame.closeBusyDialog)
 
 
     def _updateCalcSECParams(self, secm, frame_list):
@@ -4168,21 +3921,8 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.plot_panel.fitAxis)
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
-    def _averageItems(self, item_list):
-
-        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while averaging and plotting...')
-
-        sasm_list = []
-
+    def _average(self, sasm_list, weight=False, weightByError=True, weightCounter=None):
         profiles_to_use = wx.ID_YESTOALL
-
-        if len(item_list) < 2:
-            wx.CallAfter(self._showAverageError, 2)
-            wx.CallAfter(self.main_frame.closeBusyDialog)
-            return
-
-        for each_item in item_list:
-            sasm_list.append(each_item.getSASM())
 
         if self._raw_settings.get('similarityOnAverage'):
             ref_sasm = sasm_list[0]
@@ -4196,8 +3936,7 @@ class MainWorkerThread(threading.Thread):
                 qi, qf = sasm.getQrange()
                 if not np.all(np.round(sasm.q[qi:qf], 5) == np.round(ref_sasm.q[qi_ref:qf_ref], 5)):
                     wx.CallAfter(self._showAverageError, 3)
-                    wx.CallAfter(self.main_frame.closeBusyDialog)
-                    return
+                    return None
 
                 if sim_test == 'CorMap':
                     n, c, pval = SASCalc.cormap_pval(ref_sasm.i[qi_ref:qf_ref], sasm.i[qi:qf])
@@ -4210,12 +3949,17 @@ class MainWorkerThread(threading.Thread):
             if np.any(pvals<threshold):
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 profiles_to_use = self._showAverageError(4, itertools.compress(sasm_list[1:], pvals<threshold))
+
                 if profiles_to_use == wx.ID_CANCEL:
-                    return
+                    return None
+
                 wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while averaging and plotting...')
         try:
             if profiles_to_use == wx.ID_YESTOALL:
-                avg_sasm = SASProc.average(sasm_list)
+                if not weight:
+                    avg_sasm = SASProc.average(sasm_list)
+                else:
+                    avg_sasm = SASProc.weightedAverage(sasm_list, weightByError, weightCounter)
 
             elif profiles_to_use == wx.ID_YES:
                 reduced_sasm_list = [sasm_list[0]]
@@ -4223,53 +3967,84 @@ class MainWorkerThread(threading.Thread):
                     if pvals[i] >= threshold:
                         reduced_sasm_list.append(sasm)
 
-                avg_sasm = SASProc.average(reduced_sasm_list)
+                if not weight:
+                    avg_sasm = SASProc.average(sasm_list)
+                else:
+                    avg_sasm = SASProc.weightedAverage(sasm_list, weightByError, weightCounter)
 
         except SASExceptions.DataNotCompatible:
             wx.CallAfter(self._showAverageError, 3)
-            wx.CallAfter(self.main_frame.closeBusyDialog)
-            return
+            return None
 
         self._insertSasmFilenamePrefix(avg_sasm, 'A_')
 
-        self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'forest green', notsaved = True)
+        return avg_sasm
 
-        do_auto_save = self._raw_settings.get('AutoSaveOnAvgFiles')
+    def _averageItems(self, item_list):
 
-        if do_auto_save:
-            save_path = self._raw_settings.get('AveragedFilePath')
+        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while averaging and plotting...')
 
-            try:
-                self._saveSASM(avg_sasm, '.dat', save_path)
-            except IOError as e:
-                self._raw_settings.set('AutoSaveOnAvgFiles', False)
-                msg = (str(e) + '\n\nAutosave of averaged images has been '
-                    'disabled. If you are using a config file from a '
-                    'different computer please go into Advanced '
-                    'Options/Autosave to change the save folders, or '
-                    'save you config file to avoid this message next time.')
-                wx.CallAfter(self._showGenericError, msg, 'Autosave Error')
+        sasm_list = []
+
+        if len(item_list) < 2:
+            wx.CallAfter(self._showAverageError, 2)
+            wx.CallAfter(self.main_frame.closeBusyDialog)
+            return
+
+        for each_item in item_list:
+            sasm_list.append(each_item.getSASM())
+
+        avg_sasm = self._average(sasm_list)
+
+        if avg_sasm is not None:
+            self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'forest green', notsaved = True)
+
+            do_auto_save = self._raw_settings.get('AutoSaveOnAvgFiles')
+
+            if do_auto_save:
+                save_path = self._raw_settings.get('AveragedFilePath')
+
+                try:
+                    self._saveSASM(avg_sasm, '.dat', save_path)
+                except IOError as e:
+                    self._raw_settings.set('AutoSaveOnAvgFiles', False)
+                    msg = (str(e) + '\n\nAutosave of averaged images has been '
+                        'disabled. If you are using a config file from a '
+                        'different computer please go into Advanced '
+                        'Options/Autosave to change the save folders, or '
+                        'save you config file to avoid this message next time.')
+                    wx.CallAfter(self._showGenericError, msg, 'Autosave Error')
 
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
-    def _averageItemsSEC(self, sasm_list):
-        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while averaging and sending to main plot...')
+    def _averageItemSeries(self, sasm_list):
+        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while averaging and plotting...')
 
         if len(sasm_list) < 2:
             wx.CallAfter(self._showAverageError, 2)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
 
-        try:
-            avg_sasm = SASProc.average(sasm_list)
-        except SASExceptions.DataNotCompatible:
-            wx.CallAfter(self._showAverageError, 1)
-            wx.CallAfter(self.main_frame.closeBusyDialog)
-            return
+        avg_sasm = self._average(sasm_list)
 
-        self._insertSasmFilenamePrefix(avg_sasm, 'A_')
+        if avg_sasm is not None:
+            self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'forest green', notsaved = True)
 
-        self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'forest green', notsaved = True)
+            do_auto_save = self._raw_settings.get('AutoSaveOnAvgFiles')
+
+            if do_auto_save:
+                save_path = self._raw_settings.get('AveragedFilePath')
+
+                try:
+                    self._saveSASM(avg_sasm, '.dat', save_path)
+                except IOError as e:
+                    self._raw_settings.set('AutoSaveOnAvgFiles', False)
+                    msg = (str(e) + '\n\nAutosave of averaged images has been '
+                        'disabled. If you are using a config file from a '
+                        'different computer please go into Advanced '
+                        'Options/Autosave to change the save folders, or '
+                        'save you config file to avoid this message next time.')
+                    wx.CallAfter(self._showGenericError, msg, 'Autosave Error')
 
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
@@ -4295,6 +4070,7 @@ class MainWorkerThread(threading.Thread):
                 'selected and error weighting is not enabled. Weighted '
                 'average aborted.')
             wx.CallAfter(self._showGenericError, msg, 'Weighted Average Error')
+            wx.CallAfter(self.main_frame.closeBusyDialog)
             return
 
         if not weightByError:
@@ -4318,76 +4094,31 @@ class MainWorkerThread(threading.Thread):
                 msg = ('Not all selected items had the counter value '
                     'selected as the weight. Weighted average aborted.')
                 wx.CallAfter(self._showGenericError, msg, 'Weighted Average Error')
+                wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
 
-        profiles_to_use = wx.ID_YESTOALL
+        avg_sasm = self._average(sasm_list, weight=True,
+            weightByError=weightByError, weightCounter=weightCounter)
 
-        if self._raw_settings.get('similarityOnAverage'):
-            ref_sasm = sasm_list[0]
-            qi_ref, qf_ref = ref_sasm.getQrange()
-            pvals = np.ones(len(sasm_list[1:]), dtype=float)
-            threshold = self._raw_settings.get('similarityThreshold')
-            sim_test = self._raw_settings.get('similarityTest')
-            correction = self._raw_settings.get('similarityCorrection')
+        if avg_sasm is not None:
 
-            for index, sasm in enumerate(sasm_list[1:]):
-                qi, qf = sasm.getQrange()
-                if not np.all(np.round(sasm.q[qi:qf], 5) == np.round(ref_sasm.q[qi_ref:qf_ref], 5)):
-                    wx.CallAfter(self._showAverageError, 3)
-                    wx.CallAfter(self.main_frame.closeBusyDialog)
-                    return
+            self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'forest green', notsaved = True)
 
-                if sim_test == 'CorMap':
-                    n, c, pval = SASCalc.cormap_pval(ref_sasm.i[qi_ref:qf_ref], sasm.i[qi:qf])
-                pvals[index] = pval
+            do_auto_save = self._raw_settings.get('AutoSaveOnAvgFiles')
 
-            if correction == 'Bonferroni':
-                pvals = pvals*len(sasm_list[1:])
-                pvals[pvals>1] = 1
+            if do_auto_save:
+                save_path = self._raw_settings.get('AveragedFilePath')
 
-            if np.any(pvals<threshold):
-                wx.CallAfter(self.main_frame.closeBusyDialog)
-                profiles_to_use = self._showAverageError(4, itertools.compress(sasm_list[1:], pvals<threshold))
-                if profiles_to_use == wx.ID_CANCEL:
-                    return
-                wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while averaging and plotting...')
-
-        try:
-            if profiles_to_use == wx.ID_YESTOALL:
-                avg_sasm = SASProc.weightedAverage(sasm_list, weightByError, weightCounter)
-
-            elif profiles_to_use == wx.ID_YES:
-                reduced_sasm_list = [sasm_list[0]]
-                for i, sasm in enumerate(sasm_list[1:]):
-                    if pvals[i] >= threshold:
-                        reduced_sasm_list.append(sasm)
-
-                avg_sasm = SASProc.weightedAverage(reduced_sasm_list, weightByError, weightCounter)
-
-        except SASExceptions.DataNotCompatible:
-            wx.CallAfter(self._showAverageError, 3)
-            wx.CallAfter(self.main_frame.closeBusyDialog)
-            return
-
-        self._insertSasmFilenamePrefix(avg_sasm, 'A_')
-
-        self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'forest green', notsaved = True)
-
-        do_auto_save = self._raw_settings.get('AutoSaveOnAvgFiles')
-
-        if do_auto_save:
-            save_path = self._raw_settings.get('AveragedFilePath')
-
-            try:
-                self._saveSASM(avg_sasm, '.dat', save_path)
-            except IOError as e:
-                self._raw_settings.set('AutoSaveOnAvgFiles', False)
-                msg = (str(e) + '\n\nAutosave of averaged images has been '
-                    'disabled. If you are using a config file from a '
-                    'different computer please go into Advanced '
-                    'Options/Autosave to change the save folders, or '
-                    'save you config file to avoid this message next time.')
-                wx.CallAfter(self._showGenericError, msg, 'Autosave Error')
+                try:
+                    self._saveSASM(avg_sasm, '.dat', save_path)
+                except IOError as e:
+                    self._raw_settings.set('AutoSaveOnAvgFiles', False)
+                    msg = (str(e) + '\n\nAutosave of averaged images has been '
+                        'disabled. If you are using a config file from a '
+                        'different computer please go into Advanced '
+                        'Options/Autosave to change the save folders, or '
+                        'save you config file to avoid this message next time.')
+                    wx.CallAfter(self._showGenericError, msg, 'Autosave Error')
 
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
@@ -10348,51 +10079,48 @@ class SECControlPanel(wx.Panel):
 
         selected_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        selected_sizer.AddStretchSpacer(1)
-
         for each in self.controlData:
 
             label = each[0]
-            type = each[1][1]
-            id = each[1][0]
+            ctrl_type = each[1][1]
+            ctrl_id = each[1][0]
 
-            if type == 'isframenum':
+            if ctrl_type == 'isframenum':
 
-                labelbox = wx.StaticText(self, -1, "Select Data Frames : ")
-                labelbox2 = wx.StaticText(self, -1, " To ")
-                self.initial_selected_box = wx.TextCtrl(self, id, value = self.initial_selected_frame, size = (50,20))
+                labelbox = wx.StaticText(self, -1, "Frames:")
+                labelbox2 = wx.StaticText(self, -1, "to")
+                self.initial_selected_box = wx.TextCtrl(self, ctrl_id, value = self.initial_selected_frame, size = (50,-1))
 
+                selected_sizer.Add(labelbox, border=2,
+                    flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+                selected_sizer.Add(self.initial_selected_box, border=2,
+                    flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+                selected_sizer.Add(labelbox2, border=2,
+                    flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
 
-                selected_sizer.Add(labelbox,0)
-                selected_sizer.Add(self.initial_selected_box,1)
-                selected_sizer.Add(labelbox2,0)
-
-            elif type == 'fsframenum':
-                self.final_selected_box = wx.TextCtrl(self, id, value = self.final_selected_frame, size = (50,20))
-                selected_sizer.Add(self.final_selected_box,1)
-
-        selected_sizer.AddStretchSpacer(1)
-
+            elif ctrl_type == 'fsframenum':
+                self.final_selected_box = wx.TextCtrl(self, ctrl_id, value = self.final_selected_frame, size = (50,-1))
+                selected_sizer.Add(self.final_selected_box, border=5,
+                    flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
 
         ####
-        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        frames_plot_button = wx.Button(self, -1, 'Frames To Main Plot')
+        frames_plot_button = wx.Button(self, -1, 'Plot')
         frames_plot_button.Bind(wx.EVT_BUTTON, self._onFramesToMainPlot)
-        average_plot_button = wx.Button(self, -1, 'Average To Main Plot')
+        average_plot_button = wx.Button(self, -1, 'Average')
         average_plot_button.Bind(wx.EVT_BUTTON, self._onAverageToMainPlot)
 
+        selected_sizer.Add(frames_plot_button, 0, border=5,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        selected_sizer.Add(average_plot_button, 0, flag =wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
 
-        button_sizer.Add(frames_plot_button, 0, border=9, flag=wx.ALIGN_CENTER|wx.RIGHT)
-        button_sizer.Add(average_plot_button, 0, flag = wx.ALIGN_CENTER)
+        selected_sizer.AddStretchSpacer(1)
 
         send_box = wx.StaticBox(self, -1, 'Data to main plot')
         send_sizer = wx.StaticBoxSizer(send_box, wx.VERTICAL)
 
-        send_sizer.Add(selected_sizer,0, flag = wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER, border = 2)
-        send_sizer.Add(button_sizer, 0, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
+        send_sizer.Add(selected_sizer, flag=wx.EXPAND|wx.ALL, border=2)
 
-        sizer.Add(send_sizer, 0, flag = wx.EXPAND | wx.BOTTOM, border = 5)
+        sizer.Add(send_sizer, flag=wx.EXPAND|wx.BOTTOM, border=5)
 
         return sizer
 
@@ -10556,17 +10284,13 @@ class SECControlPanel(wx.Panel):
 
         self._updateControlValues()
 
-        sasm_list=[]
-
         selected_item = self.sec_panel.getDataItem()
+        secm = None
 
         if len(self.initial_selected_frame)>0 and len(self.final_selected_frame)>0 and len(self.sec_panel.all_manipulation_items) > 0:
 
             if len(self.sec_panel.all_manipulation_items) == 1:
-
                 secm = self.sec_panel.all_manipulation_items[0].secm
-
-                sasm_list = secm.getSASMList(self.initial_selected_frame, self.final_selected_frame)
 
             elif len(self.sec_panel.all_manipulation_items)>1:
 
@@ -10581,9 +10305,6 @@ class SECControlPanel(wx.Panel):
 
                     if proceed == wx.ID_YES:
                         secm = selected_item.secm
-                        sasm_list = secm.getSASMList(self.initial_selected_frame, self.final_selected_frame)
-                    else:
-                        return
 
                 else:
                     msg = "To send data to the main plot, select a series curve by starring it."
@@ -10593,7 +10314,7 @@ class SECControlPanel(wx.Panel):
             msg = "To send data to the main plot, enter a valid frame range (missing start or end frame)."
             wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
 
-        if len(sasm_list)>0:
+        if secm is not None:
             if secm.axes.xaxis.get_label_text() == 'Time (s)':
                 msg = "Warning: Plot is displaying time. Make sure frame #s, not time, are selected to send to plot. Proceed?"
                 dlg = wx.MessageDialog(self.main_frame, msg, "Verify Frame Range", style = wx.ICON_QUESTION | wx.YES_NO)
@@ -10603,10 +10324,16 @@ class SECControlPanel(wx.Panel):
                 proceed = wx.ID_YES
 
             if proceed == wx.ID_YES:
-                for i in range(len(sasm_list)):
-                    sasm_list[i] = copy.deepcopy(sasm_list[i])
+                int_type = secm.plot_panel.plotparams['plot_intensity']
+                sasm_list = secm.getSASMList(self.initial_selected_frame,
+                    self.final_selected_frame, int_type)
+            else:
+                sasm_list = None
 
-                mainworker_cmd_queue.put(['to_plot_SEC', sasm_list])
+        if sasm_list is not None and sasm_list:
+            sasm_list = map(copy.deepcopy, sasm_list)
+
+            mainworker_cmd_queue.put(['to_plot_SEC', sasm_list])
 
         if self.online_mode_button.IsChecked() and not self._is_online:
             self._goOnline()
@@ -10618,24 +10345,19 @@ class SECControlPanel(wx.Panel):
 
         self._updateControlValues()
 
-        sasm_list=[]
-
         selected_item = self.sec_panel.getDataItem()
+        secm = None
 
         if len(self.initial_selected_frame)>0 and len(self.final_selected_frame)>0 and len(self.sec_panel.all_manipulation_items) > 0:
 
             if len(self.sec_panel.all_manipulation_items) == 1:
-
                 secm = self.sec_panel.all_manipulation_items[0].secm
-
-                sasm_list = secm.getSASMList(self.initial_selected_frame, self.final_selected_frame)
 
             elif len(self.sec_panel.all_manipulation_items)>1:
 
                 if selected_item != None:
-
                     if not selected_item.getSelectedForPlot():
-                        msg = "Warning: The selected series curve is not shown on the plot. Send average to main plot anyways?\nNote: You can select a different series curve by starring it."
+                        msg = "Warning: The selected series curve is not shown on the plot. Send frames to main plot anyways?\nNote: You can select a different series curve by starring it."
                         dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection", style = wx.ICON_QUESTION | wx.YES_NO)
                         proceed = dlg.ShowModal()
                         dlg.Destroy()
@@ -10644,9 +10366,6 @@ class SECControlPanel(wx.Panel):
 
                     if proceed == wx.ID_YES:
                         secm = selected_item.secm
-                        sasm_list = secm.getSASMList(self.initial_selected_frame, self.final_selected_frame)
-                    else:
-                        return
 
                 else:
                     msg = "To send data to the main plot, select a series curve by starring it."
@@ -10656,8 +10375,7 @@ class SECControlPanel(wx.Panel):
             msg = "To send data to the main plot, enter a valid frame range (missing start or end frame)."
             wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
 
-        if len(sasm_list)>0:
-
+        if secm is not None:
             if secm.axes.xaxis.get_label_text() == 'Time (s)':
                 msg = "Warning: Plot is displaying time. Make sure frame #s, not time, are selected to send to plot. Proceed?"
                 dlg = wx.MessageDialog(self.main_frame, msg, "Verify Frame Range", style = wx.ICON_QUESTION | wx.YES_NO)
@@ -10667,11 +10385,19 @@ class SECControlPanel(wx.Panel):
                 proceed = wx.ID_YES
 
             if proceed == wx.ID_YES:
-                mainworker_cmd_queue.put(['average_items_sec', sasm_list])
+                int_type = secm.plot_panel.plotparams['plot_intensity']
+                sasm_list = secm.getSASMList(self.initial_selected_frame,
+                    self.final_selected_frame, int_type)
+            else:
+                sasm_list = None
+
+        if sasm_list is not None and sasm_list:
+            sasm_list = map(copy.deepcopy, sasm_list)
+
+            mainworker_cmd_queue.put(['secm_average_sasms', sasm_list])
 
         if self.online_mode_button.IsChecked() and not self._is_online:
             self._goOnline()
-
 
 
     def _findWindowId(self,type):
