@@ -1060,10 +1060,13 @@ class GuinierFrame(wx.Frame):
 
     def __init__(self, parent, title, ExpObj, manip_item):
 
+        client_display = wx.GetClientDisplayRect()
+        size = (min(800, client_display.Width), min(600, client_display.Height))
+
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'GuinierFrame', size = (800,600))
+            wx.Frame.__init__(self, parent, -1, title, name = 'GuinierFrame', size = size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'GuinierFrame', size = (800,600))
+            wx.Frame.__init__(self, None, -1, title, name = 'GuinierFrame', size = size)
 
         splitter1 = wx.SplitterWindow(self, -1)
 
@@ -1112,10 +1115,13 @@ class MolWeightFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm, manip_item):
 
+        client_display = wx.GetClientDisplayRect()
+        size = (min(475, client_display.Width), min(525, client_display.Height))
+
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'MolWeightFrame', size = (475,525))
+            wx.Frame.__init__(self, parent, -1, title, name = 'MolWeightFrame', size = size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'MolWeightFrame', size = (475,525))
+            wx.Frame.__init__(self, None, -1, title, name = 'MolWeightFrame', size = size)
 
         self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -2421,10 +2427,13 @@ class GNOMFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm, manip_item):
 
+        client_display = wx.GetClientDisplayRect()
+        size = (min(800, client_display.Width), min(600, client_display.Height))
+
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'GNOMFrame', size = (800,600))
+            wx.Frame.__init__(self, parent, -1, title, name = 'GNOMFrame', size = size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'GNOMFrame', size = (800,600))
+            wx.Frame.__init__(self, None, -1, title, name = 'GNOMFrame', size = size)
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -3588,10 +3597,13 @@ class DammifFrame(wx.Frame):
 
     def __init__(self, parent, title, iftm, manip_item):
 
+        client_display = wx.GetClientDisplayRect()
+        size = (min(675, client_display.Width), min(750, client_display.Height))
+
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'DammifFrame', size = (675,750))
+            wx.Frame.__init__(self, parent, -1, title, name = 'DammifFrame', size = size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'DammifFrame', size = (675,750))
+            wx.Frame.__init__(self, None, -1, title, name = 'DammifFrame', size = size)
 
         self.manip_item = manip_item
         self.iftm = iftm
@@ -5477,10 +5489,13 @@ class DenssFrame(wx.Frame):
 
     def __init__(self, parent, title, iftm, manip_item):
 
+        client_display = wx.GetClientDisplayRect()
+        size = (min(650, client_display.Width), min(750, client_display.Height))
+
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'DenssFrame', size = (675,750))
+            wx.Frame.__init__(self, parent, -1, title, name = 'DenssFrame', size = size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'DenssFrame', size = (675,750))
+            wx.Frame.__init__(self, None, -1, title, name = 'DenssFrame', size = size)
 
         self.manip_item = manip_item
         self.iftm = iftm
@@ -7128,10 +7143,13 @@ class BIFTFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm, manip_item):
 
+        client_display = wx.GetClientDisplayRect()
+        size = (min(800, client_display.Width), min(600, client_display.Height))
+
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'BIFTFrame', size = (800,600))
+            wx.Frame.__init__(self, parent, -1, title, name = 'BIFTFrame', size = size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'BIFTFrame', size = (800,600))
+            wx.Frame.__init__(self, None, -1, title, name = 'BIFTFrame', size = size)
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -7813,10 +7831,13 @@ class AmbimeterFrame(wx.Frame):
 
     def __init__(self, parent, title, iftm, manip_item):
 
+        client_display = wx.GetClientDisplayRect()
+        size = (min(450, client_display.Width), min(525, client_display.Height))
+
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'AmbimeterFrame', size = (450,525))
+            wx.Frame.__init__(self, parent, -1, title, name = 'AmbimeterFrame', size = size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'AmbimeterFrame', size = (450,525))
+            wx.Frame.__init__(self, None, -1, title, name = 'AmbimeterFrame', size = size)
 
         self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -8159,10 +8180,13 @@ class SVDFrame(wx.Frame):
 
     def __init__(self, parent, title, secm, manip_item):
 
+        client_display = wx.GetClientDisplayRect()
+        size = (min(800, client_display.Width), min(680, client_display.Height))
+
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'SVDFrame', size = (800,680))
+            wx.Frame.__init__(self, parent, -1, title, name = 'SVDFrame', size = size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'SVDFrame', size = (800,680))
+            wx.Frame.__init__(self, None, -1, title, name = 'SVDFrame', size = size)
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -9054,10 +9078,13 @@ class EFAFrame(wx.Frame):
 
     def __init__(self, parent, title, secm, manip_item):
 
+        client_display = wx.GetClientDisplayRect()
+        size = (min(950, client_display.Width), min(750, client_display.Height))
+
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'EFAFrame', size = (950,750))
+            wx.Frame.__init__(self, parent, -1, title, name = 'EFAFrame', size = size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'EFAFrame', size = (950,750))
+            wx.Frame.__init__(self, None, -1, title, name = 'EFAFrame', size = size)
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -11477,10 +11504,13 @@ class SimilarityFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm_list):
 
+        client_display = wx.GetClientDisplayRect()
+        size = (min(600, client_display.Width), min(400, client_display.Height))
+
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'SimilarityFrame', size = (600,400))
+            wx.Frame.__init__(self, parent, -1, title, name = 'SimilarityFrame', size = size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'SimilarityFrame', size = (600,400))
+            wx.Frame.__init__(self, None, -1, title, name = 'SimilarityFrame', size = size)
 
         self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -11847,10 +11877,13 @@ class NormKratkyFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm_list):
 
+        client_display = wx.GetClientDisplayRect()
+        size = (min(800, client_display.Width), min(600, client_display.Height))
+
         try:
-            wx.Frame.__init__(self, parent, wx.ID_ANY, title, name = 'NormKratkyFrame', size = (800,600))
+            wx.Frame.__init__(self, parent, wx.ID_ANY, title, name = 'NormKratkyFrame', size = size)
         except:
-            wx.Frame.__init__(self, None, wx.ID_ANY, title, name = 'NormKratkyFrame', size = (800,600))
+            wx.Frame.__init__(self, None, wx.ID_ANY, title, name = 'NormKratkyFrame', size = size)
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -12437,7 +12470,10 @@ class LCSeriesFrame(wx.Frame):
 
     def __init__(self, parent, title, secm, manip_item, raw_settings):
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, name = 'LCSeriesFrame', size = (1000,675))
+        client_display = wx.GetClientDisplayRect()
+        size = (min(1000, client_display.Width), min(675, client_display.Height))
+
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, name = 'LCSeriesFrame', size = size)
 
         splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE|wx.SP_3D)
 

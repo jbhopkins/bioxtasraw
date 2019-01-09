@@ -193,8 +193,8 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_CLOSE, self._onCloseWindow)
 
         # *************** Set minimum frame size ***************
-        displaySize = wx.GetDisplaySize()
-        minsize = (min(800, displaySize[0]), min(600, displaySize[1]))
+        client_display = wx.GetClientDisplayRect()
+        minsize = (min(800, client_display.Width), min(600, client_display.Height))
         self.SetMinSize(minsize)
 
         # /* CREATE PLOT NOTEBOOK */
@@ -275,12 +275,7 @@ class MainFrame(wx.Frame):
         self.SetIcon(icon)
         app.SetTopWindow(self)
 
-        if platform.system() == 'Darwin':
-            offset = 22
-        else:
-            offset = 0
-
-        size = (min(1024, displaySize[0]), min(768, displaySize[1]-offset))
+        size = (min(1024, client_display.Width), min(768, client_display.Height))
         self.SetSize(size)
         self.CenterOnScreen()
         self.Show(True)
@@ -12386,7 +12381,7 @@ class WelcomeDialog(wx.Frame):
 
         self.Raise()
 
-        self.CenterOnParent()
+        self.CenterOnScreen()
 
 
     def _onOKButton(self, event):
