@@ -94,8 +94,8 @@ class SASM(object):
         #Calculated values
         try:
             if len(self.q)>0:
-                self.total_intensity = integrate.trapz(self.i, self.q)
-                self.mean_intensity = self.i.mean()
+                self.total_intensity = integrate.trapz(self.getI(), self.getQ())
+                self.mean_intensity = self.getI().mean()
             else:
                 self.total_intensity = -1
                 self.mean_intensity = -1
@@ -166,8 +166,8 @@ class SASM(object):
         #Calculated values
         try:
             if len(self.q)>0:
-                self.total_intensity = integrate.trapz(self.i, self.q)
-                self.mean_intensity = self.i.mean()
+                self.total_intensity = integrate.trapz(self.getI(), self.getQ())
+                self.mean_intensity = self.getI().mean()
             else:
                 self.total_intensity = -1
                 self.mean_intensity = -1
@@ -252,6 +252,20 @@ class SASM(object):
             raise SASExceptions.InvalidQrange('Qrange: ' + str(qrange) + ' is not a valid q-range for a q-vector of length ' + str(len(self._q_binned)-1))
         else:
             self._selected_q_range = map(int, qrange)
+
+            try:
+                if len(self.q)>0:
+                    self.total_intensity = integrate.trapz(self.getI(), self.getQ())
+                    self.mean_intensity = self.getI().mean()
+                else:
+                    self.total_intensity = -1
+                    self.mean_intensity = -1
+
+            except Exception as e:
+                print e
+                self.total_intensity = -1
+                self.mean_intensity = -1
+
 
     def getQrange(self):
         return self._selected_q_range
@@ -886,14 +900,17 @@ class SECM(object):
         self.mean_i = ((self.mean_i) * self._scale_factor) + self._offset_value
         self.total_i = ((self.total_i) * self._scale_factor) + self._offset_value
         self.I_of_q = ((self.I_of_q) * self._scale_factor) + self._offset_value
+        self.qrange_I = ((self.qrange_I) * self._scale_factor) + self._offset_value
 
         self.mean_i_sub = ((self.mean_i_sub) * self._scale_factor) + self._offset_value
         self.total_i_sub = ((self.total_i_sub) * self._scale_factor) + self._offset_value
         self.I_of_q_sub = ((self.I_of_q_sub) * self._scale_factor) + self._offset_value
+        self.qrange_I_sub = ((self.qrange_I_sub) * self._scale_factor) + self._offset_value
 
         self.mean_i_bcsub = ((self.mean_i_bcsub) * self._scale_factor) + self._offset_value
         self.total_i_bcsub = ((self.total_i_bcsub) * self._scale_factor) + self._offset_value
         self.I_of_q_bcsub = ((self.I_of_q_bcsub) * self._scale_factor) + self._offset_value
+        self.qrange_I_sub = ((self.qrange_I_sub) * self._scale_factor) + self._offset_value
 
         self.plot_frame_list = self.plot_frame_list * self._frame_scale_factor
 
@@ -947,22 +964,12 @@ class SECM(object):
         self.time=np.array(time,dtype=float)
 
         if self.qref>0:
+            I_of_q = np.array([sasm.getIofQ(self.qref) for sasm in sasm_list])
+            self.I_of_q = np.concatenate((self.I_of_q, I_of_q))
 
-            I_of_q = []
-
-            closest = lambda qlist: np.argmin(np.absolute(qlist-self.qref))
-
-            for sasm in sasm_list:
-                # print 'in sasm_list loop'
-                qmin, qmax = sasm.getQrange()
-                q = sasm.q[qmin:qmax]
-                index = closest(q)
-                # print index
-                intensity = sasm.i[index]
-                # print intensity
-                I_of_q.append(intensity)
-
-            self.I_of_q.extend(I_of_q)
+        if self.qrange != (0,0):
+            qrange_I = np.array([sasm.getIofQRange(self.qrange[0], self.qrange[1]) for sasm in sasm_list])
+            self.qrange_I = np.concatenate((self.qrange_I, qrange_I))
 
         # print self.time
 
@@ -1244,25 +1251,25 @@ class SECM(object):
 
     def I(self, qref):
         self.qref=float(qref)
-        self.I_of_q = [sasm.getIofQ(qref) for sasm in self.getAllSASMs()]
+        self.I_of_q = np.array([sasm.getIofQ(qref) for sasm in self.getAllSASMs()])
 
         if self.subtracted_sasm_list:
-            self.I_of_q_sub = [sasm.getIofQ(qref) for sasm in self.subtracted_sasm_list]
+            self.I_of_q_sub = np.array([sasm.getIofQ(qref) for sasm in self.subtracted_sasm_list])
 
         if self.baseline_subtracted_sasm_list:
-            self.I_of_q_bcsub = [sasm.getIofQ(qref) for sasm in self.baseline_subtracted_sasm_list]
+            self.I_of_q_bcsub = np.array([sasm.getIofQ(qref) for sasm in self.baseline_subtracted_sasm_list])
 
         return self.I_of_q
 
     def calc_qrange_I(self, qrange):
         self.qrange = qrange
-        self.qrange_I = [sasm.getIofQRange(qrange[0], qrange[1]) for sasm in self.getAllSASMs()]
+        self.qrange_I = np.array([sasm.getIofQRange(qrange[0], qrange[1]) for sasm in self.getAllSASMs()])
 
         if self.subtracted_sasm_list:
-            self.qrange_I_sub = [sasm.getIofQRange(qrange[0], qrange[1]) for sasm in self.subtracted_sasm_list]
+            self.qrange_I_sub = np.array([sasm.getIofQRange(qrange[0], qrange[1]) for sasm in self.subtracted_sasm_list])
 
         if self.baseline_subtracted_sasm_list:
-            self.qrange_I_bcsub = [sasm.getIofQRange(qrange[0], qrange[1]) for sasm in self.baseline_subtracted_sasm_list]
+            self.qrange_I_bcsub = np.array([sasm.getIofQRange(qrange[0], qrange[1]) for sasm in self.baseline_subtracted_sasm_list])
 
         return self.qrange_I
 
@@ -1488,11 +1495,17 @@ class SECM(object):
 
     def setSubtractedSASMs(self, sub_sasm_list, use_sub_sasm):
 
-        self.subtracted_sasm_list = sub_sasm_list
-        self.use_subtracted_sasm = use_sub_sasm
+        self.subtracted_sasm_list = list(sub_sasm_list)
+        self.use_subtracted_sasm = list(use_sub_sasm)
 
         self.mean_i_sub = np.array([sasm.getMeanI() for sasm in sub_sasm_list])
         self.total_i_sub = np.array([sasm.getTotalI() for sasm in sub_sasm_list])
+
+        if self.qref>0:
+            self.I_of_q_sub = np.array([sasm.getIofQ(self.qref) for sasm in sub_sasm_list])
+
+        if self.qrange != (0,0):
+            self.qrange_I_sub = np.array([sasm.getIofQRange(self.qrange[0], self.qrange[1]) for sasm in sub_sasm_list])
 
     def appendSubtractedSASMs(self, sub_sasm_list, use_sasm_list, window_size):
         self.subtracted_sasm_list = self.subtracted_sasm_list[:-window_size] + sub_sasm_list
@@ -1503,13 +1516,29 @@ class SECM(object):
         self.total_i_sub = np.concatenate((self.total_i_sub[:-window_size],
             np.array([sasm.getTotalI() for sasm in sub_sasm_list])))
 
+        if self.qref>0:
+            I_of_q_sub = np.array([sasm.getIofQ(self.qref) for sasm in sub_sasm_list])
+            self.I_of_q_sub = np.concatenate((self.I_of_q_sub[:-window_size],
+                I_of_q_sub))
+
+        if self.qrange != (0,0):
+            qrange_I_sub = np.array([sasm.getIofQRange(self.qrange[0], self.qrange[1]) for sasm in sub_sasm_list])
+            self.qrange_I_sub = np.concatenate((self.qrange_I_sub[:-window_size],
+                qrange_I_sub))
+
     def setBCSubtractedSASMs(self, sub_sasm_list, use_sub_sasm):
 
-        self.baseline_subtracted_sasm_list = sub_sasm_list
-        self.use_baseline_subtracted_sasm = use_sub_sasm
+        self.baseline_subtracted_sasm_list = list(sub_sasm_list)
+        self.use_baseline_subtracted_sasm = list(use_sub_sasm)
 
         self.mean_i_bcsub = np.array([sasm.getMeanI() for sasm in sub_sasm_list])
         self.total_i_bcsub = np.array([sasm.getTotalI() for sasm in sub_sasm_list])
+
+        if self.qref>0:
+            self.I_of_q_bcsub = np.array([sasm.getIofQ(self.qref) for sasm in sub_sasm_list])
+
+        if self.qrange != (0,0):
+            self.qrange_I_bcsub = np.array([sasm.getIofQRange(self.qrange[0], self.qrange[1]) for sasm in sub_sasm_list])
 
     def appendBCSubtractedSASMs(self, sub_sasm_list, use_sasm_list, window_size):
         self.baseline_subtracted_sasm_list = self.baseline_subtracted_sasm_list[:-window_size] + sub_sasm_list
@@ -1519,6 +1548,16 @@ class SECM(object):
             np.array([sasm.getMeanI() for sasm in sub_sasm_list])))
         self.total_i_bcsub = np.concatenate((self.total_i_bcsub[:-window_size],
             np.array([sasm.getTotalI() for sasm in sub_sasm_list])))
+
+        if self.qref>0:
+            I_of_q_bcsub = np.array([sasm.getIofQ(self.qref) for sasm in sub_sasm_list])
+            self.I_of_q_bcsub = np.concatenate((self.I_of_q_bcsub[:-window_size],
+                I_of_q_bcsub))
+
+        if self.qrange != (0,0):
+            qrange_I_bcsub = np.array([sasm.getIofQRange(self.qrange[0], self.qrange[1]) for sasm in sub_sasm_list])
+            self.qrange_I_bcsub = np.concatenate((self.qrange_I_bcsub[:-window_size],
+                qrange_I_bcsub))
 
 
 
