@@ -624,7 +624,22 @@ class PlotPanel(wx.Panel):
 
         if event.inaxes:
             x, y = event.xdata, event.ydata
-            wx.FindWindowByName('MainFrame').SetStatusText('q = ' +  str(round(x,5)) + ', I = ' + str(round(y,5)), 1)
+
+            if abs(y) > 0.01 and abs(y) < 10:
+                y_val = '{}'.format(round(y, 4))
+            elif abs(y) >= 10 and abs(y) < 1000:
+                y_val = '{}'.format(round(y, 2))
+            else:
+                y_val = '{:.3E}'.format(y)
+
+            if abs(x) > 0.001 and abs(x) < 1:
+                x_val = '{}'.format(round(x, 5))
+            elif abs(x) >= 1 and abs(x) < 100:
+                x_val = '{}'.format(round(x, 3))
+            else:
+                x_val = '{:.3E}'.format(x)
+
+            wx.FindWindowByName('MainFrame').SetStatusText('q = {}, I(q) = {}'.format(x_val, y_val), 1)
 
     def _onMouseButtonReleaseEvent(self, event):
         ''' Find out where the mouse button was released
@@ -2354,10 +2369,41 @@ class IftPlotPanel(PlotPanel):
 
         if event.inaxes == self.subplot1:
             x, y = event.xdata, event.ydata
-            wx.FindWindowByName('MainFrame').SetStatusText('r = ' +  str(round(x,5)) + ', P(r) = ' + str(round(y,5)), 1)
+
+            if abs(y) > 0.01 and abs(y) < 10:
+                y_val = '{}'.format(round(y, 4))
+            elif abs(y) >= 10 and abs(y) < 1000:
+                y_val = '{}'.format(round(y, 2))
+            else:
+                y_val = '{:.3E}'.format(y)
+
+            if abs(x) > 0.01 and abs(x) < 10:
+                x_val = '{}'.format(round(x, 4))
+            elif abs(x) >= 10 and abs(x) < 1000:
+                x_val = '{}'.format(round(x, 2))
+            else:
+                x_val = '{:.3E}'.format(x)
+
+            wx.FindWindowByName('MainFrame').SetStatusText('r = {}, P(r) = {}'.format(x_val, y_val), 1)
+
         elif event.inaxes == self.subplot2:
             x, y = event.xdata, event.ydata
-            wx.FindWindowByName('MainFrame').SetStatusText('q = ' +  str(round(x,5)) + ', I(q) = ' + str(round(y,5)), 1)
+
+            if abs(y) > 0.01 and abs(y) < 10:
+                y_val = '{}'.format(round(y, 4))
+            elif abs(y) >= 10 and abs(y) < 1000:
+                y_val = '{}'.format(round(y, 2))
+            else:
+                y_val = '{:.3E}'.format(y)
+
+            if abs(x) > 0.001 and abs(x) < 1:
+                x_val = '{}'.format(round(x, 5))
+            elif abs(x) >= 1 and abs(x) < 100:
+                x_val = '{}'.format(round(x, 3))
+            else:
+                x_val = '{:.3E}'.format(x)
+
+            wx.FindWindowByName('MainFrame').SetStatusText('q = {}, I(q) = {}'.format(x_val, y_val), 1)
 
 class FigureSavePanel(wx.Panel):
     #def __init__(self, parent, plotparams, axes, *args, **kwargs):
@@ -3188,21 +3234,25 @@ class SeriesPlotPanel(wx.Panel):
                 trans2 = self.ryaxis.transData.inverted()
                 x2, y2 = trans2.transform(trans1.transform((x,y)))
 
-            if abs(y) > 0.001 and abs(y) < 1000:
-                y_val = '{}'.format(round(y, 3))
+            if abs(y) > 0.01 and abs(y) < 10:
+                y_val = '{}'.format(round(y, 4))
+            elif abs(y) >= 10 and abs(y) < 1000:
+                y_val = '{}'.format(round(y, 2))
             else:
                 y_val = '{:.3E}'.format(y)
 
-            if abs(y2) > 0.001 and abs(y2) < 1000:
-                y2_val = '{}'.format(round(y2, 3))
+            if abs(y2) > 0.01 and abs(y2) < 10:
+                y2_val = '{}'.format(round(y2, 4))
+            elif abs(y2) >= 10 and abs(y2) < 1000:
+                y2_val = '{}'.format(round(y2, 2))
             else:
                 y2_val = '{:.3E}'.format(y2)
 
             if calced != 'None':
-                wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I = %s, %s = %s' %(xaxis, x, y_val, calced, y2_val), 1)
+                wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I(q) = %s, %s = %s' %(xaxis, x, y_val, calced, y2_val), 1)
 
             else:
-                wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I = %s' %(xaxis, x, y_val), 1)
+                wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I(q) = %s' %(xaxis, x, y_val), 1)
 
     def _onMouseButtonReleaseEvent(self, event):
         ''' Find out where the mouse button was released
@@ -3440,7 +3490,7 @@ class SeriesPlotPanel(wx.Panel):
                     elif key == 'secplotbaseline':
                         self.plotparams['plot_intensity'] = 'baseline'
 
-                if (key == 'secplotrg' or key == 'secplotvcmw' or 
+                if (key == 'secplotrg' or key == 'secplotvcmw' or
                     key == 'secplotvpmw' or key == 'secploti0'):
                     intensity_flag = False
                 else:
