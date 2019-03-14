@@ -10310,6 +10310,7 @@ class SECControlPanel(wx.Panel):
 
         selected_item = self.sec_panel.getDataItem()
         secm = None
+        sasm_list = None
 
         if len(self.initial_selected_frame)>0 and len(self.final_selected_frame)>0 and len(self.sec_panel.all_manipulation_items) > 0:
 
@@ -10351,8 +10352,6 @@ class SECControlPanel(wx.Panel):
                 int_type = secm.plot_panel.plotparams['plot_intensity']
                 sasm_list = secm.getSASMList(self.initial_selected_frame,
                     self.final_selected_frame, int_type)
-            else:
-                sasm_list = None
 
         if sasm_list is not None and sasm_list:
             sasm_list = map(copy.deepcopy, sasm_list)
@@ -10371,6 +10370,7 @@ class SECControlPanel(wx.Panel):
 
         selected_item = self.sec_panel.getDataItem()
         secm = None
+        sasm_list = None
 
         if len(self.initial_selected_frame)>0 and len(self.final_selected_frame)>0 and len(self.sec_panel.all_manipulation_items) > 0:
 
@@ -10412,8 +10412,6 @@ class SECControlPanel(wx.Panel):
                 int_type = secm.plot_panel.plotparams['plot_intensity']
                 sasm_list = secm.getSASMList(self.initial_selected_frame,
                     self.final_selected_frame, int_type)
-            else:
-                sasm_list = None
 
         if sasm_list is not None and sasm_list:
             sasm_list = map(copy.deepcopy, sasm_list)

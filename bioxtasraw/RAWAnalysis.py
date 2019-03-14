@@ -9573,7 +9573,10 @@ class EFAControlPanel1(wx.Panel):
         label = wx.StaticText(self, -1, 'Use :')
         profile_type = wx.Choice(self, self.control_ids['profile'], choices = choices)
         profile_type.Bind(wx.EVT_CHOICE, self._onProfileChoice)
-        profile_type.SetStringSelection('Subtracted')
+        if 'Subtracted' in choices:
+            profile_type.SetStringSelection('Subtracted')
+        else:
+            profile_type.SetStringSelection('Unsubtracted')
 
         profile_sizer = wx.BoxSizer(wx.HORIZONTAL)
         profile_sizer.Add(label, 0, wx.LEFT | wx.RIGHT, 3)
@@ -9724,9 +9727,6 @@ class EFAControlPanel1(wx.Panel):
             self.bl_subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.baseline_subtracted_sasm_list, self.secm.frame_list, self.secm.getAllParameters())
         else:
             self.bl_subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.baseline_subtracted_sasm_list, [], self.secm.getAllParameters())
-
-            profile_window = wx.FindWindowById(self.control_ids['profile'], self)
-            profile_window.SetStringSelection('Unsubtracted')
 
         if self.manip_item is not None:
             sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
