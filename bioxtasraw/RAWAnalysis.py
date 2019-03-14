@@ -7181,12 +7181,18 @@ class BIFTFrame(wx.Frame):
         self.CenterOnParent()
         self.Raise()
 
+        self.Bind(wx.EVT_CLOSE, self._onClose)
+
         wx.CallLater(50, self.initBIFT)
 
     def initBIFT(self):
         self.controlPanel.runBIFT()
 
-    def OnClose(self):
+    def _onClose(self, evt):
+        self.controlPanel.onClose()
+        self.close()
+
+    def close(self):
 
         self.Destroy()
 
@@ -7681,13 +7687,15 @@ class BIFTControlPanel(wx.Panel):
         self.runBIFT()
 
     def onCloseButton(self, evt):
+        self.onClose()
 
+        diag = wx.FindWindowByName('BIFTFrame')
+        diag.close()
+
+    def onClose(self):
         if self.BIFT_timer.IsRunning():
             self.BIFT_timer.Stop()
             RAWGlobals.cancel_bift = True
-
-        diag = wx.FindWindowByName('BIFTFrame')
-        diag.OnClose()
 
     def onAbortButton(self, evt):
         RAWGlobals.cancel_bift = True
