@@ -9695,7 +9695,9 @@ class EFAControlPanel1(wx.Panel):
 
         if 'efa' not in analysis_dict:
 
-            if len(self.secm.subtracted_sasm_list)>0:
+            if len(self.secm.subtracted_sasm_list)>0 and len(np.where(self.secm.use_subtracted_sasm)[0]) > 0:
+                print len(self.secm.use_subtracted_sasm)
+                print len(self.secm.subtracted_sasm_list)
                 frame_start = max(np.where(self.secm.use_subtracted_sasm)[0][0]-100, framei)
                 frame_end = min(np.where(self.secm.use_subtracted_sasm)[0][-1]+100, framef)
 
