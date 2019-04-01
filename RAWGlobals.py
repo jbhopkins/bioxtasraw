@@ -35,6 +35,6 @@ RAWResourcesDir = ''
 
 usepyFAI_integration = False
 
-version = '1.5.1'
+version = '1.5.2'
 
 save_in_progress = False

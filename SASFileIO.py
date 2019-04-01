@@ -744,7 +744,21 @@ def parseBioCATlogfile(filename):
 
     line_num=0
 
-    test_idx = int(searchName.split('_')[-1])
+    counters = {}
+
+    for i, line in enumerate(allLines):
+        if line.startswith('#'):
+            if line.startswith('#Filename') or line.startswith('#image'):
+                labels = line.strip('#').split('\t')
+                offset = i
+            else:
+                key = line.strip('#').split(':')[0]
+                val = ':'.join(line.strip('#').split(':')[1:])
+                counters[key] = val
+        else:
+            break
+
+    test_idx = int(searchName.split('_')[-1]) + offset
 
     if searchName in allLines[test_idx]:
         line_num = test_idx
@@ -754,12 +768,10 @@ def parseBioCATlogfile(filename):
                 line_num=a
 
     if line_num>0:
-        labels=allLines[0].split('\t')
         vals=allLines[line_num].split('\t')
 
-        counters = {labels[a]:vals[a] for a in range(len(labels))}
-    else:
-        counters = {}
+        for a in range(len(labels)):
+            counters[labels[a]] = vals[a]
 
     return counters
 
