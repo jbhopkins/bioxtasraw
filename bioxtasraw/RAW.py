@@ -42,7 +42,7 @@ from collections import OrderedDict, defaultdict
 import hdf5plugin #HAS TO BE FIRST
 import numpy as np
 import matplotlib.colors as mplcol
-import pyFAI, pyFAI.calibrant, pyFAI.peak_picker
+import pyFAI, pyFAI.calibrant#, pyFAI.peak_picker
 import wx
 import wx.lib.scrolledpanel as scrolled
 import wx.lib.mixins.listctrl as listmix
@@ -164,6 +164,7 @@ class MainFrame(wx.Frame):
                         'superimpose'           : self.NewControlId(),
                         'sync'                  : self.NewControlId(),
                         'rundenss'              : self.NewControlId(),
+                        'calcUVconc'            : self.NewControlId()
                         }
 
         self.tbIcon = RawTaskbarIcon(self)
@@ -902,6 +903,7 @@ class MainFrame(wx.Frame):
                  ('&Tools',   [('&Operations', None, submenus['operations'], 'submenu'),
                                ('&Convert q-scale', None, submenus['convertq'], 'submenu'),
                                ('&Use as MW standard', self.MenuIDs['mwstandard'], self._onToolsMenu, 'normal'),
+                               ('&Calculate conc. from UV', self.MenuIDs['calcUVconc'], self._onToolsMenu, 'normal'),
                                (None, None, None, 'separator'),
                                ('&Guinier fit', self.MenuIDs['guinierfit'], self._onToolsMenu, 'normal'),
                                ('&Molecular weight', self.MenuIDs['molweight'], self._onToolsMenu, 'normal'),
@@ -1405,6 +1407,46 @@ class MainFrame(wx.Frame):
                 self.showDenssFrame(iftm, manippage.getSelectedItems()[0])
             else:
                 wx.MessageBox("Please select an IFT from the list on the IFT page.", "No IFT selected")
+
+        elif id == self.MenuIDs['calcUVconc']:
+            manippage = wx.FindWindowByName('ManipulationPanel')
+
+            current_page = self.control_notebook.GetSelection()
+            page = self.control_notebook.GetPage(current_page)
+
+            if page !=manippage:
+                wx.MessageBox('The selected operation cannot be performed unless the Manipulation control panel is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                return
+            
+            selected_items = manippage.getSelectedItems()
+            marked_item = manippage.getBackgroundItem()    
+            
+            if marked_item == None:
+                wx.MessageBox('The background file needs to be selected by clicking the star icon.', 'Select background first', style = wx.ICON_INFORMATION)
+                return
+            else:
+                try:
+                    selected_items.pop(selected_items.index(marked_item))
+                except ValueError:
+                    pass
+                
+            if selected_items:
+                selected_sasms = [item.getSASM() for item in selected_items]
+            else:
+                wx.MessageBox('No items were selected. For unsubtracted files you need to select at least a background and a sample.', 'No selected items', style = wx.ICON_INFORMATION)
+                return
+                #selected_sasms = []             
+            
+            for each in selected_sasms + [marked_item.getSASM()]:
+                if not each.getParameter('analysis').has_key('uvvis'):
+                    wx.MessageBox('The file ' + str(each.getParameter('filename')) + ' does not have UV-VIS data stored in the header', 'UV-VIS data not found', style = wx.ICON_EXCLAMATION)
+                    return
+                print each.getParameter('analysis')['uvvis']
+                
+            dlg = RAWAnalysis.UVConcentrationDialog(self, 'Concentration from UV transmission', selected_sasms, marked_item.getSASM())
+            retval = dlg.ShowModal()
+            #ret, logbin = dlg.getValues()
+            dlg.Destroy()
 
     def _onViewMenu(self, evt):
 
@@ -2757,6 +2799,10 @@ class MainWorkerThread(threading.Thread):
             return
         except SASExceptions.HeaderMaskLoadError, msg:
             wx.CallAfter(self._showGenericError, str(msg), 'Mask information was not found in header')
+            wx.CallAfter(self.main_frame.closeBusyDialog)
+            return
+        except SASExceptions.ImageLoadError, msg:
+            wx.CallAfter(wx.MessageBox, "\n".join(msg.parameter), 'Image load error', style = wx.ICON_ERROR)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
         except SASExceptions.AbsScaleNormFailed:
@@ -7276,7 +7322,12 @@ class ManipItemPanel(wx.Panel):
 
         if self.sasm.getAllParameters().has_key('load_path'):
             path = self.sasm.getParameter('load_path')
-            fnum = int(self.sasm.getParameter('filename').split('_')[-1].split('.')[0])-1
+
+            try:
+                fnum = int(self.sasm.getParameter('filename').split('_')[-1].split('.')[0])-1
+            except ValueError:
+                fnum = 0
+    
             mainworker_cmd_queue.put(['show_image', [path, fnum]])
 
     def _onPopupMenuChoice(self, evt):
@@ -11704,7 +11755,7 @@ class CenteringPanel(wx.Panel):
         h = scipy.constants.h
         e = scipy.constants.e
 
-        wl = float(evt.GetValue())*1e-10
+        wl = float(evt.GetValue().replace(',','.'))*1e-10
 
         E=c*h/(wl*e)*1e-3
 
@@ -11717,7 +11768,7 @@ class CenteringPanel(wx.Panel):
         h = scipy.constants.h
         e = scipy.constants.e
 
-        E = float(evt.GetValue())*1e3
+        E = float(evt.GetValue().replace(',','.'))*1e3
 
         wl=c*h/(E*e)*1e10
 
@@ -12381,7 +12432,7 @@ class WelcomeDialog(wx.Frame):
 
         self.Raise()
 
-        self.CenterOnScreen()
+        self.CenterOnParent()
 
 
     def _onOKButton(self, event):

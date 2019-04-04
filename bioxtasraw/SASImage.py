@@ -574,7 +574,7 @@ def createMaskMatrix(img_dim, masks):
                     mask[(x,y)] = 0
 
     #Mask is flipped (older RAW versions had flipped image)
-    mask = np.flipud(mask)
+    #mask = np.flipud(mask)
 
     return mask
 

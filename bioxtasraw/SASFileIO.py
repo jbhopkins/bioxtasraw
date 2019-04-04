@@ -296,20 +296,8 @@ def loadSAXSLAB300Image(filename):
 
     try:
         im1 = Image.open(filename)
-        im1a = im1.transpose(Image.FLIP_LEFT_RIGHT)
-        im1b = im1a.transpose(Image.ROTATE_90)
-        im2 = im1b.transpose(Image.FLIP_TOP_BOTTOM)
-
-        # newArr = np.fromstring(im2.tobytes(), np.int32)
-        if int(PIL.PILLOW_VERSION.split('.')[0])<3:
-            newArr = np.fromstring(im2.tostring(), np.int32)
-        else:
-            newArr = np.fromstring(im2.tobytes(), np.int32)
-
-        # reduce negative vals
-        newArr = np.where(newArr >= 0, newArr, 0)
-        newArr = np.reshape(newArr, (im2.size[1],im2.size[0]))
-
+        img, img_hdr_2 = loadFabio(filename)
+ 
         try:
           tag = im1.tag
         except AttributeError:
@@ -319,7 +307,6 @@ def loadSAXSLAB300Image(filename):
         return None, None
 
     try:
-        print tag
         if int(PIL.PILLOW_VERSION.split('.')[0])<3:
             tag_with_data = tag[315]
         else:
@@ -329,8 +316,11 @@ def loadSAXSLAB300Image(filename):
         print "Wrong file format. Missing TIFF tag number"
         raise
 
-    img = newArr
     img_hdr = parseSAXSLAB300Header(tag_with_data)
+
+    #DEBUG:
+    #for key, value in sorted(img_hdr.items()):
+    #   print str(key) + ': ' + str(value)
 
     return img, img_hdr
 
@@ -877,7 +867,7 @@ all_header_types = {'None'                  : None,
                     'P12 Eiger, Petra III'  : parsePetraIIIP12EigerFile}
 
 all_image_types = {
-                   'Pilatus'       : loadFabio,
+                   'Pilatus'            : loadFabio,
                    'CBF'                : loadFabio,
                    'SAXSLab300'         : loadSAXSLAB300Image,
                    'ADSC Quantum'       : loadFabio,
@@ -995,13 +985,13 @@ def loadImage(filename, raw_settings):
             hdr = {key.replace(' ', '_').translate(None, '()[]') if isinstance(key, str) else key: hdr[key] for key in hdr}
             hdr = { key : unicode(hdr[key], errors='ignore') if isinstance(hdr[key], str) else hdr[key] for key in hdr}
 
+    for i in range(len(img)):
+         if fliplr:
+             img[i] = np.fliplr(img[i])
+         if flipud:
+             img[i] = np.flipud(img[i])
 
-    if image_type != 'SASLab300':
-        for i in range(len(img)):
-            if fliplr:
-                img[i] = np.fliplr(img[i])
-            if flipud:
-                img[i] = np.flipud(img[i])
+
     return img, imghdr
 
 #################################
@@ -1115,6 +1105,54 @@ def loadAsciiFile(filename, file_type):
     return sasm
 
 
+def loadConfigFromHeader(raw_settings, filename, img_hdr, hdrfile_info):
+    import RAWSettings
+          
+    prefix = SASImage.getBindListDataFromHeader(raw_settings, img_hdr, hdrfile_info, keys = ['Config Prefix'])[0]
+
+    print "****************** PREFIX ************:", prefix
+
+
+    if prefix == None: 
+        raise SASExceptions.ImageLoadError(['"Use header for new config load" is enabled in General Settings.\n', 
+                                                   'The binding "Config Prefix" was however not found in header,',
+                                                   'not set in header options (See "Image/Header Format" in options) or not a number.'])
+    else: prefix = str(int(prefix))
+
+    settings_folder = raw_settings.get('HdrLoadConfigDir')
+
+    print "FOLDER: ", settings_folder
+
+    #If the folder is not set, look in the folder where the image is
+    if settings_folder == 'None' or settings_folder == '' or settings_folder == None:
+        print "IN SETTINGSHOLDER NONE"
+        settings_folder, fname = os.path.split(filename)
+
+    settings_path = os.path.join(settings_folder, str(prefix) + '.cfg')
+
+    if not os.path.exists(settings_path):
+        raise SASExceptions.ImageLoadError(['"Use header for new config load" is enabled in General Settings.\n',
+                                            'Config file ' + settings_path + ' does not exist.',
+                                            'Check the path in the "General Settings" options. Clear the field to make RAW look for the config file in the same folder as the image.'])
+
+    RAWSettings.loadSettings(raw_settings, settings_path, auto_load = True)
+
+    mask_dict = raw_settings.get('Masks')
+    img_dim = raw_settings.get('MaskDimension')
+
+    #Create the masks
+    for each_key in mask_dict.keys():
+        masks = mask_dict[each_key][1]
+
+        if masks != None:
+            mask_img = SASImage.createMaskMatrix(img_dim, masks)
+            mask_param = mask_dict[each_key]
+            mask_param[0] = mask_img
+            mask_param[1] = masks
+    
+    masks = raw_settings.get('Masks')
+    bs_mask = masks['BeamStopMask'][0]
+
 def loadImageFile(filename, raw_settings):
     img_fmt = raw_settings.get('ImageFormat')
     hdr_fmt = raw_settings.get('ImageHdrFormat')
@@ -1186,6 +1224,7 @@ def loadImageFile(filename, raw_settings):
         masks = raw_settings.get('Masks')
 
         use_hdr_mask = raw_settings.get('UseHeaderForMask')
+        use_hdr_config = raw_settings.get('UseHeaderForConfig')
 
         if use_hdr_mask and img_fmt == 'SAXSLab300':
             try:
@@ -1206,6 +1245,8 @@ def loadImageFile(filename, raw_settings):
             bs_mask = masks['BeamStopMask'][0]
             dc_mask = masks['ReadOutNoiseMask'][0]
 
+        if use_hdr_config:
+            loadConfigFromHeader(raw_settings, filename, img_hdr, hdrfile_info)      
 
         tbs_mask = masks['TransparentBSMask'][0]
 
@@ -1231,6 +1272,16 @@ def loadImageFile(filename, raw_settings):
 
         else:
             sasm = SASImage.pyFAIIntegrateCalibrateNormalize(img, parameters, x_c, y_c, raw_settings, bs_mask, tbs_mask)
+
+
+        ### Check for UV data if set in bindlist
+        if raw_settings.get('UseHeaderForCalib'):
+            uvvis = SASImage.getBindListDataFromHeader(raw_settings, img_hdr, hdrfile_info, keys = ['UV Path Length', 'UV Transmission', 'UV Dark Transmission'])
+
+            if not all(v is None for v in uvvis):
+                sasm._parameters['analysis']['uvvis'] = {'UVPathlength'       : uvvis[0],
+                                                         'UVTransmission'     : uvvis[1],
+                                                         'UVDarkTransmission' : uvvis[2]}                                                     
 
         sasm_list[i] = sasm
 
