@@ -2693,7 +2693,7 @@ class GNOMFrame(wx.Frame):
     def __init__(self, parent, title, sasm, manip_item):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(800, client_display.Width), min(600, client_display.Height))
+        size = (min(850, client_display.Width), min(650, client_display.Height))
 
         try:
             wx.Frame.__init__(self, parent, -1, title, name = 'GNOMFrame', size = size)
@@ -2740,6 +2740,8 @@ class GNOMFrame(wx.Frame):
         t = threading.Thread(target=self.initGNOM, args=(sasm, path))
         t.daemon=True
         t.start()
+        self.Fit()
+
 
     def initGNOM(self, sasm, path):
 
@@ -2910,6 +2912,8 @@ class GNOMPlotPanel(wx.Panel):
 
         # Connect the callback for the draw_event so that window resizing works:
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+        self.Fit()
 
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
