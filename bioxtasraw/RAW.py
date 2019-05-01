@@ -286,7 +286,7 @@ class MainFrame(wx.Frame):
         if os.path.exists(file):
 
             if self.raw_settings.get('PromptConfigLoad'):
-                dlg = wx.MessageDialog(parent = self, message = 'Load last saved configuration?', caption = 'Restore configuration', style=wx.YES_NO|wx.ICON_QUESTION)
+                dlg = wx.MessageDialog(parent = self, message = 'Load last used configuration?', caption = 'Restore configuration', style=wx.YES_NO|wx.ICON_QUESTION)
                 answer = dlg.ShowModal()
                 dlg.Destroy()
             else:

@@ -115,7 +115,8 @@ def subtract(sasm1, sasm2, forced = False, full = False):
         err = np.sqrt( np.power(sasm1.err[q1_min:q1_max], 2) + np.power(sasm2.err[q2_min:q2_max],2))
 
     parameters = copy.deepcopy(sasm1.getAllParameters())
-    newSASM = SASM.SASM(i, q, err, {})
+    sub_parameters = get_shared_header([sasm1, sasm2])
+    newSASM = SASM.SASM(i, q, err, sub_parameters)
     newSASM.setParameter('filename', parameters['filename'])
 
     history = newSASM.getParameter('history')
@@ -200,10 +201,12 @@ def average(sasm_list, forced = False):
         avg_err = copy.deepcopy(avg_err)
 
         avg_q = copy.deepcopy(first_sasm.q)[first_q_min:first_q_max]
-        avg_parameters = copy.deepcopy(sasm_list[0].getAllParameters())
+        avg1_parameters = copy.deepcopy(sasm_list[0].getAllParameters())
 
-        avgSASM = SASM.SASM(avg_i, avg_q, avg_err, {})
-        avgSASM.setParameter('filename', avg_parameters['filename'])
+        avg_parameters = get_shared_header(sasm_list)
+
+        avgSASM = SASM.SASM(avg_i, avg_q, avg_err, avg_parameters)
+        avgSASM.setParameter('filename', avg1_parameters['filename'])
 
         history = {}
 
@@ -324,10 +327,12 @@ def weightedAverage(sasm_list, weightByError, weightCounter, forced = False):
         avg_err = copy.deepcopy(avg_err)
 
         avg_q = copy.deepcopy(first_sasm.q)[first_q_min:first_q_max]
-        avg_parameters = copy.deepcopy(sasm_list[0].getAllParameters())
+        avg1_parameters = copy.deepcopy(sasm_list[0].getAllParameters())
 
-        avgSASM = SASM.SASM(avg_i, avg_q, avg_err, {})
-        avgSASM.setParameter('filename', avg_parameters['filename'])
+        avg_parameters = get_shared_header(sasm_list)
+
+        avgSASM = SASM.SASM(avg_i, avg_q, avg_err, avg_parameters)
+        avgSASM.setParameter('filename', avg1_parameters['filename'])
         history = avgSASM.getParameter('history')
 
         history = {}
@@ -492,8 +497,12 @@ def merge(sasm_star, sasm_list):
     newerr = np.append(newerr, tmp_s2err[min:max])
 
     #create a new SASM object with the merged parts.
-    parameters = copy.deepcopy(s1.getAllParameters())
-    newSASM = SASM.SASM(newi, newq, newerr, parameters)
+    merge1_parameters = copy.deepcopy(s1.getAllParameters())
+
+    merge_parameters = get_shared_header([s1, s2])
+
+    newSASM = SASM.SASM(newi, newq, newerr, merge_parameters)
+    newSASM.setParameter('filename', merge1_parameters['filename'])
 
     history = newSASM.getParameter('history')
 
@@ -719,3 +728,31 @@ def binfixed(q, I, er, refq):
     qn=refq
 
     return qn, In, np.nan_to_num(Iern)
+
+def get_shared_header(sasm_list):
+    params_list = [sasm.getAllParameters() for sasm in sasm_list]
+
+    shared_params = get_shared_values(params_list)
+
+    return shared_params
+
+def get_shared_values(dict_list):
+    shared_keys = dict_list[0].viewkeys()
+
+    for params in dict_list[1:]:
+        shared_keys = shared_keys & params.viewkeys()
+
+    shared_params = {}
+
+    for key in shared_keys:
+        if isinstance(dict_list[0][key], dict):
+            svals = get_shared_values([d[key] for d in dict_list])
+
+            if svals:
+                shared_params[key] = svals
+
+        else:
+            if all(param[key] == dict_list[0][key] for param in dict_list):
+                shared_params[key] = dict_list[0][key]
+
+    return shared_params

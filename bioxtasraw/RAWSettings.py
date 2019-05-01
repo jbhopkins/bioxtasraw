@@ -23,6 +23,7 @@ Created on Jul 16, 2010
 '''
 import copy
 import os
+import shutil
 
 import wx
 import numpy as np
@@ -413,6 +414,11 @@ def loadSettings(raw_settings, loadpath):
 
     main_frame = wx.FindWindowByName('MainFrame')
     main_frame.queueTaskInWorkerThread('recreate_all_masks', None)
+
+    backup_file = os.path.join(RAWGlobals.RAWWorkDir, 'backup.cfg')
+
+    if backup_file != loadpath:
+        shutil.copyfile(loadpath, backup_file)
 
     if 'RequiredVersion' in all_params:
         rv = raw_settings.get('RequiredVersion')
