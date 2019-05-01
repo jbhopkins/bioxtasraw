@@ -66,10 +66,10 @@ class GuinierPlotPanel(wx.Panel):
 
         wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
-        main_frame = wx.FindWindowByName('MainFrame')
+        self.main_frame = wx.FindWindowByName('MainFrame')
 
         try:
-            self.raw_settings = main_frame.raw_settings
+            self.raw_settings = self.main_frame.raw_settings
         except AttributeError:
             self.raw_settings = RAWSettings.RawGuiSettings()
 
@@ -77,18 +77,31 @@ class GuinierPlotPanel(wx.Panel):
 
         self.data_line = None
 
-        subplotLabels = [('Guinier', '$q^2$', '$\ln(I(q))$', .1), ('Residual', '$q^2$', '$\Delta \ln (I(q))$', 0.1)]
+        norm_residuals = self.raw_settings.get('normalizedResiduals')
+        if norm_residuals:
+            self.subplotLabels = [('Guinier', '$q^2$', '$\ln(I(q))$', .1),
+            ('Normalized Residual', '$q^2$', '$\Delta \ln (I(q))/\sigma (q)$', 0.1)]
+        else:
+            self.subplotLabels = [('Guinier', '$q^2$', '$\ln(I(q))$', .1),
+            ('Residual', '$q^2$', '$\Delta \ln (I(q))$', 0.1)]
+
 
         self.fig.subplots_adjust(hspace = 0.26)
 
         self.subplots = {}
 
-        for i in range(0, len(subplotLabels)):
-            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
-            subplot.set_xlabel(subplotLabels[i][1])
-            subplot.set_ylabel(subplotLabels[i][2])
+        for i in range(0, len(self.subplotLabels)):
+            subplot = self.fig.add_subplot(len(self.subplotLabels),1,i+1,
+                title = self.subplotLabels[i][0], label = self.subplotLabels[i][0])
+            subplot.set_xlabel(self.subplotLabels[i][1])
+            subplot.set_ylabel(self.subplotLabels[i][2])
 
-            self.subplots[subplotLabels[i][0]] = subplot
+            if self.subplotLabels[i][0] == 'Normalized Residual':
+                label = 'Residual'
+            else:
+                label = self.subplotLabels[i][0]
+
+            self.subplots[label] = subplot
 
         self.fig.subplots_adjust(left = 0.15, bottom = 0.08, right = 0.95, top = 0.95, hspace = 0.3)
         self.fig.set_facecolor('white')
@@ -108,6 +121,8 @@ class GuinierPlotPanel(wx.Panel):
 
         # Connect the callback for the draw_event so that window resizing works:
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+        self.canvas.callbacks.connect('button_release_event', self._onMouseButtonReleaseEvent)
+        self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
 
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
@@ -142,6 +157,7 @@ class GuinierPlotPanel(wx.Panel):
         y = y[np.where(np.isinf(y) == False)]
 
         error_weight = self.raw_settings.get('errorWeight')
+        norm_residuals = self.raw_settings.get('normalizedResiduals')
 
         Rg, I0, Rger, I0er, a, b = SASCalc.calcRg(x, y, yerr, transform=False,
             error_weight=error_weight)
@@ -156,6 +172,9 @@ class GuinierPlotPanel(wx.Panel):
         y_fit = SASCalc.linear_func(x, a, b)
         error = y - y_fit
         r_sqr = 1 - np.square(error).sum()/np.square(y-y.mean()).sum()
+
+        if norm_residuals:
+            error = error/yerr
 
         newInfo = {'I0' : I0,
                    'Rg' : Rg,
@@ -216,7 +235,7 @@ class GuinierPlotPanel(wx.Panel):
 
         self.x = np.square(self.orig_q)
         self.y = np.log(self.orig_i)
-        self.yerr = np.absolute(self.orig_err/self.orig_i)
+        self.yerr = np.absolute(self.orig_err/self.orig_i) #I know it looks odd, but it's correct for a natural log
 
     def updateDataPlot(self, xlim, is_autorg=False):
         xmin, xmax = xlim
@@ -330,6 +349,122 @@ class GuinierPlotPanel(wx.Panel):
 
         self.canvas.blit(a.bbox)
         self.canvas.blit(b.bbox)
+
+    def _onMouseButtonReleaseEvent(self, event):
+        ''' Find out where the mouse button was released
+        and show a pop up menu to change the settings
+        of the figure the mouse was over '''
+        if event.button == 3:
+            if float(matplotlib.__version__[:3]) >= 1.2:
+                if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
+                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                        wx.CallAfter(self._showPopupMenu)
+                    else:
+                        self._showPopupMenu()
+
+            else:
+                if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
+                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                        wx.CallAfter(self._showPopupMenu)
+                    else:
+                        self._showPopupMenu()
+
+    def _showPopupMenu(self):
+        menu = wx.Menu()
+        menu.Append(1, 'Export Data As CSV')
+
+        self.PopupMenu(menu)
+
+        menu.Destroy()
+
+    def _onPopupMenuChoice(self, evt):
+        my_id = evt.GetId()
+
+        if my_id == 1:
+            self._exportData()
+
+    def _exportData(self):
+        data_list = []
+        header = ''
+
+        if self.data_line is not None:
+            xmin, xmax = self.xlim
+            ## Plot the (at most) 3 first and last points after fit:
+            if xmin < 20:
+                min_offset = xmin
+            else:
+                min_offset = 20
+
+            if xmax+1 > len(self.orig_q)-3:
+                max_offset = len(self.orig_q) - (xmax+1)
+            else:
+                max_offset = 3
+
+            xmin = xmin - min_offset
+            xmax = xmax + 1 + max_offset
+
+            #data containing the extra first and last points
+            x = self.x[xmin:xmax]
+            y = self.y[xmin:xmax]
+            yerr = self.yerr[xmin:xmax]
+
+            x = x[np.where(np.isnan(y)==False)]
+            y = y[np.where(np.isnan(y)==False)]
+            yerr = yerr[np.where(np.isnan(y)==False)]
+
+            x = x[np.where(np.isinf(y)==False)]
+            y = y[np.where(np.isinf(y)==False)]
+            yerr = yerr[np.where(np.isinf(y)==False)]
+
+            data_list.append(x)
+            data_list.append(y)
+            data_list.append(yerr)
+
+            header = header + '{},{},{},'.format('q**2_data', 'ln(I(q))_data', 'error_data')
+
+
+            x_fit = self.fit_line.get_xdata()
+            y_fit = self.fit_line.get_ydata()
+            residual = self.error_line.get_ydata()
+
+            data_list.append(x_fit)
+            data_list.append(y_fit)
+            data_list.append(residual)
+
+            if self.subplotLabels[1][0] == 'Normalized Residual':
+                label = 'normalized_residual'
+            else:
+                label = 'residual'
+
+            header = header + '{},{},{},'.format('q**2_fit', 'ln(I(q))_fit', label)
+
+        header.rstrip(',')
+
+        if len(data_list) == 0:
+            msg = 'Must have data shown on the plot to export it.'
+            wx.CallAfter(wx.MessageBox, str(msg), "No Data Shown", style = wx.ICON_ERROR | wx.OK)
+        else:
+            dirctrl = wx.FindWindowByName('DirCtrlPanel')
+            path = str(dirctrl.getDirLabel())
+
+            filename = 'guinier_fit_plot_data.csv'
+
+            dialog = wx.FileDialog(self, message = "Please select save directory and enter save file name", style = wx.FD_SAVE, defaultDir = path, defaultFile = filename)
+
+            if dialog.ShowModal() == wx.ID_OK:
+                save_path = dialog.GetPath()
+                name, ext = os.path.splitext(save_path)
+                save_path = name + '.csv'
+            else:
+                return
+
+            RAWGlobals.save_in_progress = True
+            self.main_frame.setStatus('Saving Guinier data', 0)
+
+            SASFileIO.saveUnevenCSVFile(save_path, data_list, header)
+
+            RAWGlobals.save_in_progress = False
+            self.main_frame.setStatus('', 0)
 
 
 class GuinierControlPanel(wx.Panel):
@@ -12208,7 +12343,7 @@ class NormKratkyPlotPanel(wx.Panel):
             RAWGlobals.save_in_progress = True
             self.main_frame.setStatus('Saving Kratky data', 0)
 
-            SASFileIO.saveNormKratkyData(save_path, data_list, header)
+            SASFileIO.saveUnevenCSVFile(save_path, data_list, header)
 
             RAWGlobals.save_in_progress = False
             self.main_frame.setStatus('', 0)
@@ -14664,12 +14799,12 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 msg = msg + ', '.join(map(str, frame_idx[similarity_results['high_q_outliers']]))
                 msg = msg + '\n'
 
-        if not intI_results['intI_valid']:
+        if not intI_results['intI_valid'] or not intI_results['smoothed_intI_valid']:
             msg = msg+('\nPossible correlations between intensity and frame '
                 'number were detected\n(no correlation is expected for '
                 'buffer regions)\n')
 
-        if svd_results['svals'] > 1:
+        if svd_results['svals'] != 1:
             msg = msg+('\nAutomated singular value decomposition found {} '
                 'significant\nsingular values in the selected region.\n'.format(svd_results['svals']))
 
@@ -15261,7 +15396,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 if bl_extrap:
                     bkg_sasm = bl_corr[j]
                 else:
-                    if j >= r1[0] or j <= r2[1]:
+                    if j >= r1[0] and j <= r2[1]:
                         bkg_sasm = bl_corr[j-r1[0]]
                     else:
                         bkg_sasm = zeroSASM
@@ -15611,29 +15746,57 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         vcmw = self.results['calc']['vcmw'][frame_idx]
         vpmw = self.results['calc']['vpmw'][frame_idx]
 
+        if np.any(rg==-1):
+            param_range_valid = False
+            param_bad_frames = np.argwhere(rg==-1).flatten()
+        else:
+            param_range_valid = True
+            param_bad_frames = []
+
+        if fast and not param_range_valid:
+            return False, {}, {}, {}, {}
+
         rg_test = stats.spearmanr(rg, frame_idx)
-        rg_valid = rg_test[1]>0.05
+
+        if not np.isnan(rg_test[1]):
+            rg_valid = rg_test[1]>0.05
+        else:
+            rg_valid = False
 
         if fast and not rg_valid:
             return False, {}, {}, {}, {}
 
         vcmw_test = stats.spearmanr(vcmw, frame_idx)
-        vcmw_valid = vcmw_test[1]>0.05
+
+        if not np.isnan(vcmw_test[1]):
+            vcmw_valid = vcmw_test[1]>0.05
+        else:
+            vcmw_valid = False
 
         if fast and not vcmw_valid:
             return False, {}, {}, {}, {}
 
         vpmw_test = stats.spearmanr(vpmw, frame_idx)
 
-        param_valid = (rg_valid and vcmw_valid and vpmw_test[1]>0.05)
+        if not np.isnan(vpmw_test[1]):
+            vpmw_valid = vpmw_test[1]>0.05
+        else:
+            vpmw_valid = False
+
+        param_valid = (param_range_valid and rg_valid and vcmw_valid and vpmw_valid)
 
         param_results = {'rg_r' : rg_test[0],
-            'rg_pval'       : rg_test[1],
-            'vcmw_r'        : vcmw_test[0],
-            'vcmw_pval'     : vcmw_test[1],
-            'vpmw_r'        : vpmw_test[0],
-            'vpmw_pval'     : vpmw_test[1],
-            'param_valid'   : param_valid,
+            'rg_pval'           : rg_test[1],
+            'rg_valid'          : rg_valid,
+            'vcmw_r'            : vcmw_test[0],
+            'vcmw_pval'         : vcmw_test[1],
+            'vcmw_valid'        : vcmw_valid,
+            'vpmw_r'            : vpmw_test[0],
+            'vpmw_pval'         : vpmw_test[1],
+            'vpmw_valid'        : vpmw_valid,
+            'param_range_valid' : param_range_valid,
+            'param_bad_frames'  : param_bad_frames,
+            'param_valid'       : param_valid,
             }
 
         if fast and not param_valid:
@@ -15703,7 +15866,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             else:
                 sn_valid = False
 
-        sn_results = {'low_sn'  : sort_idx[i:],
+        sn_results = {'low_sn'  : np.sort(sort_idx[i:]),
             'sn_valid'  : sn_valid,
             }
 
@@ -15909,7 +16072,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             [sub_sasms[idx] for idx in frame_idx], frame_idx)
 
         if not valid:
-            msg = ('RAW found potential differences between selected sample frames.\n')
+            msg = ('RAW found potential problems with the selected sample frames.\n')
 
             if (not similarity_results['all_similar'] or not similarity_results['low_q_similar']
                 or not similarity_results['high_q_similar']):
@@ -15922,7 +16085,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 high_outlier_set = set(frame_idx[similarity_results['high_q_outliers']])
 
                 if not similarity_results['all_similar']:
-                    msg = msg + ('Using the whole q range, the following frames\n'
+                    msg = msg + ('\nUsing the whole q range, the following frames\n'
                         'were found to be different:\n')
                     msg = msg + ', '.join(map(str, frame_idx[similarity_results['all_outliers']]))
                     msg = msg + '\n'
@@ -15943,7 +16106,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                     else:
                         qf_val = '{:.3E}'.format(q[100])
 
-                    msg = msg + ('Using a low q range of q={} to {}, the following frames\n'
+                    msg = msg + ('\nUsing a low q range of q={} to {}, the following frames\n'
                         'were found to be different:\n'.format(qi_val, qf_val))
                     msg = msg + ', '.join(map(str, frame_idx[similarity_results['low_q_outliers']]))
                     msg = msg + '\n'
@@ -15964,24 +16127,32 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                     else:
                         qf_val = '{:.3E}'.format(q[-1])
 
-                    msg = msg + ('Using a high q range of q={} to {}, the following frames\n'
+                    msg = msg + ('\nUsing a high q range of q={} to {}, the following frames\n'
                         'were found to be different:\n'.format(qi_val, qf_val))
                     msg = msg + ', '.join(map(str, frame_idx[similarity_results['high_q_outliers']]))
                     msg = msg + '\n'
 
             if not param_results['param_valid']:
-                msg = msg+('\nPossible correlations with frame number were detected '
-                    'in the\nfollowing parameters (no correlation is expected for '
-                    'well-subtracted\nsingle-species data):\n')
+                if param_results['param_range_valid']:
+                    msg = msg+('\nPossible correlations with frame number were detected '
+                        'in the\nfollowing parameters (no correlation is expected for '
+                        'well-subtracted\nsingle-species data):\n')
 
-                if param_results['rg_pval'] < 0.05:
-                    msg = msg + ('- Radius of gyration\n')
-                if param_results['vcmw_pval'] < 0.05:
-                    msg = msg + ('- Mol. weight from volume of correlation method\n')
-                if param_results['vpmw_pval'] < 0.05:
-                    msg = msg + ('- Mol. weight from adjusted Porod volume method\n')
+                    print param_results
 
-            if svd_results['svals'] > 1:
+                    if param_results['rg_pval'] <= 0.05:
+                        msg = msg + ('- Radius of gyration\n')
+                    if param_results['vcmw_pval'] <= 0.05:
+                        msg = msg + ('- Mol. weight from volume of correlation method\n')
+                    if param_results['vpmw_pval'] <= 0.05:
+                        msg = msg + ('- Mol. weight from adjusted Porod volume method\n')
+                else:
+                    msg = msg+('\nAutorg was unable to determine Rg values for the '
+                        'following frames:\n')
+                    msg = msg + ', '.join(map(str, frame_idx[param_results['param_bad_frames']]))
+                    msg = msg + '\n'
+
+            if svd_results['svals'] != 1:
                 msg = msg+('\nAutomated singular value decomposition found {} '
                     'significant\nsingular values in the selected region.\n'.format(svd_results['svals']))
 
@@ -16180,7 +16351,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         window_size = main_peak_width
         mid_point = main_peak_pos-int(round(window_size/2.))
 
-        start_point = main_peak_pos - int(round(search_region/2))
+        start_point = main_peak_pos - int(round(search_region/2.))
 
         found_region = False
         failed = False
@@ -16195,9 +16366,11 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
             for i in range(num_pts_gen+1):
                 if i == 0:
-                    region_starts.append(mid_point)
+                    if mid_point > 0:
+                        region_starts.append(mid_point)
                 else:
-                    if mid_point+ i*step_size + window_size < len(intensity):
+                    if (mid_point+ i*step_size + window_size < len(intensity)
+                        and mid_point+ i*step_size> 0):
                         region_starts.append(mid_point+i*step_size)
                     if mid_point - i*step_size > 0:
                         region_starts.append(mid_point-i*step_size)

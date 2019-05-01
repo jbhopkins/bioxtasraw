@@ -323,6 +323,7 @@ class RawGuiSettings(object):
 
                             #Fitting settings
                             'errorWeight'           : [True, wx.NewId(), 'bool'],
+                            'normalizedResiduals'   : [True, wx.NewId(), 'bool'],
 
                             #Denss settings
                             'denssVoxel'            : [5, wx.NewId(), 'float'],

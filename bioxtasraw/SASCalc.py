@@ -126,7 +126,7 @@ def calcRg(q, i, err, transform=True, error_weight=True):
         #Start out by transforming as usual.
         x = np.square(q)
         y = np.log(i)
-        yerr = np.absolute(err/i)
+        yerr = np.absolute(err/i) #I know it looks odd, but it's correct for a natural log
     else:
         x = q
         y = i

@@ -5478,17 +5478,12 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
             j = 1
 
         for i in self.dirsList:
-            (name, ext) = os.path.splitext(i)
-            ex = ext[1:]
-
             try:
-                size = os.path.getsize(os.path.join(self.path, i))
                 sec = os.path.getmtime(os.path.join(self.path, i))
             except WindowsError:
-                size = 1
                 sec = 1
 
-            self.file_list_dict[j] = (name, ex, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)), '', 'dir')
+            self.file_list_dict[j] = (i, '', time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)), '', 'dir')
 
             j += 1
 
@@ -5497,17 +5492,19 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         for i in filteredFiles:
             (name, ext) = os.path.splitext(i)
             ex = ext[1:]
-            try:
-                size = os.path.getsize(os.path.join(self.path, i))
-                sec = os.path.getmtime(os.path.join(self.path, i))
-            except Exception, e:
-                print e
-                size = 0
-                sec = 1
 
-            self.file_list_dict[j] = (name, ex, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)), str(round(size/1000,1)) + ' KB', 'file')
+            if '.' not in i or ext != '':
+                try:
+                    size = os.path.getsize(os.path.join(self.path, i))
+                    sec = os.path.getmtime(os.path.join(self.path, i))
+                except Exception, e:
+                    print e
+                    size = 0
+                    sec = 1
 
-            j += 1
+                self.file_list_dict[j] = (name, ex, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)), str(round(size/1000,1)) + ' KB', 'file')
+
+                j += 1
 
         self.insertSortedFilesIntoList(end_of_folders_idx)
 

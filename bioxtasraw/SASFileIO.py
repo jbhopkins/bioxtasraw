@@ -2810,7 +2810,7 @@ def saveCSVFile(filename, data, header = ''):
         else:
             np.savetxt(filename, data, delimiter = ',', comments ='')
 
-def saveNormKratkyData(filename, data, header = ''):
+def saveUnevenCSVFile(filename, data, header = ''):
     maxlen = max([len(item) for item in data])
     body_string = ''
 
