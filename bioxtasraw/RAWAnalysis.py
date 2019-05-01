@@ -3536,12 +3536,12 @@ class GNOMControlPanel(wx.Panel):
 
         update_plot = False
 
-        if id == self.spinctrlIDs['qstart']:
+        if id == self.staticTxtIDs['qstart']:
             if i != self.old_nstart:
                 self.out_list = {}
                 update_plot = True
             self.old_nstart = i
-        elif id == self.spinctrlIDs['qend']:
+        elif id == self.staticTxtIDs['qend']:
             if i != self.old_nend:
                 self.out_list = {}
                 update_plot = True
