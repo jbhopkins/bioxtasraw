@@ -1746,7 +1746,7 @@ def contiguous_regions(data):
             condition2 = data<0
             # Find the indicies of changes in "condition"
             d2 = np.ediff1d(condition2.astype(int))
-            idx2, = d.nonzero()
+            idx2, = d2.nonzero()
             idx2 = idx2+1
             #Combines the two conditions into a sorted array, no need to remove duplicates
             idx = np.concatenate((idx, idx2))
