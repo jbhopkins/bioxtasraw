@@ -905,6 +905,7 @@ all_image_types = {
                    '32 bit TIF'         : load32BitTiffImage,
                    'MPA (multiwire)'    : loadFabio,
                    'Eiger'              : loadFabio,
+                   'Rigaku HiPix'       : loadFabio,
                    # 'NeXus'           : loadNeXusFile,
                                       }
 

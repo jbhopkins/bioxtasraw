@@ -12104,6 +12104,9 @@ class NormKratkyPlotPanel(wx.Panel):
         self.subplot.set_xlabel(self.plot_labels[self.plot_type][1])
         self.subplot.set_ylabel(self.plot_labels[self.plot_type][2])
 
+        self.v_line = None
+        self.h_line = None
+
         self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
         self.fig.set_facecolor('white')
 
@@ -12153,6 +12156,8 @@ class NormKratkyPlotPanel(wx.Panel):
         elif self.plot_type == 'Dimensionless (Rg)':
             xdata = q*rg
             ydata = (q*rg)**2*i/i0
+            self.v_line = self.subplot.axvline(np.sqrt(3), 0, 1, linestyle = 'dashed', color='0.6')
+            self.h_line = self.subplot.axhline(3/np.e, 0, 1, linestyle = 'dashed', color='0.6')
         elif self.plot_type == 'Dimensionless (Vc)':
             xdata = q*np.sqrt(vc)
             ydata = (q)**2*vc*i/i0
@@ -12222,12 +12227,25 @@ class NormKratkyPlotPanel(wx.Panel):
             if self.plot_type == 'Normalized':
                 xdata = q
                 ydata = q**2*i/i0
+                if self.v_line is not None:
+                    self.v_line.remove()
+                    self.h_line.remove()
+                    self.v_line = None
+                    self.h_line = None
             elif self.plot_type == 'Dimensionless (Rg)':
                 xdata = q*rg
                 ydata = (q*rg)**2*i/i0
+                if self.v_line is None:
+                    self.v_line = self.subplot.axvline(np.sqrt(3), 0, 1, linestyle = 'dashed', color='0.6')
+                    self.h_line = self.subplot.axhline(3/np.e, 0, 1, linestyle = 'dashed', color='0.6')
             elif self.plot_type == 'Dimensionless (Vc)':
                 xdata = q*np.sqrt(vc)
                 ydata = (q)**2*vc*i/i0
+                if self.v_line is not None:
+                    self.v_line.remove()
+                    self.h_line.remove()
+                    self.v_line = None
+                    self.h_line = None
 
             line.set_xdata(xdata)
             line.set_ydata(ydata)

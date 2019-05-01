@@ -3684,9 +3684,11 @@ class FittingPanel(wx.Panel):
         self.raw_settings = raw_settings
 
         self.update_keys = ['errorWeight',
+            'normalizedResiduals',
                             ]
 
         self.settings = [('Use error weighting for fits', raw_settings.getId('errorWeight'), 'bool'),
+            ('Show normalized residuals', raw_settings.getId('normalizedResiduals'), 'bool'),
                         ]
 
         sizer = self.createOptions(self)
