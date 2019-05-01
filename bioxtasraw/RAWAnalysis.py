@@ -9118,8 +9118,9 @@ class EFAFrame(wx.Frame):
                                 'svd_s'         : [],
                                 'svd_v'         : [],
                                 'svd_int_norm'  : [],
-                                'use_sub'       : True,
+                                'secm_choice'   : 'sub',
                                 'sub_secm'      : None,
+                                'bl_secm'       : None,
                                 'ydata_type'    : 'Total',
                                 'filename'      : '',
                                 'q'             : []}
@@ -9445,16 +9446,22 @@ class EFAFrame(wx.Frame):
             elif key == 'svd_int_norm':
                 value = self.controlPanel1.svd_a
 
-            elif key =='use_sub':
+            elif key =='secm_choice':
                 profile_window = wx.FindWindowById(self.controlPanel1.control_ids['profile'], self.controlPanel1)
+                profile_type = profile_window.GetStringSelection()
 
-                if profile_window.GetStringSelection() == 'Unsubtracted':
-                    value = False
-                else:
-                    value = True
+                if profile_type == 'Unsubtracted':
+                    value = 'usub'
+                elif profile_type == 'Subtracted':
+                    value = 'sub'
+                elif profile_type == 'Basline Corrected':
+                    value = 'bl'
 
             elif key == 'sub_secm':
                 value = self.controlPanel1.subtracted_secm
+
+            elif key == 'bl_secm':
+                value = self.controlPanel1.bl_subtracted_secm
 
             elif key == 'ydata_type':
                 value = self.controlPanel1.ydata_type
@@ -9465,14 +9472,14 @@ class EFAFrame(wx.Frame):
 
             elif key == 'q':
                 profile_window = wx.FindWindowById(self.controlPanel1.control_ids['profile'], self.controlPanel1)
+                profile_type = profile_window.GetStringSelection()
 
-                if profile_window.GetStringSelection() == 'Unsubtracted':
-                    qmin, qmax = self.secm.getSASM().getQrange()
-                    value = self.secm.getSASM().q[qmin:qmax]
-                else:
-                    qmin, qmax = self.secm.getSASM().getQrange()
-                    value = self.controlPanel1.subtracted_secm.getSASM().q[qmin:qmax]
-
+                if profile_type == 'Unsubtracted':
+                    value = self.secm.getSASM().getQ()
+                elif profile_type == 'Subtracted':
+                    value = self.controlPanel1.subtracted_secm.getSASM().getQ()
+                elif profile_type == 'Baseline Corrected':
+                    value = self.controlPanel1.bl_subtracted_secm.getSASM().getQ()
 
             self.panel1_results[key] = value
 
@@ -9935,8 +9942,8 @@ class EFAControlPanel1(wx.Panel):
 
         sasm_list = secm.getSASMList(framei, framef)
 
-        i = np.array([sasm.i[sasm.getQrange()[0]:sasm.getQrange()[1]] for sasm in sasm_list])
-        err = np.array([sasm.err[sasm.getQrange()[0]:sasm.getQrange()[1]] for sasm in sasm_list])
+        i = np.array([sasm.getI() for sasm in sasm_list])
+        err = np.array([sasm.getErr() for sasm in sasm_list])
 
         self.i = i.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose
         self.err = err.T
@@ -9955,7 +9962,7 @@ class EFAControlPanel1(wx.Panel):
 
         try:
             self.svd_U, self.svd_s, svd_Vt = np.linalg.svd(self.svd_a, full_matrices = True)
-        except Exception as e:
+        except Exception:
             traceback.print_exc()
             wx.CallAfter(wx.MessageBox, 'Initial SVD did not converge, so EFA cannot proceed.', 'SVD Failed', style = wx.ICON_ERROR | wx.OK)
             return
@@ -11087,10 +11094,12 @@ class EFAControlPanel3(wx.Panel):
 
         ydata_type = self.panel1_results['ydata_type']
 
-        if self.panel1_results['use_sub']:
-            plot_secm = self.panel1_results['sub_secm']
-        else:
+        if self.panel1_results['secm_choice'] == 'usub':
             plot_secm = self.secm
+        elif self.panel1_results['secm_choice'] == 'sub':
+            plot_secm = self.panel1_results['sub_secm']
+        elif self.panel1_results['secm_choice'] == 'bl':
+            plot_secm = self.panel1_results['bl_secm']
 
         framei = self.panel1_results['fstart']
         framef = self.panel1_results['fend']

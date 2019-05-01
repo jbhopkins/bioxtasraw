@@ -838,6 +838,14 @@ class SECM(object):
                             else:
                                 self.time.append(sasm_time+self.time[-1])
 
+        elif hdr_format == 'BioCAT, APS':
+            for sasm in self._sasm_list:
+                if sasm.getAllParameters().has_key('counters'):
+                    file_hdr = sasm.getParameter('counters')
+
+                    if 'start_time' in file_hdr:
+                        self.time.append(file_hdr['start_time'])
+
         self.time=np.array(self.time,dtype=float)
 
 

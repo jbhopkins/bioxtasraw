@@ -2715,7 +2715,7 @@ def saveSeriesData(save_path, selected_secm, delim=','):
             else:
                 f.write('# Buffer range for subtraction:\n')
                 for (r1, r2) in selected_secm.buffer_range:
-                    f.write('    {} to {}\n'.format(r1, r2))
+                    f.write('#    {} to {}\n'.format(r1, r2))
 
             f.write('# Average window size: {}\n'.format(selected_secm.window_size))
             f.write('# Molecule type (Vc MW): {}\n'.format(selected_secm.mol_type))
@@ -2730,7 +2730,7 @@ def saveSeriesData(save_path, selected_secm, delim=','):
             f.write('# Baseline start range: {} to {}\n'.format(selected_secm.baseline_start_range[0], selected_secm.baseline_start_range[1]))
             f.write('# Baseline end range: {} to {}\n#\n'.format(selected_secm.baseline_end_range[0], selected_secm.baseline_end_range[1]))
 
-        f.write('Frame_#%sIntegrated_Intensity%sMean_Intensity%s' %(delim, delim, delim))
+        f.write('#Frame_#%sIntegrated_Intensity%sMean_Intensity%s' %(delim, delim, delim))
         if saveq:
             f.write('I_at_q=%f%s' %(selected_secm.qref, delim))
         if save_qrange:
