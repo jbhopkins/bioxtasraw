@@ -168,18 +168,18 @@ class MainFrame(wx.Frame):
 
         self.tbIcon = RawTaskbarIcon(self)
 
-        self.guinierframe = None
-        self.molweightframe = None
-        self.gnomframe = None
-        self.biftframe = None
-        self.dammifframe = None
-        self.ambimeterframe = None
-        self.svdframe = None
-        self.efaframe = None
-        self.similarityframe = None
-        self.kratkyframe = None
-        self.denssframe = None
-        self.lc_series_frame = None
+        self.guinier_frames = []
+        self.mw_frames = []
+        self.gnom_frames = []
+        self.bift_frames = []
+        self.dammif_frames = []
+        self.ambimeter_frames = []
+        self.svd_frames = []
+        self.efa_frames = []
+        self.sim_frames = []
+        self.kratky_frames = []
+        self.denss_frames = []
+        self.lc_series_frames = []
 
         self.raw_settings = RAWSettings.RawGuiSettings()
 
@@ -498,13 +498,37 @@ class MainFrame(wx.Frame):
 
         if os.path.exists(gnomPath):
 
-            if self.gnomframe:
-                self.gnomframe.Destroy()
+            remove = []
+            proceed = True
 
-            #if not self.guinierframe:
-            self.gnomframe = RAWAnalysis.GNOMFrame(self, 'GNOM', sasm, manip_item)
-            self.gnomframe.SetIcon(self.GetIcon())
-            self.gnomframe.Show(True)
+            for gnom_frame in self.gnom_frames:
+                if gnom_frame:
+                    if gnom_frame.sasm == sasm:
+                        msg = ('There is already a GNOM window open '
+                            'for this dataset. Do you want to open another?')
+                        answer = wx.MessageBox(msg, 'Open duplicate GNOM window?',
+                            style=wx.YES_NO)
+
+                        if answer == wx.NO:
+                            proceed = False
+                            gnom_frame.Raise()
+                            gnom_frame.RequestUserAttention()
+
+                        break
+
+                else:
+                    remove.append(gnom_frame)
+
+            if remove:
+                for gnom_frame in remove:
+                    self.gnom_frames.remove(gnom_frame)
+
+            if proceed:
+                gnomframe = RAWAnalysis.GNOMFrame(self, 'GNOM', sasm, manip_item)
+                gnomframe.SetIcon(self.GetIcon())
+                gnomframe.Show(True)
+
+                self.gnom_frames.append(gnomframe)
 
         else:
             msg = 'The GNOM program in the ATSAS package could not be found. Please make sure that ATSAS is installed, and that you have defined the ATSAS directory in the RAW Advanced Options. '
@@ -515,33 +539,105 @@ class MainFrame(wx.Frame):
 
 
     def showBIFTFrame(self, sasm, manip_item):
+        remove = []
+        proceed = True
 
-        if self.biftframe:
-            self.biftframe.Destroy()
+        for bift_frame in self.bift_frames:
+            if bift_frame:
+                if bift_frame.sasm == sasm:
+                    msg = ('There is already a BIFT window open '
+                        'for this dataset. Do you want to open another?')
+                    answer = wx.MessageBox(msg, 'Open duplicate BIFT window?',
+                        style=wx.YES_NO)
 
-        #if not self.guinierframe:
-        self.biftframe = RAWAnalysis.BIFTFrame(self, 'BIFT', sasm, manip_item)
-        self.biftframe.SetIcon(self.GetIcon())
-        self.biftframe.Show(True)
+                    if answer == wx.NO:
+                        proceed = False
+                        bift_frame.Raise()
+                        bift_frame.RequestUserAttention()
+
+                    break
+
+            else:
+                remove.append(bift_frame)
+
+        if remove:
+            for bift_frame in remove:
+                self.bift_frames.remove(bift_frame)
+
+        if proceed:
+            biftframe = RAWAnalysis.BIFTFrame(self, 'BIFT', sasm, manip_item)
+            biftframe.SetIcon(self.GetIcon())
+            biftframe.Show(True)
+
+            self.bift_frames.append(biftframe)
 
     def showMolWeightFrame(self, sasm, manip_item):
+        remove = []
+        proceed = True
 
-        if self.molweightframe:
-            self.molweightframe.Destroy()
+        for mw_frame in self.mw_frames:
+            if mw_frame:
+                if mw_frame.sasm == sasm:
+                    msg = ('There is already a Molecular Weight window open '
+                        'for this dataset. Do you want to open another?')
+                    answer = wx.MessageBox(msg, 'Open duplicate Molecular Weight window?',
+                        style=wx.YES_NO)
 
-        #if not self.guinierframe:
-        self.molweightframe = RAWAnalysis.MolWeightFrame(self, 'Molecular Weight', sasm, manip_item)
-        self.molweightframe.SetIcon(self.GetIcon())
-        self.molweightframe.Show(True)
+                    if answer == wx.NO:
+                        proceed = False
+                        mw_frame.Raise()
+                        mw_frame.RequestUserAttention()
+
+                    break
+
+            else:
+                remove.append(mw_frame)
+
+        if remove:
+            for mw_frame in remove:
+                self.mw_frames.remove(mw_frame)
+
+        if proceed:
+            molweightframe = RAWAnalysis.MolWeightFrame(self, 'Molecular Weight',
+                sasm, manip_item)
+            molweightframe.SetIcon(self.GetIcon())
+            molweightframe.Show(True)
+
+            self.mw_frames.append(molweightframe)
 
     def showGuinierFitFrame(self, sasm, manip_item):
+        remove = []
+        proceed = True
 
-        if self.guinierframe:
-            self.guinierframe.Destroy()
+        for guinier_frame in self.guinier_frames:
+            if guinier_frame:
+                if guinier_frame.sasm == sasm:
+                    msg = ('There is already a Guinier window open for this dataset.'
+                        'Do you want to open another?')
+                    answer = wx.MessageBox(msg, 'Open duplicate Guinier window?',
+                        style=wx.YES_NO)
 
-        self.guinierframe = RAWAnalysis.GuinierFrame(self, 'Guinier Fit', sasm, manip_item)
-        self.guinierframe.SetIcon(self.GetIcon())
-        self.guinierframe.Show(True)
+                    if answer == wx.NO:
+                        proceed = False
+                        guinier_frame.Raise()
+                        guinier_frame.RequestUserAttention()
+
+                    break
+
+            else:
+                remove.append(guinier_frame)
+
+        if remove:
+            for guinier_frame in remove:
+                self.guinier_frames.remove(guinier_frame)
+
+        if proceed:
+            guinierframe = RAWAnalysis.GuinierFrame(self, 'Guinier Fit', sasm,
+                manip_item)
+            guinierframe.SetIcon(self.GetIcon())
+            guinierframe.Show(True)
+
+            self.guinier_frames.append(guinierframe)
 
     def showDAMMIFFrame(self, iftm, manip_item):
 
@@ -564,19 +660,37 @@ class MainFrame(wx.Frame):
 
         if os.path.exists(dammifPath):
 
-            if self.dammifframe:
-                result = self.dammifframe.Close()
-            else:
-                result = True
+            remove = []
+            proceed = True
 
-            #if not self.guinierframe:
+            for dammif_frame in self.dammif_frames:
+                if dammif_frame:
+                    if dammif_frame.iftm == iftm:
+                        msg = ('There is already a DAMMIF/N window open for this dataset.'
+                            'Do you want to open another?')
+                        answer = wx.MessageBox(msg, 'Open duplicate DAMMIF/N window?',
+                            style=wx.YES_NO)
 
-            if result:
-                self.dammifframe = RAWAnalysis.DammifFrame(self, 'DAMMIF/N', iftm, manip_item)
-                self.dammifframe.SetIcon(self.GetIcon())
-                self.dammifframe.Show(True)
-            else:
-                return
+                        if answer == wx.NO:
+                            proceed = False
+                            dammif_frame.Raise()
+                            dammif_frame.RequestUserAttention()
+
+                        break
+
+                else:
+                    remove.append(dammif_frame)
+
+            if remove:
+                for dammif_frame in remove:
+                    self.dammif_frames.remove(dammif_frame)
+
+            if proceed:
+                dammifframe = RAWAnalysis.DammifFrame(self, 'DAMMIF/N', iftm, manip_item)
+                dammifframe.SetIcon(self.GetIcon())
+                dammifframe.Show(True)
+
+                self.dammif_frames.append(dammifframe)
 
         else:
             msg = 'The DAMMIF program in the ATSAS package could not be found. Please make sure that ATSAS is installed, and that you have defined the ATSAS directory in the RAW Advanced Options. '
@@ -613,14 +727,37 @@ class MainFrame(wx.Frame):
             rev = output.split('\n')[0].split()[-1].strip().strip(')(rM').strip('aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ')
 
             if int(rev) >= 6669:
+                remove = []
+                proceed = True
 
+                for ambimeter_frame in self.ambimeter_frames:
+                    if ambimeter_frame:
+                        if ambimeter_frame.iftm == iftm:
+                            msg = ('There is already an AMBIMETER window open for this dataset.'
+                                'Do you want to open another?')
+                            answer = wx.MessageBox(msg, 'Open duplicate AMBIMETER window?',
+                                style=wx.YES_NO)
 
-                if self.ambimeterframe:
-                    self.ambimeterframe.Close()
+                            if answer == wx.NO:
+                                proceed = False
+                                ambimeter_frame.Raise()
+                                ambimeter_frame.RequestUserAttention()
 
-                self.ambimeterframe = RAWAnalysis.AmbimeterFrame(self, 'AMBIMETER', iftm, manip_item)
-                self.ambimeterframe.SetIcon(self.GetIcon())
-                self.ambimeterframe.Show(True)
+                            break
+
+                    else:
+                        remove.append(ambimeter_frame)
+
+                if remove:
+                    for ambimeter_frame in remove:
+                        self.ambimeter_frames.remove(ambimeter_frame)
+
+                if proceed:
+                    ambimeterframe = RAWAnalysis.AmbimeterFrame(self, 'AMBIMETER', iftm, manip_item)
+                    ambimeterframe.SetIcon(self.GetIcon())
+                    ambimeterframe.Show(True)
+
+                    self.ambimeter_frames.append(ambimeterframe)
 
             else:
                 msg = 'The AMBIMETER version is not recent enough. You need to have ATSAS >= 2.7.1 installed to use this feature.'
@@ -637,18 +774,39 @@ class MainFrame(wx.Frame):
             dial2.Destroy()
 
     def showSVDFrame(self, secm, manip_item):
+        remove = []
+        proceed = True
 
-        if self.svdframe:
-            self.svdframe.Destroy()
+        for svd_frame in self.svd_frames:
+            if svd_frame:
+                if svd_frame.secm == secm:
+                    msg = ('There is already an SVD window open for this dataset.'
+                        'Do you want to open another?')
+                    answer = wx.MessageBox(msg, 'Open duplicate SVD window?',
+                        style=wx.YES_NO)
 
-        self.svdframe = RAWAnalysis.SVDFrame(self, 'Singular Value Decomposition', secm, manip_item)
-        self.svdframe.SetIcon(self.GetIcon())
-        self.svdframe.Show(True)
+                    if answer == wx.NO:
+                        proceed = False
+                        svd_frame.Raise()
+                        svd_frame.RequestUserAttention()
+
+                    break
+
+            else:
+                remove.append(svd_frame)
+
+        if remove:
+            for svd_frame in remove:
+                self.svd_frames.remove(svd_frame)
+
+        if proceed:
+            svdframe = RAWAnalysis.SVDFrame(self, 'Singular Value Decomposition', secm, manip_item)
+            svdframe.SetIcon(self.GetIcon())
+            svdframe.Show(True)
+
+            self.svd_frames.append(svdframe)
 
     def showEFAFrame(self, secm, manip_item):
-
-        if self.efaframe:
-            self.efaframe.Destroy()
 
         #make a subtracted profile SECM
         if len(secm.subtracted_sasm_list) == 0 and manip_item != None:
@@ -665,15 +823,39 @@ class MainFrame(wx.Frame):
             if proceed == wx.ID_CANCEL:
                 return
 
-        self.efaframe = RAWAnalysis.EFAFrame(self, 'Evolving Factor Analysis', secm, manip_item)
-        self.efaframe.SetIcon(self.GetIcon())
-        self.efaframe.Show(True)
+        remove = []
+        proceed = True
+
+        for efa_frame in self.efa_frames:
+            if efa_frame:
+                if efa_frame.orig_secm == secm:
+                    msg = ('There is already an EFA window open for this dataset.'
+                        'Do you want to open another?')
+                    answer = wx.MessageBox(msg, 'Open duplicate EFA window?',
+                        style=wx.YES_NO)
+
+                    if answer == wx.NO:
+                        proceed = False
+                        efa_frame.Raise()
+                        efa_frame.RequestUserAttention()
+
+                    break
+
+            else:
+                remove.append(efa_frame)
+
+        if remove:
+            for efa_frame in remove:
+                self.efa_frames.remove(efa_frame)
+
+        if proceed:
+            efaframe = RAWAnalysis.EFAFrame(self, 'Evolving Factor Analysis', secm, manip_item)
+            efaframe.SetIcon(self.GetIcon())
+            efaframe.Show(True)
+
+            self.efa_frames.append(efaframe)
 
     def showSimilarityFrame(self, sasm_list):
-
-        if self.similarityframe:
-            self.similarityframe.Destroy()
-
         if not sasm_list or len(sasm_list) == 1:
             msg = 'You must select at least 2 items to test similarity.'
             dlg = wx.MessageDialog(self, msg, "Select more items", style = wx.ICON_INFORMATION | wx.OK)
@@ -681,15 +863,40 @@ class MainFrame(wx.Frame):
             dlg.Destroy()
             return
 
-        self.similarityframe = RAWAnalysis.SimilarityFrame(self, 'Similarity Testing', sasm_list)
-        self.similarityframe.SetIcon(self.GetIcon())
-        self.similarityframe.Show(True)
+        remove = []
+        proceed = True
+
+        for sim_frame in self.sim_frames:
+            if sim_frame:
+                if sim_frame.sasm_list == sasm_list:
+                    msg = ('There is already a similarity window open for this dataset.'
+                        'Do you want to open another?')
+                    answer = wx.MessageBox(msg, 'Open duplicate similarity window?',
+                        style=wx.YES_NO)
+
+                    if answer == wx.NO:
+                        proceed = False
+                        sim_frame.Raise()
+                        sim_frame.RequestUserAttention()
+
+                    break
+
+            else:
+                remove.append(sim_frame)
+
+        if remove:
+            for sim_frame in remove:
+                self.sim_frames.remove(sim_frame)
+
+        if proceed:
+
+            similarityframe = RAWAnalysis.SimilarityFrame(self, 'Similarity Testing', sasm_list)
+            similarityframe.SetIcon(self.GetIcon())
+            similarityframe.Show(True)
+
+            self.sim_frames.append(similarityframe)
 
     def showNormKratkyFrame(self, sasm_list):
-
-        if self.kratkyframe:
-            self.kratkyframe.Destroy()
-
         if not sasm_list or sasm_list is None:
             msg = 'You must select at least 1 profile.'
             dlg = wx.MessageDialog(self, msg, "Select more profiles", style = wx.ICON_INFORMATION | wx.OK)
@@ -758,26 +965,107 @@ class MainFrame(wx.Frame):
 
                 return
 
-        self.kratkyframe = RAWAnalysis.NormKratkyFrame(self, 'Normalized Kratky Plots', sasm_list)
-        self.kratkyframe.SetIcon(self.GetIcon())
-        self.kratkyframe.Show(True)
+        remove = []
+        proceed = True
+
+        for kratky_frame in self.kratky_frames:
+            if kratky_frame:
+                if kratky_frame.sasm_list == sasm_list:
+                    msg = ('There is already a normalized Kratky window open '
+                        'for this dataset. Do you want to open another?')
+                    answer = wx.MessageBox(msg, 'Open duplicate normalized Kratky window?',
+                        style=wx.YES_NO)
+
+                    if answer == wx.NO:
+                        proceed = False
+                        kratky_frame.Raise()
+                        kratky_frame.RequestUserAttention()
+
+                    break
+
+            else:
+                remove.append(kratky_frame)
+
+        if remove:
+            for kratky_frame in remove:
+                self.kratky_frames.remove(kratky_frame)
+
+        if proceed:
+
+            kratkyframe = RAWAnalysis.NormKratkyFrame(self, 'Normalized Kratky Plots', sasm_list)
+            kratkyframe.SetIcon(self.GetIcon())
+            kratkyframe.Show(True)
+
+            self.kratky_frames.append(kratkyframe)
 
     def showDenssFrame(self, iftm, manip_item):
-        if self.denssframe:
-            self.denssframe.Destroy()
+        remove = []
+        proceed = True
 
-        self.denssframe = RAWAnalysis.DenssFrame(self, 'DENSS', iftm, manip_item)
-        self.denssframe.SetIcon(self.GetIcon())
-        self.denssframe.Show(True)
+        for denss_frame in self.denss_frames:
+            if denss_frame:
+                if denss_frame.iftm == iftm:
+                    msg = ('There is already a DENSS window open '
+                        'for this dataset. Do you want to open another?')
+                    answer = wx.MessageBox(msg, 'Open duplicate DENSS window?',
+                        style=wx.YES_NO)
+
+                    if answer == wx.NO:
+                        proceed = False
+                        denss_frame.Raise()
+                        denss_frame.RequestUserAttention()
+
+                    break
+
+            else:
+                remove.append(denss_frame)
+
+        if remove:
+            for denss_frame in remove:
+                self.denss_frames.remove(denss_frame)
+
+        if proceed:
+            denssframe = RAWAnalysis.DenssFrame(self, 'DENSS', iftm, manip_item)
+            denssframe.SetIcon(self.GetIcon())
+            denssframe.Show(True)
+
+            self.denss_frames.append(denssframe)
 
     def showLCSeriesFrame(self, secm, manip_item):
 
-        if self.lc_series_frame:
-            self.lc_series_frame.Destroy()
+        remove = []
+        proceed = True
 
-        self.lc_series_frame = RAWAnalysis.LCSeriesFrame(self, 'Liquid Chromatography Series Analysis', secm, manip_item, self.raw_settings)
-        self.lc_series_frame.SetIcon(self.GetIcon())
-        self.lc_series_frame.Show(True)
+        for lc_series_frame in self.lc_series_frames:
+            if lc_series_frame:
+                if lc_series_frame.original_secm == secm:
+                    msg = ('There is already a LC Series window open '
+                        'for this dataset. Do you want to open another?')
+                    answer = wx.MessageBox(msg, 'Open duplicate LC Series window?',
+                        style=wx.YES_NO)
+
+                    if answer == wx.NO:
+                        proceed = False
+                        lc_series_frame.Raise()
+                        lc_series_frame.RequestUserAttention()
+
+                    break
+
+            else:
+                remove.append(lc_series_frame)
+
+        if remove:
+            for lc_series_frame in remove:
+                self.lc_series_frames.remove(lc_series_frame)
+
+        if proceed:
+            lc_series_frame = RAWAnalysis.LCSeriesFrame(self,
+                'Liquid Chromatography Series Analysis', secm, manip_item,
+                self.raw_settings)
+            lc_series_frame.SetIcon(self.GetIcon())
+            lc_series_frame.Show(True)
+
+            self.lc_series_frames.append(lc_series_frame)
 
     def _createSingleMenuBarItem(self, info):
 
@@ -1792,19 +2080,22 @@ class MainFrame(wx.Frame):
                 dial2.Destroy()
 
             if exit_without_saving == wx.ID_YES:
-                dammif_window = wx.FindWindowByName('DammifFrame')
                 dammif_closed = True
-                if dammif_window != None:
-                    dammif_closed = dammif_window.Close()
+                for dammif_frame in self.dammif_frames:
+                    if dammif_frame:
+                        dc = dammif_frame.Close()
+                        dammif_closed = dammif_closed & dc
             else:
                 event.Veto()
                 return
 
             if exit_without_saving == wx.ID_YES and dammif_closed:
-                denss_window = wx.FindWindowByName('DenssFrame')
                 denss_closed = True
-                if denss_window != None:
-                    denss_closed = denss_window.Close()
+                for denss_frame in self.denss_frames:
+                    if denss_frame:
+                        dc = denss_frame.Close()
+
+                        denss_closed = denss_closed & dc
             else:
                 event.Veto()
                 return

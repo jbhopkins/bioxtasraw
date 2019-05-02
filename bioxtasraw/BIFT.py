@@ -532,9 +532,9 @@ def doBift(Exp, queue, N, alphamax, alphamin, alphaN, maxDmax, minDmax, dmaxN):
                 'all_posteriors' : all_posteriors,
                 'alpha' : alphafin,
                 'dmax' : dmaxfin,
-                'I0' : I0,
+                'I0' : I0[0],
                 'ChiSquared' : c,
-                'Rg' : Rg,
+                'Rg' : Rg[0],
                 'filename': os.path.splitext(Ep.getParameter('filename'))[0]+'.ift',
                 'algorithm' : 'BIFT'}
 

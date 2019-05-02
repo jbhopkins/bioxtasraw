@@ -62,11 +62,13 @@ import SASProc
 
 class GuinierPlotPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name):
-
-        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+    def __init__(self, parent, panel_id):
+        wx.Panel.__init__(self, parent, panel_id,
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.guinier_frame = parent.GetParent().GetParent()
 
         try:
             self.raw_settings = self.main_frame.raw_settings
@@ -273,8 +275,7 @@ class GuinierPlotPanel(wx.Panel):
             print e
             return
 
-        controlPanel = wx.FindWindowByName('GuinierControlPanel')
-        wx.CallAfter(controlPanel.updateInfo, newInfo)
+        wx.CallAfter(self.guinier_frame.controlPanel.updateInfo, newInfo)
 
 
         xg = [0, x_fit[0]]
@@ -469,7 +470,10 @@ class GuinierPlotPanel(wx.Panel):
 
 class GuinierControlPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name, ExpObj, manip_item):
+    def __init__(self, parent, panel_id, ExpObj, manip_item):
+
+        wx.Panel.__init__(self, parent, panel_id,
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         self.parent = parent
 
@@ -478,7 +482,7 @@ class GuinierControlPanel(wx.Panel):
         self.manip_item = manip_item
         self.info_panel = wx.FindWindowByName('InformationPanel')
         self.main_frame = wx.FindWindowByName('MainFrame')
-        self.guinier_frame = wx.FindWindowByName('GuinierFrame')
+        self.guinier_frame = parent.GetParent().GetParent()
 
         self.old_analysis = {}
 
@@ -489,8 +493,6 @@ class GuinierControlPanel(wx.Panel):
             self.raw_settings = self.main_frame.raw_settings
         except AttributeError:
             self.raw_settings = RAWSettings.RawGuiSettings()
-
-        wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
         self.spinctrlIDs = {'qstart' : self.NewControlId(),
                             'qend'   : self.NewControlId()}
@@ -801,7 +803,8 @@ class GuinierControlPanel(wx.Panel):
         return boxsizer
 
     def onSaveInfo(self, evt):
-        gp = wx.FindWindowByName('GuinierPlotPanel')
+        gp = self.guinier_frame.plotPanel
+
         try:
             x_fit, y_fit, I0, error, newInfo = gp._calcFit()
 
@@ -853,20 +856,19 @@ class GuinierControlPanel(wx.Panel):
                 if info_dict != self.old_analysis:
                     wx.CallAfter(self.manip_item.markAsModified)
 
-            mw_window = wx.FindWindowByName('MolWeightFrame')
 
-            if mw_window:
-                mw_window.updateGuinierInfo()
+            for mw_window in self.main_frame.mw_frames:
+                if mw_window:
+                    if mw_window.sasm == self.ExpObj:
+                        mw_window.updateGuinierInfo()
+
         except TypeError:
             pass
 
-        diag = wx.FindWindowByName('GuinierFrame')
-        diag.OnClose()
+        self.guinier_frame.OnClose()
 
     def onCloseButton(self, evt):
-
-        diag = wx.FindWindowByName('GuinierFrame')
-        diag.OnClose()
+        self.guinier_frame.OnClose()
 
     def onAutoRg(self, evt):
         self.runAutoRg()
@@ -1089,7 +1091,7 @@ class GuinierControlPanel(wx.Panel):
             txt = wx.FindWindowById(self.error_data['autorg_i0'], self)
             txt.SetValue('')
 
-        plotpanel = wx.FindWindowByName('GuinierPlotPanel')
+        plotpanel = self.guinier_frame.plotPanel
 
         spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
         spinend = wx.FindWindowById(self.spinctrlIDs['qend'], self)
@@ -1190,33 +1192,41 @@ class GuinierControlPanel(wx.Panel):
 
         return guinierData
 
-### Main Guinier Frame!!! ###
+
 class GuinierFrame(wx.Frame):
 
     def __init__(self, parent, title, ExpObj, manip_item):
-
         client_display = wx.GetClientDisplayRect()
         size = (min(800, client_display.Width), min(600, client_display.Height))
 
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'GuinierFrame', size = size)
+            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'GuinierFrame', size = size)
+            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
 
-        splitter1 = wx.SplitterWindow(self, -1)
+        panel = wx.Panel(self)
+
+        splitter1 = wx.SplitterWindow(panel, wx.ID_ANY)
+
+        sizer = wx.BoxSizer()
+        sizer.Add(splitter1, 1, flag=wx.EXPAND)
+
+        panel.SetSizer(sizer)
+
+        self.sasm = ExpObj
 
 
-        plotPanel = GuinierPlotPanel(splitter1, -1, 'GuinierPlotPanel')
-        self.controlPanel = GuinierControlPanel(splitter1, -1, 'GuinierControlPanel', ExpObj, manip_item)
+        self.plotPanel = GuinierPlotPanel(splitter1, wx.ID_ANY)
+        self.controlPanel = GuinierControlPanel(splitter1, wx.ID_ANY, ExpObj, manip_item)
 
-        splitter1.SplitVertically(self.controlPanel, plotPanel, 300)
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, 300)
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
             splitter1.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(50)
 
-        plotPanel.plotExpObj(ExpObj)
+        self.plotPanel.plotExpObj(ExpObj)
 
 
         self.controlPanel.setSpinLimits(ExpObj)
@@ -1242,7 +1252,6 @@ class GuinierFrame(wx.Frame):
 
 
     def OnClose(self):
-
         self.Destroy()
 
 
@@ -1254,11 +1263,11 @@ class MolWeightFrame(wx.Frame):
         size = (min(475, client_display.Width), min(525, client_display.Height))
 
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'MolWeightFrame', size = size)
+            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'MolWeightFrame', size = size)
+            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
 
-        self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
         self.sasm = sasm
         self.manip_item = manip_item
@@ -2566,18 +2575,26 @@ class GNOMFrame(wx.Frame):
         size = (min(800, client_display.Width), min(600, client_display.Height))
 
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'GNOMFrame', size = size)
+            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'GNOMFrame', size = size)
+            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
         self.main_frame = parent
+        self.sasm = sasm
 
-        splitter1 = wx.SplitterWindow(self, -1)
+        panel = wx.Panel(self)
 
-        self.plotPanel = GNOMPlotPanel(splitter1, -1, 'GNOMPlotPanel')
-        self.controlPanel = GNOMControlPanel(splitter1, -1, 'GNOMControlPanel', sasm, manip_item)
+        splitter1 = wx.SplitterWindow(panel, wx.ID_ANY)
+
+        sizer = wx.BoxSizer()
+        sizer.Add(splitter1, 1, flag=wx.EXPAND)
+
+        panel.SetSizer(sizer)
+
+        self.plotPanel = GNOMPlotPanel(splitter1, wx.ID_ANY)
+        self.controlPanel = GNOMControlPanel(splitter1, wx.ID_ANY, sasm, manip_item)
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, 290)
 
@@ -2736,9 +2753,10 @@ class GNOMFrame(wx.Frame):
 
 class GNOMPlotPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name):
+    def __init__(self, parent, panel_id):
 
-        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, panel_id,
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         main_frame = wx.FindWindowByName('MainFrame')
 
@@ -2917,9 +2935,10 @@ class GNOMPlotPanel(wx.Panel):
 
 class GNOMControlPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name, sasm, manip_item):
+    def __init__(self, parent, panel_id, sasm, manip_item):
 
-        wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, panel_id,
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         self.parent = parent
 
@@ -2927,6 +2946,7 @@ class GNOMControlPanel(wx.Panel):
 
         self.manip_item = manip_item
         self.main_frame = wx.FindWindowByName('MainFrame')
+        self.gnom_frame = parent.GetParent().GetParent()
 
         self.raw_settings = self.main_frame.raw_settings
 
@@ -3222,14 +3242,11 @@ class GNOMControlPanel(wx.Panel):
 
         RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [iftm, 'black', None, not self.raw_settings.get('AutoSaveOnGnom')]])
 
-
-        diag = wx.FindWindowByName('GNOMFrame')
-        diag.OnClose()
+        self.gnom_frame.OnClose()
 
     def onCloseButton(self, evt):
 
-        diag = wx.FindWindowByName('GNOMFrame')
-        diag.OnClose()
+        self.gnom_frame.OnClose()
 
     def _onInfoButton(self, evt):
         msg = ('If you use GNOM in your work, in addition to citing '
@@ -3254,7 +3271,7 @@ class GNOMControlPanel(wx.Panel):
 
         save_sasm.setQrange(self.sasm.getQrange())
 
-        top = wx.FindWindowByName('GNOMFrame')
+        top = self.gnom_frame
 
         if top.main_frame.OnlineControl.isRunning() and path == top.main_frame.OnlineControl.getTargetDir():
             top.main_frame.controlTimer(False)
@@ -3273,7 +3290,7 @@ class GNOMControlPanel(wx.Panel):
             datgnom = SASCalc.runDatgnom(savename, self.sasm)
         except SASExceptions.NoATSASError as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
-            top = wx.FindWindowByName('GNOMFrame')
+            top = self.gnom_frame
             top.cleanupGNOM(path, savename = savename)
             os.chdir(cwd)
             self.SetFocusIgnoringChildren()
@@ -3611,7 +3628,7 @@ class GNOMControlPanel(wx.Panel):
         dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
         dmax = dmaxWindow.GetValue()
 
-        plotpanel = wx.FindWindowByName('GNOMPlotPanel')
+        plotpanel = self.gnom_frame.plotPanel
 
         if str(dmax) not in self.out_list:
             self.calcGNOM(dmax)
@@ -3658,7 +3675,7 @@ class GNOMControlPanel(wx.Panel):
         save_sasm.setQrange((start, end))
 
 
-        top = wx.FindWindowByName('GNOMFrame')
+        top = self.gnom_frame
 
         if top.main_frame.OnlineControl.isRunning() and path == top.main_frame.OnlineControl.getTargetDir():
             top.main_frame.controlTimer(False)
@@ -3677,7 +3694,7 @@ class GNOMControlPanel(wx.Panel):
             iftm = SASCalc.runGnom(savename, outname, dmax, self.gnom_settings, new_gnom = top.new_gnom)
         except (SASExceptions.NoATSASError, SASExceptions.GNOMError) as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
-            top = wx.FindWindowByName('GNOMFrame')
+            top = self.gnom_frame
             top.cleanupGNOM(path, savename, outname)
             os.chdir(cwd)
             self.SetFocusIgnoringChildren()
@@ -3736,9 +3753,9 @@ class DammifFrame(wx.Frame):
         size = (min(675, client_display.Width), min(750, client_display.Height))
 
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'DammifFrame', size = size)
+            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'DammifFrame', size = size)
+            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
 
         self.manip_item = manip_item
         self.iftm = iftm
@@ -3797,6 +3814,9 @@ class DammifFrame(wx.Frame):
 
         return button_sizer
 
+    def updateDAMMIFSettings(self):
+        self.RunPanel.updateDAMMIFSettings()
+
     def _onCloseButton(self, evt):
         self.Close()
 
@@ -3818,8 +3838,7 @@ class DammifFrame(wx.Frame):
 
 
     def OnClose(self, event):
-        dammifrun = wx.FindWindowByName('DammifRunPanel')
-        dammifrun.Close(event)
+        self.RunPanel.Close(event)
 
         if event.GetVeto():
             return
@@ -3832,9 +3851,9 @@ class DammifRunPanel(wx.Panel):
     def __init__(self, parent, iftm, manip_item):
 
         try:
-            wx.Panel.__init__(self, parent, wx.ID_ANY, name = 'DammifRunPanel')
+            wx.Panel.__init__(self, parent, wx.ID_ANY)
         except:
-            wx.Panel.__init__(self, None, wx.ID_ANY, name = 'DammifRunPanel')
+            wx.Panel.__init__(self, None, wx.ID_ANY)
 
         self.parent = parent
 
@@ -3847,6 +3866,7 @@ class DammifRunPanel(wx.Panel):
         self.filename = iftm.getParameter('filename')
 
         self.main_frame = wx.FindWindowByName('MainFrame')
+        self.dammif_frame = parent.GetParent().GetParent()
 
         self.raw_settings = self.main_frame.raw_settings
 
@@ -4813,8 +4833,7 @@ class DammifRunPanel(wx.Panel):
                     'refine'    : refine,
                     }
 
-        results_window = wx.FindWindowByName('DammifResultsPanel')
-        wx.CallAfter(results_window.updateResults, settings)
+        wx.CallAfter(self.dammif_frame.ResultsPanel.updateResults, settings)
 
     def _onAdvancedButton(self, evt):
         self.main_frame.showOptionsDialog(focusHead='DAMMIF/N')
@@ -5003,11 +5022,13 @@ class DammifResultsPanel(wx.Panel):
     def __init__(self, parent, iftm, manip_item):
 
         try:
-            wx.Panel.__init__(self, parent, wx.ID_ANY, name = 'DammifResultsPanel')
+            wx.Panel.__init__(self, parent, wx.ID_ANY)
         except:
-            wx.Panel.__init__(self, None, wx.ID_ANY, name = 'DammifResultsPanel')
+            wx.Panel.__init__(self, None, wx.ID_ANY)
 
         self.parent = parent
+
+        self.dammif_frame = parent.GetParent().GetParent()
 
         self.manip_item = manip_item
 
@@ -5168,7 +5189,7 @@ class DammifResultsPanel(wx.Panel):
 
 
     def _initSettings(self):
-        run_window = wx.FindWindowByName('DammifRunPanel')
+        run_window = self.dammif_frame.RunPanel
         path_window = wx.FindWindowById(run_window.ids['save'], run_window)
         path = path_window.GetValue()
 
@@ -5393,8 +5414,7 @@ class DammifResultsPanel(wx.Panel):
 
         self.parent.SetSelection(1)
 
-        viewer_window = wx.FindWindowByName('DammifViewerPanel')
-        viewer_window.updateResults(model_list)
+        self.dammif_frame.ViewerPanel.updateResults(model_list)
 
         self._saveResults()
 
@@ -5482,17 +5502,17 @@ class DammifResultsPanel(wx.Panel):
             ambi_data = [('Compatible shape categories:', ambi_cats),
                         ('Ambiguity score:', ambi_score), ('AMBIMETER says:', ambi_eval)]
 
-        input_file = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['fname']).GetValue()
-        output_prefix = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['prefix']).GetValue()
-        output_directory = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['save']).GetValue()
-        reconst_prog = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['program']).GetStringSelection()
-        mode = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['mode']).GetStringSelection()
-        symmetry = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['sym']).GetStringSelection()
-        anisometry = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['anisometry']).GetStringSelection()
-        tot_recons = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['runs']).GetValue()
-        damaver = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['damaver']).IsChecked()
-        refine = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['refine']).IsChecked()
-        damclust = wx.FindWindowById(wx.FindWindowByName('DammifRunPanel').ids['damclust']).IsChecked()
+        input_file = wx.FindWindowById(self.dammif_frame.RunPanel.ids['fname']).GetValue()
+        output_prefix = wx.FindWindowById(self.dammif_frame.RunPanel.ids['prefix']).GetValue()
+        output_directory = wx.FindWindowById(self.dammif_frame.RunPanel.ids['save']).GetValue()
+        reconst_prog = wx.FindWindowById(self.dammif_frame.RunPanel.ids['program']).GetStringSelection()
+        mode = wx.FindWindowById(self.dammif_frame.RunPanel.ids['mode']).GetStringSelection()
+        symmetry = wx.FindWindowById(self.dammif_frame.RunPanel.ids['sym']).GetStringSelection()
+        anisometry = wx.FindWindowById(self.dammif_frame.RunPanel.ids['anisometry']).GetStringSelection()
+        tot_recons = wx.FindWindowById(self.dammif_frame.RunPanel.ids['runs']).GetValue()
+        damaver = wx.FindWindowById(self.dammif_frame.RunPanel.ids['damaver']).IsChecked()
+        refine = wx.FindWindowById(self.dammif_frame.RunPanel.ids['refine']).IsChecked()
+        damclust = wx.FindWindowById(self.dammif_frame.RunPanel.ids['damclust']).IsChecked()
 
         setup_data = [('Input file:', input_file), ('Output prefix:', output_prefix),
                     ('Output directory:', output_directory), ('Program used:', reconst_prog),
@@ -5530,9 +5550,9 @@ class DammifViewerPanel(wx.Panel):
     def __init__(self, parent):
 
         try:
-            wx.Panel.__init__(self, parent, wx.ID_ANY, name = 'DammifViewerPanel')
+            wx.Panel.__init__(self, parent, wx.ID_ANY)
         except:
-            wx.Panel.__init__(self, None, wx.ID_ANY, name = 'DammifViewerPanel')
+            wx.Panel.__init__(self, None, wx.ID_ANY)
 
         self.parent = parent
 
@@ -5628,9 +5648,9 @@ class DenssFrame(wx.Frame):
         size = (min(650, client_display.Width), min(750, client_display.Height))
 
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'DenssFrame', size = size)
+            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'DenssFrame', size = size)
+            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
 
         self.manip_item = manip_item
         self.iftm = iftm
@@ -5704,8 +5724,7 @@ class DenssFrame(wx.Frame):
         self.RunPanel.updateDenssSettings()
 
     def OnClose(self, event):
-        denssrun = wx.FindWindowByName('DenssRunPanel')
-        denssrun.Close(event)
+        self.RunPanel.Close(event)
 
         if event.GetVeto():
             return
@@ -5718,11 +5737,13 @@ class DenssRunPanel(wx.Panel):
     def __init__(self, parent, iftm, manip_item):
 
         try:
-            wx.Panel.__init__(self, parent, wx.ID_ANY, name = 'DenssRunPanel')
+            wx.Panel.__init__(self, parent, wx.ID_ANY)
         except:
-            wx.Panel.__init__(self, None, wx.ID_ANY, name = 'DenssRunPanel')
+            wx.Panel.__init__(self, None, wx.ID_ANY)
 
         self.parent = parent
+
+        self.denss_frame = parent.GetParent().GetParent()
 
         self.manip_item = manip_item
 
@@ -6534,9 +6555,8 @@ class DenssRunPanel(wx.Panel):
                     'runs'      : nruns,
                     }
 
-        results_window = wx.FindWindowByName('DenssResultsPanel')
-        wx.CallAfter(results_window.updateResults, settings, denss_results,
-            self.denss_stats, self.average_results)
+        wx.CallAfter(self.denss_frame.ResultsPanel.updateResults, settings,
+            denss_results, self.denss_stats, self.average_results)
 
 
     def _onAdvancedButton(self, evt):
@@ -6628,11 +6648,13 @@ class DenssResultsPanel(wx.Panel):
     def __init__(self, parent, iftm, manip_item):
 
         try:
-            wx.Panel.__init__(self, parent, wx.ID_ANY, name = 'DenssResultsPanel')
+            wx.Panel.__init__(self, parent, wx.ID_ANY)
         except:
-            wx.Panel.__init__(self, None, wx.ID_ANY, name = 'DenssResultsPanel')
+            wx.Panel.__init__(self, None, wx.ID_ANY)
 
         self.parent = parent
+
+        self.run_panel = parent.GetParent().GetParent().RunPanel
 
         self.manip_item = manip_item
 
@@ -6760,8 +6782,7 @@ class DenssResultsPanel(wx.Panel):
 
     def _initSettings(self):
         if self.iftm.getParameter('algorithm') == 'GNOM':
-            run_window = wx.FindWindowByName('DenssRunPanel')
-            path_window = wx.FindWindowById(run_window.ids['save'], run_window)
+            path_window = wx.FindWindowById(self.run_panel.ids['save'], self.run_panel)
             path = path_window.GetValue()
 
             opsys = platform.system()
@@ -6985,13 +7006,13 @@ class DenssResultsPanel(wx.Panel):
             ambi_data = [('Compatible shape categories:', ambi_cats),
                         ('Ambiguity score:', ambi_score), ('AMBIMETER says:', ambi_eval)]
 
-        input_file = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['fname']).GetValue()
-        output_prefix = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['prefix']).GetValue()
-        output_directory = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['save']).GetValue()
-        mode = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['mode']).GetStringSelection()
-        tot_recons = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['runs']).GetValue()
-        electrons = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['electrons']).GetValue()
-        average = wx.FindWindowById(wx.FindWindowByName('DenssRunPanel').ids['average']).IsChecked()
+        input_file = wx.FindWindowById(self.run_panel.ids['fname']).GetValue()
+        output_prefix = wx.FindWindowById(self.run_panel.ids['prefix']).GetValue()
+        output_directory = wx.FindWindowById(self.run_panel.ids['save']).GetValue()
+        mode = wx.FindWindowById(self.run_panel.ids['mode']).GetStringSelection()
+        tot_recons = wx.FindWindowById(self.run_panel.ids['runs']).GetValue()
+        electrons = wx.FindWindowById(self.run_panel.ids['electrons']).GetValue()
+        average = wx.FindWindowById(self.run_panel.ids['average']).IsChecked()
 
         setup_data = [('Input file:', input_file), ('Output prefix:', output_prefix),
                     ('Output directory:', output_directory), ('Mode:', mode),
@@ -7282,16 +7303,25 @@ class BIFTFrame(wx.Frame):
         size = (min(800, client_display.Width), min(600, client_display.Height))
 
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'BIFTFrame', size = size)
+            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'BIFTFrame', size = size)
+            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
-        splitter1 = wx.SplitterWindow(self, -1)
+        self.sasm = sasm
 
-        self.plotPanel = BIFTPlotPanel(splitter1, -1, 'BIFTPlotPanel')
-        self.controlPanel = BIFTControlPanel(splitter1, -1, 'BIFTControlPanel', sasm, manip_item)
+        panel = wx.Panel(self)
+
+        splitter1 = wx.SplitterWindow(panel, wx.ID_ANY)
+
+        sizer = wx.BoxSizer()
+        sizer.Add(splitter1, 1, flag=wx.EXPAND)
+
+        panel.SetSizer(sizer)
+
+        self.plotPanel = BIFTPlotPanel(splitter1, wx.ID_ANY)
+        self.controlPanel = BIFTControlPanel(splitter1, wx.ID_ANY, sasm, manip_item)
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, 290)
 
@@ -7324,19 +7354,19 @@ class BIFTFrame(wx.Frame):
         self.controlPanel.runBIFT()
 
     def _onClose(self, evt):
-        self.controlPanel.onClose()
         self.close()
 
     def close(self):
-
+        self.controlPanel.onClose()
         self.Destroy()
 
 
 class BIFTPlotPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name):
+    def __init__(self, parent, panel_id):
 
-        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, panel_id,
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         main_frame = wx.FindWindowByName('MainFrame')
 
@@ -7496,11 +7526,13 @@ class BIFTPlotPanel(wx.Panel):
 
 class BIFTControlPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name, sasm, manip_item):
+    def __init__(self, parent, panel_id, sasm, manip_item):
 
-        wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, panel_id, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         self.parent = parent
+
+        self.bift_frame = parent.GetParent().GetParent()
 
         self.sasm = sasm
 
@@ -7812,8 +7844,7 @@ class BIFTControlPanel(wx.Panel):
         if self.iftm is not None:
             RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [self.iftm, 'blue', None, not self.raw_settings.get('AutoSaveOnBift')]])
 
-        diag = wx.FindWindowByName('BIFTFrame')
-        diag.OnClose()
+        self.bift_frame.close()
 
     def onChangeParams(self, evt):
         self.main_frame.showOptionsDialog(focusHead='IFT')
@@ -7823,9 +7854,7 @@ class BIFTControlPanel(wx.Panel):
 
     def onCloseButton(self, evt):
         self.onClose()
-
-        diag = wx.FindWindowByName('BIFTFrame')
-        diag.close()
+        self.bift_frame.close()
 
     def onClose(self):
         if self.BIFT_timer.IsRunning():
@@ -7861,23 +7890,7 @@ class BIFTControlPanel(wx.Panel):
 
     def updatePlot(self):
 
-        # xlim = self.iftm.getQrange()
-
-        # r = self.iftm.r
-        # p = self.iftm.p
-        # perr = self.iftm.err
-
-        # i = self.iftm.i_orig
-        # q = self.iftm.q_orig
-        # err = self.iftm.err_orig
-
-        # qexp = q
-        # jreg = self.iftm.i_fit
-
-        plotpanel = wx.FindWindowByName('BIFTPlotPanel')
-
-        # plotpanel.updateDataPlot(q, i, err, r, p, perr, qexp, jreg, xlim)
-        plotpanel.plotPr(self.iftm)
+        self.bift_frame.plotPanel.plotPr(self.iftm)
 
     def updateBIFTSettings(self):
         self.old_settings = copy.deepcopy(self.bift_settings)
@@ -7978,11 +7991,11 @@ class AmbimeterFrame(wx.Frame):
         size = (min(450, client_display.Width), min(525, client_display.Height))
 
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'AmbimeterFrame', size = size)
+            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'AmbimeterFrame', size = size)
+            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
 
-        self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
         self.manip_item = manip_item
 
@@ -8326,10 +8339,12 @@ class SVDFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(800, client_display.Width), min(680, client_display.Height))
 
+        self.secm = secm
+
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'SVDFrame', size = size)
+            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'SVDFrame', size = size)
+            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -8337,8 +8352,8 @@ class SVDFrame(wx.Frame):
 
         copy_secm = copy.copy(secm)
 
-        self.plotPanel = SVDResultsPlotPanel(splitter1, -1, 'SVDResultsPlotPanel')
-        self.controlPanel = SVDControlPanel(splitter1, -1, 'SVDControlPanel', copy_secm, manip_item)
+        self.plotPanel = SVDResultsPlotPanel(splitter1, wx.ID_ANY)
+        self.controlPanel = SVDControlPanel(splitter1, wx.ID_ANY, copy_secm, manip_item)
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, 290)
 
@@ -8371,9 +8386,10 @@ class SVDFrame(wx.Frame):
 
 class SVDResultsPlotPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name):
+    def __init__(self, parent, panel_id):
 
-        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, panel_id,
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         main_frame = wx.FindWindowByName('MainFrame')
 
@@ -8515,9 +8531,10 @@ class SVDResultsPlotPanel(wx.Panel):
 
 class SVDSECPlotPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name, svd = False):
+    def __init__(self, parent, panel_id, svd = False):
 
-        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, panel_id,
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         main_frame = wx.FindWindowByName('MainFrame')
 
@@ -8647,13 +8664,14 @@ class SVDSECPlotPanel(wx.Panel):
 
 class SVDControlPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name, secm, manip_item):
+    def __init__(self, parent, panel_id, secm, manip_item):
 
-        wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, panel_id,
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         self.parent = parent
 
-        self.svd_frame = wx.FindWindowByName('SVDFrame')
+        self.svd_frame = parent.GetParent()
 
         self.secm = secm
 
@@ -8741,14 +8759,14 @@ class SVDControlPanel(wx.Panel):
 
 
         #plot the sec data
-        sec_plot = SVDSECPlotPanel(self, -1, 'SVDSECPlotPanel', svd = True)
+        self.sec_plot = SVDSECPlotPanel(self, wx.ID_ANY, svd=True)
 
 
         #SVD control sizer
         control_sizer.Add(profile_sizer, 0,  wx.TOP | wx.EXPAND, 3)
         control_sizer.Add(frame_sizer, 0, wx.TOP | wx.EXPAND, 8)
         control_sizer.Add(norm_data, 0, wx.TOP | wx.EXPAND, 8)
-        control_sizer.Add(sec_plot, 0, wx.TOP | wx.EXPAND, 8)
+        control_sizer.Add(self.sec_plot, 0, wx.TOP | wx.EXPAND, 8)
 
         if self.manip_item == None:
             control_sizer.Hide(profile_sizer, recursive = True)
@@ -9010,8 +9028,7 @@ class SVDControlPanel(wx.Panel):
 
     def onSaveInfo(self, evt):
 
-        diag = wx.FindWindowByName('SVDFrame')
-        diag.OnClose()
+        self.svd_frame.OnClose()
 
 
     def runSVD(self):
@@ -9068,8 +9085,6 @@ class SVDControlPanel(wx.Panel):
         wx.CallAfter(self.updateSVDPlot)
 
     def updateSECPlot(self):
-
-        plotpanel = wx.FindWindowByName('SVDSECPlotPanel')
         framei_window = wx.FindWindowById(self.control_ids['fstart'], self)
         framef_window = wx.FindWindowById(self.control_ids['fend'], self)
 
@@ -9079,14 +9094,13 @@ class SVDControlPanel(wx.Panel):
         profile_window = wx.FindWindowById(self.control_ids['profile'], self)
 
         if profile_window.GetStringSelection() == 'Unsubtracted':
-            plotpanel.plotSECM(self.secm, framei, framef, self.ydata_type)
+            self.sec_plot.plotSECM(self.secm, framei, framef, self.ydata_type)
         elif profile_window.GetStringSelection() == 'Subtracted':
-            plotpanel.plotSECM(self.subtracted_secm, framei, framef, self.ydata_type)
+            self.sec_plot.plotSECM(self.subtracted_secm, framei, framef, self.ydata_type)
         elif profile_window.GetStringSelection() == 'Baseline Corrected':
-            plotpanel.plotSECM(self.bl_subtracted_secm, framei, framef, self.ydata_type)
+            self.sec_plot.plotSECM(self.bl_subtracted_secm, framei, framef, self.ydata_type)
 
     def updateSVDPlot(self):
-        plotpanel = wx.FindWindowByName('SVDResultsPlotPanel')
 
         svd_start_window = wx.FindWindowById(self.control_ids['svd_start'], self)
         svd_end_window = wx.FindWindowById(self.control_ids['svd_end'], self)
@@ -9094,7 +9108,7 @@ class SVDControlPanel(wx.Panel):
         svd_start = svd_start_window.GetValue()
         svd_end = svd_end_window.GetValue()
 
-        plotpanel.plotSVD(self.svd_U, self.svd_s, self.svd_V, self.svd_U_autocor, self.svd_V_autocor, svd_start, svd_end)
+        self.svd_frame.plotPanel.plotSVD(self.svd_U, self.svd_s, self.svd_V, self.svd_U_autocor, self.svd_V_autocor, svd_start, svd_end)
 
     def _onSaveButton(self, evt):
         if evt.GetId() == self.button_ids['save_svd']:
@@ -9225,16 +9239,18 @@ class EFAFrame(wx.Frame):
         size = (min(950, client_display.Width), min(750, client_display.Height))
 
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'EFAFrame', size = size)
+            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size = size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'EFAFrame', size = size)
+            wx.Frame.__init__(self, None, wx.ID_ANY, title, size = size)
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+
+        self.orig_secm = secm
 
         self.secm = copy.copy(secm)
         self.manip_item = manip_item
 
-        self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        self.panel = wx.Panel(self, wx.ID_ANY, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         self.splitter_ids = {1  : self.NewControlId(),
                             2   : self.NewControlId(),
@@ -9288,8 +9304,8 @@ class EFAFrame(wx.Frame):
         #Creating the first EFA analysis panel
         self.splitter1 = wx.SplitterWindow(parent, self.splitter_ids[1])
 
-        self.plotPanel1 = SVDResultsPlotPanel(self.splitter1, -1, 'EFAResultsPlotPanel1')
-        self.controlPanel1 = EFAControlPanel1(self.splitter1, -1, 'EFAControlPanel1', self.secm, self.manip_item)
+        self.plotPanel1 = SVDResultsPlotPanel(self.splitter1, -1)
+        self.controlPanel1 = EFAControlPanel1(self.splitter1, -1, self.secm, self.manip_item)
 
         self.splitter1.SplitVertically(self.controlPanel1, self.plotPanel1, 325)
 
@@ -9308,8 +9324,8 @@ class EFAFrame(wx.Frame):
 
         self.splitter2 = wx.SplitterWindow(parent, self.splitter_ids[2])
 
-        self.plotPanel2 = EFAResultsPlotPanel2(self.splitter2, -1, 'EFAResultsPlotPanel2')
-        self.controlPanel2 = EFAControlPanel2(self.splitter2, -1, 'EFAControlPanel2', self.secm, self.manip_item)
+        self.plotPanel2 = EFAResultsPlotPanel2(self.splitter2, -1)
+        self.controlPanel2 = EFAControlPanel2(self.splitter2, -1, self.secm, self.manip_item)
 
         self.splitter2.SplitVertically(self.controlPanel2, self.plotPanel2, 300)
 
@@ -9324,8 +9340,8 @@ class EFAFrame(wx.Frame):
 
         self.splitter3 = wx.SplitterWindow(parent, self.splitter_ids[3])
 
-        self.plotPanel3 = EFAResultsPlotPanel3(self.splitter3, -1, 'EFAResultsPlotPanel3')
-        self.controlPanel3 = EFAControlPanel3(self.splitter3, -1, 'EFAControlPanel3', self.secm, self.manip_item)
+        self.plotPanel3 = EFAResultsPlotPanel3(self.splitter3, -1)
+        self.controlPanel3 = EFAControlPanel3(self.splitter3, -1, self.secm, self.manip_item)
 
         self.splitter3.SplitVertically(self.controlPanel3, self.plotPanel3, 300)
 
@@ -9403,16 +9419,14 @@ class EFAFrame(wx.Frame):
 
                     self.back_button.Enable()
 
-                    efa_panel2 =  wx.FindWindowByName('EFAControlPanel2')
+                    if not self.controlPanel2.initialized:
+                        self.controlPanel2.initialize(self.panel1_results)
 
-                    if not efa_panel2.initialized:
-                        efa_panel2.initialize(self.panel1_results)
+                    elif self.panel1_results['fstart'] != self.controlPanel2.panel1_results['fstart'] or self.panel1_results['fend'] != self.controlPanel2.panel1_results['fend'] or self.panel1_results['profile'] != self.controlPanel2.panel1_results['profile']:
+                        self.controlPanel2.reinitialize(self.panel1_results, efa = True)
 
-                    elif self.panel1_results['fstart'] != efa_panel2.panel1_results['fstart'] or self.panel1_results['fend'] != efa_panel2.panel1_results['fend'] or self.panel1_results['profile'] != efa_panel2.panel1_results['profile']:
-                        efa_panel2.reinitialize(self.panel1_results, efa = True)
-
-                    elif  self.panel1_results['input'] != efa_panel2.panel1_results['input']:
-                        efa_panel2.reinitialize(self.panel1_results, efa = False)
+                    elif  self.panel1_results['input'] != self.controlPanel2.panel1_results['input']:
+                        self.controlPanel2.reinitialize(self.panel1_results, efa = False)
 
                     self.Layout()
 
@@ -9449,16 +9463,14 @@ class EFAFrame(wx.Frame):
 
                 self.done_button.Enable()
 
-                efa_panel3 =  wx.FindWindowByName('EFAControlPanel3')
+                if not self.controlPanel3.initialized:
+                    self.controlPanel3.initialize(self.panel1_results, self.panel2_results)
 
-                if not efa_panel3.initialized:
-                    efa_panel3.initialize(self.panel1_results, self.panel2_results)
+                elif self.panel1_results['fstart'] != self.controlPanel3.panel1_results['fstart'] or self.panel1_results['fend'] != self.controlPanel3.panel1_results['fend'] or self.panel1_results['profile'] != self.controlPanel3.panel1_results['profile'] or self.panel1_results['input'] != self.controlPanel3.panel1_results['input']:
+                    self.controlPanel3.reinitialize(self.panel1_results, self.panel2_results, rebuild = True)
 
-                elif self.panel1_results['fstart'] != efa_panel3.panel1_results['fstart'] or self.panel1_results['fend'] != efa_panel3.panel1_results['fend'] or self.panel1_results['profile'] != efa_panel3.panel1_results['profile'] or self.panel1_results['input'] != efa_panel3.panel1_results['input']:
-                    efa_panel3.reinitialize(self.panel1_results, self.panel2_results, rebuild = True)
-
-                elif  np.any(self.panel2_results['points'] != efa_panel3._getRanges()):
-                    efa_panel3.reinitialize(self.panel1_results, self.panel2_results, rebuild = False)
+                elif  np.any(self.panel2_results['points'] != self.controlPanel3._getRanges()):
+                    self.controlPanel3.reinitialize(self.panel1_results, self.panel2_results, rebuild = False)
 
             else:
                 msg = ('The smallest start value must be less than the smallest '
@@ -9497,18 +9509,14 @@ class EFAFrame(wx.Frame):
 
             self.done_button.Disable()
 
-            efa_panel3 =  wx.FindWindowByName('EFAControlPanel3')
-
-            efa_panel2 =  wx.FindWindowByName('EFAControlPanel2')
-
-            points = efa_panel3._getRanges()
+            points = self.controlPanel3._getRanges()
 
             if  np.any(self.panel2_results['points'] != points):
                 forward_sv = points[:,0]
                 backward_sv = points[:,1]
 
                 if np.all(np.sort(forward_sv) == forward_sv) and np.all(np.sort(backward_sv) == backward_sv):
-                    efa_panel2.setSVs(points)
+                    self.controlPanel2.setSVs(points)
 
 
         self.panel.Layout()
@@ -9619,7 +9627,7 @@ class EFAFrame(wx.Frame):
             self.panel1_results[key] = value
 
     def getPanel2Values(self):
-        window = wx.FindWindowByName('EFAControlPanel2')
+        window = self.controlPanel2
 
         forward_points = [wx.FindWindowById(my_id, window).GetValue() for my_id in window.forward_ids]
         self.panel2_results['forward_points'] = copy.copy(forward_points)
@@ -9639,7 +9647,7 @@ class EFAFrame(wx.Frame):
 
 
     def getPanel3Values(self):
-        window = wx.FindWindowByName('EFAControlPanel3')
+        window = self.controlPanel3
 
         self.panel3_results['steps'] = window.conv_data['steps']
         self.panel3_results['iterations'] = window.conv_data['iterations']
@@ -9660,13 +9668,14 @@ class EFAFrame(wx.Frame):
 
 class EFAControlPanel1(wx.Panel):
 
-    def __init__(self, parent, panel_id, name, secm, manip_item):
+    def __init__(self, parent, panel_id, secm, manip_item):
 
-        wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, panel_id,
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         self.parent = parent
 
-        self.svd_frame = wx.FindWindowByName('EFAFrame')
+        self.efa_frame = parent.GetParent().GetParent()
 
         self.secm = secm
 
@@ -9749,13 +9758,13 @@ class EFAControlPanel1(wx.Panel):
 
 
         #plot the sec data
-        sec_plot = SVDSECPlotPanel(self, -1, 'EFASECPlotPanel')
+        self.sec_plot = SVDSECPlotPanel(self, wx.ID_ANY)
 
 
         #SVD control sizer
         control_sizer.Add(profile_sizer, 0,  wx.TOP | wx.EXPAND, 3)
         control_sizer.Add(frame_sizer, 0, wx.TOP | wx.EXPAND, 8)
-        control_sizer.Add(sec_plot, 0, wx.TOP | wx.EXPAND, 8)
+        control_sizer.Add(self.sec_plot, 0, wx.TOP | wx.EXPAND, 8)
 
         if self.manip_item == None:
             control_sizer.Hide(profile_sizer, recursive = True)
@@ -9836,10 +9845,7 @@ class EFAControlPanel1(wx.Panel):
         user_input_window.SetRange((0, framef-framei))
 
         if 'efa' not in analysis_dict:
-
             if len(self.secm.subtracted_sasm_list)>0 and len(np.where(self.secm.use_subtracted_sasm)[0]) > 0:
-                print len(self.secm.use_subtracted_sasm)
-                print len(self.secm.subtracted_sasm_list)
                 frame_start = max(np.where(self.secm.use_subtracted_sasm)[0][0]-100, framei)
                 frame_end = min(np.where(self.secm.use_subtracted_sasm)[0][-1]+100, framef)
 
@@ -10109,8 +10115,6 @@ class EFAControlPanel1(wx.Panel):
         wx.CallAfter(self.updateSVDPlot)
 
     def updateSECPlot(self):
-
-        plotpanel = wx.FindWindowByName('EFASECPlotPanel')
         framei_window = wx.FindWindowById(self.control_ids['fstart'], self)
         framef_window = wx.FindWindowById(self.control_ids['fend'], self)
 
@@ -10120,35 +10124,33 @@ class EFAControlPanel1(wx.Panel):
         profile_window = wx.FindWindowById(self.control_ids['profile'], self)
 
         if profile_window.GetStringSelection() == 'Unsubtracted':
-            plotpanel.plotSECM(self.secm, framei, framef, self.ydata_type)
+            self.sec_plot.plotSECM(self.secm, framei, framef, self.ydata_type)
         elif profile_window.GetStringSelection() == 'Subtracted':
-            plotpanel.plotSECM(self.subtracted_secm, framei, framef, self.ydata_type)
+            self.sec_plot.plotSECM(self.subtracted_secm, framei, framef, self.ydata_type)
         elif profile_window.GetStringSelection() == 'Baseline Corrected':
-            plotpanel.plotSECM(self.bl_subtracted_secm, framei, framef, self.ydata_type)
+            self.sec_plot.plotSECM(self.bl_subtracted_secm, framei, framef, self.ydata_type)
 
     def updateSVDPlot(self):
 
         if self.svd_s is not None and not np.any(np.isnan(self.svd_s)):
-            plotpanel = wx.FindWindowByName('EFAResultsPlotPanel1')
-
             svd_start_window = wx.FindWindowById(self.control_ids['svd_start'], self)
             svd_end_window = wx.FindWindowById(self.control_ids['svd_end'], self)
 
             svd_start = svd_start_window.GetValue()
             svd_end = svd_end_window.GetValue()
 
-            plotpanel.plotSVD(self.svd_U, self.svd_s, self.svd_V, self.svd_U_autocor, self.svd_V_autocor, svd_start, svd_end)
+            self.efa_frame.plotPanel1.plotSVD(self.svd_U, self.svd_s, self.svd_V, self.svd_U_autocor, self.svd_V_autocor, svd_start, svd_end)
 
 
 class EFAControlPanel2(wx.Panel):
 
-    def __init__(self, parent, panel_id, name, secm, manip_item):
+    def __init__(self, parent, panel_id, secm, manip_item):
 
-        wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, panel_id, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         self.parent = parent
 
-        self.efa_frame = wx.FindWindowByName('EFAFrame')
+        self.efa_frame = parent.GetParent().GetParent()
 
         self.secm = secm
 
@@ -10322,10 +10324,7 @@ class EFAControlPanel2(wx.Panel):
 
         else:
             self._findEFAPoints()
-
-            plotpanel = wx.FindWindowByName('EFAResultsPlotPanel2')
-            plotpanel.refresh()
-
+            self.efa_frame.plotPanel2.refresh()
             wx.CallAfter(self.updateEFAPlot)
 
     def _onForwardControl(self, evt):
@@ -10382,8 +10381,7 @@ class EFAControlPanel2(wx.Panel):
         del self.busy_dialog
         self.busy_dialog = None
 
-        plotpanel = wx.FindWindowByName('EFAResultsPlotPanel2')
-        plotpanel.refresh()
+        self.efa_frame.plotPanel2.refresh()
 
         wx.CallAfter(self.updateEFAPlot)
 
@@ -10454,8 +10452,6 @@ class EFAControlPanel2(wx.Panel):
                     print e
 
     def updateEFAPlot(self):
-        plotpanel = wx.FindWindowByName('EFAResultsPlotPanel2')
-
         nvals = self.panel1_results['input']+1
 
         forward_points = [wx.FindWindowById(my_id, self).GetValue() for my_id in self.forward_ids]
@@ -10470,14 +10466,15 @@ class EFAControlPanel2(wx.Panel):
                         'index' : np.arange(len(self.efa_backward[0]))+self.panel1_results['fstart'],
                         'points': backward_points}
 
-        plotpanel.plotEFA(forward_data, backward_data)
+        self.efa_frame.plotPanel2.plotEFA(forward_data, backward_data)
 
 
 class EFAResultsPlotPanel2(wx.Panel):
 
-    def __init__(self, parent, panel_id, name):
+    def __init__(self, parent, panel_id):
 
-        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, panel_id,
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         main_frame = wx.FindWindowByName('MainFrame')
 
@@ -10678,13 +10675,14 @@ class EFAResultsPlotPanel2(wx.Panel):
 
 class EFAControlPanel3(wx.Panel):
 
-    def __init__(self, parent, panel_id, name, secm, manip_item):
+    def __init__(self, parent, panel_id, secm, manip_item):
 
-        wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, panel_id,
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         self.parent = parent
 
-        self.efa_frame = wx.FindWindowByName('EFAFrame')
+        self.efa_frame = parent.GetParent().GetParent()
 
         self.secm = secm
 
@@ -10719,7 +10717,7 @@ class EFAControlPanel3(wx.Panel):
 
         top_sizer =wx.BoxSizer(wx.VERTICAL)
 
-        sec_plot = EFARangePlotPanel(self, -1, 'EFARangePlotPanel')
+        self.sec_plot = EFARangePlotPanel(self, wx.ID_ANY)
 
         #svd controls
         box = wx.StaticBox(self.top_efa, -1, 'Component Range Controls')
@@ -10785,7 +10783,7 @@ class EFAControlPanel3(wx.Panel):
         results_sizer.Add(save_results, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
 
-        top_sizer.Add(sec_plot, 0, wx.ALL | wx.EXPAND, 3)
+        top_sizer.Add(self.sec_plot, 0, wx.ALL | wx.EXPAND, 3)
         top_sizer.Add(self.top_efa, 1, wx.EXPAND)
         top_sizer.Add(iter_control_sizer, 0, wx.EXPAND)
         top_sizer.Add(status_sizer, 0, wx.EXPAND)
@@ -10945,11 +10943,9 @@ class EFAControlPanel3(wx.Panel):
                 start.SetValue(points[0])
                 end.SetValue(points[1])
 
-        plotpanel = wx.FindWindowByName('EFAResultsPlotPanel3')
-        plotpanel.refresh()
+        self.efa_frame.plotPanel3.refresh()
 
-        plotpanel = wx.FindWindowByName('EFARangePlotPanel')
-        plotpanel.refresh()
+        self.sec_plot.refresh()
 
         wx.CallAfter(self.runRotation)
         wx.CallAfter(self.updateRangePlot)
@@ -11225,8 +11221,6 @@ class EFAControlPanel3(wx.Panel):
 
 
     def updateRangePlot(self):
-        plotpanel = wx.FindWindowByName('EFARangePlotPanel')
-
         ydata_type = self.panel1_results['ydata_type']
 
         if self.panel1_results['secm_choice'] == 'usub':
@@ -11241,11 +11235,9 @@ class EFAControlPanel3(wx.Panel):
 
         ranges = self._getRanges()
 
-        plotpanel.plotRange(plot_secm, framei, framef, ydata_type, ranges)
+        self.sec_plot.plotRange(plot_secm, framei, framef, ydata_type, ranges)
 
     def updateResultsPlot(self):
-        plotpanel = wx.FindWindowByName('EFAResultsPlotPanel3')
-
         framei = self.panel1_results['fstart']
         framef = self.panel1_results['fend']
 
@@ -11253,21 +11245,18 @@ class EFAControlPanel3(wx.Panel):
 
         conc_data = [self.rotation_data['C'], range(framei, framef+1)]
 
-        plotpanel.plotEFA(self.sasms, rmsd_data, conc_data)
+        self.efa_frame.plotPanel3.plotEFA(self.sasms, rmsd_data, conc_data)
 
     def clearResultsPlot(self):
-        plotpanel = wx.FindWindowByName('EFAResultsPlotPanel3')
-
-        plotpanel.refresh()
-
-        plotpanel.canvas.draw()
+        self.efa_frame.plotPanel3.refresh()
+        self.efa_frame.plotPanel3.canvas.draw()
 
 
 class EFAResultsPlotPanel3(wx.Panel):
 
-    def __init__(self, parent, panel_id, name):
+    def __init__(self, parent, panel_id):
 
-        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, panel_id, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         main_frame = wx.FindWindowByName('MainFrame')
 
@@ -11477,9 +11466,10 @@ class EFAResultsPlotPanel3(wx.Panel):
 
 class EFARangePlotPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name):
+    def __init__(self, parent, panel_id):
 
-        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER, size = (275,300))
+        wx.Panel.__init__(self, parent, panel_id,
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER, size=(275,300))
 
         main_frame = wx.FindWindowByName('MainFrame')
 
@@ -11662,11 +11652,11 @@ class SimilarityFrame(wx.Frame):
         size = (min(600, client_display.Width), min(400, client_display.Height))
 
         try:
-            wx.Frame.__init__(self, parent, -1, title, name = 'SimilarityFrame', size = size)
+            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
         except:
-            wx.Frame.__init__(self, None, -1, title, name = 'SimilarityFrame', size = size)
+            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
 
-        self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
         self.sasm_list = sasm_list
 
@@ -12035,18 +12025,26 @@ class NormKratkyFrame(wx.Frame):
         size = (min(800, client_display.Width), min(600, client_display.Height))
 
         try:
-            wx.Frame.__init__(self, parent, wx.ID_ANY, title, name = 'NormKratkyFrame', size = size)
+            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
         except:
-            wx.Frame.__init__(self, None, wx.ID_ANY, title, name = 'NormKratkyFrame', size = size)
+            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
         self.main_frame = parent
 
-        splitter1 = wx.SplitterWindow(self, wx.ID_ANY)
+        self.sasm_list = sasm_list
 
-        self.plotPanel = NormKratkyPlotPanel(splitter1, wx.ID_ANY, 'NormKratkyPlotPanel')
-        self.controlPanel = NormKratkyControlPanel(splitter1, wx.ID_ANY, 'NormKratkyControlPanel', sasm_list)
+        self.panel = wx.Panel(self, wx.ID_ANY)
+
+        splitter1 = wx.SplitterWindow(self.panel, wx.ID_ANY)
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(splitter1, 1, flag=wx.EXPAND)
+        self.panel.SetSizer(sizer)
+
+        self.plotPanel = NormKratkyPlotPanel(splitter1, wx.ID_ANY)
+        self.controlPanel = NormKratkyControlPanel(splitter1, wx.ID_ANY, sasm_list)
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, 290)
 
@@ -12079,9 +12077,10 @@ class NormKratkyFrame(wx.Frame):
 
 class NormKratkyPlotPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name):
+    def __init__(self, parent, panel_id):
 
-        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, panel_id,
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         self.main_frame = wx.FindWindowByName('MainFrame')
 
@@ -12369,11 +12368,14 @@ class NormKratkyPlotPanel(wx.Panel):
 
 class NormKratkyControlPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, name, sasm_list):
+    def __init__(self, parent, panel_id, sasm_list):
 
-        wx.Panel.__init__(self, parent, panel_id, name = name,style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, panel_id,
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         self.parent = parent
+
+        self.norm_kratky_frame = parent.GetParent().GetParent()
 
         self.sasm_list = sasm_list
 
@@ -12391,8 +12393,7 @@ class NormKratkyControlPanel(wx.Panel):
         self._initialize()
 
     def onCloseButton(self, evt):
-        diag = wx.FindWindowByName('NormKratkyFrame')
-        diag.OnClose()
+        self.norm_kratky_frame.OnClose()
 
     def _createLayout(self):
 
@@ -12430,7 +12431,7 @@ class NormKratkyControlPanel(wx.Panel):
         return top_sizer
 
     def _initialize(self):
-        plotpanel = wx.FindWindowByName('NormKratkyPlotPanel')
+        plotpanel = self.norm_kratky_frame.plotPanel
 
         for sasm in self.sasm_list:
             analysis_dict = sasm.getParameter('analysis')
@@ -12459,7 +12460,7 @@ class NormKratkyControlPanel(wx.Panel):
         plotWindow = wx.FindWindowById(self.control_ids['plot'], self)
         plot_type = plotWindow.GetStringSelection()
 
-        plotpanel = wx.FindWindowByName('NormKratkyPlotPanel')
+        plotpanel = self.norm_kratky_frame.plotPanel
 
         subplot = plotpanel.subplot
         if not subplot.get_autoscale_on():
@@ -12481,6 +12482,8 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
         self.list_ctrl = ULC.UltimateListCtrl(self, agwStyle=ULC.ULC_REPORT
                         | ULC.ULC_SORT_ASCENDING, size=(-1,450)
                         )
+
+        self.norm_kratky_frame = parent.norm_kratky_frame
 
         self.list_ctrl.InsertColumn(0, 'Show')
         self.list_ctrl.InsertColumn(1, 'Filename')
@@ -12603,7 +12606,7 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
         state = item.IsChecked()
         line.set_visible(state)
 
-        plotpanel = wx.FindWindowByName('NormKratkyPlotPanel')
+        plotpanel = self.norm_kratky_frame.plotPanel
 
         legend =plotpanel.subplot.get_legend()
         if legend is not None and legend.get_visible():
@@ -12616,7 +12619,7 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
         itemData = item.GetPyData()
         line = itemData[1]
 
-        plotpanel = wx.FindWindowByName('NormKratkyPlotPanel')
+        plotpanel = self.norm_kratky_frame.plotPanel
 
         dlg = RAWCustomDialogs.ColourChangeDialog(self, None, 'NormKratky', line, plotpanel)
         dlg.ShowModal()
@@ -12645,17 +12648,25 @@ class LCSeriesFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(1000, client_display.Width), min(675, client_display.Height))
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, name = 'LCSeriesFrame', size = size)
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
 
-        splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE|wx.SP_3D)
+        panel = wx.Panel(self)
+
+        splitter = wx.SplitterWindow(panel, style=wx.SP_LIVE_UPDATE|wx.SP_3D)
+
+        sizer = wx.BoxSizer()
+        sizer.Add(splitter, 1, flag=wx.EXPAND)
+
+        panel.SetSizer(sizer)
 
         self.secm = copy.deepcopy(secm)
         self.original_secm = secm
         self.manip_item = manip_item
         self._raw_settings = raw_settings
 
-        self.plotPanel = LCSeriesPlotPage(splitter, 'LCSeriesPlotPage', secm)
-        self.controlPanel = LCSeriesControlPanel(splitter, 'LCSeriesControlPanel', secm)
+        self.plotPanel = LCSeriesPlotPage(splitter, secm)
+        self.controlPanel = LCSeriesControlPanel(splitter, secm)
+        self.controlPanel.initialize()
 
         splitter.SplitVertically(self.controlPanel, self.plotPanel, 325)
 
@@ -12710,6 +12721,8 @@ class SeriesPlotPanel(wx.Panel):
     def __init__(self, parent, plot_type):
 
         wx.Panel.__init__(self, parent)
+
+        self.series_frame = parent.GetParent().series_frame
 
         self.all_plot_types = {'unsub'  : {'left': 'Total Intensity', 'right' : '',
                         'title': 'Unsubtracted Series', 'bottom': 'Frame #'},
@@ -12995,7 +13008,7 @@ class SeriesPlotPanel(wx.Panel):
                 self.range_line.remove()
                 del self.range_line
 
-                control_page = wx.FindWindowByName('LCSeriesControlPanel')
+                control_page = self.series_frame.controlPanel
                 control_page.setPickRange(self.range_index, [self.start_range, self.end_range],
                     self.plot_type)
 
@@ -13066,10 +13079,12 @@ class SeriesPlotPanel(wx.Panel):
 
 class LCSeriesPlotPage(wx.Panel):
 
-    def __init__(self, parent, name, secm):
+    def __init__(self, parent,secm):
 
-        wx.Panel.__init__(self, parent, wx.ID_ANY, name=name,
+        wx.Panel.__init__(self, parent, wx.ID_ANY,
             style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
+
+        self.series_frame = parent.GetParent().GetParent()
 
         self.secm = copy.deepcopy(secm)
 
@@ -13221,7 +13236,7 @@ class LCSeriesPlotPage(wx.Panel):
 
     def update_plot_data(self, xdata, ydata, label, axis, plot):
         if plot == 'gen_sub':
-            control_page = wx.FindWindowByName('LCSeriesControlPanel')
+            control_page = self.series_frame.controlPanel
             if control_page.processing_done['baseline']:
                 plot = 'baseline'
             else:
@@ -13238,7 +13253,7 @@ class LCSeriesPlotPage(wx.Panel):
 
     def update_plot_range(self, start, end, index, plot):
         if plot == 'gen_sub':
-            control_page = wx.FindWindowByName('LCSeriesControlPanel')
+            control_page = self.series_frame.controlPanel
             if control_page.processing_done['baseline']:
                 plot = 'baseline'
             else:
@@ -13255,7 +13270,7 @@ class LCSeriesPlotPage(wx.Panel):
 
     def update_plot_label(self, label, axis, plot):
         if plot == 'gen_sub':
-            control_page = wx.FindWindowByName('LCSeriesControlPanel')
+            control_page = self.series_frame.controlPanel
             if control_page.processing_done['baseline']:
                 plot = 'baseline'
             else:
@@ -13272,7 +13287,7 @@ class LCSeriesPlotPage(wx.Panel):
 
     def remove_plot_range(self, index, plot):
         if plot == 'gen_sub':
-            control_page = wx.FindWindowByName('LCSeriesControlPanel')
+            control_page = self.series_frame.controlPanel
             if control_page.processing_done['baseline']:
                 plot = 'baseline'
             else:
@@ -13289,7 +13304,7 @@ class LCSeriesPlotPage(wx.Panel):
 
     def remove_plot_data(self, index, plot):
         if plot == 'gen_sub':
-            control_page = wx.FindWindowByName('LCSeriesControlPanel')
+            control_page = self.series_frame.controlPanel
             if control_page.processing_done['baseline']:
                 plot = 'baseline'
             else:
@@ -13306,7 +13321,7 @@ class LCSeriesPlotPage(wx.Panel):
 
     def pick_plot_range(self, start_item, end_item, index, plot):
         if plot == 'gen_sub':
-            control_page = wx.FindWindowByName('LCSeriesControlPanel')
+            control_page = self.series_frame.controlPanel
             if control_page.processing_done['baseline']:
                 plot = 'baseline'
             else:
@@ -13323,7 +13338,7 @@ class LCSeriesPlotPage(wx.Panel):
 
     def show_plot_range(self, index, plot, show):
         if plot == 'gen_sub':
-            control_page = wx.FindWindowByName('LCSeriesControlPanel')
+            control_page = self.series_frame.controlPanel
             if control_page.processing_done['baseline']:
                 plot = 'baseline'
             else:
@@ -13388,7 +13403,7 @@ class LCSeriesPlotPage(wx.Panel):
         self.update_plot_label(label, 'left', 'baseline')
         # self.update_plot_label(label, 'left', 'uv')
 
-        control_page = wx.FindWindowByName('LCSeriesControlPanel')
+        control_page = self.series_frame.controlPanel
 
         frames = self.secm.getFrames()
 
@@ -13408,7 +13423,7 @@ class LCSeriesPlotPage(wx.Panel):
 
         self.calc = calc_type
 
-        control_page = wx.FindWindowByName('LCSeriesControlPanel')
+        control_page = self.series_frame.controlPanel
 
         frames = self.secm.getFrames()
 
@@ -13464,7 +13479,7 @@ class LCSeriesPlotPage(wx.Panel):
                 self.update_plot_data(sub_frames, sub_data, 'calc', 'right', 'sub')
 
     def _on_qval_change(self, event):
-        control_page = wx.FindWindowByName('LCSeriesControlPanel')
+        control_page = self.series_frame.controlPanel
 
         frames = self.secm.getFrames()
 
@@ -13494,7 +13509,7 @@ class LCSeriesPlotPage(wx.Panel):
         return
 
     def _on_qrange_change(self, event):
-        control_page = wx.FindWindowByName('LCSeriesControlPanel')
+        control_page = self.series_frame.controlPanel
 
         frames = self.secm.getFrames()
 
@@ -13530,9 +13545,10 @@ class LCSeriesPlotPage(wx.Panel):
 
 class LCSeriesControlPanel(wx.ScrolledWindow):
 
-    def __init__(self, parent, name, secm):
+    def __init__(self, parent, secm):
 
-        wx.ScrolledWindow.__init__(self, parent, name=name, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER|wx.VSCROLL)
+        wx.ScrolledWindow.__init__(self, parent,
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER|wx.VSCROLL)
         self.SetScrollRate(20,20)
 
         self.secm = copy.deepcopy(secm)
@@ -13541,8 +13557,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.main_frame = wx.FindWindowByName('MainFrame')
         self.raw_settings = self.main_frame.raw_settings
 
-        self.plot_page = wx.FindWindowByName('LCSeriesPlotPage')
-        self.series_frame = wx.FindWindowByName('LCSeriesFrame')
+        self.series_frame = parent.GetParent().GetParent()
+        self.plot_page = self.series_frame.plotPanel
 
         self.question_thread_wait_event = threading.Event()
         self.question_return_queue = Queue.Queue()
@@ -13577,7 +13593,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         self.results = {}
 
-        self._initialize()
+
 
     def _createLayout(self):
 
@@ -13809,7 +13825,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         self.SetSizer(top_sizer)
 
-    def _initialize(self):
+    def initialize(self):
         frames = self.secm.getFrames()
 
         if self.plot_page.intensity == 'total':
@@ -14252,16 +14268,14 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         RAWGlobals.mainworker_cmd_queue.put(['update_secm_plot', self.original_secm])
 
-        diag = wx.FindWindowByName('LCSeriesFrame')
-        wx.CallAfter(diag.manip_item.updateInfoTip)
-        wx.CallAfter(diag.manip_item.markAsModified)
-        wx.CallAfter(diag.OnClose)
+        wx.CallAfter(self.series_frame.manip_item.updateInfoTip)
+        wx.CallAfter(self.series_frame.manip_item.markAsModified)
+        wx.CallAfter(self.series_frame.OnClose)
 
         self.proc_lock.release()
 
     def onCancelButton(self, evt):
-        diag = wx.FindWindowByName('LCSeriesFrame')
-        diag.OnClose()
+        self.series_frame.OnClose()
 
     def onUpdateProc(self, event):
         event_object = event.GetEventObject()
@@ -16155,8 +16169,6 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                     msg = msg+('\nPossible correlations with frame number were detected '
                         'in the\nfollowing parameters (no correlation is expected for '
                         'well-subtracted\nsingle-species data):\n')
-
-                    print param_results
 
                     if param_results['rg_pval'] <= 0.05:
                         msg = msg + ('- Radius of gyration\n')

@@ -4423,21 +4423,23 @@ class OptionsDialog(wx.Dialog):
 
         self.treebook.updateAllNonGuiChanges()
 
-        mw_window = wx.FindWindowByName('MolWeightFrame')
-        if mw_window:
-            mw_window.updateMWInfo()
+        main_frame = wx.FindWindowByName('MainFrame')
 
-        gnom_window = wx.FindWindowByName('GNOMControlPanel')
-        if gnom_window:
-            gnom_window.updateGNOMSettings()
+        for mw_window in main_frame.mw_frames:
+            if mw_window:
+                mw_window.updateMWInfo()
 
-        dammif_window = wx.FindWindowByName('DammifRunPanel')
-        if dammif_window:
-            dammif_window.updateDAMMIFSettings()
+        for gnom_window in main_frame.gnom_frames:
+            if gnom_window:
+                gnom_window.updateGNOMSettings()
 
-        denss_window = wx.FindWindowByName('DenssRunPanel')
-        if denss_window:
-            denss_window.updateDenssSettings()
+        for dammif_window in main_frame.dammif_frames:
+            if dammif_window:
+                dammif_window.updateDAMMIFSettings()
+
+        for denss_window in main_frame.denss_frames:
+            if denss_window:
+                denss_window.updateDenssSettings()
 
 
 #--- ** FOR TESTING **
