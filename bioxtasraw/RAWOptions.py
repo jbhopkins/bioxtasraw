@@ -988,6 +988,94 @@ class OnlineListCtrl(wx.ListCtrl):
             pos = each[2]
             self.add(filt, expr, pos)
 
+class MetadataListCtrl(wx.ListCtrl):
+
+    def __init__(self, parent, id, *args, **kwargs):
+
+        wx.ListCtrl.__init__(self, parent, id, *args, **kwargs)
+        self.populateList()
+
+    def populateList(self):
+        self.InsertColumn(0, 'Key')
+        self.InsertColumn(1, 'Value')
+        self.SetColumnWidth(1, 250)
+
+    def add(self, op, expr):
+        no_of_items = self.GetItemCount()
+        if wx.version().split()[0].strip()[0] == '4':
+            self.InsertItem(no_of_items, op)
+            self.SetItem(no_of_items, 1, expr)
+        else:
+            self.InsertStringItem(no_of_items, op)
+            self.SetStringItem(no_of_items, 1, expr)
+
+    def moveItemUp(self, idx):
+        if idx > 0:
+            data = self.getItemData(idx)
+            self.DeleteItem(idx)
+            self.InsertStringItem(idx-1, data[0])
+            self.SetStringItem(idx-1, 1, data[1])
+            self.Select(idx-1, True)
+
+    def moveItemDown(self, idx):
+        if idx < self.GetItemCount()-1:
+            data = self.getItemData(idx)
+            self.DeleteItem(idx)
+            self.InsertStringItem(idx+1, data[0])
+            self.SetStringItem(idx+1, 1, data[1])
+            self.Select(idx+1, True)
+
+    def getItemData(self, idx):
+        data1 = self.GetItemText(idx)
+        item = self.GetItem(idx, 1)
+        data2 = item.GetText()
+
+        return [data1, data2]
+
+    def getSelectedItems(self):
+        """    Gets the selected items for the list control.
+          Selection is returned as a list of selected indices,
+          low to high.
+        """
+        selection = []
+        index = self.GetFirstSelected()
+
+        if index == -1:
+            return []
+
+        selection.append(index)
+
+        while len(selection) != self.GetSelectedItemCount():
+            index = self.GetNextSelected(index)
+            selection.append(index)
+
+        return selection
+
+    def getAllItems(self):
+        ''' returns a list with all items and operator '''
+        all_items = []
+        for i in range(0, self.GetItemCount()):
+             all_items.append(self.getItemData(i))
+
+        return all_items
+
+    def GetValue(self):
+        ''' Creating a function to mimic other normal control widgets,
+        this makes it easier to update and save settings for this
+        control.'''
+
+        return self.getAllItems()
+
+    def SetValue(self, value_list):
+
+        if value_list == None:
+            return
+
+        for each in value_list:
+            op = each[0]
+            expr = each[1]
+            self.add(op, expr)
+
 
 class ReductionNormalizationAbsScPanel(wx.Panel):
 
@@ -2003,6 +2091,130 @@ class OnlineModePanel(wx.Panel):
         if expr != '':
             self.online_list.add(filt, expr, pos)
 
+class MetadataPanel(wx.Panel):
+
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+
+        self.update_keys = ['MetadataList', 'EnableMetadata']
+
+        self.raw_settings = raw_settings
+
+        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+
+        self.meta_list_id = raw_settings.getId('MetadataList')
+        self.enable_meta_id = raw_settings.getId('EnableMetadata')
+
+
+        self.selected_item = None
+
+        metasizer = self.createMetadataList()
+
+        final_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        final_sizer.Add(metasizer, 1, wx.EXPAND |wx.ALL, 5)
+
+        self.SetSizer(final_sizer)
+
+    def createMetadataList(self):
+
+        self.meta_list = MetadataListCtrl(self, self.meta_list_id, style = wx.LC_REPORT)
+        self.meta_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onMetaListSelection)
+
+        self.meta_list_title = wx.StaticText(self, -1, 'Metadata List:')
+
+        self.enable_meta_chkbox = wx.CheckBox(self, self.enable_meta_id, 'Enable Metadata')
+
+        self.up_button = wx.Button(self, -1, 'Move up')
+        self.up_button.Bind(wx.EVT_BUTTON, self.onUpButton)
+        self.down_button = wx.Button(self, -1, 'Move down')
+        self.down_button.Bind(wx.EVT_BUTTON, self.onDownButton)
+
+        self.delete_button = wx.Button(self, -1, 'Delete')
+        self.delete_button.Bind(wx.EVT_BUTTON, self.onDeleteButton)
+        self.clear_meta_list_button = wx.Button(self, -1, 'Clear all')
+        self.clear_meta_list_button.Bind(wx.EVT_BUTTON, self.onClearListButton)
+
+        self.key_ctrl = wx.TextCtrl(self)
+        self.val_ctrl = wx.TextCtrl(self)
+
+        add_button = wx.Button(self, -1, 'Add')
+        add_button.Bind(wx.EVT_BUTTON, self.onAddButton)
+
+        #ud_button_sizer = wx.BoxSizer(wx.VERTICAL)
+        ud_button_sizer = wx.FlexGridSizer(cols=1, rows=4, vgap=3, hgap=0)
+        ud_button_sizer.Add(self.up_button,1, wx.EXPAND)
+        ud_button_sizer.Add(self.down_button, 1, wx.EXPAND)
+        ud_button_sizer.Add(self.delete_button, 1, wx.EXPAND)
+        ud_button_sizer.Add(self.clear_meta_list_button, 1, wx.EXPAND)
+
+        list_sizer= wx.BoxSizer()
+        list_sizer.Add(self.meta_list,1, wx.EXPAND | wx.RIGHT, 3)
+        list_sizer.Add(ud_button_sizer,0, wx.LEFT, 3)
+
+        meta_entry_sizer = wx.FlexGridSizer(cols=2, rows=2, vgap=3, hgap=3)
+        meta_entry_sizer.Add(wx.StaticText(self, label='Key:'))
+        meta_entry_sizer.Add(self.key_ctrl, flag=wx.EXPAND, proportion=1)
+        meta_entry_sizer.Add(wx.StaticText(self, label='Value:'))
+        meta_entry_sizer.Add(self.val_ctrl, flag=wx.EXPAND, proportion=1)
+        meta_entry_sizer.AddGrowableCol(1)
+
+        ctrl_sizer = wx.BoxSizer(wx.VERTICAL)
+        ctrl_sizer.Add(meta_entry_sizer, flag=wx.EXPAND|wx.TOP, border=3)
+        ctrl_sizer.Add(add_button, border=5, flag=wx.TOP|wx.BOTTOM)
+
+        final_sizer = wx.BoxSizer(wx.VERTICAL)
+        final_sizer.Add(self.enable_meta_chkbox, 0, wx.BOTTOM, 5)
+        final_sizer.Add(self.meta_list_title,0, wx.BOTTOM, 5)
+        final_sizer.Add(list_sizer, 1, wx.EXPAND)
+        final_sizer.Add(ctrl_sizer, 0, wx.EXPAND | wx.TOP, 5)
+
+        return final_sizer
+
+    def onMetaListSelection(self, event):
+        self.selected_item = event.GetItem()
+
+    def onDeleteButton(self, event):
+        items = self.meta_list.getSelectedItems()
+
+        if len(items) > 0:
+            self.meta_list.DeleteItem(items[0])
+
+    def onUpButton(self, event):
+        itemidx = self.meta_list.GetFirstSelected()
+        self.meta_list.moveItemUp(itemidx)
+
+    def onDownButton(self, event):
+        itemidx = self.meta_list.GetFirstSelected()
+        self.meta_list.moveItemDown(itemidx)
+
+    def onClearListButton(self, event):
+        self.meta_list.DeleteAllItems()
+
+    def onAddButton(self, event):
+        key = self.key_ctrl.GetValue()
+        val = self.val_ctrl.GetValue()
+
+        if key != '' and val != '':
+            self.meta_list.add(key, val)
+        else:
+            msg = ('Key and Value must be not empty.')
+            wx.MessageBox(msg, 'Cannot add empty metadata')
+
+    def updateNonGuiChanges(self):
+        img_hdr = self.raw_settings.get('ImageHdrList')
+        file_hdr = self.raw_settings.get('FileHdrList')
+
+        self.expr_combo_list = [''] + sorted(img_hdr.keys() + file_hdr.keys())
+
+        if not self.expr_combo.IsTextEmpty():
+            expr = self.expr_combo.GetValue()
+        else:
+            expr = ''
+
+        self.expr_combo.SetItems(self.expr_combo_list)
+
+        if expr != '':
+            self.expr_combo.SetValue(expr)
 
 class GeneralOptionsPanel(wx.Panel):
 
@@ -4265,9 +4477,10 @@ class OptionsDialog(wx.Dialog):
                             [ (2,0,0), wx.Window.NewControlId(), '2D Reduction', ReductionOptionsPanel],
                             [ (2,1,0), wx.Window.NewControlId(), 'Image/Header Format', ReductionImgHdrFormatPanel],
                             [ (2,2,0), wx.Window.NewControlId(), 'Calibration', CalibrationOptionsPanel],
-                            [ (2,4,1), wx.Window.NewControlId(), 'Normalization', ReductionNormalizationPanel] ,
-                            [ (2,4,2), wx.Window.NewControlId(), 'Absolute Scale', ReductionNormalizationAbsScPanel],
-                            [ (2,4,3), wx.Window.NewControlId(), 'Flatfield Correction', ReductionFlatfield],
+                            [ (2,3,1), wx.Window.NewControlId(), 'Normalization', ReductionNormalizationPanel] ,
+                            [ (2,3,2), wx.Window.NewControlId(), 'Absolute Scale', ReductionNormalizationAbsScPanel],
+                            [ (2,3,3), wx.Window.NewControlId(), 'Flatfield Correction', ReductionFlatfield],
+                            [ (2,4,0), wx.Window.NewControlId(), 'Metadata', MetadataPanel],
                             [ (3,0,0), wx.Window.NewControlId(), 'Molecular Weight', MolecularWeightPanel],
                             [ (4,0,0), wx.Window.NewControlId(), 'Artifact Removal', ArtifactOptionsPanel],
                             [ (5,0,0), wx.Window.NewControlId(), 'IFT', IftOptionsPanel],

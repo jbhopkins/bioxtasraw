@@ -1044,6 +1044,13 @@ def loadFile(filename, raw_settings, no_processing = False):
             current_sasm.setParameter('config_file', raw_settings.get('CurrentCfg'))
             SASM.postProcessSasm(current_sasm, raw_settings)
 
+            # Add meta data if any is defined.
+            if raw_settings.get('EnableMetadata'):
+                meta_list = raw_settings.get('MetadataList')
+                if meta_list is not None and len(meta_list) > 0:
+                    metadata = {key:value for (key, value) in meta_list}
+                    current_sasm.setParameter('metadata', metadata)
+
             if not no_processing:
                 #Need to do a little work before we can do glassy carbon normalization
                 if raw_settings.get('NormAbsCarbon') and not raw_settings.get('NormAbsCarbonIgnoreBkg'):

@@ -693,6 +693,19 @@ class HdrDataDialog(wx.Dialog):
             keys = file_hdr.keys()
             all_keys.extend(keys)
 
+        if self.sasm.getAllParameters().has_key('metadata'):
+            metadata = self.sasm.getParameter('metadata')
+            keys = metadata.keys()
+            all_keys.extend(keys)
+
+        if self.sasm.getAllParameters().has_key('calibration_params'):
+            calibration_params = self.sasm.getParameter('calibration_params')
+            keys = calibration_params.keys()
+            all_keys.extend(keys)
+
+        if self.sasm.getAllParameters().has_key('raw_version'):
+            all_keys.extend(['raw_version'])
+
         if self.sasm.getAllParameters().has_key('imageHeader'):
             img_hdr = self.sasm.getParameter('imageHeader')
             keys = img_hdr.keys()
@@ -702,30 +715,64 @@ class HdrDataDialog(wx.Dialog):
 
     def _insertData(self):
 
-        imghdr_data_len = 0
-        filehdr_data_len = 0
+        total_len = 0
 
         if self.sasm.getAllParameters().has_key('counters'):
             file_hdr = self.sasm.getParameter('counters')
             keys = file_hdr.keys()
 
             if len(keys) > 0:
-                filehdr_data_len = len(keys)
+                data_len = len(keys)
 
-                for i in range(0, filehdr_data_len):
+                for i in range(0, data_len):
                     self.data_grid.SetCellValue(i, 0, str(keys[i]))
                     self.data_grid.SetCellValue(i, 1, str(file_hdr[keys[i]]))
+
+                total_len = total_len + data_len
+
+        if self.sasm.getAllParameters().has_key('metadata'):
+            metadata = self.sasm.getParameter('metadata')
+            keys = metadata.keys()
+
+            if len(keys) > 0:
+                data_len = len(keys)
+
+                for i in range(total_len, total_len+data_len):
+                    self.data_grid.SetCellValue(i, 0, str(keys[i-total_len]))
+                    self.data_grid.SetCellValue(i, 1, str(metadata[keys[i-total_len]]))
+
+                total_len = total_len + data_len
+
+        if self.sasm.getAllParameters().has_key('calibration_params'):
+            calibration_params = self.sasm.getParameter('calibration_params')
+            keys = calibration_params.keys()
+
+            if len(keys) > 0:
+                data_len = len(keys)
+
+                for i in range(total_len, total_len+data_len):
+                    self.data_grid.SetCellValue(i, 0, str(keys[i-total_len]))
+                    self.data_grid.SetCellValue(i, 1, str(calibration_params[keys[i-total_len]]))
+
+                total_len = total_len + data_len
+
+        if self.sasm.getAllParameters().has_key('raw_version'):
+            raw_version = self.sasm.getParameter('raw_version')
+            self.data_grid.SetCellValue(total_len, 0, 'raw_version')
+            self.data_grid.SetCellValue(total_len, 1, str(raw_version))
+
+            total_len = total_len + 1
 
         if self.sasm.getAllParameters().has_key('imageHeader'):
             img_hdr = self.sasm.getParameter('imageHeader')
             keys = img_hdr.keys()
 
             if len(keys) > 0:
-                imghdr_data_len = len(keys)
+                data_len = len(keys)
 
-                for i in range(filehdr_data_len, filehdr_data_len + imghdr_data_len):
-                    self.data_grid.SetCellValue(i, 0, str(keys[i-filehdr_data_len]))
-                    self.data_grid.SetCellValue(i, 1, str(img_hdr[keys[i-filehdr_data_len]]))
+                for i in range(total_len, total_len + data_len):
+                    self.data_grid.SetCellValue(i, 0, str(keys[i-total_len]))
+                    self.data_grid.SetCellValue(i, 1, str(img_hdr[keys[i-total_len]]))
 
 
     def _writeData(self):
@@ -1216,6 +1263,7 @@ class HistoryDialog(wx.Dialog):
             load = sasm.getParameter('load_path')
             params = sasm.getParameter('calibration_params')
             version = sasm.getParameter('raw_version')
+            metadata = sasm.getParameter('metadata')
 
             if norm != {} and norm != None:
                 self.text.AppendText('Normalizations:\n%s\n\n' %(json.dumps(norm, indent = 4, sort_keys = True)))
@@ -1225,6 +1273,8 @@ class HistoryDialog(wx.Dialog):
                 self.text.AppendText('Load Path:\n%s\n\n' %(json.dumps(load, indent = 4, sort_keys = True)))
             if params != {} and params != None:
                 self.text.AppendText('Calibration Parameters:\n%s\n\n' %(json.dumps(params, indent = 4, sort_keys = True)))
+            if metadata != {} and metadata != None:
+                self.text.AppendText('Metadata:\n%s\n\n' %(json.dumps(metadata, indent = 4, sort_keys = True)))
             if version != {} and version != None:
                 self.text.AppendText('Created with RAW version:\n%s\n\n' %(json.dumps(version, indent = 4, sort_keys = True)))
 

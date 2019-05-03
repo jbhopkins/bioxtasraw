@@ -199,6 +199,9 @@ class RawGuiSettings(object):
                             'NormalizationList'    : [None, wx.NewId(), 'text'],
                             'EnableNormalization'  : [True, wx.NewId(), 'bool'],
 
+                            'MetadataList'         : [None, wx.NewId(), 'text'],
+                            'EnableMetadata'       : [True, wx.NewId(), 'bool'],
+
                             'OnlineFilterList'     : [None, wx.NewId(), 'text'],
                             'EnableOnlineFiltering': [False, wx.NewId(), 'bool'],
                             'OnlineModeOnStartup'  : [False, wx.NewId(), 'bool'],
