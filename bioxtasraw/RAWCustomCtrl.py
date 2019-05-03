@@ -19,6 +19,7 @@
 import math
 import platform
 import logging
+import string
 
 import numpy as np
 import wx
@@ -35,6 +36,50 @@ from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 
 import RAWIcons
 import RAWGlobals
+
+class CharValidator(wx.Validator):
+    ''' Validates data as it is entered into the text controls. '''
+
+    def __init__(self, flag):
+        wx.Validator.__init__(self)
+        self.flag = flag
+        self.Bind(wx.EVT_CHAR, self.OnChar)
+
+        self.fname_chars = string.ascii_letters+string.digits+'_-'
+
+        self.special_keys = [wx.WXK_BACK, wx.WXK_DELETE,
+            wx.WXK_TAB, wx.WXK_NUMPAD_TAB, wx.WXK_NUMPAD_ENTER]
+
+    def Clone(self):
+        '''Required Validator method'''
+        return CharValidator(self.flag)
+
+    def Validate(self, win):
+        return True
+
+    def TransferToWindow(self):
+        return True
+
+    def TransferFromWindow(self):
+        return True
+
+    def OnChar(self, event):
+        keycode = int(event.GetKeyCode())
+        if keycode < 256 and keycode not in self.special_keys:
+            #print keycode
+            key = chr(keycode)
+            #print key
+            if self.flag == 'int' and key not in string.digits:
+                return
+            elif self.flag == 'float' and key not in string.digits+'.':
+                return
+            elif self.flag == 'fname' and key not in self.fname_chars:
+                return
+            elif self.flag == 'float_te' and key not in string.digits+'-.\n\r':
+                return
+            elif self.flag == 'float_neg' and key not in string.digits+'.-':
+                return
+        event.Skip()
 
 
 class ColourIndicator(control_super):

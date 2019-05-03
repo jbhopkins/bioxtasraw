@@ -203,17 +203,9 @@ def calcVpMW(q, i, err, rg, i0, rg_qmin, vp_density):
 
     return mw, pVolume, pv_cor
 
-def calcAbsMW(i0, conc):
-    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
-    #Default values from Mylonas & Svergun, J. App. Crys. 2007.
-    rho_Mprot = raw_settings.get('MWAbsRhoMprot') #e-/g, # electrons per dry mass of protein
-    rho_solv = raw_settings.get('MWAbsRhoSolv') #e-/cm^-3, # electrons per volume of aqueous solvent
-    nu_bar = raw_settings.get('MWAbsNuBar') #cm^3/g, # partial specific volume of the protein
-    r0 = raw_settings.get('MWAbsR0') #cm, scattering lenght of an electron
-
+def calcAbsMW(i0, conc, rho_Mprot, rho_solv, nu_bar, r0):
     d_rho = (rho_Mprot-(rho_solv*nu_bar))*r0
     mw = (Avogadro*i0/conc)/np.square(d_rho)
-
     return mw
 
 

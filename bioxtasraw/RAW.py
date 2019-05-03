@@ -7182,7 +7182,7 @@ class ManipItemPanel(wx.Panel):
             else:
                 self.info_icon.SetToolTip(wx.ToolTip(string))
 
-        if fromGuinierDialog:
+        if fromGuinierDialog and self._selected:
             self.info_panel.updateInfoFromItem(self)
 
     def enableStar(self, state):

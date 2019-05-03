@@ -1374,10 +1374,12 @@ class MolWeightFrame(wx.Frame):
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(self.info_panel, 0, wx.EXPAND)
-        top_sizer.Add(wx.StaticLine(parent = parent, style = wx.LI_HORIZONTAL), 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
+        top_sizer.Add(wx.StaticLine(parent = parent, style = wx.LI_HORIZONTAL),
+            0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
         top_sizer.Add(self.top_mw, 10, wx.EXPAND)
         top_sizer.AddStretchSpacer(1)
-        top_sizer.Add(wx.StaticLine(parent = parent, style = wx.LI_HORIZONTAL), 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
+        top_sizer.Add(wx.StaticLine(parent = parent, style = wx.LI_HORIZONTAL),
+            0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
         top_sizer.Add(self.button_panel, 0, wx.ALIGN_RIGHT | wx.TOP | wx.BOTTOM | wx.LEFT, 5)
 
         return top_sizer
@@ -1532,7 +1534,8 @@ class MolWeightFrame(wx.Frame):
 
         concsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        conc = wx.TextCtrl(parent, conc_ids['conc'], '', size = (60, -1))
+        conc = wx.TextCtrl(parent, conc_ids['conc'], '', size = (60, -1),
+            validator=RAWCustomCtrl.CharValidator('float'))
         conc_txt = wx.StaticText(parent, -1,  'Concentration: ')
         conc_txt2 = wx.StaticText(parent, -1,  'mg/ml')
 
@@ -1701,7 +1704,9 @@ class MolWeightFrame(wx.Frame):
         mwsizer.Add(VpMW, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
         mwsizer.Add(txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
-        mw_warning = RAWCustomCtrl.AutoWrapStaticText(parent, 'Warning: final q point is outside the extrapolation region (0.15 < q < 0.45 1/A), no correction has been applied!')
+        mw_warning = RAWCustomCtrl.AutoWrapStaticText(parent, ('Warning: final '
+            'q point is outside the extrapolation region (0.15 < q < 0.45 1/A), '
+            'no correction has been applied!'))
 
         self.mw_warning_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.mw_warning_sizer.Add(mw_warning, wx.EXPAND)
@@ -1714,9 +1719,12 @@ class MolWeightFrame(wx.Frame):
         sup_txt5 = wx.StaticText(parent, -1, 'Macromolecule Density :')
         sup_txt6 = wx.StaticText(parent, -1, 'kDa/A^3')
 
-        sup_vp = wx.TextCtrl(parent, vp_ids['sup_vp'], '', size = (60, -1), style = wx.TE_READONLY)
-        sup_vpc = wx.TextCtrl(parent, vp_ids['sup_vpc'], '', size = (60, -1), style = wx.TE_READONLY)
-        sup_density = wx.TextCtrl(parent, vp_ids['sup_density'], '', size = (60, -1), style = wx.TE_READONLY)
+        sup_vp = wx.TextCtrl(parent, vp_ids['sup_vp'], '', size = (80, -1), style = wx.TE_READONLY)
+        sup_vpc = wx.TextCtrl(parent, vp_ids['sup_vpc'], '', size = (80, -1), style = wx.TE_READONLY)
+        sup_density = wx.TextCtrl(parent, vp_ids['sup_density'], '', size = (80, -1),
+            validator=RAWCustomCtrl.CharValidator('float'))
+
+        sup_density.Bind(wx.EVT_TEXT, self._updateVcmwParam)
 
         sup_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
         sup_sizer1.Add(sup_txt1, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -1755,7 +1763,8 @@ class MolWeightFrame(wx.Frame):
 
         abs_ids = self.ids['abs']
 
-        abs_checkbox = wx.CheckBox(parent, id = abs_ids['calib'], label = 'Intensity on Absolute Scale', style = wx.ALIGN_RIGHT)
+        abs_checkbox = wx.CheckBox(parent, id=abs_ids['calib'],
+            label='Intensity on Absolute Scale', style=wx.ALIGN_RIGHT)
         abs_checkbox.SetValue(False)
         abs_checkbox.Bind(wx.EVT_CHECKBOX, self._onAbsCheck)
 
@@ -1772,7 +1781,8 @@ class MolWeightFrame(wx.Frame):
 
         concsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        conc = wx.TextCtrl(parent, abs_ids['conc'], '', size = (60, -1))
+        conc = wx.TextCtrl(parent, abs_ids['conc'], '', size = (60, -1),
+            validator=RAWCustomCtrl.CharValidator('float'))
         conc_txt = wx.StaticText(parent, -1,  'Concentration: ')
         conc_txt2 = wx.StaticText(parent, -1,  'mg/ml')
 
@@ -1802,10 +1812,17 @@ class MolWeightFrame(wx.Frame):
         sup_txt9 = wx.StaticText(parent, -1, 'Calc. Scattering contrast per mass :')
         sup_txt10 = wx.StaticText(parent, -1, 'e- cm/g')
 
-        sup_pm = wx.TextCtrl(parent, abs_ids['sup_pm'], '', size = (70, -1), style = wx.TE_READONLY)
-        sup_ps = wx.TextCtrl(parent, abs_ids['sup_ps'], '', size = (70, -1), style = wx.TE_READONLY)
-        sup_pv = wx.TextCtrl(parent, abs_ids['sup_pv'], '', size = (70, -1), style = wx.TE_READONLY)
-        sup_sc = wx.TextCtrl(parent, abs_ids['sup_sc'], '', size = (70, -1), style = wx.TE_READONLY)
+        sup_pm = wx.TextCtrl(parent, abs_ids['sup_pm'], '', size = (80, -1),
+            validator=RAWCustomCtrl.CharValidator('float'))
+        sup_ps = wx.TextCtrl(parent, abs_ids['sup_ps'], '', size = (80, -1),
+            validator=RAWCustomCtrl.CharValidator('float'))
+        sup_pv = wx.TextCtrl(parent, abs_ids['sup_pv'], '', size = (80, -1),
+            validator=RAWCustomCtrl.CharValidator('float'))
+        sup_sc = wx.TextCtrl(parent, abs_ids['sup_sc'], '', size = (80, -1), style=wx.TE_READONLY)
+
+        sup_pm.Bind(wx.EVT_TEXT, self._updateAbsmwParams)
+        sup_ps.Bind(wx.EVT_TEXT, self._updateAbsmwParams)
+        sup_pv.Bind(wx.EVT_TEXT, self._updateAbsmwParams)
 
         sup_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
         sup_sizer1.Add(sup_txt1, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -2135,8 +2152,20 @@ class MolWeightFrame(wx.Frame):
         self.calcConcMW()
         self.calcAbsMW()
 
-    def _onUpdateDensity(self, evt):
-        self.calcVpMW()
+    def _updateVcmwParam(self, evt):
+
+        try:
+            float(evt.GetEventObject().GetValue())
+            self.calcVpMW()
+        except Exception:
+            pass
+
+    def _updateAbsmwParams(self, evt):
+        try:
+            float(evt.GetEventObject().GetValue())
+            self.calcAbsMW()
+        except Exception:
+            pass
 
     def _onAbsCheck(self, evt):
         chkbox = evt.GetEventObject()
@@ -2348,7 +2377,7 @@ class MolWeightFrame(wx.Frame):
             i0 = 0
             rg = 0
 
-        density = self.raw_settings.get('MWVpRho')
+        density = float(wx.FindWindowById(self.ids['VP']['sup_density'], self).GetValue())
 
         q = self.sasm.q
         i = self.sasm.i
@@ -2424,8 +2453,13 @@ class MolWeightFrame(wx.Frame):
         else:
             i0 = 0
 
+        rho_Mprot = float(wx.FindWindowById(self.ids['abs']['sup_pm'], self).GetValue()) #e-/g, # electrons per dry mass of protein
+        rho_solv = float(wx.FindWindowById(self.ids['abs']['sup_ps'], self).GetValue()) #e-/cm^-3, # electrons per volume of aqueous solvent
+        nu_bar = float(wx.FindWindowById(self.ids['abs']['sup_pv'], self).GetValue()) #cm^3/g, # partial specific volume of the protein
+        r0 = self.raw_settings.get('MWAbsR0') #cm, scattering lenght of an electron
+
         if conc > 0 and i0 > 0 and wx.FindWindowById(abs_ids['calib'], self).GetValue():
-            mw = SASCalc.calcAbsMW(i0, conc)
+            mw = SASCalc.calcAbsMW(i0, conc, rho_Mprot, rho_solv, nu_bar, r0)
 
             self.mws['abs']['mw'] = str(mw)
 
@@ -2438,6 +2472,9 @@ class MolWeightFrame(wx.Frame):
 
             mwCtrl = wx.FindWindowById(abs_ids['calc_mw'], self)
             mwCtrl.SetValue(mwstr)
+
+            d_rho = (rho_Mprot-(rho_solv*nu_bar))*r0
+            wx.FindWindowById(self.ids['abs']['sup_sc'], self).ChangeValue('%.2E' %(d_rho))
 
         else:
             self.mws['abs']['mw'] = ''
