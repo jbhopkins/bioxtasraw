@@ -2076,7 +2076,7 @@ def loadPrimusDatFile(filename):
     if len(header)>0:
         hdr_str = ''
         for each_line in header:
-            hdr_str=hdr_str+each_line
+            hdr_str=hdr_str+each_line.lstrip('#')
         try:
             hdict = dict(json.loads(hdr_str))
             print 'Loading RAW info/analysis...'
@@ -3197,7 +3197,7 @@ def readSettings(filename):
     return settings
 
 def writeHeader(d, f2, ignore_list = []):
-    f2.write('### HEADER:\n\n')
+    f2.write('### HEADER:\n#\n#')
 
     ignore_list.append('fit_sasm')
     ignore_list.append('orig_sasm')
@@ -3206,9 +3206,11 @@ def writeHeader(d, f2, ignore_list = []):
         if ignored_key in d.keys():
             del d[ignored_key]
 
-    f2.write(json.dumps(d, indent = 4, sort_keys = True, cls = MyEncoder))
+    header = json.dumps(d, indent = 4, sort_keys = True, cls = MyEncoder)
+    header = header.replace('\n', '\n#')
+    f2.write(header)
 
-    f2.write('\n\n')
+    f2.write('\n#\n#')
 
 
 #This class goes with write header, and was lifted from:
@@ -3240,15 +3242,15 @@ def writeRadFile(m, filename, header_on_top = True, use_header = True):
 
         q_min, q_max = m.getQrange()
 
-        f2.write('### DATA:\n\n')
-        f2.write('         Q               I              Error\n')
-        f2.write('%d\n' % len(m.i[q_min:q_max]))
+        f2.write('### DATA:\n#\n')
+        f2.write('#        Q               I              Error\n')
+        f2.write('# %d\n' % len(m.i[q_min:q_max]))
 
         for idx in range(q_min, q_max):
             line = ('%.8E %.8E %.8E\n') % ( m.q[idx], m.i[idx], m.err[idx])
             f2.write(line)
 
-        f2.write('\n')
+        f2.write('#\n#')
         if header_on_top == False:
             f2.write('\n')
             writeHeader(d, f2)
