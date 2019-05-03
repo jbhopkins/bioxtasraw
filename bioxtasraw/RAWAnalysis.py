@@ -1287,38 +1287,44 @@ class MolWeightFrame(wx.Frame):
         self.infodata = {'I0' : ('I0 :', self.NewControlId(), self.NewControlId()),
                          'Rg' : ('Rg :', self.NewControlId(), self.NewControlId())}
 
-        self.ids = {'VC': {'mol_type' : self.NewControlId(),
-                           'calc_mw' : self.NewControlId(),
-                           'info': self.NewControlId(),
-                           'more': self.NewControlId(),
-                           'sup_vc': self.NewControlId(),
-                           'sup_qr': self.NewControlId(),
-                           'sup_a': self.NewControlId(),
-                           'sup_b': self.NewControlId(),
-                           'sup_plot': self.NewControlId()},
-                    'conc': {'calc_mw' : self.NewControlId(),
-                             'info': self.NewControlId(),
-                             'more': self.NewControlId(),
-                             'conc': self.NewControlId(),
-                             'sup_i0': self.NewControlId(),
-                             'sup_mw': self.NewControlId(),
-                             'sup_conc': self.NewControlId(),
-                             'sup_file': self.NewControlId()},
-                    'VP': {'calc_mw' : self.NewControlId(),
-                           'info': self.NewControlId(),
-                           'more': self.NewControlId(),
-                           'sup_vp': self.NewControlId(),
-                           'sup_vpc': self.NewControlId(),
-                           'sup_density': self.NewControlId()},
-                    'abs': {'calc_mw' : self.NewControlId(),
-                              'info': self.NewControlId(),
-                              'more': self.NewControlId(),
-                              'calib': self.NewControlId(),
-                              'conc': self.NewControlId(),
-                              'sup_pm': self.NewControlId(),
-                              'sup_ps': self.NewControlId(),
-                              'sup_pv': self.NewControlId(),
-                              'sup_sc': self.NewControlId()}
+        self.ids = {'VC': {'mol_type'   : self.NewControlId(),
+                           'calc_mw'    : self.NewControlId(),
+                           'info'       : self.NewControlId(),
+                           'more'       : self.NewControlId(),
+                           'sup_vc'     : self.NewControlId(),
+                           'sup_qr'     : self.NewControlId(),
+                           'sup_a'      : self.NewControlId(),
+                           'sup_b'      : self.NewControlId(),
+                           'sup_plot'   : self.NewControlId(),
+                           },
+                    'conc': {'calc_mw'  : self.NewControlId(),
+                             'info'     : self.NewControlId(),
+                             'more'     : self.NewControlId(),
+                             'conc'     : self.NewControlId(),
+                             'sup_i0'   : self.NewControlId(),
+                             'sup_mw'   : self.NewControlId(),
+                             'sup_conc' : self.NewControlId(),
+                             'sup_file' : self.NewControlId(),
+                             },
+                    'VP': {'calc_mw'    : self.NewControlId(),
+                           'info'       : self.NewControlId(),
+                           'more'       : self.NewControlId(),
+                           'sup_vp'     : self.NewControlId(),
+                           'sup_vpc'    : self.NewControlId(),
+                           'sup_density': self.NewControlId(),
+                           'sup_cutoff' : self.NewControlId(),
+                           'sup_qmax'   : self.NewControlId(),
+                           },
+                    'abs': {'calc_mw'   : self.NewControlId(),
+                              'info'    : self.NewControlId(),
+                              'more'    : self.NewControlId(),
+                              'calib'   : self.NewControlId(),
+                              'conc'    : self.NewControlId(),
+                              'sup_pm'  : self.NewControlId(),
+                              'sup_ps'  : self.NewControlId(),
+                              'sup_pv'  : self.NewControlId(),
+                              'sup_sc'  : self.NewControlId(),
+                              }
                               }
 
         self.mws = {'conc'  : {},
@@ -1464,8 +1470,10 @@ class MolWeightFrame(wx.Frame):
 
         #Initialize Vp MW settings
         vp_rho = self.raw_settings.get('MWVpRho')
+        cutoff = self.raw_settings.get('MWVpCutoff')
 
         wx.FindWindowById(self.ids['VP']['sup_density'], self).ChangeValue(str(vp_rho))
+        wx.FindWindowById(self.ids['VP']['sup_cutoff'], self).SetStringSelection(cutoff)
 
 
         #Initialize Absolute scattering MW settings.
@@ -1479,7 +1487,7 @@ class MolWeightFrame(wx.Frame):
         wx.FindWindowById(self.ids['abs']['sup_pv'], self).ChangeValue('%.4f' %(nu_bar))
         wx.FindWindowById(self.ids['abs']['sup_sc'], self).ChangeValue('%.2E' %(d_rho))
 
-
+        self._calcVpqmax(cutoff)
         self.calcMW()
 
 
@@ -1705,26 +1713,36 @@ class MolWeightFrame(wx.Frame):
         mwsizer.Add(txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
         mw_warning = RAWCustomCtrl.AutoWrapStaticText(parent, ('Warning: final '
-            'q point is outside the extrapolation region (0.15 < q < 0.45 1/A), '
+            'q point is outside the extrapolation region (0.1 <= q <= 0.5 1/A), '
             'no correction has been applied!'))
 
         self.mw_warning_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.mw_warning_sizer.Add(mw_warning, wx.EXPAND)
 
 
-        sup_txt1 = wx.StaticText(parent, -1, 'Vp :')
+        sup_txt1 = wx.StaticText(parent, -1, 'Vp:')
         sup_txt2 = wx.StaticText(parent, -1, 'A^3')
-        sup_txt3 = wx.StaticText(parent, -1, 'Corrected Vp :')
+        sup_txt3 = wx.StaticText(parent, -1, 'Corrected Vp:')
         sup_txt4 = wx.StaticText(parent, -1, 'A^3')
-        sup_txt5 = wx.StaticText(parent, -1, 'Macromolecule Density :')
+        sup_txt5 = wx.StaticText(parent, -1, 'Macromolecule Density:')
         sup_txt6 = wx.StaticText(parent, -1, 'kDa/A^3')
+        sup_txt7 = wx.StaticText(parent, wx.ID_ANY, 'q cutoff:')
+        sup_txt8 = wx.StaticText(parent, wx.ID_ANY, 'q_max')
+        sup_txt9 = wx.StaticText(parent, wx.ID_ANY, '1/A')
 
         sup_vp = wx.TextCtrl(parent, vp_ids['sup_vp'], '', size = (80, -1), style = wx.TE_READONLY)
         sup_vpc = wx.TextCtrl(parent, vp_ids['sup_vpc'], '', size = (80, -1), style = wx.TE_READONLY)
         sup_density = wx.TextCtrl(parent, vp_ids['sup_density'], '', size = (80, -1),
             validator=RAWCustomCtrl.CharValidator('float'))
+        sup_qmax = wx.TextCtrl(parent, vp_ids['sup_qmax'], '', size = (80, -1),
+            validator=RAWCustomCtrl.CharValidator('float'))
 
+        sup_cutoff = wx.Choice(parent, vp_ids['sup_cutoff'], choices=['Default',
+            '8/Rg', 'log(I0/I(q))', 'Manual'])
+
+        sup_cutoff.Bind(wx.EVT_CHOICE, self._onVpCutoff)
         sup_density.Bind(wx.EVT_TEXT, self._updateVcmwParam)
+        sup_qmax.Bind(wx.EVT_TEXT, self._updateVcmwParam)
 
         sup_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
         sup_sizer1.Add(sup_txt1, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -1741,11 +1759,21 @@ class MolWeightFrame(wx.Frame):
         sup_sizer3.Add(sup_density,1,wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
         sup_sizer3.Add(sup_txt6,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
-        self.vp_sup_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.vp_sup_sizer.Add(sup_sizer1, 0, wx.BOTTOM, 5)
-        self.vp_sup_sizer.Add(sup_sizer2, 0, wx.BOTTOM, 5)
-        self.vp_sup_sizer.Add(sup_sizer3,0)
+        sup_sizer4 = wx.BoxSizer(wx.HORIZONTAL)
+        sup_sizer4.Add(sup_txt7,0, wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer4.Add(sup_cutoff,1,wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
 
+        sup_sizer5 = wx.BoxSizer(wx.HORIZONTAL)
+        sup_sizer5.Add(sup_txt8,0, wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer5.Add(sup_qmax,1,wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer5.Add(sup_txt9,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+
+        self.vp_sup_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.vp_sup_sizer.Add(sup_sizer4, 0, wx.BOTTOM, 5)
+        self.vp_sup_sizer.Add(sup_sizer5, 0, wx.BOTTOM, 5)
+        self.vp_sup_sizer.Add(sup_sizer3,0, wx.BOTTOM, 5)
+        self.vp_sup_sizer.Add(sup_sizer1, 0, wx.BOTTOM, 5)
+        self.vp_sup_sizer.Add(sup_sizer2, 0)
 
         self.vp_top_sizer = wx.StaticBoxSizer(vpbox, wx.VERTICAL)
         self.vp_top_sizer.Add(mwsizer, 0, wx.BOTTOM, 5)
@@ -1917,6 +1945,9 @@ class MolWeightFrame(wx.Frame):
 
         wx.FindWindowById(self.ids['VC']['sup_plot'], self).plotSASM(self.sasm)
 
+        vp_cutoff = wx.FindWindowById(self.ids['VP']['sup_cutoff']).GetStringSelection()
+        self._calcVpqmax(vp_cutoff)
+
         self.calcMW()
 
     def updateMWInfo(self):
@@ -1963,8 +1994,10 @@ class MolWeightFrame(wx.Frame):
 
         #Initialize Vp MW settings
         vp_rho = self.raw_settings.get('MWVpRho')
+        cutoff = self.raw_settings.get('MWVpCutoff')
 
         wx.FindWindowById(self.ids['VP']['sup_density'], self).ChangeValue(str(vp_rho))
+        wx.FindWindowById(self.ids['VP']['sup_cutoff'], self).SetStringSelection(cutoff)
 
 
         #Initialize Absolute scattering MW settings.
@@ -1978,7 +2011,7 @@ class MolWeightFrame(wx.Frame):
         wx.FindWindowById(self.ids['abs']['sup_pv'], self).ChangeValue('%.4f' %(nu_bar))
         wx.FindWindowById(self.ids['abs']['sup_sc'], self).ChangeValue('%.2E' %(d_rho))
 
-
+        self._calcVpqmax(cutoff)
         self.calcMW()
 
     def _onInfo(self,evt):
@@ -2023,28 +2056,23 @@ class MolWeightFrame(wx.Frame):
                 "- You have a protein-nucleic acid complex.\n"
                 "- Your molecule is less than ~15-20 kDa.")
         elif evt_id == self.ids['VP']['info']:
-            msg = ("This method uses the approach described in: Fischer, "
-                "H., de Oliveira Neto, M., Napolitano, H. B., Polikarpov, "
-                "I., & Craievich, A. F. (2010). J. Appl. Crystallogr. 43, "
-                "101-109, please cite this paper in addition to the RAW "
+            msg = ("This method uses the approach described in: Piiadov, "
+                "V., Ares de Araujo, E., Neto, M. O., Craievich, A. F., "
+                "& Polikarpov,  I. (2019). Prot. Sci. 28(2), 454-463,"
+                "please cite this paper in addition to the RAW "
                 "paper if you use this method. It applies a correction to "
-                "the Porod volume, which has only been calculated for 0.15 "
-                "< q_max < 0.45 1/A. For scattering profiles with a maximum "
-                "q outside this range, no correction is applied by RAW. The "
-                "authors report a maximum of 10% uncertainty for calculated "
-                "molecular weight from globular proteins.\n\n"
+                "the Porod volume, which has only been calculated for 0.1 "
+                "< q_max < 0.5 1/A. A cutoff is automatically applied to q "
+                "to keep it in this region, the cutoff also truncates based "
+                "protein size. The authors report a median of 12% uncertainty "
+                "for calculated molecular weight from globular proteins.\n\n"
                 "This method can yield inaccurate results if:\n"
                 "- The molecule is not globular (i.e. is flexible or extended).\n"
                 "- I(0) is poorly determined.\n"
-                "- The protein density used is inaccurate (can be changed in "
-                "advanced settings).\n"
+                "- The protein density used is inaccurate.\n"
                 "- Your molecule is not a protein.\n\n"
-                "Note: To do the integration, RAW extrapolates the scattering "
-                "profile to I(0) using the Guinier fit (if necessary). "
-                "The authors of the original paper used smoothed and "
-                "extrapolated scattering profiles generated by GNOM. This "
-                "extrapolation method is currently used in their online "
-                "calculator: http://saxs.ifsc.usp.br/).")
+                "This method is also available in an online calculator from "
+                "the original authors: http://saxs.ifsc.usp.br/).")
         else:
             msg = ("This uses the absolute calibration of the scattering profile to determine the molecular weight, "
                    "as described in Orthaber, D., Bergmann, A., & Glatter, O. (2000). J. Appl. Crystallogr. 33, "
@@ -2151,6 +2179,86 @@ class MolWeightFrame(wx.Frame):
 
         self.calcConcMW()
         self.calcAbsMW()
+
+    def _onVpCutoff(self, evt):
+        choice = evt.GetString()
+
+        self._calcVpqmax(choice)
+
+    def _calcVpqmax(self, choice):
+        q_max_ctrl = wx.FindWindowById(self.ids['VP']['sup_qmax'])
+
+        q = self.sasm.getQ()
+        i = self.sasm.getI()
+
+        analysis = self.sasm.getParameter('analysis')
+
+        if 'guinier' in analysis:
+            guinier = analysis['guinier']
+            i0 = float(guinier['I0'])
+            rg = float(guinier['Rg'])
+        else:
+            i0 = 0
+            rg = 0
+
+        if choice == 'Default':
+            q_max_ctrl.Disable()
+
+            if rg != 0:
+                qmax = 8./rg
+
+                if qmax > 0.5 or qmax < 0.1:
+                    iratio = np.abs(np.log10(i0/i) - 2.25)
+                    idx = np.argmin(iratio)
+
+                    qmax = q[idx]
+
+                if qmax > 0.5:
+                    qmax = 0.5
+                elif qmax < 0.1:
+                    qmax = 0.1
+
+        elif choice == '8/Rg':
+            q_max_ctrl.Disable()
+
+            if rg != 0:
+                qmax = 8./rg
+
+                if qmax > 0.5:
+                    qmax = 0.5
+                elif qmax < 0.1:
+                    qmax = 0.1
+
+        elif choice == 'log(I0/I(q))':
+            q_max_ctrl.Disable()
+
+            if i0 != 0:
+
+                iratio = np.abs(np.log10(i0/i) - 2.25)
+                idx = np.argmin(iratio)
+
+                qmax = q[idx]
+
+                if qmax > 0.5:
+                    qmax = 0.5
+                elif qmax < 0.1:
+                    qmax = 0.1
+
+        elif choice == 'Manual':
+            q_max_ctrl.Enable()
+
+        if choice != 'Manual':
+            if qmax > q[-1]:
+                qmax = q[-1]
+            elif qmax < q[0]:
+                qmax = q[0]
+            else:
+                idx = np.argmin(np.abs(q-qmax))
+                qmax = q[idx]
+
+            q_max_ctrl.ChangeValue(str(qmax))
+
+        self.calcVpMW()
 
     def _updateVcmwParam(self, evt):
 
@@ -2377,18 +2485,37 @@ class MolWeightFrame(wx.Frame):
             i0 = 0
             rg = 0
 
+        q = self.sasm.getQ()
+        i = self.sasm.getI()
+        err = self.sasm.getErr()
+
         density = float(wx.FindWindowById(self.ids['VP']['sup_density'], self).GetValue())
 
-        q = self.sasm.q
-        i = self.sasm.i
-        err = self.sasm.err
-        qmin, qmax = self.sasm.getQrange()
+        q_max_ctrl = wx.FindWindowById(self.ids['VP']['sup_qmax'])
+        qmax = float(q_max_ctrl.GetValue())
 
-        q = q[qmin:qmax]
-        i = i[qmin:qmax]
-        err = err[qmin:qmax]
+        if qmax > 0.5:
+            qmax = 0.5
+        elif qmax < 0.1:
+            qmax = 0.1
 
-        if q[-1]<0.45 and q[-1]>0.15:
+        if qmax > q[-1]:
+            qmax = q[-1]
+        elif qmax < q[0]:
+            qmax = q[0]
+
+        if qmax not in q:
+            idx = np.argmin(np.abs(q-qmax))
+            qmax = q[idx]
+        else:
+            idx = np.argwhere(q == qmax)[0][0]
+
+        q = q[:idx+1]
+        i = i[:idx+1]
+        err = err[:idx+1]
+
+
+        if q[-1]<=0.5 and q[-1]>=0.1:
             self._showVpMWWarning(False)
         else:
             self._showVpMWWarning(True)

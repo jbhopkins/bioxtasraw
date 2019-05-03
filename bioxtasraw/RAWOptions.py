@@ -1566,6 +1566,7 @@ class MolecularWeightPanel(wx.Panel):
                             'MWVcARna',
                             'MWVcBRna',
                             'MWVpRho',
+                            'MWVpCutoff',
                             'MWAbsRhoMprot',
                             'MWAbsRhoSolv',
                             'MWAbsNuBar',
@@ -1581,7 +1582,10 @@ class MolecularWeightPanel(wx.Panel):
                         ("Protein Coef. B:", raw_settings.getId('MWVcBProtein')),
                         ("RNA Coef. A:", raw_settings.getId('MWVcARna')),
                         ("RNA Coef. B:", raw_settings.getId('MWVcBRna')))
-        self.VpMWData = ("Density [kDa/A^3]:", raw_settings.getId('MWVpRho'))
+        self.VpMWData = (("Density [kDa/A^3]:", raw_settings.getId('MWVpRho')),
+                        ("Cutoff:", raw_settings.getId('MWVpCutoff')),
+                            )
+
         self.AbsMWData = ( ("Electrons per dry mass of macromolecule [e-/g]:", raw_settings.getId('MWAbsRhoMprot')),
                         ("Electrons per volume of aqueous solvent [e-/cm^3]:", raw_settings.getId('MWAbsRhoSolv')),
                         ("Partial specific volume of the macromolecule [cm^3/g]:", raw_settings.getId('MWAbsNuBar')),
@@ -1660,19 +1664,21 @@ class MolecularWeightPanel(wx.Panel):
         return hSizer
 
     def createVpMWSettings(self):
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap = 3, hgap = 5)
 
-        txt, id = self.VpMWData
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        ctrl = wx.TextCtrl(self, id, '', style = wx.TE_PROCESS_ENTER)
-        txt = wx.StaticText(self, -1, txt)
+        for txt, my_id in self.VpMWData:
+            if my_id == self.raw_settings.getId('MWVpCutoff'):
+                ctrl = wx.Choice(self, my_id, choices=['Default', '8/Rg',
+                    'log(I0/I(q))', 'Manual'])
+                txt = wx.StaticText(self, -1, txt)
+            else:
+                ctrl = wx.TextCtrl(self, my_id, '', style = wx.TE_PROCESS_ENTER)
+                txt = wx.StaticText(self, -1, txt)
 
-        sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
-        sizer.Add(ctrl, 0)
+        sizer.Add(txt)
+        sizer.Add(ctrl)
 
-        hSizer.Add(sizer, 0)
-
-        return hSizer
+        return sizer
 
     def createAbsMWSettings(self):
         vSizer = wx.BoxSizer(wx.VERTICAL)

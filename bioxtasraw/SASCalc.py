@@ -167,25 +167,47 @@ def calcRefMW(i0, conc):
 
     return mw
 
+def vpA(q_max):
+    A = -2.114*10**6*q_max**4 + 2.920*10**6*q_max**3 - 1.472*10**6*q_max**2+3.349*10**5*q_max - 3.577*10**4
+    return A
+
+def vpB(q_max):
+    B = 12.09*q_max**3 - 9.39*q_max**2 + 3.03*q_max+0.29
+    return B
+
 def calcVpMW(q, i, err, rg, i0, rg_qmin, vp_density):
     #These functions are used to correct the porod volume for the length of the q vector
     #Coefficients were obtained by direct communication with the authors.
-    qc=[0.15, 0.20, 0.25, 0.30, 0.40, 0.45]
-    AA=[-9902.46965, -7597.7562, -6869.49936, -5966.34377, -4641.90536, -3786.71549]
-    BB=[0.57582, 0.61325, 0.64999, 0.68377, 0.76957, 0.85489]
+    # qc=[0.15, 0.20, 0.25, 0.30, 0.40, 0.45]
+    # AA=[-9902.46965, -7597.7562, -6869.49936, -5966.34377, -4641.90536, -3786.71549]
+    # BB=[0.57582, 0.61325, 0.64999, 0.68377, 0.76957, 0.85489]
 
-    fA=scipy.interpolate.interp1d(qc,AA)
-    fB=scipy.interpolate.interp1d(qc,BB)
+    # fA=scipy.interpolate.interp1d(qc,AA)
+    # fB=scipy.interpolate.interp1d(qc,BB)
 
-    if q[-1]>0.45:
-        A=AA[-1]
-        B=BB[-1]
-    elif q[-1]<0.15:
-        A=AA[0]
-        B=BB[0]
+    # if q[-1]>0.45:
+    #     A=AA[-1]
+    #     B=BB[-1]
+    # elif q[-1]<0.15:
+    #     A=AA[0]
+    #     B=BB[0]
+    # else:
+    #     A=fA(q[-1])
+    #     B=fB(q[-1])
+
+    # print '\nhere'
+    # print A
+    # print B
+
+    if q[-1] <= 0.5 and q[-1] >= 0.1:
+        A = vpA(q[-1])
+        B = vpB(q[-1])
     else:
-        A=fA(q[-1])
-        B=fB(q[-1])
+        A = 0
+        B = 1
+
+    # print A
+    # print B
 
     if i0 > 0:
         #Calculate the Porod Volume
@@ -246,7 +268,7 @@ def porodVolume(q, i, err, rg, i0, start = 0, stop = -1, interp = True, rg_qmin=
 
     pInvar = porodInvariant(q, i, start, stop)
 
-    pVolume = 2*np.square(np.pi)*i0/pInvar
+    pVolume = 2*np.pi**2*i0/pInvar
 
     return pVolume
 

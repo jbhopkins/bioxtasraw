@@ -82,9 +82,9 @@ Corrected Porod Volume
 If you used the corrected Porod volume method to determine molecular weight in RAW,
 in addition to the RAW paper please cite the following paper:
 
-*Determination of the molecular weight of proteins in solution from a single
-small-angle X-ray scattering measurement on a relative scale.* H. Fischer,
-M. de Oliveira Neto, H. B. Napolitano, I. Polikarpov and A. F. Craievich.
-Journal of Applied Crystallography (2010). 43, 101-109.
+*SAXSMoW 2.0: Online calculator of the molecular weight of proteins in dilute
+solution from experimental SAXS data measured on a relative scale.* V. Piiadov,
+E. Ares de Araujo, M. Oliveira Neto, A. F. Craievich, and I. Polikarpov.
+Protein Science (2019). 28(2), 454-473.
 
-DOI: `10.1107/S0021889809043076 <https://doi.org/10.1107/S0021889809043076>`_
+DOI: `10.1002/pro.3528 <https://doi.org/10.1002/pro.3528>`_

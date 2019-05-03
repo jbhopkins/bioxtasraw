@@ -219,6 +219,7 @@ class RawGuiSettings(object):
 
                             #Initialize porod volume molecularm ass values.
                             'MWVpRho'              : [0.83*10**(-3), wx.NewId(), 'float'], #The density in kDa/A^3
+                            'MWVpCutoff'           : ['Default', wx.NewId(), 'choice'],
 
                             #Initialize Absolute scattering calibration values.
                             #Default values from Mylonas & Svergun, J. App. Crys. 2007.
