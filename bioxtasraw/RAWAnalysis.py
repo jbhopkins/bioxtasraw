@@ -12823,14 +12823,15 @@ class LCSeriesFrame(wx.Frame):
 
         panel.SetSizer(sizer)
 
-        self.secm = copy.deepcopy(secm)
+        secm.acquireSemaphore()
+
         self.original_secm = secm
         self.manip_item = manip_item
         self._raw_settings = raw_settings
 
-        self.plotPanel = LCSeriesPlotPage(splitter, secm)
-        self.controlPanel = LCSeriesControlPanel(splitter, secm)
-        self.controlPanel.initialize()
+        self.plotPanel = LCSeriesPlotPage(splitter, self.original_secm.getSASM().getQ())
+        self.controlPanel = LCSeriesControlPanel(splitter, self.original_secm)
+
 
         splitter.SplitVertically(self.controlPanel, self.plotPanel, 325)
 
@@ -12856,6 +12857,20 @@ class LCSeriesFrame(wx.Frame):
 
         self.CenterOnParent()
         self.Raise()
+
+        self.showBusy(msg='Initializing...')
+        t = threading.Thread(target=self.initialize)
+        t.daemon = True
+        t.start()
+
+    def initialize(self):
+        self.secm = copy.deepcopy(self.original_secm)
+        self.original_secm.releaseSemaphore()
+
+        wx.CallAfter(self.plotPanel.initialize, self.secm)
+        wx.CallAfter(self.controlPanel.initialize, self.secm)
+
+        wx.CallAfter(self.showBusy, False)
 
     def showBusy(self, show=True, msg=''):
         if show:
@@ -13243,22 +13258,20 @@ class SeriesPlotPanel(wx.Panel):
 
 class LCSeriesPlotPage(wx.Panel):
 
-    def __init__(self, parent,secm):
+    def __init__(self, parent, secm_q_list):
 
         wx.Panel.__init__(self, parent, wx.ID_ANY,
             style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         self.series_frame = parent.GetParent().GetParent()
 
-        self.secm = copy.deepcopy(secm)
-
         self.intensity = 'total'
         self.calc = 'Rg'
 
-        self.create_layout()
-        self.initialize()
+        self.create_layout(secm_q_list)
 
-    def create_layout(self):
+
+    def create_layout(self, secm_q_list):
 
         self.intensity_type = wx.Choice(self, choices=['Total Intensity',
             'Mean Intensity', 'Intensity at specific q', 'Intensity in q range'])
@@ -13269,14 +13282,14 @@ class LCSeriesPlotPage(wx.Panel):
         self.calc_type.Bind(wx.EVT_CHOICE, self._on_calc_change)
 
         self.q_val = RAWCustomCtrl.FloatSpinCtrlList(self, TextLength=60,
-            value_list=self.secm.getSASM().getQ())
+            value_list=secm_q_list)
         self.q_val.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_qval_change)
 
         self.q_range_start = RAWCustomCtrl.FloatSpinCtrlList(self, TextLength=60,
-            value_list=self.secm.getSASM().getQ(),
-            max_idx=len(self.secm.getSASM().getQ())-2)
+            value_list=secm_q_list,
+            max_idx=len(secm_q_list)-2)
         self.q_range_end = RAWCustomCtrl.FloatSpinCtrlList(self, TextLength=60,
-            value_list=self.secm.getSASM().getQ(), initIndex=-1, min_idx=1)
+            value_list=secm_q_list, initIndex=-1, min_idx=1)
         self.q_range_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_qrange_change)
         self.q_range_end.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_qrange_change)
 
@@ -13328,7 +13341,9 @@ class LCSeriesPlotPage(wx.Panel):
         top_sizer.Add(self.notebook, 1, flag=wx.EXPAND|wx.TOP, border=5)
         self.SetSizer(top_sizer)
 
-    def initialize(self):
+    def initialize(self, secm):
+
+        self.secm = secm
 
         if self.secm.qref != 0:
             self.q_val.SetValue(self.secm.qref)
@@ -13709,14 +13724,13 @@ class LCSeriesPlotPage(wx.Panel):
 
 class LCSeriesControlPanel(wx.ScrolledWindow):
 
-    def __init__(self, parent, secm):
+    def __init__(self, parent, original_secm):
 
         wx.ScrolledWindow.__init__(self, parent,
             style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER|wx.VSCROLL)
         self.SetScrollRate(20,20)
 
-        self.secm = copy.deepcopy(secm)
-        self.original_secm = secm
+        self.original_secm = original_secm
 
         self.main_frame = wx.FindWindowByName('MainFrame')
         self.raw_settings = self.main_frame.raw_settings
@@ -13761,7 +13775,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
     def _createLayout(self):
 
-        frames = self.secm.getFrames()
+        frames = self.original_secm.getFrames()
 
         close_button = wx.Button(self, wx.ID_OK, 'OK')
         close_button.Bind(wx.EVT_BUTTON, self.onOkButton)
@@ -13989,7 +14003,9 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         self.SetSizer(top_sizer)
 
-    def initialize(self):
+    def initialize(self, secm):
+        self.secm = secm
+
         frames = self.secm.getFrames()
 
         if self.plot_page.intensity == 'total':
