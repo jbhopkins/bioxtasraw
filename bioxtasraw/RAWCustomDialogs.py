@@ -1739,12 +1739,18 @@ class LinePropertyDialog(wx.Dialog):
         self._old_errlinewidth = self.sasm.err_line[0][0].get_linewidth()
 
         errstyle = self.sasm.err_line[1][0].get_linestyle()
-        strange_errlinestyles = {(None, None) : '-',
-                                (0,(6.0, 6.0))    : '--',
-                                (0,(3.0, 5.0, 1.0, 5.0)) : '-.',
-                                (0,(1.0, 3.0)) : ':'}
 
-        self._old_errlinestyle = strange_errlinestyles[errstyle[0]]
+        if errstyle[0][0] is None:
+            err_style = '-'
+        elif len(errstyle[0][1]) == 4:
+            err_style = '-.'
+        else:
+            if errstyle[0][1][0] > errstyle[0][1][1]:
+                err_style = '--'
+            else:
+                err_style = ':'
+
+        self._old_errlinestyle = err_style
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1973,11 +1979,11 @@ class LinePropertyDialog(wx.Dialog):
 
     def updateLine(self, event):
         marker =  self.mar_linemarker_list.GetStringSelection()
-        width =  self.linewidth.GetValue()
+        width =  float(self.linewidth.GetValue())
         style =  self.linestyle_list.GetStringSelection()
 
-        mar_size = self.mar_size.GetValue()
-        err_linewidth = self.err_linewidth.GetValue()
+        mar_size = float(self.mar_size.GetValue())
+        err_linewidth = float(self.err_linewidth.GetValue())
         err_linestyle = self.err_linestyle_list.GetStringSelection()
 
         self.line.set_marker(marker)
@@ -1993,10 +1999,10 @@ class LinePropertyDialog(wx.Dialog):
                 line.set_linestyle(err_linestyle)
 
         self.line.set_markeredgecolor(colour)
-        self.line.set_linewidth(float(width))
+        self.line.set_linewidth(width)
         self.line.set_linestyle(style)
         #self.line.set_color(colour)
-        self.line.set_markersize(float(mar_size))
+        self.line.set_markersize(mar_size)
 
         self.sasm.plot_panel.canvas.draw()
 
@@ -2160,23 +2166,35 @@ class IFTMLinePropertyDialog(wx.Dialog):
         self._old_r_errlinewidth = self.iftm.r_err_line[0][0].get_linewidth()
 
         errstyle = self.iftm.r_err_line[1][0].get_linestyle()
-        strange_errlinestyles = {(None, None) : '-',
-                                (0,(6.0, 6.0))    : '--',
-                                (0,(3.0, 5.0, 1.0, 5.0)) : '-.',
-                                (0,(1.0, 3.0)) : ':'}
 
-        self._old_r_errlinestyle = strange_errlinestyles[errstyle[0]]
+        if errstyle[0][0] is None:
+            r_err_style = '-'
+        elif len(errstyle[0][1]) == 4:
+            r_err_style = '-.'
+        else:
+            if errstyle[0][1][0] > errstyle[0][1][1]:
+                r_err_style = '--'
+            else:
+                r_err_style = ':'
+
+        self._old_r_errlinestyle = r_err_style
 
         self._old_qo_errcolour = self.iftm.qo_err_line[0][0].get_color()
         self._old_qo_errlinewidth = self.iftm.qo_err_line[0][0].get_linewidth()
 
         errstyle = self.iftm.qo_err_line[1][0].get_linestyle()
-        strange_errlinestyles = {(None, None) : '-',
-                                (0,(6.0, 6.0))    : '--',
-                                (0,(3.0, 5.0, 1.0, 5.0)) : '-.',
-                                (0,(1.0, 3.0)) : ':'}
 
-        self._old_qo_errlinestyle = strange_errlinestyles[errstyle[0]]
+        if errstyle[0][0] is None:
+            qo_err_style = '-'
+        elif len(errstyle[0][1]) == 4:
+            qo_err_style = '-.'
+        else:
+            if errstyle[0][1][0] > errstyle[0][1][1]:
+                qo_err_style = '--'
+            else:
+                qo_err_style = ':'
+
+        self._old_qo_errlinestyle = qo_err_style
 
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -2710,11 +2728,11 @@ class IFTMLinePropertyDialog(wx.Dialog):
 
     def updateLine(self, event):
         marker =  self.r_mar_linemarker_list.GetStringSelection()
-        width =  self.r_linewidth.GetValue()
+        width =  float(self.r_linewidth.GetValue())
         style =  self.r_linestyle_list.GetStringSelection()
 
-        mar_size = self.r_mar_size.GetValue()
-        err_linewidth = self.r_err_linewidth.GetValue()
+        mar_size = float(self.r_mar_size.GetValue())
+        err_linewidth = float(self.r_err_linewidth.GetValue())
         err_linestyle = self.r_err_linestyle_list.GetStringSelection()
 
         self.r_line.set_marker(marker)
@@ -2730,18 +2748,18 @@ class IFTMLinePropertyDialog(wx.Dialog):
                 line.set_linestyle(err_linestyle)
 
         self.r_line.set_markeredgecolor(colour)
-        self.r_line.set_linewidth(float(width))
+        self.r_line.set_linewidth(width)
         self.r_line.set_linestyle(style)
         #self.line.set_color(colour)
-        self.r_line.set_markersize(float(mar_size))
+        self.r_line.set_markersize(mar_size)
 
 
         marker =  self.qo_mar_linemarker_list.GetStringSelection()
-        width =  self.qo_linewidth.GetValue()
+        width =  float(self.qo_linewidth.GetValue())
         style =  self.qo_linestyle_list.GetStringSelection()
 
-        mar_size = self.qo_mar_size.GetValue()
-        err_linewidth = self.qo_err_linewidth.GetValue()
+        mar_size = float(self.qo_mar_size.GetValue())
+        err_linewidth = float(self.qo_err_linewidth.GetValue())
         err_linestyle = self.qo_err_linestyle_list.GetStringSelection()
 
         self.qo_line.set_marker(marker)
@@ -2757,17 +2775,17 @@ class IFTMLinePropertyDialog(wx.Dialog):
                 line.set_linestyle(err_linestyle)
 
         self.qo_line.set_markeredgecolor(colour)
-        self.qo_line.set_linewidth(float(width))
+        self.qo_line.set_linewidth(width)
         self.qo_line.set_linestyle(style)
         #self.line.set_color(colour)
-        self.qo_line.set_markersize(float(mar_size))
+        self.qo_line.set_markersize(mar_size)
 
 
         marker =  self.qf_mar_linemarker_list.GetStringSelection()
-        width =  self.qf_linewidth.GetValue()
+        width =  float(self.qf_linewidth.GetValue())
         style =  self.qf_linestyle_list.GetStringSelection()
 
-        mar_size = self.qf_mar_size.GetValue()
+        mar_size = float(self.qf_mar_size.GetValue())
 
         self.qf_line.set_marker(marker)
 
@@ -2775,10 +2793,10 @@ class IFTMLinePropertyDialog(wx.Dialog):
         colour =  (colour[0]/255.0, colour[1]/255.0, colour[2]/255.0)
 
         self.qf_line.set_markeredgecolor(colour)
-        self.qf_line.set_linewidth(float(width))
+        self.qf_line.set_linewidth(width)
         self.qf_line.set_linestyle(style)
         #self.line.set_color(colour)
-        self.qf_line.set_markersize(float(mar_size))
+        self.qf_line.set_markersize(mar_size)
 
 
         self.iftm.plot_panel.canvas.draw()
@@ -3309,10 +3327,10 @@ class SECMLinePropertyDialog(wx.Dialog):
 
     def updateLine(self, event):
         marker =  self.mar_linemarker_list.GetStringSelection()
-        width =  self.linewidth.GetValue()
+        width =  float(self.linewidth.GetValue())
         style =  self.linestyle_list.GetStringSelection()
 
-        mar_size = self.mar_size.GetValue()
+        mar_size = float(self.mar_size.GetValue())
 
         self.line.set_marker(marker)
 
@@ -3326,10 +3344,10 @@ class SECMLinePropertyDialog(wx.Dialog):
 
 
         calc_marker =  self.calc_mar_linemarker_list.GetStringSelection()
-        calc_width =  self.calc_linewidth.GetValue()
+        calc_width =  float(self.calc_linewidth.GetValue())
         calc_style =  self.calc_linestyle_list.GetStringSelection()
 
-        calc_mar_size = self.calc_mar_size.GetValue()
+        calc_mar_size = float(self.calc_mar_size.GetValue())
 
         self.calc_line.set_marker(calc_marker)
 
@@ -3337,9 +3355,9 @@ class SECMLinePropertyDialog(wx.Dialog):
         calc_colour =  (calc_colour[0]/255.0, calc_colour[1]/255.0, calc_colour[2]/255.0)
 
         self.calc_line.set_markeredgecolor(calc_colour)
-        self.calc_line.set_linewidth(float(calc_width))
+        self.calc_line.set_linewidth(calc_width)
         self.calc_line.set_linestyle(calc_style)
-        self.calc_line.set_markersize(float(calc_mar_size))
+        self.calc_line.set_markersize(calc_mar_size)
 
         self.secm.plot_panel.canvas.draw()
 
