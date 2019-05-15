@@ -21,8 +21,6 @@ import sys
 
 mainworker_cmd_queue = Queue.Queue()
 
-cancel_bift = False
-
 #Checks whether RAW is running in a compiled (frozen) version or a live interpreter
 if getattr(sys, 'frozen', False):
     frozen = True

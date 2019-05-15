@@ -2508,7 +2508,6 @@ class MainWorkerThread(threading.Thread):
                         'save_all_analysis_info'        : self._saveAllAnalysisInfo,
                         'merge_items'                   : self._mergeItems,
                         'rebin_items'                   : self._rebinItems,
-                        'ift'                           : self._runIft,
                         'interpolate_items'             : self._interpolateItems,
                         'plot_iftfit'                   : self._plotIftFit,
                         'normalize_conc'                : self._normalizeByConc,
@@ -2781,52 +2780,6 @@ class MainWorkerThread(threading.Thread):
             return
 
         question_return_queue.put(abs_scale_const)
-
-    def _runBIFT(self, sasm, bift_queue, parameters):
-        ift_sasm = BIFT.doBift(sasm, bift_queue, *parameters)
-        return ift_sasm
-
-    def _runManualIft(self, sasm, parameters):
-        dmax = parameters['dmax']
-        alpha = parameters['alpha']
-
-        ift_sasm = BIFT.SingleSolve(alpha, dmax, sasm, 50)
-        return ift_sasm
-
-    def _runGnomIft(self, data):
-        pass
-
-    def _runIft(self, data):
-        algo = data[0]
-        sasm = data[1]
-        bift_queue = data[2]
-        ift_parameters = data[3]
-
-        if algo == 'BIFT':
-            try:
-                try:
-                    ift_sasm = self._runBIFT(sasm, bift_queue, ift_parameters)
-                    if ift_sasm != None:
-                        bift_queue.put({'success' : True, 'results' : ift_sasm})
-                except ValueError, e:
-                    print 'Error in: ift_sasm = self._runBIFT(sasm, parameters)'
-                    print e
-
-
-            except UnboundLocalError, e:
-                print 'doBift error: ', e
-
-                bift_queue.put({'failed' : True})
-
-        if algo == 'Manual':
-
-            try:
-                ift_sasm = self._runManualIft(sasm, ift_parameters)
-            except ValueError, e:
-                print 'doBift error: ', e
-
-                bift_queue.put({'failed' : True})
-
 
     def _saveMaskFile(self, data):
 

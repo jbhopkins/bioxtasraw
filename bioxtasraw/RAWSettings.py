@@ -131,7 +131,7 @@ class RawGuiSettings(object):
                             'maxAlpha'    : [1e10,   wx.NewId(), 'float'],
                             'minAlpha'    : [150.0,  wx.NewId(), 'float'],
                             'AlphaPoints' : [16,     wx.NewId(), 'int'],
-                            'PrPoints'    : [50,     wx.NewId(), 'int'],
+                            'PrPoints'    : [100,     wx.NewId(), 'int'],
 
                             #DEFAULT pyGNOM PARAMETERS
                             'pygnomMaxAlpha'    : [60,   wx.NewId(), 'float'],

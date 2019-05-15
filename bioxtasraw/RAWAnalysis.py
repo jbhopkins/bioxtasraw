@@ -59,6 +59,7 @@ import SASExceptions
 import RAWGlobals
 import RAWCustomDialogs
 import SASProc
+import BIFT
 
 class GuinierPlotPanel(wx.Panel):
 
@@ -3321,7 +3322,7 @@ class GNOMControlPanel(wx.Panel):
     def formatNumStr(self, val):
         val = float(val)
 
-        if val > 1e3 or val < 1e-2:
+        if abs(val) > 1e3 or abs(val) < 1e-2:
             my_str = '%.2E' %(val)
         else:
             my_str = '%.4f' %(round(val,4))
@@ -3492,8 +3493,8 @@ class GNOMControlPanel(wx.Panel):
         rglabel = wx.StaticText(self, -1, 'Rg (A)')
         i0label = wx.StaticText(self, -1, 'I0')
 
-        sizer.Add(rglabel, 0, wx.ALL, 5)
-        sizer.Add(i0label, 0, wx.ALL, 5)
+        sizer.Add(rglabel, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        sizer.Add(i0label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         guinierlabel = wx.StaticText(self, -1, 'Guinier :')
         self.guinierRg = wx.TextCtrl(self, self.infodata['guinierRg'][1], '0', size = (80,-1), style = wx.TE_READONLY)
@@ -7705,36 +7706,45 @@ class BIFTControlPanel(wx.Panel):
 
         self.raw_settings = self.main_frame.raw_settings
 
+        self.bift_thread = None
+        self.bift_abort = threading.Event()
+        self.BIFT_queue = Queue.Queue()
+
         self.old_analysis = {}
 
         if 'BIFT' in self.sasm.getParameter('analysis'):
             self.old_analysis = copy.deepcopy(self.sasm.getParameter('analysis')['BIFT'])
 
-        self.bift_settings = (self.raw_settings.get('PrPoints'),
-                                  self.raw_settings.get('maxAlpha'),
-                                  self.raw_settings.get('minAlpha'),
-                                  self.raw_settings.get('AlphaPoints'),
-                                  self.raw_settings.get('maxDmax'),
-                                  self.raw_settings.get('minDmax'),
-                                  self.raw_settings.get('DmaxPoints'))
+        self.bift_settings = {
+            'npts'      : self.raw_settings.get('PrPoints'),
+            'alpha_max' : self.raw_settings.get('maxAlpha'),
+            'alpha_min' : self.raw_settings.get('minAlpha'),
+            'alpha_n'   : self.raw_settings.get('AlphaPoints'),
+            'dmax_min'  : self.raw_settings.get('maxDmax'),
+            'dmax_max'  : self.raw_settings.get('minDmax'),
+            'dmax_n'    : self.raw_settings.get('DmaxPoints')
+            }
 
 
-        self.infodata = {'dmax'         : ('Dmax :', self.NewControlId()),
-                         'alpha'        : ('Log(Alpha) :', self.NewControlId()),
-                         'guinierI0'    : ('I0 :', self.NewControlId()),
-                         'guinierRg'    : ('Rg :', self.NewControlId()),
-                         'biftI0'       : ('I0 :', self.NewControlId()),
-                         'biftRg'       : ('Rg :', self.NewControlId()),
-                         'chisq'        : ('Reduced chi^2 :', self.NewControlId())
-                         }
+        self.infodata = {
+            'dmax'         : ('Dmax :', self.NewControlId()),
+            'dmax_err'     : ('Dmax :', self.NewControlId()),
+            'alpha'        : ('Log(Alpha) :', self.NewControlId()),
+            'alpha_err'    : ('Log(Alpha) :', self.NewControlId()),
+            'guinierI0'    : ('I0 :', self.NewControlId()),
+            'guinierRg'    : ('Rg :', self.NewControlId()),
+            'guinierRg_err':('Rg Err. :', self.NewControlId()),
+            'guinierI0_err':('I0 Err. :', self.NewControlId()),
+            'biftI0'       : ('I0 :', self.NewControlId()),
+            'biftRg'       : ('Rg :', self.NewControlId()),
+            'biftI0_err'   : ('I0 Err. :', self.NewControlId()),
+            'biftRg_err'   : ('Rg Err. :', self.NewControlId()),
+            'chisq'        : ('Chi^2 (fit) :', self.NewControlId()),
+            'evidence'     : ('Evidence :', self.NewControlId()),
+            }
 
         self.statusIds = {  'status'      : self.NewControlId(),
-                            'evidence'  : self.NewControlId(),
-                            'chi'       : self.NewControlId(),
-                            'alpha'     : self.NewControlId(),
-                            'dmax'      : self.NewControlId(),
-                            'spoint'    : self.NewControlId(),
-                            'tpoint'    : self.NewControlId()}
+            }
 
         self.buttonIds = {  'abort'     : self.NewControlId(),
                             'settings'  : self.NewControlId(),
@@ -7743,6 +7753,14 @@ class BIFTControlPanel(wx.Panel):
 
         self.iftm = None
 
+        self.createLayout()
+
+        self.initValues()
+
+        self.BIFT_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.onBIFTTimer, self.BIFT_timer)
+
+    def createLayout(self):
         info_button = wx.Button(self, -1, 'How To Cite')
         info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
 
@@ -7759,38 +7777,31 @@ class BIFTControlPanel(wx.Panel):
 
 
         box2 = wx.StaticBox(self, -1, 'Control')
-        controlSizer = self.createControls()
-        boxSizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
-        boxSizer2.Add(controlSizer, 0, wx.EXPAND | wx.ALIGN_CENTER)
+        ctrls = self.createControls()
+        ctrl_sizer = wx.StaticBoxSizer(box2, wx.VERTICAL)
+        ctrl_sizer.Add(ctrls, 0, wx.EXPAND | wx.ALIGN_CENTER)
 
 
         box = wx.StaticBox(self, -1, 'Parameters')
-        infoSizer = self.createInfoBox()
-        boxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        boxSizer.Add(infoSizer, 0, wx.EXPAND)
+        info = self.createInfoBox()
+        info_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        info_sizer.Add(info, 0, wx.EXPAND)
 
         box3 = wx.StaticBox(self, -1, 'Status')
-        statusSizer = self.createStatus()
-        boxSizer3 = wx.StaticBoxSizer(box3, wx.VERTICAL)
-        boxSizer3.Add(statusSizer, 0, wx.EXPAND)
+        status = self.createStatus()
+        status_sizer = wx.StaticBoxSizer(box3, wx.VERTICAL)
+        status_sizer.Add(status, 0, wx.EXPAND)
 
 
         bsizer = wx.BoxSizer(wx.VERTICAL)
         bsizer.Add(self.createFileInfo(), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-        bsizer.Add(boxSizer2, 0, wx.EXPAND, 5)
-        bsizer.Add(boxSizer, 0, wx.EXPAND | wx.BOTTOM, 5)
-        bsizer.Add(boxSizer3, 0, wx.EXPAND | wx.TOP, 5)
+        bsizer.Add(ctrl_sizer, 0, wx.EXPAND, 5)
+        bsizer.Add(status_sizer, 0, wx.EXPAND | wx.TOP, 5)
+        bsizer.Add(info_sizer, 0, wx.EXPAND | wx.BOTTOM, 5)
         bsizer.AddStretchSpacer(1)
         bsizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
 
         self.SetSizer(bsizer)
-
-        self.initValues()
-
-        self.BIFT_timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, self.onBIFTTimer, self.BIFT_timer)
-
-        self.BIFT_queue = Queue.Queue()
 
     def createFileInfo(self):
 
@@ -7805,61 +7816,90 @@ class BIFTControlPanel(wx.Panel):
 
     def createInfoBox(self):
 
-        dmaxLabel = wx.StaticText(self, -1, 'Dmax :')
-        self.dmaxWindow = wx.TextCtrl(self, self.infodata['dmax'][1], '', size = (60,-1), style = wx.TE_READONLY)
-
-        dmaxSizer = wx.BoxSizer(wx.HORIZONTAL)
-        dmaxSizer.Add(dmaxLabel, 0, wx.RIGHT, 5)
-        dmaxSizer.Add(self.dmaxWindow, 0, wx.RIGHT, 5)
-
-        alphaLabel = wx.StaticText(self, -1, 'Log(Alpha) :')
-        self.alphaWindow = wx.TextCtrl(self, self.infodata['alpha'][1], '', size = (60,-1), style = wx.TE_READONLY)
-
-        alphaSizer = wx.BoxSizer(wx.HORIZONTAL)
-        alphaSizer.Add(alphaLabel, 0, wx.RIGHT, 5)
-        alphaSizer.Add(self.alphaWindow, 0, wx.RIGHT, 5)
-
-
-        sizer = wx.FlexGridSizer(rows=3, cols=3, hgap=0, vgap=0)
-
-        sizer.Add((0,0))
-
         rglabel = wx.StaticText(self, -1, 'Rg (A)')
         i0label = wx.StaticText(self, -1, 'I0')
 
-        sizer.Add(rglabel, 0, wx.ALL, 5)
-        sizer.Add(i0label, 0, wx.ALL, 5)
-
         guinierlabel = wx.StaticText(self, -1, 'Guinier :')
-        self.guinierRg = wx.TextCtrl(self, self.infodata['guinierRg'][1], '', size = (60,-1), style = wx.TE_READONLY)
-        self.guinierI0 = wx.TextCtrl(self, self.infodata['guinierI0'][1], '', size = (60,-1), style = wx.TE_READONLY)
+        self.guinierRg = wx.TextCtrl(self, self.infodata['guinierRg'][1], '',
+            size=(80,-1), style=wx.TE_READONLY)
+        self.guinierI0 = wx.TextCtrl(self, self.infodata['guinierI0'][1], '',
+            size=(80,-1), style=wx.TE_READONLY)
 
-        sizer.Add(guinierlabel, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 5)
-        sizer.Add(self.guinierRg, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-        sizer.Add(self.guinierI0, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        guinierlabel_err = wx.StaticText(self, -1, 'Guinier Err. :')
+        self.guinierRgErr = wx.TextCtrl(self, self.infodata['guinierRg_err'][1],
+            '', size=(80,-1), style=wx.TE_READONLY)
+        self.guinierI0Err = wx.TextCtrl(self, self.infodata['guinierI0_err'][1],
+            '', size=(80,-1), style=wx.TE_READONLY)
 
         biftlabel = wx.StaticText(self, -1, 'P(r) :')
-        self.biftRg = wx.TextCtrl(self, self.infodata['biftRg'][1], '', size = (60,-1), style = wx.TE_READONLY)
-        self.biftI0 = wx.TextCtrl(self, self.infodata['biftI0'][1], '', size = (60,-1), style = wx.TE_READONLY)
+        self.biftRg = wx.TextCtrl(self, self.infodata['biftRg'][1], '',
+            size=(80,-1), style=wx.TE_READONLY)
+        self.biftI0 = wx.TextCtrl(self, self.infodata['biftI0'][1], '',
+            size=(80,-1), style=wx.TE_READONLY)
 
-        sizer.Add(biftlabel, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 5)
-        sizer.Add(self.biftRg, 0, wx.ALL, 5)
-        sizer.Add(self.biftI0, 0, wx.ALL, 5)
+        biftlabel_err = wx.StaticText(self, -1, 'P(r) Err. :')
+        self.biftRgErr = wx.TextCtrl(self, self.infodata['biftRg_err'][1], '',
+            size=(80,-1), style=wx.TE_READONLY)
+        self.biftI0Err = wx.TextCtrl(self, self.infodata['biftI0_err'][1], '',
+            size=(80,-1), style=wx.TE_READONLY)
 
+        sizer = wx.FlexGridSizer(rows=5, cols=3, hgap=5, vgap=2)
+        sizer.Add((0,0))
+        sizer.Add(rglabel, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        sizer.Add(i0label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        sizer.Add(guinierlabel, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.guinierRg, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.guinierI0, 0,  wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(guinierlabel_err, 0,  wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.guinierRgErr, 0,  wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.guinierI0Err, 0,  wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(biftlabel, 0,  wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.biftRg, 0,  wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.biftI0, 0,  wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(biftlabel_err, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.biftRgErr, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.biftI0Err, 0, wx.ALIGN_CENTER_VERTICAL)
+
+
+        dmaxLabel = wx.StaticText(self, -1, 'Dmax :')
+        self.dmax = wx.TextCtrl(self, self.infodata['dmax'][1], '',
+            size=(70,-1), style=wx.TE_READONLY)
+        self.dmax_err = wx.TextCtrl(self, self.infodata['dmax_err'][1], '',
+            size=(70,-1), style=wx.TE_READONLY)
+
+        alphaLabel = wx.StaticText(self, -1, 'Log(Alpha) :')
+        self.alpha = wx.TextCtrl(self, self.infodata['alpha'][1], '',
+            size=(70,-1), style=wx.TE_READONLY)
+        self.alpha_err = wx.TextCtrl(self, self.infodata['alpha_err'][1], '',
+            size=(70,-1), style=wx.TE_READONLY)
 
         chisqLabel = wx.StaticText(self, -1, self.infodata['chisq'][0])
-        self.chisq = wx.TextCtrl(self, self.infodata['chisq'][1], '', size = (60,-1), style = wx.TE_READONLY)
+        self.chisq = wx.TextCtrl(self, self.infodata['chisq'][1], '',
+            size=(70,-1), style=wx.TE_READONLY)
 
-        chisqSizer = wx.BoxSizer(wx.HORIZONTAL)
-        chisqSizer.Add(chisqLabel, 0, wx.RIGHT, 5)
-        chisqSizer.Add(self.chisq, 0, wx.RIGHT, 5)
+        self.evidence = wx.TextCtrl(self, self.infodata['evidence'][1], '',
+            size=(70,-1), style=wx.TE_READONLY)
+
+        sizer2 = wx.FlexGridSizer(rows=4, cols=4, hgap=5, vgap=2)
+        sizer2.Add(dmaxLabel, flag=wx.ALIGN_CENTER_VERTICAL)
+        sizer2.Add(self.dmax, flag=wx.ALIGN_CENTER_VERTICAL)
+        sizer2.Add(wx.StaticText(self, label='+/-'), flag=wx.ALIGN_CENTER_VERTICAL)
+        sizer2.Add(self.dmax_err, flag=wx.ALIGN_CENTER_VERTICAL)
+        sizer2.Add(alphaLabel, flag=wx.ALIGN_CENTER_VERTICAL)
+        sizer2.Add(self.alpha, flag=wx.ALIGN_CENTER_VERTICAL)
+        sizer2.Add(wx.StaticText(self, label='+/-'), flag=wx.ALIGN_CENTER_VERTICAL)
+        sizer2.Add(self.alpha_err, flag=wx.ALIGN_CENTER_VERTICAL)
+        sizer2.Add(chisqLabel, flag=wx.ALIGN_CENTER_VERTICAL)
+        sizer2.Add(self.chisq, flag=wx.ALIGN_CENTER_VERTICAL)
+        sizer2.Add((0,0))
+        sizer2.Add((0,0))
+        sizer2.Add(wx.StaticText(self, label='Evidence :'), flag=wx.ALIGN_CENTER_VERTICAL)
+        sizer2.Add(self.evidence, flag=wx.ALIGN_CENTER_VERTICAL)
 
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(dmaxSizer, 0, wx.BOTTOM | wx.LEFT, 5)
-        top_sizer.Add(alphaSizer, 0, wx.BOTTOM | wx.LEFT, 5)
         top_sizer.Add(sizer,0, wx.BOTTOM | wx.LEFT, 5)
-        top_sizer.Add(chisqSizer,0, wx.BOTTOM | wx.LEFT, 5)
+        top_sizer.Add(sizer2,0, wx.BOTTOM | wx.LEFT, 5)
 
         return top_sizer
 
@@ -7892,87 +7932,43 @@ class BIFTControlPanel(wx.Panel):
         statusSizer.Add(statusLabel, 0, wx.RIGHT, 3)
         statusSizer.Add(statusText, 0, wx.RIGHT, 3)
 
-
-        evidenceLabel = wx.StaticText(self, -1, 'Evidence :')
-        evidenceText = wx.StaticText(self, self.statusIds['evidence'], '')
-
-        evidenceSizer = wx.BoxSizer(wx.HORIZONTAL)
-        evidenceSizer.Add(evidenceLabel, 0, wx.RIGHT, 3)
-        evidenceSizer.Add(evidenceText, 0, wx.RIGHT, 3)
-
-
-        chiLabel = wx.StaticText(self, -1, 'Reduced chi^2 :')
-        chiText = wx.StaticText(self, self.statusIds['chi'], '')
-
-        chiSizer = wx.BoxSizer(wx.HORIZONTAL)
-        chiSizer.Add(chiLabel, 0, wx.RIGHT, 3)
-        chiSizer.Add(chiText, 0, wx.RIGHT, 3)
-
-
-        alphaLabel = wx.StaticText(self, -1, 'Log(Alpha) :')
-        alphaText = wx.StaticText(self, self.statusIds['alpha'], '')
-
-        alphaSizer = wx.BoxSizer(wx.HORIZONTAL)
-        alphaSizer.Add(alphaLabel, 0, wx.RIGHT, 3)
-        alphaSizer.Add(alphaText, 0, wx.RIGHT, 3)
-
-
-        dmaxLabel = wx.StaticText(self, -1, 'Dmax :')
-        dmaxText = wx.StaticText(self, self.statusIds['dmax'], '')
-
-        dmaxSizer = wx.BoxSizer(wx.HORIZONTAL)
-        dmaxSizer.Add(dmaxLabel, 0, wx.RIGHT, 3)
-        dmaxSizer.Add(dmaxText, 0, wx.RIGHT, 3)
-
-        spointLabel = wx.StaticText(self, -1, 'Current Search Point :')
-        spointText = wx.StaticText(self, self.statusIds['spoint'], '')
-
-        spointSizer = wx.BoxSizer(wx.HORIZONTAL)
-        spointSizer.Add(spointLabel, 0, wx.RIGHT, 3)
-        spointSizer.Add(spointText, 0, wx.RIGHT, 3)
-
-
-        tpointLabel = wx.StaticText(self, -1, 'Total Search Points :')
-        tpointText = wx.StaticText(self, self.statusIds['tpoint'], '')
-
-        tpointSizer = wx.BoxSizer(wx.HORIZONTAL)
-        tpointSizer.Add(tpointLabel, 0, wx.RIGHT, 3)
-        tpointSizer.Add(tpointText, 0, wx.RIGHT, 3)
-
-
-        top_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(statusSizer, 0, wx.ALL, 3)
-        top_sizer.Add(evidenceSizer, 0, wx.ALL, 3)
-        top_sizer.Add(chiSizer, 0, wx.ALL, 3)
-        top_sizer.Add(alphaSizer, 0, wx.ALL, 3)
-        top_sizer.Add(dmaxSizer, 0, wx.ALL, 3)
-        top_sizer.Add(spointSizer, 0, wx.ALL, 3)
-        top_sizer.Add(tpointSizer, 0, wx.ALL, 3)
-
-        return top_sizer
+        return statusSizer
 
     def initValues(self):
-
-        guinierRgWindow = wx.FindWindowById(self.infodata['guinierRg'][1], self)
-        guinierI0Window = wx.FindWindowById(self.infodata['guinierI0'][1], self)
-
         if 'guinier' in self.sasm.getParameter('analysis'):
-
             guinier = self.sasm.getParameter('analysis')['guinier']
 
             try:
-                guinierRgWindow.SetValue(str(guinier['Rg']))
-            except Exception as e:
-                print e
-                guinierRgWindow.SetValue('')
+                self.guinierRg.SetValue(self.formatNumStr(guinier['Rg']))
+            except Exception:
+                self.guinierRg.SetValue('')
 
             try:
-                guinierI0Window.SetValue(str(guinier['I0']))
-            except Exception as e:
-                print e
-                guinierI0Window.SetValue('')
+                self.guinierRgErr.SetValue(self.formatNumStr(guinier['Rg_err']))
+            except Exception:
+                self.guinierRgErr.SetValue('')
+
+            try:
+                self.guinierI0.SetValue(self.formatNumStr(guinier['I0']))
+            except Exception:
+                self.guinierI0.SetValue('')
+
+            try:
+                self.guinierI0Err.SetValue(self.formatNumStr(guinier['I0_err']))
+            except Exception:
+                self.guinierI0Err.SetValue('')
 
         self.setFilename(os.path.basename(self.sasm.getParameter('filename')))
+
+    def formatNumStr(self, val):
+        val = float(val)
+
+        if abs(val) > 1e3 or abs(val) < 1e-2:
+            my_str = '%.2E' %(val)
+        else:
+            my_str = '%.4f' %(round(val,4))
+
+        return my_str
 
     def onSaveInfo(self, evt):
 
@@ -7981,9 +7977,11 @@ class BIFTControlPanel(wx.Panel):
             results_dict = {}
 
             results_dict['Dmax'] = str(self.iftm.getParameter('dmax'))
-            results_dict['Real_Space_Rg'] = str(self.iftm.getParameter('Rg'))
-            results_dict['Real_Space_I0'] = str(self.iftm.getParameter('I0'))
-            results_dict['ChiSquared'] = str(self.iftm.getParameter('ChiSquared'))
+            results_dict['Real_Space_Rg'] = str(self.iftm.getParameter('rg'))
+            results_dict['Real_Space_Rg_Err'] = str(self.iftm.getParameter('rger'))
+            results_dict['Real_Space_I0'] = str(self.iftm.getParameter('i0'))
+            results_dict['Real_Space_I0_Err'] = str(self.iftm.getParameter('i0er'))
+            results_dict['ChiSquared'] = str(self.iftm.getParameter('chisq'))
             results_dict['LogAlpha'] = str(self.iftm.getParameter('alpha'))
 
 
@@ -7996,7 +7994,10 @@ class BIFTControlPanel(wx.Panel):
 
         if self.BIFT_timer.IsRunning():
             self.BIFT_timer.Stop()
-            RAWGlobals.cancel_bift = True
+            self.bift_abort.set()
+
+        if self.bift_thread is not None:
+            self.bift_thread.join()
 
         if self.raw_settings.get('AutoSaveOnBift') and self.iftm is not None:
             if os.path.isdir(self.raw_settings.get('BiftFilePath')):
@@ -8023,10 +8024,13 @@ class BIFTControlPanel(wx.Panel):
     def onClose(self):
         if self.BIFT_timer.IsRunning():
             self.BIFT_timer.Stop()
-            RAWGlobals.cancel_bift = True
+            self.bift_abort.set()
+
+        if self.bift_thread is not None:
+            self.bift_thread.join()
 
     def onAbortButton(self, evt):
-        RAWGlobals.cancel_bift = True
+        self.bift_abort.set()
 
     def _onInfoButton(self, evt):
         msg = ('If you use BIFT in your work, in addition to citing '
@@ -8035,19 +8039,28 @@ class BIFTControlPanel(wx.Panel):
         wx.MessageBox(str(msg), "How to cite BIFT", style = wx.ICON_INFORMATION | wx.OK)
 
     def updateBIFTInfo(self):
-        biftRgWindow = wx.FindWindowById(self.infodata['biftRg'][1], self)
-        biftI0Window = wx.FindWindowById(self.infodata['biftI0'][1], self)
-        biftChisqWindow = wx.FindWindowById(self.infodata['chisq'][1], self)
-        biftDmaxWindow = wx.FindWindowById(self.infodata['dmax'][1], self)
-        biftAlphaWindow = wx.FindWindowById(self.infodata['alpha'][1], self)
-
         if self.iftm is not None:
+            rg = self.iftm.getParameter('rg')
+            i0 = self.iftm.getParameter('i0')
+            rger = self.iftm.getParameter('rger')
+            i0er = self.iftm.getParameter('i0er')
+            chisq = self.iftm.getParameter('chisq')
+            dmax = self.iftm.getParameter('dmax')
+            dmaxer = self.iftm.getParameter('dmaxer')
+            alpha = self.iftm.getParameter('alpha')
+            alphaer = self.iftm.getParameter('alpha_er')
+            evidence = self.iftm.getParameter('evidence')
 
-            biftRgWindow.SetValue(str(self.iftm.getParameter('Rg')))
-            biftI0Window.SetValue(str(self.iftm.getParameter('I0')))
-            biftChisqWindow.SetValue(str(self.iftm.getParameter('ChiSquared')))
-            biftDmaxWindow.SetValue(str(self.iftm.getParameter('dmax')))
-            biftAlphaWindow.SetValue(str(np.log(self.iftm.getParameter('alpha'))))
+            self.biftRg.SetValue(self.formatNumStr(rg))
+            self.biftRgErr.SetValue(self.formatNumStr(rger))
+            self.biftI0.SetValue(self.formatNumStr(i0))
+            self.biftI0Err.SetValue(self.formatNumStr(i0er))
+            self.chisq.SetValue(self.formatNumStr(chisq))
+            self.dmax.SetValue(self.formatNumStr(dmax))
+            self.dmax_err.SetValue(self.formatNumStr(dmaxer))
+            self.alpha.SetValue(self.formatNumStr(alpha))
+            self.alpha_err.SetValue(self.formatNumStr(alphaer))
+            self.evidence.SetValue(self.formatNumStr(evidence))
 
     def setFilename(self, filename):
         self.filenameTxtCtrl.SetValue(str(filename))
@@ -8059,18 +8072,18 @@ class BIFTControlPanel(wx.Panel):
     def updateBIFTSettings(self):
         self.old_settings = copy.deepcopy(self.bift_settings)
 
-        self.bift_settings = (self.raw_settings.get('PrPoints'),
-                          self.raw_settings.get('maxAlpha'),
-                          self.raw_settings.get('minAlpha'),
-                          self.raw_settings.get('AlphaPoints'),
-                          self.raw_settings.get('maxDmax'),
-                          self.raw_settings.get('minDmax'),
-                          self.raw_settings.get('DmaxPoints'))
+        self.bift_settings = {
+            'npts'         : self.raw_settings.get('PrPoints'),
+            'alpha_max' : self.raw_settings.get('maxAlpha'),
+            'alpha_min' : self.raw_settings.get('minAlpha'),
+            'alpha_n'   : self.raw_settings.get('AlphaPoints'),
+            'dmax_min'  : self.raw_settings.get('maxDmax'),
+            'dmax_max'  : self.raw_settings.get('minDmax'),
+            'dmax_n'    : self.raw_settings.get('DmaxPoints')
+            }
 
         if self.old_settings != self.bift_settings:
-            pass
-
-        self.updatePlot()
+            self.runBIFT()
 
     def runBIFT(self):
 
@@ -8080,7 +8093,7 @@ class BIFTControlPanel(wx.Panel):
             else:
                 wx.FindWindowById(self.buttonIds[key], self).Enable()
 
-        RAWGlobals.cancel_bift = False
+        self.bift_abort.clear()
 
         while not self.BIFT_queue.empty():
             self.BIFT_queue.get_nowait()
@@ -8089,14 +8102,41 @@ class BIFTControlPanel(wx.Panel):
 
         self.updateStatus({'status': 'Performing search grid'})
 
-        RAWGlobals.mainworker_cmd_queue.put(['ift', ['BIFT', self.sasm, self.BIFT_queue, self.bift_settings]])
+        kwargs = copy.deepcopy(self.bift_settings)
+        kwargs['queue'] = self.BIFT_queue
+        kwargs['abort_check'] = self.bift_abort
+
+        self.bift_thread = threading.Thread(target=self._runBIFT,
+            args=((self.sasm,), kwargs))
+        self.bift_thread.daemon = True
+        self.bift_thread.start()
+
+    def _runBIFT(self, args, kwargs):
+        print args
+        print kwargs
+        iftm = BIFT.doBift(*args, **kwargs)
+
+        if iftm is not None:
+            self.iftm = iftm
+            wx.CallAfter(self._onSuccess)
+
+    def _onSuccess(self):
+        self.updateStatus({'status' : 'BIFT done'})
+        self.updatePlot()
+        self.updateBIFTInfo()
+        self.finishedProcessing()
+
+        if self.BIFT_timer.IsRunning():
+            self.BIFT_timer.Stop()
+
 
     def updateStatus(self, updates):
         for key in updates:
-            if key == 'alpha':
-                wx.FindWindowById(self.statusIds[key], self).SetLabel(str(np.log(updates[key])))
-            else:
-                wx.FindWindowById(self.statusIds[key], self).SetLabel(str(updates[key]))
+            if key in self.statusIds:
+                if key == 'alpha':
+                    wx.FindWindowById(self.statusIds[key], self).SetLabel(str(np.log(updates[key])))
+                else:
+                    wx.FindWindowById(self.statusIds[key], self).SetLabel(str(updates[key]))
 
     def clearStatus(self, exception_list):
         for key in self.statusIds:
@@ -8115,16 +8155,6 @@ class BIFTControlPanel(wx.Panel):
             args = self.BIFT_queue.get_nowait()
             if 'update' in args:
                 self.updateStatus(args['update'])
-
-            elif 'success' in args:
-                self.iftm = args['results']
-                self.updateStatus({'status' : 'BIFT done'})
-                self.updatePlot()
-                self.updateBIFTInfo()
-                self.finishedProcessing()
-
-                if self.BIFT_timer.IsRunning():
-                    self.BIFT_timer.Stop()
 
             elif 'failed' in args:
                 self.updateStatus({'status' : 'BIFT failed'})
