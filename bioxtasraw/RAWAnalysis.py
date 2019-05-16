@@ -7977,12 +7977,16 @@ class BIFTControlPanel(wx.Panel):
             results_dict = {}
 
             results_dict['Dmax'] = str(self.iftm.getParameter('dmax'))
+            results_dict['Dmax_Err'] = str(self.iftm.getParameter('dmaxer'))
             results_dict['Real_Space_Rg'] = str(self.iftm.getParameter('rg'))
             results_dict['Real_Space_Rg_Err'] = str(self.iftm.getParameter('rger'))
             results_dict['Real_Space_I0'] = str(self.iftm.getParameter('i0'))
             results_dict['Real_Space_I0_Err'] = str(self.iftm.getParameter('i0er'))
             results_dict['ChiSquared'] = str(self.iftm.getParameter('chisq'))
             results_dict['LogAlpha'] = str(self.iftm.getParameter('alpha'))
+            results_dict['LogAlpha_Err'] = str(self.iftm.getParameter('alpha_er'))
+            results_dict['Evidence'] = str(self.iftm.getParameter('evidence'))
+            results_dict['Evidence_Err'] = str(self.iftm.getParameter('evidence_er'))
 
 
             analysis_dict = self.sasm.getParameter('analysis')
@@ -8100,7 +8104,7 @@ class BIFTControlPanel(wx.Panel):
 
         self.BIFT_timer.Start(1)
 
-        self.updateStatus({'status': 'Performing search grid'})
+        self.updateStatus({'status': 'Running grid search'})
 
         kwargs = copy.deepcopy(self.bift_settings)
         kwargs['queue'] = self.BIFT_queue
@@ -8112,8 +8116,6 @@ class BIFTControlPanel(wx.Panel):
         self.bift_thread.start()
 
     def _runBIFT(self, args, kwargs):
-        print args
-        print kwargs
         iftm = BIFT.doBift(*args, **kwargs)
 
         if iftm is not None:

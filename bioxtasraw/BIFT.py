@@ -26,7 +26,6 @@ import numpy as np
 from numba import jit
 
 import SASM
-import RAWGlobals
 
 def createTransMatrix(q, r):
     """
@@ -195,51 +194,63 @@ def calc_bift_errors(opt_params, q, i, err, N, mc_runs=300, abort_check=False):
     #Then, calculate the evidence, pr, and other results for each set of parameters
 
     alpha_opt, dmax_opt = opt_params
-
     mult = 3.0
+
+    n_proc = multiprocessing.cpu_count()
+
+    mp_pool = multiprocessing.Pool(processes=n_proc)
+    mp_get_evidence = functools.partial(getEvidence, q=q, i=i, err=err, N=N)
 
     ev_array = np.zeros(mc_runs)
     c_array = np.zeros(mc_runs)
     f_array = np.zeros((mc_runs, N+1))
     r_array = np.zeros((mc_runs, N+1))
 
-    alpha_array = np.zeros(mc_runs)
-    dmax_array = np.zeros(mc_runs)
-
     max_dmax = dmax_opt+0.1*dmax_opt*0.5*mult
     _, ref_r = makePriorDistribution(i[0], N, max_dmax)
 
-    for k in range(mc_runs):
-        if k == 0:
-            alpha = alpha_opt
-            dmax = dmax_opt
-        else:
-            alpha = alpha_opt + 0.1*alpha_opt*(np.random.random() - 0.5)*mult
-            dmax = dmax_opt + 0.1*dmax_opt*(np.random.random() - 0.5)*mult
+    run_mc = True
 
-        alpha_array[k] = alpha
-        dmax_array[k] = dmax
+    while run_mc:
 
-        evidence, c, f, r = getEvidence((alpha, dmax), q, i, err, N)
+        alpha_array = alpha_opt+0.1*alpha_opt*(np.random.random(mc_runs)-0.5)*mult
+        dmax_array = dmax_opt+0.1*dmax_opt*(np.random.random(mc_runs)-0.5)*mult
+        alpha_array[0] = alpha_opt
+        dmax_array[0] = dmax_opt
 
-        interp = scipy.interpolate.interp1d(r, f, copy=False)
+        pts = zip(alpha_array, dmax_array)
 
-        f_interp = np.zeros_like(ref_r)
-        f_interp[ref_r<dmax] = interp(ref_r[ref_r<dmax])
+        results = mp_pool.map(mp_get_evidence, pts)
 
-        ev_array[k] = evidence
-        c_array[k] = c
-        f_array[k,:] = f_interp
-        r_array[k,:] = ref_r
+        for res_idx, res in enumerate(results):
+            dmax = dmax_array[res_idx]
 
-        if -evidence >= 9e8:
+            evidence, c, f, r = res
+
+            interp = scipy.interpolate.interp1d(r, f, copy=False)
+
+            f_interp = np.zeros_like(ref_r)
+            f_interp[ref_r<dmax] = interp(ref_r[ref_r<dmax])
+
+            ev_array[res_idx] = evidence
+            c_array[res_idx] = c
+            f_array[res_idx,:] = f_interp
+            r_array[res_idx,:] = ref_r
+
+        if np.abs(ev_array).max() >= 9e8:
             mult = mult/2.
 
-        if mult < 0.001:
-            break
+            if mult < 0.001:
+                run_mc = False
 
-        if abort_check.is_set():
-            return None
+            if abort_check.is_set():
+                run_mc = False
+
+        else:
+            run_mc = False
+
+    mp_pool.close()
+    mp_pool.join()
 
     #Then, calculate the probability of each result as exp(evidence - evidence_max)**(1/minimum_chisq), normalized by the sum of all result probabilities
 
@@ -250,7 +261,7 @@ def calc_bift_errors(opt_params, q, i, err, N, mc_runs=300, abort_check=False):
     #Then, calculate the average P(r) function as the weighted sum of the P(r) functions
     #Then, calculate the error in P(r) as the square root of the weighted sum of squares of the difference between the average result and the individual estimate
     p_avg = np.sum(f_array*prob[:,None], axis=0)
-    err = np.sum((f_array-p_avg)**2*prob[:,None], axis=0)
+    err = np.sqrt(np.abs(np.sum((f_array-p_avg)**2*prob[:,None], axis=0)))
 
     #Then, calculate structural results as weighted sum of each result
     alpha = np.sum(alpha_array*prob)
@@ -296,9 +307,6 @@ def doBift(sasm, npts, alpha_min, alpha_max, alpha_n, dmax_min, dmax_max, dmax_n
 
     n_proc = multiprocessing.cpu_count()
 
-    if n_proc > 1:
-        n_proc = n_proc - 1
-
     mp_pool = multiprocessing.Pool(processes=n_proc)
 
     alpha_min = np.log(alpha_min)
@@ -318,6 +326,10 @@ def doBift(sasm, npts, alpha_min, alpha_max, alpha_n, dmax_min, dmax_max, dmax_n
     if abort_check.is_set():
         if queue is not None:
             queue.put({'canceled' : True})
+
+        mp_pool.close()
+        mp_pool.join()
+
         return None
 
     for d_idx, dmax in enumerate(dmax_points):
@@ -344,6 +356,10 @@ def doBift(sasm, npts, alpha_min, alpha_max, alpha_n, dmax_min, dmax_max, dmax_n
         if abort_check.is_set():
             if queue is not None:
                 queue.put({'canceled' : True})
+
+            mp_pool.close()
+            mp_pool.join()
+
             return None
 
     mp_pool.close()
@@ -357,7 +373,7 @@ def doBift(sasm, npts, alpha_min, alpha_max, alpha_n, dmax_min, dmax_max, dmax_n
             'dmax'      : pts[-1][1],
             'spoint'    : alpha_points.size*dmax_points.size,
             'tpoint'    : alpha_points.size*dmax_points.size,
-            'status'    : 'Running a fine search',
+            'status'    : 'Running minimization',
             }
 
         queue.put({'update' : bift_status})
@@ -388,7 +404,7 @@ def doBift(sasm, npts, alpha_min, alpha_max, alpha_n, dmax_min, dmax_max, dmax_n
                 'dmax'      : dmax,
                 'spoint'    : alpha_points.size*dmax_points.size,
                 'tpoint'    : alpha_points.size*dmax_points.size,
-                'status'    : 'Calculating monte carlo errors',
+                'status'    : 'Calculating Monte Carlo errors',
                 }
 
             queue.put({'update' : bift_status})
