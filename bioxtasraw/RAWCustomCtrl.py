@@ -1127,7 +1127,7 @@ class FloatSpinCtrlList(wx.Panel):
 
 class IntSpinCtrl(wx.Panel):
 
-    def __init__(self, parent, id, min = None, max = None, TextLength = 40, **kwargs):
+    def __init__(self, parent, id=wx.ID_ANY, min = None, max = None, TextLength = 40, **kwargs):
 
         wx.Panel.__init__(self, parent, id, **kwargs)
 

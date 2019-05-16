@@ -8523,6 +8523,28 @@ class IFTItemPanel(wx.Panel):
 
         self.info_icon = wx.StaticBitmap(self, -1, self.info_png)
 
+        try:
+            dmax = round(float(self.iftm.getParameter('dmax')),2)
+        except Exception:
+            dmax = self.iftm.getParameter('dmax')
+        try:
+            rg = round(float(self.iftm.getParameter('rg')),2)
+        except Exception:
+            rg = self.iftm.getParameter('rg')
+
+        try:
+            i0 = float(self.iftm.getParameter('i0'))
+            if abs(i0) > 0.01 and abs(i0) < 10:
+                i0 = '{}'.format(round(i0, 4))
+            elif abs(i0) >= 10 and abs(i0) < 1000:
+                i0 = '{}'.format(round(i0, 2))
+            else:
+                i0 = '{:.3E}'.format(i0)
+        except Exception:
+            i0 = self.iftm.getParameter('i0')
+
+        algorithm = self.iftm.getParameter('algorithm')
+
         if opsys == 'Darwin':
             show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(self.showitem_icon)
@@ -8536,7 +8558,8 @@ class IFTItemPanel(wx.Panel):
             target_tip.SetTarget(self.target_icon)
             target_tip.ApplyStyle('Blue Glass')
 
-            info_str = "Dmax: {}\nMethod: {}".format(self.iftm.getParameter('dmax'), self.iftm.getParameter('algorithm'))
+            info_str = ("Dmax: {}\nRg: {}\nI0: {}\nMethod: {}".format(
+                dmax, rg, i0, algorithm))
             info_tip = STT.SuperToolTip(info_str, header="Extended Info", footer="")
             info_tip.SetTarget(self.info_icon)
             info_tip.ApplyStyle("Blue Glass")
@@ -8545,7 +8568,9 @@ class IFTItemPanel(wx.Panel):
             self.showitem_icon.SetToolTip(wx.ToolTip('Show Plot'))
             self.colour_indicator.SetToolTip(wx.ToolTip('Line Properties'))
             self.target_icon.SetToolTip(wx.ToolTip('Locate Line'))
-            info_str = "Extended Info\n--------------------------------\nDmax: {}\nMethod: {}".format(self.iftm.getParameter('dmax'), self.iftm.getParameter('algorithm'))
+            info_str = ("Extended Info\n--------------------------------\n"
+                "Dmax: {}\nRg: {}\nI0: {}\nMethod: {}".format(dmax, rg, i0,
+                algorithm))
             self.info_icon.SetToolTip(wx.ToolTip(info_str))
 
         self.locator_on = False

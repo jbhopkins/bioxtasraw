@@ -2758,7 +2758,7 @@ class GNOMFrame(wx.Frame):
 
         panel.SetSizer(sizer)
 
-        self.plotPanel = GNOMPlotPanel(splitter1, wx.ID_ANY)
+        self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY)
         self.controlPanel = GNOMControlPanel(splitter1, wx.ID_ANY, sasm, manip_item)
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, 290)
@@ -2916,7 +2916,7 @@ class GNOMFrame(wx.Frame):
 
 
 
-class GNOMPlotPanel(wx.Panel):
+class IFTPlotPanel(wx.Panel):
 
     def __init__(self, parent, panel_id):
 
@@ -2925,28 +2925,41 @@ class GNOMPlotPanel(wx.Panel):
 
         main_frame = wx.FindWindowByName('MainFrame')
 
-        try:
-            self.raw_settings = main_frame.raw_settings
-        except AttributeError:
-            self.raw_settings = RAWSettings.RawGuiSettings()
+        self.raw_settings = main_frame.raw_settings
 
         self.fig = Figure((5,4), 75)
 
         self.ift = None
 
-        subplotLabels = [('P(r)', 'r', 'P(r)', .1), ('Data/Fit', 'q', 'I(q)', 0.1)]
+        self.norm_residuals = self.raw_settings.get('normalizedResiduals')
 
-        self.fig.subplots_adjust(hspace = 0.26)
+        subplotLabels = [('P(r)', 'r', 'P(r)', .1),
+            ('Data/Fit', 'q', 'I(q)', 0.1)]
 
+        if self.norm_residuals:
+            subplotLabels.append(('Normalized Residual', '$q^2$',
+                '$\Delta \ln (I(q))/\sigma (q)$', 0.1))
+        else:
+            subplotLabels.append(('Residual', '$q^2$', '$\Delta \ln (I(q))$', 0.1))
+
+        gridspec = matplotlib.gridspec.GridSpec(3, 1, height_ratios=[1, 1, 0.3])
         self.subplots = {}
 
         for i in range(0, len(subplotLabels)):
-            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
+            subplot = self.fig.add_subplot(gridspec[i],
+                title = subplotLabels[i][0], label = subplotLabels[i][0])
             subplot.set_xlabel(subplotLabels[i][1])
             subplot.set_ylabel(subplotLabels[i][2])
-            self.subplots[subplotLabels[i][0]] = subplot
 
-        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
+            if subplotLabels[i][0] == 'Normalized Residual':
+                label = 'Residual'
+            else:
+                label = subplotLabels[i][0]
+
+            self.subplots[label] = subplot
+
+        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93,
+            top = 0.93, hspace = 0.4)
         self.fig.set_facecolor('white')
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
@@ -2969,20 +2982,20 @@ class GNOMPlotPanel(wx.Panel):
 
         a = self.subplots['P(r)']
         b = self.subplots['Data/Fit']
+        c = self.subplots['Residual']
 
         self.background = self.canvas.copy_from_bbox(a.bbox)
         self.err_background = self.canvas.copy_from_bbox(b.bbox)
+        self.residual_background = self.canvas.copy_from_bbox(c.bbox)
 
         if self.ift is not None:
             self.canvas.mpl_disconnect(self.cid) #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
-            self.updateDataPlot(self.orig_q, self.orig_i, self.orig_err, self.orig_r, self.orig_p, self.orig_perr, self.orig_qexp, self.orig_jreg)
+            self.updateDataPlot(self.orig_q, self.orig_i, self.orig_err,
+                self.orig_r, self.orig_p, self.orig_perr, self.orig_qfit,
+                self.orig_fit)
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) #Reconnect draw_event
 
     def plotPr(self, iftm):
-        # xlim = [0, len(sasm.i)]
-
-        # xlim = iftm.getQrange()
-
         r = iftm.r
         p = iftm.p
         perr = iftm.err
@@ -2991,17 +3004,17 @@ class GNOMPlotPanel(wx.Panel):
         q = iftm.q_orig
         err = iftm.err_orig
 
-        qexp = q
-        jreg = iftm.i_fit
+        qfit = q
+        fit = iftm.i_fit #GNOM jreg
 
         #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
         self.canvas.mpl_disconnect(self.cid)
-        self.updateDataPlot(q, i, err, r, p, perr, qexp, jreg)
+        self.updateDataPlot(q, i, err, r, p, perr, qfit, fit)
 
         #Reconnect draw_event
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
-    def updateDataPlot(self, q, i, err, r, p, perr, qexp, jreg):
+    def updateDataPlot(self, q, i, err, r, p, perr, qfit, fit):
 
         #Save for resizing:
         self.orig_q = q
@@ -3010,24 +3023,31 @@ class GNOMPlotPanel(wx.Panel):
         self.orig_r = r
         self.orig_p = p
         self.orig_perr = perr
-        self.orig_qexp = qexp
-        self.orig_jreg = jreg
+        self.orig_qfit = qfit
+        self.orig_fit = fit
+
+        residual = i - fit
+        if self.norm_residuals:
+            residual = residual/err
 
         a = self.subplots['P(r)']
         b = self.subplots['Data/Fit']
+        c = self.subplots['Residual']
 
         if not self.ift:
             self.ift, = a.plot(r, p, 'r.-', animated = True)
 
-            self.zero_line  = a.axhline(color = 'k', animated = True)
+            self.zero_line  = a.axhline(color = 'k')
 
             self.data_line, = b.semilogy(q, i, 'b.', animated = True)
-            self.gnom_line, = b.semilogy(qexp, jreg, 'r', animated = True)
+            self.fit_line, = b.semilogy(qfit, fit, 'r', animated = True)
+
+            self.residual_line, = c.plot(q, residual, 'b.', animated=True)
 
             self.canvas.draw()
             self.background = self.canvas.copy_from_bbox(a.bbox)
             self.err_background = self.canvas.copy_from_bbox(b.bbox)
-
+            self.residual_background = self.canvas.copy_from_bbox(c.bbox)
 
         else:
             self.ift.set_ydata(p)
@@ -3036,18 +3056,24 @@ class GNOMPlotPanel(wx.Panel):
             #Error lines:
             self.data_line.set_xdata(q)
             self.data_line.set_ydata(i)
-            self.gnom_line.set_xdata(qexp)
-            self.gnom_line.set_ydata(jreg)
+            self.fit_line.set_xdata(qfit)
+            self.fit_line.set_ydata(fit)
+
+            self.residual_line.set_xdata(q)
+            self.residual_line.set_ydata(residual)
 
             if not self.ift.get_visible():
                 self.ift.set_visible(True)
                 self.data_line.set_visible(True)
-                self.gnom_line.set_visible(True)
+                self.fit_line.set_visible(True)
+                self.residual_line.set_visible(True)
 
         a_oldx = a.get_xlim()
         a_oldy = a.get_ylim()
         b_oldx = b.get_xlim()
         b_oldy = b.get_ylim()
+        c_oldx = c.get_xlim()
+        c_oldy = c.get_ylim()
 
         a.relim()
         a.autoscale_view()
@@ -3055,47 +3081,59 @@ class GNOMPlotPanel(wx.Panel):
         b.relim()
         b.autoscale_view()
 
+        c.relim()
+        c.autoscale_view()
+
         a_newx = a.get_xlim()
         a_newy = a.get_ylim()
         b_newx = b.get_xlim()
         b_newy = b.get_ylim()
+        c_newx = c.get_xlim()
+        c_newy = c.get_ylim()
 
-        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy:
+        if (a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx
+            or b_newy != b_oldy or c_newx != c_oldx or c_newy != c_oldy):
             self.canvas.draw()
 
         self.canvas.restore_region(self.background)
         a.draw_artist(self.ift)
-        a.draw_artist(self.zero_line)
 
-        #restore white background in error plot and draw new error:
         self.canvas.restore_region(self.err_background)
         b.draw_artist(self.data_line)
-        b.draw_artist(self.gnom_line)
+        b.draw_artist(self.fit_line)
+
+        self.canvas.restore_region(self.residual_background)
+        c.draw_artist(self.residual_line)
 
         self.canvas.blit(a.bbox)
         self.canvas.blit(b.bbox)
+        self.canvas.blit(c.bbox)
 
     def clearDataPlot(self):
         if self.ift:
             self.ift.set_visible(False)
             self.data_line.set_visible(False)
-            self.gnom_line.set_visible(False)
+            self.fit_line.set_visible(False)
+            self.residual_line.set_visible(False)
 
             a = self.subplots['P(r)']
             b = self.subplots['Data/Fit']
+            c = self.subplots['Residual']
 
             self.canvas.restore_region(self.background)
             a.draw_artist(self.ift)
-            a.draw_artist(self.zero_line)
 
             #restore white background in error plot and draw new error:
             self.canvas.restore_region(self.err_background)
             b.draw_artist(self.data_line)
-            b.draw_artist(self.gnom_line)
+            b.draw_artist(self.fit_line)
+
+            self.canvas.restore_region(self.residual_background)
+            c.draw_artist(self.residual_line)
 
             self.canvas.blit(a.bbox)
             self.canvas.blit(b.bbox)
-
+            self.canvas.blit(c.bbox)
 
 
 class GNOMControlPanel(wx.Panel):
@@ -7485,7 +7523,7 @@ class BIFTFrame(wx.Frame):
 
         panel.SetSizer(sizer)
 
-        self.plotPanel = BIFTPlotPanel(splitter1, wx.ID_ANY)
+        self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY)
         self.controlPanel = BIFTControlPanel(splitter1, wx.ID_ANY, sasm, manip_item)
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, 290)
@@ -7527,170 +7565,6 @@ class BIFTFrame(wx.Frame):
     def close(self):
         self.controlPanel.onClose()
         self.Destroy()
-
-
-class BIFTPlotPanel(wx.Panel):
-
-    def __init__(self, parent, panel_id):
-
-        wx.Panel.__init__(self, parent, panel_id,
-            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
-
-        main_frame = wx.FindWindowByName('MainFrame')
-
-        try:
-            self.raw_settings = main_frame.raw_settings
-        except AttributeError:
-            self.raw_settings = RAWSettings.RawGuiSettings()
-
-        self.fig = Figure((5,4), 75)
-
-        self.ift = None
-
-        subplotLabels = [('P(r)', 'r', 'P(r)', .1), ('Data/Fit', 'q', 'I(q)', 0.1)]
-
-        self.fig.subplots_adjust(hspace = 0.26)
-
-        self.subplots = {}
-
-        for i in range(0, len(subplotLabels)):
-            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
-            subplot.set_xlabel(subplotLabels[i][1])
-            subplot.set_ylabel(subplotLabels[i][2])
-            self.subplots[subplotLabels[i][0]] = subplot
-
-        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
-        self.fig.set_facecolor('white')
-
-        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
-        self.canvas.SetBackgroundColour('white')
-
-        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
-        self.toolbar.Realize()
-
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
-        sizer.Add(self.toolbar, 0, wx.GROW)
-
-        self.SetSizer(sizer)
-
-        # Connect the callback for the draw_event so that window resizing works:
-        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
-
-    def ax_redraw(self, widget=None):
-        ''' Redraw plots on window resize event '''
-
-        a = self.subplots['P(r)']
-        b = self.subplots['Data/Fit']
-
-        self.background = self.canvas.copy_from_bbox(a.bbox)
-        self.err_background = self.canvas.copy_from_bbox(b.bbox)
-
-        if self.ift is not None:
-            self.canvas.mpl_disconnect(self.cid)
-            self.updateDataPlot(self.orig_q, self.orig_i, self.orig_err, self.orig_r, self.orig_p, self.orig_perr, self.orig_qexp, self.orig_jreg, self.xlim)
-            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
-
-    def plotPr(self, iftm):
-
-        xlim = iftm.getQrange()
-
-        r = iftm.r
-        p = iftm.p
-        perr = iftm.err
-
-        i = iftm.i_orig
-        q = iftm.q_orig
-        err = iftm.err_orig
-
-        qexp = q
-        jreg = iftm.i_fit
-
-        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
-        self.canvas.mpl_disconnect(self.cid)
-        self.updateDataPlot(q, i, err, r, p, perr, qexp, jreg, xlim)
-
-        #Reconnect draw_event
-        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
-
-    def updateDataPlot(self, q, i, err, r, p, perr, qexp, jreg, xlim):
-
-        xmin, xmax = xlim
-
-        #Save for resizing:
-        self.orig_q = q
-        self.orig_i = i
-        self.orig_err = err
-        self.orig_r = r
-        self.orig_p = p
-        self.orig_perr = perr
-        self.orig_qexp = qexp
-        self.orig_jreg = jreg
-
-        self.xlim = xlim
-
-        # #Cut out region of interest
-        self.i = i[xmin:xmax]
-        self.q = q[xmin:xmax]
-
-        a = self.subplots['P(r)']
-        b = self.subplots['Data/Fit']
-
-        if not self.ift:
-            self.ift, = a.plot(r, p, 'r.-', animated = True)
-
-            self.zero_line = a.axhline(color = 'k', animated = True)
-
-            self.data_line, = b.semilogy(self.q, self.i, 'b.', animated = True)
-            self.gnom_line, = b.semilogy(qexp, jreg, 'r', animated = True)
-
-            #self.lim_back_line, = a.plot([x_lim_back, x_lim_back], [y_lim_back-0.2, y_lim_back+0.2], transform=a.transAxes, animated = True)
-
-            self.canvas.draw()
-            self.background = self.canvas.copy_from_bbox(a.bbox)
-            self.err_background = self.canvas.copy_from_bbox(b.bbox)
-        else:
-            self.ift.set_ydata(p)
-            self.ift.set_xdata(r)
-
-            #Error lines:
-            self.data_line.set_xdata(self.q)
-            self.data_line.set_ydata(self.i)
-            self.gnom_line.set_xdata(qexp)
-            self.gnom_line.set_ydata(jreg)
-
-        a_oldx = a.get_xlim()
-        a_oldy = a.get_ylim()
-        b_oldx = b.get_xlim()
-        b_oldy = b.get_ylim()
-
-        a.relim()
-        a.autoscale_view()
-
-        b.relim()
-        b.autoscale_view()
-
-        a_newx = a.get_xlim()
-        a_newy = a.get_ylim()
-        b_newx = b.get_xlim()
-        b_newy = b.get_ylim()
-
-        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy:
-            self.canvas.draw()
-
-        self.canvas.restore_region(self.background)
-
-        a.draw_artist(self.ift)
-        a.draw_artist(self.zero_line)
-
-        #restore white background in error plot and draw new error:
-        self.canvas.restore_region(self.err_background)
-        b.draw_artist(self.data_line)
-        b.draw_artist(self.gnom_line)
-
-        self.canvas.blit(a.bbox)
-        self.canvas.blit(b.bbox)
-
 
 class BIFTControlPanel(wx.Panel):
 
@@ -7909,6 +7783,38 @@ class BIFTControlPanel(wx.Panel):
 
     def createControls(self):
 
+        sizer = wx.FlexGridSizer(rows=2, cols=4, hgap=0, vgap=2)
+        sizer.AddGrowableCol(0)
+        sizer.AddGrowableCol(1)
+        sizer.AddGrowableCol(2)
+        sizer.AddGrowableCol(3)
+
+        sizer.Add(wx.StaticText(self,-1,'q_min'),1, wx.LEFT, 3)
+        sizer.Add(wx.StaticText(self,-1,'n_min'),1)
+        sizer.Add(wx.StaticText(self,-1,'q_max'),1)
+        sizer.Add(wx.StaticText(self,-1,'n_max'),1)
+
+        self.startSpin = RAWCustomCtrl.IntSpinCtrl(self, size=(60,-1), min=0)
+        self.endSpin = RAWCustomCtrl.IntSpinCtrl(self, size=(60,-1), min=0)
+
+        self.startSpin.SetValue(0)
+        self.endSpin.SetValue(0)
+
+        self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
+        self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
+
+        self.qstartTxt = wx.TextCtrl(self, size = (55, 22), style = wx.TE_PROCESS_ENTER)
+        self.qendTxt = wx.TextCtrl(self, size = (55, 22), style = wx.TE_PROCESS_ENTER)
+
+        self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
+        self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
+
+        sizer.Add(self.qstartTxt, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 3)
+        sizer.Add(self.startSpin, 0, wx.EXPAND | wx.RIGHT, 3)
+        sizer.Add(self.qendTxt, 0, wx.EXPAND | wx.RIGHT, 3)
+        sizer.Add(self.endSpin, 0, wx.EXPAND | wx.RIGHT, 3)
+
+
         runButton = wx.Button(self, self.buttonIds['run'], 'Run')
         runButton.Bind(wx.EVT_BUTTON, self.onRunButton)
 
@@ -7918,11 +7824,15 @@ class BIFTControlPanel(wx.Panel):
         advancedParams = wx.Button(self, self.buttonIds['settings'], 'Settings')
         advancedParams.Bind(wx.EVT_BUTTON, self.onChangeParams)
 
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(runButton, 0, wx.ALL, 3)
+        button_sizer.Add(abortButton, 0, wx.ALL, 3)
+        button_sizer.Add(advancedParams, 0, wx.ALL, 3)
 
-        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        top_sizer.Add(runButton, 0, wx.ALL, 3)
-        top_sizer.Add(abortButton, 0, wx.ALL, 3)
-        top_sizer.Add(advancedParams, 0, wx.ALL, 3)
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(sizer, flag=wx.TOP, border=2)
+        top_sizer.Add(button_sizer, flag=wx.TOP|wx.BOTTOM, border=2)
+
 
 
         return top_sizer
@@ -7940,8 +7850,9 @@ class BIFTControlPanel(wx.Panel):
         return statusSizer
 
     def initValues(self):
-        if 'guinier' in self.sasm.getParameter('analysis'):
-            guinier = self.sasm.getParameter('analysis')['guinier']
+        analysis = self.sasm.getParameter('analysis')
+        if 'guinier' in analysis:
+            guinier = analysis['guinier']
 
             try:
                 self.guinierRg.SetValue(self.formatNumStr(guinier['Rg']))
@@ -7963,7 +7874,136 @@ class BIFTControlPanel(wx.Panel):
             except Exception:
                 self.guinierI0Err.SetValue('')
 
+        self.startSpin.SetRange((0, len(self.sasm.q)-2))
+        self.endSpin.SetRange((1, len(self.sasm.q)-1))
+
+        if 'BIFT' in analysis:
+            if 'qStart' in analysis['BIFT']:
+                qmin = analysis['BIFT']['qStart']
+                qmax = analysis['BIFT']['qEnd']
+
+                findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
+                closest_qmin = findClosest(qmin, self.sasm.q)
+                closest_qmax = findClosest(qmax, self.sasm.q)
+
+                nmin = np.where(self.sasm.q == closest_qmin)[0][0]
+                nmax = np.where(self.sasm.q == closest_qmax)[0][0]+1
+
+            else:
+                nmin, nmax = self.sasm.getQrange()
+        else:
+            nmin, nmax = self.sasm.getQrange()
+
+        self.endSpin.SetValue(nmax-1)
+        self.startSpin.SetValue(nmin)
+        self.qendTxt.SetValue(str(round(self.sasm.q[nmax-1],4)))
+        self.qstartTxt.SetValue(str(round(self.sasm.q[nmin],4)))
+
+        self.old_nstart = nmin
+        self.old_nend = nmax
+
         self.setFilename(os.path.basename(self.sasm.getParameter('filename')))
+
+    def onSpinCtrl(self, evt):
+
+        spin_ctrl = evt.GetEventObject()
+
+        update_plot = False
+
+        i = spin_ctrl.GetValue()
+
+        #Make sure the boundaries don't cross:
+        if spin_ctrl == self.startSpin:
+            max_val = self.endSpin.GetValue()
+            txt = self.qstartTxt
+
+            if i > max_val-3:
+                i = max_val - 3
+                spin_ctrl.SetValue(i)
+
+        elif spin_ctrl == self.endSpin:
+            min_val = self.startSpin.GetValue()
+            txt = self.qendTxt
+
+            if i < min_val+3:
+                i = min_val + 3
+                spin_ctrl.SetValue(i)
+
+        txt.SetValue(str(round(self.sasm.q[int(i)],4)))
+
+        if spin_ctrl == self.startSpin:
+            if i != self.old_nstart:
+                update_plot = True
+            self.old_nstart = i
+        elif spin_ctrl == self.endSpin:
+            if i != self.old_nend:
+                update_plot = True
+            self.old_nend = i
+
+        if update_plot:
+            #Important, since it's a slow function to update (could do it in a
+            #timer instead) otherwise this spin event might loop!
+            wx.CallAfter(self.updatePlot)
+
+    def onEnterInQlimits(self, evt):
+
+        q = self.sasm.q
+
+        findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
+
+        txtctrl = evt.GetEventObject()
+
+        #### If User inputs garbage: ####
+        try:
+            val = float(txtctrl.GetValue())
+        except ValueError:
+            if txtctrl == self.qstartTxt:
+                spinctrl = self.startSpin
+            elif txtctrl == self.qendTxt:
+                spinctrl = self.endSpin
+
+            idx = int(spinctrl.GetValue())
+            txtctrl.SetValue(str(round(self.sasm.q[idx],4)))
+            return
+
+        #################################
+
+        closest = findClosest(val,q)
+
+        i = np.where(q == closest)[0][0]
+
+        if txtctrl == self.qstartTxt:
+
+            n_max = self.endSpin.GetValue()
+
+            if i > n_max-3:
+                i = n_max - 3
+
+            self.startSpin.SetValue(i)
+
+        elif txtctrl == self.qendTxt:
+            n_min = self.startSpin.GetValue()
+
+            if i < n_min+3:
+                i = n_min + 3
+
+            self.endSpin.SetValue(i)
+
+        txtctrl.SetValue(str(round(self.sasm.q[int(i)],4)))
+
+        update_plot = False
+
+        if txtctrl == self.qstartTxt:
+            if i != self.old_nstart:
+                update_plot = True
+            self.old_nstart = i
+        elif txtctrl == self.qendTxt:
+            if i != self.old_nend:
+                update_plot = True
+            self.old_nend = i
+
+        if update_plot:
+            wx.CallAfter(self.updatePlot)
 
     def formatNumStr(self, val):
         val = float(val)
@@ -8112,12 +8152,21 @@ class BIFTControlPanel(wx.Panel):
 
         self.updateStatus({'status': 'Running grid search'})
 
+        start = int(self.startSpin.GetValue())
+        end = int(self.endSpin.GetValue())
+
+        q = self.sasm.q[start:end]
+        i = self.sasm.i[start:end]
+        err = self.sasm.err[start:end]
+
+        args = (q, i, err, self.sasm.getParameter('filename'))
+
         kwargs = copy.deepcopy(self.bift_settings)
         kwargs['queue'] = self.BIFT_queue
         kwargs['abort_check'] = self.bift_abort
 
         self.bift_thread = threading.Thread(target=self._runBIFT,
-            args=((self.sasm,), kwargs))
+            args=(args, kwargs))
         self.bift_thread.daemon = True
         self.bift_thread.start()
 

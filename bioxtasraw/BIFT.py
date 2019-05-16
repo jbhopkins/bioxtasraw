@@ -296,12 +296,8 @@ def make_fit(q, r, pr):
 
     return i
 
-def doBift(sasm, npts, alpha_min, alpha_max, alpha_n, dmax_min, dmax_max, dmax_n,
-    mc_runs, queue=None, abort_check=threading.Event()):
-
-    q = sasm.getQ()
-    i = sasm.getI()
-    err = sasm.getErr()
+def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
+    dmax_max, dmax_n, mc_runs, queue=None, abort_check=threading.Event()):
 
     # Start by finding the optimal dmax and alpha via minimization of evidence
 
@@ -463,7 +459,7 @@ def doBift(sasm, npts, alpha_min, alpha_max, alpha_n, dmax_min, dmax_max, dmax_n
             'evidence'      : evidence,     # Evidence of solution
             'evidence_er'   : ev_sd,        # Uncertainty in evidence of solution
             'algorithm'     : 'BIFT',       # Lets us know what algorithm was used to find the IFT
-            'filename'      : os.path.splitext(sasm.getParameter('filename'))[0]+'.ift'
+            'filename'      : os.path.splitext(filename)[0]+'.ift'
             }
 
         iftm = SASM.IFTM(pr, r, err_interp, i, q, err, fit, results, fit_extrap, q_extrap)
