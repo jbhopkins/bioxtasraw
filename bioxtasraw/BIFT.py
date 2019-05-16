@@ -297,7 +297,7 @@ def make_fit(q, r, pr):
     return i
 
 def doBift(sasm, npts, alpha_min, alpha_max, alpha_n, dmax_min, dmax_max, dmax_n,
-    queue=None, abort_check=threading.Event()):
+    mc_runs, queue=None, abort_check=threading.Event()):
 
     q = sasm.getQ()
     i = sasm.getI()
@@ -424,8 +424,9 @@ def doBift(sasm, npts, alpha_min, alpha_max, alpha_n, dmax_min, dmax_max, dmax_n
 
         fit_extrap = make_fit(q_extrap, r, pr)
 
-        # Use a montecarlo method to estimate the errors in pr function, values found
-        err_calc = calc_bift_errors((alpha, dmax), q, i, err, N, abort_check=abort_check)
+        # Use a monte carlo method to estimate the errors in pr function, values found
+        err_calc = calc_bift_errors((alpha, dmax), q, i, err, N, mc_runs,
+            abort_check=abort_check)
 
         if abort_check.is_set():
             if queue is not None:

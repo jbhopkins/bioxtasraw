@@ -2546,7 +2546,7 @@ class IftOptionsPanel(wx.Panel):
         self.raw_settings = raw_settings
 
         self.update_keys = ['maxDmax','minDmax','DmaxPoints','maxAlpha','minAlpha',
-                            'AlphaPoints','PrPoints', ]
+                            'AlphaPoints','PrPoints', 'mcRuns']
                             # 'pygnomMaxAlpha','pygnomMinAlpha',
                             # 'pygnomAlphaPoints','pygnomPrPoints','pyOSCILLweight','pyVALCENweight',
                             # 'pyPOSITVweight','pySYSDEVweight','pySTABILweight','pyDISCRPweight',
@@ -2558,7 +2558,9 @@ class IftOptionsPanel(wx.Panel):
                                 ("Alpha Upper Bound:",   raw_settings.getId('maxAlpha')),
                                 ("Alpha Lower Bound:",   raw_settings.getId('minAlpha')),
                                 ("Alpha Search Points:", raw_settings.getId('AlphaPoints')),
-                                ("P(r) Points:",         raw_settings.getId('PrPoints')))
+                                ("P(r) Points:",         raw_settings.getId('PrPoints')),
+                                ("Monte Carlo Error Runs:", raw_settings.getId('mcRuns')),
+                                )
 
         self.gnom_options_data = (("Alpha Upper Bound:",   raw_settings.getId('pygnomMaxAlpha')),
                                 ("Alpha Lower Bound:",   raw_settings.getId('pygnomMinAlpha')),
@@ -4659,6 +4661,10 @@ class OptionsDialog(wx.Dialog):
         for denss_window in main_frame.denss_frames:
             if denss_window:
                 denss_window.updateDenssSettings()
+
+        for bift_window in main_frame.bift_frames:
+            if bift_window:
+                bift_window.updateBIFTSettings()
 
 
 #--- ** FOR TESTING **

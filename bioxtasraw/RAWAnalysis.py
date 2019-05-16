@@ -7518,6 +7518,9 @@ class BIFTFrame(wx.Frame):
     def initBIFT(self):
         self.controlPanel.runBIFT()
 
+    def updateBIFTSettings(self):
+        self.controlPanel.updateBIFTSettings()
+
     def _onClose(self, evt):
         self.close()
 
@@ -7722,7 +7725,8 @@ class BIFTControlPanel(wx.Panel):
             'alpha_n'   : self.raw_settings.get('AlphaPoints'),
             'dmax_min'  : self.raw_settings.get('maxDmax'),
             'dmax_max'  : self.raw_settings.get('minDmax'),
-            'dmax_n'    : self.raw_settings.get('DmaxPoints')
+            'dmax_n'    : self.raw_settings.get('DmaxPoints'),
+            'mc_runs'   : self.raw_settings.get('mcRuns'),
             }
 
 
@@ -7927,6 +7931,7 @@ class BIFTControlPanel(wx.Panel):
 
         statusLabel = wx.StaticText(self, -1, 'Status :')
         statusText = wx.StaticText(self, self.statusIds['status'], '')
+        statusText.SetForegroundColour('Red')
 
         statusSizer = wx.BoxSizer(wx.HORIZONTAL)
         statusSizer.Add(statusLabel, 0, wx.RIGHT, 3)
@@ -8083,7 +8088,8 @@ class BIFTControlPanel(wx.Panel):
             'alpha_n'   : self.raw_settings.get('AlphaPoints'),
             'dmax_min'  : self.raw_settings.get('maxDmax'),
             'dmax_max'  : self.raw_settings.get('minDmax'),
-            'dmax_n'    : self.raw_settings.get('DmaxPoints')
+            'dmax_n'    : self.raw_settings.get('DmaxPoints'),
+            'mc_runs'   : self.raw_settings.get('mcRuns'),
             }
 
         if self.old_settings != self.bift_settings:

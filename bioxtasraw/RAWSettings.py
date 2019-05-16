@@ -30,7 +30,6 @@ import numpy as np
 
 import RAWGlobals
 import SASFileIO
-import SASM
 import SASImage
 
 class RawGuiSettings(object):
@@ -131,7 +130,8 @@ class RawGuiSettings(object):
                             'maxAlpha'    : [1e10,   wx.NewId(), 'float'],
                             'minAlpha'    : [150.0,  wx.NewId(), 'float'],
                             'AlphaPoints' : [16,     wx.NewId(), 'int'],
-                            'PrPoints'    : [100,     wx.NewId(), 'int'],
+                            'PrPoints'    : [100,    wx.NewId(), 'int'],
+                            'mcRuns'      : [300,    wx.NewId(), 'int'],
 
                             #DEFAULT pyGNOM PARAMETERS
                             'pygnomMaxAlpha'    : [60,   wx.NewId(), 'float'],
