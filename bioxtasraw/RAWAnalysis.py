@@ -7894,6 +7894,14 @@ class BIFTControlPanel(wx.Panel):
         else:
             nmin, nmax = self.sasm.getQrange()
 
+        i = self.sasm.getI()
+
+        while i[nmin] == 0 and nmin < nmax-1:
+            nmin = nmin + 1
+
+        while i[nmax-1] == 0 and nmin + 1 < nmax-1:
+            nmax = nmax - 1
+
         self.endSpin.SetValue(nmax-1)
         self.startSpin.SetValue(nmin)
         self.qendTxt.SetValue(str(round(self.sasm.q[nmax-1],4)))

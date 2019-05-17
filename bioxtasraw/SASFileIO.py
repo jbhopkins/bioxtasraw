@@ -2418,9 +2418,9 @@ def saveAnalysisCsvFile(sasm_list, include_data, save_path):
         date = time.ctime()
 
         #Write the first line in the csv:
-        file.write('RAW ANALYSIS DATA\n')
-        file.write(str(date) + '\n')
-        file.write('Filename')
+        file.write('# RAW ANALYSIS DATA\n')
+        file.write('# ' + str(date) + '\n')
+        file.write('# Filename')
 
         all_included_keys = sorted(include_data.keys())
 
@@ -2562,8 +2562,8 @@ def saveAllAnalysisData(save_path, sasm_list, delim=','):
         date = time.ctime()
 
         #Write the first lines in the file:
-        f.write('RAW_ANALYSIS_DATA\n')
-        f.write(str(date).replace(' ', '_') + '\n')
+        f.write('# RAW_ANALYSIS_DATA\n')
+        f.write('# ' + str(date).replace(' ', '_') + '\n')
         header_list = ['Filename', 'Concentration']
 
         for sasm in sasm_list:
@@ -2596,7 +2596,7 @@ def saveAllAnalysisData(save_path, sasm_list, delim=','):
                     header_list.append('BIFT_'+key)
 
 
-        f.write(delim.join(header_list)+'\n')
+        f.write('# ' + delim.join(header_list)+'\n')
 
 
         for sasm in sasm_list:
@@ -2853,19 +2853,19 @@ def saveUnevenCSVFile(filename, data, header = ''):
 def saveSVDData(filename, svd_data, u_data, v_data):
 
     with open(filename, 'w') as fsave:
-        fsave.write('Singular_values,U_Autocorrelation,V_Autocorrelation\n')
+        fsave.write('# Singular_values,U_Autocorrelation,V_Autocorrelation\n')
 
         for line in svd_data:
             fsave.write(','.join(map(str, line))+'\n')
 
         fsave.write('\n\n')
-        fsave.write('U_matrix_(left_singular_vectors)\n')
+        fsave.write('# U_matrix_(left_singular_vectors)\n')
 
         for line in u_data:
             fsave.write(','.join(map(str, line))+'\n')
 
         fsave.write('\n\n')
-        fsave.write('V_matrix_(right_singular_vectors)\n')
+        fsave.write('# V_matrix_(right_singular_vectors)\n')
 
         for line in v_data:
             fsave.write(','.join(map(str, line))+'\n')
@@ -2900,8 +2900,8 @@ def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
 
     body_string = ''
     if panel3_results['converged']:
-        body_string = body_string+'Concentration Matrix Results\n'
-        body_string = body_string+'Index,'+','.join(['Value_%i' %i for i in range(nvals)])+'\n'
+        body_string = body_string+'# Concentration Matrix Results\n'
+        body_string = body_string+'# Index,'+','.join(['Value_%i' %i for i in range(nvals)])+'\n'
 
         conc = panel3_results['conc']
 
@@ -2913,8 +2913,8 @@ def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
         body_string = body_string +'\n'
 
 
-        body_string = body_string+'Rotation Chi^2\n'
-        body_string = body_string+'Index,Chi^2\n'
+        body_string = body_string+'# Rotation Chi^2\n'
+        body_string = body_string+'# Index,Chi^2\n'
 
         chisq = panel3_results['chisq']
 
@@ -2926,8 +2926,8 @@ def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
         body_string = body_string +'\n'
 
 
-    body_string = body_string + 'Forward EFA Results\n'
-    body_string = body_string + 'Index,'+','.join(['Value_%i' %i for i in range(nvals+1)])+'\n'
+    body_string = body_string + '# Forward EFA Results\n'
+    body_string = body_string + '# Index,'+','.join(['Value_%i' %i for i in range(nvals+1)])+'\n'
 
     fefa = panel2_results['forward_efa'].T[:,:nvals+1]
     fefa_output = np.column_stack((index, fefa))
@@ -2938,8 +2938,8 @@ def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
     body_string = body_string +'\n'
 
 
-    body_string = body_string + 'Backward EFA Results\n'
-    body_string = body_string + 'Index,'+','.join(['Value_%i' %i for i in range(nvals)])+'\n'
+    body_string = body_string + '# Backward EFA Results\n'
+    body_string = body_string + '# Index,'+','.join(['Value_%i' %i for i in range(nvals)])+'\n'
 
     befa = panel2_results['backward_efa'][:, ::-1].T[:,:nvals+1]
     befa_output = np.column_stack((index, befa))
@@ -2950,9 +2950,9 @@ def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
     body_string = body_string +'\n'
 
 
-    body_string = body_string + 'Singular Value Results\n\n'
-    body_string = body_string + 'Singular Values\n'
-    body_string = body_string + 'Index,Value\n'
+    body_string = body_string + '# Singular Value Results\n\n'
+    body_string = body_string + '# Singular Values\n'
+    body_string = body_string + '# Index,Value\n'
 
     svs = panel1_results['svd_s']
 
@@ -2964,8 +2964,8 @@ def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
     body_string = body_string +'\n'
 
 
-    body_string = body_string + 'Left Singular Vectors (U)\n'
-    body_string = body_string + 'Q,'+','.join(['Column_%i' %i for i in range(nvals)])+'\n'
+    body_string = body_string + '# Left Singular Vectors (U)\n'
+    body_string = body_string + '# Q,'+','.join(['Column_%i' %i for i in range(nvals)])+'\n'
 
     svd_u = panel1_results['svd_u'].T[:,:nvals]
     svd_u_output = np.column_stack((qvals, svd_u))
@@ -2976,8 +2976,8 @@ def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
     body_string = body_string +'\n'
 
 
-    body_string = body_string + 'Right Singular Vectors (V)\n'
-    body_string = body_string + 'Index,'+','.join(['Column_%i' %i for i in range(nvals)])+'\n'
+    body_string = body_string + '# Right Singular Vectors (V)\n'
+    body_string = body_string + '# Index,'+','.join(['Column_%i' %i for i in range(nvals)])+'\n'
 
     svd_v = panel1_results['svd_v'][:,:nvals]
     svd_v_output = np.column_stack((index, svd_v))
@@ -3020,17 +3020,17 @@ def saveDammixData(filename, ambi_data, nsd_data, res_data, clust_num, clist_dat
         body_string = body_string + '\n# Clustering results\n'
         body_string = body_string + '# %s\n' %(' '.join(map(str, clust_num)))
 
-        body_string = body_string+'Cluster,Isolated,Rep_Model,Deviation\n'
+        body_string = body_string+'# Cluster,Isolated,Rep_Model,Deviation\n'
         for item in clist_data:
             body_string =  body_string + '%s\n' %(','.join(map(str, item)))
 
-        body_string = body_string+'\nCluster1,Cluster2,Distance\n'
+        body_string = body_string+'\n#Cluster1,Cluster2,Distance\n'
         for item in dlist_data:
             body_string =  body_string + '%s\n' %(','.join(map(str, item)))
 
 
     body_string = body_string + '\n# Individual model results\n'
-    body_string = body_string + 'Model,Chi^2,Rg,Dmax,Excluded_Vol,Est_Protein_MW,Mean_NSD\n'
+    body_string = body_string + '# Model,Chi^2,Rg,Dmax,Excluded_Vol,Est_Protein_MW,Mean_NSD\n'
     for item in model_data:
         body_string =  body_string + '%s\n' %(','.join(map(str, item)))
 
@@ -3172,7 +3172,9 @@ def loadWorkspace(load_path):
             with open(load_path, 'rb') as f:
                 sasm_dict = cPickle.load(f)
         except (ImportError, EOFError):
-            raise SASExceptions.UnrecognizedDataFormat('Workspace could not be loaded. It may be an invalid file type, or the file may be corrupted.')
+            raise SASExceptions.UnrecognizedDataFormat(('Workspace could not be '
+                'loaded. It may be an invalid file type, or the file may be '
+                'corrupted.'))
 
     return sasm_dict
 
@@ -3216,7 +3218,7 @@ def writeHeader(d, f2, ignore_list = []):
     header = header.replace('\n', '\n#')
     f2.write(header)
 
-    f2.write('\n#\n#')
+    f2.write('\n\n')
 
 
 #This class goes with write header, and was lifted from:
@@ -3241,25 +3243,25 @@ def writeRadFile(m, filename, header_on_top = True, use_header = True):
     else:
         d = {}
 
-    with open(filename, 'w') as f2:
+    with open(filename, 'w') as f:
 
         if header_on_top == True:
-            writeHeader(d, f2)
+            writeHeader(d, f)
 
         q_min, q_max = m.getQrange()
 
-        f2.write('### DATA:\n#\n')
-        f2.write('#        Q               I              Error\n')
-        f2.write('# %d\n' % len(m.i[q_min:q_max]))
+        f.write('### DATA:\n#\n')
+        f.write('# %d\n' % len(m.i[q_min:q_max]))
+        f.write('#{:^13}  {:^14}  {:^14}\n'.format('Q', 'I(Q)', 'Error'))
 
         for idx in range(q_min, q_max):
-            line = ('%.8E %.8E %.8E\n') % ( m.q[idx], m.i[idx], m.err[idx])
-            f2.write(line)
+            line = ('%.8E  %.8E  %.8E\n') % ( m.q[idx], m.i[idx], m.err[idx])
+            f.write(line)
 
-        f2.write('#\n#')
+        f.write('\n')
         if header_on_top == False:
-            f2.write('\n')
-            writeHeader(d, f2)
+            f.write('\n')
+            writeHeader(d, f)
 
 def writeIftFile(m, filename, use_header = True):
     ''' Writes an ASCII file from an IFT measurement object created by BIFT'''
@@ -3271,34 +3273,34 @@ def writeIftFile(m, filename, use_header = True):
 
     with open(filename, 'w') as f:
         f.write('# BIFT\n')
-        f.write('#{:^13} {:^14} {:^14}\n'.format('R', 'P(R)', 'Error'))
+        f.write('#{:^13}  {:^14}  {:^14}\n'.format('R', 'P(R)', 'Error'))
 
         for idx in range(0,len(m.p)):
-            line = ('%.8E %.8E %.8E\n') %( m.r[idx], m.p[idx], m.err[idx])
+            line = ('%.8E  %.8E  %.8E\n') %( m.r[idx], m.p[idx], m.err[idx])
             f.write(line)
 
-        f.write('#\n#\n')
+        f.write('\n\n')
 
         orig_q = m.q_orig
         orig_i = m.i_orig
         orig_err = m.err_orig
         fit = m.i_fit
 
-        f.write('#{:^13} {:^14} {:^14} {:^14}\n'.format('Q', 'I(Q)', 'Error', 'Fit'))
+        f.write('#{:^13}  {:^14}  {:^14}  {:^14}\n'.format('Q', 'I(Q)', 'Error', 'Fit'))
         for idx in range(0,len(orig_q)):
-            line = ('%.8E %.8E %.8E %.8E\n') %( orig_q[idx], orig_i[idx], orig_err[idx], fit[idx])
+            line = ('%.8E  %.8E  %.8E  %.8E\n') %( orig_q[idx], orig_i[idx], orig_err[idx], fit[idx])
             f.write(line)
 
-        f.write('#\n#\n')
-        f.write('#{:^13} {:^14}\n'.format('Q_extrap', 'Fit_extrap'))
+        f.write('\n\n')
+        f.write('#{:^13}  {:^14}\n'.format('Q_extrap', 'Fit_extrap'))
         for idx in range(len(m.q_extrap)):
-            line = '{:.8E} {:.8E}\n'.format(m.q_extrap[idx],m.i_extrap[idx])
+            line = '{:.8E}  {:.8E}\n'.format(m.q_extrap[idx],m.i_extrap[idx])
             f.write(line)
 
         ignore_list = ['all_posteriors', 'alpha_points', 'fit', 'orig_i', 'orig_q',
                        'orig_err', 'dmax_points', 'orig_sasm', 'fit_sasm']
 
-        f.write('#\n#\n')
+        f.write('\n\n')
 
         writeHeader(d, f, ignore_list)
 
