@@ -1,8 +1,50 @@
 Changes
 ============
 
+1.6.0
+------
+
+Release date:
+
+Overview
+^^^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 1.5.1. This version
+contains several small bug fixes. Normally we might wait to release these until
+more major changes had happened, but there is a workshop using RAW soon and
+we wanted these bugs fixed before then. Significant issues that have been eliminated:
+
+*   An issue where the electron density output from DENSS could fail to load into pymol
+    correctly because the default scaling was too small (still loaded into Chimera fine).
+    Strictly speaking I think this is a workaround for a bug in pymol . . .
+*   Several bugs with running GNOM, including using data with minimal sampling (<100 points).
+*   Fixed a bug where the .app package for Mac wasn't displaying natively on retina displays,
+    so the text was fuzzy.
+
+You can see the full set of changes below.
+
+All changes:
+^^^^^^^^^^^^^^
+
+*   Fixed a bug where automatic loading of BioCAT SEC data wouldn't work if there was
+    more than one underscore in the filename.
+
+1.5.2
+------
+
+Release date: 2019-04-04
+
+Overview
+^^^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 1.5.2. The only
+change is this version is a modification to how BioCAT header files are read in,
+to accommodate a new header file format at that beamline.
+
 1.5.1
 ------
+
+Release date: 2018-11-01
 
 Overview
 ^^^^^^^^^^^^
@@ -59,6 +101,8 @@ All changes:
 
 1.5.0
 ------
+
+Release date: 2018-08-23
 
 Overview
 ^^^^^^^^^^^^
@@ -138,6 +182,8 @@ All changes:
 1.4.0
 -------
 
+Release date: 2018-03-20
+
 Overview
 ^^^^^^^^^
 
@@ -212,6 +258,8 @@ All changes:
 1.3.1
 -------
 
+Release date: 2017-11-01
+
 Overview
 ^^^^^^^^^
 
@@ -235,6 +283,8 @@ All changes:
 
 1.3.0
 -------
+
+Release date: 2017-08-19
 
 Overview
 ^^^^^^^^^
@@ -361,6 +411,8 @@ All changes:
 1.2.3
 -------
 
+Release date: 2017-05-08
+
 Overview
 ^^^^^^^^^
 
@@ -449,6 +501,8 @@ All changes:
 
 1.2.2
 -------
+
+Release date: 2017-03-10
 
 Overview
 ^^^^^^^^^
@@ -564,6 +618,8 @@ All changes:
 1.2.1
 -------
 
+Release date: 2016-12-02
+
 Overview
 ^^^^^^^^^
 
@@ -638,6 +694,8 @@ All changes:
 1.2.0
 -------
 
+Release date: 2016-10-25
+
 Overview
 ^^^^^^^^^
 
@@ -698,6 +756,8 @@ All changes:
 1.1.0
 -------
 
+Release date: 2016-08-22
+
 Overview
 ^^^^^^^^^
 
@@ -720,7 +780,8 @@ at q=0.25 A^-1 and ~4% effect at q=0.75 A^-1.
 Major new features include:
 
 *   The solid angle correction mentioned above
-*   Improved speed when calculating Rg, MW, and I(0) for SEC-SAXS curves (up to a factor of 7 faster in our limited testing)
+*   Improved speed when calculating Rg, MW, and I(0) for SEC-SAXS curves (up to a
+    factor of 7 faster in our limited testing)
 *   Ability to read in multiwire (.mpa) files
 *   Ability to read in headers from SAXS beamline BL19U2 at the Shanghai Synchrotron Radiation Facility
 *   Merging, rebinning, and interpolating now all save history information like averaging and subtracting have
@@ -806,6 +867,8 @@ All changes:
 1.0.3
 -------
 
+Release date: 2016-07-20
+
 Overview
 ^^^^^^^^^
 
@@ -856,6 +919,8 @@ All changes:
 
 1.0.2
 -------
+
+Release date: 2016-06-22
 
 Overview
 ^^^^^^^^^
@@ -944,6 +1009,8 @@ All changes:
 1.0.1
 -------
 
+Release date: 2016-05-23
+
 Overview
 ^^^^^^^^^
 
@@ -996,6 +1063,8 @@ All changes:
 1.0.0
 -------
 
+Release date: 2016-05-06
+
 Overview
 ^^^^^^^^^
 
@@ -1035,6 +1104,8 @@ All other changes:
 
 1.0.0b
 -------
+
+Release date: 2016-03-24
 
 Overview
 ^^^^^^^^^

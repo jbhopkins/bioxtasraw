@@ -753,9 +753,9 @@ def parseBioCATlogfile(filename):
                 labels = line.strip('#').split('\t')
                 offset = i
             else:
-                key = line.strip('#').split(':')[0]
+                key = line.strip('#').split(':')[0].strip()
                 val = ':'.join(line.strip('#').split(':')[1:])
-                counters[key] = val
+                counters[key] = val.strip()
         else:
             break
 
@@ -2096,6 +2096,7 @@ def loadPrimusDatFile(filename):
     err = np.array(err)
 
     if hdict:
+        hdict = translateHeader(hdict, to_sasbdb=False)
         for each in hdict.iterkeys():
             if each != 'filename':
                 parameters[each] = hdict[each]
@@ -3214,6 +3215,8 @@ def writeHeader(d, f2, ignore_list = []):
         if ignored_key in d.keys():
             del d[ignored_key]
 
+    d = translateHeader(d)
+
     header = json.dumps(d, indent = 4, sort_keys = True, cls = MyEncoder)
     header = header.replace('\n', '\n#')
     f2.write(header)
@@ -3233,6 +3236,36 @@ class MyEncoder(json.JSONEncoder):
             return obj.tolist()
         else:
             return super(MyEncoder, self).default(obj)
+
+def translateHeader(header, to_sasbdb=True):
+    """
+    Translates the header keywords to or from matching SASBDB format. This is
+    to add compatibility with SASBDB while maintaining compatibility with older
+    RAW formats and RAW internals.
+    """
+    for key in header:
+        if isinstance(header[key], dict):
+            header[key] = translateHeader(header[key], to_sasbdb)
+        else:
+            if to_sasbdb:
+                if key in sasbdb_trans:
+                    header[sasbdb_trans[key]] = header.pop(key)
+            else:
+                if key in sasbdb_back_trans:
+                    header[sasbdb_back_trans[key]] = header.pop(key)
+
+    return header
+
+sasbdb_trans = {
+    # First general RAW keywords
+    'Sample_Detector_Distance'  : 'Sample-to-detector distance (mm)',
+    'Wavelength'                : 'Wavelength (A)',
+    #Next BioCAT specific keywords
+    'Exposure_time/frame_s'     : 'Exposure time/frame (s)',
+    'LC_flow_rate_mL/min'       : 'Flow rate (ml/min)',
+}
+
+sasbdb_back_trans = {value : key for (key, value) in sasbdb_trans.items()}
 
 
 def writeRadFile(m, filename, header_on_top = True, use_header = True):

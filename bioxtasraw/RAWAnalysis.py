@@ -2937,10 +2937,10 @@ class IFTPlotPanel(wx.Panel):
             ('Data/Fit', 'q', 'I(q)', 0.1)]
 
         if self.norm_residuals:
-            subplotLabels.append(('Normalized Residual', '$q^2$',
-                '$\Delta \ln (I(q))/\sigma (q)$', 0.1))
+            subplotLabels.append(('Normalized Residual', '$q$',
+                '$\Delta I(q)/\sigma (q)$', 0.1))
         else:
-            subplotLabels.append(('Residual', '$q^2$', '$\Delta \ln (I(q))$', 0.1))
+            subplotLabels.append(('Residual', '$q$', '$\Delta I(q)$', 0.1))
 
         gridspec = matplotlib.gridspec.GridSpec(3, 1, height_ratios=[1, 1, 0.3])
         self.subplots = {}
@@ -3205,7 +3205,7 @@ class GNOMControlPanel(wx.Panel):
                          'TE': ('Total Estimate :', self.NewControlId()),
                          'gnomQuality': ('GNOM says :', self.NewControlId()),
                          'chisq': ('Chi^2 (fit) :', self.NewControlId()),
-                         'alpha':   ('Alpha', self.NewControlId()),
+                         'alpha':   ('Alpha :', self.NewControlId()),
                          }
 
         self.plotted_iftm = None
@@ -5254,6 +5254,7 @@ class DammifResultsPanel(wx.Panel):
                     'clustDescrip'  : self.NewControlId(),
                     'clustDist'     : self.NewControlId(),
                     'models'        : self.NewControlId(),
+                    'model_sum'     : self.NewControlId(),
                     'res'           : self.NewControlId(),
                     'resErr'        : self.NewControlId(),
                     'resUnit'       : self.NewControlId(),
@@ -5361,11 +5362,19 @@ class DammifResultsPanel(wx.Panel):
         self.clust_sizer.Add(clust_num_sizer, 0)
         self.clust_sizer.Add(clust_list_sizer, 0, wx.EXPAND | wx.TOP, 5)
 
+        try:
+            self.models = flatNB.FlatNotebook(parent, self.ids['models'],
+                agwStyle=flatNB.FNB_NAV_BUTTONS_WHEN_NEEDED|flatNB.FNB_NO_X_BUTTON)
+        except AttributeError:
+            self.models = flatNB.FlatNotebook(parent, self.ids['models'])     #compatability for older versions of wxpython
+            self.models.SetWindowStyleFlag(flatNB.FNB_NO_X_BUTTON)
 
-        models_box = wx.StaticBox(parent, wx.ID_ANY, 'Models')
-        self.models_sizer = wx.StaticBoxSizer(models_box, wx.VERTICAL)
+        self.models.DeleteAllPages()
 
-        models_list = wx.ListCtrl(parent, self.ids['models'], size = (-1,-1), style=wx.LC_REPORT)
+        summary_panel = wx.Panel(self.models)
+
+        models_list = wx.ListCtrl(summary_panel, self.ids['model_sum'],
+            size=(-1,-1), style=wx.LC_REPORT)
         models_list.InsertColumn(0, 'Model')
         models_list.InsertColumn(1, 'Chi^2')
         models_list.InsertColumn(2, 'Rg')
@@ -5379,7 +5388,15 @@ class DammifResultsPanel(wx.Panel):
         else:
             models_list.SetColumnWidth(5, 100)
 
-        self.models_sizer.Add(models_list, 1, wx.EXPAND)
+        mp_sizer = wx.BoxSizer()
+        mp_sizer.Add(models_list, 1, flag=wx.EXPAND)
+        summary_panel.SetSizer(mp_sizer)
+
+        self.models.AddPage(summary_panel, 'Summary')
+
+        models_box = wx.StaticBox(parent, wx.ID_ANY, 'Models')
+        self.models_sizer = wx.StaticBoxSizer(models_box, wx.VERTICAL)
+        self.models_sizer.Add(self.models, 1, wx.EXPAND|wx.ALL, 5)
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(self.ambi_sizer, 0, wx.EXPAND)
@@ -5511,7 +5528,14 @@ class DammifResultsPanel(wx.Panel):
             dlist.Append(map(str, dist_data))
 
     def getModels(self, settings):
-        models_window = wx.FindWindowById(self.ids['models'])
+        while self.models.GetPageCount() > 1:
+            last_page = self.models.GetPageText(self.models.GetPage(self.models.GetPageCount()-1))
+            if last_page != 'Summary':
+                self.models.DeletePage(self.models.GetPageCount()-1)
+            else:
+                self.models.DeletePage(self.models.GetPageCount()-2)
+
+        models_window = wx.FindWindowById(self.ids['model_sum'])
         models_window.DeleteAllItems()
 
         file_nums = range(1,int(settings['runs'])+1)
@@ -5552,6 +5576,9 @@ class DammifResultsPanel(wx.Panel):
 
             model_list.append([num, model_data, atoms])
 
+            plot_panel = DammifPlotPanel(self.models, sasm, fit_sasm, chisq)
+            self.models.AddPage(plot_panel, str(num))
+
         if settings['damaver'] and int(settings['runs']) > 1:
             damaver_name = os.path.join(path, prefix+'_damaver.pdb')
             damfilt_name = os.path.join(path, prefix+'_damfilt.pdb')
@@ -5572,6 +5599,9 @@ class DammifResultsPanel(wx.Panel):
             model_data['chisq'] = chisq
 
             model_list.append(['refine', model_data, atoms])
+
+            plot_panel = DammifPlotPanel(self.models, sasm, fit_sasm, chisq)
+            self.models.AddPage(plot_panel, 'Refined')
 
         for item in model_list:
             models_window.Append((item[0], item[1]['chisq'], item[1]['rg'],
@@ -5629,7 +5659,7 @@ class DammifResultsPanel(wx.Panel):
         dlist_data = []
         ambi_data = []
 
-        models_list = wx.FindWindowById(self.ids['models'])
+        models_list = wx.FindWindowById(self.ids['model_sum'])
         cdb = wx.ColourDatabase()
 
         if self.topsizer.IsShown(self.nsd_sizer):
@@ -5746,6 +5776,65 @@ class DammifResultsPanel(wx.Panel):
 
         RAWGlobals.save_in_progress = False
         self.main_frame.setStatus('', 0)
+
+class DammifPlotPanel(wx.Panel):
+
+    def __init__(self, parent, sasm, fit_sasm, chisq):
+
+        wx.Panel.__init__(self, parent, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        self.sasm = sasm
+        self.fit_sasm = fit_sasm
+        self.chisq = chisq
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        self.raw_settings = main_frame.raw_settings
+        self.norm_residuals = self.raw_settings.get('normalizedResiduals')
+
+        canvas = self.createPlot()
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(canvas, 1, wx.GROW)
+
+        self.SetSizer(sizer)
+
+    def createPlot(self):
+        fig = Figure((5,4), 75)
+        canvas = FigureCanvasWxAgg(self, -1, fig)
+
+        gridspec = matplotlib.gridspec.GridSpec(2, 1, height_ratios=[1, 0.3])
+
+        q = self.sasm.getQ()
+        i = self.sasm.getI()
+        i_fit = self.fit_sasm.getI()
+        err = self.sasm.getErr()
+
+        residual = i - i_fit
+        if self.norm_residuals:
+            residual = residual/err
+
+        ax0 = fig.add_subplot(gridspec[0])
+        ax0.semilogy(q, i, 'bo')
+        ax0.semilogy(q, i_fit, 'r')
+        ax0.set_xlabel('q')
+        ax0.set_ylabel('I(q)')
+
+        ax1 = fig.add_subplot(gridspec[1])
+        ax1.plot(q, residual, 'bo')
+        ax1.set_xlabel('q')
+        if self.norm_residuals:
+            ax1.set_ylabel('$\Delta I(q)/\sigma (q)$')
+        else:
+            ax1.set_ylabel('$\Delta I(q)$')
+
+        canvas.SetBackgroundColour('white')
+        fig.subplots_adjust(left = 0.1, bottom = 0.12, right = 0.95, top = 0.95,
+            hspace=0.25)
+        fig.set_facecolor('white')
+
+        canvas.draw()
+
+        return canvas
 
 
 class DammifViewerPanel(wx.Panel):
@@ -6948,7 +7037,8 @@ class DenssResultsPanel(wx.Panel):
 
 
         try:
-            self.models = flatNB.FlatNotebook(parent, self.ids['models'], agwStyle = flatNB.FNB_NAV_BUTTONS_WHEN_NEEDED | flatNB.FNB_NO_X_BUTTON)
+            self.models = flatNB.FlatNotebook(parent, self.ids['models'],
+                agwStyle=flatNB.FNB_NAV_BUTTONS_WHEN_NEEDED|flatNB.FNB_NO_X_BUTTON)
         except AttributeError:
             self.models = flatNB.FlatNotebook(parent, self.ids['models'])     #compatability for older versions of wxpython
             self.models.SetWindowStyleFlag(flatNB.FNB_NO_X_BUTTON)
