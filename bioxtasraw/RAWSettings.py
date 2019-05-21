@@ -332,7 +332,7 @@ class RawGuiSettings(object):
 
                             #Denss settings
                             'denssVoxel'            : [5, wx.NewId(), 'float'],
-                            'denssOversampling'     : [3, wx.NewId(), 'float'],
+                            'denssOversampling'     : [3., wx.NewId(), 'float'],
                             'denssNElectrons'       : ['', wx.NewId(), 'text'],
                             'denssSteps'            : [10000, wx.NewId(), 'int'],
                             'denssLimitDmax'        : [False, wx.NewId(), 'bool'],
@@ -342,7 +342,7 @@ class RawGuiSettings(object):
                             'denssPositivity'       : [True, wx.NewId(), 'bool'],
                             'denssExtrapolate'      : [True, wx.NewId(), 'bool'],
                             'denssShrinkwrap'       : [True, wx.NewId(), 'bool'],
-                            'denssShrinkwrapSigmaStart' : [3, wx.NewId(), 'float'],
+                            'denssShrinkwrapSigmaStart' : [3., wx.NewId(), 'float'],
                             'denssShrinkwrapSigmaEnd'   : [1.5, wx.NewId(), 'float'],
                             'denssShrinkwrapSigmaDecay' : [0.99, wx.NewId(), 'float'],
                             'denssShrinkwrapThresFrac'  : [0.20, wx.NewId(), 'float'],
@@ -351,7 +351,6 @@ class RawGuiSettings(object):
                             'denssConnected'        : [True, wx.NewId(), 'bool'],
                             'denssConnectivitySteps'    : ['[7500]', wx.NewId(), 'text'],
                             'denssChiEndFrac'       : [0.001, wx.NewId(), 'float'],
-                            'denssPlotOutput'       : [True, wx.NewId(), 'bool'],
                             'denssAverage'          : [True, wx.NewId(), 'bool'],
                             'denssReconstruct'      : [20, wx.NewId(), 'int'],
                             'denssCutOut'           : [False, wx.NewId(), 'bool'],
@@ -360,7 +359,11 @@ class RawGuiSettings(object):
                             'denssRecenterMode'     : ['com', wx.NewId(), 'choice'],
                             'denssMinDensity'       : ['None', wx.NewId(), 'text'],
                             'denssMaxDensity'       : ['None', wx.NewId(), 'text'],
-
+                            'denssFlattenLowDensity': [False, wx.NewId(), 'bool'],
+                            'denssNCS'              : [0, wx.NewId(), 'int'],
+                            'denssNCSSteps'         : ['[3000,5000,7000,9000]', wx.NewId(), 'text'],
+                            'denssNCSAxis'          : [1, wx.NewId(), 'int'],
+                            'denssRefine'           : [True, wx.NewId(), 'bool'],
                             }
 
     def get(self, key):

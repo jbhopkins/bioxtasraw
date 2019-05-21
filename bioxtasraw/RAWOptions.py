@@ -1763,8 +1763,8 @@ class MolecularWeightPanel(wx.Panel):
                 ctrl = wx.TextCtrl(self, my_id, '', style = wx.TE_PROCESS_ENTER)
                 txt = wx.StaticText(self, -1, txt)
 
-        sizer.Add(txt)
-        sizer.Add(ctrl)
+            sizer.Add(txt)
+            sizer.Add(ctrl)
 
         return sizer
 
@@ -3953,11 +3953,18 @@ class FittingPanel(wx.Panel):
 
         return sizer
 
-class DenssPanel(wx.Panel):
+class DenssPanel(wx.ScrolledWindow):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER|wx.VSCROLL
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER|wx.VSCROLL
+        wx.ScrolledWindow.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
+
+        # wx.Panel.__init__(self, parent, id, *args, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER|wx.VSCROLL)
 
         self.raw_settings = raw_settings
 
@@ -3969,14 +3976,19 @@ class DenssPanel(wx.Panel):
             'denssRecenterStep', 'denssPositivity', 'denssShrinkwrap',
             'denssShrinkwrapMinStep', 'denssConnected', 'denssConnectivitySteps',
             'denssWriteXplor', 'denssCutOut', 'denssRecenterMode',
-            'denssMinDensity', 'denssMaxDensity', 'denssAverage'
+            'denssMinDensity', 'denssMaxDensity', 'denssAverage',
+            'denssReconstruct', 'denssFlattenLowDensity', 'denssRefine',
+            'denssNCS', 'denssNCSAxis', 'denssNCSSteps',
             ]
 
-        modeChoices = ['Fast', 'Slow', 'Custom']
+        modeChoices = ['Fast', 'Slow', 'Membrane', 'Custom']
         recenterChoices = ['com', 'max']
 
         self.default_options = (('Default mode:', raw_settings.getId('denssMode'), 'choice', modeChoices),
+            ('Number of runs:', raw_settings.getId('denssReconstruct'), 'int'),
             ('Align and Average:', raw_settings.getId('denssAverage'), 'bool'),
+            ('Refine average density:', raw_settings.getId('denssRefine'), 'bool'),
+
             )
 
         self.custom_options_long = (("Extrapolate data using Porod's law to voxel resolution limit", raw_settings.getId('denssExtrapolate'), 'bool'),
@@ -3989,6 +4001,8 @@ class DenssPanel(wx.Panel):
             ('Recenter mode (center of mass - com; maximum density - max):', raw_settings.getId('denssRecenterMode'), 'choice', recenterChoices),
             ('Minimum density (e-/angstrom^3, must also set number of electrons):', raw_settings.getId('denssMinDensity'), 'text'),
             ('Maximum density (e-/angstrom^3, must also set number of electrons):', raw_settings.getId('denssMaxDensity'), 'text'),
+            ('Set density values near zero (0.01 e-/A^3) to zero:', raw_settings.getId('denssFlattenLowDensity'), 'bool'),
+
             )
 
         self.custom_options_short = (('Number of iterations:', raw_settings.getId('denssSteps'), 'int'),
@@ -4005,6 +4019,9 @@ class DenssPanel(wx.Panel):
             ('Enforce connectivity at steps:', raw_settings.getId('denssConnectivitySteps'), 'text'),
             ('Write xplor files', raw_settings.getId('denssWriteXplor'), 'bool'),
             ('Reduce size of output map', raw_settings.getId('denssCutOut'), 'bool'),
+            ('N-fold symmetry:', raw_settings.getId('denssNCS'), 'int'),
+            ('Enforce symmetry at steps:', raw_settings.getId('denssNCSSteps'), 'text'),
+            ('Symmetry Axis:', raw_settings.getId('denssNCSAxis'), 'int')
             )
 
         layoutSizer = self._createLayout(self)

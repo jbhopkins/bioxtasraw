@@ -60,6 +60,7 @@ import RAWGlobals
 import RAWCustomDialogs
 import SASProc
 import BIFT
+import DENSS
 
 class GuinierPlotPanel(wx.Panel):
 
@@ -5036,6 +5037,9 @@ class DammifRunPanel(wx.Panel):
                     'refine'    : refine,
                     }
 
+        if not damaver_window.GetValue():
+           refine_window.Disable()
+
         wx.CallAfter(self.dammif_frame.ResultsPanel.updateResults, settings)
 
     def _onAdvancedButton(self, evt):
@@ -5044,26 +5048,12 @@ class DammifRunPanel(wx.Panel):
     def onCheckBox(self,evt):
         refine = wx.FindWindowById(self.ids['refine'], self)
 
-        # if evt.GetId() == self.ids['damaver'] and evt.IsChecked():
-        #     damclust = wx.FindWindowById(self.ids['damclust'], self)
-        #     damclust.SetValue(False)
-
-        #     if not refine.IsEnabled():
-        #         refine.Enable()
-        #         refine.SetValue(self.raw_settings.get('dammifRefine'))
-
         if evt.GetId() == self.ids['damaver'] and not evt.IsChecked():
-            if refine.IsEnabled():
-                refine.Disable()
-                refine.SetValue(False)
+            refine.Disable()
+            refine.SetValue(False)
 
-        # elif evt.GetId() == self.ids['damclust'] and evt.IsChecked():
-        #     damaver = wx.FindWindowById(self.ids['damaver'], self)
-        #     damaver.SetValue(False)
-
-        #     if refine.IsEnabled():
-        #         refine.Disable()
-        #         refine.SetValue(False)
+        elif evt.GetId() == self.ids['damaver'] and evt.IsChecked():
+            refine.Enable()
 
 
 
@@ -5937,7 +5927,7 @@ class DenssFrame(wx.Frame):
     def __init__(self, parent, title, iftm, manip_item):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(650, client_display.Width), min(750, client_display.Height))
+        size = (min(700, client_display.Width), min(750, client_display.Height))
 
         try:
             wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
@@ -6062,6 +6052,10 @@ class DenssRunPanel(wx.Panel):
                     'fname'         : self.NewControlId(),
                     'mode'          : self.NewControlId(),
                     'electrons'     : self.NewControlId(),
+                    'refine'        : self.NewControlId(),
+                    'sym_on'        : self.NewControlId(),
+                    'ncs'           : self.NewControlId(),
+                    'ncsAxis'       : self.NewControlId(),
                     }
 
         self.threads_finished = []
@@ -6126,7 +6120,7 @@ class DenssRunPanel(wx.Panel):
 
 
         mode_text = wx.StaticText(parent, wx.ID_ANY, 'Mode :')
-        mode_ctrl = wx.Choice(parent, self.ids['mode'], choices=['Fast', 'Slow', 'Custom'])
+        mode_ctrl = wx.Choice(parent, self.ids['mode'], choices=['Fast', 'Slow', 'Membrane', 'Custom'])
 
         mode_sizer = wx.BoxSizer(wx.HORIZONTAL)
         mode_sizer.Add(mode_text, 0, wx.LEFT, 5)
@@ -6141,6 +6135,30 @@ class DenssRunPanel(wx.Panel):
         ne_sizer.Add(ne_ctrl, 0, wx.LEFT | wx.RIGHT, 5)
 
         average_chk = wx.CheckBox(parent, self.ids['average'], 'Align and average densities')
+        average_chk.Bind(wx.EVT_CHECKBOX, self.onCheckBox)
+
+        refine_chk = wx.CheckBox(parent, self.ids['refine'], 'Refine average')
+        refine_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        refine_sizer.AddSpacer(20)
+        refine_sizer.Add(refine_chk)
+
+        sym_chk = wx.CheckBox(parent, self.ids['sym_on'], 'Apply symmetry constraint')
+        sym_val = wx.TextCtrl(parent, self.ids['ncs'], size=(40, -1), value='2',
+            validator=RAWCustomCtrl.CharValidator('int'))
+        sym_axis = wx.Choice(parent, self.ids['ncsAxis'], choices=['X', 'Y', 'Z'])
+        sym_axis.SetStringSelection('X')
+
+        sym_chk.Bind(wx.EVT_CHECKBOX, self.onSymCheck)
+
+        sym_sizer = wx.GridBagSizer(vgap=5,hgap=5)
+        sym_sizer.Add(sym_chk, (0,0), span=(0,5))
+        sym_sizer.Add(20, 0, (1, 0))
+        sym_sizer.Add(wx.StaticText(parent, label='N-fold symmetry:'), (1,1),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        sym_sizer.Add(sym_val, (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        sym_sizer.Add(wx.StaticText(parent, label='Symmetry axis:'), (1,3),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        sym_sizer.Add(sym_axis, (1,4), flag=wx.ALIGN_CENTER_VERTICAL)
 
         advancedButton = wx.Button(parent, -1, 'Change Advanced Settings')
         advancedButton.Bind(wx.EVT_BUTTON, self._onAdvancedButton)
@@ -6154,7 +6172,9 @@ class DenssRunPanel(wx.Panel):
         settings_sizer.Add(nprocs_sizer, 0, wx.TOP, 5)
         settings_sizer.Add(mode_sizer, 0, wx.TOP, 5)
         settings_sizer.Add(ne_sizer, 0, wx.TOP, 5)
-        settings_sizer.Add(average_chk, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        settings_sizer.Add(average_chk, 0, wx.TOP, 5)
+        settings_sizer.Add(refine_sizer, 0,wx.TOP, 5)
+        settings_sizer.Add(sym_sizer, 0, flag=wx.TOP, border=5)
         settings_sizer.Add(advancedButton, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, 5)
 
 
@@ -6177,7 +6197,7 @@ class DenssRunPanel(wx.Panel):
         control_sizer.Add(button_sizer, 0, wx.ALIGN_CENTER | wx.EXPAND)
 
 
-        self.status = wx.TextCtrl(parent, self.ids['status'], '', style = wx.TE_MULTILINE | wx.TE_READONLY, size = (100,200))
+        self.status = wx.TextCtrl(parent, self.ids['status'], '', style = wx.TE_MULTILINE | wx.TE_READONLY, size = (130,200))
         status_box = wx.StaticBox(parent, -1, 'Status')
         status_sizer = wx.StaticBoxSizer(status_box, wx.VERTICAL)
         status_sizer.Add(self.status, 1, wx.EXPAND | wx.ALL, 5)
@@ -6228,6 +6248,13 @@ class DenssRunPanel(wx.Panel):
         aver = wx.FindWindowById(self.ids['average'], self)
         aver.SetValue(self.denss_settings['average'])
 
+        refine = wx.FindWindowById(self.ids['refine'], self)
+        refine.SetValue(self.denss_settings['refine'])
+
+        if aver.GetValue():
+            refine.Enable()
+        else:
+            refine.Disable()
 
         nruns = wx.FindWindowById(self.ids['runs'], self)
         nruns.SetValue(str(self.denss_settings['runs']))
@@ -6252,6 +6279,32 @@ class DenssRunPanel(wx.Panel):
         save = wx.FindWindowById(self.ids['save'], self)
         save.SetValue(path)
 
+        sym_on = wx.FindWindowById(self.ids['sym_on'])
+        sym_val = wx.FindWindowById(self.ids['ncs'])
+        sym_axis = wx.FindWindowById(self.ids['ncsAxis'])
+
+        sym = self.denss_settings['ncs']
+        sym_axis_val = self.denss_settings['ncsAxis']
+
+        if int(sym) > 1:
+            sym_on.SetValue(True)
+            sym_val.SetValue(sym)
+
+            sym_val.Enable()
+            sym_axis.Enable()
+        else:
+            sym_on.SetValue(False)
+
+            sym_val.Disable()
+            sym_axis.Disable()
+
+        if int(sym_axis_val) == 1:
+            sym_axis.SetStringSelection('X')
+        elif int(sym_axis_val) == 2:
+            sym_axis.SetStringSelection('Y')
+        elif int(sym_axis_val) == 3:
+            sym_axis.SetStringSelection('Z')
+
         wx.FindWindowById(self.ids['abort'], self).Disable()
 
         self.logbook.DeleteAllPages()
@@ -6264,6 +6317,9 @@ class DenssRunPanel(wx.Panel):
         #Get user settings on number of runs, save location, etc
         average_window = wx.FindWindowById(self.ids['average'], self)
         average = average_window.GetValue()
+
+        refine_window = wx.FindWindowById(self.ids['refine'], self)
+        refine = refine_window.GetValue()
 
         prefix_window = wx.FindWindowById(self.ids['prefix'], self)
         prefix = prefix_window.GetValue()
@@ -6387,6 +6443,49 @@ class DenssRunPanel(wx.Panel):
                 if os.path.exists(f):
                     os.remove(f)
 
+
+            if refine:
+                refine_names = [prefix+'_refine.log', prefix+'_refine.mrc',
+                    prefix+'_chis_by_step.fit', prefix+'_fsc.dat', prefix+'_map.fit',
+                    prefix+'_rg_by_step.fit', prefix+'_supportV_by_step.fit']
+
+                refine_names = refine_names + [prefix+'_%i_aligned.mrc' %(i+1) for i in range(nruns)]
+
+                file_names = [os.path.join(path, name) for name in refine_names]
+
+                file_exists = False
+
+                for f in file_names:
+                    if os.path.exists(f):
+                        file_exists = True
+                        break
+
+                if file_exists and not yes_to_all:
+                    button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
+                    question = ('Warning: selected directory contains DENSS refined '
+                        'output files\n. Running the refinement will overwrite these '
+                        'files.\nDo you wish to continue?')
+                    label = 'Overwrite existing files?'
+                    icon = wx.ART_WARNING
+
+                    question_dialog = RAWCustomDialogs.CustomQuestionDialog(self.main_frame,
+                        question, button_list, label, icon, style=wx.CAPTION | wx.RESIZE_BORDER)
+                    result = question_dialog.ShowModal()
+                    question_dialog.Destroy()
+
+                    if result == wx.ID_NO:
+                        return
+                    elif result == wx.ID_YESTOALL:
+                        yes_to_all = True
+
+                self.denss_ids['refine'] = self.NewControlId()
+                text_ctrl = wx.TextCtrl(self.logbook, self.denss_ids['refine'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
+                self.logbook.AddPage(text_ctrl, 'Refine')
+
+                for f in file_names:
+                    if os.path.exists(f):
+                        os.remove(f)
+
         self.status.SetValue('Starting processing\n')
 
 
@@ -6469,10 +6568,15 @@ class DenssRunPanel(wx.Panel):
             if key in self.ids:
                 window = wx.FindWindowById(self.ids[key], self)
                 if window is not None:
-                    if key == 'runs' or key == 'mode':
+                    if key == 'runs' or key == 'mode' or key == 'ncsAxis':
                         self.denss_settings[key] = window.GetStringSelection()
                     else:
                         self.denss_settings[key] = window.GetValue()
+
+        sym = wx.FindWindowById(self.ids['sym_on'], self)
+
+        if not sym.GetValue():
+            self.denss_settings['ncs'] = 0
 
         if self.denss_settings['mode'] != 'Custom':
             #reset settings to default
@@ -6499,24 +6603,36 @@ class DenssRunPanel(wx.Panel):
             self.denss_settings['cutOutput'] = temp_settings.get('denssCutOut')
             self.denss_settings['writeXplor'] = temp_settings.get('denssWriteXplor')
             self.denss_settings['recenterMode'] = temp_settings.get('denssRecenterMode')
-            self.denss_settings['minRho'] = temp_settings.get('denssMinDensity')
-            self.denss_settings['maxRho'] = temp_settings.get('denssMaxDensity')
+            self.denss_settings['minDensity'] = temp_settings.get('denssMinDensity')
+            self.denss_settings['maxDensity'] = temp_settings.get('denssMaxDensity')
+            self.denss_settings['flattenLowDensity'] = temp_settings.get('denssFlattenLowDensity')
+            self.denss_settings['ncsSteps'] = temp_settings.get('denssNCSSteps')
 
         if self.denss_settings['mode'] == 'Fast':
             self.denss_settings['swMinStep'] = 1000
             self.denss_settings['conSteps'] = '[2000]'
             self.denss_settings['recenterStep'] = '%s' %(range(501,2502,500))
-            self.denss_settings['steps'] = 5000
+            self.denss_settings['steps'] = None
             D = float(self.iftm.getParameter('dmax'))
             self.denss_settings['voxel'] = D*self.denss_settings['oversample']/32.
 
         elif self.denss_settings['mode'] == 'Slow':
             self.denss_settings['swMinStep'] = 5000
             self.denss_settings['conSteps'] = '[6000]'
-            self.denss_settings['recenterStep'] = '%s' %(range(501,2502,500))
-            self.denss_settings['steps'] = 10000
+            self.denss_settings['recenterStep'] = '%s' %(range(501,8002,500))
+            self.denss_settings['steps'] = None
             D = float(self.iftm.getParameter('dmax'))
             self.denss_settings['voxel'] = D*self.denss_settings['oversample']/64.
+
+        elif self.denss_settings['mode'] == 'Membrane':
+            self.denss_settings['swMinStep'] = 0
+            self.denss_settings['swThresFrac'] = 0.1
+            self.denss_settings['conSteps'] = '[300]'
+            self.denss_settings['recenterStep'] = '%s' %(range(501,8002,500))
+            self.denss_settings['steps'] = None
+            D = float(self.iftm.getParameter('dmax'))
+            self.denss_settings['voxel'] = D*self.denss_settings['oversample']/64.
+            self.denss_settings['positivity'] = False
 
     def get_multi_output(self, queue, den_window, stop_event, nmsg=100):
         num_msg = 0
@@ -6567,7 +6683,7 @@ class DenssRunPanel(wx.Panel):
         D = self.iftm.getParameter('dmax')
 
         for key in self.denss_ids:
-            if key != 'average':
+            if key != 'average' and key != 'refine':
                 den_queue = self.my_manager.Queue()
                 stop_event = self.my_manager.Event()
                 stop_event.clear()
@@ -6580,7 +6696,7 @@ class DenssRunPanel(wx.Panel):
                 comm_t.daemon = True
                 comm_t.start()
 
-                result = my_pool.apply_async(SASCalc.runDenss, args=(q, I, sigq,
+                result = my_pool.apply_async(DENSS.runDenss, args=(q, I, sigq,
                     D, prefix, path, comm_list, self.my_lock, self.thread_nums,
                     self.wx_queue, self.abort_event, self.denss_settings))
 
@@ -6622,7 +6738,7 @@ class DenssRunPanel(wx.Panel):
         sides = np.array([denss_outputs[i][9] for i in np.arange(nruns)])
 
         wx.CallAfter(averWindow.AppendText, 'Filtering enantiomers\n')
-        allrhos, scores = SASCalc.run_enantiomers(allrhos, procs, nruns,
+        allrhos, scores = DENSS.run_enantiomers(allrhos, procs, nruns,
             avg_q, self.my_lock, self.wx_queue, self.abort_event)
 
         if self.abort_event.is_set():
@@ -6630,7 +6746,7 @@ class DenssRunPanel(wx.Panel):
             return
 
         wx.CallAfter(averWindow.AppendText, 'Generating alignment reference\n')
-        refrho = SASCalc.binary_average(allrhos, procs, avg_q, self.abort_event)
+        refrho = DENSS.binary_average(allrhos, procs, self.abort_event)
 
         if self.abort_event.is_set():
             stop_event.set()
@@ -6639,7 +6755,7 @@ class DenssRunPanel(wx.Panel):
             return
 
         wx.CallAfter(averWindow.AppendText, 'Aligning and averaging models\n')
-        aligned, scores = SASCalc.align_multiple(refrho, allrhos, procs, avg_q,
+        aligned, scores = DENSS.align_multiple(refrho, allrhos, procs,
             self.abort_event)
 
         if self.abort_event.is_set():
@@ -6660,25 +6776,35 @@ class DenssRunPanel(wx.Panel):
             else:
                 filtered[i] = ' '
             ioutput = prefix+"_"+str(i+1)+"_aligned"
-            SASFileIO.saveDensityMrc(os.path.join(path, ioutput+".mrc"), aligned[i], sides[0])
+            DENSS.write_mrc(aligned[i], sides[0], os.path.join(path, ioutput+".mrc"))
             wx.CallAfter(averWindow.AppendText, "%s.mrc written. Score = %0.3f %s\n" % (ioutput,scores[i],filtered[i]))
             wx.CallAfter(averWindow.AppendText,'Correlation score to reference: %s.mrc %.3f %s\n' %(ioutput, scores[i], filtered[i]))
 
         aligned = aligned[scores>threshold]
-
         average_rho = np.mean(aligned,axis=0)
+
         wx.CallAfter(averWindow.AppendText, "Mean of correlation scores: %.3f\n" % mean)
         wx.CallAfter(averWindow.AppendText, "Standard deviation of scores: %.3f\n" % std)
         wx.CallAfter(averWindow.AppendText,'Total number of input maps for alignment: %i\n' % allrhos.shape[0])
         wx.CallAfter(averWindow.AppendText,'Number of aligned maps accepted: %i\n' % aligned.shape[0])
-        wx.CallAfter(averWindow.AppendText,'Correlation score between average and reference: %.3f\n' % (1/SASCalc.rho_overlap_score(average_rho, refrho)))
+        wx.CallAfter(averWindow.AppendText,'Correlation score between average and reference: %.3f\n' % (1/DENSS.rho_overlap_score(average_rho, refrho)))
         SASFileIO.saveDensityMrc(os.path.join(path, prefix+'_average.mrc'), average_rho, sides[0])
 
+        """
         #split maps into 2 halves--> enan, align, average independently with same refrho
         avg_rho1 = np.mean(aligned[::2],axis=0)
         avg_rho2 = np.mean(aligned[1::2],axis=0)
-        fsc = SASCalc.calc_fsc(avg_rho1,avg_rho2,sides[0])
+        fsc = DENSS.calc_fsc(avg_rho1,avg_rho2,sides[0])
         np.savetxt(os.path.join(path, prefix+'_fsc.dat'),fsc,delimiter=" ",fmt="%.5e",header="qbins, FSC")
+        """
+        #rather than compare two halves, average all fsc's to the reference
+        fscs = []
+        for calc_map in range(len(aligned)):
+            fscs.append(DENSS.calc_fsc(aligned[calc_map],refrho,sides[0]))
+        fscs = np.array(fscs)
+        fsc = np.mean(fscs,axis=0)
+        np.savetxt(os.path.join(path, prefix+'_fsc.dat'), fsc, delimiter=" ",
+            fmt="%.5e", header="1/resolution, FSC")
         x = np.linspace(fsc[0,0],fsc[-1,0],100)
         y = np.interp(x, fsc[:,0], fsc[:,1])
         resi = np.argmin(y>=0.5)
@@ -6699,16 +6825,93 @@ class DenssRunPanel(wx.Panel):
             f.write(log_text)
 
         self.threads_finished[-1] = True
-        self.msg_timer.Stop()
         stop_event.set()
 
         self.average_results = {'mean': mean, 'std': std,'res': resn, 'scores': scores,
             'fsc': fsc, 'total': allrhos.shape[0], 'inc': aligned.shape[0],
-            'thresh': threshold}
+            'thresh': threshold, 'model': average_rho}
 
         if self.abort_event.is_set():
             return
 
+        if 'refine' in self.denss_ids:
+            t = threading.Thread(target=self.runRefine,
+                args=(prefix, path, nruns, procs))
+            t.daemon = True
+            t.start()
+            self.threads_finished.append(False)
+
+        else:
+            self.msg_timer.Stop()
+            self.refine_results = []
+            wx.CallAfter(self.finishedProcessing)
+
+
+    def runRefine(self, prefix, path, nruns, procs):
+        #Check to see if things have been aborted
+        myId = self.denss_ids['refine']
+        refine_window = wx.FindWindowById(myId, self)
+
+        if self.abort_event.is_set():
+            wx.CallAfter(refine_window.AppendText, 'Aborted!\n')
+            return
+
+        wx.CallAfter(self.status.AppendText, 'Starting Refinement\n')
+
+        self.thread_nums.put_nowait('-1')
+
+        refine_q = self.my_manager.Queue()
+        stop_event = self.my_manager.Event()
+        stop_event.clear()
+
+        comm_t = threading.Thread(target=self.get_multi_output,
+            args=(refine_q, refine_window, stop_event))
+        comm_t.daemon = True
+        comm_t.start()
+
+        comm_list = []
+
+        my_pool = multiprocessing.Pool(procs)
+
+        if self.iftm.getParameter('algorithm') == 'GNOM':
+            q = self.iftm.q_extrap
+            I = self.iftm.i_extrap
+
+            ext_pts = len(I)-len(self.iftm.i_orig)
+            sigq =np.empty_like(I)
+            sigq[:ext_pts] = I[:ext_pts]*np.mean((self.iftm.err_orig[:10]/self.iftm.i_orig[:10]))
+            sigq[ext_pts:] = I[ext_pts:]*(self.iftm.err_orig/self.iftm.i_orig)
+        else:
+            q = self.iftm.q_orig
+            I = self.iftm.i_fit
+            sigq = I*(self.iftm.err_orig/self.iftm.i_orig)
+
+        D = self.iftm.getParameter('dmax')
+
+        comm_list.append([refine_q, stop_event])
+
+        avg_model = self.average_results['model']
+
+        result = my_pool.apply_async(DENSS.runDenss, args=(q, I, sigq,
+            D, prefix, path, comm_list, self.my_lock, self.thread_nums,
+            self.wx_queue, self.abort_event, self.denss_settings, avg_model))
+
+        self.stop_events.append(stop_event)
+
+        my_pool.close()
+        my_pool.join()
+
+        wx.CallAfter(self.status.AppendText, 'Finished Refinement\n')
+
+        self.threads_finished[-1] = True
+        stop_event.set()
+
+        self.refine_results = result.get()
+
+        if self.abort_event.is_set():
+            return
+
+        self.msg_timer.Stop()
         wx.CallAfter(self.finishedProcessing)
 
 
@@ -6750,15 +6953,20 @@ class DenssRunPanel(wx.Panel):
                 fit[:len(all_Imean[0]),edmap+3] = all_Imean[edmap]
                 header.append("I_fit_"+str(edmap))
 
-            np.savetxt(os.path.join(path, prefix+'_map.fit'),fit,delimiter=" ",fmt="%.5e", header=" ".join(header))
+            np.savetxt(os.path.join(path, prefix+'_map.fit'), fit, delimiter=" ",
+                fmt="%.5e", header=" ".join(header))
             chi_header, rg_header, supportV_header = zip(*[('chi_'+str(i), 'rg_'+str(i),'supportV_'+str(i)) for i in range(nruns)])
             all_chis = np.array([denss_outputs[i][5] for i in np.arange(nruns)])
             all_rg = np.array([denss_outputs[i][6] for i in np.arange(nruns)])
             all_supportV = np.array([denss_outputs[i][7] for i in np.arange(nruns)])
 
-            np.savetxt(os.path.join(path, prefix+'_chis_by_step.fit'),all_chis.T,delimiter=" ",fmt="%.5e",header=",".join(chi_header))
-            np.savetxt(os.path.join(path, prefix+'_rg_by_step.fit'),all_rg.T,delimiter=" ",fmt="%.5e",header=",".join(rg_header))
-            np.savetxt(os.path.join(path, prefix+'_supportV_by_step.fit'),all_supportV.T,delimiter=" ",fmt="%.5e",header=",".join(supportV_header))
+            np.savetxt(os.path.join(path, prefix+'_chis_by_step.fit'), all_chis.T,
+                delimiter=" ", fmt="%.5e", header=",".join(chi_header))
+            np.savetxt(os.path.join(path, prefix+'_rg_by_step.fit'), all_rg.T,
+                delimiter=" ", fmt="%.5e", header=",".join(rg_header))
+            np.savetxt(os.path.join(path, prefix+'_supportV_by_step.fit'),
+                all_supportV.T, delimiter=" ", fmt="%.5e",
+                header=",".join(supportV_header))
 
             chis = []
             rgs = []
@@ -6772,7 +6980,8 @@ class DenssRunPanel(wx.Panel):
             self.denss_stats = {'rg': rgs, 'chi': chis, 'sv': svs}
 
             if 'average' in self.denss_ids:
-                t = threading.Thread(target = self.runAverage, args = (prefix, path, nruns, procs))
+                t = threading.Thread(target=self.runAverage,
+                    args=(prefix, path, nruns, procs))
                 t.daemon = True
                 t.start()
                 self.threads_finished.append(False)
@@ -6780,6 +6989,7 @@ class DenssRunPanel(wx.Panel):
             else:
                 self.msg_timer.Stop()
                 self.average_results = {}
+                self.refine_results = []
                 wx.CallAfter(self.finishedProcessing)
 
     def onMessageTimer(self, evt):
@@ -6794,6 +7004,11 @@ class DenssRunPanel(wx.Panel):
                 elif msg[0] == 'average':
                     averWindow = wx.FindWindowById(self.denss_ids['average'], self)
                     wx.CallAfter(averWindow.AppendText, msg[1])
+                elif msg[0] == 'error':
+                    wx.CallAfter(self.showError, msg[1], msg[2])
+                elif msg[0] == 'refine':
+                    refine_window = wx.FindWindowById(self.denss_ids['refine'], self)
+                    wx.CallAfter(refine_window.AppendText, msg[1])
                 else:
                     my_num = msg[0].split()[-1]
                     my_id = self.denss_ids[my_num]
@@ -6812,6 +7027,16 @@ class DenssRunPanel(wx.Panel):
                 self.abort_event.set()
                 print e
                 raise
+
+    def showError(self, thread_num, error):
+        if thread_num >=0:
+            msg = ('The following error occured unexpectedly in run {}. Please '
+                'inform the developers.\n\nError traceback:\n{}'.format(thread_num+1, error))
+        else:
+             msg = ('The following error occured unexpectedly in the refinement. Please '
+                'inform the developers.\n\nError traceback:\n{}'.format(error))
+
+        wx.MessageBox(msg, 'Unexpected error.', style=wx.ICON_ERROR|wx.OK)
 
 
     def finishedProcessing(self):
@@ -6832,6 +7057,9 @@ class DenssRunPanel(wx.Panel):
         average_window = wx.FindWindowById(self.ids['average'], self)
         average = average_window.GetValue()
 
+        refine_window = wx.FindWindowById(self.ids['refine'], self)
+        refine = refine_window.GetValue()
+
         prefix_window = wx.FindWindowById(self.ids['prefix'], self)
         prefix = prefix_window.GetValue()
 
@@ -6841,50 +7069,84 @@ class DenssRunPanel(wx.Panel):
         nruns_window = wx.FindWindowById(self.ids['runs'], self)
         nruns = int(nruns_window.GetValue())
 
+        sym_window = wx.FindWindowById(self.ids['sym_on'], self)
+        use_sym = sym_window.GetValue()
+
         settings = {'average'   : average,
                     'prefix'    : prefix,
                     'path'      : path,
                     'runs'      : nruns,
+                    'refine'    : refine,
+                    'sym'       : use_sym,
                     }
 
+        if not use_sym:
+            wx.FindWindowById(self.ids['ncs']).Disable()
+            wx.FindWindowById(self.ids['ncsAxis']).Disable()
+
+        if not average_window.GetValue():
+           refine_window.Disable()
+
         wx.CallAfter(self.denss_frame.ResultsPanel.updateResults, settings,
-            denss_results, self.denss_stats, self.average_results)
+            denss_results, self.denss_stats, self.average_results,
+            self.refine_results)
 
 
     def _onAdvancedButton(self, evt):
         self.main_frame.showOptionsDialog(focusHead='DENSS')
 
+    def onCheckBox(self,evt):
+        refine = wx.FindWindowById(self.ids['refine'], self)
+
+        if evt.GetId() == self.ids['average'] and not evt.IsChecked():
+            refine.Disable()
+            refine.SetValue(False)
+
+        elif evt.GetId() == self.ids['average'] and evt.IsChecked():
+            refine.Enable()
+
+    def onSymCheck(self, evt):
+        status = evt.IsChecked()
+
+        wx.FindWindowById(self.ids['ncs'], self).Enable(status)
+        wx.FindWindowById(self.ids['ncsAxis'], self).Enable(status)
+
     def updateDenssSettings(self):
-        self.denss_settings = {'voxel'      : self.raw_settings.get('denssVoxel'),
-                            'oversample'    : self.raw_settings.get('denssOversampling'),
-                            'electrons'     : self.raw_settings.get('denssNElectrons'),
-                            'steps'         : self.raw_settings.get('denssSteps'),
-                            'limitDmax'     : self.raw_settings.get('denssLimitDmax'),
-                            'dmaxStep'      : self.raw_settings.get('denssLimitDmaxStep'),
-                            'recenter'      : self.raw_settings.get('denssRecenter'),
-                            'recenterStep'  : self.raw_settings.get('denssRecenterStep'),
-                            'positivity'    : self.raw_settings.get('denssPositivity'),
-                            'extrapolate'   : self.raw_settings.get('denssExtrapolate'),
-                            'shrinkwrap'    : self.raw_settings.get('denssShrinkwrap'),
-                            'swSigmaStart'  : self.raw_settings.get('denssShrinkwrapSigmaStart'),
-                            'swSigmaEnd'    : self.raw_settings.get('denssShrinkwrapSigmaEnd'),
-                            'swSigmaDecay'  : self.raw_settings.get('denssShrinkwrapSigmaDecay'),
-                            'swThresFrac'   : self.raw_settings.get('denssShrinkwrapThresFrac'),
-                            'swIter'        : self.raw_settings.get('denssShrinkwrapIter'),
-                            'swMinStep'     : self.raw_settings.get('denssShrinkwrapMinStep'),
-                            'connected'     : self.raw_settings.get('denssConnected'),
-                            'conSteps'      : self.raw_settings.get('denssConnectivitySteps'),
-                            'chiEndFrac'    : self.raw_settings.get('denssChiEndFrac'),
-                            'plotOutput'    : self.raw_settings.get('denssPlotOutput'),
-                            'average'       : self.raw_settings.get('denssAverage'),
-                            'runs'          : self.raw_settings.get('denssReconstruct'),
-                            'cutOutput'     : self.raw_settings.get('denssCutOut'),
-                            'writeXplor'    : self.raw_settings.get('denssWriteXplor'),
-                            'mode'          : self.raw_settings.get('denssMode'),
-                            'recenterMode'  : self.raw_settings.get('denssRecenterMode'),
-                            'minRho'        : self.raw_settings.get('denssMinDensity'),
-                            'maxRho'        : self.raw_settings.get('denssMaxDensity'),
-                            }
+        self.denss_settings = {
+            'voxel'             : self.raw_settings.get('denssVoxel'),
+            'oversample'        : self.raw_settings.get('denssOversampling'),
+            'electrons'         : self.raw_settings.get('denssNElectrons'),
+            'steps'             : self.raw_settings.get('denssSteps'),
+            'limitDmax'         : self.raw_settings.get('denssLimitDmax'),
+            'dmaxStep'          : self.raw_settings.get('denssLimitDmaxStep'),
+            'recenter'          : self.raw_settings.get('denssRecenter'),
+            'recenterStep'      : self.raw_settings.get('denssRecenterStep'),
+            'positivity'        : self.raw_settings.get('denssPositivity'),
+            'extrapolate'       : self.raw_settings.get('denssExtrapolate'),
+            'shrinkwrap'        : self.raw_settings.get('denssShrinkwrap'),
+            'swSigmaStart'      : self.raw_settings.get('denssShrinkwrapSigmaStart'),
+            'swSigmaEnd'        : self.raw_settings.get('denssShrinkwrapSigmaEnd'),
+            'swSigmaDecay'      : self.raw_settings.get('denssShrinkwrapSigmaDecay'),
+            'swThresFrac'       : self.raw_settings.get('denssShrinkwrapThresFrac'),
+            'swIter'            : self.raw_settings.get('denssShrinkwrapIter'),
+            'swMinStep'         : self.raw_settings.get('denssShrinkwrapMinStep'),
+            'connected'         : self.raw_settings.get('denssConnected'),
+            'conSteps'          : self.raw_settings.get('denssConnectivitySteps'),
+            'chiEndFrac'        : self.raw_settings.get('denssChiEndFrac'),
+            'average'           : self.raw_settings.get('denssAverage'),
+            'runs'              : self.raw_settings.get('denssReconstruct'),
+            'cutOutput'         : self.raw_settings.get('denssCutOut'),
+            'writeXplor'        : self.raw_settings.get('denssWriteXplor'),
+            'mode'              : self.raw_settings.get('denssMode'),
+            'recenterMode'      : self.raw_settings.get('denssRecenterMode'),
+            'minDensity'        : self.raw_settings.get('denssMinDensity'),
+            'maxDensity'        : self.raw_settings.get('denssMaxDensity'),
+            'flattenLowDensity' : self.raw_settings.get('denssFlattenLowDensity'),
+            'ncs'               : self.raw_settings.get('denssNCS'),
+            'NCSSteps'          : self.raw_settings.get('denssNCSSteps'),
+            'ncsAxis'           : self.raw_settings.get('denssNCSAxis'),
+            'refine'            : self.raw_settings.get('denssRefine'),
+            }
 
 
     def Close(self, event):
@@ -7150,7 +7412,8 @@ class DenssResultsPanel(wx.Panel):
         res_window = wx.FindWindowById(self.ids['res'], self)
         res_window.SetValue(str(resolution))
 
-    def getModels(self, settings, denss_results, denss_stats, average_results):
+    def getModels(self, settings, denss_results, denss_stats, average_results,
+        refine_results):
         nruns = settings['runs']
 
         while self.models.GetPageCount() > 1:
@@ -7160,7 +7423,8 @@ class DenssResultsPanel(wx.Panel):
             else:
                 self.models.DeletePage(self.models.GetPageCount()-2)
 
-        self.modelSummary(settings, denss_results, denss_stats, average_results)
+        self.modelSummary(settings, denss_results, denss_stats, average_results,
+            refine_results)
 
         for i in range(1, nruns+1):
             plot_panel = DenssPlotPanel(self.models, denss_results[i-1], self.iftm)
@@ -7170,8 +7434,12 @@ class DenssResultsPanel(wx.Panel):
             plot_panel = DenssAveragePlotPanel(self.models, settings, average_results)
             self.models.AddPage(plot_panel, 'Average')
 
-    def modelSummary(self, settings, denss_results, denss_stats, average_results):
+            if settings['refine']:
+                plot_panel = DenssPlotPanel(self.models, refine_results, self.iftm)
+                self.models.AddPage(plot_panel, 'Refine')
 
+    def modelSummary(self, settings, denss_results, denss_stats, average_results,
+        refine_results):
         nruns = settings['runs']
         models_list = wx.FindWindowById(self.ids['model_sum'], self)
         models_list.DeleteAllItems()
@@ -7192,6 +7460,17 @@ class DenssResultsPanel(wx.Panel):
             if mrsc != '' and float(mrsc) < average_results['thresh']:
                 models_list.SetItemTextColour(i, 'red') #Not working?!
 
+        if settings['runs'] > 1 and settings['average'] and settings['refine']:
+            model = 'Refine'
+            last_index = max(np.where(refine_results[5] !=0)[0])
+            chisq = str(round(refine_results[5][last_index], 5))
+            rg = str(round(refine_results[6][last_index], 2))
+            sv = str(round(refine_results[7][last_index], 2))
+            mrsc = ''
+
+            models_list.Append((model, chisq, rg, sv, mrsc))
+
+
 
     def getAverage(self, avg_results):
         mean = str(round(avg_results['mean'],4))
@@ -7208,7 +7487,8 @@ class DenssResultsPanel(wx.Panel):
         total_window = wx.FindWindowById(self.ids['rscorTot'], self)
         total_window.SetValue(total)
 
-    def updateResults(self, settings, denss_results, denss_stats, average_results):
+    def updateResults(self, settings, denss_results, denss_stats, average_results,
+        refine_results):
         #In case we ran a different setting a second time, without closing the window
         self.topsizer.Hide(self.res_sizer, recursive=True)
         self.topsizer.Hide(self.rscor_sizer, recursive=True)
@@ -7220,7 +7500,8 @@ class DenssResultsPanel(wx.Panel):
             self.topsizer.Show(self.rscor_sizer, recursive=True)
             self.topsizer.Show(self.res_sizer, recursive=True)
 
-        self.getModels(settings, denss_results, denss_stats, average_results)
+        self.getModels(settings, denss_results, denss_stats, average_results,
+            refine_results)
 
         self.Layout()
 
@@ -7306,13 +7587,22 @@ class DenssResultsPanel(wx.Panel):
         tot_recons = wx.FindWindowById(self.run_panel.ids['runs']).GetValue()
         electrons = wx.FindWindowById(self.run_panel.ids['electrons']).GetValue()
         average = wx.FindWindowById(self.run_panel.ids['average']).IsChecked()
+        symmetry = wx.FindWindowById(self.run_panel.ids['sym_on']).IsChecked()
 
         setup_data = [('Input file:', input_file), ('Output prefix:', output_prefix),
                     ('Output directory:', output_directory), ('Mode:', mode),
                     ('Total number of reconstructions:', tot_recons),
                     ('Number of electrons in molecule:', electrons),
                     ('Averaged:', average),
+                    ('Symmetry applied:', symmetry)
                     ]
+
+        if symmetry:
+            sym_val = wx.FindWindowById(self.run_panel.ids['ncs']).GetValue()
+            sym_axis = wx.FindWindowById(self.run_panel.ids['ncsAxis']).GetStringSelection()
+
+            setup_data.append(('N-fold rotational symmetry:', sym_val))
+            setup_data.append(('Symmetry axis:', sym_axis))
 
 
         filename = output_prefix + '_denss_results.csv'
