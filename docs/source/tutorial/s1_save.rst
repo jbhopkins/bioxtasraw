@@ -21,7 +21,7 @@ Saving analysis information
     *   *Note:* To get new files to show up in the file tab, you may have to click the refresh
         button. Also, make sure to that your file type filter is either All files or DAT files.
 
-    |10000201000001880000007454FA55D402257E07_png|
+    |save_analysis_png|
 
     *   *Try:* Open the saved subtracted scattering profile **S_A_GI2_A9_19_001_0000.dat** in a
         text editor such as Notepad (windows) or TextEdit (mac). You should see all of the data
@@ -30,6 +30,4 @@ Saving analysis information
         were averaged and subtracted to make the scattering profile.
 
 
-
-
-.. |10000201000001880000007454FA55D402257E07_png| image:: images/10000201000001880000007454FA55D402257E07.png
+.. |save_analysis_png| image:: images/save_analysis.png

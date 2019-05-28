@@ -6732,7 +6732,7 @@ class DenssRunPanel(wx.Panel):
         comm_t.start()
 
         #START CONTENTS OF denss.all.py from Tom Grant's code. Up to date
-        #as of 8/15/18, commit 51c45e7
+        #as of 5/21/19, commit 1967ae6, version 1.4.9
         #Has interjections of my code in a few places, mostly for outputs
         allrhos = np.array([denss_outputs[i][8] for i in np.arange(nruns)])
         sides = np.array([denss_outputs[i][9] for i in np.arange(nruns)])

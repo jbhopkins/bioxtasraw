@@ -8,12 +8,12 @@ Loading configuration files and images, creating subtracted scattering profiles,
     **Tutorial_Data/standards_data** folder. Click the open button to show that
     folder in the RAW file browser.
 
-    |100002010000018F000000558E072296495A065F_png|
+    |file_ctrl_1_png|
 
 #.  At the bottom of the File tab in the Control Panel, use the dropdown menu to
     set the file type filter to “CFG files (\*.cfg)”.
 
-    |100002010000018900000120F1FE156CD1C06C32_png|
+    |file_ctrl_3_png|
 
 #.  Double click on the **SAXS.cfg** file to load the SAXS configuration.
     This loads the beamline configuration into the program.
@@ -39,7 +39,7 @@ Loading configuration files and images, creating subtracted scattering profiles,
     *   *Note:* Typically, once the images are integrated we work only with the scattering profiles.
         However, it is useful to keep the images around in case you want to reprocess the data.
 
-    |1000020100000187000001E62B30741A90D8AB28_png|
+    |file_ctrl_2_png|
 
 #.  Plot the **GIbuf2** scattering profiles from the images. These are measured
     scattering from the matching buffer, without any protein, for the GI sample.
@@ -51,11 +51,11 @@ Loading configuration files and images, creating subtracted scattering profiles,
         scattering profiles in the manipulation list, with names like **GI2_A9_19_001_0000.tiff**
         or **GIbuf2_A9_18_001_0000.tif**.
 
-    |1000020100000400000002FDBA0AF8F207353F1C_png|
+    |manip_items_1_png|
 
 #.  Click on a filename to select the scattering profile. The background should turn gray, indicating it is selected.
 
-    |1000020100000189000000C42B4CCF42641BC35E_png|
+    |manip_items_2_png|
 
 #.  Select all of the GI scattering profiles
 
@@ -64,7 +64,7 @@ Loading configuration files and images, creating subtracted scattering profiles,
 
     *   *Warning:* Select only the GI profiles, not the GI buffer profiles.
 
-    |1000020100000191000002168932F455C75660D5_png|
+    |manip_items_3_png|
 
 #.  Use the average button to average all of the scattering profiles collected into a single curve.
 
@@ -86,21 +86,20 @@ Loading configuration files and images, creating subtracted scattering profiles,
         show/hide just the selected profiles. Try selecting all but the averaged files and using
         the show/hide all buttons.
 
-    |1000020100000191000000A5B7B91A3F7EF281FE_png|
+    |manip_items_4_png|
 
 #.  Next you need to subtract the buffer scattering profile from the measured
     protein scattering (which is really the scattering of the protein plus the
     scattering of the buffer). Star the averaged buffer file, and select the
     averaged protein file, then click the subtract button.
 
-    |100002010000018E0000009086C0F8001DCF0519_png|
+    |manip_items_5_png|
 
     *   *Checkpoint:* The subtracted scattering profile should be shown in the lower plot. A new manipulation
         item should be shown in the manipulation menu, with the name in red and a **S_** prefix
         indicating it is a subtracted file.
 
-
-    |1000020100000401000002FEBFCA80422CC6B9F5_png|
+    |manip_items_6_png|
 
 #.  You don’t need the individual image scattering profiles any more. Select all of those
     (but not your averaged or subtracted profiles!) and click remove.
@@ -116,7 +115,7 @@ Loading configuration files and images, creating subtracted scattering profiles,
         the manipulation list. This should bold that curve in the plot. Click the target icon
         again to return the curve to normal.
 
-    |raw_mainplot_png|
+    |manip_items_7_png|
 
 #.  We’re done with the averaged profiles. Select all of the averaged profiles and click the “Save”
     button to save them in the **standards_data** folder. Note that in the filename in the manipulation
@@ -126,7 +125,7 @@ Loading configuration files and images, creating subtracted scattering profiles,
     *   *Note:* This saves them with a **.dat** extension. This is the standard format for SAXS
         scattering profiles, and is also human readable.
 
-    |100002010000018E00000212F5ECF2E1F283E9BE_png|
+    |manip_items_8_png|
 
 #.  Right click on the subtracted plot, move the cursor over ‘Axes’ and select the Log-Log option.
     Well-behaved globular proteins will intersect the intensity axis roughly perpendicularly.
@@ -135,42 +134,29 @@ Loading configuration files and images, creating subtracted scattering profiles,
         a semi-log (Log-Lin, default option in RAW) or double-log plot (depending on the features
         of interest).
 
-    |100002010000023300000136897A226F6B626581_png|
+    |log_log_plot_png|
 
 
+.. |file_ctrl_1_png| image:: images/file_ctrl_1.png
 
+.. |file_ctrl_2_png| image:: images/file_ctrl_2.png
 
-.. |raw_mainplot_png| image:: images/raw_mainplot.png
+.. |file_ctrl_3_png| image:: images/file_ctrl_3.png
 
+.. |manip_items_1_png| image:: images/manip_items_1.png
 
-.. |100002010000018E00000212F5ECF2E1F283E9BE_png| image:: images/100002010000018E00000212F5ECF2E1F283E9BE.png
+.. |manip_items_2_png| image:: images/manip_items_2.png
 
+.. |manip_items_3_png| image:: images/manip_items_3.png
 
-.. |1000020100000187000001E62B30741A90D8AB28_png| image:: images/1000020100000187000001E62B30741A90D8AB28.png
+.. |manip_items_4_png| image:: images/manip_items_4.png
 
+.. |manip_items_5_png| image:: images/manip_items_5.png
 
-.. |1000020100000401000002FEBFCA80422CC6B9F5_png| image:: images/1000020100000401000002FEBFCA80422CC6B9F5.png
+.. |manip_items_6_png| image:: images/manip_items_6.png
 
+.. |manip_items_7_png| image:: images/manip_items_7.png
 
-.. |1000020100000191000000A5B7B91A3F7EF281FE_png| image:: images/1000020100000191000000A5B7B91A3F7EF281FE.png
+.. |manip_items_8_png| image:: images/manip_items_8.png
 
-
-.. |1000020100000191000002168932F455C75660D5_png| image:: images/1000020100000191000002168932F455C75660D5.png
-
-
-.. |100002010000018F000000558E072296495A065F_png| image:: images/100002010000018F000000558E072296495A065F.png
-
-
-.. |1000020100000189000000C42B4CCF42641BC35E_png| image:: images/1000020100000189000000C42B4CCF42641BC35E.png
-
-
-.. |1000020100000400000002FDBA0AF8F207353F1C_png| image:: images/1000020100000400000002FDBA0AF8F207353F1C.png
-
-
-.. |100002010000023300000136897A226F6B626581_png| image:: images/100002010000023300000136897A226F6B626581.png
-
-
-.. |100002010000018900000120F1FE156CD1C06C32_png| image:: images/100002010000018900000120F1FE156CD1C06C32.png
-
-
-.. |100002010000018E0000009086C0F8001DCF0519_png| image:: images/100002010000018E0000009086C0F8001DCF0519.png
+.. |log_log_plot_png| image:: images/log_log_plot.png

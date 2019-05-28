@@ -9,25 +9,92 @@ Release date:
 Overview
 ^^^^^^^^^^^^
 
-The RAW team is pleased to announce the release of RAW version 1.5.1. This version
-contains several small bug fixes. Normally we might wait to release these until
-more major changes had happened, but there is a workshop using RAW soon and
-we wanted these bugs fixed before then. Significant issues that have been eliminated:
+The RAW team is pleased to announce the release of RAW version 1.6.0. This version
+contains several major changes:
 
-*   An issue where the electron density output from DENSS could fail to load into pymol
-    correctly because the default scaling was too small (still loaded into Chimera fine).
-    Strictly speaking I think this is a workaround for a bug in pymol . . .
-*   Several bugs with running GNOM, including using data with minimal sampling (<100 points).
-*   Fixed a bug where the .app package for Mac wasn't displaying natively on retina displays,
-    so the text was fuzzy.
+*   Completely new and improved SEC-SAXS processing, including new automated buffer
+    and sample region selection and baseline correction. THere are also
+    significant speed improvements for SEC-SAXS processing, in addition to the
+    new features.
+*   Completely redone BIFT, which fixes several bugs (both minor and major), and
+    adds Monte Carlo error estimation and extrapolation fit of data to I(0).
+*   RAW now preserves matching metadata across processes like averaging and
+    subtraction. Metadata is now saved with keywords compatible with the SASBDB
+    to make uploading there easier for users. Beamlines can now also provide
+    arbitrary metadata during data reduction.
+*   All new icons which are compatible with retina displays, including changing
+    out the check mark for showing/hiding data on plots for an eye, which we
+    hope will be more intuitive.
+*   RAW now loads the last used config, rather than the last saved config, when
+    it starts up.
+*   Any analysis window (Guinier, MW, GNOM, etc) can now be opened more than
+    once, allowing easy comparison or side-by-side processing of data sets.
 
 You can see the full set of changes below.
+
+We also want to note that we're not anticipating any other major
+feature releases this year. With the upcoming end of life for python 2 at the
+end of 2019, we need to focus on making RAW work with python 3. Once that is
+done we will start doing major feature development again.
 
 All changes:
 ^^^^^^^^^^^^^^
 
-*   Fixed a bug where automatic loading of BioCAT SEC data wouldn't work if there was
-    more than one underscore in the filename.
+*   Updated DENSS to have the latest features, including refining averaged
+    structures, symmetry constraints, and the 'Membrane' protein mode.
+*   Completely redid BIFT code from the ground up. This fixes several bugs, and
+    now includes Monte Carlo estimation of errors.
+*   Completely redid series analysis for SEC-SAXS data. Now includes automated
+    buffer and sample region determination and baseline correction.
+*   Added residual plots to GNOM, BIFT, and DAMMIF/N results.
+*   Fixed several bugs related to setting error bar line styles.
+*   Added ability to add arbitrary metadata to a file header when an image is
+    processed by RAW
+*   Updated the adjusted Porod volume MW method to match the newly published MoW2
+    approach.
+*   Fixed a bug where info panel data could get improperly set
+*   All appropriate fields in MW panel now editable.
+*   You can now open any analysis window more than once (previously only one
+    instance of each window was allowed).
+*   Fixed a bug where in the GNOM window changing q_min or q_max didn’t update
+    the IFT results.
+*   RAW now loads the last used config (saved or loaded) by default rather than
+    the last saved.
+*   RAW now preserves all shared header values when averaging, subtracting, or
+    merging datasets.
+*   Added visual guidelines to the dimensionless Kratky plot.
+*   Added option to display normalized residuals, now on by default.
+*   Added Rigaku HiPix to known images (requires Fabio 0.9.0)
+*   Guinier panel can now export Guinier fit data so users can make the Guinier
+    plots in their plotting software of choice.
+*   RAW’s file list no longer displays hidden files.
+*   Can now read in time of each data point for BioCAT data.
+*   Fixed a bug where closing the BIFT window with BIFT running would crash RAW.
+*   Better formatting for numbers displayed in the status bar.
+*   Fixed a bug where windows could be too large on low resolution displays.
+*   Fixed a bug where series plot calculated data were not highlighted by the
+    locater button.
+*   Fixed a bug where markers were not highlighted by the locater button for
+    any plot.
+*   Fixed a bug where when selecting a line by clicking on it the plot markers
+    were not highlighted.
+*   Fixed a bug where selecting a line on the IFT plot didn’t work.
+*   Can now display unsubtracted, subtracted, or baseline corrected intensity
+    in the main series plot.
+*   Fixed a bug where series data could be truncated when exporting.
+*   Fixed a bug where the SVD window wasn’t doing the SVD on non-error-normalized
+    curves.
+*   Moved cormap to python for speed, increased by at least 5x.
+*   Modified layout of the repository to standardize.
+*   Autorg now uses numba for just-in-time compiling. Speed increase of 2 orders
+    of magnitude.
+*   Fixed bugs that would occur when quick reduce, plot, plot series, or show
+    images were used on folders, ‘..’, or with no files selected.
+*   Added ability to plot intensity over a q range for series plots.
+*   All-new icons that work with retina displays, including a new ‘eye’ for
+    show/hide instead of a check box (hopefully more intuitive).
+*   Fixed a few bugs in the DAMMIF/N GUI.
+
 
 1.5.2
 ------

@@ -60,9 +60,6 @@ for globular proteins. This fitting region is called the "Guinier region."
     |lys_guinier_png|
 
 
-
-
-
 .. |gi_guinier_png| image:: images/guinier_gi.png
 
 

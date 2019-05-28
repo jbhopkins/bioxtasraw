@@ -30,7 +30,7 @@ This tutorial covers SAXS data processing with RAW. You will learn how to:
 
 Requirements
 ^^^^^^^^^^^^
-*  BioXTAS RAW >= v1.5.0 (most recent is best).
+*  BioXTAS RAW >= v1.6.0 (most recent is best).
 
     *   :ref:`Install instructions <install>`
 
