@@ -12,10 +12,10 @@ across the peaks, and extracting specific frames for further analysis.
 sequentially sampled data sets.
 
 #.  Clear any data loaded into RAW. Click on the Series tab in the control panel. Click the
-    “Select file in series” button. Navigate to the **Tutorial_Data/sec_data/sec_sample_1**
+    “Select” button. Navigate to the **Tutorial_Data/sec_data/sec_sample_1**
     folder and select any of the **.dat** files in the folder.
 
-    *   *Tip:* In the Files tab, click the “Clear All” button.
+    *   *Tip:* In the Files tab, click the “Clear All” button to clear all data in RAW.
 
     *   *Troubleshooting:* If you get an error message, it means you don't have
         a configuration file loaded. Load the SAXS.cfg file referenced :ref:`earlier <s1p1>`.
@@ -51,12 +51,19 @@ sequentially sampled data sets.
 
     |series_plot2_png|
 
-#.  In some cases it is more useful to look at the mean intensity or the intensity at a
-    specific *q* value than the total intensity. Right click on the plot and select mean
-    intensity for the left axis y data. Then try the intensity at *q=0.02*\ .
+#.  In some cases it is more useful to look at the mean intensity, the intensity at a
+    specific *q* value, or the intensity in a range of *q* values than the total
+    intensity. Right click on the plot and select mean intensity for the left
+    axis y data. Then try the intensity at *q=0.02* and in the *q* range 0.01-0.03.
 
     *   *Note:* You need to have the drag button in the plot control bar unselected to
         get a right click menu.
+
+    *   *Tip:* CHROMIXS, in the ATSAS software displays the average intensity
+        over the *q* range 0.01-0.08 :math:`Å^{-1}`. To achieve a similar
+        display in RAW, set your q range for the intensity to that. Note that
+        RAW will display the sum of the intensity over the range while CHROMIXS
+        displays mean intensity for the range, so the results won't be exactly the same.
 
 #.  Return to plotting the integrated intensity. Zoom in near the base of the peak. Notice
     that there are two smaller peaks on the left, likely corresponding to higher order
@@ -74,28 +81,185 @@ sequentially sampled data sets.
     *   *Tip:* Click the Home (house) button at the bottom of the plot.
 
 #.  In order to determine if we really have a single species across the peak, we will
-    calculate the |Rg| and MW as a function of frame number. In the “Calculate/Plot
-    Structural Parameters” section, enter a “Buffer Range” of 400 to 500 and a “Window Size”
-    of 5. Star the SEC curve of interest and click the “Set/Update Parameters” button.
-    This may take a while to calculate.
+    calculate the |Rg| and MW as a function of frame number. Right click on the
+    filename in the Control Panel and select LC Series analysis to open the
+    LC Series analysis panel.
 
-    |100002010000018800000095A9F99A4566D6E540_png|
+    *   *Note:* At the top of the control panel in this window, in the 'Series info'
+        section you'll see several settings. If you had RNA instead of protein,
+        you would use the Vc Mol. type menu to select that option. This affects
+        the calculation of the molecular weight. You could also change the Vp
+        density away from the default value, or change the averaging window
+        (discussed below).
+
+    |lc_analysis_main_png|
+
+#.  The LC Series analysis panel provides basic and advanced analysis tools for
+    liquid chromatography experiments. Here we will show how to select buffer
+    and sample regions, and send final processed data to the main plot. The
+    advanced baseline correction features are discussed later.
+
+    In order to calculate |Rg| and other parameters as a function of elution time
+    (Frame #), we need to define a buffer region. RAW can do this automatically.
+    In the 'Buffer' section click the 'Auto' button.
+
+    |lc_analysis_buffer_auto_png|
+
+    *   *Checkpoint:* You should see a buffer range show up in the buffer list,
+        with defined start and end values. The region will be shown in green on
+        the Unsubtracted plot.
+
+#.  You can make fine manual adjustments to the buffer range if necessary. Zoom
+    in on the baseline with the buffer region. Use the up/down arrows for the
+    Start and End points to adjust the buffer region a little bit. You will see
+    the region on the plot update as you make the changes.
+
+    |lc_analysis_buffer_adjust_png|
+
+    *   *Warning:* The automatic buffer determation can be wrong! Always be sure
+        to manually inspect the region it picked. In particular, large flat leading edge
+        shoulders next to the main peak can look like a baseline region to the
+        algorithm, and will often mistakenly be picked.
+
+    *   *Tip:* If the SAXS data isn't clear (noisy, low signal, etc.), it can be
+        useful to inspect the UV trace associated with the SEC elution to see
+        where there are minor elution components that you should exclude from
+        your buffer selection.
+
+#.  Zoom back out on the plot. Reset the buffer range to 539 to 568 by typing
+    those values in the Start/End range boxes and hitting enter.
+
+#.  To set the buffer region, create a set of subtracted profiles, and calculate
+    structural parameters as a function of elution time, click the 'Set buffer'
+    button. This may take a while to calculate.
+
+    |lc_analysis_buffer_set_png|
 
     *   *Note:* All of the files in the given buffer range will be averaged and used as a buffer.
-        A sliding average window is then moved across the SEC curve, of size specified by the
-        Window Size parameter. So for a window of size five, the profiles corresponding to frames
-        0-4, 1-5, 2-6, etc will be averaged. From each of these averaged set of curves, the average
-        buffer will be subtracted, and RAW will attempt to calculate the |Rg|, MW, and I(0). These
-        values are then plotted as a function of frame number.
-
-    *   *Note:* If you had RNA instead of protein, you would use the Mol. Type menu
-        to select that option. This affects the calculation of the molecular weight.
+        A sliding average window (size defined by the 'Averaging window size' in the
+        'Series Info' section) is then moved across the SEC curve. So for a
+        window of size five, the profiles corresponding to frames 0-4, 1-5, 2-6,
+        etc will be averaged. From each of these averaged set of curves, the average
+        buffer will be subtracted, and RAW will attempt to calculate the |Rg|,
+        MW, and I(0). These values are then plotted as a function of frame number.
 
     *   *Warning:* It is important that the buffer range actually be buffer! In this case,
-        we made sure to not include the small peaks before the main peak.
+        we need to make sure to not include the small peaks before the main peak.
 
-#.  Once the calculation is finished, you should see a set of markers, matching the color
-    of the original curve. These points are plotted on the right Y axis. Click on the colored
+#.  Once the calculation is finished, the window should automatically display the
+    Subtracted plot. If it doesn't, click on the 'Subtracted' tab in the plot.
+    On this plot there is a new Intensity vs. Frame # curve, representing the
+    suctracted data. There is also a set of markers, showing one of the calculated
+    parameters. By default the |Rg| displayed.. The calculated parameters are
+    plotted on the right Y axis. You can show |Rg|, I(0), and MW calculated by
+    the volume of correlation (Vc) and adjusted Porod volume (Vp) methods. Click
+    on the 'Calculated value' menu to switch between the different displays.
+
+    *   *Try:* Show the |Rg|, MW (Vc), and MW (Vp). Notice that the MW estimate
+        varies between the two different methods.
+
+    |lc_analysis_subtracted_png|
+
+#.  A monodisperse peak should display a region of flat |Rg| and MW near the center.
+    Note that some spread on either edge can come from small shoulders of other
+    components, bad buffer selection, or just the low signal to noise in the tails
+    of the peak. Zoom in on the |Rg| and MW values across the peak to verify that
+    these show a significant flat region.
+
+    RAW can automatically determine a good sample region (good being defined
+    as monodisperse and excluding low signal to noise data). To do this, click
+    the 'Auto' button in the Sample region.
+
+    |lc_analysis_sample_auto_png|
+
+    *   *Checkpoint:* You should see a sample range show up in the sample list,
+        with defined start and end values. The region will be shown in green on
+        the Subtracted plot.
+
+    |lc_analysis_sample_region_png|
+
+#.  In the plot, zoom in on the peak region and verify that the |Rg| and MW seem
+    flat in the selected sample range.
+
+    |lc_analysis_sample_region_plot_png|
+
+    *   *Tip:* You can manually adjust the sample region range in the same way
+        as the buffer range, using the controls in the Start/End boxs.
+
+#.  Once you are satisfied with the region picked (should be 693-722), click the
+    'To Main Plot' button. This averages the selected region and sends the resulting
+    average to RAW's Main Plot.
+
+    *   *Note:* RAW first averages the selected sample and buffer regions in the
+        unsubtracted data, then subtracts. This avoids the possibility of correlated
+        noise that would arise from averaging the subtracted files.
+
+    |lc_analysis_sample_to_main_plot_png|
+
+#.  If you adjust the sample or buffer region in a way that could be problematic,
+    RAW will warn you. Try this.
+
+    *   Adjust the Buffer end to include some of the leading edge peaks, such as
+        ending at 700. You will want to click on the 'Unsubtracted' plot to
+        see the buffer range. Then click 'Set Buffer'. You will see a warning window
+        telling you want might be wrong with the selected region. Click 'Cancel'.
+
+        |lc_analysis_buffer_range_warning_png|
+
+    *   Adjust the Sample start to include some of the non-flat region, such as
+        starting at 681. Then click 'To Main Plot'. You will see a warning window
+        telling you want might be wrong with the selected region. Click 'Cancel'.
+
+        |lc_analysis_sample_range_warning_png|
+
+    *   *Note:* For buffer regions, RAW checks frame-wise similarity across the
+        whole *q* range and at low and high *q*, correlations in intensity, and
+        whether there are multiple singular values in the selected region.
+
+        For sample regions, RAW checks frame-wise similarity across the
+        whole *q* range and at low and high *q*, correlations in calculated values,
+        whether there are multiple singular values in the selected region, and
+        if some of the selected frames decrease the signal to noise of the average.
+
+#.  Click 'OK' to close the window and save your analysis results. If you reopen
+    the LC analysis widnow you will see the buffer and sample regions you selected
+    are remembered.
+
+#.  Click on the Main Plot tab and the Manipulation tab. You should see one scattering
+    profiles,the buffer subtracted data set you sent to the main plot. Carry out
+    Guinier and MW analysis.
+
+    *   *Note:* The I(0) reference and absolute calibration will not be accurate for
+        SEC-SAXS data, as the concentration is not accurately known.
+
+    *   *Question:* How does the |Rg| and MW you get from the averaged curve compare
+        to what RAW found automatically for the peak?
+
+    *   *Tip:* Make sure your plot axes are Log-Lin or Log-Log. Make sure that both
+        plots are shown by clicking the 1/2 button at the bottom of the plot window.
+
+HERE!!!!!!
+
+#.  Generate a new average buffer from the frames on the right side of the peak, 850-950.
+    Generate a new subtracted curve and repeat the |Rg| and MW analysis.
+
+    *   *Question:* Which curve looks best?
+
+#.  Try taking a few small sections of the peak, 5-10 frames wide. Use one on the left
+    side of the peak, one at the top, and one on the right side (e.g. 685-690, 700-705,
+    725-730). Generate subtracted curves from the first buffer (frames 400-500). Carry
+    out the |Rg| and MW analysis.
+
+    *   *Question:* Are there any differences in these curves?
+
+    *   *Try:* Apply a scale factor to these new subtracted curves. Can you scale them onto each other?
+
+    *   *Note:* It is useful to analyze several regions on the peaks of the SEC-SAXS curve
+        in this way to verify that they are the same. You could have species that failed to
+        separate out completely. This kind of analysis will give you confidence in your final
+        result.
+
+#.  Click on the colored
     line next to the star in the Series control panel. In the line properties control panel this
     brings up, change the Calc Marker color to something different. Add a line to the Calc
     Markers by selecting line style ‘-’ (solid), and adjust the line color to your liking.
@@ -134,47 +298,6 @@ sequentially sampled data sets.
     *   *Try:* Vary the window size and/or the buffer range and see how that affects the
         constant |Rg| and MW regions.
 
-#.  Enter the buffer range, 400 to 500, in the “Select Data Frames” boxes of the “Data
-    to main plot” section, and then click the “Average to Main Plot” button.
-
-    |100002010000013700000037882DFA03691018C8_png|
-
-#.  Enter the range over which you found the |Rg| and MW to be constant (should be
-    ~700-715) in the “Select Data Frames” section and click the “Average to Main Plot”
-    button.
-
-#.  Click on the Main Plot tab and the Manipulation tab. You should see two scattering
-    profiles, one is the average of the buffer and one is the average across the peak.
-    Carry out buffer subtraction and then do a Guinier and MW analysis.
-
-    *   *Note:* The I(0) reference and absolute calibration will not be accurate for
-        SEC-SAXS data, as the concentration is not accurately known.
-
-    *   *Question:* How does the |Rg| and MW you get from the averaged curve compare
-        to what RAW found automatically for the peak?
-
-    *   *Tip:* Make sure your plot axes are Log-Lin or Log-Log. Make sure that both
-        plots are shown by clicking the 1/2 button at the bottom of the plot window.
-
-#.  Generate a new average buffer from the frames on the right side of the peak, 850-950.
-    Generate a new subtracted curve and repeat the |Rg| and MW analysis.
-
-    *   *Question:* Which curve looks best?
-
-#.  Try taking a few small sections of the peak, 5-10 frames wide. Use one on the left
-    side of the peak, one at the top, and one on the right side (e.g. 685-690, 700-705,
-    725-730). Generate subtracted curves from the first buffer (frames 400-500). Carry
-    out the |Rg| and MW analysis.
-
-    *   *Question:* Are there any differences in these curves?
-
-    *   *Try:* Apply a scale factor to these new subtracted curves. Can you scale them onto each other?
-
-    *   *Note:* It is useful to analyze several regions on the peaks of the SEC-SAXS curve
-        in this way to verify that they are the same. You could have species that failed to
-        separate out completely. This kind of analysis will give you confidence in your final
-        result.
-
 #.  Load the Bovine Serum Albumin (BSA) SEC-SAXS data contained in the **sec_sample_2**
     data folder. Hide the first SEC-SAXS chromatograph.
 
@@ -209,30 +332,41 @@ sequentially sampled data sets.
         using either the “Plot” or “Plot Series” button.
 
 
-
-.. |series_color_png| image:: images/series_color.png
-
-
-.. |series_line_props_png| image:: images/series_line_props.png
-
-
 .. |series_panel_png| image:: images/series_panel.png
-
-
-.. |series_plot2_png| image:: images/series_plot2.png
-
-
-.. |series_rg_png| image:: images/series_rg.png
-
-
-.. |series_plot3_png| image:: images/series_plot3.png
-
 
 .. |series_plot_png| image:: images/series_plot.png
 
+.. |series_plot2_png| image:: images/series_plot2.png
 
-.. |100002010000018800000095A9F99A4566D6E540_png| image:: images/100002010000018800000095A9F99A4566D6E540.png
+.. |series_plot3_png| image:: images/series_plot3.png
 
+.. |lc_analysis_main_png| image:: images/lc_analysis_main.png
+
+.. |lc_analysis_buffer_auto_png| image:: images/lc_analysis_buffer_auto.png
+
+.. |lc_analysis_buffer_adjust_png| image:: images/lc_analysis_buffer_adjust.png
+
+.. |lc_analysis_buffer_set_png| image:: images/lc_analysis_buffer_set.png
+
+.. |lc_analysis_subtracted_png| image:: images/lc_analysis_subtracted.png
+
+.. |lc_analysis_sample_auto_png| image:: images/lc_analysis_sample_auto.png
+
+.. |lc_analysis_sample_region_png| image:: images/lc_analysis_sample_region.png
+
+.. |lc_analysis_sample_region_plot_png| image:: images/lc_analysis_sample_region_plot.png
+
+.. |lc_analysis_sample_to_main_plot_png| image:: images/lc_analysis_sample_to_main_plot.png
+
+.. |lc_analysis_buffer_range_warning_png| image:: images/lc_analysis_buffer_range_warning.png
+
+.. |lc_analysis_sample_range_warning_png| image:: images/lc_analysis_sample_range_warning.png
+
+.. |series_color_png| image:: images/series_color.png
+
+.. |series_line_props_png| image:: images/series_line_props.png
+
+.. |series_rg_png| image:: images/series_rg.png
 
 .. |100002010000026300000034957322C176A93588_png| image:: images/100002010000026300000034957322C176A93588.png
 

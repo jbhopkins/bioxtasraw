@@ -13,13 +13,17 @@ vs. :math:`qR_g`\ or :math:`(q^2V_c)I(q)` vs. :math:`q(V_c)^{1/2}`\ . These dime
 can provide semi-quantitative analysis of flexibility and disorder. More information about can
 be found here and references therein: `http://www.bioisis.net/tutorial/21 <http://www.bioisis.net/tutorial/21>`_.
 
+#.  If you haven't already, save the loaded scattering profiles, remove all loaded
+    profiles from RAW, and reload your saved GI and Lysozyme profiles, as described
+    in :ref:`the previous section <s1p4>`.
+
 #.  Put the top plot on Kratky axes.
 
     * *Tip:* Right click on the plot to change the plot type.
 
 #.  Show only the top plot by clicking on the 1 in the plot control bar below the plots.
 
-    |1000020100000261000002D198EA0F5B06DFE72F_png|
+    |kratky_png|
 
 #.  Both GI and lysozyme show the classic bell shape, indicating they are completely folded.
 
@@ -42,7 +46,7 @@ be found here and references therein: `http://www.bioisis.net/tutorial/21 <http:
 
     *   *Tip:* The up and down arrows will only adjust the last digit of the scale factor.
 
-    |100002010000018D000000E6174D733C1F4E44CD_png|
+    |scale_png|
 
 
 #.  Kratky analysis can also be done on normalized or dimensionless data. RAW supports normalization
@@ -62,13 +66,19 @@ be found here and references therein: `http://www.bioisis.net/tutorial/21 <http:
 #.  By default, the plot is the Dimensionless |Rg| plot. Use the dropdown “Plot” menu at the top to
     select the Normalized (by I(0)) and Dimensionless Vc plots.
 
-    |100002010000031E000002558ABF7E7941F525B1_png|
+    *   *Tip:* The dashed gray lines on the Dimensionless (Rg) plot are guidelines
+        for a globular protein. For a globular protein the  peak position should
+        be at :math:`qR_g=\sqrt{3}\approx 1.73`, while peak height should be
+        :math:`3/e\approx 1.1`.
+
+    |kratky_norm_png|
 
 #.  Return to the Dimensionless |Rg| plot. Use the check boxes to hide the partially_folded and
     unfolded data sets on the plot. Note that both the lysozyme and GI data look very similar
     on this plot, showing they have similar shapes and (lack of) flexibility.
 
-    *   *Tip:* You can click on the colored line in the Color column to change the color of an item on the plot.
+    *   *Tip:* You can click on the colored line in the Color column to
+        change the color of an item on the plot.
 
     |100002010000010E0000005F5824E2A36886EADC_png|
 
@@ -80,19 +90,15 @@ be found here and references therein: `http://www.bioisis.net/tutorial/21 <http:
 
 
 
-.. |1000020100000261000002D198EA0F5B06DFE72F_png| image:: images/1000020100000261000002D198EA0F5B06DFE72F.png
+.. |kratky_png| image:: images/kratky.png
 
+.. |scale_png| image:: images/scale.png
+
+.. |kratky_norm_autorg| image:: images/kratky_norm_autorg.png
 
 .. |100002010000010E0000005F5824E2A36886EADC_png| image:: images/100002010000010E0000005F5824E2A36886EADC.png
 
-
-.. |100002010000031E000002558ABF7E7941F525B1_png| image:: images/100002010000031E000002558ABF7E7941F525B1.png
-
-
-.. |100002010000018D000000E6174D733C1F4E44CD_png| image:: images/100002010000018D000000E6174D733C1F4E44CD.png
-
-
-.. |kratky_norm_autorg| image:: images/kratky_norm_autorg.png
+.. |kratky_norm_png| image:: images/kratky_norm.png
 
 
 .. |Rg| replace:: R\ :sub:`g`

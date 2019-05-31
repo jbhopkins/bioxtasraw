@@ -19,7 +19,7 @@ with data that may show changes in scattering from radiation damage or other pos
         increase (frame number increases), the sample damages. In this case, the damage
         is manifesting as aggregation, which shows up as an uptick in the profiles at low *q*\ .
 
-    |10000201000003FD000002FEC6ABABA160C40969_png|
+    |similarity_main_png|
 
 #.  Select all of the profiles and average them. You will get a warning message informing you
     that not all the files are statistically the same.
@@ -74,7 +74,7 @@ with data that may show changes in scattering from radiation damage or other pos
 
 
 
-.. |10000201000003FD000002FEC6ABABA160C40969_png| image:: images/10000201000003FD000002FEC6ABABA160C40969.png
+.. |similarity_main_png| image:: images/similarity_main.png
 
 
 .. |similarity_warning_png| image:: images/similarity_warning.png

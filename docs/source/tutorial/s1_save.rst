@@ -1,5 +1,7 @@
 Saving analysis information
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _s1p4:
+
 #.  Save your subtracted scattering profiles in the **standards_data** folder.
 
 #.  Select both subtracted profiles, right click on one of them, and select ‘Save all analysis
