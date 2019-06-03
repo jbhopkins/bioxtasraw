@@ -1,5 +1,6 @@
 WAXS processing and merging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Several SAXS beamlines use two (or more) detectors to collect different q regions. The MacCHESS
 G1 beamline uses dual Pilatus detectors to measure SAXS and WAXS from *q* ~0.008 – 0.75
 Å\ :sup:`-1`\ . The SAXS detector has *q* ~< 0.25 Å\ :sup:`-1` and the wide-angle scattering

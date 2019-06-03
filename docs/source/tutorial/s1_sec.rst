@@ -1,5 +1,7 @@
 Basic SEC-SAXS processing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _s1p7:
+
 In a typical SEC-SAXS run, images are continuously collected while the eluate (outflow)
 of a size exclusion column flows through the SAXS sample cell. As proteins scatter more
 strongly than buffer, a plot of total scattered intensity vs. time, the so-called SAXS
@@ -109,6 +111,8 @@ sequentially sampled data sets.
         with defined start and end values. The region will be shown in green on
         the Unsubtracted plot.
 
+    |lc_analysis_buffer_range_png|
+
 #.  You can make fine manual adjustments to the buffer range if necessary. Zoom
     in on the baseline with the buffer region. Use the up/down arrows for the
     Start and End points to adjust the buffer region a little bit. You will see
@@ -158,6 +162,14 @@ sequentially sampled data sets.
     *   *Try:* Show the |Rg|, MW (Vc), and MW (Vp). Notice that the MW estimate
         varies between the two different methods.
 
+    *   *Note:* You’ll notice a region of roughly constant |Rg| across the peak. To
+        either side there are regions with higher or lower |Rg| values. Some of these
+        variations, particularly on the right side, are from scattering profiles
+        near the edge of the peak with lower concentrations of sample, leading
+        to more noise in determining the |Rg| values. There may also be some
+        effects from the small peaks on the leading (left) side of the peak,
+        and from the baseline mismatch between left and right sides of the peak.
+
     |lc_analysis_subtracted_png|
 
 #.  A monodisperse peak should display a region of flat |Rg| and MW near the center.
@@ -200,7 +212,7 @@ sequentially sampled data sets.
     RAW will warn you. Try this.
 
     *   Adjust the Buffer end to include some of the leading edge peaks, such as
-        ending at 700. You will want to click on the 'Unsubtracted' plot to
+        ending at 600. You will want to click on the 'Unsubtracted' plot to
         see the buffer range. Then click 'Set Buffer'. You will see a warning window
         telling you want might be wrong with the selected region. Click 'Cancel'.
 
@@ -222,11 +234,11 @@ sequentially sampled data sets.
         if some of the selected frames decrease the signal to noise of the average.
 
 #.  Click 'OK' to close the window and save your analysis results. If you reopen
-    the LC analysis widnow you will see the buffer and sample regions you selected
+    the LC analysis window you will see the buffer and sample regions you selected
     are remembered.
 
 #.  Click on the Main Plot tab and the Manipulation tab. You should see one scattering
-    profiles,the buffer subtracted data set you sent to the main plot. Carry out
+    profile, the buffer subtracted data set you sent to the main plot. Carry out
     Guinier and MW analysis.
 
     *   *Note:* The I(0) reference and absolute calibration will not be accurate for
@@ -238,31 +250,67 @@ sequentially sampled data sets.
     *   *Tip:* Make sure your plot axes are Log-Lin or Log-Log. Make sure that both
         plots are shown by clicking the 1/2 button at the bottom of the plot window.
 
-HERE!!!!!!
+#.  This particular dataset shows a small difference between initial and final buffer
+    scattering profiles. A better scattering profile might be obtained by using buffer
+    from both sides of the peak. To do so, start by reopening the LC Series Analysis panel.
 
-#.  Generate a new average buffer from the frames on the right side of the peak, 850-950.
-    Generate a new subtracted curve and repeat the |Rg| and MW analysis.
+#.  Switch to showing the unsubtracted profiles by clicking on the 'Unsubtracted' plot tab.
 
-    *   *Question:* Which curve looks best?
+#.  Add a second buffer region by clicking the 'Add region' button.
 
-#.  Try taking a few small sections of the peak, 5-10 frames wide. Use one on the left
-    side of the peak, one at the top, and one on the right side (e.g. 685-690, 700-705,
-    725-730). Generate subtracted curves from the first buffer (frames 400-500). Carry
-    out the |Rg| and MW analysis.
+#.  For the second region, click the 'Pick' button.
 
-    *   *Question:* Are there any differences in these curves?
+    |lc_analysis_buffer_pick_png|
 
-    *   *Try:* Apply a scale factor to these new subtracted curves. Can you scale them onto each other?
+#.  Move your mouse across the plot. You will see a vertical green line moving
+    with the mouse cursor. This represents the start of the buffer region. Click
+    once to fix the start point where you click. Move the mouse further to the
+    right and click again to fix the end point of the buffer region.
 
-    *   *Note:* It is useful to analyze several regions on the peaks of the SEC-SAXS curve
-        in this way to verify that they are the same. You could have species that failed to
-        separate out completely. This kind of analysis will give you confidence in your final
-        result.
+    |lc_analysis_two_buffers_png|
 
-#.  Click on the colored
-    line next to the star in the Series control panel. In the line properties control panel this
-    brings up, change the Calc Marker color to something different. Add a line to the Calc
-    Markers by selecting line style ‘-’ (solid), and adjust the line color to your liking.
+#.  Once you are happy with the second buffer region, click 'Set buffer'. A range like
+    ~840-870 is reasonable.
+
+#.  A warning window will pop up. In this case, we have purposefully chosen two
+    buffer regions because they are different, so ignore the warning and click
+    'Continue'.
+
+#.  Remove the old sample region by clicking in the empty space to the right of
+    the 'Pick' button to highlight it, and then clicking the 'Remove region' button.
+
+    |lc_analysis_remove_sample_png|
+
+#.  Click the 'Auto' button to automatically find a new sample region. Click the
+    'To Main Plot' button to send that new region to the main plot.
+
+    *   *Try:* You can see what the data subtracted by just the second buffer
+        region looks like by removing the first buffer region, setting the buffer
+        again, finding a new good sample region, and sending new region to the
+        main plot.
+
+#.  Cancel out of the LC Series analysis window. This will not save the changes
+    you made to the buffer and sample regions.
+
+#.  Carry out the |Rg| and MW analysis on the new curve. How does the scattering
+    profile compare to the one that you generated using only buffer from before
+    the peak?
+
+    *   *Tip:* You should see subtle but noticeable differences in the Guinier
+        fit.
+
+    *   *Note:* An alternative approach to using several buffer regions is to use
+        a single buffer region and apply a baseline correction. Both approaches
+        have advantages and disadvantages. If you want to do EFA deconvolution,
+        it is best to not use a baseline correction, however in other cases
+        it will be more accurate as it doesn't assume a single average buffer
+        across the peak.
+
+#.  Return to the Series control and plot panels. Click on the colored line next
+    to the star in the Series control panel. In the line properties control panel
+    this brings up, change the Calc Marker color to something different. Add a
+    line to the Calc Markers by selecting line style ‘-’ (solid), and adjust
+    the line color to your liking.
 
     *   *Tip:* You can do the same thing to adjust the colors of the scattering profiles in
         the Manipulation and IFT control tabs.
@@ -270,33 +318,6 @@ HERE!!!!!!
     |series_color_png|
 
     |series_line_props_png|
-
-#.  Zoom in on the peak region. You’ll notice a region of roughly constant |Rg| across the
-    peak. To either side there are regions with higher or lower |Rg| values. These variations,
-    particularly on the right side, are from scattering profiles near the edge of the peak
-    with lower concentrations of sample, leading to more noise in determining the |Rg| values.
-
-    *   *Note:* There may also be some effects from the small peaks on the leading (left)
-        side of the peak, and from the baseline mismatch between left and right sides of the peak.
-
-    |series_rg_png|
-
-#.  You can move your mouse cursor across the |Rg| values on the plot, and the frame number
-    and intensity and |Rg| at your cursor position are read out in the bar at the bottom
-    of the RAW window. Use this to determine the range of frames over which the |Rg| is
-    roughly constant.
-
-    *   *Note:* For an automated determination of |Rg|, particularly with only 5 frames
-        averaged together, a change of several percent is likely insignificant.
-
-    |100002010000026300000034957322C176A93588_png|
-
-#.  Zoom back out to the full plot. Right click on the plot and select molecular weight as
-    the right axis Y data. Again zoom in on the peak region and find the set of frames for
-    which the MW is roughly constant.
-
-    *   *Try:* Vary the window size and/or the buffer range and see how that affects the
-        constant |Rg| and MW regions.
 
 #.  Load the Bovine Serum Albumin (BSA) SEC-SAXS data contained in the **sec_sample_2**
     data folder. Hide the first SEC-SAXS chromatograph.
@@ -344,6 +365,8 @@ HERE!!!!!!
 
 .. |lc_analysis_buffer_auto_png| image:: images/lc_analysis_buffer_auto.png
 
+.. |lc_analysis_buffer_range_png| image:: images/lc_analysis_buffer_range.png
+
 .. |lc_analysis_buffer_adjust_png| image:: images/lc_analysis_buffer_adjust.png
 
 .. |lc_analysis_buffer_set_png| image:: images/lc_analysis_buffer_set.png
@@ -362,16 +385,17 @@ HERE!!!!!!
 
 .. |lc_analysis_sample_range_warning_png| image:: images/lc_analysis_sample_range_warning.png
 
+.. |lc_analysis_buffer_pick_png| image:: images/lc_analysis_buffer_pick.png
+
+.. |lc_analysis_two_buffers_png| image:: images/lc_analysis_two_buffers.png
+
+.. |lc_analysis_remove_sample_png| image:: images/lc_analysis_remove_sample.png
+
 .. |series_color_png| image:: images/series_color.png
 
 .. |series_line_props_png| image:: images/series_line_props.png
 
 .. |series_rg_png| image:: images/series_rg.png
-
-.. |100002010000026300000034957322C176A93588_png| image:: images/100002010000026300000034957322C176A93588.png
-
-
-.. |100002010000013700000037882DFA03691018C8_png| image:: images/100002010000013700000037882DFA03691018C8.png
 
 
 .. |Rg| replace:: R\ :sub:`g`

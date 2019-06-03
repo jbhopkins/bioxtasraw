@@ -1,5 +1,7 @@
 Pair-distance distribution analysis – GNOM in RAW
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _s2p1:
+
 The first step in most advanced data processing is to calculate the P(r) function, the inverse
 Fourier transform of I(q). This cannot be calculated directly from the scattering profile, so
 indirect Fourier transform methods are typically used. The most common such method is implemented
@@ -7,8 +9,9 @@ in the GNOM program from the ATSAS package. We will use RAW to run GNOM. Note th
 :ref:`ATSAS installed <atsas>` to do this part of the tutorial.
 
 #.  Open RAW. The install instructions contain information on installing and running RAW.
+    If RAW is already open, clear all loaded data in RAW.
 
-#.  Open the **lysozyme.dat** file in the **Tutorial_Data/atsas_data** folder.
+#.  Open the **lysozyme.dat** file in the **Tutorial_Data/reconstruction_data** folder.
 
 #.  Right click on the lysozyme profile in the Manipulation list and select “IFT (GNOM)”.
 
@@ -24,14 +27,15 @@ in the GNOM program from the ATSAS package. We will use RAW to run GNOM. Note th
 
     |gnom_panel_png|
 
-#.  The GNOM panel has plots on the right. These show the P(r) function (top panel), the data
-    (bottom panel, blue points) and the fit line (bottom panel, red line).
+#.  The GNOM panel has plots on the right. These show the P(r) function
+    (top panel), the data (middle panel, blue points) and the fit line (middle
+    panel, red line), and the fit residual (bottom panel).
 
     *   *Note:* The fit line is the Fourier transform of the P(r) function, and is also
         called the regularized intensity.
 
 #.  On the left of the GNOM panel are the controls and the resulting parameters. You can alter
-    the data range used and the |Dmax| value.
+    the data range used, the |Dmax| value, and the alpha value used.
 
     *   *Tip:* The Guinier and P(r) |Rg| and I(0) values should agree well. The total estimate
         varies from 0 to 1, with 1 being ideal. GNOM also provides an estimate of the quality of
@@ -45,10 +49,8 @@ in the GNOM program from the ATSAS package. We will use RAW to run GNOM. Note th
     *   *Tip:* Recall that we want the following qualities in a P(R) function:
 
         #.  No negative values.
-
         #.  A gentle approach to |Dmax| (not suddenly forced down).
-
-        #.   Minimal oscillation.
+        #.  Minimal oscillation.
 
 #.  Return the |Dmax| value to that found by DATGNOM by clicking the “DATGNOM” button.
     |Dmax| should be 40. By default, GNOM forces the P(r) function to zero at |Dmax|.
@@ -63,7 +65,7 @@ in the GNOM program from the ATSAS package. We will use RAW to run GNOM. Note th
 #.  Set the |Dmax| back to 40, and click OK. This saves the results into the RAW IFT panel.
 
 #.  Click on the IFT Control and Plot tabs. This will display the GNOM output you just generated.
-    Save the **lysozyme.out** item in the **atsas_data** folder.
+    Save the **lysozyme.out** item in the **reconstruction_data** folder.
 
     *   *Note:* This saved file is all of the GNOM output, in the GNOM format. It can be used
         as input for any program that needs a GNOM **.out** file.

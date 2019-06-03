@@ -1,5 +1,6 @@
 3D reconstruction with electron density – DENSS in RAW
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 A new, exciting method for doing 3D shape reconstructions in SAXS yields actual
 electron density, rather than bead models. There are many potential advantages to this,
 but one significant one is easy handling of systems like RNA-Protein complexes or
@@ -9,16 +10,16 @@ and so typically fail to reconstruct these complex objects. `DENSS <http://denss
 been fully implemented in RAW and will be used to reconstruct these electron densities.
 
 #.  Clear all of the data in RAW. Load the **lysozyme.out** file that you saved in the
-    **atsas_data** folder in a previous part of the tutorial.
+    **reconstruction_data** folder in a previous part of the tutorial.
 
     *   *Note:* If you haven’t done the previous part of the tutorial, or forgot to save
         the results, you can find the **lysozyme.out** file in the
-        **atsas_data/lysozyme_complete** folder.
+        **reconstruction_data/lysozyme_complete** folder.
 
 #.  Right click on the **lysozyme.out** item in the IFT list. Select the “Electron Density (DENSS)” option.
 
 #.  Running DENSS generates a lot of files. Click the “Select/Change Directory” button,
-    make a new folder in the **atsas_data** directory called **lysozyme_denss** and select
+    make a new folder in the **reconstruction_data** directory called **lysozyme_denss** and select
     that folder.
 
 #.  Change the number of reconstructions to 5 and the mode to Fast.
@@ -38,7 +39,7 @@ been fully implemented in RAW and will be used to reconstruct these electron den
         the log panel.
 
 #.  Note that by default the densities are aligned and averaged, including enantiomer
-    filtering.
+    filtering, and a refined density is created from the average.
 
 #.  Wait for all of the DENSS runs and averaging to finish. Depending
     on the speed of your computer this could take a bit.
@@ -46,7 +47,7 @@ been fully implemented in RAW and will be used to reconstruct these electron den
 #.  Once the reconstructions are finished, the window should automatically switch to the
     results tab. If it doesn’t, click on the results tab.
 
-    |denss_results_png|
+    |denss_results_tab_png|
 
 #.  The results panel summarizes the results of the reconstruction runs. At the top of the
     panel there is the ambimeter evaluation of how ambiguous the reconstructions might be
@@ -59,6 +60,8 @@ been fully implemented in RAW and will be used to reconstruct these electron den
     *   Verify that the Rg is close to the expected value, and that the chi^2 and support
         volumes are relatively consistent between models.
 
+    *   *Note:* Above we show the results for 20 runs instead of the 5 in the tutorial.
+
 #.  Individual model results are displayed in the numbered tabs. For each individual
     model there are plots of: the original data and the model data (scattering from density);
     the residual between the original data and the model data; and chi squared, |Rg| and support volume
@@ -69,7 +72,7 @@ been fully implemented in RAW and will be used to reconstruct these electron den
     *   Check that the chi squared, |Rg|, and support volume have all plateaued (converged)
         by the final steps.
 
-    |denss_model_png|
+    |denss_model_tab_png|
 
 #.  If the densities were averaged, the average tab will display the Fourier shell correlation
     vs. resolution.
@@ -79,8 +82,10 @@ been fully implemented in RAW and will be used to reconstruct these electron den
 
     |denss_fsc_png|
 
-#.  Click the “Save Results Summary” button to save the results summary as a **.csv** file and
-    save the summary plots as a multi-page pdf file.
+#.  The results summary shown in Summary tab is automatically saved as a
+    **<prefix>_denss_results.csv** csv file, e.g. for this data as
+    **lysozyme_denss_results.csv**. All the plots shown on the individual model
+    tabs are automatically saved as a multi-page pdf file with the same name.
 
 #.  Click the “Close” button when you are finished looking at the results and reconstructions.
 
@@ -91,20 +96,20 @@ been fully implemented in RAW and will be used to reconstruct these electron den
 #.  If averaging was done, final average density is saved in the selected output
     folder as **<prefix>_aver.mrc**. For this tutorial, that would be **lysozyme_aver.mrc**.
 
-    *   *Note:* **.mrc** files can be opened in Chimera and pyMOL. For tips about how to
-        visualize the density and align it with known structures see the appropriate
-        sections here: `http://www.tdgrant.com/denss/tips/ <http://www.tdgrant.com/denss/tips/>`_.
-        When looking at this page, please note that RAW does the conversion from hdf5 to mrc
-        for you, so there's no need to do this, i.e. you can skip the first paragraph of the
-        evaluating the results section.
+#.  If refinement was done, the final refined density is saved in the selected
+    output folder as **<prefix>_refine.mrc**. For this tutorial that would be
+    **lysozyme_refine.mrc**.
 
+*Note:* **.mrc** files can be opened in Chimera and pyMOL. For tips about how to
+visualize the density and align it with known structures see the appropriate
+sections here: `http://www.tdgrant.com/denss/tips/ <http://www.tdgrant.com/denss/tips/>`_.
 
 
 .. |denss_run_tab_png| image:: images/denss_run_tab.png
 
-.. |denss_results_png| image:: images/denss_results_tab.png
+.. |denss_results_tab_png| image:: images/denss_results_tab.png
 
-.. |denss_model_png| image:: images/denss_model_tab.png
+.. |denss_model_tab_png| image:: images/denss_model_tab.png
 
 .. |denss_fsc_png| image:: images/denss_fsc.png
 

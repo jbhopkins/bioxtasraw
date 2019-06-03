@@ -1,5 +1,6 @@
 Advanced SEC-SAXS processing – Singular value decomposition (SVD) and evolving factor analysis (EFA)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Sometimes SEC fails to fully separate out different species, and you end up with overlapping
 peaks in your SEC-SAXS curve. It is possible to apply more advanced mathematical techniques
 to determine if there are multiple species of macromolecule in a SEC-SAXS peak, and to attempt
@@ -10,7 +11,7 @@ components from overlapping SEC-SAXS peaks.
 
 #.  Clear all of the data in RAW. Load the **phehc_sec.sec** file in the **sec_data** folder.
 
-    *   *Note:* The data were provided by the Ando group at Princeton University
+    *   *Note:* The data were provided by the Ando group at Cornell University
         and is some of the data used in the paper: *Domain Movements upon Activation of
         Phenylalanine Hydroxylase Characterized by Crystallography and Chromatography-Coupled
         Small-Angle X-ray Scattering*\ . Steve P. Meisburger, Alexander B. Taylor, Crystal
@@ -34,14 +35,15 @@ components from overlapping SEC-SAXS peaks.
         significant components will tend to have autocorrelations near 1 (roughly, >0.6-0.7) and
         vectors corresponding to insignificant components will tend to have autocorrelations near 0.
 
-    |1000020100000320000002A2D123A77E23D67C60_png|
+    |svd_panel_png|
 
 #.  Adjust the starting frame number to 100, the ending frame number to near 300, and switch
     to using Subtracted data.
 
-    *   *Note:* The blue points are in the plot on the left are the region being used for SVD, while the red points shows the rest of the SEC-SAXS curve.
+    *   *Note:* The blue points are in the plot on the left are the region being
+        used for SVD, while the red points shows the rest of the SEC-SAXS curve.
 
-    |100002010000031F000002A41245FE3782B26A6C_png|
+    |svd_panel_sub_png|
 
 #.  We have now isolated the peak. Looking at the top plot, we see there are two singular
     values significantly above the baseline level, and from the autocorrelation we see two
@@ -55,14 +57,14 @@ components from overlapping SEC-SAXS peaks.
 
     *   *Note:* Normally, changing between Unsubtracted and Subtracted SEC-SAXS profiles
         should remove one significant singular value component, corresponding to the buffer
-        scattering. In this data, you will see almost no difference, as the profiles used to
+        scattering. In this data, you will see no difference, as the profiles used to
         produce the SEC-SAXS curve were already background subtracted.
 
     *   *Note:* You can save the SVD plots by clicking the Save button, as with the plots
         in the main RAW window. You can save the SVD results, either just the plotted values
         or all of the values, using the two Save buttons in the SVD panel.
 
-    |10000201000001E00000025F31616EF70FB0318B_png|
+    |singular_values_png|
 
 #.  Close the SVD window by clicking the OK button.
 
@@ -70,7 +72,7 @@ components from overlapping SEC-SAXS peaks.
     main peak in this data. Right click on the **phehc_sec.sec** item in the Series list.
     Select the “EFA” option.
 
-    |10000201000003B3000002ECA374DC717C28A0DA_png|
+    |efa_panel_png|
 
 #.  For successful EFA, you want to use Subtracted data, and you typically want to have
     a long buffer region before and after the sample. For this data set, using the entire
@@ -95,7 +97,7 @@ components from overlapping SEC-SAXS peaks.
     *   *Note:* It may take some time to compute the necessary values for this next step,
         so be patient.
 
-    |10000201000003B6000002EBE2BBC8749420E175_png|
+    |efa_panel_2_png|
 
 #.  This step shows you the “Forward EFA” and “Backward EFA” plots. These plots represent
     the value of the singular values as a function of frame.
@@ -106,7 +108,7 @@ components from overlapping SEC-SAXS peaks.
 
 #.  In the User Input panel, tweak the “Forward” value start frames so that the frame
     number, as indicated by the open circle on the plot, aligns with where the singular
-    value first starts to increase quickly. This should be around 148, 165, and 324.
+    value first starts to increase quickly. This should be around 147, 164, and 324.
 
     *   *Note:* For the Forward EFA plot, SVD is run on just the first two frames, then
         the first three, and so on, until all frames in the range are included. As more
@@ -138,7 +140,7 @@ components from overlapping SEC-SAXS peaks.
 #.  Click the “Next” button in the bottom right corner to move to the last stage of the
     EFA analysis.
 
-    |10000201000003B3000002EB8E792276E0CD8D88_png|
+    |efa_panel_3_png|
 
 #.  This window shows controls on the left and results on the right. In the controls area,
     at the top is a plot showing the SEC-SAXS curve, along with the ranges occupied by
@@ -163,6 +165,8 @@ components from overlapping SEC-SAXS peaks.
     should be about 147 to 197, Range 1 from 161 to 324, and Range 2 from 323 to 380.
 
     |efa_comp_range_png|
+
+    |efa_chi2_png|
 
 #.  To see these changes on the Forward and Backward EFA plots, click the “Back” button
     at the bottom right of the page. Verify that all of your start and end values are
@@ -217,7 +221,7 @@ components from overlapping SEC-SAXS peaks.
 #.  In the main RAW window, go to the Manipulation control tab and the Main plot. If
     it is not already, put the Main plot on a semi-Log or Log-Log scale.
 
-    |1000020100000401000002FFB79B21A115149137_png|
+    |efa_profiles_png|
 
 #.  The three scattering profiles from EFA are in the manipulation list. The labels _0,
     _1, and _2 correspond to the 0, 1, and 2 components/ranges.
@@ -227,25 +231,27 @@ components from overlapping SEC-SAXS peaks.
         scattering component itself, and so (in theory) even if it is present will be
         separated out by successful EFA.
 
-
-
-.. |efa_comp_range_png| image:: images/efa_comp_range.png
-
-.. |10000201000000C0000000F27D3BE3AA11912468_png| image:: images/10000201000000C0000000F27D3BE3AA11912468.png
-
-.. |10000201000003B3000002EB8E792276E0CD8D88_png| image:: images/10000201000003B3000002EB8E792276E0CD8D88.png
-
-.. |10000201000003B6000002EBE2BBC8749420E175_png| image:: images/10000201000003B6000002EBE2BBC8749420E175.png
-
-.. |1000020100000320000002A2D123A77E23D67C60_png| image:: images/1000020100000320000002A2D123A77E23D67C60.png
-
-.. |1000020100000401000002FFB79B21A115149137_png| image:: images/1000020100000401000002FFB79B21A115149137.png
-
 .. |efa_series_plot_png| image:: images/efa_series_plot.png
     :target: ../_images/efa_series_plot.png
 
-.. |100002010000031F000002A41245FE3782B26A6C_png| image:: images/100002010000031F000002A41245FE3782B26A6C.png
+.. |svd_panel_png| image:: images/svd_panel.png
 
-.. |10000201000001E00000025F31616EF70FB0318B_png| image:: images/10000201000001E00000025F31616EF70FB0318B.png
+.. |svd_panel_sub_png| image:: images/svd_panel_sub.png
 
-.. |10000201000003B3000002ECA374DC717C28A0DA_png| image:: images/10000201000003B3000002ECA374DC717C28A0DA.png
+.. |singular_values_png| image:: images/singular_values.png
+
+.. |efa_panel_png| image:: images/efa_panel.png
+
+.. |efa_panel_2_png| image:: images/efa_panel_2.png
+
+.. |efa_panel_3_png| image:: images/efa_panel_3.png
+
+.. |efa_comp_range_png| image:: images/efa_comp_range.png
+
+.. |efa_chi2_png| image:: images/efa_chi2.png
+
+.. |efa_profiles_png| image:: images/efa_profiles.png
+
+.. |10000201000000C0000000F27D3BE3AA11912468_png| image:: images/10000201000000C0000000F27D3BE3AA11912468.png
+
+.. |1000020100000320000002A2D123A77E23D67C60_png| image:: images/1000020100000320000002A2D123A77E23D67C60.png

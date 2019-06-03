@@ -5745,24 +5745,26 @@ class DammifResultsPanel(wx.Panel):
                     ('Used DAMCLUST:', damclust),
                     ]
 
+        models_nb = wx.FindWindowById(self.ids['models'], self)
+
+        model_plots = []
+
+        for i in range(models_nb.GetPageCount()):
+            page = models_nb.GetPage(i)
+            if models_nb.GetPageText(i) != 'Summary':
+                figures = page.figures
+                model = models_nb.GetPageText(i)
+                model_plots.append((model, figures))
+
         name = output_prefix
 
         save_path = os.path.join(output_directory, name + '_dammif_results.csv')
-
-        # dialog = wx.FileDialog(self, message = "Please select save directory and enter save file name", style = wx.FD_SAVE, defaultDir = output_directory, defaultFile = filename)
-
-        # if dialog.ShowModal() == wx.ID_OK:
-        #     save_path = dialog.GetPath()
-        #     name, ext = os.path.splitext(save_path)
-        #     save_path = name+'.csv'
-        # else:
-        #     return
 
         RAWGlobals.save_in_progress = True
         self.main_frame.setStatus('Saving DAMMIF/N data', 0)
 
         SASFileIO.saveDammixData(save_path, ambi_data, nsd_data, res_data, clust_num,
-                                clist_data, dlist_data, model_data, setup_data)
+            clist_data, dlist_data, model_data, setup_data, model_plots)
 
         RAWGlobals.save_in_progress = False
         self.main_frame.setStatus('', 0)
@@ -5776,6 +5778,7 @@ class DammifPlotPanel(wx.Panel):
         self.sasm = sasm
         self.fit_sasm = fit_sasm
         self.chisq = chisq
+        self.figures = []
 
         main_frame = wx.FindWindowByName('MainFrame')
         self.raw_settings = main_frame.raw_settings
@@ -5790,6 +5793,8 @@ class DammifPlotPanel(wx.Panel):
 
     def createPlot(self):
         fig = Figure((5,4), 75)
+        self.figures.append(fig)
+
         canvas = FigureCanvasWxAgg(self, -1, fig)
 
         gridspec = matplotlib.gridspec.GridSpec(2, 1, height_ratios=[1, 0.3])
@@ -6667,17 +6672,16 @@ class DenssRunPanel(wx.Panel):
 
         my_pool = multiprocessing.Pool(procs)
 
-        if self.iftm.getParameter('algorithm') == 'GNOM':
-            q = self.iftm.q_extrap
-            I = self.iftm.i_extrap
+        q = self.iftm.q_extrap
+        I = self.iftm.i_extrap
 
-            ext_pts = len(I)-len(self.iftm.i_orig)
+        ext_pts = len(I)-len(self.iftm.i_orig)
+
+        if ext_pts > 0:
             sigq =np.empty_like(I)
             sigq[:ext_pts] = I[:ext_pts]*np.mean((self.iftm.err_orig[:10]/self.iftm.i_orig[:10]))
             sigq[ext_pts:] = I[ext_pts:]*(self.iftm.err_orig/self.iftm.i_orig)
         else:
-            q = self.iftm.q_orig
-            I = self.iftm.i_fit
             sigq = I*(self.iftm.err_orig/self.iftm.i_orig)
 
         D = self.iftm.getParameter('dmax')
@@ -13576,6 +13580,9 @@ class SeriesPlotPanel(wx.Panel):
         self.range_line.set_visible(True)
 
     def show_range(self, index, show):
+        print index
+        print show
+        print self.plot_ranges
         line = self.plot_ranges[index]
         line.set_visible(show)
 
@@ -15125,8 +15132,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.buffer_remove_btn.Enable(is_not_sub)
         self.buffer_auto_btn.Enable(is_not_sub)
 
-        for i in range(len(self.buffer_range_list.get_items())):
-            self.plot_page.show_plot_range(i, 'unsub', is_not_sub)
+        for item in self.buffer_range_list.get_items():
+            self.plot_page.show_plot_range(item.GetId(), 'unsub', is_not_sub)
 
     def _onSeriesAdd(self, evt):
         """Called when the Add control buttion is used."""

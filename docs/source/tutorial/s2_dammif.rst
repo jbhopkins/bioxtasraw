@@ -10,21 +10,21 @@ the ATSAS package is the most commonly used program for building consensus shape
 
 
 #.  Clear all of the data in RAW. Load the **lysozyme.out** file that you saved in the
-    **atsas_data** folder in a previous part of the tutorial.
+    **reconstruction_data** folder in a previous part of the tutorial.
 
     *   *Note:* If you haven’t done the previous part of the tutorial, or forgot to save
         the results, you can find the **lysozyme.out** file in the
-        **atsas_data/lysozyme_complete** folder.
+        **reconstruction_data/lysozyme_complete** folder.
 
 #.  Right click on the **lysozyme.out** item in the IFT list. Select the “Bead Model (DAMMIF/N)” option.
 
 #.  Running DAMMIF generates a lot of files. Click the “Select/Change Directory” button,
-    make a new folder in the **atsas_data** directory called **lysozyme_dammif** and select
+    make a new folder in the **reconstruction_data** directory called **lysozyme_dammif** and select
     that folder.
 
 #.  Change the number of reconstructions to 5.
 
-    *   *Note:* It is generally recommended that you do at least 10 reconstructions. However,
+    *   *Note:* It is generally recommended that you do 15-20 reconstructions. However,
         for the purposes of this tutorial, 5 are enough.
 
     *   *Note:* For final reconstructions for a paper, DAMMIF should be run in Slow mode.
@@ -35,6 +35,9 @@ the ATSAS package is the most commonly used program for building consensus shape
     *   *Note:* For final reconstructions for a paper, DAMMIN refinement should be done. However, it
         is quite slow, so for the purposes of this tutorial we won't do it.
 
+#.  If it's not already checked, check the "Align and cluster envelopes (damclust)"
+    checkbox.
+
     |dammif_run_tab_png|
 
 #.  Click the “Start” button.
@@ -44,7 +47,8 @@ the ATSAS package is the most commonly used program for building consensus shape
         the log panel.
 
 #.  Note that by default the envelopes are aligned and averaged using DAMAVER, and then the
-    aligned and averaged profile is refined using DAMMIN.
+    aligned and averaged profile is refined using DAMMIN. Clustering analysis is also
+    done by default.
 
     *   Some settings are accessible in the panel, and all settings can be changed in the
         advanced settings panel.
@@ -64,18 +68,32 @@ the ATSAS package is the most commonly used program for building consensus shape
     how many of the reconstructions were included in the average. If DAMAVER was run on 3 or
     more reconstructions, and ATSAS >=2.8.0 is installed, there will be the output of SASRES
     which provides information on the resolution of the reconstruction. If DAMCLUST was run
-    (not shown) there will be information on the clustering. Finally, there will be information
-    on each individual model, including the model chi squared, |Rg|, |Dmax|, excluded volume,
-    molecular weight estimated from the excluded volume, and, if appropriate, mean NSD
+    the number of clusters, information on each cluster, and the distance between each
+    cluster is shown.
+
+#.  Information on each individual model is shown at the bottom. The summary tab
+    gives the model chi squared, |Rg|, |Dmax|, excluded volume, molecular
+    weight estimated from the excluded volume, and, if appropriate, mean NSD
     of the model.
 
-    *   *Tip:* Any models rejected from the average by DAMAVER will be shown in red in
-        the models list.
+    *   Any models rejected from the average by DAMAVER will be shown in red in
+        the summary tab list.
 
-    *   *Tip:* The model highlighted in blue is the 'most probable' model, this can
-        be used as your final bead model instead of doing a dammif refinement.
+    *   *Tip:* The model highlighted in blue in the summary tab is the 'most
+        probable' model, this can be used as your final bead model instead of
+        doing a dammif refinement.
 
-#.  Click the “Save Results Summary” button to save the results summary as a **.csv** file.
+    *   *Note:* Above we show the results for 15 runs instead of the 5 in the tutorial.
+
+#.  Also, each individual model has a tab which shows the data, the model fit,
+    and the residuals.
+
+    |dammif_results_fit_png|
+
+#.  The results summary shown in Summary tab is automatically saved as a
+    **<prefix>_dammif_results.csv** csv file, e.g. for this data as
+    **lysozyme_dammif_results.csv**. All the plots shown on the individual model
+    tabs are automatically saved as a multi-page pdf file with the same name.
 
 #.  Click on the Viewer tab to open the model viewer.
 
@@ -127,6 +145,8 @@ the ATSAS package is the most commonly used program for building consensus shape
 .. |dammif_run_tab_png| image:: images/dammif_run_tab.png
 
 .. |dammif_results_png| image:: images/dammif_results.png
+
+.. |dammif_results_fit_png| image:: images/dammif_results_fit.png
 
 .. |dammif_viewer_png| image:: images/dammif_viewer.png
 

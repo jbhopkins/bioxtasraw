@@ -45,8 +45,8 @@ in addition to the RAW paper please cite the following paper:
 
 *Domain Movements upon Activation of Phenylalanine Hydroxylase Characterized by
 Crystallography and Chromatography-Coupled Small-Angle X-ray Scattering.* S. P.
-Meisburger, A. B. Taylor, C. A. Khan, S. Zhang, P. F. Fitzpatrick, N. Ando. J Am Chem
-Soc. 2016 May 25;138(20):6506-16.
+Meisburger, A. B. Taylor, C. A. Khan, S. Zhang, P. F. Fitzpatrick, N. Ando.
+Journal of the American Chemical Society (2016). 138(20), 6506-6516.
 
 DOI: `10.1021/jacs.6b01563 <https://doi.org/10.1021/jacs.6b01563>`_
 
@@ -59,12 +59,12 @@ If you used the electron density (DENSS) function in RAW to calculate electron d
 in addition to the RAW paper please cite the following paper:
 
 *Ab initio electron density determination directly from solution scattering data.*
-T. D. Grant. Nature Methods (2018) volume 15, pages 191–193.
+T. D. Grant. Nature Methods (2018) 15, 191–193.
 
 DOI: `10.1038/nmeth.4581 <https://doi.org/10.1038/nmeth.4581>`_
 
 
-Molecular weight
+Molecular Weight
 -------------------------------
 
 Volume of Correlation
@@ -73,7 +73,7 @@ If you used the volume of correlation method to determine molecular weight in RA
 in addition to the RAW paper please cite the following paper:
 
 *Accurate assessment of mass, models and resolution by small-angle scattering.* Rambo,
-R.P. & Tainer, J.A. (2013). Nature. 496, 477-481
+R.P. & Tainer, J.A. Nature (2013). 496, 477-481
 
 DOI: `10.1038/nature12070 <https://doi.org/10.1038/nature12070>`_
 
@@ -88,3 +88,17 @@ E. Ares de Araujo, M. Oliveira Neto, A. F. Craievich, and I. Polikarpov.
 Protein Science (2019). 28(2), 454-473.
 
 DOI: `10.1002/pro.3528 <https://doi.org/10.1002/pro.3528>`_
+
+
+Baseline Correction
+----------------------
+If you used the integral baseline correction method in RAW, in addition to the RAW
+paper please cite the following paper:
+
+
+*US-SOMO HPLC-SAXS module: dealing with capillary fouling and extraction of
+pure component patterns from poorly resolved SEC-SAXS data.* E. Brookes,
+P. Vachette, M. Rocco, and J. Pérez. Journal of Applied Crystallography (2016).
+49, 1827-1841.
+
+DOI:`10.1107/S1600576716011201 <https://doi.org/10.1107/S1600576716011201>`_

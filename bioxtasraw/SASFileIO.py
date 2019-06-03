@@ -2996,7 +2996,7 @@ def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
 
 
 def saveDammixData(filename, ambi_data, nsd_data, res_data, clust_num, clist_data,
-                dlist_data, model_data, setup_data):
+                dlist_data, model_data, setup_data, model_plots):
 
     header_string = '# DAMMIF/N results summary\n'
     for item in setup_data:
@@ -3039,6 +3039,18 @@ def saveDammixData(filename, ambi_data, nsd_data, res_data, clust_num, clist_dat
 
     with open(filename, 'w') as fsave:
         fsave.write(save_string)
+
+    pdf = matplotlib.backends.backend_pdf.PdfPages(os.path.splitext(filename)[0]+'.pdf')
+
+    for data in model_plots:
+        for fig in data[1]:
+            fig.suptitle('Model: %s' %(data[0]))
+            fig.subplots_adjust(top=0.9)
+            pdf.savefig(fig)
+            fig.suptitle('')
+            fig.subplots_adjust(top=0.95)
+
+    pdf.close()
 
 
 def saveDenssData(filename, ambi_data, res_data, model_plots, setup_data,

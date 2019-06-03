@@ -1,5 +1,6 @@
 Assessing ambiguity of 3D shape information - AMBIMETER in RAW
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 It is impossible to determine a provably unique three-dimensional shape from a scattering
 profile. This makes it important to determine what degree of ambiguity might be expected
 in our reconstructions. The program AMBIMETER from the ATSAS package does this by comparing
@@ -9,10 +10,10 @@ ambiguity there will be in the reconstruction. We will use RAW to run AMBIMETER.
 :ref:`ATSAS installed <atsas>` to do this part of the tutorial.
 
 #.  Clear all of the data in RAW. Load the **lysozyme.out** file that you saved in the
-    **atsas_data** folder in a previous part of the tutorial.
+    **reconstruction_data** folder in a previous part of the tutorial.
 
     *   *Note:* If you haven’t done the previous part of the tutorial, or forgot to save
-        the results, you can find the **lysozyme.out** file in the **atsas_data/lysozyme_complete**
+        the results, you can find the **lysozyme.out** file in the **reconstruction_data/lysozyme_complete**
         folder.
 
     |ift_panel_png|
@@ -34,12 +35,11 @@ ambiguity there will be in the reconstruction. We will use RAW to run AMBIMETER.
         fit). You can do that by selecting the output shapes to save, giving it a save
         directory, and clicking run. We won’t be using those shapes in this tutorial.
 
-    |10000201000001C00000020ABF9AC84A21364E29_png|
+    |ambimeter_panel_png|
 
 #.  Click “OK” to exit the AMBIMETER window.
 
 
-
-.. |10000201000001C00000020ABF9AC84A21364E29_png| image:: images/10000201000001C00000020ABF9AC84A21364E29.png
-
 .. |ift_panel_png| image:: images/ift_panel.png
+
+.. |ambimeter_panel_png| image:: images/ambimeter_panel.png

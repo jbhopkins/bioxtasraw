@@ -1,5 +1,6 @@
 A few additional tricks
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Here are some additional tricks that may make your life easier while using RAW:
 
 #.  If you click on a scattering profile in the main plot, the corresponding manipulation
