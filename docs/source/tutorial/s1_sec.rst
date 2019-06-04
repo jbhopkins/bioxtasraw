@@ -120,7 +120,7 @@ sequentially sampled data sets.
 
     |lc_analysis_buffer_adjust_png|
 
-    *   *Warning:* The automatic buffer determation can be wrong! Always be sure
+    *   *Warning:* The automatic buffer determination can be wrong! Always be sure
         to manually inspect the region it picked. In particular, large flat leading edge
         shoulders next to the main peak can look like a baseline region to the
         algorithm, and will often mistakenly be picked.
@@ -153,7 +153,7 @@ sequentially sampled data sets.
 #.  Once the calculation is finished, the window should automatically display the
     Subtracted plot. If it doesn't, click on the 'Subtracted' tab in the plot.
     On this plot there is a new Intensity vs. Frame # curve, representing the
-    suctracted data. There is also a set of markers, showing one of the calculated
+    subtracted data. There is also a set of markers, showing one of the calculated
     parameters. By default the |Rg| displayed.. The calculated parameters are
     plotted on the right Y axis. You can show |Rg|, I(0), and MW calculated by
     the volume of correlation (Vc) and adjusted Porod volume (Vp) methods. Click
@@ -196,7 +196,7 @@ sequentially sampled data sets.
     |lc_analysis_sample_region_plot_png|
 
     *   *Tip:* You can manually adjust the sample region range in the same way
-        as the buffer range, using the controls in the Start/End boxs.
+        as the buffer range, using the controls in the Start/End boxes.
 
 #.  Once you are satisfied with the region picked (should be 693-722), click the
     'To Main Plot' button. This averages the selected region and sends the resulting
