@@ -17,14 +17,14 @@ method in RAW.
 #.  In the area on the right, set the Image format dropdown menu to “Pilatus” and the
     Header file format to “G1, CHESS”.
 
-    |100002010000031F0000025747B53F96A563D942_png|
+    |options_image_png|
 
 #.  Click the OK button to close the window and save the changes to the settings.
 
 #.  In the files tab, click on the folder button and navigate to the
     **Tutorial_Data/calibration_data** folder.
 
-    |100002010000018F000000558E072296495A065F_png|
+    |file_ctrl_1_png|
 
 #.  Select the **AgBeh_A1_43_001_0000.tiff** file by clicking on it once and click
     the show image button at the bottom of the screen.
@@ -36,10 +36,12 @@ method in RAW.
 
 #.  In the window that appears, set the scale to logarithmic and and click “OK”.
 
-    |10000201000003FE000002FDF08DF625AA9EDF08_png|
+    |calibration_logscale_png|
 
 #.  Open the Centering/Calibration panel by going to the Tools menu and selecting
     “Centering/Calibration”.
+
+    |calibraiton_auto_panel_png|
 
 #.  In the Centering/Calibration panel set the wavelength to 1.2461 Å. Set the detector
     pixel size to 172.0 μm.
@@ -50,7 +52,7 @@ method in RAW.
     *   *Tip:*  You can set the value in two ways. Either using the up/down arrows
         next to the box (spin controls) or directly typing the value into the box.
 
-    |1000020100000189000001206B620B7F6AC688A3_png|
+    |calibration_parameters_png|
 
 #.  The goal of centering and calibration is to find a beam center position and sample
     to detector distance that causes the displayed Silver-Behenate ring pattern to match
@@ -61,7 +63,7 @@ method in RAW.
 
 #.  *Checkpoint:* You should currently have a screen that looks like the one below.
 
-    |10000201000003CC0000011ECF61130B2786D9DE_png|
+    |calibration_checkpoint_png|
 
 #.  In the “Manual Centering/Calibration Adjustments” panel, make sure the correct
     standard is selected, in this case, AgBh (silver behenate).
@@ -134,29 +136,34 @@ method in RAW.
     to 9000. You should now be able to easily see the centering rings and beam center on
     the image.
 
-    |10000201000003FB000002FE1BF1DE5761FDD9F7_png|
+    |calibration_rings_png|
 
 #.  Click the OK button in the Centering/Calibration panel to save your settings and
     exit the panel.
 
 
+.. |options_image_png| image:: images/options_image.png
 
+.. |file_ctrl_1_png| image:: images/file_ctrl_1.png
 
-.. |1000020100000189000001206B620B7F6AC688A3_png| image:: images/1000020100000189000001206B620B7F6AC688A3.png
+.. |calibration_logscale_png| image:: images/calibration_logscale.png
+
+.. |calibraiton_auto_panel_png| image:: images/calibration_auto_panel.png
+
+.. |calibration_parameters_png| image:: images/calibration_parameters.png
+    :width: 400 px
+
+.. |calibration_checkpoint_png| image:: images/calibration_checkpoint.png
+
+.. |calibration_rings_png| image:: images/calibration_rings.png
 
 .. |1000020100000219000000FFE668DA920110965A_png| image:: images/1000020100000219000000FFE668DA920110965A.png
 
 .. |10000201000001880000008A4B47BADBF8686C37_png| image:: images/10000201000001880000008A4B47BADBF8686C37.png
 
-.. |10000201000003FE000002FDF08DF625AA9EDF08_png| image:: images/10000201000003FE000002FDF08DF625AA9EDF08.png
-
 .. |10000201000002110000010213AF4EFB79D01E09_png| image:: images/10000201000002110000010213AF4EFB79D01E09.png
 
-.. |10000201000003CC0000011ECF61130B2786D9DE_png| image:: images/10000201000003CC0000011ECF61130B2786D9DE.png
-
 .. |100002010000022C00000107FBA2AABC2D5731D2_png| image:: images/100002010000022C00000107FBA2AABC2D5731D2.png
-
-.. |100002010000031F0000025747B53F96A563D942_png| image:: images/100002010000031F0000025747B53F96A563D942.png
 
 .. |100002010000018F000000558E072296495A065F_png| image:: images/100002010000018F000000558E072296495A065F.png
 

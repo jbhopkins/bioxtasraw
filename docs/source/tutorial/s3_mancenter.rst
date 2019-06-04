@@ -16,7 +16,7 @@ If the automated method fails, you can also carry out centering and calibration
 #.  Open the Centering/Calibration panel by going to the Tools menu and selecting
     “Centering/Calibration”.
 
-    |10000201000003FC000002FB4AC9E9FB85B6D0CA_png|
+    |calibration_manual_panel_png|
 
 #.  In the Centering/Calibration panel set the wavelength to 1.2461 Å. Set the detector
     pixel size to 172.0 μm.
@@ -24,7 +24,7 @@ If the automated method fails, you can also carry out centering and calibration
     *   *Note:* The x-ray energy/wavelength is a previously known value, and is not
         found in RAW.
 
-    |1000020100000189000001206B620B7F6AC688A3_png|
+    |calibration_parameters_png|
 
 #.  We know that the beam is probably near the center of the beamstop. Click on the
     crosshairs button and click in the center of the beamstop.
@@ -35,7 +35,7 @@ If the automated method fails, you can also carry out centering and calibration
 #.  *Checkpoint:* Once you have done that, three rings should be displayed on the
     image, and the current beam center is shown as a red dot on the image. This is shown below.
 
-    |10000201000003D30000011DBB83199F9986606D_png|
+    |calibration_manual_checkpoint_png|
 
 #.  Set the Sample-Detector Distance to 1500 mm.
 
@@ -46,17 +46,20 @@ If the automated method fails, you can also carry out centering and calibration
 #.  Using the zoom tool at the bottom of the Plot window, zoom in on the first ring
     shown on the detector.
 
-    |1000020100000262000002D49D3E5CCAB5D20DEE_png|
+    |calibration_manual_ring0_png|
 
 #.  Using the red arrow buttons, move your beam center until the dashed red line (first
     silver behenate ring) matches with the hottest (most red) pixels of the first
     ring shown on the detector.
 
-    |10000201000003FD000002FD63F3FE9B954A53E3_png|
+    *   *Tip:*  Change the step size up or down to adjust how far the arrows move the
+        rings.
+
+    |calibration_manual_step_png|
 
 #.  Use the home button to zoom out to the whole extent of the detector image.
 
-    |100002010000019E0000002822CCA30221A5A768_png|
+    |plot_home_png|
 
 #.  Open the image display settings and set the upper limit to 2000. Zoom in on the
     second silver behenate ring on the image (near x=380). Use the spin controls
@@ -87,17 +90,18 @@ If the automated method fails, you can also carry out centering and calibration
     they should compare well.
 
 
+.. |calibration_manual_panel_png| image:: images/calibration_manual_panel.png
+
+.. |calibration_parameters_png| image:: images/calibration_parameters.png
+    :width: 400 px
+
+.. |calibration_manual_checkpoint_png| image:: images/calibration_manual_checkpoint.png
+
+.. |calibration_manual_ring0_png| image:: images/calibration_manual_ring0.png
+
+.. |calibration_manual_step_png| image:: images/calibration_manual_step.png
+
+.. |plot_home_png| image:: images/plot_home.png
+    :width: 400 px
 
 .. |10000201000001C00000011359B0899F361B50F4_png| image:: images/10000201000001C00000011359B0899F361B50F4.png
-
-.. |10000201000003FC000002FB4AC9E9FB85B6D0CA_png| image:: images/10000201000003FC000002FB4AC9E9FB85B6D0CA.png
-
-.. |1000020100000189000001206B620B7F6AC688A3_png| image:: images/1000020100000189000001206B620B7F6AC688A3.png
-
-.. |10000201000003D30000011DBB83199F9986606D_png| image:: images/10000201000003D30000011DBB83199F9986606D.png
-
-.. |1000020100000262000002D49D3E5CCAB5D20DEE_png| image:: images/1000020100000262000002D49D3E5CCAB5D20DEE.png
-
-.. |10000201000003FD000002FD63F3FE9B954A53E3_png| image:: images/10000201000003FD000002FD63F3FE9B954A53E3.png
-
-.. |100002010000019E0000002822CCA30221A5A768_png| image:: images/100002010000019E0000002822CCA30221A5A768.png

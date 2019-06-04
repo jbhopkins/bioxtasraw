@@ -20,7 +20,7 @@ in Step 6 of :ref:`Part 1 <s3p1>`.
 #.  Select the Pan tool and left click and drag the image to the right until you can
     see a blank (white) canvas to the left of the beamstop.
 
-    |masking1_png|
+    |masking_panel_png|
 
 #.  Click on the rectangle mask drawing button and click on a point in the white
     part of the canvas just above the edge of the beamstop.
@@ -38,7 +38,7 @@ in Step 6 of :ref:`Part 1 <s3p1>`.
     *   *Tip:* You can also resize a rectangle (or circle) mask my right clicking on
         it and selecting resize.
 
-    |10000201000001590000023F0706EE751FB36A8E_png|
+    |masking_rectangle_png|
 
 #.  This beamstop is quite square, so a simple square mask works. A circle is also easy to draw:
 
@@ -69,7 +69,7 @@ in Step 6 of :ref:`Part 1 <s3p1>`.
 #.  In the masking panel, make sure that “Beamstop mask” is selected in the Mask Creation
     dropdown menu. Click the set button to set the mask you just made as the beamstop mask.
 
-    |100002010000018500000048B4CFC92D12B1F018_png|
+    |masking_set_png|
 
 #.  Click the OK button to exit the masking panel.
 
@@ -89,10 +89,13 @@ in Step 6 of :ref:`Part 1 <s3p1>`.
 #.  If you know the mask parameters, you can put in coordinates for a circle or rectangle
     and create a mask with a known position and size.
 
-.. |masking1_png| image:: images/masking1.png
+.. |masking_panel_png| image:: images/masking_panel.png
 
-.. |10000201000001590000023F0706EE751FB36A8E_png| image:: images/10000201000001590000023F0706EE751FB36A8E.png
+.. |masking_rectangle_png| image:: images/masking_rectangle.png
+    :width: 400 px
 
 .. |masking_thresh_png| image:: images/masking_thresh.png
+    :width: 400 px
 
-.. |100002010000018500000048B4CFC92D12B1F018_png| image:: images/100002010000018500000048B4CFC92D12B1F018.png
+.. |masking_set_png| image:: images/masking_set.png
+    :width: 400 px
