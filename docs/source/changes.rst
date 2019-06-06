@@ -13,14 +13,14 @@ The RAW team is pleased to announce the release of RAW version 1.6.0. This versi
 contains several major changes:
 
 *   Completely new and improved SEC-SAXS processing, including new automated buffer
-    and sample region selection and baseline correction. THere are also
+    and sample region selection and baseline correction. There are also
     significant speed improvements for SEC-SAXS processing, in addition to the
     new features.
 *   Completely redone BIFT, which fixes several bugs (both minor and major), and
     adds Monte Carlo error estimation and extrapolation fit of data to I(0).
 *   RAW now preserves matching metadata across processes like averaging and
     subtraction. Metadata is now saved with keywords compatible with the SASBDB
-    to make uploading there easier for users. Beamlines can now also provide
+    to make uploading there easier for users. Users can now also provide
     arbitrary metadata during data reduction.
 *   All new icons which are compatible with retina displays, including changing
     out the check mark for showing/hiding data on plots for an eye, which we
@@ -84,7 +84,7 @@ All changes:
 *   Fixed a bug where series data could be truncated when exporting.
 *   Fixed a bug where the SVD window wasn’t doing the SVD on non-error-normalized
     curves.
-*   Moved cormap to python for speed, increased by at least 5x.
+*   Moved cormap to cython for speed, increased by at least 5x.
 *   Modified layout of the repository to standardize.
 *   Autorg now uses numba for just-in-time compiling. Speed increase of 2 orders
     of magnitude.

@@ -1,6 +1,10 @@
 The Centering/Calibration panel
 ===============================
 
+**WARNING:** The manual is current several versions out of date. While it may
+still be useful for some users, please refer to the tutorial for the most
+up-to-date information.
+
 .. _centeringcalibration:
 
 The Centering/Calibration panel allows you to set the beam center, x-ray wavelength

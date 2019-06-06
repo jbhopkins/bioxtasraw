@@ -1,6 +1,10 @@
 Online mode
 ===========
 
+**WARNING:** The manual is current several versions out of date. While it may
+still be useful for some users, please refer to the tutorial for the most
+up-to-date information.
+
 .. _onlinemode:
 
 RAW has an online mode that will watch a folder, and automatically load any

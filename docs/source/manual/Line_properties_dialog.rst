@@ -1,6 +1,10 @@
 Line properties dialog
 ======================
 
+**WARNING:** The manual is current several versions out of date. While it may
+still be useful for some users, please refer to the tutorial for the most
+up-to-date information.
+
 .. _lineproperties:
 
 The Manipulation, IFT, and SEC data items can all open a line properties dialog.

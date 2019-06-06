@@ -1,6 +1,10 @@
 Workspaces
 ==========
 
+**WARNING:** The manual is current several versions out of date. While it may
+still be useful for some users, please refer to the tutorial for the most
+up-to-date information.
+
 .. _workspaces:
 
 RAW allows you to save and load sets of files that you are analyzing, called

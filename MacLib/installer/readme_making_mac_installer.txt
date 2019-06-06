@@ -5,7 +5,7 @@ additionally install pyinstaller through pip: pip install pyinstaller.
 
 Steps:
 0) Make a fresh git-free folder for RAW: git archive master | tar -x -C /somewhere/else
-1) Run RAW in that new folder to compile the extensions.
+1)  Build the extensions and run RAW in that new folder.
 2)  Set the appropriate python path, if needed: export PATH=~/miniconda2/bin:$PATH
 3)  Copy the RAW_mac.spec file into the main RAW directory.
 4)  Run “pyinstaller -y RAW_mac.spec”

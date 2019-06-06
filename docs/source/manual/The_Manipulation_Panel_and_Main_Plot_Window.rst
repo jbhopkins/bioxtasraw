@@ -1,6 +1,10 @@
 The Manipulation Panel and Main Plot Window
 ============================================
 
+**WARNING:** The manual is current several versions out of date. While it may
+still be useful for some users, please refer to the tutorial for the most
+up-to-date information.
+
 .. _manippanel:
 
 When individual scattering profiles are loaded, they are placed in the Manipulation tab

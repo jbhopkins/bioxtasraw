@@ -2112,19 +2112,19 @@ class MainFrame(wx.Frame):
                 return
 
             if exit_without_saving == wx.ID_YES and dammif_closed and denss_closed and force_quit == wx.ID_YES:
-                self.saveBackupData()
-                self.tbIcon.RemoveIcon()
-                self.tbIcon.Destroy()
-                self.Destroy()
+                self._cleanup_and_quit()
             else:
                 event.Veto()
                 return
 
         else:
-            self.saveBackupData()
-            self.tbIcon.RemoveIcon()
-            self.tbIcon.Destroy()
-            self.Destroy()
+            self._cleanup_and_quit()
+
+    def _cleanup_and_quit(self):
+        self.saveBackupData()
+        self.tbIcon.RemoveIcon()
+        self.tbIcon.Destroy()
+        self.Destroy()
 
     def _createFileDialog(self, mode, name = 'Config files', ext = '*.cfg'):
 

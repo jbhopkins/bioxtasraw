@@ -1,6 +1,10 @@
 The SEC Control Panel and SEC Plot Panel
 ========================================
 
+**WARNING:** The manual is current several versions out of date. While it may
+still be useful for some users, please refer to the tutorial for the most
+up-to-date information.
+
 .. _secplot:
 
 When SEC-SAXS data is loaded into RAW, it is placed in the SEC tab of the Control

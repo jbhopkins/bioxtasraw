@@ -1,6 +1,10 @@
 Overview of RAW
 ===============
 
+**WARNING:** The manual is current several versions out of date. While it may
+still be useful for some users, please refer to the tutorial for the most
+up-to-date information.
+
 The main screen of RAW shows three distinct panels: The Information Panel (top left),
 the Control Panel (bottom left), and the Plot Panel (right). Additional windows that
 can be shown are the Options window, and various Analysis windows. In addition, there

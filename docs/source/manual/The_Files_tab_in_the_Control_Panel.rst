@@ -1,6 +1,10 @@
 The Files tab in the Control Panel
 ===================================
 
+**WARNING:** The manual is current several versions out of date. While it may
+still be useful for some users, please refer to the tutorial for the most
+up-to-date information.
+
 .. _filepanel:
 
 Changing file directories

@@ -1,6 +1,10 @@
 Menus
 =====
 
+**WARNING:** The manual is current several versions out of date. While it may
+still be useful for some users, please refer to the tutorial for the most
+up-to-date information.
+
 .. _menus:
 
 RAW has 5 program wide menus: File, Options, View, Tools, and Help.

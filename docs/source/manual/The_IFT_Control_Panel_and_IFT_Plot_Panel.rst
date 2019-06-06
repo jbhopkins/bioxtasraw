@@ -1,6 +1,10 @@
 The IFT Control Panel and IFT Plot Panel
 ========================================
 
+**WARNING:** The manual is current several versions out of date. While it may
+still be useful for some users, please refer to the tutorial for the most
+up-to-date information.
+
 .. _iftpanel:
 
 When inverse Fourier transforms (P(r) functions) are loaded into RAW or generated

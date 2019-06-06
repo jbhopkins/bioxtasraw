@@ -1,6 +1,10 @@
 Installing RAW
 ==============
 
+**WARNING:** The manual is current several versions out of date. While it may
+still be useful for some users, please refer to the tutorial for the most
+up-to-date information.
+
 This chapter provides an overview of how to install RAW on Windows, Linux and Macintosh. Detailed installation guides for each system are available separately. It covers:
 
 *   Licensing
