@@ -4,15 +4,12 @@ proper build environment, simply install from source as in the RAW documentation
 additionally install pyinstaller through pip: pip install pyinstaller.
 
 Steps:
-0) Make a fresh git-free folder for RAW: git archive master | tar -x -C /somewhere/else
-1)  Build the extensions and run RAW in that new folder.
-2)  Set the appropriate python path, if needed: export PATH=~/miniconda2/bin:$PATH
-3)  Copy the RAW_mac.spec file into the main RAW directory.
-4)  Run “pyinstaller -y RAW_mac.spec”
-5)  Copy the RAW.app file from the MacLib/installer folder to the main RAW folder.
-    Show the contents in finder, and copy the contents of the dist/RAW directory to the
-    Contents/MacOS folder in the .app file.
-6)  Update the version number in the info.plist file in the top level of the .app folder.
+1) Make a fresh git-free folder for RAW: git archive master | tar -x -C /somewhere/else
+2)  Build the extensions and run RAW in that new folder.
+3)  Set the appropriate python path, if needed: export PATH=~/miniconda2/bin:$PATH
+4)  Copy the RAW_mac.spec file into the main RAW directory.
+5)  Run “pyinstaller -y RAW_mac.spec”
+6)  The app file is located at ./dist/RAW.app #NOTE: The dist/RAW/RAW executable will not open because the resources path is wrong if it's not in the .app package!
 7)  Open disk utility
 8)  Create a new disk image (File->New Image>Blank Image) that is ~12% larger than the
     .app package. Name it RAW, but save it as untitled.
@@ -34,3 +31,8 @@ that is in the folder it is in, then relaunch Finder from the force quit menu.
 
 More info on disk images here:
 https://el-tramo.be/blog/fancy-dmg/
+
+Pyinstaller command used to generate initial .spec file:
+
+pyinstaller --add-data ./resources:resources --hidden-import _sysconfigdata --additional-hooks-dir ../MacLib/installer/ --exclude-module PyQt5 --exclude-module tk --exclude-module ipython --exclude-module tcl -d all -i resources/raw.icns --osx-bundle-identifier edu.bioxtas.raw --windowed RAW.py
+

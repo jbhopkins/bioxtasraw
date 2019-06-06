@@ -12684,10 +12684,7 @@ class MyApp(wx.App):
             os.mkdir(RAWGlobals.RAWWorkDir)
 
         if RAWGlobals.frozen:
-            if platform.system() == 'Windows':
-                RAWGlobals.RAWResourcesDir = os.path.join(standard_paths.GetResourcesDir(),'resources')
-            else:
-                RAWGlobals.RAWResourcesDir = standard_paths.GetResourcesDir()
+            RAWGlobals.RAWResourcesDir = os.path.join(standard_paths.GetResourcesDir(),'resources')
         else:
             RAWGlobals.RAWResourcesDir = os.path.join(sys.path[0], 'resources')
 

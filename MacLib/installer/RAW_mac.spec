@@ -1,30 +1,34 @@
 # -*- mode: python -*-
 
+import RAWGlobals.version as version
+
 block_cipher = None
 
-add_files = []
 
 a = Analysis(['RAW.py'],
-             pathex=['.'],
+             pathex=['/Users/jessehopkins/Desktop/raw/bioxtasraw'],
              binaries=[],
-             datas=add_files,
+             datas=[('./resources', 'resources')],
              hiddenimports=['_sysconfigdata'],
-             hookspath=['../MacLib/installer'],
+             hookspath=['../MacLib/installer/'],
              runtime_hooks=[],
-             excludes=['PyQt5', 'tk', 'ipython'],
+             excludes=['PyQt5', 'tk', 'ipython', 'tcl'],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
-             cipher=block_cipher)
+             cipher=block_cipher,
+             noarchive=False)
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
 exe = EXE(pyz,
           a.scripts,
+          [],
           exclude_binaries=True,
           name='RAW',
           debug=False,
+          bootloader_ignore_signals=False,
           strip=False,
           upx=True,
-          console=True )
+          console=False , icon='resources/raw.icns')
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
@@ -32,12 +36,52 @@ coll = COLLECT(exe,
                strip=False,
                upx=True,
                name='RAW')
-
-
-#Have to hack pyFAI a little bit to make it work right in frozen mode
-import os
+app = BUNDLE(coll,
+             name='RAW.app',
+             icon='resources/raw.icns',
+             bundle_identifier='edu.bioxtas.raw',
+             info_plist={
+                'CFBundleVersion' : version,
+                'CFBundleShortVersionString' : version,
+                'LSBackgroundOnly' : '0',
+                'NSHighResolutionCapable' : True,
+                'NSPrincipleClass' : 'NSApplication',
+                'CFBundleDevelopmentRegion' : 'en_US',
+                'LSHasLocalizedDisplayName' : False,
+                'CFBundleDocumentTypes' : [
+                    {
+                        'CFBundleTypeName' : 'SAXS data file',
+                        'LSHandlerRank' : 'Default',
+                        'CFBundleTypeExtensions': ['out', 'fit', 'fir', 'rad',
+                            'int', 'dat', 'csv', 'sub', 'txt'],
+                        'CFBundleTypeRole' : 'Viewer'
+                    },
+                    {
+                        'CFBundleTypeName' : 'Image file',
+                        'LSHandlerRank' : 'Default',
+                        'CFBundleTypeExtensions': ['tif', 'tiff', 'nxs', 'edf',
+                            'ccdraw', 'img', 'imx_0', 'dkx_0', 'dxk_1', 'png',
+                            'mpa', 'mar1200', 'mar2400', 'mar3200', 'mar3600',
+                            'sfrm', 'dm3', 'xml', 'cbf', 'kccd', 'msk',
+                            'spr', 'h5', 'mccd', 'mar3450', 'npy', 'No'],
+                        'CFBundleTypeRole' : 'Viewer'
+                    },
+                    {
+                        'CFBundleTypeName' : 'LC data file',
+                        'LSHandlerRank' : 'Default',
+                        'CFBundleTypeExtensions': ['sec',],
+                        'CFBundleTypeRole' : 'Viewer'
+                    },
+                ],
+             },
+             )
 
 try:
-  os.mkdir('./dist/RAW/pyFAI/utils')
-except:
-  pass
+    os.mkdir('./dist/RAW/pyFAI/utils')
+except Exception as e:
+    print(e)
+
+try:
+    os.mkdir('./dist/RAW.app/Contents/Resources/pyFAI/utils')
+except Exception as e:
+    print(e)
