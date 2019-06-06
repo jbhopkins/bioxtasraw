@@ -2,16 +2,16 @@
 
 block_cipher = None
 
-add_files = [('/raw/resources', 'resources'), ('/raw/gpl-3.0.txt', '.')]
+add_files = [('./resources', 'resources'), ('./gpl-3.0.txt', '.')]
 
 a = Analysis(['RAW.py'],
              pathex=['.'],
              binaries=None,
              datas=add_files,
              hiddenimports=[],
-             hookspath=['./WinLib/installer'],
+             hookspath=['../WinLib/installer'],
              runtime_hooks=[],
-             excludes=['PyQt5', 'tk', 'ipython'],
+             excludes=['PyQt5', 'tk', 'ipython', 'tcl'],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
              cipher=block_cipher)
