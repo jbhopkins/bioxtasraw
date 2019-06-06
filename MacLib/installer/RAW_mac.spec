@@ -1,12 +1,14 @@
 # -*- mode: python -*-
 
-import RAWGlobals.version as version
+import sys
+sys.path.append('.')
+import RAWGlobals
 
 block_cipher = None
 
 
 a = Analysis(['RAW.py'],
-             pathex=['/Users/jessehopkins/Desktop/raw/bioxtasraw'],
+             pathex=['.'],
              binaries=[],
              datas=[('./resources', 'resources')],
              hiddenimports=['_sysconfigdata'],
@@ -41,8 +43,8 @@ app = BUNDLE(coll,
              icon='resources/raw.icns',
              bundle_identifier='edu.bioxtas.raw',
              info_plist={
-                'CFBundleVersion' : version,
-                'CFBundleShortVersionString' : version,
+                'CFBundleVersion' : RAWGlobals.version,
+                'CFBundleShortVersionString' : RAWGlobals.version,
                 'LSBackgroundOnly' : '0',
                 'NSHighResolutionCapable' : True,
                 'NSPrincipleClass' : 'NSApplication',
