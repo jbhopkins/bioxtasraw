@@ -47,7 +47,7 @@ OS X and macOS install from source instructions
 
     *   Once the installation finishes, close the terminal window.
 
-*   Download RAW from sourceforge
+#.  Download RAW from sourceforge
 
     *   `http://sourceforge.net/projects/bioxtasraw <http://sourceforge.net/projects/bioxtasraw>`_
 
@@ -59,118 +59,44 @@ OS X and macOS install from source instructions
 
     *   This step may not be necessary, some browsers may automatically expand zip files.
 
-#.  Check if the top level directory contains files that look like the following image.
+#.  In the terminal or in the graphical file manager, confirm that the file named :file:`setup.py`
+    is in your expanded raw directory. If it isn’t, it’s likely that when you expanded the
+    RAW download, you ended up with unnecessary layers of directories. Find the
+    directory with :file:`setup.py` in it, and make that the top level folder.
 
-    |10000201000002880000025725B5A3369B69462C_png|
-
-    *   If you see only a single folder, navigate down through the folders until you find
-        a folder with all of the files in it, as in the above image.
-
-        *   An example of this is shown below, where the expanded files has an :file:`src`
-            directory in it, which contains all of the downloaded files.
-
-        |1000020100000273000001C472F5D3F5C469CFE2_png|
-
-#.  Move these files to Applications folder
+#.  Move the RAW files to Applications folder
 
     *   Move the folder that contains all of the RAW files to the :file:`Applications` folder.
-        In the above image, this would be the :file:`src` folder.
+        As above, this would be the folder with :file:`setup.py` in it.
 
     *   Rename the folder that you just moved to :file:`raw`.
 
-#.  Run RAW from the terminal.
+#.  In a terminal, change directory into the top level RAW folder
 
-    *   Open a terminal window as in step 1.
+    *   If you used the suggested path of :file:`Applications/raw`
+        type: ``cd /Applications/raw``
 
-    *   Type ``cd /Applications/raw``
+#.  Build the extensions.
 
-    *   Hit enter
+    *   ``python setup.py build_ext --inplace``
 
-    *   Type ``pythonw RAW.py``
+#.  Navigate to the :file:`bioxtasraw` subfolder
 
-    *   Hit enter
+    *   From the top level RAW folder it should be ``cd ./bioxtasraw``
 
-    *   When you start RAW for the first time, it compiles various extensions. This may
-        take some time. Please be patient.
+#.  Run RAW
+
+    *   ``pythonw RAW.py``
 
 #.  Enjoy!
 
     *   In the future, you can start RAW as in the previous step.
 
-    *   If you want, see the section on making a :ref:`clickable shortcut for RAW <macshrt>`
-
     *   If RAW doesn’t work, check out the :ref:`solutions to common problems <mactrb>`
 
-
-**Setting up a RAW shortcut**
-
-.. _macshrt:
-
-The easiest way to set up a RAW shortcut is to expand the :file:`RunRAW.zip` file in the RAW
-:file:`MacLib` folder, and move the :file:`RunRAW` app to wherever you want to have it. Start raw
-by double clicking on the :file:`RunRAW` app.
-
-    *   Note: since this is an application from an unknown developer (the RAW team!),
-        you may have to give it permission to run. You can do this by right clicking on
-        it and selecting :guilabel:`Open` or by changing your security settings by going to System
-        Settings -> Security and Privacy, and selecting Allow apps downloaded from ‘Anywhere’.
-
-If the shortcut doesn’t work, and/or you would rather not change your security settings,
-you can follow these instructions to make your own shortcut:
-
-#.  Expand the :file:`RunRAW.zip` file as above.
-
-#.  Open the Automator app
-
-    *   Automator is located in Applications folder.
-
-#.  Select :guilabeL:`Open an Existing Document`
-
-    |100002010000021F0000020B846426B3BC1F1FB4_png|
-
-#.  Open the :file:`RunRAW` app (located in :file:`Applications/raw/MacLib`)
-
-    |10000201000002C30000022C28B14ADDA1B8FC97_png|
-
-#.  You should see a window like this:
-
-    |10000201000003E40000036173138DAB0B7BE00D_png|
-
-    *   Note: If you didn’t install RAW in the recommended location, you will need to
-        change the line ``do script “pythonw /Applications/raw/RAW.py”`` to have the appropriate
-        path.
-
-#.  Select :menuselection:`File --> Duplicate` from the menu.
-
-#.  In the duplicate window (should be named RunRAW copy or Untitled), select :menuselection:`File --> Save`.
-
-#.  Save the file as :file:`RunRAW` (:file:`.app`, if you are showing extensions) wherever
-    you want to have the shortcut.
-
-    *   Note: you can name it whatever you want. RunRAW is just the default name.
-
-#.  Now you can launch raw just by double clicking the RunRAW icon.
-
-    *   If it doesn’t work, make sure that you saved the duplicate, rather than the original!
-
-
-
-.. |10000201000002C30000022C28B14ADDA1B8FC97_png| image:: images/mac_install/10000201000002C30000022C28B14ADDA1B8FC97.png
 
 
 .. |10000201000007800000043899D84AD76212B4C9_png| image:: images/mac_install/10000201000007800000043899D84AD76212B4C9.png
 
 
-.. |100002010000021F0000020B846426B3BC1F1FB4_png| image:: images/mac_install/100002010000021F0000020B846426B3BC1F1FB4.png
-
-
-.. |10000201000003E40000036173138DAB0B7BE00D_png| image:: images/mac_install/10000201000003E40000036173138DAB0B7BE00D.png
-
-
-.. |1000020100000273000001C472F5D3F5C469CFE2_png| image:: images/mac_install/1000020100000273000001C472F5D3F5C469CFE2.png
-
-
 .. |10000201000006900000041A52DBF3453A0EEDE9_png| image:: images/mac_install/10000201000006900000041A52DBF3453A0EEDE9.png
-
-
-.. |10000201000002880000025725B5A3369B69462C_png| image:: images/mac_install/10000201000002880000025725B5A3369B69462C.png

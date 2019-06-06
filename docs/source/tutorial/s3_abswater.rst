@@ -16,7 +16,7 @@ for absolute scale calibration in RAW.
 #.  Average the **MT2** files you just loaded. Save the average in the **calibration_data**
     folder.
 
-    |10000201000003FD000002FDF405DABE73178919_png|
+    |config_abswater1_png|
 
 #.  Repeat steps 1 and 2, plotting, averaging and saving, for the **water2_49_001_000x.tiff**
     files.
@@ -25,7 +25,7 @@ for absolute scale calibration in RAW.
 
 #.  Click on the Absolute Scale section in the options list on the left.
 
-    |100002010000032000000255A94EE51014E73548_png|
+    |config_abswater2_png|
 
 #.  Click on the Empty cell “Set” button and select the **A_MT2_48_001_0000.dat**
     file.
@@ -35,7 +35,7 @@ for absolute scale calibration in RAW.
 
 #.  Set the Water temperature to 4 C.
 
-    |100002010000024C000000B45B6C3F21D0977D19_png|
+    |config_abswater3_png|
 
 #.  Click the Calculate button to calculate the Absolute Scaling Constant. You should
     get a value near 0.00077.
@@ -50,23 +50,26 @@ for absolute scale calibration in RAW.
         you calculate the scale constant, otherwise you will get a bad scaling constant
         (see the manual for details).
 
-    |100002010000017C0000002239FE4A9099163120_png|
+    |config_abswater4_png|
 
 #.  Check the “Normalize processed data to absolute scale” checkbox. Click “OK” to
     exit the advanced options window and save the changes.
 
-    |100002010000031B0000025153E03F7B64A2BA9D_png|
+    |config_abswater5_png|
 
 #.  Save the settings for later use.
 
 
 
-.. |10000201000003FD000002FDF405DABE73178919_png| image:: images/10000201000003FD000002FDF405DABE73178919.png
+.. |config_abswater1_png| image:: images/config_abswater1.png
 
-.. |100002010000032000000255A94EE51014E73548_png| image:: images/100002010000032000000255A94EE51014E73548.png
+.. |config_abswater2_png| image:: images/config_abswater2.png
 
-.. |100002010000024C000000B45B6C3F21D0977D19_png| image:: images/100002010000024C000000B45B6C3F21D0977D19.png
+.. |config_abswater3_png| image:: images/config_abswater3.png
+    :width: 500 px
 
-.. |100002010000017C0000002239FE4A9099163120_png| image:: images/100002010000017C0000002239FE4A9099163120.png
+.. |config_abswater4_png| image:: images/config_abswater4.png
+    :width: 300 px
 
-.. |100002010000031B0000025153E03F7B64A2BA9D_png| image:: images/100002010000031B0000025153E03F7B64A2BA9D.png
+.. |config_abswater5_png| image:: images/config_abswater5.png
+

@@ -38,6 +38,10 @@ in Step 6 of :ref:`Part 1 <s3p1>`.
     *   *Tip:* You can also resize a rectangle (or circle) mask my right clicking on
         it and selecting resize.
 
+    *   *Tip:* You can create a rectangle of defined position and size by entering
+        the x and y coordiantes of the bottom left corner and the width and
+        height of the rectangle then clicking 'Create'.
+
     |masking_rectangle_png|
 
 #.  This beamstop is quite square, so a simple square mask works. A circle is also easy to draw:
@@ -45,6 +49,8 @@ in Step 6 of :ref:`Part 1 <s3p1>`.
     *   Click on the Circle mask drawing button.
     *   Click at the center
     *   Move the mouse out to make it the size you want, and click again to finish the circle.
+    *   *Tip:* Like a rectangle, you can also draw a circle of defined position and size
+        by entering the radius, x center, and y center, and click the 'Create' button.
 
 #.  If you need to draw another (non-square or circle) shape, you would do the following:
 

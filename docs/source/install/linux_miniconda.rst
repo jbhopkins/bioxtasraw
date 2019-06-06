@@ -55,18 +55,26 @@ Tested on: Ubuntu 16.04, Linux Mint 18.3, Debian 9.4, Scientific Linux 6.8 7.4
     *   Make sure there are no spaces in the file path (you can check by navigating
         to the raw directory in a terminal window and using ``pwd``).
 
-    *   In the terminal or in the graphical file manager, confirm that the file named :file:`RAW.py`
+    *   In the terminal or in the graphical file manager, confirm that the file named :file:`setup.py`
         is in your raw directory. If it isn’t, it’s likely that when you expanded the
         RAW download, you ended up with unnecessary layers of directories. Find the
-        directory with :file:`RAW.py` in it, and make that the top level folder.
+        directory with :file:`setup.py` in it, and make that the top level folder.
 
 #.  In a terminal, change directory into the top level RAW folder
 
     *   If you used the suggested path of :file:`~/raw` type: ``cd ~/raw``
 
+#.  Build the extensions.
+
+    *   ``python setup.py build_ext --inplace``
+
+#.  Navigate to the :file:`bioxtasraw` subfolder
+
+    *   From the top level RAW folder it should be ``cd ./bioxtasraw``
+
 #.  Run RAW
 
-    *   ``python RAW,py``
+    *   ``python RAW.py``
 
 #.  RAW is now installed. Enjoy!
 

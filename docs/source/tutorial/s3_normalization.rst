@@ -11,7 +11,7 @@ and :ref:`3 <s3p3>`.
 #.  In the window that shows up select the Image/Header Format section on the left.
     In the area on the right click the Load Image button.
 
-    |1000020100000321000002567002F3E445956D31_png|
+    |config_norm_load_image_png|
 
 #.  In the window that pops up, select the **AgBeh_A1_43_001_0000.tiff** file. Click
     the Open button.
@@ -21,7 +21,7 @@ and :ref:`3 <s3p3>`.
 #.  In the Image/Header Format window you should now see header values loaded into the
     list. Click the Apply button at the bottom of the screen.
 
-    |1000020100000261000000FF99D0DAD279E9E046_png|
+    |config_norm_apply_png|
 
 #.  Click on the Normalization section in the options list on the left.
 
@@ -32,7 +32,7 @@ and :ref:`3 <s3p3>`.
         CHESS G1 beamline, the beamstop counter is name I3, which is why we are using
         that name in the normalization expression.
 
-    |10000201000003200000025782A90D7B63DA90C9_png|
+    |config_norm_values_png|
 
 #.  Click the Calc button to evaluate the expression for the counter values loaded
     in the Image/Header Format tab. You should get a value of 0.02404.
@@ -48,14 +48,14 @@ and :ref:`3 <s3p3>`.
 
 #.  Click on the manipulation tab. You will see a data item loaded in the manipulation list.
 
-    |10000201000003FA00000193060E3A3AD503E41B_png|
+    |config_norm_start_point1_png|
 
 #.  Adjust the start point for q Min to remove the points with zero value at the start of
     the curve (these are q points entirely in the mask). Set q Min so that the first point
     is the peak of the curve on the main plot. This should be around point 13 (depending
     on your mask).
 
-    |10000201000003DE0000018D073F6458E51E1527_png|
+    |config_norm_start_point2_png|
 
 #.  Open the Options window as in Step 1.
 
@@ -65,7 +65,21 @@ and :ref:`3 <s3p3>`.
     *   *Note:* This makes it so that every curve loaded from now on will by default
         not display the first n points, which are covered by the beamstop.
 
-    |1000020100000311000000E79A17725090A964FF_png|
+    |config_norm_start_point3_png|
+
+#.  RAW also allows you to add arbitrary metadata to your radially integrated
+    files. One use case is to provide metadata keys for data deposition (e.g. in
+    the `SASBDB <https://www.sasbdb.org/>`_). To start, click on the Metadata
+    section in the options list on the left of the Options window.
+
+#.  In the 'Key' field enter 'Instrument'. In the 'Value' field enter 'MacCHESS
+    BioSAXS beamline'.
+
+    |config_norm_metadata1_png|
+
+#.  Click the Add button.
+
+    |config_norm_metadata2_png|
 
 #.  Click the OK button to exit the options window and save your changes.
 
@@ -79,14 +93,19 @@ and :ref:`3 <s3p3>`.
 
 
 
-.. |1000020100000321000002567002F3E445956D31_png| image:: images/1000020100000321000002567002F3E445956D31.png
+.. |config_norm_load_image_png| image:: images/config_norm_load_image.png
 
-.. |1000020100000261000000FF99D0DAD279E9E046_png| image:: images/1000020100000261000000FF99D0DAD279E9E046.png
+.. |config_norm_apply_png| image:: images/config_norm_apply.png
 
-.. |10000201000003200000025782A90D7B63DA90C9_png| image:: images/10000201000003200000025782A90D7B63DA90C9.png
+.. |config_norm_values_png| image:: images/config_norm_values.png
 
-.. |10000201000003FA00000193060E3A3AD503E41B_png| image:: images/10000201000003FA00000193060E3A3AD503E41B.png
+.. |config_norm_start_point1_png| image:: images/config_norm_start_point1.png
 
-.. |10000201000003DE0000018D073F6458E51E1527_png| image:: images/10000201000003DE0000018D073F6458E51E1527.png
+.. |config_norm_start_point2_png| image:: images/config_norm_start_point2.png
 
-.. |1000020100000311000000E79A17725090A964FF_png| image:: images/1000020100000311000000E79A17725090A964FF.png
+.. |config_norm_start_point3_png| image:: images/config_norm_start_point3.png
+
+.. |config_norm_metadata1_png| image:: images/config_norm_metadata1.png
+
+.. |config_norm_metadata2_png| image:: images/config_norm_metadata2.png
+    :width: 600 px

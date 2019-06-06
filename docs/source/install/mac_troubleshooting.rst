@@ -16,6 +16,9 @@ Common problems/troubleshooting
 
 **Installing from source:**
 
-*   The shortcut can fail if you didn’t install raw in the recommended location. If that’s
-    the case, go through the process of creating a new shortcut, and make sure you change
-    the line in the script mentioned in that section.
+*   If you fail to build the extensions before running RAW, RAW will crash at some point.
+    Be sure to run the ``python setup.py build_ext --inplace`` before starting RAW.
+
+*   Using the RAW autorg function requires a relatively recent version of numba.
+    If you get an error running this function update your numba version to the
+    most recent.

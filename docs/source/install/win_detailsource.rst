@@ -56,25 +56,13 @@ Windows 7, 8.1, and 10 install from source instructions
 
     |1000020100000274000001CAC03003E6F7E944B5_png|
 
-#.  Check that the files are located at the top of the directory, as in the following image:
+#.  In Windows Explorer, confirm that the file named :file:`setup.py`
+    is in your top level expanded raw directory. If it isn’t, it’s likely that
+    when you expanded the RAW download, you ended up with unnecessary layers of
+    directories. Find the directory with :file:`setup.py` in it, and make that
+    the top level folder.
 
-    *   Windows 7: Browse to Computer -> Local Disk -> raw
-
-    *   Windows 8 and 10: Browse to This PC -> Local Disk -> raw
-
-    |10000201000004B0000002A34A8866D873399BD8_png|
-
-    *   You may have only a single subfolders, named something like :file:`raw` or :file:`src`.
-
-    |10000201000004B0000002A3554A1F12D8C7CB87_png|
-
-    *   If so, browse down levels until you find the directory containing files that
-        look like the top image on this page, and copy everything in that folder to
-        the top level :file:`raw` directory.
-
-    |10000201000004B0000002A3E91BB88ED0783D2A_png|
-
-#.  Run :file:`RAW.py` from the command line
+#.  Build the extensions
 
     *   Open an anaconda prompt as in Step 4 of these instructions.
 
@@ -82,9 +70,19 @@ Windows 7, 8.1, and 10 install from source instructions
 
     *   Hit enter
 
-    *   Type ``python RAW.py``
+    *   Type ``python setup.py build_ext --inplace``
 
-    |anaconda_prompt|
+    *   Hit enter
+
+#.  Run :file:`RAW.py` from the command line
+
+    *   Open an anaconda prompt as in Step 4 of these instructions.
+
+    *   Type ``cd C:\raw\bioxtasraw``
+
+    *   Hit enter
+
+    *   Type ``python RAW.py``
 
     *   Hit enter
 
@@ -94,12 +92,4 @@ Windows 7, 8.1, and 10 install from source instructions
         :ref:`solutions to common problems <wintrb>` section below.
 
 
-.. |10000201000004B0000002A34A8866D873399BD8_png| image:: images/win_install/10000201000004B0000002A34A8866D873399BD8.png
-
-.. |10000201000004B0000002A3554A1F12D8C7CB87_png| image:: images/win_install/10000201000004B0000002A3554A1F12D8C7CB87.png
-
 .. |1000020100000274000001CAC03003E6F7E944B5_png| image:: images/win_install/1000020100000274000001CAC03003E6F7E944B5.png
-
-.. |10000201000004B0000002A3E91BB88ED0783D2A_png| image:: images/win_install/10000201000004B0000002A3E91BB88ED0783D2A.png
-
-.. |anaconda_prompt| image:: images/win_install/anaconda_prompt.png

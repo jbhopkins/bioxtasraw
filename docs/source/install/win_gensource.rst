@@ -34,7 +34,12 @@ General instructions for installing from source (advanced users)
     from sourceforge (
     `http://sourceforge.net/projects/bioxtasraw <http://sourceforge.net/projects/bioxtasraw>`_)
 
-#. Extract RAW to a directory of your choice and run :file:`RAW.py` using python.
+#.  Extract RAW to a directory of your choice.
+
+#.  In the top level RAW directory run ``python setup.py build_ext --inplace``
+    to build the extensions.
+
+#.  In the :file:`bioxtasraw` subdirectory run :file:`RAW.py` using python.
 
 #.  Enjoy!
 

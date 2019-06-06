@@ -31,13 +31,13 @@ regular normalization and a single measurement of the background for the glassy 
 
 #.  Click on the Absolute Scale section in the options list on the left.
 
-    |100002010000032000000255A94EE51014E73548_png|
+    |config_abswater1_png|
 
 #.  Click on the Glassy carbon “Set” button and select the **A_glassy_carbon_41_001_0000.dat** file.
 
 #.  Set the Sample thickness to 1.5 mm.
 
-    |100002010000024A0000010255684CF81FEA93EF_png|
+    |config_absgc2_png|
 
 #.  Click “Calculate” button. You should get something near 0.0014.
 
@@ -51,11 +51,11 @@ regular normalization and a single measurement of the background for the glassy 
 
 #.  Click “OK” to exit the advanced options panel, saving the changes.
 
-    |100002010000031E000002533D65082AC93CE448_png|
+    |config_absgc3_png|
 
 #.  Save the settings for future use.
 
-**The NIST approach:**
+**The full, NIST recommended approach:**
 
 *Important note:* All of the normalization (including flux, transmission, etc) happens
 through the absolute scale panel. You shouldn’t have anything set in the Normalization
@@ -150,11 +150,12 @@ relative to the rest of the scattering in the system.
 
 
 
-.. |100002010000032000000255A94EE51014E73548_png| image:: images/100002010000032000000255A94EE51014E73548.png
+.. |config_abswater1_png| image:: images/config_abswater1.png
 
-.. |100002010000024A0000010255684CF81FEA93EF_png| image:: images/100002010000024A0000010255684CF81FEA93EF.png
+.. |config_absgc2_png| image:: images/config_absgc2.png
+    :width: 500 px
 
-.. |100002010000031E000002533D65082AC93CE448_png| image:: images/100002010000031E000002533D65082AC93CE448.png
+.. |config_absgc3_png| image:: images/config_absgc3.png
 
 .. |100002010000031F0000025307BE652194AFBF84_png| image:: images/100002010000031F0000025307BE652194AFBF84.png
 

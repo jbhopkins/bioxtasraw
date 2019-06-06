@@ -37,7 +37,12 @@ General instructions for installing from source (advanced users)
 
         <a href="https://sourceforge.net/projects/bioxtasraw/files/latest/download"><img alt="Download BioXTAS RAW" src="https://a.fsdn.com/con/app/sf-download-button" width=276 height=48 srcset="https://a.fsdn.com/con/app/sf-download-button?button_size=2x 2x"></a>
 
-#.  Extract RAW to a directory of your choice, and run :file:`RAW.py` using python.
+#.  Extract RAW to a directory of your choice.
+
+#.  In the top level RAW directory run ``python setup.py build_ext --inplace``
+    to build the extensions.
+
+#.  In the :file:`bioxtasraw` subdirectory run :file:`RAW.py` using python.
 
 #.  Enjoy!
 

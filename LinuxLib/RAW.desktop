@@ -3,4 +3,4 @@ Name=RAW
 Exec=start_raw
 Terminal=true
 Type=Application
-Icon=/home/jbh246/raw/resources/raw.ico
+Icon=~/raw/bioxtasraw/resources/raw.ico
