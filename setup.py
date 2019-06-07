@@ -1,4 +1,18 @@
-from distutils.core import setup
+import platform
+
+opsys = platform.system()
+
+if opsys == 'Windows':
+    try:
+        from setuptools import setup
+        from setuptools import Extension
+    except ImportError:
+        from distutils.core import setup
+        from distutils.extension import Extension
+else:
+    from distutils.core import setup
+    from distutils.extension import Extension
+
 from Cython.Build import cythonize
 
 setup(
