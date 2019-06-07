@@ -5712,6 +5712,8 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         for each in self.dirsList:
             self.files.remove(each)
 
+        self.dirsList[:] = [each for each in self.dirsList if not each.startswith('.')]
+
         filteredFiles = self.getFilteredFileList()
 
         if len(self.path) > 1:
@@ -5734,21 +5736,22 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         end_of_folders_idx = j
 
         for i in filteredFiles:
-            (name, ext) = os.path.splitext(i)
+            name, ext = os.path.splitext(i)
             ex = ext[1:]
 
-            if '.' not in i or ext != '':
-                try:
-                    size = os.path.getsize(os.path.join(self.path, i))
-                    sec = os.path.getmtime(os.path.join(self.path, i))
-                except Exception, e:
-                    print e
-                    size = 0
-                    sec = 1
+            if not name.startswith('._'):
+                if ext != '' or (not name.startswith('.') and ext == ''):
+                    try:
+                        size = os.path.getsize(os.path.join(self.path, i))
+                        sec = os.path.getmtime(os.path.join(self.path, i))
+                    except Exception, e:
+                        print e
+                        size = 0
+                        sec = 1
 
-                self.file_list_dict[j] = (name, ex, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)), str(round(size/1000,1)) + ' KB', 'file')
+                    self.file_list_dict[j] = (name, ex, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)), str(round(size/1000,1)) + ' KB', 'file')
 
-                j += 1
+                    j += 1
 
         self.insertSortedFilesIntoList(end_of_folders_idx)
 
