@@ -4,7 +4,7 @@ Changes
 1.6.0
 ------
 
-Release date:
+Release date: 2019-06-07
 
 Overview
 ^^^^^^^^^^^^
