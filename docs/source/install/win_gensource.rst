@@ -2,6 +2,9 @@ General instructions for installing from source (advanced users)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _wingen:
 
+#.  Install Microsoft Visual C++ 2008 Redistributable and Visual C++ Compiler for
+    Python.
+
 #.  Install Python 2.7 (if it isn’t already installed) and add it to your system path.
 
 #.  Install the following Python packages (version indicated if less than most recent):

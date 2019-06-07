@@ -15,6 +15,13 @@ Windows 7, 8.1, and 10 install from source instructions
 
     *   Run the installer with the default options.
 
+#.  Download and install the Microsoft Visual C++ Compiler for Python.
+
+    *   Download from:
+        `https://www.microsoft.com/en-us/download/details.aspx?id=44266 <https://www.microsoft.com/en-us/download/details.aspx?id=44266>`_
+
+    *   Run the installer with the default options.
+
 #.  Install Miniconda python distribution
 
     *   Download the free miniconda python 2.7 installer from:
