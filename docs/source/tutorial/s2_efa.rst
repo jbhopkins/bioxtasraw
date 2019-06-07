@@ -87,8 +87,7 @@ components from overlapping SEC-SAXS peaks.
     *   *Note:* You should convince yourself of this by looking at the SVD results in
         the plots on this page, using the same approach as in Steps 3-5 above.
 
-    *   *Note:* There is a hint of a fourth component, likely related to imperfect background
-        subtraction (possibly indicating a little capillary fouling). You can rerun this exercise
+    *   *Note:* There is a hint of a fourth component. You can rerun this exercise
         using four components and see if that changes the results.
 
 #.  Click the “Next” button in the lower right-hand corner of the window to advance to
