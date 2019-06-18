@@ -28,7 +28,7 @@ General instructions for installing from source (advanced users)
 
     *   hdf5plugin
 
-    *   numba
+    *   numba < 0.44
 
 #.  Download the latest RAW sourcecode from sourceforge (
     `http://sourceforge.net/projects/bioxtasraw <http://sourceforge.net/projects/bioxtasraw>`_)

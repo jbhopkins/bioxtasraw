@@ -31,7 +31,7 @@ General instructions for installing from source (advanced users)
 
     *   hdf5plugin
 
-    *   numba
+    *   numba < 0.44
 
 #.  Download the RAW source file (:file:`RAW-{x}.{y}.{z}-Source` where :file:`{x}.{y}.{z}` is the version number)
     from sourceforge (
