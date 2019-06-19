@@ -9541,17 +9541,25 @@ class SVDControlPanel(wx.Panel):
 
         #make a subtracted profile SECM
         if len(self.secm.subtracted_sasm_list)>0:
-            self.subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.subtracted_sasm_list, self.secm.frame_list, self.secm.getAllParameters())
+            self.subtracted_secm = SASM.SECM(self.secm._file_list,
+                self.secm.subtracted_sasm_list, self.secm.frame_list,
+                self.secm.getAllParameters(), self.raw_settings)
         else:
-            self.subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.subtracted_sasm_list, [], self.secm.getAllParameters())
+            self.subtracted_secm = SASM.SECM(self.secm._file_list,
+                self.secm.subtracted_sasm_list, [],
+                self.secm.getAllParameters(), self.raw_settings)
 
             profile_window = wx.FindWindowById(self.control_ids['profile'], self)
             profile_window.SetStringSelection('Unsubtracted')
 
         if self.secm.baseline_subtracted_sasm_list:
-            self.bl_subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.baseline_subtracted_sasm_list, self.secm.frame_list, self.secm.getAllParameters())
+            self.bl_subtracted_secm = SASM.SECM(self.secm._file_list,
+                self.secm.baseline_subtracted_sasm_list, self.secm.frame_list,
+                self.secm.getAllParameters(), self.raw_settings)
         else:
-            self.bl_subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.baseline_subtracted_sasm_list, [], self.secm.getAllParameters())
+            self.bl_subtracted_secm = SASM.SECM(self.secm._file_list,
+                self.secm.baseline_subtracted_sasm_list, [],
+                self.secm.getAllParameters(), self.raw_settings)
 
             profile_window = wx.FindWindowById(self.control_ids['profile'], self)
             profile_window.SetStringSelection('Unsubtracted')
@@ -9692,7 +9700,12 @@ class SVDControlPanel(wx.Panel):
         elif profile_window.GetStringSelection() == 'Baseline Corrected':
             secm = self.bl_subtracted_secm
 
-        sasm_list = secm.getSASMList(framei, framef)
+        try:
+            sasm_list = secm.getSASMList(framei, framef)
+        except SASExceptions.DataNotCompatible as e:
+            msg = e.parameter
+            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
+            sasm_list = []
 
         i = np.array([sasm.i[sasm.getQrange()[0]:sasm.getQrange()[1]] for sasm in sasm_list])
         err = np.array([sasm.err[sasm.getQrange()[0]:sasm.getQrange()[1]] for sasm in sasm_list])
@@ -10517,17 +10530,25 @@ class EFAControlPanel1(wx.Panel):
 
         #make a subtracted profile SECM
         if len(self.secm.subtracted_sasm_list)>0:
-            self.subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.subtracted_sasm_list, self.secm.frame_list, self.secm.getAllParameters())
+            self.subtracted_secm = SASM.SECM(self.secm._file_list,
+                self.secm.subtracted_sasm_list, self.secm.frame_list,
+                self.secm.getAllParameters(), self.raw_settings)
         else:
-            self.subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.subtracted_sasm_list, [], self.secm.getAllParameters())
+            self.subtracted_secm = SASM.SECM(self.secm._file_list,
+                self.secm.subtracted_sasm_list, [],
+                self.secm.getAllParameters(), self.raw_settings)
 
             profile_window = wx.FindWindowById(self.control_ids['profile'], self)
             profile_window.SetStringSelection('Unsubtracted')
 
         if self.secm.baseline_subtracted_sasm_list:
-            self.bl_subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.baseline_subtracted_sasm_list, self.secm.frame_list, self.secm.getAllParameters())
+            self.bl_subtracted_secm = SASM.SECM(self.secm._file_list,
+                self.secm.baseline_subtracted_sasm_list, self.secm.frame_list,
+                self.secm.getAllParameters(), self.raw_settings)
         else:
-            self.bl_subtracted_secm = SASM.SECM(self.secm._file_list, self.secm.baseline_subtracted_sasm_list, [], self.secm.getAllParameters())
+            self.bl_subtracted_secm = SASM.SECM(self.secm._file_list,
+                self.secm.baseline_subtracted_sasm_list, [],
+                self.secm.getAllParameters(), self.raw_settings)
 
         if self.manip_item is not None:
             sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
@@ -10724,7 +10745,12 @@ class EFAControlPanel1(wx.Panel):
         elif profile_window.GetStringSelection() == 'Baseline Corrected':
             secm = self.bl_subtracted_secm
 
-        sasm_list = secm.getSASMList(framei, framef)
+        try:
+            sasm_list = secm.getSASMList(framei, framef)
+        except SASExceptions.DataNotCompatible as e:
+            msg = e.parameter
+            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
+            sasm_list = []
 
         i = np.array([sasm.getI() for sasm in sasm_list])
         err = np.array([sasm.getErr() for sasm in sasm_list])
@@ -11347,6 +11373,7 @@ class EFAControlPanel3(wx.Panel):
 
         self.initialized = False
         self.converged = False
+        self.rotation_data = {}
 
         control_sizer = self._createLayout()
 
@@ -11701,7 +11728,7 @@ class EFAControlPanel3(wx.Panel):
 
     def runRotation(self):
         #Get component ranges and iteration control values
-        self._updateStatus(True)
+        wx.CallAfter(self._updateStatus, True)
 
         ranges = self._getRanges()
 
@@ -11718,90 +11745,127 @@ class EFAControlPanel3(wx.Panel):
             window = wx.FindWindowById(self.range_ids[i][2], self)
             force_positive.append(window.GetValue())
 
-        init_dict = {'Hybrid'       : SASCalc.initHybridEFA,
-                    'Iterative'     : SASCalc.initIterativeEFA,
-                    'Explicit'      : SASCalc.initExplicitEFA}
-
-        run_dict = {'Hybrid'        : SASCalc.runIterativeEFARotation,
-                    'Iterative'     : SASCalc.runIterativeEFARotation,
-                    'Explicit'      : SASCalc.runExplicitEFARotation}
-
-        #Calculate the initial matrices
-        num_sv = ranges.shape[0]
-
         D = self.panel1_results['svd_int_norm']
+        intensity = self.panel1_results['int']
+        err = self.panel1_results['err']
 
-        M = np.zeros_like(self.panel1_results['svd_v'][:,:num_sv])
+        svd_v = self.panel1_results['svd_v']
 
-        for j in range(num_sv):
-            M[ranges[j][0]:ranges[j][1]+1, j] = 1
+        converged, conv_data, rotation_data = SASCalc.runRotation(D, intensity,
+            err, ranges, force_positive, svd_v, previous_results=(self.converged,
+            self.rotation_data), method=method, niter=niter, tol=tol)
 
-        if self.converged and M.shape[0] != self.rotation_data['C'].shape[0]:
-            self.converged = False
-            self.rotation_data = {}
+        self.converged = converged
+        self.conv_data = conv_data
+        self.rotation_data = rotation_data
 
-        if self.converged:
-            C_init = self.rotation_data['C']
-        else:
-            C_init = self.panel1_results['svd_v'][:,:num_sv]
+        # init_dict = {'Hybrid'       : SASCalc.initHybridEFA,
+        #             'Iterative'     : SASCalc.initIterativeEFA,
+        #             'Explicit'      : SASCalc.initExplicitEFA}
 
-        V_bar = self.panel1_results['svd_v'][:,:num_sv]
+        # run_dict = {'Hybrid'        : SASCalc.runIterativeEFARotation,
+        #             'Iterative'     : SASCalc.runIterativeEFARotation,
+        #             'Explicit'      : SASCalc.runExplicitEFARotation}
 
-        failed, C, T = init_dict[method](M, num_sv, D, C_init, self.converged, V_bar) #Init takes M, num_sv, and D, C_init, and converged and returns failed, C, and T in that order. If a method doesn't use a particular variable, then it should return None for that result
-        C, failed, converged, dc, k = run_dict[method](M, D, failed, C, V_bar, T, niter, tol, force_positive) #Takes M, D, failed, C, V_bar, T in that order. If a method doesn't use a particular variable, then it should be passed None for that variable.
+        # #Calculate the initial matrices
+        # num_sv = ranges.shape[0]
 
-        if not failed:
-            if method != 'Explicit':
-                self.conv_data = {'steps'   : dc,
-                                'iterations': k,
-                                'final_step': dc[-1],
-                                'options'   : {'niter': niter, 'tol': tol, 'method': method}}
-            else:
-                self.conv_data = {'steps'   : None,
-                                'iterations': None,
-                                'final_step': None,
-                                'options'   : {'niter': niter, 'tol': tol, 'method': method}}
+        # D = self.panel1_results['svd_int_norm']
 
-        #Check whether the calculation converged
+        # M = np.zeros_like(self.panel1_results['svd_v'][:,:num_sv])
+
+        # for j in range(num_sv):
+        #     M[ranges[j][0]:ranges[j][1]+1, j] = 1
+
+        # if self.converged and M.shape[0] != self.rotation_data['C'].shape[0]:
+        #     self.converged = False
+        #     self.rotation_data = {}
+
+        # if self.converged:
+        #     C_init = self.rotation_data['C']
+        # else:
+        #     C_init = self.panel1_results['svd_v'][:,:num_sv]
+
+        # V_bar = self.panel1_results['svd_v'][:,:num_sv]
+
+        # failed, C, T = init_dict[method](M, num_sv, D, C_init, self.converged, V_bar) #Init takes M, num_sv, and D, C_init, and converged and returns failed, C, and T in that order. If a method doesn't use a particular variable, then it should return None for that result
+        # C, failed, converged, dc, k = run_dict[method](M, D, failed, C, V_bar, T, niter, tol, force_positive) #Takes M, D, failed, C, V_bar, T in that order. If a method doesn't use a particular variable, then it should be passed None for that variable.
+
+        # if not failed:
+        #     if method != 'Explicit':
+        #         self.conv_data = {'steps'   : dc,
+        #                         'iterations': k,
+        #                         'final_step': dc[-1],
+        #                         'options'   : {'niter': niter, 'tol': tol, 'method': method}}
+        #     else:
+        #         self.conv_data = {'steps'   : None,
+        #                         'iterations': None,
+        #                         'final_step': None,
+        #                         'options'   : {'niter': niter, 'tol': tol, 'method': method}}
+
+        # #Check whether the calculation converged
+
+        # if method != 'Explicit':
+        #     if k == niter and dc[-1] > tol:
+        #         self.converged = False
+        #         self.fail_text = 'Rotation failed to converge after %i\n iterations with final delta = %.2E.' %(k, dc[-1])
+        #     elif failed:
+        #         self.converged = False
+        #         self.fail_text = 'Rotation failed due to a numerical error\n in the algorithm. Try adjusting ranges or changing method.'
+        #     else:
+        #         self.converged = True
+
+        # else:
+        #     if failed:
+        #         self.converged = False
+        #         self.fail_text = 'Rotation failed due to a numerical error\n in the algorithm. Try adjusting ranges or changing method.'
+        #     else:
+        #         self.converged = True
+
+        # if self.converged:
+        #     #Calculate SAXS basis vectors
+        #     mult = np.linalg.pinv(np.transpose(M*C))
+        #     intensity = np.dot(self.panel1_results['int'], mult)
+        #     err = np.sqrt(np.dot(np.square(self.panel1_results['err']), np.square(mult)))
+
+        #     int_norm = np.dot(D, mult)
+        #     resid = D - np.dot(int_norm, np.transpose(M*C))
+
+        #     chisq = np.mean(np.square(resid),0)
+
+        #     #Save the results
+        #     self.rotation_data = {'M'   : M,
+        #                         'C'     : C,
+        #                         'int'   : intensity,
+        #                         'err'   : err,
+        #                         'chisq' : chisq}
+
+
+        #     wx.CallAfter(self.updateResultsPlot)
+
+        #     self._makeSASMs()
+
+        # else:
+        #     wx.CallAfter(self.clearResultsPlot)
+
+        k = conv_data['iterations']
+        final_step = conv_data['final_step']
+        failed = conv_data['failed']
 
         if method != 'Explicit':
-            if k == niter and dc[-1] > tol:
-                self.converged = False
-                self.fail_text = 'Rotataion failed to converge after %i\n iterations with final delta = %.2E.' %(k, dc[-1])
+            if k == niter and final_step > tol:
+                self.fail_text = ('Rotation failed to converge after %i\n '
+                    'iterations with final delta = %.2E.' %(k, dc[-1]))
             elif failed:
-                self.converged = False
-                self.fail_text = 'Rotataion failed due to a numerical error\n in the algorithm. Try adjusting ranges or changing method.'
-            else:
-                self.converged = True
-
+                self.fail_text = ('Rotation failed due to a numerical error\n '
+                    'in the algorithm. Try adjusting ranges or changing method.')
         else:
             if failed:
-                self.converged = False
-                self.fail_text = 'Rotataion failed due to a numerical error\n in the algorithm. Try adjusting ranges or changing method.'
-            else:
-                self.converged = True
+                self.fail_text = ('Rotation failed due to a numerical error\n '
+                    'in the algorithm. Try adjusting ranges or changing method.')
 
         if self.converged:
-            #Calculate SAXS basis vectors
-            mult = np.linalg.pinv(np.transpose(M*C))
-            intensity = np.dot(self.panel1_results['int'], mult)
-            err = np.sqrt(np.dot(np.square(self.panel1_results['err']), np.square(mult)))
-
-            int_norm = np.dot(D, mult)
-            resid = D - np.dot(int_norm, np.transpose(M*C))
-
-            chisq = np.mean(np.square(resid),0)
-
-            #Save the results
-            self.rotation_data = {'M'   : M,
-                                'C'     : C,
-                                'int'   : intensity,
-                                'err'   : err,
-                                'chisq' : chisq}
-
-
             wx.CallAfter(self.updateResultsPlot)
-
             self._makeSASMs()
 
         else:
@@ -11831,14 +11895,10 @@ class EFAControlPanel3(wx.Panel):
         else:
             old_filename = old_filename[0]
 
+        q = self.secm.getSASM().getQ()
+        ranges = self._getRanges()
+
         for i in range(nprofiles):
-            old_sasm = self.secm.getSASM()
-            q = old_sasm.q
-
-            qmin, qmax = old_sasm.getQrange()
-
-            q = q[qmin:qmax]
-
             intensity = self.rotation_data['int'][:,i]
 
             err = self.rotation_data['err'][:,i]
@@ -11854,7 +11914,7 @@ class EFAControlPanel3(wx.Panel):
             history_dict['end_index'] = str(self.panel1_results['fend'])
             history_dict['component_number'] = str(i)
 
-            points = self._getRanges()[i]
+            points = ranges[i]
             history_dict['component_range'] = '[%i, %i]' %(points[0], points[1])
 
             history = sasm.getParameter('history')

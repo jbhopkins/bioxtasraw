@@ -293,22 +293,10 @@ class MainFrame(wx.Frame):
                 answer = wx.ID_YES
 
             if answer == wx.ID_YES:
-                success = RAWSettings.loadSettings(self.raw_settings, file)
-
-                if success:
-                    self.raw_settings.set('CurrentCfg', file)
-                else:
-                    wx.CallAfter(wx.MessageBox,'Load failed, config file might be corrupted.',
-                                  'Load failed', style = wx.ICON_ERROR | wx.OK)
+                self.loadRAWSettings(file)
 
         dirctrl = wx.FindWindowByName('DirCtrlPanel')
         dirctrl._useSavedPathIfExisits()
-
-        find_atsas = self.raw_settings.get('autoFindATSAS')
-
-        if find_atsas:
-            atsas_dir = RAWOptions.findATSASDirectory()
-            self.raw_settings.set('ATSASDir', atsas_dir)
 
         start_online_mode = self.raw_settings.get('OnlineModeOnStartup')
         online_path = self.raw_settings.get('OnlineStartupDir')
@@ -336,13 +324,6 @@ class MainFrame(wx.Frame):
 
     def getRawSettings(self):
         return self.raw_settings
-
-    def findAtsas(self):
-        find_atsas = self.raw_settings.get('autoFindATSAS')
-        if find_atsas:
-            atsas_dir = RAWOptions.findATSASDirectory()
-
-            self.raw_settings.set('ATSASDir', atsas_dir)
 
     def queueTaskInWorkerThread(self, taskname, data):
         mainworker_cmd_queue.put([taskname, data])
@@ -1496,7 +1477,8 @@ class MainFrame(wx.Frame):
 
                     frame_list = range(len(selected_sasms))
 
-                    secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {})
+                    secm = SASM.SECM(selected_filenames, selected_sasms,
+                        frame_list, {}, self.raw_settings)
 
                     manip_item = None
 
@@ -1521,7 +1503,8 @@ class MainFrame(wx.Frame):
 
                     frame_list = range(len(selected_sasms))
 
-                    secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {})
+                    secm = SASM.SECM(selected_filenames, selected_sasms,
+                        frame_list, {}, self.raw_settings)
 
                     manip_item = None
 
@@ -1569,7 +1552,8 @@ class MainFrame(wx.Frame):
 
                     frame_list = range(len(selected_sasms))
 
-                    secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {})
+                    secm = SASM.SECM(selected_filenames, selected_sasms,
+                        frame_list, {}, self.raw_settings)
 
                     manip_item = None
 
@@ -1594,7 +1578,8 @@ class MainFrame(wx.Frame):
 
                     frame_list = range(len(selected_sasms))
 
-                    secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {})
+                    secm = SASM.SECM(selected_filenames, selected_sasms,
+                        frame_list, {}, self.raw_settings)
 
                     manip_item = None
 
@@ -1933,11 +1918,25 @@ class MainFrame(wx.Frame):
 
         file = self._createFileDialog(wx.FD_OPEN)
 
+        self.loadRAWSettings(file)
+
+    def loadRAWSettings(self, file):
         if file:
-            success = RAWSettings.loadSettings(self.raw_settings, file)
+            success, msg = RAWSettings.loadSettings(self.raw_settings, file)
+
+            if msg != '':
+                wx.CallAfter(wx.MessageBox, msg, 'Warning: incompatible version of RAW',
+                    style = wx.ICON_ERROR | wx.OK)
 
             if success:
                 self.raw_settings.set('CurrentCfg', file)
+                main_frame = wx.FindWindowByName('MainFrame')
+                main_frame.queueTaskInWorkerThread('recreate_all_masks', None)
+
+                backup_file = os.path.join(RAWGlobals.RAWWorkDir, 'backup.cfg')
+
+                if backup_file != file:
+                    shutil.copyfile(file, backup_file)
 
             else:
                 wx.CallAfter(wx.MessageBox,'Load failed, config file might be corrupted.',
@@ -2897,7 +2896,8 @@ class MainWorkerThread(threading.Thread):
 
                 if file_ext == '.sec':
                     try:
-                        secm = SASFileIO.loadSeriesFile(each_filename)
+                        secm = SASFileIO.loadSeriesFile(each_filename,
+                            self._raw_settings)
                     except Exception as e:
                         print e
                         wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_sec = True)
@@ -3063,7 +3063,8 @@ class MainWorkerThread(threading.Thread):
         if all_secm:
             for each_filename in filename_list:
                 try:
-                    secm = SASFileIO.loadSeriesFile(each_filename)
+                    secm = SASFileIO.loadSeriesFile(each_filename,
+                        self._raw_settings)
                 except:
                     wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1],include_sec=True)
                     wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -3124,7 +3125,8 @@ class MainWorkerThread(threading.Thread):
                 return
 
             try:
-                secm = SASM.SECM(filename_list, sasm_list, frame_list, {})
+                secm = SASM.SECM(filename_list, sasm_list, frame_list, {},
+                    self._raw_settings)
             except AttributeError:
                 msg = ('Some or all of the selected files were not scattering '
                     'profiles or images, so a series dataset could not be generated.')
@@ -3284,7 +3286,12 @@ class MainWorkerThread(threading.Thread):
 
         last_frame = last_update_frame
 
-        full_sasm_list = secm.getSASMList(first_frame, last_frame)
+        try:
+            full_sasm_list = secm.getSASMList(first_frame, last_frame)
+        except SASExceptions.DataNotCompatible as e:
+            msg = e.parameter
+            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
+            full_sasm_list = []
 
         subtracted_sasm_list = []
 
@@ -6069,19 +6076,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
                               'Load new configuration?', style = wx.YES_NO | wx.ICON_QUESTION)
 
                 if ret == wx.YES:
-                    raw_settings = self.mainframe.getRawSettings()
-
-                    try:
-                        success = RAWSettings.loadSettings(raw_settings, full_dir_filename)
-                    except IOError, e:
-                        wx.MessageBox(str(e), 'Error loading file', style = wx.OK | wx.ICON_EXCLAMATION)
-
-
-                    if success:
-                        raw_settings.set('CurrentCfg', file)
-                    else:
-                        wx.MessageBox('Load failed, config file might be corrupted',
-                              'Load failed', style = wx.OK | wx.ICON_ERROR)
+                    self.mainframe.loadRAWSettings(full_dir_filename)
 
             else:
                 mainworker_cmd_queue.put(('plot', [full_dir_filename]))
@@ -7758,7 +7753,8 @@ class ManipItemPanel(wx.Panel):
 
             frame_list = range(len(selected_sasms))
 
-            secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {})
+            secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {},
+                Mainframe.raw_settings)
 
             Mainframe.showSVDFrame(secm, None)
 
@@ -7780,7 +7776,8 @@ class ManipItemPanel(wx.Panel):
 
             frame_list = range(len(selected_sasms))
 
-            secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {})
+            secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {},
+                Mainframe.raw_settings)
 
             Mainframe.showEFAFrame(secm, None)
 
@@ -8953,7 +8950,8 @@ class IFTItemPanel(wx.Panel):
 
             frame_list = range(len(selected_sasms))
 
-            secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {})
+            secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {},
+                Mainframe.raw_settings)
 
             Mainframe.showSVDFrame(secm, None)
 
@@ -8978,7 +8976,8 @@ class IFTItemPanel(wx.Panel):
 
             frame_list = range(len(selected_sasms))
 
-            secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {})
+            secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {},
+                Mainframe.raw_settings)
 
             Mainframe.showSVDFrame(secm, None)
 
@@ -10619,8 +10618,14 @@ class SECControlPanel(wx.Panel):
 
             if proceed == wx.ID_YES:
                 int_type = secm.plot_panel.plotparams['plot_intensity']
-                sasm_list = secm.getSASMList(self.initial_selected_frame,
-                    self.final_selected_frame, int_type)
+                try:
+                    sasm_list = secm.getSASMList(self.initial_selected_frame,
+                        self.final_selected_frame, int_type)
+                except SASExceptions.DataNotCompatible as e:
+                    msg = e.parameter
+                    wx.CallAfter(wx.MessageBox, msg, "Invalid frame range",
+                        style = wx.ICON_ERROR | wx.OK)
+                    sasm_list = []
 
         if sasm_list is not None and sasm_list:
             sasm_list = map(copy.deepcopy, sasm_list)
@@ -10679,8 +10684,16 @@ class SECControlPanel(wx.Panel):
 
             if proceed == wx.ID_YES:
                 int_type = secm.plot_panel.plotparams['plot_intensity']
-                sasm_list = secm.getSASMList(self.initial_selected_frame,
-                    self.final_selected_frame, int_type)
+
+                try:
+                    sasm_list = secm.getSASMList(self.initial_selected_frame,
+                        self.final_selected_frame, int_type)
+
+                except SASExceptions.DataNotCompatible as e:
+                    msg = e.parameter
+                    wx.CallAfter(wx.MessageBox, msg, "Invalid frame range",
+                        style = wx.ICON_ERROR | wx.OK)
+                    sasm_list = []
 
         if sasm_list is not None and sasm_list:
             sasm_list = map(copy.deepcopy, sasm_list)

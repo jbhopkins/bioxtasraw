@@ -24,6 +24,7 @@ Created on Jul 7, 2010
 
 import sys
 import math
+import time
 
 import numpy as np
 from numba import jit, prange
@@ -35,7 +36,7 @@ import SASM
 import RAWGlobals
 import polygonMasking as polymask
 
-class Mask():
+class Mask(object):
     ''' Mask super class. Masking is used for masking out unwanted regions
     of an image '''
 
@@ -84,8 +85,7 @@ class CircleMask(Mask):
 
         Mask.__init__(self, id, img_dim, 'circle', negative)
 
-        self._points = [center_point, radius_point]
-        self._radius = abs(self._points[1][0] - self._points[0][0])
+        self.setPoints([center_point, radius_point])
 
     def getRadius(self):
         return self._radius
@@ -124,17 +124,16 @@ class CircleMask(Mask):
 
     def setPoints(self, points):
         self._points = points
-        self.radius = abs(points[1][0] - points[0][0])
+        self._radius = abs(points[1][0] - points[0][0])
 
+        self._calcFillPoints()
 
-    def getFillPoints(self):
-        ''' Really Clumsy! Can be optimized alot! triplicates the points in the middle!'''
+    def _calcFillPoints(self):
 
         radiusC = abs(self._points[1][0] - self._points[0][0])
 
         P = calcBresenhamCirclePoints(radiusC, self._points[0][1], self._points[0][0])
-
-        fillPoints = []
+        self.coords = []
 
         for i in range(0, int(len(P)/8) ):
             Pp = P[i*8 : i*8 + 8]
@@ -146,12 +145,15 @@ class CircleMask(Mask):
             q_lr2 = ( Pp[5][1], range( int(Pp[7][0]), int(Pp[5][0]+1)) )
 
             for i in range(0, len(q_ud1[1])):
-                fillPoints.append( (int(q_ud1[0]), int(q_ud1[1][i])) )
-                fillPoints.append( (int(q_ud2[0]), int(q_ud2[1][i])) )
-                fillPoints.append( (int(q_lr1[1][i]), int(q_lr1[0])) )
-                fillPoints.append( (int(q_lr2[1][i]), int(q_lr2[0])) )
+                self.coords.append( (int(q_ud1[0]), int(q_ud1[1][i])) )
+                self.coords.append( (int(q_ud2[0]), int(q_ud2[1][i])) )
+                self.coords.append( (int(q_lr1[1][i]), int(q_lr1[0])) )
+                self.coords.append( (int(q_lr2[1][i]), int(q_lr2[0])) )
 
-        return fillPoints
+    def getFillPoints(self):
+        ''' Really Clumsy! Can be optimized alot! triplicates the points in the middle!'''
+
+        return self.coords
 
     def getSaveFormat(self):
         save = {'type'          :   self._type,
@@ -168,6 +170,7 @@ class RectangleMask(Mask):
 
         Mask.__init__(self, id, img_dim, 'rectangle', negative)
         self._points = [first_point, second_point]
+        self._calcFillPoints()
 
     def grow(self, pixels):
 
@@ -192,22 +195,23 @@ class RectangleMask(Mask):
 
         self._points = [(x1,y1), (x2,y2)]
 
+        self._calcFillPoints()
+
     def shrink(self):
         ''' NOT IMPLEMENTED YET '''
         pass
 
-    def getFillPoints(self):
-
-        self.startPoint, self.endPoint = self._points
+    def _calcFillPoints(self):
+        startPoint, endPoint = self._points
         '''  startPoint and endPoint: [(x1,y1) , (x2,y2)]  '''
 
-        startPointX = int(self.startPoint[1])
-        startPointY = int(self.startPoint[0])
+        startPointX = int(startPoint[1])
+        startPointY = int(startPoint[0])
 
-        endPointX = int(self.endPoint[1])
-        endPointY = int(self.endPoint[0])
+        endPointX = int(endPoint[1])
+        endPointY = int(endPoint[0])
 
-        fillPoints = []
+        self.coords = []
 
         if startPointX > endPointX:
 
@@ -215,11 +219,11 @@ class RectangleMask(Mask):
 
                 for c in range(endPointY, startPointY + 1):
                     for i in range(endPointX, startPointX + 1):
-                        fillPoints.append( (int(i), int(c)) )
+                        self.coords.append( (int(i), int(c)) )
             else:
                 for c in range(startPointY, endPointY + 1):
                     for i in range(endPointX, startPointX + 1):
-                        fillPoints.append( (int(i), int(c)) )
+                        self.coords.append( (int(i), int(c)) )
 
         else:
 
@@ -227,13 +231,15 @@ class RectangleMask(Mask):
 
                 for c in range(endPointY, startPointY + 1):
                     for i in range(startPointX, endPointX + 1):
-                        fillPoints.append( (int(i),int(c)) )
+                        self.coords.append( (int(i),int(c)) )
             else:
                 for c in range(startPointY, endPointY + 1):
                     for i in range(startPointX, endPointX + 1):
-                        fillPoints.append( (int(i), int(c)) )
+                        self.coords.append( (int(i), int(c)) )
 
-        return fillPoints
+    def getFillPoints(self):
+
+        return self.coords
 
     def getSaveFormat(self):
         save = {'type'          :   self._type,
@@ -252,8 +258,9 @@ class PolygonMask(Mask):
 
         self._points = points
 
-    def getFillPoints(self):
+        self._calcFillPoints()
 
+    def _calcFillPoints(self):
         proper_formatted_points = []
         yDim, xDim = self._img_dimension
 
@@ -270,9 +277,11 @@ class PolygonMask(Mask):
 
         p = np.where(inside==True)
 
-        coords = polymask.getCoords(p, (int(yDim), int(xDim)))
+        self.coords = polymask.getCoords(p, (int(yDim), int(xDim)))
 
-        return coords
+    def getFillPoints(self):
+
+        return self.coords
 
     def getSaveFormat(self):
         save = {'type'      :   self._type,
@@ -280,6 +289,14 @@ class PolygonMask(Mask):
                 'negative'  :   self._is_negative_mask,
                 }
         return save
+
+
+class _oldMask(object):
+    """
+    Exists for backwards compatibility for loading old style pickled settings
+    with old style object masks.
+    """
+    pass
 
 
 def calcExpression(expr, img_hdr, file_hdr):

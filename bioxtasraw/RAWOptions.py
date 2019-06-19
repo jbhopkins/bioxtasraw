@@ -29,9 +29,6 @@ import time
 import math
 import Queue
 import copy
-import subprocess
-import platform
-import glob
 
 import wx
 import wx.lib.agw.customtreectrl as CT
@@ -2953,7 +2950,7 @@ class ATSASGeneralPanel(wx.Panel):
             self.setATSASDir()
 
     def setATSASDir(self):
-        atsasDirectory = findATSASDirectory()
+        atsasDirectory = SASFileIO.findATSASDirectory()
         self.datadir.SetValue(atsasDirectory)
 
     def onDirButton(self, evt):
@@ -4124,80 +4121,7 @@ class DenssPanel(wx.ScrolledWindow):
         return top_sizer
 
 
-def findATSASDirectory():
-    opsys= platform.system()
 
-    if opsys== 'Darwin':
-        default_path = '/Applications/ATSAS/bin'
-    elif opsys== 'Windows':
-        default_path = 'C:\\atsas\\bin'
-    elif opsys== 'Linux':
-        default_path = '~/atsas'
-        default_path = os.path.expanduser(default_path)
-
-        if os.path.exists(default_path):
-            dirs = glob.glob(default_path+'/*')
-
-            for item in dirs:
-                if item.split('/')[-1].lower().startswith('atsas'):
-                    default_path = item
-                    break
-
-            default_path = os.path.join(default_path, 'bin')
-
-    is_path = os.path.exists(default_path)
-
-    if is_path:
-        return default_path
-
-    if opsys == 'Windows':
-        which = subprocess.Popen('where dammif', stdout=subprocess.PIPE,shell=True)
-        output = which.communicate()
-
-        atsas_path = output[0].strip()
-
-    else:
-        which = subprocess.Popen('which dammif', stdout=subprocess.PIPE,shell=True)
-        output = which.communicate()
-
-        atsas_path = output[0].strip()
-
-    if atsas_path != '':
-        return os.path.dirname(atsas_path)
-
-    try:
-        path = os.environ['PATH']
-    except Exception:
-        path = None
-
-    if path != None:
-        if opsys == 'Windows':
-            split_path = path.split(';')
-        else:
-            split_path = path.split(':')
-
-        for item in split_path:
-            if item.lower().find('atsas') > -1 and item.lower().find('bin') > -1:
-                if os.path.exists(item):
-                    return item
-
-
-    try:
-        atsas_path = os.environ['ATSAS']
-    except Exception:
-        atsas_path = None
-
-    if atsas_path != None:
-        if atsas_path.lower().find('atsas') > -1:
-            atsas_path = atsas_path.rstrip('\\')
-            atsas_path = atsas_path.rstrip('/')
-            if atsas_path.endswith('bin'):
-                return atsas_path
-            else:
-                if os.path.exists(os.path.join(atsas_path, 'bin')):
-                        return os.path.join(atsas_path, 'bin')
-
-    return ''
 
 
 def ExtractFilenameAndFrameNumber(filename, frameregexp, nameregexp):

@@ -746,7 +746,7 @@ class SECM(object):
         SEC-SAS Measurement (SECM) Object.
     '''
 
-    def __init__(self, file_list, sasm_list, frame_list, parameters):
+    def __init__(self, file_list, sasm_list, frame_list, parameters, settings):
         ''' Constructor
 
             parameters contains at least {'filename': filename_with_no_path}
@@ -811,10 +811,9 @@ class SECM(object):
         self.qrange_I = np.zeros_like(self.mean_i)
 
         self.time=[]
-        main_frame = wx.FindWindowByName('MainFrame')
-        hdr_format = main_frame.raw_settings.get('ImageHdrFormat')
+        self.hdr_format = settings.get('ImageHdrFormat')
 
-        if hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS':
+        if self.hdr_format == 'G1, CHESS' or self.hdr_format == 'G1 WAXS, CHESS':
             for sasm in self._sasm_list:
                 if sasm.getAllParameters().has_key('counters'):
                     file_hdr = sasm.getParameter('counters')
@@ -838,7 +837,7 @@ class SECM(object):
                             else:
                                 self.time.append(sasm_time+self.time[-1])
 
-        elif hdr_format == 'BioCAT, APS':
+        elif self.hdr_format == 'BioCAT, APS':
             for sasm in self._sasm_list:
                 if sasm.getAllParameters().has_key('counters'):
                     file_hdr = sasm.getParameter('counters')
@@ -942,10 +941,8 @@ class SECM(object):
         self.frame_list = self._frame_list_raw.copy()
 
         time=list(self.time)
-        main_frame = wx.FindWindowByName('MainFrame')
-        hdr_format = main_frame.raw_settings.get('ImageHdrFormat')
 
-        if hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS':
+        if self.hdr_format == 'G1, CHESS' or self.hdr_format == 'G1 WAXS, CHESS':
             for sasm in sasm_list:
                 if sasm.getAllParameters().has_key('counters'):
                     file_hdr = sasm.getParameter('counters')
@@ -968,6 +965,14 @@ class SECM(object):
                                 time.append(0)
                             else:
                                 time.append(sasm_time+self.time[-1])
+
+        elif self.hdr_format == 'BioCAT, APS':
+            for sasm in sasm_list:
+                if sasm.getAllParameters().has_key('counters'):
+                    file_hdr = sasm.getParameter('counters')
+
+                    if 'start_time' in file_hdr:
+                        time.append(file_hdr['start_time'])
 
         self.time=np.array(time,dtype=float)
 
@@ -1004,26 +1009,18 @@ class SECM(object):
         try:
             initial_frame = int(initial_frame)
         except:
-            msg = "Invalid value for initial frame."
-            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
+
             return sasms
         try:
             final_frame = int(final_frame)
-        except:
-            msg = "Invalid value for final frame."
-            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
-            return sasms
-
+        except Exception:
+            raise SASExceptions.DataNotCompatible("Invalid value for final frame.")
 
         if initial_frame > final_frame:
-            msg = "To send data to the main plot, enter a valid frame range (initial frame larger than final frame)."
-            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
-            return sasms
+            raise SASExceptions.DataNotCompatible("Initial frame larger than final frame.")
 
-        elif len(np.where(self.plot_frame_list == initial_frame)[0]) == 0:
-            msg = "To send data to the main plot, enter a valid frame range (initial frame not in data set)."
-            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
-            return sasms
+        elif initial_frame >= len(self.plot_frame_list):
+            raise SASExceptions.DataNotCompatible("Initial frame not in data set.")
 
         if int_type == 'sub' and not self.subtracted_sasm_list:
             return sasms
