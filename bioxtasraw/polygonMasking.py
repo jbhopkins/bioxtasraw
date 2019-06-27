@@ -34,7 +34,7 @@ import sys
 import numpy as np
 from numba import jit
 
-@jit
+@jit(nopython=True, cache=True)
 def npnpoly(verts,points):
     """Check whether given points are in the polygon.
 
@@ -42,7 +42,7 @@ def npnpoly(verts,points):
 
     See http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
     """
-    out = np.empty_like(points[:,0], dtype=np.bool)
+    out = np.empty_like(points[:,0], dtype=np.bool_)
 
     xpi = verts[:,0]
     ypi = verts[:,1]
@@ -54,7 +54,7 @@ def npnpoly(verts,points):
     # shift
     xpj = xpi[np.arange(xpi.size)-1]
     ypj = ypi[np.arange(ypi.size)-1]
-    maybe = np.empty(len(xpi),dtype=np.bool)
+    maybe = np.empty(len(xpi),dtype=np.bool_)
     for i in xrange(points.shape[0]):
         x,y = points[i]
 

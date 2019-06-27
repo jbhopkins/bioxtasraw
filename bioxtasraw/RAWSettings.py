@@ -194,12 +194,7 @@ class RawGuiSettings(object):
                                                        'Beam Y Center'            : ['Ycenter',           None, ''],
                                                        'Sample Detector Distance' : ['SampleDistance',    None, ''],
                                                        'Wavelength'               : ['WaveLength',        None, ''],
-                                                       'Detector Pixel Size'      : ['DetectorPixelSize', None, ''],
-                                                       'Config Prefix'            : ['ConfigPrefix',      None, ''],
-                                                       'UV Path Length'           : ['UVPathlength',      None, ''],
-                                                       'UV Transmission'          : ['UVTransmission',    None, ''],
-                                                       'UV Dark Transmission'     : ['UVDarkTransmission',None, ''],
-                                                       'Concentration'            : ['Concentration',     None, '']}],
+                                                       'Detector Pixel Size'      : ['DetectorPixelSize', None, '']}],
                                                        # 'Number of Frames'         : ['NumberOfFrames',    None, '']}],
 
                             'NormalizationList'    : [None, wx.NewId(), 'text'],
@@ -391,6 +386,8 @@ class RawGuiSettings(object):
     def getAllParams(self):
         return self._params
 
+
+
 def fixBackwardsCompatibility(raw_settings):
 
     #Backwards compatibility for BindList:
@@ -399,8 +396,36 @@ def fixBackwardsCompatibility(raw_settings):
         if len(bind_list[each_key]) == 2:
             bind_list[each_key] = [bind_list[each_key][0], bind_list[each_key][1], '']
 
-#    if 'Config Prefix' not in bind_list.keys():
-#        bind_list['Config Prefix'] = ['Config Prefix', None, '']
+    masks = copy.copy(raw_settings.get('Masks'))
+
+    for mask_type in masks.keys():
+        mask_list = masks[mask_type][1]
+        if mask_list is not None:
+
+            for i, mask in enumerate(mask_list):
+                if isinstance(mask, SASImage.Mask):
+                    mask._calcFillPoints()
+                elif isinstance(mask, SASImage._oldMask):
+                    if mask._type == 'rectangle':
+                        mask = SASImage.RectangleMask(mask._points[0],
+                            mask._points[1], mask._mask_id, mask._img_dimension,
+                            mask._is_negative_mask)
+                    elif mask._type == 'circle':
+                        mask = SASImage.CircleMask(mask._points[0],
+                            mask._points[1], mask._mask_id, mask._img_dimension,
+                            mask._is_negative_mask)
+                    if mask._type == 'polygon':
+                        mask = SASImage.PolygonMask(mask._points,
+                            mask._mask_id, mask._img_dimension,
+                            mask._is_negative_mask)
+
+
+                mask_list[i] = mask
+
+            masks[mask_type][1] = mask_list
+
+    raw_settings.set('Masks', masks)
+
 
 def loadSettings(raw_settings, loadpath, auto_load = False):
 
@@ -424,16 +449,9 @@ def loadSettings(raw_settings, loadpath, auto_load = False):
         if key not in loaded_param:
             all_params[key] = default_settings[key]
 
-    if auto_load == False:
-        main_frame = wx.FindWindowByName('MainFrame')
-        main_frame.queueTaskInWorkerThread('recreate_all_masks', None)
-
     postProcess(raw_settings)
 
-    backup_file = os.path.join(RAWGlobals.RAWWorkDir, 'backup.cfg')
-
-    if backup_file != loadpath:
-        shutil.copyfile(loadpath, backup_file)
+    msg = ''
 
     if 'RequiredVersion' in all_params:
         rv = raw_settings.get('RequiredVersion')
@@ -461,10 +479,7 @@ def loadSettings(raw_settings, loadpath, auto_load = False):
                 'may not work correctly. You can find the newest version of RAW at '
                 'http://bioxtas-raw.rftm.io/' %(rv, RAWGlobals.version))
 
-            wx.CallAfter(wx.MessageBox, msg, 'Warning: incompatible version of RAW',
-                style = wx.ICON_ERROR | wx.OK)
-
-    return True
+    return True, msg
 
 def postProcess(raw_settings):
     fixBackwardsCompatibility(raw_settings)
@@ -540,8 +555,8 @@ def postProcess(raw_settings):
         wx.CallAfter(wx.MessageBox, 'The following settings have been disabled because the appropriate directory/file could not be found:\n'+text+'\nIf you are using a config file from a different computer please go into Advanced Options to change the settings, or save you config file to avoid this message next time.', 'Load Settings Warning', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
     if raw_settings.get('autoFindATSAS'):
-        main_frame = wx.FindWindowByName('MainFrame')
-        main_frame.findAtsas()
+        atsas_dir = SASFileIO.findATSASDirectory()
+        raw_settings.set('ATSASDir', atsas_dir)
 
     return
 
