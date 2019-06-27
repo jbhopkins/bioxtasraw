@@ -86,6 +86,7 @@ class RawGuiSettings(object):
                             'DetectorFlipped90':[False, wx.NewId(), 'bool'],
                             'DetectorFlipLR' : [True, wx.NewId(), 'bool'],
                             'DetectorFlipUD' : [False, wx.NewId(), 'bool'],
+                            'UseHeaderForConfig': [False, wx.NewId(), 'bool'],
 
                             #CORRECTIONS
                             'DoSolidAngleCorrection' : [True, wx.NewId(), 'bool'],
@@ -193,7 +194,12 @@ class RawGuiSettings(object):
                                                        'Beam Y Center'            : ['Ycenter',           None, ''],
                                                        'Sample Detector Distance' : ['SampleDistance',    None, ''],
                                                        'Wavelength'               : ['WaveLength',        None, ''],
-                                                       'Detector Pixel Size'      : ['DetectorPixelSize', None, '']}],
+                                                       'Detector Pixel Size'      : ['DetectorPixelSize', None, ''],
+                                                       'Config Prefix'            : ['ConfigPrefix',      None, ''],
+                                                       'UV Path Length'           : ['UVPathlength',      None, ''],
+                                                       'UV Transmission'          : ['UVTransmission',    None, ''],
+                                                       'UV Dark Transmission'     : ['UVDarkTransmission',None, ''],
+                                                       'Concentration'            : ['Concentration',     None, '']}],
                                                        # 'Number of Frames'         : ['NumberOfFrames',    None, '']}],
 
                             'NormalizationList'    : [None, wx.NewId(), 'text'],
@@ -206,6 +212,7 @@ class RawGuiSettings(object):
                             'EnableOnlineFiltering': [False, wx.NewId(), 'bool'],
                             'OnlineModeOnStartup'  : [False, wx.NewId(), 'bool'],
 	                        'OnlineStartupDir'     : [None, wx.NewId(), 'text'],
+                            'HdrLoadConfigDir'     : [None, wx.NewId(), 'text'],
 
                             'MWStandardMW'         : [0, wx.NewId(), 'float'],
                             'MWStandardI0'         : [0, wx.NewId(), 'float'],
@@ -384,8 +391,6 @@ class RawGuiSettings(object):
     def getAllParams(self):
         return self._params
 
-
-
 def fixBackwardsCompatibility(raw_settings):
 
     #Backwards compatibility for BindList:
@@ -394,8 +399,10 @@ def fixBackwardsCompatibility(raw_settings):
         if len(bind_list[each_key]) == 2:
             bind_list[each_key] = [bind_list[each_key][0], bind_list[each_key][1], '']
 
+#    if 'Config Prefix' not in bind_list.keys():
+#        bind_list['Config Prefix'] = ['Config Prefix', None, '']
 
-def loadSettings(raw_settings, loadpath):
+def loadSettings(raw_settings, loadpath, auto_load = False):
 
     loaded_param = SASFileIO.readSettings(loadpath)
 
@@ -417,10 +424,11 @@ def loadSettings(raw_settings, loadpath):
         if key not in loaded_param:
             all_params[key] = default_settings[key]
 
-    postProcess(raw_settings)
+    if auto_load == False:
+        main_frame = wx.FindWindowByName('MainFrame')
+        main_frame.queueTaskInWorkerThread('recreate_all_masks', None)
 
-    main_frame = wx.FindWindowByName('MainFrame')
-    main_frame.queueTaskInWorkerThread('recreate_all_masks', None)
+    postProcess(raw_settings)
 
     backup_file = os.path.join(RAWGlobals.RAWWorkDir, 'backup.cfg')
 

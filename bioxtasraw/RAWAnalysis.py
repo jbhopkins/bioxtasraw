@@ -62,6 +62,265 @@ import SASProc
 import BIFT
 import DENSS
 
+class UVConcentrationDialog(wx.Dialog):
+    def __init__(self, parent, title, selected_sasms, bg_sasm):
+        wx.Dialog.__init__(self, None, title = title, size = (250,150))
+
+        layout_sizer = wx.BoxSizer(wx.VERTICAL)        
+        self.panel = UVConcentrationPanel(self, 'UVConcPanel', selected_sasms = selected_sasms, bg_sasm = bg_sasm)
+        
+        layout_sizer.Add(self.panel, 0)
+        layout_sizer.Add(self.CreateButtonSizer( wx.OK | wx.CANCEL ), 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
+        self.Bind(wx.EVT_BUTTON, self.OnOKButton, id = wx.ID_OK)
+        self.Bind(wx.EVT_BUTTON, self.OnCancelButton, id=wx.ID_CANCEL)
+        self.SetSizerAndFit(layout_sizer)
+        
+    def OnOKButton(self, event):
+        self.panel.processAndSaveAll()
+        event.Skip()
+            
+    def OnCancelButton(self, event):
+        event.Skip()
+
+class UVConcentrationPanel(wx.Panel):
+    
+    def __init__(self, parent, name, selected_sasms = None, bg_sasm = None):
+        wx.Panel.__init__(self, parent, -1, name = name)
+        
+        self.selected_sasms = selected_sasms
+        self.bg_sasm = bg_sasm
+        
+        main_frame = wx.FindWindowByName('MainFrame')        
+        try:
+            self.raw_settings = main_frame.raw_settings
+        except AttributeError:
+            self.raw_settings = RAWSettings.RawGuiSettings()
+            
+        self.extc_values = {'Lysozyme'  : [26.4, 2.64],
+                            'BSA'       : [6.7, 0.67],
+                            'IgG'       : [13.7, 1.37],
+                            'Abs=1mg/ml': [10, 1.0]}
+                            
+        self.extc_choices = ['Lysozyme', 'BSA', 'IgG', 'Abs=1mg/ml', 'Custom']
+        self.unit_choices = ['E1% [ml/(10mg) cm^-1]', 'E0.1% [ml/mg cm^-1]']
+            
+        self.spin_ctrl_ids = {'UVDarkTransmission' : [wx.NewId(), wx.NewId(), 'UV Dark', 0],
+                              'UVTransmissionBg'   : [wx.NewId(), wx.NewId(), 'UV Transmission (Bg)', 2.0],
+                              'UVTransmissionSamp' : [wx.NewId(), wx.NewId(), 'UV Transmission (Sample)', 1.0],
+                              'UVPathlength'       : [wx.NewId(), wx.NewId(), 'UV Path Length [mm]', 1.5],
+                              'UVExtinctionCoeff'  : [wx.NewId(), wx.NewId(), 'Extinction Coeff.', 24.0]}
+                              
+        self.all_spins = ['UVDarkTransmission', 'UVTransmissionBg', 'UVTransmissionSamp', 'UVPathlength', 'UVExtinctionCoeff']        
+        self.double_spins = ['UVPathlength', 'UVExtinctionCoeff']
+        
+
+        self._initLayout()
+        self._initValues()
+        self.onChoiceUpdate(None)
+        #self._updateCalculation()
+
+    def _calcConcentration(self, A = None):
+        #A=lec
+        if A == None:
+            A = float(self.absorb_ctrl.GetValue())
+            
+        l = (self.spin_ctrl_ids['UVPathlength'][3] / 10) #in cm
+        e = self.spin_ctrl_ids['UVExtinctionCoeff'][3]
+        
+        c = A / (float(l)*float(e))
+        
+        if self.units_choice.GetStringSelection() == self.unit_choices[0]:
+            c = c * 10
+    
+        return c    
+    
+    def onSpinUpdate(self, event):
+        for each in self.spin_ctrl_ids.keys():
+            spin_id, button_id, label, val = self.spin_ctrl_ids[each]
+            
+            ctrl = wx.FindWindowById(spin_id)
+            self.spin_ctrl_ids[each][3] = float(ctrl.GetValue())
+            
+        self._updateCalculation()
+        
+    def onChoiceUpdate(self, event):
+    
+        idx = self.units_choice.GetSelection() 
+        key = self.extc_choice.GetStringSelection()
+        
+        if key == 'Custom':
+            return
+        
+        ctrl = wx.FindWindowById(self.spin_ctrl_ids['UVExtinctionCoeff'][0])
+        ctrl.SetValue(self.extc_values[key][idx])
+        self.spin_ctrl_ids['UVExtinctionCoeff'][3]=self.extc_values[key][idx]
+        
+        self._updateCalculation()
+    
+    def _updateCalculation(self):
+        a = self._calcAbsorbance()
+        c = self._calcConcentration(a)
+        
+        self.absorb_ctrl.SetValue(str(round(a, 4)))
+        self.conc_ctrl.SetValue(str(round(c, 4)))
+        
+    def _calcAbsorbance(self):
+        #A = log10(I0/I)
+    
+        blank_val = self.spin_ctrl_ids['UVTransmissionBg'][3]
+        dark_val = self.spin_ctrl_ids['UVDarkTransmission'][3]
+        trans_int = self.spin_ctrl_ids['UVTransmissionSamp'][3]
+
+        I0 = blank_val - dark_val
+        I = trans_int - dark_val
+        reverse_sign = False
+        frac = 0
+
+        try: 
+            frac = float(I0)/float(I)
+
+            if frac < 1:
+               frac = float(I)/float(I0)
+               reverse_sign = True
+
+            a = np.log10(frac)
+        except ZeroDivisionError:
+            a = 0
+
+        if np.isnan(a) or np.isinf(a):
+            a = 0
+        
+        if reverse_sign:
+            a = -a
+
+        return a
+        
+    def _initValues(self):
+        bg_data = self.bg_sasm.getParameter('analysis')['uvvis']
+        
+        # For background
+        for key in bg_data.keys():
+            if bg_data[key] != None:
+                
+                if key == 'UVTransmission':
+                    spin_key = 'UVTransmissionBg'
+                else:
+                    spin_key = key
+                    
+                ctrl = wx.FindWindowById(self.spin_ctrl_ids[spin_key][0])
+                
+                if key in self.double_spins:
+                    ctrl.SetValue(float(bg_data[key]))
+                else: 
+                    ctrl.SetValue(float(bg_data[key]))
+                
+                self.spin_ctrl_ids[spin_key][3] = float(bg_data[key])
+                    
+        samp_data = self.selected_sasms[0].getParameter('analysis')['uvvis']
+        ctrl = wx.FindWindowById(self.spin_ctrl_ids['UVTransmissionSamp'][0])
+        ctrl.SetValue(samp_data['UVTransmission'])
+        self.spin_ctrl_ids['UVTransmissionSamp'][3]=float(samp_data['UVTransmission'])        
+        
+        self.bg_txt.SetLabel(self.bg_sasm.getParameter('filename'))
+        self.sample_txt.SetLabel(self.selected_sasms[0].getParameter('filename'))
+        
+    def setSampleValues(self, sasm):
+        samp_data = sasm.getParameter('analysis')['uvvis']
+        self.spin_ctrl_ids['UVTransmissionSamp'][3]=float(samp_data['UVTransmission'])
+        
+    def updateGui(self):
+        ctrl = wx.FindWindowById(self.spin_ctrl_ids['UVTransmissionSamp'][0])
+        ctrl.SetValue(self.spin_ctrl_ids['UVTransmissionSamp'][3])
+                        
+    def _initLayout(self):
+        
+        layout_sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        self.extc_choice = wx.Choice(self, -1, choices = self.extc_choices)
+        self.extc_choice.Bind(wx.EVT_CHOICE, self.onChoiceUpdate)
+        self.units_choice = wx.Choice(self, -1, choices = self.unit_choices)
+        self.units_choice.Bind(wx.EVT_CHOICE, self.onChoiceUpdate)
+        self.extc_choice.Select(0)
+        self.units_choice.Select(0)
+         
+        choice_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        choice_sizer.Add(self.units_choice, 0, wx.EXPAND)
+        choice_sizer.Add(self.extc_choice, 0, wx.EXPAND | wx.LEFT, 5)
+        
+        file_sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap = 4, hgap = 4)
+        bg_label = wx.StaticText(self, -1, 'Background : ')
+        samp_label = wx.StaticText(self, -1, 'Sample : ')
+        self.bg_txt = wx.StaticText(self, -1, 'Bgfile')
+        self.sample_txt = wx.StaticText(self, -1, 'Sampfile')
+        file_sizer.Add(bg_label, 0)
+        file_sizer.Add(self.bg_txt, 0, wx.EXPAND)
+        file_sizer.Add(samp_label, 0)
+        file_sizer.Add(self.sample_txt, 0)
+        layout_sizer.Add(file_sizer,0, wx.EXPAND | wx.ALL, 10)
+
+        spin_sizer = wx.FlexGridSizer(cols = 3, rows = len(self.all_spins), vgap = 4, hgap= 4)
+        
+        for key in self.all_spins:
+            spin_id, button_id, label, val = self.spin_ctrl_ids[key]
+            
+            if key in self.double_spins:
+                spin_ctrl = wx.SpinCtrlDouble(self, spin_id, value = '1.0', min = 0, max = 16000, initial = 1)
+                spin_ctrl.SetIncrement(0.1)
+                spin_ctrl.SetDigits(3)
+                spin_ctrl.Bind(wx.EVT_SPINCTRLDOUBLE, self.onSpinUpdate)
+            else:    
+                spin_ctrl = wx.SpinCtrlDouble(self, spin_id, value = '1.0', min = 0, max = 16000, initial = 1)
+                spin_ctrl.SetIncrement(0.1)
+                spin_ctrl.SetDigits(2)                
+                spin_ctrl.Bind(wx.EVT_SPINCTRLDOUBLE, self.onSpinUpdate)
+            static_label = wx.StaticText(self, -1, label)
+            
+            #button = wx.Button(self, button_id, 'From Header')
+             
+            if key not in ['UVExtinctionCoeff']:
+                spin_sizer.Add(static_label, 0, wx.ALIGN_CENTER_VERTICAL)
+                spin_sizer.Add(spin_ctrl, 0, wx.ALIGN_CENTER | wx.EXPAND)
+                spin_sizer.Add((10,10), 0)                
+            else:
+                spin_sizer.Add(static_label, 0, wx.ALIGN_CENTER_VERTICAL)
+                spin_sizer.Add(spin_ctrl, 0, wx.ALIGN_CENTER)
+                
+        spin_sizer.Add(choice_sizer, 0, wx.EXPAND)
+        
+        layout_sizer.Add(spin_sizer, 0, wx.EXPAND | wx.ALL, 10)
+        layout_sizer.Add(wx.StaticLine(self, -1, style = wx.LI_HORIZONTAL), 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
+        
+        conc_sizer = wx.FlexGridSizer(rows = 2, cols = 3, vgap = 4, hgap=4)
+        absorb_label = wx.StaticText(self, -1, 'Absorbance')        
+        self.absorb_ctrl = wx.TextCtrl(self, -1, '0', style = wx.TE_RIGHT)
+        
+        conc_label = wx.StaticText(self, -1, 'Concentration')
+        self.conc_ctrl = wx.TextCtrl(self, -1, '1', style = wx.TE_RIGHT)
+         
+        conc_sizer.Add(absorb_label, 0, wx.ALIGN_CENTRE_VERTICAL)
+        conc_sizer.Add(self.absorb_ctrl, 0)
+        conc_sizer.Add(wx.StaticText(self, -1, 'AU'), 0, wx.ALIGN_CENTRE_VERTICAL)
+        conc_sizer.Add(conc_label, 0, wx.ALIGN_CENTRE_VERTICAL)
+        conc_sizer.Add(self.conc_ctrl, 0)
+        conc_sizer.Add(wx.StaticText(self, -1, 'mg/ml'), 0, wx.ALIGN_CENTRE_VERTICAL)
+
+        layout_sizer.Add(conc_sizer, 0, wx.EXPAND | wx.ALL, 10)
+        
+        self.SetSizerAndFit(layout_sizer)
+ 
+    def processAndSaveAll(self):
+        
+        for each_sasm in self.selected_sasms:
+            self.setSampleValues(each_sasm)
+            
+            a = self._calcAbsorbance()
+            c = self._calcConcentration(a)
+            
+            print each_sasm, a, c
+            each_sasm.setParameter('Conc', round(c, 3))
+            each_sasm.setParameter('Absorbance', a)
+                      
+        
 class GuinierPlotPanel(wx.Panel):
 
     def __init__(self, parent, panel_id):

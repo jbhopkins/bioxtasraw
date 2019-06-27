@@ -22,6 +22,12 @@ Created on Aug 2, 2010
 #******************************************************************************
 '''
 
+class ImageLoadError(Exception):
+       def __init__(self, value):
+           self.parameter = value
+       def __str__(self):
+           return repr(self.parameter)
+
 class WrongImageFormat(Exception):
        def __init__(self, value):
            self.parameter = value

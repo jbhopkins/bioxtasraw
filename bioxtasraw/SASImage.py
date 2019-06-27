@@ -309,6 +309,7 @@ def getBindListDataFromHeader(raw_settings, img_hdr, file_hdr, keys):
             data = bind_list[each_key][1]
             hdr_choice = data[1]
             key = data[0]
+
             if hdr_choice == 'imghdr': hdr = img_hdr
             else: hdr = file_hdr
 

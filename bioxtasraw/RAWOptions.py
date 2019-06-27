@@ -609,7 +609,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         list is selected.
         '''
 
-        self.currentItem = event.m_itemIndex
+        self.currentItem = event.GetIndex() #m_itemIndex
 
         name = self.lc.getColumnText(self.currentItem, 0)
         value = self.lc.getColumnText(self.currentItem, 1)
@@ -2226,15 +2226,16 @@ class GeneralOptionsPanel(wx.Panel):
 
         self.update_keys = ['ManipItemCollapsed', 'DatHeaderOnTop',
             'UseHeaderForMask', 'DetectorFlipped90', 'OnlineModeOnStartup',
-            'OnlineStartupDir', 'DetectorFlipLR', 'DetectorFlipUD',
+            'OnlineStartupDir', 'DetectorFlipLR', 'DetectorFlipUD', 'UseHeaderForConfig', 'HdrLoadConfigDir'
             ]# 'PromptConfigLoad']
 
         self.chkboxdata = [('Hide controls on manipulation items for new plots', raw_settings.getId('ManipItemCollapsed')),
                            ('Write header on top of dat files', raw_settings.getId('DatHeaderOnTop')),
-                           ('Use header for mask creation (SAXSLAB instruments)', raw_settings.getId('UseHeaderForMask')),
-                           ('Detector is rotated 90 degrees (SAXSLAB instruments)', raw_settings.getId('DetectorFlipped90')),
-                           ('Flip detector image left-right (non-SAXSLAB)', raw_settings.getId('DetectorFlipLR')),
-                           ('Flip detector image up-down (non-SAXSLAB)', raw_settings.getId('DetectorFlipUD')),
+                           ('Use header for mask creation (Xenocs instruments)', raw_settings.getId('UseHeaderForMask')),
+                           ('Use header for new config load (Xenocs instruments)', raw_settings.getId('UseHeaderForConfig')),
+                           ('Detector is rotated 90 degrees (Xenocs instruments)', raw_settings.getId('DetectorFlipped90')),
+                           ('Flip detector image left-right (non-Xenocs)', raw_settings.getId('DetectorFlipLR')),
+                           ('Flip detector image up-down (non-Xenocs)', raw_settings.getId('DetectorFlipUD')),
                            #('Prompt for config load on startup', raw_settings.getId('PromptConfigLoad')),
                            ('Start online mode on startup', raw_settings.getId('OnlineModeOnStartup'))]
 
@@ -2266,11 +2267,23 @@ class GeneralOptionsPanel(wx.Panel):
         setdir_button.Bind(wx.EVT_BUTTON, self.onOnlineDirSet)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
-        hsizer.Add(online_dir_txt, 0)
+        hsizer.Add(online_dir_txt, 0, wx.ALIGN_CENTER_VERTICAL)
         hsizer.Add(online_dir_ctrl, 1, wx.EXPAND | wx.LEFT, 5)
         hsizer.Add(setdir_button, 0, wx.LEFT, 5)
 
-        staticBoxSizer.Add(hsizer, 1, wx.EXPAND | wx.LEFT, 5)
+        hdrldconfig_dir_ctrl = wx.TextCtrl(self, self.raw_settings.getId('HdrLoadConfigDir'), '', style = wx.TE_PROCESS_ENTER)
+        hdrldconfig_dir_txt = wx.StaticText(self, -1, 'Header loaded config directory :')
+
+        hdrldsetdir_button = wx.Button(self, -1, 'Set')
+        hdrldsetdir_button.Bind(wx.EVT_BUTTON, self.onHdrLdConfigDirSet)
+
+        hsizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        hsizer2.Add(hdrldconfig_dir_txt, 0, wx.ALIGN_CENTER_VERTICAL)
+        hsizer2.Add(hdrldconfig_dir_ctrl, 1, wx.EXPAND | wx.LEFT, 5)
+        hsizer2.Add(hdrldsetdir_button, 0, wx.LEFT, 5)
+
+        staticBoxSizer.Add(hsizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
+        staticBoxSizer.Add(hsizer2, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
 
         return staticBoxSizer
 
@@ -2280,6 +2293,14 @@ class GeneralOptionsPanel(wx.Panel):
         if dirdlg.ShowModal() == wx.ID_OK:
             selected_path = dirdlg.GetPath()
             ctrl = wx.FindWindowById(self.raw_settings.getId('OnlineStartupDir'), self)
+            ctrl.SetValue(str(selected_path))
+
+    def onHdrLdConfigDirSet(self, event):
+        dirdlg = wx.DirDialog(self.GetParent(), "Please select directory:", '')
+
+        if dirdlg.ShowModal() == wx.ID_OK:
+            selected_path = dirdlg.GetPath()
+            ctrl = wx.FindWindowById(self.raw_settings.getId('HdrLoadConfigDir'), self)
             ctrl.SetValue(str(selected_path))
 
     def onChkBox(self, event):
