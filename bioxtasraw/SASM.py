@@ -814,40 +814,7 @@ class SECM(object):
         self.time=[]
         self.hdr_format = settings.get('ImageHdrFormat')
 
-        if self.hdr_format == 'G1, CHESS' or self.hdr_format == 'G1 WAXS, CHESS':
-            for sasm in self._sasm_list:
-                if sasm.getAllParameters().has_key('counters'):
-                    file_hdr = sasm.getParameter('counters')
-
-                    if '#C' not in file_hdr.values():
-                        if file_hdr.has_key('Time'):
-                            sasm_time = float(file_hdr['Time'])
-                            self.time.append(sasm_time)
-
-                        elif file_hdr.has_key('Seconds'):
-                            sasm_time = float(file_hdr['Seconds'])
-                            if len(self.time) == 0:
-                                self.time.append(0.)
-                            else:
-                                self.time.append(sasm_time+self.time[-1])
-
-                        elif file_hdr.has_key('Exposure_time'):
-                            sasm_time = float(file_hdr['Exposure_time'])
-                            if len(self.time) == 0:
-                                self.time.append(0.)
-                            else:
-                                self.time.append(sasm_time+self.time[-1])
-
-        elif self.hdr_format == 'BioCAT, APS':
-            for sasm in self._sasm_list:
-                if sasm.getAllParameters().has_key('counters'):
-                    file_hdr = sasm.getParameter('counters')
-
-                    if 'start_time' in file_hdr:
-                        self.time.append(float(file_hdr['start_time']))
-
-        self.time=np.array(self.time,dtype=float)
-
+        self.calcTime(self._sasm_list)
 
         ####### Parameters for autocalculating rg, MW for SEC plot
         self.buffer_range = []
@@ -941,41 +908,7 @@ class SECM(object):
 
         self.frame_list = self._frame_list_raw.copy()
 
-        time=list(self.time)
-
-        if self.hdr_format == 'G1, CHESS' or self.hdr_format == 'G1 WAXS, CHESS':
-            for sasm in sasm_list:
-                if sasm.getAllParameters().has_key('counters'):
-                    file_hdr = sasm.getParameter('counters')
-
-                    if '#C' not in file_hdr.values():
-                        if file_hdr.has_key('Time'):
-                            sasm_time = float(file_hdr['Time'])
-                            time.append(sasm_time)
-
-                        elif file_hdr.has_key('Seconds'):
-                            sasm_time = float(file_hdr['Seconds'])
-                            if len(time) == 0:
-                                time.append(0)
-                            else:
-                                time.append(sasm_time+time[-1])
-
-                        elif file_hdr.has_key('Exposure_time'):
-                            sasm_time = float(file_hdr['Exposure_time'])
-                            if len(time) == 0:
-                                time.append(0)
-                            else:
-                                time.append(sasm_time+self.time[-1])
-
-        elif self.hdr_format == 'BioCAT, APS':
-            for sasm in sasm_list:
-                if sasm.getAllParameters().has_key('counters'):
-                    file_hdr = sasm.getParameter('counters')
-
-                    if 'start_time' in file_hdr:
-                        time.append(float(file_hdr['start_time']))
-
-        self.time=np.array(time, dtype=float)
+        self.calcTime(sasm_list)
 
         if self.qref>0:
             I_of_q = np.array([sasm.getIofQ(self.qref) for sasm in sasm_list])
@@ -1042,6 +975,44 @@ class SECM(object):
             return np.zeros_like(self.frame_list) - 1
         else:
             return self.time
+
+    def calcTime(self, sasm_list):
+        time=list(self.time)
+
+        if self.hdr_format == 'G1, CHESS' or self.hdr_format == 'G1 WAXS, CHESS':
+            for sasm in sasm_list:
+                if sasm.getAllParameters().has_key('counters'):
+                    file_hdr = sasm.getParameter('counters')
+
+                    if '#C' not in file_hdr.values():
+                        if file_hdr.has_key('Time'):
+                            sasm_time = float(file_hdr['Time'])
+                            time.append(sasm_time)
+
+                        elif file_hdr.has_key('Seconds'):
+                            sasm_time = float(file_hdr['Seconds'])
+                            if len(time) == 0:
+                                time.append(0)
+                            else:
+                                time.append(sasm_time+time[-1])
+
+                        elif file_hdr.has_key('Exposure_time'):
+                            sasm_time = float(file_hdr['Exposure_time'])
+                            if len(time) == 0:
+                                time.append(0)
+                            else:
+                                time.append(sasm_time+self.time[-1])
+
+        elif self.hdr_format == 'BioCAT, APS':
+            for sasm in sasm_list:
+                if sasm.getAllParameters().has_key('counters'):
+                    file_hdr = sasm.getParameter('counters')
+
+                    if 'start_time' in file_hdr:
+                        time.append(float(file_hdr['start_time']))
+
+        self.time = np.array(time, dtype=float)
+
     def scaleRelative(self, relscale):
         self._scale_factor = abs(self._scale_factor * relscale)
         self._update()
