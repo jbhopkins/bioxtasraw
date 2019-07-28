@@ -761,6 +761,7 @@ class SECM(object):
         self._sasm_list = sasm_list
         self._frame_list_raw = np.array(frame_list, dtype=int)
         self._parameters = parameters
+        self._settings = settings
 
         # Make an entry for analysis parameters i.e. Rg, I(0) etc:
         if 'analysis' not in self._parameters:
@@ -820,20 +821,20 @@ class SECM(object):
 
                     if '#C' not in file_hdr.values():
                         if file_hdr.has_key('Time'):
-                            sasm_time = file_hdr['Time']
+                            sasm_time = float(file_hdr['Time'])
                             self.time.append(sasm_time)
 
                         elif file_hdr.has_key('Seconds'):
-                            sasm_time = file_hdr['Seconds']
+                            sasm_time = float(file_hdr['Seconds'])
                             if len(self.time) == 0:
-                                self.time.append(0)
+                                self.time.append(0.)
                             else:
                                 self.time.append(sasm_time+self.time[-1])
 
                         elif file_hdr.has_key('Exposure_time'):
-                            sasm_time = file_hdr['Exposure_time']
+                            sasm_time = float(file_hdr['Exposure_time'])
                             if len(self.time) == 0:
-                                self.time.append(0)
+                                self.time.append(0.)
                             else:
                                 self.time.append(sasm_time+self.time[-1])
 
@@ -843,7 +844,7 @@ class SECM(object):
                     file_hdr = sasm.getParameter('counters')
 
                     if 'start_time' in file_hdr:
-                        self.time.append(file_hdr['start_time'])
+                        self.time.append(float(file_hdr['start_time']))
 
         self.time=np.array(self.time,dtype=float)
 
@@ -949,18 +950,18 @@ class SECM(object):
 
                     if '#C' not in file_hdr.values():
                         if file_hdr.has_key('Time'):
-                            sasm_time = file_hdr['Time']
+                            sasm_time = float(file_hdr['Time'])
                             time.append(sasm_time)
 
                         elif file_hdr.has_key('Seconds'):
-                            sasm_time = file_hdr['Seconds']
+                            sasm_time = float(file_hdr['Seconds'])
                             if len(time) == 0:
                                 time.append(0)
                             else:
                                 time.append(sasm_time+time[-1])
 
                         elif file_hdr.has_key('Exposure_time'):
-                            sasm_time = file_hdr['Exposure_time']
+                            sasm_time = float(file_hdr['Exposure_time'])
                             if len(time) == 0:
                                 time.append(0)
                             else:
@@ -972,9 +973,9 @@ class SECM(object):
                     file_hdr = sasm.getParameter('counters')
 
                     if 'start_time' in file_hdr:
-                        time.append(file_hdr['start_time'])
+                        time.append(float(file_hdr['start_time']))
 
-        self.time=np.array(time,dtype=float)
+        self.time=np.array(time, dtype=float)
 
         if self.qref>0:
             I_of_q = np.array([sasm.getIofQ(self.qref) for sasm in sasm_list])
@@ -1199,7 +1200,7 @@ class SECM(object):
         ''' return a copy of the object '''
 
         copy_secm = SECM(copy.deepcopy(self._file_list), copy.deepcopy(self._sasm_list),
-            copy.deepcopy(self._frame_list_raw), copy.deepcopy(self._parameters))
+            copy.deepcopy(self._frame_list_raw), copy.deepcopy(self._parameters), self._settings)
 
         copy_secm.qref = copy.deepcopy(self.qref)
         copy_secm.I_of_q = copy.deepcopy(self.I_of_q)
