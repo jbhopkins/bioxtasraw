@@ -2589,6 +2589,25 @@ class FigureSaveDialog(wx.Dialog):
 
         self.SetSizer(top_sizer)
         self.Fit()
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
+
         self.CenterOnParent()
 
     def restoreFigureSize(self):

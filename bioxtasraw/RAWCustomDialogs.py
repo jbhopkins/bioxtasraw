@@ -44,37 +44,6 @@ import RAWCustomCtrl
 import RAWGlobals
 
 
-class SaveDialog(wx.Dialog):
-    def __init__(self, parent, id, title, text):
-        wx.Dialog.__init__(self, parent, id, title)
-
-        sizer =  wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(wx.StaticText(self, -1, text), 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
-
-        button_sizer = wx.BoxSizer()
-
-        button_sizer.Add(wx.Button(self, wx.ID_SAVE, 'Save'), 0, wx.RIGHT, 5)
-        button_sizer.Add(wx.Button(self, wx.ID_DELETE, 'Discard'), 0, wx.RIGHT, 5)
-        button_sizer.Add(wx.Button(self, wx.ID_CANCEL, 'Cancel'), 0)
-        sizer.Add(button_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 10)
-
-        self.Bind(wx.EVT_BUTTON, self._onCancel, id=wx.ID_CANCEL)
-        self.Bind(wx.EVT_BUTTON, self._onDiscard, id=wx.ID_DELETE)
-        self.Bind(wx.EVT_BUTTON, self._onSave, id=wx.ID_SAVE)
-
-        self.SetSizer(sizer)
-        self.Fit()
-
-    def _onCancel(self, event):
-        self.EndModal(wx.ID_CANCEL)
-
-    def _onDiscard(self, event):
-        self.EndModal(wx.ID_DELETE)
-
-    def _onSave(self, event):
-        self.EndModal(wx.ID_SAVE)
-
-
 class SaveAnalysisInfoDialog(wx.Dialog):
 
     def __init__(self, parent, raw_settings, item_list = None, *args, **kwargs):
@@ -97,8 +66,24 @@ class SaveAnalysisInfoDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self._onOk, id = wx.ID_OK)
 
         self.SetSizer(self.sizer)
-        self.Layout()
-        # self.Fit()
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
     def _onOk(self, event):
         include_data = self.panel.getIncludeData()
@@ -659,7 +644,25 @@ class HdrDataDialog(wx.Dialog):
             self._insertData()
 
         self.data_grid.AutoSizeColumns()
-        self.Fit()
+        # self.Fit()
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         self.CenterOnParent()
 
@@ -849,12 +852,23 @@ class DataDialog(wx.Dialog):
         self.data_grid.AutoSizeColumns()
         self.Fit()
 
-#        try:
-#            file_list_ctrl = wx.FindWindowByName('PlotPanel')
-#            pos = file_list_ctrl.GetScreenPosition()
-#            self.MoveXY(pos[0], pos[1])
-#        except:
-#            pass
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         self.CenterOnParent()
 
@@ -957,6 +971,24 @@ class SeriesDataDialog(wx.Dialog):
 
         self.data_grid.AutoSizeColumns()
         self.Fit()
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         self.CenterOnParent()
 
@@ -1182,6 +1214,24 @@ class IFTDataDialog(wx.Dialog):
         self.data_grid.AutoSizeColumns()
         self.Fit()
 
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
+
         self.CenterOnParent()
 
     def _insertData(self):
@@ -1289,6 +1339,24 @@ class HistoryDialog(wx.Dialog):
 
         self.Layout()
 
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
+
         self.CenterOnParent()
 
 
@@ -1338,6 +1406,25 @@ class SyncDialog(wx.Dialog):
         self.SetSizer(top_sizer)
 
         self.Fit()
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
+
         self.CenterOnParent()
 
     def _onOkClicked(self, event):
@@ -1397,6 +1484,25 @@ class QuickReduceDialog(wx.Dialog):
         self.SetSizer(final_sizer)
 
         self.Fit()
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
+
         self.CenterOnParent()
 
     def _onOkClicked(self, event):
@@ -1457,6 +1563,25 @@ class FilenameChangeDialog(wx.Dialog):
 
         self.SetSizer(final_sizer)
         self.Fit()
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
+
         self.CenterOnParent()
 
     def _onOKButton(self, event):
@@ -1498,6 +1623,24 @@ class RebinDialog(wx.Dialog):
 
         self.SetSizer(top_sizer)
         self.Fit()
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         self.CenterOnParent()
 
@@ -1558,6 +1701,24 @@ class ColourChangeDialog(wx.Dialog):
 
         self.SetSizer(top_sizer)
         self.Fit()
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         self.CenterOnParent()
 
@@ -1686,7 +1847,7 @@ class ColourChangeDialog(wx.Dialog):
 
 class LinePropertyDialog(wx.Dialog):
 
-    def __init__(self, parent, sasm, legend_label, size = (478, 418), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
+    def __init__(self, parent, sasm, legend_label, size = (400, 418), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
         if sasm.line == None:
             wx.MessageBox('Unable to change line properties.\nNo plot has been made for this item.', 'No plot')
             return
@@ -1783,16 +1944,23 @@ class LinePropertyDialog(wx.Dialog):
 
         self.SetSizer(top_sizer)
 
-        self.Layout()
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
 
-        if platform.system() != 'Linux' or int(wx.__version__.split('.')[0]) <3:
-            self.Fit()
-        elif self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-            self.Fit()
-            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
-                size = self.GetSize()
-                size[1] = size[1] + 20
-                self.SetSize(size)
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         self.CenterOnParent()
 
@@ -2041,7 +2209,7 @@ class LinePropertyDialog(wx.Dialog):
 
 class IFTMLinePropertyDialog(wx.Dialog):
 
-    def __init__(self, parent, iftm, legend_label, size = (868, 598), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
+    def __init__(self, parent, iftm, legend_label, size = (500, 598), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
 
         if iftm.r_line == None:
             wx.MessageBox('Unable to change line properties.\nNo plot has been made for this item.', 'No plot')
@@ -2239,32 +2407,38 @@ class IFTMLinePropertyDialog(wx.Dialog):
         side_sizer = wx.BoxSizer(wx.HORIZONTAL)
         side_sizer.Add(rboxSizer, 0, wx.EXPAND)
         side_sizer.AddStretchSpacer(1)
-        side_sizer.Add(qoboxSizer, 0, wx.EXPAND)
+        side_sizer.Add(qoboxSizer, 0, wx.EXPAND|wx.LEFT, border=10)
 
         side_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
         side_sizer2.Add(qfboxSizer, 0, wx.EXPAND)
         side_sizer2.AddStretchSpacer(1)
 
 
-        top_sizer.Add(side_sizer, 0, wx.ALL | wx.EXPAND, 2)
+        top_sizer.Add(side_sizer, 0, wx.ALL | wx.EXPAND, 5)
         top_sizer.AddStretchSpacer(1)
-        top_sizer.Add(side_sizer2, 0, wx.ALL | wx.EXPAND, 2)
+        top_sizer.Add(side_sizer2, 0, wx.ALL | wx.EXPAND, 5)
         top_sizer.AddStretchSpacer(1)
-        top_sizer.Add(wx.StaticLine(self, -1), wx.EXPAND |wx.TOP | wx.BOTTOM, 2)
-        top_sizer.Add(buttonsizer, 0, wx.CENTER | wx.BOTTOM, 3)
+        top_sizer.Add(buttonsizer, 0, wx.CENTER | wx.BOTTOM, 5)
 
         self.SetSizer(top_sizer)
 
-        self.Layout()
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
 
-        if platform.system() != 'Linux' or int(wx.__version__.split('.')[0]) <3:
-            self.Fit()
-        elif self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-            self.Fit()
-            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
-                size = self.GetSize()
-                size[1] = size[1] + 20
-                self.SetSize(size)
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         self.CenterOnParent()
 
@@ -2991,25 +3165,31 @@ class SECMLinePropertyDialog(wx.Dialog):
         calcline_sizer.Add(calclinesettings_sizer, 0, wx.ALL | wx.EXPAND, 5)
 
 
-        top_sizer.Add(secline_sizer, 0, wx.ALL | wx.EXPAND, 2)
+        top_sizer.Add(secline_sizer, 0, wx.ALL | wx.EXPAND, 5)
         top_sizer.AddStretchSpacer(1)
-        top_sizer.Add(calcline_sizer, 0, wx.ALL | wx.EXPAND, 2)
+        top_sizer.Add(calcline_sizer, 0, wx.ALL | wx.EXPAND, 5)
         top_sizer.AddStretchSpacer(1)
-        top_sizer.Add(wx.StaticLine(self, -1), wx.EXPAND |wx.TOP | wx.BOTTOM, 3)
-        top_sizer.Add(buttonsizer, 0, wx.CENTER | wx.BOTTOM, 10)
+        top_sizer.Add(buttonsizer, 0, wx.CENTER | wx.ALL, 5)
 
         self.SetSizer(top_sizer)
 
-        self.Layout()
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
 
-        if platform.system() != 'Linux' or int(wx.__version__.split('.')[0]) <3:
-            self.Fit()
-        elif self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-            self.Fit()
-            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
-                size = self.GetSize()
-                size[1] = size[1] + 20
-                self.SetSize(size)
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         self.CenterOnParent()
 
@@ -3430,8 +3610,8 @@ class CustomQuestionDialog(wx.Dialog):
         qp_size = question_panel.question_label.GetBestSize()
         icn_size = question_panel.bitmap.GetBestSize()
 
-        total_width = qp_size[0]+icn_size[0]+45
-        total_height = qp_size[1]+bp_size[1]+65
+        total_width = qp_size[0]+icn_size[0]+55
+        total_height = qp_size[1]+bp_size[1]+75
 
         self.SetMaxSize((800,600))
 
@@ -3444,6 +3624,10 @@ class CustomQuestionDialog(wx.Dialog):
             best_height = min(600, best_height+20)
         if best_height == 600 and best_width < 800:
             best_width = min(800, best_width+20)
+
+        client_display = wx.GetClientDisplayRect()
+        best_width = min(best_width, client_display.Width)
+        best_height = min(best_height, client_display.Height)
 
         self.SetSize((best_width, best_height))
 
@@ -3608,13 +3792,24 @@ class PlotOptionsDialog(wx.Dialog):
         top_sizer.Add(sizer,1, wx.ALL, 10)
 
         self.SetSizer(top_sizer)
-        self.Layout()
 
-        if platform.system() != 'Linux' or int(wx.__version__.split('.')[0]) <3:
-            self.Fit()
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
         else:
-            if self.is_sec:
-                self.SetSize((650,608))
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         self.CenterOnParent()
 

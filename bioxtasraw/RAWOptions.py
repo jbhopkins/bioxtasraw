@@ -4221,9 +4221,9 @@ class ConfigTree(CT.CustomTreeCtrl):
 
         #Another strange Mac bug workaround:
         if sys.platform == 'darwin':
-            CT.CustomTreeCtrl.__init__(self, parent, *args, style = wx.TR_HAS_BUTTONS | CT.TR_HIDE_ROOT | CT.TR_NO_LINES, **kwargs)
+            CT.CustomTreeCtrl.__init__(self, parent, *args, style = wx.TR_HAS_BUTTONS | CT.TR_HIDE_ROOT | CT.TR_NO_LINES|wx.RAISED_BORDER, **kwargs)
         else:
-            CT.CustomTreeCtrl.__init__(self, parent, *args, style = wx.TR_HAS_BUTTONS | CT.TR_HIDE_ROOT | CT.TR_NO_LINES, **kwargs)
+            CT.CustomTreeCtrl.__init__(self, parent, *args, style = wx.TR_HAS_BUTTONS | CT.TR_HIDE_ROOT | CT.TR_NO_LINES|wx.RAISED_BORDER, **kwargs)
 
         self.parent = parent
 
@@ -4281,7 +4281,8 @@ class PagePanel(wx.Panel):
 
     def __init__(self, parent, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, *args, **kwargs)
+        wx.Panel.__init__(self, parent, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER,
+            *args, **kwargs)
 
         self.parent = parent
 
@@ -4351,7 +4352,7 @@ class OptionsTreebook(wx.Panel):
         wx.Panel.__init__(self, parent, *args, **kwargs)
 
         self.parent = parent
-        splitter = wx.SplitterWindow(self, -1)
+        splitter = wx.SplitterWindow(self, -1, style=wx.SP_3DSASH|wx.SP_NOBORDER|wx.SP_LIVE_UPDATE)
 
         self.tree = ConfigTree(splitter)
         self.page_panel = PagePanel(splitter, raw_settings)
@@ -4489,6 +4490,25 @@ class OptionsDialog(wx.Dialog):
         self.SetSizer(sizer)
         self.SetMinSize((800,600))
         self.SetSize((800,700))
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
+
         self.CenterOnParent()
 
     def createButtonPanel(self):

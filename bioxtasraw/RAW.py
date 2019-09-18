@@ -12652,10 +12652,11 @@ def setup_thread_excepthook():
 #--- ** Startup app **
 
 
-class WelcomeDialog(wx.Frame):
+class WelcomeDialog(wx.Dialog):
     def __init__(self, parent, *args, **kwargs):
 
-        wx.Frame.__init__(self,parent, -1, style = wx.RESIZE_BORDER | wx.STAY_ON_TOP, *args, **kwargs)
+        wx.Dialog.__init__(self,parent, style=wx.RESIZE_BORDER|wx.STAY_ON_TOP,
+            *args, **kwargs)
 
         self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -12697,9 +12698,29 @@ class WelcomeDialog(wx.Frame):
         final_sizer.Add(self.ok_button, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
 
         self.panel.SetSizer(final_sizer)
-        self.panel.Layout()
-        self.panel.Fit()
-        self.Fit()
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        client_display = wx.GetClientDisplayRect()
+
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         self.SetDefaultItem(self.ok_button)
 
@@ -12712,20 +12733,18 @@ class WelcomeDialog(wx.Frame):
 
     def _onOKButton(self, event):
         # mainworker_cmd_queue.put(['startup', sys.argv])
-        wx.CallLater(1, wx.FindWindowByName("MainFrame")._onStartup, sys.argv)
+        wx.CallAfter(wx.FindWindowByName("MainFrame")._onStartup, sys.argv)
         self.OnClose()
 
     def _onKeyDown(self, event):
-        if event.GetKeyCode() == wx.WXK_RETURN:
+        if event.GetKeyCode() == wx.WXK_RETURN or event.GetKeyCode() == wx.WXK_NUMPAD_ENTER:
             self._onOKButton(-1)
         else:
             event.Skip()
 
     def OnClose(self):
+        self.EndModal(wx.ID_OK)
         self.Destroy()
-
-    def getFilename(self):
-        return self._filename
 
 
 class MyApp(wx.App):
@@ -12843,7 +12862,7 @@ class MySplashScreen(SplashScreen):
 
         dlg = WelcomeDialog(frame, name = "WelcomeDialog")
         dlg.SetIcon(frame.GetIcon())
-        dlg.Show(True)
+        dlg.ShowModal()
 
 
 class RawTaskbarIcon(TaskBarIcon):

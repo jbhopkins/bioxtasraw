@@ -1374,6 +1374,24 @@ class HdrInfoDialog(wx.Dialog):
 
         self.SetSizer(final_sizer)
 
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
+
         self.CenterOnParent()
 
     def createHdrInfoWindow(self):
@@ -1539,6 +1557,24 @@ class ImageSettingsDialog(wx.Dialog):
 
         self.SetSizer(finalfinal_sizer)
         self.Fit()
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         try:
             file_list_ctrl = wx.FindWindowByName('FilePanel')

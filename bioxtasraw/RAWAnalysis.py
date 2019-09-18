@@ -66,53 +66,71 @@ class UVConcentrationDialog(wx.Dialog):
     def __init__(self, parent, title, selected_sasms, bg_sasm):
         wx.Dialog.__init__(self, None, title = title, size = (250,150))
 
-        layout_sizer = wx.BoxSizer(wx.VERTICAL)        
+        layout_sizer = wx.BoxSizer(wx.VERTICAL)
         self.panel = UVConcentrationPanel(self, 'UVConcPanel', selected_sasms = selected_sasms, bg_sasm = bg_sasm)
-        
+
         layout_sizer.Add(self.panel, 0)
         layout_sizer.Add(self.CreateButtonSizer( wx.OK | wx.CANCEL ), 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
         self.Bind(wx.EVT_BUTTON, self.OnOKButton, id = wx.ID_OK)
         self.Bind(wx.EVT_BUTTON, self.OnCancelButton, id=wx.ID_CANCEL)
         self.SetSizerAndFit(layout_sizer)
-        
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        client_display = wx.GetClientDisplayRect()
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
+
     def OnOKButton(self, event):
         self.panel.processAndSaveAll()
         event.Skip()
-            
+
     def OnCancelButton(self, event):
         event.Skip()
 
 class UVConcentrationPanel(wx.Panel):
-    
+
     def __init__(self, parent, name, selected_sasms = None, bg_sasm = None):
         wx.Panel.__init__(self, parent, -1, name = name)
-        
+
         self.selected_sasms = selected_sasms
         self.bg_sasm = bg_sasm
-        
-        main_frame = wx.FindWindowByName('MainFrame')        
+
+        main_frame = wx.FindWindowByName('MainFrame')
         try:
             self.raw_settings = main_frame.raw_settings
         except AttributeError:
             self.raw_settings = RAWSettings.RawGuiSettings()
-            
+
         self.extc_values = {'Lysozyme'  : [26.4, 2.64],
                             'BSA'       : [6.7, 0.67],
                             'IgG'       : [13.7, 1.37],
                             'Abs=1mg/ml': [10, 1.0]}
-                            
+
         self.extc_choices = ['Lysozyme', 'BSA', 'IgG', 'Abs=1mg/ml', 'Custom']
         self.unit_choices = ['E1% [ml/(10mg) cm^-1]', 'E0.1% [ml/mg cm^-1]']
-            
+
         self.spin_ctrl_ids = {'UVDarkTransmission' : [wx.NewId(), wx.NewId(), 'UV Dark', 0],
                               'UVTransmissionBg'   : [wx.NewId(), wx.NewId(), 'UV Transmission (Bg)', 2.0],
                               'UVTransmissionSamp' : [wx.NewId(), wx.NewId(), 'UV Transmission (Sample)', 1.0],
                               'UVPathlength'       : [wx.NewId(), wx.NewId(), 'UV Path Length [mm]', 1.5],
                               'UVExtinctionCoeff'  : [wx.NewId(), wx.NewId(), 'Extinction Coeff.', 24.0]}
-                              
-        self.all_spins = ['UVDarkTransmission', 'UVTransmissionBg', 'UVTransmissionSamp', 'UVPathlength', 'UVExtinctionCoeff']        
+
+        self.all_spins = ['UVDarkTransmission', 'UVTransmissionBg', 'UVTransmissionSamp', 'UVPathlength', 'UVExtinctionCoeff']
         self.double_spins = ['UVPathlength', 'UVExtinctionCoeff']
-        
+
 
         self._initLayout()
         self._initValues()
@@ -123,50 +141,50 @@ class UVConcentrationPanel(wx.Panel):
         #A=lec
         if A == None:
             A = float(self.absorb_ctrl.GetValue())
-            
+
         l = (self.spin_ctrl_ids['UVPathlength'][3] / 10) #in cm
         e = self.spin_ctrl_ids['UVExtinctionCoeff'][3]
-        
+
         c = A / (float(l)*float(e))
-        
+
         if self.units_choice.GetStringSelection() == self.unit_choices[0]:
             c = c * 10
-    
-        return c    
-    
+
+        return c
+
     def onSpinUpdate(self, event):
         for each in self.spin_ctrl_ids.keys():
             spin_id, button_id, label, val = self.spin_ctrl_ids[each]
-            
+
             ctrl = wx.FindWindowById(spin_id)
             self.spin_ctrl_ids[each][3] = float(ctrl.GetValue())
-            
+
         self._updateCalculation()
-        
+
     def onChoiceUpdate(self, event):
-    
-        idx = self.units_choice.GetSelection() 
+
+        idx = self.units_choice.GetSelection()
         key = self.extc_choice.GetStringSelection()
-        
+
         if key == 'Custom':
             return
-        
+
         ctrl = wx.FindWindowById(self.spin_ctrl_ids['UVExtinctionCoeff'][0])
         ctrl.SetValue(self.extc_values[key][idx])
         self.spin_ctrl_ids['UVExtinctionCoeff'][3]=self.extc_values[key][idx]
-        
+
         self._updateCalculation()
-    
+
     def _updateCalculation(self):
         a = self._calcAbsorbance()
         c = self._calcConcentration(a)
-        
+
         self.absorb_ctrl.SetValue(str(round(a, 4)))
         self.conc_ctrl.SetValue(str(round(c, 4)))
-        
+
     def _calcAbsorbance(self):
         #A = log10(I0/I)
-    
+
         blank_val = self.spin_ctrl_ids['UVTransmissionBg'][3]
         dark_val = self.spin_ctrl_ids['UVDarkTransmission'][3]
         trans_int = self.spin_ctrl_ids['UVTransmissionSamp'][3]
@@ -176,7 +194,7 @@ class UVConcentrationPanel(wx.Panel):
         reverse_sign = False
         frac = 0
 
-        try: 
+        try:
             frac = float(I0)/float(I)
 
             if frac < 1:
@@ -189,64 +207,64 @@ class UVConcentrationPanel(wx.Panel):
 
         if np.isnan(a) or np.isinf(a):
             a = 0
-        
+
         if reverse_sign:
             a = -a
 
         return a
-        
+
     def _initValues(self):
         bg_data = self.bg_sasm.getParameter('analysis')['uvvis']
-        
+
         # For background
         for key in bg_data.keys():
             if bg_data[key] != None:
-                
+
                 if key == 'UVTransmission':
                     spin_key = 'UVTransmissionBg'
                 else:
                     spin_key = key
-                    
+
                 ctrl = wx.FindWindowById(self.spin_ctrl_ids[spin_key][0])
-                
+
                 if key in self.double_spins:
                     ctrl.SetValue(float(bg_data[key]))
-                else: 
+                else:
                     ctrl.SetValue(float(bg_data[key]))
-                
+
                 self.spin_ctrl_ids[spin_key][3] = float(bg_data[key])
-                    
+
         samp_data = self.selected_sasms[0].getParameter('analysis')['uvvis']
         ctrl = wx.FindWindowById(self.spin_ctrl_ids['UVTransmissionSamp'][0])
         ctrl.SetValue(samp_data['UVTransmission'])
-        self.spin_ctrl_ids['UVTransmissionSamp'][3]=float(samp_data['UVTransmission'])        
-        
+        self.spin_ctrl_ids['UVTransmissionSamp'][3]=float(samp_data['UVTransmission'])
+
         self.bg_txt.SetLabel(self.bg_sasm.getParameter('filename'))
         self.sample_txt.SetLabel(self.selected_sasms[0].getParameter('filename'))
-        
+
     def setSampleValues(self, sasm):
         samp_data = sasm.getParameter('analysis')['uvvis']
         self.spin_ctrl_ids['UVTransmissionSamp'][3]=float(samp_data['UVTransmission'])
-        
+
     def updateGui(self):
         ctrl = wx.FindWindowById(self.spin_ctrl_ids['UVTransmissionSamp'][0])
         ctrl.SetValue(self.spin_ctrl_ids['UVTransmissionSamp'][3])
-                        
+
     def _initLayout(self):
-        
+
         layout_sizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         self.extc_choice = wx.Choice(self, -1, choices = self.extc_choices)
         self.extc_choice.Bind(wx.EVT_CHOICE, self.onChoiceUpdate)
         self.units_choice = wx.Choice(self, -1, choices = self.unit_choices)
         self.units_choice.Bind(wx.EVT_CHOICE, self.onChoiceUpdate)
         self.extc_choice.Select(0)
         self.units_choice.Select(0)
-         
+
         choice_sizer = wx.BoxSizer(wx.HORIZONTAL)
         choice_sizer.Add(self.units_choice, 0, wx.EXPAND)
         choice_sizer.Add(self.extc_choice, 0, wx.EXPAND | wx.LEFT, 5)
-        
+
         file_sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap = 4, hgap = 4)
         bg_label = wx.StaticText(self, -1, 'Background : ')
         samp_label = wx.StaticText(self, -1, 'Sample : ')
@@ -259,44 +277,44 @@ class UVConcentrationPanel(wx.Panel):
         layout_sizer.Add(file_sizer,0, wx.EXPAND | wx.ALL, 10)
 
         spin_sizer = wx.FlexGridSizer(cols = 3, rows = len(self.all_spins), vgap = 4, hgap= 4)
-        
+
         for key in self.all_spins:
             spin_id, button_id, label, val = self.spin_ctrl_ids[key]
-            
+
             if key in self.double_spins:
                 spin_ctrl = wx.SpinCtrlDouble(self, spin_id, value = '1.0', min = 0, max = 16000, initial = 1)
                 spin_ctrl.SetIncrement(0.1)
                 spin_ctrl.SetDigits(3)
                 spin_ctrl.Bind(wx.EVT_SPINCTRLDOUBLE, self.onSpinUpdate)
-            else:    
+            else:
                 spin_ctrl = wx.SpinCtrlDouble(self, spin_id, value = '1.0', min = 0, max = 16000, initial = 1)
                 spin_ctrl.SetIncrement(0.1)
-                spin_ctrl.SetDigits(2)                
+                spin_ctrl.SetDigits(2)
                 spin_ctrl.Bind(wx.EVT_SPINCTRLDOUBLE, self.onSpinUpdate)
             static_label = wx.StaticText(self, -1, label)
-            
+
             #button = wx.Button(self, button_id, 'From Header')
-             
+
             if key not in ['UVExtinctionCoeff']:
                 spin_sizer.Add(static_label, 0, wx.ALIGN_CENTER_VERTICAL)
                 spin_sizer.Add(spin_ctrl, 0, wx.ALIGN_CENTER | wx.EXPAND)
-                spin_sizer.Add((10,10), 0)                
+                spin_sizer.Add((10,10), 0)
             else:
                 spin_sizer.Add(static_label, 0, wx.ALIGN_CENTER_VERTICAL)
                 spin_sizer.Add(spin_ctrl, 0, wx.ALIGN_CENTER)
-                
+
         spin_sizer.Add(choice_sizer, 0, wx.EXPAND)
-        
+
         layout_sizer.Add(spin_sizer, 0, wx.EXPAND | wx.ALL, 10)
         layout_sizer.Add(wx.StaticLine(self, -1, style = wx.LI_HORIZONTAL), 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
-        
+
         conc_sizer = wx.FlexGridSizer(rows = 2, cols = 3, vgap = 4, hgap=4)
-        absorb_label = wx.StaticText(self, -1, 'Absorbance')        
+        absorb_label = wx.StaticText(self, -1, 'Absorbance')
         self.absorb_ctrl = wx.TextCtrl(self, -1, '0', style = wx.TE_RIGHT)
-        
+
         conc_label = wx.StaticText(self, -1, 'Concentration')
         self.conc_ctrl = wx.TextCtrl(self, -1, '1', style = wx.TE_RIGHT)
-         
+
         conc_sizer.Add(absorb_label, 0, wx.ALIGN_CENTRE_VERTICAL)
         conc_sizer.Add(self.absorb_ctrl, 0)
         conc_sizer.Add(wx.StaticText(self, -1, 'AU'), 0, wx.ALIGN_CENTRE_VERTICAL)
@@ -305,22 +323,22 @@ class UVConcentrationPanel(wx.Panel):
         conc_sizer.Add(wx.StaticText(self, -1, 'mg/ml'), 0, wx.ALIGN_CENTRE_VERTICAL)
 
         layout_sizer.Add(conc_sizer, 0, wx.EXPAND | wx.ALL, 10)
-        
+
         self.SetSizerAndFit(layout_sizer)
- 
+
     def processAndSaveAll(self):
-        
+
         for each_sasm in self.selected_sasms:
             self.setSampleValues(each_sasm)
-            
+
             a = self._calcAbsorbance()
             c = self._calcConcentration(a)
-            
+
             print each_sasm, a, c
             each_sasm.setParameter('Conc', round(c, 3))
             each_sasm.setParameter('Absorbance', a)
-                      
-        
+
+
 class GuinierPlotPanel(wx.Panel):
 
     def __init__(self, parent, panel_id):
@@ -1493,18 +1511,26 @@ class GuinierFrame(wx.Frame):
         self.controlPanel.setSpinLimits(ExpObj)
         self.controlPanel.setCurrentExpObj(ExpObj)
 
-        splitter1.Layout()
-        self.Layout()
-        self.SendSizeEvent()
-        splitter1.Layout()
-        self.Layout()
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
 
-        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-            splitter1.Fit()
-            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
-                size = self.GetSize()
-                size[1] = size[1] + 20
-                self.SetSize(size)
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         self.controlPanel._initSettings()
 
@@ -1598,17 +1624,27 @@ class MolWeightFrame(wx.Frame):
         self._initSettings()
 
         self.panel.SetSizer(topsizer)
-        self.panel.Layout()
-        self.SendSizeEvent()
-        self.panel.Layout()
 
-        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-            self.panel.Fit()
-            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
-                size = self.GetSize()
-                size[1] = size[1] + 20
-                self.SetSize(size)
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
 
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         self.CenterOnParent()
 
@@ -3028,18 +3064,27 @@ class GNOMFrame(wx.Frame):
         else:
             splitter1.SetMinimumPaneSize(50)
 
-        splitter1.Layout()
-        self.Layout()
-        self.SendSizeEvent()
-        splitter1.Layout()
-        self.Layout()
 
-        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-            splitter1.Fit()
-            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
-                size = self.GetSize()
-                size[1] = size[1] + 20
-                self.SetSize(size)
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         self.CenterOnParent()
         self.Raise()
@@ -4241,11 +4286,11 @@ class DammifFrame(wx.Frame):
 
         sizer = self._createLayout(self.panel)
 
-        top_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(self.notebook, 1, wx.EXPAND)
-        top_sizer.Add(sizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+        panel_sizer = wx.BoxSizer(wx.VERTICAL)
+        panel_sizer.Add(self.notebook, 1, wx.EXPAND)
+        panel_sizer.Add(sizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
 
-        self.panel.SetSizer(top_sizer)
+        self.panel.SetSizer(panel_sizer)
 
         self.panel.Layout()
         self.Layout()
@@ -4255,10 +4300,15 @@ class DammifFrame(wx.Frame):
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
             self.notebook.Fit()
+            print 'here'
             if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
                 size = self.GetSize()
                 size[1] = size[1] + 20
                 self.SetSize(size)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
 
         self.CenterOnParent()
 
@@ -4516,7 +4566,8 @@ class DammifRunPanel(wx.Panel):
 
 
         try:
-            self.logbook = flatNB.FlatNotebook(parent, self.ids['logbook'], agwStyle = flatNB.FNB_NAV_BUTTONS_WHEN_NEEDED | flatNB.FNB_NO_X_BUTTON)
+            self.logbook = flatNB.FlatNotebook(parent, self.ids['logbook'],
+                agwStyle = flatNB.FNB_NAV_BUTTONS_WHEN_NEEDED | flatNB.FNB_NO_X_BUTTON)
         except AttributeError as e:
             print e
             self.logbook = flatNB.FlatNotebook(parent, self.ids['logbook'])     #compatability for older versions of wxpython
@@ -6237,6 +6288,10 @@ class DenssFrame(wx.Frame):
                 size = self.GetSize()
                 size[1] = size[1] + 20
                 self.SetSize(size)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
 
         self.CenterOnParent()
 
@@ -8176,18 +8231,26 @@ class BIFTFrame(wx.Frame):
         else:
             splitter1.SetMinimumPaneSize(50)
 
-        splitter1.Layout()
-        self.Layout()
-        self.SendSizeEvent()
-        splitter1.Layout()
-        self.Layout()
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
 
-        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-            splitter1.Fit()
-            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
-                size = self.GetSize()
-                size[1] = size[1] + 20
-                self.SetSize(size)
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         self.CenterOnParent()
         self.Raise()
@@ -8933,19 +8996,27 @@ class AmbimeterFrame(wx.Frame):
 
 
         self.panel.SetSizer(topsizer)
-        self.panel.Layout()
-        self.SendSizeEvent()
-        self.panel.Layout()
 
-        self.Layout()
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
 
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
 
-        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-            self.panel.Fit()
-            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
-                size = self.GetSize()
-                size[1] = size[1] + 20
-                self.SetSize(size)
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
 
         self.CenterOnParent()
@@ -8964,16 +9035,16 @@ class AmbimeterFrame(wx.Frame):
         file_ctrl = wx.TextCtrl(parent, self.ids['input'], '', size = (150, -1), style = wx.TE_READONLY)
 
         file_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        file_sizer.Add(file_text, 0, wx.ALL, 5)
-        file_sizer.Add(file_ctrl, 2, wx.ALL | wx.EXPAND, 5)
+        file_sizer.Add(file_text, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        file_sizer.Add(file_ctrl, 2, wx.ALL | wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5)
         file_sizer.AddStretchSpacer(1)
 
         rg_text = wx.StaticText(parent, -1, 'Rg :')
         rg_ctrl = wx.TextCtrl(parent, self.ids['rg'], '', size = (60, -1), style = wx.TE_READONLY)
 
         rg_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        rg_sizer.Add(rg_text, 0, wx.ALL, 5)
-        rg_sizer.Add(rg_ctrl, 1, wx.ALL | wx.EXPAND, 5)
+        rg_sizer.Add(rg_text, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        rg_sizer.Add(rg_ctrl, 1, wx.ALL | wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5)
 
 
         srg_text = wx.StaticText(parent, -1, 'Upper q*Rg limit (3 < q*Rg <7) :')
@@ -8981,8 +9052,8 @@ class AmbimeterFrame(wx.Frame):
         srg_ctrl.Bind(wx.EVT_TEXT, self.onSrgText)
 
         srg_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        srg_sizer.Add(srg_text, 0, wx.ALL, 5)
-        srg_sizer.Add(srg_ctrl, 1, wx.ALL, 5)
+        srg_sizer.Add(srg_text, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        srg_sizer.Add(srg_ctrl, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
 
 
         shape_text = wx.StaticText(parent, -1, 'Output shape(s) to save: ')
@@ -8990,8 +9061,8 @@ class AmbimeterFrame(wx.Frame):
         shape_choice.SetSelection(0)
 
         shape_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        shape_sizer.Add(shape_text, 0, wx.ALL, 5)
-        shape_sizer.Add(shape_choice, 0, wx.ALL, 5)
+        shape_sizer.Add(shape_text, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        shape_sizer.Add(shape_choice, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
 
         savedir_text = wx.StaticText(parent, -1, 'Output directory :')
         savedir_ctrl = wx.TextCtrl(parent, self.ids['save'], '', size = (350, -1))
@@ -9005,17 +9076,17 @@ class AmbimeterFrame(wx.Frame):
         savedir_button.Bind(wx.EVT_BUTTON, self.onChangeDirectoryButton)
 
         savedir_sizer = wx.BoxSizer(wx.VERTICAL)
-        savedir_sizer.Add(savedir_text, 0, wx.ALL, 5)
-        savedir_sizer.Add(savedir_ctrl, 0, wx.ALL | wx.EXPAND, 5)
-        savedir_sizer.Add(savedir_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        savedir_sizer.Add(savedir_text, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        savedir_sizer.Add(savedir_ctrl, 0, wx.ALL | wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5)
+        savedir_sizer.Add(savedir_button, 0, wx.ALL | wx.ALIGN_CENTER|wx.ALIGN_CENTER_VERTICAL, 5)
 
 
         prefix_text = wx.StaticText(parent, -1, 'Output prefix :')
         prefix_ctrl = wx.TextCtrl(parent, self.ids['prefix'], '', size = (150, -1))
 
         prefix_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        prefix_sizer.Add(prefix_text, 0, wx.ALL, 5)
-        prefix_sizer.Add(prefix_ctrl, 2, wx.ALL, 5)
+        prefix_sizer.Add(prefix_text, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        prefix_sizer.Add(prefix_ctrl, 2, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
         prefix_sizer.AddStretchSpacer(1)
 
 
@@ -9037,23 +9108,23 @@ class AmbimeterFrame(wx.Frame):
         cats_ctrl = wx.TextCtrl(parent, self.ids['ambiCats'], '', size = (60, -1), style = wx.TE_READONLY)
 
         cats_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        cats_sizer.Add(cats_text, 0, wx.ALL, 5)
-        cats_sizer.Add(cats_ctrl, 0, wx.ALL, 5)
+        cats_sizer.Add(cats_text, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        cats_sizer.Add(cats_ctrl, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
 
 
         score_text = wx.StaticText(parent, -1, 'Ambiguity score :')
         score_ctrl = wx.TextCtrl(parent, self.ids['ambiScore'], '', size = (60, -1), style = wx.TE_READONLY)
 
         score_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        score_sizer.Add(score_text, 0, wx.ALL, 5)
-        score_sizer.Add(score_ctrl, 0, wx.ALL, 5)
+        score_sizer.Add(score_text, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        score_sizer.Add(score_ctrl, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
 
         eval_text = wx.StaticText(parent, -1, 'AMBIMETER says :')
         eval_ctrl = wx.TextCtrl(parent, self.ids['ambiEval'], '', size = (250, -1), style = wx.TE_READONLY)
 
         eval_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        eval_sizer.Add(eval_text, 0, wx.ALL, 5)
-        eval_sizer.Add(eval_ctrl, 1, wx.ALL, 5)
+        eval_sizer.Add(eval_text, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        eval_sizer.Add(eval_ctrl, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
 
 
         results_box = wx.StaticBox(parent, -1, 'Results')
@@ -9250,7 +9321,8 @@ class SVDFrame(wx.Frame):
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
-        splitter1 = wx.SplitterWindow(self, -1)
+        panel = wx.Panel(self)
+        splitter1 = wx.SplitterWindow(panel)
 
         copy_secm = copy.copy(secm)
 
@@ -9265,17 +9337,31 @@ class SVDFrame(wx.Frame):
             splitter1.SetMinimumPaneSize(50)
 
         splitter1.Layout()
-        self.Layout()
-        self.SendSizeEvent()
-        splitter1.Layout()
-        self.Layout()
 
-        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-            splitter1.Fit()
-            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
-                size = self.GetSize()
-                size[1] = size[1] + 20
-                self.SetSize(size)
+        panel_sizer = wx.BoxSizer()
+        panel_sizer.Add(splitter1, 1, flag=wx.EXPAND)
+        panel.SetSizer(panel_sizer)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         self.CenterOnParent()
         self.Raise()
@@ -9573,7 +9659,7 @@ class SVDControlPanel(wx.Panel):
 
         self.parent = parent
 
-        self.svd_frame = parent.GetParent()
+        self.svd_frame = parent.GetParent().GetParent()
 
         self.secm = secm
 
@@ -10208,8 +10294,28 @@ class EFAFrame(wx.Frame):
 
         self.current_panel = 1
 
-
         self._createLayout(self.panel)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         self.CenterOnParent()
         self.Raise()
@@ -10311,9 +10417,9 @@ class EFAFrame(wx.Frame):
 
         self.panel.SetSizer(self.top_sizer)
 
-        self.panel.Layout()
-        self.SendSizeEvent()
-        self.panel.Layout()
+        # self.panel.Layout()
+        # self.SendSizeEvent()
+        # self.panel.Layout()
 
 
     def _onNextButton(self, evt):
@@ -12642,18 +12748,27 @@ class SimilarityFrame(wx.Frame):
         self._initSettings()
 
         self.panel.SetSizer(sizer)
-        self.panel.Layout()
-        self.SendSizeEvent()
-        self.panel.Layout()
 
-        self.Layout()
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
 
-        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-            self.panel.Fit()
-            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
-                size = self.GetSize()
-                size[1] = size[1] + 20
-                self.SetSize(size)
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         self.CenterOnParent()
 
@@ -13016,17 +13131,27 @@ class NormKratkyFrame(wx.Frame):
             splitter1.SetMinimumPaneSize(50)
 
         splitter1.Layout()
-        self.Layout()
-        self.SendSizeEvent()
-        splitter1.Layout()
-        self.Layout()
 
-        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-            splitter1.Fit()
-            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
-                size = self.GetSize()
-                size[1] = size[1] + 20
-                self.SetSize(size)
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         self.CenterOnParent()
         self.Raise()
@@ -13638,18 +13763,26 @@ class LCSeriesFrame(wx.Frame):
         else:
             splitter.SetMinimumPaneSize(50)
 
-        splitter.Layout()
-        self.Layout()
-        self.SendSizeEvent()
-        splitter.Layout()
-        self.Layout()
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
 
-        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
-            splitter.Fit()
-            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
-                size = self.GetSize()
-                size[1] = size[1] + 20
-                self.SetSize(size)
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseEvt)
 
