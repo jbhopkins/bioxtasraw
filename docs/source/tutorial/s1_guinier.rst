@@ -66,8 +66,8 @@ For a globular protein, you are looking for three essential components in your G
     the |Rg|  of your fit should be less than 1.0. This criteria ensures you
     have enough q range to properly estimate the |Rg| and I(0) values.
 
-*  :math:`q_{max}R_g<1.3`. This states that the maximum q of your fit, q\ :sub:`max`,
-    times the |Rg|  of your fit should be less than 1.3. This criteria
+*   :math:`q_{max}R_g<1.3`. This states that the maximum q of your fit, q\ :sub:`max`,
+    times the |Rg| of your fit should be less than 1.3. This criteria
     ensures you remain in the linear range of the Guinier approximation
     for the fit.
 
@@ -85,7 +85,7 @@ of aggregation or repulsion it may manifest as a small upturn or downturn at low
 q that, once excluded, doesn’t seem to affect the fit residual (i.e. no ‘smile’
 or ‘frown’). In these cases, you may proceed, but exercise caution as your data
 may be subtly affected. Also, be sure whoever you present the data to understands
-ou observed these effects and decided to proceed with analysis despite the
+you observed these effects and decided to proceed with analysis despite the
 non-ideality.
 
 Note that for non-globular systems, such as rod-like shapes, the fitting range
