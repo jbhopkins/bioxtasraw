@@ -1690,10 +1690,10 @@ class MainFrame(wx.Frame):
             if page !=manippage:
                 wx.MessageBox('The selected operation cannot be performed unless the Manipulation control panel is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
                 return
-            
+
             selected_items = manippage.getSelectedItems()
-            marked_item = manippage.getBackgroundItem()    
-            
+            marked_item = manippage.getBackgroundItem()
+
             if marked_item == None:
                 wx.MessageBox('The background file needs to be selected by clicking the star icon.', 'Select background first', style = wx.ICON_INFORMATION)
                 return
@@ -1702,20 +1702,20 @@ class MainFrame(wx.Frame):
                     selected_items.pop(selected_items.index(marked_item))
                 except ValueError:
                     pass
-                
+
             if selected_items:
                 selected_sasms = [item.getSASM() for item in selected_items]
             else:
                 wx.MessageBox('No items were selected. For unsubtracted files you need to select at least a background and a sample.', 'No selected items', style = wx.ICON_INFORMATION)
                 return
-                #selected_sasms = []             
-            
+                #selected_sasms = []
+
             for each in selected_sasms + [marked_item.getSASM()]:
                 if not each.getParameter('analysis').has_key('uvvis'):
                     wx.MessageBox('The file ' + str(each.getParameter('filename')) + ' does not have UV-VIS data stored in the header', 'UV-VIS data not found', style = wx.ICON_EXCLAMATION)
                     return
                 print each.getParameter('analysis')['uvvis']
-                
+
             dlg = RAWAnalysis.UVConcentrationDialog(self, 'Concentration from UV transmission', selected_sasms, marked_item.getSASM())
             retval = dlg.ShowModal()
             #ret, logbin = dlg.getValues()
@@ -4789,7 +4789,7 @@ class MainWorkerThread(threading.Thread):
 
                 secm_data = item_dict[each_key]
 
-                new_secm, line_data, calc_line_data = SASFileIO.makeSeriesFile(secm_data)
+                new_secm, line_data, calc_line_data = SASFileIO.makeSeriesFile(secm_data, self._raw_settings)
 
                 new_secm.is_visible = secm_data['line_visible']
 

@@ -8,8 +8,8 @@ have a bell-shaped (Gaussian) peak. A partially unfolded (flexible) protein may 
 combination of the bell-shape and plateau, or a plateau that slowly decays to zero.
 
 Normalized Kratky plots are plots of :math:`q^2I(q)/I(0)` vs. *q*\ . This normalizes scattering profiles
-by mass and concentration. Dimensionless Kratky plots are presented as either :math:`(qR_g)^2I(q)`
-vs. :math:`qR_g`\ or :math:`(q^2V_c)I(q)` vs. :math:`q(V_c)^{1/2}`\ . These dimensionless plots
+by mass and concentration. Dimensionless Kratky plots are presented as either :math:`(qR_g)^2I(q)/I(0)`
+vs. :math:`qR_g`\ or :math:`(q^2V_c)I(q)/I(0)` vs. :math:`q(V_c)^{1/2}`\ . These dimensionless plots
 can provide semi-quantitative analysis of flexibility and disorder. More information about can
 be found here and references therein: `http://www.bioisis.net/tutorial/21 <http://www.bioisis.net/tutorial/21>`_.
 

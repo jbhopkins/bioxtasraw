@@ -196,10 +196,129 @@ def rebin(sasms, npts, rebin_factor=1, log_rebin=False):
     return rebinned_sasms
 
 
-def autorg(sasm, single_fit=False, error_weight=True):
+def autorg(sasm, single_fit=False, error_weight=True, save=True):
     rg, rger, i0, i0er, idx_min, idx_max = SASCalc.autoRg(sasm, single_fit, error_weight)
 
+    if save:
+        q = sasm.getQ()
+        i = sasm.getI()
+        err = sasm.getErr()
+
+        Rg, I0, Rger, I0er, a, b = SASCalc.calcRg(q[idx_min:idx_max+1],
+            i[idx_min:idx_max+1], err[idx_min:idx_max+1], transform=False,
+            error_weight=error_weight)
+
+        info_dict = {}
+
+        info_dict['nStart'] = idx_min
+        info_dict['nEnd'] = idx_max
+        info_dict['qStart'] = q[idx_min]
+        info_dict['qEnd'] = q[idx_max]
+
+        info_dict['Rg_fit_err'] = Rger
+        info_dict['I0_fit_err'] = I0er
+
+        info_dict['Rg_est_err'] = est_rg_err
+        info_dict['I0_est_err'] = est_i0_err
+        info_dict['Rg_err'] = max(float(est_rg_err), float(Rger))
+        info_dict['I0_err'] = max(float(est_i0_err), float(I0er))
+
+        analysis_dict = sasm.getParameter('analysis')
+        analysis_dict['guinier'] = info_dict
+
     return rg, rger, i0, i0er, idx_min, idx_max
+
+def calc_rg(sasm, nmin, nmax, error_weight=True, save=True):
+
+    x = sasm.getQ()[nmin:nmax+1]
+    y = sasm.getI()[nmin:nmax+1]
+    yerr = sasm.getErr()[nmin:nmax+1]
+
+    #Remove NaN and Inf values:
+    x = x[np.where(np.isnan(y) == False)]
+    yerr = yerr[np.where(np.isnan(y) == False)]
+    y = y[np.where(np.isnan(y) == False)]
+
+    x = x[np.where(np.isinf(y) == False)]
+    yerr = yerr[np.where(np.isinf(y) == False)]
+    y = y[np.where(np.isinf(y) == False)]
+
+    rg, i0, rger, i0er, a, b = SASCalc.calcRg(x, y, yerr, transform=True,
+        error_weight=error_weight)
+
+    win_size = len(x)
+
+    if win_size < 10:
+        est_rg_err = None
+        est_i0_err = None
+    else:
+        var = win_size/10
+        if var > 12:
+            step = int(np.ceil(var/12.))
+        else:
+            step = 1
+        rg_list = []
+        i0_list = []
+
+        for li in range(0, var+1, step):
+            for ri in range(0,var+1, step):
+                if ri == 0:
+                    Rg, I0, Rger, I0er, a, b = SASCalc.calcRg(x[li:],
+                        y[li:], yerr[li:], transform=False, error_weight=error_weight)
+                else:
+                    Rg, I0, Rger, I0er, a, b = SASCalc.calcRg(x[li:-ri],
+                        y[li:-ri], yerr[li:-ri], transform=False, error_weight=error_weight)
+
+                rg_list.append(Rg)
+                i0_list.append(I0)
+
+        est_rg_err = np.std(rg_list)
+        est_i0_err = np.std(i0_list)
+
+    #Get fit statistics:
+    y_fit = SASCalc.linear_func(x, a, b)
+    error = y - y_fit
+    r_sqr = 1 - np.square(error).sum()/np.square(y-y.mean()).sum()
+
+    error = error/yerr
+
+    if save:
+        # THIS ISN"T DONE YET!!!!!!!!!
+        info_dict = {}
+        info_dict['Rg'] = rg
+        info_dict['I0'] = i0
+        info_dict['qRg_max'] = rg*x[-1]
+        info_dict['qRg_min'] = rg*x[0]
+        info_dict['nStart'] = str(nmin)
+        info_dict['nEnd'] = str(nmax)
+        info_dict['qStart'] = str(x[nmin])
+        info_dict['qEnd'] = str(x[nmax])
+
+        info_dict['Rg_fit_err'] = str(Rger)
+        info_dict['I0_fit_err'] = str(I0er)
+
+        info_dict['Rg_est_err'] = str(est_rg_err)
+        info_dict['I0_est_err'] = str(est_i0_err)
+        info_dict['Rg_err'] = max(float(est_rg_err), float(Rger))
+        info_dict['I0_err'] = max(float(est_i0_err), float(I0er))
+
+        analysis_dict = sasm.getParameter('analysis')
+        analysis_dict['guinier'] = info_dict
+
+    return rg, i0, rger, i0er, est_rg_err, est_i0_err, r_sqr
+
+def calc_refmw(i0, conc, settings):
+    mw = SASCalc.calcRefMW(i0, conc, settings)
+
+    return mw
+
+def calc_vpmw(sasm):
+    q = sasm.getQ()
+    i = sasm.getI()
+    err = sasm.getErr()
+
+    SASCalc.calcVpMW(q, i, err, rg, i0, rg_qmin, vp_density)
+
 
 def run_efa(data, ranges, sasm_type='sub', framei=None, framef=None,
     method='Hybrid', niter=1000, tol=1e-12, norm=True, force_positive=None,

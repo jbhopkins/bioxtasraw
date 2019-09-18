@@ -30,3 +30,6 @@ Here are some additional tricks that may make your life easier while using RAW:
     intensity. For a curve that is processed (such as an averaged of subtracted curve) it will
     show you the steps used to make that curve. For example, for an averaged curve, it will
     show you all of the files that were averaged.
+
+#.  All of the main RAW plots read out the mouse coordinates at the bottom of
+    the RAW window, just below all of the tool buttons.

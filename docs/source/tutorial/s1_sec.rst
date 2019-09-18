@@ -5,10 +5,10 @@ Basic SEC-SAXS processing
 In a typical SEC-SAXS run, images are continuously collected while the eluate (outflow)
 of a size exclusion column flows through the SAXS sample cell. As proteins scatter more
 strongly than buffer, a plot of total scattered intensity vs. time, the so-called SAXS
-chromatograph, will show a set of peaks similar to what is seen by UV absorption measurement
-of the SEC system. RAW includes the capability to do routine processing of SEC-SAXS data.
-This includes creating the SAXS chromatograph from the data, plotting |Rg|, MW, and I(0)
-across the peaks, and extracting specific frames for further analysis.
+chromatograph (or scattergram), will show a set of peaks similar to what is seen by
+UV absorption measurement of the SEC system. RAW includes the capability to do routine
+processing of SEC-SAXS data. This includes creating the SAXS chromatograph from the data,
+plotting |Rg|, MW, and I(0) across the peaks, and extracting specific frames for further analysis.
 
 *Note:* In RAW, this is called Series analysis, as the same tools can be used for other
 sequentially sampled data sets.
@@ -334,9 +334,6 @@ sequentially sampled data sets.
 #.  Find the useful region of the peak (constant |Rg|/MW), and send the buffer and sample
     data to the main plot. Carry out the standard |Rg| and MW analysis on the subtracted
     scattering profile. For BSA, we expect |Rg| ~28 Å and MW ~66 kDa.
-
-    *   *Try:* As with the previous sample, take a few smaller regions along the peak
-        and see if the subtracted scattering profile varies.
 
 #.  In the Series control tab, right click on the name of BSA curve in the list. Select export
     data and save it in an appropriate location. This will save a CSV file with the frame

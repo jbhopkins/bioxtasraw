@@ -51,9 +51,9 @@ been fully implemented in RAW and will be used to reconstruct these electron den
 
 #.  The results panel summarizes the results of the reconstruction runs. At the top of the
     panel there is the ambimeter evaluation of how ambiguous the reconstructions might be
-    (see previous tutorial section). If averaging was run there is an estimate of the
+    (see earlier tutorial section). If averaging was run there is an estimate of the
     reconstruction resolution based on the Fourier shell correlation. In the models
-    section there are several tabs. The summary tab shows the chi^2, Rg, support volume,
+    section there are several tabs. The summary tab shows the chi^2, |Rg|, support volume,
     and RSC to the reference model. If any model was not included in the averaging it
     is highlighted in red.
 

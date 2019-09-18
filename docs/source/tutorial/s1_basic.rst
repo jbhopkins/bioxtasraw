@@ -75,12 +75,12 @@ Loading configuration files and images, creating subtracted scattering profiles,
 #.  Average all of the GI buffer scattering profiles.
 
 #.  In order to see the averaged scattering profiles, you will need to hide the
-    individual profiles from the plot. Clicking on the check box to the left of
-    the filename will show/hide a scattering profile. When the box is checked,
-    the profile is shown on the plot, when it is unchecked, the profile is hidden.
-    Hide all of the profiles except the two averaged curves.
+    individual profiles from the plot. Clicking on the eye to the left of
+    the filename will show/hide a scattering profile. When the eye is shown,
+    the profile is shown on the plot, when the eye has a line through it, the
+    profile is hidden. Hide all of the profiles except the two averaged curves.
 
-    *   *Tip:* The eye and eye with the x through it at the top of the manipulation panel
+    *   *Tip:* The eye and eye with the line through it at the top of the manipulation panel
         can be used to show/hide sets of loaded profiles at once. If no profiles are selected,
         these buttons show/hide all loaded profiles. If some profiles are selected, these buttons
         show/hide just the selected profiles. Try selecting all but the averaged files and using

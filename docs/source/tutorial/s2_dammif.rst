@@ -81,7 +81,7 @@ the ATSAS package is the most commonly used program for building consensus shape
 
     *   *Tip:* The model highlighted in blue in the summary tab is the 'most
         probable' model, this can be used as your final bead model instead of
-        doing a dammif refinement.
+        doing a dammin refinement.
 
     *   *Note:* Above we show the results for 15 runs instead of the 5 in the tutorial.
 

@@ -115,9 +115,9 @@ components from overlapping SEC-SAXS peaks.
         values starts increasingly sharply, it indicates that there is a new scattering
         component in the scattering profile measured at that point. So, for the first ~150
         frames, there are no new scattering components (i.e. just buffer scattering). At
-        frame ~151, we see the first singular value (the singular value with index 0,
+        frame ~147, we see the first singular value (the singular value with index 0,
         labeled SV 0 on the plot) start to strongly increase, showing that we have gained
-        a scattering component. We see SV 1 start to increase at ~167, indicating another
+        a scattering component. We see SV 1 start to increase at ~164, indicating another
         scattering component starting to be present in the scattering profile.
 
 #.  In the User Input panel, tweak the “Backward” value start frames so that the frame
@@ -134,7 +134,7 @@ components from overlapping SEC-SAXS peaks.
     *   *Note:* The algorithm for determining the start and end points is not particularly
         advanced. For some datasets you may need to do significantly more adjustment of these values
 
-    |10000201000000C0000000F27D3BE3AA11912468_png|
+    |efa_ranges_png|
 
 #.  Click the “Next” button in the bottom right corner to move to the last stage of the
     EFA analysis.
@@ -173,7 +173,7 @@ components from overlapping SEC-SAXS peaks.
 
 #.  Click the “Next” button to return to the final stage of the EFA analysis.
 
-#.  In the Controls box, you can set the method, the number of iterations, and the
+#.  In the Rotation Controls box, you can set the method, the number of iterations, and the
     convergence threshold. As you can see in the Status window, the rotation was
     successful for this data. If it was not, you could try changing methods or adjusting
     the number of iterations or threshold.
@@ -251,6 +251,6 @@ components from overlapping SEC-SAXS peaks.
 
 .. |efa_profiles_png| image:: images/efa_profiles.png
 
-.. |10000201000000C0000000F27D3BE3AA11912468_png| image:: images/10000201000000C0000000F27D3BE3AA11912468.png
+.. |efa_ranges_png| image:: images/efa_ranges.png
 
 .. |1000020100000320000002A2D123A77E23D67C60_png| image:: images/1000020100000320000002A2D123A77E23D67C60.png

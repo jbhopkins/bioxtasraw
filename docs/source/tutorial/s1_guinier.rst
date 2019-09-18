@@ -17,7 +17,8 @@ for globular proteins. This fitting region is called the "Guinier region."
     *   *Note:* RAW automatically tries to find the best Guinier region for you
         when the Guinier window is opened for the first time.
 
-    *   *Note:* The |Rg| value is in Angstroms, while the two :math:`qR_g` boxes give, left to right,
+    *   *Note:* The |Rg| value is in units of 1/q (e.g. if q is in Å\ :sup:`-1`
+        then |Rg| is in Å), while the two :math:`qR_g` boxes give, left to right,
         :math:`q_{min}R_g` and :math:`q_{max}R_g` respectively.
 
     |gi_guinier_png|
@@ -27,7 +28,7 @@ for globular proteins. This fitting region is called the "Guinier region."
     arrow buttons next to the n_min box to adjust that to zero. Check whether
     the |Rg| changes.
 
-#.  In the "Parameters" panel, note that :math:`q_{max}R_g` is only ~1.26. Recall that for globular
+#.  In the "Parameters" panel, note that :math:`q_{max}R_g` is only ~1.27. Recall that for globular
     proteins like GI, it is typical to have :math:`q_{max}R_g` ~1.3. Adjust n_max until that is
     the case, watching what happens to the |Rg| and the residual.
 
@@ -57,7 +58,40 @@ for globular proteins. This fitting region is called the "Guinier region."
     *   *Tip:* If you hover your mouse cursor over the info icon (just left of the target icon)
         for a given scattering profile it should show you the |Rg| and I(0) of your Guinier analysis.
 
-    |lys_guinier_png|
+**Aside: Criteria for a good Guinier region**
+
+For a globular protein, you are looking for three essential components in your Guinier fit:
+
+*   :math:`q_{min}R_g<1.0`. This states that the minimum q of your fit, q\ :sub:`min`, times
+    the |Rg|  of your fit should be less than 1.0. This criteria ensures you
+    have enough q range to properly estimate the |Rg| and I(0) values.
+
+*  :math:`q_{max}R_g<1.3`. This states that the maximum q of your fit, q\ :sub:`max`,
+    times the |Rg|  of your fit should be less than 1.3. This criteria
+    ensures you remain in the linear range of the Guinier approximation
+    for the fit.
+
+*   Residuals should be flat and randomly distributed about zero. If
+    your residuals have a ‘smile’ (above zero near start and end of fit,
+    below in the middle), or a ‘frown’ (below zero near start and end
+    of fit, above in the middle), it indicates you have non-ideal data.
+    The ‘smile’ is characteristic of aggregation, the ‘frown’ characteristic
+    of interparticle repulsion.
+
+Additionally, you shouldn’t have to excluded very many points at the start of the
+fit. A few is generally fine, as the points nearest the beamstop can be noisy
+(depending on the exact details of the measurement). If you have a small amount
+of aggregation or repulsion it may manifest as a small upturn or downturn at low
+q that, once excluded, doesn’t seem to affect the fit residual (i.e. no ‘smile’
+or ‘frown’). In these cases, you may proceed, but exercise caution as your data
+may be subtly affected. Also, be sure whoever you present the data to understands
+ou observed these effects and decided to proceed with analysis despite the
+non-ideality.
+
+Note that for non-globular systems, such as rod-like shapes, the fitting range
+shifts as the linear region of the Guinier approximation shifts.
+
+|lys_guinier_png|
 
 
 .. |gi_guinier_png| image:: images/guinier_gi.png
