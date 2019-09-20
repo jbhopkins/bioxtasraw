@@ -15153,7 +15153,6 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
 
         if self.processing_done['baseline']:
-
             if len(self.secm.getAllSASMs()) == len(self.original_secm.getAllSASMs()):
                 baseline_sub_sasms = self.results['baseline']['sub_sasms']
                 baseline_use_sub_sasms = self.results['baseline']['use_sub_sasms']
@@ -15296,6 +15295,21 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             self.original_secm.baseline_type = self.results['baseline']['baseline_type']
             self.original_secm.baseline_extrap = self.results['baseline']['baseline_extrap']
             self.original_secm.baseline_fit_results = self.results['baseline']['fit_results']
+
+        else:
+            self.original_secm.baseline_start_range = (-1, -1)
+            self.original_secm.baseline_end_range = (-1, -1)
+            self.original_secm.baseline_corr = []
+            self.original_secm.baseline_type = ''
+            self.original_secm.baseline_extrap = True
+            self.original_secm.baseline_fit_results = []
+
+            self.original_secm.baseline_subtracted_sasm_list = []
+            self.original_secm.use_baseline_subtracted_sasm = []
+            self.original_secm.mean_i_bcsub = np.zeros_like(self.original_secm.mean_i)
+            self.original_secm.total_i_bcsub = np.zeros_like(self.original_secm.total_i)
+            self.original_secm.I_of_q_bcsub = np.zeros_like(self.original_secm.I_of_q)
+            self.original_secm.qrange_I_bcsub = np.zeros_like(self.original_secm.qrange_I)
 
 
         if self.processing_done['calc']:
@@ -15509,6 +15523,24 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             self.processing_done['baseline'] = False
 
             self.switchSampleRange('baseline', 'sub')
+
+            if self.processing_done['buffer']:
+                if 'calc' in self.results['buffer']:
+                    self.results['calc']['rg'] = self.results['buffer']['calc']['rg']
+                    self.results['calc']['rger'] = self.results['buffer']['calc']['rger']
+                    self.results['calc']['i0'] = self.results['buffer']['calc']['i0']
+                    self.results['calc']['i0er'] = self.results['buffer']['calc']['i0er']
+                    self.results['calc']['vcmw'] = self.results['buffer']['calc']['vcmw']
+                    self.results['calc']['vcmwer'] = self.results['buffer']['calc']['vcmwer']
+                    self.results['calc']['vpmw'] = self.results['buffer']['calc']['vpmw']
+                else:
+                    t = threading.Thread(target=self.updateProcessing, args=('calc',))
+                    t.daemon = True
+                    t.start()
+                    self.threads.append(t)
+
+                wx.CallAfter(self.plot_page.show_plot, 'Subtracted')
+
         else:
             self.bl_r1_start.Enable()
             self.bl_r1_end.Enable()
