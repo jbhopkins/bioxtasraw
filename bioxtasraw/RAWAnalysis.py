@@ -14729,6 +14729,15 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         box = wx.StaticBox(self, -1, 'Control')
         control_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
+        name_label = wx.StaticText(self, label="Series:")
+        self.series_name = wx.StaticText(self)
+
+        series_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        series_name_sizer.Add(name_label, border=2,
+            flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+        series_name_sizer.Add(self.series_name, border=2,
+            flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+
 
         info_pane = wx.CollapsiblePane(self, label="Series Info",
             style=wx.CP_NO_TLW_RESIZE)
@@ -14929,6 +14938,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         sample_pane.Expand()
 
 
+        control_sizer.Add(series_name_sizer, flag=wx.TOP, border=5)
         control_sizer.Add(info_pane, flag=wx.TOP, border=5)
         control_sizer.Add(buffer_pane, flag=wx.EXPAND|wx.TOP, border=5)
         control_sizer.Add(baseline_pane, flag=wx.TOP, border=5)
@@ -14945,6 +14955,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
     def initialize(self, secm):
         self.secm = secm
+
+        self.series_name.SetLabel(self.secm.getParameter('filename'))
 
         frames = self.secm.getFrames()
 
