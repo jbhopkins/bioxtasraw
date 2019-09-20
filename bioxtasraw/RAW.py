@@ -3360,7 +3360,7 @@ class MainWorkerThread(threading.Thread):
             elif plot_y == 'q_range':
                 sasm_intensity = buffer_avg_sasm.getIofQRange(secm.qrange[0], secm.qrange[1])
 
-            if sasm_intensity/ref_intensity > threshold:
+            if abs(sasm_intensity/ref_intensity) > threshold:
                 use_subtracted_sasm.append(True)
             else:
                 use_subtracted_sasm.append(False)

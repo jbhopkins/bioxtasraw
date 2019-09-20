@@ -1421,7 +1421,7 @@ class SECM(object):
             elif int_type == 'q_range':
                 sasm_intensity = sasm.getIofQRange(qrange[0], qrange[1])
 
-            if sasm_intensity/ref_intensity > threshold:
+            if abs(sasm_intensity/ref_intensity) > threshold:
                 use_subtracted_sasms.append(True)
             else:
                 use_subtracted_sasms.append(False)
@@ -1463,7 +1463,7 @@ class SECM(object):
             elif int_type == 'q_range':
                 sasm_intensity = sasm.getIofQRange(qrange[0], qrange[1])
 
-            if sasm_intensity/ref_intensity > threshold:
+            if abs(sasm_intensity/ref_intensity) > threshold:
                 use_subtracted_sasms.append(True)
             else:
                 use_subtracted_sasms.append(False)

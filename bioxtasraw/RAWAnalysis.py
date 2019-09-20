@@ -15044,6 +15044,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
             self.results['baseline'] = results
             self.processing_done['baseline'] = True
+            self.should_process['baseline'] = True
 
             self.plotBaseline()
 
@@ -15416,6 +15417,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         if event_object is self.buffer_calc:
             start = 'buffer'
+            if self.baseline_cor.GetStringSelection() == 'None':
+                self.should_process['baseline'] = False
         elif event_object is self.baseline_calc:
             start = 'baseline'
             if self.processing_done['buffer'] and self.baseline_cor.GetStringSelection() != 'None':
@@ -15425,6 +15428,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         elif (event_object is self.vc_mol_type or event_object is self.vp_density
             or event_object is self.avg_window):
             start = 'calc'
+            if self.baseline_cor.GetStringSelection() == 'None':
+                self.should_process['baseline'] = False
 
         t = threading.Thread(target=self.updateProcessing, args=(start,))
         t.daemon = True
@@ -16635,7 +16640,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             elif int_type == 'q_range':
                 sasm_intensity = sasm.getIofQRange(q1, q2)
 
-            if sasm_intensity/ref_intensity > calc_threshold:
+            if abs(sasm_intensity/ref_intensity) > calc_threshold:
                 use_subtracted_sasms.append(True)
             else:
                 use_subtracted_sasms.append(False)
@@ -16762,7 +16767,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             intensity = self._getIntensity('unsub')
             ref_sub = self._getRegionIntensity([self.results['buffer']['buffer_sasm']])
 
-            self.results['buffer']['use_sub_sasms'] = (intensity/ref_sub[0])>calc_threshold
+            self.results['buffer']['use_sub_sasms'] = abs(intensity/ref_sub[0])>calc_threshold
 
             if self.processing_done['baseline']:
                 bl_type = self.results['baseline']['baseline_type']
@@ -16824,7 +16829,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                     elif int_type == 'q_range':
                         sasm_intensity = sasm.getIofQRange(q1, q2)
 
-                    if sasm_intensity/ref_intensity > calc_threshold:
+                    if abs(sasm_intensity/ref_intensity) > calc_threshold:
                         use_subtracted_sasms.append(True)
                     else:
                         use_subtracted_sasms.append(False)
