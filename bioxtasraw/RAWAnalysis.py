@@ -34,6 +34,7 @@ import time
 import platform
 import collections
 import traceback
+import tempfile
 
 matplotlib.rcParams['backend'] = 'WxAgg'
 matplotlib.rc('image', origin = 'lower')        # turn image upside down.. x,y, starting from lower left
@@ -3090,15 +3091,19 @@ class GNOMFrame(wx.Frame):
         self.Raise()
 
         self.getGnomVersion()
-        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
-        path = dirctrl_panel.getDirLabel()
+        # dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        # path = dirctrl_panel.getDirLabel()
+
+        standard_paths = wx.StandardPaths.Get()
+        self.tempdir = standard_paths.GetTempDir()
+        # fname = tempfile.NamedTemporaryFile(dir=self.tempdir).name
 
         self.showBusy()
-        t = threading.Thread(target=self.initGNOM, args=(sasm, path))
+        t = threading.Thread(target=self.initGNOM, args=(sasm,))
         t.daemon=True
         t.start()
 
-    def initGNOM(self, sasm, path):
+    def initGNOM(self, sasm):
 
         analysis_dict = sasm.getParameter('analysis')
         if 'GNOM' in analysis_dict:
@@ -3109,33 +3114,34 @@ class GNOMFrame(wx.Frame):
 
             savename = 't_dat.dat'
 
-            while os.path.isfile(os.path.join(path, savename)):
+            while os.path.isfile(os.path.join(self.tempdir, savename)):
                 savename = 't'+savename
 
-            save_sasm = SASM.SASM(copy.deepcopy(sasm.i), copy.deepcopy(sasm.q), copy.deepcopy(sasm.err), copy.deepcopy(sasm.getAllParameters()))
+            save_sasm = SASM.SASM(copy.deepcopy(sasm.i), copy.deepcopy(sasm.q),
+                copy.deepcopy(sasm.err), copy.deepcopy(sasm.getAllParameters()))
 
             save_sasm.setParameter('filename', savename)
 
             save_sasm.setQrange(sasm.getQrange())
 
-            if self.main_frame.OnlineControl.isRunning() and path == self.main_frame.OnlineControl.getTargetDir():
+            if self.main_frame.OnlineControl.isRunning() and self.tempdir == self.main_frame.OnlineControl.getTargetDir():
                 self.main_frame.controlTimer(False)
                 restart_timer = True
             else:
                 restart_timer = False
 
             try:
-                SASFileIO.saveMeasurement(save_sasm, path, self._raw_settings, filetype = '.dat')
+                SASFileIO.saveMeasurement(save_sasm, self.tempdir, self._raw_settings, filetype = '.dat')
             except SASExceptions.HeaderSaveError as e:
                 self._showSaveError('header')
 
-            os.chdir(path)
+            os.chdir(self.tempdir)
 
             try:
-                init_iftm = SASCalc.runDatgnom(savename, sasm)
+                init_iftm = SASCalc.runDatgnom(savename, sasm, self.tempdir)
             except SASExceptions.NoATSASError as e:
                 wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
-                self.cleanupGNOM(path, savename = savename)
+                self.cleanupGNOM(self.tempdir, savename = savename)
                 os.chdir(cwd)
                 # self.onClose()
                 return
@@ -3155,22 +3161,22 @@ class GNOMFrame(wx.Frame):
                 else:
                     dmax = 80 #Completely arbitrary default setting for Dmax
 
-                os.chdir(path)
+                os.chdir(self.tempdir)
 
                 try:
                     init_iftm = SASCalc.runGnom(savename, outname, dmax, self.controlPanel.gnom_settings, new_gnom = self.new_gnom)
                 except (SASExceptions.NoATSASError, SASExceptions.GNOMError) as e:
                     wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
-                    self.cleanupGNOM(path, savename = savename, outname = outname)
+                    self.cleanupGNOM(self.tempdir, savename = savename, outname = outname)
                     # self.onClose()
                     os.chdir(cwd)
                     return
 
                 os.chdir(cwd)
 
-                self.cleanupGNOM(path, outname = outname)
+                self.cleanupGNOM(self.tempdir, outname = outname)
 
-            self.cleanupGNOM(path, savename = savename)
+            self.cleanupGNOM(self.tempdir, savename = savename)
 
             if restart_timer:
                 wx.CallAfter(self.main_frame.controlTimer, True)
@@ -3763,15 +3769,14 @@ class GNOMControlPanel(wx.Panel):
         wx.MessageBox(str(msg), "How to cite GNOM", style = wx.ICON_INFORMATION | wx.OK)
 
     def onDatgnomButton(self, evt):
-        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
-        path = dirctrl_panel.getDirLabel()
+        top = self.gnom_frame
 
-        cwd = os.getcwd()
+        savename = tempfile.NamedTemporaryFile(dir=top.tempdir).name
 
-        savename = 't_dat.dat'
+        while os.path.isfile(savename):
+            savename = tempfile.NamedTemporaryFile(dir=top.tempdir).name
 
-        while os.path.isfile(os.path.join(path, savename)):
-            savename = 't'+savename
+        savename = os.path.split(savename)[-1] + '.dat'
 
         save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q), copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
 
@@ -3779,35 +3784,28 @@ class GNOMControlPanel(wx.Panel):
 
         save_sasm.setQrange(self.sasm.getQrange())
 
-        top = self.gnom_frame
-
-        if top.main_frame.OnlineControl.isRunning() and path == top.main_frame.OnlineControl.getTargetDir():
+        if top.main_frame.OnlineControl.isRunning() and top.tempdir == top.main_frame.OnlineControl.getTargetDir():
             top.main_frame.controlTimer(False)
             restart_timer = True
         else:
             restart_timer = False
 
         try:
-            SASFileIO.saveMeasurement(save_sasm, path, self.raw_settings, filetype = '.dat')
+            SASFileIO.saveMeasurement(save_sasm, top.tempdir, self.raw_settings, filetype = '.dat')
         except SASExceptions.HeaderSaveError as e:
             self._showSaveError('header')
 
-        os.chdir(path)
-
         try:
-            datgnom = SASCalc.runDatgnom(savename, self.sasm)
+            datgnom = SASCalc.runDatgnom(savename, self.sasm, top.tempdir)
         except SASExceptions.NoATSASError as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
-            top = self.gnom_frame
-            top.cleanupGNOM(path, savename = savename)
-            os.chdir(cwd)
+            top.cleanupGNOM(top.tempdir, savename = savename)
+
             self.SetFocusIgnoringChildren()
             # top.OnClose()
             return
 
-        os.chdir(cwd)
-
-        top.cleanupGNOM(path, savename = savename)
+        top.cleanupGNOM(top.tempdir, savename = savename)
 
         if restart_timer:
             wx.CallAfter(top.main_frame.controlTimer, True)
@@ -4163,18 +4161,20 @@ class GNOMControlPanel(wx.Panel):
         start = int(startSpin.GetValue())
         end = int(endSpin.GetValue())
 
-        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
-        path = dirctrl_panel.getDirLabel()
+        # dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        # path = dirctrl_panel.getDirLabel()
+
+        top = self.gnom_frame
 
         cwd = os.getcwd()
 
         savename = 't_dat.dat'
 
-        while os.path.isfile(os.path.join(path, savename)):
+        while os.path.isfile(os.path.join(top.tempdir, savename)):
             savename = 't'+savename
 
         outname = 't_out.out'
-        while os.path.isfile(os.path.join(path, outname)):
+        while os.path.isfile(os.path.join(top.tempdir, outname)):
             outname = 't'+outname
 
         save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q), copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
@@ -4182,28 +4182,25 @@ class GNOMControlPanel(wx.Panel):
         save_sasm.setParameter('filename', savename)
         save_sasm.setQrange((start, end))
 
-
-        top = self.gnom_frame
-
-        if top.main_frame.OnlineControl.isRunning() and path == top.main_frame.OnlineControl.getTargetDir():
+        if top.main_frame.OnlineControl.isRunning() and top.tempdir == top.main_frame.OnlineControl.getTargetDir():
             top.main_frame.controlTimer(False)
             restart_timer = True
         else:
             restart_timer = False
 
         try:
-            SASFileIO.saveMeasurement(save_sasm, path, self.raw_settings, filetype = '.dat')
+            SASFileIO.saveMeasurement(save_sasm, top.tempdir, self.raw_settings, filetype = '.dat')
         except SASExceptions.HeaderSaveError as e:
             self._showSaveError('header')
 
 
-        os.chdir(path)
+        os.chdir(top.tempdir)
         try:
             iftm = SASCalc.runGnom(savename, outname, dmax, self.gnom_settings, new_gnom = top.new_gnom)
         except (SASExceptions.NoATSASError, SASExceptions.GNOMError) as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
             top = self.gnom_frame
-            top.cleanupGNOM(path, savename, outname)
+            top.cleanupGNOM(top.tempdir, savename, outname)
             os.chdir(cwd)
             self.SetFocusIgnoringChildren()
             # top.OnClose()
@@ -4211,7 +4208,7 @@ class GNOMControlPanel(wx.Panel):
 
         os.chdir(cwd)
 
-        top.cleanupGNOM(path, savename, outname)
+        top.cleanupGNOM(top.tempdir, savename, outname)
 
         if restart_timer:
             wx.CallAfter(top.main_frame.controlTimer, True)

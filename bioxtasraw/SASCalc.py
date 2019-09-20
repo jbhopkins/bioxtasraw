@@ -978,7 +978,7 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
         return None
 
 
-def runDatgnom(datname, sasm):
+def runDatgnom(datname, sasm, path):
     #This runs the ATSAS package DATGNOM program, to automatically find the Dmax and P(r) function
     #of a scattering profile.
     analysis = sasm.getParameter('analysis')
@@ -1021,9 +1021,11 @@ def runDatgnom(datname, sasm):
                     rg = 20
 
         if rg <= 0:
-            process=subprocess.Popen('"%s" "%s" -o "%s"' %(datgnomDir, datname, outname), stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+            process=subprocess.Popen('"%s" "%s" -o "%s"' %(datgnomDir, datname, outname),
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=path)
         else:
-            process=subprocess.Popen('"%s" "%s" -o "%s" -r %f' %(datgnomDir, datname, outname, rg),stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+            process=subprocess.Popen('"%s" "%s" -o "%s" -r %f' %(datgnomDir, datname, outname, rg),
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=path)
 
         output, error = process.communicate()
 
@@ -1034,11 +1036,15 @@ def runDatgnom(datname, sasm):
             if rg <= 0:
                 rg, rger, i0, i0er, idx_min, idx_max =autoRg(sasm, error_weight=error_weight)
                 if rg>10:
-                    process=subprocess.Popen('"%s" "%s" -o "%s" -r %f' %(datgnomDir, datname, outname, rg),stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+                    process=subprocess.Popen('"%s" "%s" -o "%s" -r %f' %(datgnomDir, datname, outname, rg),
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True,
+                        cwd=path)
 
                     output, error = process.communicate()
             else:
-                process=subprocess.Popen('"%s" "%s" -o "%s"' %(datgnomDir, datname, outname), stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+                process=subprocess.Popen('"%s" "%s" -o "%s"' %(datgnomDir, datname, outname),
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True,
+                    cwd=path)
 
                 output, error = process.communicate()
 
@@ -1053,13 +1059,13 @@ def runDatgnom(datname, sasm):
             datgnom_success = True
 
         if datgnom_success:
-            iftm=SASFileIO.loadOutFile(outname)[0]
+            iftm=SASFileIO.loadOutFile(os.path.join(path, outname))[0]
         else:
             iftm = None
 
-        if os.path.isfile(outname):
+        if os.path.isfile(os.path.join(path, outname)):
             try:
-                os.remove(outname)
+                os.remove(os.path.join(path, outname))
             except Exception, e:
                 print e
                 print 'DATGNOM cleanup failed to remove the .out file!'
