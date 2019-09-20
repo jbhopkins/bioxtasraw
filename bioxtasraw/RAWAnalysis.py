@@ -13954,7 +13954,8 @@ class SeriesPlotPanel(wx.Panel):
                 line = self.subplot.axvspan(start, end, animated=True, facecolor=color,
                     alpha=0.5)
             else:
-                line = self.subplot.axvline(start, color=color, alpha=0.5, animated=True)
+                line = self.subplot.axvspan(start-0.5, end+0.5, animated=True, facecolor=color,
+                    alpha=0.5)
             self.canvas.draw()
             self.background = self.canvas.copy_from_bbox(self.subplot.bbox)
             self.plot_ranges[index] = line
@@ -15794,7 +15795,11 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
 
         #Test for frame correlation
-        intI_test = stats.spearmanr(intensity, frame_idx)
+        if len(sasms) > 1:
+            intI_test = stats.spearmanr(intensity, frame_idx)
+        else:
+            intI_test = [1,1]
+
         intI_valid = intI_test[1]>0.05
 
         if fast and not intI_valid:
@@ -15807,10 +15812,13 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         order = min(5, win_len-1)
 
-        smoothed_intI = SASCalc.smooth_data(intensity, window_length=win_len,
-            order=order)
+        if len(sasms) > 1:
+            smoothed_intI = SASCalc.smooth_data(intensity, window_length=win_len,
+                order=order)
+            smoothed_intI_test = stats.spearmanr(smoothed_intI, frame_idx)
+        else:
+            smoothed_intI_test = [1,1]
 
-        smoothed_intI_test = stats.spearmanr(smoothed_intI, frame_idx)
         smoothed_intI_valid = smoothed_intI_test[1]>0.01
 
         intI_results = {'intI_r'    : intI_test[0],
@@ -15826,30 +15834,38 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
 
         #Test for regional frame similarity
-        if qf-qi>200:
-            ref_sasm.setQrange((qi, qi+100))
-            for sasm in superimpose_sub_sasms:
-                sasm.setQrange((qi, qi+100))
-            low_q_similar, low_q_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
+        if len(sasms) > 1:
+            if qf-qi>200:
+                ref_sasm.setQrange((qi, qi+100))
+                for sasm in superimpose_sub_sasms:
+                    sasm.setQrange((qi, qi+100))
+                low_q_similar, low_q_outliers = self._similarity(ref_sasm,
+                    superimpose_sub_sasms)
 
-            if fast and not low_q_similar:
+                if fast and not low_q_similar:
+                    ref_sasm.setQrange((qi, qf))
+                    for sasm in superimpose_sub_sasms:
+                        sasm.setQrange((qi, qf))
+                    return False, {}, {}, intI_results
+
+                ref_sasm.setQrange((qf-100, qf))
+                for sasm in superimpose_sub_sasms:
+                    sasm.setQrange((qf-100, qf))
+                high_q_similar, high_q_outliers = self._similarity(ref_sasm,
+                    superimpose_sub_sasms)
+
                 ref_sasm.setQrange((qi, qf))
                 for sasm in superimpose_sub_sasms:
                     sasm.setQrange((qi, qf))
-                return False, {}, {}, intI_results
 
-            ref_sasm.setQrange((qf-100, qf))
-            for sasm in superimpose_sub_sasms:
-                sasm.setQrange((qf-100, qf))
-            high_q_similar, high_q_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
+                if fast and not high_q_similar:
+                    return False, {}, {}, intI_results
 
-            ref_sasm.setQrange((qi, qf))
-            for sasm in superimpose_sub_sasms:
-                sasm.setQrange((qi, qf))
-
-            if fast and not high_q_similar:
-                return False, {}, {}, intI_results
-
+            else:
+                low_q_similar = True
+                high_q_similar = True
+                low_q_outliers = []
+                high_q_outliers = []
         else:
             low_q_similar = True
             high_q_similar = True
@@ -15858,14 +15874,22 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
 
         #Test for more than one significant singular value
-        svd_results = self._singularValue(sasms)
+        if len(sasms) > 1:
+            svd_results = self._singularValue(sasms)
 
-        if fast and not svd_results['svals']==1:
-            return False, {}, svd_results, intI_results
+            if fast and not svd_results['svals']==1:
+                return False, {}, svd_results, intI_results
+        else:
+            svd_results = {'svals': 1}
 
 
         #Test for all frame similarity
-        all_similar, all_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
+        if len(sasms) > 1:
+            all_similar, all_outliers = self._similarity(ref_sasm,
+                superimpose_sub_sasms)
+        else:
+            all_similar = True
+            all_outliers = []
 
         similarity_results = {'all_similar'     : all_similar,
             'low_q_similar'     : low_q_similar,
@@ -16902,7 +16926,10 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         if fast and not param_range_valid:
             return False, {}, {}, {}, {}
 
-        rg_test = stats.spearmanr(rg, frame_idx)
+        if len(sub_sasms) > 1:
+            rg_test = stats.spearmanr(rg, frame_idx)
+        else:
+            rg_test = [1,1]
 
         if not np.isnan(rg_test[1]):
             rg_valid = rg_test[1]>0.05
@@ -16912,7 +16939,10 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         if fast and not rg_valid:
             return False, {}, {}, {}, {}
 
-        vcmw_test = stats.spearmanr(vcmw, frame_idx)
+        if len(sub_sasms) > 1:
+            vcmw_test = stats.spearmanr(vcmw, frame_idx)
+        else:
+            vcmw_test = [1,1]
 
         if not np.isnan(vcmw_test[1]):
             vcmw_valid = vcmw_test[1]>0.05
@@ -16922,7 +16952,10 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         if fast and not vcmw_valid:
             return False, {}, {}, {}, {}
 
-        vpmw_test = stats.spearmanr(vpmw, frame_idx)
+        if len(sub_sasms) > 1:
+            vpmw_test = stats.spearmanr(vpmw, frame_idx)
+        else:
+            vpmw_test = [1,1]
 
         if not np.isnan(vpmw_test[1]):
             vpmw_valid = vpmw_test[1]>0.05
@@ -16950,31 +16983,39 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
 
         #Test for regional frame similarity
-        if qf-qi>200:
-            ref_sasm.setQrange((qi, qi+100))
-            for sasm in superimpose_sub_sasms:
-                sasm.setQrange((qi, qi+100))
-            low_q_similar, low_q_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
+        if len(sub_sasms) > 1:
+            if qf-qi>200:
+                ref_sasm.setQrange((qi, qi+100))
+                for sasm in superimpose_sub_sasms:
+                    sasm.setQrange((qi, qi+100))
+                low_q_similar, low_q_outliers = self._similarity(ref_sasm,
+                    superimpose_sub_sasms)
 
-            if fast and not low_q_similar:
+                if fast and not low_q_similar:
+                    ref_sasm.setQrange((qi, qf))
+                    for sasm in superimpose_sub_sasms:
+                        sasm.setQrange((qi, qf))
+                    return False, {}, param_results, {}, {}
+
+                ref_sasm.setQrange((qf-100, qf))
+                for sasm in superimpose_sub_sasms:
+                    sasm.setQrange((qf-100, qf))
+
+                high_q_similar, high_q_outliers = self._similarity(ref_sasm,
+                    superimpose_sub_sasms)
+
                 ref_sasm.setQrange((qi, qf))
                 for sasm in superimpose_sub_sasms:
                     sasm.setQrange((qi, qf))
-                return False, {}, param_results, {}, {}
 
-            ref_sasm.setQrange((qf-100, qf))
-            for sasm in superimpose_sub_sasms:
-                sasm.setQrange((qf-100, qf))
+                if fast and not high_q_similar:
+                    return False, {}, param_results, {}, {}
 
-            high_q_similar, high_q_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
-
-            ref_sasm.setQrange((qi, qf))
-            for sasm in superimpose_sub_sasms:
-                sasm.setQrange((qi, qf))
-
-            if fast and not high_q_similar:
-                return False, {}, param_results, {}, {}
-
+            else:
+                low_q_similar = True
+                high_q_similar = True
+                low_q_outliers = []
+                high_q_outliers = []
         else:
             low_q_similar = True
             high_q_similar = True
@@ -16983,7 +17024,10 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
 
         #Test for more than one significant singular value
-        svd_results = self._singularValue(sub_sasms)
+        if len(sub_sasms) > 1:
+            svd_results = self._singularValue(sub_sasms)
+        else:
+            svd_results = {'svals': 1}
 
         if fast and not svd_results['svals']==1:
             return False, {}, param_results, svd_results, {}
@@ -16991,26 +17035,32 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         # Test whether averaging all selected frames is helping signal to noise,
         # or if inclusion of some are hurting because they're too noisy
-        sort_idx = np.argsort(intensity)[::-1]
-        old_s_to_n = 0
-        sn_valid = True
-        i = 0
 
-        while sn_valid and i < len(sort_idx):
-            idxs = sort_idx[:i+1]
-            avg_list = [sub_sasms[idx] for idx in idxs]
+        if len(sub_sasms) > 1:
+            sort_idx = np.argsort(intensity)[::-1]
+            old_s_to_n = 0
+            sn_valid = True
+            i = 0
 
-            average_sasm = SASProc.average(avg_list, forced=True)
-            avg_i = average_sasm.getI()
-            avg_err = average_sasm.getErr()
+            while sn_valid and i < len(sort_idx):
+                idxs = sort_idx[:i+1]
+                avg_list = [sub_sasms[idx] for idx in idxs]
 
-            s_to_n = np.abs(avg_i/avg_err).mean()
+                average_sasm = SASProc.average(avg_list, forced=True)
+                avg_i = average_sasm.getI()
+                avg_err = average_sasm.getErr()
 
-            if s_to_n >= old_s_to_n:
-                old_s_to_n = s_to_n
-                i = i+1
-            else:
-                sn_valid = False
+                s_to_n = np.abs(avg_i/avg_err).mean()
+
+                if s_to_n >= old_s_to_n:
+                    old_s_to_n = s_to_n
+                    i = i+1
+                else:
+                    sn_valid = False
+        else:
+            sort_idx = []
+            i = 0
+            sn_valid = True
 
         sn_results = {'low_sn'  : np.sort(sort_idx[i:]),
             'sn_valid'  : sn_valid,
@@ -17021,7 +17071,12 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
 
         #Test for all frame similarity
-        all_similar, all_outliers = self._similarity(ref_sasm, superimpose_sub_sasms)
+        if len(sub_sasms) > 1:
+            all_similar, all_outliers = self._similarity(ref_sasm,
+                superimpose_sub_sasms)
+        else:
+            all_similar = True
+            all_outliers = []
 
         similarity_results = {'all_similar'     : all_similar,
             'low_q_similar'     : low_q_similar,
