@@ -14730,7 +14730,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         control_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
 
-        info_pane = wx.CollapsiblePane(self, label="Series Info")
+        info_pane = wx.CollapsiblePane(self, label="Series Info",
+            style=wx.CP_NO_TLW_RESIZE)
         info_pane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
         info_win = info_pane.GetPane()
 
@@ -14772,7 +14773,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         info_pane.Expand()
 
 
-        buffer_pane = wx.CollapsiblePane(self, label="Buffer")
+        buffer_pane = wx.CollapsiblePane(self, label="Buffer",
+            style=wx.CP_NO_TLW_RESIZE)
         buffer_pane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
         buffer_win = buffer_pane.GetPane()
 
@@ -14812,7 +14814,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         buffer_pane.Expand()
 
 
-        baseline_pane = wx.CollapsiblePane(self, label="Baseline Correction")
+        baseline_pane = wx.CollapsiblePane(self, label="Baseline Correction",
+            style=wx.CP_NO_TLW_RESIZE)
         baseline_pane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
         baseline_win = baseline_pane.GetPane()
 
@@ -14881,7 +14884,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         baseline_win.SetSizer(baseline_sizer)
 
 
-        # uv_pane = wx.CollapsiblePane(self, label="UV")
+        # uv_pane = wx.CollapsiblePane(self, label="UV",
+            # style=wx.CP_NO_TLW_RESIZE)
         # uv_pane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
         # uv_win = uv_pane.GetPane()
 
@@ -14889,7 +14893,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         # uv_win.SetSizer(uv_sizer)
 
 
-        sample_pane = wx.CollapsiblePane(self, label="Sample")
+        sample_pane = wx.CollapsiblePane(self, label="Sample",
+            style=wx.CP_NO_TLW_RESIZE)
         sample_pane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
         sample_win = sample_pane.GetPane()
 
