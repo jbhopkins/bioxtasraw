@@ -775,24 +775,25 @@ class ImagePanel(wx.Panel):
         option to toggle between a positive and negative
         mask. '''
 
-        menu = wx.Menu()
+        if self._selected_patch.mask is not None:
+            menu = wx.Menu()
 
-        menu.AppendRadioItem(1, 'Normal Mask')
-        i2 = menu.AppendRadioItem(2, 'Inverted Mask')
+            menu.AppendRadioItem(1, 'Normal Mask')
+            i2 = menu.AppendRadioItem(2, 'Inverted Mask')
 
-        if not isinstance(self._selected_patch.mask, SASImage.PolygonMask):
-            menu.Append(3, 'Resize')
+            if not isinstance(self._selected_patch.mask, SASImage.PolygonMask):
+                menu.Append(3, 'Resize')
 
-        if self._selected_patch.mask.isNegativeMask() == True:
-            i2.Check(True)
+            if self._selected_patch.mask.isNegativeMask() == True:
+                i2.Check(True)
 
-        self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
+            self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
 
-        self.PopupMenu(menu)
+            self.PopupMenu(menu)
 
-        self._selected_patch = None
+            self._selected_patch = None
 
-        menu.Destroy()
+            menu.Destroy()
 
     def _onPopupMenuChoice(self, evt):
         id = evt.GetId()
