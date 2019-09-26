@@ -808,7 +808,7 @@ class GuinierControlPanel(wx.Panel):
         savebutton = wx.Button(self, wx.ID_OK, 'OK')
         savebutton.Bind(wx.EVT_BUTTON, self.onSaveInfo)
 
-        autorg_button = wx.Button(self, -1, 'AutoRG')
+        autorg_button = wx.Button(self, -1, 'Auto')
         autorg_button.Bind(wx.EVT_BUTTON, self.onAutoRg)
 
         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -944,7 +944,7 @@ class GuinierControlPanel(wx.Panel):
         self.err_sizer.AddGrowableCol(3)
 
         std_text = wx.StaticText(self, wx.ID_ANY, 'Fit')
-        auto_text = wx.StaticText(self, wx.ID_ANY, 'AutoRg')
+        auto_text = wx.StaticText(self, wx.ID_ANY, 'Auto')
         est_text = wx.StaticText(self, wx.ID_ANY, 'Est.')
 
         self.err_sizer.AddMany([(wx.StaticText(self, wx.ID_ANY, ''), 0,),
@@ -1165,8 +1165,8 @@ class GuinierControlPanel(wx.Panel):
         old_end = spinend.GetValue()
 
         if rg == -1:
-            msg = 'AutoRG could not find a suitable interval to calculate Rg.'
-            wx.CallAfter(wx.MessageBox, str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK)
+            msg = 'Auto Rg determination could not find a suitable interval to calculate Rg.'
+            wx.CallAfter(wx.MessageBox, str(msg), "Auto Rg Failed", style = wx.ICON_ERROR | wx.OK)
 
             self.updatePlot()
 
@@ -1211,9 +1211,9 @@ class GuinierControlPanel(wx.Panel):
                 txt = wx.FindWindowById(self.error_data['autorg_i0'], self)
                 txt.SetValue('')
 
-                msg = ('AutoRG did not produce a useable result. '
+                msg = ('Auto Rg determination did not produce a useable result. '
                     'Please report this to the developers.')
-                wx.MessageBox(str(msg), "AutoRG Failed", style = wx.ICON_ERROR | wx.OK)
+                wx.MessageBox(str(msg), "Auto Rg Failed", style = wx.ICON_ERROR | wx.OK)
 
                 self.updatePlot()
 
@@ -1239,10 +1239,10 @@ class GuinierControlPanel(wx.Panel):
         msg = ("RAW currently estimates the uncertainty in Rg and I0 as the largest "
         "of three possible sources.\n\n1) Fit - the standard deviation of the "
         "coefficients found by the fit (sqrt of the covariance matrix diagonal "
-        "elements).\n\n2) Autorg - If the autorg position is used, RAW reports "
+        "elements).\n\n2) Auto Rg - If the auto Rg position is used, RAW reports "
         "the standard deviation of the Rg and I0 values from all 'good' fitting "
         "regions found during the search.\n\n3) Est. - An estimated uncertainty similar "
-        "to that reported from the autorg function. When manual limits are set, RAW "
+        "to that reported from the auto Rg function. When manual limits are set, RAW "
         "reports the standard deviation in Rg and I0 obtained from the set of intervals "
         "where n_min is varied bewteen n_min to n_min+(n_max-n_min)*.1 and "
         "n_max varied between n_max-(n_max-n_min)*.1 to n_max.")
@@ -3110,12 +3110,12 @@ class GNOMFrame(wx.Frame):
             wx.CallAfter(self.controlPanel.initGnomValues, sasm)
 
         else:
-            cwd = os.getcwd()
+            savename = tempfile.NamedTemporaryFile(dir=self.tempdir).name
 
-            savename = 't_dat.dat'
+            while os.path.isfile(savename):
+                savename = tempfile.NamedTemporaryFile(dir=self.tempdir).name
 
-            while os.path.isfile(os.path.join(self.tempdir, savename)):
-                savename = 't'+savename
+            savename = os.path.split(savename)[-1] + '.dat'
 
             save_sasm = SASM.SASM(copy.deepcopy(sasm.i), copy.deepcopy(sasm.q),
                 copy.deepcopy(sasm.err), copy.deepcopy(sasm.getAllParameters()))
@@ -3135,48 +3135,43 @@ class GNOMFrame(wx.Frame):
             except SASExceptions.HeaderSaveError as e:
                 self._showSaveError('header')
 
-            os.chdir(self.tempdir)
-
             try:
                 init_iftm = SASCalc.runDatgnom(savename, sasm, self.tempdir)
             except SASExceptions.NoATSASError as e:
                 wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
                 self.cleanupGNOM(self.tempdir, savename = savename)
-                os.chdir(cwd)
-                # self.onClose()
                 return
 
-            os.chdir(cwd)
+            init_iftm = None
 
 
             if init_iftm is None:
-                outname = 't_datgnom.out'
-                while os.path.isfile(outname):
-                    outname = 't'+outname
+                outname = tempfile.NamedTemporaryFile(dir=self.tempdir).name
 
-                if 'Guinier' in analysis_dict:
-                    rg = float(analysis_dict['Guinier']['Rg'])
+                while os.path.isfile(outname):
+                    outname = tempfile.NamedTemporaryFile(dir=self.tempdir).name
+
+                outname = os.path.split(outname)[-1] + '.dat'
+
+                if 'guinier' in analysis_dict:
+                    rg = float(analysis_dict['guinier']['Rg'])
                     dmax = int(rg*3.) #Mostly arbitrary guess at Dmax
 
                 else:
                     dmax = 80 #Completely arbitrary default setting for Dmax
 
-                os.chdir(self.tempdir)
-
                 try:
-                    init_iftm = SASCalc.runGnom(savename, outname, dmax, self.controlPanel.gnom_settings, new_gnom = self.new_gnom)
+                    init_iftm = SASCalc.runGnom(savename, outname, dmax,
+                        self.controlPanel.gnom_settings, self.tempdir,
+                        new_gnom=self.new_gnom)
                 except (SASExceptions.NoATSASError, SASExceptions.GNOMError) as e:
                     wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
                     self.cleanupGNOM(self.tempdir, savename = savename, outname = outname)
-                    # self.onClose()
-                    os.chdir(cwd)
                     return
 
-                os.chdir(cwd)
+                self.cleanupGNOM(self.tempdir, outname=outname)
 
-                self.cleanupGNOM(self.tempdir, outname = outname)
-
-            self.cleanupGNOM(self.tempdir, savename = savename)
+            self.cleanupGNOM(self.tempdir, savename=savename)
 
             if restart_timer:
                 wx.CallAfter(self.main_frame.controlTimer, True)
@@ -4161,21 +4156,21 @@ class GNOMControlPanel(wx.Panel):
         start = int(startSpin.GetValue())
         end = int(endSpin.GetValue())
 
-        # dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
-        # path = dirctrl_panel.getDirLabel()
-
         top = self.gnom_frame
 
-        cwd = os.getcwd()
+        savename = tempfile.NamedTemporaryFile(dir=top.tempdir).name
 
-        savename = 't_dat.dat'
+        while os.path.isfile(savename):
+            savename = tempfile.NamedTemporaryFile(dir=top.tempdir).name
 
-        while os.path.isfile(os.path.join(top.tempdir, savename)):
-            savename = 't'+savename
+        savename = os.path.split(savename)[-1] + '.dat'
 
-        outname = 't_out.out'
-        while os.path.isfile(os.path.join(top.tempdir, outname)):
-            outname = 't'+outname
+        outname = tempfile.NamedTemporaryFile(dir=top.tempdir).name
+
+        while os.path.isfile(outname):
+            outname = tempfile.NamedTemporaryFile(dir=top.tempdir).name
+
+        outname = os.path.split(outname)[-1] + '.dat'
 
         save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q), copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
 
@@ -4194,19 +4189,16 @@ class GNOMControlPanel(wx.Panel):
             self._showSaveError('header')
 
 
-        os.chdir(top.tempdir)
         try:
-            iftm = SASCalc.runGnom(savename, outname, dmax, self.gnom_settings, new_gnom = top.new_gnom)
+            iftm = SASCalc.runGnom(savename, outname, dmax, self.gnom_settings,
+                top.tempdir, new_gnom=top.new_gnom)
         except (SASExceptions.NoATSASError, SASExceptions.GNOMError) as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
             top = self.gnom_frame
             top.cleanupGNOM(top.tempdir, savename, outname)
-            os.chdir(cwd)
             self.SetFocusIgnoringChildren()
-            # top.OnClose()
             return
 
-        os.chdir(cwd)
 
         top.cleanupGNOM(top.tempdir, savename, outname)
 
@@ -17397,7 +17389,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                     if param_results['vpmw_pval'] <= 0.05:
                         msg = msg + ('- Mol. weight from adjusted Porod volume method\n')
                 else:
-                    msg = msg+('\nAutorg was unable to determine Rg values for the '
+                    msg = msg+('\nAuto Rg was unable to determine Rg values for the '
                         'following frames:\n')
                     msg = msg + ', '.join(map(str, frame_idx[param_results['param_bad_frames']]))
                     msg = msg + '\n'

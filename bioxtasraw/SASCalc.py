@@ -620,7 +620,7 @@ def getATSASVersion():
 
     return version
 
-def runGnom(fname, outname, dmax, args, new_gnom = False):
+def runGnom(fname, outname, dmax, args, path, new_gnom = False):
     #This function runs GNOM from the atsas package. It can do so without writing a GNOM cfg file.
     #It takes as input the filename to run GNOM on, the output name from the GNOM file, the dmax to evaluate
     #at, and a dictionary of arguments, which can be used to set the optional GNOM arguments.
@@ -691,19 +691,19 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
     else:
         gnomDir = os.path.join(atsasDir, 'gnom')
 
-    datadir = os.path.dirname(fname)
-
     if os.path.exists(gnomDir):
 
         if cfg:
             writeGnomCFG(fname, outname, dmax, args)
 
-            proc = subprocess.Popen('"%s"' %(gnomDir), shell=True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+            proc = subprocess.Popen('"%s"' %(gnomDir), shell=True,
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, cwd=path)
             proc.communicate('\r\n')
 
         else:
-            if os.path.isfile(os.path.join(datadir, 'gnom.cfg')):
-                os.remove(os.path.join(datadir, 'gnom.cfg'))
+            if os.path.isfile(os.path.join(path, 'gnom.cfg')):
+                os.remove(os.path.join(path, 'gnom.cfg'))
 
             if new_gnom and use_cmd_line:
                 cmd = '"%s" --rmax=%s --output="%s"' %(gnomDir, str(dmax), outname)
@@ -731,7 +731,8 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
 
                 cmd = cmd + ' "%s"' %(fname)
 
-                proc = subprocess.Popen(cmd, shell=True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+                proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=path)
 
                 output, error = proc.communicate()
 
@@ -739,7 +740,9 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
 
                 gnom_q = Queue.Queue()
 
-                proc = subprocess.Popen('"%s"' %(gnomDir), shell=True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+                proc = subprocess.Popen('"%s"' %(gnomDir), shell=True,
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT, cwd=path)
                 gnom_t = threading.Thread(target=enqueue_output, args=(proc.stdout, gnom_q))
                 gnom_t.daemon = True
                 gnom_t.start()
@@ -952,20 +955,20 @@ def runGnom(fname, outname, dmax, args, new_gnom = False):
                         previous_line2 = previous_line
                         previous_line = current_line
         try:
-            iftm=SASFileIO.loadOutFile(outname)[0]
+            iftm=SASFileIO.loadOutFile(os.path.join(path, outname))[0]
         except IOError:
             raise SASExceptions.GNOMError('No GNOM output file present. GNOM failed to run correctly')
 
         if cfg:
             try:
-                os.remove(os.path.join(datadir, 'gnom.cfg'))
+                os.remove(os.path.join(path, 'gnom.cfg'))
             except Exception as e:
                 print e
                 print 'GNOM cleanup failed to delete gnom.cfg!'
 
         if not new_gnom:
             try:
-                os.remove(os.path.join(datadir, 'kern.bin'))
+                os.remove(os.path.join(path, 'kern.bin'))
             except Exception as e:
                 print e
                 print 'GNOM cleanup failed to delete kern.bin!'
