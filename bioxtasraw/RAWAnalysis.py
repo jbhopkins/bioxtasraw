@@ -3151,7 +3151,7 @@ class GNOMFrame(wx.Frame):
                 while os.path.isfile(outname):
                     outname = tempfile.NamedTemporaryFile(dir=self.tempdir).name
 
-                outname = os.path.split(outname)[-1] + '.dat'
+                outname = os.path.split(outname)[-1] + '.out'
 
                 if 'guinier' in analysis_dict:
                     rg = float(analysis_dict['guinier']['Rg'])
@@ -4170,7 +4170,7 @@ class GNOMControlPanel(wx.Panel):
         while os.path.isfile(outname):
             outname = tempfile.NamedTemporaryFile(dir=top.tempdir).name
 
-        outname = os.path.split(outname)[-1] + '.dat'
+        outname = os.path.split(outname)[-1] + '.out'
 
         save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q), copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
 
@@ -4976,18 +4976,13 @@ class DammifRunPanel(wx.Panel):
             else:
                 wx.CallAfter(self.status.AppendText, 'Starting %s run %s\n' %(program, my_num))
 
-            cwd = os.getcwd()
-            os.chdir(path)
-
             if refine:
                 program = 'DAMMIN'
 
             if program == 'DAMMIF':
-                dammif_proc = SASCalc.runDammif(outname, dam_prefix, dam_args)
+                dammif_proc = SASCalc.runDammif(outname, dam_prefix, dam_args, path)
             else:
-                dammif_proc = SASCalc.runDammin(outname, dam_prefix, dam_args)
-
-            os.chdir(cwd)
+                dammif_proc = SASCalc.runDammin(outname, dam_prefix, dam_args, path)
 
             logname = os.path.join(path,dam_prefix)+'.log'
 
@@ -5082,12 +5077,7 @@ class DammifRunPanel(wx.Panel):
             dam_filelist = [prefix+'_%s-1.pdb' %(str(i).zfill(2)) for i in range(1, nruns+1)]
 
 
-            cwd = os.getcwd()
-            os.chdir(path)
-
-            damaver_proc = SASCalc.runDamaver(dam_filelist)
-
-            os.chdir(cwd)
+            damaver_proc = SASCalc.runDamaver(dam_filelist, path)
 
 
             damaver_q = Queue.Queue()
@@ -5203,12 +5193,7 @@ class DammifRunPanel(wx.Panel):
             dam_filelist = [prefix+'_%s-1.pdb' %(str(i).zfill(2)) for i in range(1, nruns+1)]
 
 
-            cwd = os.getcwd()
-            os.chdir(path)
-
-            damclust_proc = SASCalc.runDamclust(dam_filelist)
-
-            os.chdir(cwd)
+            damclust_proc = SASCalc.runDamclust(dam_filelist, path)
 
 
             damclust_q = Queue.Queue()
@@ -5700,7 +5685,7 @@ class DammifResultsPanel(wx.Panel):
     def _initSettings(self):
         run_window = self.dammif_frame.RunPanel
         path_window = wx.FindWindowById(run_window.ids['save'], run_window)
-        path = path_window.GetValue()
+        # path = path_window.GetValue()
 
         opsys = platform.system()
         if opsys == 'Windows':
@@ -5715,7 +5700,7 @@ class DammifResultsPanel(wx.Panel):
                 run_ambi = False
 
         if run_ambi:
-            t = threading.Thread(target=self.runAmbimeter, args=(path,))
+            t = threading.Thread(target=self.runAmbimeter)
             t.daemon = True
             t.start()
         else:
@@ -5726,41 +5711,41 @@ class DammifResultsPanel(wx.Panel):
         self.topsizer.Hide(self.res_sizer, recursive=True)
         # self.topsizer.Hide(self.models_sizer, recursive=True)
 
-    def runAmbimeter(self, path):
-        cwd = os.getcwd()
-        os.chdir(path)
+    def runAmbimeter(self):
+        standard_paths = wx.StandardPaths.Get()
+        tempdir = standard_paths.GetTempDir()
 
-        outname = 't_ambimeter.out'
+        outname = tempfile.NamedTemporaryFile(dir=tempdir).name
+
         while os.path.isfile(outname):
-            outname = 't'+outname
+            outname = tempfile.NamedTemporaryFile(dir=tempdir).name
 
-        if self.main_frame.OnlineControl.isRunning() and path == self.main_frame.OnlineControl.getTargetDir():
+        outname = os.path.split(outname)[-1] + '.out'
+
+        if self.main_frame.OnlineControl.isRunning() and tempdir == self.main_frame.OnlineControl.getTargetDir():
             self.main_frame.controlTimer(False)
             restart_timer = True
         else:
             restart_timer = False
 
-        SASFileIO.writeOutFile(self.iftm, os.path.join(path, outname))
+        SASFileIO.writeOutFile(self.iftm, os.path.join(tempdir, outname))
 
         ambi_settings = {'sRg' :'4',
                         'files':'None'
                         }
 
         try:
-            output = SASCalc.runAmbimeter(outname, 'temp', ambi_settings)
+            output = SASCalc.runAmbimeter(outname, 'temp', ambi_settings, tempdir)
 
         except SASExceptions.NoATSASError as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running Ambimeter', style = wx.ICON_ERROR | wx.OK)
-            os.remove(outname)
-            os.chdir(cwd)
+            os.remove(os.path.join(tempdir, outname))
             return
 
-        os.remove(outname)
+        os.remove(os.path.join(tempdir, outname))
 
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
-
-        os.chdir(cwd)
 
         cats_window = wx.FindWindowById(self.ids['ambiCats'], self)
         wx.CallAfter(cats_window.SetValue, output[0])
@@ -7644,9 +7629,6 @@ class DenssResultsPanel(wx.Panel):
 
     def _initSettings(self):
         if self.iftm.getParameter('algorithm') == 'GNOM':
-            path_window = wx.FindWindowById(self.run_panel.ids['save'], self.run_panel)
-            path = path_window.GetValue()
-
             opsys = platform.system()
             if opsys == 'Windows':
                 if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter.exe')):
@@ -7660,7 +7642,7 @@ class DenssResultsPanel(wx.Panel):
                     run_ambi = False
 
             if run_ambi:
-                t = threading.Thread(target=self.runAmbimeter, args=(path,))
+                t = threading.Thread(target=self.runAmbimeter)
                 t.daemon = True
                 t.start()
             else:
@@ -7672,41 +7654,41 @@ class DenssResultsPanel(wx.Panel):
         self.topsizer.Hide(self.rscor_sizer, recursive=True)
         self.topsizer.Hide(self.res_sizer, recursive=True)
 
-    def runAmbimeter(self, path):
-        cwd = os.getcwd()
-        os.chdir(path)
+    def runAmbimeter(self):
+        standard_paths = wx.StandardPaths.Get()
+        tempdir = standard_paths.GetTempDir()
 
-        outname = 't_ambimeter.out'
+        outname = tempfile.NamedTemporaryFile(dir=tempdir).name
+
         while os.path.isfile(outname):
-            outname = 't'+outname
+            outname = tempfile.NamedTemporaryFile(dir=tempdir).name
 
-        if self.main_frame.OnlineControl.isRunning() and path == self.main_frame.OnlineControl.getTargetDir():
+        outname = os.path.split(outname)[-1] + '.out'
+
+        if self.main_frame.OnlineControl.isRunning() and tempdir == self.main_frame.OnlineControl.getTargetDir():
             self.main_frame.controlTimer(False)
             restart_timer = True
         else:
             restart_timer = False
 
-        SASFileIO.writeOutFile(self.iftm, os.path.join(path, outname))
+        SASFileIO.writeOutFile(self.iftm, os.path.join(tempdir, outname))
 
         ambi_settings = {'sRg' :'4',
                         'files':'None'
                         }
 
         try:
-            output = SASCalc.runAmbimeter(outname, 'temp', ambi_settings)
+            output = SASCalc.runAmbimeter(outname, 'temp', ambi_settings, tempdir)
 
         except SASExceptions.NoATSASError as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running Ambimeter', style = wx.ICON_ERROR | wx.OK)
-            os.remove(outname)
-            os.chdir(cwd)
+            os.remove(os.path.join(tempdir, outname))
             return
 
-        os.remove(outname)
+        os.remove(os.path.join(tempdir, outname))
 
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
-
-        os.chdir(cwd)
 
         cats_window = wx.FindWindowById(self.ids['ambiCats'], self)
         wx.CallAfter(cats_window.SetValue, output[0])
@@ -9189,42 +9171,46 @@ class AmbimeterFrame(wx.Frame):
 
 
     def runAmbimeter(self):
-        cwd = os.getcwd()
-        os.chdir(self.ambi_settings['path'])
+        if self.ambi_settings['files'] == 'None':
+            standard_paths = wx.StandardPaths.Get()
+            path = standard_paths.GetTempDir()
+        else:
+            path = self.ambi_settings['path']
 
-        outname = 't_ambimeter.out'
+        outname = tempfile.NamedTemporaryFile(dir=path).name
+
         while os.path.isfile(outname):
-            outname = 't'+outname
+            outname = tempfile.NamedTemporaryFile(dir=path).name
+
+        outname = os.path.split(outname)[-1] + '.out'
 
 
-        if self.main_frame.OnlineControl.isRunning() and self.ambi_settings['path'] == self.main_frame.OnlineControl.getTargetDir():
+        if self.main_frame.OnlineControl.isRunning() and path == self.main_frame.OnlineControl.getTargetDir():
             self.main_frame.controlTimer(False)
             restart_timer = True
         else:
             restart_timer = False
 
 
-        SASFileIO.writeOutFile(self.iftm, os.path.join(self.ambi_settings['path'], outname))
+        SASFileIO.writeOutFile(self.iftm, os.path.join(path, outname))
 
         try:
-            output = SASCalc.runAmbimeter(outname, self.ambi_settings['prefix'].replace(' ','_'), self.ambi_settings)
+            output = SASCalc.runAmbimeter(outname,
+                self.ambi_settings['prefix'].replace(' ','_'), self.ambi_settings,
+                path)
 
         except SASExceptions.NoATSASError as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running Ambimeter', style = wx.ICON_ERROR | wx.OK)
-            os.remove(outname)
-            os.chdir(cwd)
+            os.remove(os.path.join(path, outname))
             wx.CallAfter(self.showBusy, False)
             self.Close()
             return
 
 
-        os.remove(outname)
+        os.remove(os.path.join(path, outname))
 
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
-
-
-        os.chdir(cwd)
 
         cats_window = wx.FindWindowById(self.ids['ambiCats'], self)
         wx.CallAfter(cats_window.SetValue, output[0])

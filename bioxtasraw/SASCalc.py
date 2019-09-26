@@ -1162,7 +1162,7 @@ def writeGnomCFG(fname, outname, dmax, args):
     f.close()
 
 
-def runDammif(fname, prefix, args):
+def runDammif(fname, prefix, args, path):
     #Note: This run dammif command must be run with the current working directory as the directory
     #where the file is located. Otherwise, there are issues if the filepath contains a space.
 
@@ -1193,9 +1193,9 @@ def runDammif(fname, prefix, args):
             command = command + ' "%s"' %(fname)
 
             if opsys == 'Windows':
-                process=subprocess.Popen(command)
+                process=subprocess.Popen(command, cwd=path)
             else:
-                process=subprocess.Popen(command, shell= True)
+                process=subprocess.Popen(command, shell=True, cwd=path)
 
             return process
 
@@ -1220,9 +1220,12 @@ def runDammif(fname, prefix, args):
             dammifStarted = False
 
             if opsys == 'Windows':
-                proc = subprocess.Popen('"%s"' %(dammifDir), stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+                proc = subprocess.Popen('"%s"' %(dammifDir), stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=path)
             else:
-                proc = subprocess.Popen('"%s"' %(dammifDir), shell = True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+                proc = subprocess.Popen('"%s"' %(dammifDir), shell=True,
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT, cwd=path)
             dammif_t = threading.Thread(target=enqueue_output, args=(proc.stdout, dammif_q))
             dammif_t.daemon = True
             dammif_t.start()
@@ -1378,7 +1381,7 @@ def runDammif(fname, prefix, args):
         return None
 
 
-def runDamaver(flist):
+def runDamaver(flist, path):
 
     raw_settings = wx.FindWindowByName('MainFrame').raw_settings
     atsasDir = raw_settings.get('ATSASDir')
@@ -1398,13 +1401,14 @@ def runDamaver(flist):
             command = command + ' "%s"' %(item)
 
         if opsys == 'Windows':
-            process=subprocess.Popen(command, stdout = subprocess.PIPE)
+            process=subprocess.Popen(command, stdout=subprocess.PIPE, cwd=path)
         else:
-            process=subprocess.Popen(command, shell= True, stdout = subprocess.PIPE)
+            process=subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
+                cwd=path)
 
         return process
 
-def runAmbimeter(fname, prefix, args):
+def runAmbimeter(fname, prefix, args, path):
     raw_settings = wx.FindWindowByName('MainFrame').raw_settings
     atsasDir = raw_settings.get('ATSASDir')
 
@@ -1417,7 +1421,8 @@ def runAmbimeter(fname, prefix, args):
 
     if os.path.exists(ambimeterDir):
         command = '"%s" --srg=%s --prefix="%s" --files=%s "%s"' %(ambimeterDir, args['sRg'], prefix, args['files'], fname)
-        process=subprocess.Popen(command, shell= True, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        process=subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, cwd=path)
 
         start = time.time()
         while process.poll() == None:
@@ -1439,7 +1444,7 @@ def runAmbimeter(fname, prefix, args):
         raise SASExceptions.NoATSASError('Cannot find ambimeter.')
         return None
 
-def runDamclust(flist):
+def runDamclust(flist, path):
 
     raw_settings = wx.FindWindowByName('MainFrame').raw_settings
     atsasDir = raw_settings.get('ATSASDir')
@@ -1459,14 +1464,15 @@ def runDamclust(flist):
             command = command + ' "%s"' %(item)
 
         if opsys == 'Windows':
-            process=subprocess.Popen(command, stdout = subprocess.PIPE)
+            process=subprocess.Popen(command, stdout=subprocess.PIPE, cwd=path)
         else:
-            process=subprocess.Popen(command, shell= True, stdout = subprocess.PIPE)
+            process=subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
+                cwd=path)
 
         return process
 
 
-def runDammin(fname, prefix, args):
+def runDammin(fname, prefix, args, path):
     #Note: This run dammin command must be run with the current working directory as the directory
     #where the file is located. Otherwise, there are issues if the filepath contains a space.
 
@@ -1501,9 +1507,10 @@ def runDammin(fname, prefix, args):
             command = command + ' "%s"' %(fname)
 
             if opsys == 'Windows':
-                process=subprocess.Popen(command)
+                process=subprocess.Popen(command, cwd=path)
             else:
-                process=subprocess.Popen(command, shell=True, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+                process=subprocess.Popen(command, shell=True,
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=path)
 
             return process
 
@@ -1532,9 +1539,13 @@ def runDammin(fname, prefix, args):
             dammifStarted = False
 
             if opsys == 'Windows':
-                proc = subprocess.Popen('%s' %(dammifDir), stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+                proc = subprocess.Popen('%s' %(dammifDir),
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT, cwd=path)
             else:
-                proc = subprocess.Popen('%s' %(dammifDir), shell = True, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+                proc = subprocess.Popen('%s' %(dammifDir), shell=True,
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT, cwd=path)
             dammif_t = threading.Thread(target=enqueue_output, args=(proc.stdout, dammif_q))
             dammif_t.daemon = True
             dammif_t.start()
