@@ -3142,9 +3142,6 @@ class GNOMFrame(wx.Frame):
                 self.cleanupGNOM(self.tempdir, savename = savename)
                 return
 
-            init_iftm = None
-
-
             if init_iftm is None:
                 outname = tempfile.NamedTemporaryFile(dir=self.tempdir).name
 
