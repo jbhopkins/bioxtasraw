@@ -13705,7 +13705,7 @@ class LCSeriesFrame(wx.Frame):
     def __init__(self, parent, title, secm, manip_item, raw_settings):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(1000, client_display.Width), min(675, client_display.Height))
+        size = (min(1000, client_display.Width), min(700, client_display.Height))
 
         wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
 
@@ -15788,6 +15788,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                                 valid = False
                             elif jstart < end and end < jend:
                                 valid = False
+                            elif jstart == start and jend == end:
+                                valid = False
 
                         if not valid:
                             break
@@ -16912,6 +16914,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                                 valid = False
                             elif jstart < end and end < jend:
                                 valid = False
+                            elif jstart == start and jend == end:
+                                valid = False
 
                         if not valid:
                             break
@@ -17527,7 +17531,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             t.start()
             self.threads.append(t)
         else:
-            msg = ("You must first set a buffer region before you can run the"
+            msg = ("You must first set a buffer region before you can run the "
                 "automated determination of the sample region.")
             wx.CallAfter(wx.MessageBox, msg, "Requires buffer region", style=wx.ICON_ERROR|wx.OK)
 
@@ -17636,7 +17640,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             self.threads.append(t)
         else:
             msg = ("You must first set a buffer region before you can run the"
-                "automated determination of the sample region.")
+                "automated determination of the baseline region.")
             wx.CallAfter(wx.MessageBox, msg, "Requires buffer region", style=wx.ICON_ERROR|wx.OK)
 
     def _findBaselineRange(self):
