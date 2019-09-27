@@ -37,6 +37,7 @@ import itertools
 import traceback
 import scipy.constants
 import multiprocessing
+import json
 from collections import OrderedDict, defaultdict
 
 import hdf5plugin #HAS TO BE FIRST
@@ -76,7 +77,6 @@ import RAWOptions
 import RAWSettings
 import RAWCustomCtrl
 import RAWAnalysis
-import BIFT
 import RAWIcons
 import RAWGlobals
 import RAWCustomDialogs
@@ -282,6 +282,15 @@ class MainFrame(wx.Frame):
         self.Show(True)
 
     def _onStartup(self, data):
+        _, errors = SASFileIO.loadFileDefinitions()
+        print self.raw_settings.get('fileDefinitions')
+        if len(errors) > 0:
+            msg = 'Error loading the following hdf5 definition files:'
+            for err in errors:
+                msg = msg + '\n{}'.format(err)
+
+            wx.MessageBox(msg, 'Error loading hdf5 definitions', style=wx.OK)
+
         file = os.path.join(RAWGlobals.RAWWorkDir, 'backup.cfg')
 
         if os.path.exists(file):
@@ -2948,7 +2957,6 @@ class MainWorkerThread(threading.Thread):
                     secm_list.append(secm)
 
                     img = None
-                    loaded_secm = True
 
                 elif file_ext == '.ift' or file_ext == '.out':
                     iftm, img = SASFileIO.loadFile(each_filename, self._raw_settings)
@@ -2961,11 +2969,8 @@ class MainWorkerThread(threading.Thread):
                     if type(iftm) == list:
                         iftm_list.append(iftm[0])
 
-                    loaded_iftm = True
-
                 else:
                     sasm, img = SASFileIO.loadFile(each_filename, self._raw_settings)
-                    loaded_sasm = True
 
                     if img is not None:
                         start_point = self._raw_settings.get('StartPoint')
@@ -2979,12 +2984,23 @@ class MainWorkerThread(threading.Thread):
                             for each_sasm in sasm:
                                 each_sasm.setQrange(qrange)
 
-                    if type(sasm) == list:
-                        sasm_list.extend(sasm)
+                    if isinstance(sasm, list):
+                        for each in sasm:
+                            if isinstance(each, SASM.SASM):
+                                sasm_list.append(each)
+                            elif isinstance(each, SASM.IFTM):
+                                iftm_list.append(each)
+                            elif isinstance(each, SASM.SECM):
+                                secm_list.append(each)
                     else:
-                        sasm_list.append(sasm)
+                        if isinstance(sasm, SASM.SASM):
+                            sasm_list.append(sasm)
+                        elif isinstance(sasm, SASM.IFTM):
+                            iftm_list.append(sasm)
+                        elif isinstance(sasm, SASM.SECM):
+                            secm_list.append(sasm)
 
-                    if do_auto_save:
+                    if do_auto_save and img is not None:
                         save_path = self._raw_settings.get('ProcessedFilePath')
 
                         try:
@@ -3006,15 +3022,18 @@ class MainWorkerThread(threading.Thread):
                     else:
                         no_update = True
 
-                    if loaded_sasm:
+                    if len(sasm_list) > 0:
                         self._sendSASMToPlot(sasm_list, axes_num=axes_num, no_update=no_update, update_legend=False)
                         wx.CallAfter(self.plot_panel.canvas.draw_idle)
-                    if loaded_secm:
+                        loaded_sasm = True
+                    if len(secm_list) > 0:
                         self._sendSECMToPlot(secm_list, no_update=no_update, update_legend = False)
                         wx.CallAfter(self.sec_plot_panel.canvas.draw_idle)
-                    if loaded_iftm:
+                        loaded_secm = True
+                    if len(iftm_list) > 0:
                         self._sendIFTMToPlot(iftm_list, item_colour = item_colour, no_update=no_update, update_legend = False)
                         wx.CallAfter(self.ift_plot_panel.canvas.draw_idle)
+                        loaded_iftm = True
 
                     sasm_list = []
                     iftm_list = []
@@ -3022,12 +3041,15 @@ class MainWorkerThread(threading.Thread):
 
             if len(sasm_list) > 0:
                 self._sendSASMToPlot(sasm_list, axes_num=axes_num, no_update=True, update_legend=False)
+                loaded_sasm = True
 
             if len(iftm_list) > 0:
                 self._sendIFTMToPlot(iftm_list, item_colour = item_colour, no_update = True, update_legend = False)
+                loaded_iftm = True
 
             if len(secm_list) > 0:
                 self._sendSECMToPlot(secm_list, no_update = True, update_legend = False)
+                loaded_secm = True
 
         except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
             wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1])
@@ -12766,8 +12788,10 @@ class MyApp(wx.App):
 
         if RAWGlobals.frozen:
             RAWGlobals.RAWResourcesDir = os.path.join(standard_paths.GetResourcesDir(),'resources')
+            RAWGlobals.RAWDefinitionsDir = os.path.join(standard_paths.GetResourcesDir(),'definitions')
         else:
             RAWGlobals.RAWResourcesDir = os.path.join(sys.path[0], 'resources')
+            RAWGlobals.RAWDefinitionsDir = os.path.join(sys.path[0], 'definitions')
 
         MySplash = MySplashScreen()
         MySplash.Show()
@@ -12777,7 +12801,7 @@ class MyApp(wx.App):
     def BringWindowToFront(self):
         try: # it's possible for this event to come when the frame is closed
             self.GetTopWindow().Raise()
-        except:
+        except Exception:
             pass
 
     #########################

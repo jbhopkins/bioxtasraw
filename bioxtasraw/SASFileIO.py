@@ -38,12 +38,14 @@ from xml.dom import minidom
 import glob
 import subprocess
 import platform
+import ast
 
 import numpy as np
 import fabio
 import PIL
 from PIL import Image
 import matplotlib.backends.backend_pdf
+import h5py
 
 import RAWGlobals
 import SASImage
@@ -1026,6 +1028,13 @@ def loadFile(filename, raw_settings, no_processing = False):
         print >> sys.stderr, str(msg)
         file_type = None
 
+    if file_type == 'hdf5':
+        try:
+            fabio.open(filename)
+            file_type = 'image'
+        except Exception:
+            pass
+
     if file_type == 'image':
         try:
             sasm, img = loadImageFile(filename, raw_settings)
@@ -1071,6 +1080,9 @@ def loadFile(filename, raw_settings, no_processing = False):
                     SASM.postProcessImageSasm(current_sasm, raw_settings)
                 except SASExceptions.AbsScaleNormFailed:
                     raise
+    elif file_type == 'hdf5':
+        sasm = loadHdf5File(filename, raw_settings)
+        img = None
     else:
         sasm = loadAsciiFile(filename, file_type)
         img = None
@@ -1220,11 +1232,11 @@ def loadImageFile(filename, raw_settings):
 
         if use_hdr_config:
             import RAWSettings
-          
+
             prefix = SASImage.getBindListDataFromHeader(raw_settings, img_hdr, hdrfile_info, keys = ['Config Prefix'])[0]
 
-            if prefix == None: 
-               raise SASExceptions.ImageLoadError(['"Use header for new config load" is enabled in General Settings.\n', 
+            if prefix == None:
+               raise SASExceptions.ImageLoadError(['"Use header for new config load" is enabled in General Settings.\n',
                                                    'The binding "Config Prefix" was however not found in header,',
                                                    'not set in header options (See "Image/Header Format" in options) or not a number.'])
             else: prefix = str(int(prefix))
@@ -1232,7 +1244,7 @@ def loadImageFile(filename, raw_settings):
             settings_folder = raw_settings.get('HdrLoadConfigDir')
 
             # If the folder is not set.. look in the folder where the image is
-            if settings_folder == 'None' or settings_folder == '':    
+            if settings_folder == 'None' or settings_folder == '':
                 settings_folder, fname = os.path.split(filename)
 
             settings_path = os.path.join(settings_folder, str(prefix) + '.cfg')
@@ -1256,7 +1268,7 @@ def loadImageFile(filename, raw_settings):
                     mask_param = mask_dict[each_key]
                     mask_param[0] = mask_img
                     mask_param[1] = masks
-    
+
             masks = raw_settings.get('Masks')
             bs_mask = masks['BeamStopMask'][0]
 
@@ -1292,12 +1304,282 @@ def loadImageFile(filename, raw_settings):
             if not all(v is None for v in uvvis):
                 sasm._parameters['analysis']['uvvis'] = {'UVPathlength'       : uvvis[0],
                                                          'UVTransmission'     : uvvis[1],
-                                                         'UVDarkTransmission' : uvvis[2]}                                                     
+                                                         'UVDarkTransmission' : uvvis[2]}
 
         sasm_list[i] = sasm
 
 
     return sasm_list, loaded_data
+
+def loadHdf5File(filename, raw_settings):
+    # Get the file defintions needed to load hdf5 files.
+    file_defs = raw_settings.get('fileDefinitions')
+    if 'hdf5' in file_defs:
+        hdf5_defs = file_defs['hdf5']
+    else:
+        hdf5_defs = {}
+
+    if not hdf5_defs:
+        return []
+
+    is_data_def = False
+    loaded_data = []
+
+    with h5py.File(filename, 'r') as data_file:
+
+        #Figure out which of the definitions files, if any, match the hdf5 file
+        for def_type, data_defs in hdf5_defs.items():
+            data_id_name = data_defs['id']['name']
+            data_id_loc = data_defs['id']['location']
+            data_id_attr = data_defs['id']['is_attribute']
+            data_id_val = data_defs['id']['value']
+
+            if data_id_loc in data_file:
+                if data_id_attr:
+                    if data_id_name in data_file[data_id_loc].attrs:
+                        if data_id_val == data_file[data_id_loc].attrs[data_id_name]:
+                            is_data_def = True
+                else:
+                    dataset = data_file['{}/{}'.format(data_id_loc.rstrip('/'), data_id_name.lstrip('/'))]
+                    if data_id_val == dataset[()]:
+                        is_data_def = True
+
+            if is_data_def:
+                break
+
+        #If we have definitions for this kind of file, determine what kind of data it is, batch of series
+        if is_data_def:
+            data_type_name = data_defs['data_type']['name']
+            data_type_loc = data_defs['data_type']['location']
+            data_type_attr = data_defs['data_type']['is_attribute']
+            data_type_batch_val = data_defs['data_type']['batch_value']
+            data_type_series_val = data_defs['data_type']['series_value']
+
+            data_type = None
+
+            if data_type_loc in data_file:
+                if data_type_attr:
+                    if data_type_name in data_file[data_type_loc].attrs:
+                        data_type = data_file[data_type_loc].attrs[data_type_name]
+
+                else:
+                    dataset = data_file['{}/{}'.format(data_type_loc.rstrip('/'), data_type_name.lstrip('/'))]
+                    data_type = dataset[()]
+
+                if data_type is not None:
+                    if data_type in data_type_batch_val:
+                        data_type = 'batch'
+                    elif data_type in data_type_series_val:
+                        data_type = 'series'
+                    else:
+                        data_type = None
+
+        #If it has a recognizeable data type, load in the data
+        if data_type is not None:
+
+            #Get various locations for the data and what data to load
+            if data_type == 'batch':
+                to_load_reduced = data_defs['to_load_batch']['reduced']
+                to_load_image = data_defs['to_load_batch']['image']
+                image_data = data_defs['image_data_batch']
+                reduced_data = data_defs['reduced_data_batch']
+            elif data_type == 'series':
+                to_load_reduced = data_defs['to_load_series']['reduced']
+                to_load_image = data_defs['to_load_series']['image']
+                image_data = data_defs['image_data_series']
+                reduced_data = data_defs['reduced_data_series']
+
+            if 'unsub' in to_load_reduced:
+                to_load_reduced.insert(0, to_load_reduced.pop(to_load_reduced.index('unsub')))
+            if 'unsub' in to_load_image:
+                to_load_image.insert(0, to_load_image.pop(to_load_image.index('unsub')))
+
+            #Get all the datasets in the file
+            dataset_location = data_defs['dataset_location']
+            datasets = []
+
+            if dataset_location in data_file:
+                for dataset in data_file[dataset_location]:
+                    if isinstance(data_file[dataset], h5py.Group):
+                        datasets.append(data_file[dataset].name)
+
+            #Get the q data, if it isn't packaged with the data
+            if data_defs['q_data']['with_intensity']:
+                data_dim = 3
+            else:
+                data_dim = 2
+                if data_defs['q_data']['is_attribute']:
+                    q_vals = data_file[data_defs['q_data']['location']].attrs[data_defs['q_data']['name']]
+                    q_vals = q_vals[:]
+                else:
+                    q_vals = data_file[data_defs['q_data']['location']]['name']
+                    q_vals = q_vals[:]
+
+            #For each dataset, load the data
+            for dataset in datasets:
+                # print dataset.lstrip('/')
+                basename = os.path.basename(dataset)
+
+                if data_type == 'series':
+                    secm = None
+                    br_range = None
+
+                    #Get the buffer range used for subtraction, if any
+                    if 'metadata_series' in data_defs and 'buffer_range' in data_defs['metadata_series']:
+                        br_loc = data_defs['metadata_series']['buffer_range']['location']
+                        br_attr = data_defs['metadata_series']['buffer_range']['is_attribute']
+                        br_name = data_defs['metadata_series']['buffer_range']['name']
+
+                        br_loc = "{}/{}".format(dataset.rstrip('/'), br_loc.lstrip('/'))
+
+                        if br_loc in data_file:
+                            if br_attr:
+                                if br_name in data_file[br_loc].attrs:
+                                    br_range = data_file[br_loc].attrs[br_name]
+                            else:
+                                if br_name in br_loc:
+                                    br_range = data_file['{}/{}'.format(br_loc.rstrip('/'), br_name.lstrip('/'))]
+                                    br_range = [br_range]
+
+                        if br_range is not None:
+                            if isinstance(br_range, str):
+                                if '[' in br_range or '(' in br_range:
+                                    br_range = ast.literal_eval(br_range)
+                                else:
+                                    br_range = br_range.split(',')
+                                    for j in range(len(br_range)):
+                                        br_range[j] = int(br_range[j].strip())
+
+                                    br_range = [(br_range[0], br_range[1])]
+
+                            if isinstance(br_range, np.ndarray):
+                                if len(br_range.shape) == 1:
+                                    br_range = [(int(br_range[0]), int(br_range[1]))]
+
+                #For each type of data to load (unsubtracted, subtracted, etc) for the data set, do so
+                for to_load in to_load_reduced:
+                    data_loc = "{}/{}".format(dataset.rstrip('/'),
+                       reduced_data[to_load].lstrip('/'))
+
+                    if data_loc in data_file:
+                        data = data_file[data_loc]
+
+                        temp_data_list = []
+
+                        if len(data.shape) == 2:
+                            #Single profile
+                            if data_dim == data.shape[0]:
+                                if data_dim == 3:
+                                    q_vals = data[0, :]
+                                    i = data[1, :]
+                                    ierr = data[2, :]
+                                else:
+                                    i = data[0, :]
+                                    ierr = data[1, :]
+
+                            else:
+                                if data_dim == 3:
+                                    q_vals = data[:, 0]
+                                    i = data[:, 1]
+                                    ierr = data[:, 2]
+                                else:
+                                    i = data[:, 0]
+                                    ierr = data[:, 1]
+
+
+                            if to_load == 'sub':
+                                parameters = {'filename'    : 'S_{}_{:04d}'.format(basename, 1)}
+                            else:
+                                parameters = {'filename'    : '{}_{:04d}'.format(basename, 1)}
+
+                            sasm = SASM.SASM(i, q_vals, ierr, parameters)
+
+                            temp_data_list.append(sasm)
+
+                        else:
+                            #Multiple profiles
+                            for num, each in enumerate(data):
+                                if data_dim == each.shape[0]:
+                                    if data_dim == 3:
+                                        q_vals = each[0, :]
+                                        i = each[1, :]
+                                        ierr = each[2, :]
+                                    else:
+                                        i = each[0, :]
+                                        ierr = each[1, :]
+
+                                else:
+                                    if data_dim == 3:
+                                        q_vals = each[:, 0]
+                                        i = each[:, 1]
+                                        ierr = each[:, 2]
+                                    else:
+                                        i = each[:, 0]
+                                        ierr = each[:, 1]
+
+                                if to_load == 'sub':
+                                    parameters = {'filename'    : 'S_{}_{:04d}'.format(basename, num+1)}
+                                else:
+                                    parameters = {'filename'    : '{}_{:04d}'.format(basename, num+1)}
+
+                                sasm = SASM.SASM(i, q_vals, ierr, parameters)
+
+                                temp_data_list.append(sasm)
+
+                        if data_type == 'batch':
+                            loaded_data = loaded_data + temp_data_list
+
+                        elif data_type == 'series':
+                            #If it's a series, make a series from the individual sasms
+                            if to_load == 'unsub':
+                                frame_list = list(range(len(temp_data_list)))
+                                filename_list = [tsasm.getParameter('filename') for tsasm in temp_data_list]
+
+                                secm = SASM.SECM(filename_list, temp_data_list,
+                                    frame_list, {}, raw_settings)
+
+                            elif to_load == 'sub':
+                                if secm is None:
+                                    frame_list = list(range(len(temp_data_list)))
+                                    filename_list = [tsasm.getParameter('filename') for tsasm in temp_data_list]
+
+                                    secm = SASM.SECM(filename_list, temp_data_list,
+                                        frame_list, {}, raw_settings)
+
+                                    secm.already_subtracted = True
+                                else:
+                                    if br_range is not None:
+                                        unsub_sasms = secm.getAllSASMs()
+
+                                        buf_sasms = []
+                                        use_subtracted_sasm = []
+                                        threshold = raw_settings.get('secCalcThreshold')
+
+                                        for start, end in br_range:
+                                            buf_sasms = buf_sasms + unsub_sasms[start:end+1]
+
+                                        avg_buf_sasm = SASProc.average(buf_sasms)
+
+                                        ref_int = avg_buf_sasm.getTotalI()
+
+                                        for sasm in unsub_sasms:
+                                            if abs(sasm.getTotalI()/ref_int) > threshold:
+                                                use_subtracted_sasm.append(True)
+                                            else:
+                                                use_subtracted_sasm.append(False)
+
+                                        secm.buffer_range = br_range
+
+                                    else:
+                                        use_subtracted_sasm = [True for tsasm in temp_data_list]
+
+                                    secm.setSubtractedSASMs(temp_data_list, use_subtracted_sasm)
+
+                if data_type == 'series':
+                    if secm is not None:
+                        loaded_data.append(secm)
+
+    return loaded_data
 
 
 def loadOutFile(filename):
@@ -2417,6 +2699,24 @@ def load2ColFile(filename):
     return SASM.SASM(i, q, err, parameters)
 
 
+def loadFileDefinitions():
+    file_defs = {'hdf5' : {}}
+    errors = []
+
+    if os.path.exists(os.path.join(RAWGlobals.RAWDefinitionsDir, 'hdf5')):
+        def_files = glob.glob(os.path.join(RAWGlobals.RAWDefinitionsDir, 'hdf5', '*'))
+        for fname in def_files:
+            try:
+                with open(fname, 'r') as f:
+                    settings = f.read()
+
+                settings = dict(json.loads(settings))
+
+                file_defs['hdf5'][os.path.splitext(os.path.basename(fname))[0]] = settings
+            except Exception:
+                errors.append(fname)
+
+    return file_defs, errors
 
 
 #####################################
@@ -3535,18 +3835,20 @@ def checkFileType(filename):
     elif ext == '.mar1200' or ext == '.mar2400' or ext == '.mar2300' or ext == '.mar3600':
         return 'image'
     elif (ext == '.img' or ext == '.sfrm' or ext == '.dm3' or ext == '.edf' or ext == '.xml' or ext == '.cbf' or ext == '.kccd' or
-        ext == '.msk' or ext == '.spr' or ext == '.tif' or ext == '.h5' or ext == '.mccd' or ext == '.mar3450' or ext =='.npy' or
+        ext == '.msk' or ext == '.spr' or ext == '.tif' or ext == '.mccd' or ext == '.mar3450' or ext =='.npy' or
         ext == '.pnm' or ext == '.No'):
         return 'image'
     elif ext == '.ift':
         return 'ift'
     elif ext == '.csv':
         return 'csv'
+    elif ext == '.h5':
+        return 'hdf5'
     else:
         try:
             fabio.open(filename)
             return 'image'
-        except:
+        except Exception:
             try:
                 float(ext.strip('.'))
             except Exception:

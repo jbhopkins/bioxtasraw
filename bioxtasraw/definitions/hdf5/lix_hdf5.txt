@@ -1,0 +1,57 @@
+{
+    "id"                : {"location"       : "/",
+                            "name"          : "instrument",
+                            "is_attribute"  : true,
+                            "value"         : "LiX"
+                            },
+    "dataset_location"  : "/",
+    "q_data"            : { "with_intensity"    : false,
+                            "location"          : "/",
+                            "name"              : "qgrid",
+                            "is_attribute"      : true
+                            },
+    "reduced_data_series": {"unsub"   : "processed/merged",
+                            "sub"    : "processed/subtracted"
+                          },
+    "reduced_data_batch": {"unsub"   : "processed/averaged",
+                            "sub"    : "processed/subtracted"
+                          },
+    "image_data_series" : {"det_1"  : "primary/data/pil1M_image",
+                            "det_2" : "primary/data/pilW1_image",
+                            "det_3" : "primary/data/pilW2_image"
+                            },
+    "image_data_batch"  : {"det_1"  : "primary/data/pil1M_image",
+                            "det_2" : "primary/data/pilW1_image",
+                            "det_3" : "primary/data/pilW2_image"
+                            },
+    "to_load_series"    : {"reduced"    : ["unsub", "sub"],
+                            "image"     : []
+                            },
+    "to_load_batch"     : {"reduced"    : ["unsub", "sub"],
+                            "image"     : []
+                            },
+    "data_type"         : {"location"       : "/",
+                            "name"          : "run_type",
+                            "is_attribute"  : true,
+                            "batch_value"   : ["static"],
+                            "series_value"  : ["SEC"]
+                            },
+    "load_only_series"  : {"use"            : false,
+                            "location"      : "/",
+                            "name"          : "",
+                            "is_attribute"  : true
+                            },
+    "load_only_batch"   : {"use"            : true,
+                            "location"      : "/",
+                            "name"          : "buffer",
+                            "is_attribute"  : true
+                            },
+    "metadata_series"   : {"instrument" : "LiX (Sector 16, NSLS II)",
+                            "buffer_range" : {"location"    : "processed",
+                                            "name"          : "buffer frames",
+                                            "is_attribute"  : true
+                                            }
+                            },
+    "metadata_batch"    : {"instrument" : "LiX (Sector 16, NSLS II)"
+                            }
+}

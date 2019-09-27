@@ -15234,7 +15234,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
                     bl_sasms.append(newSASM)
 
-                use_subtracted_sasms = []
+                use_subtracted_sasms = [] ##########THIS IS WRONG ################## BELOW HERE ####### NEEDS TO CALC OFF OF FULL, NOT SUBTRACTED
 
                 buffer_sub_sasms = self.results['buffer']['sub_sasms']
                 start_frames = range(r1_start, r1_end+1)

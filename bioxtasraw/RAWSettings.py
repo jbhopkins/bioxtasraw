@@ -45,8 +45,9 @@ class RawGuiSettings(object):
         self._params = settings
 
         if settings == None:
+            file_defs, _ = SASFileIO.loadFileDefinitions()
             self._params = {
-                            'RequiredVersion'       : ['1.5.0', wx.NewId(), 'text'],
+                            'RequiredVersion'       : ['1.6.0', wx.NewId(), 'text'],
 							'NormFlatfieldEnabled'	: [False,   wx.NewId(),  'bool'],
 
                             'NormAbsWater'      	: [False,   wx.NewId(),  'bool'],
@@ -366,7 +367,16 @@ class RawGuiSettings(object):
                             'denssNCSSteps'         : ['[3000,5000,7000,9000]', wx.NewId(), 'text'],
                             'denssNCSAxis'          : [1, wx.NewId(), 'int'],
                             'denssRefine'           : [True, wx.NewId(), 'bool'],
+
+                            #File definitions
+                            'fileDefinitions'       : [file_defs, wx.NewId(), 'dict'],
                             }
+
+        else:
+            file_defs, _ = SASFileIO.loadFileDefinitions()
+            for ftype, fdefs in file_defs.items():
+                for fname, defs in fdefs.items():
+                    self._params['fileDefinitions'][0][ftype][fname] = defs
 
     def get(self, key):
         return self._params[key][0]
@@ -449,7 +459,7 @@ def loadSettings(raw_settings, loadpath, auto_load = False):
         if key not in loaded_param:
             all_params[key] = default_settings[key]
 
-    postProcess(raw_settings)
+    postProcess(raw_settings, default_settings)
 
     msg = ''
 
@@ -481,7 +491,7 @@ def loadSettings(raw_settings, loadpath, auto_load = False):
 
     return True, msg
 
-def postProcess(raw_settings):
+def postProcess(raw_settings, default_settings):
     fixBackwardsCompatibility(raw_settings)
 
     masks = copy.copy(raw_settings.get('Masks'))
@@ -557,6 +567,15 @@ def postProcess(raw_settings):
     if raw_settings.get('autoFindATSAS'):
         atsas_dir = SASFileIO.findATSASDirectory()
         raw_settings.set('ATSASDir', atsas_dir)
+
+    default_defs = default_settings['fileDefinitions'][0]
+    current_defs = raw_settings.get('fileDefinitions')
+
+    for ftype, fdefs in default_defs.items():
+        for fname, defs in fdefs.items():
+            current_defs[ftype][fname] = defs
+
+    raw_settings.set('fileDefinitions', current_defs)
 
     return
 

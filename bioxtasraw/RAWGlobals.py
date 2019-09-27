@@ -28,8 +28,8 @@ else:
     frozen = False
 
 RAWWorkDir = ''
-
 RAWResourcesDir = ''
+RAWDefinitionsDir = ''
 
 usepyFAI_integration = False
 
