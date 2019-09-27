@@ -24,11 +24,15 @@
                             "det_2" : "primary/data/pilW1_image",
                             "det_3" : "primary/data/pilW2_image"
                             },
-    "to_load_series"    : {"reduced"    : ["unsub", "sub"],
-                            "image"     : []
+    "to_load_series"    : {"reduced"        : ["sub"],
+                            "image"         : [],
+                            "ordered"       : true,
+                            "reduced_cond"  : ["unsub"]
                             },
-    "to_load_batch"     : {"reduced"    : ["unsub", "sub"],
-                            "image"     : []
+    "to_load_batch"     : {"reduced"        : ["sub"],
+                            "image"         : [],
+                            "ordered"       : false,
+                            "reduced_cond"  : ["unsub"]
                             },
     "data_type"         : {"location"       : "/",
                             "name"          : "run_type",
@@ -46,11 +50,12 @@
                             "name"          : "buffer",
                             "is_attribute"  : true
                             },
-    "metadata_series"   : {"instrument" : "LiX (Sector 16, NSLS II)",
-                            "buffer_range" : {"location"    : "processed",
-                                            "name"          : "buffer frames",
-                                            "is_attribute"  : true
-                                            }
+    "metadata_series"   : {"instrument"     : "LiX (Sector 16, NSLS II)",
+                            "buffer_range"  : {"location"    : "processed",
+                                               "name"          : "buffer frames",
+                                               "is_attribute"  : true
+                                              },
+                            "calc_thresh"   : 0.95
                             },
     "metadata_batch"    : {"instrument" : "LiX (Sector 16, NSLS II)"
                             }

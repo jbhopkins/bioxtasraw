@@ -1312,6 +1312,12 @@ def loadImageFile(filename, raw_settings):
     return sasm_list, loaded_data
 
 def loadHdf5File(filename, raw_settings):
+    """
+    General notes:
+    1) Doesn't yet do many things. These include using the load_only_series key,
+    the load_only_batch key, load images, or do any other metadata.
+    2) Not very thoroughly tested.
+    """
     # Get the file defintions needed to load hdf5 files.
     file_defs = raw_settings.get('fileDefinitions')
     if 'hdf5' in file_defs:
@@ -1381,18 +1387,49 @@ def loadHdf5File(filename, raw_settings):
             if data_type == 'batch':
                 to_load_reduced = data_defs['to_load_batch']['reduced']
                 to_load_image = data_defs['to_load_batch']['image']
+                ordered = data_defs['to_load_batch']['ordered']
+
                 image_data = data_defs['image_data_batch']
                 reduced_data = data_defs['reduced_data_batch']
+
+                if 'reduced_cond' in data_defs['to_load_batch']:
+                    to_load_reduced_cond = data_defs['to_load_batch']['reduced_cond']
+                else:
+                    to_load_reduced_cond = []
+
+                if 'image_cond' in data_defs['to_load_batch']:
+                    to_load_image_cond = data_defs['to_load_batch']['image_cond']
+                else:
+                    to_load_image_cond = []
+
             elif data_type == 'series':
                 to_load_reduced = data_defs['to_load_series']['reduced']
                 to_load_image = data_defs['to_load_series']['image']
+                ordered = data_defs['to_load_series']['ordered']
+
                 image_data = data_defs['image_data_series']
                 reduced_data = data_defs['reduced_data_series']
 
-            if 'unsub' in to_load_reduced:
-                to_load_reduced.insert(0, to_load_reduced.pop(to_load_reduced.index('unsub')))
-            if 'unsub' in to_load_image:
-                to_load_image.insert(0, to_load_image.pop(to_load_image.index('unsub')))
+                if 'reduced_cond' in data_defs['to_load_series']:
+                    to_load_reduced_cond = data_defs['to_load_series']['reduced_cond']
+                else:
+                    to_load_reduced_cond = []
+
+                if 'image_cond' in data_defs['to_load_series']:
+                    to_load_image_cond = data_defs['to_load_series']['image_cond']
+                else:
+                    to_load_image_cond = []
+
+            if not ordered:
+                if 'unsub' in to_load_reduced:
+                    to_load_reduced.insert(0, to_load_reduced.pop(to_load_reduced.index('unsub')))
+                if 'unsub' in to_load_image:
+                    to_load_image.insert(0, to_load_image.pop(to_load_image.index('unsub')))
+
+                if 'unsub' in to_load_reduced_cond:
+                    to_load_reduced_cond.insert(0, to_load_reduced_cond.pop(to_load_reduced_cond.index('unsub')))
+                if 'unsub' in to_load_image_cond:
+                    to_load_image_cond.insert(0, to_load_image_cond.pop(to_load_image_cond.index('unsub')))
 
             #Get all the datasets in the file
             dataset_location = data_defs['dataset_location']
@@ -1421,8 +1458,9 @@ def loadHdf5File(filename, raw_settings):
                 basename = os.path.basename(dataset)
 
                 if data_type == 'series':
-                    secm = None
+                    series_list = []
                     br_range = None
+                    threshold = raw_settings.get('secCalcThreshold')
 
                     #Get the buffer range used for subtraction, if any
                     if 'metadata_series' in data_defs and 'buffer_range' in data_defs['metadata_series']:
@@ -1456,8 +1494,26 @@ def loadHdf5File(filename, raw_settings):
                                 if len(br_range.shape) == 1:
                                     br_range = [(int(br_range[0]), int(br_range[1]))]
 
+                    if 'metadata_series' in data_defs and 'calc_thresh' in data_defs['metadata_series']:
+                        threshold = float(data_defs['metadata_series']['calc_thresh'])
+
+                if data_type == 'batch':
+                    batch_list = []
+
                 #For each type of data to load (unsubtracted, subtracted, etc) for the data set, do so
-                for to_load in to_load_reduced:
+                if len(to_load_reduced)+len(to_load_reduced_cond) > 0:
+                    data_loaded = False
+                else:
+                    data_loaded = True
+
+                load_pos = 0
+
+                while not data_loaded:
+                    if load_pos < len(to_load_reduced):
+                        to_load = to_load_reduced[load_pos]
+                    else:
+                        to_load = to_load_reduced_cond[load_pos-len(to_load_reduced)]
+
                     data_loc = "{}/{}".format(dataset.rstrip('/'),
                        reduced_data[to_load].lstrip('/'))
 
@@ -1527,6 +1583,7 @@ def loadHdf5File(filename, raw_settings):
                                 temp_data_list.append(sasm)
 
                         if data_type == 'batch':
+                            batch_list = temp_data_list
                             loaded_data = loaded_data + temp_data_list
 
                         elif data_type == 'series':
@@ -1539,7 +1596,7 @@ def loadHdf5File(filename, raw_settings):
                                     frame_list, {}, raw_settings)
 
                             elif to_load == 'sub':
-                                if secm is None:
+                                if len(series_list) == 0:
                                     frame_list = list(range(len(temp_data_list)))
                                     filename_list = [tsasm.getParameter('filename') for tsasm in temp_data_list]
 
@@ -1547,13 +1604,16 @@ def loadHdf5File(filename, raw_settings):
                                         frame_list, {}, raw_settings)
 
                                     secm.already_subtracted = True
+
+                                    use_subtracted_sasm = [True for tsasm in temp_data_list]
+                                    secm.setSubtractedSASMs(temp_data_list, use_subtracted_sasm)
                                 else:
                                     if br_range is not None:
+                                        secm = series_list[0]
                                         unsub_sasms = secm.getAllSASMs()
 
                                         buf_sasms = []
                                         use_subtracted_sasm = []
-                                        threshold = raw_settings.get('secCalcThreshold')
 
                                         for start, end in br_range:
                                             buf_sasms = buf_sasms + unsub_sasms[start:end+1]
@@ -1575,9 +1635,22 @@ def loadHdf5File(filename, raw_settings):
 
                                     secm.setSubtractedSASMs(temp_data_list, use_subtracted_sasm)
 
+                            series_list.append(secm)
+
+                    load_pos = load_pos + 1
+
+                    if load_pos >= len(to_load_reduced)+len(to_load_reduced_cond):
+                        data_loaded = True
+                    elif data_type == 'series' and load_pos == len(to_load_reduced) and len(series_list) > 0:
+                        data_loaded = True
+                    elif data_type == 'batch' and load_pos == len(to_load_reduced) and len(batch_list) > 0:
+                        data_loaded = True
+
+
                 if data_type == 'series':
-                    if secm is not None:
-                        loaded_data.append(secm)
+                    if len(series_list)>0:
+                        print series_list
+                        loaded_data.extend(series_list)
 
     return loaded_data
 
