@@ -22,28 +22,15 @@ Created on Jul 11, 2010
 #******************************************************************************
 '''
 
-from math import pi, asin, tan, atan, cos
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map
+from io import open
+
+from math import atan, cos
 import sys
 
 import numpy as np
 import pyFAI, pyFAI.geometryRefinement
-
-def calcAbsScaleConstWater(water_sasm, start_idx, end_idx):
-    '''
-        Calculates the absolute scaling constant using water (with empty cell subtracted).
-        (This constant is multiplied to the background subtracted samples to obtain
-        it on absolute scale.)
-
-        Currently only precise for 25 deg and 9.47 keV
-        Should be extended to include other temperatures and energies
-        see http://www.ncnr.nist.gov/resources/sldcalc.html to calc for other temperatures
-    '''
-
-    avg_water = np.average(water_sasm.i[start_idx:end_idx])
-
-    abs_scale_constant = 0.0162 / avg_water
-
-    return abs_scale_constant
 
 def calcTheta(sd_distance, pixel_size, q_length_pixels):
     '''
@@ -86,34 +73,6 @@ def calcSolidAngleCorrection(sasm, sd_distance, pixel_size):
         iac[idx] = np.power( cos( 2 * calcTheta(sd_distance, pixel_size, q_list[idx]) ),3 )    #cos^3(2*theta)
 
     return iac
-
-def calcDistanceFromAgBeh(first_ring_dist, pixel_size, wavelength):
-    ''' Calculates sample detector distance from the rings
-        of Silver Behenate.
-
-         first_ring_dist = Distance to 1st circle in AgBe measurement in pixels
-
-         q = ( 4 * pi * sin(theta)) / wavelength
-         tan(theta) = opposite / adjacent
-
-         pixel_size : detector pixelsize in mm
-
-         Ouput:
-         sd_distance = Sample Detector Distance in mm
-    '''
-
-    q = 0.107625  # Q for 1st cirle in AgBeh
-
-    sin_theta = (q * wavelength) / (4 * pi)
-
-    theta = asin(sin_theta)
-
-    opposite = first_ring_dist * pixel_size
-    adjacent = opposite / tan(2*theta)
-
-    sd_distance = adjacent
-
-    return sd_distance
 
 
 #########################################
@@ -165,7 +124,7 @@ class RAWCalibration(object):
                     defaults["poni1"] = p1.max() / 2.
                     defaults["poni2"] = p2.max() / 2.
                 except Exception as err:
-                    print err
+                    print(err)
             if self.ai:
                 for key in defaults.keys():  # not PARAMETERS which holds wavelength
                     val = getattr(self.ai, key, None)

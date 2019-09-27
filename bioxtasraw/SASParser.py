@@ -16,7 +16,11 @@
 #
 #******************************************************************************
 
-from math import *
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map
+from io import open
+
+import math
 
 class PyMathParser(object):
     '''
@@ -97,38 +101,38 @@ class PyMathParser(object):
         tan
         tanh
         '''
-        self.functions['acos']=acos
-        self.functions['asin']=asin
-        self.functions['atan']=atan
-        self.functions['atan2']=atan2
-        self.functions['ceil']=ceil
-        self.functions['cos']=cos
-        self.functions['cosh']=cosh
-        self.functions['degrees']=degrees
-        self.functions['exp']=exp
-        self.functions['fabs']=fabs
-        self.functions['floor']=floor
-        self.functions['fmod']=fmod
-        self.functions['frexp']=frexp
-        self.functions['hypot']=hypot
-        self.functions['ldexp']=ldexp
-        self.functions['log']=log
-        self.functions['log10']=log10
-        self.functions['modf']=modf
+        self.functions['acos']=math.acos
+        self.functions['asin']=math.asin
+        self.functions['atan']=math.atan
+        self.functions['atan2']=math.atan2
+        self.functions['ceil']=math.ceil
+        self.functions['cos']=math.cos
+        self.functions['cosh']=math.cosh
+        self.functions['degrees']=math.degrees
+        self.functions['exp']=math.exp
+        self.functions['fabs']=math.fabs
+        self.functions['floor']=math.floor
+        self.functions['fmod']=math.fmod
+        self.functions['frexp']=math.frexp
+        self.functions['hypot']=math.hypot
+        self.functions['ldexp']=math.ldexp
+        self.functions['log']=math.log
+        self.functions['log10']=math.log10
+        self.functions['modf']=math.modf
         self.functions['pow']=pow
-        self.functions['radians']=radians
-        self.functions['sin']=sin
-        self.functions['sinh']=sinh
-        self.functions['sqrt']=sqrt
-        self.functions['tan']=tan
-        self.functions['tanh']=tanh
+        self.functions['radians']=math.radians
+        self.functions['sin']=math.sin
+        self.functions['sinh']=math.sinh
+        self.functions['sqrt']=math.sqrt
+        self.functions['tan']=math.tan
+        self.functions['tanh']=math.tanh
 
     def addDefaultVariables(self):
         '''
         Add e and pi to the list of defined variables.
         '''
         #self.variables['e']=e
-        self.variables['pi']=pi
+        self.variables['pi']=math.pi
 
     def getVariableNames(self):
         '''

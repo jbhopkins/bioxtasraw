@@ -24,6 +24,11 @@ Created on Nov 29, 2018
 This file contains basic functions for processing on one more or scattering profile,
 including averaging, subtracting, and merging.
 '''
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map
+from io import open
+
 import copy
 
 import numpy as np
@@ -89,9 +94,9 @@ def subtract(sasm1, sasm2, forced = False, full = False):
             q2space=q2[1]-q2[0]
 
             if q1space>q2space:
-                npts=(end-start)/q1space+1
+                npts=(end-start)//q1space+1
             else:
-                npts=(end-start)/q2space+1
+                npts=(end-start)//q2space+1
 
             refq=np.linspace(start,end,npts,endpoint=True)
 
