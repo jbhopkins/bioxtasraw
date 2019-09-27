@@ -26,7 +26,7 @@ from math import pi, asin, tan, atan, cos
 import sys
 
 import numpy as np
-import pyFAI, pyFAI.geometryRefinement
+import pyFAI, pyFAI.geometryRefinement, pyFAI.massif
 
 def calcAbsScaleConstWater(water_sasm, start_idx, end_idx):
     '''
