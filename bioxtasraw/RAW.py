@@ -43,7 +43,7 @@ from collections import OrderedDict, defaultdict
 import hdf5plugin #HAS TO BE FIRST
 import numpy as np
 import matplotlib.colors as mplcol
-import pyFAI, pyFAI.calibrant#, pyFAI.peak_picker
+import pyFAI, pyFAI.calibrant, pyFAI.control_points
 import wx
 import wx.lib.scrolledpanel as scrolled
 import wx.lib.mixins.listctrl as listmix
@@ -12243,7 +12243,7 @@ class CenteringPanel(wx.Panel):
         self.c = SASCalib.RAWCalibration(img, wavelength = calibrant.wavelength, calibrant = calibrant, detector = detector)
         self.c.ai = pyFAI.AzimuthalIntegrator(wavelength = wavelength, detector = detector)
         self.c.ai.setFit2D(sd_distance, self._center[0], self._center[1]) #Takes the sample-detector distance in mm, beamx and beam y in pixels.
-        self.c.points = pyFAI.peak_picker.ControlPoints(None, calibrant=calibrant, wavelength=calibrant.wavelength)
+        self.c.points = pyFAI.control_points.ControlPoints(None, calibrant=calibrant, wavelength=calibrant.wavelength)
 
         self.image_panel.enableAutoCentMode()
 

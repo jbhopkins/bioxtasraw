@@ -30,7 +30,7 @@ from math import atan, cos
 import sys
 
 import numpy as np
-import pyFAI, pyFAI.geometryRefinement
+import pyFAI, pyFAI.geometryRefinement, pyFAI.massif
 
 def calcTheta(sd_distance, pixel_size, q_length_pixels):
     '''
