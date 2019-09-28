@@ -283,7 +283,7 @@ class MainFrame(wx.Frame):
 
     def _onStartup(self, data):
         _, errors = SASFileIO.loadFileDefinitions()
-        print self.raw_settings.get('fileDefinitions')
+
         if len(errors) > 0:
             msg = 'Error loading the following hdf5 definition files:'
             for err in errors:
