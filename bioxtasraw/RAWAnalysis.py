@@ -21,6 +21,10 @@ Created on Mar 23, 2010
 #
 #******************************************************************************
 '''
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map
+from io import open
+
 import matplotlib
 import numpy as np
 import sys
@@ -143,7 +147,7 @@ class UVConcentrationPanel(wx.Panel):
         if A == None:
             A = float(self.absorb_ctrl.GetValue())
 
-        l = (self.spin_ctrl_ids['UVPathlength'][3] / 10) #in cm
+        l = (self.spin_ctrl_ids['UVPathlength'][3] / 10.) #in cm
         e = self.spin_ctrl_ids['UVExtinctionCoeff'][3]
 
         c = A / (float(l)*float(e))
@@ -335,7 +339,7 @@ class UVConcentrationPanel(wx.Panel):
             a = self._calcAbsorbance()
             c = self._calcConcentration(a)
 
-            print each_sasm, a, c
+            print(each_sasm, a, c)
             each_sasm.setParameter('Conc', round(c, 3))
             each_sasm.setParameter('Absorbance', a)
 
@@ -482,7 +486,7 @@ class GuinierPlotPanel(wx.Panel):
             est_rg_err = None
             est_i0_err = None
         else:
-            var = win_size/10
+            var = win_size//10
             if var > 12:
                 step = int(np.ceil(var/12.))
             else:
@@ -552,7 +556,7 @@ class GuinierPlotPanel(wx.Panel):
         try:
             x_fit, y_fit, I0, error, newInfo = self._calcFit(is_autorg)
         except TypeError as e:
-            print e
+            print(e)
             return
 
         wx.CallAfter(self.guinier_frame.controlPanel.updateInfo, newInfo)
@@ -1750,7 +1754,7 @@ class MolWeightFrame(wx.Frame):
             else:
                 vc_type = self.raw_settings.get('MWVcType')
         except Exception, e:
-            print e
+            print(e)
             vc_type = self.raw_settings.get('MWVcType')
 
         if vc_type == 'Protein':
@@ -3186,16 +3190,16 @@ class GNOMFrame(wx.Frame):
                 try:
                     os.remove(savefile)
                 except Exception, e:
-                    print e
-                    print 'GNOM cleanup failed to remove the .dat file!'
+                    print(e)
+                    print('GNOM cleanup failed to remove the .dat file!')
 
         if outname != '':
             if os.path.isfile(outfile):
                 try:
                     os.remove(outfile)
                 except Exception, e:
-                    print e
-                    print 'GNOM cleanup failed to remove the .out file!'
+                    print(e)
+                    print('GNOM cleanup failed to remove the .out file!')
 
     def getGnomVersion(self):
         #Checks if we have gnom4 or gnom5
@@ -4286,7 +4290,7 @@ class DammifFrame(wx.Frame):
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
             self.notebook.Fit()
-            print 'here'
+
             if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
                 size = self.GetSize()
                 size[1] = size[1] + 20
@@ -4412,7 +4416,7 @@ class DammifRunPanel(wx.Panel):
         try:
             savedir_ctrl.AutoCompleteDirectories() #compatability for older versions of wxpython
         except AttributeError as e:
-            print e
+            print(e)
 
         savedir_button = wx.Button(parent, self.ids['changedir'], 'Select/Change Directory')
         savedir_button.Bind(wx.EVT_BUTTON, self.onChangeDirectoryButton)
@@ -4555,7 +4559,7 @@ class DammifRunPanel(wx.Panel):
             self.logbook = flatNB.FlatNotebook(parent, self.ids['logbook'],
                 agwStyle = flatNB.FNB_NAV_BUTTONS_WHEN_NEEDED | flatNB.FNB_NO_X_BUTTON)
         except AttributeError as e:
-            print e
+            print(e)
             self.logbook = flatNB.FlatNotebook(parent, self.ids['logbook'])     #compatability for older versions of wxpython
             self.logbook.SetWindowStyleFlag(flatNB.FNB_NO_X_BUTTON)
 
@@ -4907,7 +4911,7 @@ class DammifRunPanel(wx.Panel):
             try:
                 nruns = float(nruns.replace(',', '.'))
             except ValueError as e:
-                print e
+                print (e)
                 nruns = ''
             if nruns != '':
                 nruns = str(int(nruns))
@@ -6501,7 +6505,7 @@ class DenssRunPanel(wx.Panel):
         try:
             self.logbook = flatNB.FlatNotebook(parent, self.ids['logbook'], agwStyle = flatNB.FNB_NAV_BUTTONS_WHEN_NEEDED | flatNB.FNB_NO_X_BUTTON)
         except AttributeError as e:
-            print e
+            print(e)
             self.logbook = flatNB.FlatNotebook(parent, self.ids['logbook'])     #compatability for older versions of wxpython
             self.logbook.SetWindowStyleFlag(flatNB.FNB_NO_X_BUTTON)
 
@@ -7076,7 +7080,7 @@ class DenssRunPanel(wx.Panel):
         wx.CallAfter(averWindow.AppendText, "Standard deviation of scores: %.3f\n" % std)
         wx.CallAfter(averWindow.AppendText,'Total number of input maps for alignment: %i\n' % allrhos.shape[0])
         wx.CallAfter(averWindow.AppendText,'Number of aligned maps accepted: %i\n' % aligned.shape[0])
-        wx.CallAfter(averWindow.AppendText,'Correlation score between average and reference: %.3f\n' % (1/DENSS.rho_overlap_score(average_rho, refrho)))
+        wx.CallAfter(averWindow.AppendText,'Correlation score between average and reference: %.3f\n' % (1./DENSS.rho_overlap_score(average_rho, refrho)))
         SASFileIO.saveDensityMrc(os.path.join(path, prefix+'_average.mrc'), average_rho, sides[0])
 
         """
@@ -7314,7 +7318,7 @@ class DenssRunPanel(wx.Panel):
                         self.results[i].get()
             except Exception as e:
                 self.abort_event.set()
-                print e
+                print(e)
                 raise
 
     def showError(self, thread_num, error):
@@ -9038,7 +9042,7 @@ class AmbimeterFrame(wx.Frame):
         try:
             savedir_ctrl.AutoCompleteDirectories() #compatability for older versions of wxpython
         except AttributeError as e:
-            print e
+            print(e)
 
         savedir_button = wx.Button(parent, -1, 'Select/Change Directory')
         savedir_button.Bind(wx.EVT_BUTTON, self.onChangeDirectoryButton)
@@ -9248,7 +9252,7 @@ class AmbimeterFrame(wx.Frame):
             try:
                 srg = float(srg.replace(',', '.'))
             except ValueError as e:
-                print e
+                print(e)
                 srg = ''
             if srg != '':
                 srg = str(float(srg))
@@ -11424,7 +11428,7 @@ class EFAControlPanel2(wx.Panel):
                     old_value = start
 
                 except Exception as e:
-                    print e
+                    print(e)
 
 
         old_value = self.panel1_results['fend']
@@ -11455,7 +11459,7 @@ class EFAControlPanel2(wx.Panel):
                     old_value = end
 
                 except Exception as e:
-                    print e
+                    print(e)
 
     def updateEFAPlot(self):
         nvals = self.panel1_results['input']+1
@@ -11861,12 +11865,12 @@ class EFAControlPanel3(wx.Panel):
                             try:
                                 window.SetValue(str(efa_dict[key]))
                             except Exception as e:
-                                print e
+                                print(e)
                         else:
                             try:
                                 window.SetStringSelection(str(efa_dict[key]))
                             except Exception as e:
-                                print e
+                                print(e)
 
         if nvals == 1:
             window = wx.FindWindowById(self.control_ids['method'], self)
@@ -12281,9 +12285,9 @@ class EFAControlPanel3(wx.Panel):
         framei = self.panel1_results['fstart']
         framef = self.panel1_results['fend']
 
-        rmsd_data = [self.rotation_data['chisq'], range(framei, framef+1)]
+        rmsd_data = [self.rotation_data['chisq'], list(range(framei, framef+1))]
 
-        conc_data = [self.rotation_data['C'], range(framei, framef+1)]
+        conc_data = [self.rotation_data['C'], list(range(framei, framef+1))]
 
         self.efa_frame.plotPanel3.plotEFA(self.sasms, rmsd_data, conc_data)
 
@@ -13215,7 +13219,7 @@ class NormKratkyPlotPanel(wx.Panel):
             xdata = q*rg
             ydata = (q*rg)**2*i/i0
             self.v_line = self.subplot.axvline(np.sqrt(3), 0, 1, linestyle = 'dashed', color='0.6')
-            self.h_line = self.subplot.axhline(3/np.e, 0, 1, linestyle = 'dashed', color='0.6')
+            self.h_line = self.subplot.axhline(3./np.e, 0, 1, linestyle = 'dashed', color='0.6')
         elif self.plot_type == 'Dimensionless (Vc)':
             xdata = q*np.sqrt(vc)
             ydata = (q)**2*vc*i/i0
@@ -13295,7 +13299,7 @@ class NormKratkyPlotPanel(wx.Panel):
                 ydata = (q*rg)**2*i/i0
                 if self.v_line is None:
                     self.v_line = self.subplot.axvline(np.sqrt(3), 0, 1, linestyle = 'dashed', color='0.6')
-                    self.h_line = self.subplot.axhline(3/np.e, 0, 1, linestyle = 'dashed', color='0.6')
+                    self.h_line = self.subplot.axhline(3./np.e, 0, 1, linestyle = 'dashed', color='0.6')
             elif self.plot_type == 'Dimensionless (Vc)':
                 xdata = q*np.sqrt(vc)
                 ydata = (q)**2*vc*i/i0
@@ -14005,9 +14009,6 @@ class SeriesPlotPanel(wx.Panel):
         self.range_line.set_visible(True)
 
     def show_range(self, index, show):
-        print index
-        print show
-        print self.plot_ranges
         line = self.plot_ranges[index]
         line.set_visible(show)
 
@@ -15234,7 +15235,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
                     bl_sasms.append(newSASM)
 
-                use_subtracted_sasms = [] ##########THIS IS WRONG ################## BELOW HERE ####### NEEDS TO CALC OFF OF FULL, NOT SUBTRACTED
+                use_subtracted_sasms = []
 
                 buffer_sub_sasms = self.results['buffer']['sub_sasms']
                 start_frames = range(r1_start, r1_end+1)
@@ -15363,8 +15364,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                     vcmwer = self.results['calc']['vcmwer']
                     vpmw = self.results['calc']['vpmw']
 
-                    index1 = first_frame+(window_size-1)/2
-                    index2 = (window_size-1)/2
+                    index1 = first_frame+(window_size-1)//2
+                    index2 = (window_size-1)//2
 
                     rg = np.concatenate((rg[:index1], new_rg[index2:]))
                     rger = np.concatenate((rger[:index1], new_rger[index2:]))
@@ -15833,7 +15834,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         if fast and not intI_valid:
             return False, {}, {}, {}
 
-        win_len = len(intensity)/2
+        win_len = len(intensity)//2
         if win_len % 2 == 0:
             win_len = win_len+1
         win_len = min(51, win_len)
@@ -16038,7 +16039,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
             frame_idx = []
             for item in buffer_range_list:
-                frame_idx = frame_idx + range(item[0], item[1]+1)
+                frame_idx = frame_idx + list(range(item[0], item[1]+1))
 
             frame_idx = list(set(frame_idx))
             frame_idx.sort()
@@ -16375,8 +16376,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         sub_sasms = self.results['buffer']['sub_sasms']
 
-        start_frames = range(r1[0], r1[1]+1)
-        end_frames = range(r2[0], r2[1]+1)
+        start_frames = list(range(r1[0], r1[1]+1))
+        end_frames = list(range(r2[0], r2[1]+1))
 
         start_sasms = [sub_sasms[i] for i in start_frames]
         end_sasms = [sub_sasms[i] for i in end_frames]
@@ -17293,7 +17294,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         frame_idx = []
         for item in sample_range_list:
-            frame_idx = frame_idx + range(item[0], item[1]+1)
+            frame_idx = frame_idx + list(range(item[0], item[1]+1))
 
         frame_idx = list(set(frame_idx))
         frame_idx.sort()
@@ -17450,7 +17451,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         intensity = self._getIntensity('unsub')
         buffer_sasms = self.secm.getAllSASMs()
 
-        win_len = len(intensity)/2
+        win_len = len(intensity)//2
         if win_len % 2 == 0:
             win_len = win_len+1
         win_len = min(51, win_len)
@@ -17488,13 +17489,13 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         while not found_region and not failed:
             step_size = max(1, int(round(window_size/4.)))
 
-            region_starts = range(start_point, end_point, step_size)
+            region_starts = list(range(start_point, end_point, step_size))
 
             region_starts = region_starts[::-1]
 
             for idx in region_starts:
                 region_sasms = buffer_sasms[idx:idx+window_size+1]
-                frame_idx = range(idx, idx+window_size+1)
+                frame_idx = list(range(idx, idx+window_size+1))
                 valid, similarity_results, svd_results, intI_results = self._validateBuffer(region_sasms,
                     frame_idx, True)
 
@@ -17548,7 +17549,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             intensity = self._getIntensity('buffer')
 
 
-        win_len = len(intensity)/2
+        win_len = len(intensity)//2
         if win_len % 2 == 0:
             win_len = win_len+1
         win_len = min(51, win_len)
@@ -17588,8 +17589,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         while not found_region and not failed:
             step_size = max(1, int(round(window_size/8.)))
 
-            end_point = main_peak_pos + int(round(search_region/2)) - window_size
-            num_pts_gen = int(round((end_point-start_point)/step_size/2))
+            end_point = main_peak_pos + int(round(search_region/2.)) - window_size
+            num_pts_gen = int(round((end_point-start_point)/step_size/2.))
 
             region_starts = []
 
@@ -17607,7 +17608,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             for idx in region_starts:
                 region_sasms = sub_sasms[idx:idx+window_size+1]
                 valid, similarity_results, param_results, svd_results, sn_results = self._validateSample(region_sasms,
-                    range(idx, idx+window_size+1), True)
+                    list(range(idx, idx+window_size+1)), True)
                 found_region = valid
 
                 if found_region:
@@ -17653,7 +17654,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         bl_type = self.baseline_cor.GetStringSelection()
 
-        win_len = len(intensity)/2
+        win_len = len(intensity)//2
         if win_len % 2 == 0:
             win_len = win_len+1
         win_len = min(51, win_len)
@@ -17693,7 +17694,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             region1_end = self.results['buffer']['buffer_range'][0][1]
 
             region_sasms = sub_sasms[region1_start:region1_end+1]
-            frame_idx = range(region1_start, region1_end+1)
+            frame_idx = list(range(region1_start, region1_end+1))
             (valid,
             similarity_results,
             svd_results,
@@ -17710,13 +17711,13 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         while not found_region and not start_failed:
             step_size = max(1, int(round(window_size/4.)))
 
-            region_starts = range(start_point, end_point, step_size)
+            region_starts = list(range(start_point, end_point, step_size))
 
             region_starts = region_starts[::-1]
 
             for idx in region_starts:
                 region_sasms = sub_sasms[idx:idx+window_size+1]
-                frame_idx = range(idx, idx+window_size+1)
+                frame_idx = list(range(idx, idx+window_size+1))
                 (valid,
                 similarity_results,
                 svd_results,
@@ -17766,11 +17767,11 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         while not found_region and not end_failed:
             step_size = max(1, int(round(window_size/4.)))
 
-            region_starts = range(start_point, end_point, step_size)
+            region_starts = list(range(start_point, end_point, step_size))
 
             for idx in region_starts:
                 region_sasms = sub_sasms[idx:idx+window_size+1]
-                frame_idx = range(idx, idx+window_size+1)
+                frame_idx = list(range(idx, idx+window_size+1))
 
                 if not start_failed:
                     (valid,
@@ -17990,7 +17991,7 @@ class GuinierTestApp(wx.App):
 
         #tst_file = os.path.join(os.getcwd(), 'Tests', 'TestData', 'Lys12_1_001_plot.rad')
 
-        print tst_file
+        print(tst_file)
         raw_settings = RAWSettings.RawGuiSettings()
 
         ExpObj, ImgDummy = SASFileIO.loadFile(tst_file, raw_settings)
