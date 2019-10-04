@@ -21,6 +21,10 @@ Created on Jul 5, 2010
 #
 #******************************************************************************
 '''
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map, open
+from io import open
+
 import os
 import copy
 import threading
@@ -100,7 +104,7 @@ class SASM(object):
                 self.mean_intensity = -1
 
         except Exception as e:
-            print e
+            print(e)
             self.total_intensity = -1
             self.mean_intensity = -1
 
@@ -172,7 +176,7 @@ class SASM(object):
                 self.mean_intensity = -1
 
         except Exception as e:
-            print e
+            print(e)
             self.total_intensity = -1
             self.mean_intensity = -1
 
@@ -226,7 +230,7 @@ class SASM(object):
             q_vector = self._q_binned[q_idx]
             theta = SASCalib.calcTheta(sd_distance, delta_q_length, q_vector)
 
-            self._q_binned[q_idx] = ((4 * pi * sin(theta)) / wavelength)
+            self._q_binned[q_idx] = ((4. * pi * sin(theta)) / wavelength)
 
         self._update()
 
@@ -250,7 +254,7 @@ class SASM(object):
         if qrange[0] < 0 or qrange[1] > (len(self._q_binned)):
             raise SASExceptions.InvalidQrange('Qrange: ' + str(qrange) + ' is not a valid q-range for a q-vector of length ' + str(len(self._q_binned)-1))
         else:
-            self._selected_q_range = map(int, qrange)
+            self._selected_q_range = list(map(int, qrange))
 
             try:
                 if len(self.q)>0:
@@ -261,7 +265,7 @@ class SASM(object):
                     self.mean_intensity = -1
 
             except Exception as e:
-                print e
+                print(e)
                 self.total_intensity = -1
                 self.mean_intensity = -1
 
@@ -666,8 +670,7 @@ class IFTM(SASM):
         if qrange[0] < 0 or qrange[1] > (len(self._q_orig_binned)):
             raise SASExceptions.InvalidQrange('Qrange: ' + str(qrange) + ' is not a valid q-range for a q-vector of length ' + str(len(self._q_orig_binned)-1))
         else:
-            self._selected_q_range = map(int, qrange)
-            print self._selected_q_range
+            self._selected_q_range = list(map(int, qrange))
 
     def getQrange(self):
         return self._selected_q_range
@@ -903,7 +906,7 @@ class SECM(object):
 
         if len(self._sasm_list) != len(self._frame_list_raw):
             self._frame_list_raw=np.arange(len(self._sasm_list))
-            print 'Warning: Incorrect frame number input to SECM object. Using default frame numbers.'
+            print('Warning: Incorrect frame number input to SECM object. Using default frame numbers.')
 
         self.frame_list = self._frame_list_raw.copy()
 
@@ -916,8 +919,6 @@ class SECM(object):
         if self.qrange != (0,0):
             qrange_I = np.array([sasm.getIofQRange(self.qrange[0], self.qrange[1]) for sasm in sasm_list])
             self.qrange_I = np.concatenate((self.qrange_I, qrange_I))
-
-        # print self.time
 
         self.plot_frame_list = np.arange(len(self.frame_list))
 
@@ -1321,8 +1322,8 @@ class SECM(object):
 
     def appendCalcValues(self, rg, rger, i0, i0er, vcmw, vcmwer, vpmw,
         first_frame, window_size):
-        index1 = first_frame+(window_size-1)/2
-        index2 = (window_size-1)/2
+        index1 = first_frame+(window_size-1)//2
+        index2 = (window_size-1)//2
 
         self.rg_list = np.concatenate((self.rg_list[:index1],rg[index2:]))
         self.rger_list = np.concatenate((self.rger_list[:index1],rger[index2:]))
@@ -1341,7 +1342,7 @@ class SECM(object):
     def averageFrames(self, range_list, series_type, sim_test, sim_thresh, sim_cor, forced=False):
         frame_idx = []
         for item in range_list:
-            frame_idx = frame_idx + range(item[0], item[1]+1)
+            frame_idx = frame_idx + list(range(item[0], item[1]+1))
 
         frame_idx = list(set(frame_idx))
         frame_idx.sort()
@@ -1369,7 +1370,7 @@ class SECM(object):
 
             if np.any(pvals<sim_thresh):
                 dif_idx = itertools.compress(frame_idx[1:], pvals<sim_thresh)
-                dif_idx = map(str, dif_idx)
+                dif_idx = list(map(str, dif_idx))
                 profile_str = ", ".join(dif_idx)
                 find = profile_str.find(', ')
                 i=1

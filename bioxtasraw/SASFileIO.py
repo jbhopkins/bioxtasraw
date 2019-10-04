@@ -22,6 +22,10 @@ Created on Jul 11, 2010
 #******************************************************************************
 '''
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map
+from io import open
+
 import hdf5plugin #This has to be imported before fabio, and h5py (and, I think, PIL/pillow) . . .
 
 import os
@@ -77,10 +81,10 @@ def createSASMFromImage(img_array, parameters = {}, x_c = None, y_c = None, mask
     try:
         [i_raw, q_raw, err_raw, qmatrix] = SASImage.radialAverage(img_array, x_c, y_c, mask, readout_noise_mask, dezingering, dezing_sensitivity)
     except IndexError, msg:
-        print 'Center coordinates too large: ' + str(msg)
+        print('Center coordinates too large: ' + str(msg))
 
-        x_c = img_array.shape[1]/2
-        y_c = img_array.shape[0]/2
+        x_c = img_array.shape[1]//2
+        y_c = img_array.shape[0]//2
 
         [i_raw, q_raw, err_raw, qmatrix] = SASImage.radialAverage(img_array, x_c, y_c, mask, readout_noise_mask, dezingering, dezing_sensitivity)
 
@@ -171,7 +175,7 @@ def load32BitTiffImage(filename):
         im.close()
     #except IOError:
     except Exception, e:
-        print e
+        print(e)
         return None, {}
 
     img_hdr = {}
@@ -289,7 +293,7 @@ def loadIllSANSImage(filename):
 
     data = np.array([])
     for each_line in datalines:
-        ints = map(int, each_line.split())
+        ints = list(map(int, each_line.split()))
         data = np.append(data, ints)
 
     img = np.reshape(data, (128,128))
@@ -330,7 +334,7 @@ def loadSAXSLAB300Image(filename):
             tag_with_data = tag[315][0]
 
     except (TypeError, KeyError):
-        print "Wrong file format. Missing TIFF tag number"
+        print("Wrong file format. Missing TIFF tag number")
         raise
 
     img = newArr
@@ -526,8 +530,8 @@ def parseCHESSG1CountFile(filename):
         if date_idx:
             counters['date'] = allLines[date_idx][3:-1]
 
-    except:
-        print 'Error loading G1 header'
+    except Exception:
+        print('Error loading G1 header')
 
     return counters
 
@@ -592,8 +596,8 @@ def parseCHESSG1CountFileWAXS(filename):
         if date_idx:
             counters['date'] = allLines[date_idx][3:-1]
 
-    except:
-        print 'Error loading G1 header'
+    except Exception:
+        print('Error loading G1 header')
 
 
     return counters
@@ -662,8 +666,8 @@ def parseCHESSG1CountFileEiger(filename):
         if date_idx:
             counters['date'] = allLines[date_idx][3:-1]
 
-    except:
-        print 'Error loading G1 header'
+    except Exception:
+        print('Error loading G1 header')
 
     return counters
 
@@ -964,7 +968,7 @@ def loadHeader(filename, new_filename, header_type):
         except IOError as io:
             raise SASExceptions.HeaderLoadError(str(io).replace("u'",''))
         except Exception as e:
-            print e
+            print(e)
             raise SASExceptions.HeaderLoadError('Header file for : ' + str(filename) + ' could not be read or contains incorrectly formatted data. ')
     else:
         hdr = {}
@@ -1025,7 +1029,7 @@ def loadFile(filename, raw_settings, no_processing = False):
     except IOError:
         raise
     except Exception, msg:
-        print >> sys.stderr, str(msg)
+        print(str(msg))
         file_type = None
 
     if file_type == 'hdf5':
@@ -1039,14 +1043,14 @@ def loadFile(filename, raw_settings, no_processing = False):
         try:
             sasm, img = loadImageFile(filename, raw_settings)
         except (ValueError, AttributeError), msg:
-            print 'SASFileIO.loadFile : ' + str(msg)
+            print('SASFileIO.loadFile : ' + str(msg))
             raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
 
         if not RAWGlobals.usepyFAI_integration:
             try:
                 sasm = SASImage.calibrateAndNormalize(sasm, img, raw_settings)
             except (ValueError, NameError), msg:
-                print msg
+                print(msg)
 
         #Always do some post processing for image files
         if not isinstance(sasm, list):
@@ -1649,7 +1653,6 @@ def loadHdf5File(filename, raw_settings):
 
                 if data_type == 'series':
                     if len(series_list)>0:
-                        print series_list
                         loaded_data.extend(series_list)
 
     return loaded_data
@@ -1833,7 +1836,7 @@ def loadSeriesFile(filename, settings):
     try:
         secm_data = cPickle.load(file)
     except (ImportError, EOFError), e:
-        print e
+        print(e)
         # print 'Error loading wsp file, trying different method.'
         file.close()
         file = open(filename, 'rb')
@@ -2813,9 +2816,9 @@ def saveMeasurement(sasm, save_path, raw_settings, filetype = '.dat'):
             try:
                 writeIftFile(each_sasm, os.path.join(save_path, filename + filetype))
             except TypeError as e:
-                print 'Error in saveMeasurement, type: %s, error: %s' %(type(e).__name__, e)
-                print 'Resaving file without header'
-                print each_sasm.getAllParameters()
+                print('Error in saveMeasurement, type: %s, error: %s' %(type(e).__name__, e))
+                print('Resaving file without header')
+                print(each_sasm.getAllParameters())
                 writeIftFile(each_sasm, os.path.join(save_path, filename + filetype), False)
 
                 raise SASExceptions.HeaderSaveError(e)
@@ -2825,9 +2828,9 @@ def saveMeasurement(sasm, save_path, raw_settings, filetype = '.dat'):
             try:
                 writeRadFile(each_sasm, os.path.join(save_path, filename + filetype), header_on_top)
             except TypeError as e:
-                print 'Error in saveMeasurement, type: %s, error: %s' %(type(e).__name__, e)
-                print 'Resaving file without header'
-                print each_sasm.getAllParameters()
+                print('Error in saveMeasurement, type: %s, error: %s' %(type(e).__name__, e))
+                print('Resaving file without header')
+                print(each_sasm.getAllParameters())
                 writeRadFile(each_sasm, os.path.join(save_path, filename + filetype), header_on_top, False)
 
                 raise SASExceptions.HeaderSaveError(e)
@@ -3533,9 +3536,9 @@ def saveDensityMrc(filename, rho, side):
        See here: http://www2.mrc-lmb.cam.ac.uk/research/locally-developed-software/image-processing-software/#image
     """
     xs, ys, zs = rho.shape
-    nxstart = -xs/2+1
-    nystart = -ys/2+1
-    nzstart = -zs/2+1
+    nxstart = -xs//2+1
+    nystart = -ys//2+1
+    nzstart = -zs//2+1
     with open(filename, "wb") as fout:
         # NC, NR, NS, MODE = 2 (image : 32-bit reals)
         fout.write(struct.pack('<iiii', xs, ys, zs, 2))
@@ -3627,7 +3630,7 @@ def writeSettings(filename, settings):
             f.write(json.dumps(settings, indent = 4, sort_keys = True, cls = MyEncoder))
         return True
     except Exception as e:
-        print e
+        print(e)
         return False
 
 def readSettings(filename):
@@ -3643,7 +3646,7 @@ def readSettings(filename):
                 pickle_obj.find_global = find_global
                 settings = pickle_obj.load()
         except (KeyError, EOFError, ImportError, IndexError, AttributeError, cPickle.UnpicklingError) as e:
-            print 'Error type: %s, error: %s' %(type(e).__name__, e)
+            print('Error type: %s, error: %s' %(type(e).__name__, e))
             return None
 
     return settings
