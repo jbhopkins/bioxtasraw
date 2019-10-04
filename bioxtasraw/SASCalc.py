@@ -26,9 +26,11 @@ values from SAXS profiles. These are intended to be automated
 functions, including calculation of rg and molecular weight.
 
 It also contains functions for calling outside packages for use in RAW, like DAMMIF.
-
-
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map
+from io import open
+
 import os
 import time
 import subprocess
@@ -305,7 +307,7 @@ def autoRg_inner(q, i, err, qmin, single_fit, error_weight):
 
     #Following the atsas package, the end point of our search space is the q value
     #where the intensity has droped by an order of magnitude from the initial value.
-    data_end = np.abs(i-i[data_start]/10).argmin()
+    data_end = np.abs(i-i[data_start]/10.).argmin()
 
     #This makes sure we're not getting some weird fluke at the end of the scattering profile.
     if data_end > len(q)/2.:
@@ -313,7 +315,7 @@ def autoRg_inner(q, i, err, qmin, single_fit, error_weight):
         idx = 0
         while not found:
             idx = idx +1
-            if i[idx]<i[0]/10:
+            if i[idx]<i[0]/10.:
                 found = True
             elif idx == len(q) -1:
                 found = True
@@ -335,8 +337,8 @@ def autoRg_inner(q, i, err, qmin, single_fit, error_weight):
     #It is very time consuming to search every possible window size and every possible starting point.
     #Here we define a subset to search.
     tot_points = max_window
-    window_step = tot_points/10
-    data_step = tot_points/50
+    window_step = tot_points//10
+    data_step = tot_points//50
 
     if window_step == 0:
         window_step =1
@@ -461,7 +463,7 @@ def autoRg_inner(q, i, err, qmin, single_fit, error_weight):
         # all_scores = [np.array([]) for k in range(len(fit_array))]
 
         #This iterates through all the fits, and calculates a score. The score is out of 1, 1 being the best, 0 being the worst.
-        indices = range(len(fit_array))
+        indices =list(range(len(fit_array)))
         for a in indices:
             k=int(a) #This is stupid and should not be necessary. Numba bug?
 
@@ -963,20 +965,20 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
             try:
                 os.remove(os.path.join(path, 'gnom.cfg'))
             except Exception as e:
-                print e
-                print 'GNOM cleanup failed to delete gnom.cfg!'
+                print(e)
+                print('GNOM cleanup failed to delete gnom.cfg!')
 
         if not new_gnom:
             try:
                 os.remove(os.path.join(path, 'kern.bin'))
             except Exception as e:
-                print e
-                print 'GNOM cleanup failed to delete kern.bin!'
+                print(e)
+                print('GNOM cleanup failed to delete kern.bin!')
 
         return iftm
 
     else:
-        print 'Cannot find ATSAS'
+        print('Cannot find ATSAS')
         raise SASExceptions.NoATSASError('Cannot find gnom.')
         return None
 
@@ -1054,7 +1056,7 @@ def runDatgnom(datname, sasm, path):
         error = error.strip()
 
         if error == 'Cannot define Dmax' or error=='Could not find Rg' or error=='No intensity values (positive) found' or error == 'LOADATF --E- No data lines recognized.' or error == 'error: rg not specified':
-            print 'Unable to run datgnom successfully'
+            print('Unable to run datgnom successfully')
             datgnom_success = False
         # elif error != None:
         #     datgnom_success = False
@@ -1070,13 +1072,13 @@ def runDatgnom(datname, sasm, path):
             try:
                 os.remove(os.path.join(path, outname))
             except Exception, e:
-                print e
-                print 'DATGNOM cleanup failed to remove the .out file!'
+                print(e)
+                print('DATGNOM cleanup failed to remove the .out file!')
 
         return iftm
 
     else:
-        print 'Cannot find ATSAS'
+        print('Cannot find ATSAS')
         raise SASExceptions.NoATSASError('Cannot find datgnom.')
 
 
@@ -1376,7 +1378,7 @@ def runDammif(fname, prefix, args, path):
 
             return proc
     else:
-        print 'Cannot find ATSAS'
+        print('Cannot find ATSAS')
         raise SASExceptions.NoATSASError('Cannot find dammif.')
         return None
 
@@ -1440,7 +1442,7 @@ def runAmbimeter(fname, prefix, args, path):
         return ambiCats, ambiScore, ambiEval
 
     else:
-        print 'Cannot find ATSAS'
+        print('Cannot find ATSAS')
         raise SASExceptions.NoATSASError('Cannot find ambimeter.')
         return None
 
@@ -1715,7 +1717,7 @@ def runDammin(fname, prefix, args, path):
 
             return proc
     else:
-        print 'Cannot find ATSAS'
+        print('Cannot find ATSAS')
         raise SASExceptions.NoATSASError('Cannot find dammif.')
         return None
 
@@ -1929,7 +1931,7 @@ def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
 
             truth_test = use_subtracted_sasm[a:a+window_size]
 
-            index = a+(window_size-1)/2
+            index = a+(window_size-1)//2
 
             if np.all(truth_test):
                 try:
@@ -2005,7 +2007,7 @@ def integral_baseline(sasms, start_range, end_range, max_iter, min_iter):
     sasm_bl = SASProc.average(end_sasms, forced=True)
     i_bl = sasm_bl.getI()
 
-    win_len = len(sasms)/2
+    win_len = len(sasms)//2
     if win_len % 2 == 0:
         win_len = win_len+1
     win_len = min(51, win_len)
@@ -2032,6 +2034,8 @@ def integral_baseline(sasms, start_range, end_range, max_iter, min_iter):
         b[1:] = d[1:].cumsum(axis=0)
         b[0, :] = 0
 
+        old_b = copy.copy(b)
+
         if j > 0:
             tol = np.sum(np.abs(b-old_b))
             tols.append(tol)
@@ -2039,8 +2043,6 @@ def integral_baseline(sasms, start_range, end_range, max_iter, min_iter):
         if j > min_iter:
             if tol <= min(tols[-100:]):
                 converged=True
-
-        old_b = copy.copy(b)
 
         j = j+1
 
@@ -2051,10 +2053,10 @@ def integral_baseline(sasms, start_range, end_range, max_iter, min_iter):
 
 
 def linear_baseline(sasms, start_range, end_range):
-    start_frames = range(start_range[0], start_range[1]+1)
+    start_frames = list(range(start_range[0], start_range[1]+1))
     start_sasms = [sasms[j] for j in start_frames]
 
-    end_frames = range(end_range[0], end_range[1]+1)
+    end_frames = list(range(end_range[0], end_range[1]+1))
     end_sasms = [sasms[j] for j in end_frames]
 
     frames = np.array(start_frames + end_frames)
@@ -2248,7 +2250,8 @@ def runExplicitEFARotation(M, D, failed, C, V_bar, T, niter, tol, force_pos):
     converged = True
 
     csum = np.sum(M*C, axis = 0)
-    if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
+    if (int(np.__version__.split('.')[0]) > 1 or int(np.__version__.split('.')[0]) == 1
+        and int(np.__version__.split('.')[1])>=10):
         C = C/np.broadcast_to(csum, C.shape) #normalizes by the sum of each column
     else:
         norm = np.array([csum for i in range(C.shape[0])])
@@ -2293,7 +2296,8 @@ def EFAUpdateRotation(M,C,D, force_pos):
 
     csum = np.sum(M*Cnew, axis = 0)
 
-    if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
+    if (int(np.__version__.split('.')[0]) > 1 or int(np.__version__.split('.')[0]) == 1
+        and int(np.__version__.split('.')[1])>=10):
         Cnew = Cnew/np.broadcast_to(csum, Cnew.shape) #normalizes by the sum of each column
     else:
         norm = np.array([csum for i in range(Cnew.shape[0])])
@@ -2309,7 +2313,8 @@ def EFAFirstRotation(M,C,D):
     Cnew = np.transpose(np.dot(np.linalg.pinv(S), D))
 
     csum = np.sum(M*Cnew, axis = 0)
-    if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
+    if (int(np.__version__.split('.')[0]) > 1 or int(np.__version__.split('.')[0]) == 1
+        and int(np.__version__.split('.')[1])>=10):
         Cnew = Cnew/np.broadcast_to(csum, Cnew.shape) #normalizes by the sum of each column
     else:
         norm = np.array([csum for i in range(Cnew.shape[0])])

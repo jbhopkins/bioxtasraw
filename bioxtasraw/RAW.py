@@ -37,7 +37,6 @@ import itertools
 import traceback
 import scipy.constants
 import multiprocessing
-import json
 from collections import OrderedDict, defaultdict
 
 import hdf5plugin #HAS TO BE FIRST

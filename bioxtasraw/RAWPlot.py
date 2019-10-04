@@ -16,6 +16,10 @@
 #
 #******************************************************************************
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map
+from io import open
+
 import wx
 import os
 import sys
@@ -55,9 +59,9 @@ class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
         try:
             FigureCanvasWxAgg.motion_notify_event(self, x, y, guiEvent=evt)
         except:
-            print 'Log fail! Switch to Lin-Lin plot in the menu'
-            print "Unexpected error:", sys.exc_info()[0]
-            print "Unexpected error:", sys.exc_info()[1]
+            print('Log fail! Switch to Lin-Lin plot in the menu')
+            print("Unexpected error:", sys.exc_info()[0])
+            print("Unexpected error:", sys.exc_info()[1])
 
             plotpanel = wx.FindWindowByName('PlotPanel')
 
@@ -75,7 +79,7 @@ class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
             try:
                 plotpanel.fitAxis()
             except ValueError, e:
-                print 'MyFigureCanvasWxAgg: ' + str(e)
+                print('MyFigureCanvasWxAgg: ' + str(e))
 
 
     #These don't do anything at the moment, but were giving me some strange errors on the sec plot
@@ -91,8 +95,8 @@ class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
         try:
             FigureCanvasWxAgg.button_release_event(self, x, y, 1, guiEvent=evt)
         except Exception as e:
-            print e
-            print 'Log fail! Switch to Lin-Lin plot in the menu'
+            print(e)
+            print('Log fail! Switch to Lin-Lin plot in the menu')
 
 
     def _onLeftButtonDown(self, evt):
@@ -106,8 +110,8 @@ class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
         try:
             FigureCanvasWxAgg.button_press_event(self, x, y, 1, guiEvent=evt)
         except Exception as e:
-            print e
-            print 'Log fail! Switch to Lin-Lin plot in the menu'
+            print(e)
+            print('Log fail! Switch to Lin-Lin plot in the menu')
 
 
 
@@ -416,8 +420,7 @@ class PlotPanel(wx.Panel):
             self.updateFrameStyle(axes = self.subplot1)
             self.updateFrameStyle(axes = self.subplot2)
         except Exception, e:
-            print 'Possibly too old matplotlib version: ' + str(e)
-            pass
+            print('Possibly too old matplotlib version: ' + str(e))
 
     def updateFrameStyle(self, axes):
         if axes == self.subplot1:
@@ -500,11 +503,11 @@ class PlotPanel(wx.Panel):
                         is_logx = True
 
                 if self.plotparams['auto_fitaxes' + plotnum] == False and forced == False:
-                    print 'Not fitting axes due to plot settings'
+                    print('Not fitting axes due to plot settings')
                     try:
                         self.canvas.draw()
                     except ValueError, e:
-                        print 'ValueError in fitaxis() : ' + str(e)
+                        print('ValueError in fitaxis() : ' + str(e))
                     return
 
                 for each in eachsubplot.lines:
@@ -569,7 +572,7 @@ class PlotPanel(wx.Panel):
         try:
             self.canvas.draw()
         except ValueError, e:
-            print 'ValueError in fitaxis() : ' + str(e)
+            print('ValueError in fitaxis() : ' + str(e))
             traceback.print_exc()
 
 
@@ -646,8 +649,8 @@ class PlotPanel(wx.Panel):
         and show a pop up menu to change the settings
         of the figure the mouse was over '''
 
-        x_size,y_size = self.canvas.get_width_height()
-        half_y = y_size / 2
+        x_size, y_size = self.canvas.get_width_height()
+        half_y = y_size // 2
 
         if self._plot_shown == 1:
             selected_plot = 1
@@ -1109,7 +1112,7 @@ class PlotPanel(wx.Panel):
     def updateLegend(self, plotnum, draw = True):
         axes = plotnum
 
-        print plotnum
+        print(plotnum)
 
         if plotnum == 1:
             axes = self.subplot1
@@ -1218,7 +1221,7 @@ class PlotPanel(wx.Panel):
                 if self.plotparams['legend_pos%s' %(plotnum)] is not None:
                     leg._loc = self.plotparams['legend_pos%s' %(plotnum)]
             except AttributeError:
-                print "WARNING: Old matplotlib version, legend not draggable"
+                print("WARNING: Old matplotlib version, legend not draggable")
 
         if draw:
             self.canvas.draw()
@@ -1417,7 +1420,7 @@ class IftPlotPanel(PlotPanel):
             self.updateFrameStyle(axes = self.subplot1)
             self.updateFrameStyle(axes = self.subplot2)
         except Exception, e:
-            print 'Possibly too old matplotlib version: ' + str(e)
+            print('Possibly too old matplotlib version: ' + str(e))
             pass
 
     def updateFrameStyle(self, axes):
@@ -1480,11 +1483,11 @@ class IftPlotPanel(PlotPanel):
                     plotnum = '2'
 
                 if self.plotparams['auto_fitaxes' + plotnum] == False and forced == False:
-                    print 'Not fitting axes due to plot settings'
+                    print('Not fitting axes due to plot settings')
                     try:
                         self.canvas.draw()
                     except ValueError, e:
-                        print 'ValueError in fitaxis() : ' + str(e)
+                        print('ValueError in fitaxis() : ' + str(e))
                     return
 
                 for each in eachsubplot.lines:
@@ -1520,7 +1523,7 @@ class IftPlotPanel(PlotPanel):
         try:
             self.canvas.draw()
         except ValueError, e:
-            print 'ValueError in fitaxis() : ' + str(e)
+            print('ValueError in fitaxis() : ' + str(e))
 
 
     def _onBlinkTimer(self, event):
@@ -1573,7 +1576,7 @@ class IftPlotPanel(PlotPanel):
         return
 
         x_size,y_size = self.canvas.get_width_height()
-        half_y = y_size / 2
+        half_y = y_size // 2
 
         if self._plot_shown == 1:
             selected_plot = 1
@@ -1607,7 +1610,7 @@ class IftPlotPanel(PlotPanel):
         else:
             # deal with something that should never happen
             scale_factor = 1
-            print event.button
+            print(event.button)
 
         # MOVE AXIS
         zx_pix, zy_pix = ax.transAxes.transform((0,0))
@@ -1701,7 +1704,7 @@ class IftPlotPanel(PlotPanel):
         of the figure the mouse was over '''
 
         x_size,y_size = self.canvas.get_width_height()
-        half_y = y_size / 2
+        half_y = y_size // 2
 
         if self._plot_shown == 1:
             selected_plot = 1
@@ -1804,13 +1807,13 @@ class IftPlotPanel(PlotPanel):
                         self.plotparams['axesscale1'] = 'linlin'
 
                         self.updatePlotAxes()
-                        print '1'
+                        print('1')
                     else:
                         self.plotparams['axesscale1'] = key[7:]
                         self.plotparams['plot1type'] = 'normal'
                         self.updatePlotType(self.subplot1)
                         self.updatePlotAxes()
-                        print '2'
+                        print('2')
                 else:
                     if key[5:7] == 'ty':
                         self.plotparams['plot2type'] = key[7:]
@@ -1819,7 +1822,7 @@ class IftPlotPanel(PlotPanel):
                         self.plotparams['axesscale2'] = 'linlin'
                         self.updatePlotAxes()
 
-                        print '3'
+                        print('3')
 
                     else:
                         self.plotparams['axesscale2'] = key[7:]
@@ -1828,8 +1831,8 @@ class IftPlotPanel(PlotPanel):
                         try:
                             self.updatePlotAxes()
                         except ValueError, e:
-                            print e
-                        print '4'
+                            print(e)
+                        print('4')
 
         #Update plot settings in menu bar:
         mainframe.setViewMenuScale(id)
@@ -2125,7 +2128,7 @@ class IftPlotPanel(PlotPanel):
     def updateLegend(self, plotnum, draw = True):
         axes = plotnum
 
-        print plotnum
+        print(plotnum)
 
         if plotnum == 1:
             axes = self.subplot1
@@ -2230,7 +2233,7 @@ class IftPlotPanel(PlotPanel):
                     leg._loc = self.plotparams['legend_pos%s' %(plotnum)]
 
             except AttributeError:
-                print "WARNING: Old matplotlib version, legend not draggable"
+                print("WARNING: Old matplotlib version, legend not draggable")
         if draw:
             self.canvas.draw()
 
@@ -2879,7 +2882,7 @@ class SeriesPlotPanel(wx.Panel):
             self.updateFrameStyle(axes = self.subplot1)
             self.updateFrameStyle(axes=self.ryaxis)
         except Exception, e:
-            print 'Possibly too old matplotlib version: ' + str(e)
+            print('Possibly too old matplotlib version: ' + str(e))
             pass
 
     def updateFrameStyle(self, axes):
@@ -2966,11 +2969,11 @@ class SeriesPlotPanel(wx.Panel):
                     plotnum = '2'
 
                 if self.plotparams['auto_fitaxes' + plotnum] == False and forced == False:
-                    print 'Not fitting axes due to plot settings'
+                    print('Not fitting axes due to plot settings')
                     try:
                         self.canvas.draw()
                     except ValueError, e:
-                        print 'ValueError in fitaxis() : ' + str(e)
+                        print('ValueError in fitaxis() : ' + str(e))
                     return
 
                 for each in eachsubplot.lines:
@@ -3061,7 +3064,7 @@ class SeriesPlotPanel(wx.Panel):
         try:
             self.canvas.draw()
         except ValueError, e:
-            print 'ValueError in fitaxis() : ' + str(e)
+            print('ValueError in fitaxis() : ' + str(e))
 
 
     def _onBlinkTimer(self, event):
@@ -3114,7 +3117,7 @@ class SeriesPlotPanel(wx.Panel):
         return
 
         x_size,y_size = self.canvas.get_width_height()
-        half_y = y_size / 2
+        half_y = y_size // 2
 
         if self._plot_shown == 1:
             selected_plot = 1
@@ -3148,7 +3151,7 @@ class SeriesPlotPanel(wx.Panel):
         else:
             # deal with something that should never happen
             scale_factor = 1
-            print event.button
+            print(event.button)
 
         # MOVE AXIS
         zx_pix, zy_pix = ax.transAxes.transform((0,0))
@@ -4154,7 +4157,7 @@ class SeriesPlotPanel(wx.Panel):
                 if self.plotparams['legend_pos1'] is not None:
                     leg._loc = self.plotparams['legend_pos1']
             except AttributeError:
-                print "WARNING: Old matplotlib version, legend not draggable"
+                print("WARNING: Old matplotlib version, legend not draggable")
 
         if draw:
             self.canvas.draw()

@@ -25,13 +25,13 @@ Created on Jul 11, 2010
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import object, range, map
 from io import open
+from six.moves import cPickle as pickle
 
 import hdf5plugin #This has to be imported before fabio, and h5py (and, I think, PIL/pillow) . . .
 
 import os
 import sys
 import re
-import cPickle
 import time
 import struct
 import json
@@ -107,7 +107,7 @@ def loadMask(filename):
     if os.path.splitext(filename)[1] == 'msk':
 
         with open(filename, 'r') as FileObj:
-            maskPlotParameters = cPickle.load(FileObj)
+            maskPlotParameters = pickle.load(FileObj)
 
         i=0
         for each in maskPlotParameters['storedMasks']:
@@ -1831,22 +1831,25 @@ def loadOutFile(filename):
 
 
 def loadSeriesFile(filename, settings):
-    file = open(filename, 'r')
+    file = open(filename, 'rb')
+    secm_data = None
 
     try:
-        secm_data = cPickle.load(file)
-    except (ImportError, EOFError), e:
+        secm_data = pickle.load(file)
+    except Exception as e:
         print(e)
-        # print 'Error loading wsp file, trying different method.'
         file.close()
-        file = open(filename, 'rb')
-        secm_data = cPickle.load(file)
-    finally:
+        file = open(filename, 'rU')
+        secm_data = pickle.load(file)
+    except Exception as e:
         file.close()
 
-    new_secm, line_data, calc_line_data = makeSeriesFile(secm_data, settings)
+    if secm_data is not None:
+        new_secm, line_data, calc_line_data = makeSeriesFile(secm_data, settings)
 
-    new_secm.setParameter('filename', os.path.split(filename)[1])
+        new_secm.setParameter('filename', os.path.split(filename)[1])
+    else:
+        raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
 
     return new_secm
 
@@ -2839,7 +2842,7 @@ def saveMeasurement(sasm, save_path, raw_settings, filetype = '.dat'):
 def saveSECItem(save_path, secm_dict):
 
     with open(save_path, 'wb') as f:
-        cPickle.dump(secm_dict, f, cPickle.HIGHEST_PROTOCOL)
+        pickle.dump(secm_dict, f, pickle.HIGHEST_PROTOCOL)
 
 
 def saveAnalysisCsvFile(sasm_list, include_data, save_path):
@@ -3235,7 +3238,7 @@ def saveWorkspace(sasm_dict, save_path):
 
     with open(save_path, 'wb') as f:
 
-        cPickle.dump(sasm_dict, f, cPickle.HIGHEST_PROTOCOL)
+        pickle.dump(sasm_dict, f, pickle.HIGHEST_PROTOCOL)
 
 
 def saveCSVFile(filename, data, header = ''):
@@ -3612,11 +3615,11 @@ def saveDensityXplor(filename, rho,side):
 def loadWorkspace(load_path):
     try:
         with open(load_path, 'r') as f:
-            sasm_dict = cPickle.load(f)
+            sasm_dict = pickle.load(f)
     except (ImportError, EOFError):
         try:
             with open(load_path, 'rb') as f:
-                sasm_dict = cPickle.load(f)
+                sasm_dict = pickle.load(f)
         except (ImportError, EOFError):
             raise SASExceptions.UnrecognizedDataFormat(('Workspace could not be '
                 'loaded. It may be an invalid file type, or the file may be '
@@ -3642,10 +3645,10 @@ def readSettings(filename):
     except Exception as e:
         try:
             with open(filename, 'rb') as f:
-                pickle_obj = cPickle.Unpickler(f)
+                pickle_obj = pickle.Unpickler(f)
                 pickle_obj.find_global = find_global
                 settings = pickle_obj.load()
-        except (KeyError, EOFError, ImportError, IndexError, AttributeError, cPickle.UnpicklingError) as e:
+        except (KeyError, EOFError, ImportError, IndexError, AttributeError, pickle.UnpicklingError) as e:
             print('Error type: %s, error: %s' %(type(e).__name__, e))
             return None
 
