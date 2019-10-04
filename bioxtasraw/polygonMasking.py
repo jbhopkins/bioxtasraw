@@ -29,6 +29,7 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
 IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 """
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import object, range, map
 from io import open
@@ -132,7 +133,8 @@ class Polygeom(np.ndarray):
     area = property(get_area)
     centroid = property(get_centroid)
 
-def getCoords(p, (xDim, yDim) ):
+def getCoords(p, dims):
+    (xDim, yDim) = dims
 
     points = []
     for each in p[0]:

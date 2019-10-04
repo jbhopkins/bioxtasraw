@@ -23,7 +23,7 @@ Created on Jul 11, 2010
 '''
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import object, range, map
+from builtins import object, range, map, zip
 from io import open
 
 from math import atan, cos
@@ -126,7 +126,7 @@ class RAWCalibration(object):
                 except Exception as err:
                     print(err)
             if self.ai:
-                for key in defaults.keys():  # not PARAMETERS which holds wavelength
+                for key in defaults:  # not PARAMETERS which holds wavelength
                     val = getattr(self.ai, key, None)
                     if val is not None:
                         defaults[key] = val
@@ -180,7 +180,10 @@ class RAWCalibration(object):
         """
         Contains the common geometry refinement part
         """
-        previous = sys.maxint
+        try:
+            previous = sys.maxint
+        except Exception:
+            previous = sys.maxsize
         finished = False
         while not finished:
             count = 0

@@ -22,7 +22,7 @@ Created on Sep 31, 2010
 #******************************************************************************
 '''
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import object, range, map
+from builtins import object, range, map, zip
 from io import open
 from six.moves import cPickle as pickle
 

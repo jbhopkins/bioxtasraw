@@ -26,7 +26,7 @@ other python programs. This is to provide easy access to RAW's functionality
 in any data processing program you want to write in python
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import object, range, map
+from builtins import object, range, map, zip
 from io import open
 
 import os.path

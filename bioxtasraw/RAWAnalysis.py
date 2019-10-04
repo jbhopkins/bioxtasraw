@@ -22,7 +22,7 @@ Created on Mar 23, 2010
 #******************************************************************************
 '''
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import object, range, map
+from builtins import object, range, map, zip
 from io import open
 
 import matplotlib
@@ -7248,7 +7248,7 @@ class DenssRunPanel(wx.Panel):
 
             np.savetxt(os.path.join(path, prefix+'_map.fit'), fit, delimiter=" ",
                 fmt="%.5e", header=" ".join(header))
-            chi_header, rg_header, supportV_header = zip(*[('chi_'+str(i), 'rg_'+str(i),'supportV_'+str(i)) for i in range(nruns)])
+            chi_header, rg_header, supportV_header = list(zip(*[('chi_'+str(i), 'rg_'+str(i),'supportV_'+str(i)) for i in range(nruns)]))
             all_chis = np.array([denss_outputs[i][5] for i in np.arange(nruns)])
             all_rg = np.array([denss_outputs[i][6] for i in np.arange(nruns)])
             all_supportV = np.array([denss_outputs[i][7] for i in np.arange(nruns)])

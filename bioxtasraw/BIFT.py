@@ -17,7 +17,7 @@
 #******************************************************************************
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import object, range, map
+from builtins import object, range, map, zip
 from io import open
 
 import multiprocessing
@@ -223,7 +223,7 @@ def calc_bift_errors(opt_params, q, i, err, N, mc_runs=300, abort_check=False):
         alpha_array[0] = alpha_opt
         dmax_array[0] = dmax_opt
 
-        pts = zip(alpha_array, dmax_array)
+        pts = list(zip(alpha_array, dmax_array))
 
         results = mp_pool.map(mp_get_evidence, pts)
 

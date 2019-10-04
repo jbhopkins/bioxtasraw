@@ -16,14 +16,15 @@
 #
 #******************************************************************************
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import object, range, map
+from __future__ import absolute_import, division, print_function, unicode_literals, standard_library
+from builtins import object, range, map, zip
 from io import open
+standard_library.install_aliases()
 
-import Queue
+import queue
 import sys
 
-mainworker_cmd_queue = Queue.Queue()
+mainworker_cmd_queue = queue.Queue()
 
 #Checks whether RAW is running in a compiled (frozen) version or a live interpreter
 if getattr(sys, 'frozen', False):

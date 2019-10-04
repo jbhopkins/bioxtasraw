@@ -25,7 +25,7 @@ The purpose of this module is to custom dialogs for RAW that may be used
 in various other modules.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import object, range, map
+from builtins import object, range, map, zip
 from io import open
 
 import copy

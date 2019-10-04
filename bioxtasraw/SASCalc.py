@@ -28,7 +28,7 @@ functions, including calculation of rg and molecular weight.
 It also contains functions for calling outside packages for use in RAW, like DAMMIF.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import object, range, map
+from builtins import object, range, map, zip
 from io import open
 
 import os

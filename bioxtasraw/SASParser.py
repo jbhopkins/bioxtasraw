@@ -17,7 +17,7 @@
 #******************************************************************************
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import object, range, map
+from builtins import object, range, map, zip
 from io import open
 
 import math
@@ -64,7 +64,7 @@ class PyMathParser(object):
         if var_dict == None:
             return
 
-        for each_key in var_dict.keys():
+        for each_key in var_dict:
 
             try:
                 val = float(var_dict[each_key])

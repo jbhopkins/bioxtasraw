@@ -22,7 +22,7 @@ Created on Jul 5, 2010
 #******************************************************************************
 '''
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import object, range, map, open
+from builtins import object, range, map, open, zip
 from io import open
 
 import os

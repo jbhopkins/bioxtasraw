@@ -26,7 +26,7 @@ including averaging, subtracting, and merging.
 '''
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import object, range, map
+from builtins import object, range, map, zip
 from io import open
 
 import copy
@@ -275,9 +275,9 @@ def weightedAverage(sasm_list, weightByError, weightCounter, forced = False):
         all_err = first_sasm.err[first_q_min : first_q_max]
 
         if not weightByError:
-            if first_sasm.getAllParameters().has_key('counters'):
+            if 'counters' in first_sasm.getAllParameters():
                 file_hdr = first_sasm.getParameter('counters')
-            if first_sasm.getAllParameters().has_key('imageHeader'):
+            if 'imageHeader' in first_sasm.getAllParameters():
                 img_hdr = first_sasm.getParameter('imageHeader')
 
             if weightCounter in file_hdr:
@@ -297,9 +297,9 @@ def weightedAverage(sasm_list, weightByError, weightCounter, forced = False):
             all_err = np.vstack((all_err, sasm_list[idx].err[each_q_min:each_q_max]))
 
             if not weightByError:
-                if sasm_list[idx].getAllParameters().has_key('counters'):
+                if 'counters' in sasm_list[idx].getAllParameters():
                     file_hdr = sasm_list[idx].getParameter('counters')
-                if sasm_list[idx].getAllParameters().has_key('imageHeader'):
+                if 'imageHeader' in sasm_list[idx].getAllParameters():
                     img_hdr = sasm_list[idx].getParameter('imageHeader')
 
                 if weightCounter in file_hdr:
@@ -742,10 +742,13 @@ def get_shared_header(sasm_list):
     return shared_params
 
 def get_shared_values(dict_list):
-    shared_keys = dict_list[0].viewkeys()
+    shared_keys = set(dict_list[0].keys())
+
 
     for params in dict_list[1:]:
-        shared_keys = shared_keys & params.viewkeys()
+        param_keys = set(params.keys())
+
+        shared_keys = shared_keys & param_keys
 
     shared_params = {}
 

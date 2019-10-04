@@ -29,8 +29,9 @@ That code was released under GPL V3. The original author is Thomas Grant.
 
 This code matches that as of 5/21/19, commit 1967ae6, version 1.4.9
 """
+
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import object, range, map
+from builtins import object, range, map, zip
 from io import open
 
 import os
@@ -43,6 +44,7 @@ import struct
 import datetime
 import traceback
 import sys
+from functools import reduce
 
 import numpy as np
 from scipy import optimize, ndimage
@@ -875,7 +877,7 @@ def average_pairs(rhos, cores=1, abort_event=None):
     pool = multiprocessing.Pool(cores)
     try:
         mapfunc = partial(multi_average_two, **rho_args)
-        average_rhos = pool.map(mapfunc, range(rhos.shape[0]//2))
+        average_rhos = pool.map(mapfunc, list(range(rhos.shape[0]//2)))
         pool.close()
         pool.join()
     except KeyboardInterrupt:
