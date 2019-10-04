@@ -15,6 +15,9 @@
 #    along with RAW.  If not, see <http://www.gnu.org/licenses/>.
 #
 #******************************************************************************
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map
+from io import open
 
 import math
 import platform
@@ -23,7 +26,7 @@ import string
 
 import numpy as np
 import wx
-if wx.version().split()[0].strip()[0] == '4':
+if int(wx.version().split()[0].strip()[0]) >= int('4'):
     control_super = wx.Control
 else:
     control_super = wx.PyControl
@@ -259,7 +262,7 @@ def GrayOut(anImage):
     if wx.version().split()[0].strip()[0] == '4':
         data = list(anImage.GetData())
     else:
-        data = map(ord, list(anImage.GetData()))
+        data = list(map(ord, list(anImage.GetData())))
 
     for i in range(0, len(data), 3):
 
@@ -281,7 +284,7 @@ def MakeGray((r,g,b), factor, maskColor):
     """
 
     if (r,g,b) != maskColor:
-        return map(lambda x: int((230 - x) * factor) + x, (r,g,b))
+        return list(map(lambda x: int((230 - x) * factor) + x, (r,g,b)))
     else:
         return (r,g,b)
 
@@ -696,11 +699,11 @@ class CustomCheckBox(control_super):
 
         # Position the bitmap centered vertically
         bitmapXpos = 0
-        bitmapYpos = (height - bitmapHeight)/2
+        bitmapYpos = (height - bitmapHeight)//2
 
         # Position the text centered vertically
         textXpos = bitmapWidth + spacing
-        textYpos = (height - textHeight)/2
+        textYpos = (height - textHeight)//2
 
         # Draw the bitmap on the DC
         dc.DrawBitmap(bitmap, bitmapXpos, bitmapYpos, True)
@@ -909,7 +912,7 @@ class FloatSpinCtrl(wx.Panel):
             self.ScalerButton.SetValue(0)
 
         try:
-            newval = float(val) + (1/self.ScaleDivider)
+            newval = float(val) + (1./self.ScaleDivider)
         except ValueError:
             self.CastFloatSpinEvent()
             return
@@ -937,13 +940,13 @@ class FloatSpinCtrl(wx.Panel):
             self.ScalerButton.SetValue(0)
 
         try:
-            newval = float(val) - (1/self.ScaleDivider)
+            newval = float(val) - (1./self.ScaleDivider)
 
             if newval == 0.0 and self._never_negative == True:
                 self.num_of_digits = self.num_of_digits + 1
                 self.ScaleDivider = math.pow(10, self.num_of_digits)
 
-                newval = float(val) - (1/self.ScaleDivider)
+                newval = float(val) - (1./self.ScaleDivider)
 
         except ValueError:
             self.CastFloatSpinEvent()
@@ -1314,7 +1317,7 @@ class RawPanelFileDropTarget(wx.FileDropTarget):
         if self.style == 'main' or self.style == 'ift':
             RAWGlobals.mainworker_cmd_queue.put(['plot', filenames])
         elif self.style == 'sec':
-            frame_list = range(len(filenames))
+            frame_list = list(range(len(filenames)))
             RAWGlobals.mainworker_cmd_queue.put(['sec_plot', [filenames, frame_list]])
 
         return True
@@ -1357,7 +1360,7 @@ class RawPlotFileDropTarget(wx.FileDropTarget):
         elif self.style == 'ift':
             RAWGlobals.mainworker_cmd_queue.put(['plot', filenames])
         elif self.style == 'sec':
-            frame_list = range(len(filenames))
+            frame_list = list(range(len(filenames)))
             RAWGlobals.mainworker_cmd_queue.put(['sec_plot', [filenames, frame_list]])
         elif self.style == 'image':
             RAWGlobals.mainworker_cmd_queue.put(['show_image', [filenames[0], 0]])
@@ -1749,7 +1752,7 @@ def OnPaintULCHeader(self, event):
             # We got a checkbox-type item
             ix, iy = self._owner.GetCheckboxImageSize()
             # We draw it on the left, always
-            self._owner.DrawCheckbox(dc, x + ULC.HEADER_OFFSET_X, ULC.HEADER_OFFSET_Y + (h - 4 - iy)/2, kind, checked, enabled)
+            self._owner.DrawCheckbox(dc, x + ULC.HEADER_OFFSET_X, ULC.HEADER_OFFSET_Y + (h - 4 - iy)//2, kind, checked, enabled)
             wcheck += ix + ULC.HEADER_IMAGE_MARGIN_IN_REPORT_MODE
             cw -= ix + ULC.HEADER_IMAGE_MARGIN_IN_REPORT_MODE
 
@@ -1787,7 +1790,7 @@ def OnPaintULCHeader(self, event):
             xAligned = x + cw - wLabel - ULC.HEADER_OFFSET_X
 
         elif align == ULC.ULC_FORMAT_CENTER:
-            xAligned = x + wcheck + (cw - wLabel)/2
+            xAligned = x + wcheck + (cw - wLabel)//2
 
         # if we have an image, draw it on the right of the label
         if imageList:
@@ -1795,7 +1798,7 @@ def OnPaintULCHeader(self, event):
                 if img >= 0:
                     imageList.Draw(img, dc,
                                    xAligned + wLabel - (ix + ULC.HEADER_IMAGE_MARGIN_IN_REPORT_MODE)*(indx+1),
-                                   ULC.HEADER_OFFSET_Y + (h - 4 - iy)/2,
+                                   ULC.HEADER_OFFSET_Y + (h - 4 - iy)//2,
                                    wx.IMAGELIST_DRAW_TRANSPARENT)
 
                     cw -= ix + ULC.HEADER_IMAGE_MARGIN_IN_REPORT_MODE
@@ -1995,8 +1998,8 @@ def OnPaintSTT(self, event):
 
     # Get the user options for header, bitmaps etc...
     drawHeader, drawFooter = classParent.GetDrawHeaderLine(), classParent.GetDrawFooterLine()
-    topRect = wx.Rect(frameRect.x, frameRect.y, frameRect.width, frameRect.height/2)
-    bottomRect = wx.Rect(frameRect.x, frameRect.y+frameRect.height/2, frameRect.width, frameRect.height/2+1)
+    topRect = wx.Rect(frameRect.x, frameRect.y, frameRect.width, frameRect.height//2)
+    bottomRect = wx.Rect(frameRect.x, frameRect.y+frameRect.height//2, frameRect.width, frameRect.height//2+1)
     # Fill the triple-gradient
     dc.GradientFillLinear(topRect, topColour, middleColour, wx.SOUTH)
     dc.GradientFillLinear(bottomRect, middleColour, bottomColour, wx.SOUTH)
@@ -2022,9 +2025,9 @@ def OnPaintSTT(self, event):
     # Calculate the header height
     height = max(textHeight, bmpHeight)
     if header:
-        dc.DrawText(header, bmpXPos+bmpWidth+self._spacing, (height-textHeight+self._spacing)/2)
+        dc.DrawText(header, bmpXPos+bmpWidth+self._spacing, (height-textHeight+self._spacing)//2)
     if headerBmp and headerBmp.IsOk():
-        dc.DrawBitmap(headerBmp, bmpXPos, (height-bmpHeight+self._spacing)/2, True)
+        dc.DrawBitmap(headerBmp, bmpXPos, (height-bmpHeight+self._spacing)//2, True)
 
     if header or (headerBmp and headerBmp.IsOk()):
         yPos += height
@@ -2075,7 +2078,7 @@ def OnPaintSTT(self, event):
             messageHeight += textHeight
 
             xText = (bmpWidth + 2 * self._spacing) if bmpWidth > 0 else self._spacing
-            yText += textHeight/2+self._spacing
+            yText += textHeight//2+self._spacing
             maxWidth = max(xText + textWidth + self._spacing, maxWidth)
             dc.DrawText(line, xText, yText)
             if isLink:
@@ -2111,8 +2114,8 @@ def OnPaintSTT(self, event):
         if drawFooter:
             # Draw the separator line before the footer
             dc.SetPen(wx.GREY_PEN)
-            dc.DrawLine(self._spacing, yPos-self._spacing/2+toAdd,
-                        width-self._spacing, yPos-self._spacing/2+toAdd)
+            dc.DrawLine(self._spacing, yPos-self._spacing//2+toAdd,
+                        width-self._spacing, yPos-self._spacing//2+toAdd)
     # Draw the footer and footer bitmap (if any)
     dc.SetTextForeground(normalText)
     height = max(textHeight, bmpHeight)
@@ -2122,7 +2125,7 @@ def OnPaintSTT(self, event):
         dc.DrawText(footer, bmpXPos + bmpWidth + self._spacing, yPos + toAdd)
         maxWidth = max(bmpXPos + bmpWidth + (self._spacing*2) + textWidth, maxWidth)
     if footerBmp and footerBmp.IsOk():
-        toAdd = (height - bmpHeight + self._spacing) / 2
+        toAdd = (height - bmpHeight + self._spacing) // 2
         dc.DrawBitmap(footerBmp, bmpXPos, yPos + toAdd, True)
         maxWidth = max(footerBmp.GetSize().GetWidth() + bmpXPos, maxWidth)
 

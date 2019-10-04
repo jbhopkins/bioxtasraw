@@ -21,6 +21,9 @@ Created on Aug 2, 2010
 #
 #******************************************************************************
 '''
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map
+from io import open
 
 import re
 import sys
@@ -1177,7 +1180,7 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
         file_sizer.AddGrowableCol(1)
 
 
-        noOfRows = int(ceil(float(len(self.carbonNormConstantsData))/2))
+        noOfRows = int(ceil(float(len(self.carbonNormConstantsData))/2.))
         norm_const_sizer = wx.FlexGridSizer(cols = 4, rows = noOfRows, vgap = 3, hgap = 5)
 
         counter_choices = self._getCounters()
@@ -2630,7 +2633,7 @@ class IftOptionsPanel(wx.Panel):
 
     def createGnomOptions(self, gnom_panel):
 
-        no_of_rows = ceil(int(len(self.gnom_options_data)) + int(len(self.gnom_chkbox_data)))/2.
+        no_of_rows = ceil(int(len(self.gnom_options_data)) + int(len(self.gnom_chkbox_data))/2.)
         grid_sizer = wx.FlexGridSizer(cols = 4, rows = no_of_rows, vgap = 5, hgap = 5)
 
         for label, id in self.gnom_options_data:
@@ -3513,7 +3516,11 @@ class ATSASDammixAdvanced(wx.Panel):
 
         customSizer = wx.BoxSizer(wx.VERTICAL)
 
-        customText = wx.StaticText(parent, -1, 'These settings are used when "Custom" is selected as the mode in the DAMMIF/N panel.\nThis is equivalent to the DAMMIF/N interactive mode in the command line.\nUnless otherwise noted, a value of -1 means DAMMIF/N will use the default setting.')
+        customText = wx.StaticText(parent, -1, ('These settings are used when '
+            '"Custom" is selected as the mode in the DAMMIF/N panel.\nThis is '
+            'equivalent to the DAMMIF/N interactive mode in the command line.\n'
+            'Unless otherwise noted, a value of -1 means DAMMIF/N will use the '
+            'default setting.'))
         customSizer.Add(customText, 0, wx.ALL, 5)
 
         for item in self.custom_options_long:
@@ -4204,7 +4211,7 @@ def TestAutoBgSubRegExpression(filename, regexp):
         if found == filename:
             return 'Match'
         else:
-            print found
+            print(found)
             return 'No Match'
     else:
         found = 'No Match'
@@ -4322,7 +4329,7 @@ class PagePanel(wx.Panel):
         try:
             new_panel = wx.FindWindowById(panel_id)
         except TypeError:
-            print 'TypeError in updatePage(), possibly Hide root bug in wxpython'
+            print('TypeError in updatePage(), possibly Hide root bug in wxpython')
             return
 
         if new_panel != None:

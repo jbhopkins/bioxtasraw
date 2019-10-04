@@ -20,12 +20,13 @@ Created on Aug 16, 2010
 #    along with RAW.  If not, see <http://www.gnu.org/licenses/>.
 #
 #******************************************************************************
-
 '''
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map
+from io import open
 
 import os
 import platform
-import time
 
 import matplotlib
 matplotlib.rcParams['backend'] = 'WxAgg'
@@ -478,7 +479,7 @@ class ImagePanel(wx.Panel):
         else:
             # deal with something that should never happen
             scale_factor = 1
-            print event.button
+            print(event.button)
 
         if xdata is not None and ydata is not None:
             # MOVE AXIS

@@ -23,10 +23,11 @@ Created on June 14, 2017
 
 The purpose of this module is to custom dialogs for RAW that may be used
 in various other modules.
-
-
 """
-import platform
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map
+from io import open
+
 import copy
 import os
 import json
@@ -4281,7 +4282,7 @@ class PlotOptionsDialog(wx.Dialog):
         try:
             self.parent.canvas.draw()
         except matplotlib.pyparsing.ParseFatalException, e:
-            print e
+            print(e)
 
         event.Skip()
 
@@ -4474,7 +4475,7 @@ class PlotOptionsDialog(wx.Dialog):
         try:
             self.parent.canvas.draw()
         except (matplotlib.pyparsing.ParseFatalException, ValueError) as e:
-            print e
+            print(e)
 
         event.Skip()
 

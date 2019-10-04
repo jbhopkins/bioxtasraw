@@ -25,6 +25,9 @@ The purpose of this module is to provide an API for calling RAW functions from
 other python programs. This is to provide easy access to RAW's functionality
 in any data processing program you want to write in python
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map
+from io import open
 
 import os.path
 import copy
@@ -47,7 +50,7 @@ def load_settings(file, settings=None):
     success, msg = RAWSettings.loadSettings(settings, file)
 
     if msg != '':
-        print msg
+        print(msg)
 
     if success:
         mask_dict = settings.get('Masks')
@@ -62,7 +65,7 @@ def load_settings(file, settings=None):
                 mask_param[0] = mask_img
                 mask_param[1] = masks
     else:
-        print 'Failed to load settings'
+        print('Failed to load settings')
 
     return settings
 
@@ -252,7 +255,7 @@ def calc_rg(sasm, nmin, nmax, error_weight=True, save=True):
         est_rg_err = None
         est_i0_err = None
     else:
-        var = win_size/10
+        var = win_size//10
         if var > 12:
             step = int(np.ceil(var/12.))
         else:
