@@ -29,6 +29,9 @@ That code was released under GPL V3. The original author is Thomas Grant.
 
 This code matches that as of 5/21/19, commit 1967ae6, version 1.4.9
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map
+from io import open
 
 import os
 import time
@@ -134,7 +137,7 @@ def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False
     #Initialize variables
 
     side = oversampling*D
-    halfside = side/2
+    halfside = side//2
 
     n = int(side/voxel)
     #want n to be even for speed/memory optimization with the FFT, ideally a power of 2, but wont enforce that
@@ -150,7 +153,7 @@ def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False
     x,y,z = np.meshgrid(x_,x_,x_,indexing='ij')
     r = np.sqrt(x**2 + y**2 + z**2)
 
-    df = 1/side
+    df = 1./side
     qx_ = np.fft.fftfreq(x_.size)*n*df*2*np.pi
     qx, qy, qz = np.meshgrid(qx_,qx_,qx_,indexing='ij')
     qr = np.sqrt(qx**2+qy**2+qz**2)
@@ -471,8 +474,8 @@ def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False
         if nD%2==1:
             nD += 1
 
-        nmin = nbox/2 - nD/2
-        nmax = nbox/2 + nD/2 + 2
+        nmin = nbox//2 - nD//2
+        nmax = nbox//2 + nD//2 + 2
         #create new rho array containing only the particle
         newrho = rho[nmin:nmax,nmin:nmax,nmin:nmax]
         rho = newrho
@@ -530,7 +533,7 @@ def euler_grid_search(refrho, movrho, topn=1, abort_event=None):
     scores = np.zeros((len(phi),len(theta)))
     for p in range(len(phi)):
         for t in range(len(theta)):
-            scores[p,t] = 1/minimize_rho_score(T=[phi[p],theta[t],0,0,0,0],refrho=np.abs(refrho),movrho=np.abs(movrho))
+            scores[p,t] = 1./minimize_rho_score(T=[phi[p],theta[t],0,0,0,0],refrho=np.abs(refrho),movrho=np.abs(movrho))
 
             if abort_event is not None:
                 if abort_event.is_set():
@@ -596,7 +599,7 @@ def minimize_rho(refrho, movrho, T = np.zeros(6)):
         args=(np.abs(refrho),np.abs(movrho)), approx_grad=True)
     Topt = result[0]
     newrho = transform_rho(save_movrho, Topt)
-    finalscore = 1/rho_overlap_score(save_refrho,newrho)
+    finalscore = 1./rho_overlap_score(save_refrho,newrho)
     return newrho, finalscore
 
 def minimize_rho_score(T, refrho, movrho):
@@ -617,7 +620,7 @@ def rho_overlap_score(rho1,rho2):
     d=(2*np.sum(rho1**2)**0.5*np.sum(rho2**2)**0.5)
     score = n/d
     #1/score for least squares minimization, i.e. want to minimize, not maximize score
-    return 1/score
+    return 1./score
 
 def transform_rho(rho, T, order=1):
     """ Rotate and translate electron density map by T vector.
@@ -855,7 +858,7 @@ def align_multiple(refrho, rhos, cores=1, abort_event=None):
 def average_two(rho1, rho2, abort_event=None):
     """ Align two electron density maps and return the average."""
     rho2, score = align(rho1, rho2, abort_event=abort_event)
-    average_rho = (rho1+rho2)/2
+    average_rho = (rho1+rho2)/2.
     return average_rho
 
 def multi_average_two(niter, **kwargs):
@@ -872,7 +875,7 @@ def average_pairs(rhos, cores=1, abort_event=None):
     pool = multiprocessing.Pool(cores)
     try:
         mapfunc = partial(multi_average_two, **rho_args)
-        average_rhos = pool.map(mapfunc, range(rhos.shape[0]/2))
+        average_rhos = pool.map(mapfunc, range(rhos.shape[0]//2))
         pool.close()
         pool.join()
     except KeyboardInterrupt:
@@ -926,16 +929,16 @@ def write_mrc(rho,side,filename="map.mrc"):
        See here: http://www2.mrc-lmb.cam.ac.uk/research/locally-developed-software/image-processing-software/#image
     """
     xs, ys, zs = rho.shape
-    nxstart = -xs/2+1
-    nystart = -ys/2+1
-    nzstart = -zs/2+1
+    nxstart = -xs//2+1
+    nystart = -ys//2+1
+    nzstart = -zs//2+1
     side = np.atleast_1d(side)
     if len(side) == 1:
         a,b,c = side, side, side
     elif len(side) == 3:
         a,b,c = side
     else:
-        print "Error. Argument 'side' must be float or 3-tuple"
+        print("Error. Argument 'side' must be float or 3-tuple")
     with open(filename, "wb") as fout:
         # NC, NR, NS, MODE = 2 (image : 32-bit reals)
         fout.write(struct.pack('<iiii', xs, ys, zs, 2))
@@ -969,7 +972,7 @@ def write_mrc(rho,side,filename="map.mrc"):
         # NLABL
         fout.write(struct.pack('<i', 0))
         # LABEL(20,10) 10 80-character text labels
-        for i in xrange(0, 800):
+        for i in range(0, 800):
             fout.write(struct.pack('<B', 0x00))
 
         # Write out data

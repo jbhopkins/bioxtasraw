@@ -21,13 +21,17 @@ Created on Sep 31, 2010
 #
 #******************************************************************************
 '''
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map
+from io import open
+from six.moves import cPickle as pickle
+
 import sys
 import os
 import subprocess
 import time
 import threading
 import Queue
-import cPickle
 import copy
 import glob
 import platform
@@ -51,7 +55,7 @@ import wx.lib.agw.supertooltip as STT
 import wx.aui as aui
 import wx.lib.dialogs
 
-if wx.version().split()[0].strip()[0] == '4':
+if wx.version().split()[0].strip()[0] >= '4':
     import wx.adv
     SplashScreen = wx.adv.SplashScreen
     TaskBarIcon = wx.adv.TaskBarIcon
@@ -466,14 +470,14 @@ class MainFrame(wx.Frame):
         try:
             file = 'rawcfg.dat'
             FileObj = open(file, 'r')
-            savedInfo = cPickle.load(FileObj)
+            savedInfo = pickle.load(FileObj)
             FileObj.close()
 
             dirctrl = wx.FindWindowByName('DirCtrlPanel')
             dirctrl.SetPath(savedInfo['workdir'])
 
             self.ChangeParameter('ImageFormat', savedInfo['ImageFormat'])
-        except:
+        except Exception:
             pass
 
     def showGNOMFrame(self, sasm, manip_item):
@@ -1485,7 +1489,7 @@ class MainFrame(wx.Frame):
 
                     selected_filenames = [sasm.getParameter('filename') for sasm in selected_sasms]
 
-                    frame_list = range(len(selected_sasms))
+                    frame_list = list(range(len(selected_sasms)))
 
                     secm = SASM.SECM(selected_filenames, selected_sasms,
                         frame_list, {}, self.raw_settings)
@@ -1511,7 +1515,7 @@ class MainFrame(wx.Frame):
 
                     selected_filenames = [sasm.getParameter('filename') for sasm in selected_sasms]
 
-                    frame_list = range(len(selected_sasms))
+                    frame_list = list(range(len(selected_sasms)))
 
                     secm = SASM.SECM(selected_filenames, selected_sasms,
                         frame_list, {}, self.raw_settings)
@@ -1560,7 +1564,7 @@ class MainFrame(wx.Frame):
 
                     selected_filenames = [sasm.getParameter('filename') for sasm in selected_sasms]
 
-                    frame_list = range(len(selected_sasms))
+                    frame_list = list(range(len(selected_sasms)))
 
                     secm = SASM.SECM(selected_filenames, selected_sasms,
                         frame_list, {}, self.raw_settings)
@@ -1586,7 +1590,7 @@ class MainFrame(wx.Frame):
 
                     selected_filenames = [sasm.getParameter('filename') for sasm in selected_sasms]
 
-                    frame_list = range(len(selected_sasms))
+                    frame_list = list(range(len(selected_sasms)))
 
                     secm = SASM.SECM(selected_filenames, selected_sasms,
                         frame_list, {}, self.raw_settings)
@@ -1722,7 +1726,7 @@ class MainFrame(wx.Frame):
                 if not each.getParameter('analysis').has_key('uvvis'):
                     wx.MessageBox('The file ' + str(each.getParameter('filename')) + ' does not have UV-VIS data stored in the header', 'UV-VIS data not found', style = wx.ICON_EXCLAMATION)
                     return
-                print each.getParameter('analysis')['uvvis']
+                print(each.getParameter('analysis')['uvvis'])
 
             dlg = RAWAnalysis.UVConcentrationDialog(self, 'Concentration from UV transmission', selected_sasms, marked_item.getSASM())
             retval = dlg.ShowModal()
@@ -2101,10 +2105,10 @@ class MainFrame(wx.Frame):
             path = wx.FindWindowByName('FileListCtrl').path
             save_info = {'workdir' : path}
 
-            cPickle.dump(save_info, file_obj)
+            pickle.dump(save_info, file_obj)
             file_obj.close()
         except Exception, e:
-            print e
+            print(e)
 
     def _onCloseWindow(self, event):
 
@@ -2400,9 +2404,9 @@ class OnlineController(object):
                         if each_newfile in self.old_dir_list_dict:
                             #ONLY UPDATE IMAGE
                             mainworker_cmd_queue.put(['online_mode_update_data', [filepath]])
-                            print 'Changed: ' + str(each_newfile)
+                            print('Changed: ' + str(each_newfile))
                         else:
-                            print process_str
+                            print(process_str)
                             files_to_plot.append(filepath)
                             # mainworker_cmd_queue.put(['plot', [filepath]])
                             #UPDATE PLOT
@@ -2446,17 +2450,17 @@ class OnlineController(object):
                                 if each[1][1] == self.old_dir_list_dict[each_newfile][1]:
                                     #If the size is the same, ONLY UPDATE IMAGE
                                     mainworker_cmd_queue.put(['online_mode_update_data', [filepath]])
-                                    print 'Changed: ' + str(each_newfile)
+                                    print('Changed: ' + str(each_newfile))
                                 else:
-                                    print process_str
+                                    print(process_str)
                                     files_to_plot.append(filepath)
                             else:
-                                print process_str
+                                print(process_str)
                                 files_to_plot.append(filepath)
                                 # mainworker_cmd_queue.put(['plot', [filepath]])
                                 #UPDATE PLOT
                     else:
-                        print 'Ignored: '+str(each_newfile)
+                        print('Ignored: '+str(each_newfile))
 
             if len(files_to_plot) > 0:
                 mainworker_cmd_queue.put(['plot', files_to_plot])
@@ -2471,7 +2475,7 @@ class OnlineController(object):
         if str(ext) in compatible_formats:
             return True
         else:
-            print 'Not compatible file format.'
+            print('Not compatible file format.')
             return False
 
     def updateSkipList(self, file_list):
@@ -2611,7 +2615,7 @@ class MainWorkerThread(threading.Thread):
                 raise SASExceptions.WrongImageFormat('not a valid file!')
 
         except Exception, e:
-            print  'File load failed: ' + str(e)
+            print('File load failed: ' + str(e))
             return
 
         parameters = {'filename' : os.path.split(filename)[1],
@@ -2845,7 +2849,7 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.main_frame.setStatus, 'Saving mask', 0)
 
         with open(fullpath_filename, 'w') as file_obj:
-            cPickle.dump(masks, file_obj)
+            pickle.dump(masks, file_obj)
 
         RAWGlobals.save_in_progress = False
         wx.CallAfter(self.main_frame.setStatus, '', 0)
@@ -2860,7 +2864,7 @@ class MainWorkerThread(threading.Thread):
 
             if extension == '.msk':
                 with open(fullpath_filename, 'r') as file_obj:
-                    masks = cPickle.load(file_obj)
+                    masks = pickle.load(file_obj)
 
                 i=0
                 for each in masks:
@@ -2949,7 +2953,7 @@ class MainWorkerThread(threading.Thread):
                         secm = SASFileIO.loadSeriesFile(each_filename,
                             self._raw_settings)
                     except Exception as e:
-                        print e
+                        print(e)
                         wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_sec = True)
                         wx.CallAfter(self.main_frame.closeBusyDialog)
                         return
@@ -3678,7 +3682,7 @@ class MainWorkerThread(threading.Thread):
 
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while loading image...')
 
-        print filename
+        print(filename)
         try:
             if not os.path.isfile(filename):
                 raise SASExceptions.WrongImageFormat('not a valid file!')
@@ -4124,7 +4128,7 @@ class MainWorkerThread(threading.Thread):
             # result = wx.ID_YES
             sasm = each.getSASM()
 
-            print sasm.getParameter('filename')
+            print(sasm.getParameter('filename'))
 
             qmin, qmax = sasm.getQrange()
             sub_qmin, sub_qmax = sub_sasm.getQrange()
@@ -4444,7 +4448,7 @@ class MainWorkerThread(threading.Thread):
         for each in selected_items:
             sasm = each.getSASM()
 
-            points = np.floor(len(sasm.q) / rebin_factor)
+            points = len(sasm.q)//rebin_factor
 
             if log_rebin:
                 rebin_sasm = SASProc.logBinning(sasm, points)
@@ -5228,7 +5232,7 @@ class MainWorkerThread(threading.Thread):
                 try:
                     conc = float(conc)
 
-                    scale = 1/conc
+                    scale = 1./conc
                     sasm.scaleRelative(scale)
                     wx.CallAfter(each.updateControlsFromSASM)
 
@@ -5480,7 +5484,7 @@ class FilePanel(wx.Panel):
                     files.append(path)
 
         if files:
-            frame_list = range(len(files))
+            frame_list = list(range(len(files)))
 
             mainworker_cmd_queue.put(['sec_plot', [files, frame_list]])
 
@@ -5724,7 +5728,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
             self.files = os.listdir(self.path)
 
         except OSError, msg:
-            print msg
+            print(msg)
             wx.MessageBox(str(msg), 'Error loading folder', style = wx.ICON_ERROR | wx.OK)
 
     def getFilteredFileList(self):
@@ -5819,11 +5823,11 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
                         size = os.path.getsize(os.path.join(self.path, i))
                         sec = os.path.getmtime(os.path.join(self.path, i))
                     except Exception, e:
-                        print e
+                        print(e)
                         size = 0
                         sec = 1
 
-                    self.file_list_dict[j] = (name, ex, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)), str(round(size/1000,1)) + ' KB', 'file')
+                    self.file_list_dict[j] = (name, ex, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)), str(round(size/1000.,1)) + ' KB', 'file')
 
                     j += 1
 
@@ -6163,7 +6167,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
             elif os.name == 'posix':
                 subprocess.call(('xdg-open', filepath))
         except Exception, e:
-            print e
+            print(e)
 
 class DirCtrlPanel(wx.Panel):
 
@@ -6210,7 +6214,7 @@ class DirCtrlPanel(wx.Panel):
 
         try:
             with open(load_path, 'r') as file_obj:
-                data = cPickle.load(file_obj)
+                data = pickle.load(file_obj)
 
             path = data['workdir']
         except Exception:
@@ -6464,7 +6468,7 @@ class ManipulationPanel(wx.Panel):
     def createButtons(self):
 
         cols = 3
-        rows = round(len(self.button_data)/cols)
+        rows = int(np.ceil(len(self.button_data)/cols))
 
         sizer = wx.GridSizer(cols = cols, rows = rows, hgap = 3, vgap = 3)
 
@@ -7818,7 +7822,7 @@ class ManipItemPanel(wx.Panel):
 
             selected_filenames = [sasm.getParameter('filename') for sasm in selected_sasms]
 
-            frame_list = range(len(selected_sasms))
+            frame_list = list(range(len(selected_sasms)))
 
             secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {},
                 Mainframe.raw_settings)
@@ -7841,7 +7845,7 @@ class ManipItemPanel(wx.Panel):
 
             selected_filenames = [sasm.getParameter('filename') for sasm in selected_sasms]
 
-            frame_list = range(len(selected_sasms))
+            frame_list = list(range(len(selected_sasms)))
 
             secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {},
                 Mainframe.raw_settings)
@@ -8492,7 +8496,7 @@ class IFTPanel(wx.Panel):
 
     def createButtons(self, panelsizer):
 
-        sizer = wx.GridSizer(cols=3, rows=np.ceil(len(self.buttons)/3), hgap=3, vgap=3)
+        sizer = wx.GridSizer(cols=3, rows=int(np.ceil(len(self.buttons)/3.)), hgap=3, vgap=3)
 
         #sizer.Add((10,10) ,1 , wx.EXPAND)
         for each in self.buttons:
@@ -9015,7 +9019,7 @@ class IFTItemPanel(wx.Panel):
 
             selected_filenames = [sasm.getParameter('filename') for sasm in selected_sasms]
 
-            frame_list = range(len(selected_sasms))
+            frame_list = list(range(len(selected_sasms)))
 
             secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {},
                 Mainframe.raw_settings)
@@ -9041,7 +9045,7 @@ class IFTItemPanel(wx.Panel):
 
             selected_filenames = [sasm.getParameter('filename') for sasm in selected_sasms]
 
-            frame_list = range(len(selected_sasms))
+            frame_list = list(range(len(selected_sasms)))
 
             secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {},
                 Mainframe.raw_settings)
@@ -9654,7 +9658,7 @@ class SECPanel(wx.Panel):
 
     def createButtons(self, panelsizer):
 
-        sizer = wx.GridSizer(cols=3, rows=np.ceil(len(self.buttons)/3), hgap=3, vgap=3)
+        sizer = wx.GridSizer(cols=3, rows=int(np.ceil(len(self.buttons)/3.)), hgap=3, vgap=3)
 
         #sizer.Add((10,10) ,1 , wx.EXPAND)
         for each in self.buttons:
@@ -10695,7 +10699,7 @@ class SECControlPanel(wx.Panel):
                     sasm_list = []
 
         if sasm_list is not None and sasm_list:
-            sasm_list = map(copy.deepcopy, sasm_list)
+            sasm_list = list(map(copy.deepcopy, sasm_list))
 
             mainworker_cmd_queue.put(['to_plot_SEC', sasm_list])
 
@@ -10763,7 +10767,7 @@ class SECControlPanel(wx.Panel):
                     sasm_list = []
 
         if sasm_list is not None and sasm_list:
-            sasm_list = map(copy.deepcopy, sasm_list)
+            sasm_list = list(map(copy.deepcopy, sasm_list))
 
             mainworker_cmd_queue.put(['secm_average_sasms', sasm_list])
 
@@ -12461,8 +12465,8 @@ class InformationPanel(wx.Panel):
 
 
         except Exception, e:
-            print e
-            print 'info error, Conc'
+            print(e)
+            print('info error, Conc')
 
 
         if self.sasm != None and self.selectedItem != None:
@@ -12483,8 +12487,8 @@ class InformationPanel(wx.Panel):
 
 
         except Exception, e:
-            print e
-            print 'info error, Conc'
+            print(e)
+            print('info error, Conc')
 
     def _onHeaderBrowserChoice(self, event):
 
@@ -12620,8 +12624,8 @@ class InformationPanel(wx.Panel):
                 self._onHeaderBrowserChoice(None)
             except Exception, e:
                 self.header_choice.SetSelection(0)
-                print e
-                print 'InfoPanel error'
+                print(e)
+                print('InfoPanel error')
 
         else:
             self.header_choice.SetItems(['No header info'])
