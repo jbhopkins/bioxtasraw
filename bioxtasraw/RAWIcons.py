@@ -27,6 +27,10 @@ It had the additional raw_icon_embed added to it by hand, which used to be in th
 #
 #******************************************************************************
 '''
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map
+from io import open
+
 from wx.lib.embeddedimage import PyEmbeddedImage
 
 checked = PyEmbeddedImage(

@@ -21,9 +21,13 @@ Created on Jul 16, 2010
 #
 #******************************************************************************
 '''
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map
+from io import open
+
 import copy
 import os
-import shutil
 
 import wx
 import numpy as np
@@ -451,7 +455,7 @@ def loadSettings(raw_settings, loadpath, auto_load = False):
         if each_key in all_params:
             all_params[each_key][0] = copy.copy(loaded_param[each_key])
         else:
-            print 'WARNING: ' + str(each_key) + " not found in RAWSettings."
+            print('WARNING: ' + str(each_key) + " not found in RAWSettings.")
 
     default_settings = RawGuiSettings().getAllParams()
 

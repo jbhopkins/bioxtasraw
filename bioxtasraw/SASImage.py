@@ -22,9 +22,12 @@ Created on Jul 7, 2010
 #******************************************************************************
 '''
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map
+from io import open
+
 import sys
 import math
-import time
 
 import numpy as np
 from numba import jit, prange
@@ -135,14 +138,14 @@ class CircleMask(Mask):
         P = calcBresenhamCirclePoints(radiusC, self._points[0][1], self._points[0][0])
         self.coords = []
 
-        for i in range(0, int(len(P)/8) ):
+        for i in range(0, len(P)//8):
             Pp = P[i*8 : i*8 + 8]
 
-            q_ud1 = ( Pp[0][0], range( int(Pp[1][1]), int(Pp[0][1]+1)) )
-            q_ud2 = ( Pp[2][0], range( int(Pp[3][1]), int(Pp[2][1]+1)) )
+            q_ud1 = ( Pp[0][0], list(range(int(Pp[1][1]), int(Pp[0][1]+1))) )
+            q_ud2 = ( Pp[2][0], list(range(int(Pp[3][1]), int(Pp[2][1]+1))) )
 
-            q_lr1 = ( Pp[4][1], range( int(Pp[6][0]), int(Pp[4][0]+1)) )
-            q_lr2 = ( Pp[5][1], range( int(Pp[7][0]), int(Pp[5][0]+1)) )
+            q_lr1 = ( Pp[4][1], list(range(int(Pp[6][0]), int(Pp[4][0]+1))) )
+            q_lr2 = ( Pp[5][1], list(range(int(Pp[7][0]), int(Pp[5][0]+1))) )
 
             for i in range(0, len(q_ud1[1])):
                 self.coords.append( (int(q_ud1[0]), int(q_ud1[1][i])) )
@@ -370,7 +373,7 @@ def calibrateAndNormalize(sasm_list, img_list, raw_settings):
     x_center = raw_settings.get('Xcenter')
     y_center = raw_settings.get('Ycenter')
 
-    pixel_size = pixel_size / 1000
+    pixel_size = pixel_size/1000.
 
     if type(sasm_list) != list:
         sasm_list = [sasm_list]
@@ -446,9 +449,9 @@ def calibrateAndNormalize(sasm_list, img_list, raw_settings):
                    #     raise ValueError('Divide by Zero when normalizing')
 
                     if val != 0:
-                        sasm.scaleBinnedIntensity(1/val)
+                        sasm.scaleBinnedIntensity(1./val)
                     else:
-                        print 'WARNING: Divide by zero when normalizing, normalization value ignore!'
+                        print('WARNING: Divide by zero when normalizing, normalization value ignore!')
 
                 elif op == '+':
                     sasm.offsetBinnedIntensity(val)
@@ -458,7 +461,7 @@ def calibrateAndNormalize(sasm_list, img_list, raw_settings):
                     #    raise ValueError('Multiply by Zero when normalizing')
                     if val != 0:
                         sasm.scaleBinnedIntensity(val)
-                        print 'WARNING: Multiply by zero when normalizing, normalization value ignored!'
+                        print('WARNING: Multiply by zero when normalizing, normalization value ignored!')
 
                 elif op == '-':
                     sasm.offsetBinnedIntensity(-val)
@@ -487,10 +490,10 @@ def calcBresenhamLinePoints(x0, y0, x1, y1):
     if Dx < 0:
         Dx = -Dx
 
-        xrange = range(x1, x0+1)
-        xrange.reverse()
+        x_range = list(range(x1, x0+1))
+        x_range.reverse()
     else:
-        xrange = range(x0,x1+1)
+        x_range = list(range(x0,x1+1))
 
     ystep = 1
 
@@ -503,7 +506,7 @@ def calcBresenhamLinePoints(x0, y0, x1, y1):
     E = TwoDy - Dx                   # //2*Dy - Dx
     y = y0
 
-    for x in xrange:     #int x = x0; x != x1; x += xstep)
+    for x in x_range:     #int x = x0; x != x1; x += xstep)
 
        if steep:
            xDraw = y
@@ -608,11 +611,11 @@ def createMaskFromHdr(img, img_hdr, flipped = False):
         if flipped:
             beam_x = float(bsmask_info[1])+1
             beam_y = float(bsmask_info[2])+1
-            angle = (2*np.pi/360) * (float(bsmask_info[4])+90)
+            angle = (2.*np.pi/360.) * (float(bsmask_info[4])+90)
         else:
             beam_x = float(bsmask_info[2])+1
             beam_y = float(bsmask_info[1])+1
-            angle = (2*np.pi/360) * (float(bsmask_info[4]))
+            angle = (2.*np.pi/360.) * (float(bsmask_info[4]))
 
         masks = []
         masks.append(CircleMask((beam_x, beam_y), (beam_x + bstop_size, beam_y + bstop_size), 0, img.shape, False))
@@ -639,15 +642,15 @@ def createMaskFromHdr(img, img_hdr, flipped = False):
         dist = np.sqrt(dx*dx + dy*dy)
         dx /= dist
         dy /= dist
-        x3 = int(x1 + (N/2)*dy)
-        y3 = int(y1 - (N/2)*dx)
-        x4 = int(x1 - (N/2)*dy)
-        y4 = int(y1 + (N/2)*dx)
+        x3 = int(x1 + (N/2.)*dy)
+        y3 = int(y1 - (N/2.)*dx)
+        x4 = int(x1 - (N/2.)*dy)
+        y4 = int(y1 + (N/2.)*dx)
 
-        x5 = int(x2 + (N/2)*dy)
-        y5 = int(y2 - (N/2)*dx)
-        x6 = int(x2 - (N/2)*dy)
-        y6 = int(y2 + (N/2)*dx)
+        x5 = int(x2 + (N/2.)*dy)
+        y5 = int(y2 - (N/2.)*dx)
+        x6 = int(x2 - (N/2.)*dy)
+        y6 = int(y2 + (N/2.)*dx)
 
         points = [(x3, y3), (x4, y4), (x6, y6), (x5, y5)]
 
@@ -711,7 +714,7 @@ def removeZingers2(intensity_array, start_idx = 0, window_length = 10, sensitivi
 
     '''
 
-    half_window = int(np.ceil(window_length/2))
+    half_window = int(np.ceil(window_length/2.))
 
     for i in range(0, len(intensity_array)):
 
@@ -792,7 +795,7 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
 
     maxlen = int(max(diag1, diag2, diag3, diag4, maxlen1))
 
-    #print diag1, diag2, diag3, diag4, maxlen1
+    #print(diag1, diag2, diag3, diag4, maxlen1)
 
     # we set the "q_limits" (in pixels) so that it does radial avg on entire image (maximum qrange possible).
     q_range = (0, maxlen)
@@ -815,13 +818,13 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
     xlen_1 = ylen
     ylen_1 = xlen
 
-    print 'Radial averaging in progress...',
+    print('Radial averaging in progress...', end='')
 
     ravg(readoutNoiseFound, readoutN, readoutNoise_mask, xlen_1, ylen_1, x_c, y_c,
         hist, low_q, high_q, in_image, hist_count, mask, qmatrix, dezingering,
         dezing_sensitivity)
 
-    print "Done!"
+    print("Done!")
 
     hist_cnt = hist_count[2,:]    #contains x-mean
 
@@ -845,13 +848,13 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
     if readoutNoiseFound:
         #Average readoutNoise
         readoutNoise = readoutN[0,1] /  readoutN[0,0]   ## sum(img(x,y)) / N
-        print 'Readout Noise: ', readoutNoise
+        print('Readout Noise: ', readoutNoise)
 
         #Estimated Standard deviation   - equal to the std of pixels in the area / sqrt(N)
         std_n = np.sqrt(readoutN[0,3] / readoutN[0,0])    # sqrt((X-MEAN)/N)
         errorbarNoise = std_n / np.sqrt(readoutN[0,0])
 
-        print 'Readout Noise Err: ', errorbarNoise
+        print('Readout Noise Err: ', errorbarNoise)
 
         #Readoutnoise average subtraction
         iq = iq - readoutNoise
@@ -879,7 +882,7 @@ def radialAverage(in_image, x_cin, y_cin, mask = None, readoutNoise_mask = None,
 
 
 def pyFAIIntegrateCalibrateNormalize(img, parameters, x_cin, y_cin, raw_settings, mask = None, tbs_mask = None):
-    print 'using pyfai!!!!'
+    print('using pyfai!!!!')
     # Get appropriate settings
     sd_distance = raw_settings.get('SampleDistance')
     pixel_size = raw_settings.get('DetectorPixelSize')
@@ -954,7 +957,7 @@ def pyFAIIntegrateCalibrateNormalize(img, parameters, x_cin, y_cin, raw_settings
         flatfield_filename = raw_settings.get('NormFlatfieldFile')
         ai.set_flatfiles(flatfield_filename)
 
-    print ai
+    print(ai)
     qmin_theta = SASCalib.calcTheta(sd_distance*1e-3, pixel_size, 0)
     qmin = ((4 * math.pi * math.sin(qmin_theta)) / (wavelength*1e10))
 
@@ -1021,7 +1024,7 @@ def pyFAIIntegrateCalibrateNormalize(img, parameters, x_cin, y_cin, raw_settings
                if val == 0:
                    raise ValueError('Divide by Zero when normalizing')
 
-               sasm.scaleBinnedIntensity(1/val)
+               sasm.scaleBinnedIntensity(1./val)
 
             elif op == '+':
                 sasm.offsetBinnedIntensity(val)

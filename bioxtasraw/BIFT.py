@@ -15,6 +15,11 @@
 #    along with BioXTAS RAW.  If not, see <http://www.gnu.org/licenses/>.
 #
 #******************************************************************************
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map
+from io import open
+
 import multiprocessing
 import functools
 import threading
@@ -180,7 +185,7 @@ def getEvidence(params, q, i, err, N):
     if evidence <= 0 and dotsp < xprec:
         evidence=evidence*30
     elif dotsp < xprec:
-        evidence = evidence/30
+        evidence = evidence/30.
 
     return evidence, c, f, r
 
@@ -271,7 +276,7 @@ def calc_bift_errors(opt_params, q, i, err, N, mc_runs=300, abort_check=False):
 
     area = np.trapz(f_array, r_array, axis=1)
     area2 = np.trapz(f_array*r_array**2, r_array, axis=1)
-    rg_array = np.sqrt(abs(area2/(2*area)))
+    rg_array = np.sqrt(abs(area2/(2.*area)))
     i0_array = area*4*np.pi
     rg = np.sum(rg_array*prob)
     i0 = np.sum(i0_array*prob)
@@ -410,7 +415,7 @@ def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
         area = np.trapz(pr, r)
         area2 = np.trapz(np.array(pr)*np.array(r)**2, r)
 
-        rg = np.sqrt(abs(area2/(2*area)))
+        rg = np.sqrt(abs(area2/(2.*area)))
         i0 = area*4*np.pi
 
         fit = make_fit(q, r, pr)

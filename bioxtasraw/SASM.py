@@ -29,7 +29,6 @@ import itertools
 
 import numpy as np
 from scipy import integrate as integrate
-import wx
 
 import SASCalib
 import SASExceptions

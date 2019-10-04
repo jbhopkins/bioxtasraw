@@ -29,6 +29,10 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
 IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map
+from io import open
+
 import sys
 
 import numpy as np
@@ -55,7 +59,7 @@ def npnpoly(verts,points):
     xpj = xpi[np.arange(xpi.size)-1]
     ypj = ypi[np.arange(ypi.size)-1]
     maybe = np.empty(len(xpi),dtype=np.bool_)
-    for i in xrange(points.shape[0]):
+    for i in range(points.shape[0]):
         x,y = points[i]
 
         if (x<xmin or xmax<x) or (y<ymin or ymax<y):
@@ -133,7 +137,7 @@ def getCoords(p, (xDim, yDim) ):
     points = []
     for each in p[0]:
 
-        y = int(each / xDim)
+        y = int(each // xDim)
         x = each % xDim
 
         #points.append( (abs(yDim-x), y) )    #Damn that x,y is really y,x thing..
@@ -157,17 +161,17 @@ if __name__ == '__main__':
 
     pb = Polygeom(verts)
     inside = pb.inside(grid)
-    print inside
+    print(inside)
 
     p = np.where(inside==True)
     coords = getCoords(p, (10, 10))
 
-    print coords
+    print(coords)
 
     tst = np.zeros((10,10))
     for each in coords:
         tst[each] = 1
-    print tst
+    print(tst)
 
 
 #    # concave enclosure test-case for inside.
@@ -186,9 +190,9 @@ if __name__ == '__main__':
     pl.plot(grid[:,0][inside], grid[:,1][inside], 'g.')
     pl.plot(grid[:,0][~inside], grid[:,1][~inside],'r.')
     pl.plot(pb.verts[:,0],pb.verts[:,1], '-k')
-    print pb.centroid
+    print(pb.centroid)
     xc, yc = pb.centroid
-    print xc, yc
+    print(xc, yc)
     pl.plot([xc], [yc], 'co')
     pl.show()
 
@@ -198,15 +202,15 @@ if __name__ == '__main__':
     xp = np.sin(np.arange(0,np.pi,0.01))
     yp = np.cos(np.arange(0,np.pi,0.01))
     pc = Polygeom(np.hstack([xp[:,np.newaxis],yp[:,np.newaxis]]))
-    print "%d points inside %d vertex poly..." % (grid.size/2,len(verts)),
+    print("%d points inside %d vertex poly..." % (grid.size//2,len(verts)), end='')
     sys.stdout.flush()
     inside = pc.inside(grid)
-    print "done."
+    print("done.")
     pl.plot(grid[:,0][inside], grid[:,1][inside], 'g+')
     pl.plot(grid[:,0][~inside], grid[:,1][~inside], 'r.')
     pl.plot(pc.verts[:,0], pc.verts[:,1], '-k')
     xc, yc = pc.centroid
-    print xc, yc
+    print(xc, yc)
     pl.plot([xc], [yc], 'co')
     pl.show()
 #
