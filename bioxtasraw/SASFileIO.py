@@ -1649,7 +1649,6 @@ def loadHdf5File(filename, raw_settings):
 
                 if data_type == 'series':
                     if len(series_list)>0:
-                        print series_list
                         loaded_data.extend(series_list)
 
     return loaded_data
