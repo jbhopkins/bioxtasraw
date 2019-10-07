@@ -56,7 +56,7 @@ def load_settings(file, settings=None):
         mask_dict = settings.get('Masks')
         img_dim = settings.get('MaskDimension')
 
-        for each_key in mask_dict.keys():
+        for each_key in mask_dict:
             masks = mask_dict[each_key][1]
 
             if masks != None:

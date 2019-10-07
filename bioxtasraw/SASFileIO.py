@@ -23,7 +23,7 @@ Created on Jul 11, 2010
 '''
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import object, range, map, zip
+from builtins import object, range, map, zip, str
 from io import open
 from six.moves import cPickle as pickle
 
@@ -80,7 +80,7 @@ def createSASMFromImage(img_array, parameters = {}, x_c = None, y_c = None, mask
 
     try:
         [i_raw, q_raw, err_raw, qmatrix] = SASImage.radialAverage(img_array, x_c, y_c, mask, readout_noise_mask, dezingering, dezing_sensitivity)
-    except IndexError, msg:
+    except IndexError as msg:
         print('Center coordinates too large: ' + str(msg))
 
         x_c = img_array.shape[1]//2
@@ -174,7 +174,7 @@ def load32BitTiffImage(filename):
         img = np.reshape(img, im.size)
         im.close()
     #except IOError:
-    except Exception, e:
+    except Exception as e:
         print(e)
         return None, {}
 
@@ -364,10 +364,10 @@ def parseSAXSLAB300Header(tag_with_data):
     params = DOMTree.getElementsByTagName('param')
 
     for p in params:
-      try:
-        d[p.attributes['name'].value] = p.childNodes[0].data
-      except IndexError:
-        pass
+        try:
+            d[p.attributes['name'].value] = p.childNodes[0].data
+        except IndexError:
+            pass
 
     tr={} # dictionary for transaltion :)
     tr['det_exposure_time'] = 'exposure_time'
@@ -384,46 +384,54 @@ def parseSAXSLAB300Header(tag_with_data):
 
     # make parameters name substitution
     for i in tr:
-      try:
-        val = d[i]
-        #del(d[i])
-        d[tr[i]] = val
-      except KeyError:
+        try:
+            val = d[i]
+            #del(d[i])
+            d[tr[i]] = val
+        except KeyError:
+            pass
+
+    try:
+        d['IC'] = d['saxsconf_Izero']
+    except KeyError:
+        pass
+    try:
+        d['BEFORE'] = d['saxsconf_Izero']
+    except KeyError:
+        pass
+    try:
+        d['AFTER'] = d['saxsconf_Izero']
+    except KeyError:
         pass
 
     try:
-      d['IC'] = d['saxsconf_Izero']
-    except KeyError: pass
-    try:
-      d['BEFORE'] = d['saxsconf_Izero']
-    except KeyError: pass
-    try:
-      d['AFTER'] = d['saxsconf_Izero']
-    except KeyError: pass
+        if d['det_flat_field'] != '(nil)':
+            d['flatfield_applied'] = 1
+        else:
+            d['flatfield_applied'] = 0
+    except KeyError:
+        pass
 
-    try:
-      if d['det_flat_field'] != '(nil)':
-          d['flatfield_applied'] = 1
-      else:
-          d['flatfield_applied'] = 0
-    except KeyError: pass
     d['photons_per_100adu'] = 100
 
     try:
-      (d['beam_x'],d['beam_y']) = d['beamcenter_actual'].split()
-    except KeyError: pass
+        (d['beam_x'],d['beam_y']) = d['beamcenter_actual'].split()
+    except KeyError:
+        pass
     try:
-      (d['pixelsize_x'],d['pixelsize_y']) = d['det_pixel_size'].split()
-      #unit conversions
-      d['pixelsize_x'] = float(d['pixelsize_x']) * 1e6;
-      d['pixelsize_y'] = float(d['pixelsize_y']) * 1e6;
-    except KeyError: pass
+        (d['pixelsize_x'],d['pixelsize_y']) = d['det_pixel_size'].split()
+        #unit conversions
+        d['pixelsize_x'] = float(d['pixelsize_x']) * 1e6;
+        d['pixelsize_y'] = float(d['pixelsize_y']) * 1e6;
+    except KeyError:
+        pass
 
     # conversion all possible values to numbers
-    for i in d.keys():
-      try:
-        d[i] = float(d[i])
-      except ValueError: pass
+    for i in d:
+        try:
+            d[i] = float(d[i])
+        except ValueError:
+            pass
 
     return d
 
@@ -976,7 +984,7 @@ def loadHeader(filename, new_filename, header_type):
     #Clean up headers by removing spaces in header names and non-unicode characters)
     if hdr is not None:
         hdr = {key.replace(' ', '_').translate(None, '()[]') if isinstance(key, str) else key : hdr[key] for key in hdr}
-        hdr = {key : unicode(hdr[key], errors='ignore') if isinstance(hdr[key], str) else hdr[key] for key in hdr}
+        hdr = {key : str(hdr[key], errors='ignore') if isinstance(hdr[key], str) else hdr[key] for key in hdr}
 
     return hdr
 
@@ -993,16 +1001,16 @@ def loadImage(filename, raw_settings):
         # print msg
         raise SASExceptions.WrongImageFormat('Error loading image, ' + str(msg))
 
-    if type(img) != list:
+    if not isinstance(img, list):
         img = [img]
-    if type(imghdr) != list:
+    if not isinstance(imghdr, list):
         imghdr = [imghdr]
 
     #Clean up headers by removing spaces in header names and non-unicode characters)
     for hdr in imghdr:
         if hdr is not None:
             hdr = {key.replace(' ', '_').translate(None, '()[]') if isinstance(key, str) else key: hdr[key] for key in hdr}
-            hdr = { key : unicode(hdr[key], errors='ignore') if isinstance(hdr[key], str) else hdr[key] for key in hdr}
+            hdr = { key : str(hdr[key], errors='ignore') if isinstance(hdr[key], str) else hdr[key] for key in hdr}
 
 
     if image_type != 'SASLab300':
@@ -1028,7 +1036,7 @@ def loadFile(filename, raw_settings, no_processing = False):
         # print file_type
     except IOError:
         raise
-    except Exception, msg:
+    except Exception as msg:
         print(str(msg))
         file_type = None
 
@@ -1042,14 +1050,14 @@ def loadFile(filename, raw_settings, no_processing = False):
     if file_type == 'image':
         try:
             sasm, img = loadImageFile(filename, raw_settings)
-        except (ValueError, AttributeError), msg:
+        except (ValueError, AttributeError) as msg:
             print('SASFileIO.loadFile : ' + str(msg))
             raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
 
         if not RAWGlobals.usepyFAI_integration:
             try:
                 sasm = SASImage.calibrateAndNormalize(sasm, img, raw_settings)
-            except (ValueError, NameError), msg:
+            except (ValueError, NameError) as msg:
                 print(msg)
 
         #Always do some post processing for image files
@@ -1092,7 +1100,7 @@ def loadFile(filename, raw_settings, no_processing = False):
         img = None
 
         #If you don't want to post process asci files, return them as a list
-        if type(sasm) != list:
+        if not isinstance(sasm, list):
             SASM.postProcessSasm(sasm, raw_settings)
 
     if not isinstance(sasm, list) and (sasm is None or len(sasm.i) == 0):
@@ -1118,11 +1126,11 @@ def loadAsciiFile(filename, file_type):
 
     sasm = None
 
-    if ascii_formats.has_key(file_type):
+    if file_type in ascii_formats:
         sasm = ascii_formats[file_type](filename)
 
     if sasm is not None and file_type != 'ift' and file_type != 'out':
-        if type(sasm) != list and len(sasm.i) == 0:
+        if not isinstance(sasm, list) and len(sasm.i) == 0:
             sasm = None
 
     if file_type == 'rad' and sasm is None:
@@ -1135,7 +1143,7 @@ def loadAsciiFile(filename, file_type):
     if file_type == 'primus' and sasm is None:
         sasm = ascii_formats['2col'](filename)
 
-    if sasm is not None and type(sasm) != list:
+    if sasm is not None and not isinstance(sasm, list):
         sasm.setParameter('filename', os.path.split(filename)[1])
 
     return sasm
@@ -1264,10 +1272,10 @@ def loadImageFile(filename, raw_settings):
             img_dim = raw_settings.get('MaskDimension')
 
             #Create the masks
-            for each_key in mask_dict.keys():
+            for each_key in mask_dict:
                 masks = mask_dict[each_key][1]
 
-                if masks != None:
+                if masks is not None:
                     mask_img = SASImage.createMaskMatrix(img_dim, masks)
                     mask_param = mask_dict[each_key]
                     mask_param[0] = mask_img
@@ -2515,7 +2523,7 @@ def loadPrimusDatFile(filename):
 
     if hdict:
         hdict = translateHeader(hdict, to_sasbdb=False)
-        for each in hdict.iterkeys():
+        for each in hdict:
             if each != 'filename':
                 parameters[each] = hdict[each]
 
@@ -2807,7 +2815,7 @@ def saveMeasurement(sasm, save_path, raw_settings, filetype = '.dat'):
     ''' Saves a Measurement Object to a .rad file.
         Returns the filename of the saved file '''
 
-    if type(sasm) != list:
+    if not isinstance(sasm, list):
         sasm = [sasm]
 
     for each_sasm in sasm:
@@ -2894,7 +2902,7 @@ def saveAnalysisCsvFile(sasm_list, include_data, save_path):
                 file.write(',')
 
                 if var == 'general':
-                    if parameters.has_key(key):
+                    if key in parameters:
                         file.write('"' + str(each_sasm.getParameter(key)) + '"')
                     elif key == 'scale':
                         file.write('"' + str(each_sasm.getScale()) + '"')
@@ -2903,9 +2911,9 @@ def saveAnalysisCsvFile(sasm_list, include_data, save_path):
 
 
                 elif var == 'imageHeader':
-                    if parameters.has_key('imageHeader'):
+                    if 'imageHeader' in parameters:
                         img_hdr = each_sasm.getParameter('imageHeader')
-                        if img_hdr.has_key(key):
+                        if key in img_hdr:
                             file.write(str(img_hdr[key]))
                         else:
                             file.write(' ')
@@ -2913,9 +2921,9 @@ def saveAnalysisCsvFile(sasm_list, include_data, save_path):
                             file.write(' ')
 
                 elif var == 'counters':
-                    if parameters.has_key('counters'):
+                    if 'counters' in parameters:
                         file_hdr = each_sasm.getParameter('counters')
-                        if file_hdr.has_key(key):
+                        if key in file_hdr:
                             file.write(str(file_hdr[key]))
                         else:
                             file.write(' ')
@@ -2924,13 +2932,13 @@ def saveAnalysisCsvFile(sasm_list, include_data, save_path):
 
 
                 elif var == 'guinier':
-                    if parameters.has_key('analysis'):
+                    if 'analysis' in parameters:
                         analysis_dict = each_sasm.getParameter('analysis')
 
-                        if analysis_dict.has_key('guinier'):
+                        if 'guinier' in analysis_dict:
                             guinier = analysis_dict['guinier']
 
-                            if guinier.has_key(key):
+                            if key in guinier:
                                 file.write(str(guinier[key]))
                             else:
                                 file.write(' ')
@@ -2940,13 +2948,13 @@ def saveAnalysisCsvFile(sasm_list, include_data, save_path):
                         file.write(' ')
 
                 elif var == 'molecularWeight':
-                    if parameters.has_key('analysis'):
+                    if 'analysis' in parameters:
                         analysis_dict = each_sasm.getParameter('analysis')
 
-                        if analysis_dict.has_key('molecularWeight'):
+                        if 'molecularWeight' in analysis_dict:
                             mw = analysis_dict['molecularWeight']
 
-                            if mw.has_key(key):
+                            if key in mw:
                                 file.write(str(mw[key][key2]))
                             else:
                                 file.write(' ')
@@ -2956,13 +2964,13 @@ def saveAnalysisCsvFile(sasm_list, include_data, save_path):
                         file.write(' ')
 
                 elif var =='GNOM':
-                    if parameters.has_key('analysis'):
+                    if 'analysis' in parameters:
                         analysis_dict = each_sasm.getParameter('analysis')
 
-                        if analysis_dict.has_key('GNOM'):
+                        if 'GNOM' in analysis_dict:
                             gnom = analysis_dict['GNOM']
 
-                            if gnom.has_key(key):
+                            if key in gnom:
                                 file.write(str(gnom[key]))
                             else:
                                 file.write(' ')
@@ -2972,13 +2980,13 @@ def saveAnalysisCsvFile(sasm_list, include_data, save_path):
                         file.write(' ')
 
                 elif var == 'BIFT':
-                    if parameters.has_key('analysis'):
+                    if 'analysis' in parameters:
                         analysis_dict = each_sasm.getParameter('analysis')
 
-                        if analysis_dict.has_key('BIFT'):
+                        if 'BIFT' in analysis_dict:
                             bift = analysis_dict['BIFT']
 
-                            if bift.has_key(key):
+                            if key in bift:
                                 file.write(str(bift[key]))
                             else:
                                 file.write(' ')
@@ -3006,7 +3014,7 @@ def saveAllAnalysisData(save_path, sasm_list, delim=','):
         for sasm in sasm_list:
             analysis = sasm.getParameter('analysis')
 
-            analysis_done = analysis.keys()
+            analysis_done = list(analysis.keys())
 
             if 'guinier' in analysis_done and 'Guinier_Rg' not in header_list:
                 for key in sorted(analysis['guinier'].keys()):
@@ -3041,7 +3049,7 @@ def saveAllAnalysisData(save_path, sasm_list, delim=','):
 
             all_params = sasm.getAllParameters()
 
-            analysis_done = analysis.keys()
+            analysis_done = list(analysis.keys())
 
             if 'guinier' in analysis_done:
                 has_guinier = True
@@ -3070,7 +3078,7 @@ def saveAllAnalysisData(save_path, sasm_list, delim=','):
                     data_list.append(sasm.getParameter('filename'))
 
                 elif header == 'Concentration':
-                    if 'Conc' in all_params.keys():
+                    if 'Conc' in all_params:
                         data_list.append(str(all_params['Conc']))
                     else:
                         data_list.append('')
@@ -3311,7 +3319,7 @@ def saveSVDData(filename, svd_data, u_data, v_data):
 def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
     framei = panel1_results['fstart']
     framef = panel1_results['fend']
-    index = range(framei, framef+1)
+    index = list(range(framei, framef+1))
 
     nvals = panel1_results['input']
 
@@ -3393,7 +3401,7 @@ def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
 
     svs = panel1_results['svd_s']
 
-    svs_output = np.column_stack((range(len(svs)),svs))
+    svs_output = np.column_stack((list(range(len(svs))),svs))
 
     for line in svs_output:
         body_string = body_string+','.join(map(str, line)) + '\n'
@@ -3575,7 +3583,7 @@ def saveDensityMrc(filename, rho, side):
         # NLABL
         fout.write(struct.pack('<i', 0))
         # LABEL(20,10) 10 80-character text labels
-        for i in xrange(0, 800):
+        for i in range(0, 800):
             fout.write(struct.pack('<B', 0x00))
 
         # Write out data
@@ -3676,7 +3684,7 @@ def writeHeader(d, f2, ignore_list = []):
     ignore_list.append('orig_sasm')
 
     for ignored_key in ignore_list:
-        if ignored_key in d.keys():
+        if ignored_key in d:
             del d[ignored_key]
 
     d = translateHeader(d)

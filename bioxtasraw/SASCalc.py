@@ -28,14 +28,16 @@ functions, including calculation of rg and molecular weight.
 It also contains functions for calling outside packages for use in RAW, like DAMMIF.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
+from future import standard_library
 from builtins import object, range, map, zip
 from io import open
+standard_library.install_aliases()
 
 import os
 import time
 import subprocess
 import threading
-import Queue
+import queue
 import platform
 import re
 import math
@@ -740,7 +742,7 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
 
             else:
 
-                gnom_q = Queue.Queue()
+                gnom_q = queue.Queue()
 
                 proc = subprocess.Popen('"%s"' %(gnomDir), shell=True,
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -758,7 +760,7 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
                         data = gnom_q.get_nowait()
                         data = data[0]
                         gnom_q.task_done()
-                    except Queue.Empty:
+                    except queue.Empty:
                         pass
 
                     if data != None:
@@ -1071,7 +1073,7 @@ def runDatgnom(datname, sasm, path):
         if os.path.isfile(os.path.join(path, outname)):
             try:
                 os.remove(os.path.join(path, outname))
-            except Exception, e:
+            except Exception as e:
                 print(e)
                 print('DATGNOM cleanup failed to remove the .out file!')
 
@@ -1217,7 +1219,7 @@ def runDammif(fname, prefix, args, path):
                         queue.put_nowait([line2])
                         line2=''
 
-            dammif_q = Queue.Queue()
+            dammif_q = queue.Queue()
 
             dammifStarted = False
 
@@ -1241,7 +1243,7 @@ def runDammif(fname, prefix, args, path):
                     data = dammif_q.get_nowait()
                     data = data[0]
                     dammif_q.task_done()
-                except Queue.Empty:
+                except queue.Empty:
                     pass
 
                 if data != None:
@@ -1536,7 +1538,7 @@ def runDammin(fname, prefix, args, path):
                             line2=''
 
 
-            dammif_q = Queue.Queue()
+            dammif_q = queue.Queue()
 
             dammifStarted = False
 
@@ -1559,7 +1561,7 @@ def runDammin(fname, prefix, args, path):
                     data = dammif_q.get_nowait()
                     data = data[0]
                     dammif_q.task_done()
-                except Queue.Empty:
+                except queue.Empty:
                     pass
 
                 if data is not None:
@@ -2001,7 +2003,7 @@ def find_peaks(data, height=0.4, width=10, rel_height=0.5):
     return peaks
 
 def integral_baseline(sasms, start_range, end_range, max_iter, min_iter):
-    end_frames = range(end_range[0], end_range[1]+1)
+    end_frames = list(range(end_range[0], end_range[1]+1))
     end_sasms = [sasms[j] for j in end_frames]
 
     sasm_bl = SASProc.average(end_sasms, forced=True)

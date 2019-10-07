@@ -406,13 +406,13 @@ def fixBackwardsCompatibility(raw_settings):
 
     #Backwards compatibility for BindList:
     bind_list = raw_settings.get('HeaderBindList')
-    for each_key in bind_list.keys():
+    for each_key in bind_list:
         if len(bind_list[each_key]) == 2:
             bind_list[each_key] = [bind_list[each_key][0], bind_list[each_key][1], '']
 
     masks = copy.copy(raw_settings.get('Masks'))
 
-    for mask_type in masks.keys():
+    for mask_type in masks:
         mask_list = masks[mask_type][1]
         if mask_list is not None:
 
@@ -448,10 +448,9 @@ def loadSettings(raw_settings, loadpath, auto_load = False):
     if loaded_param is None:
         return False
 
-    keys = loaded_param.keys()
     all_params = raw_settings.getAllParams()
 
-    for each_key in keys:
+    for each_key in loaded_param:
         if each_key in all_params:
             all_params[each_key][0] = copy.copy(loaded_param[each_key])
         else:
@@ -459,7 +458,7 @@ def loadSettings(raw_settings, loadpath, auto_load = False):
 
     default_settings = RawGuiSettings().getAllParams()
 
-    for key in default_settings.keys():
+    for key in default_settings:
         if key not in loaded_param:
             all_params[key] = default_settings[key]
 
@@ -500,7 +499,7 @@ def postProcess(raw_settings, default_settings):
 
     masks = copy.copy(raw_settings.get('Masks'))
 
-    for mask_type in masks.keys():
+    for mask_type in masks:
         mask_list = masks[mask_type][1]
         if mask_list is not None:
             img_dim = raw_settings.get('MaskDimension')
@@ -589,13 +588,12 @@ def saveSettings(raw_settings, savepath):
     wx.CallAfter(main_frame.setStatus, 'Saving settings', 0)
 
     param_dict = raw_settings.getAllParams()
-    keys = param_dict.keys()
 
     exclude_keys = ['ImageFormatList', 'ImageHdrFormatList', 'BackgroundSASM', 'CurrentCfg', 'csvIncludeData', 'CompatibleFormats', 'DataSECM', 'NormAbsCarbonSamEmptySASM']
 
     save_dict = {}
 
-    for each_key in keys:
+    for each_key in param_dict:
         if each_key not in exclude_keys:
             save_dict[each_key] = param_dict[each_key][0]
 
@@ -604,7 +602,7 @@ def saveSettings(raw_settings, savepath):
     #remove big mask arrays from the cfg file
     masks = save_dict['Masks']
 
-    for key in masks.keys():
+    for key in masks:
         masks[key][0] = None
         if masks[key][1] is not None:
             masks[key][1] = [mask.getSaveFormat() for mask in masks[key][1]]

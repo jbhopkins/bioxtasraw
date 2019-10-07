@@ -22,8 +22,10 @@ Created on Mar 23, 2010
 #******************************************************************************
 '''
 from __future__ import absolute_import, division, print_function, unicode_literals
+from future import standard_library
 from builtins import object, range, map, zip
 from io import open
+standard_library.install_aliases()
 
 import matplotlib
 import numpy as np
@@ -32,7 +34,7 @@ import os
 import copy
 import multiprocessing
 import threading
-import Queue
+import queue
 import wx
 import time
 import platform
@@ -158,7 +160,7 @@ class UVConcentrationPanel(wx.Panel):
         return c
 
     def onSpinUpdate(self, event):
-        for each in self.spin_ctrl_ids.keys():
+        for each in self.spin_ctrl_ids:
             spin_id, button_id, label, val = self.spin_ctrl_ids[each]
 
             ctrl = wx.FindWindowById(spin_id)
@@ -222,7 +224,7 @@ class UVConcentrationPanel(wx.Panel):
         bg_data = self.bg_sasm.getParameter('analysis')['uvvis']
 
         # For background
-        for key in bg_data.keys():
+        for key in bg_data:
             if bg_data[key] != None:
 
                 if key == 'UVTransmission':
@@ -866,8 +868,7 @@ class GuinierControlPanel(wx.Panel):
 
         sizer = wx.FlexGridSizer(rows=len(self.infodata), cols=2, hgap=3, vgap=3)
 
-        for key in self.infodata.iterkeys():
-
+        for key in self.infodata:
 
             if key == 'qRg_min' or key == 'qRg_max':
                 continue
@@ -1070,8 +1071,6 @@ class GuinierControlPanel(wx.Panel):
         else:
             self.runAutoRg()
 
-
-
     def setFilename(self, filename):
         self.filenameTxtCtrl.SetValue(str(filename))
 
@@ -1096,8 +1095,8 @@ class GuinierControlPanel(wx.Panel):
 
             info_dict = {}
 
-            for key in newInfo.keys():
-                if key in self.infodata.keys():
+            for key in newInfo:
+                if key in self.infodata:
                     info_dict[key] = str(newInfo[key])
 
             nstart_val = wx.FindWindowById(self.spinctrlIDs['qstart'], self).GetValue()
@@ -1402,7 +1401,7 @@ class GuinierControlPanel(wx.Panel):
 
 
     def updateInfo(self, newInfo):
-        for eachkey in newInfo.iterkeys():
+        for eachkey in newInfo:
             val = newInfo[eachkey]
 
             if eachkey.startswith('err'):
@@ -1462,7 +1461,7 @@ class GuinierControlPanel(wx.Panel):
 
         guinierData = {}
 
-        for eachKey in self.infodata.iterkeys():
+        for eachKey in self.infodata:
 
             if len(self.infodata[eachKey]) == 2:
                 ctrl = wx.FindWindowById(self.infodata[eachKey][1], self)
@@ -1700,7 +1699,7 @@ class MolWeightFrame(wx.Frame):
 
             guinier = analysis['guinier']
 
-            for each_key in self.infodata.iterkeys():
+            for each_key in self.infodata:
                 window = wx.FindWindowById(self.infodata[each_key][1], self)
                 if abs(float(guinier[each_key])) > 1e3 or abs(float(guinier[each_key])) < 1e-2:
                     window.ChangeValue('%.3E' %(float(guinier[each_key])))
@@ -1709,7 +1708,7 @@ class MolWeightFrame(wx.Frame):
 
         self.setFilename(os.path.basename(self.sasm.getParameter('filename')))
 
-        if self.sasm.getAllParameters().has_key('Conc'):
+        if 'Conc' in self.sasm.getAllParameters():
             conc = str(self.sasm.getParameter('Conc'))
         else:
             conc = ''
@@ -1753,7 +1752,7 @@ class MolWeightFrame(wx.Frame):
                 vc_type = molweight['VolumeOfCorrelation']['Type']
             else:
                 vc_type = self.raw_settings.get('MWVcType')
-        except Exception, e:
+        except Exception as e:
             print(e)
             vc_type = self.raw_settings.get('MWVcType')
 
@@ -1803,7 +1802,7 @@ class MolWeightFrame(wx.Frame):
         # Guinier parameters box
         infoSizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        for key in self.infodata.iterkeys():
+        for key in self.infodata:
             txt = wx.StaticText(parent, -1, self.infodata[key][0])
             ctrl1 = wx.TextCtrl(parent, self.infodata[key][1], '0', style = wx.TE_READONLY)
 
@@ -2233,14 +2232,14 @@ class MolWeightFrame(wx.Frame):
 
             guinier = analysis['guinier']
 
-            for each_key in self.infodata.iterkeys():
+            for each_key in self.infodata:
                 window = wx.FindWindowById(self.infodata[each_key][1], self)
                 if abs(float(guinier[each_key])) > 1e3 or abs(float(guinier[each_key])) < 1e-2:
                     window.SetValue('%.3E' %(float(guinier[each_key])))
                 else:
                     window.SetValue('%.4f' %(round(float(guinier[each_key]), 4)))
 
-        if self.sasm.getAllParameters().has_key('Conc'):
+        if 'Conc' in self.sasm.getAllParameters():
             conc = str(self.sasm.getParameter('Conc'))
             wx.FindWindowById(self.ids['conc']['conc'], self).ChangeValue(conc)
             wx.FindWindowById(self.ids['abs']['conc'], self).ChangeValue(conc)
@@ -3189,7 +3188,7 @@ class GNOMFrame(wx.Frame):
             if os.path.isfile(savefile):
                 try:
                     os.remove(savefile)
-                except Exception, e:
+                except Exception as e:
                     print(e)
                     print('GNOM cleanup failed to remove the .dat file!')
 
@@ -3197,7 +3196,7 @@ class GNOMFrame(wx.Frame):
             if os.path.isfile(outfile):
                 try:
                     os.remove(outfile)
-                except Exception, e:
+                except Exception as e:
                     print(e)
                     print('GNOM cleanup failed to remove the .out file!')
 
@@ -4767,7 +4766,7 @@ class DammifRunPanel(wx.Panel):
         #Set up the various bits of information the threads will need. Set up the status windows.
         self.dammif_ids = {key: value for (key, value) in [(str(i), self.NewControlId()) for i in range(1, nruns+1)]}
 
-        self.thread_nums = Queue.Queue()
+        self.thread_nums = queue.Queue()
 
         self.logbook.DeleteAllPages()
 
@@ -4851,7 +4850,7 @@ class DammifRunPanel(wx.Panel):
         self.abort_event = threading.Event()
         self.abort_event.clear()
 
-        self.rs = Queue.Queue()
+        self.rs = queue.Queue()
 
         for key in self.dammif_ids:
             if key != 'damaver' and key != 'damclust' and key != 'refine':
@@ -5081,7 +5080,7 @@ class DammifRunPanel(wx.Panel):
             damaver_proc = SASCalc.runDamaver(dam_filelist, path)
 
 
-            damaver_q = Queue.Queue()
+            damaver_q = queue.Queue()
             readout_t = threading.Thread(target=enqueue_output, args=(damaver_proc.stdout, damaver_q))
             readout_t.daemon = True
             readout_t.start()
@@ -5099,7 +5098,7 @@ class DammifRunPanel(wx.Panel):
                     new_text = new_text[0]
 
                     wx.CallAfter(damWindow.AppendText, new_text)
-                except Queue.Empty:
+                except queue.Empty:
                     pass
                 time.sleep(0.001)
 
@@ -5110,7 +5109,7 @@ class DammifRunPanel(wx.Panel):
                     new_text = new_text[0]
 
                     wx.CallAfter(damWindow.AppendText, new_text)
-                except Queue.Empty:
+                except queue.Empty:
                     pass
 
 
@@ -5197,7 +5196,7 @@ class DammifRunPanel(wx.Panel):
             damclust_proc = SASCalc.runDamclust(dam_filelist, path)
 
 
-            damclust_q = Queue.Queue()
+            damclust_q = queue.Queue()
             readout_t = threading.Thread(target=enqueue_output, args=(damclust_proc.stdout, damclust_q))
             readout_t.daemon = True
             readout_t.start()
@@ -5215,7 +5214,7 @@ class DammifRunPanel(wx.Panel):
                     new_text = new_text[0]
 
                     wx.CallAfter(damWindow.AppendText, new_text)
-                except Queue.Empty:
+                except queue.Empty:
                     pass
                 time.sleep(0.001)
 
@@ -5226,7 +5225,7 @@ class DammifRunPanel(wx.Panel):
                     new_text = new_text[0]
 
                     wx.CallAfter(damWindow.AppendText, new_text)
-                except Queue.Empty:
+                except queue.Empty:
                     pass
 
 
@@ -5800,7 +5799,7 @@ class DammifResultsPanel(wx.Panel):
         dlist = wx.FindWindowById(self.ids['clustDist'])
         dlist.DeleteAllItems()
         for dist_data in distance_list:
-            dlist.Append(map(str, dist_data))
+            dlist.Append(list(map(str, dist_data)))
 
     def getModels(self, settings):
         while self.models.GetPageCount() > 1:
@@ -6196,7 +6195,7 @@ class DammifViewerPanel(wx.Panel):
             self.model_dict[str(item[0])] = [item[1], item[2]]
 
         model_choice = wx.FindWindowById(self.ids['models'], self)
-        model_choice.Set(self.model_dict.keys())
+        model_choice.Set(list(self.model_dict.keys()))
 
         if 'refine' in self.model_dict:
             self._plotModel(self.model_dict['refine'][1], self.model_dict['refine'][0]['atom_radius'])
@@ -6939,7 +6938,7 @@ class DenssRunPanel(wx.Panel):
                 msg = queue.get_nowait()
                 num_msg = num_msg + 1
                 full_msg = full_msg + msg
-            except Queue.Empty:
+            except queue.Empty:
                 pass
 
             if num_msg == nmsg:
@@ -7307,7 +7306,7 @@ class DenssRunPanel(wx.Panel):
                     my_id = self.denss_ids[my_num]
                     denssWindow = wx.FindWindowById(my_id, self)
                     wx.CallAfter(denssWindow.AppendText, msg[1])
-            except Queue.Empty:
+            except queue.Empty:
                 pass
             finally:
                 self.my_lock.release()
@@ -7989,7 +7988,7 @@ class DenssViewerPanel(wx.Panel):
             self.model_dict[str(item[0])] = [item[1], item[2]]
 
         model_choice = wx.FindWindowById(self.ids['models'], self)
-        model_choice.Set(self.model_dict.keys())
+        model_choice.Set(list(self.model_dict.keys()))
 
         if 'refine' in self.model_dict:
             self._plotModel(self.model_dict['refine'][1], self.model_dict['refine'][0]['atom_radius'])
@@ -8263,7 +8262,7 @@ class BIFTControlPanel(wx.Panel):
 
         self.bift_thread = None
         self.bift_abort = threading.Event()
-        self.BIFT_queue = Queue.Queue()
+        self.BIFT_queue = queue.Queue()
 
         self.old_analysis = {}
 
@@ -8916,7 +8915,7 @@ class BIFTControlPanel(wx.Panel):
                     self.BIFT_timer.Stop()
 
 
-        except Queue.Empty:
+        except queue.Empty:
             pass
 
 
@@ -10406,7 +10405,7 @@ class EFAFrame(wx.Frame):
 
             if self.panel1_results['input'] != 0:
 
-                if type(self.panel1_results['svd_u']) is not None and not np.any(np.isnan(self.panel1_results['svd_u'])):
+                if self.panel1_results['svd_u'] is not None and not np.any(np.isnan(self.panel1_results['svd_u'])):
 
                     self.top_sizer.Hide(wx.FindWindowById(self.splitter_ids[self.current_panel], self), recursive = True)
 
@@ -12630,9 +12629,9 @@ class EFARangePlotPanel(wx.Panel):
 
             for i in range(ranges.shape[0]):
                 if (int(matplotlib.__version__.split('.')[0]) ==1 and int(matplotlib.__version__.split('.')[1]) >=5) or int(matplotlib.__version__.split('.')[0]) > 1:
-                    color = a._get_lines.prop_cycler.next()['color']
+                    color = next(a._get_lines.prop_cycler)['color']
                 else:
-                    color = a._get_lines.color_cycle.next()
+                    color =next(a._get_lines.color_cycle)
 
                 annotation = a.annotate('', xy = (ranges[i][0], 0.975-0.05*(i)), xytext = (ranges[i][1], 0.975-0.05*(i)), xycoords = ('data', 'axes fraction'), arrowprops = dict(arrowstyle = '<->', color = color), animated = True)
                 self.range_arrows.append(annotation)
@@ -13259,7 +13258,7 @@ class NormKratkyPlotPanel(wx.Panel):
 
         self.canvas.restore_region(self.background)
 
-        for line in self.line_dict.keys():
+        for line in self.line_dict:
             self.subplot.draw_artist(line)
 
         legend = self.subplot.get_legend()
@@ -13369,7 +13368,7 @@ class NormKratkyPlotPanel(wx.Panel):
         leg_lines = []
         leg_labels = []
         self.subplot.legend_ = None
-        for line in self.line_dict.keys():
+        for line in self.line_dict:
             if line.get_visible():
                 leg_lines.append(line)
                 leg_labels.append(line.get_label())
@@ -13624,7 +13623,10 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
         color = conv.to_rgb(line.get_mfc())
         color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
 
-        index = self.list_ctrl.InsertStringItem(sys.maxint, '', it_kind=1)
+        try:
+            index = self.list_ctrl.InsertStringItem(sys.maxsize, '', it_kind=1)
+        except Exception:
+            index = self.list_ctrl.InsertStringItem(sys.maxint, '', it_kind=1)
         self.list_ctrl.SetStringItem(index, 1, name)
         self.list_ctrl.SetStringItem(index, 2, '')
         self.list_ctrl.SetStringItem(index, 3, str(rg))
@@ -14647,7 +14649,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.plot_page = self.series_frame.plotPanel
 
         self.question_thread_wait_event = threading.Event()
-        self.question_return_queue = Queue.Queue()
+        self.question_return_queue = queue.Queue()
 
         self.proc_lock = threading.Lock()
         self.threads = []
@@ -16041,8 +16043,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             for item in buffer_range_list:
                 frame_idx = frame_idx + list(range(item[0], item[1]+1))
 
-            frame_idx = list(set(frame_idx))
-            frame_idx.sort()
+            frame_idx = sorted(set(frame_idx))
             frame_idx = np.array(frame_idx)
 
             buffer_sasms = [self.secm.getSASM(idx) for idx in frame_idx]
@@ -16767,7 +16768,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 start_frames = range(r1[0], r1[1]+1)
 
                 use_subtracted_sasms = []
-                zeroSASM = SASM.SASM(np.zeros_like(sub_sasms[0].getQ()), sub_sasms[0].getQ(), sub_sasms[0].getErr(), {})
+                zeroSASM = SASM.SASM(np.zeros_like(sub_sasms[0].getQ()),
+                    sub_sasms[0].getQ(), sub_sasms[0].getErr(), {})
                 unsub_sasms = self.secm.getAllSASMs()
                 bl_unsub_sasms = []
 
@@ -17296,8 +17298,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         for item in sample_range_list:
             frame_idx = frame_idx + list(range(item[0], item[1]+1))
 
-        frame_idx = list(set(frame_idx))
-        frame_idx.sort()
+        frame_idx = sorted(set(frame_idx))
         frame_idx = np.array(frame_idx)
 
         valid, similarity_results, param_results, svd_results, sn_results = self._validateSample(
@@ -17996,7 +17997,7 @@ class GuinierTestApp(wx.App):
 
         ExpObj, ImgDummy = SASFileIO.loadFile(tst_file, raw_settings)
 
-        if type(ExpObj) == list:
+        if isinstance(ExpObj, list):
             ExpObj = ExpObj[0]
 
         frame = GuinierFrame(self, 'Guinier Fit', ExpObj, None)

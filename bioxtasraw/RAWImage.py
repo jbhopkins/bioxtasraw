@@ -381,11 +381,11 @@ class ImagePanel(wx.Panel):
 
         img_hdr = self.current_sasm.getParameter('imageHeader')
 
-        if img_hdr.has_key('Meas.Description'):
+        if 'Meas.Description' in img_hdr:
             title_str = img_hdr['Meas.Description'] + '\n'
         else:
             title_str = ''
-        if self.current_sasm.getAllParameters().has_key('load_path'):
+        if 'load_path' in self.current_sasm.getAllParameters():
             title_str = title_str + os.path.split(self.current_sasm.getParameter('load_path'))[-1]
         else:
             title_str = title_str + self.current_sasm.getParameter('filename')
@@ -1409,9 +1409,8 @@ class HdrInfoDialog(wx.Dialog):
 
         if self.sasm is not None:
             param = self.sasm.getAllParameters()
-            keys = param.iterkeys()
 
-            for each in keys:
+            for each in param:
 
                 if each == 'imageHeader':
                     imghdr = param[each]
@@ -1924,7 +1923,7 @@ class ImageTestFrame(wx.Frame):
         file = os.path.join(os.getcwd(), 'Tests', 'TestData', 'AgBe_Quantum.img')
         sasm, img = SASFileIO.loadFile(file, self.raw_settings)
 
-        if type(sasm) == list:
+        if isinstance(sasm, list):
             sasm = sasm[-1]
             img = img[-1]
 

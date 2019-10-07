@@ -164,7 +164,7 @@ class SASM(object):
                 caplines[i].set_data(pos)
 
             # Update the error bars
-            barlinecols[0].set_segments(zip(zip(x,y-yerr), zip(x,y+yerr)))
+            barlinecols[0].set_segments(list(zip(list(zip(x,y-yerr)), list(zip(x,y+yerr)))))
 
         #Calculated values
         try:
@@ -282,7 +282,7 @@ class SASM(object):
     def getParameter(self, key):
         ''' Get parameter from parameters dict '''
 
-        if self._parameters.has_key(key):
+        if key in self._parameters:
             return self._parameters[key]
         else:
             return None
@@ -684,7 +684,7 @@ class IFTM(SASM):
     def getParameter(self, key):
         ''' Get parameter from parameters dict '''
 
-        if self._parameters.has_key(key):
+        if key in self._parameters:
             return self._parameters[key]
         else:
             return None
@@ -981,22 +981,22 @@ class SECM(object):
 
         if self.hdr_format == 'G1, CHESS' or self.hdr_format == 'G1 WAXS, CHESS':
             for sasm in sasm_list:
-                if sasm.getAllParameters().has_key('counters'):
+                if 'counters' in sasm.getAllParameters():
                     file_hdr = sasm.getParameter('counters')
 
-                    if '#C' not in file_hdr.values():
-                        if file_hdr.has_key('Time'):
+                    if '#C' not in list(file_hdr.values()):
+                        if 'Time' in file_hdr:
                             sasm_time = float(file_hdr['Time'])
                             time.append(sasm_time)
 
-                        elif file_hdr.has_key('Seconds'):
+                        elif 'Seconds' in file_hdr:
                             sasm_time = float(file_hdr['Seconds'])
                             if len(time) == 0:
                                 time.append(0)
                             else:
                                 time.append(sasm_time+time[-1])
 
-                        elif file_hdr.has_key('Exposure_time'):
+                        elif 'Exposure_time' in file_hdr:
                             sasm_time = float(file_hdr['Exposure_time'])
                             if len(time) == 0:
                                 time.append(0)
@@ -1005,7 +1005,7 @@ class SECM(object):
 
         elif self.hdr_format == 'BioCAT, APS':
             for sasm in sasm_list:
-                if sasm.getAllParameters().has_key('counters'):
+                if 'counters' in sasm.getAllParameters():
                     file_hdr = sasm.getParameter('counters')
 
                     if 'start_time' in file_hdr:
@@ -1055,7 +1055,7 @@ class SECM(object):
     def getParameter(self, key):
         ''' Get parameter from parameters dict '''
 
-        if self._parameters.has_key(key):
+        if key in self._parameters:
             return self._parameters[key]
         else:
             return None
@@ -1344,8 +1344,7 @@ class SECM(object):
         for item in range_list:
             frame_idx = frame_idx + list(range(item[0], item[1]+1))
 
-        frame_idx = list(set(frame_idx))
-        frame_idx.sort()
+        frame_idx = sorted(set(frame_idx))
 
         if series_type == 'unsub':
             sasm_list = [self._sasm_list[idx] for idx in frame_idx]

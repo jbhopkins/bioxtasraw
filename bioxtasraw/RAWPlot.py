@@ -78,7 +78,7 @@ class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
 
             try:
                 plotpanel.fitAxis()
-            except ValueError, e:
+            except ValueError as e:
                 print('MyFigureCanvasWxAgg: ' + str(e))
 
 
@@ -297,8 +297,7 @@ class PlotPanel(wx.Panel):
             except:
                 pass
 
-        fonts = list(set(fonts))
-        fonts.sort()
+        fonts = sorted(set(fonts))
 
         possible_fonts = matplotlib.rcParams['font.'+matplotlib.rcParams['font.family'][0]]
 
@@ -419,7 +418,7 @@ class PlotPanel(wx.Panel):
         try:
             self.updateFrameStyle(axes = self.subplot1)
             self.updateFrameStyle(axes = self.subplot2)
-        except Exception, e:
+        except Exception as e:
             print('Possibly too old matplotlib version: ' + str(e))
 
     def updateFrameStyle(self, axes):
@@ -506,7 +505,7 @@ class PlotPanel(wx.Panel):
                     print('Not fitting axes due to plot settings')
                     try:
                         self.canvas.draw()
-                    except ValueError, e:
+                    except ValueError as e:
                         print('ValueError in fitaxis() : ' + str(e))
                     return
 
@@ -571,7 +570,7 @@ class PlotPanel(wx.Panel):
 
         try:
             self.canvas.draw()
-        except ValueError, e:
+        except ValueError as e:
             print('ValueError in fitaxis() : ' + str(e))
             traceback.print_exc()
 
@@ -823,10 +822,10 @@ class PlotPanel(wx.Panel):
     def _onPopupMenuChoice(self, evt):
         mainframe = wx.FindWindowByName('MainFrame')
         MenuIDs = mainframe.getMenuIds()
-        id = evt.GetId()
+        myid = evt.GetId()
 
-        for key in MenuIDs.iterkeys():
-            if MenuIDs[key] == id:
+        for key in MenuIDs:
+            if MenuIDs[key] == myid:
 
                 if key[4] == '1':
 
@@ -861,7 +860,7 @@ class PlotPanel(wx.Panel):
 
 
         #Update plot settings in menu bar:
-        mainframe.setViewMenuScale(id)
+        mainframe.setViewMenuScale(myid)
         #evt.Skip()
 
 
@@ -1297,8 +1296,7 @@ class IftPlotPanel(PlotPanel):
             except:
                 pass
 
-        fonts = list(set(fonts))
-        fonts.sort()
+        fonts = sorted(set(fonts))
 
         possible_fonts = matplotlib.rcParams['font.'+matplotlib.rcParams['font.family'][0]]
 
@@ -1419,9 +1417,8 @@ class IftPlotPanel(PlotPanel):
         try:
             self.updateFrameStyle(axes = self.subplot1)
             self.updateFrameStyle(axes = self.subplot2)
-        except Exception, e:
+        except Exception as e:
             print('Possibly too old matplotlib version: ' + str(e))
-            pass
 
     def updateFrameStyle(self, axes):
         if axes == self.subplot1:
@@ -1486,7 +1483,7 @@ class IftPlotPanel(PlotPanel):
                     print('Not fitting axes due to plot settings')
                     try:
                         self.canvas.draw()
-                    except ValueError, e:
+                    except ValueError as e:
                         print('ValueError in fitaxis() : ' + str(e))
                     return
 
@@ -1522,7 +1519,7 @@ class IftPlotPanel(PlotPanel):
 
         try:
             self.canvas.draw()
-        except ValueError, e:
+        except ValueError as e:
             print('ValueError in fitaxis() : ' + str(e))
 
 
@@ -1793,10 +1790,10 @@ class IftPlotPanel(PlotPanel):
     def _onPopupMenuChoice(self, evt):
         mainframe = wx.FindWindowByName('MainFrame')
         MenuIDs = mainframe.getMenuIds()
-        id = evt.GetId()
+        myid = evt.GetId()
 
-        for key in MenuIDs.iterkeys():
-            if MenuIDs[key] == id:
+        for key in MenuIDs:
+            if MenuIDs[key] == myid:
 
                 if key[4] == '1':
 
@@ -1830,12 +1827,12 @@ class IftPlotPanel(PlotPanel):
                         self.updatePlotType(self.subplot2)
                         try:
                             self.updatePlotAxes()
-                        except ValueError, e:
+                        except ValueError as e:
                             print(e)
                         print('4')
 
         #Update plot settings in menu bar:
-        mainframe.setViewMenuScale(id)
+        mainframe.setViewMenuScale(myid)
         #evt.Skip()
 
 
@@ -2256,7 +2253,7 @@ class IftPlotPanel(PlotPanel):
         type1 = self.plotparams.get('plot1type')
         type2 = self.plotparams.get('plot2type')
 
-        if type(iftm_list) != list:
+        if not isinstance(iftm_list, list):
             iftm_list = [iftm_list]
 
         for iftm in iftm_list:
@@ -2736,8 +2733,7 @@ class SeriesPlotPanel(wx.Panel):
             except:
                 pass
 
-        fonts = list(set(fonts))
-        fonts.sort()
+        fonts = sorted(set(fonts))
 
         possible_fonts = matplotlib.rcParams['font.'+matplotlib.rcParams['font.family'][0]]
 
@@ -2881,9 +2877,8 @@ class SeriesPlotPanel(wx.Panel):
         try:
             self.updateFrameStyle(axes = self.subplot1)
             self.updateFrameStyle(axes=self.ryaxis)
-        except Exception, e:
+        except Exception as e:
             print('Possibly too old matplotlib version: ' + str(e))
-            pass
 
     def updateFrameStyle(self, axes):
         if axes == self.subplot1:
@@ -2972,7 +2967,7 @@ class SeriesPlotPanel(wx.Panel):
                     print('Not fitting axes due to plot settings')
                     try:
                         self.canvas.draw()
-                    except ValueError, e:
+                    except ValueError as e:
                         print('ValueError in fitaxis() : ' + str(e))
                     return
 
@@ -3063,7 +3058,7 @@ class SeriesPlotPanel(wx.Panel):
 
         try:
             self.canvas.draw()
-        except ValueError, e:
+        except ValueError as e:
             print('ValueError in fitaxis() : ' + str(e))
 
 
@@ -3337,7 +3332,7 @@ class SeriesPlotPanel(wx.Panel):
                 calc_data = np.zeros_like(xdata)-1
 
             calc_line = self.ryaxis.plot(xdata, calc_data,
-                marker=self.markers.next(), linestyle ='', picker=3,
+                marker=next(self.markers), linestyle ='', picker=3,
                 label=self.plotparams['secm_plot_calc'], **kwargs)[0]
             calc_line.set_label(self.plotparams['secm_plot_calc'])
 
@@ -3439,7 +3434,7 @@ class SeriesPlotPanel(wx.Panel):
         if seccontrol._is_online:
             mainframe.OnlineSECControl.goOffline()
 
-        for key in MenuIDs.iterkeys():
+        for key in MenuIDs:
             if MenuIDs[key] == choice_id:
 
                 if key[4] == '1':

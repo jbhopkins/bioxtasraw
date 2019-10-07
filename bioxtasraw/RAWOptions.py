@@ -22,15 +22,17 @@ Created on Aug 2, 2010
 #******************************************************************************
 '''
 from __future__ import absolute_import, division, print_function, unicode_literals
+from future import standard_library
 from builtins import object, range, map, zip
 from io import open
+standard_library.install_aliases()
 
 import re
 import sys
 import os
 import time
 import math
-import Queue
+import queue
 import copy
 
 import wx
@@ -375,7 +377,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         self.currentItem = None
         self.imghdr_start_idx = 0
 
-        self.hdr_format_list = raw_settings.get('ImageHdrFormatList').keys()
+        self.hdr_format_list = list(raw_settings.get('ImageHdrFormatList').keys())
         self.hdr_format_list.remove('None')
         self.hdr_format_list.sort()
         self.hdr_format_list.insert(0, 'None')
@@ -519,7 +521,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
 
         bindstr = self.bind_ctrl.GetStringSelection()
 
-        if self.bind_list.has_key(bindstr):
+        if bindstr in self.bind_list:
                 self.bind_list[bindstr][2] = ''
                 self.changes['HeaderBindList'] = self.bind_list
 
@@ -539,7 +541,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
 
             self.lc.setColumnText(self.currentItem, 3, txt)
 
-            if self.bind_list.has_key(bindstr):
+            if bindstr in self.bind_list:
                 self.bind_list[bindstr][2] = txt
                 self.changes['HeaderBindList'] = self.bind_list             #Updates raw_settings on OK
         except:
@@ -644,7 +646,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
             item.SetTextColour(wx.WHITE)
             self.lc.SetItem(item)
 
-            for key in sorted(filehdr.iterkeys()):
+            for key in sorted(filehdr.keys()):
                 num_items = self.lc.GetItemCount()
                 if wx.version().split()[0].strip()[0] == '4':
                     self.lc.InsertItem(num_items, key)
@@ -673,7 +675,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
             item.SetTextColour(wx.WHITE)
             self.lc.SetItem(item)
 
-            for key in sorted(imghdr.iterkeys()):
+            for key in sorted(imghdr.keys()):
                 num_items = self.lc.GetItemCount()
                 if wx.version().split()[0].strip()[0] == '4':
                     self.lc.InsertItem(num_items, key)
@@ -688,7 +690,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
             self.lc.SetColumnWidth(2, 150)
 
 
-        for each in self.bind_list.keys():
+        for each in self.bind_list:
             data = self.bind_list[each][1]
             mod = self.bind_list[each][2]
 
@@ -726,23 +728,23 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         except ValueError:
             wx.MessageBox('Error loading the header file.', 'Wrong header format', wx.OK | wx.ICON_INFORMATION)
             return
-        except SASExceptions.HeaderLoadError, e:
+        except SASExceptions.HeaderLoadError as e:
             wx.MessageBox('Error loading the header file:\n' + str(e), 'Wrong header format', wx.OK | wx.ICON_INFORMATION)
             return
-        except:
+        except Exception:
             wx.MessageBox('Please pick the image file and not the header file itself.', 'Pick the image file', wx.OK | wx.ICON_INFORMATION)
             raise
 
         self.onClearBindingsButton(None)
 
-        if type(imghdr) == list:
+        if isinstance(imghdr, list):
             imghdr = imghdr[0]
 
         self._updateList(imghdr, filehdr)
 
     def clearBindings(self):
 
-        for each in self.bind_list.keys():
+        for each in self.bind_list:
             self.bind_list[each][1] = None
 
         self.changes['HeaderBindList'] = self.bind_list
@@ -791,7 +793,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
             try:
                 val = self.mathparser.evaluate()
                 return val
-            except Exception, msg:
+            except Exception as msg:
                 wx.MessageBox(str(msg), 'Error')
                 return None
         else:
@@ -1249,7 +1251,7 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
         hSizer = wx.FlexGridSizer(cols = 3, rows = noOfRows, vgap = 3, hgap = 5)
 
         temps = []
-        for each in RAWSettings.water_scattering_table.keys():
+        for each in RAWSettings.water_scattering_table:
             temps.append(str(each))
 
         for eachLabel, id, has_button in self.normConstantsData:
@@ -1280,7 +1282,7 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
         file_hdr = self.raw_settings.get('FileHdrList')
 
         try:
-            counter_list = sorted(img_hdr.keys() + file_hdr.keys())
+            counter_list = sorted(list(img_hdr.keys()) + list(file_hdr.keys()))
         except AttributeError:
             counter_list = ['']
 
@@ -1319,7 +1321,7 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
                     constant_ctrl = wx.FindWindowById(self.raw_settings.getId(const_name), self)
                     constant_ctrl.SetValue(str(return_val))
                 break
-            except Queue.Empty:
+            except queue.Empty:
                 wx.Yield()
                 time.sleep(0.1)
 
@@ -1832,7 +1834,7 @@ class ReductionNormalizationPanel(wx.Panel):
         file_hdr = self.raw_settings.get('FileHdrList')
 
         try:
-            self.expr_combo_list = [''] + sorted(img_hdr.keys() + file_hdr.keys())
+            self.expr_combo_list = [''] + sorted(list(img_hdr.keys()) + list(file_hdr.keys()))
         except AttributeError:
             self.expr_combo_list = ['']
 
@@ -1946,7 +1948,7 @@ class ReductionNormalizationPanel(wx.Panel):
             try:
                 val = self.mathparser.evaluate()
                 return val
-            except NameError, msg:
+            except NameError as msg:
                 wx.MessageBox(str(msg), 'Error')
                 return None
         else:
@@ -1958,7 +1960,7 @@ class ReductionNormalizationPanel(wx.Panel):
 
         if expr != '':
 
-            if self.calcExpression(expr) == None:
+            if self.calcExpression(expr) is None:
                 return
             else:
                 self.norm_list.add(op, expr)
@@ -1967,7 +1969,7 @@ class ReductionNormalizationPanel(wx.Panel):
         img_hdr = self.raw_settings.get('ImageHdrList')
         file_hdr = self.raw_settings.get('FileHdrList')
 
-        self.expr_combo_list = [''] + sorted(img_hdr.keys() + file_hdr.keys())
+        self.expr_combo_list = [''] + sorted(list(img_hdr.keys()) + list(file_hdr.keys()))
 
         if not self.expr_combo.IsTextEmpty():
             expr = self.expr_combo.GetValue()
@@ -2204,7 +2206,7 @@ class MetadataPanel(wx.Panel):
         img_hdr = self.raw_settings.get('ImageHdrList')
         file_hdr = self.raw_settings.get('FileHdrList')
 
-        self.expr_combo_list = [''] + sorted(img_hdr.keys() + file_hdr.keys())
+        self.expr_combo_list = [''] + sorted(list(img_hdr.keys()) + list(file_hdr.keys()))
 
         if not self.expr_combo.IsTextEmpty():
             expr = self.expr_combo.GetValue()
@@ -2334,7 +2336,7 @@ class ConfigRootSettings(wx.Panel):
         default_settings = RAWSettings.RawGuiSettings()
         default_params = default_settings.getAllParams()
 
-        for key, value in default_params.iteritems():
+        for key, value in default_params.items():
             self.raw_settings.set(key, value[0])
 
         all_update_keys = wx.FindWindowByName('OptionsDialog').treebook.getAllUpdateKeys()
@@ -3799,7 +3801,7 @@ class WeightedAveragePanel(wx.Panel):
         file_hdr = self.raw_settings.get('FileHdrList')
 
         try:
-            self.expr_combo_list = [''] + sorted(img_hdr.keys() + file_hdr.keys())
+            self.expr_combo_list = [''] + sorted(list(img_hdr.keys()) + list(file_hdr.keys()))
         except AttributeError:
             self.expr_combo_list = ['']
 
@@ -4390,7 +4392,7 @@ class OptionsTreebook(wx.Panel):
 
         for each in self.page_panel.all_panels:
             try:
-                changes_dict = dict(changes_dict.items() + each.changes.items())
+                changes_dict = dict(list(changes_dict.items()) + list(each.changes.items()))
             except AttributeError:
                 pass
 

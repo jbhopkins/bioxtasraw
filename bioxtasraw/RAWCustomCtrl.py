@@ -277,11 +277,13 @@ def GrayOut(anImage):
     return anImage.ConvertToBitmap()
 
 
-def MakeGray((r,g,b), factor, maskColor):
+def MakeGray(rgb, factor, maskColor):
     """
     Make a pixel grayed-out. If the pixel matches the maskcolor, it won't be
     changed.
     """
+
+    (r,g,b) = rgb
 
     if (r,g,b) != maskColor:
         return list(map(lambda x: int((230 - x) * factor) + x, (r,g,b)))

@@ -228,9 +228,9 @@ class SaveAnalysisInfoPanel(wx.Panel):
         for each_item in self.item_list:
             each_sasm = each_item.getSASM()
 
-            if each_sasm.getAllParameters().has_key('imageHeader'):
+            if 'imageHeader' in each_sasm.getAllParameters():
                img_hdr = each_sasm.getParameter('imageHeader')
-               keys = img_hdr.keys()
+               keys = list(img_hdr.keys())
                all_keys.extend(keys)
 
         all_imghdr_keys.extend(set(all_keys))
@@ -244,9 +244,9 @@ class SaveAnalysisInfoPanel(wx.Panel):
         for each_item in self.item_list:
             each_sasm = each_item.getSASM()
 
-            if each_sasm.getAllParameters().has_key('counters'):
+            if 'counters' in each_sasm.getAllParameters():
                img_hdr = each_sasm.getParameter('counters')
-               keys = img_hdr.keys()
+               keys = list(img_hdr.keys())
                all_keys.extend(keys)
 
         all_filehdr_keys.extend(set(all_keys))
@@ -260,10 +260,10 @@ class SaveAnalysisInfoPanel(wx.Panel):
         for each_item in self.item_list:
             each_sasm = each_item.getSASM()
 
-            if each_sasm.getParameter('analysis').has_key('guinier'):
+            if 'guinier' in each_sasm.getParameter('analysis'):
                analysis = each_sasm.getParameter('analysis')
                guinier = analysis['guinier']
-               keys = guinier.keys()
+               keys = list(guinier.keys())
                all_keys.extend(keys)
 
         all_guinier_keys.extend(set(all_keys))
@@ -277,13 +277,13 @@ class SaveAnalysisInfoPanel(wx.Panel):
         for each_item in self.item_list:
             each_sasm = each_item.getSASM()
 
-            if each_sasm.getParameter('analysis').has_key('molecularWeight'):
+            if 'molecularWeight' in each_sasm.getParameter('analysis'):
                 analysis = each_sasm.getParameter('analysis')
                 mw = analysis['molecularWeight']
                 key_list = []
-                keys = mw.keys()
+                keys = list(mw.keys())
                 for each_key in keys:
-                    subkeys = mw[each_key].keys()
+                    subkeys = list(mw[each_key].keys())
                     for each_subkey in subkeys:
                         key_list.append((each_key, each_subkey))
 
@@ -301,10 +301,10 @@ class SaveAnalysisInfoPanel(wx.Panel):
         for each_item in self.item_list:
             each_sasm = each_item.getSASM()
 
-            if each_sasm.getParameter('analysis').has_key('GNOM'):
+            if 'GNOM' in each_sasm.getParameter('analysis'):
                analysis = each_sasm.getParameter('analysis')
                gnom = analysis['GNOM']
-               keys = gnom.keys()
+               keys = list(gnom.keys())
                all_keys.extend(keys)
 
         all_gnom_keys.extend(set(all_keys))
@@ -319,10 +319,10 @@ class SaveAnalysisInfoPanel(wx.Panel):
         for each_item in self.item_list:
             each_sasm = each_item.getSASM()
 
-            if each_sasm.getParameter('analysis').has_key('BIFT'):
+            if 'BIFT' in each_sasm.getParameter('analysis'):
                analysis = each_sasm.getParameter('analysis')
                gnom = analysis['BIFT']
-               keys = gnom.keys()
+               keys = list(gnom.keys())
                all_keys.extend(keys)
 
         all_gnom_keys.extend(set(all_keys))
@@ -692,27 +692,27 @@ class HdrDataDialog(wx.Dialog):
 
         all_keys = []
 
-        if self.sasm.getAllParameters().has_key('counters'):
+        if 'counters' in self.sasm.getAllParameters():
             file_hdr = self.sasm.getParameter('counters')
-            keys = file_hdr.keys()
+            keys = list(file_hdr.keys())
             all_keys.extend(keys)
 
-        if self.sasm.getAllParameters().has_key('metadata'):
+        if 'metadata' in self.sasm.getAllParameters():
             metadata = self.sasm.getParameter('metadata')
-            keys = metadata.keys()
+            keys =list( metadata.keys())
             all_keys.extend(keys)
 
-        if self.sasm.getAllParameters().has_key('calibration_params'):
+        if 'calibration_params' in self.sasm.getAllParameters():
             calibration_params = self.sasm.getParameter('calibration_params')
-            keys = calibration_params.keys()
+            keys = list(calibration_params.keys())
             all_keys.extend(keys)
 
-        if self.sasm.getAllParameters().has_key('raw_version'):
+        if 'raw_version' in self.sasm.getAllParameters():
             all_keys.extend(['raw_version'])
 
-        if self.sasm.getAllParameters().has_key('imageHeader'):
+        if 'imageHeader' in self.sasm.getAllParameters():
             img_hdr = self.sasm.getParameter('imageHeader')
-            keys = img_hdr.keys()
+            keys = list(img_hdr.keys())
             all_keys.extend(keys)
 
         return len(all_keys)
@@ -721,9 +721,9 @@ class HdrDataDialog(wx.Dialog):
 
         total_len = 0
 
-        if self.sasm.getAllParameters().has_key('counters'):
+        if 'counters' in self.sasm.getAllParameters():
             file_hdr = self.sasm.getParameter('counters')
-            keys = file_hdr.keys()
+            keys = list(file_hdr.keys())
 
             if len(keys) > 0:
                 data_len = len(keys)
@@ -734,9 +734,9 @@ class HdrDataDialog(wx.Dialog):
 
                 total_len = total_len + data_len
 
-        if self.sasm.getAllParameters().has_key('metadata'):
+        if 'metadata' in self.sasm.getAllParameters():
             metadata = self.sasm.getParameter('metadata')
-            keys = metadata.keys()
+            keys = list(metadata.keys())
 
             if len(keys) > 0:
                 data_len = len(keys)
@@ -747,9 +747,9 @@ class HdrDataDialog(wx.Dialog):
 
                 total_len = total_len + data_len
 
-        if self.sasm.getAllParameters().has_key('calibration_params'):
+        if 'calibration_params' in self.sasm.getAllParameters():
             calibration_params = self.sasm.getParameter('calibration_params')
-            keys = calibration_params.keys()
+            keys = list(calibration_params.keys())
 
             if len(keys) > 0:
                 data_len = len(keys)
@@ -760,16 +760,16 @@ class HdrDataDialog(wx.Dialog):
 
                 total_len = total_len + data_len
 
-        if self.sasm.getAllParameters().has_key('raw_version'):
+        if 'raw_version' in self.sasm.getAllParameters():
             raw_version = self.sasm.getParameter('raw_version')
             self.data_grid.SetCellValue(total_len, 0, 'raw_version')
             self.data_grid.SetCellValue(total_len, 1, str(raw_version))
 
             total_len = total_len + 1
 
-        if self.sasm.getAllParameters().has_key('imageHeader'):
+        if 'imageHeader' in self.sasm.getAllParameters():
             img_hdr = self.sasm.getParameter('imageHeader')
-            keys = img_hdr.keys()
+            keys = list(img_hdr.keys())
 
             if len(keys) > 0:
                 data_len = len(keys)
@@ -3842,8 +3842,7 @@ class PlotOptionsDialog(wx.Dialog):
             except:
                 pass
 
-        names = list(set(names))
-        names.sort()
+        names = sorted(set(names))
 
         return names
 
@@ -4149,11 +4148,12 @@ class PlotOptionsDialog(wx.Dialog):
                             ]
 
         if self.is_sec:
-            self.legend_items.append(('showcalc', 'Show labels for calculated lines:', self.NewControlId(), self._old_legend_settings['showcalc'], 'bool'))
+            self.legend_items.append(('showcalc', 'Show labels for calculated lines:',
+                self.NewControlId(), self._old_legend_settings['showcalc'], 'bool'))
 
         self.legend_ids = {item[2] : (item[0], item[-1]) for item in self.legend_items}
 
-        box = wx.StaticBox(self, -1, 'Legend')
+        box = wx.StaticBox(self, wx.ID_ANY, 'Legend')
         topbox = wx.StaticBoxSizer(box, wx.VERTICAL)
 
         sizer = wx.FlexGridSizer(rows = len(self.legend_ids.keys()), cols = 2, hgap = 5, vgap = 3)
@@ -4281,7 +4281,7 @@ class PlotOptionsDialog(wx.Dialog):
 
         try:
             self.parent.canvas.draw()
-        except matplotlib.pyparsing.ParseFatalException, e:
+        except matplotlib.pyparsing.ParseFatalException as e:
             print(e)
 
         event.Skip()
@@ -4347,10 +4347,10 @@ class PlotOptionsDialog(wx.Dialog):
         if self.is_legend:
             if self.is_sec and self.sec_calc != 'None':
                 ids = self.labels[4][2]
-                idlist = ids.values()
+                idlist = list(ids.values())
             else:
                 ids = self.labels[3][2]
-                idlist = ids.values()
+                idlist = list(ids.values())
 
             if not wx.FindWindowById(idlist[0], self).IsEnabled():
                 for id in idlist:
@@ -4483,23 +4483,23 @@ class PlotOptionsDialog(wx.Dialog):
     def _restoreOldSettings(self):
         plotnum = str(self.parent.selected_plot)
 
-        for each in self._old_settings.keys():
-            for each_key in self._old_settings[each].keys():
+        for each in self._old_settings:
+            for each_key in self._old_settings[each]:
                 if each == 'title':
                     expr = 'self.title.set_' + each_key + '("' + str(self._old_settings[each][each_key]) + '")'
-                    exec expr
+                    exec(expr)
                 elif each == 'xlabel':
                     expr = 'self.xlabel.set_' + each_key + '("' + str(self._old_settings[each][each_key]) + '")'
-                    exec expr
+                    exec(expr)
                 elif each == 'ylabel':
                     expr = 'self.ylabel.set_' + each_key + '("' + str(self._old_settings[each][each_key]) + '")'
-                    exec expr
+                    exec(expr)
                 elif each == 'y2label':
                     expr = 'self.y2label.set_' + each_key + '("' + str(self._old_settings[each][each_key]) + '")'
-                    exec expr
+                    exec(expr)
                 elif each == 'legtit' and self.is_legend:
                     expr = 'self.legend.get_title().set_' + each_key + '("' + str(self._old_settings[each][each_key]) + '")'
-                    exec expr
+                    exec(expr)
 
                 if each_key == 'size':
                     self.parent.plotparams['%s_fontsize%s' %(each, plotnum)] = self._old_settings[each][each_key]

@@ -375,7 +375,7 @@ def calibrateAndNormalize(sasm_list, img_list, raw_settings):
 
     pixel_size = pixel_size/1000.
 
-    if type(sasm_list) != list:
+    if not isinstance(sasm_list, list):
         sasm_list = [sasm_list]
         img_list = [img_list]
 
@@ -668,7 +668,7 @@ def applyMaskToImage(in_image, mask):
 
 
 def doFlatfieldCorrection(img, img_hdr, flatfield_img, flatfield_hdr):
-    if type(flatfield_img) == list:
+    if isinstance(flatfield_img, list):
         flatfield_img = np.average(flatfield_img, axis=0)
 
     cor_img = img / flatfield_img   #flat field is often water.

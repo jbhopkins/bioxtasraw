@@ -22,8 +22,10 @@ Created on Sep 31, 2010
 #******************************************************************************
 '''
 from __future__ import absolute_import, division, print_function, unicode_literals
+from future import standard_library
 from builtins import object, range, map, zip
 from io import open
+standard_library.install_aliases()
 from six.moves import cPickle as pickle
 
 import sys
@@ -31,7 +33,7 @@ import os
 import subprocess
 import time
 import threading
-import Queue
+import queue
 import copy
 import glob
 import platform
@@ -87,7 +89,7 @@ from RAWGlobals import mainworker_cmd_queue
 import SASProc
 
 thread_wait_event = threading.Event()
-question_return_queue = Queue.Queue()
+question_return_queue = queue.Queue()
 
 
 class MainFrame(wx.Frame):
@@ -1723,7 +1725,7 @@ class MainFrame(wx.Frame):
                 #selected_sasms = []
 
             for each in selected_sasms + [marked_item.getSASM()]:
-                if not each.getParameter('analysis').has_key('uvvis'):
+                if 'uvvis' not in each.getParameter('analysis'):
                     wx.MessageBox('The file ' + str(each.getParameter('filename')) + ' does not have UV-VIS data stored in the header', 'UV-VIS data not found', style = wx.ICON_EXCLAMATION)
                     return
                 print(each.getParameter('analysis')['uvvis'])
@@ -1747,11 +1749,13 @@ class MainFrame(wx.Frame):
 
             selected_items = page.getSelectedItems()
             if len(selected_items) !=1:
-                wx.MessageBox('Please select one (and only one) item to view the image.', 'Select Item', style = wx.ICON_INFORMATION)
+                wx.MessageBox('Please select one (and only one) item to view the image.',
+                    'Select Item', style = wx.ICON_INFORMATION)
                 return
 
-            if not selected_items[0].sasm.getAllParameters().has_key('load_path'):
-                wx.MessageBox('The image associated with the data could not be found.', 'Image Not Found', style = wx.ICON_INFORMATION)
+            if not 'load_path' in selected_items[0].sasm.getAllParameters():
+                wx.MessageBox('The image associated with the data could not be found.',
+                    'Image Not Found', style = wx.ICON_INFORMATION)
                 return
 
             selected_items[0]._onShowImage()
@@ -1813,7 +1817,7 @@ class MainFrame(wx.Frame):
             dlg.Destroy()
 
         else:
-            key = [k for k, v in self.MenuIDs.iteritems() if v == val][0]
+            key = [k for k, v in self.MenuIDs.items() if v == val][0]
 
             plotpanel = wx.FindWindowByName('PlotPanel')
             secplotpanel = wx.FindWindowByName('SECPlotPanel')
@@ -2079,7 +2083,7 @@ class MainFrame(wx.Frame):
                             'Crystallography (2017). 50, 1545-1553'))
 
         info.SetWebSite("http://bioxtas-raw.readthedocs.io/", "The RAW Project Homepage")
-        info.SetDevelopers([u"Soren Skou", u"Jesse B. Hopkins", u"Richard E. Gillilan", u"Jesper Nygaard"])
+        info.SetDevelopers(["Soren Skou", "Jesse B. Hopkins", "Richard E. Gillilan", "Jesper Nygaard"])
         info.SetLicense(('This program is free software: you can redistribute it '
                         'and/or modify it under the terms of the\nGNU General '
                         'Public License as published by the Free Software '
@@ -2107,7 +2111,7 @@ class MainFrame(wx.Frame):
 
             pickle.dump(save_info, file_obj)
             file_obj.close()
-        except Exception, e:
+        except Exception as e:
             print(e)
 
     def _onCloseWindow(self, event):
@@ -2588,7 +2592,7 @@ class MainWorkerThread(threading.Thread):
         while True:
             try:
                 command, data = mainworker_cmd_queue.get()
-            except Queue.Empty:
+            except queue.Empty:
                 command = None
 
             if command != None:
@@ -2597,6 +2601,8 @@ class MainWorkerThread(threading.Thread):
                     self._cleanUpAfterAbort()
                 else:
                     self._commands[command](data)
+
+            time.sleep(0.01)
 
     def _cleanUpAfterAbort(self):
         pass
@@ -2614,7 +2620,7 @@ class MainWorkerThread(threading.Thread):
             if img[-1] == None:
                 raise SASExceptions.WrongImageFormat('not a valid file!')
 
-        except Exception, e:
+        except Exception as e:
             print('File load failed: ' + str(e))
             return
 
@@ -2892,10 +2898,10 @@ class MainWorkerThread(threading.Thread):
 
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while creating all masks...')
 
-        for each_key in mask_dict.keys():
+        for each_key in mask_dict:
             masks = mask_dict[each_key][1]
 
-            if masks != None:
+            if masks is not None:
                 mask_img = SASImage.createMaskMatrix(img_dim, masks)
                 mask_param = mask_dict[each_key]
                 mask_param[0] = mask_img
@@ -2969,7 +2975,7 @@ class MainWorkerThread(threading.Thread):
                     else:
                         item_colour = 'black'
 
-                    if type(iftm) == list:
+                    if isinstance(iftm, list):
                         iftm_list.append(iftm[0])
 
                 else:
@@ -3008,7 +3014,7 @@ class MainWorkerThread(threading.Thread):
 
                         try:
                             self._saveSASM(sasm, '.dat', save_path)
-                        except IOError, e:
+                        except IOError as e:
                             self._raw_settings.set('AutoSaveOnImageFiles', False)
                             do_auto_save = False
                             msg = (str(e) + '\n\nAutosave of processed images '
@@ -3054,23 +3060,23 @@ class MainWorkerThread(threading.Thread):
                 self._sendSECMToPlot(secm_list, no_update = True, update_legend = False)
                 loaded_secm = True
 
-        except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
+        except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat) as msg:
             wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1])
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
-        except SASExceptions.HeaderLoadError, msg:
+        except SASExceptions.HeaderLoadError as msg:
             wx.CallAfter(self._showHeaderError, msg)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
-        except SASExceptions.MaskSizeError, msg:
+        except SASExceptions.MaskSizeError as msg:
             wx.CallAfter(self._showGenericError, str(msg), 'Saved mask does not fit loaded image')
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
-        except SASExceptions.HeaderMaskLoadError, msg:
+        except SASExceptions.HeaderMaskLoadError as msg:
             wx.CallAfter(self._showGenericError, str(msg), 'Mask information was not found in header')
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
-        except SASExceptions.ImageLoadError, msg:
+        except SASExceptions.ImageLoadError as msg:
             wx.CallAfter(wx.MessageBox, "\n".join(msg.parameter), 'Image load error', style = wx.ICON_ERROR)
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
@@ -3169,19 +3175,19 @@ class MainWorkerThread(threading.Thread):
                     else:
                         sasm_list.append(sasm)
 
-            except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
+            except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat) as msg:
                 wx.CallAfter(self._showSECFormatError, os.path.split(each_filename)[1])
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
-            except SASExceptions.HeaderLoadError, msg:
+            except SASExceptions.HeaderLoadError as msg:
                 wx.CallAfter(self._showHeaderError, str(msg))
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
-            except SASExceptions.MaskSizeError, msg:
+            except SASExceptions.MaskSizeError as msg:
                 wx.CallAfter(self._showGenericError, str(msg), 'Saved mask does not fit loaded image')
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
-            except SASExceptions.HeaderMaskLoadError, msg:
+            except SASExceptions.HeaderMaskLoadError as msg:
                 wx.CallAfter(self._showGenericError, str(msg), 'Mask information was not found in header')
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
@@ -3247,7 +3253,7 @@ class MainWorkerThread(threading.Thread):
                     start_point = self._raw_settings.get('StartPoint')
                     end_point = self._raw_settings.get('EndPoint')
 
-                    if type(sasm) != list:
+                    if not isinstance(sasm, list):
                         qrange = (start_point, len(sasm.getBinnedQ())-end_point)
                         sasm.setQrange(qrange)
                     else:
@@ -3262,22 +3268,22 @@ class MainWorkerThread(threading.Thread):
 
                 sasm_list[j]=sasm
 
-            except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
+            except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat) as msg:
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'file', msg)
                 return
-            except SASExceptions.HeaderLoadError, msg:
+            except SASExceptions.HeaderLoadError as msg:
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'header', msg)
                 return
-            except SASExceptions.MaskSizeError, msg:
+            except SASExceptions.MaskSizeError as msg:
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'mask', msg)
                 return
-            except SASExceptions.HeaderMaskLoadError, msg:
+            except SASExceptions.HeaderMaskLoadError as msg:
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'mask_header', msg)
@@ -3298,7 +3304,7 @@ class MainWorkerThread(threading.Thread):
         secm.append(filename_list, sasm_list, frame_list)
 
         if secm.calc_has_data:
-            self._updateCalcSECParams(secm, range(len(frame_list))+largest_frame+1)
+            self._updateCalcSECParams(secm, list(range(len(frame_list)))+largest_frame+1)
 
         self._updateSECMPlot(secm)
 
@@ -3544,8 +3550,7 @@ class MainWorkerThread(threading.Thread):
             baseline_use_subtracted_sasms = []
 
             buffer_sub_sasms = secm.subtracted_sasm_list
-            start_frames = range(r1_start, r1_end+1)
-            start_sasms = [buffer_sub_sasms[k] for k in start_frames]
+            start_sasms = [buffer_sub_sasms[k] for k in range(r1_start, r1_end+1)]
 
             start_avg_sasm = SASProc.average(start_sasms, forced=True)
 
@@ -3926,9 +3931,9 @@ class MainWorkerThread(threading.Thread):
 
             param = each.getAllParameters()
 
-            if param.has_key('orig_sasm'):
+            if 'orig_sasm' in param:
                 self._sendSASMToPlot(each.getParameter('orig_sasm').copy())
-            if param.has_key('fit_sasm'):
+            if 'fit_sasm' in param:
                 self._sendSASMToPlot(each.getParameter('fit_sasm').copy())
 
 
@@ -3973,7 +3978,7 @@ class MainWorkerThread(threading.Thread):
                         start_point = self._raw_settings.get('StartPoint')
                         end_point = self._raw_settings.get('EndPoint')
 
-                        if type(sasm) != list:
+                        if not isinstance(sasm, list):
                             qrange = (start_point, len(sasm.getBinnedQ())-end_point)
                             sasm.setQrange(qrange)
                         else:
@@ -3985,7 +3990,7 @@ class MainWorkerThread(threading.Thread):
                             final_save_path, new_filename = os.path.split(result[1][0])
                             sasm.setParameter('filename', new_filename)
 
-                            if type(sasm) != list:
+                            if not isinstance(sasm, list):
                                 sasm.setParameter('filename', new_filename)
                             else:
                                 for each_sasm in sasm:
@@ -4004,7 +4009,7 @@ class MainWorkerThread(threading.Thread):
                             wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_ascii = False)
                     except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat):
                         wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_ascii = False)
-                    except SASExceptions.HeaderLoadError, msg:
+                    except SASExceptions.HeaderLoadError as msg:
                         wx.CallAfter(self._showHeaderError, str(msg))
                     except SASExceptions.AbsScaleNormFailed:
                         msg = ('Failed to apply absolute scale. The most '
@@ -4021,7 +4026,7 @@ class MainWorkerThread(threading.Thread):
                     start_point = self._raw_settings.get('StartPoint')
                     end_point = self._raw_settings.get('EndPoint')
 
-                    if type(sasm) != list:
+                    if not isinstance(sasm, list):
                         qrange = (start_point, len(sasm.getBinnedQ())-end_point)
                         sasm.setQrange(qrange)
                     else:
@@ -4040,7 +4045,7 @@ class MainWorkerThread(threading.Thread):
                         wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_ascii = False)
                 except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat):
                     wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_ascii = False)
-                except SASExceptions.HeaderLoadError, msg:
+                except SASExceptions.HeaderLoadError as msg:
                     wx.CallAfter(self._showHeaderError, str(msg))
                 except SASExceptions.AbsScaleNormFailed:
                     msg = ('Failed to apply absolute scale. The most '
@@ -4153,7 +4158,7 @@ class MainWorkerThread(threading.Thread):
                             save_path = self._raw_settings.get('SubtractedFilePath')
                             try:
                                 self._saveSASM(subtracted_sasm, '.dat', save_path)
-                            except IOError, e:
+                            except IOError as e:
                                 self._raw_settings.set('AutoSaveOnSub', False)
                                 do_auto_save = False
                                 msg = (str(e) + '\n\nAutosave of subtracted '
@@ -4181,7 +4186,7 @@ class MainWorkerThread(threading.Thread):
                         save_path = self._raw_settings.get('SubtractedFilePath')
                         try:
                             self._saveSASM(subtracted_sasm, '.dat', save_path)
-                        except IOError, e:
+                        except IOError as e:
                             self._raw_settings.set('AutoSaveOnSub', False)
                             do_auto_save = False
                             msg = (str(e) + '\n\nAutosave of subtracted '
@@ -4209,7 +4214,7 @@ class MainWorkerThread(threading.Thread):
                         save_path = self._raw_settings.get('SubtractedFilePath')
                         try:
                             self._saveSASM(subtracted_sasm, '.dat', save_path)
-                        except IOError, e:
+                        except IOError as e:
                             self._raw_settings.set('AutoSaveOnSub', False)
                             do_auto_save = False
                             msg = (str(e) + '\n\nAutosave of subtracted '
@@ -4395,12 +4400,12 @@ class MainWorkerThread(threading.Thread):
 
             for each_sasm in sasm_list:
                 header_keys = []
-                if each_sasm.getAllParameters().has_key('counters'):
+                if 'counters' in each_sasm.getAllParameters():
                     file_hdr = each_sasm.getParameter('counters')
-                    header_keys = header_keys + file_hdr.keys()
-                if each_sasm.getAllParameters().has_key('imageHeader'):
+                    header_keys = header_keys + list(file_hdr.keys())
+                if 'imageHeader' in each_sasm.getAllParameters():
                     img_hdr = each_sasm.getParameter('imageHeader')
-                    header_keys = header_keys + img_hdr.keys()
+                    header_keys = header_keys + list(img_hdr.keys())
 
                 if weightCounter in header_keys:
                     has_header.append(True)
@@ -4804,8 +4809,8 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(wx._showGenericError, msg, 'Workspace Load Error')
             return
 
-        if type(item_dict) == OrderedDict:
-            keylist = item_dict.keys()
+        if isinstance(item_dict, OrderedDict):
+            keylist = list(item_dict.keys())
         else:
             keylist = sorted(item_dict.keys())
 
@@ -5226,7 +5231,7 @@ class MainWorkerThread(threading.Thread):
         for each in selected_items:
             sasm = each.getSASM()
 
-            if sasm.getAllParameters().has_key('Conc'):
+            if 'Conc' in sasm.getAllParameters():
                 conc = sasm.getParameter('Conc')
 
                 try:
@@ -5632,7 +5637,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
 
         #Init the list:
         self.itemDataMap = {}
-        self.itemIndexMap = {}.keys()
+        self.itemIndexMap = list({}.keys())
         self.SetItemCount(len({}))
 
         listmix.ListCtrlAutoWidthMixin.__init__(self)
@@ -5727,7 +5732,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         try:
             self.files = os.listdir(self.path)
 
-        except OSError, msg:
+        except OSError as msg:
             print(msg)
             wx.MessageBox(str(msg), 'Error loading folder', style = wx.ICON_ERROR | wx.OK)
 
@@ -5822,7 +5827,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
                     try:
                         size = os.path.getsize(os.path.join(self.path, i))
                         sec = os.path.getmtime(os.path.join(self.path, i))
-                    except Exception, e:
+                    except Exception as e:
                         print(e)
                         size = 0
                         sec = 1
@@ -5837,7 +5842,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
 
         self.file_list_dict[0] = ('..', '', '', '', 'up')
         self.itemDataMap = self.file_list_dict
-        self.itemIndexMap = self.file_list_dict.keys()
+        self.itemIndexMap = list(self.file_list_dict.keys())
         self.SetItemCount(len(self.file_list_dict))
 
         self.OnSortOrderChanged()
@@ -5883,7 +5888,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         self.readFileList()
         self.refreshFileList()
         self.itemDataMap = self.file_list_dict
-        self.itemIndexMap = self.file_list_dict.keys()
+        self.itemIndexMap = list(self.file_list_dict.keys())
 
         # self.OnSortOrderChanged()
         self.SortListItems(col, ascending)
@@ -5996,7 +6001,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
                    5 : self._pasteFile,
                    6 : self._deleteFile}
 
-        if choices.has_key(choice_id):
+        if choice_id in choices:
             choices[choice_id]()
 
     def _pasteFile(self):
@@ -6014,7 +6019,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
                     elif self.copy_selected:
                         shutil.copy(each, dstpath)
 
-                except Exception, e:
+                except Exception as e:
                     wx.MessageBox('Paste failed:\n' + str(e), 'Failed')
 
             self.cut_selected = False
@@ -6054,7 +6059,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
 
             try:
                 os.mkdir(os.path.join(self.path, dirname))
-            except Exception, e:
+            except Exception as e:
                 wx.MessageBox('Folder creation failed:\n' + str(e), 'Failed')
                 return
 
@@ -6085,7 +6090,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
                         os.rmdir(os.path.join(self.path, each))
                     else:
                         os.remove(os.path.join(self.path, each))
-                except Exception, e:
+                except Exception as e:
                      wx.MessageBox('Delete failed: ' + str(e), 'Failed')
                      return
 
@@ -6105,7 +6110,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
 
                 try:
                     os.rename(os.path.join(self.path, filename), os.path.join(self.path, new_filename))
-                except Exception, e:
+                except Exception as e:
                     wx.MessageBox('Rename failed: ' + str(e), 'Failed')
 
                 self.updateFileList()
@@ -6166,7 +6171,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
                 subprocess.call(('start', filepath), shell = True)
             elif os.name == 'posix':
                 subprocess.call(('xdg-open', filepath))
-        except Exception, e:
+        except Exception as e:
             print(e)
 
 class DirCtrlPanel(wx.Panel):
@@ -6827,7 +6832,7 @@ class ManipulationPanel(wx.Panel):
                     if nmax != old_nmax:
                         modified = True
 
-            except SASExceptions.InvalidQrange, msg:
+            except SASExceptions.InvalidQrange as msg:
                 dial = wx.MessageDialog(None, 'Filename : ' + sasm.getParameter('filename') + '\n\n' + str(msg),
                                 'Invalid Qrange',
                                 wx.OK | wx.CANCEL | wx.NO_DEFAULT | wx.ICON_QUESTION)
@@ -7141,7 +7146,7 @@ class ManipItemPanel(wx.Panel):
         self._initStartPosition()
         self._updateQTextCtrl()
 
-        if self.sasm.getParameter('analysis').has_key('guinier'):
+        if 'guinier' in self.sasm.getParameter('analysis'):
             self.updateInfoTip(self.sasm.getParameter('analysis'))
 
         controls_not_shown = self.main_frame.raw_settings.get('ManipItemCollapsed')
@@ -7168,7 +7173,7 @@ class ManipItemPanel(wx.Panel):
 
     def updateInfoTip(self, analysis_dict, fromGuinierDialog = False):
 
-        if analysis_dict.has_key('guinier'):
+        if 'guinier' in analysis_dict:
             guinier = analysis_dict['guinier']
         else:
             guinier = {}
@@ -7178,7 +7183,7 @@ class ManipItemPanel(wx.Panel):
         string2 = ''
         string3 = ''
 
-        if guinier.has_key('Rg') and guinier.has_key('I0'):
+        if 'Rg' in guinier and 'I0' in guinier:
             rg = guinier['Rg']
             i_zero = guinier['I0']
 
@@ -7186,10 +7191,10 @@ class ManipItemPanel(wx.Panel):
         else:
             string1 = 'Rg: N/A' + '\nI(0): N/A\n'
 
-        if self.sasm.getAllParameters().has_key('Conc'):
+        if 'Conc' in self.sasm.getAllParameters():
             string2 = 'Conc: ' + str(self.sasm.getParameter('Conc')) + '\n'
 
-        if self.sasm.getAllParameters().has_key('Notes'):
+        if 'Notes' in self.sasm.getAllParameters():
             if self.sasm.getParameter('Notes') != '':
                 string3 = 'Note: ' + str(self.sasm.getParameter('Notes'))
 
@@ -7402,15 +7407,15 @@ class ManipItemPanel(wx.Panel):
 
     def useAsMWStandard(self):
 
-        if self.sasm.getAllParameters().has_key('Conc'):
+        if 'Conc' in self.sasm.getAllParameters():
             conc = self.sasm.getParameter('Conc')
 
             if float(conc) > 0:
-                if self.sasm.getParameter('analysis').has_key('guinier'):
+                if 'guinier' in self.sasm.getParameter('analysis'):
                     analysis = self.sasm.getParameter('analysis')
                     guinier = analysis['guinier']
 
-                    if guinier.has_key('I0'):
+                    if 'I0' in guinier:
                         i0 = guinier['I0']
 
                         if float(i0)>0:
@@ -7561,7 +7566,7 @@ class ManipItemPanel(wx.Panel):
         menu.AppendSeparator()
         img = menu.Append(19, 'Show image')
 
-        if not self.sasm.getAllParameters().has_key('load_path'):
+        if not 'load_path' in self.sasm.getAllParameters():
             img.Enable(False)
         menu.Append(20, 'Show data')
         menu.Append(21, 'Show header')
@@ -7584,7 +7589,7 @@ class ManipItemPanel(wx.Panel):
 
     def _onShowImage(self):
 
-        if self.sasm.getAllParameters().has_key('load_path'):
+        if 'load_path' in self.sasm.getAllParameters():
             path = self.sasm.getParameter('load_path')
             fnum = int(self.sasm.getParameter('filename').split('_')[-1].split('.')[0])-1
             mainworker_cmd_queue.put(['show_image', [path, fnum]])
@@ -9131,7 +9136,7 @@ class IFTItemPanel(wx.Panel):
 
     def _updateLegendLabel(self, update_plot=True):
 
-        labels = np.array(self._legend_label.values())
+        labels = np.array(list(self._legend_label.values()))
 
         if self._legend_label is None or len(labels) == 0 or np.all(labels == ''):
             self.iftm.r_line.set_label(self.iftm.getParameter('filename')+'_P(r)')
@@ -10288,7 +10293,7 @@ class SeriesItemPanel(wx.Panel):
 
     def _updateLegendLabel(self, update_plot=True):
 
-        labels = np.array(self._legend_label.values())
+        labels = np.array(list(self._legend_label.values()))
 
         if self._legend_label is None or len(labels) == 0 or np.all(labels == ''):
             self.secm.line.set_label(self.secm.getParameter('filename'))
@@ -10513,25 +10518,25 @@ class SECControlPanel(wx.Panel):
         if hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS' or hdr_format == 'BioCAT, APS':
             fname = self.parent._CreateFileDialog(wx.FD_OPEN)
 
-            if fname == None:
+            if fname is None:
                 return
 
             try:
                 sasm, img = SASFileIO.loadFile(fname, self.parent._raw_settings)
-            except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat), msg:
+            except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat) as msg:
                 img_fmt = self._raw_settings.get('ImageFormat')
                 ascii = ' or any of the supported ASCII formats'
                 wx.CallAfter(wx.MessageBox, 'The selected file: ' + fname + '\ncould not be recognized as a '   + str(img_fmt) +
                                  ' image format' + ascii + '.\n\nYou can change the image format under Advanced Options in the Options menu.' ,
                                   'Error loading file', style = wx.ICON_ERROR | wx.OK)
                 fname = None
-            except SASExceptions.HeaderLoadError, msg:
+            except SASExceptions.HeaderLoadError as msg:
                 wx.CallAfter(wx.MessageBox, str(msg), "Can't find Header file for selected image", style = wx.ICON_ERROR | wx.OK)
                 fname = None
-            except SASExceptions.MaskSizeError, msg:
+            except SASExceptions.MaskSizeError as msg:
                 wx.CallAfter(wx.MessageBox, str(msg), 'Saved mask does not fit selected image', style = wx.ICON_ERROR)
                 fname = None
-            except SASExceptions.HeaderMaskLoadError, msg:
+            except SASExceptions.HeaderMaskLoadError as msg:
                 wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header', style = wx.ICON_ERROR)
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
@@ -11187,7 +11192,7 @@ class MaskingPanel(wx.Panel):
 
         sizer = wx.BoxSizer()
 
-        self.selector_choice = wx.Choice(self, -1, choices = self.mask_choices.keys())
+        self.selector_choice = wx.Choice(self, -1, choices=list(self.mask_choices.keys()))
         self.selector_choice.SetStringSelection('Beamstop mask')
 
         set_button = wx.Button(self, -1, 'Set', size = (60,-1))
@@ -11347,10 +11352,10 @@ class MaskingPanel(wx.Panel):
         final_dets = pyFAI.detectors.ALL_DETECTORS
 
         for key in extra_det_list:
-            if final_dets.has_key(key):
+            if key in final_dets:
                 final_dets.pop(key)
 
-        det_list = sorted(final_dets.keys(), key = str.lower)
+        det_list = sorted(list(final_dets.keys()), key=str.lower)
 
         return det_list
 
@@ -11956,10 +11961,10 @@ class CenteringPanel(wx.Panel):
 
 
         for key in extra_det_list:
-            if final_dets.has_key(key):
+            if key in final_dets:
                 final_dets.pop(key)
 
-        det_list = ['Other'] + sorted(final_dets.keys(), key = str.lower)
+        det_list = ['Other'] + sorted(list(final_dets.keys()), key=str.lower)
 
         return det_list
 
@@ -12258,7 +12263,7 @@ class CenteringPanel(wx.Panel):
         if not self.c.weighted:
             self.c.data = np.array(self.c.data)[:, :-1]
 
-        for my_id, keyword in self._fix_keywords.iteritems():
+        for my_id, keyword in self._fix_keywords.items():
 
             value = wx.FindWindowById(my_id, self).GetValue()
 
@@ -12458,21 +12463,21 @@ class InformationPanel(wx.Panel):
 
         try:
             conc = self.conc_txt.GetValue().replace(',','.')
-            if self.sasm != None and conc != 'N/A':
+            if self.sasm is not None and conc != 'N/A':
 
                 float(conc)
                 self.sasm.setParameter('Conc', float(conc))
 
 
-        except Exception, e:
+        except Exception as e:
             print(e)
             print('info error, Conc')
 
 
-        if self.sasm != None and self.selectedItem != None:
+        if self.sasm is not None and self.selectedItem is not None:
             try:
                 self.selectedItem.updateInfoTip(self.sasm.getParameter('analysis'))
-            except Exception, e:
+            except Exception as e:
                 pass
 
         event.Skip()
@@ -12480,13 +12485,14 @@ class InformationPanel(wx.Panel):
     def _updateConc(self, event):
         try:
             conc = self.conc_txt.GetValue().replace(',','.')
-            if self.sasm != None and conc != 'N/A' and conc != 'N/' and conc !='N' and conc !='/A' and conc !='A' and conc != 'NA' and conc != '' and conc !='.':
+            if (self.sasm is not None and conc != 'N/A' and conc != 'N/'
+                and conc !='N' and conc !='/A' and conc !='A' and conc != 'NA'
+                and conc != '' and conc !='.'):
 
                 float(conc)
                 self.sasm.setParameter('Conc', float(conc))
 
-
-        except Exception, e:
+        except Exception as e:
             print(e)
             print('info error, Conc')
 
@@ -12495,7 +12501,7 @@ class InformationPanel(wx.Panel):
         key = self.header_choice.GetStringSelection()
         sel_idx = self.header_choice.GetSelection()
 
-        if self.sasm == None or key == 'No header info':
+        if self.sasm is None or key == 'No header info':
             return
 
         self.header_choice_key = key
@@ -12508,9 +12514,9 @@ class InformationPanel(wx.Panel):
         img_hdr = self.sasm.getParameter('imageHeader')
         file_hdr = self.sasm.getParameter('counters')
 
-        if self.header_choice_hdr == 'imageHeader' and img_hdr.has_key(key):
+        if self.header_choice_hdr == 'imageHeader' and key in img_hdr:
             self.header_txt.SetValue(str(img_hdr[key]))
-        if self.header_choice_hdr == 'counters' and file_hdr.has_key(key):
+        if self.header_choice_hdr == 'counters' and key in file_hdr:
             self.header_txt.SetValue(str(file_hdr[key]))
 
         if sel_idx != wx.NOT_FOUND:
@@ -12565,40 +12571,40 @@ class InformationPanel(wx.Panel):
         filename = self.sasm.getParameter('filename')
         self.name_txt.SetLabel(str(filename))
 
-        if self.sasm.getParameter('analysis').has_key('guinier'):
+        if 'guinier' in self.sasm.getParameter('analysis'):
             analysis_dict = self.sasm.getParameter('analysis')
             guinier = analysis_dict['guinier']
 
-            if guinier.has_key('Rg') and guinier.has_key('I0'):
+            if 'Rg' in guinier and 'I0' in guinier:
                 for each in self.analysis_data:
                     key = each[1]
-                    id = each[2]
+                    myid = each[2]
 
-                    txt = wx.FindWindowById(id, self)
+                    txt = wx.FindWindowById(myid, self)
 
-                    if guinier.has_key(key):
+                    if key in guinier:
                         txt.SetValue(str(guinier[key]))
 
-        if self.sasm.getAllParameters().has_key('Conc'):
+        if 'Conc' in self.sasm.getAllParameters():
             conc_ctrl = wx.FindWindowById(self.conc_data[2], self)
             conc_ctrl.SetValue(str(self.sasm.getParameter('Conc')))
 
-        if self.sasm.getAllParameters().has_key('MW'):
+        if 'MW' in self.sasm.getAllParameters():
             mw_ctrl = wx.FindWindowById(self.analysis_data[2][2], self)
             mw_ctrl.SetValue(str(self.sasm.getParameter('MW')))
 
         all_choices = []
         file_hdr = {}
         img_hdr = {}
-        if self.sasm.getAllParameters().has_key('counters'):
+        if 'counters' in self.sasm.getAllParameters():
             file_hdr = self.sasm.getParameter('counters')
-            all_filehdr_keys = file_hdr.keys()
+            all_filehdr_keys = list(file_hdr.keys())
             all_choices.extend(all_filehdr_keys)
             self.num_of_file_hdr_keys = len(all_filehdr_keys)
 
-        if self.sasm.getAllParameters().has_key('imageHeader'):
+        if 'imageHeader' in self.sasm.getAllParameters():
             img_hdr = self.sasm.getParameter('imageHeader')
-            all_imghdr_keys = img_hdr.keys()
+            all_imghdr_keys = list(img_hdr.keys())
             all_choices.extend(all_imghdr_keys)
             self.num_of_imghdr_keys = len(all_imghdr_keys)
 
@@ -12607,13 +12613,13 @@ class InformationPanel(wx.Panel):
             self.header_choice.SetItems(all_choices)
 
             try:
-                if self.header_choice_key != None:
-                    if self.header_choice_hdr == 'imageHeader' and img_hdr.has_key(self.header_choice_key):
+                if self.header_choice_key is not None:
+                    if self.header_choice_hdr == 'imageHeader' and self.header_choice_key in img_hdr:
                         idx = all_imghdr_keys.index(self.header_choice_key)
                         idx = idx + self.num_of_file_hdr_keys
                         self.header_choice.SetSelection(idx)
 
-                    elif self.header_choice_hdr == 'counters' and file_hdr.has_key(self.header_choice_key):
+                    elif self.header_choice_hdr == 'counters' and self.header_choice_key in file_hdr:
                         idx = all_filehdr_keys.index(self.header_choice_key)
                         self.header_choice.SetSelection(idx)
                     else:
@@ -12622,7 +12628,7 @@ class InformationPanel(wx.Panel):
                     self.header_choice.SetSelection(item.info_settings['hdr_choice'])
 
                 self._onHeaderBrowserChoice(None)
-            except Exception, e:
+            except Exception as e:
                 self.header_choice.SetSelection(0)
                 print(e)
                 print('InfoPanel error')
