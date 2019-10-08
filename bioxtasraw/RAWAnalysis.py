@@ -23,7 +23,7 @@ Created on Mar 23, 2010
 '''
 from __future__ import absolute_import, division, print_function, unicode_literals
 from future import standard_library
-from builtins import object, range, map, zip
+from builtins import object, range, map, zip, str
 from io import open
 standard_library.install_aliases()
 

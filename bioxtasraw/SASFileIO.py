@@ -106,7 +106,7 @@ def loadMask(filename):
 
     if os.path.splitext(filename)[1] == 'msk':
 
-        with open(filename, 'r') as FileObj:
+        with open(filename, 'rb') as FileObj:
             maskPlotParameters = pickle.load(FileObj)
 
         i=0
@@ -3626,11 +3626,11 @@ def saveDensityXplor(filename, rho,side):
 
 def loadWorkspace(load_path):
     try:
-        with open(load_path, 'r') as f:
+        with open(load_path, 'rb') as f:
             sasm_dict = pickle.load(f)
     except (ImportError, EOFError):
         try:
-            with open(load_path, 'rb') as f:
+            with open(load_path, 'r') as f:
                 sasm_dict = pickle.load(f)
         except (ImportError, EOFError):
             raise SASExceptions.UnrecognizedDataFormat(('Workspace could not be '
