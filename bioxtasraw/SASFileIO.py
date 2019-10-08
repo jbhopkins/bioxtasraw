@@ -983,8 +983,10 @@ def loadHeader(filename, new_filename, header_type):
 
     #Clean up headers by removing spaces in header names and non-unicode characters)
     if hdr is not None:
-        hdr = {key.replace(' ', '_').translate(None, '()[]') if isinstance(key, str) else key : hdr[key] for key in hdr}
-        hdr = {key : str(hdr[key], errors='ignore') if isinstance(hdr[key], str) else hdr[key] for key in hdr}
+        hdr = {key.replace(' ', '_').translate(str.maketrans('', '', '()[]'))
+            if isinstance(key, str) else key: hdr[key] for key in hdr}
+        hdr = { key : str(hdr[key], errors='ignore') if isinstance(hdr[key], str)
+            else hdr[key] for key in hdr}
 
     return hdr
 
@@ -1009,8 +1011,10 @@ def loadImage(filename, raw_settings):
     #Clean up headers by removing spaces in header names and non-unicode characters)
     for hdr in imghdr:
         if hdr is not None:
-            hdr = {key.replace(' ', '_').translate(None, '()[]') if isinstance(key, str) else key: hdr[key] for key in hdr}
-            hdr = { key : str(hdr[key], errors='ignore') if isinstance(hdr[key], str) else hdr[key] for key in hdr}
+            hdr = {key.replace(' ', '_').translate(str.maketrans('', '', '()[]'))
+                if isinstance(key, str) else key: hdr[key] for key in hdr}
+            hdr = { key : str(hdr[key], errors='ignore') if isinstance(hdr[key], str)
+                else hdr[key] for key in hdr}
 
 
     if image_type != 'SASLab300':

@@ -268,8 +268,6 @@ class MainFrame(wx.Frame):
 
         self._mgr.GetPane(self.control_notebook).MinSize((200,300))
 
-        #Load workdir from rawcfg.dat:
-        self._loadCfg()
         self._createMenuBar()
 
         # Start Plot Thread:
@@ -466,21 +464,6 @@ class MainFrame(wx.Frame):
             question_return_queue.put([result])  # put answer in thread safe queue
 
         thread_wait_event.set()                 # Release thread from its waiting state
-
-    def _loadCfg(self):
-
-        try:
-            file = 'rawcfg.dat'
-            FileObj = open(file, 'r')
-            savedInfo = pickle.load(FileObj)
-            FileObj.close()
-
-            dirctrl = wx.FindWindowByName('DirCtrlPanel')
-            dirctrl.SetPath(savedInfo['workdir'])
-
-            self.ChangeParameter('ImageFormat', savedInfo['ImageFormat'])
-        except Exception:
-            pass
 
     def showGNOMFrame(self, sasm, manip_item):
 
@@ -2104,15 +2087,14 @@ class MainFrame(wx.Frame):
         file = os.path.join(RAWGlobals.RAWWorkDir,'backup.ini')
 
         try:
-            file_obj = open(file, 'w')
-
-            path = wx.FindWindowByName('FileListCtrl').path
+            path = wx.FindWindowByName('FileListCtrl').path.decode('utf-8')
             save_info = {'workdir' : path}
 
-            pickle.dump(save_info, file_obj)
-            file_obj.close()
-        except Exception as e:
-            print(e)
+            with open(file, 'wb') as file_obj:
+                pickle.dump(save_info, file_obj)
+
+        except Exception:
+            traceback.print_exc()
 
     def _onCloseWindow(self, event):
 
@@ -2854,7 +2836,7 @@ class MainWorkerThread(threading.Thread):
         RAWGlobals.save_in_progress = True
         wx.CallAfter(self.main_frame.setStatus, 'Saving mask', 0)
 
-        with open(fullpath_filename, 'w') as file_obj:
+        with open(fullpath_filename, 'wb') as file_obj:
             pickle.dump(masks, file_obj)
 
         RAWGlobals.save_in_progress = False
@@ -2869,7 +2851,7 @@ class MainWorkerThread(threading.Thread):
             filenamepath, extension = os.path.splitext(fullpath_filename)
 
             if extension == '.msk':
-                with open(fullpath_filename, 'r') as file_obj:
+                with open(fullpath_filename, 'rb') as file_obj:
                     masks = pickle.load(file_obj)
 
                 i=0
@@ -6218,11 +6200,12 @@ class DirCtrlPanel(wx.Panel):
         load_path = os.path.join(RAWGlobals.RAWWorkDir, 'backup.ini')
 
         try:
-            with open(load_path, 'r') as file_obj:
+            with open(load_path, 'rb') as file_obj:
                 data = pickle.load(file_obj)
 
             path = data['workdir']
         except Exception:
+            traceback.print_exc()
             path = None
 
         if path != None and os.path.exists(path):
