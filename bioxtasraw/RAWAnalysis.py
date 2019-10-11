@@ -13854,7 +13854,7 @@ class SeriesPlotPanel(wx.Panel):
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         self.canvas.SetBackgroundColour('white')
 
-        self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self.canvas)
+        self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -13950,7 +13950,7 @@ class SeriesPlotPanel(wx.Panel):
         else:
             self.ryaxis.set_ylabel(label)
 
-        self.canvas.draw()
+        self.ax_redraw()
 
     def remove_range(self, index):
         if index in self.plot_ranges:
@@ -14005,9 +14005,6 @@ class SeriesPlotPanel(wx.Panel):
         self.range_line.set_visible(True)
 
     def show_range(self, index, show):
-        print index
-        print show
-        print self.plot_ranges
         line = self.plot_ranges[index]
         line.set_visible(show)
 
@@ -14102,20 +14099,49 @@ class SeriesPlotPanel(wx.Panel):
 
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
-        self.background = self.canvas.copy_from_bbox(self.subplot.bbox)
-
         self.canvas.mpl_disconnect(self.cid)
-        self.updatePlot()
+        self.canvas.draw()
+        self.background = self.canvas.copy_from_bbox(self.subplot.bbox)
+        self.redrawLines()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
-    def relimPlot(self):
+    def autoscale_plot(self):
         redraw = False
 
         oldx = self.subplot.get_xlim()
         oldy = self.subplot.get_ylim()
 
-        self.subplot.relim()
-        self.subplot.autoscale_view()
+        x_max = None
+        x_min = None
+        y_max = None
+        y_min = None
+
+        for line in self.plot_lines.values():
+            x_data = line.get_xdata()
+            y_data = line.get_ydata()
+
+            if x_max is None:
+                x_max = max(x_data)
+                x_min = min(x_data)
+            else:
+                x_max = max(x_max, x_data)
+                x_min = min(x_min, x_data)
+
+            if y_max is None:
+                y_max = max(y_data)
+                y_min = min(y_data)
+            else:
+                y_max = max(y_max, y_data)
+                y_min = min(y_min, y_data)
+
+        if x_max is None:
+            x_min = 0
+            x_max = 1
+            y_min = 0
+            y_max = 1
+
+        self.subplot.set_xlim([x_min*0.98, x_max*1.02])
+        self.subplot.set_ylim([y_min*0.98, y_max*1.02])
 
         newx = self.subplot.get_xlim()
         newy = self.subplot.get_ylim()
@@ -14123,23 +14149,37 @@ class SeriesPlotPanel(wx.Panel):
         if newx != oldx or newy != oldy:
             redraw = True
 
-        if self.ryaxis is not None and not redraw:
-            oldrx = self.ryaxis.get_xlim()
-            oldry = self.ryaxis.get_ylim()
+        if self.ryaxis is not None:
+            oldy = self.ryaxis.get_ylim()
 
-            self.ryaxis.relim()
-            self.ryaxis.autoscale_view()
+            y_max = None
+            y_min = None
 
-            newrx = self.ryaxis.get_xlim()
-            newry = self.ryaxis.get_ylim()
+            for line in self.r_plot_lines.values():
+                y_data = line.get_ydata()
 
-            if newrx != oldrx or newry != oldry:
+                if y_max is None:
+                    y_max = max(y_data)
+                    y_min = min(y_data)
+                else:
+                    y_max = max(y_max, y_data)
+                    y_min = min(y_min, y_data)
+
+            if y_max is None:
+                y_min = 0
+                y_max = 1
+
+            self.ryaxis.set_ylim([y_min*0.98, y_max*1.02])
+
+            newy = self.ryaxis.get_ylim()
+
+            if newy != oldy:
                 redraw = True
 
         if redraw:
-            self.canvas.draw()
-
-        self.redrawLines()
+            self.ax_redraw()
+        else:
+            self.redrawLines()
 
     def redrawLines(self):
         self.canvas.restore_region(self.background)
@@ -14160,7 +14200,7 @@ class SeriesPlotPanel(wx.Panel):
         self.canvas.blit(self.subplot.bbox)
 
     def updatePlot(self):
-        self.relimPlot()
+        self.autoscale_plot()
 
 
 class LCSeriesPlotPage(wx.Panel):
