@@ -14809,19 +14809,29 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             border=2)
         type_sizer.Add(self.baseline_cor, flag=wx.LEFT|wx.RIGHT, border=2)
 
+        r1_0 = frames[0]
+        r2_0 = frames[0]
+
+        if len(frames) < 22:
+            r1_1 = frames[len(frames)//2]
+            r2_2 = frames[min(len(frames)//2+1, len(frames)-1)]
+        else:
+            r1_1 = frames[10]
+            r2_2 = frames[-11]
+
         self.bl_r1_start = RAWCustomCtrl.IntSpinCtrl(baseline_win,
-            wx.ID_ANY, min=frames[0], max=frames[10], size=(60,-1))
+            wx.ID_ANY, min=r1_0, max=r1_1, size=(60,-1))
         self.bl_r1_end = RAWCustomCtrl.IntSpinCtrl(baseline_win,
-            wx.ID_ANY, min=frames[0], max=frames[-1], size=(60,-1))
-        self.bl_r1_end.SetValue(frames[10])
+            wx.ID_ANY, min=r1_0, max=frames[-1], size=(60,-1))
+        self.bl_r1_end.SetValue(r1_1)
         self.bl_r1_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
         self.bl_r1_end.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
 
         self.bl_r2_start = RAWCustomCtrl.IntSpinCtrl(baseline_win,
-            wx.ID_ANY, min=frames[0], max=frames[-1], size=(60,-1))
+            wx.ID_ANY, min=r2_0, max=frames[-1], size=(60,-1))
         self.bl_r2_end = RAWCustomCtrl.IntSpinCtrl(baseline_win,
-            wx.ID_ANY, min=frames[-11], max=frames[-1], size=(60,-1))
-        self.bl_r2_start.SetValue(frames[-11])
+            wx.ID_ANY, min=r2_2, max=frames[-1], size=(60,-1))
+        self.bl_r2_start.SetValue(r2_2)
         self.bl_r2_end.SetValue(frames[-1])
         self.bl_r2_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
         self.bl_r2_end.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
@@ -17464,26 +17474,33 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         peaks, peak_params = SASCalc.find_peaks(norm_sdata, height=0.4)
 
         avg_window = int(self.avg_window.GetValue())
-        min_window_width = max(10, int(round(avg_window/2.)))
+        min_window_width = min(max(10, int(round(avg_window/2.))), len(intensity)//2)
+        if min_window_width < 2:
+            min_window_width = 2
 
         if len(peaks) == 0:
-            window_size =  min_window_width
+            start_window_size =  min_window_width
             start_point = 0
-            end_point = len(intensity) - 1 - window_size
-        else:
+            end_point = len(intensity) - 1 - start_window_size
 
+        else:
             max_peak_idx = np.argmax(peak_params['peak_heights'])
             main_peak_width = int(round(peak_params['widths'][max_peak_idx]))
 
-            window_size = max(main_peak_width, min_window_width)
+            start_window_size = max(main_peak_width, min_window_width)
             start_point = 0
 
-            end_point = int(round(peak_params['left_ips'][max_peak_idx]))
-            if end_point + window_size > len(intensity) - 1 - window_size:
-                end_point = len(intensity) - 1 - window_size
+            if start_window_size == min_window_width:
+                end_point = len(intensity) - 1 - start_window_size
+            else:
+                end_point = int(round(peak_params['left_ips'][max_peak_idx]))
+                if end_point + start_window_size > len(intensity) - 1 - start_window_size:
+                    end_point = len(intensity) - 1 - start_window_size
 
         found_region = False
         failed = False
+
+        window_size = start_window_size
 
         while not found_region and not failed:
             step_size = max(1, int(round(window_size/4.)))
@@ -17512,6 +17529,41 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
             if window_size < min_window_width and not found_region:
                 failed = True
+
+        if end_point != len(intensity) - 1 - start_window_size and failed:
+            failed = False
+            window_size = start_window_size
+
+            start_point = int(round(peak_params['right_ips'][max_peak_idx]))
+            end_point = len(intensity) - 1 - start_window_size
+
+            if start_point + start_window_size > len(intensity) - 1 - start_window_size:
+                failed = True
+
+            while not found_region and not failed:
+                step_size = max(1, int(round(window_size/4.)))
+                region_starts = range(start_point, end_point, step_size)
+
+                for idx in region_starts:
+                    region_sasms = buffer_sasms[idx:idx+window_size+1]
+                    frame_idx = range(idx, idx+window_size+1)
+                    valid, similarity_results, svd_results, intI_results = self._validateBuffer(region_sasms,
+                        frame_idx, True)
+
+                    if np.all([peak not in frame_idx for peak in peaks]) and valid:
+                        found_region = True
+                    else:
+                        found_region = False
+
+                    if found_region:
+                        region_start = idx
+                        region_end = idx+window_size
+                        break
+
+                window_size = int(round(window_size/2.))
+
+                if window_size < min_window_width and not found_region:
+                    failed = True
 
         if not failed:
             wx.CallAfter(self._addAutoBufferRange, region_start, region_end)
@@ -17578,8 +17630,6 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         search_region = main_peak_width*2
 
         window_size = main_peak_width
-        mid_point = main_peak_pos-int(round(window_size/2.))
-
         start_point = main_peak_pos - int(round(search_region/2.))
 
         found_region = False
@@ -17590,6 +17640,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
             end_point = main_peak_pos + int(round(search_region/2)) - window_size
             num_pts_gen = int(round((end_point-start_point)/step_size/2))
+
+            mid_point = main_peak_pos-int(round(window_size/2.))
 
             region_starts = []
 
