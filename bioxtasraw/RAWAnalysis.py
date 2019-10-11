@@ -15827,10 +15827,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         ref_sasm = copy.deepcopy(sasms[max_i_idx])
         superimpose_sub_sasms = copy.deepcopy(sasms)
-        superimpose_sub_sasms.pop(max_i_idx)
         SASProc.superimpose(ref_sasm, superimpose_sub_sasms, 'Scale')
         qi, qf = ref_sasm.getQrange()
-
 
         #Test for frame correlation
         if len(sasms) > 1:
@@ -16946,7 +16944,6 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         ref_sasm = copy.deepcopy(sub_sasms[max_i_idx])
         superimpose_sub_sasms = copy.deepcopy(sub_sasms)
-        superimpose_sub_sasms.pop(max_i_idx)
         SASProc.superimpose(ref_sasm, superimpose_sub_sasms, 'Scale')
         qi, qf = ref_sasm.getQrange()
 
