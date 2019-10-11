@@ -3675,6 +3675,14 @@ def writeHeader(d, f2, ignore_list = []):
     d = translateHeader(d)
 
     header = json.dumps(d, indent = 4, sort_keys = True, cls = MyEncoder)
+
+    if header.count('\n') > 3000:
+        try:
+            del d['history']
+            header = json.dumps(d, indent = 4, sort_keys = True, cls = MyEncoder)
+        except Exception:
+            pass
+
     header = header.replace('\n', '\n#')
     f2.write(header)
 

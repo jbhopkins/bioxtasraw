@@ -3524,7 +3524,7 @@ class MainWorkerThread(threading.Thread):
                 for key in sasm.getParameter('history'):
                     history1.append({ key : copy.deepcopy(sasm.getParameter('history')[key])})
 
-                history['baseline_correction'] = {'initial_file':history1, 'baseline':list(baseline)}
+                history['baseline_correction'] = {'initial_file':history1, 'type':bl_type}
 
                 newSASM.setParameter('history', history)
 
