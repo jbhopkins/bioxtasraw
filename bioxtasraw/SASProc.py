@@ -392,25 +392,28 @@ def superimpose(sasm_star, sasm_list, choice):
         min_q_idx = np.where(q_star >= min_q_each)[0][0]
         max_q_idx = np.where(q_star <= max_q_each)[0][-1]
 
-        I_resamp = np.interp(q_star[min_q_idx:max_q_idx+1],
-                             each_q[each_q_qrange_min:each_q_qrange_max],
-                             each_i[each_q_qrange_min:each_q_qrange_max])
+        if np.all(q_star[min_q_idx:max_q_idx+1] != each_q[each_q_qrange_min:each_q_qrange_max]):
+            I_resamp = np.interp(q_star[min_q_idx:max_q_idx+1],
+                                 each_q[each_q_qrange_min:each_q_qrange_max],
+                                 each_i[each_q_qrange_min:each_q_qrange_max])
+        else:
+            I_resamp = each_i[each_q_qrange_min:each_q_qrange_max]
 
+        if not np.all(I_resamp ==i_star):
+            if choice == 'Scale and Offset':
+                A = np.column_stack([I_resamp, np.ones_like(I_resamp)])
+                scale, offset = np.linalg.lstsq(A, i_star[min_q_idx:max_q_idx+1])[0]
+            elif choice == 'Scale':
+                A = np.column_stack([I_resamp, np.zeros_like(I_resamp)])
+                scale, offset= np.linalg.lstsq(A, i_star[min_q_idx:max_q_idx+1])[0]
+                offset = 0
+            elif choice == 'Offset':
+                A = np.column_stack([np.zeros_like(I_resamp), np.ones_like(I_resamp)])
+                scale, offset= np.linalg.lstsq(A, i_star[min_q_idx:max_q_idx+1]-I_resamp)[0]
+                scale = 1
 
-        if choice == 'Scale and Offset':
-            A = np.column_stack([I_resamp, np.ones_like(I_resamp)])
-            scale, offset = np.linalg.lstsq(A, i_star[min_q_idx:max_q_idx+1])[0]
-        elif choice == 'Scale':
-            A = np.column_stack([I_resamp, np.zeros_like(I_resamp)])
-            scale, offset= np.linalg.lstsq(A, i_star[min_q_idx:max_q_idx+1])[0]
-            offset = 0
-        elif choice == 'Offset':
-            A = np.column_stack([np.zeros_like(I_resamp), np.ones_like(I_resamp)])
-            scale, offset= np.linalg.lstsq(A, i_star[min_q_idx:max_q_idx+1]-I_resamp)[0]
-            scale = 1
-
-        each_sasm.scale(scale)
-        each_sasm.offset(offset)
+            each_sasm.scale(scale)
+            each_sasm.offset(offset)
 
 
 def merge(sasm_star, sasm_list):

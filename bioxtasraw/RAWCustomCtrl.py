@@ -1594,7 +1594,7 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
     A custom plot toolbar that displays the cursor position (or other text)
     in addition to the usual controls.
     """
-    def __init__(self, canvas):
+    def __init__(self, parent, canvas):
         """
         Initializes the toolbar.
 
@@ -1604,6 +1604,7 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         NavigationToolbar2WxAgg.__init__(self, canvas)
 
         self.status = wx.StaticText(self, label='')
+        self.parent = parent
 
         self.AddControl(self.status)
 
@@ -1613,6 +1614,9 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         on the plot.
         """
         self.status.SetLabel(status)
+
+    def home(self, *args, **kwargs):
+        self.parent.autoscale_plot()
 
 #Monkey patch flatNB.PageContainer
 def OnPaintFNB(self, event):

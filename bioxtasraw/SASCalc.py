@@ -1857,7 +1857,7 @@ def run_cormap_ref(sasm_list, ref_sasm, correction='None'):
     pvals = np.ones(len(sasm_list), dtype=float)
     failed_comparisons = []
 
-    for index, sasm in enumerate(sasm_list[1:]):
+    for index, sasm in enumerate(sasm_list):
         if np.all(np.round(sasm.getQ(), 5) == np.round(ref_sasm.getQ(), 5)):
             try:
                 n, c, prob = cormap_pval(ref_sasm.getI(), sasm.getI())
