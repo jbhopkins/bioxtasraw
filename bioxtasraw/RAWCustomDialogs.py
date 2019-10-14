@@ -92,7 +92,7 @@ class SaveAnalysisInfoDialog(wx.Dialog):
         if len(include_data) > 0:
 
             save_path = self._showSaveDialog()
-            if save_path == None:
+            if save_path is None:
                 return
 
             data = [self.item_list, include_data, save_path]
@@ -183,7 +183,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         for each_item in selected_items:
             data = copy.copy(self.variable_data[each_item])
 
-            if data[1] == None:
+            if data[1]is None:
                 continue
 
             txt = self.variable_listctrl.GetItem(each_item).GetText()
@@ -494,7 +494,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         return self.included_data
 
     def _updateIncludeList(self, include_data):
-        if include_data == None:
+        if include_data is None:
             return
 
         for each in sorted(include_data.keys()):
@@ -592,7 +592,7 @@ class SaveAnalysisListCtrl(wx.ListCtrl):
 
     def SetValue(self, value_list):
 
-        if value_list == None:
+        if value_list is None:
             return
 
         for each in value_list:
@@ -613,7 +613,7 @@ class HdrDataDialog(wx.Dialog):
         self.sasm = sasm
 
         #For testing
-        if self.sasm == None:
+        if self.sasm is None:
             data_len = 100
             filename_label = wx.StaticText(self, -1, 'Filename :')
         else:
@@ -641,7 +641,7 @@ class HdrDataDialog(wx.Dialog):
 
         self.SetSizer(self.sizer)
 
-        if self.sasm != None:
+        if self.sasm is not None:
             self._insertData()
 
         self.data_grid.AutoSizeColumns()
@@ -817,7 +817,7 @@ class DataDialog(wx.Dialog):
         self.grid_changed = False
         self.sasm = sasm
         #For testing
-        if self.sasm == None:
+        if self.sasm is None:
             data_len = 100
             filename_label = wx.StaticText(self, -1, 'Filename :')
         else:
@@ -846,7 +846,7 @@ class DataDialog(wx.Dialog):
 
         self.SetSizer(self.sizer)
 
-        if self.sasm != None:
+        if self.sasm is not None:
             self._insertData()
 
 
@@ -966,7 +966,7 @@ class SeriesDataDialog(wx.Dialog):
 
         self.create_layout()
 
-        if self.secm != None:
+        if self.secm is not None:
             self._insertData()
 
 
@@ -1305,7 +1305,7 @@ class HistoryDialog(wx.Dialog):
 
         history = sasm.getParameter('history')
 
-        if history != {} and history != None:
+        if history != {} and history is not None:
             self.text.AppendText(json.dumps(history, indent = 4, sort_keys = True))
 
         else:
@@ -1316,17 +1316,17 @@ class HistoryDialog(wx.Dialog):
             version = sasm.getParameter('raw_version')
             metadata = sasm.getParameter('metadata')
 
-            if norm != {} and norm != None:
+            if norm != {} and norm is not None:
                 self.text.AppendText('Normalizations:\n%s\n\n' %(json.dumps(norm, indent = 4, sort_keys = True)))
-            if config != {} and config != None:
+            if config != {} and config is not None:
                 self.text.AppendText('Configuration File:\n%s\n\n' %(json.dumps(config, indent = 4, sort_keys = True)))
-            if load != {} and load != None:
+            if load != {} and load is not None:
                 self.text.AppendText('Load Path:\n%s\n\n' %(json.dumps(load, indent = 4, sort_keys = True)))
-            if params != {} and params != None:
+            if params != {} and params is not None:
                 self.text.AppendText('Calibration Parameters:\n%s\n\n' %(json.dumps(params, indent = 4, sort_keys = True)))
-            if metadata != {} and metadata != None:
+            if metadata != {} and metadata is not None:
                 self.text.AppendText('Metadata:\n%s\n\n' %(json.dumps(metadata, indent = 4, sort_keys = True)))
-            if version != {} and version != None:
+            if version != {} and version is not None:
                 self.text.AppendText('Created with RAW version:\n%s\n\n' %(json.dumps(version, indent = 4, sort_keys = True)))
 
 
@@ -1849,7 +1849,7 @@ class ColourChangeDialog(wx.Dialog):
 class LinePropertyDialog(wx.Dialog):
 
     def __init__(self, parent, sasm, legend_label, size = (400, 418), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
-        if sasm.line == None:
+        if sasm.line is None:
             wx.MessageBox('Unable to change line properties.\nNo plot has been made for this item.', 'No plot')
             return
 
@@ -2175,7 +2175,7 @@ class LinePropertyDialog(wx.Dialog):
 
         self.sasm.plot_panel.canvas.draw()
 
-        if event != None:
+        if event is not None:
             event.Skip()
 
     def _onCancelButton(self, event):
@@ -2212,7 +2212,7 @@ class IFTMLinePropertyDialog(wx.Dialog):
 
     def __init__(self, parent, iftm, legend_label, size = (500, 598), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
 
-        if iftm.r_line == None:
+        if iftm.r_line is None:
             wx.MessageBox('Unable to change line properties.\nNo plot has been made for this item.', 'No plot')
             return
 
@@ -2976,7 +2976,7 @@ class IFTMLinePropertyDialog(wx.Dialog):
 
         self.iftm.plot_panel.canvas.draw()
 
-        if event != None:
+        if event is not None:
             event.Skip()
 
     def _onCancelButton(self, event):
@@ -3042,7 +3042,7 @@ class SECMLinePropertyDialog(wx.Dialog):
 
     def __init__(self, parent, secm, legend_label, size = (433, 549), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
 
-        if secm.line == None:
+        if secm.line is None:
             wx.MessageBox('Unable to change line properties.\nNo plot has been made for this item.', 'No plot')
             return
 
@@ -3542,7 +3542,7 @@ class SECMLinePropertyDialog(wx.Dialog):
 
         self.secm.plot_panel.canvas.draw()
 
-        if event != None:
+        if event is not None:
             event.Skip()
 
     def _onCancelButton(self, event):

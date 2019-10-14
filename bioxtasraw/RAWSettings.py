@@ -48,7 +48,7 @@ class RawGuiSettings(object):
 
         self._params = settings
 
-        if settings == None:
+        if settings is None:
             file_defs, _ = SASFileIO.loadFileDefinitions()
             self._params = {
                             'RequiredVersion'       : ['1.6.0', wx.NewId(), 'text'],

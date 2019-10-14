@@ -61,7 +61,7 @@ class PyMathParser(object):
 
     def addSpecialVariables(self, var_dict):
 
-        if var_dict == None:
+        if var_dict is None:
             return
 
         for each_key in var_dict:

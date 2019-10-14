@@ -315,7 +315,7 @@ class MainFrame(wx.Frame):
         online_path = self.raw_settings.get('OnlineStartupDir')
 
         if start_online_mode and os.path.isdir(online_path):
-            if online_path != None:
+            if online_path is not None:
                 self.OnlineControl.seek_dir = online_path
                 self.OnlineControl.goOnline()
 
@@ -788,7 +788,7 @@ class MainFrame(wx.Frame):
     def showEFAFrame(self, secm, manip_item):
 
         #make a subtracted profile SECM
-        if len(secm.subtracted_sasm_list) == 0 and manip_item != None:
+        if len(secm.subtracted_sasm_list) == 0 and manip_item is not None:
             msg = ('No subtracted files are available for this series curve. '
                 'It is recommended that you run EFA on subtracted profiles. '
                 'You can create subtracted profiles using the LC Series analysis '
@@ -1691,7 +1691,7 @@ class MainFrame(wx.Frame):
             selected_items = manippage.getSelectedItems()
             marked_item = manippage.getBackgroundItem()
 
-            if marked_item == None:
+            if marked_item is None:
                 wx.MessageBox('The background file needs to be selected by clicking the star icon.', 'Select background first', style = wx.ICON_INFORMATION)
                 return
             else:
@@ -2033,7 +2033,7 @@ class MainFrame(wx.Frame):
 
     def showOptionsDialog(self, focusHead = None):
 
-        if focusHead != None:
+        if focusHead is not None:
             dialog = RAWOptions.OptionsDialog(self, self.raw_settings, focusHeader = focusHead)
         else:
 
@@ -2239,7 +2239,7 @@ class OnlineController(object):
         if self._raw_settings.get('OnlineModeOnStartup') and os.path.isdir(self._raw_settings.get('OnlineStartupDir')):
             path = self._raw_settings.get('OnlineStarupDir')
 
-            if path != None:
+            if path is not None:
                 self.seek_dir = path
                 self.goOnline()
                 self.main_frame.setStatus('Mode: ONLINE', 2)
@@ -2271,7 +2271,7 @@ class OnlineController(object):
         if self.isRunning():
             found_path = self.selectSearchDir()
 
-            if found_path != None:
+            if found_path is not None:
                 dir_list = os.listdir(self.seek_dir)
 
                 dir_list_dict = {}
@@ -2577,7 +2577,7 @@ class MainWorkerThread(threading.Thread):
             except queue.Empty:
                 command = None
 
-            if command != None:
+            if command is not None:
 
                 if self._abort == True:
                     self._cleanUpAfterAbort()
@@ -2599,7 +2599,7 @@ class MainWorkerThread(threading.Thread):
 
             img, imghdr = SASFileIO.loadImage(filename, self._raw_settings)
 
-            if img[-1] == None:
+            if img[-1] is None:
                 raise SASExceptions.WrongImageFormat('not a valid file!')
 
         except Exception as e:
@@ -3095,7 +3095,7 @@ class MainWorkerThread(threading.Thread):
 
 
         file_list = wx.FindWindowByName('FileListCtrl')
-        if file_list != None:
+        if file_list is not None:
             wx.CallAfter(file_list.SetFocus)
 
         wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -4045,7 +4045,7 @@ class MainWorkerThread(threading.Thread):
         star_item = data[0]
         selected_items = data[1]
 
-        if star_item == None:
+        if star_item is None:
             self._showPleaseMarkItemError('superimpose')
             return
 
@@ -4095,7 +4095,7 @@ class MainWorkerThread(threading.Thread):
         if marked_item in selected_items:
             selected_items.remove(marked_item)
 
-        if marked_item == None:
+        if marked_item is None:
             wx.CallAfter(self._showPleaseMarkItemError, 'subtract')
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
@@ -4460,7 +4460,7 @@ class MainWorkerThread(threading.Thread):
             idx = selected_items.index(marked_item)
             selected_items.pop(idx)
 
-        if marked_item == None:
+        if marked_item is None:
             wx.CallAfter(self._showPleaseMarkItemError, 'merge')
             return
 
@@ -4485,7 +4485,7 @@ class MainWorkerThread(threading.Thread):
             idx = selected_items.index(marked_item)
             selected_items.pop(idx)
 
-        if marked_item == None:
+        if marked_item is None:
             wx.CallAfter(self._showPleaseMarkItemError, 'interpolate')
             return
 
@@ -6208,7 +6208,7 @@ class DirCtrlPanel(wx.Panel):
             traceback.print_exc()
             path = None
 
-        if path != None and os.path.exists(path):
+        if path is not None and os.path.exists(path):
             self.setDirLabel(path)
             self.file_list_box.setDir(path)
         else:
@@ -6501,7 +6501,7 @@ class ManipulationPanel(wx.Panel):
 
         bg_sasm = self._raw_settings.get('BackgroundSASM')
 
-        if bg_sasm != None:
+        if bg_sasm is not None:
             try:
                 bg_sasm.itempanel.enableStar(False)
             except:
@@ -6593,7 +6593,7 @@ class ManipulationPanel(wx.Panel):
 
     def deselectAllExceptOne(self, item, line = None, enableLocatorLine = False):
 
-        if line == None:
+        if line is None:
             for each in self.all_manipulation_items:
                 if each != item:
                     each._selected = True
@@ -7975,7 +7975,7 @@ class ManipItemPanel(wx.Panel):
 
     def _updateLegendLabel(self, update_plot=True):
 
-        if self._legend_label == '' or self._legend_label == None:
+        if self._legend_label == '' or self._legend_label is None:
             self.sasm.line.set_label(self.sasm.getParameter('filename'))
             self.legend_label_text.SetLabel('')
         else:
@@ -8237,7 +8237,7 @@ class IFTPanel(wx.Panel):
 
         bg_sasm = self._raw_settings.get('BackgroundSASM')
 
-        if bg_sasm != None:
+        if bg_sasm is not None:
             try:
                 bg_sasm.itempanel.enableStar(False)
             except:
@@ -8297,7 +8297,7 @@ class IFTPanel(wx.Panel):
 
     def deselectAllExceptOne(self, item, line = None, enableLocatorLine = False):
 
-        if line == None:
+        if line is None:
             for each in self.all_manipulation_items:
                 if each != item:
                     each._selected = True
@@ -9379,7 +9379,7 @@ class SECPanel(wx.Panel):
         return self.selected_item_list
 
     def deselectAllExceptOne(self, item, line = None, enableLocatorLine = False):
-        if line == None:
+        if line is None:
             for each in self.all_manipulation_items:
                 if each != item:
                     each._selected = True
@@ -9411,11 +9411,11 @@ class SECPanel(wx.Panel):
             if each.secm == sec_control_panel.secm:
                 sec_control_panel.secm = None
 
-            if each.secm.line != None:
+            if each.secm.line is not None:
                 plot_panel = each.secm.plot_panel
                 try:
                     each.secm.line.remove()
-                    if each.secm.origline != None:
+                    if each.secm.origline is not None:
                         each.secm.origline.remove()
                     i = plot_panel.plotted_secms.index(each.secm)
                     plot_panel.plotted_secms.pop(i)
@@ -9425,7 +9425,7 @@ class SECPanel(wx.Panel):
                 if not each.secm.axes in axes_that_needs_updated_legend:
                     axes_that_needs_updated_legend.append(each.secm.axes)
 
-            if each.secm.calc_line != None:
+            if each.secm.calc_line is not None:
                 plot_panel = each.secm.plot_panel
                 try:
                     each.secm.calc_line.remove()
@@ -9666,13 +9666,13 @@ class SECPanel(wx.Panel):
 
         bg_secm = self._raw_settings.get('DataSECM')
 
-        if bg_secm != None:
+        if bg_secm is not None:
             try:
                 bg_secm.itempanel.enableStar(False)
                 self.clearDataItem()
             except:
                 pass
-        elif self.getDataItem() != None:
+        elif self.getDataItem() is not None:
             bg_secm = self.getDataItem()
             try:
                 bg_secm.itempanel.enableStar(False)
@@ -10531,7 +10531,7 @@ class SECControlPanel(wx.Panel):
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
 
-            if fname != None:
+            if fname is not None:
                 self.directory, self.filename = os.path.split(fname)
                 self._fillBoxes()
                 self._onLoad()
@@ -10560,7 +10560,7 @@ class SECControlPanel(wx.Panel):
 
     def onUpdate(self):
 
-        if self.secm != None:
+        if self.secm is not None:
 
             if self._is_online:
                 self._goOffline()
@@ -10646,7 +10646,7 @@ class SECControlPanel(wx.Panel):
 
             elif len(self.sec_panel.all_manipulation_items)>1:
 
-                if selected_item != None:
+                if selected_item is not None:
                     if not selected_item.getSelectedForPlot():
                         msg = "Warning: The selected series curve is not shown on the plot. Send frames to main plot anyways?\nNote: You can select a different series curve by starring it."
                         dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection", style = wx.ICON_QUESTION | wx.YES_NO)
@@ -10712,7 +10712,7 @@ class SECControlPanel(wx.Panel):
 
             elif len(self.sec_panel.all_manipulation_items)>1:
 
-                if selected_item != None:
+                if selected_item is not None:
                     if not selected_item.getSelectedForPlot():
                         msg = "Warning: The selected series curve is not shown on the plot. Send frames to main plot anyways?\nNote: You can select a different series curve by starring it."
                         dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection", style = wx.ICON_QUESTION | wx.YES_NO)
@@ -11200,7 +11200,7 @@ class MaskingPanel(wx.Panel):
         img_hdr = sasm.getParameter('imageHeader')
         img = self.image_panel.img
 
-        if img is not None and img_hdr != None and 'bsmask_configuration' in img_hdr:
+        if img is not None and img_hdr is not None and 'bsmask_configuration' in img_hdr:
             mask_params = SASImage.createMaskFromHdr(img, img_hdr, flipped = self._main_frame.raw_settings.get('DetectorFlipped90'))
         else:
             wx.MessageBox('The image does not have a SAXSLAB Beamstop Mask in the header.', 'No mask available.', style = wx.ICON_EXCLAMATION)
@@ -11359,7 +11359,7 @@ class MaskingPanel(wx.Panel):
         masks_copy = []     # Need to copy the masks to new objects, ortherwise all kinds of strange things happen
                             # when you switch between masks or modify masks.
 
-        if saved_mask != None:
+        if saved_mask is not None:
             for each in saved_mask:
                 masks_copy.append(copy.copy(each))
             plot_parameters['storedMasks'] = masks_copy
@@ -12510,7 +12510,7 @@ class InformationPanel(wx.Panel):
     def clearInfo(self):
         self._disableAllControls()
 
-        if self.sasm != None and self.selectedItem != None:
+        if self.sasm is not None and self.selectedItem is not None:
             try:
                 self.selectedItem.updateInfoTip(self.sasm.getParameter('analysis'))
             except Exception:
@@ -12620,7 +12620,7 @@ class InformationPanel(wx.Panel):
             self.header_choice.SetItems(['No header info'])
             self.header_choice.Select(0)
 
-        if self.sasm.getParameter('Notes') != None:
+        if self.sasm.getParameter('Notes') is not None:
             self.noteTextBox.SetValue(self.sasm.getParameter('Notes'))
 
         self.analysis_info_sizer.Layout()

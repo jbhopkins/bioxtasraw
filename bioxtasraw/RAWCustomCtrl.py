@@ -824,7 +824,7 @@ class FloatSpinCtrl(wx.Panel):
 
         wx.Panel.__init__(self, parent, id, **kwargs)
 
-        if initValue == None:
+        if initValue is None:
             initValue = '1.00'
 
         self.defaultScaleDivider = 100
@@ -986,7 +986,7 @@ class FloatSpinCtrlList(wx.Panel):
         self.min_idx = min_idx
         self.max_idx = max_idx
 
-        if initIndex == None:
+        if initIndex is None:
             initIndex = 0
         elif initIndex == -1:
             initIndex = self.max_idx
@@ -1723,7 +1723,7 @@ def OnPaintULCHeader(self, event):
         # inside the column rect
         header_rect = wx.Rect(x-1, ULC.HEADER_OFFSET_Y-1, cw-1, ch)
 
-        if self._headerCustomRenderer != None:
+        if self._headerCustomRenderer is not None:
            self._headerCustomRenderer.DrawHeaderButton(dc, header_rect, flags)
 
            # The custom renderer will specify the color to draw the header text and buttons
@@ -1821,7 +1821,7 @@ def OnPaintULCHeader(self, event):
     # leave an unpainted area when columns are removed (and it looks better)
     if x < w:
         header_rect = wx.Rect(x, ULC.HEADER_OFFSET_Y, w - x, h)
-        if self._headerCustomRenderer != None:
+        if self._headerCustomRenderer is not None:
             # Why does the custom renderer need this adjustment??
             header_rect.x = header_rect.x - 1
             header_rect.y = header_rect.y - 1

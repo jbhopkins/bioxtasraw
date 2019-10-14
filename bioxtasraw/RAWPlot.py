@@ -595,7 +595,7 @@ class PlotPanel(wx.Panel):
 
         self.manipulation_panel = wx.FindWindowByName('ManipulationPanel')
 
-        if self.selected_line != None:
+        if self.selected_line is not None:
             self.selected_line.set_linewidth(self.selected_line_orig_width)
             self.selected_line.set_markersize(self.selected_line_orig_marker)
 
@@ -700,7 +700,7 @@ class PlotPanel(wx.Panel):
 
             q_min, q_max = sasm.getQrange()
 
-            if legend_label_in == None:
+            if legend_label_in is None:
                 legend_label = sasm.getParameter('filename')
             else:
                 legend_label = legend_label_in
@@ -721,15 +721,15 @@ class PlotPanel(wx.Panel):
             for each in ec:
                 if self.plotparams['errorbars_on'] == False:
                     each.set_visible(False)
-                if color != None:
+                if color is not None:
                     each.set_color(color)
             for each in el:
                 if self.plotparams['errorbars_on'] == False:
                     each.set_visible(False)
-                if color != None:
+                if color is not None:
                     each.set_color(color)
 
-            if color != None:
+            if color is not None:
                 line.set_color(color)
 
             sasm.line = line
@@ -743,7 +743,7 @@ class PlotPanel(wx.Panel):
 
             self.plotted_sasms.append(sasm)        # Insert the plot into plotted experiments list
 
-            if line_data != None:
+            if line_data is not None:
                 line.set_linewidth(line_data['line_width'])
                 line.set_linestyle(line_data['line_style'])
                 line.set_color(line_data['line_color'])
@@ -1068,13 +1068,13 @@ class PlotPanel(wx.Panel):
 
     def _setLabels(self, sasm = None, title = None, xlabel = None, ylabel = None, axes = None):
 
-        if axes == None:
+        if axes is None:
             a = self.fig.gca()
         else:
             a = axes
 
         # Set labels
-        if title == None:
+        if title is None:
             if a == self.subplot1:
                 plottype = self.plotparams['plot1type']
                 a.title.set_text(self.subplot_labels[plottype][0])
@@ -1490,7 +1490,7 @@ class IftPlotPanel(PlotPanel):
                 for each in eachsubplot.lines:
                     if each._label != '_nolegend_' and each._label != '_zero_' and each.get_visible() == True:
 
-                        if maxq == None:
+                        if maxq is None:
                             maxq = max(each.get_xdata())
                             maxi = max(each.get_ydata())
 
@@ -1543,7 +1543,7 @@ class IftPlotPanel(PlotPanel):
 
         self.manipulation_panel = wx.FindWindowByName('IFTPanel')
 
-        if self.selected_line != None:
+        if self.selected_line is not None:
             self.selected_line.set_linewidth(self.selected_line_orig_width)
             self.selected_line.set_markersize(self.selected_line_orig_marker)
 
@@ -2082,13 +2082,13 @@ class IftPlotPanel(PlotPanel):
 
     def _setLabels(self, sasm = None, title = None, xlabel = None, ylabel = None, axes = None):
 
-        if axes == None:
+        if axes is None:
             a = self.fig.gca()
         else:
             a = axes
 
         # Set labels
-        if title == None:
+        if title is None:
             if a == self.subplot1:
                 plottype = self.plotparams['plot1type']
                 a.title.set_text(self.subplot_labels[plottype][0])
@@ -2153,7 +2153,7 @@ class IftPlotPanel(PlotPanel):
 
             old_legend = axes.get_legend()
 
-            if  old_legend != None:
+            if  old_legend is not None:
                 self.plotparams['legend_pos%s' %(plotnum)] = old_legend._loc
 
                 old_title = old_legend.get_title()
@@ -2260,7 +2260,7 @@ class IftPlotPanel(PlotPanel):
 
             q_min, q_max = iftm.getQrange()
 
-            if legend_label_in == None:
+            if legend_label_in is None:
                 legend_label = iftm.getParameter('filename')
             else:
                 legend_label = legend_label_in
@@ -2324,7 +2324,7 @@ class IftPlotPanel(PlotPanel):
 
             self.plotted_iftms.append(iftm)        # Insert the plot into plotted experiments list
 
-            if line_data != None:
+            if line_data is not None:
                 iftm.r_line.set_linewidth(line_data['r_line_width'])
                 iftm.r_line.set_linestyle(line_data['r_line_style'])
                 iftm.r_line.set_color(line_data['r_line_color'])
@@ -2975,14 +2975,14 @@ class SeriesPlotPanel(wx.Panel):
                     if each._label != '_nolegend_' and each._label != '_zero_' and each._label != '_line1' and each.get_visible() == True:
 
                         if plotnum == '1':
-                            if maxq1 == None:
+                            if maxq1 is None:
                                 maxq1 = max(each.get_xdata())
                                 maxi1 = max(each.get_ydata())
 
                                 minq1 = min(each.get_xdata())
                                 mini1 = min(each.get_ydata())
                         elif plotnum =='2':
-                            if maxq2 == None:
+                            if maxq2 is None:
                                 maxq2 = max(each.get_xdata())
                                 maxi2 = max(each.get_ydata())
 
@@ -3014,26 +3014,26 @@ class SeriesPlotPanel(wx.Panel):
                             if ymin < mini2:
                                 mini2 = ymin
 
-        if maxq1 == None:
-            if maxq2 != None:
+        if maxq1 is None:
+            if maxq2 is not None:
                 maxq1 = maxq2
             else:
                 maxq1 = 1
 
-        elif maxq2 == None:
-            if maxq1 != None:
+        elif maxq2 is None:
+            if maxq1 is not None:
                 maxq2 = maxq1
             else:
                 maxq1 = 1
 
-        if minq1 == None:
-            if minq2 != None:
+        if minq1 is None:
+            if minq2 is not None:
                 minq1 = minq2
             else:
                 minq1 = 0
 
-        elif minq2 == None:
-            if minq1 != None:
+        elif minq2 is None:
+            if minq1 is not None:
                 minq2 = minq1
             else:
                 minq1 = 0
@@ -3082,7 +3082,7 @@ class SeriesPlotPanel(wx.Panel):
 
         self.manipulation_panel = wx.FindWindowByName('SECPanel')
 
-        if self.selected_line != None:
+        if self.selected_line is not None:
             self.selected_line.set_linewidth(self.selected_line_orig_width)
             self.selected_line.set_markersize(self.selected_line_orig_marker)
 
@@ -3302,7 +3302,7 @@ class SeriesPlotPanel(wx.Panel):
             self._validatePlotSettings(secm)
 
         for secm in secm_list:
-            if legend_label_in == None:
+            if legend_label_in is None:
                 legend_label = secm.getParameter('filename')
             else:
                 legend_label = legend_label_in
@@ -3350,7 +3350,7 @@ class SeriesPlotPanel(wx.Panel):
                 secm.calc_line.set_picker(True)
 
 
-            if color != None:
+            if color is not None:
                 secm.line.set_color(color)
                 secm.calc_line.set_color(color)
 
@@ -3358,7 +3358,7 @@ class SeriesPlotPanel(wx.Panel):
             #Back to the main show
             self.plotted_secms.append(secm)        # Insert the plot into plotted experiments list
 
-            if line_data != None:
+            if line_data is not None:
                 secm.line.set_linewidth(line_data['line_width'])
                 secm.line.set_linestyle(line_data['line_style'])
                 secm.line.set_color(line_data['line_color'])
@@ -3371,7 +3371,7 @@ class SeriesPlotPanel(wx.Panel):
                 except KeyError:
                     pass #Version <1.3.0 doesn't have these keys
 
-            if calc_line_data != None:
+            if calc_line_data is not None:
                 secm.calc_line.set_linewidth(calc_line_data['line_width'])
                 secm.calc_line.set_linestyle(calc_line_data['line_style'])
                 secm.calc_line.set_color(calc_line_data['line_color'])
@@ -4006,13 +4006,13 @@ class SeriesPlotPanel(wx.Panel):
             self.plotparams['y_axis_display'] = 'total'
 
     def _setLabels(self, sasm = None, title = None, xlabel = None, ylabel = None, axes = None):
-        if axes == None:
+        if axes is None:
             a = self.fig.gca()
         else:
             a = axes
 
         # Set labels
-        if title == None:
+        if title is None:
             if a ==self.subplot1:
                 plottype = self.plotparams['y_axis_display']
                 plot_intensity = self.plotparams['plot_intensity']

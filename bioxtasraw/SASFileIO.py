@@ -1251,7 +1251,7 @@ def loadImageFile(filename, raw_settings):
 
             prefix = SASImage.getBindListDataFromHeader(raw_settings, img_hdr, hdrfile_info, keys = ['Config Prefix'])[0]
 
-            if prefix == None:
+            if prefix is None:
                raise SASExceptions.ImageLoadError(['"Use header for new config load" is enabled in General Settings.\n',
                                                    'The binding "Config Prefix" was however not found in header,',
                                                    'not set in header options (See "Image/Header Format" in options) or not a number.'])
@@ -3878,7 +3878,7 @@ def findATSASDirectory():
     except Exception:
         path = None
 
-    if path != None:
+    if path is not None:
         if opsys == 'Windows':
             split_path = path.split(';')
         else:
@@ -3895,7 +3895,7 @@ def findATSASDirectory():
     except Exception:
         atsas_path = None
 
-    if atsas_path != None:
+    if atsas_path is not None:
         if atsas_path.lower().find('atsas') > -1:
             atsas_path = atsas_path.rstrip('\\')
             atsas_path = atsas_path.rstrip('/')

@@ -59,7 +59,7 @@ def load_settings(file, settings=None):
         for each_key in mask_dict:
             masks = mask_dict[each_key][1]
 
-            if masks != None:
+            if masks is not None:
                 mask_img = SASImage.createMaskMatrix(img_dim, masks)
                 mask_param = mask_dict[each_key]
                 mask_param[0] = mask_img

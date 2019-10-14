@@ -124,7 +124,7 @@ class ArtifactOptionsPanel(wx.Panel):
 
         for label, param in self.artifact_removal_data3:
 
-            if param != None:
+            if param is not None:
 
                 id = param[0]
                 type = param[1]
@@ -152,7 +152,7 @@ class ArtifactOptionsPanel(wx.Panel):
 
         for label, param in self.artifact_removal_data2:
 
-            if param != None:
+            if param is not None:
 
                 id = param[0]
                 type = param[1]
@@ -555,7 +555,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
 
     def onBindChoice(self, event):
 
-        if self.currentItem == None:
+        if self.currentItem is None:
             self.bind_ctrl.Select(0)
             return
 
@@ -635,7 +635,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         self.file_hdr_list_dict = {}
         self.img_hdr_list_dict = {}
 
-        if filehdr != None:
+        if filehdr is not None:
             if wx.version().split()[0].strip()[0] == '4':
                 self.lc.InsertItem(0, 'Header File:')
                 self.lc.SetItemBackgroundColour(0, wx.Colour('STEEL BLUE'))
@@ -663,7 +663,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
 
         self.imghdr_start_idx = self.lc.GetItemCount()
 
-        if imghdr != None:
+        if imghdr is not None:
             num_items = self.lc.GetItemCount()
             if wx.version().split()[0].strip()[0] == '4':
                 self.lc.InsertItem(num_items, 'Image Header:')
@@ -694,7 +694,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
             data = self.bind_list[each][1]
             mod = self.bind_list[each][2]
 
-            if data != None:
+            if data is not None:
                 if data[1] == 'imghdr': hdr = self.img_hdr_list_dict
                 else: hdr = self.file_hdr_list_dict
 
@@ -714,7 +714,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         '''
 
         filename = CreateFileDialog(wx.FD_OPEN)
-        if filename == None:
+        if filename is None:
             return
 
         image_format = self.image_choice.GetStringSelection()
@@ -771,7 +771,7 @@ class ReductionImgHdrFormatPanel(wx.Panel):
         expr = self.bind_mod_ctrl.GetValue()
         res = self.calcExpression(expr)
 
-        if res != None:
+        if res is not None:
             wx.MessageBox(expr + ' = ' + str(res), 'Expression check:' , style = wx.ICON_INFORMATION)
             return True
         else:
@@ -884,7 +884,7 @@ class NormListCtrl(wx.ListCtrl):
 
     def SetValue(self, value_list):
 
-        if value_list == None:
+        if value_list is None:
             return
 
         for each in value_list:
@@ -981,7 +981,7 @@ class OnlineListCtrl(wx.ListCtrl):
 
     def SetValue(self, value_list):
 
-        if value_list == None:
+        if value_list is None:
             return
 
         for each in value_list:
@@ -1070,7 +1070,7 @@ class MetadataListCtrl(wx.ListCtrl):
 
     def SetValue(self, value_list):
 
-        if value_list == None:
+        if value_list is None:
             return
 
         for each in value_list:
@@ -1389,7 +1389,7 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
 
         selectedFile = CreateFileDialog(wx.FD_OPEN)
 
-        if selectedFile == None:
+        if selectedFile is None:
             return
 
         for each in self.filesData:
@@ -1564,7 +1564,7 @@ class ReductionFlatfield(wx.Panel):
 
         selectedFile = CreateFileDialog(wx.FD_OPEN)
 
-        if selectedFile == None:
+        if selectedFile is None:
             return
 
         for each in self.filesData:
@@ -1929,7 +1929,7 @@ class ReductionNormalizationPanel(wx.Panel):
         expr = self.expr_combo.GetValue()
         val = self.calcExpression(expr)
 
-        if val != None:
+        if val is not None:
             wx.MessageBox(expr + ' = ' + str(val), style = wx.ICON_INFORMATION)
 
     def calcExpression(self, expr):
@@ -2477,7 +2477,7 @@ class SaveDirectoriesPanel(wx.Panel):
 
         for labtxt, labl_id, set_button_id, clr_button_id in self.directory_data:
 
-            if labtxt != None:
+            if labtxt is not None:
 
                 set_button = wx.Button(self, set_button_id, 'Set')
                 set_button.Bind(wx.EVT_BUTTON, self.onSetFile)
@@ -2856,7 +2856,7 @@ class AutomationOptionsPanel(wx.Panel):
 
         for eachLabel, id in self.chkboxData:
 
-            if eachLabel != None:
+            if eachLabel is not None:
                 chkBox = wx.CheckBox(self, id, eachLabel)
                 chkBox.Bind(wx.EVT_CHECKBOX, self.onChkBox)
                 chkboxgridSizer.Add(chkBox, 1, wx.EXPAND)
@@ -4310,7 +4310,7 @@ class PagePanel(wx.Panel):
         all_options = wx.FindWindowByName('OptionsDialog').all_options
 
         for idx, id, label, panelfunc in all_options:
-            if panelfunc != None:
+            if panelfunc is not None:
                 panel = panelfunc(self, id, raw_settings)
                 panel.SetExtraStyle(wx.WS_EX_BLOCK_EVENTS)
                 panel.Hide()
@@ -4334,7 +4334,7 @@ class PagePanel(wx.Panel):
             print('TypeError in updatePage(), possibly Hide root bug in wxpython')
             return
 
-        if new_panel != None:
+        if new_panel is not None:
             self.current_page.Hide()
             self.current_page = new_panel
             self.current_page.Show()
@@ -4488,7 +4488,7 @@ class OptionsDialog(wx.Dialog):
 
         item = self.treebook.tree.GetFirstVisibleItem()
 
-        if item != None:
+        if item is not None:
             self.treebook.tree.SelectItem(item)
 
         if focusHeader:

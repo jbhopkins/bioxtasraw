@@ -146,7 +146,7 @@ class UVConcentrationPanel(wx.Panel):
 
     def _calcConcentration(self, A = None):
         #A=lec
-        if A == None:
+        if A is None:
             A = float(self.absorb_ctrl.GetValue())
 
         l = (self.spin_ctrl_ids['UVPathlength'][3] / 10.) #in cm
@@ -225,7 +225,7 @@ class UVConcentrationPanel(wx.Panel):
 
         # For background
         for key in bg_data:
-            if bg_data[key] != None:
+            if bg_data[key] is not None:
 
                 if key == 'UVTransmission':
                     spin_key = 'UVTransmissionBg'
@@ -5353,7 +5353,7 @@ class DammifRunPanel(wx.Panel):
             pos = 0
 
             #Send the DAMMIF log output to the screen.
-            while dammif_proc.poll() == None:
+            while dammif_proc.poll() is None:
                 if self.abort_event.isSet():
                     dammif_proc.terminate()
                     wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
@@ -5448,7 +5448,7 @@ class DammifRunPanel(wx.Panel):
 
 
             #Send the damaver output to the screen.
-            while damaver_proc.poll() == None:
+            while damaver_proc.poll() is None:
                 if self.abort_event.isSet():
                     damaver_proc.terminate()
                     wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
@@ -5564,7 +5564,7 @@ class DammifRunPanel(wx.Panel):
 
 
             #Send the damclust output to the screen.
-            while damclust_proc.poll() == None:
+            while damclust_proc.poll() is None:
                 if self.abort_event.isSet():
                     damclust_proc.terminate()
                     wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
@@ -6173,7 +6173,6 @@ class DammifResultsPanel(wx.Panel):
         models_window = wx.FindWindowById(self.ids['model_sum'])
         models_window.DeleteAllItems()
 
-        file_nums = range(1,int(settings['runs'])+1)
         path = settings['path']
         prefix = settings['prefix']
 
@@ -6188,7 +6187,7 @@ class DammifResultsPanel(wx.Panel):
             filename = os.path.join(path, name)
             model_data, rep_model = SASFileIO.loadDamsupLogFile(filename)
 
-        for num in file_nums:
+        for num in range(1,int(settings['runs'])+1):
             fprefix = '%s_%s' %(prefix, str(num).zfill(2))
             dam_name = os.path.join(path, fprefix+'-1.pdb')
             fir_name = os.path.join(path, fprefix+'.fir')
@@ -10351,9 +10350,8 @@ class SVDControlPanel(wx.Panel):
         control_sizer.Add(norm_data, 0, wx.TOP | wx.EXPAND, 8)
         control_sizer.Add(self.sec_plot, 0, wx.TOP | wx.EXPAND, 8)
 
-        if self.manip_item == None:
+        if self.manip_item is None:
             control_sizer.Hide(profile_sizer, recursive = True)
-
 
         #svd results
         box = wx.StaticBox(self, -1, 'Results')
@@ -11382,9 +11380,8 @@ class EFAControlPanel1(wx.Panel):
         control_sizer.Add(frame_sizer, 0, wx.TOP | wx.EXPAND, 8)
         control_sizer.Add(self.sec_plot, 0, wx.TOP | wx.EXPAND, 8)
 
-        if self.manip_item == None:
+        if self.manip_item is None:
             control_sizer.Hide(profile_sizer, recursive = True)
-
 
         #svd results
         box = wx.StaticBox(self, -1, 'Results')
@@ -16522,8 +16519,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 use_subtracted_sasms = []
 
                 buffer_sub_sasms = self.results['buffer']['sub_sasms']
-                start_frames = range(r1_start, r1_end+1)
-                start_sasms = [buffer_sub_sasms[k] for k in start_frames]
+                start_sasms = [buffer_sub_sasms[k] for k in range(r1_start, r1_end+1)]
 
                 start_avg_sasm = SASProc.average(start_sasms, forced=True)
                 int_type = self.plot_page.intensity
@@ -18045,8 +18041,6 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 r2 = self.results['baseline']['baseline_end_range']
                 sub_sasms = self.results['buffer']['sub_sasms']
 
-                start_frames = range(r1[0], r1[1]+1)
-
                 use_subtracted_sasms = []
                 zeroSASM = SASM.SASM(np.zeros_like(sub_sasms[0].getQ()),
                     sub_sasms[0].getQ(), sub_sasms[0].getErr(), {})
@@ -18073,7 +18067,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
                     bl_unsub_sasms.append(SASProc.subtract(unsub_sasms[j], bkg_sasm, forced = True))
 
-                bl_unsub_ref_sasm = SASProc.average([bl_unsub_sasms[j] for j in start_frames], forced=True)
+                bl_unsub_ref_sasm = SASProc.average([bl_unsub_sasms[j] for j in range(r1[0], r1[1]+1)], forced=True)
 
                 int_type = self.plot_page.intensity
                 if  int_type == 'total':
@@ -18813,11 +18807,11 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
             while not found_region and not failed:
                 step_size = max(1, int(round(window_size/4.)))
-                region_starts = range(start_point, end_point, step_size)
+                region_starts = list(range(start_point, end_point, step_size))
 
                 for idx in region_starts:
                     region_sasms = buffer_sasms[idx:idx+window_size+1]
-                    frame_idx = range(idx, idx+window_size+1)
+                    frame_idx = list(range(idx, idx+window_size+1))
                     valid, similarity_results, svd_results, intI_results = self._validateBuffer(region_sasms,
                         frame_idx, True)
 

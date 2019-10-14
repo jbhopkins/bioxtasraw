@@ -754,7 +754,7 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
                 previous_line = ''
                 previous_line2 = ''
 
-                while proc.poll() == None:
+                while proc.poll() is None:
                     data = None
                     try:
                         data = gnom_q.get_nowait()
@@ -763,7 +763,7 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
                     except queue.Empty:
                         pass
 
-                    if data != None:
+                    if data is not None:
                         current_line = data
 
                         if data.find('[ postscr     ] :') > -1:
@@ -1060,7 +1060,7 @@ def runDatgnom(datname, sasm, path):
         if error == 'Cannot define Dmax' or error=='Could not find Rg' or error=='No intensity values (positive) found' or error == 'LOADATF --E- No data lines recognized.' or error == 'error: rg not specified':
             print('Unable to run datgnom successfully')
             datgnom_success = False
-        # elif error != None:
+        # elif error is not None:
         #     datgnom_success = False
         else:
             datgnom_success = True
@@ -1237,7 +1237,7 @@ def runDammif(fname, prefix, args, path):
 
 
 
-            while proc.poll() == None and not dammifStarted:
+            while proc.poll() is None and not dammifStarted:
                 data = None
                 try:
                     data = dammif_q.get_nowait()
@@ -1246,7 +1246,7 @@ def runDammif(fname, prefix, args, path):
                 except queue.Empty:
                     pass
 
-                if data != None:
+                if data is not None:
                     current_line = data
                     if data.find('GNOM output file to read?') > -1:
                         proc.stdin.write('%s\r\n' %(fname)) #Dammif input file, no default
@@ -1429,7 +1429,7 @@ def runAmbimeter(fname, prefix, args, path):
             stderr=subprocess.PIPE, cwd=path)
 
         start = time.time()
-        while process.poll() == None:
+        while process.poll() is None:
             if time.time()-start > 60:
                 raise SASExceptions.NoATSASError('Ambimeter timed out. Try running it from the command line to diagnose this problem.')
                 return None
@@ -1555,7 +1555,7 @@ def runDammin(fname, prefix, args, path):
             dammif_t.start()
 
 
-            while proc.poll() == None and not dammifStarted:
+            while proc.poll() is None and not dammifStarted:
                 data = None
                 try:
                     data = dammif_q.get_nowait()
