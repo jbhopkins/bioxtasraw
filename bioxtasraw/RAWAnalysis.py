@@ -388,10 +388,12 @@ class GuinierPlotPanel(wx.Panel):
         self.fig.subplots_adjust(left = 0.15, bottom = 0.08, right = 0.95, top = 0.95, hspace = 0.3)
         self.fig.set_facecolor('white')
 
+        self.subplots['Residual'].axhline(0, color='k', linewidth=1.0)
+
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         self.canvas.SetBackgroundColour('white')
 
-        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -412,13 +414,11 @@ class GuinierPlotPanel(wx.Panel):
         a = self.subplots['Guinier']
         b = self.subplots['Residual']
 
+        self.canvas.mpl_disconnect(self.cid)
+        self.canvas.draw()
         self.background = self.canvas.copy_from_bbox(a.bbox)
         self.err_background = self.canvas.copy_from_bbox(b.bbox)
-
-        self.canvas.mpl_disconnect(self.cid)
-
-        self.updateDataPlot(self.xlim, is_autorg=True)
-
+        self.redrawLines()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def _calcFit(self, is_autorg=False):
@@ -561,20 +561,19 @@ class GuinierPlotPanel(wx.Panel):
         xg = [0, x_fit[0]]
         yg = [I0, y_fit[0]]
 
-        zeros = np.zeros((1,len(x_fit)))[0]
-
-        if not self.data_line:
+        if self.data_line is None:
             self.data_line, = a.plot(x, y, 'b.', animated = True)
             self.fit_line, = a.plot(x_fit, y_fit, 'r', animated = True)
             self.interp_line, = a.plot(xg, yg, 'g--', animated = True)
 
             self.error_line, = b.plot(x_fit, error, 'b', animated = True)
-            self.zero_line, = b.plot(x_fit, zeros, 'r', animated = True)
 
             self.lim_front_line = a.axvline(x=x_fit[0], color = 'r', linestyle = '--', animated = True)
             self.lim_back_line = a.axvline(x=x_fit[-1], color = 'r', linestyle = '--', animated = True)
 
+            self.canvas.mpl_disconnect(self.cid)
             self.canvas.draw()
+            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
             self.background = self.canvas.copy_from_bbox(a.bbox)
             self.err_background = self.canvas.copy_from_bbox(b.bbox)
         else:
@@ -594,42 +593,203 @@ class GuinierPlotPanel(wx.Panel):
             self.error_line.set_xdata(x_fit)
             self.error_line.set_ydata(error)
 
-            self.zero_line.set_xdata(x_fit)
-            self.zero_line.set_ydata(zeros)
+        self.autoscale_plot(True)
 
-        a_oldx = a.get_xlim()
-        a_oldy = a.get_ylim()
-        b_oldx = b.get_xlim()
-        b_oldy = b.get_ylim()
+    def redrawLines(self):
+        a = self.subplots['Guinier']
+        b = self.subplots['Residual']
 
-        a.relim()
-        a.autoscale_view()
+        if self.data_line is not None:
 
-        b.relim()
-        b.autoscale_view()
+            self.canvas.restore_region(self.background)
+            self.canvas.restore_region(self.err_background)
 
-        a_newx = a.get_xlim()
-        a_newy = a.get_ylim()
-        b_newx = b.get_xlim()
-        b_newy = b.get_ylim()
+            a.draw_artist(self.data_line)
+            a.draw_artist(self.fit_line)
+            a.draw_artist(self.interp_line)
+            a.draw_artist(self.lim_front_line)
+            a.draw_artist(self.lim_back_line)
 
-        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy:
-            self.canvas.draw()
+            b.draw_artist(self.error_line)
 
-        self.canvas.restore_region(self.background)
-        self.canvas.restore_region(self.err_background)
+            self.canvas.blit(a.bbox)
+            self.canvas.blit(b.bbox)
 
-        a.draw_artist(self.data_line)
-        a.draw_artist(self.fit_line)
-        a.draw_artist(self.interp_line)
-        a.draw_artist(self.lim_front_line)
-        a.draw_artist(self.lim_back_line)
+    def autoscale_plot(self, fast=False):
+        top_plot = self.subplots['Guinier']
+        bottom_plot = self.subplots['Residual']
 
-        b.draw_artist(self.error_line)
-        b.draw_artist(self.zero_line)
+        if self.data_line is not None:
+            redraw = False
 
-        self.canvas.blit(a.bbox)
-        self.canvas.blit(b.bbox)
+            oldx = top_plot.get_xlim()
+            oldy = top_plot.get_ylim()
+
+            x_max = None
+            x_min = None
+            y_max = None
+            y_min = None
+
+            top_lines = [self.data_line, self.fit_line, self.interp_line]
+
+            for line in top_lines:
+                x_data = line.get_xdata()
+                y_data = line.get_ydata()
+
+                if x_max is None:
+                    x_max = max(x_data)
+                    x_min = min(x_data)
+                else:
+                    x_max = max(x_max, max(x_data))
+                    x_min = min(x_min, min(x_data))
+
+                if y_max is None:
+                    y_max = max(y_data)
+                    y_min = min(y_data)
+                else:
+                    y_max = max(y_max, max(y_data))
+                    y_min = min(y_min, min(y_data))
+
+            if x_max is None:
+                x_min = 0
+                x_max = 1
+                y_min = 0
+                y_max = 1
+            else:
+                if y_max > 0:
+                    y_max = y_max*1.02
+                else:
+                    y_max = y_max*0.98
+
+                if y_min > 0:
+                    y_min = y_min*0.98
+                else:
+                    y_min = y_min*1.02
+
+                if x_max > 0:
+                    x_max = x_max*1.02
+                else:
+                    x_max = x_max*0.98
+
+                if x_min > 0:
+                    x_min = x_min*0.98
+                else:
+                    x_min = x_min*1.02
+
+            if fast and ((self._vals_close(oldx[0], x_min) and oldx[0] <= x_min) and
+                (self._vals_close(oldx[1], x_max)and x_max <= oldx[1]) and
+                (self._vals_close(oldy[0], y_min) and oldy[0] <= y_min) and
+                (self._vals_close(oldy[1], y_max) and y_max <= oldy[1])):
+                x_min, x_max = oldx
+                y_min, y_max = oldy
+
+            top_plot.set_xlim([x_min, x_max])
+            top_plot.set_ylim([y_min, y_max])
+
+            newx = top_plot.get_xlim()
+            newy = top_plot.get_ylim()
+
+            if newx != oldx or newy != oldy:
+                redraw = True
+
+            #Bottom plot
+            oldx = bottom_plot.get_xlim()
+            oldy = bottom_plot.get_ylim()
+
+            x_max = None
+            x_min = None
+            y_max = None
+            y_min = None
+
+            bottom_lines = [self.error_line]
+
+            for line in bottom_lines:
+                x_data = line.get_xdata()
+                y_data = line.get_ydata()
+
+                if x_max is None:
+                    x_max = max(x_data)
+                    x_min = min(x_data)
+                else:
+                    x_max = max(x_max, max(x_data))
+                    x_min = min(x_min, min(x_data))
+
+                if y_max is None:
+                    y_max = max(y_data)
+                    y_min = min(y_data)
+                else:
+                    y_max = max(y_max, max(y_data))
+                    y_min = min(y_min, min(y_data))
+
+            if x_max is None:
+                x_min = 0
+                x_max = 1
+                y_min = 0
+                y_max = 1
+            else:
+                if y_max > 0:
+                    y_max = y_max*1.02
+                else:
+                    y_max = y_max*0.98
+
+                if y_min > 0:
+                    y_min = y_min*0.98
+                else:
+                    y_min = y_min*1.02
+
+                if x_max > 0:
+                    x_max = x_max*1.02
+                else:
+                    x_max = x_max*0.98
+
+                if x_min > 0:
+                    x_min = x_min*0.98
+                else:
+                    x_min = x_min*1.02
+
+            if fast and ((self._vals_close(oldx[0], x_min) and oldx[0] <= x_min) and
+                (self._vals_close(oldx[1], x_max)and x_max <= oldx[1]) and
+                (self._vals_close(oldy[0], y_min) and oldy[0] <= y_min) and
+                (self._vals_close(oldy[1], y_max) and y_max <= oldy[1])):
+                x_min, x_max = oldx
+                y_min, y_max = oldy
+
+            bottom_plot.set_xlim([x_min, x_max])
+            bottom_plot.set_ylim([y_min, y_max])
+
+            newx = bottom_plot.get_xlim()
+            newy = bottom_plot.get_ylim()
+
+            if newx != oldx or newy != oldy:
+                redraw = True
+
+            if redraw:
+                self.ax_redraw()
+            else:
+                self.redrawLines()
+
+    def _vals_close(self, val1, val2, cl_range=0.05):
+        min_range = 1-cl_range
+
+        if val1 == val2:
+            close = True
+
+        elif val1 == 0 or val2 == 0:
+            close = False
+
+        elif (val1 < val2 and val1>0) or (val1 > val2 and val1 < 0):
+            if val1/val2 > min_range:
+                close = True
+            else:
+                close = False
+
+        else:
+            if val2/val1 > min_range:
+                close = True
+            else:
+                close = False
+
+        return close
 
     def _onMouseButtonReleaseEvent(self, event):
         ''' Find out where the mouse button was released
@@ -1363,7 +1523,6 @@ class GuinierControlPanel(wx.Panel):
         #Important, since it's a slow function to update (could do it in a timer instead) otherwise this spin event might loop!
         wx.CallAfter(self.updatePlot)
 
-
     def updatePlot(self, is_autorg=False):
         if not is_autorg:
             txt = wx.FindWindowById(self.error_data['autorg_rg'], self)
@@ -1383,19 +1542,7 @@ class GuinierControlPanel(wx.Panel):
 
         xlim = [i-qmin,i2-qmin]
 
-        plotpanel.canvas.mpl_disconnect(plotpanel.cid) #disconnect draw event to avoid recursions
-
-        #Deals with problems of the zoom, pan, and home button and autoscaling the axes when we change the data range
-        a = plotpanel.subplots['Guinier']
-        b = plotpanel.subplots['Residual']
-        if not a.get_autoscale_on():
-            a.set_autoscale_on(True)
-        if not b.get_autoscale_on():
-            b.set_autoscale_on(True)
-
         plotpanel.updateDataPlot(xlim, is_autorg)
-        plotpanel.cid = plotpanel.canvas.mpl_connect('draw_event', plotpanel.ax_redraw) #Reconnect draw_event
-
 
     def updateInfo(self, newInfo):
         for eachkey in newInfo.iterkeys():
@@ -3268,7 +3415,10 @@ class IFTPlotPanel(wx.Panel):
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         self.canvas.SetBackgroundColour('white')
 
-        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        self.subplots['P(r)'].axhline(color = 'k', linewidth=1.0)
+        self.subplots['Residual'].axhline(color = 'k', linewidth=1.0)
+
+        self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -3287,16 +3437,13 @@ class IFTPlotPanel(wx.Panel):
         b = self.subplots['Data/Fit']
         c = self.subplots['Residual']
 
+        self.canvas.mpl_disconnect(self.cid) #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
+        self.canvas.draw()
         self.background = self.canvas.copy_from_bbox(a.bbox)
         self.err_background = self.canvas.copy_from_bbox(b.bbox)
         self.residual_background = self.canvas.copy_from_bbox(c.bbox)
-
-        if self.ift is not None:
-            self.canvas.mpl_disconnect(self.cid) #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
-            self.updateDataPlot(self.orig_q, self.orig_i, self.orig_err,
-                self.orig_r, self.orig_p, self.orig_perr, self.orig_qfit,
-                self.orig_fit)
-            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) #Reconnect draw_event
+        self.redrawLines()
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) #Reconnect draw_event
 
     def plotPr(self, iftm):
         r = iftm.r
@@ -3310,12 +3457,7 @@ class IFTPlotPanel(wx.Panel):
         qfit = q
         fit = iftm.i_fit #GNOM jreg
 
-        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
-        self.canvas.mpl_disconnect(self.cid)
         self.updateDataPlot(q, i, err, r, p, perr, qfit, fit)
-
-        #Reconnect draw_event
-        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def updateDataPlot(self, q, i, err, r, p, perr, qfit, fit):
 
@@ -3337,17 +3479,17 @@ class IFTPlotPanel(wx.Panel):
         b = self.subplots['Data/Fit']
         c = self.subplots['Residual']
 
-        if not self.ift:
+        if self.ift is None:
             self.ift, = a.plot(r, p, 'r.-', animated = True)
-
-            self.zero_line  = a.axhline(color = 'k')
 
             self.data_line, = b.semilogy(q, i, 'b.', animated = True)
             self.fit_line, = b.semilogy(qfit, fit, 'r', animated = True)
 
             self.residual_line, = c.plot(q, residual, 'b.', animated=True)
 
+            self.canvas.mpl_disconnect(self.cid)
             self.canvas.draw()
+            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
             self.background = self.canvas.copy_from_bbox(a.bbox)
             self.err_background = self.canvas.copy_from_bbox(b.bbox)
             self.residual_background = self.canvas.copy_from_bbox(c.bbox)
@@ -3371,62 +3513,17 @@ class IFTPlotPanel(wx.Panel):
                 self.fit_line.set_visible(True)
                 self.residual_line.set_visible(True)
 
-        a_oldx = a.get_xlim()
-        a_oldy = a.get_ylim()
-        b_oldx = b.get_xlim()
-        b_oldy = b.get_ylim()
-        c_oldx = c.get_xlim()
-        c_oldy = c.get_ylim()
+        self.autoscale_plot(True)
 
-        a.relim()
-        a.autoscale_view()
+    def redrawLines(self):
+        a = self.subplots['P(r)']
+        b = self.subplots['Data/Fit']
+        c = self.subplots['Residual']
 
-        b.relim()
-        b.autoscale_view()
-
-        c.relim()
-        c.autoscale_view()
-
-        a_newx = a.get_xlim()
-        a_newy = a.get_ylim()
-        b_newx = b.get_xlim()
-        b_newy = b.get_ylim()
-        c_newx = c.get_xlim()
-        c_newy = c.get_ylim()
-
-        if (a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx
-            or b_newy != b_oldy or c_newx != c_oldx or c_newy != c_oldy):
-            self.canvas.draw()
-
-        self.canvas.restore_region(self.background)
-        a.draw_artist(self.ift)
-
-        self.canvas.restore_region(self.err_background)
-        b.draw_artist(self.data_line)
-        b.draw_artist(self.fit_line)
-
-        self.canvas.restore_region(self.residual_background)
-        c.draw_artist(self.residual_line)
-
-        self.canvas.blit(a.bbox)
-        self.canvas.blit(b.bbox)
-        self.canvas.blit(c.bbox)
-
-    def clearDataPlot(self):
-        if self.ift:
-            self.ift.set_visible(False)
-            self.data_line.set_visible(False)
-            self.fit_line.set_visible(False)
-            self.residual_line.set_visible(False)
-
-            a = self.subplots['P(r)']
-            b = self.subplots['Data/Fit']
-            c = self.subplots['Residual']
-
+        if self.ift is not None:
             self.canvas.restore_region(self.background)
             a.draw_artist(self.ift)
 
-            #restore white background in error plot and draw new error:
             self.canvas.restore_region(self.err_background)
             b.draw_artist(self.data_line)
             b.draw_artist(self.fit_line)
@@ -3437,6 +3534,270 @@ class IFTPlotPanel(wx.Panel):
             self.canvas.blit(a.bbox)
             self.canvas.blit(b.bbox)
             self.canvas.blit(c.bbox)
+
+    def autoscale_plot(self, fast=False, x_max_scale=1.01, x_min_scale=0.98,
+        y_max_scale=1.1, y_min_scale=0.9):
+        top_plot = self.subplots['P(r)']
+        middle_plot = self.subplots['Data/Fit']
+        bottom_plot = self.subplots['Residual']
+
+        if self.ift is not None:
+            redraw = False
+
+            oldx = top_plot.get_xlim()
+            oldy = top_plot.get_ylim()
+
+            x_max = None
+            x_min = None
+            y_max = None
+            y_min = None
+
+            top_lines = [self.ift]
+
+            for line in top_lines:
+                x_data = line.get_xdata()
+                y_data = line.get_ydata()
+
+                if x_max is None:
+                    x_max = max(x_data)
+                    x_min = min(x_data)
+                else:
+                    x_max = max(x_max, max(x_data))
+                    x_min = min(x_min, min(x_data))
+
+                if y_max is None:
+                    y_max = max(y_data)
+                    y_min = min(y_data)
+                else:
+                    y_max = max(y_max, max(y_data))
+                    y_min = min(y_min, min(y_data))
+
+            if x_max is None:
+                x_min = 0
+                x_max = 1
+                y_min = 0
+                y_max = 1
+            else:
+                if y_max > 0:
+                    y_max = y_max*1.02
+                else:
+                    y_max = y_max*0.98
+
+                if y_min > 0:
+                    y_min = y_min*0.98
+                else:
+                    y_min = y_min*1.02
+
+                if x_max > 0:
+                    x_max = x_max*1.01
+                else:
+                    x_max = x_max*0.99
+
+                if x_min > 0:
+                    x_min = x_min*0.99
+                else:
+                    x_min = x_min*1.01
+
+            #Particular to P(r) plots
+            if y_min == 0 and y_max > 0:
+                y_min = -y_max*0.02
+            elif y_min < 0 and y_max > 0:
+                if -y_max*0.075 < y_min:
+                    y_min = -y_max*0.075
+
+            if fast and ((self._vals_close(oldx[0], x_min) and oldx[0] <= x_min) and
+                (self._vals_close(oldx[1], x_max)and x_max <= oldx[1]) and
+                (self._vals_close(oldy[0], y_min) and oldy[0] <= y_min) and
+                (self._vals_close(oldy[1], y_max) and y_max <= oldy[1])):
+                x_min, x_max = oldx
+                y_min, y_max = oldy
+
+            top_plot.set_xlim([x_min, x_max])
+            top_plot.set_ylim([y_min, y_max])
+
+            newx = top_plot.get_xlim()
+            newy = top_plot.get_ylim()
+
+            if newx != oldx or newy != oldy:
+                redraw = True
+
+            oldx = middle_plot.get_xlim()
+            oldy = middle_plot.get_ylim()
+
+            x_max = None
+            x_min = None
+            y_max = None
+            y_min = None
+
+            middle_lines = [self.data_line, self.fit_line]
+
+            for line in middle_lines:
+                x_data = line.get_xdata()
+                y_data = line.get_ydata()
+
+                if x_max is None:
+                    x_max = max(x_data)
+                    x_min = min(x_data)
+                else:
+                    x_max = max(x_max, max(x_data))
+                    x_min = min(x_min, min(x_data))
+
+                if y_max is None:
+                    y_max = max(y_data)
+                    y_min = min(y_data)
+                else:
+                    y_max = max(y_max, max(y_data))
+                    y_min = min(y_min, min(y_data))
+
+            if x_max is None:
+                x_min = 0
+                x_max = 1
+                y_min = 0
+                y_max = 1
+            else:
+                if y_max > 0:
+                    y_max = y_max*y_max_scale
+                else:
+                    y_max = y_max*y_min_scale
+
+                if y_min > 0:
+                    y_min = y_min*y_min_scale
+                else:
+                    y_min = y_min*y_max_scale
+
+                if x_max > 0:
+                    x_max = x_max*x_max_scale
+                else:
+                    x_max = x_max*x_min_scale
+
+                if x_min > 0:
+                    x_min = x_min*x_min_scale
+                else:
+                    x_min = x_min*x_max_scale
+
+            if fast and ((self._vals_close(oldx[0], x_min) and oldx[0] <= x_min) and
+                (self._vals_close(oldx[1], x_max)and x_max <= oldx[1]) and
+                (self._vals_close(oldy[0], y_min) and oldy[0] <= y_min) and
+                (self._vals_close(oldy[1], y_max) and y_max <= oldy[1])):
+                x_min, x_max = oldx
+                y_min, y_max = oldy
+
+            middle_plot.set_xlim([x_min, x_max])
+            middle_plot.set_ylim([y_min, y_max])
+
+            newx = middle_plot.get_xlim()
+            newy = middle_plot.get_ylim()
+
+            if newx != oldx or newy != oldy:
+                redraw = True
+
+            #Bottom plot
+            oldx = bottom_plot.get_xlim()
+            oldy = bottom_plot.get_ylim()
+
+            x_max = None
+            x_min = None
+            y_max = None
+            y_min = None
+
+            bottom_lines = [self.residual_line]
+
+            for line in bottom_lines:
+                x_data = line.get_xdata()
+                y_data = line.get_ydata()
+
+                if x_max is None:
+                    x_max = max(x_data)
+                    x_min = min(x_data)
+                else:
+                    x_max = max(x_max, max(x_data))
+                    x_min = min(x_min, min(x_data))
+
+                if y_max is None:
+                    y_max = max(y_data)
+                    y_min = min(y_data)
+                else:
+                    y_max = max(y_max, max(y_data))
+                    y_min = min(y_min, min(y_data))
+
+            if x_max is None:
+                x_min = 0
+                x_max = 1
+                y_min = 0
+                y_max = 1
+            else:
+                if y_max > 0:
+                    y_max = y_max*y_max_scale
+                else:
+                    y_max = y_max*y_min_scale
+
+                if y_min > 0:
+                    y_min = y_min*y_min_scale
+                else:
+                    y_min = y_min*y_max_scale
+
+                if x_max > 0:
+                    x_max = x_max*x_max_scale
+                else:
+                    x_max = x_max*x_min_scale
+
+                if x_min > 0:
+                    x_min = x_min*x_min_scale
+                else:
+                    x_min = x_min*x_max_scale
+
+            if fast and ((self._vals_close(oldx[0], x_min) and oldx[0] <= x_min) and
+                (self._vals_close(oldx[1], x_max)and x_max <= oldx[1]) and
+                (self._vals_close(oldy[0], y_min) and oldy[0] <= y_min) and
+                (self._vals_close(oldy[1], y_max) and y_max <= oldy[1])):
+                x_min, x_max = oldx
+                y_min, y_max = oldy
+
+            bottom_plot.set_xlim([x_min, x_max])
+            bottom_plot.set_ylim([y_min, y_max])
+
+            newx = bottom_plot.get_xlim()
+            newy = bottom_plot.get_ylim()
+
+            if newx != oldx or newy != oldy:
+                redraw = True
+
+            if redraw:
+                self.ax_redraw()
+            else:
+                self.redrawLines()
+
+    def _vals_close(self, val1, val2, cl_range=0.05):
+        min_range = 1-cl_range
+
+        if val1 == val2:
+            close = True
+
+        elif val1 == 0 or val2 == 0:
+            close = False
+
+        elif (val1 < val2 and val1>0) or (val1 > val2 and val1 < 0):
+            if val1/val2 > min_range:
+                close = True
+            else:
+                close = False
+
+        else:
+            if val2/val1 > min_range:
+                close = True
+            else:
+                close = False
+
+        return close
+
+    def clearDataPlot(self):
+        if self.ift is not None:
+            self.ift.set_visible(False)
+            self.data_line.set_visible(False)
+            self.fit_line.set_visible(False)
+            self.residual_line.set_visible(False)
+
+            self.redrawLines()
 
 
 class GNOMControlPanel(wx.Panel):
@@ -9380,7 +9741,7 @@ class SVDResultsPlotPanel(wx.Panel):
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         self.canvas.SetBackgroundColour('white')
 
-        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -9398,23 +9759,17 @@ class SVDResultsPlotPanel(wx.Panel):
         a = self.subplots['Singular Values']
         b = self.subplots['AutoCorrelation']
 
+        self.canvas.mpl_disconnect(self.cid)
+        self.canvas.draw()
         self.background = self.canvas.copy_from_bbox(a.bbox)
         self.err_background = self.canvas.copy_from_bbox(b.bbox)
-
-        if self.svd is not None:
-            self.canvas.mpl_disconnect(self.cid)
-            self.updateDataPlot(self.orig_index, self.orig_svd_s, self.orig_svd_U_autocor, self.orig_svd_V_autocor, self.orig_svd_start, self.orig_svd_end)
-            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+        self.redrawLines()
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def plotSVD(self, svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, svd_start, svd_end):
         index = np.arange(len(svd_s))
 
-        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
-        self.canvas.mpl_disconnect(self.cid)
         self.updateDataPlot(index, svd_s, svd_U_autocor, svd_V_autocor, svd_start, svd_end)
-
-        #Reconnect draw_event
-        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def updateDataPlot(self, index, svd_s, svd_U_autocor, svd_V_autocor, svd_start, svd_end):
 
@@ -9435,7 +9790,7 @@ class SVDResultsPlotPanel(wx.Panel):
         ydata2 = svd_U_autocor[svd_start:svd_end+1]
         ydata3 = svd_V_autocor[svd_start:svd_end+1]
 
-        if not self.svd:
+        if self.svd is None:
             self.svd, = a.semilogy(xdata, ydata1, 'r.-', animated = True)
 
             self.u_autocor, = b.plot(xdata, ydata2, 'r.-', label = 'U (Left singular vectors)', animated = True)
@@ -9444,7 +9799,9 @@ class SVDResultsPlotPanel(wx.Panel):
 
             #self.lim_back_line, = a.plot([x_lim_back, x_lim_back], [y_lim_back-0.2, y_lim_back+0.2], transform=a.transAxes, animated = True)
 
+            self.canvas.mpl_disconnect(self.cid)
             self.canvas.draw()
+            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
             self.background = self.canvas.copy_from_bbox(a.bbox)
             self.err_background = self.canvas.copy_from_bbox(b.bbox)
         else:
@@ -9457,36 +9814,201 @@ class SVDResultsPlotPanel(wx.Panel):
             self.v_autocor.set_xdata(xdata)
             self.v_autocor.set_ydata(ydata3)
 
-        a_oldx = a.get_xlim()
-        a_oldy = a.get_ylim()
-        b_oldx = b.get_xlim()
-        b_oldy = b.get_ylim()
+        self.autoscale_plot(True)
 
-        a.relim()
-        a.autoscale_view()
 
-        b.relim()
-        b.autoscale_view()
+    def redrawLines(self):
+        a = self.subplots['Singular Values']
+        b = self.subplots['AutoCorrelation']
 
-        a_newx = a.get_xlim()
-        a_newy = a.get_ylim()
-        b_newx = b.get_xlim()
-        b_newy = b.get_ylim()
+        if self.svd is not None:
+            self.canvas.restore_region(self.background)
+            a.draw_artist(self.svd)
 
-        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy:
-            self.canvas.draw()
+            #restore white background in error plot and draw new error:
+            self.canvas.restore_region(self.err_background)
+            b.draw_artist(self.u_autocor)
+            b.draw_artist(self.v_autocor)
 
-        self.canvas.restore_region(self.background)
+            self.canvas.blit(a.bbox)
+            self.canvas.blit(b.bbox)
 
-        a.draw_artist(self.svd)
+    def autoscale_plot(self, fast=False):
+        top_plot = self.subplots['Singular Values']
+        bottom_plot = self.subplots['AutoCorrelation']
 
-        #restore white background in error plot and draw new error:
-        self.canvas.restore_region(self.err_background)
-        b.draw_artist(self.u_autocor)
-        b.draw_artist(self.v_autocor)
+        if self.svd is not None:
 
-        self.canvas.blit(a.bbox)
-        self.canvas.blit(b.bbox)
+            redraw = False
+
+            oldx = top_plot.get_xlim()
+            oldy = top_plot.get_ylim()
+
+            x_max = None
+            x_min = None
+            y_max = None
+            y_min = None
+
+            top_lines = [self.svd]
+
+            for line in top_lines:
+                x_data = line.get_xdata()
+                y_data = line.get_ydata()
+
+                if x_max is None:
+                    x_max = max(x_data)
+                    x_min = min(x_data)
+                else:
+                    x_max = max(x_max, max(x_data))
+                    x_min = min(x_min, min(x_data))
+
+                if y_max is None:
+                    y_max = max(y_data)
+                    y_min = min(y_data)
+                else:
+                    y_max = max(y_max, max(y_data))
+                    y_min = min(y_min, min(y_data))
+
+            if x_max is None:
+                x_min = 0
+                x_max = 1
+                y_min = 0
+                y_max = 1
+            else:
+                if y_max > 0:
+                    y_max = y_max*1.02
+                else:
+                    y_max = y_max*0.98
+
+                if y_min > 0:
+                    y_min = y_min*0.98
+                else:
+                    y_min = y_min*1.02
+
+                if x_max > 0:
+                    x_max = x_max*1.02
+                else:
+                    x_max = x_max*0.98
+
+                if x_min > 0:
+                    x_min = x_min*0.98
+                else:
+                    x_min = x_min*1.02
+
+            if fast and ((self._vals_close(oldx[0], x_min) and oldx[0] <= x_min) and
+                (self._vals_close(oldx[1], x_max)and x_max <= oldx[1]) and
+                (self._vals_close(oldy[0], y_min) and oldy[0] <= y_min) and
+                (self._vals_close(oldy[1], y_max) and y_max <= oldy[1])):
+                x_min, x_max = oldx
+                y_min, y_max = oldy
+
+            top_plot.set_xlim([x_min, x_max])
+            top_plot.set_ylim([y_min, y_max])
+
+            newx = top_plot.get_xlim()
+            newy = top_plot.get_ylim()
+
+            if newx != oldx or newy != oldy:
+                redraw = True
+
+            #Bottom plot
+            oldx = bottom_plot.get_xlim()
+            oldy = bottom_plot.get_ylim()
+
+            x_max = None
+            x_min = None
+            y_max = None
+            y_min = None
+
+            bottom_lines = [self.u_autocor, self.v_autocor]
+
+            for line in bottom_lines:
+                x_data = line.get_xdata()
+                y_data = line.get_ydata()
+
+                if x_max is None:
+                    x_max = max(x_data)
+                    x_min = min(x_data)
+                else:
+                    x_max = max(x_max, max(x_data))
+                    x_min = min(x_min, min(x_data))
+
+                if y_max is None:
+                    y_max = max(y_data)
+                    y_min = min(y_data)
+                else:
+                    y_max = max(y_max, max(y_data))
+                    y_min = min(y_min, min(y_data))
+
+            if x_max is None:
+                x_min = 0
+                x_max = 1
+                y_min = 0
+                y_max = 1
+            else:
+                if y_max > 0:
+                    y_max = y_max*1.02
+                else:
+                    y_max = y_max*0.98
+
+                if y_min > 0:
+                    y_min = y_min*0.98
+                else:
+                    y_min = y_min*1.02
+
+                if x_max > 0:
+                    x_max = x_max*1.02
+                else:
+                    x_max = x_max*0.98
+
+                if x_min > 0:
+                    x_min = x_min*0.98
+                else:
+                    x_min = x_min*1.02
+
+            if fast and ((self._vals_close(oldx[0], x_min) and oldx[0] <= x_min) and
+                (self._vals_close(oldx[1], x_max)and x_max <= oldx[1]) and
+                (self._vals_close(oldy[0], y_min) and oldy[0] <= y_min) and
+                (self._vals_close(oldy[1], y_max) and y_max <= oldy[1])):
+                x_min, x_max = oldx
+                y_min, y_max = oldy
+
+            bottom_plot.set_xlim([x_min, x_max])
+            bottom_plot.set_ylim([y_min, y_max])
+
+            newx = bottom_plot.get_xlim()
+            newy = bottom_plot.get_ylim()
+
+            if newx != oldx or newy != oldy:
+                redraw = True
+
+            if redraw:
+                self.ax_redraw()
+            else:
+                self.redrawLines()
+
+    def _vals_close(self, val1, val2, cl_range=0.05):
+        min_range = 1-cl_range
+
+        if val1 == val2:
+            close = True
+
+        elif val1 == 0 or val2 == 0:
+            close = False
+
+        elif (val1 < val2 and val1>0) or (val1 > val2 and val1 < 0):
+            if val1/val2 > min_range:
+                close = True
+            else:
+                close = False
+
+        else:
+            if val2/val1 > min_range:
+                close = True
+            else:
+                close = False
+
+        return close
 
 
 class SVDSECPlotPanel(wx.Panel):
@@ -9531,7 +10053,7 @@ class SVDSECPlotPanel(wx.Panel):
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         self.canvas.SetBackgroundColour('white')
 
-        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -9547,15 +10069,12 @@ class SVDSECPlotPanel(wx.Panel):
         ''' Redraw plots on window resize event '''
 
         a = self.subplots['SECPlot']
-        # b = self.subplots['Data/Fit']
 
+        self.canvas.mpl_disconnect(self.cid)
+        self.canvas.draw()
         self.background = self.canvas.copy_from_bbox(a.bbox)
-        # self.err_background = self.canvas.copy_from_bbox(b.bbox)
-
-        if self.secm is not None:
-            self.canvas.mpl_disconnect(self.cid)
-            self.updateDataPlot(self.orig_frame_list, self.orig_intensity, self.orig_framei, self.orig_framef)
-            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+        self.redrawLines()
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def plotSECM(self, secm, framei, framef, ydata_type):
         frame_list = secm.frame_list
@@ -9569,12 +10088,7 @@ class SVDSECPlotPanel(wx.Panel):
         else:
             intensity = secm.total_i
 
-        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
-        self.canvas.mpl_disconnect(self.cid)
         self.updateDataPlot(frame_list, intensity, framei, framef)
-
-        #Reconnect draw_event
-        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def updateDataPlot(self, frame_list, intensity, framei, framef):
 
@@ -9586,12 +10100,14 @@ class SVDSECPlotPanel(wx.Panel):
 
         a = self.subplots['SECPlot']
 
-        if not self.secm:
+        if self.secm is None:
             self.secm, = a.plot(frame_list, intensity, 'r.-', animated = True)
 
             self.cut_line, = a.plot(frame_list[framei:framef+1], intensity[framei:framef+1], 'b.-', animated = True)
 
+            self.canvas.mpl_disconnect(self.cid)
             self.canvas.draw()
+            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
             self.background = self.canvas.copy_from_bbox(a.bbox)
         else:
             self.secm.set_ydata(intensity)
@@ -9601,25 +10117,129 @@ class SVDSECPlotPanel(wx.Panel):
             self.cut_line.set_ydata(intensity[framei:framef+1])
             self.cut_line.set_xdata(frame_list[framei:framef+1])
 
+        self.autoscale_plot()
 
-        a_oldx = a.get_xlim()
-        a_oldy = a.get_ylim()
+    def redrawLines(self):
+        if self.secm is not None:
+            a = self.subplots['SECPlot']
 
-        a.relim()
-        a.autoscale_view()
+            self.canvas.restore_region(self.background)
 
-        a_newx = a.get_xlim()
-        a_newy = a.get_ylim()
+            a.draw_artist(self.secm)
+            a.draw_artist(self.cut_line)
 
-        if a_newx != a_oldx or a_newy != a_oldy:
-            self.canvas.draw()
+            self.canvas.blit(a.bbox)
 
-        self.canvas.restore_region(self.background)
+    def autoscale_plot(self, fast=False):
+        top_plot = self.subplots['SECPlot']
 
-        a.draw_artist(self.secm)
-        a.draw_artist(self.cut_line)
+        if self.secm is not None:
 
-        self.canvas.blit(a.bbox)
+            redraw = False
+
+            oldx = top_plot.get_xlim()
+            oldy = top_plot.get_ylim()
+
+            x_max = None
+            x_min = None
+            y_max = None
+            y_min = None
+
+            top_lines = [self.secm, self.cut_line]
+
+            for line in top_lines:
+                x_data = line.get_xdata()
+                y_data = line.get_ydata()
+
+                if x_max is None:
+                    x_max = max(x_data)
+                    x_min = min(x_data)
+                else:
+                    x_max = max(x_max, max(x_data))
+                    x_min = min(x_min, min(x_data))
+
+                if y_max is None:
+                    y_max = max(y_data)
+                    y_min = min(y_data)
+                else:
+                    y_max = max(y_max, max(y_data))
+                    y_min = min(y_min, min(y_data))
+
+            if x_max is None:
+                x_min = 0
+                x_max = 1
+                y_min = 0
+                y_max = 1
+            else:
+                if y_max > 0:
+                    y_max = y_max*1.02
+                else:
+                    y_max = y_max*0.98
+
+                if y_min > 0:
+                    y_min = y_min*0.98
+                else:
+                    y_min = y_min*1.02
+
+                if x_max > 0:
+                    x_max = x_max*1.02
+                else:
+                    x_max = x_max*0.98
+
+                if x_min > 0:
+                    x_min = x_min*0.98
+                else:
+                    x_min = x_min*1.02
+
+            if y_min == 0 and y_max > 0:
+                y_min = -y_max*0.02
+            elif y_min < 0 and y_max > 0:
+                if -y_max*0.02 < y_min:
+                    y_min = -y_max*0.02
+
+            if fast and ((self._vals_close(oldx[0], x_min) and oldx[0] <= x_min) and
+                (self._vals_close(oldx[1], x_max)and x_max <= oldx[1]) and
+                (self._vals_close(oldy[0], y_min) and oldy[0] <= y_min) and
+                (self._vals_close(oldy[1], y_max) and y_max <= oldy[1])):
+                x_min, x_max = oldx
+                y_min, y_max = oldy
+
+            top_plot.set_xlim([x_min, x_max])
+            top_plot.set_ylim([y_min, y_max])
+
+            newx = top_plot.get_xlim()
+            newy = top_plot.get_ylim()
+
+            if newx != oldx or newy != oldy:
+                redraw = True
+
+            if redraw:
+                self.ax_redraw()
+            else:
+                self.redrawLines()
+
+    def _vals_close(self, val1, val2, cl_range=0.05):
+        min_range = 1-cl_range
+
+        if val1 == val2:
+            close = True
+
+        elif val1 == 0 or val2 == 0:
+            close = False
+
+        elif (val1 < val2 and val1>0) or (val1 > val2 and val1 < 0):
+            if val1/val2 > min_range:
+                close = True
+            else:
+                close = False
+
+        else:
+            if val2/val1 > min_range:
+                close = True
+            else:
+                close = False
+
+        return close
 
 
 class SVDControlPanel(wx.Panel):
@@ -11515,7 +12135,7 @@ class EFAResultsPlotPanel2(wx.Panel):
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         self.canvas.SetBackgroundColour('white')
 
-        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -11533,13 +12153,12 @@ class EFAResultsPlotPanel2(wx.Panel):
         a = self.subplots['Forward EFA']
         b = self.subplots['Backward EFA']
 
+        self.canvas.mpl_disconnect(self.cid)
+        self.canvas.draw()
         self.f_background = self.canvas.copy_from_bbox(a.bbox)
         self.b_background = self.canvas.copy_from_bbox(b.bbox)
-
-        if len(self.f_lines)>0:
-            self.canvas.mpl_disconnect(self.cid)
-            self.updateDataPlot(self.orig_forward_data, self.orig_backward_data)
-            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+        self.redrawLines()
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def refresh(self):
         a = self.subplots['Forward EFA']
@@ -11566,12 +12185,7 @@ class EFAResultsPlotPanel2(wx.Panel):
 
     def plotEFA(self, forward_data, backward_data):
 
-        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
-        self.canvas.mpl_disconnect(self.cid)
         self.updateDataPlot(forward_data, backward_data)
-
-        #Reconnect draw_event
-        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def updateDataPlot(self, forward_data, backward_data):
         #Save for resizing:
@@ -11595,25 +12209,35 @@ class EFAResultsPlotPanel2(wx.Panel):
         if len(self.f_lines) == 0:
 
             for j in range(f_slist.shape[0]):
-                line, = a.semilogy(index, f_slist[j], label = 'SV %i' %(j), animated = True)
+                line, = a.semilogy(index, f_slist[j], label = 'SV %i' %(j),
+                    animated=True)
                 self.f_lines.append(line)
 
             for j in range(len(f_points)):
-                point, = a.semilogy(f_points[j], f_slist[j][fp_index[j]], 'o', markeredgewidth = 2, markeredgecolor = self.f_lines[j].get_color(), markerfacecolor='none', markersize = 8, label = '_nolegend_', animated = True)
+                point, = a.semilogy(f_points[j], f_slist[j][fp_index[j]], 'o',
+                    markeredgewidth=2, markeredgecolor=self.f_lines[j].get_color(),
+                    markerfacecolor='none', markersize=8, label='_nolegend_',
+                    animated = True)
                 self.f_markers.append(point)
 
             for k in range(b_slist.shape[0]):
-                line, = b.semilogy(index, b_slist[k], label = 'SV %i' %(k), animated = True)
+                line, = b.semilogy(index, b_slist[k], label='SV %i' %(k),
+                    animated=True)
                 self.b_lines.append(line)
 
             for k in range(len(b_points)):
-                point, = b.semilogy(b_points[k], b_slist[k][bp_index[k]], 'o', markeredgewidth = 2, markeredgecolor = self.b_lines[k].get_color(), markerfacecolor='none', markersize = 8, label = '_nolegend_', animated = True)
+                point, = b.semilogy(b_points[k], b_slist[k][bp_index[k]], 'o',
+                    markeredgewidth=2, markeredgecolor=self.b_lines[k].get_color(),
+                    markerfacecolor='none', markersize=8, label='_nolegend_',
+                    animated=True)
                 self.b_markers.append(point)
 
             a.legend(fontsize = 12, loc = 'upper left')
             b.legend(fontsize = 12)
 
+            self.canvas.mpl_disconnect(self.cid)
             self.canvas.draw()
+            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
             self.f_background = self.canvas.copy_from_bbox(a.bbox)
             self.b_background = self.canvas.copy_from_bbox(b.bbox)
 
@@ -11638,46 +12262,196 @@ class EFAResultsPlotPanel2(wx.Panel):
                 marker.set_xdata(b_points[k])
                 marker.set_ydata(b_slist[k][bp_index[k]])
 
-        a_oldx = a.get_xlim()
-        a_oldy = a.get_ylim()
-        b_oldx = b.get_xlim()
-        b_oldy = b.get_ylim()
+        self.autoscale_plot()
 
-        a.relim()
-        a.autoscale_view()
+    def redrawLines(self):
+        if len(self.f_lines) != 0:
+            a = self.subplots['Forward EFA']
+            b = self.subplots['Backward EFA']
 
-        b.relim()
-        b.autoscale_view()
+            self.canvas.restore_region(self.f_background)
 
-        a_newx = a.get_xlim()
-        a_newy = a.get_ylim()
-        b_newx = b.get_xlim()
-        b_newy = b.get_ylim()
+            for line in self.f_lines:
+                a.draw_artist(line)
 
-        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy:
-            self.canvas.draw()
+            for marker in self.f_markers:
+                a.draw_artist(marker)
 
-        self.canvas.restore_region(self.f_background)
+            #restore white background in error plot and draw new error:
+            self.canvas.restore_region(self.b_background)
 
-        for line in self.f_lines:
-            a.draw_artist(line)
+            for line in self.b_lines:
+                b.draw_artist(line)
 
-        for marker in self.f_markers:
-            a.draw_artist(marker)
+            for marker in self.b_markers:
+                b.draw_artist(marker)
 
-        #restore white background in error plot and draw new error:
-        self.canvas.restore_region(self.b_background)
+            self.canvas.blit(a.bbox)
+            self.canvas.blit(b.bbox)
 
-        for line in self.b_lines:
-            b.draw_artist(line)
+    def autoscale_plot(self, fast=False):
+        top_plot = self.subplots['Forward EFA']
+        bottom_plot = self.subplots['Backward EFA']
 
-        for marker in self.b_markers:
-            b.draw_artist(marker)
+        if len(self.f_lines) != 0:
 
-        self.canvas.blit(a.bbox)
-        self.canvas.blit(b.bbox)
+            redraw = False
 
+            oldx = top_plot.get_xlim()
+            oldy = top_plot.get_ylim()
 
+            x_max = None
+            x_min = None
+            y_max = None
+            y_min = None
+
+            top_lines = self.f_lines + self.f_markers
+
+            for line in top_lines:
+                x_data = line.get_xdata()
+                y_data = line.get_ydata()
+
+                if not isinstance(x_data, list) and not isinstance(x_data, np.ndarray):
+                    x_data = [x_data]
+                if not isinstance(y_data, list)  and not isinstance(x_data, np.ndarray):
+                    y_data = [y_data]
+
+                if x_max is None:
+                    x_max = max(x_data)
+                    x_min = min(x_data)
+                else:
+                    x_max = max(x_max, max(x_data))
+                    x_min = min(x_min, min(x_data))
+
+                if y_max is None:
+                    y_max = max(y_data)
+                    y_min = min(y_data)
+                else:
+                    y_max = max(y_max, max(y_data))
+                    y_min = min(y_min, min(y_data))
+
+            if x_max is None:
+                x_min = 0
+                x_max = 1
+                y_min = 0
+                y_max = 1
+            else:
+                if y_max > 0:
+                    y_max = y_max*1.05
+                else:
+                    y_max = y_max*0.95
+
+                if y_min > 0:
+                    y_min = y_min*0.95
+                else:
+                    y_min = y_min*1.05
+
+                if x_max > 0:
+                    x_max = x_max*1.02
+                else:
+                    x_max = x_max*0.98
+
+                if x_min > 0:
+                    x_min = x_min*0.98
+                else:
+                    x_min = x_min*1.02
+
+            if fast and ((self._vals_close(oldx[0], x_min) and oldx[0] <= x_min) and
+                (self._vals_close(oldx[1], x_max)and x_max <= oldx[1]) and
+                (self._vals_close(oldy[0], y_min) and oldy[0] <= y_min) and
+                (self._vals_close(oldy[1], y_max) and y_max <= oldy[1])):
+                x_min, x_max = oldx
+                y_min, y_max = oldy
+
+            top_plot.set_xlim([x_min, x_max])
+            top_plot.set_ylim([y_min, y_max])
+
+            newx = top_plot.get_xlim()
+            newy = top_plot.get_ylim()
+
+            if newx != oldx or newy != oldy:
+                redraw = True
+
+            #Bottom plot
+            oldx = bottom_plot.get_xlim()
+            oldy = bottom_plot.get_ylim()
+
+            x_max = None
+            x_min = None
+            y_max = None
+            y_min = None
+
+            bottom_lines = self.b_lines + self.b_markers
+
+            for line in bottom_lines:
+                x_data = line.get_xdata()
+                y_data = line.get_ydata()
+
+                if not isinstance(x_data, list) and not isinstance(x_data, np.ndarray):
+                    x_data = [x_data]
+                if not isinstance(y_data, list)  and not isinstance(x_data, np.ndarray):
+                    y_data = [y_data]
+
+                if x_max is None:
+                    x_max = max(x_data)
+                    x_min = min(x_data)
+                else:
+                    x_max = max(x_max, max(x_data))
+                    x_min = min(x_min, min(x_data))
+
+                if y_max is None:
+                    y_max = max(y_data)
+                    y_min = min(y_data)
+                else:
+                    y_max = max(y_max, max(y_data))
+                    y_min = min(y_min, min(y_data))
+
+            if x_max is None:
+                x_min = 0
+                x_max = 1
+                y_min = 0
+                y_max = 1
+            else:
+                if y_max > 0:
+                    y_max = y_max*1.05
+                else:
+                    y_max = y_max*0.95
+
+                if y_min > 0:
+                    y_min = y_min*0.95
+                else:
+                    y_min = y_min*1.05
+
+                if x_max > 0:
+                    x_max = x_max*1.02
+                else:
+                    x_max = x_max*0.98
+
+                if x_min > 0:
+                    x_min = x_min*0.98
+                else:
+                    x_min = x_min*1.02
+
+            if fast and ((self._vals_close(oldx[0], x_min) and oldx[0] <= x_min) and
+                (self._vals_close(oldx[1], x_max)and x_max <= oldx[1]) and
+                (self._vals_close(oldy[0], y_min) and oldy[0] <= y_min) and
+                (self._vals_close(oldy[1], y_max) and y_max <= oldy[1])):
+                x_min, x_max = oldx
+                y_min, y_max = oldy
+
+            bottom_plot.set_xlim([x_min, x_max])
+            bottom_plot.set_ylim([y_min, y_max])
+
+            newx = bottom_plot.get_xlim()
+            newy = bottom_plot.get_ylim()
+
+            if newx != oldx or newy != oldy:
+                redraw = True
+
+            if redraw:
+                self.ax_redraw()
+            else:
+                self.redrawLines()
 
 class EFAControlPanel3(wx.Panel):
 
@@ -12344,7 +13118,7 @@ class EFAResultsPlotPanel3(wx.Panel):
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         self.canvas.SetBackgroundColour('white')
 
-        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -12363,14 +13137,13 @@ class EFAResultsPlotPanel3(wx.Panel):
         b = self.subplots['Mean Error Weighted $\chi^2$']
         c = self.subplots['Concentration']
 
+        self.canvas.mpl_disconnect(self.cid)
+        self.canvas.draw()
         self.a_background = self.canvas.copy_from_bbox(a.bbox)
         self.b_background = self.canvas.copy_from_bbox(b.bbox)
         self.c_background = self.canvas.copy_from_bbox(c.bbox)
-
-        if len(self.a_lines)>0:
-            self.canvas.mpl_disconnect(self.cid)
-            self.updateDataPlot(self.orig_profile_data, self.orig_rmsd_data, self.orig_conc_data)
-            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+        self.redrawLines()
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def refresh(self):
         a = self.subplots['Scattering Profiles']
@@ -12400,13 +13173,7 @@ class EFAResultsPlotPanel3(wx.Panel):
             c.set_color_cycle(None)
 
     def plotEFA(self, profile_data, rmsd_data, conc_data):
-
-        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
-        self.canvas.mpl_disconnect(self.cid)
         self.updateDataPlot(profile_data, rmsd_data, conc_data)
-
-        #Reconnect draw_event
-        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def updateDataPlot(self, profile_data, rmsd_data, conc_data):
         #Save for resizing:
@@ -12433,10 +13200,11 @@ class EFAResultsPlotPanel3(wx.Panel):
                 line, = c.plot(conc_data[1], conc_data[0][:,j], animated = True)
                 self.c_lines.append(line)
 
-
             a.legend(fontsize = 12)
 
+            self.canvas.mpl_disconnect(self.cid)
             self.canvas.draw()
+            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
             self.a_background = self.canvas.copy_from_bbox(a.bbox)
             self.b_background = self.canvas.copy_from_bbox(b.bbox)
             self.c_background = self.canvas.copy_from_bbox(c.bbox)
@@ -12456,43 +13224,22 @@ class EFAResultsPlotPanel3(wx.Panel):
                 line.set_xdata(conc_data[1])
                 line.set_ydata(conc_data[0][:,j])
 
-        a_oldx = a.get_xlim()
-        a_oldy = a.get_ylim()
-        b_oldx = b.get_xlim()
-        b_oldy = b.get_ylim()
-        c_oldx = c.get_xlim()
-        c_oldy = c.get_ylim()
+        self.autoscale_plot()
 
-        a.relim()
-        a.autoscale_view()
-
-        b.relim()
-        b.autoscale_view()
-
-        c.relim()
-        c.autoscale_view()
-
-        a_newx = a.get_xlim()
-        a_newy = a.get_ylim()
-        b_newx = b.get_xlim()
-        b_newy = b.get_ylim()
-        c_newx = c.get_xlim()
-        c_newy = c.get_ylim()
-
-        if a_newx != a_oldx or a_newy != a_oldy or b_newx != b_oldx or b_newy != b_oldy or c_newx != c_oldx or c_newy != c_oldy:
-            self.canvas.draw()
+    def redrawLines(self):
+        a = self.subplots['Scattering Profiles']
+        b = self.subplots['Mean Error Weighted $\chi^2$']
+        c = self.subplots['Concentration']
 
         self.canvas.restore_region(self.a_background)
 
         for line in self.a_lines:
             a.draw_artist(line)
 
-
         self.canvas.restore_region(self.b_background)
 
         for line in self.b_lines:
             b.draw_artist(line)
-
 
         self.canvas.restore_region(self.c_background)
 
@@ -12502,6 +13249,261 @@ class EFAResultsPlotPanel3(wx.Panel):
         self.canvas.blit(a.bbox)
         self.canvas.blit(b.bbox)
         self.canvas.blit(c.bbox)
+
+    def autoscale_plot(self, fast=False, x_max_scale=1.01, x_min_scale=0.98,
+        y_max_scale=1.1, y_min_scale=0.9):
+        top_plot = self.subplots['Scattering Profiles']
+        middle_plot = self.subplots['Mean Error Weighted $\chi^2$']
+        bottom_plot = self.subplots['Concentration']
+
+        if len(self.a_lines) != 0:
+            redraw = False
+
+            oldx = top_plot.get_xlim()
+            oldy = top_plot.get_ylim()
+
+            x_max = None
+            x_min = None
+            y_max = None
+            y_min = None
+
+            top_lines = self.a_lines
+
+            for line in top_lines:
+                x_data = line.get_xdata()
+                y_data = line.get_ydata()
+
+                if x_max is None:
+                    x_max = max(x_data)
+                    x_min = min(x_data)
+                else:
+                    x_max = max(x_max, max(x_data))
+                    x_min = min(x_min, min(x_data))
+
+                if y_max is None:
+                    y_max = max(y_data)
+                    y_min = min(y_data)
+                else:
+                    y_max = max(y_max, max(y_data))
+                    y_min = min(y_min, min(y_data))
+
+            if x_max is None:
+                x_min = 0
+                x_max = 1
+                y_min = 0
+                y_max = 1
+            else:
+                if y_max > 0:
+                    y_max = y_max*1.02
+                else:
+                    y_max = y_max*0.98
+
+                if y_min > 0:
+                    y_min = y_min*0.98
+                else:
+                    y_min = y_min*1.02
+
+                if x_max > 0:
+                    x_max = x_max*1.01
+                else:
+                    x_max = x_max*0.99
+
+                if x_min > 0:
+                    x_min = x_min*0.99
+                else:
+                    x_min = x_min*1.01
+
+            #Particular to P(r) plots
+            if y_min == 0 and y_max > 0:
+                y_min = -y_max*0.02
+            elif y_min < 0 and y_max > 0:
+                if -y_max*0.075 < y_min:
+                    y_min = -y_max*0.075
+
+            if fast and ((self._vals_close(oldx[0], x_min) and oldx[0] <= x_min) and
+                (self._vals_close(oldx[1], x_max)and x_max <= oldx[1]) and
+                (self._vals_close(oldy[0], y_min) and oldy[0] <= y_min) and
+                (self._vals_close(oldy[1], y_max) and y_max <= oldy[1])):
+                x_min, x_max = oldx
+                y_min, y_max = oldy
+
+            top_plot.set_xlim([x_min, x_max])
+            top_plot.set_ylim([y_min, y_max])
+
+            newx = top_plot.get_xlim()
+            newy = top_plot.get_ylim()
+
+            if newx != oldx or newy != oldy:
+                redraw = True
+
+            oldx = middle_plot.get_xlim()
+            oldy = middle_plot.get_ylim()
+
+            x_max = None
+            x_min = None
+            y_max = None
+            y_min = None
+
+            middle_lines = self.b_lines
+
+            for line in middle_lines:
+                x_data = line.get_xdata()
+                y_data = line.get_ydata()
+
+                if x_max is None:
+                    x_max = max(x_data)
+                    x_min = min(x_data)
+                else:
+                    x_max = max(x_max, max(x_data))
+                    x_min = min(x_min, min(x_data))
+
+                if y_max is None:
+                    y_max = max(y_data)
+                    y_min = min(y_data)
+                else:
+                    y_max = max(y_max, max(y_data))
+                    y_min = min(y_min, min(y_data))
+
+            if x_max is None:
+                x_min = 0
+                x_max = 1
+                y_min = 0
+                y_max = 1
+            else:
+                if y_max > 0:
+                    y_max = y_max*y_max_scale
+                else:
+                    y_max = y_max*y_min_scale
+
+                if y_min > 0:
+                    y_min = y_min*y_min_scale
+                else:
+                    y_min = y_min*y_max_scale
+
+                if x_max > 0:
+                    x_max = x_max*x_max_scale
+                else:
+                    x_max = x_max*x_min_scale
+
+                if x_min > 0:
+                    x_min = x_min*x_min_scale
+                else:
+                    x_min = x_min*x_max_scale
+
+            if fast and ((self._vals_close(oldx[0], x_min) and oldx[0] <= x_min) and
+                (self._vals_close(oldx[1], x_max)and x_max <= oldx[1]) and
+                (self._vals_close(oldy[0], y_min) and oldy[0] <= y_min) and
+                (self._vals_close(oldy[1], y_max) and y_max <= oldy[1])):
+                x_min, x_max = oldx
+                y_min, y_max = oldy
+
+            middle_plot.set_xlim([x_min, x_max])
+            middle_plot.set_ylim([y_min, y_max])
+
+            newx = middle_plot.get_xlim()
+            newy = middle_plot.get_ylim()
+
+            if newx != oldx or newy != oldy:
+                redraw = True
+
+            #Bottom plot
+            oldx = bottom_plot.get_xlim()
+            oldy = bottom_plot.get_ylim()
+
+            x_max = None
+            x_min = None
+            y_max = None
+            y_min = None
+
+            bottom_lines = self.c_lines
+
+            for line in bottom_lines:
+                x_data = line.get_xdata()
+                y_data = line.get_ydata()
+
+                if x_max is None:
+                    x_max = max(x_data)
+                    x_min = min(x_data)
+                else:
+                    x_max = max(x_max, max(x_data))
+                    x_min = min(x_min, min(x_data))
+
+                if y_max is None:
+                    y_max = max(y_data)
+                    y_min = min(y_data)
+                else:
+                    y_max = max(y_max, max(y_data))
+                    y_min = min(y_min, min(y_data))
+
+            if x_max is None:
+                x_min = 0
+                x_max = 1
+                y_min = 0
+                y_max = 1
+            else:
+                if y_max > 0:
+                    y_max = y_max*y_max_scale
+                else:
+                    y_max = y_max*y_min_scale
+
+                if y_min > 0:
+                    y_min = y_min*y_min_scale
+                else:
+                    y_min = y_min*y_max_scale
+
+                if x_max > 0:
+                    x_max = x_max*x_max_scale
+                else:
+                    x_max = x_max*x_min_scale
+
+                if x_min > 0:
+                    x_min = x_min*x_min_scale
+                else:
+                    x_min = x_min*x_max_scale
+
+            if fast and ((self._vals_close(oldx[0], x_min) and oldx[0] <= x_min) and
+                (self._vals_close(oldx[1], x_max)and x_max <= oldx[1]) and
+                (self._vals_close(oldy[0], y_min) and oldy[0] <= y_min) and
+                (self._vals_close(oldy[1], y_max) and y_max <= oldy[1])):
+                x_min, x_max = oldx
+                y_min, y_max = oldy
+
+            bottom_plot.set_xlim([x_min, x_max])
+            bottom_plot.set_ylim([y_min, y_max])
+
+            newx = bottom_plot.get_xlim()
+            newy = bottom_plot.get_ylim()
+
+            if newx != oldx or newy != oldy:
+                redraw = True
+
+            if redraw:
+                self.ax_redraw()
+            else:
+                self.redrawLines()
+
+    def _vals_close(self, val1, val2, cl_range=0.05):
+        min_range = 1-cl_range
+
+        if val1 == val2:
+            close = True
+
+        elif val1 == 0 or val2 == 0:
+            close = False
+
+        elif (val1 < val2 and val1>0) or (val1 > val2 and val1 < 0):
+            if val1/val2 > min_range:
+                close = True
+            else:
+                close = False
+
+        else:
+            if val2/val1 > min_range:
+                close = True
+            else:
+                close = False
+
+        return close
 
 
 class EFARangePlotPanel(wx.Panel):
@@ -12545,7 +13547,7 @@ class EFARangePlotPanel(wx.Panel):
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         self.canvas.SetBackgroundColour('white')
 
-        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -12561,15 +13563,12 @@ class EFARangePlotPanel(wx.Panel):
         ''' Redraw plots on window resize event '''
 
         a = self.subplots['SECPlot']
-        # b = self.subplots['Data/Fit']
 
+        self.canvas.mpl_disconnect(self.cid)
+        self.canvas.draw()
         self.background = self.canvas.copy_from_bbox(a.bbox)
-        # self.err_background = self.canvas.copy_from_bbox(b.bbox)
-
-        if self.cut_line is not None:
-            self.canvas.mpl_disconnect(self.cid)
-            self.updateDataPlot(self.orig_frame_list, self.orig_intensity, self.orig_framei, self.orig_framef, self.orig_ranges)
-            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+        self.redrawLines()
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def refresh(self):
         a = self.subplots['SECPlot']
@@ -12598,12 +13597,7 @@ class EFARangePlotPanel(wx.Panel):
         else:
             intensity = secm.total_i
 
-        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
-        self.canvas.mpl_disconnect(self.cid)
         self.updateDataPlot(frame_list, intensity, framei, framef, ranges)
-
-        #Reconnect draw_event
-        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def updateDataPlot(self, frame_list, intensity, framei, framef, ranges):
         #Save for resizing:
@@ -12619,28 +13613,39 @@ class EFARangePlotPanel(wx.Panel):
 
             self.cut_line, = a.plot(frame_list[framei:framef+1], intensity[framei:framef+1], 'k.-', animated = True)
 
-            if (int(matplotlib.__version__.split('.')[0]) ==1 and int(matplotlib.__version__.split('.')[1]) >=5) or int(matplotlib.__version__.split('.')[0]) > 1:
+            if ((int(matplotlib.__version__.split('.')[0]) ==1 and
+                int(matplotlib.__version__.split('.')[1]) >=5) or
+                int(matplotlib.__version__.split('.')[0]) > 1):
                 a.set_prop_cycle(None) #Resets the color cycler to the original state
             else:
                 a.set_color_cycle(None)
 
             for i in range(ranges.shape[0]):
-                if (int(matplotlib.__version__.split('.')[0]) ==1 and int(matplotlib.__version__.split('.')[1]) >=5) or int(matplotlib.__version__.split('.')[0]) > 1:
+                if ((int(matplotlib.__version__.split('.')[0]) ==1 and
+                    int(matplotlib.__version__.split('.')[1]) >=5) or
+                    int(matplotlib.__version__.split('.')[0]) > 1):
                     color = a._get_lines.prop_cycler.next()['color']
                 else:
                     color = a._get_lines.color_cycle.next()
 
-                annotation = a.annotate('', xy = (ranges[i][0], 0.975-0.05*(i)), xytext = (ranges[i][1], 0.975-0.05*(i)), xycoords = ('data', 'axes fraction'), arrowprops = dict(arrowstyle = '<->', color = color), animated = True)
+                annotation = a.annotate('', xy=(ranges[i][0], 0.975-0.05*(i)),
+                    xytext=(ranges[i][1], 0.975-0.05*(i)),
+                    xycoords=('data', 'axes fraction'),
+                    arrowprops = dict(arrowstyle = '<->', color = color),
+                    animated = True)
                 self.range_arrows.append(annotation)
 
-                rline1 = a.axvline(ranges[i][0], 0, 0.975-0.05*(i), linestyle = 'dashed', color = color, animated = True)
-                rline2 = a.axvline(ranges[i][1], 0, 0.975-0.05*(i), linestyle = 'dashed', color = color, animated = True)
+                rline1 = a.axvline(ranges[i][0], 0, 0.975-0.05*(i),
+                    linestyle='dashed', color=color, animated=True)
+                rline2 = a.axvline(ranges[i][1], 0, 0.975-0.05*(i),
+                    linestyle='dashed', color=color, animated=True)
 
                 self.range_lines.append([rline1, rline2])
 
+            self.canvas.mpl_disconnect(self.cid)
             self.canvas.draw()
+            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
             self.background = self.canvas.copy_from_bbox(a.bbox)
-
 
         else:
             self.cut_line.set_ydata(intensity[framei:framef+1])
@@ -12657,31 +13662,135 @@ class EFARangePlotPanel(wx.Panel):
                 lines[0].set_xdata(ranges[i][0])
                 lines[1].set_xdata(ranges[i][1])
 
+        self.autoscale_plot(True)
 
-        a_oldx = a.get_xlim()
-        a_oldy = a.get_ylim()
+    def redrawLines(self):
+        if self.cut_line is not None:
+            a = self.subplots['SECPlot']
 
-        a.relim()
-        a.autoscale_view()
+            self.canvas.restore_region(self.background)
 
-        a_newx = a.get_xlim()
-        a_newy = a.get_ylim()
+            a.draw_artist(self.cut_line)
 
-        if a_newx != a_oldx or a_newy != a_oldy:
-            self.canvas.draw()
+            for anno in self.range_arrows:
+                a.draw_artist(anno)
 
-        self.canvas.restore_region(self.background)
+            for lines in self.range_lines:
+                a.draw_artist(lines[0])
+                a.draw_artist(lines[1])
 
-        a.draw_artist(self.cut_line)
+            self.canvas.blit(a.bbox)
 
-        for anno in self.range_arrows:
-            a.draw_artist(anno)
+    def autoscale_plot(self, fast=False):
+        top_plot = self.subplots['SECPlot']
 
-        for lines in self.range_lines:
-            a.draw_artist(lines[0])
-            a.draw_artist(lines[1])
+        if self.cut_line is not None:
 
-        self.canvas.blit(a.bbox)
+            redraw = False
+
+            oldx = top_plot.get_xlim()
+            oldy = top_plot.get_ylim()
+
+            x_max = None
+            x_min = None
+            y_max = None
+            y_min = None
+
+            top_lines = [self.cut_line]
+
+            for line in top_lines:
+                x_data = line.get_xdata()
+                y_data = line.get_ydata()
+
+                if x_max is None:
+                    x_max = max(x_data)
+                    x_min = min(x_data)
+                else:
+                    x_max = max(x_max, max(x_data))
+                    x_min = min(x_min, min(x_data))
+
+                if y_max is None:
+                    y_max = max(y_data)
+                    y_min = min(y_data)
+                else:
+                    y_max = max(y_max, max(y_data))
+                    y_min = min(y_min, min(y_data))
+
+            if x_max is None:
+                x_min = 0
+                x_max = 1
+                y_min = 0
+                y_max = 1
+            else:
+                if y_max > 0:
+                    y_max = y_max*1.02
+                else:
+                    y_max = y_max*0.98
+
+                if y_min > 0:
+                    y_min = y_min*0.98
+                else:
+                    y_min = y_min*1.02
+
+                if x_max > 0:
+                    x_max = x_max*1.02
+                else:
+                    x_max = x_max*0.98
+
+                if x_min > 0:
+                    x_min = x_min*0.98
+                else:
+                    x_min = x_min*1.02
+
+            if y_min == 0 and y_max > 0:
+                y_min = -y_max*0.02
+            elif y_min < 0 and y_max > 0:
+                if -y_max*0.02 < y_min:
+                    y_min = -y_max*0.02
+
+            if fast and ((self._vals_close(oldx[0], x_min) and oldx[0] <= x_min) and
+                (self._vals_close(oldx[1], x_max)and x_max <= oldx[1]) and
+                (self._vals_close(oldy[0], y_min) and oldy[0] <= y_min) and
+                (self._vals_close(oldy[1], y_max) and y_max <= oldy[1])):
+                x_min, x_max = oldx
+                y_min, y_max = oldy
+
+            top_plot.set_xlim([x_min, x_max])
+            top_plot.set_ylim([y_min, y_max])
+
+            newx = top_plot.get_xlim()
+            newy = top_plot.get_ylim()
+
+            if newx != oldx or newy != oldy:
+                redraw = True
+
+            if redraw:
+                self.ax_redraw()
+            else:
+                self.redrawLines()
+
+    def _vals_close(self, val1, val2, cl_range=0.05):
+        min_range = 1-cl_range
+
+        if val1 == val2:
+            close = True
+
+        elif val1 == 0 or val2 == 0:
+            close = False
+
+        elif (val1 < val2 and val1>0) or (val1 > val2 and val1 < 0):
+            if val1/val2 > min_range:
+                close = True
+            else:
+                close = False
+
+        else:
+            if val2/val1 > min_range:
+                close = True
+            else:
+                close = False
+
+        return close
 
 
 class SimilarityFrame(wx.Frame):
@@ -13171,7 +14280,7 @@ class NormKratkyPlotPanel(wx.Panel):
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         self.canvas.SetBackgroundColour('white')
 
-        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -13188,12 +14297,11 @@ class NormKratkyPlotPanel(wx.Panel):
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
 
+        self.canvas.mpl_disconnect(self.cid)
+        self.canvas.draw()
         self.background = self.canvas.copy_from_bbox(self.subplot.bbox)
-
-        if len(self.line_dict) > 0:
-            self.canvas.mpl_disconnect(self.cid) #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
-            self.redrawLines()
-            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) #Reconnect draw_event
+        self.redrawLines()
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def addSASMToPlot(self, sasm):
 
@@ -13224,46 +14332,141 @@ class NormKratkyPlotPanel(wx.Panel):
 
         self.line_dict[data_line] = self.DataTuple(sasm, rg, i0, vc, data_line, name)
 
-        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
-        self.canvas.mpl_disconnect(self.cid)
-
         if len(self.line_dict) == 1:
+            self.canvas.mpl_disconnect(self.cid)
             self.canvas.draw()
             self.background = self.canvas.copy_from_bbox(self.subplot.bbox)
+            self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
-        #Reconnect draw_event
-        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+        self.autoscale_plot(True)
 
         return data_line
 
-    def relimPlot(self):
-        oldx = self.subplot.get_xlim()
-        oldy = self.subplot.get_ylim()
+    def autoscale_plot(self, fast=False):
+        top_plot = self.subplot
 
-        self.subplot.relim()
-        self.subplot.autoscale_view()
+        if len(self.line_dict) > 0:
 
-        newx = self.subplot.get_xlim()
-        newy = self.subplot.get_ylim()
+            redraw = False
 
-        if newx != oldx or newy != oldy:
-            self.canvas.draw()
+            oldx = top_plot.get_xlim()
+            oldy = top_plot.get_ylim()
 
-        self.redrawLines()
+            x_max = None
+            x_min = None
+            y_max = None
+            y_min = None
+
+            top_lines = self.line_dict.keys()
+
+            for line in top_lines:
+                x_data = line.get_xdata()
+                y_data = line.get_ydata()
+
+                if x_max is None:
+                    x_max = max(x_data)
+                    x_min = min(x_data)
+                else:
+                    x_max = max(x_max, max(x_data))
+                    x_min = min(x_min, min(x_data))
+
+                if y_max is None:
+                    y_max = max(y_data)
+                    y_min = min(y_data)
+                else:
+                    y_max = max(y_max, max(y_data))
+                    y_min = min(y_min, min(y_data))
+
+            if x_max is None:
+                x_min = 0
+                x_max = 1
+                y_min = 0
+                y_max = 1
+            else:
+                if y_max > 0:
+                    y_max = y_max*1.02
+                else:
+                    y_max = y_max*0.98
+
+                if y_min > 0:
+                    y_min = y_min*0.98
+                else:
+                    y_min = y_min*1.02
+
+                if x_max > 0:
+                    x_max = x_max*1.02
+                else:
+                    x_max = x_max*0.98
+
+                if x_min > 0:
+                    x_min = x_min*0.98
+                else:
+                    x_min = x_min*1.02
+
+            if y_min == 0 and y_max > 0:
+                y_min = -y_max*0.02
+            elif y_min < 0 and y_max > 0:
+                if -y_max*0.02 < y_min:
+                    y_min = -y_max*0.02
+
+            if fast and ((self._vals_close(oldx[0], x_min) and oldx[0] <= x_min) and
+                (self._vals_close(oldx[1], x_max)and x_max <= oldx[1]) and
+                (self._vals_close(oldy[0], y_min) and oldy[0] <= y_min) and
+                (self._vals_close(oldy[1], y_max) and y_max <= oldy[1])):
+                x_min, x_max = oldx
+                y_min, y_max = oldy
+
+            top_plot.set_xlim([x_min, x_max])
+            top_plot.set_ylim([y_min, y_max])
+
+            newx = top_plot.get_xlim()
+            newy = top_plot.get_ylim()
+
+            if newx != oldx or newy != oldy:
+                redraw = True
+
+            if redraw:
+                self.ax_redraw()
+            else:
+                self.redrawLines()
+
+    def _vals_close(self, val1, val2, cl_range=0.05):
+        min_range = 1-cl_range
+
+        if val1 == val2:
+            close = True
+
+        elif val1 == 0 or val2 == 0:
+            close = False
+
+        elif (val1 < val2 and val1>0) or (val1 > val2 and val1 < 0):
+            if val1/val2 > min_range:
+                close = True
+            else:
+                close = False
+
+        else:
+            if val2/val1 > min_range:
+                close = True
+            else:
+                close = False
+
+        return close
 
     def redrawLines(self):
 
-        self.canvas.restore_region(self.background)
+        if len(self.line_dict) > 0:
+            self.canvas.restore_region(self.background)
 
-        for line in self.line_dict.keys():
-            self.subplot.draw_artist(line)
+            for line in self.line_dict.keys():
+                self.subplot.draw_artist(line)
 
-        legend = self.subplot.get_legend()
-        if legend is not None:
-            if legend.get_visible():
-                self.subplot.draw_artist(legend)
+            legend = self.subplot.get_legend()
+            if legend is not None:
+                if legend.get_visible():
+                    self.subplot.draw_artist(legend)
 
-        self.canvas.blit(self.subplot.bbox)
+            self.canvas.blit(self.subplot.bbox)
 
     def updatePlot(self, plot_type):
         self.plot_type = plot_type
@@ -13308,7 +14511,7 @@ class NormKratkyPlotPanel(wx.Panel):
             line.set_xdata(xdata)
             line.set_ydata(ydata)
 
-        self.relimPlot()
+        self.autoscale_plot()
 
     def _onMouseButtonReleaseEvent(self, event):
         ''' Find out where the mouse button was released
@@ -13520,10 +14723,6 @@ class NormKratkyControlPanel(wx.Panel):
         plot_type = plotWindow.GetStringSelection()
 
         plotpanel = self.norm_kratky_frame.plotPanel
-
-        subplot = plotpanel.subplot
-        if not subplot.get_autoscale_on():
-            subplot.set_autoscale_on(True)
 
         plotpanel.updatePlot(plot_type)
 
@@ -14124,24 +15323,44 @@ class SeriesPlotPanel(wx.Panel):
                 x_max = max(x_data)
                 x_min = min(x_data)
             else:
-                x_max = max(x_max, x_data)
-                x_min = min(x_min, x_data)
+                x_max = max(x_max, max(x_data))
+                x_min = min(x_min, min(x_data))
 
             if y_max is None:
                 y_max = max(y_data)
                 y_min = min(y_data)
             else:
-                y_max = max(y_max, y_data)
-                y_min = min(y_min, y_data)
+                y_max = max(y_max, max(y_data))
+                y_min = min(y_min, min(y_data))
 
         if x_max is None:
             x_min = 0
             x_max = 1
             y_min = 0
             y_max = 1
+        else:
+            if y_max > 0:
+                y_max = y_max*1.02
+            else:
+                y_max = y_max*0.98
 
-        self.subplot.set_xlim([x_min*0.98, x_max*1.02])
-        self.subplot.set_ylim([y_min*0.98, y_max*1.02])
+            if y_min > 0:
+                y_min = y_min*0.98
+            else:
+                y_min = y_min*1.02
+
+            if x_max > 0:
+                x_max = x_max*1.01
+            else:
+                x_max = x_max*0.99
+
+            if x_min > 0:
+                x_min = x_min*0.98
+            else:
+                x_min = x_min*1.02
+
+        self.subplot.set_xlim([x_min, x_max])
+        self.subplot.set_ylim([y_min, y_max])
 
         newx = self.subplot.get_xlim()
         newy = self.subplot.get_ylim()
@@ -14162,14 +15381,24 @@ class SeriesPlotPanel(wx.Panel):
                     y_max = max(y_data)
                     y_min = min(y_data)
                 else:
-                    y_max = max(y_max, y_data)
-                    y_min = min(y_min, y_data)
+                    y_max = max(y_max, max(y_data))
+                    y_min = min(y_min, min(y_data))
 
             if y_max is None:
                 y_min = 0
                 y_max = 1
+            else:
+                if y_max > 0:
+                    y_max = y_max*1.02
+                else:
+                    y_max = y_max*0.98
 
-            self.ryaxis.set_ylim([y_min*0.98, y_max*1.02])
+                if y_min > 0:
+                    y_min = y_min*0.98
+                else:
+                    y_min = y_min*1.02
+
+            self.ryaxis.set_ylim([y_min, y_max])
 
             newy = self.ryaxis.get_ylim()
 
