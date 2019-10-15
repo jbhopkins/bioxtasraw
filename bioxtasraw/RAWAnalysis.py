@@ -19188,10 +19188,25 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         if r1_start != -1:
             self.bl_r1_start.SetValue(r1_start)
             self.bl_r1_end.SetValue(r1_end)
+
+            current_range = self.bl_r1_start.GetRange()
+            self.bl_r1_start.SetRange((current_range[0], r1_end))
+
+            current_range = self.bl_r1_end.GetRange()
+            self.bl_r1_end.SetRange((r1_start, current_range[-1]))
+
             self.plot_page.update_plot_range(r1_start, r1_end, 'bl_start', 'sub')
+
         if r2_start != -1:
             self.bl_r2_start.SetValue(r2_start)
             self.bl_r2_end.SetValue(r2_end)
+
+            current_range = self.bl_r2_start.GetRange()
+            self.bl_r2_start.SetRange((current_range[0], r2_end))
+
+            current_range = self.bl_r2_end.GetRange()
+            self.bl_r2_end.SetRange((r2_start, current_range[-1]))
+
             self.plot_page.update_plot_range(r2_start, r2_end, 'bl_end', 'sub')
 
         self.plot_page.show_plot('Subtracted')
