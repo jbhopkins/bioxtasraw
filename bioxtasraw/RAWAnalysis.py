@@ -15319,19 +15319,21 @@ class SeriesPlotPanel(wx.Panel):
             x_data = line.get_xdata()
             y_data = line.get_ydata()
 
-            if x_max is None:
-                x_max = max(x_data)
-                x_min = min(x_data)
-            else:
-                x_max = max(x_max, max(x_data))
-                x_min = min(x_min, min(x_data))
+            if len(x_data) != 0:
+                if x_max is None:
+                    x_max = max(x_data)
+                    x_min = min(x_data)
+                else:
+                    x_max = max(x_max, max(x_data))
+                    x_min = min(x_min, min(x_data))
 
-            if y_max is None:
-                y_max = max(y_data)
-                y_min = min(y_data)
-            else:
-                y_max = max(y_max, max(y_data))
-                y_min = min(y_min, min(y_data))
+            if len(y_data) != 0:
+                if y_max is None:
+                    y_max = max(y_data)
+                    y_min = min(y_data)
+                else:
+                    y_max = max(y_max, max(y_data))
+                    y_min = min(y_min, min(y_data))
 
         if x_max is None:
             x_min = 0
@@ -15377,12 +15379,13 @@ class SeriesPlotPanel(wx.Panel):
             for line in self.r_plot_lines.values():
                 y_data = line.get_ydata()
 
-                if y_max is None:
-                    y_max = max(y_data)
-                    y_min = min(y_data)
-                else:
-                    y_max = max(y_max, max(y_data))
-                    y_min = min(y_min, min(y_data))
+                if len(y_data) != 0:
+                    if y_max is None:
+                        y_max = max(y_data)
+                        y_min = min(y_data)
+                    else:
+                        y_max = max(y_max, max(y_data))
+                        y_min = min(y_min, min(y_data))
 
             if y_max is None:
                 y_min = 0
