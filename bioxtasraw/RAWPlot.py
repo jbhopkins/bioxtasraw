@@ -3429,7 +3429,7 @@ class SeriesPlotPanel(wx.Panel):
 
     def _onPopupMenuChoice(self, evt):
         mainframe = wx.FindWindowByName('MainFrame')
-        seccontrol = wx.FindWindowByName('SECControlPanel')
+        seccontrol = wx.FindWindowByName('SeriesControlPanel')
         MenuIDs = mainframe.getMenuIds()
         choice_id = evt.GetId()
 

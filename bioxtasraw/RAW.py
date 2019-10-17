@@ -2500,7 +2500,7 @@ class OnlineSECController(object):
         self.online_timer.Bind(wx.EVT_TIMER, self.onOnlineTimer)
 
     def goOnline(self):
-        self.sec_control_panel = wx.FindWindowByName('SECControlPanel')
+        self.sec_control_panel = wx.FindWindowByName('SeriesControlPanel')
         self.online_timer.Start(1000)
 
     def goOffline(self):
@@ -2530,7 +2530,7 @@ class MainWorkerThread(threading.Thread):
 
         self.sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
         self.sec_item_panel = wx.FindWindowByName('SECPanel')
-        self.sec_control_panel = wx.FindWindowByName('SECControlPanel')
+        self.sec_control_panel = wx.FindWindowByName('SeriesControlPanel')
 
 
         self.ift_plot_panel = wx.FindWindowByName('IFTPlotPanel')
@@ -9227,7 +9227,7 @@ class SECPanel(wx.Panel):
         self.underpanel_sizer = wx.BoxSizer(wx.VERTICAL)
         self.underpanel.SetSizer(self.underpanel_sizer)
 
-        self.sec_control_panel = SECControlPanel(self)
+        self.sec_control_panel = SeriesControlPanel(self)
 
         self.panelsizer.Add(self.sec_control_panel, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER | wx.EXPAND, 5)
         self.panelsizer.Add(toolbarsizer, 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 5)
@@ -9404,7 +9404,7 @@ class SECPanel(wx.Panel):
 
     def removeSelectedItems(self):
 
-        sec_control_panel = wx.FindWindowByName('SECControlPanel')
+        sec_control_panel = wx.FindWindowByName('SeriesControlPanel')
 
         if len(self.getSelectedItems()) == 0:
             return
@@ -9722,7 +9722,7 @@ class SeriesItemPanel(wx.Panel):
 
         self.sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
         self.main_frame = wx.FindWindowByName('MainFrame')
-        self.sec_control_panel = wx.FindWindowByName('SECControlPanel')
+        self.sec_control_panel = wx.FindWindowByName('SeriesControlPanel')
         self.sec_panel = wx.FindWindowByName('SECPanel')
 
         self.raw_settings = self.main_frame.raw_settings
@@ -10321,11 +10321,11 @@ class SeriesItemPanel(wx.Panel):
         self.secm.plot_panel.fitAxis()
 
 
-class SECControlPanel(wx.Panel):
+class SeriesControlPanel(wx.Panel):
 
     def __init__(self, parent):
 
-        wx.Panel.__init__(self, parent, -1, name = 'SECControlPanel')
+        wx.Panel.__init__(self, parent, -1, name = 'SeriesControlPanel')
 
         self.parent = parent
 
@@ -10449,36 +10449,46 @@ class SECControlPanel(wx.Panel):
 
                 labelbox = wx.StaticText(self, -1, "Frames:")
                 labelbox2 = wx.StaticText(self, -1, "to")
-                self.initial_selected_box = wx.TextCtrl(self, ctrl_id, value = self.initial_selected_frame, size = (50,-1))
+                self.initial_selected_box = wx.TextCtrl(self, ctrl_id,
+                    value=self.initial_selected_frame, size=(50,-1))
 
                 selected_sizer.Add(labelbox, border=2,
-                    flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+                    flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT|wx.LEFT)
                 selected_sizer.Add(self.initial_selected_box, border=2,
                     flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
                 selected_sizer.Add(labelbox2, border=2,
                     flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
 
             elif ctrl_type == 'fsframenum':
-                self.final_selected_box = wx.TextCtrl(self, ctrl_id, value = self.final_selected_frame, size = (50,-1))
+                self.final_selected_box = wx.TextCtrl(self, ctrl_id,
+                    value=self.final_selected_frame, size=(50,-1))
                 selected_sizer.Add(self.final_selected_box, border=5,
                     flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
 
         ####
+        self.data_type = wx.Choice(self, choices=['Unsubtracted', 'Subtracted', 'Baseline Corrected'])
+        self.data_type.SetSelection(0)
+
+        selected_sizer.Add(self.data_type, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        selected_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
         frames_plot_button = wx.Button(self, -1, 'Plot')
         frames_plot_button.Bind(wx.EVT_BUTTON, self._onFramesToMainPlot)
         average_plot_button = wx.Button(self, -1, 'Average')
         average_plot_button.Bind(wx.EVT_BUTTON, self._onAverageToMainPlot)
 
-        selected_sizer.Add(frames_plot_button, 0, border=5,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        selected_sizer.Add(average_plot_button, 0, flag =wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-
-        selected_sizer.AddStretchSpacer(1)
+        selected_button_sizer.Add(frames_plot_button, 0, border=5,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT|wx.LEFT)
+        selected_button_sizer.Add(average_plot_button, 0, border=5,
+            flag =wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
 
         send_box = wx.StaticBox(self, -1, 'Data to main plot')
         send_sizer = wx.StaticBoxSizer(send_box, wx.VERTICAL)
 
         send_sizer.Add(selected_sizer, flag=wx.EXPAND|wx.ALL, border=2)
+        send_sizer.Add(selected_button_sizer, border=2,
+            flag=wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_CENTER_HORIZONTAL)
 
         sizer.Add(send_sizer, flag=wx.EXPAND|wx.BOTTOM, border=5)
 
@@ -10639,72 +10649,13 @@ class SECControlPanel(wx.Panel):
 
     def _onFramesToMainPlot(self,evt):
 
-        if self._is_online:
-            self._goOffline()
-
-        self._updateControlValues()
-
-        selected_item = self.sec_panel.getDataItem()
-        secm = None
-        sasm_list = None
-
-        if len(self.initial_selected_frame)>0 and len(self.final_selected_frame)>0 and len(self.sec_panel.all_manipulation_items) > 0:
-
-            if len(self.sec_panel.all_manipulation_items) == 1:
-                secm = self.sec_panel.all_manipulation_items[0].secm
-
-            elif len(self.sec_panel.all_manipulation_items)>1:
-
-                if selected_item != None:
-                    if not selected_item.getSelectedForPlot():
-                        msg = "Warning: The selected series curve is not shown on the plot. Send frames to main plot anyways?\nNote: You can select a different series curve by starring it."
-                        dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection", style = wx.ICON_QUESTION | wx.YES_NO)
-                        proceed = dlg.ShowModal()
-                        dlg.Destroy()
-                    else:
-                        proceed = wx.ID_YES
-
-                    if proceed == wx.ID_YES:
-                        secm = selected_item.secm
-
-                else:
-                    msg = "To send data to the main plot, select a series curve by starring it."
-                    wx.CallAfter(wx.MessageBox, msg, "No series curve selected", style = wx.ICON_ERROR | wx.OK)
-
-        elif len(self.sec_panel.all_manipulation_items) > 0:
-            msg = "To send data to the main plot, enter a valid frame range (missing start or end frame)."
-            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
-
-        if secm is not None:
-            if secm.axes.xaxis.get_label_text() == 'Time (s)':
-                msg = "Warning: Plot is displaying time. Make sure frame #s, not time, are selected to send to plot. Proceed?"
-                dlg = wx.MessageDialog(self.main_frame, msg, "Verify Frame Range", style = wx.ICON_QUESTION | wx.YES_NO)
-                proceed = dlg.ShowModal()
-                dlg.Destroy()
-            else:
-                proceed = wx.ID_YES
-
-            if proceed == wx.ID_YES:
-                int_type = secm.plot_panel.plotparams['plot_intensity']
-                try:
-                    sasm_list = secm.getSASMList(self.initial_selected_frame,
-                        self.final_selected_frame, int_type)
-                except SASExceptions.DataNotCompatible as e:
-                    msg = e.parameter
-                    wx.CallAfter(wx.MessageBox, msg, "Invalid frame range",
-                        style = wx.ICON_ERROR | wx.OK)
-                    sasm_list = []
-
-        if sasm_list is not None and sasm_list:
-            sasm_list = map(copy.deepcopy, sasm_list)
-
-            mainworker_cmd_queue.put(['to_plot_SEC', sasm_list])
-
-        if self.online_mode_button.IsChecked() and not self._is_online:
-            self._goOnline()
+        self._toMainPlot()
 
     def _onAverageToMainPlot(self,evt):
 
+        self._toMainPlot(True)
+
+    def _toMainPlot(self, average=False):
         if self._is_online:
             self._goOffline()
 
@@ -10714,7 +10665,8 @@ class SECControlPanel(wx.Panel):
         secm = None
         sasm_list = None
 
-        if len(self.initial_selected_frame)>0 and len(self.final_selected_frame)>0 and len(self.sec_panel.all_manipulation_items) > 0:
+        if (len(self.initial_selected_frame)>0 and len(self.final_selected_frame)>0
+            and len(self.sec_panel.all_manipulation_items) > 0):
 
             if len(self.sec_panel.all_manipulation_items) == 1:
                 secm = self.sec_panel.all_manipulation_items[0].secm
@@ -10723,8 +10675,12 @@ class SECControlPanel(wx.Panel):
 
                 if selected_item != None:
                     if not selected_item.getSelectedForPlot():
-                        msg = "Warning: The selected series curve is not shown on the plot. Send frames to main plot anyways?\nNote: You can select a different series curve by starring it."
-                        dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection", style = wx.ICON_QUESTION | wx.YES_NO)
+                        msg = ("Warning: The selected series curve is not shown "
+                            "on the plot. Send frames to main plot anyways?\n"
+                            "Note: You can select a different series curve by "
+                            "starring it.")
+                        dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection",
+                            style=wx.ICON_QUESTION|wx.YES_NO)
                         proceed = dlg.ShowModal()
                         dlg.Destroy()
                     else:
@@ -10743,30 +10699,48 @@ class SECControlPanel(wx.Panel):
 
         if secm is not None:
             if secm.axes.xaxis.get_label_text() == 'Time (s)':
-                msg = "Warning: Plot is displaying time. Make sure frame #s, not time, are selected to send to plot. Proceed?"
-                dlg = wx.MessageDialog(self.main_frame, msg, "Verify Frame Range", style = wx.ICON_QUESTION | wx.YES_NO)
+                msg = ("Warning: Plot is displaying time. Make sure frame #s, "
+                    "not time, are selected to send to plot. Proceed?")
+                dlg = wx.MessageDialog(self.main_frame, msg, "Verify Frame Range",
+                    style = wx.ICON_QUESTION|wx.YES_NO)
                 proceed = dlg.ShowModal()
                 dlg.Destroy()
             else:
                 proceed = wx.ID_YES
 
             if proceed == wx.ID_YES:
-                int_type = secm.plot_panel.plotparams['plot_intensity']
+                data_type = self.data_type.GetStringSelection()
 
-                try:
-                    sasm_list = secm.getSASMList(self.initial_selected_frame,
-                        self.final_selected_frame, int_type)
+                if data_type == 'Unsubtracted':
+                    int_type = 'unsub'
+                elif data_type == 'Subtracted':
+                    int_type = 'sub'
+                elif data_type == 'Baseline Corrected':
+                    int_type = 'baseline'
 
-                except SASExceptions.DataNotCompatible as e:
-                    msg = e.parameter
-                    wx.CallAfter(wx.MessageBox, msg, "Invalid frame range",
-                        style = wx.ICON_ERROR | wx.OK)
-                    sasm_list = []
+                if ((int_type == 'sub' and not secm.subtracted_sasm_list) or
+                    (int_type == 'baseline' and not secm.baseline_subtracted_sasm_list)):
+                    msg = ("Selected series curve has no data of type '{}'.".format(data_type))
+                    wx.CallAfter(wx.MessageBox, msg, "Invalid data type",
+                        style=wx.ICON_ERROR|wx.OK)
+
+                else:
+                    try:
+                        sasm_list = secm.getSASMList(self.initial_selected_frame,
+                            self.final_selected_frame, int_type)
+                    except SASExceptions.DataNotCompatible as e:
+                        msg = e.parameter
+                        wx.CallAfter(wx.MessageBox, msg, "Invalid frame range",
+                            style = wx.ICON_ERROR | wx.OK)
+                        sasm_list = []
 
         if sasm_list is not None and sasm_list:
             sasm_list = map(copy.deepcopy, sasm_list)
 
-            mainworker_cmd_queue.put(['secm_average_sasms', sasm_list])
+            if average:
+                mainworker_cmd_queue.put(['secm_average_sasms', sasm_list])
+            else:
+                mainworker_cmd_queue.put(['to_plot_SEC', sasm_list])
 
         if self.online_mode_button.IsChecked() and not self._is_online:
             self._goOnline()
