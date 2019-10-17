@@ -3233,6 +3233,8 @@ class MainWorkerThread(threading.Thread):
         if len(filename_list)>5:
             wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while series data loads')
 
+        secm.acquireSemaphore()
+
         sasm_list=[[] for i in range(len(filename_list))]
 
         for j in range(len(filename_list)):
@@ -3263,21 +3265,25 @@ class MainWorkerThread(threading.Thread):
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'file', msg)
+                secm.releaseSemaphore()
                 return
             except SASExceptions.HeaderLoadError, msg:
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'header', msg)
+                secm.releaseSemaphore()
                 return
             except SASExceptions.MaskSizeError, msg:
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'mask', msg)
+                secm.releaseSemaphore()
                 return
             except SASExceptions.HeaderMaskLoadError, msg:
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'mask_header', msg)
+                secm.releaseSemaphore()
                 return
             except SASExceptions.AbsScaleNormFailed:
                 msg = ('Failed to apply absolute scale. The most '
@@ -3288,11 +3294,14 @@ class MainWorkerThread(threading.Thread):
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'abs_scale', msg)
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
+                secm.releaseSemaphore()
                 return
 
         largest_frame = secm.plot_frame_list[-1]
 
         secm.append(filename_list, sasm_list, frame_list)
+
+        secm.releaseSemaphore()
 
         if secm.calc_has_data:
             self._updateCalcSECParams(secm, range(len(frame_list))+largest_frame+1)
@@ -10093,8 +10102,8 @@ class SeriesItemPanel(wx.Panel):
 
     def _showPopupMenu(self):
 
-        if self.sec_control_panel._is_online:
-            self.sec_control_panel._goOffline()
+        if self.sec_control_panel.seriesIsOnline:
+            self.sec_control_panel.seriesPanelGoOffline()
 
         menu = wx.Menu()
 
@@ -10124,8 +10133,8 @@ class SeriesItemPanel(wx.Panel):
 
         menu.Destroy()
 
-        if self.sec_control_panel.online_mode_button.IsChecked() and not self.sec_control_panel._is_online:
-            self.sec_control_panel._goOnline()
+        if self.sec_control_panel.online_mode_button.IsChecked() and not self.sec_control_panel.seriesIsOnline:
+            self.sec_control_panel.seriesPanelGoOnline()
 
     def _onPopupMenuChoice(self, evt):
 
@@ -10336,7 +10345,7 @@ class SeriesControlPanel(wx.Panel):
 
         self._raw_settings = self.main_frame.raw_settings
 
-        self._is_online = False
+        self.seriesIsOnline = False
         self.tries = 1
         self.max_tries = 3
 
@@ -10375,7 +10384,7 @@ class SeriesControlPanel(wx.Panel):
         update_button.Bind(wx.EVT_BUTTON, self._onUpdateButton)
 
         self.online_mode_button = wx.CheckBox(self, -1, "AutoUpdate")
-        self.online_mode_button.SetValue(self._is_online)
+        self.online_mode_button.SetValue(self.seriesIsOnline)
         self.online_mode_button.Bind(wx.EVT_CHECKBOX, self._onOnlineButton)
 
 
@@ -10501,16 +10510,16 @@ class SeriesControlPanel(wx.Panel):
         go_online = evt.IsChecked()
 
         if go_online:
-            self._goOnline()
+            self.seriesPanelGoOnline()
         else:
-            self._goOffline()
+            self.seriesPanelGoOffline()
 
-    def _goOnline(self):
-        self._is_online = True
+    def seriesPanelGoOnline(self):
+        self.seriesIsOnline = True
         self.main_frame.OnlineSECControl.goOnline()
 
-    def _goOffline(self):
-        self._is_online = False
+    def seriesPanelGoOffline(self):
+        self.seriesIsOnline = False
         self.main_frame.OnlineSECControl.goOffline()
 
     def _onSelectButton(self, evt):
@@ -10559,8 +10568,8 @@ class SeriesControlPanel(wx.Panel):
                                       'Error loading file', style = wx.ICON_ERROR | wx.OK)
 
     def _onLoad(self):
-        if self._is_online:
-            self._goOffline()
+        if self.seriesIsOnline:
+            self.seriesPanelGoOffline()
 
         file_list, frame_list = self._makeFileList()
 
@@ -10571,8 +10580,8 @@ class SeriesControlPanel(wx.Panel):
         else:
             wx.MessageBox("Can't find files to load", style=wx.ICON_ERROR | wx.OK)
 
-        if self.online_mode_button.IsChecked() and not self._is_online:
-            self._goOnline()
+        if self.online_mode_button.IsChecked() and not self.seriesIsOnline:
+            self.seriesPanelGoOnline()
 
     def _onUpdateButton(self,evt):
         self.onUpdate()
@@ -10581,8 +10590,8 @@ class SeriesControlPanel(wx.Panel):
 
         if self.secm != None:
 
-            if self._is_online:
-                self._goOffline()
+            if self.seriesIsOnline:
+                self.seriesPanelGoOffline()
 
             old_frame_list = self._getFrameList(self.secm._file_list)
             self._fillBoxes()
@@ -10610,7 +10619,7 @@ class SeriesControlPanel(wx.Panel):
             time.sleep(1)
             self.onUpdate()
         else:
-            self._goOffline()
+            self.seriesPanelGoOffline()
             self.online_mode_button.SetValue(False)
             if error == 'file':
                 wx.CallAfter(self._showDataFormatError, os.path.split(name)[1])
@@ -10624,8 +10633,8 @@ class SeriesControlPanel(wx.Panel):
                 wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic series updating turned off.', 'Absolute scale failed', style = wx.ICON_ERROR)
 
     def updateSucceeded(self):
-        if self.online_mode_button.IsChecked() and not self._is_online:
-            self._goOnline()
+        if self.online_mode_button.IsChecked() and not self.seriesIsOnline:
+            self.seriesPanelGoOnline()
 
         self.tries = 1
 
@@ -10656,8 +10665,8 @@ class SeriesControlPanel(wx.Panel):
         self._toMainPlot(True)
 
     def _toMainPlot(self, average=False):
-        if self._is_online:
-            self._goOffline()
+        if self.seriesIsOnline:
+            self.seriesPanelGoOffline()
 
         self._updateControlValues()
 
@@ -10742,8 +10751,8 @@ class SeriesControlPanel(wx.Panel):
             else:
                 mainworker_cmd_queue.put(['to_plot_SEC', sasm_list])
 
-        if self.online_mode_button.IsChecked() and not self._is_online:
-            self._goOnline()
+        if self.online_mode_button.IsChecked() and not self.seriesIsOnline:
+            self.seriesPanelGoOnline()
 
 
     def _findWindowId(self,type):

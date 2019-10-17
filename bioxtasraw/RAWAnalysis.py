@@ -16373,12 +16373,19 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             self.plot_page.show_plot('Subtracted')
 
     def onOkButton(self, evt):
-        t = threading.Thread(target=self.saveResults)
+        series_control_panel = wx.FindWindowByName('SeriesControlPanel')
+        restart_online = False
+
+        if series_control_panel.seriesIsOnline:
+            series_control_panel.seriesPanelGoOffline()
+            restart_online = True
+
+        t = threading.Thread(target=self.saveResults, args=(restart_online,))
         t.daemon = True
         t.start()
         self.threads.append(t)
 
-    def saveResults(self):
+    def saveResults(self, restart_online):
         self.proc_lock.acquire()
 
         self.original_secm.acquireSemaphore()
@@ -16666,6 +16673,10 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.original_secm.intensity_change = False
 
         self.original_secm.releaseSemaphore()
+
+        if restart_online:
+            series_control_panel = wx.FindWindowByName('SeriesControlPanel')
+            wx.CallAfter(series_control_panel.seriesPanelGoOnline)
 
         RAWGlobals.mainworker_cmd_queue.put(['update_secm_plot', self.original_secm])
 
