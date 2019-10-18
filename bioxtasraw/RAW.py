@@ -305,6 +305,11 @@ class MainFrame(wx.Frame):
             if answer == wx.ID_YES:
                 self.loadRAWSettings(file)
 
+        else:
+            if self.raw_settings.get('autoFindATSAS'):
+                atsas_dir = SASFileIO.findATSASDirectory()
+                self.raw_settings.set('ATSASDir', atsas_dir)
+
         dirctrl = wx.FindWindowByName('DirCtrlPanel')
         dirctrl._useSavedPathIfExisits()
 
