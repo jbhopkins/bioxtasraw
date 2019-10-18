@@ -711,7 +711,7 @@ class MainFrame(wx.Frame):
 
         if os.path.exists(ambiPath):
 
-            process = subprocess.Popen('%s -v' %(ambiPath), shell= True, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            process = subprocess.Popen('"%s" -v' %(ambiPath), shell= True, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 
             output, error = process.communicate()
 
