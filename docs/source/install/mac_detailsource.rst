@@ -36,12 +36,12 @@ OS X and macOS install from source instructions
 
     *   Type ``conda upgrade conda pip wheel setuptools`` and hit enter. Agree to all the prompts.
 
-    *   Type ``conda install numpy scipy matplotlib pillow wxpython "numba<0.44" h5py lxml cython numexpr`` and hit enter.
+    *   Type ``conda install numpy scipy matplotlib pillow wxpython numba h5py lxml cython numexpr`` and hit enter.
         Agree to all the prompts.
 
 #.  Install the hdf5plugin, silx, fabio, and pyFAI packages using pip
 
-    *   In the terminal window type ``pip install hdf5plugin silx fabio "pyfai<0.16"``
+    *   In the terminal window type ``pip install hdf5plugin silx fabio pyfai``
 
     *   Hit enter
 

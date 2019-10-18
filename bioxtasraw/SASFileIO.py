@@ -3817,7 +3817,35 @@ def findATSASDirectory():
     opsys= platform.system()
 
     if opsys== 'Darwin':
-        default_path = '/Applications/ATSAS/bin'
+        dirs = glob.glob(os.path.expanduser('~/ATSAS*'))
+        if len(dirs) > 0:
+            try:
+                versions = {}
+                for item in dirs:
+                    version = item.lstrip('ATSAS-')
+                    versions[version] = item
+
+                max_version = '0.0.0-0'
+                for version in versions:
+                    if int(max_version.split('.')[0]) < int(version.split('.')[0]):
+                        max_version = version
+                    elif int(max_version.split('.')[1]) < int(version.split('.')[1]):
+                        max_version = version
+                    elif int(max_version.split('.')[2]) < int(version.split('.')[2]):
+                        max_version = version
+                    elif int(max_version.split('-')[1]) < int(version.split('-')[1]):
+                        max_version = version
+
+                default_path = versions[max_version]
+
+            except Exception:
+                default_path = dirs[0]
+
+            default_path = os.path.join(default_path, 'bin')
+
+        else:
+            default_path = '/Applications/ATSAS/bin'
+
     elif opsys== 'Windows':
         default_path = 'C:\\atsas\\bin'
     elif opsys== 'Linux':

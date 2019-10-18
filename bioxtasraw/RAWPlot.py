@@ -3433,7 +3433,7 @@ class SeriesPlotPanel(wx.Panel):
         MenuIDs = mainframe.getMenuIds()
         choice_id = evt.GetId()
 
-        if seccontrol._is_online:
+        if seccontrol.seriesIsOnline:
             mainframe.OnlineSECControl.goOffline()
 
         for key in MenuIDs.iterkeys():
@@ -3526,7 +3526,7 @@ class SeriesPlotPanel(wx.Panel):
 
                 #evt.Skip()
 
-        if seccontrol._is_online:
+        if seccontrol.seriesIsOnline:
             mainframe.OnlineSECControl.goOnline()
 
 

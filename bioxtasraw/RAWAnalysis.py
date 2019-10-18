@@ -16722,6 +16722,9 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         processing_steps = self.processing_order[start_idx:]
 
         for step in self.processing_order[:start_idx]:
+            print step
+            print self.should_process[step]
+            print self.processing_done[step]
             if self.should_process[step] and not self.processing_done[step]:
                 self.continue_processing = False
 
@@ -16803,6 +16806,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 pass
 
             self.processing_done['baseline'] = False
+            self.should_process['baseline'] = False
 
             self.switchSampleRange('baseline', 'sub')
 

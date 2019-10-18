@@ -1,6 +1,86 @@
 Changes
 ============
 
+1.6.1
+--------
+
+Release date: 2019-10-24
+
+Overview
+^^^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 1.6.1. This version
+contains numerous small bug fixes and improvements, particularly for the new
+series analysis methods released in version 1.6.0.
+
+We anticipate this will be the last release before RAW version 2.0, which will be our
+first python 3 compatible release. We're aiming to release version 2.0 sometime around
+the end of the year.
+
+All changes:
+^^^^^^^^^^^^^^^^
+
+*   Fixed a possible bug where using the LC Series Analysis panel on series data
+    being loaded in online mode could fail.
+*   Added intensity type selector for the series panel when sending data to the main plot.
+*   Fixed a bug where automatic integral baseline start/end regoin determination
+    could set the wrong control limits.
+*   Fixed a bug where zero lines on various plots (like the GNOM P(r)) plot weren't
+    getting redrawn when necessary.
+*   Fixed a bug with autoscaling in the LC Series Analysis plots when changing the
+    data type displayed.
+*   Fixed a bug where sample and buffer region comparison in the LC Series Analysis
+    panel could return the wrong indices for dissimilar profiles.
+*   Fixed a bug where profile comparison in LC Series Analysis would skip the first profile.
+*   Fixed a bug where a very short series (<22 frames) could cause errors when opening
+    the LC Series Analysis panel.
+*   Improved automatic buffer search in the absence of major peaks.
+*   Improved automatic buffer search to search on the right side of the main peak if
+    it doesn't find a good buffer region on the left side.
+*   Removed a bias to the left side of the peak in the automated sample region search.
+*   Removed actual baseline correction values from being saved in file history, as history
+    could get very long (>100000 lines).
+*   Added a cutoff for header length, at which point RAW will stop saving file history.
+    This avoids saving extremely large text files.
+*   Added compatibility for pyFAI 0.18 (note: on linux and python 2 pyFAI 0.18 seems
+    to be broken, stick with 0.17).
+*   Added a new way of loading HDF5 files with definitions done in external files.
+*   Added ability to load HDF5 files from LiX.
+*   Fixed a bug where identical selected in the LC Series Analysis window didn't
+    count as overlapping.
+*   Fixed a couple of typos in messages.
+*   Fixed a bug where Ambimeter and GNOM couldn't run if the current working
+    directory was read only.
+*   Improved how ATSAS programs are called, and added use of temprorary file names
+    and directories.
+*   Fixed a bug where when dragging the image plot with the masking showing you
+    could sometimes get an unexpected error.
+*   Added the name of the series to the LC Series Analysis panel.
+*   Fixed a bug where baseline subtracted profiles were improperly being skipped
+    when calculating Rg etc in the LC Series Analysis panel.
+*   Fixed a bug where if a series was loaded with a baseline already calculated,
+    changing buffer range or other parameters wouldn't properly recalculate baseline
+    corrected values.
+*   Fixed a bug where if you set a baseline, then set it back to none, when exiting
+    the LC Series Analysis window the baseline calculated values would be saved
+    instead of the regular subtracted values.
+*   Fixed a bug wehre if you loaded in a series curve with baseline correction,
+    then turned off baseline correction, it wouldn't have any calculated values.
+*   Fixed a bug where the LC Series Analysis panel would resize itself when any of
+    the collapsible panes were collapsed or expanded.
+*   Fixed a bug in the LC Series Analysis panel where if you had a range that was
+    one frame long, when you closed and reopened the analysis window you
+    couldn't adjust the range.
+*   Fixed a bug in the LC Series Analysis panel where if you had a one frame long range
+    you could get a reported correlation in the range.
+*   Fixed some issues with window height where windows weren't opening large enough
+    for all of their contents.
+*   Fixed some issues with window size where windows could open up bigger than
+    the screen.
+*   Fixed a bug where in certain circumstances opening the SVD and EFA windows could fail.
+*   Added compatibility with numba >= 0.44
+
+
 1.6.0
 ------
 
