@@ -17,9 +17,16 @@ We anticipate this will be the last release before RAW version 2.0, which will b
 first python 3 compatible release. We're aiming to release version 2.0 sometime around
 the end of the year.
 
+Note: as part of this release we did test with ATSAS 3.0 (pre-release version), and
+RAW seems to be compatible with it.
+
 All changes:
 ^^^^^^^^^^^^^^^^
 
+*   Fixed a bug where opening the Ambimeter panel could fail if ATSAS was installed
+    in a directory with a space in the path name.
+*   Fixed a bug where if RAW didn't load a settings file when opened it wouldn't
+    automatically find the ATSAS directory on startup.
 *   Fixed a possible bug where using the LC Series Analysis panel on series data
     being loaded in online mode could fail.
 *   Added intensity type selector for the series panel when sending data to the main plot.
