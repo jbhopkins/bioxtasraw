@@ -53,7 +53,7 @@ All changes:
     to be broken, stick with 0.17).
 *   Added a new way of loading HDF5 files with definitions done in external files.
 *   Added ability to load HDF5 files from LiX.
-*   Fixed a bug where identical selected in the LC Series Analysis window didn't
+*   Fixed a bug where identical selected regions in the LC Series Analysis window didn't
     count as overlapping.
 *   Fixed a couple of typos in messages.
 *   Fixed a bug where Ambimeter and GNOM couldn't run if the current working
