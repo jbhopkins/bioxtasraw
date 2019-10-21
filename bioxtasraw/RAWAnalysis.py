@@ -4314,7 +4314,6 @@ class DammifFrame(wx.Frame):
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
             self.notebook.Fit()
-            print 'here'
             if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
                 size = self.GetSize()
                 size[1] = size[1] + 20
@@ -15655,9 +15654,6 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         processing_steps = self.processing_order[start_idx:]
 
         for step in self.processing_order[:start_idx]:
-            print step
-            print self.should_process[step]
-            print self.processing_done[step]
             if self.should_process[step] and not self.processing_done[step]:
                 self.continue_processing = False
 
