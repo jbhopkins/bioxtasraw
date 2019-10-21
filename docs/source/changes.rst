@@ -4,7 +4,7 @@ Changes
 1.6.1
 --------
 
-Release date: 2019-10-24
+Release date: 2019-10-21
 
 Overview
 ^^^^^^^^^^^^
