@@ -30,7 +30,7 @@ All changes:
 *   Fixed a possible bug where using the LC Series Analysis panel on series data
     being loaded in online mode could fail.
 *   Added intensity type selector for the series panel when sending data to the main plot.
-*   Fixed a bug where automatic integral baseline start/end regoin determination
+*   Fixed a bug where automatic integral baseline start/end region determination
     could set the wrong control limits.
 *   Fixed a bug where zero lines on various plots (like the GNOM P(r)) plot weren't
     getting redrawn when necessary.
@@ -58,7 +58,7 @@ All changes:
 *   Fixed a couple of typos in messages.
 *   Fixed a bug where Ambimeter and GNOM couldn't run if the current working
     directory was read only.
-*   Improved how ATSAS programs are called, and added use of temprorary file names
+*   Improved how ATSAS programs are called, and added use of temporary file names
     and directories.
 *   Fixed a bug where when dragging the image plot with the masking showing you
     could sometimes get an unexpected error.
@@ -71,7 +71,7 @@ All changes:
 *   Fixed a bug where if you set a baseline, then set it back to none, when exiting
     the LC Series Analysis window the baseline calculated values would be saved
     instead of the regular subtracted values.
-*   Fixed a bug wehre if you loaded in a series curve with baseline correction,
+*   Fixed a bug where if you loaded in a series curve with baseline correction,
     then turned off baseline correction, it wouldn't have any calculated values.
 *   Fixed a bug where the LC Series Analysis panel would resize itself when any of
     the collapsible panes were collapsed or expanded.
