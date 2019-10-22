@@ -420,13 +420,13 @@ sequentially sampled data sets.
 .. |lc_analysis_remove_sample_png| image:: images/lc_analysis_remove_sample.png
 
 .. |series_star_png| image:: images/series_star.png
-    :width: 300 px
+    :width: 400 px
 
 .. |series_average_main_plot_png| image:: images/series_average_main_plot.png
-    :width: 300 px
+    :width: 400 px
 
 .. |series_profile_main_plot_png| image:: images/series_profile_main_plot.png
-    :width: 300 px
+    :width: 400 px
 
 .. |series_color_png| image:: images/series_color.png
 
