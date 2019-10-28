@@ -6468,7 +6468,7 @@ class DenssRunPanel(wx.Panel):
         sym_chk.Bind(wx.EVT_CHECKBOX, self.onSymCheck)
 
         sym_sizer = wx.GridBagSizer(vgap=5,hgap=5)
-        sym_sizer.Add(sym_chk, (0,0), span=(0,5))
+        sym_sizer.Add(sym_chk, (0,0), span=(1,5))
         sym_sizer.Add(20, 0, (1, 0))
         sym_sizer.Add(wx.StaticText(parent, label='N-fold symmetry:'), (1,1),
             flag=wx.ALIGN_CENTER_VERTICAL)
