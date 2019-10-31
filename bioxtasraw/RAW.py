@@ -10664,74 +10664,7 @@ class SeriesControlPanel(wx.Panel):
                           'Error loading file', style = wx.ICON_ERROR | wx.OK)
 
     def _onFramesToMainPlot(self,evt):
-
-<<<<<<< HEAD
-        if self._is_online:
-            self._goOffline()
-
-        self._updateControlValues()
-
-        selected_item = self.sec_panel.getDataItem()
-        secm = None
-        sasm_list = None
-
-        if len(self.initial_selected_frame)>0 and len(self.final_selected_frame)>0 and len(self.sec_panel.all_manipulation_items) > 0:
-
-            if len(self.sec_panel.all_manipulation_items) == 1:
-                secm = self.sec_panel.all_manipulation_items[0].secm
-
-            elif len(self.sec_panel.all_manipulation_items)>1:
-
-                if selected_item is not None:
-                    if not selected_item.getSelectedForPlot():
-                        msg = "Warning: The selected series curve is not shown on the plot. Send frames to main plot anyways?\nNote: You can select a different series curve by starring it."
-                        dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection", style = wx.ICON_QUESTION | wx.YES_NO)
-                        proceed = dlg.ShowModal()
-                        dlg.Destroy()
-                    else:
-                        proceed = wx.ID_YES
-
-                    if proceed == wx.ID_YES:
-                        secm = selected_item.secm
-
-                else:
-                    msg = "To send data to the main plot, select a series curve by starring it."
-                    wx.CallAfter(wx.MessageBox, msg, "No series curve selected", style = wx.ICON_ERROR | wx.OK)
-
-        elif len(self.sec_panel.all_manipulation_items) > 0:
-            msg = "To send data to the main plot, enter a valid frame range (missing start or end frame)."
-            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
-
-        if secm is not None:
-            if secm.axes.xaxis.get_label_text() == 'Time (s)':
-                msg = "Warning: Plot is displaying time. Make sure frame #s, not time, are selected to send to plot. Proceed?"
-                dlg = wx.MessageDialog(self.main_frame, msg, "Verify Frame Range", style = wx.ICON_QUESTION | wx.YES_NO)
-                proceed = dlg.ShowModal()
-                dlg.Destroy()
-            else:
-                proceed = wx.ID_YES
-
-            if proceed == wx.ID_YES:
-                int_type = secm.plot_panel.plotparams['plot_intensity']
-                try:
-                    sasm_list = secm.getSASMList(self.initial_selected_frame,
-                        self.final_selected_frame, int_type)
-                except SASExceptions.DataNotCompatible as e:
-                    msg = e.parameter
-                    wx.CallAfter(wx.MessageBox, msg, "Invalid frame range",
-                        style = wx.ICON_ERROR | wx.OK)
-                    sasm_list = []
-
-        if sasm_list is not None and sasm_list:
-            sasm_list = list(map(copy.deepcopy, sasm_list))
-
-            mainworker_cmd_queue.put(['to_plot_SEC', sasm_list])
-
-        if self.online_mode_button.IsChecked() and not self._is_online:
-            self._goOnline()
-=======
         self._toMainPlot()
->>>>>>> master
 
     def _onAverageToMainPlot(self,evt):
 
