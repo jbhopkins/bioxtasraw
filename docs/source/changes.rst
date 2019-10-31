@@ -1,6 +1,19 @@
 Changes
 ============
 
+1.6.2
+--------
+
+Release date: 2019-10-28
+
+Overview
+^^^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 1.6.2. This version
+fixes several critical bugs that could prevent DENSS from running. There are no
+other changes.
+
+
 1.6.1
 --------
 
