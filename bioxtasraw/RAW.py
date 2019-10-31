@@ -3073,7 +3073,7 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
         except SASExceptions.ImageLoadError, msg:
-            wx.CallAfter(wx.MessageBox, "\n".join(msg.parameter), 'Image load error', style = wx.ICON_ERROR)
+            wx.CallAfter(self._showGenericError, "\n".join(msg.parameter), 'Image load error')
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
         except SASExceptions.AbsScaleNormFailed:
@@ -3372,7 +3372,7 @@ class MainWorkerThread(threading.Thread):
             full_sasm_list = secm.getSASMList(first_frame, last_frame)
         except SASExceptions.DataNotCompatible as e:
             msg = e.parameter
-            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
+            self._showGenericError(msg, "Invalid frame range")
             full_sasm_list = []
 
         subtracted_sasm_list = []
@@ -3745,7 +3745,8 @@ class MainWorkerThread(threading.Thread):
             'caused by failing to load the correct configuration file.\n\n'
             'You can change the image format under Advanced Options in the '
             'Options menu.')
-        wx.CallAfter(wx.MessageBox, msg , 'Error loading file', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+
+        self._showGenericError(msg, 'Error loading file')
 
     def _showSECFormatError(self, filename, include_ascii = True):
         img_fmt = self._raw_settings.get('ImageFormat')
@@ -3762,7 +3763,8 @@ class MainWorkerThread(threading.Thread):
             'selection contains only individual scattering profiles (no .sec files).'
             '\n\nYou can change the image format under Advanced Options in the '
             'Options menu.')
-        wx.CallAfter(wx.MessageBox, msg , 'Error loading file', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+
+        self._showGenericError(msg, 'Error loading file')
 
     def _showSubtractionError(self, sasm, sub_sasm):
         filename1 = sasm.getParameter('filename')
@@ -3776,19 +3778,19 @@ class MainWorkerThread(threading.Thread):
             filename2 + ' has ' + str(points2) + ' data points.\n\n' +
             'Subtraction is not possible. Data files must have equal number of points.')
 
-        wx.CallAfter(wx.MessageBox, msg, 'Subtraction Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+        self._showGenericError(msg, 'Subtraction Error')
 
     def _showAverageError(self, err_no, sasm_list=[]):
         if err_no == 1:
             msg = ('The selected items must have the same total number of '
                 'points to be averaged.')
-            wx.CallAfter(wx.MessageBox, msg, 'Average Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         elif err_no == 2:
             msg = 'Please select at least two items to be averaged.'
-            wx.CallAfter(wx.MessageBox, msg, 'Average Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         elif err_no == 3:
             msg = 'The selected items must have the same q vectors to be averaged.'
-            wx.CallAfter(wx.MessageBox, msg, 'Average Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+
+        if err_no == 1 or err_no == 2 or err_no == 3:
+            self._showGenericError(msg, 'Average Error')
 
         elif err_no == 4:
             test = self._raw_settings.get('similarityTest')
@@ -3802,8 +3804,8 @@ class MainWorkerThread(threading.Thread):
                 msg = msg + sasm.getParameter('filename') + '\n'
             msg = msg + ('\nPlease select an action below.')
             answer = self._displayQuestionDialog(msg, 'Warning: Profiles to average are different',
-                            [('Cancel Average', wx.ID_CANCEL), ('Average All Files', wx.ID_YESTOALL),
-                            ('Average Only Similar Files', wx.ID_YES)], wx.ART_WARNING)
+                [('Cancel Average', wx.ID_CANCEL), ('Average All Files', wx.ID_YESTOALL),
+                ('Average Only Similar Files', wx.ID_YES)], wx.ART_WARNING)
             return answer[0]
 
     def _showPleaseSelectItemsError(self, err_type):
@@ -3811,15 +3813,14 @@ class MainWorkerThread(threading.Thread):
         if err_type == 'average':
             msg = ('Please select the items you want to average.\n\nYou can '
                 'select multiple items by holding down the CTRL or SHIFT key.')
-            wx.CallAfter(wx.MessageBox, msg, 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         elif err_type == 'subtract':
             msg = ('Please select the items you want the marked (star) item '
                 'subtracted from.\nUse CTRL or SHIFT to select multiple items.')
-            wx.CallAfter(wx.MessageBox, msg, 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         elif err_type == 'superimpose':
             msg = ('Please select the items you want to superimpose.\n\nYou '
             'can select multiple items by holding down the CTRL or SHIFT key.')
-            wx.CallAfter(wx.MessageBox, msg, 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+
+        self._showGenericError(msg, 'No items selected')
 
     def _showPleaseMarkItemError(self, err_type):
 
@@ -3833,12 +3834,13 @@ class MainWorkerThread(threading.Thread):
         elif err_type == 'interpolate':
             msg = 'Please mark (star) the item you are using as the main curve for interpolation'
 
-        wx.CallAfter(wx.MessageBox, msg, 'No item marked', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+        self._showGenericError(msg, 'No item marked')
 
     def _showSaveError(self, err_type):
         if err_type == 'header':
             msg = 'Header values could not be saved, file was saved without them.'
-            wx.CallAfter(wx.MessageBox, msg, 'Invalid Header Values', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+
+        self._showGenericError(msg, 'Invalid Header Values')
 
     def _showQvectorsNotEqualWarning(self, sasm, sub_sasm):
 
@@ -3860,7 +3862,8 @@ class MainWorkerThread(threading.Thread):
     def _showQuickReduceFinished(self, processed_files, number_of_files):
         msg = ('Quick reduction finished. Processed ' + str(processed_files) +
             ' out of ' + str(number_of_files) + ' files.')
-        wx.CallAfter(wx.MessageBox, msg, 'Quick reduction finished', style = wx.ICON_INFORMATION | wx.STAY_ON_TOP)
+
+        self._showGenericMsg(msg, 'Quick reduction finished')
 
     def _showOverwritePrompt(self, filename, save_path):
 
@@ -3874,24 +3877,32 @@ class MainWorkerThread(threading.Thread):
         label = 'File exists'
         icon = wx.ART_WARNING
 
-        answer = self._displayQuestionDialog(question, label, button_list, icon, filename, save_path)
+        answer = self._displayQuestionDialog(question, label, button_list, icon,
+            filename, save_path)
 
         return answer
 
     def _showHeaderError(self, err_msg):
         msg = (str(err_msg)+'\n\nPlease check that the header file is in '
             'the directory with the data.')
-        wx.CallAfter(wx.MessageBox, msg, 'Error Loading Header File', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+
+        self._showGenericError(msg, 'Error Loading Header File')
 
     def _showGenericError(self, msg, title):
-        wx.CallAfter(wx.MessageBox, msg, title, style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+        dialog = wx.MessageDialog(self._parent,msg, title,
+            style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+        wx.CallAfter(dialog.ShowModal)
 
     def _showGenericMsg(self, msg, title):
-        wx.CallAfter(wx.MessageBox, msg, title, style = wx.ICON_INFORMATION | wx.STAY_ON_TOP)
+        dialog = wx.MessageDialog(self._parent,msg, title,
+            style = wx.ICON_INFORMATION | wx.OK | wx.STAY_ON_TOP)
+        wx.CallAfter(dialog.ShowModal)
 
-    def _displayQuestionDialog(self, question, label, button_list, icon = None, filename = None, save_path = None):
+    def _displayQuestionDialog(self, question, label, button_list, icon = None,
+        filename = None, save_path = None):
 
-        wx.CallAfter(self.main_frame.showQuestionDialogFromThread, question, label, button_list, icon, filename, save_path)
+        wx.CallAfter(self.main_frame.showQuestionDialogFromThread, question,
+            label, button_list, icon, filename, save_path)
 
         thread_wait_event.wait()
         thread_wait_event.clear()
