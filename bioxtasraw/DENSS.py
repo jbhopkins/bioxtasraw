@@ -1070,7 +1070,7 @@ def runDenss(q, I, sigq, D, prefix, path, comm_list, my_lock, thread_num_q,
     my_logger.propagate = False
     my_logger.handlers = []
 
-    my_fh = logging.FileHandler(prefix+'.log', mode = 'w')
+    my_fh = logging.FileHandler(os.path.join(path, den_prefix+'.log'), mode = 'w')
     my_fh.setLevel(logging.INFO)
     my_fh_formatter = logging.Formatter('%(asctime)s %(message)s', '%Y-%m-%d %I:%M:%S %p')
     my_fh.setFormatter(my_fh_formatter)

@@ -51,7 +51,7 @@ class RawGuiSettings(object):
         if settings is None:
             file_defs, _ = SASFileIO.loadFileDefinitions()
             self._params = {
-                            'RequiredVersion'       : ['1.6.0', wx.NewId(), 'text'],
+                            'RequiredVersion'       : ['1.6.1', wx.NewId(), 'text'],
 							'NormFlatfieldEnabled'	: [False,   wx.NewId(),  'bool'],
 
                             'NormAbsWater'      	: [False,   wx.NewId(),  'bool'],
@@ -473,6 +473,8 @@ def loadSettings(raw_settings, loadpath, auto_load = False):
 
         v_maj, v_min, v_pt = map(int, RAWGlobals.version.split('.'))
 
+        dv_maj, dv_min, dv_pt = map(int, default_settings['RequiredVersion'][0].split('.'))
+
         update = False
 
         if rv_maj > v_maj:
@@ -491,6 +493,18 @@ def loadSettings(raw_settings, loadpath, auto_load = False):
                 'version of RAW, certain functions, including radial averaging of images, '
                 'may not work correctly. You can find the newest version of RAW at '
                 'http://bioxtas-raw.rftm.io/' %(rv, RAWGlobals.version))
+
+        update_settings = False
+        if dv_maj > rv_maj:
+            update_settings = True
+        else:
+            if dv_min > rv_min:
+                update_settings = True
+            else:
+                if dv_pt > rv_pt:
+                    update = True
+        if update_settings:
+            raw_settings.set('RequiredVersion', default_settings['RequiredVersion'][0])
 
     return True, msg
 

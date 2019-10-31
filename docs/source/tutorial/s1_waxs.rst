@@ -1,8 +1,8 @@
 WAXS processing and merging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Several SAXS beamlines use two (or more) detectors to collect different q regions. The MacCHESS
-G1 beamline uses dual Pilatus detectors to measure SAXS and WAXS from *q* ~0.008 – 0.75
+Several SAXS beamlines use two (or more) detectors to collect different q regions. For example,
+the MacCHESS G1 beamline uses dual Pilatus detectors to measure SAXS and WAXS from *q* ~0.008 – 0.75
 Å\ :sup:`-1`\ . The SAXS detector has *q* ~< 0.25 Å\ :sup:`-1` and the wide-angle scattering
 (WAXS) data has *q* >~ 0.25 Å\ :sup:`-1`\ . All of the data that you have been working with
 so far has been SAXS data. Some experiments can make use of the WAXS data. In this part of the
@@ -12,8 +12,11 @@ tutorial you will learn the basics of processing it.
 
 #.  Navigate to the **standards_data** and load the **WAXS.cfg** file.
 
-#.  Plot the **lysbuff2** and **lys2** **PIL3** files. These are the images from the WAXS
+#.  Plot the **lysbuff2** **PIL3** and **lys2** **PIL3** files. These are the images from the WAXS
     detector. Average these files and create a subtracted WAXS scattering profile.
+
+    *   *Tip:* Filenames should be **lysbuff2_<stuff>_PIL3_<stuff>.tiff**
+        and **lys2_<stuff>_PIL3_<stuff>.tiff**\ .
 
 #.  Load the saved subtracted SAXS scattering profile for the lysozyme standards data.
 

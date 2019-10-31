@@ -306,7 +306,38 @@ sequentially sampled data sets.
         it will be more accurate as it doesn't assume a single average buffer
         across the peak.
 
-#.  Return to the Series control and plot panels. Click on the colored line next
+#.  Return to the Series control and plot panels.
+
+#.  If you want to look at either individual profiles or the average of a
+    range of profiles you can send profiles to the main plot. To select which
+    series curve to send profiles from, star the series curve of interest.
+
+    |series_star_png|
+
+#.  In the ‘Data to main plot’ section enter the frame range of interest.
+    For this dataset, try the buffer range you selected: 539 to 568. Then click
+    the ‘Average’ button. That will send the average buffer to the main plot.
+
+    *   *Try:* Send the average of the sample range you selected to the main
+        plot (693 to 722), carry out the subtraction, and verify it’s the same as
+        the curve produced by the ‘To Main Plot’ button in the LC Series Analysis
+        panel.
+
+    *   *Question:* When you send the sample average to the main plot you will
+        get a warning that the profiles are different. Why?
+
+    |series_average_main_plot_png|
+
+#.  You can also send subtracted (or baseline corrected data) to the main plot.
+    For the selected sample range, select the ‘Subtracted’ frames and send each
+    individual profile to the plot using the ‘Plot’ button.
+
+    *   *Try:* Average these profiles and verify they match the subtracted
+        profiles for this data set generated previously.
+
+    |series_profile_main_plot_png|
+
+#.  Click on the colored line next
     to the star in the Series control panel. In the line properties control panel
     this brings up, change the Calc Marker color to something different. Add a
     line to the Calc Markers by selecting line style ‘-’ (solid), and adjust
@@ -388,11 +419,18 @@ sequentially sampled data sets.
 
 .. |lc_analysis_remove_sample_png| image:: images/lc_analysis_remove_sample.png
 
+.. |series_star_png| image:: images/series_star.png
+    :width: 400 px
+
+.. |series_average_main_plot_png| image:: images/series_average_main_plot.png
+    :width: 400 px
+
+.. |series_profile_main_plot_png| image:: images/series_profile_main_plot.png
+    :width: 400 px
+
 .. |series_color_png| image:: images/series_color.png
 
 .. |series_line_props_png| image:: images/series_line_props.png
-
-.. |series_rg_png| image:: images/series_rg.png
 
 
 .. |Rg| replace:: R\ :sub:`g`

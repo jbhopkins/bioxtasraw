@@ -24,11 +24,11 @@ General instructions for installing from source (advanced users)
 
     *   fabio
 
-    *   pyFAI < 0.16
+    *   pyFAI < 0.18
 
     *   hdf5plugin
 
-    *   numba < 0.44
+    *   numba
 
 #.  Download RAW from sourceforge (
     `http://sourceforge.net/projects/bioxtasraw <http://sourceforge.net/projects/bioxtasraw>`_)

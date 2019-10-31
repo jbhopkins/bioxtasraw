@@ -5,10 +5,10 @@ Windows 7, 8.1, and 10 install from source instructions
 #.  RAW on windows can be installed using 64 bit (x64) or 32 bit (x86) python. Unless you know
     you need a 32 bit build, you should install the 64 bit version.
 
-#.  Download and install the Microsoft Visual C++ 2008 SP1 Redistributable Package.
+#.  Download and install the Microsoft Visual C++ 2008 Redistributable Package.
 
     *   Download the 64 bit version from:
-        `https://www.microsoft.com/en-us/download/details.aspx?id=2092 <https://www.microsoft.com/en-us/download/details.aspx?id=2092>`_
+        `https://www.microsoft.com/en-us/download/details.aspx?id=15336 <https://www.microsoft.com/en-us/download/details.aspx?id=15336>`_
 
     *   Download the 32  bit version from:
         `https://www.microsoft.com/en-us/download/details.aspx?id=29 <https://www.microsoft.com/en-us/download/details.aspx?id=29>`_
@@ -45,9 +45,9 @@ Windows 7, 8.1, and 10 install from source instructions
 
     *   ``conda upgrade conda pip wheel setuptools``
 
-    *   ``conda install numpy scipy matplotlib pillow wxpython "numba<0.44" h5py lxml cython numexpr``
+    *   ``conda install numpy scipy matplotlib pillow wxpython numba h5py lxml cython numexpr``
 
-    *   ``pip install hdf5plugin silx fabio "pyfai<0.16"``
+    *   ``pip install hdf5plugin silx fabio pyfai``
 
 #.  Download RAW from sourceforge (
     `http://sourceforge.net/projects/bioxtasraw <http://sourceforge.net/projects/bioxtasraw>`_)

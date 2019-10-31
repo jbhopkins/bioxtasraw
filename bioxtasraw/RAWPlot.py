@@ -3427,11 +3427,11 @@ class SeriesPlotPanel(wx.Panel):
 
     def _onPopupMenuChoice(self, evt):
         mainframe = wx.FindWindowByName('MainFrame')
-        seccontrol = wx.FindWindowByName('SECControlPanel')
+        seccontrol = wx.FindWindowByName('SeriesControlPanel')
         MenuIDs = mainframe.getMenuIds()
         choice_id = evt.GetId()
 
-        if seccontrol._is_online:
+        if seccontrol.seriesIsOnline:
             mainframe.OnlineSECControl.goOffline()
 
         for key in MenuIDs:
@@ -3524,7 +3524,7 @@ class SeriesPlotPanel(wx.Panel):
 
                 #evt.Skip()
 
-        if seccontrol._is_online:
+        if seccontrol.seriesIsOnline:
             mainframe.OnlineSECControl.goOnline()
 
 

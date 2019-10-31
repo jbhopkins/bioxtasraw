@@ -2,7 +2,7 @@
 
 block_cipher = None
 
-add_files = [('./resources', 'resources'), ('../gpl-3.0.txt', '.')]
+add_files = [('./resources', 'resources'), ('./definitions', 'definitions'), ('../gpl-3.0.txt', '.')]
 
 a = Analysis(['RAW.py'],
              pathex=['.'],

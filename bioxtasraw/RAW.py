@@ -308,6 +308,11 @@ class MainFrame(wx.Frame):
             if answer == wx.ID_YES:
                 self.loadRAWSettings(file)
 
+        else:
+            if self.raw_settings.get('autoFindATSAS'):
+                atsas_dir = SASFileIO.findATSASDirectory()
+                self.raw_settings.set('ATSASDir', atsas_dir)
+
         dirctrl = wx.FindWindowByName('DirCtrlPanel')
         dirctrl._useSavedPathIfExisits()
 
@@ -699,7 +704,7 @@ class MainFrame(wx.Frame):
 
         if os.path.exists(ambiPath):
 
-            process = subprocess.Popen('%s -v' %(ambiPath), shell= True, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            process = subprocess.Popen('"%s" -v' %(ambiPath), shell= True, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 
             output, error = process.communicate()
 
@@ -2489,7 +2494,7 @@ class OnlineSECController(object):
         self.online_timer.Bind(wx.EVT_TIMER, self.onOnlineTimer)
 
     def goOnline(self):
-        self.sec_control_panel = wx.FindWindowByName('SECControlPanel')
+        self.sec_control_panel = wx.FindWindowByName('SeriesControlPanel')
         self.online_timer.Start(1000)
 
     def goOffline(self):
@@ -2519,7 +2524,7 @@ class MainWorkerThread(threading.Thread):
 
         self.sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
         self.sec_item_panel = wx.FindWindowByName('SECPanel')
-        self.sec_control_panel = wx.FindWindowByName('SECControlPanel')
+        self.sec_control_panel = wx.FindWindowByName('SeriesControlPanel')
 
 
         self.ift_plot_panel = wx.FindWindowByName('IFTPlotPanel')
@@ -3058,8 +3063,8 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self._showGenericError, str(msg), 'Mask information was not found in header')
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
-        except SASExceptions.ImageLoadError as msg:
-            wx.CallAfter(wx.MessageBox, "\n".join(msg.parameter), 'Image load error', style = wx.ICON_ERROR)
+        except SASExceptions.ImageLoadError, msg:
+            wx.CallAfter(self._showGenericError, "\n".join(msg.parameter), 'Image load error')
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
         except SASExceptions.AbsScaleNormFailed:
@@ -3224,6 +3229,8 @@ class MainWorkerThread(threading.Thread):
         if len(filename_list)>5:
             wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while series data loads')
 
+        secm.acquireSemaphore()
+
         sasm_list=[[] for i in range(len(filename_list))]
 
         for j in range(len(filename_list)):
@@ -3254,21 +3261,25 @@ class MainWorkerThread(threading.Thread):
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'file', msg)
+                secm.releaseSemaphore()
                 return
             except SASExceptions.HeaderLoadError as msg:
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'header', msg)
+                secm.releaseSemaphore()
                 return
             except SASExceptions.MaskSizeError as msg:
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'mask', msg)
+                secm.releaseSemaphore()
                 return
             except SASExceptions.HeaderMaskLoadError as msg:
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'mask_header', msg)
+                secm.releaseSemaphore()
                 return
             except SASExceptions.AbsScaleNormFailed:
                 msg = ('Failed to apply absolute scale. The most '
@@ -3279,11 +3290,14 @@ class MainWorkerThread(threading.Thread):
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'abs_scale', msg)
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
+                secm.releaseSemaphore()
                 return
 
         largest_frame = secm.plot_frame_list[-1]
 
         secm.append(filename_list, sasm_list, frame_list)
+
+        secm.releaseSemaphore()
 
         if secm.calc_has_data:
             self._updateCalcSECParams(secm, list(range(len(frame_list)))+largest_frame+1)
@@ -3349,7 +3363,7 @@ class MainWorkerThread(threading.Thread):
             full_sasm_list = secm.getSASMList(first_frame, last_frame)
         except SASExceptions.DataNotCompatible as e:
             msg = e.parameter
-            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
+            self._showGenericError(msg, "Invalid frame range")
             full_sasm_list = []
 
         subtracted_sasm_list = []
@@ -3721,7 +3735,8 @@ class MainWorkerThread(threading.Thread):
             'caused by failing to load the correct configuration file.\n\n'
             'You can change the image format under Advanced Options in the '
             'Options menu.')
-        wx.CallAfter(wx.MessageBox, msg , 'Error loading file', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+
+        self._showGenericError(msg, 'Error loading file')
 
     def _showSECFormatError(self, filename, include_ascii = True):
         img_fmt = self._raw_settings.get('ImageFormat')
@@ -3738,7 +3753,8 @@ class MainWorkerThread(threading.Thread):
             'selection contains only individual scattering profiles (no .sec files).'
             '\n\nYou can change the image format under Advanced Options in the '
             'Options menu.')
-        wx.CallAfter(wx.MessageBox, msg , 'Error loading file', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+
+        self._showGenericError(msg, 'Error loading file')
 
     def _showSubtractionError(self, sasm, sub_sasm):
         filename1 = sasm.getParameter('filename')
@@ -3752,19 +3768,19 @@ class MainWorkerThread(threading.Thread):
             filename2 + ' has ' + str(points2) + ' data points.\n\n' +
             'Subtraction is not possible. Data files must have equal number of points.')
 
-        wx.CallAfter(wx.MessageBox, msg, 'Subtraction Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+        self._showGenericError(msg, 'Subtraction Error')
 
     def _showAverageError(self, err_no, sasm_list=[]):
         if err_no == 1:
             msg = ('The selected items must have the same total number of '
                 'points to be averaged.')
-            wx.CallAfter(wx.MessageBox, msg, 'Average Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         elif err_no == 2:
             msg = 'Please select at least two items to be averaged.'
-            wx.CallAfter(wx.MessageBox, msg, 'Average Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         elif err_no == 3:
             msg = 'The selected items must have the same q vectors to be averaged.'
-            wx.CallAfter(wx.MessageBox, msg, 'Average Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+
+        if err_no == 1 or err_no == 2 or err_no == 3:
+            self._showGenericError(msg, 'Average Error')
 
         elif err_no == 4:
             test = self._raw_settings.get('similarityTest')
@@ -3778,8 +3794,8 @@ class MainWorkerThread(threading.Thread):
                 msg = msg + sasm.getParameter('filename') + '\n'
             msg = msg + ('\nPlease select an action below.')
             answer = self._displayQuestionDialog(msg, 'Warning: Profiles to average are different',
-                            [('Cancel Average', wx.ID_CANCEL), ('Average All Files', wx.ID_YESTOALL),
-                            ('Average Only Similar Files', wx.ID_YES)], wx.ART_WARNING)
+                [('Cancel Average', wx.ID_CANCEL), ('Average All Files', wx.ID_YESTOALL),
+                ('Average Only Similar Files', wx.ID_YES)], wx.ART_WARNING)
             return answer[0]
 
     def _showPleaseSelectItemsError(self, err_type):
@@ -3787,15 +3803,14 @@ class MainWorkerThread(threading.Thread):
         if err_type == 'average':
             msg = ('Please select the items you want to average.\n\nYou can '
                 'select multiple items by holding down the CTRL or SHIFT key.')
-            wx.CallAfter(wx.MessageBox, msg, 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         elif err_type == 'subtract':
             msg = ('Please select the items you want the marked (star) item '
                 'subtracted from.\nUse CTRL or SHIFT to select multiple items.')
-            wx.CallAfter(wx.MessageBox, msg, 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         elif err_type == 'superimpose':
             msg = ('Please select the items you want to superimpose.\n\nYou '
             'can select multiple items by holding down the CTRL or SHIFT key.')
-            wx.CallAfter(wx.MessageBox, msg, 'No items selected', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+
+        self._showGenericError(msg, 'No items selected')
 
     def _showPleaseMarkItemError(self, err_type):
 
@@ -3809,12 +3824,13 @@ class MainWorkerThread(threading.Thread):
         elif err_type == 'interpolate':
             msg = 'Please mark (star) the item you are using as the main curve for interpolation'
 
-        wx.CallAfter(wx.MessageBox, msg, 'No item marked', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+        self._showGenericError(msg, 'No item marked')
 
     def _showSaveError(self, err_type):
         if err_type == 'header':
             msg = 'Header values could not be saved, file was saved without them.'
-            wx.CallAfter(wx.MessageBox, msg, 'Invalid Header Values', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+
+        self._showGenericError(msg, 'Invalid Header Values')
 
     def _showQvectorsNotEqualWarning(self, sasm, sub_sasm):
 
@@ -3836,7 +3852,8 @@ class MainWorkerThread(threading.Thread):
     def _showQuickReduceFinished(self, processed_files, number_of_files):
         msg = ('Quick reduction finished. Processed ' + str(processed_files) +
             ' out of ' + str(number_of_files) + ' files.')
-        wx.CallAfter(wx.MessageBox, msg, 'Quick reduction finished', style = wx.ICON_INFORMATION | wx.STAY_ON_TOP)
+
+        self._showGenericMsg(msg, 'Quick reduction finished')
 
     def _showOverwritePrompt(self, filename, save_path):
 
@@ -3850,24 +3867,32 @@ class MainWorkerThread(threading.Thread):
         label = 'File exists'
         icon = wx.ART_WARNING
 
-        answer = self._displayQuestionDialog(question, label, button_list, icon, filename, save_path)
+        answer = self._displayQuestionDialog(question, label, button_list, icon,
+            filename, save_path)
 
         return answer
 
     def _showHeaderError(self, err_msg):
         msg = (str(err_msg)+'\n\nPlease check that the header file is in '
             'the directory with the data.')
-        wx.CallAfter(wx.MessageBox, msg, 'Error Loading Header File', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+
+        self._showGenericError(msg, 'Error Loading Header File')
 
     def _showGenericError(self, msg, title):
-        wx.CallAfter(wx.MessageBox, msg, title, style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+        dialog = wx.MessageDialog(self._parent,msg, title,
+            style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+        wx.CallAfter(dialog.ShowModal)
 
     def _showGenericMsg(self, msg, title):
-        wx.CallAfter(wx.MessageBox, msg, title, style = wx.ICON_INFORMATION | wx.STAY_ON_TOP)
+        dialog = wx.MessageDialog(self._parent,msg, title,
+            style = wx.ICON_INFORMATION | wx.OK | wx.STAY_ON_TOP)
+        wx.CallAfter(dialog.ShowModal)
 
-    def _displayQuestionDialog(self, question, label, button_list, icon = None, filename = None, save_path = None):
+    def _displayQuestionDialog(self, question, label, button_list, icon = None,
+        filename = None, save_path = None):
 
-        wx.CallAfter(self.main_frame.showQuestionDialogFromThread, question, label, button_list, icon, filename, save_path)
+        wx.CallAfter(self.main_frame.showQuestionDialogFromThread, question,
+            label, button_list, icon, filename, save_path)
 
         thread_wait_event.wait()
         thread_wait_event.clear()
@@ -9218,7 +9243,7 @@ class SECPanel(wx.Panel):
         self.underpanel_sizer = wx.BoxSizer(wx.VERTICAL)
         self.underpanel.SetSizer(self.underpanel_sizer)
 
-        self.sec_control_panel = SECControlPanel(self)
+        self.sec_control_panel = SeriesControlPanel(self)
 
         self.panelsizer.Add(self.sec_control_panel, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER | wx.EXPAND, 5)
         self.panelsizer.Add(toolbarsizer, 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 5)
@@ -9395,7 +9420,7 @@ class SECPanel(wx.Panel):
 
     def removeSelectedItems(self):
 
-        sec_control_panel = wx.FindWindowByName('SECControlPanel')
+        sec_control_panel = wx.FindWindowByName('SeriesControlPanel')
 
         if len(self.getSelectedItems()) == 0:
             return
@@ -9713,7 +9738,7 @@ class SeriesItemPanel(wx.Panel):
 
         self.sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
         self.main_frame = wx.FindWindowByName('MainFrame')
-        self.sec_control_panel = wx.FindWindowByName('SECControlPanel')
+        self.sec_control_panel = wx.FindWindowByName('SeriesControlPanel')
         self.sec_panel = wx.FindWindowByName('SECPanel')
 
         self.raw_settings = self.main_frame.raw_settings
@@ -10084,8 +10109,8 @@ class SeriesItemPanel(wx.Panel):
 
     def _showPopupMenu(self):
 
-        if self.sec_control_panel._is_online:
-            self.sec_control_panel._goOffline()
+        if self.sec_control_panel.seriesIsOnline:
+            self.sec_control_panel.seriesPanelGoOffline()
 
         menu = wx.Menu()
 
@@ -10115,8 +10140,8 @@ class SeriesItemPanel(wx.Panel):
 
         menu.Destroy()
 
-        if self.sec_control_panel.online_mode_button.IsChecked() and not self.sec_control_panel._is_online:
-            self.sec_control_panel._goOnline()
+        if self.sec_control_panel.online_mode_button.IsChecked() and not self.sec_control_panel.seriesIsOnline:
+            self.sec_control_panel.seriesPanelGoOnline()
 
     def _onPopupMenuChoice(self, evt):
 
@@ -10312,11 +10337,11 @@ class SeriesItemPanel(wx.Panel):
         self.secm.plot_panel.fitAxis()
 
 
-class SECControlPanel(wx.Panel):
+class SeriesControlPanel(wx.Panel):
 
     def __init__(self, parent):
 
-        wx.Panel.__init__(self, parent, -1, name = 'SECControlPanel')
+        wx.Panel.__init__(self, parent, -1, name = 'SeriesControlPanel')
 
         self.parent = parent
 
@@ -10327,7 +10352,7 @@ class SECControlPanel(wx.Panel):
 
         self._raw_settings = self.main_frame.raw_settings
 
-        self._is_online = False
+        self.seriesIsOnline = False
         self.tries = 1
         self.max_tries = 3
 
@@ -10366,7 +10391,7 @@ class SECControlPanel(wx.Panel):
         update_button.Bind(wx.EVT_BUTTON, self._onUpdateButton)
 
         self.online_mode_button = wx.CheckBox(self, -1, "AutoUpdate")
-        self.online_mode_button.SetValue(self._is_online)
+        self.online_mode_button.SetValue(self.seriesIsOnline)
         self.online_mode_button.Bind(wx.EVT_CHECKBOX, self._onOnlineButton)
 
 
@@ -10440,36 +10465,46 @@ class SECControlPanel(wx.Panel):
 
                 labelbox = wx.StaticText(self, -1, "Frames:")
                 labelbox2 = wx.StaticText(self, -1, "to")
-                self.initial_selected_box = wx.TextCtrl(self, ctrl_id, value = self.initial_selected_frame, size = (50,-1))
+                self.initial_selected_box = wx.TextCtrl(self, ctrl_id,
+                    value=self.initial_selected_frame, size=(50,-1))
 
                 selected_sizer.Add(labelbox, border=2,
-                    flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+                    flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT|wx.LEFT)
                 selected_sizer.Add(self.initial_selected_box, border=2,
                     flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
                 selected_sizer.Add(labelbox2, border=2,
                     flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
 
             elif ctrl_type == 'fsframenum':
-                self.final_selected_box = wx.TextCtrl(self, ctrl_id, value = self.final_selected_frame, size = (50,-1))
+                self.final_selected_box = wx.TextCtrl(self, ctrl_id,
+                    value=self.final_selected_frame, size=(50,-1))
                 selected_sizer.Add(self.final_selected_box, border=5,
                     flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
 
         ####
+        self.data_type = wx.Choice(self, choices=['Unsubtracted', 'Subtracted', 'Baseline Corrected'])
+        self.data_type.SetSelection(0)
+
+        selected_sizer.Add(self.data_type, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        selected_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
         frames_plot_button = wx.Button(self, -1, 'Plot')
         frames_plot_button.Bind(wx.EVT_BUTTON, self._onFramesToMainPlot)
         average_plot_button = wx.Button(self, -1, 'Average')
         average_plot_button.Bind(wx.EVT_BUTTON, self._onAverageToMainPlot)
 
-        selected_sizer.Add(frames_plot_button, 0, border=5,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        selected_sizer.Add(average_plot_button, 0, flag =wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-
-        selected_sizer.AddStretchSpacer(1)
+        selected_button_sizer.Add(frames_plot_button, 0, border=5,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT|wx.LEFT)
+        selected_button_sizer.Add(average_plot_button, 0, border=5,
+            flag =wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
 
         send_box = wx.StaticBox(self, -1, 'Data to main plot')
         send_sizer = wx.StaticBoxSizer(send_box, wx.VERTICAL)
 
         send_sizer.Add(selected_sizer, flag=wx.EXPAND|wx.ALL, border=2)
+        send_sizer.Add(selected_button_sizer, border=2,
+            flag=wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_CENTER_HORIZONTAL)
 
         sizer.Add(send_sizer, flag=wx.EXPAND|wx.BOTTOM, border=5)
 
@@ -10482,16 +10517,16 @@ class SECControlPanel(wx.Panel):
         go_online = evt.IsChecked()
 
         if go_online:
-            self._goOnline()
+            self.seriesPanelGoOnline()
         else:
-            self._goOffline()
+            self.seriesPanelGoOffline()
 
-    def _goOnline(self):
-        self._is_online = True
+    def seriesPanelGoOnline(self):
+        self.seriesIsOnline = True
         self.main_frame.OnlineSECControl.goOnline()
 
-    def _goOffline(self):
-        self._is_online = False
+    def seriesPanelGoOffline(self):
+        self.seriesIsOnline = False
         self.main_frame.OnlineSECControl.goOffline()
 
     def _onSelectButton(self, evt):
@@ -10540,8 +10575,8 @@ class SECControlPanel(wx.Panel):
                                       'Error loading file', style = wx.ICON_ERROR | wx.OK)
 
     def _onLoad(self):
-        if self._is_online:
-            self._goOffline()
+        if self.seriesIsOnline:
+            self.seriesPanelGoOffline()
 
         file_list, frame_list = self._makeFileList()
 
@@ -10552,8 +10587,8 @@ class SECControlPanel(wx.Panel):
         else:
             wx.MessageBox("Can't find files to load", style=wx.ICON_ERROR | wx.OK)
 
-        if self.online_mode_button.IsChecked() and not self._is_online:
-            self._goOnline()
+        if self.online_mode_button.IsChecked() and not self.seriesIsOnline:
+            self.seriesPanelGoOnline()
 
     def _onUpdateButton(self,evt):
         self.onUpdate()
@@ -10562,8 +10597,8 @@ class SECControlPanel(wx.Panel):
 
         if self.secm is not None:
 
-            if self._is_online:
-                self._goOffline()
+            if self.seriesIsOnline:
+                self.seriesPanelGoOffline()
 
             old_frame_list = self._getFrameList(self.secm._file_list)
             self._fillBoxes()
@@ -10591,7 +10626,7 @@ class SECControlPanel(wx.Panel):
             time.sleep(1)
             self.onUpdate()
         else:
-            self._goOffline()
+            self.seriesPanelGoOffline()
             self.online_mode_button.SetValue(False)
             if error == 'file':
                 wx.CallAfter(self._showDataFormatError, os.path.split(name)[1])
@@ -10605,8 +10640,8 @@ class SECControlPanel(wx.Panel):
                 wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic series updating turned off.', 'Absolute scale failed', style = wx.ICON_ERROR)
 
     def updateSucceeded(self):
-        if self.online_mode_button.IsChecked() and not self._is_online:
-            self._goOnline()
+        if self.online_mode_button.IsChecked() and not self.seriesIsOnline:
+            self.seriesPanelGoOnline()
 
         self.tries = 1
 
@@ -10630,6 +10665,7 @@ class SECControlPanel(wx.Panel):
 
     def _onFramesToMainPlot(self,evt):
 
+<<<<<<< HEAD
         if self._is_online:
             self._goOffline()
 
@@ -10693,11 +10729,17 @@ class SECControlPanel(wx.Panel):
 
         if self.online_mode_button.IsChecked() and not self._is_online:
             self._goOnline()
+=======
+        self._toMainPlot()
+>>>>>>> master
 
     def _onAverageToMainPlot(self,evt):
 
-        if self._is_online:
-            self._goOffline()
+        self._toMainPlot(True)
+
+    def _toMainPlot(self, average=False):
+        if self.seriesIsOnline:
+            self.seriesPanelGoOffline()
 
         self._updateControlValues()
 
@@ -10705,7 +10747,8 @@ class SECControlPanel(wx.Panel):
         secm = None
         sasm_list = None
 
-        if len(self.initial_selected_frame)>0 and len(self.final_selected_frame)>0 and len(self.sec_panel.all_manipulation_items) > 0:
+        if (len(self.initial_selected_frame)>0 and len(self.final_selected_frame)>0
+            and len(self.sec_panel.all_manipulation_items) > 0):
 
             if len(self.sec_panel.all_manipulation_items) == 1:
                 secm = self.sec_panel.all_manipulation_items[0].secm
@@ -10714,8 +10757,12 @@ class SECControlPanel(wx.Panel):
 
                 if selected_item is not None:
                     if not selected_item.getSelectedForPlot():
-                        msg = "Warning: The selected series curve is not shown on the plot. Send frames to main plot anyways?\nNote: You can select a different series curve by starring it."
-                        dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection", style = wx.ICON_QUESTION | wx.YES_NO)
+                        msg = ("Warning: The selected series curve is not shown "
+                            "on the plot. Send frames to main plot anyways?\n"
+                            "Note: You can select a different series curve by "
+                            "starring it.")
+                        dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection",
+                            style=wx.ICON_QUESTION|wx.YES_NO)
                         proceed = dlg.ShowModal()
                         dlg.Destroy()
                     else:
@@ -10734,33 +10781,51 @@ class SECControlPanel(wx.Panel):
 
         if secm is not None:
             if secm.axes.xaxis.get_label_text() == 'Time (s)':
-                msg = "Warning: Plot is displaying time. Make sure frame #s, not time, are selected to send to plot. Proceed?"
-                dlg = wx.MessageDialog(self.main_frame, msg, "Verify Frame Range", style = wx.ICON_QUESTION | wx.YES_NO)
+                msg = ("Warning: Plot is displaying time. Make sure frame #s, "
+                    "not time, are selected to send to plot. Proceed?")
+                dlg = wx.MessageDialog(self.main_frame, msg, "Verify Frame Range",
+                    style = wx.ICON_QUESTION|wx.YES_NO)
                 proceed = dlg.ShowModal()
                 dlg.Destroy()
             else:
                 proceed = wx.ID_YES
 
             if proceed == wx.ID_YES:
-                int_type = secm.plot_panel.plotparams['plot_intensity']
+                data_type = self.data_type.GetStringSelection()
 
-                try:
-                    sasm_list = secm.getSASMList(self.initial_selected_frame,
-                        self.final_selected_frame, int_type)
+                if data_type == 'Unsubtracted':
+                    int_type = 'unsub'
+                elif data_type == 'Subtracted':
+                    int_type = 'sub'
+                elif data_type == 'Baseline Corrected':
+                    int_type = 'baseline'
 
-                except SASExceptions.DataNotCompatible as e:
-                    msg = e.parameter
-                    wx.CallAfter(wx.MessageBox, msg, "Invalid frame range",
-                        style = wx.ICON_ERROR | wx.OK)
-                    sasm_list = []
+                if ((int_type == 'sub' and not secm.subtracted_sasm_list) or
+                    (int_type == 'baseline' and not secm.baseline_subtracted_sasm_list)):
+                    msg = ("Selected series curve has no data of type '{}'.".format(data_type))
+                    wx.CallAfter(wx.MessageBox, msg, "Invalid data type",
+                        style=wx.ICON_ERROR|wx.OK)
+
+                else:
+                    try:
+                        sasm_list = secm.getSASMList(self.initial_selected_frame,
+                            self.final_selected_frame, int_type)
+                    except SASExceptions.DataNotCompatible as e:
+                        msg = e.parameter
+                        wx.CallAfter(wx.MessageBox, msg, "Invalid frame range",
+                            style = wx.ICON_ERROR | wx.OK)
+                        sasm_list = []
 
         if sasm_list is not None and sasm_list:
             sasm_list = list(map(copy.deepcopy, sasm_list))
 
-            mainworker_cmd_queue.put(['secm_average_sasms', sasm_list])
+            if average:
+                mainworker_cmd_queue.put(['secm_average_sasms', sasm_list])
+            else:
+                mainworker_cmd_queue.put(['to_plot_SEC', sasm_list])
 
-        if self.online_mode_button.IsChecked() and not self._is_online:
-            self._goOnline()
+        if self.online_mode_button.IsChecked() and not self.seriesIsOnline:
+            self.seriesPanelGoOnline()
 
 
     def _findWindowId(self,type):

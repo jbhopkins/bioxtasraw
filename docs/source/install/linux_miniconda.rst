@@ -34,9 +34,9 @@ Tested on: Ubuntu 16.04, Linux Mint 18.3, Debian 9.4, Scientific Linux 6.8 7.4
 
     *   ``conda upgrade conda pip wheel setuptools``
 
-    *   ``conda install numpy scipy matplotlib pillow wxpython "numba<0.44" h5py lxml cython numexpr``
+    *   ``conda install numpy scipy matplotlib pillow wxpython numba h5py lxml cython numexpr``
 
-    *   ``pip install silx fabio "pyFAI<0.16" hdf5plugin``
+    *   ``pip install silx fabio "pyFAI<0.18" hdf5plugin``
 
 #.  Download RAW from sourceforge
 
