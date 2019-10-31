@@ -2566,6 +2566,9 @@ class MolWeightFrame(wx.Frame):
         elif choice == 'Manual':
             q_max_ctrl.Enable()
 
+        if rg == 0:
+            qmax = 0.5
+
         if choice != 'Manual':
             if qmax > q[-1]:
                 qmax = q[-1]
