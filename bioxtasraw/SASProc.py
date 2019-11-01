@@ -737,6 +737,9 @@ def get_shared_header(sasm_list):
 
     shared_params = get_shared_values(params_list)
 
+    if 'analysis' in shared_params:
+        del shared_params['analysis']
+
     return shared_params
 
 def get_shared_values(dict_list):
