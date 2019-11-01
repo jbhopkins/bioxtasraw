@@ -22,18 +22,20 @@ Created on Sep 31, 2010
 #******************************************************************************
 '''
 from __future__ import absolute_import, division, print_function, unicode_literals
-from future import standard_library
 from builtins import object, range, map, zip
 from io import open
-standard_library.install_aliases()
 from six.moves import cPickle as pickle
+
+try:
+    import queue
+except Exception:
+    import Queue as queue
 
 import sys
 import os
 import subprocess
 import time
 import threading
-import queue
 import copy
 import glob
 import platform

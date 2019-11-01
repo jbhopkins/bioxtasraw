@@ -22,25 +22,28 @@ Created on Mar 23, 2010
 #******************************************************************************
 '''
 from __future__ import absolute_import, division, print_function, unicode_literals
-from future import standard_library
 from builtins import object, range, map, zip, str
 from io import open
-standard_library.install_aliases()
 
-import matplotlib
-import numpy as np
+try:
+    import queue
+except Exception:
+    import Queue as queue
+
 import sys
 import os
 import copy
 import multiprocessing
 import threading
-import queue
-import wx
 import time
 import platform
 import collections
 import traceback
 import tempfile
+
+import numpy as np
+import wx
+import matplotlib
 
 matplotlib.rcParams['backend'] = 'WxAgg'
 matplotlib.rc('image', origin = 'lower')        # turn image upside down.. x,y, starting from lower left
@@ -6937,7 +6940,7 @@ class DenssRunPanel(wx.Panel):
         if self.denss_settings['mode'] == 'Fast':
             self.denss_settings['swMinStep'] = 1000
             self.denss_settings['conSteps'] = '[2000]'
-            self.denss_settings['recenterStep'] = '%s' %(range(501,2502,500))
+            self.denss_settings['recenterStep'] = '%s' %(list(range(501,2502,500)))
             self.denss_settings['steps'] = None
             D = float(self.iftm.getParameter('dmax'))
             self.denss_settings['voxel'] = D*self.denss_settings['oversample']/32.
@@ -6945,7 +6948,7 @@ class DenssRunPanel(wx.Panel):
         elif self.denss_settings['mode'] == 'Slow':
             self.denss_settings['swMinStep'] = 5000
             self.denss_settings['conSteps'] = '[6000]'
-            self.denss_settings['recenterStep'] = '%s' %(range(501,8002,500))
+            self.denss_settings['recenterStep'] = '%s' %(list(range(501,8002,500)))
             self.denss_settings['steps'] = None
             D = float(self.iftm.getParameter('dmax'))
             self.denss_settings['voxel'] = D*self.denss_settings['oversample']/64.
@@ -6954,13 +6957,13 @@ class DenssRunPanel(wx.Panel):
             self.denss_settings['swMinStep'] = 0
             self.denss_settings['swThresFrac'] = 0.1
             self.denss_settings['conSteps'] = '[300]'
-            self.denss_settings['recenterStep'] = '%s' %(range(501,8002,500))
+            self.denss_settings['recenterStep'] = '%s' %(list(range(501,8002,500)))
             self.denss_settings['steps'] = None
             D = float(self.iftm.getParameter('dmax'))
             self.denss_settings['voxel'] = D*self.denss_settings['oversample']/64.
             self.denss_settings['positivity'] = False
 
-    def get_multi_output(self, queue, den_window, stop_event, nmsg=100):
+    def get_multi_output(self, out_queue, den_window, stop_event, nmsg=100):
         num_msg = 0
         full_msg = ''
         while True:
@@ -6968,7 +6971,7 @@ class DenssRunPanel(wx.Panel):
                 wx.CallAfter(den_window.AppendText, full_msg)
                 break
             try:
-                msg = queue.get_nowait()
+                msg = out_queue.get_nowait()
                 num_msg = num_msg + 1
                 full_msg = full_msg + msg
             except queue.Empty:
@@ -7129,7 +7132,7 @@ class DenssRunPanel(wx.Panel):
         fscs = np.array(fscs)
         fsc = np.mean(fscs,axis=0)
         np.savetxt(os.path.join(path, prefix+'_fsc.dat'), fsc, delimiter=" ",
-            fmt="%.5e", header="1/resolution, FSC")
+            fmt="%.5e".encode('ascii'), header="1/resolution, FSC")
         x = np.linspace(fsc[0,0],fsc[-1,0],100)
         y = np.interp(x, fsc[:,0], fsc[:,1])
         resi = np.argmin(y>=0.5)
@@ -7279,18 +7282,18 @@ class DenssRunPanel(wx.Panel):
                 header.append("I_fit_"+str(edmap))
 
             np.savetxt(os.path.join(path, prefix+'_map.fit'), fit, delimiter=" ",
-                fmt="%.5e", header=" ".join(header))
+                fmt="%.5e".encode('ascii'), header=" ".join(header))
             chi_header, rg_header, supportV_header = list(zip(*[('chi_'+str(i), 'rg_'+str(i),'supportV_'+str(i)) for i in range(nruns)]))
             all_chis = np.array([denss_outputs[i][5] for i in np.arange(nruns)])
             all_rg = np.array([denss_outputs[i][6] for i in np.arange(nruns)])
             all_supportV = np.array([denss_outputs[i][7] for i in np.arange(nruns)])
 
             np.savetxt(os.path.join(path, prefix+'_chis_by_step.fit'), all_chis.T,
-                delimiter=" ", fmt="%.5e", header=",".join(chi_header))
+                delimiter=" ", fmt="%.5e".encode('ascii'), header=",".join(chi_header))
             np.savetxt(os.path.join(path, prefix+'_rg_by_step.fit'), all_rg.T,
-                delimiter=" ", fmt="%.5e", header=",".join(rg_header))
+                delimiter=" ", fmt="%.5e".encode('ascii'), header=",".join(rg_header))
             np.savetxt(os.path.join(path, prefix+'_supportV_by_step.fit'),
-                all_supportV.T, delimiter=" ", fmt="%.5e",
+                all_supportV.T, delimiter=" ", fmt="%.5e".encode('ascii'),
                 header=",".join(supportV_header))
 
             chis = []

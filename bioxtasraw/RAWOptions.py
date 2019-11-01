@@ -22,17 +22,19 @@ Created on Aug 2, 2010
 #******************************************************************************
 '''
 from __future__ import absolute_import, division, print_function, unicode_literals
-from future import standard_library
 from builtins import object, range, map, zip
 from io import open
-standard_library.install_aliases()
+
+try:
+    import queue
+except Exception:
+    import Queue as queue
 
 import re
 import sys
 import os
 import time
 import math
-import queue
 import copy
 
 import wx

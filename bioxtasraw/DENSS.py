@@ -501,11 +501,11 @@ def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False
     fit[:len(sigqdata),2] = sigqdata
     fit[:len(qbinsc),3] = qbinsc
     fit[:len(Imean[j+1]),4] = Imean[j+1]
-    np.savetxt(fprefix+'_map.fit', fit, delimiter=' ', fmt='%.5e',
+    np.savetxt(fprefix+'_map.fit', fit, delimiter=' ', fmt='%.5e'.encode('ascii'),
         header='q(data),I(data),error(data),q(density),I(density)')
 
     np.savetxt(fprefix+'_stats_by_step.dat',np.vstack((chi, rg, supportV)).T,
-        delimiter=" ", fmt="%.5e", header='Chi2 Rg SupportVolume')
+        delimiter=" ", fmt="%.5e".encode('ascii'), header='Chi2 Rg SupportVolume')
 
     my_logger.info('FINISHED DENSITY REFINEMENT')
     my_logger.info('Number of steps: %i', j)

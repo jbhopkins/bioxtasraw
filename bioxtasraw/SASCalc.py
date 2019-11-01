@@ -28,16 +28,18 @@ functions, including calculation of rg and molecular weight.
 It also contains functions for calling outside packages for use in RAW, like DAMMIF.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
-from future import standard_library
 from builtins import object, range, map, zip
 from io import open
-standard_library.install_aliases()
+
+try:
+    import queue
+except Exception:
+    import Queue as queue
 
 import os
 import time
 import subprocess
 import threading
-import queue
 import platform
 import re
 import math

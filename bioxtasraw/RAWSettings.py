@@ -345,7 +345,7 @@ class RawGuiSettings(object):
                             'denssLimitDmax'        : [False, wx.NewId(), 'bool'],
                             'denssLimitDmaxStep'    : ['[500]', wx.NewId(), 'text'],
                             'denssRecenter'         : [True, wx.NewId(), 'bool'],
-                            'denssRecenterStep'     : ['%s' %(range(1001, 8002, 500)), wx.NewId(), 'text'],
+                            'denssRecenterStep'     : ['%s' %(list(range(1001, 8002, 500))), wx.NewId(), 'text'],
                             'denssPositivity'       : [True, wx.NewId(), 'bool'],
                             'denssExtrapolate'      : [True, wx.NewId(), 'bool'],
                             'denssShrinkwrap'       : [True, wx.NewId(), 'bool'],

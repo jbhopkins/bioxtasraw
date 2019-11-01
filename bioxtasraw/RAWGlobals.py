@@ -17,12 +17,14 @@
 #******************************************************************************
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-from future import standard_library
 from builtins import object, range, map, zip
 from io import open
-standard_library.install_aliases()
 
-import queue
+try:
+    import queue
+except Exception:
+    import Queue as queue
+
 import sys
 
 mainworker_cmd_queue = queue.Queue()
