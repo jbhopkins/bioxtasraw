@@ -1,6 +1,33 @@
 Changes
 ============
 
+1.6.3
+--------
+
+Release date: 2019-11-01
+
+Overview
+^^^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 1.6.3. This version
+fixes a critical bug where when average detected different files, regardless of
+user choice it would always average all files (selecting just similar files
+didn't work). There are also a few other minor bug fixes.
+
+All changes:
+^^^^^^^^^^^^^^^^^^
+
+*   Fixed a bug where if you averaged, subtracted, or merged two items with analysis
+    done on them, you could end up with partial analysis info in the resulting file
+    that would cause errors opening analysis windows.
+*   Fixed a critical bug where when average detected different files, regardless of
+    user choice it would always average all files (selecting just similar files
+    didn't work).
+*   Fixed a bug where the MW window wouldn't open if the Guinier fit hadn't been done.
+*   Fixed a (Debian specific?) bug where wx.CallAfter used with wx.MessageBox wasn't
+    threadsafe and could cause RAW to crash (use wx.MessageDialog).
+
+
 1.6.2
 --------
 
