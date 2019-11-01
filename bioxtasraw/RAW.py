@@ -4293,6 +4293,7 @@ class MainWorkerThread(threading.Thread):
                     return None
 
                 wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while averaging and plotting...')
+
         try:
             if profiles_to_use == wx.ID_YESTOALL:
                 if not weight:
@@ -4307,9 +4308,9 @@ class MainWorkerThread(threading.Thread):
                         reduced_sasm_list.append(sasm)
 
                 if not weight:
-                    avg_sasm = SASProc.average(sasm_list)
+                    avg_sasm = SASProc.average(reduced_sasm_list)
                 else:
-                    avg_sasm = SASProc.weightedAverage(sasm_list, weightByError, weightCounter)
+                    avg_sasm = SASProc.weightedAverage(reduced_sasm_list, weightByError, weightCounter)
 
         except SASExceptions.DataNotCompatible:
             wx.CallAfter(self._showAverageError, 3)
