@@ -26,6 +26,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from builtins import object, range, map, zip, str
 from io import open
 from six.moves import cPickle as pickle
+import six
 
 import hdf5plugin #This has to be imported before fabio, and h5py (and, I think, PIL/pillow) . . .
 
@@ -43,6 +44,7 @@ import glob
 import subprocess
 import platform
 import ast
+import traceback
 
 import numpy as np
 import fabio
@@ -100,21 +102,6 @@ def createSASMFromImage(img_array, parameters = {}, x_c = None, y_c = None, mask
     sasm = SASM.SASM(i_raw, q_raw, err_raw_non_nan, parameters)
 
     return sasm
-
-def loadMask(filename):
-    ''' Loads a mask  '''
-
-    if os.path.splitext(filename)[1] == 'msk':
-
-        with open(filename, 'rb') as FileObj:
-            maskPlotParameters = pickle.load(FileObj)
-
-        i=0
-        for each in maskPlotParameters['storedMasks']:
-            each.maskID = i
-            i = i + 1
-
-        return SASImage.createMaskMatrix(maskPlotParameters), maskPlotParameters
 
 ############################
 #--- ## Load image files: ##
@@ -985,8 +972,8 @@ def loadHeader(filename, new_filename, header_type):
     if hdr is not None:
         hdr = {key.replace(' ', '_').translate(str.maketrans('', '', '()[]'))
             if isinstance(key, str) else key: hdr[key] for key in hdr}
-        hdr = { key : str(hdr[key], errors='ignore') if isinstance(hdr[key], str)
-            else hdr[key] for key in hdr}
+        # hdr = { key : str(hdr[key], errors='ignore') if isinstance(hdr[key], str)
+        #     else hdr[key] for key in hdr}
 
     return hdr
 
@@ -1013,8 +1000,8 @@ def loadImage(filename, raw_settings):
         if hdr is not None:
             hdr = {key.replace(' ', '_').translate(str.maketrans('', '', '()[]'))
                 if isinstance(key, str) else key: hdr[key] for key in hdr}
-            hdr = { key : str(hdr[key], errors='ignore') if isinstance(hdr[key], str)
-                else hdr[key] for key in hdr}
+            # hdr = { key : str(hdr[key], errors='ignore') if isinstance(hdr[key], str)
+            #     else hdr[key] for key in hdr}
 
 
     if image_type != 'SASLab300':
@@ -1847,12 +1834,18 @@ def loadSeriesFile(filename, settings):
     secm_data = None
 
     try:
-        secm_data = pickle.load(file)
+        if six.PY3:
+            secm_data = pickle.load(file, encoding='latin-1')
+        else:
+            secm_data = pickle.load(file)
     except Exception as e:
         print(e)
         file.close()
         file = open(filename, 'rU')
-        secm_data = pickle.load(file)
+        if six.PY3:
+            secm_data = pickle.load(file, encoding='latin-1')
+        else:
+            secm_data = pickle.load(file)
     except Exception as e:
         file.close()
 
@@ -3627,11 +3620,17 @@ def saveDensityXplor(filename, rho,side):
 def loadWorkspace(load_path):
     try:
         with open(load_path, 'rb') as f:
-            sasm_dict = pickle.load(f)
+            if six.PY3:
+                sasm_dict = pickle.load(f, encoding='latin-1')
+            else:
+                sasm_dict = pickle.load(f)
     except (ImportError, EOFError):
         try:
             with open(load_path, 'r') as f:
-                sasm_dict = pickle.load(f)
+                if six.PY3:
+                    sasm_dict = pickle.load(f, encoding='latin-1')
+                else:
+                    sasm_dict = pickle.load(f)
         except (ImportError, EOFError):
             raise SASExceptions.UnrecognizedDataFormat(('Workspace could not be '
                 'loaded. It may be an invalid file type, or the file may be '
@@ -3641,10 +3640,15 @@ def loadWorkspace(load_path):
 
 def writeSettings(filename, settings):
     try:
-        with open(filename, 'w') as f:
-            f.write(json.dumps(settings, indent = 4, sort_keys = True, cls = MyEncoder))
+        with open(filename, 'w', encoding='utf-8') as f:
+            settings_str = json.dumps(settings, indent = 4, sort_keys = True,
+                cls = MyEncoder, ensure_ascii=False)
+            if isinstance(settings_str, str):
+                settings_str = settings_str.decode('utf-8')
+            f.write(settings_str)
         return True
     except Exception as e:
+        traceback.print_exc()
         print(e)
         return False
 
@@ -3657,10 +3661,13 @@ def readSettings(filename):
     except Exception as e:
         try:
             with open(filename, 'rb') as f:
-                pickle_obj = pickle.Unpickler(f)
+                if six.PY3:
+                    pickle_obj = pickle.Unpickler(f, encoding='UTF-8')
+                else:
+                    pickle_obj = pickle.Unpickler(f)
                 pickle_obj.find_global = find_global
                 settings = pickle_obj.load()
-        except (KeyError, EOFError, ImportError, IndexError, AttributeError, pickle.UnpicklingError) as e:
+        except Exception as e:
             print('Error type: %s, error: %s' %(type(e).__name__, e))
             return None
 

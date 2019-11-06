@@ -23,8 +23,10 @@ Created on Sep 31, 2010
 '''
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import object, range, map, zip
+import builtins
 from io import open
 from six.moves import cPickle as pickle
+import six
 
 try:
     import queue
@@ -46,6 +48,10 @@ import traceback
 import scipy.constants
 import multiprocessing
 from collections import OrderedDict, defaultdict
+import functools
+
+# if __name__ == '__main__':
+#     multiprocessing.set_start_method('spawn')
 
 import hdf5plugin #HAS TO BE FIRST
 import numpy as np
@@ -709,6 +715,12 @@ class MainFrame(wx.Frame):
             process = subprocess.Popen('"%s" -v' %(ambiPath), shell= True, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 
             output, error = process.communicate()
+
+            if not isinstance(output, str):
+                output = str(output, encoding='UTF-8')
+
+            if not isinstance(error, str):
+                error = str(error, encoding='UTF-8')
 
             rev = output.split('\n')[0].split()[-1].strip().strip(')(rM').strip('aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ')
 
@@ -2094,7 +2106,11 @@ class MainFrame(wx.Frame):
         file = os.path.join(RAWGlobals.RAWWorkDir,'backup.ini')
 
         try:
-            path = wx.FindWindowByName('FileListCtrl').path.decode('utf-8')
+            path = wx.FindWindowByName('FileListCtrl').path
+
+            if not isinstance(path, str):
+                path = path.decode('UTF-8')
+
             save_info = {'workdir' : path}
 
             with open(file, 'wb') as file_obj:
@@ -2859,7 +2875,10 @@ class MainWorkerThread(threading.Thread):
 
             if extension == '.msk':
                 with open(fullpath_filename, 'rb') as file_obj:
-                    masks = pickle.load(file_obj)
+                    if six.PY3:
+                        masks = pickle.load(file_obj, encoding='latin-1')
+                    else:
+                        masks = pickle.load(file_obj)
 
                 i=0
                 for each in masks:
@@ -3065,7 +3084,7 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self._showGenericError, str(msg), 'Mask information was not found in header')
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
-        except SASExceptions.ImageLoadError, msg:
+        except SASExceptions.ImageLoadError as msg:
             wx.CallAfter(self._showGenericError, "\n".join(msg.parameter), 'Image load error')
             wx.CallAfter(self.main_frame.closeBusyDialog)
             return
@@ -5666,13 +5685,6 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         # "virtualness" of the list...
 
 
-#    def GetSecondarySortValues(self, col, key1, key2):
-#
-#        def ss(key):
-#            return self.itemDataMap[key][3]
-#
-#        return (ss(key1), ss(key2))
-
     def OnGetItemText(self, item, col):
         index=self.itemIndexMap[item]
         s = self.itemDataMap[index][col]
@@ -5702,41 +5714,19 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
     def GetSortImages(self):
         return (self.sm_dn, self.sm_up)
 
-    #---------------------------------------------------
-    # Matt C, 2006/02/22
-    # Here's a better SortItems() method --
-    # the ColumnSorterMixin.__ColumnSorter() method already handles the ascending/descending,
-    # and it knows to sort on another column if the chosen columns have the same value.
-
-    def SortItems(self,sorter=cmp):
+    def SortItems(self, sorter):
         items = list(self.itemDataMap.keys())
-        items.sort(sorter)
+        items.sort(key=functools.cmp_to_key(sorter))
         self.itemIndexMap = items
 
-        # redraw the list
         self.Refresh()
 
     # Used by the ColumnSorterMixin, see wx/lib/mixins/listctrl.py
     def GetListCtrl(self):
         return self
 
-    # Used by the ColumnSorterMixin, see wx/lib/mixins/listctrl.py
-#    def GetSortImages(self):
-#        return (self.sm_dn, self.sm_up)
-
     def onColClick(self, event):
-
-#        if event.GetColumn() == self.sort_column:
-#            self.reverse_sort = not self.reverse_sort
-#        else:
-#            self.reverse_sort = False
-
-#        self.sort_column = event.GetColumn()
-
-#    self.updateSorting()
-
         event.Skip()
-        #self.updateFileList()
 
     def readFileList(self):
         try:
@@ -5775,10 +5765,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
             else:
                 filteredFiles = self.files
 
-        # Filelist doesnt take Unicode! convert to normal strings:
-        for i in range(0, len(filteredFiles)):
-            filteredFiles[i] = str(filteredFiles[i].encode("iso-8859-15", "backslashreplace"))
-
+        filteredFiles = list(map(str, filteredFiles))
         filteredFiles.sort(key = str.lower)
 
         return filteredFiles
@@ -6229,7 +6216,10 @@ class DirCtrlPanel(wx.Panel):
 
         try:
             with open(load_path, 'rb') as file_obj:
-                data = pickle.load(file_obj)
+                if six.PY3:
+                    data = pickle.load(file_obj, encoding='UTF-8')
+                else:
+                    data = pickle.load(file_obj)
 
             path = data['workdir']
         except Exception:
@@ -7530,10 +7520,7 @@ class ManipItemPanel(wx.Panel):
         convertq_menu.Append(16, 'q / 10')
 
         other_ops_menu = wx.Menu()
-        if wx.version().split()[0].strip()[0] == '4':
-            other_ops_menu.Append(wx.ID_ANY, 'Convert q-scale', convertq_menu)
-        else:
-            other_ops_menu.AppendMenu(wx.ID_ANY, 'Convert q-scale', convertq_menu)
+        other_ops_menu.AppendSubMenu(convertq_menu, 'Convert q-scale')
         other_ops_menu.Append(25, 'Interpolate')
         other_ops_menu.Append(22, 'Merge')
         other_ops_menu.Append(28, 'Normalize by conc.')
@@ -7549,10 +7536,7 @@ class ManipItemPanel(wx.Panel):
         menu.Append(4, 'Subtract')
         menu.Append(6, 'Average' )
         menu.Append(36, 'Weighted Average')
-        if wx.version().split()[0].strip()[0] == '4':
-            menu.Append(wx.ID_ANY, 'Other Operations', other_ops_menu)
-        else:
-            menu.AppendMenu(wx.ID_ANY, 'Other Operations', other_ops_menu)
+        menu.AppendSubMenu(other_ops_menu, 'Other Operations')
         menu.AppendSeparator()
 
         menu.Append(5, 'Remove' )
@@ -7569,10 +7553,7 @@ class ManipItemPanel(wx.Panel):
 
         menu.Append(37, 'Similarity Test')
         menu.Append(38, 'Normalized Kratky Plots')
-        if wx.version().split()[0].strip()[0] == '4':
-            menu.Append(wx.ID_ANY, 'Other Analysis', other_an_menu)
-        else:
-            menu.AppendMenu(wx.ID_ANY, 'Other Analysis', other_an_menu)
+        menu.AppendSubMenu(other_an_menu, 'Other Analysis')
 
         menu.AppendSeparator()
         img = menu.Append(19, 'Show image')
@@ -12001,7 +11982,7 @@ class CenteringPanel(wx.Panel):
 
     def _onRepeatTimer(self, event):
         steps = float(self._step_combo.GetValue())
-        wx.Yield()
+        wx.GetApp().Yield()
         wx.CallAfter(self._moveCenter, self._pressed_button_id, steps)
 
     def _onCenteringButtonsUp(self, event):
@@ -12863,7 +12844,7 @@ class MySplashScreen(SplashScreen):
 
         self.Bind(wx.EVT_CLOSE, self.OnExit)
 
-        wx.Yield()
+        wx.GetApp().Yield()
 
         self.fc = wx.CallLater(1, self.ShowMain)
 

@@ -439,13 +439,9 @@ class GuinierPlotPanel(wx.Panel):
         yerr = self.yerr[xmin:xmax+1]
 
         #Remove NaN and Inf values:
-        x = x[np.where(np.isnan(y) == False)]
-        yerr = yerr[np.where(np.isnan(y) == False)]
-        y = y[np.where(np.isnan(y) == False)]
-
-        x = x[np.where(np.isinf(y) == False)]
-        yerr = yerr[np.where(np.isinf(y) == False)]
-        y = y[np.where(np.isinf(y) == False)]
+        x = x[np.where(np.isfinite(y))]
+        yerr = yerr[np.where(np.isfinite(y))]
+        y = y[np.where(np.isfinite(y))]
 
         error_weight = self.raw_settings.get('errorWeight')
         norm_residuals = self.raw_settings.get('normalizedResiduals')
@@ -550,10 +546,8 @@ class GuinierPlotPanel(wx.Panel):
         x = self.x[xmin:xmax]
         y = self.y[xmin:xmax]
 
-        x = x[np.where(np.isnan(y)==False)]
-        y = y[np.where(np.isnan(y)==False)]
-        x = x[np.where(np.isinf(y)==False)]
-        y = y[np.where(np.isinf(y)==False)]
+        x = x[np.where(np.isfinite(y))]
+        y = y[np.where(np.isfinite(y))]
 
         a = self.subplots['Guinier']
         b = self.subplots['Residual']
@@ -730,13 +724,9 @@ class GuinierPlotPanel(wx.Panel):
             y = self.y[xmin:xmax]
             yerr = self.yerr[xmin:xmax]
 
-            x = x[np.where(np.isnan(y)==False)]
-            y = y[np.where(np.isnan(y)==False)]
-            yerr = yerr[np.where(np.isnan(y)==False)]
-
-            x = x[np.where(np.isinf(y)==False)]
-            y = y[np.where(np.isinf(y)==False)]
-            yerr = yerr[np.where(np.isinf(y)==False)]
+            x = x[np.where(np.isfinite(y))]
+            y = y[np.where(np.isfinite(y))]
+            yerr = yerr[np.where(np.isfinite(y))]
 
             data_list.append(x)
             data_list.append(y)
@@ -5077,6 +5067,10 @@ class DammifRunPanel(wx.Panel):
                 line2=''
                 while line != '':
                     line = out.read(1)
+
+                    if not isinstance(line, str):
+                        line = str(line, encoding='UTF-8')
+
                     line2+=line
                     if line == '\n':
                         queue.put_nowait([line2])
@@ -5197,6 +5191,10 @@ class DammifRunPanel(wx.Panel):
                 line2=''
                 while line != '':
                     line = out.read(1)
+
+                    if not isinstance(line, str):
+                        line = str(line, encoding='UTF-8')
+
                     line2+=line
                     if line == '\n':
                         queue.put_nowait([line2])
@@ -11462,7 +11460,7 @@ class EFAControlPanel2(wx.Panel):
         wx.CallAfter(self.updateEFAPlot)
 
     def _runEFA(self, A):
-        wx.Yield()
+        wx.GetApp().Yield()
         f_slist = SASCalc.runEFA(A)
         b_slist = SASCalc.runEFA(A, False)
 

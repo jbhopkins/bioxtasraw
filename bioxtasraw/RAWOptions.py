@@ -1324,7 +1324,7 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
                     constant_ctrl.SetValue(str(return_val))
                 break
             except queue.Empty:
-                wx.Yield()
+                wx.GetApp().Yield()
                 time.sleep(0.1)
 
     def _calculateWaterConstant(self):

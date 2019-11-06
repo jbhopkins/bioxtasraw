@@ -391,13 +391,9 @@ def autoRg_inner(q, i, err, qmin, single_fit, error_weight):
             yerr = iler[start:start+w]
 
             #Remove NaN and Inf values:
-            x = x[np.where(np.isnan(y) == False)]
-            yerr = yerr[np.where(np.isnan(y) == False)]
-            y = y[np.where(np.isnan(y) == False)]
-
-            x = x[np.where(np.isinf(y) == False)]
-            yerr = yerr[np.where(np.isinf(y) == False)]
-            y = y[np.where(np.isinf(y) == False)]
+            x = x[np.where(np.isfinite(y))]
+            yerr = yerr[np.where(np.isfinite(y))]
+            y = y[np.where(np.isfinite(y))]
 
 
             RG, I0, RGer, I0er, a, b = calcRg(x, y, yerr, transform=False, error_weight=error_weight)
@@ -617,6 +613,13 @@ def getATSASVersion():
     if os.path.exists(dammifDir):
         process=subprocess.Popen('"%s" -v' %(dammifDir), stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True) #gnom4 doesn't do a proper -v!!! So use something else
         output, error = process.communicate()
+
+        if not isinstance(output, str):
+            output = str(output, encoding='UTF-8')
+
+        if not isinstance(error, str):
+            error = str(error, encoding='UTF-8')
+
         output = output.strip()
         error = error.strip()
 
@@ -639,6 +642,10 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
         line2=''
         while line != '':
             line = out.read(1)
+
+            if not isinstance(line, str):
+                line = str(line, encoding='UTF-8')
+
             line2+=line
             if line == ':':
                 queue.put_nowait([line2])
@@ -1038,6 +1045,12 @@ def runDatgnom(datname, sasm, path):
 
         output, error = process.communicate()
 
+        if not isinstance(output, str):
+            output = str(output, encoding='UTF-8')
+
+        if not isinstance(error, str):
+            error = str(error, encoding='UTF-8')
+
         error = error.strip()
 
         if error == 'Cannot define Dmax' or error=='Could not find Rg' and not new_datgnom:
@@ -1056,6 +1069,12 @@ def runDatgnom(datname, sasm, path):
                     cwd=path)
 
                 output, error = process.communicate()
+
+        if not isinstance(output, str):
+            output = str(output, encoding='UTF-8')
+
+        if not isinstance(error, str):
+            error = str(error, encoding='UTF-8')
 
         error = error.strip()
 
@@ -1214,6 +1233,10 @@ def runDammif(fname, prefix, args, path):
                 line2=''
                 while line != '' and not dammifRunning:
                     line = out.read(1)
+
+                    if not isinstance(line, str):
+                        line = str(line, encoding='UTF-8')
+
                     line2+=line
                     if line == ':':
                         if line2.find('Log opened') > -1:
@@ -1438,6 +1461,12 @@ def runAmbimeter(fname, prefix, args, path):
 
         output, error = process.communicate()
 
+        if not isinstance(output, str):
+            output = str(output, encoding='UTF-8')
+
+        if not isinstance(error, str):
+            error = str(error, encoding='UTF-8')
+
         lines = output.split('\n')
         ambiCats = lines[0].split(':')[-1].strip()
         ambiScore = lines[1].split(':')[-1].strip()
@@ -1529,6 +1558,10 @@ def runDammin(fname, prefix, args, path):
                 line2=''
                 while line != '' and not dammifRunning:
                     line = out.read(1)
+
+                    if not isinstance(line, str):
+                        line = str(line, encoding='UTF-8')
+
                     line2+=line
                     if line == ':':
                         queue.put_nowait([line2])
@@ -1547,11 +1580,11 @@ def runDammin(fname, prefix, args, path):
             if opsys == 'Windows':
                 proc = subprocess.Popen('%s' %(dammifDir),
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT, cwd=path)
+                    stderr=subprocess.STDOUT, cwd=path, universal_newlines=True)
             else:
                 proc = subprocess.Popen('%s' %(dammifDir), shell=True,
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT, cwd=path)
+                    stderr=subprocess.STDOUT, cwd=path, universal_newlines=True)
             dammif_t = threading.Thread(target=enqueue_output, args=(proc.stdout, dammif_q))
             dammif_t.daemon = True
             dammif_t.start()
@@ -2222,7 +2255,7 @@ def runRotation(D, intensity, err, ranges, force_positive, svd_v, previous_resul
     return converged, conv_data, rotation_data
 
 def runEFA(A, forward=True):
-    wx.Yield()
+    wx.GetApp().Yield()
     slist = np.zeros_like(A)
 
     jmax = A.shape[1]

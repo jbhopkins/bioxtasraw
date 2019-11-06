@@ -322,8 +322,8 @@ class PlotPanel(wx.Panel):
                                     'plot2type'             : 'subtracted',
                                     'errorbars_on'          : False,
 
-                                    'legend_pos1'           : None,
-                                    'legend_pos2'           : None,
+                                    # 'legend_pos1'           : None,
+                                    # 'legend_pos2'           : None,
                                     'legend_visible1'       : False,
                                     'legend_visible2'       : False,
                                     'legend_fontsize1'      : 10,
@@ -1035,7 +1035,7 @@ class PlotPanel(wx.Panel):
                 caplines[i].set_data(pos)
 
             # Update the error bars
-            barlinecols[0].set_segments(zip(zip(*error_positions[0]), zip(*error_positions[1])))
+            barlinecols[0].set_segments(list(zip(zip(*error_positions[0]), zip(*error_positions[1]))))
 
     def clearAllPlots(self):
 
@@ -1142,7 +1142,7 @@ class PlotPanel(wx.Panel):
             old_legend = axes.get_legend()
 
             if  old_legend is not None:
-                self.plotparams['legend_pos%s' %(plotnum)] = old_legend._loc
+                # self.plotparams['legend_pos%s' %(plotnum)] = old_legend._loc
 
                 old_title = old_legend.get_title()
                 old_title_text = old_title.get_text()
@@ -1216,11 +1216,12 @@ class PlotPanel(wx.Panel):
                 leg.get_frame().set_linewidth(1)
 
             try:
-                leg.draggable()   #Interferes with the scroll zoom!
-                if self.plotparams['legend_pos%s' %(plotnum)] is not None:
-                    leg._loc = self.plotparams['legend_pos%s' %(plotnum)]
+                leg.set_draggable(True)
             except AttributeError:
-                print("WARNING: Old matplotlib version, legend not draggable")
+                try:
+                    leg.draggable(True)
+                except AttributeError:
+                    pass
 
         if draw:
             self.canvas.draw()
@@ -1321,8 +1322,8 @@ class IftPlotPanel(PlotPanel):
                                     'plot2type'             : 'subtracted',
                                     'errorbars_on'          : False,
 
-                                    'legend_pos1'           : None,
-                                    'legend_pos2'           : None,
+                                    # 'legend_pos1'           : None,
+                                    # 'legend_pos2'           : None,
                                     'legend_visible1'       : False,
                                     'legend_visible2'       : False,
                                     'legend_fontsize1'      : 10,
@@ -2017,7 +2018,7 @@ class IftPlotPanel(PlotPanel):
                 caplines[i].set_data(pos)
 
             # Update the error bars
-            barlinecols[0].set_segments(zip(zip(*error_positions[0]), zip(*error_positions[1])))
+            barlinecols[0].set_segments(list(zip(zip(*error_positions[0]), zip(*error_positions[1]))))
 
 
         if iftm.qo_err_line is not None:
@@ -2049,7 +2050,7 @@ class IftPlotPanel(PlotPanel):
                 caplines[i].set_data(pos)
 
             # Update the error bars
-            barlinecols[0].set_segments(zip(zip(*error_positions[0]), zip(*error_positions[1])))
+            barlinecols[0].set_segments(list(zip(zip(*error_positions[0]), zip(*error_positions[1]))))
 
     def clearAllPlots(self):
 
@@ -2154,7 +2155,7 @@ class IftPlotPanel(PlotPanel):
             old_legend = axes.get_legend()
 
             if  old_legend is not None:
-                self.plotparams['legend_pos%s' %(plotnum)] = old_legend._loc
+                # self.plotparams['legend_pos%s' %(plotnum)] = old_legend._loc
 
                 old_title = old_legend.get_title()
                 old_title_text = old_title.get_text()
@@ -2225,12 +2226,12 @@ class IftPlotPanel(PlotPanel):
                 leg.get_frame().set_linewidth(1)
 
             try:
-                leg.draggable()   #Interferes with the scroll zoom!
-                if self.plotparams['legend_pos%s' %(plotnum)] is not None:
-                    leg._loc = self.plotparams['legend_pos%s' %(plotnum)]
-
+                leg.set_draggable(True)
             except AttributeError:
-                print("WARNING: Old matplotlib version, legend not draggable")
+                try:
+                    leg.draggable(True)
+                except AttributeError:
+                    pass
         if draw:
             self.canvas.draw()
 
@@ -2758,7 +2759,7 @@ class SeriesPlotPanel(wx.Panel):
                                     'plot2type'             : 'subtracted',
                                     'errorbars_on'          : False,
 
-                                    'legend_pos1'           : None,
+                                    # 'legend_pos1'           : None,
                                     'legend_visible1'       : False,
                                     'legend_fontsize1'      : 10,
                                     'legend_border1'        : False,
@@ -4093,7 +4094,7 @@ class SeriesPlotPanel(wx.Panel):
         old_legend = a.get_legend()
 
         if  old_legend is not None:
-            self.plotparams['legend_pos1'] = old_legend._loc
+            # self.plotparams['legend_pos1'] = old_legend._loc
 
             old_title = old_legend.get_title()
             old_title_text = old_title.get_text()
@@ -4148,11 +4149,12 @@ class SeriesPlotPanel(wx.Panel):
                 leg.get_frame().set_linewidth(1)
 
             try:
-                leg.draggable()   #Interferes with the scroll zoom!
-                if self.plotparams['legend_pos1'] is not None:
-                    leg._loc = self.plotparams['legend_pos1']
+                leg.set_draggable(True)
             except AttributeError:
-                print("WARNING: Old matplotlib version, legend not draggable")
+                try:
+                    leg.draggable(True)
+                except AttributeError:
+                    pass
 
         if draw:
             self.canvas.draw()

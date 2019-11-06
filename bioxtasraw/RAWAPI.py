@@ -238,13 +238,9 @@ def calc_rg(sasm, nmin, nmax, error_weight=True, save=True):
     yerr = sasm.getErr()[nmin:nmax+1]
 
     #Remove NaN and Inf values:
-    x = x[np.where(np.isnan(y) == False)]
-    yerr = yerr[np.where(np.isnan(y) == False)]
-    y = y[np.where(np.isnan(y) == False)]
-
-    x = x[np.where(np.isinf(y) == False)]
-    yerr = yerr[np.where(np.isinf(y) == False)]
-    y = y[np.where(np.isinf(y) == False)]
+    x = x[np.where(np.isfinite(y))]
+    yerr = yerr[np.where(np.isfinite(y))]
+    y = y[np.where(np.isfinite(y))]
 
     rg, i0, rger, i0er, a, b = SASCalc.calcRg(x, y, yerr, transform=True,
         error_weight=error_weight)

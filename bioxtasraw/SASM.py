@@ -317,50 +317,50 @@ class SASM(object):
 
         self._update()
 
-#	def logRebin(self, no_points, start_idx = 0, end_idx = -1):
-#		pass
+#   def logRebin(self, no_points, start_idx = 0, end_idx = -1):
+#       pass
 
-	def setLogBinning(self, no_points, start_idx = 0, end_idx = -1):
+    def setLogBinning(self, no_points, start_idx = 0, end_idx = -1):
 
-		if end_idx == -1:
-			end_idx = len(self._i_raw)
+        if end_idx == -1:
+            end_idx = len(self._i_raw)
 
-		i = self._i_raw[start_idx:end_idx]
-		q = self._q_raw[start_idx:end_idx]
-		err = self._err_raw[start_idx:end_idx]
+        i = self._i_raw[start_idx:end_idx]
+        q = self._q_raw[start_idx:end_idx]
+        err = self._err_raw[start_idx:end_idx]
 
-		bins = np.logspace(1, np.log10(len(q)), no_points)
+        bins = np.logspace(1, np.log10(len(q)), no_points)
 
-		binned_q = []
-		binned_i = []
-		binned_err = []
+        binned_q = []
+        binned_i = []
+        binned_err = []
 
-		idx = 0
-		for i in range(0, len(bins)):
-			no_of_bins = np.floor(bins[i] - bins[i-1])
+        idx = 0
+        for i in range(0, len(bins)):
+            no_of_bins = np.floor(bins[i] - bins[i-1])
 
-			if no_of_bins > 1:
-				mean_q = np.mean( q[ idx : idx + no_of_bins ] )
-				mean_i = np.mean( i[ idx : idx + no_of_bins ] )
+            if no_of_bins > 1:
+                mean_q = np.mean( q[ idx : idx + no_of_bins ] )
+                mean_i = np.mean( i[ idx : idx + no_of_bins ] )
 
-				mean_err = np.sqrt( sum( np.power( err[ idx : idx + no_of_bins ], 2) ) ) / np.sqrt( no_of_bins )
+                mean_err = np.sqrt( sum( np.power( err[ idx : idx + no_of_bins ], 2) ) ) / np.sqrt( no_of_bins )
 
-				binned_q.append(mean_q)
-				binned_i.append(mean_i)
-				binned_err.append(mean_err)
+                binned_q.append(mean_q)
+                binned_i.append(mean_i)
+                binned_err.append(mean_err)
 
-				idx = idx + no_of_bins
-			else:
-				binned_q.append(q[idx])
-				binned_i.append(i[idx])
-				binned_err.append(err[idx])
-				idx = idx + 1
+                idx = idx + no_of_bins
+            else:
+                binned_q.append(q[idx])
+                binned_i.append(i[idx])
+                binned_err.append(err[idx])
+                idx = idx + 1
 
-		self._i_binned = np.array(binned_i)
-		self._q_binned = np.array(binned_q)
-		self._err_binned = np.array(binned_err)
+        self._i_binned = np.array(binned_i)
+        self._q_binned = np.array(binned_q)
+        self._err_binned = np.array(binned_err)
 
-		self._update()
+        self._update()
         self._selected_q_range = (0, len(self._i_binned))
 
 
