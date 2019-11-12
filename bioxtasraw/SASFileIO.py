@@ -1115,6 +1115,7 @@ def loadAsciiFile(filename, file_type):
     sasm = None
 
     if ascii_formats.has_key(file_type):
+        print file_type
         sasm = ascii_formats[file_type](filename)
 
     if sasm is not None and file_type != 'ift' and file_type != 'out':
@@ -1656,9 +1657,9 @@ def loadHdf5File(filename, raw_settings):
 
 def loadOutFile(filename):
 
-    five_col_fit = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*$')
-    three_col_fit = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*$')
-    two_col_fit = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
+    five_col_fit = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
+    three_col_fit = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
+    two_col_fit = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
 
     results_fit = re.compile('\s*Current\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s*\d*[.]?\d*[+eE-]*\d*\s*$')
 
@@ -2091,9 +2092,9 @@ def makeSeriesFile(secm_data, settings):
 
 def loadIftFile(filename):
     #Loads RAW BIFT .ift files into IFTM objects
-    iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*$')
-    pr_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*$')
-    extrap_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
+    iq_pattern = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
+    pr_pattern = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
+    extrap_pattern = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
 
     r = []
     p = []
@@ -2434,7 +2435,7 @@ def loadPDBFile(filename):
 def loadPrimusDatFile(filename):
     ''' Loads a Primus .dat format file '''
 
-    iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s*')
+    iq_pattern = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*')
 
     i = []
     q = []
@@ -2473,13 +2474,13 @@ def loadPrimusDatFile(filename):
                 found = iq_match.group().split()
                 q.append(float(found[0]))
                 i.append(float(found[1]))
-                err.append(float(found[2]))
+                err.append(abs(float(found[2])))
             else:
                 found = line.split()
                 q.append(float(found[0]))
                 i.append(float(found[1]))
                 imodel.append(float(found[2]))
-                err.append(float(found[3]))
+                err.append(abs(float(found[3])))
 
 
     #Check to see if there is any header from RAW, and if so get that.
@@ -2528,7 +2529,7 @@ def loadRadFile(filename):
     ''' NOTE : THIS IS THE OLD RAD FORMAT..     '''
     ''' Loads a .rad file into a SASM object and attaches the filename and header into the parameters  '''
 
-    iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*\n')
+    iq_pattern = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*\n')
     param_pattern = re.compile('[a-zA-Z0-9_]*\s*[:]\s+.*')
 
     i = []
@@ -2593,7 +2594,7 @@ def loadNewRadFile(filename):
     ''' NOTE : This is a load function for the new rad format '''
     ''' Loads a .rad file into a SASM object and attaches the filename and header into the parameters  '''
 
-    iq_pattern = re.compile('\s*\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*\n')
+    iq_pattern = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*\n')
     param_pattern = re.compile('[a-zA-Z0-9_]*\s*[:]\s+.*')
 
     i = []
@@ -2683,7 +2684,7 @@ def loadCsvFile(filename):
     ''' Loads a comma separated file, ignores everything except a three column line'''
 
 
-    iq_pattern = re.compile('\s*\d*[.]?\d*[+eE-]*\d+[,]\s*-?\d*[.]?\d*[+eE-]*\d+[,]\s*-?\d*[.]?\d*[+eE-]*\d*\s*')
+    iq_pattern = re.compile('\s*-?\d*[.]?\d*[+eE-]*\d+[,]\s*-?\d*[.]?\d*[+eE-]*\d+[,]\s*-?\d*[.]?\d*[+eE-]*\d*\s*')
     param_pattern = re.compile('[a-zA-Z0-9_]*\s*[=].*')
 
     i = []
@@ -2730,7 +2731,7 @@ def loadCsvFile(filename):
 def load2ColFile(filename):
     ''' Loads a two column file (q I) separated by whitespaces '''
 
-    iq_pattern = re.compile('\s*\d*[.]\d*\s+-?\d*[.]\d*.*\n')
+    iq_pattern = re.compile('\s*-?\d*[.]\d*\s+-?\d*[.]\d*.*\n')
     param_pattern = re.compile('[a-zA-Z0-9_]*\s*[=].*')
 
     i = []
