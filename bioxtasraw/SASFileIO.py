@@ -2847,7 +2847,7 @@ def saveMeasurement(sasm, save_path, raw_settings, filetype = '.dat'):
 def saveSECItem(save_path, secm_dict):
 
     with open(save_path, 'wb') as f:
-        pickle.dump(secm_dict, f, pickle.HIGHEST_PROTOCOL)
+        pickle.dump(secm_dict, f, protocol=2)
 
 
 def saveAnalysisCsvFile(sasm_list, include_data, save_path):
@@ -3243,7 +3243,7 @@ def saveWorkspace(sasm_dict, save_path):
 
     with open(save_path, 'wb') as f:
 
-        pickle.dump(sasm_dict, f, pickle.HIGHEST_PROTOCOL)
+        pickle.dump(sasm_dict, f, protocol=2)
 
 
 def saveCSVFile(filename, data, header = ''):

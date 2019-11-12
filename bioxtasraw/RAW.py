@@ -21,6 +21,8 @@ Created on Sep 31, 2010
 #
 #******************************************************************************
 '''
+
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import object, range, map, zip
 import builtins
@@ -50,8 +52,7 @@ import multiprocessing
 from collections import OrderedDict, defaultdict
 import functools
 
-# if __name__ == '__main__':
-#     multiprocessing.set_start_method('spawn')
+
 
 import hdf5plugin #HAS TO BE FIRST
 import numpy as np
@@ -2114,7 +2115,7 @@ class MainFrame(wx.Frame):
             save_info = {'workdir' : path}
 
             with open(file, 'wb') as file_obj:
-                pickle.dump(save_info, file_obj)
+                pickle.dump(save_info, file_obj, protocol=2)
 
         except Exception:
             traceback.print_exc()
@@ -2860,7 +2861,7 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.main_frame.setStatus, 'Saving mask', 0)
 
         with open(fullpath_filename, 'wb') as file_obj:
-            pickle.dump(masks, file_obj)
+            pickle.dump(masks, file_obj, protocol=2)
 
         RAWGlobals.save_in_progress = False
         wx.CallAfter(self.main_frame.setStatus, '', 0)

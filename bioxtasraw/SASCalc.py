@@ -755,7 +755,8 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
 
                 proc = subprocess.Popen('"%s"' %(gnomDir), shell=True,
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT, cwd=path)
+                    stderr=subprocess.STDOUT, cwd=path, universal_newlines=True,
+                    bufsize=1)
                 gnom_t = threading.Thread(target=enqueue_output, args=(proc.stdout, gnom_q))
                 gnom_t.daemon = True
                 gnom_t.start()
@@ -1250,11 +1251,13 @@ def runDammif(fname, prefix, args, path):
 
             if opsys == 'Windows':
                 proc = subprocess.Popen('"%s"' %(dammifDir), stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=path)
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=path,
+                    universal_newlines=True, bufsize=1)
             else:
                 proc = subprocess.Popen('"%s"' %(dammifDir), shell=True,
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT, cwd=path)
+                    stderr=subprocess.STDOUT, cwd=path, universal_newlines=True,
+                    bufsize=1)
             dammif_t = threading.Thread(target=enqueue_output, args=(proc.stdout, dammif_q))
             dammif_t.daemon = True
             dammif_t.start()
@@ -1400,8 +1403,8 @@ def runDammif(fname, prefix, args, path):
 
                     previous_line = current_line
 
-            proc.stdout.close()
-            proc.stdin.close()
+            # proc.stdout.close()
+            # proc.stdin.close()
 
             return proc
     else:
@@ -1455,7 +1458,7 @@ def runAmbimeter(fname, prefix, args, path):
 
         start = time.time()
         while process.poll() is None:
-            if time.time()-start > 60:
+            if time.time()-start > 120:
                 raise SASExceptions.NoATSASError('Ambimeter timed out. Try running it from the command line to diagnose this problem.')
                 return None
 
@@ -1580,11 +1583,13 @@ def runDammin(fname, prefix, args, path):
             if opsys == 'Windows':
                 proc = subprocess.Popen('%s' %(dammifDir),
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT, cwd=path, universal_newlines=True)
+                    stderr=subprocess.STDOUT, cwd=path, universal_newlines=True,
+                    bufsize=1)
             else:
                 proc = subprocess.Popen('%s' %(dammifDir), shell=True,
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT, cwd=path, universal_newlines=True)
+                    stderr=subprocess.STDOUT, cwd=path, universal_newlines=True,
+                    bufsize=1)
             dammif_t = threading.Thread(target=enqueue_output, args=(proc.stdout, dammif_q))
             dammif_t.daemon = True
             dammif_t.start()
@@ -1749,8 +1754,9 @@ def runDammin(fname, prefix, args, path):
                     elif data.find('annealing procedure started') > -1:
                         dammifStarted = True
 
-            proc.stdout.close()
-            proc.stdin.close()
+            # proc.stdout.close()
+            # proc.stdin.close()
+            # proc.wait()
 
             return proc
     else:

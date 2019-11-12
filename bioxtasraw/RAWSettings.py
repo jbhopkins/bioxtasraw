@@ -480,10 +480,10 @@ def loadSettings(raw_settings, loadpath, auto_load = False):
         if rv_maj > v_maj:
             update = True
         else:
-            if rv_min > v_min:
+            if rv_min > v_min and rv_maj == v_maj:
                 update = True
             else:
-                if rv_pt > v_pt:
+                if rv_pt > v_pt and rv_maj == v_maj and rv_min == v_min:
                     update = True
 
         if update:

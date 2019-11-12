@@ -33,6 +33,7 @@ This code matches that as of 5/21/19, commit 1967ae6, version 1.4.9
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import object, range, map, zip
 from io import open
+import six
 
 import os
 import time
@@ -45,6 +46,7 @@ import datetime
 import traceback
 import sys
 from functools import reduce
+import platform
 
 import numpy as np
 from scipy import optimize, ndimage
@@ -802,16 +804,27 @@ def select_best_enantiomers(rhos, refrho=None, cores=1, avg_queue=None,
             enans[j] = ndimage.interpolation.affine_transform(enans[j],R.T,order=3,offset=offset,mode='wrap')
             enans[j] = ndimage.interpolation.shift(enans[j],-refshift,order=3,mode='wrap')
         #now minimize each enan around the original refrho location
-        pool = multiprocessing.Pool(cores)
-        try:
-            mapfunc = partial(align, refrho)
-            results = pool.map(mapfunc, enans)
-            pool.close()
-            pool.join()
-        except KeyboardInterrupt:
-            pool.terminate()
-            pool.close()
-            raise
+
+        if platform.system() == 'Darwin' and six.PY3:
+            single_proc = True
+        else:
+            single_proc = False
+
+        if not single_proc:
+            pool = multiprocessing.Pool(cores)
+            try:
+                mapfunc = partial(align, refrho)
+                results = pool.map(mapfunc, enans)
+                pool.close()
+                pool.join()
+            except KeyboardInterrupt:
+                pool.terminate()
+                pool.close()
+                raise
+
+        else:
+            results = [align(refrho, enan, abort_event=abort_event) for
+                enan in enans]
 
         #now select the best enantiomer and set it as the new rhos[i]
         enans = np.array([results[k][0] for k in range(len(results))])
@@ -841,16 +854,25 @@ def align_multiple(refrho, rhos, cores=1, abort_event=None):
         if abort_event.is_set():
             return None, None
 
-    pool = multiprocessing.Pool(cores)
-    try:
-        mapfunc = partial(align, refrho)
-        results = pool.map(mapfunc, rhos)
-        pool.close()
-        pool.join()
-    except KeyboardInterrupt:
-        pool.terminate()
-        pool.close()
-        raise
+    if platform.system() == 'Darwin' and six.PY3:
+        single_proc = True
+    else:
+        single_proc = False
+
+    if not single_proc:
+        pool = multiprocessing.Pool(cores)
+        try:
+            mapfunc = partial(align, refrho)
+            results = pool.map(mapfunc, rhos)
+            pool.close()
+            pool.join()
+        except KeyboardInterrupt:
+            pool.terminate()
+            pool.close()
+            raise
+
+    else:
+        results = [align(refrho, rho, abort_event=abort_event) for rho in rhos]
 
     rhos = np.array([results[i][0] for i in range(len(results))])
     scores = np.array([results[i][1] for i in range(len(results))])
@@ -874,16 +896,27 @@ def average_pairs(rhos, cores=1, abort_event=None):
     """ Average pairs of electron density maps, second half to first half."""
     #create even/odd pairs, odds are the references
     rho_args = {'rho1':rhos[::2], 'rho2':rhos[1::2], 'abort_event': abort_event}
-    pool = multiprocessing.Pool(cores)
-    try:
-        mapfunc = partial(multi_average_two, **rho_args)
-        average_rhos = pool.map(mapfunc, list(range(rhos.shape[0]//2)))
-        pool.close()
-        pool.join()
-    except KeyboardInterrupt:
-        pool.terminate()
-        pool.close()
-        raise
+
+    if platform.system() == 'Darwin' and six.PY3:
+        single_proc = True
+    else:
+        single_proc = False
+
+    if not single_proc:
+        pool = multiprocessing.Pool(cores)
+        try:
+            mapfunc = partial(multi_average_two, **rho_args)
+            average_rhos = pool.map(mapfunc, list(range(rhos.shape[0]//2)))
+            pool.close()
+            pool.join()
+        except KeyboardInterrupt:
+            pool.terminate()
+            pool.close()
+            raise
+
+    else:
+        average_rhos = [multi_average_two(niter, **rho_args) for niter in
+            range(rhos.shape[0]//2)]
 
     return np.array(average_rhos)
 
@@ -966,7 +999,7 @@ def write_mrc(rho,side,filename="map.mrc"):
         # XORIGIN, YORIGIN, ZORIGIN
         fout.write(struct.pack('<fff', nxstart*(a/xs), nystart*(b/ys), nzstart*(c/zs)))
         # MAP
-        fout.write('MAP ')
+        fout.write('MAP '.encode('utf-8'))
         # MACHST (little endian)
         fout.write(struct.pack('<BBBB', 0x44, 0x41, 0x00, 0x00))
         # RMS (std)
@@ -985,7 +1018,7 @@ def write_xplor(rho,side,filename="map.xplor"):
     """Write an XPLOR formatted electron density map."""
     xs, ys, zs = rho.shape
     title_lines = ['REMARK FILENAME="'+filename+'"','REMARK DATE= '+str(datetime.datetime.today())]
-    with open(filename,'wb') as f:
+    with open(filename,'w') as f:
         f.write("\n")
         f.write("%8d !NTITLE\n" % len(title_lines))
         for line in title_lines:

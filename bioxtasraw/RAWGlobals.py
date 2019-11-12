@@ -41,6 +41,6 @@ RAWDefinitionsDir = ''
 
 usepyFAI_integration = False
 
-version = '1.6.3'
+version = '2.0.0'
 
 save_in_progress = False

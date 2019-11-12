@@ -19,11 +19,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import object, range, map, zip
 from io import open
+import six
 
 import multiprocessing
 import functools
 import threading
 import os.path
+import platform
 
 import scipy.optimize
 import scipy.interpolate
@@ -194,122 +196,17 @@ def getEvidenceOptimize(params, q, i, err, N):
     #Negative so you can minimize on it
     return -evidence
 
-# def calc_bift_errors(opt_params, q, i, err, N, mc_runs=300, abort_check=False):
-#     #First, randomly generate a set of parameters similar but not quite the same as the best parameters (monte carlo)
-#     #Then, calculate the evidence, pr, and other results for each set of parameters
-#     print('bift_errors here 1')
-#     alpha_opt, dmax_opt = opt_params
-#     mult = 3.0
-
-#     n_proc = multiprocessing.cpu_count()
-
-#     ctx = multiprocessing.get_context('spawn')
-
-#     mp_pool = ctx.Pool(processes=n_proc)
-#     mp_get_evidence = functools.partial(getEvidence, q=q, i=i, err=err, N=N)
-
-#     ev_array = np.zeros(mc_runs)
-#     c_array = np.zeros(mc_runs)
-#     f_array = np.zeros((mc_runs, N+1))
-#     r_array = np.zeros((mc_runs, N+1))
-
-#     max_dmax = dmax_opt+0.1*dmax_opt*0.5*mult
-
-#     print('bift_errors here 2')
-
-#     _, ref_r = makePriorDistribution(i[0], N, max_dmax)
-
-#     print('bift_errors here 3')
-
-#     run_mc = True
-
-#     while run_mc:
-
-#         alpha_array = alpha_opt+0.1*alpha_opt*(np.random.random(mc_runs)-0.5)*mult
-#         dmax_array = dmax_opt+0.1*dmax_opt*(np.random.random(mc_runs)-0.5)*mult
-#         alpha_array[0] = alpha_opt
-#         dmax_array[0] = dmax_opt
-
-#         pts = list(zip(alpha_array, dmax_array))
-
-#         results = mp_pool.map(mp_get_evidence, pts)
-
-#         for res_idx, res in enumerate(results):
-#             dmax = dmax_array[res_idx]
-
-#             evidence, c, f, r = res
-
-#             interp = scipy.interpolate.interp1d(r, f, copy=False)
-
-#             f_interp = np.zeros_like(ref_r)
-#             f_interp[ref_r<dmax] = interp(ref_r[ref_r<dmax])
-
-#             ev_array[res_idx] = evidence
-#             c_array[res_idx] = c
-#             f_array[res_idx,:] = f_interp
-#             r_array[res_idx,:] = ref_r
-
-#         if np.abs(ev_array).max() >= 9e8:
-#             mult = mult/2.
-
-#             if mult < 0.001:
-#                 run_mc = False
-
-#             if abort_check.is_set():
-#                 run_mc = False
-
-#         else:
-#             run_mc = False
-
-#     print('bift_errors here 4')
-#     mp_pool.close()
-#     mp_pool.join()
-
-#     #Then, calculate the probability of each result as exp(evidence - evidence_max)**(1/minimum_chisq), normalized by the sum of all result probabilities
-
-#     ev_max = ev_array.max()
-#     prob = np.exp(ev_array - ev_max)**(1./c_array.min())
-#     prob = prob/prob.sum()
-
-#     #Then, calculate the average P(r) function as the weighted sum of the P(r) functions
-#     #Then, calculate the error in P(r) as the square root of the weighted sum of squares of the difference between the average result and the individual estimate
-#     p_avg = np.sum(f_array*prob[:,None], axis=0)
-#     err = np.sqrt(np.abs(np.sum((f_array-p_avg)**2*prob[:,None], axis=0)))
-
-#     #Then, calculate structural results as weighted sum of each result
-#     alpha = np.sum(alpha_array*prob)
-#     dmax = np.sum(dmax_array*prob)
-#     c = np.sum(c_array*prob)
-#     evidence = np.sum(ev_array*prob)
-
-#     area = np.trapz(f_array, r_array, axis=1)
-#     area2 = np.trapz(f_array*r_array**2, r_array, axis=1)
-#     rg_array = np.sqrt(abs(area2/(2.*area)))
-#     i0_array = area*4*np.pi
-#     rg = np.sum(rg_array*prob)
-#     i0 = np.sum(i0_array*prob)
-
-#     sd_alpha = np.sqrt(np.sum((alpha_array - alpha)**2*prob))
-#     sd_dmax = np.sqrt(np.sum((dmax_array - dmax)**2*prob))
-#     sd_c = np.sqrt(np.sum((c_array - c)**2*prob))
-#     sd_ev = np.sqrt(np.sum((ev_array - evidence)**2*prob))
-#     sd_rg = np.sqrt(np.sum((rg_array - rg)**2*prob))
-#     sd_i0 = np.sqrt(np.sum((i0_array - i0)**2*prob))
-
-#     #Should I also extrapolate to q=0? Might be good, though maybe not in this function
-#     #Should I report number of good parameters (ftot(nmax-12 in Hansen code, line 2247))
-#     #Should I report number of Shannon Channels? That's easy to calculate: q_range*dmax/pi
-
-#     print('bift_errors here 5')
-
-#     return ref_r, p_avg, err, (alpha, sd_alpha), (dmax, sd_dmax), (c, sd_c), (evidence, sd_ev), (rg, sd_rg), (i0, sd_i0)
-
-def calc_bift_errors(opt_params, q, i, err, N, mc_runs=300, abort_check=False):
+def calc_bift_errors(opt_params, q, i, err, N, mc_runs=300, abort_check=False,
+    single_proc=False):
     #First, randomly generate a set of parameters similar but not quite the same as the best parameters (monte carlo)
     #Then, calculate the evidence, pr, and other results for each set of parameters
-    print('bift_errors here 1')
     alpha_opt, dmax_opt = opt_params
     mult = 3.0
+
+    if not single_proc:
+        n_proc = multiprocessing.cpu_count()
+        mp_pool = multiprocessing.Pool(processes=n_proc)
+        mp_get_evidence = functools.partial(getEvidence, q=q, i=i, err=err, N=N)
 
     ev_array = np.zeros(mc_runs)
     c_array = np.zeros(mc_runs)
@@ -318,11 +215,7 @@ def calc_bift_errors(opt_params, q, i, err, N, mc_runs=300, abort_check=False):
 
     max_dmax = dmax_opt+0.1*dmax_opt*0.5*mult
 
-    print('bift_errors here 2')
-
     _, ref_r = makePriorDistribution(i[0], N, max_dmax)
-
-    print('bift_errors here 3')
 
     run_mc = True
 
@@ -335,7 +228,10 @@ def calc_bift_errors(opt_params, q, i, err, N, mc_runs=300, abort_check=False):
 
         pts = list(zip(alpha_array, dmax_array))
 
-        results = [getEvidence(params, q, i, err, N) for params in pts]
+        if not single_proc:
+            results = mp_pool.map(mp_get_evidence, pts)
+        else:
+            results = [getEvidence(params, q, i, err, N) for params in pts]
 
         for res_idx, res in enumerate(results):
             dmax = dmax_array[res_idx]
@@ -364,7 +260,9 @@ def calc_bift_errors(opt_params, q, i, err, N, mc_runs=300, abort_check=False):
         else:
             run_mc = False
 
-    print('bift_errors here 4')
+    if not single_proc:
+        mp_pool.close()
+        mp_pool.join()
 
     #Then, calculate the probability of each result as exp(evidence - evidence_max)**(1/minimum_chisq), normalized by the sum of all result probabilities
 
@@ -401,10 +299,7 @@ def calc_bift_errors(opt_params, q, i, err, N, mc_runs=300, abort_check=False):
     #Should I report number of good parameters (ftot(nmax-12 in Hansen code, line 2247))
     #Should I report number of Shannon Channels? That's easy to calculate: q_range*dmax/pi
 
-    print('bift_errors here 5')
-
     return ref_r, p_avg, err, (alpha, sd_alpha), (dmax, sd_dmax), (c, sd_c), (evidence, sd_ev), (rg, sd_rg), (i0, sd_i0)
-
 def make_fit(q, r, pr):
     qr = np.outer(q, r)
     sinc_qr = np.where(qr==0, 1, np.sin(qr)/qr)
@@ -412,188 +307,16 @@ def make_fit(q, r, pr):
 
     return i
 
-# def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
-#     dmax_max, dmax_n, mc_runs, queue=None, abort_check=threading.Event()):
-
-#     # Start by finding the optimal dmax and alpha via minimization of evidence
-
-#     n_proc = multiprocessing.cpu_count()
-
-#     mp_pool = multiprocessing.Pool(processes=n_proc)
-
-#     alpha_min = np.log(alpha_min)
-#     alpha_max = np.log(alpha_max)
-
-#     alpha_points = np.linspace(alpha_min, alpha_max, alpha_n)          # alpha points are log(alpha) for better search
-#     dmax_points = np.linspace(dmax_min, dmax_max, dmax_n)
-
-#     all_posteriors = np.zeros((dmax_points.size, alpha_points.size))
-
-#     N = npts - 1
-
-#     mp_get_evidence = functools.partial(getEvidence, q=q, i=i, err=err, N=N)
-
-#     # Loop through a range of dmax and alpha to get a starting point for the minimization
-
-#     if abort_check.is_set():
-#         if queue is not None:
-#             queue.put({'canceled' : True})
-
-#         mp_pool.close()
-#         mp_pool.join()
-
-#         return None
-
-#     for d_idx, dmax in enumerate(dmax_points):
-
-#         pts = [(alpha, dmax) for alpha in alpha_points]
-
-#         results = mp_pool.map(mp_get_evidence, pts)
-
-#         for res_idx, res in enumerate(results):
-#             all_posteriors[d_idx, res_idx] = res[0]
-
-#         if queue is not None:
-#             bift_status = {
-#                 'alpha'     : pts[-1][0],
-#                 'evidence'  : res[0],
-#                 'chi'       : res[1],          #Actually chi squared
-#                 'dmax'      : pts[-1][1],
-#                 'spoint'    : (d_idx+1)*(res_idx+1),
-#                 'tpoint'    : alpha_points.size*dmax_points.size,
-#                 }
-
-#             queue.put({'update' : bift_status})
-
-#         if abort_check.is_set():
-#             if queue is not None:
-#                 queue.put({'canceled' : True})
-
-#             mp_pool.close()
-#             mp_pool.join()
-
-#             return None
-
-#     mp_pool.close()
-#     mp_pool.join()
-
-#     if queue is not None:
-#         bift_status = {
-#             'alpha'     : pts[-1][0],
-#             'evidence'  : res[0],
-#             'chi'       : res[1],          #Actually chi squared
-#             'dmax'      : pts[-1][1],
-#             'spoint'    : alpha_points.size*dmax_points.size,
-#             'tpoint'    : alpha_points.size*dmax_points.size,
-#             'status'    : 'Running minimization',
-#             }
-
-#         queue.put({'update' : bift_status})
-
-#     min_idx = np.unravel_index(np.argmax(all_posteriors, axis=None), all_posteriors.shape)
-
-#     min_dmax = dmax_points[min_idx[0]]
-#     min_alpha = alpha_points[min_idx[1]]
-
-#     # Once a starting point is found, do an actual minimization to find the best alpha/dmax
-#     opt_res = scipy.optimize.minimize(getEvidenceOptimize, (min_alpha, min_dmax),
-#         (q, i, err, N), method='Powell')
-
-#     if abort_check.is_set():
-#         if queue is not None:
-#             queue.put({'canceled' : True})
-#         return None
-
-#     if opt_res.get('success'):
-#         alpha, dmax = opt_res.get('x')
-#         evidence, c, f, r = getEvidence((alpha, dmax), q, i, err, N)
-
-#         if queue is not None:
-#             bift_status = {
-#                 'alpha'     : alpha,
-#                 'evidence'  : evidence,
-#                 'chi'       : c,          #Actually chi squared
-#                 'dmax'      : dmax,
-#                 'spoint'    : alpha_points.size*dmax_points.size,
-#                 'tpoint'    : alpha_points.size*dmax_points.size,
-#                 'status'    : 'Calculating Monte Carlo errors',
-#                 }
-
-#             queue.put({'update' : bift_status})
-
-#         pr = f
-
-#         area = np.trapz(pr, r)
-#         area2 = np.trapz(np.array(pr)*np.array(r)**2, r)
-
-#         rg = np.sqrt(abs(area2/(2.*area)))
-#         i0 = area*4*np.pi
-
-#         fit = make_fit(q, r, pr)
-
-#         q_extrap = np.arange(0, q[1]-q[0], q[1])
-#         q_extrap = np.concatenate((q_extrap, q))
-
-#         fit_extrap = make_fit(q_extrap, r, pr)
-#         print('bift here 1')
-#         # Use a monte carlo method to estimate the errors in pr function, values found
-#         err_calc = calc_bift_errors((alpha, dmax), q, i, err, N, mc_runs,
-#             abort_check=abort_check)
-
-#         print('bift here 2')
-
-#         if abort_check.is_set():
-#             if queue is not None:
-#                 queue.put({'canceled' : True})
-#             return None
-
-#         r_err, _, pr_err, a_res, d_res, c_res, ev_res, rg_res, i0_res = err_calc
-
-#         # NOTE: Unlike Hansen, we don't return the average pr function from the montecarlo
-#         # error estimate, but rather the best pr from the optimal dmax/alpha found above
-#         # This is consistent with the old RAW behavior. In the future this could change.
-
-#         rg_sd = rg_res[1]
-#         i0_sd = i0_res[1]
-#         alpha_sd = a_res[1]
-#         dmax_sd = d_res[1]
-#         c_sd = c_res[1]
-#         ev_sd = ev_res[1]
-
-#         interp = scipy.interpolate.interp1d(r_err, pr_err, copy=False)
-#         err_interp = interp(r)
-
-#         results = {
-#             'dmax'          : dmax,         # Dmax
-#             'dmaxer'        : dmax_sd,      # Uncertainty in Dmax
-#             'rg'            : rg,           # Real space Rg
-#             'rger'          : rg_sd,        # Real space rg error
-#             'i0'            : i0,           # Real space I0
-#             'i0er'          : i0_sd,        # Real space I0 error
-#             'chisq'         : c,            # Actual chi squared value
-#             'chisq_er'      : c_sd,         # Uncertainty in chi squared
-#             'alpha'         : alpha,        # log(Alpha) used for the IFT
-#             'alpha_er'      : alpha_sd,     # Uncertainty in log(alpha)
-#             'evidence'      : evidence,     # Evidence of solution
-#             'evidence_er'   : ev_sd,        # Uncertainty in evidence of solution
-#             'algorithm'     : 'BIFT',       # Lets us know what algorithm was used to find the IFT
-#             'filename'      : os.path.splitext(filename)[0]+'.ift'
-#             }
-
-#         iftm = SASM.IFTM(pr, r, err_interp, i, q, err, fit, results, fit_extrap, q_extrap)
-
-#         print('bift here 3')
-#     else:
-#         if queue is not None:
-#             queue.put({'failed' : True})
-#         return None
-
-#     return iftm
-
 def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
     dmax_max, dmax_n, mc_runs, queue=None, abort_check=threading.Event()):
 
     # Start by finding the optimal dmax and alpha via minimization of evidence
+    if platform.system() == 'Darwin' and six.PY3:
+        single_proc = True
+    else:
+        single_proc = False
+
+    print(single_proc)
 
     alpha_min = np.log(alpha_min)
     alpha_max = np.log(alpha_max)
@@ -605,11 +328,20 @@ def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
 
     N = npts - 1
 
+    if not single_proc:
+        n_proc = multiprocessing.cpu_count()
+        mp_pool = multiprocessing.Pool(processes=n_proc)
+        mp_get_evidence = functools.partial(getEvidence, q=q, i=i, err=err, N=N)
+
     # Loop through a range of dmax and alpha to get a starting point for the minimization
 
     if abort_check.is_set():
         if queue is not None:
             queue.put({'canceled' : True})
+
+        if not single_proc:
+            mp_pool.close()
+            mp_pool.join()
 
         return None
 
@@ -617,7 +349,10 @@ def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
 
         pts = [(alpha, dmax) for alpha in alpha_points]
 
-        results = [getEvidence(params, q, i, err, N) for params in pts]
+        if not single_proc:
+            results = mp_pool.map(mp_get_evidence, pts)
+        else:
+            results = [getEvidence(params, q, i, err, N) for params in pts]
 
         for res_idx, res in enumerate(results):
             all_posteriors[d_idx, res_idx] = res[0]
@@ -638,7 +373,15 @@ def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
             if queue is not None:
                 queue.put({'canceled' : True})
 
+            if not single_proc:
+                mp_pool.close()
+                mp_pool.join()
+
             return None
+
+    if not single_proc:
+        mp_pool.close()
+        mp_pool.join()
 
     if queue is not None:
         bift_status = {
@@ -698,12 +441,10 @@ def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
         q_extrap = np.concatenate((q_extrap, q))
 
         fit_extrap = make_fit(q_extrap, r, pr)
-        print('bift here 1')
+
         # Use a monte carlo method to estimate the errors in pr function, values found
         err_calc = calc_bift_errors((alpha, dmax), q, i, err, N, mc_runs,
-            abort_check=abort_check)
-
-        print('bift here 2')
+            abort_check=abort_check, single_proc=single_proc)
 
         if abort_check.is_set():
             if queue is not None:
@@ -745,7 +486,6 @@ def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
 
         iftm = SASM.IFTM(pr, r, err_interp, i, q, err, fit, results, fit_extrap, q_extrap)
 
-        print('bift here 3')
     else:
         if queue is not None:
             queue.put({'failed' : True})
