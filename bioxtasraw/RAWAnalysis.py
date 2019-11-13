@@ -8688,7 +8688,7 @@ class BIFTControlPanel(wx.Panel):
         else:
             nmin, nmax = self.sasm.getQrange()
 
-        i = self.sasm.getI()
+        i = self.sasm.i
 
         while i[nmin] == 0 and nmin < nmax-1:
             nmin = nmin + 1
