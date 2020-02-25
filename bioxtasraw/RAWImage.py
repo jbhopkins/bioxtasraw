@@ -843,40 +843,42 @@ class ImagePanel(wx.Panel):
     def _movePatch(self, mouseX, mouseY):
         patch = self._selected_patch
 
-        if patch.get_facecolor() == 'yellow' or patch.get_facecolor() == (1.0, 1.0, 0.0, 0.5):
-            self.canvas.restore_region(self.background)
+        if patch is not None:
 
-            old_points = self._getMaskFromId(patch.id).getPoints()
+            if patch.get_facecolor() == 'yellow' or patch.get_facecolor() == (1.0, 1.0, 0.0, 0.5):
+                self.canvas.restore_region(self.background)
 
-            x = old_points[0][0]
-            y = old_points[0][1]
+                old_points = self._getMaskFromId(patch.id).getPoints()
 
-            dX = mouseX - old_points[0][0]
-            dY = mouseY - old_points[0][1]
+                x = old_points[0][0]
+                y = old_points[0][1]
 
-            if self._first_mouse_pos is None:        # Is reset when mouse button is released
-                self._first_mouse_pos = (dX, dY)
+                dX = mouseX - old_points[0][0]
+                dY = mouseY - old_points[0][1]
 
-            if isinstance(patch, matplotlib.patches.Circle):
-                patch.center = (x + dX - self._first_mouse_pos[0], y + dY - self._first_mouse_pos[1])
+                if self._first_mouse_pos is None:        # Is reset when mouse button is released
+                    self._first_mouse_pos = (dX, dY)
 
-            elif isinstance(patch, matplotlib.patches.Rectangle):
-                patch.set_x(x + dX - self._first_mouse_pos[0])
-                patch.set_y(y + dY - self._first_mouse_pos[1])
+                if isinstance(patch, matplotlib.patches.Circle):
+                    patch.center = (x + dX - self._first_mouse_pos[0], y + dY - self._first_mouse_pos[1])
 
-            elif isinstance(patch, matplotlib.patches.Polygon):
-                new_points = []
-                for each in old_points:
-                    new_points.append((each[0]+dX - self._first_mouse_pos[0], each[1] + dY - self._first_mouse_pos[1]))
+                elif isinstance(patch, matplotlib.patches.Rectangle):
+                    patch.set_x(x + dX - self._first_mouse_pos[0])
+                    patch.set_y(y + dY - self._first_mouse_pos[1])
 
-                new_points.append(new_points[0])
-                patch.set_xy(new_points)
+                elif isinstance(patch, matplotlib.patches.Polygon):
+                    new_points = []
+                    for each in old_points:
+                        new_points.append((each[0]+dX - self._first_mouse_pos[0], each[1] + dY - self._first_mouse_pos[1]))
 
-            masking_panel = wx.FindWindowByName('MaskingPanel')
-            masking_panel.mask_modified = True
+                    new_points.append(new_points[0])
+                    patch.set_xy(new_points)
 
-            self.fig.gca().draw_artist(patch)
-            self.canvas.blit(self.fig.gca().bbox)
+                masking_panel = wx.FindWindowByName('MaskingPanel')
+                masking_panel.mask_modified = True
+
+                self.fig.gca().draw_artist(patch)
+                self.canvas.blit(self.fig.gca().bbox)
 
 
     def _toggleMaskSelection(self):

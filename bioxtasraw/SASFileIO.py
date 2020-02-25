@@ -465,6 +465,76 @@ def parseCHESSF2CTSfile(filename):
 
     return counters
 
+def parseCHESSEIGER4MCountFile(filename):
+    ''' Loads information from the counter file at CHESS, id7a from
+    the image filename. EIGER .h5 files with 1-based frame numbers '''
+    dir, file = os.path.split(filename)
+    underscores = file.split('_')
+
+    countFile = underscores[0]
+
+    filenumber = int(underscores[-3])
+
+    try:
+        frame_number = int(underscores[-1].split('.')[0])
+    except Exception:
+        frame_number = 0
+
+    # REG: if user root file name contains underscores, include those
+    # note: must start at -3 to leave out "data" in image name
+
+    if len(underscores)>3:
+        for each in underscores[1:-3]:
+            countFile += '_' + each
+
+    countFilename = os.path.join(dir, countFile)
+
+    with open(countFilename,'rU') as f:
+        allLines = f.readlines()
+
+    line_num = 0
+    start_found = False
+    start_idx = None
+    label_idx = None
+    date_idx = None
+
+    for eachLine in allLines:
+        splitline = eachLine.split()
+
+        if len(splitline) > 1:
+            if splitline[0] == '#S' and splitline[1] == str(filenumber):
+                start_found = True
+                start_idx = line_num
+
+            if splitline[0] == '#D' and start_found:
+                date_idx = line_num
+
+            if splitline[0] == '#L' and start_found:
+                label_idx = line_num
+                break
+
+        line_num = line_num + 1
+
+    counters = {}
+    try:
+        if start_idx and label_idx:
+            labels = allLines[label_idx].split()
+            # REG: hdf5 indices start at 1 not 0 as was our Pilatus convention!
+            vals = allLines[label_idx+0+frame_number].split()
+
+        for idx in range(0,len(vals)):
+            counters[labels[idx+1]] = vals[idx]
+
+        if date_idx:
+            counters['date'] = allLines[date_idx][3:-1]
+
+    except:
+        print 'Error loading CHESS id7a counter file'
+
+    return counters
+
+
+
 def parseCHESSG1CountFile(filename):
     ''' Loads information from the counter file at CHESS, G1 from
     the image filename '''
@@ -601,9 +671,9 @@ def parseCHESSG1CountFileEiger(filename):
     ''' Loads information from the counter file at CHESS, G1 from
     the image filename '''
 
-    dir, file = os.path.split(filename)
+    dirname, file = os.path.split(filename)
 
-    dir = os.path.dirname(dir)
+    dirname = os.path.dirname(dirname)
     underscores = file.split('_')
 
     countFile = underscores[0]
@@ -620,7 +690,7 @@ def parseCHESSG1CountFileEiger(filename):
         for each in underscores[1:-3]:
             countFile += '_' + each
 
-    countFilename = os.path.join(dir, countFile)
+    countFilename = os.path.join(dirname, countFile)
 
     with open(countFilename,'rU') as f:
         allLines = f.readlines()
@@ -817,6 +887,29 @@ def parseBiocatFilename(filename):
 
     return (countFilename, frame_number)
 
+def parseCHESSEigerFilename(filename):
+    dir, file = os.path.split(filename)
+    underscores = file.split('_')
+
+    countFile = underscores[0]
+
+    filenumber = underscores[-3]
+
+    try:
+        frame_number = underscores[-1].split('.')[0]
+    except Exception:
+        frame_number = 0
+
+    # REG: if user root file name contains underscores, include those
+    # note: must start at -3 to leave out "data" in image name
+
+    if len(underscores)>3:
+        for each in underscores[1:-3]:
+            countFile += '_' + each
+
+    countFilename = os.path.join(dir, countFile)
+
+    return (countFilename, filenumber, frame_number)
 
 def parseBL19U2HeaderFile(filename):
     fname, ext = os.path.splitext(filename)
@@ -871,6 +964,7 @@ all_header_types = {'None'                  : None,
  #                     'CSV'                : parseCSVHeaderFile,
                     'F2, CHESS'             : parseCHESSF2CTSfile,
                     'G1, CHESS'             : parseCHESSG1CountFile,
+                    'CHESS EIGER 4M'        : parseCHESSEIGER4MCountFile,
                     'G1 WAXS, CHESS'        : parseCHESSG1CountFileWAXS,
                     'G1 Eiger, CHESS'       : parseCHESSG1CountFileEiger,
                     'I711, MaxLab'          : parseMAXLABI77HeaderFile,

@@ -1413,7 +1413,7 @@ def runDammif(fname, prefix, args, path):
         return None
 
 
-def runDamaver(flist, path):
+def runDamaver(flist, path, symmetry='P1'):
 
     raw_settings = wx.FindWindowByName('MainFrame').raw_settings
     atsasDir = raw_settings.get('ATSASDir')
@@ -1427,7 +1427,7 @@ def runDamaver(flist, path):
 
 
     if os.path.exists(damaverDir):
-        command = '"%s" --automatic' %(damaverDir)
+        command = '"%s" --symmetry=%s --automatic' %(damaverDir, symmetry)
 
         for item in flist:
             command = command + ' "%s"' %(item)
@@ -1482,7 +1482,7 @@ def runAmbimeter(fname, prefix, args, path):
         raise SASExceptions.NoATSASError('Cannot find ambimeter.')
         return None
 
-def runDamclust(flist, path):
+def runDamclust(flist, path, symmetry='P1'):
 
     raw_settings = wx.FindWindowByName('MainFrame').raw_settings
     atsasDir = raw_settings.get('ATSASDir')
@@ -1496,7 +1496,7 @@ def runDamclust(flist, path):
 
 
     if os.path.exists(damclustDir):
-        command = '"%s"' %(damclustDir)
+        command = '"%s --symmetry=%s"' %(damclustDir, symmetry)
 
         for item in flist:
             command = command + ' "%s"' %(item)

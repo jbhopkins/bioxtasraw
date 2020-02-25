@@ -5112,8 +5112,9 @@ class DammifRunPanel(wx.Panel):
 
             dam_filelist = [prefix+'_%s-1.pdb' %(str(i).zfill(2)) for i in range(1, nruns+1)]
 
+            symmetry = self.dammif_settings['sym']
 
-            damaver_proc = SASCalc.runDamaver(dam_filelist, path)
+            damaver_proc = SASCalc.runDamaver(dam_filelist, path, symmetry)
 
 
             damaver_q = queue.Queue()
@@ -5232,8 +5233,9 @@ class DammifRunPanel(wx.Panel):
 
             dam_filelist = [prefix+'_%s-1.pdb' %(str(i).zfill(2)) for i in range(1, nruns+1)]
 
+            symmetry = self.dammif_settings['sym']
 
-            damclust_proc = SASCalc.runDamclust(dam_filelist, path)
+            damclust_proc = SASCalc.runDamclust(dam_filelist, path, symmetry)
 
 
             damclust_q = queue.Queue()

@@ -1,6 +1,35 @@
 Changes
 ============
 
+1.6.4
+--------
+
+Release date: 2020-02-026
+
+Overview
+^^^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 1.6.4. This version
+adds in a new header type for the MacCHESS SAXS beamline Eiger 4M detector. There
+are also a few other minor bug fixes.
+
+All changes:
+^^^^^^^^^^^^^^^
+
+*   Fixed a bug where negative values for error would cause points to not be read
+    from .dat files.
+*   Fixed a bug where the BIFT window wouldn't open if the profile and n min or
+    n max for the q vector set to othe than 0 and the length of the q vector.
+*   Fixed a bug where looking for bind list keywords that don't exist in the
+    RAW settings would prevent a file from loading.
+*   Fixed a bug where damaver didn't run with symmetry even if dammif did.
+*   Added a name to the dock/menu bar icon.
+*   Fixed a bug with moving masks.
+*   Added CHESS EIGER 4M to counter file reader options.
+*   Fixed type-casting issues for max/min in polygonmasking that caused
+    errors on some older systems.
+
+
 1.6.3
 --------
 
