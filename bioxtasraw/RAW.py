@@ -10860,7 +10860,7 @@ class SeriesControlPanel(wx.Panel):
             if self.image_prefix != '' or self.filename != '':
                 for frame in modified_frame_list:
                     name = os.path.join(self.directory, '{}_data_{}'.format(self.image_prefix, frame))
-                    print name
+
                     if os.path.isfile(name+'.dat'):
                         file_list.append(name+'.dat')
                     elif os.path.isfile(name+'.h5'):
@@ -10877,9 +10877,6 @@ class SeriesControlPanel(wx.Panel):
         if bad_file_list:
             for frame in bad_file_list:
                 modified_frame_list.pop(modified_frame_list.index(frame))
-
-        print file_list
-        print modified_frame_list
 
         return file_list, modified_frame_list
 
