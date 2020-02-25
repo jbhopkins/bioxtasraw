@@ -322,7 +322,7 @@ def getBindListDataFromHeader(raw_settings, img_hdr, file_hdr, keys):
     result = []
 
     for each_key in keys:
-        if bind_list[each_key][1] is not None:
+        if each_key in bind_list and bind_list[each_key][1] is not None:
             data = bind_list[each_key][1]
             hdr_choice = data[1]
             key = data[0]

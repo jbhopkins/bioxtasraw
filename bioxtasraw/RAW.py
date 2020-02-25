@@ -12910,7 +12910,7 @@ class RawTaskbarIcon(TaskBarIcon):
         # Set the image
         self.tbIcon = RAWIcons.raw.GetIcon()
 
-        self.SetIcon(self.tbIcon, "Test")
+        self.SetIcon(self.tbIcon, "BioXTAS RAW")
 
         # bind some events
         self.Bind(wx.EVT_MENU, self.OnTaskBarClose, id=self.TBMENU_CLOSE)
