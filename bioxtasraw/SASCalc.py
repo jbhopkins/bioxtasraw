@@ -1453,8 +1453,15 @@ def runAmbimeter(fname, prefix, args, path):
 
     if os.path.exists(ambimeterDir):
         command = '"%s" --srg=%s --prefix="%s" --files=%s "%s"' %(ambimeterDir, args['sRg'], prefix, args['files'], fname)
+        my_env = os.environ.copy()
+        my_env["PATH"] = my_env["PATH"] + ':{}'.format(atsasDir)
+        if "ATSAS" in my_env:
+            my_env["ATSAS"] = '{}:{}'.format(os.path.split(atsasDir)[0], my_env["ATSAS"])
+        else:
+            my_env["ATSAS"] = os.path.split(atsasDir)[0]
+
         process=subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, cwd=path)
+            stderr=subprocess.PIPE, cwd=path, env=my_env, universal_newlines=True)
 
         start = time.time()
         while process.poll() is None:

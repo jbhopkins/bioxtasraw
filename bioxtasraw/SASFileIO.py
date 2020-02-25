@@ -529,7 +529,7 @@ def parseCHESSEIGER4MCountFile(filename):
             counters['date'] = allLines[date_idx][3:-1]
 
     except:
-        print 'Error loading CHESS id7a counter file'
+        print('Error loading CHESS id7a counter file')
 
     return counters
 
@@ -3942,18 +3942,28 @@ def findATSASDirectory():
             try:
                 versions = {}
                 for item in dirs:
-                    version = item.lstrip('ATSAS-')
+                    atsas_dir = os.path.split(item)[1]
+                    version = atsas_dir.lstrip('ATSAS-')
                     versions[version] = item
 
                 max_version = '0.0.0-0'
                 for version in versions:
                     if int(max_version.split('.')[0]) < int(version.split('.')[0]):
                         max_version = version
-                    elif int(max_version.split('.')[1]) < int(version.split('.')[1]):
+
+                    if (int(max_version.split('.')[0]) == int(version.split('.')[0])
+                        and int(max_version.split('.')[1]) < int(version.split('.')[1])):
                         max_version = version
-                    elif int(max_version.split('.')[2]) < int(version.split('.')[2]):
+
+                    if (int(max_version.split('.')[0]) == int(version.split('.')[0])
+                        and int(max_version.split('.')[1]) == int(version.split('.')[1])
+                        and int(max_version.split('.')[2].split('-')[0]) < int(version.split('.')[2].split('-')[0])):
                         max_version = version
-                    elif int(max_version.split('-')[1]) < int(version.split('-')[1]):
+
+                    if (int(max_version.split('.')[0]) == int(version.split('.')[0])
+                        and int(max_version.split('.')[1]) == int(version.split('.')[1])
+                        and int(max_version.split('.')[2].split('-')[0]) == int(version.split('.')[2].split('-')[0])
+                        and int(max_version.split('-')[1]) < int(version.split('-')[1])):
                         max_version = version
 
                 default_path = versions[max_version]
