@@ -47,10 +47,12 @@ def npnpoly(verts,points):
     xpi = verts[:,0]
     ypi = verts[:,1]
 
-    xmin = min(xpi)
-    xmax = max(xpi)
-    ymin = min(ypi)
-    ymax = max(ypi)
+    # REG: added the np's below to avoid typing errors when building from source on my MacOS system
+
+    xmin = np.min(xpi)
+    xmax = np.max(xpi)
+    ymin = np.min(ypi)
+    ymax = np.max(ypi)
     # shift
     xpj = xpi[np.arange(xpi.size)-1]
     ypj = ypi[np.arange(ypi.size)-1]
