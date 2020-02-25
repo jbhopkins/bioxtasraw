@@ -10543,7 +10543,8 @@ class SeriesControlPanel(wx.Panel):
 
         hdr_format = self._raw_settings.get('ImageHdrFormat')
 
-        if hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS' or hdr_format == 'BioCAT, APS':
+        if (hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS'
+            or hdr_format == 'BioCAT, APS' or hdr_format == 'CHESS EIGER 4M'):
             fname = self.parent._CreateFileDialog(wx.FD_OPEN)
 
             if fname == None:
@@ -10855,9 +10856,30 @@ class SeriesControlPanel(wx.Panel):
                         else:
                             bad_file_list.append(frame)
 
+        elif hdr_format == 'CHESS EIGER 4M':
+            if self.image_prefix != '' or self.filename != '':
+                for frame in modified_frame_list:
+                    name = os.path.join(self.directory, '{}_data_{}'.format(self.image_prefix, frame))
+                    print name
+                    if os.path.isfile(name+'.dat'):
+                        file_list.append(name+'.dat')
+                    elif os.path.isfile(name+'.h5'):
+                        file_list.append(name+'.h5')
+                    elif os.path.isfile(name+'.tiff'):
+                        file_list.append(name+'.tiff')
+                    else:
+                        files = glob.glob(name+'.*')
+                        if files and not files[0].endswith('.tmp'):
+                            file_list.append(files[0])
+                        else:
+                            bad_file_list.append(frame)
+
         if bad_file_list:
             for frame in bad_file_list:
                 modified_frame_list.pop(modified_frame_list.index(frame))
+
+        print file_list
+        print modified_frame_list
 
         return file_list, modified_frame_list
 
@@ -10866,35 +10888,33 @@ class SeriesControlPanel(wx.Panel):
 
         hdr_format = self._raw_settings.get('ImageHdrFormat')
 
-        if hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS':
+        if self.filename != '':
 
-            if self.filename != '':
+            if hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS':
 
                 count_filename, run_number, frame_number = SASFileIO.parseCHESSG1Filename(os.path.join(self.directory, self.filename))
 
-                filelist=glob.glob(count_filename + '_' + run_number + '_*')
-
-                self.frame_list = self._getFrameList(filelist)
+                filelist = glob.glob(count_filename + '_' + run_number + '_*')
 
                 self.image_prefix = '{}_{}'.format(os.path.basename(count_filename), run_number)
 
-                self.image_prefix_box.SetValue(self.image_prefix)
-                self.initial_frame_number = self.frame_list[0]
-                self.initial_frame_number_box.SetValue(self.initial_frame_number)
-                self.final_selected_frame = self.frame_list[-1]
-                self.final_frame_number_box.SetValue(self.final_selected_frame)
+            elif hdr_format == 'BioCAT, APS':
 
-                self._updateControlValues
+                count_filename, frame_number = SASFileIO.parseBiocatFilename(os.path.join(self.directory, self.filename))
 
-        elif hdr_format == 'BioCAT, APS':
+                filelist = glob.glob(count_filename + '_*')
 
-            count_filename, frame_number = SASFileIO.parseBiocatFilename(os.path.join(self.directory, self.filename))
+                junk, self.image_prefix = os.path.split(count_filename)
 
-            filelist=glob.glob(count_filename + '_*')
+            elif hdr_format == 'CHESS EIGER 4M':
+                count_filename, run_number, frame_number = SASFileIO.parseCHESSEigerFilename(os.path.join(self.directory, self.filename))
+
+                filelist = glob.glob(count_filename + '_' + run_number + '_*')
+
+                self.image_prefix = '{}_{}'.format(os.path.basename(count_filename), run_number)
 
             self.frame_list = self._getFrameList(filelist)
 
-            junk, self.image_prefix = os.path.split(count_filename)
             self.image_prefix_box.SetValue(self.image_prefix)
 
             self.initial_frame_number = self.frame_list[0]
@@ -10903,7 +10923,8 @@ class SeriesControlPanel(wx.Panel):
             self.final_selected_frame = self.frame_list[-1]
             self.final_frame_number_box.SetValue(self.final_selected_frame)
 
-            self._updateControlValues
+            self._updateControlValues()
+
 
     def _getFrameList(self, filelist):
 
@@ -10911,7 +10932,8 @@ class SeriesControlPanel(wx.Panel):
 
         hdr_format = self._raw_settings.get('ImageHdrFormat')
 
-        if hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS':
+        if (hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS'
+            or hdr_format == 'CHESS EIGER 4M'):
 
             for f in filelist:
                 frame=SASFileIO.parseCHESSG1Filename(f)[2]

@@ -672,9 +672,9 @@ def parseCHESSG1CountFileEiger(filename):
     ''' Loads information from the counter file at CHESS, G1 from
     the image filename '''
 
-    dir, file = os.path.split(filename)
+    dirname, file = os.path.split(filename)
 
-    dir = os.path.dirname(dir)
+    dirname = os.path.dirname(dirname)
     underscores = file.split('_')
 
     countFile = underscores[0]
@@ -691,7 +691,7 @@ def parseCHESSG1CountFileEiger(filename):
         for each in underscores[1:-3]:
             countFile += '_' + each
 
-    countFilename = os.path.join(dir, countFile)
+    countFilename = os.path.join(dirname, countFile)
 
     with open(countFilename,'rU') as f:
         allLines = f.readlines()
@@ -888,6 +888,29 @@ def parseBiocatFilename(filename):
 
     return (countFilename, frame_number)
 
+def parseCHESSEigerFilename(filename):
+    dir, file = os.path.split(filename)
+    underscores = file.split('_')
+
+    countFile = underscores[0]
+
+    filenumber = underscores[-3]
+
+    try:
+        frame_number = underscores[-1].split('.')[0]
+    except Exception:
+        frame_number = 0
+
+    # REG: if user root file name contains underscores, include those
+    # note: must start at -3 to leave out "data" in image name
+
+    if len(underscores)>3:
+        for each in underscores[1:-3]:
+            countFile += '_' + each
+
+    countFilename = os.path.join(dir, countFile)
+
+    return (countFilename, filenumber, frame_number)
 
 def parseBL19U2HeaderFile(filename):
     fname, ext = os.path.splitext(filename)
