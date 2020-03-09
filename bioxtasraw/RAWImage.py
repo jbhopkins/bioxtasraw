@@ -841,10 +841,10 @@ class ImagePanel(wx.Panel):
         self.plotStoredMasks()
         self._drawMaskGuideLine(points[1][0], points[1][1])
 
-    def _getMaskFromId(self, id):
+    def _getMaskFromId(self, mask_id):
 
         for each in self.plot_parameters['storedMasks']:
-            if each.getId() == id:
+            if each.getId() == mask_id:
                 return each
 
     def _movePatch(self, mouseX, mouseY):
@@ -1014,9 +1014,8 @@ class ImagePanel(wx.Panel):
         if a.collections:
             del(a.collections[:])
 
-        for each in stored_masks:
-            id = self.NewControlId()
-            each.setId(id)
+        for mask_id, each in enumerate(stored_masks):
+            each.setId(mask_id)
 
             if each.isNegativeMask() == True:
                 col = 'green'
@@ -1024,13 +1023,13 @@ class ImagePanel(wx.Panel):
                 col = 'red'
 
             if each.getType() == 'circle':
-                self._drawCircle(each.getPoints(), id, each, color=col)
+                self._drawCircle(each.getPoints(), mask_id, each, color=col)
 
             elif each.getType() == 'rectangle':
-                self._drawRectangle(each.getPoints(), id, each, color=col)
+                self._drawRectangle(each.getPoints(), mask_id, each, color=col)
 
             elif each.getType() == 'polygon':
-                self._drawPolygon(each.getPoints(), id, each, color=col)
+                self._drawPolygon(each.getPoints(), mask_id, each, color=col)
 
         if self.center_patch:
             a.add_patch(self.center_patch)
@@ -1118,7 +1117,7 @@ class ImagePanel(wx.Panel):
 
         #self.canvas.draw()
 
-    def _drawCircle(self, points, id, mask, color, animated = False):
+    def _drawCircle(self, points, mask_id, mask, color, animated = False):
 
         a = self.fig.gca()
 
@@ -1128,7 +1127,7 @@ class ImagePanel(wx.Panel):
             cir = matplotlib.patches.Circle( (points[0][0], points[0][1]), color = color, radius = radius_c, alpha = 0.5, picker = True, animated=True)
         else:
             cir = matplotlib.patches.Circle( (points[0][0], points[0][1]), color = color, radius = radius_c, alpha = 0.5, picker = True)
-        cir.id = id       # Creating a new parameter called id to distingush them!
+        cir.id = mask_id       # Creating a new parameter called id to distingush them!
         cir.mask = mask
         cir.selected = 0
         self._plotted_patches.append(cir)
@@ -1137,7 +1136,7 @@ class ImagePanel(wx.Panel):
 
         self._circle_guide_line = None
 
-    def _drawRectangle(self, points, id, mask, color, animated = False):
+    def _drawRectangle(self, points, mask_id, mask, color, animated = False):
         a = self.fig.gca()
 
         xStart = points[0][0]
@@ -1154,7 +1153,7 @@ class ImagePanel(wx.Panel):
             rect = matplotlib.patches.Rectangle( (xStart, yStart), width, height, color = color, alpha = 0.5, picker = True)
         rect.mask = mask
 
-        rect.id = id
+        rect.id = mask_id
         rect.selected = 0
         self._plotted_patches.append(rect)
 
@@ -1162,7 +1161,7 @@ class ImagePanel(wx.Panel):
 
         self._rectangle_line = None
 
-    def _drawPolygon(self, points, id, mask, color, animated = False):
+    def _drawPolygon(self, points, mask_id, mask, color, animated = False):
         a = self.fig.gca()
 
         if animated:
@@ -1172,7 +1171,7 @@ class ImagePanel(wx.Panel):
         poly.mask = mask
         a.add_patch(poly)
 
-        poly.id = id
+        poly.id = mask_id
         poly.selected = 0
         self._plotted_patches.append(poly)
 
