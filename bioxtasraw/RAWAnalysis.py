@@ -3678,24 +3678,10 @@ class GNOMControlPanel(wx.Panel):
         self.setFilename(os.path.basename(sasm.getParameter('filename')))
         self.alpha_ctrl.SetValue(str(self.gnom_settings['alpha']))
 
-        # dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-
-        # dmax = int(round(iftm.getParameter('dmax')))
-
-        # self.old_dmax = dmax
-
-        # if dmax != iftm.getParameter('dmax'):
-        #     self.calcGNOM(dmax)
-        # else:
-        #     self.out_list[str(dmax)] = iftm
-
-        # dmaxWindow.SetValue(dmax)
-
-        # self.updateGNOMInfo(self.out_list[str(dmax)])
-
-        # self.updatePlot()
-
         self.runDatgnom()
+
+        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
+        dmax = dmaxWindow.GetValue()
 
         wx.CallAfter(self.gnom_frame.showBusy, False)
 
@@ -3704,14 +3690,16 @@ class GNOMControlPanel(wx.Panel):
 
         dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
 
+        gnom_analysis = sasm.getParameter('analysis')['GNOM']
+
         try:
-            dmax = sasm.getParameter('analysis')['GNOM']['Dmax']
+            dmax = gnom_analysis['Dmax']
         except Exception:
             dmax = -1
 
         try:
-            qmin = sasm.getParameter('analysis')['GNOM']['qStart']
-            qmax = sasm.getParameter('analysis')['GNOM']['qEnd']
+            qmin = gnom_analysis['qStart']
+            qmax = gnom_analysis['qEnd']
 
             findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
             closest_qmin = findClosest(qmin, sasm.q)
@@ -3737,7 +3725,16 @@ class GNOMControlPanel(wx.Panel):
         self.old_nend = new_nmax
 
         self.setFilename(os.path.basename(sasm.getParameter('filename')))
-        self.alpha_ctrl.SetValue(str(self.gnom_settings['alpha']))
+
+        try:
+            alpha = gnom_analysis['Alpha']
+        except Exception:
+            alpha = self.gnom_settings['alpha']
+
+        if alpha == self.gnom_settings['alpha']:
+            self.alpha_ctrl.SetValue(str(self.gnom_settings['alpha']))
+        else:
+            self.alpha_ctrl.SetValue('0')
 
         if dmax != -1:
             self.old_dmax = dmax
@@ -3745,6 +3742,17 @@ class GNOMControlPanel(wx.Panel):
             self.calcGNOM(dmax)
 
             dmaxWindow.SetValue(dmax)
+
+            if alpha != 0 and alpha != self.gnom_settings['alpha']:
+
+                ift = self.out_list[str(dmax)]
+
+                if float(ift.getParameter('alpha')) == float(alpha):
+                    self.alpha_ctrl.SetValue('0')
+                else:
+                    self.alpha_ctrl.SetValue(str(alpha))
+                    self.updateGNOMSettings(update_plot=False)
+                    self.calcGNOM(dmax)
 
             self.updateGNOMInfo(self.out_list[str(dmax)])
 
@@ -3849,6 +3857,7 @@ class GNOMControlPanel(wx.Panel):
         gnom_results['Real_Space_I0'] = self.out_list[dmax].getParameter('i0')
         gnom_results['Real_Space_Rg_Err'] = self.out_list[dmax].getParameter('rger')
         gnom_results['Real_Space_I0_Err'] = self.out_list[dmax].getParameter('i0er')
+        gnom_results['Alpha'] = self.out_list[dmax].getParameter('alpha')
         gnom_results['qStart'] = self.sasm.q[start_idx]
         gnom_results['qEnd'] = self.sasm.q[end_idx]
         # gnom_results['GNOM_ChiSquared'] = self.out_list[dmax]['chisq']
@@ -4190,7 +4199,7 @@ class GNOMControlPanel(wx.Panel):
     def onSettingsChange(self, evt):
         self.updateGNOMSettings()
 
-    def updateGNOMSettings(self):
+    def updateGNOMSettings(self, update_plot=True):
         self.old_settings = copy.deepcopy(self.gnom_settings)
 
         self.gnom_settings = {  'expert'        : self.raw_settings.get('gnomExpertFile'),
@@ -4215,7 +4224,8 @@ class GNOMControlPanel(wx.Panel):
         if self.old_settings != self.gnom_settings:
             self.out_list = {}
 
-        self.updatePlot()
+        if update_plot:
+            self.updatePlot()
 
 
     def onChangeParams(self, evt):
