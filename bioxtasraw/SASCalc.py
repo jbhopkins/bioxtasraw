@@ -611,7 +611,10 @@ def getATSASVersion():
         dammifDir = os.path.join(atsasDir, 'dammif')
 
     if os.path.exists(dammifDir):
-        process=subprocess.Popen('"%s" -v' %(dammifDir), stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True) #gnom4 doesn't do a proper -v!!! So use something else
+        my_env = setATSASEnv(atsasDir)
+
+        process=subprocess.Popen('"%s" -v' %(dammifDir), stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, shell=True, env=my_env) #gnom4 doesn't do a proper -v!!! So use something else
         output, error = process.communicate()
 
         if not isinstance(output, str):
@@ -628,6 +631,13 @@ def getATSASVersion():
         version = version_match.group().split()[-1]
 
     return version
+
+def setATSASEnv(atsasDir):
+    my_env = os.environ.copy()
+    my_env["PATH"] = my_env["PATH"] + '{}{}'.format(os.pathsep, atsasDir) #Not ideal, what if there's another ATSAS path?
+    my_env["ATSAS"] = os.path.split(atsasDir.rstrip(os.sep))[0] #Can only have one thing in ATSAS env variable!
+
+    return my_env
 
 def runGnom(fname, outname, dmax, args, path, new_gnom = False):
     #This function runs GNOM from the atsas package. It can do so without writing a GNOM cfg file.
@@ -706,12 +716,14 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
 
     if os.path.exists(gnomDir):
 
+        my_env = setATSASEnv(atsasDir)
+
         if cfg:
             writeGnomCFG(fname, outname, dmax, args)
 
             proc = subprocess.Popen('"%s"' %(gnomDir), shell=True,
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT, cwd=path)
+                stderr=subprocess.STDOUT, cwd=path, env=my_env)
             proc.communicate('\r\n')
 
         else:
@@ -745,7 +757,8 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
                 cmd = cmd + ' "%s"' %(fname)
 
                 proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=path)
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=path,
+                    env=my_env)
 
                 output, error = proc.communicate()
 
@@ -756,7 +769,7 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
                 proc = subprocess.Popen('"%s"' %(gnomDir), shell=True,
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT, cwd=path, universal_newlines=True,
-                    bufsize=1)
+                    bufsize=1, env=my_env)
                 gnom_t = threading.Thread(target=enqueue_output, args=(proc.stdout, gnom_q))
                 gnom_t.daemon = True
                 gnom_t.start()
@@ -1019,6 +1032,8 @@ def runDatgnom(datname, sasm, path):
 
     if os.path.exists(datgnomDir):
 
+        my_env = setATSASEnv(atsasDir)
+
         outname = 't_datgnom.out'
         while os.path.isfile(outname):
             outname = 't'+outname
@@ -1039,10 +1054,12 @@ def runDatgnom(datname, sasm, path):
 
         if rg <= 0:
             process=subprocess.Popen('"%s" "%s" -o "%s"' %(datgnomDir, datname, outname),
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=path)
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=path,
+                env=my_env)
         else:
             process=subprocess.Popen('"%s" "%s" -o "%s" -r %f' %(datgnomDir, datname, outname, rg),
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=path)
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=path,
+                env=my_env)
 
         output, error = process.communicate()
 
@@ -1061,13 +1078,13 @@ def runDatgnom(datname, sasm, path):
                 if rg>10:
                     process=subprocess.Popen('"%s" "%s" -o "%s" -r %f' %(datgnomDir, datname, outname, rg),
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True,
-                        cwd=path)
+                        cwd=path, env=my_env)
 
                     output, error = process.communicate()
             else:
                 process=subprocess.Popen('"%s" "%s" -o "%s"' %(datgnomDir, datname, outname),
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True,
-                    cwd=path)
+                    cwd=path, env=my_env)
 
                 output, error = process.communicate()
 
@@ -1206,6 +1223,8 @@ def runDammif(fname, prefix, args, path):
 
 
     if os.path.exists(dammifDir):
+        my_env = setATSASEnv(atsasDir)
+
         if args['mode'].lower() == 'fast' or args['mode'].lower() == 'slow':
 
             command = '"%s" --quiet --mode=%s --prefix="%s" --unit=%s --symmetry=%s --anisometry=%s' %(dammifDir, args['mode'], prefix, args['unit'], args['sym'], args['anisometry'])
@@ -1219,9 +1238,9 @@ def runDammif(fname, prefix, args, path):
             command = command + ' "%s"' %(fname)
 
             if opsys == 'Windows':
-                process=subprocess.Popen(command, cwd=path)
+                process=subprocess.Popen(command, cwd=path, env=my_env)
             else:
-                process=subprocess.Popen(command, shell=True, cwd=path)
+                process=subprocess.Popen(command, shell=True, cwd=path, env=my_env)
 
             return process
 
@@ -1252,12 +1271,12 @@ def runDammif(fname, prefix, args, path):
             if opsys == 'Windows':
                 proc = subprocess.Popen('"%s"' %(dammifDir), stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=path,
-                    universal_newlines=True, bufsize=1)
+                    universal_newlines=True, bufsize=1, env=my_env)
             else:
                 proc = subprocess.Popen('"%s"' %(dammifDir), shell=True,
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT, cwd=path, universal_newlines=True,
-                    bufsize=1)
+                    bufsize=1, env=my_env)
             dammif_t = threading.Thread(target=enqueue_output, args=(proc.stdout, dammif_q))
             dammif_t.daemon = True
             dammif_t.start()
@@ -1427,16 +1446,19 @@ def runDamaver(flist, path, symmetry='P1'):
 
 
     if os.path.exists(damaverDir):
+        my_env = setATSASEnv(atsasDir)
+
         command = '"%s" --symmetry=%s --automatic' %(damaverDir, symmetry)
 
         for item in flist:
             command = command + ' "%s"' %(item)
 
         if opsys == 'Windows':
-            process=subprocess.Popen(command, stdout=subprocess.PIPE, cwd=path)
+            process=subprocess.Popen(command, stdout=subprocess.PIPE, cwd=path,
+                env=my_env)
         else:
             process=subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
-                cwd=path)
+                cwd=path, env=my_env)
 
         return process
 
@@ -1453,12 +1475,8 @@ def runAmbimeter(fname, prefix, args, path):
 
     if os.path.exists(ambimeterDir):
         command = '"%s" --srg=%s --prefix="%s" --files=%s "%s"' %(ambimeterDir, args['sRg'], prefix, args['files'], fname)
-        my_env = os.environ.copy()
-        my_env["PATH"] = my_env["PATH"] + ':{}'.format(atsasDir)
-        if "ATSAS" in my_env:
-            my_env["ATSAS"] = '{}:{}'.format(os.path.split(atsasDir)[0], my_env["ATSAS"])
-        else:
-            my_env["ATSAS"] = os.path.split(atsasDir)[0]
+
+        my_env = setATSASEnv(atsasDir)
 
         process=subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, cwd=path, env=my_env, universal_newlines=True)
@@ -1503,16 +1521,19 @@ def runDamclust(flist, path, symmetry='P1'):
 
 
     if os.path.exists(damclustDir):
-        command = '"%s --symmetry=%s"' %(damclustDir, symmetry)
+        my_env = setATSASEnv(atsasDir)
+
+        command = '"%s" --symmetry=%s' %(damclustDir, symmetry)
 
         for item in flist:
             command = command + ' "%s"' %(item)
 
         if opsys == 'Windows':
-            process=subprocess.Popen(command, stdout=subprocess.PIPE, cwd=path)
+            process=subprocess.Popen(command, stdout=subprocess.PIPE, cwd=path,
+                env=my_env)
         else:
             process=subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
-                cwd=path)
+                cwd=path, env=my_env)
 
         return process
 
@@ -1535,6 +1556,8 @@ def runDammin(fname, prefix, args, path):
 
 
     if os.path.exists(dammifDir):
+        my_env = setATSASEnv(atsasDir)
+
         if args['mode'].lower() == 'fast' or args['mode'].lower() == 'slow':
 
             if args['unit'] == 'Angstrom':
@@ -1555,7 +1578,8 @@ def runDammin(fname, prefix, args, path):
                 process=subprocess.Popen(command, cwd=path)
             else:
                 process=subprocess.Popen(command, shell=True,
-                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=path)
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=path,
+                    env=my_env)
 
             return process
 
@@ -1591,12 +1615,12 @@ def runDammin(fname, prefix, args, path):
                 proc = subprocess.Popen('%s' %(dammifDir),
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT, cwd=path, universal_newlines=True,
-                    bufsize=1)
+                    bufsize=1, env=my_env)
             else:
                 proc = subprocess.Popen('%s' %(dammifDir), shell=True,
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT, cwd=path, universal_newlines=True,
-                    bufsize=1)
+                    bufsize=1, env=my_env)
             dammif_t = threading.Thread(target=enqueue_output, args=(proc.stdout, dammif_q))
             dammif_t.daemon = True
             dammif_t.start()

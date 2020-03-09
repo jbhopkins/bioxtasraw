@@ -7008,22 +7008,7 @@ class DenssRunPanel(wx.Panel):
         self.threads_finished = []
         self.results = []
 
-
-        if not self.single_proc:
-            self.my_lock = self.my_manager.Lock()
-            self.abort_event = self.my_manager.Event()
-        else:
-            self.my_lock = threading.Lock()
-            self.abort_event = threading.Event()
-
-        self.abort_event.clear()
-
         comm_list = []
-
-        if not self.single_proc:
-            my_pool = multiprocessing.Pool(procs)
-        else:
-            my_pool = concurrent.futures.ThreadPoolExecutor(1)
 
         q = self.iftm.q_extrap
         I = self.iftm.i_extrap
@@ -7058,24 +7043,48 @@ class DenssRunPanel(wx.Panel):
                 comm_t.daemon = True
                 comm_t.start()
 
-                if not self.single_proc:
+                self.stop_events.append(stop_event)
+                self.threads_finished.append(False)
+
+        if not self.single_proc:
+            self.my_lock = self.my_manager.Lock()
+            self.abort_event = self.my_manager.Event()
+            my_pool = multiprocessing.Pool(procs)
+
+            self.abort_event.clear()
+
+            for key in self.denss_ids:
+                if key != 'average' and key != 'refine':
                     result = my_pool.apply_async(DENSS.runDenss, args=(q, I, sigq,
                         D, prefix, path, comm_list, self.my_lock, self.thread_nums,
                         self.wx_queue, self.abort_event, self.denss_settings))
-                else:
-                    result = my_pool.submit(DENSS.runDenss, q, I, sigq,
-                        D, prefix, path, comm_list, self.my_lock, self.thread_nums,
-                        self.wx_queue, self.abort_event, self.denss_settings)
 
-                self.stop_events.append(stop_event)
-                self.threads_finished.append(False)
-                self.results.append(result)
+                    self.results.append(result)
 
-        if not self.single_proc:
             my_pool.close()
+
+        else:
+            self.my_lock = threading.Lock()
+            self.abort_event = threading.Event()
+
+            self.abort_event.clear()
+
+            run_t = threading.Thread(target=self.manage_denss, args=(q, I, sigq,
+                D, prefix, path, comm_list))
+            run_t.daemon = True
+            run_t.start()
 
         self.denss_timer.Start(1000)
         self.msg_timer.Start(100)
+
+    def manage_denss(self, q, I, sigq, D, prefix, path, comm_list):
+        for key in self.denss_ids:
+            if key != 'average' and key != 'refine':
+                data = DENSS.runDenss(q, I, sigq, D, prefix, path,
+                    comm_list,  self.my_lock, self.thread_nums, self.wx_queue,
+                    self.abort_event, self.denss_settings)
+
+                self.results.append(data)
 
     def runAverage(self, prefix, path, nruns, procs):
 
@@ -7092,7 +7101,7 @@ class DenssRunPanel(wx.Panel):
         if not self.single_proc:
             denss_outputs = [result.get() for result in self.results]
         else:
-            denss_outputs = [result.result() for result in self.results]
+            denss_outputs = self.results
 
         if not self.single_proc:
             avg_q = self.my_manager.Queue()
@@ -7245,18 +7254,14 @@ class DenssRunPanel(wx.Panel):
             stop_event = threading.Event()
 
         stop_event.clear()
+        self.stop_events.append(stop_event)
 
         comm_t = threading.Thread(target=self.get_multi_output,
             args=(refine_q, refine_window, stop_event))
         comm_t.daemon = True
         comm_t.start()
 
-        comm_list = []
-
-        if not self.single_proc:
-            my_pool = multiprocessing.Pool(procs)
-        else:
-            my_pool = concurrent.futures.ThreadPoolExecutor(1)
+        comm_list = [[refine_q, stop_event],]
 
         if self.iftm.getParameter('algorithm') == 'GNOM':
             q = self.iftm.q_extrap
@@ -7273,35 +7278,28 @@ class DenssRunPanel(wx.Panel):
 
         D = self.iftm.getParameter('dmax')
 
-        comm_list.append([refine_q, stop_event])
-
         avg_model = self.average_results['model']
 
         if not self.single_proc:
+            my_pool = multiprocessing.Pool(procs)
+
             result = my_pool.apply_async(DENSS.runDenss, args=(q, I, sigq,
                 D, prefix, path, comm_list, self.my_lock, self.thread_nums,
                 self.wx_queue, self.abort_event, self.denss_settings, avg_model))
 
-        else:
-            result = my_pool.submit(DENSS.runDenss, q, I, sigq,
-                D, prefix, path, comm_list, self.my_lock, self.thread_nums,
-                self.wx_queue, self.abort_event, self.denss_settings, avg_model)
-
-        self.stop_events.append(stop_event)
-
-        if not self.single_proc:
             my_pool.close()
             my_pool.join()
+            self.refine_results = result.get()
+
         else:
-            self.refine_results = result.result()
+            self.refine_results = DENSS.runDenss(q, I, sigq, D, prefix, path, comm_list,
+                self.my_lock, self.thread_nums, self.wx_queue, self.abort_event,
+                self.denss_settings, avg_model)
 
         wx.CallAfter(self.status.AppendText, 'Finished Refinement\n')
 
         self.threads_finished[-1] = True
         stop_event.set()
-
-        if not self.single_proc:
-            self.refine_results = result.get()
 
         if self.abort_event.is_set():
             return
@@ -7334,7 +7332,7 @@ class DenssRunPanel(wx.Panel):
             if not self.single_proc:
                 denss_outputs = [result.get() for result in self.results]
             else:
-                denss_outputs = [result.result() for result in self.results]
+                denss_outputs = self.results
 
             qdata = denss_outputs[0][0]
             Idata = denss_outputs[0][1]
@@ -7422,9 +7420,6 @@ class DenssRunPanel(wx.Panel):
                     if not self.single_proc:
                         if self.results[i].ready():
                             self.results[i].get()
-                    else:
-                        if self.results[i].done():
-                            self.results[i].result()
             except Exception as e:
                 self.abort_event.set()
                 print(e)
@@ -7456,7 +7451,7 @@ class DenssRunPanel(wx.Panel):
         if not self.single_proc:
             denss_results = [result.get() for result in self.results]
         else:
-            denss_results = [result.result() for result in self.results]
+            denss_results = self.results
 
 
         #Get user settings on number of runs, save location, etc
@@ -7833,17 +7828,17 @@ class DenssResultsPanel(wx.Panel):
         self.modelSummary(settings, denss_results, denss_stats, average_results,
             refine_results)
 
-        # for i in range(1, nruns+1):
-        #     plot_panel = DenssPlotPanel(self.models, denss_results[i-1], self.iftm)
-        #     self.models.AddPage(plot_panel, str(i))
+        for i in range(1, nruns+1):
+            plot_panel = DenssPlotPanel(self.models, denss_results[i-1], self.iftm)
+            self.models.AddPage(plot_panel, str(i))
 
-        # if nruns > 1 and settings['average']:
-        #     plot_panel = DenssAveragePlotPanel(self.models, settings, average_results)
-        #     self.models.AddPage(plot_panel, 'Average')
+        if nruns > 1 and settings['average']:
+            plot_panel = DenssAveragePlotPanel(self.models, settings, average_results)
+            self.models.AddPage(plot_panel, 'Average')
 
-        #     if settings['refine']:
-        #         plot_panel = DenssPlotPanel(self.models, refine_results, self.iftm)
-        #         self.models.AddPage(plot_panel, 'Refine')
+            if settings['refine']:
+                plot_panel = DenssPlotPanel(self.models, refine_results, self.iftm)
+                self.models.AddPage(plot_panel, 'Refine')
 
     def modelSummary(self, settings, denss_results, denss_stats, average_results,
         refine_results):
@@ -8133,11 +8128,11 @@ class DenssPlotPanel(wx.Panel):
 
         self.figures = []
 
-        # sc_canvas = self.createScatteringPlot()
+        sc_canvas = self.createScatteringPlot()
         stats_canvas = self.createStatsPlot()
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        # sizer.Add(sc_canvas, 1, wx.GROW)
+        sizer.Add(sc_canvas, 1, wx.GROW)
         sizer.Add(stats_canvas, 1, wx.GROW)
 
         self.SetSizer(sizer)
@@ -8181,24 +8176,24 @@ class DenssPlotPanel(wx.Panel):
         ymin = np.min(np.hstack((I,Idata,Imean)))
         ymax = np.max(np.hstack((I,Idata,Imean)))
         ax0.set_ylim([0.5*ymin,1.5*ymax])
-        # ax0.legend(handles,labels, fontsize='small')
-        # ax0.legend()
-        # ax0.semilogy()
-        # ax0.set_ylabel('I(q)', fontsize='small')
-        # ax0.tick_params(labelbottom=False, labelsize='x-small')
+        ax0.legend(handles,labels, fontsize='small')
+        ax0.legend()
+        ax0.semilogy()
+        ax0.set_ylabel('I(q)', fontsize='small')
+        ax0.tick_params(labelbottom=False, labelsize='x-small')
 
-        # ax1 = fig.add_subplot(gs[1])
-        # ax1.plot(qdata, qdata*0, 'k--')
-        # ax1.plot(qdata, np.log10(Imean[qbinsc==qdata])-np.log10(Idata), 'ro-')
-        # ylim = ax1.get_ylim()
-        # ymax = np.max(np.abs(ylim))
-        # ax1.set_ylim([-ymax,ymax])
-        # ax1.yaxis.major.locator.set_params(nbins=5)
-        # xlim = ax0.get_xlim()
-        # ax1.set_xlim(xlim)
-        # ax1.set_ylabel('Residuals', fontsize='small')
-        # ax1.set_xlabel(r'q ($\mathrm{\AA^{-1}}$)', fontsize='small')
-        # ax1.tick_params(labelsize='x-small')
+        ax1 = fig.add_subplot(gs[1])
+        ax1.plot(qdata, qdata*0, 'k--')
+        ax1.plot(qdata, np.log10(Imean[qbinsc==qdata])-np.log10(Idata), 'ro-')
+        ylim = ax1.get_ylim()
+        ymax = np.max(np.abs(ylim))
+        ax1.set_ylim([-ymax,ymax])
+        ax1.yaxis.major.locator.set_params(nbins=5)
+        xlim = ax0.get_xlim()
+        ax1.set_xlim(xlim)
+        ax1.set_ylabel('Residuals', fontsize='small')
+        ax1.set_xlabel(r'q ($\mathrm{\AA^{-1}}$)', fontsize='small')
+        ax1.tick_params(labelsize='x-small')
 
 
         canvas.SetBackgroundColour('white')
@@ -8221,21 +8216,21 @@ class DenssPlotPanel(wx.Panel):
 
         ax0 = fig.add_subplot(311)
         ax0.plot(chi[chi>0])
-        # ax0.set_ylabel('$\chi^2$', fontsize='small')
-        # ax0.semilogy()
-        # ax0.tick_params(labelbottom=False, labelsize='x-small')
+        ax0.set_ylabel('$\chi^2$', fontsize='small')
+        ax0.semilogy()
+        ax0.tick_params(labelbottom=False, labelsize='x-small')
 
-        # ax1 = fig.add_subplot(312)
-        # ax1.plot(rg[rg>0])
-        # ax1.set_ylabel('Rg', fontsize='small')
-        # ax1.tick_params(labelbottom=False, labelsize='x-small')
+        ax1 = fig.add_subplot(312)
+        ax1.plot(rg[rg>0])
+        ax1.set_ylabel('Rg', fontsize='small')
+        ax1.tick_params(labelbottom=False, labelsize='x-small')
 
-        # ax2 = fig.add_subplot(313)
-        # ax2.plot(vol[vol>0])
-        # ax2.set_xlabel('Step', fontsize='small')
-        # ax2.set_ylabel('Support Volume ($\mathrm{\AA^{3}}$)', fontsize='small')
-        # ax2.semilogy()
-        # ax2.tick_params(labelsize='x-small')
+        ax2 = fig.add_subplot(313)
+        ax2.plot(vol[vol>0])
+        ax2.set_xlabel('Step', fontsize='small')
+        ax2.set_ylabel('Support Volume ($\mathrm{\AA^{3}}$)', fontsize='small')
+        ax2.semilogy()
+        ax2.tick_params(labelsize='x-small')
 
         canvas.SetBackgroundColour('white')
         fig.subplots_adjust(left = 0.2, bottom = 0.15, right = 0.95, top = 0.95)
