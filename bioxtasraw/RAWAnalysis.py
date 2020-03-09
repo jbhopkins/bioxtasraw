@@ -3120,8 +3120,8 @@ class GNOMFrame(wx.Frame):
         # dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
         # path = dirctrl_panel.getDirLabel()
 
-        standard_paths = wx.StandardPaths.Get()
-        self.tempdir = standard_paths.GetTempDir()
+        self.standard_paths = wx.StandardPaths.Get()
+        # self.tempdir = standard_paths.GetTempDir()
         # fname = tempfile.NamedTemporaryFile(dir=self.tempdir).name
 
         self.showBusy()
@@ -3134,94 +3134,8 @@ class GNOMFrame(wx.Frame):
         analysis_dict = sasm.getParameter('analysis')
         if 'GNOM' in analysis_dict:
             wx.CallAfter(self.controlPanel.initGnomValues, sasm)
-
         else:
-            savename = tempfile.NamedTemporaryFile(dir=self.tempdir).name
-
-            while os.path.isfile(savename):
-                savename = tempfile.NamedTemporaryFile(dir=self.tempdir).name
-
-            savename = os.path.split(savename)[-1] + '.dat'
-
-            save_sasm = SASM.SASM(copy.deepcopy(sasm.i), copy.deepcopy(sasm.q),
-                copy.deepcopy(sasm.err), copy.deepcopy(sasm.getAllParameters()))
-
-            save_sasm.setParameter('filename', savename)
-
-            save_sasm.setQrange(sasm.getQrange())
-
-            if self.main_frame.OnlineControl.isRunning() and self.tempdir == self.main_frame.OnlineControl.getTargetDir():
-                self.main_frame.controlTimer(False)
-                restart_timer = True
-            else:
-                restart_timer = False
-
-            try:
-                SASFileIO.saveMeasurement(save_sasm, self.tempdir, self._raw_settings, filetype = '.dat')
-            except SASExceptions.HeaderSaveError as e:
-                self._showSaveError('header')
-
-            try:
-                init_iftm = SASCalc.runDatgnom(savename, sasm, self.tempdir)
-            except SASExceptions.NoATSASError as e:
-                wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
-                self.cleanupGNOM(self.tempdir, savename = savename)
-                return
-
-            if init_iftm is None:
-                outname = tempfile.NamedTemporaryFile(dir=self.tempdir).name
-
-                while os.path.isfile(outname):
-                    outname = tempfile.NamedTemporaryFile(dir=self.tempdir).name
-
-                outname = os.path.split(outname)[-1] + '.out'
-
-                if 'guinier' in analysis_dict:
-                    rg = float(analysis_dict['guinier']['Rg'])
-                    dmax = int(rg*3.) #Mostly arbitrary guess at Dmax
-
-                else:
-                    dmax = 80 #Completely arbitrary default setting for Dmax
-
-                try:
-                    init_iftm = SASCalc.runGnom(savename, outname, dmax,
-                        self.controlPanel.gnom_settings, self.tempdir,
-                        new_gnom=self.new_gnom)
-                except (SASExceptions.NoATSASError, SASExceptions.GNOMError) as e:
-                    wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
-                    self.cleanupGNOM(self.tempdir, savename = savename, outname = outname)
-                    return
-
-                self.cleanupGNOM(self.tempdir, outname=outname)
-
-            self.cleanupGNOM(self.tempdir, savename=savename)
-
-            if restart_timer:
-                wx.CallAfter(self.main_frame.controlTimer, True)
-
-            wx.CallAfter(self.controlPanel.initDatgnomValues, sasm, init_iftm)
-
-        wx.CallAfter(self.showBusy, False)
-
-    def cleanupGNOM(self, path, savename = '', outname = ''):
-        savefile = os.path.join(path, savename)
-        outfile = os.path.join(path, outname)
-
-        if savename != '':
-            if os.path.isfile(savefile):
-                try:
-                    os.remove(savefile)
-                except Exception as e:
-                    print(e)
-                    print('GNOM cleanup failed to remove the .dat file!')
-
-        if outname != '':
-            if os.path.isfile(outfile):
-                try:
-                    os.remove(outfile)
-                except Exception as e:
-                    print(e)
-                    print('GNOM cleanup failed to remove the .out file!')
+            wx.CallAfter(self.controlPanel.initDatgnomValues, sasm)
 
     def getGnomVersion(self):
         #Checks if we have gnom4 or gnom5
@@ -3548,6 +3462,9 @@ class GNOMControlPanel(wx.Panel):
 
         self.plotted_iftm = None
 
+        self._createLayout()
+
+    def _createLayout(self):
         info_button = wx.Button(self, -1, 'How To Cite')
         info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
 
@@ -3565,13 +3482,13 @@ class GNOMControlPanel(wx.Panel):
 
 
         box2 = wx.StaticBox(self, -1, 'Control')
-        controlSizer = self.createControls()
+        controlSizer = self._createControls()
         boxSizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
         boxSizer2.Add(controlSizer, 0, wx.EXPAND)
 
 
         box = wx.StaticBox(self, -1, 'Parameters')
-        infoSizer = self.createInfoBox()
+        infoSizer = self._createInfoBox()
         boxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         boxSizer.Add(infoSizer, 0, wx.EXPAND)
 
@@ -3585,14 +3502,168 @@ class GNOMControlPanel(wx.Panel):
 
         self.SetSizer(bsizer)
 
+    def _createInfoBox(self):
 
-    def initDatgnomValues(self, sasm, iftm):
+        sizer = wx.FlexGridSizer(5, 3, 2, 5)
+
+        sizer.Add((0,0))
+
+        rglabel = wx.StaticText(self, -1, 'Rg (A)')
+        i0label = wx.StaticText(self, -1, 'I0')
+
+        sizer.Add(rglabel, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        sizer.Add(i0label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+
+        guinierlabel = wx.StaticText(self, -1, 'Guinier :')
+        self.guinierRg = wx.TextCtrl(self, self.infodata['guinierRg'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+        self.guinierI0 = wx.TextCtrl(self, self.infodata['guinierI0'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+
+        sizer.Add(guinierlabel, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.guinierRg, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.guinierI0, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        guinierlabel = wx.StaticText(self, -1, 'Guinier Err. :')
+        self.guinierRg = wx.TextCtrl(self, self.infodata['guinierRg_err'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+        self.guinierI0 = wx.TextCtrl(self, self.infodata['guinierI0_err'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+
+        sizer.Add(guinierlabel, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.guinierRg, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.guinierI0, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        gnomlabel = wx.StaticText(self, -1, 'P(r) :')
+        self.gnomRg = wx.TextCtrl(self, self.infodata['gnomRg'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+        self.gnomI0 = wx.TextCtrl(self, self.infodata['gnomI0'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+
+        sizer.Add(gnomlabel, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.gnomRg, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.gnomI0, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        gnomlabel = wx.StaticText(self, -1, 'P(r) Err. :')
+        self.gnomRg = wx.TextCtrl(self, self.infodata['gnomRg_err'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+        self.gnomI0 = wx.TextCtrl(self, self.infodata['gnomI0_err'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+
+        sizer.Add(gnomlabel, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.gnomRg, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.gnomI0, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        self.alpha = wx.TextCtrl(self, self.infodata['alpha'][1], '', size=(80,-1), style=wx.TE_READONLY)
+
+        teLabel = wx.StaticText(self, -1, self.infodata['TE'][0])
+        self.totalEstimate = wx.TextCtrl(self, self.infodata['TE'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+
+        chisqLabel = wx.StaticText(self, -1, self.infodata['chisq'][0])
+        self.chisq = wx.TextCtrl(self, self.infodata['chisq'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+
+        qualityLabel = wx.StaticText(self, -1, self.infodata['gnomQuality'][0])
+        self.quality = wx.TextCtrl(self, self.infodata['gnomQuality'][1], '', style = wx.TE_READONLY)
+
+        res_sizer2 = wx.FlexGridSizer(rows=4, cols=2, vgap=3, hgap=3)
+        res_sizer2.Add(teLabel)
+        res_sizer2.Add(self.totalEstimate)
+        res_sizer2.Add(chisqLabel)
+        res_sizer2.Add(self.chisq)
+        res_sizer2.Add(qualityLabel)
+        res_sizer2.Add(self.quality, flag=wx.EXPAND)
+        res_sizer2.Add(wx.StaticText(self, label=self.infodata['alpha'][0]))
+        res_sizer2.Add(self.alpha)
+        res_sizer2.AddGrowableCol(1)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(sizer,0,wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 5)
+        top_sizer.Add(res_sizer2, flag=wx.BOTTOM|wx.EXPAND, border=5)
+
+        return top_sizer
+
+    def _createControls(self):
+
+        sizer = wx.FlexGridSizer(rows=2, cols=4, hgap=0, vgap=2)
+        sizer.AddGrowableCol(0)
+        sizer.AddGrowableCol(1)
+        sizer.AddGrowableCol(2)
+        sizer.AddGrowableCol(3)
+
+        sizer.Add(wx.StaticText(self,-1,'q_min'),1, wx.LEFT, 3)
+        sizer.Add(wx.StaticText(self,-1,'n_min'),1)
+        sizer.Add(wx.StaticText(self,-1,'q_max'),1)
+        sizer.Add(wx.StaticText(self,-1,'n_max'),1)
+
+        self.startSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qstart'], size = (60,-1), min =0)
+        self.endSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1), min = 0)
+
+        self.startSpin.SetValue(0)
+        self.endSpin.SetValue(0)
+
+        self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
+        self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
+
+        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (55, 22), style = wx.TE_PROCESS_ENTER)
+        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (55, 22), style = wx.TE_PROCESS_ENTER)
+
+        self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
+        self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
+
+        sizer.Add(self.qstartTxt, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 3)
+        sizer.Add(self.startSpin, 0, wx.EXPAND | wx.RIGHT, 3)
+        sizer.Add(self.qendTxt, 0, wx.EXPAND | wx.RIGHT, 3)
+        sizer.Add(self.endSpin, 0, wx.EXPAND | wx.RIGHT, 3)
+
+
+        ctrl2_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.dmaxSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['dmax'], size = (60,-1), min = 1)
+        self.dmaxSpin.SetValue(0)
+        self.dmaxSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
+        self.dmaxSpin.Bind(wx.EVT_TEXT, self.onDmaxText)
+
+        self.alpha_ctrl = wx.TextCtrl(self, self.staticTxtIDs['alpha'], size=(40,-1), style=wx.TE_PROCESS_ENTER)
+        self.alpha_ctrl.Bind(wx.EVT_TEXT_ENTER, self.onAlpha)
+
+        ctrl2_sizer.Add(wx.StaticText(self, -1, 'Dmax: '), 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 3)
+        ctrl2_sizer.Add(self.dmaxSpin, 0, wx.EXPAND | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
+        ctrl2_sizer.Add(wx.StaticText(self, label='Alpha (0=auto):'), border=3,
+            flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        ctrl2_sizer.Add(self.alpha_ctrl, border=3, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
+
+        rmax_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        rmax_text = wx.StaticText(self, -1, 'Force to 0 at Dmax: ')
+        rmax_choice = wx.Choice(self, self.otherctrlIDs['force_dmax'], choices = ['Y', 'N'])
+        rmax_choice.SetStringSelection(self.gnom_settings['rmax_zero'])
+        rmax_choice.Bind(wx.EVT_CHOICE, self.onSettingsChange)
+        rmax_sizer.Add(rmax_text, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 3)
+        rmax_sizer.Add(rmax_choice, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
+
+
+        advancedParams = wx.Button(self, -1, 'Change Advanced Parameters')
+        advancedParams.Bind(wx.EVT_BUTTON, self.onChangeParams)
+
+        datgnom = wx.Button(self, -1, 'DATGNOM')
+        datgnom.Bind(wx.EVT_BUTTON, self.onDatgnomButton)
+
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(sizer, 0, wx.EXPAND)
+        top_sizer.Add(ctrl2_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL , 5)
+        top_sizer.Add(rmax_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 10)
+        top_sizer.Add(advancedParams, 0, wx.CENTER | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 10)
+        top_sizer.Add(datgnom, 0, wx.CENTER | wx.ALIGN_CENTER_VERTICAL)
+
+        return top_sizer
+
+
+    def initDatgnomValues(self, sasm):
         self.setGuinierInfo(sasm)
+
+        if 'guinier' in sasm.getParameter('analysis'):
+            guinier = sasm.getParameter('analysis')['guinier']
+
+            try:
+                nmin = guinier['nStart']
+                nmax = sasm.getQrange()[1]
+            except Exception:
+                nmin, nmax = sasm.getQrange()
 
         self.startSpin.SetRange((0, len(sasm.q)-1))
         self.endSpin.SetRange((0, len(sasm.q)-1))
-
-        nmin, nmax = sasm.getQrange()
 
         self.endSpin.SetValue(nmax-1)
         self.startSpin.SetValue(nmin)
@@ -3604,41 +3675,53 @@ class GNOMControlPanel(wx.Panel):
         self.old_nstart = nmin
         self.old_nend = nmax-1
 
-        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-
-        dmax = int(round(iftm.getParameter('dmax')))
-
-        self.old_dmax = dmax
-
-        if dmax != iftm.getParameter('dmax'):
-            self.calcGNOM(dmax)
-        else:
-            self.out_list[str(dmax)] = iftm
-
-        dmaxWindow.SetValue(dmax)
-
-        self.updateGNOMInfo(self.out_list[str(dmax)])
-
         self.setFilename(os.path.basename(sasm.getParameter('filename')))
         self.alpha_ctrl.SetValue(str(self.gnom_settings['alpha']))
 
-        self.updatePlot()
+        # dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
+
+        # dmax = int(round(iftm.getParameter('dmax')))
+
+        # self.old_dmax = dmax
+
+        # if dmax != iftm.getParameter('dmax'):
+        #     self.calcGNOM(dmax)
+        # else:
+        #     self.out_list[str(dmax)] = iftm
+
+        # dmaxWindow.SetValue(dmax)
+
+        # self.updateGNOMInfo(self.out_list[str(dmax)])
+
+        # self.updatePlot()
+
+        self.runDatgnom()
+
+        wx.CallAfter(self.gnom_frame.showBusy, False)
 
     def initGnomValues(self, sasm):
         self.setGuinierInfo(sasm)
 
         dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
 
-        dmax = sasm.getParameter('analysis')['GNOM']['Dmax']
-        qmin = sasm.getParameter('analysis')['GNOM']['qStart']
-        qmax = sasm.getParameter('analysis')['GNOM']['qEnd']
+        try:
+            dmax = sasm.getParameter('analysis')['GNOM']['Dmax']
+        except Exception:
+            dmax = -1
 
-        findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
-        closest_qmin = findClosest(qmin, sasm.q)
-        closest_qmax = findClosest(qmax, sasm.q)
+        try:
+            qmin = sasm.getParameter('analysis')['GNOM']['qStart']
+            qmax = sasm.getParameter('analysis')['GNOM']['qEnd']
 
-        new_nmin = np.where(sasm.q == closest_qmin)[0][0]
-        new_nmax = np.where(sasm.q == closest_qmax)[0][0]
+            findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
+            closest_qmin = findClosest(qmin, sasm.q)
+            closest_qmax = findClosest(qmax, sasm.q)
+
+            new_nmin = np.where(sasm.q == closest_qmin)[0][0]
+            new_nmax = np.where(sasm.q == closest_qmax)[0][0]
+
+        except Exception:
+            new_nmin, new_nmax = sasm.getQrange()
 
         self.startSpin.SetRange((0, len(sasm.q)-1))
         self.endSpin.SetRange((0, len(sasm.q)-1))
@@ -3652,18 +3735,25 @@ class GNOMControlPanel(wx.Panel):
 
         self.old_nstart = new_nmin
         self.old_nend = new_nmax
-        self.old_dmax = dmax
-
-        self.calcGNOM(dmax)
-
-        dmaxWindow.SetValue(dmax)
-
-        self.updateGNOMInfo(self.out_list[str(dmax)])
 
         self.setFilename(os.path.basename(sasm.getParameter('filename')))
         self.alpha_ctrl.SetValue(str(self.gnom_settings['alpha']))
 
-        self.updatePlot()
+        if dmax != -1:
+            self.old_dmax = dmax
+
+            self.calcGNOM(dmax)
+
+            dmaxWindow.SetValue(dmax)
+
+            self.updateGNOMInfo(self.out_list[str(dmax)])
+
+            self.updatePlot()
+
+        else:
+            self.runDatgnom()
+
+        wx.CallAfter(self.gnom_frame.showBusy, False)
 
     def setGuinierInfo(self, sasm):
         guinierRgWindow = wx.FindWindowById(self.infodata['guinierRg'][1], self)
@@ -3796,209 +3886,7 @@ class GNOMControlPanel(wx.Panel):
         wx.MessageBox(str(msg), "How to cite GNOM", style = wx.ICON_INFORMATION | wx.OK)
 
     def onDatgnomButton(self, evt):
-        top = self.gnom_frame
-
-        savename = tempfile.NamedTemporaryFile(dir=top.tempdir).name
-
-        while os.path.isfile(savename):
-            savename = tempfile.NamedTemporaryFile(dir=top.tempdir).name
-
-        savename = os.path.split(savename)[-1] + '.dat'
-
-        save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q), copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
-
-        save_sasm.setParameter('filename', savename)
-
-        save_sasm.setQrange(self.sasm.getQrange())
-
-        if top.main_frame.OnlineControl.isRunning() and top.tempdir == top.main_frame.OnlineControl.getTargetDir():
-            top.main_frame.controlTimer(False)
-            restart_timer = True
-        else:
-            restart_timer = False
-
-        try:
-            SASFileIO.saveMeasurement(save_sasm, top.tempdir, self.raw_settings, filetype = '.dat')
-        except SASExceptions.HeaderSaveError as e:
-            self._showSaveError('header')
-
-        try:
-            datgnom = SASCalc.runDatgnom(savename, self.sasm, top.tempdir)
-        except SASExceptions.NoATSASError as e:
-            wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
-            top.cleanupGNOM(top.tempdir, savename = savename)
-
-            self.SetFocusIgnoringChildren()
-            # top.OnClose()
-            return
-
-        top.cleanupGNOM(top.tempdir, savename = savename)
-
-        if restart_timer:
-            wx.CallAfter(top.main_frame.controlTimer, True)
-
-        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-
-        dmax = int(round(datgnom.getParameter('dmax')))
-
-        if dmax != datgnom.getParameter('dmax') and str(dmax) not in self.out_list:
-            self.calcGNOM(dmax)
-        elif dmax == datgnom.getParameter('dmax') and str(dmax) not in self.out_list:
-            self.out_list[str(dmax)] = datgnom
-
-        dmaxWindow.SetValue(dmax)
-
-        self.updateGNOMInfo(self.out_list[str(dmax)])
-
-        self.updatePlot()
-
-    def createInfoBox(self):
-
-        sizer = wx.FlexGridSizer(5, 3, 2, 5)
-
-        sizer.Add((0,0))
-
-        rglabel = wx.StaticText(self, -1, 'Rg (A)')
-        i0label = wx.StaticText(self, -1, 'I0')
-
-        sizer.Add(rglabel, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
-        sizer.Add(i0label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
-
-        guinierlabel = wx.StaticText(self, -1, 'Guinier :')
-        self.guinierRg = wx.TextCtrl(self, self.infodata['guinierRg'][1], '0', size = (80,-1), style = wx.TE_READONLY)
-        self.guinierI0 = wx.TextCtrl(self, self.infodata['guinierI0'][1], '0', size = (80,-1), style = wx.TE_READONLY)
-
-        sizer.Add(guinierlabel, 0, wx.ALIGN_CENTER_VERTICAL)
-        sizer.Add(self.guinierRg, 0, wx.ALIGN_CENTER_VERTICAL)
-        sizer.Add(self.guinierI0, 0, wx.ALIGN_CENTER_VERTICAL)
-
-        guinierlabel = wx.StaticText(self, -1, 'Guinier Err. :')
-        self.guinierRg = wx.TextCtrl(self, self.infodata['guinierRg_err'][1], '0', size = (80,-1), style = wx.TE_READONLY)
-        self.guinierI0 = wx.TextCtrl(self, self.infodata['guinierI0_err'][1], '0', size = (80,-1), style = wx.TE_READONLY)
-
-        sizer.Add(guinierlabel, 0, wx.ALIGN_CENTER_VERTICAL)
-        sizer.Add(self.guinierRg, 0, wx.ALIGN_CENTER_VERTICAL)
-        sizer.Add(self.guinierI0, 0, wx.ALIGN_CENTER_VERTICAL)
-
-        gnomlabel = wx.StaticText(self, -1, 'P(r) :')
-        self.gnomRg = wx.TextCtrl(self, self.infodata['gnomRg'][1], '0', size = (80,-1), style = wx.TE_READONLY)
-        self.gnomI0 = wx.TextCtrl(self, self.infodata['gnomI0'][1], '0', size = (80,-1), style = wx.TE_READONLY)
-
-        sizer.Add(gnomlabel, 0, wx.ALIGN_CENTER_VERTICAL)
-        sizer.Add(self.gnomRg, 0, wx.ALIGN_CENTER_VERTICAL)
-        sizer.Add(self.gnomI0, 0, wx.ALIGN_CENTER_VERTICAL)
-
-        gnomlabel = wx.StaticText(self, -1, 'P(r) Err. :')
-        self.gnomRg = wx.TextCtrl(self, self.infodata['gnomRg_err'][1], '0', size = (80,-1), style = wx.TE_READONLY)
-        self.gnomI0 = wx.TextCtrl(self, self.infodata['gnomI0_err'][1], '0', size = (80,-1), style = wx.TE_READONLY)
-
-        sizer.Add(gnomlabel, 0, wx.ALIGN_CENTER_VERTICAL)
-        sizer.Add(self.gnomRg, 0, wx.ALIGN_CENTER_VERTICAL)
-        sizer.Add(self.gnomI0, 0, wx.ALIGN_CENTER_VERTICAL)
-
-        self.alpha = wx.TextCtrl(self, self.infodata['alpha'][1], '', size=(80,-1), style=wx.TE_READONLY)
-
-        teLabel = wx.StaticText(self, -1, self.infodata['TE'][0])
-        self.totalEstimate = wx.TextCtrl(self, self.infodata['TE'][1], '0', size = (80,-1), style = wx.TE_READONLY)
-
-        chisqLabel = wx.StaticText(self, -1, self.infodata['chisq'][0])
-        self.chisq = wx.TextCtrl(self, self.infodata['chisq'][1], '0', size = (80,-1), style = wx.TE_READONLY)
-
-        qualityLabel = wx.StaticText(self, -1, self.infodata['gnomQuality'][0])
-        self.quality = wx.TextCtrl(self, self.infodata['gnomQuality'][1], '', style = wx.TE_READONLY)
-
-        res_sizer2 = wx.FlexGridSizer(rows=4, cols=2, vgap=3, hgap=3)
-        res_sizer2.Add(teLabel)
-        res_sizer2.Add(self.totalEstimate)
-        res_sizer2.Add(chisqLabel)
-        res_sizer2.Add(self.chisq)
-        res_sizer2.Add(qualityLabel)
-        res_sizer2.Add(self.quality, flag=wx.EXPAND)
-        res_sizer2.Add(wx.StaticText(self, label=self.infodata['alpha'][0]))
-        res_sizer2.Add(self.alpha)
-        res_sizer2.AddGrowableCol(1)
-
-        top_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(sizer,0,wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 5)
-        top_sizer.Add(res_sizer2, flag=wx.BOTTOM|wx.EXPAND, border=5)
-
-        return top_sizer
-
-    def createControls(self):
-
-        sizer = wx.FlexGridSizer(rows=2, cols=4, hgap=0, vgap=2)
-        sizer.AddGrowableCol(0)
-        sizer.AddGrowableCol(1)
-        sizer.AddGrowableCol(2)
-        sizer.AddGrowableCol(3)
-
-        sizer.Add(wx.StaticText(self,-1,'q_min'),1, wx.LEFT, 3)
-        sizer.Add(wx.StaticText(self,-1,'n_min'),1)
-        sizer.Add(wx.StaticText(self,-1,'q_max'),1)
-        sizer.Add(wx.StaticText(self,-1,'n_max'),1)
-
-        self.startSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qstart'], size = (60,-1), min =0)
-        self.endSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1), min = 0)
-
-        self.startSpin.SetValue(0)
-        self.endSpin.SetValue(0)
-
-        self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
-        self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
-
-        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (55, 22), style = wx.TE_PROCESS_ENTER)
-        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (55, 22), style = wx.TE_PROCESS_ENTER)
-
-        self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
-        self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
-
-        sizer.Add(self.qstartTxt, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 3)
-        sizer.Add(self.startSpin, 0, wx.EXPAND | wx.RIGHT, 3)
-        sizer.Add(self.qendTxt, 0, wx.EXPAND | wx.RIGHT, 3)
-        sizer.Add(self.endSpin, 0, wx.EXPAND | wx.RIGHT, 3)
-
-
-        ctrl2_sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        self.dmaxSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['dmax'], size = (60,-1), min = 1)
-        self.dmaxSpin.SetValue(0)
-        self.dmaxSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
-        self.dmaxSpin.Bind(wx.EVT_TEXT, self.onDmaxText)
-
-        self.alpha_ctrl = wx.TextCtrl(self, self.staticTxtIDs['alpha'], size=(40,-1), style=wx.TE_PROCESS_ENTER)
-        self.alpha_ctrl.Bind(wx.EVT_TEXT_ENTER, self.onAlpha)
-
-        ctrl2_sizer.Add(wx.StaticText(self, -1, 'Dmax: '), 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 3)
-        ctrl2_sizer.Add(self.dmaxSpin, 0, wx.EXPAND | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
-        ctrl2_sizer.Add(wx.StaticText(self, label='Alpha (0=auto):'), border=3,
-            flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
-        ctrl2_sizer.Add(self.alpha_ctrl, border=3, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
-
-        rmax_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        rmax_text = wx.StaticText(self, -1, 'Force to 0 at Dmax: ')
-        rmax_choice = wx.Choice(self, self.otherctrlIDs['force_dmax'], choices = ['Y', 'N'])
-        rmax_choice.SetStringSelection(self.gnom_settings['rmax_zero'])
-        rmax_choice.Bind(wx.EVT_CHOICE, self.onSettingsChange)
-        rmax_sizer.Add(rmax_text, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 3)
-        rmax_sizer.Add(rmax_choice, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
-
-
-        advancedParams = wx.Button(self, -1, 'Change Advanced Parameters')
-        advancedParams.Bind(wx.EVT_BUTTON, self.onChangeParams)
-
-        datgnom = wx.Button(self, -1, 'DATGNOM')
-        datgnom.Bind(wx.EVT_BUTTON, self.onDatgnomButton)
-
-
-        top_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(sizer, 0, wx.EXPAND)
-        top_sizer.Add(ctrl2_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL , 5)
-        top_sizer.Add(rmax_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 10)
-        top_sizer.Add(advancedParams, 0, wx.CENTER | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 10)
-        top_sizer.Add(datgnom, 0, wx.CENTER | wx.ALIGN_CENTER_VERTICAL)
-
-
-        return top_sizer
+        self.runDatgnom()
 
     def onDmaxText(self,evt):
         self.dmaxSpin.Unbind(wx.EVT_TEXT) #Avoid infinite recursion
@@ -4180,6 +4068,66 @@ class GNOMControlPanel(wx.Panel):
         else:
             plotpanel.clearDataPlot()
 
+    def runDatgnom(self):
+        tempdir = self.gnom_frame.standard_paths.GetTempDir()
+        savename = tempfile.NamedTemporaryFile(dir=tempdir).name
+
+        while os.path.isfile(savename):
+            savename = tempfile.NamedTemporaryFile(dir=tempdir).name
+
+        savename = os.path.split(savename)[-1] + '.dat'
+
+        save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q),
+            copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
+
+        save_sasm.setParameter('filename', savename)
+
+        save_sasm.setQrange(self.sasm.getQrange())
+
+        if (self.gnom_frame.main_frame.OnlineControl.isRunning() and
+            tempdir == self.gnom_frame.main_frame.OnlineControl.getTargetDir()):
+            self.gnom_frame.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
+
+        try:
+            SASFileIO.saveMeasurement(save_sasm, tempdir, self.raw_settings,
+                filetype='.dat')
+        except SASExceptions.HeaderSaveError as e:
+            self._showSaveError('header')
+
+        try:
+            datgnom = SASCalc.runDatgnom(savename, self.sasm, tempdir)
+        except SASExceptions.NoATSASError as e:
+            wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM',
+                style=wx.ICON_ERROR|wx.OK)
+            self.cleanupGNOM(tempdir, savename = savename)
+
+            self.SetFocusIgnoringChildren()
+            # self.gnom_frame.OnClose()
+            return
+
+        self.cleanupGNOM(tempdir, savename = savename)
+
+        if restart_timer:
+            wx.CallAfter(self.gnom_frame.main_frame.controlTimer, True)
+
+        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
+
+        dmax = int(round(datgnom.getParameter('dmax')))
+
+        if dmax != datgnom.getParameter('dmax') and str(dmax) not in self.out_list:
+            self.calcGNOM(dmax)
+
+        elif dmax == datgnom.getParameter('dmax') and str(dmax) not in self.out_list:
+            self.out_list[str(dmax)] = datgnom
+
+        dmaxWindow.SetValue(dmax)
+
+        self.updateGNOMInfo(self.out_list[str(dmax)])
+
+        self.updatePlot()
 
     def calcGNOM(self, dmax):
         startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
@@ -4188,54 +4136,54 @@ class GNOMControlPanel(wx.Panel):
         start = int(startSpin.GetValue())
         end = int(endSpin.GetValue())
 
-        top = self.gnom_frame
-
-        savename = tempfile.NamedTemporaryFile(dir=top.tempdir).name
+        tempdir = self.gnom_frame.standard_paths.GetTempDir()
+        savename = tempfile.NamedTemporaryFile(dir=tempdir).name
 
         while os.path.isfile(savename):
-            savename = tempfile.NamedTemporaryFile(dir=top.tempdir).name
+            savename = tempfile.NamedTemporaryFile(dir=tempdir).name
 
         savename = os.path.split(savename)[-1] + '.dat'
 
-        outname = tempfile.NamedTemporaryFile(dir=top.tempdir).name
+        outname = tempfile.NamedTemporaryFile(dir=tempdir).name
 
         while os.path.isfile(outname):
-            outname = tempfile.NamedTemporaryFile(dir=top.tempdir).name
+            outname = tempfile.NamedTemporaryFile(dir=tempdir).name
 
         outname = os.path.split(outname)[-1] + '.out'
 
-        save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q), copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
+        save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q),
+            copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
 
         save_sasm.setParameter('filename', savename)
         save_sasm.setQrange((start, end))
 
-        if top.main_frame.OnlineControl.isRunning() and top.tempdir == top.main_frame.OnlineControl.getTargetDir():
-            top.main_frame.controlTimer(False)
+        if (self.gnom_frame.main_frame.OnlineControl.isRunning()
+            and tempdir == self.gnom_frame.main_frame.OnlineControl.getTargetDir()):
+            self.gnom_frame.main_frame.controlTimer(False)
             restart_timer = True
         else:
             restart_timer = False
 
         try:
-            SASFileIO.saveMeasurement(save_sasm, top.tempdir, self.raw_settings, filetype = '.dat')
+            SASFileIO.saveMeasurement(save_sasm, tempdir, self.raw_settings, filetype = '.dat')
         except SASExceptions.HeaderSaveError as e:
             self._showSaveError('header')
 
 
         try:
             iftm = SASCalc.runGnom(savename, outname, dmax, self.gnom_settings,
-                top.tempdir, new_gnom=top.new_gnom)
+                tempdir, new_gnom=self.gnom_frame.new_gnom)
         except (SASExceptions.NoATSASError, SASExceptions.GNOMError) as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
             top = self.gnom_frame
-            top.cleanupGNOM(top.tempdir, savename, outname)
+            self.cleanupGNOM(tempdir, savename, outname)
             self.SetFocusIgnoringChildren()
             return
 
-
-        top.cleanupGNOM(top.tempdir, savename, outname)
+        self.cleanupGNOM(tempdir, savename, outname)
 
         if restart_timer:
-            wx.CallAfter(top.main_frame.controlTimer, True)
+            wx.CallAfter(self.gnom_frame.main_frame.controlTimer, True)
 
         self.out_list[str(int(iftm.getParameter('dmax')))] = iftm
 
@@ -4272,6 +4220,26 @@ class GNOMControlPanel(wx.Panel):
 
     def onChangeParams(self, evt):
         self.main_frame.showOptionsDialog(focusHead='GNOM')
+
+    def cleanupGNOM(self, path, savename = '', outname = ''):
+        savefile = os.path.join(path, savename)
+        outfile = os.path.join(path, outname)
+
+        if savename != '':
+            if os.path.isfile(savefile):
+                try:
+                    os.remove(savefile)
+                except Exception as e:
+                    print(e)
+                    print('GNOM cleanup failed to remove the .dat file!')
+
+        if outname != '':
+            if os.path.isfile(outfile):
+                try:
+                    os.remove(outfile)
+                except Exception as e:
+                    print(e)
+                    print('GNOM cleanup failed to remove the .out file!')
 
 
 class DammifFrame(wx.Frame):
