@@ -8646,20 +8646,26 @@ class BIFTControlPanel(wx.Panel):
         self.startSpin.SetRange((0, len(self.sasm.q)-2))
         self.endSpin.SetRange((1, len(self.sasm.q)-1))
 
-        if 'BIFT' in analysis:
-            if 'qStart' in analysis['BIFT']:
-                qmin = analysis['BIFT']['qStart']
-                qmax = analysis['BIFT']['qEnd']
+        if 'BIFT' in analysis and 'qStart' in analysis['BIFT']:
+            qmin = analysis['BIFT']['qStart']
+            qmax = analysis['BIFT']['qEnd']
 
-                findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
-                closest_qmin = findClosest(qmin, self.sasm.q)
-                closest_qmax = findClosest(qmax, self.sasm.q)
+            findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
+            closest_qmin = findClosest(qmin, self.sasm.q)
+            closest_qmax = findClosest(qmax, self.sasm.q)
 
-                nmin = np.where(self.sasm.q == closest_qmin)[0][0]
-                nmax = np.where(self.sasm.q == closest_qmax)[0][0]+1
+            nmin = np.where(self.sasm.q == closest_qmin)[0][0]
+            nmax = np.where(self.sasm.q == closest_qmax)[0][0]+1
 
-            else:
+        elif 'guinier' in analysis:
+            guinier = analysis['guinier']
+
+            try:
+                nmin = guinier['nStart']
+                nmax = self.sasm.getQrange()[1]
+            except Exception:
                 nmin, nmax = self.sasm.getQrange()
+
         else:
             nmin, nmax = self.sasm.getQrange()
 
@@ -8682,11 +8688,7 @@ class BIFTControlPanel(wx.Panel):
         self.setFilename(os.path.basename(self.sasm.getParameter('filename')))
 
     def onSpinCtrl(self, evt):
-
         spin_ctrl = evt.GetEventObject()
-
-        update_plot = False
-
         i = spin_ctrl.GetValue()
 
         #Make sure the boundaries don't cross:
@@ -8709,18 +8711,9 @@ class BIFTControlPanel(wx.Panel):
         txt.SetValue(str(round(self.sasm.q[int(i)],4)))
 
         if spin_ctrl == self.startSpin:
-            if i != self.old_nstart:
-                update_plot = True
             self.old_nstart = i
         elif spin_ctrl == self.endSpin:
-            if i != self.old_nend:
-                update_plot = True
             self.old_nend = i
-
-        if update_plot:
-            #Important, since it's a slow function to update (could do it in a
-            #timer instead) otherwise this spin event might loop!
-            wx.CallAfter(self.updatePlot)
 
     def onEnterInQlimits(self, evt):
 
@@ -8771,16 +8764,9 @@ class BIFTControlPanel(wx.Panel):
         update_plot = False
 
         if txtctrl == self.qstartTxt:
-            if i != self.old_nstart:
-                update_plot = True
             self.old_nstart = i
         elif txtctrl == self.qendTxt:
-            if i != self.old_nend:
-                update_plot = True
             self.old_nend = i
-
-        if update_plot:
-            wx.CallAfter(self.updatePlot)
 
     def formatNumStr(self, val):
         val = float(val)
@@ -8798,6 +8784,9 @@ class BIFTControlPanel(wx.Panel):
 
             results_dict = {}
 
+            start_idx = self.startSpin.GetValue()
+            end_idx = self.endSpin.GetValue()
+
             results_dict['Dmax'] = str(self.iftm.getParameter('dmax'))
             results_dict['Dmax_Err'] = str(self.iftm.getParameter('dmaxer'))
             results_dict['Real_Space_Rg'] = str(self.iftm.getParameter('rg'))
@@ -8809,7 +8798,8 @@ class BIFTControlPanel(wx.Panel):
             results_dict['LogAlpha_Err'] = str(self.iftm.getParameter('alpha_er'))
             results_dict['Evidence'] = str(self.iftm.getParameter('evidence'))
             results_dict['Evidence_Err'] = str(self.iftm.getParameter('evidence_er'))
-
+            results_dict['qStart'] = self.sasm.q[start_idx]
+            results_dict['qEnd'] = self.sasm.q[end_idx]
 
             analysis_dict = self.sasm.getParameter('analysis')
             analysis_dict['BIFT'] = results_dict
