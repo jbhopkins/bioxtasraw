@@ -690,7 +690,12 @@ class ImagePanel(wx.Panel):
                     start_negative = False
 
                 mask = SASImage.PolygonMask(points, self._createNewMaskNumber(), self.img.shape, negative = start_negative)
+
+                if self._resizing and self._resize_is_negative_mask:
+                    new_mask.setAsNegativeMask()
+
                 self.plot_parameters['storedMasks'].append(mask)
+
             self.stopMaskCreation()
             self.untoggleAllToolButtons()
 
@@ -814,6 +819,7 @@ class ImagePanel(wx.Panel):
     #--- ** Mask Creation **
 
     def _resizeMask(self):
+        self._resizing = True
         points = self._selected_patch.mask.getPoints()
 
         if isinstance(self._selected_patch.mask, SASImage.CircleMask):
@@ -828,6 +834,7 @@ class ImagePanel(wx.Panel):
             if each.selected == 1:
                 for idx in range(0, len(self.plot_parameters['storedMasks'])):
                     if each.id == self.plot_parameters['storedMasks'][idx].getId():
+                        self._resize_is_negative_mask = self.plot_parameters['storedMasks'][idx].isNegativeMask()
                         self.plot_parameters['storedMasks'].pop(idx)
                         break
 
@@ -973,6 +980,8 @@ class ImagePanel(wx.Panel):
         self._polygon_guide_line = None
         self._circle_guide_line = None
         self._rectangle_line = None
+        self._resizing = False
+        self._resize_is_negative_mask = False
         self.plotStoredMasks()
 
     def clearAllMasks(self):
@@ -1291,6 +1300,9 @@ class ImagePanel(wx.Panel):
             (x_points[1], y_points[1]), self._createNewMaskNumber(),
             self.img.shape, negative=negative)
 
+        if self._resizing and self._resize_is_negative_mask:
+            new_mask.setAsNegativeMask()
+
         self.plot_parameters['storedMasks'].append(new_mask)
 
         masking_panel = wx.FindWindowByName('MaskingPanel')
@@ -1303,6 +1315,9 @@ class ImagePanel(wx.Panel):
         new_mask = SASImage.CircleMask((x_points[0], y_points[0]),
             (x_points[1], y_points[1]), self._createNewMaskNumber(),
             self.img.shape, negative=negative)
+
+        if self._resizing and self._resize_is_negative_mask:
+            new_mask.setAsNegativeMask()
 
         self.plot_parameters['storedMasks'].append(new_mask)
 
