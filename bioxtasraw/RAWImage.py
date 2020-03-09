@@ -258,6 +258,7 @@ class ImagePanel(wx.Panel):
         self._chosen_points_y = []
         self._plotted_patches = []
         self.center_patch = None
+        self._resizing = False
 
         self.next_mask_number = 0
 

@@ -4705,8 +4705,6 @@ class DammifRunPanel(wx.Panel):
         refine_window = wx.FindWindowById(self.ids['refine'], self)
         refine = refine_window.GetValue()
 
-        outname = os.path.join(path, prefix+'.out')
-
         if len(prefix)>30:
             msg = ("Warning: The file prefix '{}'' is too long (>30 characters). It "
                 "will be truncated to '{}'. Proceed?".format(prefix, prefix[:30]))
@@ -4720,6 +4718,8 @@ class DammifRunPanel(wx.Panel):
                 prefix_window.SetValue(prefix)
             else:
                 return
+
+        outname = os.path.join(path, prefix+'.out')
 
         #Check to see if any files will be overwritten. Prompt use if that is the case. Write the .out file for dammif to use
         if os.path.exists(outname):
@@ -5150,7 +5150,11 @@ class DammifRunPanel(wx.Panel):
                 program_window = wx.FindWindowById(self.ids['program'], self)
                 program = program_window.GetStringSelection()
 
-                outname = os.path.join(path, prefix+'.out')
+                prefix_window = wx.FindWindowById(self.ids['prefix'], self)
+                out_prefix = prefix_window.GetValue()
+                out_prefix = prefix.replace(' ', '_')
+
+                outname = os.path.join(path, out_prefix+'.out')
 
                 t = threading.Thread(target = self.runDammif, args = (outname, prefix, path, program, refine))
                 t.daemon = True
