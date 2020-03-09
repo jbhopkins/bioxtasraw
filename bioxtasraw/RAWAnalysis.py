@@ -5846,7 +5846,7 @@ class DammifResultsPanel(wx.Panel):
 
     def getModels(self, settings):
         while self.models.GetPageCount() > 1:
-            last_page = self.models.GetPageText(self.models.GetPage(self.models.GetPageCount()-1))
+            last_page = self.models.GetPageText(self.models.GetPageCount()-1)
             if last_page != 'Summary':
                 self.models.DeletePage(self.models.GetPageCount()-1)
             else:
@@ -7819,7 +7819,7 @@ class DenssResultsPanel(wx.Panel):
         nruns = settings['runs']
 
         while self.models.GetPageCount() > 1:
-            last_page = self.models.GetPageText(self.models.GetPage(self.models.GetPageCount()-1))
+            last_page = self.models.GetPageText(self.models.GetPageCount()-1)
             if last_page != 'Summary':
                 self.models.DeletePage(self.models.GetPageCount()-1)
             else:
