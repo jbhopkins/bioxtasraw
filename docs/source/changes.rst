@@ -4,7 +4,7 @@ Changes
 1.6.4
 --------
 
-Release date: 2020-02-026
+Release date: 2020-03-10
 
 Overview
 ^^^^^^^^^^^^
@@ -19,7 +19,7 @@ All changes:
 *   Fixed a bug where negative values for error would cause points to not be read
     from .dat files.
 *   Fixed a bug where the BIFT window wouldn't open if the profile and n min or
-    n max for the q vector set to othe than 0 and the length of the q vector.
+    n max for the q vector set to other than 0 and the length of the q vector.
 *   Fixed a bug where looking for bind list keywords that don't exist in the
     RAW settings would prevent a file from loading.
 *   Fixed a bug where damaver didn't run with symmetry even if dammif did.
