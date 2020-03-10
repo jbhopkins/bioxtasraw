@@ -3406,6 +3406,9 @@ class GNOMControlPanel(wx.Panel):
         self.raw_settings = self.main_frame.raw_settings
 
         self.old_analysis = {}
+        self.old_nstart = 0
+        self.old_nend = 0
+        self.old_dmax = 0
 
         if 'GNOM' in self.sasm.getParameter('analysis'):
             self.old_analysis = copy.deepcopy(self.sasm.getParameter('analysis')['GNOM'])

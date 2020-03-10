@@ -1513,8 +1513,15 @@ class IftPlotPanel(PlotPanel):
                         if ymin < mini:
                             mini = ymin
 
-                eachsubplot.set_ylim(mini, maxi)
-                eachsubplot.set_xlim(minq, maxq)
+                if mini is not None and maxi is not None:
+                    eachsubplot.set_ylim(mini, maxi)
+                else:
+                    eachsubplot.set_ylim(0.1, 1)
+
+                if minq is not None and maxq is not None:
+                    eachsubplot.set_xlim(minq, maxq)
+                else:
+                    eachsubplot.set_xlim(0.1, 1)
 
                 # self.updateFrameStyle(eachsubplot)
 
@@ -3021,11 +3028,11 @@ class SeriesPlotPanel(wx.Panel):
             else:
                 maxq1 = 1
 
-        elif maxq2 is None:
+        if maxq2 is None:
             if maxq1 is not None:
                 maxq2 = maxq1
             else:
-                maxq1 = 1
+                maxq2 = 1
 
         if minq1 is None:
             if minq2 is not None:
@@ -3033,11 +3040,11 @@ class SeriesPlotPanel(wx.Panel):
             else:
                 minq1 = 0
 
-        elif minq2 is None:
+        if minq2 is None:
             if minq1 is not None:
                 minq2 = minq1
             else:
-                minq1 = 0
+                minq2 = 0
 
 
         if maxq1 > maxq2:

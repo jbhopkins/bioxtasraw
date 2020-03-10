@@ -3756,12 +3756,13 @@ def readSettings(filename):
         try:
             with open(filename, 'rb') as f:
                 if six.PY3:
-                    pickle_obj = pickle.Unpickler(f, encoding='UTF-8')
+                    pickle_obj = SafeUnpickler(f, encoding='latin-1')
                 else:
                     pickle_obj = pickle.Unpickler(f)
-                pickle_obj.find_global = find_global
+                    pickle_obj.find_global = find_global
                 settings = pickle_obj.load()
         except Exception as e:
+            traceback.print_exc()
             print('Error type: %s, error: %s' %(type(e).__name__, e))
             return None
 
@@ -3781,6 +3782,10 @@ def find_global(module, name):
 
     klass = getattr(mod, name)
     return klass
+
+if six.PY3:
+    class SafeUnpickler(pickle.Unpickler):
+        find_class = staticmethod(find_global)
 
 def writeHeader(d, f2, ignore_list = []):
     f2.write('### HEADER:\n#\n#')
@@ -3946,25 +3951,7 @@ def findATSASDirectory():
                     version = atsas_dir.lstrip('ATSAS-')
                     versions[version] = item
 
-                max_version = '0.0.0-0'
-                for version in versions:
-                    if int(max_version.split('.')[0]) < int(version.split('.')[0]):
-                        max_version = version
-
-                    if (int(max_version.split('.')[0]) == int(version.split('.')[0])
-                        and int(max_version.split('.')[1]) < int(version.split('.')[1])):
-                        max_version = version
-
-                    if (int(max_version.split('.')[0]) == int(version.split('.')[0])
-                        and int(max_version.split('.')[1]) == int(version.split('.')[1])
-                        and int(max_version.split('.')[2].split('-')[0]) < int(version.split('.')[2].split('-')[0])):
-                        max_version = version
-
-                    if (int(max_version.split('.')[0]) == int(version.split('.')[0])
-                        and int(max_version.split('.')[1]) == int(version.split('.')[1])
-                        and int(max_version.split('.')[2].split('-')[0]) == int(version.split('.')[2].split('-')[0])
-                        and int(max_version.split('-')[1]) < int(version.split('-')[1])):
-                        max_version = version
+                get_max_version(versions, True)
 
                 default_path = versions[max_version]
 
@@ -3977,7 +3964,28 @@ def findATSASDirectory():
             default_path = '/Applications/ATSAS/bin'
 
     elif opsys== 'Windows':
-        default_path = 'C:\\atsas\\bin'
+        dirs = glob.glob(os.path.expanduser('C:\\Program Files (x86)\\ATSAS*'))
+
+        if len(dirs) > 0:
+            try:
+                versions = {}
+                for item in dirs:
+                    atsas_dir = os.path.split(item)[1]
+                    version = atsas_dir.lstrip('ATSAS-')
+                    versions[version] = item
+
+                get_max_version(versions, False)
+
+                default_path = versions[max_version]
+
+            except Exception:
+                default_path = dirs[0]
+
+            default_path = os.path.join(default_path, 'bin')
+
+        else:
+            default_path = 'C:\\atsas\\bin'
+
     elif opsys== 'Linux':
         default_path = '~/atsas'
         default_path = os.path.expanduser(default_path)
@@ -4009,6 +4017,9 @@ def findATSASDirectory():
 
         atsas_path = output[0].strip()
 
+    if isinstance(atsas_path, bytes):
+        atsas_path = atsas_path.decode('utf-8')
+
     if atsas_path != '':
         return os.path.dirname(atsas_path)
 
@@ -4028,7 +4039,6 @@ def findATSASDirectory():
                 if os.path.exists(item):
                     return item
 
-
     try:
         atsas_path = os.environ['ATSAS']
     except Exception:
@@ -4046,6 +4056,30 @@ def findATSASDirectory():
 
     return ''
 
+def get_max_version(versions, use_sub_minor):
+    if use_sub_minor:
+        max_version = '0.0.0-0'
+    else:
+        max_version = '0.0.0'
+    for version in versions:
+        if int(max_version.split('.')[0]) < int(version.split('.')[0]):
+            max_version = version
+
+        if (int(max_version.split('.')[0]) == int(version.split('.')[0])
+            and int(max_version.split('.')[1]) < int(version.split('.')[1])):
+            max_version = version
+
+        if (int(max_version.split('.')[0]) == int(version.split('.')[0])
+            and int(max_version.split('.')[1]) == int(version.split('.')[1])
+            and int(max_version.split('.')[2].split('-')[0]) < int(version.split('.')[2].split('-')[0])):
+            max_version = version
+
+        if use_sub_minor:
+            if (int(max_version.split('.')[0]) == int(version.split('.')[0])
+                and int(max_version.split('.')[1]) == int(version.split('.')[1])
+                and int(max_version.split('.')[2].split('-')[0]) == int(version.split('.')[2].split('-')[0])
+                and int(max_version.split('-')[1]) < int(version.split('-')[1])):
+                max_version = version
 
 def checkFileType(filename):
     ''' Tries to find out what file type it is and reports it back '''
