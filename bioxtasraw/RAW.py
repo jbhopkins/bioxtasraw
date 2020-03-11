@@ -2118,7 +2118,7 @@ class MainFrame(wx.Frame):
                 pickle.dump(save_info, file_obj, protocol=2)
 
         except Exception:
-            traceback.print_exc()
+            pass
 
     def _onCloseWindow(self, event):
 
@@ -6184,17 +6184,17 @@ class DirCtrlPanel(wx.Panel):
         self.raw_settings = self.main_frame.getRawSettings()
 
         self.file_extension_list = ['All files (*.*)',
-                                    'No Extension files (*.)',
-                                    'TIFF files (*.tiff)',
+                                    'TIF/TIFF files (*.tiff)',
                                     'TIF files (*.tif)',
-                                    # 'RAD Files (*.rad)',
+                                    'HDF5 files (*.h5)',
                                     'DAT files (*.dat)',
+                                    'OUT files (*.out)',
+                                    'IFT files (*.ift)',
                                     'SEC files (*.sec)',
-                                    'TXT files (*.txt)',
-                                    'IMG files (*.img)',
                                     'FIT files (*.fit)',
                                     'WSP files (*.wsp)',
-                                    'CFG files (*.cfg)']
+                                    'CFG files (*.cfg)',
+                                    ]
 
         dirctrlpanel_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -6226,7 +6226,6 @@ class DirCtrlPanel(wx.Panel):
 
             path = data['workdir']
         except Exception:
-            traceback.print_exc()
             path = None
 
         if path is not None and os.path.exists(path):

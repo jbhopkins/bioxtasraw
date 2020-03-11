@@ -4915,6 +4915,10 @@ class DammifRunPanel(wx.Panel):
 
 
     def runDammif(self, outname, prefix, path, program, refine = False):
+        def read_output(process):
+            while process.poll() is None:
+                if process.stdout is not None:
+                    process.stdout.read(1)
 
         with self.my_semaphore:
             #Check to see if things have been aborted
@@ -4972,6 +4976,13 @@ class DammifRunPanel(wx.Panel):
             else:
                 dammif_proc = SASCalc.runDammin(outname, dam_prefix, dam_args, path)
 
+            #Hackey, but necessary to prevent the process output buffer
+            # from filling up and stalling the process
+            if dammif_proc.stdout is not None:
+                read_thread = threading.Thread(target=read_output, args=(dammif_proc,))
+                read_thread.daemon = True
+                read_thread.start()
+
             logname = os.path.join(path,dam_prefix)+'.log'
 
             while not os.path.exists(logname):
@@ -5001,6 +5012,15 @@ class DammifRunPanel(wx.Panel):
                 final_status = logfile.read()
 
             wx.CallAfter(damWindow.AppendText, final_status)
+
+            if dammif_proc.stderr is not None:
+                error = dammif_proc.stderr.read()
+
+                if not isinstance(error, str):
+                    error = str(error, encoding='UTF-8')
+
+                if error != '':
+                    wx.CallAfter(damWindow.AppendText, error)
 
             if refine:
                 wx.CallAfter(self.status.AppendText, 'Finished Refinement\n')
@@ -5104,7 +5124,6 @@ class DammifRunPanel(wx.Panel):
                     wx.CallAfter(damWindow.AppendText, new_text)
                 except queue.Empty:
                     pass
-
 
             new_files = [(os.path.join(path, 'damfilt.pdb'), os.path.join(path, prefix+'_damfilt.pdb')),
                         (os.path.join(path, 'damsel.log'), os.path.join(path, prefix+'_damsel.log')),

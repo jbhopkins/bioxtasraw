@@ -825,11 +825,9 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
 
                 cmd = cmd + ' "%s"' %(fname)
 
-                proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=path,
-                    env=my_env)
+                proc = subprocess.Popen(cmd, shell=True, cwd=path, env=my_env)
 
-                output, error = proc.communicate()
+                proc.wait()
 
             else:
 
@@ -1307,11 +1305,9 @@ def runDammif(fname, prefix, args, path):
             command = command + ' "%s"' %(fname)
 
             if opsys == 'Windows':
-                process=subprocess.Popen(command, cwd=path, env=my_env)
+                proc = subprocess.Popen(command, cwd=path, env=my_env)
             else:
-                process=subprocess.Popen(command, shell=True, cwd=path, env=my_env)
-
-            return process
+                proc = subprocess.Popen(command, shell=True, cwd=path, env=my_env)
 
         else:
             #Solution for non-blocking reads adapted from stack overflow
@@ -1339,12 +1335,12 @@ def runDammif(fname, prefix, args, path):
 
             if opsys == 'Windows':
                 proc = subprocess.Popen('"%s"' %(dammifDir), stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=path,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=path,
                     universal_newlines=True, bufsize=1, env=my_env)
             else:
                 proc = subprocess.Popen('"%s"' %(dammifDir), shell=True,
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT, cwd=path, universal_newlines=True,
+                    stderr=subprocess.PIPE, cwd=path, universal_newlines=True,
                     bufsize=1, env=my_env)
             dammif_t = threading.Thread(target=enqueue_output, args=(proc.stdout, dammif_q))
             dammif_t.daemon = True
@@ -1494,7 +1490,7 @@ def runDammif(fname, prefix, args, path):
             # proc.stdout.close()
             # proc.stdin.close()
 
-            return proc
+        return proc
     else:
         print('Cannot find ATSAS')
         raise SASExceptions.NoATSASError('Cannot find dammif.')
@@ -1523,11 +1519,11 @@ def runDamaver(flist, path, symmetry='P1'):
             command = command + ' "%s"' %(item)
 
         if opsys == 'Windows':
-            process=subprocess.Popen(command, stdout=subprocess.PIPE, cwd=path,
-                env=my_env)
+            process=subprocess.Popen(command, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, cwd=path, env=my_env)
         else:
             process=subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
-                cwd=path, env=my_env)
+                stderr=subprocess.STDOUT, cwd=path, env=my_env)
 
         return process
 
@@ -1598,11 +1594,11 @@ def runDamclust(flist, path, symmetry='P1'):
             command = command + ' "%s"' %(item)
 
         if opsys == 'Windows':
-            process=subprocess.Popen(command, stdout=subprocess.PIPE, cwd=path,
-                env=my_env)
+            process=subprocess.Popen(command, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, cwd=path, env=my_env)
         else:
             process=subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
-                cwd=path, env=my_env)
+                stderr=subprocess.STDOUT, cwd=path, env=my_env)
 
         return process
 
@@ -1644,13 +1640,10 @@ def runDammin(fname, prefix, args, path):
             command = command + ' "%s"' %(fname)
 
             if opsys == 'Windows':
-                process=subprocess.Popen(command, cwd=path)
+                proc = subprocess.Popen(command, cwd=path, env=my_env)
             else:
-                process=subprocess.Popen(command, shell=True,
-                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=path,
+                proc = subprocess.Popen(command, shell=True, cwd=path,
                     env=my_env)
-
-            return process
 
         else:
             #Solution for non-blocking reads adapted from stack overflow
@@ -1683,12 +1676,12 @@ def runDammin(fname, prefix, args, path):
             if opsys == 'Windows':
                 proc = subprocess.Popen('%s' %(dammifDir),
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT, cwd=path, universal_newlines=True,
+                    stderr=subprocess.PIPE, cwd=path, universal_newlines=True,
                     bufsize=1, env=my_env)
             else:
                 proc = subprocess.Popen('%s' %(dammifDir), shell=True,
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT, cwd=path, universal_newlines=True,
+                    stderr=subprocess.PIPE, cwd=path, universal_newlines=True,
                     bufsize=1, env=my_env)
             dammif_t = threading.Thread(target=enqueue_output, args=(proc.stdout, dammif_q))
             dammif_t.daemon = True
@@ -1858,7 +1851,7 @@ def runDammin(fname, prefix, args, path):
             # proc.stdin.close()
             # proc.wait()
 
-            return proc
+        return proc
     else:
         print('Cannot find ATSAS')
         raise SASExceptions.NoATSASError('Cannot find dammif.')
