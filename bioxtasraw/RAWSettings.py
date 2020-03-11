@@ -228,8 +228,9 @@ class RawGuiSettings(object):
                             'MWVcBRna'             : [0.00934, wx.NewId(), 'float'], #The 'B' coefficient for proteins
 
                             #Initialize porod volume molecularm ass values.
-                            'MWVpRho'              : [0.83*10**(-3), wx.NewId(), 'float'], #The density in kDa/A^3
-                            'MWVpCutoff'           : ['Default', wx.NewId(), 'choice'],
+                            'MWVpRho'               : [0.83*10**(-3), wx.NewId(), 'float'], #The density in kDa/A^3
+                            'MWVpCutoff'            : ['Default', wx.NewId(), 'choice'],
+                            'MWVpQmax'              : [0.5, wx.NewId(), 'float'], #qmax if 'Manual' is selected for cutoff
 
                             #Initialize Absolute scattering calibration values.
                             #Default values from Mylonas & Svergun, J. App. Crys. 2007.

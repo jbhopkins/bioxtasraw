@@ -1771,8 +1771,7 @@ class MolWeightFrame(wx.Frame):
                 vc_type = molweight['VolumeOfCorrelation']['Type']
             else:
                 vc_type = self.raw_settings.get('MWVcType')
-        except Exception as e:
-            print(e)
+        except Exception:
             vc_type = self.raw_settings.get('MWVcType')
 
         if vc_type == 'Protein':
@@ -1789,17 +1788,49 @@ class MolWeightFrame(wx.Frame):
         wx.FindWindowById(self.ids['VC']['sup_plot'], self).plotSASM(self.sasm)
 
         #Initialize Vp MW settings
-        vp_rho = self.raw_settings.get('MWVpRho')
-        cutoff = self.raw_settings.get('MWVpCutoff')
+        try:
+            if 'molecularWeight' in analysis:
+                molweight = analysis['molecularWeight']
+                cutoff = molweight['PorodVolume']['Cutoff']
+                vp_rho = molweight['PorodVolume']['Density']
+                qmax = molweight['PorodVolume']['Q_max']
+
+            else:
+                cutoff = self.raw_settings.get('MWVpCutoff')
+                vp_rho = self.raw_settings.get('MWVpRho')
+                qmax = self.raw_settings.get('MWVpQmax')
+
+        except Exception:
+            cutoff = self.raw_settings.get('MWVpCutoff')
+            vp_rho = self.raw_settings.get('MWVpRho')
+            qmax = self.raw_settings.get('MWVpQmax')
 
         wx.FindWindowById(self.ids['VP']['sup_density'], self).ChangeValue(str(vp_rho))
         wx.FindWindowById(self.ids['VP']['sup_cutoff'], self).SetStringSelection(cutoff)
 
+        if cutoff == 'Manual':
+            wx.FindWindowById(self.ids['VP']['sup_qmax'], self).ChangeValue(str(qmax))
+        else:
+            self._calcVpqmax(cutoff)
 
         #Initialize Absolute scattering MW settings.
-        rho_Mprot = self.raw_settings.get('MWAbsRhoMprot') # electrons per dry mass of protein
-        rho_solv = self.raw_settings.get('MWAbsRhoSolv') # electrons per volume of aqueous solvent
-        nu_bar = self.raw_settings.get('MWAbsNuBar') # partial specific volume of the protein
+
+        try:
+            if 'molecularWeight' in analysis:
+                molweight = analysis['molecularWeight']
+                rho_Mprot = float(molweight['Absolute']['Density_dry_protein'])
+                rho_solv = float(molweight['Absolute']['Density_buffer'])
+                nu_bar = float(molweight['Absolute']['Partial_specific_volume'])
+            else:
+                rho_Mprot = self.raw_settings.get('MWAbsRhoMprot') # electrons per dry mass of protein
+                rho_solv = self.raw_settings.get('MWAbsRhoSolv') # electrons per volume of aqueous solvent
+                nu_bar = self.raw_settings.get('MWAbsNuBar') # partial specific volume of the protein
+
+        except Exception:
+            rho_Mprot = self.raw_settings.get('MWAbsRhoMprot') # electrons per dry mass of protein
+            rho_solv = self.raw_settings.get('MWAbsRhoSolv') # electrons per volume of aqueous solvent
+            nu_bar = self.raw_settings.get('MWAbsNuBar') # partial specific volume of the protein
+
         r0 = self.raw_settings.get('MWAbsR0') #scattering lenght of an electron
         d_rho = (rho_Mprot-(rho_solv*nu_bar))*r0
         wx.FindWindowById(self.ids['abs']['sup_pm'], self).ChangeValue('%.2E' %(rho_Mprot))
@@ -1807,7 +1838,6 @@ class MolWeightFrame(wx.Frame):
         wx.FindWindowById(self.ids['abs']['sup_pv'], self).ChangeValue('%.4f' %(nu_bar))
         wx.FindWindowById(self.ids['abs']['sup_sc'], self).ChangeValue('%.2E' %(d_rho))
 
-        self._calcVpqmax(cutoff)
         self.calcMW()
 
 
@@ -2057,7 +2087,7 @@ class MolWeightFrame(wx.Frame):
         sup_qmax = wx.TextCtrl(parent, vp_ids['sup_qmax'], '', size = (80, -1),
             validator=RAWCustomCtrl.CharValidator('float'))
 
-        sup_cutoff = wx.Choice(parent, vp_ids['sup_cutoff'], choices=['Default',
+        sup_cutoff = wx.Choice(parent, vp_ids['sup_cutoff'], choices=[' Default',
             '8/Rg', 'log(I0/I(q))', 'Manual'])
 
         sup_cutoff.Bind(wx.EVT_CHOICE, self._onVpCutoff)
@@ -2252,11 +2282,12 @@ class MolWeightFrame(wx.Frame):
             guinier = analysis['guinier']
 
             for each_key in self.infodata:
-                window = wx.FindWindowById(self.infodata[each_key][1], self)
-                if abs(float(guinier[each_key])) > 1e3 or abs(float(guinier[each_key])) < 1e-2:
-                    window.SetValue('%.3E' %(float(guinier[each_key])))
-                else:
-                    window.SetValue('%.4f' %(round(float(guinier[each_key]), 4)))
+                if each_key in guinier:
+                    window = wx.FindWindowById(self.infodata[each_key][1], self)
+                    if abs(float(guinier[each_key])) > 1e3 or abs(float(guinier[each_key])) < 1e-2:
+                        window.SetValue('%.3E' %(float(guinier[each_key])))
+                    else:
+                        window.SetValue('%.4f' %(round(float(guinier[each_key]), 4)))
 
         if 'Conc' in self.sasm.getAllParameters():
             conc = str(self.sasm.getParameter('Conc'))
@@ -2315,9 +2346,13 @@ class MolWeightFrame(wx.Frame):
         #Initialize Vp MW settings
         vp_rho = self.raw_settings.get('MWVpRho')
         cutoff = self.raw_settings.get('MWVpCutoff')
+        qmax_manual = self.raw_settings.get('MWVpQmax')
 
         wx.FindWindowById(self.ids['VP']['sup_density'], self).ChangeValue(str(vp_rho))
         wx.FindWindowById(self.ids['VP']['sup_cutoff'], self).SetStringSelection(cutoff)
+
+        if cutoff == 'Manual':
+            wx.FindWindowById(self.ids['VP']['sup_qmax'], self).ChangeValue(str(qmax_manual))
 
 
         #Initialize Absolute scattering MW settings.
@@ -2522,65 +2557,20 @@ class MolWeightFrame(wx.Frame):
             i0 = 0
             rg = 0
 
-        if choice == 'Default':
+        if choice != 'Manual':
             q_max_ctrl.Disable()
 
-            if rg != 0:
-                qmax = 8./rg
-
-                if qmax > 0.5 or qmax < 0.1:
-                    iratio = np.abs(np.log10(i0/i) - 2.25)
-                    idx = np.argmin(iratio)
-
-                    qmax = q[idx]
-
-                if qmax > 0.5:
-                    qmax = 0.5
-                elif qmax < 0.1:
-                    qmax = 0.1
-
-        elif choice == '8/Rg':
-            q_max_ctrl.Disable()
-
-            if rg != 0:
-                qmax = 8./rg
-
-                if qmax > 0.5:
-                    qmax = 0.5
-                elif qmax < 0.1:
-                    qmax = 0.1
-
-        elif choice == 'log(I0/I(q))':
-            q_max_ctrl.Disable()
-
-            if i0 != 0:
-
-                iratio = np.abs(np.log10(i0/i) - 2.25)
-                idx = np.argmin(iratio)
-
-                qmax = q[idx]
-
-                if qmax > 0.5:
-                    qmax = 0.5
-                elif qmax < 0.1:
-                    qmax = 0.1
-
-        elif choice == 'Manual':
+        else:
             q_max_ctrl.Enable()
 
-        if rg == 0:
-            qmax = 0.5
+        try:
+            qmax = float(q_max_ctrl.GetValue())
+        except Exception:
+            qmax = None
 
-        if choice != 'Manual':
-            if qmax > q[-1]:
-                qmax = q[-1]
-            elif qmax < q[0]:
-                qmax = q[0]
-            else:
-                idx = np.argmin(np.abs(q-qmax))
-                qmax = q[idx]
+        qmax = SASCalc.calcVpqmax(q, i, rg, i0, choice, qmax)
 
-            q_max_ctrl.ChangeValue(str(qmax))
+        q_max_ctrl.ChangeValue(str(qmax))
 
         self.calcVpMW()
 
@@ -2634,32 +2624,6 @@ class MolWeightFrame(wx.Frame):
                     'PorodVolume'        : {},
                     'Absolute'           : {}}
 
-        # for eachKey in self.ids.iterkeys():
-        #     mw = wx.FindWindowById(self.ids[eachKey]['calc_mw'], self).GetValue()
-
-        #     if eachKey == 'conc':
-        #         calcData['I(0)Concentration']['MW'] = mw
-        #         self.sasm.setParameter('MW', mw)
-
-        #     elif eachKey == 'VC':
-        #         mol_type = wx.FindWindowById(self.ids[eachKey]['mol_type'], self).GetStringSelection()
-        #         vcor = wx.FindWindowById(self.ids[eachKey]['sup_vc'], self).GetValue()
-
-        #         calcData['VolumeOfCorrelation']['MW'] = mw
-        #         calcData['VolumeOfCorrelation']['Type'] = mol_type
-        #         calcData['VolumeOfCorrelation']['Vcor'] = vcor
-
-        #     elif eachKey == 'VP':
-        #         vporod = wx.FindWindowById(self.ids[eachKey]['sup_vp'], self).GetValue()
-        #         vpcor = wx.FindWindowById(self.ids[eachKey]['sup_vpc'], self).GetValue()
-
-        #         calcData['PorodVolume']['MW'] = mw
-        #         calcData['PorodVolume']['VPorod'] = vporod
-        #         calcData['PorodVolume']['VPorod_Corrected'] = vpcor
-
-        #     elif eachKey == 'abs':
-        #         calcData['Absolute']['MW'] = mw
-
         calcData['I(0)Concentration']['MW'] = self.mws['conc']['mw']
         self.sasm.setParameter('MW', self.mws['conc']['mw'])
 
@@ -2670,8 +2634,14 @@ class MolWeightFrame(wx.Frame):
         calcData['PorodVolume']['MW'] = self.mws['vp']['mw']
         calcData['PorodVolume']['VPorod'] = self.mws['vp']['pVolume']
         calcData['PorodVolume']['VPorod_Corrected'] = self.mws['vp']['pv_cor']
+        calcData['PorodVolume']['Density'] = self.mws['vp']['pv_density']
+        calcData['PorodVolume']['Cutoff'] = self.mws['vp']['cutoff']
+        calcData['PorodVolume']['Q_max'] = self.mws['vp']['q_max']
 
         calcData['Absolute']['MW'] = self.mws['abs']['mw']
+        calcData['Absolute']['Density_dry_protein'] = self.mws['abs']['rho_Mprot']
+        calcData['Absolute']['Density_buffer'] = self.mws['abs']['rho_solv']
+        calcData['Absolute']['Partial_specific_volume'] = self.mws['abs']['nu_bar']
 
         analysis_dict = self.sasm.getParameter('analysis')
         analysis_dict['molecularWeight'] = calcData
@@ -2798,13 +2768,18 @@ class MolWeightFrame(wx.Frame):
         #This is calculated using the method in Fischer et al. J. App. Crys. 2009
 
         vp_ids = self.ids['VP']
+        vp_cutoff = wx.FindWindowById(self.ids['VP']['sup_cutoff']).GetStringSelection()
 
         analysis = self.sasm.getParameter('analysis')
 
         if 'guinier' in analysis:
             guinier = analysis['guinier']
-            i0 = float(guinier['I0'])
-            rg = float(guinier['Rg'])
+            try:
+                i0 = float(guinier['I0'])
+                rg = float(guinier['Rg'])
+            except Exception:
+                i0 = 0
+                rg = 0
         else:
             i0 = 0
             rg = 0
@@ -2828,16 +2803,6 @@ class MolWeightFrame(wx.Frame):
         elif qmax < q[0]:
             qmax = q[0]
 
-        if qmax not in q:
-            idx = np.argmin(np.abs(q-qmax))
-            qmax = q[idx]
-        else:
-            idx = np.argwhere(q == qmax)[0][0]
-
-        q = q[:idx+1]
-        i = i[:idx+1]
-        err = err[:idx+1]
-
 
         if q[-1]<=0.5 and q[-1]>=0.1:
             self._showVpMWWarning(False)
@@ -2849,11 +2814,15 @@ class MolWeightFrame(wx.Frame):
             guinier_analysis = analysis['guinier']
             qmin = float(guinier_analysis['qStart'])
 
-            mw, pVolume, pv_cor = SASCalc.calcVpMW(q, i, err, rg, i0, qmin, density)
+            mw, pVolume, pv_cor = SASCalc.calcVpMW(q, i, err, rg, i0, qmin,
+                density, qmax)
 
             self.mws['vp']['mw'] = str(mw)
             self.mws['vp']['pVolume'] = str(pVolume)
             self.mws['vp']['pv_cor'] = str(pv_cor)
+            self.mws['vp']['pv_density'] = str(density)
+            self.mws['vp']['cutoff'] = vp_cutoff
+            self.mws['vp']['q_max'] = str(float(q_max_ctrl.GetValue()))
 
             mw_val = round(mw,1)
             pv_val = round(pVolume,1)
@@ -2887,6 +2856,9 @@ class MolWeightFrame(wx.Frame):
             self.mws['vp']['mw'] = ''
             self.mws['vp']['pVolume'] = ''
             self.mws['vp']['pv_cor'] = ''
+            self.mws['vp']['pv_density'] = str(density)
+            self.mws['vp']['cutoff'] = vp_cutoff
+            self.mws['vp']['q_max'] = str(float(q_max_ctrl.GetValue()))
 
     def calcAbsMW(self):
         abs_ids = self.ids['abs']
@@ -2913,6 +2885,9 @@ class MolWeightFrame(wx.Frame):
             mw = SASCalc.calcAbsMW(i0, conc, rho_Mprot, rho_solv, nu_bar, r0)
 
             self.mws['abs']['mw'] = str(mw)
+            self.mws['abs']['rho_Mprot'] = str(rho_Mprot)
+            self.mws['abs']['rho_solv'] = str(rho_solv)
+            self.mws['abs']['nu_bar'] = str(nu_bar)
 
             val = round(mw,1)
 
@@ -2929,6 +2904,9 @@ class MolWeightFrame(wx.Frame):
 
         else:
             self.mws['abs']['mw'] = ''
+            self.mws['abs']['rho_Mprot'] = str(rho_Mprot)
+            self.mws['abs']['rho_solv'] = str(rho_solv)
+            self.mws['abs']['nu_bar'] = str(nu_bar)
 
     def OnClose(self):
 
@@ -3406,9 +3384,6 @@ class GNOMControlPanel(wx.Panel):
         self.raw_settings = self.main_frame.raw_settings
 
         self.old_analysis = {}
-        self.old_nstart = 0
-        self.old_nend = 0
-        self.old_dmax = 0
 
         if 'GNOM' in self.sasm.getParameter('analysis'):
             self.old_analysis = copy.deepcopy(self.sasm.getParameter('analysis')['GNOM'])
@@ -4708,6 +4683,8 @@ class DammifRunPanel(wx.Panel):
         refine_window = wx.FindWindowById(self.ids['refine'], self)
         refine = refine_window.GetValue()
 
+        outname = os.path.join(path, prefix+'.out')
+
         if len(prefix)>30:
             msg = ("Warning: The file prefix '{}'' is too long (>30 characters). It "
                 "will be truncated to '{}'. Proceed?".format(prefix, prefix[:30]))
@@ -4721,8 +4698,6 @@ class DammifRunPanel(wx.Panel):
                 prefix_window.SetValue(prefix)
             else:
                 return
-
-        outname = os.path.join(path, prefix+'.out')
 
         #Check to see if any files will be overwritten. Prompt use if that is the case. Write the .out file for dammif to use
         if os.path.exists(outname):
@@ -5153,11 +5128,7 @@ class DammifRunPanel(wx.Panel):
                 program_window = wx.FindWindowById(self.ids['program'], self)
                 program = program_window.GetStringSelection()
 
-                prefix_window = wx.FindWindowById(self.ids['prefix'], self)
-                out_prefix = prefix_window.GetValue()
-                out_prefix = prefix.replace(' ', '_')
-
-                outname = os.path.join(path, out_prefix+'.out')
+                outname = os.path.join(path, prefix+'.out')
 
                 t = threading.Thread(target = self.runDammif, args = (outname, prefix, path, program, refine))
                 t.daemon = True
@@ -15617,6 +15588,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 error_weight = self.raw_settings.get('errorWeight')
                 window_size = int(self.avg_window.GetValue())
                 vp_density = float(self.vp_density.GetValue())
+                vp_cutoff = self.raw_settings.get('MWVpCutoff')
+                vp_qmax = self.raw_settings.get('MWVpQmax')
 
                 first_update_frame = int(self.original_secm.plot_frame_list[len(self.secm.getAllSASMs())])
                 last_frame = int(self.original_secm.plot_frame_list[-1])
@@ -15635,7 +15608,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
                 success, results = SASCalc.run_secm_calcs(sub_sasms,
                     use_sub_sasms, window_size, is_protein, error_weight,
-                    vp_density)
+                    vp_density, vp_cutoff, vp_qmax)
 
                 if success:
                     new_rg = results['rg']
@@ -17050,6 +17023,9 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         error_weight = self.raw_settings.get('errorWeight')
         window_size = int(self.avg_window.GetValue())
         vp_density = float(self.vp_density.GetValue())
+        vp_cutoff = self.raw_settings.get('MWVpCutoff')
+        vp_qmax = self.raw_settings.get('MWVpQmax')
+
 
         if self.secm.intensity_change:
             calc_threshold = self.raw_settings.get('secCalcThreshold')
@@ -17134,8 +17110,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             sub_sasms = self.results['buffer']['sub_sasms']
             use_sub_sasms = self.results['buffer']['use_sub_sasms']
 
-        success, results = SASCalc.run_secm_calcs(sub_sasms,
-            use_sub_sasms, window_size, is_protein, error_weight, vp_density)
+        success, results = SASCalc.run_secm_calcs(sub_sasms, use_sub_sasms,
+            window_size, is_protein, error_weight, vp_density, vp_cutoff, vp_qmax)
 
         if success:
             self.results['calc'] = results
@@ -17148,8 +17124,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             sub_sasms = self.results['buffer']['sub_sasms']
             use_sub_sasms = self.results['buffer']['use_sub_sasms']
 
-            success, results = SASCalc.run_secm_calcs(sub_sasms,
-            use_sub_sasms, window_size, is_protein, error_weight, vp_density)
+            success, results = SASCalc.run_secm_calcs(sub_sasms, use_sub_sasms,
+                window_size, is_protein, error_weight, vp_density, vp_cutoff, vp_qmax)
 
             if success:
                 self.results['buffer']['calc'] = results

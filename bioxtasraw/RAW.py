@@ -3339,6 +3339,8 @@ class MainWorkerThread(threading.Thread):
             is_protein = False
 
         vp_density = secm.mol_density
+        vp_cutoff = self._raw_settings.get('MWVpCutoff')
+        vp_qmax = self._raw_settings.get('MWVpQmax')
 
         threshold = self._raw_settings.get('secCalcThreshold')
         error_weight = self._raw_settings.get('errorWeight')
@@ -3605,12 +3607,12 @@ class MainWorkerThread(threading.Thread):
 
             success, results = SASCalc.run_secm_calcs(bl_sasms,
                 baseline_use_subtracted_sasms, window_size, is_protein, error_weight,
-                vp_density)
+                vp_density, vp_cutoff, vp_qmax)
 
         else:
             success, results = SASCalc.run_secm_calcs(subtracted_sasm_list,
                 use_subtracted_sasm, window_size, is_protein, error_weight,
-                vp_density)
+                vp_density, vp_cutoff, vp_qmax)
 
         if not success:
             secm.releaseSemaphore()

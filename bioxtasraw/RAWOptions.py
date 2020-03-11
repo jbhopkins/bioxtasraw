@@ -1659,6 +1659,7 @@ class MolecularWeightPanel(wx.Panel):
                             'MWVcBRna',
                             'MWVpRho',
                             'MWVpCutoff',
+                            'MWVpQmax',
                             'MWAbsRhoMprot',
                             'MWAbsRhoSolv',
                             'MWAbsNuBar',
@@ -1676,6 +1677,7 @@ class MolecularWeightPanel(wx.Panel):
                         ("RNA Coef. B:", raw_settings.getId('MWVcBRna')))
         self.VpMWData = (("Density [kDa/A^3]:", raw_settings.getId('MWVpRho')),
                         ("Cutoff:", raw_settings.getId('MWVpCutoff')),
+                        ("q Max (manual):", raw_settings.getId('MWVpQmax')),
                             )
 
         self.AbsMWData = ( ("Electrons per dry mass of macromolecule [e-/g]:", raw_settings.getId('MWAbsRhoMprot')),
@@ -1756,7 +1758,7 @@ class MolecularWeightPanel(wx.Panel):
         return hSizer
 
     def createVpMWSettings(self):
-        sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap = 3, hgap = 5)
+        sizer = wx.FlexGridSizer(cols = 2, vgap = 3, hgap = 5)
 
         for txt, my_id in self.VpMWData:
             if my_id == self.raw_settings.getId('MWVpCutoff'):

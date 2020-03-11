@@ -173,7 +173,66 @@ def vpB(q_max):
     B = 12.09*q_max**3 - 9.39*q_max**2 + 3.03*q_max+0.29
     return B
 
-def calcVpMW(q, i, err, rg, i0, rg_qmin, vp_density):
+def calcVpqmax(q, i, rg, i0, choice='8/Rg', qmax=None):
+    vpqmax = None
+
+    if choice == 'Default':
+        if rg != 0:
+            vpqmax = 8./rg
+
+            if vpqmax > 0.5 or vpqmax < 0.1:
+                iratio = np.abs(np.log10(i0/i) - 2.25)
+                idx = np.argmin(iratio)
+
+                vpqmax = q[idx]
+
+            if vpqmax > 0.5:
+                vpqmax = 0.5
+            elif vpqmax < 0.1:
+                vpqmax = 0.1
+
+    elif choice == '8/Rg':
+        if rg != 0:
+            vpqmax = 8./rg
+
+            if vpqmax > 0.5:
+                vpqmax = 0.5
+            elif vpqmax < 0.1:
+                vpqmax = 0.1
+
+    elif choice == 'log(I0/I(q))':
+
+        if i0 != 0:
+
+            iratio = np.abs(np.log10(i0/i) - 2.25)
+            idx = np.argmin(iratio)
+
+            vpqmax = q[idx]
+
+            if vpqmax > 0.5:
+                vpqmax = 0.5
+            elif vpqmax < 0.1:
+                vpqmax = 0.1
+
+    elif choice == 'Manual':
+        vpqmax = qmax
+
+    if vpqmax is None:
+        vpqmax = min(q[-1], 0.5)
+
+    else:
+        if vpqmax > q[-1]:
+            vpqmax = q[-1]
+        elif vpqmax < q[0]:
+            vpqmax = q[0]
+        else:
+            idx = np.argmin(np.abs(q-vpqmax))
+            vpqmax = q[idx]
+
+    return vpqmax
+
+
+def calcVpMW(q, i, err, rg, i0, rg_qmin, vp_density, qmax):
     #These functions are used to correct the porod volume for the length of the q vector
     #Coefficients were obtained by direct communication with the authors.
     # qc=[0.15, 0.20, 0.25, 0.30, 0.40, 0.45]
@@ -196,6 +255,16 @@ def calcVpMW(q, i, err, rg, i0, rg_qmin, vp_density):
     # print '\nhere'
     # print A
     # print B
+
+    if qmax not in q:
+        idx = np.argmin(np.abs(q-qmax))
+        qmax = q[idx]
+    else:
+        idx = np.argwhere(q == qmax)[0][0]
+
+    q = q[:idx+1]
+    i = i[:idx+1]
+    err = err[:idx+1]
 
     if q[-1] <= 0.5 and q[-1] >= 0.1:
         A = vpA(q[-1])
@@ -1959,7 +2028,7 @@ def run_cormap_ref(sasm_list, ref_sasm, correction='None'):
 
 
 def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
-    is_protein, error_weight, vp_density):
+    is_protein, error_weight, vp_density, vp_cutoff, vp_qmax):
 
     #Now calculate the RG, I0, and MW for each SASM
     rg = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
@@ -1986,9 +2055,13 @@ def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
                 if rg[a] > 0:
                     vcmw[a], vcmwer[a], junk1, junk2 = calcVcMW(current_sasm, rg[a],
                         i0[a], is_protein)
+
+                    qmax = calcVpqmax(current_sasm.getQ(),
+                        current_sasm.getI(), rg[a], i0[a], vp_cutoff, vp_qmax)
+
                     vpmw[a], vp[a], vpcor[a] = calcVpMW(current_sasm.getQ(),
                         current_sasm.getI(), current_sasm.getErr(), rg[a], i0[a],
-                        current_sasm.q[idx_min], vp_density)
+                        current_sasm.q[idx_min], vp_density, qmax)
                 else:
                     vcmw[a], vcmwer[a] = -1, -1
                     vpmw[a], vp[a], vpcor[a] = -1, -1, -1
@@ -2021,9 +2094,12 @@ def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
 
                     vcmw[index], vcmwer[index], junk1, junk2 = calcVcMW(current_sasm, rg[index], i0[index], is_protein)
 
+                    qmax = calcVpqmax(current_sasm.getQ(),
+                        current_sasm.getI(), rg[index], i0[index], vp_cutoff, vp_qmax)
+
                     vpmw[index], vp[index], vpcor[index] = calcVpMW(current_sasm.getQ(),
                         current_sasm.getI(), current_sasm.getErr(), rg[index], i0[index],
-                        current_sasm.q[idx_min], vp_density)
+                        current_sasm.q[idx_min], vp_density, qmax)
                 else:
                     vcmw[index], vcmwer[index] = -1, -1
                     vpmw[index], vp[index], vpcor[index] = -1, -1, -1
