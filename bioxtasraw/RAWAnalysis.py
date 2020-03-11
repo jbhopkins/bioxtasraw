@@ -13395,6 +13395,7 @@ class NormKratkyPlotPanel(wx.Panel):
         self.subplot = self.fig.add_subplot(1,1,1, title = self.plot_labels[self.plot_type][0], label = self.plot_labels[self.plot_type][0])
         self.subplot.set_xlabel(self.plot_labels[self.plot_type][1])
         self.subplot.set_ylabel(self.plot_labels[self.plot_type][2])
+        self.subplot.axhline(0, color='k', linewidth=1.0)
 
         self.v_line = None
         self.h_line = None

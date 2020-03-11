@@ -1305,9 +1305,11 @@ def runDammif(fname, prefix, args, path):
             command = command + ' "%s"' %(fname)
 
             if opsys == 'Windows':
-                proc = subprocess.Popen(command, cwd=path, env=my_env)
+                proc = subprocess.Popen(command, cwd=path, env=my_env,
+                    stderr=subprocess.PIPE)
             else:
-                proc = subprocess.Popen(command, shell=True, cwd=path, env=my_env)
+                proc = subprocess.Popen(command, shell=True, cwd=path,
+                    env=my_env, stderr=subprocess.PIPE)
 
         else:
             #Solution for non-blocking reads adapted from stack overflow
@@ -1640,10 +1642,11 @@ def runDammin(fname, prefix, args, path):
             command = command + ' "%s"' %(fname)
 
             if opsys == 'Windows':
-                proc = subprocess.Popen(command, cwd=path, env=my_env)
+                proc = subprocess.Popen(command, cwd=path, env=my_env,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             else:
                 proc = subprocess.Popen(command, shell=True, cwd=path,
-                    env=my_env)
+                    env=my_env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         else:
             #Solution for non-blocking reads adapted from stack overflow
