@@ -139,24 +139,6 @@ class RawGuiSettings(object):
                 'PrPoints'    : [100,    wx.NewId(), 'int'],
                 'mcRuns'      : [300,    wx.NewId(), 'int'],
 
-                #DEFAULT pyGNOM PARAMETERS
-                'pygnomMaxAlpha'    : [60,   wx.NewId(), 'float'],
-                'pygnomMinAlpha'    : [0.01, wx.NewId(), 'float'],
-                'pygnomAlphaPoints' : [100,  wx.NewId(), 'int'],
-                'pygnomPrPoints'    : [50,   wx.NewId(), 'int'],
-                'pygnomFixInitZero' : [True, wx.NewId(), 'bool'],
-
-                'pyOSCILLweight'    : [3.0, wx.NewId(), 'float'],
-                'pyVALCENweight'    : [1.0, wx.NewId(), 'float'],
-                'pyPOSITVweight'    : [1.0, wx.NewId(), 'float'],
-                'pySYSDEVweight'    : [3.0, wx.NewId(), 'float'],
-                'pySTABILweight'    : [3.0, wx.NewId(), 'float'],
-                'pyDISCRPweight'    : [1.0, wx.NewId(), 'float'],
-
-                #DEFAULT IFT PARAMETERS:
-                'IFTAlgoList'        : [['BIFT', 'pyGNOM']],
-                'IFTAlgoChoice'      : [['BIFT']],
-
                 #ARTIFACT REMOVAL:
                 'ZingerRemovalRadAvg'    : [False, wx.NewId(), 'bool'],
                 'ZingerRemovalRadAvgStd' : [4.0,     wx.NewId(), 'float'],
