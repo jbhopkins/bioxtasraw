@@ -3737,8 +3737,7 @@ def writeSettings(filename, settings):
         with open(filename, 'w', encoding='utf-8') as f:
             settings_str = json.dumps(settings, indent = 4, sort_keys = True,
                 cls = MyEncoder, ensure_ascii=False)
-            if isinstance(settings_str, str):
-                settings_str = settings_str.decode('utf-8')
+
             f.write(settings_str)
         return True
     except Exception as e:
