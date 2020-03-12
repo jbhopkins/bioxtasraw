@@ -51,7 +51,7 @@ class RawGuiSettings(object):
         if settings is None:
             file_defs, _ = SASFileIO.loadFileDefinitions()
             self._params = {
-                'RequiredVersion'       : ['1.6.1', wx.NewId(), 'text'],
+                'RequiredVersion'       : ['2.0.0', wx.NewId(), 'text'],
 				'NormFlatfieldEnabled'	: [False,   wx.NewId(),  'bool'],
 
                 'NormAbsWater'      	: [False,   wx.NewId(),  'bool'],
