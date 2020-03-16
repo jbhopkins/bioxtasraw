@@ -3737,7 +3737,7 @@ class MainWorkerThread(threading.Thread):
     def _calibrateSASM(self, sasm):
 
         sd_distance = self._raw_settings.get('SampleDistance')
-        pixel_size = self._raw_settings.get('DetectorPixelSize')
+        pixel_size = self._raw_settings.get('DetectorPixelSizeX')
         wavelength = self._raw_settings.get('WaveLength')
 
         sasm.calibrateQ(sd_distance, pixel_size, wavelength)
@@ -11980,7 +11980,8 @@ class CenteringPanel(wx.Panel):
 
         self._main_frame.raw_settings.set('SampleDistance', sd)
         self._main_frame.raw_settings.set('WaveLength', wavelength)
-        self._main_frame.raw_settings.set('DetectorPixelSize', pixel_size)
+        self._main_frame.raw_settings.set('DetectorPixelSizeX', pixel_size)
+        self._main_frame.raw_settings.set('DetectorPixelSizeY', pixel_size)
 
     def _getCalibValues(self):
 
@@ -12131,7 +12132,7 @@ class CenteringPanel(wx.Panel):
         y_center = self._main_frame.raw_settings.get('Ycenter')
 
         wavelength = self._main_frame.raw_settings.get('WaveLength')
-        pixel_size = self._main_frame.raw_settings.get('DetectorPixelSize')
+        pixel_size = self._main_frame.raw_settings.get('DetectorPixelSizeX')
         samp_detc_dist = self._main_frame.raw_settings.get('SampleDistance')
 
         c = scipy.constants.c

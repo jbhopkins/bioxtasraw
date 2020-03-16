@@ -159,7 +159,7 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
     abs_scale_gc_factor = float(raw_settings.get('NormAbsCarbonConst'))
 
     sd_distance = raw_settings.get('SampleDistance')
-    pixel_size = raw_settings.get('DetectorPixelSize')
+    pixel_size = raw_settings.get('DetectorPixelSizeX')
     wavelength = raw_settings.get('WaveLength')
     bin_size = int(raw_settings.get('Binsize'))
     x_c = float(raw_settings.get('Xcenter'))

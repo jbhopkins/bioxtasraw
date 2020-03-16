@@ -210,110 +210,130 @@ class CalibrationOptionsPanel(wx.Panel):
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
         wx.Panel.__init__(self, parent, id, *args, **kwargs)
 
-        self.update_keys = ['SampleDistance',
-                            'WaveLength',
-                            'DetectorPixelSize',
-                            'Xcenter',
-                            'Ycenter',
-                            'Binsize',
-                            'StartPoint',
-                            'EndPoint']
+        self.update_keys = [
+            'SampleDistance',
+            'WaveLength',
+            'DetectorPixelSizeX',
+            'DetectorPixelSizeY',
+            'Xcenter',
+            'Ycenter',
+            'DetectorTilt',
+            'DetectorTiltPlanRot',
+            'BinType',
+            'Binsize',
+            'StartPoint',
+            'EndPoint',
+            'DoSolidAngleCorrection',
+            'DoPolarizationCorrection',
+            'PolarizationFactor',
+            'IntegrationMethod',
+            'AngularUnit',
+            'ErrorModel',
+            'Detector',
+            'UseImageForVariance',
+            ]
 
         self.raw_settings = raw_settings
 
-        self.calibConstantsData = (("Sample-Detector Distance:" , raw_settings.getId('SampleDistance') , 'mm'),
-                                   ("Wavelength:"               , raw_settings.getId('WaveLength') , 'A'),
-                                   #("Sample thickness:", raw_settings.getId('SampleThickness'), 'mm'),
-                                   ("Detector Pixel Size:",            raw_settings.getId('DetectorPixelSize'), 'um'))
+        detector_choices = ['None',]
+        integration_choices = ['numpy', 'cython', 'BBox', 'nosplit_csr', 'csr',
+            'full_csr', 'nosplit_csr_ocl', 'csr_ocl', 'full_csr_ocl']
+        error_choices = ['Poisson', 'Azimuthal']
+        angular_choices = ['q_nm^-1', 'q_A^-1', '2th_deg', '2th_rad', 'r_mm']
+        bin_choices = ['Linear',]
 
-        self.expsettingsdata = (("Beam X center:", raw_settings.getId('Xcenter')),
-                                ("Beam Y center:", raw_settings.getId('Ycenter')))
+        self.calibConstantsData = (
+            ("Wavelength [A]:", raw_settings.getId('WaveLength')),
+            ("Detector:", raw_settings.getId('Detector'), detector_choices),
+            ("Detector X Pixel Size [um]:", raw_settings.getId('DetectorPixelSizeX')),
+            ("Detector Y Pixel Size [um]:", raw_settings.getId('DetectorPixelSizeY')),
+            ("Sample-Detector Distance [mm]:", raw_settings.getId('SampleDistance')),
+            ("Beam X center:", raw_settings.getId('Xcenter')),
+            ("Beam Y center:", raw_settings.getId('Ycenter')),
+            ("Detector Tilt [deg]:", raw_settings.getId('DetectorTilt')),
+            ("Detector Tilt Plane Rotation [deg]:", raw_settings.getId('DetectorTiltPlanRot')),
+            ('Correct for the change in the solid angle of the pixels', raw_settings.getId('DoSolidAngleCorrection')),
+            ('Correct for the polarization of the x-ray beam', raw_settings.getId('DoPolarizationCorrection')),
+            ('Polarization factor (-1 to 1, 0 is random):', raw_settings.getId('PolarizationFactor')),
+            ('Integration Method:', raw_settings.getId('IntegrationMethod'), integration_choices),
+            ('Use image pixel values as pixel variance', raw_settings.getId('UseImageForVariance')),
+            ('Error Model:', raw_settings.getId('ErrorModel'), error_choices),
+            ('Angular unit', raw_settings.getId('AngularUnit'), angular_choices),
+            ('Binning type:', raw_settings.getId('BinType'), bin_choices),
+            ('Bin factor:', raw_settings.getId('Binsize')),
+           )
 
-        self.expsettings_spin = (("Binning Size:", (raw_settings.getId('Binsize'),)),
-                                 ("Start plots at q-point number:", (raw_settings.getId('StartPoint'),)),
-                                 ("Skip n points at the end of the curve:", (raw_settings.getId('EndPoint'),)))
+        self.expsettings_spin = (
+                                 ("Start plots at q-point number:", raw_settings.getId('StartPoint')),
+                                 ("Skip n points at the end of the curve:", raw_settings.getId('EndPoint')),
+                                 )
 
         box = wx.StaticBox(self, -1, '2D Reduction Parameters')
-        reduction_sizer = self.create2DReductionParameters()
-        static_box_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        static_box_sizer.Add(reduction_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
+        reduction_sizer = self.create2DReductionParameters(box)
+        top_reduction_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        top_reduction_sizer.Add(reduction_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
 
-        constantsSizer = self.createCalibConstants()
-
-        # recalc_button = wx.Button(self, -1, 'Re-calculate')
-        # recalc_button.Bind(wx.EVT_BUTTON, self.onRecalcButton)
-        # recalc_button.SetToolTip(wx.ToolTip('Re-calculate the sample detector distance'))
+        box = wx.StaticBox(self, label='Other Parameters')
+        other_params_sizer = self.createOtherParameters(box)
+        top_other_params_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        top_other_params_sizer.Add(other_params_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
 
         panelsizer = wx.BoxSizer(wx.VERTICAL)
-        panelsizer.Add(static_box_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
-        panelsizer.Add(constantsSizer, 0, wx.EXPAND | wx.ALL, 5)
-        panelsizer.Add((1,1), 1, wx.EXPAND)
-        # panelsizer.Add(recalc_button, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
+        panelsizer.Add(top_reduction_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        panelsizer.Add(top_other_params_sizer, 0, wx.EXPAND | wx.ALL, 5)
 
         self.SetSizer(panelsizer)
 
 
-    def create2DReductionParameters(self):
+    def create2DReductionParameters(self, parent):
 
-        static_box_sizer = wx.BoxSizer(wx.VERTICAL)
+        ctrl_sizer = wx.GridBagSizer(vgap=5, hgap=5)
 
-        for each_text, id in self.expsettingsdata:
-            txt = wx.StaticText(self, -1, each_text)
+        for i in range(len(self.calibConstantsData)):
+            item = self.calibConstantsData[i]
+            each_text = item[0]
+            ctrl_id = item[1]
 
-            if id == self.raw_settings.getId('Xcenter') or id == self.raw_settings.getId('Ycenter'):
-                ctrl = RAWCustomCtrl.FloatSpinCtrl(self, id, TextLength = 60)
-            else:
-                ctrl = RAWCustomCtrl.IntSpinCtrl(self, id, TextLength = 60, min = 0)
+            ctrl_name = self.raw_settings.findParamById(ctrl_id)
+            ctrl_type = self.raw_settings.getType(ctrl_name)
 
-            sizer = wx.BoxSizer(wx.HORIZONTAL)
-            sizer.Add(txt, 1, wx.EXPAND)
-            sizer.Add(ctrl, 0)
+            if ctrl_type == 'float' or ctrl_type == 'int' or ctrl_type == 'text':
+                txt = wx.StaticText(parent, label=each_text)
+                ctrl = wx.TextCtrl(parent, ctrl_id, size=(60, -1))
 
-            static_box_sizer.Add(sizer, 1, wx.EXPAND | wx.TOP, 4)
+                ctrl_sizer.Add(txt, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                ctrl_sizer.Add(ctrl, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
 
-        for eachEntry in self.expsettings_spin:
+            elif ctrl_type == 'bool':
+                ctrl = wx.CheckBox(parent, ctrl_id, label=each_text)
 
-            label = wx.StaticText(self, -1, eachEntry[0])
+                ctrl_sizer.Add(ctrl, (i, 0), span=(1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
 
-            spin_sizer = wx.BoxSizer(wx.HORIZONTAL)
-            spin_sizer.Add(label, 1, wx.EXPAND)
+            elif ctrl_type == 'choice':
+                txt = wx.StaticText(parent, label=each_text)
+                ctrl = wx.Choice(parent, ctrl_id, choices=item[2])
 
-            for eachSpinCtrl in eachEntry[1:]:
-                txtctrl_id = eachSpinCtrl[0]
+                ctrl_sizer.Add(txt, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+                ctrl_sizer.Add(ctrl, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
 
-                if eachEntry[0] == 'Binning Size:':
-                    txt_ctrl = RAWCustomCtrl.IntSpinCtrl(self, txtctrl_id, TextLength = 60, min = 1)
-                else:
-                    txt_ctrl = RAWCustomCtrl.IntSpinCtrl(self, txtctrl_id, TextLength = 60, min = 0)
-
-                spin_sizer.Add(txt_ctrl, 0)
-
-            static_box_sizer.Add(spin_sizer, 1, wx.EXPAND | wx.TOP, 4)
-
-        return static_box_sizer
-
-    def createCalibConstants(self):
-
-        box = wx.StaticBox(self, -1, 'Calibration Parameters')
-        noOfRows = int(len(self.calibConstantsData))
-        calibSizer = wx.FlexGridSizer(cols = 3, rows = noOfRows, vgap = 5, hgap=3)
+        return ctrl_sizer
 
 
-        for eachText, id, unitTxt in self.calibConstantsData:
+    def createOtherParameters(self, parent):
 
-            txt = wx.StaticText(self, -1, eachText)
-            unitlabel = wx.StaticText(self, -1, unitTxt)
-            ctrl = wx.TextCtrl(self, id, '0', style = wx.TE_PROCESS_ENTER | wx.TE_RIGHT, size = (60, 21))
+        ctrl_sizer = wx.FlexGridSizer(vgap=5, hgap=5, cols=2)
 
-            calibSizer.Add(txt, 1, wx.EXPAND | wx.ALIGN_LEFT)
-            calibSizer.Add(ctrl, 1, wx.EXPAND | wx.ALIGN_RIGHT | wx.LEFT | wx.RIGHT, 5)
-            calibSizer.Add(unitlabel, 1, wx.EXPAND | wx.TOP, 2)
+        for item in self.expsettings_spin:
+            each_text = item[0]
+            ctrl_id = item[1]
 
-        chkboxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        chkboxSizer.Add(calibSizer, 1, wx.EXPAND | wx.ALIGN_CENTER | wx.ALL, 5)
+            txt = wx.StaticText(parent, label=each_text)
+            ctrl = RAWCustomCtrl.IntSpinCtrl(parent, ctrl_id, TextLength = 60, min = 0)
 
-        return chkboxSizer
+            ctrl_sizer.Add(txt, flag=wx.ALIGN_CENTER_VERTICAL)
+            ctrl_sizer.Add(ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
 
+        return ctrl_sizer
 
 class HeaderListCtrl(wx.ListCtrl):
 
@@ -2377,34 +2397,6 @@ class ReductionOptionsPanel(wx.Panel):
 
         wx.Panel.__init__(self, parent, id, *args, **kwargs)
 
-        self.raw_settings = raw_settings
-
-        self.update_keys = ['DoSolidAngleCorrection']
-
-        self.chkboxdata = [('Correct for the change in the solid angle of the pixels', raw_settings.getId('DoSolidAngleCorrection'))]
-
-        options_sizer = self.createReductionOptionsData()
-
-        final_sizer = wx.BoxSizer(wx.VERTICAL)
-        final_sizer.Add(options_sizer, 0, wx.EXPAND | wx.ALL, 5)
-
-        self.SetSizer(final_sizer)
-
-
-    def createReductionOptionsData(self):
-
-        box = wx.StaticBox(self, -1, 'Reduction Options')
-        staticBoxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-
-        treatmentSizer = wx.BoxSizer(wx.VERTICAL)
-        for each, id in self.chkboxdata:
-            chkBox = wx.CheckBox(self, id, each)
-            treatmentSizer.Add(chkBox, 0, wx.TOP, 5)
-
-        staticBoxSizer.Add(treatmentSizer, 0, wx.BOTTOM | wx.LEFT, 5)
-
-        return staticBoxSizer
-
 class SaveDirectoriesPanel(wx.Panel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
@@ -4402,7 +4394,7 @@ class OptionsDialog(wx.Dialog):
                             [ (1,0,0), wx.Window.NewControlId(), 'General Settings', GeneralOptionsPanel],
                             [ (2,0,0), wx.Window.NewControlId(), '2D Reduction', ReductionOptionsPanel],
                             [ (2,1,0), wx.Window.NewControlId(), 'Image/Header Format', ReductionImgHdrFormatPanel],
-                            [ (2,2,0), wx.Window.NewControlId(), 'Calibration', CalibrationOptionsPanel],
+                            [ (2,2,0), wx.Window.NewControlId(), 'Radial Averaging', CalibrationOptionsPanel],
                             [ (2,3,1), wx.Window.NewControlId(), 'Normalization', ReductionNormalizationPanel] ,
                             [ (2,3,2), wx.Window.NewControlId(), 'Absolute Scale', ReductionNormalizationAbsScPanel],
                             [ (2,3,3), wx.Window.NewControlId(), 'Flatfield Correction', ReductionFlatfield],

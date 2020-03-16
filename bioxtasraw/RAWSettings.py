@@ -52,16 +52,16 @@ class RawGuiSettings(object):
             file_defs, _ = SASFileIO.loadFileDefinitions()
             self._params = {
                 'RequiredVersion'       : ['2.0.0', wx.NewId(), 'text'],
-				'NormFlatfieldEnabled'	: [False,   wx.NewId(),  'bool'],
 
+                #Water absolute scale
                 'NormAbsWater'      	: [False,   wx.NewId(),  'bool'],
                 'NormAbsWaterI0'    	: [0.01632, wx.NewId(),  'float'],
                 'NormAbsWaterTemp'  	: ['25',    wx.NewId(),  'choice'],
                 'NormAbsWaterConst' 	: [1.0,     wx.NewId(),  'float'],
                 'NormAbsWaterFile'      : [None, wx.NewId(), 'text'],
                 'NormAbsWaterEmptyFile' : [None, wx.NewId(), 'text'],
-                'NormFlatfieldFile'     : [None, wx.NewId(), 'text'],
 
+                #Glassy carbon absolute scale
                 'NormAbsCarbon'             : [False, wx.NewId(), 'bool'],
                 'NormAbsCarbonIgnoreBkg'    : [True, wx.NewId(), 'bool'],
                 'NormAbsCarbonFile'         : [None, wx.NewId(), 'text'],
@@ -75,34 +75,62 @@ class RawGuiSettings(object):
                 'NormAbsCarbonConst'        : [1.0, wx.NewId(), 'float'],
                 'NormAbsCarbonSamEmptySASM' : [None],
 
-                'AutoBgSubtract'    : [False, wx.NewId(),  'bool'],
+                #AUtomatic processing
+                'AutoBgSubtract'        : [False, wx.NewId(),  'bool'],
 
-                'AutoBIFT'          : [False, wx.NewId(), 'bool'],
-                'AutoAvg'           : [False, wx.NewId(), 'bool'],
-                'AutoAvgRemovePlots': [False, wx.NewId(), 'bool'],
+                'AutoBIFT'              : [False, wx.NewId(), 'bool'],
+                'AutoAvg'               : [False, wx.NewId(), 'bool'],
+                'AutoAvgRemovePlots'    : [False, wx.NewId(), 'bool'],
 
-                'AutoAvgRegExp'     : ['', wx.NewId(), 'text'],
-                'AutoAvgNameRegExp' : ['', wx.NewId(), 'text'],
-                'AutoAvgNoOfFrames' : [1,  wx.NewId(),  'int'],
-                'AutoBgSubRegExp'   : ['', wx.NewId(), 'text'],
+                'AutoAvgRegExp'         : ['', wx.NewId(), 'text'],
+                'AutoAvgNameRegExp'     : ['', wx.NewId(), 'text'],
+                'AutoAvgNoOfFrames'     : [1,  wx.NewId(),  'int'],
+                'AutoBgSubRegExp'       : ['', wx.NewId(), 'text'],
 
-                'UseHeaderForMask': [False, wx.NewId(), 'bool'],
-                'DetectorFlipped90':[False, wx.NewId(), 'bool'],
+                #Detector image orientation
                 'DetectorFlipLR' : [True, wx.NewId(), 'bool'],
                 'DetectorFlipUD' : [False, wx.NewId(), 'bool'],
-                'UseHeaderForConfig': [False, wx.NewId(), 'bool'],
 
-                #CORRECTIONS
-                'DoSolidAngleCorrection' : [True, wx.NewId(), 'bool'],
+                #Special settings for Xenocs/SAXSLAB
+                'UseHeaderForMask'      : [False, wx.NewId(), 'bool'],
+                'UseHeaderForConfig'    : [False, wx.NewId(), 'bool'],
+                'DetectorFlipped90'     :[False, wx.NewId(), 'bool'],
 
+                #pyFAI radial averaging and calibration settings
+                'DoSolidAngleCorrection'    : [True, wx.NewId(), 'bool'],
+                'DoPolarizationCorrection'  : [False, wx.NewId(), 'bool'],
+                'PolarizationFactor'        : [0, wx.NewId(), 'float'],
+                'IntegrationMethod'         : ['nosplit_csr', wx.NewId(), 'choice'],
+                'AngularUnit'               : ['q_A^-1', wx.NewId(), 'choice'],
+                'ErrorModel'                : ['azimuthal', wx.NewId(), 'choice'],
+                'UseImageForVariance'       : [False, wx.NewId(), 'bool'],
 
-                #CENTER / BINNING
-                'Binsize'    : [1,     wx.NewId(), 'int'],
-                'Xcenter'    : [512.0, wx.NewId(), 'float'],
-                'Ycenter'    : [512.0, wx.NewId(), 'float'],
-                'StartPoint' : [0,     wx.NewId(), 'int'],
-                'EndPoint'   : [0,     wx.NewId(), 'int'],
-                'ImageDim'   : [[1024,1024]],
+                #Dark correction
+                'DarkCorrEnabled'       : [False,   wx.NewId(),  'bool'],
+                'DarkCorrFilename'      : [None, wx.NewId(), 'text'],
+
+                #Flatfield correction
+                'NormFlatfieldEnabled'  : [False,   wx.NewId(),  'bool'],
+                'NormFlatfieldFile'     : [None, wx.NewId(), 'text'],
+
+                #Q-CALIBRATION
+                'WaveLength'            : [1.0,  wx.NewId(), 'float'],
+                'SampleDistance'        : [1000, wx.NewId(), 'float'],
+                'Detector'              : ['None', wx.NewId(), 'choice'],
+                'DetectorPixelSizeX'    : [172.0, wx.NewId(), 'float'],
+                'DetectorPixelSizeY'    : [172.0, wx.NewId(), 'float'],
+                'DetectorTilt'          : [0.0, wx.NewId(), 'float'],
+                'DetectorTiltPlanRot'   : [0.0, wx.NewId(), 'float'],
+                'Xcenter'               : [0.0, wx.NewId(), 'float'],
+                'Ycenter'               : [0.0, wx.NewId(), 'float'],
+
+                #BINNING
+                'BinType'   : ['Linear', wx.NewId(), 'choice'],
+                'Binsize'   : [1,     wx.NewId(), 'int'],
+
+                #Trimming
+                'StartPoint'    : [0,     wx.NewId(), 'int'],
+                'EndPoint'      : [0,     wx.NewId(), 'int'],
 
                 #MASKING
                 'BackgroundSASM'          : [None, wx.NewId(), 'text'],
@@ -117,16 +145,8 @@ class RawGuiSettings(object):
 
                 'MaskDimension'          : [1024,1024],
 
-                #Q-CALIBRATION
-                'WaveLength'          : [1.0,  wx.NewId(), 'float'],
-                'SampleDistance'      : [1000, wx.NewId(), 'float'],
-                'DetectorPixelSize'   : [70.5, wx.NewId(), 'float'],
-
 				#SANS Parameters
 				'SampleThickness'		: [0.1,  wx.NewId(), 'float'],
-				'DarkCorrEnabled'		: [False,   wx.NewId(),  'bool'],
-				'DarkCorrFilename'		: [None, wx.NewId(), 'text'],
-
 
                 #DEFAULT BIFT PARAMETERS
                 'maxDmax'     : [400.0,  wx.NewId(), 'float'],
@@ -180,7 +200,9 @@ class RawGuiSettings(object):
                                            'Beam Y Center'            : ['Ycenter',           None, ''],
                                            'Sample Detector Distance' : ['SampleDistance',    None, ''],
                                            'Wavelength'               : ['WaveLength',        None, ''],
-                                           'Detector Pixel Size'      : ['DetectorPixelSize', None, '']}],
+                                           'Detector X Pixel Size'    : ['DetectorPixelSizeX', None, ''],
+                                           'Detector X Pixel Size'    : ['DetectorPixelSizeX', None, ''],
+                                           }],
                                            # 'Number of Frames'         : ['NumberOfFrames',    None, '']}],
 
                 'NormalizationList'    : [None, wx.NewId(), 'text'],
@@ -382,9 +404,15 @@ class RawGuiSettings(object):
     def getAllParams(self):
         return self._params
 
+    def findParamById(self, param_id):
+        for key in self._params:
+            if len(self._params[key]) > 2:
+                if self._params[key][1] == param_id:
+                    return key
 
+        return None
 
-def fixBackwardsCompatibility(raw_settings):
+def fixBackwardsCompatibility(raw_settings, loaded_param):
 
     #Backwards compatibility for BindList:
     bind_list = raw_settings.get('HeaderBindList')
@@ -422,6 +450,16 @@ def fixBackwardsCompatibility(raw_settings):
 
     raw_settings.set('Masks', masks)
 
+    if 'DetectorPixelSize' in loaded_param:
+        raw_settings.set('DetectorPixelSizeX', loaded_param['DetectorPixelSize'])
+        raw_settings.set('DetectorPixelSizeY', loaded_param['DetectorPixelSize'])
+
+    if 'HeaderbindList' in loaded_param and 'DetectorPixelSize' in loaded_param['HeaderBindList']:
+        header_bind_list = raw_settings.get('HeaderBindList')
+        header_bind_list['Detector X Pixel Size'] = loaded_param['HeaderBindList']['DetectorPixelSize']
+        header_bind_list['Detector Y Pixel Size'] = loaded_param['HeaderBindList']['DetectorPixelSize']
+        raw_settings.set('HeaderBindList', header_bind_list)
+
 
 def loadSettings(raw_settings, loadpath, auto_load = False):
 
@@ -435,8 +473,6 @@ def loadSettings(raw_settings, loadpath, auto_load = False):
     for each_key in loaded_param:
         if each_key in all_params:
             all_params[each_key][0] = copy.copy(loaded_param[each_key])
-        else:
-            print('WARNING: ' + str(each_key) + " not found in RAWSettings.")
 
     default_settings = RawGuiSettings().getAllParams()
 
@@ -444,7 +480,7 @@ def loadSettings(raw_settings, loadpath, auto_load = False):
         if key not in loaded_param:
             all_params[key] = default_settings[key]
 
-    postProcess(raw_settings, default_settings)
+    postProcess(raw_settings, default_settings, loaded_param)
 
     msg = ''
 
@@ -490,8 +526,8 @@ def loadSettings(raw_settings, loadpath, auto_load = False):
 
     return True, msg
 
-def postProcess(raw_settings, default_settings):
-    fixBackwardsCompatibility(raw_settings)
+def postProcess(raw_settings, default_settings, loaded_param):
+    fixBackwardsCompatibility(raw_settings, loaded_param)
 
     masks = copy.copy(raw_settings.get('Masks'))
 
