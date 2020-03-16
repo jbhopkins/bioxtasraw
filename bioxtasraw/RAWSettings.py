@@ -34,7 +34,7 @@ import numpy as np
 
 import RAWGlobals
 import SASFileIO
-import SASImage
+import SASMask
 
 class RawGuiSettings(object):
     '''
@@ -75,7 +75,6 @@ class RawGuiSettings(object):
                 'NormAbsCarbonConst'        : [1.0, wx.NewId(), 'float'],
                 'NormAbsCarbonSamEmptySASM' : [None],
 
-                'CalibrateMan'      : [True, wx.NewId(),  'bool'],  # Calibrate manual (wavelength / distance)
                 'AutoBgSubtract'    : [False, wx.NewId(),  'bool'],
 
                 'AutoBIFT'          : [False, wx.NewId(), 'bool'],
@@ -400,19 +399,19 @@ def fixBackwardsCompatibility(raw_settings):
         if mask_list is not None:
 
             for i, mask in enumerate(mask_list):
-                if isinstance(mask, SASImage.Mask):
+                if isinstance(mask, SASMask.Mask):
                     mask._calcFillPoints()
-                elif isinstance(mask, SASImage._oldMask):
+                elif isinstance(mask, SASMask._oldMask):
                     if mask._type == 'rectangle':
-                        mask = SASImage.RectangleMask(mask._points[0],
+                        mask = SASMask.RectangleMask(mask._points[0],
                             mask._points[1], mask._mask_id, mask._img_dimension,
                             mask._is_negative_mask)
                     elif mask._type == 'circle':
-                        mask = SASImage.CircleMask(mask._points[0],
+                        mask = SASMask.CircleMask(mask._points[0],
                             mask._points[1], mask._mask_id, mask._img_dimension,
                             mask._is_negative_mask)
                     if mask._type == 'polygon':
-                        mask = SASImage.PolygonMask(mask._points,
+                        mask = SASMask.PolygonMask(mask._points,
                             mask._mask_id, mask._img_dimension,
                             mask._is_negative_mask)
 
@@ -504,13 +503,13 @@ def postProcess(raw_settings, default_settings):
             for i, mask in enumerate(mask_list):
                 if isinstance(mask, dict):
                     if mask['type'] == 'circle':
-                        mask = SASImage.CircleMask(mask['center_point'],
+                        mask = SASMask.CircleMask(mask['center_point'],
                             mask['radius_point'], i, img_dim, mask['negative'])
                     elif mask['type'] == 'rectangle':
-                        mask = SASImage.RectangleMask(mask['first_point'],
+                        mask = SASMask.RectangleMask(mask['first_point'],
                             mask['second_point'], i, img_dim, mask['negative'])
                     elif mask['type'] == 'polygon':
-                        mask = SASImage.PolygonMask(mask['vertices'], i, img_dim,
+                        mask = SASMask.PolygonMask(mask['vertices'], i, img_dim,
                             mask['negative'])
                 mask_list[i] = mask
 

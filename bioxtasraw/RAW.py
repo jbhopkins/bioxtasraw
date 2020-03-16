@@ -85,6 +85,7 @@ import SASExceptions
 import SASImage
 import SASCalc
 import SASCalib
+import SASMask
 import RAWPlot
 import RAWImage
 import RAWOptions
@@ -2911,7 +2912,7 @@ class MainWorkerThread(threading.Thread):
             masks = mask_dict[each_key][1]
 
             if masks is not None:
-                mask_img = SASImage.createMaskMatrix(img_dim, masks)
+                mask_img = SASMask.createMaskMatrix(img_dim, masks)
                 mask_param = mask_dict[each_key]
                 mask_param[0] = mask_img
                 mask_param[1] = masks
@@ -2926,7 +2927,7 @@ class MainWorkerThread(threading.Thread):
         masks = data[1]
         img_dim = data[2]
 
-        mask_img = SASImage.createMaskMatrix(img_dim, masks)
+        mask_img = SASMask.createMaskMatrix(img_dim, masks)
 
         self._raw_settings.set('MaskDimension', img_dim)
         mask_dict = self._raw_settings.get('Masks')
@@ -3735,7 +3736,6 @@ class MainWorkerThread(threading.Thread):
 
     def _calibrateSASM(self, sasm):
 
-        #if self._raw_settings.get('CalibrateMan'):
         sd_distance = self._raw_settings.get('SampleDistance')
         pixel_size = self._raw_settings.get('DetectorPixelSize')
         wavelength = self._raw_settings.get('WaveLength')
@@ -11204,7 +11204,7 @@ class MaskingPanel(wx.Panel):
         img = self.image_panel.img
 
         if img is not None and img_hdr is not None and 'bsmask_configuration' in img_hdr:
-            mask_params = SASImage.createMaskFromHdr(img, img_hdr, flipped = self._main_frame.raw_settings.get('DetectorFlipped90'))
+            mask_params = SASMask.createMaskFromHdr(img, img_hdr, flipped = self._main_frame.raw_settings.get('DetectorFlipped90'))
         else:
             wx.MessageBox('The image does not have a SAXSLAB Beamstop Mask in the header.', 'No mask available.', style = wx.ICON_EXCLAMATION)
 

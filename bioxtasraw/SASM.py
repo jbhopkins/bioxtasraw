@@ -1536,8 +1536,6 @@ class SECM(object):
                 qrange_I_bcsub))
 
 
-
-
 def calcAbsoluteScaleWaterConst(water_sasm, emptycell_sasm, I0_water, raw_settings):
 
     if emptycell_sasm is None or emptycell_sasm == 'None' or water_sasm == 'None' or water_sasm is None:
@@ -1593,79 +1591,63 @@ def calcAbsoluteScaleCarbonConst(carbon_sasm, carbon_thickness,
 
     return abs_scale_const
 
-def normalizeAbsoluteScaleWater(sasm, raw_settings):
-    abs_scale_constant = raw_settings.get('NormAbsWaterConst')
-    sasm.scaleBinnedIntensity(abs_scale_constant)
-
-    norm_parameter = sasm.getParameter('normalizations')
-
-    norm_parameter['Absolute_scale_factor'] = abs_scale_constant
-
-    sasm.setParameter('normalizations', norm_parameter)
-
-    return sasm, abs_scale_constant
-
 def normalizeAbsoluteScaleCarbon(sasm, raw_settings):
-    abs_scale_constant = float(raw_settings.get('NormAbsCarbonConst'))
     sam_thick = float(raw_settings.get('NormAbsCarbonSamThick'))
-    ignore_bkg = raw_settings.get('NormAbsCarbonIgnoreBkg')
 
-    if ignore_bkg:
-        sasm.scaleBinnedIntensity(abs_scale_constant/sam_thick)
-    else:
-        bkg_sasm = raw_settings.get('NormAbsCarbonSamEmptySASM')
+    bkg_sasm = raw_settings.get('NormAbsCarbonSamEmptySASM')
 
-        ctr_ups = raw_settings.get('NormAbsCarbonUpstreamCtr')
-        ctr_dns = raw_settings.get('NormAbsCarbonDownstreamCtr')
+    ctr_ups = raw_settings.get('NormAbsCarbonUpstreamCtr')
+    ctr_dns = raw_settings.get('NormAbsCarbonDownstreamCtr')
 
-        sample_ctrs = sasm.getParameter('imageHeader')
-        sample_file_hdr = sasm.getParameter('counters')
-        sample_ctrs.update(sample_file_hdr)
+    sample_ctrs = sasm.getParameter('imageHeader')
+    sample_file_hdr = sasm.getParameter('counters')
+    sample_ctrs.update(sample_file_hdr)
 
-        bkg_ctrs = bkg_sasm.getParameter('imageHeader')
-        bkg_file_hdr = bkg_sasm.getParameter('counters')
-        bkg_ctrs.update(bkg_file_hdr)
+    bkg_ctrs = bkg_sasm.getParameter('imageHeader')
+    bkg_file_hdr = bkg_sasm.getParameter('counters')
+    bkg_ctrs.update(bkg_file_hdr)
 
-        sample_ctr_ups_val = float(sample_ctrs[ctr_ups])
-        sample_ctr_dns_val = float(sample_ctrs[ctr_dns])
-        bkg_ctr_ups_val = float(bkg_ctrs[ctr_ups])
-        bkg_ctr_dns_val = float(bkg_ctrs[ctr_dns])
+    sample_ctr_ups_val = float(sample_ctrs[ctr_ups])
+    sample_ctr_dns_val = float(sample_ctrs[ctr_dns])
+    bkg_ctr_ups_val = float(bkg_ctrs[ctr_ups])
+    bkg_ctr_dns_val = float(bkg_ctrs[ctr_dns])
 
-        sample_trans = (sample_ctr_dns_val/sample_ctr_ups_val)/(bkg_ctr_dns_val/bkg_ctr_ups_val)
-        sasm.scaleBinnedIntensity(1./sample_ctr_ups_val)
-        bkg_sasm.scale((1./bkg_ctr_ups_val)*sample_trans)
+    sample_trans = (sample_ctr_dns_val/sample_ctr_ups_val)/(bkg_ctr_dns_val/bkg_ctr_ups_val)
+    sasm.scaleBinnedIntensity(1./sample_ctr_ups_val)
+    bkg_sasm.scale((1./bkg_ctr_ups_val)*sample_trans)
 
-        try:
-            sub_sasm = SASProc.subtract(sasm, bkg_sasm, forced = True, full = True)
-        except SASExceptions.DataNotCompatible:
-            sasm.scaleBinnedIntensity(sample_ctr_ups_val)
-            raise SASExceptions.AbsScaleNormFailed('Absolute scale failed because empty scattering could not be subtracted')
+    try:
+        sub_sasm = SASProc.subtract(sasm, bkg_sasm, forced = True, full = True)
+    except SASExceptions.DataNotCompatible:
+        sasm.scaleBinnedIntensity(sample_ctr_ups_val)
+        raise SASExceptions.AbsScaleNormFailed('Absolute scale failed because empty scattering could not be subtracted')
 
-        sub_sasm.scaleBinnedIntensity(1./(sample_trans)/sam_thick)
-        sub_sasm.scaleBinnedIntensity(abs_scale_constant)
+    sub_sasm.scaleBinnedIntensity(1./(sample_trans)/sam_thick)
+    sub_sasm.scaleBinnedIntensity(abs_scale_constant)
 
-        sasm.setBinnedQ(sub_sasm.getBinnedQ())
-        sasm.setBinnedI(sub_sasm.getBinnedI())
-        sasm.setBinnedErr(sub_sasm.getBinnedErr())
-        sasm.scale(1.)
-        sasm.setQrange((0,len(sasm.q)))
+    sasm.setBinnedQ(sub_sasm.getBinnedQ())
+    sasm.setBinnedI(sub_sasm.getBinnedI())
+    sasm.setBinnedErr(sub_sasm.getBinnedErr())
+    sasm.scale(1.)
+    sasm.setQrange((0,len(sasm.q)))
 
-        bkg_sasm.scale(1.)
+    bkg_sasm.scale(1.)
 
-    abs_scale_params = {'Absolute_scale_factor': abs_scale_constant,
-                        'Sample_thickness_[mm]': sam_thick,
-                        'Ignore_background': ignore_bkg,
-                        }
+    abs_scale_params = {
+        'Method'    : 'Glassy_carbon',
+        'Absolute_scale_factor': abs_scale_constant,
+        'Sample_thickness_[mm]': sam_thick,
+        'Ignore_background': ignore_bkg,
+        }
 
-    if not ignore_bkg:
-        abs_scale_params['Background_file'] = raw_settings.get('NormAbsCarbonSamEmptyFile')
-        abs_scale_params['Upstream_counter_name'] = ctr_ups
-        abs_scale_params['Downstream_counter_name'] = ctr_dns
-        abs_scale_params['Upstream_counter_value_sample'] = sample_ctr_ups_val
-        abs_scale_params['Downstream_counter_value_sample'] = sample_ctr_dns_val
-        abs_scale_params['Upstream_counter_value_background'] = bkg_ctr_ups_val
-        abs_scale_params['Downstream_counter_value_background'] = bkg_ctr_dns_val
-        abs_scale_params['Sample_transmission'] = sample_trans
+    abs_scale_params['Background_file'] = raw_settings.get('NormAbsCarbonSamEmptyFile')
+    abs_scale_params['Upstream_counter_name'] = ctr_ups
+    abs_scale_params['Downstream_counter_name'] = ctr_dns
+    abs_scale_params['Upstream_counter_value_sample'] = sample_ctr_ups_val
+    abs_scale_params['Downstream_counter_value_sample'] = sample_ctr_dns_val
+    abs_scale_params['Upstream_counter_value_background'] = bkg_ctr_ups_val
+    abs_scale_params['Downstream_counter_value_background'] = bkg_ctr_dns_val
+    abs_scale_params['Sample_transmission'] = sample_trans
 
     norm_parameter = sasm.getParameter('normalizations')
 
@@ -1676,10 +1658,8 @@ def normalizeAbsoluteScaleCarbon(sasm, raw_settings):
     return sasm, abs_scale_constant
 
 def postProcessImageSasm(sasm, raw_settings):
-    if raw_settings.get('NormAbsWater'):
-        normalizeAbsoluteScaleWater(sasm, raw_settings)
-
-    elif raw_settings.get('NormAbsCarbon'):
+    if (raw_settings.get('NormAbsCarbon') and
+        not raw_settings.get('NormAbsCarbonIgnoreBkg')):
         normalizeAbsoluteScaleCarbon(sasm, raw_settings)
 
 def postProcessSasm(sasm, raw_settings):

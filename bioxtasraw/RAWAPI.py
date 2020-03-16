@@ -38,6 +38,7 @@ import SASCalc
 import SASExceptions
 import SASFileIO
 import SASImage
+import SASMask
 import SASM
 import SASProc
 import RAWSettings
@@ -60,7 +61,7 @@ def load_settings(file, settings=None):
             masks = mask_dict[each_key][1]
 
             if masks is not None:
-                mask_img = SASImage.createMaskMatrix(img_dim, masks)
+                mask_img = SASMask.createMaskMatrix(img_dim, masks)
                 mask_param = mask_dict[each_key]
                 mask_param[0] = mask_img
                 mask_param[1] = masks

@@ -39,7 +39,7 @@ RAWWorkDir = ''
 RAWResourcesDir = ''
 RAWDefinitionsDir = ''
 
-usepyFAI_integration = False
+usepyFAI_integration = True
 
 version = '2.0.0'
 

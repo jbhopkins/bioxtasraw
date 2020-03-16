@@ -59,56 +59,15 @@ import SASM
 import SASExceptions
 import SASProc
 
-def createSASMFromImage(img_array, parameters = {}, x_c = None, y_c = None, mask = None,
-                        readout_noise_mask = None, tbs_mask = None, dezingering = 0, dezing_sensitivity = 4):
-    '''
-        Load measurement. Loads an image file, does pre-processing:
-        masking, radial average and returns a measurement object
-    '''
-    if mask is not None:
-        if mask.shape != img_array.shape:
-            raise SASExceptions.MaskSizeError('Beamstop mask is the wrong size. Please' +
-                            ' create a new mask or remove the old to make this plot.')
-
-    if readout_noise_mask is not None:
-        if readout_noise_mask.shape != img_array.shape:
-            raise SASExceptions.MaskSizeError('Readout-noise mask is the wrong size. Please' +
-                            ' create a new mask or remove the old to make this plot.')
-
-    if tbs_mask is not None:
-        if tbs_mask.shape != img_array.shape:
-            raise SASExceptions.MaskSizeError('ROI Counter mask is the wrong size. Please' +
-                            ' create a new mask or remove the old to make this plot.')
-
-    try:
-        [i_raw, q_raw, err_raw, qmatrix] = SASImage.radialAverage(img_array, x_c, y_c, mask, readout_noise_mask, dezingering, dezing_sensitivity)
-    except IndexError as msg:
-        print('Center coordinates too large: ' + str(msg))
-
-        x_c = img_array.shape[1]//2
-        y_c = img_array.shape[0]//2
-
-        [i_raw, q_raw, err_raw, qmatrix] = SASImage.radialAverage(img_array, x_c, y_c, mask, readout_noise_mask, dezingering, dezing_sensitivity)
-
-        #wx.CallAfter(wx.MessageBox, "The center coordinates are too large for this image, used image center instead.",
-        # "Center coordinates does not fit image", wx.OK | wx.ICON_ERROR)
-
-    err_raw_non_nan = np.nan_to_num(err_raw)
-
-    if tbs_mask is not None:
-        roi_counter = img_array[tbs_mask==1].sum()
-        parameters['counters']['roi_counter'] = roi_counter
-
-    sasm = SASM.SASM(i_raw, q_raw, err_raw_non_nan, parameters)
-
-    return sasm
-
 ############################
 #--- ## Load image files: ##
 ############################
 
-def loadFabio(filename):
-    fabio_img = fabio.open(filename)
+def loadFabio(filename, hdf5_file=None):
+    if hdf5_file is None:
+        fabio_img = fabio.open(filename)
+    else:
+        fabio_img = hdf5_file
 
     if fabio_img.nframes == 1:
         data = fabio_img.data
@@ -128,6 +87,8 @@ def loadFabio(filename):
             fabio_img = fabio_img.next()
             img[i] = fabio_img.data
             img_hdr[i] = fabio_img.getheader()
+
+    fabio_img.close()
 
     return img, img_hdr
 
@@ -1071,7 +1032,7 @@ def loadHeader(filename, new_filename, header_type):
 
     return hdr
 
-def loadImage(filename, raw_settings):
+def loadImage(filename, raw_settings, hdf5_file=None):
     ''' returns the loaded image based on the image filename
     and image type. '''
     image_type = raw_settings.get('ImageFormat')
@@ -1079,7 +1040,10 @@ def loadImage(filename, raw_settings):
     flipud = raw_settings.get('DetectorFlipUD')
 
     try:
-        img, imghdr = all_image_types[image_type](filename)
+        if all_image_types[image_type] == loadFabio:
+            img, imghdr = all_image_types[image_type](filename, hdf5_file)
+        else:
+            img, imghdr = all_image_types[image_type](filename)
     except (ValueError, TypeError, KeyError, fabio.fabioutils.NotGoodReader, Exception) as msg:
         # print msg
         raise SASExceptions.WrongImageFormat('Error loading image, ' + str(msg))
@@ -1127,37 +1091,26 @@ def loadFile(filename, raw_settings, no_processing = False):
 
     if file_type == 'hdf5':
         try:
-            fabio.open(filename)
+            hdf5_file = fabio.open(filename)
             file_type = 'image'
         except Exception:
             pass
+    else:
+        hdf5_file = None
 
     if file_type == 'image':
         try:
-            sasm, img = loadImageFile(filename, raw_settings)
+            sasm, img = loadImageFile(filename, raw_settings, hdf5_file)
         except (ValueError, AttributeError) as msg:
             print('SASFileIO.loadFile : ' + str(msg))
             raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
 
-        if not RAWGlobals.usepyFAI_integration:
-            try:
-                sasm = SASImage.calibrateAndNormalize(sasm, img, raw_settings)
-            except (ValueError, NameError) as msg:
-                print(msg)
-
         #Always do some post processing for image files
         if not isinstance(sasm, list):
             sasm = [sasm]
-        for current_sasm in sasm:
-            current_sasm.setParameter('config_file', raw_settings.get('CurrentCfg'))
-            SASM.postProcessSasm(current_sasm, raw_settings)
 
-            # Add meta data if any is defined.
-            if raw_settings.get('EnableMetadata'):
-                meta_list = raw_settings.get('MetadataList')
-                if meta_list is not None and len(meta_list) > 0:
-                    metadata = {key:value for (key, value) in meta_list}
-                    current_sasm.setParameter('metadata', metadata)
+        for current_sasm in sasm:
+            SASM.postProcessSasm(current_sasm, raw_settings) #Does dezingering
 
             if not no_processing:
                 #Need to do a little work before we can do glassy carbon normalization
@@ -1174,6 +1127,7 @@ def loadFile(filename, raw_settings, no_processing = False):
                         raw_settings.set('NormAbsCarbonSamEmptySASM', bkg_sasm)
 
                 try:
+                    #Does fully glassy carbon abs scale
                     SASM.postProcessImageSasm(current_sasm, raw_settings)
                 except SASExceptions.AbsScaleNormFailed:
                     raise
@@ -1234,21 +1188,12 @@ def loadAsciiFile(filename, file_type):
     return sasm
 
 
-def loadImageFile(filename, raw_settings):
-    img_fmt = raw_settings.get('ImageFormat')
+def loadImageFile(filename, raw_settings, hdf5_file=None):
     hdr_fmt = raw_settings.get('ImageHdrFormat')
 
-    loaded_data, loaded_hdr = loadImage(filename, raw_settings)
+    loaded_data, loaded_hdr = loadImage(filename, raw_settings, hdf5_file)
 
     sasm_list = [None for i in range(len(loaded_data))]
-
-    #Pre-load the flatfield file, so it's not loaded every time
-    if raw_settings.get('NormFlatfieldEnabled'):
-        flatfield_filename = raw_settings.get('NormFlatfieldFile')
-        if flatfield_filename is not None:
-            flatfield_img, flatfield_img_hdr = loadImage(flatfield_filename, raw_settings)
-            flatfield_hdr = loadHeader(flatfield_filename, flatfield_filename, hdr_fmt)
-            flatfield_img = np.average(flatfield_img, axis=0)
 
     #Process all loaded images into sasms
     for i in range(len(loaded_data)):
@@ -1278,125 +1223,12 @@ def loadImageFile(filename, raw_settings):
                 parameters['Conc'] = parameters['counters'][key]
                 break
 
-        x_c = raw_settings.get('Xcenter')
-        y_c = raw_settings.get('Ycenter')
-
-        ## Read center coordinates from header?
-        if raw_settings.get('UseHeaderForCalib'):
-            try:
-                x_y = SASImage.getBindListDataFromHeader(raw_settings, img_hdr, hdrfile_info, keys = ['Beam X Center', 'Beam Y Center'])
-
-                if x_y[0] is not None: x_c = x_y[0]
-                if x_y[1] is not None: y_c = x_y[1]
-            except ValueError:
-                pass
-            except TypeError:
-                raise SASExceptions.HeaderLoadError('Error loading header, file corrupt?')
-
-        # ********************
-        # If the file is a SAXSLAB file, then get mask parameters from the header and modify the mask
-        # then apply it...
-        #
-        # Mask should be not be changed, but should be created here. If no mask information is found, then
-        # use the user created mask. There should be a force user mask setting.
-        #
-        # ********************
-
-        masks = raw_settings.get('Masks')
-
-        use_hdr_mask = raw_settings.get('UseHeaderForMask')
-        use_hdr_config = raw_settings.get('UseHeaderForConfig')
-
-        if use_hdr_mask and img_fmt == 'SAXSLab300':
-            try:
-                mask_patches = SASImage.createMaskFromHdr(img, img_hdr, flipped = raw_settings.get('DetectorFlipped90'))
-                bs_mask_patches = masks['BeamStopMask'][1]
-
-                if bs_mask_patches is not None:
-                    all_mask_patches = mask_patches + bs_mask_patches
-                else:
-                    all_mask_patches = mask_patches
-
-                bs_mask = SASImage.createMaskMatrix(img.shape, all_mask_patches)
-            except KeyError:
-                raise SASExceptions.HeaderMaskLoadError('bsmask_configuration not found in header.')
-
-            dc_mask = masks['ReadOutNoiseMask'][0]
-        else:
-            bs_mask = masks['BeamStopMask'][0]
-            dc_mask = masks['ReadOutNoiseMask'][0]
-
-
-        if use_hdr_config:
-            import RAWSettings
-
-            prefix = SASImage.getBindListDataFromHeader(raw_settings, img_hdr, hdrfile_info, keys = ['Config Prefix'])[0]
-
-            if prefix is None:
-               raise SASExceptions.ImageLoadError(['"Use header for new config load" is enabled in General Settings.\n',
-                                                   'The binding "Config Prefix" was however not found in header,',
-                                                   'not set in header options (See "Image/Header Format" in options) or not a number.'])
-            else: prefix = str(int(prefix))
-
-            settings_folder = raw_settings.get('HdrLoadConfigDir')
-
-            # If the folder is not set.. look in the folder where the image is
-            if settings_folder == 'None' or settings_folder == '':
-                settings_folder, fname = os.path.split(filename)
-
-            settings_path = os.path.join(settings_folder, str(prefix) + '.cfg')
-
-            if not os.path.exists(settings_path):
-                raise SASExceptions.ImageLoadError(['"Use header for new config load" is enabled in General Settings.\n',
-                                                    'Config file ' + settings_path + ' does not exist.',
-                                                    'Check the path in the "General Settings" options. Clear the field to make RAW look for the config file in the same folder as the image.'])
-
-            RAWSettings.loadSettings(raw_settings, settings_path, auto_load = True)
-
-            mask_dict = raw_settings.get('Masks')
-            img_dim = raw_settings.get('MaskDimension')
-
-            #Create the masks
-            for each_key in mask_dict:
-                masks = mask_dict[each_key][1]
-
-                if masks is not None:
-                    mask_img = SASImage.createMaskMatrix(img_dim, masks)
-                    mask_param = mask_dict[each_key]
-                    mask_param[0] = mask_img
-                    mask_param[1] = masks
-
-            masks = raw_settings.get('Masks')
-            bs_mask = masks['BeamStopMask'][0]
-
-        tbs_mask = masks['TransparentBSMask'][0]
-
-        # ********* WARNING WARNING WARNING ****************#
-        # Hmm.. axes start from the lower left, but array coords starts
-        # from upper left:
-        #####################################################
-        y_c = img.shape[0]-y_c
-
-        if not RAWGlobals.usepyFAI_integration:
-            # print 'Using standard RAW integration'
-            ## Flatfield correction.. this part gets moved to a image correction function later
-            if raw_settings.get('NormFlatfieldEnabled'):
-                if flatfield_filename is not None:
-                    img, img_hdr = SASImage.doFlatfieldCorrection(img, img_hdr, flatfield_img, flatfield_hdr)
-                else:
-                    pass #Raise some error
-
-            dezingering = raw_settings.get('ZingerRemovalRadAvg')
-            dezing_sensitivity = raw_settings.get('ZingerRemovalRadAvgStd')
-
-            sasm = createSASMFromImage(img, parameters, x_c, y_c, bs_mask, dc_mask, tbs_mask, dezingering, dezing_sensitivity)
-
-        else:
-            sasm = SASImage.pyFAIIntegrateCalibrateNormalize(img, parameters, x_c, y_c, raw_settings, bs_mask, tbs_mask)
+        sasm = SASImage.integrateCalibrateNormalize(img, parameters, raw_settings)
 
         ### Check for UV data if set in bindlist
         if raw_settings.get('UseHeaderForCalib'):
-            uvvis = SASImage.getBindListDataFromHeader(raw_settings, img_hdr, hdrfile_info, keys = ['UV Path Length', 'UV Transmission', 'UV Dark Transmission'])
+            uvvis = SASImage.getBindListDataFromHeader(raw_settings, img_hdr,
+                hdrfile_info, keys=['UV Path Length', 'UV Transmission', 'UV Dark Transmission'])
 
             if not all(v is None for v in uvvis):
                 sasm._parameters['analysis']['uvvis'] = {'UVPathlength'       : uvvis[0],
@@ -3769,6 +3601,8 @@ def readSettings(filename):
 
 def find_global(module, name):
     if module == 'SASImage':
+        module = 'SASMask'
+
         if name == 'RectangleMask':
             name = '_oldMask'
         elif name == 'CircleMask':

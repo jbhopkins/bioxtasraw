@@ -213,7 +213,6 @@ class CalibrationOptionsPanel(wx.Panel):
         self.update_keys = ['SampleDistance',
                             'WaveLength',
                             'DetectorPixelSize',
-                            'CalibrateMan',
                             'Xcenter',
                             'Ycenter',
                             'Binsize',
@@ -226,8 +225,6 @@ class CalibrationOptionsPanel(wx.Panel):
                                    ("Wavelength:"               , raw_settings.getId('WaveLength') , 'A'),
                                    #("Sample thickness:", raw_settings.getId('SampleThickness'), 'mm'),
                                    ("Detector Pixel Size:",            raw_settings.getId('DetectorPixelSize'), 'um'))
-
-        self.treatmentdata = [("Calibrate Q-range",  raw_settings.getId('CalibrateMan'))]
 
         self.expsettingsdata = (("Beam X center:", raw_settings.getId('Xcenter')),
                                 ("Beam Y center:", raw_settings.getId('Ycenter')))
@@ -242,7 +239,6 @@ class CalibrationOptionsPanel(wx.Panel):
         static_box_sizer.Add(reduction_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
 
         constantsSizer = self.createCalibConstants()
-        treatmentSizer = self.createTreatmentData()
 
         # recalc_button = wx.Button(self, -1, 'Re-calculate')
         # recalc_button.Bind(wx.EVT_BUTTON, self.onRecalcButton)
@@ -251,7 +247,6 @@ class CalibrationOptionsPanel(wx.Panel):
         panelsizer = wx.BoxSizer(wx.VERTICAL)
         panelsizer.Add(static_box_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
         panelsizer.Add(constantsSizer, 0, wx.EXPAND | wx.ALL, 5)
-        panelsizer.Add(treatmentSizer, 0, wx.EXPAND | wx.BOTTOM | wx.RIGHT | wx.LEFT, 5)
         panelsizer.Add((1,1), 1, wx.EXPAND)
         # panelsizer.Add(recalc_button, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
 
@@ -318,20 +313,6 @@ class CalibrationOptionsPanel(wx.Panel):
         chkboxSizer.Add(calibSizer, 1, wx.EXPAND | wx.ALIGN_CENTER | wx.ALL, 5)
 
         return chkboxSizer
-
-    def createTreatmentData(self):
-
-        box = wx.StaticBox(self, -1, 'Calibration Options')
-        staticBoxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-
-        treatmentSizer = wx.BoxSizer(wx.VERTICAL)
-        for each, id in self.treatmentdata:
-            chkBox = wx.CheckBox(self, id, each)
-            treatmentSizer.Add(chkBox, 0)
-
-        staticBoxSizer.Add(treatmentSizer, 0, wx.BOTTOM | wx.LEFT, 5)
-
-        return staticBoxSizer
 
 
 class HeaderListCtrl(wx.ListCtrl):
@@ -2574,10 +2555,6 @@ class IftOptionsPanel(wx.Panel):
 
         self.update_keys = ['maxDmax','minDmax','DmaxPoints','maxAlpha','minAlpha',
                             'AlphaPoints','PrPoints', 'mcRuns']
-                            # 'pygnomMaxAlpha','pygnomMinAlpha',
-                            # 'pygnomAlphaPoints','pygnomPrPoints','pyOSCILLweight','pyVALCENweight',
-                            # 'pyPOSITVweight','pySYSDEVweight','pySTABILweight','pyDISCRPweight',
-                            # 'pygnomFixInitZero' ]
 
         self.bift_options_data = (("Dmax Upper Bound: ",   raw_settings.getId('maxDmax')),
                                 ("Dmax Lower Bound: ",   raw_settings.getId('minDmax')),
@@ -2588,19 +2565,6 @@ class IftOptionsPanel(wx.Panel):
                                 ("P(r) Points:",         raw_settings.getId('PrPoints')),
                                 ("Monte Carlo Error Runs:", raw_settings.getId('mcRuns')),
                                 )
-
-        self.gnom_options_data = (("Alpha Upper Bound:",   raw_settings.getId('pygnomMaxAlpha')),
-                                ("Alpha Lower Bound:",   raw_settings.getId('pygnomMinAlpha')),
-                                ("Alpha Search Points:", raw_settings.getId('pygnomAlphaPoints')),
-                                ("P(r) Points:",         raw_settings.getId('pygnomPrPoints')),
-                                ("OSCILL weight:",       raw_settings.getId('pyOSCILLweight')),
-                                ("VALCEN weight:",       raw_settings.getId('pyVALCENweight')),
-                                ("POSITV weight:",       raw_settings.getId('pyPOSITVweight')),
-                                ("SYSDEV weight:",       raw_settings.getId('pySYSDEVweight')),
-                                ("STABIL weight:",       raw_settings.getId('pySTABILweight')),
-                                ("DISCRP weight:",       raw_settings.getId('pyDISCRPweight')))
-
-        self.gnom_chkbox_data = (("Force P(r=0) to zero:", raw_settings.getId('pygnomFixInitZero')), [])
 
         notebook = wx.Notebook(self, -1)
 
@@ -2614,26 +2578,10 @@ class IftOptionsPanel(wx.Panel):
         bift_sizer.Add(chkbox_sizer, 1, wx.EXPAND | wx.ALL, 5)
         bift_panel.SetSizer(bift_sizer)
 
-
-        # gnom_panel = wx.Panel(notebook, -1)
-        # box2 = wx.StaticBox(gnom_panel, -1, 'pyGNOM Parameters')
-
-        # gnom_options_sizer = self.createGnomOptions(gnom_panel)
-
-        # chkbox_sizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
-        # chkbox_sizer2.Add(gnom_options_sizer, 1, wx.EXPAND | wx.ALL, 5)
-
-        # gnom_sizer = wx.BoxSizer(wx.VERTICAL)
-        # gnom_sizer.Add(chkbox_sizer2, 1, wx.EXPAND | wx.ALL, 5)
-        # gnom_panel.SetSizer(gnom_sizer)
-
         notebook.AddPage(bift_panel, "BIFT")
-        # notebook.AddPage(gnom_panel, "pyGNOM")
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(notebook, 1, wx.EXPAND | wx.ALL, 5)
-        #topSizer.Add(chkbox_sizer, 0, wx.EXPAND | wx.ALL, 5)
-        #topSizer.Add(chkbox_sizer2, 1, wx.EXPAND | wx.ALL, 5)
 
         self.SetSizer(top_sizer)
 

@@ -36,7 +36,7 @@ import wx
 import numpy as np
 
 import RAWGlobals
-import SASImage
+import SASMask
 import SASCalib
 import RAWCustomCtrl
 
@@ -690,7 +690,7 @@ class ImagePanel(wx.Panel):
                 else:
                     start_negative = False
 
-                mask = SASImage.PolygonMask(points, self._createNewMaskNumber(), self.img.shape, negative = start_negative)
+                mask = SASMask.PolygonMask(points, self._createNewMaskNumber(), self.img.shape, negative = start_negative)
 
                 if self._resizing and self._resize_is_negative_mask:
                     new_mask.setAsNegativeMask()
@@ -788,7 +788,7 @@ class ImagePanel(wx.Panel):
             menu.AppendRadioItem(1, 'Normal Mask')
             i2 = menu.AppendRadioItem(2, 'Inverted Mask')
 
-            if not isinstance(self._selected_patch.mask, SASImage.PolygonMask):
+            if not isinstance(self._selected_patch.mask, SASMask.PolygonMask):
                 menu.Append(3, 'Resize')
 
             if self._selected_patch.mask.isNegativeMask() == True:
@@ -823,11 +823,11 @@ class ImagePanel(wx.Panel):
         self._resizing = True
         points = self._selected_patch.mask.getPoints()
 
-        if isinstance(self._selected_patch.mask, SASImage.CircleMask):
+        if isinstance(self._selected_patch.mask, SASMask.CircleMask):
             self.current_tool = 'circle'
             self._addCirclePoint(points[0][0], points[0][1], None)
 
-        elif isinstance(self._selected_patch.mask, SASImage.RectangleMask):
+        elif isinstance(self._selected_patch.mask, SASMask.RectangleMask):
             self.current_tool = 'rectangle'
             self._addRectanglePoint(points[0][0], points[0][1], None)
 
@@ -1296,7 +1296,7 @@ class ImagePanel(wx.Panel):
             self._plotting_in_progress = True
 
     def create_rect_mask(self, x_points, y_points, negative, plot=True):
-        new_mask = SASImage.RectangleMask((x_points[0], y_points[0]),
+        new_mask = SASMask.RectangleMask((x_points[0], y_points[0]),
             (x_points[1], y_points[1]), self._createNewMaskNumber(),
             self.img.shape, negative=negative)
 
@@ -1312,7 +1312,7 @@ class ImagePanel(wx.Panel):
             self.plotStoredMasks()
 
     def create_circ_mask(self, x_points, y_points, negative, plot=True):
-        new_mask = SASImage.CircleMask((x_points[0], y_points[0]),
+        new_mask = SASMask.CircleMask((x_points[0], y_points[0]),
             (x_points[1], y_points[1]), self._createNewMaskNumber(),
             self.img.shape, negative=negative)
 
