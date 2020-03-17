@@ -1,7 +1,7 @@
-'''
-Created on Jul 7, 2010
+"""
+Created on March 16, 2020
 
-@author: specuser
+@author: Jesse Hopkins
 
 #******************************************************************************
 # This file is part of RAW.
@@ -20,7 +20,9 @@ Created on Jul 7, 2010
 #    along with RAW.  If not, see <http://www.gnu.org/licenses/>.
 #
 #******************************************************************************
-'''
+
+This file contains masking functions for RAW.
+"""
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import object, range, map, zip

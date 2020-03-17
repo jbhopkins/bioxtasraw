@@ -97,6 +97,7 @@ import RAWGlobals
 import RAWCustomDialogs
 from RAWGlobals import mainworker_cmd_queue
 import SASProc
+import SASUtils
 
 thread_wait_event = threading.Event()
 question_return_queue = queue.Queue()
@@ -465,10 +466,12 @@ class MainFrame(wx.Frame):
                 self.plot_notebook.SetSelection(page)
 
 
-    def showQuestionDialogFromThread(self, question, label, button_list, icon = None, filename = None, save_path = None):
+    def showQuestionDialogFromThread(self, question, label, button_list,
+        icon = None, filename = None, save_path = None):
         ''' Function to show a question dialog from the thread '''
 
-        question_dialog = RAWCustomDialogs.CustomQuestionDialog(self, question, button_list, label, icon, filename, save_path, style = wx.CAPTION | wx.RESIZE_BORDER)
+        question_dialog = RAWCustomDialogs.CustomQuestionDialog(self, question,
+            button_list, label, icon, filename, save_path, style = wx.CAPTION | wx.RESIZE_BORDER)
         result = question_dialog.ShowModal()
         path = question_dialog.getPath()
         question_dialog.Destroy()
@@ -11326,21 +11329,7 @@ class MaskingPanel(wx.Panel):
 
     def _getDetList(self):
 
-        extra_det_list = ['detector']
-
-        final_dets = pyFAI.detectors.ALL_DETECTORS
-
-        for key in extra_det_list:
-            if key in final_dets:
-                final_dets.pop(key)
-
-        for key in copy.copy(list(final_dets.keys())):
-            if '_' in key:
-                reduced_key = ''.join(key.split('_'))
-                if reduced_key in final_dets:
-                    final_dets.pop(reduced_key)
-
-        det_list = ["Other"] + sorted(list(final_dets.keys()), key=str.lower)
+        det_list = SASUtils.get_det_list()
 
         return det_list
 

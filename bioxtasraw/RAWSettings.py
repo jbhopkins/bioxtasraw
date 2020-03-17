@@ -104,6 +104,7 @@ class RawGuiSettings(object):
                 'AngularUnit'               : ['q_A^-1', wx.NewId(), 'choice'],
                 'ErrorModel'                : ['azimuthal', wx.NewId(), 'choice'],
                 'UseImageForVariance'       : [False, wx.NewId(), 'bool'],
+                'AzimuthalIntegrator'       : [None],
 
                 #Dark correction
                 'DarkCorrEnabled'       : [False,   wx.NewId(),  'bool'],
@@ -626,7 +627,9 @@ def saveSettings(raw_settings, savepath):
 
     param_dict = raw_settings.getAllParams()
 
-    exclude_keys = ['ImageFormatList', 'ImageHdrFormatList', 'BackgroundSASM', 'CurrentCfg', 'csvIncludeData', 'CompatibleFormats', 'DataSECM', 'NormAbsCarbonSamEmptySASM']
+    exclude_keys = ['ImageFormatList', 'ImageHdrFormatList', 'BackgroundSASM',
+    'CurrentCfg', 'csvIncludeData', 'CompatibleFormats', 'DataSECM',
+    'NormAbsCarbonSamEmptySASM', 'AzimuthalIntegrator']
 
     save_dict = {}
 

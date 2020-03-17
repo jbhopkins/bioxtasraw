@@ -48,6 +48,7 @@ import RAWGlobals
 import SASFileIO
 import SASParser
 import SASExceptions
+import SASUtils
 
 
 #--- ** TREE BOOK PANELS **
@@ -347,17 +348,7 @@ class CalibrationOptionsPanel(wx.Panel):
         return ctrl_sizer
 
     def _get_detectors(self):
-        final_dets = pyFAI.detectors.ALL_DETECTORS
-
-        for key in copy.copy(list(final_dets.keys())):
-            if '_' in key:
-                reduced_key = ''.join(key.split('_'))
-                if reduced_key in final_dets:
-                    final_dets.pop(reduced_key)
-
-        det_list = list(final_dets.keys())
-        det_list.append('Other')
-        det_list = sorted(det_list, key=str.lower)
+        det_list = SASUtils.get_det_list()
 
         return det_list
 

@@ -28,6 +28,8 @@ from io import open
 
 import sys
 import math
+import time
+import traceback
 
 import numpy as np
 from numba import jit, prange
@@ -156,6 +158,7 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
     angular_unit = raw_settings.get('AngularUnit')
     error_model = raw_settings.get('ErrorModel')
     use_image_for_variance = raw_settings.get('UseImageForVariance')
+    ai = raw_settings.get('AzimuthalIntegrator')
 
     if not do_polarization:
         polarization_factor = None
@@ -364,11 +367,29 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
     #Put everything in appropriate units
     wavelength = wavelength*1e-10 #convert wl to m
 
-    ai = pyFAI.azimuthalIntegrator.AzimuthalIntegrator()
+    if ai is None:
+        ai = pyFAI.azimuthalIntegrator.AzimuthalIntegrator()
 
-    ai.set_wavelength(wavelength)
-    ai.setFit2D(sd_distance, x_c, y_c, det_tilt, det_tilt_plan_rot, pixel_size_x,
-        pixel_size_y)
+    if wavelength != ai.get_wavelength():
+        ai.set_wavelength(wavelength)
+
+    try:
+        ai_settings = ai.getFit2D()
+        reinitialize_ai = not (round(ai_settings['directDist'], 10) == round(sd_distance, 10)
+            and round(ai_settings['centerX'], 10) == round(x_c, 10)
+            and round(ai_settings['centerY'], 10) == round(y_c, 10)
+            and round(ai_settings['tilt'], 10) == round(det_tilt, 10)
+            and round(ai_settings['tiltPlanRotation'], 10) == round(det_tilt_plan_rot, 10)
+            and round(ai.get_pixel2()*1e6, 10) == round(pixel_size_x, 10)
+            and round(ai.get_pixel1()*1e6, 10) == round(pixel_size_y, 10))
+    except Exception:
+        reinitialize_ai = True
+
+    if reinitialize_ai:
+        ai.setFit2D(sd_distance, x_c, y_c, det_tilt, det_tilt_plan_rot, pixel_size_x,
+            pixel_size_y)
+
+        raw_settings.set('AzimuthalIntegrator', ai)
 
     if do_flatfield:
         flatfield_filename = raw_settings.get('NormFlatfieldFile')
