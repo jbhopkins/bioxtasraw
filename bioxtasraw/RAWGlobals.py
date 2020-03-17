@@ -27,6 +27,12 @@ except Exception:
 
 import sys
 
+try:
+    import pyopencl
+    has_pyopencl = True
+except Exception:
+    has_pyopencl = False
+
 mainworker_cmd_queue = queue.Queue()
 
 #Checks whether RAW is running in a compiled (frozen) version or a live interpreter

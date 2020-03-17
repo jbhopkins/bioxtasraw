@@ -116,7 +116,7 @@ class RawGuiSettings(object):
                 #Q-CALIBRATION
                 'WaveLength'            : [1.0,  wx.NewId(), 'float'],
                 'SampleDistance'        : [1000, wx.NewId(), 'float'],
-                'Detector'              : ['None', wx.NewId(), 'choice'],
+                'Detector'              : ['Other', wx.NewId(), 'choice'],
                 'DetectorPixelSizeX'    : [172.0, wx.NewId(), 'float'],
                 'DetectorPixelSizeY'    : [172.0, wx.NewId(), 'float'],
                 'DetectorTilt'          : [0.0, wx.NewId(), 'float'],
@@ -196,12 +196,14 @@ class RawGuiSettings(object):
                 'UseHeaderForCalib'    : [False, wx.NewId(), 'bool'],
 
                 # Header bind list with [(Description : parameter key, header_key)]
-                'HeaderBindList'       : [{'Beam X Center'            : ['Xcenter',           None, ''],
-                                           'Beam Y Center'            : ['Ycenter',           None, ''],
-                                           'Sample Detector Distance' : ['SampleDistance',    None, ''],
-                                           'Wavelength'               : ['WaveLength',        None, ''],
-                                           'Detector X Pixel Size'    : ['DetectorPixelSizeX', None, ''],
-                                           'Detector X Pixel Size'    : ['DetectorPixelSizeX', None, ''],
+                'HeaderBindList'       : [{'Beam X Center'              : ['Xcenter',           None, ''],
+                                           'Beam Y Center'              : ['Ycenter',           None, ''],
+                                           'Sample Detector Distance'   : ['SampleDistance',    None, ''],
+                                           'Wavelength'                 : ['WaveLength',        None, ''],
+                                           'Detector X Pixel Size'      : ['DetectorPixelSizeX', None, ''],
+                                           'Detector Y Pixel Size'      : ['DetectorPixelSizeY', None, ''],
+                                           'Detector Tilt'              : ['DetectorTilt', None, ''],
+                                           'Detector Tilt Plane Rotation':['DetectorTiltPlanRot', None, ''],
                                            }],
                                            # 'Number of Frames'         : ['NumberOfFrames',    None, '']}],
 
@@ -552,6 +554,9 @@ def postProcess(raw_settings, default_settings, loaded_param):
             masks[mask_type][1] = mask_list
 
     raw_settings.set('Masks', masks)
+
+    if 'ocl' in raw_settings.get('IntegrationMethod') and not RAWGlobals.has_pyopencl:
+        raw_settings.set('IntegrationMethod', default_settings['IntegrationMethod'][0])
 
     dir_check_list = [('AutoSaveOnImageFiles', 'ProcessedFilePath'), ('AutoSaveOnAvgFiles', 'AveragedFilePath'),
                     ('AutoSaveOnSub', 'SubtractedFilePath'), ('AutoSaveOnBift', 'BiftFilePath'),

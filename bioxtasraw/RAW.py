@@ -3734,14 +3734,6 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(file_list.SetFocus)
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
-    def _calibrateSASM(self, sasm):
-
-        sd_distance = self._raw_settings.get('SampleDistance')
-        pixel_size = self._raw_settings.get('DetectorPixelSizeX')
-        wavelength = self._raw_settings.get('WaveLength')
-
-        sasm.calibrateQ(sd_distance, pixel_size, wavelength)
-
     def _showDataFormatError(self, filename, include_ascii = True, include_sec = False):
         img_fmt = self._raw_settings.get('ImageFormat')
 
@@ -11106,7 +11098,7 @@ class MaskingPanel(wx.Panel):
         pixel_sizer.Add(auto_pixel_btn, border=15, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
 
         self.auto_det_type = wx.Choice(self, choices=self._getDetList(), size=(150,-1))
-        self.auto_det_type.SetStringSelection('pilatus1m')
+        self.auto_det_type.SetStringSelection(self._main_frame.raw_settings.get('Detector'))
         auto_det_btn = wx.Button(self, label='Create')
         auto_det_btn.Bind(wx.EVT_BUTTON, self._on_auto_det_mask)
 
@@ -11276,10 +11268,11 @@ class MaskingPanel(wx.Panel):
 
     def _on_auto_det_mask(self,event):
         det_sel = self.auto_det_type.GetStringSelection()
-        det = pyFAI.detector_factory(det_sel)
-        comp = det.get_mask()
+        if det_sel != "Other":
+            det = pyFAI.detector_factory(det_sel)
+            comp = det.get_mask()
 
-        self._maskConditional(comp)
+            self._maskConditional(comp)
 
     def _maskConditional(self, comp):
         selected_mask = self.selector_choice.GetStringSelection()
@@ -11341,7 +11334,13 @@ class MaskingPanel(wx.Panel):
             if key in final_dets:
                 final_dets.pop(key)
 
-        det_list = sorted(list(final_dets.keys()), key=str.lower)
+        for key in copy.copy(list(final_dets.keys())):
+            if '_' in key:
+                reduced_key = ''.join(key.split('_'))
+                if reduced_key in final_dets:
+                    final_dets.pop(reduced_key)
+
+        det_list = ["Other"] + sorted(list(final_dets.keys()), key=str.lower)
 
         return det_list
 
@@ -11570,14 +11569,19 @@ class CenteringPanel(wx.Panel):
         self._fix_list = [  ('Wavelength', self.NewControlId()),
                             ('S-D Dist.', self.NewControlId()),
                             ('Beam X', self.NewControlId()),
-                            ('Beam Y', self.NewControlId())
+                            ('Beam Y', self.NewControlId()),
+                            ('Det. Angles', self.NewControlId()),
                         ]
 
-        self._fix_keywords = {self._fix_list[0][1]      : 'wavelength',
-                                self._fix_list[1][1]    : 'dist',
-                                self._fix_list[2][1]    : 'poni2',
-                                self._fix_list[3][1]    : 'poni1'
-                            }
+        self._fix_keywords = [
+            (self._fix_list[0][1], 'wavelength'),
+            (self._fix_list[1][1], 'dist'),
+            (self._fix_list[2][1], 'poni2'),
+            (self._fix_list[3][1], 'poni1'),
+            (self._fix_list[4][1], 'rot1'),
+            (self._fix_list[4][1], 'rot2'),
+            (self._fix_list[4][1], 'rot3'),
+            ]
 
         self.pyfai_autofit_ids = {  'ring':         self.NewControlId(),
                                     'detector':     self.NewControlId(),
@@ -11646,7 +11650,7 @@ class CenteringPanel(wx.Panel):
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        fix_ctrl_sizer = wx.FlexGridSizer(cols = 4, rows = int(len(self._fix_list)/4. + .5), hgap = 3, vgap = 3)
+        fix_ctrl_sizer = wx.FlexGridSizer(cols = 4, hgap = 3, vgap = 3)
 
         for label, newid in self._fix_list:
             chkbox = wx.CheckBox(self, newid, label)
@@ -11669,7 +11673,7 @@ class CenteringPanel(wx.Panel):
         ring_ctrl.SetValue(0)
         ring_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onAutoRingSpinner)
 
-        ring_remove_btn = wx.Button(self, self.pyfai_autofit_ids['remove_pts'], 'Clear All Points In Ring')
+        ring_remove_btn = wx.Button(self, self.pyfai_autofit_ids['remove_pts'], 'Clear Last Selected Points')
         ring_remove_btn.Bind(wx.EVT_BUTTON, self._onAutoRingRemoveButton)
         ring_remove_btn.Enable(False)
 
@@ -11682,7 +11686,7 @@ class CenteringPanel(wx.Panel):
 
         det_text = wx.StaticText(self, -1, 'Detector: ')
         det_choice = wx.Choice(self, self.pyfai_autofit_ids['detector'], choices = det_list)
-        det_choice.SetStringSelection('pilatus1m')
+        det_choice.SetStringSelection(self._main_frame.raw_settings.get('Detector'))
 
         det_sizer = wx.BoxSizer(wx.HORIZONTAL)
         det_sizer.Add(det_text, 0, wx.LEFT | wx.RIGHT, 3)
@@ -11779,12 +11783,18 @@ class CenteringPanel(wx.Panel):
 
         self._wavelen_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 70)
         self._energy_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 70)
-        self._pixel_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 80)
+        self._pixel_x_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 60)
+        self._pixel_y_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 60)
         self._sd_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 80)
+        self._det_tilt_text = RAWCustomCtrl.FloatSpinCtrl(self, wx.ID_ANY, TextLength = 70)
+        self._det_tilt_plane_text = RAWCustomCtrl.FloatSpinCtrl(self, wx.ID_ANY, TextLength = 70)
 
         self._sd_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onSampDetDistSpin)
         self._wavelen_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onWavelengthChange)
-        self._pixel_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onPixelWavelengthChange)
+        self._pixel_x_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onPixelWavelengthChange)
+        self._pixel_y_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onPixelWavelengthChange)
+        self._det_tilt_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onPixelWavelengthChange)
+        self._det_tilt_plane_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onPixelWavelengthChange)
         self._energy_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onEnergyChange)
 
         self._pattern_list = wx.Choice(self, -1, choices = pattern_list)
@@ -11794,20 +11804,15 @@ class CenteringPanel(wx.Panel):
             self._pattern_list.Select(1)
         self._pattern_list.Bind(wx.EVT_CHOICE, self._onPatternChoice)
 
-        wavelen_label = wx.StaticText(self, -1, 'Wavelength:')
-        energy_label = wx.StaticText(self, -1, 'Energy:')
-        sd_label = wx.StaticText(self, -1, 'Sample-Detector Distance:')
-        pixel_label = wx.StaticText(self, -1, 'Detector Pixel Size:')
+        wavelen_label = wx.StaticText(self, -1, 'Wavelength [A]:')
+        energy_label = wx.StaticText(self, -1, 'Energy [keV]:')
+        sd_label = wx.StaticText(self, -1, 'Sample-Detector Distance [mm]:')
+        pixel_label = wx.StaticText(self, -1, 'Detector Pixel Size [um]:')
 
         ylabel = wx.StaticText(self, -1, 'Y center:')
         xlabel = wx.StaticText(self, -1, 'X center:')
         step_label = wx.StaticText(self, -1, 'Steps:')
         pattern_label = wx.StaticText(self, -1, 'Standard:')
-
-        sd_unit_label = wx.StaticText(self, -1, 'mm')
-        pixelsize_unit_label = wx.StaticText(self, -1, 'um')
-        wavelength_unit_label = wx.StaticText(self, -1, 'A')
-        energy_unit_label = wx.StaticText(self, -1, 'keV')
 
         x_sizer = wx.BoxSizer(wx.VERTICAL)
         y_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -11815,13 +11820,11 @@ class CenteringPanel(wx.Panel):
         wave_sizer = wx.BoxSizer(wx.VERTICAL)
         energy_sizer = wx.BoxSizer(wx.VERTICAL)
         pixel_sizer = wx.BoxSizer(wx.VERTICAL)
+        tilt_sizer = wx.BoxSizer(wx.VERTICAL)
         sd_sizer = wx.BoxSizer(wx.VERTICAL)
         pattern_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        sd_unit_sizer = wx.BoxSizer()
         pixelsize_unit_sizer = wx.BoxSizer()
-        wavelength_unit_sizer = wx.BoxSizer()
-        energy_unit_sizer = wx.BoxSizer()
 
         step_sizer.Add(step_label,0, wx.TOP,-1)
         step_sizer.Add(self._step_combo, 0)
@@ -11830,29 +11833,40 @@ class CenteringPanel(wx.Panel):
         y_sizer.Add(ylabel, 0)
         y_sizer.Add(self._y_cent_text,0)
 
-        sd_unit_sizer.Add(self._sd_text, 0, wx.RIGHT, 3)
-        sd_unit_sizer.Add(sd_unit_label, 0, wx.ALIGN_CENTER_VERTICAL)
+        pixelsize_unit_sizer.Add(wx.StaticText(self, label='X:'), border=3,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        pixelsize_unit_sizer.Add(self._pixel_x_text, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 3)
+        pixelsize_unit_sizer.Add(wx.StaticText(self, label='Y:'), border=3,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        pixelsize_unit_sizer.Add(self._pixel_y_text, 0, wx.ALIGN_CENTER_VERTICAL, 3)
 
-        pixelsize_unit_sizer.Add(self._pixel_text, 0, wx.RIGHT, 3)
-        pixelsize_unit_sizer.Add(pixelsize_unit_label, 0, wx.ALIGN_CENTER_VERTICAL)
+        tilt_1_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        tilt_1_sizer.Add(wx.StaticText(self, label='Tilt:'), border=3,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        tilt_1_sizer.Add(self._det_tilt_text, flag=wx.ALIGN_CENTER_VERTICAL)
 
-        wavelength_unit_sizer.Add(self._wavelen_text, 0, wx.RIGHT, 3)
-        wavelength_unit_sizer.Add(wavelength_unit_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT)
+        tilt_2_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        tilt_2_sizer.Add(wx.StaticText(self, label='Tilt Plane Rot.:'), border=3,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        tilt_2_sizer.Add(self._det_tilt_plane_text, flag=wx.ALIGN_CENTER_VERTICAL)
 
-        energy_unit_sizer.Add(self._energy_text, 0, wx.RIGHT, 3)
-        energy_unit_sizer.Add(energy_unit_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT)
+        wave_sizer.Add(wavelen_label, 0, border=2, flag=wx.BOTTOM)
+        wave_sizer.Add(self._wavelen_text, 0)
 
-        wave_sizer.Add(wavelen_label, 0)
-        wave_sizer.Add(wavelength_unit_sizer, 0)
+        energy_sizer.Add(energy_label, 0, border=2, flag=wx.BOTTOM)
+        energy_sizer.Add(self._energy_text, 0)
 
-        energy_sizer.Add(energy_label, 0)
-        energy_sizer.Add(energy_unit_sizer, 0)
+        sd_sizer.Add(sd_label, 0, border=2, flag=wx.BOTTOM)
+        sd_sizer.Add(self._sd_text, 0)
 
-        sd_sizer.Add(sd_label, 0)
-        sd_sizer.Add(sd_unit_sizer, 0)
-
-        pixel_sizer.Add(pixel_label, 0)
+        pixel_sizer.Add(pixel_label, 0, border=2, flag=wx.BOTTOM)
         pixel_sizer.Add(pixelsize_unit_sizer, 0)
+
+        tilt_sizer.Add(wx.StaticText(self, label='Detector angles [deg]:'),
+            border=2, flag=wx.BOTTOM)
+        tilt_sizer.Add(tilt_1_sizer, border=2, flag=wx.BOTTOM)
+        tilt_sizer.Add(tilt_2_sizer)
+
 
         pattern_sizer.Add(pattern_label, 0)
         pattern_sizer.Add(self._pattern_list, 0)
@@ -11874,6 +11888,7 @@ class CenteringPanel(wx.Panel):
         self.calib_sizer.Add(energy_wl_sizer, 0, wx.BOTTOM, 5)
         self.calib_sizer.Add(sd_sizer, 0, wx.BOTTOM, 5)
         self.calib_sizer.Add(pixel_sizer, 0, wx.BOTTOM, 5)
+        self.calib_sizer.Add(tilt_sizer, border=5, flag=wx.BOTTOM)
         self.calib_sizer.Add(pattern_sizer,0, wx.BOTTOM, 5)
 
         self.final_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -11885,7 +11900,10 @@ class CenteringPanel(wx.Panel):
         self.manual_widget_list.append(self._y_cent_text)
         self.manual_widget_list.append(self._step_combo)
         self.manual_widget_list.append(self._wavelen_text)
-        self.manual_widget_list.append(self._pixel_text)
+        self.manual_widget_list.append(self._pixel_x_text)
+        self.manual_widget_list.append(self._pixel_y_text)
+        self.manual_widget_list.append(self._det_tilt_text)
+        self.manual_widget_list.append(self._det_tilt_plane_text)
         self.manual_widget_list.append(self._sd_text)
         self.manual_widget_list.append(self._pattern_list)
         self.manual_widget_list.append(self._energy_text)
@@ -11910,45 +11928,17 @@ class CenteringPanel(wx.Panel):
 
         extra_det_list = ['detector']
 
-        # Gets rid of all the aliases, not sure if I want to do that
-
-        # dets = pyFAI.detectors.ALL_DETECTORS
-
-        # keys = dets.keys()
-
-        # for key in keys:
-        #     if key.find('_') > -1:
-        #         tmp_key = ''.join(key.split('_'))
-
-        #         if dets.has_key(tmp_key):
-        #             dets.pop(tmp_key)
-
-        #         tmp_key = '-'.join(key.split('_'))
-
-        #         if dets.has_key(tmp_key):
-        #             dets.pop(tmp_key)
-
-        # unique_dets = defaultdict(list)
-
-        # for k, v in dets.iteritems():
-        #     unique_dets[v].append(k)
-
-        # final_dets = {}
-
-        # for k, v in unique_dets.iteritems():
-        #     if len(v) > 1:
-        #         v = sorted(v, key = len, reverse = True)
-
-        #     final_dets[v[0]] = k
-
-
-        # Keeps all the aliases
         final_dets = pyFAI.detectors.ALL_DETECTORS
-
 
         for key in extra_det_list:
             if key in final_dets:
                 final_dets.pop(key)
+
+        for key in copy.copy(list(final_dets.keys())):
+            if '_' in key:
+                reduced_key = ''.join(key.split('_'))
+                if reduced_key in final_dets:
+                    final_dets.pop(reduced_key)
 
         det_list = ['Other'] + sorted(list(final_dets.keys()), key=str.lower)
 
@@ -11976,20 +11966,26 @@ class CenteringPanel(wx.Panel):
         self._main_frame.raw_settings.set('Xcenter', self._center[0])
         self._main_frame.raw_settings.set('Ycenter', self._center[1])
 
-        sd, wavelength, pixel_size = self._getCalibValues()
+        (sd, wavelength, pixel_size_x, pixel_size_y, det_tilt,
+            det_tilt_plane_rot) = self._getCalibValues()
 
         self._main_frame.raw_settings.set('SampleDistance', sd)
         self._main_frame.raw_settings.set('WaveLength', wavelength)
-        self._main_frame.raw_settings.set('DetectorPixelSizeX', pixel_size)
-        self._main_frame.raw_settings.set('DetectorPixelSizeY', pixel_size)
+        self._main_frame.raw_settings.set('DetectorPixelSizeX', pixel_size_x)
+        self._main_frame.raw_settings.set('DetectorPixelSizeY', pixel_size_y)
+        self._main_frame.raw_settings.set('DetectorTilt', det_tilt)
+        self._main_frame.raw_settings.set('DetectorTiltPlanRot', det_tilt_plane_rot)
 
     def _getCalibValues(self):
 
         sd = float(self._sd_text.GetValue())
         wavelength = float(self._wavelen_text.GetValue())
-        pixel_size = float(self._pixel_text.GetValue())
+        pixel_size_x = float(self._pixel_x_text.GetValue())
+        pixel_size_y = float(self._pixel_y_text.GetValue())
+        det_tilt = float(self._det_tilt_text.GetValue())
+        det_tilt_plane_rot = float(self._det_tilt_plane_text.GetValue())
 
-        return sd, wavelength, pixel_size
+        return sd, wavelength, pixel_size_x, pixel_size_y, det_tilt, det_tilt_plane_rot
 
     def _onCancelButton(self, event):
         if self.autocenter:
@@ -12091,7 +12087,8 @@ class CenteringPanel(wx.Panel):
             each.Enable(state)
 
     def _updateCenteringRings(self):
-        sd_distance, wavelength, pixel_size = self._getCalibValues()
+        (sd_distance, wavelength, pixel_size_x, pixel_size_y, det_tilt,
+            det_tilt_plane_rot) = self._getCalibValues()
 
         selection = self._pattern_list.GetStringSelection()
 
@@ -12104,7 +12101,7 @@ class CenteringPanel(wx.Panel):
             two_thetas = np.array(self.calibrant.get_2th())
             if len(two_thetas) > 0:
                 opposite = np.tan(two_thetas) * sd_distance
-                agbh_dist_list = list(opposite / (pixel_size/1000.))
+                agbh_dist_list = list(opposite / (pixel_size_x/1000.))
             else:
                 agbh_dist_list = [np.nan]
 
@@ -12132,8 +12129,11 @@ class CenteringPanel(wx.Panel):
         y_center = self._main_frame.raw_settings.get('Ycenter')
 
         wavelength = self._main_frame.raw_settings.get('WaveLength')
-        pixel_size = self._main_frame.raw_settings.get('DetectorPixelSizeX')
+        pixel_size_x = self._main_frame.raw_settings.get('DetectorPixelSizeX')
+        pixel_size_y = self._main_frame.raw_settings.get('DetectorPixelSizeY')
         samp_detc_dist = self._main_frame.raw_settings.get('SampleDistance')
+        det_tilt = self._main_frame.raw_settings.get('DetectorTilt')
+        det_tilt_plane_rot = self._main_frame.raw_settings.get('DetectorTiltPlanRot')
 
         c = scipy.constants.c
         h = scipy.constants.h
@@ -12144,9 +12144,12 @@ class CenteringPanel(wx.Panel):
         energy=c*h/(wl*e)*1e-3
 
         self._sd_text.SetValue(str(samp_detc_dist))
-        self._pixel_text.SetValue(str(pixel_size))
+        self._pixel_x_text.SetValue(str(pixel_size_x))
+        self._pixel_y_text.SetValue(str(pixel_size_y))
         self._wavelen_text.SetValue(str(wavelength))
         self._energy_text.SetValue(str(energy))
+        self._det_tilt_text.SetValue(str(det_tilt))
+        self._det_tilt_plane_text.SetValue(str(det_tilt_plane_rot))
 
         self._center = [x_center, y_center]
         self.updateCenterTextCtrls()
@@ -12211,9 +12214,11 @@ class CenteringPanel(wx.Panel):
             wx.MessageBox('You must have an image shown in the Image plot to use auto centering.', 'No Image Loaded', wx.OK)
             return
 
-        sd_distance, wavelength, pixel_size = self._getCalibValues()
+        (sd_distance, wavelength, pixel_size_x, pixel_size_y, det_tilt,
+            det_tilt_plane_rot) = self._getCalibValues()
         cal_selection = self._pattern_list.GetStringSelection()
         det_selection = wx.FindWindowById(self.pyfai_autofit_ids['detector'], self).GetStringSelection()
+        wavelength = wavelength*1e-10
 
         if cal_selection == 'None':
             wx.MessageBox('You must select a calibration standard to use autocentering.', 'No Calibration Standard Selected', wx.OK)
@@ -12225,19 +12230,21 @@ class CenteringPanel(wx.Panel):
         self._enablePyfaiControls()
 
         calibrant = pyFAI.calibrant.get_calibrant(cal_selection)
-        calibrant.set_wavelength(wavelength*1e-10)
+        calibrant.set_wavelength(wavelength)
 
         if det_selection != 'Other':
             detector = pyFAI.detector_factory(det_selection)
 
         else:
-            pixel_size = float(self._pixel_text.GetValue())*1e-6
+            pixel_size_x = pixel_size_x*1e-6
+            pixel_size_y = pixel_size_y*1e-6
 
-            detector = pyFAI.detectors.Detector(pixel1 = pixel_size, pixel2 = pixel_size, max_shape = img.shape)
+            detector = pyFAI.detectors.Detector(pixel1=pixel_size_y, pixel2=pixel_size_x, max_shape=img.shape)
 
-        self.c = SASCalib.RAWCalibration(img, wavelength = calibrant.wavelength, calibrant = calibrant, detector = detector)
-        self.c.ai = pyFAI.AzimuthalIntegrator(wavelength = wavelength, detector = detector)
-        self.c.ai.setFit2D(sd_distance, self._center[0], self._center[1]) #Takes the sample-detector distance in mm, beamx and beam y in pixels.
+        self.c = SASCalib.RAWCalibration(img, wavelength = wavelength, calibrant = calibrant, detector = detector)
+        self.c.ai = pyFAI.azimuthalIntegrator.AzimuthalIntegrator(wavelength = wavelength, detector = detector)
+        self.c.ai.setFit2D(sd_distance, self._center[0], self._center[1],
+            det_tilt, det_tilt_plane_rot) #Takes the sample-detector distance in mm, beamx and beam y in pixels, tilts in deg.
         self.c.points = pyFAI.control_points.ControlPoints(None, calibrant=calibrant, wavelength=calibrant.wavelength)
 
         self.image_panel.enableAutoCentMode()
@@ -12250,24 +12257,28 @@ class CenteringPanel(wx.Panel):
         if not self.c.weighted:
             self.c.data = np.array(self.c.data)[:, :-1]
 
-        for my_id, keyword in self._fix_keywords.items():
+        for my_id, keyword in self._fix_keywords:
 
             value = wx.FindWindowById(my_id, self).GetValue()
-
             self.c.fixed.add_or_discard(keyword, value)
 
         self.c.refine()
 
         results = self.c.geoRef.getFit2D()
+        print(self.c.geoRef.getPyFAI())
 
         self._center = [results['centerX'], results['centerY']]
         self._sd_text.SetValue(str(results['directDist']))
 
         wavelength = self.c.geoRef.get_wavelength()*1e10
-        pixel_size = self.c.geoRef.get_pixel1()*1e6
+        pixel_size_x = self.c.geoRef.get_pixel2()*1e6
+        pixel_size_y = self.c.geoRef.get_pixel1()*1e6
 
         self._wavelen_text.SetValue(str(wavelength))
-        self._pixel_text.SetValue(str(pixel_size))
+        self._pixel_x_text.SetValue(str(pixel_size_x))
+        self._pixel_y_text.SetValue(str(pixel_size_y))
+        self._det_tilt_text.SetValue(str(results['tilt']))
+        self._det_tilt_plane_text.SetValue(str(results['tiltPlanRotation']))
 
         self.updateCenterTextCtrls()
         wx.CallAfter(self.image_panel.clearPatches)

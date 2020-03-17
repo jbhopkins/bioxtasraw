@@ -147,9 +147,24 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
     use_hdr_mask = raw_settings.get('UseHeaderForMask')
     use_hdr_calib = raw_settings.get('UseHeaderForCalib')
     do_normalization = raw_settings.get('EnableNormalization')
+    normlist = raw_settings.get('NormalizationList')
     do_flatfield = raw_settings.get('NormFlatfieldEnabled')
     do_solidangle = raw_settings.get('DoSolidAngleCorrection')
-    normlist = raw_settings.get('NormalizationList')
+    do_polarization = raw_settings.get('DoPolarizationCorrection')
+    polarization_factor = raw_settings.get('PolarizationFactor')
+    integration_method = raw_settings.get('IntegrationMethod')
+    angular_unit = raw_settings.get('AngularUnit')
+    error_model = raw_settings.get('ErrorModel')
+    use_image_for_variance = raw_settings.get('UseImageForVariance')
+
+    if not do_polarization:
+        polarization_factor = None
+
+    if use_image_for_variance:
+        variance = img
+        error_model = None
+    else:
+        variance = None
 
     #Absolute scale values
     abs_scale_water = raw_settings.get('NormAbsWater')
@@ -159,11 +174,14 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
     abs_scale_gc_factor = float(raw_settings.get('NormAbsCarbonConst'))
 
     sd_distance = raw_settings.get('SampleDistance')
-    pixel_size = raw_settings.get('DetectorPixelSizeX')
+    pixel_size_x = raw_settings.get('DetectorPixelSizeX')
+    pixel_size_y = raw_settings.get('DetectorPixelSizeY')
     wavelength = raw_settings.get('WaveLength')
     bin_size = int(raw_settings.get('Binsize'))
     x_c = float(raw_settings.get('Xcenter'))
     y_c = float(raw_settings.get('Ycenter'))
+    det_tilt = raw_settings.get('DetectorTilt')
+    det_tilt_plan_rot = raw_settings.get('DetectorTiltPlanRot')
 
 
     # Load mask
@@ -203,19 +221,26 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
     # Get values from image header if applicable
     if use_hdr_calib:
         result = getBindListDataFromHeader(raw_settings, img_hdr, file_hdr,
-            keys=['Sample Detector Distance', 'Detector Pixel Size', 'Wavelength',
-            'Beam X Center', 'Beam Y Center'])
+            keys=['Sample Detector Distance', 'Detector X Pixel Size',
+            'Detector Y Pixel Size', 'Wavelength', 'Beam X Center',
+            'Beam Y Center', 'Detector Tilt', 'Detector Tilt Plane Rotation'])
 
         if result[0] is not None:
             sd_distance = result[0]
         if result[1] is not None:
-            pixel_size = result[1]
+            pixel_size_x = result[1]
         if result[2] is not None:
-            wavelength = result[2]
+            pixel_size_y = result[1]
         if result[3] is not None:
-            x_c = result[3]
+            wavelength = result[2]
         if result[4] is not None:
+            x_c = result[3]
+        if result[5] is not None:
             y_c = result[4]
+        if reuslts[6] is not None:
+            det_tilt = results[6]
+        if results[7] is not None:
+            det_tilt_plan_rot = results[7]
 
     # ********* WARNING WARNING WARNING ****************#
     # Hmm.. axes start from the lower left, but array coords starts
@@ -254,12 +279,20 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
     if do_solidangle:
         parameters['normalizations']['Solid_Angle_Correction'] = 'On'
 
+    parameters['normalizations']['Polarization'] = {'Used' : do_polarization}
+    if do_polarization:
+        parameters['normalizations']['Polarization']['Factor'] = polarization_factor
+
     calibrate_dict = {'Sample_Detector_Distance'    : sd_distance,
-                    'Detector_Pixel_Size'           : pixel_size,
+                    'Detector_X_Pixel_Size'         : pixel_size_x,
+                    'Detector_Y_Pixel_Size'         : pixel_size_y,
                     'Wavelength'                    : wavelength,
                     'Beam_Center_X'                 : x_c,
                     'Beam_Center_Y'                 : y_c,
+                    'Detector Tilt'                 : det_tilt,
+                    'Detector Tilt Plane Rotation'  : det_tilt_plan_rot,
                     'Radial_Average_Method'         : 'pyFAI',
+                    'Integration Method'            : integration_method,
                     }
 
     parameters['calibration_params'] = calibrate_dict
@@ -329,33 +362,35 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
     norm_factor = 1./norm_factor
 
     #Put everything in appropriate units
-    pixel_size = pixel_size *1e-6 #convert pixel size to m
     wavelength = wavelength*1e-10 #convert wl to m
 
-    ai = pyFAI.AzimuthalIntegrator()
+    ai = pyFAI.azimuthalIntegrator.AzimuthalIntegrator()
 
-    ai.wavelength = wavelength
-    ai.pixel1 = pixel_size
-    ai.pixel2 = pixel_size
-    ai.setFit2D(sd_distance, x_c, y_c)
+    ai.set_wavelength(wavelength)
+    ai.setFit2D(sd_distance, x_c, y_c, det_tilt, det_tilt_plan_rot, pixel_size_x,
+        pixel_size_y)
 
     if do_flatfield:
         flatfield_filename = raw_settings.get('NormFlatfieldFile')
         ai.set_flatfiles(flatfield_filename)
 
-    qmin_theta = SASCalib.calcTheta(sd_distance*1e-3, pixel_size, 0)
-    qmin = ((4 * math.pi * math.sin(qmin_theta)) / (wavelength*1e10))
+    if pixel_size_x == pixel_size_y and angular_unit == 'q_A^-1':
+        qmin_theta = SASCalib.calcTheta(sd_distance*1e-3, pixel_size_x*1e-6, 0)
+        qmin = ((4 * math.pi * math.sin(qmin_theta)) / (wavelength*1e10))
 
-    qmax_theta = SASCalib.calcTheta(sd_distance*1e-3, pixel_size, maxlen)
-    qmax = ((4 * math.pi * math.sin(qmax_theta)) / (wavelength*1e10))
+        qmax_theta = SASCalib.calcTheta(sd_distance*1e-3, pixel_size_x*1e-6, maxlen)
+        qmax = ((4 * math.pi * math.sin(qmax_theta)) / (wavelength*1e10))
 
-    q_range = (qmin, qmax)
+        q_range = (qmin, qmax)
+
+    else:
+        q_range = None
 
     #Carry out the integration
-    q, iq, errorbars = ai.integrate1d(img, npts, mask=bs_mask,
-        correctSolidAngle=do_solidangle, error_model='poisson', unit='q_A^-1',
-        radial_range = q_range, method='nosplit_csr',
-        normalization_factor=norm_factor)
+    q, iq, errorbars = ai.integrate1d(img, npts, mask=bs_mask, variance=variance,
+        correctSolidAngle=do_solidangle, error_model=error_model, unit=angular_unit,
+        radial_range = q_range, method=integration_method,
+        normalization_factor=norm_factor, polarization_factor=polarization_factor)
 
     errorbars = np.nan_to_num(errorbars)
 

@@ -40,10 +40,11 @@ import copy
 import wx
 import wx.lib.agw.customtreectrl as CT
 from numpy import ceil
-
+import pyFAI
 
 import RAWSettings
 import RAWCustomCtrl
+import RAWGlobals
 import SASFileIO
 import SASParser
 import SASExceptions
@@ -235,10 +236,16 @@ class CalibrationOptionsPanel(wx.Panel):
 
         self.raw_settings = raw_settings
 
-        detector_choices = ['None',]
+
+
+        detector_choices = self._get_detectors()
         integration_choices = ['numpy', 'cython', 'BBox', 'nosplit_csr', 'csr',
-            'full_csr', 'nosplit_csr_ocl', 'csr_ocl', 'full_csr_ocl']
-        error_choices = ['Poisson', 'Azimuthal']
+            'full_csr']
+
+        if RAWGlobals.has_pyopencl:
+            integration_choices.extend(['nosplit_csr_ocl', 'csr_ocl', 'full_csr_ocl'])
+
+        error_choices = ['poisson', 'azimuthal']
         angular_choices = ['q_nm^-1', 'q_A^-1', '2th_deg', '2th_rad', 'r_mm']
         bin_choices = ['Linear',]
 
@@ -316,6 +323,10 @@ class CalibrationOptionsPanel(wx.Panel):
                 ctrl_sizer.Add(txt, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
                 ctrl_sizer.Add(ctrl, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
 
+        det_id = self.raw_settings.getId('Detector')
+        det_ctrl = wx.FindWindowById(det_id, self)
+        det_ctrl.Bind(wx.EVT_CHOICE, self._on_detector_change)
+
         return ctrl_sizer
 
 
@@ -334,6 +345,39 @@ class CalibrationOptionsPanel(wx.Panel):
             ctrl_sizer.Add(ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
 
         return ctrl_sizer
+
+    def _get_detectors(self):
+        final_dets = pyFAI.detectors.ALL_DETECTORS
+
+        for key in copy.copy(list(final_dets.keys())):
+            if '_' in key:
+                reduced_key = ''.join(key.split('_'))
+                if reduced_key in final_dets:
+                    final_dets.pop(reduced_key)
+
+        det_list = list(final_dets.keys())
+        det_list.append('Other')
+        det_list = sorted(det_list, key=str.lower)
+
+        return det_list
+
+    def _on_detector_change(self, evt):
+        det_selection = evt.GetEventObject().GetStringSelection()
+
+        if det_selection != 'Other':
+            detector = pyFAI.detector_factory(det_selection)
+
+            pixely = detector.get_pixel1()
+            pixelx = detector.get_pixel2()
+
+            det_pix_x_id = self.raw_settings.getId('DetectorPixelSizeX')
+            det_pix_y_id = self.raw_settings.getId('DetectorPixelSizeY')
+
+            det_pix_x_ctrl = wx.FindWindowById(det_pix_x_id, self)
+            det_pix_y_ctrl = wx.FindWindowById(det_pix_y_id, self)
+
+            det_pix_x_ctrl.SetValue(str(pixelx*1e6))
+            det_pix_y_ctrl.SetValue(str(pixely*1e6))
 
 class HeaderListCtrl(wx.ListCtrl):
 
