@@ -10955,7 +10955,6 @@ class MaskingPanel(wx.Panel):
         wx.Panel.__init__(self, parent, id, name = 'MaskingPanel')
 
         self.mask_choices = {'Beamstop mask' : 'BeamStopMask',
-                             'Readout-Dark mask' : 'ReadOutNoiseMask',
                              'ROI Counter mask' : 'TransparentBSMask',
                              'SAXSLAB BS mask' : 'SaxslabBSMask'}
 

@@ -108,11 +108,13 @@ class RawGuiSettings(object):
 
                 #Dark correction
                 'DarkCorrEnabled'       : [False,   wx.NewId(),  'bool'],
-                'DarkCorrFilename'      : [None, wx.NewId(), 'text'],
+                'DarkCorrFilename'      : ['', wx.NewId(), 'text'],
+                'DarkCorrImage'         : [None],
 
                 #Flatfield correction
                 'NormFlatfieldEnabled'  : [False,   wx.NewId(),  'bool'],
-                'NormFlatfieldFile'     : [None, wx.NewId(), 'text'],
+                'NormFlatfieldFile'     : ['', wx.NewId(), 'text'],
+                'NormFlatfieldImage'    : [None],
 
                 #Q-CALIBRATION
                 'WaveLength'            : [1.0,  wx.NewId(), 'float'],
@@ -140,7 +142,6 @@ class RawGuiSettings(object):
 
                                                                     #mask, mask_patches
                 'Masks'                   : [{'BeamStopMask'     : [None, None],
-                                              'ReadOutNoiseMask' : [None, None],
                                               'TransparentBSMask': [None, None],
                                              }],
 
@@ -160,16 +161,17 @@ class RawGuiSettings(object):
                 'mcRuns'      : [300,    wx.NewId(), 'int'],
 
                 #ARTIFACT REMOVAL:
-                'ZingerRemovalRadAvg'    : [False, wx.NewId(), 'bool'],
-                'ZingerRemovalRadAvgStd' : [4.0,     wx.NewId(), 'float'],
+                'ZingerRemovalRadAvg'       : [False,   wx.NewId(), 'bool'],
+                'ZingerRemovalRadAvgStd'    : [5.0,     wx.NewId(), 'float'],
+                'ZingerRemovalRadAvgIter'   : [5,       wx.NewId(), 'int'],
 
                 'ZingerRemoval'     : [False, wx.NewId(), 'bool'],
                 'ZingerRemoveSTD'   : [4,     wx.NewId(), 'int'],
                 'ZingerRemoveWinLen': [10,    wx.NewId(), 'int'],
                 'ZingerRemoveIdx'   : [10,    wx.NewId(), 'int'],
 
-                'ZingerRemovalAvgStd'  : [8,     wx.NewId(), 'int'],
-                'ZingerRemovalAvg'     : [False, wx.NewId(), 'bool'],
+                'ZingerRemovalAvgStd'       : [4,       wx.NewId(), 'int'],
+                'ZingerRemovalAvg'          : [False,   wx.NewId(), 'bool'],
 
                 #SAVE DIRECTORIES
                 'ProcessedFilePath'    : [None,  wx.NewId(), 'text'],
@@ -564,7 +566,8 @@ def postProcess(raw_settings, default_settings, loaded_param):
                     ('AutoSaveOnGnom', 'GnomFilePath'), ('OnlineModeOnStartup', 'OnlineStartupDir'),
                     ]
 
-    file_check_list = [('NormFlatfieldEnabled', 'NormFlatfieldFile'),]
+    file_check_list = [('NormFlatfieldEnabled', 'NormFlatfieldFile'),
+        ('DarkCorrEnabled', 'DarkCorrFilename'),]
 
     file_check_list_inverted = [('NormAbsCarbonIgnoreBkg', 'NormAbsCarbonSamEmptyFile'),]
 
@@ -629,7 +632,8 @@ def saveSettings(raw_settings, savepath):
 
     exclude_keys = ['ImageFormatList', 'ImageHdrFormatList', 'BackgroundSASM',
     'CurrentCfg', 'csvIncludeData', 'CompatibleFormats', 'DataSECM',
-    'NormAbsCarbonSamEmptySASM', 'AzimuthalIntegrator']
+    'NormAbsCarbonSamEmptySASM', 'AzimuthalIntegrator', 'NormFlatfieldImage',
+    'DarkCorrImage']
 
     save_dict = {}
 

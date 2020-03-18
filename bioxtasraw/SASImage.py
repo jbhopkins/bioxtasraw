@@ -148,12 +148,23 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
     # Get settings
     use_hdr_mask = raw_settings.get('UseHeaderForMask')
     use_hdr_calib = raw_settings.get('UseHeaderForCalib')
+
     do_normalization = raw_settings.get('EnableNormalization')
     normlist = raw_settings.get('NormalizationList')
+
     do_flatfield = raw_settings.get('NormFlatfieldEnabled')
+    flatfield_image = raw_settings.get('NormFlatfieldImage')
+    do_darkcorrection = raw_settings.get('DarkCorrEnabled')
+    dark_image = raw_settings.get('DarkCorrImage')
+
     do_solidangle = raw_settings.get('DoSolidAngleCorrection')
     do_polarization = raw_settings.get('DoPolarizationCorrection')
     polarization_factor = raw_settings.get('PolarizationFactor')
+
+    zinger_removal = raw_settings.get('ZingerRemovalRadAvg')
+    zinger_thres = raw_settings.get('ZingerRemovalRadAvgStd')
+    zinger_iter = raw_settings.get('ZingerRemovalRadAvgIter')
+
     integration_method = raw_settings.get('IntegrationMethod')
     angular_unit = raw_settings.get('AngularUnit')
     error_model = raw_settings.get('ErrorModel')
@@ -168,6 +179,12 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
         error_model = None
     else:
         variance = None
+
+    if not do_flatfield:
+        flatfield_image = None
+
+    if not do_darkcorrection:
+        dark_image = None
 
     #Absolute scale values
     abs_scale_water = raw_settings.get('NormAbsWater')
@@ -213,7 +230,6 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
     else:
         masks = raw_settings.get('Masks')
         bs_mask = masks['BeamStopMask'][0]
-        dc_mask = masks['ReadOutNoiseMask'][0]
         tbs_mask = masks['TransparentBSMask'][0]
 
     if bs_mask is None:
@@ -250,15 +266,6 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
     # from upper left:
     #####################################################
     y_c = img.shape[0]-y_c
-
-
-    # if readoutNoise_mask is None:
-    #     readoutNoiseFound = 0
-    #     readoutNoise_mask = np.zeros(img.shape, dtype = np.float64)
-    # else:
-    #     readoutNoiseFound = 1
-
-    # readoutN = np.zeros((1,4), dtype = np.float64)
 
     # Find the maximum distance to the edge in the image:
     img = np.float64(img)
@@ -391,10 +398,6 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
 
         raw_settings.set('AzimuthalIntegrator', ai)
 
-    if do_flatfield:
-        flatfield_filename = raw_settings.get('NormFlatfieldFile')
-        ai.set_flatfiles(flatfield_filename)
-
     if pixel_size_x == pixel_size_y and angular_unit == 'q_A^-1':
         qmin_theta = SASCalib.calcTheta(sd_distance*1e-3, pixel_size_x*1e-6, 0)
         qmin = ((4 * math.pi * math.sin(qmin_theta)) / (wavelength*1e10))
@@ -407,11 +410,36 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
     else:
         q_range = None
 
+    integration_kwargs = {
+        'mask'                  : bs_mask,
+        'variance'              : variance,
+        'correctSolidAngle'     : do_solidangle,
+        'error_model'           : error_model,
+        'unit'                  : angular_unit,
+        'radial_range'          : q_range,
+        'method'                : integration_method,
+        'normalization_factor'  : norm_factor,
+        'polarization_factor'   : polarization_factor,
+        'flat'                  : flatfield_image,
+        'dark'                  : dark_image,
+        }
+
     #Carry out the integration
-    q, iq, errorbars = ai.integrate1d(img, npts, mask=bs_mask, variance=variance,
-        correctSolidAngle=do_solidangle, error_model=error_model, unit=angular_unit,
-        radial_range = q_range, method=integration_method,
-        normalization_factor=norm_factor, polarization_factor=polarization_factor)
+    if not zinger_removal:
+        integrate_func = ai.integrate1d
+
+    else:
+        integrate_func = ai.sigma_clip
+
+        integration_kwargs['thres'] = zinger_thres
+        integration_kwargs['max_iter'] = zinger_iter
+
+        #Necessary for the legacy version, hopefully the ng will be available soon
+        del integration_kwargs['variance']
+        del integration_kwargs['radial_range']
+        del integration_kwargs['error_model']
+
+    q, iq, errorbars = integrate_func(img, npts, **integration_kwargs)
 
     errorbars = np.nan_to_num(errorbars)
 

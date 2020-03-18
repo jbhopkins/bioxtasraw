@@ -40,6 +40,7 @@ import copy
 import wx
 import wx.lib.agw.customtreectrl as CT
 from numpy import ceil
+import numpy as np
 import pyFAI
 
 import RAWSettings
@@ -82,23 +83,20 @@ class ArtifactOptionsPanel(wx.Panel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        self.update_keys = [#'AutoBgSubtract',
-                            'ZingerRemoval',
+        self.update_keys = ['ZingerRemoval',
                             'ZingerRemoveSTD',
                             'ZingerRemoveWinLen',
                             'ZingerRemoveIdx',
                             'ZingerRemovalAvg',
                             'ZingerRemovalAvgStd',
                             'ZingerRemovalRadAvg',
-                            'ZingerRemovalRadAvgStd'
+                            'ZingerRemovalRadAvgStd',
+                            'ZingerRemovalRadAvgIter',
                             ]
 
         wx.Panel.__init__(self, parent, id, *args, **kwargs)
 
-#        self.chkbox_data = ( ("Automatic Background Subtraction", raw_settings.getId('AutoBgSubtract')),
-#                             ("Automatic BIFT",                   raw_settings.getId('AutoBIFT')))
-
-        self.artifact_removal_data = ( ('Zinger Removal by Smoothing', raw_settings.getIdAndType('ZingerRemoval')),
+        self.artifact_removal_data = ( ('Zinger removal by smoothing', raw_settings.getIdAndType('ZingerRemoval')),
                                      ('Std:',            raw_settings.getIdAndType('ZingerRemoveSTD')),
                                      ('Window Length:',  raw_settings.getIdAndType('ZingerRemoveWinLen')),
                                      ('Start Index:',    raw_settings.getIdAndType('ZingerRemoveIdx')))
@@ -106,8 +104,9 @@ class ArtifactOptionsPanel(wx.Panel):
         self.artifact_removal_data2 = ( ('Zinger Removal when Averageing', raw_settings.getIdAndType('ZingerRemovalAvg')),
                                       ('Sensitivty (lower is more):', raw_settings.getIdAndType('ZingerRemovalAvgStd')))
 
-        self.artifact_removal_data3 = ( ('Zinger Removal at radial average', raw_settings.getIdAndType('ZingerRemovalRadAvg')),
-                                      ('Sensitivty (lower is more):', raw_settings.getIdAndType('ZingerRemovalRadAvgStd')))
+        self.artifact_removal_data3 = ( ('Zinger removal during radial average', raw_settings.getIdAndType('ZingerRemovalRadAvg')),
+                                      ('Discard threshold (std.):', raw_settings.getIdAndType('ZingerRemovalRadAvgStd')),
+                                      ('Number of iterations:', raw_settings.getIdAndType('ZingerRemovalRadAvgIter')))
 
         artifact_sizer = self.createArtifactRemoveSettings()
         artifact_sizer2 = self.createArtifactRemoveOnAvg()
@@ -1548,42 +1547,75 @@ class ReductionFlatfield(wx.Panel):
 
         self.raw_settings = raw_settings
 
-        self.update_keys = ['NormFlatfieldFile',
-                            'NormFlatfieldEnabled']
+        self.update_keys = [
+            'NormFlatfieldFile',
+            'NormFlatfieldEnabled',
+            'DarkCorrEnabled',
+            'DarkCorrFilename',
+            ]
 
-                              #      label,                  textCtrlId,            buttonId, clrbuttonId,    ButtonText,              BindFunction
-        self.filesData = [("Flatfield image:" , raw_settings.getId('NormFlatfieldFile'), self.NewControlId(), self.NewControlId(), "Set", "Clear", self.onSetFile, self.onClrFile)]
-                          # ("Dark image:" , raw_settings.getId('DarkCorrFilename'), self.NewControlId(), self.NewControlId(), "Set", "Clear", self.onSetFile, self.onClrFile)]
+        self._createLayout()
+
+    def _createLayout(self):
+
+        flat_files_data = [("Flatfield image:",
+            self.raw_settings.getId('NormFlatfieldFile'), self.NewControlId(),
+            self.NewControlId(), "Set", "Clear", self.onSetFile, self.onClrFile),
+            ]
 
         box = wx.StaticBox(self, -1, 'Flatfield correction')
 
-        self.abssc_chkbox = wx.CheckBox(self, raw_settings.getId('NormFlatfieldEnabled'), 'Enable flatfield correction')
+        flat_chk = wx.CheckBox(box, self.raw_settings.getId('NormFlatfieldEnabled'),
+            'Enable flatfield correction')
 
-        file_sizer = self.createFileSettings()
-        chkbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        chkbox_sizer.Add(self.abssc_chkbox, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
-        chkbox_sizer.Add(file_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        flat_chk.Bind(wx.EVT_CHECKBOX, self._on_flat_chk)
+
+        flat_file_sizer = self.createFileSettings(box, flat_files_data)
+        flat_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        flat_sizer.Add(flat_chk, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
+        flat_sizer.Add(flat_file_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+
+        dark_files_data = [("Dark image:",
+            self.raw_settings.getId('DarkCorrFilename'), self.NewControlId(),
+            self.NewControlId(), "Set", "Clear", self.onSetFile, self.onClrFile),
+            ]
+
+        box = wx.StaticBox(self, -1, 'Dark correction')
+
+        dark_chk = wx.CheckBox(box, self.raw_settings.getId('DarkCorrEnabled'),
+            'Enable dark correction')
+
+        dark_chk.Bind(wx.EVT_CHECKBOX, self._on_dark_chk)
+
+        dark_file_sizer = self.createFileSettings(box, dark_files_data)
+        dark_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        dark_sizer.Add(dark_chk, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
+        dark_sizer.Add(dark_file_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
 
         final_sizer = wx.BoxSizer(wx.VERTICAL)
-        final_sizer.Add(chkbox_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        final_sizer.Add(flat_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        final_sizer.Add(dark_sizer, 0, border=5, flag=wx.ALL|wx.EXPAND)
 
         self.SetSizer(final_sizer)
 
-    def createFileSettings(self):
+        self.filesData = [flat_files_data[0], dark_files_data[0]]
 
-        noOfRows = int(len(self.filesData))
+
+    def createFileSettings(self, parent, files_data):
+
+        noOfRows = int(len(files_data))
         hSizer = wx.FlexGridSizer(cols = 4, rows = noOfRows, vgap = 3, hgap = 3)
 
-        for labtxt, labl_ID, setButton_ID, clrButton_ID, setButtonTxt, clrButtonTxt, setBindFunc, clrBindFunc in self.filesData:
+        for labtxt, labl_ID, setButton_ID, clrButton_ID, setButtonTxt, clrButtonTxt, setBindFunc, clrBindFunc in files_data:
 
-            setButton = wx.Button(self, setButton_ID, setButtonTxt)
+            setButton = wx.Button(parent, setButton_ID, setButtonTxt)
             setButton.Bind(wx.EVT_BUTTON, setBindFunc)
-            clrButton = wx.Button(self, clrButton_ID, clrButtonTxt)
+            clrButton = wx.Button(parent, clrButton_ID, clrButtonTxt)
             clrButton.Bind(wx.EVT_BUTTON, clrBindFunc)
 
-            label = wx.StaticText(self, -1, labtxt)
+            label = wx.StaticText(parent, -1, labtxt)
 
-            filenameLabel = wx.TextCtrl(self, labl_ID, "None", style = wx.TE_PROCESS_ENTER)
+            filenameLabel = wx.TextCtrl(parent, labl_ID, "None", style = wx.TE_PROCESS_ENTER)
             filenameLabel.SetEditable(False)
 
             hSizer.Add(label, 1, wx.ALIGN_CENTER_VERTICAL)
@@ -1595,20 +1627,41 @@ class ReductionFlatfield(wx.Panel):
         return hSizer
 
     def onSetFile(self, event):
-        self.abssc_chkbox.SetValue(False)
-
         buttonObj = event.GetEventObject()
         ID = buttonObj.GetId()            # Button ID
 
         selectedFile = CreateFileDialog(wx.FD_OPEN)
 
-        if selectedFile is None:
-            return
+        if selectedFile is not None:
 
-        for each in self.filesData:
-            if each[2] == ID:
-                    textCtrl = wx.FindWindowById(each[1], self)
-                    textCtrl.SetValue(str(selectedFile))
+            try:
+                SASFileIO.loadImage(selectedFile, self.raw_settings)
+                valid_file = True
+            except Exception:
+                valid_file = False
+
+            if valid_file:
+                for each in self.filesData:
+                    if each[2] == ID:
+                        textCtrl = wx.FindWindowById(each[1], self)
+                        textCtrl.SetValue(str(selectedFile))
+
+            else:
+                msg = ('The selected file is not an image that RAW can load.')
+                dlg = wx.MessageDialog(self, msg, "Invalid image file",
+                    wx.OK|wx.ICON_EXCLAMATION)
+                dlg.ShowModal()
+                dlg.Destroy()
+
+                for each in self.filesData:
+                    if each[2] == ID:
+                        if 'Flat' in each[0]:
+                            flat_chk = wx.FindWindowById(self.raw_settings.getId('NormFlatfieldEnabled'))
+                            flat_chk.SetValue(False)
+                        elif 'Dark' in each[0]:
+                            dark_chk = wx.FindWindowById(self.raw_settings.getId('DarkCorrEnabled'))
+                            dark_chk.SetValue(False)
+
 
     def onClrFile(self, event):
 
@@ -1616,12 +1669,80 @@ class ReductionFlatfield(wx.Panel):
         ID = buttonObj.GetId()            # Button ID
 
         for each in self.filesData:
-                if each[3] == ID:
-                    textCtrl = wx.FindWindowById(each[1], self)
-                    textCtrl.SetValue('None')
+            if each[3] == ID:
+                textCtrl = wx.FindWindowById(each[1], self)
+                textCtrl.SetValue('')
 
-        self.abssc_chkbox.SetValue(False)
+                if 'Flat' in each[0]:
+                    flat_chk = wx.FindWindowById(self.raw_settings.getId('NormFlatfieldEnabled'))
+                    flat_chk.SetValue(False)
+                elif 'Dark' in each[0]:
+                    dark_chk = wx.FindWindowById(self.raw_settings.getId('DarkCorrEnabled'))
+                    dark_chk.SetValue(False)
 
+    def _on_flat_chk(self, event):
+        chk = event.GetEventObject()
+        file_ctrl = wx.FindWindowById(self.raw_settings.getId('NormFlatfieldFile'), self)
+
+        selected_file = file_ctrl.GetValue()
+
+        if event.IsChecked():
+            if selected_file == '' or selected_file == 'None':
+                msg = ('You must select a file to enable the flatfield correction.')
+                dlg = wx.MessageDialog(self, msg, "No file selected",
+                    wx.OK|wx.ICON_INFORMATION)
+                dlg.ShowModal()
+                dlg.Destroy()
+
+                chk.SetValue(False)
+
+            else:
+                try:
+                    SASFileIO.loadImage(selected_file, self.raw_settings)
+                    valid_file = True
+                except Exception:
+                    valid_file = False
+
+                if not valid_file:
+                    msg = ('The selected flatfield file is not an image that RAW can load.')
+                    dlg = wx.MessageDialog(self, msg, "Invalid image file",
+                        wx.OK|wx.ICON_EXCLAMATION)
+                    dlg.ShowModal()
+                    dlg.Destroy()
+
+                    chk.SetValue(False)
+
+    def _on_dark_chk(self, event):
+        chk = event.GetEventObject()
+        file_ctrl = wx.FindWindowById(self.raw_settings.getId('DarkCorrFilename'), self)
+
+        selected_file = file_ctrl.GetValue()
+
+        if event.IsChecked():
+            if selected_file == '' or selected_file == 'None':
+                msg = ('You must select a file to enable the dark correction.')
+                dlg = wx.MessageDialog(self, msg, "No file selected",
+                    wx.OK|wx.ICON_INFORMATION)
+                dlg.ShowModal()
+                dlg.Destroy()
+
+                chk.SetValue(False)
+
+            else:
+                try:
+                    SASFileIO.loadImage(selected_file, self.raw_settings)
+                    valid_file = True
+                except Exception:
+                    valid_file = False
+
+                if not valid_file:
+                    msg = ('The selected dark file is not an image that RAW can load.')
+                    dlg = wx.MessageDialog(self, msg, "Invalid image file",
+                        wx.OK|wx.ICON_EXCLAMATION)
+                    dlg.ShowModal()
+                    dlg.Destroy()
+
+                    chk.SetValue(False)
 
 class SansOptionsPanel(wx.Panel):
 
@@ -4131,8 +4252,6 @@ class DenssPanel(wx.ScrolledWindow):
 
 
 
-
-
 def ExtractFilenameAndFrameNumber(filename, frameregexp, nameregexp):
 
     frame = 'No Match'
@@ -4432,7 +4551,7 @@ class OptionsDialog(wx.Dialog):
                             [ (2,2,0), wx.Window.NewControlId(), 'Radial Averaging', CalibrationOptionsPanel],
                             [ (2,3,1), wx.Window.NewControlId(), 'Normalization', ReductionNormalizationPanel] ,
                             [ (2,3,2), wx.Window.NewControlId(), 'Absolute Scale', ReductionNormalizationAbsScPanel],
-                            [ (2,3,3), wx.Window.NewControlId(), 'Flatfield Correction', ReductionFlatfield],
+                            [ (2,3,3), wx.Window.NewControlId(), 'Flatfield and Dark Correction', ReductionFlatfield],
                             [ (2,4,0), wx.Window.NewControlId(), 'Metadata', MetadataPanel],
                             [ (3,0,0), wx.Window.NewControlId(), 'Molecular Weight', MolecularWeightPanel],
                             [ (4,0,0), wx.Window.NewControlId(), 'Artifact Removal', ArtifactOptionsPanel],
@@ -4635,6 +4754,23 @@ class OptionsDialog(wx.Dialog):
         for bift_window in main_frame.bift_frames:
             if bift_window:
                 bift_window.updateBIFTSettings()
+
+        # Load flatfield and dark images
+
+        if self._raw_settings.get('NormFlatfieldEnabled'):
+            flat_filename = self._raw_settings.get('NormFlatfieldFile')
+            flat_img, _ = SASFileIO.loadImage(flat_filename, self._raw_settings)
+            self._raw_settings.set('NormFlatfieldImage', flat_img[0])
+        else:
+            self._raw_settings.set('NormFlatfieldImage', None)
+
+        if self._raw_settings.get('DarkCorrEnabled'):
+            dark_filename = self._raw_settings.get('DarkCorrFilename')
+            dark_img, _ = SASFileIO.loadImage(dark_filename, self._raw_settings)
+            self._raw_settings.set('DarkCorrImage', dark_img[0])
+        else:
+            self._raw_settings.set('DarkCorrImage', None)
+
 
 
 #--- ** FOR TESTING **
