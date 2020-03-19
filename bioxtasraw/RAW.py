@@ -1366,7 +1366,7 @@ class MainFrame(wx.Frame):
             for item in selected_items:
                 sasm = item.sasm
 
-                sasm.scaleRawQ(10.0)
+                sasm.scaleQ(10.0)
                 item._updateQTextCtrl()
                 item.markAsModified()
                 altered.append(sasm)
@@ -1386,7 +1386,7 @@ class MainFrame(wx.Frame):
             for item in selected_items:
                 sasm = item.sasm
 
-                sasm.scaleRawQ(0.1)
+                sasm.scaleQ(0.1)
                 item._updateQTextCtrl()
                 item.markAsModified()
                 altered.append(sasm)
@@ -4946,7 +4946,7 @@ class MainWorkerThread(threading.Thread):
                 new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
 
                 new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
-                    sasm_data['norm_factor'], sasm_data['q_scale_factor'])
+                    sasm_data['q_scale_factor'])
 
                 new_sasm.setQrange(sasm_data['selected_qrange'])
 
@@ -7634,14 +7634,14 @@ class ManipItemPanel(wx.Panel):
 
         elif evt.GetId() == 15:
             #A to s
-            self.sasm.scaleRawQ(10.0)
+            self.sasm.scaleQ(10.0)
             self._updateQTextCtrl()
             self.markAsModified()
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
 
         elif evt.GetId() == 16:
             #s to A
-            self.sasm.scaleRawQ(0.1)
+            self.sasm.scaleQ(0.1)
             self._updateQTextCtrl()
             self.markAsModified()
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])

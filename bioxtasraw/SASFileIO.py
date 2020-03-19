@@ -1827,7 +1827,7 @@ def makeSeriesFile(secm_data, settings):
         new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
 
         new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
-            sasm_data['norm_factor'], sasm_data['q_scale_factor'])
+            sasm_data['q_scale_factor'])
 
         new_sasm.setQrange(sasm_data['selected_qrange'])
 
@@ -1877,7 +1877,7 @@ def makeSeriesFile(secm_data, settings):
                 sasm_data['err_raw'], sasm_data['parameters'])
 
             new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
-                sasm_data['norm_factor'], sasm_data['q_scale_factor'])
+                sasm_data['q_scale_factor'])
 
             new_sasm.setQrange(sasm_data['selected_qrange'])
 
@@ -1908,7 +1908,7 @@ def makeSeriesFile(secm_data, settings):
             new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
 
             new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
-                sasm_data['norm_factor'], sasm_data['q_scale_factor'])
+                sasm_data['q_scale_factor'])
 
             new_sasm.setQrange(sasm_data['selected_qrange'])
 
@@ -1933,7 +1933,7 @@ def makeSeriesFile(secm_data, settings):
             new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
 
             new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
-                sasm_data['norm_factor'], sasm_data['q_scale_factor'])
+                sasm_data['q_scale_factor'])
 
             new_sasm.setQrange(sasm_data['selected_qrange'])
 
@@ -1958,7 +1958,7 @@ def makeSeriesFile(secm_data, settings):
             sasm_data['err_raw'], sasm_data['parameters'])
 
         new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
-            sasm_data['norm_factor'], sasm_data['q_scale_factor'])
+            sasm_data['q_scale_factor'])
 
         new_sasm.setQrange(sasm_data['selected_qrange'])
 

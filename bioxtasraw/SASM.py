@@ -75,7 +75,6 @@ class SASM(object):
 
         self._scale_factor = 1
         self._offset_value = 0
-        self._norm_factor = 1
         self._q_scale_factor = 1
 
         #variables used for plot management
@@ -113,7 +112,6 @@ class SASM(object):
         newsasm.setQrange(copy.deepcopy(self.getQrange(), memo))
 
         newsasm.scale(copy.deepcopy(self.getScale(), memo))
-        newsasm.normalize(copy.deepcopy(self._norm_factor, memo))
         newsasm.offset(copy.deepcopy(self.getOffset(), memo))
         newsasm._q_scale_factor = copy.deepcopy(self._q_scale_factor, memo)
 
@@ -124,8 +122,8 @@ class SASM(object):
     def _update(self):
         ''' updates modified intensity after scale, normalization and offset changes '''
 
-        self.i = ((self._i_raw / self._norm_factor) * self._scale_factor) + self._offset_value
-        self.err = ((self._err_raw / self._norm_factor)) * abs(self._scale_factor)
+        self.i = (self._i_raw * self._scale_factor) + self._offset_value
+        self.err = self._err_raw * abs(self._scale_factor)
         self.q = self._q_raw * self._q_scale_factor
 
         # print self.err_line
@@ -182,12 +180,6 @@ class SASM(object):
         self._scale_factor = abs(scale_factor)
         self._update()
 
-    def normalize(self, norm_value):
-        ''' Normalize (divide) raw intensity by a value, errorbars follow '''
-
-        self._norm_factor = norm_value
-        self._update()
-
     def offset(self, offset_value):
         ''' Offset raw intensity by a constant. Only modified intensity is affected '''
 
@@ -213,7 +205,6 @@ class SASM(object):
 
         self._scale_factor = 1
         self._offset_value = 0
-        self._norm_factor = 1
         self._q_scale_factor = 1
 
     def setQrange(self, qrange):
@@ -303,11 +294,10 @@ class SASM(object):
     def setRawErr(self, new_raw_err):
         self._err_raw = new_raw_err
 
-    def setScaleValues(self, scale_factor, offset_value, norm_factor, q_scale_factor):
+    def setScaleValues(self, scale_factor, offset_value, q_scale_factor):
 
         self._scale_factor = scale_factor
         self._offset_value = offset_value
-        self._norm_factor = norm_factor
         self._q_scale_factor = q_scale_factor
         self._update()
 
@@ -330,9 +320,12 @@ class SASM(object):
         all_data['q_raw'] = self._q_raw
         all_data['err_raw'] = self._err_raw
 
+        all_data['i'] = self.getI()
+        all_data['q'] = self.getQ()
+        all_data['err'] = self.getErr()
+
         all_data['scale_factor'] = self._scale_factor
         all_data['offset_value'] = self._offset_value
-        all_data['norm_factor'] = self._norm_factor
         all_data['q_scale_factor'] = self._q_scale_factor
 
         all_data['selected_qrange'] = self._selected_q_range
@@ -432,7 +425,6 @@ class IFTM(SASM):
 
         # self._scale_factor = 1
         # self._offset_value = 0
-        # self._norm_factor = 1
         # self._q_scale_factor = 1
         # self._bin_size = 1
 
@@ -465,8 +457,8 @@ class IFTM(SASM):
     def _update(self):
         ''' updates modified intensity after scale, normalization and offset changes '''
 
-        self.i = ((self._i_raw / self._norm_factor) * self._scale_factor) + self._offset_value
-        self.err = ((self._err_raw / self._norm_factor)) * abs(self._scale_factor)
+        self.i = (self._i_raw * self._scale_factor) + self._offset_value
+        self.err = self._err_raw * abs(self._scale_factor)
         self.q = self._q_raw * self._q_scale_factor
 
     def getScale(self):
@@ -486,12 +478,6 @@ class IFTM(SASM):
         ''' Scale intensity by a factor from the raw intensity, also scales errorbars appropiately '''
 
         self._scale_factor = abs(scale_factor)
-        self._update()
-
-    def normalize(self, norm_value):
-        ''' Normalize (divide) raw intensity by a value, errorbars follow '''
-
-        self._norm_factor = norm_value
         self._update()
 
     def offset(self, offset_value):
@@ -533,11 +519,10 @@ class IFTM(SASM):
         self._parameters[key] = value
 
 
-    def setScaleValues(self, scale_factor, offset_value, norm_factor, q_scale_factor, bin_size):
+    def setScaleValues(self, scale_factor, offset_value, q_scale_factor, bin_size):
 
         self._scale_factor = scale_factor
         self._offset_value = offset_value
-        self._norm_factor = norm_factor
         self._q_scale_factor = q_scale_factor
         self._bin_size = bin_size
 
@@ -850,12 +835,6 @@ class SECM(object):
         ''' Scale intensity by a factor from the raw intensity, also scales errorbars appropiately '''
 
         self._scale_factor = abs(scale_factor)
-        self._update()
-
-    def normalize(self, norm_value):
-        ''' Normalize (divide) raw intensity by a value, errorbars follow '''
-
-        self._norm_factor = norm_value
         self._update()
 
     def offset(self, offset_value):
