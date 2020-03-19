@@ -100,10 +100,10 @@ def load_files(filename_list, settings):
                 end_point = settings.get('EndPoint')
 
                 if not isinstance(sasm, list):
-                    qrange = (start_point, len(sasm.getBinnedQ())-end_point)
+                    qrange = (start_point, len(sasm.getRawQ())-end_point)
                     sasm.setQrange(qrange)
                 else:
-                    qrange = (start_point, len(sasm[0].getBinnedQ())-end_point)
+                    qrange = (start_point, len(sasm[0].getRawQ())-end_point)
                     for each_sasm in sasm:
                         each_sasm.setQrange(qrange)
 

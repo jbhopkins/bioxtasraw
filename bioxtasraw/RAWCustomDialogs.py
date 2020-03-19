@@ -618,7 +618,7 @@ class HdrDataDialog(wx.Dialog):
             data_len = 100
             filename_label = wx.StaticText(self, -1, 'Filename :')
         else:
-            data_len = len(sasm.getBinnedI())
+            data_len = len(sasm.getRawI())
             filename_label = wx.StaticText(self, -1, 'Filename : ' + sasm.getParameter('filename'))
 
         self.data_grid = gridlib.Grid(self)
@@ -780,29 +780,9 @@ class HdrDataDialog(wx.Dialog):
                     self.data_grid.SetCellValue(i, 1, str(img_hdr[keys[i-total_len]]))
 
 
-    def _writeData(self):
-        data_len = len(self.sasm.getBinnedI())
-
-        new_I = []
-        new_Q = []
-        new_Err = []
-
-        for i in range(0, data_len):
-            new_Q.append(float(self.data_grid.GetCellValue(i, 0)))
-            new_I.append(float(self.data_grid.GetCellValue(i, 1)))
-            new_Err.append(float(self.data_grid.GetCellValue(i, 2)))
-
-        self.sasm.setBinnedI(np.array(new_I))
-        self.sasm.setBinnedQ(np.array(new_Q))
-        self.sasm.setBinnedErr(np.array(new_Err))
-
-        self.sasm._update()
-
     def _onOk(self, event):
-#        if self.grid_changed:
-#            self._writeData()
-
         self.EndModal(wx.ID_OK)
+
     def _onCancel(self, event):
         self.EndModal(wx.ID_CANCEL)
 
@@ -822,7 +802,7 @@ class DataDialog(wx.Dialog):
             data_len = 100
             filename_label = wx.StaticText(self, -1, 'Filename :')
         else:
-            data_len = len(sasm.getBinnedI())
+            data_len = len(sasm.getRawI())
             filename_label = wx.StaticText(self, -1, 'Filename : ' + sasm.getParameter('filename'))
 
         self.data_grid = gridlib.Grid(self)
@@ -896,40 +876,20 @@ class DataDialog(wx.Dialog):
             self.data_grid.SetCellValue(row, col, self.saved_value)
 
     def _insertData(self):
-        data_len = len(self.sasm.getBinnedI())
+        data_len = len(self.sasm.getRawI())
 
-        I = self.sasm.getBinnedI()
-        Q = self.sasm.getBinnedQ()
-        Err = self.sasm.getBinnedErr()
+        I = self.sasm.getRawI()
+        Q = self.sasm.getRawQ()
+        Err = self.sasm.getRawErr()
 
         for i in range(0, data_len):
             self.data_grid.SetCellValue(i, 0, str(Q[i]))
             self.data_grid.SetCellValue(i, 1, str(I[i]))
             self.data_grid.SetCellValue(i, 2, str(Err[i]))
 
-    def _writeData(self):
-        data_len = len(self.sasm.getBinnedI())
-
-        new_I = []
-        new_Q = []
-        new_Err = []
-
-        for i in range(0, data_len):
-            new_Q.append(float(self.data_grid.GetCellValue(i, 0)))
-            new_I.append(float(self.data_grid.GetCellValue(i, 1)))
-            new_Err.append(float(self.data_grid.GetCellValue(i, 2)))
-
-        self.sasm.setBinnedI(np.array(new_I))
-        self.sasm.setBinnedQ(np.array(new_Q))
-        self.sasm.setBinnedErr(np.array(new_Err))
-
-        self.sasm._update()
-
     def _onOk(self, event):
-        if self.grid_changed:
-            self._writeData()
-
         self.EndModal(wx.ID_OK)
+
     def _onCancel(self, event):
         self.EndModal(wx.ID_CANCEL)
 

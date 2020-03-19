@@ -1366,7 +1366,7 @@ class MainFrame(wx.Frame):
             for item in selected_items:
                 sasm = item.sasm
 
-                sasm.scaleBinnedQ(10.0)
+                sasm.scaleRawQ(10.0)
                 item._updateQTextCtrl()
                 item.markAsModified()
                 altered.append(sasm)
@@ -1386,7 +1386,7 @@ class MainFrame(wx.Frame):
             for item in selected_items:
                 sasm = item.sasm
 
-                sasm.scaleBinnedQ(0.1)
+                sasm.scaleRawQ(0.1)
                 item._updateQTextCtrl()
                 item.markAsModified()
                 altered.append(sasm)
@@ -2999,10 +2999,10 @@ class MainWorkerThread(threading.Thread):
                         end_point = self._raw_settings.get('EndPoint')
 
                         if not isinstance(sasm, list):
-                            qrange = (start_point, len(sasm.getBinnedQ())-end_point)
+                            qrange = (start_point, len(sasm.getRawQ())-end_point)
                             sasm.setQrange(qrange)
                         else:
-                            qrange = (start_point, len(sasm[0].getBinnedQ())-end_point)
+                            qrange = (start_point, len(sasm[0].getRawQ())-end_point)
                             for each_sasm in sasm:
                                 each_sasm.setQrange(qrange)
 
@@ -3177,10 +3177,10 @@ class MainWorkerThread(threading.Thread):
                         end_point = self._raw_settings.get('EndPoint')
 
                         if not isinstance(sasm, list):
-                            qrange = (start_point, len(sasm.getBinnedQ())-end_point)
+                            qrange = (start_point, len(sasm.getRawQ())-end_point)
                             sasm.setQrange(qrange)
                         else:
-                            qrange = (start_point, len(sasm[0].getBinnedQ())-end_point)
+                            qrange = (start_point, len(sasm[0].getRawQ())-end_point)
                             for each_sasm in sasm:
                                 each_sasm.setQrange(qrange)
                     if isinstance(sasm, list):
@@ -3269,10 +3269,10 @@ class MainWorkerThread(threading.Thread):
                     end_point = self._raw_settings.get('EndPoint')
 
                     if not isinstance(sasm, list):
-                        qrange = (start_point, len(sasm.getBinnedQ())-end_point)
+                        qrange = (start_point, len(sasm.getRawQ())-end_point)
                         sasm.setQrange(qrange)
                     else:
-                        qrange = (start_point, len(sasm[0].getBinnedQ())-end_point)
+                        qrange = (start_point, len(sasm[0].getRawQ())-end_point)
                         for each_sasm in sasm:
                             each_sasm.setQrange(qrange)
 
@@ -4005,10 +4005,10 @@ class MainWorkerThread(threading.Thread):
                         end_point = self._raw_settings.get('EndPoint')
 
                         if not isinstance(sasm, list):
-                            qrange = (start_point, len(sasm.getBinnedQ())-end_point)
+                            qrange = (start_point, len(sasm.getRawQ())-end_point)
                             sasm.setQrange(qrange)
                         else:
-                            qrange = (start_point, len(sasm[0].getBinnedQ())-end_point)
+                            qrange = (start_point, len(sasm[0].getRawQ())-end_point)
                             for each_sasm in sasm:
                                 each_sasm.setQrange(qrange)
 
@@ -4053,10 +4053,10 @@ class MainWorkerThread(threading.Thread):
                     end_point = self._raw_settings.get('EndPoint')
 
                     if not isinstance(sasm, list):
-                        qrange = (start_point, len(sasm.getBinnedQ())-end_point)
+                        qrange = (start_point, len(sasm.getRawQ())-end_point)
                         sasm.setQrange(qrange)
                     else:
-                        qrange = (start_point, len(sasm[0].getBinnedQ())-end_point)
+                        qrange = (start_point, len(sasm[0].getRawQ())-end_point)
                         for each_sasm in sasm:
                             each_sasm.setQrange(qrange)
 
@@ -4944,13 +4944,9 @@ class MainWorkerThread(threading.Thread):
                 sasm_data = item_dict[each_key]
 
                 new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
-                new_sasm.setBinnedI(sasm_data['i_binned'])
-                new_sasm.setBinnedQ(sasm_data['q_binned'])
-                new_sasm.setBinnedErr(sasm_data['err_binned'])
 
                 new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
-                                        sasm_data['norm_factor'], sasm_data['q_scale_factor'],
-                                        sasm_data['bin_size'])
+                    sasm_data['norm_factor'], sasm_data['q_scale_factor'])
 
                 new_sasm.setQrange(sasm_data['selected_qrange'])
 
@@ -5067,7 +5063,7 @@ class MainWorkerThread(threading.Thread):
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
 
-    def _saveSECItem(self,data):
+    def _saveSECItem(self, data):
         save_path, selected_items = data[0], data[1]
 
         if self.main_frame.OnlineControl.isRunning() and os.path.split(save_path[0])[0] == self.main_frame.OnlineControl.getTargetDir():
@@ -6791,7 +6787,7 @@ class ManipulationPanel(wx.Panel):
         scale = star_sasm.getScale()
         offset = star_sasm.getOffset()
         nmin, nmax = star_sasm.getQrange()
-        qmin, qmax = star_sasm.getBinnedQ()[nmin], star_sasm.getBinnedQ()[nmax-1]
+        qmin, qmax = star_sasm.getRawQ()[nmin], star_sasm.getRawQ()[nmax-1]
         linestyle = star_sasm.line.get_linestyle()
         linewidth = star_sasm.line.get_linewidth()
         linemarker = star_sasm.line.get_marker()
@@ -6839,7 +6835,7 @@ class ManipulationPanel(wx.Panel):
                 if answer == wx.ID_CANCEL:
                     return
 
-            q = sasm.getBinnedQ()
+            q = sasm.getRawQ()
 
             if 'qmin' in sync_parameters and 'qmax' in sync_parameters:
                 closest = findClosest(qmin, q)
@@ -7638,14 +7634,14 @@ class ManipItemPanel(wx.Panel):
 
         elif evt.GetId() == 15:
             #A to s
-            self.sasm.scaleBinnedQ(10.0)
+            self.sasm.scaleRawQ(10.0)
             self._updateQTextCtrl()
             self.markAsModified()
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
 
         elif evt.GetId() == 16:
             #s to A
-            self.sasm.scaleBinnedQ(0.1)
+            self.sasm.scaleRawQ(0.1)
             self._updateQTextCtrl()
             self.markAsModified()
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
@@ -8013,7 +8009,7 @@ class ManipItemPanel(wx.Panel):
         elif id == self.spin_controls[1][2]:
                 spinctrl = wx.FindWindowById(self.spin_controls[1][1], self)
 
-        q = self.sasm.getBinnedQ()
+        q = self.sasm.getRawQ()
 
         findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
 
@@ -8074,7 +8070,7 @@ class ManipItemPanel(wx.Panel):
             # spin_range = each_spinctrl[3]
             spin_name = each_spinctrl[4]
 
-            nlow, nhigh = 0, (len(self.sasm.getBinnedQ())-1)
+            nlow, nhigh = 0, (len(self.sasm.getRawQ())-1)
 
             spin_label = wx.StaticText(self, -1, spin_label_text)
 

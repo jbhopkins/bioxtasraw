@@ -68,11 +68,6 @@ class SASM(object):
         if 'history' not in self._parameters:
             self._parameters['history'] = {}
 
-        #Binned intensity variables
-        self._i_binned = self._i_raw.copy()
-        self._q_binned = self._q_raw.copy()
-        self._err_binned = self._err_raw.copy()
-
         #Modified intensity variables
         self.i = self._i_raw.copy()
         self.q = self._q_raw.copy()
@@ -82,7 +77,6 @@ class SASM(object):
         self._offset_value = 0
         self._norm_factor = 1
         self._q_scale_factor = 1
-        self._bin_size = 1
 
         #variables used for plot management
         self.item_panel = None
@@ -91,8 +85,7 @@ class SASM(object):
         self.err_line = None
         self.axes = None
         self.is_plotted = False
-        self._selected_q_range = (0, len(self._q_binned))
-
+        self._selected_q_range = (0, len(self._q_raw))
 
         #Calculated values
         try:
@@ -117,18 +110,12 @@ class SASM(object):
 
         newsasm = SASM(i_raw, q_raw, err_raw, parameters)
 
-        #Binned intensity variables
         newsasm.setQrange(copy.deepcopy(self.getQrange(), memo))
 
         newsasm.scale(copy.deepcopy(self.getScale(), memo))
         newsasm.normalize(copy.deepcopy(self._norm_factor, memo))
         newsasm.offset(copy.deepcopy(self.getOffset(), memo))
         newsasm._q_scale_factor = copy.deepcopy(self._q_scale_factor, memo)
-        newsasm._bin_size = copy.deepcopy(self.getBinning(), memo)
-
-        newsasm.setBinnedI(copy.deepcopy(self.getBinnedI(), memo))
-        newsasm.setBinnedQ(copy.deepcopy(self.getBinnedQ(), memo))
-        newsasm.setBinnedErr(copy.deepcopy(self.getBinnedErr(), memo))
 
         newsasm._update()
 
@@ -137,13 +124,9 @@ class SASM(object):
     def _update(self):
         ''' updates modified intensity after scale, normalization and offset changes '''
 
-        #self.i = ((self._i_binned / self._norm_factor) + self._offset_value) * self._scale_factor
-        self.i = ((self._i_binned / self._norm_factor) * self._scale_factor) + self._offset_value
-
-        #self.err = ((self._err_binned / self._norm_factor) + self._offset_value) * abs(self._scale_factor)
-        self.err = ((self._err_binned / self._norm_factor)) * abs(self._scale_factor)
-
-        self.q = self._q_binned * self._q_scale_factor
+        self.i = ((self._i_raw / self._norm_factor) * self._scale_factor) + self._offset_value
+        self.err = ((self._err_raw / self._norm_factor)) * abs(self._scale_factor)
+        self.q = self._q_raw * self._q_scale_factor
 
         # print self.err_line
 
@@ -211,27 +194,14 @@ class SASM(object):
         self._offset_value = offset_value
         self._update()
 
-    def scaleBinnedQ(self, scale_factor):
-        self._q_binned = self._q_binned * scale_factor
+    def scaleRawQ(self, scale_factor):
+        self._q_raw = self._q_raw * scale_factor
         self._update()
 
     def scaleQ(self, q_scale_factor):
         ''' scale Q values by a factor (calibrate) '''
 
         self._q_scale_factor = q_scale_factor
-        self._update()
-
-    def calibrateQ(self, sd_distance, delta_q_length, wavelength):
-        ''' calibrates the q_vector from the sample-detector
-        distance sd_distance. Going from a q-vector in pixels
-        to inverse angstroms via delta_q_length (ex. detector pixel size)'''
-
-        for q_idx in range(0,len(self._q_binned)):
-            q_vector = self._q_binned[q_idx]
-            theta = SASCalib.calcTheta(sd_distance, delta_q_length, q_vector)
-
-            self._q_binned[q_idx] = ((4. * pi * sin(theta)) / wavelength)
-
         self._update()
 
     def reset(self):
@@ -241,18 +211,16 @@ class SASM(object):
         self.q = self._q_raw.copy()
         self.err = self._err_raw.copy()
 
-        self._i_binned = self._i_raw.copy()
-        self._q_binned = self._q_raw.copy()
-        self._err_binned = self._err_raw.copy()
-
         self._scale_factor = 1
         self._offset_value = 0
         self._norm_factor = 1
         self._q_scale_factor = 1
 
     def setQrange(self, qrange):
-        if qrange[0] < 0 or qrange[1] > (len(self._q_binned)):
-            raise SASExceptions.InvalidQrange('Qrange: ' + str(qrange) + ' is not a valid q-range for a q-vector of length ' + str(len(self._q_binned)-1))
+        if qrange[0] < 0 or qrange[1] > (len(self._q_raw)):
+            msg = ('Qrange: ' + str(qrange) + ' is not a valid q-range for a '
+                'q-vector of length ' + str(len(self._q_raw)-1))
+            raise SASExceptions.InvalidQrange(msg)
         else:
             self._selected_q_range = list(map(int, qrange))
 
@@ -302,7 +270,7 @@ class SASM(object):
 
         '''
 
-        intensity = self._i_binned
+        intensity = self._i_raw
 
         for i in range(window_length + start_idx, len(intensity)):
 
@@ -317,139 +285,40 @@ class SASM(object):
 
         self._update()
 
-#   def logRebin(self, no_points, start_idx = 0, end_idx = -1):
-#       pass
+    def getRawQ(self):
+        return self._q_raw
 
-    def setLogBinning(self, no_points, start_idx = 0, end_idx = -1):
+    def getRawI(self):
+        return self._i_raw
 
-        if end_idx == -1:
-            end_idx = len(self._i_raw)
+    def getRawErr(self):
+        return self._err_raw
 
-        i = self._i_raw[start_idx:end_idx]
-        q = self._q_raw[start_idx:end_idx]
-        err = self._err_raw[start_idx:end_idx]
+    def setRawI(self, new_raw_i):
+        self._i_raw = new_raw_i
 
-        bins = np.logspace(1, np.log10(len(q)), no_points)
+    def setRawQ(self, new_raw_q):
+        self._q_raw = new_raw_q
 
-        binned_q = []
-        binned_i = []
-        binned_err = []
+    def setRawErr(self, new_raw_err):
+        self._err_raw = new_raw_err
 
-        idx = 0
-        for i in range(0, len(bins)):
-            no_of_bins = np.floor(bins[i] - bins[i-1])
-
-            if no_of_bins > 1:
-                mean_q = np.mean( q[ idx : idx + no_of_bins ] )
-                mean_i = np.mean( i[ idx : idx + no_of_bins ] )
-
-                mean_err = np.sqrt( sum( np.power( err[ idx : idx + no_of_bins ], 2) ) ) / np.sqrt( no_of_bins )
-
-                binned_q.append(mean_q)
-                binned_i.append(mean_i)
-                binned_err.append(mean_err)
-
-                idx = idx + no_of_bins
-            else:
-                binned_q.append(q[idx])
-                binned_i.append(i[idx])
-                binned_err.append(err[idx])
-                idx = idx + 1
-
-        self._i_binned = np.array(binned_i)
-        self._q_binned = np.array(binned_q)
-        self._err_binned = np.array(binned_err)
-
-        self._update()
-        self._selected_q_range = (0, len(self._i_binned))
-
-
-    def setBinning(self, bin_size, start_idx = 0, end_idx = -1):
-        ''' Sets the bin size of the I_q plot
-
-            end_idx will be lowered to fit the bin_size
-            if needed.
-        '''
-
-        self._bin_size = bin_size
-
-        if end_idx == -1:
-            end_idx = len(self._i_raw)
-
-        len_iq = len(self._i_raw[start_idx:end_idx])
-
-        no_of_bins = int(np.floor(len_iq / bin_size))
-        end_idx = start_idx + no_of_bins*bin_size
-
-        i_roi = self._i_raw[start_idx:end_idx]
-        q_roi = self._q_raw[start_idx:end_idx]
-        err_roi = self._err_raw[start_idx:]
-
-        new_i = np.zeros(no_of_bins)
-        new_q = np.zeros(no_of_bins)
-        new_err = np.zeros(no_of_bins)
-
-        for eachbin in range(0, no_of_bins):
-            first_idx = eachbin * bin_size
-            last_idx = (eachbin * bin_size) + bin_size
-
-            new_i[eachbin] = sum(i_roi[first_idx:last_idx]) / bin_size
-            new_q[eachbin] = sum(q_roi[first_idx:last_idx]) / bin_size
-            new_err[eachbin] = np.sqrt(sum(np.power(err_roi[first_idx:last_idx],2))) / np.sqrt(bin_size)
-
-        if end_idx == -1 or end_idx == len(self._i_raw):
-            self._i_binned = np.append(self._i_raw[0:start_idx], new_i)
-            self._q_binned = np.append(self._q_raw[0:start_idx], new_q)
-            self._err_binned = np.append(self._err_raw[0:start_idx], new_err)
-        else:
-            self._i_binned = np.append(np.append(self._i_raw[0:start_idx], new_i), self._i_raw[end_idx:])
-            self._q_binned = np.append(np.append(self._q_raw[0:start_idx], new_q), self._q_raw[end_idx:])
-            self._err_binned = np.append(np.append(self._err_raw[0:start_idx], new_err), self._err_raw[end_idx:])
-
-        self._update()
-        self._selected_q_range = (0, len(self._i_binned))
-
-    def getBinning(self):
-        return self._bin_size
-
-    def getBinnedQ(self):
-        return self._q_binned
-
-    def getBinnedI(self):
-        return self._i_binned
-
-    def getBinnedErr(self):
-        return self._err_binned
-
-    def setBinnedI(self, new_binned_i):
-        self._i_binned = new_binned_i
-
-    def setBinnedQ(self, new_binned_q):
-        self._q_binned = new_binned_q
-
-    def setBinnedErr(self, new_binned_err):
-        self._err_binned = new_binned_err
-
-    def setScaleValues(self, scale_factor, offset_value, norm_factor, q_scale_factor, bin_size):
+    def setScaleValues(self, scale_factor, offset_value, norm_factor, q_scale_factor):
 
         self._scale_factor = scale_factor
         self._offset_value = offset_value
         self._norm_factor = norm_factor
         self._q_scale_factor = q_scale_factor
-        self._bin_size = bin_size
+        self._update()
 
     def scaleRawIntensity(self, scale):
         self._i_raw = self._i_raw * scale
         self._err_raw = self._err_raw * scale
-
-    def scaleBinnedIntensity(self, scale):
-        self._i_binned = self._i_binned * scale
-        self._err_binned = self._err_binned * scale
         self._update()
 
-    def offsetBinnedIntensity(self, offset):
-        self._i_binned = self._i_binned + offset
-        self._err_binned = self._err_binned
+    def offsetRawIntensity(self, offset):
+        self._i_raw = self._i_raw + offset
+        self._err_raw = self._err_raw
         self._update()
 
     def extractAll(self):
@@ -460,15 +329,11 @@ class SASM(object):
         all_data['i_raw'] = self._i_raw
         all_data['q_raw'] = self._q_raw
         all_data['err_raw'] = self._err_raw
-        all_data['i_binned'] = self._i_binned
-        all_data['q_binned'] = self._q_binned
-        all_data['err_binned'] = self._err_binned
 
         all_data['scale_factor'] = self._scale_factor
         all_data['offset_value'] = self._offset_value
         all_data['norm_factor'] = self._norm_factor
         all_data['q_scale_factor'] = self._q_scale_factor
-        all_data['bin_size'] = self._bin_size
 
         all_data['selected_qrange'] = self._selected_q_range
 
@@ -550,14 +415,6 @@ class IFTM(SASM):
         # if 'history' not in self._parameters:
         #     self._parameters['history'] = {}
 
-        #Binned intensity variables
-        self._i_orig_binned = self._i_orig_raw.copy()
-        self._q_orig_binned = self._q_orig_raw.copy()
-        self._err_orig_binned = self._err_orig_raw.copy()
-        self._i_fit_binned = self._i_fit_raw.copy()
-        self._i_extrap_binned = self._i_extrap_raw.copy()
-        self._q_extrap_binned = self._q_extrap_raw.copy()
-
         #Modified intensity variables
         self.r = self._r_raw.copy()
         self.p = self._p_raw.copy()
@@ -602,19 +459,15 @@ class IFTM(SASM):
         self.canvas = None
 
         self.is_plotted = False
-        self._selected_q_range = (0, len(self._q_orig_binned))
+        self._selected_q_range = (0, len(self._q_orig_raw))
 
 
     def _update(self):
         ''' updates modified intensity after scale, normalization and offset changes '''
 
-        #self.i = ((self._i_binned / self._norm_factor) + self._offset_value) * self._scale_factor
-        self.i = ((self._i_binned / self._norm_factor) * self._scale_factor) + self._offset_value
-
-        #self.err = ((self._err_binned / self._norm_factor) + self._offset_value) * abs(self._scale_factor)
-        self.err = ((self._err_binned / self._norm_factor)) * abs(self._scale_factor)
-
-        self.q = self._q_binned * self._q_scale_factor
+        self.i = ((self._i_raw / self._norm_factor) * self._scale_factor) + self._offset_value
+        self.err = ((self._err_raw / self._norm_factor)) * abs(self._scale_factor)
+        self.q = self._q_raw * self._q_scale_factor
 
     def getScale(self):
         return self._scale_factor
@@ -649,26 +502,12 @@ class IFTM(SASM):
 
     def reset(self):
         # ''' Reset q, i and err to their original values '''
-
-        # self.i = self._i_raw.copy()
-        # self.q = self._q_raw.copy()
-        # self.err = self._err_raw.copy()
-
-        # self._i_binned = self._i_raw.copy()
-        # self._q_binned = self._q_raw.copy()
-        # self._err_binned = self._err_raw.copy()
-
-        # self._scale_factor = 1
-        # self._offset_value = 0
-        # self._norm_factor = 1
-        # self._q_scale_factor = 1
-
         pass
 
     def setQrange(self, qrange):
 
-        if qrange[0] < 0 or qrange[1] > (len(self._q_orig_binned)):
-            raise SASExceptions.InvalidQrange('Qrange: ' + str(qrange) + ' is not a valid q-range for a q-vector of length ' + str(len(self._q_orig_binned)-1))
+        if qrange[0] < 0 or qrange[1] > (len(self._q_orig_raw)):
+            raise SASExceptions.InvalidQrange('Qrange: ' + str(qrange) + ' is not a valid q-range for a q-vector of length ' + str(len(self._q_orig_raw)-1))
         else:
             self._selected_q_range = list(map(int, qrange))
 
@@ -718,16 +557,6 @@ class IFTM(SASM):
         all_data['i_fit_raw'] = self._i_fit_raw
         all_data['i_extrap_raw'] = self._i_extrap_raw
         all_data['q_extrap_raw'] = self._q_extrap_raw
-
-        # all_data['i_binned'] = self._i_binned
-        # all_data['q_binned'] = self._q_binned
-        # all_data['err_binned'] = self._err_binned
-
-        # all_data['scale_factor'] = self._scale_factor
-        # all_data['offset_value'] = self._offset_value
-        # all_data['norm_factor'] = self._norm_factor
-        # all_data['q_scale_factor'] = self._q_scale_factor
-        # all_data['bin_size'] = self._bin_size
 
         all_data['selected_qrange'] = self._selected_q_range
 
@@ -1613,21 +1442,21 @@ def normalizeAbsoluteScaleCarbon(sasm, raw_settings):
     bkg_ctr_dns_val = float(bkg_ctrs[ctr_dns])
 
     sample_trans = (sample_ctr_dns_val/sample_ctr_ups_val)/(bkg_ctr_dns_val/bkg_ctr_ups_val)
-    sasm.scaleBinnedIntensity(1./sample_ctr_ups_val)
+    sasm.scaleRawIntensity(1./sample_ctr_ups_val)
     bkg_sasm.scale((1./bkg_ctr_ups_val)*sample_trans)
 
     try:
         sub_sasm = SASProc.subtract(sasm, bkg_sasm, forced = True, full = True)
     except SASExceptions.DataNotCompatible:
-        sasm.scaleBinnedIntensity(sample_ctr_ups_val)
+        sasm.scaleRawIntensity(sample_ctr_ups_val)
         raise SASExceptions.AbsScaleNormFailed('Absolute scale failed because empty scattering could not be subtracted')
 
-    sub_sasm.scaleBinnedIntensity(1./(sample_trans)/sam_thick)
-    sub_sasm.scaleBinnedIntensity(abs_scale_constant)
+    sub_sasm.scaleRawIntensity(1./(sample_trans)/sam_thick)
+    sub_sasm.scaleRawIntensity(abs_scale_constant)
 
-    sasm.setBinnedQ(sub_sasm.getBinnedQ())
-    sasm.setBinnedI(sub_sasm.getBinnedI())
-    sasm.setBinnedErr(sub_sasm.getBinnedErr())
+    sasm.setRawQ(sub_sasm.getRawQ())
+    sasm.setRawI(sub_sasm.getRawI())
+    sasm.setRawErr(sub_sasm.getRawErr())
     sasm.scale(1.)
     sasm.setQrange((0,len(sasm.q)))
 

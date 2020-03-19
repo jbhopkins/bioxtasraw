@@ -379,9 +379,8 @@ def superimpose(sasm_star, sasm_list, choice):
 
     for each_sasm in sasm_list:
 
-        each_q = each_sasm.getBinnedQ()
-        each_i = each_sasm.getBinnedI()
-        # each_err = each_sasm.getBinnedErr()
+        each_q = each_sasm.getRawQ()
+        each_i = each_sasm.getRawI()
 
         each_q_qrange_min, each_q_qrange_max = each_sasm.getQrange()
 
@@ -604,9 +603,9 @@ def logBinning(sasm, no_points):
     #if end_idx == -1:
 #       end_idx = len(self._i_raw)
 
-    i_roi = sasm._i_binned
-    q_roi = sasm._q_binned
-    err_roi = sasm._err_binned
+    i_roi = sasm._i_raw
+    q_roi = sasm._q_raw
+    err_roi = sasm._err_raw
 
     bins = np.logspace(1, np.log10(len(q_roi)), no_points)
 
@@ -661,16 +660,16 @@ def rebin(sasm, rebin_factor):
         if needed.
     '''
 
-    len_iq = len(sasm._i_binned)
+    len_iq = len(sasm._i_raw)
 
     no_of_bins = int(np.floor(len_iq / rebin_factor))
 
     end_idx = no_of_bins * rebin_factor
 
     start_idx = 0
-    i_roi = sasm._i_binned[start_idx:end_idx]
-    q_roi = sasm._q_binned[start_idx:end_idx]
-    err_roi = sasm._err_binned[start_idx:end_idx]
+    i_roi = sasm._i_raw[start_idx:end_idx]
+    q_roi = sasm._q_raw[start_idx:end_idx]
+    err_roi = sasm._err_raw[start_idx:end_idx]
 
     new_i = np.zeros(no_of_bins)
     new_q = np.zeros(no_of_bins)

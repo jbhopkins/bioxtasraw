@@ -1822,17 +1822,12 @@ def makeSeriesFile(secm_data, settings):
 
     sasm_list = []
 
-    for item in secm_data['sasm_list']:
-        sasm_data = item
+    for sasm_data in secm_data['sasm_list']:
 
         new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
-        new_sasm.setBinnedI(sasm_data['i_binned'])
-        new_sasm.setBinnedQ(sasm_data['q_binned'])
-        new_sasm.setBinnedErr(sasm_data['err_binned'])
 
         new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
-                                sasm_data['norm_factor'], sasm_data['q_scale_factor'],
-                                sasm_data['bin_size'])
+            sasm_data['norm_factor'], sasm_data['q_scale_factor'])
 
         new_sasm.setQrange(sasm_data['selected_qrange'])
 
@@ -1875,19 +1870,14 @@ def makeSeriesFile(secm_data, settings):
 
     subtracted_sasm_list = []
 
-    for item in secm_data['subtracted_sasm_list']:
-        sasm_data = item
+    for sasm_data in secm_data['subtracted_sasm_list']:
 
         if sasm_data != -1:
             new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'],
                 sasm_data['err_raw'], sasm_data['parameters'])
-            new_sasm.setBinnedI(sasm_data['i_binned'])
-            new_sasm.setBinnedQ(sasm_data['q_binned'])
-            new_sasm.setBinnedErr(sasm_data['err_binned'])
 
             new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
-                                    sasm_data['norm_factor'], sasm_data['q_scale_factor'],
-                                    sasm_data['bin_size'])
+                sasm_data['norm_factor'], sasm_data['q_scale_factor'])
 
             new_sasm.setQrange(sasm_data['selected_qrange'])
 
@@ -1912,18 +1902,13 @@ def makeSeriesFile(secm_data, settings):
 
     baseline_subtracted_sasm_list = []
 
-    for item in secm_data['baseline_subtracted_sasm_list']:
-        sasm_data = item
+    for sasm_data in secm_data['baseline_subtracted_sasm_list']:
 
         if sasm_data != -1:
             new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
-            new_sasm.setBinnedI(sasm_data['i_binned'])
-            new_sasm.setBinnedQ(sasm_data['q_binned'])
-            new_sasm.setBinnedErr(sasm_data['err_binned'])
 
             new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
-                                    sasm_data['norm_factor'], sasm_data['q_scale_factor'],
-                                    sasm_data['bin_size'])
+                sasm_data['norm_factor'], sasm_data['q_scale_factor'])
 
             new_sasm.setQrange(sasm_data['selected_qrange'])
 
@@ -1942,18 +1927,13 @@ def makeSeriesFile(secm_data, settings):
 
     baseline_corr = []
 
-    for item in secm_data['baseline_corr']:
-        sasm_data = item
+    for sasm_data in secm_data['baseline_corr']:
 
         if sasm_data != -1:
             new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
-            new_sasm.setBinnedI(sasm_data['i_binned'])
-            new_sasm.setBinnedQ(sasm_data['q_binned'])
-            new_sasm.setBinnedErr(sasm_data['err_binned'])
 
             new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
-                                    sasm_data['norm_factor'], sasm_data['q_scale_factor'],
-                                    sasm_data['bin_size'])
+                sasm_data['norm_factor'], sasm_data['q_scale_factor'])
 
             new_sasm.setQrange(sasm_data['selected_qrange'])
 
@@ -1976,13 +1956,9 @@ def makeSeriesFile(secm_data, settings):
     if sasm_data != -1 and sasm_data is not None:
         new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'],
             sasm_data['err_raw'], sasm_data['parameters'])
-        new_sasm.setBinnedI(sasm_data['i_binned'])
-        new_sasm.setBinnedQ(sasm_data['q_binned'])
-        new_sasm.setBinnedErr(sasm_data['err_binned'])
 
         new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
-                                sasm_data['norm_factor'], sasm_data['q_scale_factor'],
-                                sasm_data['bin_size'])
+            sasm_data['norm_factor'], sasm_data['q_scale_factor'])
 
         new_sasm.setQrange(sasm_data['selected_qrange'])
 
@@ -2403,7 +2379,9 @@ def loadPrimusDatFile(filename):
     else:
         is_foxs_fit = False
 
-    for line in lines:
+    header = []
+
+    for j, line in enumerate(lines):
         iq_match = iq_pattern.match(line)
 
         if iq_match:
@@ -2419,36 +2397,34 @@ def loadPrimusDatFile(filename):
                 imodel.append(float(found[2]))
                 err.append(abs(float(found[3])))
 
-
-    #Check to see if there is any header from RAW, and if so get that.
-    header = []
-    for j in range(len(lines)):
-        if '### HEADER:' in lines[j]:
+        #Check to see if there is any header from RAW, and if so get that.
+        if '### HEADER:' in line:
             header = lines[j+1:]
 
-    hdict = None
+            # For headers at the bottom, stop trying the regex
+            if len(q) > 0:
+                break
+
+    # for j in range(len(lines)):
+    #     if '### HEADER:' in lines[j]:
+    #         header = lines[j+1:]
+
+    # hdict = None
 
     if len(header)>0:
         hdr_str = ''
         for each_line in header:
             hdr_str=hdr_str+each_line.lstrip('#')
-        try:
-            hdict = dict(json.loads(hdr_str))
-            # print 'Loading RAW info/analysis...'
-        except Exception:
-            # print 'Unable to load header/analysis information. Maybe the file was not generated by RAW or was generated by an old version of RAW?'
-            hdict = {}
 
+    hdict = loadDatHeader(hdr_str)
+
+    for each in hdict:
+        if each != 'filename':
+            parameters[each] = hdict[each]
 
     i = np.array(i)
     q = np.array(q)
     err = np.array(err)
-
-    if hdict:
-        hdict = translateHeader(hdict, to_sasbdb=False)
-        for each in hdict:
-            if each != 'filename':
-                parameters[each] = hdict[each]
 
     sasm = SASM.SASM(i, q, err, parameters)
 
@@ -2461,6 +2437,20 @@ def loadPrimusDatFile(filename):
         return [sasm, sasm_model]
 
     return sasm
+
+def loadDatHeader(header):
+    try:
+        hdict = dict(json.loads(header))
+        # print 'Loading RAW info/analysis...'
+    except Exception:
+        # print 'Unable to load header/analysis information. Maybe the file was not generated by RAW or was generated by an old version of RAW?'
+        hdict = {}
+
+    if hdict:
+        hdict = translateHeader(hdict, to_sasbdb=False)
+
+    return hdict
+
 
 def loadRadFile(filename):
     ''' NOTE : THIS IS THE OLD RAD FORMAT..     '''
@@ -3630,6 +3620,14 @@ def writeHeader(d, f2, ignore_list = []):
         if ignored_key in d:
             del d[ignored_key]
 
+    header = formatHeader(d)
+
+    header = header.replace('\n', '\n#')
+    f2.write(header)
+
+    f2.write('\n\n')
+
+def formatHeader(d):
     d = translateHeader(d)
 
     header = json.dumps(d, indent = 4, sort_keys = True, cls = MyEncoder)
@@ -3641,11 +3639,7 @@ def writeHeader(d, f2, ignore_list = []):
         except Exception:
             pass
 
-    header = header.replace('\n', '\n#')
-    f2.write(header)
-
-    f2.write('\n\n')
-
+    return header
 
 #This class goes with write header, and was lifted from:
 #https://stackoverflow.com/questions/27050108/convert-numpy-type-to-python/27050186#27050186

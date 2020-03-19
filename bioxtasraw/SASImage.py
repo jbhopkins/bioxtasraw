@@ -463,18 +463,18 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
                if val == 0:
                    raise ValueError('Divide by Zero when normalizing')
 
-               sasm.scaleBinnedIntensity(1./val)
+               sasm.scaleRawIntensity(1./val)
 
             elif op == '+':
-                sasm.offsetBinnedIntensity(val)
+                sasm.offsetRawIntensity(val)
 
             elif op == '*':
                 if val == 0:
                    raise ValueError('Multiply by Zero when normalizing')
 
-                sasm.scaleBinnedIntensity(val)
+                sasm.scaleRawIntensity(val)
 
             elif op == '-':
-                sasm.offsetBinnedIntensity(-val)
+                sasm.offsetRawIntensity(-val)
 
     return sasm

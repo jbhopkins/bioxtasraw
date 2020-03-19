@@ -612,15 +612,6 @@ def postProcess(raw_settings, default_settings, loaded_param):
         atsas_dir = SASFileIO.findATSASDirectory()
         raw_settings.set('ATSASDir', atsas_dir)
 
-    default_defs = default_settings['fileDefinitions'][0]
-    current_defs = raw_settings.get('fileDefinitions')
-
-    for ftype, fdefs in default_defs.items():
-        for fname, defs in fdefs.items():
-            current_defs[ftype][fname] = defs
-
-    raw_settings.set('fileDefinitions', current_defs)
-
     return
 
 def saveSettings(raw_settings, savepath):
@@ -633,7 +624,7 @@ def saveSettings(raw_settings, savepath):
     exclude_keys = ['ImageFormatList', 'ImageHdrFormatList', 'BackgroundSASM',
     'CurrentCfg', 'csvIncludeData', 'CompatibleFormats', 'DataSECM',
     'NormAbsCarbonSamEmptySASM', 'AzimuthalIntegrator', 'NormFlatfieldImage',
-    'DarkCorrImage']
+    'DarkCorrImage', 'fileDefinitions']
 
     save_dict = {}
 
