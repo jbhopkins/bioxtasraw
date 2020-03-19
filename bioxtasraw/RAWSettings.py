@@ -170,9 +170,6 @@ class RawGuiSettings(object):
                 'ZingerRemoveWinLen': [10,    wx.NewId(), 'int'],
                 'ZingerRemoveIdx'   : [10,    wx.NewId(), 'int'],
 
-                'ZingerRemovalAvgStd'       : [4,       wx.NewId(), 'int'],
-                'ZingerRemovalAvg'          : [False,   wx.NewId(), 'bool'],
-
                 #SAVE DIRECTORIES
                 'ProcessedFilePath'    : [None,  wx.NewId(), 'text'],
                 'AveragedFilePath'     : [None,  wx.NewId(), 'text'],

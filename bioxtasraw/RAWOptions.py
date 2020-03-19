@@ -87,8 +87,6 @@ class ArtifactOptionsPanel(wx.Panel):
                             'ZingerRemoveSTD',
                             'ZingerRemoveWinLen',
                             'ZingerRemoveIdx',
-                            'ZingerRemovalAvg',
-                            'ZingerRemovalAvgStd',
                             'ZingerRemovalRadAvg',
                             'ZingerRemovalRadAvgStd',
                             'ZingerRemovalRadAvgIter',
@@ -101,20 +99,15 @@ class ArtifactOptionsPanel(wx.Panel):
                                      ('Window Length:',  raw_settings.getIdAndType('ZingerRemoveWinLen')),
                                      ('Start Index:',    raw_settings.getIdAndType('ZingerRemoveIdx')))
 
-        self.artifact_removal_data2 = ( ('Zinger Removal when Averageing', raw_settings.getIdAndType('ZingerRemovalAvg')),
-                                      ('Sensitivty (lower is more):', raw_settings.getIdAndType('ZingerRemovalAvgStd')))
-
         self.artifact_removal_data3 = ( ('Zinger removal during radial average', raw_settings.getIdAndType('ZingerRemovalRadAvg')),
                                       ('Discard threshold (std.):', raw_settings.getIdAndType('ZingerRemovalRadAvgStd')),
                                       ('Number of iterations:', raw_settings.getIdAndType('ZingerRemovalRadAvgIter')))
 
         artifact_sizer = self.createArtifactRemoveSettings()
-        artifact_sizer2 = self.createArtifactRemoveOnAvg()
         artifact_sizer3 = self.createArtifactRemoveOnRadAvg()
 
         panelsizer = wx.BoxSizer(wx.VERTICAL)
         panelsizer.Add(artifact_sizer, 0, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT,5)
-        panelsizer.Add(artifact_sizer2, 0, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT, 5)
         panelsizer.Add(artifact_sizer3, 0, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT, 5)
 
         self.SetSizer(panelsizer)
@@ -146,35 +139,6 @@ class ArtifactOptionsPanel(wx.Panel):
         chkbox_sizer.Add(grid_sizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.TOP, 5)
 
         return chkbox_sizer
-
-    def createArtifactRemoveOnAvg(self):
-
-        box = wx.StaticBox(self, -1, 'Artifact Removal when Averaging')
-        chkbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        grid_sizer = wx.FlexGridSizer(cols = 4, rows = 2, vgap = 5, hgap = 5)
-
-        for label, param in self.artifact_removal_data2:
-
-            if param is not None:
-
-                id = param[0]
-                type = param[1]
-
-                if type != 'bool':
-                    text = wx.StaticText(self, -1, label)
-                    ctrl = wx.TextCtrl(self, id, 'None', style = wx.TE_PROCESS_ENTER)
-
-                    grid_sizer.Add(text, 1, wx.EXPAND | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
-                    grid_sizer.Add(ctrl, 1, wx.EXPAND | wx.ALIGN_CENTER)
-                else:
-                    chk = wx.CheckBox(self, id, label)
-                    chk.Bind(wx.EVT_CHECKBOX, self.onChkBox)
-                    chkbox_sizer.Add(chk, 0, wx.EXPAND | wx.ALL, 5)
-
-        chkbox_sizer.Add(grid_sizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.TOP, 5)
-
-        return chkbox_sizer
-
 
     def createArtifactRemoveSettings(self):
 
