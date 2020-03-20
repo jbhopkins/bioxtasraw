@@ -15322,8 +15322,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             self.baseline_options_sizer.Hide(self.baseline_extrap)
 
 
-        array_test = isinstance(self.secm.vpmw_list, np.ndarray) and (not np.all(self.secm.vpmw_list == -1)
-            or np.all(self.secm.rg_list == -1))
+        array_test = (isinstance(self.secm.vpmw_list, np.ndarray) and (not np.all(self.secm.vpmw_list == -1)
+            or np.all(self.secm.rg_list == -1)) and self.secm.vpmw_list.size > 0)
         list_test = isinstance(self.secm.vpmw_list, list) and self.secm.vpmw_list
 
         if array_test or list_test:

@@ -1755,25 +1755,223 @@ def loadOutFile(filename):
     return [iftm]
 
 
-def loadSeriesFile(filename, settings):
-    file = open(filename, 'rb')
-    secm_data = None
 
-    try:
-        if six.PY3:
-            secm_data = pickle.load(file, encoding='latin-1')
+def load_series_sasm(group, data_name, q_raw=None, group_keys={}):
+
+    if 'raw' in group:
+        load_group = group['raw']
+        load_dataset = load_group[data_name]
+        attrs_dataset = group[data_name]
+    else:
+        load_group = group
+        load_dataset = load_group[data_name]
+        attrs_dataset = load_dataset
+
+    sasm_data = {}
+
+    if 'q' in load_group:
+        if q_raw is None:
+            sasm_data['q_raw'] = load_group['q'][()]
         else:
-            secm_data = pickle.load(file)
-    except Exception as e:
-        print(e)
-        file.close()
-        file = open(filename, 'rU')
-        if six.PY3:
-            secm_data = pickle.load(file, encoding='latin-1')
+            sasm_data['q_raw'] = copy.copy(q_raw)
+
+        data = load_dataset[()]
+        sasm_data['i_raw'] = data[:,0]
+        sasm_data['err_raw'] = data[:,1]
+
+    else:
+        data = load_dataset[()]
+        sasm_data['q_raw'] = data[:,0]
+        sasm_data['i_raw'] = data[:,1]
+        sasm_data['err_raw'] = data[:,2]
+
+    if not 'raw' in group:
+        sasm_data['scale_factor'] = 1.0
+        sasm_data['offset_value'] = 0.0
+        sasm_data['q_scale_factor'] = 1.0
+        sasm_data['selected_qrange'] = (0, len(sasm_data['q_raw']))
+    else:
+        sasm_data['scale_factor'] = float(attrs_dataset.attrs['scale_factor'][()])
+        sasm_data['offset_value'] = float(attrs_dataset.attrs['offset_value'][()])
+        sasm_data['q_scale_factor'] = float(attrs_dataset.attrs['q_scale_factor'][()])
+        sasm_data['selected_qrange'] = list(map(int, attrs_dataset.attrs['selected_qrange'][()]))
+
+    sasm_data['parameters'] = loadDatHeader(attrs_dataset.attrs['parameters'])
+
+    return sasm_data
+
+def load_series_sasm_list(group, excluded_keys=['raw', 'q']):
+    q_raw = None
+    sasm_list = []
+
+    if 'raw' in group:
+        raw_group = group['raw']
+
+        if 'q' in raw_group:
+            q_raw = raw_group['q'][()]
+
+    elif 'q' in group:
+        q_raw = group['q'][()]
+
+    for data in group:
+        if data not in excluded_keys:
+            sasm_list.append(load_series_sasm(group, data,
+                q_raw))
+
+    return sasm_list
+
+def load_series(name):
+    seriesm_data = {}
+
+    with h5py.File(name, 'r', driver='core', backing_store=False) as f:
+        seriesm_data['parameters'] = loadDatHeader(f.attrs['parameters'])
+
+        seriesm_data['file_list'] = list(map(str, f['file_names'][()]))
+        seriesm_data['frame_list'] = list(map(int, f['frame_numbers'][()]))
+        seriesm_data['time'] = list(map(float, f['times'][()]))
+
+        # Get data from unsubtracted group
+        profiles = f['profiles']
+        seriesm_data['sasm_list'] = load_series_sasm_list(profiles, ['raw', 'q', 'average_buffer_profile'])
+
+        if len(profiles['average_buffer_profile']) > 0:
+            seriesm_data['average_buffer_sasm'] = load_series_sasm(profiles,
+                'average_buffer_profile')
         else:
-            secm_data = pickle.load(file)
-    except Exception as e:
-        file.close()
+            seriesm_data['average_buffer_sasm'] = None
+
+        # Get data from subtracted group
+
+        sub_profiles = f['subtracted_profiles']
+        seriesm_data['subtracted_sasm_list'] = load_series_sasm_list(sub_profiles)
+
+        seriesm_data['use_subtracted_sasm'] = list(map(bool, sub_profiles.attrs['use_subtracted_sasm'][()]))
+
+        # Get data from baseline subtracted group
+        baseline_profiles = f['baseline_subtracted_profiles']
+        seriesm_data['baseline_subtracted_sasm_list'] = load_series_sasm_list(baseline_profiles)
+
+        seriesm_data['use_baseline_subtracted_sasm'] = list(map(bool, baseline_profiles.attrs['use_baseline_subtracted_sasm'][()]))
+
+        # Get data from intensity groups
+        intensity = f['intensities']
+        if (isinstance(intensity.attrs['buffer_range'][()], np.ndarray)
+            and intensity.attrs['buffer_range'][()].ndim ==1
+            and intensity.attrs['buffer_range'][()].size > 1):
+            seriesm_data['buffer_range'] = [(intensity.attrs['buffer_range'][()][0],
+                intensity.attrs['buffer_range'][()][1])]
+        else:
+            seriesm_data['buffer_range'] = list(map(tuple, intensity.attrs['buffer_range'][()]))
+
+        seriesm_data['already_subtracted'] = bool(intensity.attrs['already_subtracted'][()])
+        seriesm_data['qref'] = float(intensity['qref_intensities'].attrs['q_value'][()])
+        seriesm_data['qrange'] = tuple(intensity['qrange_intensities'].attrs['q_range'][()])
+
+        sub_intensity = f['subtracted_intensities']
+        if (isinstance(sub_intensity.attrs['sample_range'][()], np.ndarray)
+            and sub_intensity.attrs['sample_range'][()].ndim ==1 and
+            sub_intensity.attrs['sample_range'][()].size > 1):
+            seriesm_data['sample_range'] = [(sub_intensity.attrs['sample_range'][()][0],
+                sub_intensity.attrs['sample_range'][()][1])]
+        else:
+            seriesm_data['sample_range'] = list(map(tuple, sub_intensity.attrs['sample_range'][()]))
+
+        # Get calculated data
+        calc_data = f['calculated_data']
+        seriesm_data['rg'] = calc_data['rg'][:,0]
+        seriesm_data['rger'] = calc_data['rg'][:,1]
+        seriesm_data['i0'] = calc_data['I0'][:,0]
+        seriesm_data['i0er'] = calc_data['I0'][:,1]
+        seriesm_data['vpmw'] = calc_data['vp_mw'][()]
+        seriesm_data['vcmw'] = calc_data['vc_mw'][:,0]
+        seriesm_data['vcmwer'] = calc_data['vc_mw'][:,1]
+
+        seriesm_data['window_size'] = int(calc_data.attrs['window_size'][()])
+        seriesm_data['mol_type'] = str(calc_data.attrs['molecule_type'][:])
+        seriesm_data['mol_density'] = float(calc_data.attrs['molecule_density'][()])
+        seriesm_data['calc_has_data'] = bool(calc_data.attrs['has_data'][()])
+
+        # Get baseline
+        baseline = f['baseline']
+        seriesm_data['baseline_corr'] = load_series_sasm_list(baseline['correction'])
+
+        seriesm_data['baseline_fit_results'] = baseline['fit_parameters'][:]
+
+        if (isinstance(baseline.attrs['baseline_start_range'][()], np.ndarray)
+            and baseline.attrs['baseline_start_range'][()].ndim ==1
+            and baseline.attrs['baseline_start_range'][()].size >1):
+            seriesm_data['baseline_start_range'] = (int(baseline.attrs['baseline_start_range'][0]),
+                int(baseline.attrs['baseline_start_range'][1]))
+        else:
+            seriesm_data['baseline_start_range'] = list(map(tuple, baseline.attrs['baseline_start_range'][()]))
+
+        if (isinstance(baseline.attrs['baseline_end_range'][()], np.ndarray)
+            and baseline.attrs['baseline_end_range'][()].ndim ==1
+            and baseline.attrs['baseline_end_range'][()].size >1):
+            seriesm_data['baseline_end_range'] = (int(baseline.attrs['baseline_end_range'][0]),
+                int(baseline.attrs['baseline_end_range'][1]))
+        else:
+            seriesm_data['baseline_end_range'] = list(map(tuple, baseline.attrs['baseline_end_range'][()]))
+
+        seriesm_data['baseline_type'] = str(baseline.attrs['baseline_type'])
+        seriesm_data['baseline_extrapolation'] = bool(baseline.attrs['baseline_extrapolation'])
+
+        try:
+            seriesm_data['item_font_color'] = f.attrs['item_font_color'][()]
+            seriesm_data['item_selected_for_plot'] = f.attrs['item_selected_for_plot'][()]
+
+            seriesm_data['line_color'] = profiles.attrs['line_color'][()]
+            seriesm_data['line_width'] = profiles.attrs['line_width'][()]
+            seriesm_data['line_style'] = profiles.attrs['line_style'][()]
+            seriesm_data['line_marker'] = profiles.attrs['line_marker'][()]
+            seriesm_data['line_visible'] = profiles.attrs['line_visible'][()]
+            seriesm_data['line_marker_face_color'] = profiles.attrs['line_marker_face_color'][()]
+            seriesm_data['line_marker_edge_color'] = profiles.attrs['line_marker_edge_color'][()]
+            seriesm_data['line_visible'] = profiles.attrs['line_visible'][()]
+            seriesm_data['line_legend_label'] = profiles.attrs['line_legend_label'][()]
+
+            seriesm_data['line_color'] = calc_data.attrs['calc_line_color'][()]
+            seriesm_data['line_width'] = calc_data.attrs['calc_line_width'][()]
+            seriesm_data['line_style'] = calc_data.attrs['calc_line_style'][()]
+            seriesm_data['line_marker'] = calc_data.attrs['calc_line_marker'][()]
+            seriesm_data['line_visible'] = calc_data.attrs['calc_line_visible'][()]
+            seriesm_data['line_marker_face_color'] = calc_data.attrs['calc_line_marker_face_color'][()]
+            seriesm_data['line_marker_edge_color'] = calc_data.attrs['calc_line_marker_edge_color'][()]
+            seriesm_data['line_visible'] = calc_data.attrs['calc_line_visible'][()]
+            seriesm_data['line_legend_label'] = calc_data.attrs['calc_line_legend_label'][()]
+
+        except Exception:
+            pass
+
+    return seriesm_data
+
+def loadSeriesFile(filename, settings):
+
+    name, ext = os.path.splitext(filename)
+
+    if ext == '.sec':
+        #old stype
+        file = open(filename, 'rb')
+        secm_data = None
+
+        try:
+            if six.PY3:
+                secm_data = pickle.load(file, encoding='latin-1')
+            else:
+                secm_data = pickle.load(file)
+        except Exception as e:
+            print(e)
+            file.close()
+            file = open(filename, 'rU')
+            if six.PY3:
+                secm_data = pickle.load(file, encoding='latin-1')
+            else:
+                secm_data = pickle.load(file)
+        finally:
+            file.close()
+
+    else:
+        secm_data = load_series(filename)
 
     if secm_data is not None:
         new_secm, line_data, calc_line_data = makeSeriesFile(secm_data, settings)
@@ -1841,11 +2039,15 @@ def makeSeriesFile(secm_data, settings):
         sasm_list.append(new_sasm)
 
 
+    # file_list = []
+    # for fname in secm_data['file_list']:
+    #     file_list.append(str(file_list))
+
     new_secm = SASM.SECM(secm_data['file_list'], sasm_list,
         secm_data['frame_list'], secm_data['parameters'], settings)
 
     new_secm.window_size = secm_data['window_size']
-    new_secm.mol_type = secm_data['mol_type']
+    new_secm.mol_type =secm_data['mol_type']
     new_secm.calc_has_data = secm_data['calc_has_data']
     new_secm.mol_density = secm_data['mol_density']
     new_secm.already_subtracted = secm_data['already_subtracted']
@@ -1905,7 +2107,8 @@ def makeSeriesFile(secm_data, settings):
     for sasm_data in secm_data['baseline_subtracted_sasm_list']:
 
         if sasm_data != -1:
-            new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
+            new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'],
+                sasm_data['err_raw'], sasm_data['parameters'])
 
             new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
                 sasm_data['q_scale_factor'])
@@ -1930,7 +2133,8 @@ def makeSeriesFile(secm_data, settings):
     for sasm_data in secm_data['baseline_corr']:
 
         if sasm_data != -1:
-            new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
+            new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'],
+                sasm_data['err_raw'], sasm_data['parameters'])
 
             new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
                 sasm_data['q_scale_factor'])
@@ -1950,7 +2154,6 @@ def makeSeriesFile(secm_data, settings):
 
     new_secm.baseline_corr = baseline_corr
 
-
     sasm_data = secm_data['average_buffer_sasm']
 
     if sasm_data != -1 and sasm_data is not None:
@@ -1969,7 +2172,7 @@ def makeSeriesFile(secm_data, settings):
 
         new_sasm._update()
     else:
-        new_sasm = -1
+        new_sasm = None
 
     new_secm.average_buffer_sasm = new_sasm
 
@@ -2764,6 +2967,376 @@ def saveSECItem(save_path, secm_dict):
 
     with open(save_path, 'wb') as f:
         pickle.dump(secm_dict, f, protocol=2)
+
+def save_series_sasm(profile_group, sasm_data, dataset_name, descrip='',
+    save_single_q=False, save_single_q_raw=False):
+
+    if descrip == '':
+        if save_single_q:
+            descrip = ('A single scattering profile. Columns correspond to '
+                'I(q), and sigma(q) from columns 0 to 1 respecitvely. Q vector '
+                'is stored in a separate dataset called "q" in the same group.')
+        else:
+            descrip = ('A single scattering profile. Columns correspond to q, '
+                'I(q), and sigma(q) from columns 0 to 2 respecitvely.')
+
+        if save_single_q_raw:
+            descrip_raw = ('A single scattering profile without scaling, offset, '
+                'or q trimming. Columns correspond to I(q), and sigma(q) from '
+                'columns 0 to 1 respecitvely. Q vector is stored in a separate '
+                'dataset called "q" in the same group.')
+        else:
+            descrip_raw = ('A single scattering profile without scaling, offset, '
+                'or q trimming. Columns correspond to q, I(q), and sigma(q) from '
+                'columns 0 to 2 respecitvely.')
+
+    q_raw = sasm_data['q_raw']
+    iq_raw = sasm_data['i_raw']
+    err_raw = sasm_data['err_raw']
+
+    q = sasm_data['q']
+    iq = sasm_data['i']
+    err = sasm_data['err']
+
+    if np.all(q == q_raw) and np.all(iq == iq_raw) and np.all(err == err_raw):
+        save_raw = False
+    else:
+        save_raw = True
+
+    if save_raw:
+        if not 'raw' in profile_group.keys():
+            raw_group = profile_group.create_group('raw')
+        else:
+            raw_group = profile_group['raw']
+
+        if save_single_q_raw:
+            data = np.column_stack((iq_raw, err_raw))
+        else:
+            data = np.column_stack((q_raw, iq_raw, err_raw))
+
+        dset_raw = raw_group.create_dataset(dataset_name, data=data)
+
+        dset_raw.attrs['description'] = descrip_raw
+
+    if save_single_q:
+        data = np.column_stack((iq, err))
+    else:
+        data = np.column_stack((q, iq, err))
+
+    dset = profile_group.create_dataset(dataset_name, data=data)
+
+    if save_raw:
+        dset.attrs['scale_factor'] = sasm_data['scale_factor']
+        dset.attrs['offset_value'] = sasm_data['offset_value']
+        dset.attrs['q_scale_factor'] = sasm_data['q_scale_factor']
+        dset.attrs['selected_qrange'] = sasm_data['selected_qrange']
+    dset.attrs['parameters'] = formatHeader(sasm_data['parameters'])
+    dset.attrs['description'] = descrip
+
+def save_series_sasm_list(profile_group, sasm_list, frame_num_offset=0):
+
+    if len(sasm_list) > 1:
+        save_single_q_raw = all([np.all(sasm['q']==sasm_list[0]['q']) for sasm in sasm_list[1:]])
+        save_single_q = all([np.all(sasm['q_raw']==sasm_list[0]['q_raw']) for sasm in sasm_list[1:]])
+    else:
+        save_single_q_raw = False
+        save_single_q = False
+
+    if save_single_q:
+        q = sasm_list[0]['q']
+        q_dataset = profile_group.create_dataset('q', data=q)
+        q_dataset.attrs['description'] = ('the q vector for all numbered (e.g. '
+            '00001) data in this group (note: named data, such as the average '
+            'buffer, will have a separate q vector in that dataset).')
+
+    if save_single_q_raw:
+        if not np.all(sasm_list[0]['q'] == sasm_list[0]['q_raw']):
+            q_raw = sasm_list[0]['q_raw']
+            q_raw_dataset = profile_group.create_dataset('q', data=q_raw)
+            q_raw_dataset.attrs['description'] = ('the q vector for all numbered (e.g. '
+                '"00001") data in this group (note: named data, such as the "average_'
+                'buffer_profile", will have a separate q vector in that dataset).')
+
+    for j, sasm_data in enumerate(sasm_list):
+        frame_num = j + frame_num_offset
+        save_series_sasm(profile_group, sasm_data, "{:06d}".format(frame_num),
+            save_single_q=save_single_q, save_single_q_raw=save_single_q_raw)
+
+def save_series(save_name, seriesm, save_gui_data=False):
+
+    seriesm_dict = seriesm.extractAll()
+
+    if save_gui_data:
+        try:
+            seriesm_dict['line_color'] = secm.line.get_color()
+            seriesm_dict['line_width'] = secm.line.get_linewidth()
+            seriesm_dict['line_style'] = secm.line.get_linestyle()
+            seriesm_dict['line_marker'] = secm.line.get_marker()
+            seriesm_dict['line_marker_face_color'] = secm.line.get_markerfacecolor()
+            seriesm_dict['line_marker_edge_color'] = secm.line.get_markeredgecolor()
+            seriesm_dict['line_visible'] = secm.line.get_visible()
+            seriesm_dict['line_legend_label'] = secm.line.get_label()
+
+            seriesm_dict['calc_line_color'] = secm.calc_line.get_color()
+            seriesm_dict['calc_line_width'] = secm.calc_line.get_linewidth()
+            seriesm_dict['calc_line_style'] = secm.calc_line.get_linestyle()
+            seriesm_dict['calc_line_marker'] = secm.calc_line.get_marker()
+            seriesm_dict['calc_line_marker_face_color'] = secm.calc_line.get_markerfacecolor()
+            seriesm_dict['calc_line_marker_edge_color'] = secm.calc_line.get_markeredgecolor()
+            seriesm_dict['calc_line_visible'] = secm.calc_line.get_visible()
+            seriesm_dict['calc_line_legend_label'] = secm.calc_line.get_label()
+
+            seriesm_dict['item_font_color'] = secm.item_panel.getFontColour()
+            seriesm_dict['item_selected_for_plot'] = secm.item_panel.getSelectedForPlot()
+        except Exception:
+            pass
+
+    seriesm_dict['parameters_analysis'] = seriesm_dict['parameters']['analysis']  #pickle wont save this unless its raised up
+
+    seriesm_data = copy.deepcopy(seriesm_dict)
+
+    with h5py.File(save_name, 'w', driver='core', libver='latest') as f:
+        f.attrs['file_type'] = 'RAW_Series'
+        f.attrs['raw_version'] = '2.0.0'
+        f.attrs['parameters'] = formatHeader(seriesm_data['parameters'])
+
+        if save_gui_data:
+            try:
+                f.attrs['item_font_color'] = seriesm_data['item_font_color']
+                f.attrs['item_selected_for_plot'] = seriesm_data['item_selected_for_plot']
+            except Exception:
+                pass
+
+        # Add filename info
+        for j in range(len(seriesm_data['file_list'])):
+            seriesm_data['file_list'][j] = seriesm_data['file_list'][j].encode('utf-8')
+
+        fname_data = f.create_dataset('file_names', data=seriesm_data['file_list'],
+            dtype=h5py.string_dtype())
+        fname_data.attrs['description'] = ('Ordered list of filenames, '
+            'corresponding to profile numbering order.')
+
+        # Add frame numbers
+        frames = f.create_dataset('frame_numbers', data=seriesm_data['frame_list'])
+        frames.attrs['description'] = ('List of frame numbers, corresponding to '
+            'profile numbers.')
+
+        # Add time
+        times = f.create_dataset('times', data=seriesm_data['time'])
+        times.attrs['description'] = ('Ordered list of acquisition time of the profiles, '
+            'corresponding to the profile numbering order (may not be available).')
+        times.attrs['unit'] = 's'
+
+
+        # Add individual profiles
+        profiles = f.create_group('profiles')
+        profiles.attrs['profile_type'] = 'input'
+        profiles.attrs['description'] = ('Input scattering profiles without processing.')
+        save_series_sasm_list(profiles, seriesm_data['sasm_list'])
+
+        if (seriesm_data['average_buffer_sasm'] is None
+            or seriesm_data['average_buffer_sasm'] == -1):
+            profiles.create_dataset('average_buffer_profile', data=[])
+        else:
+            sasm = seriesm_data['average_buffer_sasm']
+            descrip = ('A single scattering profile giving the averaged buffer '
+                'scattering profile. Columns correspond to q, I(q), and sigma(q) '
+                'from columns 0 to 2 respecitvely.')
+
+            save_series_sasm(profiles, sasm, "average_buffer_profile", descrip)
+
+        if save_gui_data:
+            try:
+                profiles.attrs['line_color'] = seriesm_data['line_color']
+                profiles.attrs['line_width'] = seriesm_data['line_width']
+                profiles.attrs['line_style'] = seriesm_data['line_style']
+                profiles.attrs['line_marker'] = seriesm_data['line_marker']
+                profiles.attrs['line_visible'] = seriesm_data['line_visible']
+                profiles.attrs['line_marker_face_color'] = seriesm_data['line_marker_face_color']
+                profiles.attrs['line_marker_edge_color'] = seriesm_data['line_marker_edge_color']
+                profiles.attrs['line_visible'] = seriesm_data['line_visible']
+                profiles.attrs['line_legend_label'] = seriesm_data['line_legend_label']
+            except Exception:
+                pass
+
+        sub_profiles = f.create_group('subtracted_profiles')
+        sub_profiles.attrs['profile_type'] = 'subtracted'
+        sub_profiles.attrs['description'] = ('Subtracted scattering profiles.')
+        sub_profiles.attrs['use_subtracted_sasm'] = seriesm_data['use_subtracted_sasm']
+        save_series_sasm_list(sub_profiles, seriesm_data['subtracted_sasm_list'])
+
+        baseline_profiles = f.create_group('baseline_subtracted_profiles')
+        baseline_profiles.attrs['profile_type'] = 'subtracted_and_baseline_corrected'
+        baseline_profiles.attrs['description'] = ('Baseline corrected and subtracted '
+            'scattering profiles.')
+        baseline_profiles.attrs['use_baseline_subtracted_sasm'] = seriesm_data['use_baseline_subtracted_sasm']
+        save_series_sasm_list(baseline_profiles, seriesm_data['baseline_subtracted_sasm_list'])
+
+
+        # Add intensities
+        intensity = f.create_group('intensities')
+        intensity.attrs['intensity_type'] = 'input'
+        intensity.attrs['description'] = ('Intensities for each input scattering profile')
+        intensity.attrs['buffer_range'] = seriesm_data['buffer_range']
+        intensity.attrs['already_subtracted'] = seriesm_data['already_subtracted']
+
+        total_i_dset = intensity.create_dataset('total_intensities',
+            data=seriesm_data['total_i'])
+        total_i_dset.attrs['description'] = ('Total integrated intensity for each '
+            'input scattering profile.')
+
+        mean_i_dset = intensity.create_dataset('mean_intensities',
+            data=seriesm_data['mean_i'])
+        mean_i_dset.attrs['description'] = ('Mean intensity for each input '
+            'scattering profile.')
+
+        qref_i_dset = intensity.create_dataset('qref_intensities',
+            data=seriesm_data['i_of_q'])
+        qref_i_dset.attrs['description'] = ('Intensity at a single q value for each input '
+            'scattering profile (may not be available).')
+        qref_i_dset.attrs['q_value'] = seriesm_data['qref']
+
+        qrange_i_dset = intensity.create_dataset('qrange_intensities',
+            data=seriesm_data['qrange_I'])
+        qrange_i_dset.attrs['description'] = ('Intensity in a range q values '
+            'for each input scattering profile (may not be available).')
+        qrange_i_dset.attrs['q_range'] = seriesm_data['qrange']
+
+        # Add subtracted intensities
+        intensity = f.create_group('subtracted_intensities')
+        intensity.attrs['intensity_type'] = 'subtracted'
+        intensity.attrs['description'] = ('Intensities for each subtracted '
+            'scattering profile (if available)')
+        intensity.attrs['sample_range'] = seriesm_data['sample_range']
+
+        total_i_dset = intensity.create_dataset('total_intensities',
+            data=seriesm_data['total_i_sub'])
+        total_i_dset.attrs['description'] = ('Total integrated intensity for each '
+            'subtracted scattering profile.')
+
+        mean_i_dset = intensity.create_dataset('mean_intensities',
+            data=seriesm_data['mean_i_sub'])
+        mean_i_dset.attrs['description'] = ('Mean intensity for each subtracted '
+            'scattering profile.')
+
+        qref_i_dset = intensity.create_dataset('qref_intensities',
+            data=seriesm_data['I_of_q_sub'])
+        qref_i_dset.attrs['description'] = ('Intensity at a single q value for '
+            'each subtracted scattering profile (may not be available).')
+        qref_i_dset.attrs['q_value'] = seriesm_data['qref']
+
+        qrange_i_dset = intensity.create_dataset('qrange_intensities',
+            data=seriesm_data['qrange_I_sub'])
+        qrange_i_dset.attrs['description'] = ('Intensity in a range of q values for '
+            'each subtracted scattering profile (may not be available).')
+        qrange_i_dset.attrs['q_range'] = seriesm_data['qrange']
+
+        # Add baseline corrected intensities
+        intensity = f.create_group('baseline_subtracted_intensities')
+        intensity.attrs['intensity_type'] = 'subtracted_and_baseline_corrected'
+        intensity.attrs['description'] = ('Intensities for each baseline '
+            'corrected and subtracted scattering profile (if available)')
+
+        total_i_dset = intensity.create_dataset('total_intensities',
+            data=seriesm_data['total_i_bcsub'])
+        total_i_dset.attrs['description'] = ('Total integrated intensity for each '
+            'subtracted scattering profile.')
+
+        mean_i_dset = intensity.create_dataset('mean_intensities',
+            data=seriesm_data['mean_i_bcsub'])
+        mean_i_dset.attrs['description'] = ('Mean intensity for each baseline '
+            'corrected and subtracted scattering profile.')
+
+        qref_i_dset = intensity.create_dataset('qref_intensities',
+            data=seriesm_data['I_of_q_bcsub'])
+        qref_i_dset.attrs['description'] = ('Intensity at a single q value for '
+            'each baseline corrected and subtracted scattering profile (may not '
+            'be available).')
+        qref_i_dset.attrs['q_value'] = seriesm_data['qref']
+
+        qrange_i_dset = intensity.create_dataset('qrange_intensities',
+            data=seriesm_data['qrange_I_bcsub'])
+        qrange_i_dset.attrs['description'] = ('Intensity in a range of q values for '
+            'each baseline corrected and subtracted scattering profile (may not '
+            'be available).')
+        qrange_i_dset.attrs['q_range'] = seriesm_data['qrange']
+
+
+        # Add calculated data
+        calc_data = f.create_group('calculated_data')
+        calc_data.attrs['description'] = ('Automatically calculated parameters '
+            'for subtracted or baseline corrected data. Default value of -1 '
+            'for any value indiciates either no calculation or an unsuccessful '
+            'automatic result.')
+        calc_data.attrs['window_size'] = seriesm_data['window_size']
+        calc_data.attrs['molecule_type'] = seriesm_data['mol_type']
+        calc_data.attrs['molecule_density'] = seriesm_data['mol_density']
+        calc_data.attrs['has_data'] = seriesm_data['calc_has_data']
+
+        if save_gui_data:
+            try:
+                calc_data.attrs['line_color'] = seriesm_data['calc_line_color']
+                calc_data.attrs['line_width'] = seriesm_data['calc_line_width']
+                calc_data.attrs['line_style'] = seriesm_data['calc_line_style']
+                calc_data.attrs['line_marker'] = seriesm_data['calc_line_marker']
+                calc_data.attrs['line_visible'] = seriesm_data['calc_line_visible']
+                calc_data.attrs['line_marker_face_color'] = seriesm_data['calc_line_marker_face_color']
+                calc_data.attrs['line_marker_edge_color'] = seriesm_data['calc_line_marker_edge_color']
+                calc_data.attrs['line_visible'] = seriesm_data['calc_line_visible']
+                calc_data.attrs['line_legend_label'] = seriesm_data['calc_line_legend_label']
+            except Exception:
+                pass
+
+        rg_data = calc_data.create_dataset('rg',
+            data=np.column_stack((seriesm_data['rg'], seriesm_data['rger'])))
+        rg_data.attrs['description'] = ('Radius of gyration (Rg) calculated on a '
+            'frame by frame basis. Column 0 and 1 are Rg and Rg uncertainty '
+            'respectively')
+
+        rg_data = calc_data.create_dataset('I0',
+            data=np.column_stack((seriesm_data['i0'], seriesm_data['i0er'])))
+        rg_data.attrs['description'] = ('Scattering intensity at zero angle '
+            '(I(0)) calculated on a frame by frame basis. Column 0 and 1 are '
+            'I(0) and I(0) uncertainty respectively')
+
+        vp_data = calc_data.create_dataset('vp_mw', data=seriesm_data['vpmw'])
+        vp_data.attrs['description'] = ('Molecular weight calculated using the '
+            'adjusted Porod volume method calculated on a frame by frame basis.')
+
+        vc_data = calc_data.create_dataset('vc_mw',
+            data=np.column_stack((seriesm_data['vcmw'], seriesm_data['vcmwer'])))
+        vc_data.attrs['description'] = ('Molecular weight calculated using the '
+            'adjusted Porod volume method calculated on a frame by frame basis. '
+            'Columns 0 and 1 and MW and MW uncertainty respectively.')
+
+
+        # Add baseline
+        baseline = f.create_group('baseline')
+        baseline.attrs['description'] = ('Values for the baseline correction.')
+        baseline.attrs['baseline_start_range'] = seriesm_data['baseline_start_range']
+        baseline.attrs['baseline_end_range'] = seriesm_data['baseline_end_range']
+        baseline.attrs['baseline_type'] = seriesm_data['baseline_type']
+        baseline.attrs['baseline_extrapolation'] = seriesm_data['baseline_extrap']
+
+        correction = baseline.create_group('correction')
+        correction.attrs['description'] = ('The q dependent baseline correction '
+            'on a frame by frame basis.')
+
+        if seriesm_data['baseline_type'] == 'Linear' and not seriesm_data['baseline_extrap']:
+            frame_num_offset = seriesm_data['baseline_start_range'][0]
+        elif seriesm_data['baseline_type'] == 'Integral':
+            frame_num_offset = seriesm_data['baseline_start_range'][1]
+        else:
+            frame_num_offset = 0
+
+        save_series_sasm_list(correction, seriesm_data['baseline_corr'])
+
+        fit_params = baseline.create_dataset("fit_parameters",
+            data=seriesm_data['baseline_fit_results'])
+        fit_params.attrs['description'] = ('Fit parameters for each q value '
+            'for a linear baseline correction. Columns 0-4 correspond to '
+            'intercept, slope, and the covariance for intercept and slope '
+            'respectively.')
 
 
 def saveAnalysisCsvFile(sasm_list, include_data, save_path):

@@ -2967,21 +2967,23 @@ class MainWorkerThread(threading.Thread):
                 each_filename = filename_list[i]
                 file_ext = os.path.splitext(each_filename)[1]
 
-                if file_ext == '.sec':
+                if file_ext == '.sec' or file_ext == '.hdf5':
                     try:
-                        secm = SASFileIO.loadSeriesFile(each_filename,
+                        loaded_files = SASFileIO.loadSeriesFile(each_filename,
                             self._raw_settings)
-                    except Exception as e:
-                        print(e)
-                        wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_sec = True)
-                        wx.CallAfter(self.main_frame.closeBusyDialog)
-                        return
-                    secm_list.append(secm)
+                    except Exception:
+                        try:
+                            loaded_files, img = SASFileIO.loadFile(each_filename, self._raw_settings)
+                        except Exception:
+                            traceback.print_exc()
+                            wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_sec = True)
+                            wx.CallAfter(self.main_frame.closeBusyDialog)
+                            return
 
                     img = None
 
                 elif file_ext == '.ift' or file_ext == '.out':
-                    iftm, img = SASFileIO.loadFile(each_filename, self._raw_settings)
+                    loaded_files, img = SASFileIO.loadFile(each_filename, self._raw_settings)
 
                     if file_ext == '.ift':
                         item_colour = 'blue'
@@ -2992,35 +2994,19 @@ class MainWorkerThread(threading.Thread):
                         iftm_list.append(iftm[0])
 
                 else:
-                    sasm, img = SASFileIO.loadFile(each_filename, self._raw_settings)
+                    loaded_files, img = SASFileIO.loadFile(each_filename, self._raw_settings)
 
-                    if img is not None:
-                        start_point = self._raw_settings.get('StartPoint')
-                        end_point = self._raw_settings.get('EndPoint')
+                if img is not None:
+                    start_point = self._raw_settings.get('StartPoint')
+                    end_point = self._raw_settings.get('EndPoint')
 
-                        if not isinstance(sasm, list):
-                            qrange = (start_point, len(sasm.getRawQ())-end_point)
-                            sasm.setQrange(qrange)
-                        else:
-                            qrange = (start_point, len(sasm[0].getRawQ())-end_point)
-                            for each_sasm in sasm:
-                                each_sasm.setQrange(qrange)
-
-                    if isinstance(sasm, list):
-                        for each in sasm:
-                            if isinstance(each, SASM.SASM):
-                                sasm_list.append(each)
-                            elif isinstance(each, SASM.IFTM):
-                                iftm_list.append(each)
-                            elif isinstance(each, SASM.SECM):
-                                secm_list.append(each)
+                    if not isinstance(loaded_files, list):
+                        qrange = (start_point, len(loaded_files.getRawQ())-end_point)
+                        loaded_files.setQrange(qrange)
                     else:
-                        if isinstance(sasm, SASM.SASM):
-                            sasm_list.append(sasm)
-                        elif isinstance(sasm, SASM.IFTM):
-                            iftm_list.append(sasm)
-                        elif isinstance(sasm, SASM.SECM):
-                            secm_list.append(sasm)
+                        qrange = (start_point, len(loaded_files[0].getRawQ())-end_point)
+                        for each_sasm in loaded_files:
+                            each_sasm.setQrange(qrange)
 
                     if do_auto_save and img is not None:
                         save_path = self._raw_settings.get('ProcessedFilePath')
@@ -3037,6 +3023,22 @@ class MainWorkerThread(threading.Thread):
                                 'folders, or save you config file to avoid this '
                                 'message next time.')
                             wx.CallAfter(wx._showGenericError, msg, 'Autosave Error')
+
+                if isinstance(loaded_files, list):
+                    for each in loaded_files:
+                        if isinstance(each, SASM.SASM):
+                            sasm_list.append(each)
+                        elif isinstance(each, SASM.IFTM):
+                            iftm_list.append(each)
+                        elif isinstance(each, SASM.SECM):
+                            secm_list.append(each)
+                else:
+                    if isinstance(loaded_files, SASM.SASM):
+                        sasm_list.append(loaded_files)
+                    elif isinstance(loaded_files, SASM.IFTM):
+                        iftm_list.append(loaded_files)
+                    elif isinstance(loaded_files, SASM.SECM):
+                        secm_list.append(loaded_files)
 
                 if np.mod(i,20) == 0 and i != 0:
                     if i == 20:
@@ -5083,24 +5085,24 @@ class MainWorkerThread(threading.Thread):
             item = selected_items[b]
             secm = item.secm
 
-            secm_dict = secm.extractAll()
+            # secm_dict = secm.extractAll()
 
-            secm_dict['line_color'] = secm.line.get_color()
-            secm_dict['line_width'] = secm.line.get_linewidth()
-            secm_dict['line_style'] = secm.line.get_linestyle()
-            secm_dict['line_marker'] = secm.line.get_marker()
-            secm_dict['line_visible'] = secm.line.get_visible()
+            # secm_dict['line_color'] = secm.line.get_color()
+            # secm_dict['line_width'] = secm.line.get_linewidth()
+            # secm_dict['line_style'] = secm.line.get_linestyle()
+            # secm_dict['line_marker'] = secm.line.get_marker()
+            # secm_dict['line_visible'] = secm.line.get_visible()
 
-            secm_dict['calc_line_color'] = secm.calc_line.get_color()
-            secm_dict['calc_line_width'] = secm.calc_line.get_linewidth()
-            secm_dict['calc_line_style'] = secm.calc_line.get_linestyle()
-            secm_dict['calc_line_marker'] = secm.calc_line.get_marker()
-            secm_dict['calc_line_visible'] = secm.calc_line.get_visible()
+            # secm_dict['calc_line_color'] = secm.calc_line.get_color()
+            # secm_dict['calc_line_width'] = secm.calc_line.get_linewidth()
+            # secm_dict['calc_line_style'] = secm.calc_line.get_linestyle()
+            # secm_dict['calc_line_marker'] = secm.calc_line.get_marker()
+            # secm_dict['calc_line_visible'] = secm.calc_line.get_visible()
 
-            secm_dict['item_font_color'] = secm.item_panel.getFontColour()
-            secm_dict['item_selected_for_plot'] = secm.item_panel.getSelectedForPlot()
+            # secm_dict['item_font_color'] = secm.item_panel.getFontColour()
+            # secm_dict['item_selected_for_plot'] = secm.item_panel.getSelectedForPlot()
 
-            secm_dict['parameters_analysis'] = secm_dict['parameters']['analysis']  #pickle wont save this unless its raised up
+            # secm_dict['parameters_analysis'] = secm_dict['parameters']['analysis']  #pickle wont save this unless its raised up
 
             filepath = save_path[b]
 
@@ -5128,9 +5130,9 @@ class MainWorkerThread(threading.Thread):
                     secm.setParameter('filename', new_filename)
 
                 if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
-                    SASFileIO.saveSECItem(filepath, secm_dict)
+                    SASFileIO.save_series(filepath, secm)
                     filename, ext = os.path.splitext(secm.getParameter('filename'))
-                    secm.setParameter('filename', filename+'.sec')
+                    secm.setParameter('filename', filename+'.hdf5')
                     wx.CallAfter(secm.item_panel.updateFilenameLabel, updateParent = False,  updateLegend = False)
                     wx.CallAfter(item.unmarkAsModified, updateParent = False)
 
@@ -5141,9 +5143,9 @@ class MainWorkerThread(threading.Thread):
                     no_to_all = True
 
             else:
-                SASFileIO.saveSECItem(filepath, secm_dict)
+                SASFileIO.save_series(filepath, secm)
                 filename, ext = os.path.splitext(secm.getParameter('filename'))
-                secm.setParameter('filename', filename+'.sec')
+                secm.setParameter('filename', filename+'.hdf5')
                 wx.CallAfter(secm.item_panel.updateFilenameLabel, updateParent = False,  updateLegend = False)
                 wx.CallAfter(item.unmarkAsModified, updateParent = False)
 
@@ -9527,7 +9529,7 @@ class SECPanel(wx.Panel):
             # filters = 'Comma Separated Files (*.csv)|*.csv'
 
             # dialog = wx.FileDialog( None, style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
-            fname = os.path.splitext(os.path.basename(selected_items[0].secm.getParameter('filename')))[0]+'.sec'
+            fname = os.path.splitext(os.path.basename(selected_items[0].secm.getParameter('filename')))[0]+'.hdf5'
             msg = "Please select save directory and enter save file name"
             dialog = wx.FileDialog(self, message = msg, style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, defaultDir = path, defaultFile = fname)
 
@@ -9536,7 +9538,7 @@ class SECPanel(wx.Panel):
             else:
                 return
 
-            path=os.path.splitext(path)[0]+'.sec'
+            path=os.path.splitext(path)[0]+'.hdf5'
             save_path = [path]
 
             name = os.path.split(path)[1]
@@ -9555,7 +9557,7 @@ class SECPanel(wx.Panel):
             save_path=[]
 
             for item in selected_items:
-                name=os.path.splitext(os.path.split(item.secm.getParameter('filename'))[1])[0]+'.sec'
+                name=os.path.splitext(os.path.split(item.secm.getParameter('filename'))[1])[0]+'.hdf5'
                 save_path.append(os.path.join(path, name))
 
 

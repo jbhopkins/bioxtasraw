@@ -1808,17 +1808,14 @@ class IftPlotPanel(PlotPanel):
                     if key[5:7] == 'ty':
                         self.plotparams['plot1type'] = key[7:]
                         self.updatePlotType(self.subplot1)
-
                         self.plotparams['axesscale1'] = 'linlin'
-
                         self.updatePlotAxes()
-                        print('1')
+
                     else:
                         self.plotparams['axesscale1'] = key[7:]
                         self.plotparams['plot1type'] = 'normal'
                         self.updatePlotType(self.subplot1)
                         self.updatePlotAxes()
-                        print('2')
                 else:
                     if key[5:7] == 'ty':
                         self.plotparams['plot2type'] = key[7:]
@@ -1826,8 +1823,6 @@ class IftPlotPanel(PlotPanel):
 
                         self.plotparams['axesscale2'] = 'linlin'
                         self.updatePlotAxes()
-
-                        print('3')
 
                     else:
                         self.plotparams['axesscale2'] = key[7:]
@@ -1837,7 +1832,6 @@ class IftPlotPanel(PlotPanel):
                             self.updatePlotAxes()
                         except ValueError as e:
                             print(e)
-                        print('4')
 
         #Update plot settings in menu bar:
         mainframe.setViewMenuScale(myid)
@@ -2132,8 +2126,6 @@ class IftPlotPanel(PlotPanel):
 
     def updateLegend(self, plotnum, draw = True):
         axes = plotnum
-
-        print(plotnum)
 
         if plotnum == 1:
             axes = self.subplot1
@@ -3154,7 +3146,6 @@ class SeriesPlotPanel(wx.Panel):
         else:
             # deal with something that should never happen
             scale_factor = 1
-            print(event.button)
 
         # MOVE AXIS
         zx_pix, zy_pix = ax.transAxes.transform((0,0))
