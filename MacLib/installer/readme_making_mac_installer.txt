@@ -3,6 +3,8 @@ miniconda to properly package the LLVMLite package for numba. In order to set up
 proper build environment, simply install from source as in the RAW documentation, then
 additionally install pyinstaller through pip: pip install pyinstaller.
 
+Note: currently requires setuptools<0.45 to work.
+
 Steps:
 1) Make a fresh git-free folder for RAW: git archive master | tar -x -C /somewhere/else
 2)  Build the extensions and run RAW in that new folder.

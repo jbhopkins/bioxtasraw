@@ -85,5 +85,6 @@ except Exception as e:
 
 try:
     os.mkdir('./dist/RAW.app/Contents/Resources/pyFAI/utils')
+    os.mkdir('./dist/RAW.app/Contents/MacOS/pyFAI/utils')
 except Exception as e:
     print(e)
