@@ -2974,6 +2974,7 @@ class MainWorkerThread(threading.Thread):
                     except Exception:
                         try:
                             loaded_files, img = SASFileIO.loadFile(each_filename, self._raw_settings)
+                            sasm = loaded_files
                         except Exception:
                             traceback.print_exc()
                             wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_sec = True)
@@ -2995,6 +2996,7 @@ class MainWorkerThread(threading.Thread):
 
                 else:
                     loaded_files, img = SASFileIO.loadFile(each_filename, self._raw_settings)
+                    sasm = loaded_files
 
                 if img is not None:
                     start_point = self._raw_settings.get('StartPoint')
