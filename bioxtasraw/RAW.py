@@ -2586,7 +2586,6 @@ class MainWorkerThread(threading.Thread):
                         'save_sec_data'                 : self._saveSeriesData,
                         'save_sec_item'                 : self._saveSECItem,
                         'save_sec_profiles'             : self._saveSECProfiles,
-                        # 'calculate_params_sec'          : self._calculateSECParams, #Maybe can remove?
                         'save_iftm'                     : self._saveIFTM,
                         'to_plot_sasm'                  : self._plotSASM,
                         'secm_average_sasms'            : self._averageItemSeries,
@@ -2863,12 +2862,18 @@ class MainWorkerThread(threading.Thread):
 
         RAWGlobals.save_in_progress = True
         wx.CallAfter(self.main_frame.setStatus, 'Saving mask', 0)
+        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait, saving...')
 
-        with open(fullpath_filename, 'wb') as file_obj:
-            pickle.dump(masks, file_obj, protocol=2)
+        try:
+            with open(fullpath_filename, 'wb') as file_obj:
+                pickle.dump(masks, file_obj, protocol=2)
+        except Exception as e:
+            msg = 'Unexpected error while saving mask:\n{}'.format(e)
+            self._showSaveError('generic', msg)
 
         RAWGlobals.save_in_progress = False
         wx.CallAfter(self.main_frame.setStatus, '', 0)
+        wx.CallAfter(self.main_frame.closeBusyDialog)
 
 
     def _loadMaskFile(self, data):
@@ -2972,27 +2977,13 @@ class MainWorkerThread(threading.Thread):
                         loaded_files = SASFileIO.loadSeriesFile(each_filename,
                             self._raw_settings)
                     except Exception:
-                        try:
-                            loaded_files, img = SASFileIO.loadFile(each_filename, self._raw_settings)
-                            sasm = loaded_files
-                        except Exception:
-                            traceback.print_exc()
-                            wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_sec = True)
-                            wx.CallAfter(self.main_frame.closeBusyDialog)
-                            return
+                        loaded_files, img = SASFileIO.loadFile(each_filename, self._raw_settings)
+                        sasm = loaded_files
 
                     img = None
 
                 elif file_ext == '.ift' or file_ext == '.out':
                     loaded_files, img = SASFileIO.loadFile(each_filename, self._raw_settings)
-
-                    if file_ext == '.ift':
-                        item_colour = 'blue'
-                    else:
-                        item_colour = 'black'
-
-                    if isinstance(iftm, list):
-                        iftm_list.append(iftm[0])
 
                 else:
                     loaded_files, img = SASFileIO.loadFile(each_filename, self._raw_settings)
@@ -3057,7 +3048,7 @@ class MainWorkerThread(threading.Thread):
                         wx.CallAfter(self.sec_plot_panel.canvas.draw_idle)
                         loaded_secm = True
                     if len(iftm_list) > 0:
-                        self._sendIFTMToPlot(iftm_list, item_colour = item_colour, no_update=no_update, update_legend = False)
+                        self._sendIFTMToPlot(iftm_list, no_update=no_update, update_legend = False)
                         wx.CallAfter(self.ift_plot_panel.canvas.draw_idle)
                         loaded_iftm = True
 
@@ -3070,7 +3061,7 @@ class MainWorkerThread(threading.Thread):
                 loaded_sasm = True
 
             if len(iftm_list) > 0:
-                self._sendIFTMToPlot(iftm_list, item_colour = item_colour, no_update = True, update_legend = False)
+                self._sendIFTMToPlot(iftm_list, no_update = True, update_legend = False)
                 loaded_iftm = True
 
             if len(secm_list) > 0:
@@ -3715,7 +3706,6 @@ class MainWorkerThread(threading.Thread):
 
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while loading image...')
 
-        print(filename)
         try:
             if not os.path.isfile(filename):
                 raise SASExceptions.WrongImageFormat('not a valid file!')
@@ -3849,11 +3839,16 @@ class MainWorkerThread(threading.Thread):
 
         self._showGenericError(msg, 'No item marked')
 
-    def _showSaveError(self, err_type):
+    def _showSaveError(self, err_type, msg=None):
         if err_type == 'header':
             msg = 'Header values could not be saved, file was saved without them.'
+            title = 'Invalid Header Values'
 
-        self._showGenericError(msg, 'Invalid Header Values')
+        elif err_type == 'generic':
+            msg = msg
+            title = 'Unexpected error while saving'
+
+        self._showGenericError(msg, title)
 
     def _showQvectorsNotEqualWarning(self, sasm, sub_sasm):
 
@@ -4163,8 +4158,6 @@ class MainWorkerThread(threading.Thread):
             # result = wx.ID_YES
             sasm = each.getSASM()
 
-            print(sasm.getParameter('filename'))
-
             qmin, qmax = sasm.getQrange()
             sub_qmin, sub_qmax = sub_sasm.getQrange()
 
@@ -4262,18 +4255,23 @@ class MainWorkerThread(threading.Thread):
                    return
 
             if np.mod(i,20) == 0:
-                self._sendSASMToPlot(subtracted_list, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
+                self._sendSASMToPlot(subtracted_list, no_update=True,
+                    update_legend=False, axes_num=2, item_colour='red',
+                    notsaved=True)
                 wx.CallAfter(self.plot_panel.canvas.draw)
                 subtracted_list = []
 
         if len(subtracted_list) > 0:
-            self._sendSASMToPlot(subtracted_list, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
+            self._sendSASMToPlot(subtracted_list, no_update=True,
+                update_legend=False, axes_num=2, item_colour='red',
+                notsaved=True)
 
         wx.CallAfter(self.plot_panel.updateLegend, 2, False)
         wx.CallAfter(self.plot_panel.fitAxis)
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
-    def _average(self, sasm_list, weight=False, weightByError=True, weightCounter=None):
+    def _average(self, sasm_list, weight=False, weightByError=True,
+        weightCounter=None):
         profiles_to_use = wx.ID_YESTOALL
 
         if self._raw_settings.get('similarityOnAverage'):
@@ -4350,7 +4348,8 @@ class MainWorkerThread(threading.Thread):
         avg_sasm = self._average(sasm_list)
 
         if avg_sasm is not None:
-            self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'forest green', notsaved = True)
+            self._sendSASMToPlot(avg_sasm, axes_num=1, item_colour='forest green',
+                notsaved=True)
 
             do_auto_save = self._raw_settings.get('AutoSaveOnAvgFiles')
 
@@ -4381,7 +4380,8 @@ class MainWorkerThread(threading.Thread):
         avg_sasm = self._average(sasm_list)
 
         if avg_sasm is not None:
-            self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'forest green', notsaved = True)
+            self._sendSASMToPlot(avg_sasm, axes_num=1, item_colour='forest green',
+                notsaved=True)
 
             do_auto_save = self._raw_settings.get('AutoSaveOnAvgFiles')
 
@@ -4455,7 +4455,8 @@ class MainWorkerThread(threading.Thread):
 
         if avg_sasm is not None:
 
-            self._sendSASMToPlot(avg_sasm, axes_num = 1, item_colour = 'forest green', notsaved = True)
+            self._sendSASMToPlot(avg_sasm, axes_num=1, item_colour='forest green',
+                notsaved=True)
 
             do_auto_save = self._raw_settings.get('AutoSaveOnAvgFiles')
 
@@ -4581,6 +4582,9 @@ class MainWorkerThread(threading.Thread):
             SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
         except SASExceptions.HeaderSaveError:
             wx.CallAfter(self._showSaveError, 'header')
+        except Exception as e:
+            msg = 'Unexpected error while saving:\n{}'.format(e)
+            self._showSaveError('generic', msg)
 
         RAWGlobals.save_in_progress = False
         wx.CallAfter(self.main_frame.setStatus, '', 0)
@@ -4623,6 +4627,9 @@ class MainWorkerThread(threading.Thread):
             SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
         except SASExceptions.HeaderSaveError:
             wx.CallAfter(self._showSaveError, 'header')
+        except Exception as e:
+            msg = 'Unexpected error while saving:\n{}'.format(e)
+            self._showSaveError('generic', msg)
 
         RAWGlobals.save_in_progress = False
         wx.CallAfter(self.main_frame.setStatus, '', 0)
@@ -4656,7 +4663,11 @@ class MainWorkerThread(threading.Thread):
             sasm = each_item.getSASM()
             selected_sasms.append(sasm)
 
-        SASFileIO.saveAnalysisCsvFile(selected_sasms, include_data, save_path)
+        try:
+            SASFileIO.saveAnalysisCsvFile(selected_sasms, include_data, save_path)
+        except Exception as e:
+            msg = 'Unexpected error while analysis info:\n{}'.format(e)
+            self._showSaveError('generic', msg)
 
         RAWGlobals.save_in_progress = False
         wx.CallAfter(self.main_frame.setStatus, '', 0)
@@ -4678,7 +4689,11 @@ class MainWorkerThread(threading.Thread):
         RAWGlobals.save_in_progress = True
         wx.CallAfter(self.main_frame.setStatus, 'Saving analysis info', 0)
 
-        SASFileIO.saveAllAnalysisData(save_path, selected_sasms)
+        try:
+            SASFileIO.saveAllAnalysisData(save_path, selected_sasms)
+        except Exception as e:
+            msg = 'Unexpected error while analysis info:\n{}'.format(e)
+            self._showSaveError('generic', msg)
 
         RAWGlobals.save_in_progress = False
         wx.CallAfter(self.main_frame.setStatus, '', 0)
@@ -4702,7 +4717,7 @@ class MainWorkerThread(threading.Thread):
 
         RAWGlobals.save_in_progress = True
         wx.CallAfter(self.main_frame.setStatus, 'Saving workspace', 0)
-
+        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait, saving...')
 
         save_dict = OrderedDict()
 
@@ -4816,10 +4831,15 @@ class MainWorkerThread(threading.Thread):
 
             save_dict['secm_'+str(idx)] = secm_dict
 
-        SASFileIO.saveWorkspace(save_dict, save_path)
+        try:
+            SASFileIO.saveWorkspace(save_dict, save_path)
+        except Exception as e:
+            msg = 'Unexpected error while saving workspace:\n{}'.format(e)
+            self._showSaveError('generic', msg)
 
         RAWGlobals.save_in_progress = False
         wx.CallAfter(self.main_frame.setStatus, '', 0)
+        wx.CallAfter(self.main_frame.closeBusyDialog)
 
         if restart_timer:
             wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [os.path.split(save_path)[1]])
@@ -5024,42 +5044,48 @@ class MainWorkerThread(threading.Thread):
         overwrite_all = False
         no_to_all = False
 
-        for b in range(len(selected_items)):
+        try:
+            for b in range(len(selected_items)):
 
-            selected_secm = selected_items[b].secm
+                selected_secm = selected_items[b].secm
 
-            filepath = save_path[b]
-            file_exists = os.path.isfile(filepath)
+                filepath = save_path[b]
+                file_exists = os.path.isfile(filepath)
 
-            if file_exists and overwrite_all == False:
-                if no_to_all == False:
-                    result = self._showOverwritePrompt(os.path.split(filepath)[1], os.path.split(filepath)[0])
+                if file_exists and overwrite_all == False:
+                    if no_to_all == False:
+                        result = self._showOverwritePrompt(os.path.split(filepath)[1], os.path.split(filepath)[0])
 
-                if result[0] == wx.ID_CANCEL:
-                    RAWGlobals.save_in_progress = False
-                    wx.CallAfter(self.main_frame.setStatus, '', 0)
+                    if result[0] == wx.ID_CANCEL:
+                        RAWGlobals.save_in_progress = False
+                        wx.CallAfter(self.main_frame.setStatus, '', 0)
 
-                    if restart_timer:
-                        wx.CallAfter(self.main_frame.controlTimer, True)
-                    return
+                        if restart_timer:
+                            wx.CallAfter(self.main_frame.controlTimer, True)
+                        return
 
-                if result[0] == wx.ID_EDIT:
-                    filepath = result[1][0]
+                    if result[0] == wx.ID_EDIT:
+                        filepath = result[1][0]
 
-                if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
+                    if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
+                        SASFileIO.saveSeriesData(save_path[b], selected_secm)
+
+                    if result[0] == wx.ID_YESTOALL:
+                        overwrite_all = True
+
+                    if result[0] == wx.ID_NOTOALL:
+                        no_to_all = True
+
+                else:
                     SASFileIO.saveSeriesData(save_path[b], selected_secm)
 
-                if result[0] == wx.ID_YESTOALL:
-                    overwrite_all = True
+                if restart_timer:
+                    self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path[b])[1]])
 
-                if result[0] == wx.ID_NOTOALL:
-                    no_to_all = True
+        except Exception as e:
+            msg = 'Unexpected error while saving:\n{}'.format(e)
+            self._showSaveError('generic', msg)
 
-            else:
-                SASFileIO.saveSeriesData(save_path[b], selected_secm)
-
-            if restart_timer:
-                self.main_frame.OnlineControl.updateSkipList([os.path.split(save_path[b])[1]])
 
         RAWGlobals.save_in_progress = False
         wx.CallAfter(self.main_frame.setStatus, '', 0)
@@ -5078,82 +5104,69 @@ class MainWorkerThread(threading.Thread):
 
         RAWGlobals.save_in_progress = True
         wx.CallAfter(self.main_frame.setStatus, 'Saving series item(s)', 0)
+        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait, saving...')
 
         overwrite_all = False
         no_to_all = False
 
-        for b in range(len(selected_items)):
+        try:
+            for b in range(len(selected_items)):
 
-            item = selected_items[b]
-            secm = item.secm
+                item = selected_items[b]
+                secm = item.secm
 
-            # secm_dict = secm.extractAll()
+                filepath = save_path[b]
 
-            # secm_dict['line_color'] = secm.line.get_color()
-            # secm_dict['line_width'] = secm.line.get_linewidth()
-            # secm_dict['line_style'] = secm.line.get_linestyle()
-            # secm_dict['line_marker'] = secm.line.get_marker()
-            # secm_dict['line_visible'] = secm.line.get_visible()
+                file_exists = os.path.isfile(filepath)
 
-            # secm_dict['calc_line_color'] = secm.calc_line.get_color()
-            # secm_dict['calc_line_width'] = secm.calc_line.get_linewidth()
-            # secm_dict['calc_line_style'] = secm.calc_line.get_linestyle()
-            # secm_dict['calc_line_marker'] = secm.calc_line.get_marker()
-            # secm_dict['calc_line_visible'] = secm.calc_line.get_visible()
+                if file_exists and overwrite_all == False:
 
-            # secm_dict['item_font_color'] = secm.item_panel.getFontColour()
-            # secm_dict['item_selected_for_plot'] = secm.item_panel.getSelectedForPlot()
+                    if no_to_all == False:
+                        result = self._showOverwritePrompt(os.path.split(filepath)[1], os.path.split(filepath)[0])
 
-            # secm_dict['parameters_analysis'] = secm_dict['parameters']['analysis']  #pickle wont save this unless its raised up
+                    if result[0] == wx.ID_CANCEL:
+                        RAWGlobals.save_in_progress = False
+                        wx.CallAfter(self.main_frame.setStatus, '', 0)
+                        wx.CallAfter(secm.item_panel.parent.Refresh)
+                        wx.CallAfter(secm.item_panel.parent.Layout)
 
-            filepath = save_path[b]
+                        wx.CallAfter(secm.plot_panel.updateLegend, 1)
+                        if restart_timer:
+                            wx.CallAfter(self.main_frame.controlTimer, True)
+                        return
 
-            file_exists = os.path.isfile(filepath)
+                    if result[0] == wx.ID_EDIT:
+                        filepath = result[1][0]
+                        path, new_filename = os.path.split(filepath)
+                        secm.setParameter('filename', new_filename)
 
-            if file_exists and overwrite_all == False:
+                    if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
+                        SASFileIO.save_series(filepath, secm)
+                        filename, ext = os.path.splitext(secm.getParameter('filename'))
+                        secm.setParameter('filename', filename+'.hdf5')
+                        wx.CallAfter(secm.item_panel.updateFilenameLabel, updateParent = False,  updateLegend = False)
+                        wx.CallAfter(item.unmarkAsModified, updateParent = False)
 
-                if no_to_all == False:
-                    result = self._showOverwritePrompt(os.path.split(filepath)[1], os.path.split(filepath)[0])
+                    if result[0] == wx.ID_YESTOALL:
+                        overwrite_all = True
 
-                if result[0] == wx.ID_CANCEL:
-                    RAWGlobals.save_in_progress = False
-                    wx.CallAfter(self.main_frame.setStatus, '', 0)
-                    wx.CallAfter(secm.item_panel.parent.Refresh)
-                    wx.CallAfter(secm.item_panel.parent.Layout)
+                    if result[0] == wx.ID_NOTOALL:
+                        no_to_all = True
 
-                    wx.CallAfter(secm.plot_panel.updateLegend, 1)
-                    if restart_timer:
-                        wx.CallAfter(self.main_frame.controlTimer, True)
-                    return
-
-                if result[0] == wx.ID_EDIT:
-                    filepath = result[1][0]
-                    path, new_filename = os.path.split(filepath)
-                    secm.setParameter('filename', new_filename)
-
-                if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
+                else:
                     SASFileIO.save_series(filepath, secm)
                     filename, ext = os.path.splitext(secm.getParameter('filename'))
                     secm.setParameter('filename', filename+'.hdf5')
                     wx.CallAfter(secm.item_panel.updateFilenameLabel, updateParent = False,  updateLegend = False)
                     wx.CallAfter(item.unmarkAsModified, updateParent = False)
 
-                if result[0] == wx.ID_YESTOALL:
-                    overwrite_all = True
 
-                if result[0] == wx.ID_NOTOALL:
-                    no_to_all = True
+                if restart_timer:
+                    wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [os.path.split(save_path[b])[1]])
 
-            else:
-                SASFileIO.save_series(filepath, secm)
-                filename, ext = os.path.splitext(secm.getParameter('filename'))
-                secm.setParameter('filename', filename+'.hdf5')
-                wx.CallAfter(secm.item_panel.updateFilenameLabel, updateParent = False,  updateLegend = False)
-                wx.CallAfter(item.unmarkAsModified, updateParent = False)
-
-
-            if restart_timer:
-                wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [os.path.split(save_path[b])[1]])
+        except Exception as e:
+            msg = 'Unexpected error while saving series data:\n{}'.format(e)
+            self._showSaveError('generic', msg)
 
         wx.CallAfter(secm.item_panel.parent.Refresh)
         wx.CallAfter(secm.item_panel.parent.Layout)
@@ -5162,6 +5175,7 @@ class MainWorkerThread(threading.Thread):
 
         RAWGlobals.save_in_progress = False
         wx.CallAfter(self.main_frame.setStatus, '', 0)
+        wx.CallAfter(self.main_frame.closeBusyDialog)
 
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
@@ -5183,65 +5197,71 @@ class MainWorkerThread(threading.Thread):
 
         overwrite_all = False
         no_to_all = False
-        for item in item_list:
-            sasm = item
 
-            filename = sasm.getParameter('filename')
+        try:
+            for item in item_list:
+                sasm = item
 
-            check_filename, ext = os.path.splitext(filename)
+                filename = sasm.getParameter('filename')
 
-            newext = '.dat'
+                check_filename, ext = os.path.splitext(filename)
 
-            check_filename = check_filename + newext
+                newext = '.dat'
 
-            filepath = os.path.join(save_path, check_filename)
-            file_exists = os.path.isfile(filepath)
-            filepath = save_path
+                check_filename = check_filename + newext
 
-            if file_exists and overwrite_all == False:
+                filepath = os.path.join(save_path, check_filename)
+                file_exists = os.path.isfile(filepath)
+                filepath = save_path
 
-                if no_to_all == False:
-                    result = self._showOverwritePrompt(check_filename, save_path)
+                if file_exists and overwrite_all == False:
 
-                    if result[0] == wx.ID_CANCEL:
-                        RAWGlobals.save_in_progress = False
-                        wx.CallAfter(self.main_frame.setStatus, '', 0)
+                    if no_to_all == False:
+                        result = self._showOverwritePrompt(check_filename, save_path)
 
-                        if restart_timer:
-                            wx.CallAfter(self.main_frame.controlTimer, True)
+                        if result[0] == wx.ID_CANCEL:
+                            RAWGlobals.save_in_progress = False
+                            wx.CallAfter(self.main_frame.setStatus, '', 0)
 
-                        wx.CallAfter(self.main_frame.closeBusyDialog)
-                        return
+                            if restart_timer:
+                                wx.CallAfter(self.main_frame.controlTimer, True)
 
-                    if result[0] == wx.ID_EDIT: #rename
-                        filepath = result[1][0]
-                        filepath, new_filename = os.path.split(filepath)
-                        sasm.setParameter('filename', new_filename)
+                            wx.CallAfter(self.main_frame.closeBusyDialog)
+                            return
 
-                    if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
-                        try:
-                            SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
-                        except SASExceptions.HeaderSaveError:
-                            wx.CallAfter(self._showSaveError, 'header')
-                        filename, ext = os.path.splitext(sasm.getParameter('filename'))
-                        sasm.setParameter('filename', filename + newext)
+                        if result[0] == wx.ID_EDIT: #rename
+                            filepath = result[1][0]
+                            filepath, new_filename = os.path.split(filepath)
+                            sasm.setParameter('filename', new_filename)
 
-                    if result[0] == wx.ID_YESTOALL:
-                        overwrite_all = True
+                        if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
+                            try:
+                                SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+                            except SASExceptions.HeaderSaveError:
+                                wx.CallAfter(self._showSaveError, 'header')
+                            filename, ext = os.path.splitext(sasm.getParameter('filename'))
+                            sasm.setParameter('filename', filename + newext)
 
-                    if result[0] == wx.ID_NOTOALL:
-                        no_to_all = True
+                        if result[0] == wx.ID_YESTOALL:
+                            overwrite_all = True
 
-            else:
-                try:
-                    SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
-                except SASExceptions.HeaderSaveError:
-                    wx.CAllAfter(self._showSaveError, 'header')
-                filename, ext = os.path.splitext(sasm.getParameter('filename'))
-                sasm.setParameter('filename', filename + newext)
+                        if result[0] == wx.ID_NOTOALL:
+                            no_to_all = True
 
-            if restart_timer:
-                wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [check_filename])
+                else:
+                    try:
+                        SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+                    except SASExceptions.HeaderSaveError:
+                        wx.CAllAfter(self._showSaveError, 'header')
+                    filename, ext = os.path.splitext(sasm.getParameter('filename'))
+                    sasm.setParameter('filename', filename + newext)
+
+                if restart_timer:
+                    wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [check_filename])
+
+        except Exception as e:
+            msg = 'Unexpected error while saving series profiles:\n{}'.format(e)
+            self._showSaveError('generic', msg)
 
         RAWGlobals.save_in_progress = False
         wx.CallAfter(self.main_frame.setStatus, '', 0)
@@ -5285,102 +5305,112 @@ class MainWorkerThread(threading.Thread):
         RAWGlobals.save_in_progress = True
         wx.CallAfter(self.main_frame.setStatus, 'Saving item(s)', 0)
 
+        if len(item_list) > 20:
+            wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait, saving...')
+
         if not iftmode:
             axes_update_list = []
 
         overwrite_all = False
         no_to_all = False
-        for item in item_list:
 
-            if iftmode:
-                sasm = item.iftm
-            else:
-                sasm = item.sasm
+        try:
+            for item in item_list:
 
-            filename = sasm.getParameter('filename')
-
-            check_filename, ext = os.path.splitext(filename)
-
-            if iftmode:
-                if sasm.getParameter('algorithm') == 'GNOM':
-                    newext = '.out'
+                if iftmode:
+                    sasm = item.iftm
                 else:
-                    newext = '.ift'
-            else:
-                newext = '.dat'
+                    sasm = item.sasm
 
-            check_filename = check_filename + newext
+                filename = sasm.getParameter('filename')
 
-            filepath = os.path.join(save_path, check_filename)
-            file_exists = os.path.isfile(filepath)
-            filepath = save_path
+                check_filename, ext = os.path.splitext(filename)
 
-            if file_exists and overwrite_all == False:
+                if iftmode:
+                    if sasm.getParameter('algorithm') == 'GNOM':
+                        newext = '.out'
+                    else:
+                        newext = '.ift'
+                else:
+                    newext = '.dat'
 
-                if no_to_all == False:
-                    result = self._showOverwritePrompt(check_filename, save_path)
+                check_filename = check_filename + newext
 
-                    if result[0] == wx.ID_CANCEL:
-                        wx.CallAfter(sasm.item_panel.parent.Refresh)
-                        wx.CallAfter(sasm.item_panel.parent.Layout)
+                filepath = os.path.join(save_path, check_filename)
+                file_exists = os.path.isfile(filepath)
+                filepath = save_path
 
-                        if iftmode:
-                            wx.CallAfter(sasm.item_panel.ift_plot_panel.updateLegend, 1)
-                            wx.CallAfter(sasm.item_panel.ift_plot_panel.updateLegend, 2)
-                        else:
-                            axes_update_list = set(axes_update_list)
+                if file_exists and overwrite_all == False:
 
-                            for axis in axes_update_list:
-                                wx.CallAfter(sasm.item_panel.plot_panel.updateLegend, axis)
+                    if no_to_all == False:
+                        result = self._showOverwritePrompt(check_filename, save_path)
 
-                        RAWGlobals.save_in_progress = False
-                        wx.CallAfter(self.main_frame.setStatus, '', 0)
+                        if result[0] == wx.ID_CANCEL:
+                            wx.CallAfter(sasm.item_panel.parent.Refresh)
+                            wx.CallAfter(sasm.item_panel.parent.Layout)
 
-                        if restart_timer:
-                            wx.CallAfter(self.main_frame.controlTimer, True)
-                        return
+                            if iftmode:
+                                wx.CallAfter(sasm.item_panel.ift_plot_panel.updateLegend, 1)
+                                wx.CallAfter(sasm.item_panel.ift_plot_panel.updateLegend, 2)
+                            else:
+                                axes_update_list = set(axes_update_list)
 
-                    if result[0] == wx.ID_EDIT: #rename
-                        filepath = result[1]
-                        filepath, new_filename = os.path.split(filepath)
-                        sasm.setParameter('filename', new_filename)
+                                for axis in axes_update_list:
+                                    wx.CallAfter(sasm.item_panel.plot_panel.updateLegend, axis)
 
-                    if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
-                        try:
-                            SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
-                        except SASExceptions.HeaderSaveError:
-                            self._showSaveError('header')
-                        filename, ext = os.path.splitext(sasm.getParameter('filename'))
-                        sasm.setParameter('filename', filename + newext)
+                            RAWGlobals.save_in_progress = False
+                            wx.CallAfter(self.main_frame.setStatus, '', 0)
 
-                        wx.CallAfter(sasm.item_panel.updateFilenameLabel, updateParent = False,  updateLegend = False)
-                        wx.CallAfter(item.unmarkAsModified, updateParent = False)
+                            if restart_timer:
+                                wx.CallAfter(self.main_frame.controlTimer, True)
+                            return
 
-                        if not iftmode:
-                            axes_update_list.append(sasm.axes)
+                        if result[0] == wx.ID_EDIT: #rename
+                            filepath = result[1]
+                            filepath, new_filename = os.path.split(filepath)
+                            sasm.setParameter('filename', new_filename)
 
-                    if result[0] == wx.ID_YESTOALL:
-                        overwrite_all = True
+                        if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
+                            try:
+                                SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+                            except SASExceptions.HeaderSaveError:
+                                self._showSaveError('header')
 
-                    if result[0] == wx.ID_NOTOALL:
-                        no_to_all = True
+                            filename, ext = os.path.splitext(sasm.getParameter('filename'))
+                            sasm.setParameter('filename', filename + newext)
 
-            else:
-                try:
-                    SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
-                except SASExceptions.HeaderSaveError:
-                    self._showSaveError('header')
-                filename, ext = os.path.splitext(sasm.getParameter('filename'))
-                sasm.setParameter('filename', filename + newext)
+                            wx.CallAfter(sasm.item_panel.updateFilenameLabel, updateParent = False,  updateLegend = False)
+                            wx.CallAfter(item.unmarkAsModified, updateParent = False)
 
-                wx.CallAfter(sasm.item_panel.updateFilenameLabel, updateParent = False, updateLegend = False)
-                wx.CallAfter(item.unmarkAsModified, updateParent = False)
+                            if not iftmode:
+                                axes_update_list.append(sasm.axes)
 
-                if not iftmode:
-                    axes_update_list.append(sasm.axes)
+                        if result[0] == wx.ID_YESTOALL:
+                            overwrite_all = True
 
-            if restart_timer:
-                wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [check_filename])
+                        if result[0] == wx.ID_NOTOALL:
+                            no_to_all = True
+
+                else:
+                    try:
+                        SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+                    except SASExceptions.HeaderSaveError:
+                        self._showSaveError('header')
+                    filename, ext = os.path.splitext(sasm.getParameter('filename'))
+                    sasm.setParameter('filename', filename + newext)
+
+                    wx.CallAfter(sasm.item_panel.updateFilenameLabel, updateParent = False, updateLegend = False)
+                    wx.CallAfter(item.unmarkAsModified, updateParent = False)
+
+                    if not iftmode:
+                        axes_update_list.append(sasm.axes)
+
+                if restart_timer:
+                    wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [check_filename])
+
+        except Exception as e:
+            msg = 'Unexpected error while saving files:\n{}'.format(e)
+            self._showSaveError('generic', msg)
 
         wx.CallAfter(sasm.item_panel.parent.Refresh)
         wx.CallAfter(sasm.item_panel.parent.Layout)
@@ -5396,6 +5426,9 @@ class MainWorkerThread(threading.Thread):
 
         RAWGlobals.save_in_progress = False
         wx.CallAfter(self.main_frame.setStatus, '', 0)
+
+        if len(item_list) > 20:
+            wx.CallAfter(self.main_frame.closeBusyDialog)
 
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)

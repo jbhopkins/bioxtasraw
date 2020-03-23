@@ -1111,8 +1111,6 @@ class PlotPanel(wx.Panel):
     def updateLegend(self, plotnum, draw = True):
         axes = plotnum
 
-        print(plotnum)
-
         if plotnum == 1:
             axes = self.subplot1
         elif plotnum == 2:

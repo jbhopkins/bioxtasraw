@@ -374,7 +374,7 @@ class SASM(object):
         return self.err[self._selected_q_range[0]:self._selected_q_range[1]]
 
 
-class IFTM(SASM):
+class IFTM(object):
     '''
         Inverse fourier tranform measurement (IFTM) Object.
         Contains all information extracted from a IFT.
