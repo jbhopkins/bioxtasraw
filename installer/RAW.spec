@@ -12,7 +12,7 @@ opsys = platform.system()
 add_files = [
     (os.path.join('.', 'resources'), 'resources'),
     (os.path.join('.', 'definitions'), 'definitions'),
-    (os.path.join('..' 'gpl-3.0.txt'), '.').
+    (os.path.join('..' 'gpl-3.0.txt'), '.'),
     ]
 
 if opsys == 'Darwin':

@@ -9,8 +9,8 @@ Steps:
 1) Make a fresh git-free folder for RAW: git archive master | tar -x -C /somewhere/else
 2)  Build the extensions and run RAW in that new folder.
 3)  Set the appropriate python path, if needed: export PATH=~/miniconda2/bin:$PATH
-4)  Copy the RAW_mac.spec file into the main RAW directory.
-5)  Run “pyinstaller -y RAW_mac.spec”
+4)  Copy the RAW.spec file into the main RAW directory.
+5)  Run “pyinstaller -y RAW.spec”
 6)  The app file is located at ./dist/RAW.app #NOTE: The dist/RAW/RAW executable will not open because the resources path is wrong if it's not in the .app package!
 7)  Open disk utility
 8)  Create a new disk image (File->New Image>Blank Image) that is ~12% larger than the
