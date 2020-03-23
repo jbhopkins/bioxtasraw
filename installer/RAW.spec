@@ -109,12 +109,12 @@ if opsys == 'Darwin':
         )
 
     try:
-        os.mkdir(os.path.join('..', 'bioxtasraw', 'dist', 'RAW', 'pyFAI', 'utils'))
+        os.mkdir(os.path.join('.', 'dist', 'RAW', 'pyFAI', 'utils'))
     except Exception as e:
         print(e)
 
     try:
-        os.mkdir(os.path.join('..', 'bioxtasraw', 'dist', 'RAW.app', 'Contents', 'Resources', 'pyFAI', 'utils'))
-        os.mkdir(os.path.join('..', 'bioxtasraw', 'dist', 'RAW.app', 'Contents', 'MacOS', 'pyFAI', 'utils'))
+        os.mkdir(os.path.join('.', 'dist', 'RAW.app', 'Contents', 'Resources', 'pyFAI', 'utils'))
+        os.mkdir(os.path.join('.', 'dist', 'RAW.app', 'Contents', 'MacOS', 'pyFAI', 'utils'))
     except Exception as e:
         print(e)
