@@ -10981,11 +10981,13 @@ class SeriesControlPanel(wx.Panel):
 
 #--- ** Masking Panel **
 
-class MaskingPanel(wx.Panel):
+class MaskingPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent,id):
 
-        wx.Panel.__init__(self, parent, id, name = 'MaskingPanel')
+        scrolled.ScrolledPanel.__init__(self, parent, id, name = 'MaskingPanel',
+            style=wx.BG_STYLE_SYSTEM|wx.VSCROLL)
+        self.SetScrollRate(20,20)
 
         self.mask_choices = {'Beamstop mask' : 'BeamStopMask',
                              'ROI Counter mask' : 'TransparentBSMask',
@@ -11573,12 +11575,14 @@ class MaskingPanel(wx.Panel):
 
 
 
-class CenteringPanel(wx.Panel):
+class CenteringPanel(scrolled.ScrolledPanel):
 
 
     def __init__(self, parent,id):
 
-        wx.Panel.__init__(self, parent, id, name = 'CenteringPanel')
+        scrolled.ScrolledPanel.__init__(self, parent, id, name = 'CenteringPanel',
+            style=wx.BG_STYLE_SYSTEM|wx.VSCROLL)
+        self.SetScrollRate(20,20)
 
         self.ID_UP, self.ID_DOWN, self.ID_RIGHT, self.ID_LEFT, self.ID_TARGET =  ( self.NewControlId(), self.NewControlId(), self.NewControlId(), self.NewControlId(), self.NewControlId())
 

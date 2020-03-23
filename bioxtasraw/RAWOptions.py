@@ -39,6 +39,7 @@ import copy
 
 import wx
 import wx.lib.agw.customtreectrl as CT
+import wx.lib.scrolledpanel as scrolled
 from numpy import ceil
 import numpy as np
 import pyFAI
@@ -79,7 +80,7 @@ def CreateFileDialog(mode):
 
         return file
 
-class ArtifactOptionsPanel(wx.Panel):
+class ArtifactOptionsPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
@@ -92,7 +93,12 @@ class ArtifactOptionsPanel(wx.Panel):
                             'ZingerRemovalRadAvgIter',
                             ]
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.artifact_removal_data = ( ('Zinger removal by smoothing', raw_settings.getIdAndType('ZingerRemoval')),
                                      ('Std:',            raw_settings.getIdAndType('ZingerRemoveSTD')),
@@ -170,10 +176,15 @@ class ArtifactOptionsPanel(wx.Panel):
         pass
 
 
-class CalibrationOptionsPanel(wx.Panel):
+class CalibrationOptionsPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.update_keys = [
             'SampleDistance',
@@ -365,11 +376,16 @@ class HeaderListCtrl(wx.ListCtrl):
 
 
 
-class ReductionImgHdrFormatPanel(wx.Panel):
+class ReductionImgHdrFormatPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.update_keys = ['ImageFormat', 'ImageHdrFormat', 'UseHeaderForCalib']
         self.changes = {}
@@ -1080,11 +1096,16 @@ class MetadataListCtrl(wx.ListCtrl):
             self.add(op, expr)
 
 
-class ReductionNormalizationAbsScPanel(wx.Panel):
+class ReductionNormalizationAbsScPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
 
@@ -1503,11 +1524,16 @@ class ReductionNormalizationAbsScPanel(wx.Panel):
                 wx.MessageBox('Normalization constant contains illegal characters', 'Invalid input')
                 chkbox.SetValue(False)
 
-class ReductionFlatfield(wx.Panel):
+class ReductionFlatfield(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
 
@@ -1708,11 +1734,16 @@ class ReductionFlatfield(wx.Panel):
 
                     chk.SetValue(False)
 
-class SansOptionsPanel(wx.Panel):
+class SansOptionsPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
 
@@ -1761,11 +1792,16 @@ class SansOptionsPanel(wx.Panel):
 
         return hSizer
 
-class MolecularWeightPanel(wx.Panel):
+class MolecularWeightPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
 
@@ -1941,7 +1977,7 @@ class MolecularWeightPanel(wx.Panel):
                     except TypeError:
                         obj.SetValue(str(val))
 
-class ReductionNormalizationPanel(wx.Panel):
+class ReductionNormalizationPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
@@ -1949,7 +1985,12 @@ class ReductionNormalizationPanel(wx.Panel):
 
         self.raw_settings = raw_settings
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.norm_list_id = raw_settings.getId('NormalizationList')
         self.enable_norm_id = raw_settings.getId('EnableNormalization')
@@ -2107,7 +2148,7 @@ class ReductionNormalizationPanel(wx.Panel):
             self.expr_combo.SetValue(expr)
 
 
-class OnlineModePanel(wx.Panel):
+class OnlineModePanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
@@ -2115,7 +2156,12 @@ class OnlineModePanel(wx.Panel):
 
         self.raw_settings = raw_settings
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.filt_list_id = raw_settings.getId('OnlineFilterList')
         self.enable_filt_id = raw_settings.getId('EnableOnlineFiltering')
@@ -2218,7 +2264,7 @@ class OnlineModePanel(wx.Panel):
         if expr != '':
             self.online_list.add(filt, expr, pos)
 
-class MetadataPanel(wx.Panel):
+class MetadataPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
@@ -2226,7 +2272,12 @@ class MetadataPanel(wx.Panel):
 
         self.raw_settings = raw_settings
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.meta_list_id = raw_settings.getId('MetadataList')
         self.enable_meta_id = raw_settings.getId('EnableMetadata')
@@ -2343,11 +2394,16 @@ class MetadataPanel(wx.Panel):
         if expr != '':
             self.expr_combo.SetValue(expr)
 
-class GeneralOptionsPanel(wx.Panel):
+class GeneralOptionsPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
 
@@ -2433,11 +2489,16 @@ class GeneralOptionsPanel(wx.Panel):
     def onChkBox(self, event):
         pass
 
-class ConfigRootSettings(wx.Panel):
+class ConfigRootSettings(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
 
@@ -2511,17 +2572,27 @@ class ConfigRootSettings(wx.Panel):
             Panel = wx.FindWindowById(myId, self.GetParent())
             Panel.onClearAllButton(-1)
 
-class ReductionOptionsPanel(wx.Panel):
+class ReductionOptionsPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
-class SaveDirectoriesPanel(wx.Panel):
+class SaveDirectoriesPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
 
@@ -2657,11 +2728,16 @@ class SaveDirectoriesPanel(wx.Panel):
                 wx.MessageBox('Save directory "%s" does not exist. Please select a valid save directory to enable automatic saving.' %(directory), 'Directory does not exist', parent = self)
 
 
-class IftOptionsPanel(wx.Panel):
+class IftOptionsPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
 
@@ -2739,11 +2815,16 @@ class IftOptionsPanel(wx.Panel):
 
         return grid_sizer
 
-class AutomationOptionsPanel(wx.Panel):
+class AutomationOptionsPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
 
@@ -2930,11 +3011,16 @@ class AutomationOptionsPanel(wx.Panel):
 
         return chkboxSizer
 
-class SeriesPanel(wx.Panel):
+class SeriesPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
 
@@ -2974,11 +3060,16 @@ class SeriesPanel(wx.Panel):
 
 
 
-class ATSASGeneralPanel(wx.Panel):
+class ATSASGeneralPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
 
@@ -3055,34 +3146,28 @@ class ATSASGeneralPanel(wx.Panel):
         self.datadir.SetValue(path)
 
 
-class ATSASGnom(wx.Panel):
+class ATSASGnom(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
-
-        # self.SetScrollbars(20,20,50,50)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
-
-        # self.update_keys = ['gnomExpertFile', 'gnomForceRminZero', 'gnomForceRmaxZero','gnomNPoints',
-        #                     'gnomInitialAlpha', 'gnomAngularScale', 'gnomSystem', 'gnomFormFactor']
 
         self.update_keys = ['gnomForceRminZero', 'gnomForceRmaxZero', 'gnomNPoints', 'gnomInitialAlpha']
 
         options_sizer = self.createGNOMOptions()
-
-        # final_sizer = wx.BoxSizer(wx.VERTICAL)
-        # final_sizer.Add(options_sizer, 0, wx.EXPAND | wx.ALL, 5)
-
-        # self.SetSizer(final_sizer)
 
         self.SetSizer(options_sizer)
 
     def createGNOMOptions(self):
         rmin_text = wx.StaticText(self, -1, 'Force P(r) to 0 at r = 0 :')
         rmin_choice = wx.Choice(self, self.raw_settings.getId('gnomForceRminZero'), choices = ['Y', 'N'])
-        # rmin_choice.SetStringSelection(self.raw_settings.get('gnomForceRminZero'))
 
         rmin_sizer = wx.BoxSizer(wx.HORIZONTAL)
         rmin_sizer.Add(rmin_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
@@ -3090,7 +3175,6 @@ class ATSASGnom(wx.Panel):
 
         rmax_text = wx.StaticText(self, -1, 'Force P(r) to 0 at r = Dmax (sets default for GNOM window):')
         rmax_choice = wx.Choice(self, self.raw_settings.getId('gnomForceRmaxZero'), choices = ['Y', 'N'])
-        # rmax_choice.SetStringSelection(self.raw_settings.get('gnomForceRmaxZero'))
 
         rmax_sizer = wx.BoxSizer(wx.HORIZONTAL)
         rmax_sizer.Add(rmax_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
@@ -3200,19 +3284,21 @@ class ATSASGnom(wx.Panel):
 
 
 
-class ATSASGnomAdvanced(wx.Panel):
+class ATSASGnomAdvanced(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
-
-        # self.SetScrollbars(20,20,50,50)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
 
         self.update_keys = ['gnomAngularScale', 'gnomSystem', 'gnomExpertFile', 'gnomFormFactor',
                             'gnomRadius56', 'gnomRmin']
-                            # 'gnomFWHM', 'gnomAH', 'gnomLH', 'gnomAW', 'gnomLW', 'gnomSpot', 'gnomExp'] #to incorporate later?
 
         self.button_ids = {'expert' : self.NewControlId(),
                             'form': self.NewControlId(),
@@ -3220,11 +3306,6 @@ class ATSASGnomAdvanced(wx.Panel):
 
 
         options_sizer = self.createGNOMOptions()
-
-        # final_sizer = wx.BoxSizer(wx.VERTICAL)
-        # final_sizer.Add(options_sizer, 0, wx.EXPAND | wx.ALL, 5)
-
-        # self.SetSizer(final_sizer)
 
         self.SetSizer(options_sizer)
 
@@ -3339,11 +3420,16 @@ class ATSASGnomAdvanced(wx.Panel):
             path = ''
 
 
-class ATSASDammix(wx.Panel):
+class ATSASDammix(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
 
@@ -3552,11 +3638,16 @@ class ATSASDammix(wx.Panel):
                             obj.SetValue(str(val))
 
 
-class ATSASDammixAdvanced(wx.Panel):
+class ATSASDammixAdvanced(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
 
@@ -3648,11 +3739,16 @@ class ATSASDammixAdvanced(wx.Panel):
         return customSizer
 
 
-class ATSASDammifAdvanced(wx.Panel):
+class ATSASDammifAdvanced(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
 
@@ -3753,11 +3849,16 @@ class ATSASDammifAdvanced(wx.Panel):
         return customSizer
 
 
-class ATSASDamminAdvanced(wx.Panel):
+class ATSASDamminAdvanced(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
 
@@ -3851,11 +3952,16 @@ class ATSASDamminAdvanced(wx.Panel):
 
         return customSizer
 
-class WeightedAveragePanel(wx.Panel):
+class WeightedAveragePanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
 
@@ -3927,11 +4033,16 @@ class WeightedAveragePanel(wx.Panel):
             wx.FindWindowById(self.raw_settings.getId('weightCounter'), self).Disable()
         event.Skip()
 
-class SimilarityPanel(wx.Panel):
+class SimilarityPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
 
@@ -3986,11 +4097,16 @@ class SimilarityPanel(wx.Panel):
 
         return sizer
 
-class FittingPanel(wx.Panel):
+class FittingPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
-        wx.Panel.__init__(self, parent, id, *args, **kwargs)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
 
         self.raw_settings = raw_settings
 
@@ -4044,18 +4160,16 @@ class FittingPanel(wx.Panel):
 
         return sizer
 
-class DenssPanel(wx.ScrolledWindow):
+class DenssPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
 
         if 'style' in kwargs:
-            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER|wx.VSCROLL
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
         else:
-            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER|wx.VSCROLL
-        wx.ScrolledWindow.__init__(self, parent, id, *args, **kwargs)
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
         self.SetScrollRate(20,20)
-
-        # wx.Panel.__init__(self, parent, id, *args, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER|wx.VSCROLL)
 
         self.raw_settings = raw_settings
 
@@ -4559,13 +4673,16 @@ class OptionsDialog(wx.Dialog):
         self.SendSizeEvent()
 
         self.SetSizer(sizer)
-        self.SetMinSize((800,600))
-        self.SetSize((800,700))
+
+        client_display = wx.GetClientDisplayRect()
+        minsize = (min(800, client_display.Width), min(600, client_display.Height))
+        self.SetMinSize(minsize)
+
+        self.SetSize((850,750))
 
         best_size = self.GetBestSize()
         current_size = self.GetSize()
 
-        client_display = wx.GetClientDisplayRect()
         if best_size.GetWidth() > current_size.GetWidth():
             best_width = min(best_size.GetWidth(), client_display.Width)
             best_size.SetWidth(best_width)
