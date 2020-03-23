@@ -1540,6 +1540,9 @@ class ListItem(wx.Panel):
         self.Bind(wx.EVT_RIGHT_DOWN, self._on_right_mouse_btn)
         self.Bind(wx.EVT_KEY_DOWN, self._on_key_press)
 
+        self.text_color = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHTTEXT)
+        self.bkg_color = RAWGlobals.highlight_color
+
     def _create_layout(self):
         pass
 
@@ -1550,12 +1553,11 @@ class ListItem(wx.Panel):
         self._selected = selected
 
         if self._selected:
-            text_color = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHTTEXT)
-            bkg_color = wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
-            self.SetBackgroundColour(bkg_color)
+
+            self.SetBackgroundColour(self.bkg_color)
 
             for text_item in self.text_list:
-                text_item.SetForegroundColour(text_color)
+                text_item.SetForegroundColour(self.text_color)
 
         else:
             self.SetBackgroundColour(wx.Colour(250,250,250))

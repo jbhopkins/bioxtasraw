@@ -7301,7 +7301,7 @@ class ManipItemPanel(wx.Panel):
                 self.info_panel.clearInfo()
         else:
             self._selected = True
-            self.SetBackgroundColour(wx.Colour(200,200,200))
+            self.SetBackgroundColour(RAWGlobals.highlight_color)
             if set_focus:
                 self.SetFocusIgnoringChildren()
             if update_info:
@@ -8781,7 +8781,7 @@ class IFTItemPanel(wx.Panel):
                 # self.info_panel.clearInfo()
         else:
             self._selected = True
-            self.SetBackgroundColour(wx.Colour(200,200,200))
+            self.SetBackgroundColour(RAWGlobals.highlight_color)
             if set_focus:
                 self.SetFocusIgnoringChildren()
             # if update_info:
@@ -9966,7 +9966,7 @@ class SeriesItemPanel(wx.Panel):
             self.SetBackgroundColour(wx.Colour(250,250,250))
         else:
             self._selected = True
-            self.SetBackgroundColour(wx.Colour(200,200,200))
+            self.SetBackgroundColour(RAWGlobals.highlight_color)
             if set_focus:
                 self.SetFocusIgnoringChildren()
 

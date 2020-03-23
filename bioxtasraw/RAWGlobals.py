@@ -33,6 +33,8 @@ try:
 except Exception:
     has_pyopencl = False
 
+import wx
+
 mainworker_cmd_queue = queue.Queue()
 
 #Checks whether RAW is running in a compiled (frozen) version or a live interpreter
@@ -50,3 +52,5 @@ usepyFAI_integration = True
 version = '2.0.0'
 
 save_in_progress = False
+
+highlight_color = wx.Colour(178, 215, 255)
