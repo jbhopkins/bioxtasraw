@@ -4,21 +4,21 @@ import sys
 import platform
 import os.path
 
+sys.path.append('.')
 import RAWGlobals
 
-sys.path.append('.')
 opsys = platform.system()
 
 add_files = [
     (os.path.join('.', 'resources'), 'resources'),
     (os.path.join('.', 'definitions'), 'definitions'),
-    (os.path.join('..' 'gpl-3.0.txt'), '.'),
+    (os.path.join('..', 'gpl-3.0.txt'), '.'),
     ]
 
 if opsys == 'Darwin':
-    raw_icon = os.path.join('.', 'resources', 'raw.icns.')
+    raw_icon = os.path.join('.', 'resources', 'raw.icns')
 elif opsys == 'Windows':
-    raw_icon = os.path.join('.', 'resources', 'raw.ico.')
+    raw_icon = os.path.join('.', 'resources', 'raw.ico')
 
 a = Analysis(
     ['RAW.py'],
