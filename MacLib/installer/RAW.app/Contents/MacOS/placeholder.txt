@@ -1,1 +1,0 @@
-This placeholder forces git to add the MacOS folder. It's for convenience only.
