@@ -4,31 +4,31 @@ import sys
 import platform
 import os.path
 
-sys.path.append('.')
+sys.path.append(os.path.join('..', 'bioxtasraw'))
 import RAWGlobals
 
 opsys = platform.system()
 
 add_files = [
-    (os.path.join('.', 'resources'), 'resources'),
-    (os.path.join('.', 'definitions'), 'definitions'),
+    (os.path.join('..', 'bioxtasraw', 'resources'), 'resources'),
+    (os.path.join('..', 'bioxtasraw', 'definitions'), 'definitions'),
     (os.path.join('..', 'gpl-3.0.txt'), '.'),
     ]
 
 if opsys == 'Darwin':
-    raw_icon = os.path.join('.', 'resources', 'raw.icns')
+    raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.icns')
 elif opsys == 'Windows':
-    raw_icon = os.path.join('.', 'resources', 'raw.ico')
+    raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.ico')
 
 a = Analysis(
-    ['RAW.py'],
+    [os.path.join('..', 'bioxtasraw', 'RAW.py')],
     pathex=['.'],
     binaries=[],
     datas=add_files,
-    hiddenimports=['_sysconfigdata'],
-    hookspath=[os.path.join('..', 'installer')],
+    hiddenimports=[],
+    hookspath=['.'],
     runtime_hooks=[],
-    excludes=['PyQt5', 'tk', 'ipython', 'tcl'],
+    excludes=[],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=None,
@@ -109,12 +109,12 @@ if opsys == 'Darwin':
         )
 
     try:
-        os.mkdir('./dist/RAW/pyFAI/utils')
+        os.mkdir(os.path.join('..', 'bioxtasraw', 'dist', 'RAW', 'pyFAI', 'utils'))
     except Exception as e:
         print(e)
 
     try:
-        os.mkdir('./dist/RAW.app/Contents/Resources/pyFAI/utils')
-        os.mkdir('./dist/RAW.app/Contents/MacOS/pyFAI/utils')
+        os.mkdir(os.path.join('..', 'bioxtasraw', 'dist', 'RAW.app', 'Contents', 'Resources', 'pyFAI', 'utils'))
+        os.mkdir(os.path.join('..', 'bioxtasraw', 'dist', 'RAW.app', 'Contents', 'MacOS', 'pyFAI', 'utils'))
     except Exception as e:
         print(e)
