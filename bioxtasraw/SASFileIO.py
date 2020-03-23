@@ -1824,6 +1824,7 @@ def load_series(name):
     seriesm_data = {}
 
     with h5py.File(name, 'r', driver='core', backing_store=False) as f:
+        seriesm_data['series_type'] = str(f.attrs['series_type'])
         seriesm_data['parameters'] = loadDatHeader(f.attrs['parameters'])
 
         seriesm_data['file_list'] = list(map(str, f['file_names'][()]))
@@ -2012,6 +2013,7 @@ def makeSeriesFile(secm_data, settings):
                         'baseline_type'         : '',
                         'baseline_extrap'       : True,
                         'baseline_fit_results'  : [],
+                        'series_type'           : '',
                         }
 
     for key in default_dict:
@@ -2046,6 +2048,7 @@ def makeSeriesFile(secm_data, settings):
     new_secm = SASM.SECM(secm_data['file_list'], sasm_list,
         secm_data['frame_list'], secm_data['parameters'], settings)
 
+    new_secm.series_type = secm_data['series_type']
     new_secm.window_size = secm_data['window_size']
     new_secm.mol_type =secm_data['mol_type']
     new_secm.calc_has_data = secm_data['calc_has_data']
@@ -3097,8 +3100,9 @@ def save_series(save_name, seriesm, save_gui_data=False):
 
     with h5py.File(save_name, 'w', driver='core', libver='latest') as f:
         f.attrs['file_type'] = 'RAW_Series'
-        f.attrs['raw_version'] = '2.0.0'
+        f.attrs['raw_version'] = RAWGlobals.version
         f.attrs['parameters'] = formatHeader(seriesm_data['parameters'])
+        f.attrs['series_type'] = seriesm_data['series_type']
 
         if save_gui_data:
             try:

@@ -609,6 +609,8 @@ class SECM(object):
         self.frame_list = self._frame_list_raw.copy()
         self.plot_frame_list = np.arange(len(self.frame_list))
 
+        self.series_type = ''
+
         self._scale_factor = 1
         self._offset_value = 0
         self._frame_scale_factor = 1
@@ -884,6 +886,7 @@ class SECM(object):
 
         all_data = {}
 
+        all_data['series_type'] = self.series_type
         all_data['file_list'] = self._file_list
         all_data['mean_i_raw'] = self._mean_i_raw
         all_data['total_i_raw'] = self._total_i_raw

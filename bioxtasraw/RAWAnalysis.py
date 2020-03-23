@@ -15206,6 +15206,9 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         self.series_name.SetLabel(self.secm.getParameter('filename'))
 
+        if self.secm.series_type == 'SEC':
+            self.series_type.SetStringSelection('SEC-SAXS')
+
         frames = self.secm.getFrames()
 
         if self.plot_page.intensity == 'total':
@@ -15383,6 +15386,9 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.proc_lock.acquire()
 
         self.original_secm.acquireSemaphore()
+
+        if self.series_type.GetStringSelection() == 'SEC-SAXS':
+            self.original_secm.series_type = 'SEC'
 
         if self.processing_done['buffer']:
             buffer_sasm = self.results['buffer']['buffer_sasm']
