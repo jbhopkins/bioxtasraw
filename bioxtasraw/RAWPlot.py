@@ -550,6 +550,9 @@ class PlotPanel(wx.Panel):
                             if ymin < mini:
                                 mini = ymin
 
+                print(mini)
+                print(maxi)
+
                 if mini is not None and maxi is not None:
                     eachsubplot.set_ylim(mini, maxi)
                 else:
@@ -1478,6 +1481,25 @@ class IftPlotPanel(PlotPanel):
                 else:
                     plotnum = '2'
 
+                is_logy = False
+                is_logx = False
+
+                if (self.plotparams['plot' + plotnum + 'type'] == 'normal'
+                        or self.plotparams['plot' + plotnum + 'type'] ==
+                        'subtracted'):
+                    if (self.plotparams['axesscale' + plotnum + ''] ==
+                            'loglog' or self.plotparams['axesscale' + plotnum
+                            + ''] == 'loglin'):
+                        is_logy = True
+
+                if (self.plotparams['plot' + plotnum + 'type'] == 'normal'
+                        or self.plotparams['plot' + plotnum + 'type'] ==
+                        'subtracted'):
+                    if (self.plotparams['axesscale' + plotnum + ''] ==
+                            'loglog' or self.plotparams['axesscale' + plotnum
+                            + ''] == 'linlog'):
+                        is_logx = True
+
                 if self.plotparams['auto_fitaxes' + plotnum] == False and forced == False:
                     print('Not fitting axes due to plot settings')
                     try:
@@ -1489,27 +1511,43 @@ class IftPlotPanel(PlotPanel):
                 for each in eachsubplot.lines:
                     if each._label != '_nolegend_' and each._label != '_zero_' and each.get_visible() == True:
 
-                        if maxq is None:
-                            maxq = max(each.get_xdata())
-                            maxi = max(each.get_ydata())
+                        if not is_logx:
+                            xdata = each.get_xdata()
+                        else:
+                            xdata = each.get_xdata()
+                            xdata = xdata[xdata>0]
 
-                            minq = min(each.get_xdata())
-                            mini = min(each.get_ydata())
+                        if not is_logy:
+                            ydata = each.get_ydata()
+                        else:
+                            ydata = each.get_ydata()
+                            ydata = ydata[ydata>0]
 
-                        xmax = max(each.get_xdata())
-                        ymax = max(each.get_ydata())
+                        if len(xdata)>0:
+                            if maxq is None:
+                                maxq = max(xdata)
+                                minq = min(xdata)
 
-                        xmin = min(each.get_xdata())
-                        ymin = min(each.get_ydata())
+                            xmax = max(xdata)
+                            xmin = min(xdata)
 
-                        if xmax > maxq:
-                            maxq = xmax
-                        if xmin < minq:
-                            minq = xmin
-                        if ymax > maxi:
-                            maxi = ymax
-                        if ymin < mini:
-                            mini = ymin
+                            if xmax > maxq:
+                                maxq = xmax
+                            if xmin < minq:
+                                minq = xmin
+
+                        if len(ydata)>0:
+                            if maxi is None:
+                                maxi = max(ydata)
+                                mini = min(ydata)
+
+                            ymax = max(ydata)
+                            ymin = min(ydata)
+
+                            if ymax > maxi:
+                                maxi = ymax
+                            if ymin < mini:
+                                mini = ymin
 
                 if mini is not None and maxi is not None:
                     eachsubplot.set_ylim(mini, maxi)
