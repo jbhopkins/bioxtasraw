@@ -17,8 +17,10 @@ add_files = [
 
 if opsys == 'Darwin':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.icns')
+    console = False
 elif opsys == 'Windows':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.ico')
+    console = True
 
 a = Analysis(
     [os.path.join('..', 'bioxtasraw', 'RAW.py')],
@@ -51,7 +53,7 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False,
+    console=console,
     icon=raw_icon
     )
 
