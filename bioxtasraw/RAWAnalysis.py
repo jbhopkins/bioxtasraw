@@ -3384,6 +3384,7 @@ class GNOMControlPanel(wx.Panel):
         self.raw_settings = self.main_frame.raw_settings
 
         self.old_analysis = {}
+        self.old_dmax = -1
 
         if 'GNOM' in self.sasm.getParameter('analysis'):
             self.old_analysis = copy.deepcopy(self.sasm.getParameter('analysis')['GNOM'])
@@ -4111,6 +4112,7 @@ class GNOMControlPanel(wx.Panel):
             self.out_list[str(dmax)] = datgnom
 
         dmaxWindow.SetValue(dmax)
+        self.old_dmax = dmax
 
         self.updateGNOMInfo(self.out_list[str(dmax)])
 
