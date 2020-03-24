@@ -3115,8 +3115,16 @@ def save_series(save_name, seriesm, save_gui_data=False):
         for j in range(len(seriesm_data['file_list'])):
             seriesm_data['file_list'][j] = seriesm_data['file_list'][j].encode('utf-8')
 
+        try:
+            dtype = h5py.string_dtype() #h5py 2.10, python 3
+        except Exception:
+            if six.PY3:
+                dtype = h5py.special_dtype(vlen=str) #h5py < 2.10, python3
+            else:
+                dtype = h5py.special_dtype(vlen=unicode) #h5py < 2.10, python2
+
         fname_data = f.create_dataset('file_names', data=seriesm_data['file_list'],
-            dtype=h5py.string_dtype())
+            dtype=dtype)
         fname_data.attrs['description'] = ('Ordered list of filenames, '
             'corresponding to profile numbering order.')
 
@@ -4140,7 +4148,6 @@ def writeSettings(filename, settings):
             f.write(settings_str)
         return True
     except Exception as e:
-        traceback.print_exc()
         print(e)
         return False
 
@@ -4160,7 +4167,6 @@ def readSettings(filename):
                     pickle_obj.find_global = find_global
                 settings = pickle_obj.load()
         except Exception as e:
-            traceback.print_exc()
             print('Error type: %s, error: %s' %(type(e).__name__, e))
             return None
 

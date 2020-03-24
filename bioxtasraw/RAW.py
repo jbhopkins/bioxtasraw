@@ -2584,7 +2584,7 @@ class MainWorkerThread(threading.Thread):
                         'to_plot_ift'                   : self._plotIFTM,
                         'to_plot_SEC'                   : self._sendSASMToPlotSEC,
                         'save_sec_data'                 : self._saveSeriesData,
-                        'save_sec_item'                 : self._saveSECItem,
+                        'save_sec_item'                 : self._saveSeriesItem,
                         'save_sec_profiles'             : self._saveSECProfiles,
                         'save_iftm'                     : self._saveIFTM,
                         'to_plot_sasm'                  : self._plotSASM,
@@ -5093,7 +5093,7 @@ class MainWorkerThread(threading.Thread):
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
 
-    def _saveSECItem(self, data):
+    def _saveSeriesItem(self, data):
         save_path, selected_items = data[0], data[1]
 
         if self.main_frame.OnlineControl.isRunning() and os.path.split(save_path[0])[0] == self.main_frame.OnlineControl.getTargetDir():

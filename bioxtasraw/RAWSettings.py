@@ -102,7 +102,7 @@ class RawGuiSettings(object):
                 'PolarizationFactor'        : [0, wx.NewId(), 'float'],
                 'IntegrationMethod'         : ['nosplit_csr', wx.NewId(), 'choice'],
                 'AngularUnit'               : ['q_A^-1', wx.NewId(), 'choice'],
-                'ErrorModel'                : ['azimuthal', wx.NewId(), 'choice'],
+                'ErrorModel'                : ['poisson', wx.NewId(), 'choice'],
                 'UseImageForVariance'       : [False, wx.NewId(), 'bool'],
                 'AzimuthalIntegrator'       : [None],
 

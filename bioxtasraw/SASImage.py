@@ -376,6 +376,7 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
 
     if ai is None:
         ai = pyFAI.azimuthalIntegrator.AzimuthalIntegrator()
+        ai.set_wavelength(wavelength)
 
     if wavelength != ai.get_wavelength():
         ai.set_wavelength(wavelength)

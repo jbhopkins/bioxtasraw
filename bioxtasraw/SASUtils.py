@@ -49,7 +49,7 @@ def get_det_list():
             if reduced_key in final_dets:
                 final_dets.pop(reduced_key)
 
-    det_list = list(final_dets.keys()) + ['Other']
+    det_list = list(final_dets.keys()) + [str('Other')]
     det_list = sorted(det_list, key=str.lower)
 
     return det_list
