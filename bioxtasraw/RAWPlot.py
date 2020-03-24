@@ -550,9 +550,6 @@ class PlotPanel(wx.Panel):
                             if ymin < mini:
                                 mini = ymin
 
-                print(mini)
-                print(maxi)
-
                 if mini is not None and maxi is not None:
                     eachsubplot.set_ylim(mini, maxi)
                 else:
