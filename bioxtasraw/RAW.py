@@ -238,8 +238,8 @@ class MainFrame(wx.Frame):
         iftplot_panel = RAWPlot.IftPlotPanel(self.plot_notebook, -1, 'IFTPlotPanel')
         sec_panel = RAWPlot.SeriesPlotPanel(self.plot_notebook,-1, 'SECPlotPanel')
 
-        self.plot_notebook.AddPage(plot_panel, "Main Plot", True)
-        self.plot_notebook.AddPage(iftplot_panel, "IFT Plot", False)
+        self.plot_notebook.AddPage(plot_panel, "Profiles", True)
+        self.plot_notebook.AddPage(iftplot_panel, "IFTs", False)
         self.plot_notebook.AddPage(img_panel, "Image", False)
         self.plot_notebook.AddPage(sec_panel, "Series", False)
 
@@ -254,8 +254,8 @@ class MainFrame(wx.Frame):
 
 
         self.control_notebook.AddPage(page1, "Files", True)
-        self.control_notebook.AddPage(page2, "Manipulation", False)
-        self.control_notebook.AddPage(page3, "IFT", False)
+        self.control_notebook.AddPage(page2, "Profiles", False)
+        self.control_notebook.AddPage(page3, "IFTs", False)
         self.control_notebook.AddPage(page4, "Series",False)
 
         self.info_panel = InformationPanel(self)
@@ -427,7 +427,7 @@ class MainFrame(wx.Frame):
         page = -1
 
         for i in range(self.plot_notebook.GetPageCount()):
-            if self.plot_notebook.GetPageText(i) == 'Main Plot':
+            if self.plot_notebook.GetPageText(i) == 'Profiles':
                 page = i
                 self.plot_notebook.SetSelection(page)
 
@@ -471,7 +471,7 @@ class MainFrame(wx.Frame):
         page = -1
 
         for i in range(self.plot_notebook.GetPageCount()):
-            if self.plot_notebook.GetPageText(i) == 'Main Plot':
+            if self.plot_notebook.GetPageText(i) == 'Profiles':
                 page = i
                 self.plot_notebook.SetSelection(page)
 
@@ -1209,10 +1209,10 @@ class MainFrame(wx.Frame):
                                ('&Show Header', self.MenuIDs['showheader'], self._onViewMenu, 'normal'),
                                ('&Show History', self.MenuIDs['showhistory'], self._onViewMenu, 'normal'),
                                (None, None, None, 'separator'),
-                               ('&Main Plot Top Axes', None, submenus['viewPlot1Scale'], 'submenu'),
-                               ('&Main Plot Bottom Axes', None, submenus['viewPlot2Scale'], 'submenu'),
-                               ('&IFT Plot Top Axes', None, submenus['viewPr1Scale'], 'submenu'),
-                               ('&IFT Plot Bottom Axes', None, submenus['viewPr2Scale'], 'submenu'),
+                               ('&Profiles Plot Top Axes', None, submenus['viewPlot1Scale'], 'submenu'),
+                               ('&Profiles Plot Bottom Axes', None, submenus['viewPlot2Scale'], 'submenu'),
+                               ('&IFTs Plot Top Axes', None, submenus['viewPr1Scale'], 'submenu'),
+                               ('&IFTs Plot Bottom Axes', None, submenus['viewPr2Scale'], 'submenu'),
                                ('&Series Plot Left Y Axis', None, submenus['viewSECLeft'], 'submenu'),
                                ('&Series Plot Right Y Axis', None, submenus['viewSECRight'], 'submenu'),
                                ('&Series Plot Intensity Type', None, submenus['viewSECInt'], 'submenu'),
@@ -1277,14 +1277,14 @@ class MainFrame(wx.Frame):
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
             if page !=manippage:
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles window is selected.', 'Select Profiles Window', style = wx.ICON_INFORMATION)
                 return
 
             if len(manippage.getSelectedItems()) > 0:
                 sasm = manippage.getSelectedItems()[0].getSASM()
                 self.showGuinierFitFrame(sasm, manippage.getSelectedItems()[0])
             else:
-                wx.MessageBox("Please select a scattering profile from the list on the manipulation page.", "No profile selected")
+                wx.MessageBox("Please select a scattering profile from the list on the Profiles page.", "No profile selected")
 
         elif id == self.MenuIDs['molweight']:
             manippage = wx.FindWindowByName('ManipulationPanel')
@@ -1292,14 +1292,14 @@ class MainFrame(wx.Frame):
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
             if page !=manippage:
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles window is selected.', 'Select Profiles Window', style = wx.ICON_INFORMATION)
                 return
 
             if len(manippage.getSelectedItems()) > 0:
                 sasm = manippage.getSelectedItems()[0].getSASM()
                 self.showMolWeightFrame(sasm, manippage.getSelectedItems()[0])
             else:
-                wx.MessageBox("Please select a scattering profile from the list on the manipulation page.", "No profile selected")
+                wx.MessageBox("Please select a scattering profile from the list on the Profiles page.", "No profile selected")
 
         elif id == self.MenuIDs['centering']:
             self.showCenteringPane()
@@ -1311,7 +1311,7 @@ class MainFrame(wx.Frame):
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
             if page != wx.FindWindowByName('ManipulationPanel'):
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles window is selected.', 'Select Profiles Window', style = wx.ICON_INFORMATION)
                 return
 
             selected_items = page.getSelectedItems()
@@ -1322,7 +1322,7 @@ class MainFrame(wx.Frame):
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
             if page != wx.FindWindowByName('ManipulationPanel'):
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles window is selected.', 'Select Profiles Window', style = wx.ICON_INFORMATION)
                 return
 
             selected_items = page.getSelectedItems()
@@ -1332,7 +1332,7 @@ class MainFrame(wx.Frame):
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
             if page != wx.FindWindowByName('ManipulationPanel'):
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles window is selected.', 'Select Profiles Window', style = wx.ICON_INFORMATION)
                 return
 
             selected_items = page.getSelectedItems()
@@ -1343,7 +1343,7 @@ class MainFrame(wx.Frame):
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
             if page != wx.FindWindowByName('ManipulationPanel'):
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles window is selected.', 'Select Profiles Window', style = wx.ICON_INFORMATION)
                 return
 
             selected_items = page.getSelectedItems()
@@ -1360,7 +1360,7 @@ class MainFrame(wx.Frame):
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
             if page != wx.FindWindowByName('ManipulationPanel'):
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles window is selected.', 'Select Profiles Window', style = wx.ICON_INFORMATION)
                 return
 
             selected_items = page.getSelectedItems()
@@ -1371,7 +1371,7 @@ class MainFrame(wx.Frame):
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
             if page != wx.FindWindowByName('ManipulationPanel'):
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles window is selected.', 'Select Profiles Window', style = wx.ICON_INFORMATION)
                 return
 
             selected_items = page.getSelectedItems()
@@ -1381,7 +1381,7 @@ class MainFrame(wx.Frame):
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
             if page != wx.FindWindowByName('ManipulationPanel'):
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles window is selected.', 'Select Profiles Window', style = wx.ICON_INFORMATION)
                 return
 
             page.Superimpose()
@@ -1390,7 +1390,7 @@ class MainFrame(wx.Frame):
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
             if page != wx.FindWindowByName('ManipulationPanel'):
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles window is selected.', 'Select Profiles Window', style = wx.ICON_INFORMATION)
                 return
 
             page.Sync()
@@ -1400,7 +1400,7 @@ class MainFrame(wx.Frame):
             page = self.control_notebook.GetPage(current_page)
 
             if page != wx.FindWindowByName('ManipulationPanel') and page != wx.FindWindowByName('IFTPanel'):
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation or IFT window is selected.', 'Select Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles or IFTs window is selected.', 'Select Window', style = wx.ICON_INFORMATION)
                 return
 
             selected_items = page.getSelectedItems()
@@ -1420,7 +1420,7 @@ class MainFrame(wx.Frame):
             page = self.control_notebook.GetPage(current_page)
 
             if page != wx.FindWindowByName('ManipulationPanel') and page != wx.FindWindowByName('IFTPanel'):
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation or IFT window is selected.', 'Select Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles or IFTs window is selected.', 'Select Window', style = wx.ICON_INFORMATION)
                 return
 
             selected_items = page.getSelectedItems()
@@ -1440,7 +1440,7 @@ class MainFrame(wx.Frame):
             page = self.control_notebook.GetPage(current_page)
 
             if page != wx.FindWindowByName('ManipulationPanel'):
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles window is selected.', 'Select Profiles Window', style = wx.ICON_INFORMATION)
                 return
 
             selected_items = page.getSelectedItems()
@@ -1451,7 +1451,7 @@ class MainFrame(wx.Frame):
             page = self.control_notebook.GetPage(current_page)
 
             if page != wx.FindWindowByName('ManipulationPanel'):
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles window is selected.', 'Select Profiles Window', style = wx.ICON_INFORMATION)
                 return
 
             selected_items = page.getSelectedItems()
@@ -1468,14 +1468,14 @@ class MainFrame(wx.Frame):
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
             if page !=manippage:
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles window is selected.', 'Select Profiles Window', style = wx.ICON_INFORMATION)
                 return
 
             if len(manippage.getSelectedItems()) > 0:
                 sasm = manippage.getSelectedItems()[0].getSASM()
                 self.showGNOMFrame(sasm, manippage.getSelectedItems()[0])
             else:
-                wx.MessageBox("Please select a scattering profile from the list on the manipulation page.", "No profile selected")
+                wx.MessageBox("Please select a scattering profile from the list on the Profiles page.", "No profile selected")
 
         elif id == self.MenuIDs['rundammif']:
             manippage = wx.FindWindowByName('IFTPanel')
@@ -1483,14 +1483,14 @@ class MainFrame(wx.Frame):
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
             if page !=manippage:
-                wx.MessageBox('The selected operation cannot be performed unless the IFT window is selected.', 'Select IFT Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the IFTs window is selected.', 'Select IFTs Window', style = wx.ICON_INFORMATION)
                 return
 
             if len(manippage.getSelectedItems()) > 0:
                 iftm = manippage.getSelectedItems()[0].getIFTM()
                 self.showDAMMIFFrame(iftm, manippage.getSelectedItems()[0])
             else:
-                wx.MessageBox("Please select an IFT from the list on the IFT page.", "No IFT selected")
+                wx.MessageBox("Please select an IFT from the list on the IFTs page.", "No IFT selected")
 
         elif id == self.MenuIDs['bift']:
             manippage = wx.FindWindowByName('ManipulationPanel')
@@ -1498,14 +1498,14 @@ class MainFrame(wx.Frame):
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
             if page !=manippage:
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles window is selected.', 'Select Profiles Window', style = wx.ICON_INFORMATION)
                 return
 
             if len(manippage.getSelectedItems()) > 0:
                 sasm = manippage.getSelectedItems()[0].getSASM()
                 self.showBIFTFrame(sasm, manippage.getSelectedItems()[0])
             else:
-                wx.MessageBox("Please select a scattering profile from the list on the manipulation page.", "No profile selected")
+                wx.MessageBox("Please select a scattering profile from the list on the Profiles page.", "No profile selected")
 
         elif id == self.MenuIDs['runambimeter']:
             manippage = wx.FindWindowByName('IFTPanel')
@@ -1513,14 +1513,14 @@ class MainFrame(wx.Frame):
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
             if page !=manippage:
-                wx.MessageBox('The selected operation cannot be performed unless the IFT window is selected.', 'Select IFT Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the IFTs window is selected.', 'Select IFTs Window', style = wx.ICON_INFORMATION)
                 return
 
             if len(manippage.getSelectedItems()) > 0:
                 iftm = manippage.getSelectedItems()[0].getIFTM()
                 self.showAmbiFrame(iftm, manippage.getSelectedItems()[0])
             else:
-                wx.MessageBox("Please select an IFT from the list on the IFT page.", "No IFT selected")
+                wx.MessageBox("Please select an IFT from the list on the IFTs page.", "No IFT selected")
 
 
         elif id == self.MenuIDs['runsvd']:
@@ -1683,13 +1683,13 @@ class MainFrame(wx.Frame):
 
             if page == manippage:
                 wx.MessageBox(('The selected operation cannot be performed '
-                    'from the manipulation tab.'), 'Select Different Tab',
+                    'from the Profiles tab.'), 'Select Different Tab',
                     style=wx.ICON_INFORMATION)
                 return
 
             elif page == iftpage:
                 wx.MessageBox(('The selected operation cannot be performed '
-                    'from the IFT tab.'), 'Select Different Tab',
+                    'from the IFTs tab.'), 'Select Different Tab',
                     style=wx.ICON_INFORMATION)
                 return
 
@@ -1721,7 +1721,7 @@ class MainFrame(wx.Frame):
             page = self.control_notebook.GetPage(current_page)
 
             if page !=manippage and page != secpage and page != iftpage:
-                wx.MessageBox('The selected operation cannot be performed unless the Manipulation, IFT, or Series control panel is selected.', 'Select Appropriate Control Panel', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles, IFTs, or Series control panel is selected.', 'Select Appropriate Control Panel', style = wx.ICON_INFORMATION)
                 return
 
             selected_items = page.getSelectedItems()
@@ -1758,7 +1758,7 @@ class MainFrame(wx.Frame):
             page = self.control_notebook.GetPage(current_page)
 
             if page !=manippage:
-                wx.MessageBox('The selected operation cannot be performed unless the Manipulation control panel is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles control panel is selected.', 'Select Profiles Window', style = wx.ICON_INFORMATION)
                 return
 
             selected_items = manippage.getSelectedItems()
@@ -1775,14 +1775,14 @@ class MainFrame(wx.Frame):
             current_page = self.control_notebook.GetSelection()
             page = self.control_notebook.GetPage(current_page)
             if page !=manippage:
-                wx.MessageBox('The selected operation cannot be performed unless the IFT window is selected.', 'Select IFT Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the IFTs window is selected.', 'Select IFTs Window', style = wx.ICON_INFORMATION)
                 return
 
             if len(manippage.getSelectedItems()) > 0:
                 iftm = manippage.getSelectedItems()[0].getIFTM()
                 self.showDenssFrame(iftm, manippage.getSelectedItems()[0])
             else:
-                wx.MessageBox("Please select an IFT from the list on the IFT page.", "No IFT selected")
+                wx.MessageBox("Please select an IFT from the list on the IFTs page.", "No IFT selected")
 
         elif id == self.MenuIDs['calcUVconc']:
             manippage = wx.FindWindowByName('ManipulationPanel')
@@ -1791,7 +1791,7 @@ class MainFrame(wx.Frame):
             page = self.control_notebook.GetPage(current_page)
 
             if page !=manippage:
-                wx.MessageBox('The selected operation cannot be performed unless the Manipulation control panel is selected.', 'Select Manipulation Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles control panel is selected.', 'Select Profiles Window', style = wx.ICON_INFORMATION)
                 return
 
             selected_items = manippage.getSelectedItems()
@@ -1833,7 +1833,7 @@ class MainFrame(wx.Frame):
             page = self.control_notebook.GetPage(current_page)
 
             if page != wx.FindWindowByName('ManipulationPanel'):
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles window is selected.', 'Select Window', style = wx.ICON_INFORMATION)
                 return
 
             selected_items = page.getSelectedItems()
@@ -1855,7 +1855,7 @@ class MainFrame(wx.Frame):
             page = self.control_notebook.GetPage(current_page)
 
             if page != wx.FindWindowByName('ManipulationPanel') and page != wx.FindWindowByName('IFTPanel') and page != wx.FindWindowByName('SECPanel'):
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation or IFT window is selected.', 'Select Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles or IFTs window is selected.', 'Select Window', style = wx.ICON_INFORMATION)
                 return
 
             selected_items = page.getSelectedItems()
@@ -1876,7 +1876,7 @@ class MainFrame(wx.Frame):
             page = self.control_notebook.GetPage(current_page)
 
             if page != wx.FindWindowByName('ManipulationPanel'):
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles window is selected.', 'Select Window', style = wx.ICON_INFORMATION)
                 return
 
             selected_items = page.getSelectedItems()
@@ -1893,7 +1893,7 @@ class MainFrame(wx.Frame):
             page = self.control_notebook.GetPage(current_page)
 
             if page != wx.FindWindowByName('ManipulationPanel'):
-                wx.MessageBox('The selected operation cannot be performed unless the manipulation window is selected.', 'Select Window', style = wx.ICON_INFORMATION)
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles window is selected.', 'Select Window', style = wx.ICON_INFORMATION)
                 return
 
             selected_items = page.getSelectedItems()
@@ -2238,9 +2238,9 @@ class MainFrame(wx.Frame):
             if manipulation_panel.modified_items != [] or sec_panel.modified_items != []:
 
                 if manipulation_panel.modified_items !=[] and sec_panel.modified_items != []:
-                    message = 'manipulation and series '
+                    message = 'profiles and series '
                 elif manipulation_panel.modified_items !=[] and sec_panel.modified_items == []:
-                    message = 'manipulation '
+                    message = 'profiles '
                 else:
                     message = 'series '
 
@@ -2329,10 +2329,10 @@ class MainFrame(wx.Frame):
     def onControlTabChange(self, evt):
         page = self.control_notebook.GetPageText(evt.GetSelection())
 
-        if page == 'IFT' or page == 'Series':
+        if page == 'IFTs' or page == 'Series':
             self.info_panel.clearInfo()
 
-        elif page == 'Manipulation':
+        elif page == 'Profiles':
             manip = wx.FindWindowByName('ManipulationPanel')
             selected_items = manip.getSelectedItems()
 
@@ -5678,13 +5678,13 @@ class FilePanel(wx.Panel):
 
                 msg_list = []
                 if self.manipulation_panel.modified_items !=[]:
-                    msg_list.append('Manipulation')
+                    msg_list.append('Profiles')
 
                 if self.sec_panel.modified_items != []:
                     msg_list.append('Series')
 
                 if self.ift_panel.modified_items != []:
-                    msg_list.append('IFT')
+                    msg_list.append('IFTs')
 
                 if len(msg_list) == 1:
                     message = msg_list[0]
@@ -6323,6 +6323,7 @@ class DirCtrlPanel(wx.Panel):
                                     'DAT files (*.dat)',
                                     'OUT files (*.out)',
                                     'IFT files (*.ift)',
+                                    'SERIES files (*.hdf5)',
                                     'SEC files (*.sec)',
                                     'FIT files (*.fit)',
                                     'WSP files (*.wsp)',
@@ -9024,7 +9025,7 @@ class IFTItemPanel(wx.Panel):
 
         menu.Append(14, 'Rename')
         menu.AppendSeparator()
-        menu.Append(22, 'To Main Plot')
+        menu.Append(22, 'To Profiles Plot')
 
         if self.is_gnom:
             if opsys == 'Windows':
@@ -10618,7 +10619,7 @@ class SeriesControlPanel(wx.Panel):
         selected_button_sizer.Add(average_plot_button, 0, border=5,
             flag =wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
 
-        send_box = wx.StaticBox(self, -1, 'Data to main plot')
+        send_box = wx.StaticBox(self, -1, 'Data to profiles plot')
         send_sizer = wx.StaticBoxSizer(send_box, wx.VERTICAL)
 
         send_sizer.Add(selected_sizer, flag=wx.EXPAND|wx.ALL, border=2)
@@ -10811,7 +10812,7 @@ class SeriesControlPanel(wx.Panel):
                 if selected_item is not None:
                     if not selected_item.getSelectedForPlot():
                         msg = ("Warning: The selected series curve is not shown "
-                            "on the plot. Send frames to main plot anyways?\n"
+                            "on the plot. Send frames to profiles plot anyways?\n"
                             "Note: You can select a different series curve by "
                             "starring it.")
                         dlg = wx.MessageDialog(self.main_frame, msg, "Verify Selection",
@@ -10825,11 +10826,11 @@ class SeriesControlPanel(wx.Panel):
                         secm = selected_item.secm
 
                 else:
-                    msg = "To send data to the main plot, select a series curve by starring it."
+                    msg = "To send data to the profiles plot, select a series curve by starring it."
                     wx.CallAfter(wx.MessageBox, msg, "No series curve selected", style = wx.ICON_ERROR | wx.OK)
 
         elif len(self.sec_panel.all_manipulation_items) > 0:
-            msg = "To send data to the main plot, enter a valid frame range (missing start or end frame)."
+            msg = "To send data to the profiles plot, enter a valid frame range (missing start or end frame)."
             wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
 
         if secm is not None:

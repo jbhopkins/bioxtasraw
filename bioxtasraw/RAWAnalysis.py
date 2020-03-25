@@ -15184,7 +15184,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.sample_remove_btn = wx.Button(sample_win, label='Remove region')
         self.sample_remove_btn.Bind(wx.EVT_BUTTON, self._onSeriesRemove)
 
-        to_mainplot = wx.Button(sample_win, label='To Main Plot')
+        to_mainplot = wx.Button(sample_win, label='To Profiles Plot')
         to_mainplot.Bind(wx.EVT_BUTTON, self._onToMainPlot)
 
         sample_button_sizer = wx.BoxSizer(wx.HORIZONTAL)

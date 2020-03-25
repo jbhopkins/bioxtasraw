@@ -2412,7 +2412,7 @@ class GeneralOptionsPanel(scrolled.ScrolledPanel):
             'OnlineStartupDir', 'DetectorFlipLR', 'DetectorFlipUD', 'UseHeaderForConfig', 'HdrLoadConfigDir'
             ]# 'PromptConfigLoad']
 
-        self.chkboxdata = [('Hide controls on manipulation items for new plots', raw_settings.getId('ManipItemCollapsed')),
+        self.chkboxdata = [('Hide controls on profile items for new plots', raw_settings.getId('ManipItemCollapsed')),
                            ('Write header on top of dat files', raw_settings.getId('DatHeaderOnTop')),
                            ('Use header for mask creation (Xenocs instruments)', raw_settings.getId('UseHeaderForMask')),
                            ('Use header for new config load (Xenocs instruments)', raw_settings.getId('UseHeaderForConfig')),
