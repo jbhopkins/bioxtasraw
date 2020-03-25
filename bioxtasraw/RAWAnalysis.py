@@ -7240,17 +7240,16 @@ class DenssRunPanel(wx.Panel):
 
         comm_list = [[refine_q, stop_event],]
 
-        if self.iftm.getParameter('algorithm') == 'GNOM':
-            q = self.iftm.q_extrap
-            I = self.iftm.i_extrap
+        q = self.iftm.q_extrap
+        I = self.iftm.i_extrap
 
-            ext_pts = len(I)-len(self.iftm.i_orig)
+        ext_pts = len(I)-len(self.iftm.i_orig)
+
+        if ext_pts > 0:
             sigq =np.empty_like(I)
             sigq[:ext_pts] = I[:ext_pts]*np.mean((self.iftm.err_orig[:10]/self.iftm.i_orig[:10]))
             sigq[ext_pts:] = I[ext_pts:]*(self.iftm.err_orig/self.iftm.i_orig)
         else:
-            q = self.iftm.q_orig
-            I = self.iftm.i_fit
             sigq = I*(self.iftm.err_orig/self.iftm.i_orig)
 
         D = self.iftm.getParameter('dmax')
@@ -8154,7 +8153,6 @@ class DenssPlotPanel(wx.Panel):
         ymax = np.max(np.hstack((I,Idata,Imean)))
         ax0.set_ylim([0.5*ymin,1.5*ymax])
         ax0.legend(handles,labels, fontsize='small')
-        ax0.legend()
         ax0.semilogy()
         ax0.set_ylabel('I(q)', fontsize='small')
         ax0.tick_params(labelbottom=False, labelsize='x-small')
