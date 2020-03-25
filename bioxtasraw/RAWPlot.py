@@ -1316,7 +1316,7 @@ class IftPlotPanel(PlotPanel):
 
         self.plotparams = {         'axesscale1'            : 'linlin',
                                     'axesscale2'            : 'loglin',
-                                    'plot1type'             : 'normal',
+                                    'plot1type'             : 'normalized',
                                     'plot2type'             : 'subtracted',
                                     'errorbars_on'          : False,
 
@@ -1366,11 +1366,14 @@ class IftPlotPanel(PlotPanel):
 
         self.frame_styles = ['Full', 'XY', 'X', 'Y', 'None']
 
-        self.default_subplot_labels = { 'subtracted'  : ('Data/Fit', '$q$', '$I(q)$'),
-                                        'kratky'      : ('Kratky', '$q$ [1/A]', '$I(q)q^2$'),
-                                        'porod'       : ('Porod', '$q$ [1/A]', '$I(q)q^4$'),
-                                        'guinier'     : ('Guinier', '$q^2$ [1/A^2]', '$\ln(I(q)$'),
-                                        'normal'      : ('Pair Distance Distribution Function', '$r$', '$P(r)$')}
+        self.default_subplot_labels = {
+            'subtracted'  : ('Data/Fit', '$q$', '$I(q)$'),
+            'kratky'      : ('Kratky', '$q$ [1/A]', '$I(q)q^2$'),
+            'porod'       : ('Porod', '$q$ [1/A]', '$I(q)q^4$'),
+            'guinier'     : ('Guinier', '$q^2$ [1/A^2]', '$\ln(I(q)$'),
+            'unnormalized': ('Pair Distance Distribution Function', '$r$', '$P(r)$'),
+            'normalized'  : ('Pair Distance Distribution Function', '$r$', '$P(r)/I(0)$'),
+            }
 
         self.subplot_labels = copy.copy(self.default_subplot_labels)
 
@@ -1800,12 +1803,10 @@ class IftPlotPanel(PlotPanel):
 
         menu = wx.Menu()
 
-        plot2SubMenu = self._createPopupAxesMenu('2')
+        plot_sub_menu = self._createPopupAxesMenu(str(selected_plot))
 
-        if selected_plot == 2:
-            menu.AppendSubMenu(plot2SubMenu, 'Axes')
-
-            menu.AppendSeparator()
+        menu.AppendSubMenu(plot_sub_menu, 'Axes')
+        menu.AppendSeparator()
 
         plot_options = menu.Append(wx.ID_ANY, 'Plot Options...')
 
@@ -1837,23 +1838,14 @@ class IftPlotPanel(PlotPanel):
             if MenuIDs[key] == myid:
 
                 if key[4] == '1':
-
-                    if key[5:7] == 'ty':
-                        self.plotparams['plot1type'] = key[7:]
-                        self.updatePlotType(self.subplot1)
-                        self.plotparams['axesscale1'] = 'linlin'
-                        self.updatePlotAxes()
-
-                    else:
-                        self.plotparams['axesscale1'] = key[7:]
-                        self.plotparams['plot1type'] = 'normal'
-                        self.updatePlotType(self.subplot1)
-                        self.updatePlotAxes()
+                    self.plotparams['plot1type'] = key[5:]
+                    self.updatePlotType(self.subplot1)
+                    self.plotparams['axesscale1'] = 'linlin'
+                    self.updatePlotAxes()
                 else:
-                    if key[5:7] == 'ty':
+                    if key[5:7] == 'pt':
                         self.plotparams['plot2type'] = key[7:]
                         self.updatePlotType(self.subplot2)
-
                         self.plotparams['axesscale2'] = 'linlin'
                         self.updatePlotAxes()
 
@@ -1878,13 +1870,21 @@ class IftPlotPanel(PlotPanel):
         item_list = []
         pop_menu = wx.Menu()
 
-        axes_list = [('sclinlin',    'Lin-Lin'),
-                         ('scloglin',    'Log-Lin'),
-                         ('scloglog',   'Log-Log'),
-                         ('sclinlog',    'Lin-Log'),
-                         ('tyguinier',  'Guinier'),
-                         ('tykratky',   'Kratky'),
-                         ('typorod',   'Porod') ]
+        if plot_number == '1':
+            axes_list = [
+                ('normalized', 'I(0) Normalized'),
+                ('unnormalized', 'Unnormalized'),
+                ]
+        else:
+            axes_list = [
+                ('prlinlin',    'Lin-Lin'),
+                 ('prloglin',    'Log-Lin'),
+                 ('prloglog',   'Log-Log'),
+                 ('prlinlog',    'Lin-Log'),
+                 ('ptguinier',  'Guinier'),
+                 ('ptkratky',   'Kratky'),
+                 ('ptporod',   'Porod'),
+                 ]
 
         for key, label in axes_list:
             item = pop_menu.AppendRadioItem(MenuIDs['plot' + plot_number + key], label)
@@ -1898,7 +1898,9 @@ class IftPlotPanel(PlotPanel):
         ''' Set the current axes selection on the newly created
            popup menu '''
 
-        if self.plotparams['plot' + plot_number + 'type'] == 'normal' or self.plotparams['plot' + plot_number + 'type'] == 'subtracted':
+        plot_type = self.plotparams['plot' + plot_number + 'type']
+
+        if plot_type == 'normal' or plot_type == 'subtracted':
 
             if self.plotparams['axesscale' + plot_number + ''] == 'loglog':
                 item_list[2].Check(True)
@@ -1909,12 +1911,17 @@ class IftPlotPanel(PlotPanel):
             elif self.plotparams['axesscale' + plot_number + ''] == 'linlin':
                 item_list[0].Check(True)
 
+        elif plot_type == 'normalized':
+            item_list[0].Check(True)
+        elif plot_type == 'unnormalized':
+            item_list[1].Check(True)
+
         else:
-            if self.plotparams['plot' + plot_number + 'type'] == 'guinier':
+            if plot_type == 'guinier':
                 item_list[4].Check(True)
-            elif self.plotparams['plot' + plot_number + 'type'] == 'kratky':
+            elif plot_type == 'kratky':
                 item_list[5].Check(True)
-            elif self.plotparams['plot' + plot_number + 'type'] == 'porod':
+            elif plot_type == 'porod':
                 item_list[6].Check(True)
 
     def updatePlotType(self, axes):
@@ -1923,39 +1930,56 @@ class IftPlotPanel(PlotPanel):
             if each is not None and each.qo_line is not None and each.qf_line is not None:
                 q_min, q_max = each.getQrange()
 
-                c = '2'
+                if axes == self.subplot1:
+                    c = '1'
+                else:
+                    c = '2'
 
-                if self.plotparams['plot' + c + 'type'] == 'kratky':
-                    each.qo_line.set_ydata(each.i_orig[q_min:q_max] * np.power(each.q_orig[q_min:q_max],2))
-                    each.qo_line.set_xdata(each.q_orig[q_min:q_max])
+                plot_type = self.plotparams['plot' + c + 'type']
 
-                    each.qf_line.set_ydata(each.i_fit[q_min:q_max] * np.power(each.q_orig[q_min:q_max],2))
-                    each.qf_line.set_xdata(each.q_orig[q_min:q_max])
+                if axes == self.subplot1:
+                    if plot_type == 'unnormalized':
+                        each.r_line.set_xdata(each.r)
+                        each.r_line.set_ydata(each.p)
 
-                elif self.plotparams['plot' + c + 'type'] == 'guinier':
-                    each.qo_line.set_ydata(np.log(each.i_orig[q_min:q_max]))
-                    each.qo_line.set_xdata(np.power(each.q_orig[q_min:q_max],2))
+                    elif plot_type == 'normalized':
+                        i0 = float(each.getParameter('i0'))
+                        each.r_line.set_xdata(each.r)
+                        each.r_line.set_ydata(each.p/i0)
 
-                    each.qf_line.set_ydata(np.log(each.i_fit[q_min:q_max]))
-                    each.qf_line.set_xdata(np.power(each.q_orig[q_min:q_max],2))
+                elif axes == self.subplot2:
+                    if plot_type == 'kratky':
+                        each.qo_line.set_ydata(each.i_orig[q_min:q_max] * np.power(each.q_orig[q_min:q_max],2))
+                        each.qo_line.set_xdata(each.q_orig[q_min:q_max])
 
-                elif self.plotparams['plot' + c + 'type'] == 'porod':
-                    each.qo_line.set_ydata(np.power(each.q_orig[q_min:q_max],4)*each.i_orig[q_min:q_max])
-                    each.qo_line.set_xdata(each.q_orig[q_min:q_max])
+                        each.qf_line.set_ydata(each.i_fit[q_min:q_max] * np.power(each.q_orig[q_min:q_max],2))
+                        each.qf_line.set_xdata(each.q_orig[q_min:q_max])
 
-                    each.qf_line.set_ydata(np.power(each.q_orig[q_min:q_max],4)*each.i_fit[q_min:q_max])
-                    each.qf_line.set_xdata(each.q_orig[q_min:q_max])
+                    elif plot_type == 'guinier':
+                        each.qo_line.set_ydata(np.log(each.i_orig[q_min:q_max]))
+                        each.qo_line.set_xdata(np.power(each.q_orig[q_min:q_max],2))
 
-                elif self.plotparams['plot' + c + 'type'] == 'normal' or self.plotparams['plot' + c+ 'type'] == 'subtracted':
-                    each.qo_line.set_ydata(each.i_orig[q_min:q_max])
-                    each.qo_line.set_xdata(each.q_orig[q_min:q_max])
+                        each.qf_line.set_ydata(np.log(each.i_fit[q_min:q_max]))
+                        each.qf_line.set_xdata(np.power(each.q_orig[q_min:q_max],2))
 
-                    each.qf_line.set_ydata(each.i_fit[q_min:q_max])
-                    each.qf_line.set_xdata(each.q_orig[q_min:q_max])
+                    elif plot_type == 'porod':
+                        each.qo_line.set_ydata(np.power(each.q_orig[q_min:q_max],4)*each.i_orig[q_min:q_max])
+                        each.qo_line.set_xdata(each.q_orig[q_min:q_max])
+
+                        each.qf_line.set_ydata(np.power(each.q_orig[q_min:q_max],4)*each.i_fit[q_min:q_max])
+                        each.qf_line.set_xdata(each.q_orig[q_min:q_max])
+
+                    elif plot_type == 'normal' or plot_type == 'subtracted':
+                        each.qo_line.set_ydata(each.i_orig[q_min:q_max])
+                        each.qo_line.set_xdata(each.q_orig[q_min:q_max])
+
+                        each.qf_line.set_ydata(each.i_fit[q_min:q_max])
+                        each.qf_line.set_xdata(each.q_orig[q_min:q_max])
+
 
                 self.updateErrorBars(each)
 
-        self._setLabels(axes = self.subplot2)
+        self._setLabels(axes = axes)
 
         self.fitAxis()
 
@@ -2037,10 +2061,13 @@ class IftPlotPanel(PlotPanel):
             yerr = iftm.err
             x = iftm.r
             y = iftm.p
+            i0 = float(iftm.getParameter('i0'))
 
             # Find the ending points of the errorbars
-            if plottype== 'normal' or plottype== 'subtracted':
+            if plottype== 'normal' or plottype== 'subtracted' or plottype == 'unnormalized':
                 error_positions = (x, y-yerr), (x, y+yerr)
+            elif plottype == 'normalized':
+                error_positions = (x, (y-yerr)/i0), (x, (y+yerr)/i0)
             elif plottype== 'kratky':
                 error_positions = (x, (y-yerr)*np.power(x,2)), (x, (y+yerr)*np.power(x,2))
             elif plottype== 'porod':
@@ -2298,8 +2325,13 @@ class IftPlotPanel(PlotPanel):
             else:
                 legend_label = legend_label_in
 
-            if type1 == 'normal' or type1 == 'subtracted':
-                pr_line, pr_ec, pr_el = a1.errorbar(iftm.r, iftm.p, iftm.err, picker = 3, label = legend_label+'_P(r)', **kwargs)
+            if type1 == 'unnormalized':
+                pr_line, pr_ec, pr_el = a1.errorbar(iftm.r, iftm.p, iftm.err,
+                    picker = 3, label = legend_label+'_P(r)', **kwargs)
+            elif type1 == 'normalized':
+                i0 = float(iftm.getParameter('i0'))
+                pr_line, pr_ec, pr_el = a1.errorbar(iftm.r, iftm.p/i0, iftm.err/i0,
+                    picker = 3, label = legend_label+'_P(r)', **kwargs)
 
             pr_line.set_label(legend_label)
 

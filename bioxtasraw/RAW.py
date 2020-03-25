@@ -108,81 +108,93 @@ class MainFrame(wx.Frame):
     def __init__(self, title, frame_id):
         wx.Frame.__init__(self, None, frame_id, title, name = 'MainFrame')
 
-        self.MenuIDs = {'exit'                  : self.NewControlId(),
-                        'advancedOptions'       : self.NewControlId(),
-                        'loadSettings'          : self.NewControlId(),
-                        'saveSettings'          : self.NewControlId(),
-                        'centering'             : self.NewControlId(),
-                        'masking'               : self.NewControlId(),
-                        'goOnline'              : self.NewControlId(),
-                        'goOffline'             : self.NewControlId(),
-                        'changeOnline'          : self.NewControlId(),
-                        'plot1tynormal'         : self.NewControlId(),
-                        'plot1tyguinier'        : self.NewControlId(),
-                        'plot1tykratky'         : self.NewControlId(),
-                        'plot1typorod'          : self.NewControlId(),
-                        'plot1tysubtracted'     : self.NewControlId(),
-                        'plot2tynormal'         : self.NewControlId(),
-                        'plot2tyguinier'        : self.NewControlId(),
-                        'plot2tykratky'         : self.NewControlId(),
-                        'plot2tysubtracted'     : self.NewControlId(),
-                        'plot2typorod'          : self.NewControlId(),
-                        'plot1sclinlin'         : self.NewControlId(),
-                        'plot1scloglog'         : self.NewControlId(),
-                        'plot1scloglin'         : self.NewControlId(),
-                        'plot1sclinlog'         : self.NewControlId(),
-                        'plot2sclinlin'         : self.NewControlId(),
-                        'plot2scloglog'         : self.NewControlId(),
-                        'plot2scloglin'         : self.NewControlId(),
-                        'plot2sclinlog'         : self.NewControlId(),
-                        'secplottotal'          : self.NewControlId(),
-                        'secplotmean'           : self.NewControlId(),
-                        'secplotq'              : self.NewControlId(),
-                        'secplotqr'             : self.NewControlId(),
-                        'secplotframe'          : self.NewControlId(),
-                        'secplottime'           : self.NewControlId(),
-                        'secplotrg'             : self.NewControlId(),
-                        'secplotvcmw'           : self.NewControlId(),
-                        'secplotvpmw'           : self.NewControlId(),
-                        'secploti0'             : self.NewControlId(),
-                        'secplotnone'           : self.NewControlId(),
-                        'secplotunsub'          : self.NewControlId(),
-                        'secplotsub'            : self.NewControlId(),
-                        'secplotbaseline'       : self.NewControlId(),
-                        'help'                  : self.NewControlId(),
-                        'about'                 : self.NewControlId(),
-                        'guinierfit'            : self.NewControlId(),
-                        'molweight'             : self.NewControlId(),
-                        'saveWorkspace'         : self.NewControlId(),
-                        'loadWorkspace'         : self.NewControlId(),
-                        'average'               : self.NewControlId(),
-                        'subtract'              : self.NewControlId(),
-                        'merge'                 : self.NewControlId(),
-                        'rebin'                 : self.NewControlId(),
-                        'interpolate'           : self.NewControlId(),
-                        'q*10'                  : self.NewControlId(),
-                        'q/10'                  : self.NewControlId(),
-                        'norm_conc'             : self.NewControlId(),
-                        'mwstandard'            : self.NewControlId(),
-                        'showimage'             : self.NewControlId(),
-                        'showdata'              : self.NewControlId(),
-                        'showheader'            : self.NewControlId(),
-                        'rungnom'               : self.NewControlId(),
-                        'rundammif'             : self.NewControlId(),
-                        'bift'                  : self.NewControlId(),
-                        'runambimeter'          : self.NewControlId(),
-                        'runsvd'                : self.NewControlId(),
-                        'runefa'                : self.NewControlId(),
-                        'showhistory'           : self.NewControlId(),
-                        'weightedAverage'       : self.NewControlId(),
-                        'similarityTest'        : self.NewControlId(),
-                        'normalizedKratky'      : self.NewControlId(),
-                        'superimpose'           : self.NewControlId(),
-                        'sync'                  : self.NewControlId(),
-                        'rundenss'              : self.NewControlId(),
-                        'calcUVconc'            : self.NewControlId(),
-                        'lcanalysis'            : self.NewControlId(),
-                        }
+        self.MenuIDs = {
+            'exit'                  : self.NewControlId(),
+            'advancedOptions'       : self.NewControlId(),
+            'loadSettings'          : self.NewControlId(),
+            'saveSettings'          : self.NewControlId(),
+            'centering'             : self.NewControlId(),
+            'masking'               : self.NewControlId(),
+            'goOnline'              : self.NewControlId(),
+            'goOffline'             : self.NewControlId(),
+            'changeOnline'          : self.NewControlId(),
+            'plot1tynormal'         : self.NewControlId(),
+            'plot1tyguinier'        : self.NewControlId(),
+            'plot1tykratky'         : self.NewControlId(),
+            'plot1typorod'          : self.NewControlId(),
+            'plot1tysubtracted'     : self.NewControlId(),
+            'plot2tynormal'         : self.NewControlId(),
+            'plot2tyguinier'        : self.NewControlId(),
+            'plot2tykratky'         : self.NewControlId(),
+            'plot2tysubtracted'     : self.NewControlId(),
+            'plot2typorod'          : self.NewControlId(),
+            'plot1sclinlin'         : self.NewControlId(),
+            'plot1scloglog'         : self.NewControlId(),
+            'plot1scloglin'         : self.NewControlId(),
+            'plot1sclinlog'         : self.NewControlId(),
+            'plot2sclinlin'         : self.NewControlId(),
+            'plot2scloglog'         : self.NewControlId(),
+            'plot2scloglin'         : self.NewControlId(),
+            'plot2sclinlog'         : self.NewControlId(),
+            'plot2ptnormal'         : self.NewControlId(),
+            'plot2ptguinier'        : self.NewControlId(),
+            'plot2ptkratky'         : self.NewControlId(),
+            'plot2ptsubtracted'     : self.NewControlId(),
+            'plot2ptporod'          : self.NewControlId(),
+            'plot2prlinlin'         : self.NewControlId(),
+            'plot2prloglog'         : self.NewControlId(),
+            'plot2prloglin'         : self.NewControlId(),
+            'plot2prlinlog'         : self.NewControlId(),
+            'plot1unnormalized'     : self.NewControlId(),
+            'plot1normalized'       : self.NewControlId(),
+            'secplottotal'          : self.NewControlId(),
+            'secplotmean'           : self.NewControlId(),
+            'secplotq'              : self.NewControlId(),
+            'secplotqr'             : self.NewControlId(),
+            'secplotframe'          : self.NewControlId(),
+            'secplottime'           : self.NewControlId(),
+            'secplotrg'             : self.NewControlId(),
+            'secplotvcmw'           : self.NewControlId(),
+            'secplotvpmw'           : self.NewControlId(),
+            'secploti0'             : self.NewControlId(),
+            'secplotnone'           : self.NewControlId(),
+            'secplotunsub'          : self.NewControlId(),
+            'secplotsub'            : self.NewControlId(),
+            'secplotbaseline'       : self.NewControlId(),
+            'help'                  : self.NewControlId(),
+            'about'                 : self.NewControlId(),
+            'guinierfit'            : self.NewControlId(),
+            'molweight'             : self.NewControlId(),
+            'saveWorkspace'         : self.NewControlId(),
+            'loadWorkspace'         : self.NewControlId(),
+            'average'               : self.NewControlId(),
+            'subtract'              : self.NewControlId(),
+            'merge'                 : self.NewControlId(),
+            'rebin'                 : self.NewControlId(),
+            'interpolate'           : self.NewControlId(),
+            'q*10'                  : self.NewControlId(),
+            'q/10'                  : self.NewControlId(),
+            'norm_conc'             : self.NewControlId(),
+            'mwstandard'            : self.NewControlId(),
+            'showimage'             : self.NewControlId(),
+            'showdata'              : self.NewControlId(),
+            'showheader'            : self.NewControlId(),
+            'rungnom'               : self.NewControlId(),
+            'rundammif'             : self.NewControlId(),
+            'bift'                  : self.NewControlId(),
+            'runambimeter'          : self.NewControlId(),
+            'runsvd'                : self.NewControlId(),
+            'runefa'                : self.NewControlId(),
+            'showhistory'           : self.NewControlId(),
+            'weightedAverage'       : self.NewControlId(),
+            'similarityTest'        : self.NewControlId(),
+            'normalizedKratky'      : self.NewControlId(),
+            'superimpose'           : self.NewControlId(),
+            'sync'                  : self.NewControlId(),
+            'rundenss'              : self.NewControlId(),
+            'calcUVconc'            : self.NewControlId(),
+            'lcanalysis'            : self.NewControlId(),
+            }
 
         self.tbIcon = RawTaskbarIcon(self)
 
@@ -1114,60 +1126,71 @@ class MainFrame(wx.Frame):
     def _createMenuBar(self):
 
         submenus = {
-                    'viewPlot1Scale':[('Lin-Lin', self.MenuIDs['plot1sclinlin'], self._onViewMenu, 'radio'),
-                                      ('Log-Lin', self.MenuIDs['plot1scloglin'], self._onViewMenu, 'radio'),
-                                      ('Log-Log', self.MenuIDs['plot1scloglog'], self._onViewMenu, 'radio'),
-                                      ('Lin-Log', self.MenuIDs['plot1sclinlog'], self._onViewMenu, 'radio'),
-                                      ('Guinier', self.MenuIDs['plot1tyguinier'],self._onViewMenu, 'radio'),
-                                      ('Kratky',  self.MenuIDs['plot1tykratky'], self._onViewMenu, 'radio'),
-                                      ('Porod',   self.MenuIDs['plot1typorod'],  self._onViewMenu, 'radio')],
+            'viewPlot1Scale':[('Lin-Lin', self.MenuIDs['plot1sclinlin'], self._onViewMenu, 'radio'),
+                              ('Log-Lin', self.MenuIDs['plot1scloglin'], self._onViewMenu, 'radio'),
+                              ('Log-Log', self.MenuIDs['plot1scloglog'], self._onViewMenu, 'radio'),
+                              ('Lin-Log', self.MenuIDs['plot1sclinlog'], self._onViewMenu, 'radio'),
+                              ('Guinier', self.MenuIDs['plot1tyguinier'],self._onViewMenu, 'radio'),
+                              ('Kratky',  self.MenuIDs['plot1tykratky'], self._onViewMenu, 'radio'),
+                              ('Porod',   self.MenuIDs['plot1typorod'],  self._onViewMenu, 'radio')],
 
-                    'viewPlot2Scale':[('Lin-Lin', self.MenuIDs['plot2sclinlin'], self._onViewMenu, 'radio'),
-                                      ('Log-Lin', self.MenuIDs['plot2scloglin'], self._onViewMenu, 'radio'),
-                                      ('Log-Log', self.MenuIDs['plot2scloglog'], self._onViewMenu, 'radio'),
-                                      ('Lin-Log', self.MenuIDs['plot2sclinlog'], self._onViewMenu, 'radio'),
-                                      ('Guinier', self.MenuIDs['plot2tyguinier'],self._onViewMenu, 'radio'),
-                                      ('Kratky',  self.MenuIDs['plot2tykratky'], self._onViewMenu, 'radio'),
-                                      ('Porod',   self.MenuIDs['plot2typorod'],  self._onViewMenu, 'radio')],
+            'viewPlot2Scale':[('Lin-Lin', self.MenuIDs['plot2sclinlin'], self._onViewMenu, 'radio'),
+                              ('Log-Lin', self.MenuIDs['plot2scloglin'], self._onViewMenu, 'radio'),
+                              ('Log-Log', self.MenuIDs['plot2scloglog'], self._onViewMenu, 'radio'),
+                              ('Lin-Log', self.MenuIDs['plot2sclinlog'], self._onViewMenu, 'radio'),
+                              ('Guinier', self.MenuIDs['plot2tyguinier'],self._onViewMenu, 'radio'),
+                              ('Kratky',  self.MenuIDs['plot2tykratky'], self._onViewMenu, 'radio'),
+                              ('Porod',   self.MenuIDs['plot2typorod'],  self._onViewMenu, 'radio')],
 
-                    'onlinemenu':    [('Offline', self.MenuIDs['goOffline'], self._onOnlineMenu, 'radio'),
-                                      ('Online', self.MenuIDs['goOnline'], self._onOnlineMenu, 'radio'),
-                                      ('Change Directory', self.MenuIDs['changeOnline'], self._onOnlineMenu, 'normal')],
+            'viewPr1Scale'  :[('I(0) Normalized', self.MenuIDs['plot1normalized'], self._onViewMenu, 'radio'),
+                              ('Unnormalized', self.MenuIDs['plot1unnormalized'], self._onViewMenu, 'radio')],
 
-                    'viewSECLeft':   [('Integrated Intensity', self.MenuIDs['secplottotal'], self._onViewMenu, 'radio'),
-                                      ('Mean Intensity', self.MenuIDs['secplotmean'], self._onViewMenu, 'radio'),
-                                      ('Intensity a specific q', self.MenuIDs['secplotq'], self._onViewMenu, 'radio'),
-                                      ('Intensity in q range', self.MenuIDs['secplotqr'], self._onViewMenu, 'radio')],
+            'viewPr2Scale'  :[('Lin-Lin', self.MenuIDs['plot2prlinlin'], self._onViewMenu, 'radio'),
+                              ('Log-Lin', self.MenuIDs['plot2prloglin'], self._onViewMenu, 'radio'),
+                              ('Log-Log', self.MenuIDs['plot2prloglog'], self._onViewMenu, 'radio'),
+                              ('Lin-Log', self.MenuIDs['plot2prlinlog'], self._onViewMenu, 'radio'),
+                              ('Guinier', self.MenuIDs['plot2ptguinier'],self._onViewMenu, 'radio'),
+                              ('Kratky',  self.MenuIDs['plot2ptkratky'], self._onViewMenu, 'radio'),
+                              ('Porod',   self.MenuIDs['plot2ptporod'],  self._onViewMenu, 'radio')],
 
-                    'viewSECInt':   [('Unsubtracted', self.MenuIDs['secplotunsub'], self._onViewMenu, 'radio'),
-                                        ('Subtracted', self.MenuIDs['secplotsub'], self._onViewMenu, 'radio'),
-                                        ('Baseline Corrected', self.MenuIDs['secplotbaseline'], self._onViewMenu, 'radio'),
-                                        ],
+            'onlinemenu':    [('Offline', self.MenuIDs['goOffline'], self._onOnlineMenu, 'radio'),
+                              ('Online', self.MenuIDs['goOnline'], self._onOnlineMenu, 'radio'),
+                              ('Change Directory', self.MenuIDs['changeOnline'], self._onOnlineMenu, 'normal')],
 
-                    'viewSECRight':  [('RG', self.MenuIDs['secplotrg'], self._onViewMenu, 'radio'),
-                                      ('MW (Vc)', self.MenuIDs['secplotvcmw'], self._onViewMenu, 'radio'),
-                                      ('MW (Vp)', self.MenuIDs['secplotvpmw'], self._onViewMenu, 'radio'),
-                                      ('I0', self.MenuIDs['secploti0'], self._onViewMenu, 'radio'),
-                                      ('None', self.MenuIDs['secplotnone'], self._onViewMenu, 'radio')],
+            'viewSECLeft':   [('Integrated Intensity', self.MenuIDs['secplottotal'], self._onViewMenu, 'radio'),
+                              ('Mean Intensity', self.MenuIDs['secplotmean'], self._onViewMenu, 'radio'),
+                              ('Intensity a specific q', self.MenuIDs['secplotq'], self._onViewMenu, 'radio'),
+                              ('Intensity in q range', self.MenuIDs['secplotqr'], self._onViewMenu, 'radio')],
 
-                    'viewSECX':      [('Frame Number', self.MenuIDs['secplotframe'], self._onViewMenu, 'radio'),
-                                      ('Time', self.MenuIDs['secplottime'], self._onViewMenu, 'radio')],
-                    'operations':    [('Subtract', self.MenuIDs['subtract'], self._onToolsMenu, 'normal'),
-                                      ('Average', self.MenuIDs['average'], self._onToolsMenu, 'normal'),
-                                      ('Weighted Average', self.MenuIDs['weightedAverage'], self._onToolsMenu, 'normal'),
-                                      ('Interpolate', self.MenuIDs['interpolate'], self._onToolsMenu, 'normal'),
-                                      ('Merge', self.MenuIDs['merge'], self._onToolsMenu, 'normal'),
-                                      ('Normalize by concentration', self.MenuIDs['norm_conc'], self._onToolsMenu, 'normal'),
-                                      ('Rebin', self.MenuIDs['rebin'], self._onToolsMenu, 'normal'),
-                                      ('Superimpose', self.MenuIDs['superimpose'], self._onToolsMenu, 'normal'),
-                                      ('Sync', self.MenuIDs['sync'], self._onToolsMenu, 'normal'),
-                                      ],
-                    'convertq':      [('q * 10', self.MenuIDs['q*10'], self._onToolsMenu, 'normal'),
-                                      ('q / 10', self.MenuIDs['q/10'], self._onToolsMenu, 'normal')],
-                    'atsas':         [('GNOM', self.MenuIDs['rungnom'], self._onToolsMenu, 'normal'),
-                                      ('DAMMIF/N', self.MenuIDs['rundammif'], self._onToolsMenu, 'normal'),
-                                      ('AMBIMETER', self.MenuIDs['runambimeter'], self._onToolsMenu, 'normal')]
-                                      }
+            'viewSECInt':   [('Unsubtracted', self.MenuIDs['secplotunsub'], self._onViewMenu, 'radio'),
+                                ('Subtracted', self.MenuIDs['secplotsub'], self._onViewMenu, 'radio'),
+                                ('Baseline Corrected', self.MenuIDs['secplotbaseline'], self._onViewMenu, 'radio'),
+                                ],
+
+            'viewSECRight':  [('RG', self.MenuIDs['secplotrg'], self._onViewMenu, 'radio'),
+                              ('MW (Vc)', self.MenuIDs['secplotvcmw'], self._onViewMenu, 'radio'),
+                              ('MW (Vp)', self.MenuIDs['secplotvpmw'], self._onViewMenu, 'radio'),
+                              ('I0', self.MenuIDs['secploti0'], self._onViewMenu, 'radio'),
+                              ('None', self.MenuIDs['secplotnone'], self._onViewMenu, 'radio')],
+
+            'viewSECX':      [('Frame Number', self.MenuIDs['secplotframe'], self._onViewMenu, 'radio'),
+                              ('Time', self.MenuIDs['secplottime'], self._onViewMenu, 'radio')],
+            'operations':    [('Subtract', self.MenuIDs['subtract'], self._onToolsMenu, 'normal'),
+                              ('Average', self.MenuIDs['average'], self._onToolsMenu, 'normal'),
+                              ('Weighted Average', self.MenuIDs['weightedAverage'], self._onToolsMenu, 'normal'),
+                              ('Interpolate', self.MenuIDs['interpolate'], self._onToolsMenu, 'normal'),
+                              ('Merge', self.MenuIDs['merge'], self._onToolsMenu, 'normal'),
+                              ('Normalize by concentration', self.MenuIDs['norm_conc'], self._onToolsMenu, 'normal'),
+                              ('Rebin', self.MenuIDs['rebin'], self._onToolsMenu, 'normal'),
+                              ('Superimpose', self.MenuIDs['superimpose'], self._onToolsMenu, 'normal'),
+                              ('Sync', self.MenuIDs['sync'], self._onToolsMenu, 'normal'),
+                              ],
+            'convertq':      [('q * 10', self.MenuIDs['q*10'], self._onToolsMenu, 'normal'),
+                              ('q / 10', self.MenuIDs['q/10'], self._onToolsMenu, 'normal')],
+            'atsas':         [('GNOM', self.MenuIDs['rungnom'], self._onToolsMenu, 'normal'),
+                              ('DAMMIF/N', self.MenuIDs['rundammif'], self._onToolsMenu, 'normal'),
+                              ('AMBIMETER', self.MenuIDs['runambimeter'], self._onToolsMenu, 'normal')]
+                              }
 
 
         menus = [('&File',    [('&Load Settings', self.MenuIDs['loadSettings'], self._onLoadMenu, 'normal'),
@@ -1188,10 +1211,13 @@ class MainFrame(wx.Frame):
                                (None, None, None, 'separator'),
                                ('&Main Plot Top Axes', None, submenus['viewPlot1Scale'], 'submenu'),
                                ('&Main Plot Bottom Axes', None, submenus['viewPlot2Scale'], 'submenu'),
+                               ('&IFT Plot Top Axes', None, submenus['viewPr1Scale'], 'submenu'),
+                               ('&IFT Plot Bottom Axes', None, submenus['viewPr2Scale'], 'submenu'),
                                ('&Series Plot Left Y Axis', None, submenus['viewSECLeft'], 'submenu'),
                                ('&Series Plot Right Y Axis', None, submenus['viewSECRight'], 'submenu'),
                                ('&Series Plot Intensity Type', None, submenus['viewSECInt'], 'submenu'),
-                               ('&Series Plot X Axis', None, submenus['viewSECX'], 'submenu')
+                               ('&Series Plot X Axis', None, submenus['viewSECX'], 'submenu'),
+                               (None, None, None, 'separator'),
                                ]),
 
                  ('&Tools',   [('&Operations', None, submenus['operations'], 'submenu'),
@@ -1872,6 +1898,7 @@ class MainFrame(wx.Frame):
             key = [k for k, v in self.MenuIDs.items() if v == val][0]
 
             plotpanel = wx.FindWindowByName('PlotPanel')
+            iftplotpanel = wx.FindWindowByName('IFTPlotPanel')
             secplotpanel = wx.FindWindowByName('SECPlotPanel')
 
             if key[0:7] == 'plot2sc':
@@ -1898,7 +1925,6 @@ class MainFrame(wx.Frame):
                 plotpanel.updatePlotType(plotpanel.subplot1)
                 plotpanel.updatePlotAxes()
 
-
             elif key[0:7] == 'plot2ty':
                 plotpanel.plotparams['plot2type'] = key[7:]
                 if key[7:] == 'guinier':
@@ -1908,6 +1934,27 @@ class MainFrame(wx.Frame):
 
                 plotpanel.updatePlotType(plotpanel.subplot2)
                 plotpanel.updatePlotAxes()
+
+            elif key[0:7] == 'plot2pr':
+                iftplotpanel.plotparams['axesscale2'] = key[7:]
+                iftplotpanel.plotparams['plot2type'] = 'subtracted'
+
+                iftplotpanel.updatePlotType(iftplotpanel.subplot2)
+                iftplotpanel.updatePlotAxes()
+
+            elif key[0:7] == 'plot2pt':
+                iftplotpanel.plotparams['axesscale2'] = 'linlin'
+                iftplotpanel.plotparams['plot2type'] = key[7:]
+
+                iftplotpanel.updatePlotType(iftplotpanel.subplot2)
+                iftplotpanel.updatePlotAxes()
+
+            elif key == 'plot1normalized' or key == 'plot1unnormalized':
+                iftplotpanel.plotparams['axesscale1'] = 'linlin'
+                iftplotpanel.plotparams['plot1type'] = key[5:]
+
+                iftplotpanel.updatePlotType(iftplotpanel.subplot1)
+                iftplotpanel.updatePlotAxes()
 
             elif key == 'secplottotal':
                 secplotpanel.plotparams['y_axis_display'] = 'total'
