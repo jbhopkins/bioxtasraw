@@ -2189,6 +2189,7 @@ class MainFrame(wx.Frame):
 
     def _cleanup_and_quit(self):
         self.saveBackupData()
+        self._mgr.UnInit()
         self.tbIcon.RemoveIcon()
         self.tbIcon.Destroy()
         self.Destroy()
@@ -12727,19 +12728,17 @@ class WelcomeDialog(wx.Dialog):
         text2 = '\nSoren Skou'
         text3 = 'Jesse B. Hopkins'
         text4 = 'Richard E. Gillilan'
-        text5 = 'Jesper Nygaard'
-        text6 = 'Kurt Andersen'
 
-        text7 = ('\nHelp this software become better by reporting bugs to:\n     http://bit.ly/rawhelp\n'
-                '     or to soren.skou@saxslab.com and hopkins.jesse@gmail.com\n')
+        text7 = ('\nHelp this software become better by reporting bugs to:\n'
+                '     http://bit.ly/rawhelp\n')
 
-        text8 = 'If you use this software for your SAXS data processing please cite:    \n'
+        text8 = 'If you use this software for your SAXS data processing please cite:\n'
         text9 = ('"BioXTAS RAW: improvements to a free open-source program for\n'
                 'small-angle X-ray scattering data reduction and analysis."\n'
                 'J. B. Hopkins, R. E. Gillilan, and S. Skou. Journal of Applied\n'
                 'Crystallography (2017). 50, 1545-1553\n\n')
 
-        all_text = [text1, text2, text3, text4, text5, text6, text7, text8, text9]
+        all_text = [text1, text2, text3, text4, text7, text8, text9]
 
         final_sizer = wx.BoxSizer(wx.VERTICAL)
         final_sizer.Add(rawimg, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL, 10)
