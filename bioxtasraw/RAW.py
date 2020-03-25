@@ -1255,6 +1255,17 @@ class MainFrame(wx.Frame):
 
         self.SetMenuBar(menubar)
 
+
+        # set default view options
+        self.MenuBar.FindItemById(self.MenuIDs['plot1scloglin']).Check(True)
+        self.MenuBar.FindItemById(self.MenuIDs['plot2scloglin']).Check(True)
+        self.MenuBar.FindItemById(self.MenuIDs['plot1normalized']).Check(True)
+        self.MenuBar.FindItemById(self.MenuIDs['plot2prloglin']).Check(True)
+        self.MenuBar.FindItemById(self.MenuIDs['secplottotal']).Check(True)
+        self.MenuBar.FindItemById(self.MenuIDs['secplotframe']).Check(True)
+        self.MenuBar.FindItemById(self.MenuIDs['secplotrg']).Check(True)
+        self.MenuBar.FindItemById(self.MenuIDs['secplotunsub']).Check(True)
+
     def _onToolsMenu(self, evt):
 
         id = evt.GetId()
