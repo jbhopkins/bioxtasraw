@@ -4851,6 +4851,8 @@ class DammifRunPanel(wx.Panel):
 
         self.dammif_timer.Start(1000)
 
+        self.main_frame.sleep_inhibit.on()
+
 
     def onAbortButton(self, evt):
         self.abort_event.set()
@@ -4878,6 +4880,8 @@ class DammifRunPanel(wx.Panel):
 
 
         self.status.AppendText('Processing Aborted!')
+
+        self.main_frame.sleep_inhibit.off()
 
 
     def onChangeDirectoryButton(self, evt):
@@ -5343,6 +5347,8 @@ class DammifRunPanel(wx.Panel):
         if not damaver_window.GetValue():
            refine_window.Disable()
 
+        self.main_frame.sleep_inhibit.off()
+
         wx.CallAfter(self.dammif_frame.ResultsPanel.updateResults, settings)
 
     def _onAdvancedButton(self, evt):
@@ -5463,6 +5469,8 @@ class DammifRunPanel(wx.Panel):
             if proceed == wx.ID_YES:
                 self.abort_event.set()
 
+                self.main_frame.sleep_inhibit.off()
+
                 if self.dammif_timer.IsRunning():
                     self.dammif_timer.Stop()
 
@@ -5491,6 +5499,8 @@ class DammifRunPanel(wx.Panel):
         elif not process_finished:
             #Try to gracefully exit
             self.abort_event.set()
+
+            self.main_frame.sleep_inhibit.off()
 
             if self.dammif_timer.IsRunning():
                 self.dammif_timer.Stop()
@@ -6825,6 +6835,7 @@ class DenssRunPanel(wx.Panel):
             elif key == 'abort':
                 wx.FindWindowById(self.ids[key], self).Enable()
 
+        self.main_frame.sleep_inhibit.on()
         self.startDenss(path, prefix, procs)
 
     def onAbortButton(self, evt):
@@ -6842,6 +6853,8 @@ class DenssRunPanel(wx.Panel):
 
     def abort(self):
         aborted = False
+
+        self.main_frame.sleep_inhibit.off()
 
         while not aborted:
             self.my_lock.acquire()
@@ -7464,6 +7477,8 @@ class DenssRunPanel(wx.Panel):
         if not average_window.GetValue():
            refine_window.Disable()
 
+        self.main_frame.sleep_inhibit.off()
+
         wx.CallAfter(self.denss_frame.ResultsPanel.updateResults, settings,
             denss_results, self.denss_stats, self.average_results,
             self.refine_results)
@@ -7548,6 +7563,7 @@ class DenssRunPanel(wx.Panel):
 
             if proceed == wx.ID_YES:
                 self.abort_event.set()
+                self.main_frame.sleep_inhibit.off()
 
                 for stop_event in self.stop_events:
                     stop_event.set()
@@ -7564,6 +7580,7 @@ class DenssRunPanel(wx.Panel):
         elif not process_finished:
             #Try to gracefully exit
             self.abort_event.set()
+            self.main_frame.sleep_inhibit.off()
 
             for stop_event in self.stop_events:
                 stop_event.set()

@@ -287,6 +287,9 @@ class MainFrame(wx.Frame):
         self.main_worker_thread.setDaemon(True)
         self.main_worker_thread.start()
 
+        #Set up sleep inhibit utility:
+        self.sleep_inhibit = SASUtils.SleepInhibit()
+
         icon = RAWIcons.raw.GetIcon()
         self.SetIcon(icon)
         app.SetTopWindow(self)
@@ -2232,6 +2235,7 @@ class MainFrame(wx.Frame):
     def _cleanup_and_quit(self):
         self.saveBackupData()
         self._mgr.UnInit()
+        self.sleep_inhibit.force_off()
         self.tbIcon.RemoveIcon()
         self.tbIcon.Destroy()
         self.Destroy()
