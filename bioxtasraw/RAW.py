@@ -180,7 +180,8 @@ class MainFrame(wx.Frame):
                         'superimpose'           : self.NewControlId(),
                         'sync'                  : self.NewControlId(),
                         'rundenss'              : self.NewControlId(),
-                        'calcUVconc'            : self.NewControlId()
+                        'calcUVconc'            : self.NewControlId(),
+                        'lcanalysis'            : self.NewControlId(),
                         }
 
         self.tbIcon = RawTaskbarIcon(self)
@@ -1200,6 +1201,7 @@ class MainFrame(wx.Frame):
                                ('&BIFT', self.MenuIDs['bift'], self._onToolsMenu, 'normal'),
                                ('&ATSAS', None, submenus['atsas'], 'submenu'),
                                ('&Electron Density (DENSS)', self.MenuIDs['rundenss'], self._onToolsMenu, 'normal'),
+                               ('&LC Series Analysis', self.MenuIDs['lcanalysis'], self._onToolsMenu, 'normal'),
                                ('&SVD', self.MenuIDs['runsvd'], self._onToolsMenu, 'normal'),
                                ('&EFA', self.MenuIDs['runefa'], self._onToolsMenu, 'normal'),
                                ('&Similarity Test', self.MenuIDs['similarityTest'], self._onToolsMenu, 'normal'),
@@ -1629,6 +1631,46 @@ class MainFrame(wx.Frame):
                 return
 
             self.showEFAFrame(secm, manip_item)
+
+        elif id == self.MenuIDs['lcanalysis']:
+            secpage = wx.FindWindowByName('SECPanel')
+            manippage = wx.FindWindowByName('ManipulationPanel')
+            iftpage = wx.FindWindowByName('IFTPanel')
+            filepage = wx.FindWindowByName('FilePanel')
+
+            current_page = self.control_notebook.GetSelection()
+            page = self.control_notebook.GetPage(current_page)
+
+            if page == manippage:
+                wx.MessageBox(('The selected operation cannot be performed '
+                    'from the manipulation tab.'), 'Select Different Tab',
+                    style=wx.ICON_INFORMATION)
+                return
+
+            elif page == iftpage:
+                wx.MessageBox(('The selected operation cannot be performed '
+                    'from the IFT tab.'), 'Select Different Tab',
+                    style=wx.ICON_INFORMATION)
+                return
+
+            elif page == secpage:
+                selected_items = secpage.getSelectedItems()
+
+                if len(selected_items) > 0:
+                    secm = selected_items[0].getSECM()
+                    manip_item = selected_items[0]
+                else:
+                    wx.MessageBox(("Please select a series curve from the list "
+                        "on the series page."), "No series curve selected")
+                    return
+
+            elif page == filepage:
+                wx.MessageBox(('The selected operation cannot be performed '
+                    'from the file tab.'), 'Select Different Tab',
+                    style=wx.ICON_INFORMATION)
+                return
+
+            self.showLCSeriesFrame(secm, manip_item)
 
         elif id == self.MenuIDs['similarityTest']:
             manippage = wx.FindWindowByName('ManipulationPanel')
