@@ -741,7 +741,7 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
         #Check whether everything can be set at the command line:
         fresh_settings = RAWSettings.RawGuiSettings().getAllParams()
 
-        key_ref = { 'gnomExpertFile' : 'expert',
+        key_ref = { 'gnomExpertFile'    : 'expert',
                     'gnomForceRminZero' : 'rmin_zero',
                     'gnomForceRmaxZero' : 'rmax_zero',
                     'gnomNPoints'       : 'npts',
@@ -760,12 +760,13 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
                     'gnomExpt'          : 'expt'
                     }
 
-        cmd_line_keys = {'rmin_zero', 'rmax_zero', 'system', 'rmin', 'radiu56', 'npts', 'alpha'}
+        cmd_line_keys = {'rmin_zero', 'rmax_zero', 'system', 'rmin',
+            'radiu56', 'npts', 'alpha'}
 
         changed = []
 
         for key in fresh_settings:
-            if key.startswith('gnom'):
+            if key in key_ref:
                 if fresh_settings[key][0] != args[key_ref[key]]:
                     changed.append((key_ref[key]))
 

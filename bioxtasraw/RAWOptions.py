@@ -2773,31 +2773,6 @@ class IftOptionsPanel(scrolled.ScrolledPanel):
 
         self.SetSizer(top_sizer)
 
-    def createGnomOptions(self, gnom_panel):
-
-        no_of_rows = ceil(int(len(self.gnom_options_data)) + int(len(self.gnom_chkbox_data))/2.)
-        grid_sizer = wx.FlexGridSizer(cols = 4, rows = no_of_rows, vgap = 5, hgap = 5)
-
-        for label, id in self.gnom_options_data:
-
-            labeltxt = wx.StaticText(gnom_panel, -1, label)
-            ctrl = wx.TextCtrl(gnom_panel, id, '0', size = (60, 21), style = wx.TE_RIGHT | wx.TE_PROCESS_ENTER)
-
-            grid_sizer.Add(labeltxt, 1, wx.CENTER)
-            grid_sizer.Add(ctrl, 1)
-
-        for each in self.gnom_chkbox_data:
-            if each != []:
-                label = each[0]
-                id = each[1]
-
-                chkbox = wx.CheckBox(gnom_panel, id)
-                labeltxt = wx.StaticText(gnom_panel, -1, label)
-                grid_sizer.Add(labeltxt, 1, wx.TOP, 3)
-                grid_sizer.Add(chkbox, 1)
-
-        return grid_sizer
-
     def createBiftOptions(self, bift_panel):
 
         no_of_rows = ceil(int(len(self.bift_options_data))/2.0)
@@ -3159,7 +3134,13 @@ class ATSASGnom(scrolled.ScrolledPanel):
 
         self.raw_settings = raw_settings
 
-        self.update_keys = ['gnomForceRminZero', 'gnomForceRmaxZero', 'gnomNPoints', 'gnomInitialAlpha']
+        self.update_keys = [
+            'gnomForceRminZero',
+            'gnomForceRmaxZero',
+            'gnomNPoints',
+            'gnomInitialAlpha',
+            'gnomCut8Rg',
+            ]
 
         options_sizer = self.createGNOMOptions()
 
@@ -3167,14 +3148,16 @@ class ATSASGnom(scrolled.ScrolledPanel):
 
     def createGNOMOptions(self):
         rmin_text = wx.StaticText(self, -1, 'Force P(r) to 0 at r = 0 :')
-        rmin_choice = wx.Choice(self, self.raw_settings.getId('gnomForceRminZero'), choices = ['Y', 'N'])
+        rmin_choice = wx.Choice(self, self.raw_settings.getId('gnomForceRminZero'),
+            choices = ['Y', 'N'])
 
         rmin_sizer = wx.BoxSizer(wx.HORIZONTAL)
         rmin_sizer.Add(rmin_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
         rmin_sizer.Add(rmin_choice, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
 
         rmax_text = wx.StaticText(self, -1, 'Force P(r) to 0 at r = Dmax (sets default for GNOM window):')
-        rmax_choice = wx.Choice(self, self.raw_settings.getId('gnomForceRmaxZero'), choices = ['Y', 'N'])
+        rmax_choice = wx.Choice(self, self.raw_settings.getId('gnomForceRmaxZero'),
+            choices = ['Y', 'N'])
 
         rmax_sizer = wx.BoxSizer(wx.HORIZONTAL)
         rmax_sizer.Add(rmax_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
@@ -3182,7 +3165,8 @@ class ATSASGnom(scrolled.ScrolledPanel):
 
 
         npts_text = wx.StaticText(self, -1, 'Number of points in real space (0=auto, value sets to default):')
-        npts_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomNPoints'), '', size = (60, -1), style = wx.TE_PROCESS_ENTER)
+        npts_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomNPoints'),
+            '', size = (60, -1), style = wx.TE_PROCESS_ENTER)
 
         npts_sizer = wx.BoxSizer(wx.HORIZONTAL)
         npts_sizer.Add(npts_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
@@ -3190,11 +3174,15 @@ class ATSASGnom(scrolled.ScrolledPanel):
 
 
         alpha_text = wx.StaticText(self, -1, 'Initial Alpha (0=auto, value sets default):')
-        alpha_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomInitialAlpha'), '', size = (60, -1), style = wx.TE_PROCESS_ENTER)
+        alpha_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomInitialAlpha'),
+            '', size = (60, -1), style = wx.TE_PROCESS_ENTER)
 
         alpha_sizer = wx.BoxSizer(wx.HORIZONTAL)
         alpha_sizer.Add(alpha_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
         alpha_sizer.Add(alpha_ctrl, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+
+        cut_ctrl = wx.CheckBox(self, self.raw_settings.getId('gnomCut8Rg'),
+            'Truncate to q_max=8/Rg (dammif/n)')
 
         resetText = wx.StaticText(self, -1, 'Reset all GNOM settings (including advanced) to default:')
         resetButton = wx.Button(self, -1, 'Reset to default')
@@ -3214,6 +3202,7 @@ class ATSASGnom(scrolled.ScrolledPanel):
         standardSizer.Add(rmax_sizer, 0)
         standardSizer.Add(npts_sizer, 0)
         standardSizer.Add(alpha_sizer, 0)
+        standardSizer.Add(cut_ctrl, border=5, flag=wx.ALL)
 
 
 

@@ -3389,24 +3389,25 @@ class GNOMControlPanel(wx.Panel):
         if 'GNOM' in self.sasm.getParameter('analysis'):
             self.old_analysis = copy.deepcopy(self.sasm.getParameter('analysis')['GNOM'])
 
-        self.gnom_settings = {  'expert'        : self.raw_settings.get('gnomExpertFile'),
-                                'rmin_zero'     : self.raw_settings.get('gnomForceRminZero'),
-                                'rmax_zero'     : self.raw_settings.get('gnomForceRmaxZero'),
-                                'npts'          : self.raw_settings.get('gnomNPoints'),
-                                'alpha'         : self.raw_settings.get('gnomInitialAlpha'),
-                                'angular'       : self.raw_settings.get('gnomAngularScale'),
-                                'system'        : self.raw_settings.get('gnomSystem'),
-                                'form'          : self.raw_settings.get('gnomFormFactor'),
-                                'radius56'      : self.raw_settings.get('gnomRadius56'),
-                                'rmin'          : self.raw_settings.get('gnomRmin'),
-                                'fwhm'          : self.raw_settings.get('gnomFWHM'),
-                                'ah'            : self.raw_settings.get('gnomAH'),
-                                'lh'            : self.raw_settings.get('gnomLH'),
-                                'aw'            : self.raw_settings.get('gnomAW'),
-                                'lw'            : self.raw_settings.get('gnomLW'),
-                                'spot'          : self.raw_settings.get('gnomSpot'),
-                                'expt'          : self.raw_settings.get('gnomExpt'),
-                                }
+        self.gnom_settings = {
+            'expert'        : self.raw_settings.get('gnomExpertFile'),
+            'rmin_zero'     : self.raw_settings.get('gnomForceRminZero'),
+            'rmax_zero'     : self.raw_settings.get('gnomForceRmaxZero'),
+            'npts'          : self.raw_settings.get('gnomNPoints'),
+            'alpha'         : self.raw_settings.get('gnomInitialAlpha'),
+            'angular'       : self.raw_settings.get('gnomAngularScale'),
+            'system'        : self.raw_settings.get('gnomSystem'),
+            'form'          : self.raw_settings.get('gnomFormFactor'),
+            'radius56'      : self.raw_settings.get('gnomRadius56'),
+            'rmin'          : self.raw_settings.get('gnomRmin'),
+            'fwhm'          : self.raw_settings.get('gnomFWHM'),
+            'ah'            : self.raw_settings.get('gnomAH'),
+            'lh'            : self.raw_settings.get('gnomLH'),
+            'aw'            : self.raw_settings.get('gnomAW'),
+            'lw'            : self.raw_settings.get('gnomLW'),
+            'spot'          : self.raw_settings.get('gnomSpot'),
+            'expt'          : self.raw_settings.get('gnomExpt'),
+            }
 
         self.out_list = {}
 
@@ -3597,6 +3598,10 @@ class GNOMControlPanel(wx.Panel):
         self.alpha_ctrl = wx.TextCtrl(self, self.staticTxtIDs['alpha'], size=(40,-1), style=wx.TE_PROCESS_ENTER)
         self.alpha_ctrl.Bind(wx.EVT_TEXT_ENTER, self.onAlpha)
 
+        self.cut_qrg = wx.CheckBox(self, label='Cut to q_max=8/Rg (dammif/n)')
+        self.cut_qrg.SetValue(self.raw_settings.get('gnomCut8Rg'))
+        self.cut_qrg.Bind(wx.EVT_CHECKBOX, self.onCutQRg)
+
         ctrl2_sizer.Add(wx.StaticText(self, -1, 'Dmax: '), 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 3)
         ctrl2_sizer.Add(self.dmaxSpin, 0, wx.EXPAND | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
         ctrl2_sizer.Add(wx.StaticText(self, label='Alpha (0=auto):'), border=3,
@@ -3623,6 +3628,7 @@ class GNOMControlPanel(wx.Panel):
         top_sizer.Add(sizer, 0, wx.EXPAND)
         top_sizer.Add(ctrl2_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL , 5)
         top_sizer.Add(rmax_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 10)
+        top_sizer.Add(self.cut_qrg, 0, wx.EXPAND | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 10)
         top_sizer.Add(advancedParams, 0, wx.CENTER | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 10)
         top_sizer.Add(datgnom, 0, wx.CENTER | wx.ALIGN_CENTER_VERTICAL)
 
@@ -3655,6 +3661,9 @@ class GNOMControlPanel(wx.Panel):
 
         self.old_nstart = nmin
         self.old_nend = nmax-1
+        self.previous_qmax = sasm.q[nmax-1]
+
+        self.cutQrg()
 
         self.setFilename(os.path.basename(sasm.getParameter('filename')))
         self.alpha_ctrl.SetValue(str(self.gnom_settings['alpha']))
@@ -3704,6 +3713,9 @@ class GNOMControlPanel(wx.Panel):
 
         self.old_nstart = new_nmin
         self.old_nend = new_nmax
+        self.previous_qmax = sasm.q[new_nmax]
+
+        self.cutQrg()
 
         self.setFilename(os.path.basename(sasm.getParameter('filename')))
 
@@ -3906,13 +3918,43 @@ class GNOMControlPanel(wx.Panel):
         except ValueError:
             pass
 
+    def onCutQRg(self, evt):
+        self.cutQrg()
+
+    def cutQrg(self):
+        is_checked = self.cut_qrg.IsChecked()
+
+        guinier_rg = wx.FindWindowById(self.infodata['guinierRg'][1], self)
+        gnom_rg = wx.FindWindowById(self.infodata['gnomRg'][1], self)
+
+        findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
+
+        try:
+            rg = float(guinier_rg.GetValue())
+        except Exception:
+            rg = 0
+
+        if rg == 0:
+            try:
+                rg = float(gnom_rg.GetValue())
+            except Exception:
+                rg = 0
+
+        if rg > 0:
+            if is_checked:
+                q_max = 8./rg
+                self.previous_qmax = float(wx.FindWindowById(self.staticTxtIDs['qend'], self).GetValue())
+            else:
+                q_max = self.previous_qmax
+
+            self.setQVal(q_max, 'qend')
+
+        else:
+            self.cut_qrg.SetValue(False)
+
     def onEnterInQlimits(self, evt):
 
         id = evt.GetId()
-
-        lx = self.sasm.q
-
-        findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
 
         txtctrl = wx.FindWindowById(id, self)
 
@@ -3935,6 +3977,18 @@ class GNOMControlPanel(wx.Panel):
                 return
         #################################
 
+        if id == self.staticTxtIDs['qstart']:
+            control_name = 'qstart'
+
+        elif id == self.staticTxtIDs['qend']:
+            control_name = 'qend'
+
+        self.setQVal(val, control_name)
+
+    def setQVal(self, val, control_name):
+        lx = self.sasm.q
+
+        findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
         closest = findClosest(val,lx)
 
         i = np.where(lx == closest)[0][0]
@@ -3942,7 +3996,7 @@ class GNOMControlPanel(wx.Panel):
         endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
         startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
 
-        if id == self.staticTxtIDs['qstart']:
+        if control_name == 'qstart':
 
             n_max = endSpin.GetValue()
 
@@ -3951,7 +4005,7 @@ class GNOMControlPanel(wx.Panel):
 
             startSpin.SetValue(i)
 
-        elif id == self.staticTxtIDs['qend']:
+        elif control_name == 'qend':
             n_min = startSpin.GetValue()
 
 
@@ -3960,16 +4014,17 @@ class GNOMControlPanel(wx.Panel):
 
             endSpin.SetValue(i)
 
+        txtctrl = wx.FindWindowById(self.staticTxtIDs[control_name], self)
         txtctrl.SetValue(str(round(self.sasm.q[int(i)],4)))
 
         update_plot = False
 
-        if id == self.staticTxtIDs['qstart']:
+        if control_name == 'qstart':
             if i != self.old_nstart:
                 self.out_list = {}
                 update_plot = True
             self.old_nstart = i
-        elif id == self.staticTxtIDs['qend']:
+        elif control_name == 'qend':
             if i != self.old_nend:
                 self.out_list = {}
                 update_plot = True
@@ -4159,7 +4214,6 @@ class GNOMControlPanel(wx.Panel):
             SASFileIO.saveMeasurement(save_sasm, tempdir, self.raw_settings, filetype = '.dat')
         except SASExceptions.HeaderSaveError as e:
             self._showSaveError('header')
-
 
         try:
             iftm = SASCalc.runGnom(savename, outname, dmax, self.gnom_settings,

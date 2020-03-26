@@ -285,6 +285,7 @@ class RawGuiSettings(object):
                 'gnomLW'                : [-1, wx.NewId(), 'float'],
                 'gnomSpot'              : ['', wx.NewId(), 'text'],
                 'gnomExpt'              : [0, wx.NewId(), 'int'],
+                'gnomCut8Rg'            : [False, wx.NewId(), 'bool'],
 
                 #DAMMIF settings
                 'dammifMode'            : ['Slow', wx.NewId(), 'choice'],
