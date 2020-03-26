@@ -1756,7 +1756,7 @@ def loadOutFile(filename):
 
 
 
-def load_series_sasm(group, data_name, q_raw=None, group_keys={}):
+def load_series_sasm(group, data_name, q_raw=None, use_group_q=True):
 
     if 'raw' in group:
         load_group = group['raw']
@@ -1769,7 +1769,7 @@ def load_series_sasm(group, data_name, q_raw=None, group_keys={}):
 
     sasm_data = {}
 
-    if 'q' in load_group:
+    if 'q' in load_group and use_group_q:
         if q_raw is None:
             sasm_data['q_raw'] = load_group['q'][()]
         else:
@@ -1837,7 +1837,7 @@ def load_series(name):
 
         if len(profiles['average_buffer_profile']) > 0:
             seriesm_data['average_buffer_sasm'] = load_series_sasm(profiles,
-                'average_buffer_profile')
+                'average_buffer_profile', use_group_q=False)
         else:
             seriesm_data['average_buffer_sasm'] = None
 

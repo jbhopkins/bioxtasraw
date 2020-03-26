@@ -83,7 +83,6 @@ class SleepInhibit(object):
         self.sleep_count = 0
 
     def on(self):
-        print('turning sleep inhibit on')
         if self.sleep_inhibit is not None:
             try:
                 self.sleep_inhibit.on()
@@ -92,7 +91,6 @@ class SleepInhibit(object):
                 pass
 
     def off(self):
-        print('turning sleep inhibit off')
         if self.sleep_inhibit is not None:
             self.sleep_count = self.sleep_count - 1
 
