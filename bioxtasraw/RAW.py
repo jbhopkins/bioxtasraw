@@ -2231,18 +2231,48 @@ class MainFrame(wx.Frame):
 
         if event.CanVeto():
             manipulation_panel = wx.FindWindowByName('ManipulationPanel')
+            ift_panel = wx.FindWindowByName('IFTPanel')
             sec_panel = wx.FindWindowByName('SECPanel')
 
             exit_without_saving = wx.ID_YES
 
-            if manipulation_panel.modified_items != [] or sec_panel.modified_items != []:
+            if (manipulation_panel.modified_items != [] or sec_panel.modified_items != []
+                or ift_panel.modified_items != []):
 
-                if manipulation_panel.modified_items !=[] and sec_panel.modified_items != []:
+                if (manipulation_panel.modified_items != []
+                    and sec_panel.modified_items != []
+                    and ift_panel.modified_items != []):
+                    message = 'profiles, IFTs and series '
+
+                elif (manipulation_panel.modified_items !=[]
+                    and sec_panel.modified_items != []):
                     message = 'profiles and series '
-                elif manipulation_panel.modified_items !=[] and sec_panel.modified_items == []:
+
+                elif (manipulation_panel.modified_items !=[]
+                    and ift_panel.modified_items != []):
+                    message = 'profiles and IFTs '
+
+                elif (ift_panel.modified_items !=[]
+                    and sec_panel.modified_items != []):
+                    message = 'IFTs and series '
+
+                elif (manipulation_panel.modified_items !=[]
+                    and sec_panel.modified_items == []
+                    and ift_panel.modified_items == []):
                     message = 'profiles '
-                else:
+
+                elif (manipulation_panel.modified_items ==[]
+                    and sec_panel.modified_items != []
+                    and ift_panel.modified_items == []):
                     message = 'series '
+
+                elif (manipulation_panel.modified_items ==[]
+                    and sec_panel.modified_items == []
+                    and ift_panel.modified_items != []):
+                    message = 'IFTs '
+
+                else:
+                    message = ''
 
                 dial2 = wx.MessageDialog(self, 'You have unsaved changes in your ' + message + 'data. Do you want to discard these changes?', 'Discard changes?',
                                          wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
@@ -8462,6 +8492,11 @@ class IFTPanel(wx.Panel):
             return
 
         for each in self.getSelectedItems():
+            try:
+                self.modified_items.remove(each)
+            except:
+                pass
+
             for line in each.lines:
                 try:
                     line.remove()
