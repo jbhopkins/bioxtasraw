@@ -2377,6 +2377,9 @@ def runEFA(A, forward=True):
         s = np.linalg.svd(A[:, :j+1], full_matrices = False, compute_uv = False)
         slist[:s.size, j] = s
 
+        if j > 0:
+            slist[s.size-1:, j-1] = s[-1]
+
     return slist
 
 def runExplicitEFARotation(M, D, failed, C, V_bar, T, niter, tol, force_pos):

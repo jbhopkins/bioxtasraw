@@ -11453,8 +11453,8 @@ class EFAControlPanel2(wx.Panel):
             flabel = wx.StaticText(self.top_efa, -1, 'Value %i start :' %(i))
             fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.forward_ids[i], size = (60, -1))
             fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onForwardControl)
-            fcontrol.SetValue(start+i)
-            fcontrol.SetRange((start+i,end))
+            fcontrol.SetValue(start)
+            fcontrol.SetRange((start,end))
 
             self.fsizer.Add(flabel, 0)
             self.fsizer.Add(fcontrol, 0)
@@ -11463,7 +11463,7 @@ class EFAControlPanel2(wx.Panel):
             bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.backward_ids[i], size = (60, -1))
             bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onBackwardControl)
             bcontrol.SetValue(start)
-            bcontrol.SetRange((start,end-i))
+            bcontrol.SetRange((start,end))
 
             self.bsizer.Add(blabel, 0)
             self.bsizer.Add(bcontrol, 0)
@@ -11522,8 +11522,8 @@ class EFAControlPanel2(wx.Panel):
             flabel = wx.StaticText(self.top_efa, -1, 'Value %i start :' %(i))
             fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.forward_ids[i], size = (60, -1))
             fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onForwardControl)
-            fcontrol.SetValue(start+i)
-            fcontrol.SetRange((start+i,end))
+            fcontrol.SetValue(start)
+            fcontrol.SetRange((start,end))
 
             self.fsizer.Add(flabel, 0)
             self.fsizer.Add(fcontrol, 0)
@@ -11532,7 +11532,7 @@ class EFAControlPanel2(wx.Panel):
             bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.backward_ids[i], size = (60, -1))
             bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onBackwardControl)
             bcontrol.SetValue(start)
-            bcontrol.SetRange((start,end-i))
+            bcontrol.SetRange((start,end))
 
             self.bsizer.Add(blabel, 0)
             self.bsizer.Add(bcontrol, 0)
@@ -11628,7 +11628,7 @@ class EFAControlPanel2(wx.Panel):
         old_value = start_offset
 
         for i in range(len(forward_windows)):
-            if int(forward_windows[i].GetValue()) == int( start_offset+i):
+            if int(forward_windows[i].GetValue()) == int(start_offset):
                 try:
                     d1 = np.gradient(self.efa_forward[i,i+1:])
 
@@ -12064,7 +12064,7 @@ class EFAControlPanel3(wx.Panel):
             fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][0], size = (60, -1))
             fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
             fcontrol.SetValue(points[i][0])
-            fcontrol.SetRange((start+i,points[i][1]-1))
+            fcontrol.SetRange((start, end))
 
             self.range_sizer.Add(label1, 0, wx.LEFT, 3)
             self.range_sizer.Add(fcontrol, 0)
@@ -12073,7 +12073,7 @@ class EFAControlPanel3(wx.Panel):
             bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][1], size = (60, -1))
             bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
             bcontrol.SetValue(points[i][1])
-            bcontrol.SetRange((points[i][0]+1,end-(nvals-1-i)))
+            bcontrol.SetRange((start, end))
 
             self.range_sizer.Add(label2, 0)
             self.range_sizer.Add(bcontrol, 0)
@@ -12152,7 +12152,7 @@ class EFAControlPanel3(wx.Panel):
                 fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][0], size = (60, -1))
                 fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
                 fcontrol.SetValue(points[i][0])
-                fcontrol.SetRange((start+i,points[i][1]-1))
+                fcontrol.SetRange((start,end))
 
                 self.range_sizer.Add(label1, 0, wx.LEFT, 3)
                 self.range_sizer.Add(fcontrol, 0)
@@ -12161,7 +12161,7 @@ class EFAControlPanel3(wx.Panel):
                 bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][1], size = (60, -1))
                 bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
                 bcontrol.SetValue(points[i][1])
-                bcontrol.SetRange((points[i][0]+1,end-i))
+                bcontrol.SetRange((start,end))
 
                 self.range_sizer.Add(label2, 0)
                 self.range_sizer.Add(bcontrol, 0)
@@ -12227,34 +12227,7 @@ class EFAControlPanel3(wx.Panel):
     def _onRangeControl(self, evt):
 
         myId = evt.GetId()
-
-        for ids in self.range_ids:
-            if myId in ids:
-
-                if myId == ids[0]:
-                    spinctrl = wx.FindWindowById(ids[1], self)
-
-                    current_range = spinctrl.GetRange()
-
-                    new_range = (int(evt.GetValue())+1, current_range[1])
-
-                    spinctrl.SetRange(new_range)
-
-                    wx.CallAfter(self.updateRangePlot)
-
-                elif myId == ids[1]:
-                    spinctrl = wx.FindWindowById(ids[0], self)
-
-                    current_range = spinctrl.GetRange()
-
-                    new_range = (current_range[0],int(evt.GetValue())-1)
-
-                    spinctrl.SetRange(new_range)
-
-                    wx.CallAfter(self.updateRangePlot)
-
-                break
-
+        wx.CallAfter(self.updateRangePlot)
         wx.CallAfter(self.runRotation)
 
     def _onSaveButton(self, evt):
@@ -12335,95 +12308,6 @@ class EFAControlPanel3(wx.Panel):
         self.converged = converged
         self.conv_data = conv_data
         self.rotation_data = rotation_data
-
-        # init_dict = {'Hybrid'       : SASCalc.initHybridEFA,
-        #             'Iterative'     : SASCalc.initIterativeEFA,
-        #             'Explicit'      : SASCalc.initExplicitEFA}
-
-        # run_dict = {'Hybrid'        : SASCalc.runIterativeEFARotation,
-        #             'Iterative'     : SASCalc.runIterativeEFARotation,
-        #             'Explicit'      : SASCalc.runExplicitEFARotation}
-
-        # #Calculate the initial matrices
-        # num_sv = ranges.shape[0]
-
-        # D = self.panel1_results['svd_int_norm']
-
-        # M = np.zeros_like(self.panel1_results['svd_v'][:,:num_sv])
-
-        # for j in range(num_sv):
-        #     M[ranges[j][0]:ranges[j][1]+1, j] = 1
-
-        # if self.converged and M.shape[0] != self.rotation_data['C'].shape[0]:
-        #     self.converged = False
-        #     self.rotation_data = {}
-
-        # if self.converged:
-        #     C_init = self.rotation_data['C']
-        # else:
-        #     C_init = self.panel1_results['svd_v'][:,:num_sv]
-
-        # V_bar = self.panel1_results['svd_v'][:,:num_sv]
-
-        # failed, C, T = init_dict[method](M, num_sv, D, C_init, self.converged, V_bar) #Init takes M, num_sv, and D, C_init, and converged and returns failed, C, and T in that order. If a method doesn't use a particular variable, then it should return None for that result
-        # C, failed, converged, dc, k = run_dict[method](M, D, failed, C, V_bar, T, niter, tol, force_positive) #Takes M, D, failed, C, V_bar, T in that order. If a method doesn't use a particular variable, then it should be passed None for that variable.
-
-        # if not failed:
-        #     if method != 'Explicit':
-        #         self.conv_data = {'steps'   : dc,
-        #                         'iterations': k,
-        #                         'final_step': dc[-1],
-        #                         'options'   : {'niter': niter, 'tol': tol, 'method': method}}
-        #     else:
-        #         self.conv_data = {'steps'   : None,
-        #                         'iterations': None,
-        #                         'final_step': None,
-        #                         'options'   : {'niter': niter, 'tol': tol, 'method': method}}
-
-        # #Check whether the calculation converged
-
-        # if method != 'Explicit':
-        #     if k == niter and dc[-1] > tol:
-        #         self.converged = False
-        #         self.fail_text = 'Rotation failed to converge after %i\n iterations with final delta = %.2E.' %(k, dc[-1])
-        #     elif failed:
-        #         self.converged = False
-        #         self.fail_text = 'Rotation failed due to a numerical error\n in the algorithm. Try adjusting ranges or changing method.'
-        #     else:
-        #         self.converged = True
-
-        # else:
-        #     if failed:
-        #         self.converged = False
-        #         self.fail_text = 'Rotation failed due to a numerical error\n in the algorithm. Try adjusting ranges or changing method.'
-        #     else:
-        #         self.converged = True
-
-        # if self.converged:
-        #     #Calculate SAXS basis vectors
-        #     mult = np.linalg.pinv(np.transpose(M*C))
-        #     intensity = np.dot(self.panel1_results['int'], mult)
-        #     err = np.sqrt(np.dot(np.square(self.panel1_results['err']), np.square(mult)))
-
-        #     int_norm = np.dot(D, mult)
-        #     resid = D - np.dot(int_norm, np.transpose(M*C))
-
-        #     chisq = np.mean(np.square(resid),0)
-
-        #     #Save the results
-        #     self.rotation_data = {'M'   : M,
-        #                         'C'     : C,
-        #                         'int'   : intensity,
-        #                         'err'   : err,
-        #                         'chisq' : chisq}
-
-
-        #     wx.CallAfter(self.updateResultsPlot)
-
-        #     self._makeSASMs()
-
-        # else:
-        #     wx.CallAfter(self.clearResultsPlot)
 
         k = conv_data['iterations']
         final_step = conv_data['final_step']
