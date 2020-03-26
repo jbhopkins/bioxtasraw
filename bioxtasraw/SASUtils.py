@@ -181,12 +181,12 @@ class WindowsSleepInhibit(object):
         self.ES_CONTINUOUS = 0x80000000
         self.ES_SYSTEM_REQUIRED = 0x00000001
 
-    def inhibit(self):
+    def on(self):
         ctypes.windll.kernel32.SetThreadExecutionState(
             self.ES_CONTINUOUS | \
             self.ES_SYSTEM_REQUIRED)
 
-    def uninhibit(self):
+    def off(self):
         ctypes.windll.kernel32.SetThreadExecutionState(
             self.ES_CONTINUOUS)
 
