@@ -3640,6 +3640,8 @@ class GNOMControlPanel(wx.Panel):
                 nmax = sasm.getQrange()[1]
             except Exception:
                 nmin, nmax = sasm.getQrange()
+        else:
+            nmin, nmax = sasm.getQrange()
 
         self.startSpin.SetRange((0, len(sasm.q)-1))
         self.endSpin.SetRange((0, len(sasm.q)-1))
