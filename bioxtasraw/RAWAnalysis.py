@@ -78,6 +78,8 @@ try:
     import SASProc
     import BIFT
     import DENSS
+    import SECM
+
 except Exception:
     from . import RAWSettings
     from . import RAWCustomCtrl
@@ -90,6 +92,7 @@ except Exception:
     from . import SASProc
     from . import BIFT
     from . import DENSS
+    from . import SECM
 
 class UVConcentrationDialog(wx.Dialog):
     def __init__(self, parent, title, selected_sasms, bg_sasm):
@@ -10094,11 +10097,11 @@ class SVDControlPanel(wx.Panel):
 
         #make a subtracted profile SECM
         if len(self.secm.subtracted_sasm_list)>0:
-            self.subtracted_secm = SASM.SECM(self.secm._file_list,
+            self.subtracted_secm = SECM.SECM(self.secm._file_list,
                 self.secm.subtracted_sasm_list, self.secm.frame_list,
                 self.secm.getAllParameters(), self.raw_settings)
         else:
-            self.subtracted_secm = SASM.SECM(self.secm._file_list,
+            self.subtracted_secm = SECM.SECM(self.secm._file_list,
                 self.secm.subtracted_sasm_list, [],
                 self.secm.getAllParameters(), self.raw_settings)
 
@@ -10106,11 +10109,11 @@ class SVDControlPanel(wx.Panel):
             profile_window.SetStringSelection('Unsubtracted')
 
         if self.secm.baseline_subtracted_sasm_list:
-            self.bl_subtracted_secm = SASM.SECM(self.secm._file_list,
+            self.bl_subtracted_secm = SECM.SECM(self.secm._file_list,
                 self.secm.baseline_subtracted_sasm_list, self.secm.frame_list,
                 self.secm.getAllParameters(), self.raw_settings)
         else:
-            self.bl_subtracted_secm = SASM.SECM(self.secm._file_list,
+            self.bl_subtracted_secm = SECM.SECM(self.secm._file_list,
                 self.secm.baseline_subtracted_sasm_list, [],
                 self.secm.getAllParameters(), self.raw_settings)
 
@@ -11105,11 +11108,11 @@ class EFAControlPanel1(wx.Panel):
 
         #make a subtracted profile SECM
         if len(self.secm.subtracted_sasm_list)>0:
-            self.subtracted_secm = SASM.SECM(self.secm._file_list,
+            self.subtracted_secm = SECM.SECM(self.secm._file_list,
                 self.secm.subtracted_sasm_list, self.secm.frame_list,
                 self.secm.getAllParameters(), self.raw_settings)
         else:
-            self.subtracted_secm = SASM.SECM(self.secm._file_list,
+            self.subtracted_secm = SECM.SECM(self.secm._file_list,
                 self.secm.subtracted_sasm_list, [],
                 self.secm.getAllParameters(), self.raw_settings)
 
@@ -11117,11 +11120,11 @@ class EFAControlPanel1(wx.Panel):
             profile_window.SetStringSelection('Unsubtracted')
 
         if self.secm.baseline_subtracted_sasm_list:
-            self.bl_subtracted_secm = SASM.SECM(self.secm._file_list,
+            self.bl_subtracted_secm = SECM.SECM(self.secm._file_list,
                 self.secm.baseline_subtracted_sasm_list, self.secm.frame_list,
                 self.secm.getAllParameters(), self.raw_settings)
         else:
-            self.bl_subtracted_secm = SASM.SECM(self.secm._file_list,
+            self.bl_subtracted_secm = SECM.SECM(self.secm._file_list,
                 self.secm.baseline_subtracted_sasm_list, [],
                 self.secm.getAllParameters(), self.raw_settings)
 
@@ -13112,7 +13115,7 @@ class SimilarityFrame(wx.Frame):
         correction_window = wx.FindWindowById(self.ids['correction'])
         correction = correction_window.GetStringSelection()
 
-        self.item_data, self.pvals, self.corrected_pvals, failed_comparisons = SASCalc.run_cormap_all(self.sasm_list, correction)
+        self.item_data, self.pvals, self.corrected_pvals, failed_comparisons = SASProc.run_cormap_all(self.sasm_list, correction)
 
         self.listPanel.DeleteAllItems()
         for item in self.item_data:
@@ -17407,7 +17410,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         sim_cor = self.raw_settings.get('similarityCorrection')
 
         if sim_test == 'CorMap':
-            pvals, corrected_pvals, failed_comparisons = SASCalc.run_cormap_ref(sasm_list, ref_sasm, sim_cor)
+            pvals, corrected_pvals, failed_comparisons = SASProc.run_cormap_ref(sasm_list, ref_sasm, sim_cor)
 
         if np.any(pvals<sim_thresh):
             similar = False

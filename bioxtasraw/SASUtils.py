@@ -28,12 +28,20 @@ fit anywhere else.
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import object, range, map, zip
 from io import open
+import six
+from six.moves import cPickle as pickle
 
-from ctypes import c_uint32, cdll, c_int, c_void_p, POINTER, byref
+from ctypes import c_uint32, c_void_p, POINTER, byref
 import ctypes.util
 import atexit
 import platform
 import copy
+import os
+import subprocess
+import glob
+import json
+import numpy as np
+import sys
 
 try:
     import dbus
@@ -41,6 +49,32 @@ except Exception:
     pass
 
 import pyFAI
+
+#NOTE: SASUtils should never import another RAW module besides RAWGlobals, to avoid circular imports.
+try:
+    import RAWGlobals
+except Exception:
+    from . import RAWGlobals
+
+
+def loadFileDefinitions():
+    file_defs = {'hdf5' : {}}
+    errors = []
+
+    if os.path.exists(os.path.join(RAWGlobals.RAWDefinitionsDir, 'hdf5')):
+        def_files = glob.glob(os.path.join(RAWGlobals.RAWDefinitionsDir, 'hdf5', '*'))
+        for fname in def_files:
+            try:
+                with open(fname, 'r') as f:
+                    settings = f.read()
+
+                settings = dict(json.loads(settings))
+
+                file_defs['hdf5'][os.path.splitext(os.path.basename(fname))[0]] = settings
+            except Exception:
+                errors.append(fname)
+
+    return file_defs, errors
 
 def get_det_list():
 
@@ -268,3 +302,183 @@ class GnomeSessionInhibitor(DBusInhibitor):
                                     'long_process',
                                     GnomeSessionInhibitor.INHIBIT_SUSPEND)
 
+
+def findATSASDirectory():
+    opsys= platform.system()
+
+    if opsys== 'Darwin':
+        dirs = glob.glob(os.path.expanduser('~/ATSAS*'))
+        if len(dirs) > 0:
+            try:
+                versions = {}
+                for item in dirs:
+                    atsas_dir = os.path.split(item)[1]
+                    version = atsas_dir.lstrip('ATSAS-')
+                    versions[version] = item
+
+                max_version = get_max_version(versions, True)
+
+                default_path = versions[max_version]
+
+            except Exception:
+                default_path = dirs[0]
+
+            default_path = os.path.join(default_path, 'bin')
+
+        else:
+            default_path = '/Applications/ATSAS/bin'
+
+    elif opsys== 'Windows':
+        dirs = glob.glob(os.path.expanduser('C:\\Program Files (x86)\\ATSAS*'))
+
+        if len(dirs) > 0:
+            try:
+                versions = {}
+                for item in dirs:
+                    atsas_dir = os.path.split(item)[1]
+                    version = atsas_dir.lstrip('ATSAS-')
+                    versions[version] = item
+
+                max_version = get_max_version(versions, False)
+
+                default_path = versions[max_version]
+
+            except Exception:
+                default_path = dirs[0]
+
+            default_path = os.path.join(default_path, 'bin')
+
+        else:
+            default_path = 'C:\\atsas\\bin'
+
+    elif opsys== 'Linux':
+        default_path = '~/atsas'
+        default_path = os.path.expanduser(default_path)
+
+        if os.path.exists(default_path):
+            dirs = glob.glob(default_path+'/*')
+
+            for item in dirs:
+                if item.split('/')[-1].lower().startswith('atsas'):
+                    default_path = item
+                    break
+
+            default_path = os.path.join(default_path, 'bin')
+
+    is_path = os.path.exists(default_path)
+
+    if is_path:
+        return default_path
+
+    if opsys == 'Windows':
+        which = subprocess.Popen('where dammif', stdout=subprocess.PIPE,shell=True)
+        output = which.communicate()
+
+        atsas_path = output[0].strip()
+
+    else:
+        which = subprocess.Popen('which dammif', stdout=subprocess.PIPE,shell=True)
+        output = which.communicate()
+
+        atsas_path = output[0].strip()
+
+    if isinstance(atsas_path, bytes):
+        atsas_path = atsas_path.decode('utf-8')
+
+    if atsas_path != '':
+        return os.path.dirname(atsas_path)
+
+    try:
+        path = os.environ['PATH']
+    except Exception:
+        path = None
+
+    if path is not None:
+        if opsys == 'Windows':
+            split_path = path.split(';')
+        else:
+            split_path = path.split(':')
+
+        for item in split_path:
+            if item.lower().find('atsas') > -1 and item.lower().find('bin') > -1:
+                if os.path.exists(item):
+                    return item
+
+    try:
+        atsas_path = os.environ['ATSAS']
+    except Exception:
+        atsas_path = None
+
+    if atsas_path is not None:
+        if atsas_path.lower().find('atsas') > -1:
+            atsas_path = atsas_path.rstrip('\\')
+            atsas_path = atsas_path.rstrip('/')
+            if atsas_path.endswith('bin'):
+                return atsas_path
+            else:
+                if os.path.exists(os.path.join(atsas_path, 'bin')):
+                        return os.path.join(atsas_path, 'bin')
+
+    return ''
+
+def get_max_version(versions, use_sub_minor):
+    if use_sub_minor:
+        max_version = '0.0.0-0'
+    else:
+        max_version = '0.0.0'
+    for version in versions:
+        if int(max_version.split('.')[0]) < int(version.split('.')[0]):
+            max_version = version
+
+        if (int(max_version.split('.')[0]) == int(version.split('.')[0])
+            and int(max_version.split('.')[1]) < int(version.split('.')[1])):
+            max_version = version
+
+        if (int(max_version.split('.')[0]) == int(version.split('.')[0])
+            and int(max_version.split('.')[1]) == int(version.split('.')[1])
+            and int(max_version.split('.')[2].split('-')[0]) < int(version.split('.')[2].split('-')[0])):
+            max_version = version
+
+        if use_sub_minor:
+            if (int(max_version.split('.')[0]) == int(version.split('.')[0])
+                and int(max_version.split('.')[1]) == int(version.split('.')[1])
+                and int(max_version.split('.')[2].split('-')[0]) == int(version.split('.')[2].split('-')[0])
+                and int(max_version.split('-')[1]) < int(version.split('-')[1])):
+                max_version = version
+
+    return max_version
+
+
+#This class goes with write header, and was lifted from:
+#https://stackoverflow.com/questions/27050108/convert-numpy-type-to-python/27050186#27050186
+class MyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return super(MyEncoder, self).default(obj)
+
+def find_global(module, name):
+    if module == 'SASImage':
+        module = 'SASMask'
+
+        if name == 'RectangleMask':
+            name = '_oldMask'
+        elif name == 'CircleMask':
+            name = '_oldMask'
+        elif name == 'PolygonMask':
+            name = '_oldMask'
+
+    __import__(module)
+    mod = sys.modules[module]
+
+    klass = getattr(mod, name)
+    return klass
+
+if six.PY3:
+    class SafeUnpickler(pickle.Unpickler):
+        find_class = staticmethod(find_global)

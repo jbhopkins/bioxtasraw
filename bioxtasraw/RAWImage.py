@@ -699,7 +699,7 @@ class ImagePanel(wx.Panel):
                 mask = SASMask.PolygonMask(points, self._createNewMaskNumber(), self.img.shape, negative = start_negative)
 
                 if self._resizing and self._resize_is_negative_mask:
-                    new_mask.setAsNegativeMask()
+                    mask.setAsNegativeMask()
 
                 self.plot_parameters['storedMasks'].append(mask)
 

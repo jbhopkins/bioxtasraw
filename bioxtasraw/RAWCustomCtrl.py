@@ -803,11 +803,11 @@ class CustomCheckBox(control_super):
 
 class FloatSpinEvent(wx.PyCommandEvent):
 
-    def __init__(self, evtType, id, object):
+    def __init__(self, evtType, id, evt_object):
 
         wx.PyCommandEvent.__init__(self, evtType, id)
         self.value = 0
-        self.object = object
+        self.evt_object = evt_object
 
     def GetValue(self):
         return self.value
@@ -816,7 +816,7 @@ class FloatSpinEvent(wx.PyCommandEvent):
         self.value = value
 
     def GetEventObject(self):
-        return self.object
+        return self.evt_object
 
 myEVT_MY_SPIN = wx.NewEventType()
 EVT_MY_SPIN = wx.PyEventBinder(myEVT_MY_SPIN, 1)

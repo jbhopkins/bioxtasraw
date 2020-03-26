@@ -28,11 +28,9 @@ from io import open
 
 import sys
 import math
-import time
-import traceback
+import os
 
 import numpy as np
-from numba import jit, prange
 import pyFAI
 
 try:
@@ -42,6 +40,8 @@ try:
     import SASMask
     import RAWGlobals
     import RAWSettings
+    import SASExceptions
+
 except Exception:
     from . import SASParser
     from . import SASCalib
@@ -49,6 +49,7 @@ except Exception:
     from . import SASMask
     from . import RAWGlobals
     from . import RAWSettings
+    from . import SASExceptions
 
 def calcExpression(expr, img_hdr, file_hdr):
 
@@ -116,7 +117,7 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
 
     # Loads a different configuration file based on definition in the image header
     if use_hdr_config:
-        prefix = SASImage.getBindListDataFromHeader(raw_settings, img_hdr, file_hdr, keys = ['Config Prefix'])[0]
+        prefix = getBindListDataFromHeader(raw_settings, img_hdr, file_hdr, keys = ['Config Prefix'])[0]
 
         if prefix is None:
            raise SASExceptions.ImageLoadError(['"Use header for new config load" is enabled in General Settings.\n',
@@ -129,7 +130,7 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
 
         # If the folder is not set.. look in the folder where the image is
         if settings_folder == 'None' or settings_folder == '':
-            settings_folder, fname = os.path.split(filename)
+            settings_folder, fname = os.path.split(parameters['load_path'])
 
         settings_path = os.path.join(settings_folder, str(prefix) + '.cfg')
 
@@ -213,7 +214,7 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
 
 
     # Load mask
-    if use_hdr_mask and img_fmt == 'SAXSLab300':
+    if use_hdr_mask:
         # ********************
         # If the file is a SAXSLAB file, then get mask parameters from the header and modify the mask
         # then apply it...
@@ -264,10 +265,10 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
             x_c = result[3]
         if result[5] is not None:
             y_c = result[4]
-        if reuslts[6] is not None:
-            det_tilt = results[6]
-        if results[7] is not None:
-            det_tilt_plan_rot = results[7]
+        if result[6] is not None:
+            det_tilt = result[6]
+        if result[7] is not None:
+            det_tilt_plan_rot = result[7]
 
     # ********* WARNING WARNING WARNING ****************#
     # Hmm.. axes start from the lower left, but array coords starts

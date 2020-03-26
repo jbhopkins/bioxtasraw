@@ -32,7 +32,6 @@ import copy
 import os
 import json
 
-import numpy as np
 import wx
 import wx.lib.dialogs
 import wx.lib.colourchooser as colorchooser

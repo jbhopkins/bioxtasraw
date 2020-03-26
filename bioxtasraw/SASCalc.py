@@ -59,13 +59,12 @@ try:
     import SASExceptions
     import RAWSettings
     import SASProc
-    import sascalc_exts
+
 except Exception:
     from . import SASFileIO
     from . import SASExceptions
     from . import RAWSettings
     from . import SASProc
-    from . import sascalc_exts
 
 
 #Define the rg fit function
@@ -302,8 +301,6 @@ def calcAbsMW(i0, conc, rho_Mprot, rho_solv, nu_bar, r0):
     d_rho = (rho_Mprot-(rho_solv*nu_bar))*r0
     mw = (Avogadro*i0/conc)/np.square(d_rho)
     return mw
-
-
 
 def volumeOfCorrelation(q, i, i0):
     """Calculates the volume of correlation as the ratio of i0 to $\int q*I dq$
@@ -1866,168 +1863,6 @@ def runDammin(fname, prefix, args, path):
         print('Cannot find ATSAS')
         raise SASExceptions.NoATSASError('Cannot find dammif.')
         return None
-
-
-def cormap_pval(data1, data2):
-    """Calculate the probability for a couple of dataset to be equivalent
-
-    Implementation according to:
-    http://www.nature.com/nmeth/journal/v12/n5/full/nmeth.3358.html
-
-    :param data1: numpy array
-    :param data2: numpy array
-    :return: probablility for the 2 data to be equivalent
-    """
-
-    if data1.ndim == 2 and data1.shape[1] > 1:
-        data1 = data1[:, 1]
-    if data2.ndim == 2 and data2.shape[1] > 1:
-        data2 = data2[:, 1]
-
-    if data1.shape != data2.shape:
-        raise SASExceptions.CorMapError
-
-    diff_data = data2 - data1
-    c = measure_longest(diff_data)
-    n = diff_data.size
-
-    if c>0:
-        prob = sascalc_exts.LROH.probaB(n, c)
-    else:
-        prob = 1
-    return n, c, round(prob,6)
-
-#This code to find the contiguous regions of the data is based on these
-#questions from stack overflow:
-#https://stackoverflow.com/questions/4494404/find-large-number-of-consecutive-values-fulfilling-condition-in-a-numpy-array
-#https://stackoverflow.com/questions/12427146/combine-two-arrays-and-sort
-def contiguous_regions(data):
-    """Finds contiguous regions of the difference data. Returns
-    a 1D array where each value represents a change in the condition."""
-
-    if np.all(data==0):
-        idx = np.array([])
-    elif np.all(data>0) or np.all(data<0):
-        idx = np.array([0, data.size])
-    else:
-        condition = data>0
-        # Find the indicies of changes in "condition"
-        d = np.ediff1d(condition.astype(int))
-        idx, = d.nonzero()
-        idx = idx+1
-
-        if np.any(data==0):
-            condition2 = data<0
-            # Find the indicies of changes in "condition"
-            d2 = np.ediff1d(condition2.astype(int))
-            idx2, = d2.nonzero()
-            idx2 = idx2+1
-            #Combines the two conditions into a sorted array, no need to remove duplicates
-            idx = np.concatenate((idx, idx2))
-            idx.sort(kind='mergesort')
-
-        #first and last indices are always in this matrix
-        idx = np.r_[0, idx]
-        idx = np.r_[idx, condition.size]
-    return idx
-
-def measure_longest(data):
-    """Find the longest consecutive region of positive or negative values"""
-    regions = contiguous_regions(data)
-    lengths = np.ediff1d(regions)
-    if lengths.size > 0:
-        max_len = lengths.max()
-    else:
-        max_len = 0
-    return max_len
-
-def run_cormap_all(sasm_list, correction='None'):
-    pvals = np.ones((len(sasm_list), len(sasm_list)))
-    corrected_pvals = np.ones_like(pvals)
-    failed_comparisons = []
-
-    if correction == 'Bonferroni':
-        m_val = sum(range(len(sasm_list)))
-
-    item_data = []
-
-    for index1 in range(len(sasm_list)):
-        sasm1 = sasm_list[index1]
-        qmin1, qmax1 = sasm1.getQrange()
-        i1 = sasm1.i[qmin1:qmax1]
-        for index2 in range(1, len(sasm_list[index1:])):
-            sasm2 = sasm_list[index1+index2]
-            qmin2, qmax2 = sasm2.getQrange()
-            i2 = sasm2.i[qmin2:qmax2]
-
-            if np.all(np.round(sasm1.q[qmin1:qmax1], 5) == np.round(sasm2.q[qmin2:qmax2], 5)):
-                try:
-                    n, c, prob = cormap_pval(i1, i2)
-                except SASExceptions.CorMapError:
-                    n = 0
-                    c = -1
-                    prob = -1
-                    failed_comparisons.append((sasm1.getParameter('filename'), sasm2.getParameter('filename')))
-
-            else:
-                n = 0
-                c = -1
-                prob = -1
-                failed_comparisons.append((sasm1.getParameter('filename'), sasm2.getParameter('filename')))
-
-            pvals[index1, index1+index2] = prob
-            pvals[index1+index2, index1] = prob
-
-            if correction == 'Bonferroni':
-                c_prob = prob*m_val
-                if c_prob > 1:
-                    c_prob = 1
-                elif c_prob < -1:
-                    c_prob = -1
-                corrected_pvals[index1, index1+index2] = c_prob
-                corrected_pvals[index1+index2, index1] = c_prob
-
-            else:
-                c_prob=1
-
-            item_data.append([str(index1), str(index1+index2),
-                sasm1.getParameter('filename'), sasm2.getParameter('filename'),
-                c, prob, c_prob]
-                )
-
-    return item_data, pvals, corrected_pvals, failed_comparisons
-
-def run_cormap_ref(sasm_list, ref_sasm, correction='None'):
-    pvals = np.ones(len(sasm_list), dtype=float)
-    failed_comparisons = []
-
-    for index, sasm in enumerate(sasm_list):
-        if np.all(np.round(sasm.getQ(), 5) == np.round(ref_sasm.getQ(), 5)):
-            try:
-                n, c, prob = cormap_pval(ref_sasm.getI(), sasm.getI())
-            except SASExceptions.CorMapError:
-                n = 0
-                c = -1
-                prob = -1
-                failed_comparisons.append((ref_sasm.getParameter('filename'),
-                    sasm.getParameter('filename')))
-        else:
-            n = 0
-            c = -1
-            prob = -1
-            failed_comparisons.append((ref_sasm.getParameter('filename'),
-                sasm.getParameter('filename')))
-
-        pvals[index] = prob
-
-    if correction == 'Bonferroni':
-        corrected_pvals = pvals*len(sasm_list)
-        corrected_pvals[corrected_pvals>1] = 1
-        corrected_pvals[corrected_pvals<-1] = -1
-    else:
-        corrected_pvals = np.ones_like(pvals)
-
-    return pvals, corrected_pvals, failed_comparisons
 
 
 def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,

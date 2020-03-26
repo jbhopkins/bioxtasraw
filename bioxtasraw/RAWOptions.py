@@ -41,7 +41,6 @@ import wx
 import wx.lib.agw.customtreectrl as CT
 import wx.lib.scrolledpanel as scrolled
 from numpy import ceil
-import numpy as np
 import pyFAI
 
 try:
@@ -403,12 +402,12 @@ class ReductionImgHdrFormatPanel(scrolled.ScrolledPanel):
         self.currentItem = None
         self.imghdr_start_idx = 0
 
-        self.hdr_format_list = list(raw_settings.get('ImageHdrFormatList').keys())
+        self.hdr_format_list = list(SASFileIO.all_header_types.keys())
         self.hdr_format_list.remove('None')
         self.hdr_format_list.sort()
         self.hdr_format_list.insert(0, 'None')
 
-        self.img_format_list = sorted(raw_settings.get('ImageFormatList').keys())
+        self.img_format_list = sorted(SASFileIO.all_image_types.keys())
 
         self.bind_choice_list = sorted(self.raw_settings.get('HeaderBindList').keys())
         self.bind_choice_list.sort()
@@ -3115,7 +3114,7 @@ class ATSASGeneralPanel(scrolled.ScrolledPanel):
             self.setATSASDir()
 
     def setATSASDir(self):
-        atsasDirectory = SASFileIO.findATSASDirectory()
+        atsasDirectory = SASUtils.findATSASDirectory()
         self.datadir.SetValue(atsasDirectory)
 
     def onDirButton(self, evt):

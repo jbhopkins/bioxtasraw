@@ -41,10 +41,7 @@ import collections
 import datetime
 from xml.dom import minidom
 import glob
-import subprocess
-import platform
 import ast
-import traceback
 
 import numpy as np
 import fabio
@@ -59,12 +56,19 @@ try:
     import SASM
     import SASExceptions
     import SASProc
+    import SECM
+    import SASCalib
+    import SASUtils
+
 except Exception:
     from . import RAWGlobals
     from . import SASImage
     from . import SASM
     from . import SASExceptions
     from . import SASProc
+    from . import SECM
+    from . import SASCalib
+    from . import SASUtils
 
 ############################
 #--- ## Load image files: ##
@@ -1135,7 +1139,7 @@ def loadFile(filename, raw_settings, no_processing = False):
 
                 try:
                     #Does fully glassy carbon abs scale
-                    SASM.postProcessImageSasm(current_sasm, raw_settings)
+                    SASCalib.postProcessImageSasm(current_sasm, raw_settings)
                 except SASExceptions.AbsScaleNormFailed:
                     raise
     elif file_type == 'hdf5':
@@ -1528,7 +1532,7 @@ def loadHdf5File(filename, raw_settings):
                                 frame_list = list(range(len(temp_data_list)))
                                 filename_list = [tsasm.getParameter('filename') for tsasm in temp_data_list]
 
-                                secm = SASM.SECM(filename_list, temp_data_list,
+                                secm = SECM.SECM(filename_list, temp_data_list,
                                     frame_list, {}, raw_settings)
 
                             elif to_load == 'sub':
@@ -1536,7 +1540,7 @@ def loadHdf5File(filename, raw_settings):
                                     frame_list = list(range(len(temp_data_list)))
                                     filename_list = [tsasm.getParameter('filename') for tsasm in temp_data_list]
 
-                                    secm = SASM.SECM(filename_list, temp_data_list,
+                                    secm = SECM.SECM(filename_list, temp_data_list,
                                         frame_list, {}, raw_settings)
 
                                     secm.already_subtracted = True
@@ -2052,7 +2056,7 @@ def makeSeriesFile(secm_data, settings):
     # for fname in secm_data['file_list']:
     #     file_list.append(str(file_list))
 
-    new_secm = SASM.SECM(secm_data['file_list'], sasm_list,
+    new_secm = SECM.SECM(secm_data['file_list'], sasm_list,
         secm_data['frame_list'], secm_data['parameters'], settings)
 
     new_secm.series_type = secm_data['series_type']
@@ -2912,26 +2916,6 @@ def load2ColFile(filename):
     return SASM.SASM(i, q, err, parameters)
 
 
-def loadFileDefinitions():
-    file_defs = {'hdf5' : {}}
-    errors = []
-
-    if os.path.exists(os.path.join(RAWGlobals.RAWDefinitionsDir, 'hdf5')):
-        def_files = glob.glob(os.path.join(RAWGlobals.RAWDefinitionsDir, 'hdf5', '*'))
-        for fname in def_files:
-            try:
-                with open(fname, 'r') as f:
-                    settings = f.read()
-
-                settings = dict(json.loads(settings))
-
-                file_defs['hdf5'][os.path.splitext(os.path.basename(fname))[0]] = settings
-            except Exception:
-                errors.append(fname)
-
-    return file_defs, errors
-
-
 #####################################
 #--- ## Write RAW Generated Files: ##
 #####################################
@@ -3078,26 +3062,26 @@ def save_series(save_name, seriesm, save_gui_data=False):
 
     if save_gui_data:
         try:
-            seriesm_dict['line_color'] = secm.line.get_color()
-            seriesm_dict['line_width'] = secm.line.get_linewidth()
-            seriesm_dict['line_style'] = secm.line.get_linestyle()
-            seriesm_dict['line_marker'] = secm.line.get_marker()
-            seriesm_dict['line_marker_face_color'] = secm.line.get_markerfacecolor()
-            seriesm_dict['line_marker_edge_color'] = secm.line.get_markeredgecolor()
-            seriesm_dict['line_visible'] = secm.line.get_visible()
-            seriesm_dict['line_legend_label'] = secm.line.get_label()
+            seriesm_dict['line_color'] = seriesm.line.get_color()
+            seriesm_dict['line_width'] = seriesm.line.get_linewidth()
+            seriesm_dict['line_style'] = seriesm.line.get_linestyle()
+            seriesm_dict['line_marker'] = seriesm.line.get_marker()
+            seriesm_dict['line_marker_face_color'] = seriesm.line.get_markerfacecolor()
+            seriesm_dict['line_marker_edge_color'] = seriesm.line.get_markeredgecolor()
+            seriesm_dict['line_visible'] = seriesm.line.get_visible()
+            seriesm_dict['line_legend_label'] = seriesm.line.get_label()
 
-            seriesm_dict['calc_line_color'] = secm.calc_line.get_color()
-            seriesm_dict['calc_line_width'] = secm.calc_line.get_linewidth()
-            seriesm_dict['calc_line_style'] = secm.calc_line.get_linestyle()
-            seriesm_dict['calc_line_marker'] = secm.calc_line.get_marker()
-            seriesm_dict['calc_line_marker_face_color'] = secm.calc_line.get_markerfacecolor()
-            seriesm_dict['calc_line_marker_edge_color'] = secm.calc_line.get_markeredgecolor()
-            seriesm_dict['calc_line_visible'] = secm.calc_line.get_visible()
-            seriesm_dict['calc_line_legend_label'] = secm.calc_line.get_label()
+            seriesm_dict['calc_line_color'] = seriesm.calc_line.get_color()
+            seriesm_dict['calc_line_width'] = seriesm.calc_line.get_linewidth()
+            seriesm_dict['calc_line_style'] = seriesm.calc_line.get_linestyle()
+            seriesm_dict['calc_line_marker'] = seriesm.calc_line.get_marker()
+            seriesm_dict['calc_line_marker_face_color'] = seriesm.calc_line.get_markerfacecolor()
+            seriesm_dict['calc_line_marker_edge_color'] = seriesm.calc_line.get_markeredgecolor()
+            seriesm_dict['calc_line_visible'] = seriesm.calc_line.get_visible()
+            seriesm_dict['calc_line_legend_label'] = seriesm.calc_line.get_label()
 
-            seriesm_dict['item_font_color'] = secm.item_panel.getFontColour()
-            seriesm_dict['item_selected_for_plot'] = secm.item_panel.getSelectedForPlot()
+            seriesm_dict['item_font_color'] = seriesm.item_panel.getFontColour()
+            seriesm_dict['item_selected_for_plot'] = seriesm.item_panel.getSelectedForPlot()
         except Exception:
             pass
 
@@ -4146,60 +4130,6 @@ def loadWorkspace(load_path):
 
     return sasm_dict
 
-def writeSettings(filename, settings):
-    try:
-        with open(filename, 'w', encoding='utf-8') as f:
-            settings_str = json.dumps(settings, indent = 4, sort_keys = True,
-                cls = MyEncoder, ensure_ascii=False)
-
-            f.write(settings_str)
-        return True
-    except Exception as e:
-        print(e)
-        return False
-
-def readSettings(filename):
-
-    try:
-        with open(filename, 'r') as f:
-            settings = f.read()
-        settings = dict(json.loads(settings))
-    except Exception as e:
-        try:
-            with open(filename, 'rb') as f:
-                if six.PY3:
-                    pickle_obj = SafeUnpickler(f, encoding='latin-1')
-                else:
-                    pickle_obj = pickle.Unpickler(f)
-                    pickle_obj.find_global = find_global
-                settings = pickle_obj.load()
-        except Exception as e:
-            print('Error type: %s, error: %s' %(type(e).__name__, e))
-            return None
-
-    return settings
-
-def find_global(module, name):
-    if module == 'SASImage':
-        module = 'SASMask'
-
-        if name == 'RectangleMask':
-            name = '_oldMask'
-        elif name == 'CircleMask':
-            name = '_oldMask'
-        elif name == 'PolygonMask':
-            name = '_oldMask'
-
-    __import__(module)
-    mod = sys.modules[module]
-
-    klass = getattr(mod, name)
-    return klass
-
-if six.PY3:
-    class SafeUnpickler(pickle.Unpickler):
-        find_class = staticmethod(find_global)
-
 def writeHeader(d, f2, ignore_list = []):
     f2.write('### HEADER:\n#\n#')
 
@@ -4220,29 +4150,16 @@ def writeHeader(d, f2, ignore_list = []):
 def formatHeader(d):
     d = translateHeader(d)
 
-    header = json.dumps(d, indent = 4, sort_keys = True, cls = MyEncoder)
+    header = json.dumps(d, indent = 4, sort_keys = True, cls = SASUtils.MyEncoder)
 
     if header.count('\n') > 3000:
         try:
             del d['history']
-            header = json.dumps(d, indent = 4, sort_keys = True, cls = MyEncoder)
+            header = json.dumps(d, indent = 4, sort_keys = True, cls = SASUtils.MyEncoder)
         except Exception:
             pass
 
     return header
-
-#This class goes with write header, and was lifted from:
-#https://stackoverflow.com/questions/27050108/convert-numpy-type-to-python/27050186#27050186
-class MyEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, np.integer):
-            return int(obj)
-        elif isinstance(obj, np.floating):
-            return float(obj)
-        elif isinstance(obj, np.ndarray):
-            return obj.tolist()
-        else:
-            return super(MyEncoder, self).default(obj)
 
 def translateHeader(header, to_sasbdb=True):
     """
@@ -4354,149 +4271,6 @@ def writeOutFile(m, filename):
 
         for line in outfile:
             f.write(line)
-
-def findATSASDirectory():
-    opsys= platform.system()
-
-    if opsys== 'Darwin':
-        dirs = glob.glob(os.path.expanduser('~/ATSAS*'))
-        if len(dirs) > 0:
-            try:
-                versions = {}
-                for item in dirs:
-                    atsas_dir = os.path.split(item)[1]
-                    version = atsas_dir.lstrip('ATSAS-')
-                    versions[version] = item
-
-                get_max_version(versions, True)
-
-                default_path = versions[max_version]
-
-            except Exception:
-                default_path = dirs[0]
-
-            default_path = os.path.join(default_path, 'bin')
-
-        else:
-            default_path = '/Applications/ATSAS/bin'
-
-    elif opsys== 'Windows':
-        dirs = glob.glob(os.path.expanduser('C:\\Program Files (x86)\\ATSAS*'))
-
-        if len(dirs) > 0:
-            try:
-                versions = {}
-                for item in dirs:
-                    atsas_dir = os.path.split(item)[1]
-                    version = atsas_dir.lstrip('ATSAS-')
-                    versions[version] = item
-
-                get_max_version(versions, False)
-
-                default_path = versions[max_version]
-
-            except Exception:
-                default_path = dirs[0]
-
-            default_path = os.path.join(default_path, 'bin')
-
-        else:
-            default_path = 'C:\\atsas\\bin'
-
-    elif opsys== 'Linux':
-        default_path = '~/atsas'
-        default_path = os.path.expanduser(default_path)
-
-        if os.path.exists(default_path):
-            dirs = glob.glob(default_path+'/*')
-
-            for item in dirs:
-                if item.split('/')[-1].lower().startswith('atsas'):
-                    default_path = item
-                    break
-
-            default_path = os.path.join(default_path, 'bin')
-
-    is_path = os.path.exists(default_path)
-
-    if is_path:
-        return default_path
-
-    if opsys == 'Windows':
-        which = subprocess.Popen('where dammif', stdout=subprocess.PIPE,shell=True)
-        output = which.communicate()
-
-        atsas_path = output[0].strip()
-
-    else:
-        which = subprocess.Popen('which dammif', stdout=subprocess.PIPE,shell=True)
-        output = which.communicate()
-
-        atsas_path = output[0].strip()
-
-    if isinstance(atsas_path, bytes):
-        atsas_path = atsas_path.decode('utf-8')
-
-    if atsas_path != '':
-        return os.path.dirname(atsas_path)
-
-    try:
-        path = os.environ['PATH']
-    except Exception:
-        path = None
-
-    if path is not None:
-        if opsys == 'Windows':
-            split_path = path.split(';')
-        else:
-            split_path = path.split(':')
-
-        for item in split_path:
-            if item.lower().find('atsas') > -1 and item.lower().find('bin') > -1:
-                if os.path.exists(item):
-                    return item
-
-    try:
-        atsas_path = os.environ['ATSAS']
-    except Exception:
-        atsas_path = None
-
-    if atsas_path is not None:
-        if atsas_path.lower().find('atsas') > -1:
-            atsas_path = atsas_path.rstrip('\\')
-            atsas_path = atsas_path.rstrip('/')
-            if atsas_path.endswith('bin'):
-                return atsas_path
-            else:
-                if os.path.exists(os.path.join(atsas_path, 'bin')):
-                        return os.path.join(atsas_path, 'bin')
-
-    return ''
-
-def get_max_version(versions, use_sub_minor):
-    if use_sub_minor:
-        max_version = '0.0.0-0'
-    else:
-        max_version = '0.0.0'
-    for version in versions:
-        if int(max_version.split('.')[0]) < int(version.split('.')[0]):
-            max_version = version
-
-        if (int(max_version.split('.')[0]) == int(version.split('.')[0])
-            and int(max_version.split('.')[1]) < int(version.split('.')[1])):
-            max_version = version
-
-        if (int(max_version.split('.')[0]) == int(version.split('.')[0])
-            and int(max_version.split('.')[1]) == int(version.split('.')[1])
-            and int(max_version.split('.')[2].split('-')[0]) < int(version.split('.')[2].split('-')[0])):
-            max_version = version
-
-        if use_sub_minor:
-            if (int(max_version.split('.')[0]) == int(version.split('.')[0])
-                and int(max_version.split('.')[1]) == int(version.split('.')[1])
-                and int(max_version.split('.')[2].split('-')[0]) == int(version.split('.')[2].split('-')[0])
-                and int(max_version.split('-')[1]) < int(version.split('-')[1])):
-                max_version = version
 
 def checkFileType(filename):
     ''' Tries to find out what file type it is and reports it back '''

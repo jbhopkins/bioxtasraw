@@ -38,22 +38,23 @@ try:
     import SASCalc
     import SASExceptions
     import SASFileIO
-    import SASImage
     import SASMask
     import SASM
     import SASProc
     import RAWSettings
     import RAWGlobals
+    import SECM
+
 except Exception:
     from . import SASCalc
     from . import SASExceptions
     from . import SASFileIO
-    from . import SASImage
     from . import SASMask
     from . import SASM
     from . import SASProc
     from . import RAWSettings
     from . import RAWGlobals
+    from . import SECM
 
 __version__ = RAWGlobals.version
 
@@ -217,6 +218,7 @@ def autorg(sasm, single_fit=False, error_weight=True, save=True):
     rg, rger, i0, i0er, idx_min, idx_max = SASCalc.autoRg(sasm, single_fit, error_weight)
 
     if save:
+        ####### NOT DONE YET
         q = sasm.getQ()
         i = sasm.getI()
         err = sasm.getErr()
@@ -343,12 +345,12 @@ def run_efa(data, ranges, sasm_type='sub', framei=None, framef=None,
     if framei is None:
             framei = 0
     if framef is None:
-        if isinstance(data, SASM.SECM):
+        if isinstance(data, SECM.SECM):
             framef = len(data.getAllSASMs())
         else:
             framef = len(data)
 
-    if isinstance(data, SASM.SECM):
+    if isinstance(data, SECM.SECM):
         sasm_list = data.getSASMList(framei, framef)
         filename = os.path.splitext(data.getParameter('filename'))[0]
     else:

@@ -26,11 +26,18 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from builtins import object, range, map, zip
 from io import open
 
-from math import atan, cos
+from math import atan
 import sys
 
 import numpy as np
 import pyFAI, pyFAI.geometryRefinement, pyFAI.massif
+
+try:
+    import SASExceptions
+    import SASProc
+except Exception:
+    from . import SASExceptions
+    from . import SASProc
 
 def calcTheta(sd_distance, pixel_size, q_length_pixels):
     '''
@@ -192,3 +199,129 @@ class RAWCalibration(object):
                 finished = True
             if not finished:
                 previous = sys.maxsize
+
+def calcAbsoluteScaleWaterConst(water_sasm, emptycell_sasm, I0_water, raw_settings):
+
+    if emptycell_sasm is None or emptycell_sasm == 'None' or water_sasm == 'None' or water_sasm is None:
+        raise SASExceptions.AbsScaleNormFailed('Empty cell file or water file was not found. Open options to set these files.')
+
+    water_bgsub_sasm = SASProc.subtract(water_sasm, emptycell_sasm)
+
+    water_avg_end_idx = int( len(water_bgsub_sasm.i) * 0.666 )
+    water_avg_start_idx = int( len(water_bgsub_sasm.i) * 0.333 )
+
+    avg_water = np.mean(water_bgsub_sasm.i[water_avg_start_idx : water_avg_end_idx])
+
+    abs_scale_constant = I0_water / avg_water
+
+    return abs_scale_constant
+
+def calcAbsoluteScaleCarbonConst(carbon_sasm, carbon_thickness,
+                        _raw_settings, cal_q, cal_i, cal_err, ignore_bkg, bkg_sasm,
+                        carbon_ctr_ups_val, carbon_ctr_dns_val, bkg_ctr_ups_val,
+                        bkg_ctr_dns_val):
+
+    def closest(qlist, qref):
+        return np.argmin(np.absolute(qlist-qref))
+
+    if ignore_bkg:
+        qmin, qmax = carbon_sasm.getQrange()
+        exp_q = carbon_sasm.q[qmin:qmax]
+        exp_i = carbon_sasm.i[qmin:qmax]
+
+    else:
+        carbon_trans = (carbon_ctr_dns_val/carbon_ctr_ups_val)/(bkg_ctr_dns_val/bkg_ctr_ups_val)
+        carbon_sasm.scale(1./carbon_ctr_ups_val)
+        bkg_sasm.scale((1./bkg_ctr_ups_val)*carbon_trans)
+
+        exp_sasm = SASProc.subtract(carbon_sasm, bkg_sasm)
+
+        exp_sasm.scale(1./(carbon_trans)/carbon_thickness)
+
+        qmin, qmax = exp_sasm.getQrange()
+        exp_q = exp_sasm.q[qmin:qmax]
+        exp_i = exp_sasm.i[qmin:qmax]
+
+
+    min_qval = max(cal_q[0], exp_q[0])
+    max_qval = min(cal_q[-1], exp_q[-1])
+
+    cal_min_idx = closest(cal_q, min_qval)
+    cal_max_idx = closest(cal_q, max_qval)
+
+    I_resamp = np.interp(cal_q[cal_min_idx:cal_max_idx+1], exp_q, exp_i)
+    A = np.column_stack([I_resamp, np.zeros_like(I_resamp)])
+    abs_scale_const, offset= np.linalg.lstsq(A, cal_i[cal_min_idx:cal_max_idx+1])[0]
+
+    return abs_scale_const
+
+def normalizeAbsoluteScaleCarbon(sasm, raw_settings):
+    sam_thick = float(raw_settings.get('NormAbsCarbonSamThick'))
+
+    bkg_sasm = raw_settings.get('NormAbsCarbonSamEmptySASM')
+
+    ctr_ups = raw_settings.get('NormAbsCarbonUpstreamCtr')
+    ctr_dns = raw_settings.get('NormAbsCarbonDownstreamCtr')
+
+    sample_ctrs = sasm.getParameter('imageHeader')
+    sample_file_hdr = sasm.getParameter('counters')
+    sample_ctrs.update(sample_file_hdr)
+
+    bkg_ctrs = bkg_sasm.getParameter('imageHeader')
+    bkg_file_hdr = bkg_sasm.getParameter('counters')
+    bkg_ctrs.update(bkg_file_hdr)
+
+    sample_ctr_ups_val = float(sample_ctrs[ctr_ups])
+    sample_ctr_dns_val = float(sample_ctrs[ctr_dns])
+    bkg_ctr_ups_val = float(bkg_ctrs[ctr_ups])
+    bkg_ctr_dns_val = float(bkg_ctrs[ctr_dns])
+
+    sample_trans = (sample_ctr_dns_val/sample_ctr_ups_val)/(bkg_ctr_dns_val/bkg_ctr_ups_val)
+    sasm.scaleRawIntensity(1./sample_ctr_ups_val)
+    bkg_sasm.scale((1./bkg_ctr_ups_val)*sample_trans)
+
+    try:
+        sub_sasm = SASProc.subtract(sasm, bkg_sasm, forced = True, full = True)
+    except SASExceptions.DataNotCompatible:
+        sasm.scaleRawIntensity(sample_ctr_ups_val)
+        raise SASExceptions.AbsScaleNormFailed('Absolute scale failed because empty scattering could not be subtracted')
+
+    sub_sasm.scaleRawIntensity(1./(sample_trans)/sam_thick)
+    sub_sasm.scaleRawIntensity(abs_scale_constant)
+
+    sasm.setRawQ(sub_sasm.getRawQ())
+    sasm.setRawI(sub_sasm.getRawI())
+    sasm.setRawErr(sub_sasm.getRawErr())
+    sasm.scale(1.)
+    sasm.setQrange((0,len(sasm.q)))
+
+    bkg_sasm.scale(1.)
+
+    abs_scale_params = {
+        'Method'    : 'Glassy_carbon',
+        'Absolute_scale_factor': abs_scale_constant,
+        'Sample_thickness_[mm]': sam_thick,
+        'Ignore_background': ignore_bkg,
+        }
+
+    abs_scale_params['Background_file'] = raw_settings.get('NormAbsCarbonSamEmptyFile')
+    abs_scale_params['Upstream_counter_name'] = ctr_ups
+    abs_scale_params['Downstream_counter_name'] = ctr_dns
+    abs_scale_params['Upstream_counter_value_sample'] = sample_ctr_ups_val
+    abs_scale_params['Downstream_counter_value_sample'] = sample_ctr_dns_val
+    abs_scale_params['Upstream_counter_value_background'] = bkg_ctr_ups_val
+    abs_scale_params['Downstream_counter_value_background'] = bkg_ctr_dns_val
+    abs_scale_params['Sample_transmission'] = sample_trans
+
+    norm_parameter = sasm.getParameter('normalizations')
+
+    norm_parameter['Absolute_scale'] = abs_scale_params
+
+    sasm.setParameter('normalizations', norm_parameter)
+
+    return sasm, abs_scale_constant
+
+def postProcessImageSasm(sasm, raw_settings):
+    if (raw_settings.get('NormAbsCarbon') and
+        not raw_settings.get('NormAbsCarbonIgnoreBkg')):
+        normalizeAbsoluteScaleCarbon(sasm, raw_settings)

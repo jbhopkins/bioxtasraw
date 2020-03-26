@@ -25,21 +25,24 @@ Created on Jul 16, 2010
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import object, range, map, zip
 from io import open
+import six
+from six.moves import cPickle as pickle
 
 import copy
 import os
+import json
 
 import wx
 import numpy as np
 
 try:
     import RAWGlobals
-    import SASFileIO
     import SASMask
+    import SASUtils
 except Exception:
     from . import RAWGlobals
-    from . import SASFileIO
     from . import SASMask
+    from . import SASUtils
 
 class RawGuiSettings(object):
     '''
@@ -54,7 +57,7 @@ class RawGuiSettings(object):
         self._params = settings
 
         if settings is None:
-            file_defs, _ = SASFileIO.loadFileDefinitions()
+            file_defs, _ = SASUtils.loadFileDefinitions()
             self._params = {
                 'RequiredVersion'       : ['2.0.0', wx.NewId(), 'text'],
 
@@ -188,11 +191,9 @@ class RawGuiSettings(object):
                 'AutoSaveOnGnom'       : [False, wx.NewId(), 'bool'],
 
                 #IMAGE FORMATS
-                'ImageFormatList'      : [SASFileIO.all_image_types],
                 'ImageFormat'          : ['Pilatus', wx.NewId(), 'choice'],
 
                 #HEADER FORMATS
-                'ImageHdrFormatList'   : [SASFileIO.all_header_types],
                 'ImageHdrFormat'       : ['None', wx.NewId(), 'choice'],
 
                 'ImageHdrList'         : [None],
@@ -389,7 +390,7 @@ class RawGuiSettings(object):
                 }
 
         else:
-            file_defs, _ = SASFileIO.loadFileDefinitions()
+            file_defs, _ = SASUtils.loadFileDefinitions()
             for ftype, fdefs in file_defs.items():
                 for fname, defs in fdefs.items():
                     self._params['fileDefinitions'][0][ftype][fname] = defs
@@ -469,9 +470,9 @@ def fixBackwardsCompatibility(raw_settings, loaded_param):
         raw_settings.set('HeaderBindList', header_bind_list)
 
 
-def loadSettings(raw_settings, loadpath, auto_load = False):
+def loadSettings(raw_settings, filename, auto_load = False):
 
-    loaded_param = SASFileIO.readSettings(loadpath)
+    loaded_param = readSettings(filename)
 
     if loaded_param is None:
         return False
@@ -612,7 +613,7 @@ def postProcess(raw_settings, default_settings, loaded_param):
         wx.CallAfter(wx.MessageBox, 'The following settings have been disabled because the appropriate directory/file could not be found:\n'+text+'\nIf you are using a config file from a different computer please go into Advanced Options to change the settings, or save you config file to avoid this message next time.', 'Load Settings Warning', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
     if raw_settings.get('autoFindATSAS'):
-        atsas_dir = SASFileIO.findATSASDirectory()
+        atsas_dir = SASUtils.findATSASDirectory()
         raw_settings.set('ATSASDir', atsas_dir)
 
     return
@@ -645,7 +646,7 @@ def saveSettings(raw_settings, savepath):
         if masks[key][1] is not None:
             masks[key][1] = [mask.getSaveFormat() for mask in masks[key][1]]
 
-    success = SASFileIO.writeSettings(savepath, save_dict)
+    success = writeSettings(savepath, save_dict)
 
     if not success:
         RAWGlobals.save_in_progress = False
@@ -655,7 +656,7 @@ def saveSettings(raw_settings, savepath):
     ## Make a backup of the config file in case of crash:
     backup_file = os.path.join(RAWGlobals.RAWWorkDir, 'backup.cfg')
 
-    success = SASFileIO.writeSettings(backup_file, save_dict)
+    success = writeSettings(backup_file, save_dict)
 
     if not success:
         RAWGlobals.save_in_progress = False
@@ -674,6 +675,39 @@ def saveSettings(raw_settings, savepath):
 
     return test_load
 
+
+def writeSettings(filename, settings):
+    try:
+        with open(filename, 'w', encoding='utf-8') as f:
+            settings_str = json.dumps(settings, indent = 4, sort_keys = True,
+                cls = SASUtils.MyEncoder, ensure_ascii=False)
+
+            f.write(settings_str)
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+def readSettings(filename):
+
+    try:
+        with open(filename, 'r') as f:
+            settings = f.read()
+        settings = dict(json.loads(settings))
+    except Exception as e:
+        try:
+            with open(filename, 'rb') as f:
+                if six.PY3:
+                    pickle_obj = SASUtils.SafeUnpickler(f, encoding='latin-1')
+                else:
+                    pickle_obj = pickle.Unpickler(f)
+                    pickle_obj.find_global = SASUtils.find_global
+                settings = pickle_obj.load()
+        except Exception as e:
+            print('Error type: %s, error: %s' %(type(e).__name__, e))
+            return None
+
+    return settings
 
 
 # Table from http://physchem.kfunigraz.ac.at/sm/Services.htm

@@ -83,7 +83,6 @@ try:
     import SASFileIO
     import SASM
     import SASExceptions
-    import SASImage
     import SASCalc
     import SASCalib
     import SASMask
@@ -99,11 +98,11 @@ try:
     from RAWGlobals import mainworker_cmd_queue
     import SASProc
     import SASUtils
+    import SECM
 except Exception:
     from . import SASFileIO
     from . import SASM
     from . import SASExceptions
-    from . import SASImage
     from . import SASCalc
     from . import SASCalib
     from . import SASMask
@@ -116,9 +115,10 @@ except Exception:
     from . import RAWIcons
     from . import RAWGlobals
     from . import RAWCustomDialogs
-    from .RAWGlobal import mainworker_cmd_queue
+    from .RAWGlobals import mainworker_cmd_queue
     from . import SASProc
     from . import SASUtils
+    from . import SECM
 
 thread_wait_event = threading.Event()
 question_return_queue = queue.Queue()
@@ -333,7 +333,7 @@ class MainFrame(wx.Frame):
         self.Show(True)
 
     def _onStartup(self, data):
-        _, errors = SASFileIO.loadFileDefinitions()
+        _, errors = SASUtils.loadFileDefinitions()
 
         if len(errors) > 0:
             msg = 'Error loading the following hdf5 definition files:'
@@ -358,7 +358,7 @@ class MainFrame(wx.Frame):
 
         else:
             if self.raw_settings.get('autoFindATSAS'):
-                atsas_dir = SASFileIO.findATSASDirectory()
+                atsas_dir = SASUtils.findATSASDirectory()
                 self.raw_settings.set('ATSASDir', atsas_dir)
 
         dirctrl = wx.FindWindowByName('DirCtrlPanel')
@@ -1563,7 +1563,7 @@ class MainFrame(wx.Frame):
 
                     frame_list = list(range(len(selected_sasms)))
 
-                    secm = SASM.SECM(selected_filenames, selected_sasms,
+                    secm = SECM.SECM(selected_filenames, selected_sasms,
                         frame_list, {}, self.raw_settings)
 
                     manip_item = None
@@ -1589,7 +1589,7 @@ class MainFrame(wx.Frame):
 
                     frame_list = list(range(len(selected_sasms)))
 
-                    secm = SASM.SECM(selected_filenames, selected_sasms,
+                    secm = SECM.SECM(selected_filenames, selected_sasms,
                         frame_list, {}, self.raw_settings)
 
                     manip_item = None
@@ -1638,7 +1638,7 @@ class MainFrame(wx.Frame):
 
                     frame_list = list(range(len(selected_sasms)))
 
-                    secm = SASM.SECM(selected_filenames, selected_sasms,
+                    secm = SECM.SECM(selected_filenames, selected_sasms,
                         frame_list, {}, self.raw_settings)
 
                     manip_item = None
@@ -1664,7 +1664,7 @@ class MainFrame(wx.Frame):
 
                     frame_list = list(range(len(selected_sasms)))
 
-                    secm = SASM.SECM(selected_filenames, selected_sasms,
+                    secm = SECM.SECM(selected_filenames, selected_sasms,
                         frame_list, {}, self.raw_settings)
 
                     manip_item = None
@@ -2900,7 +2900,7 @@ class MainWorkerThread(threading.Thread):
             else:
                 empty_sasm = SASProc.average(empty_sasm)
         try:
-            abs_scale_constant = SASM.calcAbsoluteScaleWaterConst(water_sasm, empty_sasm, waterI0, self._raw_settings)
+            abs_scale_constant = SASCalib.calcAbsoluteScaleWaterConst(water_sasm, empty_sasm, waterI0, self._raw_settings)
         except SASExceptions.DataNotCompatible:
             wx.CallAfter(self.main_frame.closeBusyDialog)
             wx.CallAfter(self._showSubtractionError, water_sasm, empty_sasm)
@@ -2994,7 +2994,7 @@ class MainWorkerThread(threading.Thread):
             bkg_ctr_dns_val = float(bkg_ctrs[ctr_dns])
 
         try:
-            abs_scale_const = SASM.calcAbsoluteScaleCarbonConst(carbon_sasm, carbon_thickness,
+            abs_scale_const = SASCalib.calcAbsoluteScaleCarbonConst(carbon_sasm, carbon_thickness,
                             self._raw_settings, cal_q, cal_i, cal_err, ignore_bkg, bkg_sasm,
                             carbon_ctr_ups_val, carbon_ctr_dns_val, bkg_ctr_ups_val,
                             bkg_ctr_dns_val)
@@ -3179,14 +3179,14 @@ class MainWorkerThread(threading.Thread):
                             sasm_list.append(each)
                         elif isinstance(each, SASM.IFTM):
                             iftm_list.append(each)
-                        elif isinstance(each, SASM.SECM):
+                        elif isinstance(each, SECM.SECM):
                             secm_list.append(each)
                 else:
                     if isinstance(loaded_files, SASM.SASM):
                         sasm_list.append(loaded_files)
                     elif isinstance(loaded_files, SASM.IFTM):
                         iftm_list.append(loaded_files)
-                    elif isinstance(loaded_files, SASM.SECM):
+                    elif isinstance(loaded_files, SECM.SECM):
                         secm_list.append(loaded_files)
 
                 if np.mod(i,20) == 0 and i != 0:
@@ -3366,7 +3366,7 @@ class MainWorkerThread(threading.Thread):
                 return
 
             try:
-                secm = SASM.SECM(filename_list, sasm_list, frame_list, {},
+                secm = SECM.SECM(filename_list, sasm_list, frame_list, {},
                     self._raw_settings)
             except AttributeError:
                 msg = ('Some or all of the selected files were not scattering '
@@ -4445,7 +4445,7 @@ class MainWorkerThread(threading.Thread):
                     return None
 
                 if sim_test == 'CorMap':
-                    n, c, pval = SASCalc.cormap_pval(ref_sasm.i[qi_ref:qf_ref], sasm.i[qi:qf])
+                    n, c, pval = SASProc.cormap_pval(ref_sasm.i[qi_ref:qf_ref], sasm.i[qi:qf])
                 pvals[index] = pval
 
             if correction == 'Bonferroni':
@@ -8025,7 +8025,7 @@ class ManipItemPanel(wx.Panel):
 
             frame_list = list(range(len(selected_sasms)))
 
-            secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {},
+            secm = SECM.SECM(selected_filenames, selected_sasms, frame_list, {},
                 Mainframe.raw_settings)
 
             Mainframe.showSVDFrame(secm, None)
@@ -8048,7 +8048,7 @@ class ManipItemPanel(wx.Panel):
 
             frame_list = list(range(len(selected_sasms)))
 
-            secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {},
+            secm = SECM.SECM(selected_filenames, selected_sasms, frame_list, {},
                 Mainframe.raw_settings)
 
             Mainframe.showEFAFrame(secm, None)
@@ -9227,7 +9227,7 @@ class IFTItemPanel(wx.Panel):
 
             frame_list = list(range(len(selected_sasms)))
 
-            secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {},
+            secm = SECM.SECM(selected_filenames, selected_sasms, frame_list, {},
                 Mainframe.raw_settings)
 
             Mainframe.showSVDFrame(secm, None)
@@ -9253,7 +9253,7 @@ class IFTItemPanel(wx.Panel):
 
             frame_list = list(range(len(selected_sasms)))
 
-            secm = SASM.SECM(selected_filenames, selected_sasms, frame_list, {},
+            secm = SECM.SECM(selected_filenames, selected_sasms, frame_list, {},
                 Mainframe.raw_settings)
 
             Mainframe.showSVDFrame(secm, None)
@@ -11498,8 +11498,8 @@ class MaskingPanel(scrolled.ScrolledPanel):
         else:
             negative = False
 
-        idx_x = np.unique(SASCalc.contiguous_regions(comp[0,:]))
-        idx_y = np.unique(SASCalc.contiguous_regions(comp[:,0]))
+        idx_x = np.unique(SASProc.contiguous_regions(comp[0,:]))
+        idx_y = np.unique(SASProc.contiguous_regions(comp[:,0]))
 
         x_regions = []
         y_regions = []
