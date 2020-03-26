@@ -5669,8 +5669,25 @@ class FilePanel(wx.Panel):
                 if not os.path.isdir(path):
                     files.append(path)
 
+        if len(files) > 100:
+            msg = ('Loading lots of profiles individually may cause RAW to '
+                'slow down. Do you instead want to load these profiles as a series?')
+            dial = wx.MessageDialog(self, msg, 'Loading lots of profiles',
+                wx.YES_NO|wx.CANCEL|wx.NO_DEFAULT|wx.ICON_QUESTION)
+
+            answer = dial.ShowModal()
+
+            dial.Destroy()
+
+        else:
+            answer = wx.ID_NO
+
         if files:
-            mainworker_cmd_queue.put(['plot', files])
+            if answer == wx.ID_NO:
+                mainworker_cmd_queue.put(['plot', files])
+            elif answer == wx.ID_YES:
+                frame_list = list(range(len(files)))
+                mainworker_cmd_queue.put(['sec_plot', [files, frame_list]])
 
     def _onPlotSECButton(self, event):
 
