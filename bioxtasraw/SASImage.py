@@ -35,12 +35,20 @@ import numpy as np
 from numba import jit, prange
 import pyFAI
 
-import SASParser
-import SASCalib
-import SASM
-import SASMask
-import RAWGlobals
-import RAWSettings
+try:
+    import SASParser
+    import SASCalib
+    import SASM
+    import SASMask
+    import RAWGlobals
+    import RAWSettings
+except Exception:
+    from . import SASParser
+    from . import SASCalib
+    from . import SASM
+    from . import SASMask
+    from . import RAWGlobals
+    from . import RAWSettings
 
 def calcExpression(expr, img_hdr, file_hdr):
 

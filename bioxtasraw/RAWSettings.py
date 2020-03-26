@@ -32,9 +32,14 @@ import os
 import wx
 import numpy as np
 
-import RAWGlobals
-import SASFileIO
-import SASMask
+try:
+    import RAWGlobals
+    import SASFileIO
+    import SASMask
+except Exception:
+    from . import RAWGlobals
+    from . import SASFileIO
+    from . import SASMask
 
 class RawGuiSettings(object):
     '''

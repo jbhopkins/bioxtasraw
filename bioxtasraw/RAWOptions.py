@@ -44,13 +44,22 @@ from numpy import ceil
 import numpy as np
 import pyFAI
 
-import RAWSettings
-import RAWCustomCtrl
-import RAWGlobals
-import SASFileIO
-import SASParser
-import SASExceptions
-import SASUtils
+try:
+    import RAWSettings
+    import RAWCustomCtrl
+    import RAWGlobals
+    import SASFileIO
+    import SASParser
+    import SASExceptions
+    import SASUtils
+except Exception:
+    from . import RAWSettings
+    from . import RAWCustomCtrl
+    from . import RAWGlobals
+    from . import SASFileIO
+    from . import SASParser
+    from . import SASExceptions
+    from . import SASUtils
 
 
 #--- ** TREE BOOK PANELS **

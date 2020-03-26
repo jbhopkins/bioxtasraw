@@ -37,8 +37,12 @@ from wx.lib.wordwrap import wordwrap
 from wx.lib.stattext import GenStaticText as StaticText
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 
-import RAWIcons
-import RAWGlobals
+try:
+    import RAWIcons
+    import RAWGlobals
+except Exception:
+    from . import RAWIcons
+    from . import RAWGlobals
 
 class CharValidator(wx.Validator):
     ''' Validates data as it is entered into the text controls. '''

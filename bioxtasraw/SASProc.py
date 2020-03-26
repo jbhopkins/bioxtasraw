@@ -34,9 +34,12 @@ import copy
 import numpy as np
 import scipy.interpolate as interp
 
-import SASExceptions
-import SASM
-
+try:
+    import SASExceptions
+    import SASM
+except Exception:
+    from . import SASExceptions
+    from . import SASM
 
 def subtract(sasm1, sasm2, forced = False, full = False):
     ''' Subtract one SASM object from another and propagate errors '''

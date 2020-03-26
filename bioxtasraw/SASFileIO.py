@@ -53,11 +53,18 @@ from PIL import Image
 import matplotlib.backends.backend_pdf
 import h5py
 
-import RAWGlobals
-import SASImage
-import SASM
-import SASExceptions
-import SASProc
+try:
+    import RAWGlobals
+    import SASImage
+    import SASM
+    import SASExceptions
+    import SASProc
+except Exception:
+    from . import RAWGlobals
+    from . import SASImage
+    from . import SASM
+    from . import SASExceptions
+    from . import SASProc
 
 ############################
 #--- ## Load image files: ##

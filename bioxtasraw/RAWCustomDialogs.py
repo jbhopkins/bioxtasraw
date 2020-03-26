@@ -42,8 +42,12 @@ import matplotlib
 import matplotlib.colors as mplcol
 import matplotlib.font_manager as fm
 
-import RAWCustomCtrl
-import RAWGlobals
+try:
+    import RAWCustomCtrl
+    import RAWGlobals
+except Exception:
+    from . import RAWCustomCtrl
+    from . import RAWGlobals
 
 
 class SaveAnalysisInfoDialog(wx.Dialog):

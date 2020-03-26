@@ -34,10 +34,16 @@ import itertools
 import numpy as np
 from scipy import integrate as integrate
 
-import SASCalib
-import SASExceptions
-import SASCalc
-import SASProc
+try:
+    import SASCalib
+    import SASExceptions
+    import SASCalc
+    import SASProc
+except Exception:
+    from . import SASCalib
+    from . import SASExceptions
+    from . import SASCalc
+    from . import SASProc
 
 
 class SASM(object):

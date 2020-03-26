@@ -54,12 +54,18 @@ import scipy.signal
 from scipy.constants import Avogadro
 from numba import jit
 
-
-import SASFileIO
-import SASExceptions
-import RAWSettings
-import SASProc
-import sascalc_exts
+try:
+    import SASFileIO
+    import SASExceptions
+    import RAWSettings
+    import SASProc
+    import sascalc_exts
+except Exception:
+    from . import SASFileIO
+    from . import SASExceptions
+    from . import RAWSettings
+    from . import SASProc
+    from . import sascalc_exts
 
 
 #Define the rg fit function

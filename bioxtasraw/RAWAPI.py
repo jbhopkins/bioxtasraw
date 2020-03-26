@@ -34,15 +34,28 @@ import copy
 
 import numpy as np
 
-import SASCalc
-import SASExceptions
-import SASFileIO
-import SASImage
-import SASMask
-import SASM
-import SASProc
-import RAWSettings
+try:
+    import SASCalc
+    import SASExceptions
+    import SASFileIO
+    import SASImage
+    import SASMask
+    import SASM
+    import SASProc
+    import RAWSettings
+    import RAWGlobals
+except Exception:
+    from . import SASCalc
+    from . import SASExceptions
+    from . import SASFileIO
+    from . import SASImage
+    from . import SASMask
+    from . import SASM
+    from . import SASProc
+    from . import RAWSettings
+    from . import RAWGlobals
 
+__version__ = RAWGlobals.version
 
 def load_settings(file, settings=None):
     if settings is None:

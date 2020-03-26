@@ -32,7 +32,10 @@ import scipy.interpolate
 import numpy as np
 from numba import jit
 
-import SASM
+try:
+    import SASM
+except Exception:
+    from . import SASM
 
 def createTransMatrix(q, r):
     """

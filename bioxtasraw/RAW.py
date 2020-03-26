@@ -79,25 +79,46 @@ else:
     Aboutbox = wx.AboutBox
 
 
-import SASFileIO
-import SASM
-import SASExceptions
-import SASImage
-import SASCalc
-import SASCalib
-import SASMask
-import RAWPlot
-import RAWImage
-import RAWOptions
-import RAWSettings
-import RAWCustomCtrl
-import RAWAnalysis
-import RAWIcons
-import RAWGlobals
-import RAWCustomDialogs
-from RAWGlobals import mainworker_cmd_queue
-import SASProc
-import SASUtils
+try:
+    import SASFileIO
+    import SASM
+    import SASExceptions
+    import SASImage
+    import SASCalc
+    import SASCalib
+    import SASMask
+    import RAWPlot
+    import RAWImage
+    import RAWOptions
+    import RAWSettings
+    import RAWCustomCtrl
+    import RAWAnalysis
+    import RAWIcons
+    import RAWGlobals
+    import RAWCustomDialogs
+    from RAWGlobals import mainworker_cmd_queue
+    import SASProc
+    import SASUtils
+except Exception:
+    from . import SASFileIO
+    from . import SASM
+    from . import SASExceptions
+    from . import SASImage
+    from . import SASCalc
+    from . import SASCalib
+    from . import SASMask
+    from . import RAWPlot
+    from . import RAWImage
+    from . import RAWOptions
+    from . import RAWSettings
+    from . import RAWCustomCtrl
+    from . import RAWAnalysis
+    from . import RAWIcons
+    from . import RAWGlobals
+    from . import RAWCustomDialogs
+    from .RAWGlobal import mainworker_cmd_queue
+    from . import SASProc
+    from . import SASUtils
 
 thread_wait_event = threading.Event()
 question_return_queue = queue.Queue()
