@@ -85,8 +85,11 @@ class SleepInhibit(object):
     def on(self):
         print('turning sleep inhibit on')
         if self.sleep_inhibit is not None:
-            self.sleep_inhibit.on()
-            self.sleep_count = self.sleep_count + 1
+            try:
+                self.sleep_inhibit.on()
+                self.sleep_count = self.sleep_count + 1
+            except Exception:
+                pass
 
     def off(self):
         print('turning sleep inhibit off')
@@ -94,12 +97,17 @@ class SleepInhibit(object):
             self.sleep_count = self.sleep_count - 1
 
             if self.sleep_count <= 0:
-                self.sleep_inhibit.off()
+                try:
+                    self.sleep_inhibit.off()
+                except Exception:
+                    pass
 
     def force_off(self):
         if self.sleep_inhibit is not None:
-            self.sleep_inhibit.off()
-
+            try:
+                self.sleep_inhibit.off()
+            except Exception:
+                pass
 
 class MacOSSleepInhibit(object):
     """
@@ -192,7 +200,6 @@ class LinuxSleepInhibit(object):
         self.sleep_inhibitor = None
         self.get_inhibitor()
 
-
     def get_inhibitor(self):
         try:
             #Gnome session inhibitor
@@ -224,7 +231,8 @@ class LinuxSleepInhibit(object):
             self.sleep_inhibitor.inhibit()
 
     def off(self):
-        self.sleep_inhibitor.uninhibit()
+        if self.sleep_inhibitor is not None:
+            self.sleep_inhibitor.uninhibit()
 
 class DBusInhibitor:
     def __init__(self, name, path, interface, method=['Inhibit', 'UnInhibit']):
@@ -240,7 +248,7 @@ class DBusInhibitor:
         self._uninhibit = getattr(self.iface, method[1])
 
     def inhibit(self):
-        self.cookie = self._inhibit(APPNAME, REASON)
+        self.cookie = self._inhibit('Bioxtas RAW', 'long_process')
 
     def uninhibit(self):
         self._uninhibit(self.cookie)
@@ -257,8 +265,8 @@ class GnomeSessionInhibitor(DBusInhibitor):
                                ['Inhibit', 'Uninhibit'])
 
     def inhibit(self):
-        log.info('Inhibit (prevent) suspend mode')
-        self.cookie = self._inhibit(APPNAME,
+        self.cookie = self._inhibit('Bioxtas RAW',
                                     GnomeSessionInhibitor.TOPLEVEL_XID,
-                                    REASON,
+                                    'long_process',
                                     GnomeSessionInhibitor.INHIBIT_SUSPEND)
+
