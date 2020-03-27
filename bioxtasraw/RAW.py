@@ -2769,13 +2769,22 @@ class MainWorkerThread(threading.Thread):
                 if self._abort == True:
                     self._cleanUpAfterAbort()
                 else:
-                    self._commands[command](data)
+                    try:
+                        self._commands[command](data)
+                    except Exception:
+                        wx.CallAfter(self.main_frame.closeBusyDialog)
+                        err = traceback.format_exc()
+                        msg = ("An unexpected error has occurred, please report it to the "
+                            "developers."
+                            "\n\nError:\n%s" %(err))
+
+                        wx.CallAfter(wx.lib.dialogs.scrolledMessageDialog,
+                            None, msg, "Unexpected Error")
 
             time.sleep(0.01)
 
     def _cleanUpAfterAbort(self):
         pass
-
 
     def _onlineModeUpdate(self, data):
         filename = data[0]
@@ -13135,7 +13144,7 @@ class MyApp(wx.App):
         err = traceback.format_exception(errType, value, trace)
         errTxt = "\n".join(err)
         msg = ("An unexpected error has occurred, please report it to the "
-                "developers. You may need to restart RAW to continue working"
+                "developers. You may need to restart RAW to continue working."
                 "\n\nError:\n%s" %(errTxt))
 
         if self and self.IsMainLoopRunning():
