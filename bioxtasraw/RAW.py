@@ -6755,6 +6755,8 @@ class ManipulationPanel(wx.Panel):
         self.modified_items = []
         self.selected_item_list = []
 
+        self.underpanel.Freeze()
+
         rest_of_items = []
         for each in self.all_manipulation_items:
             try:
@@ -6767,6 +6769,8 @@ class ManipulationPanel(wx.Panel):
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Layout()
         self.underpanel.Refresh()
+
+        self.underpanel.Thaw()
 
     def clearBackgroundItem(self):
         self._raw_settings.set('BackgroundSASM', None)
@@ -6819,35 +6823,43 @@ class ManipulationPanel(wx.Panel):
         return self.selected_item_list
 
     def selectAll(self):
+        self.underpanel.Freeze()
+
         for i in range(len(self.all_manipulation_items)):
             each = self.all_manipulation_items[i]
-            each._selected = False
             if i != len(self.all_manipulation_items) -1:
-                each.toggleSelect(update_info = False)
+                if not each._selected:
+                    each.toggleSelect(update_info = False)
             else:
-                each.toggleSelect()
+                if not each._selected:
+                    each.toggleSelect()
+
+        self.underpanel.Thaw()
 
     def deselectAllExceptOne(self, item, line = None, enableLocatorLine = False):
+        self.underpanel.Freeze()
 
         if line is None:
             for each in self.all_manipulation_items:
                 if each != item:
-                    each._selected = True
-                    each.toggleSelect(update_info=False)
+                    if each._selected:
+                        each.toggleSelect(update_info=False)
         else:
             for each in self.all_manipulation_items:
                 if each.sasm.getLine() == line:
-                    each._selected = False
-                    each.toggleSelect(update_info = True)
+                    if not each._selected:
+                        each.toggleSelect(update_info = True)
                 else:
-                    each._selected = True
-                    each.toggleSelect(update_info = False)
+                    if each._selected:
+                        each.toggleSelect(update_info = False)
+
+        self.underpanel.Thaw()
 
     def removeSelectedItems(self):
         if len(self.getSelectedItems()) == 0:
             return
 
-        # self.underpanel.Freeze()
+        self.underpanel.Freeze()
 
         info_panel = wx.FindWindowByName('InformationPanel')
         info_panel.clearInfo()
@@ -6894,7 +6906,7 @@ class ManipulationPanel(wx.Panel):
         self.underpanel.Layout()
         self.underpanel.Refresh()
 
-        # self.underpanel.Thaw()
+        self.underpanel.Thaw()
 
     def _onShowAllButton(self, event):
         self.underpanel.Freeze()
@@ -7483,7 +7495,7 @@ class ManipItemPanel(wx.Panel):
         if updatePlot:
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
 
-    def toggleSelect(self, set_focus = False, update_info = True):
+    def toggleSelect(self, set_focus = False, update_info = True, refresh=True):
         if self._selected:
             self._selected = False
             self.SetBackgroundColour(wx.Colour(250,250,250))
@@ -7497,7 +7509,8 @@ class ManipItemPanel(wx.Panel):
             if update_info:
                 self.info_panel.updateInfoFromItem(self)
 
-        self.Refresh()
+        if refresh:
+            self.Refresh()
 
     def enableLocatorLine(self):
 
@@ -7525,7 +7538,9 @@ class ManipItemPanel(wx.Panel):
     def getControlsVisible(self):
         return self._controls_visible
 
-    def showControls(self, state):
+    def showControls(self, state, update_top_panel=False):
+        if update_top_panel:
+            self.manipulation_panel.underpanel.Freeze()
 
         if state == False:
             self.expand_collapse.SetBitmap(self.expand_png)
@@ -7537,15 +7552,20 @@ class ManipItemPanel(wx.Panel):
             self.topsizer.Show(self.controlSizer, recursive=True)
 
         self.expand_collapse.Refresh()
-        self.topsizer.Layout()
 
+        if update_top_panel:
+            self.manipulation_panel.underpanel.SetVirtualSize(self.manipulation_panel.underpanel.GetBestVirtualSize())
+            self.topsizer.Layout()
+            self.manipulation_panel.underpanel.Refresh()
+
+            self.manipulation_panel.underpanel.Thaw()
 
     def showItem(self, state):
         self._selected_for_plot = state
 
         if not self._selected_for_plot:
             self._controls_visible = False
-            self.showControls(self._controls_visible)
+            self.showControls(self._controls_visible, True)
             self.showitem_icon.SetBitmap(self.hide_png)
         else:
             self.showitem_icon.SetBitmap(self.show_png)
@@ -7578,15 +7598,23 @@ class ManipItemPanel(wx.Panel):
 
     def markAsModified(self, updateSelf = True, updateParent = True):
         filename = self.sasm.getParameter('filename')
-        self.item_name.SetLabel('* ' + str(filename))
 
-        if updateSelf:
-            self.item_name.Refresh()
-            self.topsizer.Layout()
+        mod_filename = '* ' + str(filename)
 
-        if updateParent:
-            self.parent.Layout()
-            self.parent.Refresh()
+        if self.item_name.GetLabel() != mod_filename:
+            self.item_name.SetLabel(mod_filename)
+
+            if updateSelf:
+                self.Freeze()
+                self.item_name.Refresh()
+                self.topsizer.Layout()
+                self.Thaw()
+
+            if updateParent:
+                self.parent.Freeze()
+                self.parent.Layout()
+                self.parent.Refresh()
+                self.parent.Thaw()
 
         if self not in self.manipulation_panel.modified_items:
             self.manipulation_panel.modified_items.append(self)
@@ -7594,14 +7622,19 @@ class ManipItemPanel(wx.Panel):
     def unmarkAsModified(self, updateSelf = True, updateParent = True):
         filename = self.sasm.getParameter('filename')
 
-        self.item_name.SetLabel(str(filename))
-        if updateSelf:
-            self.item_name.Refresh()
-            self.topsizer.Layout()
+        if self.item_name.GetLabel() != str(filename):
+            self.item_name.SetLabel(str(filename))
+            if updateSelf:
+                self.Freeze()
+                self.item_name.Refresh()
+                self.topsizer.Layout()
+                self.Thaw()
 
-        if updateParent:
-            self.parent.Layout()
-            self.parent.Refresh()
+            if updateParent:
+                self.parent.Freeze()
+                self.parent.Layout()
+                self.parent.Refresh()
+                self.parent.Thaw()
         try:
             self.manipulation_panel.modified_items.remove(self)
         except:
@@ -7619,12 +7652,16 @@ class ManipItemPanel(wx.Panel):
         self.item_name.SetLabel(str(filename))
 
         if updateSelf:
+            self.Freeze()
             self.item_name.Refresh()
             self.topsizer.Layout()
+            self.Thaw()
 
         if updateParent:
+            self.parent.Freeze()
             self.parent.Layout()
             self.parent.Refresh()
+            self.parent.Thaw()
 
     def useAsMWStandard(self):
 
@@ -7718,14 +7755,7 @@ class ManipItemPanel(wx.Panel):
 
     def _onExpandCollapseButton(self, event):
         self._controls_visible = not self._controls_visible
-        self.showControls(self._controls_visible)
-
-        self.manipulation_panel.underpanel.SetVirtualSize(self.manipulation_panel.underpanel.GetBestVirtualSize())
-        self.GetParent().Layout()
-        self.GetParent().Refresh()
-
-        self.GetParent().GetParent().Layout()
-        self.GetParent().GetParent().Refresh()
+        self.showControls(self._controls_visible, True)
 
     def _onTargetButton(self, event):
         self.enableLocatorLine()
@@ -8126,6 +8156,7 @@ class ManipItemPanel(wx.Panel):
                 top_item = max(idxs)
                 bottom_item = min(idxs)
                 item_list = manipulation_panel.all_manipulation_items[bottom_item+adj:top_item+adj]
+
                 for i in range(len(item_list)):
                     each = item_list[i]
                     if i != len(item_list)-1:
@@ -8249,9 +8280,6 @@ class ManipItemPanel(wx.Panel):
         self._selected_for_plot = not self._selected_for_plot
 
         self.showItem(self._selected_for_plot)
-
-        self.GetParent().Layout()
-        self.GetParent().Refresh()
 
         self.plot_panel.updateLegend(self.sasm.axes, False)
 
@@ -8435,6 +8463,8 @@ class IFTPanel(wx.Panel):
 
 
     def addItem(self, iftm_list, item_colour = 'black', item_visible = True, notsaved = False, legend_label=defaultdict(str)):
+        self.underpanel.Freeze()
+
         if not isinstance(iftm_list, list):
             iftm_list = [iftm_list]
 
@@ -8458,6 +8488,7 @@ class IFTPanel(wx.Panel):
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Layout()
         self.underpanel.Refresh()
+        self.underpanel.Thaw()
 
     def setItemAsBackground(self, item):
 
@@ -8483,6 +8514,8 @@ class IFTPanel(wx.Panel):
         self.selected_item_list = []
         self.modified_items = []
 
+        self.underpanel.Freeze()
+
         for each in self.all_manipulation_items:
             try:
                 each.Destroy()
@@ -8494,6 +8527,7 @@ class IFTPanel(wx.Panel):
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Layout()
         self.underpanel.Refresh()
+        self.underpanel.Thaw()
 
     def clearBackgroundItem(self):
         self._raw_settings.set('BackgroundSASM', None)
@@ -8513,31 +8547,41 @@ class IFTPanel(wx.Panel):
         self.selectAll()
 
     def selectAll(self):
+        self.underpanel.Freeze()
+
         for i in range(len(self.all_manipulation_items)):
             each = self.all_manipulation_items[i]
-            each._selected = False
             if i != len(self.all_manipulation_items) -1:
-                each.toggleSelect(update_info = False)
+                if not each._selected:
+                    each.toggleSelect(update_info = False)
             else:
-                each.toggleSelect()
+                if not each._selected:
+                    each.toggleSelect()
+
+        self.underpanel.Thaw()
 
     def deselectAllExceptOne(self, item, line = None, enableLocatorLine = False):
+
+        self.underpanel.Freeze()
 
         if line is None:
             for each in self.all_manipulation_items:
                 if each != item:
-                    each._selected = True
-                    each.toggleSelect(update_info=False)
+                    if each._selected:
+                        each.toggleSelect(update_info=False)
         else:
             for each in self.all_manipulation_items:
                 if line in each.lines:
-                    each._selected = False
-                    each.toggleSelect(update_info = False)
+                    if not each._selected:
+                        each.toggleSelect(update_info = True)
                 else:
-                    each._selected = True
-                    each.toggleSelect(update_info = False)
+                    if each._selected:
+                        each.toggleSelect(update_info = False)
+
+        self.underpanel.Thaw()
 
     def removeSelectedItems(self):
+        self.underpanel.Freeze()
 
         if len(self.getSelectedItems()) == 0:
             return
@@ -8580,6 +8624,7 @@ class IFTPanel(wx.Panel):
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Layout()
         self.underpanel.Refresh()
+        self.underpanel.Thaw()
 
     def _onShowAllButton(self, event):
 
@@ -8920,16 +8965,22 @@ class IFTItemPanel(wx.Panel):
 
     def markAsModified(self, updateSelf = True, updateParent = True):
         filename = self.iftm.getParameter('filename')
+        mod_filename = '* ' + str(filename)
 
-        self.item_name.SetLabel('* ' + str(filename))
+        if self.item_name.GetLabel() != mod_filename:
+            self.item_name.SetLabel(mod_filename)
 
-        if updateSelf:
-            self.item_name.Refresh()
-            self.topsizer.Layout()
+            if updateSelf:
+                self.Freeze()
+                self.item_name.Refresh()
+                self.topsizer.Layout()
+                self.Thaw()
 
-        if updateParent:
-            self.parent.Layout()
-            self.parent.Refresh()
+            if updateParent:
+                self.parent.Freeze()
+                self.parent.Layout()
+                self.parent.Refresh()
+                self.parent.Thaw()
 
         if self not in self.ift_panel.modified_items:
             self.ift_panel.modified_items.append(self)
@@ -8937,14 +8988,20 @@ class IFTItemPanel(wx.Panel):
     def unmarkAsModified(self, updateSelf = True, updateParent = True):
         filename = self.iftm.getParameter('filename')
 
-        self.item_name.SetLabel(str(filename))
-        if updateSelf:
-            self.item_name.Refresh()
-            self.topsizer.Layout()
+        if self.item_name.GetLabel() != filename:
+            self.item_name.SetLabel(str(filename))
 
-        if updateParent:
-            self.parent.Layout()
-            self.parent.Refresh()
+            if updateSelf:
+                self.Freeze()
+                self.item_name.Refresh()
+                self.topsizer.Layout()
+                self.Thaw()
+
+            if updateParent:
+                self.parent.Freeze()
+                self.parent.Layout()
+                self.parent.Refresh()
+                self.parent.Thaw()
         try:
             self.ift_panel.modified_items.remove(self)
         except:
@@ -9064,12 +9121,16 @@ class IFTItemPanel(wx.Panel):
         self.item_name.SetLabel(str(filename))
 
         if updateSelf:
+            self.Freeze()
             self.item_name.Refresh()
             self.topsizer.Layout()
+            self.Thaw()
 
         if updateParent:
+            self.parent.Freeze()
             self.parent.Layout()
             self.parent.Refresh()
+            self.parent.Thaw()
 
     def _initializeIcons(self):
 
@@ -9387,9 +9448,6 @@ class IFTItemPanel(wx.Panel):
 
         self.showItem(self._selected_for_plot)
 
-        self.GetParent().Layout()
-        self.GetParent().Refresh()
-
         self.ift_plot_panel.updateLegend(self.iftm.r_axes, False)
         self.ift_plot_panel.updateLegend(self.iftm.qo_axes, False)
 
@@ -9541,13 +9599,19 @@ class SECPanel(wx.Panel):
         return sizer
 
     def selectAll(self):
+        self.underpanel.Freeze()
+
         for i in range(len(self.all_manipulation_items)):
             each = self.all_manipulation_items[i]
-            each._selected = False
+
             if i != len(self.all_manipulation_items) -1:
-                each.toggleSelect(update_info = False)
+                if not each._selected:
+                    each.toggleSelect(update_info = False)
             else:
-                each.toggleSelect()
+                if not each._selected:
+                    each.toggleSelect()
+
+        self.underpanel.Thaw()
 
     def _onShowAllButton(self, event):
         self.underpanel.Freeze()
@@ -9611,21 +9675,28 @@ class SECPanel(wx.Panel):
         return self.selected_item_list
 
     def deselectAllExceptOne(self, item, line = None, enableLocatorLine = False):
+
+        self.underpanel.Freeze()
+
         if line is None:
             for each in self.all_manipulation_items:
                 if each != item:
-                    each._selected = True
-                    each.toggleSelect(update_info = False)
+                    if each._selected:
+                        each.toggleSelect(update_info = False)
         else:
             for each in self.all_manipulation_items:
                 if each.secm.getLine() == line or each.secm.getCalcLine() == line:
-                    each._selected = False
-                    each.toggleSelect(update_info = False)
+                    if not each._selected:
+                        each.toggleSelect(update_info = True)
                 else:
-                    each._selected = True
-                    each.toggleSelect(update_info = False)
+                    if each._selected:
+                        each.toggleSelect(update_info = False)
+
+        self.underpanel.Thaw()
 
     def removeSelectedItems(self):
+
+        self.underpanel.Freeze()
 
         sec_control_panel = wx.FindWindowByName('SeriesControlPanel')
 
@@ -9678,6 +9749,7 @@ class SECPanel(wx.Panel):
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Layout()
         self.underpanel.Refresh()
+        self.underpanel.Thaw()
 
     def addItem(self, secm_list, item_colour = 'black', item_visible = True, notsaved = False, legend_label=defaultdict(str)):
         self.underpanel.Freeze()
@@ -9836,6 +9908,8 @@ class SECPanel(wx.Panel):
         self.selected_item = []
         self.starred_item = None
 
+        self.underpanel.Freeze()
+
         for each in self.all_manipulation_items:
 
             try:
@@ -9850,6 +9924,8 @@ class SECPanel(wx.Panel):
         self.underpanel.SetVirtualSize(self.underpanel.GetBestVirtualSize())
         self.underpanel.Layout()
         self.underpanel.Refresh()
+
+        self.underpanel.Thaw()
 
         self.sec_control_panel.clearAll()
 
@@ -10229,30 +10305,44 @@ class SeriesItemPanel(wx.Panel):
 
     def markAsModified(self, updateSelf = True, updateParent = True):
         filename = self.secm.getParameter('filename')
-        self.item_name.SetLabel('* ' + str(filename))
 
-        if updateSelf:
-            self.item_name.Refresh()
-            self.topsizer.Layout()
+        mod_filename = '* ' + str(filename)
 
-        if updateParent:
-            self.parent.Layout()
-            self.parent.Refresh()
+        if self.item_name.GetLabel() != mod_filename:
+            self.item_name.SetLabel(mod_filename)
+
+            if updateSelf:
+                self.Freeze()
+                self.item_name.Refresh()
+                self.topsizer.Layout()
+                self.Thaw()
+
+            if updateParent:
+                self.Freeze()
+                self.parent.Layout()
+                self.parent.Refresh()
+                self.Thaw()
 
         if self not in self.sec_panel.modified_items:
             self.sec_panel.modified_items.append(self)
 
     def unmarkAsModified(self, updateSelf = True, updateParent = True):
         filename = self.secm.getParameter('filename')
-        self.item_name.SetLabel(str(filename))
 
-        if updateSelf:
-            self.item_name.Refresh()
-            self.topsizer.Layout()
+        if self.item_name.GetLabel() != str(filename):
+            self.item_name.SetLabel(str(filename))
 
-        if updateParent:
-            self.parent.Layout()
-            self.parent.Refresh()
+            if updateSelf:
+                self.Freeze()
+                self.item_name.Refresh()
+                self.topsizer.Layout()
+                self.Thaw()
+
+            if updateParent:
+                self.Freeze()
+                self.parent.Layout()
+                self.parent.Refresh()
+                self.Thaw()
         try:
             self.sec_panel.modified_items.remove(self)
         except:
@@ -10270,12 +10360,16 @@ class SeriesItemPanel(wx.Panel):
         self.item_name.SetLabel(str(filename))
 
         if updateSelf:
+            self.Freeze()
             self.item_name.Refresh()
             self.topsizer.Layout()
+            self.Thaw()
 
         if updateParent:
+            self.Freeze()
             self.parent.Layout()
             self.parent.Refresh()
+            self.Thaw()
 
     def _initializeIcons(self):
 
@@ -10534,9 +10628,6 @@ class SeriesItemPanel(wx.Panel):
         self._selected_for_plot = not self._selected_for_plot
 
         self.showItem(self._selected_for_plot)
-
-        self.GetParent().Layout()
-        self.GetParent().Refresh()
 
         self.sec_plot_panel.updateLegend(self.secm.axes, False)
 
@@ -12739,7 +12830,11 @@ class InformationPanel(wx.Panel):
         else:
             self.selectedItem.info_settings['hdr_choice'] = 0
 
-    def clearInfo(self):
+    def clearInfo(self, refresh=True):
+
+        if refresh:
+            self.Freeze()
+
         self._disableAllControls()
 
         if self.sasm is not None and self.selectedItem is not None:
@@ -12774,10 +12869,15 @@ class InformationPanel(wx.Panel):
         self.selectedItem = None
 
         self.analysis_info_sizer.Layout()
-        self.Refresh()
+
+        if refresh:
+            self.Refresh()
+            self.Thaw()
 
     def updateInfoFromItem(self, item):
-        self.clearInfo()
+        self.Freeze()
+
+        self.clearInfo(refresh=False)
 
         self.sasm = item.getSASM()
 
@@ -12860,6 +12960,7 @@ class InformationPanel(wx.Panel):
 
         self._enableAllControls()
         self.Refresh()
+        self.Thaw()
 
     def WriteText(self, text):
         self.infoTextBox.AppendText(text)
