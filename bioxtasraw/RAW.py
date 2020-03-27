@@ -958,7 +958,9 @@ class MainFrame(wx.Frame):
             label = "Missing Guinier Analysis"
             icon = wx.ART_WARNING
 
-            question_dialog = RAWCustomDialogs.CustomQuestionDialog(self, question, button_list, label, icon, None, None, style = wx.CAPTION | wx.RESIZE_BORDER)
+            question_dialog = RAWCustomDialogs.CustomQuestionDialog(self,
+                question, button_list, label, icon, None, None,
+                style=wx.CAPTION|wx.RESIZE_BORDER)
             result = question_dialog.ShowModal()
             question_dialog.Destroy()
 
@@ -1889,8 +1891,7 @@ class MainFrame(wx.Frame):
                 dlg = RAWCustomDialogs.IFTDataDialog(self, selected_items[0].iftm)
             else:
                 dlg = RAWCustomDialogs.DataDialog(self, selected_items[0].sasm)
-            dlg.ShowModal()
-            dlg.Destroy()
+            dlg.Show()
 
         elif val == self.MenuIDs['showheader']:
             current_page = self.control_notebook.GetSelection()
@@ -1906,8 +1907,7 @@ class MainFrame(wx.Frame):
                 return
 
             dlg = RAWCustomDialogs.HdrDataDialog(self, selected_items[0].sasm)
-            dlg.ShowModal()
-            dlg.Destroy()
+            dlg.Show()
 
         elif val == self.MenuIDs['showhistory']:
             current_page = self.control_notebook.GetSelection()
@@ -1923,8 +1923,7 @@ class MainFrame(wx.Frame):
                 return
 
             dlg = RAWCustomDialogs.HistoryDialog(self, selected_items[0].sasm)
-            dlg.ShowModal()
-            dlg.Destroy()
+            dlg.Show()
 
         else:
             key = [k for k, v in self.MenuIDs.items() if v == val][0]
@@ -2523,7 +2522,9 @@ class OnlineController(object):
             label = "Missing Directory"
             icon = wx.ART_WARNING
 
-            question_dialog = RAWCustomDialogs.CustomQuestionDialog(self.main_frame, question, button_list, label, icon, None, None, style = wx.CAPTION | wx.RESIZE_BORDER)
+            question_dialog = RAWCustomDialogs.CustomQuestionDialog(self.main_frame,
+                question, button_list, label, icon, None, None,
+                style=wx.CAPTION|wx.RESIZE_BORDER)
             result = question_dialog.ShowModal()
             question_dialog.Destroy()
 
@@ -7868,15 +7869,13 @@ class ManipItemPanel(wx.Panel):
 
         elif evt.GetId() == 20:
             dlg = RAWCustomDialogs.DataDialog(self, self.sasm)
-            dlg.ShowModal()
-            dlg.Destroy()
+            dlg.Show()
 
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
 
         elif evt.GetId() == 21:
             dlg = RAWCustomDialogs.HdrDataDialog(self, self.sasm)
-            dlg.ShowModal()
-            dlg.Destroy()
+            dlg.Show()
 
         elif evt.GetId() == 22:
             selected_items = self.manipulation_panel.getSelectedItems()
@@ -7937,8 +7936,7 @@ class ManipItemPanel(wx.Panel):
         elif evt.GetId() == 33:
             #Show the history viewer dialog
             dlg = RAWCustomDialogs.HistoryDialog(self, self.sasm)
-            dlg.ShowModal()
-            dlg.Destroy()
+            dlg.Show()
 
         elif evt.GetId() == 34:
             #Run SVD on the selected profiles
@@ -9153,8 +9151,7 @@ class IFTItemPanel(wx.Panel):
 
         elif evt.GetId() == 20:
             dlg = RAWCustomDialogs.IFTDataDialog(self, self.iftm)
-            dlg.ShowModal()
-            dlg.Destroy()
+            dlg.Show()
 
         elif evt.GetId() == 22:
             #To main plot
@@ -10350,8 +10347,7 @@ class SeriesItemPanel(wx.Panel):
 
         elif evt.GetId() == 4:
             dlg = RAWCustomDialogs.SeriesDataDialog(self, self.secm)
-            dlg.ShowModal()
-            dlg.Destroy()
+            dlg.Show()
 
         elif evt.GetId() == 5:
             dlg = RAWCustomDialogs.FilenameChangeDialog(self, self.secm.getParameter('filename'))

@@ -784,11 +784,10 @@ class HdrDataDialog(wx.Dialog):
 
 
     def _onOk(self, event):
-        self.EndModal(wx.ID_OK)
+        self.Destroy()
 
     def _onCancel(self, event):
-        self.EndModal(wx.ID_CANCEL)
-
+        self.Destroy()
 
 class DataDialog(wx.Dialog):
 
@@ -891,10 +890,10 @@ class DataDialog(wx.Dialog):
             self.data_grid.SetCellValue(i, 2, str(Err[i]))
 
     def _onOk(self, event):
-        self.EndModal(wx.ID_OK)
+        self.Destroy()
 
     def _onCancel(self, event):
-        self.EndModal(wx.ID_CANCEL)
+        self.Destroy()
 
 
 class SeriesDataDialog(wx.Dialog):
@@ -1116,7 +1115,7 @@ class SeriesDataDialog(wx.Dialog):
             self.data_grid.SetCellValue(i, index, os.path.split(self.secm._file_list[i])[1])
 
     def _onOk(self, event):
-        self.EndModal(wx.ID_OK)
+        self.Destroy()
 
 
 class IFTDataDialog(wx.Dialog):
@@ -1249,7 +1248,7 @@ class IFTDataDialog(wx.Dialog):
                     self.data_grid.SetCellValue(i, 8, '')
 
     def _onOk(self, event):
-        self.EndModal(wx.ID_OK)
+        self.Destroy()
 
 
 class HistoryDialog(wx.Dialog):
@@ -1327,7 +1326,7 @@ class HistoryDialog(wx.Dialog):
 
     def _onOk(self, event):
 
-        self.EndModal(wx.ID_OK)
+        self.Destroy()
 
 
 class SyncDialog(wx.Dialog):
