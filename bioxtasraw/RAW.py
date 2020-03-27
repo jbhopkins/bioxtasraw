@@ -5204,6 +5204,9 @@ class MainWorkerThread(threading.Thread):
         overwrite_all = False
         no_to_all = False
 
+        if len(selected_items) == 1:
+            overwrite_all = True
+
         try:
             for b in range(len(selected_items)):
 
@@ -5269,6 +5272,9 @@ class MainWorkerThread(threading.Thread):
         overwrite_all = False
         no_to_all = False
 
+        if len(selected_items) == 1:
+            overwrite_all = 1
+
         try:
             for b in range(len(selected_items)):
 
@@ -5325,6 +5331,7 @@ class MainWorkerThread(threading.Thread):
                     wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [os.path.split(save_path[b])[1]])
 
         except Exception as e:
+            traceback.print_exc()
             msg = 'Unexpected error while saving series data:\n{}'.format(e)
             self._showSaveError('generic', msg)
 
@@ -5473,6 +5480,9 @@ class MainWorkerThread(threading.Thread):
 
         overwrite_all = False
         no_to_all = False
+
+        if len(item_list) == 1:
+            overwrite_all = True
 
         try:
             for item in item_list:
@@ -7171,7 +7181,9 @@ class ManipulationPanel(wx.Panel):
             # dialog = wx.FileDialog( None, style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
             fname = os.path.splitext(os.path.basename(selected_items[0].sasm.getParameter('filename')))[0]+'.dat'
             msg = "Please select save directory and enter save file name"
-            dialog = wx.FileDialog(self, message = msg, style = wx.FD_SAVE, defaultDir = path, defaultFile = fname)
+            dialog = wx.FileDialog(self, message=msg,
+                style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT, defaultDir=path,
+                defaultFile=fname)
 
             if dialog.ShowModal() == wx.ID_OK:
                 path = dialog.GetPath()
@@ -8646,7 +8658,9 @@ class IFTPanel(wx.Panel):
             # dialog = wx.FileDialog( None, style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
             fname = os.path.splitext(os.path.basename(selected_items[0].iftm.getParameter('filename')))[0]+file_ext
             msg = "Please select save directory and enter save file name"
-            dialog = wx.FileDialog(self, message = msg, style = wx.FD_SAVE, defaultDir = path, defaultFile = fname)
+            dialog = wx.FileDialog(self, message=msg,
+                style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT, defaultDir=path,
+                defaultFile=fname)
 
             if dialog.ShowModal() == wx.ID_OK:
                 path = dialog.GetPath()

@@ -24,6 +24,7 @@ Created on March 26, 2020
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import object, range, map, open, zip
 from io import open
+import six
 
 import os
 import copy
@@ -457,6 +458,14 @@ class SECM(object):
                 all_data['baseline_corr'].append(self.baseline_corr[idx].extractAll())
             else:
                 all_data['baseline_corr'].append(-1)
+
+
+        # Here's some stupid python 2 compatibility stuff
+        if not six.PY3:
+            str_key_list = ['series_type', 'mol_type', 'baseline_type']
+
+            for key in str_key_list:
+                all_data[key] = np.string_(all_data[key])
 
         return all_data
 

@@ -4762,7 +4762,7 @@ class DammifRunPanel(wx.Panel):
         if len(prefix)>30:
             msg = ("Warning: The file prefix '{}'' is too long (>30 characters). It "
                 "will be truncated to '{}'. Proceed?".format(prefix, prefix[:30]))
-            dlg = wx.MessageDialog(self.main_frame, msg, "Overwrite existing file?",
+            dlg = wx.MessageDialog(self.main_frame, msg, "Truncate filename?",
                 style=wx.ICON_WARNING|wx.YES_NO)
             proceed = dlg.ShowModal()
             dlg.Destroy()
