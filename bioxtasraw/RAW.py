@@ -2214,7 +2214,7 @@ class MainFrame(wx.Frame):
                             'Crystallography (2017). 50, 1545-1553'))
 
         info.SetWebSite("http://bioxtas-raw.readthedocs.io/", "The RAW Project Homepage")
-        info.SetDevelopers(["Soren Skou", "Jesse B. Hopkins", "Richard E. Gillilan", "Jesper Nygaard"])
+        info.SetDevelopers(["Soren Skou", "Jesse B. Hopkins", "Richard E. Gillilan"])
         info.SetLicense(('This program is free software: you can redistribute it '
                         'and/or modify it under the terms of the\nGNU General '
                         'Public License as published by the Free Software '

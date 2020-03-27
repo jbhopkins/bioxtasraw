@@ -256,6 +256,7 @@ def calcAbsoluteScaleCarbonConst(carbon_sasm, carbon_thickness,
     return abs_scale_const
 
 def normalizeAbsoluteScaleCarbon(sasm, raw_settings):
+    abs_scale_constant = float(raw_settings.get('NormAbsCarbonConst'))
     sam_thick = float(raw_settings.get('NormAbsCarbonSamThick'))
 
     bkg_sasm = raw_settings.get('NormAbsCarbonSamEmptySASM')
@@ -301,7 +302,7 @@ def normalizeAbsoluteScaleCarbon(sasm, raw_settings):
         'Method'    : 'Glassy_carbon',
         'Absolute_scale_factor': abs_scale_constant,
         'Sample_thickness_[mm]': sam_thick,
-        'Ignore_background': ignore_bkg,
+        'Ignore_background': False,
         }
 
     abs_scale_params['Background_file'] = raw_settings.get('NormAbsCarbonSamEmptyFile')
