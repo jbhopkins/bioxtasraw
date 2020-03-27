@@ -1948,20 +1948,14 @@ class MainFrame(wx.Frame):
 
             elif key[0:7] == 'plot1ty':
                 plotpanel.plotparams['plot1type'] = key[7:]
-                if key[7:] == 'guinier':
-                    plotpanel.plotparams['axesscale1'] = 'loglin'
-                elif key[7:] == 'kratky' or key[7:] == 'porod':
-                    plotpanel.plotparams['axesscale1'] = 'linlin'
+                plotpanel.plotparams['axesscale1'] = 'linlin'
 
                 plotpanel.updatePlotType(plotpanel.subplot1)
                 plotpanel.updatePlotAxes()
 
             elif key[0:7] == 'plot2ty':
                 plotpanel.plotparams['plot2type'] = key[7:]
-                if key[7:] == 'guinier':
-                    plotpanel.plotparams['axesscale2'] = 'loglin'
-                elif key[7:] == 'kratky' or key[7:] == 'porod':
-                    plotpanel.plotparams['axesscale2'] = 'linlin'
+                plotpanel.plotparams['axesscale2'] = 'linlin'
 
                 plotpanel.updatePlotType(plotpanel.subplot2)
                 plotpanel.updatePlotAxes()
@@ -2021,8 +2015,17 @@ class MainFrame(wx.Frame):
                     secplotpanel._updateFrameStylesForAllPlots()
                 secplotpanel.updatePlotData()
 
-            elif key == 'secplotmw':
-                secplotpanel.plotparams['secm_plot_calc'] = 'MW'
+            elif key == 'secplotvcmw':
+                secplotpanel.plotparams['secm_plot_calc'] = 'MW (Vc)'
+                raxis_on = secplotpanel.plotparams['framestyle1'].find('r')
+                if raxis_on>-1:
+                    secplotpanel.plotparams['framestyle1'] = secplotpanel.plotparams['framestyle1'].replace('r','')
+                    secplotpanel.plotparams['framestyle2'] = secplotpanel.plotparams['framestyle2']+'r'
+                    secplotpanel._updateFrameStylesForAllPlots()
+                secplotpanel.updatePlotData()
+
+            elif key == 'secplotvpmw':
+                secplotpanel.plotparams['secm_plot_calc'] = 'MW (Vp)'
                 raxis_on = secplotpanel.plotparams['framestyle1'].find('r')
                 if raxis_on>-1:
                     secplotpanel.plotparams['framestyle1'] = secplotpanel.plotparams['framestyle1'].replace('r','')
