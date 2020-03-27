@@ -155,9 +155,6 @@ class RawGuiSettings(object):
 
                 'MaskDimension'          : [1024,1024],
 
-				#SANS Parameters
-				'SampleThickness'		: [0.1,  wx.NewId(), 'float'],
-
                 #DEFAULT BIFT PARAMETERS
                 'maxDmax'     : [400.0,  wx.NewId(), 'float'],
                 'minDmax'     : [10.0,   wx.NewId(), 'float'],

@@ -1742,64 +1742,6 @@ class ReductionFlatfield(scrolled.ScrolledPanel):
 
                     chk.SetValue(False)
 
-class SansOptionsPanel(scrolled.ScrolledPanel):
-
-    def __init__(self, parent, id, raw_settings, *args, **kwargs):
-
-        if 'style' in kwargs:
-            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
-        else:
-            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
-        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
-        self.SetScrollRate(20,20)
-
-        self.raw_settings = raw_settings
-
-        self.update_keys = ['SampleThickness',
-							'MWStandardConc']
-
-        self.MWData = [("Sample Thickness (cm):", raw_settings.getId('SampleThickness')),
-                        ("Conc. [mg/ml]:", raw_settings.getId('MWStandardConc'))]
-
-        box = wx.StaticBox(self, -1, 'SANS Parameters')
-
-        mw_sizer = self.createMWSettings()
-
-        mwbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        mwbox_sizer.Add(mw_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
-
-        final_sizer = wx.BoxSizer(wx.VERTICAL)
-        final_sizer.Add(mwbox_sizer, 0, wx.EXPAND | wx.ALL, 5)
-
-        self.SetSizer(final_sizer)
-
-    def createMWSettings(self):
-
-        hSizer = wx.FlexGridSizer(cols = 6, rows = 1, vgap = 3, hgap = 5)
-
-#        mwchoices = ['BSA', 'Lysozyme', 'Glucose Isomerse']
-#        std_choice = wx.Choice(self, -1, choices = mwchoices)
-#
-#        sizer = wx.BoxSizer(wx.VERTICAL)
-#        txt = wx.StaticText(self, -1, 'Standard:')
-#
-#        sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
-#        sizer.Add(std_choice, 0)
-#
-#        hSizer.Add(sizer, 0)
-
-        for txt, id in self.MWData:
-            sizer = wx.BoxSizer(wx.VERTICAL)
-            ctrl = wx.TextCtrl(self, id, '', style = wx.TE_PROCESS_ENTER)
-            txt = wx.StaticText(self, -1, txt)
-
-            sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
-            sizer.Add(ctrl, 0)
-
-            hSizer.Add(sizer, 0)
-
-        return hSizer
-
 class MolecularWeightPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
@@ -4646,7 +4588,6 @@ class OptionsDialog(wx.Dialog):
                             [ (11,0,0), wx.Window.NewControlId(), "Similarity Testing", SimilarityPanel],
                             [ (12,0,0), wx.Window.NewControlId(), "Fitting", FittingPanel],
                             [ (13,0,0), wx.Window.NewControlId(), "DENSS", DenssPanel],
-                            # [ (10,0,0), wx.Window.NewControlId(), "SANS", SansOptionsPanel]
                             ]
 
         self._raw_settings = raw_settings
