@@ -4385,10 +4385,12 @@ class DammifFrame(wx.Frame):
         'https://www.embl-hamburg.de/biosaxs/damaver.html\n\nIf you use '
         'DAMCLUST in your work please cite the paper given here:\n'
         'https://www.embl-hamburg.de/biosaxs/manuals/damclust.html\n\n'
-        'If you use AMBIMETER in your work please cite:\n'
-        'Petoukhov, M. V. & Svergun, D. I. (2015). Acta Cryst. D71, 1051-1058.\n\n'
+        'If you use AMBIMETER in your work please cite the paper given here:\n'
+        'https://www.embl-hamburg.de/biosaxs/manuals/ambimeter.html.\n\n'
         'If you use SASRES in your work please cite the paper given here:\n'
-        'https://www.embl-hamburg.de/biosaxs/manuals/sasres.html')
+        'https://www.embl-hamburg.de/biosaxs/manuals/sasres.html\n\n'
+        'If you use SUPCOMB in your work please cite the paper given here:\n'
+        'https://www.embl-hamburg.de/biosaxs/supcomb.html')
         wx.MessageBox(str(msg), "How to cite AMBIMETER/DAMMIF/DAMMIN/DAMAVER/DAMCLUST/SASRES", style = wx.ICON_INFORMATION | wx.OK)
 
 
@@ -4444,6 +4446,9 @@ class DammifRunPanel(wx.Panel):
                     'program'       : self.NewControlId(),
                     'refine'        : self.NewControlId(),
                     'fname'         : self.NewControlId(),
+                    'align'         : self.NewControlId(),
+                    'align_file'    : self.NewControlId(),
+                    'align_file_btn': self.NewControlId(),
                     }
 
         self.threads = []
@@ -4556,6 +4561,21 @@ class DammifRunPanel(wx.Panel):
         damclust_chk = wx.CheckBox(parent, self.ids['damclust'], 'Align and cluster envelopes (damclust)')
         damclust_chk.Bind(wx.EVT_CHECKBOX, self.onCheckBox)
 
+        self.align_result = wx.CheckBox(parent, self.ids['align'],
+            label='Align output to PDB:')
+        self.align_result.SetValue(False)
+        self.align_file_ctrl = wx.TextCtrl(parent, self.ids['align_file'],
+            style=wx.TE_READONLY)
+        align_button = wx.Button(parent, self.ids['align_file_btn'],
+            label='Select')
+        align_button.Bind(wx.EVT_BUTTON, self._selectAlignFile)
+
+        align_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        align_sizer.Add(self.align_result, border=5, flag=wx.RIGHT)
+        align_sizer.Add(self.align_file_ctrl, border=5, flag=wx.RIGHT,
+            proportion=1)
+        align_sizer.Add(align_button)
+
         advancedButton = wx.Button(parent, -1, 'Change Advanced Settings')
         advancedButton.Bind(wx.EVT_BUTTON, self._onAdvancedButton)
 
@@ -4563,17 +4583,14 @@ class DammifRunPanel(wx.Panel):
         settings_box = wx.StaticBox(parent, -1, 'Settings')
         settings_sizer = wx.StaticBoxSizer(settings_box, wx.VERTICAL)
         settings_sizer.Add(savedir_sizer, 0, wx.EXPAND)
-        # settings_sizer.Add(savedir_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
         settings_sizer.Add(prefix_sizer, 0, wx.EXPAND | wx.TOP, 5)
         settings_sizer.Add(nruns_sizer, 0, wx.TOP, 5)
         settings_sizer.Add(nprocs_sizer, 0, wx.TOP, 5)
-        # settings_sizer.Add(mode_sizer, 0)
-        # settings_sizer.Add(sym_sizer, 0)
-        # settings_sizer.Add(aniso_sizer, 0)
         settings_sizer.Add(choices_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 5)
         settings_sizer.Add(damaver_chk, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
         settings_sizer.Add(refine_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
         settings_sizer.Add(damclust_chk, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        settings_sizer.Add(align_sizer, border=5, flag=wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND)
         settings_sizer.Add(advancedButton, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, 5)
 
 
@@ -4717,6 +4734,8 @@ class DammifRunPanel(wx.Panel):
 
         self.logbook.DeleteAllPages()
 
+        self.align_file_name = None
+
 
     def onStartButton(self, evt):
         #Set the dammif settings
@@ -4747,6 +4766,9 @@ class DammifRunPanel(wx.Panel):
 
         refine_window = wx.FindWindowById(self.ids['refine'], self)
         refine = refine_window.GetValue()
+
+        align = self.align_result.GetValue()
+
 
         outname = os.path.join(path, prefix+'.out')
 
@@ -4852,7 +4874,7 @@ class DammifRunPanel(wx.Panel):
 
             self.dammif_ids['damaver'] = self.NewControlId()
             text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['damaver'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
-            self.logbook.AddPage(text_ctrl, 'Damaver')
+            self.logbook.AddPage(text_ctrl, 'Average')
 
         if nruns > 1 and refine:
             self.dammif_ids['refine'] = self.NewControlId()
@@ -4866,12 +4888,17 @@ class DammifRunPanel(wx.Panel):
             for item in damclust_names:
 
                 if os.path.exists(os.path.join(path, item)) and not yes_to_all:
-                    button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
-                    question = 'Warning: selected directory contains the DAMCLUST output file\n"%s". Running DAMCLUST will overwrite this file.\nDo you wish to continue?' %(item)
+                    button_list = [('Yes', wx.ID_YES),
+                        ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
+                    question = ('Warning: selected directory contains the '
+                        'DAMCLUST output file\n"%s". Running DAMCLUST will '
+                        'overwrite this file.\nDo you wish to continue?' %(item))
                     label = 'Overwrite existing files?'
                     icon = wx.ART_WARNING
 
-                    question_dialog = RAWCustomDialogs.CustomQuestionDialog(self.main_frame, question, button_list, label, icon, style = wx.CAPTION | wx.RESIZE_BORDER)
+                    question_dialog = RAWCustomDialogs.CustomQuestionDialog(self.main_frame,
+                        question, button_list, label, icon,
+                        style = wx.CAPTION | wx.RESIZE_BORDER)
                     result = question_dialog.ShowModal()
                     question_dialog.Destroy()
 
@@ -4881,8 +4908,56 @@ class DammifRunPanel(wx.Panel):
                         yes_to_all = True
 
             self.dammif_ids['damclust'] = self.NewControlId()
-            text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['damclust'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
-            self.logbook.AddPage(text_ctrl, 'Damclust')
+            text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['damclust'], '',
+                style = wx.TE_MULTILINE | wx.TE_READONLY)
+            self.logbook.AddPage(text_ctrl, 'Cluster')
+
+        if align and self.align_file_name != '':
+            filenames = [os.path.split(self.align_file_name)[1]]
+
+            filenames.extend(['{}-1_aligned.pdb'.format(key) for key in dammif_names])
+
+            if nruns > 1 and damaver:
+                filenames.extend(['{}_damfilt_aligned.pdb'.format(prefix),
+                    '{}_damaver_aligned.pdb'.format(prefix)])
+
+            if nruns > 1 and refine:
+                filenames.append('{}_refined-1.pdb'.format(prefix))
+
+            for item in filenames:
+                if os.path.exists(os.path.join(path, item)) and not yes_to_all:
+                    button_list = [('Yes', wx.ID_YES),
+                        ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
+
+                    question = ('Warning: selected directory contains an '
+                        'alignment output file\n"%s". Running alignment will '
+                        'overwrite this file.\nDo you wish to continue?' %(item))
+                    label = 'Overwrite existing files?'
+                    icon = wx.ART_WARNING
+
+                    question_dialog = RAWCustomDialogs.CustomQuestionDialog(self.main_frame,
+                        question, button_list, label, icon,
+                        style=wx.CAPTION|wx.RESIZE_BORDER)
+
+                    result = question_dialog.ShowModal()
+                    question_dialog.Destroy()
+
+                    if result == wx.ID_NO:
+                        return
+                    elif result == wx.ID_YESTOALL:
+                        yes_to_all = True
+
+            self.dammif_ids['align'] = self.NewControlId()
+            text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['align'], '',
+                style=wx.TE_MULTILINE|wx.TE_READONLY)
+            self.logbook.AddPage(text_ctrl, 'Align')
+
+        elif align and self.align_file_name == '':
+            msg = ('You must select a file to align to or disable alignment.')
+            dlg = wx.MessageDialog(self, msg, 'No alignment template file')
+            dlg.ShowModal()
+            dlg.Destroy()
+            return
 
 
         self.status.SetValue('Starting processing\n')
@@ -4906,8 +4981,10 @@ class DammifRunPanel(wx.Panel):
         self.rs = queue.Queue()
 
         for key in self.dammif_ids:
-            if key != 'damaver' and key != 'damclust' and key != 'refine':
-                t = threading.Thread(target = self.runDammif, args = (outname, prefix, path, program))
+            if (key != 'damaver' and key != 'damclust' and key != 'refine'
+                and key != 'align'):
+                t = threading.Thread(target = self.runDammif,
+                    args=(outname, prefix, path, program))
                 t.daemon = True
                 t.start()
                 self.threads.append(t)
@@ -4955,6 +5032,28 @@ class DammifRunPanel(wx.Panel):
         if dirdlg.ShowModal() == wx.ID_OK:
             new_path = dirdlg.GetPath()
             wx.FindWindowById(self.ids['save'], self).SetValue(new_path)
+
+    def _selectAlignFile(self, evt):
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        load_path = dirctrl_panel.getDirLabel()
+
+        filters = 'PDB files (*.pdb)|*.pdb|All files (*.*)|*.*'
+
+        dialog = wx.FileDialog(self, 'Select a file', load_path, style=wx.FD_OPEN,
+            wildcard=filters)
+
+        if dialog.ShowModal() == wx.ID_OK:
+            file = dialog.GetPath()
+        else:
+            file = None
+
+        # Destroy the dialog
+        dialog.Destroy()
+
+        if file is not None:
+            self.align_file_name = file
+            self.align_file_ctrl.SetValue(os.path.split(file)[1])
+            self.align_file_ctrl.SetToolTip(wx.ToolTip(file))
 
 
     def onRunsText(self, evt):
@@ -5017,9 +5116,14 @@ class DammifRunPanel(wx.Panel):
                 dam_prefix = 'refine_' + prefix
 
             #Remove old files, so they don't mess up the program
-            old_files = [os.path.join(path, dam_prefix+'.log'), os.path.join(path, dam_prefix+'.in'),
-                        os.path.join(path, dam_prefix+'.fit'), os.path.join(path, dam_prefix+'.fir'),
-                        os.path.join(path, dam_prefix+'-1.pdb'), os.path.join(path, dam_prefix+'-0.pdb')]
+            old_files = [os.path.join(path, dam_prefix+'.log'),
+                os.path.join(path, dam_prefix+'.in'),
+                os.path.join(path, dam_prefix+'.fit'),
+                os.path.join(path, dam_prefix+'.fir'),
+                os.path.join(path, dam_prefix+'-1.pdb'),
+                os.path.join(path, dam_prefix+'-1_aligned.pdb'),
+                os.path.join(path, dam_prefix+'-0.pdb'),
+                ]
 
             for item in old_files:
                 if os.path.exists(item):
@@ -5102,6 +5206,13 @@ class DammifRunPanel(wx.Panel):
                     t.daemon = True
                     t.start()
                     self.threads.append(t)
+
+                elif 'align' in self.dammif_ids:
+                    t = threading.Thread(target = self.runSupcomb, args = (prefix, path))
+                    t.daemon = True
+                    t.start()
+                    self.threads.append(t)
+
                 else:
                     wx.CallAfter(self.finishedProcessing)
             else:
@@ -5110,24 +5221,6 @@ class DammifRunPanel(wx.Panel):
 
     def runDamaver(self, prefix, path):
         read_semaphore = threading.BoundedSemaphore(1)
-        #Solution for non-blocking reads adapted from stack overflow
-        #http://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
-        def enqueue_output(out, queue):
-            with read_semaphore:
-                line = 'test'
-                line2=''
-                while line != '':
-                    line = out.read(1)
-
-                    if not isinstance(line, str):
-                        line = str(line, encoding='UTF-8')
-
-                    line2+=line
-                    if line == '\n':
-                        queue.put_nowait([line2])
-                        line2=''
-                    time.sleep(0.00001)
-
 
         with self.my_semaphore:
             #Check to see if things have been aborted
@@ -5139,11 +5232,14 @@ class DammifRunPanel(wx.Panel):
                 return
 
             #Remove old files, so they don't mess up the program
-            old_files = [os.path.join(path, prefix+'_damfilt.pdb'), os.path.join(path, prefix+'_damsel.log'),
-                        os.path.join(path, prefix+'_damstart.pdb'), os.path.join(path, prefix+'_damsup.log'),
-                        os.path.join(path, prefix+'_damaver.pdb'), os.path.join(path, 'damfilt.pdb'),
-                        os.path.join(path, 'damsel.log'), os.path.join(path, 'damstart.pdb'),
-                        os.path.join(path, 'damsup.log'), os.path.join(path, 'damaver.pdb')]
+            old_files = [os.path.join(path, prefix+'_damfilt.pdb'),
+                os.path.join(path, prefix+'_damsel.log'),
+                os.path.join(path, prefix+'_damstart.pdb'),
+                os.path.join(path, prefix+'_damsup.log'),
+                os.path.join(path, prefix+'_damaver.pdb'),
+                os.path.join(path, prefix+'_damfilt_aligned.pdb'),
+                os.path.join(path, prefix+'_damaver_aligned.pdb'),
+                ]
 
             for item in old_files:
                 if os.path.exists(item):
@@ -5163,7 +5259,8 @@ class DammifRunPanel(wx.Panel):
 
 
             damaver_q = queue.Queue()
-            readout_t = threading.Thread(target=enqueue_output, args=(damaver_proc.stdout, damaver_q))
+            readout_t = threading.Thread(target=self.enqueue_output,
+                args=(damaver_proc, damaver_q, read_semaphore))
             readout_t.daemon = True
             readout_t.start()
 
@@ -5186,13 +5283,24 @@ class DammifRunPanel(wx.Panel):
 
             time.sleep(2)
             with read_semaphore: #see if there's any last data that we missed
-                try:
-                    new_text = damaver_q.get_nowait()
-                    new_text = new_text[0]
+                while True:
+                    try:
+                        new_text = damaver_q.get_nowait()
+                        new_text = new_text[0]
 
+                        if new_text != '':
+                            wx.CallAfter(damWindow.AppendText, new_text)
+
+                    except queue.Empty:
+                        break
+
+                new_text = damaver_proc.stdout.read()
+
+                if not isinstance(new_text, str):
+                    new_text = str(new_text, encoding='UTF-8')
+
+                if new_text != '':
                     wx.CallAfter(damWindow.AppendText, new_text)
-                except queue.Empty:
-                    pass
 
             new_files = [(os.path.join(path, 'damfilt.pdb'), os.path.join(path, prefix+'_damfilt.pdb')),
                         (os.path.join(path, 'damsel.log'), os.path.join(path, prefix+'_damsel.log')),
@@ -5227,6 +5335,13 @@ class DammifRunPanel(wx.Panel):
                 t.daemon = True
                 t.start()
                 self.threads.append(t)
+
+            elif 'align' in self.dammif_ids:
+                t = threading.Thread(target = self.runSupcomb, args = (prefix, path))
+                t.daemon = True
+                t.start()
+                self.threads.append(t)
+
             else:
                 wx.CallAfter(self.finishedProcessing)
 
@@ -5234,24 +5349,6 @@ class DammifRunPanel(wx.Panel):
     def runDamclust(self, prefix, path):
 
         read_semaphore = threading.BoundedSemaphore(1)
-        #Solution for non-blocking reads adapted from stack overflow
-        #http://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
-        def enqueue_output(out, queue):
-            with read_semaphore:
-                line = 'test'
-                line2=''
-                while line != '':
-                    line = out.read(1)
-
-                    if not isinstance(line, str):
-                        line = str(line, encoding='UTF-8')
-
-                    line2+=line
-                    if line == '\n':
-                        queue.put_nowait([line2])
-                        line2=''
-                    time.sleep(0.00001)
-
 
         with self.my_semaphore:
             #Check to see if things have been aborted
@@ -5262,8 +5359,15 @@ class DammifRunPanel(wx.Panel):
                 wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
                 return
 
+            nruns_window = wx.FindWindowById(self.ids['runs'], self)
+            nruns = int(nruns_window.GetValue())
+
             #Remove old files, so they don't mess up the program
             old_files = [os.path.join(path, prefix+'_damclust.log')]
+
+            for i in range(1, nruns+1):
+                old_files.append(os.path.join(path, '{}-1-avr.pdb'.format(prefix)))
+                old_files.append(os.path.join(path, '{}-1-flt.pdb'.format(prefix)))
 
             for item in old_files:
                 if os.path.exists(item):
@@ -5272,8 +5376,7 @@ class DammifRunPanel(wx.Panel):
             wx.CallAfter(self.status.AppendText, 'Starting DAMCLUST\n')
 
 
-            nruns_window = wx.FindWindowById(self.ids['runs'], self)
-            nruns = int(nruns_window.GetValue())
+
 
             dam_filelist = [prefix+'_%s-1.pdb' %(str(i).zfill(2)) for i in range(1, nruns+1)]
 
@@ -5283,7 +5386,8 @@ class DammifRunPanel(wx.Panel):
 
 
             damclust_q = queue.Queue()
-            readout_t = threading.Thread(target=enqueue_output, args=(damclust_proc.stdout, damclust_q))
+            readout_t = threading.Thread(target=self.enqueue_output,
+                args=(damclust_proc, damclust_q, read_semaphore))
             readout_t.daemon = True
             readout_t.start()
 
@@ -5305,14 +5409,26 @@ class DammifRunPanel(wx.Panel):
                 time.sleep(0.001)
 
             time.sleep(2)
-            with read_semaphore: #see if there's any last data that we missed
-                try:
-                    new_text = damclust_q.get_nowait()
-                    new_text = new_text[0]
 
+            with read_semaphore: #see if there's any last data that we missed
+                while True:
+                    try:
+                        new_text = damclust_q.get_nowait()
+                        new_text = new_text[0]
+
+                        if new_text != '':
+                            wx.CallAfter(damWindow.AppendText, new_text)
+
+                    except queue.Empty:
+                        break
+
+                new_text = damclust_proc.stdout.read()
+
+                if not isinstance(new_text, str):
+                    new_text = str(new_text, encoding='UTF-8')
+
+                if new_text != '':
                     wx.CallAfter(damWindow.AppendText, new_text)
-                except queue.Empty:
-                    pass
 
 
             new_files = [(os.path.join(path, 'damclust.log'), os.path.join(path, prefix+'_damclust.log'))]
@@ -5322,8 +5438,173 @@ class DammifRunPanel(wx.Panel):
 
             wx.CallAfter(self.status.AppendText, 'Finished DAMCLUST\n')
 
+            if 'align' in self.dammif_ids:
+                t = threading.Thread(target = self.runSupcomb, args = (prefix, path))
+                t.daemon = True
+                t.start()
+                self.threads.append(t)
+
+            else:
+                wx.CallAfter(self.finishedProcessing)
+
+
+    def runSupcomb(self, prefix, path):
+
+        if self.align_file_name != os.path.join(path, os.path.split(self.align_file_name)[-1]):
+            shutil.copy(self.align_file_name, path)
+
+        template = os.path.split(self.align_file_name)[-1]
+
+        with self.my_semaphore:
+            #Check to see if things have been aborted
+            sup_id = self.dammif_ids['align']
+            sup_window = wx.FindWindowById(sup_id, self)
+
+            if self.abort_event.is_set():
+                wx.CallAfter(sup_window.AppendText, 'Aborted!\n')
+                return
+
+            nruns = int(wx.FindWindowById(self.ids['runs'], self).GetValue())
+            symmetry = self.dammif_settings['sym']
+
+            if symmetry == 'P1':
+                mode = 'fast'
+            else:
+                mode = 'slow'
+
+            target_filenames = []
+            if 'damaver' in self.dammif_ids:
+                name = '{}_damsup.log'.format(prefix)
+                filename = os.path.join(path, name)
+                _, rep_model = SASFileIO.loadDamsupLogFile(filename)
+
+                target_filenames.extend(['{}_damaver.pdb'.format(prefix),
+                    '{}_damfilt.pdb'.format(prefix), rep_model])
+
+            if 'refine' in self.dammif_ids:
+                target_filenames.append('refine_{}-1.pdb'.format(prefix))
+
+            if 'damclust' in self.dammif_ids:
+                name = '{}_damclust.log'.format(prefix)
+                filename = os.path.join(path, name)
+                cluster_list, distance_list = SASFileIO.loadDamclustLogFile(filename)
+
+                for cluster in cluster_list:
+                    if cluster.rep_model not in target_filenames:
+                        name, ext = os.path.splitext(cluster.rep_model)
+                        target_filenames.append(cluster.rep_model)
+                        target_filenames.append('{}-avr.pdb'.format(name))
+                        target_filenames.append('{}-flt.pdb'.format(name))
+
+            if ('damaver' not in self.dammif_ids and 'refine' not in self.dammif_ids
+                and 'damclust' not in self.dammif_ids):
+                target_filenames.extend(['{}_{:02d}-1.pdb'.format(prefix, run) for run in range(1, nruns+1)])
+
+            supcomb_q = queue.Queue()
+            read_semaphore = threading.BoundedSemaphore(1)
+
+            wx.CallAfter(self.status.AppendText, 'Starting Alignment\n')
+
+            for target in target_filenames:
+                if self.abort_event.is_set():
+                    wx.CallAfter(self.sup_window.AppendText, 'Aborted!\n')
+                    return
+
+                msg = 'SUPCOMB started for {}\n\n'.format(target)
+                wx.CallAfter(sup_window.AppendText, msg)
+
+                sup_proc = SASCalc.runSupcomb(template, target, path,
+                    symmetry=symmetry, mode=mode)
+
+                if sup_proc is None:
+                    msg  = ('SUPCOMB failed to start for target file '
+                        '{}'.format(target))
+                    wx.CallAfter(sup_window.AppendText, msg)
+
+                else:
+                    readout_t = threading.Thread(target=self.enqueue_output,
+                        args=(sup_proc, supcomb_q, read_semaphore))
+                    readout_t.daemon = True
+                    readout_t.start()
+
+
+                    #Send the damaver output to the screen.
+                    while sup_proc.poll() is None:
+                        if self.abort_event.is_set():
+                            sup_proc.terminate()
+                            wx.CallAfter(sup_window.AppendText, '\nAborted!')
+                        try:
+                            new_text = supcomb_q.get_nowait()
+                            new_text = new_text[0]
+
+                            wx.CallAfter(sup_window.AppendText, new_text)
+
+                        except queue.Empty:
+                            pass
+                        time.sleep(0.001)
+
+                    if not self.abort_event.is_set():
+                        time.sleep(2)
+                        with read_semaphore: #see if there's any last data that we missed
+                            while True:
+                                try:
+                                    new_text = supcomb_q.get_nowait()
+                                    new_text = new_text[0]
+
+                                    if new_text != '':
+                                        wx.CallAfter(sup_window.AppendText, new_text)
+
+                                except queue.Empty:
+                                    break
+
+                            new_text = sup_proc.stdout.read()
+
+                            if not isinstance(new_text, str):
+                                new_text = str(new_text, encoding='UTF-8')
+
+                            if new_text != '':
+                                wx.CallAfter(sup_window.AppendText, new_text)
+
+                        name, ext = os.path.splitext(target)
+                        sup_name = '{}_aligned{}'.format(name, ext)
+
+                        if os.path.exists(os.path.join(path, sup_name)):
+                            msg = '\nSUPCOMB finished for {}\n\n'.format(target)
+                            wx.CallAfter(sup_window.AppendText, msg)
+                        else:
+                            msg = '\nSUPCOMB failed for {}\n\n'.format(target)
+                            wx.CallAfter(sup_window.AppendText, msg)
+
+            wx.CallAfter(self.status.AppendText, 'Finished Alignment\n')
             wx.CallAfter(self.finishedProcessing)
 
+    def enqueue_output(self, proc, queue, read_semaphore):
+        #Solution for non-blocking reads adapted from stack overflow
+        #http://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
+
+        with read_semaphore:
+            out = proc.stdout
+            line = ''
+            line2=''
+            while proc.poll() is None:
+                line = out.read(1)
+
+                if not isinstance(line, str):
+                    line = str(line, encoding='UTF-8')
+
+                line2+=line
+                if line == '\n':
+                    queue.put_nowait([line2])
+                    line2=''
+                time.sleep(0.00001)
+
+            line = out.read(1)
+
+            if not isinstance(line, str):
+                line = str(line, encoding='UTF-8')
+
+            line2 += line
+            queue.put_nowait([line2])
 
     def onDammifTimer(self, evt):
         dammif_finished = False
@@ -5361,6 +5642,19 @@ class DammifRunPanel(wx.Panel):
                 prefix = prefix.replace(' ', '_')
 
                 t = threading.Thread(target = self.runDamclust, args = (prefix, path))
+                t.daemon = True
+                t.start()
+                self.threads.append(t)
+
+            elif 'align' in self.dammif_ids:
+                path_window = wx.FindWindowById(self.ids['save'], self)
+                path = path_window.GetValue()
+
+                prefix_window = wx.FindWindowById(self.ids['prefix'], self)
+                prefix = prefix_window.GetValue()
+                prefix = prefix.replace(' ', '_')
+
+                t = threading.Thread(target = self.runSupcomb, args = (prefix, path))
                 t.daemon = True
                 t.start()
                 self.threads.append(t)
@@ -9519,7 +9813,7 @@ class SupcombFrame(wx.Frame):
         adv_win = adv_pane.GetPane()
 
         self.mode = wx.Choice(adv_win, choices=['fast', 'slow'])
-        self.mode.SetSelection(1)
+        self.mode.SetSelection(0)
 
         self.superposition = wx.Choice(adv_win, choices=['ALL', 'BACKBONE'])
         self.superposition.SetSelection(0)
@@ -9617,12 +9911,16 @@ class SupcombFrame(wx.Frame):
         except Exception:
             fraction = None
             error = True
-            msg = ('Fraction must be a number between 0 and 1.0')
+            msg = ('Fraction must be a number between 0 and 1.0.')
 
         if isinstance(fraction, float):
             if fraction < 0 or fraction > 1:
                 error = True
-                msg = ('Fraction must be a number between 0 and 1.0')
+                msg = ('Fraction must be a number between 0 and 1.0.')
+
+        if symmetry != 'P1' and mode == 'fast':
+            error = True
+            msg = ('Slow mode must be used to aply symmetry constraints.')
 
         if not error:
             settings = {'mode'  : mode,
@@ -9650,18 +9948,21 @@ class SupcombFrame(wx.Frame):
 
         if dialog.ShowModal() == wx.ID_OK:
             file = dialog.GetPath()
+        else:
+            file = None
 
         # Destroy the dialog
         dialog.Destroy()
 
-        if evt.GetEventObject() == self.template_select:
-            self.template_file_name = file
-            self.template_file.SetValue(os.path.split(file)[1])
-            self.template_file.SetToolTip(wx.ToolTip(file))
-        else:
-            self.target_file_name = file
-            self.target_file.SetValue(os.path.split(file)[1])
-            self.target_file.SetToolTip(wx.ToolTip(file))
+        if file is not None:
+            if evt.GetEventObject() == self.template_select:
+                self.template_file_name = file
+                self.template_file.SetValue(os.path.split(file)[1])
+                self.template_file.SetToolTip(wx.ToolTip(file))
+            else:
+                self.target_file_name = file
+                self.target_file.SetValue(os.path.split(file)[1])
+                self.target_file.SetToolTip(wx.ToolTip(file))
 
     def onStartButton(self, evt):
         self.abort_event.clear()
@@ -9702,11 +10003,19 @@ class SupcombFrame(wx.Frame):
                 if not isinstance(line, str):
                     line = str(line, encoding='UTF-8')
 
-                line2+=line
+                line2 += line
                 if line == '\n':
                     queue.put_nowait([line2])
                     line2=''
                 time.sleep(0.00001)
+
+            line = out.read()
+
+            if not isinstance(line, str):
+                line = str(line, encoding='UTF-8')
+
+            line2 += line
+            queue.put_nowait([line2])
 
     def runSupcomb(self):
         tempdir = self.standard_paths.GetTempDir()
@@ -9756,13 +10065,24 @@ class SupcombFrame(wx.Frame):
             if not self.abort_event.is_set():
                 time.sleep(2)
                 with self.read_semaphore: #see if there's any last data that we missed
-                    try:
-                        new_text = self.out_queue.get_nowait()
-                        new_text = new_text[0]
+                    while True:
+                        try:
+                            new_text = self.out_queue.get_nowait()
+                            new_text = new_text[0]
 
+                            if new_text != '':
+                                wx.CallAfter(self.status.AppendText, new_text)
+
+                        except queue.Empty:
+                            break
+
+                    new_text = sup_proc.stdout.read()
+
+                    if not isinstance(new_text, str):
+                        new_text = str(new_text, encoding='UTF-8')
+
+                    if new_text != '':
                         wx.CallAfter(self.status.AppendText, new_text)
-                    except queue.Empty:
-                        pass
 
                 name, ext = os.path.splitext(target_tempname)
                 temp_outname = '{}_aligned{}'.format(name, ext)
@@ -9775,6 +10095,12 @@ class SupcombFrame(wx.Frame):
                     wx.CallAfter(self.status.AppendText, '\nSUPCOMB finished')
                 else:
                     wx.CallAfter(self.status.AppendText, '\nSUPCOMB failed')
+
+                try:
+                    os.remove(template_tempname)
+                    os.remove(target_tempname)
+                except Exception:
+                    pass
 
         self.cleanupSupcomb()
 
