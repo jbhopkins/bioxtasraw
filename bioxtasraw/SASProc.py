@@ -30,6 +30,7 @@ from builtins import object, range, map, zip
 from io import open
 
 import copy
+import traceback
 
 import numpy as np
 import scipy.interpolate as interp
@@ -40,6 +41,7 @@ try:
     import sascalc_exts
 
 except Exception:
+    traceback.print_exc()
     from . import SASExceptions
     from . import SASM
     from . import sascalc_exts

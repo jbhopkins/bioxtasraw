@@ -35,6 +35,7 @@ import pyFAI, pyFAI.geometryRefinement, pyFAI.massif
 try:
     import SASExceptions
     import SASProc
+
 except Exception:
     from . import SASExceptions
     from . import SASProc

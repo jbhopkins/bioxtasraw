@@ -1533,6 +1533,43 @@ def runDamaver(flist, path, symmetry='P1'):
 
         return process
 
+def runSupcomb(file1, file2, path, symmetry='P1', mode='slow',
+    superposition='ALL', enantiomorphs='YES', proximity='NSD',
+    fraction=1.0):
+
+    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+    atsasDir = raw_settings.get('ATSASDir')
+
+    opsys = platform.system()
+
+    if opsys == 'Windows':
+        supcombDir = os.path.join(atsasDir, 'supcomb.exe')
+    else:
+        supcombDir = os.path.join(atsasDir, 'supcomb')
+
+    name, ext = os.path.splitext(file2)
+    outname = '{}_aligned{}'.format(name, ext)
+
+    if os.path.exists(supcombDir):
+        my_env = setATSASEnv(atsasDir)
+
+        command = ('"{}" --symmetry={} --mode={} --superposition={} '
+            '--enantiomorphs={} --proximity={} --fraction={} "{}" "{}" '
+            '-o "{}"'.format(supcombDir, symmetry, mode, superposition,
+                enantiomorphs, proximity, fraction, file1, file2, outname))
+
+        if opsys == 'Windows':
+            process=subprocess.Popen(command, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, cwd=path, env=my_env)
+        else:
+            process=subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, cwd=path, env=my_env)
+
+    else:
+        process = None
+
+    return process
+
 def runAmbimeter(fname, prefix, args, path):
     raw_settings = wx.FindWindowByName('MainFrame').raw_settings
     atsasDir = raw_settings.get('ATSASDir')

@@ -99,6 +99,7 @@ try:
     import SASProc
     import SASUtils
     import SECM
+
 except Exception:
     from . import SASFileIO
     from . import SASM
@@ -204,6 +205,7 @@ class MainFrame(wx.Frame):
             'rundammif'             : self.NewControlId(),
             'bift'                  : self.NewControlId(),
             'runambimeter'          : self.NewControlId(),
+            'runsupcomb'            : self.NewControlId(),
             'runsvd'                : self.NewControlId(),
             'runefa'                : self.NewControlId(),
             'showhistory'           : self.NewControlId(),
@@ -225,6 +227,7 @@ class MainFrame(wx.Frame):
         self.bift_frames = []
         self.dammif_frames = []
         self.ambimeter_frames = []
+        self.supcomb_frames = []
         self.svd_frames = []
         self.efa_frames = []
         self.sim_frames = []
@@ -813,6 +816,56 @@ class MainFrame(wx.Frame):
             dial2.ShowModal()
             dial2.Destroy()
 
+    def showSupcombFrame(self):
+        atsasPath = self.raw_settings.get('ATSASDir')
+
+        opsys = platform.system()
+        if opsys == 'Windows':
+            supcombPath = os.path.join(atsasPath, 'supcomb.exe')
+        else:
+            supcombPath = os.path.join(atsasPath, 'supcomb')
+
+        if os.path.exists(supcombPath):
+            remove = []
+            proceed = True
+
+            for supcomb_frame in self.supcomb_frames:
+                if supcomb_frame:
+                    msg = ('There is already a SUPCOMB window. Do you want to '
+                        'open another?')
+                    answer = wx.MessageBox(msg, 'Open duplicate SUPCOMB window?',
+                        style=wx.YES_NO)
+
+                    if answer == wx.NO:
+                        proceed = False
+                        supcomb_frame.Raise()
+                        supcomb_frame.RequestUserAttention()
+
+                    break
+
+                else:
+                    remove.append(supcomb_frame)
+
+            if remove:
+                for supcomb_frame in remove:
+                    self.supcomb_frames.remove(supcomb_frame)
+
+            if proceed:
+                supcombframe = RAWAnalysis.SupcombFrame(self, 'SUPCOMB')
+                supcombframe.SetIcon(self.GetIcon())
+                supcombframe.Show(True)
+
+                self.supcomb_frames.append(supcombframe)
+
+        else:
+            msg = ('The SUPCOMB program in the ATSAS package could not be '
+                'found. Please make sure that ATSAS is installed, and that you '
+                'have defined the ATSAS directory in the RAW Advanced Options.')
+            dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS",
+                                    wx.OK | wx.ICON_INFORMATION)
+            dial2.ShowModal()
+            dial2.Destroy()
+
     def showSVDFrame(self, secm, manip_item):
         remove = []
         proceed = True
@@ -1212,7 +1265,9 @@ class MainFrame(wx.Frame):
                               ('q / 10', self.MenuIDs['q/10'], self._onToolsMenu, 'normal')],
             'atsas':         [('GNOM', self.MenuIDs['rungnom'], self._onToolsMenu, 'normal'),
                               ('DAMMIF/N', self.MenuIDs['rundammif'], self._onToolsMenu, 'normal'),
-                              ('AMBIMETER', self.MenuIDs['runambimeter'], self._onToolsMenu, 'normal')]
+                              ('AMBIMETER', self.MenuIDs['runambimeter'], self._onToolsMenu, 'normal'),
+                              ('SUPCOMB', self.MenuIDs['runsupcomb'], self._onToolsMenu, 'normal'),
+                              ]
                               }
 
 
@@ -1545,6 +1600,8 @@ class MainFrame(wx.Frame):
             else:
                 wx.MessageBox("Please select an IFT from the list on the IFTs page.", "No IFT selected")
 
+        elif id == self.MenuIDs['runsupcomb']:
+            self.showSupcombFrame()
 
         elif id == self.MenuIDs['runsvd']:
             secpage = wx.FindWindowByName('SECPanel')

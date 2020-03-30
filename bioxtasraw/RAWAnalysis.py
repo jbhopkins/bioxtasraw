@@ -41,11 +41,7 @@ import platform
 import collections
 import traceback
 import tempfile
-
-try:
-    import concurrent.futures
-except Exception:
-    pass
+import shutil
 
 import numpy as np
 import wx
@@ -54,8 +50,7 @@ import matplotlib
 matplotlib.rcParams['backend'] = 'WxAgg'
 matplotlib.rc('image', origin = 'lower')        # turn image upside down.. x,y, starting from lower left
 
-from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg#,Toolbar, FigureCanvasWx
-from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
+from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.figure import Figure
 import matplotlib.colors as mplcol
 from mpl_toolkits.mplot3d import Axes3D
@@ -3111,12 +3106,8 @@ class GNOMFrame(wx.Frame):
         self.Raise()
 
         self.getGnomVersion()
-        # dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
-        # path = dirctrl_panel.getDirLabel()
 
         self.standard_paths = wx.StandardPaths.Get()
-        # self.tempdir = standard_paths.GetTempDir()
-        # fname = tempfile.NamedTemporaryFile(dir=self.tempdir).name
 
         self.showBusy()
         t = threading.Thread(target=self.initGNOM, args=(sasm,))
@@ -9443,6 +9434,366 @@ class AmbimeterFrame(wx.Frame):
 
         self.Close()
 
+
+    def OnClose(self, event):
+
+        self.Destroy()
+
+
+class SupcombFrame(wx.Frame):
+
+    def __init__(self, parent, title):
+        client_display = wx.GetClientDisplayRect()
+        size = (min(450, client_display.Width), min(450, client_display.Height))
+
+        try:
+            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
+        except:
+            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+        self.template_file_name = None
+        self.target_file_name = None
+        self.supcomb_thread = None
+        self.abort_event = threading.Event()
+        self.read_semaphore = threading.BoundedSemaphore(1)
+        self.out_queue = queue.Queue()
+
+        self.standard_paths = wx.StandardPaths.Get()
+
+        self._createLayout()
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
+
+        self.CenterOnParent()
+
+        self.Raise()
+
+
+
+    def _createLayout(self):
+
+        panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        self.template_file = wx.TextCtrl(panel)
+        self.target_file = wx.TextCtrl(panel)
+
+        self.template_select = wx.Button(panel, label='Select', style=wx.TE_READONLY)
+        self.target_select = wx.Button(panel, label='Select', style=wx.TE_READONLY)
+
+        self.template_select.Bind(wx.EVT_BUTTON, self._onSelectFile)
+        self.target_select.Bind(wx.EVT_BUTTON, self._onSelectFile)
+
+        file_sizer = wx.FlexGridSizer(cols=3, vgap=5, hgap=5)
+        file_sizer.Add(wx.StaticText(panel, label='Template:'), flag=wx.ALIGN_CENTER_VERTICAL)
+        file_sizer.Add(self.template_file, flag=wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
+        file_sizer.Add(self.template_select, flag=wx.ALIGN_CENTER_VERTICAL)
+        file_sizer.Add(wx.StaticText(panel, label='Target:'), flag=wx.ALIGN_CENTER_VERTICAL)
+        file_sizer.Add(self.target_file, flag=wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
+        file_sizer.Add(self.target_select)
+        file_sizer.AddGrowableCol(1)
+
+        adv_pane = wx.CollapsiblePane(self, label="Advanced Settings",
+            style=wx.CP_NO_TLW_RESIZE)
+        adv_pane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
+        adv_win = adv_pane.GetPane()
+
+        self.mode = wx.Choice(adv_win, choices=['fast', 'slow'])
+        self.mode.SetSelection(1)
+
+        self.superposition = wx.Choice(adv_win, choices=['ALL', 'BACKBONE'])
+        self.superposition.SetSelection(0)
+
+        self.enantiomorphs = wx.Choice(adv_win, choices=['YES', 'NO'])
+        self.enantiomorphs.SetSelection(0)
+
+        self.proximity = wx.Choice(adv_win, choices=['NSD', 'VOL'])
+        self.proximity.SetSelection(0)
+
+        self.fraction = wx.TextCtrl(adv_win, validator=RAWCustomCtrl.CharValidator('float'))
+        self.fraction.SetValue('1.0')
+
+        sym_choices = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9',
+            'P10', 'P11', 'P12', 'P13', 'P14', 'P15', 'P16', 'P17', 'P18',
+            'P19', 'P22', 'P32', 'P42', 'P52', 'P62', 'P72', 'P82', 'P92',
+            'P102', 'P112', 'P122', 'P23', 'P432', 'PICO']
+        self.symmetry = wx.Choice(adv_win, choices=sym_choices)
+        self.symmetry.SetSelection(0)
+
+        adv_settings_sizer = wx.FlexGridSizer(cols=4, vgap=5, hgap=5)
+        adv_settings_sizer.Add(wx.StaticText(adv_win, label='Mode:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(self.mode, flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(wx.StaticText(adv_win, label='Superposition:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(self.superposition, flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(wx.StaticText(adv_win, label='Enantiomorphs:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(self.enantiomorphs, flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(wx.StaticText(adv_win, label='Proximity:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(self.proximity, flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(wx.StaticText(adv_win, label='Fraction:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(self.fraction, flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(wx.StaticText(adv_win, label='Symmetry:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(self.symmetry, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        adv_win.SetSizer(adv_settings_sizer)
+
+        self.start_button = wx.Button(panel, label='Start')
+        self.abort_button = wx.Button(panel, label='Abort')
+
+        self.start_button.Bind(wx.EVT_BUTTON, self.onStartButton)
+        self.abort_button.Bind(wx.EVT_BUTTON, self.onAbortButton)
+        self.abort_button.Disable()
+
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(self.start_button, flag=wx.ALL)
+        button_sizer.Add(self.abort_button, flag=wx.ALL)
+
+        self.status = wx.TextCtrl(panel, style=wx.TE_MULTILINE|wx.TE_READONLY)
+
+        info_button = wx.Button(panel, -1, 'How To Cite')
+        info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
+
+        savebutton = wx.Button(panel, wx.ID_OK, 'OK')
+        savebutton.Bind(wx.EVT_BUTTON, self._onCloseButton)
+
+        buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttonSizer.Add(info_button,1,wx.RIGHT, 5)
+        buttonSizer.Add(savebutton, 1, wx.RIGHT, 5)
+
+        panel_sizer = wx.BoxSizer(wx.VERTICAL)
+        panel_sizer.Add(file_sizer, border=5, flag=wx.ALL|wx.EXPAND)
+        panel_sizer.Add(adv_pane, border=5, flag=wx.ALL)
+        panel_sizer.Add(button_sizer, flag=wx.ALIGN_CENTER_HORIZONTAL)
+        panel_sizer.Add(self.status, proportion=1, border=5, flag=wx.ALL|wx.EXPAND)
+        panel_sizer.Add(buttonSizer, 0, wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL, 5)
+
+        panel.SetSizer(panel_sizer)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
+
+        return top_sizer
+
+    def onCollapse(self, event):
+        self.Layout()
+        self.SendSizeEvent()
+
+    def _getSettings(self):
+        mode = self.mode.GetStringSelection()
+        superposition = self.superposition.GetStringSelection()
+        enantiomorphs = self.enantiomorphs.GetStringSelection()
+        proximity = self.proximity.GetStringSelection()
+        symmetry = self.symmetry.GetStringSelection()
+
+        error = False
+        try:
+            fraction = float(self.fraction.GetValue())
+        except Exception:
+            fraction = None
+            error = True
+            msg = ('Fraction must be a number between 0 and 1.0')
+
+        if isinstance(fraction, float):
+            if fraction < 0 or fraction > 1:
+                error = True
+                msg = ('Fraction must be a number between 0 and 1.0')
+
+        if not error:
+            settings = {'mode'  : mode,
+                'superposition' : superposition,
+                'enantiomorphs' : enantiomorphs,
+                'proximity'     : proximity,
+                'symmetry'      : symmetry,
+                'fraction'      : fraction,
+                }
+        else:
+            dialog = wx.MessageDialog(self, msg, 'Error in SUPCOMB parameters')
+            dialog.ShowModal()
+            settings = None
+
+        return settings
+
+    def _onSelectFile(self, evt):
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        load_path = dirctrl_panel.getDirLabel()
+
+        filters = 'PDB files (*.pdb)|*.pdb|All files (*.*)|*.*'
+
+        dialog = wx.FileDialog(self, 'Select a file', load_path, style=wx.FD_OPEN,
+            wildcard=filters)
+
+        if dialog.ShowModal() == wx.ID_OK:
+            file = dialog.GetPath()
+
+        # Destroy the dialog
+        dialog.Destroy()
+
+        if evt.GetEventObject() == self.template_select:
+            self.template_file_name = file
+            self.template_file.SetValue(os.path.split(file)[1])
+            self.template_file.SetToolTip(wx.ToolTip(file))
+        else:
+            self.target_file_name = file
+            self.target_file.SetValue(os.path.split(file)[1])
+            self.target_file.SetToolTip(wx.ToolTip(file))
+
+    def onStartButton(self, evt):
+        self.abort_event.clear()
+
+        name, ext = os.path.splitext(self.target_file_name)
+        outname = '{}_aligned{}'.format(name, ext)
+
+        run_supcomb = True
+
+        if os.path.exists(outname):
+            msg = ('A file already exists in the target directory with the '
+                'name {}. This will be replaced with the aligned file. '
+                'Continue?'.format(os.path.split(outname)[1]))
+            dialog = wx.MessageDialog(self, msg, "File will be overwritten",
+                style=wx.YES_NO)
+
+            result = dialog.ShowModal()
+
+            if result == wx.ID_NO:
+                run_supcomb = False
+
+        if run_supcomb:
+            self.start_button.Disable()
+            self.abort_button.Enable()
+            self.status.SetValue('')
+
+            self.supcomb_thread = threading.Thread(target=self.runSupcomb)
+            self.supcomb_thread.daemon = True
+            self.supcomb_thread.start()
+
+    def enqueue_output(self, out, queue):
+        with self.read_semaphore:
+            line = 'test'
+            line2=''
+            while line != '':
+                line = out.read(1)
+
+                if not isinstance(line, str):
+                    line = str(line, encoding='UTF-8')
+
+                line2+=line
+                if line == '\n':
+                    queue.put_nowait([line2])
+                    line2=''
+                time.sleep(0.00001)
+
+    def runSupcomb(self):
+        tempdir = self.standard_paths.GetTempDir()
+        template_tempname = os.path.join(tempdir, os.path.split(self.template_file_name)[1])
+        target_tempname = os.path.join(tempdir, os.path.split(self.target_file_name)[1])
+
+        shutil.copy(self.template_file_name, template_tempname)
+        shutil.copy(self.target_file_name, target_tempname)
+
+        path, template = os.path.split(template_tempname)
+        target = os.path.split(target_tempname)[1]
+
+        settings = self._getSettings()
+
+        if self.abort_event.is_set():
+            wx.CallAfter(self.status.AppendText, 'Aborted!\n')
+
+        if settings is not None and not self.abort_event.is_set():
+            sup_proc = SASCalc.runSupcomb(template, target, path, **settings)
+        else:
+            sup_proc = None
+
+        if sup_proc is None and not self.abort_event.is_set() and settings is not None:
+            wx.CallAfter(self.status.AppendText, 'SUPCOMB failed to start')
+
+        else:
+            readout_t = threading.Thread(target=self.enqueue_output,
+                args=(sup_proc.stdout, self.out_queue))
+            readout_t.daemon = True
+            readout_t.start()
+
+
+            #Send the damaver output to the screen.
+            while sup_proc.poll() is None:
+                if self.abort_event.is_set():
+                    sup_proc.terminate()
+                    wx.CallAfter(self.status.AppendText, '\nAborted!')
+                try:
+                    new_text = self.out_queue.get_nowait()
+                    new_text = new_text[0]
+
+                    wx.CallAfter(self.status.AppendText, new_text)
+                except queue.Empty:
+                    pass
+                time.sleep(0.001)
+
+            if not self.abort_event.is_set():
+                time.sleep(2)
+                with self.read_semaphore: #see if there's any last data that we missed
+                    try:
+                        new_text = self.out_queue.get_nowait()
+                        new_text = new_text[0]
+
+                        wx.CallAfter(self.status.AppendText, new_text)
+                    except queue.Empty:
+                        pass
+
+                name, ext = os.path.splitext(target_tempname)
+                temp_outname = '{}_aligned{}'.format(name, ext)
+
+                name, ext = os.path.splitext(self.target_file_name)
+                outname = '{}_aligned{}'.format(name, ext)
+
+                if os.path.exists(temp_outname):
+                    shutil.copy(temp_outname, outname)
+                    wx.CallAfter(self.status.AppendText, '\nSUPCOMB finished')
+                else:
+                    wx.CallAfter(self.status.AppendText, '\nSUPCOMB failed')
+
+        self.cleanupSupcomb()
+
+    def onAbortButton(self, evt):
+        self.abort_event.set()
+
+    def cleanupSupcomb(self):
+        self.start_button.Enable()
+        self.abort_button.Disable()
+
+    def _onCloseButton(self, evt):
+        self.Close()
+
+    def _onInfoButton(self, evt):
+        msg = ('If you use SUPCOMB in your work, in addition '
+            'to citing the RAW paper please cite:\nM.Kozin & D.Svergun (2001) '
+            'Automated matching of high- and low-resolution structural models. '
+            ' J Appl Cryst. 34, 33-41.')
+        wx.MessageBox(str(msg), "How to cite SUPCOMB", style=wx.ICON_INFORMATION|wx.OK)
 
     def OnClose(self, event):
 
