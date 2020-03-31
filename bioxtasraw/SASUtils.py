@@ -477,7 +477,7 @@ class MyEncoder(json.JSONEncoder):
 
 def find_global(module, name):
     if module == 'SASImage':
-        module = 'SASMask'
+        module = 'bioxtasraw.SASMask'
 
         if name == 'RectangleMask':
             name = '_oldMask'

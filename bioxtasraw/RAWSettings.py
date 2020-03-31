@@ -420,7 +420,6 @@ class RawGuiSettings(object):
         return None
 
 def fixBackwardsCompatibility(raw_settings, loaded_param):
-
     #Backwards compatibility for BindList:
     bind_list = raw_settings.get('HeaderBindList')
     for each_key in bind_list:
@@ -436,20 +435,22 @@ def fixBackwardsCompatibility(raw_settings, loaded_param):
             for i, mask in enumerate(mask_list):
                 if isinstance(mask, SASMask.Mask):
                     mask._calcFillPoints()
+
                 elif isinstance(mask, SASMask._oldMask):
                     if mask._type == 'rectangle':
                         mask = SASMask.RectangleMask(mask._points[0],
                             mask._points[1], mask._mask_id, mask._img_dimension,
                             mask._is_negative_mask)
+
                     elif mask._type == 'circle':
                         mask = SASMask.CircleMask(mask._points[0],
                             mask._points[1], mask._mask_id, mask._img_dimension,
                             mask._is_negative_mask)
+
                     if mask._type == 'polygon':
                         mask = SASMask.PolygonMask(mask._points,
                             mask._mask_id, mask._img_dimension,
                             mask._is_negative_mask)
-
 
                 mask_list[i] = mask
 
