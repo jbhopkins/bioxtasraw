@@ -1759,6 +1759,8 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
                             'MWVcBProtein',
                             'MWVcARna',
                             'MWVcBRna',
+                            'MWVcCutoff',
+                            'MWVcQmax',
                             'MWVpRho',
                             'MWVpCutoff',
                             'MWVpQmax',
@@ -1776,7 +1778,10 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
                         ("Protein Coef. A:", raw_settings.getId('MWVcAProtein')),
                         ("Protein Coef. B:", raw_settings.getId('MWVcBProtein')),
                         ("RNA Coef. A:", raw_settings.getId('MWVcARna')),
-                        ("RNA Coef. B:", raw_settings.getId('MWVcBRna')))
+                        ("RNA Coef. B:", raw_settings.getId('MWVcBRna')),)
+        self.VcMwData2 = (("Cutoff:", raw_settings.getId('MWVcCutoff')),
+                        ("q Max (manual):", raw_settings.getId('MWVcQmax')),
+                        )
         self.VpMWData = (("Density [kDa/A^3]:", raw_settings.getId('MWVpRho')),
                         ("Cutoff:", raw_settings.getId('MWVpCutoff')),
                         ("q Max (manual):", raw_settings.getId('MWVpQmax')),
@@ -1843,12 +1848,12 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
     def createVcMWSettings(self):
         hSizer = wx.FlexGridSizer(cols = 5, rows = 1, vgap = 3, hgap = 5)
 
-        for txt, id in self.VcMWData:
+        for txt, my_id in self.VcMWData:
             sizer = wx.BoxSizer(wx.VERTICAL)
-            if id == self.raw_settings.getId('MWVcType'):
-                ctrl = wx.Choice(self, id, choices = ['Protein', 'RNA'])
+            if my_id == self.raw_settings.getId('MWVcType'):
+                ctrl = wx.Choice(self, my_id, choices = ['Protein', 'RNA'])
             else:
-                ctrl = wx.TextCtrl(self, id, '', style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(self, my_id, '', style = wx.TE_PROCESS_ENTER)
 
             txt = wx.StaticText(self, -1, txt)
 
@@ -1857,7 +1862,25 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
 
             hSizer.Add(sizer, 0)
 
-        return hSizer
+        h_sizer2 = wx.FlexGridSizer(cols=2, vgap=3, hgap=5)
+
+        for txt, my_id in self.VcMwData2:
+            if my_id == self.raw_settings.getId('MWVcCutoff'):
+                ctrl = wx.Choice(self, my_id, choices=['Default', '8/Rg',
+                    'log(I0/I(q))', 'Manual'])
+            else:
+                ctrl = wx.TextCtrl(self, my_id, '', style = wx.TE_PROCESS_ENTER)
+
+            txt = wx.StaticText(self, -1, txt)
+
+            h_sizer2.Add(txt, flag=wx.ALIGN_CENTER_VERTICAL)
+            h_sizer2.Add(ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(hSizer)
+        top_sizer.Add(h_sizer2, border=5, flag=wx.TOP)
+
+        return top_sizer
 
     def createVpMWSettings(self):
         sizer = wx.FlexGridSizer(cols = 2, vgap = 3, hgap = 5)

@@ -1606,6 +1606,8 @@ class MolWeightFrame(wx.Frame):
                            'sup_a'      : self.NewControlId(),
                            'sup_b'      : self.NewControlId(),
                            'sup_plot'   : self.NewControlId(),
+                           'sup_cutoff' : self.NewControlId(),
+                           'sup_qmax'   : self.NewControlId(),
                            },
                     'conc': {'calc_mw'  : self.NewControlId(),
                              'info'     : self.NewControlId(),
@@ -1769,10 +1771,17 @@ class MolWeightFrame(wx.Frame):
             if 'molecularWeight' in analysis:
                 molweight = analysis['molecularWeight']
                 vc_type = molweight['VolumeOfCorrelation']['Type']
+                vc_cutoff = molweight['VolumeOfCorrelation']['Cutoff']
+                vc_qmax = molweight['VolumeOfCorrelation']['Q_max']
             else:
                 vc_type = self.raw_settings.get('MWVcType')
+                vc_cutoff = self.raw_settings.get('MWVcCutoff')
+                vc_qmax = self.raw_settings.get('MWVcQmax')
+
         except Exception:
             vc_type = self.raw_settings.get('MWVcType')
+            vc_cutoff = self.raw_settings.get('MWVcCutoff')
+            vc_qmax = self.raw_settings.get('MWVcQmax')
 
         if vc_type == 'Protein':
             aval = self.raw_settings.get('MWVcAProtein')
@@ -1785,33 +1794,39 @@ class MolWeightFrame(wx.Frame):
         bCtrl.ChangeValue(str(bval))
         molCtrl.SetStringSelection(vc_type)
 
-        wx.FindWindowById(self.ids['VC']['sup_plot'], self).plotSASM(self.sasm)
+        wx.FindWindowById(self.ids['VC']['sup_cutoff'], self).SetStringSelection(vc_cutoff)
+        if vc_cutoff == 'Manual':
+            wx.FindWindowById(self.ids['VC']['sup_qmax'], self).ChangeValue(str(vc_qmax))
+        else:
+            vc_qmax = self._calcVcqmax(vc_cutoff)
+
+        wx.FindWindowById(self.ids['VC']['sup_plot'], self).plotSASM(self.sasm, vc_qmax)
 
         #Initialize Vp MW settings
         try:
             if 'molecularWeight' in analysis:
                 molweight = analysis['molecularWeight']
-                cutoff = molweight['PorodVolume']['Cutoff']
+                vp_cutoff = molweight['PorodVolume']['Cutoff']
                 vp_rho = molweight['PorodVolume']['Density']
-                qmax = molweight['PorodVolume']['Q_max']
+                vp_qmax = molweight['PorodVolume']['Q_max']
 
             else:
-                cutoff = self.raw_settings.get('MWVpCutoff')
+                vp_cutoff = self.raw_settings.get('MWVpCutoff')
                 vp_rho = self.raw_settings.get('MWVpRho')
-                qmax = self.raw_settings.get('MWVpQmax')
+                vp_qmax = self.raw_settings.get('MWVpQmax')
 
         except Exception:
-            cutoff = self.raw_settings.get('MWVpCutoff')
+            vp_cutoff = self.raw_settings.get('MWVpCutoff')
             vp_rho = self.raw_settings.get('MWVpRho')
-            qmax = self.raw_settings.get('MWVpQmax')
+            vp_qmax = self.raw_settings.get('MWVpQmax')
 
         wx.FindWindowById(self.ids['VP']['sup_density'], self).ChangeValue(str(vp_rho))
-        wx.FindWindowById(self.ids['VP']['sup_cutoff'], self).SetStringSelection(cutoff)
+        wx.FindWindowById(self.ids['VP']['sup_cutoff'], self).SetStringSelection(vp_cutoff)
 
-        if cutoff == 'Manual':
-            wx.FindWindowById(self.ids['VP']['sup_qmax'], self).ChangeValue(str(qmax))
+        if vp_cutoff == 'Manual':
+            wx.FindWindowById(self.ids['VP']['sup_qmax'], self).ChangeValue(str(vp_qmax))
         else:
-            self._calcVpqmax(cutoff)
+            self._calcVpqmax(vp_cutoff)
 
         #Initialize Absolute scattering MW settings.
 
@@ -2000,12 +2015,23 @@ class MolWeightFrame(wx.Frame):
         sup_txt5 = wx.StaticText(parent, -1, 'a :')
         sup_txt6 = wx.StaticText(parent, -1, 'b :')
 
-        sup_vc = wx.TextCtrl(parent, vc_ids['sup_vc'], '', size = (60, -1), style = wx.TE_READONLY)
-        sup_qr = wx.TextCtrl(parent, vc_ids['sup_qr'], '', size = (60, -1), style = wx.TE_READONLY)
-        sup_a = wx.TextCtrl(parent, vc_ids['sup_a'], '', size = (60, -1), style = wx.TE_READONLY)
-        sup_b = wx.TextCtrl(parent, vc_ids['sup_b'], '', size = (60, -1), style = wx.TE_READONLY)
+        sup_vc = wx.TextCtrl(parent, vc_ids['sup_vc'], '', size = (60, -1),
+            style = wx.TE_READONLY)
+        sup_qr = wx.TextCtrl(parent, vc_ids['sup_qr'], '', size = (60, -1),
+            style = wx.TE_READONLY)
+        sup_a = wx.TextCtrl(parent, vc_ids['sup_a'], '', size = (60, -1),
+            style = wx.TE_READONLY)
+        sup_b = wx.TextCtrl(parent, vc_ids['sup_b'], '', size = (60, -1),
+            style = wx.TE_READONLY)
+        sup_qmax = wx.TextCtrl(parent, vc_ids['sup_qmax'], '', size = (80, -1),
+            validator=RAWCustomCtrl.CharValidator('float'))
+        sup_cutoff = wx.Choice(parent, vc_ids['sup_cutoff'], choices=['Default',
+            '8/Rg', 'log(I0/I(q))', 'Manual'])
 
-        sup_sizer = wx.FlexGridSizer(rows = 2, cols = 5, hgap =0, vgap=5)
+        sup_cutoff.Bind(wx.EVT_CHOICE, self._onVcCutoff)
+        sup_qmax.Bind(wx.EVT_TEXT, self._updateVcmwParam)
+
+        sup_sizer = wx.FlexGridSizer(rows = 2, cols = 5, hgap =1, vgap=5)
         sup_sizer.Add(sup_txt1, 0, wx.ALIGN_CENTER_VERTICAL)
         sup_sizer.Add(sup_vc, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
         sup_sizer.Add(sup_txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
@@ -2020,10 +2046,22 @@ class MolWeightFrame(wx.Frame):
         sup_sizer.Add(sup_txt6, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
         sup_sizer.Add(sup_b, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
 
+        sup_sizer2 = wx.FlexGridSizer(cols=3, hgap=2, vgap=5)
+        sup_sizer2.Add(wx.StaticText(parent, label='q cutoff:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer2.Add(sup_cutoff, flag=wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer2.AddSpacer(1)
+        sup_sizer2.Add(wx.StaticText(parent, label='q_max:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer2.Add(sup_qmax, flag=wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer2.Add(wx.StaticText(parent, label='1/A'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+
         vc_plot = MWPlotPanel(parent, vc_ids['sup_plot'], '')
 
         self.vc_sup_sizer = wx.BoxSizer(wx.VERTICAL)
         self.vc_sup_sizer.Add(sup_sizer, 0, wx.BOTTOM, 5)
+        self.vc_sup_sizer.Add(sup_sizer2, border=5, flag=wx.BOTTOM)
         self.vc_sup_sizer.Add(vc_plot, 0, wx.EXPAND)
 
 
@@ -2087,12 +2125,12 @@ class MolWeightFrame(wx.Frame):
         sup_qmax = wx.TextCtrl(parent, vp_ids['sup_qmax'], '', size = (80, -1),
             validator=RAWCustomCtrl.CharValidator('float'))
 
-        sup_cutoff = wx.Choice(parent, vp_ids['sup_cutoff'], choices=[' Default',
+        sup_cutoff = wx.Choice(parent, vp_ids['sup_cutoff'], choices=['Default',
             '8/Rg', 'log(I0/I(q))', 'Manual'])
 
         sup_cutoff.Bind(wx.EVT_CHOICE, self._onVpCutoff)
-        sup_density.Bind(wx.EVT_TEXT, self._updateVcmwParam)
-        sup_qmax.Bind(wx.EVT_TEXT, self._updateVcmwParam)
+        sup_density.Bind(wx.EVT_TEXT, self._updateVpmwParam)
+        sup_qmax.Bind(wx.EVT_TEXT, self._updateVpmwParam)
 
         sup_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
         sup_sizer1.Add(sup_txt1, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -2294,10 +2332,13 @@ class MolWeightFrame(wx.Frame):
             wx.FindWindowById(self.ids['conc']['conc'], self).ChangeValue(conc)
             wx.FindWindowById(self.ids['abs']['conc'], self).ChangeValue(conc)
 
-        wx.FindWindowById(self.ids['VC']['sup_plot'], self).plotSASM(self.sasm)
-
         vp_cutoff = wx.FindWindowById(self.ids['VP']['sup_cutoff']).GetStringSelection()
         self._calcVpqmax(vp_cutoff)
+
+        vc_cutoff = wx.FindWindowById(self.ids['VC']['sup_cutoff']).GetStringSelection()
+        qmax = self._calcVcqmax(vc_cutoff)
+
+        wx.FindWindowById(self.ids['VC']['sup_plot'], self).plotSASM(self.sasm, qmax)
 
         self.calcMW()
 
@@ -2343,16 +2384,26 @@ class MolWeightFrame(wx.Frame):
         bCtrl.ChangeValue(str(bval))
         molCtrl.SetStringSelection(vc_type)
 
+        vc_cutoff = self.raw_settings.get('MWVcCutoff')
+        vc_qmax_manual = self.raw_settings.get('MWVcQmax')
+
+        wx.FindWindowById(self.ids['VC']['sup_cutoff'], self).SetStringSelection(vc_cutoff)
+
+        if vc_cutoff == 'Manual':
+            wx.FindWindowById(self.ids['VC']['sup_qmax'], self).ChangeValue(str(vc_qmax_manual))
+
+        self._calcVpqmax(vc_cutoff)
+
         #Initialize Vp MW settings
         vp_rho = self.raw_settings.get('MWVpRho')
-        cutoff = self.raw_settings.get('MWVpCutoff')
-        qmax_manual = self.raw_settings.get('MWVpQmax')
+        vp_cutoff = self.raw_settings.get('MWVpCutoff')
+        vp_qmax_manual = self.raw_settings.get('MWVpQmax')
 
         wx.FindWindowById(self.ids['VP']['sup_density'], self).ChangeValue(str(vp_rho))
-        wx.FindWindowById(self.ids['VP']['sup_cutoff'], self).SetStringSelection(cutoff)
+        wx.FindWindowById(self.ids['VP']['sup_cutoff'], self).SetStringSelection(vp_cutoff)
 
-        if cutoff == 'Manual':
-            wx.FindWindowById(self.ids['VP']['sup_qmax'], self).ChangeValue(str(qmax_manual))
+        if vp_cutoff == 'Manual':
+            wx.FindWindowById(self.ids['VP']['sup_qmax'], self).ChangeValue(str(vp_qmax_manual))
 
 
         #Initialize Absolute scattering MW settings.
@@ -2366,7 +2417,7 @@ class MolWeightFrame(wx.Frame):
         wx.FindWindowById(self.ids['abs']['sup_pv'], self).ChangeValue('%.4f' %(nu_bar))
         wx.FindWindowById(self.ids['abs']['sup_sc'], self).ChangeValue('%.2E' %(d_rho))
 
-        self._calcVpqmax(cutoff)
+        self._calcVpqmax(vp_cutoff)
         self.calcMW()
 
     def _onInfo(self,evt):
@@ -2520,7 +2571,7 @@ class MolWeightFrame(wx.Frame):
         aCtrl.ChangeValue(str(aval))
         bCtrl.ChangeValue(str(bval))
 
-        self.calcVCMW()
+        self.calcVcMW()
 
     def _onUpdateConc(self, evt):
         evt_id = evt.GetId()
@@ -2542,7 +2593,7 @@ class MolWeightFrame(wx.Frame):
         self._calcVpqmax(choice)
 
     def _calcVpqmax(self, choice):
-        q_max_ctrl = wx.FindWindowById(self.ids['VP']['sup_qmax'])
+        q_max_ctrl = wx.FindWindowById(self.ids['VP']['sup_qmax'], self)
 
         q = self.sasm.getQ()
         i = self.sasm.getI()
@@ -2568,17 +2619,70 @@ class MolWeightFrame(wx.Frame):
         except Exception:
             qmax = None
 
-        qmax = SASCalc.calcVpqmax(q, i, rg, i0, choice, qmax)
+        qmax = SASCalc.calcVqmax(q, i, rg, i0, choice, qmax)
 
         q_max_ctrl.ChangeValue(str(qmax))
 
         self.calcVpMW()
 
-    def _updateVcmwParam(self, evt):
+    def _onVcCutoff(self, evt):
+        choice = evt.GetString()
+
+        qmax = self._calcVcqmax(choice)
+
+        wx.FindWindowById(self.ids['VC']['sup_plot'], self).plotSASM(self.sasm, qmax)
+
+    def _calcVcqmax(self, choice):
+        q_max_ctrl = wx.FindWindowById(self.ids['VC']['sup_qmax'], self)
+
+        q = self.sasm.getQ()
+        i = self.sasm.getI()
+
+        analysis = self.sasm.getParameter('analysis')
+
+        if 'guinier' in analysis:
+            guinier = analysis['guinier']
+            i0 = float(guinier['I0'])
+            rg = float(guinier['Rg'])
+        else:
+            i0 = 0
+            rg = 0
+
+        if choice != 'Manual':
+            q_max_ctrl.Disable()
+
+        else:
+            q_max_ctrl.Enable()
+
+        try:
+            qmax = float(q_max_ctrl.GetValue())
+        except Exception:
+            qmax = None
+
+        qmax = SASCalc.calcVqmax(q, i, rg, i0, choice, qmax)
+
+        q_max_ctrl.ChangeValue(str(qmax))
+
+        self.calcVcMW()
+
+        return qmax
+
+    def _updateVpmwParam(self, evt):
 
         try:
             float(evt.GetEventObject().GetValue())
             self.calcVpMW()
+        except Exception:
+            pass
+
+    def _updateVcmwParam(self, evt):
+
+        try:
+            val = float(evt.GetEventObject().GetValue())
+            self.calcVcMW()
+
+            if evt.GetEventObject() == wx.FindWindowById(self.ids['VC']['sup_qmax'], self):
+                wx.FindWindowById(self.ids['VC']['sup_plot'], self).plotSASM(self.sasm, val)
         except Exception:
             pass
 
@@ -2630,6 +2734,8 @@ class MolWeightFrame(wx.Frame):
         calcData['VolumeOfCorrelation']['MW'] = self.mws['vc']['mw']
         calcData['VolumeOfCorrelation']['Type'] = self.mws['vc']['type']
         calcData['VolumeOfCorrelation']['Vcor'] = self.mws['vc']['vc']
+        calcData['VolumeOfCorrelation']['Cutoff'] = self.mws['vc']['cutoff']
+        calcData['VolumeOfCorrelation']['Q_max'] = self.mws['vc']['q_max']
 
         calcData['PorodVolume']['MW'] = self.mws['vp']['mw']
         calcData['PorodVolume']['VPorod'] = self.mws['vp']['pVolume']
@@ -2667,7 +2773,7 @@ class MolWeightFrame(wx.Frame):
     def calcMW(self):
         self.calcConcMW()
 
-        self.calcVCMW()
+        self.calcVcMW()
 
         self.calcVpMW()
 
@@ -2705,20 +2811,36 @@ class MolWeightFrame(wx.Frame):
         else:
             self.mws['conc']['mw'] = ''
 
-    def calcVCMW(self):
+    def calcVcMW(self):
 
         vc_ids = self.ids['VC']
         molecule = wx.FindWindowById(vc_ids['mol_type'], self).GetStringSelection()
+
+        vc_cutoff = wx.FindWindowById(vc_ids['sup_cutoff'], self).GetStringSelection()
 
         analysis = self.sasm.getParameter('analysis')
 
         if 'guinier' in analysis:
             guinier = analysis['guinier']
-            i0 = float(guinier['I0'])
-            rg = float(guinier['Rg'])
+            try:
+                i0 = float(guinier['I0'])
+                rg = float(guinier['Rg'])
+            except Exception:
+                i0 = 0
+                rg = 0
         else:
             i0 = 0
             rg = 0
+
+        q = self.sasm.getQ()
+
+        q_max_ctrl = wx.FindWindowById(vc_ids['sup_qmax'], self)
+        qmax = float(q_max_ctrl.GetValue())
+
+        if qmax > q[-1]:
+            qmax = q[-1]
+        elif qmax < q[0]:
+            qmax = q[0]
 
         if molecule == 'Protein':
             is_protein = True
@@ -2726,12 +2848,15 @@ class MolWeightFrame(wx.Frame):
             is_protein = False
 
         if rg > 0 and i0 > 0:
-            mw, mw_error, vc, qr = SASCalc.calcVcMW(self.sasm, rg, i0, is_protein)
+            mw, mw_error, vc, qr = SASCalc.calcVcMW(self.sasm, rg, i0, qmax,
+                is_protein)
 
             self.mws['vc']['mw'] = str(mw)
             self.mws['vc']['vc'] = str(vc)
             self.mws['vc']['qr'] = str(qr)
             self.mws['vc']['type'] = molecule
+            self.mws['vc']['cutoff'] = vc_cutoff
+            self.mws['vc']['q_max'] = str(float(q_max_ctrl.GetValue()))
 
             mw_val = round(mw,1)
             vc_val = round(vc,1)
@@ -2763,12 +2888,14 @@ class MolWeightFrame(wx.Frame):
             self.mws['vc']['vc'] = ''
             self.mws['vc']['qr'] = ''
             self.mws['vc']['type'] = molecule
+            self.mws['vc']['cutoff'] = vc_cutoff
+            self.mws['vc']['q_max'] = str(float(q_max_ctrl.GetValue()))
 
     def calcVpMW(self):
         #This is calculated using the method in Fischer et al. J. App. Crys. 2009
 
         vp_ids = self.ids['VP']
-        vp_cutoff = wx.FindWindowById(self.ids['VP']['sup_cutoff']).GetStringSelection()
+        vp_cutoff = wx.FindWindowById(vp_ids['sup_cutoff'], self).GetStringSelection()
 
         analysis = self.sasm.getParameter('analysis')
 
@@ -2788,15 +2915,10 @@ class MolWeightFrame(wx.Frame):
         i = self.sasm.getI()
         err = self.sasm.getErr()
 
-        density = float(wx.FindWindowById(self.ids['VP']['sup_density'], self).GetValue())
+        density = float(wx.FindWindowById(vp_ids['sup_density'], self).GetValue())
 
-        q_max_ctrl = wx.FindWindowById(self.ids['VP']['sup_qmax'])
+        q_max_ctrl = wx.FindWindowById(vp_ids['sup_qmax'], self)
         qmax = float(q_max_ctrl.GetValue())
-
-        if qmax > 0.5:
-            qmax = 0.5
-        elif qmax < 0.1:
-            qmax = 0.1
 
         if qmax > q[-1]:
             qmax = q[-1]
@@ -2966,15 +3088,22 @@ class MWPlotPanel(wx.Panel):
         for tick in a.yaxis.get_major_ticks():
             tick.label.set_fontsize(font_size)
 
-    def _calcInt(self, sasm, interp=True):
+    def _calcInt(self, sasm, qmax, interp=True):
         ''' calculate pointwise integral '''
 
-        q = sasm.q
-        i = sasm.i
-        qmin, qmax = sasm.getQrange()
+        q = sasm.getQ()
+        i = sasm.getI()
+        err = sasm.getErr()
 
-        q = q[qmin:qmax]
-        i = i[qmin:qmax]
+        if qmax not in q:
+            idx = np.argmin(np.abs(q-qmax))
+            qmax = q[idx]
+        else:
+            idx = np.argwhere(q == qmax)[0][0]
+
+        q = q[:idx+1]
+        i = i[:idx+1]
+        err = err[:idx+1]
 
         analysis = sasm.getParameter('analysis')
 
@@ -3009,9 +3138,9 @@ class MWPlotPanel(wx.Panel):
 
         return q, y
 
-    def plotSASM(self, sasm):
+    def plotSASM(self, sasm, qmax):
         try:
-            q, intI = self._calcInt(sasm)
+            q, intI = self._calcInt(sasm, qmax)
         except TypeError:
             return
 
@@ -16255,6 +16384,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 vp_density = float(self.vp_density.GetValue())
                 vp_cutoff = self.raw_settings.get('MWVpCutoff')
                 vp_qmax = self.raw_settings.get('MWVpQmax')
+                vc_cutoff = self.raw_settings.get('MWVcCutoff')
+                vc_qmax = self.raw_settings.get('MWVcQmax')
 
                 first_update_frame = int(self.original_secm.plot_frame_list[len(self.secm.getAllSASMs())])
                 last_frame = int(self.original_secm.plot_frame_list[-1])
@@ -16273,7 +16404,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
                 success, results = SASCalc.run_secm_calcs(sub_sasms,
                     use_sub_sasms, window_size, is_protein, error_weight,
-                    vp_density, vp_cutoff, vp_qmax)
+                    vp_density, vp_cutoff, vp_qmax, vc_cutoff, vc_qmax)
 
                 if success:
                     new_rg = results['rg']
@@ -17690,6 +17821,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         vp_density = float(self.vp_density.GetValue())
         vp_cutoff = self.raw_settings.get('MWVpCutoff')
         vp_qmax = self.raw_settings.get('MWVpQmax')
+        vc_cutoff = self.raw_settings.get('MWVcCutoff')
+        vc_qmax = self.raw_settings.get('MWVcQmax')
 
 
         if self.secm.intensity_change:
@@ -17776,7 +17909,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             use_sub_sasms = self.results['buffer']['use_sub_sasms']
 
         success, results = SASCalc.run_secm_calcs(sub_sasms, use_sub_sasms,
-            window_size, is_protein, error_weight, vp_density, vp_cutoff, vp_qmax)
+            window_size, is_protein, error_weight, vp_density, vp_cutoff,
+            vp_qmax, vc_cutoff, vc_qmax)
 
         if success:
             self.results['calc'] = results
@@ -17790,7 +17924,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             use_sub_sasms = self.results['buffer']['use_sub_sasms']
 
             success, results = SASCalc.run_secm_calcs(sub_sasms, use_sub_sasms,
-                window_size, is_protein, error_weight, vp_density, vp_cutoff, vp_qmax)
+                window_size, is_protein, error_weight, vp_density, vp_cutoff,
+                vp_qmax, vc_cutoff, vc_qmax)
 
             if success:
                 self.results['buffer']['calc'] = results

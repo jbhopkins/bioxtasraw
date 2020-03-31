@@ -228,11 +228,13 @@ class RawGuiSettings(object):
 
                 #Initialize volume of correlation molecular mass values.
                 #Values from Rambo, R. P. & Tainer, J. A. (2013). Nature. 496, 477-481.
-                'MWVcType'             : ['Protein', wx.NewId(), 'choice'],
-                'MWVcAProtein'         : [1.0, wx.NewId(), 'float'], #The 'A' coefficient for proteins
-                'MWVcBProtein'         : [0.1231, wx.NewId(), 'float'], #The 'B' coefficient for proteins
-                'MWVcARna'             : [0.808, wx.NewId(), 'float'], #The 'A' coefficient for proteins
-                'MWVcBRna'             : [0.00934, wx.NewId(), 'float'], #The 'B' coefficient for proteins
+                'MWVcType'      : ['Protein', wx.NewId(), 'choice'],
+                'MWVcAProtein'  : [1.0, wx.NewId(), 'float'], #The 'A' coefficient for proteins
+                'MWVcBProtein'  : [0.1231, wx.NewId(), 'float'], #The 'B' coefficient for proteins
+                'MWVcARna'      : [0.808, wx.NewId(), 'float'], #The 'A' coefficient for proteins
+                'MWVcBRna'      : [0.00934, wx.NewId(), 'float'], #The 'B' coefficient for proteins
+                'MWVcCutoff'    : ['Default', wx.NewId(), 'choice'],
+                'MWVcQmax'      : [0.5, wx.NewId(), 'float'], #qmax if 'Manual' is selected for cutoff
 
                 #Initialize porod volume molecularm ass values.
                 'MWVpRho'               : [0.83*10**(-3), wx.NewId(), 'float'], #The density in kDa/A^3

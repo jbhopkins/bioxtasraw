@@ -175,7 +175,7 @@ def vpB(q_max):
     B = 12.09*q_max**3 - 9.39*q_max**2 + 3.03*q_max+0.29
     return B
 
-def calcVpqmax(q, i, rg, i0, choice='8/Rg', qmax=None):
+def calcVqmax(q, i, rg, i0, choice='8/Rg', qmax=None):
     vpqmax = None
 
     if choice == 'Default':
@@ -236,27 +236,6 @@ def calcVpqmax(q, i, rg, i0, choice='8/Rg', qmax=None):
 
 def calcVpMW(q, i, err, rg, i0, rg_qmin, vp_density, qmax):
     #These functions are used to correct the porod volume for the length of the q vector
-    #Coefficients were obtained by direct communication with the authors.
-    # qc=[0.15, 0.20, 0.25, 0.30, 0.40, 0.45]
-    # AA=[-9902.46965, -7597.7562, -6869.49936, -5966.34377, -4641.90536, -3786.71549]
-    # BB=[0.57582, 0.61325, 0.64999, 0.68377, 0.76957, 0.85489]
-
-    # fA=scipy.interpolate.interp1d(qc,AA)
-    # fB=scipy.interpolate.interp1d(qc,BB)
-
-    # if q[-1]>0.45:
-    #     A=AA[-1]
-    #     B=BB[-1]
-    # elif q[-1]<0.15:
-    #     A=AA[0]
-    #     B=BB[0]
-    # else:
-    #     A=fA(q[-1])
-    #     B=fB(q[-1])
-
-    # print '\nhere'
-    # print A
-    # print B
 
     if qmax not in q:
         idx = np.argmin(np.abs(q-qmax))
@@ -274,9 +253,6 @@ def calcVpMW(q, i, err, rg, i0, rg_qmin, vp_density, qmax):
     else:
         A = 0
         B = 1
-
-    # print A
-    # print B
 
     if i0 > 0:
         #Calculate the Porod Volume
@@ -603,19 +579,24 @@ def autoRg_inner(q, i, err, qmin, single_fit, error_weight):
 
 
 
-def calcVcMW(sasm, rg, i0, protein = True, interp = True):
+def calcVcMW(sasm, rg, i0, qmax, protein = True, interp = True):
     #using the rambo tainer 2013 method for molecular mass.
 
     raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
-    q = sasm.q
-    i = sasm.i
-    err = sasm.err
-    qmin, qmax = sasm.getQrange()
+    q = sasm.getQ()
+    i = sasm.getI()
+    err = sasm.getErr()
 
-    q = q[qmin:qmax]
-    i = i[qmin:qmax]
-    err = err[qmin:qmax]
+    if qmax not in q:
+        idx = np.argmin(np.abs(q-qmax))
+        qmax = q[idx]
+    else:
+        idx = np.argwhere(q == qmax)[0][0]
+
+    q = q[:idx+1]
+    i = i[:idx+1]
+    err = err[:idx+1]
 
     analysis = sasm.getParameter('analysis')
 
@@ -1900,7 +1881,8 @@ def runDammin(fname, prefix, args, path):
 
 
 def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
-    is_protein, error_weight, vp_density, vp_cutoff, vp_qmax):
+    is_protein, error_weight, vp_density, vp_cutoff, vp_qmax, vc_cutoff,
+    vc_qmax):
 
     #Now calculate the RG, I0, and MW for each SASM
     rg = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
@@ -1925,15 +1907,18 @@ def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
 
                 #Now use the rambo tainer 2013 method to calculate molecular weight
                 if rg[a] > 0:
-                    vcmw[a], vcmwer[a], junk1, junk2 = calcVcMW(current_sasm, rg[a],
-                        i0[a], is_protein)
+                    vcqmax = calcVqmax(current_sasm.getQ(),
+                        current_sasm.getI(), rg[a], i0[a], vc_cutoff, vc_qmax)
 
-                    qmax = calcVpqmax(current_sasm.getQ(),
+                    vcmw[a], vcmwer[a], junk1, junk2 = calcVcMW(current_sasm, rg[a],
+                        i0[a], vcqmax, is_protein)
+
+                    vpqmax = calcVqmax(current_sasm.getQ(),
                         current_sasm.getI(), rg[a], i0[a], vp_cutoff, vp_qmax)
 
                     vpmw[a], vp[a], vpcor[a] = calcVpMW(current_sasm.getQ(),
                         current_sasm.getI(), current_sasm.getErr(), rg[a], i0[a],
-                        current_sasm.q[idx_min], vp_density, qmax)
+                        current_sasm.q[idx_min], vp_density, vpqmax)
                 else:
                     vcmw[a], vcmwer[a] = -1, -1
                     vpmw[a], vp[a], vpcor[a] = -1, -1, -1
@@ -1963,15 +1948,18 @@ def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
 
                 #Now use the rambo tainer 2013 method to calculate molecular weight
                 if rg[index] > 0:
+                    vcqmax = calcVqmax(current_sasm.getQ(),
+                        current_sasm.getI(), rg[a], i0[a], vc_cutoff, vc_qmax)
 
-                    vcmw[index], vcmwer[index], junk1, junk2 = calcVcMW(current_sasm, rg[index], i0[index], is_protein)
+                    vcmw[index], vcmwer[index], junk1, junk2 = calcVcMW(current_sasm,
+                        rg[index], i0[index], vcqmax, is_protein)
 
-                    qmax = calcVpqmax(current_sasm.getQ(),
+                    vpqmax = calcVqmax(current_sasm.getQ(),
                         current_sasm.getI(), rg[index], i0[index], vp_cutoff, vp_qmax)
 
                     vpmw[index], vp[index], vpcor[index] = calcVpMW(current_sasm.getQ(),
                         current_sasm.getI(), current_sasm.getErr(), rg[index], i0[index],
-                        current_sasm.q[idx_min], vp_density, qmax)
+                        current_sasm.q[idx_min], vp_density, vpqmax)
                 else:
                     vcmw[index], vcmwer[index] = -1, -1
                     vpmw[index], vp[index], vpcor[index] = -1, -1, -1
