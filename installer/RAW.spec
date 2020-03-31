@@ -13,6 +13,7 @@ add_files = [
     (os.path.join('..', 'bioxtasraw', 'resources'), 'resources'),
     (os.path.join('..', 'bioxtasraw', 'definitions'), 'definitions'),
     (os.path.join('..', 'gpl-3.0.txt'), '.'),
+    (os.path.join('..', 'docs', 'build', 'html'), 'docs'),
     ]
 
 if opsys == 'Darwin':

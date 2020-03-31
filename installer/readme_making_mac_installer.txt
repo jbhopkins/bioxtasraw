@@ -6,18 +6,18 @@ additionally install pyinstaller through pip: pip install pyinstaller.
 Note: currently requires setuptools<0.45 to work.
 
 Steps:
-1) Make a fresh git-free folder for RAW: git archive master | tar -x -C /somewhere/else
-2)  Build the extensions and run RAW in that new folder.
-3)  Set the appropriate python path, if needed: export PATH=~/miniconda2/bin:$PATH
-4)  Copy the RAW.spec file into the main RAW directory.
-5)  Run “pyinstaller -y RAW.spec”
+1)  Make a fresh git-free folder for RAW: git archive master | tar -x -C /somewhere/else
+2)  Set the appropriate python path, if needed: export PATH=~/miniconda2/bin:$PATH
+3)  Build the extensions and run RAW in that new folder.
+4)  Build the html documentation
+5)  In the installer directory, run “pyinstaller -y RAW.spec”
 6)  The app file is located at ./dist/RAW.app #NOTE: The dist/RAW/RAW executable will not open because the resources path is wrong if it's not in the .app package!
 7)  Open disk utility
 8)  Create a new disk image (File->New Image>Blank Image) that is ~12% larger than the
     .app package. Name it RAW, but save it as untitled.
 9)  Open the mounted disk image. Copy the .app file and a shortcut of the applications
     folder to the disk image. Size and arrange as desired.
-9)  In Disk Utility, Image->Convert, select the prepared disk image, and name it RAW-x.y.z-mac
+10) In Disk Utility, Image->Convert, select the prepared disk image, and name it RAW-x.y.z-mac
     (note, the disk image must be ejected for this to work
 
 Note: if pyopencl is installed, the build will fail.

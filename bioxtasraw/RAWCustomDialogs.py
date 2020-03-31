@@ -4542,7 +4542,7 @@ class HelpFrame(wx.Frame):
             size=size)
 
         self.doc_path = RAWGlobals.RAWDocsDir
-        self.home = os.path.join(self.doc_path, "index.html")
+        self.home = os.path.join(self.doc_path, "tutorial.html")
         self.current = self.home
 
         self._createLayout(self)
