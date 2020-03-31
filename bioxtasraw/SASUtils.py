@@ -51,10 +51,11 @@ except Exception:
 import pyFAI
 
 #NOTE: SASUtils should never import another RAW module besides RAWGlobals, to avoid circular imports.
-try:
-    import RAWGlobals
-except Exception:
-    from . import RAWGlobals
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
+
+import bioxtasraw.RAWGlobals as RAWGlobals
 
 
 def loadFileDefinitions():

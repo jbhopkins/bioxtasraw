@@ -28,7 +28,7 @@ import six
 
 try:
     import queue
-except Exception:
+except ImportError:
     import Queue as queue
 
 import sys
@@ -61,33 +61,22 @@ from wx.lib.agw import ultimatelistctrl as ULC
 from scipy import integrate
 import scipy.stats as stats
 
-try:
-    import RAWSettings
-    import RAWCustomCtrl
-    import SASCalc
-    import SASFileIO
-    import SASM
-    import SASExceptions
-    import RAWGlobals
-    import RAWCustomDialogs
-    import SASProc
-    import BIFT
-    import DENSS
-    import SECM
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
 
-except Exception:
-    from . import RAWSettings
-    from . import RAWCustomCtrl
-    from . import SASCalc
-    from . import SASFileIO
-    from . import SASM
-    from . import SASExceptions
-    from . import RAWGlobals
-    from . import RAWCustomDialogs
-    from . import SASProc
-    from . import BIFT
-    from . import DENSS
-    from . import SECM
+import bioxtasraw.RAWSettings as RAWSettings
+import bioxtasraw.RAWCustomCtrl as RAWCustomCtrl
+import bioxtasraw.SASCalc as SASCalc
+import bioxtasraw.SASFileIO as SASFileIO
+import bioxtasraw.SASM as SASM
+import bioxtasraw.SASExceptions as SASExceptions
+import bioxtasraw.RAWGlobals as RAWGlobals
+import bioxtasraw.RAWCustomDialogs as RAWCustomDialogs
+import bioxtasraw.SASProc as SASProc
+import bioxtasraw.BIFT as BIFT
+import bioxtasraw.DENSS as DENSS
+import bioxtasraw.SECM as SECM
 
 class UVConcentrationDialog(wx.Dialog):
     def __init__(self, parent, title, selected_sasms, bg_sasm):

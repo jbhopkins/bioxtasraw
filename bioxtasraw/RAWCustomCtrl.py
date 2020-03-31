@@ -23,6 +23,7 @@ import math
 import platform
 import logging
 import string
+import os
 
 import numpy as np
 import wx
@@ -37,12 +38,12 @@ from wx.lib.wordwrap import wordwrap
 from wx.lib.stattext import GenStaticText as StaticText
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 
-try:
-    import RAWIcons
-    import RAWGlobals
-except Exception:
-    from . import RAWIcons
-    from . import RAWGlobals
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
+
+import bioxtasraw.RAWIcons as RAWIcons
+import bioxtasraw.RAWGlobals as RAWGlobals
 
 class CharValidator(wx.Validator):
     ''' Validates data as it is entered into the text controls. '''

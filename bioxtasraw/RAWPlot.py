@@ -40,14 +40,13 @@ from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 import matplotlib.font_manager as fm
 
-try:
-    import RAWCustomCtrl
-    import RAWGlobals
-    import RAWCustomDialogs
-except Exception:
-    from . import RAWCustomCtrl
-    from . import RAWGlobals
-    from . import RAWCustomDialogs
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
+
+import bioxtasraw.RAWCustomCtrl as RAWCustomCtrl
+import bioxtasraw.RAWGlobals as RAWGlobals
+import bioxtasraw.RAWCustomDialogs as RAWCustomDialogs
 
 class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
 

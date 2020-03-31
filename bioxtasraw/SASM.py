@@ -26,14 +26,16 @@ from builtins import object, range, map, zip
 from io import open
 
 import copy
+import os
 
 import numpy as np
 from scipy import integrate as integrate
 
-try:
-    import SASExceptions
-except Exception:
-    from . import SASExceptions
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
+
+import bioxtasraw.SASExceptions as SASExceptions
 
 
 class SASM(object):

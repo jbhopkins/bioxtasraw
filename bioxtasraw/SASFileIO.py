@@ -50,25 +50,19 @@ from PIL import Image
 import matplotlib.backends.backend_pdf
 import h5py
 
-try:
-    import RAWGlobals
-    import SASImage
-    import SASM
-    import SASExceptions
-    import SASProc
-    import SECM
-    import SASCalib
-    import SASUtils
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
 
-except Exception:
-    from . import RAWGlobals
-    from . import SASImage
-    from . import SASM
-    from . import SASExceptions
-    from . import SASProc
-    from . import SECM
-    from . import SASCalib
-    from . import SASUtils
+import bioxtasraw.RAWGlobals as RAWGlobals
+import bioxtasraw.SASImage as SASImage
+import bioxtasraw.SASM as SASM
+import bioxtasraw.SASExceptions as SASExceptions
+import bioxtasraw.SASProc as SASProc
+import bioxtasraw.SECM as SECM
+import bioxtasraw.SASCalib as SASCalib
+import bioxtasraw.SASUtils as SASUtils
+
 
 ############################
 #--- ## Load image files: ##

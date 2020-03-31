@@ -79,47 +79,29 @@ else:
     Aboutbox = wx.AboutBox
 
 
-try:
-    import SASFileIO
-    import SASM
-    import SASExceptions
-    import SASCalc
-    import SASCalib
-    import SASMask
-    import RAWPlot
-    import RAWImage
-    import RAWOptions
-    import RAWSettings
-    import RAWCustomCtrl
-    import RAWAnalysis
-    import RAWIcons
-    import RAWGlobals
-    import RAWCustomDialogs
-    from RAWGlobals import mainworker_cmd_queue
-    import SASProc
-    import SASUtils
-    import SECM
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
 
-except Exception:
-    from . import SASFileIO
-    from . import SASM
-    from . import SASExceptions
-    from . import SASCalc
-    from . import SASCalib
-    from . import SASMask
-    from . import RAWPlot
-    from . import RAWImage
-    from . import RAWOptions
-    from . import RAWSettings
-    from . import RAWCustomCtrl
-    from . import RAWAnalysis
-    from . import RAWIcons
-    from . import RAWGlobals
-    from . import RAWCustomDialogs
-    from .RAWGlobals import mainworker_cmd_queue
-    from . import SASProc
-    from . import SASUtils
-    from . import SECM
+import bioxtasraw.SASFileIO as SASFileIO
+import bioxtasraw.SASM as SASM
+import bioxtasraw.SASExceptions as SASExceptions
+import bioxtasraw.SASCalc as SASCalc
+import bioxtasraw.SASCalib as SASCalib
+import bioxtasraw.SASMask as SASMask
+import bioxtasraw.RAWPlot as RAWPlot
+import bioxtasraw.RAWImage as RAWImage
+import bioxtasraw.RAWOptions as RAWOptions
+import bioxtasraw.RAWSettings as RAWSettings
+import bioxtasraw.RAWCustomCtrl as RAWCustomCtrl
+import bioxtasraw.RAWAnalysis as RAWAnalysis
+import bioxtasraw.RAWIcons as RAWIcons
+import bioxtasraw.RAWGlobals as RAWGlobals
+import bioxtasraw.RAWCustomDialogs as RAWCustomDialogs
+import bioxtasraw.SASProc as SASProc
+import bioxtasraw.SASUtils as SASUtils
+import bioxtasraw.SECM as SECM
+from bioxtasraw.RAWGlobals import mainworker_cmd_queue
 
 thread_wait_event = threading.Event()
 question_return_queue = queue.Queue()
@@ -13179,8 +13161,8 @@ class MyApp(wx.App):
             RAWGlobals.RAWResourcesDir = os.path.join(standard_paths.GetResourcesDir(),'resources')
             RAWGlobals.RAWDefinitionsDir = os.path.join(standard_paths.GetResourcesDir(),'definitions')
         else:
-            RAWGlobals.RAWResourcesDir = os.path.join(sys.path[0], 'resources')
-            RAWGlobals.RAWDefinitionsDir = os.path.join(sys.path[0], 'definitions')
+            RAWGlobals.RAWResourcesDir = os.path.join(raw_path, 'bioxtasraw', 'resources')
+            RAWGlobals.RAWDefinitionsDir = os.path.join(raw_path, 'bioxtasraw', 'definitions')
 
         MySplash = MySplashScreen()
         MySplash.Show()

@@ -35,16 +35,14 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 import wx
 import numpy as np
 
-try:
-    import RAWGlobals
-    import SASMask
-    import SASCalib
-    import RAWCustomCtrl
-except Exception:
-    from . import RAWGlobals
-    from . import SASMask
-    from . import SASCalib
-    from . import RAWCustomCtrl
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
+
+import bioxtasraw.RAWGlobals as RAWGlobals
+import bioxtasraw.SASMask as SASMask
+import bioxtasraw.SASCalib as SASCalib
+import bioxtasraw.RAWCustomCtrl as RAWCustomCtrl
 
 class ImagePanelToolbar(NavigationToolbar2WxAgg):
     ''' The toolbar under the image in the image panel '''

@@ -35,14 +35,13 @@ import json
 import wx
 import numpy as np
 
-try:
-    import RAWGlobals
-    import SASMask
-    import SASUtils
-except Exception:
-    from . import RAWGlobals
-    from . import SASMask
-    from . import SASUtils
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
+
+import bioxtasraw.RAWGlobals as RAWGlobals
+import bioxtasraw.SASMask as SASMask
+import bioxtasraw.SASUtils as SASUtils
 
 class RawGuiSettings(object):
     '''

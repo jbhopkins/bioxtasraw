@@ -43,22 +43,17 @@ import wx.lib.scrolledpanel as scrolled
 from numpy import ceil
 import pyFAI
 
-try:
-    import RAWSettings
-    import RAWCustomCtrl
-    import RAWGlobals
-    import SASFileIO
-    import SASParser
-    import SASExceptions
-    import SASUtils
-except Exception:
-    from . import RAWSettings
-    from . import RAWCustomCtrl
-    from . import RAWGlobals
-    from . import SASFileIO
-    from . import SASParser
-    from . import SASExceptions
-    from . import SASUtils
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
+
+import bioxtasraw.RAWSettings as RAWSettings
+import bioxtasraw.RAWCustomCtrl as RAWCustomCtrl
+import bioxtasraw.RAWGlobals as RAWGlobals
+import bioxtasraw.SASFileIO as SASFileIO
+import bioxtasraw.SASParser as SASParser
+import bioxtasraw.SASExceptions as SASExceptions
+import bioxtasraw.SASUtils as SASUtils
 
 
 #--- ** TREE BOOK PANELS **

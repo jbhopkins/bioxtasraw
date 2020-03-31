@@ -31,20 +31,18 @@ from io import open
 
 import copy
 import traceback
+import os
 
 import numpy as np
 import scipy.interpolate as interp
 
-try:
-    import SASExceptions
-    import SASM
-    import sascalc_exts
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
 
-except Exception:
-    traceback.print_exc()
-    from . import SASExceptions
-    from . import SASM
-    from . import sascalc_exts
+import bioxtasraw.SASExceptions as SASExceptions
+import bioxtasraw.SASM as SASM
+import bioxtasraw.sascalc_exts as sascalc_exts
 
 def subtract(sasm1, sasm2, forced = False, full = False):
     ''' Subtract one SASM object from another and propagate errors '''

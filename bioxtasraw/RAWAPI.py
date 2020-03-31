@@ -29,32 +29,24 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from builtins import object, range, map, zip
 from io import open
 
-import os.path
+import os
 import copy
 
 import numpy as np
 
-try:
-    import SASCalc
-    import SASExceptions
-    import SASFileIO
-    import SASMask
-    import SASM
-    import SASProc
-    import RAWSettings
-    import RAWGlobals
-    import SECM
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
 
-except Exception:
-    from . import SASCalc
-    from . import SASExceptions
-    from . import SASFileIO
-    from . import SASMask
-    from . import SASM
-    from . import SASProc
-    from . import RAWSettings
-    from . import RAWGlobals
-    from . import SECM
+import bioxtasraw.SASCalc as SASCalc
+import bioxtasraw.SASExceptions as SASExceptions
+import bioxtasraw.SASFileIO as SASFileIO
+import bioxtasraw.SASMask as SASMask
+import bioxtasraw.SASM as SASM
+import bioxtasraw.SASProc as SASProc
+import bioxtasraw.RAWSettings as RAWSettings
+import bioxtasraw.RAWGlobals as RAWGlobals
+import bioxtasraw.SECM as SECM
 
 __version__ = RAWGlobals.version
 

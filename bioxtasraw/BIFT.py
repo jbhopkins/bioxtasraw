@@ -24,7 +24,7 @@ import six
 import multiprocessing
 import functools
 import threading
-import os.path
+import os
 import platform
 
 import scipy.optimize
@@ -32,10 +32,11 @@ import scipy.interpolate
 import numpy as np
 from numba import jit
 
-try:
-    import SASM
-except Exception:
-    from . import SASM
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
+
+import bioxtasraw.SASM as SASM
 
 def createTransMatrix(q, r):
     """

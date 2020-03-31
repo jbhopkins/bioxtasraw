@@ -52,10 +52,11 @@ import numpy as np
 from scipy import optimize, ndimage
 import scipy.interpolate as interpolate
 
-try:
-    import RAWCustomCtrl
-except Exception:
-    from . import RAWCustomCtrl
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
+
+import bioxtasraw.RAWCustomCtrl as RAWCustomCtrl
 
 def chi2(exp, calc, sig):
     """Return the chi2 discrepancy between experimental and calculated data"""

@@ -33,23 +33,17 @@ import os
 import numpy as np
 import pyFAI
 
-try:
-    import SASParser
-    import SASCalib
-    import SASM
-    import SASMask
-    import RAWGlobals
-    import RAWSettings
-    import SASExceptions
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
 
-except Exception:
-    from . import SASParser
-    from . import SASCalib
-    from . import SASM
-    from . import SASMask
-    from . import RAWGlobals
-    from . import RAWSettings
-    from . import SASExceptions
+import bioxtasraw.SASParser as SASParser
+import bioxtasraw.SASCalib as SASCalib
+import bioxtasraw.SASM as SASM
+import bioxtasraw.SASMask as SASMask
+import bioxtasraw.RAWGlobals as RAWGlobals
+import bioxtasraw.RAWSettings as RAWSettings
+import bioxtasraw.SASExceptions as SASExceptions
 
 def calcExpression(expr, img_hdr, file_hdr):
 

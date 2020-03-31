@@ -41,12 +41,12 @@ import matplotlib
 import matplotlib.colors as mplcol
 import matplotlib.font_manager as fm
 
-try:
-    import RAWCustomCtrl
-    import RAWGlobals
-except Exception:
-    from . import RAWCustomCtrl
-    from . import RAWGlobals
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
+
+import bioxtasraw.RAWCustomCtrl as RAWCustomCtrl
+import bioxtasraw.RAWGlobals as RAWGlobals
 
 
 class SaveAnalysisInfoDialog(wx.Dialog):

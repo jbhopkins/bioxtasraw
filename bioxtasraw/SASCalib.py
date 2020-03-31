@@ -28,17 +28,17 @@ from io import open
 
 from math import atan
 import sys
+import os
 
 import numpy as np
 import pyFAI, pyFAI.geometryRefinement, pyFAI.massif
 
-try:
-    import SASExceptions
-    import SASProc
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
 
-except Exception:
-    from . import SASExceptions
-    from . import SASProc
+import bioxtasraw.SASExceptions as SASExceptions
+import bioxtasraw.SASProc as SASProc
 
 def calcTheta(sd_distance, pixel_size, q_length_pixels):
     '''

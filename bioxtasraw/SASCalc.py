@@ -54,17 +54,14 @@ import scipy.signal
 from scipy.constants import Avogadro
 from numba import jit
 
-try:
-    import SASFileIO
-    import SASExceptions
-    import RAWSettings
-    import SASProc
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
 
-except Exception:
-    from . import SASFileIO
-    from . import SASExceptions
-    from . import RAWSettings
-    from . import SASProc
+import bioxtasraw.SASFileIO as SASFileIO
+import bioxtasraw.SASExceptions as SASExceptions
+import bioxtasraw.RAWSettings as RAWSettings
+import bioxtasraw.SASProc as SASProc
 
 
 #Define the rg fit function

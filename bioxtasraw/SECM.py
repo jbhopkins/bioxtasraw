@@ -33,12 +33,12 @@ import itertools
 
 import numpy as np
 
-try:
-    import SASExceptions
-    import SASProc
-except Exception:
-    from . import SASExceptions
-    from . import SASProc
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
+
+import bioxtasraw.SASExceptions as SASExceptions
+import bioxtasraw.SASProc as SASProc
 
 class SECM(object):
     '''
