@@ -116,6 +116,7 @@ class MainFrame(wx.Frame):
             'advancedOptions'       : self.NewControlId(),
             'loadSettings'          : self.NewControlId(),
             'saveSettings'          : self.NewControlId(),
+            'addHdf5Def'            : self.NewControlId(),
             'centering'             : self.NewControlId(),
             'masking'               : self.NewControlId(),
             'goOnline'              : self.NewControlId(),
@@ -1183,125 +1184,164 @@ class MainFrame(wx.Frame):
     def _createMenuBar(self):
 
         submenus = {
-            'viewPlot1Scale':[('Lin-Lin', self.MenuIDs['plot1sclinlin'], self._onViewMenu, 'radio'),
-                              ('Log-Lin', self.MenuIDs['plot1scloglin'], self._onViewMenu, 'radio'),
-                              ('Log-Log', self.MenuIDs['plot1scloglog'], self._onViewMenu, 'radio'),
-                              ('Lin-Log', self.MenuIDs['plot1sclinlog'], self._onViewMenu, 'radio'),
-                              ('Guinier', self.MenuIDs['plot1tyguinier'],self._onViewMenu, 'radio'),
-                              ('Kratky',  self.MenuIDs['plot1tykratky'], self._onViewMenu, 'radio'),
-                              ('Porod',   self.MenuIDs['plot1typorod'],  self._onViewMenu, 'radio')],
+            'viewPlot1Scale' : [
+                ('Lin-Lin', self.MenuIDs['plot1sclinlin'], self._onViewMenu, 'radio'),
+                ('Log-Lin', self.MenuIDs['plot1scloglin'], self._onViewMenu, 'radio'),
+                ('Log-Log', self.MenuIDs['plot1scloglog'], self._onViewMenu, 'radio'),
+                ('Lin-Log', self.MenuIDs['plot1sclinlog'], self._onViewMenu, 'radio'),
+                ('Guinier', self.MenuIDs['plot1tyguinier'],self._onViewMenu, 'radio'),
+                ('Kratky',  self.MenuIDs['plot1tykratky'], self._onViewMenu, 'radio'),
+                ('Porod',   self.MenuIDs['plot1typorod'],  self._onViewMenu, 'radio')
+                ],
 
-            'viewPlot2Scale':[('Lin-Lin', self.MenuIDs['plot2sclinlin'], self._onViewMenu, 'radio'),
-                              ('Log-Lin', self.MenuIDs['plot2scloglin'], self._onViewMenu, 'radio'),
-                              ('Log-Log', self.MenuIDs['plot2scloglog'], self._onViewMenu, 'radio'),
-                              ('Lin-Log', self.MenuIDs['plot2sclinlog'], self._onViewMenu, 'radio'),
-                              ('Guinier', self.MenuIDs['plot2tyguinier'],self._onViewMenu, 'radio'),
-                              ('Kratky',  self.MenuIDs['plot2tykratky'], self._onViewMenu, 'radio'),
-                              ('Porod',   self.MenuIDs['plot2typorod'],  self._onViewMenu, 'radio')],
+            'viewPlot2Scale' : [
+                ('Lin-Lin', self.MenuIDs['plot2sclinlin'], self._onViewMenu, 'radio'),
+                ('Log-Lin', self.MenuIDs['plot2scloglin'], self._onViewMenu, 'radio'),
+                ('Log-Log', self.MenuIDs['plot2scloglog'], self._onViewMenu, 'radio'),
+                ('Lin-Log', self.MenuIDs['plot2sclinlog'], self._onViewMenu, 'radio'),
+                ('Guinier', self.MenuIDs['plot2tyguinier'],self._onViewMenu, 'radio'),
+                ('Kratky',  self.MenuIDs['plot2tykratky'], self._onViewMenu, 'radio'),
+                ('Porod',   self.MenuIDs['plot2typorod'],  self._onViewMenu, 'radio')
+                ],
 
-            'viewPr1Scale'  :[('I(0) Normalized', self.MenuIDs['plot1normalized'], self._onViewMenu, 'radio'),
-                              ('Unnormalized', self.MenuIDs['plot1unnormalized'], self._onViewMenu, 'radio')],
+            'viewPr1Scale' : [
+                ('I(0) Normalized', self.MenuIDs['plot1normalized'], self._onViewMenu, 'radio'),
+                ('Unnormalized', self.MenuIDs['plot1unnormalized'], self._onViewMenu, 'radio')
+                ],
 
-            'viewPr2Scale'  :[('Lin-Lin', self.MenuIDs['plot2prlinlin'], self._onViewMenu, 'radio'),
-                              ('Log-Lin', self.MenuIDs['plot2prloglin'], self._onViewMenu, 'radio'),
-                              ('Log-Log', self.MenuIDs['plot2prloglog'], self._onViewMenu, 'radio'),
-                              ('Lin-Log', self.MenuIDs['plot2prlinlog'], self._onViewMenu, 'radio'),
-                              ('Guinier', self.MenuIDs['plot2ptguinier'],self._onViewMenu, 'radio'),
-                              ('Kratky',  self.MenuIDs['plot2ptkratky'], self._onViewMenu, 'radio'),
-                              ('Porod',   self.MenuIDs['plot2ptporod'],  self._onViewMenu, 'radio')],
+            'viewPr2Scale' : [
+                ('Lin-Lin', self.MenuIDs['plot2prlinlin'], self._onViewMenu, 'radio'),
+                ('Log-Lin', self.MenuIDs['plot2prloglin'], self._onViewMenu, 'radio'),
+                ('Log-Log', self.MenuIDs['plot2prloglog'], self._onViewMenu, 'radio'),
+                ('Lin-Log', self.MenuIDs['plot2prlinlog'], self._onViewMenu, 'radio'),
+                ('Guinier', self.MenuIDs['plot2ptguinier'],self._onViewMenu, 'radio'),
+                ('Kratky',  self.MenuIDs['plot2ptkratky'], self._onViewMenu, 'radio'),
+                ('Porod',   self.MenuIDs['plot2ptporod'],  self._onViewMenu, 'radio')
+                ],
 
-            'onlinemenu':    [('Offline', self.MenuIDs['goOffline'], self._onOnlineMenu, 'radio'),
-                              ('Online', self.MenuIDs['goOnline'], self._onOnlineMenu, 'radio'),
-                              ('Change Directory', self.MenuIDs['changeOnline'], self._onOnlineMenu, 'normal')],
+            'onlinemenu' : [
+                ('Offline', self.MenuIDs['goOffline'], self._onOnlineMenu, 'radio'),
+                ('Online', self.MenuIDs['goOnline'], self._onOnlineMenu, 'radio'),
+                ('Change Directory', self.MenuIDs['changeOnline'], self._onOnlineMenu, 'normal')
+                ],
 
-            'viewSECLeft':   [('Integrated Intensity', self.MenuIDs['secplottotal'], self._onViewMenu, 'radio'),
-                              ('Mean Intensity', self.MenuIDs['secplotmean'], self._onViewMenu, 'radio'),
-                              ('Intensity a specific q', self.MenuIDs['secplotq'], self._onViewMenu, 'radio'),
-                              ('Intensity in q range', self.MenuIDs['secplotqr'], self._onViewMenu, 'radio')],
+            'viewSECLeft' : [
+                ('Integrated Intensity', self.MenuIDs['secplottotal'], self._onViewMenu, 'radio'),
+                ('Mean Intensity', self.MenuIDs['secplotmean'], self._onViewMenu, 'radio'),
+                ('Intensity a specific q', self.MenuIDs['secplotq'], self._onViewMenu, 'radio'),
+                ('Intensity in q range', self.MenuIDs['secplotqr'], self._onViewMenu, 'radio')
+                ],
 
-            'viewSECInt':   [('Unsubtracted', self.MenuIDs['secplotunsub'], self._onViewMenu, 'radio'),
-                                ('Subtracted', self.MenuIDs['secplotsub'], self._onViewMenu, 'radio'),
-                                ('Baseline Corrected', self.MenuIDs['secplotbaseline'], self._onViewMenu, 'radio'),
-                                ],
+            'viewSECInt' : [
+                ('Unsubtracted', self.MenuIDs['secplotunsub'], self._onViewMenu, 'radio'),
+                ('Subtracted', self.MenuIDs['secplotsub'], self._onViewMenu, 'radio'),
+                ('Baseline Corrected', self.MenuIDs['secplotbaseline'], self._onViewMenu, 'radio'),
+                ],
 
-            'viewSECRight':  [('RG', self.MenuIDs['secplotrg'], self._onViewMenu, 'radio'),
-                              ('MW (Vc)', self.MenuIDs['secplotvcmw'], self._onViewMenu, 'radio'),
-                              ('MW (Vp)', self.MenuIDs['secplotvpmw'], self._onViewMenu, 'radio'),
-                              ('I0', self.MenuIDs['secploti0'], self._onViewMenu, 'radio'),
-                              ('None', self.MenuIDs['secplotnone'], self._onViewMenu, 'radio')],
+            'viewSECRight' : [
+                ('RG', self.MenuIDs['secplotrg'], self._onViewMenu, 'radio'),
+                ('MW (Vc)', self.MenuIDs['secplotvcmw'], self._onViewMenu, 'radio'),
+                ('MW (Vp)', self.MenuIDs['secplotvpmw'], self._onViewMenu, 'radio'),
+                ('I0', self.MenuIDs['secploti0'], self._onViewMenu, 'radio'),
+                ('None', self.MenuIDs['secplotnone'], self._onViewMenu, 'radio')
+                ],
 
-            'viewSECX':      [('Frame Number', self.MenuIDs['secplotframe'], self._onViewMenu, 'radio'),
-                              ('Time', self.MenuIDs['secplottime'], self._onViewMenu, 'radio')],
-            'operations':    [('Subtract', self.MenuIDs['subtract'], self._onToolsMenu, 'normal'),
-                              ('Average', self.MenuIDs['average'], self._onToolsMenu, 'normal'),
-                              ('Weighted Average', self.MenuIDs['weightedAverage'], self._onToolsMenu, 'normal'),
-                              ('Interpolate', self.MenuIDs['interpolate'], self._onToolsMenu, 'normal'),
-                              ('Merge', self.MenuIDs['merge'], self._onToolsMenu, 'normal'),
-                              ('Normalize by concentration', self.MenuIDs['norm_conc'], self._onToolsMenu, 'normal'),
-                              ('Rebin', self.MenuIDs['rebin'], self._onToolsMenu, 'normal'),
-                              ('Superimpose', self.MenuIDs['superimpose'], self._onToolsMenu, 'normal'),
-                              ('Sync', self.MenuIDs['sync'], self._onToolsMenu, 'normal'),
-                              ],
-            'convertq':      [('q * 10', self.MenuIDs['q*10'], self._onToolsMenu, 'normal'),
-                              ('q / 10', self.MenuIDs['q/10'], self._onToolsMenu, 'normal')],
-            'atsas':         [('GNOM', self.MenuIDs['rungnom'], self._onToolsMenu, 'normal'),
-                              ('DAMMIF/N', self.MenuIDs['rundammif'], self._onToolsMenu, 'normal'),
-                              ('AMBIMETER', self.MenuIDs['runambimeter'], self._onToolsMenu, 'normal'),
-                              ('SUPCOMB', self.MenuIDs['runsupcomb'], self._onToolsMenu, 'normal'),
-                              ]
-                              }
+            'viewSECX' : [
+                ('Frame Number', self.MenuIDs['secplotframe'], self._onViewMenu, 'radio'),
+                ('Time', self.MenuIDs['secplottime'], self._onViewMenu, 'radio')
+                ],
+
+            'operations' : [
+                ('Subtract', self.MenuIDs['subtract'], self._onToolsMenu, 'normal'),
+                ('Average', self.MenuIDs['average'], self._onToolsMenu, 'normal'),
+                ('Weighted Average', self.MenuIDs['weightedAverage'], self._onToolsMenu, 'normal'),
+                ('Interpolate', self.MenuIDs['interpolate'], self._onToolsMenu, 'normal'),
+                ('Merge', self.MenuIDs['merge'], self._onToolsMenu, 'normal'),
+                ('Normalize by concentration', self.MenuIDs['norm_conc'], self._onToolsMenu, 'normal'),
+                ('Rebin', self.MenuIDs['rebin'], self._onToolsMenu, 'normal'),
+                ('Superimpose', self.MenuIDs['superimpose'], self._onToolsMenu, 'normal'),
+                ('Sync', self.MenuIDs['sync'], self._onToolsMenu, 'normal'),
+                ],
+
+            'convertq' : [
+                ('q * 10', self.MenuIDs['q*10'], self._onToolsMenu, 'normal'),
+                ('q / 10', self.MenuIDs['q/10'], self._onToolsMenu, 'normal')
+                ],
+
+            'atsas' : [
+                ('GNOM', self.MenuIDs['rungnom'], self._onToolsMenu, 'normal'),
+                ('DAMMIF/N', self.MenuIDs['rundammif'], self._onToolsMenu, 'normal'),
+                ('AMBIMETER', self.MenuIDs['runambimeter'], self._onToolsMenu, 'normal'),
+                ('SUPCOMB', self.MenuIDs['runsupcomb'], self._onToolsMenu, 'normal'),
+                ],
+        }
 
 
-        menus = [('&File',    [('&Load Settings', self.MenuIDs['loadSettings'], self._onLoadMenu, 'normal'),
-                               ('&Save Settings', self.MenuIDs['saveSettings'], self._onSaveMenu, 'normal'),
-                               (None, None, None, 'separator'),
-                               ('&Load Workspace', self.MenuIDs['loadWorkspace'], self._onLoadWorkspaceMenu, 'normal'),
-                               ('&Save Workspace', self.MenuIDs['saveWorkspace'], self._onSaveWorkspaceMenu, 'normal'),
-                               (None, None, None, 'separator'),
-                               ('E&xit', self.MenuIDs['exit'], self._onFileMenu, 'normal')]),
+        menus = [
+            ('&File', [
+                ('&Load Settings', self.MenuIDs['loadSettings'], self._onLoadMenu, 'normal'),
+                ('&Save Settings', self.MenuIDs['saveSettings'], self._onSaveMenu, 'normal'),
+                (None, None, None, 'separator'),
+                ('&Load Workspace', self.MenuIDs['loadWorkspace'], self._onLoadWorkspaceMenu, 'normal'),
+                ('&Save Workspace', self.MenuIDs['saveWorkspace'], self._onSaveWorkspaceMenu, 'normal'),
+                (None, None, None, 'separator'),
+                ('E&xit', self.MenuIDs['exit'], self._onFileMenu, 'normal'),
+                ]
+            ),
 
-                 ('&Options', [('&Advanced Options...', self.MenuIDs['advancedOptions'], self._onOptionsMenu, 'normal'),
-                              ('&Online mode', None, submenus['onlinemenu'], 'submenu')]),
+            ('&Options', [
+                ('&Advanced Options...', self.MenuIDs['advancedOptions'], self._onOptionsMenu, 'normal'),
+                ('&Online mode', None, submenus['onlinemenu'], 'submenu'),
+                ]
+            ),
 
-                 ('&View',    [('&Show Image', self.MenuIDs['showimage'], self._onViewMenu, 'normal'),
-                               ('&Show Data', self.MenuIDs['showdata'], self._onViewMenu, 'normal'),
-                               ('&Show Header', self.MenuIDs['showheader'], self._onViewMenu, 'normal'),
-                               ('&Show History', self.MenuIDs['showhistory'], self._onViewMenu, 'normal'),
-                               (None, None, None, 'separator'),
-                               ('&Profiles Plot Top Axes', None, submenus['viewPlot1Scale'], 'submenu'),
-                               ('&Profiles Plot Bottom Axes', None, submenus['viewPlot2Scale'], 'submenu'),
-                               ('&IFTs Plot Top Axes', None, submenus['viewPr1Scale'], 'submenu'),
-                               ('&IFTs Plot Bottom Axes', None, submenus['viewPr2Scale'], 'submenu'),
-                               ('&Series Plot Left Y Axis', None, submenus['viewSECLeft'], 'submenu'),
-                               ('&Series Plot Right Y Axis', None, submenus['viewSECRight'], 'submenu'),
-                               ('&Series Plot Intensity Type', None, submenus['viewSECInt'], 'submenu'),
-                               ('&Series Plot X Axis', None, submenus['viewSECX'], 'submenu'),
-                               (None, None, None, 'separator'),
-                               ]),
+            ('&View', [
+                ('&Show Image', self.MenuIDs['showimage'], self._onViewMenu, 'normal'),
+                ('&Show Data', self.MenuIDs['showdata'], self._onViewMenu, 'normal'),
+                ('&Show Header', self.MenuIDs['showheader'], self._onViewMenu, 'normal'),
+                ('&Show History', self.MenuIDs['showhistory'], self._onViewMenu, 'normal'),
+                (None, None, None, 'separator'),
+                ('&Profiles Plot Top Axes', None, submenus['viewPlot1Scale'], 'submenu'),
+                ('&Profiles Plot Bottom Axes', None, submenus['viewPlot2Scale'], 'submenu'),
+                ('&IFTs Plot Top Axes', None, submenus['viewPr1Scale'], 'submenu'),
+                ('&IFTs Plot Bottom Axes', None, submenus['viewPr2Scale'], 'submenu'),
+                ('&Series Plot Left Y Axis', None, submenus['viewSECLeft'], 'submenu'),
+                ('&Series Plot Right Y Axis', None, submenus['viewSECRight'], 'submenu'),
+                ('&Series Plot Intensity Type', None, submenus['viewSECInt'], 'submenu'),
+                ('&Series Plot X Axis', None, submenus['viewSECX'], 'submenu'),
+                (None, None, None, 'separator'),
+                ]
+            ),
 
-                 ('&Tools',   [('&Operations', None, submenus['operations'], 'submenu'),
-                               ('&Convert q-scale', None, submenus['convertq'], 'submenu'),
-                               ('&Use as MW standard', self.MenuIDs['mwstandard'], self._onToolsMenu, 'normal'),
-                               ('&Calculate conc. from UV', self.MenuIDs['calcUVconc'], self._onToolsMenu, 'normal'),
-                               (None, None, None, 'separator'),
-                               ('&Guinier fit', self.MenuIDs['guinierfit'], self._onToolsMenu, 'normal'),
-                               ('&Molecular weight', self.MenuIDs['molweight'], self._onToolsMenu, 'normal'),
-                               ('&BIFT', self.MenuIDs['bift'], self._onToolsMenu, 'normal'),
-                               ('&ATSAS', None, submenus['atsas'], 'submenu'),
-                               ('&Electron Density (DENSS)', self.MenuIDs['rundenss'], self._onToolsMenu, 'normal'),
-                               ('&LC Series Analysis', self.MenuIDs['lcanalysis'], self._onToolsMenu, 'normal'),
-                               ('&SVD', self.MenuIDs['runsvd'], self._onToolsMenu, 'normal'),
-                               ('&EFA', self.MenuIDs['runefa'], self._onToolsMenu, 'normal'),
-                               ('&Similarity Test', self.MenuIDs['similarityTest'], self._onToolsMenu, 'normal'),
-                               ('&Normalized Kratky Plots', self.MenuIDs['normalizedKratky'], self._onToolsMenu, 'normal'),
-                               (None, None, None, 'separator'),
-                               ('&Centering/Calibration', self.MenuIDs['centering'], self._onToolsMenu, 'normal'),
-                               ('&Masking', self.MenuIDs['masking'], self._onToolsMenu, 'normal')
-                              ]),
+            ('&Tools', [
+                ('&Operations', None, submenus['operations'], 'submenu'),
+                ('&Convert q-scale', None, submenus['convertq'], 'submenu'),
+                ('&Use as MW standard', self.MenuIDs['mwstandard'], self._onToolsMenu, 'normal'),
+                ('&Calculate conc. from UV', self.MenuIDs['calcUVconc'], self._onToolsMenu, 'normal'),
+                (None, None, None, 'separator'),
+                ('&Guinier fit', self.MenuIDs['guinierfit'], self._onToolsMenu, 'normal'),
+                ('&Molecular weight', self.MenuIDs['molweight'], self._onToolsMenu, 'normal'),
+                ('&BIFT', self.MenuIDs['bift'], self._onToolsMenu, 'normal'),
+                ('&ATSAS', None, submenus['atsas'], 'submenu'),
+                ('&Electron Density (DENSS)', self.MenuIDs['rundenss'], self._onToolsMenu, 'normal'),
+                ('&LC Series Analysis', self.MenuIDs['lcanalysis'], self._onToolsMenu, 'normal'),
+                ('&SVD', self.MenuIDs['runsvd'], self._onToolsMenu, 'normal'),
+                ('&EFA', self.MenuIDs['runefa'], self._onToolsMenu, 'normal'),
+                ('&Similarity Test', self.MenuIDs['similarityTest'], self._onToolsMenu, 'normal'),
+                ('&Normalized Kratky Plots', self.MenuIDs['normalizedKratky'], self._onToolsMenu, 'normal'),
+                (None, None, None, 'separator'),
+                ('&Centering/Calibration', self.MenuIDs['centering'], self._onToolsMenu, 'normal'),
+                ('&Masking', self.MenuIDs['masking'], self._onToolsMenu, 'normal'),
+                ]
+            ),
 
-                 ('&Help',    [('&Help!', self.MenuIDs['help'], self._onHelp, 'normal'),
-                               (None, None, None, 'separator'),
-                               ('&About', self.MenuIDs['about'], self._onAboutDlg, 'normal')])]
+            ('&Help', [
+                ('&Help!', self.MenuIDs['help'], self._onHelp, 'normal'),
+                (None, None, None, 'separator'),
+                ('&About', self.MenuIDs['about'], self._onAboutDlg, 'normal'),
+                ]
+            ),
+        ]
 
         menubar = wx.MenuBar()
 
