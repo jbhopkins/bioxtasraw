@@ -46,6 +46,7 @@ else:
 RAWWorkDir = ''
 RAWResourcesDir = ''
 RAWDefinitionsDir = ''
+RAWDocsDir = ''
 
 usepyFAI_integration = True
 

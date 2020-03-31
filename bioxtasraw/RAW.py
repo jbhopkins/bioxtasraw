@@ -216,6 +216,7 @@ class MainFrame(wx.Frame):
         self.kratky_frames = []
         self.denss_frames = []
         self.lc_series_frames = []
+        self.help_frames = []
 
         self.raw_settings = RAWSettings.RawGuiSettings()
 
@@ -1177,9 +1178,43 @@ class MainFrame(wx.Frame):
         return menu
 
     def _onHelp(self, event):
-        msg = "In program help is not current available for RAW. For tutorials, demo videos, and installation guides, please see the RAW project home page (select Help->About for more details)."
-        wx.CallAfter(wx.MessageBox, msg, 'Sorry!', style=wx.OK|wx.ICON_INFORMATION)
-        # os.execl('xchm')
+
+        if os.path.exists(RAWGlobals.RAWDocsDir):
+            remove = []
+            proceed = True
+
+            for help_frame in self.help_frames:
+                if help_frame:
+                    msg = ('There is already a Help window. Do you want to '
+                        'open another?')
+                    answer = wx.MessageBox(msg, 'Open duplicate Help window?',
+                        style=wx.YES_NO)
+
+                    if answer == wx.NO:
+                        proceed = False
+                        help_frame.Raise()
+                        help_frame.RequestUserAttention()
+
+                    break
+
+                else:
+                    remove.append(help_frame)
+
+            if remove:
+                for help_frame in remove:
+                    self.help_frames.remove(help_frame)
+
+            if proceed:
+                help_frame = RAWCustomDialogs.HelpFrame(self)
+                help_frame.SetIcon(self.GetIcon())
+                help_frame.Show(True)
+
+                self.help_frames.append(help_frame)
+        else:
+            msg = "In program help is not current available for RAW. For "
+            "tutorials, demo videos, and installation guides, please see the "
+            "RAW project home page (select Help->About for more details)."
+            wx.CallAfter(wx.MessageBox, msg, 'Sorry!', style=wx.OK|wx.ICON_INFORMATION)
 
     def _createMenuBar(self):
 
@@ -13233,11 +13268,13 @@ class MyApp(wx.App):
             os.mkdir(RAWGlobals.RAWWorkDir)
 
         if RAWGlobals.frozen:
-            RAWGlobals.RAWResourcesDir = os.path.join(standard_paths.GetResourcesDir(),'resources')
-            RAWGlobals.RAWDefinitionsDir = os.path.join(standard_paths.GetResourcesDir(),'definitions')
+            RAWGlobals.RAWResourcesDir = os.path.join(standard_paths.GetResourcesDir(), 'resources')
+            RAWGlobals.RAWDefinitionsDir = os.path.join(standard_paths.GetResourcesDir(), 'definitions')
+            RAWGlobals.RAWDocsDir = os.path.join(standard_paths.GetResourcesDir(), 'docs')
         else:
             RAWGlobals.RAWResourcesDir = os.path.join(raw_path, 'bioxtasraw', 'resources')
             RAWGlobals.RAWDefinitionsDir = os.path.join(raw_path, 'bioxtasraw', 'definitions')
+            RAWGlobals.RAWDocsDir = os.path.join(raw_path, 'docs', 'build', 'html')
 
         MySplash = MySplashScreen()
         MySplash.Show()

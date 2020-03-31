@@ -37,6 +37,7 @@ import wx.lib.dialogs
 import wx.lib.colourchooser as colorchooser
 import wx.lib.scrolledpanel
 import wx.grid as gridlib
+import wx.html2 as webview
 import matplotlib
 import matplotlib.colors as mplcol
 import matplotlib.font_manager as fm
@@ -4529,3 +4530,106 @@ class PlotOptionsDialog(wx.Dialog):
     def _onCancel(self, event):
         self._restoreOldSettings()
         self.EndModal(wx.ID_CANCEL)
+
+
+class HelpFrame(wx.Frame):
+
+    def __init__(self, parent):
+        client_display = wx.GetClientDisplayRect()
+        size = (min(1110, client_display.Width), min(768, client_display.Height))
+
+        wx.Frame.__init__(self, parent, -1, "RAW {} Help".format(RAWGlobals.version),
+            size=size)
+
+        self.doc_path = RAWGlobals.RAWDocsDir
+        self.home = os.path.join(self.doc_path, "index.html")
+        self.current = self.home
+
+        self._createLayout(self)
+
+        self.wv.LoadURL(self.home)
+
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
+
+        self.CenterOnParent()
+        self.Raise()
+
+    def _createLayout(self, parent):
+        panel = wx.Panel(parent)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        btnSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.wv = webview.WebView.New(panel)
+        self.wv.EnableContextMenu(False)
+        self.Bind(webview.EVT_WEBVIEW_NAVIGATING, self.OnWebViewNavigating, self.wv)
+
+        btn = wx.Button(panel, -1, "Docs Home", style=wx.BU_EXACTFIT)
+        self.Bind(wx.EVT_BUTTON, self.OnHomeButton, btn)
+        btnSizer.Add(btn, 0, wx.EXPAND|wx.ALL, 2)
+
+        btn = wx.Button(panel, -1, "<--", style=wx.BU_EXACTFIT)
+        self.Bind(wx.EVT_BUTTON, self.OnPrevPageButton, btn)
+        btnSizer.Add(btn, 0, wx.EXPAND|wx.ALL, 2)
+        self.Bind(wx.EVT_UPDATE_UI, self.OnCheckCanGoBack, btn)
+
+        btn = wx.Button(panel, -1, "-->", style=wx.BU_EXACTFIT)
+        self.Bind(wx.EVT_BUTTON, self.OnNextPageButton, btn)
+        btnSizer.Add(btn, 0, wx.EXPAND|wx.ALL, 2)
+        self.Bind(wx.EVT_UPDATE_UI, self.OnCheckCanGoForward, btn)
+
+        sizer.Add(btnSizer, 0, wx.EXPAND)
+        sizer.Add(self.wv, 1, wx.EXPAND)
+
+        panel.SetSizer(sizer)
+
+    # WebView events
+    def OnWebViewNavigating(self, evt):
+        # this event happens prior to trying to get a resource
+        if 'videos.html' in evt.GetURL():
+            msg = ("Videos are unavilable in this version of the documentation. "
+                "If you want to view the videos, visit the online documentation "
+                "here:\nhttps://bioxtas-raw.readthedocs.io/")
+            wx.MessageBox(msg, "Link unavailable",
+                style=wx.OK|wx.ICON_INFORMATION)
+
+            evt.Veto()
+
+        elif self.doc_path not in evt.GetURL():
+            msg = ("You can't navigate to external websites from this "
+                "documentation. If you want to follow this link visit the "
+                "online documention here:\nhttps://bioxtas-raw.readthedocs.io/")
+            wx.MessageBox(msg, "Link unavailable",
+                style=wx.OK|wx.ICON_INFORMATION)
+
+            evt.Veto()
+
+    def OnHomeButton(self, event):
+        self.wv.LoadURL(self.home)
+
+    def OnPrevPageButton(self, event):
+        self.wv.GoBack()
+
+    def OnNextPageButton(self, event):
+        self.wv.GoForward()
+
+    def OnCheckCanGoBack(self, event):
+        event.Enable(self.wv.CanGoBack())
+
+    def OnCheckCanGoForward(self, event):
+        event.Enable(self.wv.CanGoForward())
