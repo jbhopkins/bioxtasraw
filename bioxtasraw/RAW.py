@@ -1291,6 +1291,7 @@ class MainFrame(wx.Frame):
 
             ('&Options', [
                 ('&Advanced Options...', self.MenuIDs['advancedOptions'], self._onOptionsMenu, 'normal'),
+                ('&Add HDF5 Definition', self.MenuIDs['addHdf5Def'], self._onAddHDF5Def, 'normal'),
                 ('&Online mode', None, submenus['onlinemenu'], 'submenu'),
                 ]
             ),
@@ -2175,6 +2176,10 @@ class MainFrame(wx.Frame):
         if event.GetId() == self.MenuIDs['advancedOptions']:
             self.showOptionsDialog()
 
+    def _onAddHDF5Def(self, event):
+        if event.GetId() == self.MenuIDs['addHdf5Def']:
+            self.addHdf5Def()
+
     def _onFileMenu(self, event):
 
         if event.GetId() == self.MenuIDs['exit'] or event.GetId() == wx.ID_EXIT:
@@ -2268,6 +2273,35 @@ class MainFrame(wx.Frame):
             dialog = RAWOptions.OptionsDialog(self, self.raw_settings)
 
         dialog.ShowModal()
+
+    def addHdf5Def(self):
+        new_def= self._createFileDialog(wx.FD_OPEN, 'Text files', '*.txt')
+
+        if new_def is not None:
+            _, error = SASUtils.loadHDF5Definition(new_def)
+
+            if error is not None:
+                msg = ('Error loading {} as an hdf5 definition file.'.format(new_def))
+                wx.MessageBox(msg, 'Error loading hdf5 definition', style=wx.OK)
+                return
+
+            if os.path.exists(os.path.join(RAWGlobals.RAWDefinitionsDir, 'hdf5',
+                os.path.split(new_def)[1])):
+                msg = ('A HDF5 definition file with that name already exists. Do '
+                    'you want to overwrite that file?')
+                dialog = wx.MessageDialog(self, msg, 'Overwrite HDF5 definition?',
+                    style=wx.YES_NO)
+
+                result = dialog.ShowModal()
+
+                if result == wx.ID_NO:
+                    return
+
+            shutil.copy(new_def, os.path.join(RAWGlobals.RAWDefinitionsDir, 'hdf5'))
+
+            file_defs, _ = SASUtils.loadFileDefinitions()
+
+            self.raw_settings.set('fileDefinitions', file_defs)
 
     def getMenuIds(self):
         return self.MenuIDs

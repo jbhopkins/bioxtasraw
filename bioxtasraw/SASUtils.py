@@ -65,17 +65,29 @@ def loadFileDefinitions():
     if os.path.exists(os.path.join(RAWGlobals.RAWDefinitionsDir, 'hdf5')):
         def_files = glob.glob(os.path.join(RAWGlobals.RAWDefinitionsDir, 'hdf5', '*'))
         for fname in def_files:
-            try:
-                with open(fname, 'r') as f:
-                    settings = f.read()
+            file_def, error = loadHDF5Definition(fname)
 
-                settings = dict(json.loads(settings))
+            if file_def is not None:
+                file_defs['hdf5'][os.path.splitext(os.path.basename(fname))[0]] = file_def
 
-                file_defs['hdf5'][os.path.splitext(os.path.basename(fname))[0]] = settings
-            except Exception:
-                errors.append(fname)
+            if error is not None:
+                errors.append(error)
 
     return file_defs, errors
+
+def loadHDF5Definition(fname):
+    error = None
+
+    try:
+        with open(fname, 'r') as f:
+            file_def = f.read()
+            file_def = dict(json.loads(file_def))
+
+    except Exception:
+        file_def = None
+        error = fname
+
+    return file_def, error
 
 def get_det_list():
 
