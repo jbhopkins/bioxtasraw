@@ -51,14 +51,6 @@ import scipy.constants
 import multiprocessing
 from collections import OrderedDict, defaultdict
 import functools
-import ctypes
-
-try:
-    #Should enable high resolution support on Windows
-    #https://stackoverflow.com/questions/50884283/how-to-fix-blurry-text-in-wxpython-controls-on-windows
-    ctypes.windll.shcore.SetProcessDpiAwareness(True)
-except Exception:
-    pass
 
 
 import hdf5plugin #HAS TO BE FIRST
