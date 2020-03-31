@@ -2137,10 +2137,10 @@ class MolWeightFrame(wx.Frame):
         sup_sizer1.Add(sup_vp, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
         sup_sizer1.Add(sup_txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
-        sup_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer2.Add(sup_txt3, 0, wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer2.Add(sup_vpc, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer2.Add(sup_txt4, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+        vpc_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        vpc_sizer.Add(sup_txt3, 0, wx.ALIGN_CENTER_VERTICAL)
+        vpc_sizer.Add(sup_vpc, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        vpc_sizer.Add(sup_txt4, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
         sup_sizer3 = wx.BoxSizer(wx.HORIZONTAL)
         sup_sizer3.Add(sup_txt5,0, wx.ALIGN_CENTER_VERTICAL)
@@ -2161,10 +2161,10 @@ class MolWeightFrame(wx.Frame):
         self.vp_sup_sizer.Add(sup_sizer5, 0, wx.BOTTOM, 5)
         self.vp_sup_sizer.Add(sup_sizer3,0, wx.BOTTOM, 5)
         self.vp_sup_sizer.Add(sup_sizer1, 0, wx.BOTTOM, 5)
-        self.vp_sup_sizer.Add(sup_sizer2, 0)
 
         self.vp_top_sizer = wx.StaticBoxSizer(vpbox, wx.VERTICAL)
         self.vp_top_sizer.Add(mwsizer, 0, wx.BOTTOM, 5)
+        self.vp_top_sizer.Add(vpc_sizer, border=5, flag=wx.BOTTOM)
         self.vp_top_sizer.Add(self.mw_warning_sizer, 0, wx.BOTTOM | wx.EXPAND, 5)
         self.vp_top_sizer.Add(self.vp_sup_sizer, 0, wx.BOTTOM, 5)
         self.vp_top_sizer.Add(vp_buttonsizer, 0, wx.ALIGN_CENTER | wx.TOP, 2)
