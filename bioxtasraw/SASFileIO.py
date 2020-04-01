@@ -1753,6 +1753,8 @@ def loadOutFile(filename):
                 'algorithm' : 'GNOM',       #Lets us know what algorithm was used to find the IFT
                 'chisq'     : chisq,        #Actual chi squared value
                 'alpha'     : alpha,        #Alpha used for the IFT
+                'qmin'      : qshort[0],    #Minimum q
+                'qmax'      : qshort[-1],   #Maximum q
                     }
 
     iftm = SASM.IFTM(P, R, Perr, Jexp, qshort, Jerr, Jreg, results, Ireg, qfull)

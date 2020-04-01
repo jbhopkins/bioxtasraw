@@ -9213,17 +9213,20 @@ class IFTItemPanel(wx.Panel):
         if self._selected:
             self._selected = False
             self.SetBackgroundColour(wx.Colour(250,250,250))
-            # if update_info:
-                # self.info_panel.clearInfo()
+            if update_info:
+                self.info_panel.clearInfo()
         else:
             self._selected = True
             self.SetBackgroundColour(RAWGlobals.highlight_color)
             if set_focus:
                 self.SetFocusIgnoringChildren()
-            # if update_info:
-                # self.info_panel.updateInfoFromItem(self)
+            if update_info:
+                self.info_panel.updateInfoFromItem(self)
 
         self.Refresh()
+
+    def updateInfoPanel(self):
+        self.info_panel.updateInfoFromItem(self)
 
     def enableLocatorLine(self):
 
@@ -10418,11 +10421,15 @@ class SeriesItemPanel(wx.Panel):
         if self._selected:
             self._selected = False
             self.SetBackgroundColour(wx.Colour(250,250,250))
+            if update_info:
+                self.info_panel.clearInfo()
         else:
             self._selected = True
             self.SetBackgroundColour(RAWGlobals.highlight_color)
             if set_focus:
                 self.SetFocusIgnoringChildren()
+            if update_info:
+                self.info_panel.updateInfoFromItem(self)
 
         self.Refresh()
 
@@ -12841,6 +12848,7 @@ class InformationPanel(scrolled.ScrolledPanel):
             self._showItem(item, update_top_panel=False)
 
         self.Layout()
+        self.SendSizeEvent()
         self.Refresh()
 
     def _getIcons(self):
@@ -13258,7 +13266,179 @@ class InformationPanel(scrolled.ScrolledPanel):
 
     def _createIFTsLayout(self):
 
+        filename_label = wx.StaticText(self, label='Name:')
+        filename = wx.StaticText(self)
+
+        filename_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        filename_sizer.Add(filename_label, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        filename_sizer.Add(filename, border=2, flag=wx.ALIGN_CENTER_VERTICAL)
+
+
+        ift_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "IFT")
+        ift_box = ift_sizer.GetStaticBox()
+
+        ift_show_item = wx.StaticBitmap(ift_box, wx.ID_ANY, self.collapse_png)
+        ift_show_item.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
+
+        ift_dmax_ctrl = wx.TextCtrl(ift_box, size=(40, -1), style=wx.TE_READONLY)
+        ift_rg_ctrl = wx.TextCtrl(ift_box, size=(40, -1), style=wx.TE_READONLY)
+        ift_rg_err_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
+        ift_i0_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
+        ift_i0_err_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
+        ift_te_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
+        ift_alpha_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
+        ift_qstart_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
+        ift_qend_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
+        ift_dmax_err_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
+        ift_chisq_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
+        ift_logalpha_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
+        ift_logalpha_err_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
+        ift_evidence_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
+        ift_evidence_err_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
+        ift_method_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
+        ift_interp = wx.TextCtrl(ift_box, style=wx.TE_READONLY)
+
+        ift_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        ift_main_sizer.Add(ift_show_item, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        ift_main_sizer.Add(wx.StaticText(ift_box, label='Dmax:'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        ift_main_sizer.Add(ift_dmax_ctrl, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        ift_main_sizer.Add(wx.StaticText(ift_box, label='Rg:'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        ift_main_sizer.Add(ift_rg_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_main_sizer.Add(wx.StaticText(ift_box, label='+/-'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        ift_main_sizer.Add(ift_rg_err_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_main_sizer.Add(wx.StaticText(ift_box, label='I(0):'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        ift_main_sizer.Add(ift_i0_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_main_sizer.Add(wx.StaticText(ift_box, label='+/-'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_main_sizer.Add(ift_i0_err_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_main_sizer.AddStretchSpacer(1)
+
+        ift_sub_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        ift_sub_info_sizer = wx.FlexGridSizer(cols=6, hgap=2, vgap=2)
+        ift_sub_info_sizer.Add(wx.StaticText(ift_box, label='Chi^2:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_sub_info_sizer.Add(ift_chisq_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_sub_info_sizer.Add(wx.StaticText(ift_box, label='Dmax Std. (B):'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_sub_info_sizer.Add(ift_dmax_err_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_sub_info_sizer.Add(wx.StaticText(ift_box, label='T.E. (G):'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_sub_info_sizer.Add(ift_te_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_sub_info_sizer.Add(wx.StaticText(ift_box, label='Log(Alpha) (B):'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_sub_info_sizer.Add(ift_logalpha_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_sub_info_sizer.Add(wx.StaticText(ift_box, label='+/-'),
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_CENTER_HORIZONTAL)
+        ift_sub_info_sizer.Add(ift_logalpha_err_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_sub_info_sizer.Add(wx.StaticText(ift_box, label='Alpha (G):'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_sub_info_sizer.Add(ift_alpha_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_sub_info_sizer.Add(wx.StaticText(ift_box, label='Evidence (B):'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_sub_info_sizer.Add(ift_evidence_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_sub_info_sizer.Add(wx.StaticText(ift_box, label='+/-'),
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_CENTER_HORIZONTAL)
+        ift_sub_info_sizer.Add(ift_evidence_err_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_sub_info_sizer.Add(wx.StaticText(ift_box, label='q min:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_sub_info_sizer.Add(ift_qstart_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_sub_info_sizer.Add(wx.StaticText(ift_box, label='q max:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_sub_info_sizer.Add(ift_qend_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_sub_info_sizer.Add(wx.StaticText(ift_box, label='Method:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        ift_sub_info_sizer.Add(ift_method_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        ift_interp_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        ift_interp_sizer.Add(wx.StaticText(ift_box, label='Interp. (G):'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        ift_interp_sizer.Add(ift_interp, border=2, proportion=1,
+            flag=wx.ALIGN_CENTER_VERTICAL)
+
+        ift_sub_sizer.Add(ift_sub_info_sizer)
+        ift_sub_sizer.Add(ift_interp_sizer, border=2, flag=wx.ALL|wx.EXPAND)
+
+
+        ift_sizer.Add(ift_main_sizer, border=2, flag=wx.ALL|wx.EXPAND)
+        ift_sizer.Add(ift_sub_sizer, border=2, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
+
+
+        ambi_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, 'Ambimeter')
+        ambi_box = ambi_sizer.GetStaticBox()
+
+        ambi_show_item = wx.StaticBitmap(ambi_box, wx.ID_ANY, self.collapse_png)
+        ambi_show_item.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
+
+        ambi_interp_ctrl = wx.TextCtrl(ambi_box, style=wx.TE_READONLY)
+        ambi_cat_ctrl = wx.TextCtrl(ambi_box, size=(50, -1), style=wx.TE_READONLY)
+        ambi_score_ctrl = wx.TextCtrl(ambi_box, size=(50, -1), style=wx.TE_READONLY)
+
+        ambi_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        ambi_main_sizer.Add(ambi_show_item, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        ambi_main_sizer.Add(wx.StaticText(ambi_box, label='Interp.:'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        ambi_main_sizer.Add(ambi_interp_ctrl, proportion=1,
+            flag=wx.ALIGN_CENTER_VERTICAL)
+
+        ambi_sub_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        ambi_sub_info_sizer = wx.FlexGridSizer(cols=6, hgap=2, vgap=2)
+        ambi_sub_info_sizer.Add(wx.StaticText(ambi_box, label='Score:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        ambi_sub_info_sizer.Add(ambi_score_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        ambi_sub_info_sizer.Add(wx.StaticText(ambi_box, label='Categories:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        ambi_sub_info_sizer.Add(ambi_cat_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        ambi_sub_sizer.Add(ambi_sub_info_sizer)
+
+        ambi_sizer.Add(ambi_main_sizer, border=2, flag=wx.ALL|wx.EXPAND)
+        ambi_sizer.Add(ambi_sub_sizer, border=2, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
+
+
+        self.iftm_info['Filename'] = (filename, 'static_text', 0)
+
+        self.iftm_info['dmax'] = (ift_dmax_ctrl, 'float', 1)
+        self.iftm_info['dmaxer'] = (ift_dmax_err_ctrl, 'float', 1)
+        self.iftm_info['rg'] = (ift_rg_ctrl, 'float', 2)
+        self.iftm_info['rger'] = (ift_rg_err_ctrl, 'float', 2)
+        self.iftm_info['i0'] = (ift_i0_ctrl, 'float', 2)
+        self.iftm_info['i0er'] = (ift_i0_err_ctrl, 'float', 2)
+        self.iftm_info['chisq'] = (ift_chisq_ctrl, 'float', 3)
+        self.iftm_info['TE'] = (ift_te_ctrl, 'float', 3)
+        self.iftm_info['alpha'] = (ift_alpha_ctrl, 'float', 1)
+        self.iftm_info['qmin'] = (ift_qstart_ctrl, 'float', 3)
+        self.iftm_info['qmax'] = (ift_qend_ctrl, 'float', 3)
+        self.iftm_info['log_alpha'] = (ift_logalpha_ctrl, 'float', 1)
+        self.iftm_info['alpha_er'] = (ift_logalpha_err_ctrl, 'float', 1)
+        self.iftm_info['evidence'] = (ift_evidence_ctrl, 'float', 1)
+        self.iftm_info['evidence_er'] = (ift_evidence_err_ctrl, 'float', 1)
+        self.iftm_info['algorithm'] = (ift_method_ctrl, 'text', 0)
+        self.iftm_info['quality'] = (ift_interp, 'text', 0)
+
+        self.iftm_info['Ambimeter_Interp'] = (ambi_interp_ctrl, 'text', 0)
+        self.iftm_info['Ambimeter_Ambiguity_score'] = (ambi_score_ctrl, 'float', 3)
+        self.iftm_info['Ambimeter_Shape_categories'] = (ambi_cat_ctrl, 'float', 3)
+
+
+        self.shown_items[ift_show_item] = [False, ift_sizer, ift_sub_sizer, 'ift']
+        self.shown_items[ambi_show_item] = [False, ambi_sizer, ambi_sub_sizer, 'ift']
+
         ifts_info_sizer = wx.BoxSizer(wx.VERTICAL)
+        ifts_info_sizer.Add(filename_sizer, border=1, flag=wx.ALL)
+        ifts_info_sizer.Add(ift_sizer, border=1,
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
+        ifts_info_sizer.Add(ambi_sizer, border=1,
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
 
         return ifts_info_sizer
 
@@ -13327,9 +13507,10 @@ class InformationPanel(scrolled.ScrolledPanel):
             self.Refresh()
             self.Thaw()
 
-    def switchInfoPanel(self, panel_type):
-        self.Freeze()
-        self.clearInfo(refresh=False)
+    def switchInfoPanel(self, panel_type, refresh=True):
+        if refresh:
+            self.Freeze()
+            self.clearInfo(refresh=False)
 
         if panel_type == 'profile':
             self.top_sizer.Show(self.profiles_sizer, recursive=True)
@@ -13361,9 +13542,11 @@ class InformationPanel(scrolled.ScrolledPanel):
                 if item[3] == 'series':
                     self._showItem(key, update_top_panel=False)
 
-        self.Layout()
-        self.Refresh()
-        self.Thaw()
+        if refresh:
+            self.Layout()
+            self.SendSizeEvent()
+            self.Refresh()
+            self.Thaw()
 
     def clearInfo(self, refresh=True):
         if refresh:
@@ -13407,21 +13590,21 @@ class InformationPanel(scrolled.ScrolledPanel):
             self.iftm = None
             self.secm = None
 
-            self.top_sizer.Show(self.profiles_sizer, recursive=True)
+            self.switchInfoPanel('profile', False)
 
         elif isinstance(self.selectedItem, IFTItemPanel):
             self.sasm = None
             self.iftm = self.selectedItem.getIFTM()
             self.secm = None
 
-            self.top_sizer.Hide(self.profiles_sizer, recursive=True)
+            self.switchInfoPanel('ift', False)
 
         elif isinstance(self.selectedItem, SeriesItemPanel):
             self.sasm = None
             self.iftm = None
             self.secm = self.selectedItem.getSECM()
 
-            self.top_sizer.Hide(self.profiles_sizer, recursive=True)
+            self.switchInfoPanel('series', False)
 
         if self.sasm is not None:
             info_dict = {'Filename' : self.sasm.getParameter('filename')}
@@ -13482,12 +13665,34 @@ class InformationPanel(scrolled.ScrolledPanel):
 
             self._onHeaderBrowserChoice(None)
 
+        elif self.iftm is not None:
+            info_dict = {'Filename' : self.iftm.getParameter('filename')}
+
+            info_dict.update(self.iftm.getAllParameters())
+
+            if self.iftm.getParameter('algorithm') == 'BIFT':
+                del info_dict['alpha']
+                info_dict['log_alpha'] = self.iftm.getParameter('alpha')
+
+            if 'Ambimeter' in self.iftm.getAllParameters():
+                del info_dict['Ambimeter']
+                ambi_params = self.iftm.getParameter('Ambimeter')
+
+                for key in  ambi_params:
+                    info_dict['Ambimeter_{}'.format(key)] = ambi_params[key]
+
+            print(info_dict)
+            for key in self.iftm_info:
+                print(key)
+                if key in info_dict:
+                    self.updateCtrl(info_dict[key], self.iftm_info[key])
+                else:
+                    print('key not found: {}'.format(key))
+
         self._enableAllControls()
 
-        for item in self.shown_items:
-            self._showItem(item, update_top_panel=False)
-
         self.Layout()
+        self.SendSizeEvent()
         self.Refresh()
         self.Thaw()
 

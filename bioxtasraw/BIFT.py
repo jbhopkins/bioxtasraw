@@ -484,6 +484,8 @@ def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
             'alpha_er'      : alpha_sd,     # Uncertainty in log(alpha)
             'evidence'      : evidence,     # Evidence of solution
             'evidence_er'   : ev_sd,        # Uncertainty in evidence of solution
+            'qmin'          : q[0],         # Minimum q
+            'qmax'          : q[-1],        # Maximum q
             'algorithm'     : 'BIFT',       # Lets us know what algorithm was used to find the IFT
             'filename'      : os.path.splitext(filename)[0]+'.ift'
             }

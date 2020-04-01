@@ -3978,8 +3978,8 @@ class GNOMControlPanel(wx.Panel):
         gnom_results['Alpha'] = self.out_list[dmax].getParameter('alpha')
         gnom_results['qStart'] = self.sasm.q[start_idx]
         gnom_results['qEnd'] = self.sasm.q[end_idx]
-        # gnom_results['GNOM_ChiSquared'] = self.out_list[dmax]['chisq']
-        # gnom_results['GNOM_Quality_Assessment'] = self.out_list[dmax]['gnomQuality']
+        gnom_results['GNOM_ChiSquared'] = self.out_list[dmax].getParameter('chisq')
+        gnom_results['GNOM_Quality_Assessment'] = self.out_list[dmax].getParameter('quality')
 
         analysis_dict = self.sasm.getParameter('analysis')
         analysis_dict['GNOM'] = gnom_results
@@ -9846,6 +9846,32 @@ class AmbimeterFrame(wx.Frame):
         wx.MessageBox(str(msg), "How to cite AMBIMETER", style = wx.ICON_INFORMATION | wx.OK)
 
     def onSaveInfo(self, evt):
+        analysis_dict = {}
+
+        cats_window = wx.FindWindowById(self.ids['ambiCats'], self)
+        cats_val = cats_window.GetValue()
+
+        score_window = wx.FindWindowById(self.ids['ambiScore'], self)
+        score_val = score_window.GetValue()
+
+        eval_window = wx.FindWindowById(self.ids['ambiEval'], self)
+        eval_val = eval_window.GetValue()
+
+        try:
+            cats_val = float(cats_val)
+            score_val = float(score_val)
+
+            analysis_dict['Shape_categories'] = cats_val
+            analysis_dict['Ambiguity_score'] = score_val
+            analysis_dict['Interp'] = eval_val
+
+            self.iftm.setParameter('Ambimeter', analysis_dict)
+
+            wx.CallAfter(self.manip_item.updateInfoPanel)
+
+        except Exception:
+            pass
+
 
         self.Close()
 
