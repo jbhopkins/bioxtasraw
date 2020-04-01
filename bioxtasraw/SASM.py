@@ -248,6 +248,9 @@ class SASM(object):
         ''' insert key,value pair into parameters dict '''
         self._parameters[key] = value
 
+    def removeParameter(self, key):
+        del self._parameters[key]
+
     def removeZingers(self, start_idx = 0, window_length = 10, stds = 4.0):
         ''' Removes spikes from the radial averaged data
             Threshold is currently 4 times the standard deviation (stds)

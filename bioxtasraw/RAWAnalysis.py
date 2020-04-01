@@ -3987,6 +3987,7 @@ class GNOMControlPanel(wx.Panel):
         if self.manip_item is not None:
             if gnom_results != self.old_analysis:
                 wx.CallAfter(self.manip_item.markAsModified)
+                wx.CallAfter(self.manip_item.updateInfoPanel)
 
         iftm = self.out_list[dmax]
         iftm.setParameter('filename', os.path.splitext(self.sasm.getParameter('filename'))[0]+'.out')
@@ -3999,6 +4000,7 @@ class GNOMControlPanel(wx.Panel):
                 wx.CallAfter(wx.MessageBox, 'The folder:\n' +self.raw_settings.get('GNOMFilePath')+ '\ncould not be found. Autosave of GNOM files has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
         RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [iftm, 'black', None, not self.raw_settings.get('AutoSaveOnGnom')]])
+
 
         self.gnom_frame.OnClose()
 
@@ -9296,6 +9298,7 @@ class BIFTControlPanel(wx.Panel):
             if self.manip_item is not None:
                 if results_dict != self.old_analysis:
                     wx.CallAfter(self.manip_item.markAsModified)
+                    wx.CallAfter(self.manip_item.updateInfoPanel)
 
         if self.BIFT_timer.IsRunning():
             self.BIFT_timer.Stop()

@@ -235,6 +235,8 @@ class MainFrame(wx.Frame):
         self.SetMinSize(minsize)
 
         # /* CREATE PLOT NOTEBOOK */
+        self._closing = False #A hack for what seems to be an AUI bug
+
         self._mgr = aui.AuiManager()
         self._mgr.SetManagedWindow(self)
 
@@ -270,9 +272,13 @@ class MainFrame(wx.Frame):
         self.masking_panel = MaskingPanel(self, -1)
 
         self._mgr.AddPane(self.info_panel, aui.AuiPaneInfo().Name("infopanel").
-                          CloseButton(False).Left().Layer(0).Caption("Information Panel").PinButton(True).Row(0).Position(0))
+                          CloseButton(False).Left().Layer(0).Caption("Information Panel").
+                          PinButton(True).Row(0).Position(0))
+
         self._mgr.AddPane(self.control_notebook, aui.AuiPaneInfo().Name("ctrlpanel").
-                          CloseButton(False).Left().Layer(0).Caption("Control Panel").MinSize((400,300)).PinButton(True).Row(0).Position(1))
+                          CloseButton(False).Left().Layer(0).Caption("Control Panel").
+                          MinSize((425,300)).PinButton(True).Row(0).Position(1))
+
         self._mgr.AddPane(self.plot_notebook, aui.AuiPaneInfo().Name("plotpanel").
                           CloseButton(False).Centre().Layer(0).Caption("Plot Panel"))
 
@@ -290,7 +296,7 @@ class MainFrame(wx.Frame):
         self._mgr.GetPane(self.masking_panel).Show(False)
         self._mgr.GetPane(self.masking_panel).dock_proportion = 350000
 
-        self._mgr.GetPane(self.info_panel).FloatingSize((300,200))
+        self._mgr.GetPane(self.info_panel).FloatingSize((450,600))
         self._mgr.GetPane(self.control_notebook).dock_proportion = 350000
 
         self._mgr.GetPane(self.info_panel).dock_proportion = 120000
@@ -313,7 +319,7 @@ class MainFrame(wx.Frame):
         self.SetIcon(icon)
         app.SetTopWindow(self)
 
-        size = (min(1024, client_display.Width), min(768, client_display.Height))
+        size = (min(1200, client_display.Width), min(900, client_display.Height))
         self.SetSize(size)
         self.CenterOnScreen()
         self.Show(True)
@@ -2491,6 +2497,7 @@ class MainFrame(wx.Frame):
             self._cleanup_and_quit()
 
     def _cleanup_and_quit(self):
+        self._closing = True
         self.saveBackupData()
         self._mgr.UnInit()
         self.sleep_inhibit.force_off()
@@ -2527,22 +2534,39 @@ class MainFrame(wx.Frame):
             self.OnlineControl.stopTimer()
 
     def onControlTabChange(self, evt):
-        page = self.control_notebook.GetPageText(evt.GetSelection())
+        if not self._closing:
+            page = self.control_notebook.GetPageText(evt.GetSelection())
 
-        if page == 'IFTs' or page == 'Series':
-            self.info_panel.clearInfo()
+            if page == 'IFTs':
+                ift_panel = wx.FindWindowByName('IFTPanel')
+                selected_items = ift_panel.getSelectedItems()
 
-        elif page == 'Profiles':
-            manip = wx.FindWindowByName('ManipulationPanel')
-            selected_items = manip.getSelectedItems()
+                if len(selected_items) > 0:
+                    self.info_panel.updateInfoFromItem(selected_items[0])
+                else:
+                    self.info_panel.switchInfoPanel('ift')
 
-            if len(selected_items) > 0:
-                self.info_panel.updateInfoFromItem(selected_items[0])
+            elif page == 'Series':
+                series_panel = wx.FindWindowByName('SECPanel')
+                selected_items = series_panel.getSelectedItems()
 
-        elif page == 'Files':
-            file_panel = wx.FindWindowByName('FilePanel')
-            file_panel.dir_panel.refresh()
+                if len(selected_items) > 0:
+                    self.info_panel.updateInfoFromItem(selected_items[0])
+                else:
+                    self.info_panel.switchInfoPanel('series')
 
+            elif page == 'Profiles':
+                manip = wx.FindWindowByName('ManipulationPanel')
+                selected_items = manip.getSelectedItems()
+
+                if len(selected_items) > 0:
+                    self.info_panel.updateInfoFromItem(selected_items[0])
+                else:
+                    self.info_panel.switchInfoPanel('profile')
+
+            elif page == 'Files':
+                file_panel = wx.FindWindowByName('FilePanel')
+                file_panel.dir_panel.refresh()
 
 
 class OnlineController(object):
@@ -7602,6 +7626,9 @@ class ManipItemPanel(wx.Panel):
 
         if fromGuinierDialog and self._selected:
             self.info_panel.updateInfoFromItem(self)
+
+    def updateInfoPanel(self):
+        self.info_panel.updateInfoFromItem(self)
 
     def enableStar(self, state):
         if state == True:
@@ -12765,7 +12792,7 @@ class CenteringPanel(scrolled.ScrolledPanel):
 
 #----- **** InformationPanel ****
 
-class InformationPanel(wx.Panel):
+class InformationPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent):
 
@@ -12779,50 +12806,467 @@ class InformationPanel(wx.Panel):
         self.used_font1 = wx.Font(self.font_size1, wx.FONTFAMILY_SWISS,
             wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
 
-        wx.Panel.__init__(self, parent, name = 'InformationPanel')
+        scrolled.ScrolledPanel.__init__(self, parent, name = 'InformationPanel',
+            style=wx.BG_STYLE_SYSTEM)
+        self.SetScrollRate(20,20)
 
-        infoSizer = wx.BoxSizer(wx.VERTICAL)
+        self.SetFont(self.used_font1)
 
-        self.analysis_data = [('Rg:', 'Rg', self.NewControlId()),
-                              ('I0:', 'I0', self.NewControlId()),
-                              ('MW:', 'MW', self.NewControlId())]
+        #Dictionaries tracking what controls to update with what info
+        #Entires look like (<wxwidget>, <widget_type>, <rounding precision>)
+        #Key is the key for the item in the analysis info or otherwise in the update dict
+        self.sasm_info = {}
+        self.iftm_info = {}
+        self.seriesm_info = {}
 
-        self.conc_data = ('Conc:', 'Conc', self.NewControlId())
+        #Dictionary to track show/hide controls. Key is the bitmap control
+        #Entries look like (<bool State>, <top_sizer>, <hide_sizer>)
+        self.shown_items = {}
 
-        self.analysis_info_sizer = self._createAnalysisInfoSizer()
+        self._getIcons()
 
-        infoSizer.Add(self.analysis_info_sizer, 0, wx.ALL | wx.EXPAND, 5)
+        self._createLayout()
 
-
-        #header_note_box = wx.StaticBox(self, -1, 'Header data / Notes')
-        #header_note_boxsizer = wx.StaticBoxSizer(header_note_box, orient = wx.VERTICAL)
-
-        header_note_boxsizer = wx.BoxSizer(wx.VERTICAL)
-
-        note_txt = wx.StaticText(self,-1,'Description / Notes:')
-        note_txt.SetFont(self.used_font1)
-
-        hdrbrow_txt = wx.StaticText(self,-1,'Header browser:')
-        hdrbrow_txt.SetFont(self.used_font1)
-
-        header_note_boxsizer.Add(note_txt, 0)
-        header_note_boxsizer.Add(self._createNoteSizer(), 0, wx.ALL | wx.EXPAND, 5)
-        header_note_boxsizer.Add(hdrbrow_txt, 0)
-        self.header_browser_sizer = self._createHeaderBrowserSizer()
-        header_note_boxsizer.Add(self.header_browser_sizer, 0, wx.ALL | wx.EXPAND, 5)
-
-        infoSizer.Add(header_note_boxsizer, 1, wx.EXPAND | wx.ALL, 5)
-
-        self.SetSizer(infoSizer)
-
-        self.header_choice_key = None
-        self.header_choice_hdr = None
         self.selectedItem = None
         self.sasm = None
-        self.num_of_file_hdr_keys = 0
-        self.num_of_imghdr_keys = 0
+        self.iftm = None
+        self.seriesm = None
+
+        self.header_values = {}
+        self.header_choice_key = None
 
         self._disableAllControls()
+
+        for item in self.shown_items:
+            self._showItem(item, update_top_panel=False)
+
+        self.Layout()
+        self.Refresh()
+
+    def _getIcons(self):
+        expand = os.path.join(RAWGlobals.RAWResourcesDir,
+            'icons8-sort-down-filled-16.png')
+        collapse = os.path.join(RAWGlobals.RAWResourcesDir,
+            'icons8-sort-up-filled-16.png')
+
+        self.expand_png = wx.Bitmap(expand, wx.BITMAP_TYPE_PNG)
+        self.collapse_png = wx.Bitmap(collapse, wx.BITMAP_TYPE_PNG)
+
+    def _createLayout(self):
+
+        self.top_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.profiles_sizer = self._createProfilesLayout()
+        self.ifts_sizer = self._createIFTsLayout()
+        self.series_sizer = self._createSeriesLayout()
+
+        self.top_sizer.Add(self.profiles_sizer, proportion=1, border=2,
+            flag=wx.ALL|wx.EXPAND)
+        self.top_sizer.Add(self.ifts_sizer, proportion=1, border=2,
+            flag=wx.ALL|wx.EXPAND)
+        self.top_sizer.Add(self.series_sizer, proportion=1, border=2,
+            flag=wx.ALL|wx.EXPAND)
+
+        self.top_sizer.Hide(self.ifts_sizer)
+        self.top_sizer.Hide(self.series_sizer)
+
+        self.SetSizer(self.top_sizer)
+
+    def _createProfilesLayout(self):
+
+        filename_label = wx.StaticText(self, label='Name:')
+        filename = wx.StaticText(self)
+
+        filename_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        filename_sizer.Add(filename_label, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        filename_sizer.Add(filename, border=2, flag=wx.ALIGN_CENTER_VERTICAL)
+
+
+        guinier_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "Guinier Fit")
+        guinier_box = guinier_sizer.GetStaticBox()
+
+        guinier_show_item = wx.StaticBitmap(guinier_box, wx.ID_ANY, self.collapse_png)
+        guinier_show_item.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
+
+        rg_ctrl = wx.TextCtrl(guinier_box, size=(50, -1), style=wx.TE_READONLY)
+        rg_err_ctrl = wx.TextCtrl(guinier_box, size=(50, -1), style=wx.TE_READONLY)
+        i0_ctrl = wx.TextCtrl(guinier_box, size=(50, -1), style=wx.TE_READONLY)
+        i0_err_ctrl = wx.TextCtrl(guinier_box, size=(50, -1), style=wx.TE_READONLY)
+        qrg_min = wx.TextCtrl(guinier_box, size=(50, -1), style=wx.TE_READONLY)
+        qrg_max = wx.TextCtrl(guinier_box, size=(50, -1), style=wx.TE_READONLY)
+        rsq = wx.TextCtrl(guinier_box, size=(50, -1), style=wx.TE_READONLY)
+
+        guinier_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        guinier_main_sizer.Add(guinier_show_item, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_main_sizer.Add(wx.StaticText(guinier_box, label='Rg:'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_main_sizer.Add(rg_ctrl, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_main_sizer.Add(wx.StaticText(guinier_box, label='+/-'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_main_sizer.Add(rg_err_ctrl, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_main_sizer.Add(wx.StaticText(guinier_box, label='I(0):'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_main_sizer.Add(i0_ctrl, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_main_sizer.Add(wx.StaticText(guinier_box, label='+/-'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_main_sizer.Add(i0_err_ctrl, border=2, flag=wx.ALIGN_CENTER_VERTICAL)
+        guinier_main_sizer.AddStretchSpacer(1)
+
+        guinier_sub_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        guinier_sub_info_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        guinier_sub_info_sizer.Add(wx.StaticText(guinier_box, label='qRg_min:'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_sub_info_sizer.Add(qrg_min, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_sub_info_sizer.Add(wx.StaticText(guinier_box, label='qRg_max:'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_sub_info_sizer.Add(qrg_max, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_sub_info_sizer.Add(wx.StaticText(guinier_box, label='r^2:'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_sub_info_sizer.Add(rsq, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL)
+
+        guinier_sub_sizer.Add(guinier_sub_info_sizer)
+
+        guinier_sizer.Add(guinier_main_sizer, border=2, flag=wx.ALL|wx.EXPAND)
+        guinier_sizer.Add(guinier_sub_sizer, border=2,
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
+
+
+        mw_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "Molecular Weight")
+        mw_box = mw_sizer.GetStaticBox()
+
+        mw_show_item = wx.StaticBitmap(mw_box, wx.ID_ANY, self.collapse_png)
+        mw_show_item.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
+
+        abs_mw_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
+        std_mw_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
+        vp_mw_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
+        vc_mw_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
+        vc_type_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
+        vc_qmax_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
+        vp_vpc_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
+        vp_qmax_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
+        vp_density_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
+        abs_psv_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
+
+        mw_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        mw_main_sizer.Add(mw_show_item, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        mw_main_sizer.Add(wx.StaticText(mw_box, label='Vc:'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        mw_main_sizer.Add(vc_mw_ctrl, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        mw_main_sizer.Add(wx.StaticText(mw_box, label='Vp:'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        mw_main_sizer.Add(vp_mw_ctrl, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        mw_main_sizer.Add(wx.StaticText(mw_box, label='Abs.:'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        mw_main_sizer.Add(abs_mw_ctrl, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        mw_main_sizer.Add(wx.StaticText(mw_box, label='Std.:'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        mw_main_sizer.Add(std_mw_ctrl, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_main_sizer.AddStretchSpacer(1)
+
+
+        mw_sub_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        mw_sub_info_sizer = wx.FlexGridSizer(cols=6, hgap=2, vgap=2)
+        mw_sub_info_sizer.Add(wx.StaticText(mw_box, label='Vc Mol. type:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(vc_type_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(wx.StaticText(mw_box, label='Vc q_max:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(vc_qmax_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(wx.StaticText(mw_box, label='Cor. Vp:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(vp_vpc_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(wx.StaticText(mw_box, label='Vp q_max:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(vp_qmax_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(wx.StaticText(mw_box, label='Vp Density:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(vp_density_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(wx.StaticText(mw_box, label='Abs. P.S.V.:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(abs_psv_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        mw_sub_sizer.Add(mw_sub_info_sizer)
+
+        mw_sizer.Add(mw_main_sizer, border=2, flag=wx.ALL|wx.EXPAND)
+        mw_sizer.Add(mw_sub_sizer, border=2, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
+
+
+        gnom_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "GNOM")
+        gnom_box = gnom_sizer.GetStaticBox()
+
+        gnom_show_item = wx.StaticBitmap(gnom_box, wx.ID_ANY, self.collapse_png)
+        gnom_show_item.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
+
+        gnom_dmax_ctrl = wx.TextCtrl(gnom_box, size=(40, -1), style=wx.TE_READONLY)
+        gnom_rg_ctrl = wx.TextCtrl(gnom_box, size=(40, -1), style=wx.TE_READONLY)
+        gnom_rg_err_ctrl = wx.TextCtrl(gnom_box, size=(50, -1), style=wx.TE_READONLY)
+        gnom_i0_ctrl = wx.TextCtrl(gnom_box, size=(50, -1), style=wx.TE_READONLY)
+        gnom_i0_err_ctrl = wx.TextCtrl(gnom_box, size=(50, -1), style=wx.TE_READONLY)
+        gnom_te_ctrl = wx.TextCtrl(gnom_box, size=(50, -1), style=wx.TE_READONLY)
+        gnom_alpha_ctrl = wx.TextCtrl(gnom_box, size=(50, -1), style=wx.TE_READONLY)
+        gnom_qstart_ctrl = wx.TextCtrl(gnom_box, size=(50, -1), style=wx.TE_READONLY)
+        gnom_qend_ctrl = wx.TextCtrl(gnom_box, size=(50, -1), style=wx.TE_READONLY)
+
+        gnom_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        gnom_main_sizer.Add(gnom_show_item, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        gnom_main_sizer.Add(wx.StaticText(gnom_box, label='Dmax:'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        gnom_main_sizer.Add(gnom_dmax_ctrl, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        gnom_main_sizer.Add(wx.StaticText(gnom_box, label='Rg:'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        gnom_main_sizer.Add(gnom_rg_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        gnom_main_sizer.Add(wx.StaticText(gnom_box, label='+/-'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        gnom_main_sizer.Add(gnom_rg_err_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        gnom_main_sizer.Add(wx.StaticText(gnom_box, label='I(0):'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        gnom_main_sizer.Add(gnom_i0_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        gnom_main_sizer.Add(wx.StaticText(gnom_box, label='+/-'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        gnom_main_sizer.Add(gnom_i0_err_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        gnom_main_sizer.AddStretchSpacer(1)
+
+        gnom_sub_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        gnom_sub_info_sizer = wx.FlexGridSizer(cols=6, hgap=2, vgap=2)
+        gnom_sub_info_sizer.Add(wx.StaticText(gnom_box, label='T.E.:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        gnom_sub_info_sizer.Add(gnom_te_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        gnom_sub_info_sizer.Add(wx.StaticText(gnom_box, label='Alpha:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        gnom_sub_info_sizer.Add(gnom_alpha_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        gnom_sub_info_sizer.Add(wx.StaticText(gnom_box, label='q min:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        gnom_sub_info_sizer.Add(gnom_qstart_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        gnom_sub_info_sizer.Add(wx.StaticText(gnom_box, label='q max:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        gnom_sub_info_sizer.Add(gnom_qend_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        gnom_sub_sizer.Add(gnom_sub_info_sizer)
+
+        gnom_sizer.Add(gnom_main_sizer, border=2, flag=wx.ALL|wx.EXPAND)
+        gnom_sizer.Add(gnom_sub_sizer, border=2, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
+
+
+        bift_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "BIFT")
+        bift_box = bift_sizer.GetStaticBox()
+
+        bift_show_item = wx.StaticBitmap(bift_box, wx.ID_ANY, self.collapse_png)
+        bift_show_item.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
+
+        bift_dmax_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
+        bift_dmax_err_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
+        bift_rg_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
+        bift_rg_err_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
+        bift_i0_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
+        bift_i0_err_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
+        bift_chisq_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
+        bift_logalpha_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
+        bift_logalpha_err_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
+        bift_evidence_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
+        bift_evidence_err_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
+        bift_qstart_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
+        bift_qend_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
+
+        bift_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        bift_main_sizer.Add(bift_show_item, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        bift_main_sizer.Add(wx.StaticText(bift_box, label='Dmax:'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        bift_main_sizer.Add(bift_dmax_ctrl, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        bift_main_sizer.Add(wx.StaticText(bift_box, label='+/-'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        bift_main_sizer.Add(bift_dmax_err_ctrl, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        bift_main_sizer.Add(wx.StaticText(bift_box, label='Rg:'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        bift_main_sizer.Add(bift_rg_ctrl, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        bift_main_sizer.Add(wx.StaticText(bift_box, label='+/-'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        bift_main_sizer.Add(bift_rg_err_ctrl, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        bift_main_sizer.AddStretchSpacer(1)
+
+        bift_sub_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        bift_sub_info_sizer = wx.FlexGridSizer(cols=6, hgap=2, vgap=2)
+        bift_sub_info_sizer.Add(wx.StaticText(bift_box, label='I(0):'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        bift_sub_info_sizer.Add(bift_i0_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        bift_sub_info_sizer.Add(wx.StaticText(bift_box, label='+/-'),
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_CENTER_HORIZONTAL)
+        bift_sub_info_sizer.Add(bift_i0_err_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        bift_sub_info_sizer.Add(wx.StaticText(bift_box, label='Chi^2:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        bift_sub_info_sizer.Add(bift_chisq_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        bift_sub_info_sizer.Add(wx.StaticText(bift_box, label='Log(Alpha):'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        bift_sub_info_sizer.Add(bift_logalpha_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        bift_sub_info_sizer.Add(wx.StaticText(bift_box, label='+/-'),
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_CENTER_HORIZONTAL)
+        bift_sub_info_sizer.Add(bift_logalpha_err_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        bift_sub_info_sizer.Add(wx.StaticText(bift_box, label='q min:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        bift_sub_info_sizer.Add(bift_qstart_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        bift_sub_info_sizer.Add(wx.StaticText(bift_box, label='q max:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        bift_sub_info_sizer.Add(bift_qend_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        bift_sub_info_sizer.Add(wx.StaticText(bift_box, label='Evidence:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        bift_sub_info_sizer.Add(bift_evidence_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        bift_sub_info_sizer.Add(wx.StaticText(bift_box, label='+/-'),
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_CENTER_HORIZONTAL)
+        bift_sub_info_sizer.Add(bift_evidence_err_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        bift_sub_sizer.Add(bift_sub_info_sizer)
+
+        bift_sizer.Add(bift_main_sizer, border=2, flag=wx.ALL|wx.EXPAND)
+        bift_sizer.Add(bift_sub_sizer, border=2, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
+
+
+        other_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, 'Other')
+        other_box = other_sizer.GetStaticBox()
+
+        self.concentration = wx.TextCtrl(other_box, size=(100, -1),
+            validator=RAWCustomCtrl.CharValidator('float'))
+        self.concentration.Bind(wx.EVT_TEXT, self._updateConc)
+
+        conc_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        conc_sizer.Add(wx.StaticText(other_box, label='Concentration:'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        conc_sizer.Add(self.concentration, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        conc_sizer.Add(wx.StaticText(other_box, label='mg/ml'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+
+        self.header_choice = wx.Choice(other_box)
+        self.header_txt = wx.TextCtrl(other_box, style=wx.TE_READONLY)
+        self.header_choice.Bind(wx.EVT_CHOICE, self._onHeaderBrowserChoice)
+
+        header_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        header_sizer.Add(self.header_choice, border=2, proportion=1,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        header_sizer.Add(self.header_txt, proportion=2,
+            flag=wx.ALIGN_CENTER_VERTICAL)
+
+        self.notes = wx.TextCtrl(other_box)
+        self.notes.Bind(wx.EVT_TEXT, self._updateNote)
+
+        note_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        note_sizer.Add(wx.StaticText(other_box, label='Notes:'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        note_sizer.Add(self.notes, proportion=1, flag=wx.ALIGN_CENTER_VERTICAL)
+
+
+        other_sizer.Add(header_sizer, border=2, flag=wx.ALL|wx.EXPAND)
+        other_sizer.Add(conc_sizer, border=2,
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
+        other_sizer.Add(note_sizer, border=2,
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
+
+
+        self.sasm_info['Filename'] = (filename, 'static_text', 0)
+
+        self.sasm_info['guinier_Rg'] = (rg_ctrl, 'float', 2)
+        self.sasm_info['guinier_Rg_err'] = (rg_err_ctrl, 'float', 2)
+        self.sasm_info['guinier_I0'] = (i0_ctrl, 'float', 2)
+        self.sasm_info['guinier_I0_err'] = (i0_err_ctrl, 'float', 2)
+        self.sasm_info['guinier_qRg_min'] = (qrg_min, 'float', 2)
+        self.sasm_info['guinier_qRg_max'] = (qrg_max, 'float', 2)
+        self.sasm_info['guinier_rsq'] = (rsq, 'float', 2)
+
+        self.sasm_info['MW_VolumeOfCorrelation_MW'] = (vc_mw_ctrl, 'float', 1)
+        self.sasm_info['MW_VolumeOfCorrelation_Type'] = (vc_type_ctrl, 'text', 0)
+        self.sasm_info['MW_VolumeOfCorrelation_Q_max'] = (vc_qmax_ctrl, 'float', 3)
+        self.sasm_info['MW_PorodVolume_MW'] = (vp_mw_ctrl, 'float', 1)
+        self.sasm_info['MW_PorodVolume_VPorod_Corrected'] = (vp_vpc_ctrl, 'float', 2)
+        self.sasm_info['MW_PorodVolume_Q_max'] = (vp_qmax_ctrl, 'float', 3)
+        self.sasm_info['MW_PorodVolume_Density'] = (vp_density_ctrl, 'float', 1)
+        self.sasm_info['MW_Absolute_MW'] = (abs_mw_ctrl, 'float', 1)
+        self.sasm_info['MW_Absolute_Partial_specific_volume'] = (abs_psv_ctrl, 'float', 3)
+        self.sasm_info['MW_I(0)Concentration_MW'] = (std_mw_ctrl, 'float', 1)
+
+        self.sasm_info['GNOM_Dmax'] = (gnom_dmax_ctrl, 'float', 1)
+        self.sasm_info['GNOM_Real_Space_Rg'] = (gnom_rg_ctrl, 'float', 2)
+        self.sasm_info['GNOM_Real_Space_Rg_Err'] = (gnom_rg_err_ctrl, 'float', 2)
+        self.sasm_info['GNOM_Real_Space_I0'] = (gnom_i0_ctrl, 'float', 2)
+        self.sasm_info['GNOM_Real_Space_I0_Err'] = (gnom_i0_err_ctrl, 'float', 2)
+        self.sasm_info['GNOM_Total_Estimate'] = (gnom_te_ctrl, 'float', 3)
+        self.sasm_info['GNOM_Alpha'] = (gnom_alpha_ctrl, 'float', 1)
+        self.sasm_info['GNOM_qStart'] = (gnom_qstart_ctrl, 'float', 3)
+        self.sasm_info['GNOM_qEnd'] = (gnom_qend_ctrl, 'float', 3)
+
+        self.sasm_info['BIFT_Dmax'] = (bift_dmax_ctrl, 'float', 1)
+        self.sasm_info['BIFT_Dmax_Err'] = (bift_dmax_err_ctrl, 'float', 1)
+        self.sasm_info['BIFT_Real_Space_Rg'] = (bift_rg_ctrl, 'float', 2)
+        self.sasm_info['BIFT_Real_Space_Rg_Err'] = (bift_rg_err_ctrl, 'float', 2)
+        self.sasm_info['BIFT_Real_Space_I0'] = (bift_i0_ctrl, 'float', 2)
+        self.sasm_info['BIFT_Real_Space_I0_Err'] = (bift_i0_err_ctrl, 'float', 2)
+        self.sasm_info['BIFT_ChiSquared'] = (bift_chisq_ctrl, 'float', 3)
+        self.sasm_info['BIFT_LogAlpha'] = (bift_logalpha_ctrl, 'float', 1)
+        self.sasm_info['BIFT_LogAlpha_Err'] = (bift_logalpha_err_ctrl, 'float', 1)
+        self.sasm_info['BIFT_qStart'] = (bift_qstart_ctrl, 'float', 3)
+        self.sasm_info['BIFT_qEnd'] = (bift_qend_ctrl, 'float', 3)
+        self.sasm_info['BIFT_Evidence'] = (bift_evidence_ctrl, 'float', 1)
+        self.sasm_info['BIFT_Evidence_Err'] = (bift_evidence_err_ctrl, 'float', 1)
+
+        self.sasm_info['Concentration'] = (self.concentration, 'float', 100)
+        self.sasm_info['Header_Keys'] = (self.header_choice, 'choice', 0)
+        self.sasm_info['Header_Value'] = (self.header_txt, 'text', 0)
+        self.sasm_info['Notes'] = (self.notes, 'text', 0)
+
+
+        self.shown_items[guinier_show_item] = [False, guinier_sizer, guinier_sub_sizer, 'profile']
+        self.shown_items[mw_show_item] = [False, mw_sizer, mw_sub_sizer, 'profile']
+        self.shown_items[gnom_show_item] = [False, gnom_sizer, gnom_sub_sizer, 'profile']
+        self.shown_items[bift_show_item] = [False, bift_sizer, bift_sub_sizer, 'profile']
+
+        profiles_info_sizer = wx.BoxSizer(wx.VERTICAL)
+        profiles_info_sizer.Add(filename_sizer, border=1, flag=wx.ALL)
+        profiles_info_sizer.Add(guinier_sizer, border=1,
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
+        profiles_info_sizer.Add(mw_sizer, border=1,
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
+        profiles_info_sizer.Add(gnom_sizer, border=1,
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
+        profiles_info_sizer.Add(bift_sizer, border=1,
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
+        profiles_info_sizer.Add(other_sizer, border=1,
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
+
+        return profiles_info_sizer
+
+    def _createIFTsLayout(self):
+
+        ifts_info_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        return ifts_info_sizer
+
+    def _createSeriesLayout(self):
+
+        series_info_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        return series_info_sizer
 
     def _disableAllControls(self):
         for each in self.GetChildren():
@@ -12832,168 +13276,98 @@ class InformationPanel(wx.Panel):
         for each in self.GetChildren():
             each.Enable(True)
 
-    def _createHeaderBrowserSizer(self):
-
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        self.header_choice = wx.Choice(self, -1)
-        self.header_txt = wx.TextCtrl(self, -1, '', style = wx.TE_CENTRE)
-        self.header_choice.SetFont(self.used_font1)
-        self.header_txt.SetFont(self.used_font1)
-        self.header_choice.Bind(wx.EVT_CHOICE, self._onHeaderBrowserChoice)
-
-        sizer.Add(self.header_choice, 1, wx.EXPAND | wx.RIGHT, 5)
-        sizer.Add(self.header_txt, 2, wx.EXPAND)
-
-        return sizer
-
-    def _createAnalysisInfoSizer(self):
-
-        sizer = wx.BoxSizer(wx.VERTICAL)
-
-        name_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.name_label = wx.StaticText(self, -1, 'Name:')
-        self.name_txt = wx.StaticText(self, -1, 'None')
-
-        self.name_label.SetFont(self.used_font1)
-        self.name_txt.SetFont(self.used_font1)
-
-
-        name_sizer.Add(self.name_label, 0, wx.RIGHT, 10)
-        name_sizer.Add(self.name_txt, 1, wx.EXPAND)
-
-        analysis_sizer = wx.BoxSizer()
-        for each in self.analysis_data:
-            label = each[0]
-            id = each[2]
-            value = 'N/A'
-
-            label_txt = wx.StaticText(self, -1, label)
-            value_txt = wx.TextCtrl(self, id, value, size = (60, -1), style = wx.TE_READONLY)
-            label_txt.SetFont(self.used_font1)
-            value_txt.SetFont(self.used_font1)
-            value_txt.SetSize((60,-1))
-
-            siz = wx.BoxSizer()
-            siz.Add(label_txt, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
-            siz.Add(value_txt, 1, wx.EXPAND)
-
-            analysis_sizer.Add(siz, 1, wx.RIGHT | wx.EXPAND, 10)
-
-        ## add conc ctrl:
-        label_txt = wx.StaticText(self, -1, self.conc_data[0])
-        label_txt.SetFont(self.used_font1)
-
-        self.conc_txt = wx.TextCtrl(self, self.conc_data[2], 'N/A', size = (60, -1))
-        self.conc_txt.Bind(wx.EVT_KILL_FOCUS, self._onNoteTextKillFocus)
-        self.conc_txt.Bind(wx.EVT_TEXT, self._updateConc)
-        self.conc_txt.SetFont(self.used_font1)
-
-        siz = wx.BoxSizer()
-        siz.Add(label_txt, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 3)
-        siz.Add(self.conc_txt, 1, wx.EXPAND)
-        analysis_sizer.Add(siz, 1, wx.RIGHT | wx.EXPAND, 10)
-
-        sizer.Add(name_sizer, 0, wx.EXPAND | wx.BOTTOM, 5)
-        sizer.Add(analysis_sizer, 1, wx.EXPAND | wx.RIGHT, 5)
-
-        return sizer
-
-    def _createNoteSizer(self):
-        sizer = wx.BoxSizer()
-
-        self.noteTextBox = wx.TextCtrl(self, -1, '')
-        self.noteTextBox.SetBackgroundColour('WHITE')
-        self.noteTextBox.SetForegroundColour('BLACK')
-
-        #length, height = self.noteTextBox.GetTextExtent('TEST')
-        #self.noteTextBox.SetMaxSize((-1,30))
-        #self.noteTextBox.SetSize((-1, 2*height))
-
-        self.noteTextBox.Bind(wx.EVT_KILL_FOCUS, self._onNoteTextKillFocus)
-
-        sizer.Add(self.noteTextBox, 1, wx.EXPAND)
-
-        return sizer
-
-    def _onNoteTextKillFocus(self, event):
-
-        note_txt = self.noteTextBox.GetValue()
-
-        try:
-            self.sasm.setParameter('Notes', note_txt)
-        except AttributeError:
-            pass
-
-        try:
-            conc = self.conc_txt.GetValue().replace(',','.')
-            if self.sasm is not None and conc != 'N/A':
-
-                float(conc)
-                self.sasm.setParameter('Conc', float(conc))
-
-
-        except Exception as e:
-            print(e)
-            print('info error, Conc')
-
-
-        if self.sasm is not None and self.selectedItem is not None:
-            try:
-                self.selectedItem.updateInfoTip(self.sasm.getParameter('analysis'))
-            except Exception as e:
-                pass
-
-        event.Skip()
-
     def _updateConc(self, event):
         try:
-            conc = self.conc_txt.GetValue().replace(',','.')
-            if (self.sasm is not None and conc != 'N/A' and conc != 'N/'
-                and conc !='N' and conc !='/A' and conc !='A' and conc != 'NA'
-                and conc != '' and conc !='.'):
+            conc = float(self.concentration.GetValue().replace(',','.'))
+            self.sasm.setParameter('Conc', conc)
+        except Exception:
+            self.sasm.removeParameter('Conc')
+            pass
 
-                float(conc)
-                self.sasm.setParameter('Conc', float(conc))
+    def _updateNote(self, event):
+        try:
+            note = str(self.notes.GetValue())
+            if note != '':
+                self.sasm.setParameter('Notes', note)
+            else:
+                self.sasm.removeParameter('Notes')
 
-        except Exception as e:
-            print(e)
-            print('info error, Conc')
+        except Exception:
+            self.sasm.removeParameter('Notes')
 
     def _onHeaderBrowserChoice(self, event):
 
         key = self.header_choice.GetStringSelection()
-        sel_idx = self.header_choice.GetSelection()
-
-        if self.sasm is None or key == 'No header info':
-            return
-
+        self.header_txt.ChangeValue(str(self.header_values[key]))
         self.header_choice_key = key
 
-        if sel_idx < (self.num_of_file_hdr_keys):
-            self.header_choice_hdr = 'counters'
-        else:
-            self.header_choice_hdr = 'imageHeader'
+    def _onShowItem(self, event):
+        ctrl = event.GetEventObject()
 
-        img_hdr = self.sasm.getParameter('imageHeader')
-        file_hdr = self.sasm.getParameter('counters')
+        self.shown_items[ctrl][0] = not self.shown_items[ctrl][0]
 
-        if self.header_choice_hdr == 'imageHeader' and key in img_hdr:
-            self.header_txt.SetValue(str(img_hdr[key]))
-        if self.header_choice_hdr == 'counters' and key in file_hdr:
-            self.header_txt.SetValue(str(file_hdr[key]))
+        self._showItem(ctrl)
 
-        if sel_idx != wx.NOT_FOUND:
-            self.selectedItem.info_settings['hdr_choice'] = sel_idx
-        else:
-            self.selectedItem.info_settings['hdr_choice'] = 0
+    def _showItem(self, ctrl, update_top_panel=True):
+        state, top_sizer, hide_sizer, panel_name = self.shown_items[ctrl]
 
-    def clearInfo(self, refresh=True):
-
-        if refresh:
+        if update_top_panel:
             self.Freeze()
 
-        self._disableAllControls()
+        if not state:
+            ctrl.SetBitmap(self.expand_png)
+            top_sizer.Hide(hide_sizer, recursive=True)
+        else:
+            ctrl.SetBitmap(self.collapse_png)
+            top_sizer.Show(hide_sizer, recursive=True)
+
+        if update_top_panel:
+            self.Layout()
+            self.SendSizeEvent()
+            self.Refresh()
+            self.Thaw()
+
+    def switchInfoPanel(self, panel_type):
+        self.Freeze()
+        self.clearInfo(refresh=False)
+
+        if panel_type == 'profile':
+            self.top_sizer.Show(self.profiles_sizer, recursive=True)
+            self.top_sizer.Hide(self.ifts_sizer, recursive=True)
+            self.top_sizer.Hide(self.series_sizer, recursive=True)
+
+            for key in self.shown_items:
+                item = self.shown_items[key]
+                if item[3] == 'profile':
+                    self._showItem(key, update_top_panel=False)
+
+        elif panel_type == 'ift':
+            self.top_sizer.Hide(self.profiles_sizer, recursive=True)
+            self.top_sizer.Show(self.ifts_sizer, recursive=True)
+            self.top_sizer.Hide(self.series_sizer, recursive=True)
+
+            for key in self.shown_items:
+                item = self.shown_items[key]
+                if item[3] == 'ift':
+                    self._showItem(key, update_top_panel=False)
+
+        elif panel_type == 'series':
+            self.top_sizer.Hide(self.profiles_sizer, recursive=True)
+            self.top_sizer.Hide(self.ifts_sizer, recursive=True)
+            self.top_sizer.Show(self.series_sizer, recursive=True)
+
+            for key in self.shown_items:
+                item = self.shown_items[key]
+                if item[3] == 'series':
+                    self._showItem(key, update_top_panel=False)
+
+        self.Layout()
+        self.Refresh()
+        self.Thaw()
+
+    def clearInfo(self, refresh=True):
+        if refresh:
+            self.Freeze()
 
         if self.sasm is not None and self.selectedItem is not None:
             try:
@@ -13001,32 +13375,21 @@ class InformationPanel(wx.Panel):
             except Exception:
                 pass
 
-        try:
-            note_txt = self.noteTextBox.GetValue()
-            self.sasm.setParameter('Notes', note_txt)
+        self._disableAllControls()
 
-        except AttributeError:
-            pass
+        for key in self.sasm_info:
+            self.clearCtrl(self.sasm_info[key])
 
-        self.name_txt.SetLabel('')
+        for key in self.iftm_info:
+            self.clearCtrl(self.iftm_info[key])
 
-        for each in self.analysis_data:
-            id = each[2]
+        for key in self.seriesm_info:
+            self.clearCtrl(self.seriesm_info[key])
 
-            label = wx.FindWindowById(id, self)
-            label.SetValue('N/A')
-
-        self.header_txt.SetValue('')
-        self.header_choice.SetItems([''])
-        self.noteTextBox.SetValue('')
-        self.conc_txt.SetValue('N/A')
-        self.num_of_file_hdr_keys = 0
-        self.num_of_imghdr_keys = 0
-
+        self.header_values = {}
         self.sasm = None
-        self.selectedItem = None
-
-        self.analysis_info_sizer.Layout()
+        self.iftm = None
+        self.seriesm = None
 
         if refresh:
             self.Refresh()
@@ -13037,88 +13400,157 @@ class InformationPanel(wx.Panel):
 
         self.clearInfo(refresh=False)
 
-        self.sasm = item.getSASM()
-
         self.selectedItem = item
 
-        filename = self.sasm.getParameter('filename')
-        self.name_txt.SetLabel(str(filename))
+        if isinstance(self.selectedItem, ManipItemPanel):
+            self.sasm = self.selectedItem.getSASM()
+            self.iftm = None
+            self.secm = None
 
-        if 'guinier' in self.sasm.getParameter('analysis'):
-            analysis_dict = self.sasm.getParameter('analysis')
-            guinier = analysis_dict['guinier']
+            self.top_sizer.Show(self.profiles_sizer, recursive=True)
 
-            if 'Rg' in guinier and 'I0' in guinier:
-                for each in self.analysis_data:
-                    key = each[1]
-                    myid = each[2]
+        elif isinstance(self.selectedItem, IFTItemPanel):
+            self.sasm = None
+            self.iftm = self.selectedItem.getIFTM()
+            self.secm = None
 
-                    txt = wx.FindWindowById(myid, self)
+            self.top_sizer.Hide(self.profiles_sizer, recursive=True)
 
-                    if key in guinier:
-                        txt.SetValue(str(guinier[key]))
+        elif isinstance(self.selectedItem, SeriesItemPanel):
+            self.sasm = None
+            self.iftm = None
+            self.secm = self.selectedItem.getSECM()
 
-        if 'Conc' in self.sasm.getAllParameters():
-            conc_ctrl = wx.FindWindowById(self.conc_data[2], self)
-            conc_ctrl.SetValue(str(self.sasm.getParameter('Conc')))
+            self.top_sizer.Hide(self.profiles_sizer, recursive=True)
 
-        if 'MW' in self.sasm.getAllParameters():
-            mw_ctrl = wx.FindWindowById(self.analysis_data[2][2], self)
-            mw_ctrl.SetValue(str(self.sasm.getParameter('MW')))
+        if self.sasm is not None:
+            info_dict = {'Filename' : self.sasm.getParameter('filename')}
 
-        all_choices = []
-        file_hdr = {}
-        img_hdr = {}
-        if 'counters' in self.sasm.getAllParameters():
-            file_hdr = self.sasm.getParameter('counters')
-            all_filehdr_keys = list(file_hdr.keys())
-            all_choices.extend(all_filehdr_keys)
-            self.num_of_file_hdr_keys = len(all_filehdr_keys)
+            if 'Conc' in self.sasm.getAllParameters():
+                info_dict['Concentration'] = self.sasm.getParameter('Conc')
 
-        if 'imageHeader' in self.sasm.getAllParameters():
-            img_hdr = self.sasm.getParameter('imageHeader')
-            all_imghdr_keys = list(img_hdr.keys())
-            all_choices.extend(all_imghdr_keys)
-            self.num_of_imghdr_keys = len(all_imghdr_keys)
+            if 'Notes' in self.sasm.getAllParameters():
+                info_dict['Notes'] = self.sasm.getParameter('Notes')
 
+            if 'counters' in self.sasm.getAllParameters():
+                file_hdr = self.sasm.getParameter('counters')
+                self.header_values.update(file_hdr)
 
-        if len(all_choices) > 0:
-            self.header_choice.SetItems(all_choices)
+            if 'imageHeader' in self.sasm.getAllParameters():
+                img_hdr = self.sasm.getParameter('imageHeader')
+                self.header_values.update(img_hdr)
 
-            try:
-                if self.header_choice_key is not None:
-                    if self.header_choice_hdr == 'imageHeader' and self.header_choice_key in img_hdr:
-                        idx = all_imghdr_keys.index(self.header_choice_key)
-                        idx = idx + self.num_of_file_hdr_keys
-                        self.header_choice.SetSelection(idx)
+            info_dict['Header_Keys'] = list(self.header_values.keys())
 
-                    elif self.header_choice_hdr == 'counters' and self.header_choice_key in file_hdr:
-                        idx = all_filehdr_keys.index(self.header_choice_key)
-                        self.header_choice.SetSelection(idx)
-                    else:
-                        self.header_choice.SetSelection(item.info_settings['hdr_choice'])
+            if (self.header_choice_key is not None
+                and self.header_choice_key in self.header_values):
+                info_dict['Header_Value'] = self.header_values[self.header_choice_key]
+
+            else:
+                self.header_choice.SetItems(['No header info'])
+                self.header_choice.Select(0)
+
+            analysis = self.sasm.getParameter('analysis')
+
+            for an_key in analysis:
+                if an_key == 'molecularWeight':
+                    mw_dict = {}
+                    for key in analysis['molecularWeight']:
+                        for sub_key in analysis['molecularWeight'][key]:
+                            new_key = 'MW_{}_{}'.format(key, sub_key)
+                            mw_dict[new_key] = analysis['molecularWeight'][key][sub_key]
+
+                    info_dict.update(mw_dict)
+
                 else:
-                    self.header_choice.SetSelection(item.info_settings['hdr_choice'])
+                    for key in analysis[an_key]:
+                        info_dict['{}_{}'.format(an_key, key)] = analysis[an_key][key]
 
-                self._onHeaderBrowserChoice(None)
-            except Exception as e:
+            print(info_dict)
+            for key in self.sasm_info:
+                print(key)
+                if key in info_dict:
+                    self.updateCtrl(info_dict[key], self.sasm_info[key])
+                else:
+                    print('key not found: {}'.format(key))
+
+            if (self.header_choice_key is not None
+                and self.header_choice_key in self.header_values):
+                self.header_choice.SetStringSelection(self.header_choice_key)
+            else:
                 self.header_choice.SetSelection(0)
-                print(e)
-                print('InfoPanel error')
 
-        else:
-            self.header_choice.SetItems(['No header info'])
-            self.header_choice.Select(0)
-
-        if self.sasm.getParameter('Notes') is not None:
-            self.noteTextBox.SetValue(self.sasm.getParameter('Notes'))
-
-        self.analysis_info_sizer.Layout()
-        self.header_browser_sizer.Layout()
+            self._onHeaderBrowserChoice(None)
 
         self._enableAllControls()
+
+        for item in self.shown_items:
+            self._showItem(item, update_top_panel=False)
+
+        self.Layout()
         self.Refresh()
         self.Thaw()
+
+    def updateCtrl(self, value, ctrl_info):
+        ctrl = ctrl_info[0]
+        ctrl_type = ctrl_info[1]
+        ctrl_round = ctrl_info[2]
+
+        if ctrl_type == 'float':
+            try:
+                value = self.textRound(float(value), ctrl_round)
+            except Exception:
+                traceback.print_exc()
+                value = ''
+
+        elif ctrl_type == 'int':
+            value = int(round(float(value)))
+
+        try:
+            if ctrl_type == 'float' or ctrl_type == 'int' or ctrl_type == 'text':
+                ctrl.ChangeValue(str(value))
+
+            elif ctrl_type == 'static_text':
+                ctrl.SetLabel(str(value))
+
+            elif ctrl_type == 'choice':
+                ctrl.SetItems(value)
+
+        except Exception:
+            traceback.print_exc()
+            pass
+
+    def clearCtrl(self, ctrl_info):
+        ctrl = ctrl_info[0]
+        ctrl_type = ctrl_info[1]
+
+        try:
+            if ctrl_type == 'float' or ctrl_type == 'int' or ctrl_type == 'text':
+                ctrl.ChangeValue('')
+
+            elif ctrl_type == 'static_text':
+                ctrl.SetLabel('')
+
+            elif ctrl_type == 'choice':
+                ctrl.SetItems([])
+
+        except Exception:
+            traceback.print_exc()
+            pass
+
+    def textRound(self, value, round_to):
+        if round_to > 1:
+            low_bound = 1./((round_to-1.)*10.)
+        else:
+            low_bound = 0.1
+
+        if value < low_bound or value > 100:
+            value = str(np.format_float_scientific(value, round_to, trim='0',
+                exp_digits=1))
+        else:
+            value = str(round(value, round_to))
+
+        return value
 
     def WriteText(self, text):
         self.infoTextBox.AppendText(text)
