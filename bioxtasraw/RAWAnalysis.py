@@ -14767,7 +14767,7 @@ class LCSeriesFrame(wx.Frame):
     def __init__(self, parent, title, secm, manip_item, raw_settings):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(1000, client_display.Width), min(800, client_display.Height))
+        size = (min(1000, client_display.Width), min(900, client_display.Height))
 
         wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
 
@@ -15788,6 +15788,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             flag=wx.ALIGN_CENTER_VERTICAL)
         type_sizer.Add(self.series_type, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL,
             border=2)
+        type_sizer.AddStretchSpacer(1)
 
         vp_density = self.raw_settings.get('MWVpRho')
         self.vc_mol_type = wx.Choice(info_win, choices=['Protein', 'RNA'])
@@ -15802,16 +15803,19 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.avg_window.Bind(wx.EVT_TEXT_ENTER, self.onUpdateProc)
 
         settings_sizer = wx.FlexGridSizer(rows=3, cols=2, hgap=2, vgap=2)
-        settings_sizer.Add(wx.StaticText(info_win, label='Vc Mol. type:'))
-        settings_sizer.Add(self.vc_mol_type)
-        settings_sizer.Add(wx.StaticText(info_win, label='Vp density (kDa/A^3):'))
-        settings_sizer.Add(self.vp_density)
-        settings_sizer.Add(wx.StaticText(info_win, label='Averaging window size:'))
-        settings_sizer.Add(self.avg_window)
+        settings_sizer.Add(wx.StaticText(info_win, label='Vc Mol. type:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        settings_sizer.Add(self.vc_mol_type, flag=wx.ALIGN_CENTER_VERTICAL)
+        settings_sizer.Add(wx.StaticText(info_win, label='Vp density (kDa/A^3):'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        settings_sizer.Add(self.vp_density, flag=wx.ALIGN_CENTER_VERTICAL)
+        settings_sizer.Add(wx.StaticText(info_win, label='Averaging window size:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        settings_sizer.Add(self.avg_window, flag=wx.ALIGN_CENTER_VERTICAL)
 
         info_sizer = wx.BoxSizer(wx.VERTICAL)
-        info_sizer.Add(type_sizer, border=2, flag=wx.LEFT|wx.RIGHT)
-        info_sizer.Add(settings_sizer, border=2, flag=wx.LEFT|wx.RIGHT|wx.TOP)
+        info_sizer.Add(type_sizer, border=2, flag=wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND)
+        info_sizer.Add(settings_sizer, border=5, flag=wx.ALL)
         info_win.SetSizer(info_sizer)
 
         info_pane.Expand()
@@ -15847,12 +15851,12 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         buffer_button_sizer.Add(self.buffer_remove_btn, flag=wx.LEFT, border=2)
 
         buffer_sizer = wx.BoxSizer(wx.VERTICAL)
-        buffer_sizer.Add(self.subtracted, flag=wx.LEFT|wx.RIGHT, border=2)
+        buffer_sizer.Add(self.subtracted, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
         buffer_sizer.Add(self.buffer_range_list, flag=wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND,
             border=2)
         buffer_sizer.Add(buffer_button_sizer, flag=wx.LEFT|wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_HORIZONTAL,
             border=2)
-        buffer_sizer.Add(self.buffer_calc, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
+        buffer_sizer.Add(self.buffer_calc, flag=wx.ALL, border=5)
         buffer_win.SetSizer(buffer_sizer)
 
         buffer_pane.Expand()
@@ -15868,9 +15872,11 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.baseline_cor.Bind(wx.EVT_CHOICE, self.onBaselineChange)
 
         type_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        type_sizer.Add(wx.StaticText(baseline_win, label='Baseline correction:'), flag=wx.LEFT,
-            border=2)
-        type_sizer.Add(self.baseline_cor, flag=wx.LEFT|wx.RIGHT, border=2)
+        type_sizer.Add(wx.StaticText(baseline_win, label='Baseline correction:'),
+            flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=2)
+        type_sizer.Add(self.baseline_cor, border=2,
+            flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+        type_sizer.AddStretchSpacer(1)
 
         r1_0 = frames[0]
         r2_0 = frames[0]
@@ -15905,16 +15911,20 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.bl_r2_pick.Bind(wx.EVT_BUTTON, self.onBaselinePick)
 
         baseline_ctrl_sizer = wx.FlexGridSizer(rows=2, cols=5, hgap=2, vgap=2)
-        baseline_ctrl_sizer.Add(wx.StaticText(baseline_win, label='Start:'))
-        baseline_ctrl_sizer.Add(self.bl_r1_start)
-        baseline_ctrl_sizer.Add(wx.StaticText(baseline_win, label='to'))
-        baseline_ctrl_sizer.Add(self.bl_r1_end)
-        baseline_ctrl_sizer.Add(self.bl_r1_pick)
-        baseline_ctrl_sizer.Add(wx.StaticText(baseline_win, label='End:'))
-        baseline_ctrl_sizer.Add(self.bl_r2_start)
-        baseline_ctrl_sizer.Add(wx.StaticText(baseline_win, label='to'))
-        baseline_ctrl_sizer.Add(self.bl_r2_end)
-        baseline_ctrl_sizer.Add(self.bl_r2_pick)
+        baseline_ctrl_sizer.Add(wx.StaticText(baseline_win, label='Start:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_ctrl_sizer.Add(self.bl_r1_start, flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_ctrl_sizer.Add(wx.StaticText(baseline_win, label='to'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_ctrl_sizer.Add(self.bl_r1_end, flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_ctrl_sizer.Add(self.bl_r1_pick, flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_ctrl_sizer.Add(wx.StaticText(baseline_win, label='End:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_ctrl_sizer.Add(self.bl_r2_start, flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_ctrl_sizer.Add(wx.StaticText(baseline_win, label='to'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_ctrl_sizer.Add(self.bl_r2_end, flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_ctrl_sizer.Add(self.bl_r2_pick, flag=wx.ALIGN_CENTER_VERTICAL)
 
         self.baseline_auto = wx.Button(baseline_win, label='Auto')
         self.baseline_auto.Bind(wx.EVT_BUTTON, self._onBaselineAuto)
@@ -15930,11 +15940,12 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.baseline_calc.Bind(wx.EVT_BUTTON, self.onUpdateProc)
 
         baseline_sizer = wx.BoxSizer(wx.VERTICAL)
-        baseline_sizer.Add(type_sizer, flag=wx.LEFT|wx.RIGHT, border=2)
-        baseline_sizer.Add(baseline_ctrl_sizer, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
+        baseline_sizer.Add(type_sizer, border=2, flag=wx.EXPAND|wx.ALL)
+        baseline_sizer.Add(baseline_ctrl_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=2)
         baseline_sizer.Add(self.baseline_options_sizer,
-            flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
-        baseline_sizer.Add(self.baseline_calc, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM, border=2)
+        baseline_sizer.Add(self.baseline_calc, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM, border=5)
         baseline_win.SetSizer(baseline_sizer)
 
 
@@ -15977,24 +15988,24 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             border=2)
         sample_sizer.Add(sample_button_sizer, flag=wx.LEFT|wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_HORIZONTAL,
             border=2)
-        sample_sizer.Add(to_mainplot, flag=wx.LEFT|wx.RIGHT|wx.TOP, border=2)
+        sample_sizer.Add(to_mainplot, flag=wx.ALL, border=5)
         sample_win.SetSizer(sample_sizer)
 
         sample_pane.Expand()
 
 
-        control_sizer.Add(series_name_sizer, flag=wx.TOP, border=5)
-        control_sizer.Add(info_pane, flag=wx.TOP, border=5)
-        control_sizer.Add(buffer_pane, flag=wx.EXPAND|wx.TOP, border=5)
-        control_sizer.Add(baseline_pane, flag=wx.TOP, border=5)
+        control_sizer.Add(series_name_sizer, flag=wx.ALL, border=2)
+        control_sizer.Add(info_pane, flag=wx.ALL|wx.EXPAND, border=2)
+        control_sizer.Add(buffer_pane, flag=wx.EXPAND|wx.ALL, border=2)
+        control_sizer.Add(baseline_pane, flag=wx.ALL|wx.EXPAND, border=2)
         # control_sizer.Add(uv_pane, flag=wx.TOP, border=5)
-        control_sizer.Add(sample_pane, flag=wx.EXPAND|wx.TOP, border=5)
+        control_sizer.Add(sample_pane, flag=wx.EXPAND|wx.ALL, border=2)
         control_sizer.AddStretchSpacer(1)
 
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(control_sizer,1, wx.TOP |wx.EXPAND, 5)
-        top_sizer.Add(button_sizer,0, wx.TOP|wx.BOTTOM|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        top_sizer.Add(control_sizer,1, wx.ALL |wx.EXPAND, 2)
+        top_sizer.Add(button_sizer,0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         self.SetSizer(top_sizer)
 
@@ -16697,6 +16708,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
     def onCollapse(self, event):
         self.Layout()
+        self.Refresh()
         self.SendSizeEvent()
 
     def _onSubtracted(self, event):

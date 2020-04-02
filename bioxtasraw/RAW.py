@@ -13855,8 +13855,6 @@ class InformationPanel(scrolled.ScrolledPanel):
             for key in self.seriesm_info:
                 if key in info_dict:
                     self.updateCtrl(info_dict[key], self.seriesm_info[key])
-                else:
-                    print('key not found: {}'.format(key))
 
         self._enableAllControls()
 
