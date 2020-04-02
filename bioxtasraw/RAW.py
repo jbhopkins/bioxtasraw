@@ -1184,8 +1184,9 @@ class MainFrame(wx.Frame):
         return menu
 
     def _onHelp(self, event):
+        system = platform.system()
 
-        if os.path.exists(RAWGlobals.RAWDocsDir):
+        if os.path.exists(RAWGlobals.RAWDocsDir) and system != 'Linux':
             remove = []
             proceed = True
 
@@ -1217,9 +1218,9 @@ class MainFrame(wx.Frame):
 
                 self.help_frames.append(help_frame)
         else:
-            msg = "In program help is not current available for RAW. For "
+            msg = ("In program help is not current available for RAW. For "
             "tutorials, demo videos, and installation guides, please see the "
-            "RAW project home page (select Help->About for more details)."
+            "RAW project home page (select Help->About for more details).")
             wx.CallAfter(wx.MessageBox, msg, 'Sorry!', style=wx.OK|wx.ICON_INFORMATION)
 
     def _createMenuBar(self):

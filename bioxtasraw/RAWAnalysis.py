@@ -4587,25 +4587,32 @@ class DammifRunPanel(wx.Panel):
         file_sizer.Add(file_ctrl, 2, wx.LEFT | wx.RIGHT | wx.EXPAND, 5)
         file_sizer.AddStretchSpacer(1)
 
-        savedir_text = wx.StaticText(parent, -1, 'Output directory :')
-        savedir_ctrl = wx.TextCtrl(parent, self.ids['save'], '', size = (350, -1))
+        
+        settings_sizer = wx.StaticBoxSizer(wx.VERTICAL, parent, 'Settings')
+        settings_box = settings_sizer.GetStaticBox()
+
+        savedir_text = wx.StaticText(settings_box, -1, 'Output directory :')
+        savedir_ctrl = wx.TextCtrl(settings_box, self.ids['save'], '', size = (350, -1))
 
         try:
             savedir_ctrl.AutoCompleteDirectories() #compatability for older versions of wxpython
         except AttributeError as e:
             print(e)
 
-        savedir_button = wx.Button(parent, self.ids['changedir'], 'Select/Change Directory')
+        savedir_button = wx.Button(settings_box, self.ids['changedir'], 'Select')
         savedir_button.Bind(wx.EVT_BUTTON, self.onChangeDirectoryButton)
 
+        dir_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        dir_sizer.Add(savedir_ctrl, proportion=1, border=2, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        dir_sizer.Add(savedir_button, flag=wx.ALIGN_CENTER_VERTICAL)
+
         savedir_sizer = wx.BoxSizer(wx.VERTICAL)
-        savedir_sizer.Add(savedir_text, 0, wx.LEFT | wx.RIGHT, 5)
-        savedir_sizer.Add(savedir_ctrl, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.EXPAND, 5)
-        savedir_sizer.Add(savedir_button, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, 5)
+        savedir_sizer.Add(savedir_text, 0, wx.LEFT | wx.RIGHT, 2)
+        savedir_sizer.Add(dir_sizer, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.EXPAND, 2)
 
 
-        prefix_text = wx.StaticText(parent, -1, 'Output prefix :')
-        prefix_ctrl = wx.TextCtrl(parent, self.ids['prefix'], '', size = (150, -1))
+        prefix_text = wx.StaticText(settings_box, -1, 'Output prefix :')
+        prefix_ctrl = wx.TextCtrl(settings_box, self.ids['prefix'], '', size = (150, -1))
 
         prefix_sizer = wx.BoxSizer(wx.HORIZONTAL)
         prefix_sizer.Add(prefix_text, 0, wx.LEFT, 5)
@@ -4613,8 +4620,8 @@ class DammifRunPanel(wx.Panel):
         prefix_sizer.AddStretchSpacer(1)
 
 
-        nruns_text = wx.StaticText(parent, -1, 'Number of reconstructions :')
-        nruns_ctrl = wx.TextCtrl(parent, self.ids['runs'], '', size = (60, -1))
+        nruns_text = wx.StaticText(settings_box, -1, 'Number of reconstructions :')
+        nruns_ctrl = wx.TextCtrl(settings_box, self.ids['runs'], '', size = (60, -1))
         nruns_ctrl.Bind(wx.EVT_TEXT, self.onRunsText)
 
         nruns_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -4624,36 +4631,36 @@ class DammifRunPanel(wx.Panel):
 
         nprocs = multiprocessing.cpu_count()
         nprocs_choices = [str(i) for i in range(nprocs, 0, -1)]
-        nprocs_text = wx.StaticText(parent, -1, 'Number of simultaneous runs :')
-        nprocs_choice = wx.Choice(parent, self.ids['procs'], choices = nprocs_choices)
+        nprocs_text = wx.StaticText(settings_box, -1, 'Number of simultaneous runs :')
+        nprocs_choice = wx.Choice(settings_box, self.ids['procs'], choices = nprocs_choices)
 
         nprocs_sizer = wx.BoxSizer(wx.HORIZONTAL)
         nprocs_sizer.Add(nprocs_text, 0, wx.LEFT, 5)
         nprocs_sizer.Add(nprocs_choice, 0, wx.LEFT | wx.RIGHT, 5)
 
 
-        program_text = wx.StaticText(parent, -1, 'Use :')
-        program_choice = wx.Choice(parent, self.ids['program'], choices = ['DAMMIF', 'DAMMIN'])
+        program_text = wx.StaticText(settings_box, -1, 'Use :')
+        program_choice = wx.Choice(settings_box, self.ids['program'], choices = ['DAMMIF', 'DAMMIN'])
 
 
-        mode_text = wx.StaticText(parent, -1, 'Mode :')
-        mode_choice = wx.Choice(parent, self.ids['mode'], choices = ['Fast', 'Slow', 'Custom'])
+        mode_text = wx.StaticText(settings_box, -1, 'Mode :')
+        mode_choice = wx.Choice(settings_box, self.ids['mode'], choices = ['Fast', 'Slow', 'Custom'])
 
 
         sym_choices = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11',
                         'P12', 'P13', 'P14', 'P15', 'P16', 'P17', 'P18', 'P19', 'P22', 'P222',
                         'P32', 'P42', 'P52', 'P62', 'P72', 'P82', 'P92', 'P102', 'P112', 'P122']
 
-        sym_text = wx.StaticText(parent, -1, 'Symmetry :')
-        sym_choice = wx.Choice(parent, self.ids['sym'], choices = sym_choices)
+        sym_text = wx.StaticText(settings_box, -1, 'Symmetry :')
+        sym_choice = wx.Choice(settings_box, self.ids['sym'], choices = sym_choices)
 
 
         anisometry_choices = ['Unknown', 'Prolate', 'Oblate']
-        aniso_text = wx.StaticText(parent, -1, 'Anisometry :')
-        aniso_choice = wx.Choice(parent, self.ids['anisometry'], choices = anisometry_choices)
+        aniso_text = wx.StaticText(settings_box, -1, 'Anisometry :')
+        aniso_choice = wx.Choice(settings_box, self.ids['anisometry'], choices = anisometry_choices)
 
 
-        choices_sizer = wx.FlexGridSizer(2, 4, 5, 5)
+        choices_sizer = wx.FlexGridSizer(cols=4, hgap=2, vgap=2)
         choices_sizer.SetFlexibleDirection(wx.HORIZONTAL)
         choices_sizer.AddGrowableCol(0)
         choices_sizer.AddGrowableCol(1)
@@ -4670,23 +4677,23 @@ class DammifRunPanel(wx.Panel):
         choices_sizer.Add(sym_choice)
         choices_sizer.Add(aniso_choice)
 
-        damaver_chk = wx.CheckBox(parent, self.ids['damaver'], 'Align and average envelopes (damaver)')
+        damaver_chk = wx.CheckBox(settings_box, self.ids['damaver'], 'Align and average envelopes (damaver)')
         damaver_chk.Bind(wx.EVT_CHECKBOX, self.onCheckBox)
 
-        refine_chk = wx.CheckBox(parent, self.ids['refine'], 'Refine average with dammin')
+        refine_chk = wx.CheckBox(settings_box, self.ids['refine'], 'Refine average with dammin')
         refine_sizer = wx.BoxSizer(wx.HORIZONTAL)
         refine_sizer.AddSpacer(20)
         refine_sizer.Add(refine_chk)
 
-        damclust_chk = wx.CheckBox(parent, self.ids['damclust'], 'Align and cluster envelopes (damclust)')
+        damclust_chk = wx.CheckBox(settings_box, self.ids['damclust'], 'Align and cluster envelopes (damclust)')
         damclust_chk.Bind(wx.EVT_CHECKBOX, self.onCheckBox)
 
-        self.align_result = wx.CheckBox(parent, self.ids['align'],
+        self.align_result = wx.CheckBox(settings_box, self.ids['align'],
             label='Align output to PDB:')
         self.align_result.SetValue(False)
-        self.align_file_ctrl = wx.TextCtrl(parent, self.ids['align_file'],
+        self.align_file_ctrl = wx.TextCtrl(settings_box, self.ids['align_file'],
             style=wx.TE_READONLY)
-        align_button = wx.Button(parent, self.ids['align_file_btn'],
+        align_button = wx.Button(settings_box, self.ids['align_file_btn'],
             label='Select')
         align_button.Bind(wx.EVT_BUTTON, self._selectAlignFile)
 
@@ -4696,22 +4703,20 @@ class DammifRunPanel(wx.Panel):
             proportion=1)
         align_sizer.Add(align_button)
 
-        advancedButton = wx.Button(parent, -1, 'Change Advanced Settings')
+        advancedButton = wx.Button(settings_box, -1, 'Change Advanced Settings')
         advancedButton.Bind(wx.EVT_BUTTON, self._onAdvancedButton)
 
 
-        settings_box = wx.StaticBox(parent, -1, 'Settings')
-        settings_sizer = wx.StaticBoxSizer(settings_box, wx.VERTICAL)
         settings_sizer.Add(savedir_sizer, 0, wx.EXPAND)
-        settings_sizer.Add(prefix_sizer, 0, wx.EXPAND | wx.TOP, 5)
-        settings_sizer.Add(nruns_sizer, 0, wx.TOP, 5)
-        settings_sizer.Add(nprocs_sizer, 0, wx.TOP, 5)
-        settings_sizer.Add(choices_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 5)
-        settings_sizer.Add(damaver_chk, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
-        settings_sizer.Add(refine_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
-        settings_sizer.Add(damclust_chk, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
-        settings_sizer.Add(align_sizer, border=5, flag=wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND)
-        settings_sizer.Add(advancedButton, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, 5)
+        settings_sizer.Add(prefix_sizer, 0, wx.EXPAND | wx.TOP, 2)
+        settings_sizer.Add(nruns_sizer, 0, wx.TOP, 2)
+        settings_sizer.Add(nprocs_sizer, 0, wx.TOP, 2)
+        settings_sizer.Add(choices_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 2)
+        settings_sizer.Add(damaver_chk, 0, wx.LEFT | wx.RIGHT | wx.TOP, 2)
+        settings_sizer.Add(refine_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP, 2)
+        settings_sizer.Add(damclust_chk, 0, wx.LEFT | wx.RIGHT | wx.TOP, 2)
+        settings_sizer.Add(align_sizer, border=2, flag=wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND)
+        settings_sizer.Add(advancedButton, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, 2)
 
 
         start_button = wx.Button(parent, self.ids['start'], 'Start')
@@ -4723,8 +4728,8 @@ class DammifRunPanel(wx.Panel):
         button_box = wx.StaticBox(parent, -1, 'Controls')
         button_sizer = wx.StaticBoxSizer(button_box, wx.HORIZONTAL)
         button_sizer.AddStretchSpacer(1)
-        button_sizer.Add(start_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-        button_sizer.Add(abort_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        button_sizer.Add(start_button, 0, wx.ALL | wx.ALIGN_CENTER, 2)
+        button_sizer.Add(abort_button, 0, wx.ALL | wx.ALIGN_CENTER, 2)
         button_sizer.AddStretchSpacer(1)
 
         control_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -4736,7 +4741,7 @@ class DammifRunPanel(wx.Panel):
         self.status = wx.TextCtrl(parent, self.ids['status'], '', style = wx.TE_MULTILINE | wx.TE_READONLY, size = (100,200))
         status_box = wx.StaticBox(parent, -1, 'Status')
         status_sizer = wx.StaticBoxSizer(status_box, wx.VERTICAL)
-        status_sizer.Add(self.status, 1, wx.EXPAND | wx.ALL, 5)
+        status_sizer.Add(self.status, 1, wx.EXPAND | wx.ALL, 2)
 
 
         half_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -4756,7 +4761,7 @@ class DammifRunPanel(wx.Panel):
 
         log_box = wx.StaticBox(parent, -1, 'Log')
         log_sizer = wx.StaticBoxSizer(log_box, wx.HORIZONTAL)
-        log_sizer.Add(self.logbook, 1, wx.ALL | wx.EXPAND, 5)
+        log_sizer.Add(self.logbook, 1, wx.ALL | wx.EXPAND, 2)
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:     #compatability for older versions of wxpython
             top_sizer = wx.BoxSizer(wx.VERTICAL)
