@@ -3167,7 +3167,7 @@ class GNOMFrame(wx.Frame):
     def __init__(self, parent, title, sasm, manip_item):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(800, client_display.Width), min(600, client_display.Height))
+        size = (min(800, client_display.Width), min(700, client_display.Height))
 
         try:
             wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
@@ -4420,7 +4420,7 @@ class DammifFrame(wx.Frame):
     def __init__(self, parent, title, iftm, manip_item):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(675, client_display.Width), min(750, client_display.Height))
+        size = (min(675, client_display.Width), min(900, client_display.Height))
 
         try:
             wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
@@ -8755,7 +8755,7 @@ class BIFTFrame(wx.Frame):
     def __init__(self, parent, title, sasm, manip_item):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(800, client_display.Width), min(600, client_display.Height))
+        size = (min(800, client_display.Width), min(700, client_display.Height))
 
         try:
             wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
@@ -14767,7 +14767,7 @@ class LCSeriesFrame(wx.Frame):
     def __init__(self, parent, title, secm, manip_item, raw_settings):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(1000, client_display.Width), min(700, client_display.Height))
+        size = (min(1000, client_display.Width), min(800, client_display.Height))
 
         wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
 
