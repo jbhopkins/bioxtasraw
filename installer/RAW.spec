@@ -32,7 +32,7 @@ elif opsys == 'Windows':
     console = True
 elif opsys == 'Linux':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.ico')
-    console = True
+    console = False
 
 a = Analysis(
     [os.path.join('..', 'bioxtasraw', 'RAW.py')],
@@ -55,29 +55,46 @@ pyz = PYZ(
     cipher=None,
     )
 
-exe = EXE(
-    pyz,
-    a.scripts,
-    [],
-    exclude_binaries=True,
-    name='RAW',
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=True,
-    console=console,
-    icon=raw_icon
-    )
+if opsys != 'Linux':
+    exe = EXE(
+        pyz,
+        a.scripts,
+        [],
+        exclude_binaries=True,
+        name='RAW',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=True,
+        console=console,
+        icon=raw_icon
+        )
 
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    strip=False,
-    upx=True,
-    name='RAW',
-    )
+    coll = COLLECT(
+        exe,
+        a.binaries,
+        a.zipfiles,
+        a.datas,
+        strip=False,
+        upx=True,
+        name='RAW',
+        )
+else:
+    exe = EXE(pyz,
+          a.scripts,
+          a.binaries,
+          a.zipfiles,
+          a.datas,
+          [],
+          name='RAW',
+          debug=False,
+          bootloader_ignore_signals=False,
+          strip=False,
+          upx=True,
+          upx_exclude=[],
+          runtime_tmpdir=None,
+          console=True )
+
 
 if opsys == 'Darwin':
     app = BUNDLE(
