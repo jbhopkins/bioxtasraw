@@ -1,5 +1,4 @@
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
 
-calibration_files = collect_data_files('hdf5plugin')
-
-datas = calibration_files
+datas = collect_data_files('hdf5plugin')
+binaries = collect_dynamic_libs('hdf5plugin')

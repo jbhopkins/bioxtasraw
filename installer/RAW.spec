@@ -9,17 +9,28 @@ import RAWGlobals
 
 opsys = platform.system()
 
-add_files = [
-    (os.path.join('..', 'bioxtasraw', 'resources'), 'resources'),
-    (os.path.join('..', 'bioxtasraw', 'definitions'), 'definitions'),
-    (os.path.join('..', 'gpl-3.0.txt'), '.'),
-    (os.path.join('..', 'docs', 'build', 'html'), 'docs'),
-    ]
+if opsys != 'Linux':
+    add_files = [
+        (os.path.join('..', 'bioxtasraw', 'resources'), 'resources'),
+        (os.path.join('..', 'bioxtasraw', 'definitions'), 'definitions'),
+        (os.path.join('..', 'gpl-3.0.txt'), '.'),
+        (os.path.join('..', 'docs', 'build', 'html'), 'docs'),
+        ]
+else:
+    add_files = [
+        (os.path.join('..', 'bioxtasraw', 'resources'), os.path.join('share', 'RAW', 'resources')),
+        (os.path.join('..', 'bioxtasraw', 'definitions'), os.path.join('share', 'RAW', 'definitions')),
+        (os.path.join('..', 'gpl-3.0.txt'), '.'),
+        (os.path.join('..', 'docs', 'build', 'html'), os.path.join('share', 'RAW', 'docs')),
+        ]
 
 if opsys == 'Darwin':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.icns')
     console = False
 elif opsys == 'Windows':
+    raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.ico')
+    console = True
+elif opsys == 'Linux':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.ico')
     console = True
 
@@ -121,3 +132,9 @@ if opsys == 'Darwin':
         os.mkdir(os.path.join('.', 'dist', 'RAW.app', 'Contents', 'MacOS', 'pyFAI', 'utils'))
     except Exception as e:
         print(e)
+
+if opsys == 'Linux':
+    try:
+        os.mkdir(os.path.join('.', 'dist', 'RAW', 'pyFAI', 'utils'))
+    except Exception:
+        pass
