@@ -13598,23 +13598,25 @@ class InformationPanel(scrolled.ScrolledPanel):
             each.Enable(True)
 
     def _updateConc(self, event):
-        try:
-            conc = float(self.concentration.GetValue().replace(',','.'))
-            self.sasm.setParameter('Conc', conc)
-        except Exception:
-            self.sasm.removeParameter('Conc')
-            pass
+        if self.sasm is not None:
+            try:
+                conc = float(self.concentration.GetValue().replace(',','.'))
+                self.sasm.setParameter('Conc', conc)
+            except Exception:
+                self.sasm.removeParameter('Conc')
+                pass
 
     def _updateNote(self, event):
-        try:
-            note = str(self.notes.GetValue())
-            if note != '':
-                self.sasm.setParameter('Notes', note)
-            else:
-                self.sasm.removeParameter('Notes')
+        if self.sasm is not None:
+            try:
+                note = str(self.notes.GetValue())
+                if note != '':
+                    self.sasm.setParameter('Notes', note)
+                else:
+                    self.sasm.removeParameter('Notes')
 
-        except Exception:
-            self.sasm.removeParameter('Notes')
+            except Exception:
+                self.sasm.removeParameter('Notes')
 
     def _onHeaderBrowserChoice(self, event):
 
@@ -13850,9 +13852,7 @@ class InformationPanel(scrolled.ScrolledPanel):
             info_dict['Sample_range'] = ', '.join(['{} to {}'.format(buf[0],
                 buf[1]) for buf in self.seriesm.sample_range])
 
-            print(info_dict)
             for key in self.seriesm_info:
-                print(key)
                 if key in info_dict:
                     self.updateCtrl(info_dict[key], self.seriesm_info[key])
                 else:
