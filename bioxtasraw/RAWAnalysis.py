@@ -16482,6 +16482,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         wx.CallAfter(self.series_frame.manip_item.updateInfoTip)
         wx.CallAfter(self.series_frame.manip_item.markAsModified)
+        wx.CallAfter(self.series_frame.manip_item.updateInfoPanel)
         wx.CallAfter(self.series_frame.OnClose)
 
         self.proc_lock.release()

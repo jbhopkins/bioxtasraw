@@ -10390,6 +10390,9 @@ class SeriesItemPanel(wx.Panel):
                     '{}'.format(tip))
                 self.info_icon.SetToolTip(wx.ToolTip(msg))
 
+    def updateInfoPanel(self):
+        self.info_panel.updateInfoFromItem(self)
+
     def enableStar(self, state):
         if state == True:
             self.bg_star.SetBitmap(self.star_png)
@@ -13364,7 +13367,7 @@ class InformationPanel(scrolled.ScrolledPanel):
             flag=wx.ALIGN_CENTER_VERTICAL)
 
         ift_sub_sizer.Add(ift_sub_info_sizer)
-        ift_sub_sizer.Add(ift_interp_sizer, border=2, flag=wx.ALL|wx.EXPAND)
+        ift_sub_sizer.Add(ift_interp_sizer, border=2, flag=wx.TOP|wx.EXPAND)
 
 
         ift_sizer.Add(ift_main_sizer, border=2, flag=wx.ALL|wx.EXPAND)
@@ -13443,8 +13446,146 @@ class InformationPanel(scrolled.ScrolledPanel):
         return ifts_info_sizer
 
     def _createSeriesLayout(self):
+        filename_label = wx.StaticText(self, label='Name:')
+        filename = wx.StaticText(self)
+
+        filename_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        filename_sizer.Add(filename_label, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        filename_sizer.Add(filename, border=2, flag=wx.ALIGN_CENTER_VERTICAL)
+
+
+        info_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, 'Series Info')
+        info_box = info_sizer.GetStaticBox()
+
+        series_type = wx.TextCtrl(info_box, size=(50, -1), style=wx.TE_READONLY)
+        series_vc_type = wx.TextCtrl(info_box, size=(50, -1), style=wx.TE_READONLY)
+        series_vp_density = wx.TextCtrl(info_box, size=(50, -1), style=wx.TE_READONLY)
+        series_avg_win = wx.TextCtrl(info_box, size=(50, -1), style=wx.TE_READONLY)
+
+        info_grid_sizer = wx.FlexGridSizer(cols=7, vgap=2, hgap=2)
+        info_grid_sizer.Add(wx.StaticText(info_box, label='Series type:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        info_grid_sizer.Add(series_type, flag=wx.ALIGN_CENTER_VERTICAL)
+        info_grid_sizer.Add(wx.StaticText(info_box, label='Vc Mol. type:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        info_grid_sizer.Add(series_vc_type, flag=wx.ALIGN_CENTER_VERTICAL)
+        info_grid_sizer.Add(wx.StaticText(info_box, label='Vp density:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        info_grid_sizer.Add(series_vp_density, flag=wx.ALIGN_CENTER_VERTICAL)
+        info_grid_sizer.AddStretchSpacer(1)
+        info_grid_sizer.Add(wx.StaticText(info_box, label='Avg. window:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        info_grid_sizer.Add(series_avg_win, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        info_grid_sizer.AddGrowableCol(6)
+
+        info_sizer.Add(info_grid_sizer, border=2, flag=wx.ALL|wx.EXPAND)
+
+
+        buffer_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, 'Buffer')
+        buffer_box = buffer_sizer.GetStaticBox()
+
+        buffer_show_item = wx.StaticBitmap(buffer_box, wx.ID_ANY, self.collapse_png)
+        buffer_show_item.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
+
+        buffer_ranges = wx.TextCtrl(buffer_box, style=wx.TE_READONLY)
+
+        buffer_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buffer_main_sizer.Add(buffer_show_item, border=2,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        buffer_main_sizer.Add(wx.StaticText(buffer_box, label='Buffer range:'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        buffer_main_sizer.Add(buffer_ranges, proportion=1,
+            flag=wx.ALIGN_CENTER_VERTICAL)
+
+        buffer_already_subtracted = wx.TextCtrl(buffer_box, size=(50, -1),
+            style=wx.TE_READONLY)
+
+        buffer_sub_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        buffer_sub_info_sizer = wx.FlexGridSizer(cols=6, hgap=2, vgap=2)
+        buffer_sub_info_sizer.Add(wx.StaticText(buffer_box, label='Already sub.:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        buffer_sub_info_sizer.Add(buffer_already_subtracted,
+            flag=wx.ALIGN_CENTER_VERTICAL)
+
+        buffer_sub_sizer.Add(buffer_sub_info_sizer)
+
+        buffer_sizer.Add(buffer_main_sizer, border=2, flag=wx.ALL|wx.EXPAND)
+        buffer_sizer.Add(buffer_sub_sizer, border=2,
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
+
+
+        baseline_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, 'Baseline')
+        baseline_box = baseline_sizer.GetStaticBox()
+
+        baseline_type = wx.TextCtrl(baseline_box, size=(50, -1), style=wx.TE_READONLY)
+        baseline_start = wx.TextCtrl(baseline_box, size=(70, -1), style=wx.TE_READONLY)
+        baseline_end = wx.TextCtrl(baseline_box, size=(70, -1), style=wx.TE_READONLY)
+
+        baseline_info_sizer = wx.FlexGridSizer(cols=7, hgap=2, vgap=2)
+        baseline_info_sizer.Add(wx.StaticText(baseline_box, label='Type:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_info_sizer.Add(baseline_type, flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_info_sizer.Add(wx.StaticText(baseline_box, label='Start range:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_info_sizer.Add(baseline_start, flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_info_sizer.Add(wx.StaticText(baseline_box, label='End range:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_info_sizer.Add(baseline_end, flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_info_sizer.AddStretchSpacer(1)
+
+        baseline_info_sizer.AddGrowableCol(6)
+
+        baseline_sizer.Add(baseline_info_sizer, border=2,
+            flag=wx.ALL|wx.EXPAND)
+
+
+        sample_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, 'Sample')
+        sample_box = sample_sizer.GetStaticBox()
+
+        sample_ranges = wx.TextCtrl(sample_box, style=wx.TE_READONLY)
+
+        sample_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sample_main_sizer.Add(wx.StaticText(sample_box, label='Sample range:'),
+            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        sample_main_sizer.Add(sample_ranges, proportion=1,
+            flag=wx.ALIGN_CENTER_VERTICAL)
+
+        sample_sizer.Add(sample_main_sizer, border=2,
+            flag=wx.ALL|wx.EXPAND)
+
+
+        self.seriesm_info['Filename'] = (filename, 'static_text', 0)
+
+        self.seriesm_info['Series_type'] = (series_type, 'text', 0)
+        self.seriesm_info['Vc_mol_type'] = (series_vc_type, 'text', 0)
+        self.seriesm_info['Vp_density'] = (series_vp_density, 'float', 1)
+        self.seriesm_info['Avg_window'] = (series_avg_win, 'int', 0)
+
+        self.seriesm_info['Buffer_range'] = (buffer_ranges, 'text', 0)
+        self.seriesm_info['Buffer_already_subtracted'] = (buffer_already_subtracted, 'text', 0)
+
+        self.seriesm_info['Baseline_type'] = (baseline_type, 'text', 0)
+        self.seriesm_info['Baseline_start_range'] = (baseline_start, 'text', 0)
+        self.seriesm_info['Baseline_end_range'] = (baseline_end, 'text', 0)
+
+        self.seriesm_info['Sample_range'] = (sample_ranges, 'text', 0)
+
+
+        self.shown_items[buffer_show_item] = [False, buffer_sizer, buffer_sub_sizer, 'series']
 
         series_info_sizer = wx.BoxSizer(wx.VERTICAL)
+        series_info_sizer.Add(filename_sizer, border=1, flag=wx.ALL)
+        series_info_sizer.Add(info_sizer, border=1,
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
+        series_info_sizer.Add(buffer_sizer, border=1,
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
+        series_info_sizer.Add(baseline_sizer, border=1,
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
+        series_info_sizer.Add(sample_sizer, border=1,
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
 
         return series_info_sizer
 
@@ -13478,8 +13619,10 @@ class InformationPanel(scrolled.ScrolledPanel):
     def _onHeaderBrowserChoice(self, event):
 
         key = self.header_choice.GetStringSelection()
-        self.header_txt.ChangeValue(str(self.header_values[key]))
-        self.header_choice_key = key
+
+        if key in self.header_values:
+            self.header_txt.ChangeValue(str(self.header_values[key]))
+            self.header_choice_key = key
 
     def _onShowItem(self, event):
         ctrl = event.GetEventObject()
@@ -13588,21 +13731,21 @@ class InformationPanel(scrolled.ScrolledPanel):
         if isinstance(self.selectedItem, ManipItemPanel):
             self.sasm = self.selectedItem.getSASM()
             self.iftm = None
-            self.secm = None
+            self.seriesm = None
 
             self.switchInfoPanel('profile', False)
 
         elif isinstance(self.selectedItem, IFTItemPanel):
             self.sasm = None
             self.iftm = self.selectedItem.getIFTM()
-            self.secm = None
+            self.seriesm = None
 
             self.switchInfoPanel('ift', False)
 
         elif isinstance(self.selectedItem, SeriesItemPanel):
             self.sasm = None
             self.iftm = None
-            self.secm = self.selectedItem.getSECM()
+            self.seriesm = self.selectedItem.getSECM()
 
             self.switchInfoPanel('series', False)
 
@@ -13649,13 +13792,9 @@ class InformationPanel(scrolled.ScrolledPanel):
                     for key in analysis[an_key]:
                         info_dict['{}_{}'.format(an_key, key)] = analysis[an_key][key]
 
-            print(info_dict)
             for key in self.sasm_info:
-                print(key)
                 if key in info_dict:
                     self.updateCtrl(info_dict[key], self.sasm_info[key])
-                else:
-                    print('key not found: {}'.format(key))
 
             if (self.header_choice_key is not None
                 and self.header_choice_key in self.header_values):
@@ -13664,6 +13803,7 @@ class InformationPanel(scrolled.ScrolledPanel):
                 self.header_choice.SetSelection(0)
 
             self._onHeaderBrowserChoice(None)
+
 
         elif self.iftm is not None:
             info_dict = {'Filename' : self.iftm.getParameter('filename')}
@@ -13681,11 +13821,40 @@ class InformationPanel(scrolled.ScrolledPanel):
                 for key in  ambi_params:
                     info_dict['Ambimeter_{}'.format(key)] = ambi_params[key]
 
-            print(info_dict)
             for key in self.iftm_info:
-                print(key)
                 if key in info_dict:
                     self.updateCtrl(info_dict[key], self.iftm_info[key])
+
+
+        elif self.seriesm is not None:
+            info_dict = {'Filename' : self.seriesm.getParameter('filename')}
+            info_dict['Series_type'] = self.seriesm.series_type
+            info_dict['Vc_mol_type'] = self.seriesm.mol_type
+
+            if self.seriesm.mol_density != -1:
+                info_dict['Vp_density'] = self.seriesm.mol_density
+
+            if self.seriesm.window_size != -1:
+                info_dict['Avg_window'] = self.seriesm.window_size
+
+            info_dict['Buffer_range'] = ', '.join(['{} to {}'.format(buf[0],
+                buf[1]) for buf in self.seriesm.buffer_range])
+
+            info_dict['Buffer_already_subtracted'] = self.seriesm.already_subtracted
+
+            info_dict['Baseline_type'] = self.seriesm.baseline_type
+            if self.seriesm.baseline_start_range[0] != -1:
+                info_dict['Baseline_start_range'] = '{} to {}'.format(*self.seriesm.baseline_start_range)
+                info_dict['Baseline_end_range'] = '{} to {}'.format(*self.seriesm.baseline_end_range)
+
+            info_dict['Sample_range'] = ', '.join(['{} to {}'.format(buf[0],
+                buf[1]) for buf in self.seriesm.sample_range])
+
+            print(info_dict)
+            for key in self.seriesm_info:
+                print(key)
+                if key in info_dict:
+                    self.updateCtrl(info_dict[key], self.seriesm_info[key])
                 else:
                     print('key not found: {}'.format(key))
 
