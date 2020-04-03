@@ -18,10 +18,10 @@ if opsys != 'Linux':
         ]
 else:
     add_files = [
-        (os.path.join('..', 'bioxtasraw', 'resources'), os.path.join('share', 'RAW', 'resources')),
-        (os.path.join('..', 'bioxtasraw', 'definitions'), os.path.join('share', 'RAW', 'definitions')),
+        (os.path.join('..', 'bioxtasraw', 'resources'), os.path.join('share', 'bioxtas-raw', 'resources')),
+        (os.path.join('..', 'bioxtasraw', 'definitions'), os.path.join('share', 'bioxtas-raw', 'definitions')),
         (os.path.join('..', 'gpl-3.0.txt'), '.'),
-        (os.path.join('..', 'docs', 'build', 'html'), os.path.join('share', 'RAW', 'docs')),
+        (os.path.join('..', 'docs', 'build', 'html'), os.path.join('share', 'bioxtas-raw', 'docs')),
         ]
 
 if opsys == 'Darwin':
@@ -31,7 +31,7 @@ elif opsys == 'Windows':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.ico')
     console = True
 elif opsys == 'Linux':
-    raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.ico')
+    raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.png')
     console = False
 
 a = Analysis(
@@ -86,7 +86,7 @@ else:
           a.zipfiles,
           a.datas,
           [],
-          name='RAW',
+          name='bioxtas-raw',
           debug=False,
           bootloader_ignore_signals=False,
           strip=False,

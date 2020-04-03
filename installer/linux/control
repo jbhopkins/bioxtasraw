@@ -1,0 +1,14 @@
+Source: bioxtas-raw
+Package: bioxtas-raw
+Version: 2.0.0
+Section: multiverse/science
+Priority: optional
+Architecture: amd64
+Depends:
+Maintainer: Jesse Hopkins <hopkins.jesse@gmail.com>
+Installed-Size: 480000
+Homepage: https://bioxtas-raw.readthedocs.io
+Description: A program of processing Small Angle Scattering data
+ A program for processing Small Angle Scattering data, starting
+ with radial averaging of images and proceeding all the way
+ through advanced analysis like envelope reconstruction.

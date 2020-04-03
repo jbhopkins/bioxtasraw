@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=BioXTAS RAW
+GenericName=SAS Data Analysis
+Exec=bioxtas-raw
+Terminal=false
+Type=Application
+Icon=bioxtas-raw
+Encoding=UTF-8
+Categories=Education;Science;Biology;Physics
+Version=2.0.0
