@@ -37,7 +37,10 @@ import wx.lib.dialogs
 import wx.lib.colourchooser as colorchooser
 import wx.lib.scrolledpanel
 import wx.grid as gridlib
-import wx.html2 as webview
+try:
+    import wx.html2 as webview
+except Exception:
+    pass
 import matplotlib
 import matplotlib.colors as mplcol
 import matplotlib.font_manager as fm

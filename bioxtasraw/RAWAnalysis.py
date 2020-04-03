@@ -4587,7 +4587,7 @@ class DammifRunPanel(wx.Panel):
         file_sizer.Add(file_ctrl, 2, wx.LEFT | wx.RIGHT | wx.EXPAND, 5)
         file_sizer.AddStretchSpacer(1)
 
-        
+
         settings_sizer = wx.StaticBoxSizer(wx.VERTICAL, parent, 'Settings')
         settings_box = settings_sizer.GetStaticBox()
 
