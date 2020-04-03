@@ -41,6 +41,7 @@ try:
     import wx.html2 as webview
 except Exception:
     pass
+
 import matplotlib
 import matplotlib.colors as mplcol
 import matplotlib.font_manager as fm

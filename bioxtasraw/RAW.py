@@ -188,6 +188,7 @@ class MainFrame(wx.Frame):
             'bift'                  : self.NewControlId(),
             'runambimeter'          : self.NewControlId(),
             'runsupcomb'            : self.NewControlId(),
+            'rundenssalign'         : self.NewControlId(),
             'runsvd'                : self.NewControlId(),
             'runefa'                : self.NewControlId(),
             'showhistory'           : self.NewControlId(),
@@ -215,6 +216,7 @@ class MainFrame(wx.Frame):
         self.sim_frames = []
         self.kratky_frames = []
         self.denss_frames = []
+        self.denss_align_frames = []
         self.lc_series_frames = []
         self.help_frames = []
 
@@ -855,6 +857,39 @@ class MainFrame(wx.Frame):
             dial2.ShowModal()
             dial2.Destroy()
 
+    def showDenssAlignFrame(self):
+
+        remove = []
+        proceed = True
+
+        for denss_align_frame in self.denss_align_frames:
+            if denss_align_frame:
+                msg = ('There is already a DENSS alignment window. Do you want to '
+                    'open another?')
+                answer = wx.MessageBox(msg, 'Open duplicate DENSS Alignment window?',
+                    style=wx.YES_NO)
+
+                if answer == wx.NO:
+                    proceed = False
+                    denss_align_frame.Raise()
+                    denss_align_frame.RequestUserAttention()
+
+                break
+
+            else:
+                remove.append(denss_align_frame)
+
+        if remove:
+            for denss_align_frame in remove:
+                self.denss_align_frames.remove(denss_align_frame)
+
+        if proceed:
+            denss_alignframe = RAWAnalysis.DenssAlignFrame(self, 'DENSS Alignment')
+            denss_alignframe.SetIcon(self.GetIcon())
+            denss_alignframe.Show(True)
+
+            self.denss_align_frames.append(denss_alignframe)
+
     def showSVDFrame(self, secm, manip_item):
         remove = []
         proceed = True
@@ -1367,6 +1402,7 @@ class MainFrame(wx.Frame):
                 ('&BIFT', self.MenuIDs['bift'], self._onToolsMenu, 'normal'),
                 ('&ATSAS', None, submenus['atsas'], 'submenu'),
                 ('&Electron Density (DENSS)', self.MenuIDs['rundenss'], self._onToolsMenu, 'normal'),
+                ('&Electron Density (DENSS) Alignment', self.MenuIDs['rundenssalign'], self._onToolsMenu, 'normal'),
                 ('&LC Series Analysis', self.MenuIDs['lcanalysis'], self._onToolsMenu, 'normal'),
                 ('&SVD', self.MenuIDs['runsvd'], self._onToolsMenu, 'normal'),
                 ('&EFA', self.MenuIDs['runefa'], self._onToolsMenu, 'normal'),
@@ -1666,6 +1702,9 @@ class MainFrame(wx.Frame):
 
         elif id == self.MenuIDs['runsupcomb']:
             self.showSupcombFrame()
+
+        elif id == self.MenuIDs['rundenssalign']:
+            self.showDenssAlignFrame()
 
         elif id == self.MenuIDs['runsvd']:
             secpage = wx.FindWindowByName('SECPanel')

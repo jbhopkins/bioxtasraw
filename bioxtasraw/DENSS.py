@@ -27,7 +27,7 @@ Much of the code is from the DENSS source code, released here:
     https://github.com/tdgrant1/denss
 That code was released under GPL V3. The original author is Thomas Grant.
 
-This code matches that as of 5/21/19, commit 1967ae6, version 1.4.9
+This code matches that as of 4/3/20, commit 8e4b950, version 1.5.0
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
@@ -49,7 +49,7 @@ from functools import reduce
 import platform
 
 import numpy as np
-from scipy import optimize, ndimage
+from scipy import optimize, ndimage, spatial
 import scipy.interpolate as interpolate
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
@@ -82,14 +82,25 @@ def center_rho(rho, centering="com", return_shift=False):
     else:
         return rho
 
-def rho2rg(rho, r, support, dx):
+def rho2rg(rho,side=None,r=None,support=None,dx=None):
     """Calculate radius of gyration from an electron density map."""
-
+    if side is None and r is None:
+        print("Error: To calculate Rg, must provide either side or r parameters.")
+        sys.exit()
+    if side is not None and r is None:
+        n = rho.shape[0]
+        x_ = np.linspace(-side/2.,side/2.,n)
+        x,y,z = np.meshgrid(x_,x_,x_,indexing='ij')
+        r = np.sqrt(x**2 + y**2 + z**2)
+    if support is None:
+        support = np.ones_like(rho,dtype=bool)
+    if dx is None:
+        print("Error: To calculate Rg, must provide dx")
+        sys.exit()
     rhocom = (np.array(ndimage.measurements.center_of_mass(rho))-np.array(rho.shape)/2.)*dx
     rg2 = np.sum(r[support]**2*rho[support])/np.sum(rho[support])
     rg2 = rg2 - np.linalg.norm(rhocom)**2
     rg = np.sign(rg2)*np.abs(rg2)**0.5
-
     return rg
 
 def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False,
@@ -145,7 +156,7 @@ def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False
     #Initialize variables
 
     side = oversampling*D
-    halfside = side//2
+    halfside = side/2
 
     n = int(side/voxel)
     #want n to be even for speed/memory optimization with the FFT, ideally a power of 2, but wont enforce that
@@ -161,7 +172,7 @@ def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False
     x,y,z = np.meshgrid(x_,x_,x_,indexing='ij')
     r = np.sqrt(x**2 + y**2 + z**2)
 
-    df = 1./side
+    df = 1/side
     qx_ = np.fft.fftfreq(x_.size)*n*df*2*np.pi
     qx, qy, qz = np.meshgrid(qx_,qx_,qx_,indexing='ij')
     qr = np.sqrt(qx**2+qy**2+qz**2)
@@ -198,7 +209,7 @@ def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False
     I *= scale_factor
     sigq *= scale_factor
 
-    if steps == 'None' or steps is None or steps < 1:
+    if steps == 'None' or steps is None or np.int(steps) < 1:
         stepsarr = np.concatenate((enforce_connectivity_steps,[shrinkwrap_minstep]))
         maxec = np.max(stepsarr)
         steps = int(shrinkwrap_iter * (np.log(shrinkwrap_sigma_end/shrinkwrap_sigma_start)/np.log(shrinkwrap_sigma_decay)) + maxec)
@@ -284,11 +295,12 @@ def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False
         factors = np.ones((len(qbins)))
         factors[qbin_args] = np.sqrt(Idata/Imean[j,qbin_args])
         F *= factors[qbin_labels]
-        chi[j] = np.sum(((Imean[j,qbin_args]-Idata)/sigqdata)**2)/qbin_args.size
-        interp = interpolate.interp1d(qbinsc, Imean[j], kind='cubic',fill_value="extrapolate")
-        I4chi = interp(q)
-        chi[j] = np.sum(((I4chi-I)/sigq)**2)/len(q)
-
+        try:
+            interp = interpolate.interp1d(qbinsc, Imean[j], kind='cubic',fill_value="extrapolate")
+            I4chi = interp(q)
+            chi[j] = np.sum(((I4chi-I)/sigq)**2)/len(q)
+        except:
+            chi[j] = np.sum(((Imean[j,qbin_args]-Idata)/sigqdata)**2)/qbin_args.size
         #APPLY REAL SPACE RESTRAINTS
         rhoprime = np.fft.ifftn(F,rho.shape)
         rhoprime = rhoprime.real
@@ -401,7 +413,7 @@ def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False
                     print(num_features)
 
             #find the feature with the greatest number of electrons
-            for feature in range(num_features):
+            for feature in range(num_features+1):
                 sums[feature-1] = np.sum(newrho[labeled_support==feature])
             big_feature = np.argmax(sums)+1
 
@@ -541,7 +553,7 @@ def euler_grid_search(refrho, movrho, topn=1, abort_event=None):
     scores = np.zeros((len(phi),len(theta)))
     for p in range(len(phi)):
         for t in range(len(theta)):
-            scores[p,t] = 1./minimize_rho_score(T=[phi[p],theta[t],0,0,0,0],refrho=np.abs(refrho),movrho=np.abs(movrho))
+            scores[p,t] = 1/minimize_rho_score(T=[phi[p],theta[t],0,0,0,0],refrho=np.abs(refrho),movrho=np.abs(movrho))
 
             if abort_event is not None:
                 if abort_event.is_set():
@@ -607,7 +619,7 @@ def minimize_rho(refrho, movrho, T = np.zeros(6)):
         args=(np.abs(refrho),np.abs(movrho)), approx_grad=True)
     Topt = result[0]
     newrho = transform_rho(save_movrho, Topt)
-    finalscore = 1./rho_overlap_score(save_refrho,newrho)
+    finalscore = 1/rho_overlap_score(save_refrho,newrho)
     return newrho, finalscore
 
 def minimize_rho_score(T, refrho, movrho):
@@ -628,7 +640,7 @@ def rho_overlap_score(rho1,rho2):
     d=(2*np.sum(rho1**2)**0.5*np.sum(rho2**2)**0.5)
     score = n/d
     #1/score for least squares minimization, i.e. want to minimize, not maximize score
-    return 1./score
+    return 1/score
 
 def transform_rho(rho, T, order=1):
     """ Rotate and translate electron density map by T vector.
@@ -752,7 +764,6 @@ def generate_enantiomers(rho):
     enans = np.array([rho,rho_xflip])
     return enans
 
-
 def align(refrho, movrho, abort_event=None):
     """ Align second electron density map to the first."""
     if abort_event is not None:
@@ -770,7 +781,7 @@ def align(refrho, movrho, abort_event=None):
     return movrho, score
 
 def select_best_enantiomers(rhos, refrho=None, cores=1, avg_queue=None,
-    abort_event=None):
+    abort_event=None, single_proc=False):
     """ Select the best enantiomer from each map in the set (or a single map).
         refrho should not be binary averaged from the original
         denss maps, since that would likely lose handedness.
@@ -809,11 +820,6 @@ def select_best_enantiomers(rhos, refrho=None, cores=1, avg_queue=None,
             enans[j] = ndimage.interpolation.shift(enans[j],-refshift,order=3,mode='wrap')
         #now minimize each enan around the original refrho location
 
-        if platform.system() == 'Darwin' and six.PY3:
-            single_proc = True
-        else:
-            single_proc = False
-
         if not single_proc:
             pool = multiprocessing.Pool(cores)
             try:
@@ -841,7 +847,7 @@ def select_best_enantiomers(rhos, refrho=None, cores=1, avg_queue=None,
 
     return rhos, scores
 
-def align_multiple(refrho, rhos, cores=1, abort_event=None):
+def align_multiple(refrho, rhos, cores=1, abort_event=None, single_proc=False):
     """ Align multiple (or a single) maps to the reference."""
     if rhos.ndim == 3:
         rhos = rhos[np.newaxis,...]
@@ -857,11 +863,6 @@ def align_multiple(refrho, rhos, cores=1, abort_event=None):
     if abort_event is not None:
         if abort_event.is_set():
             return None, None
-
-    if platform.system() == 'Darwin' and six.PY3:
-        single_proc = True
-    else:
-        single_proc = False
 
     if not single_proc:
         pool = multiprocessing.Pool(cores)
@@ -886,7 +887,7 @@ def align_multiple(refrho, rhos, cores=1, abort_event=None):
 def average_two(rho1, rho2, abort_event=None):
     """ Align two electron density maps and return the average."""
     rho2, score = align(rho1, rho2, abort_event=abort_event)
-    average_rho = (rho1+rho2)/2.
+    average_rho = (rho1+rho2)/2
     return average_rho
 
 def multi_average_two(niter, **kwargs):
@@ -896,15 +897,10 @@ def multi_average_two(niter, **kwargs):
     time.sleep(1)
     return average_two(**kwargs)
 
-def average_pairs(rhos, cores=1, abort_event=None):
+def average_pairs(rhos, cores=1, abort_event=None, single_proc=False):
     """ Average pairs of electron density maps, second half to first half."""
     #create even/odd pairs, odds are the references
     rho_args = {'rho1':rhos[::2], 'rho2':rhos[1::2], 'abort_event': abort_event}
-
-    if platform.system() == 'Darwin' and six.PY3:
-        single_proc = True
-    else:
-        single_proc = False
 
     if not single_proc:
         pool = multiprocessing.Pool(cores)
@@ -924,14 +920,15 @@ def average_pairs(rhos, cores=1, abort_event=None):
 
     return np.array(average_rhos)
 
-def binary_average(rhos, cores=1, abort_event=None):
+def binary_average(rhos, cores=1, abort_event=None, single_proc=False):
     """ Generate a reference electron density map using binary averaging."""
     twos = 2**np.arange(20)
     nmaps = np.max(twos[twos<=rhos.shape[0]])
     levels = int(np.log2(nmaps))-1
     rhos = rhos[:nmaps]
     for level in range(levels):
-         rhos = average_pairs(rhos, cores, abort_event=abort_event)
+         rhos = average_pairs(rhos, cores, abort_event=abort_event,
+            single_proc=single_proc)
     refrho = center_rho(rhos[0])
     return refrho
 
@@ -1001,9 +998,9 @@ def write_mrc(rho,side,filename="map.mrc"):
             fout.write(struct.pack('<f', 0.0))
 
         # XORIGIN, YORIGIN, ZORIGIN
-        fout.write(struct.pack('<fff', nxstart*(a/xs), nystart*(b/ys), nzstart*(c/zs)))
+        fout.write(struct.pack('<fff', 0.,0.,0. )) #nxstart*(a/xs), nystart*(b/ys), nzstart*(c/zs) ))
         # MAP
-        fout.write('MAP '.encode('utf-8'))
+        fout.write('MAP '.encode())
         # MACHST (little endian)
         fout.write(struct.pack('<BBBB', 0x44, 0x41, 0x00, 0x00))
         # RMS (std)
@@ -1017,6 +1014,28 @@ def write_mrc(rho,side,filename="map.mrc"):
         # Write out data
         s = struct.pack('=%sf' % rho.size, *rho.flatten('F'))
         fout.write(s)
+
+def read_mrc(filename="map.mrc",returnABC=False):
+    """
+        See MRC format at http://bio3d.colorado.edu/imod/doc/mrc_format.txt for offsets
+    """
+    with open(filename, 'rb') as fin:
+        MRCdata=fin.read()
+        nx = struct.unpack_from('<i',MRCdata, 0)[0]
+        ny = struct.unpack_from('<i',MRCdata, 4)[0]
+        nz = struct.unpack_from('<i',MRCdata, 8)[0]
+
+        #side = struct.unpack_from('<f',MRCdata,40)[0]
+        a, b, c = struct.unpack_from('<fff',MRCdata,40)
+        side = a
+
+        fin.seek(1024, os.SEEK_SET)
+        rho = np.fromfile(file=fin, dtype=np.dtype(np.float32)).reshape((nx,ny,nz),order='F')
+        fin.close()
+    if returnABC:
+        return rho, (a,b,c)
+    else:
+        return rho, side
 
 def write_xplor(rho,side,filename="map.xplor"):
     """Write an XPLOR formatted electron density map."""
@@ -1043,6 +1062,156 @@ def write_xplor(rho,side,filename="map.xplor"):
         f.write("    -9999\n")
         f.write("  %.4E  %.4E" % (np.average(rho), np.std(rho)))
 
+electrons = {'H': 1,'HE': 2,'He': 2,'LI': 3,'Li': 3,'BE': 4,'Be': 4,'B': 5,
+    'C': 6,'N': 7,'O': 8,'F': 9,'NE': 10,'Ne': 10,'NA': 11,'Na': 11,'MG': 12,
+    'Mg': 12,'AL': 13,'Al': 13,'SI': 14,'Si': 14,'P': 15,'S': 16,'CL': 17,
+    'Cl': 17,'AR': 18,'Ar': 18,'K': 19,'CA': 20,'Ca': 20,'SC': 21,'Sc': 21,
+    'TI': 22,'Ti': 22,'V': 23,'CR': 24,'Cr': 24,'MN': 25,'Mn': 25,'FE': 26,
+    'Fe': 26,'CO': 27,'Co': 27,'NI': 28,'Ni': 28,'CU': 29,'Cu': 29,'ZN': 30,
+    'Zn': 30,'GA': 31,'Ga': 31,'GE': 32,'Ge': 32,'AS': 33,'As': 33,'SE': 34,
+    'Se': 34,'Se': 34,'Se': 34,'BR': 35,'Br': 35,'KR': 36,'Kr': 36,'RB': 37,
+    'Rb': 37,'SR': 38,'Sr': 38,'Y': 39,'ZR': 40,'Zr': 40,'NB': 41,'Nb': 41,
+    'MO': 42,'Mo': 42,'TC': 43,'Tc': 43,'RU': 44,'Ru': 44,'RH': 45,'Rh': 45,
+    'PD': 46,'Pd': 46,'AG': 47,'Ag': 47,'CD': 48,'Cd': 48,'IN': 49,'In': 49,
+    'SN': 50,'Sn': 50,'SB': 51,'Sb': 51,'TE': 52,'Te': 52,'I': 53,'XE': 54,
+    'Xe': 54,'CS': 55,'Cs': 55,'BA': 56,'Ba': 56,'LA': 57,'La': 57,'CE': 58,
+    'Ce': 58,'PR': 59,'Pr': 59,'ND': 60,'Nd': 60,'PM': 61,'Pm': 61,'SM': 62,
+    'Sm': 62,'EU': 63,'Eu': 63,'GD': 64,'Gd': 64,'TB': 65,'Tb': 65,'DY': 66,
+    'Dy': 66,'HO': 67,'Ho': 67,'ER': 68,'Er': 68,'TM': 69,'Tm': 69,'YB': 70,
+    'Yb': 70,'LU': 71,'Lu': 71,'HF': 72,'Hf': 72,'TA': 73,'Ta': 73,'W': 74,
+    'RE': 75,'Re': 75,'OS': 76,'Os': 76,'IR': 77,'Ir': 77,'PT': 78,'Pt': 78,
+    'AU': 79,'Au': 79,'HG': 80,'Hg': 80,'TL': 81,'Tl': 81,'PB': 82,'Pb': 82,
+    'BI': 83,'Bi': 83,'PO': 84,'Po': 84,'AT': 85,'At': 85,'RN': 86,'Rn': 86,
+    'FR': 87,'Fr': 87,'RA': 88,'Ra': 88,'AC': 89,'Ac': 89,'TH': 90,'Th': 90,
+    'PA': 91,'Pa': 91,'U': 92,'NP': 93,'Np': 93,'PU': 94,'Pu': 94,'AM': 95,
+    'Am': 95,'CM': 96,'Cm': 96,'BK': 97,'Bk': 97,'CF': 98,'Cf': 98,'ES': 99,
+    'Es': 99,'FM': 100,'Fm': 100,'MD': 101,'Md': 101,'NO': 102,'No': 102,
+    'LR': 103,'Lr': 103,'RF': 104,'Rf': 104,'DB': 105,'Db': 105,'SG': 106,
+    'Sg': 106,'BH': 107,'Bh': 107,'HS': 108,'Hs': 108,'MT': 109,'Mt': 109}
+
+
+class PDB(object):
+    """Load pdb file."""
+    def __init__(self, filename):
+        self.natoms = 0
+        with open(filename) as f:
+            for line in f:
+                if line[0:4] != "ATOM" and line[0:4] != "HETA":
+                    continue # skip other lines
+                self.natoms += 1
+        self.atomnum = np.zeros((self.natoms),dtype=int)
+        self.atomname = np.zeros((self.natoms),dtype=np.dtype((str,3)))
+        self.atomalt = np.zeros((self.natoms),dtype=np.dtype((str,1)))
+        self.resname = np.zeros((self.natoms),dtype=np.dtype((str,3)))
+        self.resnum = np.zeros((self.natoms),dtype=int)
+        self.chain = np.zeros((self.natoms),dtype=np.dtype((str,1)))
+        self.coords = np.zeros((self.natoms, 3))
+        self.occupancy = np.zeros((self.natoms))
+        self.b = np.zeros((self.natoms))
+        self.atomtype = np.zeros((self.natoms),dtype=np.dtype((str,2)))
+        self.charge = np.zeros((self.natoms),dtype=np.dtype((str,2)))
+        self.nelectrons = np.zeros((self.natoms),dtype=int)
+        with open(filename) as f:
+            atom = 0
+            for line in f:
+                if line[0:4] != "ATOM" and line[0:4] != "HETA":
+                    continue # skip other lines
+                self.atomnum[atom] = int(line[6:11])
+                self.atomname[atom] = line[13:16]
+                self.atomalt[atom] = line[16]
+                self.resname[atom] = line[17:20]
+                self.resnum[atom] = int(line[22:26])
+                self.chain[atom] = line[21]
+                self.coords[atom, 0] = float(line[30:38])
+                self.coords[atom, 1] = float(line[38:46])
+                self.coords[atom, 2] = float(line[46:54])
+                self.occupancy[atom] = float(line[54:60])
+                self.b[atom] = float(line[60:66])
+                atomtype = line[76:78].strip()
+                if len(atomtype) == 2:
+                    atomtype0 = atomtype[0].upper()
+                    atomtype1 = atomtype[1].lower()
+                    atomtype = atomtype0 + atomtype1
+                self.atomtype[atom] = atomtype
+                self.charge[atom] = line[78:80]
+                self.nelectrons[atom] = electrons.get(self.atomtype[atom].upper(),6)
+                atom += 1
+
+    def write(self, filename):
+        """Write PDB file format using pdb object as input."""
+        records = []
+        for i in range(self.natoms):
+            atomnum = '%5i' % self.atomnum[i]
+            atomname = '%3s' % self.atomname[i]
+            atomalt = '%1s' % self.atomalt[i]
+            resnum = '%4i' % self.resnum[i]
+            resname = '%3s' % self.resname[i]
+            chain = '%1s' % self.chain[i]
+            x = '%8.3f' % self.coords[i,0]
+            y = '%8.3f' % self.coords[i,1]
+            z = '%8.3f' % self.coords[i,2]
+            o = '% 6.2f' % self.occupancy[i]
+            b = '%6.2f' % self.b[i]
+            atomtype = '%2s' % self.atomtype[i]
+            charge = '%2s' % self.charge[i]
+            records.append(['ATOM  ' + atomnum + '  ' + atomname + ' ' + resname + ' ' + chain + resnum + '    ' + x + y + z + o + b + '          ' + atomtype + charge])
+        np.savetxt(filename, records, fmt = '%80s'.encode('ascii'))
+
+def pdb2map_fastgauss(pdb,x,y,z,sigma,r=20.0):
+    """Simple isotropic gaussian sum at coordinate locations.
+
+    This fastgauss function only calculates the values at
+    grid points near the atom for speed.
+
+    pdb - instance of PDB class (required)
+    x,y,z - meshgrids for x, y, and z (required)
+    sigma - width of Gaussian, i.e. effectively resolution
+    r - maximum distance from atom to calculate density
+    """
+    side = x[-1,0,0] - x[0,0,0]
+    halfside = side/2
+    n = x.shape[0]
+    dx = side/n
+    dV = dx**3
+    V = side**3
+    x_ = x[:,0,0]
+    sigma /= 4. #to make compatible with e2pdb2mrc/chimera sigma
+    shift = np.ones(3)*dx/2.
+    # print("\n Read density map from PDB... ")
+    values = np.zeros(x.shape)
+    for i in range(pdb.coords.shape[0]):
+        # sys.stdout.write("\r% 5i / % 5i atoms" % (i+1,pdb.coords.shape[0]))
+        # sys.stdout.flush()
+        #this will cut out the grid points that are near the atom
+        #first, get the min and max distances for each dimension
+        #also, convert those distances to indices by dividing by dx
+        xa, ya, za = pdb.coords[i] # for convenience, store up x,y,z coordinates of atom
+        xmin = int(np.floor((xa-r)/dx)) + n//2
+        xmax = int(np.ceil((xa+r)/dx)) + n//2
+        ymin = int(np.floor((ya-r)/dx)) + n//2
+        ymax = int(np.ceil((ya+r)/dx)) + n//2
+        zmin = int(np.floor((za-r)/dx)) + n//2
+        zmax = int(np.ceil((za+r)/dx)) + n//2
+        #handle edges
+        xmin = max([xmin,0])
+        xmax = min([xmax,n])
+        ymin = max([ymin,0])
+        ymax = min([ymax,n])
+        zmin = max([zmin,0])
+        zmax = min([zmax,n])
+        #now lets create a slice object for convenience
+        slc = np.s_[xmin:xmax,ymin:ymax,zmin:zmax]
+        nx = xmax-xmin
+        ny = ymax-ymin
+        nz = zmax-zmin
+        #now lets create a column stack of coordinates for the cropped grid
+        xyz = np.column_stack((x[slc].ravel(),y[slc].ravel(),z[slc].ravel()))
+        dist = spatial.distance.cdist(pdb.coords[None,i]-shift, xyz)
+        dist *= dist
+        tmpvalues = pdb.nelectrons[i]*1./np.sqrt(2*np.pi*sigma**2) * np.exp(-dist[0]/(2*sigma**2))
+        values[slc] += tmpvalues.reshape(nx,ny,nz)
+    # print()
+    return values
 
 ######################
 # RAW specific stuff
@@ -1227,6 +1396,12 @@ def runDenss(q, I, sigq, D, prefix, path, comm_list, my_lock, thread_num_q,
 def run_enantiomers(rhos, cores, num, avg_q, my_lock, wx_queue,
     abort_event):
     #Check to see if things have been aborted
+
+    if platform.system() == 'Darwin' and six.PY3:
+        single_proc = True
+    else:
+        single_proc = False
+
     if abort_event.is_set():
         my_lock.acquire()
         wx_queue.put_nowait(['average', 'Aborted!\n'])
@@ -1235,7 +1410,7 @@ def run_enantiomers(rhos, cores, num, avg_q, my_lock, wx_queue,
         return None, None
 
     best_enans, scores = select_best_enantiomers(rhos, rhos[0], cores, avg_q,
-        abort_event)
+        abort_event, single_proc)
 
     if abort_event.is_set():
         my_lock.acquire()
@@ -1245,3 +1420,44 @@ def run_enantiomers(rhos, cores, num, avg_q, my_lock, wx_queue,
         return None, None
 
     return best_enans, scores
+
+def run_align(rhos, sides, ref_file, avg_q, abort_event, center=True,
+    resolution=15.0, enantiomer=True, cores=1, single_proc=False):
+    #based on denss.align.py
+
+    avg_q.put_nowait('Loading reference model...\n')
+    if os.path.splitext(ref_file)[1] == '.pdb':
+        refbasename, refext = os.path.splitext(ref_file)
+        refoutput = refbasename+"_centered.pdb"
+
+        voxel = (sides[0]/rhos[0].shape[0])
+        halfside = sides[0]/2
+        n = int(sides[0]/voxel)
+        x_ = np.linspace(-halfside,halfside,n)
+        x,y,z = np.meshgrid(x_,x_,x_,indexing='ij')
+
+        pdb = PDB(ref_file)
+        if center:
+            pdb.coords -= pdb.coords.mean(axis=0)
+            pdb.write(filename=refoutput)
+        #use the new fastgauss function
+        #refrho = saxs.pdb2map_gauss(pdb,xyz=xyz,sigma=args.resolution)
+        refrho = pdb2map_fastgauss(pdb,x=x,y=y,z=z,sigma=resolution,r=resolution*2)
+        refrho = refrho*np.sum(rhos[0])/np.sum(refrho)
+        # saxs.write_mrc(refrho,side,filename=refbasename+'_pdb.mrc')
+
+    elif os.path.splitext(ref_file)[1] == '.mrc':
+        refrho, refside = read_mrc(ref_file)
+
+    if enantiomer:
+        rhos, scores = select_best_enantiomers(rhos, refrho, cores,
+            avg_q, abort_event, single_proc)
+
+    if abort_event.is_set():
+        avg_q.put_nowait('Aborted!\n')
+    else:
+        avg_q.put_nowait('Aligning model(s) to reference\n')
+        aligned, scores = align_multiple(refrho, rhos, cores, abort_event,
+            single_proc)
+
+    return aligned, scores
