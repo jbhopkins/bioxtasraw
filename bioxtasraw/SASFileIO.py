@@ -3076,9 +3076,14 @@ def save_series_sasm_list(profile_group, sasm_list, frame_num_offset=0):
             'buffer, will have a separate q vector in that dataset).')
 
     if save_single_q_raw:
+        if not 'raw' in profile_group.keys():
+            raw_group = profile_group.create_group('raw')
+        else:
+            raw_group = profile_group['raw']
+
         if not np.all(sasm_list[0]['q'] == sasm_list[0]['q_raw']):
             q_raw = sasm_list[0]['q_raw']
-            q_raw_dataset = profile_group.create_dataset('q', data=q_raw)
+            q_raw_dataset = raw_group.create_dataset('q', data=q_raw)
             q_raw_dataset.attrs['description'] = ('the q vector for all numbered (e.g. '
                 '"00001") data in this group (note: named data, such as the "average_'
                 'buffer_profile", will have a separate q vector in that dataset).')
