@@ -9284,10 +9284,22 @@ class DenssAlignFrame(wx.Frame):
     def runAlign(self):
 
         #Load target
-        rho, side = DENSS.read_mrc(self.target_file_name)
+        try:
+            rho, side = DENSS.read_mrc(self.target_file_name)
+        except Exception:
+            msg = ("Couldn't load target file, please verify that it is a .mrc file.")
+            dialog = wx.MessageDialog(self, msg, 'Error running Alignment',
+                style = wx.ICON_ERROR | wx.OK)
+            wx.CallAfter(dialog.ShowModal)
 
-        rhos = np.array([rho])
-        sides = np.array([side])
+            self.abort_event.set()
+
+            rho = None
+            side = None
+
+        if rho is not None:
+            rhos = np.array([rho])
+            sides = np.array([side])
 
         if not self.single_proc:
             avg_q = self.my_manager.Queue()
@@ -9304,10 +9316,6 @@ class DenssAlignFrame(wx.Frame):
         comm_t.start()
 
         settings = self._getSettings()
-
-        if self.abort_event.is_set():
-            stop_event.set()
-            wx.CallAfter(self.status.AppendText, 'Aborted!\n')
 
         if settings is not None and not self.abort_event.is_set():
             aligned, scores = DENSS.run_align(rhos, sides, self.template_file_name, avg_q,
@@ -9328,9 +9336,9 @@ class DenssAlignFrame(wx.Frame):
 
             DENSS.write_mrc(aligned[0], sides[0], outname)
 
-        stop_event.set()
+            avg_q.put_nowait('DENSS Alignment finished\n')
 
-        avg_q.put_nowait('DENSS Alignment finished\n')
+        stop_event.set()
         self.cleanupDENSS()
 
     def onAbortButton(self, evt):
