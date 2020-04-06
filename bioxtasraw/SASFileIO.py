@@ -2654,12 +2654,11 @@ def loadPrimusDatFile(filename):
         elif '### HEADER:' in line and len(q) == 0:
             header_start = True
 
-        elif header_start and not iq_match:
-            header.append(line[j])
-
-        elif header_start and iq_match:
+        elif header_start and '### DATA:' in line:
             header_start = False
 
+        elif header_start and not iq_match:
+            header.append(lines[j])
 
     if len(header)>0:
         hdr_str = ''
