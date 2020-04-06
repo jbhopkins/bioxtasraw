@@ -2032,7 +2032,16 @@ def makeSeriesFile(secm_data, settings):
 
     for sasm_data in secm_data['sasm_list']:
 
-        new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
+        if 'q_binned' in sasm_data:
+            q = sasm_data['q_binned']
+            i = sasm_data['i_binned']
+            err = sasm_data['err_binned']
+        else:
+            q = sasm_data['q_raw']
+            i = sasm_data['i_raw']
+            err = sasm_data['err_raw']
+
+        new_sasm = SASM.SASM(i, q, err, sasm_data['parameters'])
 
         new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
             sasm_data['q_scale_factor'])
@@ -2047,11 +2056,6 @@ def makeSeriesFile(secm_data, settings):
         new_sasm._update()
 
         sasm_list.append(new_sasm)
-
-
-    # file_list = []
-    # for fname in secm_data['file_list']:
-    #     file_list.append(str(file_list))
 
     new_secm = SECM.SECM(secm_data['file_list'], sasm_list,
         secm_data['frame_list'], secm_data['parameters'], settings)
@@ -2086,8 +2090,16 @@ def makeSeriesFile(secm_data, settings):
     for sasm_data in secm_data['subtracted_sasm_list']:
 
         if sasm_data != -1:
-            new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'],
-                sasm_data['err_raw'], sasm_data['parameters'])
+            if 'q_binned' in sasm_data:
+                q = sasm_data['q_binned']
+                i = sasm_data['i_binned']
+                err = sasm_data['err_binned']
+            else:
+                q = sasm_data['q_raw']
+                i = sasm_data['i_raw']
+                err = sasm_data['err_raw']
+
+            new_sasm = SASM.SASM(i, q, err, sasm_data['parameters'])
 
             new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
                 sasm_data['q_scale_factor'])
@@ -2118,8 +2130,16 @@ def makeSeriesFile(secm_data, settings):
     for sasm_data in secm_data['baseline_subtracted_sasm_list']:
 
         if sasm_data != -1:
-            new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'],
-                sasm_data['err_raw'], sasm_data['parameters'])
+            if 'q_binned' in sasm_data:
+                q = sasm_data['q_binned']
+                i = sasm_data['i_binned']
+                err = sasm_data['err_binned']
+            else:
+                q = sasm_data['q_raw']
+                i = sasm_data['i_raw']
+                err = sasm_data['err_raw']
+
+            new_sasm = SASM.SASM(i, q, err, sasm_data['parameters'])
 
             new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
                 sasm_data['q_scale_factor'])
@@ -2168,8 +2188,17 @@ def makeSeriesFile(secm_data, settings):
     sasm_data = secm_data['average_buffer_sasm']
 
     if sasm_data != -1 and sasm_data is not None:
-        new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'],
-            sasm_data['err_raw'], sasm_data['parameters'])
+        if sasm_data != -1:
+            if 'q_binned' in sasm_data:
+                q = sasm_data['q_binned']
+                i = sasm_data['i_binned']
+                err = sasm_data['err_binned']
+            else:
+                q = sasm_data['q_raw']
+                i = sasm_data['i_raw']
+                err = sasm_data['err_raw']
+
+            new_sasm = SASM.SASM(i, q, err, sasm_data['parameters'])
 
         new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
             sasm_data['q_scale_factor'])

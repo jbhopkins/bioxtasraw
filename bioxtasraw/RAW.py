@@ -5349,7 +5349,16 @@ class MainWorkerThread(threading.Thread):
                 #Backwards compatability requires us to not test the sasm prefix
                 sasm_data = item_dict[each_key]
 
-                new_sasm = SASM.SASM(sasm_data['i_raw'], sasm_data['q_raw'], sasm_data['err_raw'], sasm_data['parameters'])
+                if 'q_binned' in sasm_data:
+                    q = sasm_data['q_binned']
+                    i = sasm_data['i_binned']
+                    err = sasm_data['err_binned']
+                else:
+                    q = sasm_data['q_raw']
+                    i = sasm_data['i_raw']
+                    err = sasm_data['err_raw']
+
+                new_sasm = SASM.SASM(i, q, err, sasm_data['parameters'])
 
                 new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
                     sasm_data['q_scale_factor'])
