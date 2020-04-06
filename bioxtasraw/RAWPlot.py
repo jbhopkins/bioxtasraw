@@ -2914,6 +2914,7 @@ class SeriesPlotPanel(wx.Panel):
         self._setLabels(axes = self.ryaxis)
 
         self._updateFrameStylesForAllPlots()
+        self.updatePlotAxes()
 
         self.canvas.callbacks.connect('pick_event', self._onPickEvent)
         self.canvas.callbacks.connect('key_press_event', self._onKeyPressEvent)
