@@ -2623,6 +2623,7 @@ def loadPrimusDatFile(filename):
         is_foxs_fit = False
 
     header = []
+    header_start = False
 
     for j, line in enumerate(lines):
         iq_match = iq_pattern.match(line)
@@ -2641,29 +2642,35 @@ def loadPrimusDatFile(filename):
                 err.append(abs(float(found[3])))
 
         #Check to see if there is any header from RAW, and if so get that.
-        if '### HEADER:' in line:
+        #Header at the bottom
+        if '### HEADER:' in line and len(q) > 0:
             header = lines[j+1:]
 
             # For headers at the bottom, stop trying the regex
             if len(q) > 0:
                 break
 
-    # for j in range(len(lines)):
-    #     if '### HEADER:' in lines[j]:
-    #         header = lines[j+1:]
+        # Header at top
+        elif '### HEADER:' in line and len(q) == 0:
+            header_start = True
 
-    # hdict = None
+        elif header_start and not iq_match:
+            header.append(line[j])
+
+        elif header_start and iq_match:
+            header_start = False
+
 
     if len(header)>0:
         hdr_str = ''
         for each_line in header:
             hdr_str=hdr_str+each_line.lstrip('#')
 
-    hdict = loadDatHeader(hdr_str)
+        hdict = loadDatHeader(hdr_str)
 
-    for each in hdict:
-        if each != 'filename':
-            parameters[each] = hdict[each]
+        for each in hdict:
+            if each != 'filename':
+                parameters[each] = hdict[each]
 
     i = np.array(i)
     q = np.array(q)
