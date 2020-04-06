@@ -5040,6 +5040,9 @@ class DammifRunPanel(wx.Panel):
         if align and self.align_file_name != '':
             filenames = [os.path.split(self.align_file_name)[1]]
 
+            centered_align_file = '{}_centered{}'.format(os.path.splitext(os.path.split(self.align_file_name)[1]))
+            filenames.append(centered_align_file)
+
             filenames.extend(['{}-1_aligned.pdb'.format(key) for key in dammif_names])
 
             if nruns > 1 and damaver:
@@ -6727,7 +6730,7 @@ class DenssFrame(wx.Frame):
     def __init__(self, parent, title, iftm, manip_item):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(700, client_display.Width), min(750, client_display.Height))
+        size = (min(700, client_display.Width), min(900, client_display.Height))
 
         try:
             wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
@@ -6860,6 +6863,9 @@ class DenssRunPanel(wx.Panel):
                     'sym_on'        : self.NewControlId(),
                     'ncs'           : self.NewControlId(),
                     'ncsAxis'       : self.NewControlId(),
+                    'align'         : self.NewControlId(),
+                    'align_file'    : self.NewControlId(),
+                    'align_file_btn': self.NewControlId(),
                     }
 
         self.threads_finished = []
@@ -6888,16 +6894,19 @@ class DenssRunPanel(wx.Panel):
 
         try:
             savedir_ctrl.AutoCompleteDirectories() #compatability for older versions of wxpython
-        except AttributeError:
-            pass
+        except AttributeError as e:
+            print(e)
 
-        savedir_button = wx.Button(parent, self.ids['changedir'], 'Select/Change Directory')
+        savedir_button = wx.Button(parent, self.ids['changedir'], 'Select')
         savedir_button.Bind(wx.EVT_BUTTON, self.onChangeDirectoryButton)
 
+        dir_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        dir_sizer.Add(savedir_ctrl, proportion=1, border=2, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        dir_sizer.Add(savedir_button, flag=wx.ALIGN_CENTER_VERTICAL)
+
         savedir_sizer = wx.BoxSizer(wx.VERTICAL)
-        savedir_sizer.Add(savedir_text, 0, wx.LEFT | wx.RIGHT, 5)
-        savedir_sizer.Add(savedir_ctrl, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.EXPAND, 5)
-        savedir_sizer.Add(savedir_button, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, 5)
+        savedir_sizer.Add(savedir_text, 0, wx.LEFT | wx.RIGHT, 2)
+        savedir_sizer.Add(dir_sizer, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.EXPAND, 2)
 
 
         prefix_text = wx.StaticText(parent, -1, 'Output prefix :')
@@ -6973,6 +6982,21 @@ class DenssRunPanel(wx.Panel):
             flag=wx.ALIGN_CENTER_VERTICAL)
         sym_sizer.Add(sym_axis, (1,4), flag=wx.ALIGN_CENTER_VERTICAL)
 
+        self.align_result = wx.CheckBox(parent, self.ids['align'],
+            label='Align output to PDB/MRC:')
+        self.align_result.SetValue(False)
+        self.align_file_ctrl = wx.TextCtrl(parent, self.ids['align_file'],
+            style=wx.TE_READONLY)
+        align_button = wx.Button(parent, self.ids['align_file_btn'],
+            label='Select')
+        align_button.Bind(wx.EVT_BUTTON, self._selectAlignFile)
+
+        align_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        align_sizer.Add(self.align_result, border=5, flag=wx.RIGHT)
+        align_sizer.Add(self.align_file_ctrl, border=5, flag=wx.RIGHT,
+            proportion=1)
+        align_sizer.Add(align_button)
+
         advancedButton = wx.Button(parent, -1, 'Change Advanced Settings')
         advancedButton.Bind(wx.EVT_BUTTON, self._onAdvancedButton)
 
@@ -6980,15 +7004,16 @@ class DenssRunPanel(wx.Panel):
         settings_box = wx.StaticBox(parent, -1, 'Settings')
         settings_sizer = wx.StaticBoxSizer(settings_box, wx.VERTICAL)
         settings_sizer.Add(savedir_sizer, 0, wx.EXPAND)
-        settings_sizer.Add(prefix_sizer, 0, wx.EXPAND | wx.TOP, 5)
-        settings_sizer.Add(nruns_sizer, 0, wx.TOP, 5)
-        settings_sizer.Add(nprocs_sizer, 0, wx.TOP, 5)
-        settings_sizer.Add(mode_sizer, 0, wx.TOP, 5)
-        settings_sizer.Add(ne_sizer, 0, wx.TOP, 5)
-        settings_sizer.Add(average_chk, 0, wx.TOP, 5)
-        settings_sizer.Add(refine_sizer, 0,wx.TOP, 5)
-        settings_sizer.Add(sym_sizer, 0, flag=wx.TOP, border=5)
-        settings_sizer.Add(advancedButton, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, 5)
+        settings_sizer.Add(prefix_sizer, 0, wx.EXPAND | wx.TOP, 2)
+        settings_sizer.Add(nruns_sizer, 0, wx.LEFT|wx.RIGHT|wx.TOP, 2)
+        settings_sizer.Add(nprocs_sizer, 0, wx.LEFT|wx.RIGHT|wx.TOP, 2)
+        settings_sizer.Add(mode_sizer, 0, wx.LEFT|wx.RIGHT|wx.TOP, 2)
+        settings_sizer.Add(ne_sizer, 0, wx.LEFT|wx.RIGHT|wx.TOP, 2)
+        settings_sizer.Add(average_chk, 0, wx.LEFT|wx.RIGHT|wx.TOP, 2)
+        settings_sizer.Add(refine_sizer, 0,wx.LEFT|wx.RIGHT|wx.TOP, 2)
+        settings_sizer.Add(sym_sizer, 0, flag=wx.TOP, border=2)
+        settings_sizer.Add(align_sizer, border=2, flag=wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND)
+        settings_sizer.Add(advancedButton, 0, wx.LEFT|wx.RIGHT|wx.TOP|wx.ALIGN_CENTER, 2)
 
 
         start_button = wx.Button(parent, self.ids['start'], 'Start')
@@ -7000,8 +7025,8 @@ class DenssRunPanel(wx.Panel):
         button_box = wx.StaticBox(parent, -1, 'Controls')
         button_sizer = wx.StaticBoxSizer(button_box, wx.HORIZONTAL)
         button_sizer.AddStretchSpacer(1)
-        button_sizer.Add(start_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-        button_sizer.Add(abort_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        button_sizer.Add(start_button, 0, wx.ALL | wx.ALIGN_CENTER, 2)
+        button_sizer.Add(abort_button, 0, wx.ALL | wx.ALIGN_CENTER, 2)
         button_sizer.AddStretchSpacer(1)
 
         control_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -7013,7 +7038,7 @@ class DenssRunPanel(wx.Panel):
         self.status = wx.TextCtrl(parent, self.ids['status'], '', style = wx.TE_MULTILINE | wx.TE_READONLY, size = (130,200))
         status_box = wx.StaticBox(parent, -1, 'Status')
         status_sizer = wx.StaticBoxSizer(status_box, wx.VERTICAL)
-        status_sizer.Add(self.status, 1, wx.EXPAND | wx.ALL, 5)
+        status_sizer.Add(self.status, 1, wx.EXPAND | wx.ALL, 2)
 
 
         half_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -7123,6 +7148,8 @@ class DenssRunPanel(wx.Panel):
 
         wx.FindWindowById(self.ids['abort'], self).Disable()
 
+        self.align_file_name = None
+
         self.logbook.DeleteAllPages()
 
 
@@ -7148,6 +7175,8 @@ class DenssRunPanel(wx.Panel):
 
         nruns_window = wx.FindWindowById(self.ids['runs'], self)
         nruns = int(nruns_window.GetValue())
+
+        align = self.align_result.GetValue()
 
         denss_names = collections.OrderedDict()
         for (key, value) in [(str(i), prefix+'_%s' %(str(i).zfill(2))) for i in range(1, nruns+1)]:
@@ -7298,12 +7327,60 @@ class DenssRunPanel(wx.Panel):
                         yes_to_all = True
 
                 self.denss_ids['refine'] = self.NewControlId()
-                text_ctrl = wx.TextCtrl(self.logbook, self.denss_ids['refine'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
+                text_ctrl = wx.TextCtrl(self.logbook, self.denss_ids['refine'],
+                    style=wx.TE_MULTILINE|wx.TE_READONLY)
                 self.logbook.AddPage(text_ctrl, 'Refine')
 
                 for f in file_names:
                     if os.path.exists(f):
                         os.remove(f)
+
+
+        if align and self.align_file_name != '':
+            filenames = [os.path.split(self.align_file_name)[1]]
+
+            filenames.extend(['{}-1_aligned.mrc'.format(key) for key in denss_names])
+
+            if nruns > 1 and average:
+                filenames.append('{}_average.mrc'.format(prefix))
+
+            if nruns > 1 and refine:
+                filenames.append('{}_refine.mrc'.format(prefix))
+
+            for item in filenames:
+                if os.path.exists(os.path.join(path, item)) and not yes_to_all:
+                    button_list = [('Yes', wx.ID_YES),
+                        ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
+
+                    question = ('Warning: selected directory contains an '
+                        'alignment output file\n"%s". Running alignment will '
+                        'overwrite this file.\nDo you wish to continue?' %(item))
+                    label = 'Overwrite existing files?'
+                    icon = wx.ART_WARNING
+
+                    question_dialog = RAWCustomDialogs.CustomQuestionDialog(self.main_frame,
+                        question, button_list, label, icon,
+                        style=wx.CAPTION|wx.RESIZE_BORDER)
+
+                    result = question_dialog.ShowModal()
+                    question_dialog.Destroy()
+
+                    if result == wx.ID_NO:
+                        return
+                    elif result == wx.ID_YESTOALL:
+                        yes_to_all = True
+
+            self.denss_ids['align'] = self.NewControlId()
+            text_ctrl = wx.TextCtrl(self.logbook, self.denss_ids['align'], '',
+                style=wx.TE_MULTILINE|wx.TE_READONLY)
+            self.logbook.AddPage(text_ctrl, 'Align')
+
+        elif align and self.align_file_name == '':
+            msg = ('You must select a file to align to or disable alignment.')
+            dlg = wx.MessageDialog(self, msg, 'No alignment template file')
+            dlg.ShowModal()
+            dlg.Destroy()
+            return
 
         self.status.SetValue('Starting processing\n')
 
@@ -7318,6 +7395,19 @@ class DenssRunPanel(wx.Panel):
                 wx.FindWindowById(self.ids[key], self).Enable()
 
         self.main_frame.sleep_inhibit.on()
+
+        # Remove aligned filenames, because they don't automatically get overwritten if
+        # align is off, and it could cause confusion
+        align_names = ['{}_{:02d}_aligned.mrc'.format(prefix, i+1) for i in range(nruns)]
+        if nruns > 1 and average:
+            align_names.append('{}_average_aligned.mrc'.format(prefix))
+        if nruns > 1 and refine:
+            align_names.append('{}_refine_aligned.mrc'.format(prefix))
+
+        for fname in align_names:
+            if os.path.isfile(os.path.join(path, fname)):
+                os.remove(os.path.join(path, fname))
+
         self.startDenss(path, prefix, procs)
 
     def onAbortButton(self, evt):
@@ -7368,6 +7458,27 @@ class DenssRunPanel(wx.Panel):
             new_path = dirdlg.GetPath()
             wx.FindWindowById(self.ids['save'], self).SetValue(new_path)
 
+    def _selectAlignFile(self, evt):
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        load_path = dirctrl_panel.getDirLabel()
+
+        filters = 'PDB files (*.pdb)|*.pdb|All files (*.*)|*.*'
+
+        dialog = wx.FileDialog(self, 'Select a file', load_path, style=wx.FD_OPEN,
+            wildcard=filters)
+
+        if dialog.ShowModal() == wx.ID_OK:
+            file = dialog.GetPath()
+        else:
+            file = None
+
+        # Destroy the dialog
+        dialog.Destroy()
+
+        if file is not None:
+            self.align_file_name = file
+            self.align_file_ctrl.SetValue(os.path.split(file)[1])
+            self.align_file_ctrl.SetToolTip(wx.ToolTip(file))
 
     def onRunsText(self, evt):
         nruns_ctrl = wx.FindWindowById(self.ids['runs'], self)
@@ -7497,7 +7608,7 @@ class DenssRunPanel(wx.Panel):
         D = self.iftm.getParameter('dmax')
 
         for key in self.denss_ids:
-            if key != 'average' and key != 'refine':
+            if key != 'average' and key != 'refine' and key!= 'align':
                 if not self.single_proc:
                     den_queue = self.my_manager.Queue()
                     stop_event = self.my_manager.Event()
@@ -7526,7 +7637,7 @@ class DenssRunPanel(wx.Panel):
             self.abort_event.clear()
 
             for key in self.denss_ids:
-                if key != 'average' and key != 'refine':
+                if key != 'average' and key != 'refine' and key!= 'align':
                     result = my_pool.apply_async(DENSS.runDenss, args=(q, I, sigq,
                         D, prefix, path, comm_list, self.my_lock, self.thread_nums,
                         self.wx_queue, self.abort_event, self.denss_settings))
@@ -7551,7 +7662,7 @@ class DenssRunPanel(wx.Panel):
 
     def manage_denss(self, q, I, sigq, D, prefix, path, comm_list):
         for key in self.denss_ids:
-            if key != 'average' and key != 'refine':
+            if key != 'average' and key != 'refine' and key != 'align':
                 data = DENSS.runDenss(q, I, sigq, D, prefix, path,
                     comm_list,  self.my_lock, self.thread_nums, self.wx_queue,
                     self.abort_event, self.denss_settings)
@@ -7688,7 +7799,7 @@ class DenssRunPanel(wx.Panel):
 
         self.average_results = {'mean': mean, 'std': std,'res': resn, 'scores': scores,
             'fsc': fsc, 'total': allrhos.shape[0], 'inc': aligned.shape[0],
-            'thresh': threshold, 'model': average_rho}
+            'thresh': threshold, 'model': average_rho, 'side': sides[0]}
 
         if self.abort_event.is_set():
             return
@@ -7696,6 +7807,15 @@ class DenssRunPanel(wx.Panel):
         if 'refine' in self.denss_ids:
             t = threading.Thread(target=self.runRefine,
                 args=(prefix, path, nruns, procs))
+            t.daemon = True
+            t.start()
+            self.threads_finished.append(False)
+
+        elif 'align' in self.denss_ids:
+            self.refine_results = []
+
+            t = threading.Thread(target=self.runAlign,
+                    args=(prefix, path, nruns, procs))
             t.daemon = True
             t.start()
             self.threads_finished.append(False)
@@ -7773,8 +7893,125 @@ class DenssRunPanel(wx.Panel):
         self.threads_finished[-1] = True
         stop_event.set()
 
-        if self.abort_event.is_set():
-            return
+        if 'align' in self.denss_ids:
+            t = threading.Thread(target=self.runAlign,
+                    args=(prefix, path, nruns, procs))
+            t.daemon = True
+            t.start()
+            self.threads_finished.append(False)
+        else:
+            self.msg_timer.Stop()
+            wx.CallAfter(self.finishedProcessing)
+
+    def runAlign(self, prefix, path, nruns, procs):
+
+        myId = self.denss_ids['align']
+        align_window = wx.FindWindowById(myId, self)
+
+        wx.CallAfter(self.status.AppendText, 'Starting Alignment\n')
+
+        items_to_align = collections.OrderedDict()
+
+        if 'refine' in self.denss_ids:
+            rho = self.refine_results[-2]
+            side = self.refine_results[-1]
+
+            rhos = np.array([rho])
+            sides = np.array([side])
+
+            items_to_align['Refined'] = (rhos, sides)
+
+        elif 'average' in self.denss_ids:
+            rho = self.average_results['model']
+            side = self.average_results['side']
+
+            rhos = np.array([rho])
+            sides = np.array([side])
+
+            items_to_align['Averaged'] = (rhos, sides)
+        else:
+            if not self.single_proc:
+                denss_outputs = [result.get() for result in self.results]
+            else:
+                denss_outputs = self.results
+
+            for i, key in enumerate(self.denss_ids):
+                if key != 'average' and key != 'refine' and key != 'align':
+                    rho = denss_outputs[i][-2]
+                    side = denss_outputs[i][-1]
+                    rhos = np.array([rho])
+                    sides = np.array([side])
+
+                    items_to_align['{}'.format(i+1)] = (rhos, sides)
+
+        if not self.single_proc:
+            align_q = self.my_manager.Queue()
+            stop_event = self.my_manager.Event()
+        else:
+            align_q = queue.Queue()
+            stop_event = threading.Event()
+
+        stop_event.clear()
+
+        comm_t = threading.Thread(target=self.get_multi_output,
+            args=(align_q, align_window, stop_event, 1))
+        comm_t.daemon = True
+        comm_t.start()
+
+        settings = {'cores' : procs,
+                'enantiomer' : True,
+                'center' : True,
+                'resolution' : 15.0,
+                }
+
+        if self.align_file_name != os.path.join(path, os.path.split(self.align_file_name)[1]):
+            shutil.copy(self.align_file_name, path)
+
+        align_file_name = os.path.join(path, os.path.split(self.align_file_name)[1])
+
+        for i, key in enumerate(items_to_align):
+            if self.abort_event.is_set():
+                stop_event.set()
+                wx.CallAfter(self.status.AppendText, 'Aborted!\n')
+
+            align_q.put_nowait('Aligning model {}\n'.format(key))
+
+            if i == 1:
+                settings['center'] = False
+                align_file_name = "{}_centered{}".format(*os.path.splitext(align_file_name))
+
+            rhos, sides = items_to_align[key]
+
+            if settings is not None and not self.abort_event.is_set():
+                aligned, scores = DENSS.run_align(rhos, sides, align_file_name, align_q,
+                    self.abort_event, single_proc=self.single_proc, **settings)
+            else:
+                aligned = None
+                scores = None
+
+            if self.abort_event.is_set():
+                stop_event.set()
+                wx.CallAfter(self.status.AppendText, 'Aborted!\n')
+
+            elif aligned is not None:
+                align_q.put_nowait('Correlation score to reference: {:.3f}\n'.format(scores[0]))
+
+                if key == 'Refined':
+                    outname = os.path.join(path, '{}_refine_aligned.mrc'.format(prefix))
+                elif key == 'Averaged':
+                    outname = os.path.join(path, '{}_average_aligned.mrc'.format(prefix))
+
+                else:
+                    outname = os.path.join(path, '{}_{:02d}_aligned.mrc'.format(prefix, i+1))
+
+                DENSS.write_mrc(aligned[0], sides[0], outname)
+
+        self.threads_finished[-1] = True
+        stop_event.set()
+
+        align_q.put_nowait('DENSS Alignment finished\n')
+
+        wx.CallAfter(self.status.AppendText, 'Finished Alignment\n')
 
         self.msg_timer.Stop()
         wx.CallAfter(self.finishedProcessing)
@@ -7854,9 +8091,19 @@ class DenssRunPanel(wx.Panel):
                 t.start()
                 self.threads_finished.append(False)
 
+            elif 'align':
+                self.average_results = {}
+                self.refine_results = []
+
+                t = threading.Thread(target=self.runAlign,
+                    args=(prefix, path, nruns, procs))
+                t.daemon = True
+                t.start()
+                self.threads_finished.append(False)
+
             else:
                 self.msg_timer.Stop()
-                self.average_results = {}
+
                 self.refine_results = []
                 wx.CallAfter(self.finishedProcessing)
 
@@ -8823,7 +9070,7 @@ class DenssAlignFrame(wx.Frame):
         self.target_select.Bind(wx.EVT_BUTTON, self._onSelectFile)
 
         file_sizer = wx.FlexGridSizer(cols=3, vgap=5, hgap=5)
-        file_sizer.Add(wx.StaticText(panel, label='Template (mrc or pdb):'), flag=wx.ALIGN_CENTER_VERTICAL)
+        file_sizer.Add(wx.StaticText(panel, label='Reference (mrc or pdb):'), flag=wx.ALIGN_CENTER_VERTICAL)
         file_sizer.Add(self.template_file, flag=wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
         file_sizer.Add(self.template_select, flag=wx.ALIGN_CENTER_VERTICAL)
         file_sizer.Add(wx.StaticText(panel, label='Target (mrc):'), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -10305,10 +10552,10 @@ class SupcombFrame(wx.Frame):
         self.target_select.Bind(wx.EVT_BUTTON, self._onSelectFile)
 
         file_sizer = wx.FlexGridSizer(cols=3, vgap=5, hgap=5)
-        file_sizer.Add(wx.StaticText(panel, label='Template:'), flag=wx.ALIGN_CENTER_VERTICAL)
+        file_sizer.Add(wx.StaticText(panel, label='Reference (pdb):'), flag=wx.ALIGN_CENTER_VERTICAL)
         file_sizer.Add(self.template_file, flag=wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
         file_sizer.Add(self.template_select, flag=wx.ALIGN_CENTER_VERTICAL)
-        file_sizer.Add(wx.StaticText(panel, label='Target:'), flag=wx.ALIGN_CENTER_VERTICAL)
+        file_sizer.Add(wx.StaticText(panel, label='Target (pdb):'), flag=wx.ALIGN_CENTER_VERTICAL)
         file_sizer.Add(self.target_file, flag=wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
         file_sizer.Add(self.target_select)
         file_sizer.AddGrowableCol(1)
