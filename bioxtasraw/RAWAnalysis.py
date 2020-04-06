@@ -9011,7 +9011,7 @@ class DenssAlignFrame(wx.Frame):
             self.abort_button.Enable()
             self.status.SetValue('')
 
-            self.denss_thread = threading.Thread(target=self.runDenss)
+            self.denss_thread = threading.Thread(target=self.runAlign)
             self.denss_thread.daemon = True
             self.denss_thread.start()
 
@@ -9034,7 +9034,7 @@ class DenssAlignFrame(wx.Frame):
                 num_msg = 0
                 full_msg = ''
 
-    def runDenss(self):
+    def runAlign(self):
 
         #Load target
         rho, side = DENSS.read_mrc(self.target_file_name)

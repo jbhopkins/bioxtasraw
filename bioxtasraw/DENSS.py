@@ -1100,16 +1100,16 @@ class PDB(object):
                     continue # skip other lines
                 self.natoms += 1
         self.atomnum = np.zeros((self.natoms),dtype=int)
-        self.atomname = np.zeros((self.natoms),dtype=np.dtype((str,3)))
-        self.atomalt = np.zeros((self.natoms),dtype=np.dtype((str,1)))
-        self.resname = np.zeros((self.natoms),dtype=np.dtype((str,3)))
+        self.atomname = np.zeros((self.natoms),dtype=np.dtype((np.str,3)))
+        self.atomalt = np.zeros((self.natoms),dtype=np.dtype((np.str,1)))
+        self.resname = np.zeros((self.natoms),dtype=np.dtype((np.str,3)))
         self.resnum = np.zeros((self.natoms),dtype=int)
-        self.chain = np.zeros((self.natoms),dtype=np.dtype((str,1)))
+        self.chain = np.zeros((self.natoms),dtype=np.dtype((np.str,1)))
         self.coords = np.zeros((self.natoms, 3))
         self.occupancy = np.zeros((self.natoms))
         self.b = np.zeros((self.natoms))
-        self.atomtype = np.zeros((self.natoms),dtype=np.dtype((str,2)))
-        self.charge = np.zeros((self.natoms),dtype=np.dtype((str,2)))
+        self.atomtype = np.zeros((self.natoms),dtype=np.dtype((np.str,2)))
+        self.charge = np.zeros((self.natoms),dtype=np.dtype((np.str,2)))
         self.nelectrons = np.zeros((self.natoms),dtype=int)
         with open(filename) as f:
             atom = 0
