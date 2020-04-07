@@ -304,6 +304,7 @@ def calc_bift_errors(opt_params, q, i, err, N, mc_runs=300, abort_check=False,
     #Should I report number of Shannon Channels? That's easy to calculate: q_range*dmax/pi
 
     return ref_r, p_avg, err, (alpha, sd_alpha), (dmax, sd_dmax), (c, sd_c), (evidence, sd_ev), (rg, sd_rg), (i0, sd_i0)
+
 def make_fit(q, r, pr):
     qr = np.outer(q, r)
     sinc_qr = np.where(qr==0, 1, np.sin(qr)/qr)
@@ -319,8 +320,6 @@ def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
         single_proc = True
     else:
         single_proc = False
-
-    print(single_proc)
 
     alpha_min = np.log(alpha_min)
     alpha_max = np.log(alpha_max)
