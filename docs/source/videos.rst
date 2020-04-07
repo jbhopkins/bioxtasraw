@@ -14,7 +14,8 @@ RAW demo for SBGrid
 
 RAW tutorial videos from MacCHESS
 ----------------------------------
-For these videos, tutorial data is available from `http://bit.ly/bioxtasd <http://bit.ly/bioxtasd>`_
+
+For these videos, tutorial data is available from `https://bit.ly/bioxtasd <https://bit.ly/bioxtasd>`_
 
 Loading and plotting profiles
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

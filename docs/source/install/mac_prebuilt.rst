@@ -5,7 +5,7 @@ Using a prebuilt app package
 The recommended way to install RAW on Mac is using a prebuilt app package. To install
 from a prebuilt app package simply download the :file:`RAW-{x}.{y}.{z}-mac.dmg` (where :file:`{x}.{y}.{z}` is the
 version number) file from sourceforge (
-`http://sourceforge.net/projects/bioxtasraw <http://sourceforge.net/projects/bioxtasraw>`_),
+`https://sourceforge.net/projects/bioxtasraw <https://sourceforge.net/projects/bioxtasraw>`_),
 double click it to open the dmg, and drag the :file:`RAW.app` file to your Applications folder
 (or wherever you want to install RAW).
 

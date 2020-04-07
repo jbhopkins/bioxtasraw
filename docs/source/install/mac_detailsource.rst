@@ -4,10 +4,10 @@ OS X and macOS install from source instructions
 
 #.  Install Miniconda python distribution
 
-    *   Download the free miniconda python 2.7 installer from:
-        `https://conda.io/miniconda.html <https://conda.io/miniconda.html>`_
+    *   Download the free miniconda python 3.7 installer from:
+        `https://docs.conda.io/en/latest/miniconda.htmll <https://docs.conda.io/en/latest/miniconda.htmll>`_
 
-        *   Make sure you get the python 2.7 version!
+        *   Make sure you get the python 3.7 version!
 
     *   Open a Terminal window by starting the Terminal app.
 
@@ -21,7 +21,7 @@ OS X and macOS install from source instructions
 
     *   In the terminal window type ``cd ~\Downloads`` and hit enter.
 
-    *   In the terminal window type ``bash Miniconda2-latest-MacOSX-x86_64.sh`` and hit enter.
+    *   In the terminal window type ``bash Miniconda3-latest-MacOSX-x86_64.sh`` and hit enter.
 
     *   Agree to all of the prompts.
 
@@ -36,7 +36,7 @@ OS X and macOS install from source instructions
 
     *   Type ``conda upgrade conda pip wheel setuptools`` and hit enter. Agree to all the prompts.
 
-    *   Type ``conda install numpy scipy matplotlib pillow wxpython numba h5py lxml cython numexpr`` and hit enter.
+    *   Type ``conda install numpy scipy matplotlib pillow wxpython numba h5py cython numexpr`` and hit enter.
         Agree to all the prompts.
 
 #.  Install the hdf5plugin, silx, fabio, and pyFAI packages using pip
@@ -49,7 +49,7 @@ OS X and macOS install from source instructions
 
 #.  Download RAW from sourceforge
 
-    *   `http://sourceforge.net/projects/bioxtasraw <http://sourceforge.net/projects/bioxtasraw>`_
+    *   `https://sourceforge.net/projects/bioxtasraw <https://sourceforge.net/projects/bioxtasraw>`_
 
     *   Navigate to the :guilabel:`Files` tab and download the latest source code,
         :file:`RAW-{x}.{y}.{z}-Source.zip`. Or download the latest development version

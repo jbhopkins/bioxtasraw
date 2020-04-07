@@ -2,7 +2,7 @@ General instructions for installing from source (advanced users)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _macgen:
 
-#.  Install a standalone version of python 2.7 (recommended, not required).
+#.  Install a standalone version of python 3.7 (recommended, not required).
 
 #.  Install the following python packages (most recent version of each recommended):
 
@@ -15,8 +15,6 @@ General instructions for installing from source (advanced users)
     *   pillow
 
     *   wxpython
-
-    *   lxml
 
     *   h5py
 
@@ -31,7 +29,7 @@ General instructions for installing from source (advanced users)
     *   numba
 
 #.  Download the latest RAW sourcecode from sourceforge (
-    `http://sourceforge.net/projects/bioxtasraw <http://sourceforge.net/projects/bioxtasraw>`_)
+    `https://sourceforge.net/projects/bioxtasraw <https://sourceforge.net/projects/bioxtasraw>`_)
 
 #.  Extract RAW to a directory of your choice.
 
@@ -45,3 +43,17 @@ General instructions for installing from source (advanced users)
     *   If you have problems, please consult the detailed installation guide and the
         :ref:`solutions to common problems <mactrb>` below. If that doesn’t help,
         please contact the developers.
+
+
+Notes for python 2 installation
+*********************************
+
+As of version 2.0.0, RAW is Python 3 compatible. The last guaranteed Python 2
+compatible version of RAW is 2.0.0. However, it may still be possible to install
+RAW for Python 2. A few additional notes for that:
+
+#.  Additional dependencies:
+
+    *   future
+
+#.  Required version of pyFAI is 0.17

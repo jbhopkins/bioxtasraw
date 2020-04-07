@@ -16,7 +16,7 @@ Line: Style (solid, dashed, dotted), width, color
 Error bars: Style (solid, dashed, dotted), width, color
 
 Data point marker: Shape (the marker shapes are those used by matplotlib, which are defined here:
-`http://matplotlib.org/api/markers_api.html <http://matplotlib.org/api/markers_api.html>`_),
+`https://matplotlib.org/api/markers_api.html <https://matplotlib.org/api/markers_api.html>`_),
 size, edge line color, fill color, and whether or not the markers are hollow.
 
 The line properties dialog also lets you set the legend label for the object, if any is needed.

@@ -1,17 +1,15 @@
 Linux install from source instructions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Tested on: Ubuntu 16.04, Linux Mint 18.3, Debian 9.4, Scientific Linux 6.8 7.4
-\(which should be equivalent to Redhat and CentOS), and OpenSUSE Leap 42.3.
+.. _lnxsource:
 
 #.  Open a new terminal window (in many distros you can right click on the desktop
     and select :menuselection:`New Terminal` or :menuselection:`Open in terminal`).
 
-#.  Download Miniconda Python (Python 2.7) distribution and install.
+#.  Download Miniconda Python (Python 3.7) distribution and install.
 
-    *   `http://conda.pydata.org/miniconda.html <http://conda.pydata.org/miniconda.html>`_
+    *   `https://docs.conda.io/en/latest/miniconda.html <https://docs.conda.io/en/latest/miniconda.html>`_
 
-    *   Make sure you chose the python 2.7 installer.
+    *   Make sure you chose the python 3.7 installer.
 
     *   Save to the downloads folder
 
@@ -19,7 +17,7 @@ Tested on: Ubuntu 16.04, Linux Mint 18.3, Debian 9.4, Scientific Linux 6.8 7.4
 
         *   ``cd ~/Downloads``
 
-        *   :samp:`bash ./Miniconda2{-version}.sh` (where :samp:`{-version}`
+        *   :samp:`bash ./Miniconda3{-version}.sh` (where :samp:`{-version}`
             which will depend on the version you download)
 
     *   Accept the default installation location.
@@ -34,19 +32,15 @@ Tested on: Ubuntu 16.04, Linux Mint 18.3, Debian 9.4, Scientific Linux 6.8 7.4
 
     *   ``conda upgrade conda pip wheel setuptools``
 
-    *   ``conda install numpy scipy matplotlib pillow wxpython numba h5py lxml cython numexpr``
+    *   ``conda install numpy scipy matplotlib pillow wxpython numba h5py cython numexpr``
 
-    *   ``pip install silx fabio "pyFAI<0.18" hdf5plugin``
+    *   ``conda install -c conda-forge dbus-python``
 
-#.  Download RAW from sourceforge
+    *   ``pip install silx fabio pyFAI hdf5plugin``
 
-    *   `http://sourceforge.net/projects/bioxtasraw/ <http://sourceforge.net/projects/bioxtasraw/>`_
+#.  Download RAW source code from sourceforge
 
-    .. raw:: html
-
-        <a href="https://sourceforge.net/projects/bioxtasraw/files/latest/download"><img alt="Download BioXTAS RAW" src="https://a.fsdn.com/con/app/sf-download-button" width=276 height=48 srcset="https://a.fsdn.com/con/app/sf-download-button?button_size=2x 2x"></a>
-
-    *   The download button on the main page should default to the right download for your OS.
+    *   `"https://sourceforge.net/projects/bioxtasraw/files <"https://sourceforge.net/projects/bioxtasraw/files>`_
 
 #.  Expand the RAW download to your location of choice.
 

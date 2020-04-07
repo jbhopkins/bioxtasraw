@@ -27,7 +27,7 @@ the GPL V3 license which means that if a modified version of RAW, or any softwar
 that uses any of the code available in RAW, is made available to users, then the
 full source code must also be made available. For a full description of the GPL
 licensing terms, see the file gpl-3.0.txt included with the RAW source code, or visit
-`http://www.gnu.org/licenses/gpl.html <http://www.gnu.org/licenses/gpl.html>`_
+`https://www.gnu.org/licenses/gpl-3.0.html <https://www.gnu.org/licenses/gpl-3.0.html>`_
 
 
 System requirements
@@ -134,11 +134,11 @@ Installing the ATSAS package
 
 The ATSAS package is available from EMBL, and can be downloaded here:
 
-`http://www.embl-hamburg.de/biosaxs/download.html <http://www.embl-hamburg.de/biosaxs/download.html>`_
+`https://www.embl-hamburg.de/biosaxs/download.html <https://www.embl-hamburg.de/biosaxs/download.html>`_
 
 Installation instructions are available here:
 
-`http://www.embl-hamburg.de/biosaxs/manuals/install.html <http://www.embl-hamburg.de/biosaxs/manuals/install.html>`_
+`https://www.embl-hamburg.de/biosaxs/manuals/install.html <https://www.embl-hamburg.de/biosaxs/manuals/install.html>`_
 
 We recommend installing the packages in the default installation location.
 

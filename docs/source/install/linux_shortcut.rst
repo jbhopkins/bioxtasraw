@@ -1,5 +1,5 @@
-Instructions for setting up a RAW desktop shortcut
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Instructions for setting up a RAW desktop shortcut from source
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _lnxsrt:
 
 All files referred to are initially located in the RAW :file:`LinuxLib` folder.

@@ -3,34 +3,25 @@ Windows 7, 8.1, and 10 install from source instructions
 .. _winsource:
 
 #.  RAW on windows can be installed using 64 bit (x64) or 32 bit (x86) python. Unless you know
-    you need a 32 bit build, you should install the 64 bit version.
+    you need a 32 bit build, you should install the 64 bit version. Some libraries,
+    such as pyFAI, maybe hard to install on 32 bit windows.
 
-#.  Download and install the Microsoft Visual C++ 2008 Redistributable Package.
+#.  Download and install the Microsoft Visual C++ 14.2 Standalone: Build Tools for Visual Studio 2019.
 
-    *   Download the 64 bit version from:
-        `https://www.microsoft.com/en-us/download/details.aspx?id=15336 <https://www.microsoft.com/en-us/download/details.aspx?id=15336>`_
+    *   `https://wiki.python.org/moin/WindowsCompilers#Microsoft_Visual_C.2B-.2B-_14.2_standalone:_Build_Tools_for_Visual_Studio_2019_.28x86.2C_x64.2C_ARM.2C_ARM64.29 <https://wiki.python.org/moin/WindowsCompilers#Microsoft_Visual_C.2B-.2B-_14.2_standalone:_Build_Tools_for_Visual_Studio_2019_.28x86.2C_x64.2C_ARM.2C_ARM64.29>`_
 
-    *   Download the 32  bit version from:
-        `https://www.microsoft.com/en-us/download/details.aspx?id=29 <https://www.microsoft.com/en-us/download/details.aspx?id=29>`_
-
-    *   Run the installer with the default options.
-
-#.  Download and install the Microsoft Visual C++ Compiler for Python.
-
-    *   Download from:
-        `https://www.microsoft.com/en-us/download/details.aspx?id=44266 <https://www.microsoft.com/en-us/download/details.aspx?id=44266>`_
+    *   Download from here: https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019
 
     *   Run the installer with the default options.
 
 #.  Install Miniconda python distribution
 
-    *   Download the free miniconda python 2.7 installer from:
-        `https://conda.io/miniconda.html <https://conda.io/miniconda.html>`_
+    *   Download the free miniconda python 3.7 installer from:
+        `https://docs.conda.io/en/latest/miniconda.html <https://docs.conda.io/en/latest/miniconda.html>`_
 
-        *   Make sure you get the python 2.7 version!
+        *   Make sure you get the python 3.7 version!
 
-        *   Pick the appropriate 64 bit/32 bit version that matches the redistributable
-            you downloaded in the previous step.
+        *   Pick the appropriate 64 bit/32 bit version (64 bit recommended!).
 
     *   Run the installer with the default options.
 
@@ -45,12 +36,12 @@ Windows 7, 8.1, and 10 install from source instructions
 
     *   ``conda upgrade conda pip wheel setuptools``
 
-    *   ``conda install numpy scipy matplotlib pillow wxpython numba h5py lxml cython numexpr``
+    *   ``conda install numpy scipy matplotlib pillow wxpython numba h5py cython numexpr``
 
     *   ``pip install hdf5plugin silx fabio pyfai``
 
 #.  Download RAW from sourceforge (
-    `http://sourceforge.net/projects/bioxtasraw <http://sourceforge.net/projects/bioxtasraw>`_)
+    `https://sourceforge.net/projects/bioxtasraw <https://sourceforge.net/projects/bioxtasraw>`_)
 
     *   Go to the Files tab on the linked website and download the :file:`RAW-{x}.y.z-Source.zip`
         file, where :file:`{x}.{y}.{z}` is the version number (for example, 1.0.0).

@@ -688,7 +688,7 @@ GNOM panel
 The top level GNOM panel allows you to set the commonly used advanced settings for the ATSAS
 software GNOM, which is run from the :ref:`GNOM window <gnomwindow>`. All of these options
 correspond in name and allowable values to those of GNOM as described in the GNOM manual:
-`http://www.embl-hamburg.de/biosaxs/manuals/gnom.html <http://www.embl-hamburg.de/biosaxs/manuals/gnom.html>`_
+`https://www.embl-hamburg.de/biosaxs/manuals/gnom.html <https://www.embl-hamburg.de/biosaxs/manuals/gnom.html>`_
 
 Settings can be rest to their defaults (which correspond to the GNOM defaults) by clicking the “Reset
 to default” button. This resets the settings in this panel and in the GNOM Advanced panel.
@@ -699,7 +699,7 @@ GNOM Advanced panel
 
 This GNOM panel allows setting GNOM settings which are not as commonly used in GNOM. Again, all of
 the options correspond in name and allowable values to those of GNOM as described in the GNOM manual:
-`http://www.embl-hamburg.de/biosaxs/manuals/gnom.html <http://www.embl-hamburg.de/biosaxs/manuals/gnom.html>`_
+`https://www.embl-hamburg.de/biosaxs/manuals/gnom.html <https://www.embl-hamburg.de/biosaxs/manuals/gnom.html>`_
 
 Settings can be rest to their defaults (which correspond to the GNOM defaults) by clicking the
 “Reset to default” button in the GNOM panel. This resets the settings in this panel and in the GNOM panel.
@@ -712,7 +712,7 @@ The top level DAMMIF panel allows setting two things: First, the default setting
 DAMMIF that are set when the :ref:`DAMMIF window <dammifwindow>` is opened. Second, standard
 settings that are available in Fast and Slow mode can be set in the “Standard Settings”
 subpanel. All of the settings correspond in name and allowable values to those in the DAMMIF manual:
-`http://www.embl-hamburg.de/biosaxs/manuals/dammif.html <http://www.embl-hamburg.de/biosaxs/manuals/dammif.html>`_
+`https://www.embl-hamburg.de/biosaxs/manuals/dammif.html <https://www.embl-hamburg.de/biosaxs/manuals/dammif.html>`_
 
 Settings can be rest to their defaults (which generally correspond to the DAMMIF defaults) by
 clicking the “Reset to default” button. This resets the settings in this panel and in the DAMMIF
@@ -726,7 +726,7 @@ The settings in the DAMMIF advanced panel are only used when the “Custom” mo
 in the DAMMIF panel. This is equivalent to the interactive DAMMIF mode at the command line.
 Unless otherwise noted, a value of -1 for a field indicates that it will use the default
 setting. The settings correspond in name and allowable values to those in the DAMMIF manual:
-`http://www.embl-hamburg.de/biosaxs/manuals/dammif.html <http://www.embl-hamburg.de/biosaxs/manuals/dammif.html>`_
+`https://www.embl-hamburg.de/biosaxs/manuals/dammif.html <https://www.embl-hamburg.de/biosaxs/manuals/dammif.html>`_
 
 Settings can be rest to their defaults (which generally correspond to the DAMMIF defaults)
 by clicking the “Reset to default” button in the DAMMIF panel. This resets the settings in

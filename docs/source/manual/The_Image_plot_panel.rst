@@ -49,7 +49,7 @@ changing. This allows you to scroll through images maintaining constant upper an
 
 Image scaling allows you to use a linear or logarithmic (base 10) color scale. The logarithmic
 scale uses the matplotlib.colors.SymLogNorm function (more available here:
-`http://matplotlib.org/api/colors_api.html <http://matplotlib.org/api/colors_api.html>`_),
+`https://matplotlib.org/api/colors_api.html <https://matplotlib.org/api/colors_api.html>`_),
 with a linear threshold set at 1. So the image is logarithmic in color display above 1, and
 linear in color display below 1 (this is so 0 and negative value pixels can be handled).
 
@@ -57,7 +57,7 @@ linear in color display below 1 (this is so 0 and negative value pixels can be h
 
 The colormaps option allows you to change the color scale used to display intensity values
 in the Image plot. The color maps are those available through matplotlib (
-`http://matplotlib.org/users/colormaps.html <http://matplotlib.org/users/colormaps.html>`_),
+`https://matplotlib.org/users/colormaps.html <https://matplotlib.org/users/colormaps.html>`_),
 a limited selection of which are available in RAW: Gray, Heat, Rainbow, Jet (default), Spectral.
 
 **Note:**

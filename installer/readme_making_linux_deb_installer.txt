@@ -16,3 +16,6 @@ Steps:
 7)  In the installer directory, run “pyinstaller -y RAW.spec”
 8)  In the installer/linux directory run "python make_deb_installer.py"
 9)  Rename the package appropriate (e.g. RAW-2.0.0-linux-amd64.deb)
+
+Note: If installer is built on Ubuntu 14.04 LTS it works on Debian 8-10 and Ubuntu 14-18.
+If installer is built on Debian 8 it works on Debian 8-10 and Ubuntu 16-18.

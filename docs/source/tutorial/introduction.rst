@@ -49,7 +49,7 @@ Requirements
 *   ATSAS programs, >= v2.8.0 (for parts of :ref:`Section 2 <section2>` of the tutorial only).
 
     *   Download and installation instructions are available from:
-        `http://www.embl-hamburg.de/biosaxs/download.html <http://www.embl-hamburg.de/biosaxs/download.html>`_
+        `https://www.embl-hamburg.de/biosaxs/download.html <https://www.embl-hamburg.de/biosaxs/download.html>`_
 
     *   Requires a free registration for academic users. Industrial users must pay to use.
 
@@ -59,13 +59,13 @@ Other useful materials
     `https://youtu.be/XGnJDs3N2MI <https://youtu.be/XGnJDs3N2MI>`_
 
 #.  There are RAW tutorial videos produced by Richard Gillilan, which can be viewed here:
-    `http://bit.ly/bioxtast <http://bit.ly/bioxtast>`_. Data for these tutorial videos is available here:
-    `http://bit.ly/bioxtasd <http://bit.ly/bioxtasd>`_.
+    `https://bit.ly/bioxtast <https://bit.ly/bioxtast>`_. Data for these tutorial videos is available here:
+    `https://bit.ly/bioxtasd <https://bit.ly/bioxtasd>`_.
 
 #.  ATSAS resources:
 
-    *   Manuals: `http://www.embl-hamburg.de/biosaxs/manuals/ <http://www.embl-hamburg.de/biosaxs/manuals/>`_
-    *   User forum: `http://www.saxier.org/forum/ <http://www.saxier.org/forum/>`_
+    *   Manuals: `https://www.embl-hamburg.de/biosaxs/manuals/ <https://www.embl-hamburg.de/biosaxs/manuals/>`_
+    *   User forum: `https://www.saxier.org/forum/ <https://www.saxier.org/forum/>`_
 
 #.  Electron density (DENSS) resources available at `DENSS.org <denss.org>`_
 

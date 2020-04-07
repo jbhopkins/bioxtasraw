@@ -490,7 +490,7 @@ The RAW team is pleased to announce the release of RAW version 1.3.1. This is a
 very minor release. Several small bugs have been fixed, and we have updated the
 citations in the program to reflect the release of the new RAW paper. Most of
 the major work in this release went into updating the documentation, which we
-have already released on the new website: http://bioxtas-raw.readthedocs.io/
+have already released on the new website: https://bioxtas-raw.readthedocs.io/
 
 All changes:
 ^^^^^^^^^^^^

@@ -3,9 +3,9 @@ Using a prebuilt installer
 .. _winprebuilt:
 
 The recommend way to install RAW on Windows is using a prebuilt installer. To install
-from a prebuilt installer, simply download the :file:`RAW-{x}.{y}.{z}-win32.msi` (where
+from a prebuilt installer, simply download the :file:`RAW-{x}.{y}.{z}-win64.msi` (where
 :file:`{x}.{y}.{z}` is the version number) file from sourceforge (
-`http://sourceforge.net/projects/bioxtasraw <http://sourceforge.net/projects/bioxtasraw>`_),
+`https://sourceforge.net/projects/bioxtasraw <https://sourceforge.net/projects/bioxtasraw>`_),
 and double click it to run the installer.
 
 .. raw:: html
