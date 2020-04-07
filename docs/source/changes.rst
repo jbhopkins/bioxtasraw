@@ -1,6 +1,139 @@
 Changes
 ============
 
+2.0.0
+--------
+
+Release date: 2020-04-07
+
+Overview
+^^^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 2.0.0. This version
+brings a number of exciting changes, including:
+
+*   Python 3 compatibility!
+*   Conversion to pyFAI for radial integration
+*   A .deb prebuilt installer for Debian/Ubuntu
+*   A new series save format, .hdf5, that can be easily read by other programs
+*   New information windows above the control panel to display all your analysis
+*   Ability to align DENSS and DAMMIF/N outputs to PDB files
+*   Ability to display P(r) functions on an I(0) normalized plot
+*   Works with ATSAS 3 on all platforms
+
+There are also a number of smaller new features, and a ton of bug fixes and tweaks.
+
+With this release, we recommend that all users running RAW from source start
+using Python 3 instead of Python 2.
+
+Important notes:
+
+*   RAW configuration files from 2.0.0 will not necessarily be back compatible with
+    previous versions of RAW. You will get a warning if you load a .cfg file from
+    RAW 2.0.0 in a previous version. Old configuration files are forward compatible.
+
+*   RAW series .hdf5 files from 2.0.0 cannot be opened by previous versions of RAW.
+    The old series .sec files can be opened by 2.0.0.
+
+*   This is the last release that is guaranteed to be Python 2 compatible, since
+    Python 2 hit end of life in January 2020. While we will not intentionally
+    break compatibility with Python 2, we don't have the resources to test on both
+    Python 2 and 3.
+
+
+Many thanks to the beta testers who helped test this release:
+
+    *   Tom Cleveland
+    *   Norm Cyr
+    *   Richard Gillilan
+    *   Rob Miller
+    *   Soren Skou
+
+
+All changes:
+^^^^^^^^^^^^^^^
+
+*   All RAW code is now compatible with both Python 2 and 3
+*   Conversion to pyFAI for radial integration, including support for using
+    detector angles, polarization correction, dark correction, flatfield
+    correction, and dezingering.
+*   A new .deb prebuilt installer for Debian/Ubuntu
+*   A new series save format, .hdf5, which is easily read by any program that
+    can load HDF5 data.
+*   Modified Control panel button layouts.
+*   Added a requirements.txt file for easy pip installation.
+*   Added ability to align DENSS results to a PDB or MRC file either from the
+    main DENSS window or an auxiliary window.
+*   Updated DENSS to version 1.5.0.
+*   Added ability to view help documents in program on MacOS and Windows.
+*   Changed a number of default windows sizes and tweaked layouts to be better on
+    all operating systems.
+*   Added all new info panels for Profiles, IFTs, and Series that display all
+    relevant analysis information about a selected item.
+*   Added ability for users to permanently add new hdf5 file definitions to RAW
+    from inside the program.
+*   Added a q cutoff to the volume of correlation calculation.
+*   Fixed a bug where the q cutoff for the porod volume MW calculation wasn't being
+    used for Series files.
+*   Fixed a bug where the q cutoff for the porod volume MW calculation wasn't getting
+    set properly in default mode when the MW window opened.
+*   Changed how imports are done on startup so that RAW can be run from the command line
+    in two number of ways, including ``python <path-to>RAW.py``, and as a module as
+    ``python -m bioxtasraw.RAW``
+*   Added ability to use SUPCOMB to align dammif/n output with a PDB file,
+    either directly from the main dammif/n window from from a separate window.
+*   Fixed a bug where not all of the program output would get written to the log
+    window for damaver, damclust.
+*   Added error handling for the main thread, which will reduce amount that RAW
+    freezes from unexpected errors.
+*   Changes to prevent/reduce flickering on Windows.
+*   You no longer see two overwrite prompts when saving multiple items at once.
+*   Fixed a couple of options in the view menu that didn't work.
+*   Added a feature where if a user tries to load more than 100 profiles individually
+    they are asked if they instead want to load them as a series.
+*   EFA ranges can now span the whole dataset, allowing better fits for components
+    that are still eluting at the end of the EFA range.
+*   Added ability to easily apply the 8/Rg cutoff for dammif in the GNOM panel.
+*   Fixed a bug where RAW was not checking for unsaved IFTs on exit.
+*   Fixed a bug where IFTs would show as having unsaved changes when there were
+    no unsaved changes.
+*   Changed Manipulation and Main Plot names to Profiles.
+*   Added ability for RAW to prevent the computer from going to sleep during long
+    calculations, such as DENSS or DAMMIF/N.
+*   Fixed a bug where view menu items were not getting properly selected on startup.
+*   Added IFT plot axes to the view menu.
+*   Added LC Series Analysis to the Tools menu.
+*   Fixed a bug where an error message was displayed when quitting RAW.
+*   Fixed a bug where running DENSS on a BIFT P(r) function wasn't using the
+    correct q & i vectors for the refinement.
+*   Changed item highlight color.
+*   Made masking, centering, and all options panels scrolling panels.
+*   Added busy dialogs for saving files.
+*   Fixed a bug where failing to save a file could crash RAW.
+*   Added a zero line to the normalized Kratky plot.
+*   Fixed a bug that could cause dammif/n, damaver, and damclust to stop running on Windows.
+*   Fixed a bug where new versions of ATSAS (>=3.0) wouldn't be found on Windows.
+*   Fixed a bug where if filenames got too long and were truncated for dammif
+    the refine step failed.
+*   Fixed a bug where making lots of masks could result in an 'out of window ids'
+    error.
+*   Fixed a bug where masks didn't stay inverted upon resizing.
+*   Fixed a bug where changing the qmin or qmax while BIFT was running an initial
+    search gave an error.
+*   BIFT now saves the set q range and reopens the window with that range.
+*   BIFT and GNOM windows now default to the min q of the Guinier range if no
+    analysis has previously been done.
+*   GNOM analysis now saves alpha value, restores it when window is reopened.
+*   MW analysis now saves Porod cutoff choice, density, and VC mol type choice
+    and restores when the window is reopened.
+*   Fixed a bug where if you ran dammif or denss again in the same window the
+    results summary wouldn't display properly.
+*   Fixed several bugs related to running ATSAS by properly setting the environment
+    ATSAS and PATH variables.
+*   Fixed a bug where the wrong version of ATSAS could be fond on MacOS.
+*   Added ability to display P(r) functions on an I(0) normalized plot (set as default).
+
+
 1.6.4
 --------
 

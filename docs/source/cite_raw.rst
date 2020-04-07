@@ -32,7 +32,8 @@ If you use RAW to control any of the ATSAS programs (
 `DAMAVER <https://www.embl-hamburg.de/biosaxs/manuals/damaver.html>`_,
 `DAMCLUST <https://www.embl-hamburg.de/biosaxs/manuals/damclust.html>`_,
 `AMBIMETER <https://www.embl-hamburg.de/biosaxs/manuals/ambimeter.html>`_,
-`SASRES <https://www.embl-hamburg.de/biosaxs/manuals/sasres.html>`_),
+`SASRES <https://www.embl-hamburg.de/biosaxs/manuals/sasres.html>`_,
+`SUPCOMB <https://www.embl-hamburg.de/biosaxs/manuals/supcomb.html>`_),
 in addition to the RAW paper, please cite the appropriate paper given on their
 `documentation pages <https://www.embl-hamburg.de/biosaxs/manuals/>`_.
 
@@ -55,6 +56,7 @@ Electron Density (DENSS)
 -------------------------------
 DENSS
 ^^^^^^^^
+
 If you used the electron density (DENSS) function in RAW to calculate electron density,
 in addition to the RAW paper please cite the following paper:
 
@@ -69,6 +71,7 @@ Molecular Weight
 
 Volume of Correlation
 ^^^^^^^^^^^^^^^^^^^^^^
+
 If you used the volume of correlation method to determine molecular weight in RAW,
 in addition to the RAW paper please cite the following paper:
 
@@ -79,6 +82,7 @@ DOI: `10.1038/nature12070 <https://doi.org/10.1038/nature12070>`_
 
 Corrected Porod Volume
 ^^^^^^^^^^^^^^^^^^^^^^^
+
 If you used the corrected Porod volume method to determine molecular weight in RAW,
 in addition to the RAW paper please cite the following paper:
 
@@ -92,6 +96,7 @@ DOI: `10.1002/pro.3528 <https://doi.org/10.1002/pro.3528>`_
 
 Baseline Correction
 ----------------------
+
 If you used the integral baseline correction method in RAW, in addition to the RAW
 paper please cite the following paper:
 
@@ -101,4 +106,4 @@ pure component patterns from poorly resolved SEC-SAXS data.* E. Brookes,
 P. Vachette, M. Rocco, and J. Pérez. Journal of Applied Crystallography (2016).
 49, 1827-1841.
 
-DOI:`10.1107/S1600576716011201 <https://doi.org/10.1107/S1600576716011201>`_
+DOI: `10.1107/S1600576716011201 <https://doi.org/10.1107/S1600576716011201>`_
