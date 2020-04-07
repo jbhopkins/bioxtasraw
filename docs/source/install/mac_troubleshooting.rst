@@ -22,3 +22,10 @@ Common problems/troubleshooting
 *   Using the RAW autorg function requires a relatively recent version of numba.
     If you get an error running this function update your numba version to the
     most recent.
+
+*   If you are installong on an older Macbook (older than ~2012) you need to install all packages
+    through conda forge (``conda install -c conda-forge <package_name>``). The
+    new ones in the main conda channel cuase an illegal instruction error.
+    See this thread: `https://github.com/conda/conda/issues/9678 <https://github.com/conda/conda/issues/9678>`_.
+    It's possible this will be resolved at some point and the main channel
+    will be useable for older machines again.
