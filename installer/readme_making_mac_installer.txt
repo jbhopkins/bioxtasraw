@@ -20,6 +20,11 @@ Steps:
 10) In Disk Utility, Image->Convert, select the prepared disk image, and name it RAW-x.y.z-mac
     (note, the disk image must be ejected for this to work
 
+
+Note: For RAW to work on macbooks older than 2011 need to install all packages
+through conda forge. The new ones through conda have some weird error. See:
+https://github.com/conda/conda/issues/9678
+
 Note: if pyopencl is installed, the build will fail.
 
 Note 2: Without numba, I've now gotten this to work with stock enthought canopy, with the extra
