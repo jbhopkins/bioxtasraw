@@ -1,7 +1,7 @@
 Source: bioxtas-raw
 Package: bioxtas-raw
 Version: 2.0.0
-Section: multiverse/science
+Section: universe/science
 Priority: optional
 Architecture: amd64
 Depends:
