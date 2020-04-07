@@ -1,4 +1,4 @@
-Making the mac installer users pyinstaller (tested on 3.4.0). This must be done with
+Making the mac installer uses pyinstaller (tested on 3.6.0). This must be done with
 miniconda to properly package the LLVMLite package for numba. In order to set up the
 proper build environment, simply install from source as in the RAW documentation, then
 additionally install pyinstaller through pip: pip install pyinstaller.
