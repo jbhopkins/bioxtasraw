@@ -5859,10 +5859,11 @@ class FilePanel(wx.Panel):
 
         self.button_data = ( ("Quick Reduce", self._onReduceButton),
                            ("Plot", self._onPlotButton),
-                           ("Clear All", self._onClearAllButton),
+                           ("Plot Series", self._onPlotSECButton),
                            ("System Viewer", self._onViewButton),
                            ("Show Image", self._onShowImageButton),
-                           ("Plot Series", self._onPlotSECButton))
+                           ("Clear All", self._onClearAllButton),
+                           )
 
         self.NO_OF_BUTTONS_IN_EACH_ROW = 3
 
@@ -6788,12 +6789,16 @@ class ManipulationPanel(wx.Panel):
     def __init__(self, parent, raw_settings):
         wx.Panel.__init__(self, parent, name = 'ManipulationPanel')
 
-        self.button_data = ( ('Save', self._onSaveButton),
-                                     ('Sync', self._onSyncButton),
-                                     ('Remove', self._onRemoveButton),
-                                     ('Superimpose', self._onSuperimposeButton),
-                                     ('Average', self._onAverageButton),
-                                     ('Subtract', self._onSubtractButton))
+        self.button_data = (
+            ('Save', self._onSaveButton),
+            ('Average', self._onAverageButton),
+            ('Subtract', self._onSubtractButton),
+            ('Guinier', self._onGuinierButton),
+            ('Mol. Weight', self._onMWButton),
+            ('Remove', self._onRemoveButton),
+            )
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
 
         self.panelsizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -7214,17 +7219,35 @@ class ManipulationPanel(wx.Panel):
         self.saveItems()
         event.Skip()
 
-    def _onSyncButton(self, event):
-        self.Sync()
-        event.Skip()
-
     def _onSubtractButton(self, event):
         mainworker_cmd_queue.put(['subtract_items', (self._star_marked_item, self.getSelectedItems())])
         event.Skip()
 
-    def _onSuperimposeButton(self, event):
-        self.Superimpose()
+    def _onGuinierButton(self, event):
+        selected_item_list = self.getSelectedItems()
+
+        if len(selected_item_list) == 0:
+            msg = ('You must select a profile to do a Guinier fit.')
+            wx.MessageBox(msg, 'Cannot open Guinier window', wx.OK|wx.ICON_INFORMATION)
+
+        else:
+            manip_item = selected_item_list[0]
+            sasm = manip_item.getSASM()
+            self.main_frame.showGuinierFitFrame(sasm, manip_item)
+
         event.Skip()
+
+    def _onMWButton(self, evt):
+        selected_item_list = self.getSelectedItems()
+
+        if len(selected_item_list) == 0:
+            msg = ('You must select a profile to show the Mol. Weight window.')
+            wx.MessageBox(msg, 'Cannot open Mol. Weight window', wx.OK|wx.ICON_INFORMATION)
+
+        else:
+            manip_item = selected_item_list[0]
+            sasm = manip_item.getSASM()
+            self.main_frame.showMolWeightFrame(sasm, manip_item)
 
     def Sync(self):
         star_item = self.getBackgroundItem()
@@ -8593,10 +8616,13 @@ class IFTPanel(wx.Panel):
         self.expParams = expParams
         self.raw_settings = raw_settings
         self.iftplot_panel = wx.FindWindowByName('IFTPlotPanel')
+        self.main_frame = wx.FindWindowByName('MainFrame')
 
-        self.buttons = (("Save", self._onSaveButton),
-                        ("Remove", self._onRemoveButton),
-                        ("Clear IFT Data", self._onClearList))
+        self.buttons = (
+            ("Save", self._onSaveButton),
+            ("Electron Density", self._onDENSSButton),
+            ("Remove", self._onRemoveButton),
+            )
 
         # /* INSERT WIDGETS */
 
@@ -8967,9 +8993,17 @@ class IFTPanel(wx.Panel):
 
         mainworker_cmd_queue.put(['save_iftitems', [save_path, selected_items]])
 
-    def _onClearList(self, evt):
-        self.iftplot_panel.clearAllPlots()
-        self.clearList()
+    def _onDENSSButton(self, event):
+        selected_item_list = self.getSelectedItems()
+
+        if len(selected_item_list) == 0:
+            msg = ('You must select an IFT to reconstruction electron density.')
+            wx.MessageBox(msg, 'Cannot open Electron Density window', wx.OK|wx.ICON_INFORMATION)
+
+        else:
+            iftm_item = selected_item_list[0]
+            iftm = iftm_item.getIFTM()
+            self.main_frame.showDenssFrame(iftm, iftm_item)
 
     def _CreateFileDialog(self, mode):
 
@@ -9699,6 +9733,7 @@ class SECPanel(wx.Panel):
         self.expParams = expParams
         self._raw_settings = raw_settings
         self.sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
+        self.main_frame = wx.FindWindowByName('MainFrame')
 
         self.all_manipulation_items = []
 
@@ -9717,9 +9752,12 @@ class SECPanel(wx.Panel):
                           'Final Buffer Frame'     : (self.NewControlId(), 'fbufframe'),
                           'Window Size'            : (self.NewControlId(), 'wsize')}
 
-        self.buttons = (("Save",self._onSaveButton),
-                        ("Remove", self._onRemoveButton),
-                        ("Clear Series Data", self._onClearList))
+        self.buttons = (
+            ("Save",self._onSaveButton),
+            ("LC Analysis",self._onLCButton),
+            ("EFA",self._onEFAButton),
+            ("Remove", self._onRemoveButton),
+            )
 
         # /* INSERT WIDGETS */
 
@@ -10129,14 +10167,29 @@ class SECPanel(wx.Panel):
                 if sasms:
                     mainworker_cmd_queue.put(['save_sec_profiles', [save_path, sasms]])
 
-    def _OnClearAll(self, evt):
-        plotpage = wx.FindWindowByName('SECPlotPanel')
-        plotpage.OnClear(0)
+    def _onLCButton(self, event):
+        selected_item_list = self.getSelectedItems()
 
-    def _onClearList(self, evt):
-        self.sec_plot_panel.clearAllPlots()
-        self.clearList()
+        if len(selected_item_list) == 0:
+            msg = ('You must select a Series to do LC Series analysis.')
+            wx.MessageBox(msg, 'Cannot open LC Series analysis window', wx.OK|wx.ICON_INFORMATION)
 
+        else:
+            series_item = selected_item_list[0]
+            seriesm = series_item.getSECM()
+            self.main_frame.showLCSeriesFrame(seriesm, series_item)
+
+    def _onEFAButton(self, event):
+        selected_item_list = self.getSelectedItems()
+
+        if len(selected_item_list) == 0:
+            msg = ('You must select a Series to do EFA.')
+            wx.MessageBox(msg, 'Cannot open EFA window', wx.OK|wx.ICON_INFORMATION)
+
+        else:
+            series_item = selected_item_list[0]
+            seriesm = series_item.getSECM()
+            self.main_frame.showEFAFrame(seriesm, series_item)
 
     def clearList(self):
         rest_of_items = []
@@ -10191,7 +10244,7 @@ class SECPanel(wx.Panel):
 
     def createButtons(self, panelsizer):
 
-        sizer = wx.GridSizer(cols=3, rows=int(np.ceil(len(self.buttons)/3.)), hgap=3, vgap=3)
+        sizer = wx.GridSizer(cols=4, hgap=3, vgap=3)
 
         #sizer.Add((10,10) ,1 , wx.EXPAND)
         for each in self.buttons:
@@ -13921,7 +13974,6 @@ class InformationPanel(scrolled.ScrolledPanel):
             try:
                 value = self.textRound(float(value), ctrl_round)
             except Exception:
-                traceback.print_exc()
                 value = ''
 
         elif ctrl_type == 'int':
@@ -13938,7 +13990,6 @@ class InformationPanel(scrolled.ScrolledPanel):
                 ctrl.SetItems(value)
 
         except Exception:
-            traceback.print_exc()
             pass
 
     def clearCtrl(self, ctrl_info):
