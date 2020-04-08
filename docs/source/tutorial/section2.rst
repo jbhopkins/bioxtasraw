@@ -6,7 +6,8 @@ Advanced processing
 This section will guide you through advanced processing of files in RAW. It includes:
 pair-distance distribution analysis using GNOM and BIFT methods, ambiguity assessment
 for shape reconstructions, 3D reconstructions with bead models and electron density,
-SEC-SAXS data deconvolution using singular value decomposition (SVD) and evolving factor
+aligning 3D reconstructions with PDB files, SEC-SAXS data deconvolution using
+singular value decomposition (SVD) and evolving factor
 analysis (EFA), and baseline corrections for SEC-SAXS data. It refers to the
 :ref:`RAW tutorial data <tutorialdata>`.
 

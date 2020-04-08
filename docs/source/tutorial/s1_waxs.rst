@@ -2,7 +2,7 @@ WAXS processing and merging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Several SAXS beamlines use two (or more) detectors to collect different q regions. For example,
-the MacCHESS G1 beamline uses dual Pilatus detectors to measure SAXS and WAXS from *q* ~0.008 – 0.75
+the MacCHESS G1 beamline used dual Pilatus detectors to measure SAXS and WAXS from *q* ~0.008 – 0.75
 Å\ :sup:`-1`\ . The SAXS detector has *q* ~< 0.25 Å\ :sup:`-1` and the wide-angle scattering
 (WAXS) data has *q* >~ 0.25 Å\ :sup:`-1`\ . All of the data that you have been working with
 so far has been SAXS data. Some experiments can make use of the WAXS data. In this part of the
@@ -24,7 +24,7 @@ tutorial you will learn the basics of processing it.
         named **S_A_lys2_A9_17_001_0000.dat**\ .
 
 #.  Move the SAXS scattering profile you just loaded to the bottom plot by right clicking
-    on it in the Manipulation list and selecting “Move to bottom plot.”
+    on it in the Profiles list and selecting “Move to bottom plot.”
 
 #.  The WAXS data is not on the same scale as the SAXS data. For this data, the known scale
     factor to apply is 0.000014 to the WAXS data.

@@ -2,9 +2,9 @@ Pair-distance distribution analysis – GNOM in RAW
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _s2p1:
 
-The first step in most advanced data processing is to calculate the P(r) function, the inverse
+The first step in most advanced data processing is to calculate the P(r) function, the
 Fourier transform of I(q). This cannot be calculated directly from the scattering profile, so
-indirect Fourier transform methods are typically used. The most common such method is implemented
+indirect Fourier transform (IFT) methods are typically used. The most common such method is implemented
 in the GNOM program from the ATSAS package. We will use RAW to run GNOM. Note that you need
 :ref:`ATSAS installed <atsas>` to do this part of the tutorial.
 

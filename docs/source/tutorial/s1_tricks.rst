@@ -3,7 +3,7 @@ A few additional tricks
 
 Here are some additional tricks that may make your life easier while using RAW:
 
-#.  If you click on a scattering profile in the main plot, the corresponding manipulation
+#.  If you click on a scattering profile in the Profiles plot, the corresponding Profiles
     list item will be highlighted.
 
 #.  You can save the workspace by going to File->Save Workspace. This will save all
